@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+
+project(Test)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+add_subdirectory(../ vengine)
+add_executable(TestExec main.cpp)
+target_link_libraries(TestExec vengine)
+
+# install(TARGETS libwave DESTINATION bin)
