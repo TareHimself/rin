@@ -2,27 +2,29 @@
 #include "vengine/Object.hpp"
 
 namespace vengine {
-namespace world {
-class World;
+namespace scene {
+class Scene;
 }
 }
 
 namespace vengine {
-namespace world {
+namespace scene {
   
 /**
  * \brief Base class for all object that exist in a world
  */
-class WorldObject : public Object {
+class SceneObject : public Object {
 
   bool bCanEverUpdate = false;
-  World * _world = nullptr;
+  Scene * _world = nullptr;
 public:
 
-  World * getWorld();
+  Scene * getScene();
 
   
-  void setWorld(World * newWorld);
+
+  
+  void setWorld(Scene * newWorld);
   
   virtual void update(float deltaTime);
 

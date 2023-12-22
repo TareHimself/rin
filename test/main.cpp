@@ -4,8 +4,8 @@
 #include <iostream>
 #include <ostream>
 #include <vengine/Engine.hpp>
-#include <vengine/world/World.hpp>
-#include <vengine/physics/rp3/RP3PhysicsInstance.hpp>
+#include <vengine/scene/Scene.hpp>
+#include <vengine/physics/rp3/RP3DScenePhysics.hpp>
 
 int main(int argc, char** argv){
     
@@ -13,7 +13,7 @@ int main(int argc, char** argv){
     try {
       const auto engine = new vengine::Engine();
       engine->setApplicationName("Test Application");
-      engine->addWorld(new vengine::world::World());
+      engine->addScene(new vengine::scene::Scene());
       engine->run();
     } catch (const std::exception& e) {
       std::cerr << e.what() << std::endl;

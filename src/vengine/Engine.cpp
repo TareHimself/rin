@@ -1,8 +1,7 @@
 #include <iostream>
 #include "Engine.hpp"
-
 #include "rendering/Renderer.hpp"
-#include "world/World.hpp"
+#include "scene/Scene.hpp"
 
 namespace vengine {
 
@@ -26,7 +25,7 @@ bool Engine::isRunning() {
 }
 
 bool Engine::shouldExit() {
-  return bExitRequested || glfwWindowShouldClose(window);
+  return bExitRequested;
 }
 
 void Engine::requestExit() {
@@ -34,63 +33,86 @@ void Engine::requestExit() {
 }
 
 void Engine::run() {
-  initRenderer();
   initWindow();
-  initWorlds();
+  initRenderer();
+  initScenes();
   
   bIsRunning = true;
   lastTickTime = now();
   
-  while (!shouldExit()) {
+  bool bShouldQuit = false;
+
+  while (!shouldExit() && !bShouldQuit) {
     const auto tickStart = now();
     const auto delta = tickStart - lastTickTime;
     runTime += delta;
     const auto deltaFloat = static_cast<float>(static_cast<double>(delta) / 1000.0);
-    glfwPollEvents();
+
+    SDL_Event e;
+    
+    while(SDL_PollEvent(&e) != 0){
+
+      if(e.type == SDL_QUIT){
+        bShouldQuit = true;
+        break;
+      }
+    }
     
     update(deltaFloat);
+
+    renderer->render();
   
     lastTickTime = tickStart;
   }
   bIsRunning = false;
-  destroyWindow();
   destroyWorlds();
   destroyRenderer();
+  destroyWindow();
+  
 }
 
-void Engine::addWorld(world::World *world) {
-  worlds.push_back(world);
+void Engine::addScene(scene::Scene *scene) {
+  scenes.push_back(scene);
   
   if(isRunning()) {
-    world->init();
+    scene->init();
   }
 }
 
-GLFWwindow * Engine::getWindow() {
+Array<scene::Scene *> Engine::getScenes() {
+  return scenes;
+}
+
+SDL_Window * Engine::getWindow() {
   return window;
 }
+
+vk::Extent2D Engine::getWindowExtent() { return windowExtent; }
 
 long long Engine::now() {
   return std::chrono::steady_clock::now().time_since_epoch().count() / 1000000;
 }
 
 void Engine::update(float deltaTime) {
-  for(const auto world : worlds) {
-    world->update(deltaTime);
+  for(const auto scene : scenes) {
+    scene->update(deltaTime);
   }
 }
 
 
 void Engine::initWindow() {
-  glfwInit();
+  SDL_Init(SDL_INIT_VIDEO);
 
-  glfwWindowHint(GLFW_CLIENT_API,GLFW_NO_API);
-  glfwWindowHint(GLFW_RESIZABLE,GLFW_FALSE);
+  const auto flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN);
 
-  const uint32_t WIDTH = 800;
-  const uint32_t HEIGHT = 600;
-
-  window = glfwCreateWindow(WIDTH, HEIGHT, getApplicationName().c_str(), nullptr, nullptr);
+  window = SDL_CreateWindow(
+    getApplicationName().c_str(),
+    SDL_WINDOWPOS_UNDEFINED,
+    SDL_WINDOWPOS_UNDEFINED,
+    windowExtent.x,
+    windowExtent.y,
+    flags
+  );
 }
 
 void Engine::initRenderer() {
@@ -99,14 +121,16 @@ void Engine::initRenderer() {
   renderer->init();
 }
 
-void Engine::initWorlds() {
-  for(const auto world : worlds) {
-    world->init();
+void Engine::initScenes() {
+  for(const auto scene : scenes) {
+    scene->init();
   }
 }
 
 void Engine::destroyWindow() {
-  glfwTerminate();
+  if(window != nullptr){
+    SDL_DestroyWindow(window);
+  }
 }
 
 void Engine::destroyRenderer() {
@@ -115,11 +139,11 @@ void Engine::destroyRenderer() {
 }
 
 void Engine::destroyWorlds() {
-  for(const auto world : worlds) {
-    world->destroy();
-    delete world;
+  for(const auto scene : scenes) {
+    scene->destroy();
+    delete scene;
   }
 
-  worlds.clear();
+  scenes.clear();
 }
 }

@@ -1,7 +1,12 @@
 #pragma once
-#include <GLFW/glfw3.h>
+#include "containers/Array.hpp"
+#include "containers/Vector2.hpp"
+
+#include <SDL2/SDL.h>
+#include <vulkan/vulkan.hpp>
 #include <chrono>
 #include <vector>
+#include <SDL2/SDL_video.h>
 
 namespace vengine {
 namespace rendering {
@@ -10,25 +15,27 @@ class Renderer;
 }
 
 namespace vengine {
-namespace world {
-class World;
-}
+namespace scene {
+class Scene;
 }
 
-namespace vengine {
 class Engine {
 
   Engine( Engine const&) = delete;
   Engine operator=(const Engine&) = delete;
+
   
-  GLFWwindow *window = nullptr;
+
+  Vector2 windowExtent{ 800, 600};
+
+  SDL_Window *window = nullptr;
   long long runTime = 0;
   long long lastTickTime = 0;
   std::string applicationName;
 
   rendering::Renderer * renderer = nullptr;
 
-  std::vector<world::World *> worlds;
+  Array<scene::Scene *> scenes;
 
   bool bExitRequested = false;
 
@@ -40,7 +47,7 @@ class Engine {
   
   void initRenderer();
 
-  void initWorlds();
+  void initScenes();
 
   void destroyWindow();
   
@@ -67,9 +74,13 @@ public:
   
   void run();
 
-  void addWorld(world::World * world);
+  void addScene(scene::Scene * scene);
 
-  GLFWwindow * getWindow();
+  Array<scene::Scene *> getScenes();
+
+  SDL_Window * getWindow();
+
+  vk::Extent2D getWindowExtent();
   
 private:
 

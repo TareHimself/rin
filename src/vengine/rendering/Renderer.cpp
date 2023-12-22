@@ -1,160 +1,279 @@
 ﻿#include "Renderer.hpp"
 
 #include "vengine/Engine.hpp"
+#include "vengine/utils.hpp"
+#include "vengine/scene/Scene.hpp"
 
-#include <set>
+#include <VkBootstrap.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
 
+#include <iostream>
+
+// we want to immediately abort when there is an error. In normal engines this
+// would give an error message to the user, or perform a dump of state.
+using namespace std;
+#define VULKAN_HPP_DISABLE_ENHANCED_MODE
+#define VK_CHECK(x)                                                            \
+  do {                                                                         \
+    VkResult err = x;                                                          \
+    if (err) {                                                                 \
+      std::cout << "Detected Vulkan error: " << err << std::endl;              \
+      abort();                                                                 \
+    }                                                                          \
+  } while (0)
 
 namespace vengine {
 namespace rendering {
+void Renderer::initSwapchain() {
+  vkb::SwapchainBuilder swapchainBuilder{gpu, device, surface};
 
+  const auto extent = getEngine()->getWindowExtent();
 
-void Renderer::createVulkanInstance() {
-  uint32_t version{0};
-  vkEnumerateInstanceVersion(&version);
+  vkb::Swapchain vkbSwapchain =
+      swapchainBuilder.use_default_format_selection()
+                      .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
+                      .set_desired_extent(extent.width, extent.height)
+                      .build()
+                      .value();
 
-  // Set patch to 0
-  version &= ~(0xFFFU);
+  swapchain = vkbSwapchain.swapchain;
+  
+  auto images = vkbSwapchain.get_images().value();
+  
+  for (auto &image : images) {
+    swapchainImages.emplace_back(image);
+  }
 
-  constexpr auto engineVersion = vk::makeVersion(1,0,0);
-  constexpr auto appVersion = vk::makeVersion(1,0,0);
+  
+  auto imageViews = vkbSwapchain.get_image_views().value();
+  for (auto &imageView : imageViews) {
+    swapchainImageViews.emplace_back(imageView);
+  }
 
-  const auto appInfo = vk::ApplicationInfo(
-      getEngine()->getApplicationName().c_str(), appVersion, "VEngine",engineVersion ,
-      version);
+  swapchainImageFormat = static_cast<vk::Format>(vkbSwapchain.image_format);
+}
 
-  uint32_t glfwExtensionCount = 0;
-  const auto glfwExtensions = glfwGetRequiredInstanceExtensions(
-      &glfwExtensionCount);
+void Renderer::initCommands() {
+  const auto commandPoolInfo = vk::CommandPoolCreateInfo(
+      vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), graphicsQueueFamily);
 
-  const std::vector extensions(glfwExtensions,
-                               glfwExtensions + glfwExtensionCount);
+  commandPool = device.createCommandPool(commandPoolInfo, nullptr);
 
-  const auto createInfo = vk::InstanceCreateInfo(vk::InstanceCreateFlags(), &appInfo,
-                                           0, nullptr,
-                                           static_cast<uint32_t>(extensions.
-                                             size()), extensions.data());
+  const auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo(
+      commandPool, vk::CommandBufferLevel::ePrimary,1);
 
-  try {
-    instance = vk::createInstance(createInfo, nullptr);
-  } catch (vk::SystemError err) {
-    throw std::runtime_error(
-        "Failed to create vulkan instance: \n" + std::string(err.what()));
+  mainCommandBuffer = device.allocateCommandBuffers(commandBufferAllocateInfo).
+                             at(0);
+}
+
+void Renderer::initDefaultRenderPass() {
+  auto colorAttachment = vk::AttachmentDescription(
+      vk::AttachmentDescriptionFlags(), swapchainImageFormat,
+      vk::SampleCountFlagBits::e1,
+      vk::AttachmentLoadOp::eClear,
+      vk::AttachmentStoreOp::eDontCare,
+      vk::AttachmentLoadOp::eDontCare,
+      vk::AttachmentStoreOp::eDontCare,
+      vk::ImageLayout::eUndefined,
+      vk::ImageLayout::ePresentSrcKHR);
+
+  auto colorAttachmentRef = vk::AttachmentReference(0,vk::ImageLayout::eColorAttachmentOptimal);
+
+  auto subpass = vk::SubpassDescription(vk::SubpassDescriptionFlags(),vk::PipelineBindPoint::eGraphics);
+
+  subpass.setColorAttachmentCount(1);
+  subpass.setColorAttachments({colorAttachmentRef});
+
+  const auto renderPassCreateInfo = vk::RenderPassCreateInfo(vk::RenderPassCreateFlags(),{colorAttachment},{subpass});
+
+  renderPass = device.createRenderPass(renderPassCreateInfo);
+}
+
+void Renderer::initFrameBuffers() {
+
+  const auto extent = getEngine()->getWindowExtent();
+  auto frameBufferInfo = vk::FramebufferCreateInfo(vk::FramebufferCreateFlags(),renderPass,{},extent.width,extent.height,1);
+
+  auto numImages = swapchainImages.size();
+  frameBuffers = std::vector<vk::Framebuffer>(numImages);
+  
+  for(int i = 0; i < numImages; i++) {
+    frameBufferInfo.setAttachments(swapchainImageViews[i]);
+    frameBuffers[i] = device.createFramebuffer(frameBufferInfo);
   }
 }
 
-void Renderer::pickPhysicalDevice() {
-  const auto devices = instance.enumeratePhysicalDevices();
-  for(const auto vkDevice : devices) {
+void Renderer::initSyncStructures() {
+  constexpr auto fenceCreateInfo = vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled);
+  
+  renderFence = device.createFence(fenceCreateInfo);
 
-    if(graphicsQueueInfo.has_value() && presentationQueueInfo.has_value()) {
-      break;
-    }
-    
-    //const auto properties = vkDevice.getProperties();
-    const auto features = vkDevice.getFeatures();
-    const auto queueFamilies = vkDevice.getQueueFamilyProperties();
-    
-    if(!features.geometryShader) {
-      continue;
-    }
+  constexpr auto semaphoreCreateInfo = vk::SemaphoreCreateInfo(vk::SemaphoreCreateFlags());
 
-    
-    uint32_t idx = 0;
-    
-    for(const auto queueFam : queueFamilies) {
-      if(graphicsQueueInfo.has_value() && presentationQueueInfo.has_value()) {
-        break;
-      }
-
-      if(!graphicsQueueInfo.has_value()) {
-        if(queueFam.queueFlags && VK_QUEUE_GRAPHICS_BIT) {
-          QueueInfo info;
-          info.familyIndex = idx;
-          info.queueCount = queueFam.queueCount;
-          graphicsQueueInfo = info;
-        }
-      }
-
-      if(!presentationQueueInfo.has_value()) {
-        if(vkDevice.getSurfaceSupportKHR(idx,surface)) {
-          QueueInfo info;
-          info.familyIndex = idx;
-          info.queueCount = queueFam.queueCount;
-          presentationQueueInfo = info;
-        }
-      }
-      
-      idx ++;
-        
-    }
-
-    if(graphicsQueueInfo.has_value() && presentationQueueInfo.has_value()) {
-      physicalDevice = vkDevice;
-      break;
-    } else {
-      graphicsQueueInfo.reset();
-      presentationQueueInfo.reset();
-    }
-  }
-
-  assert(graphicsQueueInfo.has_value() && presentationQueueInfo.has_value() && physicalDevice == nullptr,"Failed to select a graphic device");
+  presentSemaphore = device.createSemaphore(semaphoreCreateInfo);
+  renderSemaphore = device.createSemaphore(semaphoreCreateInfo);
+  
 }
 
-void Renderer::createQueues() {
-  assert(graphicsQueueInfo.has_value() && presentationQueueInfo.has_value(),"Invalid Queue info");
-  
-  std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-  
-  const std::set uniqueQueueFamilies = { graphicsQueueInfo->familyIndex, presentationQueueInfo->familyIndex};
-  
-  for(const auto queueFamily : uniqueQueueFamilies) {
-    auto queueCreateInfo = vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags(),queueFamily,static_cast<uint32_t>(1));
-    queueCreateInfos.push_back(queueCreateInfo);
-  }
-  
-  const auto deviceCreateInfo = vk::DeviceCreateInfo(vk::DeviceCreateFlags(),queueCreateInfos);
-  
-  virtualDevice = physicalDevice.createDevice(deviceCreateInfo);
-  graphicsQueue = virtualDevice.getQueue(graphicsQueueInfo->familyIndex,0);
-  presentationQueue = virtualDevice.getQueue(presentationQueueInfo->familyIndex,0);
-}
+void Renderer::setEngine(Engine *newEngine) { _engine = newEngine; }
 
-void Renderer::createSurface() {
-  VkSurfaceKHR rawSurf;
-  if(glfwCreateWindowSurface(instance,getEngine()->getWindow(),nullptr,&rawSurf) != VK_SUCCESS) {
-    throw std::runtime_error(
-        "Failed to create surface");
-  }
-  surface = rawSurf;
-}
-
-void Renderer::setEngine(Engine *newEngine) {
-  _engine = newEngine;
-}
-
-Engine *Renderer::getEngine() {
-  return _engine;
-}
+Engine *Renderer::getEngine() { return _engine; }
 
 void Renderer::init() {
   Object::init();
-  createVulkanInstance();
-  pickPhysicalDevice();
-  createQueues();
+  vkb::InstanceBuilder builder;
+
+  auto instanceResult =
+      builder.set_app_name(getEngine()->getApplicationName().c_str())
+             .request_validation_layers(true)
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+            .use_default_debug_messenger()
+#endif
+             .build();
+
+  auto vkbInstance = instanceResult.value();
+  instance = vkbInstance.instance;
+
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+  debugMessenger = vkbInstance.debug_messenger;
+#endif
+  
+  auto window = getEngine()->getWindow();
+
+  VkSurfaceKHR tempSurf;
+
+  SDL_Vulkan_CreateSurface(window, instance, &tempSurf);
+
+  surface = tempSurf;
+
+  vkb::PhysicalDeviceSelector selector{vkbInstance};
+  vkb::PhysicalDevice physicalDevice =
+      selector.set_surface(surface).select().value();
+
+  vkb::DeviceBuilder deviceBuilder{physicalDevice};
+
+  vkb::Device vkbDevice = deviceBuilder.build().value();
+
+  device = vkbDevice.device;
+
+  gpu = physicalDevice.physical_device;
+
+  graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
+
+  graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).
+                                  value();
+
+  initSwapchain();
+
+  initCommands();
+
+  initDefaultRenderPass();
+
+  initFrameBuffers();
+
+  initSyncStructures();
 }
 
 void Renderer::destroy() {
   Object::destroy();
-  instance.destroySurfaceKHR(surface,nullptr);
-  surface = nullptr;
-  virtualDevice.destroy();
-  virtualDevice = nullptr;
-  graphicsQueue = nullptr;
-  physicalDevice = nullptr;
+
+  // Wait for last draw to complete
+  vk::resultCheck(device.waitForFences({renderFence},true,1000000000),"Wait For Fences Failed");
+
+  device.destroySemaphore(renderSemaphore);
+  
+  device.destroySemaphore(presentSemaphore);
+
+  device.destroyFence(renderFence);
+
+  device.destroyRenderPass(renderPass);
+
+  for(int i = 0; i < frameBuffers.size(); i++) {
+    device.destroyFramebuffer(frameBuffers[i]);
+    device.destroyImageView(swapchainImageViews[i]);
+  }
+
+  
+  device.destroyCommandPool(commandPool);
+
+  device.destroySwapchainKHR(swapchain);
+
+  device.destroy();
+
+  instance.destroySurfaceKHR(surface);
+
+#ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
+  instance.destroyDebugUtilsMessengerEXT(debugMessenger);
+#endif
+
   instance.destroy();
-  instance = nullptr;
 }
 
+void Renderer::addViewport(Viewport *viewport) {
+  viewports.push_back(viewport);
 }
+
+void Renderer::removeViewport(const Viewport * viewport) {
+
+  for(auto i = 0; i < viewports.size(); i++) {
+    if(viewports[i] == viewport) {
+      viewports.remove(i);
+      break;
+    }
+  }
 }
+
+void Renderer::render() {
+
+  // Start Render Pass
+  vk::resultCheck(device.waitForFences({renderFence},true,1000000000),"Wait For Fences Failed");
+
+  device.resetFences({renderFence});
+  //vk::resultCheck(device.resetFences(renderFence,true,1000000000),"Reset Fences Failed");
+
+  uint32_t swapchainImageIndex;
+  vk::resultCheck(device.acquireNextImageKHR(swapchain,1000000000,presentSemaphore,nullptr,&swapchainImageIndex),"Acquire Next Image Failed");
+  
+  mainCommandBuffer.reset();
+
+  const auto cmd = mainCommandBuffer;
+
+  constexpr auto commandBeginInfo = vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+  
+  cmd.begin(commandBeginInfo);
+  
+  auto clearValue = vk::ClearValue({0.0f,0.0f,0.0f, 0.0f});
+  
+  const auto extent = getEngine()->getWindowExtent();
+  // std::cout << "BEFORE RENDER PASS INFO " << frameBuffers[swapchainImageIndex] << std::endl;
+  const auto renderPassInfo = vk::RenderPassBeginInfo(renderPass,frameBuffers[swapchainImageIndex],{vk::Offset2D {0,0},extent},clearValue);
+  // Begin pass
+  cmd.beginRenderPass(renderPassInfo,vk::SubpassContents::eInline);
+  
+  //Actual Rendering
+  for(const auto scene : getEngine()->getScenes()) {
+    scene->render(&cmd);
+  }
+  
+  // Finalize Render Pass
+  cmd.endRenderPass();
+
+  // Cant add commands anymore
+  cmd.end();
+
+  // Submit to queue
+  auto waitDstStageMask = vk::PipelineStageFlags(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+
+  const auto submitInfo = vk::SubmitInfo({presentSemaphore},{waitDstStageMask},{cmd},{renderSemaphore});
+
+  vk::resultCheck(graphicsQueue.submit(1,&submitInfo,renderFence),"Failed to submit commands");
+
+  auto presentInfo = vk::PresentInfoKHR({renderSemaphore},{swapchain},{swapchainImageIndex});
+
+  vk::resultCheck(graphicsQueue.presentKHR(presentInfo),"Failed to Present");
+
+  frameCount++;
+}
+} // namespace rendering
+} // namespace vengine

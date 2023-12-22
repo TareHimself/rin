@@ -1,10 +1,11 @@
 ﻿#pragma once
+#include "vengine/physics/ScenePhysics.hpp"
 #include <reactphysics3d/reactphysics3d.h>
-#include <vengine/physics/PhysicsInstance.hpp>
+
 
 namespace vengine {
 namespace physics {
-class RP3PhysicsInstance : public PhysicsInstance {
+class RP3DScenePhysics : public ScenePhysics {
   
   
   rp3d::PhysicsWorld * phys = nullptr;
@@ -16,7 +17,8 @@ public:
 
   void destroy() override;
 
-  void update(float deltaTime) override;
+  void fixedUpdate(float deltaTime) override;
+  
 };
 }
 }

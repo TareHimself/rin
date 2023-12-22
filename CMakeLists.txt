@@ -16,8 +16,8 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${INCLUDE_FILES})
 
 set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
 
-GetGlfw(3.3.8 GLFW_DIR)
-list(APPEND CMAKE_PREFIX_PATH ${GLFW_DIR}/lib/cmake)
+GetSDL(release-2.28.5 SDL_DIR)
+list(APPEND CMAKE_PREFIX_PATH ${SDL_DIR}/cmake)
 
 GetGlm(0.9.9.8 GLM_DIR)
 list(APPEND CMAKE_PREFIX_PATH ${GLM_DIR}/cmake)
@@ -25,21 +25,63 @@ list(APPEND CMAKE_PREFIX_PATH ${GLM_DIR}/cmake)
 GetReactPhys(master REACT_PHYS_DIR)
 list(APPEND CMAKE_PREFIX_PATH ${REACT_PHYS_DIR}/lib/cmake)
 
+GetVkBootstrap(v1.3.273 VK_BOOTSTRAP_DIR)
+
+GetVulkanMemoryAllocator(v3.0.1 VK_MEMORY_ALLOCATOR_DIR)
+list(APPEND CMAKE_PREFIX_PATH ${VK_MEMORY_ALLOCATOR_DIR})
+
+GetGLSL(14.0.0 GLSL_DIR)
+list(APPEND CMAKE_PREFIX_PATH ${GLSL_DIR}/lib/cmake)
+list(APPEND CMAKE_PREFIX_PATH ${GLSL_DIR}/lib/cmake/glslang)
 
 find_package(Vulkan REQUIRED)
 find_package(glm REQUIRED)
-find_package(glfw3 REQUIRED)
+find_package(SDL2 REQUIRED)
 find_package(ReactPhysics3D REQUIRED)
+find_package(glslang REQUIRED)
+add_subdirectory(${VK_BOOTSTRAP_DIR} vk-bootstrap)
 
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src ${Vulkan_INCLUDE_DIRS} ${GLFW_DIR}/include ${GLM_DIR}/glm ${REACT_PHYS_DIR}/include)
+file(GLOB VK_BOOTSTRAP_INCLUDE "${VK_BOOTSTRAP_DIR}/*.h")
 
-file(GLOB GLFW_LIB "${GLFW_DIR}/lib/*.lib")
-file(GLOB REACT_PHYS_LIB "${REACT_PHYS_DIR}/lib/*.lib")
+target_include_directories(${PROJECT_NAME} 
+    PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src 
+    ${Vulkan_INCLUDE_DIRS} 
+    ${SDL2_INCLUDE_DIRS}
+    ${GLM_DIR}/include 
+    ${REACT_PHYS_DIR}/include 
+    ${VK_BOOTSTRAP_INCLUDE} 
+    ${VK_MEMORY_ALLOCATOR_DIR}
+    ${GLSL_DIR}/include
+)
 
-target_link_directories(${PROJECT_NAME} PUBLIC ${Vulkan_LIBRARIES} ${GLFW_LIB} ${REACT_PHYS_LIB})
+# file(GLOB SDL2_LIB "${SDL_DIR}/lib/*")
+# file(GLOB REACT_PHYS_LIB "${REACT_PHYS_DIR}/lib/*")
+# file(GLOB VK_MEMORY_ALLOCATOR_LIB "${VK_MEMORY_ALLOCATOR_DIR}/lib/*")
 
-target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan glfw ReactPhysics3D::ReactPhysics3D)
+# target_link_directories(${PROJECT_NAME} 
+#     PUBLIC 
+#     ${Vulkan_LIBRARIES} 
+#     ${REACT_PHYS_LIB} 
+#     ${VK_MEMORY_ALLOCATOR_LIB}
+# )
+
+file(GLOB VK_MEMORY_ALLOCATOR_LIB "${VK_MEMORY_ALLOCATOR_DIR}/lib/*")
+
+target_link_directories(${PROJECT_NAME} 
+    PUBLIC 
+    ${VK_MEMORY_ALLOCATOR_LIB}
+)
+
+target_link_libraries(${PROJECT_NAME} 
+    Vulkan::Vulkan 
+    SDL2::SDL2
+    SDL2::SDL2main
+    ReactPhysics3D::ReactPhysics3D 
+    vk-bootstrap::vk-bootstrap
+    glslang::glslang
+)
 
 
 
