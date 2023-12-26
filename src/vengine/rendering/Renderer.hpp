@@ -1,8 +1,11 @@
 ﻿#pragma once
+#include "ShaderCompiler.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/containers/Array.hpp"
+#include <filesystem>
 
-#include <optional>
+#include <glslang/Public/ShaderLang.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 #include <vulkan/vulkan.hpp>
 
 namespace vengine {
@@ -34,7 +37,7 @@ struct QueueInfo {
   uint32_t familyIndex = 0;
   uint32_t queueCount = 0;
 };
-class Renderer : public Object {
+class Renderer : public Object<Engine> {
 
   long long frameCount = 0;
   
@@ -49,8 +52,8 @@ class Renderer : public Object {
   vk::SurfaceKHR surface = nullptr;
   vk::SwapchainKHR swapchain = nullptr;
   vk::Format swapchainImageFormat = vk::Format::eUndefined;
-  std::vector<vk::Image> swapchainImages;
-  std::vector<vk::ImageView> swapchainImageViews;
+  Array<vk::Image> swapchainImages;
+  Array<vk::ImageView> swapchainImageViews;
 
   vk::Queue graphicsQueue = nullptr;
   uint32_t graphicsQueueFamily = -1;
@@ -60,16 +63,16 @@ class Renderer : public Object {
 
   vk::RenderPass renderPass = nullptr;
 
-  std::vector<vk::Framebuffer> frameBuffers;
+  Array<vk::Framebuffer> frameBuffers;
+
+  Array<vk::ShaderModule> shaders;
 
   vk::Semaphore presentSemaphore, renderSemaphore;
   vk::Fence renderFence;
 
-  Array<Viewport *> viewports;
+  vk::PipelineLayout pipelineLayout;
 
-  Engine *_engine = nullptr;
-
-  
+  vk::Pipeline pipeline;
 
 protected:
 
@@ -82,16 +85,22 @@ protected:
   void initFrameBuffers();
 
   void initSyncStructures();
+
+  void initPipelineLayout();
+
+  void initPipelines();
+
+  
   
 public:
-  void setEngine(Engine *newEngine);
-  Engine *getEngine();
-  void init() override;
-  void destroy() override;
+  
+  vk::ShaderModule loadShaderFromPath(const std::filesystem::path &shaderName);
+  
+  ShaderCompiler * shaderCompiler = nullptr;
+  Engine *getEngine() const;
 
-  void addViewport(Viewport * viewport);
-
-  void removeViewport(const Viewport * viewport);
+  void init(Engine *outer) override;
+  void onCleanup() override;
 
   virtual void render();
 };

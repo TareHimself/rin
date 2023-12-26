@@ -1,12 +1,21 @@
 #pragma once
+//#define SDL_MAIN_HANDLED
+#include "Object.hpp"
+
+#include <SDL2/SDL.h>
 #include "containers/Array.hpp"
 #include "containers/Vector2.hpp"
-
 #include <SDL2/SDL.h>
 #include <vulkan/vulkan.hpp>
 #include <chrono>
 #include <vector>
 #include <SDL2/SDL_video.h>
+
+namespace vengine {
+namespace input {
+class InputManager;
+}
+}
 
 namespace vengine {
 namespace rendering {
@@ -19,14 +28,14 @@ namespace scene {
 class Scene;
 }
 
-class Engine {
+class Engine : public Object<void> {
 
   Engine( Engine const&) = delete;
   Engine operator=(const Engine&) = delete;
 
   
 
-  Vector2 windowExtent{ 800, 600};
+  Vector2 windowExtent{ 500, 1000};
 
   SDL_Window *window = nullptr;
   long long runTime = 0;
@@ -34,6 +43,8 @@ class Engine {
   std::string applicationName;
 
   rendering::Renderer * renderer = nullptr;
+
+  input::InputManager * inputManager = nullptr;
 
   Array<scene::Scene *> scenes;
 
@@ -44,31 +55,30 @@ class Engine {
   void update(float deltaTime);
   
   void initWindow();
+
+  void initInputManager();
   
   void initRenderer();
 
   void initScenes();
 
-  void destroyWindow();
   
-  void destroyRenderer();
-
-  void destroyWorlds();
   
 public:
 
+  void init(void *outer) override;
   static long long now();
   
   Engine();
-  ~Engine();
+  ~Engine() override;
 
-  void setApplicationName(std::string newName);
+  void setApplicationName(const std::string &newName);
 
   std::string getApplicationName();
 
-  bool isRunning();
+  bool isRunning() const;
 
-  bool shouldExit();
+  bool shouldExit() const;
 
   void requestExit();
   
@@ -78,9 +88,13 @@ public:
 
   Array<scene::Scene *> getScenes();
 
-  SDL_Window * getWindow();
+  SDL_Window * getWindow() const;
 
-  vk::Extent2D getWindowExtent();
+  vk::Extent2D getWindowExtent() const;
+
+  rendering::Renderer * getRenderer() const;
+
+  input::InputManager * getInputManager() const;
   
 private:
 

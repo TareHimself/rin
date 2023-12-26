@@ -1,19 +1,11 @@
 ﻿#include "Component.hpp"
+#include <vengine/scene/SceneObject.hpp>
 
 namespace vengine {
 namespace scene {
-void Component::init() {
-  Object::init();
-  
-}
 
-void Component::init(SceneObject *owningObject) {
-  owner = owningObject;
-  init();
-}
-
-SceneObject * Component::getOwner() {
-  return owner;
+void Component::init(SceneObject * owner) {
+  Object::init(owner);
 }
 }
 }

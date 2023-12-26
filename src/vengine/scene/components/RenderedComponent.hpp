@@ -4,14 +4,17 @@
 #include <vulkan/vulkan.hpp>
 
 namespace vengine {
+namespace rendering {
+class Renderer;
+}
+}
+
+namespace vengine {
 namespace scene {
 class RenderedComponent : public Component {
 public:
   
-  virtual void render(const vk::CommandBuffer *cmd);
+  virtual void render(rendering::Renderer * renderer,const vk::CommandBuffer *cmd);
 };
-
-inline void RenderedComponent::render(const vk::CommandBuffer *cmd) {
-}
 }
 }

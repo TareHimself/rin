@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
-
+set(CMAKE_CXX_STANDARD 20)
 project(Test)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_subdirectory(../ vengine)
-add_executable(TestExec main.cpp)
-target_link_libraries(TestExec vengine)
+add_executable(Standalone main.cpp)
+target_link_libraries(Standalone vengine)
 
+install(FILES $<TARGET_RUNTIME_DLLS:Standalone> TYPE BIN)
 # install(TARGETS libwave DESTINATION bin)

@@ -7,6 +7,7 @@
 
 namespace vengine {
 namespace rendering {
+class Renderer;
 class Viewport;
 }
 
@@ -22,20 +23,18 @@ class CameraComponent;
 /**
  * \brief Base class for worlds
  */
-  class Scene : public Object {
+  class Scene : public Object<Engine> {
     physics::ScenePhysics * physics = nullptr;
-    Engine * _engine = nullptr;
     CameraComponent * activeCamera = nullptr;
-    Array<SceneObject> objects;
+    Array<SceneObject *> objects;
     
   public:
-      void setEngine(Engine *newEngine);
-      Engine *getEngine();
+      Engine *getEngine() const;
     
-      void init() override;
-      void destroy() override;
+      void init(Engine *outer) override;
+      void onCleanup() override;
 
-      virtual void render(const vk::CommandBuffer *cmd);
+      virtual void render(rendering::Renderer * renderer,const vk::CommandBuffer *cmd);
       /**
        * \brief Called every tick
        */

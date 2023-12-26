@@ -9,15 +9,11 @@ class SceneObject;
 
 namespace vengine {
 namespace scene {
-class Component : public Object{
+class Component : public Object<SceneObject>{
 
   SceneObject * owner = nullptr;
 public:
-  void init() override;
-
-  virtual void init(SceneObject * owningObject);
-
-  SceneObject * getOwner();
+  virtual void init(SceneObject * owner) override;
 
   virtual void update(float deltaTime);
 };

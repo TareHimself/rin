@@ -1,47 +1,48 @@
 #include "Scene.hpp"
 #include "vengine/Engine.hpp"
+#include "vengine/input/InputManager.hpp"
+#include "vengine/input/KeyInputEvent.hpp"
 #include "vengine/physics/rp3/RP3DScenePhysics.hpp"
-#include <iostream>
+#include <vengine/scene/SceneObject.hpp>
 
 namespace vengine {
 namespace scene {
 
 
-void Scene::setEngine(Engine *newEngine) {
-  _engine = newEngine;
+Engine * Scene::getEngine() const {
+  return getOuter();
 }
 
-Engine * Scene::getEngine() {
-  return _engine;
-}
-
-void Scene::init() {
-  Object::init();
+void Scene::init(Engine *outer) {
+  Object::init(outer);
   physics = createPhysicsInstance();
-  physics->setWorld(this);
-  physics->init();
+  physics->init(this);
+  auto unsubscribe = getEngine()->getInputManager()->onReleased(SDLK_1,[=] (const input::KeyInputEvent &e){
+    log::engine->info("Key Pressed " + e.getName());
+    return false;
+  });
 }
 
-void Scene::destroy() {
-  Object::destroy();
-  physics->destroy();
-  delete physics;
+void Scene::onCleanup() {
+  Object::onCleanup();
+  physics->cleanup();
   physics = nullptr;
 }
 
-void Scene::render(const vk::CommandBuffer *cmd) {
-  
+void Scene::render(rendering::Renderer * renderer,const vk::CommandBuffer *cmd) {
+  for(const auto object : objects) {
+    object->render(renderer,cmd);
+  }
 }
 
 void Scene::update(float deltaTime) {
   if(physics != nullptr) {
     physics->fixedUpdate(0.2f);
   }
-  std::cout << "World Tick Delta " << deltaTime << std::endl;
 }
 
 physics::ScenePhysics * Scene::createPhysicsInstance() {
-  return new physics::RP3DScenePhysics();
+  return newObject<physics::RP3DScenePhysics>();
 }
 }
 }

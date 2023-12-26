@@ -8,10 +8,10 @@ function(Fetch REPOSITORY BRANCH DESTINATION)
 endfunction()
 
 function(GetBuildExt B_EXT)
-  if("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-    set(${B_EXT} "" PARENT_SCOPE)
-  else()
+  if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(${B_EXT} "_debug" PARENT_SCOPE)
+  else()
+    set(${B_EXT} "" PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -19,10 +19,10 @@ function(FetchAndBuild REPOSITORY BRANCH BUILD_DEST TEMP_DEST PRE_BUILD_FN BUILD
   if(NOT EXISTS ${BUILD_DEST})
     set(CLONED_DIR ${TEMP_DEST})
     
-    if("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-      set(LOCAL_BUILD_TYPE "Release")
-    else()
+    if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
       set(LOCAL_BUILD_TYPE "Debug")
+    else()
+      set(LOCAL_BUILD_TYPE "Release")
     endif()
 
     set(BUILD_DIR ${CLONED_DIR}/build/${LOCAL_BUILD_TYPE})
@@ -51,6 +51,7 @@ function(FetchAndBuild REPOSITORY BRANCH BUILD_DEST TEMP_DEST PRE_BUILD_FN BUILD
   endif()
 endfunction()
 
+# Fetches and builds a dependency
 function(BuildThirdPartyDep FOLDER_NAME REPOSITORY VERSION RESULT PRE_BUILD_FN BUILD_ARGS)
   GetBuildExt(BUILD_EXT)
   set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
@@ -61,32 +62,61 @@ function(BuildThirdPartyDep FOLDER_NAME REPOSITORY VERSION RESULT PRE_BUILD_FN B
   set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
 endfunction()
 
-function(GetVulkanMemoryAllocator VERSION RESULT)
+
+# Miniz
+macro(GetMiniz VERSION RESULT)
+
+  BuildThirdPartyDep(miniz https://github.com/richgel999/miniz ${VERSION} RESULT_DIR "" "")
+
+  set(${RESULT} ${RESULT_DIR})
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/miniz)
+endmacro()
+
+# OpenFBX
+macro(GetTinyObjLoader VERSION RESULT)
+
+  BuildThirdPartyDep(tinyol https://github.com/tinyobjloader/tinyobjloader ${VERSION} RESULT_DIR "" "")
+
+  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/tinyobjloader/cmake)
+endmacro()
+
+# VulkanMemoryAllocator
+macro(GetVulkanMemoryAllocator VERSION RESULT)
 
   BuildThirdPartyDep(vkm https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator ${VERSION} RESULT_DIR "" "")
 
   set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
-endfunction()
+endmacro()
 
-function(GetGLSL VERSION RESULT)
+# GLSL
+macro(GetGLSL VERSION RESULT)
   function(UpdateGlslDeps CLONED_PATH)
     execute_process(
       COMMAND python update_glslang_sources.py
       WORKING_DIRECTORY ${CLONED_PATH}
     )
+    
   endfunction()
 
   function(BuildGlsl B_TYPE B_SRC B_DEST)
     execute_process(
-      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DSKIP_SPIRV_TOOLS_INSTALL=ON -DENABLE_GLSLANG_BINARIES=OFF -S ${B_SRC} -B ${B_DEST}
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DENABLE_GLSLANG_BINARIES=OFF -S ${B_SRC} -B ${B_DEST}
     )
   endfunction()
+
   BuildThirdPartyDep(glslang https://github.com/KhronosGroup/glslang ${VERSION} RESULT_DIR "UpdateGlslDeps" "BuildGlsl")
 
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/glslang)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/)
   set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
-endfunction()
+endmacro()
 
-function(GetVkBootstrap VERSION RESULT)
+# VkBootstrap
+macro(GetVkBootstrap VERSION RESULT)
 
   set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
   set(VK_BOOTSTRAP_DIR ${THIRD_PARTY_DIR}/vkb)
@@ -94,33 +124,74 @@ function(GetVkBootstrap VERSION RESULT)
   Fetch(https://github.com/charles-lunarg/vk-bootstrap ${VERSION} ${VK_BOOTSTRAP_DIR})
 
   set(${RESULT} ${VK_BOOTSTRAP_DIR} PARENT_SCOPE)
-endfunction()
+endmacro()
 
-function(GetSDL VERSION RESULT)
+# XXHash
+macro(GetXXHash VERSION RESULT)
+
+  function(BuildXXHash B_TYPE B_SRC B_DEST)
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DXXHASH_BUILD_XXHSUM=OFF -S ${B_SRC}/cmake_unofficial -B ${B_DEST}
+    )
+  endfunction()
+
+  BuildThirdPartyDep(xxhash https://github.com/Cyan4973/xxHash ${VERSION} RESULT_DIR "" "BuildXXHash")
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+endmacro()
+
+# FMT
+macro(GetFmt VERSION RESULT)
+
+  BuildThirdPartyDep(fmt https://github.com/fmtlib/fmt ${VERSION} RESULT_DIR "" "")
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+endmacro()
+
+# spdlog
+macro(GetSpdLog VERSION RESULT)
+
+  BuildThirdPartyDep(spdlog https://github.com/gabime/spdlog ${VERSION} RESULT_DIR "" "")
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+endmacro()
+
+# SDL
+macro(GetSDL VERSION RESULT)
 
   BuildThirdPartyDep(sdl https://github.com/libsdl-org/SDL ${VERSION} RESULT_DIR "" "")
-  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
-endfunction()
 
-function(GetGlm VERSION RESULT)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/cmake)
+  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+endmacro()
+
+# GLM
+macro(GetGlm VERSION RESULT)
 
   set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
   set(GLM_DIR ${THIRD_PARTY_DIR}/glm)
 
   if(NOT EXISTS ${GLM_DIR})
-    set(DOWNLOADED_FILE ${CMAKE_CURRENT_BINARY_DIR}/sdl.zip)
+    set(DOWNLOADED_FILE ${CMAKE_CURRENT_BINARY_DIR}/glm.zip)
 
     file(DOWNLOAD https://github.com/g-truc/glm/releases/download/${VERSION}/glm-${VERSION}.zip ${DOWNLOADED_FILE} SHOW_PROGRESS)
 
     file(ARCHIVE_EXTRACT INPUT ${DOWNLOADED_FILE} DESTINATION ${THIRD_PARTY_DIR})
   endif()
 
+  list(APPEND CMAKE_PREFIX_PATH ${GLM_DIR}/cmake/glm)
   set(${RESULT} ${GLM_DIR} PARENT_SCOPE)
-endfunction()
+endmacro()
 
-function(GetReactPhys VERSION RESULT)
+# ReactPhysics3D
+macro(GetReactPhys VERSION RESULT)
 
   BuildThirdPartyDep(rp3d https://github.com/DanielChappuis/reactphysics3d ${VERSION} RESULT_DIR "" "")
 
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+
   set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
-endfunction()
+endmacro()
