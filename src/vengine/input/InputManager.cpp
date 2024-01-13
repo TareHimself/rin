@@ -13,7 +13,7 @@ void InputManager::receiveKeyPressedEvent(const SDL_KeyboardEvent &event) {
 
     const KeyInputEvent keyEvent(event);
     
-    for(const auto handler : keySpecificReleasedHandlers[keyCode]) {
+    for(const auto &handler : keySpecificReleasedHandlers[keyCode]) {
       if(handler(keyEvent)) {
         break;
       }
@@ -28,7 +28,7 @@ void InputManager::receiveKeyReleasedEvent(const SDL_KeyboardEvent &event) {
 
     const KeyInputEvent keyEvent(event);
     
-    for(const auto handler : keySpecificPressedHandlers[keyCode]) {
+    for(const auto &handler : keySpecificPressedHandlers[keyCode]) {
       if(handler(keyEvent)) {
         break;
       }

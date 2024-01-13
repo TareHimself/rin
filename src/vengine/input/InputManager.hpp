@@ -3,7 +3,7 @@
 #include "vengine/containers/Set.hpp"
 
 #include <map>
-#include <SDL2/SDL_events.h>
+#include <SDL3/SDL_events.h>
 
 namespace vengine {
 class Engine;

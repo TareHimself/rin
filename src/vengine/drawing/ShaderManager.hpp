@@ -2,27 +2,32 @@
 #include "vengine/Object.hpp"
 #include "vengine/containers/Array.hpp"
 #include "vengine/containers/Set.hpp"
-
-#include <string>
 #include <filesystem>
+#include <map>
 #include <glslang/Public/ShaderLang.h>
-#include <vulkan/vulkan.hpp>
 
 namespace vengine {
-namespace rendering {
-class Renderer;
+namespace drawing {
+class Shader;
 }
 }
 
 namespace vengine {
-namespace rendering {
+namespace drawing {
+class Drawer;
+}
+}
+
+namespace vengine {
+namespace drawing {
 
 
-class ShaderInc : public glslang::TShader::Includer {
-  std::filesystem::path path;
+class GlslShaderIncluder : public glslang::TShader::Includer {
+  std::filesystem::path sourceFilePath;
   Set<IncludeResult *> results;
+  bool bDebug = false;
 public:
-  ShaderInc(const std::filesystem::path &inPath);
+  GlslShaderIncluder(const std::filesystem::path &inPath);
 
 
   IncludeResult *includeSystem(const char*filePath, const char *includerName, size_t inclusionDepth) override;
@@ -30,25 +35,34 @@ public:
 
   void releaseInclude(IncludeResult *result) override;
 
-  ~ShaderInc() override;
+  ~GlslShaderIncluder() override;
   
 };
 
 
-class ShaderCompiler : public Object<Renderer> {
+class ShaderManager : public Object<Drawer> {
+
+  std::map<std::filesystem::path,Shader *> _shaders;
+  
 public:
   
   static EShLanguage getLang(const std::filesystem::path &shaderPath);
+
+  bool hasLoadedShader(const std::filesystem::path &shaderPath) const;
+
+  Shader * getLoadedShader(const std::filesystem::path &shaderPath) const;
   
   Array<unsigned int> compile(const std::filesystem::path &shaderPath) const;
 
   Array<unsigned int> compileAndSave(const std::filesystem::path &shaderPath) const;
   
-  Array<unsigned int> loadShader(const std::filesystem::path &shaderPath) const;
+  Array<unsigned int> loadOrCompileSpv(const std::filesystem::path &shaderPath) const;
 
-  void init(Renderer *outer) override;
+  Shader * registerShader(Shader * shader);
 
-  void onCleanup() override;
+  void init(Drawer *outer) override;
+
+  void handleCleanup() override;
 };
 }
 }

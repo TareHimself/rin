@@ -55,13 +55,57 @@ endfunction()
 function(BuildThirdPartyDep FOLDER_NAME REPOSITORY VERSION RESULT PRE_BUILD_FN BUILD_ARGS)
   GetBuildExt(BUILD_EXT)
   set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
-  set(RESULT_DIR ${THIRD_PARTY_DIR}/${FOLDER_NAME}${BUILD_EXT})
+  set(RESULT_DIR ${THIRD_PARTY_DIR}/${FOLDER_NAME}_${VERSION}${BUILD_EXT})
   set(CLONE_DIR ${CMAKE_CURRENT_BINARY_DIR}/${FOLDER_NAME})
 
   FetchAndBuild(${REPOSITORY} ${VERSION} ${RESULT_DIR} ${CLONE_DIR} "${PRE_BUILD_FN}" "${BUILD_ARGS}")
   set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
 endfunction()
 
+# VulkanMemoryAllocator
+macro(GetImGui VERSION RESULT)
+  set(OUT_DIR ${THIRD_PARTY_DIR}/imgui_${VERSION})
+
+  if(NOT EXISTS ${OUT_DIR})
+    Fetch(https://github.com/ocornut/imgui ${VERSION} ${OUT_DIR})
+
+    file(REMOVE_RECURSE ${OUT_DIR}/examples)
+    file(REMOVE_RECURSE ${OUT_DIR}/misc)
+    file(COPY ${OUT_DIR}/backends/imgui_impl_sdl3.h DESTINATION ${OUT_DIR})
+    file(COPY ${OUT_DIR}/backends/imgui_impl_sdl3.cpp DESTINATION ${OUT_DIR})
+    file(COPY ${OUT_DIR}/backends/imgui_impl_vulkan.h DESTINATION ${OUT_DIR})
+    file(COPY ${OUT_DIR}/backends/imgui_impl_vulkan.cpp DESTINATION ${OUT_DIR})
+    file(REMOVE_RECURSE ${OUT_DIR}/backends)
+  endif()
+  set(${RESULT} ${OUT_DIR})
+endmacro()
+
+# SimdJson
+macro(GetSimdJson VERSION RESULT)
+
+  BuildThirdPartyDep(simdjson https://github.com/simdjson/simdjson ${VERSION} RESULT_DIR "" "")
+
+  set(${RESULT} ${RESULT_DIR})
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/simdjson)
+endmacro()
+
+# FastGLTF
+macro(GetFastGLTF VERSION RESULT)
+  
+
+  function(BuildFastGLTF B_TYPE B_SRC B_DEST)
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DFASTGLTF_DOWNLOAD_SIMDJSON=OFF -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH} -S ${B_SRC} -B ${B_DEST}
+    )
+  endfunction()
+
+  BuildThirdPartyDep(fastgltf https://github.com/spnda/fastgltf ${VERSION} RESULT_DIR "" "BuildFastGLTF")
+
+  set(${RESULT} ${RESULT_DIR})
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/fastgltf)
+endmacro()
 
 # Miniz
 macro(GetMiniz VERSION RESULT)
@@ -78,7 +122,7 @@ macro(GetTinyObjLoader VERSION RESULT)
 
   BuildThirdPartyDep(tinyol https://github.com/tinyobjloader/tinyobjloader ${VERSION} RESULT_DIR "" "")
 
-  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+  set(${RESULT} ${RESULT_DIR})
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/tinyobjloader/cmake)
 endmacro()
@@ -86,10 +130,50 @@ endmacro()
 # VulkanMemoryAllocator
 macro(GetVulkanMemoryAllocator VERSION RESULT)
 
-  BuildThirdPartyDep(vkm https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator ${VERSION} RESULT_DIR "" "")
+  BuildThirdPartyDep(vkma https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator ${VERSION} RESULT_DIR "" "")
 
-  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/VulkanMemoryAllocator)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/)
+
+  set(${RESULT} ${RESULT_DIR})
 endmacro()
+
+# VulkanMemoryAllocatorHpp
+macro(GetVulkanMemoryAllocatorHpp VERSION RESULT)
+
+  function(UpdateVkmaSubModules CLONED_PATH)
+    execute_process(
+      COMMAND git submodule update --init --recursive
+      WORKING_DIRECTORY ${CLONED_PATH}
+    )
+      
+  endfunction()
+
+  function(BuildVkmaHpp B_TYPE B_SRC B_DEST)
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -S ${B_SRC} -B ${B_DEST}
+    )
+  endfunction()
+
+  BuildThirdPartyDep(vkmahpp https://github.com/YaaZ/VulkanMemoryAllocator-Hpp ${VERSION} RESULT_DIR "UpdateVkmaSubModules" "BuildVkmaHpp")
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/VulkanMemoryAllocator-Hpp)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/)
+
+  set(${RESULT} ${RESULT_DIR})
+endmacro()
+
+# macro(GetVulkanMemoryAllocator VERSION RESULT)
+
+#   set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
+#   set(RESULT_DIR ${THIRD_PARTY_DIR}/vkma_${VERSION})
+
+#   Fetch(https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator ${VERSION} ${RESULT_DIR})
+
+#   set(${RESULT} ${RESULT_DIR})
+# endmacro()
 
 # GLSL
 macro(GetGLSL VERSION RESULT)
@@ -112,7 +196,7 @@ macro(GetGLSL VERSION RESULT)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/glslang)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/)
-  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+  set(${RESULT} ${RESULT_DIR})
 endmacro()
 
 # VkBootstrap
@@ -123,7 +207,7 @@ macro(GetVkBootstrap VERSION RESULT)
 
   Fetch(https://github.com/charles-lunarg/vk-bootstrap ${VERSION} ${VK_BOOTSTRAP_DIR})
 
-  set(${RESULT} ${VK_BOOTSTRAP_DIR} PARENT_SCOPE)
+  set(${RESULT} ${VK_BOOTSTRAP_DIR})
 endmacro()
 
 # XXHash
@@ -138,7 +222,7 @@ macro(GetXXHash VERSION RESULT)
   BuildThirdPartyDep(xxhash https://github.com/Cyan4973/xxHash ${VERSION} RESULT_DIR "" "BuildXXHash")
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
-  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+  set(${RESULT} ${RESULT_DIR})
 endmacro()
 
 # FMT
@@ -147,7 +231,7 @@ macro(GetFmt VERSION RESULT)
   BuildThirdPartyDep(fmt https://github.com/fmtlib/fmt ${VERSION} RESULT_DIR "" "")
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
-  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+  set(${RESULT} ${RESULT_DIR})
 endmacro()
 
 # spdlog
@@ -156,7 +240,7 @@ macro(GetSpdLog VERSION RESULT)
   BuildThirdPartyDep(spdlog https://github.com/gabime/spdlog ${VERSION} RESULT_DIR "" "")
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
-  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+  set(${RESULT} ${RESULT_DIR})
 endmacro()
 
 # SDL
@@ -165,7 +249,7 @@ macro(GetSDL VERSION RESULT)
   BuildThirdPartyDep(sdl https://github.com/libsdl-org/SDL ${VERSION} RESULT_DIR "" "")
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/cmake)
-  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+  set(${RESULT} ${RESULT_DIR})
 endmacro()
 
 # GLM
@@ -183,7 +267,7 @@ macro(GetGlm VERSION RESULT)
   endif()
 
   list(APPEND CMAKE_PREFIX_PATH ${GLM_DIR}/cmake/glm)
-  set(${RESULT} ${GLM_DIR} PARENT_SCOPE)
+  set(${RESULT} ${GLM_DIR})
 endmacro()
 
 # ReactPhysics3D
@@ -193,5 +277,5 @@ macro(GetReactPhys VERSION RESULT)
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
-  set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
+  set(${RESULT} ${RESULT_DIR})
 endmacro()

@@ -4,8 +4,8 @@
 namespace vengine {
 namespace scene {
 
-void Component::init(SceneObject * owner) {
-  Object::init(owner);
+SceneObject * Component::getOwner() const {
+  return getOuter();
 }
 }
 }

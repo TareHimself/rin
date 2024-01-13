@@ -9,8 +9,8 @@ void RP3DScenePhysics::init(scene::Scene *outer) {
   phys = physicsCommon.createPhysicsWorld();
 }
 
-void RP3DScenePhysics::onCleanup() {
-  ScenePhysics::onCleanup();
+void RP3DScenePhysics::handleCleanup() {
+  ScenePhysics::handleCleanup();
   physicsCommon.destroyPhysicsWorld(phys);
   phys = nullptr;
 }

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 set(CMAKE_CXX_STANDARD 20)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/utils.cmake)
@@ -13,13 +13,15 @@ file(GLOB_RECURSE SOURCE_FILES "src/vengine/*.cpp" )
 
 file(GLOB_RECURSE INCLUDE_FILES "src/vengine/*.hpp" )
 
-add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${INCLUDE_FILES})
+
 set(VENGINE_THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
 GetBuildExt(VENGINE_BUILD_EXT)
 find_package(Vulkan REQUIRED)
 
-GetSDL(release-2.28.5 SDL_DIR)
-find_package(SDL2 REQUIRED)
+#GetSDL(release-2.28.5 SDL_DIR)
+#find_package(SDL2 REQUIRED)
+GetSDL(main SDL_DIR)
+find_package(SDL3 REQUIRED)
 
 GetGlm(0.9.9.8 GLM_DIR)
 find_package(glm REQUIRED)
@@ -29,8 +31,10 @@ find_package(ReactPhysics3D REQUIRED)
 
 GetVkBootstrap(v1.3.273 VK_BOOTSTRAP_DIR)
 
-GetVulkanMemoryAllocator(v3.0.1 VK_MEMORY_ALLOCATOR_DIR)
-list(APPEND CMAKE_PREFIX_PATH ${VK_MEMORY_ALLOCATOR_DIR})
+GetVulkanMemoryAllocator(master VK_MEMORY_ALLOCATOR_DIR)
+GetVulkanMemoryAllocatorHpp(v3.0.1-3 VK_MEMORY_ALLOCATOR_DIR)
+find_package(VulkanMemoryAllocator REQUIRED)
+find_package(VulkanMemoryAllocator-Hpp CONFIG REQUIRED)
 
 GetGLSL(14.0.0 GLSL_DIR)
 find_package(SPIRV-Tools-opt REQUIRED)
@@ -48,9 +52,29 @@ find_package(xxHash REQUIRED)
 GetMiniz(3.0.2 MINIZ_DIR)
 find_package(miniz REQUIRED)
 
-GetTinyObjLoader(release TINY_OBJ_LOADER_DIR)
-find_package(tinyobjloader REQUIRED)
+GetSimdJson(v3.6.3 SIMD_JSON)
+find_package(simdjson REQUIRED)
 
+GetFastGLTF(v0.6.1 FAST_GLTF_DIR)
+find_package(fastgltf REQUIRED)
+
+GetImGui(v1.90 IMGUI_DIR)
+file(GLOB_RECURSE IMGUI_HEADERS ${IMGUI_DIR}/*.h)
+file(GLOB_RECURSE IMGUI_SOURCES ${IMGUI_DIR}/*.cpp)
+
+add_library(${PROJECT_NAME} SHARED ${IMGUI_HEADERS} ${IMGUI_SOURCES} ${SOURCE_FILES} ${INCLUDE_FILES})
+# file(GLOB_RECURSE IMGUI_MISC_HEADERS ${IMGUI_DIR}/misc/*.h)
+# file(GLOB_RECURSE IMGUI_MISC_SOURCES ${IMGUI_DIR}/misc/*.cpp)
+# file(GLOB IMGUI_BACKENDS_HEADERS ${IMGUI_DIR}/backends/imgui_impl_sdl3.h ${IMGUI_DIR}/backends/imgui_impl_vulkan.h)
+# file(GLOB_RECURSE IMGUI_BACKENDS_SOURCES ${IMGUI_DIR}/backends/imgui_impl_sdl3.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp)
+# list(APPEND IMGUI_HEADERS ${IMGUI_MISC_HEADERS} ${IMGUI_BACKENDS_HEADERS})
+# list(APPEND IMGUI_SOURCES ${IMGUI_MISC_SOURCES} ${IMGUI_BACKENDS_SOURCES})
+# add_custom_target(ImGui SOURCES ${IMGUI_HEADERS} ${IMGUI_SOURCES})
+#target_include_directories(ImGui ${IMGUI_DIR})
+#add_library(ImGuiLibrary ${IMGUI_HEADERS} ${IMGUI_SOURCES})
+# message(STATUS "IMGUI DIR ${IMGUI_HEADERS} ${IMGUI_SOURCES}")
+
+# add_dependencies(${PROJECT_NAME} ImGui)
 add_subdirectory(${VK_BOOTSTRAP_DIR} vk-bootstrap)
 
 
@@ -60,17 +84,19 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/src 
     ${Vulkan_INCLUDE_DIRS} 
-    ${SDL2_INCLUDE_DIRS}
+    ${SDL_DIR}/include
     ${GLM_DIR}/include 
     ${REACT_PHYS_DIR}/include 
     ${VK_BOOTSTRAP_INCLUDE} 
-    ${VK_MEMORY_ALLOCATOR_DIR}
+    ${VK_MEMORY_ALLOCATOR_DIR}/include
     ${GLSL_DIR}/include
     ${SPD_LOG_DIR}/include
     ${FMT_DIR}/include
     ${XXHASH_DIR}/include
     ${MINIZ_DIR}/include
-    ${TINY_OBJ_LOADER_DIR}/include
+    ${IMGUI_DIR}
+    ${SIMD_JSON}/include
+    ${FAST_GLTF_DIR}/include
 )
 
 # file(GLOB SDL2_LIB "${SDL_DIR}/lib/*")
@@ -88,6 +114,7 @@ file(GLOB VK_MEMORY_ALLOCATOR_LIB "${VK_MEMORY_ALLOCATOR_DIR}/lib/*")
 
 file(GLOB SDL2_LIB "${SDL_DIR}/lib/*.lib")
 
+message(STATUS "LIBS ${VK_MEMORY_ALLOCATOR_LIB}")
 target_link_directories(${PROJECT_NAME} 
     PUBLIC 
     ${VK_MEMORY_ALLOCATOR_LIB}
@@ -95,8 +122,7 @@ target_link_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} 
     Vulkan::Vulkan 
-    SDL2::SDL2
-    SDL2::SDL2main
+    SDL3::SDL3
     ReactPhysics3D::ReactPhysics3D 
     vk-bootstrap::vk-bootstrap
     glslang::glslang 
@@ -106,7 +132,9 @@ target_link_libraries(${PROJECT_NAME}
     fmt::fmt
     xxHash::xxhash
     miniz::miniz
-    tinyobjloader::tinyobjloader
+    simdjson::simdjson
+    fastgltf::fastgltf
+    VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp
 )
 
 

@@ -1,9 +1,14 @@
 #include <iostream>
 #include "Engine.hpp"
 
+#include "assets/AssetManager.hpp"
 #include "input/InputManager.hpp"
-#include "rendering/Renderer.hpp"
+#include "drawing/Drawer.hpp"
 #include "scene/Scene.hpp"
+#include <chrono>
+#include <thread>
+#include <imgui_impl_sdl3.h>
+#include <imgui_impl_vulkan.h>
 
 namespace vengine {
 
@@ -12,12 +17,12 @@ Engine::Engine() = default;
 Engine::~Engine() {
 }
 
-void Engine::setApplicationName(const std::string &newName) {
+void Engine::setAppName(const std::string &newName) {
   applicationName = newName;
-  
+
 }
 
-std::string Engine::getApplicationName() {
+std::string Engine::getAppName() {
   return applicationName;
 }
 
@@ -37,34 +42,93 @@ void Engine::run() {
   init(nullptr);
   bIsRunning = true;
   lastTickTime = now();
-  
+
   bool bShouldQuit = false;
 
   while (!shouldExit() && !bShouldQuit) {
     const auto tickStart = now();
     const auto delta = tickStart - lastTickTime;
     runTime += delta;
-    const auto deltaFloat = static_cast<float>(static_cast<double>(delta) / 1000.0);
+    const auto deltaFloat = static_cast<float>(
+      static_cast<double>(delta) / 1000.0);
 
     SDL_Event e;
-    
-    while(SDL_PollEvent(&e) != 0){
 
-      if(e.type == SDL_QUIT){
+    while (SDL_PollEvent(&e) != 0) {
+      ImGui_ImplSDL3_ProcessEvent(&e);
+      switch (e.type) {
+      case SDL_EVENT_QUIT:
         bShouldQuit = true;
         break;
-      }
-      else if(e.type == SDL_KEYDOWN && e.key.repeat == 0) {
-        inputManager->receiveKeyPressedEvent(e.key);
-      }else if(e.type == SDL_KEYUP) {
+      case SDL_EVENT_KEY_UP:
         inputManager->receiveKeyReleasedEvent(e.key);
+        break;
+      case SDL_EVENT_KEY_DOWN:
+        if (e.key.repeat == 0) {
+          inputManager->receiveKeyPressedEvent(e.key);
+        }
+        break;
+      case SDL_EVENT_WINDOW_MINIMIZED:
+        bIsMinimized = true;
+        break;
+
+      case SDL_EVENT_WINDOW_MAXIMIZED:
+        bIsMinimized = false;
+        break;
+      default:
+        break;
+      }
+    }
+
+    const auto shouldRender = !bIsMinimized && !renderer->resizePending();
+    // if () {
+    //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    //   continue;
+    // }
+
+    update(deltaFloat);
+
+    if(shouldRender) {
+      // New ImGui Frame
+      ImGui_ImplVulkan_NewFrame();
+      ImGui_ImplSDL3_NewFrame();
+      ImGui::NewFrame();
+
+      if (ImGui::Begin("background")) {
+        const auto renderer = getRenderer();
+        if(!renderer->backgroundEffects.empty()) {
+          drawing::ComputeEffect &selected = renderer->backgroundEffects[renderer
+          ->currentBackgroundEffect];
+
+          ImGui::Text("Selected effect: ", selected.name.c_str());
+
+          ImGui::SliderInt("Effect Index", &renderer->currentBackgroundEffect, 0,
+                           renderer->backgroundEffects.size() - 1);
+
+          ImGui::InputFloat4("data1",
+                             reinterpret_cast<float *>(&selected.data.data1));
+          ImGui::InputFloat4("data2",
+                             reinterpret_cast<float *>(&selected.data.data2));
+          ImGui::InputFloat4("data3",
+                             reinterpret_cast<float *>(&selected.data.data3));
+          ImGui::InputFloat4("data4",
+                             reinterpret_cast<float *>(&selected.data.data4));
+        }
+
+        ImGui::End();
+      }
+
+      ImGui::Render();
+
+      renderer->draw();
+    } else {
+      if(getRenderer()->resizePending()) {
+        getRenderer()->resizeSwapchain();
+      } else {
+        std::this_thread::sleep_for(std::chrono::milliseconds{1000});
       }
     }
     
-    update(deltaFloat);
-
-    renderer->render();
-  
     lastTickTime = tickStart;
   }
   bIsRunning = false;
@@ -72,29 +136,33 @@ void Engine::run() {
 }
 
 void Engine::addScene(scene::Scene *scene) {
-  scenes.push_back(scene);
-  
-  if(isRunning()) {
+  scenes.push(scene);
+
+  if (isRunning()) {
     scene->init(this);
   }
+}
+
+float Engine::getEngineTimeSeconds() const {
+  return static_cast<float>(runTime / 1000.0);
 }
 
 Array<scene::Scene *> Engine::getScenes() {
   return scenes;
 }
 
-SDL_Window * Engine::getWindow() const {
+SDL_Window *Engine::getWindow() const {
   return window;
 }
 
 vk::Extent2D Engine::getWindowExtent() const { return windowExtent; }
 
-rendering::Renderer * Engine::getRenderer() const {
+drawing::Drawer *Engine::getRenderer() const {
   return renderer;
 }
 
-input::InputManager * Engine::getInputManager() const {
-  return  inputManager;
+input::InputManager *Engine::getInputManager() const {
+  return inputManager;
 }
 
 long long Engine::now() {
@@ -102,7 +170,7 @@ long long Engine::now() {
 }
 
 void Engine::update(float deltaTime) {
-  for(const auto scene : scenes) {
+  for (const auto scene : scenes) {
     scene->update(deltaTime);
   }
 }
@@ -112,27 +180,25 @@ void Engine::initWindow() {
   // SDL_SetMainReady();
   SDL_Init(SDL_INIT_VIDEO);
 
-  constexpr auto flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN);
+  constexpr auto flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE;
 
   window = SDL_CreateWindow(
-    getApplicationName().c_str(),
-    SDL_WINDOWPOS_UNDEFINED,
-    SDL_WINDOWPOS_UNDEFINED,
-    windowExtent.x,
-    windowExtent.y,
-    flags
-  );
+      getAppName().c_str(),
+      windowExtent.width,
+      windowExtent.height,
+      flags
+      );
 
   addCleanup([=] {
-    if(window != nullptr){
-    SDL_DestroyWindow(window);
+    if (window != nullptr) {
+      SDL_DestroyWindow(window);
     }
   });
 }
 
 void Engine::initRenderer() {
-  
-  renderer = newObject<rendering::Renderer>();
+
+  renderer = newObject<drawing::Drawer>();
   renderer->init(this);
 
   addCleanup([=] {
@@ -141,17 +207,38 @@ void Engine::initRenderer() {
 }
 
 void Engine::initScenes() {
-  for(const auto scene : scenes) {
+  for (const auto scene : scenes) {
     scene->init(this);
   }
 
   addCleanup([=] {
-    for(const auto scene : scenes) {
-    scene->cleanup();
-  }
+    for (const auto scene : scenes) {
+      scene->cleanup();
+    }
 
-  scenes.clear();
+    scenes.clear();
   });
+}
+
+void Engine::initAssetManager() {
+  assetManager = newObject<assets::AssetManager>();
+  assetManager->init(this);
+
+  addCleanup([=] {
+    assetManager->cleanup();
+  });
+}
+
+assets::AssetManager * Engine::getAssetManager() const {
+  return assetManager;
+}
+
+void Engine::notifyWindowResize() {
+  int width,height;
+
+  SDL_GetWindowSize(window,&width,&height);
+  windowExtent.setWidth(width);
+  windowExtent.setHeight(height);
 }
 
 void Engine::initInputManager() {
@@ -164,11 +251,12 @@ void Engine::initInputManager() {
 
 void Engine::init(void *outer) {
   Object::init(outer);
-  if(_bWasAllocated) {
+  if (_bWasAllocated) {
     log::engine->info("Engine was allocated");
   } else {
     log::engine->info("Engine was not allocated");
   }
+  initAssetManager();
   initWindow();
   initInputManager();
   initRenderer();

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "InputEvent.hpp"
+#include "vengine/containers/String.hpp"
 
 #include <SDL2/SDL_events.h>
 
@@ -10,7 +11,7 @@ class KeyInputEvent : public InputEvent {
 public:
   KeyInputEvent(const SDL_KeyboardEvent &event);
 
-  std::string getName() const override;
+  String getName() const override;
 };
 }
 }

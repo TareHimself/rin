@@ -2,14 +2,17 @@
 //#define SDL_MAIN_HANDLED
 #include "Object.hpp"
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include "containers/Array.hpp"
-#include "containers/Vector2.hpp"
-#include <SDL2/SDL.h>
 #include <vulkan/vulkan.hpp>
 #include <chrono>
-#include <vector>
-#include <SDL2/SDL_video.h>
+#include <SDL3/SDL_video.h>
+
+namespace vengine {
+namespace assets {
+class AssetManager;
+}
+}
 
 namespace vengine {
 namespace input {
@@ -18,8 +21,8 @@ class InputManager;
 }
 
 namespace vengine {
-namespace rendering {
-class Renderer;
+namespace drawing {
+class Drawer;
 }
 }
 
@@ -35,22 +38,26 @@ class Engine : public Object<void> {
 
   
 
-  Vector2 windowExtent{ 500, 1000};
+  vk::Extent2D windowExtent{ 1000, 1000};
 
   SDL_Window *window = nullptr;
   long long runTime = 0;
   long long lastTickTime = 0;
   std::string applicationName;
 
-  rendering::Renderer * renderer = nullptr;
+  drawing::Drawer * renderer = nullptr;
 
   input::InputManager * inputManager = nullptr;
+
+  assets::AssetManager * assetManager = nullptr;
 
   Array<scene::Scene *> scenes;
 
   bool bExitRequested = false;
 
   bool bIsRunning = false;
+
+  bool bIsMinimized = false;
 
   void update(float deltaTime);
   
@@ -62,19 +69,26 @@ class Engine : public Object<void> {
 
   void initScenes();
 
+  void initAssetManager();
+
   
   
 public:
 
   void init(void *outer) override;
+  
+  /**
+   * \brief Returns the current time since the engine started in milliseconds
+   * \return 
+   */
   static long long now();
   
   Engine();
   ~Engine() override;
 
-  void setApplicationName(const std::string &newName);
+  void setAppName(const std::string &newName);
 
-  std::string getApplicationName();
+  std::string getAppName();
 
   bool isRunning() const;
 
@@ -86,15 +100,21 @@ public:
 
   void addScene(scene::Scene * scene);
 
+  float getEngineTimeSeconds() const;
+  
   Array<scene::Scene *> getScenes();
 
   SDL_Window * getWindow() const;
 
   vk::Extent2D getWindowExtent() const;
 
-  rendering::Renderer * getRenderer() const;
+  drawing::Drawer * getRenderer() const;
 
   input::InputManager * getInputManager() const;
+
+  assets::AssetManager * getAssetManager() const;
+
+  void notifyWindowResize();
   
 private:
 

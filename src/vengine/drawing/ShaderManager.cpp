@@ -1,5 +1,6 @@
-﻿#include "ShaderCompiler.hpp"
+﻿#include "ShaderManager.hpp"
 
+#include "Shader.hpp"
 #include "vengine/log.hpp"
 #include "vengine/utils.hpp"
 #include "vengine/io/io.hpp"
@@ -7,32 +8,42 @@
 #include <glslang/MachineIndependent/localintermediate.h>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
-#include <vengine/rendering/Renderer.hpp>
+#include <vengine/drawing/Drawer.hpp>
 
 namespace vengine {
-namespace rendering {
+namespace drawing {
 
-ShaderInc::ShaderInc(const std::filesystem::path &inPath) {
-  path = inPath;
+GlslShaderIncluder::GlslShaderIncluder(const std::filesystem::path &inPath) {
+  sourceFilePath = inPath;
+  if(bDebug){
+    log::shaders->info("Shader Includer Created");
+  }
 }
 
-glslang::TShader::Includer::IncludeResult * ShaderInc::includeSystem(const char*filePath, const char *includerName, size_t inclusionDepth) {
+glslang::TShader::Includer::IncludeResult * GlslShaderIncluder::includeSystem(const char*filePath, const char *includerName, size_t inclusionDepth) {
   const std::filesystem::path actualPath(filePath);
+  if(bDebug) {
+    log::shaders->info("Including Shader File {:s}",actualPath.string());
+  }
   const auto fileContent = new std::string(io::readFileAsString(actualPath));
-  auto result = new IncludeResult(path.string(),fileContent->c_str(),fileContent->size(),fileContent);
+  auto result = new IncludeResult(actualPath.string(),fileContent->c_str(),fileContent->size(),fileContent);
   results.add(result);
   return result;
 }
 
-glslang::TShader::Includer::IncludeResult * ShaderInc::includeLocal(const char*filePath, const char *includerName, size_t inclusionDepth) {
-  const auto actualPath = path / std::filesystem::path(filePath);
+glslang::TShader::Includer::IncludeResult * GlslShaderIncluder::includeLocal(const char*filePath, const char *includerName, size_t inclusionDepth) {
+  
+  const auto actualPath = sourceFilePath.parent_path() / std::filesystem::path(filePath);
+  if(bDebug) {
+    log::shaders->info("Including Shader File {:s}",actualPath.string());
+  }
   const auto fileContent = new std::string(io::readFileAsString(actualPath));
-  auto result = new IncludeResult(path.string(),fileContent->c_str(),fileContent->size(),fileContent);
+  auto result = new IncludeResult(actualPath.string(),fileContent->c_str(),fileContent->size(),fileContent);
   results.add(result);
   return result;
 }
 
-void ShaderInc::releaseInclude(IncludeResult *result) {
+void GlslShaderIncluder::releaseInclude(IncludeResult *result) {
   if(result != NULL) {
     results.remove(result);
     delete static_cast<std::string *>(result->userData);
@@ -40,7 +51,7 @@ void ShaderInc::releaseInclude(IncludeResult *result) {
   }
 }
 
-ShaderInc::~ShaderInc() {
+GlslShaderIncluder::~GlslShaderIncluder() {
 
   for(const auto result : results) {
     delete static_cast<std::string *>(result->userData);
@@ -51,7 +62,7 @@ ShaderInc::~ShaderInc() {
 }
 
 
-EShLanguage ShaderCompiler::getLang(const std::filesystem::path &shaderPath) {
+EShLanguage ShaderManager::getLang(const std::filesystem::path &shaderPath) {
   const auto ext = shaderPath.extension().string().substr(1);
 
   if (ext == "vert") {
@@ -104,7 +115,21 @@ EShLanguage ShaderCompiler::getLang(const std::filesystem::path &shaderPath) {
   return EShLangVertex;
 }
 
-Array<unsigned int> ShaderCompiler::compile(const std::filesystem::path &shaderPath) const {
+bool ShaderManager::hasLoadedShader(
+    const std::filesystem::path &shaderPath) const {
+  return _shaders.contains(shaderPath);
+}
+
+Shader * ShaderManager::getLoadedShader(
+    const std::filesystem::path &shaderPath) const {
+  if(!hasLoadedShader(shaderPath)){
+    return nullptr;
+  }
+
+  return _shaders.at(shaderPath);
+}
+
+Array<unsigned int> ShaderManager::compile(const std::filesystem::path &shaderPath) const {
   if (!std::filesystem::exists(shaderPath)) {
     throw std::runtime_error(
         std::string("Shader file does not exist: ") + shaderPath.string());
@@ -132,9 +157,12 @@ Array<unsigned int> ShaderCompiler::compile(const std::filesystem::path &shaderP
 
   constexpr auto message = static_cast<EShMessages>(EShMessages::EShMsgVulkanRules | EShMessages::EShMsgSpvRules);
 
-  ShaderInc includer(shaderPath);
+  GlslShaderIncluder includer(shaderPath);
   const auto resources =  GetResources();
   resources->maxDrawBuffers = true;
+  resources->maxComputeWorkGroupSizeX = 128;
+  resources->maxComputeWorkGroupSizeY = 128;
+  resources->maxComputeWorkGroupSizeZ = 128;
   resources->limits.nonInductiveForLoops = true;
   resources->limits.whileLoops = true;
   resources->limits.doWhileLoops = true;
@@ -176,7 +204,7 @@ Array<unsigned int> ShaderCompiler::compile(const std::filesystem::path &shaderP
   return spvResult;
 }
 
-Array<unsigned> ShaderCompiler::compileAndSave(
+Array<unsigned> ShaderManager::compileAndSave(
     const std::filesystem::path &shaderPath) const {
   const auto compiledPath = io::getCompiledShadersPath() / (shaderPath.filename().string() + ".spv");
   
@@ -200,7 +228,7 @@ Array<unsigned> ShaderCompiler::compileAndSave(
   return compiledData;
 }
 
-Array<unsigned int> ShaderCompiler::loadShader(const std::filesystem::path &shaderPath) const {
+Array<unsigned int> ShaderManager::loadOrCompileSpv(const std::filesystem::path &shaderPath) const {
   log::shaders->info("Loading Shader " + shaderPath.string());
   const auto compiledPath = io::getCompiledShadersPath() / (shaderPath.filename().string() + ".spv");
   const auto compiledHashPath = io::getCompiledShadersPath() / (shaderPath.filename().string() + ".hash");
@@ -223,14 +251,28 @@ Array<unsigned int> ShaderCompiler::loadShader(const std::filesystem::path &shad
   return compileAndSave(shaderPath);
 }
 
-void ShaderCompiler::init(Renderer *outer) {
+Shader * ShaderManager::registerShader(Shader *shader) {
+  _shaders.insert({shader->getSourcePath(),shader});
+  
+  shader->init(this);
+  
+  return shader;
+}
+
+void ShaderManager::init(Drawer *outer) {
   Object::init(outer);
   glslang::InitializeProcess();
 }
 
 
-void ShaderCompiler::onCleanup() {
-  Object::onCleanup();
+void ShaderManager::handleCleanup() {
+  Object::handleCleanup();
+  for(const auto entry : _shaders) {
+    entry.second->cleanup();
+    
+  }
+  _shaders.clear();
+  
   glslang::FinalizeProcess();
 }
 

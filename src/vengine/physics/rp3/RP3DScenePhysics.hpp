@@ -15,7 +15,7 @@ public:
   
   void init(scene::Scene *outer) override;
 
-  void onCleanup() override;
+  void handleCleanup() override;
 
   void fixedUpdate(float deltaTime) override;
   
