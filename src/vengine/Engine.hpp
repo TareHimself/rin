@@ -1,29 +1,35 @@
 #pragma once
+
 //#define SDL_MAIN_HANDLED
 #include "Object.hpp"
+#include "utils.hpp"
 
 #include <SDL3/SDL.h>
 #include "containers/Array.hpp"
+#include "containers/TEventDispatcher.hpp"
+#include "math/Vector2.hpp"
+
 #include <vulkan/vulkan.hpp>
 #include <chrono>
+#include <queue>
 #include <SDL3/SDL_video.h>
 
 namespace vengine {
-namespace assets {
+namespace scripting {
+class ScriptManager;
+}
+}
+
+namespace vengine::assets {
 class AssetManager;
 }
-}
 
-namespace vengine {
-namespace input {
+namespace vengine::input {
 class InputManager;
 }
-}
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class Drawer;
-}
 }
 
 namespace vengine {
@@ -33,25 +39,28 @@ class Scene;
 
 class Engine : public Object<void> {
 
-  Engine( Engine const&) = delete;
-  Engine operator=(const Engine&) = delete;
+private:
+  math::Vector2 _mousePosition{0, 0};
+  vk::Extent2D _windowExtent{1000, 1000};
 
-  
+  SDL_Window *_window = nullptr;
+  long long _runTime = 0;
+  long long _lastTickTime = 0;
+  std::string _applicationName;
 
-  vk::Extent2D windowExtent{ 1000, 1000};
+  drawing::Drawer *_drawer = nullptr;
 
-  SDL_Window *window = nullptr;
-  long long runTime = 0;
-  long long lastTickTime = 0;
-  std::string applicationName;
+  input::InputManager *_inputManager = nullptr;
 
-  drawing::Drawer * renderer = nullptr;
+  assets::AssetManager *_assetManager = nullptr;
 
-  input::InputManager * inputManager = nullptr;
+  scripting::ScriptManager *_scriptManager = nullptr;
 
-  assets::AssetManager * assetManager = nullptr;
+  Array<scene::Scene *> _scenes;
 
-  Array<scene::Scene *> scenes;
+  EInputMode _inputMode = GameAndUi;
+
+  std::queue<SDL_Event> _windowEventQueue;
 
   bool bExitRequested = false;
 
@@ -59,65 +68,94 @@ class Engine : public Object<void> {
 
   bool bIsMinimized = false;
 
-  void update(float deltaTime);
-  
-  void initWindow();
+  bool bIsFocused = false;
 
-  void initInputManager();
-  
-  void initRenderer();
+  void Update(float deltaTime) const;
 
-  void initScenes();
+  void InitWindow();
 
-  void initAssetManager();
+  void InitInputManager();
 
-  
-  
+  void InitScriptManager();
+
+  void InitDrawer();
+
+  void InitScenes();
+
+  void InitAssetManager();
+
 public:
-
-  void init(void *outer) override;
-  
-  /**
-   * \brief Returns the current time since the engine started in milliseconds
-   * \return 
-   */
-  static long long now();
-  
   Engine();
-  ~Engine() override;
 
-  void setAppName(const std::string &newName);
+  void Init(void *outer) override;
 
-  std::string getAppName();
+  static long long Now();
 
-  bool isRunning() const;
+  void SetAppName(const std::string &newName);
 
-  bool shouldExit() const;
+  std::string GetAppName();
 
-  void requestExit();
-  
-  void run();
+  bool IsRunning() const;
 
-  void addScene(scene::Scene * scene);
+  bool ShouldExit() const;
 
-  float getEngineTimeSeconds() const;
-  
-  Array<scene::Scene *> getScenes();
+  void RequestExit();
 
-  SDL_Window * getWindow() const;
+  void Run();
 
-  vk::Extent2D getWindowExtent() const;
+  void RunGame();
 
-  drawing::Drawer * getRenderer() const;
+  void RunWindowEvents();
 
-  input::InputManager * getInputManager() const;
+  void RunDraw() const;
 
-  assets::AssetManager * getAssetManager() const;
+  void AddScene(scene::Scene *scene);
 
-  void notifyWindowResize();
-  
+  float GetEngineTimeSeconds() const;
+
+  Array<scene::Scene *> GetScenes();
+
+  SDL_Window *GetWindow() const;
+
+  vk::Extent2D GetWindowExtent() const;
+
+  drawing::Drawer *GetDrawer() const;
+
+  input::InputManager *GetInputManager() const;
+
+  assets::AssetManager *GetAssetManager() const;
+
+  scripting::ScriptManager *GetScriptManager() const;
+
+  virtual drawing::Drawer * CreateDrawer();
+  virtual input::InputManager * CreateInputManager();
+  virtual assets::AssetManager * CreateAssetManager();
+  virtual scripting::ScriptManager * CreateScriptManager();
+
+  void SetInputMode(EInputMode mode);
+
+  void NotifyWindowResize();
+
+  bool IsFullScreen() const;
+
+  bool IsFocused() const;
+
+  template <typename T,typename ... Args>
+  T * CreateScene(Args &&... args);
+
+  virtual void InitScene(scene::Scene * scene);
+
+  // Events
+  TEventDispatcher<EInputMode, EInputMode> onInputModeChanged;
+
 private:
 
-  
 };
+
+template <typename T, typename ... Args> T * Engine::CreateScene(
+    Args &&... args) {
+  auto rawObj = newObject<T>(args...);
+  InitScene(dynamic_cast<scene::Scene *>(rawObj));
+  return rawObj;
+}
 }

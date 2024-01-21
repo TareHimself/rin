@@ -1,17 +1,18 @@
 ﻿#pragma once
-#include "Quaternion.hpp"
-#include "Vector3.hpp"
+#include "Quat.hpp"
+#include "Vector.hpp"
 
 #include <ostream>
 
-namespace vengine {
-namespace math {
+namespace vengine::math {
 class Transform {
 public:
-  Vector3 location;
-  Quaternion rotation;
-  Vector3 scale;
-  Transform(Vector3 _loc = ZeroVector3, Quaternion _rot = ZeroQuat, Vector3 _scale = {1.f,1.0f,1.0f});
+  Vector location;
+  Quat rotation;
+  Vector scale;
+  Transform();
+  Transform(const glm::mat4& mat);
+  Transform(Vector _loc, Quat _rot, Vector _scale);
 
   friend std::ostream& operator<<(std::ostream& os,const Transform& other) {
     os << "Location: " << other.location << std::endl;
@@ -21,9 +22,8 @@ public:
   }
 
 public:
-  Transform relativeTo(const Transform& other) const;
+  Transform RelativeTo(const Transform& other) const;
 
-  glm::mat4 toMatrix() const;
+  glm::mat4 Matrix() const;
 };
-}
 }

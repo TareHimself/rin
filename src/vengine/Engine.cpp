@@ -7,66 +7,81 @@
 #include "scene/Scene.hpp"
 #include <chrono>
 #include <thread>
-#include <imgui_impl_sdl3.h>
-#include <imgui_impl_vulkan.h>
+// #include <imgui_impl_sdl3.h>
+// #include <imgui_impl_vulkan.h>
+#include "scripting/ScriptManager.hpp"
+
+#include <SDL_video.h>
 
 namespace vengine {
 
-Engine::Engine() = default;
-
-Engine::~Engine() {
-}
-
-void Engine::setAppName(const std::string &newName) {
-  applicationName = newName;
+void Engine::SetAppName(const std::string &newName) {
+  _applicationName = newName;
 
 }
 
-std::string Engine::getAppName() {
-  return applicationName;
+std::string Engine::GetAppName() {
+  return _applicationName;
 }
 
-bool Engine::isRunning() const {
+bool Engine::IsRunning() const {
   return bIsRunning;
 }
 
-bool Engine::shouldExit() const {
+bool Engine::ShouldExit() const {
   return bExitRequested;
 }
 
-void Engine::requestExit() {
+void Engine::RequestExit() {
   bExitRequested = true;
 }
 
-void Engine::run() {
-  init(nullptr);
+void Engine::Run() {
+  Init(nullptr);
+  _lastTickTime = Now();
+
+  std::thread windowEvents([=] {
+    RunWindowEvents();
+  });
+  
+  std::thread drawThread([=] {
+    RunDraw();
+  });
+  
   bIsRunning = true;
-  lastTickTime = now();
+  RunGame();
+  bIsRunning = false;
+  windowEvents.join();
+  drawThread.join();
+  Destroy();
+}
 
-  bool bShouldQuit = false;
-
-  while (!shouldExit() && !bShouldQuit) {
-    const auto tickStart = now();
-    const auto delta = tickStart - lastTickTime;
-    runTime += delta;
+void Engine::RunGame() {
+  while (bIsRunning && !ShouldExit()) {
+    const auto tickStart = Now();
+    const auto delta = tickStart - _lastTickTime;
+    _runTime += delta;
     const auto deltaFloat = static_cast<float>(
       static_cast<double>(delta) / 1000.0);
 
     SDL_Event e;
-
     while (SDL_PollEvent(&e) != 0) {
-      ImGui_ImplSDL3_ProcessEvent(&e);
+      _windowEventQueue.push(e);
+    }
+    Update(deltaFloat);
+    
+    _lastTickTime = tickStart;
+  }
+}
+
+void Engine::RunWindowEvents() {
+  while(!ShouldExit()) {
+    while (!_windowEventQueue.empty()) {
+      auto e = _windowEventQueue.front();
+      _inputManager->ProcessSdlEvent(e);
       switch (e.type) {
       case SDL_EVENT_QUIT:
-        bShouldQuit = true;
-        break;
-      case SDL_EVENT_KEY_UP:
-        inputManager->receiveKeyReleasedEvent(e.key);
-        break;
-      case SDL_EVENT_KEY_DOWN:
-        if (e.key.repeat == 0) {
-          inputManager->receiveKeyPressedEvent(e.key);
-        }
+        bExitRequested = true;
         break;
       case SDL_EVENT_WINDOW_MINIMIZED:
         bIsMinimized = true;
@@ -75,192 +90,291 @@ void Engine::run() {
       case SDL_EVENT_WINDOW_MAXIMIZED:
         bIsMinimized = false;
         break;
+      case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN:
+        NotifyWindowResize();
+        break;
+      case SDL_EVENT_WINDOW_FOCUS_GAINED:
+        bIsFocused = true;
+        break;
+      case SDL_EVENT_WINDOW_FOCUS_LOST:
+        bIsFocused = false;
+        break;
+      case SDL_EVENT_MOUSE_MOTION:
+        _mousePosition = math::Vector2{e.motion.x,e.motion.y};
+        break;
       default:
         break;
       }
+      _windowEventQueue.pop();
     }
 
-    const auto shouldRender = !bIsMinimized && !renderer->resizePending();
-    // if () {
-    //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    //   continue;
-    // }
-
-    update(deltaFloat);
-
-    if(shouldRender) {
-      // New ImGui Frame
-      ImGui_ImplVulkan_NewFrame();
-      ImGui_ImplSDL3_NewFrame();
-      ImGui::NewFrame();
-
-      if (ImGui::Begin("background")) {
-        const auto renderer = getRenderer();
-        if(!renderer->backgroundEffects.empty()) {
-          drawing::ComputeEffect &selected = renderer->backgroundEffects[renderer
-          ->currentBackgroundEffect];
-
-          ImGui::Text("Selected effect: ", selected.name.c_str());
-
-          ImGui::SliderInt("Effect Index", &renderer->currentBackgroundEffect, 0,
-                           renderer->backgroundEffects.size() - 1);
-
-          ImGui::InputFloat4("data1",
-                             reinterpret_cast<float *>(&selected.data.data1));
-          ImGui::InputFloat4("data2",
-                             reinterpret_cast<float *>(&selected.data.data2));
-          ImGui::InputFloat4("data3",
-                             reinterpret_cast<float *>(&selected.data.data3));
-          ImGui::InputFloat4("data4",
-                             reinterpret_cast<float *>(&selected.data.data4));
-        }
-
-        ImGui::End();
+    if(_inputMode == EInputMode::GameOnly) {
+      const auto windowHalfW = _windowExtent.width / 2;
+      const auto windowHalfH = _windowExtent.height / 2;
+      const auto mouseX = windowHalfW - _mousePosition.x;
+      const auto mouseY = windowHalfH - _mousePosition.y;
+      const auto windowQH = windowHalfH / 2;
+      const auto windowQW = windowHalfW / 2;
+      if(IsFocused() && (std::abs(mouseX) > windowQW || std::abs(mouseY) > windowQH)) {
+        SDL_WarpMouseInWindow(_window,windowHalfW,windowHalfH);
+        _mousePosition = math::Vector2{windowHalfW,windowHalfH};
       }
+    }
+  }
+}
 
-      ImGui::Render();
+void Engine::RunDraw() const {
+  while (!ShouldExit()) {
+    if(!bIsMinimized && !_drawer->ResizePending()) {
+      // New ImGui Frame
+      // ImGui_ImplVulkan_NewFrame();
+      // ImGui_ImplSDL3_NewFrame();
+      // ImGui::NewFrame();
+      //
+      // if (ImGui::Begin("background")) {
+      //   if(!_drawer->backgroundEffects.empty()) {
+      //     drawing::ComputeEffect &selected = _drawer->backgroundEffects[_drawer
+      //     ->currentBackgroundEffect];
+      //
+      //     ImGui::Text("Selected effect: ", selected.name.c_str());
+      //
+      //     ImGui::SliderInt("Effect Index", &_drawer->currentBackgroundEffect, 0,
+      //                      _drawer->backgroundEffects.size() - 1);
+      //
+      //     ImGui::InputFloat4("data1",
+      //                        reinterpret_cast<float *>(&selected.data.data1));
+      //     ImGui::InputFloat4("data2",
+      //                        reinterpret_cast<float *>(&selected.data.data2));
+      //     ImGui::InputFloat4("data3",
+      //                        reinterpret_cast<float *>(&selected.data.data3));
+      //     ImGui::InputFloat4("data4",
+      //                        reinterpret_cast<float *>(&selected.data.data4));
+      //   }
+      //
+      //   ImGui::End();
+      // }
+      //
+      // ImGui::Render();
 
-      renderer->draw();
+      _drawer->Draw();
     } else {
-      if(getRenderer()->resizePending()) {
-        getRenderer()->resizeSwapchain();
+      if(_drawer->ResizePending()) {
+        _drawer->ResizeSwapchain();
       } else {
         std::this_thread::sleep_for(std::chrono::milliseconds{1000});
       }
     }
-    
-    lastTickTime = tickStart;
-  }
-  bIsRunning = false;
-  cleanup();
-}
-
-void Engine::addScene(scene::Scene *scene) {
-  scenes.push(scene);
-
-  if (isRunning()) {
-    scene->init(this);
   }
 }
 
-float Engine::getEngineTimeSeconds() const {
-  return static_cast<float>(runTime / 1000.0);
+void Engine::AddScene(scene::Scene * scene) {
+  
 }
 
-Array<scene::Scene *> Engine::getScenes() {
-  return scenes;
+float Engine::GetEngineTimeSeconds() const {
+  return static_cast<float>(_runTime / 1000.0);
 }
 
-SDL_Window *Engine::getWindow() const {
-  return window;
+Array<scene::Scene *> Engine::GetScenes() {
+  return _scenes;
 }
 
-vk::Extent2D Engine::getWindowExtent() const { return windowExtent; }
-
-drawing::Drawer *Engine::getRenderer() const {
-  return renderer;
+SDL_Window *Engine::GetWindow() const {
+  return _window;
 }
 
-input::InputManager *Engine::getInputManager() const {
-  return inputManager;
+vk::Extent2D Engine::GetWindowExtent() const { return _windowExtent; }
+
+drawing::Drawer * Engine::GetDrawer() const{
+  return _drawer;
 }
 
-long long Engine::now() {
+input::InputManager * Engine::GetInputManager() const{
+  return _inputManager;
+}
+
+long long Engine::Now() {
   return std::chrono::steady_clock::now().time_since_epoch().count() / 1000000;
 }
 
-void Engine::update(float deltaTime) {
-  for (const auto scene : scenes) {
-    scene->update(deltaTime);
+Engine::Engine() = default;
+
+void Engine::Update(float deltaTime) const {
+  for (const auto &scene : _scenes) {
+    scene->Update(deltaTime);
   }
 }
 
 
-void Engine::initWindow() {
+void Engine::InitWindow() {
   // SDL_SetMainReady();
   SDL_Init(SDL_INIT_VIDEO);
+  
 
   constexpr auto flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE;
 
-  window = SDL_CreateWindow(
-      getAppName().c_str(),
-      windowExtent.width,
-      windowExtent.height,
+  _window = SDL_CreateWindow(
+      GetAppName().c_str(),
+      _windowExtent.width,
+      _windowExtent.height,
       flags
       );
-
-  addCleanup([=] {
-    if (window != nullptr) {
-      SDL_DestroyWindow(window);
+  
+  //SDL_SetWindowFullscreen(window,true);
+  //SDL_CaptureMouse(true);
+  SDL_SetWindowGrab(_window,true);
+  SetInputMode(EInputMode::GameOnly);
+  AddCleanup([=] {
+    if (_window != nullptr) {
+      SDL_DestroyWindow(_window);
     }
   });
 }
 
-void Engine::initRenderer() {
+void Engine::InitDrawer() {
 
-  renderer = newObject<drawing::Drawer>();
-  renderer->init(this);
+  _drawer = CreateDrawer();
+  _drawer->Init(this);
 
-  addCleanup([=] {
-    renderer->cleanup();
+  AddCleanup([=] {
+    _drawer->Destroy();
   });
 }
 
-void Engine::initScenes() {
-  for (const auto scene : scenes) {
-    scene->init(this);
+void Engine::InitScenes() {
+  for(const auto scene: _scenes) {
+    scene->Init(this);
   }
 
-  addCleanup([=] {
-    for (const auto scene : scenes) {
-      scene->cleanup();
-    }
+  AddCleanup([=] {
+    for(const auto & scene: _scenes) {
+    scene->Destroy();
+  }
 
-    scenes.clear();
+    _scenes.clear();
   });
 }
 
-void Engine::initAssetManager() {
-  assetManager = newObject<assets::AssetManager>();
-  assetManager->init(this);
+void Engine::InitAssetManager() {
+  _assetManager = CreateAssetManager();
+  _assetManager->Init(this);
 
-  addCleanup([=] {
-    assetManager->cleanup();
+  AddCleanup([=] {
+    _assetManager->Destroy();
   });
 }
 
-assets::AssetManager * Engine::getAssetManager() const {
-  return assetManager;
+assets::AssetManager * Engine::GetAssetManager() const {
+  return _assetManager;
 }
 
-void Engine::notifyWindowResize() {
+scripting::ScriptManager * Engine::GetScriptManager() const {
+  return _scriptManager;
+}
+
+drawing::Drawer * Engine::CreateDrawer() {
+  return newObject<drawing::Drawer>();
+}
+
+input::InputManager * Engine::CreateInputManager() {
+  return newObject<input::InputManager>();
+}
+
+assets::AssetManager * Engine::CreateAssetManager() {
+  return newObject<assets::AssetManager>();
+}
+
+scripting::ScriptManager * Engine::CreateScriptManager() {
+  return newObject<scripting::ScriptManager>();
+}
+
+void Engine::SetInputMode(EInputMode mode) {
+  switch (mode) {
+  case EInputMode::GameOnly:
+    SDL_HideCursor();
+    break;
+
+  case EInputMode::UiOnly:
+    SDL_ShowCursor();
+    break;
+
+  case EInputMode::GameAndUi:
+    SDL_ShowCursor();
+    break;
+    
+  }
+
+  onInputModeChanged.Emit(_inputMode,mode);
+
+  _inputMode = mode;
+}
+
+void Engine::NotifyWindowResize() {
   int width,height;
 
-  SDL_GetWindowSize(window,&width,&height);
-  windowExtent.setWidth(width);
-  windowExtent.setHeight(height);
+  if(IsFullScreen()) {
+    const auto display = SDL_GetPrimaryDisplay();
+    const auto dm = SDL_GetDesktopDisplayMode(display);
+    width = dm->w;
+    height = dm->h;
+    SDL_CaptureMouse(true);
+  }
+  else
+  {
+    SDL_GetWindowSize(_window,&width,&height);
+  }
+  _windowExtent.setWidth(width);
+  _windowExtent.setHeight(height);
+  GetDrawer()->RequestResize();
 }
 
-void Engine::initInputManager() {
-  inputManager = newObject<input::InputManager>();
-  inputManager->init(this);
-  addCleanup([=] {
-    inputManager->cleanup();
+bool Engine::IsFullScreen() const {
+  return SDL_GetWindowFlags(_window) & SDL_WINDOW_FULLSCREEN;
+}
+
+bool Engine::IsFocused() const {
+  return SDL_GetWindowFlags(_window) & SDL_WINDOW_MOUSE_FOCUS;
+}
+
+void Engine::InitScene(scene::Scene *scene) {
+  _scenes.Push(scene);
+
+  if (IsRunning()) {
+    scene->Init(this);
+  }
+}
+
+void Engine::InitInputManager() {
+  _inputManager = CreateInputManager();
+  _inputManager->Init(this);
+  AddCleanup([=] {
+    _inputManager->Destroy();
   });
 }
 
-void Engine::init(void *outer) {
-  Object::init(outer);
-  if (_bWasAllocated) {
-    log::engine->info("Engine was allocated");
-  } else {
-    log::engine->info("Engine was not allocated");
-  }
-  initAssetManager();
-  initWindow();
-  initInputManager();
-  initRenderer();
-  initScenes();
+void Engine::InitScriptManager() {
+  _scriptManager = CreateScriptManager();
+  _scriptManager->Init(this);
+  AddCleanup([=] {
+    _scriptManager->Destroy();
+  });
+}
+
+void Engine::Init(void *outer) {
+  Object::Init(outer);
+  InitAssetManager();
+  InitWindow();
+  InitScriptManager();
+  InitInputManager();
+  InitDrawer();
+  InitScenes();
+
+  GetInputManager()->BindKey(SDLK_ESCAPE,[=](const  input::KeyInputEvent &e) {
+    RequestExit();
+    return true;
+  },[](const  input::KeyInputEvent &_) {
+    return false;
+  });
 }
 
 }

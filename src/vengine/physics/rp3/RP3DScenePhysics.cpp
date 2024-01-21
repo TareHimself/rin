@@ -1,24 +1,23 @@
 ﻿#include "RP3DScenePhysics.hpp"
 
-namespace vengine {
-namespace physics {
+#include "vengine/scene/Scene.hpp"
+
+namespace vengine::physics {
 rp3d::PhysicsCommon RP3DScenePhysics::physicsCommon = rp3d::PhysicsCommon();
 
-void RP3DScenePhysics::init(scene::Scene *outer) {
-  ScenePhysics::init(outer);
-  phys = physicsCommon.createPhysicsWorld();
+void RP3DScenePhysics::Init(scene::Scene *outer) {
+  ScenePhysics::Init(outer);
+  _phys = physicsCommon.createPhysicsWorld();
 }
 
-void RP3DScenePhysics::handleCleanup() {
-  ScenePhysics::handleCleanup();
-  physicsCommon.destroyPhysicsWorld(phys);
-  phys = nullptr;
+void RP3DScenePhysics::HandleDestroy() {
+  ScenePhysics::HandleDestroy();
+  physicsCommon.destroyPhysicsWorld(_phys);
+  _phys = nullptr;
 }
 
-void RP3DScenePhysics::fixedUpdate(float deltaTime) {
-  ScenePhysics::fixedUpdate(deltaTime);
-  phys->update(deltaTime);
+void RP3DScenePhysics::InternalFixedUpdate(float deltaTime) {
+  _phys->update(deltaTime);
 }
 
-}
 }

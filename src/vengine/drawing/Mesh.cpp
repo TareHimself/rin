@@ -1,50 +1,83 @@
 ﻿#include "Mesh.hpp"
-
 #include "Drawer.hpp"
 #include "vengine/Engine.hpp"
 
 
-namespace vengine {
-namespace drawing {
-Array<Vertex> Mesh::getVertices() const {
-  return _asset.vertices;
+namespace vengine::drawing {
+Array<Vertex> Mesh::GetVertices() const {
+  return _vertices;
 }
 
-Array<uint32_t> Mesh::getIndices() const {
-  return _asset.indices;
+Array<uint32_t> Mesh::GetIndices() const {
+  return _indices;
 }
 
-Array<assets::MeshSurface> Mesh::getSurfaces() const {
-  return _asset.surfaces;
+Array<MeshSurface> Mesh::GetSurfaces() const {
+  return _surfaces;
 }
 
-Array<Material *> Mesh::getMaterials() const {
+Array<MaterialInstance *> Mesh::GetMaterials() const {
   return _materials;
 }
 
-void Mesh::setMaterial(uint32_t index, Material *material) {
+void Mesh::SetVertices(const Array<Vertex> &vertices) {
+  _vertices = vertices;
+}
+
+void Mesh::SetIndices(const Array<uint32_t> &indices) {
+  _indices = indices;
+}
+
+void Mesh::SetSurfaces(const Array<MeshSurface> &surfaces) {
+  _surfaces = surfaces;
+  _materials.resize(surfaces.size());
+}
+
+void Mesh::SetMaterial(const uint32_t index, MaterialInstance *material) {
   _materials[index] = material;
 }
 
-void Mesh::upload() {
-  buffers = getOuter()->getRenderer()->createMeshBuffers(this);
+void Mesh::Upload() {
+  if(!IsUploaded()) {
+    gpuData = GetOuter()->CreateMeshBuffers(this);
+  }
 }
 
-String Mesh::getName() const {
-  return _asset.name;
+bool Mesh::IsUploaded() const {
+  return gpuData.has_value();
 }
 
-void Mesh::handleCleanup() {
-  Object<Engine>::handleCleanup();
-  
+String Mesh::GetName() const {
+  return GetHeader().name;
 }
 
-void Mesh::setAsset(const assets::MeshAsset &asset) {
-  _asset = asset;
-  _materials.clear();
-  _materials.resize(_asset.surfaces.size());
+void Mesh::HandleDestroy() {
+  Object<Drawer>::HandleDestroy();
+  if(IsUploaded()) {
+    const auto [indexBuffer, vertexBuffer, vertexBufferAddress] = gpuData.value();
+    GetOuter()->GetDevice().waitIdle();
+    GetOuter()->GetAllocator()->DestroyBuffer(indexBuffer);
+    GetOuter()->GetAllocator()->DestroyBuffer(vertexBuffer);
+    gpuData.reset();
+  }
+}
+
+String Mesh::GetSerializeId() {
+  return "MESH";
+}
+
+void Mesh::ReadFrom(Buffer &store) {
+  store >> _vertices;
+  store >> _indices;
+  store >> _surfaces;
+  _materials.resize(_surfaces.size());
+}
+
+void Mesh::WriteTo(Buffer &store) {
+  store << _vertices;
+  store << _indices;
+  store << _surfaces;
 }
 
 
-}
 }

@@ -1,25 +1,23 @@
 ﻿#include "types.hpp"
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 SceneFrameData::SceneFrameData(FrameData *frame) {
   _frame  = frame;
 }
 
-vk::CommandBuffer * SceneFrameData::getCmd() const {
-  return _frame->getCmd();
+vk::CommandBuffer * SceneFrameData::GetCmd() const {
+  return _frame->GetCmd();
 }
 
-vk::DescriptorSet SceneFrameData::getSceneDescriptor() const{
+vk::DescriptorSet SceneFrameData::GetSceneDescriptor() const{
   return _sceneDescriptor;
 }
 
-void SceneFrameData::setSceneDescriptor(const vk::DescriptorSet &descriptor) {
+void SceneFrameData::SetSceneDescriptor(const vk::DescriptorSet &descriptor) {
   _sceneDescriptor = descriptor;
 }
 
-CleanupQueue * SceneFrameData::getCleaner() {
+CleanupQueue * SceneFrameData::GetCleaner() const {
   return &_frame->cleaner;
-}
 }
 }

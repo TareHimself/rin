@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include <fstream>
+#include "Buffer.hpp"
 #include <vector>
 #include <functional>
 namespace vengine {
@@ -17,67 +17,60 @@ public:
   // Array(T* begin,T*end);
   
   
-  void push(T &data);
-  void pop();
-  void remove(size_t index);
-  int64_t indexOf(T &data,std::function<bool(T &a,T &b)> equality);
+  void Push(T &data);
+  void Push(T &&data);
+  void Pop();
+  void Remove(size_t index);
+  int64_t IndexOf(T &data,std::function<bool(T &a,T &b)> equality);
 
-  size_t typeSize() const;
+  size_t TypeSize() const;
   
-  size_t byteSize() const;
+  size_t ByteSize() const;
 
   Array<T>& operator=(const std::vector<T>& other);
-  
-
-  friend std::ofstream &operator <<(std::ofstream &out, const Array<T> &a) {
-    const uint64_t arraySize = a.size();
-    
-    out.write(reinterpret_cast<const char *>(&arraySize),sizeof(size_t));
-    out.write(a.data(),a.byteSize());
-    return out;
-  }
-  
-
-  friend std::ifstream &operator >>(std::ifstream &in, Array<T> &a) {
-    size_t elementNum;
-    in.read(reinterpret_cast<char *>(&elementNum),sizeof(size_t));
-    a.resize(elementNum);
-    in.read(a.data(),a.byteSize());
-    return in;
-  }
-
-  // Array<T>& operator=(const std::initializer_list<T>& other);
 };
 
-// template <typename T> Array<T>::Array() : std::vector<T>() {
-//   
-// }
-//
-// template <typename T> Array<T>::Array(size_t allocSize) : std::vector<T>(allocSize) {
-//   
-// }
-//
-// template <typename T> Array<T>::Array(const std::initializer_list<T> &other) : std::vector<T>(other) {
-// }
-//
-// template <typename T> Array<T>::Array(T *begin, T *end) : std::vector<T>(begin,end) {
-// }
+#ifndef ARRAY_SERIALIZATION_OPS
+#define ARRAY_SERIALIZATION_OPS
+template<typename  T>
+  Buffer &operator<<(Buffer &out,
+                                            const Array<T> &src) {
+  const uint64_t numElements = src.size();
+  out << numElements;
+  out.Write(static_cast<const char *>(static_cast<const void *>(src.data())),src.ByteSize());
+  return out;
+}
 
-template <typename T> void Array<T>::push(T &data) {
+template<typename  T>
+Buffer &operator>>(Buffer &in,Array<T> &dst) {
+  uint64_t numElements;
+  in >> numElements;
+  dst.resize(numElements);
+  in.Write(static_cast<char *>(static_cast<void *>(dst.data())),dst.ByteSize());
+  return in;
+}
+#endif
+
+
+template <typename T> void Array<T>::Push(T &data) {
   this->push_back(data);
 }
 
-template <typename T> void Array<T>::pop() {
+template <typename T> void Array<T>::Push(T &&data) {
+  this->push_back(data);
+}
+
+template <typename T> void Array<T>::Pop() {
   this->pop_back();
 }
 
-template <typename T> void Array<T>::remove(size_t index) {
+template <typename T> void Array<T>::Remove(size_t index) {
   auto it = this->begin();
   std::advance(it, index);
   this->erase(it);
 }
 
-template <typename T> int64_t Array<T>::indexOf(T &data,std::function<bool(T &a,T &b)> equality) {
+template <typename T> int64_t Array<T>::IndexOf(T &data,std::function<bool(T &a,T &b)> equality) {
   for(auto i = 0; i < this->size(); i++) {
     if(equality(data,this->at(i))) {
       return i;
@@ -87,11 +80,11 @@ template <typename T> int64_t Array<T>::indexOf(T &data,std::function<bool(T &a,
   return -1;
 }
 
-template <typename T> size_t Array<T>::typeSize() const {
+template <typename T> size_t Array<T>::TypeSize() const {
   return sizeof(T);
 }
 
-template <typename T> size_t Array<T>::byteSize() const {
+template <typename T> size_t Array<T>::ByteSize() const {
   return this->size() * sizeof(T);
 }
 

@@ -7,10 +7,15 @@ class Scene;
 }
 namespace physics {
 class ScenePhysics : public Object<scene::Scene> {
+  float _accum = 0.0f;
+
+protected:
+  
 public:
   
-  virtual void fixedUpdate(float deltaTime);
-  
+  virtual void FixedUpdate(float deltaTime);
+
+  virtual void InternalFixedUpdate(float deltaTime) = 0;
 };
 }
 }

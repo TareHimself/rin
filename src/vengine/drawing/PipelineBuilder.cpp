@@ -6,37 +6,37 @@
 
 namespace vengine {
 namespace drawing {
-PipelineBuilder &PipelineBuilder::addShaderStage(const Shader *shader,
-                                                 vk::ShaderStageFlagBits bits) {
+PipelineBuilder &PipelineBuilder::AddShaderStage(const Shader *shader,
+                                                 const vk::ShaderStageFlagBits bits) {
   auto info = vk::PipelineShaderStageCreateInfo(
-      vk::PipelineShaderStageCreateFlags(), bits, shader->get(), "main");
-  _shaderStages.push(info);
+      vk::PipelineShaderStageCreateFlags(), bits, shader->Get(), "main");
+  _shaderStages.Push(info);
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::addVertexShader(const Shader *shader) {
-  return addShaderStage(shader, vk::ShaderStageFlagBits::eVertex);
+PipelineBuilder &PipelineBuilder::AddVertexShader(const Shader *shader) {
+  return AddShaderStage(shader, vk::ShaderStageFlagBits::eVertex);
 }
 
-PipelineBuilder &PipelineBuilder::addFragmentShader(const Shader *shader) {
-  return addShaderStage(shader, vk::ShaderStageFlagBits::eFragment);
+PipelineBuilder &PipelineBuilder::AddFragmentShader(const Shader *shader) {
+  return AddShaderStage(shader, vk::ShaderStageFlagBits::eFragment);
 }
 
-PipelineBuilder &PipelineBuilder::setNumViewports(uint32_t num) {
+PipelineBuilder &PipelineBuilder::SetNumViewports(const uint32_t num) {
 
   _numViewports = num;
 
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::setNumScissors(uint32_t num) {
+PipelineBuilder &PipelineBuilder::SetNumScissors(const uint32_t num) {
   _numScissors = num;
 
   return *this;
 }
 
 
-PipelineBuilder &PipelineBuilder::vertexInput(
+PipelineBuilder &PipelineBuilder::VertexInput(
     const Array<vk::VertexInputBindingDescription>
     &bindings, const Array<vk::VertexInputAttributeDescription> &attributes) {
   _vertexInputInfo = vk::PipelineVertexInputStateCreateInfo(
@@ -45,27 +45,27 @@ PipelineBuilder &PipelineBuilder::vertexInput(
 }
 
 PipelineBuilder &
-PipelineBuilder::setInputTopology(vk::PrimitiveTopology topology) {
+PipelineBuilder::SetInputTopology(const vk::PrimitiveTopology topology) {
   _inputAssembly.setTopology(topology);
   _inputAssembly.setPrimitiveRestartEnable(false);
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::setPolygonMode(
+PipelineBuilder &PipelineBuilder::SetPolygonMode(
     vk::PolygonMode polygonMode) {
   _rasterizer.setPolygonMode(polygonMode);
   _rasterizer.setLineWidth(1.0f);
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::setCullMode(vk::CullModeFlags cullMode,
-                                              vk::FrontFace frontFace) {
+PipelineBuilder &PipelineBuilder::SetCullMode(const vk::CullModeFlags cullMode,
+                                              const vk::FrontFace frontFace) {
   _rasterizer.setCullMode(cullMode);
   _rasterizer.setFrontFace(frontFace);
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::setMultisamplingModeNone() {
+PipelineBuilder &PipelineBuilder::SetMultisamplingModeNone() {
   _multisampling.setSampleShadingEnable(false);
   _multisampling.setRasterizationSamples(vk::SampleCountFlagBits::e1);
   _multisampling.setMinSampleShading(1.0f);
@@ -75,7 +75,7 @@ PipelineBuilder &PipelineBuilder::setMultisamplingModeNone() {
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::disableBlending() {
+PipelineBuilder &PipelineBuilder::DisableBlending() {
   _colorBlendAttachment.setColorWriteMask(
       vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
@@ -84,7 +84,7 @@ PipelineBuilder &PipelineBuilder::disableBlending() {
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::enableBlendingAdditive() {
+PipelineBuilder &PipelineBuilder::EnableBlendingAdditive() {
   _colorBlendAttachment.setColorWriteMask(
       vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
@@ -99,7 +99,7 @@ PipelineBuilder &PipelineBuilder::enableBlendingAdditive() {
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::enableBlendingAlphaBlend() {
+PipelineBuilder &PipelineBuilder::EnableBlendingAlphaBlend() {
   _colorBlendAttachment.setColorWriteMask(
       vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
@@ -113,19 +113,19 @@ PipelineBuilder &PipelineBuilder::enableBlendingAlphaBlend() {
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::setColorAttachmentFormat(vk::Format format) {
+PipelineBuilder &PipelineBuilder::SetColorAttachmentFormat(const vk::Format format) {
   _colorAttachmentFormat = format;
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::setDepthFormat(vk::Format format) {
+PipelineBuilder &PipelineBuilder::SetDepthFormat(const vk::Format format) {
   _renderInfo.setDepthAttachmentFormat(format);
   _renderInfo.setColorAttachmentFormats(_colorAttachmentFormat);
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::enableDepthTest(bool depthWriteEnable,
-                                                  vk::CompareOp op) {
+PipelineBuilder &PipelineBuilder::EnableDepthTest(bool depthWriteEnable,
+                                                  const vk::CompareOp op) {
   _depthStencil.setDepthTestEnable(true);
   _depthStencil.setDepthWriteEnable(depthWriteEnable);
   _depthStencil.setDepthCompareOp(op);
@@ -138,7 +138,7 @@ PipelineBuilder &PipelineBuilder::enableDepthTest(bool depthWriteEnable,
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::disableDepthTest() {
+PipelineBuilder &PipelineBuilder::DisableDepthTest() {
   _depthStencil.setDepthTestEnable(false);
   _depthStencil.setDepthWriteEnable(false);
   _depthStencil.setDepthCompareOp(vk::CompareOp::eNever);
@@ -151,13 +151,13 @@ PipelineBuilder &PipelineBuilder::disableDepthTest() {
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::setLayout(vk::PipelineLayout layout) {
+PipelineBuilder &PipelineBuilder::SetLayout(const vk::PipelineLayout layout) {
   _layout = layout;
 
   return *this;
 }
 
-vk::Pipeline PipelineBuilder::build(vk::Device device) {
+vk::Pipeline PipelineBuilder::Build(const vk::Device device) {
 
   const auto viewportCreateInfo = vk::PipelineViewportStateCreateInfo(
       vk::PipelineViewportStateCreateFlags(), _numViewports, nullptr,

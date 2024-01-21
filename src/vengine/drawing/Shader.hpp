@@ -4,25 +4,27 @@
 #include <vulkan/vulkan.hpp>
 #include <filesystem>
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class ShaderManager;
 
 class Shader : public Object<ShaderManager> {
   std::filesystem::path _sourcePath;
   vk::ShaderModule _vkShader;
+  ShaderResources _resources;
 public:
-  vk::ShaderModule get() const;
-  std::filesystem::path getSourcePath() const;
+  
+  vk::ShaderModule Get() const;
+  std::filesystem::path GetSourcePath() const;
   
   operator vk::ShaderModule() const;
   
-  void setVulkanShader(vk::ShaderModule shader);
-  void setSourcePath(const std::filesystem::path &path);
+  void SetVulkanShader(vk::ShaderModule shader);
+  void SetSourcePath(const std::filesystem::path &path);
+  void SetResources(const ShaderResources& resources);
+
+  ShaderResources GetResources() const;
+  void HandleDestroy() override;
   
-  void handleCleanup() override;
-  
-  static Shader * fromSource(ShaderManager * manager,const std::filesystem::path &path);
+  static Shader * FromSource(ShaderManager * manager,const std::filesystem::path &path);
 };
-}
 }

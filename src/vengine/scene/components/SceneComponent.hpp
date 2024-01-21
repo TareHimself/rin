@@ -1,31 +1,21 @@
 ﻿#pragma once
 #include "Component.hpp"
+#include "Transformable.hpp"
 #include "vengine/math/Transform.hpp"
 #include "vengine/math/Transform.hpp"
 
-namespace vengine {
-namespace scene {
-class SceneComponent : public Component {
+namespace vengine::scene {
+class SceneComponent : public Component, public Transformable {
   math::Transform _relativeTransform;
   SceneComponent * _parent = nullptr;
 public:
   
-  math::Transform getRelativeTransform() const;
-  void setRelativeTransform(const math::Transform &transform);
+  // Transformable Interface
+  math::Transform GetRelativeTransform() const override;
+  void SetRelativeTransform(const math::Transform &val) override;
+  Transformable * GetParent() const override;
 
-  math::Vector3 getRelativeLocation() const;
-  math::Quaternion getRelativeRotation() const;
-  math::Vector3 getRelativeScale() const;
   
-  void setRelativeLocation(const math::Vector3 &location);
-  void setRelativeRotation(const math::Quaternion &rotation);
-  void setRelativeScale(const math::Vector3 &scale);
-
-  void attachTo(SceneComponent * parent);
-  
-  math::Transform getWorldTransform() const;
-
-  SceneComponent * getParent() const;
+  virtual void AttachTo(SceneComponent* parent);
 };
-}
 }

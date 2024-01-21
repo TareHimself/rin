@@ -1,5 +1,7 @@
-﻿#pragma once
+﻿#ifndef VENGINE_ASSETS_TYPES
+#define VENGINE_ASSETS_TYPES
 #include "vengine/containers/Array.hpp"
+#include "vengine/containers/Serializable.hpp"
 #include "vengine/containers/String.hpp"
 #include "vengine/drawing/types.hpp"
 
@@ -11,34 +13,19 @@ namespace types {
 const String MESH = "MESH";
 const String TEXTURE = "TEXTURE";
 }
-struct VEngineAsset {
+struct VEngineAssetHeader : Serializable {
   uint32_t version;
   String type;
   String name;
   String meta;
-  virtual void save(const std::ofstream &stream) const = 0;
-  virtual void load(const std::ifstream &stream) = 0;
-};
 
-struct MeshSurface {
-  uint32_t startIndex;
-  uint32_t count;
-};
+  String GetSerializeId() override;
 
-struct MeshAsset : VEngineAsset {
-  
-  MeshAsset() {
-    type = types::MESH;
-  }
+  void ReadFrom(Buffer &store) override;
 
-  Array<MeshSurface> surfaces;
-  Array<drawing::Vertex> vertices;
-  Array<uint32_t> indices;
-
-  void save(const std::ofstream &stream) const override;
-
-  void load(const std::ifstream &stream) override;
+  void WriteTo(Buffer &store) override;
 };
 }
 
 }
+#endif

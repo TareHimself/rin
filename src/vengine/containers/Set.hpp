@@ -5,16 +5,16 @@ namespace vengine {
 template <typename T>
 class Set : public std::set<T> {
 public:
-  void add(T &item);
-  void remove(T &item);
+  void Add(T &item);
+  void Remove(T &item);
 };
 
 
-template <typename T> void Set<T>::add(T &item) {
+template <typename T> void Set<T>::Add(T &item) {
   this->emplace(item);
 }
 
-template <typename T> void Set<T>::remove(T &item) {
+template <typename T> void Set<T>::Remove(T &item) {
   this->erase(item);
 }
 }

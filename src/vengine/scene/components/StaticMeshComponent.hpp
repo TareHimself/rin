@@ -2,15 +2,13 @@
 #include "RenderedComponent.hpp"
 #include "vengine/drawing/Mesh.hpp"
 
-namespace vengine {
-namespace scene {
+namespace vengine::scene {
 class StaticMeshComponent : public RenderedComponent {
-  drawing::Mesh * mesh = nullptr;
+  drawing::Mesh * _mesh = nullptr;
 public:
-  drawing::Mesh * getMesh() const;
-  void setMesh(drawing::Mesh * newMesh);
+  drawing::Mesh * GetMesh() const;
+  void SetMesh(drawing::Mesh * newMesh);
 
-  void draw(drawing::SceneDrawer *renderer, drawing::SceneFrameData *frameData) override;
+  void Draw(drawing::SceneDrawer *renderer, drawing::SceneFrameData *frameData) override;
 };
-}
 }

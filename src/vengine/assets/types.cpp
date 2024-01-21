@@ -2,12 +2,22 @@
 
 namespace vengine {
 namespace assets {
-void MeshAsset::save(const std::ofstream &stream) const {
-  
+String VEngineAssetHeader::GetSerializeId() {
+  return "ASSET HEADER";
 }
 
-void MeshAsset::load(const std::ifstream &stream) {
-  
+void VEngineAssetHeader::ReadFrom(Buffer &store) {
+  store >> version;
+  store >> type;
+  store >> name;
+  store >> meta;
+}
+
+void VEngineAssetHeader::WriteTo(Buffer &store) {
+  store << version;
+  store << type;
+  store << name;
+  store << meta;
 }
 }
 }

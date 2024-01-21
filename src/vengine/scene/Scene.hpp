@@ -2,22 +2,17 @@
 #include "SceneObject.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/containers/Array.hpp"
-#include "vengine/drawing/Drawable.hpp"
+#include "vengine/input/SceneInputManager.hpp"
 
 #include <vulkan/vulkan.hpp>
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class SceneDrawer;
-}
-}
-
-namespace vengine {
-namespace drawing {
 class Drawer;
 class Viewport;
 }
 
+namespace vengine {
 class Engine;
 
 namespace physics {
@@ -33,60 +28,71 @@ class CameraComponent;
 class Scene : public Object<Engine> {
   physics::ScenePhysics *_physics = nullptr;
   drawing::SceneDrawer *_drawer = nullptr;
-  CameraComponent *activeCamera = nullptr;
-  Array<SceneObject *> objects;
-  Array<SceneObject *> objectsPendingInit;
+  SceneObject * _viewTarget = nullptr;
+  SceneObject * _defaultViewTarget = nullptr;
+  Array<SceneObject *> _sceneObjects;
+  Array<SceneObject *> _objectsPendingInit;
+  input::SceneInputManager * _inputManager = nullptr;
 
 public:
-  Engine *getEngine() const;
+  Engine *  GetEngine() const;
 
-  void init(Engine *outer) override;
-  void handleCleanup() override;
+  void Init(Engine *outer) override;
+  void HandleDestroy() override;
 
-  Array<SceneObject *> getSceneObjects() const;
+  Array<SceneObject *> GetSceneObjects() const;
 
-  drawing::SceneDrawer * getDrawer() const;
+  drawing::SceneDrawer *  GetDrawer() const;
 
-  physics::ScenePhysics * getPhysics() const;
+  physics::ScenePhysics *  GetPhysics() const;
+
+  input::SceneInputManager *  GetInput() const;
 
   /**
    * \brief Called every tick
    */
-  virtual void update(float deltaTime);
+  virtual void Update(float deltaTime);
 
   /**
    * \brief Create a new physics instance for this world
    * \return The created instance
    */
-  virtual physics::ScenePhysics *createPhysics();
+  virtual physics::ScenePhysics *  CreatePhysics();
 
   /**
    * \brief Create a new renderer for this world
    * \return The created instance
    */
-  virtual drawing::SceneDrawer * createDrawer();
+  virtual drawing::SceneDrawer * CreateDrawer();
 
-  virtual SceneObject * initObject(SceneObject * object);
+  virtual input::SceneInputManager * CreateInputManager();
 
-  template <typename T>
-  T *createSceneObject();
+  virtual SceneObject *  CreateDefaultViewTarget();
 
-  template <typename T>
-  T *createSceneObject(const math::Transform &transform);
+  SceneObject *  GetViewTarget() const;
+
+  virtual SceneObject * InitSceneObject(SceneObject * object);
+
+  template <typename T,typename ... Args>
+  T * CreateSceneObject(Args &&... args);
+
+  template <typename T,typename ... Args>
+  T * CreateSceneObject(const math::Transform &transform,Args &&... args);
 };
 
-template <typename T> T *Scene::createSceneObject() {
-  auto rawObj = newObject<T>();
+template <typename T, typename ... Args> T * Scene::CreateSceneObject(
+    Args &&... args) {
+  auto rawObj = newObject<T>(args...);
   const auto obj = dynamic_cast<SceneObject *>(rawObj);
-  initObject(obj);
+  InitSceneObject(obj);
   return rawObj;
 }
 
-template <typename T> T *Scene::
-createSceneObject(const math::Transform &transform) {
-  auto rawObj = createSceneObject<T>();
+template <typename T, typename ... Args> T * Scene::CreateSceneObject(
+    const math::Transform &transform, Args &&... args) {
+  auto rawObj = CreateSceneObject<T>(args...);
   const auto obj = dynamic_cast<SceneObject *>(rawObj);
-  obj->setTransform(transform);
+  obj->SetWorldTransform(transform);
   return rawObj;
 }
 }

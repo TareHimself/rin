@@ -4,14 +4,14 @@
 
 #include <SDL2/SDL_events.h>
 
-namespace vengine {
-namespace input {
+namespace vengine::input {
 class KeyInputEvent : public InputEvent {
   SDL_KeyboardEvent _key;
 public:
+
+  
   KeyInputEvent(const SDL_KeyboardEvent &event);
 
-  String getName() const override;
+  String GetName() const override;
 };
-}
 }

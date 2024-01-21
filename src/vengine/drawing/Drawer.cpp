@@ -1,10 +1,13 @@
-﻿#define VMA_IMPLEMENTATION
+﻿
 #include "Drawer.hpp"
 
-#include "Material.hpp"
+#include "Allocator.hpp"
+#include "MaterialBuilder.hpp"
+#include "MaterialInstance.hpp"
 #include "Mesh.hpp"
 #include "PipelineBuilder.hpp"
 #include "Shader.hpp"
+#include "Texture.hpp"
 #include "vengine/Engine.hpp"
 #include "vengine/io/io.hpp"
 #include <VkBootstrap.h>
@@ -12,11 +15,9 @@
 #include <SDL3/SDL_vulkan.h>
 #include "types.hpp"
 #include "vengine/scene/Scene.hpp"
-#include <vk_mem_alloc.hpp>
-#include "imgui.h"
-#include "imgui_impl_sdl3.h"
-#include "imgui_impl_vulkan.h"
+#include <vk_mem_alloc.h>
 #include "scene/SceneDrawer.hpp"
+#include "vengine/utils.hpp"
 
 
 // we want to immediately abort when there is an error. In normal engines this
@@ -35,44 +36,20 @@ using namespace std;
 namespace vengine {
 namespace drawing {
 
-void Drawer::initSwapchain() {
-  const auto extent = getSwapchainExtent();
+void Drawer::InitSwapchain() {
+  const auto extent = GetSwapchainExtent();
 
-  createSwapchain();
+  CreateSwapchain();
 
-  addCleanup([=] {
+  AddCleanup([=] {
     if (_swapchain != nullptr) {
-      destroySwapchain();
+      DestroySwapchain();
     }
-  });
-
-  vk::ImageUsageFlags drawImageUsages;
-  drawImageUsages |= vk::ImageUsageFlagBits::eTransferSrc;
-  drawImageUsages |= vk::ImageUsageFlagBits::eTransferDst;
-  drawImageUsages |= vk::ImageUsageFlagBits::eStorage;
-  drawImageUsages |= vk::ImageUsageFlagBits::eColorAttachment;
-
-  allocateImage(_drawImage, vk::Format::eR16G16B16A16Sfloat,
-                vk::Extent3D{extent.width, extent.height, 1}, drawImageUsages,
-                vk::ImageAspectFlagBits::eColor, vma::MemoryUsage::eGpuOnly,
-                vk::MemoryPropertyFlagBits::eDeviceLocal);
-
-  allocateImage(_depthImage, vk::Format::eD32Sfloat, _drawImage.extent,
-                vk::ImageUsageFlagBits::eDepthStencilAttachment,
-                vk::ImageAspectFlagBits::eDepth, vma::MemoryUsage::eGpuOnly,
-                vk::MemoryPropertyFlagBits::eDeviceLocal);
-
-  addCleanup([=] {
-    _device.destroyImageView(_drawImage.view);
-    vmaDestroyImage(getAllocator(), _drawImage.image, _drawImage.alloc);
-
-    _device.destroyImageView(_depthImage.view);
-    vmaDestroyImage(getAllocator(), _depthImage.image, _depthImage.alloc);
   });
 }
 
-void Drawer::createSwapchain() {
-  const auto extent = getSwapchainExtent();
+void Drawer::CreateSwapchain() {
+  const auto extent = GetSwapchainExtent();
 
   vkb::SwapchainBuilder swapchainBuilder{_gpu, _device, _surface};
 
@@ -95,34 +72,79 @@ void Drawer::createSwapchain() {
   const auto vkbSwapchainImages = vkbSwapchain.get_images().value();
   for (const auto image : vkbSwapchainImages) {
     vk::Image im = image;
-    _swapchainImages.push(im);
+    _swapchainImages.Push(im);
   }
 
   const auto vkbSwapchainViews = vkbSwapchain.get_image_views().value();
   for (const auto image : vkbSwapchainViews) {
     vk::ImageView im = image;
-    _swapchainImageViews.push(im);
+    _swapchainImageViews.Push(im);
   }
+
+  vk::ImageUsageFlags drawImageUsages;
+  drawImageUsages |= vk::ImageUsageFlagBits::eTransferSrc;
+  drawImageUsages |= vk::ImageUsageFlagBits::eTransferDst;
+  drawImageUsages |= vk::ImageUsageFlagBits::eStorage;
+  drawImageUsages |= vk::ImageUsageFlagBits::eColorAttachment;
+
+  auto drawCreateInfo = MakeImageCreateInfo(vk::Format::eR16G16B16A16Sfloat,vk::Extent3D{extent.width, extent.height, 1},drawImageUsages);
+  _Allocator->AllocateImage(_drawImage,drawCreateInfo,VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+  const auto drawViewInfo = vk::ImageViewCreateInfo({}, _drawImage.image,
+                                                vk::ImageViewType::e2D,
+                                                _drawImage.format, {},
+                                                {vk::ImageAspectFlagBits::eColor, 0,
+                                                 1, 0, 1});
+  
+  _drawImage.view = _device.createImageView(drawViewInfo);
+
+  
+  auto depthCreateInfo = MakeImageCreateInfo(vk::Format::eD32Sfloat,_drawImage.extent,vk::ImageUsageFlagBits::eDepthStencilAttachment);
+  
+  _Allocator->AllocateImage(_depthImage,depthCreateInfo,VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  
+  const auto depthViewInfo = vk::ImageViewCreateInfo({}, _depthImage.image,
+                                                vk::ImageViewType::e2D,
+                                                _depthImage.format, {},
+                                                {vk::ImageAspectFlagBits::eDepth, 0,
+                                                 1, 0, 1});
+  
+  _depthImage.view = _device.createImageView(depthViewInfo);
 }
 
-void Drawer::resizeSwapchain() {
+void Drawer::ResizeSwapchain() {
+  if(!_resizePending) {
+    _resizePending = true;
+    return;
+  }
   log::drawing->info("Resizing Swapchain");
   _device.waitIdle();
 
-  destroySwapchain();
+  DestroySwapchain();
   log::drawing->info("Destroyed Old Swapchain");
 
-  getEngine()->notifyWindowResize();
+  GetEngine()->NotifyWindowResize();
 
-  createSwapchain();
+  CreateSwapchain();
+
+  const auto extent = GetEngine()->GetWindowExtent();
   log::drawing->info("Created New Swapchain");
-
+  onResizeEvent.Emit(extent);
+  // for(auto fn : _resizeCallbacks) {
+  //   fn();
+  // }
   _resizePending = false;
-
   log::drawing->info("Swapchain Resize Completed");
 }
 
-void Drawer::destroySwapchain() {
+void Drawer::DestroySwapchain() {
+
+  _device.destroyImageView(_drawImage.view);
+  GetAllocator()->DestroyImage(_drawImage);
+
+  _device.destroyImageView(_depthImage.view);
+  GetAllocator()->DestroyImage(_depthImage);
+  
   for (const auto view : _swapchainImageViews) {
     _device.destroyImageView(view);
   }
@@ -135,7 +157,7 @@ void Drawer::destroySwapchain() {
   _swapchain = nullptr;
 }
 
-void Drawer::initCommands() {
+void Drawer::InitCommands() {
   const auto commandPoolInfo = vk::CommandPoolCreateInfo(
       vk::CommandPoolCreateFlags(
           vk::CommandPoolCreateFlagBits::eResetCommandBuffer),
@@ -143,12 +165,12 @@ void Drawer::initCommands() {
 
   for (auto &_frame : _frames) {
 
-    _frame.setCommandPool(_device.createCommandPool(commandPoolInfo, nullptr));
+    _frame.SetCommandPool(_device.createCommandPool(commandPoolInfo, nullptr));
 
     const auto commandBufferAllocateInfo = vk::CommandBufferAllocateInfo(
-        *_frame.getCmdPool(), vk::CommandBufferLevel::ePrimary, 1);
+        *_frame.GetCmdPool(), vk::CommandBufferLevel::ePrimary, 1);
 
-    _frame.setCommandBuffer(
+    _frame.SetCommandBuffer(
         _device.allocateCommandBuffers(commandBufferAllocateInfo)
                .
                at(0));
@@ -161,17 +183,17 @@ void Drawer::initCommands() {
 
   _immediateCommandBuffer = _device.allocateCommandBuffers(cmdAllocInfo).at(0);
 
-  addCleanup([this] {
+  AddCleanup([this] {
     _device.destroyCommandPool(_immCommandPool);
 
     for (auto &_frame : _frames) {
-      _device.destroyCommandPool(*_frame.getCmdPool());
+      _device.destroyCommandPool(*_frame.GetCmdPool());
     }
   });
 }
 
 
-void Drawer::initSyncStructures() {
+void Drawer::InitSyncStructures() {
   constexpr auto fenceCreateInfo = vk::FenceCreateInfo(
       vk::FenceCreateFlagBits::eSignaled);
 
@@ -179,65 +201,65 @@ void Drawer::initSyncStructures() {
       vk::SemaphoreCreateFlags());
 
   for (auto &_frame : _frames) {
-    _frame.setRenderFence(_device.createFence(fenceCreateInfo));
-    _frame.setSemaphores(_device.createSemaphore(semaphoreCreateInfo),
+    _frame.SetRenderFence(_device.createFence(fenceCreateInfo));
+    _frame.SetSemaphores(_device.createSemaphore(semaphoreCreateInfo),
                          _device.createSemaphore(semaphoreCreateInfo));
   }
 
   _immediateFence = _device.createFence(fenceCreateInfo);
 
-  addCleanup([this] {
+  AddCleanup([this] {
 
     _device.destroyFence(_immediateFence);
 
     for (const auto &_frame : _frames) {
-      _device.destroyFence(_frame.getRenderFence());
-      _device.destroySemaphore(_frame.getRenderSemaphore());
-      _device.destroySemaphore(_frame.getSwapchainSemaphore());
+      _device.destroyFence(_frame.GetRenderFence());
+      _device.destroySemaphore(_frame.GetRenderSemaphore());
+      _device.destroySemaphore(_frame.GetSwapchainSemaphore());
     }
   });
 
 }
 
-void Drawer::initPipelineLayout() {
-  auto pushConstants = {
-      vk::PushConstantRange({vk::ShaderStageFlagBits::eVertex}, 0,
-                            sizeof(GpuDrawPushConstants))};
-  _mainPipelineLayout = _device.createPipelineLayout(
-      vk::PipelineLayoutCreateInfo({}, {}, pushConstants));
-  addCleanup([this] {
-    _device.destroyPipelineLayout(_mainPipelineLayout);
-  });
+void Drawer::InitPipelineLayout() {
+  // auto pushConstants = {
+  //     vk::PushConstantRange({vk::ShaderStageFlagBits::eVertex}, 0,
+  //                           sizeof(SceneDrawPushConstants))};
+  // _mainPipelineLayout = _device.createPipelineLayout(
+  //     vk::PipelineLayoutCreateInfo({}, {}, pushConstants));
+  // AddCleanup([this] {
+  //   _device.destroyPipelineLayout(_mainPipelineLayout);
+  // });
 }
 
-void Drawer::initPipelines() {
-  PipelineBuilder builder;
-  _mainPipeline = builder
-                  .setLayout(_mainPipelineLayout)
-                  .addVertexShader(Shader::fromSource(
-                      _shaderManager, io::getRawShaderPath("triangle.vert")))
-                  .addFragmentShader(Shader::fromSource(
-                      _shaderManager, io::getRawShaderPath("triangle.frag")))
-                  .setInputTopology(vk::PrimitiveTopology::eTriangleList)
-                  .setPolygonMode(vk::PolygonMode::eFill)
-                  .setCullMode(vk::CullModeFlagBits::eNone,
-                               vk::FrontFace::eClockwise)
-                  .setMultisamplingModeNone()
-                  .disableBlending()
-                  //.disableDepthTest()
-                  .enableDepthTest(true, vk::CompareOp::eLessOrEqual)
-                  .setColorAttachmentFormat(_drawImage.format)
-                  .setDepthFormat(_depthImage.format)
-                  .build(_device);
+void Drawer::InitPipelines() {
+  // PipelineBuilder builder;
+  // _mainPipeline = builder
+  //                 .SetLayout(_mainPipelineLayout)
+  //                 .AddVertexShader(Shader::FromSource(
+  //                     _shaderManager, io::getRawShaderPath("triangle.vert")))
+  //                 .AddFragmentShader(Shader::FromSource(
+  //                     _shaderManager, io::getRawShaderPath("triangle.frag")))
+  //                 .SetInputTopology(vk::PrimitiveTopology::eTriangleList)
+  //                 .SetPolygonMode(vk::PolygonMode::eFill)
+  //                 .SetCullMode(vk::CullModeFlagBits::eNone,
+  //                              vk::FrontFace::eClockwise)
+  //                 .SetMultisamplingModeNone()
+  //                 .DisableBlending()
+  //                 //.disableDepthTest()
+  //                 .EnableDepthTest(true, vk::CompareOp::eLessOrEqual)
+  //                 .SetColorAttachmentFormat(_drawImage.format)
+  //                 .SetDepthFormat(_depthImage.format)
+  //                 .Build(_device);
 
   ComputeEffect gradient{"gradient"};
   ComputeEffect gradient2{"gradient 2"};
 
-  createComputeShader(
-      Shader::fromSource(_shaderManager, io::getRawShaderPath("pretty.comp")),
+  CreateComputeShader(
+      Shader::FromSource(_shaderManager, io::getRawShaderPath("pretty.comp")),
       gradient2);
-  createComputeShader(
-      Shader::fromSource(_shaderManager, io::getRawShaderPath("pretty.comp")),
+  CreateComputeShader(
+      Shader::FromSource(_shaderManager, io::getRawShaderPath("pretty.comp")),
       gradient);
 
   gradient.data.time = 0.0f;
@@ -250,31 +272,31 @@ void Drawer::initPipelines() {
   gradient2.data.data2 = {.5, .5, .5, 1};
   gradient2.data.data3 = {1, 1, 1, 1};
   gradient2.data.data4 = {0.263, 0.416, 0.557, 1};
-  backgroundEffects.push(gradient);
-  backgroundEffects.push(gradient2);
+  backgroundEffects.Push(gradient);
+  backgroundEffects.Push(gradient2);
 
-  addCleanup([this] {
+  AddCleanup([this] {
     for (const auto &effect : backgroundEffects) {
       _device.destroyPipeline(effect.pipeline);
       _device.destroyPipelineLayout(effect.layout);
     }
 
-    _device.destroyPipeline(_mainPipeline);
+    // _device.destroyPipeline(_mainPipeline);
   });
 }
 
-void Drawer::initDescriptors() {
+void Drawer::InitDescriptors() {
   // 10 sets 1 image each
 
   {
-    const auto device = getDevice();
+    const auto device = GetDevice();
     DescriptorLayoutBuilder builder;
-    builder.addBinding(0, vk::DescriptorType::eUniformBuffer);
-    _sceneDescriptorSetLayout = builder.build(device,
+    builder.AddBinding(0, vk::DescriptorType::eUniformBuffer);
+    _sceneDescriptorSetLayout = builder.Build(device,
                                               vk::ShaderStageFlagBits::eVertex
                                               | vk::ShaderStageFlagBits::eFragment);
 
-    addCleanup([=] {
+    AddCleanup([=] {
       device.destroyDescriptorSetLayout(_sceneDescriptorSetLayout);
     });
   }
@@ -282,32 +304,40 @@ void Drawer::initDescriptors() {
   Array<DescriptorAllocatorGrowable::PoolSizeRatio> sizes = {
       {vk::DescriptorType::eStorageImage, 1}};
 
-  _descriptorAllocator.init(_device, 10, sizes);
+  _globalAllocator.Init(_device, 10, sizes);
 
-  addCleanup([=] {
-    _descriptorAllocator.destroyPools();
+  AddCleanup([=] {
+    _globalAllocator.DestroyPools();
   });
 
   {
     DescriptorLayoutBuilder builder;
-    builder.addBinding(0, vk::DescriptorType::eStorageImage);
-    _drawImageDescriptorLayout = builder.build(_device,
+    builder.AddBinding(0, vk::DescriptorType::eStorageImage);
+    _drawImageDescriptorLayout = builder.Build(_device,
                                                vk::ShaderStageFlagBits::eCompute);
 
-    addCleanup([=] {
+    AddCleanup([=] {
       _device.destroyDescriptorSetLayout(_drawImageDescriptorLayout);
       //descriptorAllocator.
     });
   }
 
-  _drawImageDescriptors = _descriptorAllocator.allocate(
+  _drawImageDescriptors = _globalAllocator.Allocate(
       _drawImageDescriptorLayout);
 
   DescriptorWriter writer;
-  writer.writeImage(0, _drawImage.view, {}, vk::ImageLayout::eGeneral,
+  writer.WriteImage(0, _drawImage.view, {}, vk::ImageLayout::eGeneral,
                     vk::DescriptorType::eStorageImage);
 
-  writer.updateSet(_device, _drawImageDescriptors);
+  writer.UpdateSet(_device, _drawImageDescriptors);
+
+  onResizeEvent.On([=] (vk::Extent2D _){
+    DescriptorWriter writer;
+    writer.WriteImage(0, _drawImage.view, {}, vk::ImageLayout::eGeneral,
+                    vk::DescriptorType::eStorageImage);
+
+    writer.UpdateSet(_device, _drawImageDescriptors);
+  });
 
   for (auto &_frame : _frames) {
     // create a descriptor pool
@@ -318,94 +348,66 @@ void Drawer::initDescriptors() {
         {vk::DescriptorType::eCombinedImageSampler, 4},
     };
 
-    _frame.getDescriptorAllocator()->init(_device, 1000, frame_sizes);
+    _frame.GetDescriptorAllocator()->Init(_device, 1000, frame_sizes);
 
-    addCleanup([&] {
-      _frame.getDescriptorAllocator()->destroyPools();
-      _frame.cleaner.run();
+    AddCleanup([&] {
+      _frame.GetDescriptorAllocator()->DestroyPools();
+      _frame.cleaner.Run();
     });
   }
 }
 
-void Drawer::initImGui() {
-  constexpr auto poolSize = 1000;
-  Array<vk::DescriptorPoolSize> poolSizes = {
-      {vk::DescriptorType::eSampler, poolSize},
-      {vk::DescriptorType::eCombinedImageSampler, poolSize},
-      {vk::DescriptorType::eSampledImage, poolSize},
-      {vk::DescriptorType::eStorageImage, poolSize},
-      {vk::DescriptorType::eUniformTexelBuffer, poolSize},
-      {vk::DescriptorType::eStorageTexelBuffer, poolSize},
-      {vk::DescriptorType::eUniformBuffer, poolSize},
-      {vk::DescriptorType::eStorageBuffer, poolSize},
-      {vk::DescriptorType::eUniformBufferDynamic, poolSize},
-      {vk::DescriptorType::eStorageBufferDynamic, poolSize},
-      {vk::DescriptorType::eInputAttachment, poolSize}
-  };
+// void Drawer::initImGui() {
+//   constexpr auto poolSize = 1000;
+//   Array<vk::DescriptorPoolSize> poolSizes = {
+//       {vk::DescriptorType::eSampler, poolSize},
+//       {vk::DescriptorType::eCombinedImageSampler, poolSize},
+//       {vk::DescriptorType::eSampledImage, poolSize},
+//       {vk::DescriptorType::eStorageImage, poolSize},
+//       {vk::DescriptorType::eUniformTexelBuffer, poolSize},
+//       {vk::DescriptorType::eStorageTexelBuffer, poolSize},
+//       {vk::DescriptorType::eUniformBuffer, poolSize},
+//       {vk::DescriptorType::eStorageBuffer, poolSize},
+//       {vk::DescriptorType::eUniformBufferDynamic, poolSize},
+//       {vk::DescriptorType::eStorageBufferDynamic, poolSize},
+//       {vk::DescriptorType::eInputAttachment, poolSize}
+//   };
+//
+//   const vk::DescriptorPoolCreateInfo poolInfo{
+//       vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, poolSize,
+//       poolSizes};
+//
+//   const vk::DescriptorPool imGuiPool = _device.createDescriptorPool(poolInfo);
+//
+//   ImGui::CreateContext();
+//
+//   ImGui_ImplSDL3_InitForVulkan(getEngine()->getWindow());
+//
+//   ImGui_ImplVulkan_InitInfo initInfo{instance, _gpu, _device,
+//                                      _graphicsQueueFamily, _graphicsQueue,
+//                                      nullptr, imGuiPool};
+//   initInfo.MinImageCount = 3;
+//   initInfo.ImageCount = 3;
+//   initInfo.UseDynamicRendering = true;
+//   initInfo.ColorAttachmentFormat = static_cast<VkFormat>(_swapchainImageFormat);
+//
+//   initInfo.MSAASamples = static_cast<VkSampleCountFlagBits>(
+//     vk::SampleCountFlagBits::e1);
+//
+//   ImGui_ImplVulkan_Init(&initInfo, nullptr);
+//
+//   // immediateSubmit([&] (vk::CommandBuffer cmd){
+//   //   ImGui_ImplVulkan_CreateFontsTexture();
+//   // });
+//
+//   addCleanup([=] {
+//     ImGui_ImplVulkan_Shutdown();
+//     ImGui_ImplSDL3_Shutdown();
+//     _device.destroyDescriptorPool(imGuiPool);
+//   });
+// }
 
-  const vk::DescriptorPoolCreateInfo poolInfo{
-      vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, poolSize,
-      poolSizes};
-
-  const vk::DescriptorPool imGuiPool = _device.createDescriptorPool(poolInfo);
-
-  ImGui::CreateContext();
-
-  ImGui_ImplSDL3_InitForVulkan(getEngine()->getWindow());
-
-  ImGui_ImplVulkan_InitInfo initInfo{instance, _gpu, _device,
-                                     _graphicsQueueFamily, _graphicsQueue,
-                                     nullptr, imGuiPool};
-  initInfo.MinImageCount = 3;
-  initInfo.ImageCount = 3;
-  initInfo.UseDynamicRendering = true;
-  initInfo.ColorAttachmentFormat = static_cast<VkFormat>(_swapchainImageFormat);
-
-  initInfo.MSAASamples = static_cast<VkSampleCountFlagBits>(
-    vk::SampleCountFlagBits::e1);
-
-  ImGui_ImplVulkan_Init(&initInfo, nullptr);
-
-  // immediateSubmit([&] (vk::CommandBuffer cmd){
-  //   ImGui_ImplVulkan_CreateFontsTexture();
-  // });
-
-  addCleanup([=] {
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-    _device.destroyDescriptorPool(imGuiPool);
-  });
-}
-
-void Drawer::initDefaultTextures() {
-  //3 default textures, white, grey, black. 1 pixel each
-  uint32_t white = 0xFFFFFFFF;
-  _whiteImage = createImage((void *)&white, vk::Extent3D{1, 1, 1},
-                            vk::Format::eR8G8B8A8Unorm,
-                            vk::ImageUsageFlagBits::eSampled);
-
-  uint32_t grey = 0xAAAAAAFF;
-  _greyImage = createImage((void *)&grey, vk::Extent3D{1, 1, 1},
-                           vk::Format::eR8G8B8A8Unorm,
-                           vk::ImageUsageFlagBits::eSampled);
-
-  uint32_t black = 0x000000FF;
-  _blackImage = createImage((void *)&black, vk::Extent3D{1, 1, 1},
-                            vk::Format::eR8G8B8A8Unorm,
-                            vk::ImageUsageFlagBits::eSampled);
-
-  //checkerboard image
-  uint32_t magenta = 0xFF00FFFF;
-  std::array<uint32_t, 16 * 16> pixels; //for 16x16 checkerboard texture
-  for (int x = 0; x < 16; x++) {
-    for (int y = 0; y < 16; y++) {
-      pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
-    }
-  }
-
-  _errorCheckerboardImage = createImage(pixels.data(), vk::Extent3D{16, 16, 1},
-                                        vk::Format::eR8G8B8A8Unorm,
-                                        vk::ImageUsageFlagBits::eSampled);
+void Drawer::InitDefaultTextures() {
 
   vk::SamplerCreateInfo samplerInfo;
   samplerInfo.setMagFilter(vk::Filter::eNearest);
@@ -417,34 +419,96 @@ void Drawer::initDefaultTextures() {
   samplerInfo.setMinFilter(vk::Filter::eLinear);
 
   _defaultSamplerLinear = _device.createSampler(samplerInfo);
-}
+  
+  //3 default textures, white, grey, black. 1 pixel each
+  constexpr uint32_t white = 0xFFFFFFFF;
+  auto whiteData = Array<unsigned char>(sizeof(uint32_t));
+  memcpy(whiteData.data(),&white,whiteData.size());
+  
+  _whiteTexture = Texture::FromData(this,whiteData,vk::Extent3D{1, 1, 1},
+                            vk::Format::eR8G8B8A8Unorm,
+                            vk::Filter::eLinear);
 
-void Drawer::initDefaultMaterials() {
-  Material::MaterialResources materialResources;
-  materialResources.color = _errorCheckerboardImage;
-  materialResources.colorSampler = _defaultSamplerLinear;
-  materialResources.metallic = _whiteImage;
-  materialResources.metallicSampler = _defaultSamplerLinear;
+  
+  constexpr uint32_t grey = 0xAAAAAAFF;
+  auto greyData = Array<unsigned char>(sizeof(uint32_t));
+  memcpy(greyData.data(),&grey,greyData.size());
+  _greyTexture = Texture::FromData(this,greyData,vk::Extent3D{1, 1, 1},
+                            vk::Format::eR8G8B8A8Unorm,
+                            vk::Filter::eLinear);
+  
+  constexpr uint32_t black = 0x000000FF;
+  auto blackData = Array<unsigned char>(sizeof(uint32_t));
+  memcpy(blackData.data(),&black,blackData.size());
+  _blackTexture = Texture::FromData(this,blackData,vk::Extent3D{1, 1, 1},
+                            vk::Format::eR8G8B8A8Unorm,
+                            vk::Filter::eLinear);
 
-  const auto materialConstants = createUniformCpuGpuBuffer(sizeof(Material::MaterialConstants),true);
+  //checkerboard image
+  constexpr uint32_t magenta = 0xFF00FFFF;
+  Array<uint32_t> pixels{}; //for 16x16 checkerboard texture
+  pixels.resize(16 * 16);
+  // std::array<uint32_t, 16 * 16> pixels; 
+  for (int x = 0; x < 16; x++) {
+    for (int y = 0; y < 16; y++) {
+      pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
+    }
+  }
 
-  const auto sceneUniformData = static_cast<Material::MaterialConstants *>(materialConstants.info.pMappedData);
-  sceneUniformData->colorFactors = glm::vec4{1,1,1,1};
-  sceneUniformData->metalRoughFactors = glm::vec4{1,0.5,0,0};
+  Array<unsigned char> checkerBoardData;
+  checkerBoardData.resize(pixels.size() * sizeof(uint32_t));
+  memcpy(checkerBoardData.data(),pixels.data(),checkerBoardData.size());
 
-  addCleanup([=,this] {
-    destroyBuffer(materialConstants);
+  _errorCheckerboardTexture = Texture::FromData(this, checkerBoardData,vk::Extent3D{16, 16, 1},
+                            vk::Format::eR8G8B8A8Unorm,
+                            vk::Filter::eLinear);
+
+  AddCleanup([=] {
+    _errorCheckerboardTexture->Destroy();
+    _blackTexture->Destroy();
+    _greyTexture->Destroy();
+    _whiteTexture->Destroy();
+    GetDevice().destroySampler(_defaultSamplerLinear);
+    GetDevice().destroySampler(_defaultSamplerNearest);
   });
-
-  materialResources.dataBuffer = materialConstants.buffer;
-  materialResources.dataBufferOffset = 0;
-
-  _defaultCheckeredMaterial = Material::create(this,EMaterialPass::Opaque,_descriptorAllocator,materialResources);
 }
 
-void Drawer::transitionImage(vk::CommandBuffer cmd, vk::Image image,
-                             vk::ImageLayout currentLayout,
-                             vk::ImageLayout newLayout) {
+void Drawer::InitDefaultMaterials() {
+  // MaterialInstance::MaterialResources materialResources;
+  // materialResources.color = _errorCheckerboardTexture;
+  // materialResources.colorSampler = _defaultSamplerLinear;
+  // materialResources.metallic = _whiteTexture;
+  // materialResources.metallicSampler = _defaultSamplerLinear;
+  //
+  // materialResources.dataBuffer = nullptr;
+  // materialResources.dataBufferOffset = 0;
+
+  MaterialBuilder builder;
+  _defaultCheckeredMaterial = builder
+  .SetPass(EMaterialPass::Opaque)
+  .AddShader(Shader::FromSource(GetShaderManager(), io::getRawShaderPath("mesh.frag")),vk::ShaderStageFlagBits::eFragment)
+  .AddShader(Shader::FromSource(GetShaderManager(), io::getRawShaderPath("mesh.vert")),vk::ShaderStageFlagBits::eVertex)
+  .Create(this);
+
+  
+  const auto resources = _defaultCheckeredMaterial->GetResources();
+  for(auto resource : resources) {
+    if(resource.second.type == EMaterialResourceType::Image) {
+      _defaultCheckeredMaterial->SetTexture(resource.first,GetDefaultBlackTexture());
+    }
+  }
+
+  _defaultCheckeredMaterial->SetTexture("ColorT",GetDefaultErrorCheckerboardTexture());
+   //= MaterialInstance::create(this,EMaterialPass::Opaque,_globalAllocator,materialResources);
+  AddCleanup([=] {
+    _defaultCheckeredMaterial->Destroy();
+    _defaultCheckeredMaterial = nullptr;
+  });
+}
+
+void Drawer::TransitionImage(const vk::CommandBuffer cmd, const vk::Image image,
+                             const vk::ImageLayout currentLayout,
+                             const vk::ImageLayout newLayout) {
   vk::ImageMemoryBarrier2 imageBarrier;
   imageBarrier
       .setSrcStageMask(vk::PipelineStageFlagBits2::eAllCommands)
@@ -459,7 +523,7 @@ void Drawer::transitionImage(vk::CommandBuffer cmd, vk::Image image,
                                            vk::ImageLayout::eDepthAttachmentOptimal)
                                             ? vk::ImageAspectFlagBits::eDepth
                                             : vk::ImageAspectFlagBits::eColor;
-  imageBarrier.setSubresourceRange(imageSubResourceRange(aspectMask));
+  imageBarrier.setSubresourceRange(ImageSubResourceRange(aspectMask));
 
   imageBarrier.setImage(image);
 
@@ -469,74 +533,74 @@ void Drawer::transitionImage(vk::CommandBuffer cmd, vk::Image image,
   cmd.pipelineBarrier2(&depInfo);
 }
 
-vk::RenderingInfo Drawer::makeRenderingInfo(vk::Extent2D drawExtent) {
+vk::RenderingInfo Drawer::MakeRenderingInfo(vk::Extent2D drawExtent) {
   return vk::RenderingInfo({}, {{0, 0}, drawExtent}, 1, {});
 }
 
-FrameData *Drawer::getCurrentFrame() {
-  return &_frames[frameCount % FRAME_OVERLAP];
+FrameData *Drawer::GetCurrentFrame() {
+  return &_frames[_frameCount % FRAME_OVERLAP];
 }
 
-void Drawer::drawBackground(FrameData *frame) {
-  const auto cmd = frame->getCmd();
+void Drawer::DrawBackground(FrameData *frame) const {
+  const auto cmd = frame->GetCmd();
 
-  float flash = abs(sin(frameCount / 120.f));
+  //float flash = abs(sin(_frameCount / 120.f));
 
-  const auto clearValue = vk::ClearColorValue({0.0f, 0.0f, flash, 0.0f});
+  const auto clearValue = vk::ClearColorValue({0.0f, 0.0f, 0.0f, 0.0f});//vk::ClearColorValue({0.0f, 0.0f, flash, 0.0f});
 
-  auto clearRange = imageSubResourceRange(vk::ImageAspectFlagBits::eColor);
+  auto clearRange = ImageSubResourceRange(vk::ImageAspectFlagBits::eColor);
 
   cmd->clearColorImage(_drawImage.image,
                        vk::ImageLayout::eGeneral, clearValue,
                        {clearRange});
-  auto computeEffect = backgroundEffects.at(currentBackgroundEffect);
-  computeEffect.data.time = getEngine()->getEngineTimeSeconds();
-  cmd->bindPipeline(vk::PipelineBindPoint::eCompute, computeEffect.pipeline);
-
-  cmd->bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                          computeEffect.layout, 0, {_drawImageDescriptors},
-                          {});
-
-  cmd->pushConstants(computeEffect.layout, vk::ShaderStageFlagBits::eCompute, 0,
-                     computeEffect.size, &computeEffect.data);
-  const auto extent = getEngine()->getWindowExtent();
-
-  cmd->dispatch(std::ceil(extent.width / 16.0), std::ceil(extent.height / 16.0),
-                1);
+  
+  // auto computeEffect = backgroundEffects.at(currentBackgroundEffect);
+  // computeEffect.data.time = GetEngine()->GetEngineTimeSeconds();
+  // cmd->bindPipeline(vk::PipelineBindPoint::eCompute, computeEffect.pipeline);
+  //
+  // cmd->bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+  //                         computeEffect.layout, 0, {_drawImageDescriptors},
+  //                         {});
+  //
+  // cmd->pushConstants(computeEffect.layout, vk::ShaderStageFlagBits::eCompute, 0,
+  //                    computeEffect.size, &computeEffect.data);
+  // const auto extent = GetEngine()->GetWindowExtent();
+  //
+  // cmd->dispatch(std::ceil(extent.width / 16.0), std::ceil(extent.height / 16.0),
+  //               1);
 }
 
-void Drawer::drawScenes(FrameData *frame) {
-  const vk::Extent2D drawExtent = getDrawImageExtent();
+void Drawer::DrawScenes(FrameData *frame) {
+  const vk::Extent2D drawExtent = GetDrawImageExtent();
 
-  const auto colorAttachment = makeRenderingAttachment(
+  const auto colorAttachment = MakeRenderingAttachment(
       _drawImage.view, vk::ImageLayout::eGeneral);
 
   vk::ClearValue depthClear;
   depthClear.setDepthStencil({1.f});
 
-  const auto depthAttachment = makeRenderingAttachment(
+  const auto depthAttachment = MakeRenderingAttachment(
       _depthImage.view, vk::ImageLayout::eDepthAttachmentOptimal, depthClear);
 
-  auto renderingInfo = makeRenderingInfo(drawExtent);
+  auto renderingInfo = MakeRenderingInfo(drawExtent);
   renderingInfo.setColorAttachments(colorAttachment);
   renderingInfo.setPDepthAttachment(&depthAttachment);
 
-  const auto cmd = frame->getCmd();
+  const auto cmd = frame->GetCmd();
 
   cmd->beginRendering(renderingInfo);
-  // cmd->bindPipeline(vk::PipelineBindPoint::eGraphics, _mainPipeline);
 
   //Actual Rendering
-  for (const auto scene : getEngine()->getScenes()) {
-    scene->getDrawer()->draw(this, frame);
+  for (const auto scene : GetEngine()->GetScenes()) {
+    scene->GetDrawer()->Draw(this, frame);
   }
 
   cmd->endRendering();
 }
 
-void Drawer::copyImageToImage(vk::CommandBuffer cmd, vk::Image src,
-                              vk::Image dst, vk::Extent2D srcSize,
-                              vk::Extent2D dstSize) {
+void Drawer::CopyImageToImage(const vk::CommandBuffer cmd, const vk::Image src,
+                              const vk::Image dst, const vk::Extent2D srcSize,
+                              const vk::Extent2D dstSize) {
   auto blitRegion = vk::ImageBlit2();
   blitRegion.setSrcOffsets(
   {vk::Offset3D{},
@@ -560,7 +624,7 @@ void Drawer::copyImageToImage(vk::CommandBuffer cmd, vk::Image src,
   cmd.blitImage2(blitInfo);
 }
 
-vk::ImageCreateInfo Drawer::makeImageCreateInfo(vk::Format format,
+vk::ImageCreateInfo Drawer::MakeImageCreateInfo(vk::Format format,
                                                 vk::Extent3D size,
                                                 vk::ImageUsageFlags usage) {
   return {{}, vk::ImageType::e2D,
@@ -570,7 +634,7 @@ vk::ImageCreateInfo Drawer::makeImageCreateInfo(vk::Format format,
           usage};
 }
 
-vk::ImageViewCreateInfo Drawer::makeImageViewCreateInfo(vk::Format format,
+vk::ImageViewCreateInfo Drawer::MakeImageViewCreateInfo(vk::Format format,
   vk::Image image, vk::ImageAspectFlags aspect) {
   return {{}, image,
           vk::ImageViewType::e2D,
@@ -579,46 +643,45 @@ vk::ImageViewCreateInfo Drawer::makeImageViewCreateInfo(vk::Format format,
            1, 0, 1}};
 }
 
-vk::ImageSubresourceRange Drawer::imageSubResourceRange(
+vk::ImageSubresourceRange Drawer::ImageSubResourceRange(
     vk::ImageAspectFlags aspectMask) {
   return {aspectMask, 0, vk::RemainingMipLevels, 0,
           vk::RemainingArrayLayers};
 }
 
-vk::Extent2D Drawer::getSwapchainExtent() const {
-  return getEngine()->getWindowExtent();
+vk::Extent2D Drawer::GetSwapchainExtent() const {
+  return GetEngine()->GetWindowExtent();
 }
 
-vk::Extent2D Drawer::getSwapchainExtentScaled() const {
-  const auto extent = getSwapchainExtent();
+vk::Extent2D Drawer::GetSwapchainExtentScaled() const {
+  const auto extent = GetSwapchainExtent();
 
-  return {static_cast<uint32_t>(extent.width * renderScale),
-          static_cast<uint32_t>(extent.height * renderScale)};
+  return {static_cast<uint32_t>(renderScale * extent.width),
+          static_cast<uint32_t>(renderScale * extent.height)};
 }
 
-vk::Extent2D Drawer::getDrawImageExtent() const {
-  const auto swapchainExtent = getSwapchainExtent();
-  return {static_cast<uint32_t>(renderScale * std::min(
-                                    _drawImage.extent.width,
-                                    swapchainExtent.width)),
-          static_cast<uint32_t>(renderScale * std::min(
-                                    _drawImage.extent.height,
-                                    swapchainExtent.height))};
+vk::Extent2D Drawer::GetDrawImageExtent() const {
+  return {static_cast<uint32_t>(_drawImage.extent.width * renderScale),
+          static_cast<uint32_t>(_drawImage.extent.height * renderScale)};
 }
 
-vk::Format Drawer::getDrawImageFormat() const {
+vk::Format Drawer::GetDrawImageFormat() const {
   return _drawImage.format;
 }
 
-vk::Format Drawer::getDepthImageFormat() const {
+vk::Format Drawer::GetDepthImageFormat() const {
   return _depthImage.format;
 }
 
-bool Drawer::resizePending() const {
+bool Drawer::ResizePending() const {
   return _resizePending;
 }
 
-void Drawer::createComputeShader(const Shader *shader,
+void Drawer::RequestResize() {
+  _resizePending = true;
+}
+
+void Drawer::CreateComputeShader(const Shader *shader,
                                  ComputeEffect &effect) {
 
   vk::PushConstantRange pushConstant{{vk::ShaderStageFlagBits::eCompute}, 0,
@@ -640,49 +703,30 @@ void Drawer::createComputeShader(const Shader *shader,
       nullptr, {computePipelineCreateInfo}).value.at(0);
 }
 
-void Drawer::allocateImage(AllocatedImage &image, vk::Format format,
-                           vk::Extent3D extent, vk::ImageUsageFlags usage,
-                           vk::ImageAspectFlags aspectFlags,
-                           vma::MemoryUsage memoryUsage,
-                           vk::MemoryPropertyFlags requiredFlags) const {
-  image.format = format;
-  image.extent = extent;
 
-  const auto imageCreateInfo = makeImageCreateInfo(
-      image.format, image.extent, usage);
 
-  vma::AllocationCreateInfo imageAllocInfo = {};
-  imageAllocInfo.setUsage(memoryUsage);
-  imageAllocInfo.setRequiredFlags(requiredFlags);
-
-  vk::resultCheck(
-      getAllocator().createImage(&imageCreateInfo, &imageAllocInfo,
-                                 &image.image, &image.alloc, nullptr),
-      "Failed to allocate image");
-
-  const auto viewInfo = vk::ImageViewCreateInfo({}, image.image,
-                                                vk::ImageViewType::e2D,
-                                                image.format, {},
-                                                {aspectFlags, 0,
-                                                 1, 0, 1});
-
-  image.view = _device.createImageView(viewInfo);
+Engine* Drawer::GetEngine() const {
+  return dynamic_cast<Engine *>(GetOuter());
 }
 
-Engine *Drawer::getEngine() const {
-  return dynamic_cast<Engine *>(getOuter());
-}
-
-vk::Device Drawer::getDevice() const {
+vk::Device Drawer::GetDevice() const {
   return _device;
 }
 
-void Drawer::init(Engine *outer) {
-  Object<Engine>::init(outer);
+vk::PhysicalDevice Drawer::GetPhysicalDevice() const {
+  return _gpu;
+}
+
+vk::Instance Drawer::GetVulkanInstance() const {
+  return _instance;
+}
+
+void Drawer::Init(Engine *outer) {
+  Object<Engine>::Init(outer);
   vkb::InstanceBuilder builder;
 
   auto instanceResult =
-      builder.set_app_name(getEngine()->getAppName().c_str())
+      builder.set_app_name(GetEngine()->GetAppName().c_str())
              .require_api_version(1, 3, 0)
              .request_validation_layers(true)
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
@@ -691,17 +735,17 @@ void Drawer::init(Engine *outer) {
       .build();
 
   auto vkbInstance = instanceResult.value();
-  instance = vkbInstance.instance;
+  _instance = vkbInstance.instance;
 
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
   debugMessenger = vkbInstance.debug_messenger;
 #endif
 
-  auto window = getEngine()->getWindow();
+  auto window = GetEngine()->GetWindow();
 
   VkSurfaceKHR tempSurf;
 
-  SDL_Vulkan_CreateSurface(window, instance, nullptr, &tempSurf);
+  SDL_Vulkan_CreateSurface(window, _instance, nullptr, &tempSurf);
 
   _surface = tempSurf;
 
@@ -735,64 +779,68 @@ void Drawer::init(Engine *outer) {
   _graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).
                                    value();
 
-  addCleanup([this] {
-    _shaderManager->cleanup();
+  AddCleanup([this] {
+    _shaderManager->Destroy();
 
     _device.destroy();
-    instance.destroySurfaceKHR(_surface);
+    _instance.destroySurfaceKHR(_surface);
 
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
 instance.destroyDebugUtilsMessengerEXT(debugMessenger);
 #endif
 
-    instance.destroy();
+    _instance.destroy();
   });
 
-  auto allocatorCreateInfo = vma::AllocatorCreateInfo{
-      vma::AllocatorCreateFlagBits::eBufferDeviceAddress, _gpu, _device};
-  allocatorCreateInfo.setInstance(instance);
-  _vkAllocator = vma::createAllocator(allocatorCreateInfo);
+  auto allocatorCreateInfo = VmaAllocatorCreateInfo{};
+  allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+  allocatorCreateInfo.device = _device;
+  allocatorCreateInfo.physicalDevice = _gpu;
+  allocatorCreateInfo.instance = _instance;
 
-  addCleanup([&] {
-    _vkAllocator.destroy();
-    _vkAllocator = nullptr;
+  _Allocator = newObject<Allocator>();
+  _Allocator->Init(this);
+  
+  AddCleanup([&] {
+    _Allocator->Destroy();
+    _Allocator = nullptr;
   });
 
-  initSwapchain();
+  InitSwapchain();
 
-  initCommands();
+  InitCommands();
 
   //initDefaultRenderPass();
 
   //initFrameBuffers();
 
-  initSyncStructures();
+  InitSyncStructures();
 
-  initDescriptors();
+  InitDescriptors();
 
   _shaderManager = newObject<ShaderManager>();
-  _shaderManager->init(this);
+  _shaderManager->Init(this);
 
-  initPipelineLayout();
+  InitPipelineLayout();
 
-  initPipelines();
+  InitPipelines();
 
-  initImGui();
+  //initImGui();
 
-  initDefaultTextures();
+  InitDefaultTextures();
 
-  initDefaultMaterials();
+  InitDefaultMaterials();
 }
 
 
-void Drawer::handleCleanup() {
+void Drawer::HandleDestroy() {
   // Wait for the device to idle
   _device.waitIdle();
 
-  Object::handleCleanup();
+  Object::HandleDestroy();
 }
 
-void Drawer::immediateSubmit(
+void Drawer::ImmediateSubmit(
     std::function<void(vk::CommandBuffer cmd)> &&function) {
   _device.resetFences({_immediateFence});
   _immediateCommandBuffer.reset();
@@ -813,7 +861,7 @@ void Drawer::immediateSubmit(
                   "Failed to wait for fences for immediate submit");
 }
 
-vk::RenderingAttachmentInfo Drawer::makeRenderingAttachment(
+vk::RenderingAttachmentInfo Drawer::MakeRenderingAttachment(
     vk::ImageView view,
     vk::ImageLayout layout, const std::optional<vk::ClearValue> &clear) {
   vk::RenderingAttachmentInfo attachment{view, layout};
@@ -829,94 +877,21 @@ vk::RenderingAttachmentInfo Drawer::makeRenderingAttachment(
   return attachment;
 }
 
-
-void Drawer::drawImGui(vk::CommandBuffer cmd, vk::ImageView view) {
-  auto colorAttachment = makeRenderingAttachment(
-      view, vk::ImageLayout::eGeneral);
-  const auto extent = getSwapchainExtent();
-
-  const auto renderInfo = vk::RenderingInfo({}, {{0, 0}, extent}, 1,
-                                            {}, {colorAttachment});
-
-  cmd.beginRendering(renderInfo);
-
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-
-  cmd.endRendering();
-}
-
-AllocatedBuffer Drawer::createBuffer(size_t allocSize,
-                                     vk::BufferUsageFlags usage,
-                                     vma::MemoryUsage memoryUsage,
-                                     vk::MemoryPropertyFlags requiredFlags,
-                                     vma::AllocationCreateFlags flags) {
-  const auto bufferInfo = vk::BufferCreateInfo({}, allocSize,
-                                               usage);
-  //vma::AllocationCreateFlagBits::eMapped
-  const auto vmaAllocInfo = vma::AllocationCreateInfo(
-      flags, memoryUsage, requiredFlags);
-
-  AllocatedBuffer newBuffer;
-
-  vk::resultCheck(
-      getAllocator().createBuffer(&bufferInfo, &vmaAllocInfo, &newBuffer.buffer,
-                                  &newBuffer.alloc, &newBuffer.info),
-      "Failed to create buffer");
-
-  return newBuffer;
-}
-
-AllocatedBuffer Drawer::createTransferCpuGpuBuffer(
-    size_t size, bool randomAccess) {
-  return createBuffer(size,
-                      vk::BufferUsageFlagBits::eTransferSrc,
-                      vma::MemoryUsage::eAutoPreferHost,
-                      vk::MemoryPropertyFlagBits::eHostVisible |
-                      vk::MemoryPropertyFlagBits::eHostCoherent,
-                      vma::AllocationCreateFlagBits::eMapped | (randomAccess
-                        ? vma::AllocationCreateFlagBits::eHostAccessRandom
-                        : vma::AllocationCreateFlagBits::eHostAccessSequentialWrite));
-}
-
-AllocatedBuffer Drawer::createUniformCpuGpuBuffer(size_t size,
-                                                  bool randomAccess) {
-  return createBuffer(
-      size, vk::BufferUsageFlagBits::eUniformBuffer,
-      vma::MemoryUsage::eAutoPreferDevice,
-      vk::MemoryPropertyFlagBits::eHostVisible,
-      vma::AllocationCreateFlagBits::eMapped |
-      (randomAccess
-         ? vma::AllocationCreateFlagBits::eHostAccessRandom
-         : vma::AllocationCreateFlagBits::eHostAccessSequentialWrite));
-}
-
-void Drawer::destroyBuffer(const AllocatedBuffer &buffer) {
-  getAllocator().destroyBuffer(buffer.buffer, buffer.alloc);
-}
-
-AllocatedImage Drawer::createImage(vk::Extent3D size, vk::Format format,
-                                   vk::ImageUsageFlags usage, bool mipMapped) {
+AllocatedImage Drawer::CreateImage(const vk::Extent3D size, const vk::Format format,
+                                   const vk::ImageUsageFlags usage, const bool mipMapped) const {
   AllocatedImage newImage;
   newImage.format = format;
   newImage.extent = size;
 
-  auto imgInfo = makeImageCreateInfo(format, size, usage);
+  auto imgInfo = MakeImageCreateInfo(format, size, usage);
   if (mipMapped) {
     imgInfo.setMipLevels(
         static_cast<uint32_t>(std::floor(
-            std::log2(std::max(size.width, size.height)))) + 1);
+            std::log2(std::max(1,1)))) + 1);
   }
 
-  // Allocate Image on Dedicated GPU Memory
-  constexpr vma::AllocationCreateInfo allocInfo{
-      {}, vma::MemoryUsage::eAutoPreferDevice,
-      vk::MemoryPropertyFlagBits::eDeviceLocal};
-
   // allocate and create the image
-  vk::resultCheck(
-      getAllocator().createImage(&imgInfo, &allocInfo, &newImage.image,
-                                 &newImage.alloc, nullptr),
-      "Failed to allocate image");
+  GetAllocator()->AllocateImage(newImage,imgInfo,VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,vk::MemoryPropertyFlagBits::eDeviceLocal);
 
   vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor;
   if (format == vk::Format::eD32Sfloat) {
@@ -924,7 +899,7 @@ AllocatedImage Drawer::createImage(vk::Extent3D size, vk::Format format,
   }
 
   // Build an image view for the image
-  vk::ImageViewCreateInfo viewInfo = makeImageViewCreateInfo(
+  vk::ImageViewCreateInfo viewInfo = MakeImageViewCreateInfo(
       format, newImage.image, aspectFlags);
   viewInfo.subresourceRange.setLevelCount(imgInfo.mipLevels);
 
@@ -933,25 +908,40 @@ AllocatedImage Drawer::createImage(vk::Extent3D size, vk::Format format,
   return newImage;
 }
 
-AllocatedImage Drawer::createImage(void *data, vk::Extent3D size,
-                                   vk::Format format, vk::ImageUsageFlags usage,
-                                   bool mipMapped) {
+AllocatedImage Drawer::CreateImage(const void *data, const vk::Extent3D size,
+                                   const vk::Format format, const vk::ImageUsageFlags usage,
+                                   const bool mipMapped) {
 
-  const auto dataSize = size.depth * size.width * size.height * 4;
+  
+  auto channels = 0;
+  switch (format) {
+  case vk::Format::eR8G8B8Unorm:
+    channels = 3;
+    break;
+  case vk::Format::eR8G8B8A8Unorm:
+    channels = 4;
+    break;
+  default:
+    channels = 4;
+  }
 
-  const AllocatedBuffer uploadBuffer =
-      createTransferCpuGpuBuffer(dataSize, true);
+  const auto dataSize = size.depth * size.width * size.height * channels;
+  
+  const AllocatedBuffer uploadBuffer = GetAllocator()->CreateTransferCpuGpuBuffer(dataSize, false);
+  const auto mapped = uploadBuffer.alloc.GetMappedData();
+  utils::vassert(mapped != nullptr && data != nullptr,"WE DONE FUCKED UP");
+  memcpy(mapped, data, dataSize);
 
-  memcpy(uploadBuffer.info.pMappedData, data, dataSize);
-
-  const AllocatedImage newImage = createImage(size, format,
+  const AllocatedImage newImage = CreateImage(size, format,
                                               usage |
                                               vk::ImageUsageFlagBits::eTransferDst
                                               | vk::ImageUsageFlagBits::eTransferSrc,
                                               mipMapped);
 
-  immediateSubmit([&](vk::CommandBuffer cmd) {
-    transitionImage(cmd, newImage.image, vk::ImageLayout::eUndefined,
+
+  
+  ImmediateSubmit([&](const vk::CommandBuffer cmd) {
+    TransitionImage(cmd, newImage.image, vk::ImageLayout::eUndefined,
                     vk::ImageLayout::eTransferDstOptimal);
 
     vk::BufferImageCopy copyRegion{0, 0, 0};
@@ -961,143 +951,139 @@ AllocatedImage Drawer::createImage(void *data, vk::Extent3D size,
     cmd.copyBufferToImage(uploadBuffer.buffer, newImage.image,
                           vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 
-    transitionImage(cmd, newImage.image, vk::ImageLayout::eTransferDstOptimal,
+    TransitionImage(cmd, newImage.image, vk::ImageLayout::eTransferDstOptimal,
                     vk::ImageLayout::eShaderReadOnlyOptimal);
   });
 
-  destroyBuffer(uploadBuffer);
+  GetAllocator()->DestroyBuffer(uploadBuffer);
 
   return newImage;
 }
 
-void Drawer::destroyImage(const AllocatedImage &image) {
-  _device.destroyImageView(image.view);
-  getAllocator().destroyImage(image.image, image.alloc);
-}
 
-GpuMeshBuffers Drawer::createMeshBuffers(const Mesh *mesh) {
-  const auto vertices = mesh->getVertices();
-  const auto indices = mesh->getIndices();
-  const auto vertexBufferSize = vertices.byteSize();
-  const auto indexBufferSize = indices.byteSize();
+GpuMeshBuffers Drawer::CreateMeshBuffers(const Mesh *mesh) {
+  const auto vertices = mesh->GetVertices();
+  const auto indices = mesh->GetIndices();
+  const auto vertexBufferSize = vertices.ByteSize();
+  const auto indexBufferSize = indices.ByteSize();
 
-  GpuMeshBuffers newSurface;
+  GpuMeshBuffers newBuffers;
 
-  newSurface.vertexBuffer = createBuffer(vertexBufferSize,
+  newBuffers.vertexBuffer = GetAllocator()->CreateBuffer(vertexBufferSize,
                                          vk::BufferUsageFlagBits::eStorageBuffer
                                          | vk::BufferUsageFlagBits::eTransferDst
                                          | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-                                         vma::MemoryUsage::eAutoPreferDevice,
+                                         VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
                                          vk::MemoryPropertyFlagBits::eDeviceLocal);
 
   const vk::BufferDeviceAddressInfo deviceAddressInfo{
-      newSurface.vertexBuffer.buffer};
-  newSurface.vertexBufferAddress = _device.getBufferAddress(deviceAddressInfo);
+      newBuffers.vertexBuffer.buffer};
+  newBuffers.vertexBufferAddress = _device.getBufferAddress(deviceAddressInfo);
 
-  newSurface.indexBuffer = createBuffer(vertexBufferSize,
+  newBuffers.indexBuffer = GetAllocator()->CreateBuffer(vertexBufferSize,
                                         vk::BufferUsageFlagBits::eIndexBuffer
                                         | vk::BufferUsageFlagBits::eTransferDst,
-                                        vma::MemoryUsage::eAutoPreferDevice,
+                                        VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
                                         vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-  const auto stagingBuffer = createTransferCpuGpuBuffer(
+  const auto stagingBuffer = GetAllocator()->CreateTransferCpuGpuBuffer(
       vertexBufferSize + indexBufferSize, false);
-
-  //const auto data = stagingBuffer.info.pMappedData;
-  const VmaAllocation alloc = stagingBuffer.alloc;
-  const auto data = alloc->GetMappedData();
+  
+  const auto data = stagingBuffer.alloc.GetMappedData();
   memcpy(data, vertices.data(), vertexBufferSize);
   memcpy(static_cast<char *>(data) + vertexBufferSize, indices.data(),
          indexBufferSize);
 
-  immediateSubmit([=](vk::CommandBuffer cmd) {
+  ImmediateSubmit([=](const vk::CommandBuffer cmd) {
     const vk::BufferCopy vertexCopy{0, 0, vertexBufferSize};
 
-    cmd.copyBuffer(stagingBuffer.buffer, newSurface.vertexBuffer.buffer, 1,
+    cmd.copyBuffer(stagingBuffer.buffer, newBuffers.vertexBuffer.buffer, 1,
                    &vertexCopy);
 
     const vk::BufferCopy indicesCopy{vertexBufferSize, 0, indexBufferSize};
 
-    cmd.copyBuffer(stagingBuffer.buffer, newSurface.indexBuffer.buffer, 1,
+    cmd.copyBuffer(stagingBuffer.buffer, newBuffers.indexBuffer.buffer, 1,
                    &indicesCopy);
   });
 
-  destroyBuffer(stagingBuffer);
-
-  addCleanup([=] {
-    destroyBuffer(newSurface.indexBuffer);
-    destroyBuffer(newSurface.vertexBuffer);
-  });
-
-  return newSurface;
+  GetAllocator()->DestroyBuffer(stagingBuffer);
+  return newBuffers;
 }
 
-vma::Allocator Drawer::getAllocator() const {
-  return _vkAllocator;
+Allocator *Drawer::GetAllocator() const {
+  return _Allocator;
 }
 
-AllocatedImage Drawer::getDefaultWhiteImage() const {
-  return _whiteImage;
+Texture * Drawer::GetDefaultWhiteTexture() const {
+  return _whiteTexture;
 }
 
-AllocatedImage Drawer::getDefaultBlackImage() const {
-  return _blackImage;
+Texture * Drawer::GetDefaultBlackTexture() const {
+  return _blackTexture;
 }
 
-AllocatedImage Drawer::getDefaultGreyImage() const {
-  return _greyImage;
+Texture * Drawer::GetDefaultGreyTexture() const {
+  return _greyTexture;
 }
 
-AllocatedImage Drawer::getDefaultErrorCheckerboardImage() const {
-  return _errorCheckerboardImage;
+Texture * Drawer::GetDefaultErrorCheckerboardTexture() const {
+  return _errorCheckerboardTexture;
 }
 
-vk::Sampler Drawer::getDefaultSamplerLinear() const {
+// void Drawer::onResize(const std::function<void()> &callback) {
+//   _resizeCallbacks.push_back(callback);
+// }
+
+vk::Sampler Drawer::GetDefaultSamplerLinear() const {
   return _defaultSamplerLinear;
 }
 
-vk::Sampler Drawer::getDefaultSamplerNearest() const {
+vk::Sampler Drawer::GetDefaultSamplerNearest() const {
   return _defaultSamplerNearest;
 }
 
-Material * Drawer::getDefaultCheckeredMaterial() const {
+MaterialInstance * Drawer::GetDefaultCheckeredMaterial() const {
   return _defaultCheckeredMaterial;
 }
 
-ShaderManager *Drawer::getShaderManager() const {
+ShaderManager *Drawer::GetShaderManager() const {
   return _shaderManager;
 }
 
-vk::DescriptorSetLayout Drawer::getSceneDescriptorLayout() const {
+vk::DescriptorSetLayout Drawer::GetSceneDescriptorLayout() const {
   return _sceneDescriptorSetLayout;
 }
 
-void Drawer::draw() {
+DescriptorAllocatorGrowable * Drawer::GetGlobalDescriptorAllocator() {
+  return &_globalAllocator;
+}
 
-  const auto frame = getCurrentFrame();
+void Drawer::Draw() {
+
+  const auto frame = GetCurrentFrame();
   // Wait for gpu to finish past work
   vk::resultCheck(
-      _device.waitForFences({frame->getRenderFence()}, true, 1000000000),
+      _device.waitForFences({frame->GetRenderFence()}, true, 1000000000),
       "Wait For Fences Failed");
 
-  frame->cleaner.run();
-  frame->getDescriptorAllocator()->clearPools();
+  frame->cleaner.Run();
+  frame->GetDescriptorAllocator()->ClearPools();
 
-  _device.resetFences({frame->getRenderFence()});
+  _device.resetFences({frame->GetRenderFence()});
 
   // Request image index from swapchain
   uint32_t swapchainImageIndex;
 
   try {
     const auto _ = _device.acquireNextImageKHR(_swapchain, 1000000000,
-                                               frame->getSwapchainSemaphore(),
+                                               frame->GetSwapchainSemaphore(),
                                                nullptr, &swapchainImageIndex);
   } catch (vk::OutOfDateKHRError &_) {
     _resizePending = true;
     return;
   }
 
-  const auto cmd = frame->getCmd();
+  const auto cmd = frame->GetCmd();
 
   // Clear command buffer and prepare to render
   cmd->reset();
@@ -1105,46 +1091,46 @@ void Drawer::draw() {
   constexpr auto commandBeginInfo = vk::CommandBufferBeginInfo(
       vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
-  const auto swapchainExtent = getSwapchainExtent();
+  const auto swapchainExtent = GetSwapchainExtent();
 
-  const vk::Extent2D drawExtent = getDrawImageExtent();
+  const vk::Extent2D drawExtent = GetDrawImageExtent();
 
   cmd->begin(commandBeginInfo);
 
   // Transition image to general layout
-  transitionImage(*cmd, _drawImage.image,
+  TransitionImage(*cmd, _drawImage.image,
                   vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
 
-  drawBackground(frame);
+  DrawBackground(frame);
 
-  transitionImage(*cmd, _drawImage.image,
+  TransitionImage(*cmd, _drawImage.image,
                   vk::ImageLayout::eGeneral,
                   vk::ImageLayout::eColorAttachmentOptimal);
-  transitionImage(*cmd, _depthImage.image,
+  TransitionImage(*cmd, _depthImage.image,
                   vk::ImageLayout::eUndefined,
                   vk::ImageLayout::eDepthAttachmentOptimal);
 
-  drawScenes(frame);
+  DrawScenes(frame);
 
   // Transition images to correct transfer layouts
-  transitionImage(*cmd, _drawImage.image,
+  TransitionImage(*cmd, _drawImage.image,
                   vk::ImageLayout::eColorAttachmentOptimal,
                   vk::ImageLayout::eTransferSrcOptimal);
-  transitionImage(*cmd, _swapchainImages[swapchainImageIndex],
+  TransitionImage(*cmd, _swapchainImages[swapchainImageIndex],
                   vk::ImageLayout::eUndefined,
                   vk::ImageLayout::eTransferDstOptimal);
 
-  copyImageToImage(*cmd, _drawImage.image,
+  CopyImageToImage(*cmd, _drawImage.image,
                    _swapchainImages[swapchainImageIndex],
                    drawExtent, swapchainExtent);
 
-  transitionImage(*cmd, _swapchainImages[swapchainImageIndex],
+  TransitionImage(*cmd, _swapchainImages[swapchainImageIndex],
                   vk::ImageLayout::eTransferDstOptimal,
                   vk::ImageLayout::eColorAttachmentOptimal);
 
-  drawImGui(*cmd, _swapchainImageViews[swapchainImageIndex]);
+  //drawImGui(*cmd, _swapchainImageViews[swapchainImageIndex]);
 
-  transitionImage(*cmd, _swapchainImages[swapchainImageIndex],
+  TransitionImage(*cmd, _swapchainImages[swapchainImageIndex],
                   vk::ImageLayout::eColorAttachmentOptimal,
                   vk::ImageLayout::ePresentSrcKHR
       );
@@ -1155,17 +1141,17 @@ void Drawer::draw() {
   const auto cmdInfo = vk::CommandBufferSubmitInfo(*cmd, 0);
 
   const auto waitingInfo = vk::SemaphoreSubmitInfo(
-      frame->getSwapchainSemaphore(), 1,
+      frame->GetSwapchainSemaphore(), 1,
       vk::PipelineStageFlagBits2::eColorAttachmentOutput);
   const auto signalInfo = vk::SemaphoreSubmitInfo(
-      frame->getRenderSemaphore(), 1, vk::PipelineStageFlagBits2::eAllGraphics);
+      frame->GetRenderSemaphore(), 1, vk::PipelineStageFlagBits2::eAllGraphics);
 
   const auto submitInfo = vk::SubmitInfo2({}, {waitingInfo}, {cmdInfo},
                                           {signalInfo});
 
-  _graphicsQueue.submit2({submitInfo}, frame->getRenderFence());
+  _graphicsQueue.submit2({submitInfo}, frame->GetRenderFence());
 
-  const auto renderSemaphore = frame->getRenderSemaphore();
+  const auto renderSemaphore = frame->GetRenderSemaphore();
   const auto presentInfo = vk::PresentInfoKHR({renderSemaphore},
                                               {_swapchain},
                                               swapchainImageIndex);
@@ -1177,7 +1163,7 @@ void Drawer::draw() {
     return;
   }
 
-  frameCount++;
+  _frameCount++;
 }
 } // namespace rendering
 } // namespace vengine

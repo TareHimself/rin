@@ -1,6 +1,4 @@
 ﻿#include "InputEvent.hpp"
 
-namespace vengine {
-namespace input {
-}
+namespace vengine::input {
 }

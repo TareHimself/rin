@@ -1,20 +1,29 @@
 #version 450
 
 #extension GL_GOOGLE_include_directive : require
-#include "input_structures.glsl"
 
-layout (location = 0) in vec3 inNormal;
-layout (location = 1) in vec3 inColor;
-layout (location = 2) in vec2 inUV;
+#include "pbr.frag"
 
-layout (location = 0) out vec4 outFragColor;
+
+layout(set = 1, binding = 0) uniform sampler2D ColorT;
+layout(set = 1, binding = 1) uniform sampler2D NormalT;
+layout(set = 1, binding = 2) uniform sampler2D RoughnessT;
+layout(set = 1, binding = 3) uniform sampler2D MetallicT;
+layout(set = 1, binding = 4) uniform sampler2D SpecularT;
+layout(set = 1, binding = 5) uniform sampler2D EmissiveT;
+
+layout (location = 0) out vec4 oColor;
 
 void main() 
 {
-	float lightValue = max(dot(inNormal, sceneData.sunlightDirection.xyz), 0.1f);
+    vec3 viewDir = normalize(scene.cameraLocation.xyz - iSceneLocation);
 
-	vec3 color = inColor * texture(colorTex,inUV).xyz;
-	vec3 ambient = color *  sceneData.ambientColor.xyz;
+	vec3 normal = applyNormalMap(NormalT,normalize(iSceneNormal),viewDir,iUV);
+	//inWorldLocation.xy
+	vec3 color = texture(ColorT,iUV).xyz;
 
-	outFragColor = vec4(color * lightValue *  sceneData.sunlightColor.w + ambient ,1.0f);
+	// //vec3 color = texture(inColorTexture,inWorldLocation.xy).xyz;
+	// vec3 ambient = color * scene.ambientColor.xyz;
+	//vec4(color,1.0f);//
+	oColor = vec4(computeColor(color,normal,texture(NormalT,iUV).r,1.0,vec3(0.0, 0.0, 0.0),vec3(0.0)),1.0);//vec4(color * lightValue *  scene.sunlightColor.w + ambient ,1.0f);
 }

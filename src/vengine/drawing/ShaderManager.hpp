@@ -2,30 +2,27 @@
 #include "vengine/Object.hpp"
 #include "vengine/containers/Array.hpp"
 #include "vengine/containers/Set.hpp"
+#include "vengine/scene/Scene.hpp"
+
 #include <filesystem>
 #include <map>
 #include <glslang/Public/ShaderLang.h>
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class Shader;
 }
-}
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class Drawer;
 }
-}
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 
 
 class GlslShaderIncluder : public glslang::TShader::Includer {
   std::filesystem::path sourceFilePath;
-  Set<IncludeResult *> results;
-  bool bDebug = false;
+  Set<IncludeResult *> _results;
+  bool _bDebug = false;
 public:
   GlslShaderIncluder(const std::filesystem::path &inPath);
 
@@ -46,23 +43,22 @@ class ShaderManager : public Object<Drawer> {
   
 public:
   
-  static EShLanguage getLang(const std::filesystem::path &shaderPath);
+  static EShLanguage GetLang(const std::filesystem::path &shaderPath);
 
-  bool hasLoadedShader(const std::filesystem::path &shaderPath) const;
+  bool HasLoadedShader(const std::filesystem::path &shaderPath) const;
 
-  Shader * getLoadedShader(const std::filesystem::path &shaderPath) const;
+  Shader * GetLoadedShader(const std::filesystem::path &shaderPath) const;
   
-  Array<unsigned int> compile(const std::filesystem::path &shaderPath) const;
+  Array<unsigned int> Compile(const std::filesystem::path &shaderPath) const;
 
-  Array<unsigned int> compileAndSave(const std::filesystem::path &shaderPath) const;
+  Array<unsigned int> CompileAndSave(const std::filesystem::path &shaderPath) const;
   
-  Array<unsigned int> loadOrCompileSpv(const std::filesystem::path &shaderPath) const;
+  Array<unsigned int> LoadOrCompileSpv(const std::filesystem::path &shaderPath) const;
 
-  Shader * registerShader(Shader * shader);
+  Shader * RegisterShader(Shader * shader);
 
-  void init(Drawer *outer) override;
+  void Init(Drawer *outer) override;
 
-  void handleCleanup() override;
+  void HandleDestroy() override;
 };
-}
 }

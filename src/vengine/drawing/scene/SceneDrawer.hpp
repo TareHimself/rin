@@ -1,35 +1,31 @@
 ﻿#pragma once
+#include "types.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/drawing/Drawable.hpp"
 
-namespace vengine {
-namespace scene {
+namespace vengine::scene {
 class Scene;
 }
-}
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class SceneDrawable;
 }
-}
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class Drawer;
 }
-}
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class SceneDrawer : public Object<scene::Scene>, public Drawable {
   vk::Viewport _viewport;
-  GPUSceneData _sceneData;
+  SceneGpuData _sceneData{};
+  std::optional<AllocatedBuffer> _gpuSceneDataBuffer;
 public:
-  virtual Drawer * getEngineRenderer();
+  virtual Drawer * GetEngineRenderer();
 
-  void init(scene::Scene *outer) override;
-  void draw(Drawer *drawer, FrameData *frameData) override;
+  void Init(scene::Scene *outer) override;
+  void Draw(Drawer *drawer, FrameData *frameData) override;
+
+  void HandleDestroy() override;
 };
-}
 }

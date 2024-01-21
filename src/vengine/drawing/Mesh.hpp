@@ -1,50 +1,64 @@
 ﻿#pragma once
+#include "GpuNative.hpp"
 #include "types.hpp"
 #include "vengine/Object.hpp"
-#include "vengine/assets/types.hpp"
+#include "vengine/assets/Asset.hpp"
 #include "vengine/containers/Array.hpp"
 
-namespace vengine {
-namespace drawing {
-class Material;
-}
+namespace vengine::drawing {
+class Drawer;
 }
 
-namespace vengine {
-namespace assets {
-class AssetManager;
+namespace vengine::drawing {
+class MaterialInstance;
 }
+
+namespace vengine::assets {
+class AssetManager;
 }
 
 namespace vengine {
 class Engine;
 }
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
+struct MeshSurface {
+  uint32_t startIndex;
+  uint32_t count;
+};
 
-class Mesh : public Object<Engine> {
+
+class Mesh : public Object<Drawer>, public assets::Asset, public GpuNative {
 
 protected:
-  assets::MeshAsset _asset;
-  Array<Material *> _materials;
+  Array<Vertex> _vertices;
+  Array<uint32_t> _indices;
+  Array<MeshSurface> _surfaces;
+  Array<MaterialInstance *> _materials;
 public:
-  Array<Vertex> getVertices() const;
-  Array<uint32_t> getIndices() const;
-  Array<assets::MeshSurface> getSurfaces() const;
-  Array<Material*> getMaterials() const;
-  
-  
-  GpuMeshBuffers buffers;
+  Array<Vertex> GetVertices() const;
+  Array<uint32_t> GetIndices() const;
+  Array<MeshSurface> GetSurfaces() const;
+  Array<MaterialInstance*> GetMaterials() const;
 
-  void setMaterial(uint32_t index,Material * material);
-  void upload();
+
+  void SetVertices(const Array<Vertex> &vertices);
+  void SetIndices(const Array<uint32_t> &indices);
+  void SetSurfaces(const Array<MeshSurface> &surfaces);
   
-  String getName() const;
+  std::optional<GpuMeshBuffers> gpuData;
 
-  void handleCleanup() override;
+  void SetMaterial(uint32_t index,MaterialInstance * material);
+  void Upload() override;
+  bool IsUploaded() const override;
+  String GetName() const;
 
-  void setAsset(const assets::MeshAsset &asset);
+  void HandleDestroy() override;
+
+  String GetSerializeId() override;
+
+  void ReadFrom(Buffer &store) override;
+
+  void WriteTo(Buffer &store) override;
 };
-}
 }

@@ -3,12 +3,10 @@
 
 #include <string>
 
-namespace vengine {
-namespace input {
+namespace vengine::input {
 class InputEvent {
 public:
-  virtual String getName() const = 0;
+  virtual String GetName() const = 0;
 };
-}
 }
 

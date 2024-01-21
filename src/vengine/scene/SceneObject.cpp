@@ -2,67 +2,95 @@
 #include <vengine/scene/Scene.hpp>
 #include "components/RenderedComponent.hpp"
 
-namespace vengine {
-namespace scene {
+namespace vengine::scene {
 
-// void SceneObject::setWorld(Scene * newWorld) {
-//   _world = newWorld;
-// }
 
-SceneComponent * SceneObject::createRootComponent() {
+SceneComponent * SceneObject::CreateRootComponent() {
   return newObject<SceneComponent>();
 }
 
-SceneComponent * SceneObject::getRootComponet() {
+SceneComponent * SceneObject::GetRootComponent() const {
   return _rootComponent;
 }
 
-void SceneObject::attachComponentsToRoot(SceneComponent *root) {
+void SceneObject::AttachComponentsToRoot(SceneComponent * root) {
   /* Attach scene components here */
 }
 
-math::Transform SceneObject::getTransform() const {
-  return _rootComponent->getRelativeTransform();
+math::Transform SceneObject::GetRelativeTransform() const {
+  return GetRootComponent()->GetRelativeTransform();
 }
 
-void SceneObject::setTransform(const math::Transform &transform) const {
-  _rootComponent->setRelativeTransform(transform);
+void SceneObject::SetRelativeTransform(const math::Transform &val) {
+  GetRootComponent()->SetRelativeTransform(val);
 }
 
-void SceneObject::init(Scene *outer) {
-  Object<Scene>::init(outer);
-  _rootComponent = createRootComponent();
-  _rootComponent->init(this);
-  attachComponentsToRoot(_rootComponent);
+Transformable * SceneObject::GetParent() const {
+  return GetRootComponent()->GetParent();
+}
+
+void SceneObject::AttachTo(SceneComponent * parent) {
+  GetRootComponent()->AttachTo(parent);
+}
+
+void SceneObject::AttachTo(SceneObject * parent) {
+  GetRootComponent()->AttachTo(parent->GetRootComponent());
+}
+
+void SceneObject::Init(scene::Scene *outer) {
+  Object<Scene>::Init(outer);
+  _rootComponent = CreateRootComponent();
+  _rootComponent->Init(this);
+  AttachComponentsToRoot(_rootComponent);
   for(const auto component : _components) {
-    component->init(this);
+    component->Init(this);
   }
 }
 
-void SceneObject::update(float deltaTime) {
+Engine * SceneObject::GetEngine() const {
+  return GetScene()->GetEngine();
+}
+
+input::SceneInputManager * SceneObject::GetInput() {
+  return GetScene()->GetInput();
+}
+
+Scene * SceneObject::GetScene() const {
+  return GetOuter();
+}
+
+void SceneObject::Update(float deltaTime) {
   
 }
 
-void SceneObject::handleCleanup() {
-  Object<Scene>::handleCleanup();
+void SceneObject::AddToRenderList(RenderedComponent *comp) {
+  _renderedComponents.Add(comp);
+}
+
+void SceneObject::RemoveFromRenderList(RenderedComponent *comp) {
+  _renderedComponents.Remove(comp);
+}
+
+void SceneObject::HandleDestroy() {
+  Object::HandleDestroy();
   _renderedComponents.clear();
   
-  for(const auto component : _components) {
-    component->cleanup();
+  for(const auto &component : _components) {
+    if(component == _rootComponent) continue;
+    component->Destroy();
   }
   
   _components.clear();
 
-  _rootComponent->cleanup();
+  _rootComponent->Destroy();
   _rootComponent = nullptr;
 }
 
-void SceneObject::draw(drawing::SceneDrawer *renderer,
-    drawing::SceneFrameData *frameData) {
+void SceneObject::Draw(drawing::SceneDrawer *renderer,
+                       drawing::SceneFrameData *frameData) {
   for(const auto comp : _renderedComponents) {
-    comp->draw(renderer,frameData);
+    comp->Draw(renderer,frameData);
   }
 }
 
-}
 }

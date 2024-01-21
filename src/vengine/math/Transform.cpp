@@ -1,36 +1,27 @@
 ﻿#include "Transform.hpp"
 
+#include "constants.hpp"
 
-namespace vengine {
-namespace math {
-Transform::Transform(Vector3 _loc, Quaternion _rot, Vector3 _scale) {
-  location = _loc;
-  rotation = _rot;
-  scale = _scale;
+
+namespace vengine::math {
+Transform::Transform() : location(VECTOR_ZERO), rotation(QUAT_ZERO), scale(VECTOR_UNIT) {
 }
 
-Transform Transform::relativeTo(const Transform &other) const {
-  Transform result = *this;
-  result.scale = result.scale * other.scale;
-  result.rotation = result.rotation * other.rotation;
-
-  result.location.x = other.location.x + (location.x * rotation.w + location.y * rotation.z - location.z * rotation.y);
-  result.location.y = other.location.y + (-location.x * rotation.z + location.y * rotation.w + location.z * rotation.x);
-  result.location.z = other.location.z + (location.x * rotation.y - location.y * rotation.x + location.z * rotation.w);
-
-  return result;
+Transform::Transform(const glm::mat4 &mat) {
+  location = glm::vec3(mat[3]);
+  rotation = Quat(glm::quat(glm::mat3(mat)));
+  scale = glm::vec3(length(glm::vec3(mat[0])),length(glm::vec3(mat[1])),length(glm::vec3(mat[2])));
 }
 
-glm::mat4 Transform::toMatrix() const {
-  // auto result = glm::mat4(1.0f);
-  //
-  // auto translationMatrix = glm::translate(result,location);
-  // auto rotationMatrix = glm
-  // result = glm::translate(result,location);
-  // result *= glm::mat4_cast(rotation);
-  // result = glm::scale(result,scale);
-
-  return location.translationMatrix() * rotation.matrix() * scale.scaleMatrix();
+Transform::Transform(Vector _loc, Quat _rot, Vector _scale) : location(_loc), rotation(_rot), scale(_scale) {
+  
 }
+
+Transform Transform::RelativeTo(const Transform &other) const {
+  return inverse(other.Matrix()) * this->Matrix();
+}
+
+glm::mat4 Transform::Matrix() const {
+  return location.TranslationMatrix() * rotation.Matrix() * scale.ScaleMatrix();
 }
 }

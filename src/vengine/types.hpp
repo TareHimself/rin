@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿#ifndef VENGINE_TYPES
+#define VENGINE_TYPES
 #include <deque>
 #include <functional>
 
@@ -7,19 +8,26 @@ typedef std::function<void()> cleanupCallback;
 
 struct CleanupQueue {
 private:
-  std::deque<std::function<void()>> cleaners;
+  std::deque<std::function<void()>> _cleaners;
 
 public:
-  void push(const std::function<void()> & cleaner) {
-    cleaners.push_front(cleaner);
+  void Push(const std::function<void()> & cleaner) {
+    _cleaners.push_front(cleaner);
   }
 
-  void run() {
-    for(auto fn : cleaners) {
+  void Run() {
+    for(const auto &fn : _cleaners) {
       fn();
     }
 
-    cleaners.clear();
+    _cleaners.clear();
   }
 };
+
+enum EInputMode {
+  GameOnly,
+  UiOnly,
+  GameAndUi
+};
 }
+#endif

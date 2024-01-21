@@ -1,17 +1,13 @@
 ﻿#pragma once
 #include "types.hpp"
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class SceneDrawer;
 }
-}
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class SceneDrawable {
 public:
-  virtual void draw(SceneDrawer * drawer,SceneFrameData * frameData) = 0;
+  virtual void Draw(SceneDrawer * drawer,SceneFrameData * frameData) = 0;
 };
-}
 }

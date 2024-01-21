@@ -1,114 +1,101 @@
 ﻿#pragma once
+#include "components/Transformable.hpp"
+#include "vengine/Engine.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/containers/Set.hpp"
 #include "vengine/drawing/scene/SceneDrawable.hpp"
+#include "vengine/input/SceneInputManager.hpp"
 #include "vengine/math/Transform.hpp"
 
 #include <vulkan/vulkan.hpp>
 
-namespace vengine {
-namespace scene {
+namespace vengine::scene {
 class SceneComponent;
 class RenderedComponent;
 class Component;
 }
-}
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class Drawer;
 }
-}
 
-namespace vengine {
-namespace scene {
+namespace vengine::scene {
 class Component;
 }
-}
 
-namespace vengine {
-namespace scene {
+namespace vengine::scene {
 class Scene;
 }
-}
 
-namespace vengine {
-namespace scene {
+namespace vengine::scene {
   
 /**
  * \brief Base class for all object that exist in a world
  */
-class SceneObject : public Object<Scene> , public drawing::SceneDrawable {
+class SceneObject : public Object<Scene> ,public Transformable, public drawing::SceneDrawable {
 
 private:
-  bool bCanEverUpdate = false;
+  bool _bCanEverUpdate = false;
   Set<Component *> _components;
   Set<RenderedComponent *> _renderedComponents;
   SceneComponent * _rootComponent = nullptr;
 public:
+  virtual SceneComponent *CreateRootComponent();
+  virtual SceneComponent *GetRootComponent() const;
+  virtual void AttachComponentsToRoot(SceneComponent *root);
 
-  virtual SceneComponent * createRootComponent();
-
-  SceneComponent * getRootComponet();
-
-  virtual void attachComponentsToRoot(SceneComponent * root);
+  // Transformable Interface
+  math::Transform GetRelativeTransform() const override;
+  void SetRelativeTransform(const math::Transform &val) override;
+  Transformable *GetParent() const override;
   
-  math::Transform getTransform() const;
-  void setTransform(const math::Transform& transform) const;
-
-  
+  virtual void AttachTo(SceneComponent *parent);
+  virtual void AttachTo(SceneObject *parent);
   /**
    * \brief Initializes all components, call after component creation is complete
    * \param outer The Scene
    */
-  virtual void init(Scene *outer) override;
+  virtual void Init(scene::Scene *outer) override;
+
+  virtual Engine * GetEngine() const;
+  virtual input::SceneInputManager * GetInput();
+  virtual Scene * GetScene() const;
+  virtual void Update(float deltaTime);
   
-  virtual void update(float deltaTime);
-  
-  template <typename T>
-  T * createComponent();
+  template <typename T,typename... Args>
+  T * AddComponent(Args&&... args);
 
   template <typename T>
-  T * createRenderedComponent();
+  T * GetComponentByClass();
 
-  void handleCleanup() override;
+  void AddToRenderList(RenderedComponent * comp);
 
-  void draw(drawing::SceneDrawer *renderer, drawing::SceneFrameData *frameData) override;
+  void RemoveFromRenderList(RenderedComponent * comp);
+
+  void HandleDestroy() override;
+
+  void Draw(drawing::SceneDrawer *renderer, drawing::SceneFrameData *frameData) override;
 };
 
-template <typename T> T * SceneObject::createComponent() {
-  auto comp = dynamic_cast<Object<SceneObject>*>(newObject<T>());
-  comp->init(this);
-  _components.add(reinterpret_cast<Component *&>(comp));
+template <typename T, typename ... Args> T * SceneObject::AddComponent(
+    Args &&... args) {
+  auto comp = dynamic_cast<Object<SceneObject>*>(newObject<T>(std::forward<Args>(args)...));
+  if(HasBeenInitialized()) {
+    comp->Init(this);
+  }
+  _components.Add(reinterpret_cast<Component *&>(comp));
   
   return reinterpret_cast<T *>(comp);
 }
 
-template <typename T> T * SceneObject::createRenderedComponent() {
-  auto comp = createComponent<T>();
-  _renderedComponents.add(reinterpret_cast<RenderedComponent *&>(comp));
-  return reinterpret_cast<T *>(comp);
+template <typename T> T * SceneObject::GetComponentByClass() {
+  for(auto component : _components) {
+    auto dCast = dynamic_cast<T *>(component);
+    if(dCast != nullptr) {
+      return dCast;
+    }
+  }
+  return nullptr;
 }
 
-// template <typename T, std::enable_if_t<std::is_base_of_v<Component, T>> *> T *
-  // SceneObject::addComponent(T *component) {
-  //   components.add(component);
-  //   if(utils::isType<RenderedComponent>(component)) {
-  //     renderedComponents.add(component);
-  //   }
-  //   component->init();
-  // }
-  //
-  // template <typename T, std::enable_if_t<std::is_base_of_v<Component, T>> *>
-  // void SceneObject::removeComponent(T *component) {
-  //   components.remove(component);
-  //   
-  //   if(utils::isType<RenderedComponent>(component)) {
-  //     renderedComponents.remove(component);
-  //   }
-  //   
-  //   component->destroy();
-  //   delete component;
-  // }
-}
 }

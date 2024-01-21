@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include <fstream>
+#include "Buffer.hpp"
 #include <string>
 
 namespace vengine {
@@ -14,21 +14,27 @@ public:
     
     return *this;
   }
-  
-  friend std::ofstream &operator <<(std::ofstream &out, const String &a) {
-    uint64_t str_size = a.size();
-    out.write(reinterpret_cast<char *>(&str_size),sizeof(str_size));
-    out.write(a.data(),str_size);
-    return out;
-  }
-
-  friend std::ifstream &operator >>(std::ifstream &in, String &a) {
-    uint64_t elementNum;
-    in.read(reinterpret_cast<char *>(&elementNum),sizeof(a.size()));
-    a.resize(elementNum);
-    in.read(a.data(),a.size());
-    return in;
-  }
-
 };
+
+#ifndef STRING_SERIALIZATION_OPS
+#define STRING_SERIALIZATION_OPS
+
+inline Buffer &operator<<(Buffer &out,
+                                  const String &src) {
+  const uint64_t stringSize = src.length();
+  out << stringSize;
+  out.Write(src.data(),stringSize);
+  return out;
+}
+
+inline Buffer &operator>>(Buffer &in,
+                                  String &dst) {
+  uint64_t stringSize;
+  in >> stringSize;
+  dst.resize(stringSize);
+  in.Read(dst.data(),stringSize);
+
+  return in;
+}
+#endif
 }

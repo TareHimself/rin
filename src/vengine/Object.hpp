@@ -1,9 +1,9 @@
 #pragma once
 #include "log.hpp"
 #include "types.hpp"
-#include "containers/Array.hpp"
+#include "containers/EventDispatcher.hpp"
+#include "containers/TEventDispatcher.hpp"
 
-#include <deque>
 #include <functional>
 #include <iostream>
 
@@ -12,75 +12,79 @@ namespace vengine {
 
   class Allocatable {
   public:
-    bool _bWasAllocated = false;
+    bool bWasAllocated = false;
   };
 
   template <class OuterType>
   class Object : public Allocatable {
-    bool bHasBeenInitialized = false;
-    CleanupQueue cleaner;
+    bool _bHasBeenInitialized = false;
+    CleanupQueue _cleaner;
     OuterType * _outer = nullptr;
     
   protected:
     
-    void addCleanup(const std::function<void()> &callback);
+    void AddCleanup(const std::function<void()> &callback);
   public:
-    OuterType * getOuter() const;
+
+    TEventDispatcher<> onDestroyed;
+    
+    OuterType * GetOuter() const;
 
     // void * operator new(size_t size);
 
-    virtual bool hasBeenInitialized() const;
+    virtual bool HasBeenInitialized() const;
     Object() = default;
     
     virtual ~Object();
     
-    virtual void init(OuterType * outer);
+    virtual void Init(OuterType *outer);
 
-    void cleanup();
+    void Destroy();
     
-    virtual void handleCleanup();
+    virtual void HandleDestroy();
     
   };
 
-  template <class OuterType> void Object<OuterType>::addCleanup(
+  template <class OuterType> void Object<OuterType>::AddCleanup(
       const std::function<void()> &callback) {
-    cleaner.push(callback);
+    _cleaner.Push(callback);
   }
 
-  template <class OuterType> OuterType * Object<OuterType>::getOuter() const {
+  template <class OuterType> OuterType * Object<OuterType>::GetOuter() const {
     return _outer;
   }
 
-  template <class OuterType> bool Object<OuterType>::hasBeenInitialized() const {
-    return bHasBeenInitialized;
+  template <class OuterType> bool Object<OuterType>::HasBeenInitialized() const {
+    return _bHasBeenInitialized;
   }
 
   template <class OuterType> Object<OuterType>::~Object() {
   }
 
-  template <class OuterType> void Object<OuterType>::init(OuterType *outer) {
+  template <class OuterType> void Object<OuterType>::Init(OuterType *outer) {
     _outer = outer;
-    bHasBeenInitialized = true;
+    _bHasBeenInitialized = true;
   }
 
-  template <class OuterType> void Object<OuterType>::cleanup() {
-    
-    handleCleanup();
-    if(_bWasAllocated) {
+  template <class OuterType> void Object<OuterType>::Destroy() {
+    onDestroyed.Emit();
+    HandleDestroy();
+    if(bWasAllocated) {
       log::engine->info("Cleaned up allocated object");
       delete this;
     }
-    bHasBeenInitialized = false;
+    _bHasBeenInitialized = false;
   }
 
-  template <class OuterType> void Object<OuterType>::handleCleanup() {
-    cleaner.run();
+  template <class OuterType> void Object<OuterType>::HandleDestroy() {
+    _cleaner.Run();
   }
 
-template <typename T>
-static T *newObject() {
-    auto obj = new T();
-    static_cast<Allocatable*>(obj)->_bWasAllocated = true;
+template <typename T, typename... Args>
+static T *newObject(Args&&... args) {
+    static_assert(std::is_base_of_v<Allocatable, T>, "T must be a child of Allocatable");
+    auto obj = new T(args...);
+    static_cast<Allocatable*>(obj)->bWasAllocated = true;
     log::engine->info("Allocated object");
     return obj;
 }

@@ -1,17 +1,13 @@
 ﻿#pragma once
 #include "vengine/Object.hpp"
 
-namespace vengine {
-namespace scene {
+namespace vengine::scene {
 class SceneObject;
 }
-}
 
-namespace vengine {
-namespace scene {
-class Component : public Object<SceneObject>{
+namespace vengine::scene {
+class Component : public Object<SceneObject> {
 public:
-  SceneObject * getOwner() const;
+  SceneObject * GetOwner() const;
 };
-}
 }

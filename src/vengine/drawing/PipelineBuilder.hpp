@@ -3,8 +3,7 @@
 #include "vengine/containers/Array.hpp"
 #include <vulkan/vulkan.hpp>
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 class PipelineBuilder {
 
 protected:
@@ -29,44 +28,43 @@ protected:
 public:
   
 
-  PipelineBuilder& addShaderStage(const Shader * shader,vk::ShaderStageFlagBits bits = {});
+  PipelineBuilder& AddShaderStage(const Shader * shader,vk::ShaderStageFlagBits bits = {});
 
-  PipelineBuilder& addVertexShader(const Shader * shader);
+  PipelineBuilder& AddVertexShader(const Shader * shader);
 
-  PipelineBuilder& addFragmentShader(const Shader * shader);
+  PipelineBuilder& AddFragmentShader(const Shader * shader);
   
-  PipelineBuilder& setNumViewports(uint32_t num);
+  PipelineBuilder& SetNumViewports(uint32_t num);
 
-  PipelineBuilder& setNumScissors(uint32_t num);
+  PipelineBuilder& SetNumScissors(uint32_t num);
 
-  PipelineBuilder& vertexInput(const Array<vk::VertexInputBindingDescription> &
+  PipelineBuilder& VertexInput(const Array<vk::VertexInputBindingDescription> &
                                    bindings = {},const Array<vk::VertexInputAttributeDescription> &attributes = {});
 
-  PipelineBuilder& setInputTopology(vk::PrimitiveTopology topology);
+  PipelineBuilder& SetInputTopology(vk::PrimitiveTopology topology);
 
-  PipelineBuilder& setPolygonMode(vk::PolygonMode polygonMode);
+  PipelineBuilder& SetPolygonMode(vk::PolygonMode polygonMode);
 
-  PipelineBuilder& setCullMode(vk::CullModeFlags cullMode, vk::FrontFace frontFace);
+  PipelineBuilder& SetCullMode(vk::CullModeFlags cullMode, vk::FrontFace frontFace);
 
-  PipelineBuilder& setMultisamplingModeNone();
+  PipelineBuilder& SetMultisamplingModeNone();
 
-  PipelineBuilder& disableBlending();
+  PipelineBuilder& DisableBlending();
 
-  PipelineBuilder& enableBlendingAdditive();
+  PipelineBuilder& EnableBlendingAdditive();
 
-  PipelineBuilder& enableBlendingAlphaBlend();
+  PipelineBuilder& EnableBlendingAlphaBlend();
 
-  PipelineBuilder& setColorAttachmentFormat(vk::Format format);
+  PipelineBuilder& SetColorAttachmentFormat(vk::Format format);
 
-  PipelineBuilder& setDepthFormat(vk::Format format);
+  PipelineBuilder& SetDepthFormat(vk::Format format);
 
-  PipelineBuilder& enableDepthTest(bool depthWriteEnable,vk::CompareOp op);
+  PipelineBuilder& EnableDepthTest(bool depthWriteEnable,vk::CompareOp op);
   
-  PipelineBuilder& disableDepthTest();
+  PipelineBuilder& DisableDepthTest();
 
-  PipelineBuilder& setLayout(vk::PipelineLayout layout);
+  PipelineBuilder& SetLayout(vk::PipelineLayout layout);
   
-  vk::Pipeline build(vk::Device device);
+  vk::Pipeline Build(vk::Device device);
 };
-}
 }

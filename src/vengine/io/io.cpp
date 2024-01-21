@@ -1,19 +1,18 @@
 #include <vengine/io/io.hpp>
 
 
-namespace vengine {
-namespace io {
+namespace vengine::io {
 
 std::filesystem::path getCompiledShadersPath() {
   return std::filesystem::current_path() / "shaders";
 }
 
 std::filesystem::path getRawShadersPath() {
-  return _rawShadersPath;
+  return RAW_SHADERS_PATH;
 }
 
 void setRawShadersPath(const std::filesystem::path &shadersPath) {
-  _rawShadersPath = shadersPath;
+  RAW_SHADERS_PATH = shadersPath;
 }
 
 std::filesystem::path getRawShaderPath(const std::string &shader) {
@@ -30,12 +29,11 @@ std::string readFileAsString(const std::filesystem::path &filePath) {
 }
 
 void writeStringToFile(const std::filesystem::path &filePath,
-    const std::string &data) {
+                       const std::string &data) {
   std::ofstream out(filePath);
   out <<  data;
   out.close();
 }
 
 
-}
 }

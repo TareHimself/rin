@@ -1,41 +1,47 @@
 ﻿#pragma once
+
 #include "Shader.hpp"
 #include "ShaderManager.hpp"
 #include "descriptors.hpp"
 #include "types.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/containers/Array.hpp"
-#include <vk_mem_alloc.hpp>
+#include "vengine/containers/TEventDispatcher.hpp"
+#include <vk_mem_alloc.h>
 #include <filesystem>
 #include <vulkan/vulkan.hpp>
 
 namespace vengine {
 namespace drawing {
-class Material;
+class Allocator;
 }
 }
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
+class Texture;
+}
+
+namespace vengine::drawing {
+class MaterialInstance;
+}
+
+namespace vengine::drawing {
 class Mesh;
 }
-}
 
-namespace vengine {
-namespace scene {
+namespace vengine::scene {
 class CameraComponent;
-}
 }
 
 namespace vengine {
 class Engine;
 }
 
-namespace vengine {
-namespace scene {
+namespace vengine::scene {
 class Scene;
 }
-} // namespace vengine
+
+// namespace vengine
 
 namespace vengine {
 namespace drawing {
@@ -52,12 +58,12 @@ constexpr unsigned int FRAME_OVERLAP = 2;
 class Drawer : public Object<Engine> {
 
 
-  long long frameCount = 0;
+  long long _frameCount = 0;
 
-  vk::Instance instance = nullptr;
+  vk::Instance _instance = nullptr;
 
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
-  vk::DebugUtilsMessengerEXT debugMessenger = nullptr;
+  vk::DebugUtilsMessengerEXT _debugMessenger = nullptr;
 #endif
 
   vk::PhysicalDevice _gpu = nullptr;
@@ -75,22 +81,22 @@ class Drawer : public Object<Engine> {
   AllocatedImage _depthImage{};
 
   // Default Images
-  AllocatedImage _whiteImage{};
-  AllocatedImage _blackImage{};
-  AllocatedImage _greyImage{};
-  AllocatedImage _errorCheckerboardImage{};
+  Texture * _whiteTexture = nullptr;
+  Texture * _blackTexture = nullptr;
+  Texture * _greyTexture = nullptr;
+  Texture * _errorCheckerboardTexture = nullptr;
 
   // Default Samplers
   vk::Sampler _defaultSamplerLinear;
   vk::Sampler _defaultSamplerNearest;
 
-  Material * _defaultCheckeredMaterial = nullptr;
+  MaterialInstance * _defaultCheckeredMaterial = nullptr;
   
 
   //vk::RenderPass renderPass = nullptr;
   //Array<vk::Framebuffer> frameBuffers;
 
-  DescriptorAllocatorGrowable _descriptorAllocator;
+  DescriptorAllocatorGrowable _globalAllocator;
   vk::DescriptorSet _drawImageDescriptors;
   vk::DescriptorSetLayout _drawImageDescriptorLayout;
 
@@ -103,7 +109,8 @@ class Drawer : public Object<Engine> {
 
 
   vk::Pipeline _mainPipeline;
-  vma::Allocator _vkAllocator = nullptr;
+  vk::PipelineLayout _mainPipelineLayout;
+  Allocator * _Allocator = nullptr;
   FrameData _frames[FRAME_OVERLAP];
 
   VkDescriptorSetLayout _sceneDescriptorSetLayout;
@@ -111,131 +118,124 @@ class Drawer : public Object<Engine> {
   bool _resizePending = false;
 
   ShaderManager *_shaderManager = nullptr;
-
+  Array<std::function<void()>> _resizeCallbacks;
 protected:
 
-  void initSwapchain();
+  void InitSwapchain();
   
-  void createSwapchain();
+  void CreateSwapchain();
 
-  void destroySwapchain();
+  void DestroySwapchain();
   
-  void initCommands();
+  void InitCommands();
 
-  void initSyncStructures();
+  void InitSyncStructures();
 
-  void initPipelineLayout();
+  void InitPipelineLayout();
 
-  void initPipelines();
+  void InitPipelines();
 
-  void initDescriptors();
+  void InitDescriptors();
 
-  void initImGui();
+  //void initImGui();
 
-  void initDefaultTextures();
+  void InitDefaultTextures();
 
-  void initDefaultMaterials();
+  void InitDefaultMaterials();
 
-  FrameData *getCurrentFrame();
+  FrameData *GetCurrentFrame();
 
-  void drawBackground(FrameData *frame);
+  void DrawBackground(FrameData *frame) const;
 
-  void drawScenes(FrameData *frame);
+  void DrawScenes(FrameData *frame);
 
-  void allocateImage(AllocatedImage &image, vk::Format format,
-                             vk::Extent3D extent, vk::ImageUsageFlags usage,
-                             vk::ImageAspectFlags aspectFlags,
-                             vma::MemoryUsage memoryUsage = {},
-                             vk::MemoryPropertyFlags requiredFlags = {}) const;
+  
 
-  static vk::RenderingInfo makeRenderingInfo(vk::Extent2D drawExtent);
-  static void transitionImage(vk::CommandBuffer cmd, vk::Image image,
+  static vk::RenderingInfo MakeRenderingInfo(vk::Extent2D drawExtent);
+  static void TransitionImage(vk::CommandBuffer cmd, vk::Image image,
                               vk::ImageLayout currentLayout,
                               vk::ImageLayout newLayout);
-  static vk::ImageSubresourceRange imageSubResourceRange(
+  static vk::ImageSubresourceRange ImageSubResourceRange(
       vk::ImageAspectFlags aspectMask);
-  static void copyImageToImage(vk::CommandBuffer cmd, vk::Image src,
+  static void CopyImageToImage(vk::CommandBuffer cmd, vk::Image src,
                                vk::Image dst, vk::Extent2D srcSize,
                                vk::Extent2D dstSize);
 
-  static vk::ImageCreateInfo makeImageCreateInfo(vk::Format format,vk::Extent3D size,vk::ImageUsageFlags usage);
+  static vk::ImageCreateInfo MakeImageCreateInfo(vk::Format format,vk::Extent3D size,vk::ImageUsageFlags usage);
 
-  static vk::ImageViewCreateInfo makeImageViewCreateInfo(vk::Format format,vk::Image image,vk::ImageAspectFlags aspect);
+  static vk::ImageViewCreateInfo MakeImageViewCreateInfo(vk::Format format,vk::Image image,vk::ImageAspectFlags aspect);
   
-  static vk::RenderingAttachmentInfo makeRenderingAttachment(
+  static vk::RenderingAttachmentInfo MakeRenderingAttachment(
       vk::ImageView view,
       vk::ImageLayout layout = vk::ImageLayout::eAttachmentOptimal,
       const std::optional<vk::ClearValue> &clear = std::nullopt);
-
 public:
   
   float renderScale = 1.f;
-
-  vk::PipelineLayout _mainPipelineLayout;
 
   Array<ComputeEffect> backgroundEffects;
 
   int currentBackgroundEffect{0};
 
-  vk::Extent2D getSwapchainExtent() const;
+  vk::Extent2D GetSwapchainExtent() const;
 
-  vk::Extent2D getSwapchainExtentScaled() const;
+  vk::Extent2D GetSwapchainExtentScaled() const;
 
-  vk::Extent2D getDrawImageExtent() const;
-  vk::Format getDrawImageFormat() const;
+  vk::Extent2D GetDrawImageExtent() const;
+  vk::Format GetDrawImageFormat() const;
 
-  vk::Format getDepthImageFormat() const;
+  vk::Format GetDepthImageFormat() const;
   
-  Engine *getEngine() const;
-  vk::Device getDevice() const;
-  vma::Allocator getAllocator() const;
+  Engine * GetEngine() const;
+  vk::Device GetDevice() const;
+  vk::PhysicalDevice GetPhysicalDevice() const;
+  vk::Instance GetVulkanInstance() const;
+  Allocator *GetAllocator() const;
 
 
-  AllocatedImage getDefaultWhiteImage() const;
-  AllocatedImage getDefaultBlackImage() const;
-  AllocatedImage getDefaultGreyImage() const;
-  AllocatedImage getDefaultErrorCheckerboardImage() const;
+  Texture * GetDefaultWhiteTexture() const;
+  Texture * GetDefaultBlackTexture() const;
+  Texture * GetDefaultGreyTexture() const;
+  Texture * GetDefaultErrorCheckerboardTexture() const;
 
+  //void onResize(const std::function<void()> & callback);
   // Default Samplers
-  vk::Sampler getDefaultSamplerLinear() const;
-  vk::Sampler getDefaultSamplerNearest() const;
+  vk::Sampler GetDefaultSamplerLinear() const;
+  vk::Sampler GetDefaultSamplerNearest() const;
 
-  Material * getDefaultCheckeredMaterial() const;
+  MaterialInstance * GetDefaultCheckeredMaterial() const;
 
-  ShaderManager * getShaderManager() const;
+  ShaderManager * GetShaderManager() const;
 
-  vk::DescriptorSetLayout getSceneDescriptorLayout() const;
+  vk::DescriptorSetLayout GetSceneDescriptorLayout() const;
+
+  DescriptorAllocatorGrowable * GetGlobalDescriptorAllocator();
   
-  bool resizePending() const;
+  bool ResizePending() const;
 
-  AllocatedBuffer createBuffer(size_t allocSize, vk::BufferUsageFlags usage,
-                               vma::MemoryUsage memoryUsage,vk::MemoryPropertyFlags requiredFlags = {},vma::AllocationCreateFlags flags = {});
+  void RequestResize();
 
-  AllocatedBuffer createTransferCpuGpuBuffer(size_t size,bool randomAccess);
-
-  AllocatedBuffer createUniformCpuGpuBuffer(size_t size,bool randomAccess);
-
-  void destroyBuffer(const AllocatedBuffer &buffer);
-
-  AllocatedImage createImage(vk::Extent3D size,vk::Format format,vk::ImageUsageFlags usage,bool mipMapped = false);
-  AllocatedImage createImage(void* data,vk::Extent3D size,vk::Format format,vk::ImageUsageFlags usage,bool mipMapped = false);
-  void destroyImage(const AllocatedImage& image);
+  AllocatedImage CreateImage(vk::Extent3D size,vk::Format format,vk::ImageUsageFlags usage,bool mipMapped = false) const;
+  AllocatedImage CreateImage(const void* data,vk::Extent3D size,vk::Format format,vk::ImageUsageFlags usage,bool mipMapped = false);
   
-  void resizeSwapchain();
+  
+  void ResizeSwapchain();
 
-  void createComputeShader(const Shader *shader, ComputeEffect &effect);
+  void CreateComputeShader(const Shader *shader, ComputeEffect &effect);
 
-  void init(Engine *outer) override;
+  void Init(Engine *outer) override;
 
-  void handleCleanup() override;
+  void HandleDestroy() override;
 
-  void immediateSubmit(std::function<void(vk::CommandBuffer cmd)> &&function);
+  void ImmediateSubmit(std::function<void(vk::CommandBuffer cmd)> &&function);
 
-  void drawImGui(vk::CommandBuffer cmd, vk::ImageView view);
+  //void drawImGui(vk::CommandBuffer cmd, vk::ImageView view);
 
-  virtual void draw();
+  virtual void Draw();
 
-  GpuMeshBuffers createMeshBuffers(const Mesh *mesh);
+  TEventDispatcher<vk::Extent2D> onResizeEvent;
+
+  GpuMeshBuffers CreateMeshBuffers(const Mesh *mesh);
 };
 } // namespace rendering
 } // namespace vengine

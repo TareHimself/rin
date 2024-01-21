@@ -1,49 +1,51 @@
 ﻿#pragma once
 #include <vulkan/vulkan.hpp>
 #include "vengine/containers/Array.hpp"
-
 #include <deque>
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 struct DescriptorLayoutBuilder {
   Array<vk::DescriptorSetLayoutBinding> bindings;
 
-  DescriptorLayoutBuilder& addBinding(uint32_t binding,vk::DescriptorType type);
-  DescriptorLayoutBuilder& clear();
-  vk::DescriptorSetLayout build(vk::Device device, vk::ShaderStageFlags shaderStages);
+  DescriptorLayoutBuilder& AddBinding(uint32_t binding,vk::DescriptorType type);
+  DescriptorLayoutBuilder& Clear();
+  vk::DescriptorSetLayout Build(vk::Device device, vk::ShaderStageFlags shaderStages);
 };
 
 struct DescriptorAllocator {
+  
+private:
+  vk::Device _device;
+  vk::DescriptorPool pool;
+public:
   struct PoolSizeRatio {
     vk::DescriptorType type;
     float ratio;
   };
-  vk::Device _device;
-  vk::DescriptorPool pool;
+  void Init(vk::Device device,uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
+  void Clear() const;
+  void Destroy() const;
 
-  void init(vk::Device device,uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
-  void clear() const;
-  void destroy() const;
-
-  vk::DescriptorSet allocate(vk::DescriptorSetLayout layout) const;
+  vk::DescriptorSet Allocate(vk::DescriptorSetLayout layout) const;
 };
 
 struct DescriptorWriter {
+private:
   std::deque<vk::DescriptorImageInfo> imageInfos;
   std::deque<vk::DescriptorBufferInfo> bufferInfos;
   Array<vk::WriteDescriptorSet> writes;
+public:
 
-  void writeImage(int binding,vk::ImageView image,vk::Sampler sampler,vk::ImageLayout layout,vk::DescriptorType type);
+  void WriteImage(uint32_t binding,vk::ImageView image,vk::Sampler sampler,vk::ImageLayout layout,vk::DescriptorType type);
   
-  void writeBuffer(int binding,vk::Buffer buffer,size_t size,size_t offset,vk::DescriptorType type);
+  void WriteBuffer(uint32_t binding,vk::Buffer buffer,size_t size,size_t offset,vk::DescriptorType type);
 
-  void clear();
+  void Clear();
   
-  void updateSet(vk::Device device,vk::DescriptorSet set);
+  void UpdateSet(vk::Device device,vk::DescriptorSet set);
 
   DescriptorWriter() {
-    clear();
+    Clear();
   }
 };
 
@@ -55,15 +57,15 @@ public:
     float ratio;
   };
 
-  void init(vk::Device device,uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
-  void clearPools();
-  void destroyPools();
+  void Init(vk::Device device,uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
+  void ClearPools();
+  void DestroyPools();
 
-  vk::DescriptorSet allocate(vk::DescriptorSetLayout layout);
+  vk::DescriptorSet Allocate(vk::DescriptorSetLayout layout);
 private:
 
-  vk::DescriptorPool getPool();
-  vk::DescriptorPool createPool(uint32_t setCount, std::span<PoolSizeRatio> poolRatios);
+  vk::DescriptorPool GetPool();
+  vk::DescriptorPool CreatePool(uint32_t setCount, std::span<PoolSizeRatio> poolRatios) const;
   
   vk::Device _device;
   Array<PoolSizeRatio> _ratios;
@@ -71,5 +73,4 @@ private:
   Array<vk::DescriptorPool> _readyPools;
   uint32_t _setsPerPool;
 };
-}
 }
