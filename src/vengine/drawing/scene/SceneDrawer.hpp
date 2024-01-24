@@ -30,5 +30,7 @@ public:
   void Draw(Drawer *drawer, RawFrameData *frameData) override;
 
   void HandleDestroy() override;
+
+  MaterialInstance * GetDefaultMaterial() const;
 };
 }

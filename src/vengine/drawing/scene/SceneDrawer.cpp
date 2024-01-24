@@ -115,4 +115,8 @@ void SceneDrawer::HandleDestroy() {
     GetDrawer()->GetAllocator()->DestroyBuffer(_sceneGlobalBuffer.value());
   }
 }
+
+MaterialInstance * SceneDrawer::GetDefaultMaterial() const {
+  return _defaultCheckeredMaterial;
+}
 }

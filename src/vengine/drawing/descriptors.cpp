@@ -9,9 +9,8 @@ DescriptorLayoutBuilder & DescriptorLayoutBuilder::AddBinding(const uint32_t bin
                                                               const vk::DescriptorType type,const vk::ShaderStageFlags stages) {
   if(bindings.contains(binding)) {
     utils::vassert(bindings[binding].descriptorType == type,"HOW HAVE YOU DONE THIS!!!");
-    auto existing = bindings[binding];
-    existing.setStageFlags(existing.stageFlags | stages);
-    bindings.emplace(binding,existing);
+    const auto existing = bindings.find(binding);
+    existing->second.setStageFlags(existing->second.stageFlags | stages);
     return *this;
   }
   

@@ -31,7 +31,7 @@ void MaterialInstance::SetPass(const EMaterialPass pass) {
 
 void MaterialInstance::SetResources(
     const ShaderResources &resources) {
-  _shaderResources = resources;
+  _shaderResources = std::move(resources);
 }
 
 void MaterialInstance::SetNumDescriptorBindings(const uint64_t bindings) {

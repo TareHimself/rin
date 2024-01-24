@@ -35,7 +35,6 @@ void Widget::Draw(drawing::Drawer *drawer, drawing::SimpleFrameData *frameData,
 
 void Widget::DrawSelf(drawing::Drawer *drawer, drawing::SimpleFrameData *frameData,
     WidgetParentInfo parentInfo) {
-  GetOuter()->GetLogger()->info("Drawing Widget");
   const auto material = GetOuter()->GetDefaultRectMaterial();
   const auto ogFrameData = frameData->GetRaw();
   

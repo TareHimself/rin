@@ -4,6 +4,7 @@
 #include "vengine/io/io.hpp"
 #include "vengine/drawing/Mesh.hpp"
 #include "vengine/drawing/Texture.hpp"
+#include "vengine/drawing/scene/SceneDrawer.hpp"
 #include "vengine/math/constants.hpp"
 #include "vengine/scene/SceneObject.hpp"
 #include "vengine/scene/components/ScriptComponent.hpp"
@@ -85,7 +86,7 @@ void TestGameObject::Init(scene::Scene *outer) {
   });
   
   if(color) {
-    const auto defaultMat = GetEngine()->GetDrawer()->GetDefaultCheckeredMaterial();
+    const auto defaultMat = GetScene()->GetDrawer()->GetDefaultMaterial();
     defaultMat->SetTexture("ColorT",color);
     defaultMat->SetTexture("NormalT",normal);
     defaultMat->SetTexture("RoughnessT",roughness);

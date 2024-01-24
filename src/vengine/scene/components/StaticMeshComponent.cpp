@@ -44,7 +44,7 @@ void StaticMeshComponent::Draw(drawing::SceneDrawer *renderer,
   
   for(auto i = 0; i < surfaces.size(); i++) {
     const auto [startIndex, count] = surfaces[i];
-    const auto material = materials[i] == nullptr ? renderer->GetDrawer()->GetDefaultCheckeredMaterial() : materials[i];
+    const auto material = materials[i] == nullptr ? renderer->GetDefaultMaterial() : materials[i];
     material->BindPipeline(rawFrameData);
     material->BindSets(rawFrameData);
     //material->BindCustomSet(rawFrameData,frameData->GetDescriptor(),0);

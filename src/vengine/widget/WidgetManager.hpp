@@ -13,7 +13,6 @@ class WidgetManager : public EngineSubsystem, drawing::Drawable {
   vk::Extent2D _windowSize;
   drawing::MaterialInstance * _defaultWidgetShader = nullptr;
   std::optional<drawing::AllocatedBuffer> _uiGlobalBuffer;
-  vk::DescriptorSetLayout _widgetDescriptorLayout;
 public:
   void Init(Engine *outer) override;
 
@@ -29,8 +28,6 @@ public:
   void InitWidget(Widget * widget);
 
   drawing::MaterialInstance * GetDefaultRectMaterial() const;
-
-  vk::DescriptorSetLayout GetWidgetDescriptorLayout() const;
 };
 
 template <typename T, typename ... Args> T * WidgetManager::AddWidget(

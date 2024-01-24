@@ -14,27 +14,14 @@ void WidgetManager::Init(Engine *outer) {
   });
   const auto drawer = outer->GetDrawer();
 
-  {
-    const auto device = drawer->GetDevice();
-    drawing::DescriptorLayoutBuilder builder;
-    builder.AddBinding(0, vk::DescriptorType::eUniformBuffer,vk::ShaderStageFlagBits::eAll);
-    _widgetDescriptorLayout = builder.Build(device);
-
-    AddCleanup([=] {
-      device.destroyDescriptorSetLayout(_widgetDescriptorLayout);
-    });
-  }
-  
-  
-
   _uiGlobalBuffer = drawer->GetAllocator()->CreateUniformCpuGpuBuffer(sizeof(drawing::UiGlobalBuffer),false);
 
   drawing::MaterialBuilder builder;
   _defaultWidgetShader = builder
   .SetPass(drawing::EMaterialPass::UI)
-  .ConfigurePushConstant<drawing::WidgetPushConstants>("pRect")
   .AddShader(drawing::Shader::FromSource(drawer->GetShaderManager(), io::getRawShaderPath("2d/rect/rect.vert")))
   .AddShader(drawing::Shader::FromSource(drawer->GetShaderManager(), io::getRawShaderPath("2d/rect/rect.frag")))
+  .ConfigurePushConstant<drawing::WidgetPushConstants>("pRect")
   .Create(drawer);
 
   // Set Global variable
@@ -93,9 +80,5 @@ void WidgetManager::InitWidget(Widget *widget) {
 
 drawing::MaterialInstance * WidgetManager::GetDefaultRectMaterial() const {
   return _defaultWidgetShader;
-}
-
-vk::DescriptorSetLayout WidgetManager::GetWidgetDescriptorLayout() const {
-  return _widgetDescriptorLayout;
 }
 }
