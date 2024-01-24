@@ -1,10 +1,12 @@
 ﻿#pragma once
+#include "Scene.hpp"
 #include "components/Transformable.hpp"
 #include "vengine/Engine.hpp"
 #include "vengine/Object.hpp"
+#include "vengine/containers/Serializable.hpp"
 #include "vengine/containers/Set.hpp"
 #include "vengine/drawing/scene/SceneDrawable.hpp"
-#include "vengine/input/SceneInputManager.hpp"
+#include "vengine/input/SceneInputConsumer.hpp"
 #include "vengine/math/Transform.hpp"
 
 #include <vulkan/vulkan.hpp>
@@ -28,11 +30,17 @@ class Scene;
 }
 
 namespace vengine::scene {
-  
+#ifndef VENGINE_IMPLEMENT_SCENE_OBJECT_ID
+#define VENGINE_IMPLEMENT_SCENE_OBJECT_ID(Type) \
+inline static String classID = #Type; \
+String GetSerializeId() override { \
+return std::string("VENGINE_SCENE_OBJECT_") + #Type; \
+}
+#endif
 /**
  * \brief Base class for all object that exist in a world
  */
-class SceneObject : public Object<Scene> ,public Transformable, public drawing::SceneDrawable {
+class SceneObject : public Object<Scene> ,public Transformable, public drawing::SceneDrawable, public Serializable {
 
 private:
   bool _bCanEverUpdate = false;
@@ -58,7 +66,7 @@ public:
   virtual void Init(scene::Scene *outer) override;
 
   virtual Engine * GetEngine() const;
-  virtual input::SceneInputManager * GetInput();
+  virtual input::SceneInputConsumer * GetInput();
   virtual Scene * GetScene() const;
   virtual void Update(float deltaTime);
   
@@ -74,7 +82,12 @@ public:
 
   void HandleDestroy() override;
 
-  void Draw(drawing::SceneDrawer *renderer, drawing::SceneFrameData *frameData) override;
+  void Draw(drawing::SceneDrawer *renderer, drawing::SimpleFrameData *frameData) override;
+
+  virtual void ReadFrom(Buffer &store) override;
+  virtual void WriteTo(Buffer &store) override;
+
+  VENGINE_IMPLEMENT_SCENE_OBJECT_ID(SceneObject)
 };
 
 template <typename T, typename ... Args> T * SceneObject::AddComponent(

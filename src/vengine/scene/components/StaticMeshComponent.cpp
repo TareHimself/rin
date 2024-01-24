@@ -23,17 +23,18 @@ void StaticMeshComponent::SetMesh(drawing::Mesh *newMesh) {
 }
 
 void StaticMeshComponent::Draw(drawing::SceneDrawer *renderer,
-                               drawing::SceneFrameData *frameData) {
+                               drawing::SimpleFrameData *frameData) {
   if(_mesh == nullptr || !_mesh->IsUploaded()) {
     return;
   }
   const auto transform = GetWorldTransform();
 
-  drawing::SceneDrawPushConstants pushConstants{};
+  drawing::MeshVertexPushConstant pushConstants{};
 
   pushConstants.transformMatrix = transform.Matrix(); //glm::mat4{1.f};
   pushConstants.vertexBuffer = _mesh->gpuData.value().vertexBufferAddress;
 
+  const auto rawFrameData = frameData->GetRaw();
   const auto cmd = frameData->GetCmd();
   
   const auto surfaces = _mesh->GetSurfaces();
@@ -43,14 +44,13 @@ void StaticMeshComponent::Draw(drawing::SceneDrawer *renderer,
   
   for(auto i = 0; i < surfaces.size(); i++) {
     const auto [startIndex, count] = surfaces[i];
-    const auto material = materials[i] == nullptr ? renderer->GetEngineRenderer()->GetDefaultCheckeredMaterial() : materials[i];
-
-    material->Bind(frameData);
+    const auto material = materials[i] == nullptr ? renderer->GetDrawer()->GetDefaultCheckeredMaterial() : materials[i];
+    material->BindPipeline(rawFrameData);
+    material->BindSets(rawFrameData);
+    //material->BindCustomSet(rawFrameData,frameData->GetDescriptor(),0);
+    material->PushConstant(frameData->GetCmd(),"pVertex",pushConstants);
     
     cmd->bindIndexBuffer(_mesh->gpuData.value().indexBuffer.buffer,0,vk::IndexType::eUint32);
-
-    material->PushConstant(frameData->GetCmd(),"vertexPushConstant",sizeof(drawing::SceneDrawPushConstants),&pushConstants);
-    
     cmd->drawIndexed(count,1,startIndex,0,0);
   }
 }

@@ -2,7 +2,7 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_buffer_reference : require
 
-#include "scene.glsl"
+#include "../scene.glsl"
 
 layout (location = 0) out vec3 oSceneNormal;
 layout (location = 1) out vec2 oUV;
@@ -23,21 +23,21 @@ layout( push_constant ) uniform constants
 {
 	mat4 transformMatrix;
 	VertexBuffer vertexBuffer;
-} vertexPushConstant;
+} pVertex;
 
 void main() 
 {
-	Vertex v = vertexPushConstant.vertexBuffer.vertices[gl_VertexIndex];
+	Vertex v = pVertex.vertexBuffer.vertices[gl_VertexIndex];
 	
 	vec4 location = vec4(v.location.xyz, 1.0f);
 
 	mat4 viewProjection = scene.projectionMatrix * scene.viewMatrix;
 
-	vec4 scenePositon =  viewProjection * vertexPushConstant.transformMatrix * location;
+	vec4 scenePositon =  viewProjection * pVertex.transformMatrix * location;
 
 	gl_Position = scenePositon;
 
-	oSceneNormal = (vertexPushConstant.transformMatrix * vec4(v.normal.xyz, 0.f)).xyz;
+	oSceneNormal = (pVertex.transformMatrix * vec4(v.normal.xyz, 0.f)).xyz;
 
 	oUV = v.uv.xy;
 

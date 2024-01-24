@@ -17,5 +17,9 @@ public:
 
   
   virtual void AttachTo(SceneComponent* parent);
+
+  VENGINE_IMPLEMENT_COMPONENT_ID(SceneComponent)
 };
+
+
 }

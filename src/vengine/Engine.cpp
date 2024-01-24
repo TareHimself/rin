@@ -10,6 +10,7 @@
 // #include <imgui_impl_sdl3.h>
 // #include <imgui_impl_vulkan.h>
 #include "scripting/ScriptManager.hpp"
+#include "widget/WidgetManager.hpp"
 
 #include <SDL_video.h>
 
@@ -189,7 +190,7 @@ drawing::Drawer * Engine::GetDrawer() const{
   return _drawer;
 }
 
-input::InputManager * Engine::GetInputManager() const{
+input::InputManager *Engine::GetInputManager() const{
   return _inputManager;
 }
 
@@ -272,11 +273,15 @@ scripting::ScriptManager * Engine::GetScriptManager() const {
   return _scriptManager;
 }
 
+widget::WidgetManager * Engine::GetWidgetManager() const {
+  return _widgetManager;
+}
+
 drawing::Drawer * Engine::CreateDrawer() {
   return newObject<drawing::Drawer>();
 }
 
-input::InputManager * Engine::CreateInputManager() {
+input::InputManager *Engine::CreateInputManager() {
   return newObject<input::InputManager>();
 }
 
@@ -286,6 +291,10 @@ assets::AssetManager * Engine::CreateAssetManager() {
 
 scripting::ScriptManager * Engine::CreateScriptManager() {
   return newObject<scripting::ScriptManager>();
+}
+
+widget::WidgetManager * Engine::CreateWidgetManager() {
+  return newObject<widget::WidgetManager>();
 }
 
 void Engine::SetInputMode(EInputMode mode) {
@@ -360,6 +369,14 @@ void Engine::InitScriptManager() {
   });
 }
 
+void Engine::InitWidgetManager() {
+  _widgetManager = CreateWidgetManager();
+  _widgetManager->Init(this);
+  AddCleanup([=] {
+    _widgetManager->Destroy();
+  });
+}
+
 void Engine::Init(void *outer) {
   Object::Init(outer);
   InitAssetManager();
@@ -367,9 +384,10 @@ void Engine::Init(void *outer) {
   InitScriptManager();
   InitInputManager();
   InitDrawer();
+  InitWidgetManager();
   InitScenes();
 
-  GetInputManager()->BindKey(SDLK_ESCAPE,[=](const  input::KeyInputEvent &e) {
+  GetInputManager()->Consume<input::InputConsumer>()->BindKey(SDLK_ESCAPE,[=](const  input::KeyInputEvent &e) {
     RequestExit();
     return true;
   },[](const  input::KeyInputEvent &_) {

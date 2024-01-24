@@ -6,6 +6,16 @@
 #include <filesystem>
 
 namespace vengine {
+Buffer & Buffer::Skip(const size_t byteSize) {
+  if(byteSize <= 0) {
+    return *this;
+  }
+  char * data = new char[byteSize];
+  Read(data,byteSize);
+  delete[] data;
+  return *this;
+}
+
 Buffer & Buffer::operator<<(Serializable &src) {
   auto data = MemoryBuffer();
   src.WriteTo(data);
@@ -118,6 +128,13 @@ Buffer & Buffer::operator>>(Serializable &dst) {
 Buffer & MemoryBuffer::Write(const char *src, const size_t byteSize) {
   _data.insert(_data.end(),src,src + byteSize);
   return *this;
+}
+
+MemoryBuffer::MemoryBuffer() {
+}
+
+MemoryBuffer::MemoryBuffer(const std::vector<char> &data) {
+  _data = data;
 }
 
 void MemoryBuffer::clear() {

@@ -15,6 +15,10 @@ public:
 
   glm::mat4 GetProjection(float aspectRatio) const;
   
-  void Draw(drawing::SceneDrawer *drawer, drawing::SceneFrameData *frameData) override;
+  void Draw(drawing::SceneDrawer *drawer, drawing::SimpleFrameData *frameData) override;
+
+  VENGINE_IMPLEMENT_COMPONENT_ID(CameraComponent)
 };
+
+
 }

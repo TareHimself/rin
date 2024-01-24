@@ -3,6 +3,9 @@
 #include <vengine/scripting/ScriptManager.hpp>
 namespace vengine::scene {
 
+ScriptComponent::ScriptComponent() {
+}
+
 void ScriptComponent::Init(SceneObject *outer) {
   SceneComponent::Init(outer);
   _script= GetOuter()->GetEngine()->GetScriptManager()->ScriptFromFile(_scriptPath);

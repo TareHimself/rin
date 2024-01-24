@@ -22,7 +22,7 @@ glm::mat4 CameraComponent::GetProjection(float aspectRatio) const {
 }
 
 void CameraComponent::Draw(drawing::SceneDrawer *drawer,
-                           drawing::SceneFrameData *frameData) {
+                           drawing::SimpleFrameData *frameData) {
   
 }
 }

@@ -7,7 +7,7 @@ class Drawer;
 class Drawable {
 public:
   
-  virtual void Draw(Drawer * drawer,FrameData * frameData) = 0;
+  virtual void Draw(Drawer * drawer,RawFrameData * frameData) = 0;
 };
 }
 

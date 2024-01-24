@@ -51,7 +51,7 @@ Engine * SceneObject::GetEngine() const {
   return GetScene()->GetEngine();
 }
 
-input::SceneInputManager * SceneObject::GetInput() {
+input::SceneInputConsumer * SceneObject::GetInput() {
   return GetScene()->GetInput();
 }
 
@@ -87,10 +87,18 @@ void SceneObject::HandleDestroy() {
 }
 
 void SceneObject::Draw(drawing::SceneDrawer *renderer,
-                       drawing::SceneFrameData *frameData) {
+                       drawing::SimpleFrameData *frameData) {
   for(const auto comp : _renderedComponents) {
     comp->Draw(renderer,frameData);
   }
+}
+
+void SceneObject::ReadFrom(Buffer &store) {
+  
+}
+
+void SceneObject::WriteTo(Buffer &store) {
+  
 }
 
 }

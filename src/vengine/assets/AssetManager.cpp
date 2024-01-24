@@ -52,7 +52,7 @@ drawing::Mesh *AssetManager::ImportMesh(
       loadGltfBinary(&data, path.parent_path(), gltfOptions)) {
     gltf = std::move(load.get());
   } else {
-    log::assets->error("Failed to load glTF: {} \n",
+    GetLogger()->error("Failed to load glTF: {} \n",
                        fastgltf::to_underlying(load.error()));
     return nullptr;
   }
@@ -133,6 +133,8 @@ drawing::Mesh *AssetManager::ImportMesh(
   result->SetSurfaces(surfaces);
   result->SetHeader(header);
   result->Init(GetOuter()->GetDrawer());
+
+  GetLogger()->info("Imported Mesh {}",path.string());
   return result;
 }
 
@@ -184,6 +186,7 @@ drawing::Texture * AssetManager::ImportTexture(
   header.type = types::TEXTURE;
   header.name = path.filename().string();
   tex->SetHeader(header);
+  GetLogger()->info("Imported Texture {}",path.string());
   return tex;
 }
 
@@ -214,6 +217,10 @@ drawing::Texture * AssetManager::LoadTextureAsset(
   texture->ReadFrom(assetData);
   texture->Init(GetOuter()->GetDrawer());
   return texture;
+}
+
+String AssetManager::GetName() const {
+  return "assets";
 }
 
 }

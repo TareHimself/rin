@@ -7,7 +7,7 @@ layout (location = 0) in vec3 iSceneNormal;
 layout (location = 1) in vec2 iUV;
 layout (location = 2) in vec3 iSceneLocation;
 
-layout(set = 0, binding = 0) uniform  SceneData{   
+layout(set = 0, binding = 0) uniform  SceneGlobalBuffer{   
 
 	mat4 viewMatrix;
 	mat4 projectionMatrix;
@@ -112,7 +112,7 @@ vec3 computeColor(vec3 color,vec3 normal,float roughness,float metallic,vec3 spe
 
         rhoD *= vec3(1.0) - F;
 
-        // rhoD *= disneyDiffuseFactor(NoV,NoL,VoH,roughness);
+        rhoD *= disneyDiffuseFactor(NoV,NoL,VoH,roughness);
         rhoD *= (1.0 - metallic);
 
         vec3 diff = rhoD * RECIPROCAL_PI;

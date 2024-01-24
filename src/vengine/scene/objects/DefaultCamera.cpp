@@ -1,7 +1,6 @@
 ﻿#include "DefaultCamera.hpp"
 
 #include "vengine/Engine.hpp"
-#include "vengine/input/InputManager.hpp"
 #include "vengine/input/KeyInputEvent.hpp"
 #include "vengine/math/constants.hpp"
 #include "vengine/scene/Scene.hpp"
@@ -62,7 +61,7 @@ void DefaultCamera::Init(scene::Scene *outer) {
   this->SetWorldLocation({0, 0, -10.f});
 
   constexpr float mouseInputScale = 0.1f;
-  AddCleanup(inputManager->OnAxis(input::MouseX,
+  AddCleanup(inputManager->BindAxis(input::MouseX,
                                   [=](const input::AxisInputEvent &e) {
                                     yaw += e.GetValue() * 1.f * mouseInputScale;
 
@@ -70,7 +69,7 @@ void DefaultCamera::Init(scene::Scene *outer) {
                                     return true;
                                   }));
 
-  AddCleanup(inputManager->OnAxis(input::MouseY,
+  AddCleanup(inputManager->BindAxis(input::MouseY,
                                   [=](const input::AxisInputEvent &e) {
                                     pitch += e.GetValue() * mouseInputScale;
                                     UpdateRotation();

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Asset.hpp"
 #include "types.hpp"
+#include "vengine/EngineSubsystem.hpp"
 #include "vengine/Object.hpp"
 
 #include <filesystem>
@@ -21,7 +22,7 @@ class Mesh;
 }
 
 namespace vengine::assets {
-class AssetManager : public Object<Engine>{
+class AssetManager : public EngineSubsystem {
 public:
 
   // virtual bool loadAsset(const std::filesystem::path &path, VEngineAssetHeader &asset, bool loadData = true);
@@ -32,5 +33,7 @@ public:
 
   virtual drawing::Texture * ImportTexture(const std::filesystem::path &path);
   virtual drawing::Texture * LoadTextureAsset(const std::filesystem::path &path);
+
+  String GetName() const override;
 };
 }

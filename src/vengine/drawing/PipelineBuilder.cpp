@@ -6,20 +6,10 @@
 
 namespace vengine {
 namespace drawing {
-PipelineBuilder &PipelineBuilder::AddShaderStage(const Shader *shader,
-                                                 const vk::ShaderStageFlagBits bits) {
-  auto info = vk::PipelineShaderStageCreateInfo(
-      vk::PipelineShaderStageCreateFlags(), bits, shader->Get(), "main");
-  _shaderStages.Push(info);
+PipelineBuilder &PipelineBuilder::AddShaderStage(Shader *shader) {
+  shader->Use();
+  _shaders.Push(shader);
   return *this;
-}
-
-PipelineBuilder &PipelineBuilder::AddVertexShader(const Shader *shader) {
-  return AddShaderStage(shader, vk::ShaderStageFlagBits::eVertex);
-}
-
-PipelineBuilder &PipelineBuilder::AddFragmentShader(const Shader *shader) {
-  return AddShaderStage(shader, vk::ShaderStageFlagBits::eFragment);
 }
 
 PipelineBuilder &PipelineBuilder::SetNumViewports(const uint32_t num) {
@@ -159,6 +149,14 @@ PipelineBuilder &PipelineBuilder::SetLayout(const vk::PipelineLayout layout) {
 
 vk::Pipeline PipelineBuilder::Build(const vk::Device device) {
 
+  Array<vk::PipelineShaderStageCreateInfo> _shaderStages{};
+
+  for(const auto shader : _shaders) {
+    auto info = vk::PipelineShaderStageCreateInfo(
+      vk::PipelineShaderStageCreateFlags(), shader->GetStage(), *shader, "main");
+    _shaderStages.Push(info);
+  }
+  
   const auto viewportCreateInfo = vk::PipelineViewportStateCreateInfo(
       vk::PipelineViewportStateCreateFlags(), _numViewports, nullptr,
       _numScissors, nullptr);
@@ -191,10 +189,16 @@ vk::Pipeline PipelineBuilder::Build(const vk::Device device) {
   const auto result = device.
       createGraphicsPipeline(nullptr, pipelineCreateInfo);
   if (result.result != vk::Result::eSuccess) {
-    log::drawing->info("Failed to create pipeline");
+    throw std::exception("Failed to create pipeline");
   }
 
   return result.value;
+}
+
+PipelineBuilder::~PipelineBuilder() {
+  for(const auto shader : _shaders) {
+    shader->Destroy();
+  }
 }
 }
 }

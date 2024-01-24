@@ -1,8 +1,9 @@
 #pragma once
-#include "SceneObject.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/containers/Array.hpp"
-#include "vengine/input/SceneInputManager.hpp"
+#include "vengine/containers/Serializable.hpp"
+#include "vengine/input/SceneInputConsumer.hpp"
+#include "vengine/math/Transform.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -12,6 +13,14 @@ class Drawer;
 class Viewport;
 }
 
+#ifndef VENGINE_IMPLEMENT_SCENE_ID
+#define VENGINE_IMPLEMENT_SCENE_ID(Type) \
+inline static String classID = #Type; \
+String GetSerializeId() override { \
+return std::string("VENGINE_SCENE_") + #Type; \
+}
+#endif
+
 namespace vengine {
 class Engine;
 
@@ -20,19 +29,19 @@ class ScenePhysics;
 }
 
 namespace scene {
-class CameraComponent;
+class SceneObject;
 
 /**
  * \brief Base class for worlds
  */
-class Scene : public Object<Engine> {
-  physics::ScenePhysics *_physics = nullptr;
-  drawing::SceneDrawer *_drawer = nullptr;
+class Scene : public Object<Engine>, public Serializable {
+  physics::ScenePhysics * _physics = nullptr;
+  drawing::SceneDrawer * _drawer = nullptr;
   SceneObject * _viewTarget = nullptr;
   SceneObject * _defaultViewTarget = nullptr;
   Array<SceneObject *> _sceneObjects;
   Array<SceneObject *> _objectsPendingInit;
-  input::SceneInputManager * _inputManager = nullptr;
+  input::SceneInputConsumer *_inputConsumer = nullptr;
 
 public:
   Engine *  GetEngine() const;
@@ -40,13 +49,18 @@ public:
   void Init(Engine *outer) override;
   void HandleDestroy() override;
 
+  void ReadFrom(Buffer &store) override;
+  void WriteTo(Buffer &store) override;
+
+  virtual bool ShouldSerializeObject(SceneObject * object);
+
   Array<SceneObject *> GetSceneObjects() const;
 
   drawing::SceneDrawer *  GetDrawer() const;
 
   physics::ScenePhysics *  GetPhysics() const;
 
-  input::SceneInputManager *  GetInput() const;
+  input::SceneInputConsumer *GetInput() const;
 
   /**
    * \brief Called every tick
@@ -65,7 +79,7 @@ public:
    */
   virtual drawing::SceneDrawer * CreateDrawer();
 
-  virtual input::SceneInputManager * CreateInputManager();
+  virtual input::SceneInputConsumer *CreateInputManager();
 
   virtual SceneObject *  CreateDefaultViewTarget();
 
@@ -78,6 +92,8 @@ public:
 
   template <typename T,typename ... Args>
   T * CreateSceneObject(const math::Transform &transform,Args &&... args);
+
+  VENGINE_IMPLEMENT_SCENE_ID(Scene)
 };
 
 template <typename T, typename ... Args> T * Scene::CreateSceneObject(
@@ -95,5 +111,8 @@ template <typename T, typename ... Args> T * Scene::CreateSceneObject(
   obj->SetWorldTransform(transform);
   return rawObj;
 }
+
+
 }
+
 }

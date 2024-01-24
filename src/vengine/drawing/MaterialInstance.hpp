@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Drawer.hpp"
-#include "PipelineBuilder.hpp"
+#include "vengine/utils.hpp"
 #include "vengine/Object.hpp"
 
 namespace vengine::drawing {
@@ -16,11 +16,19 @@ namespace vengine::drawing {
 class MaterialInstance : public Object<Drawer> {
   vk::Pipeline _pipeline;
   vk::PipelineLayout _layout;
-  vk::DescriptorSet _materialSet;
-  vk::DescriptorSetLayout _materialSetLayout;
+  Array<vk::DescriptorSet> _sets;
+  Array<vk::DescriptorSetLayout> _setLayouts;
+  // vk::DescriptorSetLayout _materialSetLayout;
   EMaterialPass _passType;
-  std::unordered_map<std::string,MaterialResourceInfo> _shaderResources;
+  uint64_t numDescriptorBindings = 0;
+  ShaderResources _shaderResources;
 
+
+
+
+protected:
+
+  
 public:
 
   struct MaterialResources {
@@ -34,28 +42,52 @@ public:
 
   void SetPipeline(vk::Pipeline pipeline);
   void SetLayout(vk::PipelineLayout layout);
-  void SetSet(vk::DescriptorSet set);
-  void SetSetLayout(vk::DescriptorSetLayout setLayout);
+  void SetSets(const Array<vk::DescriptorSet> &sets,const Array<vk::DescriptorSetLayout> &layouts);
+  //void SetSetLayout(vk::DescriptorSetLayout setLayout);
   void SetPass(EMaterialPass pass);
-  void SetResources(const std::unordered_map<std::string,MaterialResourceInfo> &resources);
+  void SetResources(const ShaderResources &resources);
+  void SetNumDescriptorBindings(uint64_t bindings);
 
   vk::Pipeline GetPipeline() const;
   vk::PipelineLayout GetLayout() const;
-  vk::DescriptorSet GetDescriptorSet() const;
-  vk::DescriptorSetLayout GetDescriptorSetLayout() const;
-  std::unordered_map<std::string,MaterialResourceInfo> GetResources() const;
+  Array<vk::DescriptorSet> GetDescriptorSets() const;
+  //vk::DescriptorSetLayout GetDescriptorSetLayout() const;
+  ShaderResources GetResources() const;
   EMaterialPass GetPass() const;
   
   void Init(Drawer *drawer) override;
 
-  MaterialInstance * SetTexture(const std::string &param, Texture * texture);
+  void SetTexture(const std::string &param, Texture * texture);
 
-  
-  void Bind(const SceneFrameData * frame) const;
+  template<typename T>
+  void SetBuffer(const std::string &param, const AllocatedBuffer &buffer);
 
-  void PushConstant(const vk::CommandBuffer * cmd,const std::string &param,size_t size, const void * data);
+  void SetBuffer(const std::string &param, const AllocatedBuffer &buffer,size_t);
+
+  void BindPipeline(RawFrameData *frame) const;
+  //void BindCustomSet(RawFrameData *frame, const vk::DescriptorSet set, const uint32_t idx) const;
+  void BindSets(RawFrameData *frame) const;
+  //void Bind(const SceneFrameData * frame) const;
+
+  //void Bind(RawFrameData *frame, uint32_t materialSetIndex = 0) const;
+
+  template <typename T>
+  void PushConstant(const vk::CommandBuffer * cmd,const std::string &param,const T &data);
 
   void HandleDestroy() override;
 };
+
+template <typename T> void MaterialInstance::SetBuffer(const std::string &param,
+    const AllocatedBuffer &buffer) {
+  SetBuffer(param,buffer,sizeof(T));
+}
+
+template <typename T> void MaterialInstance::PushConstant(
+    const vk::CommandBuffer *cmd, const std::string &param,
+    const T &data) {
+  utils::vassert(_shaderResources.pushConstants.contains(param),"PushConstant [ {} ] does not exist in material",param);
+  utils::vassert(sizeof(T) == _shaderResources.pushConstants[param].size,"PushConstant [ {} ] size mismatch",param);
+  cmd->pushConstants(_layout,_shaderResources.pushConstants[param].stages,_shaderResources.pushConstants[param].offset,_shaderResources.pushConstants[param].size,&data);
+}
 
 }

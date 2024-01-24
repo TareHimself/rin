@@ -26,7 +26,7 @@ struct MeshSurface {
   uint32_t startIndex;
   uint32_t count;
 };
-
+VENGINE_SIMPLE_ARRAY_SERIALIZER(Buffer,MeshSurface);
 
 class Mesh : public Object<Drawer>, public assets::Asset, public GpuNative {
 

@@ -20,5 +20,9 @@ public:
   void Update(float deltaTime) override;
 
   void UpdateRotation();
+
+  VENGINE_IMPLEMENT_SCENE_OBJECT_ID(DefaultCamera)
 };
+
+
 }

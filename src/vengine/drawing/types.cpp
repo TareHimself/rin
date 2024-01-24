@@ -2,45 +2,81 @@
 
 
 namespace vengine::drawing {
-vk::CommandBuffer * FrameData::GetCmd() {
+vk::CommandBuffer * RawFrameData::GetCmd() {
   return &_cmdBuffer;
 }
 
-vk::CommandPool * FrameData::GetCmdPool() {
+vk::CommandPool * RawFrameData::GetCmdPool() {
   return &_cmdPool;
 }
 
-DescriptorAllocatorGrowable * FrameData::GetDescriptorAllocator() {
+DescriptorAllocatorGrowable * RawFrameData::GetDescriptorAllocator() {
   return &_frameDescriptors;
 }
 
-vk::Semaphore FrameData::GetSwapchainSemaphore() const {
+vk::Semaphore RawFrameData::GetSwapchainSemaphore() const {
   return _swapchainSemaphore;
 }
 
-vk::Semaphore FrameData::GetRenderSemaphore() const {
+vk::Semaphore RawFrameData::GetRenderSemaphore() const {
   return _renderSemaphore;
 }
 
-vk::Fence FrameData::GetRenderFence() const {
+vk::Fence RawFrameData::GetRenderFence() const {
   return _renderFence;
 }
 
-void FrameData::SetSemaphores(const vk::Semaphore &swapchain, const vk::Semaphore &render) {
+void RawFrameData::SetSemaphores(const vk::Semaphore &swapchain, const vk::Semaphore &render) {
   _swapchainSemaphore = swapchain;
   _renderSemaphore = render;
 }
 
-void FrameData::SetRenderFence(const vk::Fence renderFence) {
+void RawFrameData::SetRenderFence(const vk::Fence renderFence) {
   _renderFence = renderFence;
 }
 
-void FrameData::SetCommandPool(const vk::CommandPool pool) {
+void RawFrameData::SetCommandPool(const vk::CommandPool pool) {
   _cmdPool = pool;
 }
 
-void FrameData::SetCommandBuffer(const vk::CommandBuffer buffer) {
+void RawFrameData::SetCommandBuffer(const vk::CommandBuffer buffer) {
   _cmdBuffer = buffer;
+}
+
+
+
+BasicShaderResourceInfo::BasicShaderResourceInfo() = default;
+
+BasicShaderResourceInfo::BasicShaderResourceInfo(const uint32_t _set,
+                                                 const uint32_t _binding) {
+  set = _set;
+  binding = _binding;
+}
+
+PushConstantInfo::PushConstantInfo() = default;
+
+PushConstantInfo::PushConstantInfo(const uint32_t _size, const vk::ShaderStageFlags _stages) {
+  size = _size;
+  stages = _stages;
+  offset = 0;
+}
+
+
+SimpleFrameData::SimpleFrameData(RawFrameData *frame) {
+  _frame = frame;
+}
+
+vk::CommandBuffer * SimpleFrameData::GetCmd() const {
+  return _frame->GetCmd();
+}
+
+
+CleanupQueue * SimpleFrameData::GetCleaner() const {
+  return &_frame->cleaner;
+}
+
+RawFrameData * SimpleFrameData::GetRaw() const {
+  return _frame;
 }
 
 }

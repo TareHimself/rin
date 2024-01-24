@@ -13,8 +13,8 @@ namespace vengine::drawing {
 
 #ifndef DRAWING_SERIALIZATION_OPS
 #define DRAWING_SERIALIZATION_OPS
-SIMPLE_BUFFER_SERIALIZER(Buffer,vk::Format);
-SIMPLE_BUFFER_SERIALIZER(Buffer,vk::Filter);
+VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,vk::Format);
+VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,vk::Filter);
 #endif
 
 
@@ -22,9 +22,10 @@ enum class EMaterialPass : uint8_t {
   Opaque,
   Translucent,
   Transparent,
+  UI,
   MATERIAL_PASS_MAX
 };
-struct FrameData {
+struct RawFrameData {
 private:
   vk::Semaphore _swapchainSemaphore,_renderSemaphore;
   vk::Fence _renderFence;
@@ -45,6 +46,8 @@ public:
   void SetCommandBuffer(vk::CommandBuffer buffer);
   
 };
+
+
 
 struct VmaAllocated {
   Allocation alloc;
@@ -74,15 +77,24 @@ struct Vertex {
   // static VertexInputDescription getVertexDescription();
 };
 
+VENGINE_SIMPLE_ARRAY_SERIALIZER(Buffer,Vertex);
+
 struct GpuMeshBuffers {
   AllocatedBuffer indexBuffer;
   AllocatedBuffer vertexBuffer;
   vk::DeviceAddress vertexBufferAddress;
 };
 
-struct SceneDrawPushConstants {
+struct MeshVertexPushConstant {
   glm::mat4 transformMatrix;
   vk::DeviceAddress vertexBuffer;
+};
+
+struct UiGlobalBuffer {
+  glm::vec4 viewport{0};
+};
+struct WidgetPushConstants {
+  glm::vec4 extent{0};
 };
 
 struct ComputePushConstants {
@@ -102,11 +114,27 @@ struct ComputeEffect {
   ComputePushConstants data;
 };
 
-struct ShaderResources {
-  std::unordered_map<std::string,std::pair<uint32_t,uint32_t>> images;
-  std::unordered_map<std::string,std::pair<uint32_t,uint32_t>> pushConstants;
-  std::unordered_map<std::string,std::pair<uint32_t,uint32_t>> uniformBuffers;
+struct BasicShaderResourceInfo {
+  uint32_t set = 0;
+  uint32_t binding = 0;
+  BasicShaderResourceInfo();
+  BasicShaderResourceInfo(uint32_t _set,uint32_t _binding);
+};
+struct PushConstantInfo {
+
+  uint32_t offset = 0;
+  uint32_t size = 0;
+  vk::ShaderStageFlags stages{};
+
+  PushConstantInfo();
+  PushConstantInfo(uint32_t _size,vk::ShaderStageFlags _stages);
   
+};
+struct ShaderResources {
+  
+  std::unordered_map<std::string,BasicShaderResourceInfo> images;
+  std::unordered_map<std::string,PushConstantInfo> pushConstants;
+  std::unordered_map<std::string,BasicShaderResourceInfo> uniformBuffers;
 };
 
 enum EMaterialResourceType {
@@ -115,10 +143,31 @@ enum EMaterialResourceType {
   UniformBuffer
 };
 
+enum EMaterialSetType {
+  Global = 0,
+  Static = 1,
+  Dynamic = 2
+};
+
 struct MaterialResourceInfo {
   EMaterialResourceType type;
   vk::ShaderStageFlagBits stages;
   uint32_t binding;
+};
+
+struct SimpleFrameData {
+private:
+  RawFrameData * _frame = nullptr;
+
+public:
+  
+  SimpleFrameData(RawFrameData * frame);
+
+  vk::CommandBuffer * GetCmd() const;
+
+  CleanupQueue * GetCleaner() const;
+
+  RawFrameData * GetRaw() const;
 };
 
 }

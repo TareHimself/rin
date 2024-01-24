@@ -8,5 +8,9 @@ class DirectionalLight : public SceneObject {
 public:
   SceneComponent *CreateRootComponent() override;
   void AttachComponentsToRoot(SceneComponent *root) override;
+
+  VENGINE_IMPLEMENT_SCENE_OBJECT_ID(DirectionalLight)
 };
+
+
 }

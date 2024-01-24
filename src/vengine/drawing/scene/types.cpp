@@ -1,7 +1,7 @@
 ﻿#include "types.hpp"
 
 namespace vengine::drawing {
-SceneFrameData::SceneFrameData(FrameData *frame) {
+SceneFrameData::SceneFrameData(RawFrameData *frame) {
   _frame  = frame;
 }
 
@@ -19,5 +19,9 @@ void SceneFrameData::SetSceneDescriptor(const vk::DescriptorSet &descriptor) {
 
 CleanupQueue * SceneFrameData::GetCleaner() const {
   return &_frame->cleaner;
+}
+
+RawFrameData * SceneFrameData::GetDrawerFrameData() const {
+  return _frame;
 }
 }

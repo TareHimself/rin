@@ -3,21 +3,35 @@
 #include "types.hpp"
 
 namespace vengine::drawing {
+class MaterialInstance;
 class Drawer;
 class MaterialBuilder {
   EMaterialPass _pass;
   PipelineBuilder _pipelineBuilder;
   DescriptorLayoutBuilder _layoutBuilder;
-  std::unordered_map<std::string,MaterialResourceInfo> _shaderResources;
-  
-public:
-
+  Array<Shader *> _shaders;
+  std::unordered_map<std::string,uint32_t> _pushConstants;
   friend class MaterialInstance;
   
-  MaterialBuilder& AddShader(const Shader * shader,vk::ShaderStageFlagBits bits);
-  MaterialBuilder& SetPass(EMaterialPass pass);
-  MaterialInstance * Create(Drawer * drawer);
+protected:
+  static Array<vk::PushConstantRange> ComputePushConstantRanges(ShaderResources& resources);
+  ShaderResources ComputeResources();
+public:
+  
+  virtual MaterialBuilder& AddShader(Shader * shader);
+  virtual MaterialBuilder& SetPass(EMaterialPass pass);
+  template<typename T>
+  MaterialBuilder& ConfigurePushConstant(String name);
+  
+  virtual MaterialInstance * Create(Drawer * drawer);
+
+  ~MaterialBuilder();
 };
+
+template <typename T> MaterialBuilder & MaterialBuilder::ConfigurePushConstant(String name) {
+  _pushConstants.emplace(name,static_cast<uint32_t>(sizeof(T)));
+  return *this;
+}
 
 
 }

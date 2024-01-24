@@ -1,10 +1,22 @@
 ﻿#include "descriptors.hpp"
 
+#include "vengine/utils.hpp"
+
+#include <ranges>
+
 namespace vengine::drawing {
 DescriptorLayoutBuilder & DescriptorLayoutBuilder::AddBinding(const uint32_t binding,
-                                                              const vk::DescriptorType type) {
-  auto newBinding = vk::DescriptorSetLayoutBinding(binding,type,1);
-  bindings.Push(newBinding);
+                                                              const vk::DescriptorType type,const vk::ShaderStageFlags stages) {
+  if(bindings.contains(binding)) {
+    utils::vassert(bindings[binding].descriptorType == type,"HOW HAVE YOU DONE THIS!!!");
+    auto existing = bindings[binding];
+    existing.setStageFlags(existing.stageFlags | stages);
+    bindings.emplace(binding,existing);
+    return *this;
+  }
+  
+  auto newBinding = vk::DescriptorSetLayoutBinding(binding,type,1,stages);
+  bindings.emplace(binding,newBinding);
   return *this;
 }
 
@@ -13,13 +25,14 @@ DescriptorLayoutBuilder & DescriptorLayoutBuilder::Clear() {
   return *this;
 }
 
-vk::DescriptorSetLayout DescriptorLayoutBuilder::Build(const vk::Device device,
-                                                       const vk::ShaderStageFlags shaderStages) {
-  for(auto& binding : bindings) {
-    binding.setStageFlags(shaderStages);
+vk::DescriptorSetLayout DescriptorLayoutBuilder::Build(const vk::Device device) {
+  std::vector<vk::DescriptorSetLayoutBinding> bindingsArr;
+  
+  for(auto val : bindings | std::views::values) {
+    bindingsArr.push_back(val);
   }
-
-  const auto info = vk::DescriptorSetLayoutCreateInfo({},bindings);
+  
+  const auto info = vk::DescriptorSetLayoutCreateInfo({},bindingsArr);
 
   return device.createDescriptorSetLayout(info);
 }

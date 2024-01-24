@@ -8,6 +8,6 @@ class SceneDrawer;
 namespace vengine::drawing {
 class SceneDrawable {
 public:
-  virtual void Draw(SceneDrawer * drawer,SceneFrameData * frameData) = 0;
+  virtual void Draw(SceneDrawer * drawer, SimpleFrameData *frameData) = 0;
 };
 }

@@ -17,8 +17,7 @@ Engine * Scene::GetEngine() const {
 
 void Scene::Init(Engine *outer) {
   Object::Init(outer);
-  _inputManager = CreateInputManager();
-  _inputManager->Init(GetEngine());
+  _inputConsumer = CreateInputManager();
   _physics = CreatePhysics();
   _physics->Init(this);
   _drawer = CreateDrawer();
@@ -33,7 +32,6 @@ void Scene::Init(Engine *outer) {
     
     _objectsPendingInit.clear();
   }
-  
 }
 
 void Scene::HandleDestroy() {
@@ -50,8 +48,59 @@ void Scene::HandleDestroy() {
   _physics->Destroy();
   _physics = nullptr;
 
-  _inputManager->Destroy();
-  _inputManager = nullptr;
+  _inputConsumer->Destroy();
+  _inputConsumer = nullptr;
+}
+
+void Scene::ReadFrom(Buffer &store) {
+  uint64_t numObjects;
+  store >> numObjects;
+
+  for(auto i = 0; i < numObjects; i++) {
+    String factoryId;
+    uint64_t dataSize;
+    store >> factoryId;
+    store >> dataSize;
+    log::engine->warn("Re-Creation of object not yet implemented",factoryId);
+    store.Skip(dataSize);
+    // if(HasObjectInFactory(factoryId)) {
+    //   const auto createdObject = CreateObjectFromFactory<SceneObject>(factoryId);
+    //   std::vector<char> objectData;
+    //   objectData.resize(dataSize);
+    //   store.Read(objectData.data(),dataSize);
+    //   auto dataBuffer = MemoryBuffer(objectData);
+    //   createdObject->ReadFrom(dataBuffer);
+    //   InitSceneObject(createdObject);
+    // }
+    // else {
+    //   
+    // }
+  }
+}
+
+void Scene::WriteTo(Buffer &store) {
+  uint64_t numObjects = 0;
+  MemoryBuffer objectsData;
+  for(const auto sceneObject : _sceneObjects) {
+    if(!ShouldSerializeObject(sceneObject)) {
+      continue;
+    }
+
+    // Serialize Object [id,size,data]
+    objectsData << sceneObject->GetSerializeId();
+    MemoryBuffer objectData;
+    sceneObject->WriteTo(objectData);
+    objectsData << objectData.size();
+    objectsData << objectData;
+
+    numObjects++;
+  }
+  store << numObjects;
+  store << objectsData;
+}
+
+bool Scene::ShouldSerializeObject(SceneObject *object) {
+  return object != _defaultViewTarget;
 }
 
 Array<SceneObject *> Scene::GetSceneObjects() const {
@@ -66,8 +115,8 @@ physics::ScenePhysics * Scene::GetPhysics() const {
   return _physics;
 }
 
-input::SceneInputManager * Scene::GetInput() const {
-  return _inputManager;
+input::SceneInputConsumer *Scene::GetInput() const {
+  return _inputConsumer;
 }
 
 void Scene::Update(float deltaTime) {
@@ -87,8 +136,8 @@ drawing::SceneDrawer * Scene::CreateDrawer() {
   return newObject<drawing::SceneDrawer>();
 }
 
-input::SceneInputManager * Scene::CreateInputManager() {
-  return newObject<input::SceneInputManager>();
+input::SceneInputConsumer *Scene::CreateInputManager() {
+  return GetEngine()->GetInputManager()->Consume<input::SceneInputConsumer>();
 }
 
 SceneObject * Scene::CreateDefaultViewTarget() {

@@ -1,4 +1,3 @@
-
 #include "vengine/assets/AssetManager.hpp"
 #include "vengine/drawing/Drawer.hpp"
 #include "vengine/drawing/MaterialInstance.hpp"
@@ -6,35 +5,23 @@
 #include "vengine/drawing/Mesh.hpp"
 #include "vengine/drawing/Texture.hpp"
 #include "vengine/math/constants.hpp"
+#include "vengine/scene/SceneObject.hpp"
 #include "vengine/scene/components/ScriptComponent.hpp"
 #include "vengine/scene/components/StaticMeshComponent.hpp"
-#include "vengine/scripting/Script.hpp"
-
+#include "vengine/widget/WidgetManager.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <ostream>
 #include <vengine/Engine.hpp>
 #include <vengine/scene/Scene.hpp>
 #include <vengine/physics/rp3/RP3DScenePhysics.hpp>
-#include <vengine/math/Vector.hpp>
+#include <vengine/widget/Widget.hpp>
 using namespace vengine;
 
 
 class TestMesh : public drawing::Mesh {
 public:
   TestMesh();
-};
-class TestGameObject : public scene::SceneObject {
-
-  drawing::Mesh * mesh = newObject<TestMesh>();
-
-  scene::StaticMeshComponent * meshComponent = AddComponent<scene::StaticMeshComponent>();
-  scene::ScriptComponent * scriptComp = AddComponent<scene::ScriptComponent>(R"(D:\Github\vengine\scripts\test.as)");
-  void Init(scene::Scene *outer) override;
-
-  void AttachComponentsToRoot(scene::SceneComponent *root) override;
-
-  void Update(float deltaTime) override;
 };
 
 TestMesh::TestMesh() {
@@ -60,22 +47,44 @@ TestMesh::TestMesh() {
   SetSurfaces({{0,6}});
 }
 
+class TestGameObject : public scene::SceneObject {
+
+  drawing::Mesh * _mesh = newObject<TestMesh>();
+
+  scene::StaticMeshComponent * _meshComponent = AddComponent<scene::StaticMeshComponent>();
+  scene::ScriptComponent * _scriptComp = AddComponent<scene::ScriptComponent>(R"(D:\Github\vengine\scripts\test.as)");
+  void Init(scene::Scene *outer) override;
+
+  void AttachComponentsToRoot(scene::SceneComponent *root) override;
+
+  void Update(float deltaTime) override;
+
+  VENGINE_IMPLEMENT_SCENE_OBJECT_ID(TestGameObject)
+};
+
+
 void TestGameObject::Init(scene::Scene *outer) {
   SceneObject::Init(outer);
-  mesh->Init(GetEngine()->GetDrawer());
+  
+  _mesh->Init(GetEngine()->GetDrawer());
   const auto assetImporter = GetOuter()->GetEngine()->GetAssetManager();
   const auto saveName = R"(D:\test.va)";
   const auto importedMesh = assetImporter->ImportMesh(R"(D:\test.glb)");
   if(importedMesh != nullptr) {
     assetImporter->SaveAsset(saveName,importedMesh);
-    mesh->Destroy();
-    mesh = importedMesh;
+    _mesh->Destroy();
+    _mesh = importedMesh;
   }
   const auto color = assetImporter->ImportTexture(R"(D:\MetalGoldPaint002\MetalGoldPaint002_COL_2K_METALNESS.png)");
   const auto normal = assetImporter->ImportTexture(R"(D:\MetalGoldPaint002\MetalGoldPaint002_NRM_2K_METALNESS.png)");
   const auto roughness = assetImporter->ImportTexture(R"(D:\MetalGoldPaint002\MetalGoldPaint002_ROUGHNESS_2K_METALNESS.png)");
+  AddCleanup([&] {
+    color->Destroy();
+    normal->Destroy();
+    roughness->Destroy();
+  });
+  
   if(color) {
-    log::assets->info("Loaded Texture");
     const auto defaultMat = GetEngine()->GetDrawer()->GetDefaultCheckeredMaterial();
     defaultMat->SetTexture("ColorT",color);
     defaultMat->SetTexture("NormalT",normal);
@@ -94,21 +103,21 @@ void TestGameObject::Init(scene::Scene *outer) {
   //   }
   // }
   
-  meshComponent->SetMesh(mesh);
+  _meshComponent->SetMesh(_mesh);
 
   SetWorldLocation({0,0,0});
   AddCleanup([=] {
-    meshComponent->SetMesh(nullptr);
-    mesh->Destroy();
-    mesh = nullptr;
+    _meshComponent->SetMesh(nullptr);
+    _mesh->Destroy();
+    _mesh = nullptr;
   });
 
-  
+  GetEngine()->GetWidgetManager()->AddWidget<widget::Widget>();
 }
 
 void TestGameObject::AttachComponentsToRoot(scene::SceneComponent *root) {
   SceneObject::AttachComponentsToRoot(root);
-  meshComponent->AttachTo(root);
+  _meshComponent->AttachTo(root);
 }
 
 void TestGameObject::Update(float deltaTime) {
@@ -121,30 +130,14 @@ int main(int argc, char** argv){
     
 
     try {
-      // auto filePath = R"(D:\testData.v)";
-      // if(false) {
-      //   auto test = OutFileBuffer(filePath);
-      //   test << 0;
-      //   test << 1;
-      //   test << 2;
-      //   test << 3;
-      //   test.close();
-      // } else {
-      //   
-      //   auto test = InFileBuffer(filePath);
-      //   int data = -1;
-      //   test >> data;
-      //   std::cout << data << std::endl;
-      //   test >> data;
-      //   test >> data;
-      //   test >> data;
-      //   test.close();
-      // }
+
+      
       io::setRawShadersPath(R"(D:\Github\vengine\shaders)");
       auto engine = vengine::newObject<Engine>();
       engine->SetAppName("Test Application");
       auto scene = engine->CreateScene<scene::Scene>();
       auto triangleObj = scene->CreateSceneObject<TestGameObject>();
+      
       engine->Run();
       triangleObj = nullptr;
       scene = nullptr;

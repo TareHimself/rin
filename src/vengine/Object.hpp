@@ -1,9 +1,7 @@
 #pragma once
 #include "log.hpp"
 #include "types.hpp"
-#include "containers/EventDispatcher.hpp"
 #include "containers/TEventDispatcher.hpp"
-
 #include <functional>
 #include <iostream>
 
@@ -20,7 +18,7 @@ namespace vengine {
     bool _bHasBeenInitialized = false;
     CleanupQueue _cleaner;
     OuterType * _outer = nullptr;
-    
+    bool _bPendingDestroy = false;
   protected:
     
     void AddCleanup(const std::function<void()> &callback);
@@ -39,10 +37,10 @@ namespace vengine {
     
     virtual void Init(OuterType *outer);
 
-    void Destroy();
+    virtual void Destroy();
     
     virtual void HandleDestroy();
-    
+    bool IsPendingDestroy();
   };
 
   template <class OuterType> void Object<OuterType>::AddCleanup(
@@ -67,8 +65,11 @@ namespace vengine {
   }
 
   template <class OuterType> void Object<OuterType>::Destroy() {
+    _bPendingDestroy = true;
     onDestroyed.Emit();
-    HandleDestroy();
+    if(HasBeenInitialized()) {
+      HandleDestroy();
+    }
     if(bWasAllocated) {
       log::engine->info("Cleaned up allocated object");
       delete this;
@@ -80,7 +81,11 @@ namespace vengine {
     _cleaner.Run();
   }
 
-template <typename T, typename... Args>
+  template <class OuterType> bool Object<OuterType>::IsPendingDestroy() {
+    return  _bPendingDestroy;
+  }
+
+  template <typename T, typename... Args>
 static T *newObject(Args&&... args) {
     static_assert(std::is_base_of_v<Allocatable, T>, "T must be a child of Allocatable");
     auto obj = new T(args...);

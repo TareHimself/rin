@@ -3,15 +3,15 @@
 #include <fstream>
 #include <vector>
 
-#ifndef SIMPLE_BUFFER_SERIALIZER
-#define SIMPLE_BUFFER_SERIALIZER(Buffer, Type) \
-inline Buffer &operator<<(Buffer &out, const Type &src) { \
-out.Write(static_cast<const char *>(static_cast<const void *>(&src)), sizeof(Type)); \
-return out; \
+#ifndef VENGINE_SIMPLE_BUFFER_SERIALIZER
+#define VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer, Type) \
+inline Buffer &operator<<(Buffer &dst, const Type &src) { \
+dst.Write(static_cast<const char *>(static_cast<const void *>(&src)), sizeof(Type)); \
+return dst; \
 } \
-inline Buffer &operator>>(Buffer &in, Type &dst) { \
-in.Write(static_cast<char *>(static_cast<void *>(&dst)), sizeof(Type)); \
-return in; \
+inline Buffer &operator>>(Buffer &src, Type &dst) { \
+src.Read(static_cast<char *>(static_cast<void *>(&dst)), sizeof(Type)); \
+return src; \
 }
 #endif
 
@@ -27,6 +27,8 @@ public:
   virtual Buffer& Write(const char* src,size_t byteSize) = 0;
   
   virtual Buffer& Read(char * dst,size_t byteSize) = 0;
+
+  virtual Buffer& Skip(size_t byteSize);
   
   virtual size_t size() const = 0;
 
@@ -59,20 +61,29 @@ public:
   
 };
 
-#ifndef BUFFER_SERIALIZATION_OPS
-#define BUFFER_SERIALIZATION_OPS
-SIMPLE_BUFFER_SERIALIZER(Buffer,uint8_t);
-SIMPLE_BUFFER_SERIALIZER(Buffer,uint16_t);
-SIMPLE_BUFFER_SERIALIZER(Buffer,uint32_t);
-SIMPLE_BUFFER_SERIALIZER(Buffer,uint64_t);
-SIMPLE_BUFFER_SERIALIZER(Buffer,int);
-SIMPLE_BUFFER_SERIALIZER(Buffer,float);
-SIMPLE_BUFFER_SERIALIZER(Buffer,double);
-#endif
+VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,uint8_t);
+VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,uint16_t);
+VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,uint32_t);
+VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,uint64_t);
+VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,int);
+VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,float);
+VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,double);
+// #ifndef BUFFER_SERIALIZATION_OPS
+// #define BUFFER_SERIALIZATION_OPS
+// VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,uint8_t);
+// VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,uint16_t);
+// VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,uint32_t);
+// VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,uint64_t);
+// VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,int);
+// VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,float);
+// VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,double);
+// #endif
 
 class MemoryBuffer : public Buffer {
   std::vector<char> _data;
 public:
+  MemoryBuffer();
+  MemoryBuffer(const std::vector<char> &data);
   virtual void clear();
   Buffer& Read(char *dst, size_t byteSize) override;
   Buffer& Write(const char *src, size_t byteSize) override;

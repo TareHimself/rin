@@ -23,7 +23,7 @@ void Script::InitScript() {
   
   const auto initFunc = _module->GetFunctionByDecl("void Init()");
   if(initFunc == nullptr) {
-    log::scripting->error("Script missing init function: {}",_scriptPath.string());
+    GetOuter()->GetLogger()->error("Script missing init function: {}",_scriptPath.string());
     return;
   }
 
@@ -33,7 +33,7 @@ void Script::InitScript() {
   const auto result = ctx->Execute();
   if(result != asEXECUTION_FINISHED) {
     if(result == asEXECUTION_EXCEPTION) {
-      log::scripting->error("Script : {}\nException: {}",_scriptPath.string(),ctx->GetExceptionString());
+      GetOuter()->GetLogger()->error("Script : {}\nException: {}",_scriptPath.string(),ctx->GetExceptionString());
     }
   }
   

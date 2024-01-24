@@ -3,16 +3,23 @@
 //#define SDL_MAIN_HANDLED
 #include "Object.hpp"
 #include "utils.hpp"
-
 #include <SDL3/SDL.h>
 #include "containers/Array.hpp"
 #include "containers/TEventDispatcher.hpp"
 #include "math/Vector2.hpp"
-
 #include <vulkan/vulkan.hpp>
-#include <chrono>
 #include <queue>
 #include <SDL3/SDL_video.h>
+
+namespace vengine {
+namespace widget {
+class WidgetManager;
+}
+}
+
+namespace vengine {
+class EngineSubsystem;
+}
 
 namespace vengine {
 namespace scripting {
@@ -48,6 +55,8 @@ private:
   long long _lastTickTime = 0;
   std::string _applicationName;
 
+  Array<EngineSubsystem *> _subsystems;
+  
   drawing::Drawer *_drawer = nullptr;
 
   input::InputManager *_inputManager = nullptr;
@@ -55,6 +64,8 @@ private:
   assets::AssetManager *_assetManager = nullptr;
 
   scripting::ScriptManager *_scriptManager = nullptr;
+
+  widget::WidgetManager *_widgetManager = nullptr;
 
   Array<scene::Scene *> _scenes;
 
@@ -77,6 +88,8 @@ private:
   void InitInputManager();
 
   void InitScriptManager();
+
+  void InitWidgetManager();
 
   void InitDrawer();
 
@@ -127,10 +140,13 @@ public:
 
   scripting::ScriptManager *GetScriptManager() const;
 
+  widget::WidgetManager *GetWidgetManager() const;
+
   virtual drawing::Drawer * CreateDrawer();
   virtual input::InputManager * CreateInputManager();
   virtual assets::AssetManager * CreateAssetManager();
   virtual scripting::ScriptManager * CreateScriptManager();
+  virtual widget::WidgetManager * CreateWidgetManager();
 
   void SetInputMode(EInputMode mode);
 
@@ -148,6 +164,9 @@ public:
   // Events
   TEventDispatcher<EInputMode, EInputMode> onInputModeChanged;
 
+  // Events
+  TEventDispatcher<vk::Extent2D> onWindowSizeChanged;
+
 private:
 
 };
@@ -155,7 +174,8 @@ private:
 template <typename T, typename ... Args> T * Engine::CreateScene(
     Args &&... args) {
   auto rawObj = newObject<T>(args...);
-  InitScene(dynamic_cast<scene::Scene *>(rawObj));
+  const auto castObj = static_cast<scene::Scene *>(rawObj);
+  InitScene(castObj);
   return rawObj;
 }
 }

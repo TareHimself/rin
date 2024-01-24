@@ -18,6 +18,7 @@
 #include <vk_mem_alloc.h>
 #include "scene/SceneDrawer.hpp"
 #include "vengine/utils.hpp"
+#include "vengine/widget/WidgetManager.hpp"
 
 
 // we want to immediately abort when there is an error. In normal engines this
@@ -117,24 +118,24 @@ void Drawer::ResizeSwapchain() {
     _resizePending = true;
     return;
   }
-  log::drawing->info("Resizing Swapchain");
+  GetLogger()->info("Resizing Swapchain");
   _device.waitIdle();
 
   DestroySwapchain();
-  log::drawing->info("Destroyed Old Swapchain");
+  GetLogger()->info("Destroyed Old Swapchain");
 
   GetEngine()->NotifyWindowResize();
 
   CreateSwapchain();
 
   const auto extent = GetEngine()->GetWindowExtent();
-  log::drawing->info("Created New Swapchain");
+  GetLogger()->info("Created New Swapchain");
   onResizeEvent.Emit(extent);
   // for(auto fn : _resizeCallbacks) {
   //   fn();
   // }
   _resizePending = false;
-  log::drawing->info("Swapchain Resize Completed");
+  GetLogger()->info("Swapchain Resize Completed");
 }
 
 void Drawer::DestroySwapchain() {
@@ -252,37 +253,38 @@ void Drawer::InitPipelines() {
   //                 .SetDepthFormat(_depthImage.format)
   //                 .Build(_device);
 
-  ComputeEffect gradient{"gradient"};
-  ComputeEffect gradient2{"gradient 2"};
-
-  CreateComputeShader(
-      Shader::FromSource(_shaderManager, io::getRawShaderPath("pretty.comp")),
-      gradient2);
-  CreateComputeShader(
-      Shader::FromSource(_shaderManager, io::getRawShaderPath("pretty.comp")),
-      gradient);
-
-  gradient.data.time = 0.0f;
-  gradient.data.data1 = {.5, .5, .5, 1};
-  gradient.data.data2 = {.5, .5, .5, 1};
-  gradient.data.data3 = {1, 1, 1, 1};
-  gradient.data.data4 = {0.263, 0.416, 0.557, 1};
-  gradient2.data.time = 0.0f;
-  gradient2.data.data1 = {.5, .5, .5, 1};
-  gradient2.data.data2 = {.5, .5, .5, 1};
-  gradient2.data.data3 = {1, 1, 1, 1};
-  gradient2.data.data4 = {0.263, 0.416, 0.557, 1};
-  backgroundEffects.Push(gradient);
-  backgroundEffects.Push(gradient2);
-
-  AddCleanup([this] {
-    for (const auto &effect : backgroundEffects) {
-      _device.destroyPipeline(effect.pipeline);
-      _device.destroyPipelineLayout(effect.layout);
-    }
-
-    // _device.destroyPipeline(_mainPipeline);
-  });
+  
+  // ComputeEffect gradient{"gradient"};
+  // ComputeEffect gradient2{"gradient 2"};
+  //
+  // CreateComputeShader(
+  //     Shader::FromSource(_shaderManager, io::getRawShaderPath("pretty.comp")),
+  //     gradient2);
+  // CreateComputeShader(
+  //     Shader::FromSource(_shaderManager, io::getRawShaderPath("pretty.comp")),
+  //     gradient);
+  //
+  // gradient.data.time = 0.0f;
+  // gradient.data.data1 = {.5, .5, .5, 1};
+  // gradient.data.data2 = {.5, .5, .5, 1};
+  // gradient.data.data3 = {1, 1, 1, 1};
+  // gradient.data.data4 = {0.263, 0.416, 0.557, 1};
+  // gradient2.data.time = 0.0f;
+  // gradient2.data.data1 = {.5, .5, .5, 1};
+  // gradient2.data.data2 = {.5, .5, .5, 1};
+  // gradient2.data.data3 = {1, 1, 1, 1};
+  // gradient2.data.data4 = {0.263, 0.416, 0.557, 1};
+  // backgroundEffects.Push(gradient);
+  // backgroundEffects.Push(gradient2);
+  //
+  // AddCleanup([this] {
+  //   for (const auto &effect : backgroundEffects) {
+  //     _device.destroyPipeline(effect.pipeline);
+  //     _device.destroyPipelineLayout(effect.layout);
+  //   }
+  //
+  //   // _device.destroyPipeline(_mainPipeline);
+  // });
 }
 
 void Drawer::InitDescriptors() {
@@ -291,10 +293,8 @@ void Drawer::InitDescriptors() {
   {
     const auto device = GetDevice();
     DescriptorLayoutBuilder builder;
-    builder.AddBinding(0, vk::DescriptorType::eUniformBuffer);
-    _sceneDescriptorSetLayout = builder.Build(device,
-                                              vk::ShaderStageFlagBits::eVertex
-                                              | vk::ShaderStageFlagBits::eFragment);
+    builder.AddBinding(0, vk::DescriptorType::eUniformBuffer,vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment);
+    _sceneDescriptorSetLayout = builder.Build(device);
 
     AddCleanup([=] {
       device.destroyDescriptorSetLayout(_sceneDescriptorSetLayout);
@@ -312,9 +312,8 @@ void Drawer::InitDescriptors() {
 
   {
     DescriptorLayoutBuilder builder;
-    builder.AddBinding(0, vk::DescriptorType::eStorageImage);
-    _drawImageDescriptorLayout = builder.Build(_device,
-                                               vk::ShaderStageFlagBits::eCompute);
+    builder.AddBinding(0, vk::DescriptorType::eStorageImage,vk::ShaderStageFlagBits::eCompute);
+    _drawImageDescriptorLayout = builder.Build(_device);
 
     AddCleanup([=] {
       _device.destroyDescriptorSetLayout(_drawImageDescriptorLayout);
@@ -483,27 +482,7 @@ void Drawer::InitDefaultMaterials() {
   // materialResources.dataBuffer = nullptr;
   // materialResources.dataBufferOffset = 0;
 
-  MaterialBuilder builder;
-  _defaultCheckeredMaterial = builder
-  .SetPass(EMaterialPass::Opaque)
-  .AddShader(Shader::FromSource(GetShaderManager(), io::getRawShaderPath("mesh.frag")),vk::ShaderStageFlagBits::eFragment)
-  .AddShader(Shader::FromSource(GetShaderManager(), io::getRawShaderPath("mesh.vert")),vk::ShaderStageFlagBits::eVertex)
-  .Create(this);
-
   
-  const auto resources = _defaultCheckeredMaterial->GetResources();
-  for(auto resource : resources) {
-    if(resource.second.type == EMaterialResourceType::Image) {
-      _defaultCheckeredMaterial->SetTexture(resource.first,GetDefaultBlackTexture());
-    }
-  }
-
-  _defaultCheckeredMaterial->SetTexture("ColorT",GetDefaultErrorCheckerboardTexture());
-   //= MaterialInstance::create(this,EMaterialPass::Opaque,_globalAllocator,materialResources);
-  AddCleanup([=] {
-    _defaultCheckeredMaterial->Destroy();
-    _defaultCheckeredMaterial = nullptr;
-  });
 }
 
 void Drawer::TransitionImage(const vk::CommandBuffer cmd, const vk::Image image,
@@ -537,11 +516,11 @@ vk::RenderingInfo Drawer::MakeRenderingInfo(vk::Extent2D drawExtent) {
   return vk::RenderingInfo({}, {{0, 0}, drawExtent}, 1, {});
 }
 
-FrameData *Drawer::GetCurrentFrame() {
+RawFrameData *Drawer::GetCurrentFrame() {
   return &_frames[_frameCount % FRAME_OVERLAP];
 }
 
-void Drawer::DrawBackground(FrameData *frame) const {
+void Drawer::DrawBackground(RawFrameData *frame) const {
   const auto cmd = frame->GetCmd();
 
   //float flash = abs(sin(_frameCount / 120.f));
@@ -570,7 +549,7 @@ void Drawer::DrawBackground(FrameData *frame) const {
   //               1);
 }
 
-void Drawer::DrawScenes(FrameData *frame) {
+void Drawer::DrawScenes(RawFrameData *frame) {
   const vk::Extent2D drawExtent = GetDrawImageExtent();
 
   const auto colorAttachment = MakeRenderingAttachment(
@@ -594,6 +573,28 @@ void Drawer::DrawScenes(FrameData *frame) {
   for (const auto scene : GetEngine()->GetScenes()) {
     scene->GetDrawer()->Draw(this, frame);
   }
+
+  cmd->endRendering();
+}
+
+void Drawer::DrawUI(RawFrameData *frame) {
+  const vk::Extent2D drawExtent = GetDrawImageExtent();
+
+  const auto colorAttachment =
+      MakeRenderingAttachment(_drawImage.view, vk::ImageLayout::eGeneral);
+
+
+  auto renderingInfo = MakeRenderingInfo(drawExtent);
+  renderingInfo.setColorAttachments(colorAttachment);
+
+  const auto cmd = frame->GetCmd();
+
+  cmd->beginRendering(renderingInfo);
+
+  // Actual Rendering
+  const auto widgetManager = GetEngine()->GetWidgetManager();
+
+  widgetManager->Draw(this,frame);
 
   cmd->endRendering();
 }
@@ -722,7 +723,11 @@ vk::Instance Drawer::GetVulkanInstance() const {
 }
 
 void Drawer::Init(Engine *outer) {
-  Object<Engine>::Init(outer);
+  EngineSubsystem::Init(outer);
+  onResizeEvent.On([&](vk::Extent2D size) {
+    outer->onWindowSizeChanged.Emit(size);
+  });
+  
   vkb::InstanceBuilder builder;
 
   auto instanceResult =
@@ -875,6 +880,10 @@ vk::RenderingAttachmentInfo Drawer::MakeRenderingAttachment(
   }
 
   return attachment;
+}
+
+String Drawer::GetName() const {
+  return "drawing";
 }
 
 AllocatedImage Drawer::CreateImage(const vk::Extent3D size, const vk::Format format,
@@ -1111,6 +1120,8 @@ void Drawer::Draw() {
                   vk::ImageLayout::eDepthAttachmentOptimal);
 
   DrawScenes(frame);
+
+  DrawUI(frame);
 
   // Transition images to correct transfer layouts
   TransitionImage(*cmd, _drawImage.image,

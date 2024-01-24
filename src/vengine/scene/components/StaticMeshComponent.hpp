@@ -9,6 +9,10 @@ public:
   drawing::Mesh * GetMesh() const;
   void SetMesh(drawing::Mesh * newMesh);
 
-  void Draw(drawing::SceneDrawer *renderer, drawing::SceneFrameData *frameData) override;
+  void Draw(drawing::SceneDrawer *renderer, drawing::SimpleFrameData *frameData) override;
+
+  VENGINE_IMPLEMENT_COMPONENT_ID(StaticMeshComponent)
 };
+
+
 }

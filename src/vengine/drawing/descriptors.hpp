@@ -5,11 +5,11 @@
 
 namespace vengine::drawing {
 struct DescriptorLayoutBuilder {
-  Array<vk::DescriptorSetLayoutBinding> bindings;
+  std::unordered_map<uint32_t,vk::DescriptorSetLayoutBinding> bindings;
 
-  DescriptorLayoutBuilder& AddBinding(uint32_t binding,vk::DescriptorType type);
+  DescriptorLayoutBuilder& AddBinding(uint32_t binding,vk::DescriptorType type,vk::ShaderStageFlags stages);
   DescriptorLayoutBuilder& Clear();
-  vk::DescriptorSetLayout Build(vk::Device device, vk::ShaderStageFlags shaderStages);
+  vk::DescriptorSetLayout Build(vk::Device device);
 };
 
 struct DescriptorAllocator {

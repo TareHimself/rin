@@ -2,27 +2,23 @@
 #include "SceneDrawer.hpp"
 #include "vengine/Engine.hpp"
 #include "vengine/drawing/Drawer.hpp"
+#include "vengine/drawing/MaterialBuilder.hpp"
+#include "vengine/io/io.hpp"
 #include "vengine/scene/Scene.hpp"
+#include "vengine/scene/SceneObject.hpp"
 #include "vengine/scene/components/CameraComponent.hpp"
 
 #include <glm/gtx/transform.hpp>
 
 namespace vengine::drawing {
-Drawer *SceneDrawer::GetEngineRenderer() {
+Drawer *SceneDrawer::GetDrawer() {
   return GetOuter()->GetEngine()->GetDrawer();
 }
 
 void SceneDrawer::Init(scene::Scene * outer) {
   Object<scene::Scene>::Init(outer);
-  _gpuSceneDataBuffer = GetEngineRenderer()->GetAllocator()->CreateUniformCpuGpuBuffer(sizeof(SceneGpuData),false);
-}
-
-void SceneDrawer::Draw(Drawer *drawer, FrameData *frameData) {
-  auto drawData = SceneFrameData(frameData);
-  const auto cmd = drawData.GetCmd();
-  const auto drawExtent = drawer->GetEngine()->GetWindowExtent();
-  const auto scene = GetOuter();
-
+  _sceneGlobalBuffer = GetDrawer()->GetAllocator()->CreateUniformCpuGpuBuffer(sizeof(SceneGlobalBuffer),false);
+  const auto drawExtent = GetDrawer()->GetEngine()->GetWindowExtent();
   _viewport.x = 0;
   _viewport.y = 0;
   _viewport.width = drawExtent.width;
@@ -30,16 +26,48 @@ void SceneDrawer::Draw(Drawer *drawer, FrameData *frameData) {
   _viewport.minDepth = 0.0f;
   _viewport.maxDepth = 1.0f;
 
+  MaterialBuilder builder;
+  _defaultCheckeredMaterial = builder
+  .SetPass(EMaterialPass::Opaque)
+  .ConfigurePushConstant<MeshVertexPushConstant>("pVertex")
+  .AddShader(Shader::FromSource(GetDrawer()->GetShaderManager(), io::getRawShaderPath("3d/mesh/mesh.frag")))
+  .AddShader(Shader::FromSource(GetDrawer()->GetShaderManager(), io::getRawShaderPath("3d/mesh/mesh.vert")))
+  .Create(GetDrawer());
+
+  
+  const auto resources = _defaultCheckeredMaterial->GetResources();
+  
+  for(const auto &key : resources.images | std::views::keys) {
+    _defaultCheckeredMaterial->SetTexture(key,GetDrawer()->GetDefaultBlackTexture());
+  }
+
+  _defaultCheckeredMaterial->SetTexture("ColorT",GetDrawer()->GetDefaultErrorCheckerboardTexture());
+
+  _defaultCheckeredMaterial->SetBuffer<SceneGlobalBuffer>("SceneGlobalBuffer",_sceneGlobalBuffer.value());
+  //= MaterialInstance::create(this,EMaterialPass::Opaque,_globalAllocator,materialResources);
+  AddCleanup([=] {
+    _defaultCheckeredMaterial->Destroy();
+    _defaultCheckeredMaterial = nullptr;
+  });
+}
+
+void SceneDrawer::Draw(Drawer *drawer, RawFrameData *frameData) {
+  const auto cmd = frameData->GetCmd();
+  
+  const auto scene = GetOuter();
+
+  
+
   cmd->setViewport(0, {_viewport});
 
-  vk::Rect2D scissor{{0, 0}, drawExtent};
+  vk::Rect2D scissor{{0, 0}, {static_cast<uint32_t>(_viewport.width),static_cast<uint32_t>(_viewport.height)}};
 
   cmd->setScissor(0, {scissor});
 
   const auto cameraComponent = scene->GetViewTarget()->GetComponentByClass<scene::CameraComponent>();
 
   if(cameraComponent == nullptr) {
-    log::drawing->error("Failed to draw scene as no camera exists");
+    GetDrawer()->GetLogger()->error("Failed to draw scene as no camera exists");
     return;
   }
   
@@ -67,20 +95,13 @@ void SceneDrawer::Draw(Drawer *drawer, FrameData *frameData) {
   // });
   
   // Write the buffer
-  const auto mappedData = _gpuSceneDataBuffer.value().alloc.GetMappedData();
-  const auto sceneUniformData = static_cast<SceneGpuData *>(mappedData);
+  const auto mappedData = _sceneGlobalBuffer.value().alloc.GetMappedData();
+  const auto sceneUniformData = static_cast<SceneGlobalBuffer *>(mappedData);
   *sceneUniformData = _sceneData;
 
   //create a descriptor set that binds that buffer and update it
-  const vk::DescriptorSet sceneDescriptor = frameData->GetDescriptorAllocator()
-      ->Allocate(drawer->GetSceneDescriptorLayout());
-  
-  DescriptorWriter writer;
-  
-  writer.WriteBuffer(0, _gpuSceneDataBuffer.value().buffer, sizeof(SceneGpuData), 0,                     vk::DescriptorType::eUniformBuffer);
-  writer.UpdateSet(drawer->GetDevice(), sceneDescriptor);
-  
-  drawData.SetSceneDescriptor(sceneDescriptor);
+
+  drawing::SimpleFrameData drawData(frameData);
   
   for (const auto drawable : GetOuter()->GetSceneObjects()) {
     drawable->Draw(this, &drawData);
@@ -89,9 +110,9 @@ void SceneDrawer::Draw(Drawer *drawer, FrameData *frameData) {
 
 void SceneDrawer::HandleDestroy() {
   Object<scene::Scene>::HandleDestroy();
-  GetEngineRenderer()->GetDevice().waitIdle();
-  if(_gpuSceneDataBuffer.has_value()) {
-    GetEngineRenderer()->GetAllocator()->DestroyBuffer(_gpuSceneDataBuffer.value());
+  GetDrawer()->GetDevice().waitIdle();
+  if(_sceneGlobalBuffer.has_value()) {
+    GetDrawer()->GetAllocator()->DestroyBuffer(_sceneGlobalBuffer.value());
   }
 }
 }

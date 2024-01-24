@@ -7,7 +7,7 @@ namespace vengine::drawing {
 class PipelineBuilder {
 
 protected:
-  Array<vk::PipelineShaderStageCreateInfo> _shaderStages{};
+  
   vk::PipelineVertexInputStateCreateInfo _vertexInputInfo{};
   vk::PipelineInputAssemblyStateCreateInfo _inputAssembly{};
   
@@ -20,7 +20,7 @@ protected:
   vk::PipelineDepthStencilStateCreateInfo _depthStencil{};
   vk::PipelineRenderingCreateInfo _renderInfo{};
   vk::Format _colorAttachmentFormat = vk::Format::eUndefined;
-  
+  Array<Shader *> _shaders;
   uint32_t _numViewports = 1;
   uint32_t _numScissors = 1;
   
@@ -28,11 +28,7 @@ protected:
 public:
   
 
-  PipelineBuilder& AddShaderStage(const Shader * shader,vk::ShaderStageFlagBits bits = {});
-
-  PipelineBuilder& AddVertexShader(const Shader * shader);
-
-  PipelineBuilder& AddFragmentShader(const Shader * shader);
+  PipelineBuilder& AddShaderStage(Shader * shader);
   
   PipelineBuilder& SetNumViewports(uint32_t num);
 
@@ -66,5 +62,7 @@ public:
   PipelineBuilder& SetLayout(vk::PipelineLayout layout);
   
   vk::Pipeline Build(vk::Device device);
+
+  ~PipelineBuilder();
 };
 }

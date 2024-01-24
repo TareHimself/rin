@@ -12,17 +12,18 @@
 
 namespace vengine::drawing {
 
-GlslShaderIncluder::GlslShaderIncluder(const std::filesystem::path &inPath) {
+GlslShaderIncluder::GlslShaderIncluder(ShaderManager * manager,const std::filesystem::path &inPath) {
+  _manager = manager;
   sourceFilePath = inPath;
   if(_bDebug){
-    log::shaders->info("Shader Includer Created");
+    _manager->GetLogger()->info("Shader Includer Created");
   }
 }
 
 glslang::TShader::Includer::IncludeResult * GlslShaderIncluder::includeSystem(const char*filePath, const char *includerName, size_t inclusionDepth) {
   const std::filesystem::path actualPath(filePath);
   if(_bDebug) {
-    log::shaders->info("Including Shader File {:s}",actualPath.string());
+    _manager->GetLogger()->info("Including Shader File {:s}",actualPath.string());
   }
   const auto fileContent = new std::string(io::readFileAsString(actualPath));
   auto result = new IncludeResult(actualPath.string(),fileContent->c_str(),fileContent->size(),fileContent);
@@ -34,7 +35,7 @@ glslang::TShader::Includer::IncludeResult * GlslShaderIncluder::includeLocal(con
   
   const auto actualPath = sourceFilePath.parent_path() / std::filesystem::path(filePath);
   if(_bDebug) {
-    log::shaders->info("Including Shader File {:s}",actualPath.string());
+   _manager->GetLogger()->info("Including Shader File {:s}",actualPath.string());
   }
   const auto fileContent = new std::string(io::readFileAsString(actualPath));
   auto result = new IncludeResult(actualPath.string(),fileContent->c_str(),fileContent->size(),fileContent);
@@ -128,13 +129,13 @@ Shader * ShaderManager::GetLoadedShader(
   return _shaders.at(shaderPath);
 }
 
-Array<unsigned int> ShaderManager::Compile(const std::filesystem::path &shaderPath) const {
+Array<unsigned int> ShaderManager::Compile(const std::filesystem::path &shaderPath){
   if (!std::filesystem::exists(shaderPath)) {
     throw std::runtime_error(
         std::string("Shader file does not exist: ") + shaderPath.string());
   }
 
-  log::shaders->info("Compiling Shader from file: " + shaderPath.string());
+  GetLogger()->info("Compiling Shader from file: " + shaderPath.string());
   
   const auto lang = GetLang(shaderPath);
   
@@ -157,7 +158,7 @@ Array<unsigned int> ShaderManager::Compile(const std::filesystem::path &shaderPa
 
   constexpr auto message = static_cast<EShMessages>(EShMessages::EShMsgVulkanRules | EShMessages::EShMsgSpvRules);
 
-  GlslShaderIncluder includer(shaderPath);
+  GlslShaderIncluder includer(this,shaderPath);
   const auto resources =  GetResources();
   resources->maxDrawBuffers = true;
   resources->maxComputeWorkGroupSizeX = 128;
@@ -202,19 +203,20 @@ Array<unsigned int> ShaderManager::Compile(const std::filesystem::path &shaderPa
 
   delete shader;
 
-  log::shaders->info("Compiled Shader from file: " + shaderPath.string());
+  GetLogger()->info("Compiled Shader from file: " + shaderPath.string());
   return spvResult;
 }
 
 Array<unsigned> ShaderManager::CompileAndSave(
-    const std::filesystem::path &shaderPath) const {
-  const auto compiledPath = io::getCompiledShadersPath() / (shaderPath.filename().string() + ".spv");
-  
+    const std::filesystem::path &shaderPath){
+  const auto compiledDir = shaderPath.parent_path() / "compiled";
+  const auto compiledPath = compiledDir / (shaderPath.filename().string() + ".spv");
+  const auto compiledHashPath = compiledDir / (shaderPath.filename().string() + ".hash");
   
   auto compiledData = Compile(shaderPath);
     
-  if(!std::filesystem::exists(compiledPath.parent_path())) {
-    std::filesystem::create_directory(compiledPath.parent_path());
+  if(!std::filesystem::exists(compiledDir)) {
+    std::filesystem::create_directory(compiledDir);
   }
 
   glslang::OutputSpvBin(compiledData,compiledPath.string().c_str());
@@ -222,28 +224,28 @@ Array<unsigned> ShaderManager::CompileAndSave(
   const auto sourceFile = io::readFileAsString(shaderPath);
   
   const auto sourceFileHash = utils::hash(sourceFile.data(),sourceFile.size() * sizeof(char));
-
-  const auto compiledHashPath = io::getCompiledShadersPath() / (shaderPath.filename().string() + ".hash");
   
   io::writeStringToFile(compiledHashPath,sourceFileHash);
   
   return compiledData;
 }
 
-Array<unsigned int> ShaderManager::LoadOrCompileSpv(const std::filesystem::path &shaderPath) const {
-  log::shaders->info("Loading Shader " + shaderPath.string());
-  const auto compiledPath = io::getCompiledShadersPath() / (shaderPath.filename().string() + ".spv");
+Array<unsigned int> ShaderManager::LoadOrCompileSpv(const std::filesystem::path &shaderPath){
+  GetLogger()->info("Loading Shader " + shaderPath.string());
+  const auto compiledDir = shaderPath.parent_path() / "compiled";
+  const auto compiledPath = compiledDir / (shaderPath.filename().string() + ".spv");
+  const auto compiledHashPath = compiledDir / (shaderPath.filename().string() + ".hash");
 
-  if(const auto compiledHashPath = io::getCompiledShadersPath() / (shaderPath.filename().string() + ".hash"); std::filesystem::exists(compiledPath) && std::filesystem::exists(compiledHashPath)) {
+  if(std::filesystem::exists(compiledDir) && std::filesystem::exists(compiledPath) && std::filesystem::exists(compiledHashPath)) {
     auto shader = io::readFile<unsigned int>(compiledPath);
     const auto oldShaderHash = io::readFileAsString(compiledHashPath);
     const auto sourceFile = io::readFileAsString(shaderPath);
 
     if(const auto newShaderHash = utils::hash(sourceFile.data(),sourceFile.size() * sizeof(char)); oldShaderHash == newShaderHash) {
-      log::shaders->info("Loaded shader from disk: " + shaderPath.string());
+      GetLogger()->info("Loaded shader from disk: " + shaderPath.string());
       return shader;
     } else {
-      log::shaders->info("Detected change in source file: " + shaderPath.string());
+      GetLogger()->info("Detected change in source file: " + shaderPath.string());
       return CompileAndSave(shaderPath);
     }
   }
@@ -259,9 +261,20 @@ Shader * ShaderManager::RegisterShader(Shader *shader) {
   return shader;
 }
 
+Shader * ShaderManager::CreateShader(const std::filesystem::path &path) {
+  return Shader::FromSource(this,path);
+}
+
+void ShaderManager::UnRegisterShader(const Shader *shader) {
+  if(_shaders.contains(shader->GetSourcePath())) {
+    _shaders.erase(_shaders.find(shader->GetSourcePath()));
+  }
+}
+
 void ShaderManager::Init(Drawer *outer) {
   Object::Init(outer);
   glslang::InitializeProcess();
+  InitLogger("shaders");
 }
 
 
@@ -269,7 +282,6 @@ void ShaderManager::HandleDestroy() {
   Object::HandleDestroy();
   for(const auto val : _shaders | std::views::values) {
     val->Destroy();
-    
   }
   _shaders.clear();
   

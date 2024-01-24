@@ -4,6 +4,7 @@
 #include "ShaderManager.hpp"
 #include "descriptors.hpp"
 #include "types.hpp"
+#include "vengine/EngineSubsystem.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/containers/Array.hpp"
 #include "vengine/containers/TEventDispatcher.hpp"
@@ -55,7 +56,7 @@ constexpr unsigned int FRAME_OVERLAP = 2;
 /**
  * \brief Base class for the engine renderer. uses vulkan
  */
-class Drawer : public Object<Engine> {
+class Drawer : public EngineSubsystem {
 
 
   long long _frameCount = 0;
@@ -111,7 +112,7 @@ class Drawer : public Object<Engine> {
   vk::Pipeline _mainPipeline;
   vk::PipelineLayout _mainPipelineLayout;
   Allocator * _Allocator = nullptr;
-  FrameData _frames[FRAME_OVERLAP];
+  RawFrameData _frames[FRAME_OVERLAP];
 
   VkDescriptorSetLayout _sceneDescriptorSetLayout;
 
@@ -143,11 +144,13 @@ protected:
 
   void InitDefaultMaterials();
 
-  FrameData *GetCurrentFrame();
+  RawFrameData *GetCurrentFrame();
 
-  void DrawBackground(FrameData *frame) const;
+  void DrawBackground(RawFrameData *frame) const;
 
-  void DrawScenes(FrameData *frame);
+  void DrawScenes(RawFrameData *frame);
+
+  void DrawUI(RawFrameData *frame);
 
   
 
@@ -170,7 +173,8 @@ protected:
       vk::ImageLayout layout = vk::ImageLayout::eAttachmentOptimal,
       const std::optional<vk::ClearValue> &clear = std::nullopt);
 public:
-  
+
+  String GetName() const override;
   float renderScale = 1.f;
 
   Array<ComputeEffect> backgroundEffects;

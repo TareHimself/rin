@@ -3,7 +3,7 @@
 #include "vengine/drawing/types.hpp"
 
 namespace vengine::drawing {
-struct SceneGpuData {
+struct SceneGlobalBuffer {
   glm::mat4 viewMatrix;
   glm::mat4 projectionMatrix;
   glm::vec4 ambientColor{1.0f,1.0f,1.0f,0.02f};
@@ -13,10 +13,10 @@ struct SceneGpuData {
 
 struct SceneFrameData {
 private:
-  FrameData * _frame = nullptr;
+  RawFrameData * _frame = nullptr;
   vk::DescriptorSet _sceneDescriptor;
 public:
-  SceneFrameData(FrameData * frame);
+  SceneFrameData(RawFrameData * frame);
 
   vk::CommandBuffer * GetCmd() const;
 
@@ -25,6 +25,8 @@ public:
   void SetSceneDescriptor(const vk::DescriptorSet &descriptor);
 
   CleanupQueue * GetCleaner() const;
+
+  RawFrameData * GetDrawerFrameData() const;
 };
 }
 #endif

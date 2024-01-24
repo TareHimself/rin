@@ -8,7 +8,12 @@ class ScriptComponent : public SceneComponent {
   std::filesystem::path _scriptPath;
   scripting::Script * _script = nullptr;
 public:
+  ScriptComponent();
   void Init(SceneObject *outer) override;
   ScriptComponent(const std::filesystem::path &path);
+
+  VENGINE_IMPLEMENT_COMPONENT_ID(ScriptComponent)
 };
+
+
 }
