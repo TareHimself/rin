@@ -1,49 +1,57 @@
-﻿#include "WidgetManager.hpp"
-#include "Widget.hpp"
-#include "vengine/Engine.hpp"
-#include "vengine/drawing/Drawer.hpp"
-#include "vengine/drawing/MaterialBuilder.hpp"
-#include "vengine/io/io.hpp"
+﻿#include <vengine/widget/WidgetManager.hpp>
+#include <vengine/widget/Widget.hpp>
+#include <vengine/Engine.hpp>
+#include <vengine/utils.hpp>
+#include <vengine/assets/AssetManager.hpp>
+#include <vengine/drawing/Drawer.hpp>
+#include <vengine/drawing/MaterialBuilder.hpp>
+#include <vengine/io/io.hpp>
 
 namespace vengine::widget {
-void WidgetManager::Init(Engine *outer) {
+WeakPointer<drawing::AllocatedBuffer> WidgetManager::GetGlobalBuffer() const {
+  return _uiGlobalBuffer;
+}
+
+void WidgetManager::Init(Engine * outer) {
   EngineSubsystem::Init(outer);
-  outer->onWindowSizeChanged.On([=](vk::Extent2D size) {
+
+  const auto engine = GetEngine();
+  
+  engine->onWindowSizeChanged.On([=](vk::Extent2D size) {
     log::engine->info("WIDGETS SYSTEM, WINDOW SIZE CHANGED");
     _windowSize = size;
   });
-  const auto drawer = outer->GetDrawer();
 
-  _uiGlobalBuffer = drawer->GetAllocator()->CreateUniformCpuGpuBuffer(sizeof(drawing::UiGlobalBuffer),false);
+  
+  _windowSize = engine->GetWindowExtent();
+  const auto drawer = engine->GetDrawer().Reserve();
 
-  drawing::MaterialBuilder builder;
-  _defaultWidgetShader = builder
-  .SetPass(drawing::EMaterialPass::UI)
-  .AddShader(drawing::Shader::FromSource(drawer->GetShaderManager(), io::getRawShaderPath("2d/rect/rect.vert")))
-  .AddShader(drawing::Shader::FromSource(drawer->GetShaderManager(), io::getRawShaderPath("2d/rect/rect.frag")))
-  .ConfigurePushConstant<drawing::WidgetPushConstants>("pRect")
-  .Create(drawer);
+  _uiGlobalBuffer = drawer->GetAllocator().Reserve()->CreateUniformCpuGpuBuffer(sizeof(UiGlobalBuffer),false);
 
-  // Set Global variable
-  _defaultWidgetShader->SetBuffer<drawing::UiGlobalBuffer>("UiGlobalBuffer",_uiGlobalBuffer.value());
+  {
+    drawing::MaterialBuilder builder;
+    _defaultWidgetMat = builder
+    .SetType(drawing::EMaterialType::UI)
+    .AddShader(drawing::Shader::FromSource(drawer->GetShaderManager().Reserve().Get(), io::getRawShaderPath("2d/rect.vert")))
+    .AddShader(drawing::Shader::FromSource(drawer->GetShaderManager().Reserve().Get(), io::getRawShaderPath("2d/rect.frag")))
+    .ConfigurePushConstant<WidgetPushConstants>("pRect")
+    .Create(drawer.Get());
+
+    // Set Global variable
+    _defaultWidgetMat->SetBuffer<UiGlobalBuffer>("UiGlobalBuffer",_uiGlobalBuffer);
+  }
 }
 
 void WidgetManager::HandleDestroy() {
   EngineSubsystem::HandleDestroy();
 
-  GetOuter()->GetDrawer()->GetDevice().waitIdle();
+  GetOuter()->GetDrawer().Reserve()->GetDevice().waitIdle();
   
-  if(_uiGlobalBuffer.has_value()) {
-    GetOuter()->GetDrawer()->GetAllocator()->DestroyBuffer(_uiGlobalBuffer.value());
-  }
-  
-  for(const auto widget : _topLevelWidgets) {
-    widget->Destroy();
-  }
+  _uiGlobalBuffer.Clear();
 
   _topLevelWidgets.clear();
 
-  _defaultWidgetShader->Destroy();
+  _defaultWidgetMat.Clear();
 }
 
 String WidgetManager::GetName() const {
@@ -51,34 +59,33 @@ String WidgetManager::GetName() const {
 }
 
 void WidgetManager::Draw(drawing::Drawer *drawer,
-    drawing::RawFrameData *frameData) {
+                         drawing::RawFrameData *frameData) {
   if(!_topLevelWidgets.empty()) {
 
-    drawing::UiGlobalBuffer uiGb;
+    UiGlobalBuffer uiGb;
     uiGb.viewport = glm::vec4{0,0,_windowSize.width,_windowSize.height};
     
-    const auto mappedData = _uiGlobalBuffer.value().alloc.GetMappedData();
-    const auto uiGlobalBuffer = static_cast<drawing::UiGlobalBuffer *>(mappedData);
+    const auto mappedData = _uiGlobalBuffer->GetMappedData();
+    const auto uiGlobalBuffer = static_cast<UiGlobalBuffer *>(mappedData);
     *uiGlobalBuffer = uiGb;
     
     WidgetParentInfo myInfo;
-    myInfo.extent = _windowSize;
+    myInfo.rect = vk::Rect2D{{0,0},_windowSize};
     myInfo.widget = nullptr;
 
     drawing::SimpleFrameData wFrameData(frameData);
-    
-    for(const auto rootWidget : _topLevelWidgets) {
-      rootWidget->Draw(drawer,&wFrameData,myInfo);
+    for(const auto &widget : _topLevelWidgets.Clone()) {
+      widget->Draw(drawer,&wFrameData,myInfo);
     }
   }
 }
 
-void WidgetManager::InitWidget(Widget *widget) {
+void WidgetManager::InitWidget(const Pointer<Widget> &widget) {
   widget->Init(this);
   _topLevelWidgets.Push(widget);
 }
 
-drawing::MaterialInstance * WidgetManager::GetDefaultRectMaterial() const {
-  return _defaultWidgetShader;
+WeakPointer<drawing::MaterialInstance> WidgetManager::GetDefaultMaterial() const {
+  return _defaultWidgetMat;
 }
 }

@@ -3,10 +3,12 @@ set(CMAKE_CXX_STANDARD 20)
 project(Test)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
+file(GLOB S_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+add_executable(Standalone ${S_FILES})
 add_subdirectory(../ vengine)
-add_executable(Standalone main.cpp)
 target_link_libraries(Standalone vengine)
 
-install(FILES $<TARGET_RUNTIME_DLLS:Standalone> TYPE BIN)
+add_custom_command ( TARGET Standalone POST_BUILD
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/../copy_s.py "$<TARGET_RUNTIME_DLLS:vengine>" $<TARGET_FILE_DIR:Standalone>
+)
 # install(TARGETS libwave DESTINATION bin)

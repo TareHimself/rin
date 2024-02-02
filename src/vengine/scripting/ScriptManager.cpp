@@ -1,13 +1,12 @@
-#include "ScriptManager.hpp"
+#include <vengine/scripting/ScriptManager.hpp>
 #define UUID_SYSTEM_GENERATOR
-#include "Script.hpp"
-#include "vengine/utils.hpp"
+#include <vengine/scripting/Script.hpp>
 #include "uuid.h"
 #include "scriptbuilder/scriptbuilder.h"
 #include <scriptstdstring/scriptstdstring.h>
 
 namespace vengine::scripting {
-void ScriptManager::Init(Engine *outer)  {
+void ScriptManager::Init(Engine * outer) {
   EngineSubsystem::Init(outer);
   _scriptEngine = asCreateScriptEngine();
 
@@ -15,7 +14,10 @@ void ScriptManager::Init(Engine *outer)  {
   RegisterStdString(_scriptEngine);
 
   _scriptEngine->RegisterGlobalFunction("void print(const string &in)",asMETHOD(ScriptManager,DebugFromScript),asCALL_THISCALL_ASGLOBAL,this);
-  
+
+  AddCleanup([=] {
+    _scriptEngine->ShutDownAndRelease();
+  });
 }
 
 void ScriptManager::MessageCallback(const asSMessageInfo *msg, void *param) const {
@@ -32,38 +34,37 @@ void ScriptManager::DebugFromScript(const std::string &in) const {
   GetLogger()->info("SCRIPT DEBUG: {}",in);
 }
 
-Script * ScriptManager::ScriptFromFile(const std::filesystem::path &path) {
+Pointer<Script> ScriptManager::ScriptFromFile(const std::filesystem::path &path) {
   CScriptBuilder builder;
   const auto moduleId = to_string(uuids::uuid_system_generator{}());
   if(builder.StartNewModule(_scriptEngine,moduleId.c_str()) < 0) {
     GetLogger()->error("Failed to create script module, there is likely no more memory");
-    return nullptr;
+    return {};
   }
 
   if(builder.AddSectionFromFile(path.string().c_str()) < 0) {
     GetLogger()->error("Failed to load script from file: {}",path.string());
-    return nullptr;
+    return {};
   }
 
   if(builder.BuildModule() < 0) {
     GetLogger()->error("Errors were found while building script: {}",path.string());
-    return nullptr;
+    return {};
   }
 
-  const auto script = newObject<Script>();
+  auto script = newSharedObject<Script>();
   
   script->Init(this,path,moduleId);
   
   return script;
 }
 
-asIScriptEngine * ScriptManager::GetScriptEngine() const {
+asIScriptEngine *ScriptManager::GetScriptEngine() const {
   return _scriptEngine;
 }
 
 void ScriptManager::HandleDestroy() {
-  Object<Engine>::HandleDestroy();
-  _scriptEngine->ShutDownAndRelease();
+  EngineSubsystem::HandleDestroy();
 }
 
 String ScriptManager::GetName() const {

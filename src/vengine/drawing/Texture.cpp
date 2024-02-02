@@ -1,6 +1,5 @@
-#include "Texture.hpp"
-
-#include "Drawer.hpp"
+#include <vengine/drawing/Texture.hpp>
+#include <vengine/drawing/Drawer.hpp>
 
 namespace vengine::drawing {
 
@@ -18,7 +17,11 @@ void Texture::MakeSampler() {
   _sampler = GetOuter()->GetDevice().createSampler({{},_filter,_filter});
 }
 
-std::optional<AllocatedImage> Texture::GetGpuData() const {
+vk::Extent3D Texture::GetSize() const {
+  return _size;
+}
+
+WeakPointer<AllocatedImage> Texture::GetGpuData() const {
   return _gpuData;
 }
 
@@ -26,16 +29,16 @@ vk::Sampler Texture::GetSampler() const {
   return _sampler;
 }
 
-void Texture::SetGpuData(const std::optional<AllocatedImage> &allocation) {
+void Texture::SetGpuData(const Pointer<AllocatedImage> &allocation) {
   _gpuData = allocation;
 }
 
-void Texture::SetTiling(vk::SamplerAddressMode tiling) {
+void Texture::SetTiling(const vk::SamplerAddressMode tiling) {
   _tiling = tiling;
   MakeSampler();
 }
 
-void Texture::SetFilter(vk::Filter filter) {
+void Texture::SetFilter(const vk::Filter filter) {
   _filter = filter;
   MakeSampler();
 }
@@ -63,6 +66,7 @@ void Texture::WriteTo(Buffer &store) {
   store << _data;
 }
 
+
 void Texture::Upload() {
   if(!IsUploaded()) {
     _gpuData = GetOuter()->CreateImage(_data.data(),_size,_format,vk::ImageUsageFlagBits::eSampled);
@@ -70,28 +74,25 @@ void Texture::Upload() {
 }
 
 bool Texture::IsUploaded() const {
-  return _gpuData.has_value();
+  return _gpuData;
 }
 
 void Texture::HandleDestroy() {
   Object<Drawer>::HandleDestroy();
-  if(IsUploaded()) {
-    const auto data = _gpuData.value();
-    GetOuter()->GetDevice().waitIdle();
-    GetOuter()->GetAllocator()->DestroyImage(data);
-    _gpuData.reset();
-  }
-  GetOuter()->GetDevice().destroySampler(GetSampler());
+  const auto drawer = GetOuter();
+  drawer->GetDevice().waitIdle();
+  drawer->GetDevice().destroySampler(GetSampler());
+  _gpuData.Clear();
 }
 
-void Texture::Init(Drawer *outer) {
+void Texture::Init(Drawer * outer) {
   Object<Drawer>::Init(outer);
   MakeSampler();
 }
 
-Texture * Texture::FromData(Drawer * drawer, const Array<unsigned char> &data, const vk::Extent3D size, const vk::Format format,
-                            const vk::Filter filter,vk::SamplerAddressMode tiling) {
-  const auto tex = newObject<Texture>();
+Pointer<Texture> Texture::FromData(Drawer * drawer, const Array<unsigned char> &data, const vk::Extent3D size, const vk::Format format,
+                            const vk::Filter filter, const vk::SamplerAddressMode tiling) {
+  auto tex = newSharedObject<Texture>();
   tex->_data = data;
   tex->_size = size;
   tex->_format = format;

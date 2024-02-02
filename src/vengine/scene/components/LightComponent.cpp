@@ -1,4 +1,4 @@
-﻿#include "LightComponent.hpp"
+﻿#include <vengine/scene/components/LightComponent.hpp>
 namespace vengine::scene {
 void LightComponent::SetIntensity(float intensity) {
   _intensity = intensity;

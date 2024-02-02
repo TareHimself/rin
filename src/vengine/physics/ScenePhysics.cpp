@@ -1,6 +1,5 @@
-﻿#include "ScenePhysics.hpp"
-
-#include "constants.hpp"
+﻿#include <vengine/physics/ScenePhysics.hpp>
+#include <vengine/physics/constants.hpp>
 
 
 namespace vengine::physics {

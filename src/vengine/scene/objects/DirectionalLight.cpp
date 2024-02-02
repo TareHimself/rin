@@ -1,14 +1,14 @@
-#include "DirectionalLight.hpp"
+#include <vengine/scene/objects/DirectionalLight.hpp>
 #include "vengine/scene/components/DirectionalLightComponent.hpp"
 
 namespace vengine::scene {
 
-SceneComponent * DirectionalLight::CreateRootComponent() {
-  return newObject<DirectionalLightComponent>();
+Pointer<SceneComponent> DirectionalLight::CreateRootComponent() {
+  return newSharedObject<DirectionalLightComponent>();
 }
 
-void DirectionalLight::AttachComponentsToRoot(SceneComponent *root) {
+void DirectionalLight::AttachComponentsToRoot(const WeakPointer<SceneComponent> &root) {
   SceneObject::AttachComponentsToRoot(root);
-  _billboard->AttachTo(root);
+  _billboard.Reserve()->AttachTo(root);
 }
 }

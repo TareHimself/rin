@@ -1,20 +1,19 @@
-﻿#include "StaticMeshComponent.hpp"
-
+﻿#include <vengine/scene/components/StaticMeshComponent.hpp>
 #include "vengine/Engine.hpp"
 #include "vengine/utils.hpp"
 #include "vengine/drawing/Drawer.hpp"
 #include "vengine/drawing/MaterialInstance.hpp"
 #include "vengine/drawing/scene/SceneDrawer.hpp"
-#include "vengine/scene/SceneObject.hpp"
+#include "vengine/scene/objects/SceneObject.hpp"
 #include <glm/gtx/transform.hpp>
 
 namespace vengine::scene {
-drawing::Mesh * StaticMeshComponent::GetMesh() const {
+WeakPointer<drawing::Mesh> StaticMeshComponent::GetMesh() const {
   return _mesh;
 }
 
-void StaticMeshComponent::SetMesh(drawing::Mesh *newMesh) {
-  if(newMesh != nullptr) {
+void StaticMeshComponent::SetMesh(const Pointer<drawing::Mesh> &newMesh) {
+  if(newMesh) {
     if(!newMesh->IsUploaded()) {
       newMesh->Upload();
     }
@@ -22,17 +21,18 @@ void StaticMeshComponent::SetMesh(drawing::Mesh *newMesh) {
   _mesh = newMesh;
 }
 
-void StaticMeshComponent::Draw(drawing::SceneDrawer *renderer,
+void StaticMeshComponent::Draw(drawing::SceneDrawer *drawer,
                                drawing::SimpleFrameData *frameData) {
-  if(_mesh == nullptr || !_mesh->IsUploaded()) {
+  if(!_mesh || !_mesh->IsUploaded()) {
     return;
   }
-  const auto transform = GetWorldTransform();
+  const auto transform = GetCachedWorldTransform();
 
   drawing::MeshVertexPushConstant pushConstants{};
 
+  const auto meshGpuData = _mesh->GetGpuData().Reserve();
   pushConstants.transformMatrix = transform.Matrix(); //glm::mat4{1.f};
-  pushConstants.vertexBuffer = _mesh->gpuData.value().vertexBufferAddress;
+  pushConstants.vertexBuffer = meshGpuData->vertexBufferAddress;
 
   const auto rawFrameData = frameData->GetRaw();
   const auto cmd = frameData->GetCmd();
@@ -44,13 +44,16 @@ void StaticMeshComponent::Draw(drawing::SceneDrawer *renderer,
   
   for(auto i = 0; i < surfaces.size(); i++) {
     const auto [startIndex, count] = surfaces[i];
-    const auto material = materials[i] == nullptr ? renderer->GetDefaultMaterial() : materials[i];
+    const auto material = materials[i] ? materials[i].Reserve() : drawer->GetDefaultMaterial().Reserve();
+    if(!material) {
+      continue;
+    }
     material->BindPipeline(rawFrameData);
     material->BindSets(rawFrameData);
     //material->BindCustomSet(rawFrameData,frameData->GetDescriptor(),0);
     material->PushConstant(frameData->GetCmd(),"pVertex",pushConstants);
     
-    cmd->bindIndexBuffer(_mesh->gpuData.value().indexBuffer.buffer,0,vk::IndexType::eUint32);
+    cmd->bindIndexBuffer(meshGpuData->indexBuffer->buffer,0,vk::IndexType::eUint32);
     cmd->drawIndexed(count,1,startIndex,0,0);
   }
 }

@@ -1,22 +1,21 @@
-﻿#include "DefaultCamera.hpp"
-
+﻿#include <vengine/scene/objects/DefaultCamera.hpp>
 #include "vengine/Engine.hpp"
 #include "vengine/input/KeyInputEvent.hpp"
 #include "vengine/math/constants.hpp"
 #include "vengine/scene/Scene.hpp"
-
 #include <SDL_keycode.h>
 
 namespace vengine::scene {
-SceneComponent *DefaultCamera::CreateRootComponent() {
-  camera = AddComponent<CameraComponent>();
-  return camera;
+Pointer<SceneComponent> DefaultCamera::CreateRootComponent() {
+  auto result = newSharedObject<CameraComponent>();
+  camera = result;
+  return result;
 }
 
-void DefaultCamera::Init(scene::Scene *outer) {
+void DefaultCamera::Init(scene::Scene * outer) {
   SceneObject::Init(outer);
 
-  const auto inputManager = GetInput();
+  const auto inputManager = GetInput().Reserve();
 
   AddCleanup(inputManager->BindKey(SDLK_w, [=](const input::KeyInputEvent &e) {
                                      inputForward += 1;

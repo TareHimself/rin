@@ -1,7 +1,6 @@
-﻿#include "Quat.hpp"
-
-#include "Vector.hpp"
-#include "constants.hpp"
+﻿#include <vengine/math/Quat.hpp>
+#include <vengine/math/Vector.hpp>
+#include <vengine/math/constants.hpp>
 
 
 namespace vengine::math {

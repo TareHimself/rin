@@ -11,21 +11,26 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # Build a shared library named after the project from the files in `src/`
 file(GLOB_RECURSE SOURCE_FILES "src/vengine/*.cpp" )
 
-file(GLOB_RECURSE INCLUDE_FILES "src/vengine/*.hpp" )
+file(GLOB_RECURSE INCLUDE_FILES "include/vengine/*.hpp" )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${INCLUDE_FILES})
 
 set(VENGINE_THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
 
-target_include_directories(${PROJECT_NAME} PUBLIC  ${VENGINE_THIRD_PARTY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(${PROJECT_NAME} PUBLIC ${VENGINE_THIRD_PARTY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 GetBuildExt(VENGINE_BUILD_EXT)
 find_package(Vulkan REQUIRED)
-target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
+target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
+
+
+GetReflect(main)
 
 GetSDL(main)
 
 GetGlm(0.9.9.8)
+
+GetPugiXml(v1.14)
 
 GetReactPhys(master)
 
@@ -54,4 +59,35 @@ GetFastGLTF(main)
 GetOpenCV(4.9.0)
 
 GetAngelScript(2.36.1)
+
+# add_executable(ReflectGen ${CMAKE_CURRENT_SOURCE_DIR}/reflect.cc)
+# target_link_libraries(ReflectGen PUBLIC reflect::reflect)
+
+# add_custom_command(
+#   TARGET ${PROJECT_NAME}
+#   COMMAND ReflectGen
+#   COMMENT "Reflecting Engine Files"
+# )
+
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include/
+)
+
+install(
+    TARGETS vengine
+    EXPORT vengine-targets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+)
+
+install(
+    EXPORT vengine-targets
+    FILE vengineConfig.cmake
+    NAMESPACE vengine::
+    DESTINATION lib/cmake/vengine
+)
+
 

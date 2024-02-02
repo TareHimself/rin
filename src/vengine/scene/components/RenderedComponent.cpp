@@ -1,18 +1,9 @@
-﻿#include "RenderedComponent.hpp"
-
-#include "vengine/scene/SceneObject.hpp"
+﻿#include <vengine/scene/components/RenderedComponent.hpp>
+#include "vengine/scene/objects//SceneObject.hpp"
 
 
 namespace vengine::scene {
-
-
-void RenderedComponent::Init(SceneObject *outer) {
+void RenderedComponent::Init(SceneObject * outer) {
   SceneComponent::Init(outer);
-  outer->AddToRenderList(this);
-}
-
-void RenderedComponent::HandleDestroy() {
-  SceneComponent::HandleDestroy();
-  GetOuter()->RemoveFromRenderList(this);
 }
 }

@@ -1,5 +1,4 @@
-﻿#define STB_IMAGE_IMPLEMENTATION
-#include "AssetManager.hpp"
+﻿#include <vengine/assets/AssetManager.hpp>
 #include "vengine/Engine.hpp"
 #include "vengine/drawing/Mesh.hpp"
 #include "vengine/drawing/Texture.hpp"
@@ -10,15 +9,17 @@
 #include <fastgltf/tools.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+#include <pugixml.hpp>
+
 namespace vengine::assets {
 
 bool AssetManager::SaveAsset(const std::filesystem::path &path,
-                             Asset *asset) {
+                              const Pointer<Asset> &asset) {
   OutFileBuffer outFile(path);
   if (!outFile.isOpen())
     return false;
 
-  auto header = asset->GetHeader();
+  auto header = asset.Get()->GetHeader();
   outFile << header;
 
   MemoryBuffer assetData;
@@ -34,10 +35,43 @@ bool AssetManager::SaveAsset(const std::filesystem::path &path,
   return true;
 }
 
-drawing::Mesh *AssetManager::ImportMesh(
+Pointer<Asset> AssetManager::LoadAsset(
+    const std::filesystem::path &path,
+    const String &type, const std::function<Pointer<Asset>()> &factory) {
+  InFileBuffer inFile(path);
+  if (!inFile.isOpen())
+    return {};
+
+  VEngineAssetHeader header;
+  inFile >> header;
+
+  if (header.type != type)
+    return {};
+
+  uint64_t dataSize;
+
+  inFile >> dataSize;
+
+  MemoryBuffer assetData;
+
+  inFile >> assetData;
+
+  inFile.close();
+
+  auto asset = factory();
+  if(asset) {
+    return {};
+  }
+
+  asset->ReadFrom(assetData);
+
+  return  asset;
+}
+
+Pointer<drawing::Mesh> AssetManager::ImportMesh(
     const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
-    return nullptr;
+    return {};
   }
 
   fastgltf::GltfDataBuffer data;
@@ -54,12 +88,12 @@ drawing::Mesh *AssetManager::ImportMesh(
   } else {
     GetLogger()->error("Failed to load glTF: {} \n",
                        fastgltf::to_underlying(load.error()));
-    return nullptr;
+    return {};
   }
 
   // Only Import First Mesh
   if (gltf.meshes.empty()) {
-    return nullptr;
+    return {};
   }
 
   auto [primitives, weights, name] = gltf.meshes[0];
@@ -127,49 +161,41 @@ drawing::Mesh *AssetManager::ImportMesh(
     surfaces.Push(newSurface);
   }
 
-  auto result = newObject<drawing::Mesh>();
+  auto result = newSharedObject<drawing::Mesh>();
   result->SetVertices(vertices);
   result->SetIndices(indices);
   result->SetSurfaces(surfaces);
   result->SetHeader(header);
-  result->Init(GetOuter()->GetDrawer());
+  result->Init(GetOuter()->GetDrawer().Reserve().Get());
 
   GetLogger()->info("Imported Mesh {}",path.string());
   return result;
 }
 
-drawing::Mesh *AssetManager::LoadMeshAsset(
+Pointer<drawing::Mesh> AssetManager::LoadMeshAsset(
     const std::filesystem::path &path) {
-  InFileBuffer inFile(path);
-  if (!inFile.isOpen())
-    return nullptr;
+  
+  const auto asset = LoadAsset(path,types::MESH,[] {
+    return newSharedObject<drawing::Mesh>();
+  });
 
-  VEngineAssetHeader header;
-  inFile >> header;
+  if(!asset) {
+    return {};
+  }
 
-  if (header.type != types::MESH)
-    return nullptr;
+  auto mesh = asset.Cast<drawing::Mesh>();
 
-  uint64_t dataSize;
+  if(!mesh) {
+    return {};
+  }
 
-  inFile >> dataSize;
+  mesh->Init(GetOuter()->GetDrawer().Reserve().Get());
 
-  MemoryBuffer assetData;
-
-  inFile >> assetData;
-
-  inFile.close();
-
-  const auto mesh = newObject<drawing::Mesh>();
-
-  mesh->ReadFrom(assetData);
-  mesh->Init(GetOuter()->GetDrawer());
   return mesh;
 }
 
-drawing::Texture * AssetManager::ImportTexture(
+Pointer<drawing::Texture> AssetManager::ImportTexture(
     const std::filesystem::path &path) {
-  int width,height, nChannels;
 
   auto img = cv::imread(path.string(),cv::IMREAD_UNCHANGED);
   if(img.channels() == 3) {
@@ -177,11 +203,13 @@ drawing::Texture * AssetManager::ImportTexture(
   } else {
     cv::cvtColor(img.clone(),img,cv::COLOR_BGRA2RGBA);
   }
+
+  auto depth = img.depth();
   
   const vk::Extent3D imageSize{static_cast<uint32_t>(img.cols) ,static_cast<uint32_t>(img.rows),1};
   Array<unsigned char> vecData;
   vecData.insert(vecData.end(),img.data,img.data + (imageSize.width * imageSize.height * img.channels()));
-  const auto tex = drawing::Texture::FromData(GetOuter()->GetDrawer(),vecData,imageSize,vk::Format::eR8G8B8A8Unorm,vk::Filter::eLinear);
+  auto tex = drawing::Texture::FromData(GetOuter()->GetDrawer().Reserve().Get(),vecData,imageSize,vk::Format::eR8G8B8A8Unorm,vk::Filter::eLinear);
   VEngineAssetHeader header{};
   header.type = types::TEXTURE;
   header.name = path.filename().string();
@@ -190,33 +218,123 @@ drawing::Texture * AssetManager::ImportTexture(
   return tex;
 }
 
-drawing::Texture * AssetManager::LoadTextureAsset(
+Pointer<drawing::Texture> AssetManager::LoadTextureAsset(
     const std::filesystem::path &path) {
-  InFileBuffer inFile(path);
-  if (!inFile.isOpen())
-    return nullptr;
+  const auto asset = LoadAsset(path,types::TEXTURE,[] {
+    return newSharedObject<drawing::Texture>();
+  });
 
-  VEngineAssetHeader header;
-  inFile >> header;
+  if(!asset) {
+    return {};
+  }
 
-  if (header.type != types::MESH)
-    return nullptr;
+  auto texture = asset.Cast<drawing::Texture>();
 
-  uint64_t dataSize;
+  if(!texture) {
+    return {};
+  }
 
-  inFile >> dataSize;
+  texture->Init(GetOuter()->GetDrawer().Reserve().Get());
 
-  MemoryBuffer assetData;
-
-  inFile >> assetData;
-
-  inFile.close();
-
-  const auto texture = newObject<drawing::Texture>();
-
-  texture->ReadFrom(assetData);
-  texture->Init(GetOuter()->GetDrawer());
   return texture;
+}
+
+Pointer<widget::Font> AssetManager::ImportFont(
+    const std::filesystem::path &path) {
+  if (!std::filesystem::exists(path)) {
+    return {};
+  }
+
+  const auto folderName = path.filename().string();
+
+  const auto fntFile = path / (folderName + ".fnt");
+
+  pugi::xml_document xmlFile;
+  const pugi::xml_parse_result result = xmlFile.load_file(fntFile.string().c_str());
+  
+  if(!result) {
+    GetLogger()->error("Failed to parse font xml {}",fntFile.string().c_str());
+    return {};
+  }
+
+  Array<Pointer<drawing::Texture>> textures;
+  auto clearTextures = [&textures] {
+    textures.clear();
+  };
+  
+  for(auto page : xmlFile.child("font").child("pages").children()) {
+    auto pageFileName = page.attribute("file").as_string();
+    auto pageFilePath = path / pageFileName;
+    auto texture = ImportTexture(pageFilePath);
+
+    texture->SetFilter(vk::Filter::eNearest);
+    
+    if(!texture) {
+      clearTextures();
+      GetLogger()->error("Failed to import font texture",pageFilePath.string().c_str());
+      return {};
+    }
+    texture->Init(GetEngine()->GetDrawer().Reserve().Get());
+    textures.Push(texture);
+  }
+
+  
+  std::unordered_map<uint32_t,widget::FontCharacter> chars;
+  std::unordered_map<uint32_t,uint32_t> charsIndices;
+  uint32_t curIdx = 0;
+  for(auto xmlChar : xmlFile.child("font").child("chars").children()) {
+    const auto atlasId = xmlChar.attribute("page").as_int();
+    const auto atlas = textures[atlasId];
+    const auto atlasSize = atlas->GetSize();
+    auto charId = xmlChar.attribute("id").as_uint();
+    widget::FontCharacter fChar{};
+    fChar.atlasWidth = atlasSize.width;
+    fChar.atlasHeight = atlasSize.height;
+    fChar.x = xmlChar.attribute("x").as_int();
+    fChar.y = xmlChar.attribute("y").as_int();
+    fChar.width = xmlChar.attribute("width").as_int();
+    fChar.height = xmlChar.attribute("height").as_int();
+    fChar.xOffset = xmlChar.attribute("xoffset").as_int();
+    fChar.yOffset = xmlChar.attribute("yoffset").as_int();
+    fChar.xAdvance = xmlChar.attribute("xadvance").as_int();
+    fChar.atlasId = atlasId;
+    
+    chars.insert({charId,fChar});
+    charsIndices.insert({charId,curIdx});
+    
+    curIdx++;
+  }
+
+  auto font = newSharedObject<widget::Font>();
+  VEngineAssetHeader fontHeader{};
+  fontHeader.type = types::FONT;
+  fontHeader.name = String(xmlFile.child("font").child("info").attribute("face").as_string());
+  font->SetHeader(fontHeader);
+  font->SetChars(chars,charsIndices);
+  font->SetTextures(textures);
+  font->Init(GetEngine()->GetWidgetManager().Reserve().Get());
+  return font;
+}
+
+Pointer<widget::Font> AssetManager::LoadFontAsset(
+    const std::filesystem::path &path) {
+  const auto asset = LoadAsset(path,types::FONT,[] {
+    return newSharedObject<widget::Font>();
+  });
+
+  if(!asset) {
+    return {};
+  }
+
+  auto font = asset.Cast<widget::Font>();
+
+  if(!font) {
+    return {};
+  }
+
+  font->Init(GetEngine()->GetWidgetManager().Reserve().Get());
+
+  return font;
 }
 
 String AssetManager::GetName() const {

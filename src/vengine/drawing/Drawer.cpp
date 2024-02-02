@@ -1,22 +1,16 @@
-﻿
-#include "Drawer.hpp"
-
-#include "Allocator.hpp"
-#include "MaterialBuilder.hpp"
-#include "MaterialInstance.hpp"
-#include "Mesh.hpp"
-#include "PipelineBuilder.hpp"
-#include "Shader.hpp"
-#include "Texture.hpp"
+﻿#include <vengine/drawing/Drawer.hpp>
+#include <vengine/drawing/Allocator.hpp>
+#include <vengine/drawing/Mesh.hpp>
+#include <vengine/drawing/Shader.hpp>
+#include <vengine/drawing/Texture.hpp>
 #include "vengine/Engine.hpp"
 #include "vengine/io/io.hpp"
 #include <VkBootstrap.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
-#include "types.hpp"
+#include <vengine/drawing/types.hpp>
 #include "vengine/scene/Scene.hpp"
-#include <vk_mem_alloc.h>
-#include "scene/SceneDrawer.hpp"
+#include <vengine/drawing/scene/SceneDrawer.hpp>
 #include "vengine/utils.hpp"
 #include "vengine/widget/WidgetManager.hpp"
 
@@ -34,8 +28,7 @@ using namespace std;
     }                                                                          \
   } while (0)
 
-namespace vengine {
-namespace drawing {
+namespace vengine::drawing {
 
 void Drawer::InitSwapchain() {
   const auto extent = GetSwapchainExtent();
@@ -88,36 +81,48 @@ void Drawer::CreateSwapchain() {
   drawImageUsages |= vk::ImageUsageFlagBits::eStorage;
   drawImageUsages |= vk::ImageUsageFlagBits::eColorAttachment;
 
-  auto drawCreateInfo = MakeImageCreateInfo(vk::Format::eR16G16B16A16Sfloat,vk::Extent3D{extent.width, extent.height, 1},drawImageUsages);
-  _Allocator->AllocateImage(_drawImage,drawCreateInfo,VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  auto drawCreateInfo = MakeImageCreateInfo(vk::Format::eR16G16B16A16Sfloat,
+                                            vk::Extent3D{
+                                                extent.width, extent.height, 1},
+                                            drawImageUsages);
+  _drawImage = _allocator->AllocateImage(drawCreateInfo,
+                                         VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+                                         vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-  const auto drawViewInfo = vk::ImageViewCreateInfo({}, _drawImage.image,
-                                                vk::ImageViewType::e2D,
-                                                _drawImage.format, {},
-                                                {vk::ImageAspectFlagBits::eColor, 0,
-                                                 1, 0, 1});
-  
-  _drawImage.view = _device.createImageView(drawViewInfo);
+  const auto drawViewInfo = vk::ImageViewCreateInfo({}, _drawImage->image,
+                                                    vk::ImageViewType::e2D,
+                                                    _drawImage->format, {},
+                                                    {vk::ImageAspectFlagBits::eColor,
+                                                      0,
+                                                      1, 0, 1});
 
-  
-  auto depthCreateInfo = MakeImageCreateInfo(vk::Format::eD32Sfloat,_drawImage.extent,vk::ImageUsageFlagBits::eDepthStencilAttachment);
-  
-  _Allocator->AllocateImage(_depthImage,depthCreateInfo,VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, vk::MemoryPropertyFlagBits::eDeviceLocal);
-  
-  const auto depthViewInfo = vk::ImageViewCreateInfo({}, _depthImage.image,
-                                                vk::ImageViewType::e2D,
-                                                _depthImage.format, {},
-                                                {vk::ImageAspectFlagBits::eDepth, 0,
-                                                 1, 0, 1});
-  
-  _depthImage.view = _device.createImageView(depthViewInfo);
+  _drawImage->view = _device.createImageView(drawViewInfo);
+
+  auto depthCreateInfo = MakeImageCreateInfo(vk::Format::eD32Sfloat,
+                                             _drawImage->extent,
+                                             vk::ImageUsageFlagBits::eDepthStencilAttachment);
+
+  _depthImage = _allocator->AllocateImage(depthCreateInfo,
+                                          VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+                                          vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+  const auto depthViewInfo = vk::ImageViewCreateInfo({}, _depthImage->image,
+    vk::ImageViewType::e2D,
+    _depthImage->format, {},
+    {vk::ImageAspectFlagBits::eDepth, 0,
+     1, 0, 1});
+
+  _depthImage->view = _device.createImageView(depthViewInfo);
 }
 
 void Drawer::ResizeSwapchain() {
-  if(!_resizePending) {
-    _resizePending = true;
+
+  if (_bIsResizingSwapchain) {
     return;
   }
+
+  _bIsResizingSwapchain = true;
+
   GetLogger()->info("Resizing Swapchain");
   _device.waitIdle();
 
@@ -134,18 +139,15 @@ void Drawer::ResizeSwapchain() {
   // for(auto fn : _resizeCallbacks) {
   //   fn();
   // }
-  _resizePending = false;
+  _bResizeRequested = false;
+  _bIsResizingSwapchain = false;
   GetLogger()->info("Swapchain Resize Completed");
 }
 
 void Drawer::DestroySwapchain() {
+  _drawImage.Clear();
+  _depthImage.Clear();
 
-  _device.destroyImageView(_drawImage.view);
-  GetAllocator()->DestroyImage(_drawImage);
-
-  _device.destroyImageView(_depthImage.view);
-  GetAllocator()->DestroyImage(_depthImage);
-  
   for (const auto view : _swapchainImageViews) {
     _device.destroyImageView(view);
   }
@@ -253,7 +255,6 @@ void Drawer::InitPipelines() {
   //                 .SetDepthFormat(_depthImage.format)
   //                 .Build(_device);
 
-  
   // ComputeEffect gradient{"gradient"};
   // ComputeEffect gradient2{"gradient 2"};
   //
@@ -290,17 +291,6 @@ void Drawer::InitPipelines() {
 void Drawer::InitDescriptors() {
   // 10 sets 1 image each
 
-  {
-    const auto device = GetDevice();
-    DescriptorLayoutBuilder builder;
-    builder.AddBinding(0, vk::DescriptorType::eUniformBuffer,vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment);
-    _sceneDescriptorSetLayout = builder.Build(device);
-
-    AddCleanup([=] {
-      device.destroyDescriptorSetLayout(_sceneDescriptorSetLayout);
-    });
-  }
-
   Array<DescriptorAllocatorGrowable::PoolSizeRatio> sizes = {
       {vk::DescriptorType::eStorageImage, 1}};
 
@@ -312,7 +302,8 @@ void Drawer::InitDescriptors() {
 
   {
     DescriptorLayoutBuilder builder;
-    builder.AddBinding(0, vk::DescriptorType::eStorageImage,vk::ShaderStageFlagBits::eCompute);
+    builder.AddBinding(0, vk::DescriptorType::eStorageImage,
+                       vk::ShaderStageFlagBits::eCompute);
     _drawImageDescriptorLayout = builder.Build(_device);
 
     AddCleanup([=] {
@@ -321,24 +312,20 @@ void Drawer::InitDescriptors() {
     });
   }
 
-  _drawImageDescriptors = _globalAllocator.Allocate(
-      _drawImageDescriptorLayout);
+  _drawImageDescriptors = _globalAllocator.Allocate(_drawImageDescriptorLayout);
+  _drawImageDescriptors.Reserve()->WriteImage(0, _drawImage, {},
+                                              vk::ImageLayout::eGeneral,
+                                              vk::DescriptorType::eStorageImage);
 
-  DescriptorWriter writer;
-  writer.WriteImage(0, _drawImage.view, {}, vk::ImageLayout::eGeneral,
-                    vk::DescriptorType::eStorageImage);
-
-  writer.UpdateSet(_device, _drawImageDescriptors);
-
-  onResizeEvent.On([=] (vk::Extent2D _){
-    DescriptorWriter writer;
-    writer.WriteImage(0, _drawImage.view, {}, vk::ImageLayout::eGeneral,
-                    vk::DescriptorType::eStorageImage);
-
-    writer.UpdateSet(_device, _drawImageDescriptors);
+  onResizeEvent.On([=](vk::Extent2D _) {
+    if (!_drawImageDescriptors)
+      return;
+    _drawImageDescriptors.Reserve()->WriteImage(0, _drawImage, {},
+                                                vk::ImageLayout::eGeneral,
+                                                vk::DescriptorType::eStorageImage);
   });
 
-  for (auto &_frame : _frames) {
+  for (auto &frame : _frames) {
     // create a descriptor pool
     std::vector<DescriptorAllocatorGrowable::PoolSizeRatio> frame_sizes = {
         {vk::DescriptorType::eStorageImage, 3},
@@ -347,11 +334,11 @@ void Drawer::InitDescriptors() {
         {vk::DescriptorType::eCombinedImageSampler, 4},
     };
 
-    _frame.GetDescriptorAllocator()->Init(_device, 1000, frame_sizes);
+    frame.GetDescriptorAllocator()->Init(_device, 1000, frame_sizes);
 
     AddCleanup([&] {
-      _frame.GetDescriptorAllocator()->DestroyPools();
-      _frame.cleaner.Run();
+      frame.GetDescriptorAllocator()->DestroyPools();
+      frame.cleaner.Run();
     });
   }
 }
@@ -418,30 +405,29 @@ void Drawer::InitDefaultTextures() {
   samplerInfo.setMinFilter(vk::Filter::eLinear);
 
   _defaultSamplerLinear = _device.createSampler(samplerInfo);
-  
+
   //3 default textures, white, grey, black. 1 pixel each
   constexpr uint32_t white = 0xFFFFFFFF;
   auto whiteData = Array<unsigned char>(sizeof(uint32_t));
-  memcpy(whiteData.data(),&white,whiteData.size());
-  
-  _whiteTexture = Texture::FromData(this,whiteData,vk::Extent3D{1, 1, 1},
-                            vk::Format::eR8G8B8A8Unorm,
-                            vk::Filter::eLinear);
+  memcpy(whiteData.data(), &white, whiteData.size());
 
-  
+  _whiteTexture = Texture::FromData(this, whiteData, vk::Extent3D{1, 1, 1},
+                                    vk::Format::eR8G8B8A8Unorm,
+                                    vk::Filter::eLinear);
+
   constexpr uint32_t grey = 0xAAAAAAFF;
   auto greyData = Array<unsigned char>(sizeof(uint32_t));
-  memcpy(greyData.data(),&grey,greyData.size());
-  _greyTexture = Texture::FromData(this,greyData,vk::Extent3D{1, 1, 1},
-                            vk::Format::eR8G8B8A8Unorm,
-                            vk::Filter::eLinear);
-  
+  memcpy(greyData.data(), &grey, greyData.size());
+  _greyTexture = Texture::FromData(this, greyData, vk::Extent3D{1, 1, 1},
+                                   vk::Format::eR8G8B8A8Unorm,
+                                   vk::Filter::eLinear);
+
   constexpr uint32_t black = 0x000000FF;
   auto blackData = Array<unsigned char>(sizeof(uint32_t));
-  memcpy(blackData.data(),&black,blackData.size());
-  _blackTexture = Texture::FromData(this,blackData,vk::Extent3D{1, 1, 1},
-                            vk::Format::eR8G8B8A8Unorm,
-                            vk::Filter::eLinear);
+  memcpy(blackData.data(), &black, blackData.size());
+  _blackTexture = Texture::FromData(this, blackData, vk::Extent3D{1, 1, 1},
+                                    vk::Format::eR8G8B8A8Unorm,
+                                    vk::Filter::eLinear);
 
   //checkerboard image
   constexpr uint32_t magenta = 0xFF00FFFF;
@@ -456,17 +442,18 @@ void Drawer::InitDefaultTextures() {
 
   Array<unsigned char> checkerBoardData;
   checkerBoardData.resize(pixels.size() * sizeof(uint32_t));
-  memcpy(checkerBoardData.data(),pixels.data(),checkerBoardData.size());
+  memcpy(checkerBoardData.data(), pixels.data(), checkerBoardData.size());
 
-  _errorCheckerboardTexture = Texture::FromData(this, checkerBoardData,vk::Extent3D{16, 16, 1},
-                            vk::Format::eR8G8B8A8Unorm,
-                            vk::Filter::eLinear);
+  _errorCheckerboardTexture = Texture::FromData(this, checkerBoardData,
+                                                vk::Extent3D{16, 16, 1},
+                                                vk::Format::eR8G8B8A8Unorm,
+                                                vk::Filter::eLinear);
 
   AddCleanup([=] {
-    _errorCheckerboardTexture->Destroy();
-    _blackTexture->Destroy();
-    _greyTexture->Destroy();
-    _whiteTexture->Destroy();
+    _errorCheckerboardTexture.Clear();
+    _blackTexture.Clear();
+    _greyTexture.Clear();
+    _whiteTexture.Clear();
     GetDevice().destroySampler(_defaultSamplerLinear);
     GetDevice().destroySampler(_defaultSamplerNearest);
   });
@@ -482,7 +469,6 @@ void Drawer::InitDefaultMaterials() {
   // materialResources.dataBuffer = nullptr;
   // materialResources.dataBufferOffset = 0;
 
-  
 }
 
 void Drawer::TransitionImage(const vk::CommandBuffer cmd, const vk::Image image,
@@ -525,14 +511,15 @@ void Drawer::DrawBackground(RawFrameData *frame) const {
 
   //float flash = abs(sin(_frameCount / 120.f));
 
-  const auto clearValue = vk::ClearColorValue({0.0f, 0.0f, 0.0f, 0.0f});//vk::ClearColorValue({0.0f, 0.0f, flash, 0.0f});
+  const auto clearValue = vk::ClearColorValue({0.0f, 0.0f, 0.0f, 0.0f});
+  //vk::ClearColorValue({0.0f, 0.0f, flash, 0.0f});
 
   auto clearRange = ImageSubResourceRange(vk::ImageAspectFlagBits::eColor);
 
-  cmd->clearColorImage(_drawImage.image,
+  cmd->clearColorImage(_drawImage->image,
                        vk::ImageLayout::eGeneral, clearValue,
                        {clearRange});
-  
+
   // auto computeEffect = backgroundEffects.at(currentBackgroundEffect);
   // computeEffect.data.time = GetEngine()->GetEngineTimeSeconds();
   // cmd->bindPipeline(vk::PipelineBindPoint::eCompute, computeEffect.pipeline);
@@ -550,16 +537,16 @@ void Drawer::DrawBackground(RawFrameData *frame) const {
 }
 
 void Drawer::DrawScenes(RawFrameData *frame) {
-  const vk::Extent2D drawExtent = GetDrawImageExtent();
+  const vk::Extent2D drawExtent = GetDrawImageExtentScaled();
 
   const auto colorAttachment = MakeRenderingAttachment(
-      _drawImage.view, vk::ImageLayout::eGeneral);
+      _drawImage->view, vk::ImageLayout::eGeneral);
 
   vk::ClearValue depthClear;
   depthClear.setDepthStencil({1.f});
 
   const auto depthAttachment = MakeRenderingAttachment(
-      _depthImage.view, vk::ImageLayout::eDepthAttachmentOptimal, depthClear);
+      _depthImage->view, vk::ImageLayout::eDepthAttachmentOptimal, depthClear);
 
   auto renderingInfo = MakeRenderingInfo(drawExtent);
   renderingInfo.setColorAttachments(colorAttachment);
@@ -570,19 +557,22 @@ void Drawer::DrawScenes(RawFrameData *frame) {
   cmd->beginRendering(renderingInfo);
 
   //Actual Rendering
-  for (const auto scene : GetEngine()->GetScenes()) {
-    scene->GetDrawer()->Draw(this, frame);
+  for (const auto &scene : GetEngine()->GetScenes()) {
+    if (auto sceneRef = scene.Reserve(); sceneRef->IsInitialized()) {
+      if(auto sceneDrawer = sceneRef->GetDrawer().Reserve(); sceneDrawer->IsInitialized()) {
+        sceneDrawer->Draw(this, frame);
+      }
+    }
   }
 
   cmd->endRendering();
 }
 
 void Drawer::DrawUI(RawFrameData *frame) {
-  const vk::Extent2D drawExtent = GetDrawImageExtent();
+  const vk::Extent2D drawExtent = GetDrawImageExtentScaled();
 
   const auto colorAttachment =
-      MakeRenderingAttachment(_drawImage.view, vk::ImageLayout::eGeneral);
-
+      MakeRenderingAttachment(_drawImage->view, vk::ImageLayout::eGeneral);
 
   auto renderingInfo = MakeRenderingInfo(drawExtent);
   renderingInfo.setColorAttachments(colorAttachment);
@@ -592,9 +582,9 @@ void Drawer::DrawUI(RawFrameData *frame) {
   cmd->beginRendering(renderingInfo);
 
   // Actual Rendering
-  const auto widgetManager = GetEngine()->GetWidgetManager();
+  const auto widgetManager = GetEngine()->GetWidgetManager().Reserve();
 
-  widgetManager->Draw(this,frame);
+  widgetManager->Draw(this, frame);
 
   cmd->endRendering();
 }
@@ -662,24 +652,33 @@ vk::Extent2D Drawer::GetSwapchainExtentScaled() const {
 }
 
 vk::Extent2D Drawer::GetDrawImageExtent() const {
-  return {static_cast<uint32_t>(_drawImage.extent.width * renderScale),
-          static_cast<uint32_t>(_drawImage.extent.height * renderScale)};
+  return {static_cast<uint32_t>(_drawImage->extent.width),
+          static_cast<uint32_t>(_drawImage->extent.height)};
+}
+
+vk::Extent2D Drawer::GetDrawImageExtentScaled() const {
+  return {static_cast<uint32_t>(_drawImage->extent.width * renderScale),
+          static_cast<uint32_t>(_drawImage->extent.height * renderScale)};
 }
 
 vk::Format Drawer::GetDrawImageFormat() const {
-  return _drawImage.format;
+  return _drawImage->format;
 }
 
 vk::Format Drawer::GetDepthImageFormat() const {
-  return _depthImage.format;
+  return _depthImage->format;
 }
 
 bool Drawer::ResizePending() const {
-  return _resizePending;
+  return _bResizeRequested;
 }
 
 void Drawer::RequestResize() {
-  _resizePending = true;
+  _bResizeRequested = true;
+}
+
+bool Drawer::IsResizingSwapchain() const {
+  return _bIsResizingSwapchain;
 }
 
 void Drawer::CreateComputeShader(const Shader *shader,
@@ -704,30 +703,12 @@ void Drawer::CreateComputeShader(const Shader *shader,
       nullptr, {computePipelineCreateInfo}).value.at(0);
 }
 
-
-
-Engine* Drawer::GetEngine() const {
-  return dynamic_cast<Engine *>(GetOuter());
-}
-
-vk::Device Drawer::GetDevice() const {
-  return _device;
-}
-
-vk::PhysicalDevice Drawer::GetPhysicalDevice() const {
-  return _gpu;
-}
-
-vk::Instance Drawer::GetVulkanInstance() const {
-  return _instance;
-}
-
 void Drawer::Init(Engine *outer) {
   EngineSubsystem::Init(outer);
-  onResizeEvent.On([&](vk::Extent2D size) {
-    outer->onWindowSizeChanged.Emit(size);
+  onResizeEvent.On([=](const vk::Extent2D size) {
+    GetOuter()->onWindowSizeChanged.Emit(size);
   });
-  
+
   vkb::InstanceBuilder builder;
 
   auto instanceResult =
@@ -746,11 +727,11 @@ void Drawer::Init(Engine *outer) {
   debugMessenger = vkbInstance.debug_messenger;
 #endif
 
-  auto window = GetEngine()->GetWindow();
+  auto window = GetEngine()->GetWindow().Reserve();
 
   VkSurfaceKHR tempSurf;
 
-  SDL_Vulkan_CreateSurface(window, _instance, nullptr, &tempSurf);
+  SDL_Vulkan_CreateSurface(window.Get(), _instance, nullptr, &tempSurf);
 
   _surface = tempSurf;
 
@@ -785,7 +766,7 @@ void Drawer::Init(Engine *outer) {
                                    value();
 
   AddCleanup([this] {
-    _shaderManager->Destroy();
+    _shaderManager.Clear();
 
     _device.destroy();
     _instance.destroySurfaceKHR(_surface);
@@ -803,12 +784,11 @@ instance.destroyDebugUtilsMessengerEXT(debugMessenger);
   allocatorCreateInfo.physicalDevice = _gpu;
   allocatorCreateInfo.instance = _instance;
 
-  _Allocator = newObject<Allocator>();
-  _Allocator->Init(this);
-  
+  _allocator = newSharedObject<Allocator>();
+  _allocator->Init(this);
+
   AddCleanup([&] {
-    _Allocator->Destroy();
-    _Allocator = nullptr;
+    _allocator.Clear();
   });
 
   InitSwapchain();
@@ -823,7 +803,7 @@ instance.destroyDebugUtilsMessengerEXT(debugMessenger);
 
   InitDescriptors();
 
-  _shaderManager = newObject<ShaderManager>();
+  _shaderManager = newSharedObject<ShaderManager>();
   _shaderManager->Init(this);
 
   InitPipelineLayout();
@@ -835,6 +815,18 @@ instance.destroyDebugUtilsMessengerEXT(debugMessenger);
   InitDefaultTextures();
 
   InitDefaultMaterials();
+}
+
+vk::Device Drawer::GetDevice() const {
+  return _device;
+}
+
+vk::PhysicalDevice Drawer::GetPhysicalDevice() const {
+  return _gpu;
+}
+
+vk::Instance Drawer::GetVulkanInstance() const {
+  return _instance;
 }
 
 
@@ -867,8 +859,8 @@ void Drawer::ImmediateSubmit(
 }
 
 vk::RenderingAttachmentInfo Drawer::MakeRenderingAttachment(
-    vk::ImageView view,
-    vk::ImageLayout layout, const std::optional<vk::ClearValue> &clear) {
+    const vk::ImageView view,
+    const vk::ImageLayout layout, const std::optional<vk::ClearValue> &clear) {
   vk::RenderingAttachmentInfo attachment{view, layout};
 
   attachment.loadOp = clear.has_value()
@@ -886,21 +878,21 @@ String Drawer::GetName() const {
   return "drawing";
 }
 
-AllocatedImage Drawer::CreateImage(const vk::Extent3D size, const vk::Format format,
-                                   const vk::ImageUsageFlags usage, const bool mipMapped) const {
-  AllocatedImage newImage;
-  newImage.format = format;
-  newImage.extent = size;
+Pointer<AllocatedImage> Drawer::CreateImage(
+    const vk::Extent3D size, const vk::Format format,
+    const vk::ImageUsageFlags usage, const bool mipMapped) const {
 
   auto imgInfo = MakeImageCreateInfo(format, size, usage);
   if (mipMapped) {
     imgInfo.setMipLevels(
         static_cast<uint32_t>(std::floor(
-            std::log2(std::max(1,1)))) + 1);
+            std::log2(std::max(1, 1)))) + 1);
   }
 
   // allocate and create the image
-  GetAllocator()->AllocateImage(newImage,imgInfo,VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,vk::MemoryPropertyFlagBits::eDeviceLocal);
+  auto newImage = GetAllocator().Reserve()->AllocateImage(
+      imgInfo, VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      vk::MemoryPropertyFlagBits::eDeviceLocal);
 
   vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor;
   if (format == vk::Format::eD32Sfloat) {
@@ -909,19 +901,19 @@ AllocatedImage Drawer::CreateImage(const vk::Extent3D size, const vk::Format for
 
   // Build an image view for the image
   vk::ImageViewCreateInfo viewInfo = MakeImageViewCreateInfo(
-      format, newImage.image, aspectFlags);
+      format, newImage->image, aspectFlags);
   viewInfo.subresourceRange.setLevelCount(imgInfo.mipLevels);
 
-  newImage.view = _device.createImageView(viewInfo);
+  newImage->view = _device.createImageView(viewInfo);
 
   return newImage;
 }
 
-AllocatedImage Drawer::CreateImage(const void *data, const vk::Extent3D size,
-                                   const vk::Format format, const vk::ImageUsageFlags usage,
-                                   const bool mipMapped) {
+Pointer<AllocatedImage> Drawer::CreateImage(
+    const void *data, const vk::Extent3D size,
+    const vk::Format format, const vk::ImageUsageFlags usage,
+    const bool mipMapped) {
 
-  
   auto channels = 0;
   switch (format) {
   case vk::Format::eR8G8B8Unorm:
@@ -935,70 +927,74 @@ AllocatedImage Drawer::CreateImage(const void *data, const vk::Extent3D size,
   }
 
   const auto dataSize = size.depth * size.width * size.height * channels;
-  
-  const AllocatedBuffer uploadBuffer = GetAllocator()->CreateTransferCpuGpuBuffer(dataSize, false);
-  const auto mapped = uploadBuffer.alloc.GetMappedData();
-  utils::vassert(mapped != nullptr && data != nullptr,"WE DONE FUCKED UP");
+
+  const auto uploadBuffer = GetAllocator().Reserve()->
+                                           CreateTransferCpuGpuBuffer(
+                                               dataSize, false);
+
+  const auto mapped = uploadBuffer->GetMappedData();
+
+  utils::vassert(mapped != nullptr && data != nullptr, "WE DONE FUCKED UP");
   memcpy(mapped, data, dataSize);
 
-  const AllocatedImage newImage = CreateImage(size, format,
-                                              usage |
-                                              vk::ImageUsageFlagBits::eTransferDst
-                                              | vk::ImageUsageFlagBits::eTransferSrc,
-                                              mipMapped);
+  auto newImage = CreateImage(size, format,
+                              usage |
+                              vk::ImageUsageFlagBits::eTransferDst
+                              | vk::ImageUsageFlagBits::eTransferSrc,
+                              mipMapped);
 
-
-  
   ImmediateSubmit([&](const vk::CommandBuffer cmd) {
-    TransitionImage(cmd, newImage.image, vk::ImageLayout::eUndefined,
+    TransitionImage(cmd, newImage->image, vk::ImageLayout::eUndefined,
                     vk::ImageLayout::eTransferDstOptimal);
 
     vk::BufferImageCopy copyRegion{0, 0, 0};
     copyRegion.setImageSubresource({vk::ImageAspectFlagBits::eColor, 0, 0, 1});
     copyRegion.setImageExtent(size);
 
-    cmd.copyBufferToImage(uploadBuffer.buffer, newImage.image,
+    cmd.copyBufferToImage(uploadBuffer->buffer, newImage->image,
                           vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 
-    TransitionImage(cmd, newImage.image, vk::ImageLayout::eTransferDstOptimal,
+    TransitionImage(cmd, newImage->image, vk::ImageLayout::eTransferDstOptimal,
                     vk::ImageLayout::eShaderReadOnlyOptimal);
   });
-
-  GetAllocator()->DestroyBuffer(uploadBuffer);
 
   return newImage;
 }
 
 
-GpuMeshBuffers Drawer::CreateMeshBuffers(const Mesh *mesh) {
+Pointer<GpuMeshBuffers> Drawer::CreateMeshBuffers(const Mesh *mesh) {
   const auto vertices = mesh->GetVertices();
   const auto indices = mesh->GetIndices();
   const auto vertexBufferSize = vertices.ByteSize();
   const auto indexBufferSize = indices.ByteSize();
 
-  GpuMeshBuffers newBuffers;
+  Pointer<GpuMeshBuffers> newBuffers{new GpuMeshBuffers};
 
-  newBuffers.vertexBuffer = GetAllocator()->CreateBuffer(vertexBufferSize,
-                                         vk::BufferUsageFlagBits::eStorageBuffer
-                                         | vk::BufferUsageFlagBits::eTransferDst
-                                         | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-                                         VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-                                         vk::MemoryPropertyFlagBits::eDeviceLocal);
+  newBuffers->vertexBuffer = GetAllocator().Reserve()->CreateBuffer(
+      vertexBufferSize,
+      vk::BufferUsageFlagBits::eStorageBuffer
+      | vk::BufferUsageFlagBits::eTransferDst
+      | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+      VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      vk::MemoryPropertyFlagBits::eDeviceLocal);
 
   const vk::BufferDeviceAddressInfo deviceAddressInfo{
-      newBuffers.vertexBuffer.buffer};
-  newBuffers.vertexBufferAddress = _device.getBufferAddress(deviceAddressInfo);
+      newBuffers->vertexBuffer->buffer};
+  newBuffers->vertexBufferAddress = _device.getBufferAddress(deviceAddressInfo);
 
-  newBuffers.indexBuffer = GetAllocator()->CreateBuffer(vertexBufferSize,
-                                        vk::BufferUsageFlagBits::eIndexBuffer
-                                        | vk::BufferUsageFlagBits::eTransferDst,
-                                        VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-                                        vk::MemoryPropertyFlagBits::eDeviceLocal);
+  newBuffers->indexBuffer = GetAllocator().Reserve()->CreateBuffer(
+      vertexBufferSize,
+      vk::BufferUsageFlagBits::eIndexBuffer
+      | vk::BufferUsageFlagBits::eTransferDst,
+      VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-  const auto stagingBuffer = GetAllocator()->CreateTransferCpuGpuBuffer(
-      vertexBufferSize + indexBufferSize, false);
-  
-  const auto data = stagingBuffer.alloc.GetMappedData();
+  const auto stagingBuffer = GetAllocator().Reserve()->
+                                            CreateTransferCpuGpuBuffer(
+                                                vertexBufferSize +
+                                                indexBufferSize, false);
+
+  const auto data = stagingBuffer->GetMappedData();
   memcpy(data, vertices.data(), vertexBufferSize);
   memcpy(static_cast<char *>(data) + vertexBufferSize, indices.data(),
          indexBufferSize);
@@ -1006,42 +1002,37 @@ GpuMeshBuffers Drawer::CreateMeshBuffers(const Mesh *mesh) {
   ImmediateSubmit([=](const vk::CommandBuffer cmd) {
     const vk::BufferCopy vertexCopy{0, 0, vertexBufferSize};
 
-    cmd.copyBuffer(stagingBuffer.buffer, newBuffers.vertexBuffer.buffer, 1,
+    cmd.copyBuffer(stagingBuffer->buffer, newBuffers->vertexBuffer->buffer, 1,
                    &vertexCopy);
 
     const vk::BufferCopy indicesCopy{vertexBufferSize, 0, indexBufferSize};
 
-    cmd.copyBuffer(stagingBuffer.buffer, newBuffers.indexBuffer.buffer, 1,
+    cmd.copyBuffer(stagingBuffer->buffer, newBuffers->indexBuffer->buffer, 1,
                    &indicesCopy);
   });
 
-  GetAllocator()->DestroyBuffer(stagingBuffer);
   return newBuffers;
 }
 
-Allocator *Drawer::GetAllocator() const {
-  return _Allocator;
+WeakPointer<Allocator> Drawer::GetAllocator() const {
+  return _allocator;
 }
 
-Texture * Drawer::GetDefaultWhiteTexture() const {
+WeakPointer<Texture> Drawer::GetDefaultWhiteTexture() const {
   return _whiteTexture;
 }
 
-Texture * Drawer::GetDefaultBlackTexture() const {
+WeakPointer<Texture> Drawer::GetDefaultBlackTexture() const {
   return _blackTexture;
 }
 
-Texture * Drawer::GetDefaultGreyTexture() const {
+WeakPointer<Texture> Drawer::GetDefaultGreyTexture() const {
   return _greyTexture;
 }
 
-Texture * Drawer::GetDefaultErrorCheckerboardTexture() const {
+WeakPointer<Texture> Drawer::GetDefaultErrorCheckerboardTexture() const {
   return _errorCheckerboardTexture;
 }
-
-// void Drawer::onResize(const std::function<void()> &callback) {
-//   _resizeCallbacks.push_back(callback);
-// }
 
 vk::Sampler Drawer::GetDefaultSamplerLinear() const {
   return _defaultSamplerLinear;
@@ -1051,29 +1042,30 @@ vk::Sampler Drawer::GetDefaultSamplerNearest() const {
   return _defaultSamplerNearest;
 }
 
-MaterialInstance * Drawer::GetDefaultCheckeredMaterial() const {
-  return _defaultCheckeredMaterial;
-}
-
-ShaderManager *Drawer::GetShaderManager() const {
+WeakPointer<ShaderManager> Drawer::GetShaderManager() const {
   return _shaderManager;
 }
 
-vk::DescriptorSetLayout Drawer::GetSceneDescriptorLayout() const {
-  return _sceneDescriptorSetLayout;
-}
-
-DescriptorAllocatorGrowable * Drawer::GetGlobalDescriptorAllocator() {
+DescriptorAllocatorGrowable *Drawer::GetGlobalDescriptorAllocator() {
   return &_globalAllocator;
 }
 
 void Drawer::Draw() {
+  if (_bResizeRequested && !_bIsResizingSwapchain) {
+    ResizeSwapchain();
+    return;
+  }
 
   const auto frame = GetCurrentFrame();
   // Wait for gpu to finish past work
   vk::resultCheck(
       _device.waitForFences({frame->GetRenderFence()}, true, 1000000000),
       "Wait For Fences Failed");
+
+  if (_bResizeRequested && !_bIsResizingSwapchain) {
+    ResizeSwapchain();
+    return;
+  }
 
   frame->cleaner.Run();
   frame->GetDescriptorAllocator()->ClearPools();
@@ -1088,7 +1080,12 @@ void Drawer::Draw() {
                                                frame->GetSwapchainSemaphore(),
                                                nullptr, &swapchainImageIndex);
   } catch (vk::OutOfDateKHRError &_) {
-    _resizePending = true;
+    _bResizeRequested = true;
+    return;
+  }
+
+  if (_bResizeRequested && !_bIsResizingSwapchain) {
+    ResizeSwapchain();
     return;
   }
 
@@ -1102,20 +1099,20 @@ void Drawer::Draw() {
 
   const auto swapchainExtent = GetSwapchainExtent();
 
-  const vk::Extent2D drawExtent = GetDrawImageExtent();
+  const vk::Extent2D drawExtent = GetDrawImageExtentScaled();
 
   cmd->begin(commandBeginInfo);
 
   // Transition image to general layout
-  TransitionImage(*cmd, _drawImage.image,
+  TransitionImage(*cmd, _drawImage->image,
                   vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
 
   DrawBackground(frame);
 
-  TransitionImage(*cmd, _drawImage.image,
+  TransitionImage(*cmd, _drawImage->image,
                   vk::ImageLayout::eGeneral,
                   vk::ImageLayout::eColorAttachmentOptimal);
-  TransitionImage(*cmd, _depthImage.image,
+  TransitionImage(*cmd, _depthImage->image,
                   vk::ImageLayout::eUndefined,
                   vk::ImageLayout::eDepthAttachmentOptimal);
 
@@ -1124,14 +1121,14 @@ void Drawer::Draw() {
   DrawUI(frame);
 
   // Transition images to correct transfer layouts
-  TransitionImage(*cmd, _drawImage.image,
+  TransitionImage(*cmd, _drawImage->image,
                   vk::ImageLayout::eColorAttachmentOptimal,
                   vk::ImageLayout::eTransferSrcOptimal);
   TransitionImage(*cmd, _swapchainImages[swapchainImageIndex],
                   vk::ImageLayout::eUndefined,
                   vk::ImageLayout::eTransferDstOptimal);
 
-  CopyImageToImage(*cmd, _drawImage.image,
+  CopyImageToImage(*cmd, _drawImage->image,
                    _swapchainImages[swapchainImageIndex],
                    drawExtent, swapchainExtent);
 
@@ -1170,11 +1167,10 @@ void Drawer::Draw() {
   try {
     const auto _ = _graphicsQueue.presentKHR(presentInfo);
   } catch (vk::OutOfDateKHRError &_) {
-    _resizePending = true;
+    _bResizeRequested = true;
     return;
   }
 
   _frameCount++;
 }
-} // namespace rendering
-} // namespace vengine
+}

@@ -1,4 +1,4 @@
-#include "PointLightComponent.hpp"
+#include <vengine/scene/components/PointLightComponent.hpp>
 namespace vengine::scene {
 
 }

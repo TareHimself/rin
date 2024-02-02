@@ -1,11 +1,7 @@
-﻿#include "InputConsumer.hpp"
-#include "KeyInputEvent.hpp"
+﻿#include <vengine/input/InputConsumer.hpp>
+#include <vengine/input/KeyInputEvent.hpp>
 
 namespace vengine::input {
-void InputConsumer::Init(InputManager *outer) {
-  Object<InputManager>::Init(outer);
-  
-}
 
 bool InputConsumer::CanConsumeInput() {
   return true;
@@ -124,5 +120,6 @@ unsubscribe InputConsumer::BindAxis(EInputAxis axis, axisEventHandler handler) {
     }
   };
 }
+
 
 }

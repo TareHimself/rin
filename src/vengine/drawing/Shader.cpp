@@ -1,5 +1,5 @@
-﻿#include "Shader.hpp"
-#include "Drawer.hpp"
+﻿#include <vengine/drawing/Shader.hpp>
+#include <vengine/drawing/Drawer.hpp>
 #include <spirv_cross/spirv_cpp.hpp>
 #include <utility>
 
@@ -15,14 +15,6 @@ std::filesystem::path Shader::GetSourcePath() const {
 
 Shader::operator vk::ShaderModule() const {
   return this->Get();
-}
-
-void Shader::Use() {
-  ++_refs;
-}
-
-bool Shader::RemoveUsage() {
-  return --_refs == 0;
 }
 
 void Shader::SetVulkanShader(const vk::ShaderModule shader) {
@@ -41,7 +33,7 @@ vk::ShaderStageFlagBits Shader::GetStage() const {
   return _stage;
 }
 
-void Shader::Init(ShaderManager *outer) {
+void Shader::Init(ShaderManager * outer) {
   Object<ShaderManager>::Init(outer);
   switch (auto stage = ShaderManager::GetLang(_sourcePath)) {
   case EShLangCompute:
@@ -58,12 +50,6 @@ void Shader::Init(ShaderManager *outer) {
   }
 }
 
-void Shader::Destroy() {
-  if(RemoveUsage()) {
-    GetOuter()->UnRegisterShader(this);
-    Object<ShaderManager>::Destroy();
-  }
-}
 
 ShaderResources Shader::GetResources() const {
   return _resources;
@@ -72,14 +58,15 @@ ShaderResources Shader::GetResources() const {
 
 void Shader::HandleDestroy() {
   Object<ShaderManager>::HandleDestroy();
+  GetOuter()->UnRegisterShader(this);
   GetOuter()->GetOuter()->GetDevice().destroyShaderModule(this->Get());
 }
 
 
-Shader * Shader::FromSource(ShaderManager *manager,
-                            const std::filesystem::path &path) {
-  if(const auto existingShader = manager->GetLoadedShader(path)) {
-    existingShader->Use();
+Pointer<Shader> Shader::FromSource(ShaderManager *
+                                           manager,
+                                           const std::filesystem::path &path) {
+  if(auto existingShader = manager->GetLoadedShader(path)) {
     return existingShader;
   }
   
@@ -94,8 +81,10 @@ Shader * Shader::FromSource(ShaderManager *manager,
   {
     unsigned set = glsl.get_decoration(resource.id, spv::DecorationDescriptorSet);
     unsigned binding = glsl.get_decoration(resource.id, spv::DecorationBinding);
+    auto numArray = glsl.get_type(resource.type_id).array;
+    auto numRequired = std::max(numArray.empty() ? 0 : numArray[0],static_cast<uint32_t>(1));
     
-    newResources.images.insert({resource.name,{set,binding}});
+    newResources.images.insert({resource.name,{set,binding,numRequired}});
   }
 
   for ( auto &resource : resources.push_constant_buffers)
@@ -108,7 +97,10 @@ Shader * Shader::FromSource(ShaderManager *manager,
     unsigned set = glsl.get_decoration(resource.id, spv::DecorationDescriptorSet);
     unsigned binding = glsl.get_decoration(resource.id, spv::DecorationBinding);
     
-    newResources.uniformBuffers.insert({resource.name,{set,binding}});
+    auto numArray = glsl.get_type(resource.type_id).array;
+    auto numRequired = std::max(numArray.empty() ? 0 : numArray[0],static_cast<uint32_t>(1));
+    
+    newResources.uniformBuffers.insert({resource.name,{set,binding,numRequired}});
   }
   
   const auto device = manager->GetOuter()->GetDevice();
@@ -116,11 +108,10 @@ Shader * Shader::FromSource(ShaderManager *manager,
       vk::ShaderModuleCreateFlags(),
       spvData.size() * sizeof(uint32_t), spvData.data());
 
-  const auto shaderObj = newObject<Shader>();
+  const auto shaderObj = newSharedObject<Shader>();
   shaderObj->SetSourcePath(path);
   shaderObj->SetVulkanShader(device.createShaderModule(shaderCreateInfo));
   shaderObj->SetResources(newResources);
-  shaderObj->Use();
   return manager->RegisterShader(shaderObj);
 }
 }

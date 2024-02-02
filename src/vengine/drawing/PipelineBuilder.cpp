@@ -1,13 +1,9 @@
-﻿#include "PipelineBuilder.hpp"
-
-#include "Shader.hpp"
-#include "vengine/log.hpp"
-
+﻿#include <vengine/drawing/PipelineBuilder.hpp>
+#include <vengine/drawing/Shader.hpp>
 
 namespace vengine {
 namespace drawing {
-PipelineBuilder &PipelineBuilder::AddShaderStage(Shader *shader) {
-  shader->Use();
+PipelineBuilder &PipelineBuilder::AddShaderStage(const Pointer<Shader> &shader) {
   _shaders.Push(shader);
   return *this;
 }
@@ -151,9 +147,9 @@ vk::Pipeline PipelineBuilder::Build(const vk::Device device) {
 
   Array<vk::PipelineShaderStageCreateInfo> _shaderStages{};
 
-  for(const auto shader : _shaders) {
+  for(const auto &shader : _shaders) {
     auto info = vk::PipelineShaderStageCreateInfo(
-      vk::PipelineShaderStageCreateFlags(), shader->GetStage(), *shader, "main");
+      vk::PipelineShaderStageCreateFlags(), shader->GetStage(), *shader.Get(), "main");
     _shaderStages.Push(info);
   }
   
@@ -195,10 +191,5 @@ vk::Pipeline PipelineBuilder::Build(const vk::Device device) {
   return result.value;
 }
 
-PipelineBuilder::~PipelineBuilder() {
-  for(const auto shader : _shaders) {
-    shader->Destroy();
-  }
-}
 }
 }

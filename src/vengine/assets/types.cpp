@@ -1,7 +1,6 @@
-﻿#include "types.hpp"
+﻿#include <vengine/assets/types.hpp>
 
-namespace vengine {
-namespace assets {
+namespace vengine::assets {
 String VEngineAssetHeader::GetSerializeId() {
   return "ASSET HEADER";
 }
@@ -18,6 +17,5 @@ void VEngineAssetHeader::WriteTo(Buffer &store) {
   store << type;
   store << name;
   store << meta;
-}
 }
 }

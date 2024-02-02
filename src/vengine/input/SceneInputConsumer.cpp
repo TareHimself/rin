@@ -1,20 +1,19 @@
-#include "SceneInputConsumer.hpp"
-
+#include <vengine/input/SceneInputConsumer.hpp>
 #include "vengine/Engine.hpp"
 
 namespace vengine::input {
 
 
-void SceneInputConsumer::Init(InputManager *outer) {
+void SceneInputConsumer::Init(InputManager * outer) {
   InputConsumer::Init(outer);
   AddCleanup(outer->GetOuter()->onInputModeChanged.On([=](EInputMode _, const EInputMode newMode) {
-    if(newMode == EInputMode::UiOnly) {
-      _bShouldProcessInput = false;
-      
-    } else {
-      _bShouldProcessInput = true;
-    }
-  }));
+      if(newMode == EInputMode::UiOnly) {
+        _bShouldProcessInput = false;
+        
+      } else {
+        _bShouldProcessInput = true;
+      }
+    }));
 }
 
 void SceneInputConsumer::HandleDestroy() {

@@ -1,8 +1,6 @@
-﻿#include "MaterialInstance.hpp"
-
-#include "PipelineBuilder.hpp"
-#include "Texture.hpp"
-#include "scene/types.hpp"
+﻿#include <vengine/drawing/MaterialInstance.hpp>
+#include <vengine/drawing/PipelineBuilder.hpp>
+#include <vengine/drawing/Texture.hpp>
 #include "vengine/utils.hpp"
 
 namespace vengine::drawing {
@@ -12,91 +10,101 @@ void MaterialInstance::SetPipeline(const vk::Pipeline pipeline) {
 }
 
 void MaterialInstance::SetLayout(const vk::PipelineLayout layout) {
-  _layout = layout;
+  _pipelineLayout = layout;
 }
 
-void MaterialInstance::SetSets(const Array<vk::DescriptorSet> &sets,
-    const Array<vk::DescriptorSetLayout> &layouts) {
+void MaterialInstance::SetSets(const std::unordered_map<EMaterialSetType, WeakPointer<DescriptorSet>> &
+                               sets, const std::unordered_map<EMaterialSetType, vk::DescriptorSetLayout> &
+                               layouts) {
   _sets = sets;
-  _setLayouts = layouts;
+  _layouts = layouts;
 }
 
 // void MaterialInstance::SetSetLayout(const vk::DescriptorSetLayout setLayout) {
 //   _materialSetLayout = setLayout;
 // }
 
-void MaterialInstance::SetPass(const EMaterialPass pass) {
-  _passType = pass;
+void MaterialInstance::SetType(const EMaterialType pass) {
+  _materialType = pass;
 }
 
 void MaterialInstance::SetResources(
     const ShaderResources &resources) {
-  _shaderResources = std::move(resources);
+  _shaderResources = resources;
 }
 
-void MaterialInstance::SetNumDescriptorBindings(const uint64_t bindings) {
-  numDescriptorBindings = bindings;
-}
 
 vk::Pipeline MaterialInstance::GetPipeline() const {
   return _pipeline;
 }
 
 vk::PipelineLayout MaterialInstance::GetLayout() const {
-  return _layout;
+  return _pipelineLayout;
 }
 
-Array<vk::DescriptorSet> MaterialInstance::GetDescriptorSets() const {
+std::unordered_map<EMaterialSetType, WeakPointer<DescriptorSet>> MaterialInstance::GetDescriptorSets() const {
   return _sets;
 }
-
-
-// vk::DescriptorSetLayout MaterialInstance::GetDescriptorSetLayout() const {
-//   return _materialSetLayout;
-// }
 
 ShaderResources MaterialInstance::GetResources() const {
   return _shaderResources;
 }
 
-EMaterialPass MaterialInstance::GetPass() const {
-  return _passType;
+EMaterialType MaterialInstance::GetPass() const {
+  return _materialType;
 }
 
-void MaterialInstance::Init(Drawer *drawer) {
+void MaterialInstance::Init(Drawer * drawer) {
   Object<Drawer>::Init(drawer);
-  
-  
 }
 
 void MaterialInstance::SetTexture(const std::string &param,
-                                                Texture *texture) {
+                                                const WeakPointer<Texture> &texture) {
 
 
   utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);
-  utils::vassert(texture != nullptr,"Texture Is Invalid");
-
-  if(!texture->IsUploaded()) {
-    texture->Upload();
-  }
   
-  DescriptorWriter writer;
+  utils::vassert(texture,"Texture Is Invalid");
+  
   const auto imageInfo = _shaderResources.images[param];
-  writer.WriteImage(imageInfo.binding,texture->GetGpuData().value().view,texture->GetSampler(),vk::ImageLayout::eShaderReadOnlyOptimal,vk::DescriptorType::eCombinedImageSampler);
-  writer.UpdateSet(GetOuter()->GetDevice(),_sets[imageInfo.set]);
+  
+  utils::vassert(imageInfo.set != EMaterialSetType::Dynamic,"This function does not support dynamic descriptor sets");
+  
+  _sets[imageInfo.set].Reserve()->WriteTexture(imageInfo.binding,texture,vk::ImageLayout::eShaderReadOnlyOptimal,vk::DescriptorType::eCombinedImageSampler);
+}
+
+void MaterialInstance::SetDynamicTexture(RawFrameData *frame,
+    const std::string &param, const WeakPointer<Texture> &texture) {
+  utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);
+  utils::vassert(texture,"Texture Is Invalid");
+  
+  const auto imageInfo = _shaderResources.images[param];
+
+  utils::vassert(imageInfo.set == EMaterialSetType::Dynamic,"This function only supports dynamic descriptor sets");
+  
+  _dynamicSets[frame].Reserve()->WriteTexture(imageInfo.binding,texture,vk::ImageLayout::eShaderReadOnlyOptimal,vk::DescriptorType::eCombinedImageSampler);
+}
+
+void MaterialInstance::SetTextureArray(const std::string &param,
+                                       const Array<WeakPointer<Texture>> &textures) {
+  utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);
+  utils::vassert(!textures.empty(),"Texture Array is Empty");
+  
+  const auto imageInfo = _shaderResources.images[param];
+  utils::vassert(imageInfo.set != EMaterialSetType::Dynamic,"This function does not support dynamic descriptor sets");
+
+  _sets[imageInfo.set].Reserve()->WriteTextureArray(imageInfo.binding,textures,vk::ImageLayout::eShaderReadOnlyOptimal,vk::DescriptorType::eCombinedImageSampler);
 }
 
 void MaterialInstance::SetBuffer(const std::string &param,
-    const AllocatedBuffer &buffer, size_t size) {
+                                 const WeakPointer<AllocatedBuffer> &buffer, size_t size) {
 
   utils::vassert(_shaderResources.uniformBuffers.contains(param),"UniformBuffer [ {} ] Does Not Exist In Material",param);
 
   const auto bufferInfo = _shaderResources.uniformBuffers[param];
-  
-  DescriptorWriter writer;
-  
-  writer.WriteBuffer(bufferInfo.binding, buffer.buffer, size, 0,vk::DescriptorType::eUniformBuffer);
-  writer.UpdateSet(GetOuter()->GetDevice(),_sets[bufferInfo.set]);
+  utils::vassert(bufferInfo.set != EMaterialSetType::Dynamic,"This function does not support dynamic descriptor sets");
+
+  _sets[bufferInfo.set].Reserve()->WriteBuffer(bufferInfo.binding, buffer, size, 0,vk::DescriptorType::eUniformBuffer);
 }
 
 void MaterialInstance::BindPipeline(RawFrameData *frame) const {
@@ -104,32 +112,42 @@ void MaterialInstance::BindPipeline(RawFrameData *frame) const {
   cmd->bindPipeline(vk::PipelineBindPoint::eGraphics,_pipeline);
 }
 
-void MaterialInstance::BindSets(RawFrameData *frame) const {
-  const auto cmd = frame->GetCmd();
+void MaterialInstance::BindSets(RawFrameData *frame){
+  
   if(!_sets.empty()) {
-    for(auto i = 0; i < _sets.size(); i++) {
-      cmd->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,_layout,i,_sets[i],{});
+    const auto cmd = frame->GetCmd();
+    for(auto [fst, snd] : _sets) {
+      cmd->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,_pipelineLayout,
+                              static_cast<uint32_t>(fst), static_cast<vk::DescriptorSet>(*snd.Reserve().Get()),{});
     }
+  }
+
+  if(_layouts.contains(Dynamic)) {
+    const auto cmd = frame->GetCmd();
+    
+    if(!_dynamicSets.contains(frame) || !_dynamicSets[frame]) {
+      AllocateDynamicSet(frame);
+    }
+    
+    cmd->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,_pipelineLayout,Dynamic,static_cast<vk::DescriptorSet>(*_dynamicSets[frame].Reserve().Get()),{});
   }
 }
 
-// void MaterialInstance::Bind(const SceneFrameData * frame) const {
-//   const auto cmd = frame->GetCmd();
-//   Bind(frame->GetDrawerFrameData(),1);
-//   const auto sceneDescriptor = frame->GetSceneDescriptor();
-//   cmd->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,_layout,0,sceneDescriptor,{});
-// }
+void MaterialInstance::AllocateDynamicSet(RawFrameData *frame) {
+  _dynamicSets[frame] = frame->GetDescriptorAllocator()->Allocate(_layouts[EMaterialSetType::Dynamic]);
+}
 
 void MaterialInstance::HandleDestroy() {
   Object<Drawer>::HandleDestroy();
   const auto device = GetOuter()->GetDevice();
   device.waitIdle();
   device.destroyPipeline(_pipeline);
-  device.destroyPipelineLayout(_layout);
-  for(const auto layout : _setLayouts) {
-    device.destroyDescriptorSetLayout(layout);
+  device.destroyPipelineLayout(_pipelineLayout);
+  for(const auto val : _layouts | std::views::values) {
+    device.destroyDescriptorSetLayout(val);
   }
-  
+  _dynamicSets.clear();
+  _sets.clear();
 }
 
 }

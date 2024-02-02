@@ -1,7 +1,5 @@
-﻿#include "ShaderManager.hpp"
-
-#include "Shader.hpp"
-#include "vengine/log.hpp"
+﻿#include <vengine/drawing/ShaderManager.hpp>
+#include <vengine/drawing/Shader.hpp>
 #include "vengine/utils.hpp"
 #include "vengine/io/io.hpp"
 
@@ -120,10 +118,10 @@ bool ShaderManager::HasLoadedShader(
   return _shaders.contains(shaderPath);
 }
 
-Shader * ShaderManager::GetLoadedShader(
+Pointer<Shader> ShaderManager::GetLoadedShader(
     const std::filesystem::path &shaderPath) const {
   if(!HasLoadedShader(shaderPath)){
-    return nullptr;
+    return {};
   }
 
   return _shaders.at(shaderPath);
@@ -173,10 +171,9 @@ Array<unsigned int> ShaderManager::Compile(const std::filesystem::path &shaderPa
   resources->limits.generalSamplerIndexing = true;
   resources->limits.generalVariableIndexing = true;
   resources->limits.generalConstantMatrixVectorIndexing = true;
-  
-  if(!shader->parse(resources,450,ENoProfile,false,false,message,includer)) {
-    throw std::runtime_error(std::string("Failed to parse shader at path: ") + shaderPath.string() + "\n" + shader->getInfoLog());
-  }
+
+  utils::vassert(shader->parse(resources,450,ENoProfile,false,false,message,includer),"Failed to parse shader [{}] \n",shaderPath.string().c_str(),shader->getInfoLog());
+
 
   Array<unsigned int> spvResult;
   
@@ -244,16 +241,16 @@ Array<unsigned int> ShaderManager::LoadOrCompileSpv(const std::filesystem::path 
     if(const auto newShaderHash = utils::hash(sourceFile.data(),sourceFile.size() * sizeof(char)); oldShaderHash == newShaderHash) {
       GetLogger()->info("Loaded shader from disk: " + shaderPath.string());
       return shader;
-    } else {
-      GetLogger()->info("Detected change in source file: " + shaderPath.string());
-      return CompileAndSave(shaderPath);
     }
+    
+    GetLogger()->info("Detected change in source file: " + shaderPath.string());
+    return CompileAndSave(shaderPath);
   }
   
   return CompileAndSave(shaderPath);
 }
 
-Shader * ShaderManager::RegisterShader(Shader *shader) {
+Pointer<Shader> ShaderManager::RegisterShader(Pointer<Shader> shader) {
   _shaders.insert({shader->GetSourcePath(),shader});
   
   shader->Init(this);
@@ -261,17 +258,20 @@ Shader * ShaderManager::RegisterShader(Shader *shader) {
   return shader;
 }
 
-Shader * ShaderManager::CreateShader(const std::filesystem::path &path) {
+Pointer<Shader> ShaderManager::CreateShader(
+    const std::filesystem::path &path) {
   return Shader::FromSource(this,path);
 }
 
 void ShaderManager::UnRegisterShader(const Shader *shader) {
-  if(_shaders.contains(shader->GetSourcePath())) {
-    _shaders.erase(_shaders.find(shader->GetSourcePath()));
+  if(!IsPendingDestroy()) {
+    if(_shaders.contains(shader->GetSourcePath())) {
+      _shaders.erase(_shaders.find(shader->GetSourcePath()));
+    }
   }
 }
 
-void ShaderManager::Init(Drawer *outer) {
+void ShaderManager::Init(Drawer * outer) {
   Object::Init(outer);
   glslang::InitializeProcess();
   InitLogger("shaders");
@@ -280,9 +280,7 @@ void ShaderManager::Init(Drawer *outer) {
 
 void ShaderManager::HandleDestroy() {
   Object::HandleDestroy();
-  for(const auto val : _shaders | std::views::values) {
-    val->Destroy();
-  }
+  
   _shaders.clear();
   
   glslang::FinalizeProcess();

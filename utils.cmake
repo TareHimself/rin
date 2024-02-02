@@ -74,7 +74,7 @@ macro(GetSimdJson VERSION)
 
   find_package(simdjson CONFIG REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} simdjson::simdjson)
+  target_link_libraries(${PROJECT_NAME} PUBLIC simdjson::simdjson)
 endmacro()
 
 # FastGLTF
@@ -98,7 +98,7 @@ macro(GetFastGLTF VERSION)
   find_package(fastgltf_simdjson REQUIRED)
   find_package(fastgltf CONFIG REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} fastgltf::fastgltf)
+  target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
 endmacro()
 
 # Miniz
@@ -110,7 +110,7 @@ macro(GetMiniz VERSION)
 
   find_package(miniz CONFIG REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} miniz::miniz)
+  target_link_libraries(${PROJECT_NAME} PUBLIC miniz::miniz)
 endmacro()
 
 # uuid
@@ -121,6 +121,17 @@ macro(GetStdUUID VERSION)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/stduuid)
   find_package(stduuid REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+endmacro()
+
+# uuid
+macro(GetReflect VERSION)
+
+  BuildThirdPartyDep(reflect https://github.com/TareHimself/reflect ${VERSION} RESULT_DIR "" "")
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  find_package(reflect REQUIRED)
+  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include)
+  target_link_libraries(${PROJECT_NAME} PUBLIC reflect::reflect)
 endmacro()
 
 
@@ -164,7 +175,7 @@ macro(GetGLSL VERSION)
   find_package(SPIRV-Tools-opt REQUIRED)
   find_package(glslang CONFIG REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits)
+  target_link_libraries(${PROJECT_NAME} PUBLIC glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits)
 endmacro()
 
 # SPIRV Reflect
@@ -192,7 +203,7 @@ macro(GetSpirvCross VERSION)
   # find_package(glslang CONFIG REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include)
   file(GLOB SPIRV_DLLS ${RESULT_DIR}/lib/*d.lib)
-  target_link_libraries(${PROJECT_NAME} ${SPIRV_DLLS})
+  target_link_libraries(${PROJECT_NAME} PUBLIC ${SPIRV_DLLS})
 endmacro()
 
 # VkBootstrap
@@ -204,8 +215,8 @@ macro(GetVkBootstrap VERSION)
   Fetch(https://github.com/charles-lunarg/vk-bootstrap ${VERSION} ${VK_BOOTSTRAP_DIR})
 
   add_subdirectory(${VK_BOOTSTRAP_DIR} vk-bootstrap)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}) 
-  target_link_libraries(${PROJECT_NAME} vk-bootstrap::vk-bootstrap)
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}) 
+  target_link_libraries(${PROJECT_NAME} PUBLIC PRIVATE vk-bootstrap::vk-bootstrap)
 endmacro()
 
 
@@ -224,7 +235,7 @@ macro(GetXXHash VERSION)
 
   find_package(xxHash REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} xxHash::xxhash)
+  target_link_libraries(${PROJECT_NAME} PUBLIC xxHash::xxhash)
 endmacro()
 
 # FMT
@@ -236,7 +247,7 @@ macro(GetFmt VERSION)
 
   find_package(fmt REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} fmt::fmt)
+  target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
 endmacro()
 
 # spdlog
@@ -248,7 +259,7 @@ macro(GetSpdLog VERSION)
 
   find_package(spdlog REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} spdlog::spdlog)
+  target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 endmacro()
 
 # SDL
@@ -260,7 +271,7 @@ macro(GetSDL VERSION)
 
   find_package(SDL3 REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} SDL3::SDL3)
+  target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3)
 endmacro()
 
 # GLM
@@ -326,15 +337,15 @@ macro(GetAngelScript VERSION)
   target_sources(${PROJECT_NAME} PUBLIC ${STB_FILES})
   find_package(Angelscript REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include)
-  target_link_libraries(${PROJECT_NAME} Angelscript::angelscript)
+  target_link_libraries(${PROJECT_NAME} PUBLIC Angelscript::angelscript)
 
   if(EXISTS ${ADDONS_DIR})
     file(GLOB ADDON_SOURCES ${ADDONS_DIR}/**/*.cpp)
     file(GLOB ADDON_INCLUDES ${ADDONS_DIR}/**/*.h)
     set(ADDONS_PROJECT_NAME angelscript_addons)
     add_library(${ADDONS_PROJECT_NAME} STATIC ${ADDON_SOURCES} ${ADDON_INCLUDES})
-    target_include_directories(${ADDONS_PROJECT_NAME} PUBLIC  ${ADDONS_DIR} ${RESULT_DIR}/include)
-    target_link_libraries(${PROJECT_NAME} ${ADDONS_PROJECT_NAME})
+    target_include_directories(${ADDONS_PROJECT_NAME} PUBLIC ${ADDONS_DIR} ${RESULT_DIR}/include)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${ADDONS_PROJECT_NAME})
   endif()
 endmacro()
 
@@ -363,7 +374,20 @@ macro(GetReactPhys VERSION)
 
   find_package(ReactPhysics3D REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} ReactPhysics3D::ReactPhysics3D)
+  target_link_libraries(${PROJECT_NAME} PUBLIC ReactPhysics3D::ReactPhysics3D)
+  
+endmacro()
+
+# Pugixml
+macro(GetPugiXml VERSION)
+
+  BuildThirdPartyDep(pugixml https://github.com/zeux/pugixml ${VERSION} RESULT_DIR "" "")
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+
+  find_package(pugixml REQUIRED)
+  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+  target_link_libraries(${PROJECT_NAME} PUBLIC pugixml::pugixml)
   
 endmacro()
 
@@ -382,5 +406,5 @@ macro(GetOpenCV VERSION)
 
   find_package(OpenCV REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS}) 
-  target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+  target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenCV_LIBS})
 endmacro()

@@ -1,15 +1,16 @@
-#include "ScriptComponent.hpp"
-#include "vengine/scene/SceneObject.hpp"
+#include <vengine/scene/components/ScriptComponent.hpp>
+#include "vengine/scene/objects/SceneObject.hpp"
 #include <vengine/scripting/ScriptManager.hpp>
 namespace vengine::scene {
 
 ScriptComponent::ScriptComponent() {
 }
 
-void ScriptComponent::Init(SceneObject *outer) {
+void ScriptComponent::Init(SceneObject * outer) {
   SceneComponent::Init(outer);
-  _script= GetOuter()->GetEngine()->GetScriptManager()->ScriptFromFile(_scriptPath);
-  if(_script == nullptr) {
+  _script = GetOuter()->GetEngine()->GetScriptManager().Reserve()->ScriptFromFile(_scriptPath);
+  
+  if(!_script) {
     return;
   }
 

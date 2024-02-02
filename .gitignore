@@ -2,3 +2,6 @@ build/*
 */build/*
 ThirdParty/*
 shaders/**/compiled/*
+reflect/*
+*.exe
+local/*

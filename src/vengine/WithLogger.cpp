@@ -1,4 +1,4 @@
-﻿#include "WithLogger.hpp"
+﻿#include <vengine/WithLogger.hpp>
 namespace vengine {
 void WithLogger::InitLogger(const std::string &name) {
   _logger = spdlog::default_logger()->clone(name);

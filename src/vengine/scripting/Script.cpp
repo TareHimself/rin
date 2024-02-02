@@ -1,17 +1,17 @@
-#include "Script.hpp"
-
-#include "ScriptManager.hpp"
+#include<vengine/scripting/Script.hpp>
+#include <vengine/scripting/ScriptManager.hpp>
+#include <vengine/utils.hpp>
 
 namespace vengine::scripting {
-void Script::Init(ScriptManager *outer, const std::filesystem::path &scriptPath,
-    const String &moduleId) {
+void Script::Init(ScriptManager * outer,
+    const std::filesystem::path &scriptPath, const String &moduleId) {
   _moduleId = moduleId;
   _scriptPath = scriptPath;
   Init(outer);
 }
 
-void Script::Init(ScriptManager *outer) {
-  Object<ScriptManager>::Init(outer);
+void Script::Init( ScriptManager * outer) {
+  Object::Init(outer);
   _module = GetOuter()->GetScriptEngine()->GetModule(_moduleId.c_str());
 }
 
@@ -37,6 +37,6 @@ void Script::InitScript() {
     }
   }
   
-  ctx->Release();
+  utils::vassert(ctx->Release() == 0,"Failed to release script context");
 }
 }

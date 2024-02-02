@@ -1,4 +1,4 @@
-﻿#include "types.hpp"
+﻿#include <vengine/drawing/scene/types.hpp>
 
 namespace vengine::drawing {
 SceneFrameData::SceneFrameData(RawFrameData *frame) {

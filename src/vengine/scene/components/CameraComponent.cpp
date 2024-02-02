@@ -1,11 +1,6 @@
-﻿#include "CameraComponent.hpp"
-
-#include "vengine/Engine.hpp"
-#include "vengine/input/InputManager.hpp"
-#include "vengine/input/KeyInputEvent.hpp"
+﻿#include <vengine/scene/components/CameraComponent.hpp>
 #include "vengine/scene/Scene.hpp"
-#include "vengine/scene/SceneObject.hpp"
-
+#include "vengine/scene/objects/SceneObject.hpp"
 #include <glm/ext/matrix_transform.hpp>
 
 namespace vengine::scene {
@@ -17,7 +12,7 @@ glm::mat4 CameraComponent::GetViewMatrix() const {
                    transform.rotation.Matrix());
 }
 
-glm::mat4 CameraComponent::GetProjection(float aspectRatio) const {
+glm::mat4 CameraComponent::GetProjection(const float aspectRatio) const {
   return glm::rotate(glm::perspective(glm::radians(fieldOfView), aspectRatio,  nearClipPlane,farClipPlane),glm::radians(180.f),{1,0,0});
 }
 

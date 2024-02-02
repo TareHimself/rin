@@ -1,11 +1,11 @@
-﻿#include "RP3DScenePhysics.hpp"
-
+﻿#include <vengine/physics/rp3/RP3DScenePhysics.hpp>
 #include "vengine/scene/Scene.hpp"
 
 namespace vengine::physics {
 rp3d::PhysicsCommon RP3DScenePhysics::physicsCommon = rp3d::PhysicsCommon();
 
-void RP3DScenePhysics::Init(scene::Scene *outer) {
+
+void RP3DScenePhysics::Init(scene::Scene * outer) {
   ScenePhysics::Init(outer);
   _phys = physicsCommon.createPhysicsWorld();
 }

@@ -1,5 +1,4 @@
-﻿#include "types.hpp"
-
+﻿#include <vengine/drawing/types.hpp>
 
 namespace vengine::drawing {
 vk::CommandBuffer * RawFrameData::GetCmd() {
@@ -43,15 +42,28 @@ void RawFrameData::SetCommandBuffer(const vk::CommandBuffer buffer) {
   _cmdBuffer = buffer;
 }
 
+void * VmaAllocated::GetMappedData() const {
+  return alloc.GetMappedData();
+}
 
 
 BasicShaderResourceInfo::BasicShaderResourceInfo() = default;
 
-BasicShaderResourceInfo::BasicShaderResourceInfo(const uint32_t _set,
-                                                 const uint32_t _binding) {
-  set = _set;
+BasicShaderResourceInfo::BasicShaderResourceInfo(uint32_t _set,
+    uint32_t _binding, uint32_t _count) {
+  set = static_cast<EMaterialSetType>(_set);
   binding = _binding;
+  count = _count;
 }
+
+// TextureInfo::TextureInfo() {
+// }
+//
+// TextureInfo::TextureInfo(const uint32_t _set, const uint32_t _binding, const bool _bIsArray) {
+//   set = static_cast<EMaterialSetType>(_set);
+//   binding = _binding;
+//   bIsArray = _bIsArray;
+// }
 
 PushConstantInfo::PushConstantInfo() = default;
 
