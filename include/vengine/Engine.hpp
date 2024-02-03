@@ -2,7 +2,7 @@
 
 //#define SDL_MAIN_HANDLED
 #include "Object.hpp"
-#include "vengine/Pointer.hpp"
+#include "vengine/Ref.hpp"
 #include "utils.hpp"
 #include <SDL3/SDL.h>
 #include "containers/Array.hpp"
@@ -59,24 +59,24 @@ private:
   math::Vector2 _mousePosition{0, 0};
   vk::Extent2D _windowExtent{1000, 1000};
 
-  Pointer<SDL_Window> _window;
+  Ref<SDL_Window> _window;
   long long _runTime = 0;
   long long _lastTickTime = 0;
   String _applicationName;
 
-  Array<Pointer<EngineSubsystem>> _subsystems;
+  Array<Ref<EngineSubsystem>> _subsystems;
   
-  Pointer<drawing::Drawer> _drawer;
+  Ref<drawing::Drawer> _drawer;
 
-  Pointer<input::InputManager> _inputManager;
+  Ref<input::InputManager> _inputManager;
 
-  Pointer<assets::AssetManager> _assetManager;
+  Ref<assets::AssetManager> _assetManager;
 
-  Pointer<scripting::ScriptManager> _scriptManager;
+  Ref<scripting::ScriptManager> _scriptManager;
 
-  Pointer<widget::WidgetManager> _widgetManager;
+  Ref<widget::WidgetManager> _widgetManager;
 
-  Set<Pointer<scene::Scene>> _scenes;
+  Set<Ref<scene::Scene>> _scenes;
 
   EInputMode _inputMode = GameAndUi;
 
@@ -131,27 +131,27 @@ public:
 
   float GetEngineTimeSeconds() const;
 
-  Array<WeakPointer<scene::Scene>> GetScenes() const;
+  Array<WeakRef<scene::Scene>> GetScenes() const;
 
-  WeakPointer<SDL_Window> GetWindow() const;
+  WeakRef<SDL_Window> GetWindow() const;
 
   vk::Extent2D GetWindowExtent() const;
 
-  WeakPointer<drawing::Drawer> GetDrawer() const;
+  WeakRef<drawing::Drawer> GetDrawer() const;
 
-  WeakPointer<input::InputManager> GetInputManager() const;
+  WeakRef<input::InputManager> GetInputManager() const;
 
-  WeakPointer<assets::AssetManager> GetAssetManager() const;
+  WeakRef<assets::AssetManager> GetAssetManager() const;
 
-  WeakPointer<scripting::ScriptManager> GetScriptManager() const;
+  WeakRef<scripting::ScriptManager> GetScriptManager() const;
 
-  WeakPointer<widget::WidgetManager> GetWidgetManager() const;
+  WeakRef<widget::WidgetManager> GetWidgetManager() const;
 
-  virtual Pointer<drawing::Drawer> CreateDrawer();
-  virtual Pointer<input::InputManager> CreateInputManager();
-  virtual Pointer<assets::AssetManager> CreateAssetManager();
-  virtual Pointer<scripting::ScriptManager> CreateScriptManager();
-  virtual Pointer<widget::WidgetManager> CreateWidgetManager();
+  virtual Ref<drawing::Drawer> CreateDrawer();
+  virtual Ref<input::InputManager> CreateInputManager();
+  virtual Ref<assets::AssetManager> CreateAssetManager();
+  virtual Ref<scripting::ScriptManager> CreateScriptManager();
+  virtual Ref<widget::WidgetManager> CreateWidgetManager();
 
   void SetInputMode(EInputMode mode);
 
@@ -162,9 +162,9 @@ public:
   bool IsFocused() const;
 
   template <typename T,typename ... Args>
-   WeakPointer<T> CreateScene(Args &&... args);
+   WeakRef<T> CreateScene(Args &&... args);
 
-  virtual void InitScene(const Pointer<scene::Scene> &scene);
+  virtual void InitScene(const Ref<scene::Scene> &scene);
 
   // Events
   TEventDispatcher<EInputMode, EInputMode> onInputModeChanged;
@@ -176,9 +176,9 @@ private:
 
 };
 
-template <typename T, typename ... Args> WeakPointer<T> Engine::CreateScene(
+template <typename T, typename ... Args> WeakRef<T> Engine::CreateScene(
     Args &&... args) {
-  Pointer<T> rawObj = newSharedObject<T>(args...);
+  Ref<T> rawObj = newSharedObject<T>(args...);
   //const auto castObj = rawObj.Cast<scene::Scene>();
   if(IsRunning()) {
     InitScene(rawObj);

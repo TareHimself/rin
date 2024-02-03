@@ -8,11 +8,11 @@
 #include <glm/gtx/transform.hpp>
 
 namespace vengine::scene {
-WeakPointer<drawing::Mesh> StaticMeshComponent::GetMesh() const {
+WeakRef<drawing::Mesh> StaticMeshComponent::GetMesh() const {
   return _mesh;
 }
 
-void StaticMeshComponent::SetMesh(const Pointer<drawing::Mesh> &newMesh) {
+void StaticMeshComponent::SetMesh(const Ref<drawing::Mesh> &newMesh) {
   if(newMesh) {
     if(!newMesh->IsUploaded()) {
       newMesh->Upload();
@@ -22,11 +22,11 @@ void StaticMeshComponent::SetMesh(const Pointer<drawing::Mesh> &newMesh) {
 }
 
 void StaticMeshComponent::Draw(drawing::SceneDrawer *drawer,
-                               drawing::SimpleFrameData *frameData) {
+                               const math::Transform &parentTransform, drawing::SimpleFrameData *frameData) {
   if(!_mesh || !_mesh->IsUploaded()) {
     return;
   }
-  const auto transform = GetCachedWorldTransform();
+  const auto transform = GetWorldTransform();
 
   drawing::MeshVertexPushConstant pushConstants{};
 

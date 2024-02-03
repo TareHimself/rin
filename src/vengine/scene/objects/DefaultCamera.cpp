@@ -6,7 +6,7 @@
 #include <SDL_keycode.h>
 
 namespace vengine::scene {
-Pointer<SceneComponent> DefaultCamera::CreateRootComponent() {
+Ref<SceneComponent> DefaultCamera::CreateRootComponent() {
   auto result = newSharedObject<CameraComponent>();
   camera = result;
   return result;
@@ -89,7 +89,7 @@ void DefaultCamera::Update(float deltaTime) {
                                  : math::VECTOR_ZERO;
   const math::Vector deltaFinal = forwardDelta + rightDelta + upDelta;
   const auto worldLocation = GetWorldLocation();
-  SetWorldLocation(worldLocation + deltaFinal);
+ SetWorldLocation(worldLocation + deltaFinal);
 }
 
 void DefaultCamera::UpdateRotation() {

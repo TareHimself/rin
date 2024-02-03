@@ -90,32 +90,36 @@ void Scene::WriteTo(Buffer &store) {
   store << objectsData;
 }
 
-bool Scene::ShouldSerializeObject(const Pointer<SceneObject> &object) {
+bool Scene::ShouldSerializeObject(const Ref<SceneObject> &object) {
   return object && object != _defaultViewTarget;
 }
 
-Array<WeakPointer<SceneObject>> Scene::GetSceneObjects() const {
-  Array<WeakPointer<SceneObject>> result;
+Array<WeakRef<SceneObject>> Scene::GetSceneObjects() const {
+  Array<WeakRef<SceneObject>> result;
   for(auto &obj : _sceneObjects) {
     result.Push(obj);
   }
   return result;
 }
 
-WeakPointer<drawing::SceneDrawer> Scene::GetDrawer() const {
+std::list<WeakRef<LightComponent>> Scene::GetSceneLights() const {
+  return _lights;
+}
+
+WeakRef<drawing::SceneDrawer> Scene::GetDrawer() const {
   return _drawer;
 }
 
-WeakPointer<physics::ScenePhysics> Scene::GetPhysics() const {
+WeakRef<physics::ScenePhysics> Scene::GetPhysics() const {
   return _physics;
 }
 
-WeakPointer<input::SceneInputConsumer> Scene::GetInput() const {
+WeakRef<input::SceneInputConsumer> Scene::GetInput() const {
   return _inputConsumer;
 }
 
-void Scene::RegisterLight(const WeakPointer<LightComponent> &light) {
-  _lights.Add(light);
+void Scene::RegisterLight(const WeakRef<LightComponent> &light) {
+  _lights.push_back(light);
 }
 
 void Scene::Update(float deltaTime) {
@@ -127,23 +131,23 @@ void Scene::Update(float deltaTime) {
   }
 }
 
-Pointer<physics::ScenePhysics> Scene::CreatePhysics() {
+Ref<physics::ScenePhysics> Scene::CreatePhysics() {
   return newSharedObject<physics::RP3DScenePhysics>();
 }
 
-Pointer<drawing::SceneDrawer> Scene::CreateDrawer() {
+Ref<drawing::SceneDrawer> Scene::CreateDrawer() {
   return newSharedObject<drawing::SceneDrawer>();
 }
 
-Pointer<input::SceneInputConsumer> Scene::CreateInputManager() {
+Ref<input::SceneInputConsumer> Scene::CreateInputManager() {
   return GetEngine()->GetInputManager().Reserve()->Consume<input::SceneInputConsumer>().Reserve();
 }
 
-Pointer<SceneObject> Scene::CreateDefaultViewTarget() {
+Ref<SceneObject> Scene::CreateDefaultViewTarget() {
   return newSharedObject<DefaultCamera>();
 }
 
-WeakPointer<SceneObject> Scene::GetViewTarget() const {
+WeakRef<SceneObject> Scene::GetViewTarget() const {
   if(_viewTarget) {
     return _viewTarget;
   }
@@ -151,7 +155,7 @@ WeakPointer<SceneObject> Scene::GetViewTarget() const {
   return _defaultViewTarget;
 }
 
-Pointer<SceneObject> Scene::InitSceneObject(const Pointer<SceneObject> &object) {
+Ref<SceneObject> Scene::InitSceneObject(const Ref<SceneObject> &object) {
   if (IsInitialized()) {
     _sceneObjects.Push(object);
     object->Init(this);

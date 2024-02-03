@@ -58,9 +58,9 @@ struct FontCharacter {
 class Font
     : public Object<WidgetManager>, public assets::Asset,
       public drawing::GpuNative {
-  Array<Pointer<drawing::Texture>> _textures;
-  Pointer<drawing::MaterialInstance> _material;
-  Pointer<drawing::AllocatedBuffer> _gpuFontCharacters;
+  Array<Ref<drawing::Texture>> _textures;
+  Ref<drawing::MaterialInstance> _material;
+  Ref<drawing::AllocatedBuffer> _gpuFontCharacters;
   std::unordered_map<uint32_t, FontCharacter> _fontChars;
   std::unordered_map<uint32_t, uint32_t> _fontCharIndices;
   uint32_t _lineHeight = 0;
@@ -76,15 +76,15 @@ public:
   String GetSerializeId() override;
   void ReadFrom(Buffer &store) override;
   void WriteTo(Buffer &store) override;
-  void SetTextures(const Array<Pointer<drawing::Texture>> &textures);
+  void SetTextures(const Array<Ref<drawing::Texture>> &textures);
   void SetChars(const std::unordered_map<uint32_t, FontCharacter> &chars,
                 const std::unordered_map<uint32_t, uint32_t> &indices);
-  void SetMaterial(const Pointer<drawing::MaterialInstance> &material);
+  void SetMaterial(const Ref<drawing::MaterialInstance> &material);
   void SetLineHeight(uint32_t lineHeight);
   std::pair<uint32_t, uint32_t> ComputeTextSize(const String &text,uint32_t fontSize);
 
   uint32_t GetLineHeight() const;
-  WeakPointer<drawing::MaterialInstance> GetMaterial() const;
+  WeakRef<drawing::MaterialInstance> GetMaterial() const;
 
   bool IsUploaded() const override;
   void Upload() override;

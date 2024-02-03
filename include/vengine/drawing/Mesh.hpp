@@ -34,21 +34,21 @@ protected:
   Array<Vertex> _vertices;
   Array<uint32_t> _indices;
   Array<MeshSurface> _surfaces;
-  Array<Pointer<MaterialInstance>> _materials;
-  Pointer<GpuMeshBuffers> _gpuData;
+  Array<Ref<MaterialInstance>> _materials;
+  Ref<GpuMeshBuffers> _gpuData;
 public:
 
-  WeakPointer<GpuMeshBuffers> GetGpuData();
+  WeakRef<GpuMeshBuffers> GetGpuData();
   Array<Vertex> GetVertices() const;
   Array<uint32_t> GetIndices() const;
   Array<MeshSurface> GetSurfaces() const;
-  Array<WeakPointer<MaterialInstance>> GetMaterials() const;
+  Array<WeakRef<MaterialInstance>> GetMaterials() const;
 
 
   void SetVertices(const Array<Vertex> &vertices);
   void SetIndices(const Array<uint32_t> &indices);
   void SetSurfaces(const Array<MeshSurface> &surfaces);
-  void SetMaterial(uint32_t index, const Pointer<MaterialInstance> &material);
+  void SetMaterial(uint32_t index, const Ref<MaterialInstance> &material);
   
   void Upload() override;
   bool IsUploaded() const override;

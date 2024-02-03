@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include <vengine/scene/Scene.hpp>
-#include <vengine/scene/Transformable.hpp>
 #include "vengine/Engine.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/containers/Serializable.hpp"
@@ -40,25 +39,31 @@ return std::string("VENGINE_SCENE_OBJECT_") + #Type; \
 /**
  * \brief Base class for all object that exist in a world
  */
-class SceneObject : public Object<Scene>, public SharableThis<SceneObject>,public Transformable, public drawing::SceneDrawable, public Serializable {
+class SceneObject : public Object<Scene>, public SharableThis<SceneObject>, public drawing::SceneDrawable, public Serializable {
 
 private:
   bool _bCanEverUpdate = false;
-  Set<Pointer<Component>> _components;
-  Set<WeakPointer<RenderedComponent>> _renderedComponents;
-  Pointer<SceneComponent> _rootComponent;
+  std::list<Ref<Component>> _components;
+  std::list<WeakRef<RenderedComponent>> _renderedComponents;
+  Ref<SceneComponent> _rootComponent;
 public:
-  virtual Pointer<SceneComponent> CreateRootComponent();
-  virtual WeakPointer<SceneComponent> GetRootComponent() const;
-  virtual void AttachComponentsToRoot(const WeakPointer<SceneComponent> &root);
-
-  // Transformable Interface
-  math::Transform GetRelativeTransform() const override;
-  void SetRelativeTransform(const math::Transform &val) override;
-  WeakPointer<Transformable> GetParent() const override;
+  virtual Ref<SceneComponent> CreateRootComponent();
+  virtual WeakRef<SceneComponent> GetRootComponent() const;
+  virtual void AttachComponentsToRoot(const WeakRef<SceneComponent> &root);
   
-  virtual void AttachTo(const WeakPointer<SceneComponent> &parent);
-  virtual void AttachTo(const WeakPointer<SceneObject> &parent);
+  virtual void AttachTo(const WeakRef<SceneComponent> &parent);
+  virtual void AttachTo(const WeakRef<SceneObject> &parent);
+  
+  virtual math::Vector GetWorldLocation() const;
+  virtual math::Quat GetWorldRotation() const;
+  virtual math::Vector GetWorldScale() const;
+  virtual math::Transform GetWorldTransform() const;
+
+  virtual void SetWorldLocation(const math::Vector &val);
+  virtual void SetWorldRotation(const math::Quat &val);
+  virtual void SetWorldScale(const math::Vector &val);
+  virtual void SetWorldTransform(const math::Transform &val);
+  
   /**
    * \brief Initializes all components, call after component creation is complete
    * \param outer The Scene
@@ -66,25 +71,25 @@ public:
   virtual void Init(scene::Scene * outer) override;
 
   virtual Engine *GetEngine() const;
-  virtual WeakPointer<input::SceneInputConsumer> GetInput();
+  virtual WeakRef<input::SceneInputConsumer> GetInput();
   virtual Scene *GetScene() const;
   virtual void Update(float deltaTime);
   
   template <typename T,typename... Args>
-  WeakPointer<T> AddComponent(Args&&... args);
+  WeakRef<T> AddComponent(Args&&... args);
 
   template <typename T>
-  WeakPointer<T> GetComponentByClass();
+  WeakRef<T> GetComponentByClass();
 
-  void AddToRenderList(const WeakPointer<RenderedComponent> &comp);
+  void AddToRenderList(const WeakRef<RenderedComponent> &comp);
 
-  void RemoveFromRenderList(const WeakPointer<RenderedComponent> &comp);
+  void RemoveFromRenderList(const WeakRef<RenderedComponent> &comp);
   
-  void InitComponent(const Pointer<Component>& comp);
+  void InitComponent(const Ref<Component>& comp);
 
   void HandleDestroy() override;
 
-  void Draw(drawing::SceneDrawer *drawer, drawing::SimpleFrameData *frameData) override;
+  void Draw(drawing::SceneDrawer *drawer, const math::Transform &parentTransform, drawing::SimpleFrameData *frameData) override;
 
   virtual void ReadFrom(Buffer &store) override;
   virtual void WriteTo(Buffer &store) override;
@@ -92,19 +97,19 @@ public:
   VENGINE_IMPLEMENT_SCENE_OBJECT_ID(SceneObject)
 };
 
-template <typename T, typename ... Args> WeakPointer<T> SceneObject::AddComponent(
+template <typename T, typename ... Args> WeakRef<T> SceneObject::AddComponent(
     Args &&... args) {
   auto comp = newSharedObject<T>(std::forward<Args>(args)...);
   auto compPtr = comp.template Cast<Component>();
   if(IsInitialized()) {
     InitComponent(compPtr);
   }
-  _components.Add(compPtr);
+  _components.push_back(compPtr);
   
   return comp;
 }
 
-template <typename T> WeakPointer<T> SceneObject::GetComponentByClass() {
+template <typename T> WeakRef<T> SceneObject::GetComponentByClass() {
   for(auto component : _components) {
     auto dCast = component.Cast<T>();
     if(dCast != nullptr) {

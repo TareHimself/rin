@@ -3,7 +3,9 @@
 #include "vengine/assets/AssetManager.hpp"
 #include "vengine/drawing/scene/SceneDrawer.hpp"
 #include "vengine/input/KeyInputEvent.hpp"
+#include "vengine/scene/components/PointLightComponent.hpp"
 #include "vengine/widget/Image.hpp"
+#include "vengine/scene/objects/PointLight.hpp"
 
 
 TestMesh::TestMesh() {
@@ -52,8 +54,7 @@ void TestGameObject::Init(scene::Scene * outer) {
       R"(D:\MetalGoldPaint002\MetalGoldPaint002_ROUGHNESS_2K_METALNESS.png)");
   const auto pfp = assetImporter->ImportTexture(R"(D:\dog.png)");
   if (color) {
-    const auto defaultMat = GetScene()->GetDrawer().Reserve()->
-                                       GetDefaultMaterial().Reserve();
+    const auto defaultMat = GetScene()->GetDrawer().Reserve()->GetDefaultMaterial().Reserve();
     defaultMat->SetTexture("ColorT", color);
     defaultMat->SetTexture("NormalT", normal);
     defaultMat->SetTexture("RoughnessT", roughness);
@@ -73,38 +74,85 @@ void TestGameObject::Init(scene::Scene * outer) {
 
   _meshComponent.Reserve()->SetMesh(_mesh);
 
+  constexpr auto intensity = 1.0f;
+  constexpr auto distance = 20.0f;
+  if(auto pointLight = GetScene()->CreateSceneObject<scene::PointLight>().Reserve()) {
+    pointLight->SetWorldLocation({0,distance,0});
+    if(auto lightComp = pointLight->GetRootComponent().Cast<scene::PointLightComponent>().Reserve()) {
+      lightComp->SetIntensity(intensity);
+    }
+  }
+
+  if(auto pointLight = GetScene()->CreateSceneObject<scene::PointLight>().Reserve()) {
+    pointLight->SetWorldLocation({0,distance * -1.0f,0});
+    if(auto lightComp = pointLight->GetRootComponent().Cast<scene::PointLightComponent>().Reserve()) {
+      lightComp->SetIntensity(intensity);
+    }
+  }
+  
+  if(auto pointLight = GetScene()->CreateSceneObject<scene::PointLight>().Reserve()) {
+    pointLight->SetWorldLocation({distance,0,0});
+    if(auto lightComp = pointLight->GetRootComponent().Cast<scene::PointLightComponent>().Reserve()) {
+      lightComp->SetIntensity(intensity);
+    }
+  }
+  
+  if(auto pointLight = GetScene()->CreateSceneObject<scene::PointLight>().Reserve()) {
+    pointLight->SetWorldLocation({distance * -1.0f,0,0});
+    if(auto lightComp = pointLight->GetRootComponent().Cast<scene::PointLightComponent>().Reserve()) {
+      lightComp->SetIntensity(intensity);
+    }
+  }
+  
+  if(auto pointLight = GetScene()->CreateSceneObject<scene::PointLight>().Reserve()) {
+    pointLight->SetWorldLocation({ 0,0,distance});
+    if(auto lightComp = pointLight->GetRootComponent().Cast<scene::PointLightComponent>().Reserve()) {
+      lightComp->SetIntensity(intensity);
+    }
+  }
+  
+  if(auto pointLight = GetScene()->CreateSceneObject<scene::PointLight>().Reserve()) {
+    pointLight->SetWorldLocation({ 0,0,distance * -1.0f});
+    if(auto lightComp = pointLight->GetRootComponent().Cast<scene::PointLightComponent>().Reserve()) {
+      lightComp->SetIntensity(intensity);
+    }
+  }
+
   SetWorldLocation({0, 0, 0});
   AddCleanup([=] {
     _meshComponent.Reserve()->SetMesh(nullptr);
     _mesh.Clear();
   });
 
-  GetInput().Reserve()->BindKey(SDLK_f, [=](input::KeyInputEvent) {
-                               const auto image = GetEngine()->GetWidgetManager().Reserve()->AddWidget<widget::Image>().Reserve();
-                               // const auto text = GetEngine()->GetWidgetManager().Reserve()->
-                               //     AddWidget<widget::Text>().Reserve();
-
-                               image->SetTexture(pfp);
-                               image->SetRect({{0, 0}, {512, 512}});
-
-                               // text->SetContent(
-                               //     "Oritsemisan   Metseagharun   is   GAY ?????");
-                               return true;
-                             }, [=](input::KeyInputEvent) {
-
-                               return false;
-                             });
+  _fpsWidget = GetEngine()->GetWidgetManager().Reserve()->AddWidget<widget::Text>();
+  _fpsWidget.Reserve()->SetFontSize(20);
+  // GetInput().Reserve()->BindKey(SDLK_f, [=](input::KeyInputEvent) {
+  //                              const auto image = GetEngine()->GetWidgetManager().Reserve()->AddWidget<widget::Image>().Reserve();
+  //                              // const auto text = GetEngine()->GetWidgetManager().Reserve()->
+  //                              //     AddWidget<widget::Text>().Reserve();
+  //
+  //                              image->SetTexture(pfp);
+  //                              image->SetRect({{0, 0}, {512, 512}});
+  //
+  //                              // text->SetContent(
+  //                              //     "Oritsemisan   Metseagharun   is   GAY ?????");
+  //                              return true;
+  //                            }, [=](input::KeyInputEvent) {
+  //
+  //                              return false;
+  //                            });
 }
 
-void TestGameObject::AttachComponentsToRoot(const WeakPointer<scene::SceneComponent> &root) {
+void TestGameObject::AttachComponentsToRoot(const WeakRef<scene::SceneComponent> &root) {
   SceneObject::AttachComponentsToRoot(root);
-  _meshComponent.Reserve()->AttachTo(root);
+  //_meshComponent.Reserve()->AttachTo(root);
 }
 
 void TestGameObject::Update(float deltaTime) {
   SceneObject::Update(deltaTime);
-
-  SetWorldRotation(GetWorldRotation().ApplyYaw(70.f * deltaTime));
+  _fpsWidget.Reserve()->SetContent("FPS :" + std::to_string(
+                                       static_cast<int>(round(1.0f / deltaTime))));
+  _meshComponent.Reserve()->SetRelativeRotation(_meshComponent.Reserve()->GetRelativeRotation().ApplyYaw(70.f * deltaTime));
   // Rotate Object
 }
 

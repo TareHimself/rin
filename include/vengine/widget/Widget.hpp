@@ -15,7 +15,7 @@ class WidgetManager;
 
 class Widget : public Object<WidgetManager> {
   Widget * _parent = nullptr;
-  Array<Pointer<Widget>> _children;
+  Array<Ref<Widget>> _children;
   vk::Rect2D _rect;
   float _createdAt = 0.0f;
 public:
@@ -27,7 +27,7 @@ public:
   
   Widget * GetParent() const;
   
-  Array<WeakPointer<Widget>> GetChildren() const;
+  Array<WeakRef<Widget>> GetChildren() const;
 
   virtual void SetRect(vk::Rect2D rect);
   virtual vk::Rect2D GetRect() const;

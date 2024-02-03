@@ -502,6 +502,101 @@ vk::RenderingInfo Drawer::MakeRenderingInfo(vk::Extent2D drawExtent) {
   return vk::RenderingInfo({}, {{0, 0}, drawExtent}, 1, {});
 }
 
+void Drawer::GenerateMipMaps(const vk::CommandBuffer cmd, const vk::Image image,
+                             vk::Extent2D size,const vk::Filter& filter) {
+  const int mipLevels = static_cast<int>(std::floor(
+                            std::log2(std::max(size.width, size.height)))) + 1;
+
+  for (int mip = 0; mip < mipLevels; mip++) {
+
+    VkExtent2D halfSize = size;
+    halfSize.width /= 2;
+    halfSize.height /= 2;
+
+    vk::ImageMemoryBarrier2 imageBarrier{};
+
+    
+    
+    imageBarrier.setSrcStageMask(vk::PipelineStageFlagBits2::eAllCommands);
+    imageBarrier.setSrcAccessMask(vk::AccessFlagBits2::eMemoryWrite);
+    imageBarrier.setDstStageMask(vk::PipelineStageFlagBits2::eAllCommands);
+    imageBarrier.setDstAccessMask(
+        vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead);
+
+    imageBarrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
+    imageBarrier.setNewLayout(vk::ImageLayout::eTransferSrcOptimal);
+    
+    constexpr vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor;
+    imageBarrier.subresourceRange = ImageSubResourceRange(aspectMask);
+    imageBarrier.subresourceRange.setLevelCount(1);
+    imageBarrier.subresourceRange.setBaseMipLevel(mip);
+    imageBarrier.setImage(image);
+
+    vk::DependencyInfo depInfo{};
+    depInfo.setImageMemoryBarriers(imageBarrier);
+    cmd.pipelineBarrier2(depInfo);
+
+    if (mip < mipLevels - 1) {
+      // vk::ImageBlit2 blitRegion{};
+      // blitRegion.srcOffsets[1].x = size.width;
+      // blitRegion.srcOffsets[1].y = size.height;
+      // blitRegion.srcOffsets[1].z = 1;
+      //
+      // blitRegion.dstOffsets[1].x = halfSize.width;
+      // blitRegion.dstOffsets[1].y = halfSize.height;
+      // blitRegion.dstOffsets[1].z = 1;
+      //
+      // blitRegion.srcSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor);
+      // blitRegion.srcSubresource.setBaseArrayLayer(0);
+      // blitRegion.srcSubresource.setLayerCount(1);
+      // blitRegion.srcSubresource.setMipLevel(mip);
+      //
+      // blitRegion.dstSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor);
+      // blitRegion.dstSubresource.setBaseArrayLayer(0);
+      // blitRegion.dstSubresource.setLayerCount(1);
+      // blitRegion.dstSubresource.setMipLevel(mip + 1);
+      //
+      // vk::BlitImageInfo2 blitInfo{};
+      // blitInfo.setDstImage(image);
+      // blitInfo.setDstImageLayout(vk::ImageLayout::eTransferDstOptimal);
+      // blitInfo.setSrcImage(image);
+      // blitInfo.setSrcImageLayout(vk::ImageLayout::eTransferSrcOptimal);
+      // blitInfo.setFilter(vk::Filter::eLinear);
+      // blitInfo.setRegions(blitRegion);
+      //
+      // cmd.blitImage2(blitInfo);
+
+      auto blitRegion = vk::ImageBlit2();
+      blitRegion.setSrcOffsets(
+      {vk::Offset3D{},
+       vk::Offset3D{static_cast<int>(size.width),
+                    static_cast<int>(size.height), 1}});
+
+      blitRegion.setDstOffsets(
+      {vk::Offset3D{},
+       vk::Offset3D{static_cast<int>(halfSize.width),
+                    static_cast<int>(halfSize.height), 1}});
+
+      blitRegion.setSrcSubresource({vk::ImageAspectFlagBits::eColor, static_cast<uint32_t>(mip), 0, 1});
+
+      blitRegion.setDstSubresource({vk::ImageAspectFlagBits::eColor, static_cast<uint32_t>(mip + 1), 0, 1});
+
+      const auto blitInfo = vk::BlitImageInfo2(
+          image, vk::ImageLayout::eTransferSrcOptimal,
+          image, vk::ImageLayout::eTransferDstOptimal,
+          {blitRegion}, filter);
+
+      cmd.blitImage2(blitInfo);
+      
+      size = halfSize;
+    }
+  }
+
+  // transition all mip levels into the final read_only layout
+  TransitionImage(cmd, image, vk::ImageLayout::eTransferSrcOptimal,
+                   vk::ImageLayout::eShaderReadOnlyOptimal);
+}
+
 RawFrameData *Drawer::GetCurrentFrame() {
   return &_frames[_frameCount % FRAME_OVERLAP];
 }
@@ -559,7 +654,8 @@ void Drawer::DrawScenes(RawFrameData *frame) {
   //Actual Rendering
   for (const auto &scene : GetEngine()->GetScenes()) {
     if (auto sceneRef = scene.Reserve(); sceneRef->IsInitialized()) {
-      if(auto sceneDrawer = sceneRef->GetDrawer().Reserve(); sceneDrawer->IsInitialized()) {
+      if (auto sceneDrawer = sceneRef->GetDrawer().Reserve(); sceneDrawer->
+        IsInitialized()) {
         sceneDrawer->Draw(this, frame);
       }
     }
@@ -652,6 +748,9 @@ vk::Extent2D Drawer::GetSwapchainExtentScaled() const {
 }
 
 vk::Extent2D Drawer::GetDrawImageExtent() const {
+  if (!_drawImage) {
+    return {};
+  }
   return {static_cast<uint32_t>(_drawImage->extent.width),
           static_cast<uint32_t>(_drawImage->extent.height)};
 }
@@ -874,19 +973,22 @@ vk::RenderingAttachmentInfo Drawer::MakeRenderingAttachment(
   return attachment;
 }
 
+uint32_t Drawer::CalcMipLevels(const vk::Extent2D &extent) {
+  return static_cast<uint32_t>(std::floor(
+                            std::log2(std::max(extent.width, extent.height)))) + 1;
+}
+
 String Drawer::GetName() const {
   return "drawing";
 }
 
-Pointer<AllocatedImage> Drawer::CreateImage(
+Ref<AllocatedImage> Drawer::CreateImage(
     const vk::Extent3D size, const vk::Format format,
     const vk::ImageUsageFlags usage, const bool mipMapped) const {
 
   auto imgInfo = MakeImageCreateInfo(format, size, usage);
   if (mipMapped) {
-    imgInfo.setMipLevels(
-        static_cast<uint32_t>(std::floor(
-            std::log2(std::max(1, 1)))) + 1);
+    imgInfo.setMipLevels(CalcMipLevels({size.width,size.height}));
   }
 
   // allocate and create the image
@@ -909,10 +1011,10 @@ Pointer<AllocatedImage> Drawer::CreateImage(
   return newImage;
 }
 
-Pointer<AllocatedImage> Drawer::CreateImage(
+Ref<AllocatedImage> Drawer::CreateImage(
     const void *data, const vk::Extent3D size,
     const vk::Format format, const vk::ImageUsageFlags usage,
-    const bool mipMapped) {
+    const bool mipMapped,const vk::Filter& mipMapFilter) {
 
   auto channels = 0;
   switch (format) {
@@ -954,21 +1056,27 @@ Pointer<AllocatedImage> Drawer::CreateImage(
     cmd.copyBufferToImage(uploadBuffer->buffer, newImage->image,
                           vk::ImageLayout::eTransferDstOptimal, 1, &copyRegion);
 
-    TransitionImage(cmd, newImage->image, vk::ImageLayout::eTransferDstOptimal,
-                    vk::ImageLayout::eShaderReadOnlyOptimal);
+    if (mipMapped) {
+      GenerateMipMaps(cmd, newImage->image,{newImage->extent.width,newImage->extent.height},mipMapFilter);
+    } else {
+      TransitionImage(cmd, newImage->image,
+                      vk::ImageLayout::eTransferDstOptimal,
+                      vk::ImageLayout::eShaderReadOnlyOptimal);
+    }
+
   });
 
   return newImage;
 }
 
 
-Pointer<GpuMeshBuffers> Drawer::CreateMeshBuffers(const Mesh *mesh) {
+Ref<GpuMeshBuffers> Drawer::CreateMeshBuffers(const Mesh *mesh) {
   const auto vertices = mesh->GetVertices();
   const auto indices = mesh->GetIndices();
   const auto vertexBufferSize = vertices.ByteSize();
   const auto indexBufferSize = indices.ByteSize();
 
-  Pointer<GpuMeshBuffers> newBuffers{new GpuMeshBuffers};
+  Ref<GpuMeshBuffers> newBuffers{new GpuMeshBuffers};
 
   newBuffers->vertexBuffer = GetAllocator().Reserve()->CreateBuffer(
       vertexBufferSize,
@@ -1014,23 +1122,23 @@ Pointer<GpuMeshBuffers> Drawer::CreateMeshBuffers(const Mesh *mesh) {
   return newBuffers;
 }
 
-WeakPointer<Allocator> Drawer::GetAllocator() const {
+WeakRef<Allocator> Drawer::GetAllocator() const {
   return _allocator;
 }
 
-WeakPointer<Texture> Drawer::GetDefaultWhiteTexture() const {
+WeakRef<Texture> Drawer::GetDefaultWhiteTexture() const {
   return _whiteTexture;
 }
 
-WeakPointer<Texture> Drawer::GetDefaultBlackTexture() const {
+WeakRef<Texture> Drawer::GetDefaultBlackTexture() const {
   return _blackTexture;
 }
 
-WeakPointer<Texture> Drawer::GetDefaultGreyTexture() const {
+WeakRef<Texture> Drawer::GetDefaultGreyTexture() const {
   return _greyTexture;
 }
 
-WeakPointer<Texture> Drawer::GetDefaultErrorCheckerboardTexture() const {
+WeakRef<Texture> Drawer::GetDefaultErrorCheckerboardTexture() const {
   return _errorCheckerboardTexture;
 }
 
@@ -1042,7 +1150,7 @@ vk::Sampler Drawer::GetDefaultSamplerNearest() const {
   return _defaultSamplerNearest;
 }
 
-WeakPointer<ShaderManager> Drawer::GetShaderManager() const {
+WeakRef<ShaderManager> Drawer::GetShaderManager() const {
   return _shaderManager;
 }
 

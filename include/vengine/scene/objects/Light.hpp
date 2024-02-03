@@ -4,8 +4,11 @@
 
 namespace vengine::scene {
 class Light : public SceneObject {
-  WeakPointer<BillboardComponent> _billboard = AddComponent<BillboardComponent>();
+protected:
+  WeakRef<BillboardComponent> _billboard = AddComponent<BillboardComponent>();
 public:
+
+void AttachComponentsToRoot(const WeakRef<SceneComponent> &root) override;
   VENGINE_IMPLEMENT_SCENE_OBJECT_ID(Light)
 };
 

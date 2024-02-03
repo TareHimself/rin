@@ -66,21 +66,21 @@ class Drawer : public EngineSubsystem , public SharableThis<Drawer> {
   uint32_t _graphicsQueueFamily = -1;
 
   // Images
-  Pointer<AllocatedImage> _drawImage;
-  Pointer<AllocatedImage> _depthImage;
+  Ref<AllocatedImage> _drawImage;
+  Ref<AllocatedImage> _depthImage;
 
   // Default Images
-  Pointer<Texture> _whiteTexture;
-  Pointer<Texture> _blackTexture;
-  Pointer<Texture> _greyTexture;
-  Pointer<Texture> _errorCheckerboardTexture;
+  Ref<Texture> _whiteTexture;
+  Ref<Texture> _blackTexture;
+  Ref<Texture> _greyTexture;
+  Ref<Texture> _errorCheckerboardTexture;
 
   // Default Samplers
   vk::Sampler _defaultSamplerLinear;
   vk::Sampler _defaultSamplerNearest;
   
   DescriptorAllocatorGrowable _globalAllocator{};
-  WeakPointer<DescriptorSet> _drawImageDescriptors;
+  WeakRef<DescriptorSet> _drawImageDescriptors;
   vk::DescriptorSetLayout _drawImageDescriptorLayout;
 
   vk::Pipeline _computePipeline;
@@ -93,13 +93,13 @@ class Drawer : public EngineSubsystem , public SharableThis<Drawer> {
 
   vk::Pipeline _mainPipeline;
   vk::PipelineLayout _mainPipelineLayout;
-  Pointer<Allocator> _allocator;
+  Ref<Allocator> _allocator;
   RawFrameData _frames[FRAME_OVERLAP];
 
   bool _bResizeRequested = false;
   bool _bIsResizingSwapchain = false;
 
-  Pointer<ShaderManager> _shaderManager;
+  Ref<ShaderManager> _shaderManager;
   Array<std::function<void()>> _resizeCallbacks;
 protected:
 
@@ -136,6 +136,9 @@ protected:
   
 
   static vk::RenderingInfo MakeRenderingInfo(vk::Extent2D drawExtent);
+  static void GenerateMipMaps(vk::CommandBuffer cmd, vk::Image image,
+                              vk::Extent2D size, const vk::Filter &filter);
+  
   static void TransitionImage(vk::CommandBuffer cmd, vk::Image image,
                               vk::ImageLayout currentLayout,
                               vk::ImageLayout newLayout);
@@ -153,6 +156,8 @@ protected:
       vk::ImageView view,
       vk::ImageLayout layout = vk::ImageLayout::eAttachmentOptimal,
       const std::optional<vk::ClearValue> &clear = std::nullopt);
+
+  static uint32_t CalcMipLevels(const vk::Extent2D & extent);
 public:
   String GetName() const override;
   float renderScale = 1.f;
@@ -173,20 +178,20 @@ public:
   vk::Device GetDevice() const;
   vk::PhysicalDevice GetPhysicalDevice() const;
   vk::Instance GetVulkanInstance() const;
-  WeakPointer<Allocator> GetAllocator() const;
+  WeakRef<Allocator> GetAllocator() const;
 
 
-  WeakPointer<Texture> GetDefaultWhiteTexture() const;
-  WeakPointer<Texture> GetDefaultBlackTexture() const;
-  WeakPointer<Texture> GetDefaultGreyTexture() const;
-  WeakPointer<Texture> GetDefaultErrorCheckerboardTexture() const;
+  WeakRef<Texture> GetDefaultWhiteTexture() const;
+  WeakRef<Texture> GetDefaultBlackTexture() const;
+  WeakRef<Texture> GetDefaultGreyTexture() const;
+  WeakRef<Texture> GetDefaultErrorCheckerboardTexture() const;
 
   //void onResize(const std::function<void()> & callback);
   // Default Samplers
   vk::Sampler GetDefaultSamplerLinear() const;
   vk::Sampler GetDefaultSamplerNearest() const;
 
-  WeakPointer<ShaderManager> GetShaderManager() const;
+  WeakRef<ShaderManager> GetShaderManager() const;
   
   DescriptorAllocatorGrowable * GetGlobalDescriptorAllocator();
   
@@ -196,15 +201,15 @@ public:
 
   bool IsResizingSwapchain() const;
 
-  Pointer<AllocatedImage> CreateImage(vk::Extent3D size,
+  Ref<AllocatedImage> CreateImage(vk::Extent3D size,
                                       vk::Format format,
                                       vk::ImageUsageFlags usage,
                                       bool mipMapped = false) const;
-  Pointer<AllocatedImage> CreateImage(const void *data,
+  Ref<AllocatedImage> CreateImage(const void *data,
                                       vk::Extent3D size,
                                       vk::Format format,
                                       vk::ImageUsageFlags usage,
-                                      bool mipMapped = false);
+                                      bool mipMapped = false,const vk::Filter& mipMapFilter = vk::Filter::eLinear);
   
   
   void ResizeSwapchain();
@@ -223,7 +228,7 @@ public:
 
   TEventDispatcher<vk::Extent2D> onResizeEvent;
 
-  Pointer<GpuMeshBuffers> CreateMeshBuffers(const Mesh *mesh);
+  Ref<GpuMeshBuffers> CreateMeshBuffers(const Mesh *mesh);
 };
 } // namespace rendering
 } // namespace vengine

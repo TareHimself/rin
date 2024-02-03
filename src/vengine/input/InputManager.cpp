@@ -96,10 +96,10 @@ bool InputManager::ReceiveKeyReleasedEvent(const SDL_KeyboardEvent &event) {
 }
 
 void InputManager::InitConsumer(
-    const Pointer<InputConsumer> &consumer) {
+    const Ref<InputConsumer> &consumer) {
   consumer->Init(this);
   _consumers.push_back(consumer);
-  WeakPointer<InputConsumer> weakPtr = consumer; 
+  WeakRef<InputConsumer> weakPtr = consumer; 
   consumer->onDestroyed.On([this,weakPtr] {
     if(weakPtr && !IsPendingDestroy()) {
       _consumers.remove(weakPtr.Reserve());

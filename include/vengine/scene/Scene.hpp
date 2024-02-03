@@ -42,14 +42,14 @@ class SceneObject;
  * \brief Base class for worlds
  */
 class Scene : public Object<Engine>,public SharableThis<Scene>,public Serializable {
-  Pointer<physics::ScenePhysics> _physics;
-  Pointer<drawing::SceneDrawer> _drawer;
-  Pointer<SceneObject> _viewTarget;
-  Pointer<SceneObject> _defaultViewTarget;
-  Array<Pointer<SceneObject>> _sceneObjects;
-  Array<Pointer<SceneObject>> _objectsPendingInit;
-  Pointer<input::SceneInputConsumer> _inputConsumer;
-  Set<WeakPointer<LightComponent>> _lights;
+  Ref<physics::ScenePhysics> _physics;
+  Ref<drawing::SceneDrawer> _drawer;
+  Ref<SceneObject> _viewTarget;
+  Ref<SceneObject> _defaultViewTarget;
+  Array<Ref<SceneObject>> _sceneObjects;
+  Array<Ref<SceneObject>> _objectsPendingInit;
+  Ref<input::SceneInputConsumer> _inputConsumer;
+  std::list<WeakRef<LightComponent>> _lights;
 
 public:
   Engine *GetEngine() const;
@@ -60,17 +60,19 @@ public:
   void ReadFrom(Buffer &store) override;
   void WriteTo(Buffer &store) override;
 
-  virtual bool ShouldSerializeObject(const Pointer<SceneObject> &object);
+  virtual bool ShouldSerializeObject(const Ref<SceneObject> &object);
 
-  Array<WeakPointer<SceneObject>> GetSceneObjects() const;
+  Array<WeakRef<SceneObject>> GetSceneObjects() const;
 
-  WeakPointer<drawing::SceneDrawer> GetDrawer() const;
+  std::list<WeakRef<LightComponent>> GetSceneLights() const;
 
-  WeakPointer<physics::ScenePhysics> GetPhysics() const;
+  WeakRef<drawing::SceneDrawer> GetDrawer() const;
 
-  WeakPointer<input::SceneInputConsumer> GetInput() const;
+  WeakRef<physics::ScenePhysics> GetPhysics() const;
 
-  void RegisterLight(const WeakPointer<LightComponent>& light);
+  WeakRef<input::SceneInputConsumer> GetInput() const;
+
+  void RegisterLight(const WeakRef<LightComponent>& light);
 
   /**
    * \brief Called every tick
@@ -81,32 +83,32 @@ public:
    * \brief Create a new physics instance for this world
    * \return The created instance
    */
-  virtual Pointer<physics::ScenePhysics> CreatePhysics();
+  virtual Ref<physics::ScenePhysics> CreatePhysics();
 
   /**
    * \brief Create a new renderer for this world
    * \return The created instance
    */
-  virtual Pointer<drawing::SceneDrawer> CreateDrawer();
+  virtual Ref<drawing::SceneDrawer> CreateDrawer();
 
-  virtual Pointer<input::SceneInputConsumer> CreateInputManager();
+  virtual Ref<input::SceneInputConsumer> CreateInputManager();
 
-  virtual Pointer<SceneObject> CreateDefaultViewTarget();
+  virtual Ref<SceneObject> CreateDefaultViewTarget();
 
-  WeakPointer<SceneObject> GetViewTarget() const;
+  WeakRef<SceneObject> GetViewTarget() const;
 
-  virtual Pointer<SceneObject> InitSceneObject(const Pointer<SceneObject> &object);
-
-  template <typename T,typename ... Args>
-  WeakPointer<T> CreateSceneObject(Args &&... args);
+  virtual Ref<SceneObject> InitSceneObject(const Ref<SceneObject> &object);
 
   template <typename T,typename ... Args>
-  WeakPointer<T> CreateSceneObject(const math::Transform &transform,Args &&... args);
+  WeakRef<T> CreateSceneObject(Args &&... args);
+
+  template <typename T,typename ... Args>
+  WeakRef<T> CreateSceneObject(const math::Transform &transform,Args &&... args);
 
   VENGINE_IMPLEMENT_SCENE_ID(Scene)
 };
 
-template <typename T, typename ... Args> WeakPointer<T> Scene::CreateSceneObject(
+template <typename T, typename ... Args> WeakRef<T> Scene::CreateSceneObject(
     Args &&... args) {
   auto rawObj = newSharedObject<T>(args...);
   const auto obj = rawObj.template Cast<SceneObject>();
@@ -114,7 +116,7 @@ template <typename T, typename ... Args> WeakPointer<T> Scene::CreateSceneObject
   return rawObj;
 }
 
-template <typename T, typename ... Args> WeakPointer<T> Scene::CreateSceneObject(
+template <typename T, typename ... Args> WeakRef<T> Scene::CreateSceneObject(
     const math::Transform &transform, Args &&... args) {
   auto rawObj = CreateSceneObject<T>(args...);
   const auto obj = rawObj.template Cast<SceneObject>();

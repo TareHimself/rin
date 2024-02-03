@@ -16,9 +16,9 @@ namespace vengine::drawing {
 class MaterialInstance : public Object<Drawer> {
   vk::Pipeline _pipeline;
   vk::PipelineLayout _pipelineLayout;
-  std::unordered_map<RawFrameData *,WeakPointer<DescriptorSet>> _dynamicSets;
+  std::unordered_map<RawFrameData *,WeakRef<DescriptorSet>> _dynamicSets;
   std::unordered_map<uint64_t,RawFrameData> _pendingCleanups;
-  std::unordered_map<EMaterialSetType,WeakPointer<DescriptorSet>> _sets;
+  std::unordered_map<EMaterialSetType,WeakRef<DescriptorSet>> _sets;
   std::unordered_map<EMaterialSetType,vk::DescriptorSetLayout> _layouts;
   // vk::DescriptorSetLayout _materialSetLayout;
   EMaterialType _materialType{};
@@ -38,7 +38,7 @@ public:
 
   void SetPipeline(vk::Pipeline pipeline);
   void SetLayout(vk::PipelineLayout layout);
-  void SetSets(const std::unordered_map<EMaterialSetType, WeakPointer<DescriptorSet>> &
+  void SetSets(const std::unordered_map<EMaterialSetType, WeakRef<DescriptorSet>> &
                sets, const std::unordered_map<EMaterialSetType, vk::DescriptorSetLayout> &
                layouts);
   void SetType(EMaterialType pass);
@@ -46,7 +46,7 @@ public:
   
   vk::Pipeline GetPipeline() const;
   vk::PipelineLayout GetLayout() const;
-  std::unordered_map<EMaterialSetType, WeakPointer<DescriptorSet>>
+  std::unordered_map<EMaterialSetType, WeakRef<DescriptorSet>>
   GetDescriptorSets() const;
   //vk::DescriptorSetLayout GetDescriptorSetLayout() const;
   ShaderResources GetResources() const;
@@ -54,17 +54,17 @@ public:
   
   void Init(Drawer * drawer) override;
 
-  void SetTexture(const std::string &param, const WeakPointer<Texture> &texture);
+  void SetTexture(const std::string &param, const WeakRef<Texture> &texture);
 
-  void SetDynamicTexture(RawFrameData *frame, const std::string &param, const WeakPointer<Texture> &
+  void SetDynamicTexture(RawFrameData *frame, const std::string &param, const WeakRef<Texture> &
                          texture);
 
-  void SetTextureArray(const std::string &param, const Array<WeakPointer<Texture>> &textures);
+  void SetTextureArray(const std::string &param, const Array<WeakRef<Texture>> &textures);
 
   template<typename T>
-  void SetBuffer(const std::string &param, const WeakPointer<AllocatedBuffer> &buffer);
+  void SetBuffer(const std::string &param, const WeakRef<AllocatedBuffer> &buffer);
 
-  void SetBuffer(const std::string &param, const WeakPointer<AllocatedBuffer> &buffer, size_t);
+  void SetBuffer(const std::string &param, const WeakRef<AllocatedBuffer> &buffer, size_t);
 
   void BindPipeline(RawFrameData *frame) const;
   //void BindCustomSet(RawFrameData *frame, const vk::DescriptorSet set, const uint32_t idx) const;
@@ -82,7 +82,7 @@ public:
 };
 
 template <typename T> void MaterialInstance::SetBuffer(const std::string &param,
-    const WeakPointer<AllocatedBuffer> &buffer) {
+    const WeakRef<AllocatedBuffer> &buffer) {
   SetBuffer(param,buffer,sizeof(T));
 }
 

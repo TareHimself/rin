@@ -22,8 +22,10 @@ void main()
 	//inWorldLocation.xy
 	vec3 color = texture(ColorT,iUV).xyz;
 
+	vec3 roughness = texture(RoughnessT,iUV).xyz;
+	//oColor = vec4(color,1.0);
 	// //vec3 color = texture(inColorTexture,inWorldLocation.xy).xyz;
 	// vec3 ambient = color * scene.ambientColor.xyz;
 	//vec4(color,1.0f);//
-	oColor = vec4(computeColor(color,normal,texture(NormalT,iUV).r,1.0,vec3(0.0, 0.0, 0.0),vec3(0.0)),1.0);//vec4(color * lightValue *  scene.sunlightColor.w + ambient ,1.0f);
+	oColor = vec4(computeColor(color,normal,roughness.r,1.0,vec3(0.0, 0.0, 0.0),vec3(0.0)),1.0);//vec4(color * lightValue *  scene.sunlightColor.w + ambient ,1.0f);
 }

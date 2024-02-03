@@ -4,9 +4,9 @@
 
 namespace vengine::scene {
 class BillboardComponent : public RenderedComponent {
-  Pointer<drawing::Texture> _texture;
+  Ref<drawing::Texture> _texture;
 public:
-  virtual void Draw(drawing::SceneDrawer *drawer, drawing::SimpleFrameData *frameData) override;
+  virtual void Draw(drawing::SceneDrawer *drawer, const math::Transform &parentTransform, drawing::SimpleFrameData *frameData) override;
 
   VENGINE_IMPLEMENT_COMPONENT_ID(BillboardComponent)
 };

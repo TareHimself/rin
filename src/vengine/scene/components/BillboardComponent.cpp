@@ -2,7 +2,7 @@
 
 namespace vengine::scene {
 void BillboardComponent::Draw(drawing::SceneDrawer *drawer,
-                              drawing::SimpleFrameData *frameData) {
+                              const math::Transform &parentTransform, drawing::SimpleFrameData *frameData) {
   
 }
 }

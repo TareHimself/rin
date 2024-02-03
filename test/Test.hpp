@@ -5,6 +5,7 @@
 #include "vengine/scene/objects/SceneObject.hpp"
 #include "reflect/Macro.hpp"
 #include "Test.reflect.hpp"
+#include "vengine/widget/Text.hpp"
 using namespace vengine;
 
 RCLASS()
@@ -19,18 +20,19 @@ class TestGameObject : public scene::SceneObject {
 public:
   
   RPROPERTY()
-  Pointer<drawing::Mesh> _mesh = vengine::newSharedObject<TestMesh>();
+  Ref<drawing::Mesh> _mesh = vengine::newSharedObject<TestMesh>();
 
   RPROPERTY()
-  WeakPointer<scene::StaticMeshComponent> _meshComponent = AddComponent<scene::StaticMeshComponent>();
+  WeakRef<scene::StaticMeshComponent> _meshComponent = AddComponent<scene::StaticMeshComponent>();
 
   RPROPERTY()
-  WeakPointer<scene::ScriptComponent> _scriptComp = AddComponent<scene::ScriptComponent>(R"(D:\Github\vengine\scripts\test.as)");
+  WeakRef<scene::ScriptComponent> _scriptComp = AddComponent<scene::ScriptComponent>(R"(D:\Github\vengine\scripts\test.as)");
 
+  WeakRef<widget::Text> _fpsWidget;
   
   void Init( scene::Scene * outer) override;
 
-  void AttachComponentsToRoot(const  WeakPointer<scene::SceneComponent> &root) override;
+  void AttachComponentsToRoot(const  WeakRef<scene::SceneComponent> &root) override;
 
   void Update(float deltaTime) override;
 

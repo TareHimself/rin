@@ -3,7 +3,7 @@
 
 namespace vengine {
 namespace drawing {
-PipelineBuilder &PipelineBuilder::AddShaderStage(const Pointer<Shader> &shader) {
+PipelineBuilder &PipelineBuilder::AddShaderStage(const Ref<Shader> &shader) {
   _shaders.Push(shader);
   return *this;
 }

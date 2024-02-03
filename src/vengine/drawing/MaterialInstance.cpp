@@ -13,7 +13,7 @@ void MaterialInstance::SetLayout(const vk::PipelineLayout layout) {
   _pipelineLayout = layout;
 }
 
-void MaterialInstance::SetSets(const std::unordered_map<EMaterialSetType, WeakPointer<DescriptorSet>> &
+void MaterialInstance::SetSets(const std::unordered_map<EMaterialSetType, WeakRef<DescriptorSet>> &
                                sets, const std::unordered_map<EMaterialSetType, vk::DescriptorSetLayout> &
                                layouts) {
   _sets = sets;
@@ -42,7 +42,7 @@ vk::PipelineLayout MaterialInstance::GetLayout() const {
   return _pipelineLayout;
 }
 
-std::unordered_map<EMaterialSetType, WeakPointer<DescriptorSet>> MaterialInstance::GetDescriptorSets() const {
+std::unordered_map<EMaterialSetType, WeakRef<DescriptorSet>> MaterialInstance::GetDescriptorSets() const {
   return _sets;
 }
 
@@ -59,7 +59,7 @@ void MaterialInstance::Init(Drawer * drawer) {
 }
 
 void MaterialInstance::SetTexture(const std::string &param,
-                                                const WeakPointer<Texture> &texture) {
+                                                const WeakRef<Texture> &texture) {
 
 
   utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);
@@ -74,7 +74,7 @@ void MaterialInstance::SetTexture(const std::string &param,
 }
 
 void MaterialInstance::SetDynamicTexture(RawFrameData *frame,
-    const std::string &param, const WeakPointer<Texture> &texture) {
+    const std::string &param, const WeakRef<Texture> &texture) {
   utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);
   utils::vassert(texture,"Texture Is Invalid");
   
@@ -86,7 +86,7 @@ void MaterialInstance::SetDynamicTexture(RawFrameData *frame,
 }
 
 void MaterialInstance::SetTextureArray(const std::string &param,
-                                       const Array<WeakPointer<Texture>> &textures) {
+                                       const Array<WeakRef<Texture>> &textures) {
   utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);
   utils::vassert(!textures.empty(),"Texture Array is Empty");
   
@@ -97,7 +97,7 @@ void MaterialInstance::SetTextureArray(const std::string &param,
 }
 
 void MaterialInstance::SetBuffer(const std::string &param,
-                                 const WeakPointer<AllocatedBuffer> &buffer, size_t size) {
+                                 const WeakRef<AllocatedBuffer> &buffer, size_t size) {
 
   utils::vassert(_shaderResources.uniformBuffers.contains(param),"UniformBuffer [ {} ] Does Not Exist In Material",param);
 

@@ -4,7 +4,7 @@
 #include "vengine/utils.hpp"
 
 namespace vengine::drawing {
-MaterialBuilder& MaterialBuilder::AddShader(Pointer<Shader> shader) {
+MaterialBuilder& MaterialBuilder::AddShader(Ref<Shader> shader) {
   _pipelineBuilder.AddShaderStage(shader);
   _shaders.Push(shader);
   return *this;
@@ -31,7 +31,7 @@ Array<vk::PushConstantRange> MaterialBuilder::ComputePushConstantRanges(
   return ranges;
 }
 
-Pointer<MaterialInstance> MaterialBuilder::Create(Drawer * drawer) {
+Ref<MaterialInstance> MaterialBuilder::Create(Drawer * drawer) {
   auto device = drawer->GetDevice();
   const auto instance = newSharedObject<MaterialInstance>();
   ShaderResources resources{};
@@ -131,7 +131,7 @@ Pointer<MaterialInstance> MaterialBuilder::Create(Drawer * drawer) {
   instance->SetPipeline(_pipelineBuilder.Build(drawer->GetDevice()));
 
   auto globalAllocator = drawer->GetGlobalDescriptorAllocator();
-  std::unordered_map<EMaterialSetType,WeakPointer<DescriptorSet>> sets;
+  std::unordered_map<EMaterialSetType,WeakRef<DescriptorSet>> sets;
   for(auto layout : layouts) {
     if(layout.first == EMaterialSetType::Dynamic) {
       continue;

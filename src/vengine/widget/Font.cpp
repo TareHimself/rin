@@ -29,7 +29,7 @@ void Font::UpdateMaterial() const {
     return;
   }
   _material->SetBuffer<GpuPackedFontChars>("FontChars",_gpuFontCharacters);
-  Array<WeakPointer<drawing::Texture>> toSet;
+  Array<WeakRef<drawing::Texture>> toSet;
   for (auto i = 0; i < 3; i++) {
     if (_textures.size() > (i + 1)) {
       toSet.Push(_textures[i]);
@@ -53,7 +53,7 @@ void Font::WriteTo(Buffer &store) {
 
 }
 
-void Font::SetTextures(const Array<Pointer<drawing::Texture>> &textures) {
+void Font::SetTextures(const Array<Ref<drawing::Texture>> &textures) {
   _textures = textures;
 }
 
@@ -63,7 +63,7 @@ void Font::SetChars(const std::unordered_map<uint32_t, FontCharacter> &chars,
   _fontCharIndices = indices;
 }
 
-void Font::SetMaterial(const Pointer<drawing::MaterialInstance> &material) {
+void Font::SetMaterial(const Ref<drawing::MaterialInstance> &material) {
   _material = material;
   UpdateMaterial();
 }
@@ -98,7 +98,7 @@ uint32_t Font::GetLineHeight() const {
   return _lineHeight;
 }
 
-WeakPointer<drawing::MaterialInstance> Font::GetMaterial() const {
+WeakRef<drawing::MaterialInstance> Font::GetMaterial() const {
   return _material;
 }
 

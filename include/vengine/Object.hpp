@@ -1,5 +1,5 @@
 #pragma once
-#include "Pointer.hpp"
+#include "Ref.hpp"
 #include "log.hpp"
 #include "types.hpp"
 #include "containers/TEventDispatcher.hpp"
@@ -95,7 +95,6 @@ namespace vengine {
       HandleDestroy();
     }
     if(bWasAllocated) {
-      log::engine->info("Cleaned up allocated object");
       delete this;
     }
     _bHasBeenInitialized = false;
@@ -114,19 +113,16 @@ static T *newObject(Args&&... args) {
     static_assert(std::is_base_of_v<Allocatable, T>, "T must be a child of Allocatable");
     auto obj = new T(args...);
     static_cast<Allocatable*>(obj)->bWasAllocated = true;
-    log::engine->info("Allocated object");
     return obj;
 }
 
 template <typename T, typename... Args>
-static Pointer<T> newSharedObject(Args&&... args) {
+static Ref<T> newSharedObject(Args&&... args) {
     static_assert(std::is_base_of_v<Allocatable, T>, "T must be a child of Allocatable");
     auto obj = new T(std::forward<Args>(args)...);
     static_cast<Allocatable*>(obj)->bWasAllocated = true;
     
-    log::engine->info("Allocated object");
-    
-    return Pointer<T>(obj,[](T * ptr) {
+    return Ref<T>(obj,[](T * ptr) {
       static_cast<Allocatable *>(ptr)->Destroy();
     });
   }

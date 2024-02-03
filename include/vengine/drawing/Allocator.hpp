@@ -24,7 +24,7 @@ public:
 
   void HandleDestroy() override;
 
-  Pointer<AllocatedBuffer> CreateBuffer(size_t allocSize,
+  Ref<AllocatedBuffer> CreateBuffer(size_t allocSize,
                                                 vk::BufferUsageFlags usage,
                                                 VmaMemoryUsage memoryUsage,
                                                 vk::MemoryPropertyFlags
@@ -32,15 +32,15 @@ public:
                                                 VmaAllocationCreateFlags
                                                 flags = {}) const;
 
-  Pointer<AllocatedBuffer> CreateTransferCpuGpuBuffer(
+  Ref<AllocatedBuffer> CreateTransferCpuGpuBuffer(
       size_t size, bool randomAccess) const;
 
-  Pointer<AllocatedBuffer> CreateUniformCpuGpuBuffer(
+  Ref<AllocatedBuffer> CreateUniformCpuGpuBuffer(
       size_t size, bool randomAccess) const;
   
   void DestroyBuffer(const AllocatedBuffer &buffer) const;
 
-  Pointer<AllocatedImage> AllocateImage(vk::ImageCreateInfo &createInfo,
+  Ref<AllocatedImage> AllocateImage(vk::ImageCreateInfo &createInfo,
                                                 const VmaMemoryUsage memoryUsage = {},
                                                 const vk::MemoryPropertyFlags requiredFlags = {}) const;
   void DestroyImage(const AllocatedImage &image) const;

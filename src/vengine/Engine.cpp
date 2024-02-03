@@ -103,19 +103,25 @@ void Engine::RunGame() {
     }
     
     Update(deltaFloat);
+
+    if(!bIsMinimized) {
+      _drawer->Draw(); 
+    }
     
+       
     _lastTickTime = tickStart;
   }
 }
 
 void Engine::RunDraw() const {
   while (!ShouldExit()) {
-    if(bIsMinimized) {
-      std::this_thread::sleep_for(std::chrono::milliseconds{1000});
-      return;
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds{1000});
+    // if(bIsMinimized) {
+    //   std::this_thread::sleep_for(std::chrono::milliseconds{1000});
+    //   return;
+    // }
     
-    _drawer->Draw();
+    // _drawer->Draw();
   }
 }
 
@@ -123,25 +129,25 @@ float Engine::GetEngineTimeSeconds() const {
   return static_cast<float>(_runTime / 1000.0);
 }
 
-Array<WeakPointer<scene::Scene>> Engine::GetScenes() const {
-  Array<WeakPointer<scene::Scene>> scenes;
+Array<WeakRef<scene::Scene>> Engine::GetScenes() const {
+  Array<WeakRef<scene::Scene>> scenes;
   for(auto &scene : _scenes) {
     scenes.Push(scene);
   }
   return scenes;
 }
 
-WeakPointer<SDL_Window> Engine::GetWindow() const {
+WeakRef<SDL_Window> Engine::GetWindow() const {
   return _window;
 }
 
 vk::Extent2D Engine::GetWindowExtent() const { return _windowExtent; }
 
-WeakPointer<drawing::Drawer> Engine::GetDrawer() const{
+WeakRef<drawing::Drawer> Engine::GetDrawer() const{
   return _drawer;
 }
 
-WeakPointer<input::InputManager> Engine::GetInputManager() const{
+WeakRef<input::InputManager> Engine::GetInputManager() const{
   return _inputManager;
 }
 
@@ -153,10 +159,10 @@ Engine::Engine() = default;
 
 void Engine::Init() {
   InitWindow();
+  InitAssetManager();
   InitScriptManager();
   InitInputManager();
   InitDrawer();
-  InitAssetManager();
   InitWidgetManager();
   InitScenes();
 
@@ -194,7 +200,7 @@ void Engine::InitWindow() {
 
   constexpr auto flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE;
 
-  _window = Pointer<SDL_Window>(SDL_CreateWindow(
+  _window = Ref<SDL_Window>(SDL_CreateWindow(
       GetAppName().c_str(),
       _windowExtent.width,
       _windowExtent.height,
@@ -240,35 +246,35 @@ void Engine::InitAssetManager() {
   });
 }
 
-WeakPointer<assets::AssetManager> Engine::GetAssetManager() const {
+WeakRef<assets::AssetManager> Engine::GetAssetManager() const {
   return _assetManager;
 }
 
-WeakPointer<scripting::ScriptManager> Engine::GetScriptManager() const {
+WeakRef<scripting::ScriptManager> Engine::GetScriptManager() const {
   return _scriptManager;
 }
 
-WeakPointer<widget::WidgetManager> Engine::GetWidgetManager() const {
+WeakRef<widget::WidgetManager> Engine::GetWidgetManager() const {
   return _widgetManager;
 }
 
-Pointer<drawing::Drawer> Engine::CreateDrawer() {
+Ref<drawing::Drawer> Engine::CreateDrawer() {
   return newSharedObject<drawing::Drawer>();
 }
 
-Pointer<input::InputManager> Engine::CreateInputManager() {
+Ref<input::InputManager> Engine::CreateInputManager() {
   return newSharedObject<input::InputManager>();
 }
 
-Pointer<assets::AssetManager> Engine::CreateAssetManager() {
+Ref<assets::AssetManager> Engine::CreateAssetManager() {
   return newSharedObject<assets::AssetManager>();
 }
 
-Pointer<scripting::ScriptManager> Engine::CreateScriptManager() {
+Ref<scripting::ScriptManager> Engine::CreateScriptManager() {
   return newSharedObject<scripting::ScriptManager>();
 }
 
-Pointer<widget::WidgetManager> Engine::CreateWidgetManager() {
+Ref<widget::WidgetManager> Engine::CreateWidgetManager() {
   return newSharedObject<widget::WidgetManager>();
 }
 
@@ -326,7 +332,7 @@ bool Engine::IsFocused() const {
   return SDL_GetWindowFlags(_window.Get()) & SDL_WINDOW_MOUSE_FOCUS;
 }
 
-void Engine::InitScene(const Pointer<scene::Scene> &scene) {
+void Engine::InitScene(const Ref<scene::Scene> &scene) {
   if (IsRunning()) {
     scene->Init(this);
   }

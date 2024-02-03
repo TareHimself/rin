@@ -17,8 +17,8 @@ Widget * Widget::GetParent() const {
   return _parent;
 }
 
-Array<WeakPointer<Widget>> Widget::GetChildren() const {
-  Array<WeakPointer<Widget>> result;
+Array<WeakRef<Widget>> Widget::GetChildren() const {
+  Array<WeakRef<Widget>> result;
   for(auto &child : _children) {
     result.Push(child);
   }

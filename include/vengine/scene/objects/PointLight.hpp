@@ -5,10 +5,10 @@
 
 namespace vengine::scene {
 class PointLight : public Light {
-  WeakPointer<BillboardComponent> _billboard = AddComponent<BillboardComponent>();
+  
 public:
-  Pointer<SceneComponent> CreateRootComponent() override;
-  void AttachComponentsToRoot(const WeakPointer<SceneComponent> &root) override;
+  Ref<SceneComponent> CreateRootComponent() override;
+  
 
   VENGINE_IMPLEMENT_SCENE_OBJECT_ID(PointLight)
 };

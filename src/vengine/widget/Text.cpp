@@ -4,7 +4,7 @@
 
 namespace vengine::widget {
 
-void Text::SetFont(const Pointer<Font> &font) {
+void Text::SetFont(const Ref<Font> &font) {
   _font = font;
 }
 
@@ -16,7 +16,7 @@ String Text::GetContent() const {
   return _content;
 }
 
-WeakPointer<Font> Text::GetFont() const {
+WeakRef<Font> Text::GetFont() const {
   return _font;
 }
 
@@ -35,11 +35,13 @@ void Text::Init(WidgetManager * outer) {
 
 void Text::DrawSelf(drawing::Drawer * drawer,
                     drawing::SimpleFrameData *frameData, WidgetParentInfo parentInfo) {
-  if(!_font->IsUploaded()) {
-    _font->Upload();
-  }
+  if(_font) {
+    if(!_font->IsUploaded()) {
+      _font->Upload();
+    }
   
-  _font->DrawText(this,_content,drawer, frameData, parentInfo);
+    _font->DrawText(this,_content,drawer, frameData, parentInfo);
+  }
 }
 
 void Text::HandleDestroy() {

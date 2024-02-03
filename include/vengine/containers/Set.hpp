@@ -2,10 +2,10 @@
 #include <set>
 
 namespace vengine {
-template <typename T>
-class Set : public std::set<T> {
+template <typename T,class cmp = std::less<T>>
+class Set : public std::set<T,cmp> {
 public:
-  using std::set<T>::set;
+  using std::set<T,cmp>::set;
   void Add(T &item);
   void Add(const T &item);
   void Remove(T &item);
@@ -17,31 +17,31 @@ public:
 };
 
 
-template <typename T> void Set<T>::Add(T &item) {
+template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Add(T &item) {
   this->insert(item);
 }
 
-template <typename T> void Set<T>::Add(const T &item) {
+template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Add(const T &item) {
   this->insert(item);
 }
 
-template <typename T> void Set<T>::Remove(T &item) {
+template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Remove(T &item) {
   this->erase(item);
 }
 
-template <typename T> void Set<T>::Remove(const T &item) {
+template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Remove(const T &item) {
   this->erase(item);
 }
 
-template <typename T> void Set<T>::Add(T &&item) {
+template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Add(T &&item) {
   this->insert(item);
 }
 
-template <typename T> void Set<T>::Remove(T &&item) {
+template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Remove(T &&item) {
   this->erase(item);
 }
 
-template <typename T> Set<T> Set<T>::Clone() {
+template <typename T,class cmp = std::less<T>> Set<T> Set<T,cmp>::Clone() {
   return {this->begin(),this->end()};
 }
 }

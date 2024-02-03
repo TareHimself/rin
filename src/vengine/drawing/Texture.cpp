@@ -14,6 +14,8 @@ void Texture::MakeSampler() {
   samplerInfo.setAddressModeU(_tiling);
   samplerInfo.setAddressModeV(_tiling);
   samplerInfo.setAddressModeW(_tiling);
+  samplerInfo.setMipmapMode(vk::SamplerMipmapMode::eNearest);
+  samplerInfo.setAnisotropyEnable(true);
   _sampler = GetOuter()->GetDevice().createSampler({{},_filter,_filter});
 }
 
@@ -21,7 +23,7 @@ vk::Extent3D Texture::GetSize() const {
   return _size;
 }
 
-WeakPointer<AllocatedImage> Texture::GetGpuData() const {
+WeakRef<AllocatedImage> Texture::GetGpuData() const {
   return _gpuData;
 }
 
@@ -29,7 +31,15 @@ vk::Sampler Texture::GetSampler() const {
   return _sampler;
 }
 
-void Texture::SetGpuData(const Pointer<AllocatedImage> &allocation) {
+void Texture::SetMipMapped(const bool newMipMapped) {
+  _mipMapped = newMipMapped;
+}
+
+bool Texture::IsMipMapped() const {
+  return _mipMapped;
+}
+
+void Texture::SetGpuData(const Ref<AllocatedImage> &allocation) {
   _gpuData = allocation;
 }
 
@@ -69,7 +79,7 @@ void Texture::WriteTo(Buffer &store) {
 
 void Texture::Upload() {
   if(!IsUploaded()) {
-    _gpuData = GetOuter()->CreateImage(_data.data(),_size,_format,vk::ImageUsageFlagBits::eSampled);
+    _gpuData = GetOuter()->CreateImage(_data.data(),_size,_format,vk::ImageUsageFlagBits::eSampled,_mipMapped,_filter);
   }
 }
 
@@ -90,7 +100,7 @@ void Texture::Init(Drawer * outer) {
   MakeSampler();
 }
 
-Pointer<Texture> Texture::FromData(Drawer * drawer, const Array<unsigned char> &data, const vk::Extent3D size, const vk::Format format,
+Ref<Texture> Texture::FromData(Drawer * drawer, const Array<unsigned char> &data, const vk::Extent3D size, const vk::Format format,
                             const vk::Filter filter, const vk::SamplerAddressMode tiling) {
   auto tex = newSharedObject<Texture>();
   tex->_data = data;

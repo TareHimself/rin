@@ -94,8 +94,8 @@ struct Vertex {
 VENGINE_SIMPLE_ARRAY_SERIALIZER(Buffer,Vertex);
 
 struct GpuMeshBuffers {
-  Pointer<AllocatedBuffer> indexBuffer;
-  Pointer<AllocatedBuffer> vertexBuffer;
+  Ref<AllocatedBuffer> indexBuffer;
+  Ref<AllocatedBuffer> vertexBuffer;
   vk::DeviceAddress vertexBufferAddress;
 };
 

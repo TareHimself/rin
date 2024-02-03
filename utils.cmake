@@ -378,6 +378,25 @@ macro(GetReactPhys VERSION)
   
 endmacro()
 
+# Argparse
+macro(GetArgparse VERSION)
+
+  function(BuildArgparse B_TYPE B_SRC B_DEST)
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DARGPARSE_BUILD_TESTS=OFF -S ${B_SRC} -B ${B_DEST}
+    )
+  endfunction()
+
+  BuildThirdPartyDep(argpaarse https://github.com/p-ranav/argparse ${VERSION} RESULT_DIR "" "BuildArgparse")
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+
+  find_package(argparse REQUIRED)
+  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+  target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
+  
+endmacro()
+
 # Pugixml
 macro(GetPugiXml VERSION)
 
@@ -407,4 +426,26 @@ macro(GetOpenCV VERSION)
   find_package(OpenCV REQUIRED)
   target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS}) 
   target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenCV_LIBS})
+endmacro()
+
+# Reflection
+macro(AutoReflectTarget REFLECT_TARGET_NAME ${})
+  set(ReflectionExec "ReflectHeadersExec")
+  set(ReflectHeaders_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/reflection/main.cpp)
+  add_executable(${ReflectionExec} ${ReflectHeaders_SOURCES})
+  target_link_libraries(${ReflectionExec} PUBLIC reflect::reflect)
+  target_link_libraries(${ReflectionExec} PUBLIC argparse::argparse)
+  target_include_directories(${ReflectionExec}
+      PRIVATE
+      "$<TARGET_PROPERTY:${PROJECT_NAME},INTERFACE_INCLUDE_DIRECTORIES>"
+  )
+
+  add_custom_target(${REFLECT_TARGET_NAME}
+      COMMAND ${ReflectionExec} -s ${CMAKE_CURRENT_SOURCE_DIR}/include -o ${CMAKE_CURRENT_SOURCE_DIR}/include/generated
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMENT "Reflect vengine headers"
+      SOURCES ${ReflectHeaders_SOURCES}
+      )
+
+  add_dependencies(${PROJECT_NAME} ReflectHeaders)
 endmacro()

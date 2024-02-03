@@ -63,7 +63,7 @@ void Shader::HandleDestroy() {
 }
 
 
-Pointer<Shader> Shader::FromSource(ShaderManager *
+Ref<Shader> Shader::FromSource(ShaderManager *
                                            manager,
                                            const std::filesystem::path &path) {
   if(auto existingShader = manager->GetLoadedShader(path)) {

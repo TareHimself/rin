@@ -14,7 +14,7 @@
 namespace vengine::assets {
 
 bool AssetManager::SaveAsset(const std::filesystem::path &path,
-                              const Pointer<Asset> &asset) {
+                              const Ref<Asset> &asset) {
   OutFileBuffer outFile(path);
   if (!outFile.isOpen())
     return false;
@@ -35,9 +35,9 @@ bool AssetManager::SaveAsset(const std::filesystem::path &path,
   return true;
 }
 
-Pointer<Asset> AssetManager::LoadAsset(
+Ref<Asset> AssetManager::LoadAsset(
     const std::filesystem::path &path,
-    const String &type, const std::function<Pointer<Asset>()> &factory) {
+    const String &type, const std::function<Ref<Asset>()> &factory) {
   InFileBuffer inFile(path);
   if (!inFile.isOpen())
     return {};
@@ -68,7 +68,7 @@ Pointer<Asset> AssetManager::LoadAsset(
   return  asset;
 }
 
-Pointer<drawing::Mesh> AssetManager::ImportMesh(
+Ref<drawing::Mesh> AssetManager::ImportMesh(
     const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
     return {};
@@ -172,7 +172,20 @@ Pointer<drawing::Mesh> AssetManager::ImportMesh(
   return result;
 }
 
-Pointer<drawing::Mesh> AssetManager::LoadMeshAsset(
+std::vector<Ref<drawing::Mesh>> AssetManager::ImportMeshes(
+    const std::vector<std::filesystem::path> &paths) {
+  std::vector<Ref<drawing::Mesh>> results;
+  
+  for(auto &path : paths) {
+    if(auto result = ImportMesh(path)) {
+      results.emplace_back(result);
+    }
+  }
+
+  return results;
+}
+
+Ref<drawing::Mesh> AssetManager::LoadMeshAsset(
     const std::filesystem::path &path) {
   
   const auto asset = LoadAsset(path,types::MESH,[] {
@@ -194,7 +207,7 @@ Pointer<drawing::Mesh> AssetManager::LoadMeshAsset(
   return mesh;
 }
 
-Pointer<drawing::Texture> AssetManager::ImportTexture(
+Ref<drawing::Texture> AssetManager::ImportTexture(
     const std::filesystem::path &path) {
 
   auto img = cv::imread(path.string(),cv::IMREAD_UNCHANGED);
@@ -204,8 +217,6 @@ Pointer<drawing::Texture> AssetManager::ImportTexture(
     cv::cvtColor(img.clone(),img,cv::COLOR_BGRA2RGBA);
   }
 
-  auto depth = img.depth();
-  
   const vk::Extent3D imageSize{static_cast<uint32_t>(img.cols) ,static_cast<uint32_t>(img.rows),1};
   Array<unsigned char> vecData;
   vecData.insert(vecData.end(),img.data,img.data + (imageSize.width * imageSize.height * img.channels()));
@@ -218,7 +229,20 @@ Pointer<drawing::Texture> AssetManager::ImportTexture(
   return tex;
 }
 
-Pointer<drawing::Texture> AssetManager::LoadTextureAsset(
+std::vector<Ref<drawing::Texture>> AssetManager::ImportTextures(
+    const std::vector<std::filesystem::path> &paths) {
+  std::vector<Ref<drawing::Texture>> results;
+  
+  for(auto &path : paths) {
+    if(auto result = ImportTexture(path)) {
+      results.emplace_back(result);
+    }
+  }
+
+  return results;
+}
+
+Ref<drawing::Texture> AssetManager::LoadTextureAsset(
     const std::filesystem::path &path) {
   const auto asset = LoadAsset(path,types::TEXTURE,[] {
     return newSharedObject<drawing::Texture>();
@@ -239,7 +263,7 @@ Pointer<drawing::Texture> AssetManager::LoadTextureAsset(
   return texture;
 }
 
-Pointer<widget::Font> AssetManager::ImportFont(
+Ref<widget::Font> AssetManager::ImportFont(
     const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
     return {};
@@ -257,7 +281,7 @@ Pointer<widget::Font> AssetManager::ImportFont(
     return {};
   }
 
-  Array<Pointer<drawing::Texture>> textures;
+  Array<Ref<drawing::Texture>> textures;
   auto clearTextures = [&textures] {
     textures.clear();
   };
@@ -267,13 +291,16 @@ Pointer<widget::Font> AssetManager::ImportFont(
     auto pageFilePath = path / pageFileName;
     auto texture = ImportTexture(pageFilePath);
 
-    texture->SetFilter(vk::Filter::eNearest);
     
     if(!texture) {
       clearTextures();
       GetLogger()->error("Failed to import font texture",pageFilePath.string().c_str());
       return {};
     }
+
+    texture->SetFilter(vk::Filter::eNearest);
+    texture->SetMipMapped(true);
+    
     texture->Init(GetEngine()->GetDrawer().Reserve().Get());
     textures.Push(texture);
   }
@@ -316,7 +343,7 @@ Pointer<widget::Font> AssetManager::ImportFont(
   return font;
 }
 
-Pointer<widget::Font> AssetManager::LoadFontAsset(
+Ref<widget::Font> AssetManager::LoadFontAsset(
     const std::filesystem::path &path) {
   const auto asset = LoadAsset(path,types::FONT,[] {
     return newSharedObject<widget::Font>();

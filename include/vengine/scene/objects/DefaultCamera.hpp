@@ -5,9 +5,9 @@
 namespace vengine::scene {
 class DefaultCamera : public SceneObject {
 public:
-  WeakPointer<CameraComponent> camera;
+  WeakRef<CameraComponent> camera;
 
-  Pointer<SceneComponent> CreateRootComponent() override;
+  Ref<SceneComponent> CreateRootComponent() override;
 
   void Init(scene::Scene * outer) override;
 

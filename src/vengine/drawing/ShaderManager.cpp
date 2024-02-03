@@ -118,7 +118,7 @@ bool ShaderManager::HasLoadedShader(
   return _shaders.contains(shaderPath);
 }
 
-Pointer<Shader> ShaderManager::GetLoadedShader(
+Ref<Shader> ShaderManager::GetLoadedShader(
     const std::filesystem::path &shaderPath) const {
   if(!HasLoadedShader(shaderPath)){
     return {};
@@ -250,7 +250,7 @@ Array<unsigned int> ShaderManager::LoadOrCompileSpv(const std::filesystem::path 
   return CompileAndSave(shaderPath);
 }
 
-Pointer<Shader> ShaderManager::RegisterShader(Pointer<Shader> shader) {
+Ref<Shader> ShaderManager::RegisterShader(Ref<Shader> shader) {
   _shaders.insert({shader->GetSourcePath(),shader});
   
   shader->Init(this);
@@ -258,7 +258,7 @@ Pointer<Shader> ShaderManager::RegisterShader(Pointer<Shader> shader) {
   return shader;
 }
 
-Pointer<Shader> ShaderManager::CreateShader(
+Ref<Shader> ShaderManager::CreateShader(
     const std::filesystem::path &path) {
   return Shader::FromSource(this,path);
 }

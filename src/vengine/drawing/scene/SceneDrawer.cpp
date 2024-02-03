@@ -8,11 +8,12 @@
 #include "vengine/scene/Scene.hpp"
 #include "vengine/scene/objects/SceneObject.hpp"
 #include "vengine/scene/components/CameraComponent.hpp"
+#include "vengine/scene/components/LightComponent.hpp"
 
 #include <glm/gtx/transform.hpp>
 
 namespace vengine::drawing {
-WeakPointer<Drawer> SceneDrawer::GetDrawer() {
+WeakRef<Drawer> SceneDrawer::GetDrawer() {
   return GetOuter()->GetEngine()->GetDrawer();
 }
 
@@ -74,7 +75,7 @@ void SceneDrawer::Draw(Drawer * drawer, RawFrameData *frameData) {
     return;
   }
 
-  _sceneData.viewMatrix = cameraRef->GetViewMatrix(); //glm::translate(glm::vec3{ 0,0,-5 });
+  _sceneData.viewMatrix = cameraRef->GetViewMatrix(); //glm::translate(glm::vec3{ 0,0,-5 }); glm::translate(glm::vec3{ 0,0,15 }); glm::translate(glm::vec3{ 0,0,15 });//
   // camera projection
   _sceneData.projectionMatrix = cameraRef->GetProjection(_viewport.width / _viewport.height);
 
@@ -83,19 +84,25 @@ void SceneDrawer::Draw(Drawer * drawer, RawFrameData *frameData) {
   const auto loc = cameraRef->GetWorldLocation();
   _sceneData.cameraLocation = glm::vec4{loc.x,loc.y,loc.z,0.0f};
   
-  
+  _sceneData.numLights.x = 0;
+  for(const auto &light : GetOuter()->GetSceneLights()) {
+    if(_sceneData.numLights.x == 1024) break;
+    if(const auto lightRef = light.Reserve().Get()) {
+      _sceneData.lights[static_cast<int>(_sceneData.numLights.x)] = lightRef->GetLightInfo();
+      _sceneData.numLights.x++;
+    }
+  }
+
+
   // Write the buffer
   const auto mappedData = _sceneGlobalBuffer->GetMappedData();
   const auto sceneUniformData = static_cast<SceneGlobalBuffer *>(mappedData);
   *sceneUniformData = _sceneData;
 
-  //create a descriptor set that binds that buffer and update it
-
   drawing::SimpleFrameData drawData(frameData);
-  
   for (const auto &drawable : GetOuter()->GetSceneObjects().Clone()) {
     if(auto drawableRef = drawable.Reserve(); drawableRef->IsInitialized()) {
-      drawableRef->Draw(this,&drawData);
+      drawableRef->Draw(this,{}, &drawData);
     }
   }
 }
@@ -107,7 +114,7 @@ void SceneDrawer::HandleDestroy() {
   _sceneGlobalBuffer.Clear();
 }
 
-WeakPointer<MaterialInstance> SceneDrawer::GetDefaultMaterial() const {
+WeakRef<MaterialInstance> SceneDrawer::GetDefaultMaterial() const {
   return _defaultCheckeredMaterial;
 }
 }

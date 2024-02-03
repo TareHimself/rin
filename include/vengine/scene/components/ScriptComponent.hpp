@@ -6,7 +6,7 @@
 namespace vengine::scene {
 class ScriptComponent : public SceneComponent {
   std::filesystem::path _scriptPath;
-  Pointer<scripting::Script> _script;
+  Ref<scripting::Script> _script;
 public:
   ScriptComponent();
   void Init(SceneObject * outer) override;

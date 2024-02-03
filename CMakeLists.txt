@@ -60,6 +60,27 @@ GetOpenCV(4.9.0)
 
 GetAngelScript(2.36.1)
 
+GetArgparse(v3.0)
+
+set(ReflectionExec "VEngineHeaderGen")
+set(Reflection_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/reflection/main.cpp)
+add_executable(${ReflectionExec} ${Reflection_SOURCES})
+target_link_libraries(${ReflectionExec} PUBLIC reflect::reflect)
+target_link_libraries(${ReflectionExec} PUBLIC argparse::argparse)
+target_include_directories(${ReflectionExec}
+    PRIVATE
+    "$<TARGET_PROPERTY:${PROJECT_NAME},INTERFACE_INCLUDE_DIRECTORIES>"
+)
+
+add_custom_target(ReflectHeaders
+    COMMAND ${ReflectionExec} -s ${CMAKE_CURRENT_SOURCE_DIR}/include -o ${CMAKE_CURRENT_SOURCE_DIR}/include/generated
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Reflect vengine headers"
+    SOURCES ${Reflection_SOURCES}
+)
+
+add_dependencies(${PROJECT_NAME} ReflectHeaders)
+
 # add_executable(ReflectGen ${CMAKE_CURRENT_SOURCE_DIR}/reflect.cc)
 # target_link_libraries(ReflectGen PUBLIC reflect::reflect)
 

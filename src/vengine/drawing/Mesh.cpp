@@ -5,7 +5,7 @@
 
 
 namespace vengine::drawing {
-WeakPointer<GpuMeshBuffers> Mesh::GetGpuData() {
+WeakRef<GpuMeshBuffers> Mesh::GetGpuData() {
   return _gpuData;
 }
 
@@ -21,8 +21,8 @@ Array<MeshSurface> Mesh::GetSurfaces() const {
   return _surfaces;
 }
 
-Array<WeakPointer<MaterialInstance>> Mesh::GetMaterials() const {
-  Array<WeakPointer<MaterialInstance>> weakPtr;
+Array<WeakRef<MaterialInstance>> Mesh::GetMaterials() const {
+  Array<WeakRef<MaterialInstance>> weakPtr;
   for(const auto &mat : _materials) {
     weakPtr.Push(mat);
   }
@@ -43,7 +43,7 @@ void Mesh::SetSurfaces(const Array<MeshSurface> &surfaces) {
 }
 
 void Mesh::SetMaterial(uint32_t index,
-                       const Pointer<MaterialInstance> &material) {
+                       const Ref<MaterialInstance> &material) {
   utils::vassert(index < _materials.size(),"Cannot set material index outside of range {}...{}",0,_materials.size() - 1);
   _materials[index] = material;
 }

@@ -29,7 +29,7 @@ public:
   ShaderResources GetResources() const;
   void HandleDestroy() override;
   
-  static Pointer<Shader> FromSource(ShaderManager *
+  static Ref<Shader> FromSource(ShaderManager *
                                            manager,
                                            const std::filesystem::path &path);
 };

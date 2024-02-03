@@ -18,12 +18,12 @@ void Image::Init(WidgetManager * outer) {
   _imageMat->SetBuffer<UiGlobalBuffer>("UiGlobalBuffer",outer->GetGlobalBuffer());
 }
 
-void Image::SetTexture(const Pointer<drawing::Texture> &image) {
+void Image::SetTexture(const Ref<drawing::Texture> &image) {
   _image = image;
 }
 
 
-WeakPointer<drawing::Texture> Image::GetTexture() const {
+WeakRef<drawing::Texture> Image::GetTexture() const {
   return _image;
 }
 

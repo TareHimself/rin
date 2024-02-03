@@ -27,7 +27,7 @@ public:
   void Init(Engine * outer) override;
   void MessageCallback(const asSMessageInfo *msg, void* param) const;
   void DebugFromScript(const std::string &in) const;
-  Pointer<Script> ScriptFromFile(const std::filesystem::path &path);
+  Ref<Script> ScriptFromFile(const std::filesystem::path &path);
 
   asIScriptEngine *GetScriptEngine() const;
   void HandleDestroy() override;

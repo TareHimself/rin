@@ -47,7 +47,7 @@ public:
 
 class ShaderManager : public Object<Drawer>, public SharableThis<ShaderManager>, public WithLogger {
 
-  std::map<std::filesystem::path,Pointer<Shader>> _shaders;
+  std::map<std::filesystem::path,Ref<Shader>> _shaders;
   
 public:
   
@@ -55,7 +55,7 @@ public:
 
   bool HasLoadedShader(const std::filesystem::path &shaderPath) const;
 
-  Pointer<Shader> GetLoadedShader(
+  Ref<Shader> GetLoadedShader(
       const std::filesystem::path &shaderPath) const;
   
   Array<unsigned int> Compile(const std::filesystem::path &shaderPath);
@@ -64,9 +64,9 @@ public:
   
   Array<unsigned int> LoadOrCompileSpv(const std::filesystem::path &shaderPath);
 
-  Pointer<Shader> RegisterShader(Pointer<Shader> shader);
+  Ref<Shader> RegisterShader(Ref<Shader> shader);
 
-  Pointer<Shader> CreateShader(const std::filesystem::path &path);
+  Ref<Shader> CreateShader(const std::filesystem::path &path);
   
   void UnRegisterShader(const Shader * shader);
 

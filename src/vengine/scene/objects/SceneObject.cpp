@@ -1,6 +1,5 @@
 ﻿#include "vengine/scene/components/LightComponent.hpp"
 
-#include <vengine/scene/Transformable.hpp>
 #include <vengine/scene/objects/SceneObject.hpp>
 #include <vengine/scene/Scene.hpp>
 #include <vengine/scene/components/RenderedComponent.hpp>
@@ -8,67 +7,102 @@
 namespace vengine::scene {
 
 
-Pointer<SceneComponent> SceneObject::CreateRootComponent() {
+Ref<SceneComponent> SceneObject::CreateRootComponent() {
   return newSharedObject<SceneComponent>();
 }
 
-WeakPointer<SceneComponent> SceneObject::GetRootComponent() const {
+WeakRef<SceneComponent> SceneObject::GetRootComponent() const {
   return _rootComponent;
 }
 
-void SceneObject::AttachComponentsToRoot(const WeakPointer<SceneComponent> &root) {
+void SceneObject::AttachComponentsToRoot(const WeakRef<SceneComponent> &root) {
   /* Attach scene components here */
 }
 
-math::Transform SceneObject::GetRelativeTransform() const {
-  if(auto comp = GetRootComponent()) {
-    return comp.Reserve()->GetRelativeTransform();
-  }
-  return {};
-}
-
-void SceneObject::SetRelativeTransform(const math::Transform &val) {
-  if(auto comp = GetRootComponent()) {
-    Transformable::SetRelativeTransform(val);
-    comp.Reserve()->SetRelativeTransform(val);
-  }
-}
-
-WeakPointer<Transformable> SceneObject::GetParent() const {
-  if(auto comp = GetRootComponent()) {
-    return comp.Reserve()->GetParent();
-  }
-  return {};
-}
-
-void SceneObject::AttachTo(const WeakPointer<SceneComponent> &parent) {
+void SceneObject::AttachTo(const WeakRef<SceneComponent> &parent) {
   if(auto comp = GetRootComponent()) {
     comp.Reserve()->AttachTo(parent);
   }
 }
 
-void SceneObject::AttachTo(const WeakPointer<SceneObject> &parent) {
+void SceneObject::AttachTo(const WeakRef<SceneObject> &parent) {
   if(auto comp = GetRootComponent()) {
     comp.Reserve()->AttachTo(parent.Reserve()->GetRootComponent());
+  }
+}
+
+math::Vector SceneObject::GetWorldLocation() const {
+  if(auto comp = GetRootComponent()) {
+    return comp.Reserve()->GetWorldLocation();
+  }
+
+  return {};
+}
+
+math::Quat SceneObject::GetWorldRotation() const {
+  if(auto comp = GetRootComponent()) {
+    return comp.Reserve()->GetWorldRotation();
+  }
+
+  return {};
+}
+
+math::Vector SceneObject::GetWorldScale() const {
+  if(auto comp = GetRootComponent()) {
+    return comp.Reserve()->GetWorldScale();
+  }
+
+  return {};
+}
+
+math::Transform SceneObject::GetWorldTransform() const {
+  if(auto comp = GetRootComponent()) {
+    return comp.Reserve()->GetWorldTransform();
+  }
+
+  return {};
+}
+
+void SceneObject::SetWorldLocation(const math::Vector &val) {
+  if(auto comp = GetRootComponent()) {
+    return comp.Reserve()->SetWorldLocation(val);
+  }
+}
+
+void SceneObject::SetWorldRotation(const math::Quat &val) {
+  if(auto comp = GetRootComponent()) {
+    return comp.Reserve()->SetWorldRotation(val);
+  }
+}
+
+void SceneObject::SetWorldScale(const math::Vector &val) {
+  if(auto comp = GetRootComponent()) {
+    return comp.Reserve()->SetWorldScale(val);
+  }
+}
+
+void SceneObject::SetWorldTransform(const math::Transform &val) {
+  if(auto comp = GetRootComponent()) {
+    return comp.Reserve()->SetWorldTransform(val);
   }
 }
 
 void SceneObject::Init(scene::Scene * outer) {
   Object<Scene>::Init(outer);
   _rootComponent = CreateRootComponent();
-  _rootComponent->Init(this);
+  InitComponent(_rootComponent);
   AttachComponentsToRoot(_rootComponent);
   for(const auto &component : _components) {
     InitComponent(component);
   }
-  _components.Add(_rootComponent);
+  _components.emplace_back(_rootComponent);
 }
 
 Engine *SceneObject::GetEngine() const {
   return GetScene()->GetEngine();
 }
 
-WeakPointer<input::SceneInputConsumer> SceneObject::GetInput() {
+WeakRef<input::SceneInputConsumer> SceneObject::GetInput() {
   return GetScene()->GetInput();
 }
 
@@ -80,16 +114,16 @@ void SceneObject::Update(float deltaTime) {
   
 }
 
-void SceneObject::AddToRenderList(const WeakPointer<RenderedComponent> &comp) {
-  _renderedComponents.Add(comp);
+void SceneObject::AddToRenderList(const WeakRef<RenderedComponent> &comp) {
+  _renderedComponents.push_back(comp);
 }
 
-void SceneObject::RemoveFromRenderList(const WeakPointer<RenderedComponent> &comp) {
-  _renderedComponents.Remove(comp);
+void SceneObject::RemoveFromRenderList(const WeakRef<RenderedComponent> &comp) {
+  _renderedComponents.remove(comp);
 }
 
 
-void SceneObject::InitComponent(const Pointer<Component> &comp) {
+void SceneObject::InitComponent(const Ref<Component> &comp) {
   if(comp) {
     comp->Init(this);
     
@@ -117,10 +151,10 @@ void SceneObject::HandleDestroy() {
 }
 
 void SceneObject::Draw(drawing::SceneDrawer *drawer,
-                       drawing::SimpleFrameData *frameData) {
-  for(const auto &comp : _renderedComponents.Clone()) {
+                       const math::Transform &parentTransform, drawing::SimpleFrameData *frameData) {
+  for(const auto &comp : _renderedComponents) {
     if(comp) {
-      comp.Reserve()->Draw(drawer,frameData);
+      comp.Reserve()->Draw(drawer,comp == _rootComponent ? math::Transform{} : _rootComponent->GetRelativeTransform(), frameData);
     }
   }
 }

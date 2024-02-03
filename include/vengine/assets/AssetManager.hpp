@@ -5,16 +5,11 @@
 #include "vengine/widget/Font.hpp"
 
 namespace vengine {
-namespace drawing {
-class Texture;
-}
-}
-
-namespace vengine {
 class Engine;
 }
 
 namespace vengine::drawing {
+class Texture;
 class Mesh;
 }
 
@@ -24,25 +19,29 @@ public:
 
   // virtual bool loadAsset(const std::filesystem::path &path, VEngineAssetHeader &asset, bool loadData = true);
   // virtual bool saveAsset(const std::filesystem::path &path,const VEngineAssetHeader &asset);
-  virtual bool SaveAsset(const std::filesystem::path &path, const Pointer<Asset> &asset);
+  virtual bool SaveAsset(const std::filesystem::path &path, const Ref<Asset> &asset);
 
-  virtual Pointer<Asset> LoadAsset(const std::filesystem::path &path,
+  virtual Ref<Asset> LoadAsset(const std::filesystem::path &path,
                                            const String &type,
-                                           const std::function<Pointer<Asset>()> &
+                                           const std::function<Ref<Asset>()> &
                                            factory);
-  virtual Pointer<drawing::Mesh> ImportMesh(
+  virtual Ref<drawing::Mesh> ImportMesh(
       const std::filesystem::path &path);
-  virtual Pointer<drawing::Mesh> LoadMeshAsset(
-      const std::filesystem::path &path);
-
-  virtual Pointer<drawing::Texture> ImportTexture(
-      const std::filesystem::path &path);
-  virtual Pointer<drawing::Texture> LoadTextureAsset(
+  virtual std::vector<Ref<drawing::Mesh>> ImportMeshes(
+      const std::vector<std::filesystem::path> &paths);
+  virtual Ref<drawing::Mesh> LoadMeshAsset(
       const std::filesystem::path &path);
 
-  virtual Pointer<widget::Font> ImportFont(
+  virtual Ref<drawing::Texture> ImportTexture(
       const std::filesystem::path &path);
-  virtual Pointer<widget::Font> LoadFontAsset(
+  virtual std::vector<Ref<drawing::Texture>> ImportTextures(
+      const std::vector<std::filesystem::path> &paths);
+  virtual Ref<drawing::Texture> LoadTextureAsset(
+      const std::filesystem::path &path);
+
+  virtual Ref<widget::Font> ImportFont(
+      const std::filesystem::path &path);
+  virtual Ref<widget::Font> LoadFontAsset(
       const std::filesystem::path &path);
 
   String GetName() const override;

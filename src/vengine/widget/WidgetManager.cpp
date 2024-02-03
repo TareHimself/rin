@@ -8,7 +8,7 @@
 #include <vengine/io/io.hpp>
 
 namespace vengine::widget {
-WeakPointer<drawing::AllocatedBuffer> WidgetManager::GetGlobalBuffer() const {
+WeakRef<drawing::AllocatedBuffer> WidgetManager::GetGlobalBuffer() const {
   return _uiGlobalBuffer;
 }
 
@@ -80,12 +80,12 @@ void WidgetManager::Draw(drawing::Drawer *drawer,
   }
 }
 
-void WidgetManager::InitWidget(const Pointer<Widget> &widget) {
+void WidgetManager::InitWidget(const Ref<Widget> &widget) {
   widget->Init(this);
   _topLevelWidgets.Push(widget);
 }
 
-WeakPointer<drawing::MaterialInstance> WidgetManager::GetDefaultMaterial() const {
+WeakRef<drawing::MaterialInstance> WidgetManager::GetDefaultMaterial() const {
   return _defaultWidgetMat;
 }
 }

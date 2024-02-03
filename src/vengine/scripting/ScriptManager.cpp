@@ -34,7 +34,7 @@ void ScriptManager::DebugFromScript(const std::string &in) const {
   GetLogger()->info("SCRIPT DEBUG: {}",in);
 }
 
-Pointer<Script> ScriptManager::ScriptFromFile(const std::filesystem::path &path) {
+Ref<Script> ScriptManager::ScriptFromFile(const std::filesystem::path &path) {
   CScriptBuilder builder;
   const auto moduleId = to_string(uuids::uuid_system_generator{}());
   if(builder.StartNewModule(_scriptEngine,moduleId.c_str()) < 0) {

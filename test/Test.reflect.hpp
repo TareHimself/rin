@@ -16,11 +16,11 @@ builder.Create<TestMesh>("TestMesh");
 
 #ifndef _REFLECT_GENERATED_TestGameObject
 #define _REFLECT_GENERATED_TestGameObject
-#define _REFLECTED_GENERATED_TestGameObject_PROPERTY_ REFLECT_WRAP_PROPERTY(TestGameObject,,)
+#define _REFLECTED_GENERATED_TestGameObject_PROPERTY__mesh REFLECT_WRAP_PROPERTY(TestGameObject,_mesh,Ref<drawing::Mesh>)
 
-#define _REFLECTED_GENERATED_TestGameObject_PROPERTY_ REFLECT_WRAP_PROPERTY(TestGameObject,,)
+#define _REFLECTED_GENERATED_TestGameObject_PROPERTY__meshComponent REFLECT_WRAP_PROPERTY(TestGameObject,_meshComponent,WeakRef<scene::StaticMeshComponent>)
 
-#define _REFLECTED_GENERATED_TestGameObject_PROPERTY_ REFLECT_WRAP_PROPERTY(TestGameObject,,)
+#define _REFLECTED_GENERATED_TestGameObject_PROPERTY__scriptComp REFLECT_WRAP_PROPERTY(TestGameObject,_scriptComp,WeakRef<scene::ScriptComponent>)
 
 #define _REFLECTED_GENERATED_TestGameObject_FUNCTION_GetWorldTransform REFLECT_WRAP_FUNCTION_BEGIN(GetWorldTransform) \
 { \
@@ -31,9 +31,9 @@ if(result){ \
 })
 #define _REFLECT_GENERATE_TestGameObject \
 reflect::factory::ReflectTypeBuilder builder; \
-builder.AddField(_REFLECTED_GENERATED_TestGameObject_PROPERTY_); \
-builder.AddField(_REFLECTED_GENERATED_TestGameObject_PROPERTY_); \
-builder.AddField(_REFLECTED_GENERATED_TestGameObject_PROPERTY_); \
+builder.AddField(_REFLECTED_GENERATED_TestGameObject_PROPERTY__mesh); \
+builder.AddField(_REFLECTED_GENERATED_TestGameObject_PROPERTY__meshComponent); \
+builder.AddField(_REFLECTED_GENERATED_TestGameObject_PROPERTY__scriptComp); \
 builder.AddField(_REFLECTED_GENERATED_TestGameObject_FUNCTION_GetWorldTransform); \
 builder.Create<TestGameObject>("TestGameObject");
 #endif

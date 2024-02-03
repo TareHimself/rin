@@ -9,22 +9,26 @@ class Drawer;
 RCLASS()
 class Texture : public Object<Drawer>, public assets::Asset, public GpuNative {
 
-  Pointer<AllocatedImage> _gpuData;
+  Ref<AllocatedImage> _gpuData;
   vk::Filter _filter = vk::Filter::eLinear;
   vk::SamplerAddressMode _tiling = vk::SamplerAddressMode::eRepeat;
   vk::Sampler _sampler = nullptr;
   vk::Format _format = vk::Format::eUndefined;
   vk::Extent3D _size;
   Array<unsigned char> _data;
+  bool _mipMapped = true;
 
   void MakeSampler();
 public:
 
   vk::Extent3D GetSize() const;
-  WeakPointer<AllocatedImage> GetGpuData() const;
+  WeakRef<AllocatedImage> GetGpuData() const;
   vk::Sampler GetSampler() const;
+  void SetMipMapped(bool newMipMapped);
 
-  void SetGpuData(const Pointer<AllocatedImage> &allocation);
+  bool IsMipMapped() const;
+
+  void SetGpuData(const Ref<AllocatedImage> &allocation);
   virtual void SetTiling(vk::SamplerAddressMode tiling);
   virtual void SetFilter(vk::Filter filter);
   String GetSerializeId() override;
@@ -41,7 +45,7 @@ public:
 
   void Init(Drawer * outer) override;
   
-  static Pointer<Texture> FromData(Drawer * drawer, const Array<unsigned char> &data,vk::Extent3D size,vk::Format format,vk::Filter filter,vk::SamplerAddressMode tiling = vk::SamplerAddressMode::eRepeat);
+  static Ref<Texture> FromData(Drawer * drawer, const Array<unsigned char> &data,vk::Extent3D size,vk::Format format,vk::Filter filter,vk::SamplerAddressMode tiling = vk::SamplerAddressMode::eRepeat);
 };
 
 REFLECT_IMPLEMENT(Texture)

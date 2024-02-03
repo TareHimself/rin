@@ -7,6 +7,8 @@
 #include "vengine/drawing/MaterialInstance.hpp"
 #include "vengine/io/io.hpp"
 #include "vengine/input/KeyInputEvent.hpp"
+#include "vengine/scene/objects/PointLight.hpp"
+
 #include <cstdlib>
 #include <iostream>
 #include <ostream>
@@ -24,6 +26,7 @@ int main(int argc, char **argv) {
     engine->SetAppName("Test Application");
     const auto scene = engine->CreateScene<scene::Scene>();
     auto triangleObj = scene.Reserve()->CreateSceneObject<TestGameObject>();
+    
     auto values =  reflect::factory::values();
     if(const auto reflectedObj = reflect::factory::find<TestGameObject>()) {
       

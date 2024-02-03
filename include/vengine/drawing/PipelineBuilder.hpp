@@ -20,7 +20,7 @@ protected:
   vk::PipelineDepthStencilStateCreateInfo _depthStencil{};
   vk::PipelineRenderingCreateInfo _renderInfo{};
   vk::Format _colorAttachmentFormat = vk::Format::eUndefined;
-  Array<Pointer<Shader>> _shaders;
+  Array<Ref<Shader>> _shaders;
   uint32_t _numViewports = 1;
   uint32_t _numScissors = 1;
   
@@ -28,7 +28,7 @@ protected:
 public:
   
 
-  PipelineBuilder& AddShaderStage(const Pointer<Shader> &shader);
+  PipelineBuilder& AddShaderStage(const Ref<Shader> &shader);
   
   PipelineBuilder& SetNumViewports(uint32_t num);
 

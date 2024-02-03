@@ -31,7 +31,7 @@ void Allocator::HandleDestroy() {
   vmaDestroyAllocator(_allocator);
 }
 
-Pointer<AllocatedBuffer> Allocator::CreateBuffer(const size_t allocSize,
+Ref<AllocatedBuffer> Allocator::CreateBuffer(const size_t allocSize,
                                                          const vk::BufferUsageFlags usage, const VmaMemoryUsage memoryUsage,
                                                          const vk::MemoryPropertyFlags requiredFlags, const VmaAllocationCreateFlags flags) const {
   const auto bufferInfo = vk::BufferCreateInfo({}, allocSize,
@@ -43,7 +43,7 @@ Pointer<AllocatedBuffer> Allocator::CreateBuffer(const size_t allocSize,
   vmaAllocInfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(requiredFlags);
 
   
-  Pointer<AllocatedBuffer> result = Pointer<AllocatedBuffer>(new AllocatedBuffer,[this](const AllocatedBuffer * ptr) {
+  Ref<AllocatedBuffer> result = Ref<AllocatedBuffer>(new AllocatedBuffer,[this](const AllocatedBuffer * ptr) {
     DestroyBuffer(*ptr);
     delete ptr;
   });
@@ -57,7 +57,7 @@ Pointer<AllocatedBuffer> Allocator::CreateBuffer(const size_t allocSize,
   return result;
 }
 
-Pointer<AllocatedBuffer> Allocator::CreateTransferCpuGpuBuffer(
+Ref<AllocatedBuffer> Allocator::CreateTransferCpuGpuBuffer(
     const size_t size,
     bool randomAccess) const {
   
@@ -71,7 +71,7 @@ Pointer<AllocatedBuffer> Allocator::CreateTransferCpuGpuBuffer(
                         : VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT));
 }
 
-Pointer<AllocatedBuffer> Allocator::CreateUniformCpuGpuBuffer(
+Ref<AllocatedBuffer> Allocator::CreateUniformCpuGpuBuffer(
     const size_t size,
     bool randomAccess) const {
   return CreateBuffer(
@@ -89,11 +89,11 @@ void Allocator::DestroyBuffer(const AllocatedBuffer &buffer) const {
 }
 
 
-Pointer<AllocatedImage> Allocator::AllocateImage(
+Ref<AllocatedImage> Allocator::AllocateImage(
     vk::ImageCreateInfo &createInfo, const VmaMemoryUsage memoryUsage,
     const vk::MemoryPropertyFlags requiredFlags) const {
 
-  Pointer<AllocatedImage> result = Pointer<AllocatedImage>(new AllocatedImage,[this](const AllocatedImage * ptr) {
+  Ref<AllocatedImage> result = Ref<AllocatedImage>(new AllocatedImage,[this](const AllocatedImage * ptr) {
     DestroyImage(*ptr);
     delete ptr;
   });

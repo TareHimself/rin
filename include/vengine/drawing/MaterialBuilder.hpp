@@ -9,7 +9,7 @@ class MaterialBuilder {
   EMaterialType _type;
   PipelineBuilder _pipelineBuilder;
   DescriptorLayoutBuilder _layoutBuilder;
-  Array<Pointer<Shader>> _shaders;
+  Array<Ref<Shader>> _shaders;
   std::unordered_map<std::string,uint32_t> _pushConstants;
   friend class MaterialInstance;
   
@@ -17,12 +17,12 @@ protected:
   static Array<vk::PushConstantRange> ComputePushConstantRanges(ShaderResources& resources);
 public:
   
-  virtual MaterialBuilder& AddShader(Pointer<Shader> shader);
+  virtual MaterialBuilder& AddShader(Ref<Shader> shader);
   virtual MaterialBuilder& SetType(EMaterialType type);
   template<typename T>
   MaterialBuilder& ConfigurePushConstant(String name);
   
-  virtual Pointer<MaterialInstance> Create(Drawer * drawer);
+  virtual Ref<MaterialInstance> Create(Drawer * drawer);
 
 };
 

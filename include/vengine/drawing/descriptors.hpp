@@ -18,33 +18,33 @@ class Texture;
 class DescriptorSet {
   vk::Device _device;
   vk::DescriptorSet _set;
-  std::unordered_map<uint32_t,Pointer<AllocatedBuffer>> _buffers;
-  std::unordered_map<uint32_t,Pointer<AllocatedImage>> _images;
-  std::unordered_map<uint32_t,Pointer<Texture>> _textures;
-  std::unordered_map<uint32_t,Array<Pointer<Texture>>> _textureArrays;
+  std::unordered_map<uint32_t,Ref<AllocatedBuffer>> _buffers;
+  std::unordered_map<uint32_t,Ref<AllocatedImage>> _images;
+  std::unordered_map<uint32_t,Ref<Texture>> _textures;
+  std::unordered_map<uint32_t,Array<Ref<Texture>>> _textureArrays;
 
 public:
   DescriptorSet(const vk::Device &device,const vk::DescriptorSet &set);
   ~DescriptorSet();
   operator vk::DescriptorSet() const;
   template<typename T>
-  void WriteBuffer(uint32_t binding, const WeakPointer<AllocatedBuffer> &buffer,size_t offset,vk::DescriptorType type);
+  void WriteBuffer(uint32_t binding, const WeakRef<AllocatedBuffer> &buffer,size_t offset,vk::DescriptorType type);
 
-  void WriteBuffer(uint32_t binding, const WeakPointer<AllocatedBuffer> &buffer, size_t size, size_t
+  void WriteBuffer(uint32_t binding, const WeakRef<AllocatedBuffer> &buffer, size_t size, size_t
                    offset, vk::DescriptorType type);
 
-  void WriteImage(uint32_t binding, const WeakPointer<AllocatedImage> &image, vk::Sampler
+  void WriteImage(uint32_t binding, const WeakRef<AllocatedImage> &image, vk::Sampler
                   sampler, vk::ImageLayout layout, vk::DescriptorType type);
   
-  void WriteTexture(uint32_t binding, const WeakPointer<Texture> &texture, vk::ImageLayout layout, const
+  void WriteTexture(uint32_t binding, const WeakRef<Texture> &texture, vk::ImageLayout layout, const
                     vk::DescriptorType type);
 
-  void WriteTextureArray(uint32_t binding, const Array<WeakPointer<Texture>> &textures, vk::ImageLayout
+  void WriteTextureArray(uint32_t binding, const Array<WeakRef<Texture>> &textures, vk::ImageLayout
                          layout, const vk::DescriptorType type);
 };
 
 template <typename T> void DescriptorSet::WriteBuffer(uint32_t binding,
-    const WeakPointer<AllocatedBuffer> &buffer, size_t offset,
+    const WeakRef<AllocatedBuffer> &buffer, size_t offset,
     vk::DescriptorType type) {
   WriteBuffer(binding,buffer,sizeof(T),offset,type);
 }
@@ -96,20 +96,20 @@ public:
   void Init(vk::Device device,uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
   void ClearPools();
   void DestroyPools();
-  WeakPointer<DescriptorSet> Allocate(vk::DescriptorSetLayout layout);
+  WeakRef<DescriptorSet> Allocate(vk::DescriptorSetLayout layout);
 private:
   std::atomic<uint64_t> _lastPoolId = 0;
   
   void ClearDescriptorsFromPool(DescriptorPoolWithId pool);
   DescriptorPoolWithId GetPool();
   DescriptorPoolWithId CreatePool(uint32_t setCount, std::span<PoolSizeRatio> poolRatios);
-  Pointer<DescriptorSet> DescriptorSetToPtr(const vk::DescriptorSet &set) const;
+  Ref<DescriptorSet> DescriptorSetToPtr(const vk::DescriptorSet &set) const;
   vk::Device _device;
   Array<PoolSizeRatio> _ratios;
   Array<DescriptorPoolWithId> _fullPools;
   Array<DescriptorPoolWithId> _readyPools;
   uint32_t _setsPerPool;
   
-  std::unordered_map<uint64_t,Array<Pointer<DescriptorSet>>> _descriptorsInUse;
+  std::unordered_map<uint64_t,Array<Ref<DescriptorSet>>> _descriptorsInUse;
 };
 }

@@ -19,7 +19,7 @@ namespace vengine::input {
 
 class InputManager : public EngineSubsystem {
   
-  std::list<Pointer<InputConsumer>> _consumers;
+  std::list<Ref<InputConsumer>> _consumers;
   Set<SDL_Keycode> _keysBeingPressed;
 public:
 
@@ -30,17 +30,17 @@ public:
   virtual bool ReceiveKeyReleasedEvent(const SDL_KeyboardEvent &event);
 
   template <typename T,typename... Args>
-  WeakPointer<T> Consume(Args &&... args);
+  WeakRef<T> Consume(Args &&... args);
 
-  void InitConsumer(const Pointer<InputConsumer> &consumer);
+  void InitConsumer(const Ref<InputConsumer> &consumer);
 
-  void RemoveConsumer(const WeakPointer<InputConsumer> &consumer);
+  void RemoveConsumer(const WeakRef<InputConsumer> &consumer);
 
   void HandleDestroy() override;
   
 };
 
-template <typename T, typename ... Args> WeakPointer<T> InputManager::Consume(Args &&... args) {
+template <typename T, typename ... Args> WeakRef<T> InputManager::Consume(Args &&... args) {
   auto rawObj = newSharedObject<T>(args...);
   InitConsumer(rawObj);
   return rawObj;

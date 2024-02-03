@@ -24,7 +24,7 @@ DescriptorSet::operator vk::DescriptorSet() const {
 
 
 void DescriptorSet::WriteBuffer(uint32_t binding,
-                                const WeakPointer<AllocatedBuffer> &buffer, size_t size, size_t offset,
+                                const WeakRef<AllocatedBuffer> &buffer, size_t size, size_t offset,
                                 vk::DescriptorType type) {
   const auto shared = buffer.Reserve();
   vk::DescriptorBufferInfo info{shared->buffer,offset,size};
@@ -40,7 +40,7 @@ void DescriptorSet::WriteBuffer(uint32_t binding,
 }
 
 void DescriptorSet::WriteImage(uint32_t binding,
-    const WeakPointer<AllocatedImage> &image,vk::Sampler sampler, vk::ImageLayout layout,
+    const WeakRef<AllocatedImage> &image,vk::Sampler sampler, vk::ImageLayout layout,
     vk::DescriptorType type) {
   const auto shared = image.Reserve();
   vk::DescriptorImageInfo info{sampler,shared->view,layout};
@@ -56,7 +56,7 @@ void DescriptorSet::WriteImage(uint32_t binding,
 }
 
 void DescriptorSet::WriteTexture(uint32_t binding,
-    const WeakPointer<Texture> &texture, vk::ImageLayout layout,
+    const WeakRef<Texture> &texture, vk::ImageLayout layout,
     const vk::DescriptorType type) {
   const auto shared = texture.Reserve();
 
@@ -77,9 +77,9 @@ void DescriptorSet::WriteTexture(uint32_t binding,
 }
 
 void DescriptorSet::WriteTextureArray(uint32_t binding,
-    const Array<WeakPointer<Texture>> &textures, vk::ImageLayout layout,
+    const Array<WeakRef<Texture>> &textures, vk::ImageLayout layout,
     const vk::DescriptorType type) {
-  Array<Pointer<Texture>> sharedTextures;
+  Array<Ref<Texture>> sharedTextures;
   Array<vk::DescriptorImageInfo> infos;
   
   for(auto &texture : textures) {
@@ -291,7 +291,7 @@ void DescriptorAllocatorGrowable::DestroyPools() {
 }
 
 
-WeakPointer<DescriptorSet> DescriptorAllocatorGrowable::Allocate(
+WeakRef<DescriptorSet> DescriptorAllocatorGrowable::Allocate(
     vk::DescriptorSetLayout layout) {
 
   // Get or create a pool
@@ -299,7 +299,7 @@ WeakPointer<DescriptorSet> DescriptorAllocatorGrowable::Allocate(
 
   auto allocInfo = vk::DescriptorSetAllocateInfo{poolToUse.second,layout};
 
-  Pointer<DescriptorSet> descriptorSet;
+  Ref<DescriptorSet> descriptorSet;
 
   bool failed = true;
   try {
@@ -369,7 +369,7 @@ DescriptorPoolWithId DescriptorAllocatorGrowable::CreatePool(const uint32_t setC
   return  {++_lastPoolId,_device.createDescriptorPool(poolInfo)};
 }
 
-Pointer<DescriptorSet> DescriptorAllocatorGrowable::DescriptorSetToPtr(const vk::DescriptorSet &set) const {
-  return Pointer<DescriptorSet>(new DescriptorSet(_device, set));
+Ref<DescriptorSet> DescriptorAllocatorGrowable::DescriptorSetToPtr(const vk::DescriptorSet &set) const {
+  return Ref<DescriptorSet>(new DescriptorSet(_device, set));
 }
 }
