@@ -94,10 +94,12 @@ namespace vengine {
     if(IsInitialized()) {
       HandleDestroy();
     }
+
+    _bHasBeenInitialized = false;
+    
     if(bWasAllocated) {
       delete this;
     }
-    _bHasBeenInitialized = false;
   }
 
   template <class OuterType> void Object<OuterType>::HandleDestroy() {
