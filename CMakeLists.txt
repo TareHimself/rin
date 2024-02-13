@@ -9,16 +9,33 @@ set(VULKAN_HPP_VERSION 1.3.271)
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # Build a shared library named after the project from the files in `src/`
-file(GLOB_RECURSE SOURCE_FILES "src/vengine/*.cpp" )
+file(GLOB_RECURSE SOURCE_FILES "lib/vengine/*.cpp" )
 
 file(GLOB_RECURSE INCLUDE_FILES "include/vengine/*.hpp" )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${INCLUDE_FILES})
 
 set(VENGINE_THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
+set(VENGINE_RUNTIME_DLLS "")
+set(VENGINE_LIBS "")
+target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${VENGINE_THIRD_PARTY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
+#   target_include_directories(
+#     ${PROJECT_NAME}
+#     PUBLIC
+#     $<BUILD_INTERFACE:${RESULT_DIR}/include>
+#     $<INSTALL_INTERFACE:include> 
+#   )
 
+#   install(
+#     DIRECTORY ${RESULT_DIR}/include/
+#     DESTINATION include/
+#   )
 GetBuildExt(VENGINE_BUILD_EXT)
 find_package(Vulkan REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
@@ -26,9 +43,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
 
 GetReflect(main)
 
-GetSDL(main)
+GetGlfw(3.3.9)
 
-GetGlm(0.9.9.8)
+GetBass(main)
+
+GetGlm(1.0.0)
 
 GetPugiXml(v1.14)
 
@@ -40,7 +59,7 @@ GetVulkanMemoryAllocator(v3.0.1)#v3.0.1-3)
 
 GetGLSL(14.0.0)
 
-GetSpirvCross(MoltenVK-1.1.5)
+GetSpirvCross(vulkan-sdk-1.3.275.0)
 
 GetSpdLog(v1.12.0)
 
@@ -62,33 +81,15 @@ GetAngelScript(2.36.1)
 
 GetArgparse(v3.0)
 
-set(ReflectionExec "VEngineHeaderGen")
-set(Reflection_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/reflection/main.cpp)
-add_executable(${ReflectionExec} ${Reflection_SOURCES})
-target_link_libraries(${ReflectionExec} PUBLIC reflect::reflect)
-target_link_libraries(${ReflectionExec} PUBLIC argparse::argparse)
-target_include_directories(${ReflectionExec}
-    PRIVATE
-    "$<TARGET_PROPERTY:${PROJECT_NAME},INTERFACE_INCLUDE_DIRECTORIES>"
-)
+GetFreeType(VER-2-13-2)
 
-add_custom_target(ReflectHeaders
-    COMMAND ${ReflectionExec} -s ${CMAKE_CURRENT_SOURCE_DIR}/include -o ${CMAKE_CURRENT_SOURCE_DIR}/include/generated
+add_custom_target(ReflectEngineHeaders
+    COMMAND python ${CMAKE_CURRENT_LIST_DIR}/python/reflect.py --source ${CMAKE_CURRENT_SOURCE_DIR}/include/vengine --output ${CMAKE_CURRENT_SOURCE_DIR}/include/generated
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Reflect vengine headers"
-    SOURCES ${Reflection_SOURCES}
 )
 
-add_dependencies(${PROJECT_NAME} ReflectHeaders)
-
-# add_executable(ReflectGen ${CMAKE_CURRENT_SOURCE_DIR}/reflect.cc)
-# target_link_libraries(ReflectGen PUBLIC reflect::reflect)
-
-# add_custom_command(
-#   TARGET ${PROJECT_NAME}
-#   COMMAND ReflectGen
-#   COMMENT "Reflecting Engine Files"
-# )
+add_dependencies(${PROJECT_NAME} ReflectEngineHeaders)
 
 install(
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
@@ -101,7 +102,6 @@ install(
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include
 )
 
 install(

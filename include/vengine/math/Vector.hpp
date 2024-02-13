@@ -23,9 +23,7 @@ public:
   Vector& operator =(const glm::highp_vec3& other);
   
   glm::mat4 TranslationMatrix() const;
-
-  glm::mat4 ScaleMatrix() const;
-
+  
   Vector();
 
   operator std::string() const;

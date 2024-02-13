@@ -15,7 +15,7 @@ public:
   static rp3d::PhysicsCommon physicsCommon;
 
   void Init(scene::Scene * outer) override;
-  void HandleDestroy() override;
+  void BeforeDestroy() override;
   
   void InternalFixedUpdate(float deltaTime) override;
 };

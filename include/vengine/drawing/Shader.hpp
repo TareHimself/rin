@@ -4,10 +4,11 @@
 #include "vengine/Object.hpp"
 #include <vulkan/vulkan.hpp>
 #include <filesystem>
-
+#include "generated/drawing/Shader.reflect.hpp"
 namespace vengine::drawing {
 class ShaderManager;
 
+RCLASS()
 class Shader : public Object<ShaderManager> {
   std::filesystem::path _sourcePath;
   vk::ShaderModule _vkShader;
@@ -27,10 +28,12 @@ public:
   void Init(ShaderManager * outer) override;
 
   ShaderResources GetResources() const;
-  void HandleDestroy() override;
+  void BeforeDestroy() override;
   
-  static Ref<Shader> FromSource(ShaderManager *
+  static Managed<Shader> FromSource(ShaderManager *
                                            manager,
                                            const std::filesystem::path &path);
 };
+
+REFLECT_IMPLEMENT(Shader)
 }

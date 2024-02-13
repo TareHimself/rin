@@ -4,10 +4,10 @@
 #include "vengine/containers/Array.hpp"
 #include "vengine/containers/Set.hpp"
 #include "vengine/scene/Scene.hpp"
-
 #include <filesystem>
 #include <map>
 #include <glslang/Public/ShaderLang.h>
+#include "generated/drawing/ShaderManager.reflect.hpp"
 
 namespace vengine {
 namespace drawing {
@@ -20,7 +20,7 @@ class Shader;
 }
 
 namespace vengine::drawing {
-class Drawer;
+class DrawingSubsystem;
 }
 
 namespace vengine::drawing {
@@ -44,10 +44,10 @@ public:
   
 };
 
+RCLASS()
+class ShaderManager : public Object<DrawingSubsystem>, public WithLogger {
 
-class ShaderManager : public Object<Drawer>, public SharableThis<ShaderManager>, public WithLogger {
-
-  std::map<std::filesystem::path,Ref<Shader>> _shaders;
+  std::map<std::filesystem::path,Managed<Shader>> _shaders;
   
 public:
   
@@ -55,7 +55,7 @@ public:
 
   bool HasLoadedShader(const std::filesystem::path &shaderPath) const;
 
-  Ref<Shader> GetLoadedShader(
+  Managed<Shader> GetLoadedShader(
       const std::filesystem::path &shaderPath) const;
   
   Array<unsigned int> Compile(const std::filesystem::path &shaderPath);
@@ -64,14 +64,16 @@ public:
   
   Array<unsigned int> LoadOrCompileSpv(const std::filesystem::path &shaderPath);
 
-  Ref<Shader> RegisterShader(Ref<Shader> shader);
+  Managed<Shader> RegisterShader(Managed<Shader> shader);
 
-  Ref<Shader> CreateShader(const std::filesystem::path &path);
+  Managed<Shader> CreateShader(const std::filesystem::path &path);
   
   void UnRegisterShader(const Shader * shader);
 
-  void Init(Drawer * outer) override;
+  void Init(DrawingSubsystem * outer) override;
 
-  void HandleDestroy() override;
+  void BeforeDestroy() override;
 };
+
+REFLECT_IMPLEMENT(ShaderManager)
 }

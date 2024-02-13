@@ -13,24 +13,24 @@ class SceneDrawable;
 }
 
 namespace vengine::drawing {
-class Drawer;
+class DrawingSubsystem;
 }
 
 namespace vengine::drawing {
 class SceneDrawer : public Object<scene::Scene>, public Drawable {
   vk::Viewport _viewport;
   SceneGlobalBuffer _sceneData{};
-  Ref<AllocatedBuffer> _sceneGlobalBuffer;
-  Ref<MaterialInstance> _defaultCheckeredMaterial;
+  Managed<AllocatedBuffer> _sceneGlobalBuffer;
+  Managed<MaterialInstance> _defaultCheckeredMaterial;
 
 public:
-  virtual WeakRef<Drawer> GetDrawer();
+  virtual Ref<DrawingSubsystem> GetDrawer();
 
   void Init(scene::Scene * outer) override;
-  void Draw(Drawer * drawer, RawFrameData *frameData) override;
+  void Draw(RawFrameData *frameData) override;
 
-  void HandleDestroy() override;
+  void BeforeDestroy() override;
 
-  WeakRef<MaterialInstance> GetDefaultMaterial() const;
+  Ref<MaterialInstance> GetDefaultMaterial() const;
 };
 }

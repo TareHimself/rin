@@ -9,6 +9,6 @@ class AxisInputEvent : public InputEvent {
 public:
   AxisInputEvent(EInputAxis axis,const float &value);
   float GetValue() const;
-  String GetName() const override;
+  std::string GetName() const override;
 };
 }

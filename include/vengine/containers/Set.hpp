@@ -13,7 +13,7 @@ public:
   void Add(T &&item);
   
   void Remove(T &&item);
-  Set<T> Clone();
+  Set<T> Clone() const;
 };
 
 
@@ -41,7 +41,7 @@ template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Remove(T &&item)
   this->erase(item);
 }
 
-template <typename T,class cmp = std::less<T>> Set<T> Set<T,cmp>::Clone() {
+template <typename T,class cmp = std::less<T>> Set<T> Set<T,cmp>::Clone() const {
   return {this->begin(),this->end()};
 }
 }

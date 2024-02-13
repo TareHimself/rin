@@ -2,12 +2,12 @@
 #include "types.hpp"
 
 namespace vengine::drawing {
-class Drawer;
+class DrawingSubsystem;
 
 class Drawable {
 public:
   
-  virtual void Draw(Drawer *drawer, RawFrameData * frameData) = 0;
+  virtual void Draw(RawFrameData * frameData) = 0;
 };
 }
 

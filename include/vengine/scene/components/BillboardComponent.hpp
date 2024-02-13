@@ -1,15 +1,18 @@
 #pragma once
 #include "RenderedComponent.hpp"
 #include "vengine/drawing/Texture.hpp"
+#include "generated/scene/components/BillboardComponent.reflect.hpp"
 
 namespace vengine::scene {
+RCLASS()
 class BillboardComponent : public RenderedComponent {
-  Ref<drawing::Texture> _texture;
+  Managed<drawing::Texture> _texture;
 public:
-  virtual void Draw(drawing::SceneDrawer *drawer, const math::Transform &parentTransform, drawing::SimpleFrameData *frameData) override;
+  virtual void Draw(drawing::SimpleFrameData *frameData, const math::Transform &parentTransform) override;
 
-  VENGINE_IMPLEMENT_COMPONENT_ID(BillboardComponent)
+  RFUNCTION()
+  static Managed<BillboardComponent> Construct() { return newManagedObject<BillboardComponent>(); } VENGINE_IMPLEMENT_REFLECTED_INTERFACE(BillboardComponent)
 };
 
-
+REFLECT_IMPLEMENT(BillboardComponent)
 }

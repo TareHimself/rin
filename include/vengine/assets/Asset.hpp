@@ -3,6 +3,7 @@
 #include "vengine/containers/Serializable.hpp"
 
 namespace vengine::assets {
+
 class Asset : public Serializable {
   VEngineAssetHeader _header{};
 public:

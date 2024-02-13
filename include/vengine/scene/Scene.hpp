@@ -1,10 +1,11 @@
 #pragma once
+#include "vengine/IReflected.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/containers/Array.hpp"
 #include "vengine/containers/Serializable.hpp"
 #include "vengine/input/SceneInputConsumer.hpp"
 #include "vengine/math/Transform.hpp"
-
+#include "generated/scene/Scene.reflect.hpp"
 #include <vulkan/vulkan.hpp>
 
 namespace vengine {
@@ -16,7 +17,7 @@ class Light;
 
 namespace vengine::drawing {
 class SceneDrawer;
-class Drawer;
+class DrawingSubsystem;
 class Viewport;
 }
 
@@ -30,93 +31,96 @@ return std::string("VENGINE_SCENE_") + #Type; \
 
 namespace vengine {
 class Engine;
-
 namespace physics {
 class ScenePhysics;
 }
-
-namespace scene {
+}
+namespace vengine::scene {
 class SceneObject;
 
-/**
- * \brief Base class for worlds
- */
-class Scene : public Object<Engine>,public SharableThis<Scene>,public Serializable {
-  Ref<physics::ScenePhysics> _physics;
-  Ref<drawing::SceneDrawer> _drawer;
-  Ref<SceneObject> _viewTarget;
-  Ref<SceneObject> _defaultViewTarget;
-  Array<Ref<SceneObject>> _sceneObjects;
-  Array<Ref<SceneObject>> _objectsPendingInit;
-  Ref<input::SceneInputConsumer> _inputConsumer;
-  std::list<WeakRef<LightComponent>> _lights;
+RCLASS()
+class Scene : public Object<Engine>,public Serializable {
+  Managed<physics::ScenePhysics> _physics;
+  Managed<drawing::SceneDrawer> _drawer;
+  Managed<SceneObject> _viewTarget;
+  Managed<SceneObject> _defaultViewTarget;
+  Array<Managed<SceneObject>> _sceneObjects;
+  Array<Managed<SceneObject>> _objectsPendingInit;
+  Managed<input::SceneInputConsumer> _inputConsumer;
+  std::list<Ref<LightComponent>> _lights;
 
 public:
+
+  RFUNCTION()
+  static Managed<Scene> Construct() {
+    return newManagedObject<Scene>();
+  }
+
+  VENGINE_IMPLEMENT_REFLECTED_INTERFACE(Scene)
+  
   Engine *GetEngine() const;
 
   void Init(Engine * outer) override;
-  void HandleDestroy() override;
+  void BeforeDestroy() override;
 
   void ReadFrom(Buffer &store) override;
   void WriteTo(Buffer &store) override;
 
-  virtual bool ShouldSerializeObject(const Ref<SceneObject> &object);
+  virtual bool ShouldSerializeObject(const Managed<SceneObject> &object);
 
-  Array<WeakRef<SceneObject>> GetSceneObjects() const;
+  Array<Ref<SceneObject>> GetSceneObjects() const;
 
-  std::list<WeakRef<LightComponent>> GetSceneLights() const;
+  std::list<Ref<LightComponent>> GetSceneLights() const;
 
-  WeakRef<drawing::SceneDrawer> GetDrawer() const;
+  Ref<drawing::SceneDrawer> GetDrawer() const;
 
-  WeakRef<physics::ScenePhysics> GetPhysics() const;
+  Ref<physics::ScenePhysics> GetPhysics() const;
 
-  WeakRef<input::SceneInputConsumer> GetInput() const;
+  Ref<input::SceneInputConsumer> GetInput() const;
 
-  void RegisterLight(const WeakRef<LightComponent>& light);
+  void RegisterLight(const Ref<LightComponent>& light);
 
   /**
    * \brief Called every tick
    */
-  virtual void Update(float deltaTime);
+  virtual void Tick(float deltaTime);
 
   /**
    * \brief Create a new physics instance for this world
    * \return The created instance
    */
-  virtual Ref<physics::ScenePhysics> CreatePhysics();
+  virtual Managed<physics::ScenePhysics> CreatePhysics();
 
   /**
    * \brief Create a new renderer for this world
    * \return The created instance
    */
-  virtual Ref<drawing::SceneDrawer> CreateDrawer();
+  virtual Managed<drawing::SceneDrawer> CreateDrawer();
 
-  virtual Ref<input::SceneInputConsumer> CreateInputManager();
+  virtual Managed<input::SceneInputConsumer> CreateInputManager();
 
-  virtual Ref<SceneObject> CreateDefaultViewTarget();
+  virtual Managed<SceneObject> CreateDefaultViewTarget();
 
-  WeakRef<SceneObject> GetViewTarget() const;
+  Ref<SceneObject> GetViewTarget() const;
 
-  virtual Ref<SceneObject> InitSceneObject(const Ref<SceneObject> &object);
-
-  template <typename T,typename ... Args>
-  WeakRef<T> CreateSceneObject(Args &&... args);
+  virtual Managed<SceneObject> InitSceneObject(const Managed<SceneObject> &object);
 
   template <typename T,typename ... Args>
-  WeakRef<T> CreateSceneObject(const math::Transform &transform,Args &&... args);
+  Ref<T> CreateSceneObject(Args &&... args);
 
-  VENGINE_IMPLEMENT_SCENE_ID(Scene)
+  template <typename T,typename ... Args>
+  Ref<T> CreateSceneObject(const math::Transform &transform,Args &&... args);
 };
 
-template <typename T, typename ... Args> WeakRef<T> Scene::CreateSceneObject(
+template <typename T, typename ... Args> Ref<T> Scene::CreateSceneObject(
     Args &&... args) {
-  auto rawObj = newSharedObject<T>(args...);
+  auto rawObj = newManagedObject<T>(args...);
   const auto obj = rawObj.template Cast<SceneObject>();
   InitSceneObject(obj);
   return rawObj;
 }
 
-template <typename T, typename ... Args> WeakRef<T> Scene::CreateSceneObject(
+template <typename T, typename ... Args> Ref<T> Scene::CreateSceneObject(
     const math::Transform &transform, Args &&... args) {
   auto rawObj = CreateSceneObject<T>(args...);
   const auto obj = rawObj.template Cast<SceneObject>();
@@ -124,7 +128,5 @@ template <typename T, typename ... Args> WeakRef<T> Scene::CreateSceneObject(
   return rawObj;
 }
 
-
-}
-
+REFLECT_IMPLEMENT(Scene)
 }

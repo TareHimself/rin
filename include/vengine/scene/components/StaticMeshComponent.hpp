@@ -1,18 +1,29 @@
 ﻿#pragma once
 #include "RenderedComponent.hpp"
+#include "vengine/IReflected.hpp"
 #include "vengine/drawing/Mesh.hpp"
-
+#include "generated/scene/components/StaticMeshComponent.reflect.hpp"
 namespace vengine::scene {
+RCLASS()
 class StaticMeshComponent : public RenderedComponent {
-  Ref<drawing::Mesh> _mesh;
-public:
-  WeakRef<drawing::Mesh> GetMesh() const;
-  void SetMesh(const Ref<drawing::Mesh> &newMesh);
+  Managed<drawing::Mesh> _mesh;
 
-  void Draw(drawing::SceneDrawer *drawer, const math::Transform &parentTransform, drawing::SimpleFrameData *frameData) override;
-  
-  VENGINE_IMPLEMENT_COMPONENT_ID(StaticMeshComponent)
+public:
+  Ref<drawing::Mesh> GetMesh() const;
+  void SetMesh(const Managed<drawing::Mesh> &newMesh);
+
+  void Draw(
+      drawing::SimpleFrameData *frameData,
+      const math::Transform &parentTransform) override;
+
+  RFUNCTION()
+
+  static Managed<StaticMeshComponent> Construct() {
+    return newManagedObject<StaticMeshComponent>();
+  }
+
+  VENGINE_IMPLEMENT_REFLECTED_INTERFACE(StaticMeshComponent)
 };
 
-
+REFLECT_IMPLEMENT(StaticMeshComponent)
 }

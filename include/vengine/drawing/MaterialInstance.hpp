@@ -1,7 +1,8 @@
 ﻿#pragma once
-#include "Drawer.hpp"
+#include "DrawingSubsystem.hpp"
 #include "vengine/utils.hpp"
 #include "vengine/Object.hpp"
+#include "generated/drawing/MaterialInstance.reflect.hpp"
 
 namespace vengine::drawing {
 class Texture;
@@ -13,12 +14,13 @@ struct SceneFrameData;
 
 namespace vengine::drawing {
 
-class MaterialInstance : public Object<Drawer> {
+RCLASS()
+class MaterialInstance : public Object<DrawingSubsystem> {
   vk::Pipeline _pipeline;
   vk::PipelineLayout _pipelineLayout;
-  std::unordered_map<RawFrameData *,WeakRef<DescriptorSet>> _dynamicSets;
+  std::unordered_map<RawFrameData *,Ref<DescriptorSet>> _dynamicSets;
   std::unordered_map<uint64_t,RawFrameData> _pendingCleanups;
-  std::unordered_map<EMaterialSetType,WeakRef<DescriptorSet>> _sets;
+  std::unordered_map<EMaterialSetType,Ref<DescriptorSet>> _sets;
   std::unordered_map<EMaterialSetType,vk::DescriptorSetLayout> _layouts;
   // vk::DescriptorSetLayout _materialSetLayout;
   EMaterialType _materialType{};
@@ -38,7 +40,7 @@ public:
 
   void SetPipeline(vk::Pipeline pipeline);
   void SetLayout(vk::PipelineLayout layout);
-  void SetSets(const std::unordered_map<EMaterialSetType, WeakRef<DescriptorSet>> &
+  void SetSets(const std::unordered_map<EMaterialSetType, Ref<DescriptorSet>> &
                sets, const std::unordered_map<EMaterialSetType, vk::DescriptorSetLayout> &
                layouts);
   void SetType(EMaterialType pass);
@@ -46,25 +48,25 @@ public:
   
   vk::Pipeline GetPipeline() const;
   vk::PipelineLayout GetLayout() const;
-  std::unordered_map<EMaterialSetType, WeakRef<DescriptorSet>>
+  std::unordered_map<EMaterialSetType, Ref<DescriptorSet>>
   GetDescriptorSets() const;
   //vk::DescriptorSetLayout GetDescriptorSetLayout() const;
   ShaderResources GetResources() const;
   EMaterialType GetPass() const;
   
-  void Init(Drawer * drawer) override;
+  void Init(DrawingSubsystem * drawer) override;
 
-  void SetTexture(const std::string &param, const WeakRef<Texture> &texture);
+  void SetTexture(const std::string &param, const Ref<Texture> &texture);
 
-  void SetDynamicTexture(RawFrameData *frame, const std::string &param, const WeakRef<Texture> &
+  void SetDynamicTexture(RawFrameData *frame, const std::string &param, const Ref<Texture> &
                          texture);
 
-  void SetTextureArray(const std::string &param, const Array<WeakRef<Texture>> &textures);
+  void SetTextureArray(const std::string &param, const Array<Ref<Texture>> &textures);
 
   template<typename T>
-  void SetBuffer(const std::string &param, const WeakRef<AllocatedBuffer> &buffer);
+  void SetBuffer(const std::string &param, const Ref<AllocatedBuffer> &buffer);
 
-  void SetBuffer(const std::string &param, const WeakRef<AllocatedBuffer> &buffer, size_t);
+  void SetBuffer(const std::string &param, const Ref<AllocatedBuffer> &buffer, size_t);
 
   void BindPipeline(RawFrameData *frame) const;
   //void BindCustomSet(RawFrameData *frame, const vk::DescriptorSet set, const uint32_t idx) const;
@@ -78,11 +80,11 @@ public:
   template <typename T>
   void PushConstant(const vk::CommandBuffer * cmd,const std::string &param,const T &data);
 
-  void HandleDestroy() override;
+  void BeforeDestroy() override;
 };
 
 template <typename T> void MaterialInstance::SetBuffer(const std::string &param,
-    const WeakRef<AllocatedBuffer> &buffer) {
+    const Ref<AllocatedBuffer> &buffer) {
   SetBuffer(param,buffer,sizeof(T));
 }
 
@@ -94,4 +96,5 @@ template <typename T> void MaterialInstance::PushConstant(
   cmd->pushConstants(_pipelineLayout,_shaderResources.pushConstants[param].stages,_shaderResources.pushConstants[param].offset,_shaderResources.pushConstants[param].size,&data);
 }
 
+REFLECT_IMPLEMENT(MaterialInstance)
 }

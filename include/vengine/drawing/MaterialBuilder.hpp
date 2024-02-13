@@ -4,12 +4,12 @@
 
 namespace vengine::drawing {
 class MaterialInstance;
-class Drawer;
+class DrawingSubsystem;
 class MaterialBuilder {
   EMaterialType _type;
   PipelineBuilder _pipelineBuilder;
   DescriptorLayoutBuilder _layoutBuilder;
-  Array<Ref<Shader>> _shaders;
+  Array<Managed<Shader>> _shaders;
   std::unordered_map<std::string,uint32_t> _pushConstants;
   friend class MaterialInstance;
   
@@ -17,12 +17,12 @@ protected:
   static Array<vk::PushConstantRange> ComputePushConstantRanges(ShaderResources& resources);
 public:
   
-  virtual MaterialBuilder& AddShader(Ref<Shader> shader);
+  virtual MaterialBuilder& AddShader(Managed<Shader> shader);
   virtual MaterialBuilder& SetType(EMaterialType type);
   template<typename T>
   MaterialBuilder& ConfigurePushConstant(String name);
   
-  virtual Ref<MaterialInstance> Create(Drawer * drawer);
+  virtual Managed<MaterialInstance> Create(DrawingSubsystem * drawer);
 
 };
 

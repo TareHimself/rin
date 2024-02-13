@@ -1,31 +1,32 @@
 #pragma once
-#include "Ref.hpp"
+#include "Managed.hpp"
 #include "log.hpp"
 #include "types.hpp"
-#include "containers/TEventDispatcher.hpp"
-// #include <functional>
-// #include <iostream>
+#include "containers/TDispatcher.hpp"
+
 
 namespace vengine {
-  
 
+  template<typename T>
+  std::shared_ptr<reflect::wrap::Reflected> findReflectedByPtr(T * inst) {
+    return reflect::factory::find<T>();
+  }
   class Allocatable {
   
   public:
-    bool bWasAllocated = false;
+    bool __internal__isOnStack = true;
     virtual void Destroy() = 0;
   };
 
-  template <typename T>
-  class SharableThis : public std::enable_shared_from_this<T> {
-    
-  };
 
   class Cleanable : public Allocatable {
   protected:
     CleanupQueue _cleaner;
   public:
     void AddCleanup(const std::function<void()> &callback);
+
+    template <typename ...T>
+    void AddCleanup(TDispatcher<T...>&dispatcher,uint64_t bindId);
 
     void Destroy() override;
   };
@@ -40,17 +41,14 @@ namespace vengine {
 
   template <class OuterType>
   class Object : public Cleanable {
-    bool _bHasBeenInitialized = false;
+    bool _hasBeenInitialized = false;
 
     bool _bPendingDestroy = false;
     OuterType * _outer;
-    
-  protected:
-    
-    
+  
   public:
 
-    TEventDispatcher<> onDestroyed;
+    TDispatcher<> onDestroyed;
     
     OuterType * GetOuter() const;
 
@@ -65,16 +63,24 @@ namespace vengine {
 
     virtual void Destroy() override;
     
-    virtual void HandleDestroy();
+    virtual void BeforeDestroy();
+    
     bool IsPendingDestroy() const;
   };
+
+  template <typename ...T> void Cleanable::AddCleanup(
+      TDispatcher<T...> &dispatcher, uint64_t bindId) {
+    AddCleanup([&] {
+      dispatcher.UnBind(bindId);
+    });
+  }
 
   template <class OuterType> OuterType * Object<OuterType>::GetOuter() const {
     return _outer;
   }
 
   template <class OuterType> bool Object<OuterType>::IsInitialized() const {
-    return _bHasBeenInitialized;
+    return _hasBeenInitialized;
   }
 
   template <class OuterType> Object<OuterType>::Object() {
@@ -85,24 +91,24 @@ namespace vengine {
 
   template <class OuterType> void Object<OuterType>::Init(OuterType * outer) {
     _outer = outer;
-    _bHasBeenInitialized = true;
+    _hasBeenInitialized = true;
   }
 
   template <class OuterType> void Object<OuterType>::Destroy() {
     _bPendingDestroy = true;
-    onDestroyed.Emit();
+    onDestroyed();
     if(IsInitialized()) {
-      HandleDestroy();
+      BeforeDestroy();
     }
 
-    _bHasBeenInitialized = false;
+    _hasBeenInitialized = false;
     
-    if(bWasAllocated) {
+    if(!__internal__isOnStack) {
       delete this;
     }
   }
 
-  template <class OuterType> void Object<OuterType>::HandleDestroy() {
+  template <class OuterType> void Object<OuterType>::BeforeDestroy() {
     _cleaner.Run();
   }
 
@@ -114,17 +120,17 @@ namespace vengine {
 static T *newObject(Args&&... args) {
     static_assert(std::is_base_of_v<Allocatable, T>, "T must be a child of Allocatable");
     auto obj = new T(args...);
-    static_cast<Allocatable*>(obj)->bWasAllocated = true;
+    static_cast<Allocatable*>(obj)->__internal__isOnStack = false;
     return obj;
 }
 
 template <typename T, typename... Args>
-static Ref<T> newSharedObject(Args&&... args) {
+static Managed<T> newManagedObject(Args&&... args) {
     static_assert(std::is_base_of_v<Allocatable, T>, "T must be a child of Allocatable");
     auto obj = new T(std::forward<Args>(args)...);
-    static_cast<Allocatable*>(obj)->bWasAllocated = true;
+    static_cast<Allocatable*>(obj)->__internal__isOnStack = false;
     
-    return Ref<T>(obj,[](T * ptr) {
+    return Managed<T>(obj,[](T * ptr) {
       static_cast<Allocatable *>(ptr)->Destroy();
     });
   }

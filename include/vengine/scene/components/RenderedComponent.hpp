@@ -5,7 +5,7 @@
 
 
 namespace vengine::scene {
-class RenderedComponent : public SceneComponent,public SharableThis<RenderedComponent>, public drawing::SceneDrawable {
+class RenderedComponent : public SceneComponent, public drawing::SceneDrawable {
   void Init(SceneObject * outer) override;
 };
 }

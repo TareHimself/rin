@@ -17,7 +17,7 @@ class Component;
 }
 
 namespace vengine::drawing {
-class Drawer;
+class DrawingSubsystem;
 }
 
 namespace vengine::scene {
@@ -36,23 +36,22 @@ String GetSerializeId() override { \
 return std::string("VENGINE_SCENE_OBJECT_") + #Type; \
 }
 #endif
-/**
- * \brief Base class for all object that exist in a world
- */
-class SceneObject : public Object<Scene>, public SharableThis<SceneObject>, public drawing::SceneDrawable, public Serializable {
+
+
+class SceneObject : public Object<Scene>, public drawing::SceneDrawable, public Serializable {
 
 private:
   bool _bCanEverUpdate = false;
-  std::list<Ref<Component>> _components;
-  std::list<WeakRef<RenderedComponent>> _renderedComponents;
-  Ref<SceneComponent> _rootComponent;
+  std::list<Managed<Component>> _components;
+  std::list<Ref<RenderedComponent>> _renderedComponents;
+  Managed<SceneComponent> _rootComponent;
 public:
-  virtual Ref<SceneComponent> CreateRootComponent();
-  virtual WeakRef<SceneComponent> GetRootComponent() const;
-  virtual void AttachComponentsToRoot(const WeakRef<SceneComponent> &root);
+  virtual Managed<SceneComponent> CreateRootComponent();
+  virtual Ref<SceneComponent> GetRootComponent() const;
+  virtual void AttachComponentsToRoot(const Ref<SceneComponent> &root);
   
-  virtual void AttachTo(const WeakRef<SceneComponent> &parent);
-  virtual void AttachTo(const WeakRef<SceneObject> &parent);
+  virtual void AttachTo(const Ref<SceneComponent> &parent);
+  virtual void AttachTo(const Ref<SceneObject> &parent);
   
   virtual math::Vector GetWorldLocation() const;
   virtual math::Quat GetWorldRotation() const;
@@ -71,35 +70,35 @@ public:
   virtual void Init(scene::Scene * outer) override;
 
   virtual Engine *GetEngine() const;
-  virtual WeakRef<input::SceneInputConsumer> GetInput();
+  virtual Ref<input::SceneInputConsumer> GetInput();
   virtual Scene *GetScene() const;
-  virtual void Update(float deltaTime);
+  virtual void Tick(float deltaTime);
   
   template <typename T,typename... Args>
-  WeakRef<T> AddComponent(Args&&... args);
+  Ref<T> AddComponent(Args&&... args);
 
   template <typename T>
-  WeakRef<T> GetComponentByClass();
+  Ref<T> GetComponentByClass();
 
-  void AddToRenderList(const WeakRef<RenderedComponent> &comp);
+  void AddToRenderList(const Ref<RenderedComponent> &comp);
 
-  void RemoveFromRenderList(const WeakRef<RenderedComponent> &comp);
+  void RemoveFromRenderList(const Ref<RenderedComponent> &comp);
   
-  void InitComponent(const Ref<Component>& comp);
+  void InitComponent(const Managed<Component>& comp);
 
-  void HandleDestroy() override;
+  void BeforeDestroy() override;
 
-  void Draw(drawing::SceneDrawer *drawer, const math::Transform &parentTransform, drawing::SimpleFrameData *frameData) override;
+  void Draw(drawing::SimpleFrameData *frameData, const math::Transform &parentTransform) override;
 
   virtual void ReadFrom(Buffer &store) override;
   virtual void WriteTo(Buffer &store) override;
 
-  VENGINE_IMPLEMENT_SCENE_OBJECT_ID(SceneObject)
+  std::shared_ptr<reflect::wrap::Reflected> GetReflected() const override;
 };
 
-template <typename T, typename ... Args> WeakRef<T> SceneObject::AddComponent(
+template <typename T, typename ... Args> Ref<T> SceneObject::AddComponent(
     Args &&... args) {
-  auto comp = newSharedObject<T>(std::forward<Args>(args)...);
+  auto comp = newManagedObject<T>(std::forward<Args>(args)...);
   auto compPtr = comp.template Cast<Component>();
   if(IsInitialized()) {
     InitComponent(compPtr);
@@ -109,7 +108,7 @@ template <typename T, typename ... Args> WeakRef<T> SceneObject::AddComponent(
   return comp;
 }
 
-template <typename T> WeakRef<T> SceneObject::GetComponentByClass() {
+template <typename T> Ref<T> SceneObject::GetComponentByClass() {
   for(auto component : _components) {
     auto dCast = component.Cast<T>();
     if(dCast != nullptr) {

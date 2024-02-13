@@ -8,7 +8,6 @@ public:
   using std::string::string;
 
   String(const std::string &other);
-  
   String &operator =(const std::string &other) {
     clear();
     resize(other.size());
@@ -21,6 +20,7 @@ public:
 inline String::String(const std::string &other) {
   *this = other;
 }
+
 
 #ifndef STRING_SERIALIZATION_OPS
 #define STRING_SERIALIZATION_OPS

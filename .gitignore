@@ -5,3 +5,7 @@ shaders/**/compiled/*
 reflect/*
 *.exe
 local/*
+install_build
+install_result
+*.wav
+**/generated/**

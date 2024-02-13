@@ -1,17 +1,16 @@
-﻿#pragma once
+#pragma once
 #include "InputEvent.hpp"
-#include "vengine/containers/String.hpp"
+#include "vengine/window/types.hpp"
 
-#include <SDL2/SDL_events.h>
+#include <variant>
 
 namespace vengine::input {
+typedef std::variant<std::shared_ptr<window::MouseButtonEvent>,std::shared_ptr<window::KeyEvent>> inputEventVariant;
 class KeyInputEvent : public InputEvent {
-  SDL_KeyboardEvent _key;
+   inputEventVariant _event;
 public:
-
-  
-  KeyInputEvent(const SDL_KeyboardEvent &event);
-
-  String GetName() const override;
+  KeyInputEvent(inputEventVariant event);
+  virtual bool IsMouse() const;
+  std::string GetName() const override;
 };
 }

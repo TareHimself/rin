@@ -6,17 +6,17 @@
 #include "vengine/containers/String.hpp"
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
-#include "generated/vengine/drawing/types.reflect.hpp"
+
+namespace vengine {
+namespace drawing {
+class SceneDrawer;
+}
+}
+
 namespace vengine::drawing {
 
 VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,vk::Format);
 VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,vk::Filter);
-// #ifndef DRAWING_SERIALIZATION_OPS
-// #define DRAWING_SERIALIZATION_OPS
-// VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,vk::Format);
-// VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer,vk::Filter);
-// #endif
-
 
 enum class EMaterialType : uint8_t {
   MATERIAL_PASS_MAX,
@@ -33,6 +33,7 @@ private:
   vk::CommandPool _cmdPool;
   vk::CommandBuffer _cmdBuffer;
   DescriptorAllocatorGrowable _frameDescriptors{};
+  DrawingSubsystem * _drawer = nullptr;
 public:
   CleanupQueue cleaner;
   vk::CommandBuffer * GetCmd();
@@ -41,42 +42,14 @@ public:
   vk::Semaphore GetSwapchainSemaphore() const;
   vk::Semaphore GetRenderSemaphore() const;
   vk::Fence GetRenderFence() const;
+  DrawingSubsystem * GetDrawer() const;
   void SetSemaphores(const vk::Semaphore &swapchain, const vk::Semaphore &render);
   void SetRenderFence(vk::Fence renderFence);
   void SetCommandPool(vk::CommandPool pool);
   void SetCommandBuffer(vk::CommandBuffer buffer);
-  
+  void SetDrawer(DrawingSubsystem * drawer);
 };
 
-
-
-struct VmaAllocated {
-  Allocation alloc;
-
-  virtual void * GetMappedData() const;
-};
-
-RSTRUCT()
-struct AllocatedBuffer : VmaAllocated {
-  RPROPERTY()
-  vk::Buffer buffer = nullptr;
-};
-
-REFLECT_IMPLEMENT(AllocatedBuffer)
-
-RSTRUCT()
-struct AllocatedImage :  VmaAllocated{
-  RPROPERTY()
-  vk::Image image = nullptr;
-  RPROPERTY()
-  vk::ImageView view = nullptr;
-  RPROPERTY()
-  vk::Extent3D extent;
-  RPROPERTY()
-  vk::Format format;
-};
-
-REFLECT_IMPLEMENT(AllocatedImage)
 
 struct VertexInputDescription {
   Array<vk::VertexInputBindingDescription> bindings;
@@ -94,8 +67,8 @@ struct Vertex {
 VENGINE_SIMPLE_ARRAY_SERIALIZER(Buffer,Vertex);
 
 struct GpuMeshBuffers {
-  Ref<AllocatedBuffer> indexBuffer;
-  Ref<AllocatedBuffer> vertexBuffer;
+  Managed<AllocatedBuffer> indexBuffer;
+  Managed<AllocatedBuffer> vertexBuffer;
   vk::DeviceAddress vertexBufferAddress;
 };
 
@@ -178,7 +151,7 @@ struct MaterialResourceInfo {
 struct SimpleFrameData {
 private:
   RawFrameData * _frame = nullptr;
-
+  SceneDrawer * _drawer = nullptr;
 public:
   
   SimpleFrameData(RawFrameData * frame);
@@ -188,6 +161,10 @@ public:
   CleanupQueue * GetCleaner() const;
 
   RawFrameData * GetRaw() const;
+  SceneDrawer * GetDrawer() const;
+  void SetDrawer(SceneDrawer * drawer);
+
+  void DrawQuad() const;
 };
 
 }

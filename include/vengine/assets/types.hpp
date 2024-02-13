@@ -13,14 +13,22 @@ const String TEXTURE = "TEXTURE";
 const String FONT = "FONT";
 }
 
+RSTRUCT()
 struct VEngineAssetHeader : Serializable {
+  RPROPERTY()
   uint32_t version;
+  RPROPERTY()
   String type;
+  RPROPERTY()
   String name;
+  RPROPERTY()
   String meta;
 
-  String GetSerializeId() override;
+  std::shared_ptr<reflect::wrap::Reflected> GetReflected() const override {
+    return reflect::factory::find<VEngineAssetHeader>();
+  }
 
+  
   void ReadFrom(Buffer &store) override;
 
   void WriteTo(Buffer &store) override;

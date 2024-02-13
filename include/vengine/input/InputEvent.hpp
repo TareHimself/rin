@@ -3,8 +3,9 @@
 
 namespace vengine::input {
 class InputEvent {
+  
 public:
-  virtual String GetName() const = 0;
+  virtual std::string GetName() const = 0;
 };
 }
 

@@ -1,7 +1,5 @@
 ﻿#pragma once
 #include <string>
-#include <xxhash.h>
-#include <uuid.h>
 #include <fmt/format.h>
 namespace vengine::utils {
 
@@ -17,7 +15,7 @@ bool isType(const SrcType* src)
   return dynamic_cast<const DstType*>(src) != nullptr;
 }
 
-std::string hash(const void * data, size_t size, XXH64_hash_t seed = 0);
+std::string hash(const void * data, size_t size, uint64_t seed = 0);
 
 template <typename... T>
 void vassert(const bool result, fmt::format_string<T...> message,T&&... args) {
@@ -31,4 +29,8 @@ void vassert(const bool result, fmt::format_string<T...> message,T&&... args) {
     throw std::runtime_error(errMsg.c_str());
   }
 }
+
+std::string createUUID();
+
+
 }

@@ -1,25 +1,30 @@
 ﻿#pragma once
-#include "Font.hpp"
 #include "Widget.hpp"
+
+namespace vengine {
+namespace drawing {
+class Font;
+}
+}
 
 namespace vengine::widget {
 class Text : public Widget {
   String _content;
-  Ref<Font>  _font;
+  Managed<drawing::Font>  _font;
   uint32_t _fontSize = 50;
 public:
-  virtual void SetFont(const Ref<Font> &font);
+  virtual void SetFont(const Managed<drawing::Font> &font);
   virtual void SetContent(const String &content);
   virtual String GetContent() const;
-  virtual WeakRef<Font> GetFont() const;
+  virtual Ref<drawing::Font> GetFont() const;
   void SetFontSize(uint32_t fontSize);
   uint32_t GetFontSize() const;
-  void Init(WidgetManager * outer) override;
+  void Init(WidgetSubsystem * outer) override;
 
-  void DrawSelf( drawing::Drawer * drawer, drawing::SimpleFrameData *
-                frameData, WidgetParentInfo parentInfo) override;
+  // void DrawSelf( drawing::Drawer * drawer, drawing::SimpleFrameData *
+  //               frameData, DrawInfo parentInfo) override;
 
 
-  void HandleDestroy() override;
+  void BeforeDestroy() override;
 };
 }

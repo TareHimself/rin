@@ -23,6 +23,6 @@ layout( push_constant ) uniform constants
 } pRect;
 
 void main() {
-	vec2 uv = vec2(mapRangeUnClamped(iUV.x,0.0,1.0,0.5,1.0),mapRangeUnClamped(iUV.y,0.0,1.0,0.5,1.0));
-	oColor = texture(ImageT,uv);
+	//vec2 uv = vec2(mapRangeUnClamped(iUV.x,0.0,1.0,0.5,1.0),mapRangeUnClamped(iUV.y,0.0,1.0,0.5,1.0));
+	oColor = texture(ImageT,iUV);
 }

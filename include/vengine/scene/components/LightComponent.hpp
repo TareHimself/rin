@@ -18,6 +18,9 @@ public:
   void SetRadius(float radius);
   void SetColor(glm::vec4 color);
 
+  float GetIntensity() const;
+  glm::vec4 GetColor() const;
+
   virtual drawing::GpuLight GetLightInfo() = 0;
 };
 }

@@ -1,28 +1,25 @@
 #pragma once
-
-//#define SDL_MAIN_HANDLED
 #include "Object.hpp"
-#include "vengine/Ref.hpp"
-#include "utils.hpp"
-#include <SDL3/SDL.h>
+#include "vengine/Managed.hpp"
 #include "containers/Array.hpp"
 #include "containers/Set.hpp"
 #include "containers/String.hpp"
-#include "containers/TEventDispatcher.hpp"
+#include "containers/TDispatcher.hpp"
 #include "math/Vector2.hpp"
+#include "widget/WidgetSubsystem.hpp"
+#include "window/Window.hpp"
 #include <vulkan/vulkan.hpp>
 #include <queue>
-#include <SDL3/SDL_video.h>
+
+namespace vengine {
+namespace audio {
+class AudioSubsystem;
+}
+}
 
 namespace vengine {
 namespace input {
 class InputConsumer;
-}
-}
-
-namespace vengine {
-namespace widget {
-class WidgetManager;
 }
 }
 
@@ -32,20 +29,20 @@ class EngineSubsystem;
 
 namespace vengine {
 namespace scripting {
-class ScriptManager;
+class ScriptSubsystem;
 }
 }
 
 namespace vengine::assets {
-class AssetManager;
+class AssetSubsystem;
 }
 
 namespace vengine::input {
-class InputManager;
+class InputSubsystem;
 }
 
 namespace vengine::drawing {
-class Drawer;
+class DrawingSubsystem;
 }
 
 namespace vengine {
@@ -59,28 +56,29 @@ private:
   math::Vector2 _mousePosition{0, 0};
   vk::Extent2D _windowExtent{1000, 1000};
 
-  Ref<SDL_Window> _window;
+  Ref<window::Window> _window;
   long long _runTime = 0;
   long long _lastTickTime = 0;
+  float _lastDeltaSeconds = 0;
   String _applicationName;
 
-  Array<Ref<EngineSubsystem>> _subsystems;
+  Array<Managed<EngineSubsystem>> _subsystems;
   
-  Ref<drawing::Drawer> _drawer;
+  Managed<drawing::DrawingSubsystem> _drawer;
 
-  Ref<input::InputManager> _inputManager;
+  Managed<input::InputSubsystem> _inputManager;
 
-  Ref<assets::AssetManager> _assetManager;
+  Managed<assets::AssetSubsystem> _assetManager;
 
-  Ref<scripting::ScriptManager> _scriptManager;
+  Managed<scripting::ScriptSubsystem> _scriptManager;
 
-  Ref<widget::WidgetManager> _widgetManager;
+  Managed<widget::WidgetSubsystem> _widgetManager;
 
-  Set<Ref<scene::Scene>> _scenes;
+  Managed<audio::AudioSubsystem> _audioManager;
+
+  Set<Managed<scene::Scene>> _scenes;
 
   EInputMode _inputMode = GameAndUi;
-
-  std::queue<SDL_Event> _windowEventQueue;
   
   bool bExitRequested = false;
 
@@ -90,21 +88,23 @@ private:
 
   bool bIsFocused = false;
 
-  void Update(float deltaTime) const;
+  void Tick(float deltaTime);
 
   void InitWindow();
 
-  void InitInputManager();
+  void InitInputSubsystem();
 
-  void InitScriptManager();
+  void InitScriptSubsystem();
 
-  void InitWidgetManager();
+  void InitWidgetSubsystem();
 
-  void InitDrawer();
+  void InitDrawingSubsystem();
 
   void InitScenes();
 
-  void InitAssetManager();
+  void InitAssetSubsystem();
+
+  void InitAudioSubsystem();
 
 public:
   Engine();
@@ -131,27 +131,35 @@ public:
 
   float GetEngineTimeSeconds() const;
 
-  Array<WeakRef<scene::Scene>> GetScenes() const;
+  float GetDeltaSeconds() const;
 
-  WeakRef<SDL_Window> GetWindow() const;
+  Array<Ref<scene::Scene>> GetScenes() const;
+
+  Ref<window::Window> GetWindow() const;
 
   vk::Extent2D GetWindowExtent() const;
 
-  WeakRef<drawing::Drawer> GetDrawer() const;
+  Ref<drawing::DrawingSubsystem> GetDrawingSubsystem() const;
 
-  WeakRef<input::InputManager> GetInputManager() const;
+  Ref<input::InputSubsystem> GetInputSubsystem() const;
 
-  WeakRef<assets::AssetManager> GetAssetManager() const;
+  Ref<assets::AssetSubsystem> GetAssetSubsystem() const;
 
-  WeakRef<scripting::ScriptManager> GetScriptManager() const;
+  Ref<scripting::ScriptSubsystem> GetScriptSubsystem() const;
 
-  WeakRef<widget::WidgetManager> GetWidgetManager() const;
+  Ref<widget::WidgetSubsystem> GetWidgetSubsystem() const;
 
-  virtual Ref<drawing::Drawer> CreateDrawer();
-  virtual Ref<input::InputManager> CreateInputManager();
-  virtual Ref<assets::AssetManager> CreateAssetManager();
-  virtual Ref<scripting::ScriptManager> CreateScriptManager();
-  virtual Ref<widget::WidgetManager> CreateWidgetManager();
+  Ref<audio::AudioSubsystem> GetAudioSubsystem() const;
+
+  EInputMode GetInputMode() const;
+
+  virtual Managed<drawing::DrawingSubsystem> CreateDrawingSubsystem();
+  virtual Managed<input::InputSubsystem> CreateInputSubsystem();
+  virtual Managed<assets::AssetSubsystem> CreateAssetSubsystem();
+  virtual Managed<scripting::ScriptSubsystem> CreateScriptSubsystem();
+  virtual Managed<widget::WidgetSubsystem> CreateWidgetSubsystem();
+
+  virtual Managed<audio::AudioSubsystem> CreateAudioSubsystem();
 
   void SetInputMode(EInputMode mode);
 
@@ -162,23 +170,23 @@ public:
   bool IsFocused() const;
 
   template <typename T,typename ... Args>
-   WeakRef<T> CreateScene(Args &&... args);
+   Ref<T> CreateScene(Args &&... args);
 
-  virtual void InitScene(const Ref<scene::Scene> &scene);
-
-  // Events
-  TEventDispatcher<EInputMode, EInputMode> onInputModeChanged;
+  virtual void InitScene(const Managed<scene::Scene> &scene);
 
   // Events
-  TEventDispatcher<vk::Extent2D> onWindowSizeChanged;
+  TDispatcher<EInputMode, EInputMode> onInputModeChanged;
+
+  // Events
+  TDispatcher<vk::Extent2D> onWindowSizeChanged;
 
 private:
 
 };
 
-template <typename T, typename ... Args> WeakRef<T> Engine::CreateScene(
+template <typename T, typename ... Args> Ref<T> Engine::CreateScene(
     Args &&... args) {
-  Ref<T> rawObj = newSharedObject<T>(args...);
+  Managed<T> rawObj = newManagedObject<T>(args...);
   //const auto castObj = rawObj.Cast<scene::Scene>();
   if(IsRunning()) {
     InitScene(rawObj);

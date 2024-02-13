@@ -1,0 +1,2 @@
+Start-Process -FilePath "D:\Github\vengine\local\reflect\main.exe" -ArgumentList "-s D:\Github\vengine\include", "-o D:\Github\vengine\include\generated"
+Start-Process -FilePath "D:\Github\vengine\local\reflect\main.exe" -ArgumentList "-s D:\Github\vengine\test"

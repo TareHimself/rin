@@ -37,12 +37,6 @@ endfunction()
 function(FetchAndBuild REPOSITORY BRANCH BUILD_DEST TEMP_DEST PRE_BUILD_FN BUILD_FN)
   if(NOT EXISTS ${BUILD_DEST})
     set(CLONED_DIR ${TEMP_DEST})
-    
-    if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-      set(LOCAL_BUILD_TYPE "Debug")
-    else()
-      set(LOCAL_BUILD_TYPE "Release")
-    endif()
 
     Fetch(${REPOSITORY} ${BRANCH} ${CLONED_DIR})
 
@@ -50,8 +44,16 @@ function(FetchAndBuild REPOSITORY BRANCH BUILD_DEST TEMP_DEST PRE_BUILD_FN BUILD
       cmake_language(CALL ${PRE_BUILD_FN} ${CLONED_DIR})
     endif()
 
-    BuildOnly(${CLONED_DIR} ${BUILD_DEST} "Release" "${BUILD_FN}")
-    BuildOnly(${CLONED_DIR} ${BUILD_DEST} "Debug" "${BUILD_FN}")
+    if(CMAKE_BUILD_TYPE)
+      if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+        BuildOnly(${CLONED_DIR} ${BUILD_DEST} "Debug" "${BUILD_FN}")
+      else()
+        BuildOnly(${CLONED_DIR} ${BUILD_DEST} "Release" "${BUILD_FN}")
+      endif()
+    else()
+      BuildOnly(${CLONED_DIR} ${BUILD_DEST} "Release" "${BUILD_FN}")
+      BuildOnly(${CLONED_DIR} ${BUILD_DEST} "Debug" "${BUILD_FN}")
+    endif()
   endif()
 endfunction()
 
@@ -65,6 +67,11 @@ function(BuildThirdPartyDep FOLDER_NAME REPOSITORY VERSION RESULT PRE_BUILD_FN B
   set(${RESULT} ${RESULT_DIR} PARENT_SCOPE)
 endfunction()
 
+macro(AddTargetLibs EXTERNAL_TARGET)
+  get_target_property(EXTERNAL_TARGET_LIBRARY_PATH ${EXTERNAL_TARGET} LOCATION)
+  list(APPEND VENGINE_LIBS ${EXTERNAL_TARGET_LIBRARY_PATH})
+  set(EXTERNAL_TARGET_LIBRARY_PATH)
+endmacro()
 # SimdJson
 macro(GetSimdJson VERSION)
 
@@ -73,8 +80,9 @@ macro(GetSimdJson VERSION)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/simdjson)
 
   find_package(simdjson CONFIG REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC simdjson::simdjson)
+  AddTargetLibs("simdjson::simdjson")
 endmacro()
 
 # FastGLTF
@@ -97,8 +105,9 @@ macro(GetFastGLTF VERSION)
 
   find_package(fastgltf_simdjson REQUIRED)
   find_package(fastgltf CONFIG REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
+  AddTargetLibs("fastgltf::fastgltf")
 endmacro()
 
 # Miniz
@@ -109,8 +118,9 @@ macro(GetMiniz VERSION)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/miniz)
 
   find_package(miniz CONFIG REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC miniz::miniz)
+  AddTargetLibs("miniz::miniz")
 endmacro()
 
 # uuid
@@ -120,18 +130,38 @@ macro(GetStdUUID VERSION)
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/stduuid)
   find_package(stduuid REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include)
 endmacro()
 
-# uuid
+# glfw
+macro(GetGlfw VERSION)
+
+  function(BuildGlfw B_TYPE B_SRC B_DEST)
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -S ${B_SRC} -B ${B_DEST}
+    )
+  endfunction()
+
+  BuildThirdPartyDep(glfw https://github.com/glfw/glfw ${VERSION} RESULT_DIR "" "BuildGlfw")
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  find_package(glfw3 REQUIRED)
+  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include)
+  
+  target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
+endmacro()
+
+# reflect
 macro(GetReflect VERSION)
 
   BuildThirdPartyDep(reflect https://github.com/TareHimself/reflect ${VERSION} RESULT_DIR "" "")
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
   find_package(reflect REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include)
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include)
   target_link_libraries(${PROJECT_NAME} PUBLIC reflect::reflect)
+  AddTargetLibs("reflect::reflect")
+  message(STATUS "LIBS ${VENGINE_LIBS}")
 endmacro()
 
 
@@ -146,8 +176,19 @@ macro(GetVulkanMemoryAllocator VERSION)
     file(DOWNLOAD https://raw.githubusercontent.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/${VERSION}/include/vk_mem_alloc.h ${FILE_RESULT}  SHOW_PROGRESS)
   endif()
 
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR})
-  target_sources(${PROJECT_NAME} PUBLIC ${FILE_RESULT})
+  target_sources(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${RESULT_DIR}/vk_mem_alloc.h> $<INSTALL_INTERFACE:include/vk_mem_alloc.h>)
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  install(
+    DIRECTORY ${RESULT_DIR}/
+    DESTINATION include/
+  )
 endmacro()
 
 # GLSL
@@ -174,8 +215,23 @@ macro(GetGLSL VERSION)
 
   find_package(SPIRV-Tools-opt REQUIRED)
   find_package(glslang CONFIG REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits)
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  install(
+    DIRECTORY ${RESULT_DIR}/include/
+    DESTINATION include/
+  )
+
+  AddTargetLibs("glslang::glslang")
+  AddTargetLibs("glslang::SPIRV")
+  AddTargetLibs("glslang::glslang-default-resource-limits")
 endmacro()
 
 # SPIRV Reflect
@@ -201,9 +257,11 @@ macro(GetSpirvCross VERSION)
 
   # find_package(SPIRV-Tools-opt REQUIRED)
   # find_package(glslang CONFIG REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include)
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include)
   file(GLOB SPIRV_DLLS ${RESULT_DIR}/lib/*d.lib)
   target_link_libraries(${PROJECT_NAME} PUBLIC ${SPIRV_DLLS})
+
+  
 endmacro()
 
 # VkBootstrap
@@ -234,7 +292,7 @@ macro(GetXXHash VERSION)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
   find_package(xxHash REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC xxHash::xxhash)
 endmacro()
 
@@ -246,8 +304,19 @@ macro(GetFmt VERSION)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
   find_package(fmt REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  install(
+    DIRECTORY ${RESULT_DIR}/include/
+    DESTINATION include/
+  )
 endmacro()
 
 # spdlog
@@ -258,20 +327,45 @@ macro(GetSpdLog VERSION)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
   find_package(spdlog REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  install(
+    DIRECTORY ${RESULT_DIR}/include/
+    DESTINATION include/
+  )
+
 endmacro()
 
-# SDL
-macro(GetSDL VERSION)
 
-  BuildThirdPartyDep(sdl https://github.com/libsdl-org/SDL ${VERSION} RESULT_DIR "" "")
+# Bass
+macro(GetBass VERSION)
 
-  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/cmake)
+  BuildThirdPartyDep(bass https://github.com/TareHimself/bass-cpp ${VERSION} RESULT_DIR "" "")
 
-  find_package(SDL3 REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+
+  find_package(basscpp REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC basscpp::basscpp)
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  install(
+    DIRECTORY ${RESULT_DIR}/include/
+    DESTINATION include/
+  )
+
 endmacro()
 
 # GLM
@@ -280,19 +374,31 @@ macro(GetGlm VERSION)
   set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
   set(GLM_DIR ${THIRD_PARTY_DIR}/glm)
 
-  if(NOT EXISTS ${GLM_DIR})
-    set(DOWNLOADED_FILE ${CMAKE_CURRENT_BINARY_DIR}/glm.zip)
+  BuildThirdPartyDep(glm https://github.com/g-truc/glm ${VERSION} RESULT_DIR "" "")
 
-    file(DOWNLOAD https://github.com/g-truc/glm/releases/download/${VERSION}/glm-${VERSION}.zip ${DOWNLOADED_FILE} SHOW_PROGRESS)
+  # if(NOT EXISTS ${GLM_DIR})
+  #   set(DOWNLOADED_FILE ${CMAKE_CURRENT_BINARY_DIR}/glm.zip)
 
-    file(ARCHIVE_EXTRACT INPUT ${DOWNLOADED_FILE} DESTINATION ${THIRD_PARTY_DIR})
-  endif()
+  #   file(DOWNLOAD https://github.com/g-truc/glm/releases/download/${VERSION}/glm-${VERSION}.zip ${DOWNLOADED_FILE} SHOW_PROGRESS)
 
-  list(APPEND CMAKE_PREFIX_PATH ${GLM_DIR}/cmake/glm)
+  #   file(ARCHIVE_EXTRACT INPUT ${DOWNLOADED_FILE} DESTINATION ${THIRD_PARTY_DIR})
+  # endif()
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/share)
 
   find_package(glm REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include)
-  
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  install(
+    DIRECTORY ${RESULT_DIR}/include/
+    DESTINATION include/
+  )
 endmacro()
 
 # AngelScript
@@ -318,8 +424,7 @@ macro(GetAngelScript VERSION)
 
     
 
-    set(ADDONS "scriptstdstring;scriptbuilder;debugger;scripthelper;serializer;autowrapper")
-    # function(BuildOnly CLONED_DIR BUILD_DEST LOCAL_BUILD_TYPE BUILD_FN)
+    set(ADDONS "scriptstdstring;scriptarray;scriptbuilder;debugger;scripthelper;serializer;autowrapper")
 
     if(ADDONS)
       file(MAKE_DIRECTORY ${ADDONS_DIR})
@@ -334,10 +439,20 @@ macro(GetAngelScript VERSION)
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
-  target_sources(${PROJECT_NAME} PUBLIC ${STB_FILES})
   find_package(Angelscript REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include)
   target_link_libraries(${PROJECT_NAME} PUBLIC Angelscript::angelscript)
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  install(
+    DIRECTORY ${RESULT_DIR}/include/
+    DESTINATION include/
+  )
 
   if(EXISTS ${ADDONS_DIR})
     file(GLOB ADDON_SOURCES ${ADDONS_DIR}/**/*.cpp)
@@ -346,24 +461,10 @@ macro(GetAngelScript VERSION)
     add_library(${ADDONS_PROJECT_NAME} STATIC ${ADDON_SOURCES} ${ADDON_INCLUDES})
     target_include_directories(${ADDONS_PROJECT_NAME} PUBLIC ${ADDONS_DIR} ${RESULT_DIR}/include)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${ADDONS_PROJECT_NAME})
+
+
   endif()
 endmacro()
-
-macro(GetStbFiles)
-  set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
-  set(STB_DIR ${THIRD_PARTY_DIR}/stb)
-  
-  if(NOT EXISTS ${STB_DIR})
-    file(DOWNLOAD https://raw.githubusercontent.com/nothings/stb/master/stb_image.h ${STB_DIR}/stb_image.h SHOW_PROGRESS)
-  endif()
-
-  file(GLOB STB_FILES ${STB_DIR}/*.h)
-
-  target_include_directories(${PROJECT_NAME} PUBLIC ${STB_DIR})
-  target_sources(${PROJECT_NAME} PUBLIC ${STB_FILES})
-
-endmacro()
-
 
 # ReactPhysics3D
 macro(GetReactPhys VERSION)
@@ -373,9 +474,20 @@ macro(GetReactPhys VERSION)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
   find_package(ReactPhysics3D REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+
   target_link_libraries(${PROJECT_NAME} PUBLIC ReactPhysics3D::ReactPhysics3D)
-  
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  install(
+    DIRECTORY ${RESULT_DIR}/include/
+    DESTINATION include/
+  )
 endmacro()
 
 # Argparse
@@ -392,7 +504,7 @@ macro(GetArgparse VERSION)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
   find_package(argparse REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
   
 endmacro()
@@ -405,7 +517,7 @@ macro(GetPugiXml VERSION)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
   find_package(pugixml REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC pugixml::pugixml)
   
 endmacro()
@@ -424,8 +536,29 @@ macro(GetOpenCV VERSION)
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR})
 
   find_package(OpenCV REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS}) 
+  target_include_directories(${PROJECT_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS}) 
   target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenCV_LIBS})
+  install(IMPORTED_RUNTIME_ARTIFACTS ${OpenCV_LIBS})
+endmacro()
+
+# FreeType
+macro(GetFreeType VERSION)
+
+  BuildThirdPartyDep(freetype https://gitlab.freedesktop.org/freetype/freetype ${VERSION} RESULT_DIR "" "")
+  
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR})
+
+  find_package(Freetype REQUIRED)
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+  target_link_libraries(${PROJECT_NAME} PUBLIC freetype)
+  # target_include_directories(${PROJECT_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS}) 
+  # target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenCV_LIBS})
+  # install(IMPORTED_RUNTIME_ARTIFACTS ${OpenCV_LIBS})
 endmacro()
 
 # Reflection
@@ -441,11 +574,11 @@ macro(AutoReflectTarget REFLECT_TARGET_NAME ${})
   )
 
   add_custom_target(${REFLECT_TARGET_NAME}
-      COMMAND ${ReflectionExec} -s ${CMAKE_CURRENT_SOURCE_DIR}/include -o ${CMAKE_CURRENT_SOURCE_DIR}/include/generated
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      COMMENT "Reflect vengine headers"
-      SOURCES ${ReflectHeaders_SOURCES}
-      )
+    COMMAND ${ReflectionExec} -s ${CMAKE_CURRENT_SOURCE_DIR}/include -o ${CMAKE_CURRENT_SOURCE_DIR}/include/generated
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Reflect vengine headers"
+    SOURCES ${ReflectHeaders_SOURCES}
+  )
 
   add_dependencies(${PROJECT_NAME} ReflectHeaders)
 endmacro()

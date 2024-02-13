@@ -2,45 +2,81 @@
 #include "types.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/containers/Array.hpp"
+#include "vengine/window/types.hpp"
 
 namespace vengine {
 namespace drawing {
 struct RawFrameData;
-class Drawer;
+class DrawingSubsystem;
 }
 }
 
 namespace vengine::widget {
-class WidgetManager;
+class WidgetSubsystem;
 
-class Widget : public Object<WidgetManager> {
+class Widget : public Object<WidgetSubsystem> {
   Widget * _parent = nullptr;
-  Array<Ref<Widget>> _children;
-  vk::Rect2D _rect;
-  float _createdAt = 0.0f;
+  
+  float _initAt = 0.0f;
+  Point2D _pivot;
+  std::optional<Size2D> _cachedDesiredSize;
+  EVisibility _visibility = EVisibility::Visibility_Visible;
+  Rect _lastDrawRect{};
+  bool _isHovered = false;
+protected:
+  Array<Managed<Widget>> _children;
 public:
-  void Init(WidgetManager * outer) override;
+  void Init(WidgetSubsystem * outer) override;
   
   // virtual void Init(Widget * parent);
 
+  virtual void CheckDesiredSize();
+  virtual void InvalidateCachedSize();
+  virtual void SetVisibility(const EVisibility& visibility);
+  virtual EVisibility GetVisibility() const;
+  void SetPivot(const Point2D& pivot);
+  Point2D GetPivot() const;
   void SetParent(Widget * ptr);
+
+  void SetLastDrawRect(const Rect& rect);
+
+  Rect GetLastDrawRect() const;
   
   Widget * GetParent() const;
+
+  float GetTimeAtInit() const;
   
-  Array<WeakRef<Widget>> GetChildren() const;
+  virtual void Draw(drawing::SimpleFrameData *
+                    frameData, DrawInfo
+                    info);
 
-  virtual void SetRect(vk::Rect2D rect);
-  virtual vk::Rect2D GetRect() const;
+  void BeforeDestroy() override;
+
+  Size2D GetDesiredSize();
+
+  virtual Rect CalculateFinalRect(const Rect& fromParent);
+
+  virtual bool IsInBounds(const Point2D& point) const;
+
+  bool IsHovered() const;
   
-  virtual void Draw(drawing::Drawer * drawer, drawing::SimpleFrameData *
-                    frameData, WidgetParentInfo
-                    parentInfo);
+  virtual Size2D ComputeDesiredSize() const;
 
-  virtual void DrawSelf(drawing::Drawer * drawer, drawing::SimpleFrameData *
-                        frameData, WidgetParentInfo
-                        parentInfo);
+  virtual bool IsHitTestable() const;
+  
+  virtual bool ReceiveMouseDown(const std::shared_ptr<window::MouseButtonEvent> &event);
 
-  void HandleDestroy() override;
+  virtual bool OnMouseDown(const std::shared_ptr<window::MouseButtonEvent> &event);
+  
+  virtual void OnMouseUp(const std::shared_ptr<window::MouseButtonEvent> &event);
+
+  virtual void ReceiveMouseEnter(const std::shared_ptr<window::MouseMovedEvent> &event,std::list<Ref<Widget>> &items);
+
+  virtual void ReceiveMouseMove(const std::shared_ptr<window::MouseMovedEvent> &event);
+  
+  virtual void OnMouseEnter(const std::shared_ptr<window::MouseMovedEvent> &event);
+  
+  virtual void OnMouseLeave(const std::shared_ptr<window::MouseMovedEvent> &event);
 };
 }
 
