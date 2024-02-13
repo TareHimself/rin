@@ -63,7 +63,7 @@ void Engine::RunGame() {
     window::get()->Poll();
 
     if (_window) {
-      bExitRequested = GetWindow().Reserve()->CloseRequested();
+      bExitRequested = bExitRequested || GetWindow().Reserve()->CloseRequested();
     }
     // while (_window->pollEvent(e)) {
     //
