@@ -21,7 +21,5 @@ public:
   void Draw(drawing::SimpleFrameData *frameData, DrawInfo info) override;
 
   Size2D ComputeDesiredSize() const override;
-
-  void ArrangeChildren() override;
 };
 }

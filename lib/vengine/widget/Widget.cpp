@@ -212,12 +212,5 @@ void Widget::OnMouseLeave(const std::shared_ptr<window::MouseMovedEvent> &event)
   _isHovered = false;
 }
 
-Rect Widget::GetDrawRect() const {
-  return _drawRect;
-}
-
-void Widget::SetDrawRect(const Rect &rect) {
-  _drawRect = size;
-}
 
 }

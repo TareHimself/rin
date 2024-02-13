@@ -6,7 +6,7 @@ void FlexBox::Draw(drawing::SimpleFrameData *frameData, DrawInfo info) {
 }
 
 Size2D FlexBox::ComputeDesiredSize() const {
-  Size2D size{0,0};
+  return {0,0};
 }
 
 
