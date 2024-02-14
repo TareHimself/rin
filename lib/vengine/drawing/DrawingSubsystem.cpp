@@ -2,7 +2,7 @@
 #include <vengine/drawing/Allocator.hpp>
 #include <vengine/drawing/Mesh.hpp>
 #include <vengine/drawing/Shader.hpp>
-#include <vengine/drawing/Texture.hpp>
+#include <vengine/drawing/Texture2D.hpp>
 #include "vengine/Engine.hpp"
 #include "vengine/io/io.hpp"
 #include <VkBootstrap.h>
@@ -411,22 +411,19 @@ void DrawingSubsystem::InitDefaultTextures() {
   auto whiteData = Array<unsigned char>(sizeof(uint32_t));
   memcpy(whiteData.data(), &white, whiteData.size());
 
-  _whiteTexture = Texture::FromData(this, whiteData, vk::Extent3D{1, 1, 1},
-                                    vk::Format::eR8G8B8A8Unorm,
+  _whiteTexture = Texture2D::FromData(whiteData, vk::Extent3D{1, 1, 1}, vk::Format::eR8G8B8A8Unorm,
                                     vk::Filter::eLinear);
 
   constexpr uint32_t grey = 0xAAAAAAFF;
   auto greyData = Array<unsigned char>(sizeof(uint32_t));
   memcpy(greyData.data(), &grey, greyData.size());
-  _greyTexture = Texture::FromData(this, greyData, vk::Extent3D{1, 1, 1},
-                                   vk::Format::eR8G8B8A8Unorm,
+  _greyTexture = Texture2D::FromData(greyData, vk::Extent3D{1, 1, 1}, vk::Format::eR8G8B8A8Unorm,
                                    vk::Filter::eLinear);
 
   constexpr uint32_t black = 0x000000FF;
   auto blackData = Array<unsigned char>(sizeof(uint32_t));
   memcpy(blackData.data(), &black, blackData.size());
-  _blackTexture = Texture::FromData(this, blackData, vk::Extent3D{1, 1, 1},
-                                    vk::Format::eR8G8B8A8Unorm,
+  _blackTexture = Texture2D::FromData(blackData, vk::Extent3D{1, 1, 1}, vk::Format::eR8G8B8A8Unorm,
                                     vk::Filter::eLinear);
 
   //checkerboard image
@@ -444,8 +441,7 @@ void DrawingSubsystem::InitDefaultTextures() {
   checkerBoardData.resize(pixels.size() * sizeof(uint32_t));
   memcpy(checkerBoardData.data(), pixels.data(), checkerBoardData.size());
 
-  _errorCheckerboardTexture = Texture::FromData(this, checkerBoardData,
-                                                vk::Extent3D{16, 16, 1},
+  _errorCheckerboardTexture = Texture2D::FromData(checkerBoardData, vk::Extent3D{16, 16, 1},
                                                 vk::Format::eR8G8B8A8Unorm,
                                                 vk::Filter::eLinear);
 
@@ -1136,19 +1132,19 @@ Ref<Allocator> DrawingSubsystem::GetAllocator() const {
   return _allocator;
 }
 
-Ref<Texture> DrawingSubsystem::GetDefaultWhiteTexture() const {
+Ref<Texture2D> DrawingSubsystem::GetDefaultWhiteTexture() const {
   return _whiteTexture;
 }
 
-Ref<Texture> DrawingSubsystem::GetDefaultBlackTexture() const {
+Ref<Texture2D> DrawingSubsystem::GetDefaultBlackTexture() const {
   return _blackTexture;
 }
 
-Ref<Texture> DrawingSubsystem::GetDefaultGreyTexture() const {
+Ref<Texture2D> DrawingSubsystem::GetDefaultGreyTexture() const {
   return _greyTexture;
 }
 
-Ref<Texture> DrawingSubsystem::GetDefaultErrorCheckerboardTexture() const {
+Ref<Texture2D> DrawingSubsystem::GetDefaultErrorCheckerboardTexture() const {
   return _errorCheckerboardTexture;
 }
 

@@ -13,7 +13,7 @@
 
 
 namespace vengine::drawing {
-class Texture;
+class Texture2D;
 class Allocator;
 class MaterialInstance;
 class Mesh;
@@ -72,10 +72,10 @@ class DrawingSubsystem : public EngineSubsystem {
   Managed<AllocatedImage> _depthImage;
 
   // Default Images
-  Managed<Texture> _whiteTexture;
-  Managed<Texture> _blackTexture;
-  Managed<Texture> _greyTexture;
-  Managed<Texture> _errorCheckerboardTexture;
+  Managed<Texture2D> _whiteTexture;
+  Managed<Texture2D> _blackTexture;
+  Managed<Texture2D> _greyTexture;
+  Managed<Texture2D> _errorCheckerboardTexture;
 
   // Default Samplers
   vk::Sampler _defaultSamplerLinear;
@@ -185,10 +185,10 @@ public:
   Ref<Allocator> GetAllocator() const;
 
 
-  Ref<Texture> GetDefaultWhiteTexture() const;
-  Ref<Texture> GetDefaultBlackTexture() const;
-  Ref<Texture> GetDefaultGreyTexture() const;
-  Ref<Texture> GetDefaultErrorCheckerboardTexture() const;
+  Ref<Texture2D> GetDefaultWhiteTexture() const;
+  Ref<Texture2D> GetDefaultBlackTexture() const;
+  Ref<Texture2D> GetDefaultGreyTexture() const;
+  Ref<Texture2D> GetDefaultErrorCheckerboardTexture() const;
 
   //void onResize(const std::function<void()> & callback);
   // Default Samplers

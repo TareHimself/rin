@@ -1,4 +1,4 @@
-﻿#include "vengine/drawing/Texture.hpp"
+﻿#include "vengine/drawing/Texture2D.hpp"
 
 #include <vengine/widget/Image.hpp>
 #include <vengine/widget/WidgetSubsystem.hpp>
@@ -10,23 +10,22 @@ namespace vengine::widget {
 void Image::Init(WidgetSubsystem * outer) {
   Widget::Init(outer);
   const auto drawer = outer->GetEngine()->GetDrawingSubsystem().Reserve();
-  drawing::MaterialBuilder builder;
-  _imageMat = builder
+  
+  _imageMat = drawing::MaterialBuilder()
   .SetType(drawing::EMaterialType::UI)
-  .AddShader(drawing::Shader::FromSource(drawer->GetShaderManager().Reserve().Get(), io::getRawShaderPath("2d/rect.vert")))
-  .AddShader(drawing::Shader::FromSource(drawer->GetShaderManager().Reserve().Get(), io::getRawShaderPath("2d/image.frag")))
-  .ConfigurePushConstant<WidgetPushConstants>("pRect")
-  .Create(drawer.Get());
+  .AddShader(drawing::Shader::FromSource(io::getRawShaderPath("2d/rect.vert")))
+  .AddShader(drawing::Shader::FromSource(io::getRawShaderPath("2d/image.frag")))
+  .Create();
   _imageMat->SetBuffer<UiGlobalBuffer>("UiGlobalBuffer",outer->GetGlobalBuffer());
 }
 
-void Image::SetTexture(const Managed<drawing::Texture> &image) {
+void Image::SetTexture(const Managed<drawing::Texture2D> &image) {
   _image = image;
   InvalidateCachedSize();
 }
 
 
-Ref<drawing::Texture> Image::GetTexture() const {
+Ref<drawing::Texture2D> Image::GetTexture() const {
   return _image;
 }
 

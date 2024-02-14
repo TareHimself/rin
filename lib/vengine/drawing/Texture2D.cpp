@@ -1,9 +1,11 @@
-#include <vengine/drawing/Texture.hpp>
+#include "vengine/Engine.hpp"
+
+#include <vengine/drawing/Texture2D.hpp>
 #include <vengine/drawing/DrawingSubsystem.hpp>
 
 namespace vengine::drawing {
 
-void Texture::MakeSampler() {
+void Texture2D::MakeSampler() {
   if(_sampler) {
     GetOuter()->GetDevice().destroySampler(_sampler);
     _sampler = nullptr;
@@ -19,41 +21,41 @@ void Texture::MakeSampler() {
   _sampler = GetOuter()->GetDevice().createSampler({{},_filter,_filter});
 }
 
-vk::Extent3D Texture::GetSize() const {
+vk::Extent3D Texture2D::GetSize() const {
   return _size;
 }
 
-Ref<AllocatedImage> Texture::GetGpuData() const {
+Ref<AllocatedImage> Texture2D::GetGpuData() const {
   return _gpuData;
 }
 
-vk::Sampler Texture::GetSampler() const {
+vk::Sampler Texture2D::GetSampler() const {
   return _sampler;
 }
 
-void Texture::SetMipMapped(const bool newMipMapped) {
+void Texture2D::SetMipMapped(const bool newMipMapped) {
   _mipMapped = newMipMapped;
 }
 
-bool Texture::IsMipMapped() const {
+bool Texture2D::IsMipMapped() const {
   return _mipMapped;
 }
 
-void Texture::SetGpuData(const Managed<AllocatedImage> &allocation) {
+void Texture2D::SetGpuData(const Managed<AllocatedImage> &allocation) {
   _gpuData = allocation;
 }
 
-void Texture::SetTiling(const vk::SamplerAddressMode tiling) {
+void Texture2D::SetTiling(const vk::SamplerAddressMode tiling) {
   _tiling = tiling;
   MakeSampler();
 }
 
-void Texture::SetFilter(const vk::Filter filter) {
+void Texture2D::SetFilter(const vk::Filter filter) {
   _filter = filter;
   MakeSampler();
 }
 
-void Texture::ReadFrom(Buffer &store) {
+void Texture2D::ReadFrom(Buffer &store) {
 
   store >> _size.width;
   store >> _size.height;
@@ -63,7 +65,7 @@ void Texture::ReadFrom(Buffer &store) {
   store >> _data;
 }
 
-void Texture::WriteTo(Buffer &store) {
+void Texture2D::WriteTo(Buffer &store) {
   store << _size.width;
   store << _size.height;
   store << _size.depth;
@@ -73,17 +75,17 @@ void Texture::WriteTo(Buffer &store) {
 }
 
 
-void Texture::Upload() {
+void Texture2D::Upload() {
   if(!IsUploaded()) {
     _gpuData = GetOuter()->CreateImage(_data.data(),_size,_format,vk::ImageUsageFlagBits::eSampled,_mipMapped,_filter);
   }
 }
 
-bool Texture::IsUploaded() const {
+bool Texture2D::IsUploaded() const {
   return _gpuData;
 }
 
-void Texture::BeforeDestroy() {
+void Texture2D::BeforeDestroy() {
   Object<DrawingSubsystem>::BeforeDestroy();
   const auto drawer = GetOuter();
   drawer->WaitDeviceIdle();
@@ -91,20 +93,21 @@ void Texture::BeforeDestroy() {
   _gpuData.Clear();
 }
 
-void Texture::Init(DrawingSubsystem * outer) {
+void Texture2D::Init(DrawingSubsystem * outer) {
   Object<DrawingSubsystem>::Init(outer);
   MakeSampler();
 }
 
-Managed<Texture> Texture::FromData(DrawingSubsystem * drawer, const Array<unsigned char> &data, const vk::Extent3D size, const vk::Format format,
-                            const vk::Filter filter, const vk::SamplerAddressMode tiling) {
-  auto tex = newManagedObject<Texture>();
+Managed<Texture2D> Texture2D::FromData(const Array<unsigned char> &data, const vk::Extent3D size, const vk::Format format,
+                                   const vk::Filter filter, const vk::SamplerAddressMode tiling) {
+  auto drawer = Engine::Get()->GetDrawingSubsystem().Reserve();
+  auto tex = newManagedObject<Texture2D>();
   tex->_data = data;
   tex->_size = size;
   tex->_format = format;
   tex->_filter = filter;
   tex->_tiling = tiling;
-  tex->Init(drawer);
+  tex->Init(drawer.Get());
   return tex;
 }
 }

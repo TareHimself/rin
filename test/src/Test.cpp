@@ -23,13 +23,15 @@ void PrettyShader::Init(widget::WidgetSubsystem *outer) {
   auto shaderManager = drawer->GetShaderManager().Reserve();
 
   _material = drawing::MaterialBuilder()
-  .SetType(drawing::EMaterialType::UI)
-  .ConfigurePushConstant<widget::WidgetPushConstants>("pRect")
-  .AddShader(drawing::Shader::FromSource(shaderManager.Get(),io::getRawShaderPath("2d/rect.vert")))
-  .AddShader(drawing::Shader::FromSource(shaderManager.Get(),io::getRawShaderPath("2d/pretty.frag")))
-  .Create(drawer.Get());
+              .SetType(drawing::EMaterialType::UI)
+              .AddShader(drawing::Shader::FromSource(
+                  io::getRawShaderPath("2d/rect.vert")))
+              .AddShader(drawing::Shader::FromSource(
+                  io::getRawShaderPath("2d/pretty.frag")))
+              .Create();
 
-  _material->SetBuffer<widget::UiGlobalBuffer>("UiGlobalBuffer",outer->GetGlobalBuffer());
+  _material->SetBuffer<widget::UiGlobalBuffer>("UiGlobalBuffer",
+                                               outer->GetGlobalBuffer());
 }
 
 void PrettyShader::OnPaint(drawing::SimpleFrameData *frameData,
@@ -41,7 +43,8 @@ void PrettyShader::OnPaint(drawing::SimpleFrameData *frameData,
   widget::WidgetPushConstants drawData{};
 
   drawData.extent = rect;
-  drawData.time.x = GetOuter()->GetEngine()->GetEngineTimeSeconds() - GetTimeAtInit();
+  drawData.time.x = GetOuter()->GetEngine()->GetEngineTimeSeconds() -
+                    GetTimeAtInit();
 
   _material->BindPipeline(frameData->GetRaw());
   _material->BindSets(frameData->GetRaw());
@@ -131,6 +134,8 @@ void TestGameObject::Init(scene::Scene *outer) {
   columnSlot->SetAnchorY({0.5, 0.5});
   columnSlot->SetSizeToContent(true);
 
+  
+
   GetInput().Reserve()->BindKey(window::EKey::Key_F,
                                 [assetImporter,column,widgetManager](
                                 std::shared_ptr<input::KeyInputEvent>) {
@@ -192,6 +197,50 @@ void TestGameObject::Init(scene::Scene *outer) {
 
                                         // sizer->SetWidth(imageWidth);
                                         // sizer->SetHeight(imageHeight);
+
+                                        column->AddChild(sizer);
+                                        return nullptr;
+                                      })->Run();
+                                  return true;
+                                }, {});
+
+  GetInput().Reserve()->BindKey(window::EKey::Key_G,
+                                [assetImporter,column,widgetManager](
+                                std::shared_ptr<input::KeyInputEvent>) {
+                                  AsyncTaskManager::Get()->CreateTask<void *>(
+                                      [assetImporter,widgetManager,column] {
+                                        const auto background = assetImporter->
+                                            ImportTexture(
+                                                R"(C:\Users\Taree\Pictures\Wallpaperz\silhouette of steel ridge wallpaper, blue and pink sky painting 7b507f40-43f9-484f-9bd9-16b7443428cd.jpg)");
+
+                                        const auto sizer = widgetManager->
+                                            CreateWidget
+                                            <widget::Sizer>();
+                                        const auto image = widgetManager->
+                                            CreateWidget
+                                            <widget::Image>();
+                                        sizer->
+                                            AddChild(image);
+
+                                        auto actualImage = image;
+
+                                        actualImage->SetTexture(background);
+
+                                        const auto textureDims = background->
+                                            GetSize();
+                                        constexpr int imageHeight = 250.0f;
+                                        auto imageWidth =
+                                            static_cast<float>(textureDims.
+                                              width) /
+                                            static_cast<float>(textureDims.
+                                              height)
+                                            * imageHeight;
+
+                                        // sizerSlot->SetRect(
+                                        //     {0, 0, {imageWidth, imageHeight}});
+
+                                        sizer->SetWidth(imageWidth);
+                                        sizer->SetHeight(imageHeight);
 
                                         column->AddChild(sizer);
                                         return nullptr;

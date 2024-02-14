@@ -30,10 +30,9 @@ void SceneDrawer::Init(scene::Scene * outer) {
   MaterialBuilder builder;
   _defaultCheckeredMaterial = builder
   .SetType(EMaterialType::Lit)
-  .ConfigurePushConstant<MeshVertexPushConstant>("pVertex")
-  .AddShader(Shader::FromSource(shaderManager.Get(), io::getRawShaderPath("3d/mesh.frag")))
-  .AddShader(Shader::FromSource(shaderManager.Get(), io::getRawShaderPath("3d/mesh.vert")))
-  .Create(GetDrawer().Reserve().Get());
+  .AddShader(Shader::FromSource(io::getRawShaderPath("3d/mesh.frag")))
+  .AddShader(Shader::FromSource(io::getRawShaderPath("3d/mesh.vert")))
+  .Create();
   
   
   const auto resources = _defaultCheckeredMaterial->GetResources();

@@ -2,14 +2,14 @@
 #include "GpuNative.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/assets/Asset.hpp"
-#include "generated/drawing/Texture.reflect.hpp"
+#include "generated/drawing/Texture2D.reflect.hpp"
 
 namespace vengine::drawing {
 class DrawingSubsystem;
 
 RCLASS()
 
-class Texture : public Object<DrawingSubsystem>, public assets::Asset, public GpuNative {
+class Texture2D : public Object<DrawingSubsystem>, public assets::Asset, public GpuNative {
 
   Managed<AllocatedImage> _gpuData;
   vk::Filter _filter = vk::Filter::eLinear;
@@ -46,17 +46,17 @@ public:
 
   void Init(DrawingSubsystem *outer) override;
 
-  static Managed<Texture> FromData(DrawingSubsystem *drawer,
-                                   const Array<unsigned char> &data,
-                                   vk::Extent3D size, vk::Format format,
-                                   vk::Filter filter,
-                                   vk::SamplerAddressMode tiling =
-                                       vk::SamplerAddressMode::eRepeat);
+  static Managed<Texture2D> FromData(
+      const Array<unsigned char> &data,
+      vk::Extent3D size, vk::Format format,
+      vk::Filter filter,
+      vk::SamplerAddressMode tiling =
+          vk::SamplerAddressMode::eRepeat);
 
   RFUNCTION()
-  static Managed<Texture> Construct() { return newManagedObject<Texture>(); }
-  VENGINE_IMPLEMENT_REFLECTED_INTERFACE(Texture)
+  static Managed<Texture2D> Construct() { return newManagedObject<Texture2D>(); }
+  VENGINE_IMPLEMENT_REFLECTED_INTERFACE(Texture2D)
 };
 
-REFLECT_IMPLEMENT(Texture)
+REFLECT_IMPLEMENT(Texture2D)
 }

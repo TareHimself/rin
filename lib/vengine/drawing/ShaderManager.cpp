@@ -259,7 +259,7 @@ Managed<Shader> ShaderManager::RegisterShader(Managed<Shader> shader) {
 
 Managed<Shader> ShaderManager::CreateShader(
     const std::filesystem::path &path) {
-  return Shader::FromSource(this,path);
+  return Shader::FromSource(path);
 }
 
 void ShaderManager::UnRegisterShader(const Shader *shader) {

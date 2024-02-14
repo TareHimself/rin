@@ -75,12 +75,13 @@ BasicShaderResourceInfo::BasicShaderResourceInfo(uint32_t _set,
 
 PushConstantInfo::PushConstantInfo() = default;
 
-PushConstantInfo::PushConstantInfo(const uint32_t _size, const vk::ShaderStageFlags _stages) {
+PushConstantInfo::PushConstantInfo(uint32_t inOffset, uint32_t _size,
+    vk::ShaderStageFlags _stages) {
+  offset = inOffset;
   size = _size;
   stages = _stages;
-  offset = 0;
+  
 }
-
 
 SimpleFrameData::SimpleFrameData(RawFrameData *frame) {
   _frame = frame;

@@ -13,7 +13,7 @@ struct AllocatedImage;
 namespace vengine::drawing {
 struct AllocatedBuffer;
 class DrawingSubsystem;
-class Texture;
+class Texture2D;
 
 RCLASS()
 class DescriptorSet {
@@ -22,8 +22,8 @@ class DescriptorSet {
   std::mutex _mutex;
   std::unordered_map<uint32_t,Managed<AllocatedBuffer>> _buffers;
   std::unordered_map<uint32_t,Managed<AllocatedImage>> _images;
-  std::unordered_map<uint32_t,Managed<Texture>> _textures;
-  std::unordered_map<uint32_t,Array<Managed<Texture>>> _textureArrays;
+  std::unordered_map<uint32_t,Managed<Texture2D>> _textures;
+  std::unordered_map<uint32_t,Array<Managed<Texture2D>>> _textureArrays;
 
 public:
   DescriptorSet(const vk::Device &device,const vk::DescriptorSet &set);
@@ -38,10 +38,10 @@ public:
   void WriteImage(uint32_t binding, const Ref<AllocatedImage> &image, vk::Sampler
                   sampler, vk::ImageLayout layout, vk::DescriptorType type);
   
-  void WriteTexture(uint32_t binding, const Ref<Texture> &texture, vk::ImageLayout layout, const
+  void WriteTexture(uint32_t binding, const Ref<Texture2D> &texture, vk::ImageLayout layout, const
                     vk::DescriptorType type);
 
-  void WriteTextureArray(uint32_t binding, const Array<Ref<Texture>> &textures, vk::ImageLayout
+  void WriteTextureArray(uint32_t binding, const Array<Ref<Texture2D>> &textures, vk::ImageLayout
                          layout, const vk::DescriptorType type);
 };
 

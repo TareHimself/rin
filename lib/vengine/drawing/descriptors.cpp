@@ -1,5 +1,5 @@
 ﻿#include <vengine/drawing/descriptors.hpp>
-#include <vengine/drawing/Texture.hpp>
+#include <vengine/drawing/Texture2D.hpp>
 #include <vengine/utils.hpp>
 #include <ranges>
 
@@ -60,7 +60,7 @@ void DescriptorSet::WriteImage(uint32_t binding,
 }
 
 void DescriptorSet::WriteTexture(uint32_t binding,
-    const Ref<Texture> &texture, vk::ImageLayout layout,
+    const Ref<Texture2D> &texture, vk::ImageLayout layout,
     const vk::DescriptorType type) {
   std::lock_guard guard(_mutex);
   
@@ -83,11 +83,11 @@ void DescriptorSet::WriteTexture(uint32_t binding,
 }
 
 void DescriptorSet::WriteTextureArray(uint32_t binding,
-    const Array<Ref<Texture>> &textures, vk::ImageLayout layout,
+    const Array<Ref<Texture2D>> &textures, vk::ImageLayout layout,
     const vk::DescriptorType type) {
   std::lock_guard guard(_mutex);
   
-  Array<Managed<Texture>> sharedTextures;
+  Array<Managed<Texture2D>> sharedTextures;
   Array<vk::DescriptorImageInfo> infos;
   
   for(auto &texture : textures) {

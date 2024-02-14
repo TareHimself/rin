@@ -154,7 +154,8 @@ bool Widget::ReceiveMouseDown(
   if(OnMouseDown(event)) {
     uint64_t unbindMouseUp;
     uint64_t unbindDestroy = onDestroyed.Bind([this,&unbindMouseUp] {
-      GetOuter()->GetEngine()->GetWindow().Reserve()->onMouseUp.UnBind(unbindMouseUp);
+      auto window = GetOuter()->GetEngine()->GetWindow().Reserve();
+      window->onMouseUp.UnBind(unbindMouseUp);
     });
     
     unbindMouseUp = GetOuter()->GetEngine()->GetWindow().Reserve()->onMouseUp.Bind([this,&unbindDestroy,&unbindMouseUp](const std::shared_ptr<window::MouseButtonEvent>& e) {

@@ -1,12 +1,12 @@
 #pragma once
 #include "RenderedComponent.hpp"
-#include "vengine/drawing/Texture.hpp"
+#include "vengine/drawing/Texture2D.hpp"
 #include "generated/scene/components/BillboardComponent.reflect.hpp"
 
 namespace vengine::scene {
 RCLASS()
 class BillboardComponent : public RenderedComponent {
-  Managed<drawing::Texture> _texture;
+  Managed<drawing::Texture2D> _texture;
 public:
   virtual void Draw(drawing::SimpleFrameData *frameData, const math::Transform &parentTransform) override;
 

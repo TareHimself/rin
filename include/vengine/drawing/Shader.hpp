@@ -30,9 +30,8 @@ public:
   ShaderResources GetResources() const;
   void BeforeDestroy() override;
   
-  static Managed<Shader> FromSource(ShaderManager *
-                                           manager,
-                                           const std::filesystem::path &path);
+  static Managed<Shader> FromSource(
+      const std::filesystem::path &path);
 };
 
 REFLECT_IMPLEMENT(Shader)

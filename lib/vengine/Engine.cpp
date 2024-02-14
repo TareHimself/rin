@@ -36,6 +36,11 @@ void Engine::RequestExit() {
   bExitRequested = true;
 }
 
+Engine * Engine::Get() {
+  static auto instance = new Engine();
+  return instance;
+}
+
 void Engine::Run() {
   bIsRunning = true;
   Init();
@@ -48,8 +53,12 @@ void Engine::Run() {
 
   RunGame();
   drawThread.join();
-  Destroy();
+  
   bIsRunning = false;
+  
+  Destroy();
+  
+  delete this;
 }
 
 void Engine::RunGame() {
@@ -150,7 +159,9 @@ long long Engine::Now() {
   return std::chrono::steady_clock::now().time_since_epoch().count() / 1000000;
 }
 
-Engine::Engine() = default;
+Engine::Engine() {
+  log::engine->info("Created new engine instance");
+};
 
 void Engine::Init() {
   AddCleanup([] {

@@ -1,6 +1,6 @@
 ﻿#include <vengine/drawing/MaterialInstance.hpp>
 #include <vengine/drawing/PipelineBuilder.hpp>
-#include <vengine/drawing/Texture.hpp>
+#include <vengine/drawing/Texture2D.hpp>
 #include "vengine/utils.hpp"
 
 namespace vengine::drawing {
@@ -59,7 +59,7 @@ void MaterialInstance::Init(DrawingSubsystem * drawer) {
 }
 
 void MaterialInstance::SetTexture(const std::string &param,
-                                                const Ref<Texture> &texture) {
+                                                const Ref<Texture2D> &texture) {
 
 
   utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);
@@ -74,7 +74,7 @@ void MaterialInstance::SetTexture(const std::string &param,
 }
 
 void MaterialInstance::SetDynamicTexture(RawFrameData *frame,
-    const std::string &param, const Ref<Texture> &texture) {
+    const std::string &param, const Ref<Texture2D> &texture) {
   utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);
   utils::vassert(texture,"Texture Is Invalid");
   
@@ -86,7 +86,7 @@ void MaterialInstance::SetDynamicTexture(RawFrameData *frame,
 }
 
 void MaterialInstance::SetTextureArray(const std::string &param,
-                                       const Array<Ref<Texture>> &textures) {
+                                       const Array<Ref<Texture2D>> &textures) {
   utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);
   utils::vassert(!textures.empty(),"Texture Array is Empty");
   

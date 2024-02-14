@@ -1,6 +1,7 @@
 ﻿#pragma once
+
 #include "types.hpp"
-#include "vengine/drawing/Texture.hpp"
+#include "vengine/drawing/Texture2D.hpp"
 #include "generated/drawing/Font.reflect.hpp"
 
 namespace vengine {
@@ -65,7 +66,7 @@ RCLASS()
 
 class Font : public Object<DrawingSubsystem>, public assets::Asset,
       public GpuNative {
-  Array<Managed<Texture>> _textures;
+  Array<Managed<Texture2D>> _textures;
   Managed<MaterialInstance> _material;
   Managed<AllocatedBuffer> _gpuFontCharacters;
   std::unordered_map<uint32_t, FontCharacter> _fontChars;
@@ -81,7 +82,7 @@ public:
 public:
   void ReadFrom(Buffer &store) override;
   void WriteTo(Buffer &store) override;
-  void SetTextures(const Array<Managed<Texture>> &textures);
+  void SetTextures(const Array<Managed<Texture2D>> &textures);
   void SetChars(const std::unordered_map<uint32_t, FontCharacter> &chars,
                 const std::unordered_map<uint32_t, uint32_t> &indices);
   void SetMaterial(const Managed<MaterialInstance> &material);

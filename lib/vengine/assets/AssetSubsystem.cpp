@@ -2,7 +2,7 @@
 #include "vengine/Engine.hpp"
 #include "vengine/drawing/Font.hpp"
 #include "vengine/drawing/Mesh.hpp"
-#include "vengine/drawing/Texture.hpp"
+#include "vengine/drawing/Texture2D.hpp"
 #include <vengine/io/io.hpp>
 #include <fstream>
 #include <fastgltf/glm_element_traits.hpp>
@@ -208,7 +208,7 @@ Managed<drawing::Mesh> AssetSubsystem::LoadMeshAsset(
   return mesh;
 }
 
-Managed<drawing::Texture> AssetSubsystem::ImportTexture(
+Managed<drawing::Texture2D> AssetSubsystem::ImportTexture(
     const std::filesystem::path &path) {
 
   auto img = cv::imread(path.string(),cv::IMREAD_UNCHANGED);
@@ -221,7 +221,7 @@ Managed<drawing::Texture> AssetSubsystem::ImportTexture(
   const vk::Extent3D imageSize{static_cast<uint32_t>(img.cols) ,static_cast<uint32_t>(img.rows),1};
   Array<unsigned char> vecData;
   vecData.insert(vecData.end(),img.data,img.data + (imageSize.width * imageSize.height * img.channels()));
-  auto tex = drawing::Texture::FromData(GetOuter()->GetDrawingSubsystem().Reserve().Get(),vecData,imageSize,vk::Format::eR8G8B8A8Unorm,vk::Filter::eLinear);
+  auto tex = drawing::Texture2D::FromData(vecData,imageSize,vk::Format::eR8G8B8A8Unorm,vk::Filter::eLinear);
   VEngineAssetHeader header{};
   header.type = types::TEXTURE;
   header.name = path.filename().string();
@@ -230,9 +230,9 @@ Managed<drawing::Texture> AssetSubsystem::ImportTexture(
   return tex;
 }
 
-std::vector<Managed<drawing::Texture>> AssetSubsystem::ImportTextures(
+std::vector<Managed<drawing::Texture2D>> AssetSubsystem::ImportTextures(
     const std::vector<std::filesystem::path> &paths) {
-  std::vector<Managed<drawing::Texture>> results;
+  std::vector<Managed<drawing::Texture2D>> results;
   
   for(auto &path : paths) {
     if(auto result = ImportTexture(path)) {
@@ -243,17 +243,17 @@ std::vector<Managed<drawing::Texture>> AssetSubsystem::ImportTextures(
   return results;
 }
 
-Managed<drawing::Texture> AssetSubsystem::LoadTextureAsset(
+Managed<drawing::Texture2D> AssetSubsystem::LoadTextureAsset(
     const std::filesystem::path &path) {
   const auto asset = LoadAsset(path,types::TEXTURE,[] {
-    return newManagedObject<drawing::Texture>();
+    return newManagedObject<drawing::Texture2D>();
   });
 
   if(!asset) {
     return {};
   }
 
-  auto texture = asset.Cast<drawing::Texture>();
+  auto texture = asset.Cast<drawing::Texture2D>();
 
   if(!texture) {
     return {};
@@ -282,7 +282,7 @@ Managed<drawing::Font> AssetSubsystem::ImportFont(
     return {};
   }
 
-  Array<Managed<drawing::Texture>> textures;
+  Array<Managed<drawing::Texture2D>> textures;
   auto clearTextures = [&textures] {
     textures.clear();
   };

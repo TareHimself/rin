@@ -18,9 +18,9 @@ int main(int argc, char **argv) {
   try {
 
     io::setRawShadersPath(R"(D:\Github\vengine\shaders)");
-    const auto engine = new Engine();
-    engine->SetAppName("Test Application");
-    const auto scene = engine->CreateScene<scene::Scene>();
+    Engine::Get()->SetAppName("Test Application");
+    
+    const auto scene = Engine::Get()->CreateScene<scene::Scene>();
     auto triangleObj = scene.Reserve()->CreateSceneObject<TestGameObject>();
     
     auto values =  reflect::factory::values();
@@ -31,7 +31,8 @@ int main(int argc, char **argv) {
         func->Call(&objectTransform,triangleObj.Reserve().Get());
       }
     }
-    engine->Run();
+    
+    Engine::Get()->Run();
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     return EXIT_FAILURE;

@@ -20,7 +20,7 @@ void Font::WriteTo(Buffer &store) {
 
 }
 
-void Font::SetTextures(const Array<Managed<drawing::Texture>> &textures) {
+void Font::SetTextures(const Array<Managed<drawing::Texture2D>> &textures) {
   _textures = textures;
 }
 

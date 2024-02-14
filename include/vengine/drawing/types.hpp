@@ -124,7 +124,7 @@ struct PushConstantInfo {
   vk::ShaderStageFlags stages{};
 
   PushConstantInfo();
-  PushConstantInfo(uint32_t _size,vk::ShaderStageFlags _stages);
+  PushConstantInfo(uint32_t inOffset, uint32_t _size,vk::ShaderStageFlags _stages);
   
 };
 struct ShaderResources {

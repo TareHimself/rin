@@ -5,7 +5,7 @@
 #include "generated/drawing/MaterialInstance.reflect.hpp"
 
 namespace vengine::drawing {
-class Texture;
+class Texture2D;
 }
 
 namespace vengine::drawing {
@@ -56,12 +56,12 @@ public:
   
   void Init(DrawingSubsystem * drawer) override;
 
-  void SetTexture(const std::string &param, const Ref<Texture> &texture);
+  void SetTexture(const std::string &param, const Ref<Texture2D> &texture);
 
-  void SetDynamicTexture(RawFrameData *frame, const std::string &param, const Ref<Texture> &
+  void SetDynamicTexture(RawFrameData *frame, const std::string &param, const Ref<Texture2D> &
                          texture);
 
-  void SetTextureArray(const std::string &param, const Array<Ref<Texture>> &textures);
+  void SetTextureArray(const std::string &param, const Array<Ref<Texture2D>> &textures);
 
   template<typename T>
   void SetBuffer(const std::string &param, const Ref<AllocatedBuffer> &buffer);
@@ -92,7 +92,9 @@ template <typename T> void MaterialInstance::PushConstant(
     const vk::CommandBuffer *cmd, const std::string &param,
     const T &data) {
   utils::vassert(_shaderResources.pushConstants.contains(param),"PushConstant [ {} ] does not exist in material",param);
-  utils::vassert(sizeof(T) == _shaderResources.pushConstants[param].size,"PushConstant [ {} ] size mismatch",param);
+  const auto dataSize = sizeof(T);
+  const auto constSize = _shaderResources.pushConstants[param].size;
+  utils::vassert(dataSize == constSize,"PushConstant [ {} ] size mismatch. Expected {} got {}.",param,constSize,dataSize);
   cmd->pushConstants(_pipelineLayout,_shaderResources.pushConstants[param].stages,_shaderResources.pushConstants[param].offset,_shaderResources.pushConstants[param].size,&data);
 }
 

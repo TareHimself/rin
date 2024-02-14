@@ -1,4 +1,6 @@
-﻿#include <vengine/drawing/Shader.hpp>
+﻿#include "vengine/Engine.hpp"
+
+#include <vengine/drawing/Shader.hpp>
 #include <vengine/drawing/DrawingSubsystem.hpp>
 #include <spirv_cross/spirv_cpp.hpp>
 #include <utility>
@@ -63,9 +65,10 @@ void Shader::BeforeDestroy() {
 }
 
 
-Managed<Shader> Shader::FromSource(ShaderManager *
-                                           manager,
-                                           const std::filesystem::path &path) {
+Managed<Shader> Shader::FromSource(
+    const std::filesystem::path &path) {
+  auto manager = Engine::Get()->GetDrawingSubsystem().Reserve()->GetShaderManager().Reserve();
+  
   if(auto existingShader = manager->GetLoadedShader(path)) {
     return existingShader;
   }
@@ -89,7 +92,10 @@ Managed<Shader> Shader::FromSource(ShaderManager *
 
   for ( auto &resource : resources.push_constant_buffers)
   {
-    newResources.pushConstants.insert({resource.name,{0,vk::ShaderStageFlags{}}});
+    uint32_t size = glsl.get_declared_struct_size(glsl.get_type(resource.base_type_id));
+    uint32_t offset = 0; // Needs work glsl.get_decoration(resource.id,spv::DecorationOffset);
+    
+    newResources.pushConstants.insert({resource.name,{offset,size,vk::ShaderStageFlags{}}});
   }
 
   for ( auto &resource : resources.uniform_buffers)

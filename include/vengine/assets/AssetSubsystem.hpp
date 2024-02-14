@@ -21,7 +21,7 @@ class Engine;
 }
 
 namespace vengine::drawing {
-class Texture;
+class Texture2D;
 class Mesh;
 }
 
@@ -48,11 +48,11 @@ public:
   virtual Managed<drawing::Mesh> LoadMeshAsset(
       const std::filesystem::path &path);
 
-  virtual Managed<drawing::Texture> ImportTexture(
+  virtual Managed<drawing::Texture2D> ImportTexture(
       const std::filesystem::path &path);
-  virtual std::vector<Managed<drawing::Texture>> ImportTextures(
+  virtual std::vector<Managed<drawing::Texture2D>> ImportTextures(
       const std::vector<std::filesystem::path> &paths);
-  virtual Managed<drawing::Texture> LoadTextureAsset(
+  virtual Managed<drawing::Texture2D> LoadTextureAsset(
       const std::filesystem::path &path);
 
   virtual Managed<drawing::Font> ImportFont(

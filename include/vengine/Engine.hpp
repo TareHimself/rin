@@ -122,7 +122,8 @@ public:
   bool ShouldExit() const;
 
   void RequestExit();
-
+  
+  static Engine * Get();
   void Run();
 
   void RunGame();

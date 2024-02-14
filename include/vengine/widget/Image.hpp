@@ -4,12 +4,12 @@
 
 namespace vengine::widget {
 class Image : public Widget{
-  Managed<drawing::Texture> _image;
+  Managed<drawing::Texture2D> _image;
   Managed<drawing::MaterialInstance> _imageMat;
 public:
   void Init(WidgetSubsystem * outer) override;
-  void SetTexture(const Managed<drawing::Texture> &image);
-  Ref<drawing::Texture> GetTexture() const;
+  void SetTexture(const Managed<drawing::Texture2D> &image);
+  Ref<drawing::Texture2D> GetTexture() const;
 
   void Draw(drawing::SimpleFrameData *frameData, DrawInfo info) override;
 
