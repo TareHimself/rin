@@ -7,15 +7,40 @@ std::optional<uint32_t> Column::GetMaxSlots() const {
 
 void Column::Draw(
     drawing::SimpleFrameData *frameData, const DrawInfo info) {
-  const auto rect = CalculateFinalRect(info.drawRect);
-  auto offset = 0.0f;
-  for(auto &slot : _slots.clone()) {
-    auto widget = slot->GetWidget().Reserve();
-    auto size = widget->GetDesiredSize();
-    const auto slotRect = Rect{{0.0f,offset},{size.width,size.height}}.OffsetBy(rect);
-    widget->Draw(frameData, {this,slotRect});
-    offset += size.height;
+
+  if(GetDrawRect().HasIntersection(info.clip)) {
+    return;
   }
+  
+  auto offset = IsScrollable() ? GetScrollOffset() : 0.0f;
+
+  const auto clip = info.clip.Clone().Clamp(GetDrawRect());
+
+  if(!clip.HasSpace()) {
+    return;
+  }
+  
+  for(auto &slot : _slots.clone()) {
+    if(auto widget = slot->GetWidget().Reserve()) {
+      auto size = widget->GetDesiredSize();
+      const auto slotRect = widget->UpdateDrawRect(Rect().Offset(GetDrawRect().GetPoint()).SetPoint({0.0f,offset}).SetSize(size));
+
+      // if(slotRect.WillBeClippedBy(rect)) {
+      //   break;
+      // }
+    
+      widget->Draw(frameData, {this,clip});
+      offset += size.height;
+    }
+  }
+}
+
+float Column::GetMaxScroll() const {
+  return GetCachedDesiredSize().value_or(Size2D()).height - GetDrawRect().GetSize().height;
+}
+
+bool Column::IsScrollable() const {
+  return GetMaxScroll() > 0.0f;
 }
 
 Size2D Column::ComputeDesiredSize() const {
@@ -28,5 +53,9 @@ Size2D Column::ComputeDesiredSize() const {
   }
 
   return size;
+}
+
+bool Column::OnScroll(const std::shared_ptr<window::ScrollEvent> &event) {
+  return ScrollBy(event->dy * 2.0);
 }
 }

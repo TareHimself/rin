@@ -41,6 +41,8 @@ public:
 
   void HandleMouseButton(int button, int action, int mods);
 
+  void HandleScroll(double xOffset, double yOffset);
+
   bool IsFocused() const;
   
   TDispatcher<const std::shared_ptr<KeyEvent>&> onKeyUp;
@@ -48,6 +50,7 @@ public:
   TDispatcher<const std::shared_ptr<MouseMovedEvent>&> onMouseMoved;
   TDispatcher<const std::shared_ptr<MouseButtonEvent>&> onMouseDown;
   TDispatcher<const std::shared_ptr<MouseButtonEvent>&> onMouseUp;
+  TDispatcher<const std::shared_ptr<ScrollEvent>&> onScroll;
   TDispatcher<bool> onFocusChanged;
 };
 

@@ -50,46 +50,43 @@ void Panel::BeforeDestroy() {
 
 void Panel::Draw(drawing::SimpleFrameData *frameData,
                  const DrawInfo info) {
-  const auto myDrawRect = CalculateFinalRect(info.drawRect);
+
+  if(!GetDrawRect().HasIntersection(info.clip)) {
+    return;
+  }
+
+  const auto clip = info.clip.Clone().Clamp(GetDrawRect());
+  //const auto myDrawRect = CalculateFinalRect(info.drawRect);
   for(auto &slot : _slots.clone()) {
-    const DrawInfo childInfo{this,ComputeSlotRect(slot).OffsetBy(myDrawRect)};
+    const DrawInfo childInfo{this,clip};
+    slot->GetWidget().Reserve()->UpdateDrawRect(ComputeSlotRect(slot).Offset(GetDrawRect().GetPoint()));
+    
     slot->GetWidget().Reserve()->Draw(frameData,childInfo);
   }
 }
 
 Rect Panel::ComputeSlotRect(const Managed<PanelSlot> &child) {
-  Rect result;
-
   const auto size = this->GetDesiredSize();
   auto slotRect = child->GetRect();
   
   if(child->GetSizeToContent()) {
     const auto childSize = child->GetWidget().Reserve()->GetDesiredSize();
-    slotRect.width = childSize.width;
-    slotRect.height = childSize.height;
+    slotRect.SetSize(childSize);
   }
   
   const auto slotWidth =  size.width;
   const auto slotHeight = size.height;
-  
-  auto x1 = slotRect.x;
-  auto x2 = slotRect.x + slotRect.width;
-  auto y1 = slotRect.y;
-  auto y2 = slotRect.y + slotRect.height;
+
+  auto p1 = slotRect.GetPoint();
+  auto p2 = p1 + slotRect.GetSize();
 
   const auto anchorX = child->GetAnchorX();
   const auto anchorY = child->GetAnchorY();
-  
-  x1 += slotWidth * anchorX.min;
-  x2 += slotWidth * anchorX.max;
-  y1 += slotHeight * anchorY.min;
-  y2 += slotHeight * anchorY.max;
 
-  result.x = x1;
-  result.y = y1;
-  result.width = x2 - x1;
-  result.height = y2 - y1;
-  return result;
+  p1 = p1 + Point2D{slotWidth * anchorX.min,slotHeight * anchorY.min};
+  p2 = p2 + Point2D{slotWidth * anchorX.max,slotHeight * anchorY.max};
+  
+  return {p1,p2};
 }
 
 std::optional<uint32_t> Panel::GetMaxSlots() const {

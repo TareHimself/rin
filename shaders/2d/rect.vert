@@ -2,25 +2,14 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_buffer_reference : require
 
-#include "./ui.glsl"
+#include "ui.glsl"
+#include "rect.glsl"
 
-float mapRangeUnClamped(float value, float fromMin, float fromMax, float toMin, float toMax) {
 
-    // Calculate the normalized position of the value in the input range
-    float normalizedPosition = (value - fromMin) / (fromMax - fromMin);
-
-    // Map the normalized position to the output range [toMin, toMax]
-    return mix(toMin, toMax, normalizedPosition);
-}
 
 layout(location = 0) out vec2 oUV;
 
-//push constants block
-layout( push_constant ) uniform constants
-{
-	vec4 extent;
-    vec4 time;
-} pRect;
+
 
 void main() 
 {

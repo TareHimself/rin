@@ -1,16 +1,14 @@
 #version 450
 
 #extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_buffer_reference : require
+
+#include "ui.glsl"
+#include "rect.glsl"
 
 layout (location = 0) in vec2 iUV;
 layout (location = 0) out vec4 oColor;
 
-//push constants block
-layout( push_constant ) uniform constants
-{
-	vec4 extent;
-    vec4 time;
-} pRect;
 
 //https://iquilezles.org/articles/palettes/
 vec3 palette( float t ) {
@@ -28,9 +26,14 @@ vec3 palette( float t ) {
 
 //https://www.shadertoy.com/view/mtyGWy
 void main() {
+
+    if(shouldDiscard(ui.viewport,pRect.clip,gl_FragCoord.xy)){
+        discard;
+    }
+
     ivec2 fragCoord = ivec2(gl_FragCoord.xy);
     ivec2 iResolution = ivec2(pRect.extent.zw);
-    float iTime = pRect.time.x;
+    float iTime = ui.time.x;
 	vec2 uv = (((fragCoord - pRect.extent.xy) * 2.0 - iResolution.xy) / iResolution.y);
     vec2 uv0 = uv;
 

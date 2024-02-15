@@ -21,7 +21,7 @@ class Widget : public Object<WidgetSubsystem> {
   Point2D _pivot;
   std::optional<Size2D> _cachedDesiredSize;
   EVisibility _visibility = EVisibility::Visibility_Visible;
-  Rect _lastDrawRect{};
+  Rect _drawRect{};
   bool _isHovered = false;
 protected:
   Array<Managed<Widget>> _children;
@@ -40,7 +40,7 @@ public:
 
   void SetLastDrawRect(const Rect& rect);
 
-  Rect GetLastDrawRect() const;
+  Rect GetDrawRect() const;
   
   Widget * GetParent() const;
 
@@ -52,12 +52,10 @@ public:
 
   void BeforeDestroy() override;
 
-  Size2D GetDesiredSize();
+  virtual Size2D GetDesiredSize();
 
-  virtual Rect CalculateFinalRect(const Rect& fromParent);
-
-  virtual bool IsInBounds(const Point2D& point) const;
-
+  virtual Rect CalculateFinalRect(const Rect& rect);
+  
   bool IsHovered() const;
   
   virtual Size2D ComputeDesiredSize() const;
@@ -77,6 +75,14 @@ public:
   virtual void OnMouseEnter(const std::shared_ptr<window::MouseMovedEvent> &event);
   
   virtual void OnMouseLeave(const std::shared_ptr<window::MouseMovedEvent> &event);
+
+  virtual bool ReceiveScroll(const std::shared_ptr<window::ScrollEvent> &event);
+  
+  virtual bool OnScroll(const std::shared_ptr<window::ScrollEvent>& event);
+
+  virtual Rect UpdateDrawRect(const Rect& rect);
+
+  virtual std::optional<Size2D> GetCachedDesiredSize() const;
 };
 }
 

@@ -4,6 +4,7 @@
 
 namespace vengine::widget {
 class Widget;
+class Size2D;
 
 struct Point2D {
   float x;
@@ -12,6 +13,18 @@ struct Point2D {
   Point2D(float inX,float inY);
   Point2D(double inX,double inY);
   Point2D(int inX,int inY);
+
+  Point2D operator+(const Size2D& other) const;
+  
+  Point2D operator+(const Point2D& other) const;
+  Point2D operator-(const Point2D& other) const;
+  Point2D operator/(const Point2D& other) const;
+  Point2D operator*(const Point2D& other) const;
+
+  Point2D operator+(const float& other) const;
+  Point2D operator-(const float& other) const;
+  Point2D operator/(const float& other) const;
+  Point2D operator*(const float& other) const;
 };
 
 struct Size2D {
@@ -23,21 +36,47 @@ struct Size2D {
   Size2D(const vk::Extent2D& extent);
 
   bool operator==(const Size2D &) const;
+
+  Size2D& operator=(const Point2D& other);
 };
 
-struct Rect : Point2D, Size2D{
+struct Rect {
+private:
+  Point2D _point;
+  Size2D _size;
 
-
+public:
+  Rect();
+  Rect(const Point2D& p1,const Point2D& p2);
+  Point2D GetPoint() const;
+  Size2D GetSize() const;
+  
+  Rect& SetSize(const Size2D& size);
+  Rect& SetPoint(const Point2D& point);
   operator glm::vec4() const;
 
-  Rect ApplyPivot(const Point2D& pivot) const;
+  Rect& Pivot(const Point2D& pivot);
 
-  Rect OffsetBy(const Rect& other) const;
+  Rect& Offset(const Point2D& offset);
+
+  Rect& Clamp(const Rect& area);
+
+  Rect Clone() const;
+
+  bool IsWithin(const Point2D& point) const;
+
+  bool HasIntersection(const Rect& rect) const;
+
+  bool HasSpace() const;
 };
 
 struct DrawInfo {
   Widget * parent = nullptr;
-  Rect drawRect;
+  // The current clipping area
+  Rect clip;
+
+  // // The area you have been given to draw at
+  // Rect drawRect;
 };
 
 struct WidgetFrameData {
@@ -60,11 +99,13 @@ public:
 
 struct UiGlobalBuffer {
   glm::vec4 viewport{0};
+  glm::vec4 time{0};
 };
 
 struct WidgetPushConstants {
+  
+  glm::vec4 clip{0};
   glm::vec4 extent{0};
-  glm::vec4 time{0};
 };
 
 enum EVisibility {

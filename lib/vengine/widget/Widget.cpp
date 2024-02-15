@@ -46,11 +46,11 @@ void Widget::SetParent(Widget *ptr) {
 }
 
 void Widget::SetLastDrawRect(const Rect &rect) {
-  _lastDrawRect = rect;
+  _drawRect = rect;
 }
 
-Rect Widget::GetLastDrawRect() const {
-  return _lastDrawRect;
+Rect Widget::GetDrawRect() const {
+  return _drawRect;
 }
 
 Widget * Widget::GetParent() const {
@@ -113,15 +113,9 @@ Size2D Widget::GetDesiredSize() {
   return {};
 }
 
-Rect Widget::CalculateFinalRect(const Rect &fromParent) {
-  _lastDrawRect = fromParent.ApplyPivot(GetPivot());
-  return _lastDrawRect;
-}
-
-bool Widget::IsInBounds(const Point2D &point) const {
-  const auto isWithinHorizontal = _lastDrawRect.x <= point.x && point.x <= _lastDrawRect.x + _lastDrawRect.width;
-  const auto isWithinVertical = _lastDrawRect.y <= point.y && point.y <= _lastDrawRect.y + _lastDrawRect.height;
-  return isWithinHorizontal && isWithinVertical;
+Rect Widget::CalculateFinalRect(const Rect &rect) {
+  _drawRect = rect.Clone().Pivot(GetPivot());
+  return _drawRect;
 }
 
 bool Widget::IsHovered() const {
@@ -146,7 +140,7 @@ bool Widget::ReceiveMouseDown(
   const auto point = Point2D{event->x,event->y};
 
   for(const auto &child : _children) {
-    if(child->IsInBounds(point) && child->ReceiveMouseDown(event)) {
+    if(child->GetDrawRect().IsWithin(point) && child->ReceiveMouseDown(event)) {
       return true;
     }
   }
@@ -189,7 +183,7 @@ void Widget::ReceiveMouseEnter(
   const auto point = Point2D{event->x,event->y};
 
   for(const auto &child : _children) {
-    if(child->IsInBounds(point)) {
+    if(child->GetDrawRect().IsWithin(point)) {
       items.push_front(child);
       child->ReceiveMouseEnter(event,items);
     }
@@ -211,6 +205,38 @@ void Widget::OnMouseEnter(const std::shared_ptr<window::MouseMovedEvent> &event)
 
 void Widget::OnMouseLeave(const std::shared_ptr<window::MouseMovedEvent> &event) {
   _isHovered = false;
+}
+
+bool Widget::ReceiveScroll(const std::shared_ptr<window::ScrollEvent> &event) {
+  if(!IsHitTestable()) {
+    return false;
+  }
+
+  const auto point = Point2D{event->x,event->y};
+
+  for(const auto &child : _children) {
+    if(child->GetDrawRect().IsWithin(point) && child->ReceiveScroll(event)) {
+      return true;
+    }
+  }
+  
+  return OnScroll(event);
+}
+
+bool Widget::OnScroll(const std::shared_ptr<window::ScrollEvent> &event) {
+  return false;
+}
+
+
+Rect Widget::UpdateDrawRect(const Rect &rect) {
+  auto myRect = rect.Clone();
+  myRect.Pivot(GetPivot());
+  _drawRect = myRect;
+  return _drawRect;
+}
+
+std::optional<Size2D> Widget::GetCachedDesiredSize() const {
+  return _cachedDesiredSize;
 }
 
 

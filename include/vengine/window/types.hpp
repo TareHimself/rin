@@ -122,4 +122,14 @@ struct MouseButtonEvent {
   MouseButtonEvent(EMouseButton inButton, double inX, double inY);
 };
 
+struct ScrollEvent {
+  double x;
+  double y;
+  double dx;
+  double dy;
+  operator std::string() const;
+
+  ScrollEvent(double inX, double inY,double inDx, double inDy);
+};
+
 }

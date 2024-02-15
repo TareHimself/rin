@@ -28,6 +28,11 @@ void Window::Init(WindowManager *outer) {
       const auto self = static_cast<Window*>(glfwGetWindowUserPointer(window));
       self->onFocusChanged(static_cast<bool>(focused));
     });
+
+    glfwSetScrollCallback(_window,[](GLFWwindow* window, const double xoffset, const double yoffset) {
+      const auto self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+      self->HandleScroll(xoffset,yoffset);
+    });
   }
 }
 
@@ -97,12 +102,17 @@ void Window::HandleMouseButton(int button, const int action, int mods){
   }
 }
 
+void Window::HandleScroll(double xOffset, double yOffset) {
+  auto position = GetMousePosition();
+  onScroll(std::make_shared<ScrollEvent>(position.x,position.y,xOffset,yOffset));
+}
+
 bool Window::IsFocused() const {
   return static_cast<bool>(glfwGetWindowAttrib(_window, GLFW_FOCUSED));
 }
 
 void Window::BeforeDestroy() {
-  Object<WindowManager>::BeforeDestroy();
+  Object::BeforeDestroy();
   glfwDestroyWindow(_window);
   _window = nullptr;
 }

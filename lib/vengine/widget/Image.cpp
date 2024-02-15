@@ -21,6 +21,9 @@ void Image::Init(WidgetSubsystem * outer) {
 
 void Image::SetTexture(const Managed<drawing::Texture2D> &image) {
   _image = image;
+  if(_imageMat) {
+    _imageMat->SetTexture("ImageT",_image);
+  }
   InvalidateCachedSize();
 }
 
@@ -31,21 +34,24 @@ Ref<drawing::Texture2D> Image::GetTexture() const {
 
 void Image::Draw(drawing::SimpleFrameData *frameData,
                  DrawInfo info) {
-  const auto myDrawRect = CalculateFinalRect(info.drawRect);
+
+  if(!GetDrawRect().HasIntersection(info.clip)) {
+    return;
+  }
 
   const auto material = _imageMat;
   const auto ogFrameData = frameData->GetRaw();
   WidgetPushConstants drawData{};
-  
-  drawData.extent = myDrawRect;
-  drawData.time.x = 0;
-  const auto textureToDraw = _image ? _image : GetOuter()->GetEngine()->GetDrawingSubsystem().Reserve()->GetDefaultErrorCheckerboardTexture();
+
+  drawData.clip = info.clip;
+  drawData.extent = GetDrawRect();
+  //const auto textureToDraw = _image ? _image : GetOuter()->GetEngine()->GetDrawingSubsystem().Reserve()->GetDefaultErrorCheckerboardTexture();
   material->BindPipeline(ogFrameData);
   material->BindSets(ogFrameData);
-  material->SetDynamicTexture(frameData->GetRaw(),"ImageT",textureToDraw);
+  //material->SetDynamicTexture(frameData->GetRaw(),"ImageT",textureToDraw);
   material->PushConstant(frameData->GetCmd(),"pRect",drawData);
   
-  frameData->GetCmd()->draw(6,1,0,0);
+  frameData->DrawQuad();
 }
 
 void Image::BeforeDestroy() {

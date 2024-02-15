@@ -34,17 +34,17 @@ void PrettyShader::Init(widget::WidgetSubsystem *outer) {
                                                outer->GetGlobalBuffer());
 }
 
-void PrettyShader::OnPaint(drawing::SimpleFrameData *frameData,
-                           widget::Rect rect) {
+void PrettyShader::OnPaint(drawing::SimpleFrameData *frameData,const widget::Rect& clip) {
+  const auto rect = GetDrawRect();
+
+  
   if (!_material) {
     return;
   }
 
   widget::WidgetPushConstants drawData{};
-
+  drawData.clip = clip;
   drawData.extent = rect;
-  drawData.time.x = GetOuter()->GetEngine()->GetEngineTimeSeconds() -
-                    GetTimeAtInit();
 
   _material->BindPipeline(frameData->GetRaw());
   _material->BindSets(frameData->GetRaw());
@@ -56,6 +56,7 @@ void PrettyShader::OnPaint(drawing::SimpleFrameData *frameData,
 
 void TestGameObject::Init(scene::Scene *outer) {
   SceneObject::Init(outer);
+  auto c = widget::Rect().SetPoint({0,0}).SetSize({100,100}).HasIntersection(widget::Rect().SetPoint({150,150}).SetSize({100,100}));
   const auto assetImporter = GetOuter()->GetEngine()->GetAssetSubsystem().
                                          Reserve();
 
@@ -126,10 +127,17 @@ void TestGameObject::Init(scene::Scene *outer) {
 
   widgetManager->AddToScreen(canvas);
 
-  auto column = widgetManager->CreateWidget<widget::Row>();
+  auto columnSizer = widgetManager->CreateWidget<widget::Sizer>();
 
-  column->SetPivot({0.5f, 0.5f});
-  auto columnSlot = canvas->AddChild(column).Reserve();
+  columnSizer->SetHeight(500.0f + 100.0f);
+  
+
+  auto column = widgetManager->CreateWidget<widget::Column>();
+
+  columnSizer->AddChild(column);
+  
+  columnSizer->SetPivot({0.5f, 0.5f});
+  auto columnSlot = canvas->AddChild(columnSizer).Reserve();
   columnSlot->SetAnchorX({0.5, 0.5});
   columnSlot->SetAnchorY({0.5, 0.5});
   columnSlot->SetSizeToContent(true);

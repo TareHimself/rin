@@ -33,7 +33,7 @@ void WidgetSubsystem::Init(Engine *outer) {
 
         for (auto &child : _topLevelWidgets) {
           // Only the first item will receive hover events
-          if (child->IsInBounds(point)) {
+          if (child->GetDrawRect().IsWithin(point)) {
             _lastHoverList.push_front(child);
             child->ReceiveMouseEnter(event, _lastHoverList);
             break;
@@ -42,8 +42,20 @@ void WidgetSubsystem::Init(Engine *outer) {
         return;
       }));
 
-  const auto engine = GetEngine();
+  AddCleanup(window->onScroll, window->onScroll.Bind([this](
+      const std::shared_ptr<window::ScrollEvent> &
+      event) {
+        const Point2D point = {event->x, event->y};
 
+        for (auto &child : _topLevelWidgets) {
+          if (child->ReceiveScroll(event)) {
+            return;
+          }
+        }
+      }));
+  
+  const auto engine = GetEngine();
+  
   engine->onWindowSizeChanged.Bind([this](vk::Extent2D size) {
     log::engine->info("WIDGETS SYSTEM, WINDOW SIZE CHANGED");
     _drawSize = size;
@@ -76,22 +88,25 @@ void WidgetSubsystem::Draw(
 
     UiGlobalBuffer uiGb;
     uiGb.viewport = glm::vec4{0, 0, _drawSize.width, _drawSize.height};
+    uiGb.time.x = GetEngine()->GetEngineTimeSeconds();
 
     const auto mappedData = _uiGlobalBuffer->GetMappedData();
     const auto uiGlobalBuffer = static_cast<UiGlobalBuffer *>(mappedData);
     *uiGlobalBuffer = uiGb;
 
+    const Size2D size = {static_cast<float>(_drawSize.width),static_cast<float>(_drawSize.height)};
+    
     DrawInfo myInfo;
     myInfo.parent = nullptr;
-    myInfo.drawRect.x = 0;
-    myInfo.drawRect.y = 0;
-    myInfo.drawRect.width = static_cast<float>(_drawSize.width);
-    myInfo.drawRect.height = static_cast<float>(_drawSize.height);
+    myInfo.clip.SetSize(size);
 
     drawing::SimpleFrameData wFrameData(frameData);
 
-    for (const auto &widget : _topLevelWidgets.clone()) {
-      widget->Draw(&wFrameData, myInfo);
+    for (auto &widget : _topLevelWidgets.clone()) {
+      if(widget) {
+        widget->UpdateDrawRect(Rect().SetSize(size));
+        widget->Draw(&wFrameData, myInfo);
+      }
     }
   }
 }
@@ -104,7 +119,7 @@ void WidgetSubsystem::HandleLastHovered(
     const std::shared_ptr<window::MouseMovedEvent> &event) {
   const Point2D point = {event->x, event->y};
   for (auto &widget : _lastHoverList) {
-    if (auto ref = widget.Reserve(); !ref->IsInBounds(point)) {
+    if (auto ref = widget.Reserve(); !ref->GetDrawRect().IsWithin(point)) {
       ref->OnMouseLeave(event);
     }
   }
@@ -117,6 +132,7 @@ void WidgetSubsystem::InitWidget(const Managed<Widget> &widget) {
 }
 
 vk::Extent2D WidgetSubsystem::GetDrawSize() const {
+  // return {_drawSize.width,_drawSize.height};
   return _drawSize;
 }
 }

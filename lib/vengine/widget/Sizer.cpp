@@ -25,9 +25,22 @@ std::optional<uint32_t> Sizer::GetMaxSlots() const {
 
 void Sizer::Draw(
     drawing::SimpleFrameData *frameData, const DrawInfo info) {
-  const auto myDrawRect = CalculateFinalRect(info.drawRect);
+
+  if(!GetDrawRect().HasIntersection(info.clip)) {
+    return;
+  }
+
+  const auto clip = info.clip.Clone().Clamp(GetDrawRect());
+  
+  if(!clip.HasSpace()) {
+    return;
+  }
+  
   if(auto slot = _slots.try_index(0); slot.has_value()) {
-    slot.value()->GetWidget().Reserve()->Draw(frameData, {this,myDrawRect});
+    if(auto widget = slot.value()->GetWidget().Reserve()) {
+      auto drawRect = widget->UpdateDrawRect(Rect().Offset(GetDrawRect().GetPoint()).SetSize(GetDrawRect().GetSize()));
+      widget->Draw(frameData,{this,clip});
+    }
   }
 }
 

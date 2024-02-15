@@ -4,5 +4,5 @@
 // layout(location = 3) in vec2 iUV;
 layout(set = 0, binding = 0) uniform  UiGlobalBuffer{   
 	vec4 viewport;
-	
+	vec4 time;
 } ui;

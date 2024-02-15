@@ -51,4 +51,11 @@ MouseButtonEvent::MouseButtonEvent(EMouseButton inButton, double inX,
   x = inX;
   y = inY;
 }
+
+ScrollEvent::ScrollEvent(double inX, double inY, double inDx, double inDy) {
+  x = inX;
+  y = inY;
+  dx = inDx;
+  dy = inDy;
+}
 }
