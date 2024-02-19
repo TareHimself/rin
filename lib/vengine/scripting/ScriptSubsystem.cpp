@@ -17,7 +17,7 @@ void ScriptSubsystem::Init(Engine * outer) {
 
   _scriptEngine->RegisterGlobalFunction("void print(const string &in)",asMETHOD(ScriptSubsystem,DebugFromScript),asCALL_THISCALL_ASGLOBAL,this);
 
-  AddCleanup([=] {
+  AddCleanup([this] {
     _scriptEngine->ShutDownAndRelease();
   });
 }
@@ -36,7 +36,7 @@ void ScriptSubsystem::DebugFromScript(const std::string &in) const {
   GetLogger()->info("SCRIPT DEBUG: {}",in);
 }
 
-Managed<Script> ScriptSubsystem::ScriptFromFile(const std::filesystem::path &path) {
+Managed<Script> ScriptSubsystem::ScriptFromFile(const fs::path &path) {
   CScriptBuilder builder;
   const auto moduleId = to_string(uuids::uuid_system_generator{}());
   if(builder.StartNewModule(_scriptEngine,moduleId.c_str()) < 0) {

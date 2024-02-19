@@ -17,7 +17,7 @@ void ScriptComponent::Init(SceneObject * outer) {
   _script->InitScript();
 }
 
-ScriptComponent::ScriptComponent(const std::filesystem::path &path) {
+ScriptComponent::ScriptComponent(const fs::path &path) {
   _scriptPath = path;
 }
 }

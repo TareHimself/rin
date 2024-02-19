@@ -70,7 +70,7 @@ namespace vengine {
 
   template <typename ...T> void Cleanable::AddCleanup(
       TDispatcher<T...> &dispatcher, uint64_t bindId) {
-    AddCleanup([&] {
+    AddCleanup([&dispatcher,bindId] {
       dispatcher.UnBind(bindId);
     });
   }

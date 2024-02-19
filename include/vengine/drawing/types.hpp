@@ -9,6 +9,12 @@
 
 namespace vengine {
 namespace drawing {
+class WindowDrawer;
+}
+}
+
+namespace vengine {
+namespace drawing {
 class SceneDrawer;
 }
 }
@@ -34,6 +40,7 @@ private:
   vk::CommandBuffer _cmdBuffer;
   DescriptorAllocatorGrowable _frameDescriptors{};
   DrawingSubsystem * _drawer = nullptr;
+  WindowDrawer * _windowDrawer = nullptr;
 public:
   CleanupQueue cleaner;
   vk::CommandBuffer * GetCmd();
@@ -43,11 +50,13 @@ public:
   vk::Semaphore GetRenderSemaphore() const;
   vk::Fence GetRenderFence() const;
   DrawingSubsystem * GetDrawer() const;
+  WindowDrawer * GetWindowDrawer() const;
   void SetSemaphores(const vk::Semaphore &swapchain, const vk::Semaphore &render);
   void SetRenderFence(vk::Fence renderFence);
   void SetCommandPool(vk::CommandPool pool);
   void SetCommandBuffer(vk::CommandBuffer buffer);
   void SetDrawer(DrawingSubsystem * drawer);
+  void SetWindowDrawer(WindowDrawer * windowDrawer);
 };
 
 
@@ -151,7 +160,6 @@ struct MaterialResourceInfo {
 struct SimpleFrameData {
 private:
   RawFrameData * _frame = nullptr;
-  SceneDrawer * _drawer = nullptr;
 public:
   
   SimpleFrameData(RawFrameData * frame);
@@ -161,9 +169,7 @@ public:
   CleanupQueue * GetCleaner() const;
 
   RawFrameData * GetRaw() const;
-  SceneDrawer * GetDrawer() const;
-  void SetDrawer(SceneDrawer * drawer);
-
+  
   void DrawQuad() const;
 };
 

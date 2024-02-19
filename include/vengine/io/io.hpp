@@ -2,22 +2,22 @@
 #include "vengine/containers/Array.hpp"
 #include <fstream>
 #include <string>
-#include <filesystem>
+#include <vengine/fs.hpp>
 
 namespace vengine::io {
-inline std::filesystem::path RAW_SHADERS_PATH = "";
-std::filesystem::path getCompiledShadersPath();
-std::filesystem::path getRawShadersPath();
-void setRawShadersPath(const std::filesystem::path &shadersPath);
+inline fs::path RAW_SHADERS_PATH = "";
+fs::path getCompiledShadersPath();
+fs::path getRawShadersPath();
+void setRawShadersPath(const fs::path &shadersPath);
 
-std::filesystem::path getRawShaderPath(const std::string &shader);
+fs::path getRawShaderPath(const std::string &shader);
 
-std::string readFileAsString(const std::filesystem::path &filePath);
+std::string readFileAsString(const fs::path &filePath);
 
-void writeStringToFile(const std::filesystem::path &filePath,const std::string &data);
+void writeStringToFile(const fs::path &filePath,const std::string &data);
 
 template<typename  T>
-Array<T> readFile(const std::filesystem::path &filePath) {
+Array<T> readFile(const fs::path &filePath) {
   std::ifstream fileStream(filePath, std::ios::ate | std::ios::binary);
 
   if(!fileStream.is_open()) {

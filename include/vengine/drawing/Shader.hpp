@@ -3,14 +3,14 @@
 #include "types.hpp"
 #include "vengine/Object.hpp"
 #include <vulkan/vulkan.hpp>
-#include <filesystem>
+#include <vengine/fs.hpp>
 #include "generated/drawing/Shader.reflect.hpp"
 namespace vengine::drawing {
 class ShaderManager;
 
 RCLASS()
 class Shader : public Object<ShaderManager> {
-  std::filesystem::path _sourcePath;
+  fs::path _sourcePath;
   vk::ShaderModule _vkShader;
   ShaderResources _resources;
   vk::ShaderStageFlagBits _stage{};
@@ -18,11 +18,11 @@ class Shader : public Object<ShaderManager> {
 public:
   
   vk::ShaderModule Get() const;
-  std::filesystem::path GetSourcePath() const;
+  fs::path GetSourcePath() const;
   
   operator vk::ShaderModule() const;
   void SetVulkanShader(vk::ShaderModule shader);
-  void SetSourcePath(const std::filesystem::path &path);
+  void SetSourcePath(const fs::path &path);
   void SetResources(const ShaderResources& resources);
   vk::ShaderStageFlagBits GetStage() const;
   void Init(ShaderManager * outer) override;
@@ -31,7 +31,7 @@ public:
   void BeforeDestroy() override;
   
   static Managed<Shader> FromSource(
-      const std::filesystem::path &path);
+      const fs::path &path);
 };
 
 REFLECT_IMPLEMENT(Shader)

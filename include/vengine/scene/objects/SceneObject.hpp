@@ -88,7 +88,7 @@ public:
 
   void BeforeDestroy() override;
 
-  void Draw(drawing::SimpleFrameData *frameData, const math::Transform &parentTransform) override;
+  void Draw(drawing::SceneFrameData *frameData, const math::Transform &parentTransform) override;
 
   virtual void ReadFrom(Buffer &store) override;
   virtual void WriteTo(Buffer &store) override;

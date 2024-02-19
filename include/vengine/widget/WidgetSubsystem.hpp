@@ -3,10 +3,12 @@
 #include "vengine/EngineSubsystem.hpp"
 #include "vengine/drawing/Drawable.hpp"
 #include "vengine/drawing/MaterialInstance.hpp"
+#include "vengine/window/Window.hpp"
 #include "generated/widget/WidgetSubsystem.reflect.hpp"
 
 namespace vengine {
 namespace widget {
+class WidgetRoot;
 class Panel;
 }
 }
@@ -22,13 +24,9 @@ class Widget;
 
 RCLASS()
 class WidgetSubsystem : public EngineSubsystem, public drawing::Drawable {
-  Array<Managed<Widget>> _topLevelWidgets;
-  Managed<Panel> _canvas;
-  vk::Extent2D _drawSize;
-  Managed<drawing::AllocatedBuffer> _uiGlobalBuffer;
-  std::list<Ref<Widget>> _lastHoverList;
+  std::unordered_map<uint64_t,Managed<WidgetRoot>> _roots;
+  Array<Ref<WidgetRoot>> _rootsArr;
 public:
-  Ref<drawing::AllocatedBuffer> GetGlobalBuffer() const;
   void Init(Engine * outer) override;
 
   void BeforeDestroy() override;
@@ -36,17 +34,16 @@ public:
   String GetName() const override;
 
   void Draw(drawing::RawFrameData *frameData) override;
-
-  void AddToScreen(const Managed<Widget>& widget);
-
-  void HandleLastHovered(const std::shared_ptr<window::MouseMovedEvent>& event);
-
+  
   template <typename T,typename... Args>
   Managed<T> CreateWidget(Args &&... args);
 
   void InitWidget(const Managed<Widget> &widget);
 
-  vk::Extent2D GetDrawSize() const;
+  Ref<WidgetRoot> GetRoot(const Ref<window::Window>& window);
+
+  virtual void CreateRoot(const Ref<window::Window>& window);
+  virtual void DestroyRoot(const Ref<window::Window>& window);
 };
 
 template <typename T, typename ... Args> Managed<T> WidgetSubsystem::CreateWidget(

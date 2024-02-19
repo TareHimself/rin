@@ -16,7 +16,7 @@ glm::mat4 CameraComponent::GetProjection(const float aspectRatio) const {
 }
 
 void CameraComponent::Draw(
-    drawing::SimpleFrameData *frameData, const math::Transform &parentTransform) {
+    drawing::SceneFrameData *frameData, const math::Transform &parentTransform) {
   
 }
 

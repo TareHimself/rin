@@ -11,16 +11,10 @@ public:
   void SetTexture(const Managed<drawing::Texture2D> &image);
   Ref<drawing::Texture2D> GetTexture() const;
 
-  void Draw(drawing::SimpleFrameData *frameData, DrawInfo info) override;
+  void Draw(WidgetFrameData *frameData, DrawInfo info) override;
 
   void BeforeDestroy() override;
 
   Size2D ComputeDesiredSize() const override;
-
-  bool OnMouseDown(const std::shared_ptr<window::MouseButtonEvent> &event) override;
-
-  void OnMouseEnter(const std::shared_ptr<window::MouseMovedEvent> &event) override;
-
-  void OnMouseLeave(const std::shared_ptr<window::MouseMovedEvent> &event) override;
 };
 }

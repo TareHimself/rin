@@ -1,18 +1,18 @@
 #pragma once
 #include "SceneComponent.hpp"
 #include "vengine/scripting/Script.hpp"
-#include <filesystem>
+#include <vengine/fs.hpp>
 #include "generated/scene/components/ScriptComponent.reflect.hpp"
 namespace vengine::scene {
 RCLASS()
 class ScriptComponent : public SceneComponent {
-  std::filesystem::path _scriptPath;
+  fs::path _scriptPath;
   Managed<scripting::Script> _script;
 
 public:
   ScriptComponent();
   void Init(SceneObject *outer) override;
-  ScriptComponent(const std::filesystem::path &path);
+  ScriptComponent(const fs::path &path);
 
   RFUNCTION()
   static Managed<ScriptComponent> Construct() {

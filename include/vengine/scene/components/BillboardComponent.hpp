@@ -8,7 +8,7 @@ RCLASS()
 class BillboardComponent : public RenderedComponent {
   Managed<drawing::Texture2D> _texture;
 public:
-  virtual void Draw(drawing::SimpleFrameData *frameData, const math::Transform &parentTransform) override;
+  virtual void Draw(drawing::SceneFrameData *frameData, const math::Transform &parentTransform) override;
 
   RFUNCTION()
   static Managed<BillboardComponent> Construct() { return newManagedObject<BillboardComponent>(); } VENGINE_IMPLEMENT_REFLECTED_INTERFACE(BillboardComponent)

@@ -18,7 +18,7 @@ class DrawingSubsystem;
 
 namespace vengine::drawing {
 class SceneDrawer : public Object<scene::Scene>, public Drawable {
-  vk::Viewport _viewport;
+  
   SceneGlobalBuffer _sceneData{};
   Managed<AllocatedBuffer> _sceneGlobalBuffer;
   Managed<MaterialInstance> _defaultCheckeredMaterial;

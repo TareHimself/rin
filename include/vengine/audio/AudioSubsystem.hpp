@@ -15,7 +15,7 @@ class AudioSubsystem : public EngineSubsystem {
 public:
   std::unordered_map<std::string,Managed<LiveAudio>> liveAudio;
   void Init(Engine *outer) override;
-  Managed<LiveAudio> PlaySound2D(const std::filesystem::path& filePath);
+  Managed<LiveAudio> PlaySound2D(const fs::path& filePath);
   String GetName() const override;
   void BeforeDestroy() override;
 };

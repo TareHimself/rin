@@ -2,7 +2,7 @@
 #define VENGINE_CONTAINERS_BUFFER
 #include <fstream>
 #include <vector>
-
+#include <vengine/fs.hpp>
 #ifndef VENGINE_SIMPLE_BUFFER_SERIALIZER
 #define VENGINE_SIMPLE_BUFFER_SERIALIZER(Buffer, Type) \
 inline Buffer &operator<<(Buffer &dst, const Type &src) { \
@@ -102,7 +102,7 @@ public:
 class InFileBuffer : public FileBuffer {
   std::ifstream _stream;
 public:
-  InFileBuffer(const std::filesystem::path &filePath);
+  InFileBuffer(const fs::path &filePath);
 
   bool isOpen() const override;
   void close() override;
@@ -113,7 +113,7 @@ public:
 class OutFileBuffer : public FileBuffer {
   std::ofstream _stream;
 public:
-  OutFileBuffer(const std::filesystem::path &filePath);
+  OutFileBuffer(const fs::path &filePath);
 
   bool isOpen() const override;
   void close() override;

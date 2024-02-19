@@ -69,10 +69,10 @@ void Engine::RunGame() {
     const auto deltaFloat = static_cast<float>(
       static_cast<double>(delta) / 1000.0);
 
-    window::get()->Poll();
+    window::getManager()->Poll();
 
-    if (_window) {
-      bExitRequested = bExitRequested || GetWindow().Reserve()->CloseRequested();
+    if (_mainWindow) {
+      bExitRequested = bExitRequested || GetMainWindow().Reserve()->CloseRequested();
     }
     // while (_window->pollEvent(e)) {
     //
@@ -141,11 +141,11 @@ Array<Ref<scene::Scene>> Engine::GetScenes() const {
   return scenes;
 }
 
-Ref<window::Window> Engine::GetWindow() const {
-  return _window;
+Ref<window::Window> Engine::GetMainWindow() const {
+  return _mainWindow;
 }
 
-vk::Extent2D Engine::GetWindowExtent() const { return _windowExtent; }
+vk::Extent2D Engine::GetMainWindowSize() const { return _windowExtent; }
 
 Ref<drawing::DrawingSubsystem> Engine::GetDrawingSubsystem() const {
   return _drawer;
@@ -178,29 +178,34 @@ void Engine::Init() {
   InitScriptSubsystem();
   InitScenes();
 
+  // Multiple window test
+  // GetMainWindow().Reserve()->CreateChild(_windowExtent.width, _windowExtent.height,"Child A");
+  // GetMainWindow().Reserve()->CreateChild(_windowExtent.width, _windowExtent.height,"Child B");
+  // GetMainWindow().Reserve()->CreateChild(_windowExtent.width, _windowExtent.height,"Child C");
+
   auto testInputConsumer = GetInputSubsystem().Reserve()->Consume<
     input::InputConsumer>().Reserve();
 
   testInputConsumer->BindKey(window::EKey::Key_Escape,
-                             [=](const std::shared_ptr<input::KeyInputEvent> &
+                             [this](const std::shared_ptr<input::KeyInputEvent> &
                              e) {
                                RequestExit();
                                return true;
                              }, {});
 
   testInputConsumer->BindKey(window::EKey::Key_LeftShift,
-                             [=](const std::shared_ptr<input::KeyInputEvent> &
+                             [this](const std::shared_ptr<input::KeyInputEvent> &
                              e) {
                                SetInputMode(EInputMode::GameOnly);
                                return true;
-                             }, [=](
+                             }, [this](
                              const std::shared_ptr<input::KeyInputEvent> &_) {
                                SetInputMode(EInputMode::UiOnly);
                                return true;
                              });
 
   testInputConsumer->BindKey(window::EKey::Key_J,
-                             [=](
+                             [this](
                              const std::shared_ptr<input::KeyInputEvent> &e) {
                                if (auto sound = GetAudioSubsystem().Reserve()->
                                    PlaySound2D(
@@ -232,17 +237,24 @@ void Engine::Tick(float deltaTime) {
 
 
 void Engine::InitWindow() {
-  window::get()->Start();
+  window::getManager()->Start();
 
-  _window = window::get()->Create(_windowExtent.width, _windowExtent.height,
-                                  GetAppName(), nullptr);
-
+  AddCleanup(window::getManager()->onWindowFocusChanged,window::getManager()->onWindowFocusChanged.Bind([this](const window::Window * win, bool val) {
+    if(val) {
+      _focusedWindow = win->ToRef();
+      log::engine->info("Set focused window to {}",_focusedWindow.Reserve()->GetId());
+    }
+  }));
+  
+  _mainWindow = window::create(_windowExtent.width, _windowExtent.height,
+                                         GetAppName(), nullptr);
+  _focusedWindow = _mainWindow;
   //SDL_SetWindowFullscreen(window,true);
   //SDL_CaptureMouse(true);
 
-  AddCleanup([=] {
-    window::get()->Destroy(_window);
-    window::get()->Stop();
+  AddCleanup([this] {
+    window::destroy(_mainWindow.Reserve()->GetId());
+    window::getManager()->Stop();
   });
 }
 
@@ -251,7 +263,7 @@ void Engine::InitDrawingSubsystem() {
   _drawer = CreateDrawingSubsystem();
   _drawer->Init(this);
 
-  AddCleanup([=] {
+  AddCleanup([this] {
     _drawer.Clear();
   });
 }
@@ -261,7 +273,7 @@ void Engine::InitScenes() {
     InitScene(scene);
   }
 
-  AddCleanup([=] {
+  AddCleanup([this] {
     _scenes.clear();
   });
 }
@@ -270,7 +282,7 @@ void Engine::InitAssetSubsystem() {
   _assetManager = CreateAssetSubsystem();
   _assetManager->Init(this);
 
-  AddCleanup([=] {
+  AddCleanup([this] {
     _assetManager.Clear();
   });
 }
@@ -279,7 +291,7 @@ void Engine::InitAudioSubsystem() {
   _audioManager = CreateAudioSubsystem();
   _audioManager->Init(this);
 
-  AddCleanup([=] {
+  AddCleanup([this] {
     _audioManager.Clear();
   });
 }
@@ -330,29 +342,31 @@ Managed<audio::AudioSubsystem> Engine::CreateAudioSubsystem() {
 
 void Engine::SetInputMode(EInputMode mode) {
 
-  switch (mode) {
-  case EInputMode::GameOnly:
-    GetWindow().Reserve()->SetCursorMode(window::CursorMode_Captured);
-    break;
+  if(auto focused = GetFocusedWindow().Reserve()) {
+    switch (mode) {
+    case EInputMode::GameOnly:
+      focused->SetCursorMode(window::CursorMode_Captured);
+      break;
 
-  case EInputMode::UiOnly:
-    GetWindow().Reserve()->SetCursorMode(window::CursorMode_Visible);
-    break;
+    case EInputMode::UiOnly:
+      focused->SetCursorMode(window::CursorMode_Visible);
+      break;
 
-  case EInputMode::GameAndUi:
-    GetWindow().Reserve()->SetCursorMode(window::CursorMode_Visible);
-    break;
+    case EInputMode::GameAndUi:
+      focused->SetCursorMode(window::CursorMode_Visible);
+      break;
 
+    }
+
+    onInputModeChanged(_inputMode, mode);
+
+    _inputMode = mode;
   }
-
-  onInputModeChanged(_inputMode, mode);
-
-  _inputMode = mode;
 }
 
 void Engine::NotifyWindowResize() {
   int width, height;
-  const auto winSize = _window.Reserve()->GetSize();
+  const auto winSize = _mainWindow.Reserve()->GetSize();
   _windowExtent.setHeight(winSize.y);
   _windowExtent.setWidth(winSize.x);
 
@@ -366,19 +380,20 @@ void Engine::NotifyWindowResize() {
     //SDL_GetWindowSize(_window.Get(),&width,&height);
 
   }
-
-  if (_drawer->GetDrawImageExtent() != _windowExtent) {
-    _drawer->RequestResize();
-  }
+  //
+  // if (_drawer->GetDrawImageExtent() != _windowExtent) {
+  //   _drawer->RequestResize();
+  // }
 }
 
 bool Engine::IsFullScreen() const {
   return false;
 }
 
-bool Engine::IsFocused() const {
-  return _window.Reserve()->IsFocused();
+Ref<window::Window> Engine::GetFocusedWindow() const {
+  return _focusedWindow;
 }
+
 
 void Engine::InitScene(const Managed<scene::Scene> &scene) {
   if (IsRunning()) {
@@ -389,7 +404,7 @@ void Engine::InitScene(const Managed<scene::Scene> &scene) {
 void Engine::InitInputSubsystem() {
   _inputManager = CreateInputSubsystem();
   _inputManager->Init(this);
-  AddCleanup([=] {
+  AddCleanup([this] {
     _inputManager.Clear();
   });
 }
@@ -397,7 +412,7 @@ void Engine::InitInputSubsystem() {
 void Engine::InitScriptSubsystem() {
   _scriptManager = CreateScriptSubsystem();
   _scriptManager->Init(this);
-  AddCleanup([=] {
+  AddCleanup([this] {
     _scriptManager.Clear();
   });
 }
@@ -405,7 +420,7 @@ void Engine::InitScriptSubsystem() {
 void Engine::InitWidgetSubsystem() {
   _widgetManager = CreateWidgetSubsystem();
   _widgetManager->Init(this);
-  AddCleanup([=] {
+  AddCleanup([this] {
     _widgetManager.Clear();
   });
 }

@@ -7,65 +7,20 @@
 #include <vengine/io/io.hpp>
 
 namespace vengine::widget {
-Ref<drawing::AllocatedBuffer> WidgetSubsystem::GetGlobalBuffer() const {
-  return _uiGlobalBuffer;
-}
-
 void WidgetSubsystem::Init(Engine *outer) {
   EngineSubsystem::Init(outer);
-  auto window = outer->GetWindow().Reserve();
-
-  AddCleanup(window->onMouseDown ,window->onMouseDown.Bind([this](
-      const std::shared_ptr<window::MouseButtonEvent> &
-      event) {
-        for (auto &child : _topLevelWidgets) {
-          if (child->ReceiveMouseDown(event)) {
-            return;
-          }
-        }
-      }));
-
-  AddCleanup(window->onMouseMoved, window->onMouseMoved.Bind([this](
-      const std::shared_ptr<window::MouseMovedEvent> &
-      event) {
-        HandleLastHovered(event);
-        const Point2D point = {event->x, event->y};
-
-        for (auto &child : _topLevelWidgets) {
-          // Only the first item will receive hover events
-          if (child->GetDrawRect().IsWithin(point)) {
-            _lastHoverList.push_front(child);
-            child->ReceiveMouseEnter(event, _lastHoverList);
-            break;
-          }
-        }
-        return;
-      }));
-
-  AddCleanup(window->onScroll, window->onScroll.Bind([this](
-      const std::shared_ptr<window::ScrollEvent> &
-      event) {
-        const Point2D point = {event->x, event->y};
-
-        for (auto &child : _topLevelWidgets) {
-          if (child->ReceiveScroll(event)) {
-            return;
-          }
-        }
-      }));
+  const auto existingWindows = window::getManager()->GetWindows();
+  for(auto &window : existingWindows) {
+    CreateRoot(window);
+  }
   
-  const auto engine = GetEngine();
-  
-  engine->onWindowSizeChanged.Bind([this](vk::Extent2D size) {
-    log::engine->info("WIDGETS SYSTEM, WINDOW SIZE CHANGED");
-    _drawSize = size;
-  });
+  AddCleanup(window::getManager()->onWindowCreated,window::getManager()->onWindowCreated.Bind([this](const Ref<window::Window>& window) {
+    CreateRoot(window);
+  }));
 
-  _drawSize = engine->GetWindowExtent();
-  const auto drawer = engine->GetDrawingSubsystem().Reserve();
-
-  _uiGlobalBuffer = drawer->GetAllocator().Reserve()->CreateUniformCpuGpuBuffer(
-      sizeof(UiGlobalBuffer), false);
+  AddCleanup(window::getManager()->onWindowDestroyed,window::getManager()->onWindowDestroyed.Bind([this](const Ref<window::Window>& window) {
+    DestroyRoot(window);
+  }));
 }
 
 void WidgetSubsystem::BeforeDestroy() {
@@ -73,9 +28,7 @@ void WidgetSubsystem::BeforeDestroy() {
 
   GetOuter()->GetDrawingSubsystem().Reserve()->WaitDeviceIdle();
 
-  _uiGlobalBuffer.Clear();
-
-  _topLevelWidgets.clear();
+  _roots.clear();
 }
 
 String WidgetSubsystem::GetName() const {
@@ -84,55 +37,41 @@ String WidgetSubsystem::GetName() const {
 
 void WidgetSubsystem::Draw(
     drawing::RawFrameData *frameData) {
-  if (!_topLevelWidgets.empty()) {
-
-    UiGlobalBuffer uiGb;
-    uiGb.viewport = glm::vec4{0, 0, _drawSize.width, _drawSize.height};
-    uiGb.time.x = GetEngine()->GetEngineTimeSeconds();
-
-    const auto mappedData = _uiGlobalBuffer->GetMappedData();
-    const auto uiGlobalBuffer = static_cast<UiGlobalBuffer *>(mappedData);
-    *uiGlobalBuffer = uiGb;
-
-    const Size2D size = {static_cast<float>(_drawSize.width),static_cast<float>(_drawSize.height)};
-    
-    DrawInfo myInfo;
-    myInfo.parent = nullptr;
-    myInfo.clip.SetSize(size);
-
-    drawing::SimpleFrameData wFrameData(frameData);
-
-    for (auto &widget : _topLevelWidgets.clone()) {
-      if(widget) {
-        widget->UpdateDrawRect(Rect().SetSize(size));
-        widget->Draw(&wFrameData, myInfo);
-      }
+  for(auto &val : _rootsArr) {
+    if(auto reserved = val.Reserve(); reserved) {
+      reserved->Draw(frameData);
     }
   }
-}
-
-void WidgetSubsystem::AddToScreen(const Managed<Widget> &widget) {
-  _topLevelWidgets.push(widget);
-}
-
-void WidgetSubsystem::HandleLastHovered(
-    const std::shared_ptr<window::MouseMovedEvent> &event) {
-  const Point2D point = {event->x, event->y};
-  for (auto &widget : _lastHoverList) {
-    if (auto ref = widget.Reserve(); !ref->GetDrawRect().IsWithin(point)) {
-      ref->OnMouseLeave(event);
-    }
-  }
-
-  _lastHoverList.clear();
 }
 
 void WidgetSubsystem::InitWidget(const Managed<Widget> &widget) {
   widget->Init(this);
 }
 
-vk::Extent2D WidgetSubsystem::GetDrawSize() const {
-  // return {_drawSize.width,_drawSize.height};
-  return _drawSize;
+Ref<WidgetRoot> WidgetSubsystem::GetRoot(const Ref<window::Window> &window) {
+  const auto reserved = window.Reserve().Get();
+  if(_roots.contains(reserved->GetId())) {  
+    return _roots[reserved->GetId()];
+  }
+
+  return {};
+}
+
+void WidgetSubsystem::CreateRoot(const Ref<window::Window> &window) {
+  auto root = newManagedObject<WidgetRoot>();
+  root->Init(window,this);
+  _roots.emplace(window.Reserve()->GetId(),root);
+  _rootsArr.push(root);
+}
+
+void WidgetSubsystem::DestroyRoot(const Ref<window::Window> &window) {
+  if(const auto kv = _roots.find(window.Reserve()->GetId()); kv != _roots.end()) {
+    if(const auto idx = _rootsArr.index_of(kv->second); idx.has_value()) {
+      _rootsArr.remove(idx.value());
+    }
+    
+    _roots.erase(kv);
+    
+  }
 }
 }

@@ -62,11 +62,8 @@ public:
                          texture);
 
   void SetTextureArray(const std::string &param, const Array<Ref<Texture2D>> &textures);
-
-  template<typename T>
-  void SetBuffer(const std::string &param, const Ref<AllocatedBuffer> &buffer);
-
-  void SetBuffer(const std::string &param, const Ref<AllocatedBuffer> &buffer, size_t);
+  
+  void SetBuffer(const std::string &param, const Ref<AllocatedBuffer> &buffer, uint32_t offset = 0);
 
   void BindPipeline(RawFrameData *frame) const;
   //void BindCustomSet(RawFrameData *frame, const vk::DescriptorSet set, const uint32_t idx) const;
@@ -78,17 +75,13 @@ public:
   //void Bind(RawFrameData *frame, uint32_t materialSetIndex = 0) const;
 
   template <typename T>
-  void PushConstant(const vk::CommandBuffer * cmd,const std::string &param,const T &data);
+  void Push(const vk::CommandBuffer * cmd,const std::string &param,const T &data);
 
   void BeforeDestroy() override;
 };
 
-template <typename T> void MaterialInstance::SetBuffer(const std::string &param,
-    const Ref<AllocatedBuffer> &buffer) {
-  SetBuffer(param,buffer,sizeof(T));
-}
 
-template <typename T> void MaterialInstance::PushConstant(
+template <typename T> void MaterialInstance::Push(
     const vk::CommandBuffer *cmd, const std::string &param,
     const T &data) {
   utils::vassert(_shaderResources.pushConstants.contains(param),"PushConstant [ {} ] does not exist in material",param);

@@ -6,9 +6,10 @@ std::optional<uint32_t> Column::GetMaxSlots() const {
 }
 
 void Column::Draw(
-    drawing::SimpleFrameData *frameData, const DrawInfo info) {
+    WidgetFrameData *frameData, const DrawInfo info) {
 
-  if(GetDrawRect().HasIntersection(info.clip)) {
+  
+  if(!GetDrawRect().HasIntersection(info.clip)) {
     return;
   }
   
@@ -23,7 +24,7 @@ void Column::Draw(
   for(auto &slot : _slots.clone()) {
     if(auto widget = slot->GetWidget().Reserve()) {
       auto size = widget->GetDesiredSize();
-      const auto slotRect = widget->UpdateDrawRect(Rect().Offset(GetDrawRect().GetPoint()).SetPoint({0.0f,offset}).SetSize(size));
+      const auto slotRect = widget->UpdateDrawRect(Rect().SetPoint({0.0f,offset}).Offset(GetDrawRect().GetPoint()).SetSize(size));
 
       // if(slotRect.WillBeClippedBy(rect)) {
       //   break;
@@ -56,6 +57,6 @@ Size2D Column::ComputeDesiredSize() const {
 }
 
 bool Column::OnScroll(const std::shared_ptr<window::ScrollEvent> &event) {
-  return ScrollBy(event->dy * 2.0);
+  return ScrollBy(event->dy * scrollScale);
 }
 }

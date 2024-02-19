@@ -9,7 +9,7 @@ template <class SlotType>
 class ISlot {
 public:
 
-  virtual Ref<SlotType> AddChild(const Managed<Widget>& widget) = 0;
+  virtual Ref<SlotType> Add(const Managed<Widget>& widget) = 0;
 
   virtual bool RemoveChild(const Managed<Widget>& widget) = 0;
 

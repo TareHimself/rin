@@ -16,7 +16,7 @@ struct FontChar {
     vec4 extras;
 };
 
-layout(set = 1, binding = 0) uniform sampler2D AtlasT[3];
+layout(set = 1, binding = 0) uniform sampler2D AtlasT;
 layout(set = 1, binding = 1) uniform  FontChars{   
 	FontChar chars[256];
     int numChars;

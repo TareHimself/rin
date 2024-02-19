@@ -3,23 +3,23 @@
 
 namespace vengine::io {
 
-std::filesystem::path getCompiledShadersPath() {
-  return std::filesystem::current_path() / "shaders";
+fs::path getCompiledShadersPath() {
+  return fs::current_path() / "shaders";
 }
 
-std::filesystem::path getRawShadersPath() {
+fs::path getRawShadersPath() {
   return RAW_SHADERS_PATH;
 }
 
-void setRawShadersPath(const std::filesystem::path &shadersPath) {
+void setRawShadersPath(const fs::path &shadersPath) {
   RAW_SHADERS_PATH = shadersPath;
 }
 
-std::filesystem::path getRawShaderPath(const std::string &shader) {
+fs::path getRawShaderPath(const std::string &shader) {
   return getRawShadersPath() / shader;
 }
 
-std::string readFileAsString(const std::filesystem::path &filePath) {
+std::string readFileAsString(const fs::path &filePath) {
   std::ifstream fileStream(filePath);
   
   std::string fileData(std::istreambuf_iterator<char>{fileStream},{});
@@ -28,7 +28,7 @@ std::string readFileAsString(const std::filesystem::path &filePath) {
   return fileData;
 }
 
-void writeStringToFile(const std::filesystem::path &filePath,
+void writeStringToFile(const fs::path &filePath,
                        const std::string &data) {
   std::ofstream out(filePath);
   out <<  data;

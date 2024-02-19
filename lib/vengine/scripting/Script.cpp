@@ -4,7 +4,7 @@
 
 namespace vengine::scripting {
 void Script::Init(ScriptSubsystem * outer,
-    const std::filesystem::path &scriptPath, const String &moduleId) {
+    const fs::path &scriptPath, const String &moduleId) {
   _moduleId = moduleId;
   _scriptPath = scriptPath;
   Init(outer);

@@ -1,4 +1,6 @@
-﻿#include <vengine/drawing/descriptors.hpp>
+﻿#include "vengine/Engine.hpp"
+
+#include <vengine/drawing/descriptors.hpp>
 #include <vengine/drawing/Texture2D.hpp>
 #include <vengine/utils.hpp>
 #include <ranges>
@@ -12,10 +14,7 @@ DescriptorSet::DescriptorSet(const vk::Device &device,
 }
 
 DescriptorSet::~DescriptorSet() {
-  _buffers.clear();
-  _textureArrays.clear();
-  _images.clear();
-  _textures.clear();
+  _resources.clear();
 }
 
 DescriptorSet::operator vk::DescriptorSet() const {
@@ -24,19 +23,19 @@ DescriptorSet::operator vk::DescriptorSet() const {
 
 
 void DescriptorSet::WriteBuffer(uint32_t binding,
-                                const Ref<AllocatedBuffer> &buffer, size_t size, size_t offset,
+                                const Ref<AllocatedBuffer> &buffer,size_t offset,
                                 vk::DescriptorType type) {
   std::lock_guard guard(_mutex);
   
   const auto shared = buffer.Reserve();
-  vk::DescriptorBufferInfo info{shared->buffer,offset,size};
+  vk::DescriptorBufferInfo info{shared->buffer,offset,shared->size};
   vk::WriteDescriptorSet write{};
   write.setDstSet(_set);
   write.setDescriptorType(type);
   write.setDstBinding(binding);
   write.setBufferInfo(info);
 
-  _buffers[binding] = shared;
+  _resources[binding] = shared;
   
   _device.updateDescriptorSets(write,{});
 }
@@ -54,7 +53,7 @@ void DescriptorSet::WriteImage(uint32_t binding,
   write.setDstBinding(binding);
   write.setImageInfo(info);
 
-  _images[binding] = shared;
+  _resources[binding] = shared;
   
   _device.updateDescriptorSets(write,{});
 }
@@ -77,7 +76,7 @@ void DescriptorSet::WriteTexture(uint32_t binding,
   write.setDstBinding(binding);
   write.setImageInfo(info);
   
-  _textures[binding] = shared;
+  _resources[binding] = shared;
   
   _device.updateDescriptorSets(write,{});
 }
@@ -107,9 +106,13 @@ void DescriptorSet::WriteTextureArray(uint32_t binding,
   write.setDstBinding(binding);
   write.setImageInfo(infos);
 
-  _textureArrays[binding] = sharedTextures;
+  _resources[binding] = sharedTextures;
   
   _device.updateDescriptorSets(write,{});
+}
+
+bool DescriptorSet::IsBound(const uint32_t binding) const {
+  return !_resources.contains(binding) || std::holds_alternative<std::monostate>(_resources.at(binding));
 }
 
 DescriptorLayoutBuilder & DescriptorLayoutBuilder::AddBinding(const uint32_t binding,
@@ -131,7 +134,8 @@ DescriptorLayoutBuilder & DescriptorLayoutBuilder::Clear() {
   return *this;
 }
 
-vk::DescriptorSetLayout DescriptorLayoutBuilder::Build(const vk::Device device) {
+vk::DescriptorSetLayout DescriptorLayoutBuilder::Build() {
+  const auto device = Engine::Get()->GetDrawingSubsystem().Reserve()->GetVirtualDevice();
   std::vector<vk::DescriptorSetLayoutBinding> bindingsArr;
   
   Array<vk::DescriptorBindingFlags> flags;

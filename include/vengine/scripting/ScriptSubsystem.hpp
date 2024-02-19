@@ -2,13 +2,8 @@
 #include "vengine/EngineSubsystem.hpp"
 #include "vengine/Object.hpp"
 #include <angelscript.h>
+#include <vengine/fs.hpp>
 #include "generated/scripting/ScriptSubsystem.reflect.hpp"
-
-namespace std {
-namespace filesystem {
-class path;
-}
-}
 
 namespace vengine {
 namespace scripting {
@@ -30,7 +25,7 @@ public:
   void Init(Engine * outer) override;
   void MessageCallback(const asSMessageInfo *msg, void* param) const;
   void DebugFromScript(const std::string &in) const;
-  Managed<Script> ScriptFromFile(const std::filesystem::path &path);
+  Managed<Script> ScriptFromFile(const fs::path &path);
 
   asIScriptEngine *GetScriptEngine() const;
   void BeforeDestroy() override;

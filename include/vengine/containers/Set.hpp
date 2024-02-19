@@ -17,31 +17,31 @@ public:
 };
 
 
-template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Add(T &item) {
+template <typename T,class cmp> void Set<T,cmp>::Add(T &item) {
   this->insert(item);
 }
 
-template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Add(const T &item) {
+template <typename T,class cmp> void Set<T,cmp>::Add(const T &item) {
   this->insert(item);
 }
 
-template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Remove(T &item) {
+template <typename T,class cmp> void Set<T,cmp>::Remove(T &item) {
   this->erase(item);
 }
 
-template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Remove(const T &item) {
+template <typename T,class cmp> void Set<T,cmp>::Remove(const T &item) {
   this->erase(item);
 }
 
-template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Add(T &&item) {
+template <typename T,class cmp> void Set<T,cmp>::Add(T &&item) {
   this->insert(item);
 }
 
-template <typename T,class cmp = std::less<T>> void Set<T,cmp>::Remove(T &&item) {
+template <typename T,class cmp> void Set<T,cmp>::Remove(T &&item) {
   this->erase(item);
 }
 
-template <typename T,class cmp = std::less<T>> Set<T> Set<T,cmp>::Clone() const {
+template <typename T,class cmp> Set<T> Set<T,cmp>::Clone() const {
   return {this->begin(),this->end()};
 }
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "SlotBase.hpp"
 #include "TMultiSlotWidget.hpp"
 #include "Widget.hpp"
 

@@ -3,6 +3,7 @@
 #include "vengine/Engine.hpp"
 #include "vengine/drawing/DrawingSubsystem.hpp"
 #include "vengine/drawing/MaterialBuilder.hpp"
+#include "vengine/drawing/WindowDrawer.hpp"
 #include "vengine/io/io.hpp"
 #include "vengine/scene/Scene.hpp"
 #include "vengine/scene/objects/SceneObject.hpp"
@@ -18,13 +19,8 @@ void SceneDrawer::Init(scene::Scene * outer) {
   Object<scene::Scene>::Init(outer);
   auto drawer = GetDrawer().Reserve();
   _sceneGlobalBuffer = drawer->GetAllocator().Reserve()->CreateUniformCpuGpuBuffer(sizeof(SceneGlobalBuffer),false);
-  const auto drawExtent = GetOuter()->GetEngine()->GetWindowExtent();
-  _viewport.x = 0;
-  _viewport.y = 0;
-  _viewport.width = drawExtent.width;
-  _viewport.height = drawExtent.height;
-  _viewport.minDepth = 0.0f;
-  _viewport.maxDepth = 1.0f;
+  const auto drawExtent = GetOuter()->GetEngine()->GetMainWindowSize();
+  
 
   auto shaderManager = drawer->GetShaderManager().Reserve();
   MaterialBuilder builder;
@@ -43,14 +39,15 @@ void SceneDrawer::Init(scene::Scene * outer) {
   //
   _defaultCheckeredMaterial->SetTexture("ColorT",drawer->GetDefaultErrorCheckerboardTexture());
   //
-  _defaultCheckeredMaterial->SetBuffer<SceneGlobalBuffer>("SceneGlobalBuffer",_sceneGlobalBuffer);
+  _defaultCheckeredMaterial->SetBuffer("SceneGlobalBuffer",_sceneGlobalBuffer);
 
-  AddCleanup(GetOuter()->GetEngine()->onWindowSizeChanged,GetOuter()->GetEngine()->onWindowSizeChanged.Bind([=](vk::Extent2D newWindowSize) {
-    const auto sizeDiffX = newWindowSize.width / _viewport.width;
-    const auto sizeDiffY = newWindowSize.height / _viewport.height;
-    _viewport.width *= sizeDiffX;
-    _viewport.height *= sizeDiffY;
-  }));
+  if (auto windowDrawer = drawer->GetWindowDrawer(Engine::Get()->GetMainWindow()).Reserve()) {
+
+    AddCleanup(windowDrawer->onDrawScenes, windowDrawer->onDrawScenes.Bind(
+                   [this](drawing::RawFrameData *rawFrame) {
+                     Draw(rawFrame);
+                   }));
+  }
 }
 
 void SceneDrawer::Draw(RawFrameData *frameData) {
@@ -58,11 +55,7 @@ void SceneDrawer::Draw(RawFrameData *frameData) {
   
   const auto scene = GetOuter();
 
-  cmd->setViewport(0, {_viewport});
-
-  vk::Rect2D scissor{{0, 0}, {static_cast<uint32_t>(_viewport.width),static_cast<uint32_t>(_viewport.height)}};
-
-  cmd->setScissor(0, {scissor});
+  
 
   const auto cameraRef = scene->GetViewTarget().Reserve()->GetComponentByClass<scene::CameraComponent>().Reserve();
 
@@ -71,9 +64,10 @@ void SceneDrawer::Draw(RawFrameData *frameData) {
     return;
   }
 
+  const auto viewport = frameData->GetWindowDrawer()->GetViewport();
   _sceneData.viewMatrix = cameraRef->GetViewMatrix(); //glm::translate(glm::vec3{ 0,0,-5 }); glm::translate(glm::vec3{ 0,0,15 }); glm::translate(glm::vec3{ 0,0,15 });//
   // camera projection
-  _sceneData.projectionMatrix = cameraRef->GetProjection(_viewport.width / _viewport.height);
+  _sceneData.projectionMatrix = cameraRef->GetProjection(viewport.width / viewport.height);
 
   //some default lighting parameters
   _sceneData.ambientColor = glm::vec4(.1f);
@@ -95,8 +89,8 @@ void SceneDrawer::Draw(RawFrameData *frameData) {
   const auto sceneUniformData = static_cast<SceneGlobalBuffer *>(mappedData);
   *sceneUniformData = _sceneData;
 
-  drawing::SimpleFrameData drawData(frameData);
-  drawData.SetDrawer(this);
+  SceneFrameData drawData(frameData,this);
+  
   for (const auto &drawable : GetOuter()->GetSceneObjects().clone()) {
     if(auto drawableRef = drawable.Reserve(); drawableRef->IsInitialized()) {
       drawableRef->Draw(&drawData, {});

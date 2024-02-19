@@ -21,7 +21,7 @@ void StaticMeshComponent::SetMesh(const Managed<drawing::Mesh> &newMesh) {
 }
 
 void StaticMeshComponent::Draw(
-    drawing::SimpleFrameData *frameData, const math::Transform &parentTransform) {
+    drawing::SceneFrameData *frameData, const math::Transform &parentTransform) {
   if(!_mesh || !_mesh->IsUploaded()) {
     return;
   }
@@ -43,14 +43,14 @@ void StaticMeshComponent::Draw(
   
   for(auto i = 0; i < surfaces.size(); i++) {
     const auto [startIndex, count] = surfaces[i];
-    const auto material = materials[i] ? materials[i].Reserve() : frameData->GetDrawer()->GetDefaultMaterial().Reserve();
+    const auto material = materials[i] ? materials[i].Reserve() : frameData->GetSceneDrawer()->GetDefaultMaterial().Reserve();
     if(!material) {
       continue;
     }
     material->BindPipeline(rawFrameData);
     material->BindSets(rawFrameData);
     //material->BindCustomSet(rawFrameData,frameData->GetDescriptor(),0);
-    material->PushConstant(frameData->GetCmd(),"pVertex",pushConstants);
+    material->Push(frameData->GetCmd(),"pVertex",pushConstants);
     
     cmd->bindIndexBuffer(meshGpuData->indexBuffer->buffer,0,vk::IndexType::eUint32);
     cmd->drawIndexed(count,1,startIndex,0,0);

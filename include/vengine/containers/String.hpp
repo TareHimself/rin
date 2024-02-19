@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <cstdint>
 #include "Buffer.hpp"
 #include <string>
 

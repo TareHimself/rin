@@ -29,6 +29,10 @@ DrawingSubsystem * RawFrameData::GetDrawer() const {
   return _drawer;
 }
 
+WindowDrawer * RawFrameData::GetWindowDrawer() const {
+  return _windowDrawer;
+}
+
 void RawFrameData::SetSemaphores(const vk::Semaphore &swapchain, const vk::Semaphore &render) {
   _swapchainSemaphore = swapchain;
   _renderSemaphore = render;
@@ -48,6 +52,10 @@ void RawFrameData::SetCommandBuffer(const vk::CommandBuffer buffer) {
 
 void RawFrameData::SetDrawer(DrawingSubsystem *drawer) {
   _drawer = drawer;
+}
+
+void RawFrameData::SetWindowDrawer(WindowDrawer *windowDrawer) {
+  _windowDrawer = windowDrawer;
 }
 
 void * VmaAllocated::GetMappedData() const {
@@ -98,14 +106,6 @@ CleanupQueue * SimpleFrameData::GetCleaner() const {
 
 RawFrameData * SimpleFrameData::GetRaw() const {
   return _frame;
-}
-
-SceneDrawer * SimpleFrameData::GetDrawer() const {
-  return _drawer;
-}
-
-void SimpleFrameData::SetDrawer(SceneDrawer *drawer) {
-  _drawer = drawer;
 }
 
 void SimpleFrameData::DrawQuad() const {

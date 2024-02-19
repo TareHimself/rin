@@ -97,14 +97,14 @@ void MaterialInstance::SetTextureArray(const std::string &param,
 }
 
 void MaterialInstance::SetBuffer(const std::string &param,
-                                 const Ref<AllocatedBuffer> &buffer, size_t size) {
+                                 const Ref<AllocatedBuffer> &buffer,uint32_t offset) {
 
   utils::vassert(_shaderResources.uniformBuffers.contains(param),"UniformBuffer [ {} ] Does Not Exist In Material",param);
 
   const auto bufferInfo = _shaderResources.uniformBuffers[param];
   utils::vassert(bufferInfo.set != EMaterialSetType::Dynamic,"This function does not support dynamic descriptor sets");
 
-  _sets[bufferInfo.set].Reserve()->WriteBuffer(bufferInfo.binding, buffer, size, 0,vk::DescriptorType::eUniformBuffer);
+  _sets[bufferInfo.set].Reserve()->WriteBuffer(bufferInfo.binding, buffer, offset, vk::DescriptorType::eUniformBuffer);
 }
 
 void MaterialInstance::BindPipeline(RawFrameData *frame) const {
@@ -140,7 +140,7 @@ void MaterialInstance::AllocateDynamicSet(RawFrameData *frame) {
 void MaterialInstance::BeforeDestroy() {
   Object<DrawingSubsystem>::BeforeDestroy();
   GetOuter()->WaitDeviceIdle();
-  const auto device = GetOuter()->GetDevice();
+  const auto device = GetOuter()->GetVirtualDevice();
   device.destroyPipeline(_pipeline);
   device.destroyPipelineLayout(_pipelineLayout);
   for(const auto val : _layouts | std::views::values) {

@@ -151,7 +151,7 @@ void SceneObject::BeforeDestroy() {
 }
 
 void SceneObject::Draw(
-    drawing::SimpleFrameData *frameData, const math::Transform &parentTransform) {
+    drawing::SceneFrameData *frameData, const math::Transform &parentTransform) {
   for(const auto &comp : _renderedComponents) {
     if(comp) {
       comp.Reserve()->Draw(frameData,comp == _rootComponent ? math::Transform{} : _rootComponent->GetRelativeTransform());

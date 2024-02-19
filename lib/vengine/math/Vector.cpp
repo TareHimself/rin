@@ -32,10 +32,6 @@ Vector::operator std::string() const {
   return std::to_string(x) + " " + std::to_string(y) + " " + std::to_string(z);
 }
 
-Vector::operator vec<3, float, glm::packed_highp>() const {
-  return {this->x,this->y,this->z};
-}
-
 // Vector Vector::Zero = {0,0,0};
 // Vector Vector::Up = {0,1,0};
 // Vector Vector::Forward = {0,0,1};

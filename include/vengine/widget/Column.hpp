@@ -1,12 +1,17 @@
 #pragma once
 #include "Scrollable.hpp"
+#include "SlotBase.hpp"
 
 namespace vengine::widget {
 class Column : public Scrollable<SlotBase> {
+  
 public:
+
+  float scrollScale = 3.0f;
+  
   std::optional<uint32_t> GetMaxSlots() const override;
 
-  void Draw(drawing::SimpleFrameData *frameData, DrawInfo info) override;
+  void Draw(WidgetFrameData *frameData, DrawInfo info) override;
 
   float GetMaxScroll() const override;
   bool IsScrollable() const override;

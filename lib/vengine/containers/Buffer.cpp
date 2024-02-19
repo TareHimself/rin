@@ -1,7 +1,7 @@
 ﻿#include <vengine/containers/Buffer.hpp>
 #include <vengine/containers/Serializable.hpp>
 #include "vengine/utils.hpp"
-#include <filesystem>
+#include <vengine/fs.hpp>
 
 namespace vengine {
 Buffer & Buffer::Skip(const size_t byteSize) {
@@ -153,10 +153,10 @@ size_t FileBuffer::size() const {
   return _dataSize;
 }
 
-InFileBuffer::InFileBuffer(const std::filesystem::path &filePath) {
+InFileBuffer::InFileBuffer(const fs::path &filePath) {
   _stream.open(filePath.c_str(), std::ios::binary | std::ios::in);
   if(InFileBuffer::isOpen()) {
-    _dataSize = std::filesystem::file_size(filePath);
+    _dataSize = fs::file_size(filePath);
   }
 }
 
@@ -176,11 +176,12 @@ Buffer & InFileBuffer::Read(char *dst, size_t byteSize) {
 }
 
 Buffer & InFileBuffer::Write(const char *src, size_t byteSize) {
-  throw std::exception("Cannot Write To InFileBuffer");
+  
+  throw std::runtime_error("Cannot Write To InFileBuffer");
   return *this;
 }
 
-OutFileBuffer::OutFileBuffer(const std::filesystem::path &filePath) {
+OutFileBuffer::OutFileBuffer(const fs::path &filePath) {
   _stream.open(filePath.c_str(), std::ios::binary | std::ios::out);
   _dataSize = 0;
 }
@@ -194,7 +195,7 @@ void OutFileBuffer::close() {
 }
 
 Buffer & OutFileBuffer::Read(char *dst, size_t byteSize) {
-  throw std::exception("Cannot Read From OutFileBuffer");
+  throw std::runtime_error("Cannot Read From OutFileBuffer");
   return *this;
 }
 

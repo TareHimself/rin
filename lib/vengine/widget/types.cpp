@@ -2,28 +2,12 @@
 
 namespace vengine::widget {
 
-WidgetFrameData::WidgetFrameData(drawing::RawFrameData *frame) {
-  _frame  = frame;
+WidgetFrameData::WidgetFrameData(drawing::RawFrameData *frame, WidgetRoot *root) : SimpleFrameData(frame) {
+  _root = root;
 }
 
-vk::CommandBuffer * WidgetFrameData::GetCmd() const {
-  return _frame->GetCmd();
-}
-
-vk::DescriptorSet WidgetFrameData::GetWidgetDescriptor() const{
-  return _widgetDescriptor;
-}
-
-void WidgetFrameData::SetWidgetDescriptor(const vk::DescriptorSet &descriptor) {
-  _widgetDescriptor = descriptor;
-}
-
-CleanupQueue * WidgetFrameData::GetCleaner() const {
-  return &_frame->cleaner;
-}
-
-drawing::RawFrameData * WidgetFrameData::GetDrawerFrameData() const {
-  return _frame;
+WidgetRoot * WidgetFrameData::GetRoot() const {
+  return _root;
 }
 
 Point2D::Point2D() {
@@ -113,6 +97,12 @@ Size2D & Size2D::operator=(const Point2D &other) {
   return *this;
 }
 
+Size2D & Size2D::operator=(const glm::ivec2 &other) {
+  width = other.x;
+  height = other.y;
+  return *this;
+}
+
 Rect::Rect() = default;
 
 Rect::Rect(const Point2D &p1, const Point2D &p2) {
@@ -165,7 +155,7 @@ Rect& Rect::Clamp(const Rect &area){
   const auto b1 = area.GetPoint();
   const auto b2 = b1 + area.GetSize();
   
-  _point = {std::max(a1.x,b1.x),std::max(b1.y,b1.y)};
+  _point = {std::max(a1.x,b1.x),std::max(a1.y,b1.y)};
   auto p2 = Point2D{std::min(a2.x,b2.x),std::min(a2.y,b2.y)};
   _size = p2 - _point;
   

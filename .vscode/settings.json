@@ -94,6 +94,12 @@
         "complex": "cpp",
         "future": "cpp",
         "memory_resource": "cpp",
-        "typeindex": "cpp"
-    }
+        "typeindex": "cpp",
+        "*.tcc": "cpp",
+        "cwctype": "cpp",
+        "string_view": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp"
+    },
+    "cmake.sourceDirectory": "D:/Github/vengine/standalone"
 }

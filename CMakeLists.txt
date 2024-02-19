@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 include(${CMAKE_CURRENT_SOURCE_DIR}/utils.cmake)
+
 # include(ExternalProject)
 
 project(vengine VERSION 1.0.0 DESCRIPTION "Basic vulkan rendering engine")
-set(VULKAN_HPP_VERSION 1.3.271)
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # Build a shared library named after the project from the files in `src/`
@@ -24,6 +24,8 @@ target_include_directories(
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include> 
 )
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC -DNOMINMAX)
 
 #   target_include_directories(
 #     ${PROJECT_NAME}
@@ -49,11 +51,9 @@ GetBass(main)
 
 GetGlm(1.0.0)
 
-GetPugiXml(v1.14)
-
 GetReactPhys(master)
 
-GetVkBootstrap(v1.3.273)
+GetVkBootstrap(v1.3.277)
 
 GetVulkanMemoryAllocator(v3.0.1)#v3.0.1-3)
 
@@ -69,19 +69,18 @@ GetXXHash(v0.8.2)
 
 GetMiniz(3.0.2)
 
+GetStb(master)
+
 GetStdUUID(v1.2.3)
 
 GetSimdJson(v3.6.3)
 
 GetFastGLTF(main)
 
-GetOpenCV(4.9.0)
-
 GetAngelScript(2.36.1)
 
 GetArgparse(v3.0)
 
-GetFreeType(VER-2-13-2)
 
 add_custom_target(ReflectEngineHeaders
     COMMAND python ${CMAKE_CURRENT_LIST_DIR}/python/reflect.py --source ${CMAKE_CURRENT_SOURCE_DIR}/include/vengine --output ${CMAKE_CURRENT_SOURCE_DIR}/include/generated

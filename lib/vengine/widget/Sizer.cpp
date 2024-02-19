@@ -24,7 +24,7 @@ std::optional<uint32_t> Sizer::GetMaxSlots() const {
 }
 
 void Sizer::Draw(
-    drawing::SimpleFrameData *frameData, const DrawInfo info) {
+    WidgetFrameData *frameData, const DrawInfo info) {
 
   if(!GetDrawRect().HasIntersection(info.clip)) {
     return;

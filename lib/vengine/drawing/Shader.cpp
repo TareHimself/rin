@@ -11,7 +11,7 @@ vk::ShaderModule Shader::Get() const {
   return _vkShader;
 }
 
-std::filesystem::path Shader::GetSourcePath() const {
+fs::path Shader::GetSourcePath() const {
   return _sourcePath;
 }
 
@@ -23,7 +23,7 @@ void Shader::SetVulkanShader(const vk::ShaderModule shader) {
   _vkShader = shader;
 }
 
-void Shader::SetSourcePath(const std::filesystem::path &path) {
+void Shader::SetSourcePath(const fs::path &path) {
   _sourcePath = path;
 }
 
@@ -61,12 +61,12 @@ ShaderResources Shader::GetResources() const {
 void Shader::BeforeDestroy() {
   Object<ShaderManager>::BeforeDestroy();
   GetOuter()->UnRegisterShader(this);
-  GetOuter()->GetOuter()->GetDevice().destroyShaderModule(this->Get());
+  GetOuter()->GetOuter()->GetVirtualDevice().destroyShaderModule(this->Get());
 }
 
 
 Managed<Shader> Shader::FromSource(
-    const std::filesystem::path &path) {
+    const fs::path &path) {
   auto manager = Engine::Get()->GetDrawingSubsystem().Reserve()->GetShaderManager().Reserve();
   
   if(auto existingShader = manager->GetLoadedShader(path)) {
@@ -109,7 +109,7 @@ Managed<Shader> Shader::FromSource(
     newResources.uniformBuffers.insert({resource.name,{set,binding,numRequired}});
   }
   
-  const auto device = manager->GetOuter()->GetDevice();
+  const auto device = manager->GetOuter()->GetVirtualDevice();
   const auto shaderCreateInfo = vk::ShaderModuleCreateInfo(
       vk::ShaderModuleCreateFlags(),
       spvData.size() * sizeof(uint32_t), spvData.data());

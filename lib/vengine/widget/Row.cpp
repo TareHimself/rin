@@ -5,7 +5,7 @@ std::optional<uint32_t> vengine::widget::Row::GetMaxSlots() const {
 }
 
 void vengine::widget::Row::Draw(
-    drawing::SimpleFrameData *frameData, const DrawInfo info) {
+    vengine::widget::WidgetFrameData *frameData, const DrawInfo info) {
   
   if(!GetDrawRect().HasIntersection(info.clip)) {
     return;
@@ -52,5 +52,28 @@ bool vengine::widget::Row::IsScrollable() const {
 bool vengine::widget::Row::OnScroll(
     const std::shared_ptr<window::ScrollEvent> &event) {
   
-  return ScrollBy(event->dy * 2.0);
+  return ScrollBy(event->dy * scrollScale);
+}
+
+bool vengine::widget::Row::OnMouseDown(
+    const std::shared_ptr<window::MouseButtonEvent> &event) {
+  _lastMousePosition = glm::dvec2{event->x,event->y};
+  return true;
+}
+
+void vengine::widget::Row::OnMouseUp(
+    const std::shared_ptr<window::MouseButtonEvent> &event) {
+  _lastMousePosition.reset();
+  Scrollable<SlotBase>::OnMouseUp(event);
+}
+
+bool vengine::widget::Row::OnMouseMoved(const std::shared_ptr<window::MouseMovedEvent> &event) {
+  if(_lastMousePosition.has_value()) {
+    auto newPosition = glm::dvec2{event->x,event->y};
+    const auto delta = _lastMousePosition.value() - newPosition;
+    ScrollBy(delta.x);
+    _lastMousePosition = newPosition;
+    return true;
+  }
+  return Scrollable<SlotBase>::OnMouseMoved(event);
 }

@@ -1,6 +1,5 @@
 #pragma once
 #include "ISlot.hpp"
-#include "SlotBase.hpp"
 #include "Widget.hpp"
 
 namespace vengine::widget {
@@ -11,14 +10,14 @@ class TMultiSlotWidget : public Widget, public ISlot<T> {
 protected:
   Array<Managed<T>> _slots;
 public:
-  Ref<T> AddChild(const Managed<Widget> &widget) override;
+  Ref<T> Add(const Managed<Widget> &widget) override;
   bool RemoveChild(const Managed<Widget> &widget) override;
   Ref<T> GetChildSlot(size_t index) override;
   Array<Ref<T>> GetSlots() const override;
   std::optional<uint32_t> GetMaxSlots() const override = 0;
 };
 
-template <typename T> Ref<T> TMultiSlotWidget<T>::AddChild(const Managed<Widget> &widget) {
+template <typename T> Ref<T> TMultiSlotWidget<T>::Add(const Managed<Widget> &widget) {
   if(_slots.size() + 1 > GetMaxSlots().value_or(std::numeric_limits<size_t>::max())) {
     return {};
   }
@@ -54,7 +53,7 @@ template <typename T> Ref<T> TMultiSlotWidget<T>::GetChildSlot(size_t index) {
 }
 
 template <typename T> Array<Ref<T>> TMultiSlotWidget<T>::GetSlots() const {
-  return _slots.map<Ref<T>>([](size_t _,const Managed<T>& item) {
+  return _slots.template map<Ref<T>>([](size_t _,const Managed<T>& item) {
     return item;
   });
 }

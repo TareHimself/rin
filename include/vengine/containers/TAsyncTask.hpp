@@ -85,13 +85,18 @@ template <class T> TAsyncTask<T>::TAsyncTask(const std::function<T()>& task) {
 }
 
 template <class T> void TAsyncTask<T>::Run() {
-  _taskThread = std::thread([this] {
-    _state = ETaskState::TaskState_Running;
-    auto result = _taskFn();
-    _state = ETaskState::TaskState_Finished;
-    onFinish(result);
-    _internal_onFinish();
-  });
+  // _taskThread = std::thread([this] {
+  //   _state = ETaskState::TaskState_Running;
+  //   auto result = _taskFn();
+  //   _state = ETaskState::TaskState_Finished;
+  //   onFinish(result);
+  //   _internal_onFinish();
+  // });
+  _state = ETaskState::TaskState_Running;
+  auto result = _taskFn();
+  _state = ETaskState::TaskState_Finished;
+  onFinish(result);
+  _internal_onFinish();
 }
 
 }

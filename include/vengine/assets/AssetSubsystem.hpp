@@ -28,39 +28,38 @@ class Mesh;
 namespace vengine::assets {
 RCLASS()
 class AssetSubsystem : public EngineSubsystem {
+  
 public:
-
-  // virtual bool loadAsset(const std::filesystem::path &path, VEngineAssetHeader &asset, bool loadData = true);
-  // virtual bool saveAsset(const std::filesystem::path &path,const VEngineAssetHeader &asset);
-  virtual bool SaveAsset(const std::filesystem::path &path, const Managed<Asset> &asset);
+  // virtual bool loadAsset(const fs::path &path, VEngineAssetHeader &asset, bool loadData = true);
+  // virtual bool saveAsset(const fs::path &path,const VEngineAssetHeader &asset);
+  virtual bool SaveAsset(const fs::path &path, const Managed<Asset> &asset);
   
 
-  virtual Managed<Asset> LoadAsset(const std::filesystem::path &path,
+  virtual Managed<Asset> LoadAsset(const fs::path &path,
                                            const String &type,
                                            const std::function<Managed<Asset>()> &
                                            factory);
-
   
   virtual Managed<drawing::Mesh> ImportMesh(
-      const std::filesystem::path &path);
+      const fs::path &path);
   virtual std::vector<Managed<drawing::Mesh>> ImportMeshes(
-      const std::vector<std::filesystem::path> &paths);
+      const std::vector<fs::path> &paths);
   virtual Managed<drawing::Mesh> LoadMeshAsset(
-      const std::filesystem::path &path);
+      const fs::path &path);
 
   virtual Managed<drawing::Texture2D> ImportTexture(
-      const std::filesystem::path &path);
+      const fs::path &path);
   virtual std::vector<Managed<drawing::Texture2D>> ImportTextures(
-      const std::vector<std::filesystem::path> &paths);
+      const std::vector<fs::path> &paths);
   virtual Managed<drawing::Texture2D> LoadTextureAsset(
-      const std::filesystem::path &path);
+      const fs::path &path);
 
   virtual Managed<drawing::Font> ImportFont(
-      const std::filesystem::path &path);
+      const fs::path &path);
   virtual Managed<drawing::Font> LoadFontAsset(
-      const std::filesystem::path &path);
+      const fs::path &path);
 
-  virtual Managed<audio::AudioBuffer> ImportAudio(const std::filesystem::path &path);
+  virtual Managed<audio::AudioBuffer> ImportAudio(const fs::path &path);
 
   String GetName() const override;
 };

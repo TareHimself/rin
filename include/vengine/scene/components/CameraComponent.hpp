@@ -17,7 +17,7 @@ public:
   glm::mat4 GetProjection(float aspectRatio) const;
 
   void Draw(
-      drawing::SimpleFrameData *frameData,
+      drawing::SceneFrameData *frameData,
       const math::Transform &parentTransform) override;
 
   void SetRelativeTransform(const math::Transform &val) override;

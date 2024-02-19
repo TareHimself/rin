@@ -2,8 +2,7 @@
 #include "freetype2/ft2build.h"
 #include FT_FREETYPE_H
 #include "vengine/Object.hpp"
-
-#include <filesystem>
+#include <vengine/fs.hpp>
 
 namespace vengine {
 namespace drawing {
@@ -28,7 +27,7 @@ public:
   void Init(DrawingSubsystem *outer) override;
 
 
-  Ref<Font> LoadFont(const std::filesystem::path& path);
+  Ref<Font> LoadFont(const fs::path& path);
 };
 
 }

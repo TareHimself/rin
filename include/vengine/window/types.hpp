@@ -2,6 +2,12 @@
 #include <string>
 #include <GLFW/glfw3.h>
 
+namespace vengine {
+namespace window {
+class Window;
+}
+}
+
 namespace vengine::window {
 
 enum EKey {
@@ -97,39 +103,42 @@ enum ECursorMode {
   CursorMode_Captured = GLFW_CURSOR_DISABLED
 };
 
+struct Event {
+  Window * window = nullptr;
+};
 
-struct KeyEvent {
+struct KeyEvent : Event {
   EKey key;
   operator std::string() const;
 
-  KeyEvent(EKey inKey);
+  KeyEvent(Window * window,EKey inKey);
 };
 
-struct MouseMovedEvent {
+struct MouseMovedEvent : Event{
   double x;
   double y;
   operator std::string() const;
 
-  MouseMovedEvent(double inX, double inY);
+  MouseMovedEvent(Window * window,double inX, double inY);
 };
 
-struct MouseButtonEvent {
+struct MouseButtonEvent : Event{
   EMouseButton button;
   double x;
   double y;
   operator std::string() const;
 
-  MouseButtonEvent(EMouseButton inButton, double inX, double inY);
+  MouseButtonEvent(Window * window,EMouseButton inButton, double inX, double inY);
 };
 
-struct ScrollEvent {
+struct ScrollEvent : Event{
   double x;
   double y;
   double dx;
   double dy;
   operator std::string() const;
 
-  ScrollEvent(double inX, double inY,double inDx, double inDy);
+  ScrollEvent(Window * window,double inX, double inY,double inDx, double inDy);
 };
 
 }

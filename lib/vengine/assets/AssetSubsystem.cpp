@@ -8,14 +8,15 @@
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/parser.hpp>
 #include <fastgltf/tools.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-#include <pugixml.hpp>
+#include <simdjson.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 
 namespace vengine::assets {
 
-bool AssetSubsystem::SaveAsset(const std::filesystem::path &path,
-                              const Managed<Asset> &asset) {
+bool AssetSubsystem::SaveAsset(const fs::path &path,
+                               const Managed<Asset> &asset) {
   OutFileBuffer outFile(path);
   if (!outFile.isOpen())
     return false;
@@ -37,7 +38,7 @@ bool AssetSubsystem::SaveAsset(const std::filesystem::path &path,
 }
 
 Managed<Asset> AssetSubsystem::LoadAsset(
-    const std::filesystem::path &path,
+    const fs::path &path,
     const String &type, const std::function<Managed<Asset>()> &factory) {
   InFileBuffer inFile(path);
   if (!inFile.isOpen())
@@ -60,18 +61,18 @@ Managed<Asset> AssetSubsystem::LoadAsset(
   inFile.close();
 
   auto asset = factory();
-  if(asset) {
+  if (asset) {
     return {};
   }
 
   asset->ReadFrom(assetData);
 
-  return  asset;
+  return asset;
 }
 
 Managed<drawing::Mesh> AssetSubsystem::ImportMesh(
-    const std::filesystem::path &path) {
-  if (!std::filesystem::exists(path)) {
+    const fs::path &path) {
+  if (!fs::exists(path)) {
     return {};
   }
 
@@ -169,16 +170,16 @@ Managed<drawing::Mesh> AssetSubsystem::ImportMesh(
   result->SetHeader(header);
   result->Init(GetOuter()->GetDrawingSubsystem().Reserve().Get());
 
-  GetLogger()->info("Imported Mesh {}",path.string());
+  GetLogger()->info("Imported Mesh {}", path.string());
   return result;
 }
 
 std::vector<Managed<drawing::Mesh>> AssetSubsystem::ImportMeshes(
-    const std::vector<std::filesystem::path> &paths) {
+    const std::vector<fs::path> &paths) {
   std::vector<Managed<drawing::Mesh>> results;
-  
-  for(auto &path : paths) {
-    if(auto result = ImportMesh(path)) {
+
+  for (auto &path : paths) {
+    if (auto result = ImportMesh(path)) {
       results.emplace_back(result);
     }
   }
@@ -187,19 +188,19 @@ std::vector<Managed<drawing::Mesh>> AssetSubsystem::ImportMeshes(
 }
 
 Managed<drawing::Mesh> AssetSubsystem::LoadMeshAsset(
-    const std::filesystem::path &path) {
-  
-  const auto asset = LoadAsset(path,types::MESH,[] {
+    const fs::path &path) {
+
+  const auto asset = LoadAsset(path, types::MESH, [] {
     return newManagedObject<drawing::Mesh>();
   });
 
-  if(!asset) {
+  if (!asset) {
     return {};
   }
 
   auto mesh = asset.Cast<drawing::Mesh>();
 
-  if(!mesh) {
+  if (!mesh) {
     return {};
   }
 
@@ -209,33 +210,47 @@ Managed<drawing::Mesh> AssetSubsystem::LoadMeshAsset(
 }
 
 Managed<drawing::Texture2D> AssetSubsystem::ImportTexture(
-    const std::filesystem::path &path) {
+    const fs::path &path) {
 
-  auto img = cv::imread(path.string(),cv::IMREAD_UNCHANGED);
-  if(img.channels() == 3) {
-    cv::cvtColor(img.clone(),img,cv::COLOR_BGR2RGBA);
-  } else {
-    cv::cvtColor(img.clone(),img,cv::COLOR_BGRA2RGBA);
+  std::basic_ifstream<unsigned char> stream(path, std::ios::in | std::ios::binary);
+  auto eos = std::istreambuf_iterator<unsigned char>();
+  auto buffer = std::vector(std::istreambuf_iterator(stream), eos);
+
+  Array<unsigned char> data;
+
+  int texWidth, texHeight, texChannels;
+
+  stbi_uc* pixels = stbi_load(path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+
+  if (!pixels) {
+    return {};
   }
 
-  const vk::Extent3D imageSize{static_cast<uint32_t>(img.cols) ,static_cast<uint32_t>(img.rows),1};
-  Array<unsigned char> vecData;
-  vecData.insert(vecData.end(),img.data,img.data + (imageSize.width * imageSize.height * img.channels()));
-  auto tex = drawing::Texture2D::FromData(vecData,imageSize,vk::Format::eR8G8B8A8Unorm,vk::Filter::eLinear);
+  auto dataSize = texWidth * texHeight * 4;
+  
+  data.resize(dataSize);
+  
+  memcpy(data.data(),pixels,dataSize);
+
+  stbi_image_free(pixels);
+  
+  auto tex = drawing::Texture2D::FromData(data, {static_cast<uint32_t>(texWidth),static_cast<uint32_t>(texHeight),1},
+                                          vk::Format::eR8G8B8A8Unorm,
+                                          vk::Filter::eLinear);
   VEngineAssetHeader header{};
   header.type = types::TEXTURE;
   header.name = path.filename().string();
   tex->SetHeader(header);
-  GetLogger()->info("Imported Texture {}",path.string());
+  GetLogger()->info("Imported Texture {}", path.string());
   return tex;
 }
 
 std::vector<Managed<drawing::Texture2D>> AssetSubsystem::ImportTextures(
-    const std::vector<std::filesystem::path> &paths) {
+    const std::vector<fs::path> &paths) {
   std::vector<Managed<drawing::Texture2D>> results;
-  
-  for(auto &path : paths) {
-    if(auto result = ImportTexture(path)) {
+
+  for (auto &path : paths) {
+    if (auto result = ImportTexture(path)) {
       results.emplace_back(result);
     }
   }
@@ -244,18 +259,18 @@ std::vector<Managed<drawing::Texture2D>> AssetSubsystem::ImportTextures(
 }
 
 Managed<drawing::Texture2D> AssetSubsystem::LoadTextureAsset(
-    const std::filesystem::path &path) {
-  const auto asset = LoadAsset(path,types::TEXTURE,[] {
+    const fs::path &path) {
+  const auto asset = LoadAsset(path, types::TEXTURE, [] {
     return newManagedObject<drawing::Texture2D>();
   });
 
-  if(!asset) {
+  if (!asset) {
     return {};
   }
 
   auto texture = asset.Cast<drawing::Texture2D>();
 
-  if(!texture) {
+  if (!texture) {
     return {};
   }
 
@@ -265,98 +280,155 @@ Managed<drawing::Texture2D> AssetSubsystem::LoadTextureAsset(
 }
 
 Managed<drawing::Font> AssetSubsystem::ImportFont(
-    const std::filesystem::path &path) {
-  if (!std::filesystem::exists(path)) {
+    const fs::path &path) {
+
+  const auto layoutPath = path / "layout.json";
+  const auto atlasPath = path / "atlas.png";
+  
+  if (!fs::exists(layoutPath) || !fs::exists(atlasPath)) {
     return {};
   }
 
-  const auto folderName = path.filename().string();
+  simdjson::ondemand::parser parser;
 
-  const auto fntFile = path / (folderName + ".fnt");
+  const simdjson::padded_string json = simdjson::padded_string::load(layoutPath.string());
 
-  pugi::xml_document xmlFile;
-  const pugi::xml_parse_result result = xmlFile.load_file(fntFile.string().c_str());
+  simdjson::ondemand::document document = parser.iterate(json);
+
+  auto atlas = document.find_field("atlas");
+
+  drawing::FontLayout layout{};
+  layout.size = atlas["size"].get_double();
+
+  auto metrics = document.find_field("metrics");
   
-  if(!result) {
-    GetLogger()->error("Failed to parse font xml {}",fntFile.string().c_str());
+  layout.lineHeight = metrics["lineHeight"].get_double();
+  layout.ascender = metrics["ascender"].get_double();
+  layout.descender = metrics["descender"].get_double();
+  layout.underline = metrics["underlineY"].get_double();
+  layout.underlineThickness = metrics["underlineThickness"].get_double();
+  
+  auto atlasImage = ImportTexture(atlasPath);
+
+  if(!atlasImage) {
     return {};
   }
-
-  Array<Managed<drawing::Texture2D>> textures;
-  auto clearTextures = [&textures] {
-    textures.clear();
-  };
   
-  for(auto page : xmlFile.child("font").child("pages").children()) {
-    auto pageFileName = page.attribute("file").as_string();
-    auto pageFilePath = path / pageFileName;
-    auto texture = ImportTexture(pageFilePath);
-
+  auto font = newManagedObject<drawing::Font>();
+  font->SetAtlas(atlasImage);
+  font->SetLayout(layout);
+  auto atlasHeightDouble = static_cast<double>(atlasImage->GetSize().height);
+  for(auto arrItem : document.find_field("glyphs").get_array()) {
+    auto jsonGlyph = arrItem.value();
     
-    if(!texture) {
-      clearTextures();
-      GetLogger()->error("Failed to import font texture",pageFilePath.string().c_str());
-      return {};
+    drawing::Glyph glyph{};
+    auto str = jsonGlyph.raw_json().value();
+
+    glyph.id = static_cast<int>(jsonGlyph["unicode"].get_int64().value());
+    glyph.advance = jsonGlyph["advance"].get_double() * layout.size;
+    
+    if(auto atlasBounds = jsonGlyph["atlasBounds"]; !atlasBounds.error()) {
+      float x1 = atlasBounds["left"].get_double();
+      float x2 = atlasBounds["right"].get_double();
+      float y1 = atlasHeightDouble - atlasBounds["top"].get_double();
+      float y2 = atlasHeightDouble - atlasBounds["bottom"].get_double();
+      glyph.rect = {x1,y1,x2 - x1,y2 - y1};
     }
 
-    texture->SetFilter(vk::Filter::eNearest);
-    texture->SetMipMapped(true);
-    
-    texture->Init(GetEngine()->GetDrawingSubsystem().Reserve().Get());
-    textures.push(texture);
+    font->AddGlyph(glyph);
   }
 
-  
-  std::unordered_map<uint32_t,drawing::FontCharacter> chars;
-  std::unordered_map<uint32_t,uint32_t> charsIndices;
-  uint32_t curIdx = 0;
-  for(auto xmlChar : xmlFile.child("font").child("chars").children()) {
-    const auto atlasId = xmlChar.attribute("page").as_int();
-    const auto atlas = textures[atlasId];
-    const auto atlasSize = atlas->GetSize();
-    auto charId = xmlChar.attribute("id").as_uint();
-    drawing::FontCharacter fChar{};
-    fChar.atlasWidth = atlasSize.width;
-    fChar.atlasHeight = atlasSize.height;
-    fChar.x = xmlChar.attribute("x").as_int();
-    fChar.y = xmlChar.attribute("y").as_int();
-    fChar.width = xmlChar.attribute("width").as_int();
-    fChar.height = xmlChar.attribute("height").as_int();
-    fChar.xOffset = xmlChar.attribute("xoffset").as_int();
-    fChar.yOffset = xmlChar.attribute("yoffset").as_int();
-    fChar.xAdvance = xmlChar.attribute("xadvance").as_int();
-    fChar.atlasId = atlasId;
-    
-    chars.insert({charId,fChar});
-    charsIndices.insert({charId,curIdx});
-    
-    curIdx++;
-  }
-
-  auto font = newManagedObject<drawing::Font>();
-  VEngineAssetHeader fontHeader{};
-  fontHeader.type = types::FONT;
-  fontHeader.name = String(xmlFile.child("font").child("info").attribute("face").as_string());
-  font->SetHeader(fontHeader);
-  font->SetChars(chars,charsIndices);
-  font->SetTextures(textures);
   font->Init(GetEngine()->GetDrawingSubsystem().Reserve().Get());
+  
   return font;
+
+  // const auto folderName = path.filename().string();
+
+  // const auto fntFile = path / (folderName + ".fnt");
+
+  // pugi::xml_document xmlFile;
+  // const pugi::xml_parse_result result = xmlFile.load_file(fntFile.string().c_str());
+
+  // if(!result) {
+  //   GetLogger()->error("Failed to parse font xml {}",fntFile.string().c_str());
+  //   return {};
+  // }
+
+  // Array<Managed<drawing::Texture2D>> textures;
+  // auto clearTextures = [&textures] {
+  //   textures.clear();
+  // };
+
+  // for(auto page : xmlFile.child("font").child("pages").children()) {
+  //   auto pageFileName = page.attribute("file").as_string();
+  //   auto pageFilePath = path / pageFileName;
+  //   auto texture = ImportTexture(pageFilePath);
+
+  //   if(!texture) {
+  //     clearTextures();
+  //     GetLogger()->error("Failed to import font texture",pageFilePath.string().c_str());
+  //     return {};
+  //   }
+
+  //   texture->SetFilter(vk::Filter::eNearest);
+  //   texture->SetMipMapped(true);
+
+  //   texture->Init(GetEngine()->GetDrawingSubsystem().Reserve().Get());
+  //   textures.push(texture);
+  // }
+
+  // std::unordered_map<uint32_t,drawing::FontCharacter> chars;
+  // std::unordered_map<uint32_t,uint32_t> charsIndices;
+  // uint32_t curIdx = 0;
+  // for(auto xmlChar : xmlFile.child("font").child("chars").children()) {
+  //   const auto atlasId = xmlChar.attribute("page").as_int();
+  //   const auto atlas = textures[atlasId];
+  //   const auto atlasSize = atlas->GetSize();
+  //   auto charId = xmlChar.attribute("id").as_uint();
+  //   drawing::FontCharacter fChar{};
+  //   fChar.atlasWidth = atlasSize.width;
+  //   fChar.atlasHeight = atlasSize.height;
+  //   fChar.x = xmlChar.attribute("x").as_int();
+  //   fChar.y = xmlChar.attribute("y").as_int();
+  //   fChar.width = xmlChar.attribute("width").as_int();
+  //   fChar.height = xmlChar.attribute("height").as_int();
+  //   fChar.xOffset = xmlChar.attribute("xoffset").as_int();
+  //   fChar.yOffset = xmlChar.attribute("yoffset").as_int();
+  //   fChar.xAdvance = xmlChar.attribute("xadvance").as_int();
+  //   fChar.atlasId = atlasId;
+
+  //   chars.insert({charId,fChar});
+  //   charsIndices.insert({charId,curIdx});
+
+  //   curIdx++;
+  // }
+
+  // auto font = newManagedObject<drawing::Font>();
+  // VEngineAssetHeader fontHeader{};
+  // fontHeader.type = types::FONT;
+  // fontHeader.name = String(xmlFile.child("font").child("info").attribute("face").as_string());
+  // font->SetHeader(fontHeader);
+  // font->SetChars(chars,charsIndices);
+  // font->SetTextures(textures);
+  // font->Init(GetEngine()->GetDrawingSubsystem().Reserve().Get());
+  // return font;
+
+  return {};
 }
 
 Managed<drawing::Font> AssetSubsystem::LoadFontAsset(
-    const std::filesystem::path &path) {
-  const auto asset = LoadAsset(path,types::FONT,[] {
+    const fs::path &path) {
+  const auto asset = LoadAsset(path, types::FONT, [] {
     return newManagedObject<drawing::Font>();
   });
 
-  if(!asset) {
+  if (!asset) {
     return {};
   }
 
   auto font = asset.Cast<drawing::Font>();
 
-  if(!font) {
+  if (!font) {
     return {};
   }
 
@@ -366,8 +438,8 @@ Managed<drawing::Font> AssetSubsystem::LoadFontAsset(
 }
 
 Managed<audio::AudioBuffer> AssetSubsystem::ImportAudio(
-    const std::filesystem::path &path) {
-  if (!std::filesystem::exists(path)) {
+    const fs::path &path) {
+  if (!fs::exists(path)) {
     return {};
   }
 

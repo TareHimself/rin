@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "Set.hpp"
 #include "vengine/types.hpp"
-
+#include <list>
 #include <map>
 #include <ranges>
 
@@ -15,7 +15,7 @@ class TDispatcher {
   std::list<std::pair<bool,TFunction<void,T...>>>  _listeners;
 public:
   uint64_t Bind(const std::function<void(T...)>& listener,bool bTriggerOnce = false);
-
+  size_t GetNumListeners() const;
   void UnBind(uint64_t id);
   void operator() (T... args);
 };
@@ -24,8 +24,12 @@ template <class ... T> uint64_t TDispatcher<T...>::Bind(
     const std::function<void(T...)> &listener,bool bTriggerOnce) {
   auto id = ++_lastId;
   TFunction<void,T...> func = {id,listener};
-  
-  return _listeners.emplace_back(bTriggerOnce,func).second.GetId();
+  _listeners.emplace_back(bTriggerOnce,func);
+  return id;
+}
+
+template <class ... T> size_t TDispatcher<T...>::GetNumListeners() const {
+  return _listeners.size();
 }
 
 template <class ... T> void TDispatcher<T...>::UnBind(uint64_t id) {

@@ -16,5 +16,5 @@ void main() {
         discard;
     }
 	//vec2 uv = vec2(mapRangeUnClamped(iUV.x,0.0,1.0,0.5,1.0),mapRangeUnClamped(iUV.y,0.0,1.0,0.5,1.0));
-	oColor = texture(ImageT,iUV);
+	oColor = vec4(texture(ImageT,iUV).xyz,0.5);
 }

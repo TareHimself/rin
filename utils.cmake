@@ -52,7 +52,6 @@ function(FetchAndBuild REPOSITORY BRANCH BUILD_DEST TEMP_DEST PRE_BUILD_FN BUILD
       endif()
     else()
       BuildOnly(${CLONED_DIR} ${BUILD_DEST} "Release" "${BUILD_FN}")
-      BuildOnly(${CLONED_DIR} ${BUILD_DEST} "Debug" "${BUILD_FN}")
     endif()
   endif()
 endfunction()
@@ -113,12 +112,12 @@ endmacro()
 # Miniz
 macro(GetMiniz VERSION)
 
-  BuildThirdPartyDep(miniz https://github.com/richgel999/miniz ${VERSION} RESULT_DIR "" "")
+  BuildThirdPartyDep(miniz https://github.com/richgel999/miniz ${VERSION} MINIZ_DIR "" "")
 
-  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/miniz)
+  list(APPEND CMAKE_PREFIX_PATH ${MINIZ_DIR}/lib/cmake/miniz)
 
   find_package(miniz CONFIG REQUIRED)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
+  target_include_directories(${PROJECT_NAME} PRIVATE ${MINIZ_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC miniz::miniz)
   AddTargetLibs("miniz::miniz")
 endmacro()
@@ -146,7 +145,9 @@ macro(GetGlfw VERSION)
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
   find_package(glfw3 REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include)
+  target_include_directories(${PROJECT_NAME} PUBLIC  
+  $<BUILD_INTERFACE:${RESULT_DIR}/include>
+  $<INSTALL_INTERFACE:include> )
   
   target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
 endmacro()
@@ -267,14 +268,31 @@ endmacro()
 # VkBootstrap
 macro(GetVkBootstrap VERSION)
 
-  set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
-  set(VK_BOOTSTRAP_DIR ${THIRD_PARTY_DIR}/vkb)
+  # set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
+  # set(VK_BOOTSTRAP_DIR ${THIRD_PARTY_DIR}/vkb)
 
-  Fetch(https://github.com/charles-lunarg/vk-bootstrap ${VERSION} ${VK_BOOTSTRAP_DIR})
+  # Fetch(https://github.com/charles-lunarg/vk-bootstrap ${VERSION} ${VK_BOOTSTRAP_DIR})
 
-  add_subdirectory(${VK_BOOTSTRAP_DIR} vk-bootstrap)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}) 
+  # add_subdirectory(${VK_BOOTSTRAP_DIR} vk-bootstrap)
+  # target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}) 
+  # target_link_libraries(${PROJECT_NAME} PUBLIC PRIVATE vk-bootstrap::vk-bootstrap)
+
+  function(BuildVkb B_TYPE B_SRC B_DEST)
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -S ${B_SRC} -B ${B_DEST}
+    )
+  endfunction()
+
+  BuildThirdPartyDep(vkb https://github.com/charles-lunarg/vk-bootstrap ${VERSION} RESULT_DIR "" "BuildVkb")
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+
+  find_package(vk-bootstrap REQUIRED)
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC PRIVATE vk-bootstrap::vk-bootstrap)
+  # find_package(argparse REQUIRED)
+  # target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
+  # target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
 endmacro()
 
 
@@ -419,8 +437,15 @@ macro(GetAngelScript VERSION)
     set(ANGELSCRIPT_CMAKE_DIR ${EXTRACT_FILE}/sdk/angelscript/projects/cmake)
 
     
-    BuildOnly(${ANGELSCRIPT_CMAKE_DIR} ${RESULT_DIR} Debug "")
-    BuildOnly(${ANGELSCRIPT_CMAKE_DIR} ${RESULT_DIR} Release "")
+    if(CMAKE_BUILD_TYPE)
+      if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+        BuildOnly(${ANGELSCRIPT_CMAKE_DIR} ${RESULT_DIR} "Debug" "")
+      else()
+        BuildOnly(${ANGELSCRIPT_CMAKE_DIR} ${RESULT_DIR} "Release" "")
+      endif()
+    else()
+      BuildOnly(${ANGELSCRIPT_CMAKE_DIR} ${RESULT_DIR} "Release" "")
+    endif()
 
     
 
@@ -490,6 +515,7 @@ macro(GetReactPhys VERSION)
   )
 endmacro()
 
+
 # Argparse
 macro(GetArgparse VERSION)
 
@@ -509,17 +535,46 @@ macro(GetArgparse VERSION)
   
 endmacro()
 
-# Pugixml
-macro(GetPugiXml VERSION)
+# # LibJpegTurbo
+# macro(GetLibJpegTurbo VERSION)
 
-  BuildThirdPartyDep(pugixml https://github.com/zeux/pugixml ${VERSION} RESULT_DIR "" "")
+#   function(BuildLibJpegTurbo B_TYPE B_SRC B_DEST)
+#     execute_process(
+#       COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -S ${B_SRC} -B ${B_DEST}
+#     )
+#   endfunction()
 
-  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+#   BuildThirdPartyDep(libjpegturbo https://github.com/libjpeg-turbo/libjpeg-turbo ${VERSION} RESULT_DIR "" "BuildLibJpegTurbo")
 
-  find_package(pugixml REQUIRED)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} PUBLIC pugixml::pugixml)
+#   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+
+#   find_package(libjpeg-turbo REQUIRED)
+#   target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
+#   target_link_libraries(${PROJECT_NAME} PUBLIC libjpeg-turbo::jpeg-static)
   
+# endmacro()
+
+# libspng
+macro(GetStb VERSION)
+
+  set(RESULT_DIR ${CMAKE_CURRENT_LIST_DIR}/ThirdParty/stb_${VERSION})
+
+  if(NOT EXISTS ${RESULT_DIR})
+    set(REPO_DIR ${CMAKE_CURRENT_BINARY_DIR}/stb)
+    Fetch(https://github.com/nothings/stb ${VERSION} ${REPO_DIR})
+    file(MAKE_DIRECTORY ${RESULT_DIR})
+    file(COPY ${REPO_DIR}/stb_image.h DESTINATION ${RESULT_DIR})
+  endif()
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  target_sources(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/stb_image.h)
+  #target_compile_definitions(${PROJECT_NAME} PUBLIC SPNG_USE_MINIZ)
 endmacro()
 
 # OpenCV
@@ -527,7 +582,7 @@ macro(GetOpenCV VERSION)
 
   function(BuildOpenCV B_TYPE B_SRC B_DEST)
     execute_process(#
-      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DBUILD_LIST=core,imgproc,imgcodecs -DBUILD_EXAMPLES=OFF -DBUILD_DOCS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_TESTS=OFF -DWITH_CSTRIPES=OFF -DWITH_OPENCL=OFF -S ${B_SRC} -B ${B_DEST}
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DBUILD_LIST=core,imgproc,imgcodecs -DBUILD_SHARED_LIBS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_DOCS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_TESTS=OFF -DWITH_CSTRIPES=OFF -DWITH_OPENCL=OFF -DWITH_ADE=OFF -S ${B_SRC} -B ${B_DEST}
     )
   endfunction()
 
@@ -559,6 +614,32 @@ macro(GetFreeType VERSION)
   # target_include_directories(${PROJECT_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS}) 
   # target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenCV_LIBS})
   # install(IMPORTED_RUNTIME_ARTIFACTS ${OpenCV_LIBS})
+endmacro()
+
+# FreeType
+macro(GetMsdfGen VERSION)
+
+
+  function(BuildMsdfGen B_TYPE B_SRC B_DEST)
+    execute_process(#
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DMSDFGEN_USE_SKIA=OFF -DMSDFGEN_INSTALL=ON -DMSDFGEN_CORE_ONLY=ON -DMSDFGEN_BUILD_STANDALONE=OFF -DMSDFGEN_USE_VCPKG=OFF -S ${B_SRC} -B ${B_DEST}
+    )
+  endfunction()
+
+  BuildThirdPartyDep(msdfgen https://github.com/Chlumsky/msdfgen ${VERSION} RESULT_DIR "" "BuildMsdfGen")
+  
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR})
+
+  find_package(msdfgen REQUIRED)
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+  
+  target_link_libraries(${PROJECT_NAME} PUBLIC msdfgen::msdfgen)
 endmacro()
 
 # Reflection

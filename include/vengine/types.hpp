@@ -1,9 +1,11 @@
 ﻿#ifndef VENGINE_TYPES
 #define VENGINE_TYPES
+#include <cstdint>
 #include <atomic>
 #include <functional>
 #include <map>
 #include <ranges>
+#include <limits>
 
 namespace vengine {
 typedef std::function<void()> cleanupCallback;

@@ -3,17 +3,19 @@
 namespace vengine::widget {
 PanelSlot::PanelSlot(const Managed<Widget> &widget)
   : SlotBase(widget), _sizeToContent(false) {
-  _xAnchor = {};
-  _yAnchor = {};
   _rect = {};
 }
 
-void PanelSlot::SetAnchorX(const Anchor &anchor) {
-  _xAnchor = anchor;
+void PanelSlot::SetMinAnchor(const Point2D &anchor) {
+  _minAnchor = anchor;
 }
 
-void PanelSlot::SetAnchorY(const Anchor &anchor) {
-  _yAnchor = anchor;
+void PanelSlot::SetMaxAnchor(const Point2D &anchor) {
+  _maxAnchor = anchor;
+}
+
+void PanelSlot::SetAlignment(const Point2D &alignment) {
+  _alignment = alignment;
 }
 
 void PanelSlot::SetRect(const Rect &rect) {
@@ -24,12 +26,16 @@ void PanelSlot::SetSizeToContent(const bool val) {
   _sizeToContent = val;
 }
 
-Anchor PanelSlot::GetAnchorX() const {
-  return _xAnchor;
+Point2D PanelSlot::GetMinAnchor() const {
+  return _minAnchor;
 }
 
-Anchor PanelSlot::GetAnchorY() const {
-  return _yAnchor;
+Point2D PanelSlot::GetMaxAnchor() const {
+  return _maxAnchor;
+}
+
+Point2D PanelSlot::GetAlignment() const {
+  return _alignment;
 }
 
 Rect PanelSlot::GetRect() const {
@@ -48,7 +54,7 @@ void Panel::BeforeDestroy() {
   Widget::BeforeDestroy();
 }
 
-void Panel::Draw(drawing::SimpleFrameData *frameData,
+void Panel::Draw(WidgetFrameData *frameData,
                  const DrawInfo info) {
 
   if(!GetDrawRect().HasIntersection(info.clip)) {
@@ -59,32 +65,68 @@ void Panel::Draw(drawing::SimpleFrameData *frameData,
   //const auto myDrawRect = CalculateFinalRect(info.drawRect);
   for(auto &slot : _slots.clone()) {
     const DrawInfo childInfo{this,clip};
-    slot->GetWidget().Reserve()->UpdateDrawRect(ComputeSlotRect(slot).Offset(GetDrawRect().GetPoint()));
+    auto slotRect = ComputeSlotRect(slot).Offset(GetDrawRect().GetPoint());
+    slot->GetWidget().Reserve()->UpdateDrawRect(slotRect);
     
     slot->GetWidget().Reserve()->Draw(frameData,childInfo);
   }
 }
 
-Rect Panel::ComputeSlotRect(const Managed<PanelSlot> &child) {
-  const auto size = this->GetDesiredSize();
+Rect Panel::ComputeSlotRect(const Managed<PanelSlot> &child) const {
+  const auto size = this->GetDrawRect().GetSize();
   auto slotRect = child->GetRect();
   
+  
+
+  const auto anchorMin = child->GetMinAnchor();
+  const auto anchorMax = child->GetMaxAnchor();
+
+  const auto noOffsetX = utils::nearlyEqual(anchorMin.x,anchorMax.x,0.001f);
+  const auto noOffsetY = utils::nearlyEqual(anchorMin.y,anchorMax.y,0.001f);
+  
   if(child->GetSizeToContent()) {
-    const auto childSize = child->GetWidget().Reserve()->GetDesiredSize();
+    auto childSize = child->GetWidget().Reserve()->GetDesiredSize();
+    if(!noOffsetX) {
+      childSize.width = slotRect.GetSize().width;
+    }
+
+    if(!noOffsetY) {
+      childSize.height = slotRect.GetSize().height;
+    }
+    
     slotRect.SetSize(childSize);
   }
-  
-  const auto slotWidth =  size.width;
-  const auto slotHeight = size.height;
 
   auto p1 = slotRect.GetPoint();
   auto p2 = p1 + slotRect.GetSize();
+  
+  if(noOffsetX) {
+    const auto xPosition = size.width * anchorMin.x;
+    p1.x += xPosition;
+    p2.x += xPosition;
+  } else {
+    p1.x = (size.width * anchorMin.x) + p1.x;
+    p2.x = (size.width * anchorMax.x) - p2.x;
+  }
 
-  const auto anchorX = child->GetAnchorX();
-  const auto anchorY = child->GetAnchorY();
+  if(noOffsetY) {
+    const auto yPosition = size.height * anchorMin.y;
+    p1.y += yPosition;
+    p2.y += yPosition;
+  } else {
+    p1.y = (size.height * anchorMin.y) + p1.y;
+    p2.y = (size.height * anchorMax.y) - p2.y;
+  }
+  
+  // p1 = p1 + Point2D{slotWidth * anchorX.min,slotHeight * anchorY.min};
+  // p2 = p2 + Point2D{slotWidth * anchorX.max,slotHeight * anchorY.max};
+  auto dist = p2 - p1;
+  const auto alignment = child->GetAlignment();
+  
+  dist = dist * alignment;
 
-  p1 = p1 + Point2D{slotWidth * anchorX.min,slotHeight * anchorY.min};
-  p2 = p2 + Point2D{slotWidth * anchorX.max,slotHeight * anchorY.max};
+  p1 = p1 - dist;
+  p2 = p2 - dist;
   
   return {p1,p2};
 }

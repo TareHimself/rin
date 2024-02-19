@@ -10,7 +10,7 @@ void FontManager::Init(DrawingSubsystem *outer) {
   
 }
 
-Ref<Font> FontManager::LoadFont(const std::filesystem::path &path) {
+Ref<Font> FontManager::LoadFont(const fs::path &path) {
   FT_Face face{};
   
   if(const auto error = FT_New_Face(_library,path.string().c_str(),0,&face)) {

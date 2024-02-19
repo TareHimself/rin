@@ -7,7 +7,7 @@ KeyEvent::operator std::string() const {
   return glfwGetKeyName(key,glfwGetKeyScancode(key));
 }
 
-KeyEvent::KeyEvent(EKey inKey) {
+KeyEvent::KeyEvent(Window *window, EKey inKey) : Event(window)   {
   key = inKey;
 }
 
@@ -15,7 +15,7 @@ MouseMovedEvent::operator std::string() const {
   return fmt::format("x: {}, y: {}",x,y);
 }
 
-MouseMovedEvent::MouseMovedEvent(double inX, double inY) {
+MouseMovedEvent::MouseMovedEvent(Window *window, double inX, double inY)  : Event(window)  {
   x = inX;
   y = inY;
 }
@@ -45,17 +45,19 @@ MouseButtonEvent::operator std::string() const {
   }
 }
 
-MouseButtonEvent::MouseButtonEvent(EMouseButton inButton, double inX,
-    double inY) {
+MouseButtonEvent::MouseButtonEvent(Window *window, EMouseButton inButton,
+    double inX, double inY)  : Event(window)  {
   button = inButton;
   x = inX;
   y = inY;
 }
 
-ScrollEvent::ScrollEvent(double inX, double inY, double inDx, double inDy) {
+ScrollEvent::ScrollEvent(Window *window, double inX, double inY, double inDx,
+    double inDy) : Event(window) {
   x = inX;
   y = inY;
   dx = inDx;
   dy = inDy;
 }
+
 }

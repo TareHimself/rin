@@ -18,7 +18,7 @@ void Allocator::Init(DrawingSubsystem * outer) {
   Object<DrawingSubsystem>::Init(outer);
   auto allocatorCreateInfo = VmaAllocatorCreateInfo{};
   allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
-  allocatorCreateInfo.device = outer->GetDevice();
+  allocatorCreateInfo.device = outer->GetVirtualDevice();
   allocatorCreateInfo.physicalDevice = outer->GetPhysicalDevice();
   allocatorCreateInfo.instance = outer->GetVulkanInstance();
   allocatorCreateInfo.vulkanApiVersion = VKB_MAKE_VK_VERSION(0, 1, 3, 0);
@@ -53,6 +53,7 @@ Managed<AllocatedBuffer> Allocator::CreateBuffer(const size_t allocSize,
 
   vmaCreateBuffer(_allocator,&vmaBufferCreateInfo,&vmaAllocInfo,&rawBuffer,&result->alloc._allocation,nullptr);
   result->buffer = rawBuffer;
+  result->size = allocSize;
   
   return result;
 }
@@ -116,7 +117,7 @@ Managed<AllocatedImage> Allocator::AllocateImage(
 }
 
 void Allocator::DestroyImage(const AllocatedImage &image) const {
-  GetOuter()->GetDevice().destroyImageView(image.view);
+  GetOuter()->GetVirtualDevice().destroyImageView(image.view);
   
   vmaDestroyImage(_allocator,image.image,image.alloc);
 }

@@ -5,7 +5,7 @@
 
 namespace vengine::widget {
 
-void Canvas::Draw(drawing::SimpleFrameData *frameData, const DrawInfo info) {
+void Canvas::Draw(WidgetFrameData *frameData, const DrawInfo info) {
   if(!GetDrawRect().HasIntersection(info.clip)) {
     return;
   }

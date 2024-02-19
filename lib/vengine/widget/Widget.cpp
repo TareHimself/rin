@@ -4,9 +4,10 @@
 #include "vengine/math/utils.hpp"
 
 namespace vengine::widget {
-void Widget::Init(WidgetSubsystem * outer) {
-  Object<WidgetSubsystem>::Init(outer);
-  _initAt = GetOuter()->GetOuter()->GetEngineTimeSeconds();
+
+void Widget::Init(WidgetSubsystem *outer) {
+  Object::Init(outer);
+  _initAt = Engine::Get()->GetEngineTimeSeconds();
 }
 
 void Widget::CheckDesiredSize() {
@@ -14,8 +15,8 @@ void Widget::CheckDesiredSize() {
   const auto mySize = ComputeDesiredSize();
   if(mySize != _cachedDesiredSize) {
     _cachedDesiredSize = mySize;
-    if(_parent) {
-      _parent->CheckDesiredSize();
+    if(const auto parent = GetParentWidget()) {
+      parent->CheckDesiredSize();
     }
   }
 }
@@ -41,7 +42,8 @@ Point2D Widget::GetPivot() const {
   return _pivot;
 }
 
-void Widget::SetParent(Widget *ptr) {
+void Widget::SetParent(
+    const std::variant<WidgetRoot *, Widget *, std::nullptr_t> &ptr) {
   _parent = ptr;
 }
 
@@ -53,15 +55,29 @@ Rect Widget::GetDrawRect() const {
   return _drawRect;
 }
 
-Widget * Widget::GetParent() const {
-  return _parent;
+Widget * Widget::GetParentWidget() const {
+  if(std::holds_alternative<Widget *>(_parent)) {
+    return std::get<Widget *>(_parent);
+  }
+  return nullptr;
+}
+
+WidgetRoot * Widget::GetRoot() const {
+  if(std::holds_alternative<WidgetRoot *>(_parent)) {
+    return std::get<WidgetRoot *>(_parent);
+  }
+
+  if(const auto parent = GetParentWidget()) {
+    return parent->GetRoot();
+  }
+  return nullptr;
 }
 
 float Widget::GetTimeAtInit() const {
   return _initAt;
 }
 
-void Widget::Draw(drawing::SimpleFrameData *frameData,
+void Widget::Draw(WidgetFrameData *frameData,
                   DrawInfo info) {
 }
 //
@@ -93,11 +109,11 @@ void Widget::Draw(drawing::SimpleFrameData *frameData,
 // }
 
 void Widget::BeforeDestroy() {
-  Object<WidgetSubsystem>::BeforeDestroy();
+  Object::BeforeDestroy();
 }
 
 Size2D Widget::GetDesiredSize() {
-  if(_parent) {
+  if(auto parent = GetParentWidget()) {
     if(!_cachedDesiredSize.has_value()) {
       _cachedDesiredSize = ComputeDesiredSize();
     }
@@ -105,8 +121,8 @@ Size2D Widget::GetDesiredSize() {
     return _cachedDesiredSize.value();
   }
 
-  if(const auto outer = GetOuter()) {
-    const auto drawSize = outer->GetDrawSize();
+  if(const auto root = GetRoot()) {
+    const auto drawSize = root->GetDrawSize();
     return drawSize;
   }
 
@@ -114,7 +130,7 @@ Size2D Widget::GetDesiredSize() {
 }
 
 Rect Widget::CalculateFinalRect(const Rect &rect) {
-  _drawRect = rect.Clone().Pivot(GetPivot());
+  _drawRect = rect.Clone();
   return _drawRect;
 }
 
@@ -148,11 +164,11 @@ bool Widget::ReceiveMouseDown(
   if(OnMouseDown(event)) {
     uint64_t unbindMouseUp;
     uint64_t unbindDestroy = onDestroyed.Bind([this,&unbindMouseUp] {
-      auto window = GetOuter()->GetEngine()->GetWindow().Reserve();
+      auto window = GetOuter()->GetEngine()->GetMainWindow().Reserve();
       window->onMouseUp.UnBind(unbindMouseUp);
     });
     
-    unbindMouseUp = GetOuter()->GetEngine()->GetWindow().Reserve()->onMouseUp.Bind([this,&unbindDestroy,&unbindMouseUp](const std::shared_ptr<window::MouseButtonEvent>& e) {
+    unbindMouseUp = GetOuter()->GetEngine()->GetMainWindow().Reserve()->onMouseUp.Bind([this,&unbindDestroy,&unbindMouseUp](const std::shared_ptr<window::MouseButtonEvent>& e) {
       onDestroyed.UnBind(unbindDestroy);
       OnMouseUp(e);
     });
@@ -195,8 +211,26 @@ void Widget::ReceiveMouseEnter(
 }
 
 
-void Widget::ReceiveMouseMove(const std::shared_ptr<window::MouseMovedEvent> &event) {
-  
+bool Widget::ReceiveMouseMove(
+    const std::shared_ptr<window::MouseMovedEvent> &event) {
+  if(!IsHitTestable()) {
+    return false;
+  }
+
+  const auto point = Point2D{event->x,event->y};
+
+  for(const auto &child : _children) {
+    if(child->GetDrawRect().IsWithin(point) && child->ReceiveMouseMove(event)) {
+      return true;
+    }
+  }
+
+
+  return OnMouseMoved(event);
+}
+
+bool Widget::OnMouseMoved(const std::shared_ptr<window::MouseMovedEvent> &event) {
+  return false;
 }
 
 void Widget::OnMouseEnter(const std::shared_ptr<window::MouseMovedEvent> &event) {

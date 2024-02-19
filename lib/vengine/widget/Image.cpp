@@ -1,4 +1,5 @@
 ﻿#include "vengine/drawing/Texture2D.hpp"
+#include "vengine/widget/utils.hpp"
 
 #include <vengine/widget/Image.hpp>
 #include <vengine/widget/WidgetSubsystem.hpp>
@@ -9,14 +10,14 @@
 namespace vengine::widget {
 void Image::Init(WidgetSubsystem * outer) {
   Widget::Init(outer);
-  const auto drawer = outer->GetEngine()->GetDrawingSubsystem().Reserve();
+  const auto drawer = Engine::Get()->GetDrawingSubsystem().Reserve();
   
   _imageMat = drawing::MaterialBuilder()
   .SetType(drawing::EMaterialType::UI)
   .AddShader(drawing::Shader::FromSource(io::getRawShaderPath("2d/rect.vert")))
   .AddShader(drawing::Shader::FromSource(io::getRawShaderPath("2d/image.frag")))
   .Create();
-  _imageMat->SetBuffer<UiGlobalBuffer>("UiGlobalBuffer",outer->GetGlobalBuffer());
+  
 }
 
 void Image::SetTexture(const Managed<drawing::Texture2D> &image) {
@@ -32,24 +33,21 @@ Ref<drawing::Texture2D> Image::GetTexture() const {
   return _image;
 }
 
-void Image::Draw(drawing::SimpleFrameData *frameData,
+void Image::Draw(WidgetFrameData *frameData,
                  DrawInfo info) {
 
   if(!GetDrawRect().HasIntersection(info.clip)) {
     return;
   }
 
-  const auto material = _imageMat;
+  auto material = _imageMat;
   const auto ogFrameData = frameData->GetRaw();
   WidgetPushConstants drawData{};
 
   drawData.clip = info.clip;
   drawData.extent = GetDrawRect();
-  //const auto textureToDraw = _image ? _image : GetOuter()->GetEngine()->GetDrawingSubsystem().Reserve()->GetDefaultErrorCheckerboardTexture();
-  material->BindPipeline(ogFrameData);
-  material->BindSets(ogFrameData);
-  //material->SetDynamicTexture(frameData->GetRaw(),"ImageT",textureToDraw);
-  material->PushConstant(frameData->GetCmd(),"pRect",drawData);
+  bindMaterial(frameData,material);
+  material->Push(frameData->GetCmd(),"pRect",drawData);
   
   frameData->DrawQuad();
 }
@@ -69,19 +67,4 @@ Size2D Image::ComputeDesiredSize() const {
   return {0,0};
 }
 
-bool Image::OnMouseDown(
-    const std::shared_ptr<window::MouseButtonEvent> &event) {
-  GetOuter()->GetLogger()->info("Image clicked");
-  return true;
-}
-
-void Image::OnMouseEnter(const std::shared_ptr<window::MouseMovedEvent> &event) {
-  Widget::OnMouseEnter(event);
-  GetOuter()->GetLogger()->info("Image Hover Start");
-}
-
-void Image::OnMouseLeave(const std::shared_ptr<window::MouseMovedEvent> &event) {
-  Widget::OnMouseLeave(event);
-  GetOuter()->GetLogger()->info("Image Hover End");
-}
 }

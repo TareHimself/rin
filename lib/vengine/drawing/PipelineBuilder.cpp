@@ -90,12 +90,14 @@ PipelineBuilder &PipelineBuilder::EnableBlendingAlphaBlend() {
       vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
   _colorBlendAttachment.setBlendEnable(true);
-  _colorBlendAttachment.setSrcColorBlendFactor(vk::BlendFactor::eOneMinusDstAlpha);
-  _colorBlendAttachment.setDstColorBlendFactor(vk::BlendFactor::eDstAlpha);
+  _colorBlendAttachment.setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha);
+  _colorBlendAttachment.setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
   _colorBlendAttachment.setColorBlendOp(vk::BlendOp::eAdd);
-  _colorBlendAttachment.setSrcAlphaBlendFactor(vk::BlendFactor::eOne);
-  _colorBlendAttachment.setDstAlphaBlendFactor(vk::BlendFactor::eZero);
-  _colorBlendAttachment.setAlphaBlendOp(vk::BlendOp::eAdd);
+  
+  _colorBlendAttachment.setSrcAlphaBlendFactor(vk::BlendFactor::eSrcAlpha);
+  _colorBlendAttachment.setDstAlphaBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
+  _colorBlendAttachment.setAlphaBlendOp(vk::BlendOp::eSubtract);
+  
   return *this;
 }
 
@@ -159,7 +161,7 @@ vk::Pipeline PipelineBuilder::Build(const vk::Device device) {
 
   const auto colorBlending = vk::PipelineColorBlendStateCreateInfo(
       vk::PipelineColorBlendStateCreateFlags(), vk::False, vk::LogicOp::eCopy,
-      {_colorBlendAttachment});
+      _colorBlendAttachment);
 
   vk::DynamicState state[] = {vk::DynamicState::eViewport,
                               vk::DynamicState::eScissor};
@@ -185,7 +187,7 @@ vk::Pipeline PipelineBuilder::Build(const vk::Device device) {
   const auto result = device.
       createGraphicsPipeline(nullptr, pipelineCreateInfo);
   if (result.result != vk::Result::eSuccess) {
-    throw std::exception("Failed to create pipeline");
+    throw std::runtime_error("Failed to create pipeline");
   }
 
   return result.value;

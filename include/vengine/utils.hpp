@@ -18,19 +18,26 @@ bool isType(const SrcType* src)
 std::string hash(const void * data, size_t size, uint64_t seed = 0);
 
 template <typename... T>
+void verror [[noreturn]] (fmt::format_string<T...> message,T&&... args) {
+  auto fmtMessage = fmt::format(message,std::forward<T>(args)...);
+  
+  throw std::runtime_error(fmtMessage.c_str());
+}
+
+template <typename... T>
 void vassert(const bool result, fmt::format_string<T...> message,T&&... args) {
   
   if(!result) {
-    // std::string * nu = nullptr;
-    // nu->at(0);
-    auto fmtMessage = fmt::format(message,std::forward<T>(args)...);
+    const std::string fmtMessage = fmt::format(message,std::forward<T>(args)...);
     
-    const auto errMsg = "Assertion Failed: " + fmtMessage + "\n";
-    throw std::runtime_error(errMsg.c_str());
+    throw std::runtime_error(std::string("Assertion Failed: " + fmtMessage + "\n").c_str());
   }
 }
 
 std::string createUUID();
 
-
+template <typename T>
+bool nearlyEqual(T a,T b,T tolerance) {
+  return std::abs(a - b) < tolerance;
+}
 }

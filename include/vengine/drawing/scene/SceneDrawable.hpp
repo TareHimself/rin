@@ -8,6 +8,7 @@ class SceneDrawer;
 namespace vengine::drawing {
 class SceneDrawable {
 public:
-  virtual void Draw(SimpleFrameData *frameData, const math::Transform &parentTransform) = 0;
+  
+  virtual void Draw(SceneFrameData *frameData, const math::Transform &parentTransform) = 0;
 };
 }

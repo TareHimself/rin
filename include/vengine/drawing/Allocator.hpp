@@ -19,11 +19,23 @@ struct Allocation  {
 struct VmaAllocated {
   Allocation alloc;
   virtual void * GetMappedData() const;
+
+  template<typename T>
+  T * GetMappedData();
 };
+
+template <typename T> T * VmaAllocated::GetMappedData() {
+  if(auto data = GetMappedData()) {
+    return static_cast<T *>(data);
+  }
+
+  return nullptr;
+}
 
 RSTRUCT()
 struct AllocatedBuffer : VmaAllocated {
   vk::Buffer buffer = nullptr;
+  size_t size = 0;
 };
 
 REFLECT_IMPLEMENT(AllocatedBuffer)

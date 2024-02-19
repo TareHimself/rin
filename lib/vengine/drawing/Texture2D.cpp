@@ -7,7 +7,7 @@ namespace vengine::drawing {
 
 void Texture2D::MakeSampler() {
   if(_sampler) {
-    GetOuter()->GetDevice().destroySampler(_sampler);
+    GetOuter()->GetVirtualDevice().destroySampler(_sampler);
     _sampler = nullptr;
   }
   vk::SamplerCreateInfo samplerInfo{};
@@ -18,7 +18,7 @@ void Texture2D::MakeSampler() {
   samplerInfo.setAddressModeW(_tiling);
   samplerInfo.setMipmapMode(vk::SamplerMipmapMode::eNearest);
   samplerInfo.setAnisotropyEnable(true);
-  _sampler = GetOuter()->GetDevice().createSampler({{},_filter,_filter});
+  _sampler = GetOuter()->GetVirtualDevice().createSampler({{},_filter,_filter});
 }
 
 vk::Extent3D Texture2D::GetSize() const {
@@ -89,7 +89,7 @@ void Texture2D::BeforeDestroy() {
   Object<DrawingSubsystem>::BeforeDestroy();
   const auto drawer = GetOuter();
   drawer->WaitDeviceIdle();
-  drawer->GetDevice().destroySampler(GetSampler());
+  drawer->GetVirtualDevice().destroySampler(GetSampler());
   _gpuData.Clear();
 }
 

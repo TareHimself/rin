@@ -2,14 +2,14 @@
 #include <vengine/drawing/Shader.hpp>
 #include "vengine/utils.hpp"
 #include "vengine/io/io.hpp"
-#include <glslang/MachineIndependent/localintermediate.h>
+//#include <glslang/MachineIndependent/localintermediate.h>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <vengine/drawing/DrawingSubsystem.hpp>
 
 namespace vengine::drawing {
 
-GlslShaderIncluder::GlslShaderIncluder(ShaderManager * manager,const std::filesystem::path &inPath) {
+GlslShaderIncluder::GlslShaderIncluder(ShaderManager * manager,const fs::path &inPath) {
   _manager = manager;
   sourceFilePath = inPath;
   if(_bDebug){
@@ -18,7 +18,7 @@ GlslShaderIncluder::GlslShaderIncluder(ShaderManager * manager,const std::filesy
 }
 
 glslang::TShader::Includer::IncludeResult * GlslShaderIncluder::includeSystem(const char*filePath, const char *includerName, size_t inclusionDepth) {
-  const std::filesystem::path actualPath(filePath);
+  const fs::path actualPath(filePath);
   if(_bDebug) {
     _manager->GetLogger()->info("Including Shader File {:s}",actualPath.string());
   }
@@ -30,7 +30,7 @@ glslang::TShader::Includer::IncludeResult * GlslShaderIncluder::includeSystem(co
 
 glslang::TShader::Includer::IncludeResult * GlslShaderIncluder::includeLocal(const char*filePath, const char *includerName, size_t inclusionDepth) {
   
-  const auto actualPath = sourceFilePath.parent_path() / std::filesystem::path(filePath);
+  const auto actualPath = sourceFilePath.parent_path() / fs::path(filePath);
   if(_bDebug) {
    _manager->GetLogger()->info("Including Shader File {:s}",actualPath.string());
   }
@@ -59,7 +59,7 @@ GlslShaderIncluder::~GlslShaderIncluder() {
 }
 
 
-EShLanguage ShaderManager::GetLang(const std::filesystem::path &shaderPath) {
+EShLanguage ShaderManager::GetLang(const fs::path &shaderPath) {
   const auto ext = shaderPath.extension().string().substr(1);
 
   if (ext == "vert") {
@@ -113,12 +113,12 @@ EShLanguage ShaderManager::GetLang(const std::filesystem::path &shaderPath) {
 }
 
 bool ShaderManager::HasLoadedShader(
-    const std::filesystem::path &shaderPath) const {
+    const fs::path &shaderPath) const {
   return _shaders.contains(shaderPath);
 }
 
 Managed<Shader> ShaderManager::GetLoadedShader(
-    const std::filesystem::path &shaderPath) const {
+    const fs::path &shaderPath) const {
   if(!HasLoadedShader(shaderPath)){
     return {};
   }
@@ -126,8 +126,8 @@ Managed<Shader> ShaderManager::GetLoadedShader(
   return _shaders.at(shaderPath);
 }
 
-Array<unsigned int> ShaderManager::Compile(const std::filesystem::path &shaderPath){
-  if (!std::filesystem::exists(shaderPath)) {
+Array<unsigned int> ShaderManager::Compile(const fs::path &shaderPath){
+  if (!fs::exists(shaderPath)) {
     throw std::runtime_error(
         std::string("Shader file does not exist: ") + shaderPath.string());
   }
@@ -151,7 +151,7 @@ Array<unsigned int> ShaderManager::Compile(const std::filesystem::path &shaderPa
   shader->setEntryPoint("main");
   
 
-  shader->getIntermediate()->setSource(glslang::EShSourceGlsl);
+  //shader->getIntermediate()->setSource(glslang::EShSourceGlsl);
 
   constexpr auto message = static_cast<EShMessages>(EShMessages::EShMsgVulkanRules | EShMessages::EShMsgSpvRules);
 
@@ -204,15 +204,15 @@ Array<unsigned int> ShaderManager::Compile(const std::filesystem::path &shaderPa
 }
 
 Array<unsigned> ShaderManager::CompileAndSave(
-    const std::filesystem::path &shaderPath){
+    const fs::path &shaderPath){
   const auto compiledDir = shaderPath.parent_path() / "compiled";
   const auto compiledPath = compiledDir / (shaderPath.filename().string() + ".spv");
   const auto compiledHashPath = compiledDir / (shaderPath.filename().string() + ".hash");
   
   auto compiledData = Compile(shaderPath);
     
-  if(!std::filesystem::exists(compiledDir)) {
-    std::filesystem::create_directory(compiledDir);
+  if(!fs::exists(compiledDir)) {
+    fs::create_directory(compiledDir);
   }
 
   glslang::OutputSpvBin(compiledData,compiledPath.string().c_str());
@@ -226,13 +226,13 @@ Array<unsigned> ShaderManager::CompileAndSave(
   return compiledData;
 }
 
-Array<unsigned int> ShaderManager::LoadOrCompileSpv(const std::filesystem::path &shaderPath){
+Array<unsigned int> ShaderManager::LoadOrCompileSpv(const fs::path &shaderPath){
   GetLogger()->info("Loading Shader " + shaderPath.string());
   const auto compiledDir = shaderPath.parent_path() / "compiled";
   const auto compiledPath = compiledDir / (shaderPath.filename().string() + ".spv");
   const auto compiledHashPath = compiledDir / (shaderPath.filename().string() + ".hash");
 
-  if(std::filesystem::exists(compiledDir) && std::filesystem::exists(compiledPath) && std::filesystem::exists(compiledHashPath)) {
+  if(fs::exists(compiledDir) && fs::exists(compiledPath) && fs::exists(compiledHashPath)) {
     auto shader = io::readFile<unsigned int>(compiledPath);
     const auto oldShaderHash = io::readFileAsString(compiledHashPath);
     const auto sourceFile = io::readFileAsString(shaderPath);
@@ -258,7 +258,7 @@ Managed<Shader> ShaderManager::RegisterShader(Managed<Shader> shader) {
 }
 
 Managed<Shader> ShaderManager::CreateShader(
-    const std::filesystem::path &path) {
+    const fs::path &path) {
   return Shader::FromSource(path);
 }
 

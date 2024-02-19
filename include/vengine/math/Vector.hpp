@@ -27,8 +27,6 @@ public:
   Vector();
 
   operator std::string() const;
-
-  operator glm::highp_vec3() const;
 };
 
 

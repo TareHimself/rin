@@ -14,6 +14,13 @@ class Ref;
 template <class T>
 class Managed;
 
+template<class T>
+class RefThis;
+
+class RefThisBase {
+public:
+  virtual void InternalSetRef(void * ref) = 0;
+};
 template <class T>
 struct ManagedBlock {
   friend class Managed<T>;
@@ -27,7 +34,8 @@ struct ManagedBlock {
     delete ptr;
   };
   bool bIsPendingDelete = false;
-
+  
+  void SetData(T * newData);
 
   void Lock() const;
 
@@ -108,12 +116,6 @@ public:
   friend class Ref<T>;
 };
 
-template <typename T>
-struct CompareRef {
-  bool operator()(const Managed<T> &a,const Managed<T> &b)const{
-    return a.Get() == b.Get();
-  }
-};
 
 
 // A weak version of Managed that will not be considered when deciding to delete the pointer
@@ -161,12 +163,32 @@ public:
   friend class Managed<T>;
 };
 
-template <typename T>
-struct CompareWeakRef {
-  bool operator()(const Ref<T> &a,const Ref<T> &b)const{
-    return a.Reserve().Get() == b.Reserve().Get();
-  }
+template<class T>
+class RefThis : public RefThisBase {
+  friend class ManagedBlock<T>;
+  Ref<T> _internalRef;
+  
+public:
+  virtual void InternalSetRef(void *ref) override;
+  Ref<T> ToRef() const;
 };
+
+
+template <class T> void ManagedBlock<T>::SetData(T *newData) {
+  if(std::is_base_of_v<RefThisBase,T>) {
+    
+    // if(data != nullptr) {
+    //   ->InternalSetRef(nullptr);
+    // }
+    data = newData;
+    if(data != nullptr) {
+      const auto casted = (RefThisBase*)(data);
+      Ref<T> ref = {this};
+      casted->InternalSetRef(&ref);
+    }
+  }
+  data = newData;
+}
 
 template <class T> void ManagedBlock<T>::Lock() const {
   mutex->lock();
@@ -232,14 +254,14 @@ template <class T> Managed<T>::Managed(ManagedBlock<T> *block) {
 
 template <class T> Managed<T>::Managed(T *data) {
   _block = new ManagedBlock<T>;
-  _block->data = data;
+  _block->SetData(data);
   _block->strong.emplace(this);
 }
 
 template <class T> Managed<T>::Managed(T *data,
                                        std::function<void(T *)> deleter) {
   _block = new ManagedBlock<T>;
-  _block->data = data;
+  _block->SetData(data);
   _block->strong.emplace(this);
   _block->deleter = deleter;
 }
@@ -529,4 +551,21 @@ template <class T> void Ref<T>::Clear(bool bCheckRef) {
 template <class T> Ref<T>::~Ref() {
   Clear(true);
 }
+
+template <class T> void RefThis<T>::InternalSetRef(void *ref) {
+  if(ref == nullptr) {
+    _internalRef = {};
+  } else {
+    _internalRef = *static_cast<Ref<T> *>(ref);
+  }
+  
+}
+
+template <class T> Ref<T> RefThis<T>::ToRef() const {
+  return _internalRef;
+}
+
+
+
+
 }

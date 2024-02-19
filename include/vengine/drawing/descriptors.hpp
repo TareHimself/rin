@@ -4,6 +4,8 @@
 #include "vengine/containers/Array.hpp"
 #include "generated/drawing/descriptors.reflect.hpp"
 
+#include <variant>
+
 namespace vengine {
 namespace drawing {
 struct AllocatedImage;
@@ -15,24 +17,21 @@ struct AllocatedBuffer;
 class DrawingSubsystem;
 class Texture2D;
 
+
+typedef std::variant<std::monostate,Managed<AllocatedBuffer>,Managed<AllocatedImage>,Managed<Texture2D>,Array<Managed<Texture2D>>> descriptorResource;
 RCLASS()
 class DescriptorSet {
   vk::Device _device;
   vk::DescriptorSet _set;
   std::mutex _mutex;
-  std::unordered_map<uint32_t,Managed<AllocatedBuffer>> _buffers;
-  std::unordered_map<uint32_t,Managed<AllocatedImage>> _images;
-  std::unordered_map<uint32_t,Managed<Texture2D>> _textures;
-  std::unordered_map<uint32_t,Array<Managed<Texture2D>>> _textureArrays;
+  std::unordered_map<uint32_t,descriptorResource> _resources;
 
 public:
   DescriptorSet(const vk::Device &device,const vk::DescriptorSet &set);
   ~DescriptorSet();
   operator vk::DescriptorSet() const;
-  template<typename T>
-  void WriteBuffer(uint32_t binding, const Ref<AllocatedBuffer> &buffer,size_t offset,vk::DescriptorType type);
 
-  void WriteBuffer(uint32_t binding, const Ref<AllocatedBuffer> &buffer, size_t size, size_t
+  void WriteBuffer(uint32_t binding, const Ref<AllocatedBuffer> &buffer, size_t
                    offset, vk::DescriptorType type);
 
   void WriteImage(uint32_t binding, const Ref<AllocatedImage> &image, vk::Sampler
@@ -43,13 +42,10 @@ public:
 
   void WriteTextureArray(uint32_t binding, const Array<Ref<Texture2D>> &textures, vk::ImageLayout
                          layout, const vk::DescriptorType type);
+
+  bool IsBound(uint32_t binding) const;
 };
 
-template <typename T> void DescriptorSet::WriteBuffer(uint32_t binding,
-    const Ref<AllocatedBuffer> &buffer, size_t offset,
-    vk::DescriptorType type) {
-  WriteBuffer(binding,buffer,sizeof(T),offset,type);
-}
 
 REFLECT_IMPLEMENT(DescriptorSet)
 
@@ -58,7 +54,7 @@ struct DescriptorLayoutBuilder {
 
   DescriptorLayoutBuilder& AddBinding(uint32_t binding,vk::DescriptorType type,vk::ShaderStageFlags stages,uint32_t count = 1);
   DescriptorLayoutBuilder& Clear();
-  vk::DescriptorSetLayout Build(vk::Device device);
+  vk::DescriptorSetLayout Build();
 };
 
 

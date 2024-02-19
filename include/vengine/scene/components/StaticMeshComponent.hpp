@@ -13,7 +13,7 @@ public:
   void SetMesh(const Managed<drawing::Mesh> &newMesh);
 
   void Draw(
-      drawing::SimpleFrameData *frameData,
+      drawing::SceneFrameData *frameData,
       const math::Transform &parentTransform) override;
 
   RFUNCTION()

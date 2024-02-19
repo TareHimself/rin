@@ -3,6 +3,7 @@
 #include "vengine/drawing/types.hpp"
 
 namespace vengine::drawing {
+class SceneDrawer;
 struct GpuLight {
   glm::vec4 location;
   glm::vec4 direction;
@@ -18,22 +19,12 @@ struct SceneGlobalBuffer {
   GpuLight lights[1024];
 };
 
-struct SceneFrameData {
-private:
-  RawFrameData * _frame = nullptr;
-  vk::DescriptorSet _sceneDescriptor;
+struct SceneFrameData : SimpleFrameData {
+  SceneDrawer * _sceneDrawer = nullptr;
 public:
-  SceneFrameData(RawFrameData * frame);
+  SceneFrameData(RawFrameData * frame,SceneDrawer * drawer);
 
-  vk::CommandBuffer * GetCmd() const;
-
-  vk::DescriptorSet GetSceneDescriptor() const;
-  
-  void SetSceneDescriptor(const vk::DescriptorSet &descriptor);
-
-  CleanupQueue * GetCleaner() const;
-
-  RawFrameData * GetDrawerFrameData() const;
-};
+  SceneDrawer * GetSceneDrawer() const;
+}; 
 }
 #endif

@@ -1,4 +1,5 @@
 #include "vengine/Engine.hpp"
+#include "vengine/drawing/WindowDrawer.hpp"
 
 #include <vengine/drawing/MaterialBuilder.hpp>
 #include <vengine/drawing/DrawingSubsystem.hpp>
@@ -28,7 +29,6 @@ Array<vk::PushConstantRange> MaterialBuilder::ComputePushConstantRanges(
 
 Managed<MaterialInstance> MaterialBuilder::Create() {
   auto drawer = Engine::Get()->GetDrawingSubsystem().Reserve();
-  auto device = drawer->GetDevice();
   auto instance = newManagedObject<MaterialInstance>();
   ShaderResources resources{};
 
@@ -88,8 +88,8 @@ Managed<MaterialInstance> MaterialBuilder::Create() {
   for (auto i = 0; i < maxLayout + 1; i++) {
     auto layoutType = static_cast<EMaterialSetType>(i);
     auto layout = layoutBuilders.contains(layoutType)
-                    ? layoutBuilders[layoutType].Build(device)
-                    : DescriptorLayoutBuilder().Build(device);
+                    ? layoutBuilders[layoutType].Build()
+                    : DescriptorLayoutBuilder().Build();
     layouts.emplace(layoutType, layout);
     layoutsArr.push(layout);
   }
@@ -99,17 +99,18 @@ Managed<MaterialInstance> MaterialBuilder::Create() {
       {}, layoutsArr, pushConstants);
 
   instance->SetLayout(
-      drawer->GetDevice().createPipelineLayout(pipelineLayoutInfo));
+      drawer->GetVirtualDevice().createPipelineLayout(pipelineLayoutInfo));
 
+  auto mainWindowDrawer = drawer->GetMainWindowDrawer().Reserve();
   if (_type == EMaterialType::UI) {
     _pipelineBuilder
         .SetInputTopology(vk::PrimitiveTopology::eTriangleList)
         .SetPolygonMode(vk::PolygonMode::eFill)
-        .SetCullMode(vk::CullModeFlagBits::eNone, vk::FrontFace::eClockwise)
+        //.SetCullMode(vk::CullModeFlagBits::eNone, vk::FrontFace::eClockwise)
         .SetMultisamplingModeNone()
-        .DisableBlending()
         .DisableDepthTest()
-        .SetColorAttachmentFormat(drawer->GetDrawImageFormat())
+        .EnableBlendingAlphaBlend()
+        .SetColorAttachmentFormat(mainWindowDrawer->GetDrawImageFormat())
         .SetLayout(instance->GetLayout());
   } else {
     _pipelineBuilder
@@ -119,8 +120,8 @@ Managed<MaterialInstance> MaterialBuilder::Create() {
         .SetMultisamplingModeNone()
         .DisableBlending()
         .EnableDepthTest(true, vk::CompareOp::eLessOrEqual)
-        .SetColorAttachmentFormat(drawer->GetDrawImageFormat())
-        .SetDepthFormat(drawer->GetDepthImageFormat())
+        .SetColorAttachmentFormat(mainWindowDrawer->GetDrawImageFormat())
+        .SetDepthFormat(mainWindowDrawer->GetDepthImageFormat())
         .SetLayout(instance->GetLayout());
 
     if (_type == EMaterialType::Translucent) {
@@ -132,7 +133,7 @@ Managed<MaterialInstance> MaterialBuilder::Create() {
 
   instance->SetType(_type);
 
-  instance->SetPipeline(_pipelineBuilder.Build(drawer->GetDevice()));
+  instance->SetPipeline(_pipelineBuilder.Build(drawer->GetVirtualDevice()));
 
   auto globalAllocator = drawer->GetGlobalDescriptorAllocator();
   std::unordered_map<EMaterialSetType, Ref<DescriptorSet>> sets;

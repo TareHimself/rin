@@ -10,23 +10,26 @@ String InputSubsystem::GetName() const {
 
 void InputSubsystem::CheckMouse(float deltaTime) {
   if (GetEngine()->GetInputMode() == EInputMode::GameOnly) {
-    auto window = GetEngine()->GetWindow().Reserve();
-    const auto mousePosition = window->GetMousePosition();
+    if(auto window = GetEngine()->GetFocusedWindow().Reserve()) {
+      const auto mousePosition = window->GetMousePosition();
 
-    if (!_lastMousePosition.has_value()) {
-      _lastMousePosition = mousePosition;
-      return;
+      if (!_lastMousePosition.has_value()) {
+        _lastMousePosition = mousePosition;
+        return;
+      }
+      const auto windowSize = static_cast<glm::fvec2>(window->GetSize());
+      const auto center = windowSize / 2.0f;
+      const auto mouseDelta = mousePosition - _lastMousePosition.value();
+      // const auto totalMouseDelta = mousePosition - center;
+
+      ReceiveMouseMovedEvent(static_cast<float>(mouseDelta.x) * deltaTime,
+                             static_cast<float>(mouseDelta.y) * deltaTime);
+
+      window->SetMousePosition(center);
+      _lastMousePosition = center;
+    } else {
+      _lastMousePosition.reset();
     }
-    const auto windowSize = window->GetSize();
-    const auto center = windowSize / 2;
-    const auto mouseDelta = mousePosition - _lastMousePosition.value();
-    // const auto totalMouseDelta = mousePosition - center;
-
-    ReceiveMouseMovedEvent(static_cast<float>(mouseDelta.x) * deltaTime,
-                           static_cast<float>(mouseDelta.y) * deltaTime);
-
-    window->SetMousePosition(center);
-    _lastMousePosition = center;
   }
 }
 
@@ -176,17 +179,18 @@ void InputSubsystem::Init(Engine *outer) {
     }
   });
 
-  auto window = outer->GetWindow().Reserve();
-  AddCleanup(window->onKeyDown,window->onKeyDown.Bind([this](const std::shared_ptr<window::KeyEvent>& event) {
+  auto window = outer->GetMainWindow().Reserve();
+
+  AddCleanup(window::getManager()->onWindowKeyDown,window::getManager()->onWindowKeyDown.Bind([this](const std::shared_ptr<window::KeyEvent>& event) {
     this->ReceiveKeyDown(event);
   }));
-  AddCleanup(window->onKeyUp,window->onKeyUp.Bind([this](const std::shared_ptr<window::KeyEvent>& event) {
+  AddCleanup(window::getManager()->onWindowKeyUp,window::getManager()->onWindowKeyUp.Bind([this](const std::shared_ptr<window::KeyEvent>& event) {
     this->ReceiveKeyUp(event);
   }));
-  AddCleanup(window->onMouseDown,window->onMouseDown.Bind([this](const std::shared_ptr<window::MouseButtonEvent>& event) {
+  AddCleanup(window::getManager()->onWindowMouseDown,window::getManager()->onWindowMouseDown.Bind([this](const std::shared_ptr<window::MouseButtonEvent>& event) {
     this->ReceiveMouseDown(event);
   }));
-  AddCleanup(window->onMouseUp,window->onMouseUp.Bind([this](const std::shared_ptr<window::MouseButtonEvent>& event) {
+  AddCleanup(window::getManager()->onWindowMouseUp,window::getManager()->onWindowMouseUp.Bind([this](const std::shared_ptr<window::MouseButtonEvent>& event) {
     this->ReceiveMouseUp(event);
   }));
 }

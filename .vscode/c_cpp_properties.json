@@ -3,20 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/src/**",
-                "C:/VulkanSDK/**",
-                "${workspaceFolder}/ThirdParty/glm",
-                "${workspaceFolder}/ThirdParty/vkb/src",
-                "${workspaceFolder}/ThirdParty/rp3d/include",
-                "${workspaceFolder}/ThirdParty/sdl/include",
-                "${workspaceFolder}/ThirdParty/vkm/include",
-                "${workspaceFolder}/ThirdParty/glslang/include",
-                "${workspaceFolder}/ThirdParty/spdlog/include",
-                "${workspaceFolder}/ThirdParty/rp3d_debug/include",
-                "${workspaceFolder}/ThirdParty/sdl_debug/include",
-                "${workspaceFolder}/ThirdParty/vkm_debug/include",
-                "${workspaceFolder}/ThirdParty/glslang_debug/include",
-                "${workspaceFolder}/ThirdParty/spdlog_debug/include",
+                
             ],
             "defines": [
                 "_DEBUG",
@@ -28,7 +15,8 @@
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "windows-msvc-x64",
-            "configurationProvider": "ms-vscode.cmake-tools"
+            "configurationProvider": "ms-vscode.cmake-tools",
+            "compileCommands": "${workspaceFolder}/standalone/build/compile_commands.json"
         }
     ],
     "version": 4

@@ -56,7 +56,8 @@ private:
   math::Vector2 _mousePosition{0, 0};
   vk::Extent2D _windowExtent{1000, 1000};
 
-  Ref<window::Window> _window;
+  Ref<window::Window> _mainWindow;
+  Ref<window::Window> _focusedWindow;
   long long _runTime = 0;
   long long _lastTickTime = 0;
   float _lastDeltaSeconds = 0;
@@ -136,9 +137,9 @@ public:
 
   Array<Ref<scene::Scene>> GetScenes() const;
 
-  Ref<window::Window> GetWindow() const;
+  Ref<window::Window> GetMainWindow() const;
 
-  vk::Extent2D GetWindowExtent() const;
+  vk::Extent2D GetMainWindowSize() const;
 
   Ref<drawing::DrawingSubsystem> GetDrawingSubsystem() const;
 
@@ -168,7 +169,7 @@ public:
 
   bool IsFullScreen() const;
 
-  bool IsFocused() const;
+  Ref<window::Window> GetFocusedWindow() const;
 
   template <typename T,typename ... Args>
    Ref<T> CreateScene(Args &&... args);

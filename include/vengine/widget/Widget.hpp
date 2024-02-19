@@ -1,8 +1,11 @@
 ﻿#pragma once
+#include "WidgetRoot.hpp"
 #include "types.hpp"
 #include "vengine/Object.hpp"
 #include "vengine/containers/Array.hpp"
 #include "vengine/window/types.hpp"
+
+#include <variant>
 
 namespace vengine {
 namespace drawing {
@@ -15,7 +18,7 @@ namespace vengine::widget {
 class WidgetSubsystem;
 
 class Widget : public Object<WidgetSubsystem> {
-  Widget * _parent = nullptr;
+  std::variant<WidgetRoot *, Widget *,std::nullptr_t> _parent = nullptr;
   
   float _initAt = 0.0f;
   Point2D _pivot;
@@ -36,18 +39,18 @@ public:
   virtual EVisibility GetVisibility() const;
   void SetPivot(const Point2D& pivot);
   Point2D GetPivot() const;
-  void SetParent(Widget * ptr);
+  void SetParent(const std::variant<WidgetRoot*,Widget *,std::nullptr_t>& ptr);
 
   void SetLastDrawRect(const Rect& rect);
 
   Rect GetDrawRect() const;
   
-  Widget * GetParent() const;
+  Widget * GetParentWidget() const;
+  WidgetRoot * GetRoot() const;
 
   float GetTimeAtInit() const;
   
-  virtual void Draw(drawing::SimpleFrameData *
-                    frameData, DrawInfo
+  virtual void Draw(WidgetFrameData *frameData, DrawInfo
                     info);
 
   void BeforeDestroy() override;
@@ -70,7 +73,10 @@ public:
 
   virtual void ReceiveMouseEnter(const std::shared_ptr<window::MouseMovedEvent> &event,std::list<Ref<Widget>> &items);
 
-  virtual void ReceiveMouseMove(const std::shared_ptr<window::MouseMovedEvent> &event);
+  virtual bool ReceiveMouseMove(
+      const std::shared_ptr<window::MouseMovedEvent> &event);
+
+  virtual bool OnMouseMoved(const std::shared_ptr<window::MouseMovedEvent> &event);
   
   virtual void OnMouseEnter(const std::shared_ptr<window::MouseMovedEvent> &event);
   

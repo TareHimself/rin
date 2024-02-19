@@ -2,6 +2,12 @@
 #include "vengine/drawing/types.hpp"
 #include <vulkan/vulkan.hpp>
 
+namespace vengine {
+namespace widget {
+class WidgetRoot;
+}
+}
+
 namespace vengine::widget {
 class Widget;
 class Size2D;
@@ -38,6 +44,7 @@ struct Size2D {
   bool operator==(const Size2D &) const;
 
   Size2D& operator=(const Point2D& other);
+  Size2D& operator=(const glm::ivec2& other);
 };
 
 struct Rect {
@@ -79,22 +86,13 @@ struct DrawInfo {
   // Rect drawRect;
 };
 
-struct WidgetFrameData {
+struct WidgetFrameData : drawing::SimpleFrameData {
 private:
-  drawing::RawFrameData * _frame = nullptr;
-  vk::DescriptorSet _widgetDescriptor;
+  WidgetRoot * _root = nullptr;
 public:
-  WidgetFrameData(drawing::RawFrameData * frame);
-
-  vk::CommandBuffer * GetCmd() const;
-
-  vk::DescriptorSet GetWidgetDescriptor() const;
+  WidgetFrameData(drawing::RawFrameData * frame,WidgetRoot * root);
   
-  void SetWidgetDescriptor(const vk::DescriptorSet &descriptor);
-
-  CleanupQueue * GetCleaner() const;
-
-  drawing::RawFrameData * GetDrawerFrameData() const;
+  WidgetRoot * GetRoot() const;
 };
 
 struct UiGlobalBuffer {

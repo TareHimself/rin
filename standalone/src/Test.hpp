@@ -13,7 +13,7 @@ class PrettyShader : public widget::Canvas {
   Managed<drawing::MaterialInstance> _material;
 public:
   void Init(widget::WidgetSubsystem *outer) override;
-  void OnPaint(drawing::SimpleFrameData *frameData,const widget::Rect& clip) override;
+  void OnPaint(widget::WidgetFrameData *frameData, const widget::Rect& clip) override;
   
 };
 
