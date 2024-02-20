@@ -690,56 +690,11 @@ Managed<AllocatedImage> DrawingSubsystem::CreateImage(
 }
 
 
-Managed<GpuMeshBuffers> DrawingSubsystem::CreateMeshBuffers(const Mesh *mesh) {
+Managed<GpuGeometryBuffers> DrawingSubsystem::CreateGeometryBuffers(const Mesh *mesh) {
   const auto vertices = mesh->GetVertices();
   const auto indices = mesh->GetIndices();
-  const auto vertexBufferSize = vertices.byte_size();
-  const auto indexBufferSize = indices.byte_size();
 
-  Managed<GpuMeshBuffers> newBuffers{new GpuMeshBuffers};
-
-  newBuffers->vertexBuffer = GetAllocator().Reserve()->CreateBuffer(
-      vertexBufferSize,
-      vk::BufferUsageFlagBits::eStorageBuffer
-      | vk::BufferUsageFlagBits::eTransferDst
-      | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-      VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-      vk::MemoryPropertyFlagBits::eDeviceLocal);
-
-  const vk::BufferDeviceAddressInfo deviceAddressInfo{
-      newBuffers->vertexBuffer->buffer};
-  newBuffers->vertexBufferAddress = _device.getBufferAddress(deviceAddressInfo);
-
-  newBuffers->indexBuffer = GetAllocator().Reserve()->CreateBuffer(
-      vertexBufferSize,
-      vk::BufferUsageFlagBits::eIndexBuffer
-      | vk::BufferUsageFlagBits::eTransferDst,
-      VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-      vk::MemoryPropertyFlagBits::eDeviceLocal);
-
-  const auto stagingBuffer = GetAllocator().Reserve()->
-                                            CreateTransferCpuGpuBuffer(
-                                                vertexBufferSize +
-                                                indexBufferSize, false);
-
-  const auto data = stagingBuffer->GetMappedData();
-  memcpy(data, vertices.data(), vertexBufferSize);
-  memcpy(static_cast<char *>(data) + vertexBufferSize, indices.data(),
-         indexBufferSize);
-
-  ImmediateSubmit([&](const vk::CommandBuffer cmd) {
-    const vk::BufferCopy vertexCopy{0, 0, vertexBufferSize};
-
-    cmd.copyBuffer(stagingBuffer->buffer, newBuffers->vertexBuffer->buffer, 1,
-                   &vertexCopy);
-
-    const vk::BufferCopy indicesCopy{vertexBufferSize, 0, indexBufferSize};
-
-    cmd.copyBuffer(stagingBuffer->buffer, newBuffers->indexBuffer->buffer, 1,
-                   &indicesCopy);
-  });
-
-  return newBuffers;
+  return CreateGeometryBuffers(vertices,indices);
 }
 
 Ref<Allocator> DrawingSubsystem::GetAllocator() const {

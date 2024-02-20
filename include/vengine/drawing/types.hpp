@@ -1,4 +1,5 @@
 ﻿#pragma once
+
 #include "Allocator.hpp"
 #include "descriptors.hpp"
 #include "vengine/types.hpp"
@@ -59,23 +60,21 @@ public:
   void SetWindowDrawer(WindowDrawer * windowDrawer);
 };
 
-
-struct VertexInputDescription {
-  Array<vk::VertexInputBindingDescription> bindings;
-  Array<vk::VertexInputAttributeDescription> attributes;
-}; 
-
 struct Vertex {
   glm::vec4 location;
   glm::vec4 normal;
   glm::vec4 uv;
+};
 
-  // static VertexInputDescription getVertexDescription();
+struct Vertex2D {
+  glm::vec4 locationAndUv;
 };
 
 VENGINE_SIMPLE_ARRAY_SERIALIZER(Buffer,Vertex);
 
-struct GpuMeshBuffers {
+VENGINE_SIMPLE_ARRAY_SERIALIZER(Buffer,Vertex2D);
+
+struct GpuGeometryBuffers {
   Managed<AllocatedBuffer> indexBuffer;
   Managed<AllocatedBuffer> vertexBuffer;
   vk::DeviceAddress vertexBufferAddress;

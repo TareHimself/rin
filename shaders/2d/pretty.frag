@@ -27,9 +27,9 @@ vec3 palette( float t ) {
 //https://www.shadertoy.com/view/mtyGWy
 void main() {
 
-    if(shouldDiscard(ui.viewport,pRect.clip,gl_FragCoord.xy)){
-        discard;
-    }
+    // if(shouldDiscard(ui.viewport,pRect.clip,gl_FragCoord.xy)){
+    //     discard;
+    // }
 
     ivec2 fragCoord = ivec2(gl_FragCoord.xy);
     ivec2 iResolution = ivec2(pRect.extent.zw);

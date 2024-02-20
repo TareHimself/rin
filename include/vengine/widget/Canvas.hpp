@@ -1,10 +1,11 @@
 #pragma once
+#include "GeometryWidget.hpp"
 #include "vengine/drawing/MaterialInstance.hpp"
 #include "vengine/widget/Widget.hpp"
 
 namespace vengine::widget {
 
-class Canvas : public Widget {
+class Canvas : public GeometryWidget {
   Size2D _size{0,0};
 public:
   void Draw(WidgetFrameData *frameData, DrawInfo info) override;

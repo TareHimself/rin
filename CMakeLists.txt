@@ -25,7 +25,7 @@ target_include_directories(
     $<INSTALL_INTERFACE:include> 
 )
 
-target_compile_definitions(${PROJECT_NAME} PUBLIC -DNOMINMAX)
+target_compile_definitions(${PROJECT_NAME} PUBLIC -DNOMINMAX -DGLM_FORCE_ALIGNED_GENTYPES -DGLM_ENABLE_EXPERIMENTAL)
 
 #   target_include_directories(
 #     ${PROJECT_NAME}

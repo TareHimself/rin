@@ -45,6 +45,12 @@ Point2D Widget::GetPivot() const {
 void Widget::SetParent(
     const std::variant<WidgetRoot *, Widget *, std::nullptr_t> &ptr) {
   _parent = ptr;
+  
+  if(std::holds_alternative<WidgetRoot *>(ptr)) {
+    _lastRoot = std::get<WidgetRoot *>(ptr);
+  } else if(std::holds_alternative<Widget *>(ptr)) {
+    _lastRoot = std::get<Widget *>(ptr)->GetRoot();
+  }
 }
 
 void Widget::SetLastDrawRect(const Rect &rect) {
@@ -67,6 +73,10 @@ WidgetRoot * Widget::GetRoot() const {
     return std::get<WidgetRoot *>(_parent);
   }
 
+  if(_lastRoot) {
+    return _lastRoot;
+  }
+  
   if(const auto parent = GetParentWidget()) {
     return parent->GetRoot();
   }

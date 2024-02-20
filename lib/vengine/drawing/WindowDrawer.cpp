@@ -413,9 +413,9 @@ void WindowDrawer::Draw() {
 
   cmd->setScissor(0, {scissor});
   
-  if(onDrawScenes.GetNumListeners() > 0) {
-    DrawScenes(frame);
-  }
+  // if(onDrawScenes.GetNumListeners() > 0) {
+  //   DrawScenes(frame);
+  // }
   
   if(onDrawUi.GetNumListeners() > 0) {
     DrawUi(frame);

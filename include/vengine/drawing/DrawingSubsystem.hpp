@@ -194,8 +194,62 @@ public:
 
   virtual void Draw();
 
-  Managed<GpuMeshBuffers> CreateMeshBuffers(const Mesh *mesh);
+  Managed<GpuGeometryBuffers> CreateGeometryBuffers(const Mesh *mesh);
+
+  template<typename T>
+  Managed<GpuGeometryBuffers> CreateGeometryBuffers(const Array<T>& vertices,const Array<uint32_t>& indices);
 };
+
+template <typename T> Managed<GpuGeometryBuffers> DrawingSubsystem::CreateGeometryBuffers(const Array<T> &vertices,
+    const Array<uint32_t> &indices) {
+  const auto vertexBufferSize = vertices.byte_size();
+  const auto indexBufferSize = indices.byte_size();
+
+  Managed newBuffers{new GpuGeometryBuffers};
+
+  newBuffers->vertexBuffer = GetAllocator().Reserve()->CreateBuffer(
+      vertexBufferSize,
+      vk::BufferUsageFlagBits::eStorageBuffer
+      | vk::BufferUsageFlagBits::eTransferDst
+      | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+      VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+  const vk::BufferDeviceAddressInfo deviceAddressInfo{
+    newBuffers->vertexBuffer->buffer};
+  newBuffers->vertexBufferAddress = _device.getBufferAddress(deviceAddressInfo);
+
+  newBuffers->indexBuffer = GetAllocator().Reserve()->CreateBuffer(
+      vertexBufferSize,
+      vk::BufferUsageFlagBits::eIndexBuffer
+      | vk::BufferUsageFlagBits::eTransferDst,
+      VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+      vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+  const auto stagingBuffer = GetAllocator().Reserve()->
+                                            CreateTransferCpuGpuBuffer(
+                                                vertexBufferSize +
+                                                indexBufferSize, false);
+
+  const auto data = stagingBuffer->GetMappedData();
+  memcpy(data, vertices.data(), vertexBufferSize);
+  memcpy(static_cast<char *>(data) + vertexBufferSize, indices.data(),
+         indexBufferSize);
+
+  ImmediateSubmit([&](const vk::CommandBuffer cmd) {
+    const vk::BufferCopy vertexCopy{0, 0, vertexBufferSize};
+
+    cmd.copyBuffer(stagingBuffer->buffer, newBuffers->vertexBuffer->buffer, 1,
+                   &vertexCopy);
+
+    const vk::BufferCopy indicesCopy{vertexBufferSize, 0, indexBufferSize};
+
+    cmd.copyBuffer(stagingBuffer->buffer, newBuffers->indexBuffer->buffer, 1,
+                   &indicesCopy);
+  });
+
+  return newBuffers;
+}
 
 REFLECT_IMPLEMENT(DrawingSubsystem)
 } // namespace rendering

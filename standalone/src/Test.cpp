@@ -112,7 +112,7 @@ void TestGameObject::Init(scene::Scene *outer) {
     log::engine->info("Light Array Created");
   }
 
-  SetWorldLocation({0, 0, 0});
+  SetWorldLocation({0.0f, 0.0f, 0.0f});
   SetWorldRotation(GetWorldRotation().ApplyYaw(180.0f));
   AddCleanup([this] {
     _meshComponent.Reserve()->SetMesh(nullptr);

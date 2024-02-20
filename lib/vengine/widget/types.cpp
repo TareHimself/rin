@@ -72,6 +72,10 @@ Point2D Point2D::operator*(const float &other) const {
   return *this * Point2D{other,other};
 }
 
+bool Point2D::operator==(const Point2D & other) const {
+  return x == other.x && y == other.y;
+}
+
 Size2D::Size2D() {
   width = 0;
   height = 0;
@@ -195,6 +199,10 @@ bool Rect::HasIntersection(const Rect &rect) const {
 
 bool Rect::HasSpace() const {
   return GetSize().height != 0 && GetSize().width != 0;
+}
+
+bool Rect::operator==(const Rect &other) const {
+  return _size == other._size && _point == other._point;
 }
 
 }

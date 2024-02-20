@@ -1,5 +1,7 @@
 ﻿#pragma once
 #include "vengine/drawing/types.hpp"
+#include <glm/matrix.hpp>
+#include <glm/fwd.hpp>
 #include <vulkan/vulkan.hpp>
 
 namespace vengine {
@@ -31,6 +33,8 @@ struct Point2D {
   Point2D operator-(const float& other) const;
   Point2D operator/(const float& other) const;
   Point2D operator*(const float& other) const;
+
+  bool operator==(const Point2D &) const;
 };
 
 struct Size2D {
@@ -75,6 +79,8 @@ public:
   bool HasIntersection(const Rect& rect) const;
 
   bool HasSpace() const;
+
+  bool operator==(const Rect &) const;
 };
 
 struct DrawInfo {

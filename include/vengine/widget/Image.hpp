@@ -1,9 +1,10 @@
 ﻿#pragma once
+#include "GeometryWidget.hpp"
 #include "Widget.hpp"
 #include "vengine/drawing/MaterialInstance.hpp"
 
 namespace vengine::widget {
-class Image : public Widget{
+class Image : public GeometryWidget {
   Managed<drawing::Texture2D> _image;
   Managed<drawing::MaterialInstance> _imageMat;
 public:

@@ -26,6 +26,7 @@ class Widget : public Object<WidgetSubsystem> {
   EVisibility _visibility = EVisibility::Visibility_Visible;
   Rect _drawRect{};
   bool _isHovered = false;
+  WidgetRoot * _lastRoot = nullptr;
 protected:
   Array<Managed<Widget>> _children;
 public:

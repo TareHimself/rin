@@ -10,7 +10,7 @@ layout( push_constant ) uniform constants
 float mapRangeUnClamped(float value, float fromMin, float fromMax, float toMin, float toMax) {
 
     // Calculate the normalized position of the value in the input range
-    float normalizedPosition = (value - fromMin) / (fromMax - fromMin);
+    float normalizedPosition = max((value - fromMin),0.000001) / (fromMax - fromMin);
 
     // Map the normalized position to the output range [toMin, toMax]
     return mix(toMin, toMax, normalizedPosition);

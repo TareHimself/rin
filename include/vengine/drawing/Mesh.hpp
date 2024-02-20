@@ -38,10 +38,10 @@ protected:
   Array<uint32_t> _indices;
   Array<MeshSurface> _surfaces;
   Array<Managed<MaterialInstance>> _materials;
-  Managed<GpuMeshBuffers> _gpuData;
+  Managed<GpuGeometryBuffers> _gpuData;
 
 public:
-  Ref<GpuMeshBuffers> GetGpuData();
+  Ref<GpuGeometryBuffers> GetGpuData();
   Array<Vertex> GetVertices() const;
   Array<uint32_t> GetIndices() const;
   Array<MeshSurface> GetSurfaces() const;

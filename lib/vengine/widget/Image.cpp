@@ -9,7 +9,7 @@
 
 namespace vengine::widget {
 void Image::Init(WidgetSubsystem * outer) {
-  Widget::Init(outer);
+  GeometryWidget::Init(outer);
   const auto drawer = Engine::Get()->GetDrawingSubsystem().Reserve();
   
   _imageMat = drawing::MaterialBuilder()

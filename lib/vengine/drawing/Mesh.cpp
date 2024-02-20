@@ -5,7 +5,7 @@
 
 
 namespace vengine::drawing {
-Ref<GpuMeshBuffers> Mesh::GetGpuData() {
+Ref<GpuGeometryBuffers> Mesh::GetGpuData() {
   return _gpuData;
 }
 
@@ -50,7 +50,7 @@ void Mesh::SetMaterial(uint32_t index,
 
 void Mesh::Upload() {
   if(!IsUploaded()) {
-    _gpuData = GetOuter()->CreateMeshBuffers(this);
+    _gpuData = GetOuter()->CreateGeometryBuffers(this);
   }
 }
 

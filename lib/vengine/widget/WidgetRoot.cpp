@@ -4,6 +4,8 @@
 #include "vengine/widget/Widget.hpp"
 #include "vengine/drawing/DrawingSubsystem.hpp"
 
+#include <glm/ext/matrix_clip_space.hpp>
+
 namespace vengine::widget {
 
 Ref<drawing::AllocatedBuffer> WidgetRoot::GetGlobalBuffer() const {
