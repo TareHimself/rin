@@ -41,11 +41,10 @@ uint32_t Text::GetFontSize() const {
 void Text::Init(WidgetSubsystem * outer) {
   Widget::Init(outer);
   _font = Engine::Get()->GetAssetSubsystem().Reserve()->ImportFont(R"(D:\Github\vengine\NotoSans)");
-  _material = drawing::MaterialBuilder()
-  .SetType(drawing::EMaterialType::UI)
-  .AddShader(drawing::Shader::FromSource(io::getRawShaderPath("2d/font.vert")))
-  .AddShader(drawing::Shader::FromSource(io::getRawShaderPath("2d/font.frag")))
-  .Create();
+  _material = GetOuter()->CreateMaterialInstance( {
+    drawing::Shader::FromSource(io::getRawShaderPath("2d/font.vert"))
+,drawing::Shader::FromSource(io::getRawShaderPath("2d/font.frag"))
+  });
 }
 
 Size2D Text::GetDesiredSize() {

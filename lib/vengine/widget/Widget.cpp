@@ -42,15 +42,12 @@ Point2D Widget::GetPivot() const {
   return _pivot;
 }
 
-void Widget::SetParent(
-    const std::variant<WidgetRoot *, Widget *, std::nullptr_t> &ptr) {
+void Widget::NotifyRootChanged(WidgetRoot *root) {
+  _root = root;
+}
+
+void Widget::SetParent(Widget *ptr) {
   _parent = ptr;
-  
-  if(std::holds_alternative<WidgetRoot *>(ptr)) {
-    _lastRoot = std::get<WidgetRoot *>(ptr);
-  } else if(std::holds_alternative<Widget *>(ptr)) {
-    _lastRoot = std::get<Widget *>(ptr)->GetRoot();
-  }
 }
 
 void Widget::SetLastDrawRect(const Rect &rect) {
@@ -62,25 +59,12 @@ Rect Widget::GetDrawRect() const {
 }
 
 Widget * Widget::GetParentWidget() const {
-  if(std::holds_alternative<Widget *>(_parent)) {
-    return std::get<Widget *>(_parent);
-  }
-  return nullptr;
+
+  return _parent;
 }
 
 WidgetRoot * Widget::GetRoot() const {
-  if(std::holds_alternative<WidgetRoot *>(_parent)) {
-    return std::get<WidgetRoot *>(_parent);
-  }
-
-  if(_lastRoot) {
-    return _lastRoot;
-  }
-  
-  if(const auto parent = GetParentWidget()) {
-    return parent->GetRoot();
-  }
-  return nullptr;
+  return _root;
 }
 
 float Widget::GetTimeAtInit() const {
@@ -120,6 +104,10 @@ void Widget::Draw(WidgetFrameData *frameData,
 
 void Widget::BeforeDestroy() {
   Object::BeforeDestroy();
+}
+
+bool Widget::IsOnScreen() {
+  return _isOnScreen;
 }
 
 Size2D Widget::GetDesiredSize() {
@@ -281,6 +269,25 @@ Rect Widget::UpdateDrawRect(const Rect &rect) {
 
 std::optional<Size2D> Widget::GetCachedDesiredSize() const {
   return _cachedDesiredSize;
+}
+
+void Widget::NotifyAddedToScreen() {
+  _isOnScreen = true;
+  OnAddedToScreen();
+}
+
+void Widget::NotifyRemovedFromScreen() {
+  _isOnScreen = false;
+  OnRemovedFromScreen();
+  NotifyRootChanged(nullptr);
+}
+
+void Widget::OnAddedToScreen() {
+  
+}
+
+void Widget::OnRemovedFromScreen() {
+  
 }
 
 

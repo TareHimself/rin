@@ -9,11 +9,18 @@
 #include "vengine/widget/Image.hpp"
 #include "vengine/widget/Sizer.hpp"
 #include "vengine/widget/Text.hpp"
+#include "vengine/widget/Viewport.hpp"
 using namespace vengine::widget;
 
 
 void TestWidget::Init(WidgetSubsystem *outer) {
   Panel::Init(outer);
+
+  const auto viewport = outer->CreateWidget<Viewport>();
+  if(auto viewportSlot = Add(viewport).Reserve()) {
+    viewportSlot->SetMinAnchor({0,0});
+    viewportSlot->SetMaxAnchor({1,1});
+  }
   auto columnSizer = outer->CreateWidget<Sizer>();
 
   //columnSizer->SetWidth(350.0f);
@@ -23,7 +30,7 @@ void TestWidget::Init(WidgetSubsystem *outer) {
   columnSizer->Add(_row);
 
   auto rowSlot = this->Add(columnSizer).Reserve();
-  rowSlot->SetMinAnchor({0.0, 0.5});
+  rowSlot->SetMinAnchor({0.0, 0.0});
   rowSlot->SetMaxAnchor({1.0, 0.5});
   rowSlot->SetAlignment({0.0f, 0.0f});
   rowSlot->SetSizeToContent(true);
@@ -75,7 +82,7 @@ void TestWidget::BindInput(
                            assetImporter
                            ->
                            ImportTexture(
-                               R"(C:\Users\Taree\Pictures\Wallpaperz\silhouette of steel ridge wallpaper, blue and pink sky painting 7b507f40-43f9-484f-9bd9-16b7443428cd.jpg)");
+                               R"(D:\1698615918376.jpeg)");
 
                        const auto sizer = widgetManager->
                            CreateWidget
@@ -121,7 +128,7 @@ void TestWidget::BindInput(
                              GetWidgetSubsystem().
                              Reserve();
                      auto text = widgetManager->CreateWidget<Text>();
-                     text->SetContent("This is a test!");
+                     text->SetContent("This Bro Is GAY ->");
                      text->SetFont(assetImporter->ImportFont(R"(D:\Github\vengine\fonts\noto)"));
                      _row->Add(text);
                  }

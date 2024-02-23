@@ -17,6 +17,10 @@ protected:
 public:
   
   virtual MaterialBuilder& AddShader(Managed<Shader> shader);
+
+  virtual MaterialBuilder& AddShaders(const Array<Managed<Shader>> &shaders);
+
+  virtual MaterialBuilder& AddAttachmentFormats(const Array<vk::Format> &formats);
   
   virtual MaterialBuilder& SetType(EMaterialType type);
   

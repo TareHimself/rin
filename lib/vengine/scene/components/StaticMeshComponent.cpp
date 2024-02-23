@@ -12,8 +12,8 @@ Ref<drawing::Mesh> StaticMeshComponent::GetMesh() const {
 }
 
 void StaticMeshComponent::SetMesh(const Managed<drawing::Mesh> &newMesh) {
-  if(newMesh) {
-    if(!newMesh->IsUploaded()) {
+  if (newMesh) {
+    if (!newMesh->IsUploaded()) {
       newMesh->Upload();
     }
   }
@@ -21,8 +21,9 @@ void StaticMeshComponent::SetMesh(const Managed<drawing::Mesh> &newMesh) {
 }
 
 void StaticMeshComponent::Draw(
-    drawing::SceneFrameData *frameData, const math::Transform &parentTransform) {
-  if(!_mesh || !_mesh->IsUploaded()) {
+    drawing::SceneFrameData *frameData,
+    const math::Transform &parentTransform) {
+  if (!_mesh || !_mesh->IsUploaded()) {
     return;
   }
   const auto transform = GetWorldTransform();
@@ -33,27 +34,32 @@ void StaticMeshComponent::Draw(
   pushConstants.transformMatrix = transform.Matrix(); //glm::mat4{1.f};
   pushConstants.vertexBuffer = meshGpuData->vertexBufferAddress;
 
-  const auto rawFrameData = frameData->GetRaw();
-  const auto cmd = frameData->GetCmd();
-  
   const auto surfaces = _mesh->GetSurfaces();
   const auto materials = _mesh->GetMaterials();
   const auto surfaceMatSizeMatch = surfaces.size() == materials.size();
-  utils::vassert(surfaceMatSizeMatch,"Surfaces and Materials Size Mismatch");
-  
-  for(auto i = 0; i < surfaces.size(); i++) {
+  utils::vassert(surfaceMatSizeMatch, "Surfaces and Materials Size Mismatch");
+
+  for (auto i = 0; i < surfaces.size(); i++) {
     const auto [startIndex, count] = surfaces[i];
-    const auto material = materials[i] ? materials[i].Reserve() : frameData->GetSceneDrawer()->GetDefaultMaterial().Reserve();
-    if(!material) {
+    const auto material = materials[i]
+                            ? materials[i].Reserve()
+                            : frameData->GetSceneDrawer()->GetDefaultMaterial().
+                                         Reserve();
+    if (!material) {
       continue;
     }
-    material->BindPipeline(rawFrameData);
-    material->BindSets(rawFrameData);
-    //material->BindCustomSet(rawFrameData,frameData->GetDescriptor(),0);
-    material->Push(frameData->GetCmd(),"pVertex",pushConstants);
-    
-    cmd->bindIndexBuffer(meshGpuData->indexBuffer->buffer,0,vk::IndexType::eUint32);
-    cmd->drawIndexed(count,1,startIndex,0,0);
+
+    frameData->AddLit(
+        [pushConstants,material,meshGpuData,count,startIndex](
+        const drawing::SceneFrameData *frame) {
+          material->BindPipeline(frame->GetRaw());
+          material->BindSets(frame->GetRaw());
+          material->Push(frame->GetCmd(), "pVertex", pushConstants);
+
+          frame->GetCmd()->bindIndexBuffer(meshGpuData->indexBuffer->buffer, 0,
+                                           vk::IndexType::eUint32);
+          frame->GetCmd()->drawIndexed(count, 1, startIndex, 0, 0);
+        });
   }
 }
 }

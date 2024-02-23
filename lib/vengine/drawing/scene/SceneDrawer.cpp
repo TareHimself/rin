@@ -24,11 +24,10 @@ void SceneDrawer::Init(scene::Scene * outer) {
 
   auto shaderManager = drawer->GetShaderManager().Reserve();
   MaterialBuilder builder;
-  _defaultCheckeredMaterial = builder
-  .SetType(EMaterialType::Lit)
-  .AddShader(Shader::FromSource(io::getRawShaderPath("3d/mesh.frag")))
-  .AddShader(Shader::FromSource(io::getRawShaderPath("3d/mesh.vert")))
-  .Create();
+  _defaultCheckeredMaterial = CreateMaterialInstance({
+    Shader::FromSource(io::getRawShaderPath("3d/mesh_deferred.frag")),
+    Shader::FromSource(io::getRawShaderPath("3d/mesh.vert"))
+  });
   
   
   const auto resources = _defaultCheckeredMaterial->GetResources();
@@ -42,7 +41,7 @@ void SceneDrawer::Init(scene::Scene * outer) {
   _defaultCheckeredMaterial->SetBuffer("SceneGlobalBuffer",_sceneGlobalBuffer);
 
   if (auto windowDrawer = drawer->GetWindowDrawer(Engine::Get()->GetMainWindow()).Reserve()) {
-
+    _windowDrawer = windowDrawer;
     AddCleanup(windowDrawer->onDrawScenes, windowDrawer->onDrawScenes.Bind(
                    [this](drawing::RawFrameData *rawFrame) {
                      Draw(rawFrame);
@@ -54,9 +53,7 @@ void SceneDrawer::Draw(RawFrameData *frameData) {
   const auto cmd = frameData->GetCmd();
   
   const auto scene = GetOuter();
-
   
-
   const auto cameraRef = scene->GetViewTarget().Reserve()->GetComponentByClass<scene::CameraComponent>().Reserve();
 
   if(!cameraRef && cameraRef->IsInitialized()) {
@@ -96,6 +93,8 @@ void SceneDrawer::Draw(RawFrameData *frameData) {
       drawableRef->Draw(&drawData, {});
     }
   }
+
+  
 }
 
 void SceneDrawer::BeforeDestroy() {
@@ -105,7 +104,20 @@ void SceneDrawer::BeforeDestroy() {
   _sceneGlobalBuffer.Clear();
 }
 
+vk::Extent2D SceneDrawer::GetDrawExtent() const {
+  return _drawExtent;
+}
+
+Ref<WindowDrawer> SceneDrawer::GetWindowDrawer() {
+  return _windowDrawer;
+}
+
 Ref<MaterialInstance> SceneDrawer::GetDefaultMaterial() const {
   return _defaultCheckeredMaterial;
 }
+
+Managed<MaterialInstance> SceneDrawer::CreateMaterialInstance(const Array<Managed<Shader>> &shaders) {
+  return MaterialBuilder().AddShaders(shaders).SetType(EMaterialType::Lit).AddAttachmentFormats(GetColorAttachmentFormats()).Create();
+}
+
 }

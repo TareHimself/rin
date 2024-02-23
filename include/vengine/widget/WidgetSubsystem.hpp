@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "vengine/Object.hpp"
 #include "vengine/EngineSubsystem.hpp"
-#include "vengine/drawing/Drawable.hpp"
+#include "vengine/drawing/Drawer.hpp"
 #include "vengine/drawing/MaterialInstance.hpp"
 #include "vengine/window/Window.hpp"
 #include "generated/widget/WidgetSubsystem.reflect.hpp"
@@ -23,7 +23,7 @@ namespace vengine::widget {
 class Widget;
 
 RCLASS()
-class WidgetSubsystem : public EngineSubsystem, public drawing::Drawable {
+class WidgetSubsystem : public EngineSubsystem, public drawing::Drawer {
   std::unordered_map<uint64_t,Managed<WidgetRoot>> _roots;
   Array<Ref<WidgetRoot>> _rootsArr;
 public:
@@ -44,6 +44,8 @@ public:
 
   virtual void CreateRoot(const Ref<window::Window>& window);
   virtual void DestroyRoot(const Ref<window::Window>& window);
+
+  Managed<drawing::MaterialInstance> CreateMaterialInstance(const Array<Managed<drawing::Shader>> &shaders);
 };
 
 template <typename T, typename ... Args> Managed<T> WidgetSubsystem::CreateWidget(

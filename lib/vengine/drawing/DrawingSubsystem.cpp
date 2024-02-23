@@ -449,6 +449,34 @@ void DrawingSubsystem::Init(Engine *outer) {
   _graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).
                                    value();
 
+  _submitThread = std::thread([this] {
+    while(!IsPendingDestroy()) {
+      if(_submitQueue.empty()) {
+        std::unique_lock<std::mutex> l(_submitMutex);
+        _submitCond.wait(l);
+      }
+
+      if(!_submitQueue.empty()) {
+        auto front = _submitQueue.front();
+        try {
+          front.func(_graphicsQueue);
+          front.pending->set_value({});
+        } catch (std::exception_ptr e) {
+          front.pending->set_value(e);
+        }
+        _submitQueue.pop();
+      }
+    }
+  });
+
+  AddCleanup([this] {
+    while(!_submitQueue.empty()) {
+      _submitQueue.pop();
+    }
+    _submitCond.notify_all();
+    _submitThread.join();
+  });
+  
   AddCleanup([this] {
     _shaderManager.Clear();
 
@@ -548,7 +576,7 @@ void DrawingSubsystem::ImmediateSubmit(
 
   vk::CommandBufferSubmitInfo cmdInfo{cmd, 0};
 
-  _graphicsQueue.submit2(vk::SubmitInfo2{{}, {}, cmdInfo}, _immediateFence);
+  SubmitThreadSafe(vk::SubmitInfo2{{}, {}, cmdInfo},_immediateFence);
 
   vk::resultCheck(_device.waitForFences({_immediateFence}, true,UINT64_MAX),
                   "Failed to wait for fences for immediate submit");
@@ -587,12 +615,35 @@ Ref<WindowDrawer> DrawingSubsystem::CreateWindowDrawer(
   return drawer;
 }
 
+vk::Format DrawingSubsystem::GetSwapchainFormat() {
+  return GetWindowDrawer(GetEngine()->GetMainWindow()).Reserve()->GetSwapchainFormat();
+}
+
+void DrawingSubsystem::SubmitThreadSafe(const vk::SubmitInfo2 &info,
+                                        const vk::Fence &fence) {
+  
+  RunQueueOperation([&](const vk::Queue & queue) {
+    queue.submit2(info,fence);
+  });
+}
+
+void DrawingSubsystem::RunQueueOperation(const std::function<void(const vk::Queue&)> &func) {
+  std::promise<std::optional<std::exception_ptr>> pending;
+  auto future = pending.get_future();
+  _submitQueue.emplace(func,&pending);
+  _submitCond.notify_all();
+  if(auto result = future.get(); result.has_value()) {
+    throw result.value();
+  }
+}
+
 void DrawingSubsystem::SubmitAndPresent(const RawFrameData *frame,
                                         const vk::SubmitInfo2 &submitInfo,
                                         const vk::PresentInfoKHR &presentInfo) {
-  std::lock_guard guard(_queueMutex);
-  _graphicsQueue.submit2(submitInfo, frame->GetRenderFence());
-  const auto _ = _graphicsQueue.presentKHR(presentInfo);
+  RunQueueOperation([&](const vk::Queue & queue) {
+    queue.submit2(submitInfo, frame->GetRenderFence());
+    const auto _ = queue.presentKHR(presentInfo);
+  });
 }
 
 

@@ -12,6 +12,22 @@ MaterialBuilder &MaterialBuilder::AddShader(Managed<Shader> shader) {
   return *this;
 }
 
+MaterialBuilder & MaterialBuilder::AddShaders(const Array<Managed<Shader>> &shaders) {
+  for(const auto &shader : shaders) {
+    AddShader(shader);
+  }
+  return *this;
+}
+
+MaterialBuilder & MaterialBuilder::AddAttachmentFormats(
+    const Array<vk::Format> &formats) {
+  for (auto &format : formats) {
+    _pipelineBuilder.AddColorAttachment(format);
+  } 
+
+  return *this;
+}
+
 MaterialBuilder &MaterialBuilder::SetType(const EMaterialType type) {
   _type = type;
   return *this;
@@ -100,8 +116,7 @@ Managed<MaterialInstance> MaterialBuilder::Create() {
 
   instance->SetLayout(
       drawer->GetVirtualDevice().createPipelineLayout(pipelineLayoutInfo));
-
-  auto mainWindowDrawer = drawer->GetMainWindowDrawer().Reserve();
+  
   if (_type == EMaterialType::UI) {
     _pipelineBuilder
         .SetInputTopology(vk::PrimitiveTopology::eTriangleList)
@@ -110,7 +125,6 @@ Managed<MaterialInstance> MaterialBuilder::Create() {
         .SetMultisamplingModeNone()
         .DisableDepthTest()
         .EnableBlendingAlphaBlend()
-        .SetColorAttachmentFormat(mainWindowDrawer->GetDrawImageFormat())
         .SetLayout(instance->GetLayout());
   } else {
     _pipelineBuilder
@@ -120,8 +134,7 @@ Managed<MaterialInstance> MaterialBuilder::Create() {
         .SetMultisamplingModeNone()
         .DisableBlending()
         .EnableDepthTest(true, vk::CompareOp::eLessOrEqual)
-        .SetColorAttachmentFormat(mainWindowDrawer->GetDrawImageFormat())
-        .SetDepthFormat(mainWindowDrawer->GetDepthImageFormat())
+        .SetDepthFormat(vk::Format::eD32Sfloat)
         .SetLayout(instance->GetLayout());
 
     if (_type == EMaterialType::Translucent) {

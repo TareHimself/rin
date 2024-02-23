@@ -309,10 +309,12 @@ Managed<drawing::Font> AssetSubsystem::ImportFont(
   layout.underlineThickness = metrics["underlineThickness"].get_double();
   
   auto atlasImage = ImportTexture(atlasPath);
-
+  
   if(!atlasImage) {
     return {};
   }
+
+  atlasImage->SetMipMapped(false);
   
   auto font = newManagedObject<drawing::Font>();
   font->SetAtlas(atlasImage);

@@ -19,7 +19,7 @@ protected:
   vk::PipelineMultisampleStateCreateInfo _multisampling{};
   vk::PipelineDepthStencilStateCreateInfo _depthStencil{};
   vk::PipelineRenderingCreateInfo _renderInfo{};
-  vk::Format _colorAttachmentFormat = vk::Format::eUndefined;
+  Array<vk::Format> _colorAttachmentFormats;
   Array<Managed<Shader>> _shaders;
   uint32_t _numViewports = 1;
   uint32_t _numScissors = 1;
@@ -51,7 +51,7 @@ public:
 
   PipelineBuilder& EnableBlendingAlphaBlend();
 
-  PipelineBuilder& SetColorAttachmentFormat(vk::Format format);
+  PipelineBuilder& AddColorAttachment(vk::Format format);
 
   PipelineBuilder& SetDepthFormat(vk::Format format);
 

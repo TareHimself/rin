@@ -56,6 +56,9 @@ public:
   
   void Init(DrawingSubsystem * drawer) override;
 
+  void SetImage(const std::string &param, const Ref<AllocatedImage> &image, const vk::Sampler &
+                sampler);
+  
   void SetTexture(const std::string &param, const Ref<Texture2D> &texture);
 
   void SetDynamicTexture(RawFrameData *frame, const std::string &param, const Ref<Texture2D> &

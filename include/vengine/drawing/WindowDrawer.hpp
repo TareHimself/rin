@@ -20,13 +20,6 @@ class WindowDrawer : public Object<DrawingSubsystem> {
   Array<vk::Image> _swapchainImages;
   Array<vk::ImageView> _swapchainImageViews;
   
-  // Images
-  Managed<AllocatedImage> _drawImage;
-  Managed<AllocatedImage> _depthImage;
-
-  Ref<DescriptorSet> _drawImageDescriptors;
-  vk::DescriptorSetLayout _drawImageDescriptorLayout;
-  
   RawFrameData _frames[FRAME_OVERLAP];
   bool _isResizing = false;
   bool _isReady = false;
@@ -57,24 +50,17 @@ public:
   vk::Extent2D GetSwapchainExtent() const;
 
   vk::Extent2D GetSwapchainExtentScaled() const;
-  
-  vk::Extent2D GetDrawImageExtent() const;
-  vk::Extent2D GetDrawImageExtentScaled() const;
-  vk::Format GetDrawImageFormat() const;
 
-  vk::Format GetDepthImageFormat() const;
+  vk::Format GetSwapchainFormat() const;
 
   vk::Viewport GetViewport() const;
-  
-  void DrawScenes(RawFrameData * frame);
 
-  void DrawUi(RawFrameData * frame);
-  
+  TDispatcher<> onResizeScenes;
+  TDispatcher<> onResizeUi;
   TDispatcher<RawFrameData *> onDrawScenes;
   TDispatcher<RawFrameData *> onDrawUi;
 
   virtual void Draw();
-  virtual void DrawBackground(RawFrameData * frame);
 
   void BeforeDestroy() override;
 };

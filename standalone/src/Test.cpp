@@ -25,13 +25,10 @@ void PrettyShader::Init(widget::WidgetSubsystem *outer) {
 
   auto shaderManager = drawer->GetShaderManager().Reserve();
 
-  _material = drawing::MaterialBuilder()
-              .SetType(drawing::EMaterialType::UI)
-              .AddShader(drawing::Shader::FromSource(
-                  io::getRawShaderPath("2d/rect.vert")))
-              .AddShader(drawing::Shader::FromSource(
-                  io::getRawShaderPath("2d/pretty.frag")))
-              .Create();
+  _material = GetOuter()->CreateMaterialInstance({drawing::Shader::FromSource(
+                  io::getRawShaderPath("2d/rect.vert")),
+              drawing::Shader::FromSource(
+                  io::getRawShaderPath("2d/pretty.frag"))});
 }
 
 void PrettyShader::OnPaint(widget::WidgetFrameData *frameData,
@@ -45,6 +42,7 @@ void PrettyShader::OnPaint(widget::WidgetFrameData *frameData,
   widget::WidgetPushConstants drawData{};
   drawData.clip = clip;
   drawData.extent = rect;
+  //drawData.transform = glm::rotate(glm::mat4{1.0f},45.0f,glm::vec3{0.0f,0.0,1.0f});
 
   widget::bindMaterial(frameData, _material);
 
@@ -138,6 +136,7 @@ void TestGameObject::Init(scene::Scene *outer) {
                                   }
                                   return true;
                                 }, {});
+  
 }
 
 void TestGameObject::AttachComponentsToRoot(

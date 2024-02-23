@@ -1,3 +1,5 @@
+#include "vengine/drawing/scene/SceneDeferredDrawer.hpp"
+
 #include <vengine/scene/Scene.hpp>
 #include <vengine/scene/objects/DefaultCamera.hpp>
 #include <vengine/Engine.hpp>
@@ -139,7 +141,7 @@ Managed<physics::ScenePhysics> Scene::CreatePhysics() {
 }
 
 Managed<drawing::SceneDrawer> Scene::CreateDrawer() {
-  return newManagedObject<drawing::SceneDrawer>();
+  return newManagedObject<drawing::SceneDeferredDrawer>();
 }
 
 Managed<input::SceneInputConsumer> Scene::CreateInputManager() {

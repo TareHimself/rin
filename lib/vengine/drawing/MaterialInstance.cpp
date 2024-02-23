@@ -58,8 +58,21 @@ void MaterialInstance::Init(DrawingSubsystem * drawer) {
   Object<DrawingSubsystem>::Init(drawer);
 }
 
+void MaterialInstance::SetImage(const std::string &param,
+    const Ref<AllocatedImage> &image,const vk::Sampler& sampler) {
+  utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);
+  
+  utils::vassert(image,"Image Is Invalid");
+  
+  const auto imageInfo = _shaderResources.images[param];
+  
+  utils::vassert(imageInfo.set != EMaterialSetType::Dynamic,"This function does not support dynamic descriptor sets");
+  
+  _sets[imageInfo.set].Reserve()->WriteImage(imageInfo.binding,image,sampler,vk::ImageLayout::eShaderReadOnlyOptimal,vk::DescriptorType::eCombinedImageSampler);
+}
+
 void MaterialInstance::SetTexture(const std::string &param,
-                                                const Ref<Texture2D> &texture) {
+                                  const Ref<Texture2D> &texture) {
 
 
   utils::vassert(_shaderResources.images.contains(param),"Texture [ {} ] Does Not Exist In Material",param);

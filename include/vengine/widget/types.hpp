@@ -110,6 +110,7 @@ struct WidgetPushConstants {
   
   glm::vec4 clip{0};
   glm::vec4 extent{0};
+  glm::mat4 transform{1.0f};
 };
 
 enum EVisibility {

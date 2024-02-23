@@ -61,6 +61,8 @@ GetGLSL(14.0.0)
 
 GetSpirvCross(vulkan-sdk-1.3.275.0)
 
+GetMsdfGen(v1.11)
+
 GetSpdLog(v1.12.0)
 
 GetFmt(10.1.1)

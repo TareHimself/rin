@@ -29,6 +29,10 @@ public:
   template <typename E>
   Array<E> map(
       const std::function<E(size_t index, const T &item)> &transform) const;
+
+  void each(const std::function<void(size_t index, T &item)> &callback);
+
+  void each(const std::function<void(size_t index,const T &item)> &callback) const;
   Array clone();
   std::optional<uint64_t> index_of(T data);
   std::optional<uint64_t> index_of(
@@ -102,10 +106,24 @@ template <typename T> template <typename E> Array<E> Array<T>::map(
   Array<E> result;
   result.resize(this->size());
   for (auto i = 0; i < this->size(); i++) {
-    result.push_back(transform(i, this->at(i)));
+    result[i] = transform(i, this->at(i));
   }
 
   return result;
+}
+
+template <typename T> void Array<T>::each(
+    const std::function<void(size_t index, T &item)> &callback){
+  for (auto i = 0; i < this->size(); i++) {
+    callback(i, this->at(i));
+  }
+}
+
+template <typename T> void Array<T>::each(
+    const std::function<void(size_t index, const T &item)> &callback) const {
+  for (auto i = 0; i < this->size(); i++) {
+    callback(i, this->at(i));
+  }
 }
 
 template <typename T> Array<T> Array<T>::clone() {

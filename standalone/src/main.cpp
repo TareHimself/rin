@@ -21,16 +21,7 @@ int main(int argc, char **argv) {
     Engine::Get()->SetAppName("Test Application");
     
     const auto scene = Engine::Get()->CreateScene<scene::Scene>();
-    auto triangleObj = scene.Reserve()->CreateSceneObject<TestGameObject>();
-    
-    auto values =  reflect::factory::values();
-    if(const auto reflectedObj = reflect::factory::find<TestGameObject>()) {
-      
-      if(const auto func = reflectedObj->GetFunction("GetWorldTransform")) {
-        math::Transform objectTransform{{},{},{20.f,20.f,20.f}};
-        func->Call(&objectTransform,triangleObj.Reserve().Get());
-      }
-    }
+    auto t1 = scene.Reserve()->CreateSceneObject<TestGameObject>();
     
     Engine::Get()->Run();
   } catch (const std::exception &e) {

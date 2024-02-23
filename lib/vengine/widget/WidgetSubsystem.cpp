@@ -77,4 +77,9 @@ void WidgetSubsystem::DestroyRoot(const Ref<window::Window> &window) {
     
   }
 }
+
+Managed<drawing::MaterialInstance> WidgetSubsystem::CreateMaterialInstance(
+    const Array<Managed<drawing::Shader>> &shaders) {
+  return drawing::MaterialBuilder().AddShaders(shaders).SetType(drawing::EMaterialType::UI).AddAttachmentFormats({vk::Format::eR16G16B16A16Sfloat}).Create();
+}
 }

@@ -18,6 +18,9 @@ struct SceneGlobalBuffer {
   glm::vec4 numLights{0.0f};
   GpuLight lights[1024];
 };
+struct SceneFrameData;
+
+typedef std::function<void(SceneFrameData *)> drawFn;
 
 struct SceneFrameData : SimpleFrameData {
   SceneDrawer * _sceneDrawer = nullptr;
@@ -25,6 +28,18 @@ public:
   SceneFrameData(RawFrameData * frame,SceneDrawer * drawer);
 
   SceneDrawer * GetSceneDrawer() const;
-}; 
+
+  Array<drawFn> lit;
+  Array<drawFn> translucent;
+
+  
+  void AddLit(const drawFn& litFn);
+  void AddTranslucent(const drawFn& translucentFn);
+};
+
+struct DrawList {
+  
+};
+
 }
 #endif

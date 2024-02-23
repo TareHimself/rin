@@ -18,7 +18,8 @@ namespace vengine::widget {
 class WidgetSubsystem;
 
 class Widget : public Object<WidgetSubsystem> {
-  std::variant<WidgetRoot *, Widget *,std::nullptr_t> _parent = nullptr;
+  Widget * _parent = nullptr;
+  WidgetRoot * _root = nullptr;
   
   float _initAt = 0.0f;
   Point2D _pivot;
@@ -27,6 +28,7 @@ class Widget : public Object<WidgetSubsystem> {
   Rect _drawRect{};
   bool _isHovered = false;
   WidgetRoot * _lastRoot = nullptr;
+  bool _isOnScreen = false;
 protected:
   Array<Managed<Widget>> _children;
 public:
@@ -40,7 +42,8 @@ public:
   virtual EVisibility GetVisibility() const;
   void SetPivot(const Point2D& pivot);
   Point2D GetPivot() const;
-  void SetParent(const std::variant<WidgetRoot*,Widget *,std::nullptr_t>& ptr);
+  virtual void NotifyRootChanged(WidgetRoot * root);
+  void SetParent(Widget * ptr);
 
   void SetLastDrawRect(const Rect& rect);
 
@@ -55,6 +58,8 @@ public:
                     info);
 
   void BeforeDestroy() override;
+
+  virtual bool IsOnScreen();
 
   virtual Size2D GetDesiredSize();
 
@@ -90,6 +95,11 @@ public:
   virtual Rect UpdateDrawRect(const Rect& rect);
 
   virtual std::optional<Size2D> GetCachedDesiredSize() const;
+
+  virtual void NotifyAddedToScreen();
+  virtual void NotifyRemovedFromScreen();
+  virtual void OnAddedToScreen();
+  virtual void OnRemovedFromScreen();
 };
 }
 

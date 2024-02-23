@@ -4,7 +4,7 @@
 namespace vengine::drawing {
 class DrawingSubsystem;
 
-class Drawable {
+class Drawer {
 public:
   
   virtual void Draw(RawFrameData * frameData) = 0;

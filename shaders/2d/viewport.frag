@@ -6,7 +6,7 @@
 #include "ui.glsl"
 #include "rect.glsl"
 
-layout(set = 1, binding = 0) uniform sampler2D ImageT;
+layout(set = 1, binding = 0) uniform sampler2D TViewport;
 layout (location = 0) in vec2 iUV;
 layout (location = 0) out vec4 oColor;
 
@@ -16,5 +16,5 @@ void main() {
         discard;
     }
 	//vec2 uv = vec2(mapRangeUnClamped(iUV.x,0.0,1.0,0.5,1.0),mapRangeUnClamped(iUV.y,0.0,1.0,0.5,1.0));
-	oColor = vec4(texture(ImageT,iUV).xyz,1.0);
+	oColor = vec4(texture(TViewport,iUV).xyz,1.0);
 }

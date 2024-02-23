@@ -101,14 +101,13 @@ PipelineBuilder &PipelineBuilder::EnableBlendingAlphaBlend() {
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::SetColorAttachmentFormat(const vk::Format format) {
-  _colorAttachmentFormat = format;
+PipelineBuilder & PipelineBuilder::AddColorAttachment(const vk::Format format) {
+  _colorAttachmentFormats.push(format);
   return *this;
 }
 
 PipelineBuilder &PipelineBuilder::SetDepthFormat(const vk::Format format) {
   _renderInfo.setDepthAttachmentFormat(format);
-  _renderInfo.setColorAttachmentFormats(_colorAttachmentFormat);
   return *this;
 }
 
@@ -159,17 +158,22 @@ vk::Pipeline PipelineBuilder::Build(const vk::Device device) {
       vk::PipelineViewportStateCreateFlags(), _numViewports, nullptr,
       _numScissors, nullptr);
 
+  auto attachments = _colorAttachmentFormats.map<vk::PipelineColorBlendAttachmentState>([this] (size_t _,const vk::Format & f){
+    return _colorBlendAttachment;
+  });
+  
   const auto colorBlending = vk::PipelineColorBlendStateCreateInfo(
       vk::PipelineColorBlendStateCreateFlags(), vk::False, vk::LogicOp::eCopy,
-      _colorBlendAttachment);
+      attachments);
 
   vk::DynamicState state[] = {vk::DynamicState::eViewport,
                               vk::DynamicState::eScissor};
 
   const vk::PipelineDynamicStateCreateInfo dynamicInfo{{}, state};
-
+  _renderInfo.setColorAttachmentFormats(_colorAttachmentFormats);
   // auto format = vk::Format::eR16G16B16A16Sfloat;
   // _renderInfo.setColorAttachmentFormats(format);
+  
   const auto pipelineCreateInfo = vk::GraphicsPipelineCreateInfo()
                                   .setStages(_shaderStages)
                                   .setPVertexInputState(&_vertexInputInfo)
@@ -179,7 +183,6 @@ vk::Pipeline PipelineBuilder::Build(const vk::Device device) {
                                   .setPMultisampleState(&_multisampling)
                                   .setPColorBlendState(&colorBlending)
                                   .setPDepthStencilState(&_depthStencil)
-
                                   .setPDynamicState(&dynamicInfo)
                                   .setLayout(_layout)
                                   .setPNext(&_renderInfo);

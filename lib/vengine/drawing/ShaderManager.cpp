@@ -153,14 +153,16 @@ Array<unsigned int> ShaderManager::Compile(const fs::path &shaderPath){
 
   //shader->getIntermediate()->setSource(glslang::EShSourceGlsl);
 
-  constexpr auto message = static_cast<EShMessages>(EShMessages::EShMsgVulkanRules | EShMessages::EShMsgSpvRules);
+  constexpr auto message = static_cast<EShMessages>(EShMessages::EShMsgVulkanRules | EShMessages::EShMsgSpvRules | EShMsgDebugInfo);
 
   GlslShaderIncluder includer(this,shaderPath);
   const auto resources =  GetResources();
   resources->maxDrawBuffers = true;
+  resources->maxCombinedImageUnitsAndFragmentOutputs = 128;
   resources->maxComputeWorkGroupSizeX = 128;
   resources->maxComputeWorkGroupSizeY = 128;
   resources->maxComputeWorkGroupSizeZ = 128;
+  resources->maxDrawBuffers = 10;
   resources->limits.nonInductiveForLoops = true;
   resources->limits.whileLoops = true;
   resources->limits.doWhileLoops = true;
@@ -171,7 +173,9 @@ Array<unsigned int> ShaderManager::Compile(const fs::path &shaderPath){
   resources->limits.generalVariableIndexing = true;
   resources->limits.generalConstantMatrixVectorIndexing = true;
 
-  utils::vassert(shader->parse(resources,450,ENoProfile,false,false,message,includer),"Failed to parse shader [{}] \n",shaderPath.string().c_str(),shader->getInfoLog());
+  const auto result = shader->parse(resources,450,ENoProfile,false,false,message,includer);
+  auto err = std::string(shader->getInfoLog());
+  utils::vassert(result,"Failed to parse shader [{}] \n {}",shaderPath.string().c_str(),err);
 
 
   Array<unsigned int> spvResult;

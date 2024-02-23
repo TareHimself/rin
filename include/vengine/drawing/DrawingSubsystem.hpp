@@ -10,6 +10,9 @@
 #include <vulkan/vulkan.hpp>
 #include "generated/drawing/DrawingSubsystem.reflect.hpp"
 
+#include <future>
+#include <queue>
+
 
 namespace vengine {
 namespace window {
@@ -49,6 +52,10 @@ class Viewport;
 
 constexpr unsigned int FRAME_OVERLAP = 2;
 
+struct GraphicsQueueOp {
+  std::function<void(const vk::Queue&)> func;
+  std::promise<std::optional<std::exception_ptr>> * pending;
+};
 
 /**
  * \brief Base class for the engine renderer. uses vulkan
@@ -92,6 +99,11 @@ class DrawingSubsystem : public EngineSubsystem {
   Array<std::function<void()>> _resizeCallbacks;
 
   std::unordered_map<uint64_t,Managed<WindowDrawer>> _windowDrawers;
+  std::queue<GraphicsQueueOp> _submitQueue{};
+  std::thread _submitThread;
+  std::condition_variable _submitCond;
+  std::mutex _submitMutex;
+  
 protected:
 
   void InitCommands();
@@ -109,8 +121,15 @@ protected:
   // void DrawUI(RawFrameData *frame);
 
   Ref<WindowDrawer> CreateWindowDrawer(const Ref<window::Window>& window);
+
+  
 public:
 
+  vk::Format GetSwapchainFormat();
+  void SubmitThreadSafe(const vk::SubmitInfo2 &info, const vk::Fence &fence);
+  
+  void RunQueueOperation(const std::function<void(const vk::Queue &)> &func);
+  
   void SubmitAndPresent(const RawFrameData * frame,const vk::SubmitInfo2& submitInfo,const vk::PresentInfoKHR& presentInfo);
   
   static vk::RenderingInfo MakeRenderingInfo(vk::Extent2D drawExtent);
