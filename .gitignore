@@ -1,6 +1,6 @@
 build/*
 */build/*
-ThirdParty/*
+ext/*
 shaders/**/compiled/*
 reflect/*
 *.exe
@@ -9,3 +9,11 @@ install_build
 install_result
 *.wav
 **/generated/**
+cmake-build-debug
+compile_commands.json
+.cache
+.idea
+*.bmp
+__pycache__
+gen/*.png
+*.ttf

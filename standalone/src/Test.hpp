@@ -1,55 +1,54 @@
 #pragma once
-#include "vengine/drawing/Mesh.hpp"
-#include "vengine/scene/components/ScriptComponent.hpp"
-#include "vengine/scene/components/StaticMeshComponent.hpp"
-#include "vengine/scene/objects/SceneObject.hpp"
-#include "reflect/Macro.hpp"
-#include "Test.reflect.hpp"
-#include "vengine/widget/Canvas.hpp"
-// #include "vengine/widget/Text.hpp"
-using namespace vengine;
+#include "aerox/drawing/Mesh.hpp"
+#include "aerox/scene/components/ScriptComponent.hpp"
+#include "aerox/scene/components/StaticMeshComponent.hpp"
+#include "aerox/scene/objects/SceneObject.hpp"
+#include "aerox/widgets/Canvas.hpp"
+#include "Test.gen.hpp"
 
-class PrettyShader : public widget::Canvas {
-  Managed<drawing::MaterialInstance> _material;
+using namespace aerox;
+
+class PrettyShader : public widgets::Canvas {
+  std::shared_ptr<drawing::MaterialInstance> _material;
 public:
-  void Init(widget::WidgetSubsystem *outer) override;
-  void OnPaint(widget::WidgetFrameData *frameData, const widget::Rect& clip) override;
+  void OnInit(widgets::WidgetSubsystem * outer) override;
+  void OnPaint(widgets::WidgetFrameData *frameData, const widgets::Rect& clip) override;
   
 };
 
 
-RCLASS()
+META_TYPE()
 class TestGameObject : public scene::SceneObject {
 public:
-  RPROPERTY()
-  Managed<drawing::Mesh> _mesh;
 
-  RPROPERTY()
-  Ref<scene::StaticMeshComponent> _meshComponent = AddComponent<
+    META_BODY()
+
+    std::future<void> asyncTask;
+protected:
+  META_PROPERTY()
+  std::shared_ptr<drawing::Mesh> _mesh;
+
+    META_PROPERTY()
+  std::weak_ptr<scene::StaticMeshComponent> _meshComponent = AddComponent<
     scene::StaticMeshComponent>();
 
-  RPROPERTY()
-  Ref<scene::ScriptComponent> _scriptComp = AddComponent<
-    scene::ScriptComponent>(R"(D:\Github\vengine\scripts\test.as)");
+    META_PROPERTY()
+  std::weak_ptr<scene::ScriptComponent> _scriptComp = AddComponent<
+    scene::ScriptComponent>(R"(D:\Github\vengine\scripts\test.vs)");
 
-  // Ref<widget::Text> _fpsWidget;
+public:
 
-  void Init(scene::Scene *outer) override;
+  void OnInit(scene::Scene * scene) override;
 
-  void AttachComponentsToRoot(const Ref<scene::SceneComponent> &root) override;
+  void AttachComponentsToRoot(const std::weak_ptr<scene::SceneComponent> &root) override;
 
   void Tick(float deltaTime) override;
 
-  RFUNCTION()
+    META_FUNCTION()
   math::Transform GetWorldTransform() const override;
 
-  RFUNCTION()
-  static Managed<TestGameObject> Construct() {
-    return newManagedObject<TestGameObject>();
+    META_FUNCTION()
+  static std::shared_ptr<TestGameObject> Construct() {
+    return newObject<TestGameObject>();
   }
-
-  VENGINE_IMPLEMENT_REFLECTED_INTERFACE(TestGameObject)
-
 };
-
-REFLECT_IMPLEMENT(TestGameObject)

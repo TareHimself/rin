@@ -1,11 +1,17 @@
 #pragma once
-#include "vengine/widget/Panel.hpp"
-#include "vengine/widget/Row.hpp"
-#include "vengine/widget/Widget.hpp"
-using namespace vengine::widget;
+#include "aerox/drawing/Font.hpp"
+#include "aerox/widgets/Panel.hpp"
+#include "aerox/widgets/Row.hpp"
+#include "aerox/widgets/Text.hpp"
+#include "aerox/widgets/Widget.hpp"
+using namespace aerox::widgets;
 class TestWidget : public Panel {
-  vengine::Managed<Row> _row;
+  std::shared_ptr<Row> _row;
+  std::shared_ptr<aerox::drawing::Font> _font;
+  std::shared_ptr<Text> _fpsText;
+  std::list<float> _fps;
 public:
-  void Init(WidgetSubsystem *outer) override;
-  void BindInput(const vengine::Ref<vengine::window::Window>& window);
+  void OnInit(aerox::widgets::WidgetSubsystem * ref) override;
+  void BindInput(const std::weak_ptr<aerox::window::Window>& window);
+  void Tick(float deltaTime) override;
 };

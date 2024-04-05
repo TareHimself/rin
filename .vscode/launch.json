@@ -3,5 +3,32 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": []
+    "configurations": [{
+        "name": "Generate aerox meta",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${workspaceFolder}\\meta\\main.py",
+        "console": "integratedTerminal",
+        "args": [
+            "-s",
+            "${workspaceFolder}\\include\\aerox",
+            "-o",
+            "${workspaceFolder}\\include\\gen",
+            "-w"
+        ]
+    },
+    {
+        "name": "Generate standalone meta",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${workspaceFolder}\\meta\\main.py",
+        "console": "integratedTerminal",
+        "args": [
+            "-s",
+            "${workspaceFolder}\\standalone\\src",
+            "-o",
+            "${workspaceFolder}\\standalone\\src",
+            "-w"
+        ]
+    }]
 }

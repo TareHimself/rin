@@ -39,6 +39,12 @@ void main()
 
 	oSceneNormal = (pVertex.transformMatrix * vec4(v.normal.xyz, 0.f)).xyz;
 
+	// vec4 scenePositon =  viewProjection * location;
+
+	// gl_Position = scenePositon;
+
+	// oSceneNormal = vec4(v.normal.xyz, 0.f).xyz;
+
 	oUV = v.uv.xy;
 
 	oSceneLocation = scenePositon.xyz;

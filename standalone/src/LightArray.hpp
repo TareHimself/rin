@@ -1,13 +1,17 @@
 ﻿#pragma once
-#include "vengine/scene/objects/PointLight.hpp"
-#include "vengine/scene/objects/SceneObject.hpp"
+#include "aerox/scene/objects/PointLight.hpp"
+#include "aerox/scene/objects/SceneObject.hpp"
 
-using namespace vengine;
+using namespace aerox;
 
 class LightArray : public scene::SceneObject {
 public:
-  Array<Ref<scene::PointLight>> lights;
+  Array<std::weak_ptr<scene::PointLight>> lights;
 
-  void Init(scene::Scene *outer) override;
+  void OnInit(scene::Scene * scene) override;
   void Tick(float deltaTime) override;
+
+  std::shared_ptr<meta::Metadata> GetMeta() const override{
+      return {};
+  }
 };

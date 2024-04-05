@@ -32,22 +32,23 @@ class EParsedFieldType(Enum):
     Property = 0
     Function = 1
 class ParsedField:
-    def __init__(self,type: EParsedFieldType) -> None:
+    def __init__(self,type: EParsedFieldType,tags: list[str]) -> None:
         self.field_type = type
+        self.tags = tags
 class ParsedFunctionArgument:
     def __init__(self) -> None:
         self.type = ""
         self.name = ""
 class ParsedFunction(ParsedField):
-    def __init__(self) -> None:
-        super().__init__(EParsedFieldType.Function)
+    def __init__(self,tags: list[str]) -> None:
+        super().__init__(EParsedFieldType.Function,tags)
         self.name = ""
         self.return_type = ""
         self.is_static = False
         self.arguments: list[ParsedFunctionArgument] = []
 class ParsedProperty(ParsedField):
-    def __init__(self) -> None:
-        super().__init__(EParsedFieldType.Property)
+    def __init__(self,tags: list[str]) -> None:
+        super().__init__(EParsedFieldType.Property,tags)
         self.name = ""
         self.type = ""
 class EParsedType(Enum):
@@ -55,16 +56,17 @@ class EParsedType(Enum):
     Struct = 1
     Enum = 2
 class ParsedType:
-    def __init__(self,type: EParsedType) -> None:
+    def __init__(self,type: EParsedType,tags: list[str]) -> None:
         self.name = ""
         self.type = type
+        self.tags = tags
 class ParsedStruct(ParsedType):
-    def __init__(self) -> None:
-        super().__init__(EParsedType.Struct)
+    def __init__(self,tags: list[str]) -> None:
+        super().__init__(EParsedType.Struct,tags)
         self.fields: list[ParsedField] = []
 class ParsedClass(ParsedStruct):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self,tags: list[str]) -> None:
+        super().__init__(tags)
         self.type = EParsedType.Class
 class ParsedFile:
     def __init__(self) -> None:
@@ -93,15 +95,15 @@ class IncludeGuard():
         write_line(self.file,"#endif")
 def include(file: TextIOWrapper,header: str) -> None:
     write_line(file,f"#include \"{header}\"")
-def write_property(file: TextIOWrapper,type_name: str,field: ParsedProperty) -> str:
+def write_property(file: TextIOWrapper,type_name: str,field: ParsedProperty) -> tuple[str,list[str]]:
     macro = f"_REFLECTED_GENERATED_{type_name}_PROPERTY_{field.name}"
 
     write_line(file,f"#define {macro} REFLECT_WRAP_PROPERTY({type_name},{field.name},{field.type})")
 
     write_line(file,"")
 
-    return macro
-def write_function(file: TextIOWrapper,type_name: str,field: ParsedFunction) -> str:
+    return [macro,field.tags]
+def write_function(file: TextIOWrapper,type_name: str,field: ParsedFunction) -> tuple[str,list[str]]:
     macro = f"_REFLECTED_GENERATED_{type_name}_FUNCTION_{field.name}"
 
     write_line(file,f"#define {macro} REFLECT_WRAP_FUNCTION_BEGIN({field.name}) \\")
@@ -143,15 +145,25 @@ def write_function(file: TextIOWrapper,type_name: str,field: ParsedFunction) -> 
     write_line(file,f"{func_call} \\")
     write_line(file,"})\n")
 
-    return macro
-def write_builder(file: TextIOWrapper,type_name: str,macros: list[str]) -> None:
-    write_line(file,f"#define _REFLECT_GENERATE_{type_name} \\")
-    write_line(file,"reflect::factory::ReflectTypeBuilder builder; \\")
+    return [macro,field.tags]
+def write_builder(file: TextIOWrapper,type: ParsedType,macros:  list[tuple[str,list[str]]]) -> None:
+    write_line(file,f"#define _REFLECT_GENERATE_{type.name} \\")
+    write_line(file,"reflect::factory::TypeBuilder builder; \\")
 
-    for macro in macros:
-        write_line(file,f"builder.AddField({macro}); \\")
+    for macro,tags in macros:
+        write_line(file,"{ \\")
+        write_line(file,f"  auto field = {macro}; \\")
+        for tag in  tags:
+            write_line(file,f"  field->AddTag(\"{tag}\"); \\") 
+        write_line(file,f"  builder.AddField(field); \\")
+        write_line(file,"} \\")
 
-    write_line(file,f"builder.Create<{type_name}>(\"{type_name}\");")
+    write_line(file,f"auto created = builder.Create<{type.name}>(\"{type.name}\"); \\")
+
+    for tag in  type.tags:
+        write_line(file,f"created->AddTag(\"{tag}\"); \\") 
+
+    write_line(file,"")
 def write_fields(file: TextIOWrapper,type_name: str,fields: list[ParsedField]) -> list[str]:
     macros: list[str] = []
 
@@ -167,13 +179,13 @@ def write_class(file: TextIOWrapper,item: ParsedClass) -> None:
 
         macros = write_fields(file,item.name,item.fields)
 
-        write_builder(file,item.name,macros)
+        write_builder(file,item,macros)
 def write_struct(file: TextIOWrapper,item: ParsedStruct) -> None:
     with IncludeGuard(file,item.name):
         
         macros = write_fields(file,item.name,item.fields)
 
-        write_builder(file,item.name,macros)
+        write_builder(file,item,macros)
 def generate(parsed_file: ParsedFile,file_path: str):
     with open(file_path,'w') as f:
         write_line(f,"#pragma once")
@@ -251,8 +263,13 @@ class FileParser:
             return line
             
 
-    def parse_property(self) -> Union[None,ParsedProperty]:
-        result  = ParsedProperty()
+
+    def parse_tags(self,macro_line:str) -> list[str]:
+        line =  macro_line[macro_line.index('(') + 1:len(macro_line[1:]) - macro_line[::-1].index(')')]
+        return  list(filter(lambda a : len(a) > 0,map(lambda a : a.strip(),line.strip().split(','))))
+
+    def parse_property(self,macro_iine:str) -> Union[None,ParsedProperty]:
+        result  = ParsedProperty(self.parse_tags(macro_iine))
 
         line = self.read()
 
@@ -270,11 +287,11 @@ class FileParser:
 
 
 
-    def parse_function(self) -> Union[None,ParsedFunction]:
+    def parse_function(self,macro_iine:str) -> Union[None,ParsedFunction]:
         line = self.read()
         static_str = "static "
 
-        result = ParsedFunction()
+        result = ParsedFunction(self.parse_tags(macro_iine))
 
         match_result = re.findall(REFLECT_FUNCTION_REGEX,line)
 
@@ -311,7 +328,7 @@ class FileParser:
 
         return result
 
-    def parse_class(self) -> Union[None,ParsedClass]:
+    def parse_class(self,macro_iine:str) -> Union[None,ParsedClass]:
         search_str = "class "
         line = self.read()
 
@@ -326,7 +343,7 @@ class FileParser:
         if len(split_result) == 0:
             return None
         
-        result = ParsedClass()
+        result = ParsedClass(self.parse_tags(macro_iine))
         result.name = split_result[0]
 
         line = self.read()
@@ -336,12 +353,12 @@ class FileParser:
                 return result
             
             if REFLECT_PROPERTY_MACRO in line:
-                r = self.parse_property()
+                r = self.parse_property(line)
 
                 if r is not None:
                     result.fields.append(r)
             elif REFLECT_FUNCTION_MACRO in line:
-                r = self.parse_function()
+                r = self.parse_function(line)
 
                 if r is not None:
                     result.fields.append(r)
@@ -352,7 +369,7 @@ class FileParser:
 
 
 
-    def parse_struct(self) -> Union[None,ParsedStruct]:
+    def parse_struct(self,macro_iine:str) -> Union[None,ParsedStruct]:
         search_str = "struct "
         line = self.read()
 
@@ -367,7 +384,7 @@ class FileParser:
         if len(split_result) == 0:
             return None
         
-        result = ParsedStruct()
+        result = ParsedStruct(self.parse_tags(macro_iine))
         result.name = split_result[0]
 
         line = self.read()
@@ -377,12 +394,12 @@ class FileParser:
                 return result
             
             if REFLECT_PROPERTY_MACRO in line:
-                r = self.parse_property()
+                r = self.parse_property(line)
 
                 if r is not None:
                     result.fields.append(r)
             elif REFLECT_FUNCTION_MACRO in line:
-                r = self.parse_function()
+                r = self.parse_function(line)
 
                 if r is not None:
                     result.fields.append(r)
@@ -401,11 +418,11 @@ class FileParser:
 
             while line is not None:
                 if REFLECT_CLASS_MACRO in line:
-                    r = self.parse_class()
+                    r = self.parse_class(line)
                     if r is not None:
                         result.types.append(r)
                 elif REFLECT_STRUCT_MACRO in line:
-                    r = self.parse_struct()
+                    r = self.parse_struct(line)
                     if r is not None:
                         result.types.append(r)
                 
@@ -513,5 +530,8 @@ def main():
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
         generate(parsed_file,out_file_path)
+
+
+
 if __name__ == "__main__":
     main()

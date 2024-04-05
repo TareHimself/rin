@@ -10,29 +10,24 @@ float median(float r, float g, float b) {
     return max(min(r, g), min(max(r, g), b));
 }
 
-float calcPxRage(){
-    return (pFont.extent.w / 32.0) * 2.0;
-}
+layout(set = 1, binding = 2) uniform options{   
+	vec4 color;
+} opts;
 
 void main() 
 {
-
-    FontChar char = font.chars[pFont.idx];
-    // sampler2D atlas = AtlasT[char.atlas];
-    vec4 uv = char.uv;
-    vec2 offset = char.extras.xy;
-	vec2 mappedUV = vec2(mapRangeUnClamped(iUV.x,0.0,1.0,uv.x,uv.z),mapRangeUnClamped(iUV.y,0.0,1.0,uv.y,uv.w));
-    vec3 msd = texture(AtlasT,mappedUV).rgb;
-    // vec3 color = texture(AtlasT,mappedUV).xyz;
-
-    // if(sdf.x < 0.5){
-    //     discard;
-    // }
     vec4 bgColor = vec4(0.0);
-    vec4 fgColor = vec4(1.0);
+    vec4 fgColor = opts.color;
 
-    float sd = median(msd.r, msd.g, msd.b);
-    float screenPxDistance = calcPxRage()*(sd - 0.5);
-    float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
+    FontChar char = font.chars[int(pFont.info.x)];
+    int atlasIdx = int(char.info.x);
+    vec3 msdf = texture(AtlasT[atlasIdx],iUV).rgb;
+    ivec2 sz = textureSize(AtlasT[atlasIdx], 0).xy;
+    float dx = dFdx(iUV.x) * sz.x; 
+    float dy = dFdy(iUV.y) * sz.y;
+    float toPixels = 12.0 * inversesqrt(dx * dx + dy * dy);
+    float sigDist = median(msdf.r, msdf.g, msdf.b);
+    float w = fwidth(sigDist);
+    float opacity = smoothstep(0.5 - w, 0.5 + w, sigDist);
     oColor = mix(bgColor, fgColor, opacity);
 }

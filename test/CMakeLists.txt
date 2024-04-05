@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+set(CMAKE_CXX_STANDARD 20)
+project(test)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+file(GLOB S_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+add_executable(Test ${S_FILES})
+
+#install(TARGETS libwave DESTINATION bin)

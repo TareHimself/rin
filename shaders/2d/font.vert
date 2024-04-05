@@ -15,10 +15,6 @@ void main()
 	// Transform vertices based on input extent
     vec4 extent = pFont.extent;
 
-    float yTop = mapRangeUnClamped(extent.y,0.0,screenRes.y,-1.0,1.0);
-    float isLeft = float (gl_VertexIndex == 0 || gl_VertexIndex == 3 || gl_VertexIndex == 5);
-    float isTop = float (gl_VertexIndex == 0 || gl_VertexIndex == 1 || gl_VertexIndex == 3);
-
     vec2 normPt1 = normalizePoint(ui.viewport,extent.xy);
     vec2 normPt2 = normalizePoint(ui.viewport,extent.xy + extent.zw);
     vec2 size = normPt2 - normPt1;

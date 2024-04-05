@@ -3,25 +3,35 @@
 // printf("\n"); \
 // } while(false)
 #include "Test.hpp"
-#include "vengine/io/io.hpp"
-#include "vengine/scene/objects/PointLight.hpp"
+#include "aerox/io/IoSubsystem.hpp"
+#include "aerox/io/io.hpp"
+#include "aerox/scene/objects/PointLight.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <ostream>
-#include <vengine/Engine.hpp>
-#include <vengine/scene/Scene.hpp>
-#include <vengine/physics/rp3/RP3DScenePhysics.hpp>
-using namespace vengine;
+#include <aerox/Engine.hpp>
+#include <aerox/scene/Scene.hpp>
+#include <aerox/physics/rp3/RP3DScenePhysics.hpp>
+using namespace aerox;
 
 int main(int argc, char **argv) {
 
   try {
 
+    
     io::setRawShadersPath(R"(D:\Github\vengine\shaders)");
     Engine::Get()->SetAppName("Test Application");
     
     const auto scene = Engine::Get()->CreateScene<scene::Scene>();
-    auto t1 = scene.Reserve()->CreateSceneObject<TestGameObject>();
+    auto t1 = scene.lock()->CreateSceneObject<TestGameObject>();
+
+    auto j = scene.lock()->ToJson();
+
+    scene.lock()->FromJson(j);
+
+    std::ofstream o(R"(D:\Github\vengine\test.json)");
+    o << std::setw(4) << j << std::endl;
+    o.close();
     
     Engine::Get()->Run();
   } catch (const std::exception &e) {

@@ -3,11 +3,10 @@
 #define MAX_NUM_ATLAS = 3;
 
 struct FontChar {
-	vec4 uv;
-    vec4 extras;
+	vec4 info;
 };
 
-layout(set = 1, binding = 0) uniform sampler2D AtlasT;
+layout(set = 1, binding = 0) uniform sampler2D AtlasT[256];
 layout(set = 1, binding = 1) uniform  FontChars{   
 	FontChar chars[256];
     int numChars;
@@ -17,5 +16,5 @@ layout(set = 1, binding = 1) uniform  FontChars{
 layout( push_constant ) uniform constants
 {
     vec4 extent;
-	int idx;
+	vec4 info;
 } pFont;
