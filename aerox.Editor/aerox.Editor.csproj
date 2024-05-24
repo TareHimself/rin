@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\aerox.Runtime.Audio\aerox.Runtime.Audio.csproj"/>
+        <ProjectReference Include="..\aerox.Runtime.Scene\aerox.Runtime.Scene.csproj" />
+        <ProjectReference Include="..\aerox.Runtime.Widgets\aerox.Runtime.Widgets.csproj"/>
+        <ProjectReference Include="..\aerox.Runtime\aerox.Runtime.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="SharpGLTF.Core" Version="1.0.0-alpha0031" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Widgets\" />
+    </ItemGroup>
+
+</Project>

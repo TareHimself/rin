@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MathNet.Numerics" Version="6.0.0-beta1" />
+        <PackageReference Include="MathNet.Numerics.Signed" Version="5.0.0" />
+        <PackageReference Include="shaderc.net" Version="0.1.0"/>
+        <PackageReference Include="System.Text.Json" Version="8.0.3"/>
+        <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.3.268-rc1.7228558605"/>
+    </ItemGroup>
+
+</Project>

@@ -1,9 +1,0 @@
-{
-    "id": "Scene",
-    "properties": {
-        "testProp": {
-            "data": 0.0,
-            "id": "float"
-        }
-    }
-}
