@@ -50,8 +50,8 @@ public abstract class  WidgetSurface : Disposable
         GlobalBuffer = _graphicsModule.GetAllocator()
             .NewUniformBuffer<GlobalWidgetShaderData>(debugName:"Widget Root Global Buffer");
         GlobalBuffer.Write(_globalData);
-        SimpleRectMat = WidgetsModule.CreateMaterial(@"D:\Github\vengine\aerox.Runtime\shaders\2d\simple_rect.vert",
-            @"D:\Github\vengine\aerox.Runtime\shaders\2d\simple_rect.frag");
+        SimpleRectMat = WidgetsModule.CreateMaterial(@$"{Runtime.SHADERS_DIR}\2d\simple_rect.vert",
+            @$"{Runtime.SHADERS_DIR}\2d\simple_rect.frag");
         SimpleRectMat.BindBuffer("ui", GlobalBuffer);
     }
 

@@ -13,8 +13,8 @@ public class ShinyShader : Widget
         var gs = Runtime.Runtime.Instance.GetModule<GraphicsModule>();
 
         _materialInstance = WidgetsModule.CreateMaterial(
-            gs.LoadShader(@"D:\Github\vengine\aerox.Runtime\shaders\2d\rect.vert"),
-            gs.LoadShader(@"D:\Github\vengine\aerox.Runtime\shaders\2d\pretty.frag"));
+            gs.LoadShader(@$"{Runtime.Runtime.SHADERS_DIR}\2d\rect.vert"),
+            gs.LoadShader(@$"{Runtime.Runtime.SHADERS_DIR}\2d\pretty.frag"));
     }
 
     protected override void OnDispose(bool isManual)

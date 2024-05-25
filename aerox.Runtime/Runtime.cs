@@ -4,6 +4,7 @@ namespace aerox.Runtime;
 
 public sealed class Runtime : Disposable
 {
+    public static string SHADERS_DIR = @"C:\Users\Taree\Documents\Github\aerox\aerox.Runtime\shaders";
     private static Runtime _instance;
     private static readonly object Padlock = new();
 

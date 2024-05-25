@@ -36,8 +36,8 @@ public class Image : Widget
         _optionsDirty = true;
         _tint = new Color(1.0f);
         _materialInstance = WidgetsModule.CreateMaterial(
-            gs.LoadShader(@"D:\Github\vengine\aerox.Runtime\shaders\2d\rect.vert"),
-            gs.LoadShader(@"D:\Github\vengine\aerox.Runtime\shaders\2d\image.frag"));
+            gs.LoadShader(@$"{Runtime.SHADERS_DIR}\2d\rect.vert"),
+            gs.LoadShader(@$"{Runtime.SHADERS_DIR}\2d\image.frag"));
         _materialInstance.BindBuffer("opts", _optionsBuffer);
     }
 

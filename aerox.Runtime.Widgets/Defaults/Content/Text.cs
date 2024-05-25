@@ -48,8 +48,8 @@ public class Text : Widget
         _optionsBuffer = gs.GetAllocator()
             .NewUniformBuffer<ImageOptionsDeviceBuffer>(debugName: "Image Options Buffer");
         _materialInstance = WidgetsModule.CreateMaterial(
-            gs.LoadShader(@"D:\Github\vengine\aerox.Runtime\shaders\2d\rect.vert"),
-            gs.LoadShader(@"D:\Github\vengine\aerox.Runtime\shaders\2d\font.frag"));
+            gs.LoadShader(@$"{Runtime.SHADERS_DIR}\2d\rect.vert"),
+            gs.LoadShader(@$"{Runtime.SHADERS_DIR}\2d\font.frag"));
         _materialInstance.BindBuffer("options", _optionsBuffer);
 
         Runtime.Instance.GetModule<WidgetsModule>().GetOrCreateFont("Arial").Then(msdf =>

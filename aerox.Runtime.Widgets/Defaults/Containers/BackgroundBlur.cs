@@ -67,12 +67,12 @@ public class BackgroundBlur : Container
     
     public BackgroundBlur(Widget child) : base(child)
     {
-        _materialInstance = WidgetsModule.CreateMaterial(@"D:\Github\vengine\aerox.Runtime\shaders\2d\blur.vert",@"D:\Github\vengine\aerox.Runtime\shaders\2d\blur.frag");
+        _materialInstance = WidgetsModule.CreateMaterial(@$"{Runtime.SHADERS_DIR}\2d\blur.vert",@$"{Runtime.SHADERS_DIR}\2d\blur.frag");
     }
 
     public BackgroundBlur() : base()
     {
-        _materialInstance = WidgetsModule.CreateMaterial(@"D:\Github\vengine\aerox.Runtime\shaders\2d\blur.vert",@"D:\Github\vengine\aerox.Runtime\shaders\2d\blur.frag");
+        _materialInstance = WidgetsModule.CreateMaterial(@$"{Runtime.SHADERS_DIR}\2d\blur.vert",@$"{Runtime.SHADERS_DIR}\2d\blur.frag");
     }
     
     
