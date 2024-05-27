@@ -8,26 +8,26 @@ namespace aerox.Runtime.Scene.Graphics;
 public class StaticMesh : MultiDisposable
 {
     public readonly MeshSurface[] Surfaces;
-    public MaterialInstance?[] Materials = [];
     public DeviceGeometry? Geometry;
-    
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    // UV in last values of each i.e. U = Location.W, V = Normal.W
-    public partial struct Vertex
-    {
-        public Vector4<float> Location;
-        public Vector4<float> Normal;
-    }
-    
+    public MaterialInstance?[] Materials = [];
+
 
     public StaticMesh(Vertex[] inVertices, uint[] inIndices, MeshSurface[] inSurfaces)
     {
         Surfaces = inSurfaces;
-        Geometry = GraphicsModule.Get().NewGeometry(inVertices, inIndices);
+        Geometry = SGraphicsModule.Get().NewGeometry(inVertices, inIndices);
     }
 
     protected override void OnDispose(bool isManual)
     {
         Geometry?.Dispose();
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    // UV in last values of each i.e. U = Location.W, V = Normal.W
+    public struct Vertex
+    {
+        public Vector4<float> Location;
+        public Vector4<float> Normal;
     }
 }

@@ -40,6 +40,7 @@ public class MaterialInstance : MultiDisposable
     private readonly ShaderResources _resources;
     private readonly Dictionary<SetType, VkDescriptorSetLayout> _setLayouts;
     private readonly Dictionary<SetType, DescriptorSet> _sets;
+
     public MaterialInstance(ShaderResources inResources, VkPipelineLayout inPipelineLayout,
         VkPipeline inPipeline, Dictionary<SetType, DescriptorSet> inSets,
         Dictionary<SetType, VkDescriptorSetLayout> inSetLayouts)
@@ -53,7 +54,7 @@ public class MaterialInstance : MultiDisposable
 
     protected override void OnDispose(bool isManual)
     {
-        var subsystem = Runtime.Instance.GetModule<GraphicsModule>();
+        var subsystem = SRuntime.Get().GetModule<SGraphicsModule>();
         subsystem.WaitDeviceIdle();
         var device = subsystem.GetDevice();
         unsafe
@@ -72,10 +73,10 @@ public class MaterialInstance : MultiDisposable
     /// </summary>
     public MaterialInstance BindTexture(string id, Texture texture)
     {
-        if (!_resources.images.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
+        if (!_resources.Images.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
 
-        var set = _sets[(SetType)resource.set];
-        set.WriteTexture(resource.binding, texture, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        var set = _sets[(SetType)resource.Set];
+        set.WriteTexture(resource.Binding, texture, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         return this;
     }
@@ -85,10 +86,10 @@ public class MaterialInstance : MultiDisposable
     /// </summary>
     public MaterialInstance BindTextureArray(string id, Texture[] textures)
     {
-        if (!_resources.images.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
+        if (!_resources.Images.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
 
-        var set = _sets[(SetType)resource.set];
-        set.WriteTextures(resource.binding, textures, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        var set = _sets[(SetType)resource.Set];
+        set.WriteTextures(resource.Binding, textures, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         return this;
     }
@@ -98,10 +99,10 @@ public class MaterialInstance : MultiDisposable
     /// </summary>
     public MaterialInstance BindImage(string id, DeviceImage image, DescriptorSet.ImageType type, VkSampler sampler)
     {
-        if (!_resources.images.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
+        if (!_resources.Images.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
 
-        var set = _sets[(SetType)resource.set];
-        set.WriteImage(resource.binding, image, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, type, sampler);
+        var set = _sets[(SetType)resource.Set];
+        set.WriteImage(resource.Binding, image, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, type, sampler);
 
         return this;
     }
@@ -112,10 +113,10 @@ public class MaterialInstance : MultiDisposable
     /// </summary>
     public bool BindImageArray(string id, DeviceImage[] images, DescriptorSet.ImageType type, VkSampler sampler)
     {
-        if (!_resources.images.TryGetValue(id, out var resource)) return false;
+        if (!_resources.Images.TryGetValue(id, out var resource)) return false;
 
-        var set = _sets[(SetType)resource.set];
-        set.WriteImages(resource.binding, images, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, type,
+        var set = _sets[(SetType)resource.Set];
+        set.WriteImages(resource.Binding, images, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, type,
             sampler);
 
         return true;
@@ -127,10 +128,10 @@ public class MaterialInstance : MultiDisposable
     public MaterialInstance BindBuffer(string id, DeviceBuffer buffer,
         DescriptorSet.BufferType type = DescriptorSet.BufferType.Uniform, ulong offset = 0)
     {
-        if (!_resources.buffers.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
+        if (!_resources.Buffers.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
 
-        var set = _sets[(SetType)resource.set];
-        set.WriteBuffer(resource.binding, buffer, type, offset);
+        var set = _sets[(SetType)resource.Set];
+        set.WriteBuffer(resource.Binding, buffer, type, offset);
 
         return this;
     }
@@ -140,12 +141,12 @@ public class MaterialInstance : MultiDisposable
     /// </summary>
     public MaterialInstance Push<T>(VkCommandBuffer commandBuffer, string id, T constant)
     {
-        if (!_resources.pushConstants.TryGetValue(id, out var pushConstant)) throw new UnknownParameterException(id);
+        if (!_resources.PushConstants.TryGetValue(id, out var pushConstant)) throw new UnknownParameterException(id);
 
         unsafe
         {
-            vkCmdPushConstants(commandBuffer, _pipelineLayout, pushConstant.flags, pushConstant.offset,
-                pushConstant.size, &constant);
+            vkCmdPushConstants(commandBuffer, _pipelineLayout, pushConstant.Flags, pushConstant.Offset,
+                pushConstant.Size, &constant);
             return this;
         }
     }

@@ -8,7 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\aerox.Runtime.Widgets\aerox.Runtime.Widgets.csproj" />
+        <ProjectReference Include="..\aerox.Font\aerox.Font.csproj" />
+        <ProjectReference Include="..\aerox.Runtime.Widgets\aerox.Runtime.Widgets.csproj"/>
     </ItemGroup>
 
 </Project>

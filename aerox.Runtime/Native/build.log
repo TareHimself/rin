@@ -1,0 +1,10 @@
+-- Selecting Windows SDK version 10.0.22621.0 to target Windows 10.0.22631.
+-- SOURCE FILES D:/Github/vengine/aerox.Runtime/Native/src/macro.hpp;D:/Github/vengine/aerox.Runtime/Native/src/math.cpp;D:/Github/vengine/aerox.Runtime/Native/src/math.hpp;D:/Github/vengine/aerox.Runtime/Native/src/platform.cpp;D:/Github/vengine/aerox.Runtime/Native/src/platform.hpp
+-- D:/Github/vengine/aerox.Runtime/Native/bin
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: D:/Github/vengine/aerox.Runtime/Native/build/Debug
+MSBuild version 17.9.8+b34f75857 for .NET Framework
+
+  Auto build dll exports
+  aerox.Runtime.Native.vcxproj -> D:\Github\vengine\aerox.Runtime\Native\bin\aerox.Runtime.Native.dll

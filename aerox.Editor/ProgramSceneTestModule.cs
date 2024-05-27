@@ -7,15 +7,15 @@ using aerox.Runtime.Scene.Graphics;
 
 namespace aerox.Editor;
 
-[RuntimeModule(typeof(SceneModule),typeof(AssetsModule))]
+[RuntimeModule(typeof(SceneModule), typeof(AssetsModule))]
 public class ProgramSceneTestModule : RuntimeModule
 {
-    public override void Startup(Runtime.Runtime runtime)
+    public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
         var smFactory = AssetsModule.Get().NewFactory<StaticMeshFactory>();
         AssetsModule.Get().NewFactory<MaterialFactory>();
-        smFactory.Import(@"D:\test.glb").Then((smAsset) =>
+        smFactory.Import(@"D:\test.glb").Then(smAsset =>
         {
             var smInstance = (StaticMesh?)smAsset?.Resolve();
             Console.WriteLine("YOOOOOOOO");

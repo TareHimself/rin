@@ -10,15 +10,20 @@ using TerraFX.Interop.Vulkan;
 
 namespace aerox.Runtime.Widgets;
 
-[NativeRuntimeModule(typeof(WindowsModule), typeof(GraphicsModule))]
-public class WidgetsModule : RuntimeModule,ISingletonGetter<WidgetsModule>
+[NativeRuntimeModule(typeof(SWindowsModule), typeof(SGraphicsModule))]
+public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
 {
     private readonly FontCollection _fontCollection = new();
     private readonly Mutex _msdfFontMutex = new();
     private readonly Dictionary<string, MsdfFont> _msdfFonts = new();
     private readonly Dictionary<string, Task<MsdfFont?>> _msdfTasks = new();
-    private readonly Dictionary<Graphics.WindowRenderer, WidgetWindowSurface> _windowSurfaces = new();
-    private GraphicsModule? _graphicsSubsystem;
+    private readonly Dictionary<WindowRenderer, WidgetWindowSurface> _windowSurfaces = new();
+    private SGraphicsModule? _graphicsSubsystem;
+
+    public static SWidgetsModule Get()
+    {
+        return SRuntime.Get().GetModule<SWidgetsModule>();
+    }
 
     public FontCollection GetFontCollection()
     {
@@ -37,31 +42,31 @@ public class WidgetsModule : RuntimeModule,ISingletonGetter<WidgetsModule>
         return null;
     }
 
-    public override async void Startup(Runtime runtime)
+    public override async void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
         _fontCollection.AddSystemFonts();
-        _graphicsSubsystem = runtime.GetModule<GraphicsModule>();
+        _graphicsSubsystem = runtime.GetModule<SGraphicsModule>();
         if (_graphicsSubsystem == null) return;
         _graphicsSubsystem.OnRendererCreated += OnRendererCreated;
         _graphicsSubsystem.OnRendererDestroyed += OnRendererDestroyed;
         foreach (var renderer in _graphicsSubsystem.GetRenderers()) OnRendererCreated(renderer);
     }
 
-    private void OnRendererCreated(Graphics.WindowRenderer renderer)
+    private void OnRendererCreated(WindowRenderer renderer)
     {
         var root = new WidgetWindowSurface(renderer);
-        _windowSurfaces.Add(renderer,root );
+        _windowSurfaces.Add(renderer, root);
         root.Init();
     }
 
-    private void OnRendererDestroyed(Graphics.WindowRenderer renderer)
+    private void OnRendererDestroyed(WindowRenderer renderer)
     {
         _windowSurfaces[renderer].Dispose();
         _windowSurfaces.Remove(renderer);
     }
 
-    public WidgetWindowSurface? GetWindowSurface(Graphics.WindowRenderer renderer)
+    public WidgetWindowSurface? GetWindowSurface(WindowRenderer renderer)
     {
         _windowSurfaces.TryGetValue(renderer, out var result);
 
@@ -73,15 +78,15 @@ public class WidgetsModule : RuntimeModule,ISingletonGetter<WidgetsModule>
         var renderer = _graphicsSubsystem?.GetWindowRenderer(window);
         return renderer == null ? null : GetWindowSurface(renderer);
     }
-    
+
     /// <summary>
-    /// Returns the <see cref="WidgetWindowSurface"/> of the main window
+    ///     Returns the <see cref="WidgetWindowSurface" /> of the main window
     /// </summary>
     /// <returns></returns>
     public WidgetWindowSurface? GetWindowSurface()
     {
         var mainWindow = _graphicsSubsystem?.GetMainWindow();
-        return mainWindow == null ?  null : GetWindowSurface(mainWindow);
+        return mainWindow == null ? null : GetWindowSurface(mainWindow);
     }
 
     public WidgetSurface? GetMainRoot()
@@ -90,7 +95,7 @@ public class WidgetsModule : RuntimeModule,ISingletonGetter<WidgetsModule>
         return win == null ? null : GetWindowSurface(win);
     }
 
-    public override void Shutdown(Runtime runtime)
+    public override void Shutdown(SRuntime runtime)
     {
         base.Shutdown(runtime);
         _graphicsSubsystem?.WaitDeviceIdle();
@@ -100,7 +105,7 @@ public class WidgetsModule : RuntimeModule,ISingletonGetter<WidgetsModule>
         foreach (var root in _windowSurfaces) root.Value.Dispose();
         _windowSurfaces.Clear();
 
-        _graphicsSubsystem = GetEngine()?.GetModule<GraphicsModule>();
+        _graphicsSubsystem = GetEngine()?.GetModule<SGraphicsModule>();
         if (_graphicsSubsystem != null)
         {
             _graphicsSubsystem.OnRendererCreated -= OnRendererCreated;
@@ -116,17 +121,16 @@ public class WidgetsModule : RuntimeModule,ISingletonGetter<WidgetsModule>
 
     public static MaterialInstance CreateMaterial(params string[] shaders)
     {
-        var graphicsModule = Runtime.Instance.GetModule<GraphicsModule>();
+        var graphicsModule = SRuntime.Get().GetModule<SGraphicsModule>();
         return new MaterialBuilder().ConfigureForWidgets().AddShaders(shaders.Select(graphicsModule.LoadShader))
             .AddAttachmentFormats(VkFormat.VK_FORMAT_R16G16B16A16_SFLOAT).Build();
     }
 
-    public static DeviceImage? UploadImage(Image<Rgba32> image, VkImageUsageFlags usage, bool mipMap = false)
+    public static DeviceImage UploadImage(Image<Rgba32> image, VkImageUsageFlags usage, bool mipMap = false)
     {
         using var ms = new MemoryStream();
-        image.Save(ms, new PngEncoder());
         var data = ms.ToArray();
-        return Runtime.Instance.GetModule<GraphicsModule>()?.CreateImage(data, new VkExtent3D
+        return SGraphicsModule.Get().CreateImage(data, new VkExtent3D
         {
             width = (uint)image.Width,
             height = (uint)image.Height,
@@ -145,7 +149,7 @@ public class WidgetsModule : RuntimeModule,ISingletonGetter<WidgetsModule>
     {
         lock (_msdfFontMutex)
         {
-            var family = Runtime.Instance.GetModule<WidgetsModule>().FindFontFamily(fontFamily);
+            var family = FindFontFamily(fontFamily);
 
             if (family == null) return Task.FromResult<MsdfFont?>(null);
 
@@ -161,10 +165,5 @@ public class WidgetsModule : RuntimeModule,ISingletonGetter<WidgetsModule>
 
             return _msdfTasks[family.Value.Name];
         }
-    }
-
-    public static WidgetsModule Get()
-    {
-        return Runtime.Instance.GetModule<WidgetsModule>();
     }
 }

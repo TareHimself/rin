@@ -8,14 +8,14 @@ public struct SceneFrame
     public readonly SceneDrawer Drawer;
     public Frame Raw;
     public readonly List<Command> DrawCommands = new();
-    
+
     public SceneFrame(SceneDrawer drawer, Frame raw)
     {
         Drawer = drawer;
         Raw = raw;
         raw.OnDrawn += CleanupCommands;
     }
-    
+
     public SceneFrame AddCommand(Command command)
     {
         DrawCommands.Add(command);
@@ -24,10 +24,7 @@ public struct SceneFrame
 
     public void CleanupCommands(Frame frame)
     {
-        foreach (var widgetFrameDrawCommand in DrawCommands)
-        {
-            widgetFrameDrawCommand.Dispose();
-        }
+        foreach (var widgetFrameDrawCommand in DrawCommands) widgetFrameDrawCommand.Dispose();
         DrawCommands.Clear();
     }
 

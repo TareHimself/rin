@@ -21,7 +21,7 @@ public class PipelineBuilder
     private VkPipelineRasterizationStateCreateInfo _rasterizer;
     private VkPipelineRenderingCreateInfo _renderInfo;
     private VkPipelineVertexInputStateCreateInfo _vertexInputInfo;
-    
+
     public PipelineBuilder()
     {
         _vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -115,7 +115,7 @@ public class PipelineBuilder
         _colorBlendAttachment.alphaBlendOp = VkBlendOp.VK_BLEND_OP_SUBTRACT;
         return this;
     }
-    
+
     /// <summary>
     ///     Set's the attachment formats of the resulting <see cref="VkPipeline" />
     /// </summary>
@@ -138,7 +138,7 @@ public class PipelineBuilder
         _depthStencil.maxDepthBounds = 1.0f;
         return this;
     }
-    
+
     public PipelineBuilder DisableDepthTest()
     {
         _depthStencil.depthTestEnable = 0;
@@ -246,7 +246,7 @@ public class PipelineBuilder
                                                     pNext = pRendering
                                                 };
 
-                                                var device = Runtime.Instance.GetModule<GraphicsModule>()
+                                                var device = SRuntime.Get().GetModule<SGraphicsModule>()
                                                     .GetDevice();
                                                 VkPipeline result;
                                                 vkCreateGraphicsPipelines(device, new VkPipelineCache(), 1,

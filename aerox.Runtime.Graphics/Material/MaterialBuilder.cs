@@ -10,9 +10,9 @@ using static Vulkan;
 /// </summary>
 public class MaterialBuilder
 {
-    public readonly PipelineBuilder Pipeline = new();
     private readonly List<Shader> _shaders = new();
-    private Func<PipelineBuilder, PipelineBuilder> _configurePipelineFn = (a) => a;
+    public readonly PipelineBuilder Pipeline = new();
+    private Func<PipelineBuilder, PipelineBuilder> _configurePipelineFn = a => a;
 
     /// <summary>
     ///     Add a shader to the resulting <see cref="MaterialInstance" />
@@ -26,10 +26,7 @@ public class MaterialBuilder
 
     public MaterialBuilder AddAttachmentFormats(params VkFormat[] formats)
     {
-        foreach (var format in formats)
-        {
-            Pipeline.AddColorAttachment(format);
-        }
+        foreach (var format in formats) Pipeline.AddColorAttachment(format);
 
         return this;
     }
@@ -48,12 +45,12 @@ public class MaterialBuilder
     {
         List<VkPushConstantRange> ranges = new();
 
-        foreach (var kv in resources.pushConstants)
+        foreach (var kv in resources.PushConstants)
             ranges.Add(new VkPushConstantRange
             {
-                stageFlags = kv.Value.flags,
-                offset = kv.Value.offset,
-                size = kv.Value.size
+                stageFlags = kv.Value.Flags,
+                offset = kv.Value.Offset,
+                size = kv.Value.Size
             });
 
         return ranges.ToArray();
@@ -64,7 +61,7 @@ public class MaterialBuilder
     /// </summary>
     public MaterialInstance Build()
     {
-        var subsystem = Runtime.Instance.GetModule<GraphicsModule>();
+        var subsystem = SRuntime.Get().GetModule<SGraphicsModule>();
 
         ShaderResources allShaderResources = new();
 
@@ -74,56 +71,56 @@ public class MaterialBuilder
 
         foreach (var shader in _shaders)
         {
-            var resources = shader.resources;
+            var resources = shader.Resources;
             var stageFlags = shader.GetStageFlags();
 
-            foreach (var kv in resources.images)
+            foreach (var kv in resources.Images)
             {
-                if (!allShaderResources.images.TryAdd(kv.Key, kv.Value))
+                if (!allShaderResources.Images.TryAdd(kv.Key, kv.Value))
                 {
-                    var r = allShaderResources.images[kv.Key];
-                    r.flags |= kv.Value.flags;
-                    allShaderResources.images[kv.Key] = r;
+                    var r = allShaderResources.Images[kv.Key];
+                    r.Flags |= kv.Value.Flags;
+                    allShaderResources.Images[kv.Key] = r;
                 }
 
-                if (!layoutBuilders.ContainsKey((MaterialInstance.SetType)kv.Value.set))
+                if (!layoutBuilders.ContainsKey((MaterialInstance.SetType)kv.Value.Set))
                 {
-                    layoutBuilders.Add((MaterialInstance.SetType)kv.Value.set, new DescriptorLayoutBuilder());
+                    layoutBuilders.Add((MaterialInstance.SetType)kv.Value.Set, new DescriptorLayoutBuilder());
 
-                    if (maxLayout < kv.Value.set) maxLayout = kv.Value.set;
+                    if (maxLayout < kv.Value.Set) maxLayout = kv.Value.Set;
                 }
 
-                layoutBuilders[(MaterialInstance.SetType)kv.Value.set].AddBinding(kv.Value.binding,
-                    VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags, kv.Value.count);
+                layoutBuilders[(MaterialInstance.SetType)kv.Value.Set].AddBinding(kv.Value.Binding,
+                    VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags, kv.Value.Count);
             }
 
 
-            foreach (var kv in resources.buffers)
+            foreach (var kv in resources.Buffers)
             {
-                if (!allShaderResources.buffers.TryAdd(kv.Key, kv.Value))
+                if (!allShaderResources.Buffers.TryAdd(kv.Key, kv.Value))
                 {
-                    var r = allShaderResources.buffers[kv.Key];
-                    r.flags |= kv.Value.flags;
-                    allShaderResources.buffers[kv.Key] = r;
+                    var r = allShaderResources.Buffers[kv.Key];
+                    r.Flags |= kv.Value.Flags;
+                    allShaderResources.Buffers[kv.Key] = r;
                 }
 
-                if (!layoutBuilders.ContainsKey((MaterialInstance.SetType)kv.Value.set))
+                if (!layoutBuilders.ContainsKey((MaterialInstance.SetType)kv.Value.Set))
                 {
-                    layoutBuilders.Add((MaterialInstance.SetType)kv.Value.set, new DescriptorLayoutBuilder());
+                    layoutBuilders.Add((MaterialInstance.SetType)kv.Value.Set, new DescriptorLayoutBuilder());
 
-                    if (maxLayout < kv.Value.set) maxLayout = kv.Value.set;
+                    if (maxLayout < kv.Value.Set) maxLayout = kv.Value.Set;
                 }
 
-                layoutBuilders[(MaterialInstance.SetType)kv.Value.set].AddBinding(kv.Value.binding,
-                    VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags, kv.Value.count);
+                layoutBuilders[(MaterialInstance.SetType)kv.Value.Set].AddBinding(kv.Value.Binding,
+                    VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags, kv.Value.Count);
             }
 
-            foreach (var kv in resources.pushConstants)
-                if (!allShaderResources.pushConstants.TryAdd(kv.Key, kv.Value))
+            foreach (var kv in resources.PushConstants)
+                if (!allShaderResources.PushConstants.TryAdd(kv.Key, kv.Value))
                 {
-                    var r = allShaderResources.pushConstants[kv.Key];
-                    r.flags |= kv.Value.flags;
-                    allShaderResources.pushConstants[kv.Key] = r;
+                    var r = allShaderResources.PushConstants[kv.Key];
+                    r.Flags |= kv.Value.Flags;
+                    allShaderResources.PushConstants[kv.Key] = r;
                 }
         }
 

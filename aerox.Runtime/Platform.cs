@@ -4,14 +4,14 @@ namespace aerox.Runtime;
 
 public static class Platform
 {
-    [DllImport(Dlls.AeroxNative, EntryPoint = "platformInit", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(Dlls.AeroxRuntimeNative, EntryPoint = "platformInit", CallingConvention = CallingConvention.Cdecl)]
     private static extern void NativeInit();
 
-    [DllImport(Dlls.AeroxNative, EntryPoint = "platformSelectFile", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(Dlls.AeroxRuntimeNative, EntryPoint = "platformSelectFile", CallingConvention = CallingConvention.Cdecl)]
     private static extern void NativeSelectFile(string title, bool multiple, string filter,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativePathDelegate pathCallback);
 
-    [DllImport(Dlls.AeroxNative, EntryPoint = "platformSelectPath", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(Dlls.AeroxRuntimeNative, EntryPoint = "platformSelectPath", CallingConvention = CallingConvention.Cdecl)]
     private static extern void NativeSelectPath(string title, bool multiple,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativePathDelegate pathCallback);
 

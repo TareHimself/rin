@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace aerox.Runtime.Graphics;
 
@@ -16,8 +17,8 @@ public abstract partial class DeviceMemory : MultiDisposable
         Allocation = inAllocation;
     }
 
-    [LibraryImport(Dlls.AeroxNative, EntryPoint = "graphicsAllocatorCopyToBuffer")]
-    [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+    [LibraryImport(Runtime.Dlls.AeroxNative, EntryPoint = "graphicsAllocatorCopyToBuffer")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static unsafe partial void NativeCopyToBuffer(IntPtr allocator, void* allocation, void* data, ulong size,
         ulong offset);
 

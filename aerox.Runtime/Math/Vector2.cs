@@ -100,7 +100,7 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
     {
         return new Vector2<T>(X, Y);
     }
-    
+
     [Pure]
     public Vector2<E> Cast<E>() where E : notnull
     {
@@ -111,10 +111,10 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
 
     public T Dot(Vector2<T> other)
     {
-        dynamic ax = X,ay = Y, bx = other.X,by = other.Y;
+        dynamic ax = X, ay = Y, bx = other.X, by = other.Y;
         return ax * bx + ay * by;
     }
-    
+
     public double Length()
     {
         dynamic ax = X, ay = Y;
@@ -127,15 +127,21 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
 
         var mul = Length() * other.Length();
         // Calculate the cosine of the angle between the vectors
-        var cosine = mul == 0 ? 0 : (double)dot / (mul);
+        var cosine = mul == 0 ? 0 : (double)dot / mul;
 
         // Calculate the angle in radians using arccosine
         return System.Math.Acos(cosine);
     }
 
-    public double Acosd(Vector2<T> other) => (Acos(other) * System.Math.PI / 180.0f);
+    public double Acosd(Vector2<T> other)
+    {
+        return Acos(other) * System.Math.PI / 180.0f;
+    }
 
-    public static implicit operator Vector2<T>(T data) => new Vector2<T>(data);
+    public static implicit operator Vector2<T>(T data)
+    {
+        return new Vector2<T>(data);
+    }
 }
 
 /*

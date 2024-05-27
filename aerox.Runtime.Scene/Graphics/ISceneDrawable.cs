@@ -4,5 +4,5 @@ namespace aerox.Runtime.Scene.Graphics;
 
 public interface ISceneDrawable
 {
-    abstract void Draw(SceneFrame frame, Matrix4 parentSpace);
+    void Draw(SceneFrame frame, Matrix4 parentSpace);
 }

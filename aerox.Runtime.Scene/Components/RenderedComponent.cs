@@ -7,6 +7,5 @@ public class RenderedComponent : SceneComponent, ISceneDrawable
 {
     public virtual void Draw(SceneFrame frame, Matrix4 parentSpace)
     {
-        
     }
 }

@@ -30,7 +30,7 @@ public class Frame : Disposable
         ]);
 
         _renderer = renderer;
-        var subsystem = Runtime.Instance.GetModule<GraphicsModule>();
+        var subsystem = SRuntime.Get().GetModule<SGraphicsModule>();
         var device = subsystem.GetDevice();
         var queueFamily = subsystem.GetQueueFamily();
 
@@ -148,8 +148,8 @@ public class Frame : Disposable
 
     protected override unsafe void OnDispose(bool isManual)
     {
-        var device = GraphicsModule.Get().GetDevice();
-        GraphicsModule.Get().WaitDeviceIdle();
+        var device = SGraphicsModule.Get().GetDevice();
+        SGraphicsModule.Get().WaitDeviceIdle();
         Reset();
         vkDestroySemaphore(device, _swapchainSemaphore, null);
         vkDestroySemaphore(device, _renderSemaphore, null);

@@ -7,4 +7,3 @@ public enum ImageFormat
     Rgba32,
     D32
 }
-

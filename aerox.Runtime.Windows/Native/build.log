@@ -1,0 +1,7 @@
+-- Selecting Windows SDK version 10.0.22621.0 to target Windows 10.0.22631.
+-- SOURCE FILES D:/Github/vengine/aerox.Runtime.Windows/Native/src/macro.hpp;D:/Github/vengine/aerox.Runtime.Windows/Native/src/window.cpp;D:/Github/vengine/aerox.Runtime.Windows/Native/src/window.hpp
+-- PATHS D:/Github/vengine/aerox.Runtime.Windows/Native/../../ext/glfw_3.4/lib/cmake
+-- Configuring incomplete, errors occurred!
+MSBuild version 17.9.8+b34f75857 for .NET Framework
+MSBUILD : error MSB1009: Project file does not exist.
+Switch: ALL_BUILD.vcxproj

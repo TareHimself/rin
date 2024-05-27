@@ -5,28 +5,27 @@ namespace aerox.Runtime.Scene.Graphics.Drawers.Deferred;
 
 public class DeferredSceneDrawer : SceneDrawer
 {
+    protected MaterialInstance? _defaultMaterial;
+    protected DeviceBuffer? GlobalBuffer;
 
     protected GBuffer? Images;
-    protected DeviceBuffer? GlobalBuffer;
-    protected MaterialInstance? _defaultMaterial;
-    
-    public override void Draw(Frame frame)
-    {
-        throw new NotImplementedException();
-    }
 
     public DeferredSceneDrawer(Scene scene) : base(scene)
     {
-        
+    }
+
+    public override void Draw(Frame frame)
+    {
+        throw new NotImplementedException();
     }
 
 
     public override void Start()
     {
         base.Start();
-        GlobalBuffer = GraphicsModule.Get().GetAllocator()
-            .NewUniformBuffer<SceneGlobalBuffer>(sequentialWrite: false, debugName: "Scene Global Buffer");
+        GlobalBuffer = SGraphicsModule.Get().GetAllocator()
+            .NewUniformBuffer<SceneGlobalBuffer>(false, "Scene Global Buffer");
 
-        _defaultMaterial = 
+        //_defaultMaterial = 
     }
 }

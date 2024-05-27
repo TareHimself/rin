@@ -85,12 +85,11 @@ public class PanelSlot(Panel panel, Widget widget) : Slot(widget)
 /// </summary>
 public class Panel : Container<PanelSlot>
 {
-
     public Panel(params Widget[] children) : base(children)
     {
         ClippingMode = EClippingMode.Bounds;
     }
-    
+
     public override void Draw(WidgetFrame frame, DrawInfo info)
     {
         foreach (var slot in slots) slot.GetWidget().Draw(frame, info.AccountFor(slot.GetWidget()));

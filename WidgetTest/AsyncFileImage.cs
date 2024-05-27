@@ -1,8 +1,6 @@
 ﻿using System.Runtime.InteropServices;
-using aerox.Runtime;
 using aerox.Runtime.Extensions;
 using aerox.Runtime.Graphics;
-using aerox.Runtime.Math;
 using aerox.Runtime.Widgets;
 using aerox.Runtime.Widgets.Defaults.Content;
 using aerox.Runtime.Widgets.Events;
@@ -14,10 +12,10 @@ namespace WidgetTest;
 public class AsyncFileImage : Image
 {
     private float _alpha = 0.0f;
-    private float _alphaTarget = 0.0f;
+    private float _alphaTarget;
 
 
-    public AsyncFileImage() : base()
+    public AsyncFileImage()
     {
     }
 
@@ -45,7 +43,7 @@ public class AsyncFileImage : Image
             ImageFormat.Rgba8,
             ImageFilter.Linear,
             ImageTiling.Repeat);
-        
+
         // We do this since the image adds a ref to the texture
         Texture.Dispose();
     }
@@ -59,7 +57,7 @@ public class AsyncFileImage : Image
     //     // BorderRadius = 100.0f * _alpha;
     //     base.Draw(frame, info);
     // }
-    
+
     public override void Draw(WidgetFrame frame, DrawInfo info)
     {
         // var sin = (float)Math.Sin(Runtime.Instance.GetTimeSinceCreation());

@@ -12,11 +12,11 @@ layout (location = 0) in vec2 iUV;
 layout (location = 0) out vec4 oColor;
 
 void main() {
-//    if (shouldDiscard(ui.viewport, pRect.clip, gl_FragCoord.xy)){
-//        discard;
-//    }
+    //    if (shouldDiscard(ui.viewport, pRect.clip, gl_FragCoord.xy)){
+    //        discard;
+    //    }
 
     vec4 pxColor = pRect.color;
 
-    oColor = applyBorderRadius(gl_FragCoord.xy, pxColor,pRect.borderRadius,pRect.size,pRect.transform);
+    oColor = applyBorderRadius(gl_FragCoord.xy, pxColor, pRect.borderRadius, pRect.size, pRect.transform);
 }

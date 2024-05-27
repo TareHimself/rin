@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\aerox.Runtime.Graphics\aerox.Runtime.Graphics.csproj" />
+        <ProjectReference Include="..\aerox.Runtime.Graphics\aerox.Runtime.Graphics.csproj"/>
         <ProjectReference Include="..\aerox.Runtime\aerox.Runtime.csproj"/>
     </ItemGroup>
 

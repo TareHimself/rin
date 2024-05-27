@@ -70,7 +70,7 @@ public class DescriptorSet : Disposable
     {
         var descriptorImageInfo = new VkDescriptorImageInfo
         {
-            sampler = new SamplerSpec()
+            sampler = new SamplerSpec
             {
                 Filter = texture.Filter,
                 Tiling = texture.Tiling
@@ -99,7 +99,7 @@ public class DescriptorSet : Disposable
     {
         var infos = textures.Select(texture => new VkDescriptorImageInfo
         {
-            sampler = new SamplerSpec()
+            sampler = new SamplerSpec
             {
                 Filter = texture.Filter,
                 Tiling = texture.Tiling

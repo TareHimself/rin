@@ -10,19 +10,19 @@ namespace aerox.Runtime.Graphics;
 /// </summary>
 public struct ShaderResourceImage
 {
-    public readonly uint binding;
-    public readonly string name = "";
-    public readonly uint set;
-    public readonly uint count;
-    public VkShaderStageFlags flags;
+    public readonly uint Binding;
+    public readonly string Name = "";
+    public readonly uint Set;
+    public readonly uint Count;
+    public VkShaderStageFlags Flags;
 
     public ShaderResourceImage(JsonObject obj, VkShaderStageFlags inFlags)
     {
-        obj["binding"]?.AsValue().TryGetValue(out binding);
-        obj["name"]?.AsValue().TryGetValue(out name);
-        obj["set"]?.AsValue().TryGetValue(out set);
-        obj["count"]?.AsValue().TryGetValue(out count);
-        flags = inFlags;
+        obj["binding"]?.AsValue().TryGetValue(out Binding);
+        obj["name"]?.AsValue().TryGetValue(out Name);
+        obj["set"]?.AsValue().TryGetValue(out Set);
+        obj["count"]?.AsValue().TryGetValue(out Count);
+        Flags = inFlags;
     }
 }
 
@@ -31,17 +31,17 @@ public struct ShaderResourceImage
 /// </summary>
 public struct ShaderResourcePushConstant
 {
-    public readonly string name = "";
-    public readonly uint size;
-    public readonly uint offset;
-    public VkShaderStageFlags flags;
+    public readonly string Name = "";
+    public readonly uint Size;
+    public readonly uint Offset;
+    public VkShaderStageFlags Flags;
 
     public ShaderResourcePushConstant(JsonObject obj, VkShaderStageFlags inFlags)
     {
-        obj["name"]?.AsValue().TryGetValue(out name);
-        obj["size"]?.AsValue().TryGetValue(out size);
-        obj["offset"]?.AsValue().TryGetValue(out offset);
-        flags = inFlags;
+        obj["name"]?.AsValue().TryGetValue(out Name);
+        obj["size"]?.AsValue().TryGetValue(out Size);
+        obj["offset"]?.AsValue().TryGetValue(out Offset);
+        Flags = inFlags;
     }
 }
 
@@ -50,19 +50,19 @@ public struct ShaderResourcePushConstant
 /// </summary>
 public struct ShaderResourceBuffer
 {
-    public readonly uint binding;
-    public readonly string name = "";
-    public readonly uint set;
-    public readonly uint count;
-    public VkShaderStageFlags flags;
+    public readonly uint Binding;
+    public readonly string Name = "";
+    public readonly uint Set;
+    public readonly uint Count;
+    public VkShaderStageFlags Flags;
 
     public ShaderResourceBuffer(JsonObject obj, VkShaderStageFlags inFlags)
     {
-        obj["binding"]?.AsValue().TryGetValue(out binding);
-        obj["name"]?.AsValue().TryGetValue(out name);
-        obj["set"]?.AsValue().TryGetValue(out set);
-        obj["count"]?.AsValue().TryGetValue(out count);
-        flags = inFlags;
+        obj["binding"]?.AsValue().TryGetValue(out Binding);
+        obj["name"]?.AsValue().TryGetValue(out Name);
+        obj["set"]?.AsValue().TryGetValue(out Set);
+        obj["count"]?.AsValue().TryGetValue(out Count);
+        Flags = inFlags;
     }
 }
 
@@ -71,9 +71,9 @@ public struct ShaderResourceBuffer
 /// </summary>
 public struct ShaderResources
 {
-    public readonly Dictionary<string, ShaderResourceImage> images = new();
-    public readonly Dictionary<string, ShaderResourcePushConstant> pushConstants = new();
-    public readonly Dictionary<string, ShaderResourceBuffer> buffers = new();
+    public readonly Dictionary<string, ShaderResourceImage> Images = new();
+    public readonly Dictionary<string, ShaderResourcePushConstant> PushConstants = new();
+    public readonly Dictionary<string, ShaderResourceBuffer> Buffers = new();
 
     public ShaderResources()
     {
@@ -89,7 +89,7 @@ public struct ShaderResources
                 var asObj = asVal?.AsObject();
                 if (asObj == null) continue;
                 var item = new ShaderResourceImage(asObj, inFlags);
-                images.Add(item.name, item);
+                Images.Add(item.Name, item);
             }
 
         arr = data["pushConstants"]?.AsArray();
@@ -100,7 +100,7 @@ public struct ShaderResources
                 var asObj = asVal?.AsObject();
                 if (asObj == null) continue;
                 var item = new ShaderResourcePushConstant(asObj, inFlags);
-                pushConstants.Add(item.name, item);
+                PushConstants.Add(item.Name, item);
             }
 
         arr = data["buffers"]?.AsArray();
@@ -112,7 +112,7 @@ public struct ShaderResources
                 var asObj = asVal?.AsObject();
                 if (asObj == null) continue;
                 var item = new ShaderResourceBuffer(asObj, inFlags);
-                buffers.Add(item.name, item);
+                Buffers.Add(item.Name, item);
             }
         }
     }
@@ -125,10 +125,11 @@ public class Shader : MultiDisposable
 {
     private readonly VkShaderModule _module;
     private readonly VkShaderStageFlags _stageFlags = 0;
-    public ShaderResources resources = new();
+    public ShaderResources Resources = new();
 
     public Shader(VkShaderModule module, string sourceFile, string reflectionData)
     {
+        
         _module = module;
         if (sourceFile.EndsWith(".vert"))
             _stageFlags |= VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT;
@@ -138,7 +139,7 @@ public class Shader : MultiDisposable
 
         var jsonData = JsonNode.Parse(reflectionData)?.AsObject();
 
-        if (jsonData != null) resources = new ShaderResources(jsonData, _stageFlags);
+        if (jsonData != null) Resources = new ShaderResources(jsonData, _stageFlags);
     }
 
     public Shader(VkShaderModule module, VkShaderStageFlags stageFlags)
@@ -170,7 +171,7 @@ public class Shader : MultiDisposable
 
     protected override void OnDispose(bool isManual)
     {
-        var subsystem = Runtime.Instance.GetModule<GraphicsModule>();
+        var subsystem = SRuntime.Get().GetModule<SGraphicsModule>();
         unsafe
         {
             vkDestroyShaderModule(subsystem.GetDevice(), _module, null);

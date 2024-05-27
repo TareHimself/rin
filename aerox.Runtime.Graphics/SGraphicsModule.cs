@@ -23,14 +23,16 @@ public class ImageBarrierOptions
     public VkPipelineStageFlags2 SrcStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 
     public VkImageSubresourceRange SubresourceRange =
-        GraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
+        SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-[NativeRuntimeModule(typeof(WindowsModule))]
-public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModule>, ITickable
+[NativeRuntimeModule(typeof(SWindowsModule))]
+public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SGraphicsModule>, ITickable
 {
     private readonly BlockingCollection<Action> _pendingQueueTasks = new();
     private readonly List<WindowRenderer> _renderers = new();
+    private readonly Dictionary<SamplerSpec, VkSampler> _samplers = new();
+    private readonly Mutex _samplersMutex = new();
     private readonly Dictionary<string, Shader> _shaders = new();
     private readonly Dictionary<Window, WindowRenderer> _windows = new();
     private Allocator? _allocator;
@@ -48,22 +50,30 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
     private uint _queueFamily;
     private Task? _syncTask;
     private Thread _syncThread = Thread.CurrentThread;
-    private readonly Dictionary<SamplerSpec, VkSampler> _samplers = new();
-    private readonly Mutex _samplersMutex = new();
+    
+    public event Action<WindowRenderer>? OnRendererCreated;
+    public event Action<WindowRenderer>? OnRendererDestroyed;
+
+    public static SGraphicsModule Get()
+    {
+        return SRuntime.Get().GetModule<SGraphicsModule>();
+    }
+
+    public void Tick(double deltaSeconds)
+    {
+        Draw();
+    }
 
 
     public VkSampler GetSampler(SamplerSpec spec)
     {
         lock (_samplersMutex)
         {
-            if (_samplers.TryGetValue(spec, out var sampler))
-            {
-                return sampler;
-            }
+            if (_samplers.TryGetValue(spec, out var sampler)) return sampler;
 
             var vkFilter = FilterToVkFilter(spec.Filter);
             var vkAddressMode = TilingToVkSamplerAddressMode(spec.Tiling);
-            
+
             var samplerCreateInfo = new VkSamplerCreateInfo
             {
                 sType = VkStructureType.VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -81,12 +91,13 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
             {
                 vkCreateSampler(GetDevice(), &samplerCreateInfo, null, &sampler);
             }
-        
-            _samplers.Add(spec,sampler);
+
+            _samplers.Add(spec, sampler);
 
             return sampler;
         }
     }
+
     public static VkFormat FormatToVkFormat(ImageFormat format)
     {
         return format switch
@@ -127,16 +138,6 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
         clearColor.float32[2] = 0;
         clearColor.float32[3] = 0;
         return clearColor;
-    }
-    
-    public static GraphicsModule Get()
-    {
-        return Runtime.Instance.GetModule<GraphicsModule>();
-    }
-    
-    public void Tick(double deltaSeconds)
-    {
-        Draw();
     }
 
     /// <summary>
@@ -181,7 +182,7 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
         {
             try
             {
-                action?.Invoke();
+                action.Invoke();
                 task.TrySetResult();
             }
             catch (Exception e)
@@ -197,28 +198,23 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
     private void SyncThread()
     {
         _syncThread = Thread.CurrentThread;
-        foreach (var task in _pendingQueueTasks.GetConsumingEnumerable()) task?.Invoke();
+        foreach (var task in _pendingQueueTasks.GetConsumingEnumerable()) task.Invoke();
     }
 
-    public event Action<WindowRenderer> OnRendererCreated;
-    public event Action<WindowRenderer> OnRendererDestroyed;
-
-    [DllImport(Dlls.AeroxNative, EntryPoint = "windowGetExtensions", CallingConvention = CallingConvention.Cdecl)]
-    private static extern unsafe IntPtr NativeGetExtensions(uint* length);
-
-    [DllImport(Dlls.AeroxNative, EntryPoint = "graphicsReflectShader", CallingConvention = CallingConvention.Cdecl)]
-    private static extern unsafe void NativeReflectShader(void* data, uint dataSize,
+    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsReflectShader")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+    private static unsafe partial void NativeReflectShader(void* data, uint dataSize,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeReflectionResultDelegate onReflectedDelegate);
 
 
-    [DllImport(Dlls.AeroxNative, EntryPoint = "graphicsCreateVulkanInstance",
-        CallingConvention = CallingConvention.Cdecl)]
-    private static extern unsafe void NativeCreateInstance(IntPtr inWindow, void** outInstance, void** outDevice,
+    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsCreateVulkanInstance")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+    private static unsafe partial void NativeCreateInstance(IntPtr inWindow, void** outInstance, void** outDevice,
         void** outPhysicalDevice, void** outQueue, uint* outQueueFamily, ulong* outSurface, ulong* debugMessenger);
 
-    [DllImport(Dlls.AeroxNative, EntryPoint = "graphicsDestroyVulkanMessenger",
-        CallingConvention = CallingConvention.Cdecl)]
-    private static extern unsafe void NativeDestroyMessenger(void* instance, ulong debugMessenger);
+    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsDestroyVulkanMessenger")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+    private static unsafe partial void NativeDestroyMessenger(void* instance, ulong debugMessenger);
 
     public WindowRenderer? GetWindowRenderer(Window window)
     {
@@ -226,14 +222,14 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
         return windowRenderer;
     }
 
-    public override void Startup(Runtime runtime)
+    public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
-        var windowSubsystem = runtime.GetModule<WindowsModule>();
+        var windowSubsystem = runtime.GetModule<SWindowsModule>();
         windowSubsystem.OnWindowCreated += OnWindowCreated;
         windowSubsystem.OnWindowClosed += OnWindowClosed;
-        
-        Runtime.Instance.OnTick += Tick;
+
+        SRuntime.Get().OnTick += Tick;
     }
 
     public Window? GetMainWindow()
@@ -328,7 +324,7 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
 
     private static void OnCloseRequested(Window.CloseEvent e)
     {
-        Runtime.Instance.RequestExit();
+        SRuntime.Get().RequestExit();
     }
 
 
@@ -339,27 +335,26 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
 
         using var comp = new Compiler(opts);
         using var res = comp.Compile(filePath, Shader.GetShaderStage(filePath));
-        if (res.Status == Status.Success)
+        
+        if (res.Status != Status.Success) throw new Exception("Error compiling shader " + res.ErrorMessage);
+        
+        var ci = new VkShaderModuleCreateInfo
         {
-            var ci = new VkShaderModuleCreateInfo
-            {
-                sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                codeSize = res.CodeLength,
-                pCode = (uint*)res.CodePointer
-            };
+            sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            codeSize = res.CodeLength,
+            pCode = (uint*)res.CodePointer
+        };
 
-            var module = new VkShaderModule();
-            vkCreateShaderModule(_device, &ci, null, &module);
-            var jsonStr = "";
-            NativeReflectShader(ci.pCode, (uint)ci.codeSize,
-                (d, l) => { jsonStr = new StringBuilder(d).ToString(); });
+        var module = new VkShaderModule();
+        vkCreateShaderModule(_device, &ci, null, &module);
+        var jsonStr = "";
+        NativeReflectShader(ci.pCode, (uint)ci.codeSize,
+            (d, _) => { jsonStr = new StringBuilder(d).ToString(); });
 
-            var shader = new Shader(module, filePath, jsonStr);
-            _shaders.Add(filePath, shader);
-            return shader;
-        }
+        var shader = new Shader(module, filePath, jsonStr);
+        _shaders.Add(filePath, shader);
+        return shader;
 
-        throw new Exception("Error compiling shader " + res.ErrorMessage);
     }
 
     public Shader LoadShader(string filePath)
@@ -430,11 +425,13 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
 
     public Allocator GetAllocator()
     {
+        if (_allocator == null) throw new Exception("How have you done this");
         return _allocator;
     }
 
     public DescriptorAllocator GetDescriptorAllocator()
     {
+        if (_descriptorAllocator == null) throw new Exception("How have you done this");
         return _descriptorAllocator;
     }
 
@@ -443,10 +440,10 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
         Sync(() => { vkDeviceWaitIdle(_device); }).Wait();
     }
 
-    public override void Shutdown(Runtime runtime)
+    public override void Shutdown(SRuntime runtime)
     {
         base.Shutdown(runtime);
-        
+
         var mainWindow = _mainWindow!;
         mainWindow.OnCloseRequested -= OnCloseRequested;
         _renderers.Remove(_windows[mainWindow]);
@@ -454,15 +451,14 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
         OnRendererDestroyed?.Invoke(_windows[mainWindow]);
         _windows[mainWindow].Dispose();
         mainWindow.Dispose();
-        
-        
-        
-        Runtime.Instance.OnTick -= Tick;
-        
+
+
+        SRuntime.Get().OnTick -= Tick;
+
         _pendingQueueTasks.Add(() => _pendingQueueTasks.CompleteAdding());
-        _syncTask.Wait();
-        _syncTask.Dispose();
-        
+        _syncTask?.Wait();
+        _syncTask?.Dispose();
+
         _descriptorAllocator?.Dispose();
         _allocator?.Dispose();
         foreach (var shader in _shaders) shader.Value.Dispose();
@@ -471,16 +467,13 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
         {
             lock (_samplersMutex)
             {
-                foreach (var sampler in _samplers.Values)
-                {
-                    vkDestroySampler(_device,sampler,null);
-                }
-                
+                foreach (var sampler in _samplers.Values) vkDestroySampler(_device, sampler, null);
+
                 _samplers.Clear();
             }
         }
-        
-        
+
+
         unsafe
         {
             vkDestroyCommandPool(_device, _immediateCommandPool, null);
@@ -532,15 +525,21 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
 
         return attachment;
     }
-    
-    
-    public static void CopyImageToImage(VkCommandBuffer commandBuffer, DeviceImage src, DeviceImage dst,VkFilter filter = VkFilter.VK_FILTER_LINEAR) =>
-        CopyImageToImage(commandBuffer, src.Image, dst.Image,src.Extent, dst.Extent, filter);
-    
+
+
+    public static void CopyImageToImage(VkCommandBuffer commandBuffer, DeviceImage src, DeviceImage dst,
+        VkFilter filter = VkFilter.VK_FILTER_LINEAR)
+    {
+        CopyImageToImage(commandBuffer, src.Image, dst.Image, src.Extent, dst.Extent, filter);
+    }
+
     public static void CopyImageToImage(VkCommandBuffer commandBuffer, DeviceImage src, DeviceImage dst,
         VkExtent3D srcExtent,
-        VkExtent3D dstExtent, VkFilter filter = VkFilter.VK_FILTER_LINEAR) =>
+        VkExtent3D dstExtent, VkFilter filter = VkFilter.VK_FILTER_LINEAR)
+    {
         CopyImageToImage(commandBuffer, src.Image, dst.Image, srcExtent, dstExtent, filter);
+    }
+
     public static void CopyImageToImage(VkCommandBuffer commandBuffer, VkImage src, VkImage dst, VkExtent3D srcExtent,
         VkExtent3D dstExtent, VkFilter filter = VkFilter.VK_FILTER_LINEAR)
     {
@@ -577,8 +576,6 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
         };
         unsafe
         {
-            var a = blitRegion.srcOffsets[0];
-            var b = blitRegion.dstOffsets[0];
             var blitInfo = new VkBlitImageInfo2
             {
                 sType = VkStructureType.VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
@@ -659,7 +656,7 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
         string debugName = "Image")
     {
         var vkFormat = FormatToVkFormat(format);
-        
+
         var imageCreateInfo = MakeImageCreateInfo(vkFormat, size, usage);
         if (mipMap)
             imageCreateInfo.mipLevels = DeriveMipLevels(new VkExtent2D
@@ -668,7 +665,7 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
                 height = size.height
             });
 
-        var newImage = _allocator.NewDeviceImage(imageCreateInfo, debugName);
+        var newImage = GetAllocator().NewDeviceImage(imageCreateInfo, debugName);
 
         var aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT;
         if (format == ImageFormat.D32) aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -770,7 +767,10 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
         });
     }
 
-    public void ImmediateSubmit(Action<VkCommandBuffer> action) => ImmediateSubmitAsync(action).Wait();
+    public void ImmediateSubmit(Action<VkCommandBuffer> action)
+    {
+        ImmediateSubmitAsync(action).Wait();
+    }
 
     public VkImageView CreateImageView(VkImageViewCreateInfo createInfo)
     {
@@ -907,7 +907,7 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
         string debugName = "Image")
     {
         if (_allocator == null) throw new Exception("Allocator is null");
-        
+
         var dataSize = size.depth * size.width * size.height * 4;
 
         var uploadBuffer = _allocator.NewTransferBuffer(dataSize);
@@ -952,9 +952,9 @@ public sealed class GraphicsModule : RuntimeModule,ISingletonGetter<GraphicsModu
                 ImageBarrier(cmd, newImage, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         });
-        
+
         uploadBuffer.Dispose();
-        
+
         return newImage;
     }
 

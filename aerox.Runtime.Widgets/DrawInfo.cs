@@ -7,11 +7,12 @@ public struct ClippingRect
     public Matrix3 Matrix;
     public Size2d Size;
 }
+
 public class DrawInfo : ICloneable<DrawInfo>
 {
     public readonly List<ClippingRect> ClippingRects;
-    public Matrix3 Transform = Matrix3.Identity;
     private Widget? _target;
+    public Matrix3 Transform = Matrix3.Identity;
 
     private DrawInfo(List<ClippingRect> clippingRects)
     {
@@ -31,15 +32,12 @@ public class DrawInfo : ICloneable<DrawInfo>
     public static DrawInfo From(WidgetSurface widgetSurface)
     {
         return new DrawInfo([
-        new ClippingRect()
-        {
-            Matrix = Matrix3.Identity,
-            Size = widgetSurface.GetDrawSize()
-        }
-        ])
-        {
-            
-        };
+            new ClippingRect
+            {
+                Matrix = Matrix3.Identity,
+                Size = widgetSurface.GetDrawSize()
+            }
+        ]);
     }
 
     public static DrawInfo From(Widget widget)
@@ -55,31 +53,29 @@ public class DrawInfo : ICloneable<DrawInfo>
         var clippingRects = ClippingRects.ToList();
         var widgetMat = widget.ComputeRelativeTransform();
         var transformedMat = Transform * widgetMat;
-        
+
         if (widget.ClippingMode == EClippingMode.Bounds)
-        {
-            clippingRects.Add(new ClippingRect()
+            clippingRects.Add(new ClippingRect
             {
                 Matrix = transformedMat,
                 Size = widget.GetDrawSize()
             });
-        }
-        
+
         return new DrawInfo(clippingRects)
         {
             _target = widget,
             Transform = transformedMat
         };
     }
-    
+
     //public static Vector2<float>[] ClippingRectToPoints()
 
     public static Rect ComputeAxisAlignedBoundingRect(DrawInfo target)
     {
         if (target._target == null) return new Rect();
-        
+
         var tl = new Vector2<float>(0.0f);
-        var br = (tl + target._target.GetDrawSize());
+        var br = tl + target._target.GetDrawSize();
         var tr = new Vector2<float>(br.X, tl.Y);
         var bl = new Vector2<float>(tl.X, br.Y);
 
@@ -90,37 +86,39 @@ public class DrawInfo : ICloneable<DrawInfo>
 
         var p1AABB = new Vector2<float>(
             System.Math.Min(
-                System.Math.Min(tl.X, tr.X), 
+                System.Math.Min(tl.X, tr.X),
                 System.Math.Min(bl.X, br.X)
             ),
             System.Math.Min(
-                System.Math.Min(tl.Y, tr.Y), 
+                System.Math.Min(tl.Y, tr.Y),
                 System.Math.Min(bl.Y, br.Y)
             )
         );
         var p2AABB = new Vector2<float>(
             System.Math.Max(
-                System.Math.Max(tl.X, tr.X), 
+                System.Math.Max(tl.X, tr.X),
                 System.Math.Max(bl.X, br.X)
             ),
             System.Math.Max(
-                System.Math.Max(tl.Y, tr.Y), 
+                System.Math.Max(tl.Y, tr.Y),
                 System.Math.Max(bl.Y, br.Y)
             )
         );
 
-        return new Rect()
+        return new Rect
         {
             Offset = p1AABB,
             Size = p2AABB - p1AABB
         };
     }
+
     public bool IntersectsWith(DrawInfo target)
     {
         var targetAARect = ComputeAxisAlignedBoundingRect(target);
         var myAARect = ComputeAxisAlignedBoundingRect(this);
         return targetAARect.IntersectsWith(myAARect);
     }
+
     public bool PointWithin(Vector2<float> point)
     {
         if (_target == null) return false;
@@ -171,9 +169,12 @@ public class DrawInfo : ICloneable<DrawInfo>
     }
 
 
-    public static implicit operator WidgetPushConstants(DrawInfo info) => new WidgetPushConstants()
+    public static implicit operator WidgetPushConstants(DrawInfo info)
     {
-        Transform = info.Transform,
-        Size = info._target?.GetDrawSize() ?? new Size2d()
-    };
+        return new WidgetPushConstants()
+        {
+            Transform = info.Transform,
+            Size = info._target?.GetDrawSize() ?? new Size2d()
+        };
+    }
 }

@@ -6,7 +6,8 @@ public class MaterialRect : Command
 {
     private readonly MaterialInstance _materialInstance;
     private readonly WidgetPushConstants _pushConstants;
-    public MaterialRect(MaterialInstance materialInstance,WidgetPushConstants pushConstant) : base()
+
+    public MaterialRect(MaterialInstance materialInstance, WidgetPushConstants pushConstant)
     {
         materialInstance.Reserve();
         _materialInstance = materialInstance;
@@ -18,12 +19,12 @@ public class MaterialRect : Command
         base.OnDispose(isManual);
         _materialInstance.Dispose();
     }
-    
+
     public override void Bind(WidgetFrame frame)
     {
         _materialInstance.BindTo(frame);
     }
-    
+
     public override void Run(WidgetFrame frame)
     {
         _materialInstance.Push(frame.Raw.GetCommandBuffer(), "pRect", _pushConstants);

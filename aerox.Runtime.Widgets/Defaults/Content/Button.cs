@@ -1,19 +1,17 @@
-﻿using aerox.Runtime.Widgets.Defaults.Containers;
+﻿using aerox.Runtime.Math;
 
 namespace aerox.Runtime.Widgets.Defaults.Content;
 
 public class Button : Container
 {
-    public Button() : base()
+    public Button()
     {
-        
     }
 
     public Button(Widget child) : base(child)
     {
-        
     }
-    
+
     public override Size2d ComputeDesiredSize()
     {
         var slot = slots.Count > 0 ? slots[0] : null;
@@ -22,25 +20,24 @@ public class Button : Container
 
     public override void Draw(WidgetFrame frame, DrawInfo info)
     {
-        DrawSelf(frame,info);
-        foreach (var slot in slots)
-        {
-            slot.GetWidget().Draw(frame,info.AccountFor(slot.GetWidget()));
-        }
+        DrawSelf(frame, info);
+        foreach (var slot in slots) slot.GetWidget().Draw(frame, info.AccountFor(slot.GetWidget()));
     }
 
     protected virtual void DrawSelf(WidgetFrame frame, DrawInfo myInfo)
     {
-        
     }
 
-    public override uint GetMaxSlots() => 1;
+    public override uint GetMaxSlots()
+    {
+        return 1;
+    }
 
     protected override void ArrangeSlots(Size2d drawSize)
     {
         foreach (var slot in slots)
         {
-            slot.GetWidget().SetRelativeOffset(new (0.0f));
+            slot.GetWidget().SetRelativeOffset(new Vector2<float>(0.0f));
             slot.GetWidget().SetDrawSize(drawSize);
         }
     }

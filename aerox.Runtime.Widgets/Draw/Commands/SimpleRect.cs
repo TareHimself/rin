@@ -2,19 +2,18 @@
 
 namespace aerox.Runtime.Widgets.Draw.Commands;
 
-public class SimpleRect(Matrix3 transform,Vector2<float> size) : Command
+public class SimpleRect(Matrix3 transform, Vector2<float> size) : Command
 {
     public Vector4<float>? BorderRadius;
     public Color? Color;
-    
+
     public override void Bind(WidgetFrame frame)
     {
         frame.WidgetSurface.SimpleRectMat.BindTo(frame);
     }
-    
+
     public override void Run(WidgetFrame frame)
     {
-        
         var constants = new SimpleRectPush
         {
             Transform = transform,

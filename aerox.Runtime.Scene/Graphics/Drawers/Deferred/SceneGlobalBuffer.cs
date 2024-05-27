@@ -17,6 +17,5 @@ public struct SceneGlobalBuffer
 
     public SceneGlobalBuffer()
     {
-        
     }
 }

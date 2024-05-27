@@ -1,27 +1,14 @@
-﻿using System.Reflection;
-using System.Runtime.InteropServices;
-using aerox.Runtime.Audio;
-using aerox.Runtime.Extensions;
-using aerox.Runtime.Graphics;
-using aerox.Runtime.Math;
-using aerox.Runtime.Widgets;
-using aerox.Runtime.Widgets.Defaults.Content;
-using aerox.Runtime.Widgets.Defaults.Containers;
-using aerox.Runtime.Widgets.Events;
-using aerox.Runtime.Windows;
-using SixLabors.ImageSharp.PixelFormats;
-using TerraFX.Interop.Vulkan;
-using Stream = aerox.Runtime.Audio.Stream;
+﻿using aerox.Runtime;
 
 namespace aerox.Editor;
-using aerox.Runtime;
+
 internal class Program
 {
     private static void Main(string[] args)
     {
-        Runtime.Instance.EnsureDependencies<ProgramSceneTestModule>();
+        SRuntime.Get().LoadRequiredModules<ProgramSceneTestModule>();
         //Runtime.Instance.EnsureLoad("aerox.Runtime","aerox.Runtime.Audio","aerox.Runtime.Graphics","aerox.Runtime.Windows","aerox.Runtime.Widgets");
-        Runtime.Instance.Run();
+        SRuntime.Get().Run();
     }
 
     // private class TestImage : Image

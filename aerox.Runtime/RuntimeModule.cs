@@ -16,21 +16,19 @@ public class NativeRuntimeModuleAttribute : RuntimeModuleAttribute
 
 public class RuntimeModule
 {
-    private Runtime? _engine;
+    private SRuntime? _engine;
 
-    public virtual async void Startup(Runtime runtime)
+    public virtual async void Startup(SRuntime runtime)
     {
         _engine = runtime;
     }
 
-    protected Runtime? GetEngine()
+    protected SRuntime? GetEngine()
     {
         return _engine;
     }
 
-    public virtual void Shutdown(Runtime runtime)
+    public virtual void Shutdown(SRuntime runtime)
     {
     }
-    
-    
 }

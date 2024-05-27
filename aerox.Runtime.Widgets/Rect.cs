@@ -26,8 +26,8 @@ public class Rect : ICloneable<Rect>
 
     public static implicit operator Vector4<float>(Rect rect)
     {
-        return new Vector4<float>((float)rect.Offset.X, (float)rect.Offset.Y, (float)rect.Size.Width,
-            (float)rect.Size.Height);
+        return new Vector4<float>(rect.Offset.X, rect.Offset.Y, rect.Size.Width,
+            rect.Size.Height);
     }
 
     public bool IntersectsWith(Rect rect)

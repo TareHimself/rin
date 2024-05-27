@@ -6,9 +6,8 @@ using TerraFX.Interop.Vulkan;
 
 namespace aerox.Runtime.Scene.Components;
 
-
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-struct StaticMeshPushConstants
+internal struct StaticMeshPushConstants
 {
     public Matrix4 Transform;
     public VkBufferDeviceAddressInfo vertexBufferAddress;
@@ -16,9 +15,9 @@ struct StaticMeshPushConstants
 
 public class StaticMeshComponent : RenderedComponent
 {
+    private StaticMesh? _mesh;
 
     public MaterialInstance?[] MaterialOverrides = [];
-    private StaticMesh? _mesh;
 
     public StaticMesh? Mesh
     {
@@ -29,10 +28,9 @@ public class StaticMeshComponent : RenderedComponent
             MaterialOverrides = _mesh?.Materials.ToArray() ?? [];
         }
     }
-    
+
     public override void Draw(SceneFrame frame, Matrix4 parentSpace)
     {
         base.Draw(frame, parentSpace);
-        
     }
 }

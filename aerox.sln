@@ -27,6 +27,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "aerox.Runtime.Windows", "ae
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WidgetTest", "WidgetTest\WidgetTest.csproj", "{515D3A8F-AA58-4533-B73C-03CC30D42BBB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "aerox.Launcher", "aerox.Launcher\aerox.Launcher.csproj", "{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "aerox.Font", "aerox.Font\aerox.Font.csproj", "{527E840E-D1D1-4A4D-B09D-40445924E7B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -145,6 +149,30 @@ Global
 		{515D3A8F-AA58-4533-B73C-03CC30D42BBB}.Release|x64.Build.0 = Release|Any CPU
 		{515D3A8F-AA58-4533-B73C-03CC30D42BBB}.Release|x86.ActiveCfg = Release|Any CPU
 		{515D3A8F-AA58-4533-B73C-03CC30D42BBB}.Release|x86.Build.0 = Release|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Debug|x64.Build.0 = Debug|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Debug|x86.Build.0 = Debug|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Release|x64.ActiveCfg = Release|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Release|x64.Build.0 = Release|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Release|x86.ActiveCfg = Release|Any CPU
+		{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}.Release|x86.Build.0 = Release|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Debug|x64.Build.0 = Debug|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Debug|x86.Build.0 = Debug|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Release|x64.ActiveCfg = Release|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Release|x64.Build.0 = Release|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Release|x86.ActiveCfg = Release|Any CPU
+		{527E840E-D1D1-4A4D-B09D-40445924E7B1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

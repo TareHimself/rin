@@ -23,6 +23,4 @@ public class DeviceImage(
     {
         Allocator.FreeImage(this);
     }
-    
-    
 }

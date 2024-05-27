@@ -1,109 +1,97 @@
-﻿using System.Reflection;
+﻿using System.Collections.Frozen;
+using System.Reflection;
 
 namespace aerox.Runtime;
 
-public sealed class Runtime : Disposable
+public sealed class SRuntime : Disposable
 {
-    public static string SHADERS_DIR = @"C:\Users\Taree\Documents\Github\aerox\aerox.Runtime\shaders";
-    private static Runtime _instance;
+    public static string
+        SHADERS_DIR =
+            @"D:\Github\vengine\aerox.Runtime\shaders"; //"C:\Users\Taree\Documents\Github\aerox\aerox.Runtime\shaders";
+
+    private static SRuntime? _instance;
     private static readonly object Padlock = new();
 
-    private readonly List<AssemblyName> _ensureLoadedAssemblies = new();
     private readonly List<RuntimeModule> _modules = [];
     private readonly Dictionary<Type, RuntimeModule> _modulesMap = new();
 
     private readonly DateTime _startTime;
 
     private bool _exitRequested;
+    private double _lastDeltaSeconds;
 
     private DateTime _lastTickTime;
-    private double _lastDeltaSeconds = 0.0;
 
-    public Runtime()
+    public SRuntime()
     {
         _startTime = DateTime.UtcNow;
         _lastTickTime = DateTime.UtcNow;
     }
 
-    public static Runtime Instance
-    {
-        get
-        {
-            lock (Padlock)
-            {
-                return _instance ??= new Runtime();
-            }
-        }
-    }
-
     public event Action<double> OnTick;
 
-    public event Action<Runtime> OnStartup;
-    public event Action<Runtime> OnShutdown;
+    public event Action<SRuntime> OnStartup;
+    public event Action<SRuntime> OnShutdown;
 
-    public void EnsureLoad(AssemblyName assembly)
+    public static SRuntime Get()
     {
-        _ensureLoadedAssemblies.Add(assembly);
+        return _instance ??= new SRuntime();
     }
-    
-    public RuntimeModuleAttribute? GetModuleAttribute(Type type) => (RuntimeModuleAttribute?)Attribute.GetCustomAttribute(type, typeof(RuntimeModuleAttribute));
-    public RuntimeModuleAttribute? GetModuleAttribute<T>() => GetModuleAttribute(typeof(T));
-    
+
+    public RuntimeModuleAttribute? GetModuleAttribute(Type type)
+    {
+        return (RuntimeModuleAttribute?)Attribute.GetCustomAttribute(type, typeof(RuntimeModuleAttribute));
+    }
+
+    public RuntimeModuleAttribute? GetModuleAttribute<T>()
+    {
+        return GetModuleAttribute(typeof(T));
+    }
+
+    public static void LoadRequiredModules<T>(Dictionary<Type, ModuleType> loadedModules) where T : RuntimeModule
+    {
+        LoadRequiredModules(typeof(T), loadedModules);
+    }
+
     /// <summary>
-    /// Ensures all the modules needed by <see cref="T"/> have their assemblies loaded
+    ///     Ensures all the modules needed by <see cref="T" /> have their assemblies loaded
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public static void EnsureDependencies<T>() where T : RuntimeModule
+    public static void LoadRequiredModules(Type type, Dictionary<Type, ModuleType> loadedModules)
     {
         HashSet<Type> checkedModules = new();
-        
+
         Queue<Type> pendingModules = new();
-        
-        checkedModules.Add(typeof(T));
-        
-        var attrib = Instance.GetModuleAttribute<T>();
-        
+
+        checkedModules.Add(type);
+
+        var attrib = Get().GetModuleAttribute(type);
+
         var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies().ToHashSet();
-        
-        if(attrib == null) return;
-        
+
+        if (attrib == null) return;
+
         foreach (var attribDependency in attrib.Dependencies)
-        {
             if (!checkedModules.Contains(attribDependency))
-            {
                 pendingModules.Enqueue(attribDependency);
-            }
-        }
-        
+
         while (pendingModules.Count > 0)
         {
             var dep = pendingModules.Dequeue();
-            
+
             if (!loadedAssemblies.Contains(dep.Assembly))
             {
                 Assembly.Load(dep.Assembly.GetName());
                 loadedAssemblies.Add(dep.Assembly);
             }
 
+            loadedModules.Add(dep, new ModuleType(dep, Get().GetModuleAttribute(dep)!));
             checkedModules.Add(dep);
-            var depAttrib = Instance.GetModuleAttribute(dep);
-            if(depAttrib == null) continue;
-            foreach (var attribDependency in depAttrib.Dependencies)
-            {
+            var dependencyAttrib = Get().GetModuleAttribute(dep);
+            if (dependencyAttrib == null) continue;
+            foreach (var attribDependency in dependencyAttrib.Dependencies)
                 if (!checkedModules.Contains(attribDependency))
-                {
                     pendingModules.Enqueue(attribDependency);
-                }
-            }
-        }
-    }
-    
-    
-    public void EnsureLoad(params string[] assemblies)
-    {
-        foreach (var assembly in assemblies)
-        {
-            _ensureLoadedAssemblies.Add(new AssemblyName(assembly));
         }
     }
 
@@ -111,7 +99,7 @@ public sealed class Runtime : Disposable
     {
         return (DateTime.UtcNow - _startTime).TotalSeconds;
     }
-    
+
     public double GetLastDeltaSeconds()
     {
         return _lastDeltaSeconds;
@@ -133,10 +121,7 @@ public sealed class Runtime : Disposable
     private void Shutdown()
     {
         OnShutdown?.Invoke(this);
-        for (var i = _modules.Count - 1; i >= 0; i--)
-        {
-            _modules[i].Shutdown(this);
-        }
+        for (var i = _modules.Count - 1; i >= 0; i--) _modules[i].Shutdown(this);
         Dispose();
     }
 
@@ -152,7 +137,7 @@ public sealed class Runtime : Disposable
             var tickStart = DateTime.UtcNow;
 
             _lastDeltaSeconds = (tickStart - _lastTickTime).TotalSeconds;
-            
+
             OnTick?.Invoke(_lastDeltaSeconds);
 
             _lastTickTime = tickStart;
@@ -167,10 +152,6 @@ public sealed class Runtime : Disposable
         Console.WriteLine("Searching assemblies for Engine subsystems");
         // Get all assemblies loaded in the current application domain
         var assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
-        var assemblyNames = assemblies.Select(a => a.GetName().Name);
-        var filtered = _ensureLoadedAssemblies.Where(a => !assemblyNames.Contains(a.Name)).ToArray();
-        foreach (var assemblyName in filtered) assemblies.Add(Assembly.Load(assemblyName));
-
 
         var modulesMap = new Dictionary<Type, ModuleType>();
 
@@ -178,19 +159,20 @@ public sealed class Runtime : Disposable
         foreach (var assembly in assemblies)
         {
             Console.WriteLine("Searching Assembly {0}", assembly.FullName);
-            
+
             foreach (var type in assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(RuntimeModule))))
             {
-                var attribute = (RuntimeModuleAttribute?)Attribute.GetCustomAttribute(type, typeof(RuntimeModuleAttribute));
-                if(attribute == null) continue;
-                modulesMap.Add(type,new ModuleType(type,attribute));
+                var attribute =
+                    (RuntimeModuleAttribute?)Attribute.GetCustomAttribute(type, typeof(RuntimeModuleAttribute));
+                if (attribute == null) continue;
+                modulesMap.Add(type, new ModuleType(type, attribute));
             }
         }
 
-        foreach (var mod in modulesMap)
-        {
-            mod.Value.ResolveAllDependencies(modulesMap);
-        }
+        foreach (var mod in modulesMap.ToFrozenDictionary()) LoadRequiredModules(mod.Key, modulesMap);
+
+
+        foreach (var mod in modulesMap) mod.Value.ResolveAllDependencies(modulesMap);
 
         var sortedModules = new List<ModuleType>();
 
@@ -207,13 +189,13 @@ public sealed class Runtime : Disposable
             {
                 if (!sortedModules[i].Dependencies.Contains(mod.Key) &&
                     (!mod.Value.Attribute.isNativeModule || sortedModules[i].Attribute.isNativeModule)) continue;
-                
-                sortedModules.Insert(i,mod.Value);
+
+                sortedModules.Insert(i, mod.Value);
                 shorted = true;
                 break;
             }
-            
-            if(!shorted) sortedModules.Add(mod.Value);
+
+            if (!shorted) sortedModules.Add(mod.Value);
         }
 
         Console.WriteLine("Creation Order");
@@ -229,7 +211,6 @@ public sealed class Runtime : Disposable
                 _modulesMap.Add(mod.Module, instance);
             }
         }
-        
     }
 
     private void InitializeModules()
@@ -242,7 +223,7 @@ public sealed class Runtime : Disposable
     {
         return (T)_modulesMap[typeof(T)];
     }
-    
+
     protected override void OnDispose(bool isManual)
     {
     }

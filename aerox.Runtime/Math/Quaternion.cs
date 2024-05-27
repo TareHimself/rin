@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.LinearAlgebra.Single;
 
 namespace aerox.Runtime.Math;
 
@@ -21,28 +20,31 @@ public partial struct Quaternion(float inX, float inY, float inZ, float inW)
     public Quaternion(float inData) : this(inData, inData, inData, inData)
     {
     }
-    
-    
-    [LibraryImport(Dlls.AeroxNative, EntryPoint = "mathQuatFromAngle")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl) ])]
-    private static partial void NativeQuatFromAngle(ref Quaternion result,float angle, ref Vector3<float> axis);
+
+
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathQuatFromAngle")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeQuatFromAngle(ref Quaternion result, float angle, ref Vector3<float> axis);
+
     public static Quaternion FromAngle(float angle, Vector3<float> axis)
     {
         var q = new Quaternion();
-        
-        NativeQuatFromAngle(ref q,angle, ref axis);
+
+        NativeQuatFromAngle(ref q, angle, ref axis);
         return q;
     }
 
-    public static Quaternion FromAngleDeg(float angle, Vector3<float> axis) =>
-        FromAngle((float)(angle * System.Math.PI / 180.0f), axis);
+    public static Quaternion FromAngleDeg(float angle, Vector3<float> axis)
+    {
+        return FromAngle((float)(angle * System.Math.PI / 180.0f), axis);
+    }
 
     public Quaternion Clone()
     {
         return new Quaternion(X, Y, Z, W);
     }
 
-    public static Quaternion Zero => new Quaternion(0.0f);
+    public static Quaternion Zero => new(0.0f);
 
     public Vector3<float> Forward => this * Vector3<float>.Forward;
 
@@ -51,21 +53,35 @@ public partial struct Quaternion(float inX, float inY, float inZ, float inW)
     public Vector3<float> Up => this * Vector3<float>.Up;
 
 
-    public Quaternion ApplyPitch(float delta) =>
-        this * FromAngleDeg(delta, Vector3<float>.Right);
+    public Quaternion ApplyPitch(float delta)
+    {
+        return this * FromAngleDeg(delta, Vector3<float>.Right);
+    }
 
-    public Quaternion ApplyRoll(float delta) =>
-        this * FromAngleDeg(delta, Vector3<float>.Forward);
+    public Quaternion ApplyRoll(float delta)
+    {
+        return this * FromAngleDeg(delta, Vector3<float>.Forward);
+    }
 
-    public Quaternion ApplyYaw(float delta) =>
-        this * FromAngleDeg(delta, Vector3<float>.Up);
+    public Quaternion ApplyYaw(float delta)
+    {
+        return this * FromAngleDeg(delta, Vector3<float>.Up);
+    }
 
-    public Quaternion ApplyLocalPitch(float delta) => this * FromAngleDeg(delta, Right);
+    public Quaternion ApplyLocalPitch(float delta)
+    {
+        return this * FromAngleDeg(delta, Right);
+    }
 
-    public Quaternion ApplyLocalRoll(float delta) =>
-        this * FromAngleDeg(delta, Forward);
+    public Quaternion ApplyLocalRoll(float delta)
+    {
+        return this * FromAngleDeg(delta, Forward);
+    }
 
-    public Quaternion ApplyLocalYaw(float delta) => this * FromAngleDeg(delta, Up);
+    public Quaternion ApplyLocalYaw(float delta)
+    {
+        return this * FromAngleDeg(delta, Up);
+    }
 
     public static Quaternion operator *(Quaternion left, Quaternion right)
     {
@@ -76,15 +92,16 @@ public partial struct Quaternion(float inX, float inY, float inZ, float inW)
             left.W * right.W - left.X * right.X - left.Y * right.Y - left.Z * right.Z
         );
     }
-    
-    [LibraryImport(Dlls.AeroxNative, EntryPoint = "mathMultiplyQuatVector4")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl) ])]
-    private static partial void NativeMultiplyQuatVector(ref Vector3<float> result,ref Quaternion left, ref Vector3<float> right);
-    
+
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathMultiplyQuatVector4")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeMultiplyQuatVector(ref Vector3<float> result, ref Quaternion left,
+        ref Vector3<float> right);
+
     public static Vector3<float> operator *(Quaternion left, Vector3<float> right)
     {
         Vector3<float> result = new(0.0f);
-        NativeMultiplyQuatVector(ref result,ref left,ref right);
+        NativeMultiplyQuatVector(ref result, ref left, ref right);
         // var qv = new Vector3<float>(left.X, left.Y, left.Z);
         // var uv = qv.Cross(right);
         // var uuv = qv.Cross(uv);
@@ -93,16 +110,16 @@ public partial struct Quaternion(float inX, float inY, float inZ, float inW)
         return result;
     }
 
-    [LibraryImport(Dlls.AeroxNative, EntryPoint = "mathQuatToMatrix4")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl) ])]
-    private static partial void NativeQuatToMatrix4(ref Matrix4 result,ref Quaternion target);
-    
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathQuatToMatrix4")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeQuatToMatrix4(ref Matrix4 result, ref Quaternion target);
+
     public static implicit operator Matrix4(Quaternion quat)
     {
         Matrix4 r = new();
-        NativeQuatToMatrix4(ref r,ref quat);
+        NativeQuatToMatrix4(ref r, ref quat);
         return r;
-        
+
         // float qxx = quat.X * quat.X,
         //     qyy = quat.Y * quat.Y,
         //     qzz = quat.Z * quat.Z,

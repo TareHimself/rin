@@ -1,13 +1,32 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\aerox.Runtime\aerox.Runtime.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\aerox.Runtime\aerox.Runtime.csproj"/>
+    </ItemGroup>
 
+    <Target Name="Clean Native" BeforeTargets="CoreClean">
+        <ItemGroup>
+            <_Dirs Include=".\Native\bin"/>
+            <_Dirs Include=".\Native\build"/>
+        </ItemGroup>
+        <RemoveDir Directories="@(_Dirs)"/>
+    </Target>
+
+    <Target Name="Cmake Build Project Debug" BeforeTargets="BeforeBuild">
+        <Exec Command="cmake -DCMAKE_BUILD_TYPE=Debug -S ./Native/ -B ./Native/build/Debug" />
+        <Exec Command="cmake --build ./Native/build/Debug" />
+    </Target>
+    
+    <ItemGroup>
+        <Content Include=".\Native\bin\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>%(FileName)%(Extension)</Link>
+        </Content>
+    </ItemGroup>
 </Project>

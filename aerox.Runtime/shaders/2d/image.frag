@@ -18,9 +18,9 @@ layout(set = 1, binding = 0, scalar) uniform options{
 } opts;
 
 void main() {
-//    if (shouldDiscard(ui.viewport, pRect.clip, gl_FragCoord.xy)){
-//        discard;
-//    }
+    //    if (shouldDiscard(ui.viewport, pRect.clip, gl_FragCoord.xy)){
+    //        discard;
+    //    }
 
     vec4 pxColor = opts.tint;
 
@@ -28,5 +28,5 @@ void main() {
         pxColor = pxColor * texture(ImageT, iUV);
     }
 
-    oColor = applyBorderRadius(gl_FragCoord.xy, pxColor,opts.borderRadius,pRect.size,pRect.transform);
+    oColor = applyBorderRadius(gl_FragCoord.xy, pxColor, opts.borderRadius, pRect.size, pRect.transform);
 }

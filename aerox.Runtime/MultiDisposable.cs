@@ -17,10 +17,7 @@ public abstract class MultiDisposable : Disposable
     {
         _mutex.WaitOne();
         _reservations--;
-        if (_reservations < 0)
-        {
-            base.Dispose(disposing);
-        }
+        if (_reservations < 0) base.Dispose(disposing);
         _mutex.ReleaseMutex();
     }
 }

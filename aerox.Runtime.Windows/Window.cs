@@ -19,7 +19,9 @@ public class Window : Disposable
         ModCapsLock = 0x0010,
         ModNumLock = 0x0020
     }
-
+    
+    private readonly nint _nativePtr;
+    
     private readonly NativeCharDelegate _charDelegate;
 
     private readonly NativeCloseDelegate _closeDelegate;
@@ -32,22 +34,22 @@ public class Window : Disposable
 
     private readonly NativeMouseButtonDelegate _mouseButtonDelegate;
 
-    private readonly nint _nativePtr;
-
     private readonly NativeScrollDelegate _scrollDelegate;
 
     private readonly NativeSizeDelegate _sizeDelegate;
 
-    private Vector2<double>? _lastCursorPositon;
+    public readonly List<Window> Children = [];
+
+    public readonly Window? Parent;
+
+    private Vector2<double>? _lastCursorPosition;
 
     public bool Focused = true;
 
 
     public VkExtent2D PixelSize;
 
-    public readonly Window? Parent;
-
-    public Window(nint nativePtr,Window? parent)
+    public Window(nint nativePtr, Window? parent)
     {
         Parent = parent;
         _keyDelegate = KeyCallback;
@@ -74,11 +76,9 @@ public class Window : Disposable
             _charDelegate);
     }
 
-    public readonly List<Window> Children = new();
-
-    public Window CreateChild(int width, int height, string name)
+    public Window CreateChild(int width, int height, string name, WindowCreateOptions? options = null)
     {
-        var child = WindowsModule.Get().CreateWindow(width, height, name, this);
+        var child = SWindowsModule.Get().CreateWindow(width, height, name, this);
         Children.Add(child);
         return child;
     }
@@ -94,8 +94,8 @@ public class Window : Disposable
     private void CursorCallback(nint window, double x, double y)
     {
         var position = new Vector2<double>(x, y);
-        var delta = _lastCursorPositon == null ? new Vector2<double>(0, 0) : position - _lastCursorPositon.Value;
-        _lastCursorPositon = position;
+        var delta = _lastCursorPosition == null ? new Vector2<double>(0, 0) : position - _lastCursorPosition.Value;
+        _lastCursorPosition = position;
         OnMouseMoved?.Invoke(new MouseMoveEvent(this, position, delta));
     }
 
@@ -117,7 +117,6 @@ public class Window : Disposable
 
     private void SizeCallback(nint window, int eWidth, int eHeight)
     {
-        
         PixelSize.width = (uint)eWidth;
         PixelSize.height = (uint)eHeight;
         OnResized?.Invoke(new ResizeEvent(this, PixelSize.width, PixelSize.height));
@@ -136,20 +135,17 @@ public class Window : Disposable
 
     protected override void OnDispose(bool isManual)
     {
-        foreach (var window in Children)
-        {
-            window.Dispose();
-        }
-        
+        foreach (var window in Children) window.Dispose();
+
         Children.Clear();
 
         OnDisposed?.Invoke();
     }
 
-    [DllImport(Dlls.AeroxNative, EntryPoint = "windowGetMousePosition", CallingConvention = CallingConvention.Cdecl)]
-    private static extern void NativeGetMousePosition(nint window, ref double x,ref double y);
+    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowGetMousePosition", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void NativeGetMousePosition(nint window, ref double x, ref double y);
 
-    [DllImport(Dlls.AeroxNative, EntryPoint = "windowGetPixelSize", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowGetPixelSize", CallingConvention = CallingConvention.Cdecl)]
     private static extern void NativeGetPixelSize(nint window, ref int width, ref int height);
 
     public Vector2<double> GetMousePosition()
@@ -162,7 +158,7 @@ public class Window : Disposable
     }
 
 
-    [DllImport(Dlls.AeroxNative, EntryPoint = "windowSetCallbacks", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowSetCallbacks", CallingConvention = CallingConvention.Cdecl)]
     protected static extern void NativeSetWindowCallbacks(nint nativePtr,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeKeyDelegate keyDelegate,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeCursorDelegate cursorDelegate,
@@ -220,8 +216,8 @@ public class Window : Disposable
 
     public class MouseButtonEvent : Event
     {
-        public readonly EKeyState State;
         public readonly Vector2<double> Position;
+        public readonly EKeyState State;
 
         public MouseButtonEvent(Window inWindow, int button, int inAction, int mods) : base(inWindow)
         {

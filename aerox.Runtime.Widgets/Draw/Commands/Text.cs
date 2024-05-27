@@ -5,11 +5,11 @@ namespace aerox.Runtime.Widgets.Draw.Commands;
 
 public class Text : Command
 {
-    private readonly MaterialInstance _materialInstance;
     private readonly MsdfFont _font;
+    private readonly MaterialInstance _materialInstance;
     private readonly TextPushConstants[] _pushConstants;
-    
-    public Text(MaterialInstance materialInstance, MsdfFont font, TextPushConstants[] pushConstants) : base()
+
+    public Text(MaterialInstance materialInstance, MsdfFont font, TextPushConstants[] pushConstants)
     {
         materialInstance.Reserve();
         font.Reserve();
@@ -24,7 +24,7 @@ public class Text : Command
         _materialInstance.Dispose();
         _font.Dispose();
     }
-    
+
     public override void Bind(WidgetFrame frame)
     {
         _materialInstance.BindTo(frame);
@@ -34,10 +34,8 @@ public class Text : Command
     {
         foreach (var push in _pushConstants)
         {
-            _materialInstance.Push(frame.Raw.GetCommandBuffer(),"pFont",push);
+            _materialInstance.Push(frame.Raw.GetCommandBuffer(), "pFont", push);
             CmdDrawQuad(frame);
         }
     }
-    
-    
 }

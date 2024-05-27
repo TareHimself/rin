@@ -63,7 +63,7 @@ public class List(params Widget[] children) : Container(children)
                     var widget = slot.GetWidget();
                     var widgetSize = widget.GetDesiredSize();
                     widget.SetRelativeOffset(offset.Clone());
-                    widget.SetDrawSize(new Size2d()
+                    widget.SetDrawSize(new Size2d
                     {
                         Width = widgetSize.Width,
                         Height = widgetSize.Height
@@ -78,7 +78,7 @@ public class List(params Widget[] children) : Container(children)
                     var widget = slot.GetWidget();
                     widget.SetRelativeOffset(offset.Clone());
                     var widgetSize = widget.GetDesiredSize();
-                    widget.SetDrawSize(new Size2d()
+                    widget.SetDrawSize(new Size2d
                     {
                         Height = widgetSize.Height,
                         Width = widgetSize.Width
@@ -99,18 +99,12 @@ public class List(params Widget[] children) : Container(children)
 
     public override void Draw(WidgetFrame frame, DrawInfo info)
     {
-        if (slots.Count > 2)
-        {
-            frame.AddRect(info.Transform, GetDrawSize(), color: Color.Red);
-        }
+        if (slots.Count > 2) frame.AddRect(info.Transform, GetDrawSize(), color: Color.Red);
         foreach (var slot in slots.ToArray())
         {
             var slotDrawInfo = info.AccountFor(slot.GetWidget());
-            if (!slotDrawInfo.IntersectsWith(info))
-            {
-                continue;
-            }
-             slot.GetWidget().Draw(frame, info.AccountFor(slot.GetWidget()));
+            if (!slotDrawInfo.IntersectsWith(info)) continue;
+            slot.GetWidget().Draw(frame, info.AccountFor(slot.GetWidget()));
         }
     }
 }

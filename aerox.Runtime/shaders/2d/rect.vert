@@ -14,5 +14,5 @@ layout(location = 0) out vec2 oUV;
 
 void main()
 {
-    generateRectVertex(pRect.size,ui.projection,pRect.transform,gl_VertexIndex,gl_Position,oUV);
+    generateRectVertex(pRect.size, ui.projection, pRect.transform, gl_VertexIndex, gl_Position, oUV);
 }

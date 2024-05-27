@@ -1,6 +1,5 @@
 ﻿using aerox.Runtime.Math;
 using aerox.Runtime.Widgets.Events;
-using aerox.Runtime.Windows;
 
 namespace aerox.Runtime.Widgets.Defaults.Containers;
 
@@ -9,10 +8,10 @@ public class ScrollableList : List
     private readonly List _inner;
 
     private float _offset;
+    private float mouseDownOffset;
     private Vector2<float> MouseDownPos = new(0.0f);
-    private float mouseDownOffset = 0.0f;
-    
-    public ScrollableList(params Widget[] children) : base()
+
+    public ScrollableList(params Widget[] children)
     {
         ClippingMode = EClippingMode.Bounds;
         _inner = new List(children);
@@ -121,12 +120,12 @@ public class ScrollableList : List
             case Axis.Vertical:
             {
                 var delta = e.Delta.Y * -1.0f;
-                return ScrollBy((float)delta * ScrollScale);
+                return ScrollBy(delta * ScrollScale);
             }
             case Axis.Horizontal:
             {
                 var delta = e.Delta.X;
-                return ScrollBy((float)delta * ScrollScale);
+                return ScrollBy(delta * ScrollScale);
             }
             default:
                 return base.OnScroll(e);
@@ -170,5 +169,4 @@ public class ScrollableList : List
     {
         base.OnCursorUp(e);
     }
-
 }

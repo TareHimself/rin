@@ -4,6 +4,8 @@ namespace aerox.Runtime.Widgets;
 
 public static class WindowExtensions
 {
-    public static WidgetWindowSurface? GetWidgetSurface(this Window window) =>
-        WidgetsModule.Get().GetWindowSurface(window);
+    public static WidgetWindowSurface? GetWidgetSurface(this Window window)
+    {
+        return SWidgetsModule.Get().GetWindowSurface(window);
+    }
 }

@@ -17,11 +17,11 @@ float normpdf(in float x, in float sigma)
 
 // https://www.shadertoy.com/view/XdfGDH
 void main() {
-//    if (shouldDiscard(ui.viewport, push.clip, gl_FragCoord.xy)){
-//        discard;
-//    }
+    //    if (shouldDiscard(ui.viewport, push.clip, gl_FragCoord.xy)){
+    //        discard;
+    //    }
     //vec2 uv = vec2(mapRangeUnClamped(iUV.x,0.0,1.0,0.5,1.0),mapRangeUnClamped(iUV.y,0.0,1.0,0.5,1.0));
-    vec2 imSize = vec2(textureSize(SourceT,0));
+    vec2 imSize = vec2(textureSize(SourceT, 0));
     vec2 actualUv = gl_FragCoord.xy / imSize;
     vec3 c = texture(SourceT, actualUv).rgb;
     //oColor = vec4(1.0,0.0,0.0, 1.0);
@@ -51,11 +51,11 @@ void main() {
     {
         for (int j=-kSize; j <= kSize; ++j)
         {
-            finalColor += kernel[kSize+j]*kernel[kSize+i]*texture(SourceT, (gl_FragCoord.xy+vec2(float(i),float(j))) / imSize).rgb;
+            finalColor += kernel[kSize+j]*kernel[kSize+i]*texture(SourceT, (gl_FragCoord.xy+vec2(float(i), float(j))) / imSize).rgb;
         }
     }
 
     finalColor /= (Z*Z);
-    
+
     oColor = vec4(finalColor, 1.0) * push.tint;
 }

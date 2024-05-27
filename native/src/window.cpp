@@ -11,10 +11,17 @@ void windowSubsystemStop()
 }
 
 
-    void* windowCreate(int width, int height, const char* name,void* parent)
+void* windowCreate(int width, int height, const char* name,const WindowCreateOptions* options)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    if (const auto win = glfwCreateWindow(width, height, name, nullptr, static_cast<GLFWwindow*>(parent)))
+    glfwWindowHint(GLFW_RESIZABLE, options->resizable ? GLFW_TRUE : GLFW_FALSE);
+    glfwWindowHint(GLFW_VISIBLE, options->visible ? GLFW_TRUE : GLFW_FALSE);
+    glfwWindowHint(GLFW_DECORATED, options->decorated ? GLFW_TRUE : GLFW_FALSE);
+    glfwWindowHint(GLFW_FLOATING, options->floating ? GLFW_TRUE : GLFW_FALSE);
+    glfwWindowHint(GLFW_MAXIMIZED, options->maximized ? GLFW_TRUE : GLFW_FALSE);
+    glfwWindowHint(GLFW_CENTER_CURSOR, options->cursorCentered ? GLFW_TRUE : GLFW_FALSE);
+    
+    if (const auto win = glfwCreateWindow(width, height, name, nullptr, nullptr))
     {
         return win;
     }
@@ -23,67 +30,82 @@ void windowSubsystemStop()
 }
 
 
-    void windowDestroy(void* window)
+void windowDestroy(GLFWwindow* window)
 {
-    glfwDestroyWindow(static_cast<GLFWwindow*>(window));
+    glfwDestroyWindow(window);
 }
 
 
-    void windowSubsystemPollEvents()
+void windowSubsystemPollEvents()
 {
     glfwPollEvents();
 }
 
 
-    void windowSetCallbacks(void* window, const GlfwKeyCallback keyCallback,
-                          const GlfwCursorPosCallback cursorPosCallback,
-                          const GlfwMouseButtonCallback mouseButtonCallback,
-                          const GlfwWindowFocusCallback windowFocusCallback, const GlfwScrollCallback scrollCallback,
-                          const GlfwWindowSizeCallback windowSizeCallback,
-                          const GlfwWindowCloseCallback windowCloseCallback,
-                          const GlfwCharCallback charCallback)
+void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCallback,
+                        const GlfwCursorPosCallback cursorPosCallback,
+                        const GlfwMouseButtonCallback mouseButtonCallback,
+                        const GlfwWindowFocusCallback windowFocusCallback, const GlfwScrollCallback scrollCallback,
+                        const GlfwWindowSizeCallback windowSizeCallback,
+                        const GlfwWindowCloseCallback windowCloseCallback,
+                        const GlfwCharCallback charCallback)
 {
-    const auto asWin = static_cast<GLFWwindow*>(window);
 
-    glfwSetKeyCallback(asWin, keyCallback);
+    glfwSetKeyCallback(window, keyCallback);
 
-    glfwSetCursorPosCallback(asWin, cursorPosCallback);
+    glfwSetCursorPosCallback(window, cursorPosCallback);
 
-    glfwSetMouseButtonCallback(asWin, mouseButtonCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
 
-    glfwSetWindowFocusCallback(asWin, windowFocusCallback);
+    glfwSetWindowFocusCallback(window, windowFocusCallback);
 
-    glfwSetScrollCallback(asWin, scrollCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 
-    glfwSetFramebufferSizeCallback(asWin, windowSizeCallback);
+    glfwSetFramebufferSizeCallback(window, windowSizeCallback);
 
-    glfwSetWindowCloseCallback(asWin, windowCloseCallback);
+    glfwSetWindowCloseCallback(window, windowCloseCallback);
 
-    glfwSetCharModsCallback(asWin,charCallback);
+    glfwSetCharModsCallback(window, charCallback);
 }
 
-uintptr_t windowCreateSurface(void * instance, void* window)
+uintptr_t windowCreateSurface(void* instance, GLFWwindow* window)
 {
     VkSurfaceKHR surf;
 
     const auto inst = reinterpret_cast<VkInstance>(instance);
-    
-    glfwCreateWindowSurface(inst,static_cast<GLFWwindow*>(window),nullptr,&surf);
+
+    glfwCreateWindowSurface(inst,window, nullptr, &surf);
 
     return reinterpret_cast<uintptr_t>(surf);
 }
 
-void * windowGetExtensions(unsigned* length)
+void* windowGetExtensions(unsigned* length)
 {
     return glfwGetRequiredInstanceExtensions(length);
 }
 
-void windowGetMousePosition(void* window, double* x, double* y)
+void windowGetMousePosition(GLFWwindow* window, double* x, double* y)
 {
-    glfwGetCursorPos(static_cast<GLFWwindow*>(window),x,y);
+    glfwGetCursorPos(window, x, y);
 }
 
-void windowGetPixelSize(void* window, int* x, int* y)
+void windowGetPixelSize(GLFWwindow* window, int* x, int* y)
 {
-    glfwGetFramebufferSize(static_cast<GLFWwindow*>(window),x,y);
+    glfwGetFramebufferSize(window, x, y);
+}
+
+void windowSetWindowPosition(GLFWwindow* window, int* x, int* y)
+{
+    glfwSetWindowPos(window,*x,*y);
+}
+
+void windowSetWindowSize(GLFWwindow* window, int* x, int* y)
+{
+    glfwSetWindowSize(window,*x,*y);
+    
+}
+
+void windowSetWindowTitle(GLFWwindow* window, const char* title)
+{
+    glfwSetWindowTitle(window,title);
 }

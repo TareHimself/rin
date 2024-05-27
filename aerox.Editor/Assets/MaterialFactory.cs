@@ -4,9 +4,15 @@ namespace aerox.Editor.Assets;
 
 public class MaterialFactory : AssetFactory
 {
-    public override Type GetAssetType() => typeof(MaterialAsset);
+    public override Type GetAssetType()
+    {
+        return typeof(MaterialAsset);
+    }
 
-    public override Type GetLoadType() => typeof(MaterialInstance);
+    public override Type GetLoadType()
+    {
+        return typeof(MaterialInstance);
+    }
 
     public override object? Load(Asset asset)
     {
@@ -23,7 +29,13 @@ public class MaterialFactory : AssetFactory
         throw new NotImplementedException();
     }
 
-    public override bool CanImport() => true;
+    public override bool CanImport()
+    {
+        return true;
+    }
 
-    public override bool CanExport() => true;
+    public override bool CanExport()
+    {
+        return true;
+    }
 }

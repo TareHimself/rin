@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using MathNet.Numerics.LinearAlgebra;
 
 namespace aerox.Runtime.Math;
 
@@ -87,7 +86,7 @@ public struct Vector3<T>(T inX, T inY, T inZ) :
 
         return new Vector3<T>(ly * rz - ry * lz, lz * rx - rz * lx, lx * ry - rx * ly);
     }
-    
+
     public static Vector3<T> Zero
     {
         get
@@ -97,31 +96,35 @@ public struct Vector3<T>(T inX, T inY, T inZ) :
         }
     }
 
-    public static Vector3<T> Up{
+    public static Vector3<T> Up
+    {
         get
         {
             dynamic x = 0, y = 1, z = 0;
             return new Vector3<T>((T)x, (T)y, (T)z);
         }
     }
-    
-    public static Vector3<T> Forward{
+
+    public static Vector3<T> Forward
+    {
         get
         {
             dynamic x = 0, y = 0, z = 1;
             return new Vector3<T>((T)x, (T)y, (T)z);
         }
     }
-    
-    public static Vector3<T> Right{
+
+    public static Vector3<T> Right
+    {
         get
         {
             dynamic x = 1, y = 0, z = 0;
             return new Vector3<T>((T)x, (T)y, (T)z);
         }
     }
-    
-    public static Vector3<T> Unit{
+
+    public static Vector3<T> Unit
+    {
         get
         {
             dynamic x = 1, y = 1, z = 1;
@@ -129,7 +132,8 @@ public struct Vector3<T>(T inX, T inY, T inZ) :
         }
     }
 
-    public Vector3<T> Clone() => new Vector3<T>(X, Y, Z);
-    
+    public Vector3<T> Clone()
+    {
+        return new Vector3<T>(X, Y, Z);
+    }
 }
-

@@ -13,7 +13,7 @@ public static class TaskExtensions
         await task;
         return then();
     }
-    
+
     public static async Task Then<T>(this Task<T> task, Action<T> then)
     {
         then.Invoke(await task);
@@ -24,7 +24,7 @@ public static class TaskExtensions
         await task;
         then();
     }
-    
+
     public static T WaitForResult<T>(this Task<T> task)
     {
         task.Wait();

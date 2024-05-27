@@ -3,7 +3,6 @@ using aerox.Runtime.Graphics;
 using aerox.Runtime.Graphics.Material;
 using aerox.Runtime.Math;
 using aerox.Runtime.Widgets.Draw.Commands;
-using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace aerox.Runtime.Widgets;
 
@@ -21,9 +20,9 @@ public struct SimpleRectPush
 
 public class WidgetFrame
 {
+    public readonly List<Command> DrawCommands = [];
     public readonly Frame Raw;
     public readonly WidgetSurface WidgetSurface;
-    public readonly List<Command> DrawCommands = [];
 
     public WidgetFrame(WidgetSurface inWidgetSurface, Frame inRaw)
     {
@@ -31,16 +30,21 @@ public class WidgetFrame
         Raw = inRaw;
         inRaw.OnDrawn += CleanupCommands;
     }
-    
-    public WidgetFrame AddRect(Matrix3 transform, Vector2<float> size, Vector4<float>? borderRadius = null,
-        Color? color = null) => AddCommand(new Draw.Commands.SimpleRect(transform, size)
-    {
-        BorderRadius = borderRadius,
-        Color = color
-    });
 
-    public WidgetFrame AddMaterialRect(MaterialInstance materialInstance, WidgetPushConstants pushConstants) =>
-        AddCommand(new MaterialRect(materialInstance, pushConstants));
+    public WidgetFrame AddRect(Matrix3 transform, Vector2<float> size, Vector4<float>? borderRadius = null,
+        Color? color = null)
+    {
+        return AddCommand(new SimpleRect(transform, size)
+        {
+            BorderRadius = borderRadius,
+            Color = color
+        });
+    }
+
+    public WidgetFrame AddMaterialRect(MaterialInstance materialInstance, WidgetPushConstants pushConstants)
+    {
+        return AddCommand(new MaterialRect(materialInstance, pushConstants));
+    }
 
     public WidgetFrame AddCommand(Command command)
     {
@@ -50,10 +54,7 @@ public class WidgetFrame
 
     public void CleanupCommands(Frame frame)
     {
-        foreach (var widgetFrameDrawCommand in DrawCommands)
-        {
-            widgetFrameDrawCommand.Dispose();
-        }
+        foreach (var widgetFrameDrawCommand in DrawCommands) widgetFrameDrawCommand.Dispose();
         DrawCommands.Clear();
     }
 

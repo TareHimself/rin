@@ -2,8 +2,6 @@
 
 namespace aerox.Runtime.Graphics;
 
-
-
 /// <summary>
 ///     GPU Buffer
 /// </summary>
@@ -14,7 +12,10 @@ public class DeviceBuffer(VkBuffer inBuffer, ulong inSize, Allocator inAllocator
     public VkBuffer Buffer = inBuffer;
     public ulong Size = inSize;
 
-    public static implicit operator VkBuffer(DeviceBuffer from) => from.Buffer;
+    public static implicit operator VkBuffer(DeviceBuffer from)
+    {
+        return from.Buffer;
+    }
 
     protected override void OnDispose(bool isManual)
     {

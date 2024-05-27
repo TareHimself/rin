@@ -3,18 +3,18 @@ using aerox.Runtime.Scene.Graphics;
 
 namespace aerox.Editor.Assets;
 
-public class StaticMeshAsset : Assets.Asset
+public class StaticMeshAsset : Asset
 {
-    
-    public MeshSurface[] Surfaces = [];
-    public MaterialAsset?[] Materials = [];
-    public StaticMesh.Vertex[] Vertices = [];
     public uint[] Indices = [];
-    
-    public StaticMeshAsset(MeshSurface[] surfaces) : base()
+    public MaterialAsset?[] Materials = [];
+
+    public MeshSurface[] Surfaces = [];
+    public StaticMesh.Vertex[] Vertices = [];
+
+    public StaticMeshAsset(MeshSurface[] surfaces)
     {
         Surfaces = surfaces;
-        Materials = surfaces.Select((e) => (MaterialAsset?)null).ToArray();
+        Materials = surfaces.Select(e => (MaterialAsset?)null).ToArray();
     }
 
     public override AssetFactory GetFactory()

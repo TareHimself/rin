@@ -1,4 +1,5 @@
-﻿using aerox.Runtime.Graphics;
+﻿using aerox.Runtime;
+using aerox.Runtime.Graphics;
 using aerox.Runtime.Graphics.Material;
 using aerox.Runtime.Widgets;
 
@@ -10,11 +11,11 @@ public class ShinyShader : Widget
 
     public ShinyShader()
     {
-        var gs = Runtime.Runtime.Instance.GetModule<GraphicsModule>();
+        var gs = SRuntime.Get().GetModule<SGraphicsModule>();
 
-        _materialInstance = WidgetsModule.CreateMaterial(
-            gs.LoadShader(@$"{Runtime.Runtime.SHADERS_DIR}\2d\rect.vert"),
-            gs.LoadShader(@$"{Runtime.Runtime.SHADERS_DIR}\2d\pretty.frag"));
+        _materialInstance = SWidgetsModule.CreateMaterial(
+            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\rect.vert"),
+            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\pretty.frag"));
     }
 
     protected override void OnDispose(bool isManual)
@@ -42,6 +43,6 @@ public class ShinyShader : Widget
 
     public override void Draw(WidgetFrame frame, DrawInfo info)
     {
-        frame.AddMaterialRect(_materialInstance,info);
+        frame.AddMaterialRect(_materialInstance, info);
     }
 }

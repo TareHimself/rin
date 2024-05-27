@@ -21,7 +21,9 @@ public struct TextPushConstants
 
     public Vector2<float> Size;
 
-    public int textureIdx;
+    public int atlasIdx;
+
+    public Vector4<int> Rect;
 }
 
 /// <summary>
@@ -40,23 +42,23 @@ public class Text : Widget
     private MsdfFont? _msdf;
     private bool _optionsDirty = true;
 
-    public Text(string inContent = "", float inFontSize = 100f)
+    public Text(string inContent = "", float inFontSize = 100f,string fontFamily = "Arial")
     {
         FontSize = inFontSize;
-        var gs = Runtime.Instance.GetModule<GraphicsModule>();
+        var gs = SRuntime.Get().GetModule<SGraphicsModule>();
         _content = inContent;
         _optionsBuffer = gs.GetAllocator()
             .NewUniformBuffer<ImageOptionsDeviceBuffer>(debugName: "Image Options Buffer");
-        _materialInstance = WidgetsModule.CreateMaterial(
-            gs.LoadShader(@$"{Runtime.SHADERS_DIR}\2d\rect.vert"),
-            gs.LoadShader(@$"{Runtime.SHADERS_DIR}\2d\font.frag"));
+        _materialInstance = SWidgetsModule.CreateMaterial(
+            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\rect.vert"),
+            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\font.frag"));
         _materialInstance.BindBuffer("options", _optionsBuffer);
 
-        Runtime.Instance.GetModule<WidgetsModule>().GetOrCreateFont("Arial").Then(msdf =>
+        SRuntime.Get().GetModule<SWidgetsModule>().GetOrCreateFont(fontFamily).Then(msdf =>
         {
             _msdf = msdf;
 
-            if (_msdf != null) _materialInstance.BindTextureArray("TAtlas", _msdf.GetTextures());
+            if (_msdf != null) _materialInstance.BindTextureArray("TAtlas", _msdf.GetAtlases());
 
             MakeNewFont();
 
@@ -139,7 +141,7 @@ public class Text : Widget
         GetContentBounds(out var bounds);
         GlyphBounds? last = bounds.Length == 0 ? null : bounds[^1];
         var metrics = _latestFont.FontMetrics;
-        var height = ((metrics.HorizontalMetrics.AdvanceHeightMax * 64) / metrics.ScaleFactor) * FontSize;
+        var height = metrics.HorizontalMetrics.AdvanceHeightMax * 64 / metrics.ScaleFactor * FontSize;
 
         return new Size2d(last?.Bounds.Right ?? 0.0f, height);
     }
@@ -157,14 +159,14 @@ public class Text : Widget
             });
             _optionsDirty = false;
         }
-        
+
         //TextMeasurer.TryMeasureCharacterBounds(_content, new TextOptions(_latestFont), out var bounds);
         GetContentBounds(out var bounds);
         List<TextPushConstants> pushConstantsList = [];
         foreach (var bound in bounds)
         {
-            var textureIndex = _msdf?.GetTextureIndex(_content[bound.StringIndex]);
-            if (textureIndex == null) continue;
+            var charInfo = _msdf?.GetCharInfo(_content[bound.StringIndex]);
+            if (charInfo == null) continue;
 
             var charOffset = new Vector2<float>(bound.Bounds.X - ScaledPadding,
                 bound.Bounds.Y - ScaledPadding);
@@ -177,9 +179,10 @@ public class Text : Widget
             {
                 Transform = info.Transform.Translate(charOffset),
                 Size = charSize,
-                textureIdx = textureIndex.Value
+                atlasIdx = charInfo.AtlasIdx,
+                Rect = new Vector4<int>(charInfo.X,charInfo.Y,charInfo.Width,charInfo.Height)
             };
-            
+
             pushConstantsList.Add(constants);
         }
 

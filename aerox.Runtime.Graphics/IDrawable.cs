@@ -2,5 +2,5 @@
 
 public interface IDrawable
 {
-    abstract void Draw(Frame frame);
+    void Draw(Frame frame);
 }

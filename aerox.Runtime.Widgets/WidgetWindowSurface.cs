@@ -7,26 +7,26 @@ using TerraFX.Interop.Vulkan;
 namespace aerox.Runtime.Widgets;
 
 /// <summary>
-/// A surface that displays widgets on a window
+///     A surface that displays widgets on a window
 /// </summary>
 public class WidgetWindowSurface : WidgetSurface
 {
-    private readonly Graphics.WindowRenderer _renderer;
+    private readonly WindowRenderer _renderer;
+    public bool Minimized;
     public Vector2<int> Size;
-    public bool Minimized = false;
 
-    public Window Window => _renderer.GetWindow();
-
-    public WidgetWindowSurface(WindowRenderer renderer) : base()
+    public WidgetWindowSurface(WindowRenderer renderer)
     {
         _renderer = renderer;
-        Size = new((int)Window.PixelSize.width, (int)Window.PixelSize.height);
+        Size = new Vector2<int>((int)Window.PixelSize.width, (int)Window.PixelSize.height);
     }
+
+    public Window Window => _renderer.GetWindow();
 
     public void CopyToSwapchain(Frame frame, VkImage swapchainImage, VkExtent2D extent)
     {
         var drawImage = GetDrawImage();
-        GraphicsModule.CopyImageToImage(frame.GetCommandBuffer(), drawImage.Image, swapchainImage,
+        SGraphicsModule.CopyImageToImage(frame.GetCommandBuffer(), drawImage.Image, swapchainImage,
             drawImage.Extent, _renderer.GetSwapchainExtent());
     }
 
@@ -43,12 +43,9 @@ public class WidgetWindowSurface : WidgetSurface
 
     protected void OnWindowResize(Window.ResizeEvent e)
     {
-        Size = new((int)e.Width, (int)e.Height);
+        Size = new Vector2<int>((int)e.Width, (int)e.Height);
         Minimized = Size.X == 0 || Size.Y == 0;
-        if (!Minimized)
-        {
-            ReceiveResize(new ResizeEvent(this, Size.Clone()));
-        }
+        if (!Minimized) ReceiveResize(new ResizeEvent(this, Size.Clone()));
     }
 
     protected void OnMouseButton(Window.MouseButtonEvent e)
@@ -93,13 +90,16 @@ public class WidgetWindowSurface : WidgetSurface
 
     public override void Draw(Frame frame)
     {
-        if (!Minimized)
-        {
-            base.Draw(frame);
-        }
+        if (!Minimized) base.Draw(frame);
     }
 
-    public override Vector2<float> GetCursorPosition() => Window.GetMousePosition().Cast<float>();
+    public override Vector2<float> GetCursorPosition()
+    {
+        return Window.GetMousePosition().Cast<float>();
+    }
 
-    public override Vector2<int> GetDrawSize() => Size;
+    public override Vector2<int> GetDrawSize()
+    {
+        return Size;
+    }
 }

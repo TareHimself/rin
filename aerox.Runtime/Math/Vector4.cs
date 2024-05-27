@@ -13,7 +13,7 @@ public struct Vector4<T> :
     IMultiplyOperators<Vector4<T>, T, Vector4<T>>,
     IDivisionOperators<Vector4<T>, Vector4<T>, Vector4<T>>,
     IDivisionOperators<Vector4<T>, T, Vector4<T>>,
-    ICloneable<Vector4<T>> 
+    ICloneable<Vector4<T>>
     where T : notnull
 {
     public T X;
@@ -121,7 +121,13 @@ public struct Vector4<T> :
         return new Vector4<T>(lx - rx, ly - ry, lz - rz, lw - rw);
     }
 
-    public Vector4<T> Clone() => new Vector4<T>(X, Y, Z, W);
-    
-    public static implicit operator Vector4<T>(T data) => new Vector4<T>(data);
+    public Vector4<T> Clone()
+    {
+        return new Vector4<T>(X, Y, Z, W);
+    }
+
+    public static implicit operator Vector4<T>(T data)
+    {
+        return new Vector4<T>(data);
+    }
 }

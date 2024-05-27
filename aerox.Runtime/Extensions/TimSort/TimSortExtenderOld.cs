@@ -15,7 +15,7 @@
 // * See the License for the specific language governing permissions and
 // * limitations under the License.
 // */
- 
+
 //#endregion
 
 //#region Notes
@@ -73,7 +73,7 @@
 //    public static class TimSortExtender
 //    {
 //        #region Array (T[])
-		
+
 //        /// <summary>Sorts the specified array.</summary>
 //        /// <typeparam name="T">Type of item.</typeparam>
 //        /// <param name="array">The array.</param>
@@ -164,7 +164,7 @@
 //        #endregion
 
 //        #region List (IList<T>)
-		
+
 //        /// <summary>Sorts the specified array.</summary>
 //        /// <typeparam name="T">Type of item.</typeparam>
 //        /// <param name="array">The array.</param>
@@ -188,7 +188,7 @@
 //        public static void TimSort<T>(this IList<T> array, int start, int length, bool buffered = true)
 //        {
 //            length = Math.Min(length, array.Count - start);
-			
+
 //            if (buffered)
 //            {
 //                BufferedListSort(array, start, length, Comparer<T>.Default.Compare);
@@ -313,7 +313,7 @@
 //                ListTimSort<T>.Sort(array, start, start + length, comparer);
 //            }
 //        }
-		
+
 //        #endregion
 
 //        #region BufferedListSort
@@ -332,7 +332,7 @@
 //            T[] array = new T[length];
 
 //            int left, src, dst;
-			
+
 //            if (start == 0 && length >= list.Count)
 //            {
 //                list.CopyTo(array, 0); // this might be faster than copying one by one
@@ -342,15 +342,16 @@
 //                left = length; src = start; dst = 0;
 //                while (left-- > 0) array[dst++] = list[src++];
 //            }
-			
+
 //            ArrayTimSort<T>.Sort(array, comparer);
-			
+
 //            left = length; src = 0; dst = start;
 //            while (left-- > 0) list[dst++] = array[src++];
 //        }
-		
+
 //        #endregion
 //    }
-	
+
 //    #endregion
 //}
+

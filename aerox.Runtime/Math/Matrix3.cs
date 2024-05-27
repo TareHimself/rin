@@ -1,10 +1,12 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace aerox.Runtime.Math;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public partial struct Matrix3 : ICloneable<Matrix3>, IMultiplyOperators<Matrix3,Matrix3,Matrix3>,IMultiplyOperators<Matrix3,Vector3<float>,Vector3<float>>
+public partial struct Matrix3 : ICloneable<Matrix3>, IMultiplyOperators<Matrix3, Matrix3, Matrix3>,
+    IMultiplyOperators<Matrix3, Vector3<float>, Vector3<float>>
 {
     public Vector3<float> Column1 = new(0.0f);
 
@@ -14,10 +16,9 @@ public partial struct Matrix3 : ICloneable<Matrix3>, IMultiplyOperators<Matrix3,
 
     public Matrix3()
     {
-        
     }
 
-    public static Matrix3 Identity => new Matrix3
+    public static Matrix3 Identity => new()
     {
         Column1 = new Vector3<float>(1.0f, 0.0f, 0.0f),
         Column2 = new Vector3<float>(0.0f, 1.0f, 0.0f),
@@ -25,86 +26,90 @@ public partial struct Matrix3 : ICloneable<Matrix3>, IMultiplyOperators<Matrix3,
     };
 
 
-    public Matrix3 Clone() => new Matrix3()
+    public Matrix3 Clone()
     {
-        Column1 = Column1.Clone(),
-        Column2 = Column2.Clone(),
-        Column3 = Column3.Clone(),
-    };
-    
-    
-    [LibraryImport(Dlls.AeroxNative, EntryPoint = "mathInverseMatrix3")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl) ])]
-    private static partial void NativeInverse(ref Matrix3 result,ref Matrix3 target);
-    
+        return new Matrix3()
+        {
+            Column1 = Column1.Clone(),
+            Column2 = Column2.Clone(),
+            Column3 = Column3.Clone()
+        };
+    }
+
+
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathInverseMatrix3")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeInverse(ref Matrix3 result, ref Matrix3 target);
+
     public Matrix3 Inverse()
     {
         var r = Clone();
-        NativeInverse(ref r,ref this);
+        NativeInverse(ref r, ref this);
         return r;
     }
-    
-    
-    [LibraryImport(Dlls.AeroxNative, EntryPoint = "mathTranslateMatrix3")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl) ])]
-    private static partial void NativeTranslate(ref Matrix3 result,ref Matrix3 target, ref Vector2<float> translation);
-    
+
+
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathTranslateMatrix3")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeTranslate(ref Matrix3 result, ref Matrix3 target, ref Vector2<float> translation);
+
     public Matrix3 Translate(Vector2<float> translation)
     {
         var r = Clone();
-        NativeTranslate(ref r,ref this,ref translation);
+        NativeTranslate(ref r, ref this, ref translation);
         return r;
     }
-    
-    [LibraryImport(Dlls.AeroxNative, EntryPoint = "mathScaleMatrix3")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl) ])]
-    private static partial void NativeScale(ref Matrix3 result,ref Matrix3 target,ref Vector2<float> scale);
+
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathScaleMatrix3")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeScale(ref Matrix3 result, ref Matrix3 target, ref Vector2<float> scale);
 
     public Matrix3 Scale(Vector2<float> scale)
     {
         var r = Clone();
-        NativeScale(ref r,ref this,ref scale);
+        NativeScale(ref r, ref this, ref scale);
         return r;
     }
-    
-    [LibraryImport(Dlls.AeroxNative, EntryPoint = "mathRotateMatrix3")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl) ])]
-    private static partial void NativeRotate(ref Matrix3 result,ref Matrix3 target,float angle);
-    
+
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathRotateMatrix3")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeRotate(ref Matrix3 result, ref Matrix3 target, float angle);
+
     public Matrix3 Rotate(float angle)
     {
         var r = Clone();
-        NativeRotate(ref r,ref this,angle);
+        NativeRotate(ref r, ref this, angle);
         return r;
     }
-    
+
     public Matrix3 RotateDeg(float angle)
     {
         var r = Clone();
-        NativeRotate(ref r,ref this,(float)(angle * System.Math.PI / 180.0f));
+        NativeRotate(ref r, ref this, (float)(angle * System.Math.PI / 180.0f));
         return r;
     }
-    
-    
-    [LibraryImport(Dlls.AeroxNative, EntryPoint = "mathMultiplyMatrix3Matrix3")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl) ])]
-    private static partial void NativeMultiplyMatrix3Matrix3(ref Matrix3 result,ref Matrix3 left,ref Matrix3 right);
-    
+
+
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathMultiplyMatrix3Matrix3")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeMultiplyMatrix3Matrix3(ref Matrix3 result, ref Matrix3 left, ref Matrix3 right);
+
     public static Matrix3 operator *(Matrix3 left, Matrix3 right)
     {
         Matrix3 result = new();
-        NativeMultiplyMatrix3Matrix3(ref result,ref left,ref right);
+        NativeMultiplyMatrix3Matrix3(ref result, ref left, ref right);
         return result;
     }
-    
-    [LibraryImport(Dlls.AeroxNative, EntryPoint = "mathMultiplyMatrix3Vector3")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl) ])]
-    private static partial void NativeMultiplyMatrix3Vector3(ref Vector3<float> result,ref Matrix3 left,ref Vector3<float> right);
+
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathMultiplyMatrix3Vector3")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeMultiplyMatrix3Vector3(ref Vector3<float> result, ref Matrix3 left,
+        ref Vector3<float> right);
 
     public static Vector3<float> operator *(Matrix3 left, Vector3<float> right)
     {
         Vector3<float> result = new(0.0f);
-        NativeMultiplyMatrix3Vector3(ref result,ref left,ref right);
+        NativeMultiplyMatrix3Vector3(ref result, ref left, ref right);
         return result;
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using aerox.Runtime.Math;
 using aerox.Runtime.Widgets.Events;
-using aerox.Runtime.Windows;
 
 namespace aerox.Runtime.Widgets;
 
@@ -22,28 +21,29 @@ public struct WidgetPushConstants
 
 public abstract class Widget : Disposable
 {
-    
-    /// <summary>
-    /// The local angle to render this widget at
-    /// </summary>
-    public float Angle = 0.0f;
-
-    /// <summary>
-    /// The local scale to apply to this widget
-    /// </summary>
-    public Vector2<float> Scale = 1.0f;
-    
-    /// <summary>
-    /// The pivot used to render this widget. Affects <see cref="Angle"/> and <see cref="Scale"/>.
-    /// </summary>
-    public Vector2<float> Pivot = 0.0f;
-
     private Size2d? _cachedDesiredSize;
 
     private WidgetSurface? _cursorUpRoot;
     private Vector2<float> _relativeOffset = 0.0f;
     private Size2d _relativeSize = new();
-    private WidgetsModule _subsystem = Runtime.Instance.GetModule<WidgetsModule>();
+    private SWidgetsModule _subsystem = SRuntime.Get().GetModule<SWidgetsModule>();
+
+    /// <summary>
+    ///     The local angle to render this widget at
+    /// </summary>
+    public float Angle = 0.0f;
+
+    public EClippingMode ClippingMode = EClippingMode.None;
+
+    /// <summary>
+    ///     The pivot used to render this widget. Affects <see cref="Angle" /> and <see cref="Scale" />.
+    /// </summary>
+    public Vector2<float> Pivot = 0.0f;
+
+    /// <summary>
+    ///     The local scale to apply to this widget
+    /// </summary>
+    public Vector2<float> Scale = 1.0f;
 
     public bool Hovered { get; private set; }
     public WidgetSurface? Root { get; private set; }
@@ -52,23 +52,21 @@ public abstract class Widget : Disposable
 
     public EVisibility Visibility { get; set; } = EVisibility.Visible;
 
-    public EClippingMode ClippingMode = EClippingMode.None;
-
 
     protected bool IsPendingMouseUp => _cursorUpRoot != null && !_cursorUpRoot.Disposed;
-    
-    
+
+
     /// <summary>
-    /// Computes the relative/local transformation matrix for this widget
+    ///     Computes the relative/local transformation matrix for this widget
     /// </summary>
     /// <returns></returns>
     public Matrix3 ComputeRelativeTransform()
     {
         var m = Matrix3.Identity;
-        m = m.Translate(_relativeOffset + (_relativeSize * Pivot));
+        m = m.Translate(_relativeOffset + _relativeSize * Pivot);
         m = m.RotateDeg(Angle);
         m = m.Scale(Scale);
-        m = m.Translate((_relativeSize * Pivot) * -1.0f);
+        m = m.Translate(_relativeSize * Pivot * -1.0f);
         return m;
     }
 
@@ -249,7 +247,6 @@ public abstract class Widget : Disposable
         if (_cachedDesiredSize != null) return _cachedDesiredSize;
         _cachedDesiredSize = ComputeDesiredSize();
         return _cachedDesiredSize;
-
     }
 
     public abstract Size2d ComputeDesiredSize();

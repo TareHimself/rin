@@ -15,6 +15,5 @@ public struct DeviceGeometry : IDisposable
     {
         IndexBuffer.Dispose();
         VertexBuffer.Dispose();
-        
     }
 }

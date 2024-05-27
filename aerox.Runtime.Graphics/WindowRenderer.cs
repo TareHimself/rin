@@ -13,7 +13,7 @@ public class WindowRenderer : Disposable
 {
     private const uint FramesInFlight = 2;
     private const VkFormat SwapchainFormat = VkFormat.VK_FORMAT_B8G8R8A8_UNORM;
-    private readonly GraphicsModule _module;
+    private readonly SGraphicsModule _module;
     private readonly VkSurfaceKHR _surface;
     private readonly Window _window;
     private Frame[] _frames = [];
@@ -28,17 +28,17 @@ public class WindowRenderer : Disposable
         height = 0
     };
 
-    private VkImageView[] _swapchainViews = { };
+    private VkImageView[] _swapchainViews = [];
     private VkViewport _viewport;
 
-    public WindowRenderer(GraphicsModule module, Window window)
+    public WindowRenderer(SGraphicsModule module, Window window)
     {
         _window = window;
         _surface = CreateSurface();
         _module = module;
     }
 
-    public WindowRenderer(GraphicsModule module, Window window, VkSurfaceKHR surface)
+    public WindowRenderer(SGraphicsModule module, Window window, VkSurfaceKHR surface)
     {
         _window = window;
         _surface = surface;
@@ -52,17 +52,17 @@ public class WindowRenderer : Disposable
     public event Action<Frame, VkImage, VkExtent2D> OnCopyToSwapchain;
 
 
-    [DllImport(Dlls.AeroxNative, EntryPoint = "windowCreateSurface", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsCreateSurface", CallingConvention = CallingConvention.Cdecl)]
     private static extern unsafe ulong NativeCreateSurface(void* instance, IntPtr window);
 
-    [DllImport(Dlls.AeroxNative, EntryPoint = "graphicsCreateSwapchain", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsCreateSwapchain", CallingConvention = CallingConvention.Cdecl)]
     private static extern unsafe ulong NativeCreateSwapchain(void* device, void* physicalDevice, ulong surface,
         int swapchainFormat, int colorSpace, int presentMode, uint width, uint height,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeSwapchainCreatedDelegate onCreatedDelegate);
 
     public unsafe VkSurfaceKHR CreateSurface()
     {
-        var instance = Runtime.Instance.GetModule<GraphicsModule>().GetInstance();
+        var instance = SRuntime.Get().GetModule<SGraphicsModule>().GetInstance();
         return new VkSurfaceKHR(NativeCreateSurface(instance.Value, _window.GetPtr()));
     }
 
@@ -144,7 +144,7 @@ public class WindowRenderer : Disposable
 
     private unsafe void DestroySwapchain()
     {
-        var device = Runtime.Instance.GetModule<GraphicsModule>().GetDevice();
+        var device = SRuntime.Get().GetModule<SGraphicsModule>().GetDevice();
 
         foreach (var view in _swapchainViews) vkDestroyImageView(device, view, null);
 
@@ -325,12 +325,12 @@ public class WindowRenderer : Disposable
         OnDrawPrimary?.Invoke(frame);
         OnDrawSecondary?.Invoke(frame);
 
-        GraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
+        SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
             VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         OnCopyToSwapchain?.Invoke(frame, _swapchainImages[swapchainImageIndex], swapchainExtent);
 
-        GraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
+        SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
             VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
         vkEndCommandBuffer(cmd);

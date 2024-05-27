@@ -3,15 +3,15 @@
 namespace aerox.Runtime.Audio;
 
 [NativeRuntimeModule]
-public class AudioModule : RuntimeModule
+public class SAudioModule : RuntimeModule
 {
-    public override void Startup(Runtime runtime)
+    public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
         Bass.Init();
     }
 
-    public override void Shutdown(Runtime runtime)
+    public override void Shutdown(SRuntime runtime)
     {
         base.Shutdown(runtime);
         Bass.Free();

@@ -5,15 +5,13 @@ namespace aerox.Runtime.Widgets;
 public abstract class ContainerBase : Widget
 {
     protected abstract void ArrangeSlots(Size2d drawSize);
-    
+
     public virtual void OnChildResized(Widget widget)
     {
-        if (CheckSize())
-        {
-            ArrangeSlots(GetDrawSize());
-        }
+        if (CheckSize()) ArrangeSlots(GetDrawSize());
     }
 }
+
 public abstract class Container<T> : ContainerBase where T : Slot
 {
     protected readonly List<T> slots = new();
@@ -25,8 +23,11 @@ public abstract class Container<T> : ContainerBase where T : Slot
             if (AddChild(widget) == null)
                 break;
     }
-    
-    public virtual T? AddChild<TE>() where TE : Widget => AddChild(Activator.CreateInstance<TE>());
+
+    public virtual T? AddChild<TE>() where TE : Widget
+    {
+        return AddChild(Activator.CreateInstance<TE>());
+    }
 
     public virtual T? AddChild(Widget widget)
     {
@@ -42,9 +43,9 @@ public abstract class Container<T> : ContainerBase where T : Slot
             slots.Add(slot);
 
             if (Root != null) widget.NotifyAddedToRoot(Root);
-            
+
             OnChildResized(widget);
-            Console.WriteLine("Added child [{0}] to container [{1}]", widget.GetType().Name, this.GetType().Name);
+            Console.WriteLine("Added child [{0}] to container [{1}]", widget.GetType().Name, GetType().Name);
             return slot;
         }
     }
@@ -86,7 +87,7 @@ public abstract class Container<T> : ContainerBase where T : Slot
             return slots.ToArray();
         }
     }
-    
+
     public virtual int GetNumSlots()
     {
         lock (slotsMutex)
@@ -162,7 +163,6 @@ public abstract class Container<T> : ContainerBase where T : Slot
                     slot.GetWidget().ReceiveCursorMove(e, slotInfo))
                     return true;
             }
-                
         }
 
         return false;
@@ -187,7 +187,6 @@ public abstract class Container<T> : ContainerBase where T : Slot
                     slot.GetWidget().ReceiveScroll(e, slotInfo))
                     return true;
             }
-                
         }
 
         return false;
@@ -233,7 +232,6 @@ public abstract class Container : Container<Slot>
 {
     public Container(params Widget[] children) : base(children)
     {
-        
     }
 
     public override Slot MakeSlot(Widget widget)

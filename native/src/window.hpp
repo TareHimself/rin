@@ -3,13 +3,31 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+
+struct WindowCreateOptions
+{
+    bool resizable = true;
+    
+    bool visible = true;
+    
+    bool decorated = true;
+    
+    bool focused = true;
+    
+    bool floating = false;
+    
+    bool maximized = false;
+    
+    bool cursorCentered = false;
+};
+
 EXPORT bool windowSubsystemStart();
 
 EXPORT void windowSubsystemStop();
 
-EXPORT void* windowCreate(int width, int height, const char* name,void* parent);
+EXPORT void* windowCreate(int width, int height, const char* name,const WindowCreateOptions * options);
 
-EXPORT void windowDestroy(void* window);
+EXPORT void windowDestroy(GLFWwindow* window);
 
 EXPORT void windowSubsystemPollEvents();
 
@@ -22,7 +40,7 @@ using GlfwWindowSizeCallback = void(__stdcall *)(GLFWwindow* window, const int w
 using GlfwWindowCloseCallback = void(__stdcall *)(GLFWwindow* window);
 using GlfwCharCallback =  void(__stdcall *)(GLFWwindow* window, unsigned int codepoint, int mods);
 
-EXPORT void windowSetCallbacks(void* window, const GlfwKeyCallback keyCallback,
+EXPORT void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCallback,
                                  const GlfwCursorPosCallback cursorPosCallback,
                                  const GlfwMouseButtonCallback mouseButtonCallback,
                                  const GlfwWindowFocusCallback windowFocusCallback,
@@ -36,6 +54,12 @@ EXPORT uintptr_t windowCreateSurface(void * instance,void * window);
 
 EXPORT void * windowGetExtensions(unsigned int * length);
 
-EXPORT void windowGetMousePosition(void* window, double * x,double * y);
+EXPORT void windowGetMousePosition(GLFWwindow* window, double * x,double * y);
 
-EXPORT void windowGetPixelSize(void* window, int * x,int * y);
+EXPORT void windowGetPixelSize(GLFWwindow* window, int * x,int * y);
+
+EXPORT void windowSetWindowPosition(GLFWwindow* window, int * x,int * y);
+
+EXPORT void windowSetWindowSize(GLFWwindow* window, int * x,int * y);
+
+EXPORT void windowSetWindowTitle(GLFWwindow* window,const char * title);

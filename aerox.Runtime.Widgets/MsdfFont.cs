@@ -3,48 +3,50 @@ using SixLabors.Fonts;
 
 namespace aerox.Runtime.Widgets;
 
-public class MsdfFont(FontFamily fontFamily) : MultiDisposable
+public class MsdfFont : MultiDisposable
 {
     private readonly Mutex _mutex = new();
-    private readonly Dictionary<int, int> _textureLookup = new();
-    private readonly List<Texture> _textures = new();
+    private readonly Dictionary<int, int> _characterMap = new();
+    private readonly Texture[] _atlases;
+    private readonly List<MsdfAtlasChar> _chars;
+    private readonly FontFamily _fontFamily;
+
+    public MsdfFont(FontFamily fontFamily,Texture[] atlases,List<MsdfAtlasChar> chars)
+    {
+        _atlases = atlases;
+        _chars = chars;
+        _fontFamily = fontFamily;
+        for(var i = 0; i < _chars.Count; i++)
+        {
+            _characterMap.Add(_chars[i].Id,i);
+        }
+    }
 
     public FontFamily GetFontFamily()
     {
-        return fontFamily;
-    }
-
-    public void Add(int code, Texture texture)
-    {
-        lock (_mutex)
-        {
-            _textureLookup.Add(code, _textures.Count);
-            _textures.Add(texture);
-        }
+        return _fontFamily;
     }
 
     protected override void OnDispose(bool isManual)
     {
         lock (_mutex)
         {
-            foreach (var tex in _textures) tex.Dispose();
-
-            _textures.Clear();
-            _textureLookup.Clear();
+            foreach (var tex in _atlases) tex.Dispose();
+            _characterMap.Clear();
             _mutex.Dispose();
         }
     }
 
-    public Texture[] GetTextures()
+    public Texture[] GetAtlases()
     {
-        return _textures.ToArray();
+        return _atlases.ToArray();
     }
 
-    public int? GetTextureIndex(int code)
+    public MsdfAtlasChar? GetCharInfo(int code)
     {
         lock (_mutex)
         {
-            if (_textureLookup.TryGetValue(code, out var index)) return index;
+            if (_characterMap.TryGetValue(code, out var index)) return _chars[index];
 
             return null;
         }

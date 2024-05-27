@@ -7,7 +7,6 @@ using aerox.Runtime.Widgets.Draw.Commands;
 
 namespace aerox.Runtime.Widgets.Defaults.Containers;
 
-
 [StructLayout(LayoutKind.Sequential)]
 public struct BlurPushConstants
 {
@@ -20,8 +19,7 @@ public struct BlurPushConstants
     public Vector4<float> Tint;
 }
 
-
-class BlurCommand : ReadBack
+internal class BlurCommand : ReadBack
 {
     private readonly MaterialInstance _materialInstance;
     private readonly BlurPushConstants _pushConstants;
@@ -42,7 +40,7 @@ class BlurCommand : ReadBack
     public override void SetImageInput(DeviceImage image)
     {
         base.SetImageInput(image);
-        _materialInstance.BindImage("SourceT", image,DescriptorSet.ImageType.Texture, new SamplerSpec()
+        _materialInstance.BindImage("SourceT", image, DescriptorSet.ImageType.Texture, new SamplerSpec
         {
             Filter = ImageFilter.Linear,
             Tiling = ImageTiling.Repeat
@@ -60,44 +58,47 @@ class BlurCommand : ReadBack
         CmdDrawQuad(frame);
     }
 }
+
 public class BackgroundBlur : Container
 {
     private readonly MaterialInstance _materialInstance;
     public Color Tint = Color.White;
-    
+
     public BackgroundBlur(Widget child) : base(child)
     {
-        _materialInstance = WidgetsModule.CreateMaterial(@$"{Runtime.SHADERS_DIR}\2d\blur.vert",@$"{Runtime.SHADERS_DIR}\2d\blur.frag");
+        _materialInstance = SWidgetsModule.CreateMaterial(@$"{SRuntime.SHADERS_DIR}\2d\blur.vert",
+            @$"{SRuntime.SHADERS_DIR}\2d\blur.frag");
     }
 
-    public BackgroundBlur() : base()
+    public BackgroundBlur()
     {
-        _materialInstance = WidgetsModule.CreateMaterial(@$"{Runtime.SHADERS_DIR}\2d\blur.vert",@$"{Runtime.SHADERS_DIR}\2d\blur.frag");
+        _materialInstance = SWidgetsModule.CreateMaterial(@$"{SRuntime.SHADERS_DIR}\2d\blur.vert",
+            @$"{SRuntime.SHADERS_DIR}\2d\blur.frag");
     }
-    
-    
-    public override Size2d ComputeDesiredSize() => slots.FirstOrDefault()?.GetWidget().GetDesiredSize() ?? new Size2d();
+
+
+    public override Size2d ComputeDesiredSize()
+    {
+        return slots.FirstOrDefault()?.GetWidget().GetDesiredSize() ?? new Size2d();
+    }
 
     protected override void OnAddedToRoot(WidgetSurface widgetSurface)
     {
         base.OnAddedToRoot(widgetSurface);
         _materialInstance.BindBuffer("ui", widgetSurface.GlobalBuffer);
     }
-    
+
     public override void Draw(WidgetFrame frame, DrawInfo info)
     {
-        frame.AddCommand(new BlurCommand(_materialInstance, new BlurPushConstants()
+        frame.AddCommand(new BlurCommand(_materialInstance, new BlurPushConstants
         {
             Transform = info.Transform,
             Size = GetDrawSize(),
             BlurRadius = 20.0f,
-            Tint= Tint
+            Tint = Tint
         }));
 
-        foreach (var widget in slots.Select(slot => slot.GetWidget()))
-        {
-            widget.Draw(frame,info.AccountFor(widget));
-        }
+        foreach (var widget in slots.Select(slot => slot.GetWidget())) widget.Draw(frame, info.AccountFor(widget));
     }
 
     protected override void ArrangeSlots(Size2d drawSize)
@@ -113,5 +114,8 @@ public class BackgroundBlur : Container
         _materialInstance.Dispose();
     }
 
-    public override uint GetMaxSlots() => 1;
+    public override uint GetMaxSlots()
+    {
+        return 1;
+    }
 }

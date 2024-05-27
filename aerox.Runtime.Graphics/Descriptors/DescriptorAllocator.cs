@@ -15,7 +15,7 @@ public class DescriptorAllocator : Disposable
     {
         _ratios = poolRatios;
         _setsPerPool = maxSets;
-        _device = Runtime.Instance.GetModule<GraphicsModule>().GetDevice();
+        _device = SRuntime.Get().GetModule<SGraphicsModule>().GetDevice();
     }
 
     protected override void OnDispose(bool isManual)

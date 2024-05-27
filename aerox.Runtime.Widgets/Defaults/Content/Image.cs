@@ -13,7 +13,6 @@ internal struct ImageOptionsDeviceBuffer
     public Vector4<float> BorderRadius;
 }
 
-
 /// <summary>
 ///     Draw's a <see cref="Texture" /> if provided or a colored rectangle. Supports tint.
 /// </summary>
@@ -29,15 +28,15 @@ public class Image : Widget
 
     public Image()
     {
-        var gs = Runtime.Instance.GetModule<GraphicsModule>();
+        var gs = SRuntime.Get().GetModule<SGraphicsModule>();
         _optionsBuffer = gs.GetAllocator()
             .NewUniformBuffer<ImageOptionsDeviceBuffer>(debugName: "Image Options Buffer");
         _texture = null;
         _optionsDirty = true;
         _tint = new Color(1.0f);
-        _materialInstance = WidgetsModule.CreateMaterial(
-            gs.LoadShader(@$"{Runtime.SHADERS_DIR}\2d\rect.vert"),
-            gs.LoadShader(@$"{Runtime.SHADERS_DIR}\2d\image.frag"));
+        _materialInstance = SWidgetsModule.CreateMaterial(
+            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\rect.vert"),
+            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\image.frag"));
         _materialInstance.BindBuffer("opts", _optionsBuffer);
     }
 
@@ -46,7 +45,6 @@ public class Image : Widget
         get => _texture;
         set
         {
-            
             value?.Reserve();
             _texture?.Dispose();
             _texture = value;
@@ -137,6 +135,6 @@ public class Image : Widget
             _textureDirty = false;
         }
 
-        frame.AddMaterialRect(_materialInstance,info);
+        frame.AddMaterialRect(_materialInstance, info);
     }
 }
