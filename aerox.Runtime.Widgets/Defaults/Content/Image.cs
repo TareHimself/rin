@@ -34,9 +34,7 @@ public class Image : Widget
         _texture = null;
         _optionsDirty = true;
         _tint = new Color(1.0f);
-        _materialInstance = SWidgetsModule.CreateMaterial(
-            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\rect.vert"),
-            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\image.frag"));
+        _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SWidgetsModule.ShadersDir,"image.ash"));
         _materialInstance.BindBuffer("opts", _optionsBuffer);
     }
 

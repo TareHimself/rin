@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <fstream>
 #include <glm/glm.hpp>
 
 #include "macro.hpp"
@@ -10,6 +11,12 @@ struct Vector2
     operator glm::vec2();
     Vector2() = default;
     Vector2(glm::vec2 other);
+
+    friend std::ostream& operator <<(std::ostream& out, const Vector2& data)
+    {
+        out << "[Vector2]" << "\n" << "[" << data.x << "," << data.y << "]";
+        return out;
+    }
 };
 
 struct Vector3
@@ -20,6 +27,12 @@ struct Vector3
     operator glm::vec3();
     Vector3() = default;
     Vector3(glm::vec3 other);
+
+    friend std::ostream& operator <<(std::ostream& out, const Vector3& data)
+    {
+        out << "[Vector3]" << "\n"  << "[" << data.x << "," << data.y  << "," << data.z << "]";
+        return out;
+    }
 };
 
 struct Vector4
@@ -32,6 +45,12 @@ struct Vector4
 
     Vector4() = default;
     Vector4(glm::vec4 other);
+
+    friend std::ostream& operator <<(std::ostream& out, const Vector4& data)
+    {
+        out << "[Vector4]" << "\n" << "[" << data.x << "," << data.y  << "," << data.z << "," << data.w << "]";
+        return out;
+    }
 };
 
 struct Quaternion
@@ -44,6 +63,12 @@ struct Quaternion
 
     Quaternion() = default;
     Quaternion(glm::quat other);
+
+    friend std::ostream& operator <<(std::ostream& out, const Quaternion& data)
+    {
+        out << "[Quaternion]" << "\n" << "[" << data.x << "," << data.y  << "," << data.z << "," << data.w << "]";
+        return out;
+    }
 };
 
 struct Matrix3
@@ -54,6 +79,12 @@ struct Matrix3
     operator glm::mat3();
     Matrix3() = default;
     Matrix3(glm::mat3 other);
+
+    friend std::ostream& operator <<(std::ostream& out, const Matrix3& data)
+    {
+        out << "[Matrix3]" << "\n" << data.column1 << "\n" << data.column2 << "\n" << data.column3;
+        return out;
+    }
 };
 
 struct Matrix4
@@ -65,6 +96,12 @@ struct Matrix4
     operator glm::mat4();
     Matrix4() = default;
     Matrix4(glm::mat4 other);
+
+    friend std::ostream& operator <<(std::ostream& out, const Matrix4& data)
+    {
+        out << "[Matrix4]" << "\n" << data.column1 << "\n" << data.column2 << "\n" << data.column3 << "\n" << data.column4;
+        return out;
+    }
 };
 
 struct Transform
@@ -72,6 +109,11 @@ struct Transform
     Vector3 Location;
     Quaternion Rotation;
     Vector3 Scale;
+    friend std::ostream& operator <<(std::ostream& out, const Transform& data)
+    {
+        out << "[Transform]" << "\n" << data.Location << "\n" << data.Rotation << "\n" << data.Scale;
+        return out;
+    }
 };
 
 
@@ -101,6 +143,7 @@ EXPORT void mathTransformToMatrix4(Matrix4 * result,Transform * target);
 
 EXPORT void mathGlmOrthographic(Matrix4 * result,float left,float right,float bottom, float top);
 
+EXPORT void mathGlmPerspective(Matrix4 * result,float fov,float aspect,float near,float far);
 
 EXPORT void mathRotateMatrix3(Matrix3* result,Matrix3 * target, float angle);
 

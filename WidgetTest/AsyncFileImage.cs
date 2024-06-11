@@ -13,18 +13,14 @@ public class AsyncFileImage : Image
 {
     private float _alpha = 0.0f;
     private float _alphaTarget;
+    
 
-
-    public AsyncFileImage()
-    {
-    }
-
-    public AsyncFileImage(string filePath) : this()
+    public AsyncFileImage(string filePath) : base()
     {
         Task.Run(() => LoadFile(filePath));
     }
 
-    public AsyncFileImage(string filePath, Action<AsyncFileImage> loadCallback) : this()
+    public AsyncFileImage(string filePath, Action<AsyncFileImage> loadCallback) : base()
     {
         Task.Run(() => LoadFile(filePath).Then(() => loadCallback.Invoke(this)));
     }
@@ -40,10 +36,10 @@ public class AsyncFileImage : Image
                 height = (uint)imgData.Height,
                 depth = 1
             },
-            ImageFormat.Rgba8,
-            ImageFilter.Linear,
-            ImageTiling.Repeat);
-
+            EImageFormat.Rgba8UNorm,
+            EImageFilter.Linear,
+            EImageTiling.Repeat);
+    
         // We do this since the image adds a ref to the texture
         Texture.Dispose();
     }

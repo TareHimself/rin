@@ -7,8 +7,8 @@ public class TextureManager : Disposable
     private readonly SortedDictionary<int, Texture> _textures = new();
     private readonly Mutex _texturesMutex = new();
 
-    public TextureHandle CreateTexture(byte[] data, VkExtent3D size, ImageFormat format, ImageFilter filter,
-        ImageTiling tiling, bool mipMapped = true,
+    public TextureHandle CreateTexture(byte[] data, VkExtent3D size, EImageFormat format, EImageFilter filter,
+        EImageTiling tiling, bool mipMapped = true,
         string debugName = "Texture")
     {
         lock (_texturesMutex)

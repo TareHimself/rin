@@ -23,8 +23,8 @@ public class SceneComponent : Component
     {
         if (Parent == null) return RelativeTransform;
 
-        var parentTransform = Parent.GetWorldTransform();
-        return RelativeTransform.RelativeTo(parentTransform);
+        Matrix4 parentTransform = Parent.GetWorldTransform();
+        return parentTransform * RelativeTransform;
     }
 
     public void SetWorldTransform(Transform worldTransform)

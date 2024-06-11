@@ -37,16 +37,29 @@ public class SWidgetTestModule : RuntimeModule
             slot.MaxAnchor = 1.0f;
         });
 
-        var textSlot = panel.AddChild(new Text("Background Blur Using Blit", 115));
+        var textSlot = panel.AddChild(new Text("Background Blur Using Blit", 40));
 
-        if (textSlot == null || imageSlot == null) return;
+        var textInputSlot = panel.AddChild(new Sizer(new TextBox("Example Text",50))
+        {
+            WidthOverride = 500
+        });
+        
+        if (textSlot == null || imageSlot == null || textInputSlot == null) return;
         imageSlot.Mutate(slot => { slot.MaxAnchor = 1.0f; });
         textSlot.Mutate(slot =>
         {
             slot.SizeToContent = true;
-            slot.Alignment = 0.5f;
-            slot.MinAnchor = 0.5f;
-            slot.MaxAnchor = 0.5f;
+            slot.Alignment = 0f;
+            slot.MinAnchor = 0f;
+            slot.MaxAnchor = 0f;
+        });
+
+        textInputSlot.Mutate(s =>
+        {
+            s.SizeToContent = true;
+            s.Alignment = 0.5f;
+            s.MinAnchor = 0.5f;
+            s.MaxAnchor = 0.5f;
         });
 
         var frames = 0;
@@ -54,10 +67,10 @@ public class SWidgetTestModule : RuntimeModule
         {
             frames++;
             var txt = (Text)textSlot.GetWidget();
-            txt.Content = $"{(int)SRuntime.Get().GetTimeSinceCreation()}";
+            txt.Content = $"Focused ${panel.Surface?.FocusedWidget}";
         };
 
-        surf.Window.OnKey += e =>
+        surf.Window.OnKey += (e) =>
         {
             if (e is { State: EKeyState.Pressed, Key: EKey.KeyLeft })
             {
@@ -74,14 +87,14 @@ public class SWidgetTestModule : RuntimeModule
             }
 
             if (e is { State: EKeyState.Pressed, Key: EKey.KeyEnter })
-                Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true).Then(p =>
-                {
-                    foreach (var path in p)
-                        switcher.AddChild(new Fitter(new AsyncFileImage(path))
-                        {
-                            FittingMode = FitMode.Cover
-                        });
-                });
+            {
+                var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true).WaitForResult();
+                foreach (var path in p)
+                    switcher.AddChild(new Fitter(new AsyncFileImage(path))
+                    {
+                        FittingMode = FitMode.Cover
+                    });
+            }
         };
     }
 
@@ -94,7 +107,7 @@ public class SWidgetTestModule : RuntimeModule
 
         var panel = surf.Add(new Panel());
 
-        var sizer = new Sizer(new Sizer(new Fitter(new AsyncFileImage())
+        var sizer = new Sizer(new Sizer(new Fitter(new AsyncFileImage(""))
         {
             FittingMode = FitMode.Cover
         })
@@ -117,8 +130,7 @@ public class SWidgetTestModule : RuntimeModule
         base.Startup(runtime);
         
         SWindowsModule.Get().CreateWindow(500, 500, "Aerox Widget Test");
-
-
+        
         TestBlur();
     }
 }

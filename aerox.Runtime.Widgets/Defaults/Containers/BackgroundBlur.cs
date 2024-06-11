@@ -19,7 +19,7 @@ public struct BlurPushConstants
     public Vector4<float> Tint;
 }
 
-internal class BlurCommand : ReadBack
+internal class BlurCommand : DrawCommand
 {
     private readonly MaterialInstance _materialInstance;
     private readonly BlurPushConstants _pushConstants;
@@ -36,26 +36,18 @@ internal class BlurCommand : ReadBack
         base.OnDispose(isManual);
         _materialInstance.Dispose();
     }
-
-    public override void SetImageInput(DeviceImage image)
+    
+    protected override void Draw(WidgetFrame frame)
     {
-        base.SetImageInput(image);
-        _materialInstance.BindImage("SourceT", image, DescriptorSet.ImageType.Texture, new SamplerSpec
+        
+        _materialInstance.BindImage("SourceT", frame.Surface.GetCopyImage(), DescriptorSet.ImageType.Texture, new SamplerSpec
         {
-            Filter = ImageFilter.Linear,
-            Tiling = ImageTiling.Repeat
+            Filter = EImageFilter.Linear,
+            Tiling = EImageTiling.Repeat
         });
-    }
-
-    public override void Bind(WidgetFrame frame)
-    {
         _materialInstance.BindTo(frame);
-    }
-
-    public override void Run(WidgetFrame frame)
-    {
-        _materialInstance.Push(frame.Raw.GetCommandBuffer(), "push", _pushConstants);
-        CmdDrawQuad(frame);
+        _materialInstance.Push(frame.Raw.GetCommandBuffer(),  _pushConstants);
+        Quad(frame);
     }
 }
 
@@ -66,14 +58,12 @@ public class BackgroundBlur : Container
 
     public BackgroundBlur(Widget child) : base(child)
     {
-        _materialInstance = SWidgetsModule.CreateMaterial(@$"{SRuntime.SHADERS_DIR}\2d\blur.vert",
-            @$"{SRuntime.SHADERS_DIR}\2d\blur.frag");
+        _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SWidgetsModule.ShadersDir,"blur.ash"));
     }
 
     public BackgroundBlur()
     {
-        _materialInstance = SWidgetsModule.CreateMaterial(@$"{SRuntime.SHADERS_DIR}\2d\blur.vert",
-            @$"{SRuntime.SHADERS_DIR}\2d\blur.frag");
+        _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SWidgetsModule.ShadersDir,"blur.ash"));
     }
 
 
@@ -90,7 +80,7 @@ public class BackgroundBlur : Container
 
     public override void Draw(WidgetFrame frame, DrawInfo info)
     {
-        frame.AddCommand(new BlurCommand(_materialInstance, new BlurPushConstants
+        frame.AddCommands(new ReadBack(),new BlurCommand(_materialInstance, new BlurPushConstants
         {
             Transform = info.Transform,
             Size = GetDrawSize(),

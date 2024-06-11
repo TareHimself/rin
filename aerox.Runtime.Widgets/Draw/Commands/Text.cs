@@ -3,13 +3,13 @@ using aerox.Runtime.Widgets.Defaults.Content;
 
 namespace aerox.Runtime.Widgets.Draw.Commands;
 
-public class Text : Command
+public class Text : DrawCommand
 {
-    private readonly MsdfFont _font;
+    private readonly MtsdfFont _font;
     private readonly MaterialInstance _materialInstance;
     private readonly TextPushConstants[] _pushConstants;
 
-    public Text(MaterialInstance materialInstance, MsdfFont font, TextPushConstants[] pushConstants)
+    public Text(MaterialInstance materialInstance, MtsdfFont font, TextPushConstants[] pushConstants)
     {
         materialInstance.Reserve();
         font.Reserve();
@@ -24,18 +24,15 @@ public class Text : Command
         _materialInstance.Dispose();
         _font.Dispose();
     }
+    
 
-    public override void Bind(WidgetFrame frame)
+    protected override void Draw(WidgetFrame frame)
     {
         _materialInstance.BindTo(frame);
-    }
-
-    public override void Run(WidgetFrame frame)
-    {
         foreach (var push in _pushConstants)
         {
-            _materialInstance.Push(frame.Raw.GetCommandBuffer(), "pFont", push);
-            CmdDrawQuad(frame);
+            _materialInstance.Push(frame.Raw.GetCommandBuffer(),  push);
+            Quad(frame);
         }
     }
 }

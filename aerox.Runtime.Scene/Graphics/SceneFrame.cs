@@ -21,6 +21,11 @@ public struct SceneFrame
         DrawCommands.Add(command);
         return this;
     }
+    public SceneFrame AddCommand(params Command[] commands)
+    {
+        DrawCommands.AddRange(commands);
+        return this;
+    }
 
     public void CleanupCommands(Frame frame)
     {

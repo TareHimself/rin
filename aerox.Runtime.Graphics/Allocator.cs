@@ -131,7 +131,7 @@ public partial class Allocator : Disposable
             void* allocation;
             NativeAllocateImage(&image.Value, &allocation, &imageCreateInfo, _allocator, debugName);
 
-            return new DeviceImage(image, new VkImageView(), imageCreateInfo.extent, imageCreateInfo.format, this,
+            return new DeviceImage(image, new VkImageView(), imageCreateInfo.extent, SGraphicsModule.VkFormatToImageFormat(imageCreateInfo.format), this,
                 (IntPtr)allocation);
         }
     }

@@ -29,4 +29,11 @@ public static class EnumerableExtensions
         target[index] = updater(target[index]);
         return target;
     }
+    
+    public static T? TryIndex<T>(this T[] target, int index) where T : class?
+    {
+        if (target.Length <= index || index < 0) return null;
+
+        return target[index];
+    }
 }

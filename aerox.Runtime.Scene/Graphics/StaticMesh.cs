@@ -8,7 +8,7 @@ namespace aerox.Runtime.Scene.Graphics;
 public class StaticMesh : MultiDisposable
 {
     public readonly MeshSurface[] Surfaces;
-    public DeviceGeometry? Geometry;
+    public DeviceGeometry Geometry;
     public MaterialInstance?[] Materials = [];
 
 
@@ -20,7 +20,11 @@ public class StaticMesh : MultiDisposable
 
     protected override void OnDispose(bool isManual)
     {
-        Geometry?.Dispose();
+        Geometry.Dispose();
+        foreach (var materialInstance in Materials)
+        {
+            materialInstance?.Dispose();
+        }
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]

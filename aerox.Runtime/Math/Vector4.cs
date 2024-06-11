@@ -36,6 +36,14 @@ public struct Vector4<T> :
         Z = inZ;
         W = inW;
     }
+    
+    public Vector4(Vector3<T> vector3, T inW)
+    {
+        X = vector3.X;
+        Y = vector3.Y;
+        Z = vector3.Z;
+        W = inW;
+    }
 
     public static Vector4<T> operator +(Vector4<T> left, T right)
     {

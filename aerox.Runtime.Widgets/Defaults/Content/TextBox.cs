@@ -1,21 +1,51 @@
 ﻿using aerox.Runtime.Graphics;
 using aerox.Runtime.Math;
+using aerox.Runtime.Widgets.Events;
+using aerox.Runtime.Windows;
 
 namespace aerox.Runtime.Widgets.Defaults.Content;
 
 public class TextBox : Text
 {
-    public TextBox(float inSize) : base("", inSize)
+    public TextBox(string data = "",int fontSize = 100,string fontFamily = "Arial") : base(data,fontSize,fontFamily)
     {
-        var window = SRuntime.Get().GetModule<SGraphicsModule>().GetMainWindow();
-        if (window != null) window.OnChar += e => { Content += e.Data; };
+    }
+
+    public virtual void OnCharacter(Window.CharEvent data) => OnCharacter(data.Data);
+    
+    public virtual void OnCharacter(char data)
+    {
+        Content += data;
+    }
+
+    protected override void OnAddedToRoot(WidgetSurface widgetSurface)
+    {
+        base.OnAddedToRoot(widgetSurface);
+        if (widgetSurface is WidgetWindowSurface windowSurface)
+        {
+            windowSurface.Window.OnChar += OnCharacter;
+        }
+    }
+
+    protected override bool OnCursorDown(CursorDownEvent e)
+    {
+        return e.Surface.RequestFocus(this);
+    }
+
+    protected override void OnRemovedFromRoot(WidgetSurface widgetSurface)
+    {
+        base.OnRemovedFromRoot(widgetSurface);
+        if (widgetSurface is WidgetWindowSurface windowSurface)
+        {
+            windowSurface.Window.OnChar -= OnCharacter;
+        }
     }
 
     public override void Draw(WidgetFrame frame, DrawInfo info)
     {
         base.Draw(frame, info);
 
-        if (!ShouldDraw) return;
+        if (!ShouldDraw || !Focused) return;
 
         var drawInfo = info.AccountFor(this);
 

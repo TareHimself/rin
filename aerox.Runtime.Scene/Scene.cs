@@ -1,4 +1,5 @@
-﻿using aerox.Runtime.Scene.Entities;
+﻿using aerox.Runtime.Scene.Components;
+using aerox.Runtime.Scene.Entities;
 using aerox.Runtime.Scene.Graphics;
 
 namespace aerox.Runtime.Scene;
@@ -8,27 +9,43 @@ public class Scene : Disposable, ILifeCycle
     private readonly Dictionary<string, Entity> _entityMap = new();
     public readonly string InstanceId = Guid.NewGuid().ToString();
 
-    public SceneDrawer? Drawer;
+    public SceneDrawer? Drawer { get; private set;}
 
+    public readonly List<LightComponent> Lights = [];
+    
+    public Entity? ViewTarget { get; private set; }
+    
+    public bool Active { get; private set; }
+    
     public void Tick(double deltaSeconds)
     {
-        foreach (var entity in _entityMap) entity.Value.Tick(deltaSeconds);
+        foreach (var (_, entity) in _entityMap) entity.Tick(deltaSeconds);
     }
 
-    protected SceneDrawer CreateDrawer()
+    protected virtual SceneDrawer CreateDrawer() => new SceneDrawer(this);
+    
+    public void SetViewTarget(Entity target)
     {
-        return new DeferredSceneDrawer();
+        ViewTarget = target;
     }
-
+    
     public void Start()
     {
         Drawer = CreateDrawer();
         Drawer.Start();
+        
+        foreach (var (_, entity) in _entityMap) entity.Start();
+        
+        Active = true;
     }
 
     public T AddEntity<T>(T entity) where T : Entity
     {
         _entityMap.Add(entity.InstanceId, entity);
+        entity.OwningScene = this;
+        
+        if (Active) entity.Start();
+        
         return entity;
     }
 
@@ -44,5 +61,14 @@ public class Scene : Disposable, ILifeCycle
 
     protected override void OnDispose(bool isManual)
     {
+        Active = false;
+        Drawer?.Dispose();
+        
+        foreach (var (_, entity) in _entityMap)
+        {
+            entity.Dispose();
+        }
+        
+        _entityMap.Clear();
     }
 }

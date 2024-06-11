@@ -1,4 +1,5 @@
-﻿using aerox.Runtime.Extensions;
+﻿using System.Reflection;
+using aerox.Runtime.Extensions;
 using aerox.Runtime.Graphics;
 using aerox.Runtime.Graphics.Material;
 using aerox.Runtime.Windows;
@@ -13,10 +14,13 @@ namespace aerox.Runtime.Widgets;
 [NativeRuntimeModule(typeof(SWindowsModule), typeof(SGraphicsModule))]
 public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
 {
+    
+    public static readonly string
+        ShadersDir = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "","shaders","widgets");
     private readonly FontCollection _fontCollection = new();
     private readonly Mutex _msdfFontMutex = new();
-    private readonly Dictionary<string, MsdfFont> _msdfFonts = new();
-    private readonly Dictionary<string, Task<MsdfFont?>> _msdfTasks = new();
+    private readonly Dictionary<string, MtsdfFont> _msdfFonts = new();
+    private readonly Dictionary<string, Task<MtsdfFont?>> _msdfTasks = new();
     private readonly Dictionary<WindowRenderer, WidgetWindowSurface> _windowSurfaces = new();
     private SGraphicsModule? _graphicsSubsystem;
 
@@ -113,17 +117,17 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         }
     }
 
-    public static MaterialInstance CreateMaterial(params Shader[] shaders)
+    public static MaterialInstance CreateMaterial(Shader shader)
     {
-        return new MaterialBuilder().ConfigureForWidgets().AddShaders(shaders)
-            .AddAttachmentFormats(VkFormat.VK_FORMAT_R16G16B16A16_SFLOAT).Build();
+        return new MaterialBuilder().ConfigureForWidgets().SetShader(shader)
+            .AddAttachmentFormats(EImageFormat.Rgba32SFloat).Build();
     }
 
-    public static MaterialInstance CreateMaterial(params string[] shaders)
+    public static MaterialInstance CreateMaterial(string shader)
     {
         var graphicsModule = SRuntime.Get().GetModule<SGraphicsModule>();
-        return new MaterialBuilder().ConfigureForWidgets().AddShaders(shaders.Select(graphicsModule.LoadShader))
-            .AddAttachmentFormats(VkFormat.VK_FORMAT_R16G16B16A16_SFLOAT).Build();
+        return new MaterialBuilder().ConfigureForWidgets().SetShader(graphicsModule.LoadShader(shader))
+            .AddAttachmentFormats(EImageFormat.Rgba32SFloat).Build();
     }
 
     public static DeviceImage UploadImage(Image<Rgba32> image, VkImageUsageFlags usage, bool mipMap = false)
@@ -135,25 +139,25 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
             width = (uint)image.Width,
             height = (uint)image.Height,
             depth = 1
-        }, ImageFormat.Rgba8, usage, mipMap);
+        }, EImageFormat.Rgba8UNorm, usage, mipMap);
     }
 
-    private async Task<MsdfFont?> GenerateMsdfFont(FontFamily family)
+    private async Task<MtsdfFont?> GenerateMsdfFont(FontFamily family)
     {
-        var newFont = new MsdfGenerator(family);
+        var newFont = new MtsdfGenerator(family);
         _msdfFonts.Add(family.Name, await newFont.GenerateFont(32));
         return _msdfFonts[family.Name];
     }
 
-    public Task<MsdfFont?> GetOrCreateFont(string fontFamily)
+    public Task<MtsdfFont?> GetOrCreateFont(string fontFamily)
     {
         lock (_msdfFontMutex)
         {
             var family = FindFontFamily(fontFamily);
 
-            if (family == null) return Task.FromResult<MsdfFont?>(null);
+            if (family == null) return Task.FromResult<MtsdfFont?>(null);
 
-            if (_msdfFonts.TryGetValue(family.Value.Name, out var font)) return Task.FromResult<MsdfFont?>(font);
+            if (_msdfFonts.TryGetValue(family.Value.Name, out var font)) return Task.FromResult<MtsdfFont?>(font);
 
             if (_msdfTasks.TryGetValue(family.Value.Name, out var msdfFontTask)) return msdfFontTask;
 

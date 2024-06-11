@@ -18,7 +18,7 @@ public class WidgetWindowSurface : WidgetSurface
     public WidgetWindowSurface(WindowRenderer renderer)
     {
         _renderer = renderer;
-        Size = new Vector2<int>((int)Window.PixelSize.width, (int)Window.PixelSize.height);
+        Size = new Vector2<int>((int)Window.PixelSize.X, (int)Window.PixelSize.Y);
     }
 
     public Window Window => _renderer.GetWindow();

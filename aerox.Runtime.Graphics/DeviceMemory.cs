@@ -17,7 +17,7 @@ public abstract partial class DeviceMemory : MultiDisposable
         Allocation = inAllocation;
     }
 
-    [LibraryImport(Runtime.Dlls.AeroxNative, EntryPoint = "graphicsAllocatorCopyToBuffer")]
+    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsAllocatorCopyToBuffer")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static unsafe partial void NativeCopyToBuffer(IntPtr allocator, void* allocation, void* data, ulong size,
         ulong offset);

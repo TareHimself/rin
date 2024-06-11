@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\aerox.Msdf\aerox.Msdf.csproj" />
         <ProjectReference Include="..\aerox.Runtime.Graphics\aerox.Runtime.Graphics.csproj"/>
         <ProjectReference Include="..\aerox.Runtime\aerox.Runtime.csproj"/>
     </ItemGroup>
@@ -22,4 +23,11 @@
         <Folder Include="Defaults\"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Shaders Include=".\shaders\**" />
+        <Content Include="@(Shaders)">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+    
 </Project>

@@ -18,22 +18,17 @@ public static class GraphicsModuleExtensions
             VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, debugName: "Vertex Buffer");
 
-
-        var deviceAddressInfo = new VkBufferDeviceAddressInfo
-        {
-            sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-            buffer = vertexBuffer.Buffer
-        };
-
+        
         var addressInfo = new VkBufferDeviceAddressInfo
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
             buffer = vertexBuffer
         };
 
+        ulong address = 0;
         unsafe
         {
-            vkGetBufferDeviceAddress(subsystem.GetDevice(), &addressInfo);
+            address = vkGetBufferDeviceAddress(subsystem.GetDevice(), &addressInfo);
         }
 
         var indexBuffer = subsystem.GetAllocator().NewBuffer(indicesByteSize,
@@ -76,7 +71,7 @@ public static class GraphicsModuleExtensions
         {
             VertexBuffer = vertexBuffer,
             IndexBuffer = indexBuffer,
-            VertexBufferAddress = addressInfo
+            VertexBufferAddress = address
         };
     }
 }

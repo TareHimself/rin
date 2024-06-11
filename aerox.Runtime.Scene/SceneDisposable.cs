@@ -3,7 +3,7 @@
 public class SceneDisposable : Disposable, ITickable
 {
     public readonly string InstanceId = Guid.NewGuid().ToString();
-    protected bool HasStarted;
+    public bool Active { get; protected set; }
     public bool WillEverTick = true;
 
     public void Tick(double deltaSeconds)
@@ -14,7 +14,7 @@ public class SceneDisposable : Disposable, ITickable
     public virtual void Start()
     {
         OnStart();
-        HasStarted = true;
+        Active = true;
     }
 
 
@@ -24,7 +24,7 @@ public class SceneDisposable : Disposable, ITickable
 
     protected override void OnDispose(bool isManual)
     {
-        throw new NotImplementedException();
+        Active = false;
     }
 
     protected virtual void OnTick(double deltaSeconds)

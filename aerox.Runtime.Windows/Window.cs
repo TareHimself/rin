@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 using aerox.Runtime.Math;
-using TerraFX.Interop.Vulkan;
 
 namespace aerox.Runtime.Windows;
 
@@ -47,7 +46,7 @@ public class Window : Disposable
     public bool Focused = true;
 
 
-    public VkExtent2D PixelSize;
+    public Vector2<uint> PixelSize;
 
     public Window(nint nativePtr, Window? parent)
     {
@@ -63,8 +62,8 @@ public class Window : Disposable
         _nativePtr = nativePtr;
         int width = 0, height = 0;
         NativeGetPixelSize(nativePtr, ref width, ref height);
-        PixelSize.width = (uint)width;
-        PixelSize.height = (uint)height;
+        PixelSize.X = (uint)width;
+        PixelSize.Y = (uint)height;
         NativeSetWindowCallbacks(_nativePtr,
             _keyDelegate,
             _cursorDelegate,
@@ -117,10 +116,10 @@ public class Window : Disposable
 
     private void SizeCallback(nint window, int eWidth, int eHeight)
     {
-        PixelSize.width = (uint)eWidth;
-        PixelSize.height = (uint)eHeight;
-        OnResized?.Invoke(new ResizeEvent(this, PixelSize.width, PixelSize.height));
-        AfterResize?.Invoke(new ResizeEvent(this, PixelSize.width, PixelSize.height));
+        PixelSize.X = (uint)eWidth;
+        PixelSize.Y = (uint)eHeight;
+        OnResized?.Invoke(new ResizeEvent(this, PixelSize.X, PixelSize.Y));
+        AfterResize?.Invoke(new ResizeEvent(this, PixelSize.X, PixelSize.Y));
     }
 
     private void CloseCallback(nint window)

@@ -1,6 +1,6 @@
 ﻿namespace aerox.Runtime.Graphics;
 
-public enum ImageTiling
+public enum EImageTiling
 {
     Repeat,
     ClampEdge,

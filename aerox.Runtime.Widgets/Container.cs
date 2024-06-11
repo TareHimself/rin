@@ -42,7 +42,7 @@ public abstract class Container<T> : ContainerBase where T : Slot
 
             slots.Add(slot);
 
-            if (Root != null) widget.NotifyAddedToRoot(Root);
+            if (Surface != null) widget.NotifyAddedToRoot(Surface);
 
             OnChildResized(widget);
             Console.WriteLine("Added child [{0}] to container [{1}]", widget.GetType().Name, GetType().Name);
@@ -60,7 +60,7 @@ public abstract class Container<T> : ContainerBase where T : Slot
 
                 widget.SetParent(null);
 
-                if (Root != null) widget.NotifyRemovedFromRoot(Root);
+                if (Surface != null) widget.NotifyRemovedFromRoot(Surface);
 
                 slots.RemoveAt(i);
 
@@ -99,14 +99,18 @@ public abstract class Container<T> : ContainerBase where T : Slot
     public abstract uint GetMaxSlots();
     public abstract T MakeSlot(Widget widget);
 
-    public override bool ReceiveCursorDown(CursorDownEvent e, DrawInfo info)
+    public override Widget? ReceiveCursorDown(CursorDownEvent e, DrawInfo info)
     {
-        if (IsChildrenHitTestable() && ChildrenReceiveCursorDown(e, info)) return true;
+        if (IsChildrenHitTestable())
+        {
+            var res = ChildrenReceiveCursorDown(e, info);
+            if (res != null ) return res;
+        }
 
         return base.ReceiveCursorDown(e, info);
     }
 
-    protected virtual bool ChildrenReceiveCursorDown(CursorDownEvent e, DrawInfo info)
+    protected virtual Widget? ChildrenReceiveCursorDown(CursorDownEvent e, DrawInfo info)
     {
         var point = e.Position.Cast<float>();
         lock (slotsMutex)
@@ -114,13 +118,13 @@ public abstract class Container<T> : ContainerBase where T : Slot
             foreach (var slot in slots)
             {
                 var slotInfo = info.AccountFor(slot.GetWidget());
-                if (slotInfo.PointWithin(point) &&
-                    slot.GetWidget().ReceiveCursorDown(e, slotInfo))
-                    return true;
+                if (!slotInfo.PointWithin(point)) continue;
+                var res = slot.GetWidget().ReceiveCursorDown(e, slotInfo);
+                if (res != null) return res;
             }
         }
 
-        return false;
+        return null;
     }
 
     public override void ReceiveCursorEnter(CursorMoveEvent e, DrawInfo info, List<Widget> items)

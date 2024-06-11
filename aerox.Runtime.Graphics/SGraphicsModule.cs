@@ -4,6 +4,9 @@ using System.Text;
 using aerox.Runtime.Graphics.Descriptors;
 using aerox.Runtime.Math;
 using aerox.Runtime.Windows;
+using ashl.Generator;
+using ashl.Parser;
+using ashl.Tokenizer;
 using shaderc;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -18,9 +21,9 @@ public class ImageBarrierOptions
     public VkAccessFlags2 DstAccessFlags =
         VkAccessFlags2.VK_ACCESS_2_MEMORY_WRITE_BIT | VkAccessFlags2.VK_ACCESS_2_MEMORY_READ_BIT;
 
-    public VkPipelineStageFlags2 DstStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    public VkPipelineStageFlags2 NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
     public VkAccessFlags2 SrcAccessFlags = VkAccessFlags2.VK_ACCESS_2_MEMORY_WRITE_BIT;
-    public VkPipelineStageFlags2 SrcStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    public VkPipelineStageFlags2 WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 
     public VkImageSubresourceRange SubresourceRange =
         SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
@@ -97,36 +100,50 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             return sampler;
         }
     }
-
-    public static VkFormat FormatToVkFormat(ImageFormat format)
+    
+    public static EImageFormat VkFormatToImageFormat(VkFormat format)
     {
         return format switch
         {
-            ImageFormat.Rgba8 => VkFormat.VK_FORMAT_R8G8B8A8_UNORM,
-            ImageFormat.Rgba16 => VkFormat.VK_FORMAT_R16G16B16A16_UNORM,
-            _ => VkFormat.VK_FORMAT_R8G8B8A8_UNORM
+            VkFormat.VK_FORMAT_R8G8B8A8_UNORM =>  EImageFormat.Rgba8UNorm,
+            VkFormat.VK_FORMAT_R16G16B16A16_UNORM => EImageFormat.Rgba16UNorm ,
+        VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => EImageFormat.Rgba32SFloat ,
+        VkFormat.VK_FORMAT_D32_SFLOAT => EImageFormat.D32SFloat ,
+            _ => throw new ArgumentOutOfRangeException()
         };
     }
 
-    public static VkFilter FilterToVkFilter(ImageFilter filter)
+    public static VkFormat ImageFormatToVkFormat(EImageFormat format)
+    {
+        return format switch
+        {
+            EImageFormat.Rgba8UNorm => VkFormat.VK_FORMAT_R8G8B8A8_UNORM,
+            EImageFormat.Rgba16UNorm => VkFormat.VK_FORMAT_R16G16B16A16_UNORM,
+            EImageFormat.Rgba32SFloat => VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT,
+            EImageFormat.D32SFloat => VkFormat.VK_FORMAT_D32_SFLOAT,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    public static VkFilter FilterToVkFilter(EImageFilter filter)
     {
         return filter switch
         {
-            ImageFilter.Linear => VkFilter.VK_FILTER_LINEAR,
-            ImageFilter.Nearest => VkFilter.VK_FILTER_NEAREST,
-            ImageFilter.Cubic => VkFilter.VK_FILTER_CUBIC_IMG,
-            _ => VkFilter.VK_FILTER_LINEAR
+            EImageFilter.Linear => VkFilter.VK_FILTER_LINEAR,
+            EImageFilter.Nearest => VkFilter.VK_FILTER_NEAREST,
+            EImageFilter.Cubic => VkFilter.VK_FILTER_CUBIC_IMG,
+            _ => throw new ArgumentOutOfRangeException()
         };
     }
 
-    public static VkSamplerAddressMode TilingToVkSamplerAddressMode(ImageTiling tiling)
+    public static VkSamplerAddressMode TilingToVkSamplerAddressMode(EImageTiling tiling)
     {
         return tiling switch
         {
-            ImageTiling.Repeat => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            ImageTiling.ClampEdge => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-            ImageTiling.ClampBorder => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-            _ => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_REPEAT
+            EImageTiling.Repeat => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            EImageTiling.ClampEdge => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            EImageTiling.ClampBorder => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+            _ => throw new ArgumentOutOfRangeException()
         };
     }
 
@@ -326,41 +343,93 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     {
         SRuntime.Get().RequestExit();
     }
-
-
-    private unsafe Shader CompileShader(string filePath)
-    {
-        var opts = new Options();
-        opts.EnableDebugInfo();
-
-        using var comp = new Compiler(opts);
-        using var res = comp.Compile(filePath, Shader.GetShaderStage(filePath));
-        
-        if (res.Status != Status.Success) throw new Exception("Error compiling shader " + res.ErrorMessage);
-        
-        var ci = new VkShaderModuleCreateInfo
-        {
-            sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            codeSize = res.CodeLength,
-            pCode = (uint*)res.CodePointer
-        };
-
-        var module = new VkShaderModule();
-        vkCreateShaderModule(_device, &ci, null, &module);
-        var jsonStr = "";
-        NativeReflectShader(ci.pCode, (uint)ci.codeSize,
-            (d, _) => { jsonStr = new StringBuilder(d).ToString(); });
-
-        var shader = new Shader(module, filePath, jsonStr);
-        _shaders.Add(filePath, shader);
-        return shader;
-
-    }
-
+    
     public Shader LoadShader(string filePath)
     {
-        if (_shaders.TryGetValue(filePath, out var value) && !value.Disposed) return value;
-        return CompileShader(filePath);
+        {
+            if (_shaders.TryGetValue(filePath, out var value) && !value.Disposed) return value;
+        }
+        
+        var tokenizer = new Tokenizer();
+        var parser = new Parser();
+        var ast = parser.Run(tokenizer.Run(filePath));
+        
+        ast = ast.ResolveIncludes((node, module) =>
+        {
+            if (Path.IsPathRooted(node.File)) return Path.GetFullPath(node.File);
+
+            return Path.GetFullPath(node.File,
+                Directory.GetParent(node.SourceFile)?.FullName ?? Directory.GetCurrentDirectory());
+        }, tokenizer, parser);
+        
+        ast.ResolveStructReferences();
+
+        List<EScopeType> scopeTypes = [];
+        
+        foreach (var astStatement in ast.Statements)
+        {
+            if (astStatement is NamedScopeNode asNamedScope)
+            {
+                var mainFn = asNamedScope.Statements.LastOrDefault((x) =>
+                    x is FunctionNode { Name: "main" });
+                if (mainFn != null)
+                {
+                    scopeTypes.Add(asNamedScope.ScopeType);
+                }
+            }
+        }
+        
+        var generator = new Generator();
+        var opts = new Options();
+        using(var comp = new Compiler(opts))
+        {
+            var stages = scopeTypes.Select((scope) =>
+            {
+                var nodes = ast.ExtractScope(scope).ExtractFunctionWithDependencies("main")?.Statements.ToList();
+
+                if (nodes == null) throw new Exception("Failed To Extract Function 'main'");
+
+                var shader = generator.Run(nodes);
+                
+                shader = "#version 450\n#extension GL_GOOGLE_include_directive : require\n#extension GL_EXT_buffer_reference : require\n#extension GL_EXT_scalar_block_layout : require\n" + shader;
+
+                using var shaderCompileResult = comp.Compile(shader, scope.ToString(), scope switch
+                {
+                    EScopeType.Vertex => ShaderKind.VertexShader,
+                    EScopeType.Fragment => ShaderKind.FragmentShader,
+                    _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, null)
+                });
+
+                if (shaderCompileResult.Status != Status.Success)
+                    throw new Exception("Error compiling shader " + shaderCompileResult.ErrorMessage);
+
+                unsafe
+                {
+                    var createInfo = new VkShaderModuleCreateInfo
+                    {
+                        sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                        codeSize = shaderCompileResult.CodeLength,
+                        pCode = (uint*)shaderCompileResult.CodePointer
+                    };
+
+                    var shaderModule = new VkShaderModule();
+                    vkCreateShaderModule(_device, &createInfo, null, &shaderModule);
+
+                    return new Shader.Stage(shaderModule, scope switch
+                    {
+                        EScopeType.Vertex => VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
+                        EScopeType.Fragment => VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,
+                        _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, null)
+                    }, nodes);
+                }
+            }).ToArray();
+            
+            var newShader = new Shader(filePath, stages);
+            
+            _shaders.Add(filePath,newShader);
+            
+            return newShader;
+        }
     }
 
 
@@ -592,13 +661,13 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         }
     }
 
-    public static VkImageCreateInfo MakeImageCreateInfo(VkFormat format, VkExtent3D size, VkImageUsageFlags usage)
+    public static VkImageCreateInfo MakeImageCreateInfo(EImageFormat format, VkExtent3D size, VkImageUsageFlags usage)
     {
         return new VkImageCreateInfo
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             imageType = VkImageType.VK_IMAGE_TYPE_2D,
-            format = format,
+            format = ImageFormatToVkFormat(format),
             extent = size,
             mipLevels = 1,
             arrayLayers = 1,
@@ -613,7 +682,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         return MakeImageViewCreateInfo(image.Format, image.Image, aspect);
     }
 
-    public static VkImageViewCreateInfo MakeImageViewCreateInfo(VkFormat format, VkImage image,
+    public static VkImageViewCreateInfo MakeImageViewCreateInfo(EImageFormat format, VkImage image,
         VkImageAspectFlags aspect)
     {
         return new VkImageViewCreateInfo
@@ -621,7 +690,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             image = image,
             viewType = VkImageViewType.VK_IMAGE_VIEW_TYPE_2D,
-            format = format,
+            format = ImageFormatToVkFormat(format),
             subresourceRange = new VkImageSubresourceRange
             {
                 aspectMask = aspect,
@@ -652,12 +721,10 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     }
 
 
-    public DeviceImage CreateImage(VkExtent3D size, ImageFormat format, VkImageUsageFlags usage, bool mipMap = false,
+    public DeviceImage CreateImage(VkExtent3D size, EImageFormat format, VkImageUsageFlags usage, bool mipMap = false,
         string debugName = "Image")
     {
-        var vkFormat = FormatToVkFormat(format);
-
-        var imageCreateInfo = MakeImageCreateInfo(vkFormat, size, usage);
+        var imageCreateInfo = MakeImageCreateInfo(format, size, usage);
         if (mipMap)
             imageCreateInfo.mipLevels = DeriveMipLevels(new VkExtent2D
             {
@@ -668,9 +735,9 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         var newImage = GetAllocator().NewDeviceImage(imageCreateInfo, debugName);
 
         var aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT;
-        if (format == ImageFormat.D32) aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT;
+        if (format == EImageFormat.D32SFloat) aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT;
 
-        var viewCreateInfo = MakeImageViewCreateInfo(vkFormat, newImage.Image, aspectFlags);
+        var viewCreateInfo = MakeImageViewCreateInfo(format, newImage.Image, aspectFlags);
 
         viewCreateInfo.subresourceRange.levelCount = imageCreateInfo.mipLevels;
 
@@ -878,8 +945,8 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         var barrier = new VkImageMemoryBarrier2
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            srcStageMask = opts.SrcStageFlags,
-            dstStageMask = opts.DstStageFlags,
+            srcStageMask = opts.WaitForStages,
+            dstStageMask = opts.NextStages,
             srcAccessMask = opts.SrcAccessFlags,
             dstAccessMask = opts.DstAccessFlags,
             oldLayout = from,
@@ -902,8 +969,8 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     }
 
 
-    public DeviceImage CreateImage(byte[] data, VkExtent3D size, ImageFormat format, VkImageUsageFlags usage,
-        bool mipMap = false, ImageFilter mipMapFilter = ImageFilter.Linear,
+    public DeviceImage CreateImage(byte[] data, VkExtent3D size, EImageFormat format, VkImageUsageFlags usage,
+        bool mipMap = false, EImageFilter mipMapFilter = EImageFilter.Linear,
         string debugName = "Image")
     {
         if (_allocator == null) throw new Exception("Allocator is null");

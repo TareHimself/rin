@@ -28,6 +28,7 @@ public abstract class WidgetSurface : Disposable
 
     private readonly SGraphicsModule _sGraphicsModule;
     public readonly MaterialInstance SimpleRectMat;
+    public readonly MaterialInstance RectClipMat;
     private DeviceImage? _copyImage;
     private DeviceImage? _drawImage;
 
@@ -38,6 +39,11 @@ public abstract class WidgetSurface : Disposable
     };
 
     private Vector2<float>? _lastMousePosition;
+    
+    public Widget? FocusedWidget { get; private set; }
+    
+    public DeviceBuffer GlobalBuffer { get; }
+    public event Action<CursorUpEvent>? OnCursorUp;
 
 
     public WidgetSurface()
@@ -47,13 +53,13 @@ public abstract class WidgetSurface : Disposable
         GlobalBuffer = _sGraphicsModule.GetAllocator()
             .NewUniformBuffer<GlobalWidgetShaderData>(debugName: "Widget Root Global Buffer");
         GlobalBuffer.Write(_globalData);
-        SimpleRectMat = SWidgetsModule.CreateMaterial(@$"{SRuntime.SHADERS_DIR}\2d\simple_rect.vert",
-            @$"{SRuntime.SHADERS_DIR}\2d\simple_rect.frag");
+        SimpleRectMat = SWidgetsModule.CreateMaterial(Path.Join(SWidgetsModule.ShadersDir,"simple_rect.ash"));
         SimpleRectMat.BindBuffer("ui", GlobalBuffer);
+        RectClipMat = SWidgetsModule.CreateMaterial(Path.Join(SWidgetsModule.ShadersDir,"rect_clip.ash"));
+        RectClipMat.BindBuffer("ui", GlobalBuffer);
     }
 
-    public DeviceBuffer GlobalBuffer { get; }
-    public event Action<CursorUpEvent> OnCursorUp;
+    
 
     public virtual void Init()
     {
@@ -88,8 +94,10 @@ public abstract class WidgetSurface : Disposable
         SimpleRectMat.Dispose();
         _rootWidgets.Clear();
         GlobalBuffer.Dispose();
+        RectClipMat.Dispose();
         _drawImage?.Dispose();
         _copyImage?.Dispose();
+        
     }
 
 
@@ -102,7 +110,7 @@ public abstract class WidgetSurface : Disposable
                                                   VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT |
                                                   VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         var drawCreateInfo =
-            SGraphicsModule.MakeImageCreateInfo(VkFormat.VK_FORMAT_R16G16B16A16_SFLOAT, new VkExtent3D
+            SGraphicsModule.MakeImageCreateInfo(EImageFormat.Rgba32SFloat, new VkExtent3D
             {
                 width = imageExtent.X,
                 height = imageExtent.Y,
@@ -110,12 +118,30 @@ public abstract class WidgetSurface : Disposable
             }, imageUsageFlags);
 
         _drawImage = _sGraphicsModule.GetAllocator().NewDeviceImage(drawCreateInfo, "Widgets Draw Image");
-        _copyImage = _sGraphicsModule.GetAllocator().NewDeviceImage(drawCreateInfo, "Widgets Temp Image");
+        _copyImage = _sGraphicsModule.GetAllocator().NewDeviceImage(drawCreateInfo, "Widgets Copy Image");
 
         _drawImage.View = _sGraphicsModule.CreateImageView(
             SGraphicsModule.MakeImageViewCreateInfo(_drawImage, VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT));
         _copyImage.View = _sGraphicsModule.CreateImageView(
             SGraphicsModule.MakeImageViewCreateInfo(_copyImage, VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT));
+    }
+
+    protected virtual void ClearFocus()
+    {
+        FocusedWidget?.OnFocusLost();
+        FocusedWidget = null;
+    }
+    
+    public virtual bool RequestFocus(Widget requester)
+    {
+        if (FocusedWidget == requester) return true;
+        if (!requester.IsHitTestable()) return false;
+        
+        ClearFocus();
+        FocusedWidget = requester;
+        requester.OnFocus();
+        return true;
+
     }
 
 
@@ -141,53 +167,18 @@ public abstract class WidgetSurface : Disposable
         return _copyImage;
     }
 
-    public virtual void Draw(Frame frame)
+    public virtual void BeginMainPass(WidgetFrame frame)
     {
-        if (_drawImage == null || _copyImage == null) return;
-
-        if (_rootWidgets.Count == 0)
-        {
-            SGraphicsModule.ImageBarrier(frame.GetCommandBuffer(), _drawImage,
-                VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-            return;
-        }
-
+        var cmd = frame.Raw.GetCommandBuffer();
+        
         var size = GetDrawSize();
-        _globalData.time = (float)SRuntime.Get().GetTimeSinceCreation();
-
-        GlobalBuffer.Write(_globalData);
-
-        var drawInfo = DrawInfo.From(this);
-        var widgetFrame = new WidgetFrame(this, frame);
-
-        DoHover();
-
-        // Collect Draw Commands
-        foreach (var widget in _rootWidgets)
-        {
-            var widgetDrawInfo = drawInfo.AccountFor(widget);
-            widget.Draw(widgetFrame, widgetDrawInfo);
-        }
-
-
-        // Do Actual Draw
-        var cmd = frame.GetCommandBuffer();
-
-        // Image we will draw on
-        SGraphicsModule.ImageBarrier(cmd, _drawImage, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-        // Copy image
-        SGraphicsModule.ImageBarrier(cmd, _copyImage, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-            VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
+        
         var drawExtent = new VkExtent3D
         {
             width = (uint)size.X,
             height = (uint)size.Y
         };
-
-
+        
         var renderingInfo = SGraphicsModule.MakeRenderingInfo(new VkExtent2D
         {
             width = drawExtent.width,
@@ -209,77 +200,85 @@ public abstract class WidgetSurface : Disposable
             vkCmdBeginRendering(cmd, &renderingInfo);
         }
 
+        frame.IsMainPassActive = true;
+    }
 
+
+    public virtual void EndMainPass(WidgetFrame frame)
+    {
+        vkCmdEndRendering(frame.Raw.GetCommandBuffer());
+        frame.IsMainPassActive = false;
+    }
+
+    public virtual void BlitMainImageToCopyImage(Frame frame)
+    {
+        
+    }
+
+    public virtual void Draw(Frame frame)
+    {
+        if (_drawImage == null || _copyImage == null) return;
+
+        if (_rootWidgets.Count == 0)
+        {
+            SGraphicsModule.ImageBarrier(frame.GetCommandBuffer(), _drawImage,
+                VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+            return;
+        }
+        
+        _globalData.time = (float)SRuntime.Get().GetTimeSinceCreation();
+
+        GlobalBuffer.Write(_globalData);
+
+        var drawInfo = DrawInfo.From(this);
+        var widgetFrame = new WidgetFrame(this, frame);
+
+        DoHover();
+
+        // Collect Draw Commands
+        foreach (var widget in _rootWidgets)
+        {
+            var widgetDrawInfo = drawInfo.AccountFor(widget);
+            widget.Draw(widgetFrame, widgetDrawInfo);
+        }
+        
+        // Do Actual Draw
+        var cmd = frame.GetCommandBuffer();
+
+        // Image we will draw on
+        _drawImage.Barrier(cmd,VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
+            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,new ImageBarrierOptions()
+            {
+                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+            });
+        
+        // Copy image
+        _copyImage.Barrier(cmd,VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
+            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,new ImageBarrierOptions()
+            {
+                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+            });
+        
+        
         foreach (var widgetCmd in widgetFrame.DrawCommands)
-            // Change pass during a readBack command
-            if (widgetCmd is ReadBack readBackCommand)
+           widgetCmd.Run(widgetFrame);
+        
+        
+        if(widgetFrame.IsMainPassActive) EndMainPass(widgetFrame);
+        
+        _drawImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,new ImageBarrierOptions()
             {
-                vkCmdEndRendering(cmd);
-
-
-                SGraphicsModule.ImageBarrier(cmd, _drawImage, VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, new ImageBarrierOptions
-                    {
-                        SrcStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-                        DstStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT
-                    });
-                SGraphicsModule.ImageBarrier(cmd, _copyImage, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, new ImageBarrierOptions
-                    {
-                        SrcStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-                        DstStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT
-                    });
-
-                SGraphicsModule.CopyImageToImage(cmd, _drawImage, _copyImage);
-
-                SGraphicsModule.ImageBarrier(cmd, _drawImage, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, new ImageBarrierOptions
-                    {
-                        SrcStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                        DstStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
-                    });
-                SGraphicsModule.ImageBarrier(cmd, _copyImage, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    new ImageBarrierOptions
-                    {
-                        SrcStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                        DstStageFlags = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
-                    });
-
-
-                unsafe
-                {
-                    var colorAttachment =
-                        SGraphicsModule.MakeRenderingAttachment(_drawImage.View,
-                            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-                    renderingInfo.colorAttachmentCount = 1;
-                    renderingInfo.pColorAttachments = &colorAttachment;
-
-                    vkCmdBeginRendering(cmd, &renderingInfo);
-                }
-
-                readBackCommand.Bind(widgetFrame);
-                readBackCommand.SetImageInput(_copyImage);
-                readBackCommand.Run(widgetFrame);
-            }
-            else
-            {
-                widgetCmd.Bind(widgetFrame);
-                widgetCmd.Run(widgetFrame);
-            }
-
-        vkCmdEndRendering(cmd);
-
-
-        SGraphicsModule.ImageBarrier(cmd, GetDrawImage(), VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT
+            });
     }
 
     public virtual void ReceiveCursorDown(CursorDownEvent e)
     {
         var point = e.Position.Cast<float>();
-        ;
         var info = DrawInfo.From(this);
         foreach (var widget in _rootWidgets.AsReversed())
         {
@@ -289,9 +288,27 @@ public abstract class WidgetSurface : Disposable
 
             if (!widget.IsHitTestable()) continue;
 
-            if (!widget.ReceiveCursorDown(e, widgetDrawInfo)) continue;
-            break;
+            var res = widget.ReceiveCursorDown(e, widgetDrawInfo);
+            
+            if (res == null) continue;
+            
+            if (FocusedWidget == null) return;
+            
+            var shouldKeepFocus = false;
+            while (res.Parent != null)
+            {
+                if (res != FocusedWidget) continue;
+                shouldKeepFocus = true;
+                break;
+            }
+
+            if (shouldKeepFocus) return;
+            
+            ClearFocus();
+            return;
         }
+
+        ClearFocus();
     }
 
     public virtual void ReceiveCursorUp(CursorUpEvent e)

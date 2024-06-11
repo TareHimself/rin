@@ -124,7 +124,11 @@ public class Frame : Disposable
         {
             fixed (VkFence* pFence = &_renderFence)
             {
-                vkWaitForFences(_device, 1, pFence, 1, ulong.MaxValue);
+                var r = vkWaitForFences(_device, 1, pFence, 1, ulong.MaxValue);
+                if (r != VkResult.VK_SUCCESS)
+                {
+                    
+                }
             }
         }
     }
@@ -141,7 +145,11 @@ public class Frame : Disposable
         {
             fixed (VkFence* pFence = &_renderFence)
             {
-                vkResetFences(_device, 1, pFence);
+                var r = vkResetFences(_device, 1, pFence);
+                if (r != VkResult.VK_SUCCESS)
+                {
+                    
+                }
             }
         }
     }

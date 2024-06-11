@@ -23,23 +23,22 @@ public struct TextPushConstants
 
     public int atlasIdx;
 
-    public Vector4<int> Rect;
+    public Vector4<float> Rect;
 }
 
 /// <summary>
-///     Draw's text using an <see cref="MsdfFont" />. Currently, hardcoded to
+///     Draw's text using an <see cref="MtsdfFont" />. Currently, hardcoded to
 ///     <a href="https://fonts.google.com/specimen/Roboto">Roboto</a>.
 /// </summary>
 public class Text : Widget
 {
-    private const float MSDF_PADDING = 3.0f;
     private readonly MaterialInstance _materialInstance;
     private readonly DeviceBuffer _optionsBuffer;
     private Color _backgroundColor = new(1.0f, 1.0f, 1.0f, 0.0f);
     private string _content;
     private Color _foregroundColor = new(1.0f);
     private Font? _latestFont;
-    private MsdfFont? _msdf;
+    private MtsdfFont? _msdf;
     private bool _optionsDirty = true;
 
     public Text(string inContent = "", float inFontSize = 100f,string fontFamily = "Arial")
@@ -49,9 +48,7 @@ public class Text : Widget
         _content = inContent;
         _optionsBuffer = gs.GetAllocator()
             .NewUniformBuffer<ImageOptionsDeviceBuffer>(debugName: "Image Options Buffer");
-        _materialInstance = SWidgetsModule.CreateMaterial(
-            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\rect.vert"),
-            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\font.frag"));
+        _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SWidgetsModule.ShadersDir,"font.ash"));
         _materialInstance.BindBuffer("options", _optionsBuffer);
 
         SRuntime.Get().GetModule<SWidgetsModule>().GetOrCreateFont(fontFamily).Then(msdf =>
@@ -90,8 +87,7 @@ public class Text : Widget
 
 
     public float FontSize { get; set; } = 100f;
-
-    public float ScaledPadding => FontSize / 32 * MSDF_PADDING;
+    
 
     public string Content
     {
@@ -127,6 +123,11 @@ public class Text : Widget
 
     public void GetContentBounds(out ReadOnlySpan<GlyphBounds> bounds)
     {
+        if (_latestFont == null)
+        {
+            bounds = [];
+            return;
+        }
         var opts = new TextOptions(_latestFont);
         TextMeasurer.TryMeasureCharacterBounds(_content, opts, out var tempBounds);
         bounds = tempBounds;
@@ -168,9 +169,9 @@ public class Text : Widget
             var charInfo = _msdf?.GetCharInfo(_content[bound.StringIndex]);
             if (charInfo == null) continue;
 
-            var charOffset = new Vector2<float>(bound.Bounds.X - ScaledPadding,
-                bound.Bounds.Y - ScaledPadding);
-            var charSize = new Size2d(bound.Bounds.Width + ScaledPadding, bound.Bounds.Height + ScaledPadding);
+            var charOffset = new Vector2<float>(bound.Bounds.X,
+                bound.Bounds.Y);
+            var charSize = new Size2d(bound.Bounds.Width, bound.Bounds.Height);
 
             //if (!charRect.IntersectsWith(drawInfo.Clip)) continue;
             //if(!charRect.Offset.Within(drawInfo.Clip) && !(charRect.Offset + charRect.Size).Within(drawInfo.Clip)) continue;
@@ -180,7 +181,7 @@ public class Text : Widget
                 Transform = info.Transform.Translate(charOffset),
                 Size = charSize,
                 atlasIdx = charInfo.AtlasIdx,
-                Rect = new Vector4<int>(charInfo.X,charInfo.Y,charInfo.Width,charInfo.Height)
+                Rect = new Vector4<float>(charInfo.X,charInfo.Y,charInfo.Width,charInfo.Height)
             };
 
             pushConstantsList.Add(constants);

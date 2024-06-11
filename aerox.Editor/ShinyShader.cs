@@ -13,10 +13,8 @@ public class ShinyShader : Widget
     {
         var gs = SRuntime.Get().GetModule<SGraphicsModule>();
 
-        _materialInstance = SWidgetsModule.CreateMaterial(
-            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\rect.vert"),
-            gs.LoadShader(@$"{SRuntime.SHADERS_DIR}\2d\pretty.frag"));
-    }
+        _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SRuntime.ShadersDir,"pretty.ash"));
+    }   
 
     protected override void OnDispose(bool isManual)
     {

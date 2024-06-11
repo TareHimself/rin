@@ -16,7 +16,7 @@ GlyphContext::~GlyphContext()
 
 GlyphContext * msdfNewContext()
 {
-    return new GlyphContext();
+    return nullptr;//new GlyphContext();
 }
 
 void msdfFreeContext(GlyphContext * context)

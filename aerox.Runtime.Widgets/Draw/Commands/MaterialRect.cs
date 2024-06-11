@@ -2,7 +2,7 @@
 
 namespace aerox.Runtime.Widgets.Draw.Commands;
 
-public class MaterialRect : Command
+public class MaterialRect : DrawCommand
 {
     private readonly MaterialInstance _materialInstance;
     private readonly WidgetPushConstants _pushConstants;
@@ -19,15 +19,12 @@ public class MaterialRect : Command
         base.OnDispose(isManual);
         _materialInstance.Dispose();
     }
+    
 
-    public override void Bind(WidgetFrame frame)
+    protected override void Draw(WidgetFrame frame)
     {
         _materialInstance.BindTo(frame);
-    }
-
-    public override void Run(WidgetFrame frame)
-    {
-        _materialInstance.Push(frame.Raw.GetCommandBuffer(), "pRect", _pushConstants);
-        CmdDrawQuad(frame);
+        _materialInstance.Push(frame.Raw.GetCommandBuffer(),  _pushConstants);
+        Quad(frame);
     }
 }

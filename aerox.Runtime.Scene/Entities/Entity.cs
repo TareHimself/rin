@@ -11,17 +11,18 @@ public class Entity : SceneDisposable, ISceneDrawable
     private readonly List<Component> _componentsList = [];
     private readonly List<RenderedComponent> _renderedComponents = [];
     public SceneComponent? RootComponent;
+    public Scene OwningScene = null!;
 
 
     public Entity? Parent => RootComponent?.Parent?.Owner;
 
-    public void Draw(SceneFrame frame, Matrix4 parentSpace)
+    public void Collect(SceneFrame frame, Matrix4 parentSpace)
     {
         if (RootComponent == null) return;
 
         foreach (var comp in _renderedComponents)
-            comp.Draw(frame,
-                comp == RootComponent ? parentSpace : RootComponent.RelativeTransform.RelativeTo(parentSpace));
+            comp.Collect(frame,
+                comp == RootComponent ? parentSpace : RootComponent.RelativeTransform * parentSpace);
     }
 
     protected virtual SceneComponent CreateRootComponent()
@@ -41,7 +42,7 @@ public class Entity : SceneDisposable, ISceneDrawable
 
     public T AddComponent<T>(T component) where T : Component
     {
-        var type = typeof(T);
+        var type = component.GetType();
         if (!_components.ContainsKey(type)) _components.Add(type, []);
 
         var list = _components[type];
@@ -75,18 +76,35 @@ public class Entity : SceneDisposable, ISceneDrawable
     public T? FindComponent<T>() where T : Component
     {
         if (_components.TryGetValue(typeof(T), out var components))
-            return components.Count == 0 ? null : (T)components.Last();
+            return (T?)components.FirstOrDefault();
 
         return null;
+    }
+    
+    
+    public T[] FindComponents<T>() where T : Component
+    {
+        if (_components.TryGetValue(typeof(T), out var components))
+            return components.Select(a => (T)a).ToArray();
+
+        return [];
     }
 
 
     protected override void OnDispose(bool isManual)
     {
+        if (OwningScene.Drawer is { } drawer)
+        {
+            drawer.OnCollect -= Collect;
+        }
+        
         _renderedComponents.Clear();
         _components.Clear();
         foreach (var comp in _componentsList.AsReversed()) comp.Dispose();
         _componentsList.Clear();
+        
+        RootComponent?.Dispose();
+        RootComponent = null;
     }
 
     protected override void OnTick(double deltaSeconds)
@@ -99,6 +117,11 @@ public class Entity : SceneDisposable, ISceneDrawable
     protected override void OnStart()
     {
         base.OnStart();
+        Construct();
         foreach (var component in _componentsList) component.Start();
+        if (OwningScene.Drawer is { } drawer)
+        {
+            drawer.OnCollect += Collect;
+        }
     }
 }

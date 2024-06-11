@@ -12,4 +12,11 @@
         <ProjectReference Include="..\aerox.Runtime\aerox.Runtime.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Shaders Include=".\shaders\**" />
+        <Content Include="@(Shaders)">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
 </Project>

@@ -30,6 +30,11 @@ public class WindowRenderer : Disposable
 
     private VkImageView[] _swapchainViews = [];
     private VkViewport _viewport;
+    
+    public event Action<Frame>? OnDrawPrimary;
+    public event Action<Frame>? OnDrawSecondary;
+    public event Action<Frame, VkImage, VkExtent2D>? OnCopyToSwapchain;
+
 
     public WindowRenderer(SGraphicsModule module, Window window)
     {
@@ -44,13 +49,6 @@ public class WindowRenderer : Disposable
         _surface = surface;
         _module = module;
     }
-
-
-    public event Action<Frame> OnDrawPrimary;
-    public event Action<Frame> OnDrawSecondary;
-
-    public event Action<Frame, VkImage, VkExtent2D> OnCopyToSwapchain;
-
 
     [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsCreateSurface", CallingConvention = CallingConvention.Cdecl)]
     private static extern unsafe ulong NativeCreateSurface(void* instance, IntPtr window);
@@ -97,8 +95,8 @@ public class WindowRenderer : Disposable
     {
         _viewport.minDepth = 0.0f;
         _viewport.maxDepth = 1.0f;
-        _viewport.width = _window.PixelSize.width;
-        _viewport.height = _window.PixelSize.height;
+        _viewport.width = _window.PixelSize.X;
+        _viewport.height = _window.PixelSize.Y;
 
         if (_viewport.height == 0 || _viewport.width == 0) return;
         NativeCreateSwapchain(_module.GetDevice(),
@@ -123,15 +121,19 @@ public class WindowRenderer : Disposable
 
                 for (var i = 0; i < numSwapchainImages; i++) _swapchainViews[i] = imageViews[i];
             });
-        _swapchainSize = _window.PixelSize;
+        _swapchainSize = new VkExtent2D()
+        {
+            width= _window.PixelSize.X,
+            height = _window.PixelSize.Y
+        };
     }
 
     private bool CheckSwapchainSize()
     {
         if (_resizing) return true;
 
-        if (_swapchainSize.width == _window.PixelSize.width &&
-            _swapchainSize.height == _window.PixelSize.height) return false;
+        if (_swapchainSize.width == _window.PixelSize.X &&
+            _swapchainSize.height == _window.PixelSize.Y) return false;
 
         _resizing = true;
         _module.WaitDeviceIdle();

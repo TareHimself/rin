@@ -6,6 +6,6 @@ public abstract class Command : Disposable
 
     protected override void OnDispose(bool isManual)
     {
-        throw new NotImplementedException();
+        
     }
 }

@@ -13,7 +13,9 @@ public partial struct Transform() : ICloneable<Transform>
 
     public Matrix4 RelativeTo(Transform other)
     {
-        return ((Matrix4)other).Inverse() * this;
+        Matrix4 a = other;
+        Matrix4 b = this;
+        return a.Inverse() * b;
     }
 
     public Matrix4 RelativeTo(Matrix4 other)
@@ -23,23 +25,23 @@ public partial struct Transform() : ICloneable<Transform>
 
     [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathMatrix4ToTransform")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    private static partial void NativeMatrix4ToTransform(ref Matrix4 result, ref Transform target);
+    private static partial void NativeMatrix4ToTransform(ref Transform result, ref Matrix4 target);
 
     public static implicit operator Matrix4(Transform t)
     {
         Matrix4 r = new();
-        NativeMatrix4ToTransform(ref r, ref t);
+        NativeTransformToMatrix4(ref r, ref t);
         return r;
     }
 
     [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathTransformToMatrix4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    private static partial void NativeTransformToMatrix4(ref Transform result, ref Matrix4 target);
+    private static partial void NativeTransformToMatrix4(ref Matrix4 result, ref Transform target);
 
     public static implicit operator Transform(Matrix4 mat)
     {
         Transform r = new();
-        NativeTransformToMatrix4(ref r, ref mat);
+        NativeMatrix4ToTransform(ref r, ref mat);
         return r;
     }
 

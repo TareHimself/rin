@@ -68,7 +68,7 @@ public class Overlay : Container
             }
     }
 
-    protected override bool ChildrenReceiveCursorDown(CursorDownEvent e, DrawInfo info)
+    protected override Widget? ChildrenReceiveCursorDown(CursorDownEvent e, DrawInfo info)
     {
         var position = e.Position.Cast<float>();
         var myInfo = info.AccountFor(this);
@@ -76,7 +76,7 @@ public class Overlay : Container
             if (myInfo.AccountFor(slot.GetWidget()).PointWithin(position))
                 return slot.GetWidget().ReceiveCursorDown(e, myInfo);
 
-        return false;
+        return null;
     }
 
     protected override bool ChildrenReceiveCursorMove(CursorMoveEvent e, DrawInfo info)

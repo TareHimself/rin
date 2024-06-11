@@ -46,7 +46,7 @@ public abstract class Widget : Disposable
     public Vector2<float> Scale = 1.0f;
 
     public bool Hovered { get; private set; }
-    public WidgetSurface? Root { get; private set; }
+    public WidgetSurface? Surface { get; private set; }
 
     public ContainerBase? Parent { get; private set; }
 
@@ -54,6 +54,11 @@ public abstract class Widget : Disposable
 
 
     protected bool IsPendingMouseUp => _cursorUpRoot != null && !_cursorUpRoot.Disposed;
+    
+    /// <summary>
+    /// Check if this widget is focused by its current surface
+    /// </summary>
+    public bool Focused => Surface?.FocusedWidget == this;
 
 
     /// <summary>
@@ -108,13 +113,13 @@ public abstract class Widget : Disposable
 
     public virtual void NotifyAddedToRoot(WidgetSurface widgetSurface)
     {
-        Root = widgetSurface;
+        Surface = widgetSurface;
         OnAddedToRoot(widgetSurface);
     }
 
     public virtual void NotifyRemovedFromRoot(WidgetSurface widgetSurface)
     {
-        if (Root == widgetSurface) Root = null;
+        if (Surface == widgetSurface) Surface = null;
         OnRemovedFromRoot(widgetSurface);
     }
 
@@ -127,17 +132,17 @@ public abstract class Widget : Disposable
     }
 
 
-    public virtual bool ReceiveCursorDown(CursorDownEvent e, DrawInfo info)
+    public virtual Widget? ReceiveCursorDown(CursorDownEvent e, DrawInfo info)
     {
         if (IsSelfHitTestable())
             if (OnCursorDown(e))
             {
-                _cursorUpRoot = Root;
+                _cursorUpRoot = Surface;
                 BindCursorUp();
-                return true;
+                return this;
             }
 
-        return false;
+        return null;
     }
 
     protected void BindCursorUp()
@@ -215,6 +220,14 @@ public abstract class Widget : Disposable
     protected virtual bool OnScroll(ScrollEvent e)
     {
         return false;
+    }
+    
+    public virtual void OnFocus()
+    {
+    }
+    
+    public virtual void OnFocusLost()
+    {
     }
 
     protected override void OnDispose(bool isManual)

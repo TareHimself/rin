@@ -63,6 +63,7 @@ public partial struct Matrix4 : ICloneable<Matrix4>, IMultiplyOperators<Matrix4,
         NativeTranslate(ref r, ref this, ref translation);
         return r;
     }
+    
 
     [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathScaleMatrix4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -97,7 +98,7 @@ public partial struct Matrix4 : ICloneable<Matrix4>, IMultiplyOperators<Matrix4,
     public Matrix4 RotateDeg(float angle, Vector3<float> axis)
     {
         var r = Clone();
-        NativeRotate(ref r, ref this, (float)(angle * System.Math.PI / 180.0f), ref axis);
+        NativeRotate(ref r, ref this, float.DegreesToRadians(angle), ref axis);
         return r;
     }
 

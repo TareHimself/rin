@@ -2,12 +2,8 @@
 #include "graphics.hpp"
 //#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <iostream>
 #include <vulkan/vulkan.hpp>
 #include <VkBootstrap.h>
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
-#include <spirv_glsl.hpp>
 
 
 void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** outDevice, void** outPhysicalDevice,
@@ -245,62 +241,4 @@ uintptr_t graphicsCreateSurface(void* instance, GLFWwindow* window)
     glfwCreateWindowSurface(inst,window, nullptr, &surf);
 
     return reinterpret_cast<uintptr_t>(surf);
-}
-
-void graphicsReflectShader(void* inShader, uint32_t shaderSize, const ShaderReflectedCallback reflectedCallback)
-{
-    auto spvData = std::vector<uint32_t>();
-    spvData.resize(shaderSize / sizeof(uint32_t));
-    memcpy(spvData.data(), inShader, shaderSize);
-
-    try
-    {
-        const spirv_cross::CompilerGLSL glsl(spvData);
-
-        spirv_cross::ShaderResources resources = glsl.get_shader_resources();
-
-        auto images = std::vector<json>();
-        auto pushConstants = std::vector<json>();
-        auto buffers = std::vector<json>();
-
-        for (auto& resource : resources.sampled_images)
-        {
-            unsigned set = glsl.get_decoration(resource.id, spv::DecorationDescriptorSet);
-            unsigned binding = glsl.get_decoration(resource.id, spv::DecorationBinding);
-            auto numArray = glsl.get_type(resource.type_id).array;
-            auto numRequired = std::max(numArray.empty() ? 0 : numArray[0], static_cast<uint32_t>(1));
-            images.push_back(
-                json({{"name", resource.name}, {"set", set}, {"binding", binding}, {"count", numRequired}}));
-        }
-
-        for (auto& resource : resources.push_constant_buffers)
-        {
-            uint32_t size;
-            size = glsl.get_declared_struct_size(glsl.get_type(resource.base_type_id));
-            uint32_t offset = 0; // Needs work glsl.get_decoration(resource.id,spv::DecorationOffset);
-            pushConstants.push_back(json({{"name", resource.name}, {"size", size}, {"offset", offset}}));
-        }
-
-        for (auto& resource : resources.uniform_buffers)
-        {
-            unsigned set = glsl.get_decoration(resource.id, spv::DecorationDescriptorSet);
-            unsigned binding = glsl.get_decoration(resource.id, spv::DecorationBinding);
-
-            auto numArray = glsl.get_type(resource.type_id).array;
-            auto numRequired = std::max(numArray.empty() ? 0 : numArray[0], static_cast<uint32_t>(1));
-            buffers.push_back(json({
-                {"name", glsl.get_name(resource.id)}, {"set", set}, {"binding", binding}, {"count", numRequired}
-            }));
-        }
-
-        const json jsonResult = {{"images", images}, {"pushConstants", pushConstants}, {"buffers", buffers}};
-
-        std::string strResult = jsonResult.dump();
-
-        reflectedCallback(strResult.data(), strResult.size());
-    }
-    catch (std::exception& e)
-    {
-        std::cerr << e.what() << std::endl;
-    }
 }

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
-include(${CMAKE_CURRENT_SOURCE_DIR}/../../utils.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/utils.cmake)
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # include(ExternalProject)

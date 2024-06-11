@@ -5,10 +5,6 @@ namespace aerox.Runtime;
 
 public sealed class SRuntime : Disposable
 {
-    public static string
-        SHADERS_DIR =
-            @"D:\Github\vengine\aerox.Runtime\shaders"; //"C:\Users\Taree\Documents\Github\aerox\aerox.Runtime\shaders";
-
     private static SRuntime? _instance;
     private static readonly object Padlock = new();
 
@@ -77,17 +73,19 @@ public sealed class SRuntime : Disposable
 
         while (pendingModules.Count > 0)
         {
-            var dep = pendingModules.Dequeue();
-
-            if (!loadedAssemblies.Contains(dep.Assembly))
+            var dependency = pendingModules.Dequeue();
+            
+            if(loadedModules.ContainsKey(dependency)) continue;
+            
+            if (!loadedAssemblies.Contains(dependency.Assembly))
             {
-                Assembly.Load(dep.Assembly.GetName());
-                loadedAssemblies.Add(dep.Assembly);
+                Assembly.Load(dependency.Assembly.GetName());
+                loadedAssemblies.Add(dependency.Assembly);
             }
 
-            loadedModules.Add(dep, new ModuleType(dep, Get().GetModuleAttribute(dep)!));
-            checkedModules.Add(dep);
-            var dependencyAttrib = Get().GetModuleAttribute(dep);
+            loadedModules.Add(dependency, new ModuleType(dependency, Get().GetModuleAttribute(dependency)!));
+            checkedModules.Add(dependency);
+            var dependencyAttrib = Get().GetModuleAttribute(dependency);
             if (dependencyAttrib == null) continue;
             foreach (var attribDependency in dependencyAttrib.Dependencies)
                 if (!checkedModules.Contains(attribDependency))

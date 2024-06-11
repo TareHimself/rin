@@ -10,7 +10,7 @@ namespace aerox.Runtime.Graphics;
 public class PipelineBuilder
 {
     private readonly List<VkFormat> _colorAttachmentFormats = new();
-    private readonly List<Shader> _shaders = new();
+    private Shader? _shader = null;
 
     private VkPipelineColorBlendAttachmentState _colorBlendAttachment;
     private VkPipelineDepthStencilStateCreateInfo _depthStencil;
@@ -33,9 +33,9 @@ public class PipelineBuilder
     }
 
 
-    public PipelineBuilder AddShader(Shader shader)
+    public PipelineBuilder SetShader(Shader shader)
     {
-        _shaders.Add(shader);
+        _shader = shader;
         return this;
     }
 
@@ -119,9 +119,9 @@ public class PipelineBuilder
     /// <summary>
     ///     Set's the attachment formats of the resulting <see cref="VkPipeline" />
     /// </summary>
-    public PipelineBuilder AddColorAttachment(VkFormat format)
+    public PipelineBuilder AddColorAttachment(EImageFormat format)
     {
-        _colorAttachmentFormats.Add(format);
+        _colorAttachmentFormats.Add(SGraphicsModule.ImageFormatToVkFormat(format));
         return this;
     }
 
@@ -136,6 +136,19 @@ public class PipelineBuilder
         _depthStencil.back = new VkStencilOpState();
         _depthStencil.minDepthBounds = 0.0f;
         _depthStencil.maxDepthBounds = 1.0f;
+        return this;
+    }
+    
+    public PipelineBuilder EnableStencil(VkStencilOpState stencilOpState, VkFormat format)
+    {
+        _renderInfo.depthAttachmentFormat = format;
+        _depthStencil.depthTestEnable = 0;
+        _depthStencil.depthWriteEnable = 0;
+        _depthStencil.depthCompareOp = VkCompareOp.VK_COMPARE_OP_ALWAYS;
+        _depthStencil.depthBoundsTestEnable = 0;
+        _depthStencil.stencilTestEnable = 1;
+        _depthStencil.front = stencilOpState;
+        _depthStencil.back = stencilOpState;
         return this;
     }
 
@@ -165,12 +178,12 @@ public class PipelineBuilder
 
         fixed (byte* str = "main"u8.ToArray())
         {
-            foreach (var shader in _shaders)
+            foreach (var stages in _shader?.GetStages() ?? [])
                 shaderStages.Add(new VkPipelineShaderStageCreateInfo
                 {
                     sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                    stage = shader.GetStageFlags(),
-                    module = shader,
+                    stage = stages.Flags,
+                    module = stages,
                     pName = (sbyte*)str
                 });
         }

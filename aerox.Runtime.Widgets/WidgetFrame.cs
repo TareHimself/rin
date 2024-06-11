@@ -22,13 +22,14 @@ public class WidgetFrame
 {
     public readonly List<Command> DrawCommands = [];
     public readonly Frame Raw;
-    public readonly WidgetSurface WidgetSurface;
+    public readonly WidgetSurface Surface;
+    public bool IsMainPassActive = false;
 
-    public WidgetFrame(WidgetSurface inWidgetSurface, Frame inRaw)
+    public WidgetFrame(WidgetSurface surface, Frame raw)
     {
-        WidgetSurface = inWidgetSurface;
-        Raw = inRaw;
-        inRaw.OnDrawn += CleanupCommands;
+        Surface = surface;
+        Raw = raw;
+        raw.OnDrawn += CleanupCommands;
     }
 
     public WidgetFrame AddRect(Matrix3 transform, Vector2<float> size, Vector4<float>? borderRadius = null,
@@ -49,6 +50,12 @@ public class WidgetFrame
     public WidgetFrame AddCommand(Command command)
     {
         DrawCommands.Add(command);
+        return this;
+    }
+
+    public WidgetFrame AddCommands(params Command[] commands)
+    {
+        DrawCommands.AddRange(commands);
         return this;
     }
 

@@ -9,13 +9,13 @@ public class Texture : MultiDisposable
 
     public readonly DeviceImage DeviceImage;
 
-    public readonly ImageFilter Filter;
-    public readonly ImageTiling Tiling;
-    private ImageFormat _format;
+    public readonly EImageFilter Filter;
+    public readonly EImageTiling Tiling;
+    private EImageFormat _format;
     private bool _mipMapped;
 
 
-    public Texture(byte[] data, VkExtent3D size, ImageFormat format, ImageFilter filter, ImageTiling tiling,
+    public Texture(byte[] data, VkExtent3D size, EImageFormat format, EImageFilter filter, EImageTiling tiling,
         bool mipMapped = true,
         string debugName = "Texture")
     {
@@ -23,7 +23,6 @@ public class Texture : MultiDisposable
         _format = format;
         Filter = filter;
         Tiling = tiling;
-        DeviceImage = null;
         _mipMapped = mipMapped;
         var subsystem = SRuntime.Get().GetModule<SGraphicsModule>();
         DeviceImage = subsystem.CreateImage(data, size, format,

@@ -5,7 +5,7 @@ namespace aerox.Runtime.Scene.Components;
 
 public class RenderedComponent : SceneComponent, ISceneDrawable
 {
-    public virtual void Draw(SceneFrame frame, Matrix4 parentSpace)
+    public virtual void Collect(SceneFrame frame, Matrix4 parentSpace)
     {
     }
 }

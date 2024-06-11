@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
-include(${CMAKE_CURRENT_SOURCE_DIR}/../../utils.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/utils.cmake)
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # include(ExternalProject)
@@ -22,8 +22,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
 GetGlfw(${PROJECT_NAME} 3.4)
 GetVulkanMemoryAllocator(${PROJECT_NAME} master)
 GetVkBootstrap(${PROJECT_NAME} v1.3.277)
-GetSpirvCross(${PROJECT_NAME} main)
-GetJson(${PROJECT_NAME} v3.11.3)
 SetDynamicLibraryDir(${PROJECT_NAME})
 
 add_custom_command ( TARGET ${PROJECT_NAME} POST_BUILD

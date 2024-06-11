@@ -1,4 +1,5 @@
-﻿using aerox.Runtime.Graphics.Material;
+﻿using aerox.Runtime.Graphics;
+using aerox.Runtime.Graphics.Material;
 using TerraFX.Interop.Vulkan;
 
 namespace aerox.Runtime.Scene;
@@ -21,6 +22,15 @@ public static class MaterialBuilderExtensions
                 .EnableBlendingAdditive()
                 .EnableDepthTest(false, VkCompareOp.VK_COMPARE_OP_LESS_OR_EQUAL,
                     VkFormat.VK_FORMAT_D32_SFLOAT);
+
+
+        builder.AddAttachmentFormats(
+            EImageFormat.Rgba16UNorm,
+            EImageFormat.Rgba32SFloat,
+            EImageFormat.Rgba32SFloat,
+            EImageFormat.Rgba16UNorm,
+            EImageFormat.Rgba16UNorm
+            );
 
         return builder;
     }

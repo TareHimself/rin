@@ -10,28 +10,35 @@
     <ItemGroup>
         <PackageReference Include="MathNet.Numerics" Version="6.0.0-beta1"/>
         <PackageReference Include="MathNet.Numerics.Signed" Version="5.0.0"/>
-        <PackageReference Include="shaderc.net" Version="0.1.0"/>
         <PackageReference Include="System.Text.Json" Version="8.0.3"/>
-        <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.3.268-rc1.7228558605"/>
     </ItemGroup>
 
-    <Target Name="Clean Native" BeforeTargets="CoreClean">
+    <Target Name="CleanNative" BeforeTargets="CoreClean">
         <ItemGroup>
-            <_Dirs Include=".\Native\bin"/>
-            <_Dirs Include=".\Native\build"/>
+            <_Dirs Include=".\Native\bin\$(Configuration)"/>
+            <_Dirs Include=".\Native\build\$(Configuration)"/>
         </ItemGroup>
         <RemoveDir Directories="@(_Dirs)"/>
     </Target>
 
-    <Target Name="Cmake Build Project Debug" BeforeTargets="BeforeBuild">
-        <Exec Command="cmake -DCMAKE_BUILD_TYPE=Debug -S ./Native/ -B ./Native/build/Debug" />
-        <Exec Command="cmake --build ./Native/build/Debug" />
-    </Target>
-
     <ItemGroup>
-        <Content Include=".\Native\bin\*">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>%(FileName)%(Extension)</Link>
+        <NativeFiles Include=".\Native\bin\$(Configuration)\*.*" />
+        <Content Include="@(NativeFiles)">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <Link>%(Filename)%(Extension)</Link>
         </Content>
     </ItemGroup>
+    
+    <Target Name="BuildNative" BeforeTargets="BeforeBuild">
+        <Exec Command="cmake -DCMAKE_BUILD_TYPE=$(Configuration) -S ./Native/ -B ./Native/build/$(Configuration)" />
+        <Exec Command="cmake --build ./Native/build/$(Configuration)" />
+        <ItemGroup>
+            <NativeFiles Include=".\Native\bin\$(Configuration)\*.*" />
+            <Content Include="@(NativeFiles)">
+                <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+                <Link>%(Filename)%(Extension)</Link>
+            </Content>
+        </ItemGroup>
+    </Target>
+    
 </Project>

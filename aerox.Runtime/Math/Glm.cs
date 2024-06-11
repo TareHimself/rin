@@ -17,4 +17,16 @@ public static partial class Glm
         NativeGlmOrthographic(ref result, left, right, bottom, top);
         return result;
     }
+    
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathGlmPerspective")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeGlmPerspective(ref Matrix4 result, float fov,float aspect,float near,float far);
+
+
+    public static Matrix4 Perspective(float fov,float aspect,float near,float far)
+    {
+        var result = Matrix4.Identity;
+        NativeGlmOrthographic(ref result,fov,aspect,near,far);
+        return result;
+    }
 }

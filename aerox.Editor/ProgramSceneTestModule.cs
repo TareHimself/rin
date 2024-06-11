@@ -7,7 +7,7 @@ using aerox.Runtime.Scene.Graphics;
 
 namespace aerox.Editor;
 
-[RuntimeModule(typeof(SceneModule), typeof(AssetsModule))]
+[RuntimeModule(typeof(SSceneModule), typeof(AssetsModule))]
 public class ProgramSceneTestModule : RuntimeModule
 {
     public override void Startup(SRuntime runtime)

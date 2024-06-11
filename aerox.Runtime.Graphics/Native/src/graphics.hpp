@@ -32,7 +32,3 @@ EXPORT void graphicsAllocatorFreeImage(uintptr_t image,void * allocation,void * 
 EXPORT void graphicsAllocatorCopyToBuffer(void * allocator,void * allocation,void * data,unsigned long size,unsigned long offset);
 
 EXPORT uintptr_t graphicsCreateSurface(void * instance,void * window);
-
-using ShaderReflectedCallback = void(__stdcall *)(char * reflected,uint32_t reflectedSize);
-
-EXPORT void graphicsReflectShader(void * inShader,uint32_t shaderSize,const ShaderReflectedCallback reflectedCallback);

@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <Target Name="CleanNative" BeforeTargets="CoreClean">
+        <ItemGroup>
+            <_Dirs Include=".\Native\bin\$(Configuration)"/>
+            <_Dirs Include=".\Native\build\$(Configuration)"/>
+        </ItemGroup>
+        <RemoveDir Directories="@(_Dirs)"/>
+    </Target>
+
+    <ItemGroup>
+        <NativeFiles Include=".\Native\bin\$(Configuration)\*.*" />
+        <Content Include="@(NativeFiles)">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <Link>%(Filename)%(Extension)</Link>
+        </Content>
+    </ItemGroup>
+
+    <Target Name="BuildNative" BeforeTargets="BeforeBuild">
+        <Exec Command="cmake -DCMAKE_BUILD_TYPE=$(Configuration) -S ./Native/ -B ./Native/build/$(Configuration)" />
+        <Exec Command="cmake --build ./Native/build/$(Configuration)" />
+        <ItemGroup>
+            <NativeFiles Include=".\Native\bin\$(Configuration)\*.*" />
+            <Content Include="@(NativeFiles)">
+                <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+                <Link>%(Filename)%(Extension)</Link>
+            </Content>
+        </ItemGroup>
+    </Target>
+</Project>

@@ -2,18 +2,14 @@
 
 namespace aerox.Runtime.Widgets.Draw.Commands;
 
-public class SimpleRect(Matrix3 transform, Vector2<float> size) : Command
+public class SimpleRect(Matrix3 transform, Vector2<float> size) : DrawCommand
 {
     public Vector4<float>? BorderRadius;
     public Color? Color;
-
-    public override void Bind(WidgetFrame frame)
+    
+    protected override void Draw(WidgetFrame frame)
     {
-        frame.WidgetSurface.SimpleRectMat.BindTo(frame);
-    }
-
-    public override void Run(WidgetFrame frame)
-    {
+        frame.Surface.SimpleRectMat.BindTo(frame);
         var constants = new SimpleRectPush
         {
             Transform = transform,
@@ -21,7 +17,7 @@ public class SimpleRect(Matrix3 transform, Vector2<float> size) : Command
             BorderRadius = BorderRadius ?? new Vector4<float>(1.0f),
             Color = Color ?? Color.White
         };
-        frame.WidgetSurface.SimpleRectMat.Push(frame.Raw.GetCommandBuffer(), "pRect", constants);
-        CmdDrawQuad(frame);
+        frame.Surface.SimpleRectMat.Push(frame.Raw.GetCommandBuffer(),  constants);
+        Quad(frame);
     }
 }

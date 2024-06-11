@@ -1,5 +1,6 @@
 ﻿#include "math.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
+#include <iostream>
 #include<glm/glm.hpp>
 #include<glm/gtc/quaternion.hpp>
 #include <glm/gtx/matrix_transform_2d.hpp>
@@ -131,12 +132,13 @@ void mathScaleMatrix4(Matrix4* result, Matrix4* target, Vector3* scale)
 
 void mathMatrix4ToTransform(Transform* result, Matrix4* target)
 {
+    
     auto mat = static_cast<glm::mat4>(*target);
 
     const auto l = glm::vec3(mat[3]);
 
     result->Location = glm::vec3{l.x, l.y, l.z};
-
+    
     result->Rotation = glm::quat(glm::mat3(mat));
 
     result->Scale = glm::vec3(length(glm::vec3(mat[0])), length(glm::vec3(mat[1])), length(glm::vec3(mat[2])));
@@ -144,14 +146,22 @@ void mathMatrix4ToTransform(Transform* result, Matrix4* target)
 
 void mathTransformToMatrix4(Matrix4* result, Transform* target)
 {
-    *result = glm::scale(
-        glm::translate(glm::mat4(1.0f), static_cast<glm::vec3>(target->Location)) * glm::mat4_cast(
-            static_cast<glm::quat>(target->Rotation)), static_cast<glm::vec3>(target->Scale));
+    auto translated = glm::translate(glm::mat4(1.0f), static_cast<glm::vec3>(target->Location));
+    auto rotated = translated * glm::mat4_cast(
+            static_cast<glm::quat>(target->Rotation));
+    auto scaled = glm::scale(rotated,static_cast<glm::vec3>(target->Scale));
+    
+    *result = scaled;
 }
 
 void mathGlmOrthographic(Matrix4* result, float left, float right, float bottom, float top)
 {
     *result = glm::ortho(left,right,bottom,top);
+}
+
+void mathGlmPerspective(Matrix4* result, float fov, float aspect, float near, float far)
+{
+    *result = glm::perspective(fov,aspect,near,far);
 }
 
 void mathRotateMatrix3(Matrix3* result, Matrix3* target, float angle)
