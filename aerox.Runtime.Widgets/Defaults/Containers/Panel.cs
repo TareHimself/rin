@@ -90,9 +90,9 @@ public class Panel : Container<PanelSlot>
         ClippingMode = EClippingMode.Bounds;
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
-        foreach (var slot in slots) slot.GetWidget().Draw(frame, info.AccountFor(slot.GetWidget()));
+        foreach (var slot in slots) slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
     }
 
     protected override void ArrangeSlots(Size2d drawSize)

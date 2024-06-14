@@ -167,7 +167,7 @@ public abstract class WidgetSurface : Disposable
         return _copyImage;
     }
 
-    public virtual void BeginMainPass(WidgetFrame frame)
+    public virtual void BeginMainPass(WidgetFrame frame,bool clear = false)
     {
         var cmd = frame.Raw.GetCommandBuffer();
         
@@ -189,10 +189,10 @@ public abstract class WidgetSurface : Disposable
         {
             var colorAttachment =
                 SGraphicsModule.MakeRenderingAttachment(GetDrawImage().View,
-                    VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, new VkClearValue
+                    VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, clear ? new VkClearValue
                     {
                         color = SGraphicsModule.MakeClearColorValue(0.0f)
-                    });
+                    } : null);
 
             renderingInfo.colorAttachmentCount = 1;
             renderingInfo.pColorAttachments = &colorAttachment;
@@ -239,7 +239,7 @@ public abstract class WidgetSurface : Disposable
         foreach (var widget in _rootWidgets)
         {
             var widgetDrawInfo = drawInfo.AccountFor(widget);
-            widget.Draw(widgetFrame, widgetDrawInfo);
+            widget.Collect(widgetFrame, widgetDrawInfo);
         }
         
         // Do Actual Draw
@@ -261,6 +261,8 @@ public abstract class WidgetSurface : Disposable
                 NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
             });
         
+        
+        BeginMainPass(widgetFrame,true);
         
         foreach (var widgetCmd in widgetFrame.DrawCommands)
            widgetCmd.Run(widgetFrame);

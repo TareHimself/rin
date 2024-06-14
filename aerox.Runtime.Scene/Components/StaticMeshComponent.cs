@@ -96,12 +96,12 @@ public class StaticMeshComponent : RenderedComponent
         
     }
 
-    public override void Collect(SceneFrame frame, Matrix4 parentSpace)
+    protected override void CollectSelf(SceneFrame frame, Matrix4 parentTransform, Matrix4 myTransform)
     {
-        base.Collect(frame, parentSpace);
+        base.CollectSelf(frame, parentTransform, myTransform);
         if (_mesh is { } mesh)
         {
-            frame.AddCommand(new StaticMeshDrawCommand(mesh,[],RelativeTransform * parentSpace));
+            frame.AddCommand(new StaticMeshDrawCommand(mesh,[],myTransform));
         }
     }
 

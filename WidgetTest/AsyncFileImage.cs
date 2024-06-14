@@ -54,12 +54,12 @@ public class AsyncFileImage : Image
     //     base.Draw(frame, info);
     // }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         // var sin = (float)Math.Sin(Runtime.Instance.GetTimeSinceCreation());
         // var borderRadius = float.Abs(sin) * 150.0f;
         // BorderRadius = borderRadius;
-        base.Draw(frame, info);
+        base.Collect(frame, info);
     }
 
     protected override void OnCursorEnter(CursorMoveEvent e)

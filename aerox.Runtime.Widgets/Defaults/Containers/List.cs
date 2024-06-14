@@ -97,14 +97,14 @@ public class List(params Widget[] children) : Container(children)
         return 0;
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         if (slots.Count > 2) frame.AddRect(info.Transform, GetDrawSize(), color: Color.Red);
         foreach (var slot in slots.ToArray())
         {
             var slotDrawInfo = info.AccountFor(slot.GetWidget());
             if (!slotDrawInfo.IntersectsWith(info)) continue;
-            slot.GetWidget().Draw(frame, info.AccountFor(slot.GetWidget()));
+            slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
         }
     }
 }

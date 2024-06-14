@@ -71,40 +71,40 @@ public class MaterialInstance : MultiDisposable
     /// <summary>
     ///     Binds a <see cref="Texture" /> to this <see cref="MaterialInstance" />
     /// </summary>
-    public MaterialInstance BindTexture(string id, Texture texture)
+    public bool BindTexture(string id, Texture texture)
     {
-        if (!_resources.Textures.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
+        if (!_resources.Textures.TryGetValue(id, out var resource)) return false;
 
         var set = _sets[(SetType)resource.Set];
         set.WriteTexture(resource.Binding, texture, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        return this; 
+        return true; 
     }
 
     /// <summary>
     ///     Binds a <see cref="Texture" /> array to this <see cref="MaterialInstance" />
     /// </summary>
-    public MaterialInstance BindTextureArray(string id, Texture[] textures)
+    public bool BindTextureArray(string id, Texture[] textures)
     {
-        if (!_resources.Textures.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
+        if (!_resources.Textures.TryGetValue(id, out var resource)) return false;
 
         var set = _sets[(SetType)resource.Set];
         set.WriteTextures(resource.Binding, textures, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        return this;
+        return true;
     }
 
     /// <summary>
     ///     Binds an <see cref="Image" /> to this <see cref="MaterialInstance" />
     /// </summary>
-    public MaterialInstance BindImage(string id, DeviceImage image, DescriptorSet.ImageType type, VkSampler sampler)
+    public bool BindImage(string id, DeviceImage image, DescriptorSet.ImageType type, VkSampler sampler)
     {
-        if (!_resources.Textures.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
+        if (!_resources.Textures.TryGetValue(id, out var resource)) return false;
 
         var set = _sets[(SetType)resource.Set];
         set.WriteImage(resource.Binding, image, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, type, sampler);
 
-        return this;
+        return true;
     }
 
 
@@ -125,29 +125,29 @@ public class MaterialInstance : MultiDisposable
     /// <summary>
     ///     Binds an <see cref="Buffer" /> to this <see cref="MaterialInstance" />
     /// </summary>
-    public MaterialInstance BindBuffer(string id, DeviceBuffer buffer,
+    public bool BindBuffer(string id, DeviceBuffer buffer,
         DescriptorSet.BufferType type = DescriptorSet.BufferType.Uniform, ulong offset = 0)
     {
-        if (!_resources.Buffers.TryGetValue(id, out var resource)) throw new UnknownParameterException(id);
+        if (!_resources.Buffers.TryGetValue(id, out var resource)) return false;
 
         var set = _sets[(SetType)resource.Set];
         set.WriteBuffer(resource.Binding, buffer, type, offset);
 
-        return this;
+        return true;
     }
 
     /// <summary>
     ///     Pushes a constant this <see cref="MaterialInstance" />
     /// </summary>
-    public MaterialInstance Push<T>(VkCommandBuffer commandBuffer,T constant)
+    public bool Push<T>(VkCommandBuffer commandBuffer,T constant)
     {
-        if (_resources.Push == null) throw new Exception("Shader has no push constants");
+        if (_resources.Push == null) return false;
 
         unsafe
         {
             vkCmdPushConstants(commandBuffer, _pipelineLayout, _resources.Push.Stages, 0,
                 (uint)_resources.Push.Size, &constant);
-            return this;
+            return true;
         }
     }
 

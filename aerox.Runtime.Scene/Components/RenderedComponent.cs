@@ -3,9 +3,10 @@ using aerox.Runtime.Scene.Graphics;
 
 namespace aerox.Runtime.Scene.Components;
 
-public class RenderedComponent : SceneComponent, ISceneDrawable
+public abstract class RenderedComponent : SceneComponent
 {
-    public virtual void Collect(SceneFrame frame, Matrix4 parentSpace)
+    protected override void CollectSelf(SceneFrame frame, Matrix4 parentTransform, Matrix4 myTransform)
     {
+        base.CollectSelf(frame, parentTransform, myTransform);
     }
 }

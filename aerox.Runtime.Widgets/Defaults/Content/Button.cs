@@ -18,10 +18,10 @@ public class Button : Container
         return slot == null ? new Size2d() : slot.GetWidget().GetDesiredSize();
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         DrawSelf(frame, info);
-        foreach (var slot in slots) slot.GetWidget().Draw(frame, info.AccountFor(slot.GetWidget()));
+        foreach (var slot in slots) slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
     }
 
     protected virtual void DrawSelf(WidgetFrame frame, DrawInfo myInfo)

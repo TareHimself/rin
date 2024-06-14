@@ -26,7 +26,7 @@ public static partial class Glm
     public static Matrix4 Perspective(float fov,float aspect,float near,float far)
     {
         var result = Matrix4.Identity;
-        NativeGlmOrthographic(ref result,fov,aspect,near,far);
+        NativeGlmPerspective(ref result,fov,aspect,near,far);
         return result;
     }
 }

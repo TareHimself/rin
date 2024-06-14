@@ -8,7 +8,8 @@ layout (location = 2) in float3 iSceneLocation;
 struct Light {
     float4 location;
     float4 direction;
-    float4 color;
+    
+    float4 color; //[r,g,b,intensity]
 };
 
 layout(set = 0, binding = 0) uniform  SceneGlobalBuffer {

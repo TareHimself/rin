@@ -113,7 +113,7 @@ public class Image : Widget
         base.OnRemovedFromRoot(widgetSurface);
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         if (_optionsDirty || _textureDirty)
         {

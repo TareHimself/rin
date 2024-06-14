@@ -38,12 +38,12 @@ public class Fitter : Container
         return slots.FirstOrDefault()?.GetWidget().GetDesiredSize() ?? new Size2d();
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         foreach (var slot in slots)
         {
             var widget = slot.GetWidget();
-            widget.Draw(frame, info.AccountFor(widget));
+            widget.Collect(frame, info.AccountFor(widget));
         }
     }
 

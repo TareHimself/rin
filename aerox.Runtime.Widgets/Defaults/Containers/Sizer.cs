@@ -45,9 +45,9 @@ public class Sizer : Container
     }
 
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
-        foreach (var slot in slots.ToArray()) slot.GetWidget().Draw(frame, info.AccountFor(slot.GetWidget()));
+        foreach (var slot in slots.ToArray()) slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
     }
 
     public override uint GetMaxSlots()

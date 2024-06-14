@@ -13,6 +13,7 @@ public static class MaterialBuilderExtensions
 
         builder.Pipeline
             .SetCullMode(VkCullModeFlags.VK_CULL_MODE_NONE, VkFrontFace.VK_FRONT_FACE_CLOCKWISE)
+            .DisableMultisampling()
             .DisableBlending()
             .EnableDepthTest(true, VkCompareOp.VK_COMPARE_OP_LESS_OR_EQUAL,
                 VkFormat.VK_FORMAT_D32_SFLOAT);

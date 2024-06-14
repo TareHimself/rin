@@ -32,9 +32,9 @@ public class Switcher : Container
         return SelectedWidget?.GetDesiredSize() ?? new Size2d();
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
-        SelectedWidget?.Draw(frame, info.AccountFor(SelectedWidget));
+        SelectedWidget?.Collect(frame, info.AccountFor(SelectedWidget));
     }
 
     public override uint GetMaxSlots()

@@ -277,5 +277,5 @@ public abstract class Widget : Disposable
     }
 
 
-    public abstract void Draw(WidgetFrame frame, DrawInfo info);
+    public abstract void Collect(WidgetFrame frame, DrawInfo info);
 }

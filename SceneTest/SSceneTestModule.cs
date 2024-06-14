@@ -3,6 +3,8 @@ using aerox.Runtime.Graphics;
 using aerox.Runtime.Math;
 using aerox.Runtime.Scene;
 using aerox.Runtime.Widgets;
+using aerox.Runtime.Widgets.Defaults.Containers;
+using aerox.Runtime.Widgets.Defaults.Content;
 using aerox.Runtime.Windows;
 using SceneTest.entities;
 
@@ -15,15 +17,43 @@ public class SSceneTestModule : RuntimeModule
     {
         base.Startup(runtime);
 
-        SWindowsModule.Get().CreateWindow(500, 500, "Aerox Scene Test");
+        var window = SWindowsModule.Get().CreateWindow(500, 500, "Aerox Scene Test");
         var scene = SSceneModule.Get().AddScene<TestScene>();
 
         var surf = SWidgetsModule.Get().GetWindowSurface();
-
-        var viewport = surf?.Add(new Viewport(scene));
+        
+        var text = new Text();
+        
+        var viewport = surf?.Add(new Viewport(scene,text));
+        
+        var panel = surf?.Add(new Panel());
+        
+        var textSlot = panel?.AddChild(text);
+        
+        textSlot?.Mutate((c) =>
+        {
+            c.SizeToContent = true;
+            c.MinAnchor = 0.0f;
+            c.MaxAnchor = 0.0f;
+        });
+        
         var entity = scene.AddEntity<CameraEntity>();
         var meshEntity = scene.AddEntity<MeshEntity>();
         scene.SetViewTarget(entity);
 
+        window.OnKey += (k) =>
+        {
+            if (k.Key is EKey.KeyLeft or EKey.KeyRight)
+            {
+                if (k.Key is EKey.KeyLeft)
+                {
+                    
+                }
+                else
+                {
+                    
+                }
+            }
+        };
     }
 }

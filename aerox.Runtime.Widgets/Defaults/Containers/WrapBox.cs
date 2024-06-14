@@ -22,12 +22,12 @@ public class WrapBox : Container
         });
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         foreach (var slot in slots.ToArray())
         {
             var slotInfo = info.AccountFor(this);
-            slot.GetWidget().Draw(frame, slotInfo);
+            slot.GetWidget().Collect(frame, slotInfo);
         }
     }
 

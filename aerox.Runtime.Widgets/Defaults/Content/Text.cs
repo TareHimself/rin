@@ -147,7 +147,7 @@ public class Text : Widget
         return new Size2d(last?.Bounds.Right ?? 0.0f, height);
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         if (!ShouldDraw) return;
 
@@ -187,6 +187,6 @@ public class Text : Widget
             pushConstantsList.Add(constants);
         }
 
-        frame.AddCommand(new Draw.Commands.Text(_materialInstance, _msdf!, pushConstantsList.ToArray()));
+        frame.AddCommand(new Draw.Commands.TextDrawCommand(_materialInstance, _msdf!, pushConstantsList.ToArray()));
     }
 }

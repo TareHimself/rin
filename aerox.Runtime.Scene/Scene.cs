@@ -1,4 +1,5 @@
 ﻿using aerox.Runtime.Scene.Components;
+using aerox.Runtime.Scene.Components.Lights;
 using aerox.Runtime.Scene.Entities;
 using aerox.Runtime.Scene.Graphics;
 
@@ -11,7 +12,7 @@ public class Scene : Disposable, ILifeCycle
 
     public SceneDrawer? Drawer { get; private set;}
 
-    public readonly List<LightComponent> Lights = [];
+    public readonly HashSet<LightComponent> Lights = [];
     
     public Entity? ViewTarget { get; private set; }
     

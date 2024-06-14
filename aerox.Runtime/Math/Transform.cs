@@ -10,19 +10,6 @@ public partial struct Transform() : ICloneable<Transform>
     public Quaternion Rotation = Quaternion.Identity;
     public Vector3<float> Scale = new(1.0f);
 
-
-    public Matrix4 RelativeTo(Transform other)
-    {
-        Matrix4 a = other;
-        Matrix4 b = this;
-        return a.Inverse() * b;
-    }
-
-    public Matrix4 RelativeTo(Matrix4 other)
-    {
-        return other.Inverse() * this;
-    }
-
     [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathMatrix4ToTransform")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static partial void NativeMatrix4ToTransform(ref Transform result, ref Matrix4 target);

@@ -25,10 +25,10 @@ public class Overlay : Container
         });
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         var drawInfo = info.AccountFor(this);
-        foreach (var slot in slots) slot.GetWidget().Draw(frame, drawInfo);
+        foreach (var slot in slots) slot.GetWidget().Collect(frame, drawInfo);
     }
 
     public override uint GetMaxSlots()

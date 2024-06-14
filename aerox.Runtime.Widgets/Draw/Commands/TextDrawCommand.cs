@@ -3,13 +3,13 @@ using aerox.Runtime.Widgets.Defaults.Content;
 
 namespace aerox.Runtime.Widgets.Draw.Commands;
 
-public class Text : DrawCommand
+public class TextDrawCommand : DrawCommand
 {
     private readonly MtsdfFont _font;
     private readonly MaterialInstance _materialInstance;
     private readonly TextPushConstants[] _pushConstants;
 
-    public Text(MaterialInstance materialInstance, MtsdfFont font, TextPushConstants[] pushConstants)
+    public TextDrawCommand(MaterialInstance materialInstance, MtsdfFont font, TextPushConstants[] pushConstants)
     {
         materialInstance.Reserve();
         font.Reserve();

@@ -1,6 +1,6 @@
 #define RECIPROCAL_PI 0.3183098861837907
 #define RECIPROCAL_2PI 0.15915494309189535
-
+#define PI 3.14159265359
 @Vertex {
     layout(location = 0) out float2 oUV;
 
@@ -69,16 +69,15 @@
     }
 
     float3 calcLightRadiance(float3 sceneLocation, float3 color, Light light, float NoV, float3 normal, float3 viewDir, float roughness, float metallic){
-        float3 lightDirection = sceneLocation - light.location.xyz;//mix(iSceneLocation - light.location.xyz,light.direction.xyz,light.direction.w);
-        float3 lightDir = normalize(-lightDirection);
+        float3 lightDirection = normalize(light.location.xyz - sceneLocation);//mix(iSceneLocation - light.location.xyz,light.direction.xyz,light.direction.w);
         float irradiPerp = light.color.w;
-        float irradiance = max(dot(lightDir, normal), 0.0) * irradiPerp;
+        float irradiance = max(dot(lightDirection, normal), 0.0) * irradiPerp;
 
         if (irradiance > 0.0){
-            float3 H = normalize(viewDir + lightDir);
-            float NoL = clamp(dot(normal, lightDir), 0.0, 1.0);
-            float NoH = clamp(dot(normal, H), 0.0, 1.0);
-            float VoH = clamp(dot(viewDir, H), 0.0, 1.0);
+            float3 H = normalize(viewDir + lightDirection);
+            float NoL = clamp(dot(normal, lightDirection), 0.0001, 1.0);
+            float NoH = clamp(dot(normal, H), 0.0001, 1.0);
+            float VoH = clamp(dot(viewDir, H), 0.0001, 1.0);
 
             float3 f0 = float3(0.16 * (roughness * roughness));
 
@@ -88,7 +87,7 @@
             float D = D_GGX(NoH, roughness);
             float G = G_Smith(NoV, NoL, roughness);
 
-            float3 spec = (F * D * G) / (4.0 * max(NoV, 0.001) * max(NoL, 0.001));
+            float3 spec = (F * D * G) / (4.0 * max(NoV, 0.0001) * max(NoL, 0.0001));
 
             float3 rhoD = color;
 
@@ -104,6 +103,56 @@
 
         return float3(0.0);
     }
+    
+    /*float3 calcLambert(Light light,float3 color,float3 location,float3 normal, float3 cameraLocation,float3 roughMetalSpec){
+        float3 lightPos = light.location.xyz;
+        float3 L = normalize(lightPos - location);
+        float3 lightDir = normalize(location - light.location.xyz);
+        float3 result = float3(dot(normal,L)) * color * light.color.w;
+        return result;
+    }*/
+    
+    float3 calcLambert(Light light,float3 color,float3 location,float3 normal, float3 cameraLocation,float3 roughMetalSpec){
+         float3 lightDirection = normalize(light.location.xyz - location);//mix(iSceneLocation - light.location.xyz,light.direction.xyz,light.direction.w);
+         float irradiance = max(dot(normal,lightDirection), 0.0) * light.color.w;
+         
+         
+         if (irradiance > 0.0){
+         
+            float3 cameraToLocation = normalize(scene.cameraLocation.xyz - location);
+            float roughness = roughMetalSpec.r;
+            float metallic = roughMetalSpec.g;
+            
+             float3 H = normalize(cameraToLocation + lightDirection);
+             float NoL = clamp(dot(normal, lightDirection), 0.0001, 1.0);
+             float NoH = clamp(dot(normal, H), 0.0001, 1.0);
+             float VoH = clamp(dot(cameraToLocation, H), 0.0001, 1.0);
+             float NoV = clamp(dot(normal, cameraToLocation), 0.0001, 1.0);
+ 
+             float3 f0 = float3(0.16 * (roughness * roughness));
+ 
+             f0 = mix(f0, color, metallic);
+ 
+             float3 F = fresnelSchlick(VoH, f0);
+             float D = D_GGX(NoH, roughness);
+             float G = G_Smith(NoV, NoL, roughness);
+ 
+             float3 spec = (F * D * G) / (4.0 * max(NoV, 0.0001) * max(NoL, 0.0001));
+ 
+             float3 rhoD = color;
+ 
+             rhoD *= float3(1.0) - F;
+ 
+             rhoD *= disneyDiffuseFactor(NoV, NoL, VoH, roughness);
+             rhoD *= (1.0 - metallic);
+ 
+             float3 diff = rhoD * RECIPROCAL_PI;
+ 
+             return (diff + spec) * irradiance * light.color.xyz;
+         }
+ 
+         return float3(0.0);
+    }
 
     // Brffd Microfacet
     void main(){
@@ -115,15 +164,15 @@
         float3 emissive = texture(TEmissive, iUV).xyz;
 
         float3 viewDir = normalize(scene.cameraLocation.xyz - sceneLocation);
-        float NoV = clamp(dot(normal, viewDir), 0.0, 1.0);
+        float NoV = clamp(dot(normal, viewDir), 0.0001, 1.0);
         float3 radiance = emissive;
 
         for (int i=0; i < scene.numLights; ++i)
         {
-            radiance += calcLightRadiance(sceneLocation, color, scene.lights[i], NoV, normal, viewDir, roughMetallicSpecular.r, roughMetallicSpecular.g);
+            radiance += calcLambert(scene.lights[i],color,sceneLocation,normal,scene.cameraLocation.xyz,roughMetallicSpecular); //calcLightRadiance(sceneLocation, color, scene.lights[i], NoV, normal, viewDir, roughMetallicSpecular.r, roughMetallicSpecular.g);
         }
 
-        oColor = float4(color,1.0);//float4(radiance, 1.0);
+        oColor = float4(radiance, 1.0);
     }
 
 

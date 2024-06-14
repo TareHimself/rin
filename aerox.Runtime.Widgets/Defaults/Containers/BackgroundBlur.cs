@@ -78,7 +78,7 @@ public class BackgroundBlur : Container
         _materialInstance.BindBuffer("ui", widgetSurface.GlobalBuffer);
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         frame.AddCommands(new ReadBack(),new BlurCommand(_materialInstance, new BlurPushConstants
         {
@@ -88,7 +88,7 @@ public class BackgroundBlur : Container
             Tint = Tint
         }));
 
-        foreach (var widget in slots.Select(slot => slot.GetWidget())) widget.Draw(frame, info.AccountFor(widget));
+        foreach (var widget in slots.Select(slot => slot.GetWidget())) widget.Collect(frame, info.AccountFor(widget));
     }
 
     protected override void ArrangeSlots(Size2d drawSize)

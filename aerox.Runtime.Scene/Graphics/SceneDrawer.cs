@@ -13,10 +13,10 @@ namespace aerox.Runtime.Scene.Graphics;
 public class SceneDrawer : Disposable, IDrawable, ILifeCycle
 {
     protected MaterialInstance? DefaultMeshMaterial;
-    public DeviceBuffer? GlobalBuffer { get; protected set; }
+    public DeviceBuffer? GlobalBuffer { get; private set; }
     protected MaterialInstance? DeferredRenderingMaterial;
 
-    protected GBuffer? Images { get; private set; }
+    public GBuffer? Images { get; private set; }
 
     protected DeviceImage? DepthImage { get; private set; }
 
@@ -106,7 +106,7 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
             var attachment = SGraphicsModule.MakeRenderingAttachment(RenderTarget.View,
                 VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,new VkClearValue()
                 {
-                    color = SGraphicsModule.MakeClearColorValue(new Vector4<float>(0.0f))
+                    color = SGraphicsModule.MakeClearColorValue(0.0f)
                 });
 
             renderingInfo.colorAttachmentCount = 1;
@@ -115,37 +115,15 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
             vkCmdBeginRendering(cmd, &renderingInfo);
         }
 
-        DeferredRenderingMaterial.BindTo(frame);
+        
         // layout(set = 1, binding = 0) uniform sampler2D TColor;
         // layout(set = 1, binding = 1) uniform sampler2D TLocation;
         // layout(set = 1, binding = 2) uniform sampler2D TNormal;
         // layout(set = 1, binding = 3) uniform sampler2D TRoughMetallicSpecular;
         // layout(set = 1, binding = 5) uniform sampler2D TEmissive;
-        DeferredRenderingMaterial.BindImage("TColor", Images.Color, DescriptorSet.ImageType.Texture, new SamplerSpec()
-        {
-            Filter = EImageFilter.Linear,
-            Tiling = EImageTiling.Repeat
-        });
-        DeferredRenderingMaterial.BindImage("TLocation", Images.Location, DescriptorSet.ImageType.Texture, new SamplerSpec()
-        {
-            Filter = EImageFilter.Linear,
-            Tiling = EImageTiling.Repeat
-        });
-        DeferredRenderingMaterial.BindImage("TNormal", Images.Normal, DescriptorSet.ImageType.Texture, new SamplerSpec()
-        {
-            Filter = EImageFilter.Linear,
-            Tiling = EImageTiling.Repeat
-        });
-        DeferredRenderingMaterial.BindImage("TRoughMetallicSpecular", Images.RoughnessMetallicSpecular, DescriptorSet.ImageType.Texture, new SamplerSpec()
-        {
-            Filter = EImageFilter.Linear,
-            Tiling = EImageTiling.Repeat
-        });
-        DeferredRenderingMaterial.BindImage("TEmissive", Images.Emissive, DescriptorSet.ImageType.Texture, new SamplerSpec()
-        {
-            Filter = EImageFilter.Linear,
-            Tiling = EImageTiling.Repeat
-        });
+        
+        
+        DeferredRenderingMaterial.BindTo(frame);
 
         vkCmdDraw(cmd, 6, 1, 0, 0);
 
@@ -162,8 +140,19 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
 
     protected virtual MaterialInstance CreateDeferredRenderingMaterial()
     {
-        return new MaterialBuilder().AddAttachmentFormats(EImageFormat.Rgba32SFloat)
-            .SetShader(SGraphicsModule.Get().LoadShader(Path.Join(SSceneModule.ShadersDir, "deferred.ash"))).Build();
+        var builder = new MaterialBuilder().AddAttachmentFormats(EImageFormat.Rgba32SFloat)
+            .SetShader(SGraphicsModule.Get().LoadShader(Path.Join(SSceneModule.ShadersDir, "deferred.ash")));
+        
+        builder.Pipeline.SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL);
+
+        builder.Pipeline
+            .SetCullMode(VkCullModeFlags.VK_CULL_MODE_NONE, VkFrontFace.VK_FRONT_FACE_CLOCKWISE)
+            .DisableMultisampling()
+            .DisableBlending()
+            .DisableDepthTest();
+
+        return builder.Build();
     }
 
     protected virtual void SkipDraw(Frame frame)
@@ -269,18 +258,47 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
 
     public event Action<SceneFrame, Matrix4>? OnCollect;
 
-    public virtual void OnResize(Vector2<int> size)
+    public event Action<SceneDrawer>? OnResize;
+    public virtual void Resize(Vector2<int> size)
     {
         Size = size;
         if (Images != null) SGraphicsModule.Get().WaitDeviceIdle();
         Images?.Dispose();
         DepthImage?.Dispose();
         RenderTarget?.Dispose();
-        if (Size is not { X : 0, Y : 0 })
+        if (Size is not ({ X : 0 } and { Y : 0}))
         {
             Images = CreateGBuffer(Size);
             DepthImage = CreateBufferImage(EImageFormat.D32SFloat, Size);
             RenderTarget = CreateRenderTargetImage(EImageFormat.Rgba32SFloat, Size);
+            
+            DeferredRenderingMaterial?.BindImage("TColor", Images.Color, DescriptorSet.ImageType.Texture, new SamplerSpec()
+            {
+                Filter = EImageFilter.Linear,
+                Tiling = EImageTiling.Repeat
+            });
+            DeferredRenderingMaterial?.BindImage("TLocation", Images.Location, DescriptorSet.ImageType.Texture, new SamplerSpec()
+            {
+                Filter = EImageFilter.Linear,
+                Tiling = EImageTiling.Repeat
+            });
+            DeferredRenderingMaterial?.BindImage("TNormal", Images.Normal, DescriptorSet.ImageType.Texture, new SamplerSpec()
+            {
+                Filter = EImageFilter.Linear,
+                Tiling = EImageTiling.Repeat
+            });
+            DeferredRenderingMaterial?.BindImage("TRoughMetallicSpecular", Images.RoughnessMetallicSpecular, DescriptorSet.ImageType.Texture, new SamplerSpec()
+            {
+                Filter = EImageFilter.Linear,
+                Tiling = EImageTiling.Repeat
+            });
+            DeferredRenderingMaterial?.BindImage("TEmissive", Images.Emissive, DescriptorSet.ImageType.Texture, new SamplerSpec()
+            {
+                Filter = EImageFilter.Linear,
+                Tiling = EImageTiling.Repeat
+            });
+            
+            OnResize?.Invoke(this);
         }
     }
 
@@ -371,6 +389,7 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
         GlobalBuffer = SGraphicsModule.Get().GetAllocator()
             .NewUniformBuffer<SceneGlobalBuffer>(false, "Scene Global Buffer");
         DeferredRenderingMaterial = CreateDeferredRenderingMaterial();
+        DeferredRenderingMaterial.BindBuffer("scene", GlobalBuffer);
         GetDefaultMeshMaterial();
     }
 }

@@ -150,10 +150,10 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     public static VkClearColorValue MakeClearColorValue(Vector4<float> color)
     {
         var clearColor = new VkClearColorValue();
-        clearColor.float32[0] = 0;
-        clearColor.float32[1] = 0;
-        clearColor.float32[2] = 0;
-        clearColor.float32[3] = 0;
+        clearColor.float32[0] = color.X;
+        clearColor.float32[1] = color.Y;
+        clearColor.float32[2] = color.Z;
+        clearColor.float32[3] = color.W;
         return clearColor;
     }
 

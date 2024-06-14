@@ -39,7 +39,7 @@ public class ShinyShader : Widget
         return new Size2d(400, 400);
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         frame.AddMaterialRect(_materialInstance, info);
     }

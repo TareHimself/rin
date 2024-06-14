@@ -29,8 +29,8 @@ push(scalar)
         mat4 viewProjection = scene.projectionMatrix * scene.viewMatrix;
 
         float4 scenePosition = push.transformMatrix * location;
-
-        gl_Position = viewProjection * float4(scenePosition.xyz, 1.0f);
+        
+        gl_Position = viewProjection * scenePosition;
 
         oSceneNormal = (push.transformMatrix * float4(v.normal.xyz, 0.f)).xyz;
 

@@ -18,11 +18,7 @@ public class Entity : SceneDisposable, ISceneDrawable
 
     public void Collect(SceneFrame frame, Matrix4 parentSpace)
     {
-        if (RootComponent == null) return;
-
-        foreach (var comp in _renderedComponents)
-            comp.Collect(frame,
-                comp == RootComponent ? parentSpace : RootComponent.RelativeTransform * parentSpace);
+        RootComponent?.Collect(frame,parentSpace);
     }
 
     protected virtual SceneComponent CreateRootComponent()

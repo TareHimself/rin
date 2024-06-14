@@ -1,6 +1,7 @@
 ﻿#include "math.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <iostream>
+#include "glm/ext.hpp"
 #include<glm/glm.hpp>
 #include<glm/gtc/quaternion.hpp>
 #include <glm/gtx/matrix_transform_2d.hpp>
@@ -30,7 +31,7 @@ Vector3::Vector3(glm::vec3 other)
 
 Vector4::operator glm::vec<4, float>()
 {
-    return {x, y, z, z};
+    return {x, y, z, w};
 }
 
 Vector4::Vector4(glm::vec4 other)
@@ -68,7 +69,7 @@ Matrix3::Matrix3(glm::mat3 other)
 
 Matrix4::operator glm::mat<4, 4, float>()
 {
-    return {column1, column2, column3, column4};
+    return {column1,column2,column3,column4};
 }
 
 Matrix4::Matrix4(glm::mat4 other)

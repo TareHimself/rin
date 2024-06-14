@@ -41,9 +41,9 @@ public class TextBox : Text
         }
     }
 
-    public override void Draw(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
-        base.Draw(frame, info);
+        base.Collect(frame, info);
 
         if (!ShouldDraw || !Focused) return;
 
