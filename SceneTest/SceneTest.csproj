@@ -18,6 +18,7 @@
 
     <ItemGroup>
         <Items Include=".\brick_wall\**" />
+        <Items Include=".\gold_tex\**" />
         <Items Include=".\cube.glb" />
         <Content Include="@(Items)">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>

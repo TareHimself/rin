@@ -180,7 +180,7 @@ public class MeshEntity : Entity
             surfaces.Add(newSurface);
         }
 
-        var pbrPack = @"./brick_wall"; //(await Platform.SelectPath("Select PBR Pack", false)).FirstOrDefault();
+        var pbrPack = @"./gold_tex"; //(await Platform.SelectPath("Select PBR Pack", false)).FirstOrDefault();
 
         if (pbrPack == null) return;
 

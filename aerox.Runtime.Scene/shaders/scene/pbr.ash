@@ -76,9 +76,10 @@
 
             float3 diff = rhoD * RECIPROCAL_PI;
 
+            return spec;
             //return rhoD;//(diff + spec) * irradiance;
             //return (diff + spec) * irradiance * light.color.xyz;
-            return (diff + spec) * irradiance * light.color.xyz;
+            //return (diff + spec) * irradiance * light.color.xyz;
         }
 
         return float3(0.0);
@@ -88,6 +89,8 @@
         float3 viewDir = normalize(scene.cameraLocation.xyz - sceneLocation);
         float NoV = clamp(dot(normal, viewDir), 0.0, 1.0);
         float3 radiance = emissive;
+        
+        return float4(normal,1.0);
         
         for (int i=0; i < scene.numLights; ++i)
         {
