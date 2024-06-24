@@ -379,7 +379,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             }
         }
         
-        var generator = new Generator();
+        var generator = new GlslGenerator();
         var opts = new Options();
         using(var comp = new Compiler(opts))
         {

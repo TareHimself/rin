@@ -4,7 +4,7 @@
 
 @Fragment {
 
-    #include "deferred_usage.ash"
+    #include "usage.ash"
     
     layout(set = 1, binding = 0) uniform sampler2D ColorT;
     layout(set = 1, binding = 1) uniform sampler2D NormalT;

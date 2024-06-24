@@ -10,7 +10,7 @@
     <ItemGroup>
         <ProjectReference Include="..\aerox.Runtime.Windows\aerox.Runtime.Windows.csproj" />
         <ProjectReference Include="..\aerox.Runtime\aerox.Runtime.csproj" />
-        <ProjectReference Include="D:\Github\ashl\ashl\ashl.csproj" />
+        <ProjectReference Include="..\..\ashl\ashl\ashl.csproj" />
     </ItemGroup>
 
     <ItemGroup>

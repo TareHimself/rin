@@ -30,7 +30,7 @@ public static class Platform
         });
     }
 
-    public static Task<string[]> SelectPath(string title = "Select File's", bool multiple = false)
+    public static Task<string[]> SelectPath(string title = "Select Path's", bool multiple = false)
     {
         return Task.Run(() =>
         {

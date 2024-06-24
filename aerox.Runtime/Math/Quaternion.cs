@@ -28,7 +28,7 @@ public partial struct Quaternion(float inX, float inY, float inZ, float inW)
 
     public static Quaternion FromAngle(float angle, Vector3<float> axis)
     {
-        var q = new Quaternion();
+        var q = Zero;
 
         NativeQuatFromAngle(ref q, angle, ref axis);
         return q;
@@ -83,14 +83,18 @@ public partial struct Quaternion(float inX, float inY, float inZ, float inW)
         return this * FromAngleDeg(delta, Up);
     }
 
+    [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathMultiplyQuatQuat")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void NativeMultiplyQuatQuat(ref Quaternion result, ref Quaternion left,
+        ref Quaternion right);
+
     public static Quaternion operator *(Quaternion left, Quaternion right)
     {
-        return new Quaternion(
-            left.W * right.X + left.X * right.W + left.Y * right.Z - left.Z * right.Y,
-            left.W * right.Y - left.X * right.Z + left.Y * right.W + left.Z * right.X,
-            left.W * right.Z + left.X * right.Y - left.Y * right.X + left.Z * right.W,
-            left.W * right.W - left.X * right.X - left.Y * right.Y - left.Z * right.Z
-        );
+        var result = Zero;
+
+        NativeMultiplyQuatQuat(ref result,ref left,ref right);
+
+        return result;
     }
 
     [LibraryImport(Dlls.AeroxRuntimeNative, EntryPoint = "mathMultiplyQuatVector4")]

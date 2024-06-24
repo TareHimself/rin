@@ -32,7 +32,7 @@ push(scalar)
         
         gl_Position = viewProjection * scenePosition;
 
-        oSceneNormal = (push.transformMatrix * float4(v.normal.xyz, 0.f)).xyz;
+        oSceneNormal = (push.transformMatrix * float4(v.normal.xyz, 1.f)).xyz;
 
         oUV = float2(v.location.w,v.normal.w);
 

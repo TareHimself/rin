@@ -3,7 +3,7 @@
 
 @Fragment {
 
-    #include "deferred_usage.ash"
+    #include "usage.ash"
     #include "normal.ash"
     
     layout(set = 1, binding = 0) uniform sampler2D TColor;
@@ -21,7 +21,7 @@
         float roughness = texture(TRoughness, iUV).x;
         float metallic = texture(TMetallic, iUV).x;
 
-        setOutput(color, iSceneNormal, roughness,metallic, 0.0,float3(0.0));
+        setOutput(color, normal, roughness,metallic, 0.0,float3(0.0));
         //etOutput(color, iSceneNormal, 0.5, 1.0, 0.0,float3(0.0));
     }
 }

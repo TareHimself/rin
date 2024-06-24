@@ -5,25 +5,24 @@ namespace aerox.Runtime.Graphics;
 
 public class Texture : MultiDisposable
 {
-    private readonly VkExtent3D _size;
 
     public readonly DeviceImage DeviceImage;
 
     public readonly EImageFilter Filter;
     public readonly EImageTiling Tiling;
-    private EImageFormat _format;
-    private bool _mipMapped;
+    private EImageFormat Format => DeviceImage.Format;
+    private bool MipMapped;
+
+    public VkExtent3D Size => DeviceImage.Extent;
 
 
     public Texture(byte[] data, VkExtent3D size, EImageFormat format, EImageFilter filter, EImageTiling tiling,
         bool mipMapped = true,
         string debugName = "Texture")
     {
-        _size = size;
-        _format = format;
         Filter = filter;
         Tiling = tiling;
-        _mipMapped = mipMapped;
+        MipMapped = mipMapped;
         var subsystem = SRuntime.Get().GetModule<SGraphicsModule>();
         DeviceImage = subsystem.CreateImage(data, size, format,
             VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -31,26 +30,10 @@ public class Texture : MultiDisposable
     }
 
 
-    public DeviceImage GetDeviceImage()
-    {
-        return DeviceImage;
-    }
-
-
-    public void SetMipMapped(bool isMipMapped)
-    {
-        _mipMapped = isMipMapped;
-    }
-
-    public VkExtent3D GetSize()
-    {
-        return _size;
-    }
-
     public async Task Save(string filePath)
     {
         var mod = SRuntime.Get().GetModule<SGraphicsModule>();
-        var buffer = mod.GetAllocator().NewTransferBuffer(_size.depth * _size.width * _size.height * 4);
+        var buffer = mod.GetAllocator().NewTransferBuffer(Size.depth * Size.width * Size.height * 4);
         await mod.ImmediateSubmitAsync(cmd =>
         {
             SGraphicsModule.ImageBarrier(cmd, DeviceImage, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -68,7 +51,7 @@ public class Texture : MultiDisposable
                     baseArrayLayer = 0,
                     layerCount = 1
                 },
-                imageExtent = _size
+                imageExtent = Size
             };
 
             unsafe
@@ -80,6 +63,7 @@ public class Texture : MultiDisposable
             SGraphicsModule.ImageBarrier(cmd, DeviceImage, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         });
+        
 
         // TODO read from buffer here
         buffer.Dispose();

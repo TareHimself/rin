@@ -1,4 +1,5 @@
-﻿using aerox.Runtime.Archives;
+﻿using aerox.Runtime;
+using aerox.Runtime.Archives;
 using aerox.Runtime.Graphics;
 using aerox.Runtime.Graphics.Material;
 using aerox.Runtime.Math;
@@ -8,6 +9,7 @@ using aerox.Runtime.Scene.Components.Lights;
 using aerox.Runtime.Scene.Entities;
 using aerox.Runtime.Scene.Graphics;
 using aerox.Runtime.Widgets;
+using SharpCompress;
 using SharpGLTF.Schema2;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
@@ -25,25 +27,28 @@ public class MeshEntity : Entity
         var m1 = AddComponent<StaticMeshComponent>();
         m1.AttachTo(root);
         m1.SetRelativeLocation(new Vector3<float>(dist, 0.0f, 0.0f));
-        
+
         var m2 = AddComponent<StaticMeshComponent>();
         m2.AttachTo(root);
         m2.SetRelativeLocation(new Vector3<float>(-dist, 0.0f, 0.0f));
-        
+
         var m3 = AddComponent<StaticMeshComponent>();
         m3.AttachTo(root);
         m3.SetRelativeLocation(new Vector3<float>(0.0f, 0.0f, dist));
-        
+
         var m4 = AddComponent<StaticMeshComponent>();
         m4.AttachTo(root);
         m4.SetRelativeLocation(new Vector3<float>(0.0f, 0.0f, -dist));
 
         var light = AddComponent<PointLightComponent>();
-        light.Intensity = 30.0f;
+        light.Intensity = 5.0f;
         light.Color = Color.White;
         light.Radius = 20000.0f;
-        light.SetRelativeLocation(new Vector3<float>(0.0f,20.0f,0.0f));
+        light.SetRelativeLocation(new Vector3<float>(0.0f,0.0f,0.0f));
         var meshes = FindComponents<StaticMeshComponent>();
+        foreach(var mesh in meshes){
+            mesh.SetRelativeRotation(Quaternion.Identity.ApplyLocalYaw(45));
+        }
         // using var newMesh = new StaticMesh(
         //     [
         //         new StaticMesh.Vertex()
@@ -71,20 +76,47 @@ public class MeshEntity : Entity
     {
         base.OnStart();
 
-        var _ = Task.Run(() => ImportMesh(@"D:\cube.glb"));
+        var _ = Task.Run(() => ImportMesh());
     }
 
     protected override void OnTick(double deltaSeconds)
     {
         base.OnTick(deltaSeconds);
-        var root = RootComponent!;
-        var newRotation = root.GetRelativeRotation().ApplyYaw((float)deltaSeconds * 100.0f);
-        root.SetRelativeRotation(newRotation);
+        // var root = RootComponent!;
+        // var newRotation = root.GetRelativeRotation().ApplyYaw((float)deltaSeconds * 10.0f);
+        // root.SetRelativeRotation(newRotation);
+
+        var meshes = FindComponents<StaticMeshComponent>();
+        foreach(var mesh in meshes){
+            var newRotation = mesh.GetRelativeRotation().ApplyYaw((float)deltaSeconds * 10.0f);
+            mesh.SetRelativeRotation(newRotation);
+        }
     }
 
-    public void ImportMesh(string filePath)
+
+    private async Task<Pair<Texture, string>> 
+    LoadTexture(string filePath)
     {
-        var model = ModelRoot.Load(filePath);
+        var image = await Image.LoadAsync<Rgba32>(filePath);
+
+        var tex = new Texture(image.ToBytes(), new VkExtent3D()
+        {
+            width = (uint)image.Width,
+            height = (uint)image.Height,
+            depth = 1
+        }, EImageFormat.Rgba8UNorm, EImageFilter.Linear, EImageTiling.ClampEdge);
+        var fileName = Path.GetFileNameWithoutExtension(filePath);
+        return new(tex, fileName);
+    }
+
+    public async Task ImportMesh()
+    {
+
+        var modelPath = @"./cube.glb";//(await Platform.SelectFile("Select Model", false, "*.glb")).FirstOrDefault();
+
+        if (modelPath == null) return;
+
+        var model = ModelRoot.Load(modelPath);
 
         if (model == null) return;
 
@@ -92,9 +124,9 @@ public class MeshEntity : Entity
 
         if (mesh == null) return;
 
-        List<MeshSurface> surfaces = new();
-        List<uint> indices = new();
-        List<StaticMesh.Vertex> vertices = new();
+        List<MeshSurface> surfaces = [];
+        List<uint> indices = [];
+        List<StaticMesh.Vertex> vertices = [];
 
         foreach (var primitive in mesh.Primitives)
         {
@@ -148,32 +180,31 @@ public class MeshEntity : Entity
             surfaces.Add(newSurface);
         }
 
+        var pbrPack = @"./brick_wall"; //(await Platform.SelectPath("Select PBR Pack", false)).FirstOrDefault();
 
-        using var ar = new ZipArchiveReader(@"D:\gold\gold.pbr");
+        if (pbrPack == null) return;
+
+        var files = Directory.GetFiles(pbrPack);
         var meshMaterial = new MaterialBuilder().ConfigureForScene().SetShader(SGraphicsModule.Get()
             .LoadShader(Path.Join(SSceneModule.ShadersDir, "mesh_test.ash"))).Build();
-        
-        foreach (var arKey in ar.Keys)
+
+
+        var materialTextures = meshMaterial.GetTextureParameters().ToHashSet();
+        var textures = await Task.WhenAll(files.Where(c => materialTextures.Contains(Path.GetFileNameWithoutExtension(c))).Select(LoadTexture));
+
+        foreach (var tex in textures)
         {
-            var image = Image.Load<Rgba32>(ar.CreateReadStream(arKey));
-            
-            using var tex = new Texture(image.ToBytes(), new VkExtent3D()
-            {
-                width = (uint)image.Width,
-                height = (uint)image.Height,
-                depth = 1
-            }, EImageFormat.Rgba8UNorm, EImageFilter.Linear, EImageTiling.ClampEdge);
-            var id = arKey.Split(".")[0];
-            meshMaterial.BindTexture(id, tex);
+            meshMaterial.BindTexture(tex.Second,tex.First);
+            tex.First.Dispose();
         }
-        
+
         Console.WriteLine("Imported Textures");
         var meshes = FindComponents<StaticMeshComponent>();
-        using var newMesh = new StaticMesh(vertices.ToArray(),indices.ToArray(),surfaces.ToArray())
+        using var newMesh = new StaticMesh(vertices.ToArray(), indices.ToArray(), surfaces.ToArray())
         {
             Materials = [meshMaterial]
         };
-        
+
         foreach (var staticMeshComponent in meshes)
         {
             staticMeshComponent.Mesh = newMesh;

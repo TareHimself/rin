@@ -16,4 +16,13 @@
       <PackageReference Include="SharpGLTF.Core" Version="1.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Items Include=".\brick_wall\**" />
+        <Items Include=".\cube.glb" />
+        <Content Include="@(Items)">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+    
+
 </Project>

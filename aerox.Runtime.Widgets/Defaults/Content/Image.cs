@@ -93,7 +93,7 @@ public class Image : Widget
     {
         if (_texture == null) return new Size2d();
 
-        var size = _texture.GetSize();
+        var size = _texture.Size;
 
         return new Size2d
         {

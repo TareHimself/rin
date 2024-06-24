@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 #include <VkBootstrap.h>
+#include <iostream>
 
 
 void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** outDevice, void** outPhysicalDevice,
@@ -13,7 +14,7 @@ void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** out
     uint32_t numExtensions = 0;
     auto extensions = glfwGetRequiredInstanceExtensions(&numExtensions);
 
-    vkb::InstanceBuilder builder;
+    vkb::InstanceBuilder builder{};
     auto instanceResult =
         builder.set_app_name("Aerox")
                .require_api_version(1, 3, 0)
@@ -26,17 +27,20 @@ void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** out
         .build();
 
     auto vkbInstance = instanceResult.value();
+
+    std::cout << "Created Instance" << std::endl;
+
     auto instance = vkbInstance.instance;
 
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
     *outMessenger = reinterpret_cast<uintptr_t>(vkbInstance.debug_messenger);
 #endif
 
-    vk::PhysicalDeviceVulkan13Features features;
+    vk::PhysicalDeviceVulkan13Features features{};
     features.dynamicRendering = true;
     features.synchronization2 = true;
 
-    vk::PhysicalDeviceVulkan12Features features12;
+    vk::PhysicalDeviceVulkan12Features features12{};
     features12.setBufferDeviceAddress(true)
               .setDescriptorIndexing(true)
               .setDescriptorBindingSampledImageUpdateAfterBind(true)
@@ -55,9 +59,13 @@ void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** out
                 .select()
                 .value();
 
+    std::cout << "Selected Device" << std::endl;
+
     vkb::DeviceBuilder deviceBuilder{physicalDevice};
 
     vkb::Device vkbDevice = deviceBuilder.build().value();
+
+    std::cout << "Built Physical Device" << std::endl;
 
     auto device = vkbDevice.device;
 
@@ -67,6 +75,9 @@ void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** out
 
     auto graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).
                                          value();
+
+
+    std::cout << "SELECTED QUEUE FAMILIES" << std::endl;
 
 
     *outInstance = static_cast<void*>(instance);

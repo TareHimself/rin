@@ -68,6 +68,8 @@ public class MaterialInstance : MultiDisposable
         }
     }
 
+    public IEnumerable<string> GetTextureParameters() => _resources.Textures.Select(c => c.Key);
+
     /// <summary>
     ///     Binds a <see cref="Texture" /> to this <see cref="MaterialInstance" />
     /// </summary>

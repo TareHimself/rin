@@ -129,6 +129,10 @@ void platformSelectPath(const char* title, bool multiple, PathReceivedCallback c
         if(multiple && SUCCEEDED(fd->GetOptions(&options))) {
             fd->SetOptions(options | FOS_ALLOWMULTISELECT | FOS_PICKFOLDERS);
         }
+        else if(SUCCEEDED(fd->GetOptions(&options)))
+        {
+            fd->SetOptions(options | FOS_PICKFOLDERS);
+        }
         
         std::string sTitle(title);
         fd->SetTitle(std::wstring(sTitle.begin(),sTitle.end()).c_str());

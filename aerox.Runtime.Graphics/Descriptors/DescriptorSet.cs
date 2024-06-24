@@ -75,7 +75,7 @@ public class DescriptorSet : Disposable
                 Filter = texture.Filter,
                 Tiling = texture.Tiling
             },
-            imageView = texture.GetDeviceImage().View,
+            imageView = texture.DeviceImage.View,
             imageLayout = layout
         };
         unsafe
@@ -104,7 +104,7 @@ public class DescriptorSet : Disposable
                 Filter = texture.Filter,
                 Tiling = texture.Tiling
             },
-            imageView = texture.GetDeviceImage().View,
+            imageView = texture.DeviceImage.View,
             imageLayout = layout
         }).ToArray();
 
