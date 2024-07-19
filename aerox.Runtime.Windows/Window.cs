@@ -143,6 +143,9 @@ public class Window : Disposable
 
     [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowGetMousePosition", CallingConvention = CallingConvention.Cdecl)]
     private static extern void NativeGetMousePosition(nint window, ref double x, ref double y);
+    
+    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowSetMousePosition", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void NativeSetMousePosition(nint window,double x,double y);
 
     [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowGetPixelSize", CallingConvention = CallingConvention.Cdecl)]
     private static extern void NativeGetPixelSize(nint window, ref int width, ref int height);
@@ -154,6 +157,11 @@ public class Window : Disposable
         NativeGetMousePosition(_nativePtr, ref x, ref y);
 
         return new Vector2<double>(x, y);
+    }
+    
+    public void SetMousePosition(Vector2<double> position)
+    {
+        NativeSetMousePosition(_nativePtr,position.X,position.Y);
     }
 
 
@@ -202,8 +210,8 @@ public class Window : Disposable
         public readonly bool IsControlDown = (inMods & (int)Mods.ModControl) == (int)Mods.ModControl;
 
         public readonly bool IsShiftDown = (inMods & (int)Mods.ModShift) == (int)Mods.ModShift;
-        public readonly EKey Key = (EKey)inKey;
-        public readonly EKeyState State = (EKeyState)inAction;
+        public readonly Key Key = (Key)inKey;
+        public readonly KeyState State = (KeyState)inAction;
     }
 
     public class MouseMoveEvent(Window inWindow, Vector2<double> inPosition, Vector2<double> inDelta)
@@ -216,12 +224,14 @@ public class Window : Disposable
     public class MouseButtonEvent : Event
     {
         public readonly Vector2<double> Position;
-        public readonly EKeyState State;
+        public readonly KeyState State;
+        public readonly MouseButton Button;
 
         public MouseButtonEvent(Window inWindow, int button, int inAction, int mods) : base(inWindow)
         {
             Position = inWindow.GetMousePosition();
-            State = (EKeyState)inAction;
+            State = (KeyState)inAction;
+            Button = (MouseButton)button;
         }
     }
 

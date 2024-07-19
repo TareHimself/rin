@@ -18,7 +18,7 @@ public class Frame : Disposable
     private readonly VkFence _renderFence;
     private readonly VkSemaphore _renderSemaphore;
     private readonly VkSemaphore _swapchainSemaphore;
-    private WindowRenderer _renderer;
+    public readonly WindowRenderer Renderer;
 
     public unsafe Frame(WindowRenderer renderer)
     {
@@ -29,7 +29,7 @@ public class Frame : Disposable
             new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4)
         ]);
 
-        _renderer = renderer;
+        Renderer = renderer;
         var subsystem = SRuntime.Get().GetModule<SGraphicsModule>();
         var device = subsystem.GetDevice();
         var queueFamily = subsystem.GetQueueFamily();
@@ -88,7 +88,8 @@ public class Frame : Disposable
         _swapchainSemaphore = sSemaphore;
     }
 
-    public event Action<Frame> OnDrawn;
+    public event Action<Frame>? OnDrawn;
+    
 
     public VkFence GetRenderFence()
     {

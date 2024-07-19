@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "aerox.Msdf", "aerox.Msdf\ae
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SceneTest", "SceneTest\SceneTest.csproj", "{8E6B0876-04C6-4D79-B39F-293090B4802D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AudioPlayer", "AudioPlayer\AudioPlayer.csproj", "{E294D3AB-725E-4456-8794-55A4D115F841}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -201,6 +203,18 @@ Global
 		{8E6B0876-04C6-4D79-B39F-293090B4802D}.Release|x64.Build.0 = Release|Any CPU
 		{8E6B0876-04C6-4D79-B39F-293090B4802D}.Release|x86.ActiveCfg = Release|Any CPU
 		{8E6B0876-04C6-4D79-B39F-293090B4802D}.Release|x86.Build.0 = Release|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Debug|x64.Build.0 = Debug|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Debug|x86.Build.0 = Debug|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Release|x64.ActiveCfg = Release|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Release|x64.Build.0 = Release|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Release|x86.ActiveCfg = Release|Any CPU
+		{E294D3AB-725E-4456-8794-55A4D115F841}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

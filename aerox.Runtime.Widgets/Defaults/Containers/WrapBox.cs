@@ -11,9 +11,9 @@ public class WrapBox : Container
     {
     }
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
-        return slots.Aggregate(new Size2d(), (size, slot) =>
+        return Slots.Aggregate(new Size2d(), (size, slot) =>
         {
             var slotSize = slot.GetWidget().GetDesiredSize();
             size.Width += slotSize.Width;
@@ -24,7 +24,7 @@ public class WrapBox : Container
 
     public override void Collect(WidgetFrame frame, DrawInfo info)
     {
-        foreach (var slot in slots.ToArray())
+        foreach (var slot in Slots.ToArray())
         {
             var slotInfo = info.AccountFor(this);
             slot.GetWidget().Collect(frame, slotInfo);
@@ -41,7 +41,7 @@ public class WrapBox : Container
         var offset = new Vector2<float>(0.0f);
         var rowHeight = 0.0f;
 
-        foreach (var slot in slots)
+        foreach (var slot in Slots)
         {
             var widget = slot.GetWidget();
             widget.SetDrawSize(widget.GetDesiredSize());

@@ -33,7 +33,7 @@ public abstract class Widget : Disposable
     /// </summary>
     public float Angle = 0.0f;
 
-    public EClippingMode ClippingMode = EClippingMode.None;
+    public WidgetClippingMode ClippingMode = WidgetClippingMode.None;
 
     /// <summary>
     ///     The pivot used to render this widget. Affects <see cref="Angle" /> and <see cref="Scale" />.
@@ -50,10 +50,24 @@ public abstract class Widget : Disposable
 
     public ContainerBase? Parent { get; private set; }
 
-    public EVisibility Visibility { get; set; } = EVisibility.Visible;
+    public WidgetVisibility Visibility { get; set; } = WidgetVisibility.Visible;
+
+    private WidgetPadding _padding = new WidgetPadding();
+    /// <summary>
+    ///     The Padding For This Widget (Left, Top, Right, Bottom)
+    /// </summary>
+    public WidgetPadding Padding
+    {
+        get => _padding;
+        set
+        {
+            _padding = value;
+            CheckSize();
+        }
+    }
 
 
-    protected bool IsPendingMouseUp => _cursorUpRoot != null && !_cursorUpRoot.Disposed;
+    protected bool IsPendingMouseUp => _cursorUpRoot is { Disposed: false };
     
     /// <summary>
     /// Check if this widget is focused by its current surface
@@ -68,14 +82,23 @@ public abstract class Widget : Disposable
     public Matrix3 ComputeRelativeTransform()
     {
         var m = Matrix3.Identity;
-        m = m.Translate(_relativeOffset + _relativeSize * Pivot);
+        var offset = _relativeOffset + new Vector2<float>(Padding.Left,Padding.Top);
+        
+        m = m.Translate(offset + _relativeSize * Pivot);
         m = m.RotateDeg(Angle);
         m = m.Scale(Scale);
-        m = m.Translate(_relativeSize * Pivot * -1.0f);
+        m = m.Translate(offset * Pivot * -1.0f);
         return m;
     }
 
-    public void SetVisibility(EVisibility visibility)
+
+    public Matrix3 ComputeAbsoluteTransform()
+    {
+        var parentTransform = Parent?.ComputeAbsoluteTransform() ?? Matrix3.Identity;
+        return ComputeRelativeTransform() * parentTransform;
+    }
+
+    public void SetVisibility(WidgetVisibility visibility)
     {
         Visibility = visibility;
     }
@@ -97,12 +120,12 @@ public abstract class Widget : Disposable
 
     public bool IsSelfHitTestable()
     {
-        return Visibility is EVisibility.Visible or EVisibility.VisibleNoHitTestSelf;
+        return Visibility is WidgetVisibility.Visible or WidgetVisibility.VisibleNoHitTestSelf;
     }
 
     public bool IsChildrenHitTestable()
     {
-        return Visibility is EVisibility.Visible or EVisibility.VisibleNoHitTestChildren;
+        return Visibility is WidgetVisibility.Visible or WidgetVisibility.VisibleNoHitTestChildren;
     }
 
     public bool IsHitTestable()
@@ -111,23 +134,23 @@ public abstract class Widget : Disposable
     }
 
 
-    public virtual void NotifyAddedToRoot(WidgetSurface widgetSurface)
+    public virtual void NotifyAddedToSurface(WidgetSurface widgetSurface)
     {
         Surface = widgetSurface;
-        OnAddedToRoot(widgetSurface);
+        OnAddedToSurface(widgetSurface);
     }
 
-    public virtual void NotifyRemovedFromRoot(WidgetSurface widgetSurface)
+    public virtual void NotifyRemovedFromSurface(WidgetSurface widgetSurface)
     {
         if (Surface == widgetSurface) Surface = null;
-        OnRemovedFromRoot(widgetSurface);
+        OnRemovedFromSurface(widgetSurface);
     }
 
-    protected virtual void OnAddedToRoot(WidgetSurface widgetSurface)
+    protected virtual void OnAddedToSurface(WidgetSurface widgetSurface)
     {
     }
 
-    protected virtual void OnRemovedFromRoot(WidgetSurface widgetSurface)
+    protected virtual void OnRemovedFromSurface(WidgetSurface widgetSurface)
     {
     }
 
@@ -247,7 +270,7 @@ public abstract class Widget : Disposable
 
     public Size2d GetDrawSize()
     {
-        return _relativeSize;
+        return _relativeSize - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
 
     public virtual void SetDrawSize(Size2d size)
@@ -257,16 +280,17 @@ public abstract class Widget : Disposable
 
     public Size2d GetDesiredSize()
     {
-        if (_cachedDesiredSize != null) return _cachedDesiredSize;
-        _cachedDesiredSize = ComputeDesiredSize();
-        return _cachedDesiredSize;
+        return _cachedDesiredSize ?? ComputeFinalDesiredSize();
     }
 
-    public abstract Size2d ComputeDesiredSize();
+    protected abstract Size2d ComputeDesiredSize();
+
+    private Size2d ComputeFinalDesiredSize() =>
+        ComputeDesiredSize() + new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
 
     protected virtual bool CheckSize()
     {
-        var newSize = ComputeDesiredSize();
+        var newSize = ComputeFinalDesiredSize();
 
         if (newSize.Equals(_cachedDesiredSize)) return false;
 

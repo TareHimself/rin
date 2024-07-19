@@ -87,17 +87,22 @@ public class Panel : Container<PanelSlot>
 {
     public Panel(params Widget[] children) : base(children)
     {
-        ClippingMode = EClippingMode.Bounds;
+        ClippingMode = Widgets.WidgetClippingMode.Bounds;
     }
 
     public override void Collect(WidgetFrame frame, DrawInfo info)
     {
-        foreach (var slot in slots) slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
+        foreach (var slot in Slots)
+        {
+            var slotDrawInfo = info.AccountFor(slot.GetWidget());
+            if (slotDrawInfo.Occluded) continue;
+            slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
+        }
     }
 
     protected override void ArrangeSlots(Size2d drawSize)
     {
-        foreach (var slot in slots.ToArray()) slot.ComputeSizeAndOffset();
+        foreach (var slot in Slots.ToArray()) slot.ComputeSizeAndOffset();
     }
 
     public override uint GetMaxSlots()
@@ -105,7 +110,7 @@ public class Panel : Container<PanelSlot>
         return 0;
     }
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
         return new Size2d();
     }
@@ -118,7 +123,7 @@ public class Panel : Container<PanelSlot>
     public override void OnChildResized(Widget widget)
     {
         // Resize the specific widget
-        slots.Find(c => c.GetWidget() == widget)?.ComputeSizeAndOffset();
+        Slots.Find(c => c.GetWidget() == widget)?.ComputeSizeAndOffset();
         //A canvas never needs to resize because of its children base.OnChildResized(widget);
     }
 }

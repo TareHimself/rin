@@ -34,7 +34,7 @@ public class Image : Widget
         _texture = null;
         _optionsDirty = true;
         _tint = new Color(1.0f);
-        _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SWidgetsModule.ShadersDir,"image.ash"));
+        _materialInstance = new MaterialInstance(Path.Join(SWidgetsModule.ShadersDir,"image.ash"));
         _materialInstance.BindBuffer("opts", _optionsBuffer);
     }
 
@@ -89,7 +89,7 @@ public class Image : Widget
         _textureDirty = true;
     }
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
         if (_texture == null) return new Size2d();
 
@@ -101,16 +101,10 @@ public class Image : Widget
             Height = size.height
         };
     }
-
-    protected override void OnAddedToRoot(WidgetSurface widgetSurface)
+    
+    protected override void OnRemovedFromSurface(WidgetSurface widgetSurface)
     {
-        base.OnAddedToRoot(widgetSurface);
-        _materialInstance.BindBuffer("ui", widgetSurface.GlobalBuffer);
-    }
-
-    protected override void OnRemovedFromRoot(WidgetSurface widgetSurface)
-    {
-        base.OnRemovedFromRoot(widgetSurface);
+        base.OnRemovedFromSurface(widgetSurface);
     }
 
     public override void Collect(WidgetFrame frame, DrawInfo info)

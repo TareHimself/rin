@@ -48,7 +48,7 @@ internal class StaticMeshDrawCommand : Command
     public override void Run(SceneFrame frame)
     {
         
-        var cmd = frame.Raw.GetCommandBuffer();
+        var cmd = frame.Original.GetCommandBuffer();
         for (var i = 0; i < Mesh.Surfaces.Length; i++)
         {
             var surface = Mesh.Surfaces[i];

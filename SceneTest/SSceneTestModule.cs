@@ -43,9 +43,9 @@ public class SSceneTestModule : RuntimeModule
 
         window.OnKey += (k) =>
         {
-            if (k.Key is EKey.KeyLeft or EKey.KeyRight)
+            if (k.Key is Key.Left or Key.Right)
             {
-                if (k.Key is EKey.KeyLeft)
+                if (k.Key is Key.Left)
                 {
                     
                 }

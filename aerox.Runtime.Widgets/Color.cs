@@ -3,7 +3,7 @@ using aerox.Runtime.Math;
 
 namespace aerox.Runtime.Widgets;
 
-public class Color(float inR, float inG, float inB, float inA) : ICloneable<Color>
+public class Color(float inR, float inG, float inB, float inA)
 {
     public static Color Red = new(1f, 0f, 0f, 1f);
     public static Color Green = new(0f, 1f, 0f, 1f);
@@ -20,9 +20,9 @@ public class Color(float inR, float inG, float inB, float inA) : ICloneable<Colo
     {
     }
 
-    public Color Clone()
+    public Color Clone(float? r = null,float? g = null,float? b = null,float? a = null)
     {
-        return new Color(R, G, B, A);
+        return new Color(r ?? R,g ?? G,b ?? B,a ?? A);
     }
 
 

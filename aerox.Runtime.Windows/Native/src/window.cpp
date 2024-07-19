@@ -78,6 +78,11 @@ void windowGetMousePosition(GLFWwindow* window, double* x, double* y)
     glfwGetCursorPos(window, x, y);
 }
 
+void windowSetMousePosition(GLFWwindow* window, double x,double y)
+{
+    glfwSetCursorPos(window,x,y);
+}
+
 void windowGetPixelSize(GLFWwindow* window, int* x, int* y)
 {
     glfwGetFramebufferSize(window, x, y);

@@ -53,6 +53,8 @@ EXPORT void * windowGetExtensions(unsigned int * length);
 
 EXPORT void windowGetMousePosition(GLFWwindow* window, double * x,double * y);
 
+EXPORT void windowSetMousePosition(GLFWwindow* window, double x,double y);
+
 EXPORT void windowGetPixelSize(GLFWwindow* window, int * x,int * y);
 
 EXPORT void windowSetWindowPosition(GLFWwindow* window, int * x,int * y);

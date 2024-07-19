@@ -1,6 +1,6 @@
 ﻿namespace aerox.Runtime.Graphics;
 
-public enum EImageFilter
+public enum ImageFilter
 {
     Linear,
     Nearest,

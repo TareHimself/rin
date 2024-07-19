@@ -4,8 +4,8 @@ namespace aerox.Runtime.Graphics;
 
 public struct SamplerSpec
 {
-    public EImageTiling Tiling;
-    public EImageFilter Filter;
+    public ImageTiling Tiling;
+    public ImageFilter Filter;
 
     public static implicit operator VkSampler(SamplerSpec spec)
     {

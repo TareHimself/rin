@@ -20,8 +20,10 @@
     }
 }
 
+#include "pbr.ash"
+
 @Fragment {
-    #include "pbr.ash"
+    
 
     layout(set = 1, binding = 0) uniform sampler2D TColor;
     layout(set = 1, binding = 1) uniform sampler2D TLocation;
@@ -46,7 +48,7 @@
         float3 normal = texture(TNormal, iUV).xyz;
         float3 roughMetallicSpecular = texture(TRoughMetallicSpecular, iUV).xyz;
         float3 emissive = texture(TEmissive, iUV).xyz;
-        oColor = computePixelColor(sceneLocation,color.xyz,normal,float3(1.0,0.0,0.1),emissive);
+        oColor = computePixelColor(sceneLocation,color.xyz,normal,roughMetallicSpecular,emissive);
        // oColor = computePixelColor(sceneLocation,color.xyz,normal,roughMetallicSpecular,emissive);
     }
 }

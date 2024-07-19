@@ -8,17 +8,19 @@ public class ScrollableList : List
     private readonly List _inner;
 
     private float _offset;
-    private float mouseDownOffset;
-    private Vector2<float> MouseDownPos = new(0.0f);
+
+    public float MinBarSize = 40.0f;
+    //private float mouseDownOffset;
+    //private Vector2<float> MouseDownPos = new(0.0f);
 
     public ScrollableList(params Widget[] children)
     {
-        ClippingMode = EClippingMode.Bounds;
+        ClippingMode = Widgets.WidgetClippingMode.Bounds;
         _inner = new List(children);
         base.AddChild(_inner);
     }
 
-    public float ScrollScale { get; set; } = 1.0f;
+    public float ScrollScale { get; set; } = 4.0f;
 
     public override Slot? AddChild(Widget widget)
     {
@@ -54,7 +56,7 @@ public class ScrollableList : List
 
     public virtual bool ScrollTo(float offset)
     {
-        var scrollSize = GetScrollSize();
+        var scrollSize = GetMaxScroll();
 
         if (scrollSize < 0) return false;
 
@@ -85,10 +87,35 @@ public class ScrollableList : List
     {
         return _offset;
     }
-
-    public virtual float GetScrollSize()
+    
+    public virtual float GetAxisSize()
     {
-        if (slots.Count == 0) return 0;
+        var size = GetDrawSize();
+        return Direction switch
+        {
+            Axis.Horizontal => size.Width,
+            Axis.Vertical => size.Height,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+    
+    public virtual float GetDesiredAxisSize()
+    {
+        if (Slots.Count == 0) return 0;
+
+        var desiredSize = _inner.GetDrawSize();
+
+        return Direction switch
+        {
+            Axis.Horizontal => desiredSize.Width,
+            Axis.Vertical => desiredSize.Height,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+    
+    public virtual float GetMaxScroll()
+    {
+        if (Slots.Count == 0) return 0;
 
         var desiredSize = _inner.GetDrawSize();
 
@@ -102,7 +129,7 @@ public class ScrollableList : List
 
     public virtual bool IsScrollable()
     {
-        return GetScrollSize() > 0;
+        return GetMaxScroll() > 0;
     }
 
     public override void SetDrawSize(Size2d size)
@@ -132,38 +159,60 @@ public class ScrollableList : List
         }
     }
 
-    protected override bool OnCursorDown(CursorDownEvent e)
+    public override void Collect(WidgetFrame frame, DrawInfo info)
     {
-        mouseDownOffset = _offset;
-        MouseDownPos = e.Position.Cast<float>();
-        return true;
-        return base.OnCursorDown(e);
-    }
-
-    protected override bool OnCursorMove(CursorMoveEvent e)
-    {
-        if (IsPendingMouseUp)
+        base.Collect(frame, info);
+        if (IsScrollable())
         {
-            var pos = MouseDownPos - e.Position.Cast<float>();
+            var scroll = GetScroll();
+            var maxScroll = GetMaxScroll();
+            var axisSize = GetAxisSize();
+            var desiredAxisSize = GetDesiredAxisSize();
+                
+            var barSize = System.Math.Max(MinBarSize, axisSize - (desiredAxisSize - axisSize));
+            var availableDist = axisSize - barSize;
+            var drawOffset = (float)(availableDist * (System.Math.Max(scroll,0.0001) / maxScroll));
 
-            return ScrollTo(Direction switch
-            {
-                Axis.Horizontal => mouseDownOffset + pos.X,
-                Axis.Vertical => mouseDownOffset + pos.Y,
-                _ => throw new ArgumentOutOfRangeException()
-            });
-            // var delta = Direction switch
-            // {
-            //     Axis.Horizontal => e.Delta.X,
-            //     Axis.Vertical => e.Delta.Y * -1.0f,
-            //     _ => throw new ArgumentOutOfRangeException()
-            // };
-
-            // return ScrollBy((float)delta);
+            var size = GetDrawSize();
+            
+            var transform = info.Transform.Translate(new Vector2<float>((float)(size.Width - 10.0f), drawOffset));
+            
+            frame.AddRect(transform, new Vector2<float>(10.0f, barSize), borderRadius: 7.0f, color: Color.White);
         }
-
-        return base.OnCursorMove(e);
     }
+
+    // protected override bool OnCursorDown(CursorDownEvent e)
+    // {
+    //     mouseDownOffset = _offset;
+    //     MouseDownPos = e.Position.Cast<float>();
+    //     return true;
+    //     return base.OnCursorDown(e);
+    // }
+    //
+    // protected override bool OnCursorMove(CursorMoveEvent e)
+    // {
+    //     if (IsPendingMouseUp)
+    //     {
+    //         var pos = MouseDownPos - e.Position.Cast<float>();
+    //
+    //         return ScrollTo(Direction switch
+    //         {
+    //             Axis.Horizontal => mouseDownOffset + pos.X,
+    //             Axis.Vertical => mouseDownOffset + pos.Y,
+    //             _ => throw new ArgumentOutOfRangeException()
+    //         });
+    //         // var delta = Direction switch
+    //         // {
+    //         //     Axis.Horizontal => e.Delta.X,
+    //         //     Axis.Vertical => e.Delta.Y * -1.0f,
+    //         //     _ => throw new ArgumentOutOfRangeException()
+    //         // };
+    //
+    //         // return ScrollBy((float)delta);
+    //     }
+    //
+    //     return base.OnCursorMove(e);
+    // }
 
     public override void OnCursorUp(CursorUpEvent e)
     {

@@ -13,7 +13,7 @@ public class ShinyShader : Widget
     {
         var gs = SRuntime.Get().GetModule<SGraphicsModule>();
 
-        _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SRuntime.ShadersDir,"pretty.ash"));
+       // _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SRuntime.ShadersDir,"pretty.ash"));
     }   
 
     protected override void OnDispose(bool isManual)
@@ -23,18 +23,18 @@ public class ShinyShader : Widget
         ;
     }
 
-    protected override void OnAddedToRoot(WidgetSurface widgetSurface)
+    protected override void OnAddedToSurface(WidgetSurface widgetSurface)
     {
-        base.OnAddedToRoot(widgetSurface);
+        base.OnAddedToSurface(widgetSurface);
         _materialInstance.BindBuffer("ui", widgetSurface.GlobalBuffer);
     }
 
-    protected override void OnRemovedFromRoot(WidgetSurface widgetSurface)
+    protected override void OnRemovedFromSurface(WidgetSurface widgetSurface)
     {
-        base.OnRemovedFromRoot(widgetSurface);
+        base.OnRemovedFromSurface(widgetSurface);
     }
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
         return new Size2d(400, 400);
     }

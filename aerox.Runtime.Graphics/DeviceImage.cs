@@ -9,12 +9,12 @@ public class DeviceImage(
     VkImage inImage,
     VkImageView inView,
     VkExtent3D inExtent,
-    EImageFormat inFormat,
+    ImageFormat inFormat,
     Allocator inAllocator,
     IntPtr inAllocation)
     : DeviceMemory(inAllocator, inAllocation)
 {
-    public readonly EImageFormat Format = inFormat;
+    public readonly ImageFormat Format = inFormat;
     public VkExtent3D Extent = inExtent;
     public VkImage Image = inImage;
     public VkImageView View = inView;
@@ -33,5 +33,10 @@ public class DeviceImage(
     public void CopyTo(VkCommandBuffer cmd,DeviceImage dest)
     {
         SGraphicsModule.CopyImageToImage(cmd,this,dest);
+    }
+    
+    public void CopyTo(VkCommandBuffer cmd,DeviceImage dest,ImageFilter filter)
+    {
+        SGraphicsModule.CopyImageToImage(cmd,this,dest,filter);
     }
 }

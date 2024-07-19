@@ -24,7 +24,7 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
 
     public readonly Scene OwningScene;
 
-    public Vector2<int> Size = 0;
+    public Vector2<uint> Size = 0;
 
     public SceneDrawer(Scene scene)
     {
@@ -34,50 +34,34 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
     public MaterialInstance GetDefaultMeshMaterial()
     {
         if (DefaultMeshMaterial != null) return DefaultMeshMaterial;
-        DefaultMeshMaterial = new MaterialBuilder().ConfigureForScene().SetShader(SGraphicsModule.Get()
-                .LoadShader(Path.Join(SSceneModule.ShadersDir, "mesh_simple.ash")))
-            .Build();
+        DefaultMeshMaterial = new MaterialInstance(Path.Join(SSceneModule.ShadersDir, "mesh_simple.ash"));
         return DefaultMeshMaterial;
     }
 
     protected virtual void BeginRendering(SceneFrame frame)
     {
         if (Images == null || DepthImage == null) return;
-        var cmd = frame.Raw.GetCommandBuffer();
+        var cmd = frame.Original.GetCommandBuffer();
 
+        
+        var attachments = Images.MakeAttachments();
 
-        var renderingInfo = SGraphicsModule.MakeRenderingInfo(new VkExtent2D()
-        {
-            width = (uint)Size.X,
-            height = (uint)Size.Y
-        });
-
-
-        unsafe
-        {
-            var attachments = Images.MakeAttachments();
-            fixed (VkRenderingAttachmentInfo* pAttachments = attachments)
+        cmd.BeginRendering(new VkExtent2D()
             {
-                renderingInfo.colorAttachmentCount = (uint)attachments.Length;
-                renderingInfo.pColorAttachments = pAttachments;
-
-                var depthAttachment = SGraphicsModule.MakeRenderingAttachment(DepthImage.View,
-                    VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, new VkClearValue()
-                    {
-                        color = SGraphicsModule.MakeClearColorValue(1.0f)
-                    });
-
-                renderingInfo.pDepthAttachment = &depthAttachment;
-                
-
-                vkCmdBeginRendering(cmd, &renderingInfo);
-            }
-        }
+                width = (uint)Size.X,
+                height = (uint)Size.Y
+            }, attachments,
+            SGraphicsModule.MakeRenderingAttachment(DepthImage.View,
+                VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, new VkClearValue()
+                {
+                    color = SGraphicsModule.MakeClearColorValue(1.0f)
+                }));
+        frame.Original.ConfigureForScene(Size.Cast<uint>());
     }
 
     protected virtual void EndRendering(SceneFrame frame)
     {
-        vkCmdEndRendering(frame.Raw.GetCommandBuffer());
+        frame.Original.GetCommandBuffer().EndRendering();
     }
 
     protected virtual void RunDeferredShader(Frame frame)
@@ -94,26 +78,46 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
                 WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                 NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
             });
+        
+        cmd.BeginRendering(new VkExtent2D()
+            {
+                width = (uint)Size.X,
+                height = (uint)Size.Y
+            },[
+                SGraphicsModule.MakeRenderingAttachment(RenderTarget.View,
+                    VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,new VkClearValue()
+                    {
+                        color = SGraphicsModule.MakeClearColorValue(0.0f)
+                    })]);
 
-        var renderingInfo = SGraphicsModule.MakeRenderingInfo(new VkExtent2D()
-        {
-            width = (uint)Size.X,
-            height = (uint)Size.Y
-        });
-
-        unsafe
-        {
-            var attachment = SGraphicsModule.MakeRenderingAttachment(RenderTarget.View,
-                VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,new VkClearValue()
+            cmd.SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
+            .DisableStencilTest(false)
+            .DisableCulling()
+            .DisableDepthTest()
+            .EnableBlendingAlphaBlend(0, 1)
+            .SetViewports([
+                new VkViewport()
                 {
-                    color = SGraphicsModule.MakeClearColorValue(0.0f)
-                });
-
-            renderingInfo.colorAttachmentCount = 1;
-            renderingInfo.pColorAttachments = &attachment;
-
-            vkCmdBeginRendering(cmd, &renderingInfo);
-        }
+                    x = 0,
+                    y = 0,
+                    width = Size.X,
+                    height = Size.Y,
+                    minDepth = 0.0f,
+                    maxDepth = 1.0f
+                }
+            ])
+            .SetScissors([
+                new VkRect2D()
+                {
+                    offset = new VkOffset2D(),
+                    extent = new VkExtent2D()
+                    {
+                        width = Size.X,
+                        height = Size.Y
+                    }
+                }
+            ]);
 
         
         // layout(set = 1, binding = 0) uniform sampler2D TColor;
@@ -127,7 +131,7 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
 
         vkCmdDraw(cmd, 6, 1, 0, 0);
 
-        vkCmdEndRendering(cmd);
+        cmd.EndRendering();
 
         RenderTarget.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -140,8 +144,8 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
 
     protected virtual MaterialInstance CreateDeferredRenderingMaterial()
     {
-        var builder = new MaterialBuilder().AddAttachmentFormats(EImageFormat.Rgba32SFloat)
-            .SetShader(SGraphicsModule.Get().LoadShader(Path.Join(SSceneModule.ShadersDir, "deferred.ash")));
+        var builder = new MaterialBuilder().AddAttachmentFormats(ImageFormat.Rgba32SFloat)
+            .AddShaderModules(SGraphicsModule.Get().LoadShader(Path.Join(SSceneModule.ShadersDir, "deferred.ash")));
         
         builder.Pipeline.SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL);
@@ -218,7 +222,7 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
         DepthImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
             VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, new ImageBarrierOptions()
             {
-                SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT),
+                                    SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT),
                 WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT | VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                 NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
             });
@@ -248,7 +252,6 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
                 WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                 NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
             });
-
         RunDeferredShader(frame);
     }
 
@@ -259,7 +262,7 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
     public event Action<SceneFrame, Matrix4>? OnCollect;
 
     public event Action<SceneDrawer>? OnResize;
-    public virtual void Resize(Vector2<int> size)
+    public virtual void Resize(Vector2<uint> size)
     {
         Size = size;
         if (Images != null) SGraphicsModule.Get().WaitDeviceIdle();
@@ -269,33 +272,33 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
         if (Size is not ({ X : 0 } and { Y : 0}))
         {
             Images = CreateGBuffer(Size);
-            DepthImage = CreateBufferImage(EImageFormat.D32SFloat, Size);
-            RenderTarget = CreateRenderTargetImage(EImageFormat.Rgba32SFloat, Size);
+            DepthImage = CreateBufferImage(ImageFormat.D32SFloat, Size);
+            RenderTarget = CreateRenderTargetImage(ImageFormat.Rgba32SFloat, Size);
             
             DeferredRenderingMaterial?.BindImage("TColor", Images.Color, DescriptorSet.ImageType.Texture, new SamplerSpec()
             {
-                Filter = EImageFilter.Linear,
-                Tiling = EImageTiling.Repeat
+                Filter = ImageFilter.Linear,
+                Tiling = ImageTiling.Repeat
             });
             DeferredRenderingMaterial?.BindImage("TLocation", Images.Location, DescriptorSet.ImageType.Texture, new SamplerSpec()
             {
-                Filter = EImageFilter.Linear,
-                Tiling = EImageTiling.Repeat
+                Filter = ImageFilter.Linear,
+                Tiling = ImageTiling.Repeat
             });
             DeferredRenderingMaterial?.BindImage("TNormal", Images.Normal, DescriptorSet.ImageType.Texture, new SamplerSpec()
             {
-                Filter = EImageFilter.Linear,
-                Tiling = EImageTiling.Repeat
+                Filter = ImageFilter.Linear,
+                Tiling = ImageTiling.Repeat
             });
             DeferredRenderingMaterial?.BindImage("TRoughMetallicSpecular", Images.RoughnessMetallicSpecular, DescriptorSet.ImageType.Texture, new SamplerSpec()
             {
-                Filter = EImageFilter.Linear,
-                Tiling = EImageTiling.Repeat
+                Filter = ImageFilter.Linear,
+                Tiling = ImageTiling.Repeat
             });
             DeferredRenderingMaterial?.BindImage("TEmissive", Images.Emissive, DescriptorSet.ImageType.Texture, new SamplerSpec()
             {
-                Filter = EImageFilter.Linear,
-                Tiling = EImageTiling.Repeat
+                Filter = ImageFilter.Linear,
+                Tiling = ImageTiling.Repeat
             });
             
             OnResize?.Invoke(this);
@@ -313,12 +316,12 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
         DefaultMeshMaterial?.Dispose();
     }
 
-    public virtual DeviceImage CreateRenderTargetImage(EImageFormat format, Vector2<int> size, string? debugName = null)
+    public virtual DeviceImage CreateRenderTargetImage(ImageFormat format, Vector2<uint> size, string? debugName = null)
     {
         var imageExtent = new VkExtent3D()
         {
-            width = (uint)size.X,
-            height = (uint)size.Y,
+            width = size.X,
+            height = size.Y,
             depth = 1,
         };
 
@@ -337,18 +340,18 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
         return image;
     }
 
-    public virtual DeviceImage CreateBufferImage(EImageFormat format, Vector2<int> size, string? debugName = null)
+    public virtual DeviceImage CreateBufferImage(ImageFormat format, Vector2<uint> size, string? debugName = null)
     {
         var imageExtent = new VkExtent3D()
         {
-            width = (uint)size.X,
-            height = (uint)size.Y,
+            width = size.X,
+            height = size.Y,
             depth = 1,
         };
 
         VkImageUsageFlags usage;
 
-        if (format == EImageFormat.D32SFloat)
+        if (format == ImageFormat.D32SFloat)
         {
             usage = VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
                     VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -364,7 +367,7 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
         var image = SGraphicsModule.Get().GetAllocator().NewDeviceImage(createInfo, debugName ?? "Scene GBuffer");
 
         var viewCreateInfo = SGraphicsModule.MakeImageViewCreateInfo(image,
-            format == EImageFormat.D32SFloat
+            format == ImageFormat.D32SFloat
                 ? VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT
                 : VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -373,14 +376,14 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
         return image;
     }
 
-    public GBuffer CreateGBuffer(Vector2<int> size)
+    public GBuffer CreateGBuffer(Vector2<uint> size)
     {
         return new GBuffer(
-            CreateBufferImage(EImageFormat.Rgba16UNorm, size),
-            CreateBufferImage(EImageFormat.Rgba32SFloat, size), 
-            CreateBufferImage(EImageFormat.Rgba32SFloat, size),
-            CreateBufferImage(EImageFormat.Rgba16UNorm, size), 
-            CreateBufferImage(EImageFormat.Rgba16UNorm, size)
+            CreateBufferImage(ImageFormat.Rgba16UNorm, size),
+            CreateBufferImage(ImageFormat.Rgba32SFloat, size), 
+            CreateBufferImage(ImageFormat.Rgba32SFloat, size),
+            CreateBufferImage(ImageFormat.Rgba16UNorm, size), 
+            CreateBufferImage(ImageFormat.Rgba16UNorm, size)
             );
     }
 

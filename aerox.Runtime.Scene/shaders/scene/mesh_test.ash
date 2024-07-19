@@ -21,7 +21,8 @@
         float roughness = texture(TRoughness, iUV).x;
         float metallic = texture(TMetallic, iUV).x;
 
-        setOutput(color, normal, roughness,metallic, 0.0,float3(0.0));
+        setOutput(color, iSceneNormal, roughness,metallic, 0.0,float3(0.0));
         //etOutput(color, iSceneNormal, 0.5, 1.0, 0.0,float3(0.0));
     }
+    
 }

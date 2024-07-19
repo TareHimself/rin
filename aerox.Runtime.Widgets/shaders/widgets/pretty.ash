@@ -32,11 +32,11 @@
         for (float i = 0.0; i < 4.0; i++) {
             uv = fract(uv * 1.5) - 0.5;
 
-            float d = length(uv) * exp(-length(uv0));
+            float d = length(uv) * exp(length(uv0) * -1.0);
 
-            float3 col = palette(length(uv0) + i*.4 + iTime*.4);
+            float3 col = palette(length(uv0) + i*0.4 + iTime*0.4);
 
-            d = sin(d*8. + iTime)/8.;
+            d = sin(d*8.0 + iTime)/8.0;
             d = abs(d);
 
             d = pow(0.01 / d, 1.2);

@@ -6,14 +6,14 @@ namespace aerox.Runtime.Scene.Graphics;
 public struct SceneFrame
 {
     public readonly SceneDrawer Drawer;
-    public Frame Raw;
+    public Frame Original;
     public readonly List<Command> DrawCommands = new();
 
-    public SceneFrame(SceneDrawer drawer, Frame raw)
+    public SceneFrame(SceneDrawer drawer, Frame original)
     {
         Drawer = drawer;
-        Raw = raw;
-        raw.OnDrawn += CleanupCommands;
+        Original = original;
+        original.OnDrawn += CleanupCommands;
     }
 
     public SceneFrame AddCommand(Command command)
@@ -36,6 +36,6 @@ public struct SceneFrame
 
     public static implicit operator Frame(SceneFrame frame)
     {
-        return frame.Raw;
+        return frame.Original;
     }
 }

@@ -23,28 +23,24 @@ public class MeshEntity : Entity
     protected override void CreateDefaultComponents(SceneComponent root)
     {
         base.CreateDefaultComponents(root);
-        var dist = 5.0f;
-        var m1 = AddComponent<StaticMeshComponent>();
-        m1.AttachTo(root);
-        m1.SetRelativeLocation(new Vector3<float>(dist, 0.0f, 0.0f));
-
-        var m2 = AddComponent<StaticMeshComponent>();
-        m2.AttachTo(root);
-        m2.SetRelativeLocation(new Vector3<float>(-dist, 0.0f, 0.0f));
+        var dist = 0.0f;
+        // var m1 = AddComponent<StaticMeshComponent>();
+        // m1.AttachTo(root);
+        // m1.SetRelativeLocation(new Vector3<float>(dist, 0.0f, 0.0f));
+        //
+        // var m2 = AddComponent<StaticMeshComponent>();
+        // m2.AttachTo(root);
+        // m2.SetRelativeLocation(new Vector3<float>(-dist, 0.0f, 0.0f));
 
         var m3 = AddComponent<StaticMeshComponent>();
         m3.AttachTo(root);
-        m3.SetRelativeLocation(new Vector3<float>(0.0f, 0.0f, dist));
+        m3.SetRelativeLocation(z: dist);
 
-        var m4 = AddComponent<StaticMeshComponent>();
-        m4.AttachTo(root);
-        m4.SetRelativeLocation(new Vector3<float>(0.0f, 0.0f, -dist));
+        // var m4 = AddComponent<StaticMeshComponent>();
+        // m4.AttachTo(root);
+        // m4.SetRelativeLocation(new Vector3<float>(0.0f, 0.0f, -dist));
 
-        var light = AddComponent<PointLightComponent>();
-        light.Intensity = 5.0f;
-        light.Color = Color.White;
-        light.Radius = 20000.0f;
-        light.SetRelativeLocation(new Vector3<float>(0.0f,0.0f,0.0f));
+        
         var meshes = FindComponents<StaticMeshComponent>();
         foreach(var mesh in meshes){
             mesh.SetRelativeRotation(Quaternion.Identity.ApplyLocalYaw(45));
@@ -76,21 +72,21 @@ public class MeshEntity : Entity
     {
         base.OnStart();
 
-        var _ = Task.Run(() => ImportMesh());
+        var _ = Task.Run(ImportMesh);
     }
 
     protected override void OnTick(double deltaSeconds)
     {
         base.OnTick(deltaSeconds);
-        // var root = RootComponent!;
-        // var newRotation = root.GetRelativeRotation().ApplyYaw((float)deltaSeconds * 10.0f);
-        // root.SetRelativeRotation(newRotation);
+        var root = RootComponent!;
+        var newRotation = root.GetRelativeRotation().ApplyYaw((float)deltaSeconds * 10.0f);
+        root.SetRelativeRotation(newRotation);
 
-        var meshes = FindComponents<StaticMeshComponent>();
-        foreach(var mesh in meshes){
-            var newRotation = mesh.GetRelativeRotation().ApplyYaw((float)deltaSeconds * 10.0f);
-            mesh.SetRelativeRotation(newRotation);
-        }
+        // var meshes = FindComponents<StaticMeshComponent>();
+        // foreach(var mesh in meshes){
+        //     var newRotation = mesh.GetRelativeRotation().ApplyYaw((float)deltaSeconds * 10.0f);
+        //     mesh.SetRelativeRotation(newRotation);
+        // }
     }
 
 
@@ -104,7 +100,7 @@ public class MeshEntity : Entity
             width = (uint)image.Width,
             height = (uint)image.Height,
             depth = 1
-        }, EImageFormat.Rgba8UNorm, EImageFilter.Linear, EImageTiling.ClampEdge);
+        }, ImageFormat.Rgba8UNorm, ImageFilter.Linear, ImageTiling.ClampEdge);
         var fileName = Path.GetFileNameWithoutExtension(filePath);
         return new(tex, fileName);
     }
@@ -185,8 +181,7 @@ public class MeshEntity : Entity
         if (pbrPack == null) return;
 
         var files = Directory.GetFiles(pbrPack);
-        var meshMaterial = new MaterialBuilder().ConfigureForScene().SetShader(SGraphicsModule.Get()
-            .LoadShader(Path.Join(SSceneModule.ShadersDir, "mesh_test.ash"))).Build();
+        var meshMaterial = new MaterialInstance(Path.Join(SSceneModule.ShadersDir, "mesh_test.ash"));
 
 
         var materialTextures = meshMaterial.GetTextureParameters().ToHashSet();

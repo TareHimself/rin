@@ -93,7 +93,7 @@ public sealed class SRuntime : Disposable
         }
     }
 
-    public double GetTimeSinceCreation()
+    public double GetElapsedRuntimeTimeSeconds()
     {
         return (DateTime.UtcNow - _startTime).TotalSeconds;
     }
@@ -147,7 +147,6 @@ public sealed class SRuntime : Disposable
 
     private void LoadModules()
     {
-        Console.WriteLine("Searching assemblies for Engine subsystems");
         // Get all assemblies loaded in the current application domain
         var assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
 
@@ -156,8 +155,6 @@ public sealed class SRuntime : Disposable
 
         foreach (var assembly in assemblies)
         {
-            Console.WriteLine("Searching Assembly {0}", assembly.FullName);
-
             foreach (var type in assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(RuntimeModule))))
             {
                 var attribute =
@@ -168,8 +165,7 @@ public sealed class SRuntime : Disposable
         }
 
         foreach (var mod in modulesMap.ToFrozenDictionary()) LoadRequiredModules(mod.Key, modulesMap);
-
-
+        
         foreach (var mod in modulesMap) mod.Value.ResolveAllDependencies(modulesMap);
 
         var sortedModules = new List<ModuleType>();
@@ -195,13 +191,9 @@ public sealed class SRuntime : Disposable
 
             if (!shorted) sortedModules.Add(mod.Value);
         }
-
-        Console.WriteLine("Creation Order");
-
-        // Print out the static fields of the found types
+        
         foreach (var mod in sortedModules)
         {
-            Console.WriteLine($"{mod.Module.FullName}:");
             var instance = (RuntimeModule?)Activator.CreateInstance(mod.Module);
             if (instance != null)
             {

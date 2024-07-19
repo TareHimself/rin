@@ -3,6 +3,7 @@ using aerox.Runtime.Extensions;
 using aerox.Runtime.Graphics;
 using aerox.Runtime.Graphics.Material;
 using aerox.Runtime.Math;
+using aerox.Runtime.Widgets.Mtsdf;
 using SixLabors.Fonts;
 
 namespace aerox.Runtime.Widgets.Defaults.Content;
@@ -34,32 +35,31 @@ public class Text : Widget
 {
     private readonly MaterialInstance _materialInstance;
     private readonly DeviceBuffer _optionsBuffer;
-    private Color _backgroundColor = new(1.0f, 1.0f, 1.0f, 0.0f);
+    private Color _backgroundColor = Color.White.Clone(a: 0.0f);
     private string _content;
-    private Color _foregroundColor = new(1.0f);
+    private Color _foregroundColor = Color.White;
     private Font? _latestFont;
-    private MtsdfFont? _msdf;
+    private MtsdfFont? _mtsdf;
     private bool _optionsDirty = true;
 
     public Text(string inContent = "", float inFontSize = 100f,string fontFamily = "Arial")
     {
         FontSize = inFontSize;
-        var gs = SRuntime.Get().GetModule<SGraphicsModule>();
+        var gs = SGraphicsModule.Get();
         _content = inContent;
         _optionsBuffer = gs.GetAllocator()
             .NewUniformBuffer<ImageOptionsDeviceBuffer>(debugName: "Image Options Buffer");
-        _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SWidgetsModule.ShadersDir,"font.ash"));
+        _materialInstance = new MaterialInstance(Path.Join(SWidgetsModule.ShadersDir,"font.ash"));
         _materialInstance.BindBuffer("options", _optionsBuffer);
 
-        SRuntime.Get().GetModule<SWidgetsModule>().GetOrCreateFont(fontFamily).Then(msdf =>
+        SWidgetsModule.Get().GetOrCreateFont(fontFamily).Then(msdf =>
         {
-            _msdf = msdf;
+            _mtsdf = msdf;
 
-            if (_msdf != null) _materialInstance.BindTextureArray("TAtlas", _msdf.GetAtlases());
+            if (_mtsdf != null) _materialInstance.BindTextureArray("TAtlas", _mtsdf.GetAtlases());
 
             MakeNewFont();
-
-
+            
             return Task.CompletedTask;
         });
     }
@@ -99,25 +99,19 @@ public class Text : Widget
         }
     }
 
-    protected bool ShouldDraw => _msdf != null && _latestFont != null;
-
-    protected override void OnAddedToRoot(WidgetSurface widgetSurface)
-    {
-        base.OnAddedToRoot(widgetSurface);
-        _materialInstance.BindBuffer("ui", widgetSurface.GlobalBuffer);
-    }
-
+    protected bool ShouldDraw => _mtsdf != null && _latestFont != null;
+    
     protected override void OnDispose(bool isManual)
     {
         base.OnDispose(isManual);
         _optionsBuffer.Dispose();
         _materialInstance.Dispose();
-        _msdf?.Dispose();
+        _mtsdf?.Dispose();
     }
 
     private void MakeNewFont()
     {
-        _latestFont = _msdf?.GetFontFamily().CreateFont(FontSize, FontStyle.Regular);
+        _latestFont = _mtsdf?.GetFontFamily().CreateFont(FontSize, FontStyle.Regular);
         CheckSize();
     }
 
@@ -134,11 +128,11 @@ public class Text : Widget
     }
 
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
         if (_latestFont == null) return new Size2d();
         var opts = new TextOptions(_latestFont);
-        // TextMeasurer.TryMeasureCharacterBounds(_content,opts, out var bounds);
+
         GetContentBounds(out var bounds);
         GlyphBounds? last = bounds.Length == 0 ? null : bounds[^1];
         var metrics = _latestFont.FontMetrics;
@@ -161,12 +155,11 @@ public class Text : Widget
             _optionsDirty = false;
         }
 
-        //TextMeasurer.TryMeasureCharacterBounds(_content, new TextOptions(_latestFont), out var bounds);
         GetContentBounds(out var bounds);
         List<TextPushConstants> pushConstantsList = [];
         foreach (var bound in bounds)
         {
-            var charInfo = _msdf?.GetCharInfo(_content[bound.StringIndex]);
+            var charInfo = _mtsdf?.GetGlyphInfo(_content[bound.StringIndex]);
             if (charInfo == null) continue;
 
             var charOffset = new Vector2<float>(bound.Bounds.X,
@@ -187,6 +180,6 @@ public class Text : Widget
             pushConstantsList.Add(constants);
         }
 
-        frame.AddCommand(new Draw.Commands.TextDrawCommand(_materialInstance, _msdf!, pushConstantsList.ToArray()));
+        frame.AddCommands(new Graphics.Commands.TextDrawCommand(_materialInstance, _mtsdf!, pushConstantsList.ToArray()));
     }
 }

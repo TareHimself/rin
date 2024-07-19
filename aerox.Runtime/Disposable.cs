@@ -1,8 +1,11 @@
 ﻿namespace aerox.Runtime;
 
-public abstract class Disposable : IDisposable
+public abstract class Disposable : IAeroxDisposable
 {
-    public bool Disposed { get; private set; }
+    public bool Disposed { get; set; }
+
+    public string DisposeId { get; } = Guid.NewGuid().ToString();
+    //public string DisposableId { get; private set; } = 
 
     public void Dispose()
     {
@@ -16,7 +19,6 @@ public abstract class Disposable : IDisposable
     {
         if (Disposed) return;
         Disposed = true;
-        //Console.WriteLine("Disposing {0}", GetType().Name);
         OnDispose(disposing);
     }
 
@@ -24,4 +26,6 @@ public abstract class Disposable : IDisposable
     {
         Dispose(false);
     }
+    
+    
 }

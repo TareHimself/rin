@@ -1,5 +1,7 @@
 #define VMA_IMPLEMENTATION
+//#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #include "graphics.hpp"
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 //#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
@@ -11,30 +13,55 @@ void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** out
                                   void** outQueue, uint32_t* outQueueFamily, uintptr_t* outSurface,
                                   uintptr_t* outMessenger)
 {
+
+    VULKAN_HPP_DEFAULT_DISPATCHER.init();
+    
     uint32_t numExtensions = 0;
     auto extensions = glfwGetRequiredInstanceExtensions(&numExtensions);
+    auto systemInfo = vkb::SystemInfo::get_system_info().value();
+
 
     vkb::InstanceBuilder builder{};
-    auto instanceResult =
-        builder.set_app_name("Aerox")
-               .require_api_version(1, 3, 0)
-               //.request_validation_layers(true)
-               .enable_extensions(numExtensions, extensions)
+
+
+    builder
+        .set_app_name("Aerox")
+        .require_api_version(1, 3, 0)
+
+        //.request_validation_layers(true)
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
         .use_default_debug_messenger()
 #endif
+        .enable_extensions(numExtensions, extensions);
+    
 
-        .build();
+    builder.enable_layer("VK_LAYER_KHRONOS_shader_object");
+    
+    if (systemInfo.is_extension_available(vk::EXTShaderObjectExtensionName))
+    {
+        builder.enable_extension(vk::EXTShaderObjectExtensionName);
+    }
+    
+   
 
+    auto instanceResult = builder.build();
+    
+    if (!instanceResult)
+    {
+        std::cerr << "Failed to create Vulkan instance: " << instanceResult.error().message() << "\n";
+        throw std::runtime_error("");
+    }
+    
     auto vkbInstance = instanceResult.value();
-
-    std::cout << "Created Instance" << std::endl;
 
     auto instance = vkbInstance.instance;
 
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
     *outMessenger = reinterpret_cast<uintptr_t>(vkbInstance.debug_messenger);
 #endif
+
+    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{};
+    shaderObjectFeatures.setShaderObject(true);
 
     vk::PhysicalDeviceVulkan13Features features{};
     features.dynamicRendering = true;
@@ -47,25 +74,47 @@ void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** out
               .setDescriptorBindingStorageImageUpdateAfterBind(true)
               .setScalarBlockLayout(true)
               .setDescriptorBindingUniformBufferUpdateAfterBind(true);
-
+    
     VkSurfaceKHR surf;
     glfwCreateWindowSurface(instance, static_cast<GLFWwindow*>(inWindow), nullptr, &surf);
     vkb::PhysicalDeviceSelector selector{vkbInstance};
-    vkb::PhysicalDevice physicalDevice =
-        selector.set_minimum_version(1, 3)
+
+    selector.add_required_extension(vk::EXTShaderObjectExtensionName);
+    
+    selector.set_minimum_version(1, 3)
                 .set_required_features_13(features)
                 .set_required_features_12(features12)
-                .set_surface(surf)
-                .select()
-                .value();
+                .set_surface(surf);
+    selector.add_required_extension_features(
+                    static_cast<VkPhysicalDeviceShaderObjectFeaturesEXT>(shaderObjectFeatures));
+    // if (systemInfo.is_extension_available(vk::EXTShaderObjectExtensionName))
+    // {
+    //     selector.add_required_extension_features(
+    //                 static_cast<VkPhysicalDeviceShaderObjectFeaturesEXT>(shaderObjectFeatures));
+    // }
 
-    std::cout << "Selected Device" << std::endl;
+    auto physicalDeviceResult = selector.select();
+    
+    if (!physicalDeviceResult)
+    {
+        std::cerr << "Failed to select vulkan physical device: " << physicalDeviceResult.error().message() << "\n";
+        throw std::runtime_error("");
+    }
 
+    vkb::PhysicalDevice physicalDevice = physicalDeviceResult.value();
+    
+    physicalDevice.enable_extension_if_present(vk::EXTShaderObjectExtensionName);
     vkb::DeviceBuilder deviceBuilder{physicalDevice};
 
-    vkb::Device vkbDevice = deviceBuilder.build().value();
+    auto deviceResult = deviceBuilder.build();
 
-    std::cout << "Built Physical Device" << std::endl;
+    if (!deviceResult)
+    {
+        std::cerr << "Failed to build vulkan device: " << deviceResult.error().message() << "\n";
+        throw std::runtime_error("");
+    }
+
+    vkb::Device vkbDevice = deviceResult.value();
 
     auto device = vkbDevice.device;
 
@@ -73,12 +122,22 @@ void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** out
 
     auto graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
 
-    auto graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).
-                                         value();
+    auto graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
-
-    std::cout << "SELECTED QUEUE FAMILIES" << std::endl;
-
+    try
+    {
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(vk::Instance(instance));
+        VULKAN_HPP_DEFAULT_DISPATCHER.init(vk::Device(device));
+        // // Create your instance...
+        // VULKAN_HPP_DEFAULT_DISPATCHER.init<vk::Instance>(instance);
+        // // Create your device...
+        // VULKAN_HPP_DEFAULT_DISPATCHER.init<vk::Device>(device);
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "Failed to load vulkan functions " << e.what() << "\n";
+        throw e;
+    }
 
     *outInstance = static_cast<void*>(instance);
     *outDevice = static_cast<void*>(device);
@@ -146,7 +205,7 @@ void createBuffer(VmaAllocator allocator, VkBuffer* buffer, VmaAllocation* alloc
 
     vmaCreateBuffer(allocator, &vmaBufferCreateInfo, &vmaAllocInfo, buffer, allocation,
                     nullptr);
-    vmaSetAllocationName(allocator, *allocation, name);
+    vmaSetAllocationName(allocator, *allocation, name);     
 }
 
 void* graphicsAllocatorCreate(void* instance, void* device, void* physicalDevice)
@@ -174,7 +233,8 @@ void graphicsAllocatorNewBuffer(uintptr_t* buffer, void** allocation, unsigned l
     VmaAllocation alloc;
     VkBuffer buff;
     VmaAllocationCreateFlags createFlags = sequentialWrite
-                                               ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+                                               ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+                                               : VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
     if (mapped)
     {
         createFlags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -227,13 +287,6 @@ void graphicsAllocatorFreeImage(uintptr_t image, void* allocation, void* allocat
                     static_cast<VmaAllocation>(allocation));
 }
 
-// struct TestStruct
-// {
-//     float time;
-//     float viewport[4];
-//     
-// };
-
 void graphicsAllocatorCopyToBuffer(void* allocator, void* allocation, void* data, const unsigned long size,
                                    unsigned long offset)
 {
@@ -243,13 +296,164 @@ void graphicsAllocatorCopyToBuffer(void* allocator, void* allocation, void* data
                               offset, size);
 }
 
+void graphicsVkCmdBindShadersEXT(VkCommandBuffer commandBuffer, uint32_t stageCount, VkShaderStageFlagBits* pStages,
+    VkShaderEXT* pShaders)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBindShadersEXT == nullptr)
+    {
+        std::cerr << "vkCmdBindShadersEXT Was Not Loaded" << "\n";
+    }
+    VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBindShadersEXT(commandBuffer,stageCount,pStages,pShaders);
+}
+
+void graphicsVkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, VkRenderingInfo* pRenderingInfo)
+{
+    //VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBeginRenderingKHR(commandBuffer,pRenderingInfo);
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBeginRenderingKHR == nullptr)
+    {
+        std::cerr << "vkCmdBeginRenderingKHR Was Not Loaded" << "\n";
+    }
+    VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBeginRenderingKHR(commandBuffer,pRenderingInfo);
+}
+
+void graphicsVkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetPolygonModeEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetPolygonModeEXT Was Not Loaded" << "\n";
+    }
+    VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetPolygonModeEXT(commandBuffer,polygonMode);
+}
+
+void graphicsVkCmdSetLogicOpEXT(VkCommandBuffer commandBuffer, VkLogicOp logicOp)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetLogicOpEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetLogicOpEXT Was Not Loaded" << "\n";
+    }
+    VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetLogicOpEXT(commandBuffer,logicOp);
+}
+
+void graphicsVkCmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount,
+    VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, uint32_t vertexAttributeDescriptionCount,
+    VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetVertexInputEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetVertexInputEXT Was Not Loaded" << "\n";
+    }
+    VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetVertexInputEXT(commandBuffer,vertexBindingDescriptionCount,
+    pVertexBindingDescriptions, vertexAttributeDescriptionCount,
+    pVertexAttributeDescriptions);
+}
+
+void graphicsVkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, uint32_t logicOpEnable)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetLogicOpEnableEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetLogicOpEnableEXT Was Not Loaded" << "\n";
+    }
+    VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetLogicOpEnableEXT(commandBuffer,logicOpEnable);
+}
+
+void graphicsVkCmdSetColorBlendEnableEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
+    uint32_t attachmentCount, uint32_t* pColorBlendEnables)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorBlendEnableEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetColorBlendEnableEXT Was Not Loaded" << "\n";
+    }
+    VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorBlendEnableEXT(commandBuffer,firstAttachment,attachmentCount,pColorBlendEnables);
+}
+
+void graphicsVkCmdSetColorBlendEquationEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
+    uint32_t attachmentCount, VkColorBlendEquationEXT* pColorBlendEquations)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorBlendEquationEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetColorBlendEquationEXT Was Not Loaded" << "\n";
+    }
+    VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorBlendEquationEXT(commandBuffer,firstAttachment,attachmentCount,pColorBlendEquations);
+}
+
+void graphicsVkCmdSetColorWriteMaskEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
+    uint32_t attachmentCount, VkColorComponentFlags* pColorWriteMasks)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorWriteMaskEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetColorWriteMaskEXT Was Not Loaded" << "\n";
+    }
+    VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorWriteMaskEXT(commandBuffer,firstAttachment,attachmentCount,pColorWriteMasks);
+}
+
+VkResult graphicsVkCreateShadersEXT(VkDevice device, uint32_t createInfoCount, VkShaderCreateInfoEXT* pCreateInfos,
+    VkAllocationCallbacks* pAllocator, VkShaderEXT* pShaders)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCreateShadersEXT == nullptr)
+    {
+        std::cerr << "vkCreateShadersEXT Was Not Loaded" << "\n";
+    }
+    
+    return VULKAN_HPP_DEFAULT_DISPATCHER.vkCreateShadersEXT(device,createInfoCount,pCreateInfos,pAllocator,pShaders);
+}
+
+void graphicsVkDestroyShaderEXT(VkDevice device, VkShaderEXT shader, VkAllocationCallbacks* pAllocator)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkDestroyShaderEXT == nullptr)
+    {
+        std::cerr << "vkDestroyShaderEXT Was Not Loaded" << "\n";
+    }
+    
+    return VULKAN_HPP_DEFAULT_DISPATCHER.vkDestroyShaderEXT(device,shader,pAllocator);
+}
+
+void graphicsVkCmdSetRasterizationSamplesEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetRasterizationSamplesEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetRasterizationSamplesEXT  Was Not Loaded" << "\n";
+    }
+    
+    return VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetRasterizationSamplesEXT(commandBuffer,rasterizationSamples);
+}
+
+void graphicsVkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToCoverageEnable)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetAlphaToCoverageEnableEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetAlphaToCoverageEnableEXT  Was Not Loaded" << "\n";
+    }
+    
+    return VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetAlphaToCoverageEnableEXT(commandBuffer,alphaToCoverageEnable);
+}
+
+void graphicsVkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToOneEnable)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetAlphaToOneEnableEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetAlphaToOneEnableEXT  Was Not Loaded" << "\n";
+    }
+    
+    return VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetAlphaToOneEnableEXT(commandBuffer,alphaToOneEnable);
+}
+
+void graphicsVkCmdSetSampleMaskEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, uint32_t* pSampleMask)
+{
+    if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetSampleMaskEXT == nullptr)
+    {
+        std::cerr << "vkCmdSetSampleMaskEXT  Was Not Loaded" << "\n";
+    }
+    
+    return VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetSampleMaskEXT(commandBuffer,samples,pSampleMask);
+}
+
 uintptr_t graphicsCreateSurface(void* instance, GLFWwindow* window)
 {
     VkSurfaceKHR surf;
 
     const auto inst = reinterpret_cast<VkInstance>(instance);
 
-    glfwCreateWindowSurface(inst,window, nullptr, &surf);
+    glfwCreateWindowSurface(inst, window, nullptr, &surf);
 
     return reinterpret_cast<uintptr_t>(surf);
 }

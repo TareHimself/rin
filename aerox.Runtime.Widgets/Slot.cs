@@ -6,4 +6,9 @@ public class Slot(Widget widget)
     {
         return widget;
     }
+    
+    public T? GetWidget<T>() where T : Widget
+    {
+        return widget is T castedWidget ? castedWidget : null;
+    }
 }

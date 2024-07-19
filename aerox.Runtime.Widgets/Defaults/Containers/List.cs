@@ -30,18 +30,18 @@ public class List(params Widget[] children) : Container(children)
         CheckSize();
     }
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
         return _direction switch
         {
-            Axis.Horizontal => slots.Aggregate(new Size2d(), (size, slot) =>
+            Axis.Horizontal => Slots.Aggregate(new Size2d(), (size, slot) =>
             {
                 var slotSize = slot.GetWidget().GetDesiredSize();
                 size.Width += slotSize.Width;
                 size.Height = System.Math.Max(size.Height, slotSize.Height);
                 return size;
             }),
-            Axis.Vertical => slots.Aggregate(new Size2d(), (size, slot) =>
+            Axis.Vertical => Slots.Aggregate(new Size2d(), (size, slot) =>
             {
                 var slotSize = slot.GetWidget().GetDesiredSize();
                 size.Height += slotSize.Height;
@@ -58,7 +58,7 @@ public class List(params Widget[] children) : Container(children)
         switch (_direction)
         {
             case Axis.Horizontal:
-                slots.Aggregate(new Vector2<float>(0, 0), (offset, slot) =>
+                Slots.Aggregate(new Vector2<float>(0, 0), (offset, slot) =>
                 {
                     var widget = slot.GetWidget();
                     var widgetSize = widget.GetDesiredSize();
@@ -73,7 +73,7 @@ public class List(params Widget[] children) : Container(children)
                 });
                 break;
             case Axis.Vertical:
-                slots.Aggregate(new Vector2<float>(0, 0), (offset, slot) =>
+                Slots.Aggregate(new Vector2<float>(0, 0), (offset, slot) =>
                 {
                     var widget = slot.GetWidget();
                     widget.SetRelativeOffset(offset.Clone());
@@ -99,11 +99,11 @@ public class List(params Widget[] children) : Container(children)
 
     public override void Collect(WidgetFrame frame, DrawInfo info)
     {
-        if (slots.Count > 2) frame.AddRect(info.Transform, GetDrawSize(), color: Color.Red);
-        foreach (var slot in slots.ToArray())
+        //if (slots.Count > 2) frame.AddRect(info.Transform, GetDrawSize(), color: Color.Red);
+        foreach (var slot in Slots.ToArray())
         {
             var slotDrawInfo = info.AccountFor(slot.GetWidget());
-            if (!slotDrawInfo.IntersectsWith(info)) continue;
+            if (slotDrawInfo.Occluded) continue;
             slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
         }
     }

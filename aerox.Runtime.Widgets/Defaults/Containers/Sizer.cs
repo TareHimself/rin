@@ -35,11 +35,11 @@ public class Sizer : Container
         }
     }
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
-        if (slots.Count == 0) return new Size2d();
+        if (Slots.Count == 0) return new Size2d();
 
-        var slot = slots[0];
+        var slot = Slots[0];
         var desiredSize = slot.GetWidget().GetDesiredSize();
         return new Size2d(WidthOverride ?? desiredSize.Width, HeightOverride ?? desiredSize.Height);
     }
@@ -47,7 +47,12 @@ public class Sizer : Container
 
     public override void Collect(WidgetFrame frame, DrawInfo info)
     {
-        foreach (var slot in slots.ToArray()) slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
+        foreach (var slot in Slots.ToArray())
+        {
+            var slotDrawInfo = info.AccountFor(slot.GetWidget());
+            if (slotDrawInfo.Occluded) continue;
+            slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
+        }
     }
 
     public override uint GetMaxSlots()
@@ -57,9 +62,9 @@ public class Sizer : Container
 
     protected override void ArrangeSlots(Size2d drawSize)
     {
-        if (slots.Count == 0) return;
+        if (Slots.Count == 0) return;
 
-        var slot = slots[0];
+        var slot = Slots[0];
         slot.GetWidget().SetRelativeOffset(new Vector2<float>(0, 0));
         slot.GetWidget().SetDrawSize(drawSize.Clone());
     }

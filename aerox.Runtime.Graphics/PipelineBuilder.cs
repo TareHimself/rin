@@ -1,4 +1,5 @@
-﻿using TerraFX.Interop.Vulkan;
+﻿using aerox.Runtime.Graphics.Shaders;
+using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkStructureType;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -10,7 +11,7 @@ namespace aerox.Runtime.Graphics;
 public class PipelineBuilder
 {
     private readonly List<VkFormat> _colorAttachmentFormats = new();
-    private Shader? _shader = null;
+    public readonly List<ShaderModule> ShaderModules = [];
 
     private VkPipelineColorBlendAttachmentState _colorBlendAttachment;
     private VkPipelineDepthStencilStateCreateInfo _depthStencil;
@@ -33,9 +34,9 @@ public class PipelineBuilder
     }
 
 
-    public PipelineBuilder SetShader(Shader shader)
+    public PipelineBuilder AddShaderModules(params ShaderModule[] modules)
     {
-        _shader = shader;
+        ShaderModules.AddRange(modules);
         return this;
     }
 
@@ -119,7 +120,7 @@ public class PipelineBuilder
     /// <summary>
     ///     Set's the attachment formats of the resulting <see cref="VkPipeline" />
     /// </summary>
-    public PipelineBuilder AddColorAttachment(EImageFormat format)
+    public PipelineBuilder AddColorAttachment(ImageFormat format)
     {
         _colorAttachmentFormats.Add(SGraphicsModule.ImageFormatToVkFormat(format));
         return this;
@@ -178,14 +179,16 @@ public class PipelineBuilder
 
         fixed (byte* str = "main"u8.ToArray())
         {
-            foreach (var stages in _shader?.GetStages() ?? [])
+            foreach (var shaderModule in ShaderModules)
+            {
                 shaderStages.Add(new VkPipelineShaderStageCreateInfo
                 {
                     sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                    stage = stages.Flags,
-                    module = stages,
+                    stage = shaderModule.StageFlags,
+                    module = SGraphicsModule.Get().CreateDeviceShaderModule(shaderModule),
                     pName = (sbyte*)str
                 });
+            }
         }
 
 
@@ -265,6 +268,10 @@ public class PipelineBuilder
                                                 vkCreateGraphicsPipelines(device, new VkPipelineCache(), 1,
                                                     &pipelineCreateInfo, null, &result);
 
+                                                foreach (var shaderStageCreateInfo in shaderStages)
+                                                {
+                                                    vkDestroyShaderModule(device,shaderStageCreateInfo.module,null);
+                                                }
                                                 return result;
                                             }
                                         }

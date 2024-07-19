@@ -2,8 +2,9 @@
 using aerox.Runtime.Scene;
 using aerox.Runtime.Widgets;
 using aerox.Runtime.Widgets.Defaults.Content;
-using aerox.Runtime.Widgets.Draw.Commands;
+using aerox.Runtime.Widgets.Graphics.Commands;
 using aerox.Runtime.Widgets.Events;
+using aerox.Runtime.Windows;
 using TerraFX.Interop.Vulkan;
 
 namespace SceneTest;
@@ -38,6 +39,7 @@ internal class DrawSceneCommand(Scene scene,EViewportChannel channel) : UtilityC
         if(frame.IsMainPassActive) frame.Surface.EndMainPass(frame);
         
         drawer.Draw(frame);
+        
         var cmd = frame.Raw.GetCommandBuffer();
         
         source.Barrier(cmd,VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
@@ -59,7 +61,12 @@ public class Viewport : Widget
     public readonly Scene TargetScene;
     public EViewportChannel Channel = EViewportChannel.Scene;
     public Text ModeText;
+    private bool _ignoreNextMove = false;
+    private Vector2<float> _mousePosition = 0.0f;
+    private bool _captureMouse = false;
 
+    public Vector2<float> AbsoluteCenter =>
+        ((Vector2<float>)GetDrawSize() / 2.0f).ApplyTransformation(ComputeAbsoluteTransform());
     public Viewport(Scene scene,Text modeText)
     {
         TargetScene = scene;
@@ -80,8 +87,8 @@ public class Viewport : Widget
             _ => throw new ArgumentOutOfRangeException()
         };
     }
-    
-    public override Size2d ComputeDesiredSize() => new Size2d();
+
+    protected override Size2d ComputeDesiredSize() => new Size2d();
 
     public override void Collect(WidgetFrame frame, DrawInfo info)
     {
@@ -91,15 +98,65 @@ public class Viewport : Widget
     public override void SetDrawSize(Size2d size)
     {
         base.SetDrawSize(size);
-        TargetScene.Drawer?.Resize(new Vector2<int>((int)Math.Ceiling(size.Width),(int)Math.Ceiling(size.Height)));
+        TargetScene.Drawer?.Resize(new Vector2<uint>((uint)Math.Ceiling(size.Width),(uint)Math.Ceiling(size.Height)));
     }
 
+    public override void OnCursorUp(CursorUpEvent e)
+    {
+        if (_captureMouse)
+        {
+            _captureMouse = false;
+            _ignoreNextMove = false;
+        }
+        base.OnCursorUp(e);
+    }
+    
     protected override bool OnCursorDown(CursorDownEvent e)
     {
-        var currentIdx = (int)Channel;
-        currentIdx = (currentIdx + 1) % 5;
-        Channel = (EViewportChannel)currentIdx;
-        UpdateModeText();
-        return true;
+        if (e.Button == MouseButton.One)
+        {
+            var currentIdx = (int)Channel;
+            currentIdx = (currentIdx + 1) % 5;
+            Channel = (EViewportChannel)currentIdx;
+            UpdateModeText();
+            return true;
+        }
+
+        if (e.Button == MouseButton.Two)
+        {
+            _captureMouse = true;
+            _ignoreNextMove = true;
+            _mousePosition = AbsoluteCenter;
+            e.Surface.SetCursorPosition(_mousePosition);
+            return true;
+        }
+
+        return false;
+    }
+
+    protected override bool OnCursorMove(CursorMoveEvent e)
+    {
+        if (_captureMouse)
+        {
+            var delta = e.Position - _mousePosition;
+
+            if (!(Math.Abs(delta.X) > 0) && !(Math.Abs(delta.Y) > 0)) return true;
+            
+            OnMouseDelta(delta);
+            _mousePosition = AbsoluteCenter;
+            e.Surface.SetCursorPosition(_mousePosition);
+            
+            return true;
+        }
+        return base.OnCursorMove(e);
+    }
+
+
+    protected void OnMouseDelta(Vector2<float> delta)
+    {
+        Console.WriteLine($"Mouse Moved X : {delta.X} , Y : {delta.Y} ");
+        var viewTarget = TargetScene.ViewTarget?.RootComponent;
+        if(viewTarget == null) return;
+        viewTarget.SetRelativeRotation(viewTarget.GetRelativeRotation().ApplyYaw(delta.X).ApplyPitch(delta.Y));
     }
 }

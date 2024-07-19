@@ -16,4 +16,9 @@ public class SAudioModule : RuntimeModule
         base.Shutdown(runtime);
         Bass.Free();
     }
+
+
+    public bool SetVolume(int val) => Bass.Configure(Configuration.GlobalMusicVolume, val);
+
+    public static SAudioModule Get() => SRuntime.Get().GetModule<SAudioModule>();
 }

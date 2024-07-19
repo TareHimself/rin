@@ -18,9 +18,9 @@ public class TextBox : Text
         Content += data;
     }
 
-    protected override void OnAddedToRoot(WidgetSurface widgetSurface)
+    protected override void OnAddedToSurface(WidgetSurface widgetSurface)
     {
-        base.OnAddedToRoot(widgetSurface);
+        base.OnAddedToSurface(widgetSurface);
         if (widgetSurface is WidgetWindowSurface windowSurface)
         {
             windowSurface.Window.OnChar += OnCharacter;
@@ -32,9 +32,9 @@ public class TextBox : Text
         return e.Surface.RequestFocus(this);
     }
 
-    protected override void OnRemovedFromRoot(WidgetSurface widgetSurface)
+    protected override void OnRemovedFromSurface(WidgetSurface widgetSurface)
     {
-        base.OnRemovedFromRoot(widgetSurface);
+        base.OnRemovedFromSurface(widgetSurface);
         if (widgetSurface is WidgetWindowSurface windowSurface)
         {
             windowSurface.Window.OnChar -= OnCharacter;
@@ -62,7 +62,7 @@ public class TextBox : Text
 
         var height = GetDesiredSize().Height;
         var color = ForegroundColor.Clone();
-        var sin = (float)((System.Math.Sin(SRuntime.Get().GetTimeSinceCreation() * 5) + 1.0f) / 2.0f);
+        var sin = (float)((System.Math.Sin(SRuntime.Get().GetElapsedRuntimeTimeSeconds() * 5) + 1.0f) / 2.0f);
         color.A *= sin > 0.35 ? 1.0f : 0.0f;
         frame.AddRect(drawInfo.Transform.Translate(offset), new Size2d(2.0f, height),
             color: color);

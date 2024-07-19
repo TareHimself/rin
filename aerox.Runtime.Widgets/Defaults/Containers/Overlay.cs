@@ -14,9 +14,9 @@ public class Overlay : Container
     }
 
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
-        return slots.Aggregate(new Size2d(), (size, slot) =>
+        return Slots.Aggregate(new Size2d(), (size, slot) =>
         {
             var slotSize = slot.GetWidget().GetDesiredSize();
             size.Height = System.Math.Max(size.Height, slotSize.Height);
@@ -28,7 +28,7 @@ public class Overlay : Container
     public override void Collect(WidgetFrame frame, DrawInfo info)
     {
         var drawInfo = info.AccountFor(this);
-        foreach (var slot in slots) slot.GetWidget().Collect(frame, drawInfo);
+        foreach (var slot in Slots) slot.GetWidget().Collect(frame, drawInfo);
     }
 
     public override uint GetMaxSlots()
@@ -38,7 +38,7 @@ public class Overlay : Container
 
     protected override void ArrangeSlots(Size2d drawSize)
     {
-        foreach (var slot in slots.ToArray())
+        foreach (var slot in Slots.ToArray())
         {
             slot.GetWidget().SetRelativeOffset(new Vector2<float>(0, 0));
             slot.GetWidget().SetDrawSize(drawSize);
@@ -49,7 +49,7 @@ public class Overlay : Container
     {
         var position = e.Position.Cast<float>();
         var myInfo = info.AccountFor(this);
-        foreach (var slot in slots.AsReversed())
+        foreach (var slot in Slots.AsReversed())
             if (myInfo.AccountFor(slot.GetWidget()).PointWithin(position))
                 return slot.GetWidget().ReceiveScroll(e, myInfo);
 
@@ -60,7 +60,7 @@ public class Overlay : Container
     {
         var myInfo = info.AccountFor(this);
         var position = e.Position.Cast<float>();
-        foreach (var slot in slots.AsReversed())
+        foreach (var slot in Slots.AsReversed())
             if (myInfo.AccountFor(slot.GetWidget()).PointWithin(position))
             {
                 slot.GetWidget().ReceiveCursorEnter(e, myInfo, items);
@@ -72,7 +72,7 @@ public class Overlay : Container
     {
         var position = e.Position.Cast<float>();
         var myInfo = info.AccountFor(this);
-        foreach (var slot in slots.AsReversed())
+        foreach (var slot in Slots.AsReversed())
             if (myInfo.AccountFor(slot.GetWidget()).PointWithin(position))
                 return slot.GetWidget().ReceiveCursorDown(e, myInfo);
 
@@ -82,7 +82,7 @@ public class Overlay : Container
     protected override bool ChildrenReceiveCursorMove(CursorMoveEvent e, DrawInfo info)
     {
         var position = e.Position.Cast<float>();
-        foreach (var slot in slots.AsReversed())
+        foreach (var slot in Slots.AsReversed())
         {
             var slotInfo = info.AccountFor(slot.GetWidget());
             if (slotInfo.PointWithin(position))

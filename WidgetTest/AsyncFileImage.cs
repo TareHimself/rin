@@ -36,9 +36,9 @@ public class AsyncFileImage : Image
                 height = (uint)imgData.Height,
                 depth = 1
             },
-            EImageFormat.Rgba8UNorm,
-            EImageFilter.Linear,
-            EImageTiling.Repeat);
+            ImageFormat.Rgba8UNorm,
+            ImageFilter.Linear,
+            ImageTiling.Repeat);
     
         // We do this since the image adds a ref to the texture
         Texture.Dispose();

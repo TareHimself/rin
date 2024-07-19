@@ -1,4 +1,5 @@
 ﻿using aerox.Runtime.Graphics.Descriptors;
+using aerox.Runtime.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 
 namespace aerox.Runtime.Graphics.Material;
@@ -35,21 +36,41 @@ public class MaterialInstance : MultiDisposable
     //     Compute
     // }
 
-    private readonly VkPipeline _pipeline;
-    private readonly VkPipelineLayout _pipelineLayout;
-    private readonly Shader.Stage.Resources _resources;
-    private readonly Dictionary<SetType, VkDescriptorSetLayout> _setLayouts;
-    private readonly Dictionary<SetType, DescriptorSet> _sets;
+    private readonly CompoundShaderModule _shader;
 
-    public MaterialInstance(Shader.Stage.Resources inResources, VkPipelineLayout inPipelineLayout,
-        VkPipeline inPipeline, Dictionary<SetType, DescriptorSet> inSets,
-        Dictionary<SetType, VkDescriptorSetLayout> inSetLayouts)
+    private readonly Dictionary<uint, DescriptorSet> _sets = [];
+    
+    public enum ParameterType
     {
-        _resources = inResources;
-        _pipelineLayout = inPipelineLayout;
-        _pipeline = inPipeline;
-        _sets = inSets;
-        _setLayouts = inSetLayouts;
+        Texture,
+        Buffer
+    }
+    
+    public struct Parameter
+    {
+        public string Id;
+        public uint[] Bindings;
+        public DescriptorSet[] Sets;
+    }
+
+    public MaterialInstance(CompoundShaderModule compoundShader)
+    {
+        var subsystem = SGraphicsModule.Get();
+        _shader = compoundShader;
+        foreach (var setLayout in _shader.Layouts)
+        {
+            _sets.Add(setLayout.Key,subsystem.GetDescriptorAllocator().Allocate(setLayout.Value));
+        }
+    }
+
+    public MaterialInstance(IEnumerable<ShaderModule> shaderModules) : this(new CompoundShaderModule(shaderModules))
+    {
+        
+    }
+
+    public MaterialInstance(string filePath) : this(SGraphicsModule.Get().LoadShader(filePath))
+    {
+        
     }
 
     protected override void OnDispose(bool isManual)
@@ -59,25 +80,26 @@ public class MaterialInstance : MultiDisposable
         var device = subsystem.GetDevice();
         unsafe
         {
-            vkDestroyPipeline(device, _pipeline, null);
-            vkDestroyPipelineLayout(device, _pipelineLayout, null);
-            foreach (var kv in _setLayouts) vkDestroyDescriptorSetLayout(device, kv.Value, null);
-            _setLayouts.Clear();
+            _shader.Dispose();
             foreach (var set in _sets) set.Value.Dispose();
             _sets.Clear();
         }
     }
-
-    public IEnumerable<string> GetTextureParameters() => _resources.Textures.Select(c => c.Key);
+    
+    
+    public IEnumerable<string> GetTextureParameters() => _shader.Parameters.Where(c => c.Value.Type == CompoundShaderModule.ParameterType.Texture).Select(c => c.Key);
+    
+    public IEnumerable<string> GetBufferParameters() => _shader.Parameters.Where(c => c.Value.Type == CompoundShaderModule.ParameterType.Buffer).Select(c => c.Key);
 
     /// <summary>
     ///     Binds a <see cref="Texture" /> to this <see cref="MaterialInstance" />
     /// </summary>
     public bool BindTexture(string id, Texture texture)
     {
-        if (!_resources.Textures.TryGetValue(id, out var resource)) return false;
+        if (!_shader.Parameters.TryGetValue(id, out var resource)) return false;
 
-        var set = _sets[(SetType)resource.Set];
+        var set = _sets[resource.Set];
+        
         set.WriteTexture(resource.Binding, texture, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         return true; 
@@ -88,9 +110,9 @@ public class MaterialInstance : MultiDisposable
     /// </summary>
     public bool BindTextureArray(string id, Texture[] textures)
     {
-        if (!_resources.Textures.TryGetValue(id, out var resource)) return false;
+        if (!_shader.Parameters.TryGetValue(id, out var resource)) return false;
 
-        var set = _sets[(SetType)resource.Set];
+        var set = _sets[resource.Set];
         set.WriteTextures(resource.Binding, textures, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         return true;
@@ -101,9 +123,9 @@ public class MaterialInstance : MultiDisposable
     /// </summary>
     public bool BindImage(string id, DeviceImage image, DescriptorSet.ImageType type, VkSampler sampler)
     {
-        if (!_resources.Textures.TryGetValue(id, out var resource)) return false;
+        if (!_shader.Parameters.TryGetValue(id, out var resource)) return false;
 
-        var set = _sets[(SetType)resource.Set];
+        var set = _sets[resource.Set];
         set.WriteImage(resource.Binding, image, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, type, sampler);
 
         return true;
@@ -115,9 +137,9 @@ public class MaterialInstance : MultiDisposable
     /// </summary>
     public bool BindImageArray(string id, DeviceImage[] images, DescriptorSet.ImageType type, VkSampler sampler)
     {
-        if (!_resources.Textures.TryGetValue(id, out var resource)) return false;
+        if (!_shader.Parameters.TryGetValue(id, out var resource)) return false;
 
-        var set = _sets[(SetType)resource.Set];
+        var set = _sets[resource.Set];
         set.WriteImages(resource.Binding, images, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, type,
             sampler);
 
@@ -130,9 +152,9 @@ public class MaterialInstance : MultiDisposable
     public bool BindBuffer(string id, DeviceBuffer buffer,
         DescriptorSet.BufferType type = DescriptorSet.BufferType.Uniform, ulong offset = 0)
     {
-        if (!_resources.Buffers.TryGetValue(id, out var resource)) return false;
+        if (!_shader.Parameters.TryGetValue(id, out var resource)) return false;
 
-        var set = _sets[(SetType)resource.Set];
+        var set = _sets[resource.Set];
         set.WriteBuffer(resource.Binding, buffer, type, offset);
 
         return true;
@@ -141,14 +163,14 @@ public class MaterialInstance : MultiDisposable
     /// <summary>
     ///     Pushes a constant this <see cref="MaterialInstance" />
     /// </summary>
-    public bool Push<T>(VkCommandBuffer commandBuffer,T constant)
+    public bool Push<T>(VkCommandBuffer commandBuffer,T constant,string id = "push")
     {
-        if (_resources.Push == null) return false;
+        if (!_shader.PushConstants.TryGetValue(id, out var pushConstant)) return false;
 
         unsafe
         {
-            vkCmdPushConstants(commandBuffer, _pipelineLayout, _resources.Push.Stages, 0,
-                (uint)_resources.Push.Size, &constant);
+            vkCmdPushConstants(commandBuffer, _shader.PipelineLayout, pushConstant.Stages, 0,
+                (uint)pushConstant.Size, &constant);
             return true;
         }
     }
@@ -158,14 +180,15 @@ public class MaterialInstance : MultiDisposable
     /// </summary>
     public void BindTo(Frame frame)
     {
-        vkCmdBindPipeline(frame.GetCommandBuffer(), VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
+        var cmd = frame.GetCommandBuffer();
+        _shader.Bind(frame);
         var sets = _sets.Select(kv => (VkDescriptorSet)kv.Value).ToArray();
         unsafe
         {
             fixed (VkDescriptorSet* pSets = sets)
             {
                 vkCmdBindDescriptorSets(frame.GetCommandBuffer(), VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    _pipelineLayout, 0, (uint)sets.Length, pSets, 0, null);
+                    _shader.PipelineLayout, 0, (uint)sets.Length, pSets, 0, null);
             }
         }
     }

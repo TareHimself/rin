@@ -11,7 +11,7 @@ namespace aerox.Runtime.Graphics;
 /// </summary>
 public class WindowRenderer : Disposable
 {
-    private const uint FramesInFlight = 2;
+    private const uint FramesInFlight = 1;
     private const VkFormat SwapchainFormat = VkFormat.VK_FORMAT_B8G8R8A8_UNORM;
     private readonly SGraphicsModule _module;
     private readonly VkSurfaceKHR _surface;
@@ -21,6 +21,7 @@ public class WindowRenderer : Disposable
     private bool _resizing;
     private VkSwapchainKHR _swapchain;
     private VkImage[] _swapchainImages = [];
+    public double LastFrameTime = 0.0;
 
     private VkExtent2D _swapchainSize = new()
     {
@@ -31,8 +32,7 @@ public class WindowRenderer : Disposable
     private VkImageView[] _swapchainViews = [];
     private VkViewport _viewport;
     
-    public event Action<Frame>? OnDrawPrimary;
-    public event Action<Frame>? OnDrawSecondary;
+    public event Action<Frame>? OnDraw;
     public event Action<Frame, VkImage, VkExtent2D>? OnCopyToSwapchain;
 
 
@@ -255,8 +255,7 @@ public class WindowRenderer : Disposable
         }).Wait();
     }
 
-
-    public void Draw()
+    protected void DrawFrame()
     {
         if (!ShouldDraw()) return;
 
@@ -303,44 +302,43 @@ public class WindowRenderer : Disposable
         unsafe
         {
             vkBeginCommandBuffer(cmd, &commandBeginInfo);
-            fixed (VkViewport* pViewport = &_viewport)
-            {
-                vkCmdSetViewport(cmd, 0, 1, pViewport);
-            }
-
-            var scissor = new VkRect2D
-            {
-                offset = new VkOffset2D
-                {
-                    x = 0,
-                    y = 0
-                },
-                extent = new VkExtent2D
-                {
-                    width = (uint)_viewport.width,
-                    height = (uint)_viewport.height
-                }
-            };
-            vkCmdSetScissor(cmd, 0, 1, &scissor);
+            
+            cmd
+                .SetRasterizerDiscard(false)
+                .DisableMultiSampling();
         }
-
-        OnDrawPrimary?.Invoke(frame);
-        OnDrawSecondary?.Invoke(frame);
-
+        
+        OnDraw?.Invoke(frame);
+        
         SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
-            VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
+            VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,new ImageBarrierOptions()
+            {
+                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
+                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT
+            });
 
         OnCopyToSwapchain?.Invoke(frame, _swapchainImages[swapchainImageIndex], swapchainExtent);
 
         SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
-            VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+            VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,new ImageBarrierOptions()
+            {
+                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
+                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
+            });
 
         vkEndCommandBuffer(cmd);
 
         Submit(frame, swapchainImageIndex);
 
         _framesRendered++;
-        //Console.WriteLine("Drawn frame {0}",_framesRendered);
+    }
+    public void Draw()
+    {
+        var start = SRuntime.Get().GetElapsedRuntimeTimeSeconds();
+        DrawFrame();
+        LastFrameTime = SRuntime.Get().GetElapsedRuntimeTimeSeconds() - start;
     }
 
 

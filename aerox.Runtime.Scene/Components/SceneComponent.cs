@@ -56,6 +56,28 @@ public class SceneComponent : Component, ISceneDrawable
     {
         _relativeTransform.Scale = scale.Clone();
     }
+    
+    public void SetRelativeLocation(float? x = null,float? y = null,float? z = null)
+    {
+        _relativeTransform.Location.X = x ?? _relativeTransform.Location.X;
+        _relativeTransform.Location.Y = y ?? _relativeTransform.Location.Y;
+        _relativeTransform.Location.Z = z ?? _relativeTransform.Location.Z;
+    }
+    
+    public void SetRelativeRotation(float? x = null,float? y = null,float? z = null,float? w = null)
+    {
+        _relativeTransform.Rotation.X = x ?? _relativeTransform.Rotation.X;
+        _relativeTransform.Rotation.Y = y ?? _relativeTransform.Rotation.Y;
+        _relativeTransform.Rotation.Z = z ?? _relativeTransform.Rotation.Z;
+        _relativeTransform.Rotation.W = w ?? _relativeTransform.Rotation.W;
+    }
+    
+    public void SetRelativeScale(float? x = null,float? y = null,float? z = null)
+    {
+        _relativeTransform.Scale.X = x ?? _relativeTransform.Scale.X;
+        _relativeTransform.Scale.Y = y ?? _relativeTransform.Scale.Y;
+        _relativeTransform.Scale.Z = z ?? _relativeTransform.Scale.Z;
+    }
 
     public Transform GetWorldTransform()
     {

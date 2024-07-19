@@ -19,10 +19,11 @@ public class SWidgetTestModule : RuntimeModule
         var panel = surf.Add(new Panel());
 
         var switcher = new Switcher();
+        
         var imageSlot = panel.AddChild(
             switcher
         );
-
+        
         panel.AddChild(new BackgroundBlur
         {
             Tint = new Color(1.0f)
@@ -72,23 +73,23 @@ public class SWidgetTestModule : RuntimeModule
 
         surf.Window.OnKey += (e) =>
         {
-            if (e is { State: EKeyState.Pressed, Key: EKey.KeyLeft })
+            if (e is { State: KeyState.Pressed, Key: Key.Left })
             {
                 if (switcher.SelectedIndex - 1 < 0) return;
                 switcher.SelectedIndex -= 1;
                 return;
             }
 
-            if (e is { State: EKeyState.Pressed, Key: EKey.KeyRight })
+            if (e is { State: KeyState.Pressed, Key: Key.Right })
             {
                 if (switcher.SelectedIndex + 1 >= switcher.GetNumSlots()) return;
                 switcher.SelectedIndex += 1;
                 return;
             }
 
-            if (e is { State: EKeyState.Pressed, Key: EKey.KeyEnter })
+            if (e is { State: KeyState.Pressed, Key: Key.Enter })
             {
-                var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true).WaitForResult();
+                var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
                     switcher.AddChild(new Fitter(new AsyncFileImage(path))
                     {
@@ -124,13 +125,36 @@ public class SWidgetTestModule : RuntimeModule
             slot.Alignment = 0.5f;
         });
     }
+    
+    public void TestText()
+    {
+        var surf = SWidgetsModule.Get().GetWindowSurface();
+
+        if (surf == null) return;
+
+        var panel = surf.Add(new Panel());
+
+       
+        var textSlot = panel.AddChild(new Text("Test Text", 40));
+
+        
+        if (textSlot == null) return;
+        textSlot.Mutate(slot =>
+        {
+            slot.SizeToContent = true;
+            slot.Alignment = 0f;
+            slot.MinAnchor = 0f;
+            slot.MaxAnchor = 0f;
+        });
+    }
 
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
-        
+        Console.WriteLine("CREATING WINDOW");
         SWindowsModule.Get().CreateWindow(500, 500, "Aerox Widget Test");
         
         TestBlur();
+        //TestText();
     }
 }

@@ -14,12 +14,12 @@ public class Switcher : Container
         set
         {
             var lastSelected = _selected;
-            _selected = System.Math.Clamp(value, 0, slots.Count == 0 ? 0 : slots.Count - 1);
+            _selected = System.Math.Clamp(value, 0, Slots.Count == 0 ? 0 : Slots.Count - 1);
             if (lastSelected != _selected) SelectedWidgetUpdated();
         }
     }
 
-    public Widget? SelectedWidget => slots.Count > SelectedIndex ? slots[SelectedIndex].GetWidget() : null;
+    public Widget? SelectedWidget => Slots.Count > SelectedIndex ? Slots[SelectedIndex].GetWidget() : null;
 
     public void SelectedWidgetUpdated()
     {
@@ -27,7 +27,7 @@ public class Switcher : Container
         ArrangeSlots(GetDrawSize());
     }
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
         return SelectedWidget?.GetDesiredSize() ?? new Size2d();
     }
@@ -49,9 +49,9 @@ public class Switcher : Container
 
     protected override void ArrangeSlots(Size2d drawSize)
     {
-        if (slots.Count == 0) return;
+        if (Slots.Count == 0) return;
 
-        var slot = slots[SelectedIndex];
+        var slot = Slots[SelectedIndex];
 
         var widget = slot.GetWidget();
 

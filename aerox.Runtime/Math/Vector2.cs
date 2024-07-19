@@ -137,6 +137,12 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
     {
         return Acos(other) * System.Math.PI / 180.0f;
     }
+    
+    public double Cross(Vector2<T> other)
+    {
+        dynamic ux = X,uy = Y,vx = other.X,vy = other.Y;
+        return ux * vy - uy * vx;
+    }
 
     public static implicit operator Vector2<T>(T data)
     {

@@ -1,4 +1,6 @@
-﻿using aerox.Runtime.Widgets.Events;
+﻿using aerox.Runtime.Extensions;
+using aerox.Runtime.Widgets.Events;
+using aerox.Runtime.Widgets.Graphics.Commands;
 
 namespace aerox.Runtime.Widgets;
 
@@ -14,15 +16,17 @@ public abstract class ContainerBase : Widget
 
 public abstract class Container<T> : ContainerBase where T : Slot
 {
-    protected readonly List<T> slots = new();
-    protected readonly Mutex slotsMutex = new();
+    protected readonly List<T> Slots = new();
+    protected readonly Mutex SlotsMutex = new();
 
     public Container(params Widget[] children)
     {
         foreach (var widget in children)
-            if (AddChild(widget) == null)
+            if (AddChildFromConstructor(widget) == null)
                 break;
     }
+
+    protected T? AddChildFromConstructor(Widget widget) => AddChild(widget);
 
     public virtual T? AddChild<TE>() where TE : Widget
     {
@@ -31,18 +35,18 @@ public abstract class Container<T> : ContainerBase where T : Slot
 
     public virtual T? AddChild(Widget widget)
     {
-        lock (slotsMutex)
+        lock (SlotsMutex)
         {
             var maxSlots = GetMaxSlots();
-            if (maxSlots > 0 && slots.Count == maxSlots) return null;
+            if (maxSlots > 0 && Slots.Count == maxSlots) return null;
 
             widget.SetParent(this);
 
             var slot = MakeSlot(widget);
 
-            slots.Add(slot);
+            Slots.Add(slot);
 
-            if (Surface != null) widget.NotifyAddedToRoot(Surface);
+            if (Surface != null) widget.NotifyAddedToSurface(Surface);
 
             OnChildResized(widget);
             Console.WriteLine("Added child [{0}] to container [{1}]", widget.GetType().Name, GetType().Name);
@@ -52,17 +56,17 @@ public abstract class Container<T> : ContainerBase where T : Slot
 
     public virtual bool RemoveChild(Widget widget)
     {
-        lock (slotsMutex)
+        lock (SlotsMutex)
         {
-            for (var i = 0; i < slots.Count; i++)
+            for (var i = 0; i < Slots.Count; i++)
             {
-                if (slots[i].GetWidget() != widget) continue;
+                if (Slots[i].GetWidget() != widget) continue;
 
                 widget.SetParent(null);
 
-                if (Surface != null) widget.NotifyRemovedFromRoot(Surface);
+                if (Surface != null) widget.NotifyRemovedFromSurface(Surface);
 
-                slots.RemoveAt(i);
+                Slots.RemoveAt(i);
 
                 CheckSize();
                 return true;
@@ -72,27 +76,27 @@ public abstract class Container<T> : ContainerBase where T : Slot
         }
     }
 
-    public virtual T? GetChildSot(int idx)
+    public virtual T? GetChildSlot(int idx)
     {
-        lock (slotsMutex)
+        lock (SlotsMutex)
         {
-            return idx < slots.Count ? slots[idx] : null;
+            return idx < Slots.Count ? Slots[idx] : null;
         }
     }
 
     public virtual T[] GetSlots()
     {
-        lock (slotsMutex)
+        lock (SlotsMutex)
         {
-            return slots.ToArray();
+            return Slots.ToArray();
         }
     }
 
     public virtual int GetNumSlots()
     {
-        lock (slotsMutex)
+        lock (SlotsMutex)
         {
-            return slots.Count;
+            return Slots.Count;
         }
     }
 
@@ -113,9 +117,9 @@ public abstract class Container<T> : ContainerBase where T : Slot
     protected virtual Widget? ChildrenReceiveCursorDown(CursorDownEvent e, DrawInfo info)
     {
         var point = e.Position.Cast<float>();
-        lock (slotsMutex)
+        lock (SlotsMutex)
         {
-            foreach (var slot in slots)
+            foreach (var slot in Slots.AsReversed())
             {
                 var slotInfo = info.AccountFor(slot.GetWidget());
                 if (!slotInfo.PointWithin(point)) continue;
@@ -137,9 +141,9 @@ public abstract class Container<T> : ContainerBase where T : Slot
     protected virtual void ChildrenReceiveCursorEnter(CursorMoveEvent e, DrawInfo info, List<Widget> items)
     {
         var point = e.Position.Cast<float>();
-        lock (slotsMutex)
+        lock (SlotsMutex)
         {
-            foreach (var slot in slots)
+            foreach (var slot in Slots)
             {
                 var slotInfo = info.AccountFor(slot.GetWidget());
                 if (slotInfo.PointWithin(point))
@@ -158,9 +162,9 @@ public abstract class Container<T> : ContainerBase where T : Slot
     protected virtual bool ChildrenReceiveCursorMove(CursorMoveEvent e, DrawInfo info)
     {
         var point = e.Position.Cast<float>();
-        lock (slotsMutex)
+        lock (SlotsMutex)
         {
-            foreach (var slot in slots)
+            foreach (var slot in Slots)
             {
                 var slotInfo = info.AccountFor(slot.GetWidget());
                 if (slotInfo.PointWithin(point) &&
@@ -182,9 +186,9 @@ public abstract class Container<T> : ContainerBase where T : Slot
     protected virtual bool ChildrenReceiveScroll(ScrollEvent e, DrawInfo info)
     {
         var point = e.Position.Cast<float>();
-        lock (slotsMutex)
+        lock (SlotsMutex)
         {
-            foreach (var slot in slots)
+            foreach (var slot in Slots)
             {
                 var slotInfo = info.AccountFor(slot.GetWidget());
                 if (slotInfo.PointWithin(point) &&
@@ -199,37 +203,47 @@ public abstract class Container<T> : ContainerBase where T : Slot
     public override void SetDrawSize(Size2d size)
     {
         base.SetDrawSize(size);
-        ArrangeSlots(size);
+        ArrangeSlots(GetDrawSize());
     }
 
-    public override void NotifyAddedToRoot(WidgetSurface widgetSurface)
+    public override void NotifyAddedToSurface(WidgetSurface widgetSurface)
     {
-        base.NotifyAddedToRoot(widgetSurface);
-        lock (slotsMutex)
+        base.NotifyAddedToSurface(widgetSurface);
+        lock (SlotsMutex)
         {
-            foreach (var slot in slots)
-                slot.GetWidget().NotifyAddedToRoot(widgetSurface);
+            foreach (var slot in Slots)
+                slot.GetWidget().NotifyAddedToSurface(widgetSurface);
         }
     }
 
-    public override void NotifyRemovedFromRoot(WidgetSurface widgetSurface)
+    public override void NotifyRemovedFromSurface(WidgetSurface widgetSurface)
     {
-        base.NotifyRemovedFromRoot(widgetSurface);
-        lock (slotsMutex)
+        base.NotifyRemovedFromSurface(widgetSurface);
+        lock (SlotsMutex)
         {
-            foreach (var slot in slots)
-                slot.GetWidget().NotifyRemovedFromRoot(widgetSurface);
+            foreach (var slot in Slots)
+                slot.GetWidget().NotifyRemovedFromSurface(widgetSurface);
         }
     }
 
     protected override void OnDispose(bool isManual)
     {
         base.OnDispose(isManual);
-        lock (slotsMutex)
+        lock (SlotsMutex)
         {
-            foreach (var slot in slots) slot.GetWidget().Dispose();
+            foreach (var slot in Slots) slot.GetWidget().Dispose();
         }
     }
+
+    // public override void Collect(WidgetFrame frame, DrawInfo info)
+    // {
+    //     frame.AddCommands(new SimpleClip(info.ClipRect));
+    // }
+    //
+    // protected virtual void CollectChildren(WidgetFrame frame, DrawInfo info)
+    // {
+    //     
+    // }
 }
 
 public abstract class Container : Container<Slot>

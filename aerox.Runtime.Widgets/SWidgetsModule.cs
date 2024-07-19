@@ -2,6 +2,9 @@
 using aerox.Runtime.Extensions;
 using aerox.Runtime.Graphics;
 using aerox.Runtime.Graphics.Material;
+using aerox.Runtime.Graphics.Shaders;
+using aerox.Runtime.Widgets.Animation;
+using aerox.Runtime.Widgets.Mtsdf;
 using aerox.Runtime.Windows;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -18,16 +21,17 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
     public static readonly string
         ShadersDir = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "","shaders","widgets");
     private readonly FontCollection _fontCollection = new();
-    private readonly Mutex _msdfFontMutex = new();
-    private readonly Dictionary<string, MtsdfFont> _msdfFonts = new();
-    private readonly Dictionary<string, Task<MtsdfFont?>> _msdfTasks = new();
+    private readonly Mutex _mtsdfFontMutex = new();
+    private readonly Dictionary<string, MtsdfFont> _mtsdfFonts = new();
+    private readonly Dictionary<string, Task<MtsdfFont?>> _mtsdfTasks = new();
     private readonly Dictionary<WindowRenderer, WidgetWindowSurface> _windowSurfaces = new();
     private SGraphicsModule? _graphicsSubsystem;
 
-    public static SWidgetsModule Get()
-    {
-        return SRuntime.Get().GetModule<SWidgetsModule>();
-    }
+    public readonly AnimationProcessor Processor = new AnimationProcessor();
+
+    public string RunAnimation(Widget widget,AnimationAction animation) => Processor.Run(widget,animation);
+    
+    public static SWidgetsModule Get() => SRuntime.Get().GetModule<SWidgetsModule>();
 
     public FontCollection GetFontCollection()
     {
@@ -55,6 +59,12 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         _graphicsSubsystem.OnRendererCreated += OnRendererCreated;
         _graphicsSubsystem.OnRendererDestroyed += OnRendererDestroyed;
         foreach (var renderer in _graphicsSubsystem.GetRenderers()) OnRendererCreated(renderer);
+        runtime.OnTick += Tick;
+    }
+
+    public void Tick(double delta)
+    {
+        Processor.Apply();
     }
 
     private void OnRendererCreated(WindowRenderer renderer)
@@ -93,18 +103,13 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         return mainWindow == null ? null : GetWindowSurface(mainWindow);
     }
 
-    public WidgetSurface? GetMainRoot()
-    {
-        var win = _graphicsSubsystem?.GetMainWindow();
-        return win == null ? null : GetWindowSurface(win);
-    }
-
     public override void Shutdown(SRuntime runtime)
     {
         base.Shutdown(runtime);
+        runtime.OnTick -= Tick;
         _graphicsSubsystem?.WaitDeviceIdle();
-        foreach (var kv in _msdfFonts) kv.Value.Dispose();
-        _msdfFonts.Clear();
+        foreach (var kv in _mtsdfFonts) kv.Value.Dispose();
+        _mtsdfFonts.Clear();
 
         foreach (var root in _windowSurfaces) root.Value.Dispose();
         _windowSurfaces.Clear();
@@ -117,18 +122,6 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         }
     }
 
-    public static MaterialInstance CreateMaterial(Shader shader)
-    {
-        return new MaterialBuilder().ConfigureForWidgets().SetShader(shader)
-            .AddAttachmentFormats(EImageFormat.Rgba32SFloat).Build();
-    }
-
-    public static MaterialInstance CreateMaterial(string shader)
-    {
-        var graphicsModule = SRuntime.Get().GetModule<SGraphicsModule>();
-        return new MaterialBuilder().ConfigureForWidgets().SetShader(graphicsModule.LoadShader(shader))
-            .AddAttachmentFormats(EImageFormat.Rgba32SFloat).Build();
-    }
 
     public static DeviceImage UploadImage(Image<Rgba32> image, VkImageUsageFlags usage, bool mipMap = false)
     {
@@ -139,35 +132,35 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
             width = (uint)image.Width,
             height = (uint)image.Height,
             depth = 1
-        }, EImageFormat.Rgba8UNorm, usage, mipMap);
+        }, ImageFormat.Rgba8UNorm, usage, mipMap);
     }
 
-    private async Task<MtsdfFont?> GenerateMsdfFont(FontFamily family)
+    private async Task<MtsdfFont?> GenerateMtsdfFont(FontFamily family)
     {
         var newFont = new MtsdfGenerator(family);
-        _msdfFonts.Add(family.Name, await newFont.GenerateFont(32));
-        return _msdfFonts[family.Name];
+        _mtsdfFonts.Add(family.Name, await newFont.GenerateFont(32));
+        return _mtsdfFonts[family.Name];
     }
 
     public Task<MtsdfFont?> GetOrCreateFont(string fontFamily)
     {
-        lock (_msdfFontMutex)
+        lock (_mtsdfFontMutex)
         {
             var family = FindFontFamily(fontFamily);
 
             if (family == null) return Task.FromResult<MtsdfFont?>(null);
 
-            if (_msdfFonts.TryGetValue(family.Value.Name, out var font)) return Task.FromResult<MtsdfFont?>(font);
+            if (_mtsdfFonts.TryGetValue(family.Value.Name, out var font)) return Task.FromResult<MtsdfFont?>(font);
 
-            if (_msdfTasks.TryGetValue(family.Value.Name, out var msdfFontTask)) return msdfFontTask;
+            if (_mtsdfTasks.TryGetValue(family.Value.Name, out var mtsdfFontTask)) return mtsdfFontTask;
 
-            var task = GenerateMsdfFont(family.Value);
+            var task = GenerateMtsdfFont(family.Value);
 
-            task.Then(_ => _msdfTasks.Remove(family.Value.Name));
+            task.Then(_ => _mtsdfTasks.Remove(family.Value.Name)).ConfigureAwait(false);
 
-            _msdfTasks.Add(family.Value.Name, task);
+            _mtsdfTasks.Add(family.Value.Name, task);
 
-            return _msdfTasks[family.Value.Name];
+            return _mtsdfTasks[family.Value.Name];
         }
     }
 }

@@ -21,6 +21,7 @@ public class RuntimeModule
     public virtual async void Startup(SRuntime runtime)
     {
         _engine = runtime;
+        Console.WriteLine($"Starting up {this.GetType().Name}");
     }
 
     protected SRuntime? GetEngine()

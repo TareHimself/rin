@@ -6,7 +6,6 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        SRuntime.Get().LoadRequiredModules<ProgramSceneTestModule>();
         //Runtime.Instance.EnsureLoad("aerox.Runtime","aerox.Runtime.Audio","aerox.Runtime.Graphics","aerox.Runtime.Windows","aerox.Runtime.Widgets");
         SRuntime.Get().Run();
     }

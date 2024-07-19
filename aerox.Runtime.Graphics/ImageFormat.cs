@@ -1,6 +1,6 @@
 ﻿namespace aerox.Runtime.Graphics;
 
-public enum EImageFormat
+public enum ImageFormat
 {
     Rgba8UNorm,
     Rgba16UNorm,

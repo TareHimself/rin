@@ -8,15 +8,15 @@ public class Texture : MultiDisposable
 
     public readonly DeviceImage DeviceImage;
 
-    public readonly EImageFilter Filter;
-    public readonly EImageTiling Tiling;
-    private EImageFormat Format => DeviceImage.Format;
+    public readonly ImageFilter Filter;
+    public readonly ImageTiling Tiling;
+    private ImageFormat Format => DeviceImage.Format;
     private bool MipMapped;
 
     public VkExtent3D Size => DeviceImage.Extent;
 
 
-    public Texture(byte[] data, VkExtent3D size, EImageFormat format, EImageFilter filter, EImageTiling tiling,
+    public Texture(byte[] data, VkExtent3D size, ImageFormat format, ImageFilter filter, ImageTiling tiling,
         bool mipMapped = true,
         string debugName = "Texture")
     {

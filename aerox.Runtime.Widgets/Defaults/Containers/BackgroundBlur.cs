@@ -3,7 +3,7 @@ using aerox.Runtime.Graphics;
 using aerox.Runtime.Graphics.Descriptors;
 using aerox.Runtime.Graphics.Material;
 using aerox.Runtime.Math;
-using aerox.Runtime.Widgets.Draw.Commands;
+using aerox.Runtime.Widgets.Graphics.Commands;
 
 namespace aerox.Runtime.Widgets.Defaults.Containers;
 
@@ -42,10 +42,11 @@ internal class BlurCommand : DrawCommand
         
         _materialInstance.BindImage("SourceT", frame.Surface.GetCopyImage(), DescriptorSet.ImageType.Texture, new SamplerSpec
         {
-            Filter = EImageFilter.Linear,
-            Tiling = EImageTiling.Repeat
+            Filter = ImageFilter.Linear,
+            Tiling = ImageTiling.Repeat
         });
         _materialInstance.BindTo(frame);
+        _materialInstance.BindBuffer("ui", frame.Surface.GlobalBuffer);
         _materialInstance.Push(frame.Raw.GetCommandBuffer(),  _pushConstants);
         Quad(frame);
     }
@@ -58,23 +59,23 @@ public class BackgroundBlur : Container
 
     public BackgroundBlur(Widget child) : base(child)
     {
-        _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SWidgetsModule.ShadersDir,"blur.ash"));
+        _materialInstance = new MaterialInstance(Path.Join(SWidgetsModule.ShadersDir,"blur.ash"));
     }
 
     public BackgroundBlur()
     {
-        _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SWidgetsModule.ShadersDir,"blur.ash"));
+        _materialInstance = new MaterialInstance(Path.Join(SWidgetsModule.ShadersDir,"blur.ash"));
     }
 
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
-        return slots.FirstOrDefault()?.GetWidget().GetDesiredSize() ?? new Size2d();
+        return Slots.FirstOrDefault()?.GetWidget().GetDesiredSize() ?? new Size2d();
     }
 
-    protected override void OnAddedToRoot(WidgetSurface widgetSurface)
+    protected override void OnAddedToSurface(WidgetSurface widgetSurface)
     {
-        base.OnAddedToRoot(widgetSurface);
+        base.OnAddedToSurface(widgetSurface);
         _materialInstance.BindBuffer("ui", widgetSurface.GlobalBuffer);
     }
 
@@ -88,12 +89,17 @@ public class BackgroundBlur : Container
             Tint = Tint
         }));
 
-        foreach (var widget in slots.Select(slot => slot.GetWidget())) widget.Collect(frame, info.AccountFor(widget));
+        foreach (var slot in Slots.ToArray())
+        {
+            var slotDrawInfo = info.AccountFor(slot.GetWidget());
+            if (slotDrawInfo.Occluded) continue;
+            slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
+        }
     }
 
     protected override void ArrangeSlots(Size2d drawSize)
     {
-        var widget = slots.FirstOrDefault()?.GetWidget();
+        var widget = Slots.FirstOrDefault()?.GetWidget();
         widget?.SetRelativeOffset(0.0f);
         widget?.SetDrawSize(drawSize);
     }

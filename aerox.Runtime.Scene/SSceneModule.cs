@@ -44,9 +44,7 @@ public class SSceneModule : RuntimeModule, ISingletonGetter<SSceneModule>, ITick
     {
         return AddScene(Activator.CreateInstance<T>());
     }
-
-    public MaterialInstance CreateSceneMaterial(string shader) => new MaterialBuilder().SetShader(SGraphicsModule.Get().LoadShader(shader)).ConfigureForScene().Build();
-
+    
     public override void Shutdown(SRuntime runtime)
     {
         base.Shutdown(runtime);

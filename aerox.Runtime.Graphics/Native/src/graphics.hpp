@@ -1,4 +1,5 @@
 #pragma once
+#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #include "macro.hpp"
 #include <vulkan/vulkan.hpp>
 #include <vk_mem_alloc.h>
@@ -32,3 +33,66 @@ EXPORT void graphicsAllocatorFreeImage(uintptr_t image,void * allocation,void * 
 EXPORT void graphicsAllocatorCopyToBuffer(void * allocator,void * allocation,void * data,unsigned long size,unsigned long offset);
 
 EXPORT uintptr_t graphicsCreateSurface(void * instance,void * window);
+
+EXPORT void graphicsVkCmdBindShadersEXT(VkCommandBuffer commandBuffer, 
+   uint32_t stageCount, 
+   VkShaderStageFlagBits* pStages, 
+   VkShaderEXT* pShaders);
+
+EXPORT void graphicsVkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, 
+    VkRenderingInfo* pRenderingInfo);
+
+EXPORT void graphicsVkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode);
+
+EXPORT void graphicsVkCmdSetLogicOpEXT(VkCommandBuffer commandBuffer, VkLogicOp logicOp);
+
+EXPORT void graphicsVkCmdSetVertexInputEXT( VkCommandBuffer commandBuffer, 
+        uint32_t vertexBindingDescriptionCount, 
+    VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, 
+        uint32_t vertexAttributeDescriptionCount, 
+    VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions);
+
+EXPORT void graphicsVkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, uint32_t logicOpEnable);
+
+EXPORT void graphicsVkCmdSetColorBlendEnableEXT(
+    VkCommandBuffer commandBuffer, 
+    uint32_t firstAttachment, 
+    uint32_t attachmentCount, 
+    uint32_t* pColorBlendEnables);
+
+EXPORT void graphicsVkCmdSetColorBlendEquationEXT(
+    VkCommandBuffer commandBuffer, 
+    uint32_t firstAttachment, 
+    uint32_t attachmentCount, 
+    VkColorBlendEquationEXT* pColorBlendEquations);
+
+EXPORT void graphicsVkCmdSetColorWriteMaskEXT(
+    VkCommandBuffer commandBuffer, 
+    uint32_t firstAttachment, 
+    uint32_t attachmentCount, 
+    VkColorComponentFlags* pColorWriteMasks);
+
+EXPORT VkResult graphicsVkCreateShadersEXT(
+        VkDevice device,
+        uint32_t createInfoCount,
+        VkShaderCreateInfoEXT* pCreateInfos,
+        VkAllocationCallbacks* pAllocator,
+        VkShaderEXT* pShaders);
+
+
+EXPORT void graphicsVkDestroyShaderEXT(
+        VkDevice device,
+        VkShaderEXT shader,
+        VkAllocationCallbacks* pAllocator);
+
+EXPORT void graphicsVkCmdSetRasterizationSamplesEXT( VkCommandBuffer commandBuffer, 
+    VkSampleCountFlagBits rasterizationSamples);
+
+EXPORT void graphicsVkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToCoverageEnable);
+
+EXPORT void graphicsVkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToOneEnable);
+
+EXPORT void graphicsVkCmdSetSampleMaskEXT(
+    VkCommandBuffer commandBuffer, 
+    VkSampleCountFlagBits samples, 
+    uint32_t* pSampleMask);

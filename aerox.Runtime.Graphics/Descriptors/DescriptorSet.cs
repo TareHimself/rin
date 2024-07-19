@@ -48,7 +48,7 @@ public class DescriptorSet : Disposable
         };
     }
 
-    private void SetResource(uint binding, IEnumerable<MultiDisposable> items)
+    private bool SetResource(uint binding, IEnumerable<MultiDisposable> items)
     {
         if (_resources.TryGetValue(binding, out var resource))
         {
@@ -63,11 +63,34 @@ public class DescriptorSet : Disposable
 
             return item;
         })));
+
+        return true;
+    }
+    
+    private bool SetResource(uint binding, IEnumerable<Pair<MultiDisposable,string>> items)
+    {
+        if (_resources.TryGetValue(binding, out var resource))
+        {
+            resource.Dispose();
+            _resources.Remove(binding);
+        }
+
+
+        _resources.Add(binding, new Resource(items.Select(item =>
+        {
+            item.First.Reserve();
+            
+            return new Pair<IAeroxDisposable,string>(item.First,item.Second);
+        })));
+
+        return true;
     }
 
 
-    public void WriteTexture(uint binding, Texture texture, VkImageLayout layout)
+    public bool WriteTexture(uint binding, Texture texture, VkImageLayout layout)
     {
+        if (!SetResource(binding, [texture])) return false;
+        
         var descriptorImageInfo = new VkDescriptorImageInfo
         {
             sampler = new SamplerSpec
@@ -91,12 +114,15 @@ public class DescriptorSet : Disposable
             };
 
             vkUpdateDescriptorSets(_device, 1, &write, 0, null);
-            SetResource(binding, new[] { texture });
         }
+        
+        return true;
     }
 
-    public void WriteTextures(uint binding, Texture[] textures, VkImageLayout layout)
+    public bool WriteTextures(uint binding, Texture[] textures, VkImageLayout layout)
     {
+        if (!SetResource(binding, textures)) return false;
+        
         var infos = textures.Select(texture => new VkDescriptorImageInfo
         {
             sampler = new SamplerSpec
@@ -107,8 +133,7 @@ public class DescriptorSet : Disposable
             imageView = texture.DeviceImage.View,
             imageLayout = layout
         }).ToArray();
-
-
+    
         unsafe
         {
             fixed (VkDescriptorImageInfo* pInfos = infos)
@@ -124,13 +149,16 @@ public class DescriptorSet : Disposable
                 };
 
                 vkUpdateDescriptorSets(_device, 1, &write, 0, null);
-                SetResource(binding, textures);
             }
         }
+
+        return true;
     }
 
-    public void WriteImage(uint binding, DeviceImage image, VkImageLayout layout, ImageType type, VkSampler sampler)
+    public bool WriteImage(uint binding, DeviceImage image, VkImageLayout layout, ImageType type, VkSampler sampler)
     {
+        if (!SetResource(binding, [image])) return false;
+        
         var descriptorImageInfo = new VkDescriptorImageInfo
         {
             sampler = sampler,
@@ -150,21 +178,24 @@ public class DescriptorSet : Disposable
             };
 
             vkUpdateDescriptorSets(_device, 1, &write, 0, null);
-            SetResource(binding, new[] { image });
+            
         }
+
+        return true;
     }
 
-    public void WriteImages(uint binding, DeviceImage[] images, VkImageLayout layout, ImageType type,
+    public bool WriteImages(uint binding, DeviceImage[] images, VkImageLayout layout, ImageType type,
         VkSampler sampler)
     {
+        if (!SetResource(binding, images)) return false;
+        
         var infos = images.Select(image => new VkDescriptorImageInfo
         {
             sampler = sampler,
             imageView = image.View,
             imageLayout = layout
         }).ToArray();
-
-
+        
         unsafe
         {
             fixed (VkDescriptorImageInfo* pInfos = infos)
@@ -180,17 +211,19 @@ public class DescriptorSet : Disposable
                 };
 
                 vkUpdateDescriptorSets(_device, 1, &write, 0, null);
-                SetResource(binding, images);
             }
         }
+
+        return true;
     }
 
-    public void WriteBuffer(uint binding, DeviceBuffer buffer, BufferType type, ulong offset = 0)
+    public bool WriteBuffer(uint binding, DeviceBuffer buffer, BufferType type, ulong offset = 0)
     {
+        if (!SetResource(binding, [new Pair<MultiDisposable, string>(buffer,offset.ToString())])) return false;
         var descriptorInfo = new VkDescriptorBufferInfo
         {
             buffer = buffer.Buffer,
-            offset = 0,
+            offset = offset,
             range = buffer.Size
         };
         unsafe
@@ -206,20 +239,22 @@ public class DescriptorSet : Disposable
             };
 
             vkUpdateDescriptorSets(_device, 1, &write, 0, null);
-            SetResource(binding, new[] { buffer });
         }
+
+        return true;
     }
 
-    public void WriteBuffers(uint binding, Pair<DeviceBuffer, ulong?>[] buffers, BufferType type)
+    public bool WriteBuffers(uint binding, Pair<DeviceBuffer, ulong?>[] buffers, BufferType type)
     {
+        if (!SetResource(binding, buffers.Select(b => new Pair<MultiDisposable, string>(b.First,b.Second.ToString() ?? "0")))) return false;
+        
         var infos = buffers.Select(buffer => new VkDescriptorBufferInfo
         {
             buffer = buffer.First.Buffer,
             offset = buffer.Second ?? 0,
             range = buffer.First.Size
         }).ToArray();
-
-
+        
         unsafe
         {
             fixed (VkDescriptorBufferInfo* pInfos = infos)
@@ -235,9 +270,10 @@ public class DescriptorSet : Disposable
                 };
 
                 vkUpdateDescriptorSets(_device, 1, &write, 0, null);
-                SetResource(binding, buffers.Select(b => b.First));
             }
         }
+
+        return true;
     }
 
     public static implicit operator VkDescriptorSet(DescriptorSet set)
@@ -253,16 +289,43 @@ public class DescriptorSet : Disposable
 
     private class Resource : Disposable
     {
-        private readonly IDisposable[] _resources;
+        public string ResourceId { get; private set; }
+        private readonly IAeroxDisposable[] _resources;
 
-        public Resource(IEnumerable<IDisposable> resources)
+        public Resource(IEnumerable<IAeroxDisposable> resources)
         {
             _resources = resources.ToArray();
+            ResourceId = _resources.Aggregate("", (t, c) => t + c.DisposeId);
+        }
+        
+        public Resource(IEnumerable<Pair<IAeroxDisposable,string>> resources)
+        {
+            var resourcesArray = resources.ToArray();
+            _resources = resourcesArray.Select(c => c.First).ToArray();
+            ResourceId = resourcesArray.Aggregate("", (t, c) => t + c.First.DisposeId + c.Second);
         }
 
         protected override void OnDispose(bool isManual)
         {
             foreach (var resource in _resources) resource.Dispose();
         }
+    }
+    
+    private class BufferResource : IAeroxDisposable
+    {
+        private DeviceBuffer _buffer;
+
+        public BufferResource(DeviceBuffer buffer,uint offset = 0)
+        {
+            _buffer = buffer;
+        }
+
+        public void Dispose()
+        {
+            _buffer.Dispose();
+        }
+
+        public bool Disposed { get; set; }
+        public string DisposeId { get; }
     }
 }

@@ -14,6 +14,10 @@ public class Fitter : Container
 {
     private FitMode _fitFittingMode = FitMode.Fill;
 
+    public Fitter() : base()
+    {
+        
+    }
     public Fitter(Widget widget) : base(widget)
     {
     }
@@ -33,14 +37,14 @@ public class Fitter : Container
         }
     }
 
-    public override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredSize()
     {
-        return slots.FirstOrDefault()?.GetWidget().GetDesiredSize() ?? new Size2d();
+        return Slots.FirstOrDefault()?.GetWidget().GetDesiredSize() ?? new Size2d();
     }
 
     public override void Collect(WidgetFrame frame, DrawInfo info)
     {
-        foreach (var slot in slots)
+        foreach (var slot in Slots)
         {
             var widget = slot.GetWidget();
             widget.Collect(frame, info.AccountFor(widget));
@@ -80,7 +84,7 @@ public class Fitter : Container
 
     public void SizeContent(Size2d drawSize)
     {
-        var slot = slots.FirstOrDefault();
+        var slot = Slots.FirstOrDefault();
         if (slot == null) return;
         var widget = slot.GetWidget();
         var widgetSize = widget.GetDesiredSize();
