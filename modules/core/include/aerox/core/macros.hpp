@@ -1,0 +1,5 @@
+﻿#pragma once
+
+#define AEROX_MACRO_JOIN_IMPL(A,B) A##B
+
+#define AEROX_MACRO_JOIN(A,B) AEROX_MACRO_JOIN_IMPL(A,B)

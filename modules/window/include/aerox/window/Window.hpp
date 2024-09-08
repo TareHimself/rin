@@ -1,0 +1,48 @@
+#pragma once
+#include "ECursorButton.hpp"
+#include "EInputState.hpp"
+#include "EKey.hpp"
+#include "aerox/core/delegates/DelegateList.hpp"
+#include "aerox/core/math/Vec2.hpp"
+#include "aerox/core/AeroxBase.hpp"
+
+struct GLFWwindow;
+namespace aerox::window
+{
+    class WindowModule;
+    
+
+    class Window : public AeroxBase
+    {
+        GLFWwindow* _window = nullptr;
+    public:
+        explicit Window(GLFWwindow* inWindow);
+
+        ~Window() override;
+        //   DECLARE_DELEGATE(onKeyUp,const std::shared_ptr<KeyEvent> &)
+        // DECLARE_DELEGATE(onKeyDown,const std::shared_ptr<KeyEvent> &)
+        // DECLARE_DELEGATE(onMouseDown,const std::shared_ptr<MouseButtonEvent> &)
+        // DECLARE_DELEGATE(onMouseMoved,const std::shared_ptr<MouseMovedEvent> &)
+        // DECLARE_DELEGATE(onMouseUp,const std::shared_ptr<MouseButtonEvent> &)
+        // DECLARE_DELEGATE(onScroll,const std::shared_ptr<ScrollEvent> &)
+        // DECLARE_DELEGATE(onFocusChanged,const std::weak_ptr<Window> &, bool)
+        // DECLARE_DELEGATE(onResize,const std::weak_ptr<Window> &)
+        // DECLARE_DELEGATE(onCloseRequested,const std::weak_ptr<Window> &)
+
+        DEFINE_DELEGATE_LIST(onFocusChanged,Window*,bool)
+        DEFINE_DELEGATE_LIST(onResize,Window*,const Vec2<int>&)
+        DEFINE_DELEGATE_LIST(onFrameBufferResize,Window*,const Vec2<int>&)
+        DEFINE_DELEGATE_LIST(onCloseRequested,Window*)
+        DEFINE_DELEGATE_LIST(onKey,Window*,EKey,EInputState)
+        DEFINE_DELEGATE_LIST(onCursorButton,Window*,ECursorButton,EInputState)
+        DEFINE_DELEGATE_LIST(onCursorMoved,Window*,const Vec2<float>&)
+
+        GLFWwindow * GetGlfwWindow() const;
+
+        Vec2<int> GetSize() const;
+        Vec2<int> GetFrameBufferSize() const;
+        Vec2<float> GetCursorPosition() const;
+    protected:
+        WindowModule * GetWindowModule();
+    };
+}
