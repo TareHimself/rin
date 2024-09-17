@@ -4,7 +4,7 @@
 #include "aerox/graphics/GraphicsModule.hpp"
 #include "aerox/graphics/WindowRenderer.hpp"
 #include "aerox/widgets/WindowSurface.hpp"
-
+#include <vulkan/vulkan_funcs.hpp>
 namespace aerox::widgets {
     std::string WidgetsModule::GetName()
     {
@@ -36,6 +36,10 @@ namespace aerox::widgets {
 
     void WidgetsModule::OnRendererCreated(graphics::WindowRenderer* renderer)
     {
+        if(!_batchShader)
+        {
+            _batchShader = graphics::GraphicsShader::FromFile(getResourcesPath() / "shaders" / "batch.ash");
+        }
         auto surf = newShared<WindowSurface>(renderer);
         surf->Init();
         _windowSurfaces.emplace(renderer,surf);
@@ -45,5 +49,23 @@ namespace aerox::widgets {
     {
         _windowSurfaces[renderer]->Dispose();
         _windowSurfaces.erase(renderer);
+    }
+
+    Shared<WindowSurface> WidgetsModule::GetSurface(window::Window* window) const
+    {
+        if(auto renderer = _graphicsModule->GetRenderer(window))
+        {
+            if(_windowSurfaces.contains(renderer))
+            {
+                return _windowSurfaces.at(renderer);
+            }
+        }
+
+        return {};
+    }
+    
+    Shared<graphics::GraphicsShader> WidgetsModule::GetBatchShader() const
+    {
+        return _batchShader;
     }
 }

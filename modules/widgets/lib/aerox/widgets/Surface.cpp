@@ -3,14 +3,21 @@
 #include <set>
 #include "aerox/graphics/commandBufferUtils.hpp"
 #include "aerox/core/GRuntime.hpp"
+#include "aerox/graphics/DeviceBuffer.hpp"
 #include "aerox/graphics/GraphicsModule.hpp"
 #include "aerox/widgets/Widget.hpp"
 #include "aerox/widgets/Container.hpp"
+#include "aerox/widgets/WidgetsModule.hpp"
 #include "aerox/widgets/event/CursorDownEvent.hpp"
 #include "aerox/widgets/event/CursorMoveEvent.hpp"
 #include "aerox/widgets/event/ResizeEvent.hpp"
 #include "aerox/widgets/event/ScrollEvent.hpp"
+#include "aerox/widgets/graphics/BatchedDrawCommand.hpp"
+#include "aerox/widgets/graphics/BatchInfo.hpp"
+#include "aerox/widgets/graphics/CustomDrawCommand.hpp"
+#include "aerox/widgets/graphics/QuadInfo.hpp"
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+
 namespace aerox::widgets
 {
     void Surface::DoHover()
@@ -70,6 +77,8 @@ namespace aerox::widgets
         }
     }
 
+    std::string Surface::MAIN_PASS_ID = "main";
+    
     std::vector<Shared<Widget>> Surface::GetRootWidgets() const
     {
         return _rootWidgets;
@@ -257,26 +266,78 @@ namespace aerox::widgets
         return _copyImage;
     }
 
-    void Surface::BeginMainPass(graphics::Frame* frame,bool clear)
+    void Surface::BeginMainPass(SurfaceFrame* frame,bool clear)
     {
         using namespace graphics;
         auto size = GetDrawSize().Cast<uint32_t>();
         vk::Extent2D renderExtent{size.x, size.y};
-        auto cmd = frame->GetCommandBuffer();
+        auto cmd = frame->raw->GetCommandBuffer();
         std::optional<vk::ClearValue> clearColor = clear ? vk::ClearValue{vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f}} : std::optional<vk::ClearValue>{};
         auto attachment = GraphicsModule::MakeRenderingAttachment(GetDrawImage(),vk::ImageLayout::eAttachmentOptimal,clearColor);
         beginRendering(cmd,renderExtent,attachment);
-        setInputTopology(cmd, vk::PrimitiveTopology::eTriangleList);
-        setPolygonMode(cmd, vk::PolygonMode::eFill);
+        disableVertexInput(cmd);
+        disableRasterizerDiscard(cmd);
+        disableMultiSampling(cmd);
         disableStencilTest(cmd);
         disableCulling(cmd);
+        disableDepthTest(cmd);
+        setInputTopology(cmd, vk::PrimitiveTopology::eTriangleList);
+        setPolygonMode(cmd, vk::PolygonMode::eFill);
         enableBlendingAlphaBlend(cmd, 0, 1);
         setRenderExtent(cmd,renderExtent);
+        frame->activePass = MAIN_PASS_ID;
     }
 
-    void Surface::EndMainPass(graphics::Frame* frame)
+    void Surface::EndActivePass(SurfaceFrame* frame)
     {
-        frame->GetCommandBuffer().endRendering();
+        if(frame->activePass.empty()) return;
+        auto cmd = frame->raw->GetCommandBuffer();
+        cmd.endRendering();
+        frame->activePass.clear();
+    }
+
+    void Surface::DrawBatches(SurfaceFrame * frame, std::vector<QuadInfo>& quads)
+    {
+        if(quads.empty()) return;
+        
+        if(frame->activePass != MAIN_PASS_ID)
+        {
+            EndActivePass(frame);
+            BeginMainPass(frame);
+        }
+
+        auto graphicsModule = GRuntime::Get()->GetModule<graphics::GraphicsModule>();
+        auto widgetsModule = GRuntime::Get()->GetModule<WidgetsModule>();
+        auto shader = widgetsModule->GetBatchShader();
+        auto cmd = frame->raw->GetCommandBuffer();
+        
+        if(shader->Bind(cmd,true))
+        {
+            auto setLayout = shader->GetDescriptorSetLayouts().at(0);
+            auto pipelineLayout = shader->GetPipelineLayout();
+            auto size = GetDrawSize().Cast<float>();
+            Vec4<float> viewport{0.0f,0.0f,size.x,size.y};
+            Matrix4<float> projection = static_cast<Matrix4<float>>(glm::ortho(0.0f, size.x, 0.0f, size.y));
+            auto resource = shader->resources.at("batch_info");
+            for(auto i = 0; i < quads.size(); i += BatchInfo::MAX_BATCH)
+            {
+                auto set = frame->raw->GetAllocator()->Allocate(setLayout);
+                auto dataBuffer = graphicsModule->GetAllocator()->NewResourceBuffer(resource);
+                auto totalQuads =  std::min(BatchInfo::MAX_BATCH,static_cast<int>(quads.size() - i));
+                BatchInfo data{viewport,projection};
+                memcpy(&data.quads,quads.data(),totalQuads * sizeof(QuadInfo));
+                dataBuffer->Write(data);
+                set->WriteBuffer(resource.binding,resource.type,dataBuffer);
+                cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,pipelineLayout,0,set->GetInternalSet(),{});
+                if(!dataBuffer || dataBuffer->IsDisposed())
+                {
+                    throw std::runtime_error("YO");
+                }
+                cmd.draw(totalQuads * 6,1,0,0);
+            }
+        }
+        
+        
     }
 
     void Surface::Draw(graphics::Frame* frame)
@@ -293,7 +354,60 @@ namespace aerox::widgets
 
         DoHover();
 
+        {
+            std::vector<Shared<Widget>> widgets = _rootWidgets;
+            TransformInfo transform{this};
+            std::vector<Shared<DrawCommand>> drawCommands{};
+            for (auto &widget : widgets)
+            {
+                widget->Collect(transform,drawCommands);
+            }
+            
+            if(drawCommands.empty())
+            {
+                HandleDrawSkipped(frame);
+                return;
+            }
 
+            HandleBeforeDraw(frame);
+            
+            SurfaceFrame surfFrame{this,frame,""};
+            std::vector<QuadInfo> pendingQuads{};
+            for (auto &drawCommand : drawCommands)
+            {
+                switch (drawCommand->GetType())
+                {
+                case DrawCommand::Type::Batched:
+                    {
+                        if(auto batched = std::dynamic_pointer_cast<BatchedDrawCommand>(drawCommand))
+                        {
+                            auto quads = batched->ComputeQuads();
+                            pendingQuads.insert(pendingQuads.end(),quads.begin(),quads.end());
+                        }
+                    }
+                    break;
+                case DrawCommand::Type::Custom:
+                    {
+                        if(auto batched = std::dynamic_pointer_cast<CustomDrawCommand>(drawCommand))
+                        {
+                            batched->Draw(nullptr);
+                        }
+                    }
+                    break;
+                }
+            }
+
+            if(!pendingQuads.empty())
+            {
+                DrawBatches(&surfFrame,pendingQuads);
+            }
+
+            if(!surfFrame.activePass.empty())
+            {
+                EndActivePass(&surfFrame);
+            }
+        }
+        
         HandleAfterDraw(frame);
     }
 

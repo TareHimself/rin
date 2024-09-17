@@ -16,6 +16,9 @@ namespace aerox
         std::unordered_map<size_t,Shared<Module>> _modules{};
         std::vector<Shared<Module>> _moduleList{};
         bool _exitRequested = false;
+        std::chrono::time_point<std::chrono::system_clock> _startedAt{};
+        double _lastTickTime = 0;
+        double _lastDelta = 0;
         
     protected:
         void StartupModules();
@@ -38,6 +41,10 @@ namespace aerox
         void RequestExit();
     
         void Run();
+
+        double GetTimeSeconds() const;
+
+        double GetLastDelta() const;
 
         DEFINE_DELEGATE_LIST(onTick,double)
     };

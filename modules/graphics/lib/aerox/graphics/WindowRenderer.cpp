@@ -1,10 +1,10 @@
 #include "aerox/graphics/WindowRenderer.hpp"
 
 #include <VkBootstrap.h>
-#include <GLFW/glfw3.h>
 #include "aerox/graphics/GraphicsModule.hpp"
 #include "aerox/graphics/Frame.hpp"
 #include <iostream>
+#include <SDL3/SDL_vulkan.h>
 
 namespace aerox::graphics
 {
@@ -13,7 +13,7 @@ namespace aerox::graphics
         _swapchainSize = _window->GetSize().Cast<uint32_t>();
         CreateSwapchain();
         CreateFrames();
-        _resizeHandle = _window->onFrameBufferResize->Add(this, &WindowRenderer::OnResize);
+        _resizeHandle = _window->onResize->Add(this, &WindowRenderer::OnResize);
     }
 
     void WindowRenderer::CreateSwapchain()
@@ -108,7 +108,7 @@ namespace aerox::graphics
     WindowRenderer::WindowRenderer(const vk::Instance& instance, window::Window* window, GraphicsModule* graphicsModule)
     {
         VkSurfaceKHR surf;
-        glfwCreateWindowSurface(instance, window->GetGlfwWindow(), nullptr, &surf);
+        SDL_Vulkan_CreateSurface(window->GetSDLWindow(),instance,nullptr,&surf);
         _surface = surf;
         _graphicsModule = graphicsModule;
         _window = window;
@@ -177,22 +177,19 @@ namespace aerox::graphics
             {
                 GraphicsModule::ImageBarrier(cmd, _swapchainImages[swapchainIndex], vk::ImageLayout::eUndefined,
                                          vk::ImageLayout::eTransferDstOptimal,
-                                         ImageBarrierOptions().WaitStages(vk::PipelineStageFlagBits2::eTransfer).NextStages(
-                                             vk::PipelineStageFlagBits2::eTransfer));
+                                         ImageBarrierOptions());
 
                 onCopy->Invoke(frame,_swapchainImages[swapchainIndex],vk::Extent2D{_swapchainSize.x,_swapchainSize.y});
 
                 GraphicsModule::ImageBarrier(cmd, _swapchainImages[swapchainIndex], vk::ImageLayout::eTransferDstOptimal,
                                              vk::ImageLayout::ePresentSrcKHR,
-                                             ImageBarrierOptions().WaitStages(vk::PipelineStageFlagBits2::eTransfer).NextStages(
-                                                 vk::PipelineStageFlagBits2::eAllCommands));
+                                             ImageBarrierOptions());
             }
             else
             {
                 GraphicsModule::ImageBarrier(cmd, _swapchainImages[swapchainIndex], vk::ImageLayout::eUndefined,
                                              vk::ImageLayout::ePresentSrcKHR,
-                                             ImageBarrierOptions().WaitStages(vk::PipelineStageFlagBits2::eTransfer).NextStages(
-                                                 vk::PipelineStageFlagBits2::eAllCommands));
+                                             ImageBarrierOptions());
             }
 
             cmd.end();
@@ -202,8 +199,7 @@ namespace aerox::graphics
             cmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
             GraphicsModule::ImageBarrier(cmd, _swapchainImages[swapchainIndex], vk::ImageLayout::eUndefined,
                                              vk::ImageLayout::ePresentSrcKHR,
-                                             ImageBarrierOptions().WaitStages(vk::PipelineStageFlagBits2::eTransfer).NextStages(
-                                                 vk::PipelineStageFlagBits2::eAllCommands));
+                                             ImageBarrierOptions());
             cmd.end();
         }
 

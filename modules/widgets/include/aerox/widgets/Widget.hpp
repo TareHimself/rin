@@ -10,6 +10,7 @@
 #include "aerox/core/delegates/DelegateList.hpp"
 #include "aerox/core/math/Matrix3.hpp"
 #include "aerox/core/math/Vec2.hpp"
+#include "graphics/DrawCommand.hpp"
 
 namespace aerox::widgets
 {
@@ -130,6 +131,8 @@ namespace aerox::widgets
         Vec2<float> GetDesiredSize();
         
         bool CheckSize();
+
+        virtual void Collect(const TransformInfo& transform,std::vector<Shared<DrawCommand>>& drawCommands) = 0;
 
         //void Collect(WidgetFrame frame, DrawInfo info);
     };

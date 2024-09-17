@@ -12,7 +12,12 @@ namespace aerox::widgets
         if(CheckSize()) ArrangeSlots(GetDrawSize());
     }
 
-    size_t Container::GetNumSlots() const
+    size_t Container::GetMaxSlots() const
+    {
+        return std::numeric_limits<size_t>::max();
+    }
+
+    size_t Container::GetUsedSlots() const
     {
         return _slots.size();
     }
@@ -20,6 +25,11 @@ namespace aerox::widgets
     Shared<ContainerSlot> Container::GetSlot(int index) const
     {
         return index < _slots.size() ? _slots[index] : Shared<ContainerSlot>{};
+    }
+
+    Shared<ContainerSlot> Container::GetSlot(Widget* widget) const
+    {
+        return _widgetsToSlots.contains(widget) ? _widgetsToSlots.at(widget) : Shared<ContainerSlot>{};
     }
 
     std::vector<Shared<ContainerSlot>> Container::GetSlots() const
@@ -182,5 +192,15 @@ namespace aerox::widgets
             if(slotTransform.IsPointWithin(event->position) && slot->GetWidget()->NotifyScroll(event,slotTransform)) return true;
         }
         return false;
+    }
+
+    void Container::Collect(const TransformInfo& transform, std::vector<Shared<DrawCommand>>& drawCommands)
+    {
+        for (auto &slot : GetSlots())
+        {
+            auto widget = slot->GetWidget();
+            TransformInfo t = transform.AccountFor(widget);
+            widget->Collect(t,drawCommands);
+        } 
     }
 }

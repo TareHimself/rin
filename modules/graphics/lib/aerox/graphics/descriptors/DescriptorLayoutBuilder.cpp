@@ -33,23 +33,28 @@ namespace aerox::graphics
         return *this;
     }
 
-    vk::DescriptorSetLayout DescriptorLayoutBuilder::Build(const vk::DescriptorSetLayoutCreateFlags& layoutFlags)
+    vk::DescriptorSetLayout DescriptorLayoutBuilder::Build()
     {
         auto device = GRuntime::Get()->GetModule<GraphicsModule>()->GetDevice();
         std::vector<vk::DescriptorSetLayoutBinding> bindings{};
         std::vector<vk::DescriptorBindingFlags> allBindingFlags{};
         bindings.reserve(_bindings.size());
         allBindingFlags.reserve(_bindings.size());
-
+        vk::DescriptorSetLayoutCreateFlags createFlags{};
         for (auto& binding : _bindings | std::views::values)
         {
             bindings.push_back(binding);
-            allBindingFlags.push_back(_flags[binding.binding]);
+            auto flags = _flags[binding.binding];
+            allBindingFlags.push_back(flags);
+            if(flags & vk::DescriptorBindingFlagBits::eUpdateAfterBind)
+            {
+                createFlags |= vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool;
+            }
         }
 
         auto pNext = vk::DescriptorSetLayoutBindingFlagsCreateInfo{allBindingFlags};
 
-        auto createInfo = vk::DescriptorSetLayoutCreateInfo{layoutFlags,bindings,&pNext};
+        auto createInfo = vk::DescriptorSetLayoutCreateInfo{createFlags,bindings,&pNext};
 
         if(const auto result = device.createDescriptorSetLayout(createInfo))
         {

@@ -10,8 +10,7 @@ namespace aerox::widgets
         Vec2<float> ComputeDesiredSize() override;
         void ArrangeSlots(const Vec2<float>& drawSize) override;
         Shared<ContainerSlot> MakeSlot(const Shared<Widget>& widget) override;
-
+        void OnChildResized(Widget* widget) override;
     public:
-        size_t GetMaxSlots() const override;
     };
 }

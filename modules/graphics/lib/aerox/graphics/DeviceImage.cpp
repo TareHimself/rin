@@ -15,8 +15,9 @@ namespace aerox::graphics
         _format = format;
     }
 
-    DeviceImage::~DeviceImage()
+    void DeviceImage::OnDispose(bool manual)
     {
+        Disposable::OnDispose(manual);
         vmaDestroyImage(_allocator,_image,_allocation);
         GRuntime::Get()->GetModule<GraphicsModule>()->GetDevice().destroyImageView(_imageView);
     }

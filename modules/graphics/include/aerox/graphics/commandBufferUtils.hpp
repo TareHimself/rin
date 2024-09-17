@@ -16,6 +16,7 @@ namespace aerox::graphics
     void disableStencilTest(const vk::CommandBuffer& cmd);
     void disableCulling(const vk::CommandBuffer& cmd);
     void disableBlending(const vk::CommandBuffer& cmd);
+    void disableVertexInput(const vk::CommandBuffer& cmd);
     void enableBlending(const vk::CommandBuffer& cmd,uint32_t start,uint32_t count,const vk::ColorBlendEquationEXT& equation,vk::ColorComponentFlags writeMask);
     void enableBlendingAdditive(const vk::CommandBuffer& cmd,uint32_t start,uint32_t count);
     void enableBlendingAlphaBlend(const vk::CommandBuffer& cmd,uint32_t start,uint32_t count);

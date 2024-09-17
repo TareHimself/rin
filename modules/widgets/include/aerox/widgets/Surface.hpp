@@ -6,6 +6,12 @@
 #include <optional>
 
 #include "aerox/graphics/Frame.hpp"
+#include "graphics/QuadInfo.hpp"
+
+namespace aerox::widgets
+{
+    struct SurfaceFrame;
+}
 
 namespace aerox::widgets
 {
@@ -33,7 +39,10 @@ namespace aerox::widgets
         std::vector<Shared<Widget>> _lastHovered{};
 
         void DoHover();
+        
     public:
+
+        static std::string MAIN_PASS_ID;
         std::vector<Shared<Widget>> GetRootWidgets() const;
         DEFINE_DELEGATE_LIST(onCursorDown,const Shared<CursorDownEvent>&)
         DEFINE_DELEGATE_LIST(onCursorUp,const Shared<CursorUpEvent>&)
@@ -66,9 +75,10 @@ namespace aerox::widgets
         Shared<graphics::DeviceImage> GetDrawImage() const;
         Shared<graphics::DeviceImage> GetCopyImage() const;
 
-        virtual void BeginMainPass(graphics::Frame * frame,bool clear = false);
-        virtual void EndMainPass(graphics::Frame * frame);
+        virtual void BeginMainPass(SurfaceFrame * frame,bool clear = false);
+        virtual void EndActivePass(SurfaceFrame * frame);
 
+        virtual void DrawBatches(SurfaceFrame * frame,std::vector<QuadInfo>& quads);
         virtual void Draw(graphics::Frame * frame);
 
 
@@ -78,5 +88,17 @@ namespace aerox::widgets
         
 
         void OnDispose(bool manual) override;
+
+        template<typename T,typename ...TArgs>
+        std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<Widget,T>,Shared<T>> AddChild(TArgs&&... args);
     };
+
+    template <typename T, typename ... TArgs>
+    std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<Widget, T>, Shared<T>> Surface::
+    AddChild(TArgs&&... args)
+    {
+        auto w = newShared<T>(std::forward<TArgs>(args)...);
+        AddChild(w);
+        return w;
+    }
 }

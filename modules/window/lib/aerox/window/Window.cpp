@@ -1,106 +1,116 @@
 #include "aerox/window/Window.hpp"
-#include <GLFW/glfw3.h>
 #include "aerox/window/WindowModule.hpp"
 #include "aerox/core/GRuntime.hpp"
 
 namespace aerox::window
 {
-    Window::Window(GLFWwindow* inWindow)
+    void Window::NotifyEvent(const SDL_Event& event)
+    {
+        switch (event.type)
+        {
+        case SDL_EVENT_KEY_UP:
+        case SDL_EVENT_KEY_DOWN:
+            {
+                if (event.key.repeat)
+                {
+                    onKey->Invoke(this, static_cast<Key>(event.key.key), InputState::Repeat);
+                }
+                else
+                {
+                    onKey->Invoke(this, static_cast<Key>(event.key.key),
+                                  event.type == SDL_EVENT_KEY_UP ? InputState::Released : InputState::Pressed);
+                }
+            }
+            break;
+        case SDL_EVENT_MOUSE_MOTION:
+            {
+                onCursorMoved->Invoke(this, GetPosition().Cast<float>() + Vec2<float>{
+                                          static_cast<float>(event.motion.x), static_cast<float>(event.motion.y)
+                                      });
+            }
+            break;
+        case SDL_EVENT_MOUSE_BUTTON_UP:
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            {
+                onCursorButton->Invoke(this, static_cast<CursorButton>(event.button.button),
+                                       event.button.down
+                                           ? InputState::Pressed
+                                           : InputState::Released);
+            }
+            break;
+        case SDL_EVENT_WINDOW_FOCUS_GAINED:
+        case SDL_EVENT_WINDOW_FOCUS_LOST:
+            onFocusChanged->Invoke(this, event.type == SDL_EVENT_WINDOW_FOCUS_GAINED);
+            break;
+        case SDL_EVENT_WINDOW_RESIZED:
+            {
+                Vec2<int> result{0};
+                SDL_GetWindowSize(_window, &result.x, &result.y);
+                onResize->Invoke(this, result);
+            }
+            break;
+        case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+            {
+                onCloseRequested->Invoke(this);
+            }
+            break;
+        case SDL_EVENT_TEXT_INPUT:
+            {
+                //event.text.timestamp
+            }
+            break;
+        }
+    }
+
+    Window::Window(SDL_Window* inWindow)
     {
         _window = inWindow;
-        if (_window != nullptr)
+        if (const auto windowModule = GetWindowModule())
         {
-            glfwSetWindowUserPointer(_window, this);
-            glfwSetKeyCallback(_window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
-            {
-                const auto self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-                self->onKey->Invoke(self,static_cast<EKey>(key), static_cast<EInputState>(action));
-            });
-            glfwSetCursorPosCallback(_window, [](GLFWwindow* window, double x, double y)
-            {
-                const auto self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-                self->onCursorMoved->Invoke(self,Vec2<float>{static_cast<float>(x), static_cast<float>(y)});
-            });
-            glfwSetMouseButtonCallback(_window, [](GLFWwindow* window, int button, int action, int mods)
-            {
-                const auto self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-                self->onCursorButton->Invoke(self,static_cast<ECursorButton>(button), static_cast<EInputState>(action));
-            });
-
-            //
-            // glfwSetScrollCallback(_window, [](GLFWwindow* window, const double xoffset, const double yoffset)
-            // {
-            //     const auto self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-            //     self->HandleScroll(xoffset, yoffset);
-            // });
-            //
-            glfwSetWindowFocusCallback(_window, [](GLFWwindow* window, int focused)
-            {
-                const auto self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-                const auto newFocus = static_cast<bool>(focused);
-                self->onFocusChanged->Invoke(self, newFocus);
-            });
-
-            glfwSetWindowSizeCallback(_window, [](GLFWwindow* window, const int width, const int height)
-            {
-                const auto self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-                self->onResize->Invoke(self,Vec2{width,height});
-            });
-
-            glfwSetFramebufferSizeCallback(_window, [](GLFWwindow* window, const int width, const int height)
-            {
-                const auto self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-                self->onFrameBufferResize->Invoke(self,Vec2{width,height});
-            });
-
-            glfwSetWindowCloseCallback(_window, [](GLFWwindow* window)
-            {
-                const auto self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-                self->onCloseRequested->Invoke(self);
-            });
-
-            if (const auto windowModule = GetWindowModule())
-            {
-                windowModule->onWindowCreated->Invoke(this);
-            }
+            windowModule->onWindowCreated->Invoke(this);
         }
     }
 
     Window::~Window()
     {
-        if (const auto windowModule = GetWindowModule())
-        {
-            windowModule->onWindowDestroyed->Invoke(this);
-        }
-
-        glfwDestroyWindow(_window);
-        _window = nullptr;
     }
 
-    GLFWwindow* Window::GetGlfwWindow() const
+    SDL_Window* Window::GetSDLWindow() const
     {
         return _window;
     }
 
     Vec2<int> Window::GetSize() const
     {
-        Vec2 result{0};
-        glfwGetWindowSize(_window,&result.x,&result.y);
+        Vec2<int> result{0};
+        SDL_GetWindowSize(_window, &result.x, &result.y);
         return result;
     }
 
-    Vec2<int> Window::GetFrameBufferSize() const
+    Vec2<int> Window::GetPosition() const
     {
-        Vec2 result{0};
-        glfwGetFramebufferSize(_window,&result.x,&result.y);
+        Vec2<int> result{0};
+        SDL_GetWindowPosition(_window, &result.x, &result.y);
         return result;
     }
 
     Vec2<float> Window::GetCursorPosition() const
     {
-        Vec2<double> position{0.0};
-        glfwGetCursorPos(_window,&position.x,&position.y);
-        return position.Cast<float>();
+        auto winPosition = GetPosition();
+        Vec2<float> position{0.0};
+        SDL_GetGlobalMouseState(&position.x, &position.y);
+        return position - winPosition.Cast<float>();
+    }
+
+    void Window::OnDispose(bool manual)
+    {
+        AeroxBase::OnDispose(manual);
+        if (const auto windowModule = GetWindowModule())
+        {
+            windowModule->onWindowDestroyed->Invoke(this);
+        }
+        SDL_DestroyWindow(_window);
+        _window = nullptr;
     }
 
     WindowModule* Window::GetWindowModule()

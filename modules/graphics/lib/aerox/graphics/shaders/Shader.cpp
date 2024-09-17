@@ -1,5 +1,6 @@
 ﻿#include "aerox/graphics/shaders/Shader.hpp"
 #include "aerox/core/utils.hpp"
+#include "aerox/graphics/descriptors/DescriptorLayoutBuilder.hpp"
 #include "ashl/utils.hpp"
 
 namespace aerox::graphics
@@ -9,32 +10,137 @@ namespace aerox::graphics
         return _shaderManager;
     }
 
-    Shader::Texture::Texture(const std::string& inName, const uint32_t& inSet, const uint32_t& inBinding,
-                             const uint32_t& inCount)
-    {
-        name = inName;
-        set = inSet;
-        binding = inBinding;
-        count = inCount;
-        
-    }
-
-    Shader::Buffer::Buffer(const std::string& inName, const uint32_t& inSet, const uint32_t& inBinding,
-        const uint32_t& inSize, const uint32_t& inCount)
-    {
-        name = inName;
-        set = inSet;
-        binding = inBinding;
-        size = inSize;
-        count = inCount;
-    }
-
     Shader::PushConstant::PushConstant(const std::string& inName, const uint64_t& inSize,
-                                             const vk::ShaderStageFlags& inStages)
+                                       const vk::ShaderStageFlags& inStages)
     {
         name = inName;
         size = inSize;
         stages = inStages;
+    }
+
+    void Shader::ComputeResources(
+        const std::vector<std::pair<vk::ShaderStageFlags, std::shared_ptr<ashl::ModuleNode>>>& shaders)
+    {
+        for (auto& [flags,shader] : shaders)
+        {
+            for (auto& node : shader->statements)
+            {
+                switch (node->nodeType)
+                {
+                case ashl::NodeType::Layout:
+                    {
+                        if (auto asLayout = std::dynamic_pointer_cast<ashl::LayoutNode>(node); asLayout && asLayout->
+                            layoutType == ashl::ELayoutType::Uniform)
+                        {
+                            vk::DescriptorType type{};
+                            switch (asLayout->declaration->declarationType)
+                            {
+                            case ashl::EDeclarationType::Block:
+                                type = asLayout->tags.contains("$storage")
+                                           ? vk::DescriptorType::eStorageBuffer
+                                           : vk::DescriptorType::eUniformBuffer;
+                                break;
+                            case ashl::EDeclarationType::Sampler2D:
+                                type = vk::DescriptorType::eCombinedImageSampler;
+                                break;
+                            case ashl::EDeclarationType::Sampler:
+                                type = vk::DescriptorType::eSampler;
+                                break;
+                            case ashl::EDeclarationType::Texture2D:
+                                type = vk::DescriptorType::eSampledImage;
+                                break;
+                            default:
+                                throw std::runtime_error("Unexpected declaration type");
+                            }
+
+                            auto set = static_cast<unsigned>(
+                                ashl::parseInt(asLayout->tags["set"]));
+                            auto binding = static_cast<unsigned>(ashl::parseInt(
+                                asLayout->tags["binding"]));
+
+                            vk::DescriptorBindingFlags bindingFlags{};
+
+
+                            if(asLayout->tags.contains("$update"))
+                            {
+                                bindingFlags |= vk::DescriptorBindingFlagBits::eUpdateAfterBind;
+                            }
+                            if (asLayout->tags.contains("$partial"))
+                            {
+                                bindingFlags |= vk::DescriptorBindingFlagBits::ePartiallyBound;
+                            }
+                            if (asLayout->tags.contains("$variable"))
+                            {
+                                bindingFlags |= vk::DescriptorBindingFlagBits::eVariableDescriptorCount;
+                            }
+
+                            auto name = asLayout->declaration->declarationName;
+
+                            if (resources.contains(name))
+                            {
+                                resources.at(name).stages |= flags;
+                                resources.at(name).bindingFlags |= bindingFlags;
+                            }
+                            else
+                            {
+                                if (asLayout->declaration->declarationType == ashl::EDeclarationType::Block)
+                                {
+                                    resources.emplace(name, ShaderResource{
+                                                          name,
+                                                          set,
+                                                          binding,
+                                                          static_cast<unsigned>(asLayout->declaration->
+                                                              declarationCount),
+                                                          type,
+                                                          flags,
+                                                          bindingFlags,
+                                                          static_cast<uint32_t>(asLayout->declaration->GetSize())
+                                                      });
+                                }
+                                else
+                                {
+                                    resources.emplace(name, ShaderResource{
+                                                          name,
+                                                          set,
+                                                          binding,
+                                                          static_cast<unsigned>(asLayout->declaration->
+                                                              declarationCount),
+                                                          type,
+                                                          flags,
+                                                          bindingFlags
+                                                      });
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case ashl::NodeType::PushConstant:
+                    {
+                        if (auto asPushConstant = std::dynamic_pointer_cast<ashl::PushConstantNode>(node))
+                        {
+                            std::string name = "push";
+                            if (pushConstants.contains(name))
+                            {
+                                pushConstants.at(name).stages |= flags;
+                            }
+                            else
+                            {
+                                uint64_t pushSize = 0;
+                                for (auto& declarationNode : asPushConstant->declarations)
+                                {
+                                    pushSize += declarationNode->GetSize();
+                                }
+
+                                pushConstants.emplace(name, PushConstant{name, pushSize, flags});
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
     }
 
     vk::ShaderStageFlags Shader::ScopeTypeToStageFlags(const ashl::EScopeType& scopeType)
@@ -55,75 +161,34 @@ namespace aerox::graphics
         _shaderManager = manager;
     }
 
-    // Shader::Shader(const Shared<ashl::ModuleNode>& inModule, ashl::EScopeType inScopeType) : Shader(inModule,inScopeType,std::to_string(module->ComputeHash()))
-    // {
-    //     
-    // }
-    //
-    // Shader::Shader(const Shared<ashl::ModuleNode>& inModule, ashl::EScopeType inScopeType,
-    //     const std::string& inId)
-    // {
-    //     module = inModule;
-    //     scopeType = inScopeType;
-    //     _cachedId = inId;
-    //
-    //     for (auto &node : module->statements)
-    //     {
-    //         switch (node->nodeType)
-    //         {
-    //         case ashl::ENodeType::Layout:
-    //             {
-    //                 if(auto asLayout = std::dynamic_pointer_cast<ashl::LayoutNode>(node))
-    //                 {
-    //                     switch (asLayout->declaration->declarationType)
-    //                     {
-    //                     case ashl::EDeclarationType::Block:
-    //                         {
-    //                             if(auto asBlock = std::dynamic_pointer_cast<ashl::BlockDeclarationNode>(node))
-    //                             {
-    //                                 buffers.emplace(asBlock->declarationName,Buffer{
-    //                                 asBlock->declarationName,
-    //                                 static_cast<unsigned>(ashl::parseInt(asLayout->tags["set"])),
-    //                                 static_cast<unsigned>(ashl::parseInt(asLayout->tags["binding"])),
-    //                                     static_cast<unsigned>(asBlock->GetSize()),
-    //                                 static_cast<unsigned>(asBlock->declarationCount)
-    //                             });
-    //                             }
-    //                         }
-    //                         break;
-    //                     case ashl::EDeclarationType::Sampler2D:
-    //                         {
-    //                             textures.emplace(asLayout->declaration->declarationName,Texture{
-    //                                 asLayout->declaration->declarationName,
-    //                                 static_cast<unsigned>(ashl::parseInt(asLayout->tags["set"])),
-    //                                 static_cast<unsigned>(ashl::parseInt(asLayout->tags["binding"])),
-    //                                 static_cast<unsigned>(asLayout->declaration->declarationCount)
-    //                             });
-    //                         }
-    //                         break;
-    //                     default:
-    //                         break;
-    //                     }
-    //                 }
-    //             }
-    //             break;
-    //         case ashl::ENodeType::PushConstant:
-    //             {
-    //                 if(auto asPushConstant = std::dynamic_pointer_cast<ashl::PushConstantNode>(node))
-    //                 {
-    //                     uint64_t pushSize = 0;
-    //                     for (auto &declarationNode : asPushConstant->declarations)
-    //                     {
-    //                         pushSize += declarationNode->GetSize();
-    //                     }
-    //                     std::string name = "push";
-    //                     pushConstants.emplace(name,PushConstant{name,pushSize,ScopeTypeToStageFlags(scopeType)});
-    //                 }
-    //             }
-    //             break;
-    //             default:
-    //                 break;
-    //         }
-    //     } 
-    // }
+    std::map<uint32_t, vk::DescriptorSetLayout> Shader::ComputeDescriptorSetLayouts() const
+    {
+        
+        std::map<uint32_t, DescriptorLayoutBuilder> builders{};
+
+        for (auto& item : resources | std::views::values)
+        {
+            if (!builders.contains(item.set))
+                builders.emplace(item.set,
+                                 DescriptorLayoutBuilder{});
+
+            builders.at(item.set).AddBinding(item.binding,item.type,item.stages,item.count,item.bindingFlags);
+        }
+        std::map<uint32_t,vk::DescriptorSetLayout> layouts{};
+        for (auto &[set,builder] : builders)
+        {
+            layouts.emplace(set,builder.Build());
+        }
+        return layouts;
+    }
+
+    std::vector<vk::PushConstantRange> Shader::ComputePushConstantRanges() const
+    {
+        std::vector<vk::PushConstantRange> pushConstantRanges{};
+        for (auto& item : pushConstants | std::views::values)
+        {
+            pushConstantRanges.emplace_back(item.stages, 0, static_cast<uint32_t>(item.size));
+        }
+        return pushConstantRanges;
+    }
 }

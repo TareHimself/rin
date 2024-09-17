@@ -23,7 +23,7 @@ namespace aerox::widgets
 
         virtual void OnWindowResize(window::Window * window,const Vec2<int>& size);
         virtual void OnWindowCursorMove(window::Window * window,const Vec2<float>& position);
-        virtual void OnWindowCursorButton(window::Window * window, window::ECursorButton button, window::EInputState state);
+        virtual void OnWindowCursorButton(window::Window * window, window::CursorButton button, window::InputState state);
 
         void OnDispose(bool manual) override;
         //virtual void OnWindowScroll(const Shared<ScrollEvent>& event);

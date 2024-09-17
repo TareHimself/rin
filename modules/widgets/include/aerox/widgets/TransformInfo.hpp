@@ -25,8 +25,9 @@ namespace aerox::widgets
     {
         Matrix3<float> transform{1.0f};
         Vec2<float> size{0.0f};
+        int depth = 0;
 
-        TransformInfo(const Matrix3<float>& inTransform,const Vec2<float>& inSize);
+        TransformInfo(const Matrix3<float>& inTransform,const Vec2<float>& inSize,int inDepth = 0);
 
         explicit TransformInfo(const Surface * inSurface);
 
@@ -38,7 +39,7 @@ namespace aerox::widgets
         TransformInfo AccountFor(const Shared<Widget>& widget) const;
         TransformInfo AccountFor(const Widget * widget) const;
 
-        bool IsPointWithin(const Vec2<float>& point);
+        bool IsPointWithin(const Vec2<float>& point) const;
 
         Rect ComputeAxisAlignedBoundingRect() const;
     };

@@ -7,30 +7,18 @@ namespace aerox::window
     {
     private:
         bool _resizable = true;
-
-        bool _visible = true;
-
-        bool _decorated = true;
+        
+        bool _borderless = false;
 
         bool _focused = true;
-
-        bool _floating = false;
-
-        bool _maximized = false;
-
-        bool _cursorCentered = false;
     protected:
         friend WindowModule;
 
-        void Apply() const;
+        int Apply() const;
 
     public:
         WindowCreateOptions& Resizable(bool newState);
-        WindowCreateOptions& Visible(bool newState);
-        WindowCreateOptions& Decorated(bool newState);
+        WindowCreateOptions& Borderless(bool newState);
         WindowCreateOptions& Focused(bool newState);
-        WindowCreateOptions& Floating(bool newState);
-        WindowCreateOptions& Maximized(bool newState);
-        WindowCreateOptions& CursorCentered(bool newState);
     };
 }

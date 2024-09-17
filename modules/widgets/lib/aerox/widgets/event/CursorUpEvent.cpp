@@ -2,7 +2,7 @@
 
 namespace aerox::widgets
 {
-    CursorUpEvent::CursorUpEvent(const Shared<Surface>& inSurface, const window::ECursorButton inButton,
+    CursorUpEvent::CursorUpEvent(const Shared<Surface>& inSurface, const window::CursorButton inButton,
         const Vec2<float>& inPosition) : Event(inSurface), button(inButton), position(inPosition)
     {
         

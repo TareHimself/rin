@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <filesystem>
 
+#include "aerox/core/platform.hpp"
 #include "aerox/core/utils.hpp"
 
 namespace aerox
@@ -70,7 +71,7 @@ namespace aerox
             return a->GetName().compare(b->GetName());
         });
 
-        for (const auto module : _moduleList)
+        for (const auto &module : _moduleList)
         {
             module->Startup(this);
         } 
@@ -79,7 +80,6 @@ namespace aerox
     void GRuntime::ShutdownModules()
     {
         
-    
         for (auto& module : std::ranges::views::reverse(_moduleList))
         {
             module->Shutdown(this);
@@ -94,7 +94,10 @@ namespace aerox
     {
         while(!WillExit())
         {
-            onTick->Invoke(0.0);
+            const auto now = GetTimeSeconds();
+            _lastDelta = now - _lastTickTime;
+            onTick->Invoke(_lastDelta);
+            _lastTickTime = now;
         }
     }
 
@@ -110,12 +113,25 @@ namespace aerox
 
     void GRuntime::Run()
     {
+        _startedAt = std::chrono::system_clock::now();
+        _lastTickTime = GetTimeSeconds();
         if(!std::filesystem::exists(getResourcesPath()))
         {
             std::filesystem::create_directories(getResourcesPath());
         }
+        platform::init();
         StartupModules();
         Loop();
         ShutdownModules();
+    }
+
+    double GRuntime::GetTimeSeconds() const
+    {
+        return static_cast<std::chrono::duration<double>>(std::chrono::system_clock::now() - _startedAt).count();
+    }
+
+    double GRuntime::GetLastDelta() const
+    {
+        return _lastTickTime;
     }
 }

@@ -3,9 +3,16 @@
 #include <ashl/nodes.hpp>
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Public/ShaderLang.h>
+
+#include "CompiledShader.hpp"
 #include "aerox/core/BackgroundThread.hpp"
 #include "aerox/core/Disposable.hpp"
 #include "aerox/graphics/GraphicsModule.hpp"
+
+namespace aerox::graphics
+{
+    class Shader;
+}
 
 namespace aerox::graphics
 {
@@ -34,29 +41,30 @@ namespace aerox::graphics
     {
         struct CompileTask
         {
-            std::string id;
-            std::shared_ptr<ashl::ModuleNode> shader{};
-            ashl::EScopeType scopeType;
-            CompileTask(const std::string& inId,const std::shared_ptr<ashl::ModuleNode>& inShader,ashl::EScopeType inScopeType);
+            Shared<Shader> shader{};
+            CompileTask(const Shared<Shader>& inShader);
         };
         GraphicsModule * _graphicsModule = nullptr;
-        std::unordered_map<std::string,vk::ShaderEXT> _vkShaders{};
-        std::unordered_map<std::string,std::shared_future<vk::ShaderEXT>> _pendingShaders{};
-        std::unordered_map<std::string,Shared<GraphicsShader>> _graphicsShaders{};
-        BackgroundThread<vk::ShaderEXT> _compilationThread{};
+        std::unordered_map<std::string,std::vector<uint32_t>> _spirv{};
+        BackgroundThread<CompiledShader> _compilationThread{};
 
         glslang_resource_t _resources{};
+        bool _init = false;
+        
     public:
         DEFINE_DELEGATE_LIST(onShaderCompiled,const std::string&,const vk::ShaderEXT&)
         ShaderManager(GraphicsModule * graphicsModule);
 
-        vk::ShaderEXT CompileShader(const CompileTask& task);
+        GraphicsModule * GetGraphicsModule() const;
+        std::vector<uint32_t> CompileAstToSpirv(const std::string& id,vk::ShaderStageFlagBits stage,const std::shared_ptr<ashl::ModuleNode>& node);
 
         static glslang_stage_t GetLangFromScopeType(ashl::EScopeType scopeType);
+        static glslang_stage_t GetLangFromStage(vk::ShaderStageFlagBits stage);
 
-        std::shared_future<vk::ShaderEXT> StartShaderCompilation(const std::string& id,const std::shared_ptr<ashl::ModuleNode>& shader,ashl::EScopeType scopeType);
+        std::shared_future<CompiledShader> StartShaderCompilation(const Shared<Shader>& shader);
         //std::future<vk::ShaderEXT> CompileShader()
 
+        DEFINE_DELEGATE_LIST(onDispose)
         void Init();
         void OnDispose(bool manual) override;
     };

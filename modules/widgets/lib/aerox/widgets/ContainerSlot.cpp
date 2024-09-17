@@ -5,4 +5,9 @@ namespace aerox::widgets
     {
         return _widget;
     }
+
+    ContainerSlot::ContainerSlot(const Shared<Widget>& widget)
+    {
+        _widget = widget;
+    }
 }

@@ -88,16 +88,17 @@ macro(GetSimdJson VERSION)
   target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC simdjson::simdjson)
   AddTargetLibs("simdjson::simdjson")
+  unset(RESULT_DIR)
 endmacro()
 
 # Json
 macro(GetJson VERSION)
 
-function(BuildJson B_TYPE B_SRC B_DEST)
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DJSON_BuildTests=OFF -S ${B_SRC} -B ${B_DEST}
-)
-endfunction()
+  function(BuildJson B_TYPE B_SRC B_DEST)
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DJSON_BuildTests=OFF -S ${B_SRC} -B ${B_DEST}
+    )
+  endfunction()
 
   BuildThirdPartyDep(nlohmann_json https://github.com/nlohmann/json ${VERSION} RESULT_DIR "" "BuildJson")
 
@@ -107,6 +108,7 @@ endfunction()
   target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
 
+  unset(RESULT_DIR)
 endmacro()
 
 
@@ -134,6 +136,8 @@ macro(GetFastGLTF VERSION)
   target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)
   AddTargetLibs("fastgltf::fastgltf")
+
+  unset(RESULT_DIR)
 endmacro()
 
 # Miniz
@@ -159,23 +163,25 @@ macro(GetStdUUID VERSION)
   target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include)
 endmacro()
 
-# glfw
-macro(GetGlfw VERSION)
+# sdl
+macro(GetSDL VERSION)
 
-  function(BuildGlfw B_TYPE B_SRC B_DEST)
+  function(BuildSDL B_TYPE B_SRC B_DEST)
     execute_process(
-      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -S ${B_SRC} -B ${B_DEST}
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DSDL_SHARED=ON -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF -S ${B_SRC} -B ${B_DEST}
     )
   endfunction()
 
-  BuildThirdPartyDep(glfw https://github.com/glfw/glfw ${VERSION} RESULT_DIR "" "BuildGlfw")
+  BuildThirdPartyDep(sdl https://github.com/libsdl-org/SDL "${VERSION}" RESULT_DIR "" "BuildSDL")
 
-  find_package(glfw3 REQUIRED PATHS ${RESULT_DIR}/lib/cmake)
+  find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared PATHS ${RESULT_DIR}/cmake)
   target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${RESULT_DIR}/include>
   $<INSTALL_INTERFACE:include> )
   
-  target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
+  target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3)
+
+  unset(RESULT_DIR)
 endmacro()
 
 # VulkanMemoryAllocator
@@ -199,26 +205,8 @@ macro(GetVulkanMemoryAllocator VERSION)
           PUBLIC
           GPUOpen::VulkanMemoryAllocator
   )
-#
-#  //target_link_libraries(${PROJECT_NAME} PUBLIC tinyxml2::tinyxml2)
 
-#  if(NOT EXISTS ${RESULT_DIR})
-#    file(DOWNLOAD https://raw.githubusercontent.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/${VERSION}/include/vk_mem_alloc.h ${FILE_RESULT}  SHOW_PROGRESS)
-#  endif()
-#
-#  target_sources(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${RESULT_DIR}/vk_mem_alloc.h> $<INSTALL_INTERFACE:include/vk_mem_alloc.h>)
-#
-#  target_include_directories(
-#    ${PROJECT_NAME}
-#    PUBLIC
-#    $<BUILD_INTERFACE:${RESULT_DIR}>
-#    $<INSTALL_INTERFACE:include>
-#  )
-#
-#  install(
-#    DIRECTORY ${RESULT_DIR}/
-#    DESTINATION include
-#  )
+  unset(RESULT_DIR)
 endmacro()
 
 # GLSL
@@ -262,74 +250,8 @@ macro(GetGLSL VERSION)
   AddTargetLibs("glslang::glslang")
   AddTargetLibs("glslang::SPIRV")
   AddTargetLibs("glslang::glslang-default-resource-limits")
-endmacro()
 
-# SPIRV Cross
-macro(GetSpirvCross VERSION)
-
-  set(RESULT_DIR ${VENGINE_THIRD_PARTY_DIR}/spirv_cross)
-
-  if(NOT EXISTS ${RESULT_DIR})
-
-    set(SPIRV_CROSS_REPO ${CMAKE_CURRENT_BINARY_DIR}/spirv_cross)
-    set(spirv-cross-sources
-            ${SPIRV_CROSS_REPO}/GLSL.std.450.h
-            ${SPIRV_CROSS_REPO}/spirv_common.hpp
-            ${SPIRV_CROSS_REPO}/spirv_cross_containers.hpp
-            ${SPIRV_CROSS_REPO}/spirv_cross_error_handling.hpp
-            ${SPIRV_CROSS_REPO}/spirv.hpp
-            ${SPIRV_CROSS_REPO}/spirv_cross.hpp
-            ${SPIRV_CROSS_REPO}/spirv_cross.cpp
-            ${SPIRV_CROSS_REPO}/spirv_parser.hpp
-            ${SPIRV_CROSS_REPO}/spirv_parser.cpp
-            ${SPIRV_CROSS_REPO}/spirv_cross_parsed_ir.hpp
-            ${SPIRV_CROSS_REPO}/spirv_cross_parsed_ir.cpp
-            ${SPIRV_CROSS_REPO}/spirv_cfg.hpp
-            ${SPIRV_CROSS_REPO}/spirv_cfg.cpp
-            ${SPIRV_CROSS_REPO}/spirv_glsl.cpp
-            ${SPIRV_CROSS_REPO}/spirv_glsl.hpp)
-
-
-    Fetch(https://github.com/KhronosGroup/SPIRV-Cross ${VERSION} ${SPIRV_CROSS_REPO})
-
-    file(MAKE_DIRECTORY ${RESULT_DIR})
-    file(COPY ${spirv-cross-sources} DESTINATION ${RESULT_DIR})
-
-  endif()
-
-  file(GLOB SPIRV_SOURCES ${RESULT_DIR}/*.*)
-
-  add_library(spirv_cross STATIC ${SPIRV_SOURCES})
-  target_include_directories(spirv_cross PRIVATE ${RESULT_DIR})
-  target_link_libraries(${PROJECT_NAME} PRIVATE spirv_cross)
-
-#  function(BuildSpirvCross B_TYPE B_SRC B_DEST)
-#    execute_process(#-DSPIRV_REFLECT_EXECUTABLE=OFF
-#      COMMAND ${CMAKE_COMMAND} -DSPIRV_CROSS_STATIC=OFF -DSPIRV_CROSS_ENABLE_TESTS=OFF -DSPIRV_CROSS_CLI=OFF -DSPIRV_CROSS_ENABLE_HLSL=OFF -DSPIRV_CROSS_ENABLE_MSL=OFF -DSPIRV_CROSS_ENABLE_C_API=OFF -DCMAKE_BUILD_TYPE=${B_TYPE}  -S ${B_SRC} -B ${B_DEST}
-#    )
-#  endfunction()
-#
-#  BuildThirdPartyDep(spirvcross https://github.com/KhronosGroup/SPIRV-Cross ${VERSION} RESULT_DIR "" "BuildSpirvCross")
-#
-#
-#
-#  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/share)
-#  # list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake/glslang)
-#  # list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/)
-#
-#  find_package(spirv_cross_core REQUIRED)
-#  find_package(spirv_cross_glsl REQUIRED)
-#  find_package(spirv_cross_cpp REQUIRED)
-#
-#
-#
-#  # find_package(SPIRV-Tools-opt REQUIRED)
-#  # find_package(glslang CONFIG REQUIRED)
-#  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include)
-#  file(GLOB SPIRV_DLLS ${RESULT_DIR}/lib/*d.lib)
-#  target_link_libraries(${PROJECT_NAME} PUBLIC ${SPIRV_DLLS})
-
-  
+  unset(RESULT_DIR)
 endmacro()
 
 # VkBootstrap
@@ -337,7 +259,7 @@ macro(GetVkBootstrap VERSION)
 
   function(BuildVkb B_TYPE B_SRC B_DEST)
     execute_process(
-      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -S ${B_SRC} -B ${B_DEST}
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DVK_BOOTSTRAP_TEST=OFF -S ${B_SRC} -B ${B_DEST}
     )
   endfunction()
 
@@ -348,9 +270,7 @@ macro(GetVkBootstrap VERSION)
   find_package(vk-bootstrap REQUIRED PATHS ${RESULT_DIR}/lib/cmake)
   target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC PRIVATE vk-bootstrap::vk-bootstrap)
-  # find_package(argparse REQUIRED)
-  # target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
-  # target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
+  unset(RESULT_DIR)
 endmacro()
 
 
@@ -370,6 +290,8 @@ macro(GetXXHash VERSION)
   find_package(xxHash REQUIRED)
   target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
   target_link_libraries(${PROJECT_NAME} PUBLIC xxHash::xxhash)
+
+  unset(RESULT_DIR)
 endmacro()
 
 # FMT
@@ -383,7 +305,7 @@ macro(GetFmt VERSION)
 
   BuildThirdPartyDep(fmt https://github.com/fmtlib/fmt ${VERSION} RESULT_DIR "" "BuildFmt")
 
-  # list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
   find_package(fmt REQUIRED)
   target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
@@ -399,6 +321,8 @@ macro(GetFmt VERSION)
     DIRECTORY ${RESULT_DIR}/include/
     DESTINATION include
   )
+
+  unset(RESULT_DIR)
 endmacro()
 
 # spdlog
@@ -423,6 +347,7 @@ macro(GetSpdLog VERSION)
     DESTINATION include
   )
 
+  unset(RESULT_DIR)
 endmacro()
 
 
@@ -442,11 +367,13 @@ macro(GetBass VERSION)
     $<BUILD_INTERFACE:${RESULT_DIR}/include>
     $<INSTALL_INTERFACE:include> 
   )
-  message(STATUS "BASS INFO ${PROJECT_NAME} ${RESULT_DIR}/include")
+
   install(
     DIRECTORY ${RESULT_DIR}/include/
     DESTINATION include
   )
+
+  unset(RESULT_DIR)
 endmacro()
 
 # GLM
@@ -474,6 +401,8 @@ macro(GetGlm VERSION)
     DIRECTORY ${RESULT_DIR}/include/
     DESTINATION include
   )
+
+  unset(RESULT_DIR)
 endmacro()
 
 # shaderc
@@ -502,6 +431,8 @@ macro(GetShaderc VERSION)
     DIRECTORY ${RESULT_DIR}/include/
     DESTINATION include
   )
+
+  unset(RESULT_DIR)
 endmacro()
 
 # ashl
@@ -532,6 +463,8 @@ macro(GetAshl VERSION)
     DIRECTORY ${RESULT_DIR}/include/
     DESTINATION include
   )
+
+  unset(RESULT_DIR)
 endmacro()
 
 # vscript
@@ -558,6 +491,8 @@ macro(GetVScript VERSION)
     DIRECTORY ${RESULT_DIR}/include/
     DESTINATION include
   )
+
+  unset(RESULT_DIR)
 endmacro()
 
 # ReactPhysics3D
@@ -627,13 +562,20 @@ endmacro()
 macro(GetStb VERSION)
 
   set(RESULT_DIR ${CMAKE_CURRENT_LIST_DIR}/ext/include/stb)
-
+  set(STB_OUTPUT_FILES "")
   if(NOT EXISTS ${RESULT_DIR})
     set(REPO_DIR ${CMAKE_CURRENT_BINARY_DIR}/stb)
     Fetch(https://github.com/nothings/stb ${VERSION} ${REPO_DIR})
+
     file(MAKE_DIRECTORY ${RESULT_DIR})
-    file(COPY ${REPO_DIR}/stb_image.h DESTINATION ${RESULT_DIR})
-    file(COPY ${REPO_DIR}/stb_image_write.h DESTINATION ${RESULT_DIR})
+
+    foreach(STB_FILE IN LISTS stb_image.h stb_image_write.h)
+      file(COPY ${REPO_DIR}/${STB_FILE} DESTINATION ${RESULT_DIR})
+      list(APPEND STB_OUTPUT_FILES ${RESULT_DIR}/${STB_FILE})
+    endforeach()
+
+    file(REMOVE_RECURSE ${REPO_DIR})
+    unset(REPO_DIR)
   endif()
 
   target_include_directories(
@@ -643,7 +585,9 @@ macro(GetStb VERSION)
     $<INSTALL_INTERFACE:include> 
   )
 
-  target_sources(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/stb_image.h ${RESULT_DIR}/stb_image_write.h)
+  target_sources(${PROJECT_NAME} PRIVATE ${STB_OUTPUT_FILES})
+  unset(STB_OUTPUT_FILES)
+  unset(RESULT_DIR)
   #target_compile_definitions(${PROJECT_NAME} PUBLIC SPNG_USE_MINIZ)
 endmacro()
 
@@ -664,6 +608,8 @@ macro(GetFreeType VERSION)
   )
 
   target_link_libraries(${PROJECT_NAME} PUBLIC freetype)
+
+  unset(RESULT_DIR)
 endmacro()
 
 # Tinyxml2
@@ -682,6 +628,8 @@ macro(GetTinyxml2 VERSION)
   )
 
   target_link_libraries(${PROJECT_NAME} PUBLIC tinyxml2::tinyxml2)
+
+  unset(RESULT_DIR)
 endmacro()
 
 # MsdfGen
@@ -708,6 +656,8 @@ macro(GetMsdfGen VERSION)
   )
   
   target_link_libraries(${PROJECT_NAME} PUBLIC msdfgen::msdfgen)
+
+  unset(RESULT_DIR)
 endmacro()
 
 
@@ -828,11 +778,11 @@ function(CopyRuntimeDlls IN_FROM_TARGET IN_TO_TARGET)
   )
 endfunction()
 
-macro(CopyResourcesTo IN_TO_TARGET)
+function(CopyResourcesTo IN_TO_TARGET)
   add_custom_command(TARGET ${IN_TO_TARGET} POST_BUILD
     COMMAND python ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../python/copy_s.py "${AEROX_RESOURCES}" "$<TARGET_FILE_DIR:${IN_TO_TARGET}>"
   )
-endmacro()
+endfunction()
 
 
 function(LinkToExecutable IN_EXECUTABLE IN_TARGET)

@@ -16,9 +16,10 @@ namespace aerox::widgets
         virtual void OnChildResized(Widget * widget);
         virtual Shared<ContainerSlot> MakeSlot(const Shared<Widget>& widget) = 0;
     public:
-        virtual size_t GetMaxSlots() const = 0;
-        virtual size_t GetNumSlots() const;
+        virtual size_t GetMaxSlots() const;
+        virtual size_t GetUsedSlots() const;
         virtual Shared<ContainerSlot> GetSlot(int index) const;
+        virtual Shared<ContainerSlot> GetSlot(Widget * widget) const;
         virtual std::vector<Shared<ContainerSlot>> GetSlots() const;
         
         Shared<ContainerSlot> AddChild(const Shared<Widget>& widget);
@@ -39,7 +40,19 @@ namespace aerox::widgets
         virtual bool NotifyChildrenCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform, std::vector<Shared<Widget>>& items);
         virtual bool NotifyChildrenCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform);
         virtual bool NotifyChildrenScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform);
+
+        template<typename T,typename ...TArgs>
+        std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<Widget,T>,Shared<ContainerSlot>> AddChild(TArgs&&... args);
+
+        void Collect(const TransformInfo& transform, std::vector<Shared<DrawCommand>>& drawCommands) override;
     };
+
+    template <typename T, typename ... TArgs>
+    std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<Widget, T>, Shared<ContainerSlot>>
+    Container::AddChild(TArgs&&... args)
+    {
+        return AddChild(newShared<T>(std::forward<TArgs>(args)...));
+    }
 
 
     template<typename T,std::enable_if_t<std::is_base_of_v<Container,T>>*>

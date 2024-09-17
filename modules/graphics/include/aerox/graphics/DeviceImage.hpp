@@ -4,7 +4,7 @@
 #include "aerox/graphics/Allocator.hpp"
 namespace aerox::graphics
 {
-    class DeviceImage {
+    class DeviceImage : public Disposable {
         VmaAllocator _allocator{};
         VmaAllocation _allocation{};
         vk::Image _image{};
@@ -14,7 +14,7 @@ namespace aerox::graphics
     public:
         DeviceImage(VmaAllocator allocator,const vk::Image& image,VmaAllocation allocation,const vk::Extent3D &extent,vk::Format format);
 
-        ~DeviceImage();
+       void OnDispose(bool manual) override;
 
 
         vk::Image GetImage() const;

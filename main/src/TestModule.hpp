@@ -4,6 +4,8 @@
 #include "aerox/core/meta/MetaMacros.hpp"
 #include "aerox/graphics/GraphicsModule.hpp"
 #include "aerox/graphics/shaders/GraphicsShader.hpp"
+#include "aerox/widgets/Widget.hpp"
+#include "aerox/widgets/WidgetsModule.hpp"
 #include "aerox/window/WindowModule.hpp"
 #include "aerox/window/Window.hpp"
 
@@ -16,13 +18,23 @@ using namespace aerox;
 using namespace aerox::graphics;
 using namespace aerox::window;
 
+
+class TestWidget : public widgets::Widget
+{
+protected:
+    Vec2<float> ComputeDesiredSize() override;
+
+public:
+    void Collect(const widgets::TransformInfo& transform,
+        std::vector<Shared<widgets::DrawCommand>>& drawCommands) override;
+};
 MCLASS()
 class TestModule : public Module
 {
     WindowModule * _windowModule = nullptr;
+    widgets::WidgetsModule * _widgetsModule = nullptr;
     Shared<Window> _window{};
     bass::FileStream * _stream = nullptr;
-    Shared<GraphicsShader> _graphicsShader{};
 public:
 
     std::string GetName() override;
@@ -30,5 +42,5 @@ public:
     void Shutdown(GRuntime* runtime) override;
     bool IsDependentOn(Module* module) override;
     void RegisterRequiredModules() override;
-    void OnCloseRequested(Window * window);
+    static void OnCloseRequested(Window * window);
 };

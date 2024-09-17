@@ -28,7 +28,7 @@ namespace aerox::widgets
         auto window = _windowRenderer->GetWindow();
         _drawHandle = _windowRenderer->onDraw->Add<WindowSurface>(thisShared,&WindowSurface::Draw);
         _copyHandle = _windowRenderer->onCopy->Add<WindowSurface>(thisShared,&WindowSurface::CopyToSwapchain);
-        _resizeHandle = window->onFrameBufferResize->Add<WindowSurface>(thisShared,&WindowSurface::OnWindowResize);
+        _resizeHandle = window->onResize->Add<WindowSurface>(thisShared,&WindowSurface::OnWindowResize);
         _cursorMoveHandle = window->onCursorMoved->Add<WindowSurface>(thisShared,&WindowSurface::OnWindowCursorMove);
         _cursorButtonHandle = window->onCursorButton->Add<WindowSurface>(thisShared,&WindowSurface::OnWindowCursorButton);
     }
@@ -85,13 +85,13 @@ namespace aerox::widgets
         NotifyCursorMove(newShared<CursorMoveEvent>(this->GetSharedDynamic<WindowSurface>(),position));
     }
 
-    void WindowSurface::OnWindowCursorButton(window::Window* window,  window::ECursorButton button, window::EInputState state)
+    void WindowSurface::OnWindowCursorButton(window::Window* window,  window::CursorButton button, window::InputState state)
     {
-        if(state == window::EInputState::Pressed)
+        if(state == window::InputState::Pressed)
         {
             NotifyCursorDown(newShared<CursorDownEvent>(this->GetSharedDynamic<WindowSurface>(),button,GetCursorPosition()));
         }
-        else if(state == window::EInputState::Released)
+        else if(state == window::InputState::Released)
         {
             NotifyCursorUp(newShared<CursorUpEvent>(this->GetSharedDynamic<WindowSurface>(),button,GetCursorPosition()));
         }

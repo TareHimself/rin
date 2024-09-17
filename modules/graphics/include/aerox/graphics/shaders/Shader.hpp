@@ -1,8 +1,11 @@
 ﻿#pragma once
+#include "CompiledShader.hpp"
 #include "ShaderManager.hpp"
+#include "ShaderResource.hpp"
 #include "ashl/nodes.hpp"
 namespace aerox::graphics
 {
+    
     class Shader : public Disposable
     {
         
@@ -13,50 +16,31 @@ namespace aerox::graphics
         ShaderManager * GetManager() const;
     public:
 
-        struct Texture
-        {
-            std::string name;
-            uint32_t set;
-            uint32_t binding;
-            uint32_t count;
-            Texture(const std::string& inName,const uint32_t& inSet,const uint32_t& inBinding,const uint32_t& inCount);
-        };
-
-        struct Buffer
-        {
-            std::string name;
-            uint32_t set;
-            uint32_t binding;
-            uint32_t size;
-            uint32_t count;
-            Buffer(const std::string& inName,const uint32_t& inSet,const uint32_t& inBinding,const uint32_t& inSize,const uint32_t& inCount);
-        };
-
+        
+        
         struct PushConstant
         {
-            // public string Name;
-            // public int Size;
-            // public VkShaderStageFlags Stages;
             std::string name;
             uint64_t size;
             vk::ShaderStageFlags stages;
             PushConstant(const std::string& inName,const uint64_t& inSize,const vk::ShaderStageFlags& inStages);
         };
 
+        void ComputeResources(const std::vector<std::pair<vk::ShaderStageFlags,std::shared_ptr<ashl::ModuleNode>>>& shaders);
+
         static vk::ShaderStageFlags ScopeTypeToStageFlags(const ashl::EScopeType& scopeType);
 
-        Shared<ashl::ModuleNode> module{};
-
-        ashl::EScopeType scopeType{};
-
-        std::unordered_map<std::string,Texture> textures{};
-
-        std::unordered_map<std::string,Buffer> buffers{};
-
+        std::unordered_map<std::string,ShaderResource> resources{};
         std::unordered_map<std::string,PushConstant> pushConstants{};
 
         explicit Shader(ShaderManager * manager);
         virtual bool Bind(const vk::CommandBuffer& cmd,bool wait = false) = 0;
+
+        virtual CompiledShader Compile(ShaderManager * manager) = 0;
+        std::map<uint32_t,vk::DescriptorSetLayout> ComputeDescriptorSetLayouts() const;
+        std::vector<vk::PushConstantRange> ComputePushConstantRanges() const;
+        virtual std::map<uint32_t,vk::DescriptorSetLayout> GetDescriptorSetLayouts() = 0;
+        virtual vk::PipelineLayout GetPipelineLayout() = 0;
 
         // Shader(const Shared<ashl::ModuleNode>& inModule,ashl::EScopeType inScopeType);
         // Shader(const Shared<ashl::ModuleNode>& inModule,ashl::EScopeType inScopeType,const std::string& inId);

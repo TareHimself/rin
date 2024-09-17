@@ -1,4 +1,5 @@
-﻿#include <GLFW/glfw3.h>
+﻿#include <SDL3/SDL_init.h>
+
 #include "aerox/window/WindowModule.hpp"
 #include "aerox/core/GRuntime.hpp"
 #include "aerox/window/Window.hpp"
@@ -11,16 +12,25 @@ namespace aerox::window
 
     void WindowModule::Startup(GRuntime* runtime)
     {
-        glfwInit();
-        runtime->onTick->Add([](double _)
+        SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+        
+        runtime->onTick->Add([this](double _)
         {
-            glfwPollEvents();
+            SDL_Event event{};
+            while(SDL_PollEvent(&event))
+            {
+                auto windowId = SDL_GetWindowID(SDL_GetWindowFromEvent(&event));
+                if(auto target = _windows.contains(windowId) ? _windows[windowId] : Shared<Window>{})
+                {
+                    target->NotifyEvent(event);
+                }
+            }
         });
     }
 
     void WindowModule::Shutdown(GRuntime* runtime)
     {
-        glfwTerminate();
+        SDL_Quit();
     }
 
     bool WindowModule::IsDependentOn(Module* module)
@@ -31,11 +41,16 @@ namespace aerox::window
     Shared<Window> WindowModule::Create(const std::string& name, int width, int height,
         const WindowCreateOptions& options)
     {
-        options.Apply();
-    
-        if (const auto win = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr))
+        if (const auto win = SDL_CreateWindow(name.c_str(),width, height,options.Apply()))
         {
-            return newShared<Window>(win);
+            auto newWindow = newShared<Window>(win);
+            auto id = SDL_GetWindowID(win);
+            newWindow->onDisposed->Add([this,id](Window* _)
+            {
+                _windows.erase(id);
+            });
+            _windows.emplace(id,newWindow);
+            return newWindow;
         }
 
         return {};

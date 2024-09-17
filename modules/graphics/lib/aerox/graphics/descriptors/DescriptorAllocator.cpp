@@ -22,7 +22,7 @@ namespace aerox::graphics
         _pools.clear();
     }
 
-    void DescriptorAllocator::ClearPools()
+    void DescriptorAllocator::Reset()
     {
         for (auto &readyPool : _readyPools)
         {
@@ -44,14 +44,13 @@ namespace aerox::graphics
         if(!_readyPools.empty())
         {
             pool = _pools[*_readyPools.begin()];
-            _readyPools.erase(pool.get());
         }
         else
         {
             pool = CreatePool();
-            _readyPools.emplace(pool.get());
             _setsPerPool = static_cast<uint32_t>(_setsPerPool * 1.5);
             if(_setsPerPool > 4092) _setsPerPool = 4092;
+            _readyPools.emplace(pool.get());
         }
 
         return pool;
@@ -89,7 +88,9 @@ namespace aerox::graphics
 
         auto device = GRuntime::Get()->GetModule<GraphicsModule>()->GetDevice();
         auto pool = device.createDescriptorPool(poolInfo);
-        return newShared<DescriptorPool>(pool);
+        auto sharedPool = newShared<DescriptorPool>(pool);
+        _pools.emplace(sharedPool.get(),sharedPool);
+        return sharedPool;
     }
 
     DescriptorAllocator::DescriptorAllocator(uint32_t maxSets, const std::vector<PoolSizeRatio>& poolRatios,

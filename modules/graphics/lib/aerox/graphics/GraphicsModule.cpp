@@ -1,3 +1,4 @@
+#include "vulkan/vulkan.hpp"
 #include "aerox/graphics/GraphicsModule.hpp"
 #include <iostream>
 #include <ranges>
@@ -7,11 +8,9 @@
 #include "aerox/graphics/DeviceBuffer.hpp"
 #include "aerox/graphics/DeviceImage.hpp"
 #include "aerox/graphics/WindowRenderer.hpp"
-VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
-
 #include "aerox/core/GRuntime.hpp"
-#include <GLFW/glfw3.h>
-#include "vulkan/vulkan.hpp"
+#include <SDL3/SDL_vulkan.h>
+
 #include "aerox/graphics/shaders/ShaderManager.hpp"
 #include <VkBootstrap.h>
 
@@ -19,16 +18,15 @@ namespace aerox::graphics
 {
     void GraphicsModule::InitVulkan(window::Window* window)
     {
-        VULKAN_HPP_DEFAULT_DISPATCHER.init();
+        dispatchLoader.init();
 
         uint32_t numExtensions = 0;
-        auto extensions = glfwGetRequiredInstanceExtensions(&numExtensions);
+        
+        auto extensions = SDL_Vulkan_GetInstanceExtensions(&numExtensions);
         auto systemInfo = vkb::SystemInfo::get_system_info().value();
 
-
         vkb::InstanceBuilder builder{};
-
-
+        
         builder
             .set_app_name("Aerox")
             .require_api_version(1, 3, 0)
@@ -78,8 +76,9 @@ namespace aerox::graphics
                   .setRuntimeDescriptorArray(true)
                   .setDescriptorBindingSampledImageUpdateAfterBind(true)
                   .setDescriptorBindingStorageImageUpdateAfterBind(true)
-                  .setScalarBlockLayout(true)
-                  .setDescriptorBindingUniformBufferUpdateAfterBind(true);
+                    .setDescriptorBindingStorageBufferUpdateAfterBind(true)
+                  .setScalarBlockLayout(true);
+                  
 
         auto newRenderer = new WindowRenderer(_instance, window, this);
 
@@ -131,8 +130,8 @@ namespace aerox::graphics
 
         try
         {
-            VULKAN_HPP_DEFAULT_DISPATCHER.init(_instance);
-            VULKAN_HPP_DEFAULT_DISPATCHER.init(_device);
+            dispatchLoader.init(_instance);
+            dispatchLoader.init(_device);
         }
         catch (std::exception& e)
         {
@@ -142,10 +141,9 @@ namespace aerox::graphics
 
         _allocator = std::make_unique<Allocator>(this);
 
+        _shaderManager->Init();
         newRenderer->Init();
         onRendererCreated->Invoke(newRenderer);
-        
-        _shaderManager->Init();
     }
 
     void GraphicsModule::Startup(GRuntime* runtime)
@@ -181,6 +179,7 @@ namespace aerox::graphics
         if (_instance)
         {
             _allocator.reset();
+            _shaderManager.reset();
             _device.destroy();
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
             vkb::destroy_debug_utils_messenger(_instance, _debugMessenger, nullptr);
@@ -242,6 +241,8 @@ namespace aerox::graphics
         return instanceOf<window::WindowModule>(module);
     }
 
+    vk::DispatchLoaderDynamic GraphicsModule::dispatchLoader = {};
+
     vk::Instance GraphicsModule::GetInstance() const
     {
         return _instance;
@@ -275,6 +276,11 @@ namespace aerox::graphics
     ShaderManager* GraphicsModule::GetShaderManager() const
     {
         return _shaderManager.get();
+    }
+
+    Allocator* GraphicsModule::GetAllocator() const
+    {
+        return _allocator.get();
     }
 
     void GraphicsModule::ImageBarrier(const vk::CommandBuffer cmd, const vk::Image image, const vk::ImageLayout from,
@@ -460,6 +466,16 @@ namespace aerox::graphics
 
         ImageBarrier(cmd, image, vk::ImageLayout::eTransferSrcOptimal,
                      vk::ImageLayout::eShaderReadOnlyOptimal);
+    }
+
+    WindowRenderer* GraphicsModule::GetRenderer(window::Window* window) const
+    {
+        if(_renderers.contains(window))
+        {
+            return _renderers.at(window);
+        }
+
+        return nullptr;
     }
 
     Shared<DeviceImage> GraphicsModule::CreateImage(const vk::Extent3D& extent, const vk::Format format,

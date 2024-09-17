@@ -1,15 +1,18 @@
 ﻿#include "aerox/graphics/commandBufferUtils.hpp"
 
+#include "aerox/graphics/GraphicsModule.hpp"
+
 namespace aerox::graphics
 {
     void setRenderArea(const vk::CommandBuffer& cmd, const vk::Rect2D& rect)
     {
-        cmd.setViewport(0, vk::Viewport{
-                            static_cast<float>(rect.offset.x), static_cast<float>(rect.offset.y),
-                            static_cast<float>(rect.extent.width), static_cast<float>(rect.extent.height),
-                            0.0f, 1.0f
-                        });
-        cmd.setScissor(0, rect);
+        vk::Viewport viewport{
+            static_cast<float>(rect.offset.x), static_cast<float>(rect.offset.y),
+            static_cast<float>(rect.extent.width), static_cast<float>(rect.extent.height),
+            0.0f, 1.0f
+        };
+        cmd.setViewportWithCount(viewport);
+        cmd.setScissorWithCount(rect);
     }
 
     void setRenderExtent(const vk::CommandBuffer& cmd, const vk::Extent2D& extent)
@@ -19,16 +22,16 @@ namespace aerox::graphics
 
     void setPolygonMode(const vk::CommandBuffer& cmd, const vk::PolygonMode& mode, float lineWidth)
     {
-        cmd.setPolygonModeEXT(mode);
+        cmd.setPolygonModeEXT(mode,GraphicsModule::dispatchLoader);
         cmd.setLineWidth(lineWidth);
     }
 
     void disableMultiSampling(const vk::CommandBuffer& cmd)
     {
-        cmd.setRasterizationSamplesEXT(vk::SampleCountFlagBits::e1);
-        cmd.setAlphaToCoverageEnableEXT(false);
-        cmd.setAlphaToOneEnableEXT(false);
-        cmd.setSampleMaskEXT(vk::SampleCountFlagBits::e1, 0x1);
+        cmd.setRasterizationSamplesEXT(vk::SampleCountFlagBits::e1,GraphicsModule::dispatchLoader);
+        cmd.setAlphaToCoverageEnableEXT(false,GraphicsModule::dispatchLoader);
+        cmd.setAlphaToOneEnableEXT(false,GraphicsModule::dispatchLoader);
+        cmd.setSampleMaskEXT(vk::SampleCountFlagBits::e1, 0x1,GraphicsModule::dispatchLoader);
     }
 
     void enableRasterizerDiscard(const vk::CommandBuffer& cmd)
@@ -82,14 +85,19 @@ namespace aerox::graphics
 
     void disableBlending(const vk::CommandBuffer& cmd)
     {
-        cmd.setLogicOpEnableEXT(false);
-        cmd.setLogicOpEXT(vk::LogicOp::eCopy);
+        cmd.setLogicOpEnableEXT(false,GraphicsModule::dispatchLoader);
+        cmd.setLogicOpEXT(vk::LogicOp::eCopy,GraphicsModule::dispatchLoader);
+    }
+
+    void disableVertexInput(const vk::CommandBuffer& cmd)
+    {
+        cmd.setVertexInputEXT(0,nullptr,0,nullptr,GraphicsModule::dispatchLoader);
     }
 
     void enableBlending(const vk::CommandBuffer& cmd, uint32_t start, uint32_t count,
                         const vk::ColorBlendEquationEXT& equation, vk::ColorComponentFlags writeMask)
     {
-        cmd.setLogicOpEnableEXT(false);
+        cmd.setLogicOpEnableEXT(false,GraphicsModule::dispatchLoader);
         std::vector<vk::Bool32> enables{};
         std::vector<vk::ColorBlendEquationEXT> equations{};
         std::vector<vk::ColorComponentFlags> writeMasks{};
@@ -102,9 +110,9 @@ namespace aerox::graphics
             equations.push_back(equation);
             writeMasks.push_back(writeMask);
         }
-        cmd.setColorBlendEnableEXT(start, enables);
-        cmd.setColorBlendEquationEXT(start, equations);
-        cmd.setColorWriteMaskEXT(start, writeMasks);
+        cmd.setColorBlendEnableEXT(start, enables,GraphicsModule::dispatchLoader);
+        cmd.setColorBlendEquationEXT(start, equations,GraphicsModule::dispatchLoader);
+        cmd.setColorWriteMaskEXT(start, writeMasks,GraphicsModule::dispatchLoader);
     }
 
     void enableBlendingAdditive(const vk::CommandBuffer& cmd, uint32_t start, uint32_t count)
@@ -136,7 +144,7 @@ namespace aerox::graphics
                         const vk::ArrayProxyNoTemporaries<vk::RenderingAttachmentInfo>& attachments,
                         const std::optional<vk::RenderingAttachmentInfo>& depthAttachment)
     {
-        auto renderingInfo = vk::RenderingInfo{{}, renderArea, {}, {}, attachments};
+        auto renderingInfo = vk::RenderingInfo{{}, renderArea, 1, {}, attachments};
         if (depthAttachment.has_value())
         {
             renderingInfo.setPDepthAttachment(&depthAttachment.value());

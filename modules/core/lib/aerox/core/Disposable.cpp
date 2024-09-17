@@ -9,6 +9,7 @@ namespace aerox
     void Disposable::Dispose(bool manual)
     {
         if(_disposed) return;
+        _disposed = true;
         OnDispose(manual);
     }
 

@@ -46,6 +46,10 @@ namespace aerox::graphics
     void DescriptorPool::OnDispose(bool manual)
     {
         Disposable::OnDispose(manual);
+
+        auto device = GRuntime::Get()->GetModule<GraphicsModule>()->GetDevice();
+        
+        device.destroyDescriptorPool(_pool);
         
         for (auto &descriptor : _descriptors)
         {
@@ -53,9 +57,5 @@ namespace aerox::graphics
         }
 
         _descriptors.clear();
-
-        auto device = GRuntime::Get()->GetModule<GraphicsModule>()->GetDevice();
-        
-        device.destroyDescriptorPool(_pool);
     }
 }

@@ -1,6 +1,12 @@
 ﻿#include "aerox/core/utils.hpp"
 #include <fstream>
 
+#include "aerox/core/platform.hpp"
+#if _WIN32 || WIN32
+#include <windows.h>
+#include <Shlwapi.h>
+#include <io.h> 
+#endif
 namespace aerox
 {
     std::string readFileAsString(const std::filesystem::path& path)
@@ -12,6 +18,6 @@ namespace aerox
 
     std::filesystem::path getResourcesPath()
     {
-        return std::filesystem::current_path() / "resources";
+        return platform::getExecutablePath().parent_path() / "resources";
     }
 }

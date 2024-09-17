@@ -6,10 +6,11 @@
 
 namespace aerox::widgets
 {
-    TransformInfo::TransformInfo(const Matrix3<float>& inTransform, const Vec2<float>& inSize)
+    TransformInfo::TransformInfo(const Matrix3<float>& inTransform, const Vec2<float>& inSize,int inDepth)
     {
         transform = inTransform;
         size = inSize;
+        depth = inDepth;
     }
 
     TransformInfo::TransformInfo(const Surface* inSurface) : TransformInfo(Matrix3<float>{1.0f},inSurface->GetDrawSize().Cast<float>())
@@ -40,10 +41,10 @@ namespace aerox::widgets
     TransformInfo TransformInfo::AccountFor(const Widget* widget) const
     {
         auto newTransform = transform * widget->ComputeRelativeTransform();
-        return TransformInfo{newTransform,widget->GetDrawSize()};
+        return TransformInfo{newTransform,widget->GetDrawSize(),depth + 1};
     }
     
-    bool TransformInfo::IsPointWithin(const Vec2<float>& point)
+    bool TransformInfo::IsPointWithin(const Vec2<float>& point) const
     {
         auto tl = Vec2<float>(0.0f);
         auto br =  size;

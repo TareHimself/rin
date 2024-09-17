@@ -2,11 +2,19 @@
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 #include "aerox/core/memory.hpp"
+#include "shaders/ShaderResource.hpp"
+
+namespace aerox::graphics
+{
+    class Shader;
+}
+
 namespace aerox::graphics
 {
     class DeviceImage;
     class DeviceBuffer;
     class GraphicsModule;
+    class Shader;
 
     class Allocator {
         VmaAllocator _allocator{};
@@ -25,11 +33,18 @@ namespace aerox::graphics
 
         Shared<DeviceBuffer> NewUniformBuffer(vk::DeviceSize size,bool sequentialWrite = true,const std::string& debugName = "Uniform Buffer");
 
+        Shared<DeviceBuffer> NewStorageBuffer(vk::DeviceSize size,bool sequentialWrite = true,const std::string& debugName = "Storage Buffer");
+
+        Shared<DeviceBuffer> NewResourceBuffer(const ShaderResource& resource,bool sequentialWrite = true,const std::string& debugName = {});
+
         template<typename T>
         Shared<DeviceBuffer> NewTransferBuffer(bool sequentialWrite = true,const std::string& debugName = "Transfer Buffer");
 
         template<typename T>
         Shared<DeviceBuffer> NewUniformBuffer(bool sequentialWrite = true,const std::string& debugName = "Uniform Buffer");
+
+        template<typename T>
+        Shared<DeviceBuffer> NewStorageBuffer(bool sequentialWrite = true,const std::string& debugName = "Storage Buffer");
 
         Shared<DeviceImage> NewImage(const vk::ImageCreateInfo& createInfo, const std::string& debugName = "Buffer");
     };
@@ -51,5 +66,11 @@ namespace aerox::graphics
     Shared<DeviceBuffer> Allocator::NewUniformBuffer(const bool sequentialWrite, const std::string& debugName)
     {
         return NewUniformBuffer(sizeof(T),sequentialWrite,debugName);
+    }
+
+    template <typename T>
+    Shared<DeviceBuffer> Allocator::NewStorageBuffer(bool sequentialWrite, const std::string& debugName)
+    {
+        return NewStorageBuffer(sizeof(T),sequentialWrite,debugName);
     }
 }

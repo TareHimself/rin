@@ -6,7 +6,6 @@ project(${MODULE_NAME} VERSION "1.0.0" DESCRIPTION "The graphics lib for aerox")
 
 SetupProject()
 AddModuleToModule(${CMAKE_CURRENT_LIST_DIR}/../window "aerox_window")
-target_compile_definitions(${PROJECT_NAME} PUBLIC -DVULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 find_package(Vulkan REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
 #GetGlfw(3.4)

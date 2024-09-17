@@ -31,8 +31,9 @@ namespace aerox
 
         template<typename T_ = T, std::enable_if_t<!std::is_void_v<T_>>* = nullptr>
         void RunTask(const std::shared_ptr<Task>& task);
+        std::string _name;
     public:
-        BackgroundThread();
+        BackgroundThread(const std::string& name = {});
         ~BackgroundThread();
 
         //template<typename T_ = T, std::enable_if_t<std::is_void_v<T>>* = nullptr>
@@ -74,16 +75,17 @@ namespace aerox
         {
             task->promise.set_value(task->fn->Invoke());
         }
-        catch (std::exception_ptr e)
+        catch (std::exception e)
         {
-            task->promise.set_exception(e);
+            task->promise.set_exception(std::make_exception_ptr(e));
         }
     }
+    
 
     template <typename T>
-    BackgroundThread<T>::BackgroundThread()
+    BackgroundThread<T>::BackgroundThread(const std::string& name)
     {
-        
+        _name = name;
         _thread = std::thread([=]
         {
             while(true)

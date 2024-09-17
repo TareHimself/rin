@@ -38,6 +38,6 @@ namespace aerox
     {
         return std::shared_future<T>(std::async(std::launch::deferred,[](const T& arg){ return arg; },result));
     }
-
+    
     std::filesystem::path getResourcesPath();
 }

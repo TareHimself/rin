@@ -24,11 +24,11 @@ namespace aerox::graphics
         uint32_t _setsPerPool;
 
         void DestroyPools();
-        void ClearPools();
+        
         Shared<DescriptorPool> GetPool();
         Shared<DescriptorPool> CreatePool();
     public:
-
+        void Reset();
         DescriptorAllocator(uint32_t maxSets,const std::vector<PoolSizeRatio>& poolRatios,const vk::DescriptorPoolCreateFlags& poolCreateFlags = {});
         
         Shared<DescriptorSet> Allocate(const vk::DescriptorSetLayout& layout, const std::vector<uint32_t>& variableCount = {});

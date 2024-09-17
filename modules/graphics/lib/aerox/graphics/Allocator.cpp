@@ -52,7 +52,7 @@ Shared<DeviceBuffer> Allocator::NewBuffer(vk::DeviceSize size, vk::BufferUsageFl
                     nullptr);
     vmaSetAllocationName(_allocator,alloc,debugName.c_str());
 
-    return std::make_shared<DeviceBuffer>(_allocator,rawBuffer,alloc,size);
+    return newShared<DeviceBuffer>(_allocator,rawBuffer,alloc,size);
 }
 
 Shared<DeviceBuffer> Allocator::NewTransferBuffer(const vk::DeviceSize size, const bool sequentialWrite, const std::string& debugName)
@@ -63,6 +63,33 @@ Shared<DeviceBuffer> Allocator::NewTransferBuffer(const vk::DeviceSize size, con
 Shared<DeviceBuffer> Allocator::NewUniformBuffer(vk::DeviceSize size, bool sequentialWrite, const std::string& debugName)
 {
     return NewBuffer(size,vk::BufferUsageFlagBits::eUniformBuffer,vk::MemoryPropertyFlagBits::eHostVisible,sequentialWrite,false,true,debugName);
+}
+
+Shared<DeviceBuffer> Allocator::NewStorageBuffer(vk::DeviceSize size, bool sequentialWrite,
+    const std::string& debugName)
+{
+        return NewBuffer(size,vk::BufferUsageFlagBits::eStorageBuffer,vk::MemoryPropertyFlagBits::eHostVisible,sequentialWrite,false,true,debugName);
+}
+
+Shared<DeviceBuffer> Allocator::NewResourceBuffer(const ShaderResource& resource, bool sequentialWrite,
+    const std::string& debugName)
+{
+        auto isStorageBuffer = resource.type == vk::DescriptorType::eStorageBuffer;
+        auto hasDebug = debugName.empty();
+        if(isStorageBuffer)
+        {
+            if(hasDebug)
+            {
+                return NewStorageBuffer(resource.size,sequentialWrite,debugName);
+            }
+            return NewStorageBuffer(resource.size,sequentialWrite,debugName);
+        }
+
+        if(hasDebug)
+        {
+            return NewUniformBuffer(resource.size,sequentialWrite,debugName);
+        }
+        return NewUniformBuffer(resource.size,sequentialWrite,debugName);
 }
 
 Shared<DeviceImage> Allocator::NewImage(const vk::ImageCreateInfo& createInfo, const std::string& debugName)
@@ -85,7 +112,7 @@ Shared<DeviceImage> Allocator::NewImage(const vk::ImageCreateInfo& createInfo, c
 
     vmaSetAllocationName(_allocator, alloc, debugName.c_str());
 
-    return  std::make_shared<DeviceImage>(_allocator,vmaImage,alloc,createInfo.extent,createInfo.format);
+    return  newShared<DeviceImage>(_allocator,vmaImage,alloc,createInfo.extent,createInfo.format);
 }
 
 }

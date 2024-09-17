@@ -9,8 +9,9 @@ namespace aerox::graphics
         _size = size;
     }
 
-    DeviceBuffer::~DeviceBuffer()
+    void DeviceBuffer::OnDispose(bool manual)
     {
+        Disposable::OnDispose(manual);
         vmaDestroyBuffer(_allocator,_buffer,_allocation);
     }
 
@@ -23,9 +24,10 @@ namespace aerox::graphics
     {
         vmaCopyMemoryToAllocation(_allocator,data,_allocation,offset,size);
     }
+    
 
-    void DeviceBuffer::Write(const std::vector<std::byte>& data, const vk::DeviceSize& offset) const
+    vk::DeviceSize DeviceBuffer::GetSize() const
     {
-        vmaCopyMemoryToAllocation(_allocator,data.data(),_allocation,offset,data.size());
+        return _size;
     }
 }

@@ -5,7 +5,7 @@
 #include "Allocator.hpp"
 namespace aerox::graphics
 {
-    class DeviceBuffer {
+    class DeviceBuffer : public Disposable {
         vk::Buffer _buffer{};
         VmaAllocation _allocation{};
         VmaAllocator _allocator{};
@@ -13,12 +13,29 @@ namespace aerox::graphics
     public:
         DeviceBuffer(VmaAllocator allocator,const vk::Buffer& buffer,VmaAllocation allocation,const vk::DeviceSize& size);
 
-        ~DeviceBuffer();
+        void OnDispose(bool manual) override;
 
         vk::Buffer GetBuffer() const;
 
         void Write(const void * data,const vk::DeviceSize& size,const vk::DeviceSize& offset = 0) const;
 
-        void Write(const std::vector<std::byte>& data,const vk::DeviceSize& offset = 0) const;
+        template <typename T>
+        void Write(const std::vector<T>& data,const vk::DeviceSize& offset = 0) const;
+
+        template<typename T>
+        void Write(T& data,const vk::DeviceSize& offset = 0) const;
+        vk::DeviceSize GetSize() const;
     };
+
+    template <typename T>
+    void DeviceBuffer::Write(const std::vector<T>& data, const vk::DeviceSize& offset) const
+    {
+        vmaCopyMemoryToAllocation(_allocator,data.data(),_allocation,offset,data.size() * sizeof(T));
+    }
+
+    template <typename T>
+    void DeviceBuffer::Write(T& data, const vk::DeviceSize& offset) const
+    {
+        vmaCopyMemoryToAllocation(_allocator,&data,_allocation,offset,sizeof(T));
+    }
 }

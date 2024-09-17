@@ -1,6 +1,6 @@
 #pragma once
-#include "ImageBarrierOptions.hpp"
 #include <vulkan/vulkan.hpp>
+#include "ImageBarrierOptions.hpp"
 #include "aerox/core/Module.hpp"
 #include "aerox/window/WindowModule.hpp"
 #include <future>
@@ -44,7 +44,7 @@ namespace aerox::graphics
         void InitVulkan(window::Window * window);
         std::list<std::function<void()>> _pendingTasks;
 
-        Unique<Allocator> _allocator{};
+        std::unique_ptr<Allocator> _allocator{};
         Shared<ShaderManager> _shaderManager{};
         
     protected:
@@ -61,7 +61,9 @@ namespace aerox::graphics
         std::string GetName() override;
     
         bool IsDependentOn(Module* module) override;
-
+        
+        static vk::DispatchLoaderDynamic dispatchLoader;
+        
         vk::Instance GetInstance() const;
 
         vk::Device GetDevice() const;
@@ -75,6 +77,8 @@ namespace aerox::graphics
         void WaitForDeviceIdle() const;
 
         ShaderManager * GetShaderManager() const;
+
+        Allocator * GetAllocator() const;
 
         static void ImageBarrier(vk::CommandBuffer cmd,vk::Image image,vk::ImageLayout from,vk::ImageLayout to,const ImageBarrierOptions& options = {});
 
@@ -95,6 +99,7 @@ namespace aerox::graphics
 
         static void GenerateMipMaps(const vk::CommandBuffer& cmd,const Shared<DeviceImage>& image,const vk::Extent3D& extent,const vk::Filter& filter);
 
+        WindowRenderer * GetRenderer(window::Window * window) const;
         Shared<DeviceImage> CreateImage(const vk::Extent3D& extent,vk::Format format,vk::ImageUsageFlags usage, bool mipMap = false,
             const std::string& debugName = "Image") const;
         
