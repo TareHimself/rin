@@ -47,7 +47,7 @@ namespace aerox::graphics
             cmd.bindShadersEXT(stages, shaders, GraphicsModule::dispatchLoader);
             return true;
         }
-        catch (std::exception& e)
+        catch (ShaderCompileError& e)
         {
             std::cerr << "Shader Error:\n" << e.what() << std::endl;
             return false;
@@ -98,10 +98,13 @@ namespace aerox::graphics
     {
         const auto thisShader = this->GetSharedDynamic<Shader>();
 
-        _compiledShader = GetManager()->StartShaderCompilation(thisShader);
+
         ComputeResources({
             {vk::ShaderStageFlagBits::eVertex, _vertexShader}, {vk::ShaderStageFlagBits::eFragment, _fragmentShader}
         });
+        
+        _compiledShader = GetManager()->StartShaderCompilation(thisShader);
+        
     }
 
     CompiledShader GraphicsShader::Compile(ShaderManager* manager)

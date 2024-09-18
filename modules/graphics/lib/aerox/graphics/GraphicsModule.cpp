@@ -70,14 +70,16 @@ namespace aerox::graphics
         features.synchronization2 = true;
 
         vk::PhysicalDeviceVulkan12Features features12{};
-        features12.setBufferDeviceAddress(true)
-                  .setDescriptorIndexing(true)
-                  .setDescriptorBindingPartiallyBound(true)
-                  .setRuntimeDescriptorArray(true)
-                  .setDescriptorBindingSampledImageUpdateAfterBind(true)
-                  .setDescriptorBindingStorageImageUpdateAfterBind(true)
-                    .setDescriptorBindingStorageBufferUpdateAfterBind(true)
-                  .setScalarBlockLayout(true);
+        features12
+        .setBufferDeviceAddress(true)
+        .setDescriptorIndexing(true)
+        .setDescriptorBindingPartiallyBound(true)
+        .setRuntimeDescriptorArray(true)
+        .setDescriptorBindingSampledImageUpdateAfterBind(true)
+        .setDescriptorBindingStorageImageUpdateAfterBind(true)
+        .setDescriptorBindingStorageBufferUpdateAfterBind(true)
+        .setDescriptorBindingVariableDescriptorCount(true)
+        .setScalarBlockLayout(true);
                   
 
         auto newRenderer = new WindowRenderer(_instance, window, this);

@@ -21,7 +21,7 @@ namespace aerox::graphics
     void Shader::ComputeResources(
         const std::vector<std::pair<vk::ShaderStageFlags, std::shared_ptr<ashl::ModuleNode>>>& shaders)
     {
-        for (auto& [flags,shader] : shaders)
+        for (auto& [shaderStages,shader] : shaders)
         {
             for (auto& node : shader->statements)
             {
@@ -33,6 +33,7 @@ namespace aerox::graphics
                             layoutType == ashl::ELayoutType::Uniform)
                         {
                             vk::DescriptorType type{};
+                            auto stages = shaderStages;
                             switch (asLayout->declaration->declarationType)
                             {
                             case ashl::EDeclarationType::Block:
@@ -65,34 +66,47 @@ namespace aerox::graphics
                             {
                                 bindingFlags |= vk::DescriptorBindingFlagBits::eUpdateAfterBind;
                             }
+                            
                             if (asLayout->tags.contains("$partial"))
                             {
                                 bindingFlags |= vk::DescriptorBindingFlagBits::ePartiallyBound;
                             }
+                            
                             if (asLayout->tags.contains("$variable"))
                             {
                                 bindingFlags |= vk::DescriptorBindingFlagBits::eVariableDescriptorCount;
+                            }
+
+                            if (asLayout->tags.contains("$stage") && asLayout->tags["$stage"] == "all")
+                            {
+                                stages |= vk::ShaderStageFlagBits::eAll;
                             }
 
                             auto name = asLayout->declaration->declarationName;
 
                             if (resources.contains(name))
                             {
-                                resources.at(name).stages |= flags;
+                                resources.at(name).stages |= stages;
                                 resources.at(name).bindingFlags |= bindingFlags;
                             }
                             else
                             {
+                                auto count = static_cast<unsigned>(asLayout->declaration->
+                                                              declarationCount);
+                                if(asLayout->tags.contains("$variable"))
+                                {
+                                    count = ashl::parseInt(asLayout->tags.at("$variable"));
+                                }
+                                
                                 if (asLayout->declaration->declarationType == ashl::EDeclarationType::Block)
                                 {
                                     resources.emplace(name, ShaderResource{
                                                           name,
                                                           set,
                                                           binding,
-                                                          static_cast<unsigned>(asLayout->declaration->
-                                                              declarationCount),
+                                                          count,
                                                           type,
-                                                          flags,
+                                                          stages,
                                                           bindingFlags,
                                                           static_cast<uint32_t>(asLayout->declaration->GetSize())
                                                       });
@@ -103,10 +117,9 @@ namespace aerox::graphics
                                                           name,
                                                           set,
                                                           binding,
-                                                          static_cast<unsigned>(asLayout->declaration->
-                                                              declarationCount),
+                                                          count,
                                                           type,
-                                                          flags,
+                                                          stages,
                                                           bindingFlags
                                                       });
                                 }
@@ -121,7 +134,7 @@ namespace aerox::graphics
                             std::string name = "push";
                             if (pushConstants.contains(name))
                             {
-                                pushConstants.at(name).stages |= flags;
+                                pushConstants.at(name).stages |= shaderStages;
                             }
                             else
                             {
@@ -131,7 +144,7 @@ namespace aerox::graphics
                                     pushSize += declarationNode->GetSize();
                                 }
 
-                                pushConstants.emplace(name, PushConstant{name, pushSize, flags});
+                                pushConstants.emplace(name, PushConstant{name, pushSize, shaderStages});
                             }
                         }
                     }

@@ -11,6 +11,7 @@ namespace aerox::graphics
 {
     class ResourceManager : public Disposable
     {
+        
         Shared<DescriptorAllocator> _descriptorAllocator = DescriptorAllocator::New(512,
             {
                 PoolSizeRatio{
@@ -29,6 +30,7 @@ namespace aerox::graphics
         void UpdateTextures(const std::vector<int>& indices);
         vk::Sampler GetOrCreateSampler(const SamplerSpec& spec);
     public:
+        static constexpr int MAX_TEXTURES = 512;
         ResourceManager();
 
 

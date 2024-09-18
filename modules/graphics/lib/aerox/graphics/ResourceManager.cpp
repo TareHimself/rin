@@ -51,9 +51,9 @@ namespace aerox::graphics
         {
             auto flags = vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eVariableDescriptorCount | vk::DescriptorBindingFlagBits::eUpdateAfterBind;
             auto layout = DescriptorLayoutBuilder()
-            .AddBinding(0,vk::DescriptorType::eCombinedImageSampler,vk::ShaderStageFlagBits::eAll,1,flags)
+            .AddBinding(0,vk::DescriptorType::eCombinedImageSampler,vk::ShaderStageFlagBits::eAll,MAX_TEXTURES,flags)
             .Build();
-            _descriptorSet = _descriptorAllocator->Allocate(layout,{512});
+            _descriptorSet = _descriptorAllocator->Allocate(layout,{MAX_TEXTURES});
             _graphicsModule->GetDevice().destroyDescriptorSetLayout(layout);
         }
     }
