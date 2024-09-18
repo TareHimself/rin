@@ -5,11 +5,11 @@ namespace aerox::graphics
 {
     struct SamplerSpec
     {
-    private:
-        vk::Filter _filter{};
-        vk::ImageTiling _tiling{};
+ 
     public:
-        SamplerSpec(const vk::Filter& filter,const vk::ImageTiling& tiling);
+        vk::Filter filter{};
+        vk::SamplerAddressMode tiling{};
+        SamplerSpec(const vk::Filter& inFilter,const vk::SamplerAddressMode& inTiling);
 
         std::string GetId() const;
     };

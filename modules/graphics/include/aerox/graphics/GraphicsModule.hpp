@@ -10,6 +10,11 @@
 
 namespace aerox::graphics
 {
+    class ResourceManager;
+}
+
+namespace aerox::graphics
+{
     class ShaderManager;
 }
 
@@ -46,6 +51,7 @@ namespace aerox::graphics
 
         std::unique_ptr<Allocator> _allocator{};
         Shared<ShaderManager> _shaderManager{};
+        Shared<ResourceManager> _textureManager{};
         
     protected:
         void Startup(GRuntime* runtime) override;
@@ -77,6 +83,8 @@ namespace aerox::graphics
         void WaitForDeviceIdle() const;
 
         ShaderManager * GetShaderManager() const;
+
+        ResourceManager * GetResourseManager() const;
 
         Allocator * GetAllocator() const;
 

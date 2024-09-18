@@ -1,8 +1,9 @@
 ﻿#include "aerox/graphics/shaders/GraphicsShader.hpp"
 #include <ranges>
 #include <ashl/utils.hpp>
-
+#include <iostream>
 #include "aerox/graphics/descriptors/DescriptorLayoutBuilder.hpp"
+#include "aerox/graphics/shaders/ShaderCompileError.hpp"
 #include "ashl/tokenizer.hpp"
 #include "ashl/parser.hpp"
 
@@ -21,29 +22,36 @@ namespace aerox::graphics
 
     bool GraphicsShader::Bind(const vk::CommandBuffer& cmd, bool wait)
     {
-        using namespace std::chrono_literals;
-        if (wait)
+        try
         {
-            _compiledShader.wait();
+            using namespace std::chrono_literals;
+            if (wait)
+            {
+                _compiledShader.wait();
+            }
+            else if (_compiledShader.wait_for(0ms) != std::future_status::ready)
+            {
+                return false;
+            }
+            auto data = _compiledShader.get();
+            std::vector<vk::ShaderEXT> shaders = {data.shaders[0].second,data.shaders[1].second};
+            std::vector<vk::ShaderStageFlagBits> stages = {
+                data.shaders[0].first, data.shaders[1].first
+            };
+        
+            {
+                auto stage = vk::ShaderStageFlagBits::eGeometry;
+                cmd.bindShadersEXT(1, &stage, nullptr, GraphicsModule::dispatchLoader);
+            }
+
+            cmd.bindShadersEXT(stages, shaders, GraphicsModule::dispatchLoader);
+            return true;
         }
-        else if (_compiledShader.wait_for(0ms) != std::future_status::ready)
+        catch (std::exception& e)
         {
+            std::cerr << "Shader Error:\n" << e.what() << std::endl;
             return false;
         }
-        
-        auto data = _compiledShader.get();
-        std::vector<vk::ShaderEXT> shaders = {data.shaders[0].second,data.shaders[1].second};
-        std::vector<vk::ShaderStageFlagBits> stages = {
-            data.shaders[0].first, data.shaders[1].first
-        };
-        
-        {
-            auto stage = vk::ShaderStageFlagBits::eGeometry;
-            cmd.bindShadersEXT(1, &stage, nullptr, GraphicsModule::dispatchLoader);
-        }
-
-        cmd.bindShadersEXT(stages, shaders, GraphicsModule::dispatchLoader);
-        return true;
     }
 
     std::string GraphicsShader::GetVertexShaderId() const

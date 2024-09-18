@@ -5,6 +5,7 @@
 #include "aerox/core/GRuntime.hpp"
 #include "aerox/graphics/DeviceBuffer.hpp"
 #include "aerox/graphics/GraphicsModule.hpp"
+#include "aerox/graphics/ResourceManager.hpp"
 #include "aerox/widgets/Widget.hpp"
 #include "aerox/widgets/Container.hpp"
 #include "aerox/widgets/WidgetsModule.hpp"
@@ -313,12 +314,12 @@ namespace aerox::widgets
         
         if(shader->Bind(cmd,true))
         {
-            auto setLayout = shader->GetDescriptorSetLayouts().at(0);
+            auto resource = shader->resources.at("batch_info");
+            auto setLayout = shader->GetDescriptorSetLayouts().at(resource.set);
             auto pipelineLayout = shader->GetPipelineLayout();
             auto size = GetDrawSize().Cast<float>();
             Vec4<float> viewport{0.0f,0.0f,size.x,size.y};
             Matrix4<float> projection = static_cast<Matrix4<float>>(glm::ortho(0.0f, size.x, 0.0f, size.y));
-            auto resource = shader->resources.at("batch_info");
             for(auto i = 0; i < quads.size(); i += BatchInfo::MAX_BATCH)
             {
                 auto set = frame->raw->GetAllocator()->Allocate(setLayout);
@@ -328,7 +329,8 @@ namespace aerox::widgets
                 memcpy(&data.quads,quads.data(),totalQuads * sizeof(QuadInfo));
                 dataBuffer->Write(data);
                 set->WriteBuffer(resource.binding,resource.type,dataBuffer);
-                cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,pipelineLayout,0,set->GetInternalSet(),{});
+                std::vector<vk::DescriptorSet> sets = {graphicsModule->GetResourseManager()->GetDescriptorSet(),set->GetInternalSet()};
+                cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,pipelineLayout,0,sets,{});
                 if(!dataBuffer || dataBuffer->IsDisposed())
                 {
                     throw std::runtime_error("YO");

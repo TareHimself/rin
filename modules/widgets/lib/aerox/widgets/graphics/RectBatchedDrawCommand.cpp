@@ -13,7 +13,7 @@ namespace aerox::widgets
         quads.reserve(_rects.size());
         for (auto &rect : _rects)
         {
-            quads.emplace_back(-1,-1,rect.color,rect.borderRadius,rect.size,rect.transform);
+            quads.emplace_back(-1,rect.color,rect.borderRadius,rect.size,rect.transform);
         } 
         return quads;
     }

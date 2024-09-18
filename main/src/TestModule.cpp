@@ -50,9 +50,17 @@ void TestModule::Startup(GRuntime* runtime)
     if (auto surface = _widgetsModule->GetSurface(_window.get()))
     {
          auto panel = surface->AddChild<widgets::Panel>();
-        auto slot = panel->AddChild<TestWidget>()->As<widgets::PanelSlot>();
-        slot->maxAnchor = {0.5f,0.5f};
-        slot->ComputeSizeAndOffset();
+         {
+             auto slot = panel->AddChild<TestWidget>()->As<widgets::PanelSlot>();
+             slot->maxAnchor = {0.5f,0.5f};
+             slot->ComputeSizeAndOffset();
+         }
+         {
+             auto slot = panel->AddChild<TestWidget>()->As<widgets::PanelSlot>();
+             slot->minAnchor = {0.5f,0.5f};
+             slot->maxAnchor = {1.0f,1.0f};
+             slot->ComputeSizeAndOffset();
+         }
     }
     // if(const auto sample = bass::createFileStream(R"(C:\Users\Taree\Downloads\Tracks\Sunny - Yorushika.mp3)",0,bass::CreateFlag::SampleFloat | bass::CreateFlag::SampleMono); sample->Play())
     // {

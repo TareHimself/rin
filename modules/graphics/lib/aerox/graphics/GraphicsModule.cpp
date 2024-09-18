@@ -10,7 +10,7 @@
 #include "aerox/graphics/WindowRenderer.hpp"
 #include "aerox/core/GRuntime.hpp"
 #include <SDL3/SDL_vulkan.h>
-
+#include "aerox/graphics/ResourceManager.hpp"
 #include "aerox/graphics/shaders/ShaderManager.hpp"
 #include <VkBootstrap.h>
 
@@ -142,8 +142,10 @@ namespace aerox::graphics
         _allocator = std::make_unique<Allocator>(this);
 
         _shaderManager->Init();
+        _textureManager = newShared<ResourceManager>();
         newRenderer->Init();
         onRendererCreated->Invoke(newRenderer);
+        
     }
 
     void GraphicsModule::Startup(GRuntime* runtime)
@@ -179,7 +181,8 @@ namespace aerox::graphics
         if (_instance)
         {
             _allocator.reset();
-            _shaderManager.reset();
+            _shaderManager->Dispose();
+            _textureManager->Dispose();
             _device.destroy();
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
             vkb::destroy_debug_utils_messenger(_instance, _debugMessenger, nullptr);
@@ -276,6 +279,11 @@ namespace aerox::graphics
     ShaderManager* GraphicsModule::GetShaderManager() const
     {
         return _shaderManager.get();
+    }
+
+    ResourceManager* GraphicsModule::GetResourseManager() const
+    {
+        return _textureManager.get();
     }
 
     Allocator* GraphicsModule::GetAllocator() const

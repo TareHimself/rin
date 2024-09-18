@@ -2,14 +2,14 @@
 
 namespace aerox::graphics
 {
-    SamplerSpec::SamplerSpec(const vk::Filter& filter, const vk::ImageTiling& tiling)
+    SamplerSpec::SamplerSpec(const vk::Filter& inFilter, const vk::SamplerAddressMode& inTiling)
     {
-        _filter = filter;
-        _tiling = tiling;
+        filter = inFilter;
+        tiling = inTiling;
     }
 
     std::string SamplerSpec::GetId() const
     {
-        return std::to_string(static_cast<int>(_filter)) + "_" + std::to_string(static_cast<int>(_tiling));
+        return std::to_string(static_cast<int>(filter)) + "_" + std::to_string(static_cast<int>(tiling));
     }
 }

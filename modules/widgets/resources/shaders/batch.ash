@@ -1,9 +1,9 @@
 #include "utils.ash"
+#include "global.ash"
 
 struct QuadRenderInfo
 {
     int textureId;
-    int samplerId;
     float4 color;
     float4 borderRadius;
     float2 size;
@@ -11,7 +11,7 @@ struct QuadRenderInfo
 };
 
 
-layout(set = 0,binding = 0, scalar) uniform batch_info {
+layout(set = 1,binding = 0, scalar) uniform batch_info {
     float4 viewport;
     mat4 projection;
     QuadRenderInfo quads[64];

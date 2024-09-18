@@ -58,6 +58,6 @@ namespace aerox::widgets
         auto sizeFinal = p2Final - p1Final;
 
         GetWidget()->SetRelativeOffset(p1Final);
-        GetWidget()->SetDrawSize(p2Final);
+        GetWidget()->SetDrawSize(sizeFinal);
     }
 }

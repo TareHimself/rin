@@ -12,6 +12,7 @@
 #include <glslang/Public/resource_limits_c.h>
 
 #include "aerox/graphics/shaders/Shader.hpp"
+#include "aerox/graphics/shaders/ShaderCompileError.hpp"
 
 namespace aerox::graphics
 {
@@ -85,8 +86,7 @@ namespace aerox::graphics
             }
             else
             {
-                auto glslShader = "#version 450\n#extension GL_EXT_buffer_reference : require\n#extension GL_EXT_scalar_block_layout : require\n" + ashl::glsl::generate(node);
-                std::cout << glslShader << std::endl;
+                auto glslShader = "#version 450\n#extension GL_EXT_buffer_reference : require\n#extension GL_EXT_nonuniform_qualifier : require\n#extension GL_EXT_scalar_block_layout : require\n" + ashl::glsl::generate(node);
                 auto glslStage = GetLangFromStage(stage);
                 const glslang_input_t input = {
                     .language = GLSLANG_SOURCE_GLSL,
@@ -108,42 +108,25 @@ namespace aerox::graphics
                 
                 std::string fileName = "<shader>";
                 if (!glslang_shader_preprocess(shader, &input))	{
-                    // printf("GLSL preprocessing failed %s\n", fileName);
-                    // printf("%s\n", glslang_shader_get_info_log(shader));
-                    // printf("%s\n", glslang_shader_get_info_debug_log(shader));
-                    // printf("%s\n", input.code);
+                    std::string message{glslang_shader_get_info_log(shader)};
                     glslang_shader_delete(shader);
-                    throw std::runtime_error("Failed to compile shader");
+                    throw ShaderCompileError("Preprocessing Failed: " + message,glslShader);
                 }
 
                 if (!glslang_shader_parse(shader, &input)) {
-                    // printf("GLSL parsing failed %s\n", fileName);
-                    // printf("%s\n", glslang_shader_get_info_log(shader));
-                    // printf("%s\n", glslang_shader_get_info_debug_log(shader));
-                    // printf("%s\n", glslang_shader_get_preprocessed_code(shader));
-                   
-                    // auto debugLog = glslang_shader_get_info_debug_log(shader);
-                    auto log = glslang_shader_get_info_log(shader);
-                    auto shaderCode = glslang_shader_get_preprocessed_code(shader);
-                    std::cout << log << "\n" << shaderCode << std::endl;
+                    std::string message{glslang_shader_get_info_log(shader)};
                     glslang_shader_delete(shader);
-                    throw std::runtime_error("Failed to compile shader");
+                    throw ShaderCompileError("Parsing Failed: " + message,glslShader);
                 }
 
                 glslang_program_t* program = glslang_program_create();
                 glslang_program_add_shader(program, shader);
 
                 if (!glslang_program_link(program, GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_VULKAN_RULES_BIT)) {
-                    // printf("GLSL linking failed %s\n", fileName);
-                    // printf("%s\n", glslang_program_get_info_log(program));
-                    // printf("%s\n", glslang_program_get_info_debug_log(program));
-                    // auto log = glslang_shader_get_info_log(shader);
-                    // auto debugLog = glslang_shader_get_info_debug_log(shader);
-                    // auto shaderCode = glslang_shader_get_preprocessed_code(shader);
-                    // std::cout << log << "\n" << shaderCode << std::endl;
+                    std::string message{glslang_shader_get_info_log(shader)};
                     glslang_program_delete(program);
                     glslang_shader_delete(shader);
-                    throw std::runtime_error("Failed to compile shader");
+                    throw ShaderCompileError("Linking Failed: " + message,glslShader);
                 }
 
                 glslang_program_SPIRV_generate(program,glslStage);
@@ -152,11 +135,6 @@ namespace aerox::graphics
                 spvResult.resize(glslang_program_SPIRV_get_size(program));
                 
                 glslang_program_SPIRV_get(program, spvResult.data());
-
-                // const char* spirv_messages = glslang_program_SPIRV_get_messages(program);
-                // if (spirv_messages)
-                //     printf("(%s) %s\b", fileName, spirv_messages);
-
                 glslang_program_delete(program);
                 glslang_shader_delete(shader);
 
