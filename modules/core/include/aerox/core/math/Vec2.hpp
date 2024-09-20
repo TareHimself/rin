@@ -47,7 +47,7 @@ namespace aerox
 
         T Cross(const Vec2& other);
 
-        bool NearlyEquals(const Vec2& other,T tolerance);
+        bool NearlyEquals(const Vec2& other,T tolerance) const;
     };
 
     template <typename T>
@@ -164,7 +164,7 @@ namespace aerox
     }
 
     template <typename T>
-    bool Vec2<T>::NearlyEquals(const Vec2& other,T tolerance)
+    bool Vec2<T>::NearlyEquals(const Vec2& other,T tolerance) const
     {
         return (*this - other).Abs().Max() < tolerance;
     }

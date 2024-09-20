@@ -7,6 +7,7 @@
 #include <functional>
 #include <optional>
 #include "Allocator.hpp"
+#include "descriptors/DescriptorLayoutStore.hpp"
 
 namespace aerox::graphics
 {
@@ -42,7 +43,8 @@ namespace aerox::graphics
         vk::CommandPool _immediateCommandPool{};
         vk::Fence _immediateFence{};
 
-
+        DescriptorLayoutStore _descriptorLayoutStore{};
+        
         DelegateListHandle _onWindowCreatedHandle{};
         DelegateListHandle _onWindowDestroyedHandle{};
         DelegateListHandle _onTickHandle{};
@@ -51,7 +53,7 @@ namespace aerox::graphics
 
         std::unique_ptr<Allocator> _allocator{};
         Shared<ShaderManager> _shaderManager{};
-        Shared<ResourceManager> _textureManager{};
+        Shared<ResourceManager> _resourceManager{};
         
     protected:
         void Startup(GRuntime* runtime) override;
@@ -84,9 +86,11 @@ namespace aerox::graphics
 
         ShaderManager * GetShaderManager() const;
 
-        ResourceManager * GetResourseManager() const;
+        ResourceManager * GetResourceManager() const;
 
         Allocator * GetAllocator() const;
+
+        DescriptorLayoutStore* GetDescriptorLayoutStore();
 
         static void ImageBarrier(vk::CommandBuffer cmd,vk::Image image,vk::ImageLayout from,vk::ImageLayout to,const ImageBarrierOptions& options = {});
 

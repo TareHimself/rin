@@ -1,10 +1,6 @@
-float2 applyTransform3(float2 pos, mat3 projection){
-    return (projection * float3(pos, 1.0)).xy;
-}
+float2 applyTransform3(float2 pos, mat3 projection) -> (projection * float3(pos, 1.0)).xy;
 
-float2 applyTransform4(float2 pos, mat4 projection){
-    return (projection * float4(pos, 0.0, 1.0)).xy;
-}
+float2 applyTransform4(float2 pos, mat4 projection) -> (projection * float4(pos, 0.0, 1.0)).xy;
 
 void extentToPoints(float4 extent, out float2 tl, out float2 tr, out float2 bl, out float2 br){
     float2 p1 = extent.xy;
@@ -24,9 +20,8 @@ float mapRangeUnClamped(float value, float fromMin, float fromMax, float toMin, 
     return mix(toMin, toMax, normalizedPosition);
 }
 
-float2 normalizePoint(float4 viewport, float2 point){
-    return float2(mapRangeUnClamped(point.x, 0.0, viewport.z, -1.0, 1.0), mapRangeUnClamped(point.y, 0.0, viewport.w, -1.0, 1.0));
-}
+float2 normalizePoint(float4 viewport, float2 point) 
+                                -> float2(mapRangeUnClamped(point.x, 0.0, viewport.z, -1.0, 1.0), mapRangeUnClamped(point.y, 0.0, viewport.w, -1.0, 1.0));
 
 const float2 vertices[] = { float2(-0.5), float2(0.5, -0.5), float2(0.5), float2(-0.5), float2(0.5), float2(-0.5, 0.5) };
 
@@ -47,13 +42,9 @@ void generateVertex(float4 viewport, float4 extent, int index, out float4 locati
 }
 
 
-float2 doProjectionAndTransformation(float2 pos, mat4 projection, mat3 transform){
-    return applyTransform4(applyTransform3(pos, transform), projection);
-}
+float2 doProjectionAndTransformation(float2 pos, mat4 projection, mat3 transform) -> applyTransform4(applyTransform3(pos, transform), projection);
 
-float2 undoProjectionAndTransformation(float2 pos, mat4 projection, mat3 transform){
-    return applyTransform3(applyTransform4(pos, inverse(projection)), inverse(transform));
-}
+float2 undoProjectionAndTransformation(float2 pos, mat4 projection, mat3 transform) -> applyTransform3(applyTransform4(pos, inverse(projection)), inverse(transform));
 
 void generateRectVertex(float2 size, mat4 projection, mat3 transform, int index, out float4 location, out float2 uv){
     float4 extent = float4(0.0, 0.0, size);

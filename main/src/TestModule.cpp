@@ -11,11 +11,11 @@
 #include "aerox/widgets/WidgetsModule.hpp"
 #include "aerox/widgets/WindowSurface.hpp"
 #include "aerox/widgets/containers/Panel.hpp"
-#include "aerox/window/Window.hpp"
+#include "aerox/window/Window.hpp"  
 #include "aerox/window/WindowModule.hpp"
 #include "bass/Stream.hpp"
 #include "aerox/widgets/containers/Panel.hpp"
-#include "aerox/widgets/graphics/RectBatchedDrawCommand.hpp"
+#include "aerox/widgets/graphics/SimpleBatchedDrawCommand.hpp"
 #include "aerox/widgets/slots/PanelSlot.hpp"
 using namespace std::chrono_literals;
 
@@ -27,14 +27,12 @@ Vec2<float> TestWidget::ComputeDesiredSize()
 void TestWidget::Collect(const widgets::TransformInfo& transform,
                          std::vector<Shared<widgets::DrawCommand>>& drawCommands)
 {
-    drawCommands.push_back(widgets::RectBatchedDrawCommand::New({
-        {
-            transform.transform,
-            GetDrawSize() * abs(sin(GRuntime::Get()->GetTimeSeconds())),
-            Vec4{20.0f},
-            IsHovered() ? Vec4{0.0f, 1.0f, 0.0f, 1.0f} : Vec4{1.0f, 0.0f, 0.0f, 1.0f}
-        }
-    }));
+    auto time = GRuntime::Get()->GetTimeSeconds();
+    pivot = Vec2{0.5f};
+    angle = sin(time) * 200.0f;
+    drawCommands.push_back(widgets::SimpleBatchedDrawCommand::Builder()
+                           .AddRect(GetDrawSize(), transform.transform,Vec4<float>{static_cast<float>(abs(sin(time) * 40.0f))})
+                           .Finish());
 }
 
 std::string TestModule::GetName()
@@ -49,18 +47,20 @@ void TestModule::Startup(GRuntime* runtime)
 
     if (auto surface = _widgetsModule->GetSurface(_window.get()))
     {
-         auto panel = surface->AddChild<widgets::Panel>();
-         {
-             auto slot = panel->AddChild<TestWidget>()->As<widgets::PanelSlot>();
-             slot->maxAnchor = {0.5f,0.5f};
-             slot->ComputeSizeAndOffset();
-         }
-         {
-             auto slot = panel->AddChild<TestWidget>()->As<widgets::PanelSlot>();
-             slot->minAnchor = {0.5f,0.5f};
-             slot->maxAnchor = {1.0f,1.0f};
-             slot->ComputeSizeAndOffset();
-         }
+        auto panel = newShared<widgets::Panel>();
+        // {
+        //     auto slot = panel->AddChild<widgets::PanelSlot,TestWidget>();
+        //     slot->maxAnchor = {0.5f, 0.5f};
+        // }
+        {
+            auto slot = panel->AddChild<widgets::PanelSlot,TestWidget>();
+            slot->minAnchor = Vec2{0.5f};
+            slot->maxAnchor = Vec2{0.5f};
+            slot->size = Vec2{250.0f};
+            slot->alignment = Vec2{0.5f};
+        }
+
+        surface->AddChild(panel);
     }
     // if(const auto sample = bass::createFileStream(R"(C:\Users\Taree\Downloads\Tracks\Sunny - Yorushika.mp3)",0,bass::CreateFlag::SampleFloat | bass::CreateFlag::SampleMono); sample->Play())
     // {

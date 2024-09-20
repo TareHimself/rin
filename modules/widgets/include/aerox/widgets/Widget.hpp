@@ -120,7 +120,7 @@ namespace aerox::widgets
 
         virtual void NotifyCursorLeave(const Shared<CursorMoveEvent>& event, const TransformInfo& transform);
 
-        Vec2<float> GetOffset() const;
+        Vec2<float> GetRelativeOffset() const;
 
         virtual void SetRelativeOffset(const Vec2<float>& offset);
 

@@ -47,7 +47,7 @@ namespace aerox::graphics
             cmd.bindShadersEXT(stages, shaders, GraphicsModule::dispatchLoader);
             return true;
         }
-        catch (ShaderCompileError& e)
+        catch (std::exception& e)
         {
             std::cerr << "Shader Error:\n" << e.what() << std::endl;
             return false;
@@ -203,11 +203,6 @@ namespace aerox::graphics
 
         manager->onDispose->Add([device,shader,layouts]
         {
-           for (auto &descriptorSetLayout : layouts)
-           {
-               device.destroyDescriptorSetLayout(descriptorSetLayout);
-           }
-
             device.destroyPipelineLayout(shader.pipelineLayout);
             
             for (const auto& shaderObject : shader.shaders | std::views::values)

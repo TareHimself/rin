@@ -69,7 +69,7 @@ namespace aerox::graphics
         if (const auto r = device.waitForFences({_renderFence}, true, std::numeric_limits<uint64_t>::max()); r !=
             vk::Result::eSuccess)
         {
-            throw std::exception("Failed to wait for fences for frame");
+            throw std::runtime_error("Failed to wait for fences for frame");
         }
     }
 

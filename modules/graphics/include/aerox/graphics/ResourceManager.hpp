@@ -36,7 +36,7 @@ namespace aerox::graphics
 
         vk::DescriptorSet GetDescriptorSet() const;
         
-       int CreateTexture(const std::vector<std::byte>& data,const vk::Extent3D& size,vk::Format format,vk::Filter filter,vk::SamplerAddressMode tiling,bool mipMapped = true,const std::string& debugName = "Texture");
+        int CreateTexture(const std::vector<std::byte>& data,const vk::Extent3D& size,vk::Format format,vk::Filter filter,vk::SamplerAddressMode tiling  = vk::SamplerAddressMode::eRepeat,bool mipMapped = false,const std::string& debugName = "Texture");
         
         void OnDispose(bool manual) override;
     };

@@ -42,6 +42,10 @@ layout(set = 1,binding = 0, scalar) uniform batch_info {
         QuadRenderInfo renderInfo = batch_info.quads[iQuadIndex];
         float4 pxColor = renderInfo.color;
 
+        if(renderInfo.textureId != -1){
+            pxColor = pxColor * sampleTexture(renderInfo.textureId,iUV);
+        }
+
         oColor = applyBorderRadius(gl_FragCoord.xy, pxColor, renderInfo.borderRadius, renderInfo.size, renderInfo.transform);
     }
 }

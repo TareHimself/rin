@@ -155,7 +155,7 @@ namespace aerox::widgets
     {
         for (auto &slot : GetSlots())
         {
-            auto slotTransform = transform.AccountFor(slot);
+            auto slotTransform = ComputeChildTransform(slot,transform);
             if(slotTransform.IsPointWithin(event->position) && slot->GetWidget()->NotifyCursorDown(event,slotTransform)) return slot->GetWidget();
         }
         return {};
@@ -165,7 +165,7 @@ namespace aerox::widgets
     {
         for (auto &slot : GetSlots())
         {
-            auto slotTransform = transform.AccountFor(slot);
+            auto slotTransform = ComputeChildTransform(slot,transform);
             if(slotTransform.IsPointWithin(event->position))
             {
                 slot->GetWidget()->NotifyCursorEnter(event,slotTransform,items);
@@ -178,7 +178,7 @@ namespace aerox::widgets
     {
         for (auto &slot : GetSlots())
         {
-            auto slotTransform = transform.AccountFor(slot);
+            auto slotTransform = ComputeChildTransform(slot,transform);
             if(slotTransform.IsPointWithin(event->position) && slot->GetWidget()->NotifyCursorMove(event,slotTransform)) return true;
         }
         return false;
@@ -188,7 +188,7 @@ namespace aerox::widgets
     {
         for (auto &slot : GetSlots())
         {
-            auto slotTransform = transform.AccountFor(slot);
+            auto slotTransform = ComputeChildTransform(slot,transform);
             if(slotTransform.IsPointWithin(event->position) && slot->GetWidget()->NotifyScroll(event,slotTransform)) return true;
         }
         return false;
@@ -198,9 +198,19 @@ namespace aerox::widgets
     {
         for (auto &slot : GetSlots())
         {
+            TransformInfo t = ComputeChildTransform(slot,transform);
             auto widget = slot->GetWidget();
-            TransformInfo t = transform.AccountFor(widget);
             widget->Collect(t,drawCommands);
         } 
+    }
+
+    TransformInfo Container::ComputeChildTransform(const Shared<ContainerSlot>& slot, const TransformInfo& myTransform)
+    {
+        return ComputeChildTransform(slot->GetWidget(),myTransform);
+    }
+
+    TransformInfo Container::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
+    {
+        return myTransform.AccountFor(widget);
     }
 }

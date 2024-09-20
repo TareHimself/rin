@@ -82,6 +82,7 @@ namespace aerox
         
         for (auto& module : std::ranges::views::reverse(_moduleList))
         {
+            module->beforeShutdown->Invoke();
             module->Shutdown(this);
         }
 

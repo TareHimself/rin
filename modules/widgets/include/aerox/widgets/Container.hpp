@@ -22,7 +22,7 @@ namespace aerox::widgets
         virtual Shared<ContainerSlot> GetSlot(Widget * widget) const;
         virtual std::vector<Shared<ContainerSlot>> GetSlots() const;
         
-        Shared<ContainerSlot> AddChild(const Shared<Widget>& widget);
+        virtual Shared<ContainerSlot> AddChild(const Shared<Widget>& widget);
         bool RemoveChild(const Shared<Widget>& widget);
 
         void SetDrawSize(const Vec2<float>& size) override;
@@ -44,7 +44,13 @@ namespace aerox::widgets
         template<typename T,typename ...TArgs>
         std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<Widget,T>,Shared<ContainerSlot>> AddChild(TArgs&&... args);
 
+        template<typename TSlotType,typename T,typename ...TArgs>
+       std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<Widget,T> && std::is_base_of_v<ContainerSlot,TSlotType>,Shared<TSlotType>> AddChild(TArgs&&... args);
+
         void Collect(const TransformInfo& transform, std::vector<Shared<DrawCommand>>& drawCommands) override;
+
+        TransformInfo ComputeChildTransform(const Shared<ContainerSlot>& slot, const TransformInfo& myTransform);
+        virtual TransformInfo ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform);
     };
 
     template <typename T, typename ... TArgs>
@@ -52,6 +58,17 @@ namespace aerox::widgets
     Container::AddChild(TArgs&&... args)
     {
         return AddChild(newShared<T>(std::forward<TArgs>(args)...));
+    }
+
+    template <typename TSlotType, typename T, typename ... TArgs>
+    std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<Widget, T> && std::is_base_of_v<
+    ContainerSlot, TSlotType>, Shared<TSlotType>> Container::AddChild(TArgs&&... args)
+    {
+        if(auto slot = AddChild<T>(std::forward<TArgs>(args)...))
+        {
+            return slot->template As<TSlotType>();
+        }
+        return Shared<TSlotType>{};
     }
 
 

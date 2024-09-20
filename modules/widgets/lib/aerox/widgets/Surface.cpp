@@ -35,20 +35,11 @@ namespace aerox::widgets
 
         auto size = GetDrawSize();
 
-        if (cursorPosition.x < 0 || cursorPosition.y < 0 || cursorPosition.x > size.x || cursorPosition.y > size.y)
-        {
-            for (auto& lastHovered : _lastHovered)
-            {
-                lastHovered->NotifyCursorLeave(event, info.AccountFor(lastHovered));
-            }
-            _lastHovered.clear();
-            return;
-        }
-
-
-        auto previousLastHovered = _lastHovered;
+        // Store old hover list
+        auto oldHoverList = _lastHovered;
         _lastHovered.clear();
 
+        // Build new hover list
         for (auto& rootWidget : std::ranges::reverse_view(_rootWidgets))
         {
             if (!rootWidget->IsHitTestable()) continue;
@@ -67,13 +58,16 @@ namespace aerox::widgets
         {
             hoveredSet.emplace(hovered.get());
         }
-
-        for (auto& widget : previousLastHovered)
+        
+        Shared<Container> lastParent{};
+        TransformInfo curTransform = info;
+        for (auto &widget : std::ranges::reverse_view(oldHoverList))
         {
-            if (!hoveredSet.contains(widget.get()))
+            curTransform = lastParent ? lastParent->ComputeChildTransform(widget,curTransform) : curTransform;
+            lastParent = std::dynamic_pointer_cast<Container>(widget);
+            if(!hoveredSet.contains(widget.get()))
             {
-                auto widgetTransformInfo = info.AccountFor(widget);
-                widget->NotifyCursorLeave(event, widgetTransformInfo);
+                widget->NotifyCursorLeave(event,curTransform);
             }
         }
     }
@@ -146,43 +140,41 @@ namespace aerox::widgets
 
     void Surface::NotifyCursorDown(const Shared<CursorDownEvent>& event)
     {
-        // Needs Revision
-        // TransformInfo info{this};
-        //
-        // bool shouldKeepFocus = true;
-        // for (auto &rootWidget : std::ranges::reverse_view(GetRootWidgets()))
-        // {
-        //     if(!rootWidget->IsHitTestable()) continue;
-        //     
-        //     auto widgetTransformInfo = info.AccountFor(rootWidget);
-        //
-        //     if(!widgetTransformInfo.IsPointWithin(event->position)) continue;
-        //
-        //     auto res = rootWidget->NotifyCursorDown(event,widgetTransformInfo);
-        //
-        //     if(!res) continue;
-        //
-        //     if(!_focusedWidget) continue;
-        //     
-        //     while(res->GetParent())
-        //     {
-        //         if(res != _focusedWidget)
-        //         {
-        //             res = res->GetParent();
-        //             continue;
-        //         }
-        //
-        //         shouldKeepFocus = true;
-        //         break;
-        //     }
-        //
-        //     if(!shouldKeepFocus) break;
-        //
-        //     ClearFocus();
-        //     return;
-        // }
-        //
-        // ClearFocus();
+        TransformInfo rootInfo{this};
+        bool shouldKeepFocus = false;
+        for(auto &rootWidget  : std::ranges::reverse_view(GetRootWidgets()))
+        {
+            if(!rootWidget->IsHitTestable()) continue;
+            
+            auto widgetTransformInfo = rootInfo.AccountFor(rootWidget);
+            
+            if(!widgetTransformInfo.IsPointWithin(event->position)) continue;
+
+            // The widget that handled the cursor down event
+            auto result = rootWidget->NotifyCursorDown(event,widgetTransformInfo);
+
+            if(!result) continue;
+
+            if(!_focusedWidget) continue;
+            
+            while(result)
+            {
+                if(result == _focusedWidget)
+                {
+                    shouldKeepFocus = true;
+                    break;
+                }
+
+                result = result->GetParent();
+            }
+
+            break;
+        }
+
+        if(!shouldKeepFocus)
+        {
+            ClearFocus();
+        }
     }
 
     void Surface::NotifyCursorUp(const Shared<CursorUpEvent>& event)
@@ -329,7 +321,7 @@ namespace aerox::widgets
                 memcpy(&data.quads,quads.data(),totalQuads * sizeof(QuadInfo));
                 dataBuffer->Write(data);
                 set->WriteBuffer(resource.binding,resource.type,dataBuffer);
-                std::vector<vk::DescriptorSet> sets = {graphicsModule->GetResourseManager()->GetDescriptorSet(),set->GetInternalSet()};
+                std::vector<vk::DescriptorSet> sets = {graphicsModule->GetResourceManager()->GetDescriptorSet(),set->GetInternalSet()};
                 cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,pipelineLayout,0,sets,{});
                 if(!dataBuffer || dataBuffer->IsDisposed())
                 {

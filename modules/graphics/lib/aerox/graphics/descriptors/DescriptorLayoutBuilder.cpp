@@ -1,6 +1,7 @@
 ﻿#include "aerox/graphics/descriptors/DescriptorLayoutBuilder.hpp"
 
 #include <ranges>
+#include <ashl/utils.hpp>
 
 #include "aerox/core/GRuntime.hpp"
 #include "aerox/graphics/GraphicsModule.hpp"
@@ -35,12 +36,13 @@ namespace aerox::graphics
 
     vk::DescriptorSetLayout DescriptorLayoutBuilder::Build()
     {
-        auto device = GRuntime::Get()->GetModule<GraphicsModule>()->GetDevice();
+        auto store = GRuntime::Get()->GetModule<GraphicsModule>()->GetDescriptorLayoutStore();
         std::vector<vk::DescriptorSetLayoutBinding> bindings{};
         std::vector<vk::DescriptorBindingFlags> allBindingFlags{};
         bindings.reserve(_bindings.size());
         allBindingFlags.reserve(_bindings.size());
         vk::DescriptorSetLayoutCreateFlags createFlags{};
+        
         for (auto& binding : _bindings | std::views::values)
         {
             bindings.push_back(binding);
@@ -56,7 +58,8 @@ namespace aerox::graphics
 
         auto createInfo = vk::DescriptorSetLayoutCreateInfo{createFlags,bindings,&pNext};
 
-        if(const auto result = device.createDescriptorSetLayout(createInfo))
+        
+        if(const auto result = store->Create(createInfo))
         {
             return result;
         }

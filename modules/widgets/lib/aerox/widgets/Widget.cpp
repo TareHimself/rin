@@ -78,11 +78,15 @@ namespace aerox::widgets
     Matrix3<float> Widget::ComputeRelativeTransform() const
     {
         auto mat = Matrix3<float>(1.0f);
-        auto offset = _relativeOffset + Vec2<float>(padding.left,padding.top);
-        mat = mat.Translate(offset + _relativeOffset * pivot);
-        mat = mat.RotateDeg(angle);
-        mat = mat.Scale(scale);
-        mat = mat.Translate(offset * pivot * -1.0f);
+        auto origin = (_relativeOffset + Vec2<float>(padding.left,padding.top));
+        // auto offset = 
+        // auto pivotDelta = ;
+        // auto totalDelta = offset + _relativeOffset + pivotDelta;
+        mat = mat.Translate(GetDrawSize() * pivot * -1.0f).RotateDeg(angle).Translate(origin).Scale(scale);
+        // mat = mat.Translate(totalDelta);
+        // mat = mat.RotateDeg(angle);
+        // mat = mat.Scale(scale);
+        // mat = mat.Translate(totalDelta * -1.0f);
         return mat;
     }
 
@@ -211,7 +215,7 @@ namespace aerox::widgets
         OnCursorLeave(event);
     }
 
-    Vec2<float> Widget::GetOffset() const
+    Vec2<float> Widget::GetRelativeOffset() const
     {
         return _relativeOffset;
     }

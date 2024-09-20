@@ -2,6 +2,8 @@
 #include <string>
 
 #include "AeroxBase.hpp"
+#include "delegates/DelegateList.hpp"
+
 namespace aerox
 {
     class GRuntime;
@@ -22,5 +24,7 @@ namespace aerox
         virtual bool IsSystemModule();
 
         GRuntime * GetRuntime() const;
+
+        DEFINE_DELEGATE_LIST(beforeShutdown)
     };
 }

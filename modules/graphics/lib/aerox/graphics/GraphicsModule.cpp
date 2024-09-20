@@ -141,10 +141,15 @@ namespace aerox::graphics
             throw;
         }
 
+
+        _immediateFence = _device.createFence({vk::FenceCreateFlagBits::eSignaled});
+        _immediateCommandPool = _device.createCommandPool({vk::CommandPoolCreateFlagBits::eResetCommandBuffer,_queueFamily});
+        _immediateCommandBuffer = _device.allocateCommandBuffers({_immediateCommandPool,vk::CommandBufferLevel::ePrimary,1}).at(0);
+
         _allocator = std::make_unique<Allocator>(this);
 
         _shaderManager->Init();
-        _textureManager = newShared<ResourceManager>();
+        _resourceManager = newShared<ResourceManager>();
         newRenderer->Init();
         onRendererCreated->Invoke(newRenderer);
         
@@ -182,9 +187,19 @@ namespace aerox::graphics
 
         if (_instance)
         {
-            _allocator.reset();
+            
             _shaderManager->Dispose();
-            _textureManager->Dispose();
+            _resourceManager->Dispose();
+
+            _device.destroyFence(_immediateFence);
+            _device.destroyCommandPool(_immediateCommandPool);
+
+            for (auto &[_,item] : _descriptorLayoutStore.GetItems())
+            {
+                _device.destroyDescriptorSetLayout(item);
+            }
+
+            _allocator.reset();
             _device.destroy();
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
             vkb::destroy_debug_utils_messenger(_instance, _debugMessenger, nullptr);
@@ -283,14 +298,19 @@ namespace aerox::graphics
         return _shaderManager.get();
     }
 
-    ResourceManager* GraphicsModule::GetResourseManager() const
+    ResourceManager* GraphicsModule::GetResourceManager() const
     {
-        return _textureManager.get();
+        return _resourceManager.get();
     }
 
     Allocator* GraphicsModule::GetAllocator() const
     {
         return _allocator.get();
+    }
+
+    DescriptorLayoutStore* GraphicsModule::GetDescriptorLayoutStore()
+    {
+        return &_descriptorLayoutStore;
     }
 
     void GraphicsModule::ImageBarrier(const vk::CommandBuffer cmd, const vk::Image image, const vk::ImageLayout from,
@@ -325,7 +345,10 @@ namespace aerox::graphics
 
     void GraphicsModule::ImmediateSubmit(std::function<void(const vk::CommandBuffer&)>&& submit) const
     {
-        _device.waitForFences(_immediateFence, true, std::numeric_limits<uint16_t>::max());
+        if(auto result = _device.waitForFences(_immediateFence, true, std::numeric_limits<uint64_t>::max()); result != vk::Result::eSuccess)
+        {
+            throw std::runtime_error("Failed to wait for fences for immediate submit");
+        }
 
         _device.resetFences(_immediateFence);
         _immediateCommandBuffer.reset();
@@ -339,7 +362,10 @@ namespace aerox::graphics
 
         _queue.submit2(vk::SubmitInfo2({}, {}, submits, {}), _immediateFence);
 
-        _device.waitForFences(_immediateFence, true, std::numeric_limits<uint16_t>::max());
+        if(auto result = _device.waitForFences(_immediateFence, true, std::numeric_limits<uint64_t>::max()); result != vk::Result::eSuccess)
+        {
+            throw std::runtime_error("Failed to wait for fences for immediate submit");
+        }
     }
 
     uint32_t GraphicsModule::DeriveMipLevels(const vk::Extent2D& extent)
