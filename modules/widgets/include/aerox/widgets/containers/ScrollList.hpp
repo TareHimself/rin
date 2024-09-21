@@ -9,7 +9,6 @@ namespace aerox::widgets
     protected:
         Shared<List> _list{};
         Vec2<float> ComputeDesiredSize() override;
-        void ArrangeSlots(const Vec2<float>& drawSize) override;
         Shared<ContainerSlot> MakeSlot(const Shared<Widget>& widget) override;
         void ApplyScroll() const;
         float _scroll = 0.0f;

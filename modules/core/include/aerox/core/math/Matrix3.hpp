@@ -22,6 +22,8 @@ namespace aerox
 
         Matrix3 Scale(const Vec2<T>& scale) const;
 
+        Matrix3 Inverse() const;
+
         Matrix3 operator*(const Matrix3& other) const;
 
         Vec2<T> operator*(const Vec2<T>& other) const;
@@ -67,6 +69,12 @@ namespace aerox
     Matrix3<T> Matrix3<T>::Scale(const Vec2<T>& scale) const
     {
         return static_cast<Matrix3<T>>(glm::scale(static_cast<glm::mat<3,3,T>>(*this),static_cast<glm::vec<2,T>>(scale)));
+    }
+
+    template <typename T>
+    Matrix3<T> Matrix3<T>::Inverse() const
+    {
+        return static_cast<Matrix3<T>>(glm::inverse(static_cast<glm::mat<3,3,T>>(*this)));
     }
 
     template <typename T>

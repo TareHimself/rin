@@ -16,6 +16,7 @@ namespace aerox::widgets
         virtual void OnChildResized(Widget * widget);
         virtual Shared<ContainerSlot> MakeSlot(const Shared<Widget>& widget) = 0;
     public:
+        using SlotType = ContainerSlot;
         virtual size_t GetMaxSlots() const;
         virtual size_t GetUsedSlots() const;
         virtual Shared<ContainerSlot> GetSlot(int index) const;
@@ -72,15 +73,22 @@ namespace aerox::widgets
     }
 
 
-    template<typename T,std::enable_if_t<std::is_base_of_v<Container,T>>*>
-    Shared<T> operator+(const Shared<Container>& container,const Shared<Widget>& child)
+    template<typename T,typename = std::enable_if_t<std::is_base_of_v<Container,T>>>
+    std::pair<Shared<typename T::template SlotType>,Shared<T>> operator+(const Shared<T>& container,const Shared<Widget>& child)
     {
-        container->AddChild(child);
-        return container;
+        auto slot = container->AddChild(child);
+        return std::make_pair(slot->template As<T::template SlotType>(),container);
     }
 
-    template<typename T,std::enable_if_t<std::is_base_of_v<Container,T>>*>
-    Shared<T> operator-(const Shared<Container>& container,const Shared<Widget>& child)
+    template<typename T,typename E,typename = std::enable_if_t<std::is_base_of_v<Container,T> && std::is_base_of_v<ContainerSlot,E>>>
+    std::pair<Shared<typename T::template SlotType>,Shared<T>> operator+(std::pair<Shared<E>,Shared<T>>&& container,const Shared<Widget>& child)
+    {
+        auto slot = container.second->AddChild(child);
+        return std::make_pair(slot->template As<T::template SlotType>(),container.second);
+    }
+
+    template<typename T,typename = std::enable_if_t<std::is_base_of_v<Container,T>>>
+    Shared<T> operator-(const Shared<T>& container,const Shared<Widget>& child)
     {
         container->RemoveChild(child);
         return container;

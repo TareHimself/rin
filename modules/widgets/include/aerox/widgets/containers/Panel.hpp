@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "aerox/widgets/Container.hpp"
+#include "aerox/widgets/slots/PanelSlot.hpp"
 
 
 namespace aerox::widgets
@@ -12,5 +13,6 @@ namespace aerox::widgets
         Shared<ContainerSlot> MakeSlot(const Shared<Widget>& widget) override;
         void OnChildResized(Widget* widget) override;
     public:
+        using SlotType = PanelSlot;
     };
 }

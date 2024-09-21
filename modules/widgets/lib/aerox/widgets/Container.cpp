@@ -9,7 +9,7 @@ namespace aerox::widgets
 {
     void Container::OnChildResized(Widget * widget)
     {
-        if(CheckSize()) ArrangeSlots(GetDrawSize());
+        if(CheckSize()) ArrangeSlots(GetContentSize());
     }
 
     size_t Container::GetMaxSlots() const
@@ -88,7 +88,7 @@ namespace aerox::widgets
     void Container::SetDrawSize(const Vec2<float>& size)
     {
         Widget::SetDrawSize(size);
-        ArrangeSlots(size);
+        ArrangeSlots(GetContentSize());
     }
 
     void Container::OnDispose(bool manual)
@@ -211,6 +211,6 @@ namespace aerox::widgets
 
     TransformInfo Container::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
     {
-        return myTransform.AccountFor(widget);
+        return TransformInfo{myTransform.transform.Translate(Vec2(padding.left,padding.top)) * widget->ComputeRelativeTransform(),widget->GetDrawSize(),myTransform.depth + 1};
     }
 }

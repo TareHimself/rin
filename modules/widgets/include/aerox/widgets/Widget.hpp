@@ -126,6 +126,8 @@ namespace aerox::widgets
 
         Vec2<float> GetDrawSize() const;
 
+        Vec2<float> GetContentSize() const;
+
         virtual void SetDrawSize(const Vec2<float>& size);
 
         Vec2<float> GetDesiredSize();

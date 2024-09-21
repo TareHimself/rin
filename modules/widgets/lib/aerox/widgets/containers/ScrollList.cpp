@@ -7,11 +7,7 @@ namespace aerox::widgets
     {
         return _list->GetDesiredSize();
     }
-
-    void ScrollList::ArrangeSlots(const Vec2<float>& drawSize)
-    {
-        List::ArrangeSlots(drawSize);
-    }
+    
 
     Shared<ContainerSlot> ScrollList::MakeSlot(const Shared<Widget>& widget)
     {

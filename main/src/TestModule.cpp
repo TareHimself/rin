@@ -11,7 +11,7 @@
 #include "aerox/widgets/WidgetsModule.hpp"
 #include "aerox/widgets/WindowSurface.hpp"
 #include "aerox/widgets/containers/Panel.hpp"
-#include "aerox/window/Window.hpp"  
+#include "aerox/window/Window.hpp"
 #include "aerox/window/WindowModule.hpp"
 #include "bass/Stream.hpp"
 #include "aerox/widgets/containers/Panel.hpp"
@@ -29,10 +29,57 @@ void TestWidget::Collect(const widgets::TransformInfo& transform,
 {
     auto time = GRuntime::Get()->GetTimeSeconds();
     pivot = Vec2{0.5f};
-    angle = sin(time) * 200.0f;
-    drawCommands.push_back(widgets::SimpleBatchedDrawCommand::Builder()
-                           .AddRect(GetDrawSize(), transform.transform,Vec4<float>{static_cast<float>(abs(sin(time) * 40.0f))})
-                           .Finish());
+    angle = sin(time) * 90.0f;
+    auto size = GetDrawSize();
+    if(auto parent = GetParent(); parent && parent->IsHovered() && GetSurface())
+    {
+        if(auto surface = GetSurface())
+        {
+            auto location = surface->GetCursorPosition();
+            auto t = Matrix3<float>(1.0f).Translate(location).RotateDeg(angle).Translate(GetDrawSize() * pivot * -1.0f);
+            drawCommands.push_back(widgets::SimpleBatchedDrawCommand::Builder()
+                               .AddRect(
+                                   size,
+                                   t,
+                                   Vec4{
+                                       abs(sin(time) * (size.x / 2.0f))
+                                   }
+                                   .Cast<float>(),
+                                   Vec4{
+                                       abs(sin(time + 1)),
+                                       abs(sin(time + 2)),
+                                       abs(sin(time + 3)),
+                                       1.0
+                                   }
+                                   .Cast<float>()
+                               )
+                               .Finish()
+    );
+        }
+        
+    }
+    else
+    {
+        drawCommands.push_back(widgets::SimpleBatchedDrawCommand::Builder()
+                           .AddRect(
+                               size,
+                               transform.transform,
+                               Vec4{
+                                   abs(sin(time) * (size.x / 2.0f))
+                               }
+                               .Cast<float>(),
+                               Vec4{
+                                   abs(sin(time + 1)),
+                                   abs(sin(time + 2)),
+                                   abs(sin(time + 3)),
+                                   1.0
+                               }
+                               .Cast<float>()
+                           )
+                           .Finish()
+    );
+    }
+    
 }
 
 std::string TestModule::GetName()
@@ -53,13 +100,24 @@ void TestModule::Startup(GRuntime* runtime)
         //     slot->maxAnchor = {0.5f, 0.5f};
         // }
         {
-            auto slot = panel->AddChild<widgets::PanelSlot,TestWidget>();
+            //auto slot = panel->AddChild<widgets::PanelSlot, TestWidget>();
+            auto [slot,_] = panel + newShared<TestWidget>();
             slot->minAnchor = Vec2{0.5f};
             slot->maxAnchor = Vec2{0.5f};
             slot->size = Vec2{250.0f};
-            slot->alignment = Vec2{0.5f};
+            slot->alignment = Vec2{0.0f};
         }
 
+        // {
+        //     //auto slot = panel->AddChild<widgets::PanelSlot, TestWidget>();
+        //     auto [slot,_] = panel + newShared<TestWidget>();
+        //     slot->minAnchor = Vec2{0.75f};
+        //     slot->maxAnchor = Vec2{0.75f};
+        //     slot->size = Vec2{250.0f};
+        //     slot->alignment = Vec2{0.0f};
+        // }
+
+        
         surface->AddChild(panel);
     }
     // if(const auto sample = bass::createFileStream(R"(C:\Users\Taree\Downloads\Tracks\Sunny - Yorushika.mp3)",0,bass::CreateFlag::SampleFloat | bass::CreateFlag::SampleMono); sample->Play())
