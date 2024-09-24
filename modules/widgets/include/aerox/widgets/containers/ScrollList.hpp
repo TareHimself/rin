@@ -7,8 +7,6 @@ namespace aerox::widgets
     class ScrollList : public List
     {
     protected:
-        Shared<List> _list{};
-        Vec2<float> ComputeDesiredSize() override;
         Shared<ContainerSlot> MakeSlot(const Shared<Widget>& widget) override;
         void ApplyScroll() const;
         float _scroll = 0.0f;

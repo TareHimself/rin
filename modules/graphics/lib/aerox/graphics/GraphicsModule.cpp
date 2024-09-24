@@ -529,12 +529,16 @@ namespace aerox::graphics
 
         auto aspectFlags = vk::ImageAspectFlagBits::eColor;
         if (format == vk::Format::eD32Sfloat) aspectFlags = vk::ImageAspectFlagBits::eDepth;
+        if(format == vk::Format::eD32SfloatS8Uint) aspectFlags = vk::ImageAspectFlagBits::eStencil;
 
         auto viewCreateInfo = MakeImageViewCreateInfo(newImage, aspectFlags);
 
         viewCreateInfo.subresourceRange.levelCount = imageInfo.mipLevels;
 
-        _device.createImageView(&viewCreateInfo, nullptr, newImage->GetImageViewRef());
+        if(auto result = _device.createImageView(&viewCreateInfo, nullptr, newImage->GetImageViewRef()); result != vk::Result::eSuccess)
+        {
+            throw std::runtime_error("Failed to create image view: " + vk::to_string(result));
+        }
 
         return newImage;
     }

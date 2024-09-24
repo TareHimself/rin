@@ -3,12 +3,6 @@
 
 namespace aerox::widgets
 {
-    Vec2<float> ScrollList::ComputeDesiredSize()
-    {
-        return _list->GetDesiredSize();
-    }
-    
-
     Shared<ContainerSlot> ScrollList::MakeSlot(const Shared<Widget>& widget)
     {
         return newShared<ContainerSlot>(widget);
@@ -49,8 +43,7 @@ namespace aerox::widgets
 
     ScrollList::ScrollList(const Axis& axis) : List(axis)
     {
-        _list = newShared<List>(axis);
-        Container::AddChild(_list);
+        SetClipMode(ClipMode::Bounds);
     }
 
     bool ScrollList::IsScrollable() const
@@ -60,16 +53,17 @@ namespace aerox::widgets
 
     float ScrollList::GetMaxScroll() const
     {
-        switch (_list->GetAxis())
+        auto desiredSize = GetCachedDesiredSize().value_or(Vec2<float>{0,0});
+        switch (GetAxis())
         {
         case Axis::Horizontal:
             {
-                return std::max(0.0f,_list->GetDrawSize().x - GetDrawSize().x);
+                return std::max(0.0f,desiredSize.x - GetDrawSize().x);
             }
             break;
         case Axis::Vertical:
             {
-                return std::max(0.0f,_list->GetDrawSize().y - GetDrawSize().y);
+                return std::max(0.0f,desiredSize.y - GetDrawSize().y);
             }
             break;
         }

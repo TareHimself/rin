@@ -6,6 +6,7 @@
 #include "aerox/graphics/shaders/GraphicsShader.hpp"
 #include "aerox/widgets/Widget.hpp"
 #include "aerox/widgets/WidgetsModule.hpp"
+#include "aerox/widgets/graphics/CustomDrawCommand.hpp"
 #include "aerox/window/WindowModule.hpp"
 #include "aerox/window/Window.hpp"
 
@@ -18,7 +19,10 @@ using namespace aerox;
 using namespace aerox::graphics;
 using namespace aerox::window;
 
-
+class TestStencilDrawCommand : public widgets::CustomDrawCommand
+{
+    void Draw(widgets::SurfaceFrame* frame) override;
+};
 class TestWidget : public widgets::Widget
 {
 protected:

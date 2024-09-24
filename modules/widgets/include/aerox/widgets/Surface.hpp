@@ -32,6 +32,7 @@ namespace aerox::widgets
 
         Shared<graphics::DeviceImage> _copyImage{};
         Shared<graphics::DeviceImage> _drawImage{};
+        Shared<graphics::DeviceImage> _stencilImage{};
         std::optional<Vec2<float>> _lastCursorPosition{};
         std::unordered_map<Widget *,Shared<Widget>> _rootWidgetsMap{};
         std::vector<Shared<Widget>> _rootWidgets{};

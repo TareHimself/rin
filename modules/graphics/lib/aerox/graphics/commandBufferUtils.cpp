@@ -73,6 +73,11 @@ namespace aerox::graphics
         cmd.setDepthBoundsTestEnable(false);
     }
 
+    void enableStencilTest(const vk::CommandBuffer& cmd)
+    {
+        cmd.setStencilTestEnable(true);
+    }
+
     void disableStencilTest(const vk::CommandBuffer& cmd)
     {
         cmd.setStencilTestEnable(false);
@@ -142,21 +147,25 @@ namespace aerox::graphics
 
     void beginRendering(const vk::CommandBuffer& cmd, const vk::Rect2D& renderArea,
                         const vk::ArrayProxyNoTemporaries<vk::RenderingAttachmentInfo>& attachments,
-                        const std::optional<vk::RenderingAttachmentInfo>& depthAttachment)
+                        const std::optional<vk::RenderingAttachmentInfo>& depthAttachment,const std::optional<vk::RenderingAttachmentInfo>& stencilAttachment)
     {
         auto renderingInfo = vk::RenderingInfo{{}, renderArea, 1, {}, attachments};
         if (depthAttachment.has_value())
         {
             renderingInfo.setPDepthAttachment(&depthAttachment.value());
         }
+        if(stencilAttachment.has_value())
+        {
+            renderingInfo.setPStencilAttachment(&stencilAttachment.value());
+        }
         cmd.beginRendering(renderingInfo);
     }
 
     void beginRendering(const vk::CommandBuffer& cmd, const vk::Extent2D& renderExtent,
                         const vk::ArrayProxyNoTemporaries<vk::RenderingAttachmentInfo>& attachments,
-                        const std::optional<vk::RenderingAttachmentInfo>& depthAttachment)
+                        const std::optional<vk::RenderingAttachmentInfo>& depthAttachment,const std::optional<vk::RenderingAttachmentInfo>& stencilAttachment)
     {
-        beginRendering(cmd, vk::Rect2D{{0, 0}, renderExtent}, attachments, depthAttachment);
+        beginRendering(cmd, vk::Rect2D{{0, 0}, renderExtent}, attachments, depthAttachment,stencilAttachment);
     }
 
     void endRendering(const vk::CommandBuffer& cmd)

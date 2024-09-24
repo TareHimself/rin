@@ -13,6 +13,7 @@ namespace aerox::graphics
     void setCullMode(const vk::CommandBuffer& cmd,vk::CullModeFlagBits cullMode,vk::FrontFace frontFace);
     void enableDepthTest(const vk::CommandBuffer& cmd,bool depthWriteEnable,vk::CompareOp compareOp);
     void disableDepthTest(const vk::CommandBuffer& cmd,bool depthWriteEnable = false);
+    void enableStencilTest(const vk::CommandBuffer& cmd);
     void disableStencilTest(const vk::CommandBuffer& cmd);
     void disableCulling(const vk::CommandBuffer& cmd);
     void disableBlending(const vk::CommandBuffer& cmd);
@@ -20,7 +21,7 @@ namespace aerox::graphics
     void enableBlending(const vk::CommandBuffer& cmd,uint32_t start,uint32_t count,const vk::ColorBlendEquationEXT& equation,vk::ColorComponentFlags writeMask);
     void enableBlendingAdditive(const vk::CommandBuffer& cmd,uint32_t start,uint32_t count);
     void enableBlendingAlphaBlend(const vk::CommandBuffer& cmd,uint32_t start,uint32_t count);
-    void beginRendering(const vk::CommandBuffer& cmd,const vk::Rect2D& renderArea,const vk::ArrayProxyNoTemporaries<vk::RenderingAttachmentInfo>& attachments,const std::optional<vk::RenderingAttachmentInfo>& depthAttachment = {});
-    void beginRendering(const vk::CommandBuffer& cmd,const vk::Extent2D& renderExtent,const vk::ArrayProxyNoTemporaries<vk::RenderingAttachmentInfo>& attachments,const std::optional<vk::RenderingAttachmentInfo>& depthAttachment = {});
+    void beginRendering(const vk::CommandBuffer& cmd,const vk::Rect2D& renderArea,const vk::ArrayProxyNoTemporaries<vk::RenderingAttachmentInfo>& attachments,const std::optional<vk::RenderingAttachmentInfo>& depthAttachment = {},const std::optional<vk::RenderingAttachmentInfo>& stencilAttachment = {});
+    void beginRendering(const vk::CommandBuffer& cmd,const vk::Extent2D& renderExtent,const vk::ArrayProxyNoTemporaries<vk::RenderingAttachmentInfo>& attachments,const std::optional<vk::RenderingAttachmentInfo>& depthAttachment = {},const std::optional<vk::RenderingAttachmentInfo>& stencilAttachment = {});
     void endRendering(const vk::CommandBuffer& cmd);
 }

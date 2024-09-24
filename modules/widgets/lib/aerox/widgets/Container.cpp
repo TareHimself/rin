@@ -12,6 +12,11 @@ namespace aerox::widgets
         if(CheckSize()) ArrangeSlots(GetContentSize());
     }
 
+    Shared<ContainerSlot> Container::MakeSlot(const Shared<Widget>& widget)
+    {
+        return newShared<ContainerSlot>(widget);
+    }
+
     size_t Container::GetMaxSlots() const
     {
         return std::numeric_limits<size_t>::max();
@@ -196,12 +201,33 @@ namespace aerox::widgets
 
     void Container::Collect(const TransformInfo& transform, std::vector<Shared<DrawCommand>>& drawCommands)
     {
-        for (auto &slot : GetSlots())
+        auto slots = GetSlots();
+        auto clipMode = GetClipMode();
+        if(clipMode == ClipMode::None)
         {
-            TransformInfo t = ComputeChildTransform(slot,transform);
-            auto widget = slot->GetWidget();
-            widget->Collect(t,drawCommands);
-        } 
+            for (auto &slot : slots)
+            {
+                TransformInfo t = ComputeChildTransform(slot,transform);
+                auto widget = slot->GetWidget();
+                widget->Collect(t,drawCommands);
+            } 
+        }
+        else if(clipMode == ClipMode::Bounds)
+        {
+            auto myAABR = transform.ComputeAxisAlignedBoundingRect();
+            
+            for (auto &slot : slots)
+            {
+                TransformInfo t = ComputeChildTransform(slot,transform);
+                auto slotAABR = t.ComputeAxisAlignedBoundingRect();
+                
+                if(!myAABR.IntersectsWith(slotAABR)) continue;
+                
+                auto widget = slot->GetWidget();
+                widget->Collect(t,drawCommands);
+            } 
+        }
+        
     }
 
     TransformInfo Container::ComputeChildTransform(const Shared<ContainerSlot>& slot, const TransformInfo& myTransform)
@@ -211,6 +237,17 @@ namespace aerox::widgets
 
     TransformInfo Container::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
     {
+        auto padding = GetPadding();
         return TransformInfo{myTransform.transform.Translate(Vec2(padding.left,padding.top)) * widget->ComputeRelativeTransform(),widget->GetDrawSize(),myTransform.depth + 1};
+    }
+
+    ClipMode Container::GetClipMode() const
+    {
+        return _clipMode;
+    }
+
+    void Container::SetClipMode(ClipMode clipMode)
+    {
+        _clipMode = clipMode;
     }
 }

@@ -52,6 +52,7 @@ namespace aerox::widgets
 
     Vec2<float> Widget::ComputeFinalDesiredSize()
     {
+        auto padding = GetPadding();
         return ComputeDesiredSize() + Vec2<float>{padding.left + padding.right, +padding.top + padding.bottom};
     }
 
@@ -222,6 +223,7 @@ namespace aerox::widgets
 
     Vec2<float> Widget::GetContentSize() const
     {
+        auto padding = GetPadding();
         return _drawSize - Vec2{padding.left + padding.right,padding.top + padding.bottom};
     }
 
@@ -233,6 +235,22 @@ namespace aerox::widgets
     Vec2<float> Widget::GetDesiredSize()
     {
         return _cachedDesiredSize.has_value() ? _cachedDesiredSize.value() : ComputeFinalDesiredSize();
+    }
+
+    Padding Widget::GetPadding() const
+    {
+        return _padding;
+    }
+
+    void Widget::SetPadding(const Padding& padding)
+    {
+        _padding = padding;
+        CheckSize();
+    }
+
+    std::optional<Vec2<float>> Widget::GetCachedDesiredSize() const
+    {
+        return _cachedDesiredSize;
     }
 
     bool Widget::CheckSize()

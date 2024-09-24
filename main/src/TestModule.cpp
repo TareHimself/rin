@@ -15,9 +15,26 @@
 #include "aerox/window/WindowModule.hpp"
 #include "bass/Stream.hpp"
 #include "aerox/widgets/containers/Panel.hpp"
+#include "aerox/widgets/Surface.hpp"
+#include "aerox/widgets/containers/Sizer.hpp"
 #include "aerox/widgets/graphics/SimpleBatchedDrawCommand.hpp"
 #include "aerox/widgets/slots/PanelSlot.hpp"
 using namespace std::chrono_literals;
+
+void TestStencilDrawCommand::Draw(widgets::SurfaceFrame* frame)
+{
+    if(frame->activePass != widgets::Surface::MAIN_PASS_ID)
+    {
+        frame->surface->BeginMainPass(frame);
+    }
+
+    auto cmd = frame->raw->GetCommandBuffer();
+    auto face = vk::StencilFaceFlagBits::eFrontAndBack;
+    cmd.setStencilReference(face,1);
+    cmd.setStencilWriteMask(face,0x01);
+    cmd.setStencilCompareMask(face,0x0);
+    cmd.setStencilOp(face,vk::StencilOp::eKeep,vk::StencilOp::eReplace,vk::StencilOp::eKeep,vk::CompareOp::eAlways);
+}
 
 Vec2<float> TestWidget::ComputeDesiredSize()
 {
@@ -31,6 +48,7 @@ void TestWidget::Collect(const widgets::TransformInfo& transform,
     pivot = Vec2{0.5f};
     angle = sin(time) * 90.0f;
     auto size = GetDrawSize();
+    drawCommands.push_back(newShared<TestStencilDrawCommand>());
     if(auto parent = GetParent(); parent && parent->IsHovered() && GetSurface())
     {
         if(auto surface = GetSurface())
@@ -101,22 +119,18 @@ void TestModule::Startup(GRuntime* runtime)
         // }
         {
             //auto slot = panel->AddChild<widgets::PanelSlot, TestWidget>();
-            auto [slot,_] = panel + newShared<TestWidget>();
+            auto sizer = (newShared<widgets::Sizer>() + newShared<TestWidget>()).second;
+            sizer->SetClipMode(widgets::ClipMode::Bounds);
+            auto size = 250.0f;
+            sizer->SetWidthOverride(size);
+            sizer->SetHeightOverride(size);
+            
+            auto slot = (panel + sizer).first;
             slot->minAnchor = Vec2{0.5f};
             slot->maxAnchor = Vec2{0.5f};
-            slot->size = Vec2{250.0f};
+            slot->sizeToContent = true;
             slot->alignment = Vec2{0.0f};
         }
-
-        // {
-        //     //auto slot = panel->AddChild<widgets::PanelSlot, TestWidget>();
-        //     auto [slot,_] = panel + newShared<TestWidget>();
-        //     slot->minAnchor = Vec2{0.75f};
-        //     slot->maxAnchor = Vec2{0.75f};
-        //     slot->size = Vec2{250.0f};
-        //     slot->alignment = Vec2{0.0f};
-        // }
-
         
         surface->AddChild(panel);
     }

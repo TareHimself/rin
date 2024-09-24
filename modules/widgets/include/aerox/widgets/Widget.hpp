@@ -42,6 +42,7 @@ namespace aerox::widgets
         Vec2<float> _drawSize{0.0};
         std::optional<Vec2<float>> _cachedDesiredSize{};
         bool _hovered = false;
+        Padding _padding{0.0};
         
         EVisibility _visibility = EVisibility::Visible;
 
@@ -75,7 +76,6 @@ namespace aerox::widgets
         Vec2<float> pivot{0.0};
         float angle{0.0};
         Vec2<float> scale{1.0};
-        Padding padding{0.0};
         
         Shared<Surface> GetSurface() const;
         Shared<Container> GetParent() const;
@@ -131,6 +131,11 @@ namespace aerox::widgets
         virtual void SetDrawSize(const Vec2<float>& size);
 
         Vec2<float> GetDesiredSize();
+
+        Padding GetPadding() const;
+        void SetPadding(const Padding& padding);
+
+        std::optional<Vec2<float>> GetCachedDesiredSize() const;
         
         bool CheckSize();
 

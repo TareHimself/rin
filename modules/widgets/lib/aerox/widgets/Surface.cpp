@@ -17,7 +17,6 @@
 #include "aerox/widgets/graphics/BatchInfo.hpp"
 #include "aerox/widgets/graphics/CustomDrawCommand.hpp"
 #include "aerox/widgets/graphics/QuadInfo.hpp"
-VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 namespace aerox::widgets
 {
@@ -72,7 +71,7 @@ namespace aerox::widgets
         }
     }
 
-    std::string Surface::MAIN_PASS_ID = "main";
+    std::string Surface::MAIN_PASS_ID;
     
     std::vector<Shared<Widget>> Surface::GetRootWidgets() const
     {
@@ -97,6 +96,9 @@ namespace aerox::widgets
 
         _copyImage = graphicsModule->CreateImage({imageExtent.x, imageExtent.y, 1}, vk::Format::eR32G32B32A32Sfloat,
                                                  usageFlags, false, "Widget Surface Main Image");
+        
+        _stencilImage = graphicsModule->CreateImage({imageExtent.x,imageExtent.y,1},vk::Format::eD32SfloatS8Uint,vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
+            vk::ImageUsageFlagBits::eDepthStencilAttachment,false,"Widget Surface Stencil Image");
     }
 
     void Surface::ClearFocus()
@@ -265,19 +267,28 @@ namespace aerox::widgets
         auto size = GetDrawSize().Cast<uint32_t>();
         vk::Extent2D renderExtent{size.x, size.y};
         auto cmd = frame->raw->GetCommandBuffer();
-        std::optional<vk::ClearValue> clearColor = clear ? vk::ClearValue{vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f}} : std::optional<vk::ClearValue>{};
-        auto attachment = GraphicsModule::MakeRenderingAttachment(GetDrawImage(),vk::ImageLayout::eAttachmentOptimal,clearColor);
-        beginRendering(cmd,renderExtent,attachment);
+        std::optional<vk::ClearValue> drawImageClearColor = clear ? vk::ClearValue{vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f}} : std::optional<vk::ClearValue>{};
+        std::optional<vk::ClearValue> stencilImageClearColor = clear ? vk::ClearValue{vk::ClearDepthStencilValue{0.0f,1}} : std::optional<vk::ClearValue>{};
+        auto drawImageAttachment = GraphicsModule::MakeRenderingAttachment(GetDrawImage(),vk::ImageLayout::eAttachmentOptimal,drawImageClearColor);
+        auto stencilImageAttachment = GraphicsModule::MakeRenderingAttachment(_stencilImage,vk::ImageLayout::eDepthStencilAttachmentOptimal,stencilImageClearColor);
+        beginRendering(cmd,renderExtent,drawImageAttachment,{},stencilImageAttachment);
         disableVertexInput(cmd);
         disableRasterizerDiscard(cmd);
         disableMultiSampling(cmd);
-        disableStencilTest(cmd);
         disableCulling(cmd);
         disableDepthTest(cmd);
         setInputTopology(cmd, vk::PrimitiveTopology::eTriangleList);
         setPolygonMode(cmd, vk::PolygonMode::eFill);
         enableBlendingAlphaBlend(cmd, 0, 1);
         setRenderExtent(cmd,renderExtent);
+        cmd.setStencilTestEnable(true);
+        auto faceMask = vk::StencilFaceFlagBits::eFrontAndBack;
+        cmd.setStencilReference(faceMask,0x1);
+        cmd.setStencilCompareMask(faceMask,0x1);
+        cmd.setStencilWriteMask(faceMask,0x1);
+        cmd.setStencilOp(faceMask,vk::StencilOp::eKeep,vk::StencilOp::eKeep,vk::StencilOp::eKeep,vk::CompareOp::eNever);
+        
+        
         frame->activePass = MAIN_PASS_ID;
     }
 
@@ -382,9 +393,9 @@ namespace aerox::widgets
                     break;
                 case DrawCommand::Type::Custom:
                     {
-                        if(auto batched = std::dynamic_pointer_cast<CustomDrawCommand>(drawCommand))
+                        if(auto custom = std::dynamic_pointer_cast<CustomDrawCommand>(drawCommand))
                         {
-                            batched->Draw(nullptr);
+                            custom->Draw(&surfFrame);
                         }
                     }
                     break;

@@ -7,11 +7,13 @@ namespace aerox::widgets
     void Sizer::SetWidthOverride(const std::optional<float>& width)
     {
         _widthOverride = width;
+        CheckSize();
     }
 
     void Sizer::SetHeightOverride(const std::optional<float>& height)
     {
         _heightOverride = height;
+        CheckSize();
     }
 
     Vec2<float> Sizer::ComputeDesiredSize()
@@ -34,7 +36,10 @@ namespace aerox::widgets
     {
         if(const auto slot = GetSlot(0))
         {
-            slot->GetWidget()->SetDrawSize(drawSize);
+            auto widget = slot->GetWidget();
+            widget->SetRelativeOffset(Vec2{0.0f,0.0f});
+            auto padding = GetPadding();
+            widget->SetDrawSize(GetDesiredSize() - Vec2{padding.left + padding.right,padding.top + padding.bottom});
         }
     }
 }
