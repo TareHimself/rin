@@ -48,31 +48,18 @@ void TestWidget::Collect(const TransformInfo& transform,
     pivot = Vec2{0.5f};
     angle = sin(time) * 90.0f;
     auto size = GetDrawSize();
+    
     drawCommands.push_back(newShared<TestStencilDrawCommand>());
+
+    auto targetLocation = transform.transform * GetRelativeOffset();
+    auto currentLocation = _lastLocation;
+    
     if (auto parent = GetParent() ? GetParent()->GetParent() : Shared<WidgetContainer>{}; parent && parent->IsHovered() && GetSurface())
     {
         if (auto surface = GetSurface())
         {
-            auto location = surface->GetCursorPosition();
-            auto t = Matrix3<float>(1.0f).Translate(location).RotateDeg(angle).Translate(GetDrawSize() * pivot * -1.0f);
-            drawCommands.push_back(SimpleBatchedDrawCommand::Builder()
-                                   .AddRect(
-                                       size,
-                                       t,
-                                       Vec4{
-                                           abs(sin(time) * (size.x / 2.0f))
-                                       }
-                                       .Cast<float>(),
-                                       Vec4{
-                                           abs(sin(time + 1)),
-                                           abs(sin(time + 2)),
-                                           abs(sin(time + 3)),
-                                           1.0
-                                       }
-                                       .Cast<float>()
-                                   )
-                                   .Finish()
-            );
+            targetLocation = surface->GetCursorPosition();
+            auto t = 
         }
     }
     else
@@ -96,6 +83,27 @@ void TestWidget::Collect(const TransformInfo& transform,
                                .Finish()
         );
     }
+
+    _lastLocation = _lastLocation.InterpolateTo(targetLocation,);
+    Matrix3<float>(1.0f).Translate().RotateDeg(angle).Translate(GetDrawSize() * pivot * -1.0f);
+    drawCommands.push_back(SimpleBatchedDrawCommand::Builder()
+                           .AddRect(
+                               size,
+                               t,
+                               Vec4{
+                                   abs(sin(time) * (size.x / 2.0f))
+                               }
+                               .Cast<float>(),
+                               Vec4{
+                                   abs(sin(time + 1)),
+                                   abs(sin(time + 2)),
+                                   abs(sin(time + 3)),
+                                   1.0
+                               }
+                               .Cast<float>()
+                           )
+                           .Finish()
+    );
 }
 
 std::string TestModule::GetName()

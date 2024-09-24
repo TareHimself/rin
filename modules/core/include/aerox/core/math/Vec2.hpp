@@ -46,6 +46,9 @@ template<typename T>
         T Cross(const Vec2& other);
 
         bool NearlyEquals(const Vec2& other,T tolerance) const;
+
+        Vec2 InterpolateTo(const Vec2& end,float alpha) const;
+        Vec2 InterpolateTo(const Vec2& end,float alpha,const std::function<T(T)>& method) const;
     };
 
     template <typename T>
@@ -166,4 +169,16 @@ template<typename T>
     {
         return (*this - other).Abs().Max() < tolerance;
     }
+
+template <typename T>
+Vec2<T> Vec2<T>::InterpolateTo(const Vec2& end, float alpha) const
+{
+        return Vec2{interpolate(x,end.x,alpha),interpolate(y,end.y,alpha)};
+}
+
+template <typename T>
+Vec2<T> Vec2<T>::InterpolateTo(const Vec2& end, float alpha, const std::function<T(T)>& method) const
+{
+        return Vec2{interpolate(x,end.x,alpha,method),interpolate(y,end.y,alpha,method)};
+}
 

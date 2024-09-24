@@ -1,5 +1,7 @@
 #pragma once
 #include "glm/glm.hpp"
+#include "utils.hpp"
+
 template<typename T>
         struct Vec4
 {
@@ -24,6 +26,9 @@ template<typename T>
     Vec4 operator-(const Vec4& other) const;
     Vec4 operator/(const Vec4& other) const;
     Vec4 operator*(const Vec4& other) const;
+
+    Vec4 InterpolateTo(const Vec4& end,float alpha) const;
+    Vec4 InterpolateTo(const Vec4& end,float alpha,const std::function<T(T)>& method) const;
 };
 
 template <typename T>
@@ -84,4 +89,16 @@ template <typename T>
 Vec4<T> Vec4<T>::operator*(const Vec4& other) const
 {
     return {x * other.x,y * other.y,z * other.z,w * other.w};
+}
+
+template <typename T>
+Vec4<T> Vec4<T>::InterpolateTo(const Vec4& end, float alpha) const
+{
+    return Vec4{interpolate(x,end.x,alpha),interpolate(y,end.y,alpha),interpolate(z,end.z,alpha),interpolate(w,end.w,alpha)};
+}
+
+template <typename T>
+Vec4<T> Vec4<T>::InterpolateTo(const Vec4& end, float alpha, const std::function<T(T)>& method) const
+{
+    return Vec4{interpolate(x,end.x,alpha,method),interpolate(y,end.y,alpha,method),interpolate(z,end.z,alpha,method),interpolate(w,end.w,alpha,method)};
 }

@@ -21,6 +21,7 @@ class TestStencilDrawCommand : public CustomDrawCommand
 };
 class TestWidget : public Widget
 {
+    Vec2<float> _lastLocation{0.0f};
 protected:
     Vec2<float> ComputeDesiredSize() override;
 

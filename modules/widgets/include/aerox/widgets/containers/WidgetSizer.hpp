@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "aerox/widgets/WidgetContainer.hpp"
 
+
 class WidgetSizer : public WidgetContainer
 {
     std::optional<float> _widthOverride{};
@@ -12,6 +13,5 @@ public:
     Vec2<float> ComputeDesiredSize() override;
     size_t GetMaxSlots() const override;
     void ArrangeSlots(const Vec2<float>& drawSize) override;
-
     
 };
