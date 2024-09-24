@@ -1,17 +1,14 @@
 ﻿#pragma once
 
-namespace aerox::widgets
+struct Padding
 {
-    struct Padding
-    {
-        float left;
-        float right;
-        float top;
-        float bottom;
+    float left;
+    float right;
+    float top;
+    float bottom;
         
-        explicit  Padding(float inAll);
-        Padding(float inHorizontal,float inVertical);
-        Padding(float inLeft,float inRight,float inTop,float inBottom);
+    explicit  Padding(float inAll);
+    Padding(float inHorizontal,float inVertical);
+    Padding(float inLeft,float inRight,float inTop,float inBottom);
         
-    };
-}
+};

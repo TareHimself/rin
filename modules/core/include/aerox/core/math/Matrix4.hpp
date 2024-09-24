@@ -3,9 +3,7 @@
 
 #include "Vec3.hpp"
 #include "Vec4.hpp"
-namespace aerox
-{
-    template<typename T>
+template<typename T>
     struct Matrix4
     {
     private:
@@ -81,4 +79,3 @@ namespace aerox
     {
         return static_cast<Matrix4>(static_cast<glm::mat<4,4,T>>(*this) * static_cast<glm::vec<3,T>>(other));
     }
-}

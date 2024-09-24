@@ -1,11 +1,8 @@
 ﻿#pragma once
 
-namespace aerox::window
+enum class InputState
 {
-    enum class InputState
-    {
-        Pressed,
-        Released,
-        Repeat
-    };
-}
+    Pressed,
+    Released,
+    Repeat
+};

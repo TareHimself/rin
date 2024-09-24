@@ -3,9 +3,7 @@
 #include "aerox/graphics/descriptors/DescriptorLayoutBuilder.hpp"
 #include "ashl/utils.hpp"
 
-namespace aerox::graphics
-{
-    ShaderManager* Shader::GetManager() const
+ShaderManager* Shader::GetManager() const
     {
         return _shaderManager;
     }
@@ -204,4 +202,3 @@ namespace aerox::graphics
         }
         return pushConstantRanges;
     }
-}

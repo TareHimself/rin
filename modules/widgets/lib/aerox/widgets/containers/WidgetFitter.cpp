@@ -1,20 +1,18 @@
-﻿#include "aerox/widgets/containers/Fitter.hpp"
+﻿#include "aerox/widgets/containers/WidgetFitter.hpp"
 
-#include "aerox/widgets/ContainerSlot.hpp"
+#include "aerox/widgets/WidgetContainerSlot.hpp"
 
-namespace aerox::widgets
-{
-    FitMode Fitter::GetMode() const
+FitMode WidgetFitter::GetMode() const
     {
         return _mode;
     }
 
-    void Fitter::SetMode(FitMode mode)
+    void WidgetFitter::SetMode(FitMode mode)
     {
         _mode = mode;
     }
 
-    Vec2<float> Fitter::ComputeDesiredSize()
+    Vec2<float> WidgetFitter::ComputeDesiredSize()
     {
         if(auto slot = GetSlot(0))
         {
@@ -24,17 +22,17 @@ namespace aerox::widgets
         return Vec2{0.0f};
     }
 
-    size_t Fitter::GetMaxSlots() const
+    size_t WidgetFitter::GetMaxSlots() const
     {
         return 1;
     }
 
-    void Fitter::ArrangeSlots(const Vec2<float>& drawSize)
+    void WidgetFitter::ArrangeSlots(const Vec2<float>& drawSize)
     {
         SizeContent(drawSize);
     }
 
-    Vec2<float> Fitter::ComputeContainSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize)
+    Vec2<float> WidgetFitter::ComputeContainSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize)
     {
         auto aspect = widgetSize.y / widgetSize.x;
         Vec2 scaledWidgetSize{drawSize.x,drawSize.x * aspect};
@@ -44,7 +42,7 @@ namespace aerox::widgets
         return scaledWidgetSize.y < drawSize.y  ? scaledWidgetSize : Vec2{drawSize.y / aspect,drawSize.y};
     }
 
-    Vec2<float> Fitter::ComputeCoverSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize)
+    Vec2<float> WidgetFitter::ComputeCoverSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize)
     {
         auto aspect = widgetSize.y / widgetSize.x;
         Vec2 scaledWidgetSize{drawSize.x,drawSize.x * aspect};
@@ -54,7 +52,7 @@ namespace aerox::widgets
         return scaledWidgetSize.y < drawSize.y  ? Vec2{drawSize.y / aspect,drawSize.y} : scaledWidgetSize;
     }
 
-    void Fitter::SizeContent(const Vec2<float>& size) const
+    void WidgetFitter::SizeContent(const Vec2<float>& size) const
     {
         if(auto slot = GetSlot(0))
         {
@@ -95,4 +93,3 @@ namespace aerox::widgets
             if(!widget->GetRelativeOffset().NearlyEquals(diff,0.001)) widget->SetRelativeOffset(diff);
         }
     }
-}

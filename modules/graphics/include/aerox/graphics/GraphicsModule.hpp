@@ -9,26 +9,17 @@
 #include "Allocator.hpp"
 #include "descriptors/DescriptorLayoutStore.hpp"
 
-namespace aerox::graphics
-{
-    class ResourceManager;
-}
 
-namespace aerox::graphics
-{
+class ResourceManager;
     class ShaderManager;
-}
-
-namespace aerox::graphics
-{
     class DeviceImage;
     class WindowRenderer;
 
 
-    class GraphicsModule : public Module
+    class GraphicsModule : public AeroxModule
     {
-        window::WindowModule * _windowModule = nullptr;
-        std::unordered_map<window::Window*,WindowRenderer *> _renderers{};
+        WindowModule * _windowModule = nullptr;
+        std::unordered_map<Window*,WindowRenderer *> _renderers{};
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
         VkDebugUtilsMessengerEXT _debugMessenger{};
 #endif
@@ -48,7 +39,7 @@ namespace aerox::graphics
         DelegateListHandle _onWindowCreatedHandle{};
         DelegateListHandle _onWindowDestroyedHandle{};
         DelegateListHandle _onTickHandle{};
-        void InitVulkan(window::Window * window);
+        void InitVulkan(Window * window);
         std::list<std::function<void()>> _pendingTasks;
 
         std::unique_ptr<Allocator> _allocator{};
@@ -60,15 +51,15 @@ namespace aerox::graphics
         void Shutdown(GRuntime* runtime) override;
         void RegisterRequiredModules() override;
 
-        void OnWindowCreated(window::Window * window);
-        void OnWindowDestroyed(window::Window * window);
+        void OnWindowCreated(Window * window);
+        void OnWindowDestroyed(Window * window);
 
     public:
         GraphicsModule();
         static GraphicsModule * Get();
         std::string GetName() override;
     
-        bool IsDependentOn(Module* module) override;
+        bool IsDependentOn(AeroxModule* module) override;
         
         static vk::DispatchLoaderDynamic dispatchLoader;
         
@@ -111,7 +102,7 @@ namespace aerox::graphics
 
         static void GenerateMipMaps(const vk::CommandBuffer& cmd,const Shared<DeviceImage>& image,const vk::Extent3D& extent,const vk::Filter& filter);
 
-        WindowRenderer * GetRenderer(window::Window * window) const;
+        WindowRenderer * GetRenderer(Window * window) const;
         Shared<DeviceImage> CreateImage(const vk::Extent3D& extent,vk::Format format,vk::ImageUsageFlags usage, bool mipMap = false,
             const std::string& debugName = "Image") const;
         
@@ -121,4 +112,3 @@ namespace aerox::graphics
         DEFINE_DELEGATE_LIST(onRendererCreated,WindowRenderer *)
         DEFINE_DELEGATE_LIST(onRendererDestroyed,WindowRenderer *)
     };
-}

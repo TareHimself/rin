@@ -6,10 +6,7 @@
 #include "aerox/core/GRuntime.hpp"
 #include "aerox/graphics/GraphicsModule.hpp"
 
-namespace aerox::graphics
-{
-    
-    DescriptorLayoutBuilder& DescriptorLayoutBuilder::AddBinding(uint32_t binding, vk::DescriptorType type,
+DescriptorLayoutBuilder& DescriptorLayoutBuilder::AddBinding(uint32_t binding, vk::DescriptorType type,
         const vk::ShaderStageFlags& stageFlags, uint32_t count, const vk::DescriptorBindingFlags& flags)
     {
         if(_bindings.contains(binding))
@@ -66,4 +63,3 @@ namespace aerox::graphics
 
         throw std::runtime_error("Failed to create descriptor set");
     }
-}

@@ -6,9 +6,7 @@
 #include "aerox/core/platform.hpp"
 #include "aerox/core/utils.hpp"
 
-namespace aerox
-{
-    Unique<GRuntime> GRuntime::_runtime{};
+Unique<GRuntime> GRuntime::_runtime{};
     std::mutex GRuntime::_mutex{};
 
     GRuntime* GRuntime::Get()
@@ -30,7 +28,7 @@ namespace aerox
     void GRuntime::StartupModules()
     {
         {
-            std::unordered_map<size_t,Shared<Module>> oldModules = _modules;
+            std::unordered_map<size_t,Shared<AeroxModule>> oldModules = _modules;
             
             for (const auto &mod : _modules | std::views::values)
             {
@@ -44,7 +42,7 @@ namespace aerox
             _moduleList.push_back(module);
         }
 
-        std::ranges::sort(_moduleList,[](Shared<Module>& a,Shared<Module>& b)
+        std::ranges::sort(_moduleList,[](Shared<AeroxModule>& a,Shared<AeroxModule>& b)
         {
 
             if(a->IsSystemModule() != b->IsSystemModule())
@@ -120,7 +118,7 @@ namespace aerox
         {
             std::filesystem::create_directories(getResourcesPath());
         }
-        platform::init();
+        aerox::platform::init();
         StartupModules();
         Loop();
         ShutdownModules();
@@ -135,4 +133,3 @@ namespace aerox
     {
         return _lastTickTime;
     }
-}

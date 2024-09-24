@@ -8,31 +8,24 @@
 #include "aerox/graphics/Frame.hpp"
 #include "graphics/QuadInfo.hpp"
 
-namespace aerox::widgets
-{
-    struct SurfaceFrame;
-}
-
-namespace aerox::widgets
-{
-    class Widget;
-}
-
-namespace aerox::widgets
-{
-    class CursorDownEvent;
+struct SurfaceFrame;
+class Widget;
+class CursorDownEvent;
     class ResizeEvent;
     class CursorMoveEvent;
     class CursorUpEvent;
     class ScrollEvent;
 
-    
-    class Surface : public Disposable
+namespace SurfaceGlobals
+{
+   inline std::string MAIN_PASS_ID = "MAIN";
+}
+    class WidgetSurface : public Disposable
     {
 
-        Shared<graphics::DeviceImage> _copyImage{};
-        Shared<graphics::DeviceImage> _drawImage{};
-        Shared<graphics::DeviceImage> _stencilImage{};
+        Shared<DeviceImage> _copyImage{};
+        Shared<DeviceImage> _drawImage{};
+        Shared<DeviceImage> _stencilImage{};
         std::optional<Vec2<float>> _lastCursorPosition{};
         std::unordered_map<Widget *,Shared<Widget>> _rootWidgetsMap{};
         std::vector<Shared<Widget>> _rootWidgets{};
@@ -42,8 +35,7 @@ namespace aerox::widgets
         void DoHover();
         
     public:
-
-        static std::string MAIN_PASS_ID;
+    
         std::vector<Shared<Widget>> GetRootWidgets() const;
         DEFINE_DELEGATE_LIST(onCursorDown,const Shared<CursorDownEvent>&)
         DEFINE_DELEGATE_LIST(onCursorUp,const Shared<CursorUpEvent>&)
@@ -73,19 +65,19 @@ namespace aerox::widgets
 
         virtual bool RemoveChild(const Shared<Widget>& widget);
 
-        Shared<graphics::DeviceImage> GetDrawImage() const;
-        Shared<graphics::DeviceImage> GetCopyImage() const;
+        Shared<DeviceImage> GetDrawImage() const;
+        Shared<DeviceImage> GetCopyImage() const;
 
         virtual void BeginMainPass(SurfaceFrame * frame,bool clear = false);
         virtual void EndActivePass(SurfaceFrame * frame);
 
         virtual void DrawBatches(SurfaceFrame * frame,std::vector<QuadInfo>& quads);
-        virtual void Draw(graphics::Frame * frame);
+        virtual void Draw(Frame * frame);
 
 
-        virtual void HandleDrawSkipped(graphics::Frame* frame) = 0;
-        virtual void HandleBeforeDraw(graphics::Frame* frame) = 0;
-        virtual void HandleAfterDraw(graphics::Frame* frame) = 0;
+        virtual void HandleDrawSkipped(Frame* frame) = 0;
+        virtual void HandleBeforeDraw(Frame* frame) = 0;
+        virtual void HandleAfterDraw(Frame* frame) = 0;
         
 
         void OnDispose(bool manual) override;
@@ -95,11 +87,10 @@ namespace aerox::widgets
     };
 
     template <typename T, typename ... TArgs>
-    std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<Widget, T>, Shared<T>> Surface::
+    std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<Widget, T>, Shared<T>> WidgetSurface::
     AddChild(TArgs&&... args)
     {
         auto w = newShared<T>(std::forward<TArgs>(args)...);
         AddChild(w);
         return w;
     }
-}

@@ -2,9 +2,7 @@
 
 #include "aerox/graphics/GraphicsModule.hpp"
 
-namespace aerox::graphics
-{
-    Frame::Frame(WindowRenderer* renderer)
+Frame::Frame(WindowRenderer* renderer)
     {
         _renderer = renderer;
         const auto graphicsModule = _renderer->GetModule();
@@ -90,4 +88,3 @@ namespace aerox::graphics
     {
         _cleanup.push_back(cleanupFn);
     }
-}

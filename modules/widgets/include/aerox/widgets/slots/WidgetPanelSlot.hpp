@@ -1,19 +1,14 @@
 ﻿#pragma once
 #include "aerox/core/math/Vec2.hpp"
-#include "aerox/widgets/ContainerSlot.hpp"
+#include "aerox/widgets/WidgetContainerSlot.hpp"
 
-namespace aerox::widgets
-{
-    class Panel;
-}
 
-namespace aerox::widgets
-{
-    class PanelSlot : public ContainerSlot
+class WidgetPanel;
+    class WidgetPanelSlot : public WidgetContainerSlot
     {
-        Panel * _panel{};
+        WidgetPanel * _panel{};
     public:
-        PanelSlot(Panel * panel,const Shared<Widget>& widget);
+        WidgetPanelSlot(WidgetPanel * panel,const Shared<Widget>& widget);
         
         static bool NearlyEqual(double a,double b, double tolerance = 0.001);
         
@@ -26,4 +21,3 @@ namespace aerox::widgets
         
         void ComputeSizeAndOffset() const;
     };
-}

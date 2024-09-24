@@ -1,19 +1,17 @@
-﻿#include "aerox/widgets/containers/List.hpp"
-#include "aerox/widgets/ContainerSlot.hpp"
+﻿#include "aerox/widgets/containers/WidgetList.hpp"
+#include "aerox/widgets/WidgetContainerSlot.hpp"
 
-namespace aerox::widgets
-{
-    List::List(const Axis& axis) : Container()
+WidgetList::WidgetList(const Axis& axis) : WidgetContainer()
     {
         _axis = axis;
     }
 
-    Axis List::GetAxis() const
+    Axis WidgetList::GetAxis() const
     {
         return _axis;
     }
 
-    void List::SetAxis(const Axis& axis)
+    void WidgetList::SetAxis(const Axis& axis)
     {
         auto oldAxis = _axis;
         _axis = axis;
@@ -23,12 +21,12 @@ namespace aerox::widgets
         }
     }
 
-    Shared<ContainerSlot> List::MakeSlot(const Shared<Widget>& widget)
+    Shared<WidgetContainerSlot> WidgetList::MakeSlot(const Shared<Widget>& widget)
     {
-        return newShared<ContainerSlot>(widget);
+        return newShared<WidgetContainerSlot>(widget);
     }
 
-    void List::ArrangeSlots(const Vec2<float>& drawSize)
+    void WidgetList::ArrangeSlots(const Vec2<float>& drawSize)
     {
         switch (GetAxis())
         {
@@ -63,7 +61,7 @@ namespace aerox::widgets
         }
     }
 
-    Vec2<float> List::ComputeDesiredSize()
+    Vec2<float> WidgetList::ComputeDesiredSize()
     {
         switch (GetAxis())
         {
@@ -98,4 +96,3 @@ namespace aerox::widgets
         }
         return Vec2{0.0f};
     }
-}

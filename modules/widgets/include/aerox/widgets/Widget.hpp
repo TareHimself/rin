@@ -3,7 +3,7 @@
 #include <optional>
 #include "EVisibility.hpp"
 #include "Padding.hpp"
-#include "Rect.hpp"
+#include "WidgetRect.hpp"
 #include "TransformInfo.hpp"
 #include "aerox/core/Disposable.hpp"
 #include "aerox/core/memory.hpp"
@@ -12,32 +12,18 @@
 #include "aerox/core/math/Vec2.hpp"
 #include "graphics/DrawCommand.hpp"
 
-namespace aerox::widgets
-{
-    class CursorUpEvent;
-}
-
-namespace aerox::widgets
-{
-    class ScrollEvent;
-}
-
-namespace aerox::widgets
-{
-    class CursorMoveEvent;
-    class CursorDownEvent;
-    class Surface;
-}
-
-namespace aerox::widgets
-{
-    class Container;
+class CursorUpEvent;
+class ScrollEvent;
+class CursorMoveEvent;
+class CursorDownEvent;
+class WidgetSurface;
+class WidgetContainer;
 
     class Widget : public Disposable
     {
         DelegateListHandle _cursorUpBinding{};
-        Weak<Surface> _surface{};
-        Weak<Container> _parent{};
+        Weak<WidgetSurface> _surface{};
+        Weak<WidgetContainer> _parent{};
         Vec2<float> _relativeOffset{0.0};
         Vec2<float> _drawSize{0.0};
         std::optional<Vec2<float>> _cachedDesiredSize{};
@@ -46,11 +32,11 @@ namespace aerox::widgets
         
         EVisibility _visibility = EVisibility::Visible;
 
-        friend Surface;
+        friend WidgetSurface;
     protected:
-        virtual void OnAddedToSurface(const Shared<Surface>& widgetSurface);
+        virtual void OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface);
 
-        virtual void OnRemovedFromSurface(const Shared<Surface>& widgetSurface);
+        virtual void OnRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface);
         
         virtual bool OnCursorDown(const Shared<CursorDownEvent>& event);
 
@@ -77,8 +63,8 @@ namespace aerox::widgets
         float angle{0.0};
         Vec2<float> scale{1.0};
         
-        Shared<Surface> GetSurface() const;
-        Shared<Container> GetParent() const;
+        Shared<WidgetSurface> GetSurface() const;
+        Shared<WidgetContainer> GetParent() const;
         Matrix3<float> ComputeRelativeTransform() const;
 
         Matrix3<float> ComputeAbsoluteTransform() const;
@@ -87,10 +73,10 @@ namespace aerox::widgets
 
         EVisibility GetVisibility() const;
 
-        Rect GetRect() const;
+        WidgetRect GetRect() const;
 
-        void SetParent(const Shared<Container>& container);
-        void SetSurface(const Shared<Surface>& surface);
+        void SetParent(const Shared<WidgetContainer>& container);
+        void SetSurface(const Shared<WidgetSurface>& surface);
 
         bool IsHovered() const;
 
@@ -100,13 +86,13 @@ namespace aerox::widgets
 
         bool AreChildrenHitTestable() const;
         
-        void BindCursorUp(const Shared<Surface>& surface);
+        void BindCursorUp(const Shared<WidgetSurface>& surface);
 
         void UnBindCursorUp();
 
-        virtual void NotifyAddedToSurface(const Shared<Surface>& widgetSurface);
+        virtual void NotifyAddedToSurface(const Shared<WidgetSurface>& widgetSurface);
 
-        virtual void NotifyRemovedFromSurface(const Shared<Surface>& widgetSurface);
+        virtual void NotifyRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface);
         
         virtual Shared<Widget> NotifyCursorDown(const Shared<CursorDownEvent>& event, const TransformInfo& transform);
 
@@ -143,4 +129,3 @@ namespace aerox::widgets
 
         //void Collect(WidgetFrame frame, DrawInfo info);
     };
-}

@@ -1,24 +1,21 @@
 ﻿#pragma once
-namespace aerox::window
+class WindowModule;
+
+struct WindowCreateOptions
 {
-    class WindowModule;
-
-    struct WindowCreateOptions
-    {
-    private:
-        bool _resizable = true;
+private:
+    bool _resizable = true;
         
-        bool _borderless = false;
+    bool _borderless = false;
 
-        bool _focused = true;
-    protected:
-        friend WindowModule;
+    bool _focused = true;
+protected:
+    friend WindowModule;
 
-        int Apply() const;
+    int Apply() const;
 
-    public:
-        WindowCreateOptions& Resizable(bool newState);
-        WindowCreateOptions& Borderless(bool newState);
-        WindowCreateOptions& Focused(bool newState);
-    };
-}
+public:
+    WindowCreateOptions& Resizable(bool newState);
+    WindowCreateOptions& Borderless(bool newState);
+    WindowCreateOptions& Focused(bool newState);
+};

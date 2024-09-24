@@ -6,9 +6,7 @@
 #include <iostream>
 #include <SDL3/SDL_vulkan.h>
 
-namespace aerox::graphics
-{
-    void WindowRenderer::Init()
+void WindowRenderer::Init()
     {
         _swapchainSize = _window->GetSize().Cast<uint32_t>();
         CreateSwapchain();
@@ -94,7 +92,7 @@ namespace aerox::graphics
         _frames.clear();
     }
 
-    void WindowRenderer::OnResize(window::Window* window, const Vec2<int>& newSize)
+    void WindowRenderer::OnResize(Window* window, const Vec2<int>& newSize)
     {
         _graphicsModule->WaitForDeviceIdle();
         DestroySwapchain();
@@ -105,7 +103,7 @@ namespace aerox::graphics
         }
     }
 
-    WindowRenderer::WindowRenderer(const vk::Instance& instance, window::Window* window, GraphicsModule* graphicsModule)
+    WindowRenderer::WindowRenderer(const vk::Instance& instance, Window* window, GraphicsModule* graphicsModule)
     {
         VkSurfaceKHR surf;
         SDL_Vulkan_CreateSurface(window->GetSDLWindow(),instance,nullptr,&surf);
@@ -120,7 +118,7 @@ namespace aerox::graphics
         return _surface;
     }
 
-    window::Window* WindowRenderer::GetWindow() const
+    Window* WindowRenderer::GetWindow() const
     {
         return _window;
     }
@@ -221,4 +219,3 @@ namespace aerox::graphics
     
         _framesDrawn++;
     }
-}

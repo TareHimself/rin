@@ -4,9 +4,7 @@
 #include "aerox/graphics/DeviceBuffer.hpp"
 #include "aerox/graphics/DeviceImage.hpp"
 
-namespace aerox::graphics
-{
-    Allocator::Allocator(const GraphicsModule  * module)
+Allocator::Allocator(const GraphicsModule  * module)
 {
 
     auto allocatorCreateInfo = VmaAllocatorCreateInfo{};
@@ -113,7 +111,5 @@ Shared<DeviceImage> Allocator::NewImage(const vk::ImageCreateInfo& createInfo, c
     vmaSetAllocationName(_allocator, alloc, debugName.c_str());
 
     return  newShared<DeviceImage>(_allocator,vmaImage,alloc,createInfo.extent,createInfo.format);
-}
-
 }
 

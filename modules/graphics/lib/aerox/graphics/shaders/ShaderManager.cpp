@@ -14,9 +14,7 @@
 #include "aerox/graphics/shaders/Shader.hpp"
 #include "aerox/graphics/shaders/ShaderCompileError.hpp"
 
-namespace aerox::graphics
-{
-    GlslShaderIncluder::GlslShaderIncluder(ShaderManager* manager, const std::filesystem::path& inPath)
+GlslShaderIncluder::GlslShaderIncluder(ShaderManager* manager, const std::filesystem::path& inPath)
     {
         _manager = manager;
         sourceFilePath = inPath;
@@ -205,4 +203,3 @@ namespace aerox::graphics
         _compilationThread.Stop();
         glslang_finalize_process();
     }
-}

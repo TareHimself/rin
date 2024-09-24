@@ -8,9 +8,7 @@
 #include "aerox/graphics/SamplerSpec.hpp"
 #include "aerox/graphics/descriptors/DescriptorLayoutBuilder.hpp"
 
-namespace aerox::graphics
-{
-    void ResourceManager::UpdateTextures(const std::vector<int>& indices)
+void ResourceManager::UpdateTextures(const std::vector<int>& indices)
     {
         auto set = _descriptorSet->GetInternalSet();
         std::vector<vk::WriteDescriptorSet> writes{};
@@ -132,4 +130,3 @@ namespace aerox::graphics
         }
         _samplers.clear();
     }
-}

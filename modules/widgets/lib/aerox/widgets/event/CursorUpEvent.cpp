@@ -1,10 +1,7 @@
 ﻿#include "aerox/widgets/event/CursorUpEvent.hpp"
 
-namespace aerox::widgets
-{
-    CursorUpEvent::CursorUpEvent(const Shared<Surface>& inSurface, const window::CursorButton inButton,
+CursorUpEvent::CursorUpEvent(const Shared<WidgetSurface>& inSurface, const CursorButton inButton,
         const Vec2<float>& inPosition) : Event(inSurface), button(inButton), position(inPosition)
-    {
+{
         
-    }
 }

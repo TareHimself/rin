@@ -7,9 +7,7 @@
 #include "ashl/tokenizer.hpp"
 #include "ashl/parser.hpp"
 
-namespace aerox::graphics
-{
-    std::unordered_map<std::string, Shared<GraphicsShader>> GraphicsShader::_shaders = {};
+std::unordered_map<std::string, Shared<GraphicsShader>> GraphicsShader::_shaders = {};
 
     GraphicsShader::GraphicsShader(ShaderManager* manager, const Shared<ashl::ModuleNode>& inVertex,
                                    const Shared<ashl::ModuleNode>& inFragment) : Shader(manager)
@@ -222,4 +220,3 @@ namespace aerox::graphics
     {
         return _compiledShader.get().pipelineLayout;
     }
-}

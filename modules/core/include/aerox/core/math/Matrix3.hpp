@@ -1,10 +1,7 @@
 #pragma once
 #include "Vec2.hpp"
 #include <glm/gtx/matrix_transform_2d.hpp>
-namespace aerox
-{
-
-    template<typename T>
+template<typename T>
     struct Matrix3
     {
     private:
@@ -89,4 +86,3 @@ namespace aerox
         auto r = _mat * glm::vec<3,float>(other.x,other.y,1.0);
         return Vec2{r.x,r.y};
     }
-}

@@ -5,9 +5,7 @@
 #include "aerox/graphics/DeviceImage.hpp"
 #include "aerox/graphics/GraphicsModule.hpp"
 
-namespace aerox::graphics
-{
-    DescriptorSet::DescriptorSet(const vk::DescriptorSet& descriptorSet)
+DescriptorSet::DescriptorSet(const vk::DescriptorSet& descriptorSet)
     {
         _set = descriptorSet;
         _device = GRuntime::Get()->GetModule<GraphicsModule>()->GetDevice();
@@ -72,4 +70,3 @@ namespace aerox::graphics
     {
         return _set;
     }
-}

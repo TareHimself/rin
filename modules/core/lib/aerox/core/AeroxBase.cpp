@@ -1,10 +1,5 @@
 ﻿#include "aerox/core/AeroxBase.hpp"
-namespace aerox
+Shared<MetaClass> AeroxBase::GetMeta() const
 {
-
-    Shared<MetaClass> AeroxBase::GetMeta() const
-    {
-        return {};
-    }
-    
+    return {};
 }

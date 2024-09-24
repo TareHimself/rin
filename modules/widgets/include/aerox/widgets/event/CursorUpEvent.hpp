@@ -4,13 +4,10 @@
 #include "aerox/core/math/Vec2.hpp"
 #include "aerox/window/CursorButton.hpp"
 
-namespace aerox::widgets
+class CursorUpEvent : public Event
 {
-    class CursorUpEvent : public Event
-    {
-    public:
-        window::CursorButton button;
-        Vec2<float> position;
-        CursorUpEvent(const Shared<Surface>& inSurface,window::CursorButton inButton,const Vec2<float>& inPosition);
-    };
-}
+public:
+    CursorButton button;
+    Vec2<float> position;
+    CursorUpEvent(const Shared<WidgetSurface>& inSurface,CursorButton inButton,const Vec2<float>& inPosition);
+};

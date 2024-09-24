@@ -9,9 +9,7 @@
 #include "delegates/ClassFunctionDelegate.hpp"
 #include "delegates/Delegate.hpp"
 
-namespace aerox
-{
-    template<typename T>
+template<typename T>
     class BackgroundThread
     {
         struct Task
@@ -175,4 +173,3 @@ namespace aerox
             _thread.join();
         }
     }
-}

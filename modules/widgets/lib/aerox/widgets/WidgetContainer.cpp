@@ -1,48 +1,46 @@
-﻿#include "aerox/widgets/Container.hpp"
+﻿#include "aerox/widgets/WidgetContainer.hpp"
 
-#include "aerox/widgets/ContainerSlot.hpp"
+#include "aerox/widgets/WidgetContainerSlot.hpp"
 #include "aerox/widgets/event/CursorDownEvent.hpp"
 #include "aerox/widgets/event/CursorMoveEvent.hpp"
 #include "aerox/widgets/event/ScrollEvent.hpp"
 
-namespace aerox::widgets
-{
-    void Container::OnChildResized(Widget * widget)
+void WidgetContainer::OnChildResized(Widget * widget)
     {
         if(CheckSize()) ArrangeSlots(GetContentSize());
     }
 
-    Shared<ContainerSlot> Container::MakeSlot(const Shared<Widget>& widget)
+    Shared<WidgetContainerSlot> WidgetContainer::MakeSlot(const Shared<Widget>& widget)
     {
-        return newShared<ContainerSlot>(widget);
+        return newShared<WidgetContainerSlot>(widget);
     }
 
-    size_t Container::GetMaxSlots() const
+    size_t WidgetContainer::GetMaxSlots() const
     {
         return std::numeric_limits<size_t>::max();
     }
 
-    size_t Container::GetUsedSlots() const
+    size_t WidgetContainer::GetUsedSlots() const
     {
         return _slots.size();
     }
 
-    Shared<ContainerSlot> Container::GetSlot(int index) const
+    Shared<WidgetContainerSlot> WidgetContainer::GetSlot(int index) const
     {
-        return index < _slots.size() ? _slots[index] : Shared<ContainerSlot>{};
+        return index < _slots.size() ? _slots[index] : Shared<WidgetContainerSlot>{};
     }
 
-    Shared<ContainerSlot> Container::GetSlot(Widget* widget) const
+    Shared<WidgetContainerSlot> WidgetContainer::GetSlot(Widget* widget) const
     {
-        return _widgetsToSlots.contains(widget) ? _widgetsToSlots.at(widget) : Shared<ContainerSlot>{};
+        return _widgetsToSlots.contains(widget) ? _widgetsToSlots.at(widget) : Shared<WidgetContainerSlot>{};
     }
 
-    std::vector<Shared<ContainerSlot>> Container::GetSlots() const
+    std::vector<Shared<WidgetContainerSlot>> WidgetContainer::GetSlots() const
     {
         return _slots;
     }
 
-    Shared<ContainerSlot> Container::AddChild(const Shared<Widget>& widget)
+    Shared<WidgetContainerSlot> WidgetContainer::AddChild(const Shared<Widget>& widget)
     {
         if(!widget) return {};
         
@@ -53,7 +51,7 @@ namespace aerox::widgets
         auto slot = MakeSlot(widget);
         _slots.push_back(slot);
         _widgetsToSlots.emplace(widget.get(),slot);
-        widget->SetParent(this->GetSharedDynamic<Container>());
+        widget->SetParent(this->GetSharedDynamic<WidgetContainer>());
         
         if(auto surf = GetSurface())
         {
@@ -65,7 +63,7 @@ namespace aerox::widgets
         return slot;
     }
 
-    bool Container::RemoveChild(const Shared<Widget>& widget)
+    bool WidgetContainer::RemoveChild(const Shared<Widget>& widget)
     {
         if(!_widgetsToSlots.contains(widget.get())) return false;
         
@@ -90,13 +88,13 @@ namespace aerox::widgets
         return false;
     }
 
-    void Container::SetDrawSize(const Vec2<float>& size)
+    void WidgetContainer::SetDrawSize(const Vec2<float>& size)
     {
         Widget::SetDrawSize(size);
         ArrangeSlots(GetContentSize());
     }
 
-    void Container::OnDispose(bool manual)
+    void WidgetContainer::OnDispose(bool manual)
     {
         Widget::OnDispose(manual);
         
@@ -108,7 +106,7 @@ namespace aerox::widgets
         _slots.clear();
     }
 
-    void Container::NotifyAddedToSurface(const Shared<Surface>& widgetSurface)
+    void WidgetContainer::NotifyAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
     {
         Widget::NotifyAddedToSurface(widgetSurface);
         for(auto &slot : GetSlots())
@@ -117,7 +115,7 @@ namespace aerox::widgets
         }
     }
 
-    void Container::NotifyRemovedFromSurface(const Shared<Surface>& widgetSurface)
+    void WidgetContainer::NotifyRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface)
     {
         Widget::NotifyRemovedFromSurface(widgetSurface);
         for(auto &slot : GetSlots())
@@ -126,7 +124,7 @@ namespace aerox::widgets
         }
     }
 
-    Shared<Widget> Container::NotifyCursorDown(const Shared<CursorDownEvent>& event, const TransformInfo& transform)
+    Shared<Widget> WidgetContainer::NotifyCursorDown(const Shared<CursorDownEvent>& event, const TransformInfo& transform)
     {
         if(AreChildrenHitTestable())
         {
@@ -135,7 +133,7 @@ namespace aerox::widgets
         return Widget::NotifyCursorDown(event, transform);
     }
 
-    void Container::NotifyCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform,
+    void WidgetContainer::NotifyCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform,
                                       std::vector<Shared<Widget>>& items)
     {
         if(AreChildrenHitTestable()) NotifyChildrenCursorEnter(event,transform,items);
@@ -143,19 +141,19 @@ namespace aerox::widgets
         Widget::NotifyCursorEnter(event, transform, items);
     }
 
-    bool Container::NotifyCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform)
+    bool WidgetContainer::NotifyCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform)
     {
         if(AreChildrenHitTestable()) return NotifyChildrenCursorMove(event,transform);
         return Widget::NotifyCursorMove(event, transform);
     }
 
-    bool Container::NotifyScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform)
+    bool WidgetContainer::NotifyScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform)
     {
         if(AreChildrenHitTestable()) return NotifyChildrenScroll(event,transform);
         return Widget::NotifyScroll(event, transform);
     }
 
-    Shared<Widget> Container::NotifyChildrenCursorDown(const Shared<CursorDownEvent>& event,
+    Shared<Widget> WidgetContainer::NotifyChildrenCursorDown(const Shared<CursorDownEvent>& event,
         const TransformInfo& transform)
     {
         for (auto &slot : GetSlots())
@@ -166,7 +164,7 @@ namespace aerox::widgets
         return {};
     }
 
-    bool Container::NotifyChildrenCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform, std::vector<Shared<Widget>>& items)
+    bool WidgetContainer::NotifyChildrenCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform, std::vector<Shared<Widget>>& items)
     {
         for (auto &slot : GetSlots())
         {
@@ -179,7 +177,7 @@ namespace aerox::widgets
         return false;
     }
 
-    bool Container::NotifyChildrenCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform)
+    bool WidgetContainer::NotifyChildrenCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform)
     {
         for (auto &slot : GetSlots())
         {
@@ -189,7 +187,7 @@ namespace aerox::widgets
         return false;
     }
 
-    bool Container::NotifyChildrenScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform)
+    bool WidgetContainer::NotifyChildrenScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform)
     {
         for (auto &slot : GetSlots())
         {
@@ -199,11 +197,11 @@ namespace aerox::widgets
         return false;
     }
 
-    void Container::Collect(const TransformInfo& transform, std::vector<Shared<DrawCommand>>& drawCommands)
+    void WidgetContainer::Collect(const TransformInfo& transform, std::vector<Shared<DrawCommand>>& drawCommands)
     {
         auto slots = GetSlots();
         auto clipMode = GetClipMode();
-        if(clipMode == ClipMode::None)
+        if(clipMode == EClipMode::None)
         {
             for (auto &slot : slots)
             {
@@ -212,7 +210,7 @@ namespace aerox::widgets
                 widget->Collect(t,drawCommands);
             } 
         }
-        else if(clipMode == ClipMode::Bounds)
+        else if(clipMode == EClipMode::Bounds)
         {
             auto myAABR = transform.ComputeAxisAlignedBoundingRect();
             
@@ -230,24 +228,23 @@ namespace aerox::widgets
         
     }
 
-    TransformInfo Container::ComputeChildTransform(const Shared<ContainerSlot>& slot, const TransformInfo& myTransform)
+    TransformInfo WidgetContainer::ComputeChildTransform(const Shared<WidgetContainerSlot>& slot, const TransformInfo& myTransform)
     {
         return ComputeChildTransform(slot->GetWidget(),myTransform);
     }
 
-    TransformInfo Container::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
+    TransformInfo WidgetContainer::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
     {
         auto padding = GetPadding();
         return TransformInfo{myTransform.transform.Translate(Vec2(padding.left,padding.top)) * widget->ComputeRelativeTransform(),widget->GetDrawSize(),myTransform.depth + 1};
     }
 
-    ClipMode Container::GetClipMode() const
+    EClipMode WidgetContainer::GetClipMode() const
     {
         return _clipMode;
     }
 
-    void Container::SetClipMode(ClipMode clipMode)
+    void WidgetContainer::SetClipMode(EClipMode clipMode)
     {
         _clipMode = clipMode;
     }
-}

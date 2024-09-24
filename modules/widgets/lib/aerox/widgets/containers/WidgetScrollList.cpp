@@ -1,14 +1,12 @@
-﻿#include "aerox/widgets/containers/ScrollList.hpp"
-#include "aerox/widgets/ContainerSlot.hpp"
+﻿#include "aerox/widgets/containers/WidgetScrollList.hpp"
+#include "aerox/widgets/WidgetContainerSlot.hpp"
 
-namespace aerox::widgets
-{
-    Shared<ContainerSlot> ScrollList::MakeSlot(const Shared<Widget>& widget)
+Shared<WidgetContainerSlot> WidgetScrollList::MakeSlot(const Shared<Widget>& widget)
     {
-        return newShared<ContainerSlot>(widget);
+        return newShared<WidgetContainerSlot>(widget);
     }
 
-    void ScrollList::ApplyScroll() const
+    void WidgetScrollList::ApplyScroll() const
     {
         switch (GetAxis())
         {
@@ -41,17 +39,17 @@ namespace aerox::widgets
         }
     }
 
-    ScrollList::ScrollList(const Axis& axis) : List(axis)
+    WidgetScrollList::WidgetScrollList(const Axis& axis) : WidgetList(axis)
     {
-        SetClipMode(ClipMode::Bounds);
+        SetClipMode(EClipMode::Bounds);
     }
 
-    bool ScrollList::IsScrollable() const
+    bool WidgetScrollList::IsScrollable() const
     {
         return GetMaxScroll() > 0.0f;
     }
 
-    float ScrollList::GetMaxScroll() const
+    float WidgetScrollList::GetMaxScroll() const
     {
         auto desiredSize = GetCachedDesiredSize().value_or(Vec2<float>{0,0});
         switch (GetAxis())
@@ -71,35 +69,34 @@ namespace aerox::widgets
         return 0.0f;
     }
 
-    float ScrollList::GetScroll() const
+    float WidgetScrollList::GetScroll() const
     {
         return _scroll;
     }
 
-    bool ScrollList::OnScroll(const Shared<ScrollEvent>& event)
+    bool WidgetScrollList::OnScroll(const Shared<ScrollEvent>& event)
     {
-        return Container::OnScroll(event);
+        return WidgetContainer::OnScroll(event);
     }
 
-    bool ScrollList::OnCursorDown(const Shared<CursorDownEvent>& event)
+    bool WidgetScrollList::OnCursorDown(const Shared<CursorDownEvent>& event)
     {
-        return Container::OnCursorDown(event);
+        return WidgetContainer::OnCursorDown(event);
     }
 
-    void ScrollList::Collect(const TransformInfo& transform, std::vector<Shared<DrawCommand>>& drawCommands)
+    void WidgetScrollList::Collect(const TransformInfo& transform, std::vector<Shared<DrawCommand>>& drawCommands)
     {
-        Container::Collect(transform, drawCommands);
+        WidgetContainer::Collect(transform, drawCommands);
         if(IsScrollable())
         {
             
         }
     }
 
-    TransformInfo ScrollList::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
+    TransformInfo WidgetScrollList::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
     {
         auto myTransformDup = myTransform;
         myTransformDup.transform = GetAxis() == Axis::Vertical ? myTransformDup.transform.Translate(Vec2{-GetScroll(),0.0f}) : myTransformDup.transform.Translate(Vec2{0.0f,-GetScroll()});
         
-        return List::ComputeChildTransform(widget, myTransformDup);
+        return WidgetList::ComputeChildTransform(widget, myTransformDup);
     }
-}

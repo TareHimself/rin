@@ -1,9 +1,6 @@
 ﻿#pragma once
-namespace aerox::graphics
+struct TextureHandle
 {
-    struct TextureHandle
-    {
-        int textureId = -1;
-        int samplerId = -1;
-    };
-}
+    int textureId = -1;
+    int samplerId = -1;
+};

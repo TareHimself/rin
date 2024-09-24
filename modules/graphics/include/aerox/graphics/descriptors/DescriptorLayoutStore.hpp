@@ -1,12 +1,9 @@
 ﻿#pragma once
 #include "aerox/core/Store.hpp"
 #include "vulkan/vulkan.hpp"
-namespace aerox::graphics
+class DescriptorLayoutStore : public Store<vk::DescriptorSetLayout,uint64_t,vk::DescriptorSetLayoutCreateInfo>
 {
-    class DescriptorLayoutStore : public Store<vk::DescriptorSetLayout,uint64_t,vk::DescriptorSetLayoutCreateInfo>
-    {
-    public:
-        vk::DescriptorSetLayout CreateNew(const vk::DescriptorSetLayoutCreateInfo& key) override;
-        uint64_t GetInternalKey(const vk::DescriptorSetLayoutCreateInfo& key) override;
-    };
-}
+public:
+    vk::DescriptorSetLayout CreateNew(const vk::DescriptorSetLayoutCreateInfo& key) override;
+    uint64_t GetInternalKey(const vk::DescriptorSetLayoutCreateInfo& key) override;
+};

@@ -14,9 +14,7 @@
 #include "aerox/graphics/shaders/ShaderManager.hpp"
 #include <VkBootstrap.h>
 
-namespace aerox::graphics
-{
-    void GraphicsModule::InitVulkan(window::Window* window)
+void GraphicsModule::InitVulkan(Window* window)
     {
         dispatchLoader.init();
 
@@ -211,11 +209,11 @@ namespace aerox::graphics
 
     void GraphicsModule::RegisterRequiredModules()
     {
-        Module::RegisterRequiredModules();
-        _windowModule = GRuntime::Get()->RegisterModule<window::WindowModule>();
+        AeroxModule::RegisterRequiredModules();
+        _windowModule = GRuntime::Get()->RegisterModule<WindowModule>();
     }
 
-    void GraphicsModule::OnWindowCreated(window::Window* window)
+    void GraphicsModule::OnWindowCreated(Window* window)
     {
         if (_instance)
         {
@@ -230,7 +228,7 @@ namespace aerox::graphics
         }
     }
 
-    void GraphicsModule::OnWindowDestroyed(window::Window* window)
+    void GraphicsModule::OnWindowDestroyed(Window* window)
     {
         if (_renderers.contains(window))
         {
@@ -256,9 +254,9 @@ namespace aerox::graphics
         return "Graphics Module";
     }
 
-    bool GraphicsModule::IsDependentOn(Module* module)
+    bool GraphicsModule::IsDependentOn(AeroxModule* module)
     {
-        return instanceOf<window::WindowModule>(module);
+        return instanceOf<WindowModule>(module);
     }
 
     vk::DispatchLoaderDynamic GraphicsModule::dispatchLoader = {};
@@ -504,7 +502,7 @@ namespace aerox::graphics
                      vk::ImageLayout::eShaderReadOnlyOptimal);
     }
 
-    WindowRenderer* GraphicsModule::GetRenderer(window::Window* window) const
+    WindowRenderer* GraphicsModule::GetRenderer(Window* window) const
     {
         if(_renderers.contains(window))
         {
@@ -592,4 +590,3 @@ namespace aerox::graphics
 
         return newImage;
     }
-}

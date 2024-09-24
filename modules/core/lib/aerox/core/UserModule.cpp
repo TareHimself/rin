@@ -1,8 +1,5 @@
 ﻿#include "aerox/core/UserModule.hpp"
-namespace aerox
+bool UserModule::IsSystemModule()
 {
-    bool UserModule::IsSystemModule()
-    {
-        return false;
-    }
+    return false;
 }

@@ -1,16 +1,14 @@
 ﻿#include "aerox/widgets/Widget.hpp"
-#include "aerox/widgets/Container.hpp"
-#include "aerox/widgets/Surface.hpp"
+#include "aerox/widgets/WidgetContainer.hpp"
+#include "aerox/widgets/WidgetSurface.hpp"
 #include "aerox/widgets/event/CursorDownEvent.hpp"
 
-namespace aerox::widgets
-{
-    void Widget::OnAddedToSurface(const Shared<Surface>& widgetSurface)
+void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
     {
         _surface = widgetSurface;
     }
 
-    void Widget::OnRemovedFromSurface(const Shared<Surface>& widgetSurface)
+    void Widget::OnRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface)
     {
         _surface = {};
     }
@@ -56,7 +54,7 @@ namespace aerox::widgets
         return ComputeDesiredSize() + Vec2<float>{padding.left + padding.right, +padding.top + padding.bottom};
     }
 
-    Shared<Surface> Widget::GetSurface() const
+    Shared<WidgetSurface> Widget::GetSurface() const
     {
         if(auto surface = _surface.lock())
         {
@@ -66,7 +64,7 @@ namespace aerox::widgets
         return  {};
     }
 
-    Shared<Container> Widget::GetParent() const
+    Shared<WidgetContainer> Widget::GetParent() const
     {
         if(auto parent = _parent.lock())
         {
@@ -100,18 +98,18 @@ namespace aerox::widgets
         return _visibility;
     }
 
-    Rect Widget::GetRect() const
+    WidgetRect Widget::GetRect() const
     {
-        return Rect{_relativeOffset,_drawSize};
+        return WidgetRect{_relativeOffset,_drawSize};
     }
     
 
-    void Widget::SetParent(const Shared<Container>& container)
+    void Widget::SetParent(const Shared<WidgetContainer>& container)
     {
         _parent = container;
     }
 
-    void Widget::SetSurface(const Shared<Surface>& surface)
+    void Widget::SetSurface(const Shared<WidgetSurface>& surface)
     {
         _surface = surface;
     }
@@ -136,7 +134,7 @@ namespace aerox::widgets
         return _visibility == EVisibility::Visible || _visibility == EVisibility::VisibleNoHitTestSelf;
     }
 
-    void Widget::BindCursorUp(const Shared<Surface>& surface)
+    void Widget::BindCursorUp(const Shared<WidgetSurface>& surface)
     {
         _cursorUpBinding.UnBind();
         _cursorUpBinding = surface->onCursorUp->Add(this->GetSharedDynamic<Widget>(),&Widget::OnCursorUp);
@@ -147,13 +145,13 @@ namespace aerox::widgets
         _cursorUpBinding.UnBind();
     }
 
-    void Widget::NotifyAddedToSurface(const Shared<Surface>& widgetSurface)
+    void Widget::NotifyAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
     {
         _surface = widgetSurface;
         OnAddedToSurface(widgetSurface);
     }
 
-    void Widget::NotifyRemovedFromSurface(const Shared<Surface>& widgetSurface)
+    void Widget::NotifyRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface)
     {
         _surface = {};
         OnRemovedFromSurface(widgetSurface);
@@ -266,4 +264,3 @@ namespace aerox::widgets
 
         return true;
     }
-}

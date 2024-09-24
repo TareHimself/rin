@@ -15,28 +15,24 @@ namespace bass
     class FileStream;
 }
 
-using namespace aerox;
-using namespace aerox::graphics;
-using namespace aerox::window;
-
-class TestStencilDrawCommand : public widgets::CustomDrawCommand
+class TestStencilDrawCommand : public CustomDrawCommand
 {
-    void Draw(widgets::SurfaceFrame* frame) override;
+    void Draw(SurfaceFrame* frame) override;
 };
-class TestWidget : public widgets::Widget
+class TestWidget : public Widget
 {
 protected:
     Vec2<float> ComputeDesiredSize() override;
 
 public:
-    void Collect(const widgets::TransformInfo& transform,
-        std::vector<Shared<widgets::DrawCommand>>& drawCommands) override;
+    void Collect(const TransformInfo& transform,
+        std::vector<Shared<DrawCommand>>& drawCommands) override;
 };
 MCLASS()
-class TestModule : public Module
+class TestModule : public AeroxModule
 {
     WindowModule * _windowModule = nullptr;
-    widgets::WidgetsModule * _widgetsModule = nullptr;
+    WidgetsModule * _widgetsModule = nullptr;
     Shared<Window> _window{};
     bass::FileStream * _stream = nullptr;
 public:
@@ -44,7 +40,7 @@ public:
     std::string GetName() override;
     void Startup(GRuntime* runtime) override;
     void Shutdown(GRuntime* runtime) override;
-    bool IsDependentOn(Module* module) override;
+    bool IsDependentOn(AeroxModule* module) override;
     void RegisterRequiredModules() override;
     static void OnCloseRequested(Window * window);
 };

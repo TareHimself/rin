@@ -1,9 +1,7 @@
 ﻿#pragma once
 #include <vulkan/vulkan.hpp>
 #include <optional>
-namespace aerox::graphics
-{
-    void setRenderArea(const vk::CommandBuffer& cmd,const vk::Rect2D& rect);
+void setRenderArea(const vk::CommandBuffer& cmd,const vk::Rect2D& rect);
     void setRenderExtent(const vk::CommandBuffer& cmd,const vk::Extent2D& extent);
     void setPolygonMode(const vk::CommandBuffer& cmd,const vk::PolygonMode& mode,float lineWidth = 1.0f);
     void disableMultiSampling(const vk::CommandBuffer& cmd);
@@ -24,4 +22,3 @@ namespace aerox::graphics
     void beginRendering(const vk::CommandBuffer& cmd,const vk::Rect2D& renderArea,const vk::ArrayProxyNoTemporaries<vk::RenderingAttachmentInfo>& attachments,const std::optional<vk::RenderingAttachmentInfo>& depthAttachment = {},const std::optional<vk::RenderingAttachmentInfo>& stencilAttachment = {});
     void beginRendering(const vk::CommandBuffer& cmd,const vk::Extent2D& renderExtent,const vk::ArrayProxyNoTemporaries<vk::RenderingAttachmentInfo>& attachments,const std::optional<vk::RenderingAttachmentInfo>& depthAttachment = {},const std::optional<vk::RenderingAttachmentInfo>& stencilAttachment = {});
     void endRendering(const vk::CommandBuffer& cmd);
-}

@@ -2,15 +2,12 @@
 #include "aerox/core/Disposable.hpp"
 #include "aerox/core/memory.hpp"
 
-namespace aerox::widgets
+class WidgetSurface;
+
+class Event : public Disposable
 {
-    class Surface;
+public:
+    Shared<WidgetSurface> surface{};
 
-    class Event : public Disposable
-    {
-    public:
-        Shared<Surface> surface{};
-
-        explicit Event(const Shared<Surface>& inSurface);
-    };
-}
+    explicit Event(const Shared<WidgetSurface>& inSurface);
+};

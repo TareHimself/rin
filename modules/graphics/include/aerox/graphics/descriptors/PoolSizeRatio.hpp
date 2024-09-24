@@ -1,12 +1,9 @@
 ﻿#pragma once
 #include "vulkan/vulkan.hpp"
-namespace aerox::graphics
+struct PoolSizeRatio
 {
-    struct PoolSizeRatio
-    {
-        vk::DescriptorType type;
-        float ratio;
+    vk::DescriptorType type;
+    float ratio;
 
-        PoolSizeRatio(vk::DescriptorType inType,float inRatio);
-    };
-}
+    PoolSizeRatio(vk::DescriptorType inType,float inRatio);
+};

@@ -9,63 +9,56 @@
 #include "aerox/core/Disposable.hpp"
 #include "aerox/graphics/GraphicsModule.hpp"
 
-namespace aerox::graphics
-{
-    class Shader;
-}
-
-namespace aerox::graphics
-{
-    class GraphicsShader;
-    class ShaderManager;
+class Shader;
+class GraphicsShader;
+class ShaderManager;
     
-    class GlslShaderIncluder : public glslang::TShader::Includer {
-        std::filesystem::path sourceFilePath;
-        std::set<IncludeResult *> _results;
-        ShaderManager * _manager = nullptr;
-        bool _bDebug = false;
-    public:
-        GlslShaderIncluder(ShaderManager * manager,const std::filesystem::path &inPath);
+class GlslShaderIncluder : public glslang::TShader::Includer {
+    std::filesystem::path sourceFilePath;
+    std::set<IncludeResult *> _results;
+    ShaderManager * _manager = nullptr;
+    bool _bDebug = false;
+public:
+    GlslShaderIncluder(ShaderManager * manager,const std::filesystem::path &inPath);
 
 
-        IncludeResult *includeSystem(const char*filePath, const char *includerName, size_t inclusionDepth) override;
-        IncludeResult *includeLocal(const char*filePath, const char *includerName, size_t inclusionDepth) override;
+    IncludeResult *includeSystem(const char*filePath, const char *includerName, size_t inclusionDepth) override;
+    IncludeResult *includeLocal(const char*filePath, const char *includerName, size_t inclusionDepth) override;
 
-        void releaseInclude(IncludeResult *result) override;
+    void releaseInclude(IncludeResult *result) override;
 
-        ~GlslShaderIncluder() override;
+    ~GlslShaderIncluder() override;
   
-    };
+};
     
-    class ShaderManager : public Disposable
+class ShaderManager : public Disposable
+{
+    struct CompileTask
     {
-        struct CompileTask
-        {
-            Shared<Shader> shader{};
-            CompileTask(const Shared<Shader>& inShader);
-        };
-        GraphicsModule * _graphicsModule = nullptr;
-        std::unordered_map<std::string,std::vector<uint32_t>> _spirv{};
-        BackgroundThread<CompiledShader> _compilationThread{};
-
-        glslang_resource_t _resources{};
-        bool _init = false;
-        
-    public:
-        DEFINE_DELEGATE_LIST(onShaderCompiled,const std::string&,const vk::ShaderEXT&)
-        ShaderManager(GraphicsModule * graphicsModule);
-
-        GraphicsModule * GetGraphicsModule() const;
-        std::vector<uint32_t> CompileAstToSpirv(const std::string& id,vk::ShaderStageFlagBits stage,const std::shared_ptr<ashl::ModuleNode>& node);
-
-        static glslang_stage_t GetLangFromScopeType(ashl::EScopeType scopeType);
-        static glslang_stage_t GetLangFromStage(vk::ShaderStageFlagBits stage);
-
-        std::shared_future<CompiledShader> StartShaderCompilation(const Shared<Shader>& shader);
-        //std::future<vk::ShaderEXT> CompileShader()
-
-        DEFINE_DELEGATE_LIST(onDispose)
-        void Init();
-        void OnDispose(bool manual) override;
+        Shared<Shader> shader{};
+        CompileTask(const Shared<Shader>& inShader);
     };
-}
+    GraphicsModule * _graphicsModule = nullptr;
+    std::unordered_map<std::string,std::vector<uint32_t>> _spirv{};
+    BackgroundThread<CompiledShader> _compilationThread{};
+
+    glslang_resource_t _resources{};
+    bool _init = false;
+        
+public:
+    DEFINE_DELEGATE_LIST(onShaderCompiled,const std::string&,const vk::ShaderEXT&)
+    ShaderManager(GraphicsModule * graphicsModule);
+
+    GraphicsModule * GetGraphicsModule() const;
+    std::vector<uint32_t> CompileAstToSpirv(const std::string& id,vk::ShaderStageFlagBits stage,const std::shared_ptr<ashl::ModuleNode>& node);
+
+    static glslang_stage_t GetLangFromScopeType(ashl::EScopeType scopeType);
+    static glslang_stage_t GetLangFromStage(vk::ShaderStageFlagBits stage);
+
+    std::shared_future<CompiledShader> StartShaderCompilation(const Shared<Shader>& shader);
+    //std::future<vk::ShaderEXT> CompileShader()
+
+    DEFINE_DELEGATE_LIST(onDispose)
+    void Init();
+    void OnDispose(bool manual) override;
+};

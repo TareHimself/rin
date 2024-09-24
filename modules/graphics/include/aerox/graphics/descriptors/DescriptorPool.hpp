@@ -2,22 +2,17 @@
 #include "DescriptorSet.hpp"
 #include "aerox/graphics/shaders/Shader.hpp"
 #include "vulkan/vulkan.hpp"
-namespace aerox::graphics
+class DescriptorPool : public Disposable
 {
-    class DescriptorPool : public Disposable
-    {
-        vk::DescriptorPool _pool{};
-        std::vector<Shared<DescriptorSet>> _descriptors{};
-    public:
-        DescriptorPool(const vk::DescriptorPool& pool);
+    vk::DescriptorPool _pool{};
+    std::vector<Shared<DescriptorSet>> _descriptors{};
+public:
+    DescriptorPool(const vk::DescriptorPool& pool);
 
 
-        Shared<DescriptorSet> Allocate(const vk::DescriptorSetLayout& layout, const std::vector<uint32_t>& variableCount = {});
+    Shared<DescriptorSet> Allocate(const vk::DescriptorSetLayout& layout, const std::vector<uint32_t>& variableCount = {});
 
-        void Reset();
+    void Reset();
 
-        void OnDispose(bool manual) override;
-    };
-
-    
-}
+    void OnDispose(bool manual) override;
+};

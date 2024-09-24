@@ -1,13 +1,10 @@
 #pragma once
 
-namespace aerox
-{
-    class MetaFunction {
+class MetaFunction {
 
 
-    public:
+public:
 
 
-    };
-}
+};
 

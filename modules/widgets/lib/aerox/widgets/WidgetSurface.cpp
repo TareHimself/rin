@@ -1,4 +1,4 @@
-﻿#include "aerox/widgets/Surface.hpp"
+﻿#include "aerox/widgets/WidgetSurface.hpp"
 #include <ranges>
 #include <set>
 #include "aerox/graphics/commandBufferUtils.hpp"
@@ -7,7 +7,7 @@
 #include "aerox/graphics/GraphicsModule.hpp"
 #include "aerox/graphics/ResourceManager.hpp"
 #include "aerox/widgets/Widget.hpp"
-#include "aerox/widgets/Container.hpp"
+#include "aerox/widgets/WidgetContainer.hpp"
 #include "aerox/widgets/WidgetsModule.hpp"
 #include "aerox/widgets/event/CursorDownEvent.hpp"
 #include "aerox/widgets/event/CursorMoveEvent.hpp"
@@ -18,9 +18,7 @@
 #include "aerox/widgets/graphics/CustomDrawCommand.hpp"
 #include "aerox/widgets/graphics/QuadInfo.hpp"
 
-namespace aerox::widgets
-{
-    void Surface::DoHover()
+void WidgetSurface::DoHover()
     {
         auto cursorPosition = GetCursorPosition();
 
@@ -28,7 +26,7 @@ namespace aerox::widgets
 
         _lastCursorPosition = cursorPosition;
 
-        auto event = std::make_shared<CursorMoveEvent>(this->GetSharedDynamic<Surface>(), cursorPosition);
+        auto event = std::make_shared<CursorMoveEvent>(this->GetSharedDynamic<WidgetSurface>(), cursorPosition);
 
         TransformInfo info{this};
 
@@ -58,38 +56,36 @@ namespace aerox::widgets
             hoveredSet.emplace(hovered.get());
         }
         
-        Shared<Container> lastParent{};
+        Shared<WidgetContainer> lastParent{};
         TransformInfo curTransform = info;
         for (auto &widget : std::ranges::reverse_view(oldHoverList))
         {
             curTransform = lastParent ? lastParent->ComputeChildTransform(widget,curTransform) : curTransform;
-            lastParent = std::dynamic_pointer_cast<Container>(widget);
+            lastParent = std::dynamic_pointer_cast<WidgetContainer>(widget);
             if(!hoveredSet.contains(widget.get()))
             {
                 widget->NotifyCursorLeave(event,curTransform);
             }
         }
     }
-
-    std::string Surface::MAIN_PASS_ID;
     
-    std::vector<Shared<Widget>> Surface::GetRootWidgets() const
+    std::vector<Shared<Widget>> WidgetSurface::GetRootWidgets() const
     {
         return _rootWidgets;
     }
 
-    void Surface::Init()
+    void WidgetSurface::Init()
     {
         CreateImages();
     }
 
-    void Surface::CreateImages()
+    void WidgetSurface::CreateImages()
     {
         auto imageExtent = GetDrawSize().Cast<uint32_t>();
         auto usageFlags = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
             vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment;
 
-        auto graphicsModule = GRuntime::Get()->GetModule<graphics::GraphicsModule>();
+        auto graphicsModule = GRuntime::Get()->GetModule<GraphicsModule>();
 
         _drawImage = graphicsModule->CreateImage({imageExtent.x, imageExtent.y, 1}, vk::Format::eR32G32B32A32Sfloat,
                                                  usageFlags, false, "Widget Surface Main Image");
@@ -101,7 +97,7 @@ namespace aerox::widgets
             vk::ImageUsageFlagBits::eDepthStencilAttachment,false,"Widget Surface Stencil Image");
     }
 
-    void Surface::ClearFocus()
+    void WidgetSurface::ClearFocus()
     {
         if (_focusedWidget)
         {
@@ -111,7 +107,7 @@ namespace aerox::widgets
         _focusedWidget.reset();
     }
 
-    bool Surface::RequestFocus(const Shared<Widget>& widget)
+    bool WidgetSurface::RequestFocus(const Shared<Widget>& widget)
     {
         if (_focusedWidget == widget) return true;
         if (!widget->IsHitTestable()) return false;
@@ -125,9 +121,9 @@ namespace aerox::widgets
         return true;
     }
 
-    void Surface::NotifyResize(const Shared<ResizeEvent>& event)
+    void WidgetSurface::NotifyResize(const Shared<ResizeEvent>& event)
     {
-        GRuntime::Get()->GetModule<graphics::GraphicsModule>()->WaitForDeviceIdle();
+        GRuntime::Get()->GetModule<GraphicsModule>()->WaitForDeviceIdle();
         _drawImage.reset();
         _copyImage.reset();
         CreateImages();
@@ -140,7 +136,7 @@ namespace aerox::widgets
         onResize->Invoke(event);
     }
 
-    void Surface::NotifyCursorDown(const Shared<CursorDownEvent>& event)
+    void WidgetSurface::NotifyCursorDown(const Shared<CursorDownEvent>& event)
     {
         TransformInfo rootInfo{this};
         bool shouldKeepFocus = false;
@@ -179,12 +175,12 @@ namespace aerox::widgets
         }
     }
 
-    void Surface::NotifyCursorUp(const Shared<CursorUpEvent>& event)
+    void WidgetSurface::NotifyCursorUp(const Shared<CursorUpEvent>& event)
     {
         onCursorUp->Invoke(event);
     }
 
-    void Surface::NotifyCursorMove(const Shared<CursorMoveEvent>& event)
+    void WidgetSurface::NotifyCursorMove(const Shared<CursorMoveEvent>& event)
     {
         _lastCursorPosition = event->position;
 
@@ -204,7 +200,7 @@ namespace aerox::widgets
         }
     }
 
-    void Surface::NotifyScroll(const Shared<ScrollEvent>& event)
+    void WidgetSurface::NotifyScroll(const Shared<ScrollEvent>& event)
     {
         TransformInfo info{this};
 
@@ -223,17 +219,17 @@ namespace aerox::widgets
     }
 
 
-    Shared<Widget> Surface::AddChild(const Shared<Widget>& widget)
+    Shared<Widget> WidgetSurface::AddChild(const Shared<Widget>& widget)
     {
         widget->SetDrawSize(GetDrawSize().Cast<float>());
         widget->SetRelativeOffset({0, 0});
-        widget->NotifyAddedToSurface(this->GetSharedDynamic<Surface>());
+        widget->NotifyAddedToSurface(this->GetSharedDynamic<WidgetSurface>());
         _rootWidgets.push_back(widget);
         _rootWidgetsMap.emplace(widget.get(), widget);
         return widget;
     }
 
-    bool Surface::RemoveChild(const Shared<Widget>& widget)
+    bool WidgetSurface::RemoveChild(const Shared<Widget>& widget)
     {
         if (_rootWidgetsMap.contains(widget.get())) return false;
 
@@ -251,19 +247,18 @@ namespace aerox::widgets
         return true;
     }
 
-    Shared<graphics::DeviceImage> Surface::GetDrawImage() const
+    Shared<DeviceImage> WidgetSurface::GetDrawImage() const
     {
         return _drawImage;
     }
 
-    Shared<graphics::DeviceImage> Surface::GetCopyImage() const
+    Shared<DeviceImage> WidgetSurface::GetCopyImage() const
     {
         return _copyImage;
     }
 
-    void Surface::BeginMainPass(SurfaceFrame* frame,bool clear)
+    void WidgetSurface::BeginMainPass(SurfaceFrame* frame,bool clear)
     {
-        using namespace graphics;
         auto size = GetDrawSize().Cast<uint32_t>();
         vk::Extent2D renderExtent{size.x, size.y};
         auto cmd = frame->raw->GetCommandBuffer();
@@ -287,12 +282,10 @@ namespace aerox::widgets
         cmd.setStencilCompareMask(faceMask,0x1);
         cmd.setStencilWriteMask(faceMask,0x1);
         cmd.setStencilOp(faceMask,vk::StencilOp::eKeep,vk::StencilOp::eKeep,vk::StencilOp::eKeep,vk::CompareOp::eNever);
-        
-        
-        frame->activePass = MAIN_PASS_ID;
+        frame->activePass = SurfaceGlobals::MAIN_PASS_ID;
     }
 
-    void Surface::EndActivePass(SurfaceFrame* frame)
+    void WidgetSurface::EndActivePass(SurfaceFrame* frame)
     {
         if(frame->activePass.empty()) return;
         auto cmd = frame->raw->GetCommandBuffer();
@@ -300,17 +293,17 @@ namespace aerox::widgets
         frame->activePass.clear();
     }
 
-    void Surface::DrawBatches(SurfaceFrame * frame, std::vector<QuadInfo>& quads)
+    void WidgetSurface::DrawBatches(SurfaceFrame * frame, std::vector<QuadInfo>& quads)
     {
         if(quads.empty()) return;
         
-        if(frame->activePass != MAIN_PASS_ID)
+        if(frame->activePass != SurfaceGlobals::MAIN_PASS_ID)
         {
             EndActivePass(frame);
             BeginMainPass(frame);
         }
 
-        auto graphicsModule = GRuntime::Get()->GetModule<graphics::GraphicsModule>();
+        auto graphicsModule = GRuntime::Get()->GetModule<GraphicsModule>();
         auto widgetsModule = GRuntime::Get()->GetModule<WidgetsModule>();
         auto shader = widgetsModule->GetBatchShader();
         auto cmd = frame->raw->GetCommandBuffer();
@@ -345,7 +338,7 @@ namespace aerox::widgets
         
     }
 
-    void Surface::Draw(graphics::Frame* frame)
+    void WidgetSurface::Draw(Frame* frame)
     {
         if (!_drawImage || !_copyImage) return;
 
@@ -416,10 +409,9 @@ namespace aerox::widgets
         HandleAfterDraw(frame);
     }
 
-    void Surface::OnDispose(bool manual)
+    void WidgetSurface::OnDispose(bool manual)
     {
         Disposable::OnDispose(manual);
         _drawImage.reset();
         _copyImage.reset();
     }
-}

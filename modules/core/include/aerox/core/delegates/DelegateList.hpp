@@ -7,9 +7,7 @@
 #include "Delegate.hpp"
 #include "FunctionDelegate.hpp"
 #include "aerox/core/macros.hpp"
-namespace aerox
-{
-    class _DelegateList;
+class _DelegateList;
     template <typename...TArgs>
     class DelegateList;
 
@@ -189,9 +187,8 @@ namespace aerox
     {
         return newShared<DelegateList<TArgs...>>();
     }
-}
 
 #ifndef DEFINE_DELEGATE_LIST
 #define DEFINE_DELEGATE_LIST(Name,...) \
-Shared<DelegateList<__VA_ARGS__>> ##Name = aerox::newDelegateList<__VA_ARGS__>();
+Shared<DelegateList<__VA_ARGS__>> ##Name = newDelegateList<__VA_ARGS__>();
 #endif

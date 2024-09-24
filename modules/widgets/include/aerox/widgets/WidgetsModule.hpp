@@ -5,34 +5,28 @@
 #include "aerox/graphics/WindowRenderer.hpp"
 #include "aerox/graphics/shaders/GraphicsShader.hpp"
 
-namespace aerox::widgets
+class WidgetWindowSurface;
+class Window;
+
+MCLASS()
+class WidgetsModule : public AeroxModule
 {
-    class WindowSurface;
-}
+    std::unordered_map<WindowRenderer *,Shared<WidgetWindowSurface>> _windowSurfaces{};
+    GraphicsModule * _graphicsModule = nullptr;
+    DelegateListHandle _rendererCreatedHandle{};
+    DelegateListHandle _rendererDestroyedHandle{};
+    Shared<GraphicsShader> _batchShader{};
+public:
+    std::string GetName() override;
+    void Startup(GRuntime* runtime) override;
+    void Shutdown(GRuntime* runtime) override;
+    bool IsDependentOn(AeroxModule* module) override;
 
-namespace aerox::widgets {
-    class Window;
+    void RegisterRequiredModules() override;
 
-    MCLASS()
-    class WidgetsModule : public Module
-    {
-        std::unordered_map<graphics::WindowRenderer *,Shared<WindowSurface>> _windowSurfaces{};
-        graphics::GraphicsModule * _graphicsModule = nullptr;
-        DelegateListHandle _rendererCreatedHandle{};
-        DelegateListHandle _rendererDestroyedHandle{};
-        Shared<graphics::GraphicsShader> _batchShader{};
-    public:
-        std::string GetName() override;
-        void Startup(GRuntime* runtime) override;
-        void Shutdown(GRuntime* runtime) override;
-        bool IsDependentOn(Module* module) override;
+    void OnRendererCreated(WindowRenderer * renderer);
+    void OnRendererDestroyed(WindowRenderer * renderer);
 
-        void RegisterRequiredModules() override;
-
-        void OnRendererCreated(graphics::WindowRenderer * renderer);
-        void OnRendererDestroyed(graphics::WindowRenderer * renderer);
-
-        Shared<WindowSurface> GetSurface(window::Window * window) const;
-        Shared<graphics::GraphicsShader> GetBatchShader() const;
-    };
-}
+    Shared<WidgetWindowSurface> GetSurface(Window * window) const;
+    Shared<GraphicsShader> GetBatchShader() const;
+};

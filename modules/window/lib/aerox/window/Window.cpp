@@ -2,9 +2,7 @@
 #include "aerox/window/WindowModule.hpp"
 #include "aerox/core/GRuntime.hpp"
 
-namespace aerox::window
-{
-    void Window::NotifyEvent(const SDL_Event& event)
+void Window::NotifyEvent(const SDL_Event& event)
     {
         switch (event.type)
         {
@@ -117,4 +115,3 @@ namespace aerox::window
     {
         return GRuntime::Get()->GetModule<WindowModule>();
     }
-}

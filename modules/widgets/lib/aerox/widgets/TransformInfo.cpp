@@ -1,24 +1,22 @@
 ﻿#include "aerox/widgets/TransformInfo.hpp"
 
-#include "aerox/widgets/ContainerSlot.hpp"
-#include "aerox/widgets/Surface.hpp"
+#include "aerox/widgets/WidgetContainerSlot.hpp"
+#include "aerox/widgets/WidgetSurface.hpp"
 #include "aerox/widgets/Widget.hpp"
 
-namespace aerox::widgets
-{
-    TransformInfo::TransformInfo(const Matrix3<float>& inTransform, const Vec2<float>& inSize,int inDepth)
+TransformInfo::TransformInfo(const Matrix3<float>& inTransform, const Vec2<float>& inSize,int inDepth)
     {
         transform = inTransform;
         size = inSize;
         depth = inDepth;
     }
 
-    TransformInfo::TransformInfo(const Surface* inSurface) : TransformInfo(Matrix3<float>{1.0f},inSurface->GetDrawSize().Cast<float>())
+    TransformInfo::TransformInfo(const WidgetSurface* inSurface) : TransformInfo(Matrix3<float>{1.0f},inSurface->GetDrawSize().Cast<float>())
     {
         
     }
 
-    TransformInfo::TransformInfo(const Shared<Surface>& inSurface) : TransformInfo(Matrix3<float>{1.0f},inSurface->GetDrawSize().Cast<float>())
+    TransformInfo::TransformInfo(const Shared<WidgetSurface>& inSurface) : TransformInfo(Matrix3<float>{1.0f},inSurface->GetDrawSize().Cast<float>())
     {
         
     }
@@ -28,7 +26,7 @@ namespace aerox::widgets
         
     }
 
-    TransformInfo TransformInfo::AccountFor(const Shared<ContainerSlot>& slot) const
+    TransformInfo TransformInfo::AccountFor(const Shared<WidgetContainerSlot>& slot) const
     {
         return AccountFor(slot->GetWidget());
     }
@@ -65,7 +63,7 @@ namespace aerox::widgets
             std::max(std::max(tl.y,tr.y),std::max(bl.y,br.y))
         );
 
-        Rect aabb(p1AABB,p2AABB - p1AABB);
+        WidgetRect aabb(p1AABB,p2AABB - p1AABB);
         
         if(!aabb.Contains(point)) return false;
 
@@ -95,7 +93,7 @@ namespace aerox::widgets
     }
 
 
-    Rect TransformInfo::ComputeAxisAlignedBoundingRect() const
+    WidgetRect TransformInfo::ComputeAxisAlignedBoundingRect() const
     {
         auto tl = Vec2<float>(0.0f);
         auto br =  size;
@@ -118,4 +116,3 @@ namespace aerox::widgets
 
         return {p1AABB,p2AABB - p1AABB};
     }
-}

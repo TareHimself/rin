@@ -1,8 +1,5 @@
 ﻿#include "aerox/widgets/graphics/BatchedDrawCommand.hpp"
-namespace aerox::widgets
+DrawCommand::Type BatchedDrawCommand::GetType() const
 {
-    DrawCommand::Type BatchedDrawCommand::GetType() const
-    {
-        return Type::Batched;
-    }
+    return Type::Batched;
 }

@@ -3,12 +3,9 @@
 #include <vulkan/vulkan.hpp>
 #include <map>
 
-namespace aerox::graphics
+struct CompiledShader
 {
-    struct CompiledShader
-    {
-        std::vector<std::pair<vk::ShaderStageFlagBits,vk::ShaderEXT>> shaders{};
-        std::map<uint32_t,vk::DescriptorSetLayout> descriptorLayouts{};
-        vk::PipelineLayout pipelineLayout{};
-    };
-}
+    std::vector<std::pair<vk::ShaderStageFlagBits,vk::ShaderEXT>> shaders{};
+    std::map<uint32_t,vk::DescriptorSetLayout> descriptorLayouts{};
+    vk::PipelineLayout pipelineLayout{};
+};

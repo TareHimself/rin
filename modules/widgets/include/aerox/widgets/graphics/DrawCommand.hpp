@@ -2,20 +2,17 @@
 #include "SurfaceFrame.hpp"
 #include "aerox/core/Disposable.hpp"
 
-namespace aerox::widgets
+class DrawCommand : public Disposable
 {
-    class DrawCommand : public Disposable
+public:
+    enum class Type
     {
-    public:
-        enum class Type
-        {
-            Batched,
-            Custom
-        };
+        Batched,
+        Custom
+    };
 
 
-        virtual Type GetType() const = 0;
+    virtual Type GetType() const = 0;
 
         
-    };
-}
+};

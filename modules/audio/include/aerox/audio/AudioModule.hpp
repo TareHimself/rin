@@ -2,17 +2,15 @@
 #include "aerox/core/Module.hpp"
 #include "aerox/core/meta/MetaMacros.hpp"
 
-namespace aerox::audio {
-    class Window;
+class Window;
 
-    MCLASS()
-    class AudioModule : public Module
-    {
+MCLASS()
+class AudioModule : public AeroxModule
+{
         
-    public:
-        std::string GetName() override;
-        void Startup(GRuntime* runtime) override;
-        void Shutdown(GRuntime* runtime) override;
-        bool IsDependentOn(Module* module) override;
-    };
-}
+public:
+    std::string GetName() override;
+    void Startup(GRuntime* runtime) override;
+    void Shutdown(GRuntime* runtime) override;
+    bool IsDependentOn(AeroxModule* module) override;
+};

@@ -3,42 +3,40 @@
 #include <unordered_map>
 #include "aerox/core/Disposable.hpp"
 
-namespace aerox::widgets
-{
-    enum class ClipMode
+enum class EClipMode
     {
         None,
         Bounds,
         Custom
     };
     
-    class Container : public Widget
+    class WidgetContainer : public Widget
     {
-        std::unordered_map<Widget *,Shared<ContainerSlot>> _widgetsToSlots{};
-        std::vector<Shared<ContainerSlot>> _slots{};
-        ClipMode _clipMode = ClipMode::None;
+        std::unordered_map<Widget *,Shared<WidgetContainerSlot>> _widgetsToSlots{};
+        std::vector<Shared<WidgetContainerSlot>> _slots{};
+        EClipMode _clipMode = EClipMode::None;
         friend Widget;
     protected:
         virtual void ArrangeSlots(const Vec2<float>& drawSize) = 0;
         virtual void OnChildResized(Widget * widget);
-        virtual Shared<ContainerSlot> MakeSlot(const Shared<Widget>& widget);
+        virtual Shared<WidgetContainerSlot> MakeSlot(const Shared<Widget>& widget);
     public:
-        using SlotType = ContainerSlot;
+        using SlotType = WidgetContainerSlot;
         virtual size_t GetMaxSlots() const;
         virtual size_t GetUsedSlots() const;
-        virtual Shared<ContainerSlot> GetSlot(int index) const;
-        virtual Shared<ContainerSlot> GetSlot(Widget * widget) const;
-        virtual std::vector<Shared<ContainerSlot>> GetSlots() const;
+        virtual Shared<WidgetContainerSlot> GetSlot(int index) const;
+        virtual Shared<WidgetContainerSlot> GetSlot(Widget * widget) const;
+        virtual std::vector<Shared<WidgetContainerSlot>> GetSlots() const;
         
-        virtual Shared<ContainerSlot> AddChild(const Shared<Widget>& widget);
+        virtual Shared<WidgetContainerSlot> AddChild(const Shared<Widget>& widget);
         bool RemoveChild(const Shared<Widget>& widget);
 
         void SetDrawSize(const Vec2<float>& size) override;
 
         void OnDispose(bool manual) override;
 
-        void NotifyAddedToSurface(const Shared<Surface>& widgetSurface) override;
-        void NotifyRemovedFromSurface(const Shared<Surface>& widgetSurface) override;
+        void NotifyAddedToSurface(const Shared<WidgetSurface>& widgetSurface) override;
+        void NotifyRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface) override;
         Shared<Widget> NotifyCursorDown(const Shared<CursorDownEvent>& event, const TransformInfo& transform) override;
         void NotifyCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform, std::vector<Shared<Widget>>& items) override;
         bool NotifyCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform) override;
@@ -50,33 +48,33 @@ namespace aerox::widgets
         virtual bool NotifyChildrenScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform);
 
         template<typename T,typename ...TArgs>
-        std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<Widget,T>,Shared<ContainerSlot>> AddChild(TArgs&&... args);
+        std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<Widget,T>,Shared<WidgetContainerSlot>> AddChild(TArgs&&... args);
 
         template<typename TSlotType,typename T,typename ...TArgs>
-       std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<Widget,T> && std::is_base_of_v<ContainerSlot,TSlotType>,Shared<TSlotType>> AddChild(TArgs&&... args);
+       std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<Widget,T> && std::is_base_of_v<WidgetContainerSlot,TSlotType>,Shared<TSlotType>> AddChild(TArgs&&... args);
 
         void Collect(const TransformInfo& transform, std::vector<Shared<DrawCommand>>& drawCommands) override;
 
-        TransformInfo ComputeChildTransform(const Shared<ContainerSlot>& slot, const TransformInfo& myTransform);
+        TransformInfo ComputeChildTransform(const Shared<WidgetContainerSlot>& slot, const TransformInfo& myTransform);
         virtual TransformInfo ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform);
 
-        ClipMode GetClipMode() const;
+        EClipMode GetClipMode() const;
 
-        void SetClipMode(ClipMode clipMode);
+        void SetClipMode(EClipMode clipMode);
 
         
     };
 
     template <typename T, typename ... TArgs>
-    std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<Widget, T>, Shared<ContainerSlot>>
-    Container::AddChild(TArgs&&... args)
+    std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<Widget, T>, Shared<WidgetContainerSlot>>
+    WidgetContainer::AddChild(TArgs&&... args)
     {
         return AddChild(newShared<T>(std::forward<TArgs>(args)...));
     }
 
     template <typename TSlotType, typename T, typename ... TArgs>
     std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<Widget, T> && std::is_base_of_v<
-    ContainerSlot, TSlotType>, Shared<TSlotType>> Container::AddChild(TArgs&&... args)
+    WidgetContainerSlot, TSlotType>, Shared<TSlotType>> WidgetContainer::AddChild(TArgs&&... args)
     {
         if(auto slot = AddChild<T>(std::forward<TArgs>(args)...))
         {
@@ -86,7 +84,7 @@ namespace aerox::widgets
     }
 
 
-    template<typename T,typename = std::enable_if_t<std::is_base_of_v<Container,T>>>
+    template<typename T,typename = std::enable_if_t<std::is_base_of_v<WidgetContainer,T>>>
     std::pair<Shared<typename T::template SlotType>,Shared<T>> operator+(const Shared<T>& container, const Shared<Widget>& other)
     {
         auto slot = container->AddChild(other);
@@ -94,24 +92,23 @@ namespace aerox::widgets
     }
 
     
-    template<typename T,typename = std::enable_if_t<std::is_base_of_v<Container,T>>>
+    template<typename T,typename = std::enable_if_t<std::is_base_of_v<WidgetContainer,T>>>
     std::pair<Shared<typename T::template SlotType>,Shared<T>> operator+(const std::pair<Shared<typename T::template SlotType>,Shared<T>>& container,const Shared<Widget>& other)
     {
         auto slot = container.second->AddChild(other);
         return std::make_pair(slot->template As<T::template SlotType>(),container.second);
     }
 
-    template<typename T,typename E,typename = std::enable_if_t<std::is_base_of_v<Container,T> && std::is_base_of_v<Container,E>>>
+    template<typename T,typename E,typename = std::enable_if_t<std::is_base_of_v<WidgetContainer,T> && std::is_base_of_v<WidgetContainer,E>>>
     std::pair<Shared<typename T::template SlotType>,Shared<T>> operator+(const Shared<T>& container,const std::pair<Shared<typename E::template SlotType>,Shared<E>>& other)
     {
         auto slot = container->AddChild(other.second);
         return std::make_pair(slot->template As<T::template SlotType>(),container.second);
     }
 
-    template<typename T,typename = std::enable_if_t<std::is_base_of_v<Container,T>>>
+    template<typename T,typename = std::enable_if_t<std::is_base_of_v<WidgetContainer,T>>>
     Shared<T> operator-(const Shared<T>& container,const Shared<Widget>& child)
     {
         container->RemoveChild(child);
         return container;
     }
-}

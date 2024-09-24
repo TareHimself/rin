@@ -4,13 +4,7 @@
 #include "aerox/core/memory.hpp"
 #include "shaders/ShaderResource.hpp"
 
-namespace aerox::graphics
-{
-    class Shader;
-}
-
-namespace aerox::graphics
-{
+ class Shader;
     class DeviceImage;
     class DeviceBuffer;
     class GraphicsModule;
@@ -73,4 +67,3 @@ namespace aerox::graphics
     {
         return NewStorageBuffer(sizeof(T),sequentialWrite,debugName);
     }
-}

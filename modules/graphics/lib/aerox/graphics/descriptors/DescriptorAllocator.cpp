@@ -2,9 +2,7 @@
 #include "aerox/core/GRuntime.hpp"
 #include "aerox/graphics/GraphicsModule.hpp"
 
-namespace aerox::graphics
-{
-    void DescriptorAllocator::DestroyPools()
+void DescriptorAllocator::DestroyPools()
     {
         for (auto &descriptorPool : _fullPools)
         {
@@ -111,4 +109,3 @@ namespace aerox::graphics
         Disposable::OnDispose(manual);
         DestroyPools();
     }
-}

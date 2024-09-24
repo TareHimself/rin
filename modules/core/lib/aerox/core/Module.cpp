@@ -2,21 +2,18 @@
 
 #include "aerox/core/GRuntime.hpp"
 
-namespace aerox
+void AeroxModule::RegisterRequiredModules()
 {
-    void Module::RegisterRequiredModules()
-    {
     
-    }
+}
 
-    bool Module::IsSystemModule()
-    {
-        return true;
-    }
+bool AeroxModule::IsSystemModule()
+{
+    return true;
+}
 
-    GRuntime* Module::GetRuntime() const
-    {
-        return GRuntime::Get();
-    }
+GRuntime* AeroxModule::GetRuntime() const
+{
+    return GRuntime::Get();
 }
 

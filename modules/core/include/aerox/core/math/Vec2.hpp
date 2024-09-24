@@ -2,9 +2,7 @@
 #include <glm_1.0.0/include/glm/glm.hpp> // This include needs to be investigated. for some reason glm/include/* does not work
 #include "utils.hpp"
 #include <algorithm>
-namespace aerox
-{
-    template<typename T>
+template<typename T>
         struct Vec2
     {
     public:
@@ -168,5 +166,4 @@ namespace aerox
     {
         return (*this - other).Abs().Max() < tolerance;
     }
-}
 

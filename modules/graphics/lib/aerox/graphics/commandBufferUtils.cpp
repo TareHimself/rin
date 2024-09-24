@@ -2,9 +2,7 @@
 
 #include "aerox/graphics/GraphicsModule.hpp"
 
-namespace aerox::graphics
-{
-    void setRenderArea(const vk::CommandBuffer& cmd, const vk::Rect2D& rect)
+void setRenderArea(const vk::CommandBuffer& cmd, const vk::Rect2D& rect)
     {
         vk::Viewport viewport{
             static_cast<float>(rect.offset.x), static_cast<float>(rect.offset.y),
@@ -172,4 +170,3 @@ namespace aerox::graphics
     {
         cmd.endRendering();
     }
-}
