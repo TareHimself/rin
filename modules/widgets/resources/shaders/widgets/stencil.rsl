@@ -1,0 +1,29 @@
+#include "utils.rsl"
+
+push(scalar)
+{
+    mat3 transform;
+    mat4 projection;
+    float2 size;
+    float4 borderRadius;
+};
+
+@Vertex {
+    void main()
+    {
+        float2 dummyUV = float2(0.0);
+        generateRectVertex(push.size, push.projection, push.transform, gl_VertexIndex, gl_Position,dummyUV);
+    }
+}
+
+@Fragment {
+    layout (location = 0) out float4 oColor;
+
+    void main() {
+        float4 result = applyBorderRadius(gl_FragCoord.xy,float4(float3(0.0),1.0), push.borderRadius, push.size, push.transform);
+        if(result.w < 0.5){
+            discard;
+        }
+        oColor = float4(0.0f);//float4(float3(result.w),1.0);
+    }
+}

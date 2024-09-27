@@ -63,9 +63,9 @@ endfunction()
 
 # Fetches and builds a dependency
 function(BuildThirdPartyDep FOLDER_NAME REPOSITORY VERSION RESULT PRE_BUILD_FN BUILD_ARGS)
-  get_property(AEROX_THIRD_PARTY_DIR GLOBAL PROPERTY AEROX_THIRD_PARTY_DIR_PROPERTY)
+  get_property(RIN_THIRD_PARTY_DIR GLOBAL PROPERTY RIN_THIRD_PARTY_DIR_PROPERTY)
   #set(RESULT_DIR ${THIRD_PARTY_DIR})
-  set(RESULT_DIR ${AEROX_THIRD_PARTY_DIR}/${FOLDER_NAME}_${VERSION})
+  set(RESULT_DIR ${RIN_THIRD_PARTY_DIR}/${FOLDER_NAME}_${VERSION})
   set(CLONE_DIR ${CMAKE_CURRENT_BINARY_DIR}/${FOLDER_NAME})
 
   FetchAndBuild(${REPOSITORY} ${VERSION} ${FOLDER_NAME} ${RESULT_DIR} ${CLONE_DIR} "${PRE_BUILD_FN}" "${BUILD_ARGS}")
@@ -435,22 +435,22 @@ macro(GetShaderc VERSION)
   unset(RESULT_DIR)
 endmacro()
 
-# ashl
-macro(GetAshl VERSION)
+# rsl
+macro(GetRsl VERSION)
 
-  function(BuildAshl B_TYPE B_SRC B_DEST)
+  function(BuildRsl B_TYPE B_SRC B_DEST)
     execute_process(
       COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -S ${B_SRC}/cpp -B ${B_DEST}
     )
   endfunction()
 
-  BuildThirdPartyDep(ashl https://github.com/TareHimself/ashl ${VERSION} RESULT_DIR "" "BuildAshl")
+  BuildThirdPartyDep(rsl https://github.com/TareHimself/rsl ${VERSION} RESULT_DIR "" "BuildRsl")
 
   list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
-  find_package(ashl REQUIRED)
+  find_package(rsl REQUIRED)
 
-  target_link_libraries(${PROJECT_NAME} PUBLIC ashl::ashl)
+  target_link_libraries(${PROJECT_NAME} PUBLIC rsl::rsl)
 
   target_include_directories(
     ${PROJECT_NAME}
@@ -672,15 +672,15 @@ endmacro()
 
 
 function(SetGlobalExtDir)
-  set_property(GLOBAL PROPERTY AEROX_THIRD_PARTY_DIR_PROPERTY "${CMAKE_CURRENT_LIST_DIR}/../../ext")
+  set_property(GLOBAL PROPERTY RIN_THIRD_PARTY_DIR_PROPERTY "${CMAKE_CURRENT_LIST_DIR}/../../ext")
 endfunction()
 
 # SetupProject
 macro(SetupProject)
   
-  file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/lib/aerox/*.cpp" )
+  file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/lib/rin/*.cpp" )
 
-  file(GLOB_RECURSE INCLUDE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/aerox/*.hpp" )
+  file(GLOB_RECURSE INCLUDE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/rin/*.hpp" )
   
   #file(GLOB_RECURSE GENERATED_SOURCE_FILES "include/gen/*pp" )
   
@@ -691,12 +691,12 @@ macro(SetupProject)
 
   SetGlobalExtDir()
 
-  get_property(AEROX_THIRD_PARTY_DIR GLOBAL PROPERTY AEROX_THIRD_PARTY_DIR_PROPERTY)
+  get_property(RIN_THIRD_PARTY_DIR GLOBAL PROPERTY RIN_THIRD_PARTY_DIR_PROPERTY)
 
   target_include_directories(
     ${MODULE_NAME}
     PUBLIC
-    $<BUILD_INTERFACE:${AEROX_THIRD_PARTY_DIR}>
+    $<BUILD_INTERFACE:${RIN_THIRD_PARTY_DIR}>
     $<INSTALL_INTERFACE:include/ext>
   )
   target_include_directories(
@@ -710,7 +710,7 @@ macro(SetupProject)
 
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/resources)
     
-    set(AEROX_RESOURCES ${AEROX_RESOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/resources PARENT_SCOPE)
+    set(RIN_RESOURCES ${RIN_RESOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/resources PARENT_SCOPE)
     install(
       DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources/
       DESTINATION resources
@@ -780,7 +780,7 @@ endfunction()
 
 function(CopyResourcesTo IN_TO_TARGET)
   add_custom_command(TARGET ${IN_TO_TARGET} POST_BUILD
-    COMMAND python ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../python/copy_s.py "${AEROX_RESOURCES}" "$<TARGET_FILE_DIR:${IN_TO_TARGET}>"
+    COMMAND python ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../python/copy_s.py "${RIN_RESOURCES}" "$<TARGET_FILE_DIR:${IN_TO_TARGET}>"
   )
 endfunction()
 

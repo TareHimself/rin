@@ -1,6 +1,6 @@
 
 #include "TestModule.hpp"
-#include "aerox/core/GRuntime.hpp"
+#include "rin/core/GRuntime.hpp"
 
 int main()
 {
