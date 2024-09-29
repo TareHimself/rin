@@ -84,8 +84,10 @@ Shared<GraphicsShader> WidgetsModule::GetStencilShader() const
 
 void WidgetsModule::DrawStencil(const vk::CommandBuffer& cmd, const StencilPushConstants& pushConstants) const
 {
-    _stencilShader->Bind(cmd,true);
-    auto pushConstantResource = _stencilShader->pushConstants.begin()->second;
-    cmd.pushConstants(_stencilShader->GetPipelineLayout(),pushConstantResource.stages,0,pushConstantResource.size,&pushConstants);
-    cmd.draw(6,1,0,0);
+    if(_stencilShader->Bind(cmd,true))
+    {
+        auto pushConstantResource = _stencilShader->pushConstants.begin()->second;
+        cmd.pushConstants(_stencilShader->GetPipelineLayout(),pushConstantResource.stages,0,pushConstantResource.size,&pushConstants);
+        cmd.draw(6,1,0,0);
+    }
 }

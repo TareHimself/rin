@@ -15,10 +15,7 @@ namespace bass
     class FileStream;
 }
 
-class TestStencilDrawCommand : public WidgetCustomDrawCommand
-{
-    void Draw(SurfaceFrame* frame) override;
-};
+
 class TestWidget : public Widget
 {
     Vec2<float> _lastLocation{0.0f};

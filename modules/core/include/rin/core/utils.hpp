@@ -63,7 +63,7 @@ T bitmask(Bits... bits)
 template <typename Iterator, typename>
 typename std::iterator_traits<Iterator>::value_type bitmask(Iterator begin, Iterator end)
 {
-    std::iterator_traits<Iterator>::value_type result{};
+    typename std::iterator_traits<Iterator>::value_type result{};
     for(auto it = begin; it != end; ++it)
     {
         auto bit = *it;

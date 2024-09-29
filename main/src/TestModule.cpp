@@ -23,29 +23,7 @@
 #include "rin/widgets/slots/WidgetPanelSlot.hpp"
 using namespace std::chrono_literals;
 
-void TestStencilDrawCommand::Draw(SurfaceFrame* frame)
-{
-    if (frame->activePass != SurfaceGlobals::MAIN_PASS_ID)
-    {
-        frame->surface->BeginMainPass(frame);
-    }
 
-    auto cmd = frame->raw->GetCommandBuffer();
-    auto face = vk::StencilFaceFlagBits::eFrontAndBack;
-    // cmd.setStencilReference(face, 1);
-    // cmd.setStencilWriteMask(face, 0x1);
-    // cmd.setStencilCompareMask(face, 0xFF);
-    // cmd.setStencilOp(face, vk::StencilOp::eKeep, vk::StencilOp::eReplace, vk::StencilOp::eKeep, vk::CompareOp::eAlways);
-    enableStencilWrite(cmd,bitmask(1),1);
-    WidgetsModule::Get()->DrawStencil(cmd,{Matrix3<float>(1.0f),frame->surface->GetProjection(),Vec2{250.0f},Vec4{30.0f}});
-    // auto quad = QuadInfo{-1,Vec4{0.0f},Vec4{0.0f},Vec2{250.0f},Matrix3<float>{1.0f}};
-    // std::vector<QuadInfo> quads = {quad};
-    // frame->surface->DrawBatches(frame,quads);
-    // cmd.setStencilWriteMask(face,0x0);
-    // cmd.setStencilCompareMask(face,bitmask(1));
-    // cmd.setStencilOp(face, vk::StencilOp::eKeep, vk::StencilOp::eKeep, vk::StencilOp::eKeep, vk::CompareOp::eNotEqual);
-    enableStencilCompare(cmd,bitmask(1),vk::CompareOp::eNotEqual);
-}
 
 Vec2<float> TestWidget::ComputeDesiredSize()
 {

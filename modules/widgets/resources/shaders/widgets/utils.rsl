@@ -65,6 +65,16 @@ void generateRectVertex(float2 size, mat4 projection, mat3 transform, int index,
     uv = vertex[index] / size;
 }
 
+void generateFullScreenVertex(int index, out float4 location, out float2 uv){
+    float2 vertex[] = { float2(-1.0), float2(1.0,-1.0), float2(1.0), float2(-1.0), float2(1.0), float2(-1.0,1.0) };
+
+    location = float4(vertex[index], 0, 1);
+
+    float2 uvs[] = { float2(0.0), float2(1.0, 0.0), float2(1.0), float2(0.0), float2(1.0), float2(1.0, 0.0) };
+
+    uv = (vertex[index] + float2(1.0)) / float2(2.0);
+}
+
 bool shouldDiscard(float4 viewport, float4 clip, float2 pixel){
 
     float4 clip_ss = float4(normalizePoint(viewport, clip.xy), normalizePoint(viewport, clip.xy + clip.zw));

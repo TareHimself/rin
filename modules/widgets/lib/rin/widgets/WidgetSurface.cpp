@@ -273,6 +273,7 @@ Shared<DeviceImage> WidgetSurface::GetCopyImage() const
 
 void WidgetSurface::BeginMainPass(SurfaceFrame* frame, bool clear)
 {
+    if(frame->activePass == SurfaceGlobals::MAIN_PASS_ID) return;
     auto size = GetDrawSize().Cast<uint32_t>();
     vk::Extent2D renderExtent{size.x, size.y};
     auto cmd = frame->raw->GetCommandBuffer();
@@ -300,6 +301,7 @@ void WidgetSurface::BeginMainPass(SurfaceFrame* frame, bool clear)
     enableBlendingAlphaBlend(cmd, 0, 1);
     setRenderExtent(cmd, renderExtent);
     cmd.setStencilTestEnable(true);
+    cmd.setStencilReference(vk::StencilFaceFlagBits::eFrontAndBack,1);
     auto faceMask = vk::StencilFaceFlagBits::eFrontAndBack;
     cmd.setStencilReference(faceMask, 0x1);
     cmd.setStencilCompareMask(faceMask, 0x1);
@@ -395,49 +397,41 @@ void WidgetSurface::Draw(Frame* frame)
 
         SurfaceFrame surfFrame{this, frame, ""};
         auto clips = drawCommands.GetClips();
+        auto commands = drawCommands.GetCommands();
+        
         if(clips.empty())
         {
-            std::vector<Shared<WidgetDrawCommand>> commands{};
-            auto rawCommands = drawCommands.GetCommands();
-            commands.reserve(rawCommands.size());
-            for (auto &rawCmd : rawCommands)
-            {
-                commands.push_back(rawCmd.command);
-            }
-            
             DrawCommands(&surfFrame,commands);
         }
         else
         {
-            auto lastDrawIndex = -1;
+            auto lastDrawIndex = 0;
             auto clipBreaks = drawCommands.GetClipBreaks();
             for(auto i = 0; i < clips.size(); i++)
             {
+                
                 if(i == 0 || clipBreaks.contains(i))
                 {
                     if(clipBreaks.contains(i))
                     {
                         auto commandId = clipBreaks.at(i);
-                        std::vector<>
+                        DrawCommands(&surfFrame,{commands.begin() + lastDrawIndex,commands.begin() + commandId});
+                        lastDrawIndex = commandId + 1;
                     }
+                    BeginMainPass(&surfFrame);
                     // Clear Stencil Here
                     enableStencilWrite(cmd,0x1,1);
                 }
 
+                BeginMainPass(&surfFrame);
                 uint32_t bit = (i % 32) + 1;
                 cmd.setStencilWriteMask(vk::StencilFaceFlagBits::eFrontAndBack,bitmask(bit));
                 WidgetsModule::Get()->DrawStencil(cmd,clips.at(i).pushConstants);
-
-                if(i != 0 && i % 32 == 0)
-                {
-                    auto clipBreakIdx = i / 32;
-                    lastDrawIndex = clipBreaks.at(i / 32)
-                }
             }
-            for(auto clipBreak : drawCommands.GetClipBreaks())
+
+            if(lastDrawIndex != commands.size())
             {
-                enableStencilWrite(cmd,0x1,1);
-                for(auto i = 0; i < clipBreak.)
+                DrawCommands(&surfFrame,{commands.begin() + lastDrawIndex,commands.end()});
             }
         }
 
@@ -452,16 +446,21 @@ void WidgetSurface::Draw(Frame* frame)
 
 void WidgetSurface::DrawCommands(SurfaceFrame* frame, const std::vector<CommandInfo>& drawCommands)
 {
+    BeginMainPass(frame);
     std::vector<QuadInfo> pendingQuads{};
     std::stack<uint32_t> clippingStack{};
-    uint32_t clippingMask{0};
+    uint32_t clippingMask{0xFF};
+    auto cmd = frame->raw->GetCommandBuffer();
+    enableStencilCompare(cmd,clippingMask,vk::CompareOp::eNotEqual);
     for (auto& [drawCommand,clipStack] : drawCommands)
     {
         if(clipStack != clippingStack)
         {
             DrawBatches(frame,pendingQuads);
             clippingStack = clipStack;
-            clippingMask = bitmask(std::forward<>())
+            clippingMask = bitmask(clipStack._Get_container().begin(),clipStack._Get_container().end());
+            BeginMainPass(frame);
+            cmd.setStencilCompareMask(vk::StencilFaceFlagBits::eFrontAndBack,clippingMask);
         }
         
         switch (drawCommand->GetType())
@@ -479,6 +478,7 @@ void WidgetSurface::DrawCommands(SurfaceFrame* frame, const std::vector<CommandI
             {
                 if (auto custom = std::dynamic_pointer_cast<WidgetCustomDrawCommand>(drawCommand))
                 {
+                    DrawBatches(frame,pendingQuads);
                     custom->Draw(frame);
                 }
             }

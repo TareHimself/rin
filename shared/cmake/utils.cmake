@@ -539,6 +539,27 @@ macro(GetArgparse VERSION)
   
 endmacro()
 
+
+
+# Simd
+macro(GetSimd VERSION)
+
+  function(BuildSimd B_TYPE B_SRC B_DEST)
+    message(STATUS "BUILD DIR ${B_SRC}/prj/cmake")
+    execute_process(
+      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DCMAKE_GENERATOR_PLATFORM=x64 -DSIMD_TEST=OFF -DSIMD_PYTHON=OFF -S ${B_SRC}/prj/cmake -B ${B_DEST}
+    )
+  endfunction()
+
+  BuildThirdPartyDep(simd https://github.com/ermig1979/Simd ${VERSION} RESULT_DIR "" "BuildSimd")
+
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/share/cmake)
+
+  find_package(simd REQUIRED)
+  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
+  target_link_libraries(${PROJECT_NAME} PUBLIC simd::simd)
+  
+endmacro()
 # # LibJpegTurbo
 # macro(GetLibJpegTurbo VERSION)
 
