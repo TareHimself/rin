@@ -49,8 +49,8 @@ uint32_t bitmask();
 template<typename T = uint32_t,typename ...Bits,typename = std::enable_if_t<std::is_integral_v<T> && std::conjunction_v<std::is_integral<Bits>...>>>
 T bitmask(Bits... bits);
 
-template<typename Iterator,typename = std::enable_if_t<std::is_integral_v<std::iterator_traits<Iterator>::value_type>>>
-std::iterator_traits<Iterator>::value_type bitmask(Iterator begin,Iterator end);
+template<typename Iterator,typename = std::enable_if_t<std::is_integral_v<typename std::iterator_traits<Iterator>::value_type>>>
+typename std::iterator_traits<Iterator>::value_type bitmask(Iterator begin,Iterator end);
 
 template <typename T, typename ... Bits, typename>
 T bitmask(Bits... bits)

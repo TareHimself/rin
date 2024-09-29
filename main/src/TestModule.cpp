@@ -1,6 +1,10 @@
 ﻿#include "TestModule.hpp"
 #include <iostream>
-
+#include <CImg/CImg.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
+#include <stb/stb_image.h>
 #include "rin/audio/AudioModule.hpp"
 #include "rin/core/GRuntime.hpp"
 #include "rin/core/Module.hpp"
@@ -21,9 +25,80 @@
 #include "rin/widgets/graphics/SimpleBatchedDrawCommand.hpp"
 #include "rin/widgets/graphics/WidgetDrawCommands.hpp"
 #include "rin/widgets/slots/WidgetPanelSlot.hpp"
+#include <filesystem>
 using namespace std::chrono_literals;
+using namespace cimg_library;
 
+template<typename T>
+std::vector<T> toStbFormat(const CImg<T>& img)
+{
+    auto width = img.width();
+    auto height = img.height();
+    auto channels = img.spectrum();
+    std::vector<T> result{};
+    result.resize(width * height * channels);
 
+    for(auto y = 0; y < height; y++)
+    {
+        for(auto x = 0; x < width; x++)
+        {
+            for(auto c = 0; c < channels; c++)
+            {
+                result.push_back(img(x,y,c));
+            }
+        }
+    }
+
+    return result;
+}
+
+template<typename T>
+CImg<T> FromStb(T * ptr,int width,int height,int channels)
+{
+    CImg<T> img{static_cast<unsigned int>(width),static_cast<unsigned int>(height),sizeof(T),static_cast<unsigned int>(channels)};
+    
+    for(auto y = 0; y < height; y++)
+    {
+        for(auto x = 0; x < width; x++)
+        {
+            for(auto c = 0; c < channels; c++)
+            {
+                auto i = y * (width * channels) + (x * channels + c);
+                img(x,y,c) = ptr[i];
+            }
+        }
+    }
+
+    return img;
+}
+
+CImg<unsigned char> loadImage(const std::filesystem::path& path)
+{
+    int width;
+    int height;
+    int channels;
+    
+    auto ptr = stbi_load(path.string().c_str(),&width,&height,&channels,0);
+
+    auto img = FromStb<unsigned char>(ptr,width,height,channels);
+    img.display();
+    stbi_write_png("test1.png",width,height,channels,ptr,width * channels);
+
+    stbi_image_free(ptr);
+
+    return img;
+}
+
+CImg<unsigned char> saveImage(const CImg<unsigned char>& img,const std::filesystem::path& path)
+{
+    auto width = img.width();
+    auto height = img.height();
+    auto channels = img.spectrum();
+    auto data = toStbFormat(img);
+    stbi_write_jpg(path.string().c_str(),width,height,channels,data.data(),100);
+    //stbi_write_png(path.string().c_str(),img.width(),img.height(),img.depth(),img.data(),sizeof(unsigned char));
+    return img;
+}
 
 Vec2<float> TestWidget::ComputeDesiredSize()
 {
@@ -97,6 +172,7 @@ void TestModule::Startup(GRuntime* runtime)
     _window = _windowModule->Create("Test Window", 500, 500);
     _window->onCloseRequested->Add(&TestModule::OnCloseRequested);
 
+    
     if (auto surface = _widgetsModule->GetSurface(_window.get()))
     {
         auto panel = newShared<WidgetPanel>();
@@ -116,6 +192,9 @@ void TestModule::Startup(GRuntime* runtime)
 
         surface->AddChild(panel);
     }
+
+    auto img = loadImage(R"(C:\Users\Taree\Downloads\b7749d749ecbdca1ed2e4d815d374229.jpg)");
+    saveImage(img.blur_median(3),"test.png");
     // if(const auto sample = bass::createFileStream(R"(C:\Users\Taree\Downloads\Tracks\Sunny - Yorushika.mp3)",0,bass::CreateFlag::SampleFloat | bass::CreateFlag::SampleMono); sample->Play())
     // {
     //     sample->SetAttribute(bass::Attribute::Volume,0.6f);

@@ -551,13 +551,13 @@ macro(GetSimd VERSION)
     )
   endfunction()
 
-  BuildThirdPartyDep(simd https://github.com/ermig1979/Simd ${VERSION} RESULT_DIR "" "BuildSimd")
+  BuildThirdPartyDep(simd https://github.com/TareHimself/Simd-cmake-fix ${VERSION} RESULT_DIR "" "BuildSimd")
 
-  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/share/cmake)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/share/simd)
 
-  find_package(simd REQUIRED)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} PUBLIC simd::simd)
+  find_package(Simd REQUIRED)
+  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
+  target_link_libraries(${PROJECT_NAME} PUBLIC Simd)
   
 endmacro()
 # # LibJpegTurbo
@@ -579,21 +579,21 @@ endmacro()
   
 # endmacro()
 
-# STB
-macro(GetStb VERSION)
 
-  set(RESULT_DIR ${CMAKE_CURRENT_LIST_DIR}/ext/include/stb)
-  set(STB_OUTPUT_FILES "")
+
+# Cimg
+macro(GetCImg VERSION)
+
+  set(RESULT_DIR ${RIN_THIRD_PARTY_DIR}/cimg_${VERSION})
+  set(OUTPUT_FILES "")
   if(NOT EXISTS ${RESULT_DIR})
-    set(REPO_DIR ${CMAKE_CURRENT_BINARY_DIR}/stb)
-    Fetch(https://github.com/nothings/stb ${VERSION} ${REPO_DIR})
+    set(REPO_DIR ${CMAKE_CURRENT_BINARY_DIR}/cimg)
+    Fetch(https://github.com/GreycLab/CImg ${VERSION} ${REPO_DIR})
 
     file(MAKE_DIRECTORY ${RESULT_DIR})
 
-    foreach(STB_FILE IN LISTS stb_image.h stb_image_write.h)
-      file(COPY ${REPO_DIR}/${STB_FILE} DESTINATION ${RESULT_DIR})
-      list(APPEND STB_OUTPUT_FILES ${RESULT_DIR}/${STB_FILE})
-    endforeach()
+    file(COPY ${REPO_DIR}/CImg.h DESTINATION ${RESULT_DIR}/include/CImg)
+    list(APPEND OUTPUT_FILES ${RESULT_DIR}/include/CImg/CImg.h)
 
     file(REMOVE_RECURSE ${REPO_DIR})
     unset(REPO_DIR)
@@ -602,14 +602,47 @@ macro(GetStb VERSION)
   target_include_directories(
     ${PROJECT_NAME}
     PUBLIC
-    $<BUILD_INTERFACE:${RESULT_DIR}>
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
     $<INSTALL_INTERFACE:include> 
   )
 
-  target_sources(${PROJECT_NAME} PRIVATE ${STB_OUTPUT_FILES})
-  unset(STB_OUTPUT_FILES)
+  target_sources(${PROJECT_NAME} PUBLIC ${OUTPUT_FILES})
+  unset(OUTPUT_FILES)
   unset(RESULT_DIR)
-  #target_compile_definitions(${PROJECT_NAME} PUBLIC SPNG_USE_MINIZ)
+endmacro()
+
+# STB
+macro(GetStb VERSION)
+  set(RESULT_DIR ${RIN_THIRD_PARTY_DIR}/stb_${VERSION})
+  set(OUTPUT_FILES "")
+  if(NOT EXISTS ${RESULT_DIR})
+    set(REPO_DIR ${CMAKE_CURRENT_BINARY_DIR}/stb)
+    Fetch(https://github.com/nothings/stb ${VERSION} ${REPO_DIR})
+
+    file(MAKE_DIRECTORY ${RESULT_DIR})
+
+    set(FILES_TO_COPY "stb_image.h" "stb_image_write.h")
+
+    foreach(TO_COPY ${FILES_TO_COPY})
+      file(COPY ${REPO_DIR}/${TO_COPY} DESTINATION ${RESULT_DIR}/include/stb)
+      list(APPEND OUTPUT_FILES ${RESULT_DIR}/include/stb/${TO_COPY})
+    endforeach()
+
+    file(REMOVE_RECURSE ${REPO_DIR})
+    unset(FILES_TO_COPY)
+    unset(REPO_DIR)
+  endif()
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  target_sources(${PROJECT_NAME} PUBLIC ${OUTPUT_FILES})
+  unset(OUTPUT_FILES)
+  unset(RESULT_DIR)
 endmacro()
 
 # FreeType
