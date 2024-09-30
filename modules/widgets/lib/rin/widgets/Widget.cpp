@@ -48,10 +48,10 @@ void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
     {
     }
 
-    Vec2<float> Widget::ComputeFinalDesiredSize()
+    Vec2<float> Widget::ComputeDesiredSize()
     {
-        auto padding = GetPadding();
-        return ComputeDesiredSize() + Vec2<float>{padding.left + padding.right, +padding.top + padding.bottom};
+        const auto padding = GetPadding();
+        return ComputeContentSize() + Vec2<float>{padding.left + padding.right, +padding.top + padding.bottom};
     }
 
     Shared<WidgetSurface> Widget::GetSurface() const
@@ -232,7 +232,7 @@ void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
 
     Vec2<float> Widget::GetDesiredSize()
     {
-        return _cachedDesiredSize.has_value() ? _cachedDesiredSize.value() : ComputeFinalDesiredSize();
+        return _cachedDesiredSize.has_value() ? _cachedDesiredSize.value() : ComputeDesiredSize();
     }
 
     Padding Widget::GetPadding() const
@@ -253,7 +253,7 @@ void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
 
     bool Widget::CheckSize()
     {
-        auto newSize = ComputeFinalDesiredSize();
+        auto newSize = ComputeDesiredSize();
         if(_cachedDesiredSize.has_value() && _cachedDesiredSize->NearlyEquals(newSize,0.01f)) return false;
 
         _cachedDesiredSize = newSize;

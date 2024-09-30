@@ -1,22 +1,23 @@
 #pragma once
-
 #include "ImageBarrierOptions.hpp"
+#include "ImageFormat.hpp"
 #include "rin/graphics/Allocator.hpp"
+
 class DeviceImage : public Disposable {
     VmaAllocator _allocator{};
     VmaAllocation _allocation{};
     vk::Image _image{};
     vk::ImageView _imageView{};
     vk::Extent3D _extent{};
-    vk::Format _format{};
+    ImageFormat _format{};
 public:
-    DeviceImage(VmaAllocator allocator,const vk::Image& image,VmaAllocation allocation,const vk::Extent3D &extent,vk::Format format);
+    DeviceImage(VmaAllocator allocator,const vk::Image& image,VmaAllocation allocation,const vk::Extent3D &extent,ImageFormat format);
 
     void OnDispose(bool manual) override;
 
 
     vk::Image GetImage() const;
-    vk::Format GetFormat() const;
+    ImageFormat GetFormat() const;
     vk::Extent3D GetExtent() const;
     vk::ImageView GetImageView() const;
     vk::ImageView * GetImageViewRef();

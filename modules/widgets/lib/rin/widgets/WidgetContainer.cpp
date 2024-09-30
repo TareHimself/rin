@@ -57,10 +57,9 @@ void WidgetContainer::OnChildResized(Widget * widget)
         if(auto surf = GetSurface())
         {
             widget->NotifyAddedToSurface(surf);
+            OnChildResized(widget.get());
         }
-
-        OnChildResized(widget.get());
-        
+    
         return slot;
     }
 
@@ -73,8 +72,10 @@ void WidgetContainer::OnChildResized(Widget * widget)
             if(_slots[i]->GetWidget() != widget) continue;
             
             widget->SetParent({});
+
+            auto surf = GetSurface();
             
-            if(auto surf = GetSurface())
+            if(surf)
             {
                 widget->NotifyRemovedFromSurface(surf);
             }
@@ -82,7 +83,11 @@ void WidgetContainer::OnChildResized(Widget * widget)
             _slots.erase(_slots.begin() + i);
             _widgetsToSlots.erase(widget.get());
 
-            CheckSize();
+            if(surf)
+            {
+                CheckSize();
+            }
+            
             return true;
         }
 
@@ -92,7 +97,10 @@ void WidgetContainer::OnChildResized(Widget * widget)
     void WidgetContainer::SetDrawSize(const Vec2<float>& size)
     {
         Widget::SetDrawSize(size);
-        ArrangeSlots(GetContentSize());
+        if(auto surf = GetSurface())
+        {
+            ArrangeSlots(GetContentSize());
+        }
     }
 
     void WidgetContainer::OnDispose(bool manual)

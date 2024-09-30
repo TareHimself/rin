@@ -3,6 +3,7 @@
 #include <set>
 
 #include "BoundTexture.hpp"
+#include "Image.hpp"
 #include "SamplerSpec.hpp"
 #include "TextureHandle.hpp"
 #include "descriptors/DescriptorAllocator.hpp"
@@ -34,7 +35,15 @@ public:
 
     vk::DescriptorSet GetDescriptorSet() const;
         
-    int CreateTexture(const std::vector<std::byte>& data,const vk::Extent3D& size,vk::Format format,vk::Filter filter,vk::SamplerAddressMode tiling  = vk::SamplerAddressMode::eRepeat,bool mipMapped = false,const std::string& debugName = "Texture");
-        
+    int CreateTexture(const unsigned char* data,const vk::Extent3D& size,ImageFormat format,vk::Filter filter = vk::Filter::eLinear,vk::SamplerAddressMode tiling  = vk::SamplerAddressMode::eRepeat,bool mipMapped = false,const std::string& debugName = "Texture");
+
+    int CreateTexture(Image<unsigned char>& image,ImageFormat format,vk::Filter filter = vk::Filter::eLinear,vk::SamplerAddressMode tiling  = vk::SamplerAddressMode::eRepeat,bool mipMapped = false,const std::string& debugName = "Texture");
+    
+    bool IsValid(const int& textureId) const;
+
+    bool IsValidChecked(const int& textureId);
+    
+    Shared<DeviceImage> GetTextureImage(const int& textureId);
+    
     void OnDispose(bool manual) override;
 };

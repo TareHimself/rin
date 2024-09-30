@@ -25,5 +25,5 @@ protected:
 
     void ArrangeSlots(const Vec2<float>& drawSize) override;
 
-    Vec2<float> ComputeDesiredSize() override;
+    Vec2<float> ComputeContentSize() override;
 };

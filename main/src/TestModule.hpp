@@ -20,8 +20,7 @@ class TestWidget : public Widget
 {
     Vec2<float> _lastLocation{0.0f};
 protected:
-    Vec2<float> ComputeDesiredSize() override;
-
+    Vec2<float> ComputeContentSize() override;
 public:
     void Collect(const TransformInfo& transform,
                  WidgetDrawCommands& drawCommands) override;

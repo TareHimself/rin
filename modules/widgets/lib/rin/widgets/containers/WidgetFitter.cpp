@@ -12,7 +12,7 @@ FitMode WidgetFitter::GetMode() const
         _mode = mode;
     }
 
-    Vec2<float> WidgetFitter::ComputeDesiredSize()
+    Vec2<float> WidgetFitter::ComputeContentSize()
     {
         if(auto slot = GetSlot(0))
         {
@@ -29,7 +29,7 @@ FitMode WidgetFitter::GetMode() const
 
     void WidgetFitter::ArrangeSlots(const Vec2<float>& drawSize)
     {
-        SizeContent(drawSize);
+        SizeContent(GetContentSize());
     }
 
     Vec2<float> WidgetFitter::ComputeContainSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize)
@@ -57,9 +57,9 @@ FitMode WidgetFitter::GetMode() const
         if(auto slot = GetSlot(0))
         {
             auto widget = slot->GetWidget();
-            auto widgetSize = widget->GetDesiredSize();
-            auto newDrawSize = widgetSize;
-            if(!widgetSize.NearlyEquals(size,0.001))
+            auto widgetDesiredSize = widget->GetDesiredSize();
+            auto newDrawSize = widgetDesiredSize;
+            if(!widgetDesiredSize.NearlyEquals(size,0.001))
             {
                 switch (GetMode())
                 {
@@ -72,18 +72,18 @@ FitMode WidgetFitter::GetMode() const
                     break;
                 case FitMode::Contain:
                     {
-                        newDrawSize = ComputeContainSize(widgetSize,size);
+                        newDrawSize = ComputeContainSize(size,widgetDesiredSize);
                     }
                     break;
                 case FitMode::Cover:
                     {
-                        newDrawSize = ComputeCoverSize(widgetSize,size);
+                        newDrawSize = ComputeCoverSize(size,widgetDesiredSize);
                     }
                     break;
                 }
             }
 
-            if(!widgetSize.NearlyEquals(newDrawSize,0.001)) widget->SetDrawSize(newDrawSize);
+            if(!widget->GetDrawSize().NearlyEquals(newDrawSize,0.001)) widget->SetDrawSize(newDrawSize);
             
             auto halfSelfDrawSize = size / 2.0f;
             auto halfSlotDrawSize = newDrawSize / 2.0f;

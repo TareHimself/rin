@@ -26,7 +26,8 @@ WidgetDrawCommands& WidgetDrawCommands::Add(const Shared<WidgetDrawCommand>& com
 
 WidgetDrawCommands& WidgetDrawCommands::PushClip(const TransformInfo& transform, const Widget* container)
 {
-    return PushClip(StencilPushConstants{transform.transform,container->GetSurface()->GetProjection(),container->GetDrawSize(),Vec4{0.0f}});
+    auto padding = container->GetPadding();
+    return PushClip(StencilPushConstants{transform.transform.Translate(Vec2(padding.left,padding.top)),container->GetSurface()->GetProjection(),container->GetContentSize(),Vec4{0.0f}});
 }
 
 WidgetDrawCommands& WidgetDrawCommands::PushClip(const StencilPushConstants& info)

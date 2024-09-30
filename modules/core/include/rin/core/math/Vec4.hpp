@@ -3,7 +3,7 @@
 #include "utils.hpp"
 
 template<typename T>
-        struct Vec4
+struct Vec4
 {
 
     T x;

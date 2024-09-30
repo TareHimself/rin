@@ -15,12 +15,14 @@ public:
 
     vk::Buffer GetBuffer() const;
 
+
+
     void Write(const void * data,const vk::DeviceSize& size,const vk::DeviceSize& offset = 0) const;
 
     template <typename T>
     void Write(const std::vector<T>& data,const vk::DeviceSize& offset = 0) const;
 
-    template<typename T>
+    template<typename T,typename = std::enable_if_t<!std::is_pointer_v<T>>>
     void Write(T& data,const vk::DeviceSize& offset = 0) const;
     vk::DeviceSize GetSize() const;
 };
@@ -31,7 +33,7 @@ void DeviceBuffer::Write(const std::vector<T>& data, const vk::DeviceSize& offse
     vmaCopyMemoryToAllocation(_allocator,data.data(),_allocation,offset,data.size() * sizeof(T));
 }
 
-template <typename T>
+template <typename T, typename>
 void DeviceBuffer::Write(T& data, const vk::DeviceSize& offset) const
 {
     vmaCopyMemoryToAllocation(_allocator,&data,_allocation,offset,sizeof(T));

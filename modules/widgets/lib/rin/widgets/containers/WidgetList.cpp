@@ -61,7 +61,7 @@ WidgetList::WidgetList(const Axis& axis) : WidgetContainer()
         }
     }
 
-    Vec2<float> WidgetList::ComputeDesiredSize()
+    Vec2<float> WidgetList::ComputeContentSize()
     {
         switch (GetAxis())
         {

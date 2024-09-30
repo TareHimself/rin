@@ -4,7 +4,7 @@
 #include "rin/graphics/GraphicsModule.hpp"
 
 DeviceImage::DeviceImage(const VmaAllocator allocator, const vk::Image& image, const VmaAllocation allocation,
-                             const vk::Extent3D& extent, const vk::Format format)
+                             const vk::Extent3D& extent, const ImageFormat format)
 {
     _allocator = allocator;
     _image = image;
@@ -25,7 +25,7 @@ vk::Image DeviceImage::GetImage() const
     return _image;
 }
 
-vk::Format DeviceImage::GetFormat() const
+ImageFormat DeviceImage::GetFormat() const
 {
     return _format;
 }

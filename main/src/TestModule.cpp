@@ -1,10 +1,10 @@
 ﻿#include "TestModule.hpp"
 #include <iostream>
 #include <CImg/CImg.h>
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image_write.h>
-#include <stb/stb_image.h>
+// #define STB_IMAGE_WRITE_IMPLEMENTATION
+// #define STB_IMAGE_IMPLEMENTATION
+// #include <stb/stb_image_write.h>
+// #include <stb/stb_image.h>
 #include "rin/audio/AudioModule.hpp"
 #include "rin/core/GRuntime.hpp"
 #include "rin/core/Module.hpp"
@@ -26,6 +26,10 @@
 #include "rin/widgets/graphics/WidgetDrawCommands.hpp"
 #include "rin/widgets/slots/WidgetPanelSlot.hpp"
 #include <filesystem>
+#include "rin/graphics/Image.hpp"
+#include "rin/graphics/ResourceManager.hpp"
+#include "rin/widgets/containers/WidgetFitter.hpp"
+#include "rin/widgets/content/ImageWidget.hpp"
 using namespace std::chrono_literals;
 using namespace cimg_library;
 
@@ -71,36 +75,36 @@ CImg<T> FromStb(T * ptr,int width,int height,int channels)
 
     return img;
 }
+//
+// CImg<unsigned char> loadImage(const std::filesystem::path& path)
+// {
+//     int width;
+//     int height;
+//     int channels;
+//     
+//     auto ptr = stbi_load(path.string().c_str(),&width,&height,&channels,0);
+//
+//     auto img = FromStb<unsigned char>(ptr,width,height,channels);
+//     img.display();
+//     stbi_write_png("test1.png",width,height,channels,ptr,width * channels);
+//
+//     stbi_image_free(ptr);
+//
+//     return img;
+// }
+//
+// CImg<unsigned char> saveImage(const CImg<unsigned char>& img,const std::filesystem::path& path)
+// {
+//     auto width = img.width();
+//     auto height = img.height();
+//     auto channels = img.spectrum();
+//     auto data = toStbFormat(img);
+//     stbi_write_jpg(path.string().c_str(),width,height,channels,data.data(),100);
+//     //stbi_write_png(path.string().c_str(),img.width(),img.height(),img.depth(),img.data(),sizeof(unsigned char));
+//     return img;
+// }
 
-CImg<unsigned char> loadImage(const std::filesystem::path& path)
-{
-    int width;
-    int height;
-    int channels;
-    
-    auto ptr = stbi_load(path.string().c_str(),&width,&height,&channels,0);
-
-    auto img = FromStb<unsigned char>(ptr,width,height,channels);
-    img.display();
-    stbi_write_png("test1.png",width,height,channels,ptr,width * channels);
-
-    stbi_image_free(ptr);
-
-    return img;
-}
-
-CImg<unsigned char> saveImage(const CImg<unsigned char>& img,const std::filesystem::path& path)
-{
-    auto width = img.width();
-    auto height = img.height();
-    auto channels = img.spectrum();
-    auto data = toStbFormat(img);
-    stbi_write_jpg(path.string().c_str(),width,height,channels,data.data(),100);
-    //stbi_write_png(path.string().c_str(),img.width(),img.height(),img.depth(),img.data(),sizeof(unsigned char));
-    return img;
-}
-
-Vec2<float> TestWidget::ComputeDesiredSize()
+Vec2<float> TestWidget::ComputeContentSize()
 {
     return Vec2{200.0f};
 }
@@ -169,32 +173,52 @@ std::string TestModule::GetName()
 
 void TestModule::Startup(GRuntime* runtime)
 {
-    _window = _windowModule->Create("Test Window", 500, 500);
+    _window = _windowModule->Create("Rin Engine", 500, 500);
     _window->onCloseRequested->Add(&TestModule::OnCloseRequested);
-
     
     if (auto surface = _widgetsModule->GetSurface(_window.get()))
     {
         auto panel = newShared<WidgetPanel>();
         {
-            auto sizer = (newShared<WidgetSizer>() + newShared<TestWidget>()).second;
-            sizer->SetClipMode(EClipMode::Bounds);
-            auto size = 250.0f;
-            sizer->SetWidthOverride(size);
-            sizer->SetHeightOverride(size);
-        
-            auto slot = (panel + sizer).first;
-            slot->minAnchor = Vec2{0.5f};
-            slot->maxAnchor = Vec2{0.5f};
-            slot->sizeToContent = true;
-            slot->alignment = Vec2{0.0f};
-        }
+            auto textureId = 0;
+            
+            if(auto file = rin::platform::selectFile("Select An Image",false); !file.empty())
+            {
+                std::filesystem::path imageFilePath{file.front()};
+                auto loadedTexture = Image<unsigned char>::LoadFile(imageFilePath);
+                loadedTexture.SetChannels(4);
+                textureId = GraphicsModule::Get()->GetResourceManager()->CreateTexture(loadedTexture,ImageFormat::RGBA8,vk::Filter::eNearest,{},true);
+            }
 
+            {
+                auto img = newShared<ImageWidget>();
+                img->SetTextureId(textureId);
+                auto fitter = (newShared<WidgetFitter>() + img).second;
+                fitter->SetPadding(Padding{20.0f});
+                auto slot = (panel + fitter).first;
+                slot->minAnchor = Vec2{0.0f,0.0f};
+                slot->maxAnchor = Vec2{0.5f,1.0f};
+                slot->alignment = Vec2{0.0f};
+                fitter->SetClipMode(EClipMode::Bounds);
+                fitter->SetMode(FitMode::Cover);
+            }
+            {
+                auto img = newShared<ImageWidget>();
+                img->SetTextureId(textureId);
+                auto fitter = (newShared<WidgetFitter>() + img).second;
+                fitter->SetPadding(Padding{20.0f});
+                auto slot = (panel + fitter).first;
+                slot->minAnchor = Vec2{0.5f,0.0f};
+                slot->maxAnchor = Vec2{1.0f,1.0f};
+                slot->alignment = Vec2{0.0f};
+                fitter->SetClipMode(EClipMode::Bounds);
+                fitter->SetMode(FitMode::Cover);
+            }
+        }
+        panel->SetClipMode(EClipMode::Bounds);
         surface->AddChild(panel);
     }
 
-    auto img = loadImage(R"(C:\Users\Taree\Downloads\b7749d749ecbdca1ed2e4d815d374229.jpg)");
-    saveImage(img.blur_median(3),"test.png");
     // if(const auto sample = bass::createFileStream(R"(C:\Users\Taree\Downloads\Tracks\Sunny - Yorushika.mp3)",0,bass::CreateFlag::SampleFloat | bass::CreateFlag::SampleMono); sample->Play())
     // {
     //     sample->SetAttribute(bass::Attribute::Volume,0.6f);

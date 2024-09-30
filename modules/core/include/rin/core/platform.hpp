@@ -27,7 +27,7 @@ namespace rin::platform {
     
     Platform get();
     
-    std::vector<std::string> selectFile(const std::string& title,bool multiple, const std::string& filter);
+    std::vector<std::string> selectFile(const std::string& title,bool multiple, const std::string& filter = {});
 
     std::vector<std::string> selectPath(const std::string& title,bool multiple);
 

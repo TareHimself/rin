@@ -55,9 +55,9 @@ class WidgetContainer;
 
         virtual void OnFocusLost();
 
-        virtual Vec2<float> ComputeDesiredSize() = 0;
+        virtual Vec2<float> ComputeContentSize() = 0;
 
-        virtual Vec2<float> ComputeFinalDesiredSize();
+        virtual Vec2<float> ComputeDesiredSize();
     public:
 
         Vec2<float> pivot{0.0};

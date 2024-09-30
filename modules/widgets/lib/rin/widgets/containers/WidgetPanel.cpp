@@ -1,7 +1,7 @@
 ﻿#include "rin/widgets/containers/WidgetPanel.hpp"
 #include "rin/widgets/slots/WidgetPanelSlot.hpp"
 
-Vec2<float> WidgetPanel::ComputeDesiredSize()
+Vec2<float> WidgetPanel::ComputeContentSize()
 {
     return Vec2{0.0f};
 }

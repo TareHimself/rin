@@ -14,11 +14,11 @@ void WidgetSizer::SetHeightOverride(const std::optional<float>& height)
     CheckSize();
 }
 
-Vec2<float> WidgetSizer::ComputeDesiredSize()
+Vec2<float> WidgetSizer::ComputeContentSize()
 {
     if(const auto slot = GetSlot(0))
     {
-        auto size = slot->GetWidget()->GetDrawSize();
+        auto size = slot->GetWidget()->GetDesiredSize();
         return Vec2{_widthOverride.value_or(size.x),_heightOverride.value_or(size.y)};
     }
         

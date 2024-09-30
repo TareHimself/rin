@@ -97,13 +97,13 @@ void WidgetSurface::CreateImages()
 
     auto graphicsModule = GRuntime::Get()->GetModule<GraphicsModule>();
 
-    _drawImage = graphicsModule->CreateImage({imageExtent.x, imageExtent.y, 1}, vk::Format::eR32G32B32A32Sfloat,
+    _drawImage = graphicsModule->CreateImage({imageExtent.x, imageExtent.y, 1}, ImageFormat::RGBA32,
                                              usageFlags, false, "Widget Surface Main Image");
 
-    _copyImage = graphicsModule->CreateImage({imageExtent.x, imageExtent.y, 1}, vk::Format::eR32G32B32A32Sfloat,
+    _copyImage = graphicsModule->CreateImage({imageExtent.x, imageExtent.y, 1}, ImageFormat::RGBA32,
                                              usageFlags, false, "Widget Surface Main Image");
 
-    _stencilImage = graphicsModule->CreateImage({imageExtent.x, imageExtent.y, 1}, vk::Format::eD32SfloatS8Uint,
+    _stencilImage = graphicsModule->CreateImage({imageExtent.x, imageExtent.y, 1}, ImageFormat::Stencil,
                                                 vk::ImageUsageFlagBits::eTransferSrc |
                                                 vk::ImageUsageFlagBits::eTransferDst |
                                                 vk::ImageUsageFlagBits::eDepthStencilAttachment, false,
@@ -235,9 +235,9 @@ void WidgetSurface::NotifyScroll(const Shared<ScrollEvent>& event)
 
 Shared<Widget> WidgetSurface::AddChild(const Shared<Widget>& widget)
 {
-    widget->SetDrawSize(GetDrawSize().Cast<float>());
-    widget->SetRelativeOffset({0, 0});
     widget->NotifyAddedToSurface(this->GetSharedDynamic<WidgetSurface>());
+    widget->SetRelativeOffset({0, 0});
+    widget->SetDrawSize(GetDrawSize().Cast<float>());
     _rootWidgets.push_back(widget);
     _rootWidgetsMap.emplace(widget.get(), widget);
     return widget;

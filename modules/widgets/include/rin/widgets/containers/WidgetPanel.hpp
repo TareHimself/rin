@@ -6,7 +6,7 @@
 class WidgetPanel : public WidgetContainer
 {
 protected:
-    Vec2<float> ComputeDesiredSize() override;
+    Vec2<float> ComputeContentSize() override;
     void ArrangeSlots(const Vec2<float>& drawSize) override;
     Shared<WidgetContainerSlot> MakeSlot(const Shared<Widget>& widget) override;
     void OnChildResized(Widget* widget) override;

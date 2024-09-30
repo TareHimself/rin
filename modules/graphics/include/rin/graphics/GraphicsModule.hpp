@@ -7,6 +7,7 @@
 #include <functional>
 #include <optional>
 #include "Allocator.hpp"
+#include "ImageFormat.hpp"
 #include "descriptors/DescriptorLayoutStore.hpp"
 
 
@@ -96,18 +97,18 @@ class ResourceManager;
 
         static vk::RenderingAttachmentInfo MakeRenderingAttachment(const Shared<DeviceImage>& image,const vk::ImageLayout& layout,const std::optional<vk::ClearValue>& clearValue = {});
         static vk::RenderingAttachmentInfo MakeRenderingAttachment(const vk::ImageView& view,const vk::ImageLayout& layout,const std::optional<vk::ClearValue>& clearValue = {});
-        static vk::ImageCreateInfo MakeImageCreateInfo(const vk::Format& format,const vk::Extent3D& extent,vk::ImageUsageFlags usage);
-        static vk::ImageViewCreateInfo MakeImageViewCreateInfo(const vk::Format& format,const vk::Image& image,const vk::ImageAspectFlags& aspect);
+        static vk::ImageCreateInfo MakeImageCreateInfo(ImageFormat format,const vk::Extent3D& extent,vk::ImageUsageFlags usage);
+        static vk::ImageViewCreateInfo MakeImageViewCreateInfo(ImageFormat format,const vk::Image& image,const vk::ImageAspectFlags& aspect);
         static vk::ImageViewCreateInfo MakeImageViewCreateInfo(const Shared<DeviceImage>& image,const vk::ImageAspectFlags& aspect);
 
         static void GenerateMipMaps(const vk::CommandBuffer& cmd,const Shared<DeviceImage>& image,const vk::Extent3D& extent,const vk::Filter& filter);
 
         WindowRenderer * GetRenderer(Window * window) const;
-        Shared<DeviceImage> CreateImage(const vk::Extent3D& extent,vk::Format format,vk::ImageUsageFlags usage, bool mipMap = false,
+        Shared<DeviceImage> CreateImage(const vk::Extent3D& extent,ImageFormat format,vk::ImageUsageFlags usage, bool mipMap = false,
             const std::string& debugName = "Image") const;
         
-        Shared<DeviceImage> CreateImage(const std::vector<std::byte>& data,const vk::Extent3D& extent,vk::Format format,vk::ImageUsageFlags usage, bool mipMap = false,const vk::Filter& mipMapFilter = vk::Filter::eLinear,
-            const std::string& debugName = "Image") const;
+        Shared<DeviceImage> CreateImage(const unsigned char* data,const vk::Extent3D& extent,ImageFormat format,vk::ImageUsageFlags usage, bool mipMap = false,const vk::Filter& mipMapFilter = vk::Filter::eLinear,
+                                        const std::string& debugName = "Image") const;
 
         DEFINE_DELEGATE_LIST(onRendererCreated,WindowRenderer *)
         DEFINE_DELEGATE_LIST(onRendererDestroyed,WindowRenderer *)

@@ -110,6 +110,6 @@ Shared<DeviceImage> Allocator::NewImage(const vk::ImageCreateInfo& createInfo, c
 
     vmaSetAllocationName(_allocator, alloc, debugName.c_str());
 
-    return  newShared<DeviceImage>(_allocator,vmaImage,alloc,createInfo.extent,createInfo.format);
+    return  newShared<DeviceImage>(_allocator,vmaImage,alloc,createInfo.extent,vulkanFormatToImageFormat(createInfo.format));
 }
 

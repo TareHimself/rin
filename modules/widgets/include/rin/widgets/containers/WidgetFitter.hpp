@@ -16,7 +16,7 @@ class WidgetFitter : public WidgetContainer
 public:
     FitMode GetMode() const;
     void SetMode(FitMode mode);
-    Vec2<float> ComputeDesiredSize() override;
+    Vec2<float> ComputeContentSize() override;
     size_t GetMaxSlots() const override;
     void ArrangeSlots(const Vec2<float>& drawSize) override;
 
