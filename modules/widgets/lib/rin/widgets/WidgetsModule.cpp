@@ -4,7 +4,6 @@
 #include "rin/graphics/GraphicsModule.hpp"
 #include "rin/graphics/WindowRenderer.hpp"
 #include "rin/widgets/WidgetWindowSurface.hpp"
-#include <vulkan/vulkan_funcs.hpp>
 
 WidgetsModule* WidgetsModule::Get()
 {
@@ -46,7 +45,7 @@ void WidgetsModule::OnRendererCreated(WindowRenderer* renderer)
     if (!_batchShader)
     {
         _batchShader = GraphicsShader::FromFile(getResourcesPath() / "shaders" / "widgets" / "batch.rsl");
-        _stencilShader = GraphicsShader::FromFile(getResourcesPath() / "shaders" / "widgets" / "stencil.rsl");
+        _stencilShader = GraphicsShader::FromFile(getResourcesPath() / "shaders" / "widgets" / "stencil_single.rsl");
     }
     auto surf = newShared<WidgetWindowSurface>(renderer);
     surf->Init();
@@ -82,12 +81,7 @@ Shared<GraphicsShader> WidgetsModule::GetStencilShader() const
     return _stencilShader;
 }
 
-void WidgetsModule::DrawStencil(const vk::CommandBuffer& cmd, const StencilPushConstants& pushConstants) const
+void WidgetsModule::DrawStencil(const vk::CommandBuffer& cmd, const WidgetStencilClip& pushConstants) const
 {
-    if(_stencilShader->Bind(cmd,true))
-    {
-        auto pushConstantResource = _stencilShader->pushConstants.begin()->second;
-        cmd.pushConstants(_stencilShader->GetPipelineLayout(),pushConstantResource.stages,0,pushConstantResource.size,&pushConstants);
-        cmd.draw(6,1,0,0);
-    }
+    
 }

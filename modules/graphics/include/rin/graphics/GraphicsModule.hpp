@@ -63,6 +63,8 @@ class ResourceManager;
         bool IsDependentOn(RinModule* module) override;
         
         static vk::DispatchLoaderDynamic dispatchLoader;
+
+        static vk::DispatchLoaderDynamic GetDispatchLoader();
         
         vk::Instance GetInstance() const;
 

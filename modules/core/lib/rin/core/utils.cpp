@@ -18,8 +18,3 @@ std::filesystem::path getResourcesPath()
 {
     return rin::platform::getExecutablePath().parent_path() / "resources";
 }
-
-uint32_t bitmask()
-{
-    return 0;
-}

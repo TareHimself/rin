@@ -15,6 +15,10 @@ namespace bass
     class FileStream;
 }
 
+class TestClipCommand : public WidgetCustomDrawCommand
+{
+    void Run(SurfaceFrame* frame) override;
+};
 
 class TestWidget : public Widget
 {

@@ -1,6 +1,6 @@
 ﻿#include "rin/widgets/TransformInfo.hpp"
 
-#include "rin/widgets/WidgetContainerSlot.hpp"
+#include "rin/widgets/ContainerWidgetSlot.hpp"
 #include "rin/widgets/WidgetSurface.hpp"
 #include "rin/widgets/Widget.hpp"
 
@@ -21,12 +21,12 @@ TransformInfo::TransformInfo(const Matrix3<float>& inTransform, const Vec2<float
         
     }
 
-    TransformInfo::TransformInfo(const Shared<Widget>& widget, bool absolute) : TransformInfo(absolute ? widget->ComputeAbsoluteTransform() : widget->ComputeRelativeTransform(),widget->GetDrawSize())
+    TransformInfo::TransformInfo(const Shared<Widget>& widget, bool absolute) : TransformInfo(absolute ? widget->ComputeAbsoluteTransform() : widget->ComputeRelativeTransform(),widget->GetSize())
     {
         
     }
 
-    TransformInfo TransformInfo::AccountFor(const Shared<WidgetContainerSlot>& slot) const
+    TransformInfo TransformInfo::AccountFor(const Shared<ContainerWidgetSlot>& slot) const
     {
         return AccountFor(slot->GetWidget());
     }
@@ -39,7 +39,7 @@ TransformInfo::TransformInfo(const Matrix3<float>& inTransform, const Vec2<float
     TransformInfo TransformInfo::AccountFor(const Widget* widget) const
     {
         auto newTransform = transform * widget->ComputeRelativeTransform();
-        return TransformInfo{newTransform,widget->GetDrawSize(),depth + 1};
+        return TransformInfo{newTransform,widget->GetSize(),depth + 1};
     }
     
     bool TransformInfo::IsPointWithin(const Vec2<float>& point) const

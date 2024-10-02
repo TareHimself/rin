@@ -1,4 +1,6 @@
 ﻿#include "rin/widgets/WidgetSurface.hpp"
+#include <unordered_map>
+#include <iostream>
 #include <ranges>
 #include <set>
 #include "rin/graphics/commandBufferUtils.hpp"
@@ -9,7 +11,7 @@
 #include "rin/graphics/ResourceManager.hpp"
 #include "rin/widgets/utils.hpp"
 #include "rin/widgets/Widget.hpp"
-#include "rin/widgets/WidgetContainer.hpp"
+#include "rin/widgets/ContainerWidget.hpp"
 #include "rin/widgets/WidgetsModule.hpp"
 #include "rin/widgets/event/CursorDownEvent.hpp"
 #include "rin/widgets/event/CursorMoveEvent.hpp"
@@ -59,12 +61,12 @@ void WidgetSurface::DoHover()
         hoveredSet.emplace(hovered.get());
     }
 
-    Shared<WidgetContainer> lastParent{};
+    Shared<ContainerWidget> lastParent{};
     TransformInfo curTransform = info;
     for (auto& widget : std::ranges::reverse_view(oldHoverList))
     {
         curTransform = lastParent ? lastParent->ComputeChildTransform(widget, curTransform) : curTransform;
-        lastParent = std::dynamic_pointer_cast<WidgetContainer>(widget);
+        lastParent = std::dynamic_pointer_cast<ContainerWidget>(widget);
         if (!hoveredSet.contains(widget.get()))
         {
             widget->NotifyCursorLeave(event, curTransform);
@@ -144,7 +146,7 @@ void WidgetSurface::NotifyResize(const Shared<ResizeEvent>& event)
 
     for (const auto& rootWidget : GetRootWidgets())
     {
-        rootWidget->SetDrawSize(event->size);
+        rootWidget->SetSize(event->size);
     }
 
     onResize->Invoke(event);
@@ -236,8 +238,8 @@ void WidgetSurface::NotifyScroll(const Shared<ScrollEvent>& event)
 Shared<Widget> WidgetSurface::AddChild(const Shared<Widget>& widget)
 {
     widget->NotifyAddedToSurface(this->GetSharedDynamic<WidgetSurface>());
-    widget->SetRelativeOffset({0, 0});
-    widget->SetDrawSize(GetDrawSize().Cast<float>());
+    widget->SetOffset({0, 0});
+    widget->SetSize(GetDrawSize().Cast<float>());
     _rootWidgets.push_back(widget);
     _rootWidgetsMap.emplace(widget.get(), widget);
     return widget;
@@ -271,19 +273,19 @@ Shared<DeviceImage> WidgetSurface::GetCopyImage() const
     return _copyImage;
 }
 
-void WidgetSurface::BeginMainPass(SurfaceFrame* frame, bool clear)
+void WidgetSurface::BeginMainPass(SurfaceFrame* frame, bool clearColor, bool clearStencil)
 {
     if(frame->activePass == SurfaceGlobals::MAIN_PASS_ID) return;
     auto size = GetDrawSize().Cast<uint32_t>();
     vk::Extent2D renderExtent{size.x, size.y};
     auto cmd = frame->raw->GetCommandBuffer();
-    std::optional<vk::ClearValue> drawImageClearColor = clear
+    std::optional<vk::ClearValue> drawImageClearColor = clearColor
                                                             ? vk::ClearValue{
                                                                 vk::ClearColorValue{0.0f, 0.0f, 0.0f, 0.0f}
                                                             }
                                                             : std::optional<vk::ClearValue>{};
-    std::optional<vk::ClearValue> stencilImageClearColor = clear
-                                                               ? vk::ClearValue{vk::ClearDepthStencilValue{0.0f, 1}}
+    std::optional<vk::ClearValue> stencilImageClearColor = clearStencil
+                                                               ? vk::ClearValue{vk::ClearDepthStencilValue{0.0f, 0}}
                                                                : std::optional<vk::ClearValue>{};
     auto drawImageAttachment = GraphicsModule::MakeRenderingAttachment(GetDrawImage(),
                                                                        vk::ImageLayout::eAttachmentOptimal,
@@ -301,11 +303,10 @@ void WidgetSurface::BeginMainPass(SurfaceFrame* frame, bool clear)
     enableBlendingAlphaBlend(cmd, 0, 1);
     setRenderExtent(cmd, renderExtent);
     cmd.setStencilTestEnable(true);
-    cmd.setStencilReference(vk::StencilFaceFlagBits::eFrontAndBack,1);
     auto faceMask = vk::StencilFaceFlagBits::eFrontAndBack;
-    cmd.setStencilReference(faceMask, 0x1);
-    cmd.setStencilCompareMask(faceMask, 0x1);
-    cmd.setStencilWriteMask(faceMask, 0x1);
+    cmd.setStencilReference(faceMask, 255);
+    cmd.setStencilCompareMask(faceMask, 0x01);
+    cmd.setStencilWriteMask(faceMask, 0x01);
     cmd.setStencilOp(faceMask, vk::StencilOp::eKeep, vk::StencilOp::eKeep, vk::StencilOp::eKeep, vk::CompareOp::eNever);
     frame->activePass = SurfaceGlobals::MAIN_PASS_ID;
 }
@@ -346,7 +347,7 @@ void WidgetSurface::DrawBatches(SurfaceFrame* frame, std::vector<QuadInfo>& quad
             auto dataBuffer = graphicsModule->GetAllocator()->NewResourceBuffer(resource);
             auto totalQuads = std::min(BatchInfo::MAX_BATCH, static_cast<int>(quads.size() - i));
             BatchInfo data{viewport, GetProjection()};
-            memcpy(&data.quads, quads.data(), totalQuads * sizeof(QuadInfo));
+            memcpy(&data.quads, quads.data() + i, totalQuads * sizeof(QuadInfo));
             dataBuffer->Write(data);
             set->WriteBuffer(resource.binding, resource.type, dataBuffer);
             std::vector<vk::DescriptorSet> sets = {
@@ -396,42 +397,79 @@ void WidgetSurface::Draw(Frame* frame)
         HandleBeforeDraw(frame);
 
         SurfaceFrame surfFrame{this, frame, ""};
-        auto clips = drawCommands.GetClips();
-        auto commands = drawCommands.GetCommands();
-        
+        auto &clips = drawCommands.GetClips();
+        auto rawCommands = drawCommands.GetCommands();
+        BeginMainPass(&surfFrame,true,true);
         if(clips.empty())
         {
+            std::vector<CommandInfo> commands(rawCommands.size());
+            std::ranges::transform(rawCommands.begin(),rawCommands.end(),commands.begin(),[](const RawCommandInfo& rawInfo)
+            {
+                return CommandInfo{rawInfo.command,0x01};
+            });
             DrawCommands(&surfFrame,commands);
         }
         else
         {
-            auto lastDrawIndex = 0;
-            auto clipBreaks = drawCommands.GetClipBreaks();
-            for(auto i = 0; i < clips.size(); i++)
+            auto faceFlags = vk::StencilFaceFlagBits::eFrontAndBack;
+            auto &uniqueClipStacks = drawCommands.GetUniqueClipStacks();
+            std::unordered_map<std::string,uint32_t> computedClipStacks{};
+            std::vector<CommandInfo> pendingCommands{};
+            std::uint32_t currentMask = 0x01;
+            BeginMainPass(&surfFrame);
+            cmd.setStencilOp(faceFlags,vk::StencilOp::eKeep,vk::StencilOp::eReplace,vk::StencilOp::eKeep,vk::CompareOp::eAlways);
+            SetColorWriteMask(frame,vk::ColorComponentFlags());
+            for(auto i = 0; i < rawCommands.size(); i++)
             {
-                
-                if(i == 0 || clipBreaks.contains(i))
+                if(currentMask == 128)
                 {
-                    if(clipBreaks.contains(i))
-                    {
-                        auto commandId = clipBreaks.at(i);
-                        DrawCommands(&surfFrame,{commands.begin() + lastDrawIndex,commands.begin() + commandId});
-                        lastDrawIndex = commandId + 1;
-                    }
-                    BeginMainPass(&surfFrame);
-                    // Clear Stencil Here
-                    enableStencilWrite(cmd,0x1,1);
+                    DrawCommands(&surfFrame,pendingCommands);
+                    pendingCommands.clear();
+                    computedClipStacks.clear();
+                    currentMask = 0x01;
+                    
+
+                    // if(surfFrame.activePass == SurfaceGlobals::MAIN_PASS_ID)
+                    // {
+                    //     EndActivePass(&surfFrame);
+                    // }
+                    
+                    //BeginMainPass(&surfFrame,false,true);
+                    
+                    //cmd.setStencilOp(faceFlags,vk::StencilOp::eKeep,vk::StencilOp::eReplace,vk::StencilOp::eKeep,vk::CompareOp::eAlways);
+                    vk::ClearAttachment clearAttachment{vk::ImageAspectFlagBits::eStencil,{},vk::ClearValue{vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f}}};
+                    auto extent = _stencilImage->GetExtent();
+                    vk::ClearRect clearRect{vk::Rect2D{vk::Offset2D{0,0},vk::Extent2D{extent.width,extent.height}},0,1};
+                    cmd.clearAttachments(clearAttachment,clearRect);
+                    cmd.setStencilOp(faceFlags,vk::StencilOp::eKeep,vk::StencilOp::eReplace,vk::StencilOp::eKeep,vk::CompareOp::eAlways);
+                    SetColorWriteMask(frame,vk::ColorComponentFlags());
                 }
 
-                BeginMainPass(&surfFrame);
-                uint32_t bit = (i % 32) + 1;
-                cmd.setStencilWriteMask(vk::StencilFaceFlagBits::eFrontAndBack,bitmask(bit));
-                WidgetsModule::Get()->DrawStencil(cmd,clips.at(i).pushConstants);
+                auto &rawCommand = rawCommands.at(i);
+                if(computedClipStacks.contains(rawCommand.clipId))
+                {
+                    pendingCommands.emplace_back(rawCommand.command,computedClipStacks[rawCommand.clipId]);
+                }
+                else
+                {
+                    currentMask <<= 1;
+                    cmd.setStencilWriteMask(faceFlags,currentMask);
+                    //cmd.setStencilCompareMask(faceFlags,currentMask);
+                    
+                    for(auto &clipId : uniqueClipStacks.at(rawCommand.clipId))
+                    {
+                        auto clip = clips.at(clipId);
+                        WriteStencil(frame,clip.transform,clip.size);
+                    }
+                    computedClipStacks.emplace(rawCommand.clipId,currentMask);
+                    pendingCommands.emplace_back(rawCommand.command,currentMask);
+                }
             }
 
-            if(lastDrawIndex != commands.size())
+            if(!pendingCommands.empty())
             {
-                DrawCommands(&surfFrame,{commands.begin() + lastDrawIndex,commands.end()});
+                DrawCommands(&surfFrame,pendingCommands);
+                pendingCommands.clear();
             }
         }
 
@@ -447,20 +485,21 @@ void WidgetSurface::Draw(Frame* frame)
 void WidgetSurface::DrawCommands(SurfaceFrame* frame, const std::vector<CommandInfo>& drawCommands)
 {
     BeginMainPass(frame);
+    
     std::vector<QuadInfo> pendingQuads{};
-    std::stack<uint32_t> clippingStack{};
-    uint32_t clippingMask{0xFF};
+    uint32_t currentClipMask = bitshift(0); // First bit is reserved for draws with no clipping
     auto cmd = frame->raw->GetCommandBuffer();
-    enableStencilCompare(cmd,clippingMask,vk::CompareOp::eNotEqual);
-    for (auto& [drawCommand,clipStack] : drawCommands)
+    SetColorWriteMask(frame->raw,vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+    enableStencilCompare(cmd,currentClipMask,vk::CompareOp::eNotEqual);
+    for (auto& [drawCommand,clipMask] : drawCommands)
     {
-        if(clipStack != clippingStack)
+        if(currentClipMask != clipMask)
         {
             DrawBatches(frame,pendingQuads);
-            clippingStack = clipStack;
-            clippingMask = bitmask(clipStack._Get_container().begin(),clipStack._Get_container().end());
+            currentClipMask = clipMask;
             BeginMainPass(frame);
-            cmd.setStencilCompareMask(vk::StencilFaceFlagBits::eFrontAndBack,clippingMask);
+            cmd.setStencilCompareMask(vk::StencilFaceFlagBits::eFrontAndBack,currentClipMask);
+            SetColorWriteMask(frame->raw,vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
         }
         
         switch (drawCommand->GetType())
@@ -479,7 +518,7 @@ void WidgetSurface::DrawCommands(SurfaceFrame* frame, const std::vector<CommandI
                 if (auto custom = std::dynamic_pointer_cast<WidgetCustomDrawCommand>(drawCommand))
                 {
                     DrawBatches(frame,pendingQuads);
-                    custom->Draw(frame);
+                    custom->Run(frame);
                 }
             }
             break;
@@ -492,9 +531,59 @@ void WidgetSurface::DrawCommands(SurfaceFrame* frame, const std::vector<CommandI
     }
 }
 
+bool WidgetSurface::WriteStencil(const Frame * frame, const std::vector<WidgetStencilClip>& clips)
+{
+    auto cmd = frame->GetCommandBuffer();
+    if(auto stencilShader = WidgetsModule::Get()->GetStencilShader())
+    {
+        if(stencilShader->Bind(cmd,true))
+        {
+            
+            for(auto i = 0; i < clips.size(); i += RIN_WIDGETS_MAX_STENCIL_CLIP)
+            {
+                WidgetStencilBuffer buff{};
+                buff.projection = GetProjection();
+                auto totalQuads = std::min(RIN_WIDGETS_MAX_STENCIL_CLIP, static_cast<int>(clips.size() - i));
+                memcpy(&buff.clips, clips.data() + i, totalQuads * sizeof(WidgetStencilClip));
+                auto set = frame->GetAllocator()->Allocate(stencilShader->GetDescriptorSetLayouts().at(0));
+                auto dataBuffer = GraphicsModule::Get()->GetAllocator()->NewResourceBuffer(stencilShader->resources.at("stencil_info"));
+                dataBuffer->Write(buff);
+                cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,stencilShader->GetPipelineLayout(), 0,set->GetInternalSet(), {});
+                cmd.draw(totalQuads * 6,1,0,0);
+            }
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool WidgetSurface::WriteStencil(const Frame* frame, const Matrix3<float>& transform, const Vec2<float>& size)
+{
+    auto cmd = frame->GetCommandBuffer();
+    if(auto stencilShader = WidgetsModule::Get()->GetStencilShader())
+    {
+        if(stencilShader->Bind(cmd,true))
+        {
+            SingleStencilDrawPush push{GetProjection(),transform,size};
+            auto pushConstantResource = stencilShader->pushConstants.begin()->second;
+            cmd.pushConstants(stencilShader->GetPipelineLayout(),pushConstantResource.stages,0,pushConstantResource.size,&push);
+            cmd.draw(6,1,0,0);
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 void WidgetSurface::OnDispose(bool manual)
 {
     Disposable::OnDispose(manual);
     _drawImage.reset();
     _copyImage.reset();
+}
+
+void WidgetSurface::SetColorWriteMask(const Frame* frame, const vk::ColorComponentFlags& flags)
+{
+    frame->GetCommandBuffer().setColorWriteMaskEXT(0,flags,GraphicsModule::GetDispatchLoader());
 }

@@ -1,17 +1,17 @@
-﻿#include "rin/widgets/containers/WidgetList.hpp"
-#include "rin/widgets/WidgetContainerSlot.hpp"
+﻿#include "rin/widgets/containers/ListWidget.hpp"
+#include "rin/widgets/ContainerWidgetSlot.hpp"
 
-WidgetList::WidgetList(const Axis& axis) : WidgetContainer()
+ListWidget::ListWidget(const WidgetAxis& axis) : ContainerWidget()
     {
         _axis = axis;
     }
 
-    Axis WidgetList::GetAxis() const
+    WidgetAxis ListWidget::GetAxis() const
     {
         return _axis;
     }
 
-    void WidgetList::SetAxis(const Axis& axis)
+    void ListWidget::SetAxis(const WidgetAxis& axis)
     {
         auto oldAxis = _axis;
         _axis = axis;
@@ -21,39 +21,34 @@ WidgetList::WidgetList(const Axis& axis) : WidgetContainer()
         }
     }
 
-    Shared<WidgetContainerSlot> WidgetList::MakeSlot(const Shared<Widget>& widget)
-    {
-        return newShared<WidgetContainerSlot>(widget);
-    }
-
-    void WidgetList::ArrangeSlots(const Vec2<float>& drawSize)
+    void ListWidget::ArrangeSlots(const Vec2<float>& drawSize)
     {
         switch (GetAxis())
         {
-        case Axis::Horizontal:
+        case WidgetAxis::Horizontal:
             {
                 Vec2 offset{0.0f};
                 
                 for (auto &containerSlot : GetSlots())
                 {
                     auto widget = containerSlot->GetWidget();
-                    widget->SetRelativeOffset(offset);
+                    widget->SetOffset(offset);
                     auto widgetDrawSize = widget->GetDesiredSize();
-                    widget->SetDrawSize(widgetDrawSize);
+                    widget->SetSize(widgetDrawSize);
                     offset = offset + Vec2{widgetDrawSize.x,0.0f};
                 }
             }
             break;
-        case Axis::Vertical:
+        case WidgetAxis::Vertical:
             {
                 Vec2 offset{0.0f};
                 
                 for (auto &containerSlot : GetSlots())
                 {
                     auto widget = containerSlot->GetWidget();
-                    widget->SetRelativeOffset(offset);
+                    widget->SetOffset(offset);
                     auto widgetDrawSize = widget->GetDesiredSize();
-                    widget->SetDrawSize(widgetDrawSize);
+                    widget->SetSize(widgetDrawSize);
                     offset = offset + Vec2{0.0f,widgetDrawSize.y};
                 }
             }
@@ -61,11 +56,11 @@ WidgetList::WidgetList(const Axis& axis) : WidgetContainer()
         }
     }
 
-    Vec2<float> WidgetList::ComputeContentSize()
+    Vec2<float> ListWidget::ComputeContentSize()
     {
         switch (GetAxis())
         {
-        case Axis::Horizontal:
+        case WidgetAxis::Horizontal:
             {
                 Vec2 result{0.0f};
                 
@@ -79,7 +74,7 @@ WidgetList::WidgetList(const Axis& axis) : WidgetContainer()
                 return result;
             }
             break;
-        case Axis::Vertical:
+        case WidgetAxis::Vertical:
             {
                 Vec2 result{0.0f};
                 

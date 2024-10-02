@@ -1,18 +1,18 @@
-﻿#include "rin/widgets/containers/WidgetFitter.hpp"
+﻿#include "rin/widgets/containers/FitterWidget.hpp"
 
-#include "rin/widgets/WidgetContainerSlot.hpp"
+#include "rin/widgets/ContainerWidgetSlot.hpp"
 
-FitMode WidgetFitter::GetMode() const
+FitMode FitterWidget::GetMode() const
     {
         return _mode;
     }
 
-    void WidgetFitter::SetMode(FitMode mode)
+    void FitterWidget::SetMode(FitMode mode)
     {
         _mode = mode;
     }
 
-    Vec2<float> WidgetFitter::ComputeContentSize()
+    Vec2<float> FitterWidget::ComputeContentSize()
     {
         if(auto slot = GetSlot(0))
         {
@@ -22,17 +22,17 @@ FitMode WidgetFitter::GetMode() const
         return Vec2{0.0f};
     }
 
-    size_t WidgetFitter::GetMaxSlots() const
+    size_t FitterWidget::GetMaxSlots() const
     {
         return 1;
     }
 
-    void WidgetFitter::ArrangeSlots(const Vec2<float>& drawSize)
+    void FitterWidget::ArrangeSlots(const Vec2<float>& drawSize)
     {
         SizeContent(GetContentSize());
     }
 
-    Vec2<float> WidgetFitter::ComputeContainSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize)
+    Vec2<float> FitterWidget::ComputeContainSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize)
     {
         auto aspect = widgetSize.y / widgetSize.x;
         Vec2 scaledWidgetSize{drawSize.x,drawSize.x * aspect};
@@ -42,7 +42,7 @@ FitMode WidgetFitter::GetMode() const
         return scaledWidgetSize.y < drawSize.y  ? scaledWidgetSize : Vec2{drawSize.y / aspect,drawSize.y};
     }
 
-    Vec2<float> WidgetFitter::ComputeCoverSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize)
+    Vec2<float> FitterWidget::ComputeCoverSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize)
     {
         auto aspect = widgetSize.y / widgetSize.x;
         Vec2 scaledWidgetSize{drawSize.x,drawSize.x * aspect};
@@ -52,7 +52,7 @@ FitMode WidgetFitter::GetMode() const
         return scaledWidgetSize.y < drawSize.y  ? Vec2{drawSize.y / aspect,drawSize.y} : scaledWidgetSize;
     }
 
-    void WidgetFitter::SizeContent(const Vec2<float>& size) const
+    void FitterWidget::SizeContent(const Vec2<float>& size) const
     {
         if(auto slot = GetSlot(0))
         {
@@ -83,13 +83,13 @@ FitMode WidgetFitter::GetMode() const
                 }
             }
 
-            if(!widget->GetDrawSize().NearlyEquals(newDrawSize,0.001)) widget->SetDrawSize(newDrawSize);
+            if(!widget->GetSize().NearlyEquals(newDrawSize,0.001)) widget->SetSize(newDrawSize);
             
             auto halfSelfDrawSize = size / 2.0f;
             auto halfSlotDrawSize = newDrawSize / 2.0f;
 
             auto diff = halfSelfDrawSize - halfSlotDrawSize;
 
-            if(!widget->GetRelativeOffset().NearlyEquals(diff,0.001)) widget->SetRelativeOffset(diff);
+            if(!widget->GetOffset().NearlyEquals(diff,0.001f)) widget->SetOffset(diff);
         }
     }

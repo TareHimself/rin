@@ -1,5 +1,5 @@
 ﻿#include "rin/widgets/Widget.hpp"
-#include "rin/widgets/WidgetContainer.hpp"
+#include "rin/widgets/ContainerWidget.hpp"
 #include "rin/widgets/WidgetSurface.hpp"
 #include "rin/widgets/event/CursorDownEvent.hpp"
 
@@ -64,7 +64,7 @@ void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
         return  {};
     }
 
-    Shared<WidgetContainer> Widget::GetParent() const
+    Shared<ContainerWidget> Widget::GetParent() const
     {
         if(auto parent = _parent.lock())
         {
@@ -76,7 +76,7 @@ void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
 
     Matrix3<float> Widget::ComputeRelativeTransform() const
     {
-        return Matrix3<float>(1.0f).Translate(GetRelativeOffset()).RotateDeg(angle).Translate(GetDrawSize() * pivot * -1.0f);
+        return Matrix3<float>(1.0f).Translate(GetOffset()).RotateDeg(angle).Translate(GetSize() * pivot * -1.0f);
     }
 
     Matrix3<float> Widget::ComputeAbsoluteTransform() const
@@ -100,11 +100,11 @@ void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
 
     WidgetRect Widget::GetRect() const
     {
-        return WidgetRect{_relativeOffset,_drawSize};
+        return WidgetRect{_offset,_size};
     }
     
 
-    void Widget::SetParent(const Shared<WidgetContainer>& container)
+    void Widget::SetParent(const Shared<ContainerWidget>& container)
     {
         _parent = container;
     }
@@ -134,7 +134,17 @@ void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
         return _visibility == EVisibility::Visible || _visibility == EVisibility::VisibleNoHitTestSelf;
     }
 
-    void Widget::BindCursorUp(const Shared<WidgetSurface>& surface)
+bool Widget::HasSurface() const
+{
+    return static_cast<bool>(GetSurface());
+}
+
+bool Widget::HasParent() const
+{
+    return static_cast<bool>(GetParent());
+}
+
+void Widget::BindCursorUp(const Shared<WidgetSurface>& surface)
     {
         _cursorUpBinding.UnBind();
         _cursorUpBinding = surface->onCursorUp->Add(this->GetSharedDynamic<Widget>(),&Widget::OnCursorUp);
@@ -204,30 +214,30 @@ void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
         OnCursorLeave(event);
     }
 
-    Vec2<float> Widget::GetRelativeOffset() const
+    Vec2<float> Widget::GetOffset() const
     {
-        return _relativeOffset;
+        return _offset;
     }
 
-    void Widget::SetRelativeOffset(const Vec2<float>& offset)
+    void Widget::SetOffset(const Vec2<float>& offset)
     {
-        _relativeOffset = offset;
+        _offset = offset;
     }
 
-    Vec2<float> Widget::GetDrawSize() const
+    Vec2<float> Widget::GetSize() const
     {
-        return _drawSize;
+        return _size;
     }
 
     Vec2<float> Widget::GetContentSize() const
     {
         auto padding = GetPadding();
-        return _drawSize - Vec2{padding.left + padding.right,padding.top + padding.bottom};
+        return _size - Vec2{padding.left + padding.right,padding.top + padding.bottom};
     }
 
-    void Widget::SetDrawSize(const Vec2<float>& size)
+    void Widget::SetSize(const Vec2<float>& size)
     {
-        _drawSize = size;
+        _size = size;
     }
 
     Vec2<float> Widget::GetDesiredSize()

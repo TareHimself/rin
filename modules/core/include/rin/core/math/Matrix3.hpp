@@ -7,8 +7,11 @@ template<typename T>
     private:
         glm::mat<3,3,T> _mat;
     public:
-        explicit Matrix3(float inData);
+        explicit Matrix3(T inData);
         explicit Matrix3(const glm::mat<3,3,T>& inMat);
+
+        explicit Matrix3();
+    
         operator glm::mat<3,3,T>() const;
 
         Matrix3 Translate(const Vec2<T>& translation) const;
@@ -27,7 +30,7 @@ template<typename T>
     };
 
     template <typename T>
-    Matrix3<T>::Matrix3(float inData)
+    Matrix3<T>::Matrix3(T inData)
     {
         _mat = glm::mat<3,3,T>(inData);
     }
@@ -38,7 +41,13 @@ template<typename T>
         _mat = inMat;
     }
 
-    template <typename T>
+template <>
+inline Matrix3<float>::Matrix3() : Matrix3(1.0f)
+{
+        
+}
+
+template <typename T>
     Matrix3<T>::operator glm::mat<3,3,T> () const
     {
         return _mat;

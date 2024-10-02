@@ -9,7 +9,8 @@ template<typename T>
     private:
         glm::mat<4,4,T> _mat;
     public:
-        explicit Matrix4(float inData);
+        Matrix4();
+        explicit Matrix4(T inData);
         explicit Matrix4(const glm::mat<4,4,T>& inMat);
         operator glm::mat<4,4,T>() const;
 
@@ -26,8 +27,13 @@ template<typename T>
         Vec3<T> operator*(const Vec3<T>& other) const;
     };
 
+    template <>
+    inline Matrix4<float>::Matrix4() : Matrix4<float>(1.0f)
+    {
+    }
+
     template <typename T>
-    Matrix4<T>::Matrix4(float inData)
+    Matrix4<T>::Matrix4(T inData)
     {
         _mat = glm::mat4(inData);
     }

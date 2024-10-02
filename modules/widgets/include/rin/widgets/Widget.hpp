@@ -18,15 +18,15 @@ class ScrollEvent;
 class CursorMoveEvent;
 class CursorDownEvent;
 class WidgetSurface;
-class WidgetContainer;
+class ContainerWidget;
 
     class Widget : public Disposable
     {
         DelegateListHandle _cursorUpBinding{};
         Weak<WidgetSurface> _surface{};
-        Weak<WidgetContainer> _parent{};
-        Vec2<float> _relativeOffset{0.0};
-        Vec2<float> _drawSize{0.0};
+        Weak<ContainerWidget> _parent{};
+        Vec2<float> _offset{0.0};
+        Vec2<float> _size{0.0};
         std::optional<Vec2<float>> _cachedDesiredSize{};
         bool _hovered = false;
         Padding _padding{0.0};
@@ -55,8 +55,10 @@ class WidgetContainer;
 
         virtual void OnFocusLost();
 
+        // Computes the size of the widget's content (i.e. where draws will happen or other widgets will be placed)
         virtual Vec2<float> ComputeContentSize() = 0;
 
+        // Computes the size of the widget (Content size + Padding)
         virtual Vec2<float> ComputeDesiredSize();
     public:
 
@@ -65,7 +67,7 @@ class WidgetContainer;
         Vec2<float> scale{1.0};
         
         Shared<WidgetSurface> GetSurface() const;
-        Shared<WidgetContainer> GetParent() const;
+        Shared<ContainerWidget> GetParent() const;
         Matrix3<float> ComputeRelativeTransform() const;
 
         Matrix3<float> ComputeAbsoluteTransform() const;
@@ -76,7 +78,7 @@ class WidgetContainer;
 
         WidgetRect GetRect() const;
 
-        void SetParent(const Shared<WidgetContainer>& container);
+        void SetParent(const Shared<ContainerWidget>& container);
         void SetSurface(const Shared<WidgetSurface>& surface);
 
         bool IsHovered() const;
@@ -86,6 +88,10 @@ class WidgetContainer;
         bool IsSelfHitTestable() const;
 
         bool AreChildrenHitTestable() const;
+
+        bool HasSurface() const;
+
+        bool HasParent() const;
         
         void BindCursorUp(const Shared<WidgetSurface>& surface);
 
@@ -106,26 +112,33 @@ class WidgetContainer;
         virtual bool NotifyScroll(const Shared<ScrollEvent>& event,const TransformInfo& transform);
 
         virtual void NotifyCursorLeave(const Shared<CursorMoveEvent>& event, const TransformInfo& transform);
+        
+        // Returns the offset of this widget in parent space
+        Vec2<float> GetOffset() const;
 
-        Vec2<float> GetRelativeOffset() const;
+        // Sets the offset of this widget in parent space (May perform side effects)
+        virtual void SetOffset(const Vec2<float>& offset);
 
-        virtual void SetRelativeOffset(const Vec2<float>& offset);
-
-        Vec2<float> GetDrawSize() const;
+        // Returns the size this widget will draw at in parent space
+        Vec2<float> GetSize() const;
 
         Vec2<float> GetContentSize() const;
 
-        virtual void SetDrawSize(const Vec2<float>& size);
+        // Sets the size of this widget in parent space (May perform side effects)
+        virtual void SetSize(const Vec2<float>& size);
 
         Vec2<float> GetDesiredSize();
 
         Padding GetPadding() const;
+        
         void SetPadding(const Padding& padding);
 
         std::optional<Vec2<float>> GetCachedDesiredSize() const;
-        
-        bool CheckSize();
 
+        // Will check if the desired size of this widget has changed
+        bool CheckSize();
+        
+        // Collects draw commands
         virtual void Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands) = 0;
 
         //void Collect(WidgetFrame frame, DrawInfo info);

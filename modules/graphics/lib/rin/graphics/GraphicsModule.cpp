@@ -261,6 +261,11 @@ bool GraphicsModule::IsDependentOn(RinModule* module)
 
 vk::DispatchLoaderDynamic GraphicsModule::dispatchLoader = {};
 
+vk::DispatchLoaderDynamic GraphicsModule::GetDispatchLoader()
+{
+    return dispatchLoader;
+}
+
 vk::Instance GraphicsModule::GetInstance() const
 {
     return _instance;
@@ -411,7 +416,7 @@ vk::RenderingAttachmentInfo GraphicsModule::MakeRenderingAttachment(const vk::Im
                                                                     const std::optional<vk::ClearValue>& clearValue)
 {
     vk::RenderingAttachmentInfo attachmentInfo{view, layout};
-    attachmentInfo.setLoadOp(clearValue.has_value() ? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear);
+    attachmentInfo.setLoadOp(clearValue.has_value() ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eLoad);
     attachmentInfo.setStoreOp(vk::AttachmentStoreOp::eStore);
     if (clearValue.has_value())
     {

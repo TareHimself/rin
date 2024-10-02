@@ -9,8 +9,10 @@
 #include "graphics/QuadInfo.hpp"
 #include "rin/core/math/Matrix4.hpp"
 
-class WidgetDrawCommand;
 struct CommandInfo;
+struct WidgetStencilClip;
+class WidgetDrawCommand;
+struct RawCommandInfo;
 struct SurfaceFrame;
 class Widget;
 class CursorDownEvent;
@@ -19,6 +21,7 @@ class CursorDownEvent;
     class CursorUpEvent;
     class ScrollEvent;
 
+inline int RIN_WIDGETS_STENCIL_MAX_SHIFT = 8;
 namespace SurfaceGlobals
 {
    inline std::string MAIN_PASS_ID = "MAIN";
@@ -72,7 +75,7 @@ namespace SurfaceGlobals
         Shared<DeviceImage> GetDrawImage() const;
         Shared<DeviceImage> GetCopyImage() const;
 
-        virtual void BeginMainPass(SurfaceFrame * frame,bool clear = false);
+        virtual void BeginMainPass(SurfaceFrame * frame,bool clearColor = false,bool clearStencil = false);
         virtual void EndActivePass(SurfaceFrame * frame);
 
         virtual void DrawBatches(SurfaceFrame * frame,std::vector<QuadInfo>& quads);
@@ -83,12 +86,19 @@ namespace SurfaceGlobals
         virtual void HandleDrawSkipped(Frame* frame) = 0;
         virtual void HandleBeforeDraw(Frame* frame) = 0;
         virtual void HandleAfterDraw(Frame* frame) = 0;
-        
+
+        bool WriteStencil(const Frame * frame,const std::vector<WidgetStencilClip>& clips);
+
+        bool WriteStencil(const Frame * frame,const Matrix3<float>& transform,const Vec2<float>& size);
 
         void OnDispose(bool manual) override;
 
+    void SetColorWriteMask(const Frame * frame,const vk::ColorComponentFlags& flags);
+
         template<typename T,typename ...TArgs>
         std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<Widget,T>,Shared<T>> AddChild(TArgs&&... args);
+
+        
     };
 
     template <typename T, typename ... TArgs>

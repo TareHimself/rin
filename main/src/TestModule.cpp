@@ -1,108 +1,48 @@
 ﻿#include "TestModule.hpp"
 #include <iostream>
-#include <CImg/CImg.h>
-// #define STB_IMAGE_WRITE_IMPLEMENTATION
-// #define STB_IMAGE_IMPLEMENTATION
-// #include <stb/stb_image_write.h>
-// #include <stb/stb_image.h>
 #include "rin/audio/AudioModule.hpp"
 #include "rin/core/GRuntime.hpp"
 #include "rin/core/Module.hpp"
 #include "rin/core/platform.hpp"
 #include "rin/core/utils.hpp"
 #include "rin/graphics/GraphicsModule.hpp"
-#include "rin/widgets/WidgetContainerSlot.hpp"
+#include "rin/widgets/ContainerWidgetSlot.hpp"
 #include "rin/widgets/WidgetsModule.hpp"
 #include "rin/widgets/WidgetWindowSurface.hpp"
-#include "rin/widgets/containers/WidgetPanel.hpp"
+#include "rin/widgets/containers/PanelWidget.hpp"
 #include "rin/window/Window.hpp"
 #include "rin/window/WindowModule.hpp"
 #include "bass/Stream.hpp"
 #include "rin/widgets/utils.hpp"
-#include "rin/widgets/containers/WidgetPanel.hpp"
+#include "rin/widgets/containers/PanelWidget.hpp"
 #include "rin/widgets/WidgetSurface.hpp"
-#include "rin/widgets/containers/WidgetSizer.hpp"
+#include "rin/widgets/containers/SizerWidget.hpp"
 #include "rin/widgets/graphics/SimpleBatchedDrawCommand.hpp"
 #include "rin/widgets/graphics/WidgetDrawCommands.hpp"
-#include "rin/widgets/slots/WidgetPanelSlot.hpp"
+#include "rin/widgets/slots/PanelWidgetSlot.hpp"
 #include <filesystem>
 #include "rin/graphics/Image.hpp"
 #include "rin/graphics/ResourceManager.hpp"
-#include "rin/widgets/containers/WidgetFitter.hpp"
+#include "rin/widgets/containers/FitterWidget.hpp"
+#include "rin/widgets/containers/FlexWidget.hpp"
 #include "rin/widgets/content/ImageWidget.hpp"
 using namespace std::chrono_literals;
-using namespace cimg_library;
 
-template<typename T>
-std::vector<T> toStbFormat(const CImg<T>& img)
+
+void TestClipCommand::Run(SurfaceFrame* frame)
 {
-    auto width = img.width();
-    auto height = img.height();
-    auto channels = img.spectrum();
-    std::vector<T> result{};
-    result.resize(width * height * channels);
+    auto surf = frame->surface;
+    auto cmd = frame->raw->GetCommandBuffer();
+    surf->BeginMainPass(frame);
 
-    for(auto y = 0; y < height; y++)
-    {
-        for(auto x = 0; x < width; x++)
-        {
-            for(auto c = 0; c < channels; c++)
-            {
-                result.push_back(img(x,y,c));
-            }
-        }
-    }
-
-    return result;
+    auto size = Vec2{500.0f};
+    auto displaySize = surf->GetDrawSize().Cast<float>();
+    enableStencilWrite(cmd,bitshift(1),1);
+    surf->WriteStencil(frame->raw,Matrix3<float>{},size);
+    enableStencilWrite(cmd,bitshift(2),1);
+    surf->WriteStencil(frame->raw,Matrix3<float>{}.Translate(displaySize - size),size);
+    enableStencilCompare(cmd,bitshift(1,2),vk::CompareOp::eNotEqual);
 }
-
-template<typename T>
-CImg<T> FromStb(T * ptr,int width,int height,int channels)
-{
-    CImg<T> img{static_cast<unsigned int>(width),static_cast<unsigned int>(height),sizeof(T),static_cast<unsigned int>(channels)};
-    
-    for(auto y = 0; y < height; y++)
-    {
-        for(auto x = 0; x < width; x++)
-        {
-            for(auto c = 0; c < channels; c++)
-            {
-                auto i = y * (width * channels) + (x * channels + c);
-                img(x,y,c) = ptr[i];
-            }
-        }
-    }
-
-    return img;
-}
-//
-// CImg<unsigned char> loadImage(const std::filesystem::path& path)
-// {
-//     int width;
-//     int height;
-//     int channels;
-//     
-//     auto ptr = stbi_load(path.string().c_str(),&width,&height,&channels,0);
-//
-//     auto img = FromStb<unsigned char>(ptr,width,height,channels);
-//     img.display();
-//     stbi_write_png("test1.png",width,height,channels,ptr,width * channels);
-//
-//     stbi_image_free(ptr);
-//
-//     return img;
-// }
-//
-// CImg<unsigned char> saveImage(const CImg<unsigned char>& img,const std::filesystem::path& path)
-// {
-//     auto width = img.width();
-//     auto height = img.height();
-//     auto channels = img.spectrum();
-//     auto data = toStbFormat(img);
-//     stbi_write_jpg(path.string().c_str(),width,height,channels,data.data(),100);
-//     //stbi_write_png(path.string().c_str(),img.width(),img.height(),img.depth(),img.data(),sizeof(unsigned char));
-//     return img;
-// }
 
 Vec2<float> TestWidget::ComputeContentSize()
 {
@@ -115,9 +55,9 @@ void TestWidget::Collect(const TransformInfo& transform,
     auto time = GRuntime::Get()->GetTimeSeconds();
     pivot = Vec2{0.5f};
     angle = sin(time) * 90.0f;
-    auto size = GetDrawSize();
+    auto size = GetSize();
     
-    if (auto parent = GetParent() ? GetParent()->GetParent() : Shared<WidgetContainer>{}; parent && parent->IsHovered() && GetSurface())
+    if (auto parent = GetParent() ? GetParent()->GetParent() : Shared<ContainerWidget>{}; parent && parent->IsHovered() && GetSurface())
     {
         if (auto surface = GetSurface())
         {
@@ -125,7 +65,7 @@ void TestWidget::Collect(const TransformInfo& transform,
             drawCommands.Add(SimpleBatchedDrawCommand::Builder()
                            .AddRect(
                                size,
-                               Matrix3<float>(1.0f).Translate(targetLocation).RotateDeg(angle).Translate(GetDrawSize() * pivot * -1.0f),
+                               Matrix3<float>(1.0f).Translate(targetLocation).RotateDeg(angle).Translate(GetSize() * pivot * -1.0f),
                                Vec4{
                                    abs(sin(time) * (size.x / 2.0f))
                                }
@@ -178,7 +118,7 @@ void TestModule::Startup(GRuntime* runtime)
     
     if (auto surface = _widgetsModule->GetSurface(_window.get()))
     {
-        auto panel = newShared<WidgetPanel>();
+        auto mainContainer = newShared<FlexWidget>();
         {
             auto textureId = 0;
             
@@ -189,34 +129,20 @@ void TestModule::Startup(GRuntime* runtime)
                 loadedTexture.SetChannels(4);
                 textureId = GraphicsModule::Get()->GetResourceManager()->CreateTexture(loadedTexture,ImageFormat::RGBA8,vk::Filter::eNearest,{},true);
             }
-
+            for(auto i = 0; i < 10; i++)
             {
                 auto img = newShared<ImageWidget>();
                 img->SetTextureId(textureId);
-                auto fitter = (newShared<WidgetFitter>() + img).second;
+                auto fitter = (newShared<FitterWidget>() + img).second;
                 fitter->SetPadding(Padding{20.0f});
-                auto slot = (panel + fitter).first;
-                slot->minAnchor = Vec2{0.0f,0.0f};
-                slot->maxAnchor = Vec2{0.5f,1.0f};
-                slot->alignment = Vec2{0.0f};
-                fitter->SetClipMode(EClipMode::Bounds);
-                fitter->SetMode(FitMode::Cover);
-            }
-            {
-                auto img = newShared<ImageWidget>();
-                img->SetTextureId(textureId);
-                auto fitter = (newShared<WidgetFitter>() + img).second;
-                fitter->SetPadding(Padding{20.0f});
-                auto slot = (panel + fitter).first;
-                slot->minAnchor = Vec2{0.5f,0.0f};
-                slot->maxAnchor = Vec2{1.0f,1.0f};
-                slot->alignment = Vec2{0.0f};
+                auto slot = (mainContainer + fitter).first;
                 fitter->SetClipMode(EClipMode::Bounds);
                 fitter->SetMode(FitMode::Cover);
             }
         }
-        panel->SetClipMode(EClipMode::Bounds);
-        surface->AddChild(panel);
+        
+        //panel->SetClipMode(EClipMode::Bounds);
+        surface->AddChild(mainContainer);
     }
 
     // if(const auto sample = bass::createFileStream(R"(C:\Users\Taree\Downloads\Tracks\Sunny - Yorushika.mp3)",0,bass::CreateFlag::SampleFloat | bass::CreateFlag::SampleMono); sample->Play())

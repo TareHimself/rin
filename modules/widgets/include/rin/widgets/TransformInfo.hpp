@@ -5,7 +5,7 @@
 #include "rin/core/math/Vec2.hpp"
 
 class WidgetSurface;
-class WidgetContainerSlot;
+class ContainerWidgetSlot;
 class Widget;
 
 struct TransformInfo
@@ -22,7 +22,7 @@ struct TransformInfo
 
     explicit  TransformInfo(const Shared<Widget>& widget,bool absolute = false);
 
-    TransformInfo AccountFor(const Shared<WidgetContainerSlot>& slot) const;
+    TransformInfo AccountFor(const Shared<ContainerWidgetSlot>& slot) const;
     TransformInfo AccountFor(const Shared<Widget>& widget) const;
     TransformInfo AccountFor(const Widget * widget) const;
 

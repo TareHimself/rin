@@ -40,34 +40,39 @@ std::shared_future<T> sharedFutureFromResult(const T& result)
 std::filesystem::path getResourcesPath();
 
 
-// Computes a compile time bitmask using template arguments. if no arguments are passed returns the bitmask for 0
-uint32_t bitmask();
+// Computes a compile time bitshift using template arguments. if no arguments are passed returns the bitshift for 0
+uint32_t bitshift();
 
-// Computes a compile time bitmask using template arguments. if no arguments are passed returns the bitmask for 0
+// Computes a compile time bitshift using template arguments. if no arguments are passed returns the bitshift for 0
 //std::iterator_traits<InputIt>::value_type
-// Computes a compile time bitmask using template arguments. if no arguments are passed returns the bitmask for 0
+// Computes a compile time bitshift using template arguments. if no arguments are passed returns the bitshift for 0
 template<typename T = uint32_t,typename ...Bits,typename = std::enable_if_t<std::is_integral_v<T> && std::conjunction_v<std::is_integral<Bits>...>>>
-T bitmask(Bits... bits);
+T bitshift(Bits... bits);
 
 template<typename Iterator,typename = std::enable_if_t<std::is_integral_v<typename std::iterator_traits<Iterator>::value_type>>>
-typename std::iterator_traits<Iterator>::value_type bitmask(Iterator begin,Iterator end);
+typename std::iterator_traits<Iterator>::value_type bitmaskForRange(Iterator begin,Iterator end);
 
 template <typename T, typename ... Bits, typename>
-T bitmask(Bits... bits)
+T bitshift(Bits... bits)
 {
-    T result{};
-    ((bits == 0 ? result |= 0x0 : result |= (1 << (bits - 1))), ...);
+    T result = 0;
+    
+    ((result |= (1 << bits)), ...);
     return result;
 }
 
 template <typename Iterator, typename>
-typename std::iterator_traits<Iterator>::value_type bitmask(Iterator begin, Iterator end)
+typename std::iterator_traits<Iterator>::value_type bitmaskForRange(Iterator begin, Iterator end)
 {
-    typename std::iterator_traits<Iterator>::value_type result{};
+    typename std::iterator_traits<Iterator>::value_type result = 0;
     for(auto it = begin; it != end; ++it)
     {
         auto bit = *it;
-        result |= bit == 0 ? 0x0 : (1 << (bit - 1));
+        result |= 1 << bit;
+    }
+    if(result == 0)
+    {
+        result = 0xFF;
     }
     return result;
 }

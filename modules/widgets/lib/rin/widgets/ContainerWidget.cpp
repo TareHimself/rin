@@ -1,47 +1,52 @@
-﻿#include "rin/widgets/WidgetContainer.hpp"
+﻿#include "rin/widgets/ContainerWidget.hpp"
 
-#include "rin/widgets/WidgetContainerSlot.hpp"
+#include "rin/widgets/ContainerWidgetSlot.hpp"
 #include "rin/widgets/event/CursorDownEvent.hpp"
 #include "rin/widgets/event/CursorMoveEvent.hpp"
 #include "rin/widgets/event/ScrollEvent.hpp"
 #include "rin/widgets/graphics/WidgetDrawCommands.hpp"
 
-void WidgetContainer::OnChildResized(Widget * widget)
+void ContainerWidget::OnChildResized(Widget * widget)
     {
         if(CheckSize()) ArrangeSlots(GetContentSize());
     }
 
-    Shared<WidgetContainerSlot> WidgetContainer::MakeSlot(const Shared<Widget>& widget)
+void ContainerWidget::OnChildSlotUpdated(ContainerWidgetSlot * slot)
+{
+    if(CheckSize()) ArrangeSlots(GetContentSize());
+}
+
+Shared<ContainerWidgetSlot> ContainerWidget::MakeSlot(const Shared<Widget>& widget)
     {
-        return newShared<WidgetContainerSlot>(widget);
+        return newShared<ContainerWidgetSlot>(this,widget);
     }
 
-    size_t WidgetContainer::GetMaxSlots() const
+    size_t ContainerWidget::GetMaxSlots() const
     {
         return std::numeric_limits<size_t>::max();
     }
 
-    size_t WidgetContainer::GetUsedSlots() const
+    size_t ContainerWidget::GetUsedSlots() const
     {
         return _slots.size();
     }
 
-    Shared<WidgetContainerSlot> WidgetContainer::GetSlot(int index) const
+    Shared<ContainerWidgetSlot> ContainerWidget::GetSlot(int index) const
     {
-        return index < _slots.size() ? _slots[index] : Shared<WidgetContainerSlot>{};
+        return index < _slots.size() ? _slots[index] : Shared<ContainerWidgetSlot>{};
     }
 
-    Shared<WidgetContainerSlot> WidgetContainer::GetSlot(Widget* widget) const
+    Shared<ContainerWidgetSlot> ContainerWidget::GetSlot(Widget* widget) const
     {
-        return _widgetsToSlots.contains(widget) ? _widgetsToSlots.at(widget) : Shared<WidgetContainerSlot>{};
+        return _widgetsToSlots.contains(widget) ? _widgetsToSlots.at(widget) : Shared<ContainerWidgetSlot>{};
     }
 
-    std::vector<Shared<WidgetContainerSlot>> WidgetContainer::GetSlots() const
+    std::vector<Shared<ContainerWidgetSlot>> ContainerWidget::GetSlots() const
     {
         return _slots;
     }
 
-    Shared<WidgetContainerSlot> WidgetContainer::AddChild(const Shared<Widget>& widget)
+    Shared<ContainerWidgetSlot> ContainerWidget::AddChild(const Shared<Widget>& widget)
     {
         if(!widget) return {};
         
@@ -52,7 +57,7 @@ void WidgetContainer::OnChildResized(Widget * widget)
         auto slot = MakeSlot(widget);
         _slots.push_back(slot);
         _widgetsToSlots.emplace(widget.get(),slot);
-        widget->SetParent(this->GetSharedDynamic<WidgetContainer>());
+        widget->SetParent(this->GetSharedDynamic<ContainerWidget>());
         
         if(auto surf = GetSurface())
         {
@@ -63,7 +68,7 @@ void WidgetContainer::OnChildResized(Widget * widget)
         return slot;
     }
 
-    bool WidgetContainer::RemoveChild(const Shared<Widget>& widget)
+    bool ContainerWidget::RemoveChild(const Shared<Widget>& widget)
     {
         if(!_widgetsToSlots.contains(widget.get())) return false;
         
@@ -94,16 +99,16 @@ void WidgetContainer::OnChildResized(Widget * widget)
         return false;
     }
 
-    void WidgetContainer::SetDrawSize(const Vec2<float>& size)
+    void ContainerWidget::SetSize(const Vec2<float>& size)
     {
-        Widget::SetDrawSize(size);
+        Widget::SetSize(size);
         if(auto surf = GetSurface())
         {
             ArrangeSlots(GetContentSize());
         }
     }
 
-    void WidgetContainer::OnDispose(bool manual)
+    void ContainerWidget::OnDispose(bool manual)
     {
         Widget::OnDispose(manual);
         
@@ -115,7 +120,7 @@ void WidgetContainer::OnChildResized(Widget * widget)
         _slots.clear();
     }
 
-    void WidgetContainer::NotifyAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
+    void ContainerWidget::NotifyAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
     {
         Widget::NotifyAddedToSurface(widgetSurface);
         for(auto &slot : GetSlots())
@@ -124,7 +129,7 @@ void WidgetContainer::OnChildResized(Widget * widget)
         }
     }
 
-    void WidgetContainer::NotifyRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface)
+    void ContainerWidget::NotifyRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface)
     {
         Widget::NotifyRemovedFromSurface(widgetSurface);
         for(auto &slot : GetSlots())
@@ -133,7 +138,7 @@ void WidgetContainer::OnChildResized(Widget * widget)
         }
     }
 
-    Shared<Widget> WidgetContainer::NotifyCursorDown(const Shared<CursorDownEvent>& event, const TransformInfo& transform)
+    Shared<Widget> ContainerWidget::NotifyCursorDown(const Shared<CursorDownEvent>& event, const TransformInfo& transform)
     {
         if(AreChildrenHitTestable())
         {
@@ -142,7 +147,7 @@ void WidgetContainer::OnChildResized(Widget * widget)
         return Widget::NotifyCursorDown(event, transform);
     }
 
-    void WidgetContainer::NotifyCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform,
+    void ContainerWidget::NotifyCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform,
                                       std::vector<Shared<Widget>>& items)
     {
         if(AreChildrenHitTestable()) NotifyChildrenCursorEnter(event,transform,items);
@@ -150,19 +155,19 @@ void WidgetContainer::OnChildResized(Widget * widget)
         Widget::NotifyCursorEnter(event, transform, items);
     }
 
-    bool WidgetContainer::NotifyCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform)
+    bool ContainerWidget::NotifyCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform)
     {
         if(AreChildrenHitTestable()) return NotifyChildrenCursorMove(event,transform);
         return Widget::NotifyCursorMove(event, transform);
     }
 
-    bool WidgetContainer::NotifyScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform)
+    bool ContainerWidget::NotifyScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform)
     {
         if(AreChildrenHitTestable()) return NotifyChildrenScroll(event,transform);
         return Widget::NotifyScroll(event, transform);
     }
 
-    Shared<Widget> WidgetContainer::NotifyChildrenCursorDown(const Shared<CursorDownEvent>& event,
+    Shared<Widget> ContainerWidget::NotifyChildrenCursorDown(const Shared<CursorDownEvent>& event,
         const TransformInfo& transform)
     {
         for (auto &slot : GetSlots())
@@ -173,7 +178,7 @@ void WidgetContainer::OnChildResized(Widget * widget)
         return {};
     }
 
-    bool WidgetContainer::NotifyChildrenCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform, std::vector<Shared<Widget>>& items)
+    bool ContainerWidget::NotifyChildrenCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform, std::vector<Shared<Widget>>& items)
     {
         for (auto &slot : GetSlots())
         {
@@ -186,7 +191,7 @@ void WidgetContainer::OnChildResized(Widget * widget)
         return false;
     }
 
-    bool WidgetContainer::NotifyChildrenCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform)
+    bool ContainerWidget::NotifyChildrenCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform)
     {
         for (auto &slot : GetSlots())
         {
@@ -196,7 +201,7 @@ void WidgetContainer::OnChildResized(Widget * widget)
         return false;
     }
 
-    bool WidgetContainer::NotifyChildrenScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform)
+    bool ContainerWidget::NotifyChildrenScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform)
     {
         for (auto &slot : GetSlots())
         {
@@ -206,7 +211,7 @@ void WidgetContainer::OnChildResized(Widget * widget)
         return false;
     }
 
-    void WidgetContainer::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
+    void ContainerWidget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
     {
         auto slots = GetSlots();
         auto clipMode = GetClipMode();
@@ -240,23 +245,23 @@ void WidgetContainer::OnChildResized(Widget * widget)
         }
     }
 
-    TransformInfo WidgetContainer::ComputeChildTransform(const Shared<WidgetContainerSlot>& slot, const TransformInfo& myTransform)
+    TransformInfo ContainerWidget::ComputeChildTransform(const Shared<ContainerWidgetSlot>& slot, const TransformInfo& myTransform)
     {
         return ComputeChildTransform(slot->GetWidget(),myTransform);
     }
 
-    TransformInfo WidgetContainer::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
+    TransformInfo ContainerWidget::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
     {
         auto padding = GetPadding();
-        return TransformInfo{myTransform.transform.Translate(Vec2(padding.left,padding.top)) * widget->ComputeRelativeTransform(),widget->GetDrawSize(),myTransform.depth + 1};
+        return TransformInfo{myTransform.transform.Translate(Vec2(padding.left,padding.top)) * widget->ComputeRelativeTransform(),widget->GetSize(),myTransform.depth + 1};
     }
 
-    EClipMode WidgetContainer::GetClipMode() const
+    EClipMode ContainerWidget::GetClipMode() const
     {
         return _clipMode;
     }
 
-    void WidgetContainer::SetClipMode(EClipMode clipMode)
+    void ContainerWidget::SetClipMode(EClipMode clipMode)
     {
         _clipMode = clipMode;
     }

@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "rin/widgets/WidgetContainer.hpp"
+#include "rin/widgets/ContainerWidget.hpp"
 
 
-class WidgetSizer : public WidgetContainer
+class SizerWidget : public ContainerWidget
 {
     std::optional<float> _widthOverride{};
     std::optional<float> _heightOverride{};

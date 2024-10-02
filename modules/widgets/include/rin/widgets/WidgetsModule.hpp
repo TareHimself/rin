@@ -10,12 +10,25 @@
 class WidgetWindowSurface;
 class Window;
 
-struct StencilPushConstants
+struct WidgetStencilClip
 {
-    Matrix3<float> transform;
-    Matrix4<float> projection;
-    Vec2<float> size;
-    Vec4<float> borderRadius;
+    Matrix3<float> transform{};
+    Vec2<float> size{0.0f};
+};
+
+inline int RIN_WIDGETS_MAX_STENCIL_CLIP = 12;
+
+struct WidgetStencilBuffer
+{
+    Matrix4<float> projection{};
+    WidgetStencilClip clips[12];
+};
+
+struct SingleStencilDrawPush
+{
+    Matrix4<float> projection{};
+    Matrix3<float> transform{};
+    Vec2<float> size{0.0f};
 };
 
 MCLASS()
@@ -46,5 +59,5 @@ public:
     Shared<WidgetWindowSurface> GetSurface(Window * window) const;
     Shared<GraphicsShader> GetBatchShader() const;
     Shared<GraphicsShader> GetStencilShader() const;
-    void DrawStencil(const vk::CommandBuffer& cmd,const StencilPushConstants& pushConstants) const;
+    void DrawStencil(const vk::CommandBuffer& cmd,const WidgetStencilClip& pushConstants) const;
 };

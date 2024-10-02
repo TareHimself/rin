@@ -1,15 +1,14 @@
 ﻿#pragma once
-#include "WidgetList.hpp"
-#include "rin/widgets/WidgetContainer.hpp"
+#include "ListWidget.hpp"
+#include "rin/widgets/ContainerWidget.hpp"
 
-class WidgetScrollList : public WidgetList
+class ScrollableWidget : public ListWidget
 {
 protected:
-    Shared<WidgetContainerSlot> MakeSlot(const Shared<Widget>& widget) override;
     void ApplyScroll() const;
     float _scroll = 0.0f;
 public:
-    WidgetScrollList(const Axis& axis);
+    ScrollableWidget(const WidgetAxis& axis);
 
     bool IsScrollable() const;
     float GetMaxScroll() const;

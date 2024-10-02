@@ -2,10 +2,9 @@
 
 push(scalar)
 {
-    mat3 transform;
     mat4 projection;
+    mat3 transform;
     float2 size;
-    float4 borderRadius;
 };
 
 @Vertex {
@@ -20,10 +19,10 @@ push(scalar)
     layout (location = 0) out float4 oColor;
 
     void main() {
-        float4 result = applyBorderRadius(gl_FragCoord.xy,float4(float3(0.0),1.0), push.borderRadius, push.size, push.transform);
+        float4 result = applyBorderRadius(gl_FragCoord.xy,float4(float3(0.0),1.0), float4(0.0), push.size, push.transform);
         if(result.w > 0.5){
             discard;
         }
-        oColor = float4(0.0f);//float4(float3(result.w),1.0);
+        oColor = float4(float3(0.0),0.0);
     }
 }

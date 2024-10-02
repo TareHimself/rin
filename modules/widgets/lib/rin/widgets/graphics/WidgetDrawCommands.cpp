@@ -4,63 +4,59 @@
 #include "rin/widgets/Widget.hpp"
 #include "rin/widgets/WidgetSurface.hpp"
 
+
 WidgetDrawCommands& WidgetDrawCommands::Add(const Shared<WidgetDrawCommand>& command)
 {
-    CommandInfo cmdInfo{command,_clipStack};
+    RawCommandInfo cmdInfo{command,_clipId};
     
-    if(_commands.empty())
+    _commands.push_back(cmdInfo);
+
+    if(!_uniqueClipStacks.contains(cmdInfo.clipId))
     {
-        _commands.push_back(cmdInfo);
+        _uniqueClipStacks.emplace(cmdInfo.clipId,_clipStack);
     }
-    else
-    {
-        auto last = _commands.at(_commands.size() - 1);
-        if(last.clipStack != cmdInfo.clipStack  || !last.command->CombineWith(command))
-        {
-            _commands.push_back(cmdInfo);
-        }
-    }
-    
     return *this;
 }
 
 WidgetDrawCommands& WidgetDrawCommands::PushClip(const TransformInfo& transform, const Widget* container)
 {
     auto padding = container->GetPadding();
-    return PushClip(StencilPushConstants{transform.transform.Translate(Vec2(padding.left,padding.top)),container->GetSurface()->GetProjection(),container->GetContentSize(),Vec4{0.0f}});
+    return PushClip(transform.transform.Translate(Vec2(padding.left,padding.top)),container->GetContentSize());
 }
 
-WidgetDrawCommands& WidgetDrawCommands::PushClip(const StencilPushConstants& info)
+WidgetDrawCommands& WidgetDrawCommands::PushClip(const Matrix3<float>& transform, const Vec2<float>& size)
 {
-    ClipInfo clipInfo{info};
+    auto id = static_cast<uint32_t>(_clips.size());
+
+    ClipInfo clipInfo{id,transform,size};
     _clips.push_back(clipInfo);
-    _clipStack.push(_clips.size());
+    _clipStack.push_back(clipInfo.id);
+    _clipId += std::to_string(id);
     return *this;
 }
+
 
 WidgetDrawCommands& WidgetDrawCommands::PopClip()
 {
-    if(const auto id = _clipStack.top(); id != 0 && id % 32 == 0)
-    {
-        _breaks.emplace(id,_commands.size() - 1);
-    }
-    _clipStack.pop();
+    auto asStr = std::to_string(_clipStack.back());
+    _clipStack.pop_back();
+    _clipId = _clipId.substr(0,_clipId.size() - asStr.size());
     return *this;
 }
 
-std::vector<CommandInfo> WidgetDrawCommands::GetCommands() const
+std::vector<RawCommandInfo>& WidgetDrawCommands::GetCommands()
 {
     return _commands;
 }
 
-std::vector<ClipInfo> WidgetDrawCommands::GetClips() const
+std::vector<ClipInfo>& WidgetDrawCommands::GetClips()
 {
     return _clips;
 }
 
-std::map<uint32_t,uint32_t> WidgetDrawCommands::GetClipBreaks() const
+std::map<std::string, std::deque<uint32_t>>& WidgetDrawCommands::GetUniqueClipStacks()
 {
-    return _breaks;
+    return _uniqueClipStacks;
 }
 
 bool WidgetDrawCommands::Empty() const

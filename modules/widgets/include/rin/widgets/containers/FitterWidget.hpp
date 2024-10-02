@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "rin/widgets/WidgetContainer.hpp"
+#include "rin/widgets/ContainerWidget.hpp"
 
 enum class FitMode
 {
@@ -10,7 +10,7 @@ enum class FitMode
 };
 
     
-class WidgetFitter : public WidgetContainer
+class FitterWidget : public ContainerWidget
 {
     FitMode _mode = FitMode::None;
 public:
