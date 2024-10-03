@@ -129,7 +129,7 @@ void TestModule::Startup(GRuntime* runtime)
                 loadedTexture.SetChannels(4);
                 textureId = GraphicsModule::Get()->GetResourceManager()->CreateTexture(loadedTexture,ImageFormat::RGBA8,vk::Filter::eNearest,{},true);
             }
-            for(auto i = 0; i < 10; i++)
+            for(auto i = 0; i < 3; i++)
             {
                 auto img = newShared<ImageWidget>();
                 img->SetTextureId(textureId);

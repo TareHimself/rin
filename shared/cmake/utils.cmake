@@ -626,7 +626,7 @@ macro(GetMsdfGen VERSION)
 
   BuildThirdPartyDep(msdfgen https://github.com/Chlumsky/msdfgen ${VERSION} RESULT_DIR "" "BuildMsdfGen")
 
-  # list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
   find_package(msdfgen REQUIRED)
 
