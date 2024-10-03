@@ -539,78 +539,6 @@ macro(GetArgparse VERSION)
   
 endmacro()
 
-
-
-# Simd
-macro(GetSimd VERSION)
-
-  function(BuildSimd B_TYPE B_SRC B_DEST)
-    message(STATUS "BUILD DIR ${B_SRC}/prj/cmake")
-    execute_process(
-      COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DCMAKE_GENERATOR_PLATFORM=x64 -DSIMD_TEST=OFF -DSIMD_PYTHON=OFF -S ${B_SRC}/prj/cmake -B ${B_DEST}
-    )
-  endfunction()
-
-  BuildThirdPartyDep(simd https://github.com/TareHimself/Simd-cmake-fix ${VERSION} RESULT_DIR "" "BuildSimd")
-
-  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/share/simd)
-
-  find_package(Simd REQUIRED)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${RESULT_DIR}/include) 
-  target_link_libraries(${PROJECT_NAME} PUBLIC Simd)
-  
-endmacro()
-# # LibJpegTurbo
-# macro(GetLibJpegTurbo VERSION)
-
-#   function(BuildLibJpegTurbo B_TYPE B_SRC B_DEST)
-#     execute_process(
-#       COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${B_TYPE} -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -S ${B_SRC} -B ${B_DEST}
-#     )
-#   endfunction()
-
-#   BuildThirdPartyDep(libjpegturbo https://github.com/libjpeg-turbo/libjpeg-turbo ${VERSION} RESULT_DIR "" "BuildLibJpegTurbo")
-
-#   # list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
-
-#   find_package(libjpeg-turbo REQUIRED)
-#   target_include_directories(${PROJECT_NAME} PRIVATE ${RESULT_DIR}/include) 
-#   target_link_libraries(${PROJECT_NAME} PUBLIC libjpeg-turbo::jpeg-static)
-  
-# endmacro()
-
-
-
-# Cimg
-macro(GetCImg VERSION)
-
-  set(RESULT_DIR ${RIN_THIRD_PARTY_DIR}/cimg_${VERSION})
-  set(OUTPUT_FILES "")
-  if(NOT EXISTS ${RESULT_DIR})
-    set(REPO_DIR ${CMAKE_CURRENT_BINARY_DIR}/cimg)
-    Fetch(https://github.com/GreycLab/CImg ${VERSION} ${REPO_DIR})
-
-    file(MAKE_DIRECTORY ${RESULT_DIR})
-
-    file(COPY ${REPO_DIR}/CImg.h DESTINATION ${RESULT_DIR}/include/CImg)
-    list(APPEND OUTPUT_FILES ${RESULT_DIR}/include/CImg/CImg.h)
-
-    file(REMOVE_RECURSE ${REPO_DIR})
-    unset(REPO_DIR)
-  endif()
-
-  target_include_directories(
-    ${PROJECT_NAME}
-    PUBLIC
-    $<BUILD_INTERFACE:${RESULT_DIR}/include>
-    $<INSTALL_INTERFACE:include> 
-  )
-
-  target_sources(${PROJECT_NAME} PUBLIC ${OUTPUT_FILES})
-  unset(OUTPUT_FILES)
-  unset(RESULT_DIR)
-endmacro()
-
 # STB
 macro(GetStb VERSION)
   set(RESULT_DIR ${RIN_THIRD_PARTY_DIR}/stb_${VERSION})
@@ -720,7 +648,8 @@ macro(SetDefaults IN_SCOPE IN_MODULE_NAME)
   set(CMAKE_CXX_STANDARD 20)
   set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-  set(MODULE_NAME ${IN_SCOPE}_${IN_MODULE_NAME})
+  set(SCOPE_NAME ${IN_SCOPE})
+  set(MODULE_NAME ${IN_SCOPE}${IN_MODULE_NAME})
   set(MODULE_NAME_SCOPED "${IN_SCOPE}::${IN_MODULE_NAME}")
 endmacro()
 
@@ -732,9 +661,9 @@ endfunction()
 # SetupProject
 macro(SetupProject)
   
-  file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/lib/rin/*.cpp" )
+  file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/lib/*/*.cpp" )
 
-  file(GLOB_RECURSE INCLUDE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/rin/*.hpp" )
+  file(GLOB_RECURSE INCLUDE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/*/*.hpp" )
   
   #file(GLOB_RECURSE GENERATED_SOURCE_FILES "include/gen/*pp" )
   
@@ -792,10 +721,10 @@ macro(SetupProject)
 
   install(
     EXPORT ${MODULE_NAME}-targets
-    FILE ${MODULE_NAME}Config.cmake
-    NAMESPACE ${MODULE_NAME_SCOPED}
-    DESTINATION lib/cmake/${MODULE_NAME}
-  )
+   FILE ${MODULE_NAME}Config.cmake 
+   NAMESPACE ${SCOPE_NAME}:: 
+   DESTINATION lib/cmake/${SCOPE_NAME}
+   )
 endmacro()
 
 

@@ -8,7 +8,7 @@ set(MODULES_DIR ${CMAKE_CURRENT_LIST_DIR}/../modules)
 
 macro(LinkRinModule IN_MODULE_NAME)
     add_subdirectory(${MODULES_DIR}/${IN_MODULE_NAME} ${IN_MODULE_NAME})
-    LinkToExecutable(rin rin_${IN_MODULE_NAME})
+    LinkToExecutable(rin rin${IN_MODULE_NAME})
 endmacro()
 #set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
@@ -19,11 +19,11 @@ file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" "${CMAKE_
 
 add_executable(rin ${SOURCE_FILES})
 
-LinkRinModule("core")
-LinkRinModule("window")
-LinkRinModule("graphics")
-LinkRinModule("widgets")
-LinkRinModule("audio")
+LinkRinModule("Core")
+LinkRinModule("Window")
+LinkRinModule("Graphics")
+LinkRinModule("Widgets")
+LinkRinModule("Audio")
 
 CopyRuntimeDlls("rin" "rin")
 CopyResourcesTo("rin")
