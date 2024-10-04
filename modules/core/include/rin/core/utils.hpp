@@ -26,6 +26,9 @@ bool instanceOf(const T *ptr) {
     return dynamic_cast<const Base*>(ptr) != nullptr;
 }
 
+std::vector<unsigned char> readFile(const std::filesystem::path& path);
+
+
 std::string readFileAsString(const std::filesystem::path& path);
 
 template<typename T>

@@ -38,6 +38,7 @@ Image<unsigned char> Image<unsigned char>::LoadFile(const std::filesystem::path&
     return Image{};
 }
 
+
 template <>
 void Image<unsigned char>::SavePng(const std::filesystem::path& filePath) const
 {

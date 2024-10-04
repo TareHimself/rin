@@ -7,6 +7,12 @@
 #include <Shlwapi.h>
 #include <io.h> 
 #endif
+std::vector<unsigned char> readFile(const std::filesystem::path& path)
+{
+    std::ifstream fileStream(path, std::ios::binary);
+    return {(std::istreambuf_iterator<char>(fileStream)), std::istreambuf_iterator<char>()};
+}
+
 std::string readFileAsString(const std::filesystem::path& path)
 {
     std::ifstream fileStream(path, std::ios::binary);

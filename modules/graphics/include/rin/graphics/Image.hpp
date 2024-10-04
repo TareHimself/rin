@@ -29,7 +29,7 @@ public:
         _width = width < 0 ? 0 : width;
         _height = height < 0 ? 0 : height;
         _channels = channels < 0 ? 0 : channels;
-        _data = new T[GetElementCount()];
+        _data = new T[GetElementCount()]();
         _owned = true;
     }
     
@@ -47,7 +47,7 @@ public:
         else
         {
             const auto size = GetElementCount();
-            _data = new T[size];
+            _data = new T[size]();
             std::copy_n(data,size * sizeof(T),_data);
         }
     }
@@ -63,18 +63,10 @@ public:
         _width = other._width;
         _height = other._height;
         _channels = other._channels;
-        _owned = other._owned;
-    
-        if(_owned)
-        {
-            _data = other._data;
-        }
-        else
-        {
-            const auto size = GetElementCount();
-            _data = new T[size];
-            std::copy_n(other._data,size * sizeof(T),_data);
-        }
+        const auto size = GetElementCount();
+        _data = new T[size]();
+        std::copy_n(other._data,size * sizeof(T),_data);
+        _owned = true;
     }
     
     ~Image()
@@ -119,16 +111,35 @@ public:
     {
         return static_cast<long>(GetWidth()) * static_cast<long>(GetHeight()) * static_cast<long>(GetChannels());
     }
-
-
+    
     T& operator()(unsigned int x,unsigned int y,unsigned int c)
     {
-        return _data[y * (_width * _channels) + (x * _channels + c)];
+        return At(x,y,c);
     }
     
     T operator()(unsigned int x,unsigned int y,unsigned int c) const
     {
+        return At(x,y,c);
+    }
+
+    T& At(unsigned int x,unsigned int y,unsigned int c)
+    {
         return _data[y * (_width * _channels) + (x * _channels + c)];
+    }
+
+    T At(unsigned int x,unsigned int y,unsigned int c) const
+    {
+        return _data[y * (_width * _channels) + (x * _channels + c)]; 
+    }
+
+    T& At(unsigned int index)
+    {
+        return _data[index];
+    }
+
+    T At(unsigned int index) const
+    {
+        return _data[index]; 
     }
     
     template<typename E>
@@ -136,23 +147,23 @@ public:
     {
         auto size = GetElementCount();
         auto newArr = new E[size];
-        for(int i = 0; i < size; ++size)
+        for(int i = 0; i < size; ++i)
         {
-            newArr[i] = static_cast<E>(this[i]);
+            newArr[i] = static_cast<E>(this->At(i));
         }
-        return Image{_width,_height,_channels,newArr,true};
+        return Image<E>{GetWidth(),GetHeight(),GetChannels(),newArr,true};
     }
 
     template<typename E>
-    Image<E> Cast(const std::function<E(const T&)> transform) const
+    Image<E> Cast(const std::function<E(const T&)>& transform) const
     {
         auto size = GetElementCount();
         auto newArr = new E[size];
-        for(int i = 0; i < size; ++size)
+        for(int i = 0; i < size; ++i)
         {
-            newArr[i] = transform(this[i]);
+            newArr[i] = transform(this->At(i));
         }
-        return Image{_width,_height,_channels,newArr,true};
+        return Image<E>{GetWidth(),GetHeight(),GetChannels(),newArr,true};
     }
 
     static Image LoadFile(const std::filesystem::path& filePath);
@@ -170,7 +181,7 @@ public:
 
         if(!_data) return;
         
-        auto newData = new T[_width * _height * _channels];
+        auto newData = new T[_width * _height * _channels]();
 
         auto min = newChannels > oldChannels ? oldChannels : newChannels;
         

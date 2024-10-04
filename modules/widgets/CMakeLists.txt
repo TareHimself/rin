@@ -9,4 +9,5 @@ SetupProject()
 
 AddModuleToModule(${CMAKE_CURRENT_LIST_DIR}/../graphics "rinGraphics")
 GetMsdfGen("v1.12")
+GetFreeType("VER-2-13-3")
 

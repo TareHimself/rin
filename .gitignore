@@ -20,7 +20,7 @@ gen/*.png
 *.vs
 bin/
 obj/
-ext/
+ext/*!headers
 build/
 out/
 cpp/

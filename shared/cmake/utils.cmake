@@ -539,6 +539,41 @@ macro(GetArgparse VERSION)
   
 endmacro()
 
+# GetDpRectPack
+macro(GetDpRectPack VERSION)
+  set(RESULT_DIR ${RIN_THIRD_PARTY_DIR}/dp_rect_pack_${VERSION})
+  set(OUTPUT_FILES "")
+  if(NOT EXISTS ${RESULT_DIR})
+    set(REPO_DIR ${CMAKE_CURRENT_BINARY_DIR}/dp)
+    Fetch(https://github.com/danpla/dp_rect_pack ${VERSION} ${REPO_DIR})
+
+    file(MAKE_DIRECTORY ${RESULT_DIR})
+
+    set(FILES_TO_COPY "dp_rect_pack.h")
+
+    foreach(TO_COPY ${FILES_TO_COPY})
+      file(COPY ${REPO_DIR}/${TO_COPY} DESTINATION ${RESULT_DIR}/include)
+      list(APPEND OUTPUT_FILES ${RESULT_DIR}/include/${TO_COPY})
+    endforeach()
+
+    file(REMOVE_RECURSE ${REPO_DIR})
+    unset(FILES_TO_COPY)
+    unset(REPO_DIR)
+  endif()
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include> 
+  )
+
+  target_sources(${PROJECT_NAME} PUBLIC ${OUTPUT_FILES})
+  unset(OUTPUT_FILES)
+  unset(RESULT_DIR)
+endmacro()
+
+
 # STB
 macro(GetStb VERSION)
   set(RESULT_DIR ${RIN_THIRD_PARTY_DIR}/stb_${VERSION})
@@ -549,7 +584,7 @@ macro(GetStb VERSION)
 
     file(MAKE_DIRECTORY ${RESULT_DIR})
 
-    set(FILES_TO_COPY "stb_image.h" "stb_image_write.h")
+    set(FILES_TO_COPY "stb_image.h" "stb_image_write.h" "stb_rect_pack.h")
 
     foreach(TO_COPY ${FILES_TO_COPY})
       file(COPY ${REPO_DIR}/${TO_COPY} DESTINATION ${RESULT_DIR}/include/stb)
@@ -578,7 +613,7 @@ macro(GetFreeType VERSION)
 
   BuildThirdPartyDep(freetype https://gitlab.freedesktop.org/freetype/freetype ${VERSION} RESULT_DIR "" "")
 
-  # list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
+  list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
   find_package(freetype REQUIRED PATHS ${RESULT_DIR}/lib/cmake)
 
