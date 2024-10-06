@@ -9,7 +9,12 @@ FitMode FitterWidget::GetMode() const
 
     void FitterWidget::SetMode(FitMode mode)
     {
+        auto oldMode = _mode;
         _mode = mode;
+        if(mode != oldMode && GetSurface())
+        {
+            ArrangeSlots(GetContentSize());
+        }
     }
 
     Vec2<float> FitterWidget::ComputeContentSize()

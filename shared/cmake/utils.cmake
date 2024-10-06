@@ -539,27 +539,15 @@ macro(GetArgparse VERSION)
   
 endmacro()
 
-# GetDpRectPack
-macro(GetDpRectPack VERSION)
-  set(RESULT_DIR ${RIN_THIRD_PARTY_DIR}/dp_rect_pack_${VERSION})
-  set(OUTPUT_FILES "")
-  if(NOT EXISTS ${RESULT_DIR})
-    set(REPO_DIR ${CMAKE_CURRENT_BINARY_DIR}/dp)
-    Fetch(https://github.com/danpla/dp_rect_pack ${VERSION} ${REPO_DIR})
+# GetRPack
+macro(GetRPack VERSION)
+  BuildThirdPartyDep(rpack https://github.com/TareHimself/rpack ${VERSION} RESULT_DIR "" "")
 
-    file(MAKE_DIRECTORY ${RESULT_DIR})
+  # list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 
-    set(FILES_TO_COPY "dp_rect_pack.h")
+  find_package(rpack REQUIRED PATHS ${RESULT_DIR}/lib/cmake)
 
-    foreach(TO_COPY ${FILES_TO_COPY})
-      file(COPY ${REPO_DIR}/${TO_COPY} DESTINATION ${RESULT_DIR}/include)
-      list(APPEND OUTPUT_FILES ${RESULT_DIR}/include/${TO_COPY})
-    endforeach()
-
-    file(REMOVE_RECURSE ${REPO_DIR})
-    unset(FILES_TO_COPY)
-    unset(REPO_DIR)
-  endif()
+  target_link_libraries(${PROJECT_NAME} PUBLIC rpack::rpack)
 
   target_include_directories(
     ${PROJECT_NAME}
@@ -568,9 +556,10 @@ macro(GetDpRectPack VERSION)
     $<INSTALL_INTERFACE:include> 
   )
 
-  target_sources(${PROJECT_NAME} PUBLIC ${OUTPUT_FILES})
-  unset(OUTPUT_FILES)
-  unset(RESULT_DIR)
+  install(
+    DIRECTORY ${RESULT_DIR}/include/
+    DESTINATION include
+  )
 endmacro()
 
 

@@ -44,6 +44,21 @@ void TestClipCommand::Run(SurfaceFrame* frame)
     enableStencilCompare(cmd,bitshift(1,2),vk::CompareOp::eNotEqual);
 }
 
+TextTestWidget::TextTestWidget()
+{
+    
+}
+
+Vec2<float> TextTestWidget::ComputeContentSize()
+{
+    return Vec2{0.0f};
+}
+
+void TextTestWidget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
+{
+    
+}
+
 Vec2<float> TestWidget::ComputeContentSize()
 {
     return Vec2{200.0f};
@@ -115,36 +130,24 @@ void TestModule::Startup(GRuntime* runtime)
 {
     _window = _windowModule->Create("Rin Engine", 500, 500);
     _window->onCloseRequested->Add(&TestModule::OnCloseRequested);
-    
+
     if (auto surface = _widgetsModule->GetSurface(_window.get()))
     {
-        auto mainContainer = newShared<FlexWidget>();
-        {
-            auto textureId = 0;
-            
-            if(auto file = rin::platform::selectFile("Select An Image",false); !file.empty())
-            {
-                std::filesystem::path imageFilePath{file.front()};
-                auto loadedTexture = Image<unsigned char>::LoadFile(imageFilePath);
-                loadedTexture.SetChannels(4);
-                textureId = GraphicsModule::Get()->GetResourceManager()->CreateTexture(loadedTexture,ImageFormat::RGBA8,vk::Filter::eNearest,{},true);
-            }
-            for(auto i = 0; i < 3; i++)
-            {
-                auto img = newShared<ImageWidget>();
-                img->SetTextureId(textureId);
-                auto fitter = (newShared<FitterWidget>() + img).second;
-                fitter->SetPadding(Padding{20.0f});
-                auto slot = (mainContainer + fitter).first;
-                fitter->SetClipMode(EClipMode::Bounds);
-                fitter->SetMode(FitMode::Cover);
-            }
-        }
+        _container = newShared<FlexWidget>();
         
+        surface->AddChild(_container);
+        
+        _window->onKey->Add([this](Window * window,Key key,InputState state)
+        {
+            if(key == Key::L && state == InputState::Released)
+            {
+                tasks.Put(this,&TestModule::LoadImages);  
+            }
+        });
         //panel->SetClipMode(EClipMode::Bounds);
-        surface->AddChild(mainContainer);
     }
-
+    
+    
     // if(const auto sample = bass::createFileStream(R"(C:\Users\Taree\Downloads\Tracks\Sunny - Yorushika.mp3)",0,bass::CreateFlag::SampleFloat | bass::CreateFlag::SampleMono); sample->Play())
     // {
     //     sample->SetAttribute(bass::Attribute::Volume,0.6f);
@@ -174,6 +177,28 @@ void TestModule::RegisterRequiredModules()
     GetRuntime()->RegisterModule<GraphicsModule>();
     _windowModule = GetRuntime()->RegisterModule<WindowModule>();
     _widgetsModule = GetRuntime()->RegisterModule<WidgetsModule>();
+}
+
+void TestModule::LoadImages()
+{
+    if(auto files = rin::platform::selectFile("Select Images",true); !files.empty())
+    {
+        auto textureId = 0;
+        for(auto &file : files)
+        {
+            std::filesystem::path imageFilePath{file};
+            auto loadedTexture = Image<unsigned char>::LoadFile(imageFilePath);
+            loadedTexture.SetChannels(4);
+            textureId = GraphicsModule::Get()->GetResourceManager()->CreateTexture(loadedTexture,ImageFormat::RGBA8,vk::Filter::eNearest,{},true);
+            auto img = newShared<ImageWidget>();
+            img->SetTextureId(textureId);
+            auto fitter = (newShared<FitterWidget>() + img).second;
+            fitter->SetPadding(Padding{20.0f});
+            auto slot = (_container + fitter).first;
+            fitter->SetClipMode(EClipMode::Bounds);
+            fitter->SetMode(FitMode::Cover);
+        }
+    }
 }
 
 void TestModule::OnCloseRequested(Window* window)

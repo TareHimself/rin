@@ -38,6 +38,8 @@ public:
     int CreateTexture(const unsigned char* data,const vk::Extent3D& size,ImageFormat format,vk::Filter filter = vk::Filter::eLinear,vk::SamplerAddressMode tiling  = vk::SamplerAddressMode::eRepeat,bool mipMapped = false,const std::string& debugName = "Texture");
 
     int CreateTexture(Image<unsigned char>& image,ImageFormat format,vk::Filter filter = vk::Filter::eLinear,vk::SamplerAddressMode tiling  = vk::SamplerAddressMode::eRepeat,bool mipMapped = false,const std::string& debugName = "Texture");
+
+    void FreeTextures(const std::vector<int>& ids) const;
     
     bool IsValid(const int& textureId) const;
 

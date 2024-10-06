@@ -14,9 +14,7 @@ public:
     GraphicsShader(ShaderManager * manager,const Shared<rsl::ModuleNode>& inVertex,const Shared<rsl::ModuleNode>& inFragment);
         
     bool Bind(const vk::CommandBuffer& cmd, bool wait) override;
-
-        
-
+    
     std::string GetVertexShaderId() const;
     std::string GetFragmentShaderId() const;
     std::shared_ptr<rsl::ModuleNode> GetVertexShader() const;

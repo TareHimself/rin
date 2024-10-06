@@ -6,6 +6,13 @@
 #include "rin/core/math/Matrix4.hpp"
 #include "rin/graphics/WindowRenderer.hpp"
 #include "rin/graphics/shaders/GraphicsShader.hpp"
+#include <ft2build.h>
+
+#include "SDFContainer.hpp"
+#include "rin/graphics/Image.hpp"
+
+#include FT_FREETYPE_H
+#include FT_OUTLINE_H
 
 class WidgetWindowSurface;
 class Window;
@@ -40,9 +47,8 @@ class WidgetsModule : public RinModule
     DelegateListHandle _rendererDestroyedHandle{};
     Shared<GraphicsShader> _batchShader{};
     Shared<GraphicsShader> _stencilShader{};
+    Shared<FT_Library> _library{};
 
-    
-    
 public:
 
     static WidgetsModule * Get();
@@ -59,5 +65,12 @@ public:
     Shared<WidgetWindowSurface> GetSurface(Window * window) const;
     Shared<GraphicsShader> GetBatchShader() const;
     Shared<GraphicsShader> GetStencilShader() const;
-    void DrawStencil(const vk::CommandBuffer& cmd,const WidgetStencilClip& pushConstants) const;
+
+    static Shared<FT_Library> InitFreetype();
+
+    
+    std::shared_ptr<Image<unsigned char>> MtsdfFromGlyph(int code, const FT_Face& face,const float pixelRange = 30.0f,
+                                                             const float angleThreshold = 3.0f);
+
+    bool GenerateAtlases(SDFContainer& result,const FT_Face& face,int pixelSize = 30,int atlasSize = 256,int padding = 2,float pixelRange = 30.0f,float angleThreshold = 3.0f);
 };

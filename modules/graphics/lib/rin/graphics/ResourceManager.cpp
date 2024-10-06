@@ -124,6 +124,26 @@ int ResourceManager::CreateTexture(Image<unsigned char>& image, ImageFormat form
     return CreateTexture(image.GetData(),vk::Extent3D{size.x,size.y,1},format,filter,tiling,mipMapped,debugName);
 }
 
+void ResourceManager::FreeTextures(const std::vector<int>& ids) const
+{
+    auto set = _descriptorSet->GetInternalSet();
+    std::vector<vk::WriteDescriptorSet> writes{};
+    for (auto& id : ids)
+    {
+        auto info = _textures.at(id);
+
+        if (!info.valid) continue;
+        
+        writes.emplace_back(set,0,static_cast<uint32_t>(id));
+    }
+
+    if (!writes.empty())
+    {
+        auto device = GraphicsModule::Get()->GetDevice();
+        device.updateDescriptorSets(writes, {});
+    }
+}
+
 bool ResourceManager::IsValid(const int& textureId) const
 {
     if(textureId < 0) return false;

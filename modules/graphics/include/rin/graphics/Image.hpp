@@ -209,12 +209,17 @@ public:
 
     bool CopyTo(Image& other,const Vec2<int>& srcBegin,const Vec2<int>& srcEnd,const Vec2<int>& dstBegin = {0,0})
     {
-        auto srcRowSize = GetWidth() * GetChannels();
-        auto dstRowSize = other.GetWidth() * other.GetChannels();
-        if(srcRowSize != dstRowSize)
+
+        auto copyDelta = srcEnd - srcBegin;
+        auto copySize = dstBegin + copyDelta;
+        auto otherSize = other.GetSize() - dstBegin;
+        if(copySize.x > otherSize.x || copySize.y > otherSize.y)
         {
             return false;
         }
+        
+        auto srcRowSize = GetWidth() * GetChannels();
+        auto dstRowSize = other.GetWidth() * other.GetChannels();
         
         auto deltaY = srcEnd.y - srcBegin.y;
         auto deltaX = (srcEnd.x - srcBegin.x) * GetChannels();

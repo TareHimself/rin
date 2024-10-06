@@ -1,5 +1,5 @@
-// #include "TestModule.hpp"
-// #include "rin/core/GRuntime.hpp"
+#include "TestModule.hpp"
+#include "rin/core/GRuntime.hpp"
 #include "rin/core/utils.hpp"
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -7,9 +7,7 @@
 #include "rin/graphics/Image.hpp"
 #include "msdfgen/msdfgen.h"
 #include <iostream>
-#define STB_RECT_PACK_IMPLEMENTATION
-#include "stb/stb_rect_pack.h"
-#include "dp_rect_pack.h"
+#include <rpack/rpack.hpp>
 
 std::shared_ptr<FT_Library> initFreetype()
 {
@@ -178,56 +176,96 @@ std::shared_ptr<Image<unsigned char>> makeMtsdfFromGlyph(int code, const FT_Face
     return result;
 }
 
+void makePixels()
+{
+    // auto library = initFreetype();
+    // FT_Face face{};
+    // if (auto err = FT_New_Face(*library,
+    //                            R"(C:\Users\Taree\Videos\Roboto-Regular.ttf)",
+    //                            0,
+    //                            &face))
+    // {
+    //     return;
+    // }
+    //
+    // FT
+    //
+    // FT_Face_Get
+    //
+    // constexpr auto fontSizePixels = 32;
+    // if (FT_Set_Pixel_Sizes(face, 0, fontSizePixels))
+    // {
+    //     return;
+    // }
+    //
+    // std::unordered_map<int,std::shared_ptr<Image<unsigned char>>> generated{};
+    //
+    // auto atlasSize = 256;
+    // for(auto i = 32; i < 127; i++)
+    // {
+    //     if(auto result = makeMtsdfFromGlyph(i,face,30.0f); result && !result->GetElementCount() == 0)
+    //     {
+    //         generated.emplace(i,result);
+    //     }
+    // }
+    //
+    // using namespace rpack;
+    // std::vector<Packer> packers{};
+    // std::unordered_map<int,std::pair<int,int>> mapping{};
+    //
+    // for(auto it = generated.begin(); it != generated.end(); ++it)
+    // {
+    //     if(packers.empty())
+    //     {
+    //         packers.emplace_back(atlasSize,atlasSize,2);
+    //     }
+    //
+    //     auto packerId = static_cast<int>(packers.size()) - 1;
+    //
+    //     auto &[id,image] = *it;
+    //     
+    //     auto insertion =  packers.at(packerId).Pack(image->GetWidth(),image->GetHeight());
+    //
+    //     if(!insertion.has_value())
+    //     {
+    //         packers.emplace_back(atlasSize,atlasSize,10);
+    //         --it;
+    //     }
+    //     else
+    //     {
+    //         int insertionIdx = insertion.value();
+    //         mapping.emplace(id,std::pair(packerId,insertionIdx));
+    //     }
+    // }
+    //
+    //
+    // std::vector<std::shared_ptr<Image<unsigned char>>> atlases{};
+    // atlases.reserve(packers.size());
+    //
+    // for(auto &packer : packers)
+    // {
+    //     atlases.push_back(std::make_shared<Image<unsigned char>>(atlasSize,atlasSize,4));
+    // }
+    //
+    // for(auto &[id,info] : mapping)
+    // {
+    //     auto atlasId = info.first;
+    //     auto img = generated.at(id);
+    //     auto pos = packers.at(info.first).GetRects().at(info.second);
+    //     //img->SavePng("mtsdf_" + std::to_string(id) + ".png");
+    //     img->CopyTo(*atlases.at(atlasId),Vec2{0},img->GetSize(),Vec2{pos.x,pos.y});
+    // }
+    //
+    // auto i = 0;
+    // for(auto &atlas : atlases)
+    // {
+    //     atlas->SavePng("atlas_" + std::to_string(i) + ".png");
+    //     ++i;
+    // }
+}
+
 int main()
 {
-    auto library = initFreetype();
-    FT_Face face{};
-    if (auto err = FT_New_Face(*library,
-                               R"(C:\Users\Taree\Downloads\Roboto-Regular.ttf)",
-                               0,
-                               &face))
-    {
-        return 0;
-    }
-
-    constexpr auto fontSizePixels = 32;
-    if (FT_Set_Pixel_Sizes(face, 0, fontSizePixels))
-    {
-        return 0;
-    }
-
-    std::unordered_map<int,std::shared_ptr<Image<unsigned char>>> generated{};
-
-    for(auto i = 32; i < 127; i++)
-    {
-        if(auto result = makeMtsdfFromGlyph(i,face,30.0f); result && !result->GetElementCount() == 0)
-        {
-            generated.emplace(i,result);
-        }
-    }
-
-    using Packer = dp::rect_pack::RectPacker<>;
-    
-    std::vector<Packer> packers{};
-    
-    for(auto &[id,image] : generated)
-    {
-        if(packers.empty())
-        {
-            packers.push_back(Packer packer(512,512,Packer::Spacing(0),Packer::Padding(4)))
-        }
-    }
-    
-    auto img = makeMtsdfFromGlyph(65, face,30.0f);
-    std::vector<Image<unsigned char> *> atlases{};
-    atlases.push_back(new Image<unsigned char>{512,512,4});
-    
-    img->SavePng("./atlas.png");
-
-    
-
-    
-
-    // GRuntime::Get()->RegisterModule<TestModule>();
-    // GRuntime::Get()->Run();
+    GRuntime::Get()->RegisterModule<TestModule>();
+    GRuntime::Get()->Run();
 }
