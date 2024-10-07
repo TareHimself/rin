@@ -28,7 +28,7 @@ Image<unsigned char> Image<unsigned char>::LoadFile(const std::filesystem::path&
     int height;
     int channels;
     
-    if(auto ptr = stbi_load(filePath.string().c_str(),&width,&height,&channels,0))
+    if(auto ptr = stbi_load(filePath.string().c_str(),&width,&height,&channels,STBI_default))
     {
         auto img = Image{width,height,channels,ptr};
         stbi_image_free(ptr);

@@ -573,7 +573,7 @@ macro(GetStb VERSION)
 
     file(MAKE_DIRECTORY ${RESULT_DIR})
 
-    set(FILES_TO_COPY "stb_image.h" "stb_image_write.h" "stb_rect_pack.h")
+    set(FILES_TO_COPY "stb_image.h" "stb_image_write.h")
 
     foreach(TO_COPY ${FILES_TO_COPY})
       file(COPY ${REPO_DIR}/${TO_COPY} DESTINATION ${RESULT_DIR}/include/stb)
