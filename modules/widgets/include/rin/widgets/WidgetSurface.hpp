@@ -7,6 +7,7 @@
 
 #include "rin/graphics/Frame.hpp"
 #include "graphics/QuadInfo.hpp"
+#include "graphics/SurfaceFinalDrawCommand.hpp"
 #include "rin/core/math/Matrix4.hpp"
 
 struct CommandInfo;
@@ -81,7 +82,9 @@ namespace SurfaceGlobals
         virtual void DrawBatches(SurfaceFrame * frame,std::vector<QuadInfo>& quads);
         virtual void Draw(Frame * frame);
 
-        virtual void DrawCommands(SurfaceFrame * frame,const std::vector<CommandInfo>& drawCommands);
+        virtual void CollectCommands(SurfaceFrame * frame,std::vector<SurfaceFinalDrawCommand>& finalDrawCommands);
+
+        virtual void DrawCommandsToFinalCommands(SurfaceFrame * frame,const std::vector<CommandInfo>& drawCommands,std::vector<SurfaceFinalDrawCommand>& finalDrawCommands);
 
         virtual void HandleDrawSkipped(Frame* frame) = 0;
         virtual void HandleBeforeDraw(Frame* frame) = 0;

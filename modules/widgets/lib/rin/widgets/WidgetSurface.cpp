@@ -9,9 +9,10 @@
 #include "rin/graphics/DeviceBuffer.hpp"
 #include "rin/graphics/GraphicsModule.hpp"
 #include "rin/graphics/ResourceManager.hpp"
-#include "rin/widgets/utils.hpp"
+#include <stdint.h>
 #include "rin/widgets/Widget.hpp"
 #include "rin/widgets/ContainerWidget.hpp"
+#include "rin/widgets/utils.hpp"
 #include "rin/widgets/WidgetsModule.hpp"
 #include "rin/widgets/event/CursorDownEvent.hpp"
 #include "rin/widgets/event/CursorMoveEvent.hpp"
@@ -276,6 +277,8 @@ Shared<DeviceImage> WidgetSurface::GetCopyImage() const
 void WidgetSurface::BeginMainPass(SurfaceFrame* frame, bool clearColor, bool clearStencil)
 {
     if(frame->activePass == SurfaceGlobals::MAIN_PASS_ID) return;
+    if(!frame->activePass.empty()) EndActivePass(frame);
+    
     auto size = GetDrawSize().Cast<uint32_t>();
     vk::Extent2D renderExtent{size.x, size.y};
     auto cmd = frame->raw->GetCommandBuffer();
@@ -380,6 +383,106 @@ void WidgetSurface::Draw(Frame* frame)
     DoHover();
 
     {
+        SurfaceFrame surfaceFrame{this,frame,""};
+        auto surfaceFramePtr = &surfaceFrame;
+        std::vector<SurfaceFinalDrawCommand> finalDrawCommands{};
+        CollectCommands(surfaceFramePtr,finalDrawCommands);
+
+        if(finalDrawCommands.empty())
+        {
+                HandleDrawSkipped(frame);
+            return;
+        }
+
+        HandleBeforeDraw(frame);
+
+        BeginMainPass(surfaceFramePtr,true,true);
+        uint64_t memoryNeeded = 0;
+        
+        for(auto &drawCommand : finalDrawCommands)
+        {
+            if(drawCommand.type == SurfaceFinalDrawCommand::Type::BatchedDraw)
+            {
+                memoryNeeded += drawCommand.size.value();
+            }
+        }
+
+        uint64_t offset = 0;
+        bool isWritingStencil = false;
+        
+        vk::StencilFaceFlags faceFlags = vk::StencilFaceFlagBits::eFrontAndBack;
+        for(int i = 0; i < finalDrawCommands.size(); i++)
+        {
+            auto &command = finalDrawCommands.at(i);
+
+            switch (command.type) {
+            case SurfaceFinalDrawCommand::Type::None:
+                break;
+            case SurfaceFinalDrawCommand::Type::ClipDraw:
+                {
+                    BeginMainPass(surfaceFramePtr);
+                    
+                    if(!isWritingStencil)
+                    {
+                        cmd.setStencilOp(faceFlags,vk::StencilOp::eKeep,vk::StencilOp::eReplace,vk::StencilOp::eKeep,vk::CompareOp::eAlways);
+                        SetColorWriteMask(frame,vk::ColorComponentFlags());
+                        isWritingStencil = true;
+                    }
+
+                    cmd.setStencilWriteMask(faceFlags,command.mask.value());
+                    WriteStencil(frame,command.clipInfo->transform,command.clipInfo->size);
+                }
+                break;
+            case SurfaceFinalDrawCommand::Type::ClipClear:
+                {
+                    BeginMainPass(surfaceFramePtr);
+                    
+                    vk::ClearAttachment clearAttachment{vk::ImageAspectFlagBits::eStencil,{},vk::ClearValue{vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f}}};
+                    auto extent = _stencilImage->GetExtent();
+                    vk::ClearRect clearRect{vk::Rect2D{vk::Offset2D{0,0},vk::Extent2D{extent.width,extent.height}},0,1};
+                    cmd.clearAttachments(clearAttachment,clearRect);
+                }
+                break;
+            case SurfaceFinalDrawCommand::Type::BatchedDraw:
+            case SurfaceFinalDrawCommand::Type::CustomDraw:
+                {
+                    BeginMainPass(surfaceFramePtr);
+                    
+                    if(isWritingStencil)
+                    {
+                        enableStencilCompare(cmd,command.mask.value(),vk::CompareOp::eNotEqual);
+                        SetColorWriteMask(frame,vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+                        isWritingStencil = false;
+                    }
+                    else
+                    {
+                        cmd.setStencilCompareMask(faceFlags,command.mask.value());
+                    }
+                    
+                    if(command.type == SurfaceFinalDrawCommand::Type::CustomDraw)
+                    {
+                        command.custom->Run(surfaceFramePtr);
+                    }
+                    else
+                    {
+                        DrawBatches(surfaceFramePtr,command.quads.value());
+                    }
+                }
+                break;
+            }
+        }
+
+        if (!surfaceFrame.activePass.empty())
+        {
+            EndActivePass(surfaceFramePtr);
+        }
+    }
+
+    HandleAfterDraw(frame);
+}
+
+void WidgetSurface::CollectCommands(SurfaceFrame* frame, std::vector<SurfaceFinalDrawCommand>& finalDrawCommands)
+{
         std::vector<Shared<Widget>> widgets = _rootWidgets;
         TransformInfo transform{this};
         WidgetDrawCommands drawCommands{};
@@ -390,16 +493,11 @@ void WidgetSurface::Draw(Frame* frame)
 
         if (drawCommands.Empty())
         {
-            HandleDrawSkipped(frame);
             return;
         }
-
-        HandleBeforeDraw(frame);
-
-        SurfaceFrame surfFrame{this, frame, ""};
+        
         auto &clips = drawCommands.GetClips();
         auto rawCommands = drawCommands.GetCommands();
-        BeginMainPass(&surfFrame,true,true);
         if(clips.empty())
         {
             std::vector<CommandInfo> commands(rawCommands.size());
@@ -407,7 +505,7 @@ void WidgetSurface::Draw(Frame* frame)
             {
                 return CommandInfo{rawInfo.command,0x01};
             });
-            DrawCommands(&surfFrame,commands);
+            DrawCommandsToFinalCommands(frame,commands,finalDrawCommands);
         }
         else
         {
@@ -416,33 +514,15 @@ void WidgetSurface::Draw(Frame* frame)
             std::unordered_map<std::string,uint32_t> computedClipStacks{};
             std::vector<CommandInfo> pendingCommands{};
             std::uint32_t currentMask = 0x01;
-            BeginMainPass(&surfFrame);
-            cmd.setStencilOp(faceFlags,vk::StencilOp::eKeep,vk::StencilOp::eReplace,vk::StencilOp::eKeep,vk::CompareOp::eAlways);
-            SetColorWriteMask(frame,vk::ColorComponentFlags());
             for(auto i = 0; i < rawCommands.size(); i++)
             {
                 if(currentMask == 128)
                 {
-                    DrawCommands(&surfFrame,pendingCommands);
+                    DrawCommandsToFinalCommands(frame,pendingCommands,finalDrawCommands);
                     pendingCommands.clear();
                     computedClipStacks.clear();
                     currentMask = 0x01;
-                    
-
-                    // if(surfFrame.activePass == SurfaceGlobals::MAIN_PASS_ID)
-                    // {
-                    //     EndActivePass(&surfFrame);
-                    // }
-                    
-                    //BeginMainPass(&surfFrame,false,true);
-                    
-                    //cmd.setStencilOp(faceFlags,vk::StencilOp::eKeep,vk::StencilOp::eReplace,vk::StencilOp::eKeep,vk::CompareOp::eAlways);
-                    vk::ClearAttachment clearAttachment{vk::ImageAspectFlagBits::eStencil,{},vk::ClearValue{vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f}}};
-                    auto extent = _stencilImage->GetExtent();
-                    vk::ClearRect clearRect{vk::Rect2D{vk::Offset2D{0,0},vk::Extent2D{extent.width,extent.height}},0,1};
-                    cmd.clearAttachments(clearAttachment,clearRect);
-                    cmd.setStencilOp(faceFlags,vk::StencilOp::eKeep,vk::StencilOp::eReplace,vk::StencilOp::eKeep,vk::CompareOp::eAlways);
-                    SetColorWriteMask(frame,vk::ColorComponentFlags());
+                    finalDrawCommands.emplace_back().type = SurfaceFinalDrawCommand::Type::ClipClear;
                 }
 
                 auto &rawCommand = rawCommands.at(i);
@@ -453,13 +533,14 @@ void WidgetSurface::Draw(Frame* frame)
                 else
                 {
                     currentMask <<= 1;
-                    cmd.setStencilWriteMask(faceFlags,currentMask);
-                    //cmd.setStencilCompareMask(faceFlags,currentMask);
                     
                     for(auto &clipId : uniqueClipStacks.at(rawCommand.clipId))
                     {
                         auto clip = clips.at(clipId);
-                        WriteStencil(frame,clip.transform,clip.size);
+                        auto &fCmd = finalDrawCommands.emplace_back();
+                        fCmd.type = SurfaceFinalDrawCommand::Type::ClipDraw;
+                        fCmd.clipInfo = clip;
+                        fCmd.mask = currentMask;
                     }
                     computedClipStacks.emplace(rawCommand.clipId,currentMask);
                     pendingCommands.emplace_back(rawCommand.command,currentMask);
@@ -468,38 +549,28 @@ void WidgetSurface::Draw(Frame* frame)
 
             if(!pendingCommands.empty())
             {
-                DrawCommands(&surfFrame,pendingCommands);
+                DrawCommandsToFinalCommands(frame,pendingCommands,finalDrawCommands);
                 pendingCommands.clear();
             }
         }
-
-        if (!surfFrame.activePass.empty())
-        {
-            EndActivePass(&surfFrame);
-        }
-    }
-
-    HandleAfterDraw(frame);
 }
 
-void WidgetSurface::DrawCommands(SurfaceFrame* frame, const std::vector<CommandInfo>& drawCommands)
+void WidgetSurface::DrawCommandsToFinalCommands(SurfaceFrame* frame, const std::vector<CommandInfo>& drawCommands,
+    std::vector<SurfaceFinalDrawCommand>& finalDrawCommands)
 {
-    BeginMainPass(frame);
-    
     std::vector<QuadInfo> pendingQuads{};
     uint32_t currentClipMask = bitshift(0); // First bit is reserved for draws with no clipping
-    auto cmd = frame->raw->GetCommandBuffer();
-    SetColorWriteMask(frame->raw,vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
-    enableStencilCompare(cmd,currentClipMask,vk::CompareOp::eNotEqual);
     for (auto& [drawCommand,clipMask] : drawCommands)
     {
         if(currentClipMask != clipMask)
         {
-            DrawBatches(frame,pendingQuads);
+            if(!pendingQuads.empty())
+            {
+                auto &cmd = finalDrawCommands.emplace_back();
+                cmd.SetQuads(pendingQuads,currentClipMask);
+                pendingQuads = {};
+            }
             currentClipMask = clipMask;
-            BeginMainPass(frame);
-            cmd.setStencilCompareMask(vk::StencilFaceFlagBits::eFrontAndBack,currentClipMask);
-            SetColorWriteMask(frame->raw,vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
         }
         
         switch (drawCommand->GetType())
@@ -517,7 +588,19 @@ void WidgetSurface::DrawCommands(SurfaceFrame* frame, const std::vector<CommandI
             {
                 if (auto custom = std::dynamic_pointer_cast<WidgetCustomDrawCommand>(drawCommand))
                 {
-                    DrawBatches(frame,pendingQuads);
+                    {
+                        auto &cmd = finalDrawCommands.emplace_back();
+                        cmd.SetQuads(pendingQuads,currentClipMask);
+                    }
+
+                    {
+                        auto &cmd = finalDrawCommands.emplace_back();
+                        cmd.type = SurfaceFinalDrawCommand::Type::CustomDraw;
+                        cmd.custom = custom;
+                        cmd.mask = currentClipMask;
+                    }
+
+                    
                     custom->Run(frame);
                 }
             }
@@ -527,7 +610,8 @@ void WidgetSurface::DrawCommands(SurfaceFrame* frame, const std::vector<CommandI
 
     if (!pendingQuads.empty())
     {
-        DrawBatches(frame, pendingQuads);
+        auto &cmd = finalDrawCommands.emplace_back();
+        cmd.SetQuads(pendingQuads,currentClipMask);
     }
 }
 
