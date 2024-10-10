@@ -14,7 +14,7 @@ public:
     Vec4<float> GetBorderRadius() const;
     void SetTint(const Vec4<float>& tint);
     Vec4<float> GetTint() const;
-    void Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
+    void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
 
 protected:
     Vec2<float> ComputeContentSize() override;

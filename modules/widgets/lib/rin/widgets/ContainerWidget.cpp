@@ -211,7 +211,7 @@ Shared<ContainerWidgetSlot> ContainerWidget::MakeSlot(const Shared<Widget>& widg
         return false;
     }
 
-    void ContainerWidget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
+    void ContainerWidget::CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
     {
         auto slots = GetSlots();
         auto clipMode = GetClipMode();

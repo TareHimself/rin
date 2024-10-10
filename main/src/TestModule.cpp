@@ -131,17 +131,17 @@ void TestModule::Startup(GRuntime* runtime)
     _window = _windowModule->Create("Rin Engine", 500, 500);
     _window->onCloseRequested->Add(&TestModule::OnCloseRequested);
 
-    if (auto surface = _widgetsModule->GetSurface(_window.get()))
+    if (auto surface = _widgetsModule->GetSurface(_window))
     {
         _container = newShared<FlexWidget>();
         
         surface->AddChild(_container);
         
-        _window->onKey->Add([this](Window * window,Key key,InputState state)
+        _window->onKey->Add([this](Window * window, const Key key, const InputState state)
         {
-            if(key == Key::L && state == InputState::Released)
+            if(key == Key::Return && state == InputState::Released)
             {
-                tasks.Put(this,&TestModule::LoadImages);  
+                tasks.Put(this,&TestModule::LoadImages);
             }
         });
         //panel->SetClipMode(EClipMode::Bounds);
@@ -188,6 +188,7 @@ void TestModule::LoadImages()
         {
             std::filesystem::path imageFilePath{file};
             auto loadedTexture = Image<unsigned char>::LoadFile(imageFilePath);
+            if(loadedTexture.GetElementCount() == 0) continue;
             loadedTexture.SetChannels(4);
             textureId = GraphicsModule::Get()->GetResourceManager()->CreateTexture(loadedTexture,ImageFormat::RGBA8,vk::Filter::eNearest,{},true);
             auto img = newShared<ImageWidget>();

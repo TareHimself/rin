@@ -58,6 +58,7 @@ enum class Key
     Minus = SDLK_MINUS,
     Period = SDLK_PERIOD,
     Slash = SDLK_SLASH,
+    Return = SDLK_RETURN,
     KP_Decimal = SDLK_KP_DECIMAL,
     KP_Divide = SDLK_KP_DIVIDE,
     KP_Multiply = SDLK_KP_MULTIPLY,

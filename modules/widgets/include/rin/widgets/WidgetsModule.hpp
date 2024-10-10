@@ -63,6 +63,7 @@ public:
     void OnRendererDestroyed(WindowRenderer * renderer);
 
     Shared<WidgetWindowSurface> GetSurface(Window * window) const;
+    Shared<WidgetWindowSurface> GetSurface(const Shared<Window>& window) const;
     Shared<GraphicsShader> GetBatchShader() const;
     Shared<GraphicsShader> GetStencilShader() const;
 

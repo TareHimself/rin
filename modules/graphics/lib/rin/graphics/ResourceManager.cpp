@@ -11,7 +11,9 @@
 void ResourceManager::UpdateTextures(const std::vector<int>& indices)
 {
     auto set = _descriptorSet->GetInternalSet();
+    
     std::vector<vk::WriteDescriptorSet> writes{};
+    
     for (auto& id : indices)
     {
         auto info = _textures.at(id);
@@ -38,11 +40,21 @@ void ResourceManager::UpdateTextures(const std::vector<int>& indices)
 vk::Sampler ResourceManager::GetOrCreateSampler(const SamplerSpec& spec)
 {
     auto id = spec.GetId();
+    
     if (_samplers.contains(id)) return _samplers[id];
 
-    vk::SamplerCreateInfo createInfo{{}, spec.filter, spec.filter, {}, spec.tiling, spec.tiling, spec.tiling};
+    vk::SamplerCreateInfo createInfo{
+        {},
+        spec.filter,
+        spec.filter,
+        spec.filter == vk::Filter::eLinear ? vk::SamplerMipmapMode::eLinear : vk::SamplerMipmapMode::eNearest,
+        spec.tiling,
+        spec.tiling,
+        spec.tiling
+    };
 
     auto device = GraphicsModule::Get()->GetDevice();
+    
     return _samplers.emplace(id, device.createSampler(createInfo)).first->second;
 }
 
@@ -98,6 +110,7 @@ int ResourceManager::CreateTexture(const unsigned char* data, const vk::Extent3D
     auto image = _graphicsModule->CreateImage(data, size, format, vk::ImageUsageFlagBits::eSampled, mipMapped,
                                               filter, debugName);
     auto boundTex = BoundTexture{image, filter, tiling, mipMapped, debugName};
+    
     int textureId;
 
     if (_availableTextureIndices.empty())

@@ -88,12 +88,21 @@ void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
         return ComputeRelativeTransform();
     }
 
-    void Widget::SetVisibility(EVisibility visibility)
+    void Widget::SetVisibility(WidgetVisibility visibility)
     {
+        auto oldVisibility = _visibility;
         _visibility = visibility;
+
+        if(oldVisibility != _visibility)
+        {
+            if(_visibility == WidgetVisibility::Collapsed)
+            {
+                CheckSize();
+            }
+        }
     }
 
-    EVisibility Widget::GetVisibility() const
+    WidgetVisibility Widget::GetVisibility() const
     {
         return _visibility;
     }
@@ -126,12 +135,12 @@ void Widget::OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface)
 
     bool Widget::IsSelfHitTestable() const
     {
-        return _visibility == EVisibility::Visible || _visibility == EVisibility::VisibleNoHitTestChildren;
+        return _visibility == WidgetVisibility::Visible || _visibility == WidgetVisibility::VisibleNoHitTestChildren;
     }
 
     bool Widget::AreChildrenHitTestable() const
     {
-        return _visibility == EVisibility::Visible || _visibility == EVisibility::VisibleNoHitTestSelf;
+        return _visibility == WidgetVisibility::Visible || _visibility == WidgetVisibility::VisibleNoHitTestSelf;
     }
 
 bool Widget::HasSurface() const
@@ -242,7 +251,14 @@ void Widget::BindCursorUp(const Shared<WidgetSurface>& surface)
 
     Vec2<float> Widget::GetDesiredSize()
     {
-        return _cachedDesiredSize.has_value() ? _cachedDesiredSize.value() : ComputeDesiredSize();
+        if(_cachedDesiredSize.has_value())
+        {
+            return _cachedDesiredSize.value();
+        }
+    
+        _cachedDesiredSize = ComputeDesiredSize();
+    
+        return _cachedDesiredSize.value();
     }
 
     Padding Widget::GetPadding() const
@@ -267,10 +283,22 @@ void Widget::BindCursorUp(const Shared<WidgetSurface>& surface)
         if(_cachedDesiredSize.has_value() && _cachedDesiredSize->NearlyEquals(newSize,0.01f)) return false;
 
         _cachedDesiredSize = newSize;
+    
         if(auto parent = GetParent())
         {
             parent->OnChildResized(this);
         }
 
         return true;
+    }
+
+    void Widget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
+    {
+        auto visibility = GetVisibility();
+        if(visibility == WidgetVisibility::Hidden || visibility == WidgetVisibility::Collapsed)
+        {
+            return;
+        }
+
+        CollectContent(transform,drawCommands);
     }

@@ -138,7 +138,7 @@ void WindowRenderer::Init()
 
     bool WindowRenderer::CanDraw() const
     {
-        return _swapchainReady && _frames.size() == NUM_FRAMES;
+        return !_window->IsHidden() && !_window->IsMinimized() && _swapchainReady && _frames.size() == NUM_FRAMES;
     }
 
     void WindowRenderer::Draw()

@@ -55,7 +55,7 @@ enum class EClipMode
         template<typename TSlotType,typename T,typename ...TArgs>
        std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<Widget,T> && std::is_base_of_v<ContainerWidgetSlot,TSlotType>,Shared<TSlotType>> AddChild(TArgs&&... args);
 
-        void Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
+        void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
 
         TransformInfo ComputeChildTransform(const Shared<ContainerWidgetSlot>& slot, const TransformInfo& myTransform);
         virtual TransformInfo ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform);

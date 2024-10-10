@@ -16,7 +16,8 @@ class Window : public RinBase
 {
         
     SDL_Window* _window = nullptr;
-
+    bool _minimized = false;
+    bool _hidden = false;
 
 protected:
     void NotifyEvent(const SDL_Event& event);
@@ -42,9 +43,15 @@ public:
     DEFINE_DELEGATE_LIST(onCursorButton,Window*,CursorButton,InputState)
     DEFINE_DELEGATE_LIST(onCursorMoved,Window*,const Vec2<float>&)
     DEFINE_DELEGATE_LIST(onDisposed,Window*)
+    DEFINE_DELEGATE_LIST(onMinimized,Window*)
+    DEFINE_DELEGATE_LIST(onMaximized,Window*)
+    DEFINE_DELEGATE_LIST(onHidden,Window*)
+    DEFINE_DELEGATE_LIST(onShown,Window*)
 
     SDL_Window* GetSDLWindow() const;
 
+    bool IsMinimized() const;
+    bool IsHidden() const;
     Vec2<int> GetSize() const;
     Vec2<int> GetPosition() const;
     Vec2<float> GetCursorPosition() const;

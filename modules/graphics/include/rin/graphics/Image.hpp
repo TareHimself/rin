@@ -77,57 +77,57 @@ public:
         }
     }
 
-    T* GetData()
+    [[nodiscard]] T* GetData()
     {
         return _data;
     }
 
-    T* GetData() const
+    [[nodiscard]] T* GetData() const
     {
         return _data;
     }
 
-    int GetWidth() const
+    [[nodiscard]] int GetWidth() const
     {
         return _width;
     }
 
-    int GetHeight() const
+    [[nodiscard]] int GetHeight() const
     {
         return _height;
     }
 
-    int GetChannels() const
+    [[nodiscard]] int GetChannels() const
     {
         return _channels;
     }
-    
-    Vec2<int> GetSize() const
+
+    [[nodiscard]] Vec2<int> GetSize() const
     {
         return {GetWidth(),GetHeight()};
     }
 
-    long GetElementCount() const
+    [[nodiscard]] long GetElementCount() const
     {
         return static_cast<long>(GetWidth()) * static_cast<long>(GetHeight()) * static_cast<long>(GetChannels());
     }
     
-    T& operator()(unsigned int x,unsigned int y,unsigned int c)
+    T& operator()(const unsigned int x,const unsigned int y,const unsigned int c)
     {
         return At(x,y,c);
     }
     
-    T operator()(unsigned int x,unsigned int y,unsigned int c) const
+    T operator()(const unsigned int x,const unsigned int y,const unsigned int c) const
     {
         return At(x,y,c);
     }
 
-    T& At(unsigned int x,unsigned int y,unsigned int c)
+    T& At(const unsigned int x,const unsigned int y,const unsigned int c)
     {
         return _data[y * (_width * _channels) + (x * _channels + c)];
     }
 
-    T At(unsigned int x,unsigned int y,unsigned int c) const
+    [[nodiscard]] T At(const unsigned int x,const unsigned int y,const unsigned int c) const
     {
         return _data[y * (_width * _channels) + (x * _channels + c)]; 
     }
@@ -137,7 +137,7 @@ public:
         return _data[index];
     }
 
-    T At(unsigned int index) const
+    [[nodiscard]] T At(unsigned int index) const
     {
         return _data[index]; 
     }
@@ -145,7 +145,7 @@ public:
     template<typename E>
     Image<E> Cast() const
     {
-        auto size = GetElementCount();
+        const auto size = GetElementCount();
         auto newArr = new E[size];
         for(int i = 0; i < size; ++i)
         {
@@ -157,7 +157,7 @@ public:
     template<typename E>
     Image<E> Cast(const std::function<E(const T&)>& transform) const
     {
-        auto size = GetElementCount();
+        const auto size = GetElementCount();
         auto newArr = new E[size];
         for(int i = 0; i < size; ++i)
         {
@@ -174,7 +174,7 @@ public:
     void SetChannels(int&& channels,T&& fillValue = 255)
     {
         if(_channels == channels) return;
-        auto oldChannels = _channels;
+        const auto oldChannels = _channels;
         const auto newChannels = channels;
 
         _channels = newChannels;
@@ -183,7 +183,7 @@ public:
         
         auto newData = new T[_width * _height * _channels]();
 
-        auto min = newChannels > oldChannels ? oldChannels : newChannels;
+        const auto min = newChannels > oldChannels ? oldChannels : newChannels;
         
         for(auto y = 0; y < _height; y++)
         {
@@ -209,19 +209,17 @@ public:
 
     bool CopyTo(Image& other,const Vec2<int>& srcBegin,const Vec2<int>& srcEnd,const Vec2<int>& dstBegin = {0,0})
     {
-
-        auto copyDelta = srcEnd - srcBegin;
+        const auto copyDelta = srcEnd - srcBegin;
         auto copySize = dstBegin + copyDelta;
-        auto otherSize = other.GetSize() - dstBegin;
-        if(copySize.x > otherSize.x || copySize.y > otherSize.y)
+        if(auto otherSize = other.GetSize() - dstBegin; copySize.x > otherSize.x || copySize.y > otherSize.y)
         {
             return false;
         }
-        
-        auto srcRowSize = GetWidth() * GetChannels();
+
+        const auto srcRowSize = GetWidth() * GetChannels();
         auto dstRowSize = other.GetWidth() * other.GetChannels();
-        
-        auto deltaY = srcEnd.y - srcBegin.y;
+
+        const auto deltaY = srcEnd.y - srcBegin.y;
         auto deltaX = (srcEnd.x - srcBegin.x) * GetChannels();
         for(auto i = 0; i < deltaY; i++)
         {

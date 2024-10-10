@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-enum class EVisibility
+enum class WidgetVisibility
 {
     // visible and all hit tests
     Visible,

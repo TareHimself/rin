@@ -52,6 +52,30 @@ void Window::NotifyEvent(const SDL_Event& event)
                 onCloseRequested->Invoke(this);
             }
             break;
+        case SDL_EVENT_WINDOW_MINIMIZED:
+            {
+                _minimized = true;
+                onMinimized->Invoke(this);
+            }
+            break;
+        case SDL_EVENT_WINDOW_MAXIMIZED:
+            {
+                _minimized = false;
+                onMaximized->Invoke(this);
+            }
+            break;
+        case SDL_EVENT_WINDOW_HIDDEN:
+            {
+                _hidden = true;
+                onHidden->Invoke(this);
+            }
+            break;
+        case SDL_EVENT_WINDOW_SHOWN:
+            {
+                _hidden = false;
+                onShown->Invoke(this);
+            }
+            break;
         case SDL_EVENT_TEXT_INPUT:
             {
                 //event.text.timestamp
@@ -78,7 +102,17 @@ void Window::NotifyEvent(const SDL_Event& event)
         return _window;
     }
 
-    Vec2<int> Window::GetSize() const
+bool Window::IsMinimized() const
+{
+    return _minimized;
+}
+
+bool Window::IsHidden() const
+{
+    return _hidden;
+}
+
+Vec2<int> Window::GetSize() const
     {
         Vec2<int> result{0};
         SDL_GetWindowSize(_window, &result.x, &result.y);

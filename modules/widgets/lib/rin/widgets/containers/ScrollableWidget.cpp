@@ -79,15 +79,6 @@
         return ContainerWidget::OnCursorDown(event);
     }
 
-    void ScrollableWidget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
-    {
-        ContainerWidget::Collect(transform, drawCommands);
-        if(IsScrollable())
-        {
-            
-        }
-    }
-
     TransformInfo ScrollableWidget::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
     {
         auto myTransformDup = myTransform;

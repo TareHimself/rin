@@ -74,6 +74,11 @@ Shared<WidgetWindowSurface> WidgetsModule::GetSurface(Window* window) const
     return {};
 }
 
+Shared<WidgetWindowSurface> WidgetsModule::GetSurface(const Shared<Window>& window) const
+{
+    return GetSurface(window.get());
+}
+
 Shared<GraphicsShader> WidgetsModule::GetBatchShader() const
 {
     return _batchShader;

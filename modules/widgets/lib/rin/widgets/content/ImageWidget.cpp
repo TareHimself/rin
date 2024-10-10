@@ -39,7 +39,7 @@ Vec4<float> ImageWidget::GetTint() const
     return _tint;
 }
 
-void ImageWidget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
+void ImageWidget::CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
 {
     if (_textureId < 0)
     {

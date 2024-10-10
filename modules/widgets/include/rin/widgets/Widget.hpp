@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <vector>
 #include <optional>
-#include "EVisibility.hpp"
+#include "WidgetVisibility.hpp"
 #include "Padding.hpp"
 #include "WidgetRect.hpp"
 #include "TransformInfo.hpp"
@@ -31,7 +31,7 @@ class ContainerWidget;
         bool _hovered = false;
         Padding _padding{0.0};
         
-        EVisibility _visibility = EVisibility::Visible;
+        WidgetVisibility _visibility = WidgetVisibility::Visible;
 
         friend WidgetSurface;
     protected:
@@ -60,6 +60,9 @@ class ContainerWidget;
 
         // Computes the size of the widget (Content size + Padding)
         virtual Vec2<float> ComputeDesiredSize();
+
+        // Collects draw commands
+        virtual void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) = 0;
     public:
 
         Vec2<float> pivot{0.0};
@@ -72,9 +75,9 @@ class ContainerWidget;
 
         Matrix3<float> ComputeAbsoluteTransform() const;
 
-        void SetVisibility(EVisibility visibility);
+        void SetVisibility(WidgetVisibility visibility);
 
-        EVisibility GetVisibility() const;
+        WidgetVisibility GetVisibility() const;
 
         WidgetRect GetRect() const;
 
@@ -139,7 +142,7 @@ class ContainerWidget;
         bool CheckSize();
         
         // Collects draw commands
-        virtual void Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands) = 0;
+        virtual void Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands);
 
         //void Collect(WidgetFrame frame, DrawInfo info);
     };
