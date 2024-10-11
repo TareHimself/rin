@@ -4,9 +4,7 @@
 #include "rin/core/math/Vec2.hpp"
 #include "rin/graphics/DeviceImage.hpp"
 #include <optional>
-
 #include "rin/graphics/Frame.hpp"
-#include "graphics/QuadInfo.hpp"
 #include "graphics/SurfaceFinalDrawCommand.hpp"
 #include "rin/core/math/Matrix4.hpp"
 

@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include <memory>
-#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -19,7 +18,7 @@ class SDFContainer
 public:
     SDFContainer();
 
-    bool Has(const std::string& id) const;
+    [[nodiscard]] bool Has(const std::string& id) const;
 
     SDFItem Get(const std::string& id);
 

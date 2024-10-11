@@ -104,7 +104,7 @@ void WidgetSurface::CreateImages()
                                              usageFlags, false, "Widget Surface Main Image");
 
     _copyImage = graphicsModule->CreateImage({imageExtent.x, imageExtent.y, 1}, ImageFormat::RGBA32,
-                                             usageFlags, false, "Widget Surface Main Image");
+                                             usageFlags, false, "Widget Surface Copy Image");
 
     _stencilImage = graphicsModule->CreateImage({imageExtent.x, imageExtent.y, 1}, ImageFormat::Stencil,
                                                 vk::ImageUsageFlagBits::eTransferSrc |

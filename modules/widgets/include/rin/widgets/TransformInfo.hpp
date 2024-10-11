@@ -22,9 +22,9 @@ struct TransformInfo
 
     explicit TransformInfo(const Shared<Widget>& widget, bool absolute = false);
 
-    TransformInfo AccountFor(const Shared<ContainerWidgetSlot>& slot) const;
-    TransformInfo AccountFor(const Shared<Widget>& widget) const;
-    TransformInfo AccountFor(const Widget* widget) const;
+    [[nodiscard]] TransformInfo AccountFor(const Shared<ContainerWidgetSlot>& slot) const;
+    [[nodiscard]] TransformInfo AccountFor(const Shared<Widget>& widget) const;
+    [[nodiscard]] TransformInfo AccountFor(const Widget* widget) const;
 
     bool IsPointWithin(const Vec2<float>& point) const;
 
