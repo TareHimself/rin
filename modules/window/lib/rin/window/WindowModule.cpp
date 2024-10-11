@@ -3,6 +3,7 @@
 #include "rin/window/WindowModule.hpp"
 #include "rin/core/GRuntime.hpp"
 #include "rin/window/Window.hpp"
+
 std::string WindowModule::GetName()
 {
     return "Window Module";
@@ -11,14 +12,14 @@ std::string WindowModule::GetName()
 void WindowModule::Startup(GRuntime* runtime)
 {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
-        
+
     runtime->onTick->Add([this](double _)
     {
         SDL_Event event{};
-        while(SDL_PollEvent(&event))
+        while (SDL_PollEvent(&event))
         {
             auto windowId = SDL_GetWindowID(SDL_GetWindowFromEvent(&event));
-            if(auto target = _windows.contains(windowId) ? _windows[windowId] : Shared<Window>{})
+            if (auto target = _windows.contains(windowId) ? _windows[windowId] : Shared<Window>{})
             {
                 target->NotifyEvent(event);
             }
@@ -37,9 +38,9 @@ bool WindowModule::IsDependentOn(RinModule* module)
 }
 
 Shared<Window> WindowModule::Create(const std::string& name, int width, int height,
-    const WindowCreateOptions& options)
+                                    const WindowCreateOptions& options)
 {
-    if (const auto win = SDL_CreateWindow(name.c_str(),width, height,options.Apply()))
+    if (const auto win = SDL_CreateWindow(name.c_str(), width, height, options.Apply()))
     {
         auto newWindow = newShared<Window>(win);
         auto id = SDL_GetWindowID(win);
@@ -47,7 +48,7 @@ Shared<Window> WindowModule::Create(const std::string& name, int width, int heig
         {
             _windows.erase(id);
         });
-        _windows.emplace(id,newWindow);
+        _windows.emplace(id, newWindow);
         return newWindow;
     }
 

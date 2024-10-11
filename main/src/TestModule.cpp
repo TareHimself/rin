@@ -37,16 +37,15 @@ void TestClipCommand::Run(SurfaceFrame* frame)
 
     auto size = Vec2{500.0f};
     auto displaySize = surf->GetDrawSize().Cast<float>();
-    enableStencilWrite(cmd,bitshift(1),1);
-    surf->WriteStencil(frame->raw,Matrix3<float>{},size);
-    enableStencilWrite(cmd,bitshift(2),1);
-    surf->WriteStencil(frame->raw,Matrix3<float>{}.Translate(displaySize - size),size);
-    enableStencilCompare(cmd,bitshift(1,2),vk::CompareOp::eNotEqual);
+    enableStencilWrite(cmd, bitshift(1), 1);
+    surf->WriteStencil(frame->raw, Matrix3<float>{}, size);
+    enableStencilWrite(cmd, bitshift(2), 1);
+    surf->WriteStencil(frame->raw, Matrix3<float>{}.Translate(displaySize - size), size);
+    enableStencilCompare(cmd, bitshift(1, 2), vk::CompareOp::eNotEqual);
 }
 
 TextTestWidget::TextTestWidget()
 {
-    
 }
 
 Vec2<float> TextTestWidget::ComputeContentSize()
@@ -56,7 +55,6 @@ Vec2<float> TextTestWidget::ComputeContentSize()
 
 void TextTestWidget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
 {
-    
 }
 
 Vec2<float> TestWidget::ComputeContentSize()
@@ -71,52 +69,54 @@ void TestWidget::Collect(const TransformInfo& transform,
     pivot = Vec2{0.5f};
     angle = sin(time) * 90.0f;
     auto size = GetSize();
-    
-    if (auto parent = GetParent() ? GetParent()->GetParent() : Shared<ContainerWidget>{}; parent && parent->IsHovered() && GetSurface())
+
+    if (auto parent = GetParent() ? GetParent()->GetParent() : Shared<ContainerWidget>{}; parent && parent->IsHovered()
+        && GetSurface())
     {
         if (auto surface = GetSurface())
         {
             auto targetLocation = surface->GetCursorPosition();
             drawCommands.Add(SimpleBatchedDrawCommand::Builder()
-                           .AddRect(
-                               size,
-                               Matrix3<float>(1.0f).Translate(targetLocation).RotateDeg(angle).Translate(GetSize() * pivot * -1.0f),
-                               Vec4{
-                                   abs(sin(time) * (size.x / 2.0f))
-                               }
-                               .Cast<float>(),
-                               Vec4{
-                                   abs(sin(time + 1)),
-                                   abs(sin(time + 2)),
-                                   abs(sin(time + 3)),
-                                   1.0
-                               }
-                               .Cast<float>()
-                           )
-                           .Finish());
+                             .AddRect(
+                                 size,
+                                 Matrix3<float>(1.0f).Translate(targetLocation).RotateDeg(angle).Translate(
+                                     GetSize() * pivot * -1.0f),
+                                 Vec4{
+                                     abs(sin(time) * (size.x / 2.0f))
+                                 }
+                                 .Cast<float>(),
+                                 Vec4{
+                                     abs(sin(time + 1)),
+                                     abs(sin(time + 2)),
+                                     abs(sin(time + 3)),
+                                     1.0
+                                 }
+                                 .Cast<float>()
+                             )
+                             .Finish());
         }
     }
     else
     {
         _lastLocation = transform.transform * Vec2{0.0f};
-        
+
         drawCommands.Add(SimpleBatchedDrawCommand::Builder()
-                               .AddRect(
-                                   size,
-                                   transform.transform,
-                                   Vec4{
-                                       abs(sin(time) * (size.x / 2.0f))
-                                   }
-                                   .Cast<float>(),
-                                   Vec4{
-                                       abs(sin(time + 1)),
-                                       abs(sin(time + 2)),
-                                       abs(sin(time + 3)),
-                                       1.0
-                                   }
-                                   .Cast<float>()
-                               )
-                               .Finish()
+                         .AddRect(
+                             size,
+                             transform.transform,
+                             Vec4{
+                                 abs(sin(time) * (size.x / 2.0f))
+                             }
+                             .Cast<float>(),
+                             Vec4{
+                                 abs(sin(time + 1)),
+                                 abs(sin(time + 2)),
+                                 abs(sin(time + 3)),
+                                 1.0
+                             }
+                             .Cast<float>()
+                         )
+                         .Finish()
         );
     }
 }
@@ -134,20 +134,20 @@ void TestModule::Startup(GRuntime* runtime)
     if (auto surface = _widgetsModule->GetSurface(_window))
     {
         _container = newShared<FlexWidget>();
-        
+
         surface->AddChild(_container);
-        
-        _window->onKey->Add([this](Window * window, const Key key, const InputState state)
+
+        _window->onKey->Add([this](Window* window, const Key key, const InputState state)
         {
-            if(key == Key::Return && state == InputState::Released)
+            if (key == Key::Return && state == InputState::Released)
             {
-                tasks.Put(this,&TestModule::LoadImages);
+                tasks.Put(this, &TestModule::LoadImages);
             }
         });
         //panel->SetClipMode(EClipMode::Bounds);
     }
-    
-    
+
+
     // if(const auto sample = bass::createFileStream(R"(C:\Users\Taree\Downloads\Tracks\Sunny - Yorushika.mp3)",0,bass::CreateFlag::SampleFloat | bass::CreateFlag::SampleMono); sample->Play())
     // {
     //     sample->SetAttribute(bass::Attribute::Volume,0.6f);
@@ -181,16 +181,17 @@ void TestModule::RegisterRequiredModules()
 
 void TestModule::LoadImages()
 {
-    if(auto files = rin::platform::selectFile("Select Images",true); !files.empty())
+    if (auto files = rin::platform::selectFile("Select Images", true); !files.empty())
     {
         auto textureId = 0;
-        for(auto &file : files)
+        for (auto& file : files)
         {
             std::filesystem::path imageFilePath{file};
             auto loadedTexture = Image<unsigned char>::LoadFile(imageFilePath);
-            if(loadedTexture.GetElementCount() == 0) continue;
+            if (loadedTexture.GetElementCount() == 0) continue;
             loadedTexture.SetChannels(4);
-            textureId = GraphicsModule::Get()->GetResourceManager()->CreateTexture(loadedTexture,ImageFormat::RGBA8,vk::Filter::eNearest,{},true);
+            textureId = GraphicsModule::Get()->GetResourceManager()->CreateTexture(
+                loadedTexture, ImageFormat::RGBA8, vk::Filter::eNearest, {}, true);
             auto img = newShared<ImageWidget>();
             img->SetTextureId(textureId);
             auto fitter = (newShared<FitterWidget>() + img).second;

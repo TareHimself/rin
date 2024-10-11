@@ -25,7 +25,7 @@ void SDFContainer::AddAtlas(const std::shared_ptr<Image<unsigned char>>& atlas)
 
 void SDFContainer::AddItem(const SDFItem& item)
 {
-    _items.emplace(item.id,item);
+    _items.emplace(item.id, item);
 }
 
 Shared<USDFContainer> SDFContainer::Upload()
@@ -33,23 +33,22 @@ Shared<USDFContainer> SDFContainer::Upload()
     std::vector<int> atlases{};
 
     auto resourceManager = GraphicsModule::Get()->GetResourceManager();
-    
-    for (auto &atlas : _atlases)
+
+    for (auto& atlas : _atlases)
     {
-        atlases.push_back(resourceManager->CreateTexture(*atlas,ImageFormat::RGBA8,vk::Filter::eNearest));
+        atlases.push_back(resourceManager->CreateTexture(*atlas, ImageFormat::RGBA8, vk::Filter::eNearest));
     }
 
-    std::unordered_map<std::string,USDFItem> items{};
+    std::unordered_map<std::string, USDFItem> items{};
 
-    for (auto &[id,item] : _items)
+    for (auto& [id,item] : _items)
     {
-        const auto &image = _atlases.at(item.atlas);
+        const auto& image = _atlases.at(item.atlas);
         const auto size = image->GetSize().Cast<float>();
-        const auto rect = Vec4{item.x,item.y,item.x + item.width,item.y + item.height}.Cast<float>();
-        const Vec4<float> uv{rect.x / size.x,rect.y / size.y,rect.z / item.x,rect.w / item.y};
-        items.emplace(id,USDFItem{item.id,item.x,item.y,item.width,item.height,atlases.at(item.atlas),uv});
+        const auto rect = Vec4{item.x, item.y, item.x + item.width, item.y + item.height}.Cast<float>();
+        const Vec4<float> uv{rect.x / size.x, rect.y / size.y, rect.z / item.x, rect.w / item.y};
+        items.emplace(id, USDFItem{item.id, item.x, item.y, item.width, item.height, atlases.at(item.atlas), uv});
     }
 
-    return newShared<USDFContainer>(items,atlases);
+    return newShared<USDFContainer>(items, atlases);
 }
-

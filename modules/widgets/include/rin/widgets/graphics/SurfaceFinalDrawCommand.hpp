@@ -16,7 +16,7 @@ struct SurfaceFinalDrawCommand
         BatchedDraw,
         CustomDraw
     };
-public:
+
     std::optional<uint64_t> size{};
     std::optional<ClipInfo> clipInfo{};
     std::optional<std::vector<QuadInfo>> quads{};
@@ -24,7 +24,7 @@ public:
     Shared<WidgetCustomDrawCommand> custom{};
     Type type = Type::None;
 
-    void SetQuads(const std::vector<QuadInfo>& inQuads,const uint32_t inMask)
+    void SetQuads(const std::vector<QuadInfo>& inQuads, const uint32_t inMask)
     {
         type = Type::BatchedDraw;
         size = inQuads.size() * sizeof(QuadInfo);

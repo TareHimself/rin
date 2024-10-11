@@ -8,11 +8,12 @@ DescriptorPool::DescriptorPool(const vk::DescriptorPool& pool)
     _pool = pool;
 }
 
-Shared<DescriptorSet> DescriptorPool::Allocate(const vk::DescriptorSetLayout& layout, const std::vector<uint32_t>& variableCount)
+Shared<DescriptorSet> DescriptorPool::Allocate(const vk::DescriptorSetLayout& layout,
+                                               const std::vector<uint32_t>& variableCount)
 {
-    auto info = vk::DescriptorSetAllocateInfo{_pool,layout};
+    auto info = vk::DescriptorSetAllocateInfo{_pool, layout};
     auto device = GRuntime::Get()->GetModule<GraphicsModule>()->GetDevice();
-    if(!variableCount.empty())
+    if (!variableCount.empty())
     {
         auto countInfo = vk::DescriptorSetVariableDescriptorCountAllocateInfo{variableCount};
         info.pNext = &countInfo;
@@ -22,7 +23,7 @@ Shared<DescriptorSet> DescriptorPool::Allocate(const vk::DescriptorSetLayout& la
         _descriptors.push_back(allocDesc);
         return allocDesc;
     }
-        
+
     auto desc = device.allocateDescriptorSets(info).at(0);
     auto allocDesc = newShared<DescriptorSet>(desc);
     _descriptors.push_back(allocDesc);
@@ -31,7 +32,7 @@ Shared<DescriptorSet> DescriptorPool::Allocate(const vk::DescriptorSetLayout& la
 
 void DescriptorPool::Reset()
 {
-    for (auto &descriptor : _descriptors)
+    for (auto& descriptor : _descriptors)
     {
         descriptor->Dispose();
     }
@@ -47,10 +48,10 @@ void DescriptorPool::OnDispose(bool manual)
     Disposable::OnDispose(manual);
 
     auto device = GRuntime::Get()->GetModule<GraphicsModule>()->GetDevice();
-        
+
     device.destroyDescriptorPool(_pool);
-        
-    for (auto &descriptor : _descriptors)
+
+    for (auto& descriptor : _descriptors)
     {
         descriptor->Dispose();
     }

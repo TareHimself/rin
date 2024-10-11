@@ -429,7 +429,8 @@ vk::ImageCreateInfo GraphicsModule::MakeImageCreateInfo(ImageFormat format, cons
                                                         const vk::ImageUsageFlags usage)
 {
     return vk::ImageCreateInfo{
-        {}, vk::ImageType::e2D, imageFormatToVulkanFormat(format), extent, 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, usage
+        {}, vk::ImageType::e2D, imageFormatToVulkanFormat(format), extent, 1, 1, vk::SampleCountFlagBits::e1,
+        vk::ImageTiling::eOptimal, usage
     };
 }
 
@@ -522,7 +523,7 @@ WindowRenderer* GraphicsModule::GetRenderer(Window* window) const
     return nullptr;
 }
 
-Shared<DeviceImage> GraphicsModule::CreateImage(const vk::Extent3D& extent,ImageFormat format,
+Shared<DeviceImage> GraphicsModule::CreateImage(const vk::Extent3D& extent, ImageFormat format,
                                                 const vk::ImageUsageFlags usage,
                                                 const bool mipMap, const std::string& debugName) const
 {
@@ -546,7 +547,7 @@ Shared<DeviceImage> GraphicsModule::CreateImage(const vk::Extent3D& extent,Image
     if (auto result = _device.createImageView(&viewCreateInfo, nullptr, newImage->GetImageViewRef()); result !=
         vk::Result::eSuccess)
     {
-        throw std::runtime_error("Failed to create image view: " + vk::to_string(result));
+        throw std::runtime_error("Failed to create image view: " + to_string(result));
     }
 
     return newImage;

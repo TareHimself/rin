@@ -13,10 +13,10 @@ uint64_t DescriptorLayoutStore::GetInternalKey(const vk::DescriptorSetLayoutCrea
 {
     uint64_t id{0};
     auto next = static_cast<const vk::DescriptorSetLayoutBindingFlagsCreateInfo*>(key.pNext);
-    for(auto i  = 0; i < key.bindingCount; i++)
+    for (auto i = 0; i < key.bindingCount; i++)
     {
         auto binding = *(key.pBindings + i);
-            
+
         id = rsl::hashCombine(
             id,
             binding.binding,
@@ -24,7 +24,7 @@ uint64_t DescriptorLayoutStore::GetInternalKey(const vk::DescriptorSetLayoutCrea
             static_cast<int>(binding.descriptorType),
             static_cast<uint32_t>(binding.stageFlags),
             static_cast<uint32_t>(*(next->pBindingFlags + i))
-            );
+        );
     }
 
     return id;

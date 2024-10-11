@@ -12,106 +12,120 @@
 
 
 class ResourceManager;
-    class ShaderManager;
-    class DeviceImage;
-    class WindowRenderer;
+class ShaderManager;
+class DeviceImage;
+class WindowRenderer;
 
 
-    class GraphicsModule : public RinModule
-    {
-        WindowModule * _windowModule = nullptr;
-        std::unordered_map<Window*,WindowRenderer *> _renderers{};
+class GraphicsModule : public RinModule
+{
+    WindowModule* _windowModule = nullptr;
+    std::unordered_map<Window*, WindowRenderer*> _renderers{};
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
-        VkDebugUtilsMessengerEXT _debugMessenger{};
+    VkDebugUtilsMessengerEXT _debugMessenger{};
 #endif
 
-        vk::Instance _instance{};
-        vk::Device _device{};
-        vk::PhysicalDevice _physicalDevice{};
-        vk::Queue _queue{};
-        uint32_t _queueFamily{0};
+    vk::Instance _instance{};
+    vk::Device _device{};
+    vk::PhysicalDevice _physicalDevice{};
+    vk::Queue _queue{};
+    uint32_t _queueFamily{0};
 
-        vk::CommandBuffer _immediateCommandBuffer{};
-        vk::CommandPool _immediateCommandPool{};
-        vk::Fence _immediateFence{};
+    vk::CommandBuffer _immediateCommandBuffer{};
+    vk::CommandPool _immediateCommandPool{};
+    vk::Fence _immediateFence{};
 
-        DescriptorLayoutStore _descriptorLayoutStore{};
-        
-        DelegateListHandle _onWindowCreatedHandle{};
-        DelegateListHandle _onWindowDestroyedHandle{};
-        DelegateListHandle _onTickHandle{};
-        void InitVulkan(Window * window);
-        std::list<std::function<void()>> _pendingTasks;
+    DescriptorLayoutStore _descriptorLayoutStore{};
 
-        std::unique_ptr<Allocator> _allocator{};
-        Shared<ShaderManager> _shaderManager{};
-        Shared<ResourceManager> _resourceManager{};
-        
-    protected:
-        void Startup(GRuntime* runtime) override;
-        void Shutdown(GRuntime* runtime) override;
-        void RegisterRequiredModules() override;
+    DelegateListHandle _onWindowCreatedHandle{};
+    DelegateListHandle _onWindowDestroyedHandle{};
+    DelegateListHandle _onTickHandle{};
+    void InitVulkan(Window* window);
+    std::list<std::function<void()>> _pendingTasks;
 
-        void OnWindowCreated(Window * window);
-        void OnWindowDestroyed(Window * window);
+    std::unique_ptr<Allocator> _allocator{};
+    Shared<ShaderManager> _shaderManager{};
+    Shared<ResourceManager> _resourceManager{};
 
-    public:
-        GraphicsModule();
-        static GraphicsModule * Get();
-        std::string GetName() override;
-    
-        bool IsDependentOn(RinModule* module) override;
-        
-        static vk::DispatchLoaderDynamic dispatchLoader;
+protected:
+    void Startup(GRuntime* runtime) override;
+    void Shutdown(GRuntime* runtime) override;
+    void RegisterRequiredModules() override;
 
-        static vk::DispatchLoaderDynamic GetDispatchLoader();
-        
-        vk::Instance GetInstance() const;
+    void OnWindowCreated(Window* window);
+    void OnWindowDestroyed(Window* window);
 
-        vk::Device GetDevice() const;
+public:
+    GraphicsModule();
+    static GraphicsModule* Get();
+    std::string GetName() override;
 
-        vk::PhysicalDevice GetPhysicalDevice() const;
+    bool IsDependentOn(RinModule* module) override;
 
-        vk::Queue GetQueue() const;
+    static vk::DispatchLoaderDynamic dispatchLoader;
 
-        uint32_t GetQueueFamily() const;
+    static vk::DispatchLoaderDynamic GetDispatchLoader();
 
-        void WaitForDeviceIdle() const;
+    vk::Instance GetInstance() const;
 
-        ShaderManager * GetShaderManager() const;
+    vk::Device GetDevice() const;
 
-        ResourceManager * GetResourceManager() const;
+    vk::PhysicalDevice GetPhysicalDevice() const;
 
-        Allocator * GetAllocator() const;
+    vk::Queue GetQueue() const;
 
-        DescriptorLayoutStore* GetDescriptorLayoutStore();
+    uint32_t GetQueueFamily() const;
 
-        static void ImageBarrier(vk::CommandBuffer cmd,vk::Image image,vk::ImageLayout from,vk::ImageLayout to,const ImageBarrierOptions& options = {});
+    void WaitForDeviceIdle() const;
 
-        static void ImageBarrier(vk::CommandBuffer cmd,const Shared<DeviceImage>& image,vk::ImageLayout from,vk::ImageLayout to,const ImageBarrierOptions& options = {});
+    ShaderManager* GetShaderManager() const;
 
-        void ImmediateSubmit(std::function<void(const vk::CommandBuffer&)>&& submit) const;
+    ResourceManager* GetResourceManager() const;
 
-        static uint32_t DeriveMipLevels(const vk::Extent2D& extent);
-        static uint32_t DeriveMipLevels(const vk::Extent3D& extent);
+    Allocator* GetAllocator() const;
 
-        static void CopyImageToImage(const vk::CommandBuffer& cmd,const vk::Image& src,const vk::Extent3D& srcExtent,const vk::Image& dst,const vk::Extent3D& dstExtent,const vk::Filter& filter = vk::Filter::eLinear);
+    DescriptorLayoutStore* GetDescriptorLayoutStore();
 
-        static vk::RenderingAttachmentInfo MakeRenderingAttachment(const Shared<DeviceImage>& image,const vk::ImageLayout& layout,const std::optional<vk::ClearValue>& clearValue = {});
-        static vk::RenderingAttachmentInfo MakeRenderingAttachment(const vk::ImageView& view,const vk::ImageLayout& layout,const std::optional<vk::ClearValue>& clearValue = {});
-        static vk::ImageCreateInfo MakeImageCreateInfo(ImageFormat format,const vk::Extent3D& extent,vk::ImageUsageFlags usage);
-        static vk::ImageViewCreateInfo MakeImageViewCreateInfo(ImageFormat format,const vk::Image& image,const vk::ImageAspectFlags& aspect);
-        static vk::ImageViewCreateInfo MakeImageViewCreateInfo(const Shared<DeviceImage>& image,const vk::ImageAspectFlags& aspect);
+    static void ImageBarrier(vk::CommandBuffer cmd, vk::Image image, vk::ImageLayout from, vk::ImageLayout to,
+                             const ImageBarrierOptions& options = {});
 
-        static void GenerateMipMaps(const vk::CommandBuffer& cmd,const Shared<DeviceImage>& image,const vk::Extent3D& extent,const vk::Filter& filter);
+    static void ImageBarrier(vk::CommandBuffer cmd, const Shared<DeviceImage>& image, vk::ImageLayout from,
+                             vk::ImageLayout to, const ImageBarrierOptions& options = {});
 
-        WindowRenderer * GetRenderer(Window * window) const;
-        Shared<DeviceImage> CreateImage(const vk::Extent3D& extent,ImageFormat format,vk::ImageUsageFlags usage, bool mipMap = false,
-            const std::string& debugName = "Image") const;
-        
-        Shared<DeviceImage> CreateImage(const unsigned char* data,const vk::Extent3D& extent,ImageFormat format,vk::ImageUsageFlags usage, bool mipMap = false,const vk::Filter& mipMapFilter = vk::Filter::eLinear,
-                                        const std::string& debugName = "Image") const;
+    void ImmediateSubmit(std::function<void(const vk::CommandBuffer&)>&& submit) const;
 
-        DEFINE_DELEGATE_LIST(onRendererCreated,WindowRenderer *)
-        DEFINE_DELEGATE_LIST(onRendererDestroyed,WindowRenderer *)
-    };
+    static uint32_t DeriveMipLevels(const vk::Extent2D& extent);
+    static uint32_t DeriveMipLevels(const vk::Extent3D& extent);
+
+    static void CopyImageToImage(const vk::CommandBuffer& cmd, const vk::Image& src, const vk::Extent3D& srcExtent,
+                                 const vk::Image& dst, const vk::Extent3D& dstExtent,
+                                 const vk::Filter& filter = vk::Filter::eLinear);
+
+    static vk::RenderingAttachmentInfo MakeRenderingAttachment(const Shared<DeviceImage>& image,
+                                                               const vk::ImageLayout& layout,
+                                                               const std::optional<vk::ClearValue>& clearValue = {});
+    static vk::RenderingAttachmentInfo MakeRenderingAttachment(const vk::ImageView& view, const vk::ImageLayout& layout,
+                                                               const std::optional<vk::ClearValue>& clearValue = {});
+    static vk::ImageCreateInfo MakeImageCreateInfo(ImageFormat format, const vk::Extent3D& extent,
+                                                   vk::ImageUsageFlags usage);
+    static vk::ImageViewCreateInfo MakeImageViewCreateInfo(ImageFormat format, const vk::Image& image,
+                                                           const vk::ImageAspectFlags& aspect);
+    static vk::ImageViewCreateInfo MakeImageViewCreateInfo(const Shared<DeviceImage>& image,
+                                                           const vk::ImageAspectFlags& aspect);
+
+    static void GenerateMipMaps(const vk::CommandBuffer& cmd, const Shared<DeviceImage>& image,
+                                const vk::Extent3D& extent, const vk::Filter& filter);
+
+    WindowRenderer* GetRenderer(Window* window) const;
+    Shared<DeviceImage> CreateImage(const vk::Extent3D& extent, ImageFormat format, vk::ImageUsageFlags usage,
+                                    bool mipMap = false,
+                                    const std::string& debugName = "Image") const;
+
+    Shared<DeviceImage> CreateImage(const unsigned char* data, const vk::Extent3D& extent, ImageFormat format,
+                                    vk::ImageUsageFlags usage, bool mipMap = false,
+                                    const vk::Filter& mipMapFilter = vk::Filter::eLinear,
+                                    const std::string& debugName = "Image") const;
+
+    DEFINE_DELEGATE_LIST(onRendererCreated, WindowRenderer *)
+    DEFINE_DELEGATE_LIST(onRendererDestroyed, WindowRenderer *)
+};

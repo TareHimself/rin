@@ -10,5 +10,6 @@ struct BoundTexture
     std::string debugName{};
     bool valid;
     BoundTexture();
-    BoundTexture(const Shared<DeviceImage>& inImage,vk::Filter inFilter,vk::SamplerAddressMode inTiling,bool inIsMipMapped,const std::string& inDebugName);
+    BoundTexture(const Shared<DeviceImage>& inImage, vk::Filter inFilter, vk::SamplerAddressMode inTiling,
+                 bool inIsMipMapped, const std::string& inDebugName);
 };

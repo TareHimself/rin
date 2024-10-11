@@ -20,7 +20,7 @@ inline vk::Format imageFormatToVulkanFormat(const ImageFormat& format)
     case ImageFormat::Depth:
         return vk::Format::eD32Sfloat;
     case ImageFormat::Stencil:
-        return  vk::Format::eD32SfloatS8Uint;
+        return vk::Format::eD32SfloatS8Uint;
     default:
         throw std::runtime_error("Unknown Image Format");
     }
@@ -37,8 +37,8 @@ inline ImageFormat vulkanFormatToImageFormat(const vk::Format& format)
     case vk::Format::eD32Sfloat:
         return ImageFormat::Depth;
     case vk::Format::eD32SfloatS8Uint:
-        return  ImageFormat::Stencil;
-        default:
-            throw std::runtime_error("Unknown Image Format");
+        return ImageFormat::Stencil;
+    default:
+        throw std::runtime_error("Unknown Image Format");
     }
 }

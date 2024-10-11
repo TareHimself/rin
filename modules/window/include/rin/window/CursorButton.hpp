@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <SDL3/SDL_mouse.h>
+
 enum class CursorButton
 {
     Left = SDL_BUTTON_LEFT,

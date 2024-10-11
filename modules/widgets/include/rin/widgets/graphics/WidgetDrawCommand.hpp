@@ -13,6 +13,6 @@ public:
 
 
     virtual Type GetType() const = 0;
-    
+
     virtual bool CombineWith(const Shared<WidgetDrawCommand>& other);
 };

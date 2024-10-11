@@ -10,17 +10,17 @@
 
 struct SDL_Window;
 class WindowModule;
-    
+
 
 class Window : public RinBase
 {
-        
     SDL_Window* _window = nullptr;
     bool _minimized = false;
     bool _hidden = false;
 
 protected:
     void NotifyEvent(const SDL_Event& event);
+
 public:
     friend WindowModule;
     explicit Window(SDL_Window* inWindow);
@@ -36,17 +36,17 @@ public:
     // DECLARE_DELEGATE(onResize,const std::weak_ptr<Window> &)
     // DECLARE_DELEGATE(onCloseRequested,const std::weak_ptr<Window> &)
 
-    DEFINE_DELEGATE_LIST(onFocusChanged,Window*,bool)
-    DEFINE_DELEGATE_LIST(onResize,Window*,const Vec2<int>&)
-    DEFINE_DELEGATE_LIST(onCloseRequested,Window*)
-    DEFINE_DELEGATE_LIST(onKey,Window*,Key,InputState)
-    DEFINE_DELEGATE_LIST(onCursorButton,Window*,CursorButton,InputState)
-    DEFINE_DELEGATE_LIST(onCursorMoved,Window*,const Vec2<float>&)
-    DEFINE_DELEGATE_LIST(onDisposed,Window*)
-    DEFINE_DELEGATE_LIST(onMinimized,Window*)
-    DEFINE_DELEGATE_LIST(onMaximized,Window*)
-    DEFINE_DELEGATE_LIST(onHidden,Window*)
-    DEFINE_DELEGATE_LIST(onShown,Window*)
+    DEFINE_DELEGATE_LIST(onFocusChanged, Window*, bool)
+    DEFINE_DELEGATE_LIST(onResize, Window*, const Vec2<int>&)
+    DEFINE_DELEGATE_LIST(onCloseRequested, Window*)
+    DEFINE_DELEGATE_LIST(onKey, Window*, Key, InputState)
+    DEFINE_DELEGATE_LIST(onCursorButton, Window*, CursorButton, InputState)
+    DEFINE_DELEGATE_LIST(onCursorMoved, Window*, const Vec2<float>&)
+    DEFINE_DELEGATE_LIST(onDisposed, Window*)
+    DEFINE_DELEGATE_LIST(onMinimized, Window*)
+    DEFINE_DELEGATE_LIST(onMaximized, Window*)
+    DEFINE_DELEGATE_LIST(onHidden, Window*)
+    DEFINE_DELEGATE_LIST(onShown, Window*)
 
     SDL_Window* GetSDLWindow() const;
 
@@ -56,6 +56,7 @@ public:
     Vec2<int> GetPosition() const;
     Vec2<float> GetCursorPosition() const;
     void OnDispose(bool manual) override;
+
 protected:
-    WindowModule * GetWindowModule();
+    WindowModule* GetWindowModule();
 };

@@ -1,4 +1,5 @@
 #include "rin/graphics/ImageBarrierOptions.hpp"
+
 ImageBarrierOptions& ImageBarrierOptions::DstAccess(vk::AccessFlags2 flags)
 {
     dstAccessFlags = flags;

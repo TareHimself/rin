@@ -10,10 +10,10 @@ Image<float> Image<float>::LoadFile(const std::filesystem::path& filePath)
     int width;
     int height;
     int channels;
-    
-    if(auto ptr = stbi_loadf(filePath.string().c_str(),&width,&height,&channels,0))
+
+    if (auto ptr = stbi_loadf(filePath.string().c_str(), &width, &height, &channels, 0))
     {
-        auto img = Image{width,height,channels,ptr};
+        auto img = Image{width, height, channels, ptr};
         stbi_image_free(ptr);
 
         return img;
@@ -27,10 +27,10 @@ Image<unsigned char> Image<unsigned char>::LoadFile(const std::filesystem::path&
     int width;
     int height;
     int channels;
-    
-    if(auto ptr = stbi_load(filePath.string().c_str(),&width,&height,&channels,STBI_default))
+
+    if (auto ptr = stbi_load(filePath.string().c_str(), &width, &height, &channels, STBI_default))
     {
-        auto img = Image{width,height,channels,ptr};
+        auto img = Image{width, height, channels, ptr};
         stbi_image_free(ptr);
 
         return img;
@@ -42,14 +42,12 @@ Image<unsigned char> Image<unsigned char>::LoadFile(const std::filesystem::path&
 template <>
 void Image<unsigned char>::SavePng(const std::filesystem::path& filePath) const
 {
-    stbi_write_png(filePath.string().c_str(),GetWidth(),GetHeight(),GetChannels(),GetData(),GetWidth() * GetChannels());
+    stbi_write_png(filePath.string().c_str(), GetWidth(), GetHeight(), GetChannels(), GetData(),
+                   GetWidth() * GetChannels());
 }
 
 template <>
-void Image<unsigned char>::SaveJpeg(const std::filesystem::path& filePath,int quality) const
+void Image<unsigned char>::SaveJpeg(const std::filesystem::path& filePath, int quality) const
 {
-    stbi_write_jpg(filePath.string().c_str(),GetWidth(),GetHeight(),GetChannels(),GetData(),quality);
+    stbi_write_jpg(filePath.string().c_str(), GetWidth(), GetHeight(), GetChannels(), GetData(), quality);
 }
-
-
-

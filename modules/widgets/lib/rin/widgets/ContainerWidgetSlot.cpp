@@ -20,9 +20,9 @@ ContainerWidgetSlot::ContainerWidgetSlot(ContainerWidget* owner, const Shared<Wi
 
 void ContainerWidgetSlot::Update()
 {
-    if(auto container = GetContainer())
+    if (auto container = GetContainer())
     {
-        if(container->HasSurface())
+        if (container->HasSurface())
         {
             container->OnChildSlotUpdated(this);
         }

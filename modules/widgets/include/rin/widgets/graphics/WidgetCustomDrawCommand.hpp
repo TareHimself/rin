@@ -5,5 +5,5 @@ class WidgetCustomDrawCommand : public WidgetDrawCommand
 {
 public:
     Type GetType() const override;
-    virtual void Run(SurfaceFrame * frame) = 0;
+    virtual void Run(SurfaceFrame* frame) = 0;
 };

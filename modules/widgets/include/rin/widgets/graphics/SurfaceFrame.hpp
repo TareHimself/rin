@@ -2,11 +2,11 @@
 #include "rin/graphics/Frame.hpp"
 
 
-    class WidgetSurface;
+class WidgetSurface;
 
 struct SurfaceFrame
 {
-    WidgetSurface * surface;
-    Frame * raw;
+    WidgetSurface* surface;
+    Frame* raw;
     std::string activePass{};
 };

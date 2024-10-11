@@ -7,6 +7,7 @@ class ImageWidget : public Widget
     int _textureId = -1;
     Vec4<float> _borderRadius{0.0f};
     Vec4<float> _tint{1.0f};
+
 public:
     void SetTextureId(const int& textureId);
     int GetTextureId() const;

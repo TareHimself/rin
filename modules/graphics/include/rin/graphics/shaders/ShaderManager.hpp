@@ -12,25 +12,26 @@
 class Shader;
 class GraphicsShader;
 class ShaderManager;
-    
-class GlslShaderIncluder : public glslang::TShader::Includer {
+
+class GlslShaderIncluder : public glslang::TShader::Includer
+{
     std::filesystem::path sourceFilePath;
-    std::set<IncludeResult *> _results;
-    ShaderManager * _manager = nullptr;
+    std::set<IncludeResult*> _results;
+    ShaderManager* _manager = nullptr;
     bool _bDebug = false;
+
 public:
-    GlslShaderIncluder(ShaderManager * manager,const std::filesystem::path &inPath);
+    GlslShaderIncluder(ShaderManager* manager, const std::filesystem::path& inPath);
 
 
-    IncludeResult *includeSystem(const char*filePath, const char *includerName, size_t inclusionDepth) override;
-    IncludeResult *includeLocal(const char*filePath, const char *includerName, size_t inclusionDepth) override;
+    IncludeResult* includeSystem(const char* filePath, const char* includerName, size_t inclusionDepth) override;
+    IncludeResult* includeLocal(const char* filePath, const char* includerName, size_t inclusionDepth) override;
 
-    void releaseInclude(IncludeResult *result) override;
+    void releaseInclude(IncludeResult* result) override;
 
     ~GlslShaderIncluder() override;
-  
 };
-    
+
 class ShaderManager : public Disposable
 {
     struct CompileTask
@@ -38,19 +39,21 @@ class ShaderManager : public Disposable
         Shared<Shader> shader{};
         CompileTask(const Shared<Shader>& inShader);
     };
-    GraphicsModule * _graphicsModule = nullptr;
-    std::unordered_map<std::string,std::vector<uint32_t>> _spirv{};
+
+    GraphicsModule* _graphicsModule = nullptr;
+    std::unordered_map<std::string, std::vector<uint32_t>> _spirv{};
     BackgroundThread<CompiledShader> _compilationThread{};
 
     glslang_resource_t _resources{};
     bool _init = false;
-        
-public:
-    DEFINE_DELEGATE_LIST(onShaderCompiled,const std::string&,const vk::ShaderEXT&)
-    ShaderManager(GraphicsModule * graphicsModule);
 
-    GraphicsModule * GetGraphicsModule() const;
-    std::vector<uint32_t> CompileAstToSpirv(const std::string& id,vk::ShaderStageFlagBits stage,const std::shared_ptr<rsl::ModuleNode>& node);
+public:
+    DEFINE_DELEGATE_LIST(onShaderCompiled, const std::string&, const vk::ShaderEXT&)
+    ShaderManager(GraphicsModule* graphicsModule);
+
+    GraphicsModule* GetGraphicsModule() const;
+    std::vector<uint32_t> CompileAstToSpirv(const std::string& id, vk::ShaderStageFlagBits stage,
+                                            const std::shared_ptr<rsl::ModuleNode>& node);
 
     static glslang_stage_t GetLangFromScopeType(rsl::EScopeType scopeType);
     static glslang_stage_t GetLangFromStage(vk::ShaderStageFlagBits stage);

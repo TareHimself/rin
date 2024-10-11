@@ -12,8 +12,8 @@ namespace rin::platform
     void init()
     {
 #ifdef RIN_PLATFORM_WINDOWS
-        CoInitializeEx(nullptr,COINIT::COINIT_MULTITHREADED);
-#endif 
+        CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+#endif
     }
 
     Platform get()
@@ -242,11 +242,11 @@ namespace rin::platform
     {
 #ifdef RIN_PLATFORM_WINDOWS
         WCHAR path[MAX_PATH];
-        GetModuleFileNameW(NULL, path, MAX_PATH);
+        GetModuleFileNameW(nullptr, path, MAX_PATH);
         const std::wstring wstr(path);
         const int sizeNeeded = WideCharToMultiByte(
-                                            CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), nullptr, 0, nullptr,
-                                            nullptr);
+            CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), nullptr, 0, nullptr,
+            nullptr);
         std::string strTo(sizeNeeded, 0);
         WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()),
                             strTo.data(), sizeNeeded, nullptr, nullptr);

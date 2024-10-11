@@ -5,10 +5,11 @@ struct WindowCreateOptions
 {
 private:
     bool _resizable = true;
-        
+
     bool _borderless = false;
 
     bool _focused = true;
+
 protected:
     friend WindowModule;
 

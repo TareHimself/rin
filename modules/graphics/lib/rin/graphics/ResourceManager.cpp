@@ -11,9 +11,9 @@
 void ResourceManager::UpdateTextures(const std::vector<int>& indices)
 {
     auto set = _descriptorSet->GetInternalSet();
-    
+
     std::vector<vk::WriteDescriptorSet> writes{};
-    
+
     for (auto& id : indices)
     {
         auto info = _textures.at(id);
@@ -40,7 +40,7 @@ void ResourceManager::UpdateTextures(const std::vector<int>& indices)
 vk::Sampler ResourceManager::GetOrCreateSampler(const SamplerSpec& spec)
 {
     auto id = spec.GetId();
-    
+
     if (_samplers.contains(id)) return _samplers[id];
 
     vk::SamplerCreateInfo createInfo{
@@ -54,7 +54,7 @@ vk::Sampler ResourceManager::GetOrCreateSampler(const SamplerSpec& spec)
     };
 
     auto device = GraphicsModule::Get()->GetDevice();
-    
+
     return _samplers.emplace(id, device.createSampler(createInfo)).first->second;
 }
 
@@ -102,7 +102,8 @@ vk::DescriptorSet ResourceManager::GetDescriptorSet() const
 }
 
 int ResourceManager::CreateTexture(const unsigned char* data, const vk::Extent3D& size, ImageFormat format,
-    vk::Filter filter, vk::SamplerAddressMode tiling, bool mipMapped, const std::string& debugName)
+                                   vk::Filter filter, vk::SamplerAddressMode tiling, bool mipMapped,
+                                   const std::string& debugName)
 {
     std::lock_guard guard(_mutex);
 
@@ -110,7 +111,7 @@ int ResourceManager::CreateTexture(const unsigned char* data, const vk::Extent3D
     auto image = _graphicsModule->CreateImage(data, size, format, vk::ImageUsageFlagBits::eSampled, mipMapped,
                                               filter, debugName);
     auto boundTex = BoundTexture{image, filter, tiling, mipMapped, debugName};
-    
+
     int textureId;
 
     if (_availableTextureIndices.empty())
@@ -131,10 +132,11 @@ int ResourceManager::CreateTexture(const unsigned char* data, const vk::Extent3D
 }
 
 int ResourceManager::CreateTexture(Image<unsigned char>& image, ImageFormat format, vk::Filter filter,
-    vk::SamplerAddressMode tiling, bool mipMapped, const std::string& debugName)
+                                   vk::SamplerAddressMode tiling, bool mipMapped, const std::string& debugName)
 {
     auto size = image.GetSize().Cast<unsigned>();
-    return CreateTexture(image.GetData(),vk::Extent3D{size.x,size.y,1},format,filter,tiling,mipMapped,debugName);
+    return CreateTexture(image.GetData(), vk::Extent3D{size.x, size.y, 1}, format, filter, tiling, mipMapped,
+                         debugName);
 }
 
 void ResourceManager::FreeTextures(const std::vector<int>& ids) const
@@ -146,8 +148,8 @@ void ResourceManager::FreeTextures(const std::vector<int>& ids) const
         auto info = _textures.at(id);
 
         if (!info.valid) continue;
-        
-        writes.emplace_back(set,0,static_cast<uint32_t>(id));
+
+        writes.emplace_back(set, 0, static_cast<uint32_t>(id));
     }
 
     if (!writes.empty())
@@ -159,8 +161,8 @@ void ResourceManager::FreeTextures(const std::vector<int>& ids) const
 
 bool ResourceManager::IsValid(const int& textureId) const
 {
-    if(textureId < 0) return false;
-    
+    if (textureId < 0) return false;
+
     if (_availableTextureIndices.contains(textureId)) return false;
 
     return _textures.size() < textureId;
@@ -168,7 +170,7 @@ bool ResourceManager::IsValid(const int& textureId) const
 
 bool ResourceManager::IsValidChecked(const int& textureId)
 {
-    if(textureId < 0) return false;
+    if (textureId < 0) return false;
     std::lock_guard guard(_mutex);
 
     if (_availableTextureIndices.contains(textureId)) return false;
@@ -178,7 +180,7 @@ bool ResourceManager::IsValidChecked(const int& textureId)
 
 Shared<DeviceImage> ResourceManager::GetTextureImage(const int& textureId)
 {
-    if(textureId < 0) return {};
+    if (textureId < 0) return {};
     std::lock_guard guard(_mutex);
 
     if (_availableTextureIndices.contains(textureId)) return {};

@@ -13,15 +13,14 @@ class USDFContainer;
 
 class SDFContainer
 {
-private:
-    std::unordered_map<std::string,SDFItem> _items{};
+    std::unordered_map<std::string, SDFItem> _items{};
     std::vector<std::shared_ptr<Image<unsigned char>>> _atlases{};
-public:
 
+public:
     SDFContainer();
-    
+
     bool Has(const std::string& id) const;
-    
+
     SDFItem Get(const std::string& id);
 
     void AddAtlas(const std::shared_ptr<Image<unsigned char>>& atlas);

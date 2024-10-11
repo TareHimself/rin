@@ -10,7 +10,7 @@ struct QuadInfo
     // y => the render mode for this quad 0=normal 1=mtsdf
     // z => not used
     // w => not used
-    Vec4<int> opts{-1,0,0,0};
+    Vec4<int> opts{-1, 0, 0, 0};
     // The color of this quad or the tint for the texture
     Vec4<float> color{0.0f};
     // The border radius for this quad
@@ -28,5 +28,5 @@ struct QuadInfo
     // y => v begin
     // z => u end
     // w => v end
-    Vec4<float> uv{0.0f,0.0f,1.0f,1.0f};
+    Vec4<float> uv{0.0f, 0.0f, 1.0f, 1.0f};
 };

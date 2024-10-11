@@ -1,4 +1,5 @@
 #include "rin/core/meta/MetaClass.hpp"
+
 std::vector<Shared<MetaProperty>> MetaClass::GetProperties() const
 {
     return _properties;

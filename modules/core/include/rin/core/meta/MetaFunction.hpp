@@ -1,10 +1,5 @@
 #pragma once
 
-class MetaFunction {
-
-
-public:
-
-
+class MetaFunction
+{
 };
-

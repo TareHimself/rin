@@ -4,7 +4,7 @@
 #include "rin/graphics/GraphicsModule.hpp"
 
 DeviceImage::DeviceImage(const VmaAllocator allocator, const vk::Image& image, const VmaAllocation allocation,
-                             const vk::Extent3D& extent, const ImageFormat format)
+                         const vk::Extent3D& extent, const ImageFormat format)
 {
     _allocator = allocator;
     _image = image;
@@ -16,7 +16,7 @@ DeviceImage::DeviceImage(const VmaAllocator allocator, const vk::Image& image, c
 void DeviceImage::OnDispose(bool manual)
 {
     Disposable::OnDispose(manual);
-    vmaDestroyImage(_allocator,_image,_allocation);
+    vmaDestroyImage(_allocator, _image, _allocation);
     GRuntime::Get()->GetModule<GraphicsModule>()->GetDevice().destroyImageView(_imageView);
 }
 
@@ -46,18 +46,18 @@ vk::ImageView* DeviceImage::GetImageViewRef()
 }
 
 void DeviceImage::Barrier(vk::CommandBuffer cmd, vk::ImageLayout from, vk::ImageLayout to,
-    const ImageBarrierOptions& options) const
+                          const ImageBarrierOptions& options) const
 {
-    GraphicsModule::ImageBarrier(cmd,_image,from,to,options);
+    GraphicsModule::ImageBarrier(cmd, _image, from, to, options);
 }
 
-void DeviceImage::CopyTo(vk::CommandBuffer cmd, const Shared<DeviceImage>& dest,vk::Filter filter) const
+void DeviceImage::CopyTo(vk::CommandBuffer cmd, const Shared<DeviceImage>& dest, vk::Filter filter) const
 {
-    GraphicsModule::CopyImageToImage(cmd,GetImage(),GetExtent(),dest->GetImage(),dest->GetExtent(),filter);
+    GraphicsModule::CopyImageToImage(cmd, GetImage(), GetExtent(), dest->GetImage(), dest->GetExtent(), filter);
 }
 
 void DeviceImage::CopyTo(vk::CommandBuffer cmd, const vk::Image& dest, const vk::Extent3D& destExtent,
-    vk::Filter filter) const
+                         vk::Filter filter) const
 {
-    GraphicsModule::CopyImageToImage(cmd,GetImage(),GetExtent(),dest,destExtent,filter);
+    GraphicsModule::CopyImageToImage(cmd, GetImage(), GetExtent(), dest, destExtent, filter);
 }

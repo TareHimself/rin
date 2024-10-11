@@ -2,6 +2,7 @@
 #include "rin/core/utils.hpp"
 #include "rin/audio/AudioModule.hpp"
 #include "bass/Bass.hpp"
+
 std::string AudioModule::GetName()
 {
     return "Audio Module";
@@ -9,8 +10,8 @@ std::string AudioModule::GetName()
 
 void AudioModule::Startup(GRuntime* runtime)
 {
-    bass::init(-1,44100,0,nullptr);
-    bass::setConfig(bass::Config::GVolStream,2500.0f);
+    bass::init(-1, 44100, 0, nullptr);
+    setConfig(bass::Config::GVolStream, 2500.0f);
 }
 
 void AudioModule::Shutdown(GRuntime* runtime)

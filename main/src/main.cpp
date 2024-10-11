@@ -48,7 +48,7 @@ struct FtContext
 };
 
 std::shared_ptr<Image<unsigned char>> makeMtsdfFromGlyph(int code, const FT_Face& face, const float pixelRange = 30.0f,
-                                        const float angleThreshold = 3.0f, const int padding = 0)
+                                                         const float angleThreshold = 3.0f, const int padding = 0)
 {
     const auto glyph_index = FT_Get_Char_Index(face, code);
     if (FT_Load_Glyph(
@@ -113,8 +113,8 @@ std::shared_ptr<Image<unsigned char>> makeMtsdfFromGlyph(int code, const FT_Face
     {
         const auto context = static_cast<FtContext*>(user);
         const auto endpoint = ftPoint2(*to);
-        const auto cross = msdfgen::crossProduct(ftPoint2(*control1) - endpoint,
-                                                 ftPoint2(*control2) - endpoint);
+        const auto cross = crossProduct(ftPoint2(*control1) - endpoint,
+                                        ftPoint2(*control2) - endpoint);
         if (endpoint != context->position || cross)
         {
             context->contour->addEdge(msdfgen::EdgeHolder(
@@ -143,7 +143,7 @@ std::shared_ptr<Image<unsigned char>> makeMtsdfFromGlyph(int code, const FT_Face
 
     shape.normalize();
 
-    msdfgen::edgeColoringByDistance(shape, angleThreshold);
+    edgeColoringByDistance(shape, angleThreshold);
 
     const auto bounds = shape.getBounds();
 
@@ -160,8 +160,8 @@ std::shared_ptr<Image<unsigned char>> makeMtsdfFromGlyph(int code, const FT_Face
     //msdfgen::Bitmap<float, 4> bmp(bmpWidth,bmpHeight);
 
     auto transform = msdfgen::SDFTransformation{{{1.0, 1.0}, {(offsetX * -1.0) + padding, offsetY + padding}}, {}};
-    msdfgen::generateMTSDF(bmp, shape, transform, pixelRange);
-    
+    generateMTSDF(bmp, shape, transform, pixelRange);
+
     for (auto y = 0; y < bmpHeight; y++)
     {
         for (auto x = 0; x < bmpWidth; x++)

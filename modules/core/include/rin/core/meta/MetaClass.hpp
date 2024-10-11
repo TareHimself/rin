@@ -5,12 +5,15 @@
 #include "MetaProperty.hpp"
 #include "MetaType.hpp"
 #include "rin/core/memory.hpp"
-class MetaClass {
+
+class MetaClass
+{
     MetaType _type{};
     std::string _name{};
     Shared<MetaClass> _super{};
     std::vector<Shared<MetaProperty>> _properties{};
     std::vector<Shared<MetaFunction>> _functions{};
+
 public:
     [[nodiscard]] std::vector<Shared<MetaProperty>> GetProperties() const;
     [[nodiscard]] std::vector<Shared<MetaFunction>> GetFunctions() const;
@@ -18,7 +21,6 @@ public:
 
     [[nodiscard]] MetaType GetType() const;
 
-    MetaClass(const MetaType& type,const std::string& name,const std::vector<Shared<MetaProperty>>& properties,const std::vector<Shared<MetaFunction>>& functions);
-
-
+    MetaClass(const MetaType& type, const std::string& name, const std::vector<Shared<MetaProperty>>& properties,
+              const std::vector<Shared<MetaFunction>>& functions);
 };

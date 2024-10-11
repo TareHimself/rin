@@ -3,9 +3,10 @@
 #include "rin/core/math/Matrix4.hpp"
 #include "rin/core/math/Vec4.hpp"
 
-struct BatchInfo {
-    static constexpr int MAX_BATCH = 64;
+inline int RIN_WIDGET_MAX_BATCH = 64;
+
+struct WidgetBatchInfoPushConstant
+{
     Vec4<float> viewport;
     Matrix4<float> projection;
-    QuadInfo quads[MAX_BATCH];
 };

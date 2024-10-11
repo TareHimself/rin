@@ -7,5 +7,5 @@ class CursorMoveEvent : public Event
 {
 public:
     Vec2<float> position;
-    CursorMoveEvent(const Shared<WidgetSurface>& inSurface,const Vec2<float>& inPosition);
+    CursorMoveEvent(const Shared<WidgetSurface>& inSurface, const Vec2<float>& inPosition);
 };

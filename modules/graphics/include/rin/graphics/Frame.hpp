@@ -2,9 +2,9 @@
 #include "WindowRenderer.hpp"
 #include "descriptors/DescriptorAllocator.hpp"
 
-class Frame {
-
-    WindowRenderer * _renderer{};
+class Frame
+{
+    WindowRenderer* _renderer{};
     vk::CommandBuffer _commandBuffer;
     vk::CommandPool _commandPool;
     vk::Fence _renderFence{};
@@ -12,8 +12,9 @@ class Frame {
     vk::Semaphore _swapchainSemaphore{};
     Shared<DescriptorAllocator> _allocator{};
     std::vector<std::function<void()>> _cleanup{};
+
 public:
-    explicit Frame(WindowRenderer * renderer);
+    explicit Frame(WindowRenderer* renderer);
     ~Frame();
 
     vk::Fence GetRenderFence() const;

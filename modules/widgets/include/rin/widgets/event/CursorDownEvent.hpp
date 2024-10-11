@@ -9,5 +9,5 @@ class CursorDownEvent : public Event
 public:
     CursorButton button;
     Vec2<float> position;
-    CursorDownEvent(const Shared<WidgetSurface>& inSurface,CursorButton inButton,const Vec2<float>& inPosition);
+    CursorDownEvent(const Shared<WidgetSurface>& inSurface, CursorButton inButton, const Vec2<float>& inPosition);
 };

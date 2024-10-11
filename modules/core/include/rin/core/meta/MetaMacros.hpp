@@ -20,4 +20,3 @@
 #else
 #define META_TYPE_NAME __PRETTY_FUNCTION__
 #endif
-

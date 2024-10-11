@@ -4,6 +4,5 @@
 class UserModule : public RinModule
 {
 public:
-
     bool IsSystemModule() override;
 };

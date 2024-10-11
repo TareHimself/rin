@@ -14,9 +14,12 @@ struct QuadRenderInfo
 
 
 layout(set = 1,binding = 0, scalar) uniform batch_info {
+    QuadRenderInfo quads[64];
+};
+
+push(scalar){
     float4 viewport;
     mat4 projection;
-    QuadRenderInfo quads[64];
 };
 
 @Vertex{
@@ -29,7 +32,7 @@ layout(set = 1,binding = 0, scalar) uniform batch_info {
         int vertexIndex = int(mod(index, 6));
         int quadIndex = int(floor(index / 6));
         QuadRenderInfo quad = batch_info.quads[quadIndex];
-        generateRectVertex(quad.size, batch_info.projection, quad.transform, vertexIndex, gl_Position, oUV);
+        generateRectVertex(quad.size, push.projection, quad.transform, vertexIndex, gl_Position, oUV);
         oQuadIndex = quadIndex;
     }
 }

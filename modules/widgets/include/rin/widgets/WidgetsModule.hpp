@@ -39,10 +39,11 @@ struct SingleStencilDrawPush
 };
 
 MCLASS()
+
 class WidgetsModule : public RinModule
 {
-    std::unordered_map<WindowRenderer *,Shared<WidgetWindowSurface>> _windowSurfaces{};
-    GraphicsModule * _graphicsModule = nullptr;
+    std::unordered_map<WindowRenderer*, Shared<WidgetWindowSurface>> _windowSurfaces{};
+    GraphicsModule* _graphicsModule = nullptr;
     DelegateListHandle _rendererCreatedHandle{};
     DelegateListHandle _rendererDestroyedHandle{};
     Shared<GraphicsShader> _batchShader{};
@@ -50,8 +51,7 @@ class WidgetsModule : public RinModule
     Shared<FT_Library> _library{};
 
 public:
-
-    static WidgetsModule * Get();
+    static WidgetsModule* Get();
     std::string GetName() override;
     void Startup(GRuntime* runtime) override;
     void Shutdown(GRuntime* runtime) override;
@@ -59,19 +59,20 @@ public:
 
     void RegisterRequiredModules() override;
 
-    void OnRendererCreated(WindowRenderer * renderer);
-    void OnRendererDestroyed(WindowRenderer * renderer);
+    void OnRendererCreated(WindowRenderer* renderer);
+    void OnRendererDestroyed(WindowRenderer* renderer);
 
-    Shared<WidgetWindowSurface> GetSurface(Window * window) const;
+    Shared<WidgetWindowSurface> GetSurface(Window* window) const;
     Shared<WidgetWindowSurface> GetSurface(const Shared<Window>& window) const;
     Shared<GraphicsShader> GetBatchShader() const;
     Shared<GraphicsShader> GetStencilShader() const;
 
     static Shared<FT_Library> InitFreetype();
 
-    
-    std::shared_ptr<Image<unsigned char>> MtsdfFromGlyph(int code, const FT_Face& face,const float pixelRange = 30.0f,
-                                                             const float angleThreshold = 3.0f);
 
-    bool GenerateAtlases(SDFContainer& result,const FT_Face& face,int pixelSize = 30,int atlasSize = 256,int padding = 2,float pixelRange = 30.0f,float angleThreshold = 3.0f);
+    std::shared_ptr<Image<unsigned char>> MtsdfFromGlyph(int code, const FT_Face& face, float pixelRange = 30.0f,
+                                                         float angleThreshold = 3.0f);
+
+    bool GenerateAtlases(SDFContainer& result, const FT_Face& face, int pixelSize = 30, int atlasSize = 256,
+                         int padding = 2, float pixelRange = 30.0f, float angleThreshold = 3.0f);
 };

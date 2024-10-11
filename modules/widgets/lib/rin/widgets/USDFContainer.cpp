@@ -4,7 +4,6 @@
 
 USDFContainer::USDFContainer()
 {
-    
 }
 
 USDFContainer::USDFContainer(const std::unordered_map<std::string, USDFItem>& items, const std::vector<int>& atlases)

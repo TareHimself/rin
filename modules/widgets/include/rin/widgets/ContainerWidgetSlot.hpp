@@ -10,20 +10,21 @@ class ContainerWidgetSlot : public Disposable
     Shared<Widget> _widget{};
 
 protected:
-    ContainerWidget * GetContainer() const;
+    ContainerWidget* GetContainer() const;
+
 public:
     Shared<Widget> GetWidget() const;
 
-    template<typename T,typename = std::enable_if_t<std::is_base_of_v<ContainerWidgetSlot,T>,T>>
+    template <typename T, typename = std::enable_if_t<std::is_base_of_v<ContainerWidgetSlot, T>, T>>
     Shared<T> As();
-    
-    ContainerWidgetSlot(ContainerWidget * owner,const Shared<Widget>& widget);
+
+    ContainerWidgetSlot(ContainerWidget* owner, const Shared<Widget>& widget);
 
     virtual void Update();
 };
 
-template <typename T,typename>
+template <typename T, typename>
 Shared<T> ContainerWidgetSlot::As()
 {
-    return  this->GetSharedDynamic<T>();
+    return this->GetSharedDynamic<T>();
 }

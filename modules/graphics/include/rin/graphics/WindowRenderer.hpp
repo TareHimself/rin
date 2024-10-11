@@ -6,10 +6,12 @@
 class Frame;
 class GraphicsModule;
 #define NUM_FRAMES 2
-class WindowRenderer : RinBase {
-    Window * _window{};
+
+class WindowRenderer : RinBase
+{
+    Window* _window{};
     vk::SurfaceKHR _surface{};
-    GraphicsModule * _graphicsModule{};
+    GraphicsModule* _graphicsModule{};
     std::vector<Frame*> _frames{};
     size_t _framesDrawn{0};
     std::vector<vk::ImageView> _swapchainViews{};
@@ -20,21 +22,23 @@ class WindowRenderer : RinBase {
     DelegateListHandle _resizeHandle{};
 
     bool _swapchainReady = false;
+
 protected:
     void Init();
     void CreateSwapchain();
     void DestroySwapchain();
     void CreateFrames();
     void DestroyFrames();
-    void OnResize(Window * window,const Vec2<int>& newSize);
+    void OnResize(Window* window, const Vec2<int>& newSize);
+
 public:
     friend GraphicsModule;
-    explicit WindowRenderer(const vk::Instance& instance,Window * window,GraphicsModule * graphicsModule);
+    explicit WindowRenderer(const vk::Instance& instance, Window* window, GraphicsModule* graphicsModule);
 
     vk::SurfaceKHR GetSurface() const;
     Window* GetWindow() const;
 
-    GraphicsModule * GetModule() const;
+    GraphicsModule* GetModule() const;
 
     ~WindowRenderer() override;
 
@@ -42,7 +46,6 @@ public:
 
     void Draw();
 
-    DEFINE_DELEGATE_LIST(onDraw,Frame*)
-    DEFINE_DELEGATE_LIST(onCopy,Frame*,const vk::Image&,const vk::Extent2D&)
+    DEFINE_DELEGATE_LIST(onDraw, Frame*)
+    DEFINE_DELEGATE_LIST(onCopy, Frame*, const vk::Image&, const vk::Extent2D&)
 };
-

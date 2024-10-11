@@ -1,5 +1,7 @@
 #pragma once
 #include "MetaType.hpp"
-class MetaProperty {
+
+class MetaProperty
+{
     MetaType _type{};
 };

@@ -4,7 +4,6 @@
 
 void RinModule::RegisterRequiredModules()
 {
-    
 }
 
 bool RinModule::IsSystemModule()
@@ -16,4 +15,3 @@ GRuntime* RinModule::GetRuntime() const
 {
     return GRuntime::Get();
 }
-

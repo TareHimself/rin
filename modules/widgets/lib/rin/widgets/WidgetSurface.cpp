@@ -9,7 +9,7 @@
 #include "rin/graphics/DeviceBuffer.hpp"
 #include "rin/graphics/GraphicsModule.hpp"
 #include "rin/graphics/ResourceManager.hpp"
-#include <stdint.h>
+#include <cstdint>
 #include "rin/widgets/Widget.hpp"
 #include "rin/widgets/ContainerWidget.hpp"
 #include "rin/widgets/utils.hpp"
@@ -19,7 +19,7 @@
 #include "rin/widgets/event/ResizeEvent.hpp"
 #include "rin/widgets/event/ScrollEvent.hpp"
 #include "rin/widgets/graphics/WidgetBatchedDrawCommand.hpp"
-#include "rin/widgets/graphics/BatchInfo.hpp"
+#include "rin/widgets/graphics/WidgetBatchInfoPushConstant.hpp"
 #include "rin/widgets/graphics/WidgetCustomDrawCommand.hpp"
 #include "rin/widgets/graphics/QuadInfo.hpp"
 #include "rin/widgets/graphics/WidgetDrawCommands.hpp"
@@ -276,9 +276,9 @@ Shared<DeviceImage> WidgetSurface::GetCopyImage() const
 
 void WidgetSurface::BeginMainPass(SurfaceFrame* frame, bool clearColor, bool clearStencil)
 {
-    if(frame->activePass == SurfaceGlobals::MAIN_PASS_ID) return;
-    if(!frame->activePass.empty()) EndActivePass(frame);
-    
+    if (frame->activePass == SurfaceGlobals::MAIN_PASS_ID) return;
+    if (!frame->activePass.empty()) EndActivePass(frame);
+
     auto size = GetDrawSize().Cast<uint32_t>();
     vk::Extent2D renderExtent{size.x, size.y};
     auto cmd = frame->raw->GetCommandBuffer();
@@ -322,52 +322,6 @@ void WidgetSurface::EndActivePass(SurfaceFrame* frame)
     frame->activePass.clear();
 }
 
-void WidgetSurface::DrawBatches(SurfaceFrame* frame, std::vector<QuadInfo>& quads)
-{
-    if (quads.empty()) return;
-
-    if (frame->activePass != SurfaceGlobals::MAIN_PASS_ID)
-    {
-        EndActivePass(frame);
-        BeginMainPass(frame);
-    }
-
-    auto graphicsModule = GRuntime::Get()->GetModule<GraphicsModule>();
-    auto widgetsModule = GRuntime::Get()->GetModule<WidgetsModule>();
-    auto shader = widgetsModule->GetBatchShader();
-    auto cmd = frame->raw->GetCommandBuffer();
-
-    if (shader->Bind(cmd, true))
-    {
-        auto resource = shader->resources.at("batch_info");
-        auto setLayout = shader->GetDescriptorSetLayouts().at(resource.set);
-        auto pipelineLayout = shader->GetPipelineLayout();
-        auto size = GetDrawSize().Cast<float>();
-        Vec4<float> viewport{0.0f, 0.0f, size.x, size.y};
-        for (auto i = 0; i < quads.size(); i += BatchInfo::MAX_BATCH)
-        {
-            auto set = frame->raw->GetAllocator()->Allocate(setLayout);
-            auto dataBuffer = graphicsModule->GetAllocator()->NewResourceBuffer(resource);
-            auto totalQuads = std::min(BatchInfo::MAX_BATCH, static_cast<int>(quads.size() - i));
-            BatchInfo data{viewport, GetProjection()};
-            memcpy(&data.quads, quads.data() + i, totalQuads * sizeof(QuadInfo));
-            dataBuffer->Write(data);
-            set->WriteBuffer(resource.binding, resource.type, dataBuffer);
-            std::vector<vk::DescriptorSet> sets = {
-                graphicsModule->GetResourceManager()->GetDescriptorSet(), set->GetInternalSet()
-            };
-            cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, sets, {});
-            if (!dataBuffer || dataBuffer->IsDisposed())
-            {
-                throw std::runtime_error("YO");
-            }
-            cmd.draw(totalQuads * 6, 1, 0, 0);
-        }
-    }
-
-    quads = {};
-}
-
 void WidgetSurface::Draw(Frame* frame)
 {
     if (!_drawImage || !_copyImage) return;
@@ -383,93 +337,177 @@ void WidgetSurface::Draw(Frame* frame)
     DoHover();
 
     {
-        SurfaceFrame surfaceFrame{this,frame,""};
+        SurfaceFrame surfaceFrame{this, frame, ""};
         auto surfaceFramePtr = &surfaceFrame;
         std::vector<SurfaceFinalDrawCommand> finalDrawCommands{};
-        CollectCommands(surfaceFramePtr,finalDrawCommands);
+        CollectCommands(surfaceFramePtr, finalDrawCommands);
 
-        if(finalDrawCommands.empty())
+        if (finalDrawCommands.empty())
         {
-                HandleDrawSkipped(frame);
+            HandleDrawSkipped(frame);
             return;
         }
 
         HandleBeforeDraw(frame);
 
-        BeginMainPass(surfaceFramePtr,true,true);
+        BeginMainPass(surfaceFramePtr, true, true);
+
+        auto graphicsModule = GRuntime::Get()->GetModule<GraphicsModule>();
+        auto limits = graphicsModule->GetPhysicalDevice().getProperties().limits;
+        auto minBufferOffsetAlignment = limits.minUniformBufferOffsetAlignment;
         uint64_t memoryNeeded = 0;
-        
-        for(auto &drawCommand : finalDrawCommands)
+        uint64_t finalMemoryNeeded = 0;
+        for (auto& drawCommand : finalDrawCommands)
         {
-            if(drawCommand.type == SurfaceFinalDrawCommand::Type::BatchedDraw)
+            if (drawCommand.type == SurfaceFinalDrawCommand::Type::BatchedDraw)
             {
-                memoryNeeded += drawCommand.size.value();
+                finalMemoryNeeded = drawCommand.size.value();
+                memoryNeeded += finalMemoryNeeded;
+                auto dist = memoryNeeded % minBufferOffsetAlignment;
+                // To Account for the offset we will need later
+                memoryNeeded += dist > 0 ? minBufferOffsetAlignment - dist : 0;
             }
         }
 
+
+        auto widgetsModule = GRuntime::Get()->GetModule<WidgetsModule>();
+        auto batchShader = widgetsModule->GetBatchShader();
+        auto batchBufferResource = batchShader->resources.at("batch_info");
+        auto pushConstantResource = batchShader->pushConstants.at("push");
+        auto batchSetLayout = batchShader->GetDescriptorSetLayouts().at(batchBufferResource.set);
+        auto batchPipelineLayout = batchShader->GetPipelineLayout();
+
         uint64_t offset = 0;
         bool isWritingStencil = false;
-        
-        vk::StencilFaceFlags faceFlags = vk::StencilFaceFlagBits::eFrontAndBack;
-        for(int i = 0; i < finalDrawCommands.size(); i++)
-        {
-            auto &command = finalDrawCommands.at(i);
+        bool isBatching = false;
+        finalMemoryNeeded = finalMemoryNeeded % batchBufferResource.size;
+        memoryNeeded += batchBufferResource.size - finalMemoryNeeded;
 
-            switch (command.type) {
+        vk::StencilFaceFlags faceFlags = vk::StencilFaceFlagBits::eFrontAndBack;
+
+
+        //vk::PhysicalDeviceLimits::minUniformBufferOffsetAlignment
+
+        auto batchBuffer = graphicsModule->GetAllocator()->NewUniformBuffer(memoryNeeded, true, "Widget Batch Buffer");
+
+        for (int i = 0; i < finalDrawCommands.size(); i++)
+        {
+            auto& command = finalDrawCommands.at(i);
+
+            switch (command.type)
+            {
             case SurfaceFinalDrawCommand::Type::None:
                 break;
             case SurfaceFinalDrawCommand::Type::ClipDraw:
                 {
                     BeginMainPass(surfaceFramePtr);
-                    
-                    if(!isWritingStencil)
+
+                    if (!isWritingStencil)
                     {
-                        cmd.setStencilOp(faceFlags,vk::StencilOp::eKeep,vk::StencilOp::eReplace,vk::StencilOp::eKeep,vk::CompareOp::eAlways);
-                        SetColorWriteMask(frame,vk::ColorComponentFlags());
+                        cmd.setStencilOp(faceFlags, vk::StencilOp::eKeep, vk::StencilOp::eReplace, vk::StencilOp::eKeep,
+                                         vk::CompareOp::eAlways);
+                        SetColorWriteMask(frame, vk::ColorComponentFlags());
                         isWritingStencil = true;
                     }
 
-                    cmd.setStencilWriteMask(faceFlags,command.mask.value());
-                    WriteStencil(frame,command.clipInfo->transform,command.clipInfo->size);
+                    cmd.setStencilWriteMask(faceFlags, command.mask.value());
+                    WriteStencil(frame, command.clipInfo->transform, command.clipInfo->size);
                 }
                 break;
             case SurfaceFinalDrawCommand::Type::ClipClear:
                 {
                     BeginMainPass(surfaceFramePtr);
-                    
-                    vk::ClearAttachment clearAttachment{vk::ImageAspectFlagBits::eStencil,{},vk::ClearValue{vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f}}};
+
+                    vk::ClearAttachment clearAttachment{
+                        vk::ImageAspectFlagBits::eStencil, {},
+                        vk::ClearValue{vk::ClearColorValue{0.0f, 0.0f, 0.0f, 0.0f}}
+                    };
                     auto extent = _stencilImage->GetExtent();
-                    vk::ClearRect clearRect{vk::Rect2D{vk::Offset2D{0,0},vk::Extent2D{extent.width,extent.height}},0,1};
-                    cmd.clearAttachments(clearAttachment,clearRect);
+                    vk::ClearRect clearRect{
+                        vk::Rect2D{vk::Offset2D{0, 0}, vk::Extent2D{extent.width, extent.height}}, 0, 1
+                    };
+                    cmd.clearAttachments(clearAttachment, clearRect);
                 }
                 break;
             case SurfaceFinalDrawCommand::Type::BatchedDraw:
             case SurfaceFinalDrawCommand::Type::CustomDraw:
                 {
                     BeginMainPass(surfaceFramePtr);
-                    
-                    if(isWritingStencil)
+
+                    if (isWritingStencil)
                     {
-                        enableStencilCompare(cmd,command.mask.value(),vk::CompareOp::eNotEqual);
-                        SetColorWriteMask(frame,vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+                        enableStencilCompare(cmd, command.mask.value(), vk::CompareOp::eNotEqual);
+                        SetColorWriteMask(
+                            frame,
+                            vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                            vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
                         isWritingStencil = false;
                     }
                     else
                     {
-                        cmd.setStencilCompareMask(faceFlags,command.mask.value());
+                        cmd.setStencilCompareMask(faceFlags, command.mask.value());
                     }
-                    
-                    if(command.type == SurfaceFinalDrawCommand::Type::CustomDraw)
+
+                    if (command.type == SurfaceFinalDrawCommand::Type::CustomDraw)
                     {
                         command.custom->Run(surfaceFramePtr);
                     }
                     else
                     {
-                        DrawBatches(surfaceFramePtr,command.quads.value());
+                        if (!isBatching)
+                        {
+                            if (batchShader->Bind(cmd, true))
+                            {
+                                isBatching = true;
+                            }
+                        }
+
+                        if (isBatching)
+                        {
+                            auto size = GetDrawSize().Cast<float>();
+                            Vec4<float> viewport{0.0f, 0.0f, size.x, size.y};
+                            for (auto i = 0; i < command.quads->size(); i += RIN_WIDGET_MAX_BATCH)
+                            {
+                                auto set = frame->GetAllocator()->Allocate(batchSetLayout);
+
+                                auto totalQuads = std::min(RIN_WIDGET_MAX_BATCH,
+                                                           static_cast<int>(command.quads->size() - i));
+
+                                const auto writeSize = totalQuads * sizeof(QuadInfo);
+
+                                batchBuffer->Write(command.quads->data() + i, writeSize, offset);
+
+                                set->WriteBuffer(batchBufferResource.binding, batchBufferResource.type, batchBuffer,
+                                                 offset, RIN_WIDGET_MAX_BATCH * sizeof(QuadInfo));
+
+                                offset += writeSize;
+
+                                // Offset must be a multiple of minBufferOffsetAlignment
+                                auto dist = offset % minBufferOffsetAlignment;
+                                offset += dist > 0 ? minBufferOffsetAlignment - dist : 0;
+
+                                std::vector<vk::DescriptorSet> sets = {
+                                    graphicsModule->GetResourceManager()->GetDescriptorSet(), set->GetInternalSet()
+                                };
+
+                                cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, batchPipelineLayout, 0, sets,
+                                                       {});
+
+                                WidgetBatchInfoPushConstant pushConstant{viewport, GetProjection()};
+
+                                cmd.pushConstants(batchPipelineLayout, pushConstantResource.stages, 0,
+                                                  pushConstantResource.size, &pushConstant);
+
+                                cmd.draw(totalQuads * 6, 1, 0, 0);
+                            }
+                            continue;
+                        }
                     }
                 }
                 break;
             }
+
+            isBatching = false;
         }
 
         if (!surfaceFrame.activePass.empty())
@@ -483,96 +521,97 @@ void WidgetSurface::Draw(Frame* frame)
 
 void WidgetSurface::CollectCommands(SurfaceFrame* frame, std::vector<SurfaceFinalDrawCommand>& finalDrawCommands)
 {
-        std::vector<Shared<Widget>> widgets = _rootWidgets;
-        TransformInfo transform{this};
-        WidgetDrawCommands drawCommands{};
-        for (auto& widget : widgets)
-        {
-            widget->Collect(transform, drawCommands);
-        }
+    std::vector<Shared<Widget>> widgets = _rootWidgets;
+    TransformInfo transform{this};
+    WidgetDrawCommands drawCommands{};
+    for (auto& widget : widgets)
+    {
+        widget->Collect(transform, drawCommands);
+    }
 
-        if (drawCommands.Empty())
-        {
-            return;
-        }
-        
-        auto &clips = drawCommands.GetClips();
-        auto rawCommands = drawCommands.GetCommands();
-        if(clips.empty())
-        {
-            std::vector<CommandInfo> commands(rawCommands.size());
-            std::ranges::transform(rawCommands.begin(),rawCommands.end(),commands.begin(),[](const RawCommandInfo& rawInfo)
-            {
-                return CommandInfo{rawInfo.command,0x01};
-            });
-            DrawCommandsToFinalCommands(frame,commands,finalDrawCommands);
-        }
-        else
-        {
-            auto faceFlags = vk::StencilFaceFlagBits::eFrontAndBack;
-            auto &uniqueClipStacks = drawCommands.GetUniqueClipStacks();
-            std::unordered_map<std::string,uint32_t> computedClipStacks{};
-            std::vector<CommandInfo> pendingCommands{};
-            std::uint32_t currentMask = 0x01;
-            for(auto i = 0; i < rawCommands.size(); i++)
-            {
-                if(currentMask == 128)
-                {
-                    DrawCommandsToFinalCommands(frame,pendingCommands,finalDrawCommands);
-                    pendingCommands.clear();
-                    computedClipStacks.clear();
-                    currentMask = 0x01;
-                    finalDrawCommands.emplace_back().type = SurfaceFinalDrawCommand::Type::ClipClear;
-                }
+    if (drawCommands.Empty())
+    {
+        return;
+    }
 
-                auto &rawCommand = rawCommands.at(i);
-                if(computedClipStacks.contains(rawCommand.clipId))
-                {
-                    pendingCommands.emplace_back(rawCommand.command,computedClipStacks[rawCommand.clipId]);
-                }
-                else
-                {
-                    currentMask <<= 1;
-                    
-                    for(auto &clipId : uniqueClipStacks.at(rawCommand.clipId))
-                    {
-                        auto clip = clips.at(clipId);
-                        auto &fCmd = finalDrawCommands.emplace_back();
-                        fCmd.type = SurfaceFinalDrawCommand::Type::ClipDraw;
-                        fCmd.clipInfo = clip;
-                        fCmd.mask = currentMask;
-                    }
-                    computedClipStacks.emplace(rawCommand.clipId,currentMask);
-                    pendingCommands.emplace_back(rawCommand.command,currentMask);
-                }
-            }
-
-            if(!pendingCommands.empty())
+    auto& clips = drawCommands.GetClips();
+    auto rawCommands = drawCommands.GetCommands();
+    if (clips.empty())
+    {
+        std::vector<CommandInfo> commands(rawCommands.size());
+        std::ranges::transform(rawCommands.begin(), rawCommands.end(), commands.begin(),
+                               [](const RawCommandInfo& rawInfo)
+                               {
+                                   return CommandInfo{rawInfo.command, 0x01};
+                               });
+        DrawCommandsToFinalCommands(frame, commands, finalDrawCommands);
+    }
+    else
+    {
+        auto faceFlags = vk::StencilFaceFlagBits::eFrontAndBack;
+        auto& uniqueClipStacks = drawCommands.GetUniqueClipStacks();
+        std::unordered_map<std::string, uint32_t> computedClipStacks{};
+        std::vector<CommandInfo> pendingCommands{};
+        std::uint32_t currentMask = 0x01;
+        for (auto i = 0; i < rawCommands.size(); i++)
+        {
+            if (currentMask == 128)
             {
-                DrawCommandsToFinalCommands(frame,pendingCommands,finalDrawCommands);
+                DrawCommandsToFinalCommands(frame, pendingCommands, finalDrawCommands);
                 pendingCommands.clear();
+                computedClipStacks.clear();
+                currentMask = 0x01;
+                finalDrawCommands.emplace_back().type = SurfaceFinalDrawCommand::Type::ClipClear;
+            }
+
+            auto& rawCommand = rawCommands.at(i);
+            if (computedClipStacks.contains(rawCommand.clipId))
+            {
+                pendingCommands.emplace_back(rawCommand.command, computedClipStacks[rawCommand.clipId]);
+            }
+            else
+            {
+                currentMask <<= 1;
+
+                for (auto& clipId : uniqueClipStacks.at(rawCommand.clipId))
+                {
+                    auto clip = clips.at(clipId);
+                    auto& fCmd = finalDrawCommands.emplace_back();
+                    fCmd.type = SurfaceFinalDrawCommand::Type::ClipDraw;
+                    fCmd.clipInfo = clip;
+                    fCmd.mask = currentMask;
+                }
+                computedClipStacks.emplace(rawCommand.clipId, currentMask);
+                pendingCommands.emplace_back(rawCommand.command, currentMask);
             }
         }
+
+        if (!pendingCommands.empty())
+        {
+            DrawCommandsToFinalCommands(frame, pendingCommands, finalDrawCommands);
+            pendingCommands.clear();
+        }
+    }
 }
 
 void WidgetSurface::DrawCommandsToFinalCommands(SurfaceFrame* frame, const std::vector<CommandInfo>& drawCommands,
-    std::vector<SurfaceFinalDrawCommand>& finalDrawCommands)
+                                                std::vector<SurfaceFinalDrawCommand>& finalDrawCommands)
 {
     std::vector<QuadInfo> pendingQuads{};
     uint32_t currentClipMask = bitshift(0); // First bit is reserved for draws with no clipping
     for (auto& [drawCommand,clipMask] : drawCommands)
     {
-        if(currentClipMask != clipMask)
+        if (currentClipMask != clipMask)
         {
-            if(!pendingQuads.empty())
+            if (!pendingQuads.empty())
             {
-                auto &cmd = finalDrawCommands.emplace_back();
-                cmd.SetQuads(pendingQuads,currentClipMask);
+                auto& cmd = finalDrawCommands.emplace_back();
+                cmd.SetQuads(pendingQuads, currentClipMask);
                 pendingQuads = {};
             }
             currentClipMask = clipMask;
         }
-        
+
         switch (drawCommand->GetType())
         {
         case WidgetDrawCommand::Type::Batched:
@@ -589,18 +628,18 @@ void WidgetSurface::DrawCommandsToFinalCommands(SurfaceFrame* frame, const std::
                 if (auto custom = std::dynamic_pointer_cast<WidgetCustomDrawCommand>(drawCommand))
                 {
                     {
-                        auto &cmd = finalDrawCommands.emplace_back();
-                        cmd.SetQuads(pendingQuads,currentClipMask);
+                        auto& cmd = finalDrawCommands.emplace_back();
+                        cmd.SetQuads(pendingQuads, currentClipMask);
                     }
 
                     {
-                        auto &cmd = finalDrawCommands.emplace_back();
+                        auto& cmd = finalDrawCommands.emplace_back();
                         cmd.type = SurfaceFinalDrawCommand::Type::CustomDraw;
                         cmd.custom = custom;
                         cmd.mask = currentClipMask;
                     }
 
-                    
+
                     custom->Run(frame);
                 }
             }
@@ -610,53 +649,55 @@ void WidgetSurface::DrawCommandsToFinalCommands(SurfaceFrame* frame, const std::
 
     if (!pendingQuads.empty())
     {
-        auto &cmd = finalDrawCommands.emplace_back();
-        cmd.SetQuads(pendingQuads,currentClipMask);
+        auto& cmd = finalDrawCommands.emplace_back();
+        cmd.SetQuads(pendingQuads, currentClipMask);
     }
 }
 
-bool WidgetSurface::WriteStencil(const Frame * frame, const std::vector<WidgetStencilClip>& clips)
+bool WidgetSurface::WriteStencil(const Frame* frame, const std::vector<WidgetStencilClip>& clips)
 {
     auto cmd = frame->GetCommandBuffer();
-    if(auto stencilShader = WidgetsModule::Get()->GetStencilShader())
+    if (auto stencilShader = WidgetsModule::Get()->GetStencilShader())
     {
-        if(stencilShader->Bind(cmd,true))
+        if (stencilShader->Bind(cmd, true))
         {
-            
-            for(auto i = 0; i < clips.size(); i += RIN_WIDGETS_MAX_STENCIL_CLIP)
+            for (auto i = 0; i < clips.size(); i += RIN_WIDGETS_MAX_STENCIL_CLIP)
             {
                 WidgetStencilBuffer buff{};
                 buff.projection = GetProjection();
                 auto totalQuads = std::min(RIN_WIDGETS_MAX_STENCIL_CLIP, static_cast<int>(clips.size() - i));
                 memcpy(&buff.clips, clips.data() + i, totalQuads * sizeof(WidgetStencilClip));
                 auto set = frame->GetAllocator()->Allocate(stencilShader->GetDescriptorSetLayouts().at(0));
-                auto dataBuffer = GraphicsModule::Get()->GetAllocator()->NewResourceBuffer(stencilShader->resources.at("stencil_info"));
+                auto dataBuffer = GraphicsModule::Get()->GetAllocator()->NewResourceBuffer(
+                    stencilShader->resources.at("stencil_info"));
                 dataBuffer->Write(buff);
-                cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,stencilShader->GetPipelineLayout(), 0,set->GetInternalSet(), {});
-                cmd.draw(totalQuads * 6,1,0,0);
+                cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, stencilShader->GetPipelineLayout(), 0,
+                                       set->GetInternalSet(), {});
+                cmd.draw(totalQuads * 6, 1, 0, 0);
             }
             return true;
         }
     }
-    
+
     return false;
 }
 
 bool WidgetSurface::WriteStencil(const Frame* frame, const Matrix3<float>& transform, const Vec2<float>& size)
 {
     auto cmd = frame->GetCommandBuffer();
-    if(auto stencilShader = WidgetsModule::Get()->GetStencilShader())
+    if (auto stencilShader = WidgetsModule::Get()->GetStencilShader())
     {
-        if(stencilShader->Bind(cmd,true))
+        if (stencilShader->Bind(cmd, true))
         {
-            SingleStencilDrawPush push{GetProjection(),transform,size};
+            SingleStencilDrawPush push{GetProjection(), transform, size};
             auto pushConstantResource = stencilShader->pushConstants.begin()->second;
-            cmd.pushConstants(stencilShader->GetPipelineLayout(),pushConstantResource.stages,0,pushConstantResource.size,&push);
-            cmd.draw(6,1,0,0);
+            cmd.pushConstants(stencilShader->GetPipelineLayout(), pushConstantResource.stages, 0,
+                              pushConstantResource.size, &push);
+            cmd.draw(6, 1, 0, 0);
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -669,5 +710,5 @@ void WidgetSurface::OnDispose(bool manual)
 
 void WidgetSurface::SetColorWriteMask(const Frame* frame, const vk::ColorComponentFlags& flags)
 {
-    frame->GetCommandBuffer().setColorWriteMaskEXT(0,flags,GraphicsModule::GetDispatchLoader());
+    frame->GetCommandBuffer().setColorWriteMaskEXT(0, flags, GraphicsModule::GetDispatchLoader());
 }

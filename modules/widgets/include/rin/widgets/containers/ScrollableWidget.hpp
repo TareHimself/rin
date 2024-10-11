@@ -7,6 +7,7 @@ class ScrollableWidget : public ListWidget
 protected:
     void ApplyScroll() const;
     float _scroll = 0.0f;
+
 public:
     ScrollableWidget(const WidgetAxis& axis);
 

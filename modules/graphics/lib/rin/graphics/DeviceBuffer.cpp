@@ -1,5 +1,9 @@
 #include "rin/graphics/DeviceBuffer.hpp"
-DeviceBuffer::DeviceBuffer(VmaAllocator allocator,const vk::Buffer& buffer, VmaAllocation allocation, const vk::DeviceSize& size)
+
+#include <iostream>
+
+DeviceBuffer::DeviceBuffer(VmaAllocator allocator, const vk::Buffer& buffer, VmaAllocation allocation,
+                           const vk::DeviceSize& size)
 {
     _buffer = buffer;
     _allocation = allocation;
@@ -10,7 +14,7 @@ DeviceBuffer::DeviceBuffer(VmaAllocator allocator,const vk::Buffer& buffer, VmaA
 void DeviceBuffer::OnDispose(bool manual)
 {
     Disposable::OnDispose(manual);
-    vmaDestroyBuffer(_allocator,_buffer,_allocation);
+    vmaDestroyBuffer(_allocator, _buffer, _allocation);
 }
 
 vk::Buffer DeviceBuffer::GetBuffer() const
@@ -20,9 +24,9 @@ vk::Buffer DeviceBuffer::GetBuffer() const
 
 void DeviceBuffer::Write(const void* data, const vk::DeviceSize& size, const vk::DeviceSize& offset) const
 {
-    vmaCopyMemoryToAllocation(_allocator,data,_allocation,offset,size);
+    vmaCopyMemoryToAllocation(_allocator, data, _allocation, offset, size);
 }
-    
+
 
 vk::DeviceSize DeviceBuffer::GetSize() const
 {

@@ -20,129 +20,131 @@ class CursorDownEvent;
 class WidgetSurface;
 class ContainerWidget;
 
-    class Widget : public Disposable
-    {
-        DelegateListHandle _cursorUpBinding{};
-        Weak<WidgetSurface> _surface{};
-        Weak<ContainerWidget> _parent{};
-        Vec2<float> _offset{0.0};
-        Vec2<float> _size{0.0};
-        std::optional<Vec2<float>> _cachedDesiredSize{};
-        bool _hovered = false;
-        Padding _padding{0.0};
-        
-        WidgetVisibility _visibility = WidgetVisibility::Visible;
+class Widget : public Disposable
+{
+    DelegateListHandle _cursorUpBinding{};
+    Weak<WidgetSurface> _surface{};
+    Weak<ContainerWidget> _parent{};
+    Vec2<float> _offset{0.0};
+    Vec2<float> _size{0.0};
+    std::optional<Vec2<float>> _cachedDesiredSize{};
+    bool _hovered = false;
+    Padding _padding{0.0};
 
-        friend WidgetSurface;
-    protected:
-        virtual void OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface);
+    WidgetVisibility _visibility = WidgetVisibility::Visible;
 
-        virtual void OnRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface);
-        
-        virtual bool OnCursorDown(const Shared<CursorDownEvent>& event);
+    friend WidgetSurface;
 
-        virtual void OnCursorUp(const Shared<CursorUpEvent>& event);
+protected:
+    virtual void OnAddedToSurface(const Shared<WidgetSurface>& widgetSurface);
 
-        virtual bool OnCursorMove(const Shared<CursorMoveEvent>& event);
+    virtual void OnRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface);
 
-        virtual void OnCursorEnter(const Shared<CursorMoveEvent>& event);
+    virtual bool OnCursorDown(const Shared<CursorDownEvent>& event);
 
-        virtual void OnCursorLeave(const Shared<CursorMoveEvent>& event);
+    virtual void OnCursorUp(const Shared<CursorUpEvent>& event);
 
-        virtual bool OnScroll(const Shared<ScrollEvent>& event);
+    virtual bool OnCursorMove(const Shared<CursorMoveEvent>& event);
 
-        virtual void OnFocus();
+    virtual void OnCursorEnter(const Shared<CursorMoveEvent>& event);
 
-        virtual void OnFocusLost();
+    virtual void OnCursorLeave(const Shared<CursorMoveEvent>& event);
 
-        // Computes the size of the widget's content (i.e. where draws will happen or other widgets will be placed)
-        virtual Vec2<float> ComputeContentSize() = 0;
+    virtual bool OnScroll(const Shared<ScrollEvent>& event);
 
-        // Computes the size of the widget (Content size + Padding)
-        virtual Vec2<float> ComputeDesiredSize();
+    virtual void OnFocus();
 
-        // Collects draw commands
-        virtual void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) = 0;
-    public:
+    virtual void OnFocusLost();
 
-        Vec2<float> pivot{0.0};
-        float angle{0.0};
-        Vec2<float> scale{1.0};
-        
-        Shared<WidgetSurface> GetSurface() const;
-        Shared<ContainerWidget> GetParent() const;
-        Matrix3<float> ComputeRelativeTransform() const;
+    // Computes the size of the widget's content (i.e. where draws will happen or other widgets will be placed)
+    virtual Vec2<float> ComputeContentSize() = 0;
 
-        Matrix3<float> ComputeAbsoluteTransform() const;
+    // Computes the size of the widget (Content size + Padding)
+    virtual Vec2<float> ComputeDesiredSize();
 
-        void SetVisibility(WidgetVisibility visibility);
+    // Collects draw commands
+    virtual void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) = 0;
 
-        WidgetVisibility GetVisibility() const;
+public:
+    Vec2<float> pivot{0.0};
+    float angle{0.0};
+    Vec2<float> scale{1.0};
 
-        WidgetRect GetRect() const;
+    Shared<WidgetSurface> GetSurface() const;
+    Shared<ContainerWidget> GetParent() const;
+    Matrix3<float> ComputeRelativeTransform() const;
 
-        void SetParent(const Shared<ContainerWidget>& container);
-        void SetSurface(const Shared<WidgetSurface>& surface);
+    Matrix3<float> ComputeAbsoluteTransform() const;
 
-        bool IsHovered() const;
+    void SetVisibility(WidgetVisibility visibility);
 
-        bool IsHitTestable() const;
-        
-        bool IsSelfHitTestable() const;
+    WidgetVisibility GetVisibility() const;
 
-        bool AreChildrenHitTestable() const;
+    WidgetRect GetRect() const;
 
-        bool HasSurface() const;
+    void SetParent(const Shared<ContainerWidget>& container);
+    void SetSurface(const Shared<WidgetSurface>& surface);
 
-        bool HasParent() const;
-        
-        void BindCursorUp(const Shared<WidgetSurface>& surface);
+    bool IsHovered() const;
 
-        void UnBindCursorUp();
+    bool IsHitTestable() const;
 
-        virtual void NotifyAddedToSurface(const Shared<WidgetSurface>& widgetSurface);
+    bool IsSelfHitTestable() const;
 
-        virtual void NotifyRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface);
-        
-        virtual Shared<Widget> NotifyCursorDown(const Shared<CursorDownEvent>& event, const TransformInfo& transform);
+    bool AreChildrenHitTestable() const;
 
-        virtual void NotifyCursorUp(const Shared<CursorUpEvent>& event);
+    bool HasSurface() const;
 
-        virtual void NotifyCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform, std::vector<Shared<Widget>>& items);
+    bool HasParent() const;
 
-        virtual bool NotifyCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform);
+    void BindCursorUp(const Shared<WidgetSurface>& surface);
 
-        virtual bool NotifyScroll(const Shared<ScrollEvent>& event,const TransformInfo& transform);
+    void UnBindCursorUp();
 
-        virtual void NotifyCursorLeave(const Shared<CursorMoveEvent>& event, const TransformInfo& transform);
-        
-        // Returns the offset of this widget in parent space
-        Vec2<float> GetOffset() const;
+    virtual void NotifyAddedToSurface(const Shared<WidgetSurface>& widgetSurface);
 
-        // Sets the offset of this widget in parent space (May perform side effects)
-        virtual void SetOffset(const Vec2<float>& offset);
+    virtual void NotifyRemovedFromSurface(const Shared<WidgetSurface>& widgetSurface);
 
-        // Returns the size this widget will draw at in parent space
-        Vec2<float> GetSize() const;
+    virtual Shared<Widget> NotifyCursorDown(const Shared<CursorDownEvent>& event, const TransformInfo& transform);
 
-        Vec2<float> GetContentSize() const;
+    virtual void NotifyCursorUp(const Shared<CursorUpEvent>& event);
 
-        // Sets the size of this widget in parent space (May perform side effects)
-        virtual void SetSize(const Vec2<float>& size);
+    virtual void NotifyCursorEnter(const Shared<CursorMoveEvent>& event, const TransformInfo& transform,
+                                   std::vector<Shared<Widget>>& items);
 
-        Vec2<float> GetDesiredSize();
+    virtual bool NotifyCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform);
 
-        Padding GetPadding() const;
-        
-        void SetPadding(const Padding& padding);
+    virtual bool NotifyScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform);
 
-        std::optional<Vec2<float>> GetCachedDesiredSize() const;
+    virtual void NotifyCursorLeave(const Shared<CursorMoveEvent>& event, const TransformInfo& transform);
 
-        // Will check if the desired size of this widget has changed
-        bool CheckSize();
-        
-        // Collects draw commands
-        virtual void Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands);
+    // Returns the offset of this widget in parent space
+    Vec2<float> GetOffset() const;
 
-        //void Collect(WidgetFrame frame, DrawInfo info);
-    };
+    // Sets the offset of this widget in parent space (May perform side effects)
+    virtual void SetOffset(const Vec2<float>& offset);
+
+    // Returns the size this widget will draw at in parent space
+    Vec2<float> GetSize() const;
+
+    Vec2<float> GetContentSize() const;
+
+    // Sets the size of this widget in parent space (May perform side effects)
+    virtual void SetSize(const Vec2<float>& size);
+
+    Vec2<float> GetDesiredSize();
+
+    Padding GetPadding() const;
+
+    void SetPadding(const Padding& padding);
+
+    std::optional<Vec2<float>> GetCachedDesiredSize() const;
+
+    // Will check if the desired size of this widget has changed
+    bool CheckSize();
+
+    // Collects draw commands
+    virtual void Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands);
+
+    //void Collect(WidgetFrame frame, DrawInfo info);
+};

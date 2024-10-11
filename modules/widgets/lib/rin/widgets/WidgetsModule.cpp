@@ -128,7 +128,7 @@ struct FtContext
 };
 
 std::shared_ptr<Image<unsigned char>> WidgetsModule::MtsdfFromGlyph(int code, const FT_Face& face,
-    const float pixelRange, const float angleThreshold)
+                                                                    const float pixelRange, const float angleThreshold)
 {
     const auto glyph_index = FT_Get_Char_Index(face, code);
     if (FT_Load_Glyph(
@@ -193,8 +193,8 @@ std::shared_ptr<Image<unsigned char>> WidgetsModule::MtsdfFromGlyph(int code, co
     {
         const auto context = static_cast<FtContext*>(user);
         const auto endpoint = ftPoint2(*to);
-        const auto cross = msdfgen::crossProduct(ftPoint2(*control1) - endpoint,
-                                                 ftPoint2(*control2) - endpoint);
+        const auto cross = crossProduct(ftPoint2(*control1) - endpoint,
+                                        ftPoint2(*control2) - endpoint);
         if (endpoint != context->position || cross)
         {
             context->contour->addEdge(msdfgen::EdgeHolder(
@@ -223,7 +223,7 @@ std::shared_ptr<Image<unsigned char>> WidgetsModule::MtsdfFromGlyph(int code, co
 
     shape.normalize();
 
-    msdfgen::edgeColoringByDistance(shape, angleThreshold);
+    edgeColoringByDistance(shape, angleThreshold);
 
     const auto bounds = shape.getBounds();
 
@@ -240,8 +240,8 @@ std::shared_ptr<Image<unsigned char>> WidgetsModule::MtsdfFromGlyph(int code, co
     //msdfgen::Bitmap<float, 4> bmp(bmpWidth,bmpHeight);
 
     auto transform = msdfgen::SDFTransformation{{{1.0, 1.0}, {(offsetX * -1.0), offsetY}}, {}};
-    msdfgen::generateMTSDF(bmp, shape, transform, pixelRange);
-    
+    generateMTSDF(bmp, shape, transform, pixelRange);
+
     for (auto y = 0; y < bmpHeight; y++)
     {
         for (auto x = 0; x < bmpWidth; x++)
@@ -256,69 +256,69 @@ std::shared_ptr<Image<unsigned char>> WidgetsModule::MtsdfFromGlyph(int code, co
     return result;
 }
 
-bool WidgetsModule::GenerateAtlases(SDFContainer& result, const FT_Face& face, int pixelSize,int atlasSize, int padding,
-    float pixelRange, float angleThreshold)
+bool WidgetsModule::GenerateAtlases(SDFContainer& result, const FT_Face& face, int pixelSize, int atlasSize,
+                                    int padding,
+                                    float pixelRange, float angleThreshold)
 {
     if (FT_Set_Pixel_Sizes(face, 0, pixelSize))
     {
         return false;
     }
-    
-    std::unordered_map<int,std::shared_ptr<Image<unsigned char>>> generated{};
-    
-    for(auto i = 32; i < 127; i++)
+
+    std::unordered_map<int, std::shared_ptr<Image<unsigned char>>> generated{};
+
+    for (auto i = 32; i < 127; i++)
     {
-        if(auto result = MtsdfFromGlyph(i,face,pixelRange,angleThreshold); result && !result->GetElementCount() == 0)
+        if (auto result = MtsdfFromGlyph(i, face, pixelRange, angleThreshold); result && !result->GetElementCount() ==
+            0)
         {
-            generated.emplace(i,result);
-            
+            generated.emplace(i, result);
         }
     }
-    
+
     using namespace rpack;
     std::vector<Packer> packers{};
-    std::unordered_map<int,std::pair<int,int>> mapping{};
-    
-    for(auto it = generated.begin(); it != generated.end(); ++it)
+    std::unordered_map<int, std::pair<int, int>> mapping{};
+
+    for (auto it = generated.begin(); it != generated.end(); ++it)
     {
-        if(packers.empty())
+        if (packers.empty())
         {
-            packers.emplace_back(atlasSize,atlasSize,padding);
+            packers.emplace_back(atlasSize, atlasSize, padding);
         }
-    
+
         auto packerId = static_cast<int>(packers.size()) - 1;
-    
-        auto &[id,image] = *it;
-        
-        auto insertion =  packers.at(packerId).Pack(image->GetWidth(),image->GetHeight());
-    
-        if(!insertion.has_value())
+
+        auto& [id,image] = *it;
+
+        auto insertion = packers.at(packerId).Pack(image->GetWidth(), image->GetHeight());
+
+        if (!insertion.has_value())
         {
-            packers.emplace_back(atlasSize,atlasSize,10);
+            packers.emplace_back(atlasSize, atlasSize, 10);
             --it;
         }
         else
         {
             int insertionIdx = insertion.value();
-            mapping.emplace(id,std::pair(packerId,insertionIdx));
+            mapping.emplace(id, std::pair(packerId, insertionIdx));
         }
     }
-    
-    
+
+
     std::vector<std::shared_ptr<Image<unsigned char>>> atlases{};
     atlases.reserve(packers.size());
-    
-    for(auto &packer : packers)
+
+    for (auto& packer : packers)
     {
-        atlases.push_back(std::make_shared<Image<unsigned char>>(atlasSize,atlasSize,4));
+        atlases.push_back(std::make_shared<Image<unsigned char>>(atlasSize, atlasSize, 4));
     }
-    
-    for(auto &[id,info] : mapping)
+
+    for (auto& [id,info] : mapping)
     {
         auto atlasId = info.first;
         auto img = generated.at(id);
         auto pos = packers.at(info.first).GetRects().at(info.second);
-        img->CopyTo(*atlases.at(atlasId),Vec2{0},img->GetSize(),Vec2{pos.x,pos.y});
+        img->CopyTo(*atlases.at(atlasId), Vec2{0}, img->GetSize(), Vec2{pos.x, pos.y});
     }
-    
 }

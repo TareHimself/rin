@@ -36,25 +36,26 @@ class WidgetDrawCommands
     std::vector<RawCommandInfo> _commands{};
     std::deque<uint32_t> _clipStack{};
     std::string _clipId{};
-    std::map<std::string,std::deque<uint32_t>> _uniqueClipStacks{};
-public:
+    std::map<std::string, std::deque<uint32_t>> _uniqueClipStacks{};
 
-    template<typename T,typename ...TArgs>
-        std::enable_if_t<std::is_constructible_v<T,TArgs...> && std::is_base_of_v<WidgetDrawCommand,T>,WidgetDrawCommands&> Add(TArgs&&... args);
-    
+public:
+    template <typename T, typename... TArgs>
+    std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<WidgetDrawCommand, T>, WidgetDrawCommands
+                     &> Add(TArgs&&... args);
+
     WidgetDrawCommands& Add(const Shared<WidgetDrawCommand>& command);
 
-    WidgetDrawCommands& PushClip(const TransformInfo& transform, const Widget * container);
-    WidgetDrawCommands& PushClip(const Matrix3<float>& transform,const Vec2<float>& size);
+    WidgetDrawCommands& PushClip(const TransformInfo& transform, const Widget* container);
+    WidgetDrawCommands& PushClip(const Matrix3<float>& transform, const Vec2<float>& size);
     WidgetDrawCommands& PopClip();
-    
+
     std::vector<RawCommandInfo>& GetCommands();
     std::vector<ClipInfo>& GetClips();
-    std::map<std::string,std::deque<uint32_t>>& GetUniqueClipStacks();
+    std::map<std::string, std::deque<uint32_t>>& GetUniqueClipStacks();
     bool Empty() const;
 };
 
-template <typename T, typename ... TArgs>
+template <typename T, typename... TArgs>
 std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<WidgetDrawCommand, T>, WidgetDrawCommands&>
 WidgetDrawCommands::Add(TArgs&&... args)
 {

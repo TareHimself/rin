@@ -5,9 +5,9 @@
 class Window;
 
 MCLASS()
+
 class AudioModule : public RinModule
 {
-        
 public:
     std::string GetName() override;
     void Startup(GRuntime* runtime) override;

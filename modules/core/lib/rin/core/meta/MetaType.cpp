@@ -1,4 +1,5 @@
 #include "rin/core/meta/MetaType.hpp"
+
 MetaType::MetaType()
 {
     _id = "";

@@ -7,5 +7,5 @@ class ResizeEvent : public Event
 {
 public:
     Vec2<float> size;
-    ResizeEvent(const Shared<WidgetSurface>& inSurface,const Vec2<float>& inSize);
+    ResizeEvent(const Shared<WidgetSurface>& inSurface, const Vec2<float>& inSize);
 };

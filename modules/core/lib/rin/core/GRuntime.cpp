@@ -7,129 +7,127 @@
 #include "rin/core/utils.hpp"
 
 Unique<GRuntime> GRuntime::_runtime{};
-    std::mutex GRuntime::_mutex{};
+std::mutex GRuntime::_mutex{};
 
-    GRuntime* GRuntime::Get()
+GRuntime* GRuntime::Get()
+{
+    if (!_runtime)
     {
-        if(!_runtime)
         {
+            std::lock_guard guard(_mutex);
+            if (!_runtime)
             {
-                std::lock_guard guard(_mutex);
-                if(!_runtime)
-                {
-                    _runtime = std::make_unique<GRuntime>();
-                }
+                _runtime = std::make_unique<GRuntime>();
             }
         }
-        
-        return _runtime.get();
     }
 
-    void GRuntime::StartupModules()
+    return _runtime.get();
+}
+
+void GRuntime::StartupModules()
+{
     {
+        std::unordered_map<size_t, Shared<RinModule>> oldModules = _modules;
+
+        for (const auto& mod : _modules | std::views::values)
         {
-            std::unordered_map<size_t,Shared<RinModule>> oldModules = _modules;
-            
-            for (const auto &mod : _modules | std::views::values)
-            {
-                mod->RegisterRequiredModules();
-            }
+            mod->RegisterRequiredModules();
         }
-        
-        _moduleList.reserve(_modules.size());
-        for (const auto& module : _modules | std::views::values)
+    }
+
+    _moduleList.reserve(_modules.size());
+    for (const auto& module : _modules | std::views::values)
+    {
+        _moduleList.push_back(module);
+    }
+
+    std::ranges::sort(_moduleList, [](Shared<RinModule>& a, Shared<RinModule>& b)
+    {
+        if (a->IsSystemModule() != b->IsSystemModule())
         {
-            _moduleList.push_back(module);
-        }
-
-        std::ranges::sort(_moduleList,[](Shared<RinModule>& a,Shared<RinModule>& b)
-        {
-
-            if(a->IsSystemModule() != b->IsSystemModule())
-            {
-                if(a->IsSystemModule())
-                {
-                    return -1;
-                }
-
-                return 1;
-            }
-            
-            if(a->IsDependentOn(b.get()))
+            if (a->IsSystemModule())
             {
                 return -1;
             }
 
-            if(b->IsDependentOn(a.get()))
-            {
-                return 1;
-            }
-
-            
-            return a->GetName().compare(b->GetName());
-        });
-
-        for (const auto &module : _moduleList)
-        {
-            module->Startup(this);
-        } 
-    }
-
-    void GRuntime::ShutdownModules()
-    {
-        
-        for (auto& module : std::ranges::views::reverse(_moduleList))
-        {
-            module->beforeShutdown->Invoke();
-            module->Shutdown(this);
+            return 1;
         }
 
-        _modules.clear();
-    
-        _moduleList.clear();
-    }
-
-    void GRuntime::Loop()
-    {
-        while(!WillExit())
+        if (a->IsDependentOn(b.get()))
         {
-            const auto now = GetTimeSeconds();
-            _lastDelta = now - _lastTickTime;
-            onTick->Invoke(_lastDelta);
-            _lastTickTime = now;
+            return -1;
         }
-    }
 
-    bool GRuntime::WillExit() const
-    {
-        return _exitRequested;
-    }
-
-    void GRuntime::RequestExit()
-    {
-        _exitRequested = true;
-    }
-
-    void GRuntime::Run()
-    {
-        _startedAt = std::chrono::system_clock::now();
-        _lastTickTime = GetTimeSeconds();
-        if(!std::filesystem::exists(getResourcesPath()))
+        if (b->IsDependentOn(a.get()))
         {
-            std::filesystem::create_directories(getResourcesPath());
+            return 1;
         }
-        rin::platform::init();
-        StartupModules();
-        Loop();
-        ShutdownModules();
+
+
+        return a->GetName().compare(b->GetName());
+    });
+
+    for (const auto& module : _moduleList)
+    {
+        module->Startup(this);
+    }
+}
+
+void GRuntime::ShutdownModules()
+{
+    for (auto& module : std::ranges::views::reverse(_moduleList))
+    {
+        module->beforeShutdown->Invoke();
+        module->Shutdown(this);
     }
 
-    double GRuntime::GetTimeSeconds() const
-    {
-        return static_cast<std::chrono::duration<double>>(std::chrono::system_clock::now() - _startedAt).count();
-    }
+    _modules.clear();
 
-    double GRuntime::GetLastDelta() const
+    _moduleList.clear();
+}
+
+void GRuntime::Loop()
+{
+    while (!WillExit())
     {
-        return _lastTickTime;
+        const auto now = GetTimeSeconds();
+        _lastDelta = now - _lastTickTime;
+        onTick->Invoke(_lastDelta);
+        _lastTickTime = now;
     }
+}
+
+bool GRuntime::WillExit() const
+{
+    return _exitRequested;
+}
+
+void GRuntime::RequestExit()
+{
+    _exitRequested = true;
+}
+
+void GRuntime::Run()
+{
+    _startedAt = std::chrono::system_clock::now();
+    _lastTickTime = GetTimeSeconds();
+    if (!exists(getResourcesPath()))
+    {
+        create_directories(getResourcesPath());
+    }
+    rin::platform::init();
+    StartupModules();
+    Loop();
+    ShutdownModules();
+}
+
+double GRuntime::GetTimeSeconds() const
+{
+    return static_cast<std::chrono::duration<double>>(std::chrono::system_clock::now() - _startedAt).count();
+}
+
+double GRuntime::GetLastDelta() const
+{
+    return _lastTickTime;
+}

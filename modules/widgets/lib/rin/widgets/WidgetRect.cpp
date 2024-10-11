@@ -3,12 +3,11 @@
 
 WidgetRect::WidgetRect(const Vec2<float>& inOffset, const Vec2<float>& inSize) : offset(inOffset), size(inSize)
 {
-
 }
 
 bool WidgetRect::Contains(const Vec2<float>& point) const
 {
-    return offset.x <= point.x && point.x <= offset.x + size.x && offset.y<= point.y && point.y <= offset.y + size.y;
+    return offset.x <= point.x && point.x <= offset.x + size.x && offset.y <= point.y && point.y <= offset.y + size.y;
 }
 
 bool WidgetRect::IntersectsWith(const WidgetRect& other) const

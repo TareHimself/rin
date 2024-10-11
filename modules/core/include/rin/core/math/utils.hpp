@@ -1,19 +1,19 @@
 ﻿#pragma once
 #include <functional>
 
-template<typename T>
+template <typename T>
 T abs(T a);
 
-template<typename T>
-T interpolate(const T& begin,const T& end,const T& alpha);
+template <typename T>
+T interpolate(const T& begin, const T& end, const T& alpha);
 
-template<typename T>
-T interpolate(const T& begin,const T& end,const T& alpha,const std::function<T(T)>& method);
+template <typename T>
+T interpolate(const T& begin, const T& end, const T& alpha, const std::function<T(T)>& method);
 
 template <typename T>
 T abs(T a)
 {
-    if(a < 0.0f)
+    if (a < 0.0f)
     {
         return -a;
     }
@@ -32,4 +32,3 @@ T interpolate(const T& begin, const T& end, const T& alpha, const std::function<
 {
     return begin + (end - begin) * method(alpha);
 }
-

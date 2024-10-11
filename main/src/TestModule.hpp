@@ -35,20 +35,25 @@ public:
 class TestWidget : public Widget
 {
     Vec2<float> _lastLocation{0.0f};
+
 protected:
     Vec2<float> ComputeContentSize() override;
+
 public:
     void Collect(const TransformInfo& transform,
                  WidgetDrawCommands& drawCommands) override;
 };
+
 MCLASS()
+
 class TestModule : public RinModule
 {
-    WindowModule * _windowModule = nullptr;
-    WidgetsModule * _widgetsModule = nullptr;
+    WindowModule* _windowModule = nullptr;
+    WidgetsModule* _widgetsModule = nullptr;
     Shared<Window> _window{};
-    bass::FileStream * _stream = nullptr;
+    bass::FileStream* _stream = nullptr;
     Shared<FlexWidget> _container{};
+
 public:
     BackgroundThread<void> tasks{};
     std::string GetName() override;
@@ -57,5 +62,5 @@ public:
     bool IsDependentOn(RinModule* module) override;
     void RegisterRequiredModules() override;
     void LoadImages();
-    static void OnCloseRequested(Window * window);
+    static void OnCloseRequested(Window* window);
 };
