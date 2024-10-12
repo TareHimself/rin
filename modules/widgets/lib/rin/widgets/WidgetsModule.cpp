@@ -269,10 +269,10 @@ bool WidgetsModule::GenerateAtlases(SDFContainer& result, const FT_Face& face, i
 
     for (auto i = 32; i < 127; i++)
     {
-        if (auto result = MtsdfFromGlyph(i, face, pixelRange, angleThreshold); result && !result->GetElementCount() ==
+        if (auto img = MtsdfFromGlyph(i, face, pixelRange, angleThreshold); img && !img->GetElementCount() ==
             0)
         {
-            generated.emplace(i, result);
+            generated.emplace(i, img);
         }
     }
 
@@ -297,12 +297,13 @@ bool WidgetsModule::GenerateAtlases(SDFContainer& result, const FT_Face& face, i
         {
             packers.emplace_back(atlasSize, atlasSize, 10);
             --it;
+            continue;
         }
-        else
-        {
-            int insertionIdx = insertion.value();
-            mapping.emplace(id, std::pair(packerId, insertionIdx));
-        }
+        
+        int insertionIdx = insertion.value();
+        mapping.emplace(id, std::pair(packerId, insertionIdx));
+        auto packedRect = packers[packers.size() - 1].GetRects().at(insertionIdx);
+        result.AddItem({std::string(0,static_cast<char>(it->first)),packedRect.x,packedRect.y,packedRect.width,packedRect.height});
     }
 
 
@@ -311,7 +312,9 @@ bool WidgetsModule::GenerateAtlases(SDFContainer& result, const FT_Face& face, i
 
     for (auto& packer : packers)
     {
-        atlases.push_back(std::make_shared<Image<unsigned char>>(atlasSize, atlasSize, 4));
+        auto atlas = std::make_shared<Image<unsigned char>>(atlasSize, atlasSize, 4);
+        result.AddAtlas(atlas);
+        atlases.push_back(atlas);
     }
 
     for (auto& [id,info] : mapping)
@@ -321,4 +324,6 @@ bool WidgetsModule::GenerateAtlases(SDFContainer& result, const FT_Face& face, i
         auto pos = packers.at(info.first).GetRects().at(info.second);
         img->CopyTo(*atlases.at(atlasId), Vec2{0}, img->GetSize(), Vec2{pos.x, pos.y});
     }
+
+    return  true;
 }
