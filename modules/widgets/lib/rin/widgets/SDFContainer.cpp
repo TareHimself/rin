@@ -4,9 +4,7 @@
 #include "rin/graphics/ResourceManager.hpp"
 
 
-SDFContainer::SDFContainer()
-{
-}
+SDFContainer::SDFContainer() = default;
 
 bool SDFContainer::Has(const std::string& id) const
 {

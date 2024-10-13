@@ -21,7 +21,7 @@ public:
     size_t GetMaxSlots() const override;
     void ArrangeSlots(const Vec2<float>& drawSize) override;
 
-    static Vec2<float> ComputeContainSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize);
-    static Vec2<float> ComputeCoverSize(const Vec2<float>& drawSize, const Vec2<float>& widgetSize);
+    static Vec2<float> ComputeContainSize(const Vec2<float>& drawSize, const Vec2<float>& desiredSize);
+    static Vec2<float> ComputeCoverSize(const Vec2<float>& drawSize, const Vec2<float>& desiredSize);
     void SizeContent(const Vec2<float>& size) const;
 };

@@ -44,6 +44,41 @@ void TestClipCommand::Run(SurfaceFrame* frame)
     enableStencilCompare(cmd, bitshift(1, 2), vk::CompareOp::eNotEqual);
 }
 
+void CoverImage::CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
+{
+    if (GetTextureId() < 0)
+    {
+        drawCommands.Add(
+            SimpleBatchedDrawCommand::Builder{}
+            .AddRect(
+                GetContentSize(),
+                transform.transform,
+                GetBorderRadius(),
+                GetTint()
+            )
+            .Finish()
+        );
+    }
+    else
+    {
+
+        auto fitSize = FitterWidget::ComputeCoverSize(GetContentSize(),GetDesiredSize());
+
+        
+        drawCommands.Add(
+            SimpleBatchedDrawCommand::Builder{}
+            .AddTexture(
+                GetTextureId(),
+                GetContentSize(),
+                transform.transform,
+                GetBorderRadius(),
+                GetTint()
+            )
+            .Finish()
+        );
+    }
+}
+
 TextTestWidget::TextTestWidget()
 {
 }

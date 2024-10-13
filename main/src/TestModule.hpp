@@ -7,6 +7,7 @@
 #include "rin/widgets/Widget.hpp"
 #include "rin/widgets/WidgetsModule.hpp"
 #include "rin/widgets/containers/FlexWidget.hpp"
+#include "rin/widgets/content/ImageWidget.hpp"
 #include "rin/widgets/graphics/WidgetCustomDrawCommand.hpp"
 #include "rin/window/WindowModule.hpp"
 #include "rin/window/Window.hpp"
@@ -19,6 +20,12 @@ namespace bass
 class TestClipCommand : public WidgetCustomDrawCommand
 {
     void Run(SurfaceFrame* frame) override;
+};
+
+
+class CoverImage : public ImageWidget
+{
+    void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
 };
 
 class TextTestWidget : public Widget
