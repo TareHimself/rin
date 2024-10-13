@@ -1,5 +1,6 @@
 ﻿#include "rin/widgets/containers/ScrollableWidget.hpp"
 #include "rin/widgets/ContainerWidgetSlot.hpp"
+#include "rin/widgets/event/ScrollEvent.hpp"
 
 void ScrollableWidget::ApplyScroll() const
 {
@@ -32,6 +33,11 @@ void ScrollableWidget::ApplyScroll() const
         }
         break;
     }
+}
+
+ScrollableWidget::ScrollableWidget()
+{
+    
 }
 
 ScrollableWidget::ScrollableWidget(const WidgetAxis& axis) : ListWidget(axis)
@@ -71,6 +77,24 @@ float ScrollableWidget::GetScroll() const
 
 bool ScrollableWidget::OnScroll(const Shared<ScrollEvent>& event)
 {
+    float scrollDelta = 0.0f;
+    switch (GetAxis())
+    {
+    case WidgetAxis::Horizontal:
+        scrollDelta = event->delta.x;
+        break;
+    case WidgetAxis::Vertical:
+        scrollDelta = -event->delta.y;
+        break;
+    }
+
+    if(IsScrollable())
+    {
+        const auto oldScroll = _scroll;
+        _scroll = std::clamp<float>(_scroll + scrollDelta,0,GetMaxScroll());
+        return oldScroll != _scroll;
+    }
+    
     return ContainerWidget::OnScroll(event);
 }
 
@@ -82,7 +106,7 @@ bool ScrollableWidget::OnCursorDown(const Shared<CursorDownEvent>& event)
 TransformInfo ScrollableWidget::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
 {
     auto myTransformDup = myTransform;
-    myTransformDup.transform = GetAxis() == WidgetAxis::Vertical
+    myTransformDup.transform = GetAxis() == WidgetAxis::Horizontal
                                    ? myTransformDup.transform.Translate(Vec2{-GetScroll(), 0.0f})
                                    : myTransformDup.transform.Translate(Vec2{0.0f, -GetScroll()});
 

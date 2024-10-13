@@ -36,6 +36,11 @@ void Window::NotifyEvent(const SDL_Event& event)
                                        : InputState::Released);
         }
         break;
+    case SDL_EVENT_MOUSE_WHEEL:
+        {
+            onScroll->Invoke(this,Vec2{event.wheel.x,event.wheel.y});
+        }
+        break;
     case SDL_EVENT_WINDOW_FOCUS_GAINED:
     case SDL_EVENT_WINDOW_FOCUS_LOST:
         onFocusChanged->Invoke(this, event.type == SDL_EVENT_WINDOW_FOCUS_GAINED);

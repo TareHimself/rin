@@ -34,6 +34,7 @@ void ListWidget::ArrangeSlots(const Vec2<float>& drawSize)
                 auto widget = containerSlot->GetWidget();
                 widget->SetOffset(offset);
                 auto widgetDrawSize = widget->GetDesiredSize();
+                widgetDrawSize.y = drawSize.y;
                 widget->SetSize(widgetDrawSize);
                 offset = offset + Vec2{widgetDrawSize.x, 0.0f};
             }
@@ -48,6 +49,7 @@ void ListWidget::ArrangeSlots(const Vec2<float>& drawSize)
                 auto widget = containerSlot->GetWidget();
                 widget->SetOffset(offset);
                 auto widgetDrawSize = widget->GetDesiredSize();
+                widgetDrawSize.x = drawSize.x;
                 widget->SetSize(widgetDrawSize);
                 offset = offset + Vec2{0.0f, widgetDrawSize.y};
             }

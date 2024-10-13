@@ -61,9 +61,13 @@ void CoverImage::CollectContent(const TransformInfo& transform, WidgetDrawComman
     }
     else
     {
-
-        auto fitSize = FitterWidget::ComputeCoverSize(GetContentSize(),GetDesiredSize());
-
+        auto contentSize = GetContentSize();
+        auto fitSize = FitterWidget::ComputeCoverSize(contentSize,GetDesiredSize());
+        auto centerDist = fitSize / 2.0f - contentSize / 2.0f;
+        auto p1 = centerDist;
+        auto p2 = centerDist + contentSize;
+        p1 = p1 / fitSize;
+        p2 = p2 / fitSize;
         
         drawCommands.Add(
             SimpleBatchedDrawCommand::Builder{}
@@ -73,24 +77,31 @@ void CoverImage::CollectContent(const TransformInfo& transform, WidgetDrawComman
                 transform.transform,
                 GetBorderRadius(),
                 GetTint()
+                ,Vec4{p1.x,p1.y,p2.x,p2.y}
             )
             .Finish()
         );
     }
 }
-
-TextTestWidget::TextTestWidget()
-{
-}
-
-Vec2<float> TextTestWidget::ComputeContentSize()
-{
-    return Vec2{0.0f};
-}
-
-void TextTestWidget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
-{
-}
+//
+// TextTestWidget::TextTestWidget()
+// {
+//     WidgetsModule::GenerateAtlases()
+// }
+//
+// Vec2<float> TextTestWidget::ComputeContentSize()
+// {
+//     return Vec2{0.0f};
+// }
+//
+// void TextTestWidget::CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
+// {
+//     
+// }
+//
+// void TextTestWidget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
+// {
+// }
 
 Vec2<float> TestWidget::ComputeContentSize()
 {
@@ -168,7 +179,7 @@ void TestModule::Startup(GRuntime* runtime)
 
     if (auto surface = _widgetsModule->GetSurface(_window))
     {
-        _container = newShared<FlexWidget>();
+        _container = newShared<ScrollableWidget>(WidgetAxis::Vertical);
 
         surface->AddChild(_container);
 
@@ -227,13 +238,16 @@ void TestModule::LoadImages()
             loadedTexture.SetChannels(4);
             textureId = GraphicsModule::Get()->GetResourceManager()->CreateTexture(
                 loadedTexture, ImageFormat::RGBA8, vk::Filter::eNearest, {}, true);
-            auto img = newShared<ImageWidget>();
+            auto img = newShared<CoverImage>();
             img->SetTextureId(textureId);
-            auto fitter = (newShared<FitterWidget>() + img).second;
-            fitter->SetPadding(Padding{20.0f});
-            auto slot = (_container + fitter).first;
-            fitter->SetClipMode(EClipMode::Bounds);
-            fitter->SetMode(FitMode::Cover);
+            img->SetPadding(Padding{20.0f});
+            auto slot = (_container + img).first;
+            
+            // auto fitter = (newShared<FitterWidget>() + img).second;
+            // fitter->SetPadding(Padding{20.0f});
+            // auto slot = (_container + fitter).first;
+            // fitter->SetClipMode(EClipMode::Bounds);
+            // fitter->SetMode(FitMode::Cover);
         }
     }
 }

@@ -9,8 +9,10 @@ protected:
     float _scroll = 0.0f;
 
 public:
-    ScrollableWidget(const WidgetAxis& axis);
 
+    ScrollableWidget();
+    ScrollableWidget(const WidgetAxis& axis);
+    
     bool IsScrollable() const;
     float GetMaxScroll() const;
     float GetScroll() const;

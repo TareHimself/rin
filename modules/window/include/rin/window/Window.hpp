@@ -42,6 +42,7 @@ public:
     DEFINE_DELEGATE_LIST(onKey, Window*, Key, InputState)
     DEFINE_DELEGATE_LIST(onCursorButton, Window*, CursorButton, InputState)
     DEFINE_DELEGATE_LIST(onCursorMoved, Window*, const Vec2<float>&)
+    DEFINE_DELEGATE_LIST(onScroll, Window*, const Vec2<float>&)
     DEFINE_DELEGATE_LIST(onDisposed, Window*)
     DEFINE_DELEGATE_LIST(onMinimized, Window*)
     DEFINE_DELEGATE_LIST(onMaximized, Window*)

@@ -379,6 +379,7 @@ void WidgetSurface::Draw(Frame* frame)
 
         uint64_t offset = 0;
         bool isWritingStencil = false;
+        bool isComparingStencil = false;
         bool isBatching = false;
         finalMemoryNeeded = finalMemoryNeeded % batchBufferResource.size;
         memoryNeeded += batchBufferResource.size - finalMemoryNeeded;
@@ -408,6 +409,7 @@ void WidgetSurface::Draw(Frame* frame)
                                          vk::CompareOp::eAlways);
                         SetColorWriteMask(frame, vk::ColorComponentFlags());
                         isWritingStencil = true;
+                        isComparingStencil = false;
                     }
 
                     cmd.setStencilWriteMask(faceFlags, command.mask.value());
@@ -434,7 +436,7 @@ void WidgetSurface::Draw(Frame* frame)
                 {
                     BeginMainPass(surfaceFramePtr);
 
-                    if (isWritingStencil)
+                    if (!isComparingStencil)
                     {
                         enableStencilCompare(cmd, command.mask.value(), vk::CompareOp::eNotEqual);
                         SetColorWriteMask(
@@ -442,6 +444,7 @@ void WidgetSurface::Draw(Frame* frame)
                             vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
                             vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
                         isWritingStencil = false;
+                        isComparingStencil = true;
                     }
                     else
                     {

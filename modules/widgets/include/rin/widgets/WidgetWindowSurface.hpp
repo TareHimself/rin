@@ -9,6 +9,7 @@ class WidgetWindowSurface : public WidgetSurface
     DelegateListHandle _resizeHandle{};
     DelegateListHandle _cursorMoveHandle{};
     DelegateListHandle _cursorButtonHandle{};
+    DelegateListHandle _scrollHandle{};
 
 public:
     explicit WidgetWindowSurface(WindowRenderer* window);
@@ -23,6 +24,7 @@ public:
     virtual void OnWindowResize(Window* window, const Vec2<int>& size);
     virtual void OnWindowCursorMove(Window* window, const Vec2<float>& position);
     virtual void OnWindowCursorButton(Window* window, CursorButton button, InputState state);
+    virtual void OnWindowScroll(Window* window, const Vec2<float>& delta);
 
     void OnDispose(bool manual) override;
     //virtual void OnWindowScroll(const Shared<ScrollEvent>& event);

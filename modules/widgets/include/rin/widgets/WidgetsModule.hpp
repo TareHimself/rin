@@ -70,9 +70,9 @@ public:
     static Shared<FT_Library> InitFreetype();
 
 
-    std::shared_ptr<Image<unsigned char>> MtsdfFromGlyph(int code, const FT_Face& face, float pixelRange = 30.0f,
-                                                         float angleThreshold = 3.0f);
+    static std::shared_ptr<Image<unsigned char>> MtsdfFromGlyph(int code, const FT_Face& face, float pixelRange = 30.0f,
+                                                                float angleThreshold = 3.0f);
 
-    bool GenerateAtlases(SDFContainer& result, const FT_Face& face, int pixelSize = 30, int atlasSize = 256,
+    static bool GenerateAtlases(SDFContainer& result, const FT_Face& face, int pixelSize = 30, int atlasSize = 256,
                          int padding = 2, float pixelRange = 30.0f, float angleThreshold = 3.0f);
 };

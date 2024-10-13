@@ -300,5 +300,6 @@ void Widget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCom
         return;
     }
 
-    CollectContent(transform, drawCommands);
+    auto padding = GetPadding();
+    CollectContent(TransformInfo{transform.transform.Translate(Vec2{padding.left,padding.top}),transform.size,transform.depth}, drawCommands);
 }

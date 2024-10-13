@@ -4,6 +4,7 @@
 #include "rin/widgets/event/CursorMoveEvent.hpp"
 #include "rin/widgets/event/CursorUpEvent.hpp"
 #include "rin/widgets/event/ResizeEvent.hpp"
+#include "rin/widgets/event/ScrollEvent.hpp"
 
 WidgetWindowSurface::WidgetWindowSurface(WindowRenderer* window)
 {
@@ -32,6 +33,8 @@ void WidgetWindowSurface::Init()
         thisShared, &WidgetWindowSurface::OnWindowCursorMove);
     _cursorButtonHandle = window->onCursorButton->Add<WidgetWindowSurface>(
         thisShared, &WidgetWindowSurface::OnWindowCursorButton);
+    _scrollHandle = window->onScroll->Add<WidgetWindowSurface>(
+        thisShared, &WidgetWindowSurface::OnWindowScroll);
 }
 
 void WidgetWindowSurface::HandleDrawSkipped(Frame* frame)
@@ -103,6 +106,11 @@ void WidgetWindowSurface::OnWindowCursorButton(Window* window, CursorButton butt
     }
 }
 
+void WidgetWindowSurface::OnWindowScroll(Window* window, const Vec2<float>& delta)
+{
+    NotifyScroll(newShared<ScrollEvent>(this->GetSharedDynamic<WidgetWindowSurface>(),delta,GetCursorPosition()));
+}
+
 void WidgetWindowSurface::OnDispose(bool manual)
 {
     WidgetSurface::OnDispose(manual);
@@ -111,4 +119,5 @@ void WidgetWindowSurface::OnDispose(bool manual)
     _resizeHandle.UnBind();
     _cursorMoveHandle.UnBind();
     _cursorButtonHandle.UnBind();
+    _scrollHandle.UnBind();
 }

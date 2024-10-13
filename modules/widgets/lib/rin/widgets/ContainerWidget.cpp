@@ -157,13 +157,13 @@ void ContainerWidget::NotifyCursorEnter(const Shared<CursorMoveEvent>& event, co
 
 bool ContainerWidget::NotifyCursorMove(const Shared<CursorMoveEvent>& event, const TransformInfo& transform)
 {
-    if (AreChildrenHitTestable()) return NotifyChildrenCursorMove(event, transform);
+    if (AreChildrenHitTestable() && NotifyChildrenCursorMove(event, transform)) return true;
     return Widget::NotifyCursorMove(event, transform);
 }
 
 bool ContainerWidget::NotifyScroll(const Shared<ScrollEvent>& event, const TransformInfo& transform)
 {
-    if (AreChildrenHitTestable()) return NotifyChildrenScroll(event, transform);
+    if (AreChildrenHitTestable() && NotifyChildrenScroll(event, transform)) return true;
     return Widget::NotifyScroll(event, transform);
 }
 

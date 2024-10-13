@@ -7,6 +7,7 @@
 #include "rin/widgets/Widget.hpp"
 #include "rin/widgets/WidgetsModule.hpp"
 #include "rin/widgets/containers/FlexWidget.hpp"
+#include "rin/widgets/containers/ScrollableWidget.hpp"
 #include "rin/widgets/content/ImageWidget.hpp"
 #include "rin/widgets/graphics/WidgetCustomDrawCommand.hpp"
 #include "rin/window/WindowModule.hpp"
@@ -28,16 +29,17 @@ class CoverImage : public ImageWidget
     void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
 };
 
-class TextTestWidget : public Widget
-{
-protected:
-    int _atlas = -1;
-    TextTestWidget();
-    Vec2<float> ComputeContentSize() override;
-
-public:
-    void Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
-};
+// class TextTestWidget : public Widget
+// {
+// protected:
+//     SDFContainer _sdfInfo{};
+//     TextTestWidget();
+//     Vec2<float> ComputeContentSize() override;
+//     void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
+//
+// public:
+//     void Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
+// };
 
 class TestWidget : public Widget
 {
@@ -59,7 +61,7 @@ class TestModule : public RinModule
     WidgetsModule* _widgetsModule = nullptr;
     Shared<Window> _window{};
     bass::FileStream* _stream = nullptr;
-    Shared<FlexWidget> _container{};
+    Shared<ScrollableWidget> _container{};
 
 public:
     BackgroundThread<void> tasks{};
