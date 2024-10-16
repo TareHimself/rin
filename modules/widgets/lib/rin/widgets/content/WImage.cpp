@@ -1,10 +1,10 @@
-﻿#include "rin/widgets/content/ImageWidget.hpp"
+﻿#include "rin/widgets/content/WImage.hpp"
 #include "rin/graphics/DeviceImage.hpp"
 #include "rin/graphics/ResourceManager.hpp"
 #include "rin/widgets/graphics/SimpleBatchedDrawCommand.hpp"
 #include "rin/widgets/graphics/WidgetDrawCommands.hpp"
 
-void ImageWidget::SetTextureId(const int& textureId)
+void WImage::SetTextureId(const int& textureId)
 {
     auto isNew = _textureId != textureId;
     _textureId = textureId;
@@ -14,32 +14,32 @@ void ImageWidget::SetTextureId(const int& textureId)
     }
 }
 
-int ImageWidget::GetTextureId() const
+int WImage::GetTextureId() const
 {
     return _textureId;
 }
 
-void ImageWidget::SetBorderRadius(const Vec4<float>& borderRadius)
+void WImage::SetBorderRadius(const Vec4<float>& borderRadius)
 {
     _borderRadius = borderRadius;
 }
 
-Vec4<float> ImageWidget::GetBorderRadius() const
+Vec4<float> WImage::GetBorderRadius() const
 {
     return _borderRadius;
 }
 
-void ImageWidget::SetTint(const Vec4<float>& tint)
+void WImage::SetTint(const Vec4<float>& tint)
 {
     _tint = tint;
 }
 
-Vec4<float> ImageWidget::GetTint() const
+Vec4<float> WImage::GetTint() const
 {
     return _tint;
 }
 
-void ImageWidget::CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
+void WImage::CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
 {
     if (_textureId < 0)
     {
@@ -70,7 +70,7 @@ void ImageWidget::CollectContent(const TransformInfo& transform, WidgetDrawComma
     }
 }
 
-Vec2<float> ImageWidget::ComputeContentSize()
+Vec2<float> WImage::ComputeContentSize()
 {
     if (auto vkImage = GraphicsModule::Get()->GetResourceManager()->GetTextureImage(GetTextureId()))
     {

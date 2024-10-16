@@ -3,12 +3,12 @@
 #include "rin/widgets/ContainerWidgetSlot.hpp"
 
 
-class PanelWidget;
+class WCPanel;
 
-class PanelWidgetSlot : public ContainerWidgetSlot
+class WSPanel : public ContainerWidgetSlot
 {
 public:
-    PanelWidgetSlot(PanelWidget* panel, const Shared<Widget>& widget);
+    WSPanel(WCPanel* panel, const Shared<Widget>& widget);
 
 
     Vec2<float> alignment{0.0f};

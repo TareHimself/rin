@@ -9,23 +9,19 @@
 #include "rin/widgets/ContainerWidgetSlot.hpp"
 #include "rin/widgets/WidgetsModule.hpp"
 #include "rin/widgets/WidgetWindowSurface.hpp"
-#include "rin/widgets/containers/PanelWidget.hpp"
+#include "rin/widgets/containers/WCPanel.hpp"
 #include "rin/window/Window.hpp"
 #include "rin/window/WindowModule.hpp"
 #include "bass/Stream.hpp"
 #include "rin/widgets/utils.hpp"
-#include "rin/widgets/containers/PanelWidget.hpp"
 #include "rin/widgets/WidgetSurface.hpp"
-#include "rin/widgets/containers/SizerWidget.hpp"
 #include "rin/widgets/graphics/SimpleBatchedDrawCommand.hpp"
 #include "rin/widgets/graphics/WidgetDrawCommands.hpp"
-#include "rin/widgets/slots/PanelWidgetSlot.hpp"
 #include <filesystem>
 #include "rin/graphics/Image.hpp"
 #include "rin/graphics/ResourceManager.hpp"
-#include "rin/widgets/containers/FitterWidget.hpp"
-#include "rin/widgets/containers/FlexWidget.hpp"
-#include "rin/widgets/content/ImageWidget.hpp"
+#include "rin/widgets/containers/WCFitter.hpp"
+#include "rin/widgets/content/WImage.hpp"
 using namespace std::chrono_literals;
 
 
@@ -62,13 +58,13 @@ void CoverImage::CollectContent(const TransformInfo& transform, WidgetDrawComman
     else
     {
         auto contentSize = GetContentSize();
-        auto fitSize = FitterWidget::ComputeCoverSize(contentSize,GetDesiredSize());
+        auto fitSize = WCFitter::ComputeCoverSize(contentSize, GetDesiredSize());
         auto centerDist = fitSize / 2.0f - contentSize / 2.0f;
         auto p1 = centerDist;
         auto p2 = centerDist + contentSize;
         p1 = p1 / fitSize;
         p2 = p2 / fitSize;
-        
+
         drawCommands.Add(
             SimpleBatchedDrawCommand::Builder{}
             .AddTexture(
@@ -77,31 +73,12 @@ void CoverImage::CollectContent(const TransformInfo& transform, WidgetDrawComman
                 transform.transform,
                 GetBorderRadius(),
                 GetTint()
-                ,Vec4{p1.x,p1.y,p2.x,p2.y}
+                , Vec4{p1.x, p1.y, p2.x, p2.y}
             )
             .Finish()
         );
     }
 }
-//
-// TextTestWidget::TextTestWidget()
-// {
-//     WidgetsModule::GenerateAtlases()
-// }
-//
-// Vec2<float> TextTestWidget::ComputeContentSize()
-// {
-//     return Vec2{0.0f};
-// }
-//
-// void TextTestWidget::CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
-// {
-//     
-// }
-//
-// void TextTestWidget::Collect(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
-// {
-// }
 
 Vec2<float> TestWidget::ComputeContentSize()
 {
@@ -174,13 +151,18 @@ std::string TestModule::GetName()
 
 void TestModule::Startup(GRuntime* runtime)
 {
-    _window = _windowModule->Create("Rin Engine", 500, 500);
+    _window = _windowModule->Create(
+        "Rin Engine Widgets",
+        500,
+        500,
+        WindowCreateOptions{}
+        .Resizable()
+    );
     _window->onCloseRequested->Add(&TestModule::OnCloseRequested);
 
-    if (auto surface = _widgetsModule->GetSurface(_window))
+    if (const auto surface = _widgetsModule->GetSurface(_window))
     {
-        _container = newShared<ScrollableWidget>(WidgetAxis::Vertical);
-
+        _container = newShared<WCSwitcher>();
         surface->AddChild(_container);
 
         _window->onKey->Add([this](Window* window, const Key key, const InputState state)
@@ -188,6 +170,24 @@ void TestModule::Startup(GRuntime* runtime)
             if (key == Key::Return && state == InputState::Released)
             {
                 tasks.Put(this, &TestModule::LoadImages);
+            }
+            else if ((key == Key::Left || key == Key::Right) && state == InputState::Released && _container->
+                GetUsedSlots() > 0)
+            {
+                const auto delta = key == Key::Left ? -1 : 1;
+                int currentIndex = _container->GetSelectedIndex();
+                currentIndex += delta;
+                const auto maxIndex = _container->GetUsedSlots() - 1;
+                if (currentIndex < 0)
+                {
+                    currentIndex = maxIndex;
+                }
+                else if (currentIndex > maxIndex)
+                {
+                    currentIndex = 0;
+                }
+
+                _container->SetSelectedIndex(currentIndex);
             }
         });
         //panel->SetClipMode(EClipMode::Bounds);
@@ -241,8 +241,12 @@ void TestModule::LoadImages()
             auto img = newShared<CoverImage>();
             img->SetTextureId(textureId);
             img->SetPadding(Padding{20.0f});
-            auto slot = (_container + img).first;
-            
+            _container->AddChild(img);
+            // auto sizer = newShared<WCSizer>();
+            // sizer->AddChild(img);
+            // sizer->SetOverrides(Vec2{500.0f});
+            // _container->AddChild(sizer);
+
             // auto fitter = (newShared<FitterWidget>() + img).second;
             // fitter->SetPadding(Padding{20.0f});
             // auto slot = (_container + fitter).first;

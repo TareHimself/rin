@@ -8,6 +8,7 @@
 #include "graphics/SurfaceFinalDrawCommand.hpp"
 #include "rin/core/math/Matrix4.hpp"
 
+class WCRoot;
 struct CommandInfo;
 struct WidgetStencilClip;
 class WidgetDrawCommand;
@@ -33,8 +34,7 @@ class WidgetSurface : public Disposable
     Shared<DeviceImage> _drawImage{};
     Shared<DeviceImage> _stencilImage{};
     std::optional<Vec2<float>> _lastCursorPosition{};
-    std::unordered_map<Widget*, Shared<Widget>> _rootWidgetsMap{};
-    std::vector<Shared<Widget>> _rootWidgets{};
+    Shared<WCRoot> _rootWidget{};
     Shared<Widget> _focusedWidget{};
     std::vector<Shared<Widget>> _lastHovered{};
     Matrix4<float> _projection{1.0f};
@@ -42,7 +42,7 @@ class WidgetSurface : public Disposable
     void DoHover();
 
 public:
-    std::vector<Shared<Widget>> GetRootWidgets() const;
+    Shared<WCRoot> GetRootWidget() const;
     DEFINE_DELEGATE_LIST(onCursorDown, const Shared<CursorDownEvent>&)
     DEFINE_DELEGATE_LIST(onCursorUp, const Shared<CursorUpEvent>&)
     DEFINE_DELEGATE_LIST(onCursorMove, const Shared<CursorMoveEvent>&)

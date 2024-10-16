@@ -2,7 +2,7 @@
 #include "rin/core/math/Vec4.hpp"
 #include "rin/widgets/Widget.hpp"
 
-class ImageWidget : public Widget
+class WImage : public Widget
 {
     int _textureId = -1;
     Vec4<float> _borderRadius{0.0f};

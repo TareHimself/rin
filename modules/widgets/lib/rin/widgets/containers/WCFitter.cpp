@@ -1,13 +1,13 @@
-﻿#include "rin/widgets/containers/FitterWidget.hpp"
+﻿#include "rin/widgets/containers/WCFitter.hpp"
 
 #include "rin/widgets/ContainerWidgetSlot.hpp"
 
-FitMode FitterWidget::GetMode() const
+FitMode WCFitter::GetMode() const
 {
     return _mode;
 }
 
-void FitterWidget::SetMode(const FitMode mode)
+void WCFitter::SetMode(const FitMode mode)
 {
     const auto oldMode = _mode;
     _mode = mode;
@@ -17,7 +17,7 @@ void FitterWidget::SetMode(const FitMode mode)
     }
 }
 
-Vec2<float> FitterWidget::ComputeContentSize()
+Vec2<float> WCFitter::ComputeContentSize()
 {
     if (const auto slot = GetSlot(0))
     {
@@ -27,17 +27,17 @@ Vec2<float> FitterWidget::ComputeContentSize()
     return Vec2{0.0f};
 }
 
-size_t FitterWidget::GetMaxSlots() const
+size_t WCFitter::GetMaxSlots() const
 {
     return 1;
 }
 
-void FitterWidget::ArrangeSlots(const Vec2<float>& drawSize)
+void WCFitter::ArrangeSlots(const Vec2<float>& drawSize)
 {
     SizeContent(GetContentSize());
 }
 
-Vec2<float> FitterWidget::ComputeContainSize(const Vec2<float>& drawSize, const Vec2<float>& desiredSize)
+Vec2<float> WCFitter::ComputeContainSize(const Vec2<float>& drawSize, const Vec2<float>& desiredSize)
 {
     const auto aspect = desiredSize.y / desiredSize.x;
     const Vec2 scaledWidgetSize{drawSize.x, drawSize.x * aspect};
@@ -47,7 +47,7 @@ Vec2<float> FitterWidget::ComputeContainSize(const Vec2<float>& drawSize, const 
     return scaledWidgetSize.y < drawSize.y ? scaledWidgetSize : Vec2{drawSize.y / aspect, drawSize.y};
 }
 
-Vec2<float> FitterWidget::ComputeCoverSize(const Vec2<float>& drawSize, const Vec2<float>& desiredSize)
+Vec2<float> WCFitter::ComputeCoverSize(const Vec2<float>& drawSize, const Vec2<float>& desiredSize)
 {
     const auto aspect = desiredSize.y / desiredSize.x;
     const Vec2 scaledWidgetSize{drawSize.x, drawSize.x * aspect};
@@ -57,7 +57,7 @@ Vec2<float> FitterWidget::ComputeCoverSize(const Vec2<float>& drawSize, const Ve
     return scaledWidgetSize.y < drawSize.y ? Vec2{drawSize.y / aspect, drawSize.y} : scaledWidgetSize;
 }
 
-void FitterWidget::SizeContent(const Vec2<float>& size) const
+void WCFitter::SizeContent(const Vec2<float>& size) const
 {
     if (const auto slot = GetSlot(0))
     {

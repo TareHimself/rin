@@ -1,17 +1,17 @@
-﻿#include "rin/widgets/containers/ListWidget.hpp"
+﻿#include "rin/widgets/containers/WCList.hpp"
 #include "rin/widgets/ContainerWidgetSlot.hpp"
 
-ListWidget::ListWidget(const WidgetAxis& axis) : ContainerWidget()
+WCList::WCList(const WidgetAxis& axis) : ContainerWidget()
 {
     _axis = axis;
 }
 
-WidgetAxis ListWidget::GetAxis() const
+WidgetAxis WCList::GetAxis() const
 {
     return _axis;
 }
 
-void ListWidget::SetAxis(const WidgetAxis& axis)
+void WCList::SetAxis(const WidgetAxis& axis)
 {
     auto oldAxis = _axis;
     _axis = axis;
@@ -21,7 +21,7 @@ void ListWidget::SetAxis(const WidgetAxis& axis)
     }
 }
 
-void ListWidget::ArrangeSlots(const Vec2<float>& drawSize)
+void WCList::ArrangeSlots(const Vec2<float>& drawSize)
 {
     switch (GetAxis())
     {
@@ -58,7 +58,7 @@ void ListWidget::ArrangeSlots(const Vec2<float>& drawSize)
     }
 }
 
-Vec2<float> ListWidget::ComputeContentSize()
+Vec2<float> WCList::ComputeContentSize()
 {
     switch (GetAxis())
     {

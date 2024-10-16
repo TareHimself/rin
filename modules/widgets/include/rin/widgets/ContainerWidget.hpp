@@ -25,6 +25,7 @@ protected:
     virtual Shared<ContainerWidgetSlot> MakeSlot(const Shared<Widget>& widget);
 
 public:
+    ContainerWidget();
     using SlotType = ContainerWidgetSlot;
     virtual size_t GetMaxSlots() const;
     virtual size_t GetUsedSlots() const;
@@ -61,7 +62,7 @@ public:
     template <typename TSlotType, typename T, typename... TArgs>
     std::enable_if_t<std::is_constructible_v<T, TArgs...> && std::is_base_of_v<Widget, T> && std::is_base_of_v<
                          ContainerWidgetSlot, TSlotType>, Shared<TSlotType>> AddChild(TArgs&&... args);
-
+    
     void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
 
     TransformInfo ComputeChildTransform(const Shared<ContainerWidgetSlot>& slot, const TransformInfo& myTransform);

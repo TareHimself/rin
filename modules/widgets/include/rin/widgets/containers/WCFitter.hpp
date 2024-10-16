@@ -10,7 +10,7 @@ enum class FitMode
 };
 
 
-class FitterWidget : public ContainerWidget
+class WCFitter : public ContainerWidget
 {
     FitMode _mode = FitMode::None;
 

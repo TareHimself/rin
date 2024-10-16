@@ -6,9 +6,10 @@
 #include "rin/graphics/shaders/GraphicsShader.hpp"
 #include "rin/widgets/Widget.hpp"
 #include "rin/widgets/WidgetsModule.hpp"
-#include "rin/widgets/containers/FlexWidget.hpp"
-#include "rin/widgets/containers/ScrollableWidget.hpp"
-#include "rin/widgets/content/ImageWidget.hpp"
+#include "rin/widgets/containers/WCFlex.hpp"
+#include "rin/widgets/containers/WCScrollable.hpp"
+#include "rin/widgets/containers/WCSwitcher.hpp"
+#include "rin/widgets/content/WImage.hpp"
 #include "rin/widgets/graphics/WidgetCustomDrawCommand.hpp"
 #include "rin/window/WindowModule.hpp"
 #include "rin/window/Window.hpp"
@@ -24,7 +25,7 @@ class TestClipCommand : public WidgetCustomDrawCommand
 };
 
 
-class CoverImage : public ImageWidget
+class CoverImage : public WImage
 {
     void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
 };
@@ -61,7 +62,7 @@ class TestModule : public RinModule
     WidgetsModule* _widgetsModule = nullptr;
     Shared<Window> _window{};
     bass::FileStream* _stream = nullptr;
-    Shared<ScrollableWidget> _container{};
+    Shared<WCSwitcher> _container{};
 
 public:
     BackgroundThread<void> tasks{};

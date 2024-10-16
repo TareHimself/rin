@@ -3,12 +3,12 @@
 #include "rin/widgets/WidgetAxis.hpp"
 
 
-class ListWidget : public ContainerWidget
+class WCList : public ContainerWidget
 {
     WidgetAxis _axis = WidgetAxis::Horizontal;
 
 public:
-    ListWidget(const WidgetAxis& axis = WidgetAxis::Horizontal);
+    WCList(const WidgetAxis& axis = WidgetAxis::Horizontal);
 
     WidgetAxis GetAxis() const;
     void SetAxis(const WidgetAxis& axis);

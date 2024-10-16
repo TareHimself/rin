@@ -1,8 +1,8 @@
-﻿#include "rin/widgets/containers/ScrollableWidget.hpp"
+﻿#include "rin/widgets/containers/WCScrollable.hpp"
 #include "rin/widgets/ContainerWidgetSlot.hpp"
 #include "rin/widgets/event/ScrollEvent.hpp"
 
-void ScrollableWidget::ApplyScroll() const
+void WCScrollable::ApplyScroll() const
 {
     switch (GetAxis())
     {
@@ -35,22 +35,22 @@ void ScrollableWidget::ApplyScroll() const
     }
 }
 
-ScrollableWidget::ScrollableWidget()
+WCScrollable::WCScrollable()
 {
     
 }
 
-ScrollableWidget::ScrollableWidget(const WidgetAxis& axis) : ListWidget(axis)
+WCScrollable::WCScrollable(const WidgetAxis& axis) : WCList(axis)
 {
     SetClipMode(EClipMode::Bounds);
 }
 
-bool ScrollableWidget::IsScrollable() const
+bool WCScrollable::IsScrollable() const
 {
     return GetMaxScroll() > 0.0f;
 }
 
-float ScrollableWidget::GetMaxScroll() const
+float WCScrollable::GetMaxScroll() const
 {
     auto desiredSize = GetCachedDesiredSize().value_or(Vec2<float>{0, 0});
     switch (GetAxis())
@@ -70,26 +70,37 @@ float ScrollableWidget::GetMaxScroll() const
     return 0.0f;
 }
 
-float ScrollableWidget::GetScroll() const
+float WCScrollable::GetScroll() const
 {
     return _scroll;
 }
 
-bool ScrollableWidget::OnScroll(const Shared<ScrollEvent>& event)
+float WCScrollable::GetScrollScale() const
 {
-    float scrollDelta = 0.0f;
-    switch (GetAxis())
-    {
-    case WidgetAxis::Horizontal:
-        scrollDelta = event->delta.x;
-        break;
-    case WidgetAxis::Vertical:
-        scrollDelta = -event->delta.y;
-        break;
-    }
+    return _scrollScale;
+}
 
+void WCScrollable::SetScrollScale(float scale)
+{
+    _scrollScale = scale;
+}
+
+bool WCScrollable::OnScroll(const Shared<ScrollEvent>& event)
+{
     if(IsScrollable())
     {
+        float scrollDelta = 0.0f;
+        switch (GetAxis())
+        {
+        case WidgetAxis::Horizontal:
+            scrollDelta = event->delta.x;
+            break;
+        case WidgetAxis::Vertical:
+            scrollDelta = -event->delta.y;
+            break;
+        }
+        scrollDelta *= _scrollScale;
+        
         const auto oldScroll = _scroll;
         _scroll = std::clamp<float>(_scroll + scrollDelta,0,GetMaxScroll());
         return oldScroll != _scroll;
@@ -98,17 +109,17 @@ bool ScrollableWidget::OnScroll(const Shared<ScrollEvent>& event)
     return ContainerWidget::OnScroll(event);
 }
 
-bool ScrollableWidget::OnCursorDown(const Shared<CursorDownEvent>& event)
+bool WCScrollable::OnCursorDown(const Shared<CursorDownEvent>& event)
 {
     return ContainerWidget::OnCursorDown(event);
 }
 
-TransformInfo ScrollableWidget::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
+TransformInfo WCScrollable::ComputeChildTransform(const Shared<Widget>& widget, const TransformInfo& myTransform)
 {
     auto myTransformDup = myTransform;
     myTransformDup.transform = GetAxis() == WidgetAxis::Horizontal
                                    ? myTransformDup.transform.Translate(Vec2{-GetScroll(), 0.0f})
                                    : myTransformDup.transform.Translate(Vec2{0.0f, -GetScroll()});
 
-    return ListWidget::ComputeChildTransform(widget, myTransformDup);
+    return WCList::ComputeChildTransform(widget, myTransformDup);
 }

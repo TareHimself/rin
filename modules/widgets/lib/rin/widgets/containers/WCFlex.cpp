@@ -1,22 +1,22 @@
-﻿#include "rin/widgets/containers/FlexWidget.hpp"
+﻿#include "rin/widgets/containers/WCFlex.hpp"
 
-#include "rin/widgets/slots/FlexWidgetSlot.hpp"
+#include "rin/widgets/slots/WSFlex.hpp"
 
-Shared<ContainerWidgetSlot> FlexWidget::MakeSlot(const Shared<Widget>& widget)
+Shared<ContainerWidgetSlot> WCFlex::MakeSlot(const Shared<Widget>& widget)
 {
-    return newShared<FlexWidgetSlot>(this, widget);
+    return newShared<WSFlex>(this, widget);
 }
 
-void FlexWidget::ArrangeSlots(const Vec2<float>& drawSize)
+void WCFlex::ArrangeSlots(const Vec2<float>& drawSize)
 {
     auto totalRatio = 0.0f;
-    std::vector<Shared<FlexWidgetSlot>> flexSlots{};
+    std::vector<Shared<WSFlex>> flexSlots{};
     auto slots = GetSlots();
     flexSlots.reserve(slots.size());
 
     for (auto& slot : GetSlots())
     {
-        if (auto asFlexSlot = std::dynamic_pointer_cast<FlexWidgetSlot>(slot))
+        if (auto asFlexSlot = std::dynamic_pointer_cast<WSFlex>(slot))
         {
             totalRatio += asFlexSlot->ratio;
             flexSlots.push_back(asFlexSlot);
@@ -54,7 +54,7 @@ void FlexWidget::ArrangeSlots(const Vec2<float>& drawSize)
     }
 }
 
-void FlexWidget::OnChildSlotUpdated(ContainerWidgetSlot* slot)
+void WCFlex::OnChildSlotUpdated(ContainerWidgetSlot* slot)
 {
     ArrangeSlots(GetContentSize());
 }

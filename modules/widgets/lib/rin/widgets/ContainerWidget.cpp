@@ -21,6 +21,11 @@ Shared<ContainerWidgetSlot> ContainerWidget::MakeSlot(const Shared<Widget>& widg
     return newShared<ContainerWidgetSlot>(this, widget);
 }
 
+ContainerWidget::ContainerWidget()
+{
+    SetVisibility(WidgetVisibility::VisibleNoHitTestSelf);
+}
+
 size_t ContainerWidget::GetMaxSlots() const
 {
     return std::numeric_limits<size_t>::max();
@@ -172,8 +177,7 @@ Shared<Widget> ContainerWidget::NotifyChildrenCursorDown(const Shared<CursorDown
 {
     for (auto& slot : GetSlots())
     {
-        auto slotTransform = ComputeChildTransform(slot, transform);
-        if (slotTransform.IsPointWithin(event->position) && slot->GetWidget()->NotifyCursorDown(event, slotTransform))
+        if (auto slotTransform = ComputeChildTransform(slot, transform); slotTransform.IsPointWithin(event->position) && slot->GetWidget()->NotifyCursorDown(event, slotTransform))
             return slot->GetWidget();
     }
     return {};
@@ -184,8 +188,7 @@ bool ContainerWidget::NotifyChildrenCursorEnter(const Shared<CursorMoveEvent>& e
 {
     for (auto& slot : GetSlots())
     {
-        auto slotTransform = ComputeChildTransform(slot, transform);
-        if (slotTransform.IsPointWithin(event->position))
+        if (auto slotTransform = ComputeChildTransform(slot, transform); slotTransform.IsPointWithin(event->position))
         {
             slot->GetWidget()->NotifyCursorEnter(event, slotTransform, items);
         }
@@ -197,8 +200,7 @@ bool ContainerWidget::NotifyChildrenCursorMove(const Shared<CursorMoveEvent>& ev
 {
     for (auto& slot : GetSlots())
     {
-        auto slotTransform = ComputeChildTransform(slot, transform);
-        if (slotTransform.IsPointWithin(event->position) && slot->GetWidget()->NotifyCursorMove(event, slotTransform))
+        if (auto slotTransform = ComputeChildTransform(slot, transform); slotTransform.IsPointWithin(event->position) && slot->GetWidget()->NotifyCursorMove(event, slotTransform))
             return true;
     }
     return false;
@@ -208,8 +210,7 @@ bool ContainerWidget::NotifyChildrenScroll(const Shared<ScrollEvent>& event, con
 {
     for (auto& slot : GetSlots())
     {
-        auto slotTransform = ComputeChildTransform(slot, transform);
-        if (slotTransform.IsPointWithin(event->position) && slot->GetWidget()->NotifyScroll(event, slotTransform))
+        if (auto slotTransform = ComputeChildTransform(slot, transform); slotTransform.IsPointWithin(event->position) && slot->GetWidget()->NotifyScroll(event, slotTransform))
             return true;
     }
     return false;
@@ -217,14 +218,14 @@ bool ContainerWidget::NotifyChildrenScroll(const Shared<ScrollEvent>& event, con
 
 void ContainerWidget::CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands)
 {
-    auto slots = GetSlots();
-    auto clipMode = GetClipMode();
+    const auto slots = GetSlots();
+    const auto clipMode = GetClipMode();
     if (clipMode == EClipMode::None)
     {
         for (auto& slot : slots)
         {
             TransformInfo t = ComputeChildTransform(slot, transform);
-            auto widget = slot->GetWidget();
+            const auto widget = slot->GetWidget();
             widget->Collect(t, drawCommands);
         }
     }
@@ -237,11 +238,11 @@ void ContainerWidget::CollectContent(const TransformInfo& transform, WidgetDrawC
         for (auto& slot : slots)
         {
             TransformInfo t = ComputeChildTransform(slot, transform);
-            auto slotAABR = t.ComputeAxisAlignedBoundingRect();
+            const auto slotAABR = t.ComputeAxisAlignedBoundingRect();
 
             if (!myAABR.IntersectsWith(slotAABR)) continue;
 
-            auto widget = slot->GetWidget();
+            const auto widget = slot->GetWidget();
             widget->Collect(t, drawCommands);
         }
 

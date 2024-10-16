@@ -1,6 +1,5 @@
 ﻿#include "rin/widgets/WidgetSurface.hpp"
 #include <unordered_map>
-#include <iostream>
 #include <ranges>
 #include <set>
 #include "rin/graphics/commandBufferUtils.hpp"
@@ -12,8 +11,10 @@
 #include <cstdint>
 #include "rin/widgets/Widget.hpp"
 #include "rin/widgets/ContainerWidget.hpp"
+#include "rin/widgets/ContainerWidgetSlot.hpp"
 #include "rin/widgets/utils.hpp"
 #include "rin/widgets/WidgetsModule.hpp"
+#include "rin/widgets/containers/WCRoot.hpp"
 #include "rin/widgets/event/CursorDownEvent.hpp"
 #include "rin/widgets/event/CursorMoveEvent.hpp"
 #include "rin/widgets/event/ResizeEvent.hpp"
@@ -43,17 +44,12 @@ void WidgetSurface::DoHover()
     _lastHovered.clear();
 
     // Build new hover list
-    for (auto& rootWidget : std::ranges::reverse_view(_rootWidgets))
     {
-        if (!rootWidget->IsHitTestable()) continue;
-
-        auto widgetTransformInfo = info.AccountFor(rootWidget);
-
-        if (!widgetTransformInfo.IsPointWithin(event->position)) continue;
-
-        rootWidget->NotifyCursorEnter(event, widgetTransformInfo, _lastHovered);
-
-        break;
+        TransformInfo rootTransformInfo{_rootWidget};
+        if (rootTransformInfo.IsPointWithin(event->position))
+        {
+            _rootWidget->NotifyCursorEnter(event, rootTransformInfo, _lastHovered);
+        }
     }
 
     std::set<Widget*> hoveredSet{};
@@ -75,9 +71,9 @@ void WidgetSurface::DoHover()
     }
 }
 
-std::vector<Shared<Widget>> WidgetSurface::GetRootWidgets() const
+Shared<WCRoot> WidgetSurface::GetRootWidget() const
 {
-    return _rootWidgets;
+    return _rootWidget;
 }
 
 Matrix4<float> WidgetSurface::GetProjection() const
@@ -87,8 +83,12 @@ Matrix4<float> WidgetSurface::GetProjection() const
 
 void WidgetSurface::Init()
 {
-    auto size = GetDrawSize().Cast<float>();
+    const auto size = GetDrawSize().Cast<float>();
     _projection = static_cast<Matrix4<float>>(glm::ortho(0.0f, size.x, 0.0f, size.y));
+    _rootWidget = newShared<WCRoot>();
+    _rootWidget->SetOffset(Vec2{0.0f});
+    _rootWidget->SetSize(size);
+    _rootWidget->SetSurface(this->GetSharedDynamic<WidgetSurface>());
     CreateImages();
 }
 
@@ -145,7 +145,7 @@ void WidgetSurface::NotifyResize(const Shared<ResizeEvent>& event)
     _copyImage.reset();
     CreateImages();
 
-    for (const auto& rootWidget : GetRootWidgets())
+    if (const auto rootWidget = GetRootWidget())
     {
         rootWidget->SetSize(event->size);
     }
@@ -157,34 +157,39 @@ void WidgetSurface::NotifyCursorDown(const Shared<CursorDownEvent>& event)
 {
     TransformInfo rootInfo{this};
     bool shouldKeepFocus = false;
-    for (auto& rootWidget : std::ranges::reverse_view(GetRootWidgets()))
+    if (const auto root = GetRootWidget())
     {
-        if (!rootWidget->IsHitTestable()) continue;
-
-        auto widgetTransformInfo = rootInfo.AccountFor(rootWidget);
-
-        if (!widgetTransformInfo.IsPointWithin(event->position)) continue;
-
-        // The widget that handled the cursor down event
-        auto result = rootWidget->NotifyCursorDown(event, widgetTransformInfo);
-
-        if (!result) continue;
-
-        if (!_focusedWidget) continue;
-
-        while (result)
+        for (const auto& slot : std::ranges::reverse_view(root->GetSlots()))
         {
-            if (result == _focusedWidget)
+            auto childWidget = slot->GetWidget();
+            if (!childWidget->IsHitTestable()) continue;
+
+            auto widgetTransformInfo = rootInfo.AccountFor(childWidget);
+
+            if (!widgetTransformInfo.IsPointWithin(event->position)) continue;
+
+            // The widget that handled the cursor down event
+            auto result = childWidget->NotifyCursorDown(event, widgetTransformInfo);
+
+            if (!result) continue;
+
+            if (!_focusedWidget) continue;
+
+            while (result)
             {
-                shouldKeepFocus = true;
-                break;
+                if (result == _focusedWidget)
+                {
+                    shouldKeepFocus = true;
+                    break;
+                }
+
+                result = result->GetParent();
             }
 
-            result = result->GetParent();
+            break;
         }
-
-        break;
     }
+
 
     if (!shouldKeepFocus)
     {
@@ -201,67 +206,36 @@ void WidgetSurface::NotifyCursorMove(const Shared<CursorMoveEvent>& event)
 {
     _lastCursorPosition = event->position;
 
-    TransformInfo info{this};
-
-    for (auto& rootWidget : GetRootWidgets())
+    if (const auto rootWidget = GetRootWidget())
     {
-        if (!rootWidget->IsHitTestable()) continue;
-
-        auto widgetTransformInfo = info.AccountFor(rootWidget);
-
-        if (!widgetTransformInfo.IsPointWithin(event->position)) continue;
-
-        if (!rootWidget->NotifyCursorMove(event, widgetTransformInfo)) continue;
-
-        break;
+        if (const TransformInfo info{rootWidget}; info.IsPointWithin(event->position))
+        {
+            rootWidget->NotifyCursorMove(event, info);
+        }
     }
 }
 
 void WidgetSurface::NotifyScroll(const Shared<ScrollEvent>& event)
 {
-    TransformInfo info{this};
-
-    for (auto& rootWidget : GetRootWidgets())
+    if (const auto rootWidget = GetRootWidget())
     {
-        if (!rootWidget->IsHitTestable()) continue;
-
-        auto widgetTransformInfo = info.AccountFor(rootWidget);
-
-        if (!widgetTransformInfo.IsPointWithin(event->position)) continue;
-
-        if (!rootWidget->NotifyScroll(event, widgetTransformInfo)) continue;
-
-        break;
+        if (const TransformInfo info{rootWidget}; info.IsPointWithin(event->position))
+        {
+            rootWidget->NotifyScroll(event, info);
+        }
     }
 }
 
 
 Shared<Widget> WidgetSurface::AddChild(const Shared<Widget>& widget)
 {
-    widget->NotifyAddedToSurface(this->GetSharedDynamic<WidgetSurface>());
-    widget->SetOffset({0, 0});
-    widget->SetSize(GetDrawSize().Cast<float>());
-    _rootWidgets.push_back(widget);
-    _rootWidgetsMap.emplace(widget.get(), widget);
+    _rootWidget->AddChild(widget);
     return widget;
 }
 
 bool WidgetSurface::RemoveChild(const Shared<Widget>& widget)
 {
-    if (_rootWidgetsMap.contains(widget.get())) return false;
-
-    _rootWidgetsMap.erase(widget.get());
-
-    for (auto i = 0; i < _rootWidgets.size(); i++)
-    {
-        if (_rootWidgets[i].get() == widget.get())
-        {
-            _rootWidgets.erase(_rootWidgets.begin() + i);
-            break;
-        }
-    }
-
-    return true;
+    return _rootWidget->RemoveChild(widget);
 }
 
 Shared<DeviceImage> WidgetSurface::GetDrawImage() const
@@ -328,7 +302,7 @@ void WidgetSurface::Draw(Frame* frame)
 
     const auto cmd = frame->GetCommandBuffer();
 
-    if (_rootWidgets.empty())
+    if (_rootWidget->GetUsedSlots() == 0)
     {
         HandleDrawSkipped(frame);
         return;
@@ -469,16 +443,16 @@ void WidgetSurface::Draw(Frame* frame)
                         {
                             auto size = GetDrawSize().Cast<float>();
                             Vec4<float> viewport{0.0f, 0.0f, size.x, size.y};
-                            for (auto i = 0; i < command.quads->size(); i += RIN_WIDGET_MAX_BATCH)
+                            for (auto j = 0; j < command.quads->size(); j += RIN_WIDGET_MAX_BATCH)
                             {
                                 auto set = frame->GetAllocator()->Allocate(batchSetLayout);
 
                                 auto totalQuads = std::min(RIN_WIDGET_MAX_BATCH,
-                                                           static_cast<int>(command.quads->size() - i));
+                                                           static_cast<int>(command.quads->size() - j));
 
                                 const auto writeSize = totalQuads * sizeof(QuadInfo);
 
-                                batchBuffer->Write(command.quads->data() + i, writeSize, offset);
+                                batchBuffer->Write(command.quads->data() + j, writeSize, offset);
 
                                 set->WriteBuffer(batchBufferResource.binding, batchBufferResource.type, batchBuffer,
                                                  offset, RIN_WIDGET_MAX_BATCH * sizeof(QuadInfo));
@@ -524,13 +498,10 @@ void WidgetSurface::Draw(Frame* frame)
 
 void WidgetSurface::CollectCommands(SurfaceFrame* frame, std::vector<SurfaceFinalDrawCommand>& finalDrawCommands)
 {
-    std::vector<Shared<Widget>> widgets = _rootWidgets;
-    TransformInfo transform{this};
+    TransformInfo transform{_rootWidget};
     WidgetDrawCommands drawCommands{};
-    for (auto& widget : widgets)
-    {
-        widget->Collect(transform, drawCommands);
-    }
+
+    _rootWidget->Collect(transform, drawCommands);
 
     if (drawCommands.Empty())
     {
@@ -567,8 +538,7 @@ void WidgetSurface::CollectCommands(SurfaceFrame* frame, std::vector<SurfaceFina
                 finalDrawCommands.emplace_back().type = SurfaceFinalDrawCommand::Type::ClipClear;
             }
 
-            auto& rawCommand = rawCommands.at(i);
-            if (computedClipStacks.contains(rawCommand.clipId))
+            if (auto& rawCommand = rawCommands.at(i); computedClipStacks.contains(rawCommand.clipId))
             {
                 pendingCommands.emplace_back(rawCommand.command, computedClipStacks[rawCommand.clipId]);
             }

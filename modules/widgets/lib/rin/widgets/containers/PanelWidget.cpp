@@ -1,17 +1,17 @@
-﻿#include "rin/widgets/containers/PanelWidget.hpp"
-#include "rin/widgets/slots/PanelWidgetSlot.hpp"
+﻿#include "rin/widgets/containers/WCPanel.hpp"
+#include "rin/widgets/slots/WSPanel.hpp"
 
-bool PanelWidget::NearlyEqual(double a, double b, double tolerance)
+bool WCPanel::NearlyEqual(double a, double b, double tolerance)
 {
     return abs(a - b) < tolerance;
 }
 
-Vec2<float> PanelWidget::ComputeContentSize()
+Vec2<float> WCPanel::ComputeContentSize()
 {
     return Vec2{0.0f};
 }
 
-void PanelWidget::ArrangeSlots(const Vec2<float>& drawSize)
+void WCPanel::ArrangeSlots(const Vec2<float>& drawSize)
 {
     for (auto& containerSlot : GetSlots())
     {
@@ -19,12 +19,12 @@ void PanelWidget::ArrangeSlots(const Vec2<float>& drawSize)
     }
 }
 
-Shared<ContainerWidgetSlot> PanelWidget::MakeSlot(const Shared<Widget>& widget)
+Shared<ContainerWidgetSlot> WCPanel::MakeSlot(const Shared<Widget>& widget)
 {
-    return newShared<PanelWidgetSlot>(this, widget);
+    return newShared<WSPanel>(this, widget);
 }
 
-void PanelWidget::OnChildResized(Widget* widget)
+void WCPanel::OnChildResized(Widget* widget)
 {
     ContainerWidget::OnChildResized(widget);
     if (auto slot = GetSlot(widget))
@@ -33,10 +33,10 @@ void PanelWidget::OnChildResized(Widget* widget)
     }
 }
 
-void PanelWidget::OnChildSlotUpdated(ContainerWidgetSlot* slot)
+void WCPanel::OnChildSlotUpdated(ContainerWidgetSlot* slot)
 {
     ContainerWidget::OnChildSlotUpdated(slot);
-    if (auto asPanelSlot = dynamic_cast<PanelWidgetSlot*>(slot))
+    if (auto asPanelSlot = dynamic_cast<WSPanel*>(slot))
     {
         auto widget = asPanelSlot->GetWidget();
         auto panelSize = GetSize();

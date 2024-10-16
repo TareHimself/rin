@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "ListWidget.hpp"
+#include "WCList.hpp"
 #include "rin/widgets/ContainerWidget.hpp"
 
-class FlexWidget : public ListWidget
+class WCFlex : public WCList
 {
 public:
     Shared<ContainerWidgetSlot> MakeSlot(const Shared<Widget>& widget) override;

@@ -1,20 +1,35 @@
-﻿#include "rin/widgets/containers/SizerWidget.hpp"
+﻿#include "rin/widgets/containers/WCSizer.hpp"
 
 #include "rin/widgets/ContainerWidgetSlot.hpp"
 
-void SizerWidget::SetWidthOverride(const std::optional<float>& width)
+void WCSizer::SetWidthOverride(const std::optional<float>& width)
 {
     _widthOverride = width;
     CheckSize();
 }
 
-void SizerWidget::SetHeightOverride(const std::optional<float>& height)
+void WCSizer::SetHeightOverride(const std::optional<float>& height)
 {
     _heightOverride = height;
     CheckSize();
 }
 
-Vec2<float> SizerWidget::ComputeContentSize()
+void WCSizer::SetOverrides(const std::optional<Vec2<float>>& overrides)
+{
+    if(overrides.has_value())
+    {
+        _heightOverride = overrides->y;
+        _widthOverride = overrides->x;
+    }
+    else
+    {
+        _heightOverride = {};
+        _widthOverride = {};
+    }
+    CheckSize();
+}
+
+Vec2<float> WCSizer::ComputeContentSize()
 {
     if (const auto slot = GetSlot(0))
     {
@@ -25,12 +40,12 @@ Vec2<float> SizerWidget::ComputeContentSize()
     return Vec2{_widthOverride.value_or(0), _heightOverride.value_or(0)};
 }
 
-size_t SizerWidget::GetMaxSlots() const
+size_t WCSizer::GetMaxSlots() const
 {
     return 1;
 }
 
-void SizerWidget::ArrangeSlots(const Vec2<float>& drawSize)
+void WCSizer::ArrangeSlots(const Vec2<float>& drawSize)
 {
     if (const auto slot = GetSlot(0))
     {

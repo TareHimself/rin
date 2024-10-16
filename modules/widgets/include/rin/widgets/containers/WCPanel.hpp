@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include "rin/widgets/ContainerWidget.hpp"
-#include "rin/widgets/slots/PanelWidgetSlot.hpp"
+#include "rin/widgets/slots/WSPanel.hpp"
 
 
-class PanelWidget : public ContainerWidget
+class WCPanel : public ContainerWidget
 {
 protected:
     static bool NearlyEqual(double a, double b, double tolerance = 0.001);
@@ -14,5 +14,5 @@ protected:
     void OnChildSlotUpdated(ContainerWidgetSlot* slot) override;
 
 public:
-    using SlotType = PanelWidgetSlot;
+    using SlotType = WSPanel;
 };

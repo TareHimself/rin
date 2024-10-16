@@ -4,19 +4,25 @@ class WindowModule;
 struct WindowCreateOptions
 {
 private:
-    bool _resizable = true;
+    bool _resizable = false;
 
     bool _borderless = false;
 
-    bool _focused = true;
+    bool _focused = false;
+
+    bool _tooltip = false;
+
+    bool _popup = false;
 
 protected:
     friend WindowModule;
 
-    int Apply() const;
+    [[nodiscard]] int Apply() const;
 
 public:
-    WindowCreateOptions& Resizable(bool newState);
-    WindowCreateOptions& Borderless(bool newState);
-    WindowCreateOptions& Focused(bool newState);
+    WindowCreateOptions& Resizable(bool newState = true);
+    WindowCreateOptions& Borderless(bool newState = true);
+    WindowCreateOptions& Focused(bool newState = true);
+    WindowCreateOptions& Tooltip(bool newState = true);
+    WindowCreateOptions& Popup(bool newState = true);
 };
