@@ -21,7 +21,7 @@ void WidgetsModule::Startup(GRuntime* runtime)
 {
     _rendererCreatedHandle = _graphicsModule->onRendererCreated->Add(this, &WidgetsModule::OnRendererCreated);
     _rendererDestroyedHandle = _graphicsModule->onRendererDestroyed->Add(this, &WidgetsModule::OnRendererDestroyed);
-    _library = InitFreetype();
+    _library = GetFreetype();
 }
 
 void WidgetsModule::Shutdown(GRuntime* runtime)
@@ -89,7 +89,7 @@ Shared<GraphicsShader> WidgetsModule::GetStencilShader() const
     return _stencilShader;
 }
 
-std::shared_ptr<FT_Library> WidgetsModule::InitFreetype()
+Shared<FT_Library> WidgetsModule::InitFreetype()
 {
     const auto library = new FT_Library;
 
@@ -106,6 +106,12 @@ std::shared_ptr<FT_Library> WidgetsModule::InitFreetype()
     });
 
     return ftLibrary;
+}
+
+std::shared_ptr<FT_Library> WidgetsModule::GetFreetype()
+{
+    static auto freetype = InitFreetype();
+    return freetype;
 }
 
 #define F26DOT6_TO_DOUBLE(x) (1/64.*double(x))
@@ -239,7 +245,7 @@ std::shared_ptr<Image<unsigned char>> WidgetsModule::MtsdfFromGlyph(int code, co
     msdfgen::Bitmap<float, 4> bmp{bmpWidth, bmpHeight};
     //msdfgen::Bitmap<float, 4> bmp(bmpWidth,bmpHeight);
 
-    auto transform = msdfgen::SDFTransformation{{{1.0, 1.0}, {(offsetX * -1.0), offsetY}}, {}};
+    auto transform = msdfgen::SDFTransformation{{{1.0, -1.0}, {(offsetX / 2.0), offsetY - height}}, {}};
     generateMTSDF(bmp, shape, transform, pixelRange);
 
     for (auto y = 0; y < bmpHeight; y++)
@@ -256,11 +262,11 @@ std::shared_ptr<Image<unsigned char>> WidgetsModule::MtsdfFromGlyph(int code, co
     return result;
 }
 
-bool WidgetsModule::GenerateAtlases(SDFContainer& result, const FT_Face& face, int pixelSize, int atlasSize,
+bool WidgetsModule::GenerateAtlases(SDFContainer& result, const FT_Face& face, int points, int atlasSize,
                                     int padding,
                                     float pixelRange, float angleThreshold)
 {
-    if (FT_Set_Pixel_Sizes(face, 0, pixelSize))
+    if (FT_Set_Char_Size(face, 0, points * 64,0,0))
     {
         return false;
     }
@@ -303,7 +309,7 @@ bool WidgetsModule::GenerateAtlases(SDFContainer& result, const FT_Face& face, i
         int insertionIdx = insertion.value();
         mapping.emplace(id, std::pair(packerId, insertionIdx));
         auto packedRect = packers[packers.size() - 1].GetRects().at(insertionIdx);
-        result.AddItem({std::string(0,static_cast<char>(it->first)),packedRect.x,packedRect.y,packedRect.width,packedRect.height});
+        result.AddItem({std::string(1,static_cast<char>(it->first)),packedRect.x,packedRect.y,packedRect.width,packedRect.height});
     }
 
 
@@ -323,6 +329,11 @@ bool WidgetsModule::GenerateAtlases(SDFContainer& result, const FT_Face& face, i
         auto img = generated.at(id);
         auto pos = packers.at(info.first).GetRects().at(info.second);
         img->CopyTo(*atlases.at(atlasId), Vec2{0}, img->GetSize(), Vec2{pos.x, pos.y});
+    }
+
+    for(auto i = 0; i < atlases.size(); i++)
+    {
+        atlases.at(i)->SavePng("./atlas_" + std::to_string(i) + ".png");
     }
 
     return  true;

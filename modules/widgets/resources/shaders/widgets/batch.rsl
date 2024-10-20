@@ -28,12 +28,9 @@ push(scalar){
     layout(location = 1) out int oQuadIndex;
 
     void main(){
-        int index = gl_VertexIndex;
-        int vertexIndex = int(mod(index, 6));
-        int quadIndex = int(floor(index / 6));
-        QuadRenderInfo quad = batch_info.quads[quadIndex];
-        generateRectVertex(quad.size, push.projection, quad.transform, vertexIndex, gl_Position, oUV);
-        oQuadIndex = quadIndex;
+        QuadRenderInfo quad = batch_info.quads[gl_InstanceIndex];
+        generateRectVertex(quad.size, push.projection, quad.transform, gl_VertexIndex, gl_Position, oUV);
+        oQuadIndex = gl_InstanceIndex;
     }
 }
 
@@ -69,11 +66,12 @@ push(scalar){
                 pxColor = pxColor * sampleTexture(textureId,uv);
             } else if(mode == 1){
                 float2 texSize = getTextureSize(textureId);
+                float2 actualTexSize = texSize * (uvMapping.zw - uvMapping.xy);
                 float3 msd = sampleTexture(textureId,uv).rgb;
                 float sd = median(msd.r,msd.g,msd.b);
-                float distance = screenPxRange(uv,texSize)*(sd - 0.5);
+                float distance = screenPxRange(iUV,actualTexSize)*(sd - 0.5);
                 float opacity = clamp(distance + 0.5, 0.0, 1.0);
-                pxColor = mix(pxColor,float4(pxColor.rgb,0.0),opacity);
+                pxColor = mix(float4(pxColor.rgb,0.0),pxColor,opacity);
             }
         }
 

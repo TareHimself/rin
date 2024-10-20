@@ -34,7 +34,7 @@ Shared<USDFContainer> SDFContainer::Upload()
 
     for (auto& atlas : _atlases)
     {
-        atlases.push_back(resourceManager->CreateTexture(*atlas, ImageFormat::RGBA8, vk::Filter::eNearest));
+        atlases.push_back(resourceManager->CreateTexture(*atlas, ImageFormat::RGBA8, vk::Filter::eLinear));
     }
 
     std::unordered_map<std::string, USDFItem> items{};
@@ -42,9 +42,9 @@ Shared<USDFContainer> SDFContainer::Upload()
     for (auto& [id,item] : _items)
     {
         const auto& image = _atlases.at(item.atlas);
-        const auto size = image->GetSize().Cast<float>();
+        const auto atlasSize = image->GetSize().Cast<float>();
         const auto rect = Vec4{item.x, item.y, item.x + item.width, item.y + item.height}.Cast<float>();
-        const Vec4<float> uv{rect.x / size.x, rect.y / size.y, rect.z / item.x, rect.w / item.y};
+        const Vec4<float> uv{rect.x / atlasSize.x, rect.y / atlasSize.y, rect.z / atlasSize.x, rect.w / atlasSize.y};
         items.emplace(id, USDFItem{item.id, item.x, item.y, item.width, item.height, atlases.at(item.atlas), uv});
     }
 

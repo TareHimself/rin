@@ -42,7 +42,7 @@ Vec2<float> WCFitter::ComputeContainSize(const Vec2<float>& drawSize, const Vec2
     const auto aspect = desiredSize.y / desiredSize.x;
     const Vec2 scaledWidgetSize{drawSize.x, drawSize.x * aspect};
 
-    if (drawSize.NearlyEquals(scaledWidgetSize, 0.001)) return scaledWidgetSize;
+    if (drawSize.NearlyEquals(scaledWidgetSize, 0.001f)) return scaledWidgetSize;
 
     return scaledWidgetSize.y < drawSize.y ? scaledWidgetSize : Vec2{drawSize.y / aspect, drawSize.y};
 }
@@ -52,7 +52,7 @@ Vec2<float> WCFitter::ComputeCoverSize(const Vec2<float>& drawSize, const Vec2<f
     const auto aspect = desiredSize.y / desiredSize.x;
     const Vec2 scaledWidgetSize{drawSize.x, drawSize.x * aspect};
 
-    if (drawSize.NearlyEquals(scaledWidgetSize, 0.001)) return scaledWidgetSize;
+    if (drawSize.NearlyEquals(scaledWidgetSize, 0.001f)) return scaledWidgetSize;
 
     return scaledWidgetSize.y < drawSize.y ? Vec2{drawSize.y / aspect, drawSize.y} : scaledWidgetSize;
 }
@@ -64,7 +64,7 @@ void WCFitter::SizeContent(const Vec2<float>& size) const
         const auto widget = slot->GetWidget();
         const auto widgetDesiredSize = widget->GetDesiredSize();
         auto newDrawSize = widgetDesiredSize;
-        if (!widgetDesiredSize.NearlyEquals(size, 0.001))
+        if (!widgetDesiredSize.NearlyEquals(size, 0.001f))
         {
             switch (GetMode())
             {
@@ -88,7 +88,7 @@ void WCFitter::SizeContent(const Vec2<float>& size) const
             }
         }
 
-        if (!widget->GetSize().NearlyEquals(newDrawSize, 0.001)) widget->SetSize(newDrawSize);
+        if (!widget->GetSize().NearlyEquals(newDrawSize, 0.001f)) widget->SetSize(newDrawSize);
 
         const auto halfSelfDrawSize = size / 2.0f;
         const auto halfSlotDrawSize = newDrawSize / 2.0f;

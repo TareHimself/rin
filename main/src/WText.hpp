@@ -5,7 +5,8 @@
 class WText : public Widget
 {
 public:
-    USDFContainer sdf{};
+    WText(const Shared<USDFContainer>& inSDF);
+    Shared<USDFContainer> sdf{};
     void CollectContent(const TransformInfo& transform, WidgetDrawCommands& drawCommands) override;
     Vec2<float> ComputeContentSize() override;
 };

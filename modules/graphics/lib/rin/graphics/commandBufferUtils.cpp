@@ -134,9 +134,9 @@ void enableBlendingAlphaBlend(const vk::CommandBuffer& cmd, uint32_t start, uint
 {
     enableBlending(cmd, start, count, vk::ColorBlendEquationEXT{
                        vk::BlendFactor::eSrcAlpha,
-                       vk::BlendFactor::eOneMinusDstAlpha,
-                       vk::BlendOp::eAdd,
-                       vk::BlendFactor::eSrcAlpha,
+                       vk::BlendFactor::eOneMinusSrcAlpha,
+                       vk::BlendOp::eAdd, 
+                       vk::BlendFactor::eOne,
                        vk::BlendFactor::eOneMinusSrcAlpha,
                        vk::BlendOp::eSubtract
                    },

@@ -348,8 +348,6 @@ void WidgetSurface::Draw(Frame* frame)
         auto batchShader = widgetsModule->GetBatchShader();
         auto batchBufferResource = batchShader->resources.at("batch_info");
         auto pushConstantResource = batchShader->pushConstants.at("push");
-        auto batchSetLayout = batchShader->GetDescriptorSetLayouts().at(batchBufferResource.set);
-        auto batchPipelineLayout = batchShader->GetPipelineLayout();
 
         uint64_t offset = 0;
         bool isWritingStencil = false;
@@ -441,6 +439,9 @@ void WidgetSurface::Draw(Frame* frame)
 
                         if (isBatching)
                         {
+                            auto batchSetLayout = batchShader->GetDescriptorSetLayouts().at(batchBufferResource.set);
+                            auto batchPipelineLayout = batchShader->GetPipelineLayout();
+                            
                             auto size = GetDrawSize().Cast<float>();
                             Vec4<float> viewport{0.0f, 0.0f, size.x, size.y};
                             for (auto j = 0; j < command.quads->size(); j += RIN_WIDGET_MAX_BATCH)
@@ -475,7 +476,7 @@ void WidgetSurface::Draw(Frame* frame)
                                 cmd.pushConstants(batchPipelineLayout, pushConstantResource.stages, 0,
                                                   pushConstantResource.size, &pushConstant);
 
-                                cmd.draw(totalQuads * 6, 1, 0, 0);
+                                cmd.draw(6, totalQuads, 0, 0);
                             }
                             continue;
                         }
@@ -677,8 +678,8 @@ bool WidgetSurface::WriteStencil(const Frame* frame, const Matrix3<float>& trans
 void WidgetSurface::OnDispose(bool manual)
 {
     Disposable::OnDispose(manual);
-    _drawImage.reset();
-    _copyImage.reset();
+    _drawImage->Dispose();
+    _copyImage->Dispose();
 }
 
 void WidgetSurface::SetColorWriteMask(const Frame* frame, const vk::ColorComponentFlags& flags)

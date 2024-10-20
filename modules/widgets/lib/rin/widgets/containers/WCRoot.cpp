@@ -16,3 +16,9 @@ void WCRoot::ArrangeSlots(const Vec2<float>& drawSize)
         widget->SetSize(drawSize);
     }
 }
+
+void WCRoot::OnChildResized(Widget* widget)
+{
+    widget->SetOffset(Vec2{0.0f});
+    widget->SetSize(GetSize());
+}

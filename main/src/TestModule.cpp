@@ -18,6 +18,8 @@
 #include "rin/widgets/graphics/SimpleBatchedDrawCommand.hpp"
 #include "rin/widgets/graphics/WidgetDrawCommands.hpp"
 #include <filesystem>
+
+#include "WText.hpp"
 #include "rin/graphics/Image.hpp"
 #include "rin/graphics/ResourceManager.hpp"
 #include "rin/widgets/containers/WCFitter.hpp"
@@ -190,10 +192,28 @@ void TestModule::Startup(GRuntime* runtime)
                 _container->SetSelectedIndex(currentIndex);
             }
         });
+        {
+            auto ft = WidgetsModule::GetFreetype();
+            FT_Face loadedFace;
+            SDFContainer result{};
+            if(auto err =  FT_New_Face(*ft,rin::platform::selectFile("Select Font",false,"*.ttf").front().c_str(),0,&loadedFace))
+            {
+                return;
+            }
+
+            WidgetsModule::GenerateAtlases(result,loadedFace,32,512,2,30.0f);
+        
+            FT_Done_Face(loadedFace);
+
+            auto text = newShared<WText>(result.Upload());
+            
+            surface->AddChild(text);
+        }
         //panel->SetClipMode(EClipMode::Bounds);
     }
+    
 
-
+    
     // if(const auto sample = bass::createFileStream(R"(C:\Users\Taree\Downloads\Tracks\Sunny - Yorushika.mp3)",0,bass::CreateFlag::SampleFloat | bass::CreateFlag::SampleMono); sample->Play())
     // {
     //     sample->SetAttribute(bass::Attribute::Volume,0.6f);
@@ -237,7 +257,7 @@ void TestModule::LoadImages()
             if (loadedTexture.GetElementCount() == 0) continue;
             loadedTexture.SetChannels(4);
             textureId = GraphicsModule::Get()->GetResourceManager()->CreateTexture(
-                loadedTexture, ImageFormat::RGBA8, vk::Filter::eNearest, {}, true);
+                loadedTexture, ImageFormat::RGBA8,{}, {}, true);
             auto img = newShared<CoverImage>();
             img->SetTextureId(textureId);
             img->SetPadding(Padding{20.0f});

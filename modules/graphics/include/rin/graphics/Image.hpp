@@ -207,25 +207,43 @@ public:
         _data = newData;
     }
 
+    // bool CopyTo(Image& other, const Vec2<int>& srcBegin, const Vec2<int>& srcEnd, const Vec2<int>& dstBegin = {0, 0})
+    // {
+    //     const auto copyDelta = srcEnd - srcBegin;
+    //     auto copySize = dstBegin + copyDelta;
+    //     if (auto otherSize = other.GetSize() - dstBegin; copySize.x > otherSize.x || copySize.y > otherSize.y)
+    //     {
+    //         return false;
+    //     }
+    //
+    //     const auto srcRowSize = GetWidth() * GetChannels();
+    //     auto dstRowSize = other.GetWidth() * other.GetChannels();
+    //
+    //     const auto deltaY = srcEnd.y - srcBegin.y;
+    //     auto deltaX = (srcEnd.x - srcBegin.x) * GetChannels();
+    //     for (auto i = 0; i < deltaY; i++)
+    //     {
+    //         auto srcStartN = ((srcBegin.y + i) * srcRowSize) + srcBegin.x;
+    //         auto dstStartN = ((dstBegin.y + i) * dstRowSize) + dstBegin.x;
+    //         std::copy_n(GetData() + srcStartN, deltaX, other.GetData() + dstStartN);
+    //     }
+    //
+    //     return true;
+    // }
     bool CopyTo(Image& other, const Vec2<int>& srcBegin, const Vec2<int>& srcEnd, const Vec2<int>& dstBegin = {0, 0})
     {
-        const auto copyDelta = srcEnd - srcBegin;
-        auto copySize = dstBegin + copyDelta;
-        if (auto otherSize = other.GetSize() - dstBegin; copySize.x > otherSize.x || copySize.y > otherSize.y)
-        {
-            return false;
-        }
-
-        const auto srcRowSize = GetWidth() * GetChannels();
-        auto dstRowSize = other.GetWidth() * other.GetChannels();
-
         const auto deltaY = srcEnd.y - srcBegin.y;
-        auto deltaX = (srcEnd.x - srcBegin.x) * GetChannels();
-        for (auto i = 0; i < deltaY; i++)
+        const auto deltaX = srcEnd.x - srcBegin.x;
+        const auto channels = other.GetChannels();
+        for (auto x = 0; x < deltaX; x++)
         {
-            auto srcStartN = ((srcBegin.y + i) * srcRowSize) + srcBegin.x;
-            auto dstStartN = ((dstBegin.y + i) * dstRowSize) + dstBegin.x;
-            std::copy_n(GetData() + srcStartN, deltaX, other.GetData() + dstStartN);
+            for (auto y = 0; y < deltaY; y++)
+            {
+                for(auto c = 0; c < channels; c++)
+                {
+                    other.At(dstBegin.x + x,dstBegin.y + y,c) = At(srcBegin.x +  x,srcBegin.y + y,c);
+                }
+            }
         }
 
         return true;

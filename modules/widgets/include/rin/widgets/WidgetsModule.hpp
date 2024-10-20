@@ -63,16 +63,21 @@ public:
     void OnRendererDestroyed(WindowRenderer* renderer);
 
     Shared<WidgetWindowSurface> GetSurface(Window* window) const;
+    
     Shared<WidgetWindowSurface> GetSurface(const Shared<Window>& window) const;
+    
     Shared<GraphicsShader> GetBatchShader() const;
+    
     Shared<GraphicsShader> GetStencilShader() const;
 
     static Shared<FT_Library> InitFreetype();
+    
+    static Shared<FT_Library> GetFreetype();
 
 
-    static std::shared_ptr<Image<unsigned char>> MtsdfFromGlyph(int code, const FT_Face& face, float pixelRange = 30.0f,
+    static std::shared_ptr<Image<unsigned char>> MtsdfFromGlyph(int code, const FT_Face& face, float pixelRange = 6.0f,
                                                                 float angleThreshold = 3.0f);
 
-    static bool GenerateAtlases(SDFContainer& result, const FT_Face& face, int pixelSize = 30, int atlasSize = 256,
-                         int padding = 2, float pixelRange = 30.0f, float angleThreshold = 3.0f);
+    static bool GenerateAtlases(SDFContainer& result, const FT_Face& face, int points = 32, int atlasSize = 256,
+                         int padding = 2, float pixelRange = 6.0f, float angleThreshold = 3.0f);
 };
