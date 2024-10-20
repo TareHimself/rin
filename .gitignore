@@ -17,3 +17,10 @@ compile_commands.json
 __pycache__
 gen/*.png
 *.ttf
+*.vs
+bin/
+obj/
+ext/*!headers
+build/
+out/
+cpp/

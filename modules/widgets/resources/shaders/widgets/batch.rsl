@@ -1,0 +1,80 @@
+#include "utils.rsl"
+#include "../global.rsl"
+
+struct QuadRenderInfo
+{
+    // [TextureId,RenderMode,0,0]
+    int4 opts;
+    float4 color;
+    float4 borderRadius;
+    float2 size;
+    mat3 transform;
+    float4 uv;
+};
+
+
+layout(set = 1,binding = 0, scalar) uniform batch_info {
+    QuadRenderInfo quads[64];
+};
+
+push(scalar){
+    float4 viewport;
+    mat4 projection;
+};
+
+@Vertex{
+
+    layout(location = 0) out float2 oUV;
+    layout(location = 1) out int oQuadIndex;
+
+    void main(){
+        QuadRenderInfo quad = batch_info.quads[gl_InstanceIndex];
+        generateRectVertex(quad.size, push.projection, quad.transform, gl_VertexIndex, gl_Position, oUV);
+        oQuadIndex = gl_InstanceIndex;
+    }
+}
+
+
+@Fragment{
+    layout (location = 0) in float2 iUV;
+    layout (location = 1,$flat) in int iQuadIndex;
+    layout (location = 0) out float4 oColor;
+
+    float median(float r, float g, float b) {
+        return max(min(r, g), min(max(r, g), b));
+    }
+
+    float screenPxRange(float2 uv,float2 size) {
+        float2 unitRange = float2(30.0)/size;
+        float2 screenTexSize = float2(1.0)/fwidth(uv);
+        return max(0.5*dot(unitRange, screenTexSize), 1.0);
+    }
+
+    void main(){
+        QuadRenderInfo quad = batch_info.quads[iQuadIndex];
+        float4 pxColor = quad.color;
+        int textureId = quad.opts.x;
+        int mode = quad.opts.y;
+
+        if(textureId != -1){
+            float4 uvMapping = quad.uv;
+            float u = mapRangeUnClamped(iUV.x,0.0,1.0,uvMapping.x,uvMapping.z);
+            float v = mapRangeUnClamped(iUV.y,0.0,1.0,uvMapping.y,uvMapping.w);
+            float2 uv = float2(u,v);
+
+            if(mode == 0){
+                pxColor = pxColor * sampleTexture(textureId,uv);
+            } else if(mode == 1){
+                float2 texSize = getTextureSize(textureId);
+                float2 actualTexSize = texSize * (uvMapping.zw - uvMapping.xy);
+                float3 msd = sampleTexture(textureId,uv).rgb;
+                float sd = median(msd.r,msd.g,msd.b);
+                float distance = screenPxRange(iUV,actualTexSize)*(sd - 0.5);
+                float opacity = clamp(distance + 0.5, 0.0, 1.0);
+                pxColor = mix(float4(pxColor.rgb,0.0),pxColor,opacity);
+            }
+        }
+
+        oColor = applyBorderRadius(gl_FragCoord.xy, pxColor, quad.borderRadius, quad.size, quad.transform);
+    }
+}

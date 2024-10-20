@@ -1,1 +1,0 @@
-python D:\Github\vengine\meta\main.py -s D:\Github\vengine\standalone\src -c D:\Github\vengine\meta\config.json

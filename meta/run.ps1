@@ -1,1 +1,0 @@
-python main.py -s ../include/vengine -c ./config.json -o ../include/generated -w
