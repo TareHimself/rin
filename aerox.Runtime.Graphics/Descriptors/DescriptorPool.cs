@@ -39,18 +39,41 @@ public class DescriptorPool : Disposable
         }
     }
 
-    public unsafe DescriptorSet Allocate(VkDescriptorSetLayout layout)
+    public unsafe DescriptorSet Allocate(VkDescriptorSetLayout layout,params uint[] variableCount)
     {
         VkDescriptorSetAllocateInfo info = default;
         info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         info.pSetLayouts = &layout;
         info.descriptorSetCount = 1;
         info.descriptorPool = _descriptorPool;
-        VkDescriptorSet set;
-        vkAllocateDescriptorSets(_device, &info, &set);
-        var mSet = new DescriptorSet(_device, set);
-        _sets.Add(mSet);
-        return mSet;
+
+        if (variableCount.Length != 0)
+        {
+            VkDescriptorSetVariableDescriptorCountAllocateInfo variableInfo = default;
+            variableInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+            variableInfo.descriptorSetCount = (uint)variableCount.Length;
+            unsafe
+            {
+                fixed (uint* pVariableCounts = variableCount)
+                {
+                    variableInfo.pDescriptorCounts = pVariableCounts;
+                    info.pNext = &variableInfo;
+                    VkDescriptorSet set;
+                    vkAllocateDescriptorSets(_device, &info, &set);
+                    var mSet = new DescriptorSet(_device, set);
+                    _sets.Add(mSet);
+                    return mSet;
+                }
+            }
+        }
+
+        {
+            VkDescriptorSet set;
+            vkAllocateDescriptorSets(_device, &info, &set);
+            var mSet = new DescriptorSet(_device, set);
+            _sets.Add(mSet);
+            return mSet;
+        }
     }
 
     public void Reset()

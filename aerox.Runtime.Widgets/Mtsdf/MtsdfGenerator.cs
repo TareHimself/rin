@@ -97,14 +97,19 @@ public class MtsdfGenerator(FontFamily family)
                 }
             });
             
-            //await atlas.SaveAsPngAsync($"./atlas_{i}.png");
+            await atlas.SaveAsPngAsync($"./atlas_{i}.png");
         }
-        
-        return new MtsdfFont(_family,atlases.Select((c,idx) => new Texture(c.ToBytes(),new VkExtent3D()
+
+        var resourceManager = SGraphicsModule.Get().GetResourceManager();
+        return new MtsdfFont(_family,atlases.Select((c, idx) =>
         {
-            width = (uint)c.Width,
-            height = (uint)c.Height,
-            depth = 1
-        },ImageFormat.Rgba8UNorm,ImageFilter.Linear,ImageTiling.ClampEdge,false,$"{_family.Name} Atlas {idx}")).ToArray(),atlasGlyphs);
+            using var buffer = c.ToBuffer();
+            return resourceManager.CreateTexture(buffer, new VkExtent3D()
+                {
+                    width = (uint)c.Width,
+                    height = (uint)c.Height,
+                    depth = 1
+                }, ImageFormat.Rgba8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}");
+        }).ToArray(),atlasGlyphs);
     }
 }

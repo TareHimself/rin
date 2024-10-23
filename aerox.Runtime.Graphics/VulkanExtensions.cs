@@ -335,6 +335,20 @@ public static class VulkanExtensions
             return cmd;
         }
     }
+    
+    public static VkCommandBuffer SetColorBlendEnable(this VkCommandBuffer cmd,uint start, uint count,bool enable)
+    {
+        unsafe
+        {
+            vkCmdSetLogicOpEnableEXT(cmd,0);
+            
+            fixed (uint* pEnables = Enumerable.Range(0, (int)count).Select(c => (uint)(enable ? 1 : 0)).ToArray())
+            {
+                vkCmdSetColorBlendEnableEXT(cmd,start,count,pEnables);
+            }
+            return cmd;
+        }
+    }
 
     public static VkCommandBuffer EnableBlendingAdditive(this VkCommandBuffer cmd,uint start, uint count) =>
         EnableBlending(cmd, start, count, new VkColorBlendEquationEXT()
@@ -388,7 +402,7 @@ public static class VulkanExtensions
         return cmd;
     }
     
-    public static VkCommandBuffer BeginRendering(this VkCommandBuffer cmd,VkRect2D rect,IEnumerable<VkRenderingAttachmentInfo> attachments,VkRenderingAttachmentInfo? depthAttachment = null)
+    public static VkCommandBuffer BeginRendering(this VkCommandBuffer cmd,VkRect2D rect,IEnumerable<VkRenderingAttachmentInfo> attachments,VkRenderingAttachmentInfo? depthAttachment = null,VkRenderingAttachmentInfo? stencilAttachment = null)
     {
         unsafe
         {
@@ -399,23 +413,28 @@ public static class VulkanExtensions
                 var renderingInfo = SGraphicsModule.MakeRenderingInfo(rect);
                 renderingInfo.pColorAttachments = pAttachments;
                 renderingInfo.colorAttachmentCount = (uint)attachmentsArray.Length;
+                
                 if (depthAttachment.HasValue)
                 {
                     var val = depthAttachment.Value;
                     renderingInfo.pDepthAttachment = &val;
-                    vkCmdBeginRendering(cmd,&renderingInfo);
                 }
-                else
+                
+                if (stencilAttachment.HasValue)
                 {
-                    vkCmdBeginRendering(cmd,&renderingInfo);
+                    var val = stencilAttachment.Value;
+                    renderingInfo.pDepthAttachment = &val;
+                    
                 }
+                
+                vkCmdBeginRendering(cmd,&renderingInfo);
             }
         }
         return cmd;
     }
 
     public static VkCommandBuffer BeginRendering(this VkCommandBuffer cmd, VkExtent2D extent,
-        IEnumerable<VkRenderingAttachmentInfo> attachments, VkRenderingAttachmentInfo? depthAttachment = null) =>
+        IEnumerable<VkRenderingAttachmentInfo> attachments, VkRenderingAttachmentInfo? depthAttachment = null,VkRenderingAttachmentInfo? stencilAttachment = null) =>
         BeginRendering(cmd, new VkRect2D()
         {
             offset = new VkOffset2D()

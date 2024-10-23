@@ -1,9 +1,10 @@
 ﻿using System.Reflection;
 using aerox.Runtime.Extensions;
 using aerox.Runtime.Graphics;
-using aerox.Runtime.Graphics.Material;
 using aerox.Runtime.Graphics.Shaders;
+using aerox.Runtime.Math;
 using aerox.Runtime.Widgets.Animation;
+using aerox.Runtime.Widgets.Graphics;
 using aerox.Runtime.Widgets.Mtsdf;
 using aerox.Runtime.Windows;
 using SixLabors.Fonts;
@@ -24,8 +25,10 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
     private readonly Mutex _mtsdfFontMutex = new();
     private readonly Dictionary<string, MtsdfFont> _mtsdfFonts = new();
     private readonly Dictionary<string, Task<MtsdfFont?>> _mtsdfTasks = new();
-    private readonly Dictionary<WindowRenderer, WidgetWindowSurface> _windowSurfaces = new();
+    private readonly Dictionary<WindowRenderer, WindowSurface> _windowSurfaces = new();
+    private readonly Dictionary<Type, IBatchRenderer> _batchRenderers = [];
     private SGraphicsModule? _graphicsSubsystem;
+    private GraphicsShader? _stencilShader = null;
 
     public readonly AnimationProcessor Processor = new AnimationProcessor();
 
@@ -41,6 +44,16 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
     public void AddFont(string fontPath)
     {
         _fontCollection.Add(fontPath);
+    }
+
+    public IBatchRenderer GetBatchRenderer<T>() where T : IBatchRenderer
+    {
+        var type = typeof(T);
+        if (_batchRenderers.TryGetValue(type, out IBatchRenderer? value)) return value;
+        value = Activator.CreateInstance<T>();
+        _batchRenderers.Add(type, value);
+
+        return value;
     }
 
     public FontFamily? FindFontFamily(string name)
@@ -69,9 +82,14 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
 
     private void OnRendererCreated(WindowRenderer renderer)
     {
-        var root = new WidgetWindowSurface(renderer);
+        var root = new WindowSurface(renderer);
         _windowSurfaces.Add(renderer, root);
         root.Init();
+        if (_stencilShader == null)
+        {
+            _stencilShader = GraphicsShader.FromFile(Path.Join(SRuntime.ResourcesDirectory, "shaders", "widgets",
+                "stencil_single.rsl"));
+        }
     }
 
     private void OnRendererDestroyed(WindowRenderer renderer)
@@ -80,24 +98,24 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         _windowSurfaces.Remove(renderer);
     }
 
-    public WidgetWindowSurface? GetWindowSurface(WindowRenderer renderer)
+    public WindowSurface? GetWindowSurface(WindowRenderer renderer)
     {
         _windowSurfaces.TryGetValue(renderer, out var result);
 
         return result;
     }
 
-    public WidgetWindowSurface? GetWindowSurface(Window window)
+    public WindowSurface? GetWindowSurface(Window window)
     {
         var renderer = _graphicsSubsystem?.GetWindowRenderer(window);
         return renderer == null ? null : GetWindowSurface(renderer);
     }
 
     /// <summary>
-    ///     Returns the <see cref="WidgetWindowSurface" /> of the main window
+    ///     Returns the <see cref="WindowSurface" /> of the main window
     /// </summary>
     /// <returns></returns>
-    public WidgetWindowSurface? GetWindowSurface()
+    public WindowSurface? GetWindowSurface()
     {
         var mainWindow = _graphicsSubsystem?.GetMainWindow();
         return mainWindow == null ? null : GetWindowSurface(mainWindow);
@@ -120,19 +138,6 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
             _graphicsSubsystem.OnRendererCreated -= OnRendererCreated;
             _graphicsSubsystem.OnRendererDestroyed -= OnRendererDestroyed;
         }
-    }
-
-
-    public static DeviceImage UploadImage(Image<Rgba32> image, VkImageUsageFlags usage, bool mipMap = false)
-    {
-        using var ms = new MemoryStream();
-        var data = ms.ToArray();
-        return SGraphicsModule.Get().CreateImage(data, new VkExtent3D
-        {
-            width = (uint)image.Width,
-            height = (uint)image.Height,
-            depth = 1
-        }, ImageFormat.Rgba8UNorm, usage, mipMap);
     }
 
     private async Task<MtsdfFont?> GenerateMtsdfFont(FontFamily family)
@@ -162,5 +167,10 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
 
             return _mtsdfTasks[family.Value.Name];
         }
+    }
+
+    public void WriteStencil(Frame frame, Matrix3 transform, Vector2<float> size)
+    {
+        
     }
 }

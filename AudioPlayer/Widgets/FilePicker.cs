@@ -2,10 +2,11 @@
 using aerox.Runtime.Extensions;
 using aerox.Runtime.Widgets;
 using aerox.Runtime.Widgets.Animation;
-using aerox.Runtime.Widgets.Defaults.Containers;
-using aerox.Runtime.Widgets.Defaults.Content;
+using aerox.Runtime.Widgets.Containers;
+using aerox.Runtime.Widgets.Content;
 using aerox.Runtime.Widgets.Graphics.Commands;
 using aerox.Runtime.Widgets.Events;
+using aerox.Runtime.Widgets.Graphics;
 
 namespace AudioPlayer.Widgets;
 
@@ -23,9 +24,9 @@ public class FilePicker : Button
         
     }
 
-    protected override void OnAddedToSurface(WidgetSurface widgetSurface)
+    protected override void OnAddedToSurface(Surface surface)
     {
-        base.OnAddedToSurface(widgetSurface);
+        base.OnAddedToSurface(surface);
         if (_hasInit) return;
         _hasInit = true;
         StatusText.Padding = 20.0f;
@@ -38,10 +39,10 @@ public class FilePicker : Button
         }));
     }
     
-    protected override void CollectSelf(WidgetFrame frame, DrawInfo myInfo)
+    protected override void CollectSelf(WidgetFrame frame, TransformInfo myInfo)
     {
         base.CollectSelf(frame, myInfo);
-        frame.AddCommands(new SimpleRect(myInfo.Transform, GetDrawSize())
+        frame.AddCommands(new SimpleRect(myInfo.Transform, GetContentSize())
         {
             Color = BgColor,
             BorderRadius = 20.0f,

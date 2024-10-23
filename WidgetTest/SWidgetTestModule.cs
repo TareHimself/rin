@@ -1,8 +1,8 @@
 ﻿using aerox.Runtime;
 using aerox.Runtime.Extensions;
 using aerox.Runtime.Widgets;
-using aerox.Runtime.Widgets.Defaults.Containers;
-using aerox.Runtime.Widgets.Defaults.Content;
+using aerox.Runtime.Widgets.Containers;
+using aerox.Runtime.Widgets.Content;
 using aerox.Runtime.Windows;
 
 namespace WidgetTest;
@@ -20,11 +20,14 @@ public class SWidgetTestModule : RuntimeModule
 
         var switcher = new Switcher();
         
-        var imageSlot = panel.AddChild(
-            switcher
+        var imageSlot = (PanelSlot?)panel.AddChild(
+            new PanelSlot(switcher)
+            {
+                MaxAnchor = 1.0f
+            }
         );
         
-        panel.AddChild(new BackgroundBlur
+        panel.AddChild(new PanelSlot(new BackgroundBlur
         {
             Tint = new Color(1.0f)
             {
@@ -32,36 +35,31 @@ public class SWidgetTestModule : RuntimeModule
                 G = 0.3f,
                 B = 0.3f
             }
-        })?.Mutate(slot =>
-        {
-            slot.MinAnchor = 0.0f;
-            slot.MaxAnchor = 1.0f;
+        }){
+            MinAnchor = 0.0f,
+            MaxAnchor = 1.0f
         });
 
-        var textSlot = panel.AddChild(new Text("Background Blur Using Blit", 40));
+        var textSlot = (PanelSlot?)panel.AddChild(new PanelSlot(new Text("Background Blur Using Blit", 40))
+        {
+            SizeToContent = true,
+            Alignment = 0f,
+            MinAnchor = 0f,
+            MaxAnchor = 0f
+        });
 
-        var textInputSlot = panel.AddChild(new Sizer(new TextBox("Example Text",50))
+        var textInputSlot = panel.AddChild(new PanelSlot(new Sizer(new TextBox("Example Text",100))
         {
             WidthOverride = 500
+        })
+        {
+            SizeToContent = true,
+            Alignment = 0.5f,
+            MinAnchor = 0.5f,
+            MaxAnchor = 0.5f
         });
         
         if (textSlot == null || imageSlot == null || textInputSlot == null) return;
-        imageSlot.Mutate(slot => { slot.MaxAnchor = 1.0f; });
-        textSlot.Mutate(slot =>
-        {
-            slot.SizeToContent = true;
-            slot.Alignment = 0f;
-            slot.MinAnchor = 0f;
-            slot.MaxAnchor = 0f;
-        });
-
-        textInputSlot.Mutate(s =>
-        {
-            s.SizeToContent = true;
-            s.Alignment = 0.5f;
-            s.MinAnchor = 0.5f;
-            s.MaxAnchor = 0.5f;
-        });
 
         var frames = 0;
         SRuntime.Get().OnTick += d =>
@@ -117,12 +115,12 @@ public class SWidgetTestModule : RuntimeModule
             HeightOverride = 600
         });
 
-        panel.AddChild(sizer)?.Mutate(slot =>
+        panel.AddChild(new PanelSlot(sizer)
         {
-            slot.MinAnchor = 0.5f;
-            slot.MaxAnchor = 0.5f;
-            slot.Size = new Size2d(200, 200);
-            slot.Alignment = 0.5f;
+            MinAnchor = 0.5f,
+            MaxAnchor = 0.5f,
+            Size = new Size2d(200, 200),
+            Alignment = 0.5f
         });
     }
     
@@ -135,16 +133,12 @@ public class SWidgetTestModule : RuntimeModule
         var panel = surf.Add(new Panel());
 
        
-        var textSlot = panel.AddChild(new Text("Test Text", 40));
-
-        
-        if (textSlot == null) return;
-        textSlot.Mutate(slot =>
+        var textSlot = panel.AddChild(new PanelSlot(new Text("Test Text", 40))
         {
-            slot.SizeToContent = true;
-            slot.Alignment = 0f;
-            slot.MinAnchor = 0f;
-            slot.MaxAnchor = 0f;
+            SizeToContent = true,
+            Alignment = 0f,
+            MinAnchor = 0f,
+            MaxAnchor = 0f
         });
     }
 

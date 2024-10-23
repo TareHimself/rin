@@ -27,11 +27,11 @@ public static class GraphicsExtensions
 
 
         builder.AddAttachmentFormats(
-            ImageFormat.Rgba16UNorm,
-            ImageFormat.Rgba32SFloat,
-            ImageFormat.Rgba32SFloat,
-            ImageFormat.Rgba16UNorm,
-            ImageFormat.Rgba16UNorm
+            ImageFormat.Rgba16,
+            ImageFormat.Rgba32,
+            ImageFormat.Rgba32,
+            ImageFormat.Rgba16,
+            ImageFormat.Rgba16
             );
 
         return builder;

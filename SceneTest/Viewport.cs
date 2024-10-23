@@ -1,9 +1,10 @@
 ﻿using aerox.Runtime.Math;
 using aerox.Runtime.Scene;
 using aerox.Runtime.Widgets;
-using aerox.Runtime.Widgets.Defaults.Content;
+using aerox.Runtime.Widgets.Content;
 using aerox.Runtime.Widgets.Graphics.Commands;
 using aerox.Runtime.Widgets.Events;
+using aerox.Runtime.Widgets.Graphics;
 using aerox.Runtime.Windows;
 using TerraFX.Interop.Vulkan;
 
@@ -66,7 +67,7 @@ public class Viewport : Widget
     private bool _captureMouse = false;
 
     public Vector2<float> AbsoluteCenter =>
-        ((Vector2<float>)GetDrawSize() / 2.0f).ApplyTransformation(ComputeAbsoluteTransform());
+        ((Vector2<float>)GetContentSize() / 2.0f).ApplyTransformation(ComputeAbsoluteTransform());
     public Viewport(Scene scene,Text modeText)
     {
         TargetScene = scene;
@@ -90,14 +91,14 @@ public class Viewport : Widget
 
     protected override Size2d ComputeDesiredSize() => new Size2d();
 
-    public override void Collect(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, TransformInfo info)
     {
         frame.AddCommands(new DrawSceneCommand(TargetScene,Channel));
     }
 
-    public override void SetDrawSize(Size2d size)
+    public override void SetSize(Size2d size)
     {
-        base.SetDrawSize(size);
+        base.SetSize(size);
         TargetScene.Drawer?.Resize(new Vector2<uint>((uint)Math.Ceiling(size.Width),(uint)Math.Ceiling(size.Height)));
     }
 

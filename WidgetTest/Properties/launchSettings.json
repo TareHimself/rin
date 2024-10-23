@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "WidgetTest": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

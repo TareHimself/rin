@@ -6,15 +6,16 @@ namespace aerox.Runtime.Graphics.Descriptors;
 
 public class DescriptorLayoutBuilder
 {
-    private readonly Dictionary<uint, VkDescriptorSetLayoutBinding> _bindings = new();
+    private readonly Dictionary<uint, VkDescriptorSetLayoutBinding> _bindings = [];
+    private readonly Dictionary<uint, VkDescriptorBindingFlags> _flags = [];
 
     public DescriptorLayoutBuilder AddBinding(uint binding, VkDescriptorType type, VkShaderStageFlags stages,
-        uint count = 1)
+        uint count = 1,VkDescriptorBindingFlags bindingFlags = 0)
     {
         if (_bindings.TryGetValue(binding, out var existing))
         {
             existing.stageFlags |= stages;
-            _bindings[binding] = existing;
+            _flags[binding] |= bindingFlags;
             return this;
         }
 
@@ -26,13 +27,16 @@ public class DescriptorLayoutBuilder
             descriptorCount = count,
             binding = binding
         };
+        
         _bindings.Add(binding, newBinding);
+        _flags.Add(binding,bindingFlags);
         return this;
     }
 
     public DescriptorLayoutBuilder Clear()
     {
         _bindings.Clear();
+        _flags.Clear();
         return this;
     }
 
@@ -41,26 +45,33 @@ public class DescriptorLayoutBuilder
         var device = SRuntime.Get().GetModule<SGraphicsModule>().GetDevice();
         var bindings = new List<VkDescriptorSetLayoutBinding>();
 
-        var flags = new List<VkDescriptorBindingFlags>();
+        var allFlags = new List<VkDescriptorBindingFlags>();
 
-        foreach (var kv in _bindings)
+        VkDescriptorSetLayoutCreateFlags setLayoutCreateFlags = 0;
+        foreach (var (binding,info) in _bindings)
         {
-            bindings.Add(kv.Value);
-            flags.Add(VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
+            var flags = _flags[binding];
+            bindings.Add(info);
+            allFlags.Add(flags);
+            if ((flags & VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT) != (VkDescriptorBindingFlags)0)
+            {
+                setLayoutCreateFlags |= VkDescriptorSetLayoutCreateFlags
+                    .VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+            }
         }
 
         VkDescriptorSetLayoutBindingFlagsCreateInfo pNext = default;
         pNext.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
 
-        fixed (VkDescriptorBindingFlags* pFlags = flags.ToArray())
+        fixed (VkDescriptorBindingFlags* pFlags = allFlags.ToArray())
         {
             pNext.pBindingFlags = pFlags;
-            pNext.bindingCount = (uint)flags.Count;
+            pNext.bindingCount = (uint)allFlags.Count;
         }
 
         VkDescriptorSetLayoutCreateInfo createInfo = default;
         createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        createInfo.flags = VkDescriptorSetLayoutCreateFlags.VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        createInfo.flags = setLayoutCreateFlags;
         fixed (VkDescriptorSetLayoutBinding* pBindings = bindings.ToArray())
         {
             createInfo.pBindings = pBindings;

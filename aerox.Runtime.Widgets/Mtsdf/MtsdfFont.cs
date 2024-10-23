@@ -7,11 +7,11 @@ public class MtsdfFont : MultiDisposable
 {
     private readonly Mutex _mutex = new();
     private readonly Dictionary<int, int> _characterMap = new();
-    private readonly Texture[] _atlases;
+    private readonly int[] _atlases;
     private readonly List<MtsdfAtlasGlyph> _glyphs;
     private readonly FontFamily _fontFamily;
 
-    public MtsdfFont(FontFamily fontFamily,Texture[] atlases,List<MtsdfAtlasGlyph> glyphs)
+    public MtsdfFont(FontFamily fontFamily,int[] atlases,List<MtsdfAtlasGlyph> glyphs)
     {
         _atlases = atlases;
         _glyphs = glyphs;
@@ -31,15 +31,20 @@ public class MtsdfFont : MultiDisposable
     {
         lock (_mutex)
         {
-            foreach (var tex in _atlases) tex.Dispose();
+            SGraphicsModule.Get().GetResourceManager().FreeTextures(_atlases);
             _characterMap.Clear();
             _mutex.Dispose();
         }
     }
 
-    public Texture[] GetAtlases()
+    public int GetAtlasTextureId(int atlasId)
     {
-        return _atlases.ToArray();
+        return _atlases[atlasId];
+    }
+    
+    public int[] GetAtlases()
+    {
+        return _atlases;
     }
 
     public MtsdfAtlasGlyph? GetGlyphInfo(int glyphId)

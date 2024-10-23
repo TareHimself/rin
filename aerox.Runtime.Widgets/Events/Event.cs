@@ -1,10 +1,12 @@
-﻿namespace aerox.Runtime.Widgets.Events;
+﻿using aerox.Runtime.Widgets.Graphics;
+
+namespace aerox.Runtime.Widgets.Events;
 
 public class Event
 {
-    public WidgetSurface Surface;
+    public Surface Surface;
 
-    public Event(WidgetSurface surface)
+    public Event(Surface surface)
     {
         Surface = surface;
     }

@@ -144,7 +144,7 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
 
     protected virtual MaterialInstance CreateDeferredRenderingMaterial()
     {
-        var builder = new MaterialBuilder().AddAttachmentFormats(ImageFormat.Rgba32SFloat)
+        var builder = new MaterialBuilder().AddAttachmentFormats(ImageFormat.Rgba32)
             .AddShaderModules(SGraphicsModule.Get().LoadShader(Path.Join(SSceneModule.ShadersDir, "deferred.ash")));
         
         builder.Pipeline.SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -272,8 +272,8 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
         if (Size is not ({ X : 0 } and { Y : 0}))
         {
             Images = CreateGBuffer(Size);
-            DepthImage = CreateBufferImage(ImageFormat.D32SFloat, Size);
-            RenderTarget = CreateRenderTargetImage(ImageFormat.Rgba32SFloat, Size);
+            DepthImage = CreateBufferImage(ImageFormat.Depth, Size);
+            RenderTarget = CreateRenderTargetImage(ImageFormat.Rgba32, Size);
             
             DeferredRenderingMaterial?.BindImage("TColor", Images.Color, DescriptorSet.ImageType.Texture, new SamplerSpec()
             {
@@ -351,7 +351,7 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
 
         VkImageUsageFlags usage;
 
-        if (format == ImageFormat.D32SFloat)
+        if (format == ImageFormat.Depth)
         {
             usage = VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
                     VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -367,7 +367,7 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
         var image = SGraphicsModule.Get().GetAllocator().NewDeviceImage(createInfo, debugName ?? "Scene GBuffer");
 
         var viewCreateInfo = SGraphicsModule.MakeImageViewCreateInfo(image,
-            format == ImageFormat.D32SFloat
+            format == ImageFormat.Depth
                 ? VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT
                 : VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -379,11 +379,11 @@ public class SceneDrawer : Disposable, IDrawable, ILifeCycle
     public GBuffer CreateGBuffer(Vector2<uint> size)
     {
         return new GBuffer(
-            CreateBufferImage(ImageFormat.Rgba16UNorm, size),
-            CreateBufferImage(ImageFormat.Rgba32SFloat, size), 
-            CreateBufferImage(ImageFormat.Rgba32SFloat, size),
-            CreateBufferImage(ImageFormat.Rgba16UNorm, size), 
-            CreateBufferImage(ImageFormat.Rgba16UNorm, size)
+            CreateBufferImage(ImageFormat.Rgba16, size),
+            CreateBufferImage(ImageFormat.Rgba32, size), 
+            CreateBufferImage(ImageFormat.Rgba32, size),
+            CreateBufferImage(ImageFormat.Rgba16, size), 
+            CreateBufferImage(ImageFormat.Rgba16, size)
             );
     }
 

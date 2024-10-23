@@ -97,9 +97,19 @@ public partial class Allocator : Disposable
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for transfers/staging
     /// </summary>
-    public DeviceBuffer NewTransferBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer")
+    public DeviceBuffer NewStorageBuffer<T>(bool sequentialWrite = true, string debugName = "storageBuffer")
     {
-        return NewTransferBuffer((ulong)Marshal.SizeOf<T>(), sequentialWrite, debugName);
+        return NewStorageBuffer((ulong)Marshal.SizeOf<T>(), sequentialWrite, debugName);
+    }
+    
+    /// <summary>
+    ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
+    /// </summary>
+    public DeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true,
+        string debugName = "Storage Buffer")
+    {
+        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true, debugName);
     }
 
     /// <summary>

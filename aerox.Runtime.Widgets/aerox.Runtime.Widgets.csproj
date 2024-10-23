@@ -20,12 +20,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Defaults\"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Shaders Include=".\shaders\**" />
-        <Content Include="@(Shaders)">
+        <resources Include=".\resources\**" />
+        <Content Include="@(resources)">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

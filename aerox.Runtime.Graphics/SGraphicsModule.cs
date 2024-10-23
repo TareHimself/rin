@@ -5,9 +5,7 @@ using aerox.Runtime.Graphics.Descriptors;
 using aerox.Runtime.Graphics.Shaders;
 using aerox.Runtime.Math;
 using aerox.Runtime.Windows;
-using ashl.Generator;
-using ashl.Parser;
-using ashl.Tokenizer;
+using rsl.Generator;
 using shaderc;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -33,30 +31,25 @@ public class ImageBarrierOptions
 [NativeRuntimeModule(typeof(SWindowsModule))]
 public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SGraphicsModule>, ITickable
 {
-    private readonly BlockingCollection<Action> _pendingQueueTasks = new();
-    private readonly List<WindowRenderer> _renderers = new();
+    private readonly List<WindowRenderer> _renderers = [];
     private readonly Dictionary<SamplerSpec, VkSampler> _samplers = new();
     private readonly Mutex _samplersMutex = new();
-    private readonly Dictionary<string, ShaderModule> _shaderModules = [];
-    private readonly Dictionary<string, VkShaderEXT> _shaderObjects = [];
-    private readonly Dictionary<string, byte[]> _compiledShaders = [];
-    private readonly Dictionary<string, string[]> _fileToShaderModules = [];
-    private readonly Dictionary<Window, WindowRenderer> _windows = new();
+    private readonly Dictionary<Window, WindowRenderer> _windows = [];
     private Allocator? _allocator;
+    private ShaderManager? _shaderManager;
+    private ResourceManager? _resourceManager;
     private VkDebugUtilsMessengerEXT _debugUtilsMessenger;
     private DescriptorAllocator? _descriptorAllocator;
     private VkDevice _device;
     private VkCommandBuffer _immediateCommandBuffer;
     private VkCommandPool _immediateCommandPool;
     private VkFence _immediateFence;
-
     private VkInstance _instance;
     private Window? _mainWindow;
     private VkPhysicalDevice _physicalDevice;
     private VkQueue _queue;
     private uint _queueFamily;
-    private Task? _syncTask;
-    private Thread _syncThread = Thread.CurrentThread;
+    private BackgroundTaskQueue _backgroundTaskQueue = new ();
     
     public event Action<WindowRenderer>? OnRendererCreated;
     public event Action<WindowRenderer>? OnRendererDestroyed;
@@ -109,10 +102,11 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     {
         return format switch
         {
-            VkFormat.VK_FORMAT_R8G8B8A8_UNORM =>  ImageFormat.Rgba8UNorm,
-            VkFormat.VK_FORMAT_R16G16B16A16_UNORM => ImageFormat.Rgba16UNorm ,
-        VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.Rgba32SFloat ,
-        VkFormat.VK_FORMAT_D32_SFLOAT => ImageFormat.D32SFloat ,
+            VkFormat.VK_FORMAT_R8G8B8A8_UNORM =>  ImageFormat.Rgba8,
+            VkFormat.VK_FORMAT_R16G16B16A16_UNORM => ImageFormat.Rgba16 ,
+        VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.Rgba32 ,
+        VkFormat.VK_FORMAT_D32_SFLOAT => ImageFormat.Depth ,
+            VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT => ImageFormat.Stencil,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -121,10 +115,11 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     {
         return format switch
         {
-            ImageFormat.Rgba8UNorm => VkFormat.VK_FORMAT_R8G8B8A8_UNORM,
-            ImageFormat.Rgba16UNorm => VkFormat.VK_FORMAT_R16G16B16A16_UNORM,
-            ImageFormat.Rgba32SFloat => VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT,
-            ImageFormat.D32SFloat => VkFormat.VK_FORMAT_D32_SFLOAT,
+            ImageFormat.Rgba8 => VkFormat.VK_FORMAT_R8G8B8A8_UNORM,
+            ImageFormat.Rgba16 => VkFormat.VK_FORMAT_R16G16B16A16_UNORM,
+            ImageFormat.Rgba32 => VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT,
+            ImageFormat.Depth => VkFormat.VK_FORMAT_D32_SFLOAT,
+            ImageFormat.Stencil => VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -168,10 +163,8 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     /// <returns></returns>
     public Task<T> Sync<T>(Func<T> action)
     {
-        if (Thread.CurrentThread == _syncThread) return Task.FromResult(action());
-
         var task = new TaskCompletionSource<T>();
-        _pendingQueueTasks.Add(() =>
+        _backgroundTaskQueue.Put(() =>
         {
             try
             {
@@ -192,41 +185,8 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     /// <returns></returns>
     public Task Sync(Action action)
     {
-        if (Thread.CurrentThread == _syncThread)
-        {
-            action();
-            return Task.CompletedTask;
-        }
-
-        var task = new TaskCompletionSource();
-        _pendingQueueTasks.Add(() =>
-        {
-            try
-            {
-                action.Invoke();
-                task.TrySetResult();
-            }
-            catch (Exception e)
-            {
-                task.TrySetException(e);
-            }
-        });
-
-
-        return task.Task;
+        return _backgroundTaskQueue.Put(action);
     }
-
-    private void SyncThread()
-    {
-        _syncThread = Thread.CurrentThread;
-        foreach (var task in _pendingQueueTasks.GetConsumingEnumerable()) task.Invoke();
-    }
-
-    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsReflectShader")]
-    [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
-    private static unsafe partial void NativeReflectShader(void* data, uint dataSize,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeReflectionResultDelegate onReflectedDelegate);
-
 
     [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsCreateVulkanInstance")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
@@ -252,6 +212,8 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
 
         SRuntime.Get().OnTick += Tick;
     }
+
+    
 
     public Window? GetMainWindow()
     {
@@ -294,6 +256,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4)
         ]);
         _allocator = new Allocator(this);
+        _shaderManager = new ShaderManager();
 
         var fenceCreateInfo = new VkFenceCreateInfo
         {
@@ -331,7 +294,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             vkAllocateCommandBuffers(_device, &commandBufferCreateInfo, pCommandBuffer);
         }
 
-        _syncTask = Task.Factory.StartNew(SyncThread, TaskCreationOptions.LongRunning);
+        _resourceManager = new ResourceManager();
         var newRenderer = new WindowRenderer(this, _mainWindow, new VkSurfaceKHR(outSurface));
         newRenderer.Init();
         _windows.Add(_mainWindow, newRenderer);
@@ -339,7 +302,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         OnRendererCreated?.Invoke(newRenderer);
 
         _mainWindow.OnCloseRequested += OnCloseRequested;
-
+        
         //LoadShader("D:\\Github\\vengine\\aerox.Runtime\\shaders\\2d\\rect.vert");
     }
 
@@ -347,181 +310,150 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     {
         SRuntime.Get().RequestExit();
     }
-
-    public byte[] CompileSpirv(ShaderModule shaderModule)
+    
+    public ShaderManager GetShaderManager()
     {
-        byte[]? compiled = _compiledShaders.GetValueOrDefault(shaderModule.Id);
-        
-        if (compiled == null)
-        {
-            var opts = new Options()
-            {
-                Optimization = OptimizationLevel.Performance
-            };
-
-            using var comp = new Compiler(opts);
-        
-            var generator = new GlslGenerator();
-        
-            var shader = generator.Run(shaderModule.Source);
-                
-            shader = "#version 450\n#extension GL_EXT_buffer_reference : require\n#extension GL_EXT_scalar_block_layout : require\n" + shader;
-
-            using var shaderCompileResult = comp.Compile(shader, "<shader>", shaderModule.ScopeType switch
-            {
-                EScopeType.Vertex => ShaderKind.VertexShader,
-                EScopeType.Fragment => ShaderKind.FragmentShader,
-                _ => throw new ArgumentOutOfRangeException(nameof(shaderModule.ScopeType), shaderModule.ScopeType, null)
-            });
-
-            if (shaderCompileResult.Status != Status.Success)
-                throw new Exception("Error compiling shader:\n" + shaderCompileResult.ErrorMessage);
-
-            unsafe
-            {
-                compiled = new byte[shaderCompileResult.CodeLength];
-                Marshal.Copy(shaderCompileResult.CodePointer,compiled,0,compiled.Length);
-                _compiledShaders.Add(shaderModule.Id,compiled);
-            }
-        }
-
-
-        return compiled;
-    }
-
-    public VkShaderModule CreateDeviceShaderModule(ShaderModule shaderModule)
-    {
-        var compiled = CompileSpirv(shaderModule);
-
-        unsafe
-        {
-            fixed (void* pCode = compiled)
-            {
-                var createInfo = new VkShaderModuleCreateInfo
-                {
-                    sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                    codeSize = (nuint)compiled.Length,
-                    pCode = (uint*)(pCode)
-                };
-                
-                var vkShaderModule = new VkShaderModule();
-                vkCreateShaderModule(_device, &createInfo, null, &vkShaderModule);
-
-                return vkShaderModule;
-            }
-        }
-    }
-
-    public VkShaderEXT ShaderModuleToShader(string compoundModuleId,ShaderModule shaderModule,IEnumerable<VkDescriptorSetLayout> descriptorSetLayouts,IEnumerable<VkPushConstantRange> pushConstants)
-    {
-        var shaderId = shaderModule.Id + "|" + compoundModuleId;
-        {
-            if (_shaderObjects.TryGetValue(shaderId, out var o)) return o;
-        }
-        
-        var spirv = SGraphicsModule.Get().CompileSpirv(shaderModule);
-        var name = "main";
-        var setLayouts = descriptorSetLayouts.ToArray();
-        unsafe
-        {
-            fixed(VkDescriptorSetLayout* pSetLayouts = setLayouts)
-            {
-                
-                VkPushConstantRange[] pushConstantRanges = pushConstants.ToArray();
-
-                fixed (VkPushConstantRange* pRanges = pushConstantRanges)
-                {
-                    fixed (byte* pName = "main"u8.ToArray())
-                    {
-                        fixed (void* pSpirv = spirv)
-                        {
-                            var shaderCreateInfo = new VkShaderCreateInfoEXT()
-                            {
-                                sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
-                                stage = shaderModule.StageFlags,
-                                nextStage = shaderModule.ScopeType switch
-                                {
-                                    EScopeType.Vertex => VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,
-                                    EScopeType.Fragment => 0,
-                                    _ => throw new ArgumentOutOfRangeException()
-                                },
-                                codeType = VkShaderCodeTypeEXT.VK_SHADER_CODE_TYPE_SPIRV_EXT,
-                                codeSize = (nuint)spirv.Length,
-                                pCode = pSpirv,
-                                pName = (sbyte*)pName,
-                                setLayoutCount = (uint)setLayouts.Length,
-                                pSetLayouts = pSetLayouts,
-                                pushConstantRangeCount = (uint)pushConstantRanges.Length,
-                                pPushConstantRanges = pRanges,
-                                pSpecializationInfo = null,
-                                pNext = null
-                            };
-                            VkShaderEXT shader = new();
-                            VkResult result = VulkanExtensions.vkCreateShadersEXT(GetDevice(), 1, &shaderCreateInfo, null, &shader);
-                            _shaderObjects.Add(shaderId,shader);
-                            return shader;
-                        }
-                    }
-                }
-            }
-        }
+        return _shaderManager!;
     }
     
-    public ShaderModule[] LoadShader(string filePath)
+    public ResourceManager GetResourceManager()
     {
-        
-        {
-            if (_fileToShaderModules.TryGetValue(filePath, out var shaderModule))
-                return shaderModule.Select(c => _shaderModules[c]).ToArray();
-        }
-        
-        var tokenizer = new Tokenizer();
-        var parser = new Parser();
-        var ast = parser.Run(tokenizer.Run(filePath));
-        
-        ast = ast.ResolveIncludes((node, module) =>
-        {
-            if (Path.IsPathRooted(node.File)) return Path.GetFullPath(node.File);
-
-            return Path.GetFullPath(node.File,
-                Directory.GetParent(node.SourceFile)?.FullName ?? Directory.GetCurrentDirectory());
-        }, tokenizer, parser);
-        
-        ast.ResolveStructReferences();
-
-        List<EScopeType> scopeTypes = [];
-        
-        foreach (var astStatement in ast.Statements)
-        {
-            if (astStatement is NamedScopeNode asNamedScope)
-            {
-                var mainFn = asNamedScope.Statements.LastOrDefault((x) =>
-                    x is FunctionNode { Name: "main" });
-                if (mainFn != null)
-                {
-                    scopeTypes.Add(asNamedScope.ScopeType);
-                }
-            }
-        }
-
-        var mods  = scopeTypes.Select((scope) =>
-        {
-            var nodes = ast.ExtractScope(scope).ExtractFunctionWithDependencies("main")?.Statements.ToList();
-
-            if (nodes == null) throw new Exception("Failed To Extract Function 'main'");
-
-            var id = nodes.GetHashCode().ToString();
-            if (_shaderModules.TryGetValue(id, out var expression)) return expression;
-            
-            var mod = new ShaderModule(nodes, scope);
-            _shaderModules.Add(id,mod);
-            
-            return mod;
-        }).ToArray();
-
-        _fileToShaderModules.TryAdd(filePath, mods.Select(c => c.Id).ToArray());
-        return mods;
+        return _resourceManager!;
     }
+    
+    // public VkShaderModule CreateDeviceShaderModule(ShaderModule shaderModule)
+    // {
+    //     var compiled = CompileSpirv(shaderModule);
+    //
+    //     unsafe
+    //     {
+    //         fixed (void* pCode = compiled)
+    //         {
+    //             var createInfo = new VkShaderModuleCreateInfo
+    //             {
+    //                 sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+    //                 codeSize = (nuint)compiled.Length,
+    //                 pCode = (uint*)(pCode)
+    //             };
+    //             
+    //             var vkShaderModule = new VkShaderModule();
+    //             vkCreateShaderModule(_device, &createInfo, null, &vkShaderModule);
+    //
+    //             return vkShaderModule;
+    //         }
+    //     }
+    // }
+    //
+    // public VkShaderEXT ShaderModuleToShader(string compoundModuleId,ShaderModule shaderModule,IEnumerable<VkDescriptorSetLayout> descriptorSetLayouts,IEnumerable<VkPushConstantRange> pushConstants)
+    // {
+    //     var shaderId = shaderModule.Id + "|" + compoundModuleId;
+    //     {
+    //         if (_shaderObjects.TryGetValue(shaderId, out var o)) return o;
+    //     }
+    //     
+    //     var spirv = SGraphicsModule.Get().CompileSpirv(shaderModule);
+    //     var name = "main";
+    //     var setLayouts = descriptorSetLayouts.ToArray();
+    //     unsafe
+    //     {
+    //         fixed(VkDescriptorSetLayout* pSetLayouts = setLayouts)
+    //         {
+    //             
+    //             VkPushConstantRange[] pushConstantRanges = pushConstants.ToArray();
+    //
+    //             fixed (VkPushConstantRange* pRanges = pushConstantRanges)
+    //             {
+    //                 fixed (byte* pName = "main"u8.ToArray())
+    //                 {
+    //                     fixed (void* pSpirv = spirv)
+    //                     {
+    //                         var shaderCreateInfo = new VkShaderCreateInfoEXT()
+    //                         {
+    //                             sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+    //                             stage = shaderModule.StageFlags,
+    //                             nextStage = shaderModule.ScopeType switch
+    //                             {
+    //                                 EScopeType.Vertex => VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,
+    //                                 EScopeType.Fragment => 0,
+    //                                 _ => throw new ArgumentOutOfRangeException()
+    //                             },
+    //                             codeType = VkShaderCodeTypeEXT.VK_SHADER_CODE_TYPE_SPIRV_EXT,
+    //                             codeSize = (nuint)spirv.Length,
+    //                             pCode = pSpirv,
+    //                             pName = (sbyte*)pName,
+    //                             setLayoutCount = (uint)setLayouts.Length,
+    //                             pSetLayouts = pSetLayouts,
+    //                             pushConstantRangeCount = (uint)pushConstantRanges.Length,
+    //                             pPushConstantRanges = pRanges,
+    //                             pSpecializationInfo = null,
+    //                             pNext = null
+    //                         };
+    //                         VkShaderEXT shader = new();
+    //                         VkResult result = VulkanExtensions.vkCreateShadersEXT(GetDevice(), 1, &shaderCreateInfo, null, &shader);
+    //                         _shaderObjects.Add(shaderId,shader);
+    //                         return shader;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    //
+    // public ShaderModule[] LoadShader(string filePath)
+    // {
+    //     
+    //     {
+    //         if (_fileToShaderModules.TryGetValue(filePath, out var shaderModule))
+    //             return shaderModule.Select(c => _shaderModules[c]).ToArray();
+    //     }
+    //     
+    //     var tokenizer = new Tokenizer();
+    //     var parser = new Parser();
+    //     var ast = parser.Run(tokenizer.Run(filePath));
+    //     
+    //     ast = ast.ResolveIncludes((node, module) =>
+    //     {
+    //         if (Path.IsPathRooted(node.File)) return Path.GetFullPath(node.File);
+    //
+    //         return Path.GetFullPath(node.File,
+    //             Directory.GetParent(node.SourceFile)?.FullName ?? Directory.GetCurrentDirectory());
+    //     }, tokenizer, parser);
+    //     
+    //     ast.ResolveStructReferences();
+    //
+    //     List<EScopeType> scopeTypes = [];
+    //     
+    //     foreach (var astStatement in ast.Statements)
+    //     {
+    //         if (astStatement is NamedScopeNode asNamedScope)
+    //         {
+    //             var mainFn = asNamedScope.Statements.LastOrDefault((x) =>
+    //                 x is FunctionNode { Name: "main" });
+    //             if (mainFn != null)
+    //             {
+    //                 scopeTypes.Add(asNamedScope.ScopeType);
+    //             }
+    //         }
+    //     }
+    //
+    //     var mods  = scopeTypes.Select((scope) =>
+    //     {
+    //         var nodes = ast.ExtractScope(scope).ExtractFunctionWithDependencies("main")?.Statements.ToList();
+    //
+    //         if (nodes == null) throw new Exception("Failed To Extract Function 'main'");
+    //
+    //         var id = nodes.GetHashCode().ToString();
+    //         if (_shaderModules.TryGetValue(id, out var expression)) return expression;
+    //         
+    //         var mod = new ShaderModule(nodes, scope);
+    //         _shaderModules.Add(id,mod);
+    //         
+    //         return mod;
+    //     }).ToArray();
+    //
+    //     _fileToShaderModules.TryAdd(filePath, mods.Select(c => c.Id).ToArray());
+    //     return mods;
+    // }
 
 
     private void OnWindowCreated(Window window)
@@ -615,12 +547,11 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
 
         SRuntime.Get().OnTick -= Tick;
 
-        _pendingQueueTasks.Add(() => _pendingQueueTasks.CompleteAdding());
-        _syncTask?.Wait();
-        _syncTask?.Dispose();
-
+        _backgroundTaskQueue.Dispose();
         _descriptorAllocator?.Dispose();
         _allocator?.Dispose();
+        _shaderManager?.Dispose();
+        _resourceManager?.Dispose();
         unsafe
         {
             lock (_samplersMutex)
@@ -630,15 +561,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
                 _samplers.Clear();
             }
         
-            foreach (var (key, value) in _shaderModules)
-            {
-                value.Dispose();
-            }
             
-            foreach (var (key, value) in _shaderObjects)
-            {
-                VulkanExtensions.vkDestroyShaderEXT(_device,value,null);
-            }
             
             vkDestroyCommandPool(_device, _immediateCommandPool, null);
             vkDestroyFence(_device, _immediateFence, null);
@@ -830,7 +753,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         var newImage = GetAllocator().NewDeviceImage(imageCreateInfo, debugName);
 
         var aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT;
-        if (format == ImageFormat.D32SFloat) aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT;
+        if (format == ImageFormat.Depth) aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT;
 
         var viewCreateInfo = MakeImageViewCreateInfo(format, newImage.Image, aspectFlags);
 
@@ -1064,7 +987,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     }
 
 
-    public DeviceImage CreateImage(byte[] data, VkExtent3D size, ImageFormat format, VkImageUsageFlags usage,
+    public DeviceImage CreateImage(NativeBuffer<byte> data, VkExtent3D size, ImageFormat format, VkImageUsageFlags usage,
         bool mipMap = false, ImageFilter mipMapFilter = ImageFilter.Linear,
         string debugName = "Image")
     {
@@ -1127,8 +1050,4 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             if (kv.Value.ShouldDraw())
                 kv.Value.Draw();
     }
-
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    private delegate void NativeReflectionResultDelegate(string str, uint strLength);
 }

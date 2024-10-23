@@ -45,4 +45,12 @@ public abstract partial class DeviceMemory : MultiDisposable
             Write(&src, (ulong)Marshal.SizeOf<T>(), offset);
         }
     }
+    
+    public void Write<T>(NativeBuffer<T> src, ulong offset = 0) where T : unmanaged
+    {
+        unsafe
+        {
+            Write(src.GetData(), (ulong)(Marshal.SizeOf<T>() * src.GetElements()), offset);
+        }
+    }
 }

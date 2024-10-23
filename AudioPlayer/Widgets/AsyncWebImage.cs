@@ -4,7 +4,7 @@ using SixLabors.ImageSharp;
 using ImageSharpImage = SixLabors.ImageSharp.Image;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
-using Image = aerox.Runtime.Widgets.Defaults.Content.Image;
+using Image = aerox.Runtime.Widgets.Content.Image;
 
 namespace AudioPlayer.Widgets;
 
@@ -25,7 +25,7 @@ public class AsyncWebImage : Image
                 width = (uint)img.Width,
                 height = (uint)img.Height,
                 depth = 1
-            }, ImageFormat.Rgba8UNorm, ImageFilter.Linear, ImageTiling.ClampEdge, false,
+            }, ImageFormat.Rgba8, ImageFilter.Linear, ImageTiling.ClampEdge, false,
             $"Async Image Texture");
         await img.SaveAsPngAsync("./latest.png");
         Texture = tex;

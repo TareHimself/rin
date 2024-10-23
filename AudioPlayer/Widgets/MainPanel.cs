@@ -1,7 +1,7 @@
 ﻿using aerox.Runtime.Audio;
 using aerox.Runtime.Math;
 using aerox.Runtime.Widgets;
-using aerox.Runtime.Widgets.Defaults.Containers;
+using aerox.Runtime.Widgets.Containers;
 
 namespace AudioPlayer.Widgets;
 

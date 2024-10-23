@@ -100,7 +100,7 @@ public class MeshEntity : Entity
             width = (uint)image.Width,
             height = (uint)image.Height,
             depth = 1
-        }, ImageFormat.Rgba8UNorm, ImageFilter.Linear, ImageTiling.ClampEdge);
+        }, ImageFormat.Rgba8, ImageFilter.Linear, ImageTiling.ClampEdge);
         var fileName = Path.GetFileNameWithoutExtension(filePath);
         return new(tex, fileName);
     }

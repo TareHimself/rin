@@ -1,7 +1,8 @@
 ﻿using aerox.Runtime;
 using aerox.Runtime.Widgets;
-using aerox.Runtime.Widgets.Defaults.Content;
+using aerox.Runtime.Widgets.Content;
 using aerox.Runtime.Widgets.Events;
+using aerox.Runtime.Widgets.Graphics;
 using aerox.Runtime.Widgets.Graphics.Commands;
 using MathNet.Numerics;
 
@@ -22,7 +23,7 @@ public class FpsWidget : Text
                        """;
         }
     }
-    public override void Collect(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, TransformInfo info)
     {
         frame.AddCommands(new CheckInfoCommand(this));
         base.Collect(frame, info);

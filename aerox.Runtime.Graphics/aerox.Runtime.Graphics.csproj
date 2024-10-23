@@ -10,7 +10,7 @@
     <ItemGroup>
         <ProjectReference Include="..\aerox.Runtime.Windows\aerox.Runtime.Windows.csproj" />
         <ProjectReference Include="..\aerox.Runtime\aerox.Runtime.csproj" />
-        <ProjectReference Include="..\..\ashl\ashl\ashl.csproj" />
+        <ProjectReference Include="..\..\..\ashl\csharp\rsl\rsl.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -50,4 +50,11 @@
             </Content>
         </ItemGroup>
     </Target>
+
+    <ItemGroup>
+        <resources Include=".\resources\**" />
+        <Content Include="@(resources)">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 </Project>

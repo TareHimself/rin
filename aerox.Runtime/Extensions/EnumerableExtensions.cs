@@ -4,6 +4,16 @@ namespace aerox.Runtime.Extensions;
 
 public static class EnumerableExtensions
 {
+    
+    public static IEnumerable<T> AsReversed<T>(this T[] target)
+    {
+        for (var i = target.Length - 1; i > -1; i--)
+        {
+            if (target.Length <= i) continue;
+            yield return target[i];
+        }
+    }
+    
     public static IEnumerable<T> AsReversed<T>(this List<T> target)
     {
         for (var i = target.Count - 1; i > -1; i--)

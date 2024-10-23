@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using aerox.Runtime.Math;
 using aerox.Runtime.Widgets.Events;
+using aerox.Runtime.Widgets.Graphics;
 
 namespace aerox.Runtime.Widgets;
 
@@ -23,9 +24,9 @@ public abstract class Widget : Disposable
 {
     private Size2d? _cachedDesiredSize;
 
-    private WidgetSurface? _cursorUpRoot;
+    private Surface? _cursorUpRoot;
     private Vector2<float> _relativeOffset = 0.0f;
-    private Size2d _relativeSize = new();
+    private Size2d _size = new();
     private SWidgetsModule _subsystem = SRuntime.Get().GetModule<SWidgetsModule>();
 
     /// <summary>
@@ -33,7 +34,7 @@ public abstract class Widget : Disposable
     /// </summary>
     public float Angle = 0.0f;
 
-    public WidgetClippingMode ClippingMode = WidgetClippingMode.None;
+    
 
     /// <summary>
     ///     The pivot used to render this widget. Affects <see cref="Angle" /> and <see cref="Scale" />.
@@ -46,9 +47,9 @@ public abstract class Widget : Disposable
     public Vector2<float> Scale = 1.0f;
 
     public bool Hovered { get; private set; }
-    public WidgetSurface? Surface { get; private set; }
+    public Surface? Surface { get; private set; }
 
-    public ContainerBase? Parent { get; private set; }
+    public Container? Parent { get; private set; }
 
     public WidgetVisibility Visibility { get; set; } = WidgetVisibility.Visible;
 
@@ -79,17 +80,8 @@ public abstract class Widget : Disposable
     ///     Computes the relative/local transformation matrix for this widget
     /// </summary>
     /// <returns></returns>
-    public Matrix3 ComputeRelativeTransform()
-    {
-        var m = Matrix3.Identity;
-        var offset = _relativeOffset + new Vector2<float>(Padding.Left,Padding.Top);
-        
-        m = m.Translate(offset + _relativeSize * Pivot);
-        m = m.RotateDeg(Angle);
-        m = m.Scale(Scale);
-        m = m.Translate(offset * Pivot * -1.0f);
-        return m;
-    }
+    public Matrix3 ComputeRelativeTransform() =>
+        Matrix3.Identity.Translate(GetOffset()).RotateDeg(Angle).Translate(GetSize() * Pivot - 1.0f);
 
 
     public Matrix3 ComputeAbsoluteTransform()
@@ -105,15 +97,15 @@ public abstract class Widget : Disposable
 
     public Rect GetRect()
     {
-        return new Rect(_relativeOffset, _relativeSize);
+        return new Rect(_relativeOffset, _size);
     }
 
     public Rect GetRect(Vector2<float> offset)
     {
-        return new Rect(offset + _relativeOffset, _relativeSize);
+        return new Rect(offset + _relativeOffset, _size);
     }
 
-    public void SetParent(ContainerBase? widget)
+    public void SetParent(Container? widget)
     {
         Parent = widget;
     }
@@ -134,28 +126,28 @@ public abstract class Widget : Disposable
     }
 
 
-    public virtual void NotifyAddedToSurface(WidgetSurface widgetSurface)
+    public virtual void NotifyAddedToSurface(Surface surface)
     {
-        Surface = widgetSurface;
-        OnAddedToSurface(widgetSurface);
+        Surface = surface;
+        OnAddedToSurface(surface);
     }
 
-    public virtual void NotifyRemovedFromSurface(WidgetSurface widgetSurface)
+    public virtual void NotifyRemovedFromSurface(Surface surface)
     {
-        if (Surface == widgetSurface) Surface = null;
-        OnRemovedFromSurface(widgetSurface);
+        if (Surface == surface) Surface = null;
+        OnRemovedFromSurface(surface);
     }
 
-    protected virtual void OnAddedToSurface(WidgetSurface widgetSurface)
-    {
-    }
-
-    protected virtual void OnRemovedFromSurface(WidgetSurface widgetSurface)
+    protected virtual void OnAddedToSurface(Surface surface)
     {
     }
 
+    protected virtual void OnRemovedFromSurface(Surface surface)
+    {
+    }
 
-    public virtual Widget? ReceiveCursorDown(CursorDownEvent e, DrawInfo info)
+
+    public virtual Widget? ReceiveCursorDown(CursorDownEvent e, TransformInfo info)
     {
         if (IsSelfHitTestable())
             if (OnCursorDown(e))
@@ -188,7 +180,7 @@ public abstract class Widget : Disposable
         OnCursorUp(e);
     }
 
-    public virtual void ReceiveCursorEnter(CursorMoveEvent e, DrawInfo info, List<Widget> items)
+    public virtual void ReceiveCursorEnter(CursorMoveEvent e, TransformInfo info, List<Widget> items)
     {
         if (!IsSelfHitTestable()) return;
         items.Add(this);
@@ -198,14 +190,14 @@ public abstract class Widget : Disposable
         OnCursorEnter(e);
     }
 
-    public virtual bool ReceiveCursorMove(CursorMoveEvent e, DrawInfo info)
+    public virtual bool ReceiveCursorMove(CursorMoveEvent e, TransformInfo info)
     {
         if (IsSelfHitTestable() && OnCursorMove(e)) return true;
 
         return false;
     }
 
-    public virtual bool ReceiveScroll(ScrollEvent e, DrawInfo info)
+    public virtual bool ReceiveScroll(ScrollEvent e, TransformInfo info)
     {
         return IsSelfHitTestable() && OnScroll(e);
     }
@@ -228,7 +220,7 @@ public abstract class Widget : Disposable
     {
     }
 
-    public virtual void ReceiveCursorLeave(CursorMoveEvent e, DrawInfo info)
+    public virtual void ReceiveCursorLeave(CursorMoveEvent e, TransformInfo info)
     {
         if (!Hovered) return;
 
@@ -263,27 +255,41 @@ public abstract class Widget : Disposable
         return _relativeOffset;
     }
 
-    public void SetRelativeOffset(Vector2<float> offset)
+    public void SetOffset(Vector2<float> offset)
     {
         _relativeOffset = offset;
     }
 
-    public Size2d GetDrawSize()
+    public Size2d GetContentSize()
     {
-        return _relativeSize - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        return _size - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
 
-    public virtual void SetDrawSize(Size2d size)
+    public virtual void SetSize(Size2d size)
     {
-        _relativeSize = size;
+        _size = size;
+    }
+    
+    public Size2d GetSize()
+    {
+        return _size;
     }
 
     public Size2d GetDesiredSize()
     {
-        return _cachedDesiredSize ?? ComputeFinalDesiredSize();
+        return _cachedDesiredSize ??= ComputeFinalDesiredSize();
+    }
+    
+    public Size2d GetDesiredContentSize()
+    {
+        return GetDesiredSize() - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
 
-    protected abstract Size2d ComputeDesiredSize();
+    protected virtual Size2d ComputeDesiredSize() => ComputeContentDesiredSize() +
+                                                     new Vector2<float>(Padding.Left + Padding.Right,
+                                                         Padding.Top + Padding.Bottom);
+    
+    protected abstract Size2d ComputeContentDesiredSize();
 
     private Size2d ComputeFinalDesiredSize() =>
         ComputeDesiredSize() + new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
@@ -301,5 +307,15 @@ public abstract class Widget : Disposable
     }
 
 
-    public abstract void Collect(WidgetFrame frame, DrawInfo info);
+    public virtual void Collect(TransformInfo info,DrawCommands drawCommands)
+    {
+        if (Visibility is WidgetVisibility.Hidden or WidgetVisibility.Collapsed)
+        {
+            return;
+        }
+        
+        CollectContent(info,drawCommands);
+    }
+    
+    public abstract void CollectContent(TransformInfo info,DrawCommands drawCommands);
 }

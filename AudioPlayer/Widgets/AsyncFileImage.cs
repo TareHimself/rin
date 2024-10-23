@@ -2,8 +2,9 @@
 using aerox.Runtime.Extensions;
 using aerox.Runtime.Graphics;
 using aerox.Runtime.Widgets;
-using aerox.Runtime.Widgets.Defaults.Content;
+using aerox.Runtime.Widgets.Content;
 using aerox.Runtime.Widgets.Events;
+using aerox.Runtime.Widgets.Graphics;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
 
@@ -28,20 +29,15 @@ public class AsyncFileImage : Image
     private async Task LoadFile(string filePath)
     {
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(filePath);
-        var imgRawData = new byte[imgData.Width * imgData.Height * Marshal.SizeOf<Rgba32>()];
-        imgData.CopyPixelDataTo(imgRawData);
-        Texture = new Texture(imgRawData, new VkExtent3D
+        using var imgRawData = imgData.ToBuffer();
+        Texture = SGraphicsModule.Get().GetResourceManager().CreateTexture(imgRawData, new VkExtent3D
             {
                 width = (uint)imgData.Width,
                 height = (uint)imgData.Height,
                 depth = 1
             },
-            ImageFormat.Rgba8UNorm,
-            ImageFilter.Linear,
-            ImageTiling.Repeat);
-    
-        // We do this since the image adds a ref to the texture
-        Texture.Dispose();
+            ImageFormat.Rgba8);
+        
     }
 
     // public override void Draw(WidgetFrame frame, DrawInfo info)
@@ -54,7 +50,7 @@ public class AsyncFileImage : Image
     //     base.Draw(frame, info);
     // }
 
-    public override void Collect(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, TransformInfo info)
     {
         // var sin = (float)Math.Sin(Runtime.Instance.GetTimeSinceCreation());
         // var borderRadius = float.Abs(sin) * 150.0f;

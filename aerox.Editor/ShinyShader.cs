@@ -2,6 +2,7 @@
 using aerox.Runtime.Graphics;
 using aerox.Runtime.Graphics.Material;
 using aerox.Runtime.Widgets;
+using aerox.Runtime.Widgets.Graphics;
 
 namespace aerox.Editor;
 
@@ -23,15 +24,15 @@ public class ShinyShader : Widget
         ;
     }
 
-    protected override void OnAddedToSurface(WidgetSurface widgetSurface)
+    protected override void OnAddedToSurface(Surface surface)
     {
-        base.OnAddedToSurface(widgetSurface);
-        _materialInstance.BindBuffer("ui", widgetSurface.GlobalBuffer);
+        base.OnAddedToSurface(surface);
+        _materialInstance.BindBuffer("ui", surface.GlobalBuffer);
     }
 
-    protected override void OnRemovedFromSurface(WidgetSurface widgetSurface)
+    protected override void OnRemovedFromSurface(Surface surface)
     {
-        base.OnRemovedFromSurface(widgetSurface);
+        base.OnRemovedFromSurface(surface);
     }
 
     protected override Size2d ComputeDesiredSize()
@@ -39,7 +40,7 @@ public class ShinyShader : Widget
         return new Size2d(400, 400);
     }
 
-    public override void Collect(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, TransformInfo info)
     {
         frame.AddMaterialRect(_materialInstance, info);
     }

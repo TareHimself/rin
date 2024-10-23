@@ -3,9 +3,10 @@ using aerox.Runtime.Audio;
 using aerox.Runtime.Graphics;
 using aerox.Runtime.Math;
 using aerox.Runtime.Widgets;
-using aerox.Runtime.Widgets.Defaults.Containers;
-using aerox.Runtime.Widgets.Defaults.Content;
+using aerox.Runtime.Widgets.Containers;
+using aerox.Runtime.Widgets.Content;
 using aerox.Runtime.Widgets.Events;
+using aerox.Runtime.Widgets.Graphics;
 using MathNet.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
@@ -15,8 +16,8 @@ namespace AudioPlayer.Widgets;
 
 public class TrackPlayerWidget : Overlay
 {
-    private Text NameText => GetChildSlot(1)!.GetWidget<BackgroundBlur>()!.GetChildSlot(0)!.GetWidget<List>()!.GetChildSlot(0)!.GetWidget<Text>()!;
-    private Text StatusText => GetChildSlot(1)!.GetWidget<BackgroundBlur>()!.GetChildSlot(0)!.GetWidget<List>()!.GetChildSlot(1)!.GetWidget<Text>()!;
+    private Text NameText => GetSlot(1)!.GetWidget<BackgroundBlur>()!.GetSlot(0)!.GetWidget<List>()!.GetSlot(0)!.GetWidget<Text>()!;
+    private Text StatusText => GetSlot(1)!.GetWidget<BackgroundBlur>()!.GetSlot(0)!.GetWidget<List>()!.GetSlot(1)!.GetWidget<Text>()!;
     private readonly AudioStream _stream;
 
     public string Name
@@ -86,7 +87,7 @@ public class TrackPlayerWidget : Overlay
             $"{((int)Math.Floor(secs / 60)).ToString().PadLeft(2, '0')}:{((int)(secs % 60)).ToString().PadLeft(2, '0')}";
     }
 
-    public override void Collect(WidgetFrame frame, DrawInfo info)
+    public override void Collect(WidgetFrame frame, TransformInfo info)
     {
         StatusText.Content = $"{FormatTime(_stream.Position)} - {FormatTime(_stream.Length)}";
         base.Collect(frame, info);

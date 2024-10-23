@@ -5,6 +5,9 @@ namespace aerox.Runtime;
 
 public sealed class SRuntime : Disposable
 {
+    public static readonly string
+        ResourcesDirectory = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "","resources");
+    
     private static SRuntime? _instance;
     private static readonly object Padlock = new();
 

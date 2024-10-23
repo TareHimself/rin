@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "aerox.Runtime.Graphics": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

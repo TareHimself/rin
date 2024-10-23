@@ -2,8 +2,9 @@
 
 public enum ImageFormat
 {
-    Rgba8UNorm,
-    Rgba16UNorm,
-    Rgba32SFloat,
-    D32SFloat
+    Rgba8,
+    Rgba16,
+    Rgba32,
+    Depth,
+    Stencil
 }

@@ -6,16 +6,18 @@ namespace aerox.Runtime.Graphics.Descriptors;
 public class DescriptorAllocator : Disposable
 {
     private readonly VkDevice _device;
-    private readonly List<DescriptorPool> _fullPools = new();
+    private readonly HashSet<DescriptorPool> _fullPools = [];
+    private readonly HashSet<DescriptorPool> _readyPools = [];
     private readonly PoolSizeRatio[] _ratios;
-    private readonly List<DescriptorPool> _readyPools = new();
+    private VkDescriptorPoolCreateFlags _poolCreateFlags;
     private uint _setsPerPool;
 
-    public DescriptorAllocator(uint maxSets, PoolSizeRatio[] poolRatios)
+    public DescriptorAllocator(uint maxSets, PoolSizeRatio[] poolRatios,VkDescriptorPoolCreateFlags poolCreateFlags = 0)
     {
         _ratios = poolRatios;
         _setsPerPool = maxSets;
         _device = SRuntime.Get().GetModule<SGraphicsModule>().GetDevice();
+        _poolCreateFlags = poolCreateFlags;
     }
 
     protected override void OnDispose(bool isManual)
@@ -23,17 +25,18 @@ public class DescriptorAllocator : Disposable
         DestroyPools();
     }
 
-    public DescriptorSet Allocate(VkDescriptorSetLayout layout)
+    public DescriptorSet Allocate(VkDescriptorSetLayout layout,params uint[] variableCount)
     {
         var targetPool = GetPool();
         DescriptorSet set;
         try
         {
-            set = targetPool.Allocate(layout);
+            set = targetPool.Allocate(layout,variableCount);
         }
         catch (Exception)
         {
             _fullPools.Add(targetPool);
+            _readyPools.Remove(targetPool);
             targetPool = GetPool();
             set = targetPool.Allocate(layout);
         }
@@ -73,14 +76,14 @@ public class DescriptorAllocator : Disposable
         DescriptorPool pool;
         if (_readyPools.Count > 0)
         {
-            pool = _readyPools.Last();
-            _readyPools.RemoveAt(_readyPools.Count - 1);
+            pool = _readyPools.First();
         }
         else
         {
             pool = CreatePool(_setsPerPool, _ratios);
             _setsPerPool = (uint)(_setsPerPool * 1.5);
             if (_setsPerPool > 4092) _setsPerPool = 4092;
+            _readyPools.Add(pool);
         }
 
         return pool;
@@ -100,7 +103,7 @@ public class DescriptorAllocator : Disposable
         var poolInfo = new VkDescriptorPoolCreateInfo
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            flags = VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+            flags = _poolCreateFlags,
             maxSets = setCount
         };
         fixed (VkDescriptorPoolSize* pPoolSizes = poolSizes)

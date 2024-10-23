@@ -3,8 +3,8 @@ using aerox.Runtime.Graphics;
 using aerox.Runtime.Math;
 using aerox.Runtime.Scene;
 using aerox.Runtime.Widgets;
-using aerox.Runtime.Widgets.Defaults.Containers;
-using aerox.Runtime.Widgets.Defaults.Content;
+using aerox.Runtime.Widgets.Containers;
+using aerox.Runtime.Widgets.Content;
 using aerox.Runtime.Windows;
 using SceneTest.entities;
 

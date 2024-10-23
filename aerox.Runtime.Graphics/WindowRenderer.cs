@@ -307,26 +307,28 @@ public class WindowRenderer : Disposable
                 .SetRasterizerDiscard(false)
                 .DisableMultiSampling();
         }
-        
-        OnDraw?.Invoke(frame);
-        
-        SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
-            VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-            VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,new ImageBarrierOptions()
-            {
-                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
-                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT
-            });
 
-        OnCopyToSwapchain?.Invoke(frame, _swapchainImages[swapchainImageIndex], swapchainExtent);
+        if ((OnDraw?.GetInvocationList().Length ?? 0) > 0)
+        {
+            OnDraw?.Invoke(frame);
+        
+            SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
+                VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
+                VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-        SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
-            VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,new ImageBarrierOptions()
-            {
-                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
-                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
-            });
+            OnCopyToSwapchain?.Invoke(frame, _swapchainImages[swapchainImageIndex], swapchainExtent);
+
+            SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
+                VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+        }
+        else
+        {
+            SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
+                VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
+                VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+        }
+       
 
         vkEndCommandBuffer(cmd);
 

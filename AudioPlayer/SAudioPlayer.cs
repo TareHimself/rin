@@ -2,8 +2,8 @@
 using aerox.Runtime.Audio;
 using aerox.Runtime.DataStructures;
 using aerox.Runtime.Widgets;
-using aerox.Runtime.Widgets.Defaults.Containers;
-using aerox.Runtime.Widgets.Defaults.Content;
+using aerox.Runtime.Widgets.Containers;
+using aerox.Runtime.Widgets.Content;
 using aerox.Runtime.Windows;
 using AudioPlayer.Widgets;
 using SpotifyExplode;

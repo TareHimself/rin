@@ -69,11 +69,14 @@ void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** out
 
     vk::PhysicalDeviceVulkan12Features features12{};
     features12.setBufferDeviceAddress(true)
-              .setDescriptorIndexing(true)
-              .setDescriptorBindingSampledImageUpdateAfterBind(true)
-              .setDescriptorBindingStorageImageUpdateAfterBind(true)
-              .setScalarBlockLayout(true)
-              .setDescriptorBindingUniformBufferUpdateAfterBind(true);
+        .setDescriptorIndexing(true)
+        .setDescriptorBindingPartiallyBound(true)
+        .setRuntimeDescriptorArray(true)
+        .setDescriptorBindingSampledImageUpdateAfterBind(true)
+        .setDescriptorBindingStorageImageUpdateAfterBind(true)
+        .setDescriptorBindingStorageBufferUpdateAfterBind(true)
+        .setDescriptorBindingVariableDescriptorCount(true)
+        .setScalarBlockLayout(true);
     
     VkSurfaceKHR surf;
     glfwCreateWindowSurface(instance, static_cast<GLFWwindow*>(inWindow), nullptr, &surf);
