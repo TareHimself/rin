@@ -50,6 +50,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     private VkQueue _queue;
     private uint _queueFamily;
     private BackgroundTaskQueue _backgroundTaskQueue = new ();
+    private DescriptorLayoutFactory _descriptorLayoutFactory = new();
     
     public event Action<WindowRenderer>? OnRendererCreated;
     public event Action<WindowRenderer>? OnRendererDestroyed;
@@ -64,6 +65,8 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         Draw();
     }
 
+    public VkDescriptorSetLayout GetDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo createInfo) =>
+        _descriptorLayoutFactory.Get(createInfo);
 
     public VkSampler GetSampler(SamplerSpec spec)
     {
@@ -549,9 +552,9 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
 
         _backgroundTaskQueue.Dispose();
         _descriptorAllocator?.Dispose();
-        _allocator?.Dispose();
         _shaderManager?.Dispose();
         _resourceManager?.Dispose();
+        _descriptorLayoutFactory.Dispose();
         unsafe
         {
             lock (_samplersMutex)
@@ -562,7 +565,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             }
         
             
-            
+            _allocator?.Dispose();
             vkDestroyCommandPool(_device, _immediateCommandPool, null);
             vkDestroyFence(_device, _immediateFence, null);
             vkDestroyDevice(_device, null);
@@ -691,7 +694,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             arrayLayers = 1,
             samples = VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT,
             tiling = VkImageTiling.VK_IMAGE_TILING_OPTIMAL,
-            usage = usage
+            usage = usage,
         };
     }
 
@@ -824,7 +827,12 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
                 fixed (VkFence* pFences = &_immediateFence)
                 {
                     vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
-                    vkResetFences(_device, 1, pFences);
+                    
+                    var r = vkResetFences(_device, 1, pFences);
+                    if (r != VkResult.VK_SUCCESS)
+                    {
+                        throw new Exception("Failed to reset fences");
+                    }
                     vkResetCommandBuffer(_immediateCommandBuffer, 0);
                     var cmd = _immediateCommandBuffer;
                     var beginInfo =

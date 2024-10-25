@@ -35,8 +35,11 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
         var panel = surf.Add(new Panel());
 
         var switcher = new Switcher();
-        var imageSlot = panel.AddChild(
-            switcher
+        panel.AddChild(
+            new PanelSlot(switcher)
+            {
+                MaxAnchor = 1.0f
+            }
         );
 
         // panel.AddChild(new BackgroundBlur
@@ -52,10 +55,6 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
         //     slot.MinAnchor = 0.0f;
         //     slot.MaxAnchor = 1.0f;
         // });
-        
-        if (imageSlot == null) return;
-        
-        imageSlot.Mutate(slot => { slot.MaxAnchor = 1.0f; });
         
         surf.Window.OnKey += (e) =>
         {

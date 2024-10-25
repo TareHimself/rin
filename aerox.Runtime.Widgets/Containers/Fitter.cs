@@ -16,10 +16,11 @@ public class Fitter : Container
 
     public Fitter()
     {
-        
+        //Clip = ClipMode.Bounds;
     }
     public Fitter(Widget widget) : base([widget])
     {
+        //Clip = ClipMode.Bounds;
     }
 
     public FitMode FittingMode
@@ -111,10 +112,5 @@ public class Fitter : Container
     {
         SizeContent(drawSize);
     }
-
-    public override void OnChildResized(Widget widget)
-    {
-        CheckSize();
-        ArrangeSlots(GetContentSize());
-    }
+    
 }

@@ -76,7 +76,8 @@ void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** out
         .setDescriptorBindingStorageImageUpdateAfterBind(true)
         .setDescriptorBindingStorageBufferUpdateAfterBind(true)
         .setDescriptorBindingVariableDescriptorCount(true)
-        .setScalarBlockLayout(true);
+        .setScalarBlockLayout(true)
+    .setBufferDeviceAddress(true);
     
     VkSurfaceKHR surf;
     glfwCreateWindowSurface(instance, static_cast<GLFWwindow*>(inWindow), nullptr, &surf);

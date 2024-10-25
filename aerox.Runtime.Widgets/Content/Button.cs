@@ -25,10 +25,19 @@ public class Button : Container
         return new Size2d();
     }
 
-    protected virtual void CollectSelf(WidgetFrame frame, TransformInfo myInfo)
+    protected virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
     {
     }
 
+    public override void Collect(TransformInfo info, DrawCommands drawCommands)
+    {
+        if (Visibility is not WidgetVisibility.Hidden or WidgetVisibility.Collapsed)
+        {
+            CollectSelf(info,drawCommands);
+        }
+        base.Collect(info, drawCommands);
+    }
+    
     public override uint GetMaxSlots()
     {
         return 1;

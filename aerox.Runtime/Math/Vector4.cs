@@ -37,6 +37,14 @@ public struct Vector4<T> :
         W = inW;
     }
     
+    public Vector4(Vector2<T> xy, Vector2<T> zw)
+    {
+        X = xy.X;
+        Y = xy.Y;
+        Z = zw.X;
+        W = zw.Y;
+    }
+    
     public Vector4(Vector3<T> vector3, T inW)
     {
         X = vector3.X;

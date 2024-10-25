@@ -4,6 +4,7 @@ using aerox.Runtime.Graphics;
 using aerox.Runtime.Math;
 using aerox.Runtime.Widgets.Containers;
 using aerox.Runtime.Widgets.Events;
+using aerox.Runtime.Widgets.Graphics.Commands;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -43,6 +44,8 @@ public abstract class Surface : Disposable
     public virtual void Init()
     {
         CreateImages();
+        _rootWidget.SetOffset(0.0f);
+        _rootWidget.SetSize(GetDrawSize());
     }
 
     public abstract Vector2<int> GetDrawSize();
@@ -141,6 +144,12 @@ public abstract class Surface : Disposable
         if (_drawImage == null) throw new Exception("Cannot Access Device Image Before it Has Been Created");
         return _drawImage;
     }
+    
+    public DeviceImage GetStencilImage()
+    {
+        if (_stencilImage == null) throw new Exception("Cannot Access Device Image Before it Has Been Created");
+        return _stencilImage;
+    }
 
     public DeviceImage GetCopyImage()
     {
@@ -174,7 +183,7 @@ public abstract class Surface : Disposable
                         color = SGraphicsModule.MakeClearColorValue(0.0f)
                     }
                     : null)
-        ],stencilAttachment:SGraphicsModule.MakeRenderingAttachment(GetDrawImage().View,
+        ],stencilAttachment:SGraphicsModule.MakeRenderingAttachment(GetStencilImage().View,
             VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, clearColor
                 ? new VkClearValue
                 {
@@ -183,25 +192,107 @@ public abstract class Surface : Disposable
                 : null));
         
         frame.Raw.ConfigureForWidgets(size.Cast<uint>());
-
+        
         frame.ActivePass = MainPassId;
+
+        if (clearStencil)
+        {
+            const VkStencilFaceFlags faceMask = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
+            vkCmdSetStencilTestEnable(cmd,1);
+            vkCmdSetStencilReference(cmd,faceMask,255);
+            vkCmdSetStencilWriteMask(cmd,faceMask,0x01);
+            vkCmdSetStencilCompareMask(cmd,faceMask,0x01);
+            vkCmdSetStencilOp(cmd,faceMask,VkStencilOp.VK_STENCIL_OP_KEEP,VkStencilOp.VK_STENCIL_OP_KEEP,VkStencilOp.VK_STENCIL_OP_KEEP,VkCompareOp.VK_COMPARE_OP_NEVER);
+        }
     }
 
 
-    public virtual void EndMainPass(WidgetFrame frame)
+    public virtual void EndActivePass(WidgetFrame frame)
     {
         frame.Raw.GetCommandBuffer().EndRendering();
         frame.ActivePass = "";
     }
-
-    public virtual void BlitMainImageToCopyImage(Frame frame)
-    {
-        
-    }
-
+    
     public void DrawCommandsToFinalCommands(IEnumerable<PendingCommand> drawCommands,ref List<FinalDrawCommand> finalDrawCommands)
     {
+        IBatch? activeBatch = null;
+        uint currentClipMask = 0x01;
+        foreach (var pendingCommand in drawCommands)
+        {
+            if (currentClipMask != pendingCommand.ClipId)
+            {
+                if (activeBatch != null)
+                {
+                    finalDrawCommands.Add(new FinalDrawCommand()
+                    {
+                        Batch = activeBatch,
+                        Mask = currentClipMask,
+                        Type = CommandType.BatchedDraw
+                    });
+                    activeBatch = null;
+                }
+
+                currentClipMask = pendingCommand.ClipId;
+            }
+
+            switch (pendingCommand.DrawCommand)
+            {
+                case BatchedCommand asBatchedCommand:
+                {
+                    if (activeBatch == null)
+                    {
+                        activeBatch = asBatchedCommand.GetBatchRenderer().NewBatch();
+                    }
+                    else
+                    {
+                        if (activeBatch.GetRenderer() != asBatchedCommand.GetBatchRenderer())
+                        {
+                            finalDrawCommands.Add(new FinalDrawCommand()
+                            {
+                                Batch = activeBatch,
+                                Mask = currentClipMask,
+                                Type = CommandType.BatchedDraw
+                            });
+                            activeBatch = asBatchedCommand.GetBatchRenderer().NewBatch();
+                        }
+                    }
+     
+                
+                    activeBatch.AddFromCommand(asBatchedCommand);
+                    break;
+                }
+                case CustomCommand asCustomCommand:
+                {
+                    if (activeBatch != null)
+                    {
+                        finalDrawCommands.Add(new FinalDrawCommand()
+                        {
+                            Batch = activeBatch,
+                            Mask = currentClipMask,
+                            Type = CommandType.BatchedDraw
+                        });
+                        activeBatch = null;
+                    }
+                    
+                    finalDrawCommands.Add(new FinalDrawCommand()
+                    {
+                        Custom = asCustomCommand,
+                        Mask = currentClipMask,
+                        Type = CommandType.CustomDraw
+                    });
+                }
+                    break;
+            }
+        }
+
+        if (activeBatch == null) return;
         
+        finalDrawCommands.Add(new FinalDrawCommand()
+        {
+            Batch = activeBatch,
+            Mask = currentClipMask,
+            Type = CommandType.BatchedDraw
+        });
     }
     
     public List<FinalDrawCommand> CollectDrawCommands()
@@ -248,7 +339,16 @@ public abstract class Surface : Disposable
                 else
                 {
                     currentMask <<= 1;
-                    finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
+                    finalDrawCommands.Add(new FinalDrawCommand()
+                    {
+                        Type = CommandType.ClipDraw,
+                        Clips = uniqueClipStacks[rawCommand.ClipId].Select(c => new Clip()
+                        {
+                            Transform = clips[(int)c].Transform,
+                            Size = clips[(int)c].Size
+                        }).ToArray()
+                    });
+                    //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
                     computedClipStacks.Add(rawCommand.ClipId,currentMask);
                     pendingCommands.Add(new PendingCommand(rawCommand.DrawCommand,currentMask));
                 }
@@ -269,7 +369,6 @@ public abstract class Surface : Disposable
         var cmd = frame.GetCommandBuffer();
         _drawImage?.Barrier(cmd,VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         _copyImage?.Barrier(cmd,VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        _stencilImage?.Barrier(cmd,VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,VkImageLayout.VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL);
     }
     
     public virtual void HandleAfterDraw(Frame frame)
@@ -306,21 +405,28 @@ public abstract class Surface : Disposable
         ulong memoryNeeded = 0;
         ulong finalMemoryNeeded = 0;
         var minOffsetAlignment = properties.limits.minStorageBufferOffsetAlignment;
-        List<ulong> batchOffset = [];
+        List<ulong> bufferOffsets = [];
         var widgetFrame = new WidgetFrame(this, frame);
         
         foreach (var drawCommand in drawCommands)
         {
             if (drawCommand.Type == CommandType.BatchedDraw)
             {
-                batchOffset.Add(memoryNeeded);
+                bufferOffsets.Add(memoryNeeded);
                 foreach (var size in drawCommand.Batch!.GetMemoryNeeded())
                 {
-                    finalMemoryNeeded = size;
                     memoryNeeded += size;
                     var dist = memoryNeeded & minOffsetAlignment;
                     memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
+                    //memoryNeeded += size;
                 }
+            }
+            else if (drawCommand.Type == CommandType.ClipDraw)
+            {
+                bufferOffsets.Add(memoryNeeded);
+                memoryNeeded += (ulong)(Marshal.SizeOf<Clip>() * drawCommand.Clips.Length);
+                var dist = memoryNeeded & minOffsetAlignment;
+                memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
             }
         }
         
@@ -328,27 +434,17 @@ public abstract class Surface : Disposable
         var isComparingStencil = false;
 
         var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
-        var batchedDrawIndex = 0;
+        var bufferOffsetIndex = 0;
         var cmd = frame.GetCommandBuffer();
 
         var buffer = memoryNeeded > 0 ? SGraphicsModule.Get().GetAllocator().NewStorageBuffer(memoryNeeded) : null;
+        var bufferAddress = buffer?.GetDeviceAddress();
+        if (buffer != null)
+        {
+            frame.OnReset += (_) => buffer.Dispose();
+        }
         HandleBeforeDraw(frame);
-        // // Image we will draw on
-        // _drawImage.Barrier(cmd,VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-        //     VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,new ImageBarrierOptions()
-        //     {
-        //         WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-        //         NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
-        //     });
-        //
-        // // Copy image
-        // _copyImage.Barrier(cmd,VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-        //     VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,new ImageBarrierOptions()
-        //     {
-        //         WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-        //         NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
-        //     });
-        
+        BeginMainPass(widgetFrame,true,true);
         for (var i = 0; i < drawCommands.Count; i++)
         {
             var command = drawCommands[i];
@@ -364,13 +460,36 @@ public abstract class Surface : Disposable
                     if (!isWritingStencil)
                     {
                         vkCmdSetStencilOp(cmd,faceFlags,VkStencilOp.VK_STENCIL_OP_KEEP,VkStencilOp.VK_STENCIL_OP_REPLACE,VkStencilOp.VK_STENCIL_OP_KEEP,VkCompareOp.VK_COMPARE_OP_ALWAYS);
-                        cmd.SetColorBlendEnable(0, 1, false);
-                        isWritingStencil = true;
-                        isComparingStencil = false;
+                        cmd.SetWriteMask(0, 1, 0);
+                        if (SWidgetsModule.Get().GetStencilShader() is { } stencilShader && stencilShader.Bind(cmd,true))
+                        {
+                            isWritingStencil = true;
+                            isComparingStencil = false;
+                        }
                     }
-                    
-                    vkCmdSetStencilWriteMask(cmd,faceFlags,command.Mask);
-                    SWidgetsModule.Get().WriteStencil(frame,command.ClipInfo!.Transform,command.ClipInfo!.Size);
+
+                    {
+                        if (isWritingStencil && buffer != null && SWidgetsModule.Get().GetStencilShader() is { } stencilShader)
+                        {
+                            vkCmdSetStencilWriteMask(cmd,faceFlags,command.Mask);
+                            
+                            var address = bufferAddress.GetValueOrDefault();
+                            var offset =  bufferOffsets[bufferOffsetIndex];
+                            address += offset;
+                            buffer.Write(command.Clips,offset);
+
+                            var push = new StencilPushConstant()
+                            {
+                                Projection = widgetFrame.Projection,
+                                data = address
+                            };
+                            var pushResource = stencilShader.PushConstants.First().Value;
+                            cmd.PushConstant(stencilShader.GetPipelineLayout(), pushResource.Stages,push);
+                            
+                            vkCmdDraw(cmd,6,(uint)command.Clips.Length,0,0);
+                            bufferOffsetIndex++;
+                        }
+                    }
                 }
                     break;
                 case CommandType.ClipClear:
@@ -424,8 +543,13 @@ public abstract class Surface : Disposable
                     {
                         vkCmdSetStencilOp(cmd,faceFlags,VkStencilOp.VK_STENCIL_OP_KEEP,VkStencilOp.VK_STENCIL_OP_KEEP,VkStencilOp.VK_STENCIL_OP_KEEP,VkCompareOp.VK_COMPARE_OP_NOT_EQUAL);
                         cmd.SetColorBlendEnable(0, 1, true);
+                        cmd.SetWriteMask(0, 1,
+                            VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
+                            VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
+                            VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
+                            VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
                         isWritingStencil = false;
-                        isComparingStencil = false;
+                        isComparingStencil = true;
                     }
                     else
                     {
@@ -440,8 +564,10 @@ public abstract class Surface : Disposable
                         case { Type: CommandType.BatchedDraw, Batch: not null } when buffer != null:
                         {
                             var batch = command.Batch!;
-                            batch.GetRenderer().Draw(widgetFrame,batch,buffer,batchOffset[batchedDrawIndex]);
-                            batchedDrawIndex++;
+                            var address = bufferAddress.GetValueOrDefault();
+                            address += bufferOffsets[bufferOffsetIndex];
+                            batch.GetRenderer().Draw(widgetFrame,batch,buffer,address,bufferOffsets[bufferOffsetIndex]);
+                            bufferOffsetIndex++;
                             break;
                         }
                     }
@@ -450,7 +576,7 @@ public abstract class Surface : Disposable
             }
         }
         
-        if(widgetFrame.IsMainPassActive) EndMainPass(widgetFrame);
+        if(widgetFrame.ActivePass.Length > 0) EndActivePass(widgetFrame);
         
         HandleAfterDraw(frame);
     }
@@ -525,18 +651,18 @@ public abstract class Surface : Disposable
         }
 
         var hoveredSet = _lastHovered.ToHashSet();
+        
+        
+        
 
         Container? lastParent = null;
-
-        var curTransform = info;
         
         foreach (var widget in oldHoverList.AsReversed())
         {
-            curTransform = lastParent != null ? lastParent.ComputeChildTransform(widget, info) : curTransform;
             lastParent = widget is Container asContainer ? asContainer : null;
             if (!hoveredSet.Contains(widget))
             {
-                widget.ReceiveCursorLeave(e,curTransform);
+                widget.ReceiveCursorLeave(e);
             }
         }
     }

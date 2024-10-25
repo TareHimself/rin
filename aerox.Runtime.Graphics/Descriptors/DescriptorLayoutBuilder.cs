@@ -79,9 +79,7 @@ public class DescriptorLayoutBuilder
         }
 
         createInfo.pNext = &pNext;
-
-        VkDescriptorSetLayout layout;
-        vkCreateDescriptorSetLayout(device, &createInfo, null, &layout);
-        return layout;
+        
+        return SGraphicsModule.Get().GetDescriptorSetLayout(createInfo);
     }
 }

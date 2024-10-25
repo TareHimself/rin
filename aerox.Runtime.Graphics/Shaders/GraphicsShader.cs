@@ -76,6 +76,7 @@ public class GraphicsShader : Shader
 
                         var pipelineLayout = new VkPipelineLayout();
                         vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, null, &pipelineLayout);
+                        shader.PipelineLayout = pipelineLayout;
                     }
                     fixed(byte * pName = "main"u8.ToArray())
                     {
@@ -187,7 +188,7 @@ public class GraphicsShader : Shader
         return _compiledShader.Result.DescriptorLayouts;
     }
 
-    public override VkPipelineLayout GetPipelineLayouts()
+    public override VkPipelineLayout GetPipelineLayout()
     {
         return _compiledShader.Result.PipelineLayout;
     }

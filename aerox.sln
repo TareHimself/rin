@@ -35,7 +35,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SceneTest", "SceneTest\Scen
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AudioPlayer", "AudioPlayer\AudioPlayer.csproj", "{E294D3AB-725E-4456-8794-55A4D115F841}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rsl", "..\..\ashl\csharp\rsl\rsl.csproj", "{A2386FA5-D9D4-441B-B454-147E306CFE2E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rsl", "rsl\rsl\rsl.csproj", "{A2386FA5-D9D4-441B-B454-147E306CFE2E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

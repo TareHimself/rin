@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Runtime.InteropServices;
+using aerox.Runtime.Graphics.Descriptors;
 using aerox.Runtime.Graphics.Shaders;
 using aerox.Runtime.Math;
 
@@ -349,6 +350,18 @@ public static class VulkanExtensions
             return cmd;
         }
     }
+    
+    public static VkCommandBuffer SetWriteMask(this VkCommandBuffer cmd,uint start, uint count,VkColorComponentFlags writeMask)
+    {
+        unsafe
+        {
+            fixed (VkColorComponentFlags* pWriteMasks= Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
+            {
+                vkCmdSetColorWriteMaskEXT(cmd,start,count,pWriteMasks);
+            }
+            return cmd;
+        }
+    }
 
     public static VkCommandBuffer EnableBlendingAdditive(this VkCommandBuffer cmd,uint start, uint count) =>
         EnableBlending(cmd, start, count, new VkColorBlendEquationEXT()
@@ -452,6 +465,48 @@ public static class VulkanExtensions
         {
             vkCmdEndRendering(cmd);
         }
+        return cmd;
+    }
+
+    public static VkCommandBuffer BindDescriptorSets(this VkCommandBuffer cmd,VkPipelineBindPoint bindPoint,VkPipelineLayout pipelineLayout,IEnumerable<VkDescriptorSet> sets,uint firstSet = 0)
+    {
+         unsafe
+         {
+             var allSets = sets.ToArray();
+             fixed (VkDescriptorSet* pSets = allSets)
+             {
+                 vkCmdBindDescriptorSets(cmd, bindPoint,
+                     pipelineLayout, firstSet, (uint)allSets.Length, pSets, 0, null);
+             }
+         }
+
+         return cmd;
+    }
+    
+    public static VkCommandBuffer BindDescriptorSets(this VkCommandBuffer cmd,VkPipelineBindPoint bindPoint,VkPipelineLayout pipelineLayout,IEnumerable<DescriptorSet> sets,uint firstSet = 0)
+    {
+        unsafe
+        {
+            var allSets = sets.Select(c => (VkDescriptorSet)c).ToArray();
+            fixed (VkDescriptorSet* pSets = allSets)
+            {
+                uint numSets = (uint)allSets.Length;
+                vkCmdBindDescriptorSets(cmd, bindPoint,
+                    pipelineLayout, firstSet,numSets, pSets, 0, null);
+            }
+        }
+
+        return cmd;
+    }
+
+    public static VkCommandBuffer PushConstant<T>(this VkCommandBuffer cmd,VkPipelineLayout pipelineLayout,VkShaderStageFlags stageFlags,T data, uint offset = 0)
+    {
+        unsafe
+        {
+            vkCmdPushConstants(cmd, pipelineLayout,
+                VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT | VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT, offset,(uint)Marshal.SizeOf<T>(),&data);
+        }
+
         return cmd;
     }
 }

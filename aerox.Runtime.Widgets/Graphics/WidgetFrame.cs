@@ -23,12 +23,15 @@ public class WidgetFrame
     public readonly Surface Surface;
     public string ActivePass = "";
     public bool IsMainPassActive => ActivePass == Surface.MainPassId;
+    public Matrix4 Projection;
 
     public WidgetFrame(Surface surface, Frame raw)
     {
         Surface = surface;
         Raw = raw;
-        //raw.OnDrawn += CleanupCommands;
+        var size = surface.GetDrawSize();
+        Projection = Glm.Orthographic(0, size.X, 0, size.Y);
+        //raw.OnReset += CleanupCommands;
     }
 
     // public WidgetFrame AddRect(Matrix3 transform, Vector2<float> size, Vector4<float>? borderRadius = null,

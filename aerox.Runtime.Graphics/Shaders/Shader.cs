@@ -6,7 +6,6 @@ namespace aerox.Runtime.Graphics.Shaders;
 
 public abstract class Shader : Disposable
 {
-    
     public class Resource
     {
         public string Name = "";
@@ -18,113 +17,151 @@ public abstract class Shader : Disposable
         public VkDescriptorBindingFlags BindingFlags;
         public uint Size = 0;
     }
-    
+
     public class PushConstant
     {
         public string Name = "";
-        public ulong Size;
+        public uint Size;
         public VkShaderStageFlags Stages;
     }
 
     public Dictionary<string, Resource> Resources = [];
     public Dictionary<string, PushConstant> PushConstants = [];
-    
-    public abstract bool Bind(VkCommandBuffer cmd,bool wait = false);
+
+    public abstract bool Bind(VkCommandBuffer cmd, bool wait = false);
 
     public abstract CompiledShader Compile(ShaderManager manager);
 
     protected void ComputeResources(Pair<VkShaderStageFlags, ModuleNode>[] shaders)
     {
-        foreach (var (shaderStages,shader) in shaders)
+        foreach (var (shaderStages, shader) in shaders)
         {
             foreach (var node in shader.Statements)
             {
                 switch (node.NodeType)
                 {
                     case NodeType.Layout:
+                    case NodeType.SSBO:
                     {
-                        if (node is LayoutNode asLayout && asLayout.LayoutType == LayoutType.Uniform)
+                        uint set = 0;
+                        uint binding = 0;
+                        VkDescriptorBindingFlags bindingFlags = 0;
+                        VkShaderStageFlags stages = 0;
+                        Dictionary<string, string> tags = [];
+                        VkDescriptorType type = VkDescriptorType.VK_DESCRIPTOR_TYPE_MAX_ENUM;
+                        var name = "";
+                        uint count = 0;
+                        uint size = 0;
                         {
-                            VkDescriptorType type = asLayout.Declaration.DeclarationType switch
+                            if (node is LayoutNode resource)
                             {
-                                DeclarationType.Block => asLayout.Tags.ContainsKey("$storage") ? VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER : VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                DeclarationType.Sampler2D => VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                _ => throw new Exception("Unexpected declaration type")
-                            };
-
-                            var set = uint.Parse(asLayout.Tags["set"]);
-                            var binding = uint.Parse(asLayout.Tags["binding"]);
-
-                            VkDescriptorBindingFlags bindingFlags = 0;
-                            VkShaderStageFlags stages = 0;
-
-                            if (asLayout.Tags.ContainsKey("$update"))
-                            {
-                                bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-                            }
-                            
-                            if (asLayout.Tags.ContainsKey("$partial"))
-                            {
-                                bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-                            }
-                            
-                            if (asLayout.Tags.ContainsKey("$variable"))
-                            {
-                                bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-                            }
-                            
-                            if (asLayout.Tags.ContainsKey("$stage") && asLayout.Tags["$stage"] == "all")
-                            {
-                                stages |= VkShaderStageFlags.VK_SHADER_STAGE_ALL;
-                            }
-
-                            var name = asLayout.Declaration.DeclarationName;
-
-                            if (Resources.ContainsKey(name))
-                            {
-                                Resources[name].Stages |= stages;
-                                Resources[name].BindingFlags |= bindingFlags;
-                            }
-                            else
-                            {
-                                var count = (uint)asLayout.Declaration.Count;
-
-                                if (asLayout.Tags.ContainsKey("$variable"))
+                                if (!resource.Tags.TryGetValue("set", out var layoutSet) ||
+                                    !resource.Tags.TryGetValue("binding", out var layoutBinding))
                                 {
-                                    count = uint.Parse(asLayout.Tags["$variable"]);
+                                    continue;
                                 }
 
-                                if (asLayout.Declaration.DeclarationType == DeclarationType.Block)
+                                switch (resource.Declaration.DeclarationType)
                                 {
-                                    Resources.Add(name,new Resource()
+                                    case DeclarationType.Block:
                                     {
-                                        Name = name,
-                                        Set = set,
-                                        Binding = binding,
-                                        Count = count,
-                                        Type = type,
-                                        Stages = stages,
-                                        BindingFlags = bindingFlags,
-                                        Size = (uint)asLayout.Declaration.SizeOf()
-                                    });
-                                }
-                                else
-                                {
-                                    Resources.Add(name,new Resource()
+                                        type = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                                        size = (uint)resource.Declaration.SizeOf();
+                                    }
+                                        break;
+                                    case DeclarationType.Sampler2D:
                                     {
-                                        Name = name,
-                                        Set = set,
-                                        Binding = binding,
-                                        Count = count,
-                                        Type = type,
-                                        Stages = stages,
-                                        BindingFlags = bindingFlags
-                                    });
+                                        type = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                                        size = 0;
+                                    }
+                                        break;
+                                    default:
+                                        throw new Exception("Unexpected declaration type");
                                 }
+                                
+                                set = uint.Parse(layoutSet);
+                                binding = uint.Parse(layoutBinding);
+                                tags = resource.Tags;
+                                name = resource.Declaration.DeclarationName;
+                                count = (uint)resource.Declaration.Count;
                             }
+                        }
+
+                        {
+                            if (node is SSBONode resource)
+                            {
+                                if (!resource.Tags.TryGetValue("set", out var layoutSet) ||
+                                    !resource.Tags.TryGetValue("binding", out var layoutBinding))
+                                {
+                                    continue;
+                                }
+                                
+                                type = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+                                set = uint.Parse(layoutSet);
+                                binding = uint.Parse(layoutBinding);
+                                tags = resource.Tags;
+                                name = resource.Name;
+                                count = 1;
+                                size = (uint)resource.SizeOf();
+                            }
+                        }
+
+                        if (type == VkDescriptorType.VK_DESCRIPTOR_TYPE_MAX_ENUM)
+                        {
+                            throw new Exception("Unknown descriptor type");
+                        }
+
+
+                        if (tags.ContainsKey("$update"))
+                        {
+                            bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+                        }
+
+                        if (tags.ContainsKey("$partial"))
+                        {
+                            bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+                        }
+
+                        if (tags.ContainsKey("$variable"))
+                        {
+                            bindingFlags |= VkDescriptorBindingFlags
+                                .VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+                        }
+
+                        if (tags.ContainsKey("$stage") && tags["$stage"] == "all")
+                        {
+                            stages |= VkShaderStageFlags.VK_SHADER_STAGE_ALL;
+                        }
+
+                        if (Resources.ContainsKey(name))
+                        {
+                            Resources[name].Stages |= stages;
+                            Resources[name].BindingFlags |= bindingFlags;
+                        }
+                        else
+                        {
+                            if (tags.TryGetValue("$variable", out var tag))
+                            {
+                                tag = tag.Trim();
+                                count = uint.Parse(tag.Length == 0 ? "0" : tag);
+                            }
+
+                            Resources.Add(name, new Resource()
+                            {
+                                Name = name,
+                                Set = set,
+                                Binding = binding,
+                                Count = count,
+                                Type = type,
+                                Stages = stages,
+                                BindingFlags = bindingFlags,
+                                Size = size
+                            });
                         }
                     }
                         break;
+
                     case NodeType.PushConstant:
                     {
                         if (node is PushConstantNode asPushConstant)
@@ -136,13 +173,13 @@ public abstract class Shader : Disposable
                             }
                             else
                             {
-                                ulong pushSize = 0;
+                                uint pushSize = 0;
                                 foreach (var declarationNode in asPushConstant.Declarations)
                                 {
-                                    pushSize += (ulong)declarationNode.SizeOf();
+                                    pushSize += (uint)declarationNode.SizeOf();
                                 }
-                                
-                                PushConstants.Add(name,new PushConstant()
+
+                                PushConstants.Add(name, new PushConstant()
                                 {
                                     Name = name,
                                     Size = pushSize,
@@ -161,7 +198,8 @@ public abstract class Shader : Disposable
 
     public abstract void Init();
     public abstract Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts();
-    public abstract VkPipelineLayout GetPipelineLayouts();
+    public abstract VkPipelineLayout GetPipelineLayout();
+
     protected override void OnDispose(bool isManual)
     {
         throw new NotImplementedException();

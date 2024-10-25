@@ -30,7 +30,7 @@ public class AsyncFileImage : Image
     {
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(filePath);
         using var imgRawData = imgData.ToBuffer();
-        Texture = SGraphicsModule.Get().GetResourceManager().CreateTexture(imgRawData, new VkExtent3D
+        TextureId = SGraphicsModule.Get().GetResourceManager().CreateTexture(imgRawData, new VkExtent3D
             {
                 width = (uint)imgData.Width,
                 height = (uint)imgData.Height,
@@ -49,15 +49,15 @@ public class AsyncFileImage : Image
     //     // BorderRadius = 100.0f * _alpha;
     //     base.Draw(frame, info);
     // }
-
-    public override void Collect(WidgetFrame frame, TransformInfo info)
+    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
         // var sin = (float)Math.Sin(Runtime.Instance.GetTimeSinceCreation());
         // var borderRadius = float.Abs(sin) * 150.0f;
         // BorderRadius = borderRadius;
-        base.Collect(frame, info);
+        base.CollectContent(info, drawCommands);
+        
     }
-
+    
     protected override void OnCursorEnter(CursorMoveEvent e)
     {
         base.OnCursorEnter(e);

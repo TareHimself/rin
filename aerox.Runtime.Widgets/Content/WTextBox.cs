@@ -6,9 +6,9 @@ using aerox.Runtime.Windows;
 
 namespace aerox.Runtime.Widgets.Content;
 
-public class TextBox : Text
+public class WTextBox : WText
 {
-    public TextBox(string data = "",int fontSize = 100,string fontFamily = "Arial") : base(data,fontSize,fontFamily)
+    public WTextBox(string data = "",int fontSize = 100,string fontFamily = "Arial") : base(data,fontSize,fontFamily)
     {
     }
 

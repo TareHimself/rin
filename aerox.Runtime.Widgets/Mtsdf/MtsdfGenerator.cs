@@ -1,4 +1,5 @@
 ﻿using aerox.Runtime.Graphics;
+using aerox.Runtime.Math;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -78,19 +79,23 @@ public class MtsdfGenerator(FontFamily family)
             
             var atlas = atlases[i];
             var atlasIdx = i;
+            var atlasSize = new Vector2<float>(atlas.Width, atlas.Height);
             atlas.Mutate(o =>
             {
                 foreach (var rect in packer.PackRectangles)
                 {
                     var generated = (GeneratedMtsdf)rect.Data;
+                    var offset = new Vector2<float>(rect.X + AtlasPadding + GeneratePadding, rect.Y + AtlasPadding + GeneratePadding);
+                    var offset2 = offset + new Vector2<float>(rect.Width - (AtlasPadding * 2 + GeneratePadding * 2),
+                        rect.Height - (AtlasPadding * 2 + GeneratePadding * 2));
+                    offset /= atlasSize;
+                    offset2 /= atlasSize;
+                    
                     atlasGlyphs.Add(new MtsdfAtlasGlyph
                     {
                         Id = generated.Id,
                         AtlasIdx = atlasIdx,
-                        X = rect.X + AtlasPadding + GeneratePadding,
-                        Y = rect.Y + AtlasPadding + GeneratePadding,
-                        Height =  rect.Height - (AtlasPadding * 2 + GeneratePadding * 2),
-                        Width = rect.Width  - (AtlasPadding * 2 + GeneratePadding * 2)
+                        Coordinates = new Vector4<float>(offset,offset2)
                     });
 
                     o.DrawImage(generated.Mtsdf, new Point(rect.X, rect.Y), 1F);

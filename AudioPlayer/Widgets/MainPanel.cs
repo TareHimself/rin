@@ -14,25 +14,16 @@ public class MainPanel : Panel
         Direction = List.Axis.Vertical
     };
 
-    protected override void OnAddedToSurface(WidgetSurface widgetSurface)
+    public MainPanel()
     {
-        base.OnAddedToSurface(widgetSurface);
-
-        if (_init) return;
-        _init = true;
-
         var filePicker = new FilePicker();
-        var filePickerSlot = AddChild(filePicker);
-        if (filePickerSlot != null)
+        var filePickerSlot = AddChild(new PanelSlot(filePicker)
         {
-            filePickerSlot.Mutate((d) =>
-            {
-                d.MaxAnchor = 0.5f;
-                d.MinAnchor = 0.5f;
-                d.Alignment = 0.5f;
-                d.SizeToContent = true;
-            });
-        }
+            MaxAnchor = 0.5f,
+            MinAnchor = 0.5f,
+            Alignment = 0.5f,
+            SizeToContent = true
+        });
 
         filePicker.OnFileSelected += s =>
         {
@@ -40,26 +31,29 @@ public class MainPanel : Panel
             OnFileSelected(s);
         };
 
-        AddChild(TrackPlayers)?.Mutate((s) =>
+        AddChild(new PanelSlot(TrackPlayers)
         {
-            s.SizeToContent = true;
-            s.MinAnchor = 0.0f;
-            s.MaxAnchor = new Vector2<float>(0.0f, 1.0f);
+            SizeToContent = true,
+            MinAnchor = 0.0f,
+            MaxAnchor = new Vector2<float>(0.0f, 1.0f)
         });
 
-        AddChild(new FpsWidget()
+        AddChild(new PanelSlot(new FpsWidget()
         {
             FontSize = 30
-        })?.Mutate((s) =>
+        })
         {
-            s.SizeToContent = true;
-            s.MinAnchor = new Vector2<float>(1.0f, 0.0f);
-            s.MaxAnchor = new Vector2<float>(1.0f, 0.0f);
-            s.Alignment = new Vector2<float>(1.0f, 0.0f);
+            SizeToContent = true,
+            MinAnchor = new Vector2<float>(1.0f, 0.0f),
+            MaxAnchor = new Vector2<float>(1.0f, 0.0f),
+            Alignment = new Vector2<float>(1.0f, 0.0f)
         });
     }
-    
-    
+
+    public override void OnSlotUpdated(Slot slot)
+    {
+        base.OnSlotUpdated(slot);
+    }
 
     protected void OnFileSelected(string[] files)
     {

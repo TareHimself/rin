@@ -12,14 +12,13 @@ struct QuadRenderInfo
     float4 uv;
 };
 
-
-layout(set = 1,binding = 0, scalar) uniform batch_info {
-    QuadRenderInfo quads[64];
+layout(buffer_reference, scalar) readonly buffer QuadBuffer {
+    QuadRenderInfo quads[];
 };
 
 push(scalar){
-    float4 viewport;
     mat4 projection;
+    QuadBuffer batch;
 };
 
 @Vertex{
@@ -28,7 +27,7 @@ push(scalar){
     layout(location = 1) out int oQuadIndex;
 
     void main(){
-        QuadRenderInfo quad = batch_info.quads[gl_InstanceIndex];
+        QuadRenderInfo quad = push.batch.quads[gl_InstanceIndex];
         generateRectVertex(quad.size, push.projection, quad.transform, gl_VertexIndex, gl_Position, oUV);
         oQuadIndex = gl_InstanceIndex;
     }
@@ -51,7 +50,7 @@ push(scalar){
     }
 
     void main(){
-        QuadRenderInfo quad = batch_info.quads[iQuadIndex];
+        QuadRenderInfo quad = push.batch.quads[iQuadIndex];
         float4 pxColor = quad.color;
         int textureId = quad.opts.x;
         int mode = quad.opts.y;
@@ -71,7 +70,7 @@ push(scalar){
                 float sd = median(msd.r,msd.g,msd.b);
                 float distance = screenPxRange(iUV,actualTexSize)*(sd - 0.5);
                 float opacity = clamp(distance + 0.5, 0.0, 1.0);
-                pxColor = mix(float4(pxColor.rgb,0.0),pxColor,opacity);
+                pxColor = mix(pxColor,float4(pxColor.rgb,0.0),opacity);
             }
         }
 

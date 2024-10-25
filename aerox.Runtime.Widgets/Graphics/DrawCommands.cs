@@ -30,13 +30,13 @@ public class DrawCommands
     private readonly Stack<uint> _clipStack = [];
     private string _clipId = "";
 
-    DrawCommands Add(Command command)
+    public DrawCommands Add(Command command)
     {
         var info = new RawCommand(command, _clipId);
         
         Commands.Add(info);
 
-        UniqueClipStacks.TryAdd(info.ClipId, _clipStack);
+        UniqueClipStacks.TryAdd(info.ClipId, _clipStack.ToArray());
 
         return this;
     }
@@ -68,6 +68,6 @@ public class DrawCommands
 
     public List<ClipInfo> Clips { get; } = [];
 
-    public Dictionary<string, Stack<uint>> UniqueClipStacks { get; } = [];
+    public Dictionary<string, uint[]> UniqueClipStacks { get; } = [];
     
 }

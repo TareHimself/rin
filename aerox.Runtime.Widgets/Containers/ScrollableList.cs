@@ -14,7 +14,12 @@ public class ScrollableList : List
 
     public ScrollableList(IEnumerable<Widget> children) : base(children)
     {
-        Clip = ClipMode.Bounds;
+        //Clip = ClipMode.Bounds;
+    }
+
+    public ScrollableList() : base([])
+    {
+        
     }
 
     public float ScrollScale { get; set; } = 4.0f;
@@ -141,9 +146,9 @@ public class ScrollableList : List
         }
     }
 
-    public override TransformInfo ComputeChildTransform(Widget widget, TransformInfo info)
+    public override TransformInfo OffsetTransformTo(Widget widget, TransformInfo info, bool withPadding = true)
     {
-        var transform = base.ComputeChildTransform(widget, info);
+        var transform = base.OffsetTransformTo(widget, info,withPadding);
         transform.Transform = Direction switch
         {
             Axis.Horizontal => info.Transform.Translate(new Vector2<float>(-GetScroll(), 0.0f)),

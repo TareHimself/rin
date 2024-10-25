@@ -38,10 +38,13 @@ public class Switcher : Container
     }
 
     public override uint GetMaxSlots() => 1;
-
-    public override void OnChildResized(Widget widget)
+    
+    public override void OnSlotUpdated(Slot slot)
     {
-        if (widget == SelectedWidget) base.OnChildResized(widget);
+        if (slot.GetWidget() == SelectedWidget)
+        {
+            base.OnSlotUpdated(slot);
+        }
     }
 
     protected override void ArrangeSlots(Size2d drawSize)

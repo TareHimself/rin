@@ -11,6 +11,9 @@ public struct ClippingRect
 public class TransformInfo : ICloneable<TransformInfo>
 {
     public Matrix3 Transform;
+    /// <summary>
+    /// This is only used for intersection estimates
+    /// </summary>
     public Size2d Size;
     public int Depth;
     

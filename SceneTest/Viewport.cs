@@ -37,7 +37,7 @@ internal class DrawSceneCommand(Scene scene,EViewportChannel channel) : UtilityC
         
         if(drawer == null || source == null) return;
         
-        if(frame.IsMainPassActive) frame.Surface.EndMainPass(frame);
+        if(frame.IsMainPassActive) frame.Surface.EndActivePass(frame);
         
         drawer.Draw(frame);
         
@@ -61,23 +61,23 @@ public class Viewport : Widget
 {
     public readonly Scene TargetScene;
     public EViewportChannel Channel = EViewportChannel.Scene;
-    public Text ModeText;
+    public WText ModeWText;
     private bool _ignoreNextMove = false;
     private Vector2<float> _mousePosition = 0.0f;
     private bool _captureMouse = false;
 
     public Vector2<float> AbsoluteCenter =>
         ((Vector2<float>)GetContentSize() / 2.0f).ApplyTransformation(ComputeAbsoluteTransform());
-    public Viewport(Scene scene,Text modeText)
+    public Viewport(Scene scene,WText modeWText)
     {
         TargetScene = scene;
-        ModeText = modeText;
+        ModeWText = modeWText;
         UpdateModeText();
     }
 
     public void UpdateModeText()
     {
-        ModeText.Content = Channel switch
+        ModeWText.Content = Channel switch
         {
             EViewportChannel.Scene => "Default",
             EViewportChannel.Color => "Color",

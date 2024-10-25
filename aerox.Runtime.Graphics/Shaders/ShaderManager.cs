@@ -16,7 +16,7 @@ public class ShaderManager : Disposable
     {
         var opts = new Options()
         {
-            Optimization = OptimizationLevel.Performance
+            Optimization = OptimizationLevel.Zero,
         };
 
         _compiler = new Compiler(opts);

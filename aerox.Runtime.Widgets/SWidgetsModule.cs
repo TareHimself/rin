@@ -88,7 +88,7 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         if (_stencilShader == null)
         {
             _stencilShader = GraphicsShader.FromFile(Path.Join(SRuntime.ResourcesDirectory, "shaders", "widgets",
-                "stencil_single.rsl"));
+                "stencil_batch.rsl"));
         }
     }
 
@@ -169,8 +169,5 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         }
     }
 
-    public void WriteStencil(Frame frame, Matrix3 transform, Vector2<float> size)
-    {
-        
-    }
+    public GraphicsShader? GetStencilShader() => _stencilShader;
 }

@@ -118,14 +118,4 @@ public class Panel : Container
     {
         return new PanelSlot(widget,this);
     }
-
-    public override void OnChildResized(Widget widget)
-    {
-        // Resize the specific widget
-        if (GetSlots().First(c => c.GetWidget() == widget) is { } slot)
-        {
-            OnSlotUpdated(slot);
-        }
-        //A canvas never needs to resize because of its children base.OnChildResized(widget);
-    }
 }

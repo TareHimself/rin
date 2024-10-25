@@ -1,9 +1,9 @@
 ﻿using aerox.Runtime.Graphics;
-using aerox.Runtime.Widgets.Graphics;
 
-namespace aerox.Runtime.Widgets;
+namespace aerox.Runtime.Widgets.Graphics;
 
 public interface IBatchRenderer
 {
-    abstract void Draw(WidgetFrame frame,IBatch batch, DeviceBuffer buffer, ulong offset);
+    abstract void Draw(WidgetFrame frame, IBatch batch, DeviceBuffer buffer, ulong address, ulong offset);
+    abstract IBatch NewBatch();
 }

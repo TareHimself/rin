@@ -7,6 +7,7 @@ using aerox.Runtime.Widgets.Content;
 using aerox.Runtime.Widgets.Graphics.Commands;
 using aerox.Runtime.Widgets.Events;
 using aerox.Runtime.Widgets.Graphics;
+using aerox.Runtime.Widgets.Graphics.Quads;
 
 namespace AudioPlayer.Widgets;
 
@@ -17,7 +18,7 @@ public class FilePicker : Button
     public event Action<string[]>? OnFileSelected;
 
     protected Color BgColor = Color.Red;
-    protected readonly Text StatusText = new Text("Select File's");
+    protected readonly WText StatusText = new WText("Select File's");
     
     public FilePicker() : base()
     {
@@ -38,14 +39,14 @@ public class FilePicker : Button
             return true;
         }));
     }
-    
-    protected override void CollectSelf(WidgetFrame frame, TransformInfo myInfo)
+
+    protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)
     {
-        base.CollectSelf(frame, myInfo);
-        frame.AddCommands(new SimpleRect(myInfo.Transform, GetContentSize())
+        base.CollectSelf(info, drawCommands);
+        drawCommands.AddQuads(new Quad(GetContentSize(), info.Transform)
         {
             Color = BgColor,
-            BorderRadius = 20.0f,
+            BorderRadius = 20.0f
         });
     }
 
@@ -79,5 +80,10 @@ public class FilePicker : Button
         BgColor = Color.Red;
         base.OnCursorLeave(e);
         
+    }
+
+    public override void SetSize(Size2d size)
+    {
+        base.SetSize(size);
     }
 }

@@ -13,7 +13,7 @@ public struct SceneFrame
     {
         Drawer = drawer;
         Original = original;
-        original.OnDrawn += CleanupCommands;
+        original.OnReset += CleanupCommands;
     }
 
     public SceneFrame AddCommand(Command command)

@@ -2,6 +2,7 @@
 using aerox.Runtime.Graphics;
 using aerox.Runtime.Math;
 using aerox.Runtime.Widgets.Graphics;
+using aerox.Runtime.Widgets.Graphics.Quads;
 
 namespace aerox.Runtime.Widgets.Content;
 
@@ -68,6 +69,13 @@ public class Image : Widget
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
-        throw new NotImplementedException();
+        //throw new NotImplementedException();
+        if (TextureId != -1)
+        {
+            drawCommands.Add(new QuadDrawCommand([new Quad(GetContentSize(), info.Transform)
+            {
+                TextureId = TextureId
+            }]));
+        }
     }
 }

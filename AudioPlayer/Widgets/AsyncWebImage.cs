@@ -20,15 +20,15 @@ public class AsyncWebImage : Image
         using var client = new HttpClient();
         Stream stream = await client.GetStreamAsync(uri);
         using var img = await ImageSharpImage.LoadAsync<Rgba32>(stream);
-        using var tex = new Texture(img.ToBytes(), new VkExtent3D()
+        using var imgData = img.ToBuffer();
+        TextureId = SGraphicsModule.Get().GetResourceManager().CreateTexture(imgData, new VkExtent3D
             {
                 width = (uint)img.Width,
                 height = (uint)img.Height,
                 depth = 1
-            }, ImageFormat.Rgba8, ImageFilter.Linear, ImageTiling.ClampEdge, false,
-            $"Async Image Texture");
+            },
+            ImageFormat.Rgba8);
         await img.SaveAsPngAsync("./latest.png");
-        Texture = tex;
     }
 
 }

@@ -16,8 +16,8 @@ namespace AudioPlayer.Widgets;
 
 public class TrackPlayerWidget : Overlay
 {
-    private Text NameText => GetSlot(1)!.GetWidget<BackgroundBlur>()!.GetSlot(0)!.GetWidget<List>()!.GetSlot(0)!.GetWidget<Text>()!;
-    private Text StatusText => GetSlot(1)!.GetWidget<BackgroundBlur>()!.GetSlot(0)!.GetWidget<List>()!.GetSlot(1)!.GetWidget<Text>()!;
+    private WText NameText => GetSlot(1)!.GetWidget<BackgroundBlur>()!.GetSlot(0)!.GetWidget<List>()!.GetSlot(0)!.GetWidget<WText>()!;
+    private WText StatusText => GetSlot(1)!.GetWidget<BackgroundBlur>()!.GetSlot(0)!.GetWidget<List>()!.GetSlot(1)!.GetWidget<WText>()!;
     private readonly AudioStream _stream;
 
     public string Name
@@ -26,35 +26,36 @@ public class TrackPlayerWidget : Overlay
         set => NameText.Content = value;
     }
 
-    public TrackPlayerWidget(string name, AudioStream stream) : base(
-        new Sizer()
+    public TrackPlayerWidget(string name, AudioStream stream) : base()
+    {
+        AddChild(new Sizer()
         {
-            HeightOverride = 70.0f
-        },
-        new BackgroundBlur(new List(
-            new Text("NAME", 40)
+
+        });
+        AddChild(new BackgroundBlur(new List([
+            new WText("NAME", 40)
             {
                 Padding = new WidgetPadding()
                 {
                     Top = 0.0f,
                     Bottom = 5.0f,
                 }
-            }, new Text("00:00 - 00:00", 30)
+            },
+            new WText("00:00 - 00:00", 30)
             {
                 Padding = new WidgetPadding()
                 {
                     Top = 5.0f,
                     Bottom = 5.0f,
                 }
-            })
+            }
+        ])
         {
             Direction = List.Axis.Vertical,
-            Padding = new WidgetPadding(5.0f,10.0f)
-        })
-        {
+            Padding = new WidgetPadding(5.0f, 10.0f)
+        }){
             Tint = Color.Black.Clone(a: 0.2f),
-        })
-    {
+        });
         NameText.Content = name;
 
         _stream = stream;
@@ -86,13 +87,13 @@ public class TrackPlayerWidget : Overlay
         return
             $"{((int)Math.Floor(secs / 60)).ToString().PadLeft(2, '0')}:{((int)(secs % 60)).ToString().PadLeft(2, '0')}";
     }
-
-    public override void Collect(WidgetFrame frame, TransformInfo info)
+    
+    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
         StatusText.Content = $"{FormatTime(_stream.Position)} - {FormatTime(_stream.Length)}";
-        base.Collect(frame, info);
+        base.CollectContent(info, drawCommands);
     }
-    
+
     protected override bool OnCursorDown(CursorDownEvent e) => _stream.IsPlaying ? _stream.Pause() : _stream.Play();
 
     protected override void OnDispose(bool isManual)

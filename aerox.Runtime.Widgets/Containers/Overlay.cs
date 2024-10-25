@@ -9,6 +9,10 @@ namespace aerox.Runtime.Widgets.Containers;
 /// </summary>
 public class Overlay : Container
 {
+    public Overlay() : base()
+    {
+        
+    }
     public Overlay(IEnumerable<Widget> children) : base(children)
     {
     }
@@ -42,7 +46,7 @@ public class Overlay : Container
     // protected override bool ChildrenReceiveScroll(ScrollEvent e, TransformInfo info)
     // {
     //     var position = e.Position.Cast<float>();
-    //     var myInfo = ComputeChildTransform()
+    //     var myInfo = OffsetTransformTo()
     //     foreach (var slot in GetSlots().AsReversed())
     //         if (myInfo.AccountFor(slot.GetWidget()).PointWithin(position))
     //             return slot.GetWidget().ReceiveScroll(e, myInfo);

@@ -220,7 +220,7 @@ public abstract class Widget : Disposable
     {
     }
 
-    public virtual void ReceiveCursorLeave(CursorMoveEvent e, TransformInfo info)
+    public virtual void ReceiveCursorLeave(CursorMoveEvent e)
     {
         if (!Hovered) return;
 
@@ -301,9 +301,25 @@ public abstract class Widget : Disposable
         if (newSize.Equals(_cachedDesiredSize)) return false;
 
         _cachedDesiredSize = newSize;
-        Parent?.OnChildResized(this);
+        Parent?.OnSlotUpdated(this);
 
         return true;
+    }
+    
+    /// <summary>
+    /// Computes the transform info of content 
+    /// </summary>
+    /// <param name="widget">The content</param>
+    /// <param name="info">The Absolute Transform info of this widget</param>
+    /// <param name="withPadding">Should we also account for padding ? (should be true except when used in <see cref="CollectContent"/>)</param>
+    /// <returns>The Absolute Transform info of content</returns>
+    public virtual TransformInfo OffsetTransformTo(Widget widget, TransformInfo info, bool withPadding = true)
+    {
+        var newTransform = withPadding
+            ? info.Transform.Translate(new Vector2<float>(Padding.Left, Padding.Top))
+            : info.Transform;
+        
+        return new TransformInfo(newTransform * widget.ComputeRelativeTransform(),widget.GetSize(),info.Depth + 1);
     }
 
 
@@ -314,7 +330,7 @@ public abstract class Widget : Disposable
             return;
         }
         
-        CollectContent(info,drawCommands);
+        CollectContent(new TransformInfo(info.Transform.Translate(new Vector2<float>(Padding.Left,Padding.Top)),GetContentSize(),info.Depth),drawCommands);
     }
     
     public abstract void CollectContent(TransformInfo info,DrawCommands drawCommands);

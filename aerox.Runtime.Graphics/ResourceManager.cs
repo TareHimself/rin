@@ -1,16 +1,17 @@
 ﻿using aerox.Runtime.Graphics.Descriptors;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
+
 namespace aerox.Runtime.Graphics;
 
 public class ResourceManager : Disposable
 {
-   
     private static uint MAX_TEXTURES = 512;
     private readonly Mutex _mutex = new();
+
     private readonly DescriptorAllocator _allocator = new DescriptorAllocator(512, [
         new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1.0f)
-    ],VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
+    ], VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
     private readonly HashSet<int> _availableIndices = [];
     private readonly List<BoundTexture> _textures = [];
@@ -24,12 +25,12 @@ public class ResourceManager : Disposable
         public bool MipMapped = false;
         public string DebugName;
         public bool Valid => Image != null;
-        
+
         public BoundTexture()
         {
             DebugName = "";
         }
-        
+
         public BoundTexture(DeviceImage image, ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
         {
             Image = image;
@@ -39,11 +40,13 @@ public class ResourceManager : Disposable
             DebugName = debugName;
         }
     }
+
     public ResourceManager()
     {
         {
             const VkDescriptorBindingFlags flags = VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-                                                   VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
+                                                   VkDescriptorBindingFlags
+                                                       .VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
                                                    VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
             var layout = new DescriptorLayoutBuilder().AddBinding(
                 0,
@@ -55,18 +58,19 @@ public class ResourceManager : Disposable
 
             _descriptorSet = _allocator.Allocate(layout, MAX_TEXTURES);
         }
-        
-        
     }
 
-    public int CreateTexture(NativeBuffer<byte> data, VkExtent3D size, ImageFormat format, ImageFilter filter = ImageFilter.Linear,
+    public DescriptorSet GetDescriptorSet() => _descriptorSet;
+
+    public int CreateTexture(NativeBuffer<byte> data, VkExtent3D size, ImageFormat format,
+        ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mipMapped = false, string debugName = "Texture")
     {
         lock (_mutex)
         {
             var image = SGraphicsModule.Get().CreateImage(data, size, format,
                 VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped, filter, debugName);
-            
+
             var boundText = new BoundTexture(image, filter, tiling, mipMapped, debugName);
 
             int textureId;
@@ -82,7 +86,7 @@ public class ResourceManager : Disposable
                 _availableIndices.Remove(textureId);
                 _textures[textureId] = boundText;
             }
-            
+
             UpdateTextures(textureId);
 
             return textureId;
@@ -91,53 +95,71 @@ public class ResourceManager : Disposable
 
     public void FreeTextures(params int[] textureIds)
     {
-        VkDescriptorSet set = _descriptorSet;
-
-        List<VkWriteDescriptorSet> writes = [];
-        
         foreach (var textureId in textureIds)
         {
             var info = _textures[textureId];
-            
-            if(!info.Valid) continue;
-            
-            unsafe
-            {
-                writes.Add(new VkWriteDescriptorSet()
-                {
-                    sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    dstSet = set,
-                    dstBinding = 0
-                });
-                info.Image!.Dispose();
-                _textures[textureId] = new BoundTexture();
-                _availableIndices.Add(textureId);
-            }
-            
-        }
 
-        if (writes.Count != 0)
-        {
-            unsafe
-            {
-                fixed (VkWriteDescriptorSet* writeSets = writes.ToArray())
-                {
-                    vkUpdateDescriptorSets(SGraphicsModule.Get().GetDevice(),(uint)writes.Count,writeSets,0,null);
-                }
-            }
+            if (!info.Valid) continue;
+
+            info.Image?.Dispose();
+            _textures[textureId] = new BoundTexture();
+            _availableIndices.Add(textureId);
         }
+        // VkDescriptorSet set = _descriptorSet;
+        //
+        // List<VkWriteDescriptorSet> writes = [];
+        //
+        // foreach (var textureId in textureIds)
+        // {
+        //     var info = _textures[textureId];
+        //
+        //     if (!info.Valid) continue;
+        //
+        //     unsafe
+        //     {
+        //         var imageInfo = new VkDescriptorImageInfo()
+        //         {
+        //         };
+        //
+        //         unsafe
+        //         {
+        //             writes.Add(new VkWriteDescriptorSet()
+        //             {
+        //                 sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        //                 dstSet = set,
+        //                 dstBinding = 0,
+        //                 dstArrayElement = (uint)textureId,
+        //                 descriptorCount = 1,
+        //                 descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        //                 pImageInfo = &imageInfo
+        //             });
+        //         }
+        //     }
+        // }
+        //
+        // if (writes.Count != 0)
+        // {
+        //     unsafe
+        //     {
+        //         fixed (VkWriteDescriptorSet* writeSets = writes.ToArray())
+        //         {
+        //             vkUpdateDescriptorSets(SGraphicsModule.Get().GetDevice(), (uint)writes.Count, writeSets, 0, null);
+        //         }
+        //     }
+        // }
     }
+
     private void UpdateTextures(params int[] textureIds)
     {
         VkDescriptorSet set = _descriptorSet;
 
         List<VkWriteDescriptorSet> writes = [];
-        
+
         foreach (var textureId in textureIds)
         {
             var info = _textures[textureId];
-            
-            if(!info.Valid) continue;
+
+            if (!info.Valid) continue;
 
             var sampler = SGraphicsModule.Get().GetSampler(new SamplerSpec()
             {
@@ -173,13 +195,15 @@ public class ResourceManager : Disposable
             {
                 fixed (VkWriteDescriptorSet* writeSets = writes.ToArray())
                 {
-                    vkUpdateDescriptorSets(SGraphicsModule.Get().GetDevice(),(uint)writes.Count,writeSets,0,null);
+                    vkUpdateDescriptorSets(SGraphicsModule.Get().GetDevice(), (uint)writes.Count, writeSets, 0, null);
                 }
             }
         }
     }
+
     protected override void OnDispose(bool isManual)
     {
+        //FreeTextures(_textures.Select((_, i) => i).ToArray());
         _allocator.Dispose();
         foreach (var boundTexture in _textures)
         {
@@ -188,16 +212,16 @@ public class ResourceManager : Disposable
                 boundTexture.Image!.Dispose();
             }
         }
-        
+
         _textures.Clear();
     }
-    
-    
+
+
     public BoundTexture? GetTextureInfo(int textureId)
     {
         return IsTextureIdValid(textureId) ? _textures[textureId] : null;
     }
-    
+
     public DeviceImage? GetTextureImage(int textureId)
     {
         return GetTextureInfo(textureId)?.Image;
@@ -209,6 +233,6 @@ public class ResourceManager : Disposable
 
         if (_availableIndices.Contains(textureId)) return false;
 
-        return _textures.Count < textureId;
+        return textureId < _textures.Count;
     }
 }

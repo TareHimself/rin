@@ -88,7 +88,7 @@ public class Frame : Disposable
         _swapchainSemaphore = sSemaphore;
     }
 
-    public event Action<Frame>? OnDrawn;
+    public event Action<Frame>? OnReset;
     
 
     public VkFence GetRenderFence()
@@ -139,8 +139,8 @@ public class Frame : Disposable
     /// </summary>
     public void Reset()
     {
-        OnDrawn?.Invoke(this);
-        OnDrawn = null;
+        OnReset?.Invoke(this);
+        OnReset = null;
         _descriptorAllocator.ClearPools();
         unsafe
         {
@@ -149,7 +149,7 @@ public class Frame : Disposable
                 var r = vkResetFences(_device, 1, pFence);
                 if (r != VkResult.VK_SUCCESS)
                 {
-                    
+                    throw new Exception("Failed to reset fences");
                 }
             }
         }
@@ -159,7 +159,8 @@ public class Frame : Disposable
     {
         var device = SGraphicsModule.Get().GetDevice();
         SGraphicsModule.Get().WaitDeviceIdle();
-        Reset();
+        OnReset?.Invoke(this);
+        _descriptorAllocator.Dispose();
         vkDestroySemaphore(device, _swapchainSemaphore, null);
         vkDestroySemaphore(device, _renderSemaphore, null);
         vkDestroyFence(device, _renderFence, null);

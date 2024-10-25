@@ -40,7 +40,7 @@ public class SWidgetTestModule : RuntimeModule
             MaxAnchor = 1.0f
         });
 
-        var textSlot = (PanelSlot?)panel.AddChild(new PanelSlot(new Text("Background Blur Using Blit", 40))
+        var textSlot = (PanelSlot?)panel.AddChild(new PanelSlot(new WText("Background Blur Using Blit", 40))
         {
             SizeToContent = true,
             Alignment = 0f,
@@ -48,7 +48,7 @@ public class SWidgetTestModule : RuntimeModule
             MaxAnchor = 0f
         });
 
-        var textInputSlot = panel.AddChild(new PanelSlot(new Sizer(new TextBox("Example Text",100))
+        var textInputSlot = panel.AddChild(new PanelSlot(new Sizer(new WTextBox("Example Text",100))
         {
             WidthOverride = 500
         })
@@ -65,7 +65,7 @@ public class SWidgetTestModule : RuntimeModule
         SRuntime.Get().OnTick += d =>
         {
             frames++;
-            var txt = (Text)textSlot.GetWidget();
+            var txt = (WText)textSlot.GetWidget();
             txt.Content = $"Focused ${panel.Surface?.FocusedWidget}";
         };
 
@@ -133,7 +133,7 @@ public class SWidgetTestModule : RuntimeModule
         var panel = surf.Add(new Panel());
 
        
-        var textSlot = panel.AddChild(new PanelSlot(new Text("Test Text", 40))
+        var textSlot = panel.AddChild(new PanelSlot(new WText("Test Text", 40))
         {
             SizeToContent = true,
             Alignment = 0f,

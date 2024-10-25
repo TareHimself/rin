@@ -22,6 +22,7 @@ public class WindowSurface : Surface
     }
 
     public Window Window => _renderer.GetWindow();
+    public WindowRenderer GetRenderer() => _renderer;
 
     public void CopyToSwapchain(Frame frame, VkImage swapchainImage, VkExtent2D extent)
     {

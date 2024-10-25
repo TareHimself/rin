@@ -1,4 +1,5 @@
-﻿using aerox.Runtime.Extensions;
+﻿using System.Collections.Concurrent;
+using aerox.Runtime.Extensions;
 using aerox.Runtime.Math;
 using aerox.Runtime.Widgets.Events;
 using aerox.Runtime.Widgets.Graphics;
@@ -7,7 +8,8 @@ using aerox.Runtime.Widgets.Graphics.Commands;
 namespace aerox.Runtime.Widgets;
 public abstract class Container : Widget
 {
-    private readonly List<Slot> _slot = new();
+    private readonly ConcurrentDictionary<Widget, Slot> _widgetSlotMap = [];
+    private readonly List<Slot> _slots = new();
     
     protected readonly Mutex SlotsMutex = new();
     
@@ -32,11 +34,7 @@ public abstract class Container : Widget
     }
     
     protected abstract void ArrangeSlots(Size2d drawSize);
-
-    public virtual void OnChildResized(Widget widget)
-    {
-        if (CheckSize()) ArrangeSlots(GetContentSize());
-    }
+    
     
     public virtual Slot MakeSlot(Widget widget)
     {
@@ -47,40 +45,27 @@ public abstract class Container : Widget
     {
         return AddChild(Activator.CreateInstance<TE>());
     }
-    
-    public virtual void OnSlotUpdated(Slot slot)
-    {
-    }
 
-    public Slot? AddChild(Widget widget)
+    public void OnSlotUpdated(Widget widget)
     {
-        lock (SlotsMutex)
+        if (_widgetSlotMap.TryGetValue(widget, out var slot))
         {
-            var maxSlots = GetMaxSlots();
-            if (maxSlots > 0 && _slot.Count == maxSlots) return null;
-
-            widget.SetParent(this);
-
-            var slot = MakeSlot(widget);
-            
-            slot.SetOwner(this);
-            
-            _slot.Add(slot);
-
-            if (Surface != null) widget.NotifyAddedToSurface(Surface);
-
-            OnChildResized(widget);
-            Console.WriteLine("Added child [{0}] to container [{1}]", widget.GetType().Name, GetType().Name);
-            return slot;
+            OnSlotUpdated(slot);
         }
     }
+    public virtual void OnSlotUpdated(Slot slot)
+    {
+        if (CheckSize()) ArrangeSlots(GetContentSize());
+    }
+
+    public Slot? AddChild(Widget widget) => AddChild(MakeSlot(widget));
     
     public Slot? AddChild(Slot slot)
     {
         lock (SlotsMutex)
         {
             var maxSlots = GetMaxSlots();
-            if (maxSlots > 0 && _slot.Count == maxSlots) return null;
+            if (maxSlots > 0 && _slots.Count == maxSlots) return null;
                 
             var widget = slot.GetWidget();
             
@@ -88,11 +73,14 @@ public abstract class Container : Widget
             
             slot.SetOwner(this);
             
-            _slot.Add(slot);
+            _slots.Add(slot);
+            _widgetSlotMap.TryAdd(widget,slot);
 
-            if (Surface != null) widget.NotifyAddedToSurface(Surface);
-
-            OnChildResized(widget);
+            if (Surface != null)
+            {
+                widget.NotifyAddedToSurface(Surface);
+                OnSlotUpdated(slot);
+            }
             Console.WriteLine("Added child [{0}] to container [{1}]", widget.GetType().Name, GetType().Name);
             return slot;
         }
@@ -102,17 +90,24 @@ public abstract class Container : Widget
     {
         lock (SlotsMutex)
         {
-            for (var i = 0; i < _slot.Count; i++)
+            for (var i = 0; i < _slots.Count; i++)
             {
-                if (_slot[i].GetWidget() != widget) continue;
+                if (_slots[i].GetWidget() != widget) continue;
 
                 widget.SetParent(null);
 
-                if (Surface != null) widget.NotifyRemovedFromSurface(Surface);
+                if (Surface != null)
+                {
+                    widget.NotifyRemovedFromSurface(Surface);
+                }
 
-                _slot.RemoveAt(i);
+                _slots.RemoveAt(i);
+                _widgetSlotMap.TryRemove(widget,out var _);
 
-                CheckSize();
+                if (Surface != null)
+                {
+                    CheckSize();
+                }
                 return true;
             }
 
@@ -124,7 +119,7 @@ public abstract class Container : Widget
     {
         lock (SlotsMutex)
         {
-            return idx < _slot.Count ? _slot[idx] : null;
+            return idx < _slots.Count ? _slots[idx] : null;
         }
     }
 
@@ -132,7 +127,7 @@ public abstract class Container : Widget
     {
         lock (SlotsMutex)
         {
-            return _slot.ToArray();
+            return _slots.ToArray();
         }
     }
 
@@ -140,7 +135,7 @@ public abstract class Container : Widget
     {
         lock (SlotsMutex)
         {
-            return _slot.Count;
+            return _slots.Count;
         }
     }
 
@@ -162,9 +157,9 @@ public abstract class Container : Widget
         var point = e.Position.Cast<float>();
         lock (SlotsMutex)
         {
-            foreach (var slot in _slot.AsReversed())
+            foreach (var slot in _slots.AsReversed())
             {
-                var slotInfo = ComputeChildTransform(slot, info);
+                var slotInfo = ComputeContentTransform(slot, info);
                 if (!slotInfo.PointWithin(point)) continue;
                 var res = slot.GetWidget().ReceiveCursorDown(e, slotInfo);
                 if (res != null) return res;
@@ -186,9 +181,9 @@ public abstract class Container : Widget
         var point = e.Position.Cast<float>();
         lock (SlotsMutex)
         {
-            foreach (var slot in _slot)
+            foreach (var slot in _slots)
             {
-                var slotInfo = ComputeChildTransform(slot, info);
+                var slotInfo = ComputeContentTransform(slot, info);
                 if (slotInfo.PointWithin(point))
                     slot.GetWidget().ReceiveCursorEnter(e, slotInfo, items);
             }
@@ -207,9 +202,9 @@ public abstract class Container : Widget
         var point = e.Position.Cast<float>();
         lock (SlotsMutex)
         {
-            foreach (var slot in _slot)
+            foreach (var slot in _slots)
             {
-                var slotInfo = ComputeChildTransform(slot, info);
+                var slotInfo = ComputeContentTransform(slot, info);
                 if (slotInfo.PointWithin(point) &&
                     slot.GetWidget().ReceiveCursorMove(e, slotInfo))
                     return true;
@@ -231,9 +226,9 @@ public abstract class Container : Widget
         var point = e.Position.Cast<float>();
         lock (SlotsMutex)
         {
-            foreach (var slot in _slot)
+            foreach (var slot in _slots)
             {
-                var slotInfo = ComputeChildTransform(slot, info);
+                var slotInfo = ComputeContentTransform(slot, info);
                 if (slotInfo.PointWithin(point) &&
                     slot.GetWidget().ReceiveScroll(e, slotInfo))
                     return true;
@@ -254,7 +249,7 @@ public abstract class Container : Widget
         base.NotifyAddedToSurface(surface);
         lock (SlotsMutex)
         {
-            foreach (var slot in _slot)
+            foreach (var slot in _slots)
                 slot.GetWidget().NotifyAddedToSurface(surface);
         }
     }
@@ -264,7 +259,7 @@ public abstract class Container : Widget
         base.NotifyRemovedFromSurface(surface);
         lock (SlotsMutex)
         {
-            foreach (var slot in _slot)
+            foreach (var slot in _slots)
                 slot.GetWidget().NotifyRemovedFromSurface(surface);
         }
     }
@@ -274,19 +269,23 @@ public abstract class Container : Widget
         base.OnDispose(isManual);
         lock (SlotsMutex)
         {
-            foreach (var slot in _slot) slot.GetWidget().Dispose();
+            foreach (var slot in _slots) slot.GetWidget().Dispose();
         }
     }
 
-    public TransformInfo ComputeChildTransform(Slot slot, TransformInfo info)
+    /// <summary>
+    /// Computes the transform info of content 
+    /// </summary>
+    /// <param name="slot">The content slot</param>
+    /// <param name="info">The Absolute Transform info of this widget</param>
+    /// <param name="withPadding">Should we also account for padding ? (should be true except when used in <see cref="CollectContent"/>)</param>
+    /// <returns>The Absolute Transform info of content</returns>
+    public TransformInfo ComputeContentTransform(Slot slot, TransformInfo info, bool withPadding = true)
     {
-        return ComputeChildTransform(slot.GetWidget(), info);
+        return OffsetTransformTo(slot.GetWidget(), info,withPadding);
     }
 
-    public virtual TransformInfo ComputeChildTransform(Widget widget, TransformInfo info)
-    {
-        return new TransformInfo(info.Transform.Translate(new Vector2<float>(Padding.Left,Padding.Top)) * widget.ComputeRelativeTransform(),widget.GetSize(),info.Depth + 1);
-    }
+    
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
@@ -295,7 +294,7 @@ public abstract class Container : Widget
             case ClipMode.None:
                 foreach (var slot in GetSlots())
                 {
-                    var newTransform = ComputeChildTransform(slot, info);
+                    var newTransform = ComputeContentTransform(slot, info,false);
                     var widget = slot.GetWidget();
                     widget.Collect(newTransform,drawCommands);
                 }
@@ -308,7 +307,7 @@ public abstract class Container : Widget
                 
                 foreach (var slot in GetSlots())
                 {
-                    var newTransform = ComputeChildTransform(slot, info);
+                    var newTransform = ComputeContentTransform(slot, info,false);
                     var slotAAR = newTransform.ToRect();
                     
                     if(!myAAR.IntersectsWith(slotAAR)) continue;

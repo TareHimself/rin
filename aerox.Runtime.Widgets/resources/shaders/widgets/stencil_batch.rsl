@@ -6,9 +6,13 @@ struct StencilClip
     float2 size;
 };
 
-layout(set = 0,binding = 0, scalar) uniform stencil_info {
+layout(buffer_reference, scalar) readonly buffer StencilBuffer {
+    StencilClip clips[];
+};
+
+push(scalar){
     mat4 projection;
-    StencilClip quads[12];
+    StencilBuffer batch;
 };
 
 @Vertex {
@@ -18,12 +22,9 @@ layout(set = 0,binding = 0, scalar) uniform stencil_info {
     {
         float2 dummyUV = float2(0.0);
 
-        int index = gl_VertexIndex;
-        int vertexIndex = int(mod(index, 6));
-        int quadIndex = int(floor(index / 6));
-        StencilClip renderInfo = stencil_info.quads[quadIndex];
-        generateRectVertex(renderInfo.size, stencil_info.projection, renderInfo.transform, vertexIndex, gl_Position, dummyUV);
-        oQuadIndex = quadIndex;
+        StencilClip quad = push.batch.clips[gl_InstanceIndex];
+        generateRectVertex(quad.size, push.projection, quad.transform, gl_VertexIndex, gl_Position, dummyUV);
+        oQuadIndex = gl_InstanceIndex;
     }
 }
 
@@ -32,11 +33,11 @@ layout(set = 0,binding = 0, scalar) uniform stencil_info {
     layout (location = 0) out float4 oColor;
 
     void main() {
-        StencilClip renderInfo = stencil_info.quads[iQuadIndex];
-        float4 result = applyBorderRadius(gl_FragCoord.xy,float4(float3(0.0),1.0), float4(0.0f), renderInfo.size, renderInfo.transform);
+        StencilClip renderInfo = push.batch.clips[iQuadIndex];
+        float4 result = applyBorderRadius(gl_FragCoord.xy,float4(float3(0.0),1.0), float4(0.0), renderInfo.size, renderInfo.transform);
         if(result.w > 0.5){
             discard;
         }
-        oColor = float4(0.0f);//float4(float3(result.w),1.0);
+        oColor = float4(float3(0.0),0.0);
     }
 }

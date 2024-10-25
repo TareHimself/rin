@@ -22,7 +22,7 @@ public class SSceneTestModule : RuntimeModule
 
         var surf = SWidgetsModule.Get().GetWindowSurface();
         
-        var text = new Text();
+        var text = new WText();
         
         var viewport = surf?.Add(new Viewport(scene,text));
         

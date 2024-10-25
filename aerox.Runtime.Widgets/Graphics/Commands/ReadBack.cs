@@ -10,7 +10,7 @@ public class ReadBack : UtilityCommand
 {
     // public override void Run(WidgetFrame frame)
     // {
-    //     if(frame.IsMainPassActive) frame.Surface.EndMainPass(frame);
+    //     if(frame.IsMainPassActive) frame.Surface.EndActivePass(frame);
     //     var drawImage = frame.Surface.GetDrawImage();
     //     var copyImage = frame.Surface.GetCopyImage();
     //     

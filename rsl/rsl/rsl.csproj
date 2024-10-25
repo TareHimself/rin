@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>TareHimself.aerox.rsl</PackageId>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Authors>TareHimself</Authors>
+        <Description>Shading Language For Aerox</Description>
+        <Version>2.1.0</Version>
+        <Title>rsl</Title>
+    </PropertyGroup>
+
+</Project>

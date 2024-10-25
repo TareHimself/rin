@@ -39,11 +39,5 @@ public static class GraphicsExtensions
                     }
                 }
             ]);
-        const VkStencilFaceFlags faceMask = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
-        vkCmdSetStencilTestEnable(cmd,1);
-        vkCmdSetStencilReference(cmd,faceMask,255);
-        vkCmdSetStencilWriteMask(cmd,faceMask,0x01);
-        vkCmdSetStencilOp(cmd,faceMask,VkStencilOp.VK_STENCIL_OP_KEEP,VkStencilOp.VK_STENCIL_OP_KEEP,VkStencilOp.VK_STENCIL_OP_KEEP,VkCompareOp.VK_COMPARE_OP_NEVER);
-        
     }
 }

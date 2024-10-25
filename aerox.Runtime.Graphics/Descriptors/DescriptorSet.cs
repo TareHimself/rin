@@ -148,14 +148,14 @@ public class DescriptorSet : Disposable
         return true;
     }
 
-    public bool WriteBuffer(uint binding, DeviceBuffer buffer, BufferType type, ulong offset = 0)
+    public bool WriteBuffer(uint binding, DeviceBuffer buffer, BufferType type, ulong offset = 0,ulong? size = null)
     {
         if (!SetResource(binding, [new Pair<MultiDisposable, string>(buffer,offset.ToString())])) return false;
         var descriptorInfo = new VkDescriptorBufferInfo
         {
             buffer = buffer.Buffer,
             offset = offset,
-            range = buffer.Size
+            range = size ?? buffer.Size
         };
         unsafe
         {

@@ -108,7 +108,7 @@ public partial class Allocator : Disposable
     public DeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true,
         string debugName = "Storage Buffer")
     {
-        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true, debugName);
     }
 

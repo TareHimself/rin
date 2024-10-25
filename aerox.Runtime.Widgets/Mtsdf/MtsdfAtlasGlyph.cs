@@ -1,11 +1,10 @@
-﻿namespace aerox.Runtime.Widgets.Mtsdf;
+﻿using aerox.Runtime.Math;
+
+namespace aerox.Runtime.Widgets.Mtsdf;
 
 public class MtsdfAtlasGlyph
 {
     public int Id;
     public int AtlasIdx;
-    public int X;
-    public int Y;
-    public int Width;
-    public int Height;
+    public Vector4<float> Coordinates = new(0.0f, 0.0f, 1.0f, 1.0f);
 }

@@ -1,4 +1,5 @@
 ﻿using aerox.Runtime;
+using aerox.Runtime.Graphics;
 using aerox.Runtime.Widgets;
 using aerox.Runtime.Widgets.Content;
 using aerox.Runtime.Widgets.Events;
@@ -9,23 +10,20 @@ using MathNet.Numerics;
 namespace AudioPlayer.Widgets;
 
 
-public class FpsWidget : Text
+public class FpsWidget : WText
 {
-    
-    public class CheckInfoCommand(FpsWidget widget) : UtilityCommand
+
+    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
-        public override void Run(WidgetFrame frame)
+        if (Surface is WindowSurface asWindowSurface)
         {
-            widget.Content = $"""
+            var renderer = asWindowSurface.GetRenderer();
+            Content = $"""
                        {(1.0 / SRuntime.Get().GetLastDeltaSeconds()).Round(2)} FPS
-                       {(frame.Raw.Renderer.LastFrameTime * 1000).Round(2)}ms
-                       {frame.DrawCommandList.Count - 1} commands
+                       {(renderer.LastFrameTime * 1000).Round(2)}ms
                        """;
         }
-    }
-    public override void Collect(WidgetFrame frame, TransformInfo info)
-    {
-        frame.AddCommands(new CheckInfoCommand(this));
-        base.Collect(frame, info);
+        
+        base.CollectContent(info, drawCommands);
     }
 }
