@@ -2,36 +2,20 @@
 using aerox.Runtime.Math;
 using aerox.Runtime.Widgets;
 using aerox.Runtime.Widgets.Containers;
+using aerox.Runtime.Widgets.Graphics;
 
 namespace AudioPlayer.Widgets;
 
-public class MainPanel : Panel
+public class MainPanel : WCPanel
 {
-    private bool _init = false;
-
-    protected readonly ScrollableList TrackPlayers = new ScrollableList()
+    private readonly WCScrollList _trackPlayers = new WCScrollList()
     {
-        Direction = List.Axis.Vertical
+        Direction = WCList.Axis.Vertical
     };
 
     public MainPanel()
     {
-        var filePicker = new FilePicker();
-        var filePickerSlot = AddChild(new PanelSlot(filePicker)
-        {
-            MaxAnchor = 0.5f,
-            MinAnchor = 0.5f,
-            Alignment = 0.5f,
-            SizeToContent = true
-        });
-
-        filePicker.OnFileSelected += s =>
-        {
-            if (s.Length == 0) return;
-            OnFileSelected(s);
-        };
-
-        AddChild(new PanelSlot(TrackPlayers)
+        AddChild(new PanelSlot(_trackPlayers)
         {
             SizeToContent = true,
             MinAnchor = 0.0f,
@@ -48,6 +32,21 @@ public class MainPanel : Panel
             MaxAnchor = new Vector2<float>(1.0f, 0.0f),
             Alignment = new Vector2<float>(1.0f, 0.0f)
         });
+        
+        var filePicker = new FilePicker();
+        AddChild(new PanelSlot(filePicker)
+        {
+            MaxAnchor = 0.5f,
+            MinAnchor = 0.5f,
+            Alignment = 0.5f,
+            SizeToContent = true
+        });
+
+        filePicker.OnFileSelected += s =>
+        {
+            if (s.Length == 0) return;
+            OnFileSelected(s);
+        };
     }
 
     public override void OnSlotUpdated(Slot slot)
@@ -55,17 +54,27 @@ public class MainPanel : Panel
         base.OnSlotUpdated(slot);
     }
 
-    protected void OnFileSelected(string[] files)
+    private void OnFileSelected(string[] files)
     {
         foreach (var file in files)
         {
             var player = new TrackPlayerWidget(Path.GetFileNameWithoutExtension(file), AudioStream.FromFile(file));
-            TrackPlayers.AddChild(player);
+            _trackPlayers.AddChild(player);
         }
     }
 
     protected override void OnDispose(bool isManual)
     {
         base.OnDispose(isManual);
+    }
+
+    protected override void OnAddedToSurface(Surface surface)
+    {
+        base.OnAddedToSurface(surface);
+    }
+
+    public override void SetSize(Size2d size)
+    {
+        base.SetSize(size);
     }
 }

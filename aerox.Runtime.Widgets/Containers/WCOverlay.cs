@@ -7,18 +7,18 @@ namespace aerox.Runtime.Widgets.Containers;
 /// <summary>
 ///     A container that draws children on top of each other
 /// </summary>
-public class Overlay : Container
+public class WCOverlay : Container
 {
-    public Overlay() : base()
+    public WCOverlay() : base()
     {
         
     }
-    public Overlay(IEnumerable<Widget> children) : base(children)
+    public WCOverlay(IEnumerable<Widget> children) : base(children)
     {
     }
 
 
-    protected override Size2d ComputeContentDesiredSize()
+    protected override Size2d ComputeDesiredContentSize()
     {
         return GetSlots().Aggregate(new Size2d(), (size, slot) =>
         {

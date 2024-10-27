@@ -55,7 +55,7 @@ public abstract class Container : Widget
     }
     public virtual void OnSlotUpdated(Slot slot)
     {
-        if (CheckSize()) ArrangeSlots(GetContentSize());
+        if (TryUpdateDesiredSize()) ArrangeSlots(GetContentSize());
     }
 
     public Slot? AddChild(Widget widget) => AddChild(MakeSlot(widget));
@@ -106,7 +106,7 @@ public abstract class Container : Widget
 
                 if (Surface != null)
                 {
-                    CheckSize();
+                    TryUpdateDesiredSize();
                 }
                 return true;
             }

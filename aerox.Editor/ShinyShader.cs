@@ -35,7 +35,7 @@ public class ShinyShader : Widget
         base.OnRemovedFromSurface(surface);
     }
 
-    protected override Size2d ComputeDesiredSize()
+    protected override Size2d ComputeDesiredContentSize()
     {
         return new Size2d(400, 400);
     }

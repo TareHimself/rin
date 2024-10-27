@@ -24,7 +24,7 @@ public class AnimationSequence(params AnimationAction[] animations) : AnimationA
                 return t;
             }));
 
-    protected override bool DoApply(AnimationState state,float current)
+    protected override bool ApplyAction(AnimationState state,float current)
     {
         var myState = (State)state;
         

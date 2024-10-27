@@ -5,7 +5,7 @@ namespace aerox.Runtime.Widgets.Containers;
 /// <summary>
 ///     A container that draws children left to right
 /// </summary>
-public class List(IEnumerable<Widget> children) : Container(children)
+public class WCList(IEnumerable<Widget> children) : Container(children)
 {
     public enum Axis
     {
@@ -27,10 +27,10 @@ public class List(IEnumerable<Widget> children) : Container(children)
 
     protected virtual void OnDirectionChanged()
     {
-        CheckSize();
+        TryUpdateDesiredSize();
     }
 
-    protected override Size2d ComputeContentDesiredSize()
+    protected override Size2d ComputeDesiredContentSize()
     {
         return _direction switch
         {
@@ -55,10 +55,12 @@ public class List(IEnumerable<Widget> children) : Container(children)
 
     protected override void ArrangeSlots(Size2d drawSize)
     {
+        var offset = new Vector2<float>(0.0f);
         switch (_direction)
         {
             case Axis.Horizontal:
-                GetSlots().Aggregate(new Vector2<float>(0, 0), (offset, slot) =>
+            {
+                foreach (var slot in GetSlots())
                 {
                     var widget = slot.GetWidget();
                     var widgetSize = widget.GetDesiredSize();
@@ -69,26 +71,34 @@ public class List(IEnumerable<Widget> children) : Container(children)
                         Height = widgetSize.Height
                     });
                     offset.X += widgetSize.Width;
-                    return offset;
-                });
+                }
                 break;
+            }
             case Axis.Vertical:
-                GetSlots().Aggregate(new Vector2<float>(0, 0), (offset, slot) =>
+                
                 {
-                    var widget = slot.GetWidget();
-                    widget.SetOffset(offset.Clone());
-                    var widgetSize = widget.GetDesiredSize();
-                    widget.SetSize(new Size2d
+                    foreach (var slot in GetSlots())
                     {
-                        Height = widgetSize.Height,
-                        Width = widgetSize.Width
-                    });
-                    offset.Y += widgetSize.Height;
-                    return offset;
-                });
+                        var widget = slot.GetWidget();
+                        widget.SetOffset(offset.Clone());
+                        var widgetSize = widget.GetDesiredSize();
+                        widget.SetSize(new Size2d
+                        {
+                            Height = widgetSize.Height,
+                            Width = widgetSize.Width
+                        });
+                        offset.Y += widgetSize.Height;
+                    }
+                }
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
+    }
+
+    public override void OnSlotUpdated(Slot slot)
+    {
+        TryUpdateDesiredSize();
+        ArrangeSlots(GetContentSize());
     }
 }

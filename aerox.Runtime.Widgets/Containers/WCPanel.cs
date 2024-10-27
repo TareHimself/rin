@@ -3,7 +3,7 @@
 namespace aerox.Runtime.Widgets.Containers;
 
 /// <summary>
-///     Describes how a <see cref="Widget" /> will be sized and positioned in a <see cref="Panel" />. Supports Anchors
+///     Describes how a <see cref="Widget" /> will be sized and positioned in a <see cref="WCPanel" />. Supports Anchors
 /// </summary>
 public class PanelSlot : Slot
 {
@@ -14,9 +14,9 @@ public class PanelSlot : Slot
     public Size2d Size = new();
 
     /// <summary>
-    ///     Describes how a <see cref="Widget" /> will be sized and positioned in a <see cref="Panel" />. Supports Anchors
+    ///     Describes how a <see cref="Widget" /> will be sized and positioned in a <see cref="WCPanel" />. Supports Anchors
     /// </summary>
-    public PanelSlot(Widget widget,Panel? panel = null) : base(widget,panel)
+    public PanelSlot(Widget widget,WCPanel? panel = null) : base(widget,panel)
     {
     }
 
@@ -34,9 +34,9 @@ public class PanelSlot : Slot
 ///     A container that draws children based on the settings provided in <see cref="PanelSlot" /> . Intended use is for
 ///     dock-able layouts or as a root for a collection of widgets
 /// </summary>
-public class Panel : Container
+public class WCPanel : Container
 {
-    public Panel(params Widget[] children) : base(children)
+    public WCPanel(params Widget[] children) : base(children)
     {
     }
     
@@ -104,12 +104,8 @@ public class Panel : Container
         }
     }
 
-    public override uint GetMaxSlots()
-    {
-        return 0;
-    }
-
-    protected override Size2d ComputeContentDesiredSize()
+    
+    protected override Size2d ComputeDesiredContentSize()
     {
         return new Size2d();
     }

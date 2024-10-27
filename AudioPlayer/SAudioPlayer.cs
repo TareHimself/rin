@@ -18,8 +18,8 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
-        SAudioModule.Get().SetVolume(50);
-        SWindowsModule.Get().CreateWindow(500, 500, "Audio Player");
+        SAudioModule.Get().SetVolume(0.1f);
+        SWindowsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
         Backgrounds();
         var surf = SWidgetsModule.Get().GetWindowSurface();
         if(surf == null) return;
@@ -32,9 +32,9 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
 
         if (surf == null) return;
 
-        var panel = surf.Add(new Panel());
+        var panel = surf.Add(new WCPanel());
 
-        var switcher = new Switcher();
+        var switcher = new WCSwitcher();
         panel.AddChild(
             new PanelSlot(switcher)
             {
@@ -76,7 +76,7 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
-                    switcher.AddChild(new Fitter(new AsyncFileImage(path))
+                    switcher.AddChild(new WCFitter(new AsyncFileImage(path))
                     {
                         FittingMode = FitMode.Cover
                     });

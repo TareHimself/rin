@@ -9,7 +9,7 @@ public class DescriptorAllocator : Disposable
     private readonly HashSet<DescriptorPool> _fullPools = [];
     private readonly HashSet<DescriptorPool> _readyPools = [];
     private readonly PoolSizeRatio[] _ratios;
-    private VkDescriptorPoolCreateFlags _poolCreateFlags;
+    private readonly VkDescriptorPoolCreateFlags _poolCreateFlags;
     private uint _setsPerPool;
 
     public DescriptorAllocator(uint maxSets, PoolSizeRatio[] poolRatios,VkDescriptorPoolCreateFlags poolCreateFlags = 0)

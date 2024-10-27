@@ -26,7 +26,7 @@ public class SSceneTestModule : RuntimeModule
         
         var viewport = surf?.Add(new Viewport(scene,text));
         
-        var panel = surf?.Add(new Panel());
+        var panel = surf?.Add(new WCPanel());
         
         var textSlot = panel?.AddChild(text);
         

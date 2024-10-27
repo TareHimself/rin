@@ -1,4 +1,6 @@
-﻿namespace aerox.Runtime.Extensions;
+﻿using System.Runtime.CompilerServices;
+
+namespace aerox.Runtime.Extensions;
 
 public static class TaskExtensions
 {
@@ -24,6 +26,10 @@ public static class TaskExtensions
         await task;
         then();
     }
+
+    public static ConfiguredTaskAwaitable After<T>(this Task<T> task, Action<T> then) => task.Then(then).ConfigureAwait(false);
+    
+    public static ConfiguredTaskAwaitable After(this Task task, Action then) => task.Then(then).ConfigureAwait(false);
 
     public static T WaitForResult<T>(this Task<T> task)
     {

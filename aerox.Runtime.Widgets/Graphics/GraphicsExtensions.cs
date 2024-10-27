@@ -14,6 +14,7 @@ public static class GraphicsExtensions
         cmd
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
+            .SetVertexInput([],[])
             .DisableCulling()
             .DisableDepthTest()
             .EnableBlendingAlphaBlend(0, 1)

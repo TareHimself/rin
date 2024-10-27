@@ -46,13 +46,11 @@ public class WText : Widget
         var gs = SGraphicsModule.Get();
         _content = inContent;
         _cachedDraw = null;
-        SWidgetsModule.Get().GetOrCreateFont(fontFamily).Then(msdf =>
+        SWidgetsModule.Get().GetOrCreateFont(fontFamily).After(msdf =>
         {
             _mtsdf = msdf;
             
             MakeNewFont();
-            
-            return Task.CompletedTask;
         });
     }
 
@@ -83,7 +81,7 @@ public class WText : Widget
             {
                 _cachedDraw = null;
             }
-            CheckSize();
+            TryUpdateDesiredSize();
         }
     }
 
@@ -98,10 +96,10 @@ public class WText : Widget
     private void MakeNewFont()
     {
         _latestFont = _mtsdf?.GetFontFamily().CreateFont(FontSize, FontStyle.Regular);
-        CheckSize();
+        TryUpdateDesiredSize();
     }
 
-    public void GetContentBounds(out ReadOnlySpan<GlyphBounds> bounds)
+    protected void GetContentBounds(out ReadOnlySpan<GlyphBounds> bounds)
     {
         if (_latestFont == null)
         {
@@ -113,7 +111,7 @@ public class WText : Widget
         bounds = tempBounds;
     }
 
-    protected override Size2d ComputeContentDesiredSize()
+    protected override Size2d ComputeDesiredContentSize()
     {
         if (_latestFont == null) return new Size2d();
         var opts = new TextOptions(_latestFont);
@@ -129,8 +127,8 @@ public class WText : Widget
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
         if (!ShouldDraw) return;
-        // if (_cachedDraw == null)
-        // {
+        if (_cachedDraw == null)
+        {
             GetContentBounds(out var bounds);
             List<Quad> quadList = [];
             foreach (var bound in bounds)
@@ -166,17 +164,17 @@ public class WText : Widget
                   Mode = c.Mode
                 })));
             }   
-        // }
-        // else
-        // {
-        //     drawCommands.Add(new QuadDrawCommand(_cachedDraw.Select(c => new Quad(c.Size,info.Transform * c.Transform)
-        //     {
-        //         TextureId  = c.TextureId,
-        //         Color = c.Color,
-        //         UV = c.UV,
-        //         Mode = c.Mode
-        //     })));
-        // }
+        }
+        else
+        {
+            drawCommands.Add(new QuadDrawCommand(_cachedDraw.Select(c => new Quad(c.Size,info.Transform * c.Transform)
+            {
+                TextureId  = c.TextureId,
+                Color = c.Color,
+                UV = c.UV,
+                Mode = c.Mode
+            })));
+        }
     }
 
     public override void SetSize(Size2d size)

@@ -41,10 +41,16 @@ public static class MathUtils
     {
         var dist = target - current;
         var delta = speed * deltaTime;
-
+        if (System.Math.Abs(delta) > System.Math.Abs(dist)) return target;
         if (dist < 0) delta *= -1.0f;
 
         return current + delta;
+    }
+    
+    public static Vector2<float> InterpolateTo(Vector2<float> begin, Vector2<float> end, float deltaTime, float speed)
+    {
+        return new Vector2<float>(InterpolateTo(begin.X, end.X, deltaTime, speed),
+            InterpolateTo(begin.Y, end.Y, deltaTime, speed));
     }
 
     /// <summary>

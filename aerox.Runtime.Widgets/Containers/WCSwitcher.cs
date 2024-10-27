@@ -1,14 +1,14 @@
 ﻿namespace aerox.Runtime.Widgets.Containers;
 
-public class Switcher : Container
+public class WCSwitcher : Container
 {
     private int _selected;
 
-    public Switcher(IEnumerable<Widget> widgets) : base(widgets)
+    public WCSwitcher(IEnumerable<Widget> widgets) : base(widgets)
     {
     }
     
-    public Switcher()
+    public WCSwitcher()
     {
     }
 
@@ -28,11 +28,11 @@ public class Switcher : Container
 
     public void SelectedWidgetUpdated()
     {
-        CheckSize();
+        TryUpdateDesiredSize();
         ArrangeSlots(GetContentSize());
     }
 
-    protected override Size2d ComputeContentDesiredSize()
+    protected override Size2d ComputeDesiredContentSize()
     {
         return SelectedWidget?.GetDesiredSize() ?? new Size2d();
     }

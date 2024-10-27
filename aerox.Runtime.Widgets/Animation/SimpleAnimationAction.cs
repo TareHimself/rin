@@ -2,5 +2,5 @@
 
 public class SimpleAnimationAction(Func<AnimationState,float,bool> apply) : AnimationAction
 {
-    protected override bool DoApply(AnimationState state,float current) => apply(state,current);
+    protected override bool ApplyAction(AnimationState state,float current) => apply(state,current);
 }

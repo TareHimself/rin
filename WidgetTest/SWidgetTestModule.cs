@@ -16,9 +16,9 @@ public class SWidgetTestModule : RuntimeModule
 
         if (surf == null) return;
 
-        var panel = surf.Add(new Panel());
+        var panel = surf.Add(new WCPanel());
 
-        var switcher = new Switcher();
+        var switcher = new WCSwitcher();
         
         var imageSlot = (PanelSlot?)panel.AddChild(
             new PanelSlot(switcher)
@@ -48,7 +48,7 @@ public class SWidgetTestModule : RuntimeModule
             MaxAnchor = 0f
         });
 
-        var textInputSlot = panel.AddChild(new PanelSlot(new Sizer(new WTextBox("Example Text",100))
+        var textInputSlot = panel.AddChild(new PanelSlot(new WCSizer(new WTextBox("Example Text",100))
         {
             WidthOverride = 500
         })
@@ -89,7 +89,7 @@ public class SWidgetTestModule : RuntimeModule
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
-                    switcher.AddChild(new Fitter(new AsyncFileImage(path))
+                    switcher.AddChild(new WCFitter(new AsyncFileImage(path))
                     {
                         FittingMode = FitMode.Cover
                     });
@@ -104,9 +104,9 @@ public class SWidgetTestModule : RuntimeModule
 
         if (surf == null) return;
 
-        var panel = surf.Add(new Panel());
+        var panel = surf.Add(new WCPanel());
 
-        var sizer = new Sizer(new Sizer(new Fitter(new AsyncFileImage(""))
+        var sizer = new WCSizer(new WCSizer(new WCFitter(new AsyncFileImage(""))
         {
             FittingMode = FitMode.Cover
         })
@@ -130,7 +130,7 @@ public class SWidgetTestModule : RuntimeModule
 
         if (surf == null) return;
 
-        var panel = surf.Add(new Panel());
+        var panel = surf.Add(new WCPanel());
 
        
         var textSlot = panel.AddChild(new PanelSlot(new WText("Test Text", 40))

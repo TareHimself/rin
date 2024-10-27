@@ -12,7 +12,7 @@ public abstract class AnimationAction
     {
         if (state.Active)
         {
-            if (!DoApply(state,current))
+            if (!ApplyAction(state,current))
             {
                 OnEnd(state);
                 return false;
@@ -34,7 +34,7 @@ public abstract class AnimationAction
     /// <param name="start"></param>
     /// <param name="current"></param>
     /// <returns></returns>
-    protected abstract bool DoApply(AnimationState state,float current);
+    protected abstract bool ApplyAction(AnimationState state,float current);
 
     protected virtual void OnEnd(AnimationState state)
     {

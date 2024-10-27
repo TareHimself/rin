@@ -61,23 +61,23 @@ public class Viewport : Widget
 {
     public readonly Scene TargetScene;
     public EViewportChannel Channel = EViewportChannel.Scene;
-    public WText ModeWText;
+    public WText ModeText;
     private bool _ignoreNextMove = false;
     private Vector2<float> _mousePosition = 0.0f;
     private bool _captureMouse = false;
 
     public Vector2<float> AbsoluteCenter =>
         ((Vector2<float>)GetContentSize() / 2.0f).ApplyTransformation(ComputeAbsoluteTransform());
-    public Viewport(Scene scene,WText modeWText)
+    public Viewport(Scene scene,WText modeText)
     {
         TargetScene = scene;
-        ModeWText = modeWText;
+        ModeText = modeText;
         UpdateModeText();
     }
 
     public void UpdateModeText()
     {
-        ModeWText.Content = Channel switch
+        ModeText.Content = Channel switch
         {
             EViewportChannel.Scene => "Default",
             EViewportChannel.Color => "Color",
@@ -89,7 +89,7 @@ public class Viewport : Widget
         };
     }
 
-    protected override Size2d ComputeDesiredSize() => new Size2d();
+    protected override Size2d ComputeDesiredContentSize() => new Size2d();
 
     public override void Collect(WidgetFrame frame, TransformInfo info)
     {

@@ -10,15 +10,15 @@ public enum FitMode
     None
 }
 
-public class Fitter : Container
+public class WCFitter : Container
 {
     private FitMode _fitFittingMode = FitMode.Fill;
 
-    public Fitter()
+    public WCFitter()
     {
         //Clip = ClipMode.Bounds;
     }
-    public Fitter(Widget widget) : base([widget])
+    public WCFitter(Widget widget) : base([widget])
     {
         //Clip = ClipMode.Bounds;
     }
@@ -32,13 +32,13 @@ public class Fitter : Container
             _fitFittingMode = value;
             if (_fitFittingMode != old)
             {
-                CheckSize();
+                TryUpdateDesiredSize();
                 SizeContent(GetContentSize());
             }
         }
     }
 
-    protected override Size2d ComputeContentDesiredSize()
+    protected override Size2d ComputeDesiredContentSize()
     {
         if (GetSlot(0) is { } slot)
         {

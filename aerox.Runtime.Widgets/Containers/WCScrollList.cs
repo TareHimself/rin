@@ -4,7 +4,7 @@ using aerox.Runtime.Widgets.Graphics;
 
 namespace aerox.Runtime.Widgets.Containers;
 
-public class ScrollableList : List
+public class WCScrollList : WCList
 {
     private float _offset;
 
@@ -12,17 +12,17 @@ public class ScrollableList : List
     //private float mouseDownOffset;
     //private Vector2<float> MouseDownPos = new(0.0f);
 
-    public ScrollableList(IEnumerable<Widget> children) : base(children)
+    public WCScrollList(IEnumerable<Widget> children) : base(children)
     {
         //Clip = ClipMode.Bounds;
     }
 
-    public ScrollableList() : base([])
+    public WCScrollList() : base([])
     {
         
     }
 
-    public float ScrollScale { get; set; } = 4.0f;
+    public float ScrollScale { get; set; } = 10.0f;
     
     public override uint GetMaxSlots()
     {
@@ -148,15 +148,12 @@ public class ScrollableList : List
 
     public override TransformInfo OffsetTransformTo(Widget widget, TransformInfo info, bool withPadding = true)
     {
-        var transform = base.OffsetTransformTo(widget, info,withPadding);
-        transform.Transform = Direction switch
+        return base.OffsetTransformTo(widget, new TransformInfo(Direction switch
         {
             Axis.Horizontal => info.Transform.Translate(new Vector2<float>(-GetScroll(), 0.0f)),
             Axis.Vertical => info.Transform.Translate(new Vector2<float>(0.0f, -GetScroll())),
             _ => throw new ArgumentOutOfRangeException()
-        };
-
-        return transform;
+        }, info.Size, info.Depth),withPadding);
     }
 
     // protected override bool OnCursorDown(CursorDownEvent e)

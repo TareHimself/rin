@@ -6,26 +6,16 @@ using aerox.Runtime.Widgets.Graphics.Quads;
 
 namespace aerox.Runtime.Widgets.Content;
 
-[StructLayout(LayoutKind.Sequential)]
-internal struct ImageOptionsDeviceBuffer
-{
-    public Vector4<float> Tint;
-    public int HasTexture;
-    public Vector4<float> BorderRadius;
-}
-
 /// <summary>
 ///     Draw's a <see cref="Texture" /> if provided or a colored rectangle. Supports tint.
 /// </summary>
-public class Image : Widget
+public class WImage : Widget
 {
 
-    private int _textureId;
+    private int _textureId = -1;
 
-    public Image()
+    public WImage()
     {
-        _textureId = -1;
-        Tint = new Color(1.0f);
     }
 
     public int TextureId
@@ -34,11 +24,11 @@ public class Image : Widget
         set
         {
             _textureId = value;
-            CheckSize();
+            TryUpdateDesiredSize();
         }
     }
 
-    public Color Tint { get; set; }
+    public Color Tint { get; set; } = new Color(1.0f);
 
     public Vector4<float> BorderRadius { get; set; } = new(0.0f);
 
@@ -47,7 +37,7 @@ public class Image : Widget
         base.OnDispose(isManual);
     }
     
-    protected override Size2d ComputeContentDesiredSize()
+    protected override Size2d ComputeDesiredContentSize()
     {
         if (SGraphicsModule.Get().GetResourceManager()
                 .GetTextureImage(TextureId) is { } texture)
@@ -74,7 +64,9 @@ public class Image : Widget
         {
             drawCommands.Add(new QuadDrawCommand([new Quad(GetContentSize(), info.Transform)
             {
-                TextureId = TextureId
+                TextureId = TextureId,
+                Color = Tint,
+                BorderRadius = BorderRadius
             }]));
         }
     }

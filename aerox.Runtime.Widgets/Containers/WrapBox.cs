@@ -11,7 +11,7 @@ public class WrapBox : Container
     {
     }
 
-    protected override Size2d ComputeContentDesiredSize()
+    protected override Size2d ComputeDesiredContentSize()
     {
         return GetSlots().Aggregate(new Size2d(), (size, slot) =>
         {

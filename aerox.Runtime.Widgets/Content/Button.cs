@@ -16,7 +16,7 @@ public class Button : Container
         
     }
 
-    protected override Size2d ComputeContentDesiredSize()
+    protected override Size2d ComputeDesiredContentSize()
     {
         if (GetSlot(0) is { } slot)
         {

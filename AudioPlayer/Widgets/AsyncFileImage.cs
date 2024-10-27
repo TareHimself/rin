@@ -10,7 +10,7 @@ using TerraFX.Interop.Vulkan;
 
 namespace AudioPlayer.Widgets;
 
-public class AsyncFileImage : Image
+public class AsyncFileImage : WImage
 {
     private float _alpha = 0.0f;
     private float _alphaTarget;

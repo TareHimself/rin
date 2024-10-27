@@ -2,16 +2,16 @@
 
 namespace aerox.Runtime.Widgets.Containers;
 
-public class Sizer : Container
+public class WCSizer : Container
 {
     private float? _heightOverride;
     private float? _widthOverride;
 
-    public Sizer(Widget child) : base([child])
+    public WCSizer(Widget child) : base([child])
     {
     }
 
-    public Sizer()
+    public WCSizer()
     {
     }
 
@@ -21,7 +21,7 @@ public class Sizer : Container
         set
         {
             _widthOverride = value;
-            CheckSize();
+            TryUpdateDesiredSize();
         }
     }
 
@@ -31,11 +31,11 @@ public class Sizer : Container
         set
         {
             _heightOverride = value;
-            CheckSize();
+            TryUpdateDesiredSize();
         }
     }
 
-    protected override Size2d ComputeContentDesiredSize()
+    protected override Size2d ComputeDesiredContentSize()
     {
         if (GetSlot(0) is { } slot)
         {

@@ -25,7 +25,7 @@ public abstract class Widget : Disposable
     private Size2d? _cachedDesiredSize;
 
     private Surface? _cursorUpRoot;
-    private Vector2<float> _relativeOffset = 0.0f;
+    private Vector2<float> _offset = 0.0f;
     private Size2d _size = new();
     private SWidgetsModule _subsystem = SRuntime.Get().GetModule<SWidgetsModule>();
 
@@ -63,7 +63,7 @@ public abstract class Widget : Disposable
         set
         {
             _padding = value;
-            CheckSize();
+            TryUpdateDesiredSize();
         }
     }
 
@@ -97,12 +97,12 @@ public abstract class Widget : Disposable
 
     public Rect GetRect()
     {
-        return new Rect(_relativeOffset, _size);
+        return new Rect(_offset, _size);
     }
 
     public Rect GetRect(Vector2<float> offset)
     {
-        return new Rect(offset + _relativeOffset, _size);
+        return new Rect(offset + _offset, _size);
     }
 
     public void SetParent(Container? widget)
@@ -252,12 +252,12 @@ public abstract class Widget : Disposable
 
     public Vector2<float> GetOffset()
     {
-        return _relativeOffset;
+        return _offset;
     }
 
     public void SetOffset(Vector2<float> offset)
     {
-        _relativeOffset = offset;
+        _offset = offset;
     }
 
     public Size2d GetContentSize()
@@ -277,30 +277,32 @@ public abstract class Widget : Disposable
 
     public Size2d GetDesiredSize()
     {
-        return _cachedDesiredSize ??= ComputeFinalDesiredSize();
+        return _cachedDesiredSize ??= ComputeDesiredSize();
     }
     
     public Size2d GetDesiredContentSize()
     {
         return GetDesiredSize() - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
-
-    protected virtual Size2d ComputeDesiredSize() => ComputeContentDesiredSize() +
-                                                     new Vector2<float>(Padding.Left + Padding.Right,
-                                                         Padding.Top + Padding.Bottom);
     
-    protected abstract Size2d ComputeContentDesiredSize();
+    protected abstract Size2d ComputeDesiredContentSize();
 
-    private Size2d ComputeFinalDesiredSize() =>
-        ComputeDesiredSize() + new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+    private Size2d ComputeDesiredSize() =>
+        ComputeDesiredContentSize() + new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
 
-    protected virtual bool CheckSize()
+    
+    /// <summary>
+    /// Attempts to update the desired size of this widget, will inform the parent container if successful
+    /// </summary>
+    /// <returns>true if the desired size was changed</returns>
+    protected virtual bool TryUpdateDesiredSize()
     {
-        var newSize = ComputeFinalDesiredSize();
+        var newSize = ComputeDesiredSize();
 
         if (newSize.Equals(_cachedDesiredSize)) return false;
 
         _cachedDesiredSize = newSize;
+        
         Parent?.OnSlotUpdated(this);
 
         return true;
@@ -321,8 +323,13 @@ public abstract class Widget : Disposable
         
         return new TransformInfo(newTransform * widget.ComputeRelativeTransform(),widget.GetSize(),info.Depth + 1);
     }
-
-
+    
+    
+    /// <summary>
+    /// Collect draw commands from this widget
+    /// </summary>
+    /// <param name="info"></param>
+    /// <param name="drawCommands"></param>
     public virtual void Collect(TransformInfo info,DrawCommands drawCommands)
     {
         if (Visibility is WidgetVisibility.Hidden or WidgetVisibility.Collapsed)
@@ -333,5 +340,10 @@ public abstract class Widget : Disposable
         CollectContent(new TransformInfo(info.Transform.Translate(new Vector2<float>(Padding.Left,Padding.Top)),GetContentSize(),info.Depth),drawCommands);
     }
     
+    /// <summary>
+    /// Collect Draw commands from this widget while accounting for padding offsets
+    /// </summary>
+    /// <param name="info"></param>
+    /// <param name="drawCommands"></param>
     public abstract void CollectContent(TransformInfo info,DrawCommands drawCommands);
 }

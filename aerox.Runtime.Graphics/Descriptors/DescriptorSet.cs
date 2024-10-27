@@ -5,21 +5,9 @@ namespace aerox.Runtime.Graphics.Descriptors;
 
 public class DescriptorSet : Disposable
 {
-    public enum BufferType
-    {
-        Uniform,
-        Storage
-    }
-
-    public enum ImageType
-    {
-        Texture,
-        Storage
-    }
-
     private readonly VkDescriptorSet _descriptorSet;
     private readonly VkDevice _device;
-    private readonly Dictionary<uint, Resource> _resources = new();
+    private readonly Dictionary<uint, Resource> _resources = [];
 
 
     public DescriptorSet(VkDevice device, VkDescriptorSet descriptorSet)
@@ -86,45 +74,15 @@ public class DescriptorSet : Disposable
         return true;
     }
 
-    public bool WriteImage(uint binding, DeviceImage image, VkImageLayout layout, ImageType type, VkSampler sampler)
+    public bool WriteImages(uint binding, params ImageWrite[] writes)
     {
-        if (!SetResource(binding, [image])) return false;
+        if (!SetResource(binding,writes.Select(c => c.Image))) return false;
         
-        var descriptorImageInfo = new VkDescriptorImageInfo
+        var infos = writes.Select(image => new VkDescriptorImageInfo
         {
-            sampler = sampler,
-            imageView = image.View,
-            imageLayout = layout
-        };
-        unsafe
-        {
-            var write = new VkWriteDescriptorSet
-            {
-                sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                descriptorType = ImageTypeToDescriptorType(type),
-                dstBinding = binding,
-                pImageInfo = &descriptorImageInfo,
-                descriptorCount = 1,
-                dstSet = _descriptorSet
-            };
-
-            vkUpdateDescriptorSets(_device, 1, &write, 0, null);
-            
-        }
-
-        return true;
-    }
-
-    public bool WriteImages(uint binding, DeviceImage[] images, VkImageLayout layout, ImageType type,
-        VkSampler sampler)
-    {
-        if (!SetResource(binding, images)) return false;
-        
-        var infos = images.Select(image => new VkDescriptorImageInfo
-        {
-            sampler = sampler,
-            imageView = image.View,
-            imageLayout = layout
+            sampler = SGraphicsModule.Get().GetSampler(image.Sampler),
+            imageView = image.Image.View,
+            imageLayout = image.Layout
         }).ToArray();
         
         unsafe
@@ -134,7 +92,7 @@ public class DescriptorSet : Disposable
                 var write = new VkWriteDescriptorSet
                 {
                     sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    descriptorType = ImageTypeToDescriptorType(type),
+                    descriptorType = ImageTypeToDescriptorType(writes.First().Type),
                     dstBinding = binding,
                     pImageInfo = pInfos,
                     descriptorCount = (uint)infos.Length,
@@ -148,42 +106,15 @@ public class DescriptorSet : Disposable
         return true;
     }
 
-    public bool WriteBuffer(uint binding, DeviceBuffer buffer, BufferType type, ulong offset = 0,ulong? size = null)
+    public bool WriteBuffers(uint binding, params BufferWrite[] writes)
     {
-        if (!SetResource(binding, [new Pair<MultiDisposable, string>(buffer,offset.ToString())])) return false;
-        var descriptorInfo = new VkDescriptorBufferInfo
+        if (!SetResource(binding, writes.Select(c => c.Buffer))) return false;
+        
+        var infos = writes.Select(buffer => new VkDescriptorBufferInfo
         {
             buffer = buffer.Buffer,
-            offset = offset,
-            range = size ?? buffer.Size
-        };
-        unsafe
-        {
-            var write = new VkWriteDescriptorSet
-            {
-                sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                descriptorType = BufferTypeToDescriptorType(type),
-                dstBinding = binding,
-                pBufferInfo = &descriptorInfo,
-                descriptorCount = 1,
-                dstSet = _descriptorSet
-            };
-
-            vkUpdateDescriptorSets(_device, 1, &write, 0, null);
-        }
-
-        return true;
-    }
-
-    public bool WriteBuffers(uint binding, Pair<DeviceBuffer, ulong?>[] buffers, BufferType type)
-    {
-        if (!SetResource(binding, buffers.Select(b => new Pair<MultiDisposable, string>(b.First,b.Second.ToString() ?? "0")))) return false;
-        
-        var infos = buffers.Select(buffer => new VkDescriptorBufferInfo
-        {
-            buffer = buffer.First.Buffer,
-            offset = buffer.Second ?? 0,
-            range = buffer.First.Size
+            offset = buffer.Offset,
+            range = buffer.Size
         }).ToArray();
         
         unsafe
@@ -193,7 +124,7 @@ public class DescriptorSet : Disposable
                 var write = new VkWriteDescriptorSet
                 {
                     sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    descriptorType = BufferTypeToDescriptorType(type),
+                    descriptorType = BufferTypeToDescriptorType(writes.First().Type),
                     dstBinding = binding,
                     pBufferInfo = pInfos,
                     descriptorCount = (uint)infos.Length,
@@ -240,23 +171,5 @@ public class DescriptorSet : Disposable
         {
             foreach (var resource in _resources) resource.Dispose();
         }
-    }
-    
-    private class BufferResource : IAeroxDisposable
-    {
-        private DeviceBuffer _buffer;
-
-        public BufferResource(DeviceBuffer buffer,uint offset = 0)
-        {
-            _buffer = buffer;
-        }
-
-        public void Dispose()
-        {
-            _buffer.Dispose();
-        }
-
-        public bool Disposed { get; set; }
-        public string DisposeId { get; }
     }
 }
