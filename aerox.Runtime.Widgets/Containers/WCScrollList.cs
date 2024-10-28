@@ -14,7 +14,7 @@ public class WCScrollList : WCList
 
     public WCScrollList(IEnumerable<Widget> children) : base(children)
     {
-        //Clip = ClipMode.Bounds;
+        Clip = ClipMode.Bounds;
     }
 
     public WCScrollList() : base([])
@@ -24,11 +24,6 @@ public class WCScrollList : WCList
 
     public float ScrollScale { get; set; } = 10.0f;
     
-    public override uint GetMaxSlots()
-    {
-        return 0;
-    }
-
     public virtual bool ScrollBy(float delta)
     {
         var finalOffset = _offset + delta;

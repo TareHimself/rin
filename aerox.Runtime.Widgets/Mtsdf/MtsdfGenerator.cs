@@ -31,12 +31,16 @@ public class MtsdfGenerator(FontFamily family)
         
         var result = mtsdfRenderer.Generate(GeneratePadding,3f,30f);
         
-        if (result == null) return null;    
+        if (result == null) return null;
 
-        var img = Image.LoadPixelData<Rgba32>(result.Data, result.Width, result.Height);
+        Span<byte> data = result.Data;
+        
+        var img = Image.LoadPixelData<Rgba32>(data, result.Width, result.Height);
         
         img.Mutate(i => i.Pad(result.Width + (AtlasPadding * 2), result.Height + (AtlasPadding * 2),new SixLabors.ImageSharp.Color(new Rgba32(255,255,255,255))));
-
+        
+        result.Data.Dispose();
+        
         return new GeneratedMtsdf(img, codepoint.Value);
     }
 

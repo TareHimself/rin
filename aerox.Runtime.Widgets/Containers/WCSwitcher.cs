@@ -1,4 +1,6 @@
-﻿namespace aerox.Runtime.Widgets.Containers;
+﻿using aerox.Runtime.Widgets.Graphics;
+
+namespace aerox.Runtime.Widgets.Containers;
 
 public class WCSwitcher : Container
 {
@@ -36,8 +38,6 @@ public class WCSwitcher : Container
     {
         return SelectedWidget?.GetDesiredSize() ?? new Size2d();
     }
-
-    public override uint GetMaxSlots() => 1;
     
     public override void OnSlotUpdated(Slot slot)
     {
@@ -59,4 +59,9 @@ public class WCSwitcher : Container
             widget.SetSize(drawSize);
         }
     }
+
+    public override IEnumerable<Slot> GetCollectableSlots() => GetSlot(SelectedIndex) is { } slot ? [slot] : [];
+
+    public override IEnumerable<Slot> GetHitTestableSlots() => GetSlot(SelectedIndex) is { } slot ? [slot] : [];
+    
 }

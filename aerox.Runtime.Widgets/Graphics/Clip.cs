@@ -9,6 +9,6 @@ public partial struct Clip(
     Vector2<float> size,
     Matrix3 transform)
 {
-    public Vector2<float> Size = size; 
     public Matrix3 Transform = transform;
+    public Vector2<float> Size = size; 
 }

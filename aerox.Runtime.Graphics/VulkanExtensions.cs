@@ -436,7 +436,7 @@ public static class VulkanExtensions
                 if (stencilAttachment.HasValue)
                 {
                     var val = stencilAttachment.Value;
-                    renderingInfo.pDepthAttachment = &val;
+                    renderingInfo.pStencilAttachment = &val;
                     
                 }
                 
@@ -456,7 +456,7 @@ public static class VulkanExtensions
                 y = 0
             },
             extent = extent
-        }, attachments, depthAttachment);
+        }, attachments, depthAttachment,stencilAttachment);
     
     
     public static VkCommandBuffer EndRendering(this VkCommandBuffer cmd)
@@ -499,12 +499,12 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer PushConstant<T>(this VkCommandBuffer cmd,VkPipelineLayout pipelineLayout,VkShaderStageFlags stageFlags,T data, uint offset = 0)
+    public static VkCommandBuffer PushConstant<T>(this VkCommandBuffer cmd,VkPipelineLayout pipelineLayout,VkShaderStageFlags stageFlags,T data, uint offset = 0) where T : unmanaged
     {
         unsafe
         {
             vkCmdPushConstants(cmd, pipelineLayout,
-                VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT | VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT, offset,(uint)Marshal.SizeOf<T>(),&data);
+                stageFlags, offset,(uint)Marshal.SizeOf<T>(),&data);
         }
 
         return cmd;

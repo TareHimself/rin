@@ -13,6 +13,8 @@ public static class EnumerableExtensions
             yield return target[i];
         }
     }
+
+    public static IEnumerable<T> AsReversed<T>(this IEnumerable<T> target) => target.ToArray().AsReversed();
     
     public static IEnumerable<T> AsReversed<T>(this List<T> target)
     {

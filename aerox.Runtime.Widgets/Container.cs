@@ -139,7 +139,7 @@ public abstract class Container : Widget
         }
     }
 
-    public virtual uint GetMaxSlots() => 0;
+    public virtual int GetMaxSlots() => int.MaxValue;
 
     public override Widget? ReceiveCursorDown(CursorDownEvent e, TransformInfo info)
     {
@@ -155,15 +155,12 @@ public abstract class Container : Widget
     protected virtual Widget? ChildrenReceiveCursorDown(CursorDownEvent e, TransformInfo info)
     {
         var point = e.Position.Cast<float>();
-        lock (SlotsMutex)
+        foreach (var slot in GetHitTestableSlots().ToArray().AsReversed())
         {
-            foreach (var slot in _slots.AsReversed())
-            {
-                var slotInfo = ComputeContentTransform(slot, info);
-                if (!slotInfo.PointWithin(point)) continue;
-                var res = slot.GetWidget().ReceiveCursorDown(e, slotInfo);
-                if (res != null) return res;
-            }
+            var slotInfo = ComputeContentTransform(slot, info);
+            if (!slotInfo.PointWithin(point)) continue;
+            var res = slot.GetWidget().ReceiveCursorDown(e, slotInfo);
+            if (res != null) return res;
         }
 
         return null;
@@ -179,15 +176,12 @@ public abstract class Container : Widget
     protected virtual void ChildrenReceiveCursorEnter(CursorMoveEvent e, TransformInfo info, List<Widget> items)
     {
         var point = e.Position.Cast<float>();
-        lock (SlotsMutex)
-        {
-            foreach (var slot in _slots)
+            foreach (var slot in GetHitTestableSlots())
             {
                 var slotInfo = ComputeContentTransform(slot, info);
                 if (slotInfo.PointWithin(point))
                     slot.GetWidget().ReceiveCursorEnter(e, slotInfo, items);
             }
-        }
     }
 
     public override bool ReceiveCursorMove(CursorMoveEvent e, TransformInfo info)
@@ -200,15 +194,12 @@ public abstract class Container : Widget
     protected virtual bool ChildrenReceiveCursorMove(CursorMoveEvent e, TransformInfo info)
     {
         var point = e.Position.Cast<float>();
-        lock (SlotsMutex)
+        foreach (var slot in GetHitTestableSlots())
         {
-            foreach (var slot in _slots)
-            {
-                var slotInfo = ComputeContentTransform(slot, info);
-                if (slotInfo.PointWithin(point) &&
-                    slot.GetWidget().ReceiveCursorMove(e, slotInfo))
-                    return true;
-            }
+            var slotInfo = ComputeContentTransform(slot, info);
+            if (slotInfo.PointWithin(point) &&
+                slot.GetWidget().ReceiveCursorMove(e, slotInfo))
+                return true;
         }
 
         return false;
@@ -224,16 +215,13 @@ public abstract class Container : Widget
     protected virtual bool ChildrenReceiveScroll(ScrollEvent e, TransformInfo info)
     {
         var point = e.Position.Cast<float>();
-        lock (SlotsMutex)
-        {
-            foreach (var slot in _slots)
+            foreach (var slot in GetHitTestableSlots())
             {
                 var slotInfo = ComputeContentTransform(slot, info);
                 if (slotInfo.PointWithin(point) &&
                     slot.GetWidget().ReceiveScroll(e, slotInfo))
                     return true;
             }
-        }
 
         return false;
     }
@@ -285,7 +273,8 @@ public abstract class Container : Widget
         return OffsetTransformTo(slot.GetWidget(), info,withPadding);
     }
 
-    
+    public virtual IEnumerable<Slot> GetCollectableSlots() => GetSlots();
+    public virtual IEnumerable<Slot> GetHitTestableSlots() => GetSlots();
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {

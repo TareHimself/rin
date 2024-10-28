@@ -98,7 +98,7 @@ public partial class MtsdfRenderer : Disposable, IGlyphRenderer
         throw new NotImplementedException();
     }
     // Renders into a 4 channel image
-    public Generator.Result? Generate(int padding,float angleThreshold,float pixelRange)
+    public SDFResult? Generate(int padding,float angleThreshold,float pixelRange)
     {
         return _gen.GenerateMtsdf(padding,angleThreshold,pixelRange);
     }

@@ -46,7 +46,7 @@ public class WCSizer : Container
         return new Size2d();
     }
 
-    public override uint GetMaxSlots() => 1;
+    public override int GetMaxSlots() => 1;
 
     protected override void ArrangeSlots(Size2d drawSize)
     {

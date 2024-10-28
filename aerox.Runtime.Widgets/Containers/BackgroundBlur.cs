@@ -106,8 +106,5 @@ public class BackgroundBlur : Container
         }
     }
 
-    public override uint GetMaxSlots()
-    {
-        return 1;
-    }
+    public override int GetMaxSlots() => 1;
 }

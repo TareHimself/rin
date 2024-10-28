@@ -29,11 +29,6 @@ public class WCOverlay : Container
         });
     }
     
-    public override uint GetMaxSlots()
-    {
-        return 0;
-    }
-
     protected override void ArrangeSlots(Size2d drawSize)
     {
         foreach (var slot in GetSlots())

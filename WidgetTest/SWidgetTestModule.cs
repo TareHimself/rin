@@ -73,15 +73,23 @@ public class SWidgetTestModule : RuntimeModule
         {
             if (e is { State: KeyState.Pressed, Key: Key.Left })
             {
-                if (switcher.SelectedIndex - 1 < 0) return;
-                switcher.SelectedIndex -= 1;
+                var newIndex = switcher.SelectedIndex - 1;
+                if (newIndex < 0)
+                {
+                    newIndex = switcher.GetNumSlots() + newIndex;
+                }
+                switcher.SelectedIndex = newIndex;
                 return;
             }
 
             if (e is { State: KeyState.Pressed, Key: Key.Right })
             {
-                if (switcher.SelectedIndex + 1 >= switcher.GetNumSlots()) return;
-                switcher.SelectedIndex += 1;
+                var newIndex = switcher.SelectedIndex + 1;
+                if (newIndex >= switcher.GetNumSlots())
+                {
+                    newIndex %= switcher.GetNumSlots();
+                }
+                switcher.SelectedIndex = newIndex;
                 return;
             }
 
@@ -91,7 +99,9 @@ public class SWidgetTestModule : RuntimeModule
                 foreach (var path in p)
                     switcher.AddChild(new WCFitter(new AsyncFileImage(path))
                     {
-                        FittingMode = FitMode.Cover
+                        FittingMode = FitMode.Cover,
+                        Clip = ClipMode.Bounds,
+                        Padding = new WidgetPadding(100.0f)
                     });
             }
         };
@@ -108,7 +118,8 @@ public class SWidgetTestModule : RuntimeModule
 
         var sizer = new WCSizer(new WCSizer(new WCFitter(new AsyncFileImage(""))
         {
-            FittingMode = FitMode.Cover
+            FittingMode = FitMode.Cover,
+            Clip = ClipMode.Bounds
         })
         {
             WidthOverride = 600,

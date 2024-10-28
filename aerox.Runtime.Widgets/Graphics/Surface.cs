@@ -332,6 +332,11 @@ public abstract class Surface : Disposable
                     });
                 }
 
+                if (rawCommand.ClipId.Length <= 0)
+                {
+                    pendingCommands.Add(new PendingCommand(rawCommand.DrawCommand,0x01));
+                }
+                else
                 if (computedClipStacks.TryGetValue(rawCommand.ClipId, out var stack))
                 {
                     pendingCommands.Add(new PendingCommand(rawCommand.DrawCommand,stack));
@@ -346,7 +351,8 @@ public abstract class Surface : Disposable
                         {
                             Transform = clips[(int)c].Transform,
                             Size = clips[(int)c].Size
-                        }).ToArray()
+                        }).ToArray(),
+                        Mask = currentMask
                     });
                     //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
                     computedClipStacks.Add(rawCommand.ClipId,currentMask);
@@ -542,7 +548,6 @@ public abstract class Surface : Disposable
                     if (!isComparingStencil)
                     {
                         vkCmdSetStencilOp(cmd,faceFlags,VkStencilOp.VK_STENCIL_OP_KEEP,VkStencilOp.VK_STENCIL_OP_KEEP,VkStencilOp.VK_STENCIL_OP_KEEP,VkCompareOp.VK_COMPARE_OP_NOT_EQUAL);
-                        cmd.SetColorBlendEnable(0, 1, true);
                         cmd.SetWriteMask(0, 1,
                             VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
                             VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
@@ -551,10 +556,8 @@ public abstract class Surface : Disposable
                         isWritingStencil = false;
                         isComparingStencil = true;
                     }
-                    else
-                    {
-                        vkCmdSetStencilCompareMask(cmd,faceFlags,command.Mask);
-                    }
+                    
+                    vkCmdSetStencilCompareMask(cmd,faceFlags,command.Mask);
 
                     switch (command)
                     {

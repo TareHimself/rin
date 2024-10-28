@@ -29,8 +29,7 @@ public class AsyncFileImage : WImage
     private async Task LoadFile(string filePath)
     {
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(filePath);
-        using var buffer = imgData.ToBuffer(); var imgRawData = new byte[imgData.Width * imgData.Height * Marshal.SizeOf<Rgba32>()];
-        imgData.CopyPixelDataTo(imgRawData);
+        using var buffer = imgData.ToBuffer(); 
         TextureId = SGraphicsModule.Get().GetResourceManager().CreateTexture(buffer,
             new VkExtent3D
             {

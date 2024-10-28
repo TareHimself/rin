@@ -43,7 +43,7 @@ public class DrawCommands
     
     public DrawCommands PushClip(TransformInfo info, Widget widget)
     {
-        return PushClip(info.Transform.Translate(new Vector2<float>(widget.Padding.Left, widget.Padding.Top)), widget.GetDesiredSize());
+        return PushClip(info.Transform, widget.GetContentSize());
     }
     
     public DrawCommands PushClip(Matrix3 transform, Vector2<float> size)

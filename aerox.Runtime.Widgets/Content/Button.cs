@@ -37,11 +37,8 @@ public class Button : Container
         }
         base.Collect(info, drawCommands);
     }
-    
-    public override uint GetMaxSlots()
-    {
-        return 1;
-    }
+
+    public override int GetMaxSlots() => 1;
 
     protected override void ArrangeSlots(Size2d drawSize)
     {

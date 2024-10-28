@@ -2,7 +2,7 @@
 
 namespace aerox.Runtime;
 
-public class NativeBuffer<T>(int elements) : Disposable
+public class NativeBuffer<T>(int elements) : IDisposable
     where T : unmanaged
 {
     private readonly IntPtr _ptr = Marshal.AllocHGlobal((Marshal.SizeOf<T>()) * elements);
@@ -20,12 +20,31 @@ public class NativeBuffer<T>(int elements) : Disposable
     public int GetElements() => elements;
     
     public int GetByteSize() => elements * Marshal.SizeOf<T>();
+    
+    public static implicit operator Span<T>(NativeBuffer<T> buff)
+    {
+        unsafe
+        {
+            return new Span<T>(buff.GetPtr().ToPointer(), buff.GetElements());
+        }
+    }
 
-    protected override void OnDispose(bool isManual)
+    private void ReleaseUnmanagedResources()
     {
         if (_ptr != IntPtr.Zero)
         {
             Marshal.FreeHGlobal(_ptr);
         }
+    }
+
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+    }
+
+    ~NativeBuffer()
+    {
+        ReleaseUnmanagedResources();
     }
 }

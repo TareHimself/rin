@@ -13,14 +13,10 @@ public enum FitMode
 public class WCFitter : Container
 {
     private FitMode _fitFittingMode = FitMode.Fill;
-
-    public WCFitter()
+    
+    public WCFitter(Widget? widget = null) : base(widget == null ? [] : [widget])
     {
-        //Clip = ClipMode.Bounds;
-    }
-    public WCFitter(Widget widget) : base([widget])
-    {
-        //Clip = ClipMode.Bounds;
+        Clip = ClipMode.Bounds;
     }
 
     public FitMode FittingMode
@@ -47,10 +43,7 @@ public class WCFitter : Container
         return new Size2d();
     }
 
-    public override uint GetMaxSlots()
-    {
-        return 1;
-    }
+    public override int GetMaxSlots() => 1;
 
     public static Size2d ComputeContainSize(Size2d drawSize, Size2d widgetSize)
     {

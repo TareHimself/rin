@@ -53,15 +53,6 @@ public partial class Generator : IDisposable
     
     private IntPtr _context = NativeNewContext();
     
-    
-    public class Result
-    {
-        public int Width = 0;
-        public int Height = 0;
-        public int Channels = 0;
-        public byte[] Data = [];
-    }
-
     public Generator MoveTo(Vector2 point)
     {
         NativeMoveTo(_context, ref point);
@@ -109,46 +100,40 @@ public partial class Generator : IDisposable
         NativeGenerateMtsdf(_context,padding,angleThreshold,pixelRange,callback);
     }
 
-    public Result? GenerateMsdf(int padding,float angleThreshold,float pixelRange)
+    public SDFResult? GenerateMsdf(int padding,float angleThreshold,float pixelRange)
     {
-        Result? result = null;
+        SDFResult? result = null;
         
         unsafe
         {
             GenerateMsdf(padding,angleThreshold,pixelRange, (data, width, height, count) =>
             {
-                result = new Result()
+                result = new SDFResult(ByteBuffer.CopyFrom(data,(int)count))
                 {
                     Width = (int)width,
                     Height = (int)height,
                     Channels = 3,
-                    Data = new byte[count]
                 };
-                
-                Marshal.Copy(data,result.Data,0,(int)count);
             });
         }
         
         return result;
     }
 
-    public Result? GenerateMtsdf(int padding,float angleThreshold,float pixelRange)
+    public SDFResult? GenerateMtsdf(int padding,float angleThreshold,float pixelRange)
     {
-        Result? result = null;
+        SDFResult? result = null;
 
         unsafe
         {
             GenerateMtsdf(padding,angleThreshold,pixelRange, (data, width, height, count) =>
             {
-                result = new Result()
+                result = new SDFResult(ByteBuffer.CopyFrom(data,(int)count))
                 {
                     Width = (int)width,
                     Height = (int)height,
                     Channels = 4,
-                    Data = new byte[count]
                 };
-
-                Marshal.Copy(data,result.Data,0,(int)count);
             });
         }
 
