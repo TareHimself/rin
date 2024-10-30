@@ -8,7 +8,7 @@ using rsl.Generator;
 Console.WriteLine("Hello, World!");
 var basePath = @"D:\Github\rsl";
 var tokenizer = new Tokenizer();
-var tokens = tokenizer.Run($@"D:\Github\vengine\aerox.Runtime\shaders\2d\blur.ash");
+var tokens = tokenizer.Run($@"D:\Github\vengine\rin.Core\shaders\2d\blur.ash");
 var parser = new Parser();
 var ast = parser.Run(tokens);
 
@@ -30,7 +30,7 @@ File.WriteAllText($@"{basePath}\rect.frag", "#version 450\n#extension GL_GOOGLE_
 
 
 // var tokenizer = new Tokenizer();
-// var tokens = tokenizer.Run(@"C:\Users\Taree\Documents\Github\aerox\aerox.Runtime.Scene\shaders\scene\deferred.ash");
+// var tokens = tokenizer.Run(@"C:\Users\Taree\Documents\Github\aerox\rin.Scene\shaders\scene\deferred.ash");
 // var parser = new Parser();
 // var ast = parser.Run(tokens);
 // ast = ast.ResolveIncludes((node, module) =>

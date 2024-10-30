@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "rin.Graphics": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
