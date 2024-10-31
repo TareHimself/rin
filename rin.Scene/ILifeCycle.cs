@@ -1,4 +1,6 @@
-﻿namespace rin.Scene;
+﻿using rin.Core;
+
+namespace rin.Scene;
 
 public interface ILifeCycle : ITickable
 {

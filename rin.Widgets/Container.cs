@@ -282,7 +282,7 @@ public abstract class Container : Widget
         switch (Clip)
         {
             case ClipMode.None:
-                foreach (var slot in GetSlots())
+                foreach (var slot in GetCollectableSlots())
                 {
                     var newTransform = ComputeContentTransform(slot, info,false);
                     var widget = slot.GetWidget();
@@ -295,7 +295,7 @@ public abstract class Container : Widget
 
                 var myAAR = info.ToRect();
                 
-                foreach (var slot in GetSlots())
+                foreach (var slot in GetCollectableSlots())
                 {
                     var newTransform = ComputeContentTransform(slot, info,false);
                     var slotAAR = newTransform.ToRect();

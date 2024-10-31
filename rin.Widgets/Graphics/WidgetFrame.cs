@@ -18,12 +18,17 @@ public struct SimpleRectPush
 
 public class WidgetFrame
 {
-    //public readonly AeroxLinkedList<Command> DrawCommandList = [];
+    //public readonly AeroxLinkedList<GraphicsCommand> DrawCommandList = [];
     public readonly Frame Raw;
     public readonly Surface Surface;
     public string ActivePass = "";
     public bool IsMainPassActive => ActivePass == Surface.MainPassId;
+    public bool IsAnyPassActive => ActivePass.Length != 0;
     public Matrix4 Projection;
+    public int BatchedDraws = 0;
+    public int NonBatchedDraws = 0;
+    public int NonDraws = 0;
+    public int StencilDraws = 0;
 
     public WidgetFrame(Surface surface, Frame raw)
     {
@@ -32,6 +37,18 @@ public class WidgetFrame
         var size = surface.GetDrawSize();
         Projection = Glm.Orthographic(0, size.X, 0, size.Y);
         //raw.OnReset += CleanupCommands;
+    }
+
+    public void BeginMainPass(bool clearColor = false,bool clearStencil = false)
+    {
+        Surface.BeginMainPass(this,clearColor,clearStencil);
+    }
+
+    public bool BeginMainPass(string passId) => Surface.TryBeginPass(this, passId);
+
+    public void EndActivePass()
+    {
+        Surface.EndActivePass(this);
     }
 
     // public WidgetFrame AddRect(Matrix3 transform, Vector2<float> size, Vector4<float>? borderRadius = null,
@@ -49,9 +66,9 @@ public class WidgetFrame
     //     return AddCommands(new MaterialRect(materialInstance, pushConstants));
     // }
     //
-    // public WidgetFrame AddCommands(params Command[] commands)
+    // public WidgetFrame AddCommands(params GraphicsCommand[] commands)
     // {
-    //     LinkedList<Command> lCommands = [];
+    //     LinkedList<GraphicsCommand> lCommands = [];
     //     foreach (var command in commands)
     //     {
     //         DrawCommandList.InsertBack(command);

@@ -19,8 +19,8 @@ namespace AudioPlayer.Widgets;
 
 public class TrackPlayerWidget : WCOverlay
 {
-    private WText NameText => GetSlot(1)!.GetWidget<BackgroundBlur>()!.GetSlot(0)!.GetWidget<WCList>()!.GetSlot(0)!.GetWidget<WText>()!;
-    private WText StatusText => GetSlot(1)!.GetWidget<BackgroundBlur>()!.GetSlot(0)!.GetWidget<WCList>()!.GetSlot(1)!.GetWidget<WText>()!;
+    private WText NameText => GetSlot(1)!.GetWidget<WCBlur>()!.GetSlot(0)!.GetWidget<WCList>()!.GetSlot(0)!.GetWidget<WText>()!;
+    private WText StatusText => GetSlot(1)!.GetWidget<WCBlur>()!.GetSlot(0)!.GetWidget<WCList>()!.GetSlot(1)!.GetWidget<WText>()!;
     private readonly AudioStream _stream;
     private double lastTime = SRuntime.Get().GetElapsedRuntimeTimeSeconds();
     public string Name
@@ -35,7 +35,7 @@ public class TrackPlayerWidget : WCOverlay
         {
             HeightOverride = 50.0f
         });
-        AddChild(new BackgroundBlur(new WCList([
+        AddChild(new WCBlur(new WCList([
             new WText("NAME", 40)
             {
                 Padding = new WidgetPadding()

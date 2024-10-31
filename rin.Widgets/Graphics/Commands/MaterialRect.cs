@@ -2,7 +2,7 @@
 //
 // namespace rin.Widgets.Graphics.Commands;
 //
-// public class MaterialRect : DrawCommand
+// public class MaterialRect : Command
 // {
 //     private readonly MaterialInstance _materialInstance;
 //     private readonly WidgetPushConstants _pushConstants;

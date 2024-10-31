@@ -9,7 +9,7 @@ public enum CommandType
     ClipDraw,
     ClipClear,
     BatchedDraw,
-    CustomDraw
+    Custom
 }
 
 public class FinalDrawCommand

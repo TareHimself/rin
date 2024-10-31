@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
 using rin.Core;
@@ -163,6 +164,16 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         clearColor.float32[1] = color.Y;
         clearColor.float32[2] = color.Z;
         clearColor.float32[3] = color.W;
+        return clearColor;
+    }
+    
+    public static VkClearDepthStencilValue MakeClearDepthStencilValue(float depth = 0.0f,uint stencil = 0)
+    {
+        var clearColor = new VkClearDepthStencilValue
+        {
+            depth = depth,
+            stencil = stencil
+        };
         return clearColor;
     }
 

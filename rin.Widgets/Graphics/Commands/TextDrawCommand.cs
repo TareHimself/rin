@@ -4,13 +4,13 @@
 //
 // namespace rin.Widgets.Graphics.Commands;
 //
-// public class TextDrawCommand : DrawCommand
+// public class TextDrawCommand : Command
 // {
 //     private readonly MtsdfFont _font;
 //     private readonly MaterialInstance _materialInstance;
 //     private readonly TextPushConstants[] _pushConstants;
 //
-//     public override bool CanCombineWith(Command other)
+//     public override bool CanCombineWith(GraphicsCommand other)
 //     {
 //         return other is TextDrawCommand drawCommand && drawCommand._font == _font;
 //     }

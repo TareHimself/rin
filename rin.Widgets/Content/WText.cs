@@ -4,7 +4,8 @@ using rin.Graphics;
 using rin.Core.Math;
 using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Quads;
-using rin.Widgets.Mtsdf;
+using rin.Widgets.Sdf;
+using rsl;
 using SixLabors.Fonts;
 
 namespace rin.Widgets.Content;
@@ -36,7 +37,7 @@ public class WText : Widget
 {
     private string _content;
     private Font? _latestFont;
-    private MtsdfFont? _mtsdf;
+    private SdfFont? _mtsdf;
     private List<Quad>? _cachedDraw;
     private float _fontSize = 100.0f;
 
@@ -114,12 +115,11 @@ public class WText : Widget
     protected override Size2d ComputeDesiredContentSize()
     {
         if (_latestFont == null) return new Size2d();
-        var opts = new TextOptions(_latestFont);
-
         GetContentBounds(out var bounds);
-        GlyphBounds? last = bounds.Length == 0 ? null : bounds[^1];
+        GlyphBounds? last = bounds.ToArray().MaxBy(c => c.Bounds.Right);
+        var lines = Math.Max(1,Content.Split("\n").Length);
         var metrics = _latestFont.FontMetrics;
-        var height = metrics.HorizontalMetrics.AdvanceHeightMax * 64 / metrics.ScaleFactor * FontSize;
+        var height = (metrics.HorizontalMetrics.AdvanceHeightMax * 64 / metrics.ScaleFactor * FontSize) * lines;
 
         return new Size2d(last?.Bounds.Right ?? 0.0f, height);
     }

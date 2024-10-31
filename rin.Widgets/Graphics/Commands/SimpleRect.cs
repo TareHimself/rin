@@ -2,7 +2,7 @@
 //
 // namespace rin.Widgets.Graphics.Commands;
 //
-// public class SimpleRect(Matrix3 transform, Vector2<float> size) : DrawCommand
+// public class SimpleRect(Matrix3 transform, Vector2<float> size) : Command
 // {
 //     public Vector4<float>? BorderRadius;
 //     public Color? Color;

@@ -22,6 +22,8 @@ public class QuadBatchRenderer : IBatchRenderer
 
     public void Draw(WidgetFrame frame, IBatch batch, DeviceBuffer buffer, ulong address, ulong offset)
     {
+        frame.Surface.BeginMainPass(frame);
+        
         var cmd = frame.Raw.GetCommandBuffer();
         if (batch is QuadBatch asQuadBatch && _batchShader.Bind(cmd, true))
         {

@@ -7,7 +7,7 @@
 // /// <summary>
 // /// Base command for all draws that will use the main pass
 // /// </summary>
-// public abstract class DrawCommand : Command
+// public abstract class Command : GraphicsCommand
 // {
 //     public override void Run(WidgetFrame frame)
 //     {

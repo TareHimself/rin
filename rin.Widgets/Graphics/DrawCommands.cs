@@ -1,9 +1,7 @@
-﻿using rin.Core.Extensions;
-using rin.Core.Math;
-using rin.Widgets.Graphics;
+﻿using rin.Core.Math;
 using rin.Widgets.Graphics.Commands;
 
-namespace rin.Widgets;
+namespace rin.Widgets.Graphics;
 
 
 
@@ -14,16 +12,16 @@ public class ClipInfo(uint id, Matrix3 transform, Vector2<float> size)
     public Vector2<float> Size = size;
 }
 
-public struct RawCommand(Command drawCommand, string clipId)
+public struct RawCommand(GraphicsCommand drawCommand, string clipId)
 {
-    public Command DrawCommand = drawCommand;
+    public GraphicsCommand Command = drawCommand;
     public readonly string ClipId = clipId;
     public int AbsoluteDepth = 0;
 }
 
-public struct PendingCommand(Command drawCommand, uint clipId)
+public struct PendingCommand(GraphicsCommand drawCommand, uint clipId)
 {
-    public Command DrawCommand = drawCommand;
+    public GraphicsCommand DrawCommand = drawCommand;
     public readonly uint ClipId = clipId;
 }
 
@@ -34,9 +32,9 @@ public class DrawCommands
     private int _depth = 0;
     //private readonly SortedDictionary<int, List<RawCommand>> _commands = new SortedDictionary<int, List<RawCommand>>(Comparer<int>.Create((a,b) => b.CompareTo(a)));
     private readonly List<RawCommand> _commands = [];
-    public DrawCommands Add(Command command)
+    public DrawCommands Add(GraphicsCommand command)
     {
-        var info = new RawCommand(command, _clipId)
+        var info = new RawCommand(command, command is CustomCommand asCustom ? !asCustom.WillDraw ? "" : _clipId : _clipId)
         {
             AbsoluteDepth = _depth
         };

@@ -19,7 +19,7 @@ public struct BlurPushConstants
     public Vector4<float> Tint;
 }
 
-// internal class BlurCommand : DrawCommand
+// internal class BlurCommand : Command
 // {
 //     // private readonly MaterialInstance _materialInstance;
 //     // private readonly BlurPushConstants _pushConstants;
@@ -56,15 +56,15 @@ public struct BlurPushConstants
 //     }
 // }
 
-public class BackgroundBlur : Container
+public class WCBlur : Container
 {
     public Color Tint = Color.White;
 
-    public BackgroundBlur(Widget child) : base([child])
+    public WCBlur(Widget child) : base([child])
     {
     }
 
-    public BackgroundBlur()
+    public WCBlur()
     {
     }
 
@@ -95,6 +95,12 @@ public class BackgroundBlur : Container
     //         slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
     //     }
     // }
+
+    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    {
+        base.CollectContent(info, drawCommands);
+        drawCommands.Add(new ReadBack());
+    }
 
     protected override void ArrangeSlots(Size2d drawSize)
     {

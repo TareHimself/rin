@@ -42,7 +42,7 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
             }
         );
 
-        // panel.AddChild(new BackgroundBlur
+        // panel.AddChild(new WCBlur
         // {
         //     Tint = new Color(1.0f)
         //     {

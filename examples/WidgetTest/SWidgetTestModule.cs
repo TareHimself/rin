@@ -27,7 +27,7 @@ public class SWidgetTestModule : RuntimeModule
             }
         );
         
-        panel.AddChild(new PanelSlot(new BackgroundBlur
+        panel.AddChild(new PanelSlot(new WCBlur
         {
             Tint = new Color(1.0f)
             {
@@ -66,33 +66,39 @@ public class SWidgetTestModule : RuntimeModule
         {
             frames++;
             var txt = (WText)textSlot.GetWidget();
-            txt.Content = $"Focused ${panel.Surface?.FocusedWidget}";
+            txt.Content = $"Selected Index {switcher.SelectedIndex}";//$"Focused ${panel.Surface?.FocusedWidget}";
         };
 
         surf.Window.OnKey += (e) =>
         {
-            if (e is { State: KeyState.Pressed, Key: Key.Left })
-            {
-                var newIndex = switcher.SelectedIndex - 1;
-                if (newIndex < 0)
-                {
-                    newIndex = switcher.GetNumSlots() + newIndex;
-                }
-                switcher.SelectedIndex = newIndex;
-                return;
-            }
+            
 
-            if (e is { State: KeyState.Pressed, Key: Key.Right })
+            var switcherSlots = switcher.GetNumSlots();
+            if (switcherSlots > 0)
             {
-                var newIndex = switcher.SelectedIndex + 1;
-                if (newIndex >= switcher.GetNumSlots())
+                if (e is { State: KeyState.Pressed or KeyState.Repeat, Key: Key.Left })
                 {
-                    newIndex %= switcher.GetNumSlots();
+                    var newIndex = switcher.SelectedIndex - 1;
+                    if (newIndex < 0)
+                    {
+                        newIndex = switcherSlots + newIndex;
+                    }
+                    switcher.SelectedIndex = newIndex;
+                    return;
                 }
-                switcher.SelectedIndex = newIndex;
-                return;
+                
+                if (e is { State: KeyState.Pressed or KeyState.Repeat, Key: Key.Right })
+                {
+                    var newIndex = switcher.SelectedIndex + 1;
+                    if (newIndex >= switcherSlots)
+                    {
+                        newIndex %= switcherSlots;
+                    }
+                    switcher.SelectedIndex = newIndex;
+                    return;
+                }
             }
-
+            
             if (e is { State: KeyState.Pressed, Key: Key.Enter })
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);

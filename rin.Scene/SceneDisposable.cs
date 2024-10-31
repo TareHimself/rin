@@ -1,4 +1,6 @@
-﻿namespace rin.Scene;
+﻿using rin.Core;
+
+namespace rin.Scene;
 
 public class SceneDisposable : Disposable, ITickable
 {
