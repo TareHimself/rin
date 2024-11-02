@@ -18,7 +18,7 @@ public class AnimationSequence(params AnimationAction[] animations) : AnimationA
         _animations.FirstOrDefault()?.OnStart(target);
     }
 
-    public override AnimationState NewState(Widget widget) => new State((float)SRuntime.Get().GetElapsedRuntimeTimeSeconds(),
+    public override AnimationState NewState(Widget widget) => new State((float)SRuntime.Get().GetTimeSeconds(),
         this, widget, _animations.Aggregate(new Queue<AnimationAction>(),
             (t, c) =>
             {

@@ -51,8 +51,8 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     private VkPhysicalDevice _physicalDevice;
     private VkQueue _queue;
     private uint _queueFamily;
-    private BackgroundTaskQueue _backgroundTaskQueue = new ();
-    private DescriptorLayoutFactory _descriptorLayoutFactory = new();
+    private readonly BackgroundTaskQueue _backgroundTaskQueue = new ();
+    private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
     
     public event Action<WindowRenderer>? OnRendererCreated;
     public event Action<WindowRenderer>? OnRendererDestroyed;

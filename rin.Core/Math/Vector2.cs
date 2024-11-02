@@ -143,7 +143,7 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
         dynamic ux = X,uy = Y,vx = other.X,vy = other.Y;
         return ux * vy - uy * vx;
     }
-
+    
     public static implicit operator Vector2<T>(T data)
     {
         return new Vector2<T>(data);

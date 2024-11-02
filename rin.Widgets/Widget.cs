@@ -1,132 +1,175 @@
-﻿using System.Runtime.InteropServices;
-using rin.Core;
+﻿using rin.Core;
+using rin.Core.Animation;
 using rin.Core.Math;
 using rin.Widgets.Events;
 using rin.Widgets.Graphics;
 
 namespace rin.Widgets;
 
-// [StructLayout(LayoutKind.Sequential)]
-// public struct WidgetPushConstants
-// {
-//     public Vector4<float> clip;
-//
-//     public Vector4<float> extent;
-// }
-[StructLayout(LayoutKind.Sequential)]
-public struct WidgetPushConstants
+public abstract class Widget : Disposable, IAnimatable
 {
-    public Matrix3 Transform;
-
-    public Vector2<float> Size;
-}
-
-public abstract class Widget : Disposable
-{
-    private Size2d? _cachedDesiredSize;
-
+    private Vector2<float>? _cachedDesiredSize;
     private Surface? _cursorUpRoot;
+
+    private Transform2d _transform = new();
     private Vector2<float> _offset = 0.0f;
-    private Size2d _size = new();
-    private SWidgetsModule _subsystem = SRuntime.Get().GetModule<SWidgetsModule>();
-
-    /// <summary>
-    ///     The local angle to render this widget at
-    /// </summary>
-    public float Angle = 0.0f;
-
+    private Vector2<float> _size = 0.0f;
+    private Vector2<float> _pivot = 0.0f;
+    private readonly Padding _padding = new();
     
+    /// <summary>
+    /// The offset of this widget in parent space
+    /// </summary>
+    public virtual Vector2<float> Offset
+    {
+        get => new Vector2<float>(_offset.X, _offset.Y);
+        set
+        {
+            _offset.X = value.X;
+            _offset.Y = value.Y;
+        }
+    }
 
     /// <summary>
-    ///     The pivot used to render this widget. Affects <see cref="Angle" /> and <see cref="Scale" />.
+    /// The size of this widget in parent space
     /// </summary>
-    public Vector2<float> Pivot = 0.0f;
-
+    public virtual Vector2<float> Size
+    {
+        get => new Vector2<float>(_size.X, _size.Y);
+        set
+        {
+            _size.X = value.X;
+            _size.Y = value.Y;
+        }
+    }
+    
     /// <summary>
-    ///     The local scale to apply to this widget
+    /// The pivot used to render this widget. Affects <see cref="Angle" /> and <see cref="Scale" />.
     /// </summary>
-    public Vector2<float> Scale = 1.0f;
-
-    public bool Hovered { get; private set; }
-    public Surface? Surface { get; private set; }
-
-    public Container? Parent { get; private set; }
-
-    public WidgetVisibility Visibility { get; set; } = WidgetVisibility.Visible;
-
-    private WidgetPadding _padding = new WidgetPadding();
+    public Vector2<float> Pivot
+    {
+        get => new Vector2<float>(_pivot.X, _pivot.Y);
+        set
+        {
+            _pivot.X = value.X;
+            _pivot.Y = value.Y;
+        }
+    }
+    
+    /// <summary>
+    /// The translation of this widget in parent space
+    /// </summary>
+    public Vector2<float> Translate
+    {
+        get => new Vector2<float>(_transform.Translate.X, _transform.Translate.Y);
+        set
+        {
+            _transform.Translate.X = value.X;
+            _transform.Translate.Y = value.Y;
+        }
+    }
+    
+    /// <summary>
+    /// The scale of this widget in parent space
+    /// </summary>
+    public Vector2<float> Scale
+    {
+        get => new Vector2<float>(_transform.Scale.X, _transform.Scale.Y);
+        set
+        {
+            _transform.Scale.X = value.X;
+            _transform.Scale.Y = value.Y;
+        }
+    }
+    
     /// <summary>
     ///     The Padding For This Widget (Left, Top, Right, Bottom)
     /// </summary>
-    public WidgetPadding Padding
+    public Padding Padding
     {
-        get => _padding;
+        get => new Padding()
+        {
+            Top = _padding.Top,
+            Bottom = _padding.Bottom,
+            Left = _padding.Left,
+            Right = _padding.Right
+        };
         set
         {
-            _padding = value;
+            _padding.Top = value.Top;
+            _padding.Bottom = value.Bottom;
+            _padding.Left = value.Left;
+            _padding.Right = value.Right;
             TryUpdateDesiredSize();
         }
     }
 
+    /// <summary>
+    /// The angle this widget is to be rendered at in parent space
+    /// </summary>
+    public virtual float Angle { get => _transform.Angle; set => _transform.Angle = value; }
+    
+    /// <summary>
+    /// The visibility of this widget
+    /// </summary>
+    public virtual Visibility Visibility { get; set; } = Visibility.Visible;
 
+    
+    /// <summary>
+    /// Should this widget be hit tested
+    /// </summary>
+    public bool IsSelfHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestSelf;
+
+    /// <summary>
+    /// Should this widget's children be hit tested
+    /// </summary>
+    public bool IsChildrenHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestChildren;
+
+    /// <summary>
+    /// Should this widget or its children be hit tested
+    /// </summary>
+    public bool IsHitTestable => IsSelfHitTestable || IsChildrenHitTestable;
+
+    /// <summary>
+    /// The current hovered state of this widget
+    /// </summary>
+    public bool IsHovered { get; private set; }
+    
+    /// <summary>
+    /// The surface this widget is currently on
+    /// </summary>
+    public Surface? Surface { get; private set; }
+
+    /// <summary>
+    /// The parent of this widget
+    /// </summary>
+    public Container? Parent { get; private set; }
+    
     protected bool IsPendingMouseUp => _cursorUpRoot is { Disposed: false };
     
     /// <summary>
     /// Check if this widget is focused by its current surface
     /// </summary>
-    public bool Focused => Surface?.FocusedWidget == this;
-
-
+    public bool IsFocused => Surface?.FocusedWidget == this;
+    
     /// <summary>
     ///     Computes the relative/local transformation matrix for this widget
     /// </summary>
     /// <returns></returns>
     public Matrix3 ComputeRelativeTransform() =>
-        Matrix3.Identity.Translate(GetOffset()).RotateDeg(Angle).Translate(GetSize() * Pivot - 1.0f);
-
-
+        Matrix3.Identity.Translate(Offset + Translate).RotateDeg(Angle).Scale(Scale).Translate(Size * Pivot - 1.0f);
+    
     public Matrix3 ComputeAbsoluteTransform()
     {
         var parentTransform = Parent?.ComputeAbsoluteTransform() ?? Matrix3.Identity;
         return ComputeRelativeTransform() * parentTransform;
     }
 
-    public void SetVisibility(WidgetVisibility visibility)
-    {
-        Visibility = visibility;
-    }
-
-    public Rect GetRect()
-    {
-        return new Rect(_offset, _size);
-    }
-
-    public Rect GetRect(Vector2<float> offset)
-    {
-        return new Rect(offset + _offset, _size);
-    }
-
     public void SetParent(Container? widget)
     {
         Parent = widget;
     }
-
-    public bool IsSelfHitTestable()
-    {
-        return Visibility is WidgetVisibility.Visible or WidgetVisibility.VisibleNoHitTestSelf;
-    }
-
-    public bool IsChildrenHitTestable()
-    {
-        return Visibility is WidgetVisibility.Visible or WidgetVisibility.VisibleNoHitTestChildren;
-    }
-
-    public bool IsHitTestable()
-    {
-        return IsSelfHitTestable() || IsChildrenHitTestable();
-    }
-
-
+    
     public virtual void NotifyAddedToSurface(Surface surface)
     {
         Surface = surface;
@@ -150,7 +193,7 @@ public abstract class Widget : Disposable
 
     public virtual Widget? ReceiveCursorDown(CursorDownEvent e, TransformInfo info)
     {
-        if (IsSelfHitTestable())
+        if (IsSelfHitTestable)
             if (OnCursorDown(e))
             {
                 _cursorUpRoot = Surface;
@@ -183,24 +226,24 @@ public abstract class Widget : Disposable
 
     public virtual void ReceiveCursorEnter(CursorMoveEvent e, TransformInfo info, List<Widget> items)
     {
-        if (!IsSelfHitTestable()) return;
+        if (!IsSelfHitTestable) return;
         items.Add(this);
-        if (Hovered) return;
+        if (IsHovered) return;
 
-        Hovered = true;
+        IsHovered = true;
         OnCursorEnter(e);
     }
 
     public virtual bool ReceiveCursorMove(CursorMoveEvent e, TransformInfo info)
     {
-        if (IsSelfHitTestable() && OnCursorMove(e)) return true;
+        if (IsSelfHitTestable && OnCursorMove(e)) return true;
 
         return false;
     }
 
     public virtual bool ReceiveScroll(ScrollEvent e, TransformInfo info)
     {
-        return IsSelfHitTestable() && OnScroll(e);
+        return IsSelfHitTestable && OnScroll(e);
     }
 
     protected virtual bool OnCursorDown(CursorDownEvent e)
@@ -223,9 +266,9 @@ public abstract class Widget : Disposable
 
     public virtual void ReceiveCursorLeave(CursorMoveEvent e)
     {
-        if (!Hovered) return;
+        if (!IsHovered) return;
 
-        Hovered = false;
+        IsHovered = false;
         OnCursorLeave(e);
     }
 
@@ -251,44 +294,26 @@ public abstract class Widget : Disposable
         UnBindCursorUp();
     }
 
-    public Vector2<float> GetOffset()
-    {
-        return _offset;
-    }
-
-    public void SetOffset(Vector2<float> offset)
-    {
-        _offset = offset;
-    }
-
-    public Size2d GetContentSize()
+    public Vector2<float> GetContentSize()
     {
         return _size - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
 
-    public virtual void SetSize(Size2d size)
+    public Vector2<float> GetDesiredSize()
     {
-        _size = size;
-    }
-    
-    public Size2d GetSize()
-    {
-        return _size;
-    }
-
-    public Size2d GetDesiredSize()
-    {
+        if (Surface == null) return ComputeDesiredSize();
+        
         return _cachedDesiredSize ??= ComputeDesiredSize();
     }
     
-    public Size2d GetDesiredContentSize()
+    public Vector2<float> GetDesiredContentSize()
     {
         return GetDesiredSize() - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
     
-    protected abstract Size2d ComputeDesiredContentSize();
+    protected abstract Vector2<float> ComputeDesiredContentSize();
 
-    private Size2d ComputeDesiredSize() =>
+    private Vector2<float> ComputeDesiredSize() =>
         ComputeDesiredContentSize() + new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
 
     
@@ -298,6 +323,7 @@ public abstract class Widget : Disposable
     /// <returns>true if the desired size was changed</returns>
     protected virtual bool TryUpdateDesiredSize()
     {
+        if (Surface == null) return false;
         var newSize = ComputeDesiredSize();
 
         if (newSize.Equals(_cachedDesiredSize)) return false;
@@ -322,7 +348,7 @@ public abstract class Widget : Disposable
             ? info.Transform.Translate(new Vector2<float>(Padding.Left, Padding.Top))
             : info.Transform;
         
-        return new TransformInfo(newTransform * widget.ComputeRelativeTransform(),widget.GetSize(),info.Depth + 1);
+        return new TransformInfo(newTransform * widget.ComputeRelativeTransform(),widget.Size,info.Depth + 1);
     }
     
     
@@ -333,18 +359,28 @@ public abstract class Widget : Disposable
     /// <param name="drawCommands"></param>
     public virtual void Collect(TransformInfo info,DrawCommands drawCommands)
     {
-        if (Visibility is WidgetVisibility.Hidden or WidgetVisibility.Collapsed)
+        if (Visibility is Visibility.Hidden or Visibility.Collapsed)
         {
             return;
         }
-        
+
+        ((IAnimatable)this).Update();
+        //
+        // CollectSelf(new TransformInfo(info.Transform,Size,info.Depth),drawCommands);
+        //
         CollectContent(new TransformInfo(info.Transform.Translate(new Vector2<float>(Padding.Left,Padding.Top)),GetContentSize(),info.Depth),drawCommands);
     }
-    
+
+    // public virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
+    // {
+    //     
+    // }
     /// <summary>
     /// Collect Draw commands from this widget while accounting for padding offsets
     /// </summary>
     /// <param name="info"></param>
     /// <param name="drawCommands"></param>
     public abstract void CollectContent(TransformInfo info,DrawCommands drawCommands);
+
+    public AnimationRunner AnimationRunner { get; init; } = new AnimationRunner();
 }

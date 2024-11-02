@@ -6,23 +6,14 @@ namespace rin.Widgets.Content;
 
 public class Button : Container
 {
-    public Button()
-    {
-        
-    }
 
-    public Button(Widget child) : base([child])
-    {
-        
-    }
-
-    protected override Size2d ComputeDesiredContentSize()
+    protected override Vector2<float> ComputeDesiredContentSize()
     {
         if (GetSlot(0) is { } slot)
         {
-            return slot.GetWidget().GetDesiredSize();
+            return slot.Child.GetDesiredSize();
         }
-        return new Size2d();
+        return new Vector2<float>();
     }
 
     protected virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
@@ -31,7 +22,7 @@ public class Button : Container
 
     public override void Collect(TransformInfo info, DrawCommands drawCommands)
     {
-        if (Visibility is not WidgetVisibility.Hidden or WidgetVisibility.Collapsed)
+        if (Visibility is not Widgets.Visibility.Hidden or Widgets.Visibility.Collapsed)
         {
             CollectSelf(info,drawCommands);
         }
@@ -40,12 +31,12 @@ public class Button : Container
 
     public override int GetMaxSlots() => 1;
 
-    protected override void ArrangeSlots(Size2d drawSize)
+    protected override void ArrangeSlots(Vector2<float> drawSize)
     {
         if (GetSlot(0) is { } slot)
         {
-            slot.GetWidget().SetOffset(new Vector2<float>(0.0f));
-            slot.GetWidget().SetSize(drawSize);
+            slot.Child.Offset = (new Vector2<float>(0.0f));
+            slot.Child.Size = (drawSize);
         }
     }
 

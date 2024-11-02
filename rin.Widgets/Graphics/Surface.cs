@@ -18,7 +18,7 @@ public abstract class Surface : Disposable
 {
     public static readonly string MainPassId = Guid.NewGuid().ToString();
     private readonly List<Widget> _lastHovered = [];
-    private readonly WCRoot _rootWidget = new();
+    private readonly RootContainer _rootWidget = new();
     private readonly SGraphicsModule _sGraphicsModule;
     private DeviceImage? _copyImage;
     private DeviceImage? _drawImage;
@@ -37,8 +37,8 @@ public abstract class Surface : Disposable
     public virtual void Init()
     {
         CreateImages();
-        _rootWidget.SetOffset(0.0f);
-        _rootWidget.SetSize(GetDrawSize());
+        _rootWidget.Offset = (0.0f);
+        _rootWidget.Size = GetDrawSize().Cast<float>();
     }
 
     public abstract Vector2<int> GetDrawSize();
@@ -113,7 +113,7 @@ public abstract class Surface : Disposable
     public virtual bool RequestFocus(Widget requester)
     {
         if (FocusedWidget == requester) return true;
-        if (!requester.IsHitTestable()) return false;
+        if (!requester.IsHitTestable) return false;
 
         ClearFocus();
         FocusedWidget = requester;
@@ -128,7 +128,7 @@ public abstract class Surface : Disposable
         _copyImage?.Dispose();
         _stencilImage?.Dispose();
         CreateImages();
-        _rootWidget.SetSize(e.Size);
+        _rootWidget.Size = e.Size.Cast<float>();
     }
 
     public DeviceImage GetDrawImage()

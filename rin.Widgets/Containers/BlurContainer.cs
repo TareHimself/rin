@@ -56,26 +56,20 @@ public struct BlurPushConstants
 //     }
 // }
 
-public class WCBlur : Container
+/// <summary>
+/// Slot = <see cref="ContainerSlot"/>
+/// </summary>
+public class BlurContainer : Container
 {
     public Color Tint = Color.White;
-
-    public WCBlur(Widget child) : base([child])
-    {
-    }
-
-    public WCBlur()
-    {
-    }
-
-
-    protected override Size2d ComputeDesiredContentSize()
+    
+    protected override Vector2<float> ComputeDesiredContentSize()
     {
         if (GetSlot(0) is { } slot)
         {
-            return slot.GetWidget().GetDesiredSize();
+            return slot.Child.GetDesiredSize();
         }
-        return new Size2d();
+        return 0.0f;
     }
     
     // public override void Collect(WidgetFrame frame, TransformInfo info)
@@ -102,13 +96,13 @@ public class WCBlur : Container
         drawCommands.Add(new ReadBack());
     }
 
-    protected override void ArrangeSlots(Size2d drawSize)
+    protected override void ArrangeSlots(Vector2<float> drawSize)
     {
         if (GetSlot(0) is { } slot)
         {
-            var widget = slot.GetWidget();
-            widget.SetOffset(0.0f);
-            widget.SetSize(drawSize);
+            var widget = slot.Child;
+            widget.Offset = 0.0f;
+            widget.Size = drawSize;
         }
     }
 

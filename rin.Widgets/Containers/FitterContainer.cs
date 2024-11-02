@@ -10,13 +10,17 @@ public enum FitMode
     None
 }
 
-public class WCFitter : Container
+/// <summary>
+/// Slot = <see cref="ContainerSlot"/>
+/// </summary>
+public class FitterContainer : Container
 {
+
     private FitMode _fitFittingMode = FitMode.Fill;
     
-    public WCFitter(Widget? widget = null) : base(widget == null ? [] : [widget])
+    public FitterContainer() : base()
     {
-        Clip = ClipMode.Bounds;
+        Clip = Clip.Bounds;
     }
 
     public FitMode FittingMode
@@ -34,47 +38,47 @@ public class WCFitter : Container
         }
     }
 
-    protected override Size2d ComputeDesiredContentSize()
+    protected override Vector2<float> ComputeDesiredContentSize()
     {
         if (GetSlot(0) is { } slot)
         {
-            return slot.GetWidget().GetDesiredSize();
+            return slot.Child.GetDesiredSize();
         }
-        return new Size2d();
+        return 0.0f;
     }
 
     public override int GetMaxSlots() => 1;
 
-    public static Size2d ComputeContainSize(Size2d drawSize, Size2d widgetSize)
+    public static Vector2<float> ComputeContainSize(Vector2<float> drawSize, Vector2<float> widgetSize)
     {
-        var widgetAspect = widgetSize.Height / widgetSize.Width;
-        var scaledWidgetSize = new Size2d(drawSize.Width, drawSize.Width * widgetAspect);
+        var widgetAspect = widgetSize.Y / widgetSize.X;
+        var scaledWidgetSize = new Vector2<float>(drawSize.X, drawSize.X * widgetAspect);
 
         if (drawSize.Equals(scaledWidgetSize)) return scaledWidgetSize;
         
-        return scaledWidgetSize.Height <= drawSize.Height
+        return scaledWidgetSize.Y <= drawSize.Y
             ? scaledWidgetSize
-            : new Size2d(drawSize.Height / widgetAspect, drawSize.Height);
+            : new Vector2<float>(drawSize.Y / widgetAspect, drawSize.Y);
     }
 
-    public static Size2d ComputeCoverSize(Size2d drawSize, Size2d widgetSize)
+    public static Vector2<float> ComputeCoverSize(Vector2<float> drawSize, Vector2<float> widgetSize)
     {
-        var widgetAspect = widgetSize.Height / widgetSize.Width;
-        var scaledWidgetSize = new Size2d(drawSize.Width, drawSize.Width * widgetAspect);
+        var widgetAspect = widgetSize.Y / widgetSize.X;
+        var scaledWidgetSize = new Vector2<float>(drawSize.X, drawSize.X * widgetAspect);
 
         if (drawSize.Equals(scaledWidgetSize)) return scaledWidgetSize;
 
 
-        return scaledWidgetSize.Height <= drawSize.Height
-            ? new Size2d(drawSize.Height / widgetAspect, drawSize.Height)
+        return scaledWidgetSize.Y <= drawSize.Y
+            ? new Vector2<float>(drawSize.Y / widgetAspect, drawSize.Y)
             : scaledWidgetSize;
     }
 
-    public void SizeContent(Size2d drawSize)
+    public void SizeContent(Vector2<float> drawSize)
     {
         if (GetSlot(0) is { } slot)
         {
-            var widget = slot.GetWidget();
+            var widget = slot.Child;
             var widgetSize = widget.GetDesiredSize();
             var newDrawSize = widgetSize.Equals(drawSize)
                 ? widgetSize
@@ -87,21 +91,21 @@ public class WCFitter : Container
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-            if (!newDrawSize.Equals(widget.GetContentSize())) widget.SetSize(newDrawSize);
+            if (!newDrawSize.Equals(widget.GetContentSize())) widget.Size = newDrawSize;
 
 
-            Vector2<float> halfSelfDrawSize = drawSize;
+            var halfSelfDrawSize = drawSize;
             halfSelfDrawSize /= 2.0f;
-            Vector2<float> halfSlotDrawSize = newDrawSize;
+            var halfSlotDrawSize = newDrawSize;
             halfSlotDrawSize /= 2.0f;
 
             var diff = halfSelfDrawSize - halfSlotDrawSize;
 
-            if (!widget.GetOffset().Equals(diff)) widget.SetOffset(diff);
+            if (!widget.Offset.Equals(diff)) widget.Offset = diff;
         }
     }
 
-    protected override void ArrangeSlots(Size2d drawSize)
+    protected override void ArrangeSlots(Vector2<float> drawSize)
     {
         SizeContent(drawSize);
     }

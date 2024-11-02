@@ -61,14 +61,14 @@ public class Viewport : Widget
 {
     public readonly Scene TargetScene;
     public EViewportChannel Channel = EViewportChannel.Scene;
-    public WText ModeText;
+    public TextWidget ModeText;
     private bool _ignoreNextMove = false;
     private Vector2<float> _mousePosition = 0.0f;
     private bool _captureMouse = false;
 
     public Vector2<float> AbsoluteCenter =>
         ((Vector2<float>)GetContentSize() / 2.0f).ApplyTransformation(ComputeAbsoluteTransform());
-    public Viewport(Scene scene,WText modeText)
+    public Viewport(Scene scene,TextWidget modeText)
     {
         TargetScene = scene;
         ModeText = modeText;
@@ -89,14 +89,14 @@ public class Viewport : Widget
         };
     }
 
-    protected override Size2d ComputeDesiredContentSize() => new Size2d();
+    protected override Vector2<float> ComputeDesiredContentSize() => new Vector2<float>();
 
     public override void Collect(WidgetFrame frame, TransformInfo info)
     {
         frame.AddCommands(new DrawSceneCommand(TargetScene,Channel));
     }
 
-    public override void SetSize(Size2d size)
+    public override void SetSize(Vector2<float> size)
     {
         base.SetSize(size);
         TargetScene.Drawer?.Resize(new Vector2<uint>((uint)Math.Ceiling(size.Width),(uint)Math.Ceiling(size.Height)));

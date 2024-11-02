@@ -3,49 +3,47 @@
 namespace rin.Widgets.Containers;
 
 /// <summary>
-///     Needs work, do not use
+/// Needs work, do not use
+/// Slot = <see cref="ContainerSlot"/>
 /// </summary>
 public class WrapBox : Container
 {
-    public WrapBox(params Widget[] children) : base(children)
-    {
-    }
 
-    protected override Size2d ComputeDesiredContentSize()
+    protected override Vector2<float> ComputeDesiredContentSize()
     {
-        return GetSlots().Aggregate(new Size2d(), (size, slot) =>
+        return GetSlots().Aggregate(new Vector2<float>(), (size, slot) =>
         {
-            var slotSize = slot.GetWidget().GetDesiredSize();
-            size.Width += slotSize.Width;
-            size.Height = System.Math.Max(size.Height, slotSize.Height);
+            var slotSize = slot.Child.GetDesiredSize();
+            size.X += slotSize.X;
+            size.Y = System.Math.Max(size.Y, slotSize.Y);
             return size;
         });
     }
 
-    protected override void ArrangeSlots(Size2d drawSize)
+    protected override void ArrangeSlots(Vector2<float> drawSize)
     {
         var offset = new Vector2<float>(0.0f);
         var rowHeight = 0.0f;
 
         foreach (var slot in GetSlots())
         {
-            var widget = slot.GetWidget();
-            widget.SetSize(widget.GetDesiredSize());
+            var widget = slot.Child;
+            widget.Size = (widget.GetDesiredSize());
             var widgetDrawSize = widget.GetContentSize();
-            if (offset.X + widgetDrawSize.Width > drawSize.Width)
+            if (offset.X + widgetDrawSize.X > drawSize.X)
                 if (offset.X != 0)
                 {
                     offset.X = 0.0f;
                     offset.Y += rowHeight;
                 }
 
-            widget.SetOffset(offset.Clone());
+            widget.Offset = (offset.Clone());
 
-            rowHeight = System.Math.Max(rowHeight, widgetDrawSize.Height);
+            rowHeight = System.Math.Max(rowHeight, widgetDrawSize.Y);
 
-            offset.X += widgetDrawSize.Width;
+            offset.X += widgetDrawSize.X;
 
-            if (!(offset.X >= drawSize.Width)) continue;
+            if (!(offset.X >= drawSize.X)) continue;
 
             offset.X = 0.0f;
             offset.Y += rowHeight;

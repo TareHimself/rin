@@ -10,7 +10,7 @@ using MathNet.Numerics;
 namespace AudioPlayer.Widgets;
 
 
-public class FpsWidget : WText
+public class FpsWidget : TextWidget
 {
     
     class GetStatsCommand(FpsWidget widget) : CustomCommand

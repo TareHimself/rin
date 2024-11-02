@@ -11,7 +11,7 @@ using Color = rin.Widgets.Color;
 
 namespace AudioPlayer.Widgets;
 
-public class AsyncWebCover : WCoverImage
+public class AsyncWebCover : CoverImageWidget
 {
     public AsyncWebCover(string uri) : base()
     {

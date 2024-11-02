@@ -8,40 +8,85 @@ using rin.Widgets.Graphics.Commands;
 namespace rin.Widgets;
 public abstract class Container : Widget
 {
-    private readonly ConcurrentDictionary<Widget, Slot> _widgetSlotMap = [];
-    private readonly List<Slot> _slots = new();
+    private readonly ConcurrentDictionary<Widget, ContainerSlot> _widgetSlotMap = [];
+    private readonly List<ContainerSlot> _slots = [];
     
     protected readonly Mutex SlotsMutex = new();
     
-    public ClipMode Clip = ClipMode.None;
+    public Clip Clip = Clip.None;
     
-    public Container(IEnumerable<Widget> children)
+    
+    /// <summary>
+    /// Adds the Widget to this container
+    /// </summary>
+    public Widget Child
     {
-        foreach (var widget in children)
-            if (AddChild(widget) == null)
-                break;
+        init => AddChild(value);
     }
     
-    public Container(IEnumerable<Slot> children)
+    /// <summary>
+    /// Adds the widgets to this container
+    /// </summary>
+    public Widget[] Children
     {
-        foreach (var slot in children)
-            if (AddChild(slot) == null)
-                break;
+        init
+        {
+            foreach (var slot in value)
+            {
+                AddChild(slot);
+            }
+        }
     }
     
+    /// <summary>
+    /// Adds the slot to this container
+    /// </summary>
+    public ContainerSlot Slot
+    {
+        init => AddChild(value);
+    }
+
+    
+    /// <summary>
+    /// Adds the slots to this container
+    /// </summary>
+    public ContainerSlot[] Slots
+    {
+        init
+        {
+            foreach (var slot in value)
+            {
+                AddChild(slot);
+            }
+        }
+    }
+
+
+    public override Vector2<float> Size
+    {
+        set
+        {
+            base.Size = value;
+            ArrangeSlots(GetContentSize());
+        }
+    }
+
     public Container()
     {
     }
     
-    protected abstract void ArrangeSlots(Size2d drawSize);
+    protected abstract void ArrangeSlots(Vector2<float> drawSize);
     
     
-    public virtual Slot MakeSlot(Widget widget)
+    public virtual ContainerSlot MakeSlot(Widget widget)
     {
-        return new Slot(widget,this);
+        return new ContainerSlot(this)
+        {
+            Child = widget
+        };
     }
     
-    public virtual Slot? AddChild<TE>() where TE : Widget
+    public virtual ContainerSlot? AddChild<TE>() where TE : Widget
     {
         return AddChild(Activator.CreateInstance<TE>());
     }
@@ -53,21 +98,21 @@ public abstract class Container : Widget
             OnSlotUpdated(slot);
         }
     }
-    public virtual void OnSlotUpdated(Slot slot)
+    public virtual void OnSlotUpdated(ContainerSlot slot)
     {
         if (TryUpdateDesiredSize()) ArrangeSlots(GetContentSize());
     }
 
-    public Slot? AddChild(Widget widget) => AddChild(MakeSlot(widget));
+    public ContainerSlot? AddChild(Widget widget) => AddChild(MakeSlot(widget));
     
-    public Slot? AddChild(Slot slot)
+    public ContainerSlot? AddChild(ContainerSlot slot)
     {
         lock (SlotsMutex)
         {
             var maxSlots = GetMaxSlots();
             if (maxSlots > 0 && _slots.Count == maxSlots) return null;
                 
-            var widget = slot.GetWidget();
+            var widget = slot.Child;
             
             widget.SetParent(this);
             
@@ -92,7 +137,7 @@ public abstract class Container : Widget
         {
             for (var i = 0; i < _slots.Count; i++)
             {
-                if (_slots[i].GetWidget() != widget) continue;
+                if (_slots[i].Child != widget) continue;
 
                 widget.SetParent(null);
 
@@ -115,7 +160,7 @@ public abstract class Container : Widget
         }
     }
 
-    public virtual Slot? GetSlot(int idx)
+    public virtual ContainerSlot? GetSlot(int idx)
     {
         lock (SlotsMutex)
         {
@@ -123,7 +168,7 @@ public abstract class Container : Widget
         }
     }
 
-    public virtual Slot[] GetSlots()
+    public virtual ContainerSlot[] GetSlots()
     {
         lock (SlotsMutex)
         {
@@ -143,7 +188,7 @@ public abstract class Container : Widget
 
     public override Widget? ReceiveCursorDown(CursorDownEvent e, TransformInfo info)
     {
-        if (IsChildrenHitTestable())
+        if (IsChildrenHitTestable)
         {
             var res = ChildrenReceiveCursorDown(e, info);
             if (res != null ) return res;
@@ -159,7 +204,7 @@ public abstract class Container : Widget
         {
             var slotInfo = ComputeContentTransform(slot, info);
             if (!slotInfo.PointWithin(point)) continue;
-            var res = slot.GetWidget().ReceiveCursorDown(e, slotInfo);
+            var res = slot.Child.ReceiveCursorDown(e, slotInfo);
             if (res != null) return res;
         }
 
@@ -168,7 +213,7 @@ public abstract class Container : Widget
 
     public override void ReceiveCursorEnter(CursorMoveEvent e, TransformInfo info, List<Widget> items)
     {
-        if (IsChildrenHitTestable()) ChildrenReceiveCursorEnter(e, info, items);
+        if (IsChildrenHitTestable) ChildrenReceiveCursorEnter(e, info, items);
 
         base.ReceiveCursorEnter(e, info, items);
     }
@@ -180,13 +225,13 @@ public abstract class Container : Widget
             {
                 var slotInfo = ComputeContentTransform(slot, info);
                 if (slotInfo.PointWithin(point))
-                    slot.GetWidget().ReceiveCursorEnter(e, slotInfo, items);
+                    slot.Child.ReceiveCursorEnter(e, slotInfo, items);
             }
     }
 
     public override bool ReceiveCursorMove(CursorMoveEvent e, TransformInfo info)
     {
-        if (IsChildrenHitTestable() && ChildrenReceiveCursorMove(e, info)) return true;
+        if (IsChildrenHitTestable && ChildrenReceiveCursorMove(e, info)) return true;
 
         return base.ReceiveCursorMove(e, info);
     }
@@ -198,7 +243,7 @@ public abstract class Container : Widget
         {
             var slotInfo = ComputeContentTransform(slot, info);
             if (slotInfo.PointWithin(point) &&
-                slot.GetWidget().ReceiveCursorMove(e, slotInfo))
+                slot.Child.ReceiveCursorMove(e, slotInfo))
                 return true;
         }
 
@@ -207,7 +252,7 @@ public abstract class Container : Widget
 
     public override bool ReceiveScroll(ScrollEvent e, TransformInfo info)
     {
-        if (IsChildrenHitTestable() && ChildrenReceiveScroll(e, info)) return true;
+        if (IsChildrenHitTestable && ChildrenReceiveScroll(e, info)) return true;
 
         return base.ReceiveScroll(e, info);
     }
@@ -219,17 +264,11 @@ public abstract class Container : Widget
             {
                 var slotInfo = ComputeContentTransform(slot, info);
                 if (slotInfo.PointWithin(point) &&
-                    slot.GetWidget().ReceiveScroll(e, slotInfo))
+                    slot.Child.ReceiveScroll(e, slotInfo))
                     return true;
             }
 
         return false;
-    }
-
-    public override void SetSize(Size2d size)
-    {
-        base.SetSize(size);
-        ArrangeSlots(GetContentSize());
     }
 
     public override void NotifyAddedToSurface(Surface surface)
@@ -238,7 +277,7 @@ public abstract class Container : Widget
         lock (SlotsMutex)
         {
             foreach (var slot in _slots)
-                slot.GetWidget().NotifyAddedToSurface(surface);
+                slot.Child.NotifyAddedToSurface(surface);
         }
     }
 
@@ -248,7 +287,7 @@ public abstract class Container : Widget
         lock (SlotsMutex)
         {
             foreach (var slot in _slots)
-                slot.GetWidget().NotifyRemovedFromSurface(surface);
+                slot.Child.NotifyRemovedFromSurface(surface);
         }
     }
 
@@ -257,7 +296,7 @@ public abstract class Container : Widget
         base.OnDispose(isManual);
         lock (SlotsMutex)
         {
-            foreach (var slot in _slots) slot.GetWidget().Dispose();
+            foreach (var slot in _slots) slot.Child.Dispose();
         }
     }
 
@@ -268,28 +307,28 @@ public abstract class Container : Widget
     /// <param name="info">The Absolute Transform info of this widget</param>
     /// <param name="withPadding">Should we also account for padding ? (should be true except when used in <see cref="CollectContent"/>)</param>
     /// <returns>The Absolute Transform info of content</returns>
-    public TransformInfo ComputeContentTransform(Slot slot, TransformInfo info, bool withPadding = true)
+    public TransformInfo ComputeContentTransform(ContainerSlot slot, TransformInfo info, bool withPadding = true)
     {
-        return OffsetTransformTo(slot.GetWidget(), info,withPadding);
+        return OffsetTransformTo(slot.Child, info,withPadding);
     }
 
-    public virtual IEnumerable<Slot> GetCollectableSlots() => GetSlots();
-    public virtual IEnumerable<Slot> GetHitTestableSlots() => GetSlots();
+    public virtual IEnumerable<ContainerSlot> GetCollectableSlots() => GetSlots();
+    public virtual IEnumerable<ContainerSlot> GetHitTestableSlots() => GetSlots();
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
         drawCommands.IncrDepth();
         switch (Clip)
         {
-            case ClipMode.None:
+            case Clip.None:
                 foreach (var slot in GetCollectableSlots())
                 {
                     var newTransform = ComputeContentTransform(slot, info,false);
-                    var widget = slot.GetWidget();
+                    var widget = slot.Child;
                     widget.Collect(newTransform,drawCommands);
                 }
                 break;
-            case ClipMode.Bounds:
+            case Clip.Bounds:
             {
                 drawCommands.PushClip(info,this);
 
@@ -302,7 +341,7 @@ public abstract class Container : Widget
                     
                     if(!myAAR.IntersectsWith(slotAAR)) continue;
                     
-                    var widget = slot.GetWidget();
+                    var widget = slot.Child;
                     widget.Collect(newTransform,drawCommands);
                 }
                 

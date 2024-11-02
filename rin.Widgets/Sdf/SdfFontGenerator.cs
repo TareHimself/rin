@@ -103,7 +103,7 @@ public class SdfFontGenerator(FontFamily family)
                 }
             });
             
-            await atlas.SaveAsPngAsync($"./atlas_{i}.png");
+            //await atlas.SaveAsPngAsync($"./atlas_{i}.png");
         }
 
         var resourceManager = SGraphicsModule.Get().GetResourceManager();

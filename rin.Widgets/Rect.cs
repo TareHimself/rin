@@ -6,15 +6,15 @@ namespace rin.Widgets;
 public class Rect : ICloneable<Rect>
 {
     public Vector2<float> Offset;
-    public Size2d Size;
+    public Vector2<float> Size;
 
     public Rect()
     {
         Offset = new Vector2<float>(0, 0);
-        Size = new Size2d();
+        Size = new Vector2<float>();
     }
 
-    public Rect(Vector2<float> inOffset, Size2d inSize)
+    public Rect(Vector2<float> inOffset, Vector2<float> inSize)
     {
         Offset = inOffset;
         Size = inSize;
@@ -27,8 +27,8 @@ public class Rect : ICloneable<Rect>
 
     public static implicit operator Vector4<float>(Rect rect)
     {
-        return new Vector4<float>(rect.Offset.X, rect.Offset.Y, rect.Size.Width,
-            rect.Size.Height);
+        return new Vector4<float>(rect.Offset.X, rect.Offset.Y, rect.Size.X,
+            rect.Size.X);
     }
 
     public bool IntersectsWith(Rect rect)
@@ -60,7 +60,7 @@ public class Rect : ICloneable<Rect>
         if (!IntersectsWith(area))
         {
             Offset = area.Offset.Clone();
-            Size = new Size2d();
+            Size = new Vector2<float>();
             return this;
         }
 

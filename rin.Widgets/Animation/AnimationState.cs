@@ -13,7 +13,7 @@ public class AnimationState(float startTime, AnimationAction animation, Widget t
     public void Start()
     {
         Active = true;
-        StartTime = (float)SRuntime.Get().GetElapsedRuntimeTimeSeconds();
+        StartTime = (float)SRuntime.Get().GetTimeSeconds();
         Animation.OnStart(this);
     }
 

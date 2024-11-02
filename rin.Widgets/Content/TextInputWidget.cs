@@ -7,9 +7,9 @@ using rin.Windows;
 
 namespace rin.Widgets.Content;
 
-public class WTextBox : WText
+public class TextInputWidget : TextWidget
 {
-    public WTextBox(string data = "",int fontSize = 100,string fontFamily = "Arial") : base(data,fontSize,fontFamily)
+    public TextInputWidget(string data = "",int fontSize = 100,string fontFamily = "Arial") : base(data,fontSize,fontFamily)
     {
     }
 
@@ -47,7 +47,7 @@ public class WTextBox : WText
     {
         base.CollectContent(info,drawCommands);
 
-        if (!ShouldDraw || !Focused) return;
+        if (!ShouldDraw || !IsFocused) return;
         
         GetContentBounds(out var bounds);
         var cursorPosition = Content.Length > 0 ? Content.Length - 1 : -1;
@@ -60,11 +60,11 @@ public class WTextBox : WText
             offset.X += targetBounds.Bounds.Right - 2.0f;
         }
 
-        var height = GetDesiredSize().Height;
+        var height = GetDesiredSize().X;
         var color = ForegroundColor.Clone();
-        var sin = (float)((System.Math.Sin(SRuntime.Get().GetElapsedRuntimeTimeSeconds() * 5) + 1.0f) / 2.0f);
+        var sin = (float)((System.Math.Sin(SRuntime.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f);
         color.A *= sin > 0.35 ? 1.0f : 0.0f;
-        // frame.AddRect(drawInfo.Transform.Translate(offset), new Size2d(2.0f, height),
+        // frame.AddRect(drawInfo.Transform.Translate(offset), new Vector2<float>(2.0f, height),
         //     color: color);
     }
 }

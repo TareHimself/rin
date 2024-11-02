@@ -1,6 +1,6 @@
 ﻿namespace rin.Widgets;
 
-public enum WidgetVisibility
+public enum Visibility
 {
     // visible and all hit tests
     Visible,

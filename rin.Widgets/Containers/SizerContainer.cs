@@ -2,18 +2,13 @@
 
 namespace rin.Widgets.Containers;
 
-public class WCSizer : Container
+/// <summary>
+/// Slot = <see cref="ContainerSlot"/>
+/// </summary>
+public class SizerContainer : Container
 {
     private float? _heightOverride;
     private float? _widthOverride;
-
-    public WCSizer(Widget child) : base([child])
-    {
-    }
-
-    public WCSizer()
-    {
-    }
 
     public float? WidthOverride
     {
@@ -35,25 +30,25 @@ public class WCSizer : Container
         }
     }
 
-    protected override Size2d ComputeDesiredContentSize()
+    protected override Vector2<float> ComputeDesiredContentSize()
     {
         if (GetSlot(0) is { } slot)
         {
-            var desiredSize = slot.GetWidget().GetDesiredSize();
-            return new Size2d(WidthOverride ?? desiredSize.Width, HeightOverride ?? desiredSize.Height);
+            var desiredSize = slot.Child.GetDesiredSize();
+            return new Vector2<float>(WidthOverride ?? desiredSize.X, HeightOverride ?? desiredSize.Y);
         }
 
-        return new Size2d();
+        return new Vector2<float>();
     }
 
     public override int GetMaxSlots() => 1;
 
-    protected override void ArrangeSlots(Size2d drawSize)
+    protected override void ArrangeSlots(Vector2<float> drawSize)
     {
         if (GetSlot(0) is { } slot)
         {
-            slot.GetWidget().SetOffset(new Vector2<float>(0, 0));
-            slot.GetWidget().SetSize(drawSize.Clone());
+            slot.Child.Offset = (new Vector2<float>(0, 0));
+            slot.Child.Size = drawSize;
         }
     }
 }

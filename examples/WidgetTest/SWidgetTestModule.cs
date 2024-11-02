@@ -1,6 +1,8 @@
 ﻿using rin.Core;
+using rin.Core.Animation;
 using rin.Core.Extensions;
 using rin.Widgets;
+using rin.Widgets.Animation;
 using rin.Widgets.Containers;
 using rin.Widgets.Content;
 using rin.Windows;
@@ -16,43 +18,48 @@ public class SWidgetTestModule : RuntimeModule
 
         if (surf == null) return;
 
-        var panel = surf.Add(new WCPanel());
+        var panel = surf.Add(new PanelContainer());
 
-        var switcher = new WCSwitcher();
+        var switcher = new SwitcherContainer();
         
-        var imageSlot = (PanelSlot?)panel.AddChild(
-            new PanelSlot(switcher)
+        var imageSlot = (PanelContainerSlot?)panel.AddChild(
+            new PanelContainerSlot
             {
+                Child = switcher,
                 MaxAnchor = 1.0f
             }
         );
         
-        panel.AddChild(new PanelSlot(new WCBlur
-        {
-            Tint = new Color(1.0f)
+        panel.AddChild(new PanelContainerSlot{
+            Child = new BlurContainer
             {
-                R = 0.3f,
-                G = 0.3f,
-                B = 0.3f
-            }
-        }){
+                Tint = new Color(1.0f)
+                {
+                    R = 0.3f,
+                    G = 0.3f,
+                    B = 0.3f
+                }
+            },
             MinAnchor = 0.0f,
             MaxAnchor = 1.0f
         });
 
-        var textSlot = (PanelSlot?)panel.AddChild(new PanelSlot(new WText("Background Blur Using Blit", 40))
+        var textSlot = (PanelContainerSlot?)panel.AddChild(new PanelContainerSlot
         {
+            Child = new TextWidget("Background Blur Using Blit", 40),
             SizeToContent = true,
             Alignment = 0f,
             MinAnchor = 0f,
             MaxAnchor = 0f
         });
 
-        var textInputSlot = panel.AddChild(new PanelSlot(new WCSizer(new WTextBox("Example Text",100))
+        var textInputSlot = panel.AddChild(new PanelContainerSlot
         {
-            WidthOverride = 500
-        })
-        {
+            Child = new SizerContainer
+            {
+                Child = new TextInputWidget("Example Text",100),
+                WidthOverride = 500
+            },
             SizeToContent = true,
             Alignment = 0.5f,
             MinAnchor = 0.5f,
@@ -65,7 +72,7 @@ public class SWidgetTestModule : RuntimeModule
         SRuntime.Get().OnTick += d =>
         {
             frames++;
-            var txt = (WText)textSlot.GetWidget();
+            var txt = (TextWidget)textSlot.Child;
             txt.Content = $"Selected Index {switcher.SelectedIndex}";//$"Focused ${panel.Surface?.FocusedWidget}";
         };
 
@@ -99,15 +106,22 @@ public class SWidgetTestModule : RuntimeModule
                 }
             }
             
+            if (e is { State: KeyState.Pressed, Key: Key.F })
+            {
+                switcher.RotateTo(0, 360,2).Then().RotateTo(360, 0,2);
+                return;
+            }
+            
             if (e is { State: KeyState.Pressed, Key: Key.Enter })
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
-                    switcher.AddChild(new WCFitter(new AsyncFileImage(path))
+                    switcher.AddChild(new FitterContainer
                     {
+                        Child = new AsyncFileImage(path),
                         FittingMode = FitMode.Cover,
-                        Clip = ClipMode.Bounds,
-                        Padding = new WidgetPadding(100.0f)
+                        Clip = Clip.Bounds,
+                        Padding = new Padding(100.0f)
                     });
             }
         };
@@ -120,23 +134,26 @@ public class SWidgetTestModule : RuntimeModule
 
         if (surf == null) return;
 
-        var panel = surf.Add(new WCPanel());
+        var panel = surf.Add(new PanelContainer());
 
-        var sizer = new WCSizer(new WCSizer(new WCFitter(new AsyncFileImage(""))
+        var sizer = new SizerContainer
         {
-            FittingMode = FitMode.Cover,
-            Clip = ClipMode.Bounds
-        })
-        {
+            Child = new FitterContainer
+            {
+                Child = new AsyncFileImage(""),
+                FittingMode = FitMode.Cover,
+                Clip = Clip.Bounds
+            },
             WidthOverride = 600,
             HeightOverride = 600
-        });
+        };
 
-        panel.AddChild(new PanelSlot(sizer)
+        panel.AddChild(new PanelContainerSlot
         {
+            Child = sizer,
             MinAnchor = 0.5f,
             MaxAnchor = 0.5f,
-            Size = new Size2d(200, 200),
+            Size = 200.0f,
             Alignment = 0.5f
         });
     }
@@ -147,11 +164,12 @@ public class SWidgetTestModule : RuntimeModule
 
         if (surf == null) return;
 
-        var panel = surf.Add(new WCPanel());
+        var panel = surf.Add(new PanelContainer());
 
        
-        var textSlot = panel.AddChild(new PanelSlot(new WText("Test Text", 40))
+        var textSlot = panel.AddChild(new PanelContainerSlot
         {
+            Child = new TextWidget("Test Text", 40),
             SizeToContent = true,
             Alignment = 0f,
             MinAnchor = 0f,

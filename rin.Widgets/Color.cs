@@ -31,7 +31,7 @@ public class Color(float inR, float inG, float inB, float inA)
         return new Vector4<float>(color.R, color.G, color.B, color.A);
     }
 
-    public static Color FromHex(string hexCode)
+    public static Color FromHtml(string hexCode)
     {
         var c = ColorTranslator.FromHtml(hexCode);
         return new Color(Convert.ToInt16(c.R), Convert.ToInt16(c.G), Convert.ToInt16(c.B), Convert.ToInt16(c.A));

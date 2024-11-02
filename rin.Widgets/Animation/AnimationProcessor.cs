@@ -19,7 +19,7 @@ public class AnimationProcessor
 
     public void Apply()
     {
-        var currentTime = (float)SRuntime.Get().GetElapsedRuntimeTimeSeconds();
+        var currentTime = (float)SRuntime.Get().GetTimeSeconds();
         List<string> idsToRemove = [];
         foreach (var (_,state) in Actions)
         {

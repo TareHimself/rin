@@ -5,36 +5,28 @@ using rin.Widgets.Events;
 namespace rin.Widgets.Containers;
 
 /// <summary>
-///     A container that draws children on top of each other
+/// A container that draws children on top of each other
+/// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class WCOverlay : Container
+public class OverlayContainer : Container
 {
-    public WCOverlay() : base()
+    protected override Vector2<float> ComputeDesiredContentSize()
     {
-        
-    }
-    public WCOverlay(IEnumerable<Widget> children) : base(children)
-    {
-    }
-
-
-    protected override Size2d ComputeDesiredContentSize()
-    {
-        return GetSlots().Aggregate(new Size2d(), (size, slot) =>
+        return GetSlots().Aggregate(new Vector2<float>(), (size, slot) =>
         {
-            var slotSize = slot.GetWidget().GetDesiredSize();
-            size.Height = System.Math.Max(size.Height, slotSize.Height);
-            size.Width = System.Math.Max(size.Width, slotSize.Width);
+            var slotSize = slot.Child.GetDesiredSize();
+            size.Y = System.Math.Max(size.Y, slotSize.Y);
+            size.X = System.Math.Max(size.X, slotSize.X);
             return size;
         });
     }
     
-    protected override void ArrangeSlots(Size2d drawSize)
+    protected override void ArrangeSlots(Vector2<float> drawSize)
     {
         foreach (var slot in GetSlots())
         {
-            slot.GetWidget().SetOffset(new Vector2<float>(0, 0));
-            slot.GetWidget().SetSize(drawSize);
+            slot.Child.Offset = (new Vector2<float>(0, 0));
+            slot.Child.Size = (drawSize);
         }
     }
 

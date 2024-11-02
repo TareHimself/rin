@@ -341,9 +341,9 @@ public partial class WindowRenderer : Disposable
     }
     public void Draw()
     {
-        var start = SRuntime.Get().GetElapsedRuntimeTimeSeconds();
+        var start = SRuntime.Get().GetTimeSeconds();
         DrawFrame();
-        LastFrameTime = SRuntime.Get().GetElapsedRuntimeTimeSeconds() - start;
+        LastFrameTime = SRuntime.Get().GetTimeSeconds() - start;
     }
 
 

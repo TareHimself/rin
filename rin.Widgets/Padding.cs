@@ -4,17 +4,17 @@ using rin.Widgets.Containers;
 
 namespace rin.Widgets;
 
-public class WidgetPadding : ICloneable<WidgetPadding>
+public class Padding : ICloneable<Padding>
 {
     public float Left = 0.0f;
     public float Top = 0.0f;
     public float Right = 0.0f;
     public float Bottom = 0.0f;
 
-    public static implicit operator Vector4<float>(WidgetPadding p) =>
+    public static implicit operator Vector4<float>(Padding p) =>
         new Vector4<float>(p.Left, p.Top, p.Right, p.Bottom);
 
-    public WidgetPadding Clone() => new WidgetPadding()
+    public Padding Clone() => new Padding()
     {
         Left = Left,
         Right = Right,
@@ -22,13 +22,13 @@ public class WidgetPadding : ICloneable<WidgetPadding>
         Bottom = Bottom
     };
 
-    public static implicit operator WidgetPadding(float val) => new WidgetPadding(val);
+    public static implicit operator Padding(float val) => new Padding(val);
 
-    public WidgetPadding()
+    public Padding()
     {
     }
     
-    public WidgetPadding(float val)
+    public Padding(float val)
     {
         Left = val;
         Right = val;
@@ -36,7 +36,7 @@ public class WidgetPadding : ICloneable<WidgetPadding>
         Bottom = val;
     }
     
-    public WidgetPadding(float horizontal,float vertical)
+    public Padding(float horizontal,float vertical)
     {
         Left = horizontal;
         Right = horizontal;

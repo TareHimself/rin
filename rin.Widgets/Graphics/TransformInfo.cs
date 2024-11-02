@@ -6,7 +6,7 @@ namespace rin.Widgets.Graphics;
 public struct ClippingRect
 {
     public Matrix3 Matrix;
-    public Size2d Size;
+    public Vector2<float> Size;
 }
 
 public class TransformInfo : ICloneable<TransformInfo>
@@ -15,7 +15,7 @@ public class TransformInfo : ICloneable<TransformInfo>
     /// <summary>
     /// This is only used for intersection estimates
     /// </summary>
-    public Size2d Size;
+    public Vector2<float> Size;
     public int Depth;
     
     /// <summary>
@@ -23,7 +23,7 @@ public class TransformInfo : ICloneable<TransformInfo>
     /// </summary>
     public bool Occluded = false;
 
-    public TransformInfo(Matrix3 transform,Size2d size,int depth)
+    public TransformInfo(Matrix3 transform,Vector2<float> size,int depth)
     {
         Transform = transform;
         Size = size;
@@ -33,7 +33,7 @@ public class TransformInfo : ICloneable<TransformInfo>
     public TransformInfo(Surface surface)
     {
         Transform = Matrix3.Identity;
-        Size = surface.GetDrawSize();
+        Size = surface.GetDrawSize().Cast<float>();
         Depth = 0;
     }
 

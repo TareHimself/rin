@@ -1,6 +1,6 @@
 ﻿namespace rin.Widgets;
 
-public enum ClipMode
+public enum Clip
 {
     None,
     Bounds

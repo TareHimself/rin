@@ -23,7 +23,7 @@
 //         base.OnAddedToSurface(widgetSurface);
 //         _materialInstance.BindBuffer("ui", widgetSurface.GlobalBuffer);
 //     }
-//     protected override Size2d ComputeDesiredSize() => new Size2d(0, 0);
+//     protected override Vector2<float> ComputeDesiredSize() => new Vector2<float>(0, 0);
 //
 //     public override void Collect(WidgetFrame frame, TransformInfo info)
 //     {

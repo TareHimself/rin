@@ -4,22 +4,31 @@ using rin.Widgets.Graphics;
 
 namespace rin.Widgets.Containers;
 
-public class WCScrollList : WCList
+
+/// <summary>
+/// Slot = <see cref="ContainerSlot"/>
+/// </summary>
+public class ScrollContainer : ListContainer
 {
     private float _offset;
 
     public float MinBarSize = 40.0f;
-    private float mouseDownOffset;
-    private Vector2<float> MouseDownPos = new(0.0f);
-
-    public WCScrollList(IEnumerable<Widget> children) : base(children)
+    private float _mouseDownOffset;
+    private Vector2<float> _mouseDownPos = new(0.0f);
+    
+    
+    public override Vector2<float> Size
     {
-        Clip = ClipMode.Bounds;
+        set
+        {
+            base.Size = value;
+            ScrollTo(_offset);
+        }
     }
 
-    public WCScrollList() : base([])
+    public ScrollContainer() : base()
     {
-        
+        Clip = Widgets.Clip.Bounds;
     }
 
     public float ScrollScale { get; set; } = 10.0f;
@@ -41,7 +50,7 @@ public class WCScrollList : WCList
         return System.Math.Abs(offset - _offset) > 0.001;
     }
 
-    protected override void ArrangeSlots(Size2d drawSize)
+    protected override void ArrangeSlots(Vector2<float> drawSize)
     {
         base.ArrangeSlots(drawSize);
         ScrollTo(_offset);
@@ -55,10 +64,10 @@ public class WCScrollList : WCList
     public virtual float GetAxisSize()
     {
         var size = GetContentSize();
-        return Direction switch
+        return Axis switch
         {
-            Axis.Horizontal => size.Width,
-            Axis.Vertical => size.Height,
+            Containers.Axis.Row => size.X,
+            Containers.Axis.Column => size.Y,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -67,10 +76,10 @@ public class WCScrollList : WCList
     {
         var desiredSize = GetDesiredContentSize();
 
-        return Direction switch
+        return Axis switch
         {
-            Axis.Horizontal => desiredSize.Width,
-            Axis.Vertical => desiredSize.Height,
+            Containers.Axis.Row => desiredSize.X,
+            Containers.Axis.Column => desiredSize.Y,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -79,10 +88,10 @@ public class WCScrollList : WCList
     {
         var desiredSize = GetDesiredContentSize();
 
-        return Direction switch
+        return Axis switch
         {
-            Axis.Horizontal => desiredSize.Width - GetContentSize().Width,
-            Axis.Vertical => desiredSize.Height - GetContentSize().Height,
+            Containers.Axis.Row => desiredSize.X - GetContentSize().X,
+            Containers.Axis.Column => desiredSize.Y - GetContentSize().Y,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -92,24 +101,18 @@ public class WCScrollList : WCList
         return GetMaxScroll() > 0;
     }
 
-    public override void SetSize(Size2d size)
-    {
-        base.SetSize(size);
-        ScrollTo(_offset);
-    }
-
     protected override bool OnScroll(ScrollEvent e)
     {
         if (!IsScrollable()) return base.OnScroll(e);
 
-        switch (Direction)
+        switch (Axis)
         {
-            case Axis.Vertical:
+            case Containers.Axis.Column:
             {
                 var delta = e.Delta.Y * -1.0f;
                 return ScrollBy(delta * ScrollScale);
             }
-            case Axis.Horizontal:
+            case Containers.Axis.Row:
             {
                 var delta = e.Delta.X;
                 return ScrollBy(delta * ScrollScale);
@@ -135,7 +138,7 @@ public class WCScrollList : WCList
 
             var size = GetContentSize();
             
-            var transform = info.Transform.Translate(new Vector2<float>((float)(size.Width - 10.0f), drawOffset));
+            var transform = info.Transform.Translate(new Vector2<float>((float)(size.X - 10.0f), drawOffset));
             
             //frame.AddRect(transform, new Vector2<float>(10.0f, barSize), borderRadius: 7.0f, color: Color.White);
         }
@@ -143,10 +146,10 @@ public class WCScrollList : WCList
 
     public override TransformInfo OffsetTransformTo(Widget widget, TransformInfo info, bool withPadding = true)
     {
-        return base.OffsetTransformTo(widget, new TransformInfo(Direction switch
+        return base.OffsetTransformTo(widget, new TransformInfo(Axis switch
         {
-            Axis.Horizontal => info.Transform.Translate(new Vector2<float>(-GetScroll(), 0.0f)),
-            Axis.Vertical => info.Transform.Translate(new Vector2<float>(0.0f, -GetScroll())),
+            Containers.Axis.Row => info.Transform.Translate(new Vector2<float>(-GetScroll(), 0.0f)),
+            Containers.Axis.Column => info.Transform.Translate(new Vector2<float>(0.0f, -GetScroll())),
             _ => throw new ArgumentOutOfRangeException()
         }, info.Size, info.Depth),withPadding);
     }
@@ -154,8 +157,8 @@ public class WCScrollList : WCList
     
     protected override bool OnCursorDown(CursorDownEvent e)
     {
-        mouseDownOffset = _offset;
-        MouseDownPos = e.Position.Cast<float>();
+        _mouseDownOffset = _offset;
+        _mouseDownPos = e.Position.Cast<float>();
         return true;
     }
     
@@ -163,12 +166,12 @@ public class WCScrollList : WCList
     {
         if (IsPendingMouseUp)
         {
-            var pos = MouseDownPos - e.Position.Cast<float>();
+            var pos = _mouseDownPos - e.Position.Cast<float>();
     
-            return ScrollTo(Direction switch
+            return ScrollTo(Axis switch
             {
-                Axis.Horizontal => mouseDownOffset + pos.X,
-                Axis.Vertical => mouseDownOffset + pos.Y,
+                Containers.Axis.Row => _mouseDownOffset + pos.X,
+                Containers.Axis.Column => _mouseDownOffset + pos.Y,
                 _ => throw new ArgumentOutOfRangeException()
             });
             // var delta = Direction switch

@@ -95,8 +95,12 @@ public sealed class SRuntime : Disposable
                     pendingModules.Enqueue(attribDependency);
         }
     }
-
-    public double GetElapsedRuntimeTimeSeconds()
+    
+    /// <summary>
+    /// Returns the time elapsed since the runtime started
+    /// </summary>
+    /// <returns></returns>
+    public double GetTimeSeconds()
     {
         return (DateTime.UtcNow - _startTime).TotalSeconds;
     }

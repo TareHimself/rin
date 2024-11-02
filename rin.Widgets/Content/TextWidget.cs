@@ -33,15 +33,24 @@ public struct TextPushConstants
 ///     Draw's text using an <see cref="MtsdfFont" />. Currently, hardcoded to
 ///     <a href="https://fonts.google.com/specimen/Roboto">Roboto</a>.
 /// </summary>
-public class WText : Widget
+public class TextWidget : Widget
 {
     private string _content;
     private Font? _latestFont;
     private SdfFont? _mtsdf;
     private List<Quad>? _cachedDraw;
     private float _fontSize = 100.0f;
+    
+    public override Vector2<float> Size
+    {
+        set
+        {
+            base.Size = value;
+            _cachedDraw = null;
+        }
+    }
 
-    public WText(string inContent = "", float inFontSize = 100f,string fontFamily = "Arial")
+    public TextWidget(string inContent = "", float inFontSize = 100f,string fontFamily = "Arial")
     {
         FontSize = inFontSize;
         var gs = SGraphicsModule.Get();
@@ -112,16 +121,16 @@ public class WText : Widget
         bounds = tempBounds;
     }
 
-    protected override Size2d ComputeDesiredContentSize()
+    protected override Vector2<float> ComputeDesiredContentSize()
     {
-        if (_latestFont == null) return new Size2d();
+        if (_latestFont == null) return new Vector2<float>();
         GetContentBounds(out var bounds);
         GlyphBounds? last = bounds.ToArray().MaxBy(c => c.Bounds.Right);
         var lines = Math.Max(1,Content.Split("\n").Length);
         var metrics = _latestFont.FontMetrics;
         var height = (metrics.HorizontalMetrics.AdvanceHeightMax * 64 / metrics.ScaleFactor * FontSize) * lines;
 
-        return new Size2d(last?.Bounds.Right ?? 0.0f, height);
+        return new Vector2<float>(last?.Bounds.Right ?? 0.0f, height);
     }
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
@@ -139,12 +148,12 @@ public class WText : Widget
 
                 var charOffset = new Vector2<float>(bound.Bounds.X,
                     bound.Bounds.Y);
-                var charSize = new Size2d(bound.Bounds.Width, bound.Bounds.Height);
+                var charSize = new Vector2<float>(bound.Bounds.Width, bound.Bounds.Height);
                 //if (!charRect.IntersectsWith(drawInfo.Clip)) continue;
                 //if(!charRect.Offset.Within(drawInfo.Clip) && !(charRect.Offset + charRect.Size).Within(drawInfo.Clip)) continue;
 
                 var finalTransform = Matrix3.Identity.Translate(charOffset)
-                    .Translate(new Vector2<float>(0.0f, charSize.Height)).Scale(new Vector2<float>(1.0f, -1.0f));
+                    .Translate(new Vector2<float>(0.0f, charSize.Y)).Scale(new Vector2<float>(1.0f, -1.0f));
             
                 quadList.Add(new Quad(new Vector2<float>(bound.Bounds.Width, bound.Bounds.Height),finalTransform,atlasId.Value,1)
                 {
@@ -177,9 +186,6 @@ public class WText : Widget
         }
     }
 
-    public override void SetSize(Size2d size)
-    {
-        base.SetSize(size);
-        _cachedDraw = null;
-    }
+
+   
 }

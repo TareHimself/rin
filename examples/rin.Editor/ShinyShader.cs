@@ -35,9 +35,9 @@ public class ShinyShader : Widget
         base.OnRemovedFromSurface(surface);
     }
 
-    protected override Size2d ComputeDesiredContentSize()
+    protected override Vector2<float> ComputeDesiredContentSize()
     {
-        return new Size2d(400, 400);
+        return new Vector2<float>(400, 400);
     }
 
     public override void Collect(WidgetFrame frame, TransformInfo info)

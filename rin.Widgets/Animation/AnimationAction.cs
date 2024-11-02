@@ -27,7 +27,7 @@ public abstract class AnimationAction
     }
 
     public virtual AnimationState NewState(Widget widget) =>
-        new AnimationState((float)SRuntime.Get().GetElapsedRuntimeTimeSeconds(), this, widget);
+        new AnimationState((float)SRuntime.Get().GetTimeSeconds(), this, widget);
     
     /// <summary>
     /// Applies the actual animation, return true to keep animating and false to stop animating

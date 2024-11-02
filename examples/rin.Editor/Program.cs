@@ -29,9 +29,9 @@ internal class Program
     //         Tint = Color.Blue;
     //     }
     //
-    //     public override Size2d ComputeDesiredSize()
+    //     public override Vector2<float> ComputeDesiredSize()
     //     {
-    //         return new Size2d(200, 100);
+    //         return new Vector2<float>(200, 100);
     //     }
     // }
     //
@@ -101,7 +101,7 @@ internal class Program
     //     {
     //         Pivot = 0.5f;
     //     }
-    //     public override Size2d ComputeDesiredSize() => new Size2d(250, 250);
+    //     public override Vector2<float> ComputeDesiredSize() => new Vector2<float>(250, 250);
     //
     //     public override void Draw(WidgetFrame frame, DrawInfo info)
     //     {

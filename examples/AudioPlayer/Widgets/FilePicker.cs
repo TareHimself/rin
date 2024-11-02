@@ -18,7 +18,7 @@ public class FilePicker : Button
     public event Action<string[]>? OnFileSelected;
 
     protected Color BgColor = Color.Red;
-    protected readonly WText StatusText = new WText("Select File's");
+    protected readonly TextWidget StatusText = new TextWidget("Select File's");
     
     public FilePicker() : base()
     {
@@ -81,9 +81,5 @@ public class FilePicker : Button
         base.OnCursorLeave(e);
         
     }
-
-    public override void SetSize(Size2d size)
-    {
-        base.SetSize(size);
-    }
+    
 }

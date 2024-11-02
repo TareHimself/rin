@@ -9,12 +9,12 @@ namespace rin.Widgets.Content;
 /// <summary>
 ///     Draw's a <see cref="Texture" /> if provided or a colored rectangle. Supports tint.
 /// </summary>
-public class WImage : Widget
+public class ImageWidget : Widget
 {
 
     private int _textureId = -1;
 
-    public WImage()
+    public ImageWidget()
     {
     }
 
@@ -37,19 +37,19 @@ public class WImage : Widget
         base.OnDispose(isManual);
     }
     
-    protected override Size2d ComputeDesiredContentSize()
+    protected override Vector2<float> ComputeDesiredContentSize()
     {
         if (SGraphicsModule.Get().GetResourceManager()
                 .GetTextureImage(TextureId) is { } texture)
         {
-            return new Size2d
+            return new Vector2<float>
             {
-                Width = texture.Extent.width,
-                Height = texture.Extent.height
+                X = texture.Extent.width,
+                Y = texture.Extent.height
             };
         }
 
-        return new Size2d();
+        return new Vector2<float>();
     }
     
     protected override void OnRemovedFromSurface(Surface surface)
