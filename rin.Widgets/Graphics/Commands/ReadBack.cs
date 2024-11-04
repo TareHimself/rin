@@ -8,7 +8,7 @@ namespace rin.Widgets.Graphics.Commands;
 /// </summary>
 public class ReadBack : CustomCommand
 {
-    public override void Run(WidgetFrame frame, uint stencilMask)
+    public override void Run(WidgetFrame frame, uint stencilMask, ulong memory = 0)
     {
         if(frame.IsAnyPassActive) frame.EndActivePass();
         var cmd = frame.Raw.GetCommandBuffer();

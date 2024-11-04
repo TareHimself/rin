@@ -30,7 +30,7 @@ public class Tokenizer
 
    static bool IsSeparatorToken(Token token) => token.Type switch
    {
-      TokenType.OpSubtract or TokenType.OpAdd or TokenType.OpDivide or TokenType.OpMultiply or TokenType.Assign  => true,
+      TokenType.OpSubtract or TokenType.OpAdd or TokenType.OpDivide or TokenType.OpMultiply or TokenType.Assign or TokenType.OpIncrement or TokenType.OpDecrement  => true,
       _ => IsSplitToken(token) || token.Value is " " or "\n" or "\r"
    };
    

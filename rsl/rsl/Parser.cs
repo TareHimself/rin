@@ -330,11 +330,33 @@ switch (input.Front().Type)
         var left = ParseConditionalExpression(ref input);
         
         while (input.NotEmpty() &&
-               input.Front().Type is TokenType.Assign)
+               input.Front().Type is TokenType.Assign or TokenType.OpAddAssign or TokenType.OpSubtractAssign or TokenType.OpMultiplyAssign or TokenType.OpDivideAssign)
         {
-            var token = input.RemoveFront();
-            var right = ParseConditionalExpression(ref input);
-            left = new AssignNode(left, right);
+            switch (input.Front().Type)
+            {
+                case TokenType.Assign:
+                {
+                    var token = input.RemoveFront();
+                    var right = ParseConditionalExpression(ref input);
+                    left = new AssignNode(left, right);
+                }
+                    break;
+                default:
+                {
+                    var token = input.RemoveFront();
+                    var right = ParseConditionalExpression(ref input);
+                    left = new BinaryOpAndAssignNode(left, right,token.Type switch
+                    {
+                        TokenType.OpAddAssign => BinaryOp.Add,
+                        TokenType.OpSubtractAssign => BinaryOp.Subtract,
+                        TokenType.OpMultiplyAssign => BinaryOp.Multiply,
+                        TokenType.OpDivideAssign => BinaryOp.Divide,
+                        _ => throw new ArgumentOutOfRangeException()
+                    });
+                }
+                    break;
+            }
+            
         }
 
         return left;
@@ -608,15 +630,15 @@ switch (input.Front().Type)
 
         withinParen.ExpectFront(TokenType.OpenParen).RemoveFront();
 
-        input.ExpectFront(TokenType.CloseParen).RemoveBack();
+        input.ExpectFront(TokenType.CloseParen).RemoveFront();
 
-        var initTokens = ConsumeTokensTill(ref withinParen, [TokenType.Colon]);
+        var initTokens = ConsumeTokensTill(ref withinParen, [TokenType.StatementEnd]);
 
-        withinParen.ExpectFront(TokenType.Colon).RemoveFront();
+        withinParen.ExpectFront(TokenType.StatementEnd).RemoveFront();
 
-        var condTokens = ConsumeTokensTill(ref withinParen, [TokenType.Colon]);
+        var condTokens = ConsumeTokensTill(ref withinParen, [TokenType.StatementEnd]);
 
-        withinParen.ExpectFront(TokenType.Colon).RemoveFront();
+        withinParen.ExpectFront(TokenType.StatementEnd).RemoveFront();
 
         var noop = new NoOpNode();
 

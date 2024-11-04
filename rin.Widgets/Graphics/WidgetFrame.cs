@@ -44,7 +44,7 @@ public class WidgetFrame
         Surface.BeginMainPass(this,clearColor,clearStencil);
     }
 
-    public bool BeginMainPass(string passId) => Surface.TryBeginPass(this, passId);
+    public void EnsurePass(string passId,Action<WidgetFrame> applyPass) => Surface.EnsurePass(this, passId,applyPass);
 
     public void EndActivePass()
     {

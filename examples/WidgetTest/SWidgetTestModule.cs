@@ -5,6 +5,7 @@ using rin.Widgets;
 using rin.Widgets.Animation;
 using rin.Widgets.Containers;
 using rin.Widgets.Content;
+using rin.Widgets.Graphics.Quads;
 using rin.Windows;
 
 namespace WidgetTest;
@@ -30,14 +31,27 @@ public class SWidgetTestModule : RuntimeModule
             }
         );
         
+        // panel.AddChild(new PanelContainerSlot{
+        //     Child = new BlurContainer
+        //     {
+        //         Strength = 1.0f,
+        //         Tint = new Color(1.0f)
+        //         {
+        //             R = 0.3f,
+        //             G = 0.3f,
+        //             B = 0.3f
+        //         }
+        //     },
+        //     MinAnchor = 0.0f,
+        //     MaxAnchor = 1.0f
+        // });
+        
         panel.AddChild(new PanelContainerSlot{
-            Child = new BlurContainer
+            Child = new Canvas()
             {
-                Tint = new Color(1.0f)
+                Paint = (self,t, d) =>
                 {
-                    R = 0.3f,
-                    G = 0.3f,
-                    B = 0.3f
+                    d.AddRect(self.GetContentSize(), t.Transform, color: Color.Black.Clone(a: 0.6f));
                 }
             },
             MinAnchor = 0.0f,
@@ -164,16 +178,18 @@ public class SWidgetTestModule : RuntimeModule
 
         if (surf == null) return;
 
-        var panel = surf.Add(new PanelContainer());
-
-       
-        var textSlot = panel.AddChild(new PanelContainerSlot
+        var panel = surf.Add(new PanelContainer()
         {
-            Child = new TextWidget("Test Text", 40),
-            SizeToContent = true,
-            Alignment = 0f,
-            MinAnchor = 0f,
-            MaxAnchor = 0f
+            Slots = [
+                new PanelContainerSlot
+                {
+                    Child = new TextWidget("Test Text", 40),
+                    SizeToContent = true,
+                    Alignment = 0f,
+                    MinAnchor = 0f,
+                    MaxAnchor = 0f
+                }
+            ]
         });
     }
 

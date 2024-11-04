@@ -149,50 +149,59 @@ public abstract class Surface : Disposable
         return _copyImage;
     }
 
-    public virtual bool TryBeginPass(WidgetFrame frame, string passId)
+    /// <summary>
+    /// Returns true if the pass was not the active pass
+    /// </summary>
+    /// <param name="frame"></param>
+    /// <param name="passId"></param>
+    /// <param name="applyPass"></param>
+    /// <returns></returns>
+    public virtual void EnsurePass(WidgetFrame frame, string passId,Action<WidgetFrame> applyPass)
     {
-        if (frame.ActivePass == passId) return false;
+        if (frame.ActivePass == passId) return;
+        if(frame.ActivePass != passId) EndActivePass(frame);
+        applyPass.Invoke(frame);
         frame.ActivePass = passId;
-        return true;
     }
 
     public virtual void BeginMainPass(WidgetFrame frame, bool clearColor = false, bool clearStencil = false)
     {
-        if (!TryBeginPass(frame, MainPassId)) return;
-
-        var cmd = frame.Raw.GetCommandBuffer();
-
-        var size = GetDrawSize();
-
-        var drawExtent = new VkExtent3D
+        EnsurePass(frame,MainPassId, (_) =>
         {
-            width = (uint)size.X,
-            height = (uint)size.Y
-        };
+            var cmd = frame.Raw.GetCommandBuffer();
 
-        cmd.BeginRendering(new VkExtent2D
-        {
-            width = drawExtent.width,
-            height = drawExtent.height
-        }, [
-            SGraphicsModule.MakeRenderingAttachment(GetDrawImage().View,
-                VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, clearColor
+            var size = GetDrawSize();
+
+            var drawExtent = new VkExtent3D
+            {
+                width = (uint)size.X,
+                height = (uint)size.Y
+            };
+
+            cmd.BeginRendering(new VkExtent2D
+            {
+                width = drawExtent.width,
+                height = drawExtent.height
+            }, [
+                SGraphicsModule.MakeRenderingAttachment(GetDrawImage().View,
+                    VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, clearColor
+                        ? new VkClearValue
+                        {
+                            color = SGraphicsModule.MakeClearColorValue(0.0f)
+                        }
+                        : null)
+            ], stencilAttachment: SGraphicsModule.MakeRenderingAttachment(GetStencilImage().View,
+                VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, clearColor
                     ? new VkClearValue
                     {
                         color = SGraphicsModule.MakeClearColorValue(0.0f)
                     }
-                    : null)
-        ], stencilAttachment: SGraphicsModule.MakeRenderingAttachment(GetStencilImage().View,
-            VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, clearColor
-                ? new VkClearValue
-                {
-                    color = SGraphicsModule.MakeClearColorValue(0.0f)
-                }
-                : null));
+                    : null));
 
-        frame.Raw.ConfigureForWidgets(size.Cast<uint>());
+            frame.Raw.ConfigureForWidgets(size.Cast<uint>());
 
-        if (clearStencil) ResetStencilState(cmd);
+            if (clearStencil) ResetStencilState(cmd);
+        });
     }
 
     private static void ResetStencilState(VkCommandBuffer cmd,
@@ -493,6 +502,11 @@ public abstract class Surface : Disposable
                 // var dist = memoryNeeded & minOffsetAlignment;
                 // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
             }
+            else if (drawCommand is { Type: CommandType.Custom, Custom.MemoryNeeded: {} asCustomMemory } && asCustomMemory != 0)
+            {
+                bufferOffsets.Add(memoryNeeded);
+                memoryNeeded += asCustomMemory;
+            }
 
         var isWritingStencil = false;
         var isComparingStencil = false;
@@ -639,7 +653,20 @@ public abstract class Surface : Disposable
                     switch (command)
                     {
                         case { Type: CommandType.Custom, Custom: not null }:
-                            command.Custom.Run(widgetFrame, command.Mask);
+                        {
+                            var willUseMemory = command.Custom.MemoryNeeded > 0;
+                            if (willUseMemory)
+                            {
+                                var address = bufferAddress.GetValueOrDefault();
+                                address += bufferOffsets[bufferOffsetIndex];
+                                bufferOffsetIndex++;
+                                command.Custom.Run(widgetFrame,command.Mask,address);
+                            }
+                            else
+                            {
+                                command.Custom.Run(widgetFrame, command.Mask);
+                            }
+                            
                             if (command.Custom.WillDraw)
                             {
                                 widgetFrame.NonBatchedDraws++;
@@ -648,6 +675,7 @@ public abstract class Surface : Disposable
                             {
                                 widgetFrame.NonDraws++;
                             }
+                        }
                             break;
                         case { Type: CommandType.BatchedDraw, Batch: not null } when buffer != null:
                         {

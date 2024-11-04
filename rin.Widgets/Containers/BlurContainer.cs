@@ -1,23 +1,17 @@
 ﻿using System.Runtime.InteropServices;
+using rin.Core;
 using rin.Graphics;
 using rin.Graphics.Descriptors;
 using rin.Core.Math;
+using rin.Graphics.Shaders;
 using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Commands;
 
 namespace rin.Widgets.Containers;
 
-[StructLayout(LayoutKind.Sequential)]
-public struct BlurPushConstants
-{
-    public Matrix3 Transform;
 
-    public Vector2<float> Size;
 
-    public float BlurRadius;
 
-    public Vector4<float> Tint;
-}
 
 // internal class BlurCommand : Command
 // {
@@ -62,7 +56,7 @@ public struct BlurPushConstants
 public class BlurContainer : Container
 {
     public Color Tint = Color.White;
-    
+    public float Strength { get; set; } = 7.0f;
     protected override Vector2<float> ComputeDesiredContentSize()
     {
         if (GetSlot(0) is { } slot)
@@ -94,6 +88,7 @@ public class BlurContainer : Container
     {
         base.CollectContent(info, drawCommands);
         drawCommands.Add(new ReadBack());
+        drawCommands.Add(new BlurCommand(info.Transform,GetContentSize(),Strength,Tint));
     }
 
     protected override void ArrangeSlots(Vector2<float> drawSize)
