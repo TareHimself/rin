@@ -2,12 +2,7 @@
 
 namespace rin.Widgets.Events;
 
-public class Event
+public class Event(Surface surface)
 {
-    public Surface Surface;
-
-    public Event(Surface surface)
-    {
-        Surface = surface;
-    }
+    public Surface Surface = surface;
 }

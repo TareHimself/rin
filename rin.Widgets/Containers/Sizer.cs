@@ -5,7 +5,7 @@ namespace rin.Widgets.Containers;
 /// <summary>
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class SizerContainer : Container
+public class Sizer : Container
 {
     private float? _heightOverride;
     private float? _widthOverride;
@@ -41,7 +41,7 @@ public class SizerContainer : Container
         return new Vector2<float>();
     }
 
-    public override int GetMaxSlots() => 1;
+    public override int GetMaxSlotsCount() => 1;
 
     protected override void ArrangeSlots(Vector2<float> drawSize)
     {

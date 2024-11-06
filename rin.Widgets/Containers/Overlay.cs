@@ -8,7 +8,7 @@ namespace rin.Widgets.Containers;
 /// A container that draws children on top of each other
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class OverlayContainer : Container
+public class Overlay : Container
 {
     protected override Vector2<float> ComputeDesiredContentSize()
     {

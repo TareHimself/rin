@@ -22,11 +22,11 @@ public class SSceneTestModule : RuntimeModule
 
         var surf = SWidgetsModule.Get().GetWindowSurface();
         
-        var text = new TextWidget();
+        var text = new TextBox();
         
         var viewport = surf?.Add(new Viewport(scene,text));
         
-        var panel = surf?.Add(new PanelContainer());
+        var panel = surf?.Add(new Panel());
         
         var textSlot = panel?.AddChild(text);
         

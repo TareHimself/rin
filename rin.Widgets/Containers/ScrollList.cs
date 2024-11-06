@@ -1,22 +1,27 @@
 ﻿using rin.Core.Math;
 using rin.Widgets.Events;
 using rin.Widgets.Graphics;
+using rin.Widgets.Graphics.Quads;
 
 namespace rin.Widgets.Containers;
 
-
 /// <summary>
-/// Slot = <see cref="ContainerSlot"/>
+///     Slot = <see cref="ContainerSlot" />
 /// </summary>
-public class ScrollContainer : ListContainer
+public class ScrollList : List
 {
+    private float _mouseDownOffset;
+    private Vector2<float> _mouseDownPos = new(0.0f);
     private float _offset;
 
     public float MinBarSize = 40.0f;
-    private float _mouseDownOffset;
-    private Vector2<float> _mouseDownPos = new(0.0f);
-    
-    
+
+    public ScrollList()
+    {
+        Clip = Clip.Bounds;
+    }
+
+
     public override Vector2<float> Size
     {
         set
@@ -26,13 +31,8 @@ public class ScrollContainer : ListContainer
         }
     }
 
-    public ScrollContainer() : base()
-    {
-        Clip = Widgets.Clip.Bounds;
-    }
-
     public float ScrollScale { get; set; } = 10.0f;
-    
+
     public virtual bool ScrollBy(float delta)
     {
         var finalOffset = _offset + delta;
@@ -45,9 +45,9 @@ public class ScrollContainer : ListContainer
 
         if (scrollSize < 0) return false;
 
-        _offset = System.Math.Clamp(offset, 0, scrollSize);
-        
-        return System.Math.Abs(offset - _offset) > 0.001;
+        _offset = Math.Clamp(offset, 0, scrollSize);
+
+        return Math.Abs(offset - _offset) > 0.001;
     }
 
     protected override void ArrangeSlots(Vector2<float> drawSize)
@@ -60,38 +60,38 @@ public class ScrollContainer : ListContainer
     {
         return _offset;
     }
-    
+
     public virtual float GetAxisSize()
     {
         var size = GetContentSize();
         return Axis switch
         {
-            Containers.Axis.Row => size.X,
-            Containers.Axis.Column => size.Y,
+            Axis.Row => size.X,
+            Axis.Column => size.Y,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
-    
+
     public virtual float GetDesiredAxisSize()
     {
         var desiredSize = GetDesiredContentSize();
 
         return Axis switch
         {
-            Containers.Axis.Row => desiredSize.X,
-            Containers.Axis.Column => desiredSize.Y,
+            Axis.Row => desiredSize.X,
+            Axis.Column => desiredSize.Y,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
-    
+
     public virtual float GetMaxScroll()
     {
         var desiredSize = GetDesiredContentSize();
 
         return Axis switch
         {
-            Containers.Axis.Row => desiredSize.X - GetContentSize().X,
-            Containers.Axis.Column => desiredSize.Y - GetContentSize().Y,
+            Axis.Row => desiredSize.X - GetContentSize().X,
+            Axis.Column => desiredSize.Y - GetContentSize().Y,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -107,12 +107,12 @@ public class ScrollContainer : ListContainer
 
         switch (Axis)
         {
-            case Containers.Axis.Column:
+            case Axis.Column:
             {
                 var delta = e.Delta.Y * -1.0f;
                 return ScrollBy(delta * ScrollScale);
             }
-            case Containers.Axis.Row:
+            case Axis.Row:
             {
                 var delta = e.Delta.X;
                 return ScrollBy(delta * ScrollScale);
@@ -131,15 +131,15 @@ public class ScrollContainer : ListContainer
             var maxScroll = GetMaxScroll();
             var axisSize = GetAxisSize();
             var desiredAxisSize = GetDesiredAxisSize();
-                
-            var barSize = System.Math.Max(MinBarSize, axisSize - (desiredAxisSize - axisSize));
+
+            var barSize = Math.Max(MinBarSize, axisSize - (desiredAxisSize - axisSize));
             var availableDist = axisSize - barSize;
-            var drawOffset = (float)(availableDist * (System.Math.Max(scroll,0.0001) / maxScroll));
+            var drawOffset = (float)(availableDist * (Math.Max(scroll, 0.0001) / maxScroll));
 
             var size = GetContentSize();
-            
-            var transform = info.Transform.Translate(new Vector2<float>((float)(size.X - 10.0f), drawOffset));
-            
+
+            var transform = info.Transform.Translate(new Vector2<float>(size.X - 10.0f, drawOffset));
+            drawCommands.AddRect(new Vector2<float>(10.0f, barSize), transform, borderRadius: 7.0f, color: Color.White);
             //frame.AddRect(transform, new Vector2<float>(10.0f, barSize), borderRadius: 7.0f, color: Color.White);
         }
     }
@@ -148,30 +148,30 @@ public class ScrollContainer : ListContainer
     {
         return base.OffsetTransformTo(widget, new TransformInfo(Axis switch
         {
-            Containers.Axis.Row => info.Transform.Translate(new Vector2<float>(-GetScroll(), 0.0f)),
-            Containers.Axis.Column => info.Transform.Translate(new Vector2<float>(0.0f, -GetScroll())),
+            Axis.Row => info.Transform.Translate(new Vector2<float>(-GetScroll(), 0.0f)),
+            Axis.Column => info.Transform.Translate(new Vector2<float>(0.0f, -GetScroll())),
             _ => throw new ArgumentOutOfRangeException()
-        }, info.Size, info.Depth),withPadding);
+        }, info.Size, info.Depth), withPadding);
     }
-    
-    
+
+
     protected override bool OnCursorDown(CursorDownEvent e)
     {
         _mouseDownOffset = _offset;
         _mouseDownPos = e.Position.Cast<float>();
         return true;
     }
-    
+
     protected override bool OnCursorMove(CursorMoveEvent e)
     {
         if (IsPendingMouseUp)
         {
             var pos = _mouseDownPos - e.Position.Cast<float>();
-    
+
             return ScrollTo(Axis switch
             {
-                Containers.Axis.Row => _mouseDownOffset + pos.X,
-                Containers.Axis.Column => _mouseDownOffset + pos.Y,
+                Axis.Row => _mouseDownOffset + pos.X,
+                Axis.Column => _mouseDownOffset + pos.Y,
                 _ => throw new ArgumentOutOfRangeException()
             });
             // var delta = Direction switch
@@ -180,15 +180,10 @@ public class ScrollContainer : ListContainer
             //     Axis.Vertical => e.Delta.Y * -1.0f,
             //     _ => throw new ArgumentOutOfRangeException()
             // };
-    
+
             // return ScrollBy((float)delta);
         }
-    
-        return base.OnCursorMove(e);
-    }
 
-    public override void OnCursorUp(CursorUpEvent e)
-    {
-        base.OnCursorUp(e);
+        return base.OnCursorMove(e);
     }
 }

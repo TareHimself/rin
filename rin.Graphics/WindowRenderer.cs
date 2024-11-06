@@ -72,6 +72,9 @@ public partial class WindowRenderer : Disposable
         CreateSwapchain();
         InitFrames();
         _window.OnResized += OnResize;
+        _window.OnRefresh += OnRefresh;
+        // _window.OnMaximized += OnMaximized;
+        // _window.OnFocused += OnFocused;
     }
 
 
@@ -79,10 +82,27 @@ public partial class WindowRenderer : Disposable
     {
         CheckSwapchainSize();
     }
-
+    
+    protected void OnRefresh(Window.RefreshEvent e)
+    {
+        CheckSwapchainSize();
+    }
+    
+    // protected void OnMaximized(Window.MaximizedEvent e)
+    // {
+    //     CheckSwapchainSize();
+    // }
+    //
+    // protected void OnFocused(Window.FocusEvent e)
+    // {
+    //     CheckSwapchainSize();
+    // }
 
     protected override void OnDispose(bool isManual)
     {
+        // _window.OnFocused -= OnFocused;
+        // _window.OnMaximized -= OnMaximized;
+        _window.OnRefresh -= OnRefresh;
         _window.OnResized -= OnResize;
         foreach (var frame in _frames) frame.Dispose();
 

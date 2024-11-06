@@ -13,12 +13,12 @@ public enum FitMode
 /// <summary>
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class FitterContainer : Container
+public class Fitter : Container
 {
 
     private FitMode _fitFittingMode = FitMode.Fill;
     
-    public FitterContainer() : base()
+    public Fitter() : base()
     {
         Clip = Clip.Bounds;
     }
@@ -47,7 +47,7 @@ public class FitterContainer : Container
         return 0.0f;
     }
 
-    public override int GetMaxSlots() => 1;
+    public override int GetMaxSlotsCount() => 1;
 
     public static Vector2<float> ComputeContainSize(Vector2<float> drawSize, Vector2<float> widgetSize)
     {

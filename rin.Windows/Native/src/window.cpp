@@ -21,6 +21,7 @@ void* windowCreate(int width, int height, const char* name,const WindowCreateOpt
     glfwWindowHint(GLFW_MAXIMIZED, options->maximized ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_CENTER_CURSOR, options->cursorCentered ? GLFW_TRUE : GLFW_FALSE);
     
+    
     if (const auto win = glfwCreateWindow(width, height, name, nullptr, nullptr))
     {
         return win;
@@ -48,7 +49,9 @@ void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCallback,
                         const GlfwWindowFocusCallback windowFocusCallback, const GlfwScrollCallback scrollCallback,
                         const GlfwWindowSizeCallback windowSizeCallback,
                         const GlfwWindowCloseCallback windowCloseCallback,
-                        const GlfwCharCallback charCallback)
+                        const GlfwCharCallback charCallback,
+                        const GlfwMaximizedCallback maximizedCallback,
+                        const GlfwRefreshCallback refreshCallback)
 {
 
     glfwSetKeyCallback(window, keyCallback);
@@ -66,6 +69,11 @@ void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCallback,
     glfwSetWindowCloseCallback(window, windowCloseCallback);
 
     glfwSetCharModsCallback(window, charCallback);
+
+    glfwSetWindowMaximizeCallback(window,maximizedCallback);
+
+    glfwSetWindowRefreshCallback(window,refreshCallback);
+    
 }
 
 void* windowGetExtensions(unsigned* length)
@@ -96,7 +104,6 @@ void windowSetWindowPosition(GLFWwindow* window, int* x, int* y)
 void windowSetWindowSize(GLFWwindow* window, int* x, int* y)
 {
     glfwSetWindowSize(window,*x,*y);
-    
 }
 
 void windowSetWindowTitle(GLFWwindow* window, const char* title)

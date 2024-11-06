@@ -9,12 +9,12 @@ namespace rin.Widgets.Content;
 /// <summary>
 ///     Draw's a <see cref="Texture" /> if provided or a colored rectangle. Supports tint.
 /// </summary>
-public class ImageWidget : Widget
+public class Image : Widget
 {
 
     private int _textureId = -1;
 
-    public ImageWidget()
+    public Image()
     {
     }
 

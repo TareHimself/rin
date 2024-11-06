@@ -53,7 +53,7 @@ namespace rin.Widgets.Containers;
 /// <summary>
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class BlurContainer : Container
+public class BackgroundBlur : Container
 {
     public Color Tint = Color.White;
     public float Strength { get; set; } = 7.0f;
@@ -101,5 +101,5 @@ public class BlurContainer : Container
         }
     }
 
-    public override int GetMaxSlots() => 1;
+    public override int GetMaxSlotsCount() => 1;
 }

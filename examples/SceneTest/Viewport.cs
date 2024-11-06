@@ -61,14 +61,14 @@ public class Viewport : Widget
 {
     public readonly Scene TargetScene;
     public EViewportChannel Channel = EViewportChannel.Scene;
-    public TextWidget ModeText;
+    public TextBox ModeText;
     private bool _ignoreNextMove = false;
     private Vector2<float> _mousePosition = 0.0f;
     private bool _captureMouse = false;
 
     public Vector2<float> AbsoluteCenter =>
         ((Vector2<float>)GetContentSize() / 2.0f).ApplyTransformation(ComputeAbsoluteTransform());
-    public Viewport(Scene scene,TextWidget modeText)
+    public Viewport(Scene scene,TextBox modeText)
     {
         TargetScene = scene;
         ModeText = modeText;

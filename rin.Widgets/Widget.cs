@@ -151,6 +151,8 @@ public abstract class Widget : Disposable, IAnimatable
     /// Check if this widget is focused by its current surface
     /// </summary>
     public bool IsFocused => Surface?.FocusedWidget == this;
+
+    public virtual bool IsFocusable { get; } = false;
     
     /// <summary>
     ///     Computes the relative/local transformation matrix for this widget
@@ -198,6 +200,10 @@ public abstract class Widget : Disposable, IAnimatable
             {
                 _cursorUpRoot = Surface;
                 BindCursorUp();
+                if (IsFocusable)
+                {
+                    Surface?.RequestFocus(this);
+                }
                 return this;
             }
 
@@ -279,6 +285,16 @@ public abstract class Widget : Disposable, IAnimatable
     protected virtual bool OnScroll(ScrollEvent e)
     {
         return false;
+    }
+    
+    public virtual void OnCharacter(CharacterEvent e)
+    {
+        
+    }
+    
+    public virtual void OnKeyboard(KeyboardEvent e)
+    {
+        
     }
     
     public virtual void OnFocus()
@@ -365,16 +381,16 @@ public abstract class Widget : Disposable, IAnimatable
         }
 
         ((IAnimatable)this).Update();
-        //
-        // CollectSelf(new TransformInfo(info.Transform,Size,info.Depth),drawCommands);
-        //
+        
+        CollectSelf(new TransformInfo(info.Transform,Size,info.Depth),drawCommands);
+        
         CollectContent(new TransformInfo(info.Transform.Translate(new Vector2<float>(Padding.Left,Padding.Top)),GetContentSize(),info.Depth),drawCommands);
     }
 
-    // public virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
-    // {
-    //     
-    // }
+    public virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
+    {
+        
+    }
     /// <summary>
     /// Collect Draw commands from this widget while accounting for padding offsets
     /// </summary>

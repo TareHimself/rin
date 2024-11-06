@@ -19,82 +19,61 @@ public class SWidgetTestModule : RuntimeModule
 
         if (surf == null) return;
 
-        var panel = surf.Add(new PanelContainer());
 
-        var switcher = new SwitcherContainer();
-        
-        var imageSlot = (PanelContainerSlot?)panel.AddChild(
-            new PanelContainerSlot
-            {
-                Child = switcher,
-                MaxAnchor = 1.0f
-            }
-        );
-        
-        // panel.AddChild(new PanelContainerSlot{
-        //     Child = new BlurContainer
-        //     {
-        //         Strength = 1.0f,
-        //         Tint = new Color(1.0f)
-        //         {
-        //             R = 0.3f,
-        //             G = 0.3f,
-        //             B = 0.3f
-        //         }
-        //     },
-        //     MinAnchor = 0.0f,
-        //     MaxAnchor = 1.0f
-        // });
-        
-        panel.AddChild(new PanelContainerSlot{
-            Child = new Canvas()
-            {
-                Paint = (self,t, d) =>
+        var switcher = new Switcher();
+
+        var infoText = new TextBox("Background Blur Using Blit", 40);
+
+        surf.Add(new Panel
+        {
+            Slots =
+            [
+                new PanelSlot
                 {
-                    d.AddRect(self.GetContentSize(), t.Transform, color: Color.Black.Clone(a: 0.6f));
+                    Child = switcher,
+                    MaxAnchor = 1.0f
+                },
+                new PanelSlot
+                {
+                    Child = new Canvas
+                    {
+                        Paint = (self, t, d) =>
+                        {
+                            d.AddRect(self.GetContentSize(), t.Transform, color: Color.Black.Clone(a: 0.6f));
+                        }
+                    },
+                    MinAnchor = 0.0f,
+                    MaxAnchor = 1.0f
+                },
+                new PanelSlot
+                {
+                    Child = infoText,
+                    SizeToContent = true,
+                    Alignment = 0f,
+                    MinAnchor = 0f,
+                    MaxAnchor = 0f
+                },
+                new PanelSlot
+                {
+                    Child = new TextInputBox("Example Text", 100),
+                    SizeToContent = true,
+                    Alignment = 0.5f,
+                    MinAnchor = 0.5f,
+                    MaxAnchor = 0.5f
                 }
-            },
-            MinAnchor = 0.0f,
-            MaxAnchor = 1.0f
+            ]
         });
-
-        var textSlot = (PanelContainerSlot?)panel.AddChild(new PanelContainerSlot
-        {
-            Child = new TextWidget("Background Blur Using Blit", 40),
-            SizeToContent = true,
-            Alignment = 0f,
-            MinAnchor = 0f,
-            MaxAnchor = 0f
-        });
-
-        var textInputSlot = panel.AddChild(new PanelContainerSlot
-        {
-            Child = new SizerContainer
-            {
-                Child = new TextInputWidget("Example Text",100),
-                WidthOverride = 500
-            },
-            SizeToContent = true,
-            Alignment = 0.5f,
-            MinAnchor = 0.5f,
-            MaxAnchor = 0.5f
-        });
-        
-        if (textSlot == null || imageSlot == null || textInputSlot == null) return;
 
         var frames = 0;
         SRuntime.Get().OnTick += d =>
         {
             frames++;
-            var txt = (TextWidget)textSlot.Child;
-            txt.Content = $"Selected Index {switcher.SelectedIndex}";//$"Focused ${panel.Surface?.FocusedWidget}";
+            infoText.Content = $"Frame {frames}"; //$"Focused ${panel.Surface?.FocusedWidget}";
         };
 
         surf.Window.OnKey += (e) =>
         {
-            
-
-            var switcherSlots = switcher.GetNumSlots();
+            var switcherSlots = switcher.GetSlotsCount();
             if (switcherSlots > 0)
             {
                 if (e is { State: KeyState.Pressed or KeyState.Repeat, Key: Key.Left })
@@ -104,10 +83,11 @@ public class SWidgetTestModule : RuntimeModule
                     {
                         newIndex = switcherSlots + newIndex;
                     }
+
                     switcher.SelectedIndex = newIndex;
                     return;
                 }
-                
+
                 if (e is { State: KeyState.Pressed or KeyState.Repeat, Key: Key.Right })
                 {
                     var newIndex = switcher.SelectedIndex + 1;
@@ -115,22 +95,23 @@ public class SWidgetTestModule : RuntimeModule
                     {
                         newIndex %= switcherSlots;
                     }
+
                     switcher.SelectedIndex = newIndex;
                     return;
                 }
             }
-            
+
             if (e is { State: KeyState.Pressed, Key: Key.F })
             {
-                switcher.RotateTo(0, 360,2).Then().RotateTo(360, 0,2);
+                switcher.RotateTo(0, 360, 2).Then().RotateTo(360, 0, 2);
                 return;
             }
-            
+
             if (e is { State: KeyState.Pressed, Key: Key.Enter })
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
-                    switcher.AddChild(new FitterContainer
+                    switcher.AddChild(new Fitter
                     {
                         Child = new AsyncFileImage(path),
                         FittingMode = FitMode.Cover,
@@ -144,46 +125,48 @@ public class SWidgetTestModule : RuntimeModule
 
     public void TestClip()
     {
-        var surf = SWidgetsModule.Get().GetWindowSurface();
-
-        if (surf == null) return;
-
-        var panel = surf.Add(new PanelContainer());
-
-        var sizer = new SizerContainer
+        if (SWidgetsModule.Get().GetWindowSurface() is { } surface)
         {
-            Child = new FitterContainer
+            surface.Add(new Panel()
             {
-                Child = new AsyncFileImage(""),
-                FittingMode = FitMode.Cover,
-                Clip = Clip.Bounds
-            },
-            WidthOverride = 600,
-            HeightOverride = 600
-        };
-
-        panel.AddChild(new PanelContainerSlot
-        {
-            Child = sizer,
-            MinAnchor = 0.5f,
-            MaxAnchor = 0.5f,
-            Size = 200.0f,
-            Alignment = 0.5f
-        });
+                Slots =
+                [
+                    new PanelSlot
+                    {
+                        Child = new Sizer
+                        {
+                            Child = new Fitter
+                            {
+                                Child = new AsyncFileImage(""),
+                                FittingMode = FitMode.Cover,
+                                Clip = Clip.Bounds
+                            },
+                            WidthOverride = 600,
+                            HeightOverride = 600
+                        },
+                        MinAnchor = 0.5f,
+                        MaxAnchor = 0.5f,
+                        Size = 200.0f,
+                        Alignment = 0.5f
+                    }
+                ]
+            });
+        }
     }
-    
+
     public void TestText()
     {
         var surf = SWidgetsModule.Get().GetWindowSurface();
 
         if (surf == null) return;
 
-        var panel = surf.Add(new PanelContainer()
+        var panel = surf.Add(new Panel()
         {
-            Slots = [
-                new PanelContainerSlot
+            Slots =
+            [
+                new PanelSlot
                 {
-                    Child = new TextWidget("Test Text", 40),
+                    Child = new TextBox("Test Text", 40),
                     SizeToContent = true,
                     Alignment = 0f,
                     MinAnchor = 0f,
@@ -198,7 +181,7 @@ public class SWidgetTestModule : RuntimeModule
         base.Startup(runtime);
         Console.WriteLine("CREATING WINDOW");
         SWindowsModule.Get().CreateWindow(500, 500, "Aerox Widget Test");
-        
+
         TestBlur();
         //TestText();
     }

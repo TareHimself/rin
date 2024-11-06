@@ -3,12 +3,7 @@ using rin.Widgets.Graphics;
 
 namespace rin.Widgets.Events;
 
-public class CursorMoveEvent : Event
+public class CursorMoveEvent(Surface surface, Vector2<float> position) : Event(surface)
 {
-    public Vector2<float> Position;
-
-    public CursorMoveEvent(Surface surface, Vector2<float> position) : base(surface)
-    {
-        Position = position;
-    }
+    public Vector2<float> Position = position;
 }

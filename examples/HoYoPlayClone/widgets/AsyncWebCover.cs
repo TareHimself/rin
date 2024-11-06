@@ -4,12 +4,12 @@ using rin.Widgets.Content;
 using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Quads;
 using SixLabors.ImageSharp;
-using ImageSharpImage = SixLabors.ImageSharp.Image;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
+using ImageSharpImage = SixLabors.ImageSharp.Image;
 using Color = rin.Widgets.Color;
 
-namespace AudioPlayer.Widgets;
+namespace HoYoPlayClone.widgets;
 
 public class AsyncWebCover : CoverImage
 {
@@ -31,7 +31,6 @@ public class AsyncWebCover : CoverImage
                 depth = 1
             },
             ImageFormat.Rgba8);
-        await img.SaveAsPngAsync("./latest.png");
     }
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)

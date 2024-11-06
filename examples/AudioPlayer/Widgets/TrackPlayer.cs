@@ -11,9 +11,9 @@ using rin.Widgets.Graphics;
 
 namespace AudioPlayer.Widgets;
 
-public class TrackPlayer : OverlayContainer
+public class TrackPlayer : Overlay
 {
-    private readonly TextWidget _nameText = new TextWidget("NAME", 40)
+    private readonly TextBox _nameText = new TextBox("NAME", 40)
     {
         Padding = new Padding()
         {
@@ -22,7 +22,7 @@ public class TrackPlayer : OverlayContainer
         }
     };
 
-    private readonly TextWidget _currentTimeText = new TextWidget("00:00", 30)
+    private readonly TextBox _currentTimeText = new TextBox("00:00", 30)
     {
         Padding = new Padding()
         {
@@ -32,7 +32,7 @@ public class TrackPlayer : OverlayContainer
         }
     };
 
-    private readonly TextWidget _endTimeText = new TextWidget("00:00", 30)
+    private readonly TextBox _endTimeText = new TextBox("00:00", 30)
     {
         Padding = new Padding()
         {
@@ -45,7 +45,7 @@ public class TrackPlayer : OverlayContainer
     private readonly AudioStream _stream;
     private double _lastTime = SRuntime.Get().GetTimeSeconds();
 
-    private readonly SizerContainer _backgroundContainer = new SizerContainer()
+    private readonly Sizer _backgroundContainer = new Sizer()
     {
         HeightOverride = 50.0f
     };
@@ -67,7 +67,7 @@ public class TrackPlayer : OverlayContainer
         Children =
         [
             _backgroundContainer,
-            new ListContainer
+            new List
             {
                 Axis = Axis.Column,
                 Padding = new Padding(5.0f, 10.0f),
@@ -80,22 +80,22 @@ public class TrackPlayer : OverlayContainer
                     new ListContainerSlot
                     {
                         Fit = CrossFit.Fill,
-                        Child = new FlexContainer
+                        Child = new FlexBox
                         {
                             Axis = Axis.Row,
                             Slots =
                             [
-                                new FlexContainerSlot
+                                new FlexBoxSlot
                                 {
-                                    Child = new SizerContainer
+                                    Child = new Sizer
                                     {
                                         Child = _currentTimeText,
                                         WidthOverride = 100
                                     }
                                 },
-                                new FlexContainerSlot
+                                new FlexBoxSlot
                                 {
-                                    Child = new SizerContainer
+                                    Child = new Sizer
                                     {
                                         Child = new ProgressBar(() => (float)(_stream.Position / _stream.Length))
                                         {
@@ -107,9 +107,9 @@ public class TrackPlayer : OverlayContainer
                                     Flex = 1,
                                     Align = CrossAlign.Center
                                 },
-                                new FlexContainerSlot
+                                new FlexBoxSlot
                                 {
-                                    Child = new SizerContainer
+                                    Child = new Sizer
                                     {
                                         Child = _endTimeText,
                                         WidthOverride = 100

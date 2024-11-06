@@ -22,7 +22,7 @@ public enum CrossAlign
     End
 }
 
-public class ListContainerSlot(ListContainer? container = null) : ContainerSlot(container)
+public class ListContainerSlot(List? container = null) : ContainerSlot(container)
 {
     public CrossFit Fit = CrossFit.Desired;
     public CrossAlign Align = CrossAlign.Start;
@@ -32,9 +32,9 @@ public class ListContainerSlot(ListContainer? container = null) : ContainerSlot(
 /// A container that draws children left to right
 /// Slot = <see cref="ListContainerSlot"/>
 /// </summary>
-public class ListContainer(Axis axis) : Container
+public class List(Axis axis) : Container
 {
-    public ListContainer() : this(Axis.Column)
+    public List() : this(Axis.Column)
     {
         
     }
@@ -197,8 +197,8 @@ public class ListContainer(Axis axis) : Container
                 throw new ArgumentOutOfRangeException();
         }
     }
-    
-    public override ContainerSlot MakeSlot(Widget widget) => new ListContainerSlot(this)
+
+    protected override ContainerSlot MakeSlot(Widget widget) => new ListContainerSlot(this)
     {
         Child = widget,
     };

@@ -3,44 +3,34 @@ using rin.Graphics;
 using rin.Core.Math;
 using rin.Widgets.Events;
 using rin.Widgets.Graphics;
+using rin.Widgets.Graphics.Quads;
 using rin.Windows;
 
 namespace rin.Widgets.Content;
 
-public class TextInputWidget : TextWidget
+public class TextInputBox : TextBox
 {
-    public TextInputWidget(string data = "",int fontSize = 100,string fontFamily = "Arial") : base(data,fontSize,fontFamily)
+    public override bool IsFocusable => true;
+
+    public TextInputBox(string data = "",int fontSize = 100,string fontFamily = "Arial") : base(data,fontSize,fontFamily)
     {
     }
-
-    public virtual void OnCharacter(Window.CharEvent data) => OnCharacter(data.Data);
     
-    public virtual void OnCharacter(char data)
-    {
-        Content += data;
-    }
-
-    protected override void OnAddedToSurface(Surface surface)
-    {
-        base.OnAddedToSurface(surface);
-        if (surface is WindowSurface windowSurface)
-        {
-            windowSurface.Window.OnChar += OnCharacter;
-        }
-    }
-
+    
     protected override bool OnCursorDown(CursorDownEvent e)
     {
-        return e.Surface.RequestFocus(this);
+        return true;
     }
 
-    protected override void OnRemovedFromSurface(Surface surface)
+    public override void OnCharacter(CharacterEvent e)
     {
-        base.OnRemovedFromSurface(surface);
-        if (surface is WindowSurface windowSurface)
-        {
-            windowSurface.Window.OnChar -= OnCharacter;
-        }
+        base.OnCharacter(e);
+        Content += e.Character;
+    }
+
+    public override void OnKeyboard(KeyboardEvent e)
+    {
+        base.OnKeyboard(e);
     }
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
@@ -60,10 +50,11 @@ public class TextInputWidget : TextWidget
             offset.X += targetBounds.Bounds.Right - 2.0f;
         }
 
-        var height = GetDesiredSize().X;
+        var height = LineHeight;
         var color = ForegroundColor.Clone();
         var sin = (float)((System.Math.Sin(SRuntime.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f);
         color.A *= sin > 0.35 ? 1.0f : 0.0f;
+        drawCommands.AddRect(new Vector2<float>(2.0f, height), info.Transform.Translate(offset), color: color);
         // frame.AddRect(drawInfo.Transform.Translate(offset), new Vector2<float>(2.0f, height),
         //     color: color);
     }

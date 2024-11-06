@@ -15,10 +15,7 @@ public class Button : Container
         }
         return new Vector2<float>();
     }
-
-    protected virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
-    {
-    }
+    
 
     public override void Collect(TransformInfo info, DrawCommands drawCommands)
     {
@@ -29,7 +26,7 @@ public class Button : Container
         base.Collect(info, drawCommands);
     }
 
-    public override int GetMaxSlots() => 1;
+    public override int GetMaxSlotsCount() => 1;
 
     protected override void ArrangeSlots(Vector2<float> drawSize)
     {

@@ -4,14 +4,9 @@ using rin.Windows;
 
 namespace rin.Widgets.Events;
 
-public class CursorDownEvent : Event
+public class CursorDownEvent(Surface surface, MouseButton button, Vector2<float> position)
+    : Event(surface)
 {
-    public Vector2<float> Position;
-    public MouseButton Button;
-
-    public CursorDownEvent(Surface surface,MouseButton button, Vector2<float> position) : base(surface)
-    {
-        Button = button;
-        Position = position;
-    }
+    public Vector2<float> Position = position;
+    public MouseButton Button = button;
 }

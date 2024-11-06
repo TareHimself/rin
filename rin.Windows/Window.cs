@@ -5,7 +5,7 @@ using rin.Core.Math;
 namespace rin.Windows;
 
 /// <summary>
-///     Abstraction for a <a href="https://www.glfw.org/">Glfw Window</a>
+/// Abstraction for a <a href="https://www.glfw.org/">Glfw Window</a>
 /// </summary>
 public class Window : Disposable
 {
@@ -37,6 +37,10 @@ public class Window : Disposable
     private readonly NativeScrollDelegate _scrollDelegate;
 
     private readonly NativeSizeDelegate _sizeDelegate;
+    
+    private readonly NativeMaximizedDelegate _maximizedDelegate;
+    
+    private readonly NativeRefreshDelegate _refreshDelegate;
 
     public readonly List<Window> Children = [];
 
@@ -60,6 +64,8 @@ public class Window : Disposable
         _sizeDelegate = SizeCallback;
         _closeDelegate = CloseCallback;
         _charDelegate = CharCallback;
+        _maximizedDelegate = MaximizedCallback;
+        _refreshDelegate = RefreshCallback;
         _nativePtr = nativePtr;
         int width = 0, height = 0;
         NativeGetPixelSize(nativePtr, ref width, ref height);
@@ -73,7 +79,9 @@ public class Window : Disposable
             _scrollDelegate,
             _sizeDelegate,
             _closeDelegate,
-            _charDelegate);
+            _charDelegate,
+            _maximizedDelegate,
+            _refreshDelegate);
     }
 
     public Window CreateChild(int width, int height, string name, WindowCreateOptions? options = null)
@@ -128,9 +136,20 @@ public class Window : Disposable
         OnCloseRequested?.Invoke(new CloseEvent(this));
     }
 
+    
     private void CharCallback(nint window, uint inCode, int inMods)
     {
         OnChar?.Invoke(new CharEvent(this, inCode, inMods));
+    }
+    
+    private void MaximizedCallback(nint window, int maxmized)
+    {
+        OnMaximized?.Invoke(new MaximizedEvent(this,maxmized == 1));
+    }
+    
+    private void RefreshCallback(nint window)
+    {
+        OnRefresh?.Invoke(new RefreshEvent(this));
     }
 
     protected override void OnDispose(bool isManual)
@@ -175,7 +194,9 @@ public class Window : Disposable
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeScrollDelegate scrollDelegate,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeSizeDelegate sizeDelegate,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeCloseDelegate closeDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeCharDelegate charDelegate);
+        [MarshalAs(UnmanagedType.FunctionPtr)] NativeCharDelegate charDelegate,
+        [MarshalAs(UnmanagedType.FunctionPtr)] NativeMaximizedDelegate maximizedDelegate,
+        [MarshalAs(UnmanagedType.FunctionPtr)] NativeRefreshDelegate refreshDelegate);
 
 
     public event Action<KeyEvent>? OnKey;
@@ -187,6 +208,10 @@ public class Window : Disposable
     public event Action<ResizeEvent>? AfterResize;
     public event Action<CloseEvent>? OnCloseRequested;
     public event Action<CharEvent>? OnChar;
+    
+    public event Action<MaximizedEvent>? OnMaximized;
+    
+    public event Action<RefreshEvent>? OnRefresh;
 
     public nint GetPtr()
     {
@@ -260,6 +285,15 @@ public class Window : Disposable
         public readonly char Data = (char)inCode;
         public int Mods = inMods;
     }
+    
+    public class MaximizedEvent(Window inWindow, bool maximized) : Event(inWindow)
+    {
+        public readonly bool Maximized = maximized;
+    }
+    
+    public class RefreshEvent(Window inWindow) : Event(inWindow)
+    {
+    }
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     protected delegate void NativeKeyDelegate(nint window, int key, int scancode, int action, int mods);
@@ -284,4 +318,10 @@ public class Window : Disposable
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     protected delegate void NativeCharDelegate(nint window, uint code, int mods);
+    
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    protected delegate void NativeMaximizedDelegate(nint window, int maximized);
+    
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    protected delegate void NativeRefreshDelegate(nint window);
 }

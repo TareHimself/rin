@@ -4,12 +4,13 @@ using rin.Widgets;
 using rin.Widgets.Containers;
 using rin.Widgets.Graphics;
 using Clip = rin.Widgets.Clip;
+using Rect = rin.Widgets.Containers.Rect;
 
 namespace AudioPlayer.Widgets;
 
-public class MainPanel : PanelContainer
+public class MainPanel : Panel
 {
-    private readonly ScrollContainer _trackPlayers = new ScrollContainer()
+    private readonly ScrollList _trackPlayers = new ScrollList()
     {
         Axis = Axis.Column,
         Clip = Clip.None
@@ -20,25 +21,31 @@ public class MainPanel : PanelContainer
         var filePicker = new FilePicker();
         Slots =
         [
-            new PanelContainerSlot
+            new PanelSlot
             {
                 Child = _trackPlayers,
                 SizeToContent = true,
                 MinAnchor = 0.0f,
                 MaxAnchor = new Vector2<float>(0.0f, 1.0f)
             },
-            new PanelContainerSlot
+            new PanelSlot
             {
-                Child = new FpsWidget
+                Child = new Rect
                 {
-                    FontSize = 30,
+                    Child = new FpsWidget
+                    {
+                        FontSize = 30,
+                    },
+                    Padding = new Padding(20.0f),
+                    BorderRadius = 10.0f,
+                    BackgroundColor = Color.Black.Clone(a: 0.7f)
                 },
                 SizeToContent = true,
                 MinAnchor = new Vector2<float>(1.0f, 0.0f),
                 MaxAnchor = new Vector2<float>(1.0f, 0.0f),
                 Alignment = new Vector2<float>(1.0f, 0.0f)
             },
-            new PanelContainerSlot
+            new PanelSlot
             {
                 Child = filePicker,
                 MaxAnchor = 0.5f,

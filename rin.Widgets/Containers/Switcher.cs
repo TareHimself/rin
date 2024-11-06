@@ -6,7 +6,7 @@ namespace rin.Widgets.Containers;
 /// <summary>
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class SwitcherContainer : Container
+public class Switcher : Container
 {
     private int _selected;
     
@@ -16,7 +16,7 @@ public class SwitcherContainer : Container
         set
         {
             var lastSelected = _selected;
-            var numSlots = GetNumSlots();
+            var numSlots = GetSlotsCount();
             _selected = System.Math.Clamp(value, 0, numSlots == 0 ? 0 : numSlots - 1);
             if (lastSelected != _selected) SelectedWidgetUpdated();
         }

@@ -18,7 +18,7 @@ public abstract class Surface : Disposable
 {
     public static readonly string MainPassId = Guid.NewGuid().ToString();
     private readonly List<Widget> _lastHovered = [];
-    private readonly RootContainer _rootWidget = new();
+    private readonly Root _rootWidget = new();
     private readonly SGraphicsModule _sGraphicsModule;
     private DeviceImage? _copyImage;
     private DeviceImage? _drawImage;
@@ -113,7 +113,7 @@ public abstract class Surface : Disposable
     public virtual bool RequestFocus(Widget requester)
     {
         if (FocusedWidget == requester) return true;
-        if (!requester.IsHitTestable) return false;
+        if (!requester.IsFocusable || !requester.IsHitTestable) return false;
 
         ClearFocus();
         FocusedWidget = requester;
@@ -159,7 +159,7 @@ public abstract class Surface : Disposable
     public virtual void EnsurePass(WidgetFrame frame, string passId,Action<WidgetFrame> applyPass)
     {
         if (frame.ActivePass == passId) return;
-        if(frame.ActivePass != passId) EndActivePass(frame);
+        if(frame.ActivePass.Length > 0 && frame.ActivePass != passId) EndActivePass(frame);
         applyPass.Invoke(frame);
         frame.ActivePass = passId;
     }
@@ -737,8 +737,17 @@ public abstract class Surface : Disposable
         var point = e.Position.Cast<float>();
         _rootWidget.ReceiveScroll(e, new TransformInfo(this));
     }
-
-
+    
+    public virtual void ReceiveCharacter(CharacterEvent e)
+    {
+        FocusedWidget?.OnCharacter(e);
+    }
+    
+    public virtual void ReceiveKeyboard(KeyboardEvent e)
+    {
+        FocusedWidget?.OnKeyboard(e);
+    }
+    
     public abstract Vector2<float> GetCursorPosition();
 
     public abstract void SetCursorPosition(Vector2<float> position);

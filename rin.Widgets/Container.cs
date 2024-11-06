@@ -70,15 +70,11 @@ public abstract class Container : Widget
             ArrangeSlots(GetContentSize());
         }
     }
-
-    public Container()
-    {
-    }
     
     protected abstract void ArrangeSlots(Vector2<float> drawSize);
-    
-    
-    public virtual ContainerSlot MakeSlot(Widget widget)
+
+
+    protected virtual ContainerSlot MakeSlot(Widget widget)
     {
         return new ContainerSlot(this)
         {
@@ -109,7 +105,7 @@ public abstract class Container : Widget
     {
         lock (SlotsMutex)
         {
-            var maxSlots = GetMaxSlots();
+            var maxSlots = GetMaxSlotsCount();
             if (maxSlots > 0 && _slots.Count == maxSlots) return null;
                 
             var widget = slot.Child;
@@ -176,7 +172,7 @@ public abstract class Container : Widget
         }
     }
 
-    public virtual int GetNumSlots()
+    public virtual int GetSlotsCount()
     {
         lock (SlotsMutex)
         {
@@ -184,7 +180,7 @@ public abstract class Container : Widget
         }
     }
 
-    public virtual int GetMaxSlots() => int.MaxValue;
+    public virtual int GetMaxSlotsCount() => int.MaxValue;
 
     public override Widget? ReceiveCursorDown(CursorDownEvent e, TransformInfo info)
     {
@@ -314,7 +310,7 @@ public abstract class Container : Widget
 
     public virtual IEnumerable<ContainerSlot> GetCollectableSlots() => GetSlots();
     public virtual IEnumerable<ContainerSlot> GetHitTestableSlots() => GetSlots();
-
+    
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
         drawCommands.IncrDepth();

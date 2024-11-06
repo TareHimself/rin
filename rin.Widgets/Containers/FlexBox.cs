@@ -4,16 +4,16 @@ using rin.Core.Math;
 namespace rin.Widgets.Containers;
 
 
-public class FlexContainerSlot(FlexContainer? container = null) : ListContainerSlot(container)
+public class FlexBoxSlot(FlexBox? container = null) : ListContainerSlot(container)
 {
     public float? Flex = null;
 }
 
 
 /// <summary>
-/// Slot = <see cref="FlexContainerSlot"/>
+/// Slot = <see cref="FlexBoxSlot"/>
 /// </summary>
-public class FlexContainer : ListContainer
+public class FlexBox : List
 {
     protected override void ArrangeSlots(Vector2<float> drawSize)
     {
@@ -26,7 +26,7 @@ public class FlexContainer : ListContainer
         foreach (var slot in slots)
         {
             var widget = slot.Child;
-            if (slot is FlexContainerSlot { Flex: not null } asFlex)
+            if (slot is FlexBoxSlot { Flex: not null } asFlex)
             {
                 var flex = asFlex.Flex.Value;
                 flexWidgets.Add(widget,flex);
@@ -60,7 +60,7 @@ public class FlexContainer : ListContainer
             {
                 foreach (var slot in slots)
                 {
-                    if(slot is not FlexContainerSlot asFlexContainerSlot) continue;
+                    if(slot is not FlexBoxSlot asFlexContainerSlot) continue;
                     var widget = slot.Child;
                     Vector2<float> size = widget.GetDesiredSize();
                         
@@ -82,7 +82,7 @@ public class FlexContainer : ListContainer
             {
                 foreach (var slot in slots)
                 {
-                    if(slot is not FlexContainerSlot asFlexContainerSlot) continue;
+                    if(slot is not FlexBoxSlot asFlexContainerSlot) continue;
                     var widget = slot.Child;
                     Vector2<float> size = widget.GetDesiredSize();
                         
@@ -106,7 +106,7 @@ public class FlexContainer : ListContainer
         
     }
 
-    public override ContainerSlot MakeSlot(Widget widget) => new FlexContainerSlot(this)
+    protected override ContainerSlot MakeSlot(Widget widget) => new FlexBoxSlot(this)
     {
         Child = widget,
     };

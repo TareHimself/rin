@@ -10,14 +10,14 @@ namespace rin.Widgets.Content;
 /// <summary>
 ///     Draw's a <see cref="Texture" /> if provided or a colored rectangle. Supports tint.
 /// </summary>
-public class CoverImageWidget : ImageWidget
+public class CoverImage : Image
 {
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
         if (TextureId != -1)
         {
             var contentSize = GetContentSize();
-            var fitSize = FitterContainer.ComputeCoverSize(contentSize, GetDesiredContentSize());
+            var fitSize = Fitter.ComputeCoverSize(contentSize, GetDesiredContentSize());
             var centerDist = (Vector2<float>)fitSize / 2.0f - (Vector2<float>)contentSize / 2.0f;
             var p1 = centerDist;
             var p2 = centerDist + contentSize;

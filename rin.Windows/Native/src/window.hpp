@@ -38,6 +38,11 @@ using GlfwScrollCallback = void(__stdcall *)(GLFWwindow* window, const double dx
 using GlfwWindowSizeCallback = void(__stdcall *)(GLFWwindow* window, const int width, const int height);
 using GlfwWindowCloseCallback = void(__stdcall *)(GLFWwindow* window);
 using GlfwCharCallback =  void(__stdcall *)(GLFWwindow* window, unsigned int codepoint, int mods);
+using GlfwMaximizedCallback =  void(__stdcall *)(GLFWwindow* window, int maximized);
+using GlfwRefreshCallback =  void(__stdcall *)(GLFWwindow* window);
+
+
+
 
 EXPORT void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCallback,
                                  const GlfwCursorPosCallback cursorPosCallback,
@@ -46,7 +51,9 @@ EXPORT void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCall
                                  const GlfwScrollCallback scrollCallback,
                                  const GlfwWindowSizeCallback windowSizeCallback,
                                  const GlfwWindowCloseCallback windowCloseCallback,
-                                 const GlfwCharCallback charCallback);
+                                 const GlfwCharCallback charCallback,
+                                 const GlfwMaximizedCallback maximizedCallback,
+                                 const GlfwRefreshCallback refreshCallback);
 
 
 EXPORT void * windowGetExtensions(unsigned int * length);

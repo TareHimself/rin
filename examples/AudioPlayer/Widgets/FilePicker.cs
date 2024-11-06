@@ -18,7 +18,7 @@ public class FilePicker : Button
     public event Action<string[]>? OnFileSelected;
 
     protected Color BgColor = Color.Red;
-    protected readonly TextWidget StatusText = new TextWidget("Select File's");
+    protected readonly TextBox StatusText = new TextBox("Select File's");
     
     public FilePicker() : base()
     {

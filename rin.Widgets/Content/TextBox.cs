@@ -33,24 +33,21 @@ public struct TextPushConstants
 ///     Draw's text using an <see cref="MtsdfFont" />. Currently, hardcoded to
 ///     <a href="https://fonts.google.com/specimen/Roboto">Roboto</a>.
 /// </summary>
-public class TextWidget : Widget
+public class TextBox : Widget
 {
     private string _content;
     private Font? _latestFont;
     private SdfFont? _mtsdf;
     private List<Quad>? _cachedDraw;
     private float _fontSize = 100.0f;
-    
-    public override Vector2<float> Size
-    {
-        set
-        {
-            base.Size = value;
-            _cachedDraw = null;
-        }
-    }
 
-    public TextWidget(string inContent = "", float inFontSize = 100f,string fontFamily = "Arial")
+    protected float LineHeight => _latestFont?.FontMetrics is { } metrics
+        ? (metrics.HorizontalMetrics.AdvanceHeightMax * 64 / metrics.ScaleFactor * FontSize)
+        : 0;
+    
+    
+
+    public TextBox(string inContent = "", float inFontSize = 100f,string fontFamily = "Arial")
     {
         FontSize = inFontSize;
         var gs = SGraphicsModule.Get();
@@ -127,8 +124,7 @@ public class TextWidget : Widget
         GetContentBounds(out var bounds);
         GlyphBounds? last = bounds.ToArray().MaxBy(c => c.Bounds.Right);
         var lines = Math.Max(1,Content.Split("\n").Length);
-        var metrics = _latestFont.FontMetrics;
-        var height = (metrics.HorizontalMetrics.AdvanceHeightMax * 64 / metrics.ScaleFactor * FontSize) * lines;
+        var height = LineHeight * lines;
 
         return new Vector2<float>(last?.Bounds.Right ?? 0.0f, height);
     }

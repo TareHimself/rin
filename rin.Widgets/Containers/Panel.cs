@@ -3,10 +3,10 @@
 namespace rin.Widgets.Containers;
 
 /// <summary>
-/// Describes how a <see cref="Widget" /> will be sized and positioned in a <see cref="PanelContainer" />. Supports Anchors
-/// Slot = <see cref="PanelContainerSlot"/>
+/// Describes how a <see cref="Widget" /> will be sized and positioned in a <see cref="Panel" />. Supports Anchors
+/// Slot = <see cref="PanelSlot"/>
 /// </summary>
-public class PanelContainerSlot : ContainerSlot
+public class PanelSlot : ContainerSlot
 {
     public Vector2<float> Alignment = new(0, 0);
     public Vector2<float> MaxAnchor = new(0, 0);
@@ -15,9 +15,9 @@ public class PanelContainerSlot : ContainerSlot
     public Vector2<float> Size = new();
 
     /// <summary>
-    ///     Describes how a <see cref="Widget" /> will be sized and positioned in a <see cref="PanelContainer" />. Supports Anchors
+    ///     Describes how a <see cref="Widget" /> will be sized and positioned in a <see cref="Panel" />. Supports Anchors
     /// </summary>
-    public PanelContainerSlot(PanelContainer? panel = null) : base(panel)
+    public PanelSlot(Panel? panel = null) : base(panel)
     {
     }
 
@@ -32,10 +32,10 @@ public class PanelContainerSlot : ContainerSlot
 }
 
 /// <summary>
-///     A container that draws children based on the settings provided in <see cref="PanelContainerSlot" /> . Intended use is for
+///     A container that draws children based on the settings provided in <see cref="PanelSlot" /> . Intended use is for
 ///     dock-able layouts or as a root for a collection of widgets
 /// </summary>
-public class PanelContainer : Container
+public class Panel : Container
 {
     protected override void ArrangeSlots(Vector2<float> drawSize)
     {
@@ -48,13 +48,13 @@ public class PanelContainer : Container
     public override void OnSlotUpdated(ContainerSlot slot)
     {
         base.OnSlotUpdated(slot);
-        if (slot is PanelContainerSlot asPanelSlot)
+        if (slot is PanelSlot asPanelSlot)
         {
             var widget = slot.Child;
             var panelSize = GetContentSize();
 
-            var noOffsetX = PanelContainerSlot.NearlyEqual(asPanelSlot.MinAnchor.X, asPanelSlot.MaxAnchor.X);
-            var noOffsetY = PanelContainerSlot.NearlyEqual(asPanelSlot.MinAnchor.Y, asPanelSlot.MaxAnchor.Y);
+            var noOffsetX = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.X, asPanelSlot.MaxAnchor.X);
+            var noOffsetY = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.Y, asPanelSlot.MaxAnchor.Y);
 
             var widgetSize = widget.GetDesiredSize();
             var wSize = new Vector2<float>
@@ -107,9 +107,9 @@ public class PanelContainer : Container
         return new Vector2<float>();
     }
 
-    public override PanelContainerSlot MakeSlot(Widget widget)
+    protected override PanelSlot MakeSlot(Widget widget)
     {
-        return new PanelContainerSlot(this)
+        return new PanelSlot(this)
         {
             Child = widget
         };

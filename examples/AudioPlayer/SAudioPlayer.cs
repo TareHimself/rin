@@ -32,11 +32,11 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
 
         if (surf == null) return;
 
-        var panel = surf.Add(new PanelContainer());
+        var panel = surf.Add(new Panel());
 
-        var switcher = new SwitcherContainer();
+        var switcher = new Switcher();
         panel.AddChild(
-            new PanelContainerSlot
+            new PanelSlot
             {
                 Child = switcher,
                 MaxAnchor = 1.0f
@@ -68,7 +68,7 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
 
             if (e is { State: KeyState.Pressed, Key: Key.Right })
             {
-                if (switcher.SelectedIndex + 1 >= switcher.GetNumSlots()) return;
+                if (switcher.SelectedIndex + 1 >= switcher.GetSlotsCount()) return;
                 switcher.SelectedIndex += 1;
                 return;
             }
@@ -77,7 +77,7 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
-                    switcher.AddChild(new FitterContainer
+                    switcher.AddChild(new Fitter
                     {
                         Child = new AsyncFileImage(path),
                         FittingMode = FitMode.Cover
