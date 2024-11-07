@@ -17,7 +17,7 @@ public class GameIcon : Button
             {
                 Paint = ((canvas, info, cmds) =>
                 {
-                    cmds.AddRect(canvas.GetContentSize(), info.Transform, color: Color.Red);
+                    cmds.AddRect(info.Transform, canvas.GetContentSize(), color: Color.Red);
                 })
             }
         };

@@ -139,8 +139,8 @@ public class ScrollList : List
             var size = GetContentSize();
 
             var transform = info.Transform.Translate(new Vector2<float>(size.X - 10.0f, drawOffset));
-            drawCommands.AddRect(new Vector2<float>(10.0f, barSize), transform, borderRadius: 7.0f, color: Color.White);
-            //frame.AddRect(transform, new Vector2<float>(10.0f, barSize), borderRadius: 7.0f, color: Color.White);
+            drawCommands.AddRect(transform, new Vector2<float>(10.0f, barSize), color: Color.White, borderRadius: 7.0f);
+            //frame.AddRect(transform, new Vector2<float>(10.0f, barSize), borderRadius: 7.0f, tint: Color.White);
         }
     }
 

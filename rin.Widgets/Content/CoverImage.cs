@@ -23,14 +23,8 @@ public class CoverImage : Image
             var p2 = centerDist + contentSize;
             p1 /= fitSize;
             p2 /= fitSize;
-            
-            drawCommands.Add(new QuadDrawCommand([new Quad(GetContentSize(), info.Transform)
-            {
-                TextureId = TextureId,
-                Color = Tint,
-                UV = new Vector4<float>(p1,p2),
-                BorderRadius = BorderRadius
-            }]));
+            drawCommands.AddTexture(TextureId, info.Transform, GetContentSize(), Tint, new Vector4<float>(p1, p2),
+                BorderRadius);
         }
         else
         {

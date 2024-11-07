@@ -387,7 +387,7 @@ public abstract class Widget : Disposable, IAnimatable
         CollectContent(new TransformInfo(info.Transform.Translate(new Vector2<float>(Padding.Left,Padding.Top)),GetContentSize(),info.Depth),drawCommands);
     }
 
-    public virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
+    protected virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
     {
         
     }

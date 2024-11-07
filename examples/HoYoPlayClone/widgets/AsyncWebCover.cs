@@ -36,10 +36,6 @@ public class AsyncWebCover : CoverImage
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
         base.CollectContent(info, drawCommands);
-        drawCommands.AddQuads(new Quad(GetContentSize(), info.Transform)
-        {
-            Color = Color.Black.Clone(a: 0.5f),
-            BorderRadius = BorderRadius
-        });
+        drawCommands.AddRect(info.Transform, GetContentSize(), Color.Black.Clone(a: 0.5f),BorderRadius);
     }
 }

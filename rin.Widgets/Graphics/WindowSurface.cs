@@ -38,6 +38,8 @@ public class WindowSurface : Surface
         Window.OnMouseButton += OnMouseButton;
         Window.OnMouseMoved += OnMouseMove;
         Window.OnScrolled += OnScroll;
+        Window.OnKey += OnKeyboard;
+        Window.OnChar += OnCharacter;
         _renderer.OnDraw += Draw;
         _renderer.OnCopyToSwapchain += CopyToSwapchain;
     }
@@ -47,6 +49,16 @@ public class WindowSurface : Surface
         Size = new Vector2<int>((int)e.Width, (int)e.Height);
         Minimized = Size.X == 0 || Size.Y == 0;
         if (!Minimized) ReceiveResize(new ResizeEvent(this, Size.Clone()));
+    }
+    
+    protected void OnKeyboard(Window.KeyEvent e)
+    {
+        ReceiveKeyboard(new KeyboardEvent(this,e.Key,e.State));
+    }
+    
+    protected void OnCharacter(Window.CharEvent e)
+    {
+        ReceiveCharacter(new CharacterEvent(this,e.Data,e.Mods));
     }
 
     protected void OnMouseButton(Window.MouseButtonEvent e)
@@ -84,7 +96,8 @@ public class WindowSurface : Surface
         Window.OnMouseButton -= OnMouseButton;
         Window.OnMouseMoved -= OnMouseMove;
         Window.OnScrolled -= OnScroll;
-
+        Window.OnKey -= OnKeyboard;
+        Window.OnChar -= OnCharacter;
         _renderer.OnDraw -= Draw;
         _renderer.OnCopyToSwapchain -= CopyToSwapchain;
     }

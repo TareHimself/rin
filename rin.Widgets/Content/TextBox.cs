@@ -35,10 +35,18 @@ public struct TextPushConstants
 /// </summary>
 public class TextBox : Widget
 {
+
+    struct CachedQuadLayout(int atlas,Matrix3 transform, Vector2<float> size, Vector4<float> uv)
+    {
+        public int Atlas = atlas;
+        public Matrix3 Transform = transform;
+        public Vector2<float> Size = size;
+        public Vector4<float> UV = uv;
+    }
     private string _content;
     private Font? _latestFont;
     private SdfFont? _mtsdf;
-    private List<Quad>? _cachedDraw;
+    private List<CachedQuadLayout>? _cachedLayouts;
     private float _fontSize = 100.0f;
 
     protected float LineHeight => _latestFont?.FontMetrics is { } metrics
@@ -52,7 +60,7 @@ public class TextBox : Widget
         FontSize = inFontSize;
         var gs = SGraphicsModule.Get();
         _content = inContent;
-        _cachedDraw = null;
+        _cachedLayouts = null;
         SWidgetsModule.Get().GetOrCreateFont(fontFamily).After(msdf =>
         {
             _mtsdf = msdf;
@@ -71,7 +79,7 @@ public class TextBox : Widget
         get => _fontSize;
         set
         {
-            _cachedDraw = null;
+            _cachedLayouts = null;
             _fontSize = value;
         }
     }
@@ -83,16 +91,21 @@ public class TextBox : Widget
         set
         {
             var hasChanged = _content != value;
-            _content = value;
             if (hasChanged)
             {
-                _cachedDraw = null;
+                _cachedLayouts = null;
+                TextChanged(value);
             }
             TryUpdateDesiredSize();
         }
     }
 
-    protected bool ShouldDraw => _mtsdf != null && _latestFont != null && _content.Length > 0;
+    protected virtual void TextChanged(string newText)
+    {
+        _content = newText;
+    }
+
+    protected bool FontReady => _mtsdf != null && _latestFont != null;
     
     protected override void OnDispose(bool isManual)
     {
@@ -120,7 +133,7 @@ public class TextBox : Widget
 
     protected override Vector2<float> ComputeDesiredContentSize()
     {
-        if (_latestFont == null) return new Vector2<float>();
+        if (Content.Empty() || _latestFont == null) return new Vector2<float>(0.0f,LineHeight);
         GetContentBounds(out var bounds);
         GlyphBounds? last = bounds.ToArray().MaxBy(c => c.Bounds.Right);
         var lines = Math.Max(1,Content.Split("\n").Length);
@@ -131,11 +144,11 @@ public class TextBox : Widget
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
-        if (!ShouldDraw) return;
-        if (_cachedDraw == null)
+        if (!FontReady) return;
+        if (Content.NotEmpty() && _cachedLayouts == null)
         {
             GetContentBounds(out var bounds);
-            List<Quad> quadList = [];
+            List<CachedQuadLayout> layouts = [];
             foreach (var bound in bounds)
             {
                 var charInfo = _mtsdf?.GetGlyphInfo(_content[bound.StringIndex]);
@@ -150,35 +163,17 @@ public class TextBox : Widget
 
                 var finalTransform = Matrix3.Identity.Translate(charOffset)
                     .Translate(new Vector2<float>(0.0f, charSize.Y)).Scale(new Vector2<float>(1.0f, -1.0f));
-            
-                quadList.Add(new Quad(new Vector2<float>(bound.Bounds.Width, bound.Bounds.Height),finalTransform,atlasId.Value,1)
-                {
-                    UV = charInfo.Coordinates
-                });
-            
+                var size = new Vector2<float>(bound.Bounds.Width, bound.Bounds.Height);
+                var layout = new CachedQuadLayout(atlasId.Value, finalTransform, size, charInfo.Coordinates);
+                layouts.Add(layout);
+                drawCommands.AddSdf(layout.Atlas,info.Transform * layout.Transform,layout.Size,Color.White,layout.UV);
             }
-
-            if (quadList.Count > 0)
-            {
-                _cachedDraw = quadList;
-                drawCommands.Add(new QuadDrawCommand(_cachedDraw.Select(c => new Quad(c.Size,info.Transform * c.Transform)
-                {
-                  TextureId  = c.TextureId,
-                  Color = c.Color,
-                  UV = c.UV,
-                  Mode = c.Mode
-                })));
-            }   
+            
+            _cachedLayouts = layouts;
         }
-        else
+        else if(_cachedLayouts != null)
         {
-            drawCommands.Add(new QuadDrawCommand(_cachedDraw.Select(c => new Quad(c.Size,info.Transform * c.Transform)
-            {
-                TextureId  = c.TextureId,
-                Color = c.Color,
-                UV = c.UV,
-                Mode = c.Mode
-            })));
+            drawCommands.Add(new QuadDrawCommand(_cachedLayouts.Select(c => Quad.NewSdf(c.Atlas,info.Transform * c.Transform,c.Size,Color.White,c.UV))));
         }
     }
 

@@ -30,10 +30,10 @@ public class Rect : Container
         }
     }
 
-    public override void CollectSelf(TransformInfo info, DrawCommands drawCommands)
+    protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)
     {
         base.CollectSelf(info, drawCommands);
-        drawCommands.AddRect(info.Size, info.Transform, color: BackgroundColor, borderRadius: BorderRadius);
+        drawCommands.AddRect(info.Transform, info.Size, color: BackgroundColor, borderRadius: BorderRadius);
     }
 
     public override int GetMaxSlotsCount() => 1;

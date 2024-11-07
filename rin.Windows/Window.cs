@@ -12,12 +12,12 @@ public class Window : Disposable
     [Flags]
     public enum Mods
     {
-        ModShift = 0x0001,
-        ModControl = 0x0002,
-        ModAlt = 0x0004,
-        ModSuper = 0x0008,
-        ModCapsLock = 0x0010,
-        ModNumLock = 0x0020
+        Shift = 0x0001,
+        Control = 0x0002,
+        Alt = 0x0004,
+        Super = 0x0008,
+        CapsLock = 0x0010,
+        NumLock = 0x0020
     }
     
     private readonly nint _nativePtr;
@@ -96,7 +96,7 @@ public class Window : Disposable
 
     private void KeyCallback(nint window, int key, int scancode, int action, int mods)
     {
-        OnKey?.Invoke(new KeyEvent(this, key, action, mods));
+        OnKey?.Invoke(new KeyEvent(this, key, action, (Mods)mods));
     }
 
     private void CursorCallback(nint window, double x, double y)
@@ -109,7 +109,7 @@ public class Window : Disposable
 
     private void MouseButtonCallback(nint window, int button, int action, int mods)
     {
-        OnMouseButton?.Invoke(new MouseButtonEvent(this, button, action, mods));
+        OnMouseButton?.Invoke(new MouseButtonEvent(this, button, action, (Mods)mods));
     }
 
     private void FocusCallback(nint window, int focused)
@@ -139,7 +139,7 @@ public class Window : Disposable
     
     private void CharCallback(nint window, uint inCode, int inMods)
     {
-        OnChar?.Invoke(new CharEvent(this, inCode, inMods));
+        OnChar?.Invoke(new CharEvent(this, inCode, (Mods)inMods));
     }
     
     private void MaximizedCallback(nint window, int maxmized)
@@ -229,13 +229,13 @@ public class Window : Disposable
         }
     }
 
-    public class KeyEvent(Window inWindow, int inKey, int inAction, int inMods)
+    public class KeyEvent(Window inWindow, int inKey, int inAction, Mods mods)
         : Event(inWindow)
     {
-        public readonly bool IsAltDown = (inMods & (int)Mods.ModAlt) == (int)Mods.ModAlt;
-        public readonly bool IsControlDown = (inMods & (int)Mods.ModControl) == (int)Mods.ModControl;
-
-        public readonly bool IsShiftDown = (inMods & (int)Mods.ModShift) == (int)Mods.ModShift;
+        public readonly Mods Mods = mods;
+        public readonly bool IsAltDown = mods.HasFlag(Mods.Alt);
+        public readonly bool IsControlDown = mods.HasFlag(Mods.Control);
+        public readonly bool IsShiftDown = mods.HasFlag(Mods.Shift);
         public readonly Key Key = (Key)inKey;
         public readonly KeyState State = (KeyState)inAction;
     }
@@ -247,18 +247,16 @@ public class Window : Disposable
         public readonly Vector2<double> Position = inPosition;
     }
 
-    public class MouseButtonEvent : Event
+    public class MouseButtonEvent(Window inWindow, int button, int inAction, Mods mods)
+        : Event(inWindow)
     {
-        public readonly Vector2<double> Position;
-        public readonly KeyState State;
-        public readonly MouseButton Button;
-
-        public MouseButtonEvent(Window inWindow, int button, int inAction, int mods) : base(inWindow)
-        {
-            Position = inWindow.GetMousePosition();
-            State = (KeyState)inAction;
-            Button = (MouseButton)button;
-        }
+        public readonly Vector2<double> Position = inWindow.GetMousePosition();
+        public readonly KeyState State = (KeyState)inAction;
+        public readonly MouseButton Button = (MouseButton)button;
+        public readonly Mods Mods = mods;
+        public readonly bool IsAltDown = mods.HasFlag(Mods.Alt);
+        public readonly bool IsControlDown = mods.HasFlag(Mods.Control);
+        public readonly bool IsShiftDown = mods.HasFlag(Mods.Shift);
     }
 
     public class FocusEvent(Window inWindow, bool inFocused) : Event(inWindow)
@@ -280,10 +278,10 @@ public class Window : Disposable
 
     public class CloseEvent(Window inWindow) : Event(inWindow);
 
-    public class CharEvent(Window inWindow, uint inCode, int inMods) : Event(inWindow)
+    public class CharEvent(Window inWindow, uint inCode, Mods inMods) : Event(inWindow)
     {
         public readonly char Data = (char)inCode;
-        public int Mods = inMods;
+        public Mods Mods = inMods;
     }
     
     public class MaximizedEvent(Window inWindow, bool maximized) : Event(inWindow)

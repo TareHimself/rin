@@ -39,7 +39,7 @@ public class SWidgetTestModule : RuntimeModule
                     {
                         Paint = (self, t, d) =>
                         {
-                            d.AddRect(self.GetContentSize(), t.Transform, color: Color.Black.Clone(a: 0.6f));
+                            d.AddRect(t.Transform, self.GetContentSize(), color: Color.Black.Clone(a: 0.6f));
                         }
                     },
                     MinAnchor = 0.0f,
@@ -107,7 +107,7 @@ public class SWidgetTestModule : RuntimeModule
                 return;
             }
 
-            if (e is { State: KeyState.Pressed, Key: Key.Enter })
+            if (e is { State: KeyState.Pressed, Key: Key.Equal })
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)

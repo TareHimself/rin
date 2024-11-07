@@ -62,12 +62,8 @@ public class Image : Widget
         //throw new NotImplementedException();
         if (TextureId != -1)
         {
-            drawCommands.Add(new QuadDrawCommand([new Quad(GetContentSize(), info.Transform)
-            {
-                TextureId = TextureId,
-                Color = Tint,
-                BorderRadius = BorderRadius
-            }]));
+            drawCommands.AddTexture(TextureId, info.Transform, GetContentSize(), Tint, null,
+                BorderRadius);
         }
     }
 }

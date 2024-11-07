@@ -48,4 +48,21 @@ public static class EnumerableExtensions
 
         return target[index];
     }
+
+
+    public static bool Empty<T>(this T[] target) => target.Length == 0;
+    
+    public static bool Empty<T>(this IEnumerable<T> target) => !target.Any();
+    
+    public static bool Empty<T>(this List<T> target) => target.Count == 0;
+    
+    public static bool Empty(this string target) => target.Length == 0;
+    
+    public static bool NotEmpty<T>(this T[] target) => target.Length == 0;
+    
+    public static bool NotEmpty<T>(this IEnumerable<T> target) => target.Any();
+    
+    public static bool NotEmpty<T>(this List<T> target) => target.Count > 0;
+    
+    public static bool NotEmpty(this string target) => target.Length > 0;
 }

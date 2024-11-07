@@ -43,11 +43,7 @@ public class FilePicker : Button
     protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)
     {
         base.CollectSelf(info, drawCommands);
-        drawCommands.AddQuads(new Quad(GetContentSize(), info.Transform)
-        {
-            Color = BgColor,
-            BorderRadius = 20.0f
-        });
+        drawCommands.AddRect(info.Transform, GetContentSize(), BgColor, 20.0f);
     }
 
     protected void FileSelected(string[] files)
