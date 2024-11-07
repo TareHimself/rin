@@ -15,8 +15,7 @@ public class SWindowsModule : RuntimeModule, ISingletonGetter<SWindowsModule>
     }
 
     public event Action<Window>? OnWindowClosed;
-
-
+    
     public event Action<Window>? OnWindowCreated;
 
     [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowCreate", CallingConvention = CallingConvention.Cdecl)]

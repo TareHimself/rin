@@ -70,7 +70,7 @@ public abstract class Container : Widget
             ArrangeSlots(GetContentSize());
         }
     }
-    
+
     protected abstract void ArrangeSlots(Vector2<float> drawSize);
 
 

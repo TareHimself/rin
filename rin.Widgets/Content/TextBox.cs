@@ -1,4 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
+using rin.Core;
 using rin.Core.Extensions;
 using rin.Graphics;
 using rin.Core.Math;
@@ -10,24 +12,14 @@ using SixLabors.Fonts;
 
 namespace rin.Widgets.Content;
 
-[StructLayout(LayoutKind.Sequential)]
-internal struct TextOptionsDeviceBuffer
+internal struct CachedQuadLayout(int atlas,Matrix3 transform, Vector2<float> size, Vector4<float> uv)
 {
-    public Vector4<float> bgColor;
-    public Vector4<float> fgColor;
+    public readonly int Atlas = atlas;
+    public Matrix3 Transform = transform;
+    public Vector2<float> Size = size;
+    public Vector4<float> UV = uv;
 }
 
-[StructLayout(LayoutKind.Sequential)]
-public struct TextPushConstants
-{
-    public Matrix3 Transform;
-
-    public Vector2<float> Size;
-
-    public int atlasIdx;
-
-    public Vector4<float> Rect;
-}
 
 /// <summary>
 ///     Draw's text using an <see cref="MtsdfFont" />. Currently, hardcoded to
@@ -35,14 +27,38 @@ public struct TextPushConstants
 /// </summary>
 public class TextBox : Widget
 {
-
-    struct CachedQuadLayout(int atlas,Matrix3 transform, Vector2<float> size, Vector4<float> uv)
+    
+    protected class CharacterBounds
     {
-        public int Atlas = atlas;
-        public Matrix3 Transform = transform;
-        public Vector2<float> Size = size;
-        public Vector4<float> UV = uv;
+        public readonly char Character;
+        public readonly int ContentIndex;
+        public readonly float X;
+        public readonly float Y;
+        public readonly float Width;
+        public readonly float Height;
+
+        public float Right => X + Width;
+        public float Left => X;
+        public float Top => Y;
+        public float Bottom => Y + Height;
+
+        public CharacterBounds(char character,int contentIndex, float x, float y, float width, float height)
+        {
+            Character = character;
+            ContentIndex = contentIndex;
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+        }
+
+        public CharacterBounds(char character,int contentIndex, GlyphBounds bounds) : this(character,contentIndex,bounds.Bounds.X,bounds.Bounds.Y,bounds.Bounds.Width,bounds.Bounds.Height)
+        {
+            
+        }
+
     }
+    
     private string _content;
     private Font? _latestFont;
     private SdfFont? _mtsdf;
@@ -105,6 +121,7 @@ public class TextBox : Widget
         _content = newText;
     }
 
+    
     protected bool FontReady => _mtsdf != null && _latestFont != null;
     
     protected override void OnDispose(bool isManual)
@@ -119,27 +136,46 @@ public class TextBox : Widget
         TryUpdateDesiredSize();
     }
 
-    protected void GetContentBounds(out ReadOnlySpan<GlyphBounds> bounds)
+    protected IEnumerable<CharacterBounds> GetContentBounds()
     {
         if (_latestFont == null)
         {
-            bounds = [];
-            return;
+            return [];
         }
         var opts = new TextOptions(_latestFont);
         TextMeasurer.TryMeasureCharacterBounds(_content, opts, out var tempBounds);
-        bounds = tempBounds;
+        if (tempBounds.IsEmpty) return [];
+        var boundsIdx = 0;
+        var allBounds = tempBounds.ToArray();
+        var line = 0;
+        return Content.Select((c,idx) =>
+        {
+            if (c is not ( '\n' or '\r'))
+            {
+                
+                var result = new CharacterBounds(c,idx, allBounds[boundsIdx]);
+                line = (int)Math.Floor(result.Y / LineHeight);
+                boundsIdx++;
+                return result;
+            }
+
+            if (c == '\n')
+            {
+                line++;
+            }
+
+            return new CharacterBounds(c, idx,0, (line * LineHeight) + LineHeight / 2.0f, 0, 0);
+        });
     }
 
     protected override Vector2<float> ComputeDesiredContentSize()
     {
         if (Content.Empty() || _latestFont == null) return new Vector2<float>(0.0f,LineHeight);
-        GetContentBounds(out var bounds);
-        GlyphBounds? last = bounds.ToArray().MaxBy(c => c.Bounds.Right);
+        CharacterBounds? last = GetContentBounds().MaxBy(c => c.Right);
         var lines = Math.Max(1,Content.Split("\n").Length);
         var height = LineHeight * lines;
 
-        return new Vector2<float>(last?.Bounds.Right ?? 0.0f, height);
+        return new Vector2<float>(last?.Right ?? 0.0f, height);
     }
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
@@ -147,23 +183,28 @@ public class TextBox : Widget
         if (!FontReady) return;
         if (Content.NotEmpty() && _cachedLayouts == null)
         {
-            GetContentBounds(out var bounds);
             List<CachedQuadLayout> layouts = [];
-            foreach (var bound in bounds)
+            foreach (var bound in GetContentBounds())
             {
-                var charInfo = _mtsdf?.GetGlyphInfo(_content[bound.StringIndex]);
-                var atlasId = charInfo != null ? _mtsdf?.GetAtlasTextureId(charInfo.AtlasIdx) : null;
-                if (charInfo == null || atlasId == null) continue;
+                var charInfo = _mtsdf?.GetGlyphInfo(_content[bound.ContentIndex]);
+                
+                if(charInfo == null) continue;
+                
+                var atlasId = _mtsdf?.GetAtlasTextureId(charInfo.AtlasIdx);
+                
+                if (atlasId == null) continue;
 
-                var charOffset = new Vector2<float>(bound.Bounds.X,
-                    bound.Bounds.Y);
-                var charSize = new Vector2<float>(bound.Bounds.Width, bound.Bounds.Height);
+                var charOffset = new Vector2<float>(bound.X,
+                    bound.Y);
+                
+                var charSize = new Vector2<float>(bound.Width, bound.Height);
+                
                 //if (!charRect.IntersectsWith(drawInfo.Clip)) continue;
                 //if(!charRect.Offset.Within(drawInfo.Clip) && !(charRect.Offset + charRect.Size).Within(drawInfo.Clip)) continue;
 
                 var finalTransform = Matrix3.Identity.Translate(charOffset)
                     .Translate(new Vector2<float>(0.0f, charSize.Y)).Scale(new Vector2<float>(1.0f, -1.0f));
-                var size = new Vector2<float>(bound.Bounds.Width, bound.Bounds.Height);
+                var size = new Vector2<float>(bound.Width, bound.Height);
                 var layout = new CachedQuadLayout(atlasId.Value, finalTransform, size, charInfo.Coordinates);
                 layouts.Add(layout);
                 drawCommands.AddSdf(layout.Atlas,info.Transform * layout.Transform,layout.Size,Color.White,layout.UV);

@@ -1,6 +1,7 @@
 ﻿using rin.Core;
 using rin.Core.Animation;
 using rin.Core.Extensions;
+using rin.Graphics;
 using rin.Widgets;
 using rin.Widgets.Animation;
 using rin.Widgets.Containers;
@@ -13,9 +14,9 @@ namespace WidgetTest;
 [RuntimeModule(typeof(SWidgetsModule))]
 public class SWidgetTestModule : RuntimeModule
 {
-    public void TestBlur()
+    public void TestBlur(WindowRenderer renderer)
     {
-        var surf = SWidgetsModule.Get().GetWindowSurface();
+        var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
 
         if (surf == null) return;
 
@@ -180,9 +181,17 @@ public class SWidgetTestModule : RuntimeModule
     {
         base.Startup(runtime);
         Console.WriteLine("CREATING WINDOW");
-        SWindowsModule.Get().CreateWindow(500, 500, "Aerox Widget Test");
-
-        TestBlur();
+        SGraphicsModule.Get().OnRendererCreated += TestBlur;
+        if (SWindowsModule.Get().CreateWindow(500, 500, "Aerox Widget Test") is { } window)
+        {
+            window.OnKey += (e =>
+            {
+                if (e is { Key: Key.Up, State: KeyState.Pressed })
+                {
+                    window.CreateChild(500, 500, "test child");
+                }
+            });
+        }
         //TestText();
     }
 }

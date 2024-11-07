@@ -9,7 +9,7 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #include <iostream>
 
 
-void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** outDevice, void** outPhysicalDevice,
+EXPORT_IMPL void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** outDevice, void** outPhysicalDevice,
                                   void** outQueue, uint32_t* outQueueFamily, uintptr_t* outSurface,
                                   uintptr_t* outMessenger)
 {
@@ -151,7 +151,7 @@ void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** out
     *outSurface = reinterpret_cast<uintptr_t>(surf);
 }
 
-void graphicsDestroyVulkanMessenger(void* instance, uintptr_t messenger)
+EXPORT_IMPL void graphicsDestroyVulkanMessenger(void* instance, uintptr_t messenger)
 {
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
     const auto messengerCasted = reinterpret_cast<VkDebugUtilsMessengerEXT>(messenger);
@@ -160,7 +160,7 @@ void graphicsDestroyVulkanMessenger(void* instance, uintptr_t messenger)
 #endif
 }
 
-void graphicsCreateSwapchain(void* device, void* physicalDevice, uintptr_t surface, int swapchainFormat, int colorSpace,
+EXPORT_IMPL void graphicsCreateSwapchain(void* device, void* physicalDevice, uintptr_t surface, int swapchainFormat, int colorSpace,
                              int presentMode, uint32_t width, uint32_t height,
                              CreateSwapchainCallback callback)
 {
@@ -212,7 +212,7 @@ void createBuffer(VmaAllocator allocator, VkBuffer* buffer, VmaAllocation* alloc
     vmaSetAllocationName(allocator, *allocation, name);     
 }
 
-void* graphicsAllocatorCreate(void* instance, void* device, void* physicalDevice)
+EXPORT_IMPL void* graphicsAllocatorCreate(void* instance, void* device, void* physicalDevice)
 {
     auto allocatorCreateInfo = VmaAllocatorCreateInfo{};
     allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
@@ -225,12 +225,12 @@ void* graphicsAllocatorCreate(void* instance, void* device, void* physicalDevice
     return allocator;
 }
 
-void graphicsAllocatorDestroy(void* allocator)
+EXPORT_IMPL void graphicsAllocatorDestroy(void* allocator)
 {
     vmaDestroyAllocator(static_cast<VmaAllocator>(allocator));
 }
 
-void graphicsAllocatorNewBuffer(uintptr_t* buffer, void** allocation, unsigned long size, void* allocator,
+EXPORT_IMPL void graphicsAllocatorNewBuffer(uintptr_t* buffer, void** allocation, unsigned long size, void* allocator,
                                 int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
                                 int mapped, const char* debugName)
 {
@@ -253,7 +253,7 @@ void graphicsAllocatorNewBuffer(uintptr_t* buffer, void** allocation, unsigned l
     *buffer = reinterpret_cast<uintptr_t>(buff);
 }
 
-void graphicsAllocatorNewImage(uintptr_t* image, void** allocation, void* createInfo, void* allocator,
+EXPORT_IMPL void graphicsAllocatorNewImage(uintptr_t* image, void** allocation, void* createInfo, void* allocator,
                                const char* debugName)
 {
     VmaAllocationCreateInfo imageAllocInfo = {};
@@ -279,19 +279,19 @@ void graphicsAllocatorNewImage(uintptr_t* image, void** allocation, void* create
     *allocation = static_cast<void*>(alloc);
 }
 
-void graphicsAllocatorFreeBuffer(uintptr_t buffer, void* allocation, void* allocator)
+EXPORT_IMPL void graphicsAllocatorFreeBuffer(uintptr_t buffer, void* allocation, void* allocator)
 {
     vmaDestroyBuffer(static_cast<VmaAllocator>(allocator), reinterpret_cast<VkBuffer>(buffer),
                      static_cast<VmaAllocation>(allocation));
 }
 
-void graphicsAllocatorFreeImage(uintptr_t image, void* allocation, void* allocator)
+EXPORT_IMPL void graphicsAllocatorFreeImage(uintptr_t image, void* allocation, void* allocator)
 {
     vmaDestroyImage(static_cast<VmaAllocator>(allocator), reinterpret_cast<VkImage>(image),
                     static_cast<VmaAllocation>(allocation));
 }
 
-void graphicsAllocatorCopyToBuffer(void* allocator, void* allocation, void* data, const unsigned long size,
+EXPORT_IMPL void graphicsAllocatorCopyToBuffer(void* allocator, void* allocation, void* data, const unsigned long size,
                                    unsigned long offset)
 {
     // auto dataCasted = static_cast<TestStruct*>(data);
@@ -300,7 +300,7 @@ void graphicsAllocatorCopyToBuffer(void* allocator, void* allocation, void* data
                               offset, size);
 }
 
-void graphicsVkCmdBindShadersEXT(VkCommandBuffer commandBuffer, uint32_t stageCount, VkShaderStageFlagBits* pStages,
+EXPORT_IMPL void graphicsVkCmdBindShadersEXT(VkCommandBuffer commandBuffer, uint32_t stageCount, VkShaderStageFlagBits* pStages,
     VkShaderEXT* pShaders)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBindShadersEXT == nullptr)
@@ -310,7 +310,7 @@ void graphicsVkCmdBindShadersEXT(VkCommandBuffer commandBuffer, uint32_t stageCo
     VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBindShadersEXT(commandBuffer,stageCount,pStages,pShaders);
 }
 
-void graphicsVkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, VkRenderingInfo* pRenderingInfo)
+EXPORT_IMPL void graphicsVkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, VkRenderingInfo* pRenderingInfo)
 {
     //VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBeginRenderingKHR(commandBuffer,pRenderingInfo);
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBeginRenderingKHR == nullptr)
@@ -320,7 +320,7 @@ void graphicsVkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, VkRenderingIn
     VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBeginRenderingKHR(commandBuffer,pRenderingInfo);
 }
 
-void graphicsVkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
+EXPORT_IMPL void graphicsVkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetPolygonModeEXT == nullptr)
     {
@@ -329,7 +329,7 @@ void graphicsVkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode
     VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetPolygonModeEXT(commandBuffer,polygonMode);
 }
 
-void graphicsVkCmdSetLogicOpEXT(VkCommandBuffer commandBuffer, VkLogicOp logicOp)
+EXPORT_IMPL void graphicsVkCmdSetLogicOpEXT(VkCommandBuffer commandBuffer, VkLogicOp logicOp)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetLogicOpEXT == nullptr)
     {
@@ -338,7 +338,7 @@ void graphicsVkCmdSetLogicOpEXT(VkCommandBuffer commandBuffer, VkLogicOp logicOp
     VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetLogicOpEXT(commandBuffer,logicOp);
 }
 
-void graphicsVkCmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount,
+EXPORT_IMPL void graphicsVkCmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount,
     VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, uint32_t vertexAttributeDescriptionCount,
     VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions)
 {
@@ -351,7 +351,7 @@ void graphicsVkCmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vert
     pVertexAttributeDescriptions);
 }
 
-void graphicsVkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, uint32_t logicOpEnable)
+EXPORT_IMPL void graphicsVkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, uint32_t logicOpEnable)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetLogicOpEnableEXT == nullptr)
     {
@@ -360,7 +360,7 @@ void graphicsVkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, uint32_t lo
     VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetLogicOpEnableEXT(commandBuffer,logicOpEnable);
 }
 
-void graphicsVkCmdSetColorBlendEnableEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
+EXPORT_IMPL void graphicsVkCmdSetColorBlendEnableEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
     uint32_t attachmentCount, uint32_t* pColorBlendEnables)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorBlendEnableEXT == nullptr)
@@ -370,7 +370,7 @@ void graphicsVkCmdSetColorBlendEnableEXT(VkCommandBuffer commandBuffer, uint32_t
     VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorBlendEnableEXT(commandBuffer,firstAttachment,attachmentCount,pColorBlendEnables);
 }
 
-void graphicsVkCmdSetColorBlendEquationEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
+EXPORT_IMPL void graphicsVkCmdSetColorBlendEquationEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
     uint32_t attachmentCount, VkColorBlendEquationEXT* pColorBlendEquations)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorBlendEquationEXT == nullptr)
@@ -380,7 +380,7 @@ void graphicsVkCmdSetColorBlendEquationEXT(VkCommandBuffer commandBuffer, uint32
     VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorBlendEquationEXT(commandBuffer,firstAttachment,attachmentCount,pColorBlendEquations);
 }
 
-void graphicsVkCmdSetColorWriteMaskEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
+EXPORT_IMPL void graphicsVkCmdSetColorWriteMaskEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
     uint32_t attachmentCount, VkColorComponentFlags* pColorWriteMasks)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorWriteMaskEXT == nullptr)
@@ -390,7 +390,7 @@ void graphicsVkCmdSetColorWriteMaskEXT(VkCommandBuffer commandBuffer, uint32_t f
     VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetColorWriteMaskEXT(commandBuffer,firstAttachment,attachmentCount,pColorWriteMasks);
 }
 
-VkResult graphicsVkCreateShadersEXT(VkDevice device, uint32_t createInfoCount, VkShaderCreateInfoEXT* pCreateInfos,
+EXPORT_IMPL VkResult graphicsVkCreateShadersEXT(VkDevice device, uint32_t createInfoCount, VkShaderCreateInfoEXT* pCreateInfos,
     VkAllocationCallbacks* pAllocator, VkShaderEXT* pShaders)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCreateShadersEXT == nullptr)
@@ -401,7 +401,7 @@ VkResult graphicsVkCreateShadersEXT(VkDevice device, uint32_t createInfoCount, V
     return VULKAN_HPP_DEFAULT_DISPATCHER.vkCreateShadersEXT(device,createInfoCount,pCreateInfos,pAllocator,pShaders);
 }
 
-void graphicsVkDestroyShaderEXT(VkDevice device, VkShaderEXT shader, VkAllocationCallbacks* pAllocator)
+EXPORT_IMPL void graphicsVkDestroyShaderEXT(VkDevice device, VkShaderEXT shader, VkAllocationCallbacks* pAllocator)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkDestroyShaderEXT == nullptr)
     {
@@ -411,7 +411,7 @@ void graphicsVkDestroyShaderEXT(VkDevice device, VkShaderEXT shader, VkAllocatio
     return VULKAN_HPP_DEFAULT_DISPATCHER.vkDestroyShaderEXT(device,shader,pAllocator);
 }
 
-void graphicsVkCmdSetRasterizationSamplesEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
+EXPORT_IMPL void graphicsVkCmdSetRasterizationSamplesEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetRasterizationSamplesEXT == nullptr)
     {
@@ -421,7 +421,7 @@ void graphicsVkCmdSetRasterizationSamplesEXT(VkCommandBuffer commandBuffer, VkSa
     return VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetRasterizationSamplesEXT(commandBuffer,rasterizationSamples);
 }
 
-void graphicsVkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToCoverageEnable)
+EXPORT_IMPL void graphicsVkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToCoverageEnable)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetAlphaToCoverageEnableEXT == nullptr)
     {
@@ -431,7 +431,7 @@ void graphicsVkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, uin
     return VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetAlphaToCoverageEnableEXT(commandBuffer,alphaToCoverageEnable);
 }
 
-void graphicsVkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToOneEnable)
+EXPORT_IMPL void graphicsVkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToOneEnable)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetAlphaToOneEnableEXT == nullptr)
     {
@@ -441,7 +441,7 @@ void graphicsVkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, uint32_t
     return VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetAlphaToOneEnableEXT(commandBuffer,alphaToOneEnable);
 }
 
-void graphicsVkCmdSetSampleMaskEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, uint32_t* pSampleMask)
+EXPORT_IMPL void graphicsVkCmdSetSampleMaskEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, uint32_t* pSampleMask)
 {
     if(VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetSampleMaskEXT == nullptr)
     {
@@ -451,13 +451,13 @@ void graphicsVkCmdSetSampleMaskEXT(VkCommandBuffer commandBuffer, VkSampleCountF
     return VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetSampleMaskEXT(commandBuffer,samples,pSampleMask);
 }
 
-uintptr_t graphicsCreateSurface(void* instance, GLFWwindow* window)
+EXPORT_IMPL uintptr_t graphicsCreateSurface(void* instance, void* window)
 {
     VkSurfaceKHR surf;
 
     const auto inst = reinterpret_cast<VkInstance>(instance);
 
-    glfwCreateWindowSurface(inst, window, nullptr, &surf);
+    glfwCreateWindowSurface(inst, static_cast<GLFWwindow*>(window), nullptr, &surf);
 
     return reinterpret_cast<uintptr_t>(surf);
 }
