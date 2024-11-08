@@ -1,4 +1,5 @@
 ﻿using rin.Core.Math;
+using rin.Widgets.Enums;
 using rin.Widgets.Graphics;
 
 namespace rin.Widgets.Containers;
@@ -26,8 +27,7 @@ public class Switcher : Container
 
     public void SelectedWidgetUpdated()
     {
-        TryUpdateDesiredSize();
-        ArrangeSlots(GetContentSize());
+        Invalidate(InvalidationType.Layout);
     }
 
     protected override Vector2<float> ComputeDesiredContentSize()
@@ -43,17 +43,19 @@ public class Switcher : Container
         }
     }
 
-    protected override void ArrangeSlots(Vector2<float> drawSize)
+    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
         if (GetSlot(SelectedIndex) is { } slot)
         {
             var widget = slot.Child;
 
-            if (widget.GetContentSize().Equals(drawSize)) return;
+            if (widget.Size.Equals(availableSpace)) return widget.Size;
 
             widget.Offset = (0.0f);
-            widget.Size = drawSize;
+            return widget.ComputeSize(availableSpace);
         }
+
+        return 0.0f;
     }
 
     public override IEnumerable<ContainerSlot> GetCollectableSlots() => GetSlot(SelectedIndex) is { } slot ? [slot] : [];

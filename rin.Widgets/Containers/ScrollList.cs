@@ -21,16 +21,6 @@ public class ScrollList : List
         Clip = Clip.Bounds;
     }
 
-
-    public override Vector2<float> Size
-    {
-        set
-        {
-            base.Size = value;
-            ScrollTo(_offset);
-        }
-    }
-
     public float ScrollScale { get; set; } = 10.0f;
 
     public virtual bool ScrollBy(float delta)
@@ -50,10 +40,11 @@ public class ScrollList : List
         return Math.Abs(offset - _offset) > 0.001;
     }
 
-    protected override void ArrangeSlots(Vector2<float> drawSize)
+    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
-        base.ArrangeSlots(drawSize);
+        var newSize = base.ArrangeContent(availableSpace);
         ScrollTo(_offset);
+        return newSize;
     }
 
     public virtual float GetScroll()

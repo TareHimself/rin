@@ -21,13 +21,15 @@ public class Rect : Container
         return new Vector2<float>();
     }
 
-    protected override void ArrangeSlots(Vector2<float> drawSize)
+    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
         if (GetSlot(0) is { } slot)
         {
             slot.Child.Offset = (new Vector2<float>(0, 0));
-            slot.Child.Size = drawSize;
+            return slot.Child.ComputeSize(availableSpace);
         }
+
+        return 0.0f;
     }
 
     protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)

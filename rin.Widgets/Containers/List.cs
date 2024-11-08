@@ -1,4 +1,5 @@
 ﻿using rin.Core.Math;
+using rin.Widgets.Enums;
 
 namespace rin.Widgets.Containers;
 
@@ -51,7 +52,7 @@ public class List(Axis axis) : Container
 
     protected virtual void OnDirectionChanged()
     {
-        TryUpdateDesiredSize();
+        Invalidate(InvalidationType.Layout);
     }
 
     protected override Vector2<float> ComputeDesiredContentSize()
@@ -76,89 +77,122 @@ public class List(Axis axis) : Container
         };
     }
 
-
-    protected override void ArrangeSlots(Vector2<float> drawSize)
+    protected virtual Vector2<float> ArrangeContentRow(Vector2<float> availableSpace)
     {
         var offset = new Vector2<float>(0.0f);
-        switch (axis)
-        {
-            case Axis.Row:
-            {
-                foreach (var slot in GetSlots())
-                {
-                    if (slot is not ListContainerSlot asListContainerSlot) continue;
-                    var widget = slot.Child;
-                    var widgetSize = widget.GetDesiredSize();
-                    widget.Offset = (offset.Clone());
-                    widget.Size = (new Vector2<float>
-                    {
-                        X = widgetSize.X,
-                        Y = widgetSize.Y
-                    });
-                    HandleCrossAxis(asListContainerSlot,drawSize);
-                    offset.X += widgetSize.X;
-                }
-                break;
-            }
-            case Axis.Column:
+        
+        var space = new Vector2<float>(float.PositiveInfinity,availableSpace.Y);
+        var mainAxisSize = 0.0f;
+        var crossAxisSize = 0.0f;
+        var slots = GetSlots().ToArray();
                 
-                {
-                    foreach (var slot in GetSlots())
-                    {
-                        if (slot is not ListContainerSlot asListContainerSlot) continue;
-                        var widget = slot.Child;
-                        widget.Offset = (offset.Clone());
-                        var widgetSize = widget.GetDesiredSize();
-                        widget.Size = (new Vector2<float>
-                        {
-                            Y = widgetSize.Y,
-                            X = widgetSize.X
-                        });
-                        HandleCrossAxis(asListContainerSlot,drawSize);
-                        offset.Y += widgetSize.Y;
-                    }
-                }
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
+        // Compute slot sizes and initial offsets
+        foreach (var slot in slots)
+        {
+            var widget = slot.Child;
+            widget.Offset = offset;
+                    
+            var widgetSize = widget.ComputeSize(new Vector2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
+                    
+            offset.X += widgetSize.X;
+            mainAxisSize += widgetSize.X;
+            crossAxisSize = Math.Max(crossAxisSize, widgetSize.Y);
         }
+
+        crossAxisSize = float.IsFinite(space.Y) ? space.Y : crossAxisSize;
+                
+        // Handle cross axis offsets (we could also handle main axis offsets here in the future)
+        foreach (var slot in slots)
+        {
+            if (slot is not ListContainerSlot asListContainerSlot) continue;
+            HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
+        }
+
+        return new Vector2<float>(mainAxisSize, crossAxisSize);
+    }
+    
+    protected virtual Vector2<float> ArrangeContentColumn(Vector2<float> availableSpace)
+    {
+        var offset = new Vector2<float>(0.0f);
+        
+        var space = new Vector2<float>(availableSpace.X,float.PositiveInfinity);
+        var mainAxisSize = 0.0f;
+        var crossAxisSize = 0.0f;
+                    
+        var slots = GetSlots().ToArray();
+                
+        // Compute slot sizes and initial offsets
+        foreach (var slot in slots)
+        {
+            var widget = slot.Child;
+            widget.Offset = offset;
+                    
+            var widgetSize = widget.ComputeSize(new Vector2<float>(GetSlotCrossAxisSize(slot,space.X),space.Y));
+                    
+            offset.Y += widgetSize.Y;
+            mainAxisSize += widgetSize.Y;
+            crossAxisSize = Math.Max(crossAxisSize, widgetSize.X);
+        }
+
+        crossAxisSize = float.IsFinite(space.X) ? space.X : crossAxisSize;
+                
+        // Handle cross axis offsets (we could also handle main axis offsets here in the future)
+        foreach (var slot in slots)
+        {
+            if (slot is not ListContainerSlot asListContainerSlot) continue;
+            HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
+        }
+
+        return new Vector2<float>(crossAxisSize,mainAxisSize);
+    }
+
+
+    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    {
+        return axis switch
+        {
+            Axis.Row => ArrangeContentRow(availableSpace),
+            Axis.Column => ArrangeContentColumn(availableSpace),
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 
     public override void OnSlotUpdated(ContainerSlot slot)
     {
-        TryUpdateDesiredSize();
-        ArrangeSlots(GetContentSize());
+        Invalidate(InvalidationType.Layout);
     }
 
-    protected virtual void HandleCrossAxis(ListContainerSlot slot,Vector2<float> drawSize)
+    protected virtual float GetSlotCrossAxisSize(ContainerSlot slot, float crossAxisAvailableSize)
+    {
+        if (slot is ListContainerSlot asListContainerSlot)
+        {
+            return asListContainerSlot.Fit switch
+            {
+                CrossFit.Desired => Math.Min(asListContainerSlot.Child.GetDesiredSize().X,crossAxisAvailableSize),
+                CrossFit.Fill => crossAxisAvailableSize,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+        }
+
+        return 0.0f;
+    }
+
+    protected virtual void HandleCrossAxisOffset(ListContainerSlot slot,float crossAxisSize)
     {
         var widget = slot.Child;
         var size = widget.Size;
-        var desiredSize = widget.GetDesiredSize();
         switch (Axis)
         {
             case Axis.Column:
             {
-                widget.Size = (new Vector2<float>
-                {
-                    X = slot.Fit switch
-                    {
-                        CrossFit.Desired => size.X,
-                        CrossFit.Fill => drawSize.X,
-                        _ => throw new ArgumentOutOfRangeException()
-                    },
-                    Y = size.Y
-                });
-                
                 if (slot.Fit != CrossFit.Fill)
                 {
-                    size = widget.Size;
                     var offset = widget.Offset;
                     offset.X = slot.Align switch
                     {
                         CrossAlign.Start => 0.0f,
-                        CrossAlign.Center => (drawSize.X / 2.0f) - (size.X / 2.0f),
-                        CrossAlign.End => size.X - drawSize.X,
+                        CrossAlign.Center => (crossAxisSize / 2.0f) - (size.X / 2.0f),
+                        CrossAlign.End => size.X - crossAxisSize,
                         _ => throw new ArgumentOutOfRangeException()
                     };
                     widget.Offset = (offset);
@@ -167,26 +201,14 @@ public class List(Axis axis) : Container
                 break;
             case Axis.Row:
             {
-                widget.Size = (new Vector2<float>
-                {
-                    X = size.X,
-                    Y = slot.Fit switch
-                    {
-                        CrossFit.Desired => size.Y,
-                        CrossFit.Fill => drawSize.Y,
-                        _ => throw new ArgumentOutOfRangeException()
-                    }
-                });
-
                 if (slot.Fit != CrossFit.Fill)
                 {
-                    size = widget.Size;
                     var offset = widget.Offset;
                     offset.Y = slot.Align switch
                     {
                         CrossAlign.Start => 0.0f,
-                        CrossAlign.Center => (drawSize.Y / 2.0f) - (size.Y / 2.0f),
-                        CrossAlign.End => size.Y - drawSize.Y,
+                        CrossAlign.Center => (crossAxisSize / 2.0f) - (size.Y / 2.0f),
+                        CrossAlign.End => size.Y - crossAxisSize,
                         _ => throw new ArgumentOutOfRangeException()
                     };
                     widget.Offset = (offset);

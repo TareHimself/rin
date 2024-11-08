@@ -20,14 +20,19 @@ public class Overlay : Container
             return size;
         });
     }
-    
-    protected override void ArrangeSlots(Vector2<float> drawSize)
+
+
+    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
+        var dims = new Vector2<float>(0.0f);
         foreach (var slot in GetSlots())
         {
             slot.Child.Offset = (new Vector2<float>(0, 0));
-            slot.Child.Size = (drawSize);
+            var widgetSize = slot.Child.ComputeSize(availableSpace);
+            dims.X = Math.Max(dims.X, widgetSize.X);
+            dims.Y = Math.Max(dims.Y, widgetSize.Y);
         }
+        return new Vector2<float>(Math.Min(dims.X,availableSpace.X),Math.Min(dims.Y,availableSpace.Y));
     }
 
     // protected override bool ChildrenReceiveScroll(ScrollEvent e, TransformInfo info)

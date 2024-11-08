@@ -91,14 +91,16 @@ public class BackgroundBlur : Container
         drawCommands.Add(new BlurCommand(info.Transform,GetContentSize(),Strength,Tint));
     }
 
-    protected override void ArrangeSlots(Vector2<float> drawSize)
+    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
         if (GetSlot(0) is { } slot)
         {
             var widget = slot.Child;
             widget.Offset = 0.0f;
-            widget.Size = drawSize;
+            return widget.ComputeSize(availableSpace);
         }
+
+        return 0.0f;
     }
 
     public override int GetMaxSlotsCount() => 1;

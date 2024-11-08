@@ -14,6 +14,17 @@ namespace WidgetTest;
 [RuntimeModule(typeof(SWidgetsModule))]
 public class SWidgetTestModule : RuntimeModule
 {
+
+    public void TestSimple(WindowRenderer renderer)
+    {
+        var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
+
+        surf?.Add(new Sizer
+        {
+            Child = new TextInputBox("I expect this very long text to wrap if the space is too small"),
+            WidthOverride = 400.0f
+        });
+    }
     public void TestBlur(WindowRenderer renderer)
     {
         var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
@@ -181,7 +192,7 @@ public class SWidgetTestModule : RuntimeModule
     {
         base.Startup(runtime);
         Console.WriteLine("CREATING WINDOW");
-        SGraphicsModule.Get().OnRendererCreated += TestBlur;
+        SGraphicsModule.Get().OnRendererCreated += TestSimple;
         if (SWindowsModule.Get().CreateWindow(500, 500, "Aerox Widget Test") is { } window)
         {
             window.OnKey += (e =>

@@ -37,29 +37,39 @@ public class PanelSlot : ContainerSlot
 /// </summary>
 public class Panel : Container
 {
-    protected override void ArrangeSlots(Vector2<float> drawSize)
+    // protected override void ArrangeContent(Vector2<float> drawSize)
+    // {
+    //     foreach (var slot in GetSlots())
+    //     {
+    //         OnSlotUpdated(slot);
+    //     };
+    // }
+
+
+    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
         foreach (var slot in GetSlots())
         {
-            OnSlotUpdated(slot);
+            LayoutSlot(slot,availableSpace);
         };
+        
+        return availableSpace;
     }
 
-    public override void OnSlotUpdated(ContainerSlot slot)
+    protected void LayoutSlot(ContainerSlot slot,Vector2<float> panelSize)
     {
-        base.OnSlotUpdated(slot);
         if (slot is PanelSlot asPanelSlot)
         {
             var widget = slot.Child;
-            var panelSize = GetContentSize();
 
             var noOffsetX = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.X, asPanelSlot.MaxAnchor.X);
             var noOffsetY = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.Y, asPanelSlot.MaxAnchor.Y);
 
             var widgetSize = widget.GetDesiredSize();
+            
             var wSize = new Vector2<float>
             {
-               X = asPanelSlot.SizeToContent && noOffsetX ? widgetSize.X : asPanelSlot.Size.X,
+                X = asPanelSlot.SizeToContent && noOffsetX ? widgetSize.X : asPanelSlot.Size.X,
                 Y = asPanelSlot.SizeToContent && noOffsetY ? widgetSize.Y: asPanelSlot.Size.Y
             };
 
@@ -96,9 +106,14 @@ public class Panel : Container
             var p2Final = p2 - dist;
             var sizeFinal = p2Final - p1Final;
 
-            widget.Offset = (p1Final.Clone());
-            widget.Size = (sizeFinal);
+            widget.Offset = p1Final;
+            widget.ComputeSize(sizeFinal);
         }
+    }
+    public override void OnSlotUpdated(ContainerSlot slot)
+    {
+        base.OnSlotUpdated(slot);
+        LayoutSlot(slot,GetContentSize());
     }
 
     

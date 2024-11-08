@@ -1,6 +1,7 @@
 ﻿using rin.Core;
 using rin.Core.Animation;
 using rin.Core.Math;
+using rin.Widgets.Enums;
 using rin.Widgets.Events;
 using rin.Widgets.Graphics;
 
@@ -20,7 +21,7 @@ public abstract class Widget : Disposable, IAnimatable
     /// <summary>
     /// The offset of this widget in parent space
     /// </summary>
-    public virtual Vector2<float> Offset
+    public Vector2<float> Offset
     {
         get => new Vector2<float>(_offset.X, _offset.Y);
         set
@@ -33,7 +34,7 @@ public abstract class Widget : Disposable, IAnimatable
     /// <summary>
     /// The size of this widget in parent space
     /// </summary>
-    public virtual Vector2<float> Size
+    public Vector2<float> Size
     {
         get => new Vector2<float>(_size.X, _size.Y);
         set
@@ -100,7 +101,7 @@ public abstract class Widget : Disposable, IAnimatable
             _padding.Bottom = value.Bottom;
             _padding.Left = value.Left;
             _padding.Right = value.Right;
-            TryUpdateDesiredSize();
+            Invalidate(InvalidationType.DesiredSize);
         }
     }
 
@@ -153,6 +154,27 @@ public abstract class Widget : Disposable, IAnimatable
     public bool IsFocused => Surface?.FocusedWidget == this;
 
     public virtual bool IsFocusable { get; } = false;
+
+
+    /// <summary>
+    /// Compute and set this widgets size based on the space available
+    /// </summary>
+    /// <param name="availableSpace"></param>
+    /// <param name="fill">If true will set <see cref="Size"/> to <see cref="availableSpace"/> irrespective of the space taken by content</param>
+    /// <returns></returns>
+    public Vector2<float> ComputeSize(Vector2<float> availableSpace, bool fill = false)
+    {
+        var padding = new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        var contentSize = LayoutContent(availableSpace - padding) + padding;
+        return Size = fill ? availableSpace : contentSize;
+    }
+    
+    /// <summary>
+    /// Lay's out content in the available space and returns the size taken by the content
+    /// </summary>
+    /// <param name="availableSpace"></param>
+    /// <returns></returns>
+    protected abstract Vector2<float> LayoutContent(Vector2<float> availableSpace);
     
     /// <summary>
     ///     Computes the relative/local transformation matrix for this widget
@@ -331,25 +353,6 @@ public abstract class Widget : Disposable, IAnimatable
 
     private Vector2<float> ComputeDesiredSize() =>
         ComputeDesiredContentSize() + new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
-
-    
-    /// <summary>
-    /// Attempts to update the desired size of this widget, will inform the parent container if successful
-    /// </summary>
-    /// <returns>true if the desired size was changed</returns>
-    protected virtual bool TryUpdateDesiredSize()
-    {
-        if (Surface == null) return false;
-        var newSize = ComputeDesiredSize();
-
-        if (newSize.Equals(_cachedDesiredSize)) return false;
-
-        _cachedDesiredSize = newSize;
-        
-        Parent?.OnSlotUpdated(this);
-
-        return true;
-    }
     
     /// <summary>
     /// Computes the transform info of content 
@@ -391,6 +394,41 @@ public abstract class Widget : Disposable, IAnimatable
     {
         
     }
+
+
+    protected virtual void Invalidate(InvalidationType type)
+    {
+        if(Surface == null) return;
+        
+        switch (type)
+        {
+            case InvalidationType.DesiredSize:
+            {
+                if (_cachedDesiredSize is { } asCachedSize)
+                {
+                    var newSize = ComputeDesiredSize();
+
+                    if (newSize.Equals(_cachedDesiredSize)) return;
+                    _cachedDesiredSize = newSize;
+        
+                    Parent?.OnChildInvalidated(this,type);
+                }
+                else
+                {
+                    _cachedDesiredSize = ComputeDesiredSize();
+                    Parent?.OnChildInvalidated(this,type);
+                }
+            }
+                break;
+            case InvalidationType.Layout:
+                Parent?.OnChildInvalidated(this,type);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+    }
+    
+    
     /// <summary>
     /// Collect Draw commands from this widget while accounting for padding offsets
     /// </summary>

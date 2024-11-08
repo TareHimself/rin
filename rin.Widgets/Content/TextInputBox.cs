@@ -101,7 +101,7 @@ public class TextInputBox : TextBox
         if (CursorPosition != -1)
         {
             
-            var targetBounds = GetContentBounds().ToArray()[CursorPosition];
+            var targetBounds = GetCharacterBounds().ToArray()[CursorPosition];
             offset.X += targetBounds.Right - 2.0f;
             offset.Y = LineHeight * (float)Math.Floor(((targetBounds.Y + (targetBounds.Height / 2.0f)) / LineHeight));
             // if (Content[CursorPosition] == '\n')

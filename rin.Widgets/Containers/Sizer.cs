@@ -1,4 +1,5 @@
 ﻿using rin.Core.Math;
+using rin.Widgets.Enums;
 
 namespace rin.Widgets.Containers;
 
@@ -16,7 +17,7 @@ public class Sizer : Container
         set
         {
             _widthOverride = value;
-            TryUpdateDesiredSize();
+            Invalidate(InvalidationType.Layout);
         }
     }
 
@@ -26,7 +27,7 @@ public class Sizer : Container
         set
         {
             _heightOverride = value;
-            TryUpdateDesiredSize();
+            Invalidate(InvalidationType.Layout);
         }
     }
 
@@ -43,12 +44,16 @@ public class Sizer : Container
 
     public override int GetMaxSlotsCount() => 1;
 
-    protected override void ArrangeSlots(Vector2<float> drawSize)
+    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
+        var size = new Vector2<float>(WidthOverride.GetValueOrDefault(availableSpace.X),
+            HeightOverride.GetValueOrDefault(availableSpace.Y));
         if (GetSlot(0) is { } slot)
         {
-            slot.Child.Offset = (new Vector2<float>(0, 0));
-            slot.Child.Size = drawSize;
+            slot.Child.Offset = (new Vector2<float>(0, 0)); 
+            return slot.Child.ComputeSize(size);
         }
+
+        return size;
     }
 }

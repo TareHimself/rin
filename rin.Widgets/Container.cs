@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using rin.Core.Extensions;
 using rin.Core.Math;
+using rin.Widgets.Enums;
 using rin.Widgets.Events;
 using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Commands;
@@ -61,17 +62,12 @@ public abstract class Container : Widget
         }
     }
 
-
-    public override Vector2<float> Size
-    {
-        set
-        {
-            base.Size = value;
-            ArrangeSlots(GetContentSize());
-        }
-    }
-
-    protected abstract void ArrangeSlots(Vector2<float> drawSize);
+    /// <summary>
+    /// Arranges content and returns their computed total size i.e. the combined length of all items in a list
+    /// </summary>
+    /// <param name="availableSpace"></param>
+    /// <returns></returns>
+    protected abstract Vector2<float> ArrangeContent(Vector2<float> availableSpace);
 
 
     protected virtual ContainerSlot MakeSlot(Widget widget)
@@ -87,6 +83,10 @@ public abstract class Container : Widget
         return AddChild(Activator.CreateInstance<TE>());
     }
 
+    /// <summary>
+    /// This should only be called by slots
+    /// </summary>
+    /// <param name="widget"></param>
     public void OnSlotUpdated(Widget widget)
     {
         if (_widgetSlotMap.TryGetValue(widget, out var slot))
@@ -94,9 +94,32 @@ public abstract class Container : Widget
             OnSlotUpdated(slot);
         }
     }
+    
+    public virtual void OnChildInvalidated(Widget child,InvalidationType invalidation)
+    {
+        if (_widgetSlotMap.TryGetValue(child, out var slot))
+        {
+            OnSlotInvalidated(slot,invalidation);
+        }
+    }
+    
+    public virtual void OnSlotInvalidated(ContainerSlot slot,InvalidationType invalidation)
+    {
+        Invalidate(invalidation);
+    }
+    
+    /// <summary>
+    /// Called when a slot calls <see cref="ContainerSlot.Update"/>, when a new slot has been added
+    /// </summary>
+    /// <param name="slot"></param>
     public virtual void OnSlotUpdated(ContainerSlot slot)
     {
-        if (TryUpdateDesiredSize()) ArrangeSlots(GetContentSize());
+        Invalidate(InvalidationType.DesiredSize);
+    }
+
+    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    {
+        return ArrangeContent(availableSpace);
     }
 
     public ContainerSlot? AddChild(Widget widget) => AddChild(MakeSlot(widget));
@@ -147,7 +170,7 @@ public abstract class Container : Widget
 
                 if (Surface != null)
                 {
-                    TryUpdateDesiredSize();
+                    Invalidate(InvalidationType.DesiredSize);
                 }
                 return true;
             }

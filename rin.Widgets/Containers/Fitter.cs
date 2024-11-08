@@ -1,4 +1,5 @@
 ﻿using rin.Core.Math;
+using rin.Widgets.Enums;
 
 namespace rin.Widgets.Containers;
 
@@ -17,7 +18,7 @@ public class Fitter : Container
 {
 
     private FitMode _fitFittingMode = FitMode.Fill;
-    
+
     public Fitter() : base()
     {
         Clip = Clip.Bounds;
@@ -32,10 +33,18 @@ public class Fitter : Container
             _fitFittingMode = value;
             if (_fitFittingMode != old)
             {
-                TryUpdateDesiredSize();
-                SizeContent(GetContentSize());
+                FitContent(GetContentSize());
             }
         }
+    }
+
+    public override void OnSlotInvalidated(ContainerSlot slot, InvalidationType invalidation){
+
+        if (FittingMode != FitMode.None)
+        {
+            base.OnSlotInvalidated(slot, invalidation);  
+        }
+        FitContent(GetContentSize());
     }
 
     protected override Vector2<float> ComputeDesiredContentSize()
@@ -44,6 +53,7 @@ public class Fitter : Container
         {
             return slot.Child.GetDesiredSize();
         }
+
         return 0.0f;
     }
 
@@ -55,7 +65,7 @@ public class Fitter : Container
         var scaledWidgetSize = new Vector2<float>(drawSize.X, drawSize.X * widgetAspect);
 
         if (drawSize.Equals(scaledWidgetSize)) return scaledWidgetSize;
-        
+
         return scaledWidgetSize.Y <= drawSize.Y
             ? scaledWidgetSize
             : new Vector2<float>(drawSize.Y / widgetAspect, drawSize.Y);
@@ -74,7 +84,7 @@ public class Fitter : Container
             : scaledWidgetSize;
     }
 
-    public void SizeContent(Vector2<float> drawSize)
+    public Vector2<float> FitContent(Vector2<float> drawSize)
     {
         if (GetSlot(0) is { } slot)
         {
@@ -91,7 +101,7 @@ public class Fitter : Container
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-            if (!newDrawSize.Equals(widget.GetContentSize())) widget.Size = newDrawSize;
+            if (!newDrawSize.Equals(widget.GetContentSize())) widget.ComputeSize(newDrawSize);
 
 
             var halfSelfDrawSize = drawSize;
@@ -102,12 +112,18 @@ public class Fitter : Container
             var diff = halfSelfDrawSize - halfSlotDrawSize;
 
             if (!widget.Offset.Equals(diff)) widget.Offset = diff;
+
+            return drawSize;
         }
+
+        return drawSize;
     }
 
-    protected override void ArrangeSlots(Vector2<float> drawSize)
+    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
-        SizeContent(drawSize);
+        var desired = GetDesiredContentSize();
+        return FitContent(new Vector2<float>(float.IsFinite(availableSpace.X) ? availableSpace.X : desired.X,
+            float.IsFinite(availableSpace.Y) ? availableSpace.Y : desired.Y));
     }
-    
+
 }

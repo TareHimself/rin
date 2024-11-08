@@ -14,7 +14,7 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
     IMultiplyOperators<Vector2<T>, T, Vector2<T>>,
     IDivisionOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
     IDivisionOperators<Vector2<T>, T, Vector2<T>>
-    where T : notnull
+    where T : notnull, IComparisonOperators<T,T,bool>
 
 {
     public T X = inX;
@@ -100,9 +100,19 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
     {
         return new Vector2<T>(X, Y);
     }
+    
+    public Vector2<T> Clamp(Vector2<T> min, Vector2<T> max)
+    {
+        return new Vector2<T>(X < min.X ? min.X : X > max.X ? max.X : X, Y < min.X ? min.Y : Y > max.Y ? max.Y : Y);
+    }
+    
+    public Vector2<T> Clamp(T min, T max)
+    {
+        return this.Clamp(new Vector2<T>(min),new Vector2<T>(max));
+    }
 
     [Pure]
-    public Vector2<E> Cast<E>() where E : notnull
+    public Vector2<E> Cast<E>() where E : notnull, IComparisonOperators<E,E,bool>
     {
         dynamic a = X, b = Y;
 

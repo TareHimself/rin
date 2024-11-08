@@ -14,7 +14,7 @@ public struct Vector4<T> :
     IDivisionOperators<Vector4<T>, Vector4<T>, Vector4<T>>,
     IDivisionOperators<Vector4<T>, T, Vector4<T>>,
     ICloneable<Vector4<T>>
-    where T : notnull
+    where T : notnull, IComparisonOperators<T,T,bool>
 {
     public T X;
     public T Y;

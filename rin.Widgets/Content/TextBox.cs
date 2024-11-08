@@ -4,6 +4,7 @@ using rin.Core;
 using rin.Core.Extensions;
 using rin.Graphics;
 using rin.Core.Math;
+using rin.Widgets.Enums;
 using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Quads;
 using rin.Widgets.Sdf;
@@ -11,7 +12,6 @@ using rsl;
 using SixLabors.Fonts;
 
 namespace rin.Widgets.Content;
-
 internal struct CachedQuadLayout(int atlas,Matrix3 transform, Vector2<float> size, Vector4<float> uv)
 {
     public readonly int Atlas = atlas;
@@ -62,7 +62,8 @@ public class TextBox : Widget
     private string _content;
     private Font? _latestFont;
     private SdfFont? _mtsdf;
-    private List<CachedQuadLayout>? _cachedLayouts;
+    private CachedQuadLayout[]? _cachedLayouts;
+    private CharacterBounds[]? _cachedBounds;
     private float _fontSize = 100.0f;
 
     protected float LineHeight => _latestFont?.FontMetrics is { } metrics
@@ -77,6 +78,7 @@ public class TextBox : Widget
         var gs = SGraphicsModule.Get();
         _content = inContent;
         _cachedLayouts = null;
+        _cachedBounds = null;
         SWidgetsModule.Get().GetOrCreateFont(fontFamily).After(msdf =>
         {
             _mtsdf = msdf;
@@ -109,21 +111,31 @@ public class TextBox : Widget
             var hasChanged = _content != value;
             if (hasChanged)
             {
-                _cachedLayouts = null;
                 TextChanged(value);
             }
-            TryUpdateDesiredSize();
         }
     }
 
     protected virtual void TextChanged(string newText)
     {
+        _cachedLayouts = null;
+        _cachedBounds = null;
         _content = newText;
+        Invalidate(InvalidationType.DesiredSize);
     }
 
     
     protected bool FontReady => _mtsdf != null && _latestFont != null;
-    
+
+    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    {
+        float? wrap = float.IsFinite(availableSpace.X) ? availableSpace.X : null;
+        var bounds = GetCharacterBounds(wrap).ToArray();
+        var width = bounds.MaxBy(c => c.Right)?.Right ?? 0.0f;
+        var height = bounds.MaxBy(c => c.Bottom)?.Bottom ?? 0.0f;
+        return new Vector2<float>(width,height);
+    }
+
     protected override void OnDispose(bool isManual)
     {
         base.OnDispose(isManual);
@@ -133,45 +145,70 @@ public class TextBox : Widget
     private void MakeNewFont()
     {
         _latestFont = _mtsdf?.GetFontFamily().CreateFont(FontSize, FontStyle.Regular);
-        TryUpdateDesiredSize();
+        _cachedBounds = null;
+        _cachedLayouts = null;
+        Invalidate(InvalidationType.DesiredSize);
     }
 
-    protected IEnumerable<CharacterBounds> GetContentBounds()
+    private object _boundsLock = new object();
+
+    protected IEnumerable<CharacterBounds> GetCharacterBounds(float? wrap = null,bool cache = true)
     {
-        if (_latestFont == null)
+        lock (_boundsLock)
         {
-            return [];
-        }
-        var opts = new TextOptions(_latestFont);
-        TextMeasurer.TryMeasureCharacterBounds(_content, opts, out var tempBounds);
-        if (tempBounds.IsEmpty) return [];
-        var boundsIdx = 0;
-        var allBounds = tempBounds.ToArray();
-        var line = 0;
-        return Content.Select((c,idx) =>
-        {
-            if (c is not ( '\n' or '\r'))
+            if (_latestFont == null)
             {
+                return [];
+            }
+
+            // if (cache && _cachedBounds != null)
+            // {
+            //     return _cachedBounds;
+            // }
+        
+            var opts = new TextOptions(_latestFont)
+            {
+                WrappingLength = wrap.GetValueOrDefault(-1)
+            };
+
+            var content = Content + "";
+            TextMeasurer.TryMeasureCharacterBounds(content, opts, out var tempBounds);
+            if (tempBounds.IsEmpty) return [];
+            var boundsIdx = 0;
+            var allBounds = tempBounds.ToArray();
+            var line = 0;
+            
+            var result = content.Select((c,idx) =>
+            {
+                if (c is not ( '\n' or '\r'))
+                {
                 
-                var result = new CharacterBounds(c,idx, allBounds[boundsIdx]);
-                line = (int)Math.Floor(result.Y / LineHeight);
-                boundsIdx++;
-                return result;
-            }
+                    var result = new CharacterBounds(c,idx, allBounds[boundsIdx]);
+                    line = (int)Math.Floor(result.Y / LineHeight);
+                    boundsIdx++;
+                    return result;
+                }
 
-            if (c == '\n')
-            {
-                line++;
-            }
+                if (c == '\n')
+                {
+                    line++;
+                }
 
-            return new CharacterBounds(c, idx,0, (line * LineHeight) + LineHeight / 2.0f, 0, 0);
-        });
+                return new CharacterBounds(c, idx,0, (line * LineHeight) + LineHeight / 2.0f, 0, 0);
+            }).ToArray();
+            // if (cache)
+            // {
+            //     _cachedBounds = result;
+            // }
+            //
+            return result;
+        }
     }
 
     protected override Vector2<float> ComputeDesiredContentSize()
     {
         if (Content.Empty() || _latestFont == null) return new Vector2<float>(0.0f,LineHeight);
-        CharacterBounds? last = GetContentBounds().MaxBy(c => c.Right);
+        CharacterBounds? last = GetCharacterBounds(cache: false).MaxBy(c => c.Right);
         var lines = Math.Max(1,Content.Split("\n").Length);
         var height = LineHeight * lines;
 
@@ -184,9 +221,9 @@ public class TextBox : Widget
         if (Content.NotEmpty() && _cachedLayouts == null)
         {
             List<CachedQuadLayout> layouts = [];
-            foreach (var bound in GetContentBounds())
+            foreach (var bound in GetCharacterBounds(GetContentSize().X))
             {
-                var charInfo = _mtsdf?.GetGlyphInfo(_content[bound.ContentIndex]);
+                var charInfo = _mtsdf?.GetGlyphInfo(bound.Character);
                 
                 if(charInfo == null) continue;
                 
@@ -210,7 +247,7 @@ public class TextBox : Widget
                 drawCommands.AddSdf(layout.Atlas,info.Transform * layout.Transform,layout.Size,Color.White,layout.UV);
             }
             
-            _cachedLayouts = layouts;
+            _cachedLayouts = layouts.ToArray();
         }
         else if(_cachedLayouts != null)
         {

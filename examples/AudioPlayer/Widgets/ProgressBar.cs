@@ -15,6 +15,11 @@ public class ProgressBar(Func<float> getProgress) : Widget
     public Color ForegroundColor { get; set; } = Color.White;
 
     public Vector4<float> BorderRadius { get; set; } = 0.0f;
+    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    {
+        throw new NotImplementedException();
+    }
+
     protected override Vector2<float> ComputeDesiredContentSize() => new Vector2<float>();
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)  

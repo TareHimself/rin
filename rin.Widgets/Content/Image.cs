@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using rin.Graphics;
 using rin.Core.Math;
+using rin.Widgets.Enums;
 using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Quads;
 
@@ -24,7 +25,7 @@ public class Image : Widget
         set
         {
             _textureId = value;
-            TryUpdateDesiredSize();
+            Invalidate(InvalidationType.DesiredSize);
         }
     }
 
@@ -65,5 +66,10 @@ public class Image : Widget
             drawCommands.AddTexture(TextureId, info.Transform, GetContentSize(), Tint, null,
                 BorderRadius);
         }
+    }
+
+    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    {
+        return GetDesiredSize().Clamp(new Vector2<float>(0.0f), GetDesiredContentSize());
     }
 }
