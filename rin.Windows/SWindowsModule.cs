@@ -18,33 +18,20 @@ public class SWindowsModule : RuntimeModule, ISingletonGetter<SWindowsModule>
     
     public event Action<Window>? OnWindowCreated;
 
-    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowCreate", CallingConvention = CallingConvention.Cdecl)]
-    private static extern nint NativeCreate(int width, int height, string name, ref WindowCreateOptions options);
-
-    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowDestroy", CallingConvention = CallingConvention.Cdecl)]
-    private static extern nint NativeDestroy(nint nativePtr);
-
-    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowSubsystemStart", CallingConvention = CallingConvention.Cdecl)]
-    private static extern bool NativeStart();
-
-    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowSubsystemStop", CallingConvention = CallingConvention.Cdecl)]
-    private static extern void NativeStop();
-
-    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowSubsystemPollEvents", CallingConvention = CallingConvention.Cdecl)]
-    private static extern void NativePollEvents();
+   
 
     public Window CreateWindow(int width, int height, string name, Window? parent = null,
         WindowCreateOptions? options = null)
     {
         var opts = options ?? new WindowCreateOptions();
-        var winPtr = NativeCreate(width, height, name, ref opts);
+        var winPtr = NativeMethods.Create(width, height, name, ref opts);
 
         var win = new Window(winPtr, parent);
 
         win.OnDisposed += () =>
         {
             OnWindowClosed?.Invoke(win);
-            NativeDestroy(winPtr);
+            NativeMethods.Destroy(winPtr);
         };
 
         OnWindowCreated?.Invoke(win);
@@ -57,16 +44,16 @@ public class SWindowsModule : RuntimeModule, ISingletonGetter<SWindowsModule>
     {
         base.Startup(runtime);
 
-        NativeStart();
+        NativeMethods.Start();
 
-        runtime.OnTick += delta => { NativePollEvents(); };
+        runtime.OnTick += delta => { NativeMethods.PollEvents(); };
     }
 
 
     public override void Shutdown(SRuntime runtime)
     {
         base.Shutdown(runtime);
-        NativeStop();
+        NativeMethods.Stop();
     }
 
     public class WindowCreatedEvent

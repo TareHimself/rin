@@ -38,7 +38,7 @@ public abstract class Surface : Disposable
     {
         CreateImages();
         _rootWidget.Offset = (0.0f);
-        _rootWidget.Size = GetDrawSize().Cast<float>();
+        _rootWidget.ComputeSize(GetDrawSize().Cast<float>());
     }
 
     public abstract Vector2<int> GetDrawSize();
@@ -128,7 +128,7 @@ public abstract class Surface : Disposable
         _copyImage?.Dispose();
         _stencilImage?.Dispose();
         CreateImages();
-        _rootWidget.Size = e.Size.Cast<float>();
+        _rootWidget.ComputeSize(e.Size.Cast<float>());
     }
 
     public DeviceImage GetDrawImage()

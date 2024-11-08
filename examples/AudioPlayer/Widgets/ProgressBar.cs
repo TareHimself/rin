@@ -17,7 +17,7 @@ public class ProgressBar(Func<float> getProgress) : Widget
     public Vector4<float> BorderRadius { get; set; } = 0.0f;
     protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
     {
-        throw new NotImplementedException();
+        return availableSpace;
     }
 
     protected override Vector2<float> ComputeDesiredContentSize() => new Vector2<float>();

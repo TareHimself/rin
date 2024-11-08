@@ -19,7 +19,7 @@ public class Root : Container
     {
         foreach (var slot in GetSlots())
         {
-            OnSlotUpdated(slot);
+            OnSlotInvalidated(slot,InvalidationType.Layout);
         }
 
         return availableSpace;
@@ -32,14 +32,7 @@ public class Root : Container
     //         OnSlotUpdated(slot);
     //     }
     // }
-
-    public override void OnSlotUpdated(ContainerSlot slot)
-    {
-        base.OnSlotUpdated(slot);
-        var widget = slot.Child;
-        widget.Offset = (0.0f);
-        widget.ComputeSize(GetContentSize());
-    }
+    
 
     public override void OnSlotInvalidated(ContainerSlot slot, InvalidationType invalidation)
     {

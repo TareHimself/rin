@@ -1,4 +1,5 @@
 ﻿using rin.Core.Math;
+using rin.Widgets.Enums;
 
 namespace rin.Widgets.Containers;
 
@@ -110,9 +111,9 @@ public class Panel : Container
             widget.ComputeSize(sizeFinal);
         }
     }
-    public override void OnSlotUpdated(ContainerSlot slot)
+
+    public override void OnSlotInvalidated(ContainerSlot slot, InvalidationType invalidation)
     {
-        base.OnSlotUpdated(slot);
         LayoutSlot(slot,GetContentSize());
     }
 

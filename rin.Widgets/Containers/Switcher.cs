@@ -35,11 +35,12 @@ public class Switcher : Container
         return SelectedWidget?.GetDesiredSize() ?? new Vector2<float>();
     }
     
-    public override void OnSlotUpdated(ContainerSlot slot)
+
+    public override void OnSlotInvalidated(ContainerSlot slot, InvalidationType invalidation)
     {
         if (slot.Child == SelectedWidget)
         {
-            base.OnSlotUpdated(slot);
+            base.OnSlotInvalidated(slot, invalidation);
         }
     }
 

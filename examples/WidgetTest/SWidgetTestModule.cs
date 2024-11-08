@@ -19,11 +19,7 @@ public class SWidgetTestModule : RuntimeModule
     {
         var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
 
-        surf?.Add(new Sizer
-        {
-            Child = new TextInputBox("I expect this very long text to wrap if the space is too small"),
-            WidthOverride = 400.0f
-        });
+        surf?.Add(new TextInputBox("I expect this very long text to wrap if the space is too small"));
     }
     public void TestBlur(WindowRenderer renderer)
     {

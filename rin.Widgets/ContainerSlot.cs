@@ -1,4 +1,6 @@
-﻿namespace rin.Widgets;
+﻿using rin.Widgets.Enums;
+
+namespace rin.Widgets;
 
 public class ContainerSlot(Container? owner = null)
 {
@@ -16,6 +18,6 @@ public class ContainerSlot(Container? owner = null)
 
     public void Update()
     {
-        owner?.OnSlotUpdated(this);
+        owner?.OnSlotInvalidated(this, InvalidationType.Layout);
     }
 }

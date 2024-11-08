@@ -12,6 +12,11 @@ namespace rin.Widgets.Content;
 /// </summary>
 public class CoverImage : Image
 {
+    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    {
+        return base.LayoutContent(availableSpace);
+    }
+
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     {
         if (TextureId != -1)

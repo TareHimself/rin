@@ -157,11 +157,6 @@ public class List(Axis axis) : Container
         };
     }
 
-    public override void OnSlotUpdated(ContainerSlot slot)
-    {
-        Invalidate(InvalidationType.Layout);
-    }
-
     protected virtual float GetSlotCrossAxisSize(ContainerSlot slot, float crossAxisAvailableSize)
     {
         if (slot is ListContainerSlot asListContainerSlot)

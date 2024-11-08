@@ -70,6 +70,6 @@ public class Image : Widget
 
     protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
     {
-        return GetDesiredSize().Clamp(new Vector2<float>(0.0f), GetDesiredContentSize());
+        return GetDesiredContentSize().Clamp(new Vector2<float>(0.0f), availableSpace);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using rin.Core;
 using rin.Core.Math;
+// ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
 
 namespace rin.Windows;
 
@@ -22,25 +23,25 @@ public class Window : Disposable
     
     private readonly nint _nativePtr;
     
-    private readonly NativeCharDelegate _charDelegate;
+    private readonly NativeMethods.NativeCharDelegate _charDelegate;
 
-    private readonly NativeCloseDelegate _closeDelegate;
+    private readonly NativeMethods.NativeCloseDelegate _closeDelegate;
 
-    private readonly NativeCursorDelegate _cursorDelegate;
+    private readonly NativeMethods.NativeCursorDelegate _cursorDelegate;
 
-    private readonly NativeFocusDelegate _focusDelegate;
+    private readonly NativeMethods.NativeFocusDelegate _focusDelegate;
 
-    private readonly NativeKeyDelegate _keyDelegate;
+    private readonly NativeMethods.NativeKeyDelegate _keyDelegate;
 
-    private readonly NativeMouseButtonDelegate _mouseButtonDelegate;
+    private readonly NativeMethods.NativeMouseButtonDelegate _mouseButtonDelegate;
 
-    private readonly NativeScrollDelegate _scrollDelegate;
+    private readonly NativeMethods.NativeScrollDelegate _scrollDelegate;
 
-    private readonly NativeSizeDelegate _sizeDelegate;
+    private readonly NativeMethods.NativeSizeDelegate _sizeDelegate;
     
-    private readonly NativeMaximizedDelegate _maximizedDelegate;
+    private readonly NativeMethods.NativeMaximizedDelegate _maximizedDelegate;
     
-    private readonly NativeRefreshDelegate _refreshDelegate;
+    private readonly NativeMethods.NativeRefreshDelegate _refreshDelegate;
 
     public readonly List<Window> Children = [];
 
@@ -68,10 +69,10 @@ public class Window : Disposable
         _refreshDelegate = RefreshCallback;
         _nativePtr = nativePtr;
         int width = 0, height = 0;
-        NativeGetPixelSize(nativePtr, ref width, ref height);
+        NativeMethods.GetWindowPixelSize(nativePtr, ref width, ref height);
         PixelSize.X = (uint)width;
         PixelSize.Y = (uint)height;
-        NativeSetWindowCallbacks(_nativePtr,
+        NativeMethods.SetWindowCallbacks(_nativePtr,
             _keyDelegate,
             _cursorDelegate,
             _mouseButtonDelegate,
@@ -145,6 +146,8 @@ public class Window : Disposable
     private void MaximizedCallback(nint window, int maxmized)
     {
         OnMaximized?.Invoke(new MaximizedEvent(this,maxmized == 1));
+        var size = GetPixelSize().Cast<uint>();
+        OnResized?.Invoke(new ResizeEvent(this,size.X,size.Y));
     }
     
     private void RefreshCallback(nint window)
@@ -161,42 +164,29 @@ public class Window : Disposable
         OnDisposed?.Invoke();
     }
 
-    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowGetMousePosition", CallingConvention = CallingConvention.Cdecl)]
-    private static extern void NativeGetMousePosition(nint window, ref double x, ref double y);
     
-    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowSetMousePosition", CallingConvention = CallingConvention.Cdecl)]
-    private static extern void NativeSetMousePosition(nint window,double x,double y);
-
-    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowGetPixelSize", CallingConvention = CallingConvention.Cdecl)]
-    private static extern void NativeGetPixelSize(nint window, ref int width, ref int height);
 
     public Vector2<double> GetMousePosition()
     {
         var x = 0.0;
         var y = 0.0;
-        NativeGetMousePosition(_nativePtr, ref x, ref y);
+        NativeMethods.GetWindowMousePosition(_nativePtr, ref x, ref y);
 
         return new Vector2<double>(x, y);
     }
     
     public void SetMousePosition(Vector2<double> position)
     {
-        NativeSetMousePosition(_nativePtr,position.X,position.Y);
+        NativeMethods.SetWindowMousePosition(_nativePtr,position.X,position.Y);
     }
 
 
-    [DllImport(Dlls.AeroxWindowsNative, EntryPoint = "windowSetCallbacks", CallingConvention = CallingConvention.Cdecl)]
-    protected static extern void NativeSetWindowCallbacks(nint nativePtr,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeKeyDelegate keyDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeCursorDelegate cursorDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeMouseButtonDelegate mouseButtonDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeFocusDelegate focusDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeScrollDelegate scrollDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeSizeDelegate sizeDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeCloseDelegate closeDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeCharDelegate charDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeMaximizedDelegate maximizedDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeRefreshDelegate refreshDelegate);
+    public Vector2<int> GetPixelSize()
+    {
+        Vector2<int> result = 0;
+        NativeMethods.GetWindowPixelSize(_nativePtr,ref result.X,ref result.Y);
+        return result;
+    }
 
 
     public event Action<KeyEvent>? OnKey;
@@ -293,33 +283,5 @@ public class Window : Disposable
     {
     }
 
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    protected delegate void NativeKeyDelegate(nint window, int key, int scancode, int action, int mods);
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    protected delegate void NativeCursorDelegate(nint window, double x, double y);
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    protected delegate void NativeMouseButtonDelegate(nint window, int button, int action, int mods);
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    protected delegate void NativeFocusDelegate(nint window, int focused);
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    protected delegate void NativeScrollDelegate(nint window, double dx, double dy);
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    protected delegate void NativeSizeDelegate(nint window, int width, int height);
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    protected delegate void NativeCloseDelegate(nint window);
-
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    protected delegate void NativeCharDelegate(nint window, uint code, int mods);
     
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    protected delegate void NativeMaximizedDelegate(nint window, int maximized);
-    
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    protected delegate void NativeRefreshDelegate(nint window);
 }

@@ -82,18 +82,6 @@ public abstract class Container : Widget
     {
         return AddChild(Activator.CreateInstance<TE>());
     }
-
-    /// <summary>
-    /// This should only be called by slots
-    /// </summary>
-    /// <param name="widget"></param>
-    public void OnSlotUpdated(Widget widget)
-    {
-        if (_widgetSlotMap.TryGetValue(widget, out var slot))
-        {
-            OnSlotUpdated(slot);
-        }
-    }
     
     public virtual void OnChildInvalidated(Widget child,InvalidationType invalidation)
     {
@@ -106,15 +94,6 @@ public abstract class Container : Widget
     public virtual void OnSlotInvalidated(ContainerSlot slot,InvalidationType invalidation)
     {
         Invalidate(invalidation);
-    }
-    
-    /// <summary>
-    /// Called when a slot calls <see cref="ContainerSlot.Update"/>, when a new slot has been added
-    /// </summary>
-    /// <param name="slot"></param>
-    public virtual void OnSlotUpdated(ContainerSlot slot)
-    {
-        Invalidate(InvalidationType.DesiredSize);
     }
 
     protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
@@ -143,7 +122,7 @@ public abstract class Container : Widget
             if (Surface != null)
             {
                 widget.NotifyAddedToSurface(Surface);
-                OnSlotUpdated(slot);
+                OnSlotInvalidated(slot,InvalidationType.Layout);
             }
             //Console.WriteLine("Added child [{0}] to container [{1}]", widget.GetType().Name, GetType().Name);
             return slot;
