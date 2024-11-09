@@ -25,12 +25,20 @@ public class Overlay : Container
     protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
         var dims = new Vector2<float>(0.0f);
+        
+        // First pass is for widgets with content to figure out their size
+        foreach (var slot in GetSlots())
+        {
+            var widgetSize = slot.Child.ComputeSize(availableSpace);
+            dims.X = Math.Max(dims.X, widgetSize.X.FiniteOr());
+            dims.Y = Math.Max(dims.Y, widgetSize.Y.FiniteOr());
+        }
+        
+        // Second pass is for widgets that adapt to the size of the container
         foreach (var slot in GetSlots())
         {
             slot.Child.Offset = (new Vector2<float>(0, 0));
-            var widgetSize = slot.Child.ComputeSize(availableSpace);
-            dims.X = Math.Max(dims.X, widgetSize.X);
-            dims.Y = Math.Max(dims.Y, widgetSize.Y);
+            slot.Child.ComputeSize(dims);
         }
         return new Vector2<float>(Math.Min(dims.X,availableSpace.X),Math.Min(dims.Y,availableSpace.Y));
     }

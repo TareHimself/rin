@@ -1,6 +1,7 @@
 ﻿using rin.Core;
 using rin.Core.Animation;
 using rin.Core.Extensions;
+using rin.Core.Math;
 using rin.Graphics;
 using rin.Widgets;
 using rin.Widgets.Animation;
@@ -8,12 +9,75 @@ using rin.Widgets.Containers;
 using rin.Widgets.Content;
 using rin.Widgets.Graphics.Quads;
 using rin.Windows;
+using Rect = rin.Widgets.Containers.Rect;
 
 namespace WidgetTest;
 
 [RuntimeModule(typeof(SWidgetsModule))]
 public class SWidgetTestModule : RuntimeModule
 {
+    public void TestWrapping(WindowRenderer renderer)
+    {
+        if (SWidgetsModule.Get().GetWindowSurface(renderer) is { } surf)
+        {
+            var list = new WrapList()
+            {
+                Axis = Axis.Row,
+            };
+            
+            surf.Add(new Panel()
+            {
+                Slots = [
+                new PanelSlot()
+                {
+                    Child = new ScrollList()
+                    {
+                        Child = list,
+                        Clip = Clip.None
+                    },
+                    MinAnchor = 0.0f,
+                    MaxAnchor = 1.0f
+                },
+                new PanelSlot
+                {
+                    Child = new Rect
+                    {
+                        Child = new FpsWidget
+                        {
+                            FontSize = 30,
+                        },
+                        Padding = new Padding(20.0f),
+                        BorderRadius = 10.0f,
+                        BackgroundColor = Color.Black.Clone(a: 0.7f)
+                    },
+                    SizeToContent = true,
+                    MinAnchor = new Vector2<float>(1.0f, 0.0f),
+                    MaxAnchor = new Vector2<float>(1.0f, 0.0f),
+                    Alignment = new Vector2<float>(1.0f, 0.0f)
+                }]
+            });
+
+            var rand = new Random();
+            surf.Window.OnKey += (e) =>
+            {
+                if (e is { State: KeyState.Pressed, Key: Key.Equal })
+                {
+                    var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
+                    foreach (var path in p)
+                        list.AddChild(new Sizer()
+                        {
+                            WidthOverride = rand.Next(300,600),
+                            HeightOverride = 300,
+                            Child = new AsyncFileImage(path)
+                            {
+                                BorderRadius = 30.0f
+                            },
+                            Padding = 10.0f,
+                        });
+                }
+            };
+        }
+    }
 
     public void TestSimple(WindowRenderer renderer)
     {
@@ -21,6 +85,7 @@ public class SWidgetTestModule : RuntimeModule
 
         surf?.Add(new TextInputBox("I expect this very long text to wrap if the space is too small"));
     }
+
     public void TestBlur(WindowRenderer renderer)
     {
         var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
@@ -188,7 +253,7 @@ public class SWidgetTestModule : RuntimeModule
     {
         base.Startup(runtime);
         Console.WriteLine("CREATING WINDOW");
-        SGraphicsModule.Get().OnRendererCreated += TestSimple;
+        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         if (SWindowsModule.Get().CreateWindow(500, 500, "Aerox Widget Test") is { } window)
         {
             window.OnKey += (e =>

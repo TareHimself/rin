@@ -178,7 +178,7 @@ public class TextBox : Widget
         
             var opts = new TextOptions(_latestFont)
             {
-                WrappingLength = wrap.GetValueOrDefault(-1)
+                WrappingLength = wrap == null ? -1.0f : (float)Math.Ceiling(wrap.Value + 10.0f)
             };
 
             var content = Content + "";

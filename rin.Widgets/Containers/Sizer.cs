@@ -1,5 +1,7 @@
 ﻿using rin.Core.Math;
 using rin.Widgets.Enums;
+using rin.Widgets.Graphics;
+using rin.Widgets.Graphics.Quads;
 
 namespace rin.Widgets.Containers;
 
@@ -56,4 +58,12 @@ public class Sizer : Container
 
         return size;
     }
+
+    // protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)
+    // {
+    //     base.CollectSelf(info, drawCommands);
+    //     drawCommands.AddRect(info.Transform, info.Size, color: Color.Green);
+    //     drawCommands.AddRect(info.Transform *Matrix3.Identity.Translate(1.5f), info.Size - 3f, color: Color.Red);
+    //     
+    // }
 }

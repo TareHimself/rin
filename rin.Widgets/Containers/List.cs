@@ -159,6 +159,7 @@ public class List(Axis axis) : Container
 
     protected virtual float GetSlotCrossAxisSize(ContainerSlot slot, float crossAxisAvailableSize)
     {
+        return crossAxisAvailableSize;
         if (slot is ListContainerSlot asListContainerSlot)
         {
             return asListContainerSlot.Fit switch

@@ -13,6 +13,7 @@ public class ScrollList : List
     private float _mouseDownOffset;
     private Vector2<float> _mouseDownPos = new(0.0f);
     private float _offset;
+    private float _maxOffset;
 
     public float MinBarSize = 40.0f;
 
@@ -40,11 +41,19 @@ public class ScrollList : List
         return Math.Abs(offset - _offset) > 0.001;
     }
 
-    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    protected override Vector2<float> ArrangeContent(Vector2<float> spaceGiven)
     {
-        var newSize = base.ArrangeContent(availableSpace);
+        var spaceTaken = base.ArrangeContent(spaceGiven);
+        
+        
+        _maxOffset = Axis switch
+        {
+            Axis.Column => Math.Max(spaceTaken.Y - spaceGiven.Y.FiniteOr(spaceTaken.Y),0),
+            Axis.Row => Math.Max(spaceTaken.X - spaceGiven.X.FiniteOr(spaceTaken.X),0),
+            _ => throw new ArgumentOutOfRangeException()
+        };
         ScrollTo(_offset);
-        return newSize;
+        return new Vector2<float>(Math.Min(spaceTaken.X,spaceGiven.X),Math.Min(spaceTaken.Y,spaceGiven.Y));
     }
 
     public virtual float GetScroll()
@@ -75,17 +84,7 @@ public class ScrollList : List
         };
     }
 
-    public virtual float GetMaxScroll()
-    {
-        var desiredSize = GetDesiredContentSize();
-
-        return Axis switch
-        {
-            Axis.Row => desiredSize.X - GetContentSize().X,
-            Axis.Column => desiredSize.Y - GetContentSize().Y,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-    }
+    public virtual float GetMaxScroll() => _maxOffset;
 
     public virtual bool IsScrollable()
     {
@@ -121,7 +120,7 @@ public class ScrollList : List
             var scroll = GetScroll();
             var maxScroll = GetMaxScroll();
             var axisSize = GetAxisSize();
-            var desiredAxisSize = GetDesiredAxisSize();
+            var desiredAxisSize = axisSize + maxScroll;
 
             var barSize = Math.Max(MinBarSize, axisSize - (desiredAxisSize - axisSize));
             var availableDist = axisSize - barSize;

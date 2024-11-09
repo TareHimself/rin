@@ -19,7 +19,8 @@ public class TrackPlayer : Overlay
         {
             Top = 0.0f,
             Bottom = 5.0f,
-        }
+        },
+        WrapContent = true
     };
 
     private readonly TextBox _currentTimeText = new TextBox("00:00", 30)
@@ -45,10 +46,7 @@ public class TrackPlayer : Overlay
     private readonly AudioStream _stream;
     private double _lastTime = SRuntime.Get().GetTimeSeconds();
 
-    private readonly Sizer _backgroundContainer = new Sizer()
-    {
-        HeightOverride = 50.0f
-    };
+    private readonly Panel _backgroundContainer = new Panel();
 
     public string Name
     {
@@ -58,8 +56,6 @@ public class TrackPlayer : Overlay
 
     public TrackPlayer(string name, AudioStream stream)
     {
-
-        
         _nameText.Content = name;
 
         _stream = stream;
@@ -143,9 +139,14 @@ public class TrackPlayer : Overlay
         var thumb = data.Album.Images.MaxBy(c => c.Height * c.Width)!.Url;
 
         Console.WriteLine($"Using thumb {thumb} for {_nameText.Content}");
-        _backgroundContainer.AddChild(new AsyncWebCover(thumb)
+        _backgroundContainer.AddChild(new PanelSlot
         {
-            BorderRadius = 20.0f
+            Child = new AsyncWebCover(thumb)
+            {
+                BorderRadius = 20.0f
+            },
+            MinAnchor = 0.0f,
+            MaxAnchor = 1.0f
         });
         this.ScaleTo(new Vector2<float>(0.0f, 1.0f), 1.0f, 0.2f,easingFunction: EasingFunctions.EaseInExpo);
     }

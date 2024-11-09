@@ -13,7 +13,7 @@ public class MainPanel : Panel
     private readonly ScrollList _trackPlayers = new ScrollList()
     {
         Axis = Axis.Column,
-        Clip = Clip.Bounds
+        Clip = Clip.None//Clip.Bounds
     };
 
     public MainPanel()
@@ -26,7 +26,7 @@ public class MainPanel : Panel
                 Child = _trackPlayers,
                 //SizeToContent = true,
                 MinAnchor = 0.0f,
-                MaxAnchor = new Vector2<float>(0.5f, 0.5f)
+                MaxAnchor = 1.0f//new Vector2<float>(0.5f, 0.5f)
             },
             new PanelSlot
             {

@@ -166,7 +166,10 @@ public abstract class Widget : Disposable, IAnimatable
     {
         var padding = new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
         var contentSize = LayoutContent(availableSpace - padding) + padding;
-        return Size = fill ? availableSpace : contentSize;
+        var sizeResult = fill ? availableSpace : contentSize;
+        sizeResult.X = sizeResult.X.FiniteOr();
+        sizeResult.Y = sizeResult.Y.FiniteOr();
+        return Size = sizeResult;
     }
     
     /// <summary>
