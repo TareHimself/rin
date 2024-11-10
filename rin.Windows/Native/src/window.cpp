@@ -51,7 +51,8 @@ void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCallback,
                         const GlfwWindowCloseCallback windowCloseCallback,
                         const GlfwCharCallback charCallback,
                         const GlfwMaximizedCallback maximizedCallback,
-                        const GlfwRefreshCallback refreshCallback)
+                        const GlfwRefreshCallback refreshCallback,
+                        const GlfwDropCallback dropCallback)
 {
 
     glfwSetKeyCallback(window, keyCallback);
@@ -73,7 +74,8 @@ void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCallback,
     glfwSetWindowMaximizeCallback(window,maximizedCallback);
 
     glfwSetWindowRefreshCallback(window,refreshCallback);
-    
+
+    glfwSetDropCallback(window,dropCallback);
 }
 
 void* windowGetExtensions(unsigned* length)

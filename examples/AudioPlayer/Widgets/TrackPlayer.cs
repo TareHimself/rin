@@ -69,11 +69,11 @@ public class TrackPlayer : Overlay
                 Padding = new Padding(5.0f, 10.0f),
                 Slots =
                 [
-                    new ListContainerSlot
+                    new ListSlot
                     {
                         Child = _nameText
                     },
-                    new ListContainerSlot
+                    new ListSlot
                     {
                         Fit = CrossFit.Fill,
                         Child = new FlexBox

@@ -47,7 +47,6 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     private VkCommandPool _immediateCommandPool;
     private VkFence _immediateFence;
     private VkInstance _instance;
-    private Window? _mainWindow;
     private VkPhysicalDevice _physicalDevice;
     private VkQueue _queue;
     private uint _queueFamily;
@@ -227,18 +226,12 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
+        InitVulkan();
         var windowSubsystem = runtime.GetModule<SWindowsModule>();
         windowSubsystem.OnWindowCreated += OnWindowCreated;
         windowSubsystem.OnWindowClosed += OnWindowClosed;
 
         SRuntime.Get().OnTick += Tick;
-    }
-
-    
-
-    public Window? GetMainWindow()
-    {
-        return _mainWindow;
     }
 
     public List<WindowRenderer> GetRenderers()
@@ -261,7 +254,15 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         uint outQueueFamily;
         ulong outSurface;
         VkDebugUtilsMessengerEXT outDebugMessenger;
-        NativeCreateInstance(_mainWindow!.GetPtr(), &outInstance, &outDevice, &outPhysicalDevice, &outQueue,
+        var window = SWindowsModule.Get().CreateWindow(2, 2, "Graphics Init Window", null, new WindowCreateOptions()
+        {
+            Visible = false,
+            Decorated = false,
+            Resizable = false
+        });
+        if (window == null) throw new Exception("Failed to create window to init graphics");
+        
+        NativeCreateInstance(window!.GetPtr(), &outInstance, &outDevice, &outPhysicalDevice, &outQueue,
             &outQueueFamily, &outSurface, &outDebugMessenger.Value);
         _instance = new VkInstance(outInstance);
         _device = new VkDevice(outDevice);
@@ -316,14 +317,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         }
 
         _resourceManager = new ResourceManager();
-        var newRenderer = new WindowRenderer(this, _mainWindow, new VkSurfaceKHR(outSurface));
-        newRenderer.Init();
-        _windows.Add(_mainWindow, newRenderer);
-        _renderers.Add(newRenderer);
-        OnRendererCreated?.Invoke(newRenderer);
-
-        _mainWindow.OnCloseRequested += OnCloseRequested;
-        
+        window.Dispose();
         //LoadShader("D:\\Github\\vengine\\rin.Core\\shaders\\2d\\rect.vert");
     }
 
@@ -341,174 +335,24 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     {
         return _resourceManager!;
     }
-    
-    // public VkShaderModule CreateDeviceShaderModule(ShaderModule shaderModule)
-    // {
-    //     var compiled = CompileSpirv(shaderModule);
-    //
-    //     unsafe
-    //     {
-    //         fixed (void* pCode = compiled)
-    //         {
-    //             var createInfo = new VkShaderModuleCreateInfo
-    //             {
-    //                 sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-    //                 codeSize = (nuint)compiled.Length,
-    //                 pCode = (uint*)(pCode)
-    //             };
-    //             
-    //             var vkShaderModule = new VkShaderModule();
-    //             vkCreateShaderModule(_device, &createInfo, null, &vkShaderModule);
-    //
-    //             return vkShaderModule;
-    //         }
-    //     }
-    // }
-    //
-    // public VkShaderEXT ShaderModuleToShader(string compoundModuleId,ShaderModule shaderModule,IEnumerable<VkDescriptorSetLayout> descriptorSetLayouts,IEnumerable<VkPushConstantRange> pushConstants)
-    // {
-    //     var shaderId = shaderModule.Id + "|" + compoundModuleId;
-    //     {
-    //         if (_shaderObjects.TryGetValue(shaderId, out var o)) return o;
-    //     }
-    //     
-    //     var spirv = SGraphicsModule.Get().CompileSpirv(shaderModule);
-    //     var name = "main";
-    //     var setLayouts = descriptorSetLayouts.ToArray();
-    //     unsafe
-    //     {
-    //         fixed(VkDescriptorSetLayout* pSetLayouts = setLayouts)
-    //         {
-    //             
-    //             VkPushConstantRange[] pushConstantRanges = pushConstants.ToArray();
-    //
-    //             fixed (VkPushConstantRange* pRanges = pushConstantRanges)
-    //             {
-    //                 fixed (byte* pName = "main"u8.ToArray())
-    //                 {
-    //                     fixed (void* pSpirv = spirv)
-    //                     {
-    //                         var shaderCreateInfo = new VkShaderCreateInfoEXT()
-    //                         {
-    //                             sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
-    //                             stage = shaderModule.StageFlags,
-    //                             nextStage = shaderModule.ScopeType switch
-    //                             {
-    //                                 EScopeType.Vertex => VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,
-    //                                 EScopeType.Fragment => 0,
-    //                                 _ => throw new ArgumentOutOfRangeException()
-    //                             },
-    //                             codeType = VkShaderCodeTypeEXT.VK_SHADER_CODE_TYPE_SPIRV_EXT,
-    //                             codeSize = (nuint)spirv.Length,
-    //                             pCode = pSpirv,
-    //                             pName = (sbyte*)pName,
-    //                             setLayoutCount = (uint)setLayouts.Length,
-    //                             pSetLayouts = pSetLayouts,
-    //                             pushConstantRangeCount = (uint)pushConstantRanges.Length,
-    //                             pPushConstantRanges = pRanges,
-    //                             pSpecializationInfo = null,
-    //                             pNext = null
-    //                         };
-    //                         VkShaderEXT shader = new();
-    //                         VkResult result = VulkanExtensions.vkCreateShadersEXT(GetDevice(), 1, &shaderCreateInfo, null, &shader);
-    //                         _shaderObjects.Add(shaderId,shader);
-    //                         return shader;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-    //
-    // public ShaderModule[] LoadShader(string filePath)
-    // {
-    //     
-    //     {
-    //         if (_fileToShaderModules.TryGetValue(filePath, out var shaderModule))
-    //             return shaderModule.Select(c => _shaderModules[c]).ToArray();
-    //     }
-    //     
-    //     var tokenizer = new Tokenizer();
-    //     var parser = new Parser();
-    //     var ast = parser.Run(tokenizer.Run(filePath));
-    //     
-    //     ast = ast.ResolveIncludes((node, module) =>
-    //     {
-    //         if (Path.IsPathRooted(node.File)) return Path.GetFullPath(node.File);
-    //
-    //         return Path.GetFullPath(node.File,
-    //             Directory.GetParent(node.SourceFile)?.FullName ?? Directory.GetCurrentDirectory());
-    //     }, tokenizer, parser);
-    //     
-    //     ast.ResolveStructReferences();
-    //
-    //     List<EScopeType> scopeTypes = [];
-    //     
-    //     foreach (var astStatement in ast.Statements)
-    //     {
-    //         if (astStatement is NamedScopeNode asNamedScope)
-    //         {
-    //             var mainFn = asNamedScope.Statements.LastOrDefault((x) =>
-    //                 x is FunctionNode { Name: "main" });
-    //             if (mainFn != null)
-    //             {
-    //                 scopeTypes.Add(asNamedScope.ScopeType);
-    //             }
-    //         }
-    //     }
-    //
-    //     var mods  = scopeTypes.Select((scope) =>
-    //     {
-    //         var nodes = ast.ExtractScope(scope).ExtractFunctionWithDependencies("main")?.Statements.ToList();
-    //
-    //         if (nodes == null) throw new Exception("Failed To Extract Function 'main'");
-    //
-    //         var id = nodes.GetHashCode().ToString();
-    //         if (_shaderModules.TryGetValue(id, out var expression)) return expression;
-    //         
-    //         var mod = new ShaderModule(nodes, scope);
-    //         _shaderModules.Add(id,mod);
-    //         
-    //         return mod;
-    //     }).ToArray();
-    //
-    //     _fileToShaderModules.TryAdd(filePath, mods.Select(c => c.Id).ToArray());
-    //     return mods;
-    // }
-
 
     private void OnWindowCreated(Window window)
     {
-        if (_mainWindow == null)
-        {
-            _mainWindow = window;
-            InitVulkan();
-        }
-        else
-        {
-            var r = new WindowRenderer(this, window);
-            r.Init();
-            _windows.Add(window, r);
-            _renderers.Add(r);
-            OnRendererCreated?.Invoke(r);
-        }
+        var r = new WindowRenderer(this, window);
+        r.Init();
+        _windows.Add(window, r);
+        _renderers.Add(r);
+        OnRendererCreated?.Invoke(r);
     }
 
     private void OnWindowClosed(Window window)
     {
-        if (!_windows.ContainsKey(window)) return;
+        if (!_windows.TryGetValue(window, out var window1)) return;
 
-        if (window == _mainWindow)
-        {
-            GetEngine()?.RequestExit();
-        }
-        else
-        {
-            _renderers.Remove(_windows[window]);
-            OnRendererDestroyed?.Invoke(_windows[window]);
-            _windows[window].Dispose();
-            _windows.Remove(window);
-        }
+        _renderers.Remove(window1);
+        OnRendererDestroyed?.Invoke(_windows[window]);
+        _windows[window].Dispose();
+        _windows.Remove(window);
     }
 
     public VkInstance GetInstance()
@@ -556,15 +400,8 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     public override void Shutdown(SRuntime runtime)
     {
         base.Shutdown(runtime);
-
-        var mainWindow = _mainWindow!;
-        mainWindow.OnCloseRequested -= OnCloseRequested;
-        _renderers.Remove(_windows[mainWindow]);
-        foreach (var renderer in _renderers.ToArray()) renderer.GetWindow().Dispose();
-        OnRendererDestroyed?.Invoke(_windows[mainWindow]);
-        _windows[mainWindow].Dispose();
-        mainWindow.Dispose();
-
+        
+        foreach (var renderer in _renderers.ToArray()) renderer.Dispose();
 
         SRuntime.Get().OnTick -= Tick;
 

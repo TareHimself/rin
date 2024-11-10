@@ -112,16 +112,6 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         return renderer == null ? null : GetWindowSurface(renderer);
     }
 
-    /// <summary>
-    ///     Returns the <see cref="WindowSurface" /> of the main window
-    /// </summary>
-    /// <returns></returns>
-    public WindowSurface? GetWindowSurface()
-    {
-        var mainWindow = _graphicsSubsystem?.GetMainWindow();
-        return mainWindow == null ? null : GetWindowSurface(mainWindow);
-    }
-
     public override void Shutdown(SRuntime runtime)
     {
         base.Shutdown(runtime);

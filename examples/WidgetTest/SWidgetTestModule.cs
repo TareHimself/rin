@@ -32,7 +32,11 @@ public class SWidgetTestModule : RuntimeModule
                 {
                     Child = new ScrollList()
                     {
-                        Child = list,
+                        Slot = new ListSlot
+                        {
+                            Child = list,
+                            Fit = CrossFit.Fill
+                        },
                         Clip = Clip.None
                     },
                     MinAnchor = 0.0f,
@@ -66,7 +70,7 @@ public class SWidgetTestModule : RuntimeModule
                     foreach (var path in p)
                         list.AddChild(new Sizer()
                         {
-                            WidthOverride = rand.Next(300,600),
+                            WidthOverride = rand.Next(300,300),
                             HeightOverride = 300,
                             Child = new AsyncFileImage(path)
                             {
@@ -88,6 +92,7 @@ public class SWidgetTestModule : RuntimeModule
 
     public void TestBlur(WindowRenderer renderer)
     {
+        
         var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
 
         if (surf == null) return;
@@ -196,9 +201,9 @@ public class SWidgetTestModule : RuntimeModule
     }
 
 
-    public void TestClip()
+    public void TestClip(WindowRenderer renderer)
     {
-        if (SWidgetsModule.Get().GetWindowSurface() is { } surface)
+        if (SWidgetsModule.Get().GetWindowSurface(renderer) is { } surface)
         {
             surface.Add(new Panel()
             {
@@ -227,9 +232,9 @@ public class SWidgetTestModule : RuntimeModule
         }
     }
 
-    public void TestText()
+    public void TestText(WindowRenderer renderer)
     {
-        var surf = SWidgetsModule.Get().GetWindowSurface();
+        var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
 
         if (surf == null) return;
 
@@ -254,8 +259,14 @@ public class SWidgetTestModule : RuntimeModule
         base.Startup(runtime);
         Console.WriteLine("CREATING WINDOW");
         SGraphicsModule.Get().OnRendererCreated += TestWrapping;
-        if (SWindowsModule.Get().CreateWindow(500, 500, "Aerox Widget Test") is { } window)
+        
+        if (SWindowsModule.Get().CreateWindow(500, 500, "Rin Widget Test") is { } window)
         {
+            window.OnCloseRequested += (_) =>
+            {
+                SRuntime.Get().RequestExit();
+            };
+            
             window.OnKey += (e =>
             {
                 if (e is { Key: Key.Up, State: KeyState.Pressed })

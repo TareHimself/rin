@@ -14,21 +14,25 @@ namespace AudioPlayer;
 [RuntimeModule(typeof(SWidgetsModule),typeof(SAudioModule))]
 public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
 {
-    public SpotifyClient SpClient = new SpotifyClient();
+    public readonly SpotifyClient SpClient = new SpotifyClient();
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
         SAudioModule.Get().SetVolume(0.1f);
-        SWindowsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
-        Backgrounds();
-        var surf = SWidgetsModule.Get().GetWindowSurface();
+        var window = SWindowsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
+        window.OnCloseRequested += (_) =>
+        {
+            SRuntime.Get().RequestExit();
+        };
+        Backgrounds(window);
+        var surf = SWidgetsModule.Get().GetWindowSurface(window);
         if(surf == null) return;
         surf.Add(new MainPanel());
     }
     
-    public void Backgrounds()
+    public void Backgrounds(Window window)
     {
-        var surf = SWidgetsModule.Get().GetWindowSurface();
+        var surf = SWidgetsModule.Get().GetWindowSurface(window);
 
         if (surf == null) return;
 

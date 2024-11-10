@@ -189,7 +189,7 @@ public sealed class SRuntime : Disposable
             for (var i = 0; i < sortedModules.Count; i++)
             {
                 if (!sortedModules[i].Dependencies.Contains(mod.Key) &&
-                    (!mod.Value.Attribute.isNativeModule || sortedModules[i].Attribute.isNativeModule)) continue;
+                    (!mod.Value.Attribute.IsNativeModule || sortedModules[i].Attribute.IsNativeModule)) continue;
 
                 sortedModules.Insert(i, mod.Value);
                 shorted = true;

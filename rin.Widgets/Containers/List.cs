@@ -23,7 +23,7 @@ public enum CrossAlign
     End
 }
 
-public class ListContainerSlot(List? container = null) : ContainerSlot(container)
+public class ListSlot(List? container = null) : ContainerSlot(container)
 {
     public CrossFit Fit = CrossFit.Desired;
     public CrossAlign Align = CrossAlign.Start;
@@ -31,7 +31,7 @@ public class ListContainerSlot(List? container = null) : ContainerSlot(container
 
 /// <summary>
 /// A container that draws children left to right
-/// Slot = <see cref="ListContainerSlot"/>
+/// Slot = <see cref="ListSlot"/>
 /// </summary>
 public class List(Axis axis) : Container
 {
@@ -104,7 +104,7 @@ public class List(Axis axis) : Container
         // Handle cross axis offsets (we could also handle main axis offsets here in the future)
         foreach (var slot in slots)
         {
-            if (slot is not ListContainerSlot asListContainerSlot) continue;
+            if (slot is not ListSlot asListContainerSlot) continue;
             HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
         }
 
@@ -139,7 +139,7 @@ public class List(Axis axis) : Container
         // Handle cross axis offsets (we could also handle main axis offsets here in the future)
         foreach (var slot in slots)
         {
-            if (slot is not ListContainerSlot asListContainerSlot) continue;
+            if (slot is not ListSlot asListContainerSlot) continue;
             HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
         }
 
@@ -159,12 +159,11 @@ public class List(Axis axis) : Container
 
     protected virtual float GetSlotCrossAxisSize(ContainerSlot slot, float crossAxisAvailableSize)
     {
-        return crossAxisAvailableSize;
-        if (slot is ListContainerSlot asListContainerSlot)
+        if (slot is ListSlot asListContainerSlot)
         {
             return asListContainerSlot.Fit switch
             {
-                CrossFit.Desired => Math.Min(asListContainerSlot.Child.GetDesiredSize().X,crossAxisAvailableSize),
+                CrossFit.Desired => Math.Clamp(asListContainerSlot.Child.GetDesiredSize().X,0.0f,crossAxisAvailableSize),
                 CrossFit.Fill => crossAxisAvailableSize,
                 _ => throw new ArgumentOutOfRangeException()
             };
@@ -173,7 +172,7 @@ public class List(Axis axis) : Container
         return 0.0f;
     }
 
-    protected virtual void HandleCrossAxisOffset(ListContainerSlot slot,float crossAxisSize)
+    protected virtual void HandleCrossAxisOffset(ListSlot slot,float crossAxisSize)
     {
         var widget = slot.Child;
         var size = widget.Size;
@@ -216,7 +215,7 @@ public class List(Axis axis) : Container
         }
     }
 
-    protected override ContainerSlot MakeSlot(Widget widget) => new ListContainerSlot(this)
+    protected override ContainerSlot MakeSlot(Widget widget) => new ListSlot(this)
     {
         Child = widget,
     };

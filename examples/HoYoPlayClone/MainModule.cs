@@ -12,13 +12,16 @@ public class MainModule : RuntimeModule
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
-        SWindowsModule.Get().CreateWindow(1280,720,"HoYoPlay Clone",options: new WindowCreateOptions()
+        var window = SWindowsModule.Get().CreateWindow(1280,720,"HoYoPlay Clone",options: new WindowCreateOptions()
         {
             //Decorated = false,
         });
+        window.OnCloseRequested += (_) =>
+        {
+            SRuntime.Get().RequestExit();
+        };
 
-
-        if (SWidgetsModule.Get().GetWindowSurface() is { } surface)
+        if (SWidgetsModule.Get().GetWindowSurface(window) is { } surface)
         {
             surface.Add(new FlexBox
             {

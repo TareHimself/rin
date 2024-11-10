@@ -29,7 +29,10 @@ public class Overlay : Container
         // First pass is for widgets with content to figure out their size
         foreach (var slot in GetSlots())
         {
+            var desiredSize = slot.Child.GetDesiredSize();
+            if(desiredSize.X <= 0.0f || desiredSize.Y <= 0.0f) continue;
             var widgetSize = slot.Child.ComputeSize(availableSpace);
+            
             dims.X = Math.Max(dims.X, widgetSize.X.FiniteOr());
             dims.Y = Math.Max(dims.Y, widgetSize.Y.FiniteOr());
         }

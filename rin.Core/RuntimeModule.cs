@@ -3,14 +3,14 @@
 public class RuntimeModuleAttribute(params Type[] inDependencies) : Attribute
 {
     public readonly Type[] Dependencies = inDependencies;
-    public bool isNativeModule;
+    public bool IsNativeModule;
 }
 
 public class NativeRuntimeModuleAttribute : RuntimeModuleAttribute
 {
     public NativeRuntimeModuleAttribute(params Type[] inDependencies) : base(inDependencies)
     {
-        isNativeModule = true;
+        IsNativeModule = true;
     }
 }
 

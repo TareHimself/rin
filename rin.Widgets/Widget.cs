@@ -7,7 +7,7 @@ using rin.Widgets.Graphics;
 
 namespace rin.Widgets;
 
-public abstract class Widget : Disposable, IAnimatable
+public abstract partial class Widget : Disposable, IAnimatable
 {
     private Vector2<float>? _cachedDesiredSize;
     private Surface? _cursorUpRoot;

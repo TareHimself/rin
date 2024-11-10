@@ -4,7 +4,7 @@ using rin.Core.Math;
 namespace rin.Widgets.Containers;
 
 
-public class FlexBoxSlot(FlexBox? container = null) : ListContainerSlot(container)
+public class FlexBoxSlot(FlexBox? container = null) : ListSlot(container)
 {
     public float? Flex = null;
 }
@@ -15,97 +15,6 @@ public class FlexBoxSlot(FlexBox? container = null) : ListContainerSlot(containe
 /// </summary>
 public class FlexBox : List
 {
-    // protected override void ArrangeContent(Vector2<float> drawSize)
-    // {
-    //     Dictionary<Widget,float> flexWidgets = [];
-    //     var flexTotal = 0.0f;
-    //     Vector2<float> availableSpace = drawSize;
-    //     
-    //     var slots = GetSlots();
-    //     
-    //     foreach (var slot in slots)
-    //     {
-    //         var widget = slot.Child;
-    //         if (slot is FlexBoxSlot { Flex: not null } asFlex)
-    //         {
-    //             var flex = asFlex.Flex.Value;
-    //             flexWidgets.Add(widget,flex);
-    //             flexTotal += flex;
-    //         }
-    //         else
-    //         {
-    //             var desiredSize = widget.GetDesiredSize();
-    //             switch (Axis)
-    //             {
-    //                 case Axis.Column:
-    //                     availableSpace.Y -= desiredSize.Y;
-    //                     break;
-    //                 case Axis.Row:
-    //                     availableSpace.X -= desiredSize.X;
-    //                     break;
-    //                 default:
-    //                     throw new ArgumentOutOfRangeException();
-    //             }
-    //         }
-    //     }
-    //
-    //     availableSpace = new Vector2<float>(Math.Max(0, availableSpace.X), Math.Max(0, availableSpace.Y));
-    //
-    //     var offset = new Vector2<float>();
-    //
-    //
-    //     switch (Axis)
-    //     {
-    //         case Axis.Column:
-    //         {
-    //             foreach (var slot in slots)
-    //             {
-    //                 if(slot is not FlexBoxSlot asFlexContainerSlot) continue;
-    //                 var widget = slot.Child;
-    //                 Vector2<float> size = widget.GetDesiredSize();
-    //                     
-    //                 if (flexWidgets.TryGetValue(widget, out var flex))
-    //                 {
-    //                     size.Y = availableSpace.Y * (flex / flexTotal);
-    //                 }
-    //                 
-    //                 widget.Offset = (offset.Clone());
-    //                 widget.Size = (size);
-    //                 
-    //                 HandleCrossAxisOffset(asFlexContainerSlot,drawSize);
-    //                 
-    //                 offset.Y += size.Y;
-    //             }
-    //         }
-    //             break;
-    //         case Axis.Row:
-    //         {
-    //             foreach (var slot in slots)
-    //             {
-    //                 if(slot is not FlexBoxSlot asFlexContainerSlot) continue;
-    //                 var widget = slot.Child;
-    //                 Vector2<float> size = widget.GetDesiredSize();
-    //                     
-    //                 if (flexWidgets.TryGetValue(widget, out var flex))
-    //                 {
-    //                     size.X = availableSpace.X * (flex / flexTotal);
-    //                 }
-    //                     
-    //                 widget.Offset = (offset.Clone());
-    //                 widget.Size = (size);
-    //                 
-    //                 HandleCrossAxisOffset(asFlexContainerSlot,drawSize);
-    //                 
-    //                 offset.X += size.X;
-    //             }
-    //         }
-    //             break;
-    //         default:
-    //             throw new ArgumentOutOfRangeException();
-    //     }
-    //     
-    // }
-
     protected override Vector2<float> ArrangeContentRow(Vector2<float> availableSpace)
     {
         var mainAxisAvailableSpace = availableSpace.X.FiniteOr();
@@ -175,7 +84,7 @@ public class FlexBox : List
         // Handle cross axis offsets (we could also handle main axis offsets here in the future)
         foreach (var slot in slots)
         {
-            if (slot is not ListContainerSlot asListContainerSlot) continue;
+            if (slot is not ListSlot asListContainerSlot) continue;
             HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
         }
 
@@ -252,7 +161,7 @@ public class FlexBox : List
         // Handle cross axis offsets (we could also handle main axis offsets here in the future)
         foreach (var slot in slots)
         {
-            if (slot is not ListContainerSlot asListContainerSlot) continue;
+            if (slot is not ListSlot asListContainerSlot) continue;
             HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
         }
 
