@@ -43,6 +43,11 @@ public class NativeBuffer<T>(int elements) : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    public unsafe void Write(IntPtr src, uint size)
+    {
+        Buffer.MemoryCopy(src.ToPointer(),GetPtr().ToPointer(),GetByteSize(),size);
+    }
+
     ~NativeBuffer()
     {
         ReleaseUnmanagedResources();

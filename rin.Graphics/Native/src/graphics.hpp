@@ -3,36 +3,37 @@
 #include "macro.hpp"
 #include <vulkan/vulkan.hpp>
 #include <vk_mem_alloc.h>
+#include <GLFW/glfw3.h>
 //using json = nlohmann::json;
 
-EXPORT_DECL void graphicsCreateVulkanInstance(void * inWindow, void ** outInstance,void ** outDevice,void ** outPhysicalDevice,void ** outQueue,uint32_t * outQueueFamily,uintptr_t * outSurface,uintptr_t * outMessenger);
+EXPORT_DECL void graphicsCreateVulkanInstance(GLFWwindow * inWindow, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,VkSurfaceKHR * outSurface,VkDebugUtilsMessengerEXT * outMessenger);
 
-EXPORT_DECL void graphicsDestroyVulkanMessenger(void * instance,uintptr_t messenger);
+EXPORT_DECL void graphicsDestroyVulkanMessenger(VkInstance instance,VkDebugUtilsMessengerEXT messenger);
 
 using CreateSwapchainCallback = void(__stdcall *)(uintptr_t swapchain,void * swapchainImages,uint32_t numSwapchainImages,void * swapchainImageViews,uint32_t numSwapchainImageViews);
-EXPORT_DECL void graphicsCreateSwapchain(void * device,void * physicalDevice,uintptr_t surface,int swapchainFormat,int colorSpace,int presentMode,uint32_t width,uint32_t height,CreateSwapchainCallback callback);
+EXPORT_DECL void graphicsCreateSwapchain(VkDevice device,VkPhysicalDevice physicalDevice,VkSurfaceKHR surface,int swapchainFormat,int colorSpace,int presentMode,uint32_t width,uint32_t height,CreateSwapchainCallback callback);
 
 
 void createBuffer(VmaAllocator allocator,VkBuffer * buffer,VmaAllocation * allocation,const size_t allocSize, const vk::BufferUsageFlags usage, const VmaMemoryUsage memoryUsage,
                   const vk::MemoryPropertyFlags requiredFlags, const VmaAllocationCreateFlags flags, const char * name);
 
-EXPORT_DECL void * graphicsAllocatorCreate(void * instance,void * device,void * physicalDevice);
+EXPORT_DECL void * graphicsAllocatorCreate(VkInstance instance,VkDevice device,VkPhysicalDevice physicalDevice);
 
 EXPORT_DECL void graphicsAllocatorDestroy(void * allocator);
 
-EXPORT_DECL void graphicsAllocatorNewBuffer(uintptr_t* buffer, void** allocation, unsigned long size, void* allocator,
+EXPORT_DECL void graphicsAllocatorNewBuffer(VkBuffer * buffer, void** allocation, unsigned long size, void* allocator,
                                 int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
                                 int mapped, const char* debugName);
 
-EXPORT_DECL void graphicsAllocatorNewImage(uintptr_t * image,void ** allocation,void * createInfo,void * allocator, const char * debugName);
+EXPORT_DECL void graphicsAllocatorNewImage(VkImage* image,void ** allocation,VkImageCreateInfo * createInfo,void * allocator, const char * debugName);
 
-EXPORT_DECL void graphicsAllocatorFreeBuffer(uintptr_t buffer,void * allocation,void * allocator);
+EXPORT_DECL void graphicsAllocatorFreeBuffer(VkBuffer buffer,void * allocation,void * allocator);
 
-EXPORT_DECL void graphicsAllocatorFreeImage(uintptr_t image,void * allocation,void * allocator);
+EXPORT_DECL void graphicsAllocatorFreeImage(VkImage image,void * allocation,void * allocator);
 
 EXPORT_DECL void graphicsAllocatorCopyToBuffer(void * allocator,void * allocation,void * data,unsigned long size,unsigned long offset);
 
-EXPORT_DECL uintptr_t graphicsCreateSurface(void * instance,void * window);
+EXPORT_DECL void graphicsCreateSurface(VkInstance instance,GLFWwindow* window,VkSurfaceKHR * outSurface);
 
 EXPORT_DECL void graphicsVkCmdBindShadersEXT(VkCommandBuffer commandBuffer, 
    uint32_t stageCount, 

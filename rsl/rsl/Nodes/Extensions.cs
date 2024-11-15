@@ -192,7 +192,7 @@ public static class Extensions
                     asStructNode.CheckSymbols(allSymbols);
                 }
             }
-            else if (node.Statements[i] is LayoutNode or PushConstantNode or IncludeNode)
+            else if (node.Statements[i] is LayoutNode or PushConstantNode or IncludeNode or ComputeNode)
             {
                 if(node.Statements[i] is LayoutNode or PushConstantNode) node.Statements[i].CheckSymbols(allSymbols);
                 newStatements.Add(node.Statements[i]);

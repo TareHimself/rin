@@ -1,8 +1,10 @@
-﻿namespace rin.Widgets.Graphics.Commands;
+﻿using rin.Graphics;
+
+namespace rin.Widgets.Graphics.Commands;
 
 public abstract class CustomCommand : GraphicsCommand
 {
-    public abstract void Run(WidgetFrame frame, uint stencilMask, ulong memory = 0);
+    public abstract void Run(WidgetFrame frame, uint stencilMask, DeviceBuffer.View? view = null);
 
     /// <summary>
     /// Does this command plan to draw anything ?

@@ -27,7 +27,7 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
     private readonly Dictionary<string, SdfFont> _mtsdfFonts = new();
     private readonly Dictionary<string, Task<SdfFont?>> _mtsdfTasks = new();
     private readonly Dictionary<WindowRenderer, WindowSurface> _windowSurfaces = new();
-    private readonly Dictionary<Type, IBatchRenderer> _batchRenderers = [];
+    private readonly Dictionary<Type, IBatcher> _batchRenderers = [];
     private SGraphicsModule? _graphicsSubsystem;
     private GraphicsShader? _stencilShader = null;
 
@@ -47,10 +47,10 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         _fontCollection.Add(fontPath);
     }
 
-    public IBatchRenderer GetBatchRenderer<T>() where T : IBatchRenderer
+    public IBatcher GetBatchRenderer<T>() where T : IBatcher
     {
         var type = typeof(T);
-        if (_batchRenderers.TryGetValue(type, out IBatchRenderer? value)) return value;
+        if (_batchRenderers.TryGetValue(type, out IBatcher? value)) return value;
         value = Activator.CreateInstance<T>();
         _batchRenderers.Add(type, value);
 

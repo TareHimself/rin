@@ -10,9 +10,9 @@ public class DeviceImage(
     VkImageView inView,
     VkExtent3D inExtent,
     ImageFormat inFormat,
-    Allocator inAllocator,
-    IntPtr inAllocation)
-    : DeviceMemory(inAllocator, inAllocation)
+    Allocator allocator,
+    IntPtr allocation)
+    : DeviceMemory(allocator, allocation)
 {
     public readonly ImageFormat Format = inFormat;
     public VkExtent3D Extent = inExtent;
@@ -27,16 +27,21 @@ public class DeviceImage(
 
     public void Barrier(VkCommandBuffer cmd,VkImageLayout from,VkImageLayout to,ImageBarrierOptions? options = null)
     {
-        SGraphicsModule.ImageBarrier(cmd,this,from,to,options);
+        cmd.ImageBarrier(this,from,to,options);
     }
     
     public void CopyTo(VkCommandBuffer cmd,DeviceImage dest)
     {
-        SGraphicsModule.CopyImageToImage(cmd,this,dest);
+        cmd.CopyImageToImage(this,dest);
     }
     
     public void CopyTo(VkCommandBuffer cmd,DeviceImage dest,ImageFilter filter)
     {
-        SGraphicsModule.CopyImageToImage(cmd,this,dest,filter);
+        cmd.CopyImageToImage(this,dest,filter);
+    }
+    
+    public void CopyTo(VkCommandBuffer cmd,VkImage dest,VkExtent3D destExtent,VkExtent3D? srcExtent = null)
+    {
+        cmd.CopyImageToImage(Image,dest,srcExtent.GetValueOrDefault(Extent),destExtent);
     }
 }

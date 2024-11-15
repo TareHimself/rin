@@ -479,14 +479,14 @@ public abstract class Surface : Disposable
         }
 
         ulong memoryNeeded = 0;
-        var minOffsetAlignment = properties.limits.minStorageBufferOffsetAlignment;
-        List<ulong> bufferOffsets = [];
+        List<Pair<ulong,ulong>> bufferOffsetsAndSizes = [];
         var widgetFrame = new WidgetFrame(this, frame);
 
         foreach (var drawCommand in drawCommands)
             if (drawCommand.Type == CommandType.BatchedDraw)
             {
-                bufferOffsets.Add(memoryNeeded);
+                var offset = memoryNeeded;
+                
                 foreach (var size in drawCommand.Batch!.GetMemoryNeeded())
                 {
                     // memoryNeeded += size;
@@ -494,31 +494,33 @@ public abstract class Surface : Disposable
                     // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
                     memoryNeeded += size;
                 }
+                bufferOffsetsAndSizes.Add(new Pair<ulong, ulong>(offset,memoryNeeded - offset));
             }
             else if (drawCommand.Type == CommandType.ClipDraw)
             {
-                bufferOffsets.Add(memoryNeeded);
+                var offset = memoryNeeded;
                 memoryNeeded += (ulong)(Marshal.SizeOf<Clip>() * drawCommand.Clips.Length);
+                bufferOffsetsAndSizes.Add(new Pair<ulong, ulong>(offset,memoryNeeded - offset));
                 // var dist = memoryNeeded & minOffsetAlignment;
                 // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
             }
             else if (drawCommand is { Type: CommandType.Custom, Custom.MemoryNeeded: {} asCustomMemory } && asCustomMemory != 0)
             {
-                bufferOffsets.Add(memoryNeeded);
+                var offset = (memoryNeeded);
                 memoryNeeded += asCustomMemory;
+                bufferOffsetsAndSizes.Add(new Pair<ulong, ulong>(offset,memoryNeeded - offset));
             }
 
         var isWritingStencil = false;
         var isComparingStencil = false;
 
         var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
-        var bufferOffsetIndex = 0;
         var cmd = frame.GetCommandBuffer();
 
         var buffer = memoryNeeded > 0 ? SGraphicsModule.Get().GetAllocator().NewStorageBuffer(memoryNeeded) : null;
-        var bufferAddress = buffer?.GetDeviceAddress();
         if (buffer != null) frame.OnReset += _ => buffer.Dispose();
-
+        var offsetsAndSizes = bufferOffsetsAndSizes.GetEnumerator();
+        offsetsAndSizes.MoveNext();
         HandleBeforeDraw(frame);
         //BeginMainPass(widgetFrame,true,true);
         // unsafe
@@ -566,22 +568,24 @@ public abstract class Surface : Disposable
                                 { } stencilShader)
                         {
                             vkCmdSetStencilWriteMask(cmd, faceFlags, command.Mask);
-
-                            var address = bufferAddress.GetValueOrDefault();
-                            var offset = bufferOffsets[bufferOffsetIndex];
-                            address += offset;
-                            buffer.Write(command.Clips, offset);
+                            
+                            var (offset,size) = offsetsAndSizes.Current;
+                            offsetsAndSizes.MoveNext();
+                            var view = buffer.GetView(offset, size);
+                            frame.OnReset += (_) => view.Dispose();
+                            
+                            view.Write(command.Clips, offset);
 
                             var push = new StencilPushConstant
                             {
                                 Projection = widgetFrame.Projection,
-                                data = address
+                                data = view.GetAddress()
                             };
                             var pushResource = stencilShader.PushConstants.First().Value;
                             cmd.PushConstant(stencilShader.GetPipelineLayout(), pushResource.Stages, push);
 
                             vkCmdDraw(cmd, 6, (uint)command.Clips.Length, 0, 0);
-                            bufferOffsetIndex++;
+                            
                             widgetFrame.StencilDraws++;
                         }
                     }
@@ -655,12 +659,13 @@ public abstract class Surface : Disposable
                         case { Type: CommandType.Custom, Custom: not null }:
                         {
                             var willUseMemory = command.Custom.MemoryNeeded > 0;
-                            if (willUseMemory)
+                            if (willUseMemory && buffer != null)
                             {
-                                var address = bufferAddress.GetValueOrDefault();
-                                address += bufferOffsets[bufferOffsetIndex];
-                                bufferOffsetIndex++;
-                                command.Custom.Run(widgetFrame,command.Mask,address);
+                                var (offset,size) = offsetsAndSizes.Current;
+                                offsetsAndSizes.MoveNext();
+                                var view = buffer.GetView(offset, size);
+                                frame.OnReset += (_) => view.Dispose();
+                                command.Custom.Run(widgetFrame,command.Mask,view);
                             }
                             else
                             {
@@ -680,11 +685,11 @@ public abstract class Surface : Disposable
                         case { Type: CommandType.BatchedDraw, Batch: not null } when buffer != null:
                         {
                             var batch = command.Batch!;
-                            var address = bufferAddress.GetValueOrDefault();
-                            address += bufferOffsets[bufferOffsetIndex];
-                            batch.GetRenderer().Draw(widgetFrame, batch, buffer, address,
-                                bufferOffsets[bufferOffsetIndex]);
-                            bufferOffsetIndex++;
+                            var (offset, size) = offsetsAndSizes.Current;
+                            offsetsAndSizes.MoveNext();
+                            var view = buffer.GetView(offset, size);
+                            frame.OnReset += (_) => view.Dispose();
+                            batch.GetRenderer().Draw(widgetFrame, batch,view);
                             widgetFrame.BatchedDraws++;
                             break;
                         }
@@ -693,9 +698,10 @@ public abstract class Surface : Disposable
                     break;
             }
         }
-
+        
         if (widgetFrame.ActivePass.Length > 0) EndActivePass(widgetFrame);
-
+        
+        buffer?.Dispose();
         HandleAfterDraw(frame);
     }
 

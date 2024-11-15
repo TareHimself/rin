@@ -2,18 +2,32 @@
 
 namespace rin.Windows;
 
-public static class NativeMethods
+internal static class NativeMethods
 {
     private const string DllName = "rin.WindowsN";
+    
     
     [DllImport(DllName, EntryPoint = "windowGetMousePosition", CallingConvention = CallingConvention.Cdecl)]
     public static extern void GetWindowMousePosition(IntPtr window, ref double x, ref double y);
     
     [DllImport(DllName, EntryPoint = "windowSetMousePosition", CallingConvention = CallingConvention.Cdecl)]
     public static extern void SetWindowMousePosition(IntPtr window,double x,double y);
+    
+    [DllImport(DllName, EntryPoint = "windowGetWindowPosition", CallingConvention = CallingConvention.Cdecl)]
+    public static extern void GetWindowPosition(IntPtr window, ref int x, ref int y);
+    
+    [DllImport(DllName, EntryPoint = "windowSetWindowPosition", CallingConvention = CallingConvention.Cdecl)]
+    public static extern void SetWindowPosition(IntPtr window,int x,int y);
 
     [DllImport(DllName, EntryPoint = "windowGetPixelSize", CallingConvention = CallingConvention.Cdecl)]
     public static extern void GetWindowPixelSize(IntPtr window, ref int width, ref int height);
+    
+
+    [DllImport(DllName, EntryPoint = "windowSetFullScreen", CallingConvention = CallingConvention.Cdecl)]
+    public static extern void SetWindowFullscreen(IntPtr window, int fullscreen); 
+    
+    [DllImport(DllName, EntryPoint = "windowGetFullScreen", CallingConvention = CallingConvention.Cdecl)]
+    public static extern int GetWindowFullscreen(IntPtr window); 
     
     [DllImport(DllName, EntryPoint = "windowCreate", CallingConvention = CallingConvention.Cdecl)]
     public static extern nint Create(int width, int height, string name, ref WindowCreateOptions options);

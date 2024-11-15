@@ -19,40 +19,10 @@ public partial class Allocator : Disposable
         unsafe
         {
             _module = module;
-            _allocator = NativeCreateAllocator(module.GetInstance().Value, module.GetDevice().Value,
-                module.GetPhysicalDevice().Value);
+            _allocator = NativeMethods.CreateAllocator(module.GetInstance(), module.GetDevice(),
+                module.GetPhysicalDevice());
         }
     }
-
-    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsAllocatorCreate")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static unsafe partial IntPtr NativeCreateAllocator(void* instance, void* device,
-        void* physicalDevice);
-
-    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsAllocatorDestroy")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static partial void NativeDestroyAllocator(IntPtr allocator);
-
-
-    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsAllocatorNewBuffer")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static unsafe partial void NativeAllocateBuffer(ulong* buffer, void** allocation, ulong size,
-        IntPtr allocator,
-        int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
-        int mapped, [MarshalAs(UnmanagedType.BStr)] string debugName);
-
-    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsAllocatorNewImage")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static unsafe partial void NativeAllocateImage(ulong* image, void** allocation,
-        void* createInfo, IntPtr allocator, [MarshalAs(UnmanagedType.BStr)] string debugName);
-
-    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsAllocatorFreeBuffer")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static partial void NativeFreeBuffer(ulong buffer, IntPtr allocation, IntPtr allocator);
-
-    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsAllocatorFreeImage")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static partial void NativeFreeImage(ulong image, IntPtr allocation, IntPtr allocator);
 
     public static implicit operator IntPtr(Allocator allocator)
     {
@@ -62,7 +32,7 @@ public partial class Allocator : Disposable
 
     protected override void OnDispose(bool isManual)
     {
-        NativeDestroyAllocator(_allocator);
+        NativeMethods.DestroyAllocator(_allocator);
     }
 
     /// <summary>
@@ -75,7 +45,7 @@ public partial class Allocator : Disposable
         {
             VkBuffer buffer = new();
             void* allocation;
-            NativeAllocateBuffer(&buffer.Value, &allocation, size, _allocator, sequentialWrite ? 1 : 0,
+            NativeMethods.AllocateBuffer(&buffer, &allocation, size, _allocator, sequentialWrite ? 1 : 0,
                 preferHost ? 1 : 0,
                 (int)usageFlags, (int)propertyFlags, mapped ? 1 : 0, debugName);
 
@@ -140,7 +110,7 @@ public partial class Allocator : Disposable
         {
             VkImage image = new();
             void* allocation;
-            NativeAllocateImage(&image.Value, &allocation, &imageCreateInfo, _allocator, debugName);
+            NativeMethods.AllocateImage(&image, &allocation,&imageCreateInfo, _allocator, debugName);
 
             return new DeviceImage(image, new VkImageView(), imageCreateInfo.extent, SGraphicsModule.VkFormatToImageFormat(imageCreateInfo.format), this,
                 (IntPtr)allocation);
@@ -152,7 +122,7 @@ public partial class Allocator : Disposable
     /// </summary>
     public void FreeBuffer(DeviceBuffer buffer)
     {
-        NativeFreeBuffer(buffer.Buffer, buffer.Allocation, _allocator);
+        NativeMethods.FreeBuffer(buffer.Buffer, buffer.Allocation, _allocator);
     }
 
     /// <summary>
@@ -163,8 +133,7 @@ public partial class Allocator : Disposable
         unsafe
         {
             vkDestroyImageView(_module.GetDevice(), image.View, null);
+            NativeMethods.FreeImage(image.Image, image.Allocation, _allocator);
         }
-
-        NativeFreeImage(image.Image, image.Allocation, _allocator);
     }
 }

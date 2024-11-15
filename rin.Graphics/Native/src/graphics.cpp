@@ -9,9 +9,8 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #include <iostream>
 
 
-EXPORT_IMPL void graphicsCreateVulkanInstance(void* inWindow, void** outInstance, void** outDevice, void** outPhysicalDevice,
-                                  void** outQueue, uint32_t* outQueueFamily, uintptr_t* outSurface,
-                                  uintptr_t* outMessenger)
+EXPORT_IMPL void graphicsCreateVulkanInstance(GLFWwindow * inWindow, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily, VkSurfaceKHR* outSurface,
+                                  VkDebugUtilsMessengerEXT* outMessenger)
 {
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init();
@@ -57,7 +56,7 @@ EXPORT_IMPL void graphicsCreateVulkanInstance(void* inWindow, void** outInstance
     auto instance = vkbInstance.instance;
 
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
-    *outMessenger = reinterpret_cast<uintptr_t>(vkbInstance.debug_messenger);
+    *outMessenger = vkbInstance.debug_messenger;
 #endif
 
     vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{};
@@ -124,9 +123,15 @@ EXPORT_IMPL void graphicsCreateVulkanInstance(void* inWindow, void** outInstance
 
     auto gpu = physicalDevice.physical_device;
 
-    auto graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
+    *outGraphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
+    auto transfer = vkbDevice.get_queue(vkb::QueueType::transfer);
+    std::cout << "INit VULKAN " << std::endl;
+    std::cout << "Transfer QUeue Error " << transfer.error().message() << std::endl;
+    auto hasTransferQueue = transfer.has_value();
+    *outTransferQueue = hasTransferQueue ? transfer.value() : vkbDevice.get_queue(vkb::QueueType::graphics).value();
 
-    auto graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+    *outGraphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+    *outTransferQueueFamily = hasTransferQueue ? vkbDevice.get_queue_index(vkb::QueueType::transfer).value() : vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
     try
     {
@@ -143,24 +148,21 @@ EXPORT_IMPL void graphicsCreateVulkanInstance(void* inWindow, void** outInstance
         throw e;
     }
 
-    *outInstance = static_cast<void*>(instance);
-    *outDevice = static_cast<void*>(device);
-    *outPhysicalDevice = static_cast<void*>(gpu);
-    *outQueue = static_cast<void*>(graphicsQueue);
-    *outQueueFamily = graphicsQueueFamily;
-    *outSurface = reinterpret_cast<uintptr_t>(surf);
+    *outInstance = instance;
+    *outDevice = device;
+    *outPhysicalDevice = gpu;
+    *outSurface = surf;
 }
 
-EXPORT_IMPL void graphicsDestroyVulkanMessenger(void* instance, uintptr_t messenger)
+EXPORT_IMPL void graphicsDestroyVulkanMessenger(VkInstance instance, VkDebugUtilsMessengerEXT messenger)
 {
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
-    const auto messengerCasted = reinterpret_cast<VkDebugUtilsMessengerEXT>(messenger);
-    vkb::destroy_debug_utils_messenger(static_cast<VkInstance>(instance), messengerCasted);
+    vkb::destroy_debug_utils_messenger(instance, messenger);
     //inst.destroyDebugUtilsMessengerEXT(messengerCasted);
 #endif
 }
 
-EXPORT_IMPL void graphicsCreateSwapchain(void* device, void* physicalDevice, uintptr_t surface, int swapchainFormat, int colorSpace,
+EXPORT_IMPL void graphicsCreateSwapchain(VkDevice device,VkPhysicalDevice physicalDevice,VkSurfaceKHR surface, int swapchainFormat, int colorSpace,
                              int presentMode, uint32_t width, uint32_t height,
                              CreateSwapchainCallback callback)
 {
@@ -169,8 +171,8 @@ EXPORT_IMPL void graphicsCreateSwapchain(void* device, void* physicalDevice, uin
     const auto sPresentMode = static_cast<VkPresentModeKHR>(presentMode);
 
     vkb::SwapchainBuilder swapchainBuilder{
-        static_cast<VkPhysicalDevice>(physicalDevice), static_cast<VkDevice>(device),
-        reinterpret_cast<VkSurfaceKHR>(surface)
+       physicalDevice, device,
+        surface
     };
     vkb::Swapchain vkbSwapchain = swapchainBuilder
                                   .set_desired_format(
@@ -212,13 +214,13 @@ void createBuffer(VmaAllocator allocator, VkBuffer* buffer, VmaAllocation* alloc
     vmaSetAllocationName(allocator, *allocation, name);     
 }
 
-EXPORT_IMPL void* graphicsAllocatorCreate(void* instance, void* device, void* physicalDevice)
+EXPORT_IMPL void* graphicsAllocatorCreate(VkInstance instance,VkDevice device,VkPhysicalDevice physicalDevice)
 {
     auto allocatorCreateInfo = VmaAllocatorCreateInfo{};
     allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
-    allocatorCreateInfo.device = static_cast<VkDevice>(device);
-    allocatorCreateInfo.physicalDevice = static_cast<VkPhysicalDevice>(physicalDevice);
-    allocatorCreateInfo.instance = static_cast<VkInstance>(instance);
+    allocatorCreateInfo.device = (device);
+    allocatorCreateInfo.physicalDevice = (physicalDevice);
+    allocatorCreateInfo.instance = (instance);
     allocatorCreateInfo.vulkanApiVersion = VKB_MAKE_VK_VERSION(0, 1, 3, 0);
     VmaAllocator allocator;
     vmaCreateAllocator(&allocatorCreateInfo, &allocator);
@@ -230,12 +232,11 @@ EXPORT_IMPL void graphicsAllocatorDestroy(void* allocator)
     vmaDestroyAllocator(static_cast<VmaAllocator>(allocator));
 }
 
-EXPORT_IMPL void graphicsAllocatorNewBuffer(uintptr_t* buffer, void** allocation, unsigned long size, void* allocator,
+EXPORT_IMPL void graphicsAllocatorNewBuffer(VkBuffer* buffer, void** allocation, unsigned long size, void* allocator,
                                 int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
                                 int mapped, const char* debugName)
 {
     VmaAllocation alloc;
-    VkBuffer buff;
     VmaAllocationCreateFlags createFlags = sequentialWrite
                                                ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
                                                : VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
@@ -244,16 +245,15 @@ EXPORT_IMPL void graphicsAllocatorNewBuffer(uintptr_t* buffer, void** allocation
         createFlags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
 
-    createBuffer(static_cast<VmaAllocator>(allocator), &buff, &alloc, size, vk::BufferUsageFlags(usageFlags),
+    createBuffer(static_cast<VmaAllocator>(allocator),buffer, &alloc, size, vk::BufferUsageFlags(usageFlags),
                  preferHost ? VMA_MEMORY_USAGE_AUTO_PREFER_HOST : VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
                  vk::MemoryPropertyFlags(memoryPropertyFlags),
                  createFlags, debugName);
 
     *allocation = static_cast<void*>(alloc);
-    *buffer = reinterpret_cast<uintptr_t>(buff);
 }
 
-EXPORT_IMPL void graphicsAllocatorNewImage(uintptr_t* image, void** allocation, void* createInfo, void* allocator,
+EXPORT_IMPL void graphicsAllocatorNewImage(VkImage* image, void** allocation, VkImageCreateInfo * createInfo, void* allocator,
                                const char* debugName)
 {
     VmaAllocationCreateInfo imageAllocInfo = {};
@@ -261,11 +261,9 @@ EXPORT_IMPL void graphicsAllocatorNewImage(uintptr_t* image, void** allocation, 
     imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     imageAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     const auto actualAllocator = static_cast<VmaAllocator>(allocator);
-    const auto vmaImageCreateInfo = static_cast<VkImageCreateInfo*>(createInfo);
-
-    VkImage vmaImage;
+    
     VmaAllocation alloc;
-    auto result = vmaCreateImage(actualAllocator, vmaImageCreateInfo, &imageAllocInfo, &vmaImage, &alloc,
+    auto result = vmaCreateImage(actualAllocator,createInfo, &imageAllocInfo,image, &alloc,
                                  nullptr);
 
     if (result != VK_SUCCESS)
@@ -274,20 +272,18 @@ EXPORT_IMPL void graphicsAllocatorNewImage(uintptr_t* image, void** allocation, 
     }
 
     vmaSetAllocationName(actualAllocator, alloc, debugName);
-
-    *image = reinterpret_cast<uintptr_t>(vmaImage);
     *allocation = static_cast<void*>(alloc);
 }
 
-EXPORT_IMPL void graphicsAllocatorFreeBuffer(uintptr_t buffer, void* allocation, void* allocator)
+EXPORT_IMPL void graphicsAllocatorFreeBuffer(VkBuffer buffer, void* allocation, void* allocator)
 {
-    vmaDestroyBuffer(static_cast<VmaAllocator>(allocator), reinterpret_cast<VkBuffer>(buffer),
+    vmaDestroyBuffer(static_cast<VmaAllocator>(allocator),buffer,
                      static_cast<VmaAllocation>(allocation));
 }
 
-EXPORT_IMPL void graphicsAllocatorFreeImage(uintptr_t image, void* allocation, void* allocator)
+EXPORT_IMPL void graphicsAllocatorFreeImage(VkImage image, void* allocation, void* allocator)
 {
-    vmaDestroyImage(static_cast<VmaAllocator>(allocator), reinterpret_cast<VkImage>(image),
+    vmaDestroyImage(static_cast<VmaAllocator>(allocator), image,
                     static_cast<VmaAllocation>(allocation));
 }
 
@@ -451,13 +447,7 @@ EXPORT_IMPL void graphicsVkCmdSetSampleMaskEXT(VkCommandBuffer commandBuffer, Vk
     return VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdSetSampleMaskEXT(commandBuffer,samples,pSampleMask);
 }
 
-EXPORT_IMPL uintptr_t graphicsCreateSurface(void* instance, void* window)
+EXPORT_IMPL void graphicsCreateSurface(VkInstance instance,GLFWwindow* window,VkSurfaceKHR * outSurface)
 {
-    VkSurfaceKHR surf;
-
-    const auto inst = reinterpret_cast<VkInstance>(instance);
-
-    glfwCreateWindowSurface(inst, static_cast<GLFWwindow*>(window), nullptr, &surf);
-
-    return reinterpret_cast<uintptr_t>(surf);
+    glfwCreateWindowSurface(instance,window, nullptr, outSurface);
 }

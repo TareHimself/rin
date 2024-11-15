@@ -3,5 +3,6 @@
 public enum ScopeType
 {
     Vertex,
-    Fragment
+    Fragment,
+    Compute
 }

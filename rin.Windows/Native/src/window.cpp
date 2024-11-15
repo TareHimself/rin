@@ -1,5 +1,7 @@
 #include "window.hpp"
 
+#include <vector>
+
 bool windowSubsystemStart()
 {
     return glfwInit() == GLFW_TRUE;
@@ -51,8 +53,9 @@ void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCallback,
                         const GlfwWindowCloseCallback windowCloseCallback,
                         const GlfwCharCallback charCallback,
                         const GlfwMaximizedCallback maximizedCallback,
-                        const GlfwRefreshCallback refreshCallback,
-                        const GlfwDropCallback dropCallback)
+                        const GlfwRefreshCallback refreshCallback
+                        //,const GlfwDropCallback dropCallback
+                        )
 {
 
     glfwSetKeyCallback(window, keyCallback);
@@ -75,7 +78,7 @@ void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCallback,
 
     glfwSetWindowRefreshCallback(window,refreshCallback);
 
-    glfwSetDropCallback(window,dropCallback);
+    //glfwSetDropCallback(window,dropCallback);
 }
 
 void* windowGetExtensions(unsigned* length)
@@ -98,17 +101,77 @@ void windowGetPixelSize(GLFWwindow* window, int* x, int* y)
     glfwGetFramebufferSize(window, x, y);
 }
 
-void windowSetWindowPosition(GLFWwindow* window, int* x, int* y)
+void windowGetWindowPosition(GLFWwindow* window, int* x, int* y)
 {
-    glfwSetWindowPos(window,*x,*y);
+    glfwGetWindowPos(window,x,y);
 }
 
-void windowSetWindowSize(GLFWwindow* window, int* x, int* y)
+void windowSetWindowPosition(GLFWwindow* window, int x, int y)
 {
-    glfwSetWindowSize(window,*x,*y);
+    glfwSetWindowPos(window,x,y);
+}
+
+void windowSetWindowSize(GLFWwindow* window, int x, int y)
+{
+    glfwSetWindowSize(window,x,y);
 }
 
 void windowSetWindowTitle(GLFWwindow* window, const char* title)
 {
     glfwSetWindowTitle(window,title);
+}
+
+void windowSetFullScreen(GLFWwindow* window, int fullscreen)
+{
+    if(fullscreen == 1)
+    {
+        if(glfwGetWindowMonitor(window))
+        {
+            return;
+        }
+        
+        int numMonitors = 0;
+        auto monitors = glfwGetMonitors(&numMonitors);
+        int midpointX,midpointY;
+        {
+            int x,y,width,height;
+            glfwGetWindowPos(window,&x,&y);
+            glfwGetWindowSize(window,&width,&height);
+            midpointX = x + (width / 2);
+            midpointY = y + (height / 2);
+        }
+        for(auto i = 0; i < numMonitors; i++)
+        {
+            auto monitor = monitors[i];
+            int x,y,width,height;
+            glfwGetMonitorWorkarea(monitor,&x,&y,&width,&height);
+            if(x <= midpointX && y <= midpointY && midpointX <= (x + width) && midpointY <= (y + height))
+            {
+                glfwSetWindowMonitor(window,monitor,0,0,width,height,GLFW_DONT_CARE);
+                return;
+            }
+        }
+    }
+    else
+    {
+        if(auto monitor = glfwGetWindowMonitor(window))
+        {
+            int x,y,width,height;
+            glfwGetMonitorWorkarea(monitor,&x,&y,&width,&height);
+            width /= 2;
+            height /= 2;
+            x += width / 2;
+            y += height / 2;
+            glfwSetWindowMonitor(window,nullptr,x,y,width,height,GLFW_DONT_CARE);
+        }
+    }
+}
+
+int windowGetFullScreen(GLFWwindow* window)
+{
+    if(auto monitor = glfwGetWindowMonitor(window))
+    {
+        return 1;
+    }
+    return 0;
 }

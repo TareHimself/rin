@@ -2,5 +2,5 @@
 
 public abstract  class BatchedCommand : GraphicsCommand
 {
-    public abstract IBatchRenderer GetBatchRenderer();
+    public abstract IBatcher GetBatchRenderer();
 }

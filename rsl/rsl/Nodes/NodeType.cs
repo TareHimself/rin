@@ -36,5 +36,6 @@ public enum NodeType
     Discard,
     If,
     Conditional,
-    Define
+    Define,
+    Compute
 }

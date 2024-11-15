@@ -16,7 +16,7 @@
 
     <ItemGroup>
         <PackageReference Include="SharpGLTF.Core" Version="1.0.0-alpha0031"/>
-        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4"/>
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
     </ItemGroup>
 
     <ItemGroup>

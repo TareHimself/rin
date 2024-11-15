@@ -15,6 +15,7 @@
 
     <ItemGroup>
         <PackageReference Include="SixLabors.Fonts" Version="2.0.3"/>
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
         <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.2"/>
         <PackageReference Include="StbRectPackSharp" Version="1.0.4" />
     </ItemGroup>

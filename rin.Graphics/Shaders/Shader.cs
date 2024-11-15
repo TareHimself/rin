@@ -7,6 +7,7 @@ namespace rin.Graphics.Shaders;
 
 public abstract class Shader : Disposable
 {
+    
     public class Resource
     {
         public string Name = "";

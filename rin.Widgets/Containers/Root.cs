@@ -19,7 +19,9 @@ public class Root : Container
     {
         foreach (var slot in GetSlots())
         {
-            OnSlotInvalidated(slot,InvalidationType.Layout);
+            var widget = slot.Child;
+            widget.Offset = 0.0f;
+            widget.ComputeSize(availableSpace);
         }
 
         return availableSpace;

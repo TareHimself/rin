@@ -107,7 +107,7 @@ public class SdfFontGenerator(FontFamily family)
         }
 
         var resourceManager = SGraphicsModule.Get().GetResourceManager();
-        return new SdfFont(_family,atlases.Select((c, idx) =>
+        var atlasIds = atlases.Select((c, idx) =>
         {
             using var buffer = c.ToBuffer();
             return resourceManager.CreateTexture(buffer, new VkExtent3D()
@@ -116,6 +116,7 @@ public class SdfFontGenerator(FontFamily family)
                     height = (uint)c.Height,
                     depth = 1
                 }, ImageFormat.Rgba8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}");
-        }).ToArray(),atlasGlyphs);
+        }).WaitAll().ToArray();
+        return new SdfFont(_family,atlasIds,atlasGlyphs);
     }
 }

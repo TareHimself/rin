@@ -22,7 +22,7 @@ public partial struct Quad(Matrix3 transform, Vector2<float> size) : ICloneable<
     
     public RenderMode Mode
     {
-        get => (RenderMode)Opts.Y;
+        get => (RenderMode)Opts.X;
         init => Opts.X = (int)value;
     }
     

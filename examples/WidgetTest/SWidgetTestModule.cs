@@ -66,18 +66,33 @@ public class SWidgetTestModule : RuntimeModule
             {
                 if (e is { State: KeyState.Pressed, Key: Key.Equal })
                 {
-                    var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
-                    foreach (var path in p)
-                        list.AddChild(new Sizer()
+                    Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true)).After(
+                        (p) =>
                         {
-                            WidthOverride = rand.Next(300,300),
-                            HeightOverride = 300,
-                            Child = new AsyncFileImage(path)
-                            {
-                                BorderRadius = 30.0f
-                            },
-                            Padding = 10.0f,
+                            foreach (var path in p)
+                                list.AddChild(new Sizer()
+                                {
+                                    WidthOverride = rand.Next(300,300),
+                                    HeightOverride = 300,
+                                    Child = new AsyncFileImage(path)
+                                    {
+                                        BorderRadius = 30.0f
+                                    },
+                                    Padding = 10.0f,
+                                });
                         });
+                    
+                }
+                
+                if (e is { State: KeyState.Pressed, Key: Key.Minus })
+                {
+                    list.AddChild(new Sizer()
+                    {
+                        WidthOverride = rand.Next(300, 300),
+                        HeightOverride = 300,
+                        Child = new PrettyWidget(),
+                        Padding = 10.0f,
+                    });
                 }
             };
         }
@@ -86,8 +101,9 @@ public class SWidgetTestModule : RuntimeModule
     public void TestSimple(WindowRenderer renderer)
     {
         var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
-
-        surf?.Add(new TextInputBox("I expect this very long text to wrap if the space is too small"));
+        //SWidgetsModule.Get().GetOrCreateFont("Arial").ConfigureAwait(false);
+        // surf?.Add(new TextInputBox("I expect this very long text to wrap if the space is too small"));
+        surf?.Add(new TextBox("A"));
     }
 
     public void TestBlur(WindowRenderer renderer)
@@ -273,6 +289,12 @@ public class SWidgetTestModule : RuntimeModule
                 {
                     window.CreateChild(500, 500, "test child");
                 }
+                
+                if (e is { Key: Key.Enter, State: KeyState.Pressed, IsAltDown: true })
+                {
+                    window.SetFullscreen(!window.IsFullscreen());
+                }
+                
             });
         }
         //TestText();

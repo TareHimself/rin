@@ -7,6 +7,8 @@ public sealed class SRuntime : Disposable
 {
     public static readonly string
         ResourcesDirectory = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "","resources");
+
+    public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
     
     private static SRuntime? _instance;
     private static readonly object Padlock = new();

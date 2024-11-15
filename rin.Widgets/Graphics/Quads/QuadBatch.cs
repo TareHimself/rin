@@ -12,7 +12,7 @@ public class QuadBatch : IBatch
         return [(ulong)(_quads.Count * Marshal.SizeOf<Quad>())];
     }
 
-    public IBatchRenderer GetRenderer() => SWidgetsModule.Get().GetBatchRenderer<QuadBatchRenderer>();
+    public IBatcher GetRenderer() => SWidgetsModule.Get().GetBatchRenderer<DefaultQuadBatcher>();
 
     public void AddFromCommand(BatchedCommand command)
     {

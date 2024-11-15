@@ -33,7 +33,7 @@ public class Frame : Disposable
         Renderer = renderer;
         var subsystem = SRuntime.Get().GetModule<SGraphicsModule>();
         var device = subsystem.GetDevice();
-        var queueFamily = subsystem.GetQueueFamily();
+        var queueFamily = subsystem.GetGraphicsQueueFamily();
 
         _device = device;
 
@@ -124,6 +124,18 @@ public class Frame : Disposable
     {
         unsafe
         {
+            // var status = vkGetFenceStatus(_device, _renderFence);
+            // if (status == VkResult.VK_NOT_READY)
+            // {
+            //     fixed (VkFence* pFence = &_renderFence)
+            //     {
+            //         var r = vkWaitForFences(_device, 1, pFence, 1, ulong.MaxValue);
+            //         if (r != VkResult.VK_SUCCESS)
+            //         {
+            //         
+            //         }
+            //     }
+            // }
             fixed (VkFence* pFence = &_renderFence)
             {
                 var r = vkWaitForFences(_device, 1, pFence, 1, ulong.MaxValue);

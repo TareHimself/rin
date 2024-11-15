@@ -54,8 +54,9 @@ EXPORT void windowSetCallbacks(GLFWwindow* window, const GlfwKeyCallback keyCall
                                  const GlfwWindowCloseCallback windowCloseCallback,
                                  const GlfwCharCallback charCallback,
                                  const GlfwMaximizedCallback maximizedCallback,
-                                 const GlfwRefreshCallback refreshCallback,
-                                 const GlfwDropCallback dropCallback);
+                                 const GlfwRefreshCallback refreshCallback
+                                 //,const GlfwDropCallback dropCallback
+                                 );
 
 
 EXPORT void * windowGetExtensions(unsigned int * length);
@@ -66,8 +67,14 @@ EXPORT void windowSetMousePosition(GLFWwindow* window, double x,double y);
 
 EXPORT void windowGetPixelSize(GLFWwindow* window, int * x,int * y);
 
-EXPORT void windowSetWindowPosition(GLFWwindow* window, int * x,int * y);
+EXPORT void windowGetWindowPosition(GLFWwindow* window, int * x,int * y);
 
-EXPORT void windowSetWindowSize(GLFWwindow* window, int * x,int * y);
+EXPORT void windowSetWindowPosition(GLFWwindow* window, int x,int y);
+
+EXPORT void windowSetWindowSize(GLFWwindow* window, int x,int y);
 
 EXPORT void windowSetWindowTitle(GLFWwindow* window,const char * title);
+
+EXPORT void windowSetFullScreen(GLFWwindow* window,int fullscreen);
+
+EXPORT int windowGetFullScreen(GLFWwindow* window);

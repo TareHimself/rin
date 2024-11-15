@@ -12,7 +12,7 @@ public class ShaderManager : Disposable
     private readonly Dictionary<string, NativeBuffer<uint>> _spirv = [];
     private readonly Compiler _compiler;
     private readonly BackgroundTaskQueue<CompiledShader> _backgroundTask = new ();
-    public event Action? BeforeDispose;
+    public event Action? OnBeforeDispose;
     public ShaderManager()
     {
         var opts = new Options()
@@ -25,6 +25,7 @@ public class ShaderManager : Disposable
     
     public NativeBuffer<uint> CompileAstToSpirv(string id, VkShaderStageFlags stage, ModuleNode node)
     {
+        
         var shader =
             "#version 450\n#extension GL_EXT_buffer_reference : require\n#extension GL_EXT_nonuniform_qualifier : require\n#extension GL_EXT_scalar_block_layout : require\n";
 
@@ -35,18 +36,19 @@ public class ShaderManager : Disposable
         {
             VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT => ShaderKind.VertexShader,
             VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT => ShaderKind.FragmentShader,
-            _ => throw new Exception("Unknown shader stage")
+            VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT => ShaderKind.ComputeShader,
+            _ => throw new ShaderCompileException("Unknown shader stage",shader,node)
         });
         
         if (shaderCompileResult.Status != Status.Success)
-            throw new Exception("Error compiling shader:\n" + shaderCompileResult.ErrorMessage);
+            throw new ShaderCompileException(shaderCompileResult.ErrorMessage,shader,node);
         
         unsafe
         {
             
             var buff = new NativeBuffer<uint>((int)shaderCompileResult.CodeLength / Marshal.SizeOf<uint>());
             _spirv.Add(id,buff);
-            Buffer.MemoryCopy(shaderCompileResult.CodePointer.ToPointer(),buff.GetPtr().ToPointer(),shaderCompileResult.CodeLength,shaderCompileResult.CodeLength);
+            buff.Write(shaderCompileResult.CodePointer, shaderCompileResult.CodeLength);
             return buff;
         }
     }
@@ -59,7 +61,7 @@ public class ShaderManager : Disposable
     
     protected override void OnDispose(bool isManual)
     {
-        BeforeDispose?.Invoke();
+        OnBeforeDispose?.Invoke();
         _compiler.Dispose();
         foreach (var (_,buff) in _spirv)
         {

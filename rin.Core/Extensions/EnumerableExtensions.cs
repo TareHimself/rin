@@ -58,7 +58,7 @@ public static class EnumerableExtensions
     
     public static bool Empty(this string target) => target.Length == 0;
     
-    public static bool NotEmpty<T>(this T[] target) => target.Length == 0;
+    public static bool NotEmpty<T>(this T[] target) => target.Length > 0;
     
     public static bool NotEmpty<T>(this IEnumerable<T> target) => target.Any();
     

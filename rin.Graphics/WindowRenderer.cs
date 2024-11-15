@@ -1,10 +1,11 @@
 ﻿using System.Runtime.InteropServices;
 using rin.Core;
+using rin.Core.Math;
 using rin.Windows;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkStructureType;
 using static TerraFX.Interop.Vulkan.Vulkan;
-
+using NativeGraphicsMethods = rin.Graphics.NativeMethods;
 namespace rin.Graphics;
 
 /// <summary>
@@ -20,8 +21,10 @@ public partial class WindowRenderer : Disposable
     private Frame[] _frames = [];
     private ulong _framesRendered;
     private bool _resizing;
+    private bool _resizePending = false;
     private VkSwapchainKHR _swapchain;
     private VkImage[] _swapchainImages = [];
+    private readonly HashSet<VkPresentModeKHR> _supportedPresentModes;
     public double LastFrameTime = 0.0;
 
     private VkExtent2D _swapchainSize = new()
@@ -36,12 +39,15 @@ public partial class WindowRenderer : Disposable
     public event Action<Frame>? OnDraw;
     public event Action<Frame, VkImage, VkExtent2D>? OnCopyToSwapchain;
 
+    public event Action<Vector2<uint>>? OnResize;
+
 
     public WindowRenderer(SGraphicsModule module, Window window)
     {
         _window = window;
         _surface = CreateSurface();
         _module = module;
+        _supportedPresentModes = _module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
     }
 
     public WindowRenderer(SGraphicsModule module, Window window, VkSurfaceKHR surface)
@@ -49,43 +55,36 @@ public partial class WindowRenderer : Disposable
         _window = window;
         _surface = surface;
         _module = module;
+        _supportedPresentModes = _module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
     }
-
-    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsCreateSurface")]
-    [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
-    private static unsafe partial ulong NativeCreateSurface(void* instance, IntPtr window);
-
-    [LibraryImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsCreateSwapchain")]
-    [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
-    private static unsafe partial ulong NativeCreateSwapchain(void* device, void* physicalDevice, ulong surface,
-        int swapchainFormat, int colorSpace, int presentMode, uint width, uint height,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeSwapchainCreatedDelegate onCreatedDelegate);
 
     public unsafe VkSurfaceKHR CreateSurface()
     {
         var instance = SRuntime.Get().GetModule<SGraphicsModule>().GetInstance();
-        return new VkSurfaceKHR(NativeCreateSurface(instance.Value, _window.GetPtr()));
+        var surface = new VkSurfaceKHR();
+        NativeGraphicsMethods.CreateSurface(instance, _window.GetPtr(),&surface);
+        return surface;
     }
 
     public void Init()
     {
         CreateSwapchain();
         InitFrames();
-        _window.OnResized += OnResize;
-        _window.OnRefresh += OnRefresh;
+        _window.OnResized += OnWindowResized;
+        _window.OnRefresh += OnWindowRefreshed;
         // _window.OnMaximized += OnMaximized;
         // _window.OnFocused += OnFocused;
     }
 
 
-    protected void OnResize(Window.ResizeEvent e)
+    protected void OnWindowResized(Window.ResizeEvent e)
     {
-        CheckSwapchainSize();
+        _resizePending = true;
     }
     
-    protected void OnRefresh(Window.RefreshEvent e)
+    protected void OnWindowRefreshed(Window.RefreshEvent e)
     {
-        CheckSwapchainSize();
+        _resizePending = true;
     }
     
     // protected void OnMaximized(Window.MaximizedEvent e)
@@ -102,8 +101,8 @@ public partial class WindowRenderer : Disposable
     {
         // _window.OnFocused -= OnFocused;
         // _window.OnMaximized -= OnMaximized;
-        _window.OnRefresh -= OnRefresh;
-        _window.OnResized -= OnResize;
+        _window.OnRefresh -= OnWindowRefreshed;
+        _window.OnResized -= OnWindowResized;
         foreach (var frame in _frames) frame.Dispose();
 
         _frames = [];
@@ -122,12 +121,20 @@ public partial class WindowRenderer : Disposable
         _viewport.height = _window.PixelSize.Y;
 
         if (_viewport.height == 0 || _viewport.width == 0) return;
-        NativeCreateSwapchain(_module.GetDevice(),
-            _module.GetPhysicalDevice(),
-            _surface.Value,
-            (int)SwapchainFormat,
-            (int)VkColorSpaceKHR.VK_COLORSPACE_SRGB_NONLINEAR_KHR,
-            (int)VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR,
+        var device = _module.GetDevice();
+        var physicalDevice = _module.GetPhysicalDevice();
+        var format = _module.GetSurfaceFormat();
+        var presentMode = 
+            _supportedPresentModes.Contains(VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR)
+            ? VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR
+            : _supportedPresentModes.First();
+        NativeGraphicsMethods.CreateSwapchain(
+            device,
+            physicalDevice,
+            _surface,
+            (int)format.format,
+            (int)format.colorSpace,
+            (int)presentMode,
             (uint)_viewport.width,
             (uint)_viewport.height,
             (swapchain, swapchainImages, numSwapchainImages, swapchainImageViews, numSwapchainImageViews) =>
@@ -151,6 +158,10 @@ public partial class WindowRenderer : Disposable
         };
     }
 
+    private void RequestResize()
+    {
+        _resizePending = true;
+    }
     private bool CheckSwapchainSize()
     {
         if (_resizing) return true;
@@ -160,20 +171,24 @@ public partial class WindowRenderer : Disposable
 
         _resizing = true;
         _module.WaitDeviceIdle();
+        // foreach (var frame in _frames)
+        // {
+        //     frame.WaitForLastDraw();
+        //     frame.Reset();
+        // }
         DestroySwapchain();
         CreateSwapchain();
+        OnResize?.Invoke(new Vector2<uint>(_swapchainSize.width,_swapchainSize.height));
         _resizing = false;
+        _resizePending = false;
         return true;
     }
 
 
     private unsafe void DestroySwapchain()
     {
-        var device = SRuntime.Get().GetModule<SGraphicsModule>().GetDevice();
-
+        var device = _module.GetDevice();
         foreach (var view in _swapchainViews) vkDestroyImageView(device, view, null);
-
-
         _swapchainViews = [];
         _swapchainImages = [];
 
@@ -219,9 +234,8 @@ public partial class WindowRenderer : Disposable
     private void Submit(Frame frame, uint swapchainImageIndex)
     {
         var cmd = frame.GetCommandBuffer();
-        _module.Sync(() =>
-        {
-            _module.SubmitToQueue(frame.GetRenderFence(), new VkCommandBufferSubmitInfo[]
+        var queue = _module.GetGraphicsQueue();
+        _module.SubmitToQueue(queue, frame.GetRenderFence(), new VkCommandBufferSubmitInfo[]
                 {
                     new()
                     {
@@ -265,22 +279,28 @@ public partial class WindowRenderer : Disposable
                 };
                 try
                 {
-                    vkQueuePresentKHR(_module.GetQueue(), &presentInfo);
+                    vkQueuePresentKHR(queue, &presentInfo);
                 }
                 catch (Exception e)
                 {
-                    if (CheckSwapchainSize()) return;
+                   RequestResize();
 
                     Console.WriteLine(e);
                     throw;
                 }
             }
-        }).Wait();
     }
 
     protected void DrawFrame()
     {
+        
+        //return;
         if (!ShouldDraw()) return;
+
+        if (_resizePending && CheckSwapchainSize())
+        {
+            return;
+        }
 
         var frame = GetCurrentFrame();
         var device = _module.GetDevice();
@@ -302,7 +322,7 @@ public partial class WindowRenderer : Disposable
         }
         catch (Exception e)
         {
-            if (CheckSwapchainSize()) return;
+            RequestResize();
 
             Console.WriteLine(e);
             throw;
@@ -335,19 +355,19 @@ public partial class WindowRenderer : Disposable
         {
             OnDraw?.Invoke(frame);
         
-            SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
+           cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
                 VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
                 VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
             OnCopyToSwapchain?.Invoke(frame, _swapchainImages[swapchainImageIndex], swapchainExtent);
 
-            SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
+            cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
                 VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
         }
         else
         {
-            SGraphicsModule.ImageBarrier(cmd, _swapchainImages[swapchainImageIndex],
+            cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
                 VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
                 VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
         }
@@ -367,7 +387,5 @@ public partial class WindowRenderer : Disposable
     }
 
 
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    private unsafe delegate void NativeSwapchainCreatedDelegate(ulong swapchain, void* swapchainImages,
-        uint numSwapchainImages, void* swapchainImageViews, uint numSwapchainImageViews);
+    
 }

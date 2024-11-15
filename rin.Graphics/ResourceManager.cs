@@ -63,17 +63,19 @@ public class ResourceManager : Disposable
 
     public DescriptorSet GetDescriptorSet() => _descriptorSet;
 
-    public int CreateTexture(NativeBuffer<byte> data, VkExtent3D size, ImageFormat format,
+    public async Task<int> CreateTexture(NativeBuffer<byte> data, VkExtent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mipMapped = false, string debugName = "Texture")
     {
-        lock (_mutex)
+        
+        var image = await SGraphicsModule.Get().CreateImage(data, size, format,
+            VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped, filter, debugName);
+
+        var boundText = new BoundTexture(image, filter, tiling, mipMapped, debugName);
+
+        
+       lock (_mutex)
         {
-            var image = SGraphicsModule.Get().CreateImage(data, size, format,
-                VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped, filter, debugName);
-
-            var boundText = new BoundTexture(image, filter, tiling, mipMapped, debugName);
-
             int textureId;
 
             if (_availableIndices.Count == 0)

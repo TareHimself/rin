@@ -1,4 +1,5 @@
-﻿using rin.Graphics;
+﻿using rin.Core.Extensions;
+using rin.Graphics;
 using rin.Widgets;
 using rin.Widgets.Content;
 using rin.Widgets.Graphics;
@@ -24,13 +25,14 @@ public class AsyncWebCover : CoverImage
         var stream = await client.GetStreamAsync(uri);
         using var img = await ImageSharpImage.LoadAsync<Rgba32>(stream);
         using var imgData = img.ToBuffer();
-        TextureId = SGraphicsModule.Get().GetResourceManager().CreateTexture(imgData, new VkExtent3D
+        await SGraphicsModule.Get().GetResourceManager().CreateTexture(imgData,
+            new VkExtent3D
             {
                 width = (uint)img.Width,
                 height = (uint)img.Height,
                 depth = 1
             },
-            ImageFormat.Rgba8);
+            ImageFormat.Rgba8).Then(c => TextureId = c);
     }
 
     public override void CollectContent(TransformInfo info, DrawCommands drawCommands)

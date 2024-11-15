@@ -109,13 +109,13 @@ public class DescriptorSet : Disposable
 
     public bool WriteBuffers(uint binding, params BufferWrite[] writes)
     {
-        if (!SetResource(binding, writes.Select(c => c.Buffer))) return false;
+        if (!SetResource(binding, writes.Select(c => c.View))) return false;
         
-        var infos = writes.Select(buffer => new VkDescriptorBufferInfo
+        var infos = writes.Select(write => new VkDescriptorBufferInfo
         {
-            buffer = buffer.Buffer,
-            offset = buffer.Offset,
-            range = buffer.Size
+            buffer = write.View,
+            offset = write.Offset,
+            range = write.Size
         }).ToArray();
         
         unsafe

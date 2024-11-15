@@ -19,87 +19,6 @@ public static class VulkanExtensions
 
     public static unsafe void* GetAddressProc(this VkInstance instance, string name) => vkGetInstanceProcAddr(instance, (sbyte*)&name);
     
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdBindShadersEXT")]
-    public static extern unsafe void vkCmdBindShadersEXT(VkCommandBuffer commandBuffer, 
-        uint stageCount, 
-        VkShaderStageFlags* pStages, 
-        VkShaderEXT* pShaders);
-
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCreateShadersEXT")]
-    public static extern unsafe VkResult vkCreateShadersEXT(
-        VkDevice device,
-        uint createInfoCount,
-        VkShaderCreateInfoEXT* pCreateInfos,
-        VkAllocationCallbacks* pAllocator,
-        VkShaderEXT* pShaders);
-
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkDestroyShaderEXT")]
-    public static extern unsafe void vkDestroyShaderEXT(
-        VkDevice device,
-        VkShaderEXT shader,
-        VkAllocationCallbacks* pAllocator);
-    
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetPolygonModeEXT")]
-    public static extern unsafe void vkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode);
-    
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetLogicOpEXT")]
-    public static extern void vkCmdSetLogicOpEXT(VkCommandBuffer commandBuffer, VkLogicOp logicOp);
-
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetLogicOpEnableEXT")]
-    public static extern void vkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, uint logicOpEnable);
-    
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetColorBlendEnableEXT")]
-    public static extern unsafe void vkCmdSetColorBlendEnableEXT(
-        VkCommandBuffer commandBuffer, 
-        uint firstAttachment, 
-        uint attachmentCount, 
-        uint* pColorBlendEnables);
-
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetColorBlendEquationEXT")]
-    public static extern unsafe void vkCmdSetColorBlendEquationEXT(
-        VkCommandBuffer commandBuffer, 
-        uint firstAttachment, 
-        uint attachmentCount, 
-        VkColorBlendEquationEXT* pColorBlendEquations);
-
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetColorWriteMaskEXT")]
-    public static extern unsafe void vkCmdSetColorWriteMaskEXT(
-        VkCommandBuffer commandBuffer, 
-        uint firstAttachment, 
-        uint attachmentCount, 
-        VkColorComponentFlags* pColorWriteMasks);
-    
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetVertexInputEXT")]
-    public static extern unsafe void vkCmdSetVertexInputEXT( VkCommandBuffer commandBuffer, 
-        uint vertexBindingDescriptionCount, 
-        VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, 
-        uint vertexAttributeDescriptionCount, 
-        VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions);
-    
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetRasterizationSamplesEXT")]
-    public static extern unsafe void vkCmdSetRasterizationSamplesEXT( VkCommandBuffer commandBuffer, 
-        VkSampleCountFlags rasterizationSamples);
-
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetAlphaToCoverageEnableEXT")]
-    public static extern unsafe void vkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, uint alphaToCoverageEnable);
-
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetAlphaToOneEnableEXT")]
-    public static extern unsafe void vkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, uint alphaToOneEnable);
-
-    [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "graphicsVkCmdSetSampleMaskEXT")]
-    public static extern unsafe void vkCmdSetSampleMaskEXT(
-        VkCommandBuffer commandBuffer, 
-        VkSampleCountFlags samples, 
-        uint* pSampleMask);
-    
-
-    // [DllImport(Dlls.AeroxGraphicsNative, EntryPoint = "vkCmdBeginRenderingKHR")]
-    // private static extern unsafe void vkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, 
-    // VkRenderingInfo* pRenderingInfo);
-    //
-    // [DllImport(Dlls.AeroxGraphicsNative, ExactSpelling = true)]
-    // private static extern void vkCmdEndRenderingKHR(VkCommandBuffer commandBuffer);
-    
     public static VkCommandBuffer BindShaders(this VkCommandBuffer cmd,IEnumerable<Pair<VkShaderEXT,VkShaderStageFlags>> shaders)
     {
 
@@ -118,7 +37,7 @@ public static class VulkanExtensions
             {
                 fixed (VkShaderEXT* pShaders = shaderObjects.ToArray())
                 {
-                    vkCmdBindShadersEXT(cmd,(uint)flagsList.Count, pFlags, pShaders);
+                    NativeMethods.vkCmdBindShadersEXT(cmd,(uint)flagsList.Count, pFlags, pShaders);
                 }
             }
         }
@@ -135,7 +54,7 @@ public static class VulkanExtensions
         {
             fixed (VkShaderStageFlags* pFlags = flagsArr)
             {
-                vkCmdBindShadersEXT(cmd,(uint)flagsArr.Length, pFlags, null);
+                NativeMethods.vkCmdBindShadersEXT(cmd,(uint)flagsArr.Length, pFlags, null);
             }
         }
         
@@ -199,7 +118,7 @@ public static class VulkanExtensions
     
     public static VkCommandBuffer SetPolygonMode(this VkCommandBuffer cmd,VkPolygonMode polygonMode,float lineWidth = 1.0f)
     {
-        vkCmdSetPolygonModeEXT(cmd,polygonMode);
+        NativeMethods.vkCmdSetPolygonModeEXT(cmd,polygonMode);
         vkCmdSetLineWidth(cmd,lineWidth);
         return cmd;
     }
@@ -219,13 +138,13 @@ public static class VulkanExtensions
         // _multisampling.alphaToCoverageEnable = 0;
         // _multisampling.alphaToOneEnable = 0;
         
-        vkCmdSetRasterizationSamplesEXT(cmd,VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT);
-        vkCmdSetAlphaToCoverageEnableEXT(cmd,0);
-        vkCmdSetAlphaToOneEnableEXT(cmd,0);
+        NativeMethods.vkCmdSetRasterizationSamplesEXT(cmd,VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT);
+        NativeMethods.vkCmdSetAlphaToCoverageEnableEXT(cmd,0);
+        NativeMethods.vkCmdSetAlphaToOneEnableEXT(cmd,0);
         unsafe
         {
             uint sampleMask = 0x1;
-            vkCmdSetSampleMaskEXT(cmd,VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT,&sampleMask);
+            NativeMethods.vkCmdSetSampleMaskEXT(cmd,VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT,&sampleMask);
         }
         return cmd;
     }
@@ -286,7 +205,7 @@ public static class VulkanExtensions
     {
         unsafe
         {
-            vkCmdSetLogicOpEXT(cmd,logicOp);
+            NativeMethods.vkCmdSetLogicOpEXT(cmd,logicOp);
         }
         
         return cmd;
@@ -294,7 +213,7 @@ public static class VulkanExtensions
     
     public static VkCommandBuffer DisableBlending(this VkCommandBuffer cmd)
     {
-        vkCmdSetLogicOpEnableEXT(cmd,0);
+        NativeMethods.vkCmdSetLogicOpEnableEXT(cmd,0);
         cmd.SetLogicOpExt(VkLogicOp.VK_LOGIC_OP_COPY);
         return cmd;
     }
@@ -317,21 +236,21 @@ public static class VulkanExtensions
     {
         unsafe
         {
-            vkCmdSetLogicOpEnableEXT(cmd,0);
+            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd,0);
             
             fixed (uint* pEnables = Enumerable.Range(0, (int)count).Select(c => (uint)1).ToArray())
             {
-                vkCmdSetColorBlendEnableEXT(cmd,start,count,pEnables);
+                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd,start,count,pEnables);
             }
             
             fixed (VkColorBlendEquationEXT* pEquations = Enumerable.Range(0, (int)count).Select(c => equation).ToArray())
             {
-                vkCmdSetColorBlendEquationEXT(cmd,start,count,pEquations);
+                NativeMethods.vkCmdSetColorBlendEquationEXT(cmd,start,count,pEquations);
             }
             
             fixed (VkColorComponentFlags* pWriteMasks= Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
             {
-                vkCmdSetColorWriteMaskEXT(cmd,start,count,pWriteMasks);
+                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd,start,count,pWriteMasks);
             }
 
             return cmd;
@@ -342,11 +261,11 @@ public static class VulkanExtensions
     {
         unsafe
         {
-            vkCmdSetLogicOpEnableEXT(cmd,0);
+            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd,0);
             
             fixed (uint* pEnables = Enumerable.Range(0, (int)count).Select(c => (uint)(enable ? 1 : 0)).ToArray())
             {
-                vkCmdSetColorBlendEnableEXT(cmd,start,count,pEnables);
+                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd,start,count,pEnables);
             }
             return cmd;
         }
@@ -358,7 +277,7 @@ public static class VulkanExtensions
         {
             fixed (VkColorComponentFlags* pWriteMasks= Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
             {
-                vkCmdSetColorWriteMaskEXT(cmd,start,count,pWriteMasks);
+                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd,start,count,pWriteMasks);
             }
             return cmd;
         }
@@ -408,7 +327,8 @@ public static class VulkanExtensions
             {
                 fixed (VkVertexInputAttributeDescription2EXT* pAttributeDescriptions = attributeDescriptionsArray)
                 {
-                    vkCmdSetVertexInputEXT(cmd, (uint)bindingDescriptionsArray.Length,
+                    
+                    NativeMethods.vkCmdSetVertexInputEXT(cmd, (uint)bindingDescriptionsArray.Length,
                         pBindingDescriptions, (uint)attributeDescriptionsArray.Length, pAttributeDescriptions);
                 }
             }
@@ -509,5 +429,214 @@ public static class VulkanExtensions
         }
 
         return cmd;
+    }
+
+    public static VkShaderEXT[] CreateShaders(this VkDevice device,params VkShaderCreateInfoEXT[] createInfos)
+    {
+        var shaders = createInfos.Select(c => new VkShaderEXT()).ToArray();
+        unsafe
+        {
+            fixed (VkShaderCreateInfoEXT* pCreateInfos = createInfos)
+            {
+                fixed (VkShaderEXT* pShaders = shaders)
+                {
+                    
+                    if (NativeMethods.vkCreateShadersEXT(device, (uint)createInfos.Length,pCreateInfos, null, pShaders) !=
+                        VkResult.VK_SUCCESS)
+                    {
+                        throw new Exception("Failed to compile shader");         
+                    }
+                }
+            }
+        }
+        return shaders;
+    } 
+    
+    
+    public static void DestroyShader(this VkDevice device,VkShaderEXT shader)
+    {
+        unsafe
+        {
+            NativeMethods.vkDestroyShaderEXT(device, shader, null);
+        }
+    }
+
+    public static VkFence CreateFence(this VkDevice device,bool signaled = false)
+    {
+        var fenceCreateInfo = new VkFenceCreateInfo
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            flags = signaled ? VkFenceCreateFlags.VK_FENCE_CREATE_SIGNALED_BIT : 0
+        };
+
+        unsafe
+        {
+            VkFence result = new VkFence();
+            vkCreateFence(device, &fenceCreateInfo, null, &result);
+            return result;
+        }
+    }
+    
+    /// <summary>
+    /// The KING of synchronization
+    /// </summary>
+    /// <param name="commandBuffer"></param>
+    /// <param name="image"></param>
+    /// <param name="from"></param>
+    /// <param name="to"></param>
+    /// <param name="options"></param>
+    public static void ImageBarrier(this VkCommandBuffer commandBuffer, DeviceImage image, VkImageLayout from,
+        VkImageLayout to, ImageBarrierOptions? options = null)
+    {
+        ImageBarrier(commandBuffer, image.Image, from, to, options);
+    }
+    
+    /// <summary>
+    /// The KING of synchronization
+    /// </summary>
+    /// <param name="commandBuffer"></param>
+    /// <param name="image"></param>
+    /// <param name="from"></param>
+    /// <param name="to"></param>
+    /// <param name="options"></param>
+    public static void ImageBarrier(this VkCommandBuffer commandBuffer, VkImage image, VkImageLayout from,
+        VkImageLayout to, ImageBarrierOptions? options = null)
+    {
+        var opts = options ?? new ImageBarrierOptions();
+        var barrier = new VkImageMemoryBarrier2
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            srcStageMask = opts.WaitForStages,
+            dstStageMask = opts.NextStages,
+            srcAccessMask = opts.SrcAccessFlags,
+            dstAccessMask = opts.DstAccessFlags,
+            oldLayout = from,
+            newLayout = to,
+            subresourceRange = opts.SubresourceRange,
+            image = image
+        };
+
+        unsafe
+        {
+            var depInfo = new VkDependencyInfo
+            {
+                sType = VkStructureType.VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                imageMemoryBarrierCount = 1,
+                pImageMemoryBarriers = &barrier
+            };
+
+            vkCmdPipelineBarrier2(commandBuffer, &depInfo);
+        }
+    }
+    
+    
+    public static void CopyImageToImage(this VkCommandBuffer commandBuffer, DeviceImage src, DeviceImage dst,
+        ImageFilter filter = ImageFilter.Linear)
+    {
+        CopyImageToImage(commandBuffer, src.Image, dst.Image, src.Extent, dst.Extent, filter);
+    }
+
+    public static void CopyImageToImage(this VkCommandBuffer commandBuffer, DeviceImage src, DeviceImage dst,
+        VkExtent3D srcExtent,
+        VkExtent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
+    {
+        CopyImageToImage(commandBuffer, src.Image, dst.Image, srcExtent, dstExtent, filter);
+    }
+    
+    public static void CopyImageToImage(this VkCommandBuffer commandBuffer, VkImage src, VkImage dst, VkExtent3D srcExtent,
+        VkExtent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
+    {
+        var blitRegion = new VkImageBlit2
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
+            srcSubresource = new VkImageSubresourceLayers
+            {
+                aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
+                baseArrayLayer = 0,
+                layerCount = 1,
+                mipLevel = 0
+            },
+            dstSubresource = new VkImageSubresourceLayers
+            {
+                aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
+                baseArrayLayer = 0,
+                layerCount = 1,
+                mipLevel = 0
+            }
+        };
+
+        blitRegion.srcOffsets[1] = new VkOffset3D
+        {
+            x = (int)srcExtent.width,
+            y = (int)srcExtent.height,
+            z = (int)srcExtent.depth
+        };
+        blitRegion.dstOffsets[1] = new VkOffset3D
+        {
+            x = (int)dstExtent.width,
+            y = (int)dstExtent.height,
+            z = (int)dstExtent.depth
+        };
+        unsafe
+        {
+            var blitInfo = new VkBlitImageInfo2
+            {
+                sType = VkStructureType.VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
+                srcImage = src,
+                dstImage = dst,
+                srcImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                dstImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                filter = SGraphicsModule.FilterToVkFilter(filter),
+                pRegions = &blitRegion,
+                regionCount = 1
+            };
+
+            vkCmdBlitImage2(commandBuffer, &blitInfo);
+        }
+    }
+
+    public static VkSurfaceFormatKHR[] GetSurfaceFormats(this VkPhysicalDevice physicalDevice,VkSurfaceKHR surface)
+    {
+        unsafe
+        {
+            uint numFormats = 0;
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &numFormats, null);
+            var result = Enumerable.Range(0, (int)numFormats).Select(c => new VkSurfaceFormatKHR()).ToArray();
+            fixed (VkSurfaceFormatKHR* pResults = result)
+            {
+                vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &numFormats, pResults);
+            }
+
+            return result;
+        }
+    }
+    
+    public static VkPresentModeKHR[] GetSurfacePresentModes(this VkPhysicalDevice physicalDevice,VkSurfaceKHR surface)
+    {
+        unsafe
+        {
+            uint numModes = 0;
+            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &numModes, null);
+            var result = Enumerable.Range(0, (int)numModes).Select(c => VkPresentModeKHR.VK_PRESENT_MODE_MAX_ENUM_KHR).ToArray();
+            fixed (VkPresentModeKHR* pResults = result)
+            {
+                vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &numModes, pResults);
+            }
+
+            return result;
+        }
+    }
+
+    public static void Draw(this VkCommandBuffer self,uint vertices,uint instances = 1,uint firstVertex = 0, uint firstInstance = 0)
+    {
+        vkCmdDraw(self,vertices,instances,firstVertex,firstInstance);
+    }
+    
+    public static void DestroySurface(this VkInstance self,VkSurfaceKHR surface)
+    {
+        unsafe
+        {
+            vkDestroySurfaceKHR(self,surface,null);
+        }
     }
 }

@@ -1,9 +1,13 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections;
+using System.Runtime.CompilerServices;
 
 namespace rin.Core.Extensions;
 
 public static class TaskExtensions
 {
+
+    public static IEnumerable<T> WaitAll<T>(this IEnumerable<Task<T>> tasks) => tasks.Select(c => c.WaitForResult());
+    
     public static async Task<TV> Then<T, TV>(this Task<T> task, Func<T, TV> then)
     {
         var result = await task;

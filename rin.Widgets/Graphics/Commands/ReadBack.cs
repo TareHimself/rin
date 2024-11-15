@@ -1,4 +1,5 @@
-﻿using rin.Graphics;
+﻿using System.Diagnostics;
+using rin.Graphics;
 using TerraFX.Interop.Vulkan;
 
 namespace rin.Widgets.Graphics.Commands;
@@ -8,7 +9,7 @@ namespace rin.Widgets.Graphics.Commands;
 /// </summary>
 public class ReadBack : CustomCommand
 {
-    public override void Run(WidgetFrame frame, uint stencilMask, ulong memory = 0)
+    public override void Run(WidgetFrame frame, uint stencilMask,DeviceBuffer.View? view = null)
     {
         if(frame.IsAnyPassActive) frame.EndActivePass();
         var cmd = frame.Raw.GetCommandBuffer();

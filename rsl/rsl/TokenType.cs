@@ -74,7 +74,7 @@ public enum TokenType
     [KeywordToken(":")] Colon,
     [KeywordToken("->")] Arrow,
     [KeywordToken("ssbo")] SSBO,
-    [KeywordToken("comp")] Compute,
+    [KeywordToken("compute")] Compute,
     [KeywordToken("@Vertex")] VertexScope,
     [KeywordToken("@Fragment")] FragmentScope,
     [KeywordToken("@Compute")] ComputeScope,

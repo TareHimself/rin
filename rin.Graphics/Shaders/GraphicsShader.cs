@@ -8,11 +8,11 @@ namespace rin.Graphics.Shaders;
 
 public class GraphicsShader : Shader
 {
-    private string _vertexShaderId = "";
-    private string _fragmentShaderId = "";
-    private ModuleNode _vertexShader;
-    private ModuleNode _fragmentShader;
-    private Task<CompiledShader> _compiledShader;
+    private readonly string _vertexShaderId;
+    private readonly string _fragmentShaderId;
+    private readonly ModuleNode _vertexShader;
+    private readonly ModuleNode _fragmentShader;
+    private Task<CompiledShader> _compiledShader = Task.FromResult(new CompiledShader());
 
 
     public override CompiledShader Compile(ShaderManager manager)
@@ -98,13 +98,7 @@ public class GraphicsShader : Shader
                                 pSpecializationInfo = null,
                                 pNext = null
                             };
-                            var result = new VkShaderEXT();
-                            if (VulkanExtensions.vkCreateShadersEXT(device, 1, &createInfo, null, &result) !=
-                                VkResult.VK_SUCCESS)
-                            {
-                                throw new Exception("Failed to compile shader");
-                            }
-                        
+                            var result = device.CreateShaders(createInfo).First();
                             shader.Shaders.Add(new Pair<VkShaderEXT,VkShaderStageFlags>(result,VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT));
                         }
                         
@@ -123,41 +117,24 @@ public class GraphicsShader : Shader
                                 pPushConstantRanges = pPushConstants,
                                 pSetLayouts = pSetLayouts
                             };
-                            var result = new VkShaderEXT();
-                            if (VulkanExtensions.vkCreateShadersEXT(device, 1, &createInfo, null, &result) !=
-                                VkResult.VK_SUCCESS)
-                            {
-                                throw new Exception("Failed to compile shader");
-                            }
-                        
+                            var result = device.CreateShaders(createInfo).First();
                             shader.Shaders.Add(new Pair<VkShaderEXT,VkShaderStageFlags>(result,VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT));
                         }
                     }
                 }
             }
 
-            manager.BeforeDispose += () =>
+            manager.OnBeforeDispose += () =>
             {
                 vkDestroyPipelineLayout(device, shader.PipelineLayout, null);
                 foreach (var (shaderObj,_ ) in shader.Shaders)
                 {
-                    VulkanExtensions.vkDestroyShaderEXT(device, shaderObj, null);
+                    device.DestroyShader(shaderObj);
                 }
             };
 
             return shader;
         }
-    }
-
-   
-
-
-    public GraphicsShader(ModuleNode vertexShader,ModuleNode fragmentShader)
-    {
-        _vertexShader = vertexShader;
-        _fragmentShader = fragmentShader;
-        _vertexShaderId = vertexShader.GetHashCode().ToString();
-        _fragmentShaderId = fragmentShader.GetHashCode().ToString();
     }
 
     public override void Init()
@@ -195,6 +172,14 @@ public class GraphicsShader : Shader
     }
 
     private static readonly Dictionary<string, GraphicsShader> GraphicsShaders = [];
+    
+    public GraphicsShader(ModuleNode vertexShader,ModuleNode fragmentShader)
+    {
+        _vertexShader = vertexShader;
+        _fragmentShader = fragmentShader;
+        _vertexShaderId = vertexShader.GetHashCode().ToString();
+        _fragmentShaderId = fragmentShader.GetHashCode().ToString();
+    }
     
     public static GraphicsShader FromFile(string filePath)
     {

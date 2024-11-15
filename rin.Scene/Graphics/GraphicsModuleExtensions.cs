@@ -7,7 +7,7 @@ namespace rin.Scene.Graphics;
 
 public static class GraphicsModuleExtensions
 {
-    public static DeviceGeometry NewGeometry<T>(this SGraphicsModule subsystem, T[] vertices, uint[] indices)
+    public static async Task<DeviceGeometry> NewGeometry<T>(this SGraphicsModule subsystem, T[] vertices, uint[] indices)
         where T : struct
     {
         var verticesByteSize = vertices.ByteSize();
@@ -41,7 +41,7 @@ public static class GraphicsModuleExtensions
         stagingBuffer.Write(vertices);
         stagingBuffer.Write(indices, verticesByteSize);
 
-        subsystem.ImmediateSubmit(cmd =>
+        await subsystem.ImmediateSubmit(cmd =>
         {
             var vertexCopy = new VkBufferCopy
             {

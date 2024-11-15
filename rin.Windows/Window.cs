@@ -180,6 +180,13 @@ public class Window : Disposable
         NativeMethods.SetWindowMousePosition(_nativePtr,position.X,position.Y);
     }
 
+    public void SetFullscreen(bool state)
+    {
+        NativeMethods.SetWindowFullscreen(_nativePtr,state ? 1 : 0);
+    }
+
+    public bool IsFullscreen() => NativeMethods.GetWindowFullscreen(_nativePtr) == 1;
+
 
     public Vector2<int> GetPixelSize()
     {

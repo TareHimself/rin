@@ -1,0 +1,78 @@
+﻿#include "../shaders/widgets/utils.rsl"
+
+layout(buffer_reference, scalar) readonly buffer DataBuffer {
+    mat4 projection;
+    float2 screenSize;
+    mat3 transform;
+    float2 size;
+    float time;
+    float2 cursor;
+};
+
+push(scalar){
+    DataBuffer data;
+};
+
+
+@Vertex{
+    layout(location = 0) out float2 oUV;
+
+    void main()
+    {
+        generateRectVertex(push.data.size, push.data.projection, push.data.transform, gl_VertexIndex, gl_Position, oUV);
+    }
+}
+
+@Fragment{
+    layout (location = 0) in float2 iUV;
+    layout (location = 0) out float4 oColor;
+
+    //https://iquilezles.org/articles/palettes/
+    float3 palette(float t) {
+        float3 a = float3(0.5, 0.5, 0.5);
+        float3 b = float3(0.5, 0.5, 0.5);
+        float3 c = float3(1.0, 1.0, 1.0);
+        float3 d = float3(0.263, 0.416, 0.557);
+        // float3 a = PushConstants.data1.rgb;
+        // float3 b = PushConstants.data2.rgb;
+        // float3 c = PushConstants.data3.rgb;
+        // float3 d = PushConstants.data3.rgb;
+
+        return a + b*cos(6.28318*(c*t+d));
+    }
+
+    //https://www.shadertoy.com/view/mtyGWy
+    void main() {
+        float2 fragCoord = float2(gl_FragCoord.xy);
+        int2 iResolution = int2(push.data.size);
+        float iTime = push.data.time;
+        
+        float2 size = push.data.size;
+        float2 screenUVS = fragCoord.xy / size.xy;
+        float2 uv = screenUVS;//((iUV * 2.0) - 1.0) + topLeft;//(((fragCoord - topLeft) * 2.0 - iResolution.xy) / iResolution.y);
+        float2 cursor = push.data.cursor;
+        float2 screen = push.data.screenSize;
+        uv = uv - float2(mapRangeUnClamped(cursor.x,0.0,size.x,0.0,1.0),mapRangeUnClamped(cursor.y,0.0,size.y,0.0,1.0));
+        float2 uv0 = uv;
+
+        float3 finalColor = float3(0.0);
+
+        for (float i = 0.0; i < 4.0; i++) {
+            uv = fract(uv * 1.5) - 0.5;
+
+            float d = length(uv) * exp(length(uv0) * -1.0);
+
+            float3 col = palette(length(uv0) + i*0.4 + iTime*0.4);
+
+            d = sin(d*8.0 + iTime)/8.0;
+            d = abs(d);
+
+            d = pow(0.01 / d, 1.2);
+
+            finalColor += col * d;
+        }
+
+        oColor = float4(finalColor, 1.0);
+
+    }
+}

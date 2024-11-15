@@ -30,14 +30,14 @@ public class AsyncFileImage : Image
     {
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(filePath);
         using var imgRawData = imgData.ToBuffer();
-        TextureId = SGraphicsModule.Get().GetResourceManager().CreateTexture(imgRawData, new VkExtent3D
+        await SGraphicsModule.Get().GetResourceManager().CreateTexture(imgRawData,
+            new VkExtent3D
             {
                 width = (uint)imgData.Width,
                 height = (uint)imgData.Height,
                 depth = 1
             },
-            ImageFormat.Rgba8);
-        
+            ImageFormat.Rgba8).Then(c => TextureId = c);
     }
 
     // public override void Draw(WidgetFrame frame, DrawInfo info)

@@ -31,15 +31,15 @@ public class AsyncFileImage : CoverImage
     private async Task LoadFile(string filePath)
     {
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(filePath);
-        using var buffer = imgData.ToBuffer(); 
-        TextureId = SGraphicsModule.Get().GetResourceManager().CreateTexture(buffer,
+        using var buffer = imgData.ToBuffer();
+        await SGraphicsModule.Get().GetResourceManager().CreateTexture(buffer,
             new VkExtent3D
             {
                 width = (uint)imgData.Width,
                 height = (uint)imgData.Height,
                 depth = 1
             },
-            ImageFormat.Rgba8);
+            ImageFormat.Rgba8).Then(c => TextureId = c);
     }
 
     // public override void Draw(WidgetFrame frame, DrawInfo info)

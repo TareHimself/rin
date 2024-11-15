@@ -27,14 +27,12 @@ public class WindowSurface : Surface
     public void CopyToSwapchain(Frame frame, VkImage swapchainImage, VkExtent2D extent)
     {
         var drawImage = GetDrawImage();
-        SGraphicsModule.CopyImageToImage(frame.GetCommandBuffer(), drawImage.Image, swapchainImage,
-            drawImage.Extent, _renderer.GetSwapchainExtent());
+        drawImage.CopyTo(frame.GetCommandBuffer(),swapchainImage,_renderer.GetSwapchainExtent());
     }
 
     public override void Init()
     {
         base.Init();
-        Window.OnResized += OnWindowResize;
         Window.OnMouseButton += OnMouseButton;
         Window.OnMouseMoved += OnMouseMove;
         Window.OnScrolled += OnScroll;
@@ -42,11 +40,12 @@ public class WindowSurface : Surface
         Window.OnChar += OnCharacter;
         _renderer.OnDraw += Draw;
         _renderer.OnCopyToSwapchain += CopyToSwapchain;
+        _renderer.OnResize += OnRendererResized;
     }
 
-    protected void OnWindowResize(Window.ResizeEvent e)
+    protected void OnRendererResized(Vector2<uint> size)
     {
-        Size = new Vector2<int>((int)e.Width, (int)e.Height);
+        Size = size.Cast<int>();
         Minimized = Size.X == 0 || Size.Y == 0;
         if (!Minimized) ReceiveResize(new ResizeEvent(this, Size.Clone()));
     }
@@ -92,7 +91,7 @@ public class WindowSurface : Surface
     protected override void OnDispose(bool isManual)
     {
         base.OnDispose(isManual);
-        Window.OnResized -= OnWindowResize;
+        _renderer.OnResize -= OnRendererResized;
         Window.OnMouseButton -= OnMouseButton;
         Window.OnMouseMoved -= OnMouseMove;
         Window.OnScrolled -= OnScroll;

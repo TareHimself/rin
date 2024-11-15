@@ -364,6 +364,11 @@ public class GlslGenerator : Generator
 
         return result;
     }
+
+    public string GenerateCompute(ComputeNode node, int depth)
+    {
+        return $"{Tabs(depth)}layout({GenerateTags(node.Tags)}) in;";
+    }
     public string GenerateLayout(LayoutNode node,int depth)
     {
         var result = $"layout({GenerateTags(node.Tags)}) ";
@@ -427,6 +432,15 @@ public class GlslGenerator : Generator
                     if (node is LayoutNode asLayout)
                     {
                         result += GenerateLayout(asLayout,0);
+                        break;
+                    }
+                }
+                    goto default;
+                case NodeType.Compute:
+                {
+                    if (node is ComputeNode asCompute)
+                    {
+                        result += GenerateCompute(asCompute,0);
                         break;
                     }
                 }

@@ -1,11 +1,9 @@
-﻿using rin.Core;
+﻿using MathNet.Numerics;
+using rin.Core;
 using rin.Graphics;
-using rin.Widgets;
 using rin.Widgets.Content;
-using rin.Widgets.Events;
 using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Commands;
-using MathNet.Numerics;
 
 namespace AudioPlayer.Widgets;
 
@@ -15,7 +13,7 @@ public class FpsWidget : TextBox
     
     class GetStatsCommand(FpsWidget widget) : CustomCommand
     {
-        public override void Run(WidgetFrame frame, uint stencilMask, ulong memory = 0)
+        public override void Run(WidgetFrame frame, uint stencilMask,DeviceBuffer.View? view = null)
         {
             if (frame.Surface is WindowSurface asWindowSurface)
             {
