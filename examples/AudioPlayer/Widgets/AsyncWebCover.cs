@@ -1,4 +1,5 @@
 ﻿using rin.Core.Extensions;
+using rin.Core.Math;
 using rin.Graphics;
 using rin.Widgets;
 using rin.Widgets.Content;
@@ -36,9 +37,9 @@ public class AsyncWebCover : CoverImage
         await img.SaveAsPngAsync("./latest.png");
     }
 
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
     {
-        base.CollectContent(info, drawCommands);
-        drawCommands.AddRect(info.Transform, GetContentSize(), Color.Black.Clone(a: 0.5f),BorderRadius);
+        base.CollectContent(transform, drawCommands);
+        drawCommands.AddRect(transform, GetContentSize(), Color.Black.Clone(a: 0.5f),BorderRadius);
     }
 }

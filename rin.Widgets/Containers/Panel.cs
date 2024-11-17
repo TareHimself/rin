@@ -36,7 +36,7 @@ public class PanelSlot : ContainerSlot
 ///     A container that draws children based on the settings provided in <see cref="PanelSlot" /> . Intended use is for
 ///     dock-able layouts or as a root for a collection of widgets
 /// </summary>
-public class Panel : Container
+public class Panel : ContainerWidget
 {
     // protected override void ArrangeContent(Vector2<float> drawSize)
     // {

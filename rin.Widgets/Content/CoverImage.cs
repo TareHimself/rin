@@ -16,8 +16,8 @@ public class CoverImage : Image
     {
         return base.LayoutContent(availableSpace);
     }
-
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    
+    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
     {
         if (TextureId != -1)
         {
@@ -28,12 +28,13 @@ public class CoverImage : Image
             var p2 = centerDist + contentSize;
             p1 /= fitSize;
             p2 /= fitSize;
-            drawCommands.AddTexture(TextureId, info.Transform, GetContentSize(), Tint, new Vector4<float>(p1, p2),
+            drawCommands.AddTexture(TextureId,transform, GetContentSize(), Tint, new Vector4<float>(p1, p2),
                 BorderRadius);
         }
         else
         {
-            base.CollectContent(info, drawCommands);
+            base.CollectContent(transform, drawCommands);
         }
     }
+
 }

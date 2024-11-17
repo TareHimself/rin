@@ -53,7 +53,7 @@ namespace rin.Widgets.Containers;
 /// <summary>
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class BackgroundBlur : Container
+public class BackgroundBlur : ContainerWidget
 {
     public Color Tint = Color.White;
     public float Strength { get; set; } = 7.0f;
@@ -84,11 +84,14 @@ public class BackgroundBlur : Container
     //     }
     // }
 
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    public override void Collect(TransformInfo info, DrawCommands drawCommands)
     {
-        base.CollectContent(info, drawCommands);
-        drawCommands.Add(new ReadBack());
-        drawCommands.Add(new BlurCommand(info.Transform,GetContentSize(),Strength,Tint));
+        if (IsVisible)
+        {
+            drawCommands.Add(new ReadBack());
+            drawCommands.Add(new BlurCommand(info.Transform,GetContentSize(),Strength,Tint));
+        }
+        base.Collect(info, drawCommands);
     }
 
     protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)

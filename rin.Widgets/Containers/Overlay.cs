@@ -8,7 +8,7 @@ namespace rin.Widgets.Containers;
 /// A container that draws children on top of each other
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class Overlay : Container
+public class Overlay : ContainerWidget
 {
     protected override Vector2<float> ComputeDesiredContentSize()
     {
@@ -45,6 +45,8 @@ public class Overlay : Container
         }
         return new Vector2<float>(Math.Min(dims.X,availableSpace.X),Math.Min(dims.Y,availableSpace.Y));
     }
+
+    public override IEnumerable<ContainerSlot> GetHitTestableSlots() => base.GetHitTestableSlots().AsReversed();
 
     // protected override bool ChildrenReceiveScroll(ScrollEvent e, TransformInfo info)
     // {

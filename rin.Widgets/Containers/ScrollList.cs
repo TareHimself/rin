@@ -112,10 +112,10 @@ public class ScrollList : List
         }
     }
 
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    public override void Collect(TransformInfo info, DrawCommands drawCommands)
     {
-        base.CollectContent(info, drawCommands);
-        if (IsScrollable())
+        base.Collect(info, drawCommands);
+        if (IsVisible && IsScrollable())
         {
             var scroll = GetScroll();
             var maxScroll = GetMaxScroll();
@@ -130,20 +130,18 @@ public class ScrollList : List
 
             var transform = info.Transform.Translate(new Vector2<float>(size.X - 10.0f, drawOffset));
             drawCommands.AddRect(transform, new Vector2<float>(10.0f, barSize), color: Color.White, borderRadius: 7.0f);
-            //frame.AddRect(transform, new Vector2<float>(10.0f, barSize), borderRadius: 7.0f, tint: Color.White);
         }
     }
 
-    public override TransformInfo OffsetTransformTo(Widget widget, TransformInfo info, bool withPadding = true)
+    protected override Matrix3 ComputeSlotOffset(ContainerSlot slot)
     {
-        return base.OffsetTransformTo(widget, new TransformInfo(Axis switch
+        return Matrix3.Identity.Translate(Axis switch
         {
-            Axis.Row => info.Transform.Translate(new Vector2<float>(-GetScroll(), 0.0f)),
-            Axis.Column => info.Transform.Translate(new Vector2<float>(0.0f, -GetScroll())),
+            Axis.Row => new Vector2<float>(-GetScroll(), 0.0f),
+            Axis.Column => new Vector2<float>(0.0f, -GetScroll()),
             _ => throw new ArgumentOutOfRangeException()
-        }, info.Size, info.Depth), withPadding);
+        });
     }
-
 
     protected override bool OnCursorDown(CursorDownEvent e)
     {

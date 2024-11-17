@@ -1,10 +1,9 @@
 ﻿using rin.Core.Math;
 using rin.Widgets.Events;
-using rin.Widgets.Graphics;
 
-namespace rin.Widgets.Content;
+namespace rin.Widgets.Containers;
 
-public class Button : Container
+public class Button : Containers.Rect
 {
 
     protected override Vector2<float> ComputeDesiredContentSize()
@@ -14,16 +13,6 @@ public class Button : Container
             return slot.Child.GetDesiredSize();
         }
         return new Vector2<float>();
-    }
-    
-
-    public override void Collect(TransformInfo info, DrawCommands drawCommands)
-    {
-        if (Visibility is not Widgets.Visibility.Hidden or Widgets.Visibility.Collapsed)
-        {
-            CollectSelf(info,drawCommands);
-        }
-        base.Collect(info, drawCommands);
     }
 
     public override int GetMaxSlotsCount() => 1;

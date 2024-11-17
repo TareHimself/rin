@@ -4,7 +4,7 @@ using rin.Widgets.Graphics;
 
 namespace WidgetTest;
 
-public class PrettyWidget : Widget
+public class PrettyWidget : ContentWidget
 {
     protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
     {
@@ -16,8 +16,8 @@ public class PrettyWidget : Widget
         return 0.0f;
     }
 
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
     {
-        drawCommands.Add(new PrettyShaderDrawCommand(info.Transform,info.Size,Parent?.Parent?.IsHovered ?? false));
+        drawCommands.Add(new PrettyShaderDrawCommand(transform,GetContentSize(),Parent?.Parent?.IsHovered ?? false));
     }
 }

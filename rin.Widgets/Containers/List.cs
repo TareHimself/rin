@@ -33,7 +33,7 @@ public class ListSlot(List? container = null) : ContainerSlot(container)
 /// A container that draws children left to right
 /// Slot = <see cref="ListSlot"/>
 /// </summary>
-public class List(Axis axis) : Container
+public class List(Axis axis) : ContainerWidget
 {
     public List() : this(Axis.Column)
     {

@@ -7,7 +7,7 @@ namespace rin.Widgets.Containers;
 /// <summary>
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class Switcher : Container
+public class Switcher : ContainerWidget
 {
     private int _selected;
     

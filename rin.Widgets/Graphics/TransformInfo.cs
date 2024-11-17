@@ -17,17 +17,42 @@ public class TransformInfo : ICloneable<TransformInfo>
     /// </summary>
     public Vector2<float> Size;
     public int Depth;
+
+    protected Rect _clipRect;
     
     /// <summary>
     /// True if the target of this draw info will be occluded (tests are done using an AABB approach
     /// </summary>
     public bool Occluded = false;
 
-    public TransformInfo(Matrix3 transform,Vector2<float> size,int depth)
+    public TransformInfo(Matrix3 transform,Vector2<float> size,int depth,bool checkOcclusion = false,TransformInfo? parent = null,Clip clip = Clip.None)
     {
         Transform = transform;
         Size = size;
         Depth = depth;
+        if (checkOcclusion)
+        {
+            var AABB = ComputeAxisAlignedBoundingRect(this);
+            if (parent != null)
+            {
+                _clipRect = clip switch
+                {
+                    Clip.None => parent._clipRect,
+                    Clip.Bounds => AABB.Clamp(parent._clipRect),
+                    _ => throw new ArgumentOutOfRangeException(nameof(clip), clip, null)
+                };
+            }
+            else
+            {
+                _clipRect = AABB;
+            }
+
+            Occluded = !AABB.IntersectsWith(_clipRect);
+        }
+        else
+        {
+            _clipRect = new Rect(float.NegativeInfinity, float.PositiveInfinity);
+        }
     }
     
     public TransformInfo(Surface surface)
@@ -35,13 +60,18 @@ public class TransformInfo : ICloneable<TransformInfo>
         Transform = Matrix3.Identity;
         Size = surface.GetDrawSize().Cast<float>();
         Depth = 0;
+        _clipRect = ComputeAxisAlignedBoundingRect(this);
     }
 
     public Rect ToRect() => ComputeAxisAlignedBoundingRect(this);
 
     public TransformInfo Clone()
     {
-        return new TransformInfo(Transform,Size,Depth);
+        return new TransformInfo(Transform,Size,Depth)
+        {
+            _clipRect = _clipRect,
+            Occluded = Occluded
+        };
     }
 
     //public static Vector2<float>[] ClippingRectToPoints()

@@ -1,10 +1,11 @@
 ﻿using rin.Widgets.Graphics;
 using rin.Windows;
+using rin.Windows.Native.src;
 
 namespace rin.Widgets.Events;
 
-public class CharacterEvent(Surface surface, char character,Window.Mods mods) : Event(surface)
+public class CharacterEvent(Surface surface, char character,InputModifier mods) : Event(surface)
 {
     public char Character = character;
-    public Window.Mods Mods = mods;
+    public InputModifier Mods = mods;
 }

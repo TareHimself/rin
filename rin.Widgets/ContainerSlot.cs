@@ -2,7 +2,7 @@
 
 namespace rin.Widgets;
 
-public class ContainerSlot(Container? owner = null)
+public class ContainerSlot(ContainerWidget? owner = null)
 {
     public required Widget Child { get; init; }
     
@@ -11,7 +11,7 @@ public class ContainerSlot(Container? owner = null)
         return Child is T castedWidget ? castedWidget : null;
     }
 
-    public void SetOwner(Container container)
+    public void SetOwner(ContainerWidget container)
     {
         owner = container;
     }

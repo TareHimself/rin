@@ -1,6 +1,8 @@
 ﻿using System.Runtime.InteropServices;
 using rin.Core;
 using rin.Core.Math;
+using rin.Graphics.Windows;
+using rin.Graphics.Windows.Events;
 using rin.Windows;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkStructureType;
@@ -14,7 +16,6 @@ namespace rin.Graphics;
 public partial class WindowRenderer : Disposable
 {
     private const uint FramesInFlight = 2;
-    private const VkFormat SwapchainFormat = VkFormat.VK_FORMAT_B8G8R8A8_UNORM;
     private readonly SGraphicsModule _module;
     private readonly VkSurfaceKHR _surface;
     private readonly Window _window;
@@ -77,12 +78,12 @@ public partial class WindowRenderer : Disposable
     }
 
 
-    protected void OnWindowResized(Window.ResizeEvent e)
+    protected void OnWindowResized(ResizeEvent e)
     {
         _resizePending = true;
     }
     
-    protected void OnWindowRefreshed(Window.RefreshEvent e)
+    protected void OnWindowRefreshed(RefreshEvent e)
     {
         _resizePending = true;
     }

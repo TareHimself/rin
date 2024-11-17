@@ -4,6 +4,7 @@ using rin.Core.Extensions;
 using rin.Graphics;
 using rin.Graphics.Shaders;
 using rin.Core.Math;
+using rin.Graphics.Windows;
 using rin.Widgets.Animation;
 using rin.Widgets.Graphics;
 using rin.Widgets.Sdf;
@@ -16,7 +17,7 @@ using TerraFX.Interop.Vulkan;
 
 namespace rin.Widgets;
 
-[NativeRuntimeModule(typeof(SWindowsModule), typeof(SGraphicsModule))]
+[NativeRuntimeModule( typeof(SGraphicsModule))]
 public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
 {
     

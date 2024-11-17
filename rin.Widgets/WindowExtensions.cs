@@ -1,4 +1,5 @@
-﻿using rin.Widgets.Graphics;
+﻿using rin.Graphics.Windows;
+using rin.Widgets.Graphics;
 using rin.Windows;
 
 namespace rin.Widgets;

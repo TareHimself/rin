@@ -25,10 +25,6 @@ public class WidgetFrame
     public bool IsMainPassActive => ActivePass == Surface.MainPassId;
     public bool IsAnyPassActive => ActivePass.Length != 0;
     public Matrix4 Projection;
-    public int BatchedDraws = 0;
-    public int NonBatchedDraws = 0;
-    public int NonDraws = 0;
-    public int StencilDraws = 0;
 
     public WidgetFrame(Surface surface, Frame raw)
     {

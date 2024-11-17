@@ -7,7 +7,7 @@ namespace rin.Widgets.Containers;
 /// <summary>
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class Root : Container
+public class Root : ContainerWidget
 {
     protected override Vector2<float> ComputeDesiredContentSize()
     {

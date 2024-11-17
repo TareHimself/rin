@@ -24,6 +24,8 @@ public abstract class Surface : Disposable
     private DeviceImage? _drawImage;
     private Vector2<float>? _lastMousePosition;
     private DeviceImage? _stencilImage;
+    
+    public FrameStats Stats { get; private set; } = new();
 
     public Surface()
     {
@@ -239,6 +241,7 @@ public abstract class Surface : Disposable
                         Type = CommandType.BatchedDraw
                     });
                     activeBatch = null;
+                    Stats.BatchedDrawCommandCount++;
                 }
 
                 currentClipMask = pendingCommand.ClipId;
@@ -263,6 +266,7 @@ public abstract class Surface : Disposable
                                 Type = CommandType.BatchedDraw
                             });
                             activeBatch = asBatchedCommand.GetBatchRenderer().NewBatch();
+                            Stats.BatchedDrawCommandCount++;
                         }
                     }
 
@@ -281,6 +285,7 @@ public abstract class Surface : Disposable
                             Type = CommandType.BatchedDraw
                         });
                         activeBatch = null;
+                        Stats.BatchedDrawCommandCount++;
                     }
 
                     if (finalDrawCommands.LastOrDefault() is
@@ -295,6 +300,14 @@ public abstract class Surface : Disposable
                         Mask = currentClipMask,
                         Type = CommandType.Custom
                     });
+                    if (asCustomCommand.WillDraw)
+                    {
+                        Stats.NonBatchedDrawCommandCount++;
+                    }
+                    else
+                    {
+                        Stats.CustomCommandCount++;
+                    }
                 }
                     break;
             }
@@ -308,17 +321,20 @@ public abstract class Surface : Disposable
             Mask = currentClipMask,
             Type = CommandType.BatchedDraw
         });
+        Stats.BatchedDrawCommandCount++;
     }
 
     public List<FinalDrawCommand> CollectDrawCommands()
     {
         var rawDrawCommands = new DrawCommands();
-        var transformInfo = new TransformInfo(Matrix3.Identity, GetDrawSize().Cast<float>(), 0);
+        var transformInfo = new TransformInfo(this);
         _rootWidget.Collect(transformInfo, rawDrawCommands);
         var rawCommands = rawDrawCommands.Commands.OrderBy(c => c, new RawCommandComparer()).ToArray();
 
         if (rawCommands.Length == 0) return [];
 
+        Stats.InitialCommandCount = rawCommands.Length;
+        
         var clips = rawDrawCommands.Clips;
 
         if (clips.Count == 0)
@@ -347,6 +363,7 @@ public abstract class Surface : Disposable
                     {
                         Type = CommandType.ClipClear
                     });
+                    Stats.StencilClearCount++;
                 }
 
                 if (rawCommand.ClipId.Length <= 0)
@@ -363,16 +380,18 @@ public abstract class Surface : Disposable
                     finalDrawCommands.Add(new FinalDrawCommand
                     {
                         Type = CommandType.ClipDraw,
-                        Clips = uniqueClipStacks[rawCommand.ClipId].Select(c => new Clip
+                        Clips = uniqueClipStacks[rawCommand.ClipId].Select(c => new StencilClip
                         {
                             Transform = clips[(int)c].Transform,
                             Size = clips[(int)c].Size
                         }).ToArray(),
                         Mask = currentMask
                     });
+                    Stats.StencilWriteCount++;
                     //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
                     computedClipStacks.Add(rawCommand.ClipId, currentMask);
                     pendingCommands.Add(new PendingCommand(rawCommand.Command, currentMask));
+                    
                 }
             }
 
@@ -462,14 +481,19 @@ public abstract class Surface : Disposable
         if (_drawImage == null || _copyImage == null || _stencilImage == null) return;
 
         DoHover();
-
+        if (Stats.InitialCommandCount != 0)
+        {
+            Stats = new FrameStats();
+        }
         var drawCommands = CollectDrawCommands();
-
+        
         if (drawCommands.Count == 0)
         {
+            
             HandleSkippedDraw(frame);
             return;
         }
+        
 
         var properties = new VkPhysicalDeviceProperties();
 
@@ -499,7 +523,7 @@ public abstract class Surface : Disposable
             else if (drawCommand.Type == CommandType.ClipDraw)
             {
                 var offset = memoryNeeded;
-                memoryNeeded += (ulong)(Marshal.SizeOf<Clip>() * drawCommand.Clips.Length);
+                memoryNeeded += (ulong)(Marshal.SizeOf<StencilClip>() * drawCommand.Clips.Length);
                 bufferOffsetsAndSizes.Add(new Pair<ulong, ulong>(offset,memoryNeeded - offset));
                 // var dist = memoryNeeded & minOffsetAlignment;
                 // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
@@ -518,6 +542,10 @@ public abstract class Surface : Disposable
         var cmd = frame.GetCommandBuffer();
 
         var buffer = memoryNeeded > 0 ? SGraphicsModule.Get().GetAllocator().NewStorageBuffer(memoryNeeded) : null;
+        
+        Stats.FinalCommandCount = drawCommands.Count;
+        Stats.MemoryAllocatedBytes = memoryNeeded;
+        
         if (buffer != null) frame.OnReset += _ => buffer.Dispose();
         var offsetsAndSizes = bufferOffsetsAndSizes.GetEnumerator();
         offsetsAndSizes.MoveNext();
@@ -585,8 +613,6 @@ public abstract class Surface : Disposable
                             cmd.PushConstant(stencilShader.GetPipelineLayout(), pushResource.Stages, push);
 
                             vkCmdDraw(cmd, 6, (uint)command.Clips.Length, 0, 0);
-                            
-                            widgetFrame.StencilDraws++;
                         }
                     }
                 }
@@ -671,15 +697,6 @@ public abstract class Surface : Disposable
                             {
                                 command.Custom.Run(widgetFrame, command.Mask);
                             }
-                            
-                            if (command.Custom.WillDraw)
-                            {
-                                widgetFrame.NonBatchedDraws++;
-                            }
-                            else
-                            {
-                                widgetFrame.NonDraws++;
-                            }
                         }
                             break;
                         case { Type: CommandType.BatchedDraw, Batch: not null } when buffer != null:
@@ -690,7 +707,6 @@ public abstract class Surface : Disposable
                             var view = buffer.GetView(offset, size);
                             frame.OnReset += (_) => view.Dispose();
                             batch.GetRenderer().Draw(widgetFrame, batch,view);
-                            widgetFrame.BatchedDraws++;
                             break;
                         }
                     }

@@ -8,7 +8,7 @@ namespace rin.Widgets.Containers;
 /// <summary>
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class Sizer : Container
+public class Sizer : ContainerWidget
 {
     private float? _heightOverride;
     private float? _widthOverride;

@@ -157,10 +157,10 @@ public class TrackPlayer : Overlay
             $"{((int)Math.Floor(secs / 60)).ToString().PadLeft(2, '0')}:{((int)(secs % 60)).ToString().PadLeft(2, '0')}";
     }
 
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    public override void Collect(TransformInfo info, DrawCommands drawCommands)
     {
         _currentTimeText.Content = FormatTime(_stream.Position);
-        base.CollectContent(info, drawCommands);
+        base.Collect(info, drawCommands);
     }
 
     protected override bool OnCursorDown(CursorDownEvent e) => _stream.IsPlaying ? _stream.Pause() : _stream.Play();

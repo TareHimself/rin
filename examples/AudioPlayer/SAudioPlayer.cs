@@ -4,8 +4,9 @@ using rin.Core.DataStructures;
 using rin.Widgets;
 using rin.Widgets.Containers;
 using rin.Widgets.Content;
-using rin.Windows;
 using AudioPlayer.Widgets;
+using rin.Graphics;
+using rin.Graphics.Windows;
 using SpotifyExplode;
 using YoutubeExplode;
 
@@ -19,7 +20,7 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
     {
         base.Startup(runtime);
         SAudioModule.Get().SetVolume(0.1f);
-        var window = SWindowsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
+        var window = SGraphicsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
         window.OnCloseRequested += (_) =>
         {
             SRuntime.Get().RequestExit();
@@ -63,21 +64,21 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
         
         surf.Window.OnKey += (e) =>
         {
-            if (e is { State: KeyState.Pressed, Key: Key.Left })
+            if (e is { State: InputState.Pressed, Key: InputKey.Left })
             {
                 if (switcher.SelectedIndex - 1 < 0) return;
                 switcher.SelectedIndex -= 1;
                 return;
             }
 
-            if (e is { State: KeyState.Pressed, Key: Key.Right })
+            if (e is { State: InputState.Pressed, Key: InputKey.Right })
             {
                 if (switcher.SelectedIndex + 1 >= switcher.GetSlotsCount()) return;
                 switcher.SelectedIndex += 1;
                 return;
             }
 
-            if (e is { State: KeyState.Pressed, Key: Key.Enter })
+            if (e is { State: InputState.Pressed, Key: InputKey.Enter })
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)

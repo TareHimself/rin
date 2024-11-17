@@ -7,7 +7,7 @@ namespace rin.Widgets.Containers;
 /// <summary>
 /// A simple container that draws a rect behind it and contains one child
 /// </summary>
-public class Rect : Container
+public class Rect : ContainerWidget
 {
     public Color BackgroundColor = Color.Black;
     public Vector4<float> BorderRadius = 0.0f;
@@ -32,10 +32,18 @@ public class Rect : Container
         return 0.0f;
     }
 
-    protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)
+    protected virtual void CollectSelf(Matrix3 transform, DrawCommands drawCommands)
     {
-        base.CollectSelf(info, drawCommands);
-        drawCommands.AddRect(info.Transform, info.Size, color: BackgroundColor, borderRadius: BorderRadius);
+        drawCommands.AddRect(transform,Size, color: BackgroundColor, borderRadius: BorderRadius);
+    }
+
+    public override void Collect(TransformInfo info, DrawCommands drawCommands)
+    {
+        if (IsVisible)
+        {
+            CollectSelf(info.Transform,drawCommands);
+        }
+        base.Collect(info, drawCommands);
     }
 
     public override int GetMaxSlotsCount() => 1;

@@ -1,5 +1,6 @@
 ﻿using rin.Core;
 using rin.Core.Extensions;
+using rin.Core.Math;
 using rin.Widgets;
 using rin.Widgets.Animation;
 using rin.Widgets.Containers;
@@ -16,13 +17,12 @@ public class FilePicker : Button
     private bool _hasInit = false;
 
     public event Action<string[]>? OnFileSelected;
-
-    protected Color BgColor = Color.Red;
+    
     protected readonly TextBox StatusText = new TextBox("Select File's");
     
     public FilePicker() : base()
     {
-        
+        BackgroundColor = Color.Red;
     }
 
     protected override void OnAddedToSurface(Surface surface)
@@ -38,12 +38,6 @@ public class FilePicker : Button
             // s.Target.Angle = 60.0f * num;
             return true;
         }));
-    }
-
-    protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)
-    {
-        base.CollectSelf(info, drawCommands);
-        drawCommands.AddRect(info.Transform, GetContentSize(), BgColor, 20.0f);
     }
 
     protected void FileSelected(string[] files)
@@ -67,13 +61,13 @@ public class FilePicker : Button
 
     protected override void OnCursorEnter(CursorMoveEvent e)
     {
-        BgColor = Color.Green;
+        BackgroundColor = Color.Green;
         base.OnCursorEnter(e);
     }
 
     protected override void OnCursorLeave(CursorMoveEvent e)
     {
-        BgColor = Color.Red;
+        BackgroundColor = Color.Red;
         base.OnCursorLeave(e);
         
     }

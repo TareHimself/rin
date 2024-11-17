@@ -39,24 +39,6 @@ public class AsyncFileImage : Image
             },
             ImageFormat.Rgba8).Then(c => TextureId = c);
     }
-
-    // public override void Draw(WidgetFrame frame, DrawInfo info)
-    // {
-    //     // _alpha = MathUtils.InterpolateTo(_alpha, _alphaTarget, (float)Runtime.Instance.GetLastDeltaSeconds(), 0.8f);
-    //     //
-    //     // var sin = (float)Math.Sin(Runtime.Instance.GetTimeSinceCreation() * 1.3f);
-    //     // var borderRadius = float.Abs(sin) * 100.0f;
-    //     // BorderRadius = 100.0f * _alpha;
-    //     base.Draw(frame, info);
-    // }
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
-    {
-        // var sin = (float)Math.Sin(Runtime.Instance.GetTimeSinceCreation());
-        // var borderRadius = float.Abs(sin) * 150.0f;
-        // BorderRadius = borderRadius;
-        base.CollectContent(info, drawCommands);
-        
-    }
     
     protected override void OnCursorEnter(CursorMoveEvent e)
     {

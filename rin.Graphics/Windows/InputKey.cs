@@ -1,6 +1,6 @@
-﻿namespace rin.Windows;
+﻿namespace rin.Graphics.Windows;
 
-public enum Key
+public enum InputKey
 {
     // ASCII printable keys
     Space = 32,

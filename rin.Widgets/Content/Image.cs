@@ -10,7 +10,7 @@ namespace rin.Widgets.Content;
 /// <summary>
 ///     Draw's a <see cref="Texture" /> if provided or a colored rectangle. Supports tint.
 /// </summary>
-public class Image : Widget
+public class Image : ContentWidget
 {
 
     private int _textureId = -1;
@@ -58,12 +58,21 @@ public class Image : Widget
         base.OnRemovedFromSurface(surface);
     }
 
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    // public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    // {
+    //     //throw new NotImplementedException();
+    //     if (TextureId != -1)
+    //     {
+    //         drawCommands.AddTexture(TextureId, info.Transform, GetContentSize(), Tint, null,
+    //             BorderRadius);
+    //     }
+    // }
+
+    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
     {
-        //throw new NotImplementedException();
         if (TextureId != -1)
         {
-            drawCommands.AddTexture(TextureId, info.Transform, GetContentSize(), Tint, null,
+            drawCommands.AddTexture(TextureId,transform, GetContentSize(), Tint, null,
                 BorderRadius);
         }
     }

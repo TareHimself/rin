@@ -1,9 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace rin.Windows;
+namespace rin.Graphics.Windows;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct WindowCreateOptions()
+public struct CreateOptions()
 {
     /// <summary>
     ///     Whether the windowed mode window will be resizable by the user

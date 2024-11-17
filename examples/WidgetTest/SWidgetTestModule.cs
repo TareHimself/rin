@@ -3,6 +3,7 @@ using rin.Core.Animation;
 using rin.Core.Extensions;
 using rin.Core.Math;
 using rin.Graphics;
+using rin.Graphics.Windows;
 using rin.Widgets;
 using rin.Widgets.Animation;
 using rin.Widgets.Containers;
@@ -41,7 +42,8 @@ public class SWidgetTestModule : RuntimeModule
                     },
                     MinAnchor = 0.0f,
                     MaxAnchor = 1.0f
-                },
+                }
+                ,
                 new PanelSlot
                 {
                     Child = new Rect
@@ -49,6 +51,7 @@ public class SWidgetTestModule : RuntimeModule
                         Child = new FpsWidget
                         {
                             FontSize = 30,
+                            Content = "YOOOO"
                         },
                         Padding = new Padding(20.0f),
                         BorderRadius = 10.0f,
@@ -58,13 +61,14 @@ public class SWidgetTestModule : RuntimeModule
                     MinAnchor = new Vector2<float>(1.0f, 0.0f),
                     MaxAnchor = new Vector2<float>(1.0f, 0.0f),
                     Alignment = new Vector2<float>(1.0f, 0.0f)
-                }]
+                }
+                ]
             });
 
             var rand = new Random();
             surf.Window.OnKey += (e) =>
             {
-                if (e is { State: KeyState.Pressed, Key: Key.Equal })
+                if (e is { State: InputState.Pressed, Key: InputKey.Equal })
                 {
                     Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true)).After(
                         (p) =>
@@ -84,7 +88,7 @@ public class SWidgetTestModule : RuntimeModule
                     
                 }
                 
-                if (e is { State: KeyState.Pressed, Key: Key.Minus })
+                if (e is { State: InputState.Pressed, Key: InputKey.Minus })
                 {
                     list.AddChild(new Sizer()
                     {
@@ -131,9 +135,9 @@ public class SWidgetTestModule : RuntimeModule
                 {
                     Child = new Canvas
                     {
-                        Paint = (self, t, d) =>
+                        Paint = (self, transform, d) =>
                         {
-                            d.AddRect(t.Transform, self.GetContentSize(), color: Color.Black.Clone(a: 0.6f));
+                            d.AddRect(transform, self.GetContentSize(), color: Color.Black.Clone(a: 0.6f));
                         }
                     },
                     MinAnchor = 0.0f,
@@ -170,7 +174,7 @@ public class SWidgetTestModule : RuntimeModule
             var switcherSlots = switcher.GetSlotsCount();
             if (switcherSlots > 0)
             {
-                if (e is { State: KeyState.Pressed or KeyState.Repeat, Key: Key.Left })
+                if (e is { State: InputState.Pressed or InputState.Repeat, Key: InputKey.Left })
                 {
                     var newIndex = switcher.SelectedIndex - 1;
                     if (newIndex < 0)
@@ -182,7 +186,7 @@ public class SWidgetTestModule : RuntimeModule
                     return;
                 }
 
-                if (e is { State: KeyState.Pressed or KeyState.Repeat, Key: Key.Right })
+                if (e is { State: InputState.Pressed or InputState.Repeat, Key: InputKey.Right })
                 {
                     var newIndex = switcher.SelectedIndex + 1;
                     if (newIndex >= switcherSlots)
@@ -195,13 +199,13 @@ public class SWidgetTestModule : RuntimeModule
                 }
             }
 
-            if (e is { State: KeyState.Pressed, Key: Key.F })
+            if (e is { State: InputState.Pressed, Key: InputKey.F })
             {
                 switcher.RotateTo(0, 360, 2).Then().RotateTo(360, 0, 2);
                 return;
             }
 
-            if (e is { State: KeyState.Pressed, Key: Key.Equal })
+            if (e is { State: InputState.Pressed, Key: InputKey.Equal })
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
@@ -270,33 +274,46 @@ public class SWidgetTestModule : RuntimeModule
         });
     }
 
+    public void OnWindowCreated(Window window)
+    {
+        window.OnCloseRequested += (_) =>
+        {
+            if (window.Parent != null)
+            {
+                window.Dispose();
+            }
+            else
+            {
+                SRuntime.Get().RequestExit();
+            }
+        };
+            
+        window.OnKey += (e =>
+        {
+            if (e is { Key: InputKey.Up, State: InputState.Pressed })
+            {
+                window.CreateChild(500, 500, "test child");
+            }
+                
+            if (e is { Key: InputKey.Enter, State: InputState.Pressed, IsAltDown: true })
+            {
+                window.SetFullscreen(!window.IsFullscreen());
+            }
+                
+        });
+    }
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
         Console.WriteLine("CREATING WINDOW");
         SGraphicsModule.Get().OnRendererCreated += TestWrapping;
-        
-        if (SWindowsModule.Get().CreateWindow(500, 500, "Rin Widget Test") is { } window)
+        SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
+
+        SGraphicsModule.Get().CreateWindow(500, 500, "Rin Widget Test", new CreateOptions()
         {
-            window.OnCloseRequested += (_) =>
-            {
-                SRuntime.Get().RequestExit();
-            };
-            
-            window.OnKey += (e =>
-            {
-                if (e is { Key: Key.Up, State: KeyState.Pressed })
-                {
-                    window.CreateChild(500, 500, "test child");
-                }
-                
-                if (e is { Key: Key.Enter, State: KeyState.Pressed, IsAltDown: true })
-                {
-                    window.SetFullscreen(!window.IsFullscreen());
-                }
-                
-            });
-        }
+            Visible = true,
+            Decorated = true
+        });
         //TestText();
     }
 }

@@ -1,6 +1,6 @@
-﻿namespace rin.Windows;
+﻿namespace rin.Graphics.Windows;
 
-public enum MouseButton
+public enum CursorButton
 {
     One,
     Two,

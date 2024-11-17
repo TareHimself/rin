@@ -21,8 +21,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "rin.Scene", "rin.Scene\rin.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "rin.Graphics", "rin.Graphics\rin.Graphics.csproj", "{7CBDDC33-2A0E-405C-A1D5-876F8C661DEE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Windows", "rin.Windows\rin.Windows.csproj", "{3D96C045-C8CB-4429-AD02-E5A5840F0594}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WidgetTest", "examples\WidgetTest\WidgetTest.csproj", "{515D3A8F-AA58-4533-B73C-03CC30D42BBB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Launcher", "examples\rin.Launcher\rin.Launcher.csproj", "{C7ADFD10-F185-48A0-9845-8DE1FA6D0874}"
@@ -121,18 +119,6 @@ Global
 		{7CBDDC33-2A0E-405C-A1D5-876F8C661DEE}.Release|x64.Build.0 = Release|Any CPU
 		{7CBDDC33-2A0E-405C-A1D5-876F8C661DEE}.Release|x86.ActiveCfg = Release|Any CPU
 		{7CBDDC33-2A0E-405C-A1D5-876F8C661DEE}.Release|x86.Build.0 = Release|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Debug|x64.Build.0 = Debug|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Debug|x86.Build.0 = Debug|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Release|x64.ActiveCfg = Release|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Release|x64.Build.0 = Release|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Release|x86.ActiveCfg = Release|Any CPU
-		{3D96C045-C8CB-4429-AD02-E5A5840F0594}.Release|x86.Build.0 = Release|Any CPU
 		{515D3A8F-AA58-4533-B73C-03CC30D42BBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{515D3A8F-AA58-4533-B73C-03CC30D42BBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{515D3A8F-AA58-4533-B73C-03CC30D42BBB}.Debug|x64.ActiveCfg = Debug|Any CPU

@@ -14,14 +14,36 @@ public static class EnumerableExtensions
         }
     }
 
-    public static IEnumerable<T> AsReversed<T>(this IEnumerable<T> target) => target.ToArray().AsReversed();
-    
-    public static IEnumerable<T> AsReversed<T>(this List<T> target)
+    public static IEnumerable<T> AsReversed<T>(this IEnumerable<T> target)
     {
-        for (var i = target.Count - 1; i > -1; i--)
         {
-            if (target.Count <= i) continue;
-            yield return target[i];
+            if (target is List<T> asList)
+            {
+                for (var i = asList.Count - 1; i > -1; i--)
+                {
+                    if (asList.Count <= i) continue;
+                    yield return asList[i];
+                }
+            }
+        }
+        
+        {
+            if (target is LinkedList<T> asLinkedList)
+            {
+                var el = asLinkedList.Last;
+                while (el != null) {
+                    yield return el.Value;
+                    el = el.Previous;
+                }
+            }
+        }
+        {
+            var asArray = target.ToArray();
+            for (var i = asArray.Length - 1; i > -1; i--)
+            {
+                if (asArray.Length <= i) continue;
+                yield return asArray[i];
+            }
         }
     }
 

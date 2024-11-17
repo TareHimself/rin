@@ -15,9 +15,9 @@ public class GameIcon : Button
             HeightOverride = 100,
             Child = new Canvas
             {
-                Paint = ((canvas, info, cmds) =>
+                Paint = ((canvas, transform, cmds) =>
                 {
-                    cmds.AddRect(info.Transform, canvas.GetContentSize(), color: Color.Red);
+                    cmds.AddRect(transform, canvas.GetContentSize(), color: Color.Red);
                 })
             }
         };

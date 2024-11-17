@@ -1,5 +1,6 @@
 ﻿using MathNet.Numerics;
 using rin.Core;
+using rin.Core.Math;
 using rin.Graphics;
 using rin.Widgets.Content;
 using rin.Widgets.Graphics;
@@ -10,7 +11,7 @@ namespace AudioPlayer.Widgets;
 
 public class FpsWidget : TextBox
 {
-    
+    private readonly Averaged<int> _averageFps = new Averaged<int>(0,300);
     class GetStatsCommand(FpsWidget widget) : CustomCommand
     {
         public override void Run(WidgetFrame frame, uint stencilMask,DeviceBuffer.View? view = null)
@@ -20,12 +21,15 @@ public class FpsWidget : TextBox
                 var renderer = asWindowSurface.GetRenderer();
                 widget.Content = $"""
                                   STATS
-                                  {frame.BatchedDraws} Batches
-                                  {frame.NonBatchedDraws} Draws
-                                  {frame.StencilDraws} Stencil Draws
-                                  {frame.NonDraws} Non Draws
-                                  {(1.0 / SRuntime.Get().GetLastDeltaSeconds()).Round(2)} FPS
-                                  {(renderer.LastFrameTime * 1000).Round(2)}ms
+                                  {frame.Surface.Stats.InitialCommandCount} Initial Commands
+                                  {frame.Surface.Stats.FinalCommandCount} Final Commands
+                                  {frame.Surface.Stats.BatchedDrawCommandCount} Batches
+                                  {frame.Surface.Stats.NonBatchedDrawCommandCount} Draws
+                                  {frame.Surface.Stats.StencilWriteCount} Stencil Writes
+                                  {frame.Surface.Stats.CustomCommandCount} Non Draws
+                                  {frame.Surface.Stats.MemoryAllocatedBytes} Bytes Allocated
+                                  {(int)widget._averageFps} FPS
+                                  {((1 / (float)widget._averageFps) * 1000.0f).Round(2)}ms
                                   """;
             }
             
@@ -34,10 +38,11 @@ public class FpsWidget : TextBox
         public override bool WillDraw => false;
         public override CommandStage Stage => CommandStage.Late;
     }
-    
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+
+    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
     {
+        _averageFps.Add((int)Math.Round((1.0 / SRuntime.Get().GetLastDeltaSeconds())));
         drawCommands.Add(new GetStatsCommand(this));
-        base.CollectContent(info, drawCommands);
+        base.CollectContent(transform, drawCommands);
     }
 }

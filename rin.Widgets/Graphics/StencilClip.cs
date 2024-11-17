@@ -4,7 +4,7 @@ namespace rin.Widgets.Graphics;
 using System.Runtime.InteropServices;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public partial struct Clip(
+public partial struct StencilClip(
     
     Vector2<float> size,
     Matrix3 transform)

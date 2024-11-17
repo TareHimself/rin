@@ -17,6 +17,7 @@ public abstract partial class Widget : Disposable, IAnimatable
     private Vector2<float> _size = 0.0f;
     private Vector2<float> _pivot = 0.0f;
     private readonly Padding _padding = new();
+    private Atomic<Matrix3?> _cachedRelativeTransform = Matrix3.Identity;
     
     /// <summary>
     /// The offset of this widget in parent space
@@ -28,6 +29,7 @@ public abstract partial class Widget : Disposable, IAnimatable
         {
             _offset.X = value.X;
             _offset.Y = value.Y;
+            _cachedRelativeTransform.Value = null;
         }
     }
 
@@ -41,6 +43,7 @@ public abstract partial class Widget : Disposable, IAnimatable
         {
             _size.X = value.X;
             _size.Y = value.Y;
+            _cachedRelativeTransform.Value = null;
         }
     }
     
@@ -54,6 +57,7 @@ public abstract partial class Widget : Disposable, IAnimatable
         {
             _pivot.X = value.X;
             _pivot.Y = value.Y;
+            _cachedRelativeTransform.Value = null;
         }
     }
     
@@ -67,6 +71,7 @@ public abstract partial class Widget : Disposable, IAnimatable
         {
             _transform.Translate.X = value.X;
             _transform.Translate.Y = value.Y;
+            _cachedRelativeTransform.Value = null;
         }
     }
     
@@ -80,6 +85,7 @@ public abstract partial class Widget : Disposable, IAnimatable
         {
             _transform.Scale.X = value.X;
             _transform.Scale.Y = value.Y;
+            _cachedRelativeTransform.Value = null;
         }
     }
     
@@ -108,8 +114,12 @@ public abstract partial class Widget : Disposable, IAnimatable
     /// <summary>
     /// The angle this widget is to be rendered at in parent space
     /// </summary>
-    public virtual float Angle { get => _transform.Angle; set => _transform.Angle = value; }
-    
+    public virtual float Angle
+    {
+        get => _transform.Angle;
+        set { _transform.Angle = value; _cachedRelativeTransform.Value = null;}
+    }
+
     /// <summary>
     /// The visibility of this widget
     /// </summary>
@@ -135,6 +145,8 @@ public abstract partial class Widget : Disposable, IAnimatable
     /// The current hovered state of this widget
     /// </summary>
     public bool IsHovered { get; private set; }
+
+    public bool IsVisible => Visibility is not (Visibility.Hidden or Visibility.Collapsed);
     
     /// <summary>
     /// The surface this widget is currently on
@@ -144,7 +156,7 @@ public abstract partial class Widget : Disposable, IAnimatable
     /// <summary>
     /// The parent of this widget
     /// </summary>
-    public Container? Parent { get; private set; }
+    public ContainerWidget? Parent { get; private set; }
     
     protected bool IsPendingMouseUp => _cursorUpRoot is { Disposed: false };
     
@@ -178,13 +190,23 @@ public abstract partial class Widget : Disposable, IAnimatable
     /// <param name="availableSpace"></param>
     /// <returns></returns>
     protected abstract Vector2<float> LayoutContent(Vector2<float> availableSpace);
-    
+
     /// <summary>
     ///     Computes the relative/local transformation matrix for this widget
     /// </summary>
     /// <returns></returns>
-    public Matrix3 ComputeRelativeTransform() =>
-        Matrix3.Identity.Translate(Offset + Translate).RotateDeg(Angle).Scale(Scale).Translate(Size * Pivot - 1.0f);
+    public Matrix3 ComputeRelativeTransform()
+    {
+        if (_cachedRelativeTransform.Value is { } cached)
+        {
+            return cached;
+        }
+        
+        var transform = Matrix3.Identity.Translate(Offset + Translate).RotateDeg(Angle).Scale(Scale).Translate(Size * Pivot - 1.0f);
+        
+        _cachedRelativeTransform.Value = transform;
+        return transform;
+    }
     
     public Matrix3 ComputeAbsoluteTransform()
     {
@@ -192,7 +214,7 @@ public abstract partial class Widget : Disposable, IAnimatable
         return ComputeRelativeTransform() * parentTransform;
     }
 
-    public void SetParent(Container? widget)
+    public void SetParent(ContainerWidget? widget)
     {
         Parent = widget;
     }
@@ -356,47 +378,46 @@ public abstract partial class Widget : Disposable, IAnimatable
 
     private Vector2<float> ComputeDesiredSize() =>
         ComputeDesiredContentSize() + new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
-    
-    /// <summary>
-    /// Computes the transform info of content 
-    /// </summary>
-    /// <param name="widget">The content</param>
-    /// <param name="info">The Absolute Transform info of this widget</param>
-    /// <param name="withPadding">Should we also account for padding ? (should be true except when used in <see cref="CollectContent"/>)</param>
-    /// <returns>The Absolute Transform info of content</returns>
-    public virtual TransformInfo OffsetTransformTo(Widget widget, TransformInfo info, bool withPadding = true)
-    {
-        var newTransform = withPadding
-            ? info.Transform.Translate(new Vector2<float>(Padding.Left, Padding.Top))
-            : info.Transform;
-        
-        return new TransformInfo(newTransform * widget.ComputeRelativeTransform(),widget.Size,info.Depth + 1);
-    }
-    
-    
+    // /// <summary>
+    // /// Computes the transform info of content
+    // /// </summary>
+    // /// <param name="widget">The content</param>
+    // /// <param name="info">The Absolute Transform info of this widget</param>
+    // /// <param name="withPadding">Should we also account for padding ? (should be true except when used in <see cref="CollectContent"/>)</param>
+    // /// <returns>The Absolute Transform info of content</returns>
+    // public virtual TransformInfo OffsetTransformTo(Widget widget, TransformInfo info, bool withPadding = true)
+    // {
+    //     var newTransform = withPadding
+    //         ? info.Transform.Translate(new Vector2<float>(Padding.Left, Padding.Top))
+    //         : info.Transform;
+    //     
+    //     return new TransformInfo(newTransform * widget.ComputeRelativeTransform(),widget.Size,info.Depth + 1);
+    // }
+
+
     /// <summary>
     /// Collect draw commands from this widget
     /// </summary>
     /// <param name="info"></param>
     /// <param name="drawCommands"></param>
-    public virtual void Collect(TransformInfo info,DrawCommands drawCommands)
-    {
-        if (Visibility is Visibility.Hidden or Visibility.Collapsed)
-        {
-            return;
-        }
+    public abstract void Collect(TransformInfo info, DrawCommands drawCommands);
+    // {
+    //     if (Visibility is Visibility.Hidden or Visibility.Collapsed)
+    //     {
+    //         return;
+    //     }
+    //
+    //     ((IAnimatable)this).Update();
+    //     
+    //     //CollectSelf(info,drawCommands);
+    //     
+    //     //CollectContent(info.Translate(new Vector2<float>(Padding.Left,Padding.Top)),drawCommands);
+    // }
 
-        ((IAnimatable)this).Update();
-        
-        CollectSelf(new TransformInfo(info.Transform,Size,info.Depth),drawCommands);
-        
-        CollectContent(new TransformInfo(info.Transform.Translate(new Vector2<float>(Padding.Left,Padding.Top)),GetContentSize(),info.Depth),drawCommands);
-    }
-
-    protected virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
-    {
-        
-    }
+    // protected virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
+    // {
+    //     
+    // }
 
 
     protected virtual void Invalidate(InvalidationType type)
@@ -431,13 +452,6 @@ public abstract partial class Widget : Disposable, IAnimatable
         }
     }
     
-    
-    /// <summary>
-    /// Collect Draw commands from this widget while accounting for padding offsets
-    /// </summary>
-    /// <param name="info"></param>
-    /// <param name="drawCommands"></param>
-    public abstract void CollectContent(TransformInfo info,DrawCommands drawCommands);
 
     public AnimationRunner AnimationRunner { get; init; } = new AnimationRunner();
 }

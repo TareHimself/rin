@@ -25,32 +25,22 @@ internal struct CachedQuadLayout(int atlas,Matrix3 transform, Vector2<float> siz
 ///     Draw's text using an <see cref="MtsdfFont" />. Currently, hardcoded to
 ///     <a href="https://fonts.google.com/specimen/Roboto">Roboto</a>.
 /// </summary>
-public class TextBox : Widget
+public class TextBox : ContentWidget
 {
     
-    protected class CharacterBounds
+    protected class CharacterBounds(char character, int contentIndex, float x, float y, float width, float height)
     {
-        public readonly char Character;
-        public readonly int ContentIndex;
-        public readonly float X;
-        public readonly float Y;
-        public readonly float Width;
-        public readonly float Height;
+        public readonly char Character = character;
+        public readonly int ContentIndex = contentIndex;
+        public readonly float X = x;
+        public readonly float Y = y;
+        public readonly float Width = width;
+        public readonly float Height = height;
 
         public float Right => X + Width;
         public float Left => X;
         public float Top => Y;
         public float Bottom => Y + Height;
-
-        public CharacterBounds(char character,int contentIndex, float x, float y, float width, float height)
-        {
-            Character = character;
-            ContentIndex = contentIndex;
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
-        }
 
         public CharacterBounds(char character,int contentIndex, FontRectangle bounds) : this(character,contentIndex,bounds.X,bounds.Y,bounds.Width,bounds.Height)
         {
@@ -109,6 +99,7 @@ public class TextBox : Widget
         {
             _cachedLayouts = null;
             _fontSize = value;
+            MakeNewFont();
         }
     }
     
@@ -149,12 +140,14 @@ public class TextBox : Widget
     protected override void OnDispose(bool isManual)
     {
         base.OnDispose(isManual);
-        _mtsdf?.Dispose();
     }
 
     private void MakeNewFont()
     {
-        _latestFont = _mtsdf?.GetFontFamily().CreateFont(FontSize, FontStyle.Regular);
+        lock (_boundsLock)
+        {
+            _latestFont = _mtsdf?.GetFontFamily().CreateFont(FontSize, FontStyle.Regular);
+        }
         _cachedBounds = null;
         _cachedLayouts = null;
         Invalidate(InvalidationType.DesiredSize);
@@ -178,7 +171,7 @@ public class TextBox : Widget
         
             var opts = new TextOptions(_latestFont)
             {
-                WrappingLength = wrap == null ? -1.0f : (float)Math.Ceiling(wrap.Value + 10.0f)
+                WrappingLength = wrap == null ? -1.0f : (float)Math.Ceiling(wrap.Value + 10.0f),
             };
 
             var content = Content + "";
@@ -228,8 +221,8 @@ public class TextBox : Widget
 
         return new Vector2<float>(last?.Right ?? 0.0f, height);
     }
-
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    
+    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
     {
         if (!FontReady) return;
         if (Content.NotEmpty() && _cachedLayouts == null)
@@ -258,17 +251,14 @@ public class TextBox : Widget
                 var size = new Vector2<float>(bound.Width, bound.Height);
                 var layout = new CachedQuadLayout(atlasId.Value, finalTransform, size, charInfo.Coordinates);
                 layouts.Add(layout);
-                drawCommands.AddSdf(layout.Atlas,info.Transform * layout.Transform,layout.Size,Color.White,layout.UV);
+                drawCommands.AddSdf(layout.Atlas,transform * layout.Transform,layout.Size,Color.White,layout.UV);
             }
             
             //_cachedLayouts = layouts.ToArray();
         }
         else if(_cachedLayouts != null)
         {
-            drawCommands.Add(new QuadDrawCommand(_cachedLayouts.Select(c => Quad.NewSdf(c.Atlas,info.Transform * c.Transform,c.Size,Color.White,c.UV))));
+            drawCommands.Add(new QuadDrawCommand(_cachedLayouts.Select(c => Quad.NewSdf(c.Atlas,transform * c.Transform,c.Size,Color.White,c.UV))));
         }
     }
-
-
-   
 }

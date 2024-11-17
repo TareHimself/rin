@@ -1,5 +1,6 @@
 ﻿using rin.Core.Math;
 using rin.Widgets.Enums;
+using rin.Widgets.Graphics;
 
 namespace rin.Widgets.Containers;
 
@@ -14,7 +15,7 @@ public enum FitMode
 /// <summary>
 /// Slot = <see cref="ContainerSlot"/>
 /// </summary>
-public class Fitter : Container
+public class Fitter : ContainerWidget
 {
 
     private FitMode _fitFittingMode = FitMode.Fill;
@@ -126,4 +127,8 @@ public class Fitter : Container
             float.IsFinite(availableSpace.Y) ? availableSpace.Y : desired.Y));
     }
 
+    public override void Collect(TransformInfo info, DrawCommands drawCommands)
+    {
+        base.Collect(info, drawCommands);
+    }
 }

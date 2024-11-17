@@ -4,6 +4,7 @@ using rin.Core.Extensions;
 using rin.Graphics.Descriptors;
 using rin.Graphics.Shaders;
 using rin.Core.Math;
+using rin.Graphics.Windows;
 using rin.Windows;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -26,7 +27,7 @@ public class ImageBarrierOptions
         SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-[NativeRuntimeModule(typeof(SWindowsModule))]
+[NativeRuntimeModule]
 public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SGraphicsModule>, ITickable
 {
     private readonly List<WindowRenderer> _renderers = [];
@@ -60,6 +61,9 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         format = VkFormat.VK_FORMAT_R8G8B8A8_UNORM
     };
     
+    public event Action<Window>? OnWindowClosed;
+    
+    public event Action<Window>? OnWindowCreated;
     public event Action<WindowRenderer>? OnRendererCreated;
     public event Action<WindowRenderer>? OnRendererDestroyed;
 
@@ -73,6 +77,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
 
     public void Tick(double deltaSeconds)
     {
+        NativeMethods.PollEvents();
         Draw();
     }
 
@@ -209,11 +214,8 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
+        NativeMethods.InitGlfw();
         InitVulkan();
-        var windowSubsystem = runtime.GetModule<SWindowsModule>();
-        windowSubsystem.OnWindowCreated += OnWindowCreated;
-        windowSubsystem.OnWindowClosed += OnWindowClosed;
-
         SRuntime.Get().OnTick += Tick;
     }
 
@@ -243,7 +245,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         var outDebugMessenger = _debugUtilsMessenger;
 
         // We create a window just for surface information
-        using var window = SWindowsModule.Get().CreateWindow(2, 2, "Graphics Init Window", null, new WindowCreateOptions()
+        using var window = Internal_CreateWindow(2, 2, "Graphics Init Window",  new CreateOptions()
         {
             Visible = false,
             Decorated = false,
@@ -323,20 +325,23 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         return _resourceManager!;
     }
 
-    private void OnWindowCreated(Window window)
+    private void HandleWindowCreated(Window window)
     {
         var r = new WindowRenderer(this, window);
         r.Init();
         _windows.Add(window, r);
         _renderers.Add(r);
+        OnWindowCreated?.Invoke(window);
         OnRendererCreated?.Invoke(r);
     }
 
-    private void OnWindowClosed(Window window)
+    private void HandleWindowClosed(Window window)
     {
+        
         if (!_windows.TryGetValue(window, out var window1)) return;
 
         _renderers.Remove(window1);
+        OnWindowClosed?.Invoke(window);
         OnRendererDestroyed?.Invoke(_windows[window]);
         _windows[window].Dispose();
         _windows.Remove(window);
@@ -388,6 +393,32 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         if (_descriptorAllocator == null) throw new Exception("How have you done this");
         return _descriptorAllocator;
     }
+    
+    private Window Internal_CreateWindow(int width, int height, string name, CreateOptions? options = null,Window? parent = null
+        )
+    {
+        unsafe
+        {
+            var opts = options.GetValueOrDefault(new CreateOptions());
+            var winPtr = NativeMethods.Create(width, height, name,&opts);
+            var win = new Window(winPtr, parent);
+            return win;
+        }
+    }
+    
+    public Window CreateWindow(int width, int height, string name, CreateOptions? options = null,Window? parent = null
+        )
+    {
+        var window = Internal_CreateWindow(width, height, name, options,parent
+            );
+        window.OnDisposed += () =>
+        {
+            HandleWindowClosed(window);
+            NativeMethods.Destroy(window.GetPtr());
+        };
+        HandleWindowCreated(window);
+        return window;
+    }
 
     public void WaitDeviceIdle()
     {
@@ -425,6 +456,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             if (_debugUtilsMessenger.Value != 0) NativeMethods.DestroyMessenger(_instance, _debugUtilsMessenger);
             vkDestroyInstance(_instance, null);
         }
+        NativeMethods.StopGlfw();
     }
 
     public static VkRenderingInfo MakeRenderingInfo(VkExtent2D extent)

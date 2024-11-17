@@ -7,7 +7,7 @@ using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Commands;
 
 namespace rin.Widgets;
-public abstract class Container : Widget
+public abstract class ContainerWidget : Widget
 {
     private readonly ConcurrentDictionary<Widget, ContainerSlot> _widgetSlotMap = [];
     private readonly List<ContainerSlot> _slots = [];
@@ -200,7 +200,7 @@ public abstract class Container : Widget
         var point = e.Position.Cast<float>();
         foreach (var slot in GetHitTestableSlots().ToArray().AsReversed())
         {
-            var slotInfo = ComputeContentTransform(slot, info);
+            var slotInfo = ComputeSlotTransformInfo(slot, info);
             if (!slotInfo.PointWithin(point)) continue;
             var res = slot.Child.ReceiveCursorDown(e, slotInfo);
             if (res != null) return res;
@@ -221,7 +221,7 @@ public abstract class Container : Widget
         var point = e.Position.Cast<float>();
             foreach (var slot in GetHitTestableSlots())
             {
-                var slotInfo = ComputeContentTransform(slot, info);
+                var slotInfo = ComputeSlotTransformInfo(slot, info);
                 if (slotInfo.PointWithin(point))
                     slot.Child.ReceiveCursorEnter(e, slotInfo, items);
             }
@@ -239,7 +239,7 @@ public abstract class Container : Widget
         var point = e.Position.Cast<float>();
         foreach (var slot in GetHitTestableSlots())
         {
-            var slotInfo = ComputeContentTransform(slot, info);
+            var slotInfo = ComputeSlotTransformInfo(slot, info);
             if (slotInfo.PointWithin(point) &&
                 slot.Child.ReceiveCursorMove(e, slotInfo))
                 return true;
@@ -260,7 +260,7 @@ public abstract class Container : Widget
         var point = e.Position.Cast<float>();
             foreach (var slot in GetHitTestableSlots())
             {
-                var slotInfo = ComputeContentTransform(slot, info);
+                var slotInfo = ComputeSlotTransformInfo(slot, info);
                 if (slotInfo.PointWithin(point) &&
                     slot.Child.ReceiveScroll(e, slotInfo))
                     return true;
@@ -299,55 +299,61 @@ public abstract class Container : Widget
     }
 
     /// <summary>
+    /// Compute extra offsets for this slot
+    /// </summary>
+    /// <param name="slot"></param>
+    /// <param name="current"></param>
+    /// <returns></returns>
+    protected virtual Matrix3 ComputeSlotOffset(ContainerSlot slot)
+    {
+        return Matrix3.Identity;
+    }
+    /// <summary>
     /// Computes the transform info of content 
     /// </summary>
     /// <param name="slot">The content slot</param>
     /// <param name="info">The Absolute Transform info of this widget</param>
     /// <param name="withPadding">Should we also account for padding ? (should be true except when used in <see cref="CollectContent"/>)</param>
     /// <returns>The Absolute Transform info of content</returns>
-    public TransformInfo ComputeContentTransform(ContainerSlot slot, TransformInfo info, bool withPadding = true)
+    private TransformInfo ComputeSlotTransformInfo(ContainerSlot slot, TransformInfo info)
     {
-        return OffsetTransformTo(slot.Child, info,withPadding);
+        
+        var childTransform = info.Transform.Translate(new Vector2<float>(Padding.Left,Padding.Top)) * ComputeSlotOffset(slot) * slot.Child.ComputeRelativeTransform();
+        
+        return new TransformInfo(childTransform,slot.Child.Size,info.Depth + 1,true,info,Clip);
     }
 
     public virtual IEnumerable<ContainerSlot> GetCollectableSlots() => GetSlots();
     public virtual IEnumerable<ContainerSlot> GetHitTestableSlots() => GetSlots();
     
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    public override void Collect(TransformInfo info, DrawCommands drawCommands)
     {
-        drawCommands.IncrDepth();
-        switch (Clip)
+        if (Visibility is Visibility.Hidden or Visibility.Collapsed)
         {
-            case Clip.None:
-                foreach (var slot in GetCollectableSlots())
-                {
-                    var newTransform = ComputeContentTransform(slot, info,false);
-                    var widget = slot.Child;
-                    widget.Collect(newTransform,drawCommands);
-                }
-                break;
-            case Clip.Bounds:
-            {
-                drawCommands.PushClip(info,this);
-
-                var myAAR = info.ToRect();
-                
-                foreach (var slot in GetCollectableSlots())
-                {
-                    var newTransform = ComputeContentTransform(slot, info,false);
-                    var slotAAR = newTransform.ToRect();
-                    
-                    if(!myAAR.IntersectsWith(slotAAR)) continue;
-                    
-                    var widget = slot.Child;
-                    widget.Collect(newTransform,drawCommands);
-                }
-                
-                drawCommands.PopClip();
-            }
-                break;
+            return;
         }
+        
+        drawCommands.IncrDepth();
+        
+        if (Parent != null && Clip == Clip.Bounds)
+        {
+            drawCommands.PushClip(info,this);
+        }
+        
+        foreach (var slot in GetCollectableSlots())
+        {
+            var transformInfo = ComputeSlotTransformInfo(slot, info);
+ 
+            if(transformInfo.Occluded) continue;
 
-        drawCommands.DecrDepth();
+            var widget = slot.Child;
+            
+            widget.Collect(transformInfo,drawCommands);
+        }
+        
+        if (Parent != null && Clip == Clip.Bounds)
+        {
+            drawCommands.PopClip();
+        }
     }
 }

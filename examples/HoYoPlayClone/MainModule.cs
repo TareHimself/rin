@@ -1,5 +1,7 @@
 ﻿using HoYoPlayClone.widgets;
 using rin.Core;
+using rin.Graphics;
+using rin.Graphics.Windows;
 using rin.Widgets;
 using rin.Widgets.Containers;
 using rin.Windows;
@@ -12,7 +14,7 @@ public class MainModule : RuntimeModule
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
-        var window = SWindowsModule.Get().CreateWindow(1280,720,"HoYoPlay Clone",options: new WindowCreateOptions()
+        var window = SGraphicsModule.Get().CreateWindow(1280,720,"HoYoPlay Clone",options: new CreateOptions
         {
             //Decorated = false,
         });

@@ -2,6 +2,7 @@
 using rin.Core.Extensions;
 using rin.Graphics;
 using rin.Core.Math;
+using rin.Graphics.Windows;
 using rin.Widgets.Events;
 using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Quads;
@@ -59,7 +60,7 @@ public class TextInputBox : TextBox
     public override void OnKeyboard(KeyboardEvent e)
     {
         base.OnKeyboard(e);
-        if (e is { Key: Key.Backspace, State: KeyState.Pressed or KeyState.Repeat })
+        if (e is { Key: InputKey.Backspace, State: InputState.Pressed or InputState.Repeat })
         {
             if (CursorPosition > -1)
             {
@@ -68,16 +69,16 @@ public class TextInputBox : TextBox
                 CursorPosition--;
             }
         }
-        else if (e is { Key: Key.Left or Key.Right, State: KeyState.Pressed or KeyState.Repeat })
+        else if (e is { Key: InputKey.Left or InputKey.Right, State: InputState.Pressed or InputState.Repeat })
         {
             if (Content.NotEmpty())
             {
                 ResetTypingDelay();
-                var delta = e.Key == Key.Left ? -1 : 1;
+                var delta = e.Key == InputKey.Left ? -1 : 1;
                 CursorPosition = Math.Clamp(CursorPosition + delta, -1, Content.Length - 1);
             }
         }
-        else if (e is { Key: Key.Left or Key.Enter, State: KeyState.Pressed or KeyState.Repeat })
+        else if (e is { Key: InputKey.Left or InputKey.Enter, State: InputState.Pressed or InputState.Repeat })
         {
             ResetTypingDelay();
             OnCharacter(new CharacterEvent(e.Surface,'\n',0));
@@ -90,12 +91,12 @@ public class TextInputBox : TextBox
         //CursorPosition = Math.Clamp(CursorPosition, -1, Content.Length - 1);
     }
 
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
     {
-        base.CollectContent(info,drawCommands);
-
-        if (!FontReady || !IsFocused) return;
+        base.CollectContent(transform,drawCommands);
         
+        if (!FontReady || !IsFocused) return;
+                
         Vector2<float> offset = 0.0f;
 
         if (CursorPosition != -1)
@@ -120,8 +121,6 @@ public class TextInputBox : TextBox
         var color = ForegroundColor.Clone();
         var sin = (float)((System.Math.Sin(SRuntime.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f);
         color.A *= IsTyping ? 1.0f : sin > 0.35 ? 1.0f : 0.0f;
-        drawCommands.AddRect(info.Transform.Translate(offset), new Vector2<float>(2.0f, height), color: color);
-        // frame.AddRect(drawInfo.Transform.Translate(offset), new Vector2<float>(2.0f, height),
-        //     tint: tint);
+        drawCommands.AddRect(transform.Translate(offset), new Vector2<float>(2.0f, height), color: color);
     }
 }

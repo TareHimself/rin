@@ -62,21 +62,18 @@ public class AsyncFileImage : CoverImage
         return base.LayoutContent(availableSpace);
     }
 
-    public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
     {
-        // var sin = (float)Math.Sin(Runtime.Instance.GetTimeSinceCreation());
-        // var borderRadius = float.Abs(sin) * 150.0f;
-        // BorderRadius = borderRadius;
         
         if (TextureId == -1)
         {
             var opacity = (float)Math.Abs(Math.Sin(SRuntime.Get().GetTimeSeconds() * 4.0f)) * 0.7f; 
-            drawCommands.AddRect(info.Transform, GetContentSize(),
+            drawCommands.AddRect(transform, GetContentSize(),
                 color: new Vector4<float>(new Vector3<float>(0.8f),opacity),BorderRadius);
         }
         else
         {
-            base.CollectContent(info, drawCommands);
+            base.CollectContent(transform, drawCommands);
         }
     }
 
