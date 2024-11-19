@@ -85,8 +85,7 @@ public class List(Axis axis) : ContainerWidget
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var slots = GetSlots().ToArray();
-                
-        // Compute slot sizes and initial offsets
+        
         foreach (var slot in slots)
         {
             var widget = slot.Child;

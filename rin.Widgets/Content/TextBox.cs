@@ -144,16 +144,12 @@ public class TextBox : ContentWidget
 
     private void MakeNewFont()
     {
-        lock (_boundsLock)
-        {
-            _latestFont = _mtsdf?.GetFontFamily().CreateFont(FontSize, FontStyle.Regular);
-        }
+        _latestFont = _mtsdf?.GetFontFamily().CreateFont(FontSize, FontStyle.Regular);
         _cachedBounds = null;
         _cachedLayouts = null;
         Invalidate(InvalidationType.DesiredSize);
     }
-
-    private object _boundsLock = new object();
+    
 
     protected IEnumerable<CharacterBounds> GetCharacterBounds(float? wrap = null,bool cache = true)
     {
@@ -162,54 +158,44 @@ public class TextBox : ContentWidget
             return [];
         } 
         
-        lock (_boundsLock)
+        var opts = new TextOptions(_latestFont)
         {
-            // if (cache && _cachedBounds != null)
-            // {
-            //     return _cachedBounds;
-            // }
+            WrappingLength = wrap == null ? -1.0f : (float)Math.Ceiling(wrap.Value + 10.0f),
+        };
+
+        var content = Content + "";
         
-            var opts = new TextOptions(_latestFont)
-            {
-                WrappingLength = wrap == null ? -1.0f : (float)Math.Ceiling(wrap.Value + 10.0f),
-            };
-
-            var content = Content + "";
-            TextMeasurer.TryMeasureCharacterBounds(content, opts, out var tempBounds);
-            if (tempBounds.IsEmpty) return [];
-            var boundsIdx = 0;
-            var allBounds = new Dictionary<int,FontRectangle>();
-            var line = 0;
+        TextMeasurer.TryMeasureCharacterBounds(content, opts, out var tempBounds);
+        
+        if (tempBounds.IsEmpty) return [];
+        
+        var allBounds = new Dictionary<int,FontRectangle>();
+        var line = 0;
             
-            foreach (var glyphBounds in tempBounds)
-            {
-                allBounds.Add(glyphBounds.StringIndex,glyphBounds.Bounds);
-            }
-            
-            var result = content.Select((c,idx) =>
-            {
-                {
-                    if (allBounds.TryGetValue(idx, out var bounds))
-                    {
-                        line = (int)Math.Floor(bounds.Y / LineHeight);
-                        return new CharacterBounds(c,idx, bounds);
-                    }
-                }
-                
-                if (c == '\n')
-                {
-                    line++;
-                }
-
-                return new CharacterBounds(c, idx,0, (line * LineHeight) + LineHeight / 2.0f, 0, 0);
-            }).ToArray();
-            // if (cache)
-            // {
-            //     _cachedBounds = result;
-            // }
-            //
-            return result;
+        foreach (var glyphBounds in tempBounds)
+        {
+            allBounds.Add(glyphBounds.StringIndex,glyphBounds.Bounds);
         }
+            
+        var result = content.Select((c,idx) =>
+        {
+            {
+                if (allBounds.TryGetValue(idx, out var bounds))
+                {
+                    line = (int)Math.Floor(bounds.Y / LineHeight);
+                    return new CharacterBounds(c,idx, bounds);
+                }
+            }
+                
+            if (c == '\n')
+            {
+                line++;
+            }
+
+            return new CharacterBounds(c, idx,0, (line * LineHeight) + LineHeight / 2.0f, 0, 0);
+        }).ToArray();
+        
+        return result;
     }
 
     protected override Vector2<float> ComputeDesiredContentSize()

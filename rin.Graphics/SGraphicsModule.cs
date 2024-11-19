@@ -409,8 +409,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     public Window CreateWindow(int width, int height, string name, CreateOptions? options = null,Window? parent = null
         )
     {
-        var window = Internal_CreateWindow(width, height, name, options,parent
-            );
+        var window = Internal_CreateWindow(width, height, name, options,parent);
         window.OnDisposed += () =>
         {
             HandleWindowClosed(window);
@@ -577,20 +576,19 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
 
         var newImage = GetAllocator().NewDeviceImage(imageCreateInfo, debugName);
 
-        var aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT;
-        if (format == ImageFormat.Depth) aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT;
+        var aspectFlags = format switch
+        {
+            ImageFormat.Rgba8 or ImageFormat.Rgba16 or ImageFormat.Rgba32 => VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
+            ImageFormat.Depth => VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT,
+            ImageFormat.Stencil => VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT,
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
 
         var viewCreateInfo = MakeImageViewCreateInfo(format, newImage.Image, aspectFlags);
 
         viewCreateInfo.subresourceRange.levelCount = imageCreateInfo.mipLevels;
 
-        unsafe
-        {
-            fixed (VkImageView* viewPtr = &newImage.View)
-            {
-                vkCreateImageView(_device, &viewCreateInfo, null, viewPtr);
-            }
-        }
+        newImage.View = CreateImageView(viewCreateInfo);
 
         return newImage;
     }
@@ -797,7 +795,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     /// <summary>
     /// Creates an image from the data in the native buffer
     /// </summary>
-    /// <param name="data"></param>
+    /// <param name="content"></param>
     /// <param name="size"></param>
     /// <param name="format"></param>
     /// <param name="usage"></param>
@@ -806,7 +804,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     /// <param name="debugName"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<DeviceImage> CreateImage(NativeBuffer<byte> data, VkExtent3D size, ImageFormat format,
+    public async Task<DeviceImage> CreateImage(NativeBuffer<byte> content, VkExtent3D size, ImageFormat format,
         VkImageUsageFlags usage,
         bool mipMap = false, ImageFilter mipMapFilter = ImageFilter.Linear,
         string debugName = "Image")
@@ -816,7 +814,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         var dataSize = size.depth * size.width * size.height * 4;
 
         var uploadBuffer = _allocator.NewTransferBuffer(dataSize);
-        uploadBuffer.Write(data);
+        uploadBuffer.Write(content);
 
         var newImage = CreateImage(size, format,
             usage | VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT |

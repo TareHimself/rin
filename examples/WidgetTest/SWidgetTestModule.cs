@@ -225,29 +225,19 @@ public class SWidgetTestModule : RuntimeModule
     {
         if (SWidgetsModule.Get().GetWindowSurface(renderer) is { } surface)
         {
-            surface.Add(new Panel()
+            surface.Add(new Sizer()
             {
-                Slots =
-                [
-                    new PanelSlot
+                Padding = 20.0f,
+                Child = new Rect()
+                {
+                    Child = new Fitter
                     {
-                        Child = new Sizer
-                        {
-                            Child = new Fitter
-                            {
-                                Child = new AsyncFileImage(""),
-                                FittingMode = FitMode.Cover,
-                                Clip = Clip.Bounds
-                            },
-                            WidthOverride = 600,
-                            HeightOverride = 600
-                        },
-                        MinAnchor = 0.5f,
-                        MaxAnchor = 0.5f,
-                        Size = 200.0f,
-                        Alignment = 0.5f
-                    }
-                ]
+                        Child = new AsyncFileImage(@"C:\Users\Taree\Downloads\Wallpapers-20241117T001814Z-001\Wallpapers\wallpaperflare.com_wallpaper (49).jpg"),
+                        FittingMode = FitMode.Cover,
+                        Clip = Clip.Bounds
+                    },
+                    BackgroundColor = Color.Red
+                }
             });
         }
     }

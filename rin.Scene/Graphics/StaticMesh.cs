@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using rin.Core;
 using rin.Graphics;
 using rin.Graphics.Material;
 using rin.Core.Math;

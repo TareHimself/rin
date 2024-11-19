@@ -1,4 +1,6 @@
-﻿namespace rin.Scene.Graphics.Commands;
+﻿using rin.Core;
+
+namespace rin.Scene.Graphics.Commands;
 
 public abstract class Command : Disposable
 {

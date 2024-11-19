@@ -75,35 +75,18 @@ public abstract class Surface : Disposable
                                                   VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                                                   VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT |
                                                   VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        var drawCreateInfo =
-            SGraphicsModule.MakeImageCreateInfo(ImageFormat.Rgba32, new VkExtent3D
-            {
-                width = imageExtent.X,
-                height = imageExtent.Y,
-                depth = 1
-            }, imageUsageFlags);
-
-        var stencilCreateInfo = SGraphicsModule.MakeImageCreateInfo(ImageFormat.Stencil, new VkExtent3D
-            {
-                width = imageExtent.X,
-                height = imageExtent.Y,
-                depth = 1
-            }, VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-               VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-               VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-        _drawImage = _sGraphicsModule.GetAllocator().NewDeviceImage(drawCreateInfo, "Widgets Draw Image");
-        _copyImage = _sGraphicsModule.GetAllocator().NewDeviceImage(drawCreateInfo, "Widgets Copy Image");
-        _stencilImage = _sGraphicsModule.GetAllocator().NewDeviceImage(stencilCreateInfo, "Widgets Stencil Image");
-
-        _drawImage.View = _sGraphicsModule.CreateImageView(
-            SGraphicsModule.MakeImageViewCreateInfo(_drawImage, VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT));
-
-        _copyImage.View = _sGraphicsModule.CreateImageView(
-            SGraphicsModule.MakeImageViewCreateInfo(_copyImage, VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT));
-
-        _stencilImage.View = _sGraphicsModule.CreateImageView(
-            SGraphicsModule.MakeImageViewCreateInfo(_stencilImage, VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT));
+        var imageSize = new VkExtent3D
+        {
+            width = imageExtent.X,
+            height = imageExtent.Y,
+            depth = 1
+        };
+        
+        _drawImage = _sGraphicsModule.CreateImage(imageSize,ImageFormat.Rgba32,imageUsageFlags,debugName: "Widgets Draw Image");
+        _copyImage = _sGraphicsModule.CreateImage(imageSize,ImageFormat.Rgba32,imageUsageFlags,debugName: "Widgets Copy Image");
+        _stencilImage = _sGraphicsModule.CreateImage(imageSize,ImageFormat.Stencil,VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+            VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+            VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,debugName: "Widgets Stencil Image");
     }
 
     protected virtual void ClearFocus()

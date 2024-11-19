@@ -9,7 +9,6 @@ public struct DeviceGeometry : IDisposable
 {
     public DeviceBuffer IndexBuffer;
     public DeviceBuffer VertexBuffer;
-    public ulong VertexBufferAddress;
 
     public void Dispose()
     {

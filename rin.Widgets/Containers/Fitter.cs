@@ -91,9 +91,7 @@ public class Fitter : ContainerWidget
         {
             var widget = slot.Child;
             var widgetSize = widget.GetDesiredSize();
-            var newDrawSize = widgetSize.Equals(drawSize)
-                ? widgetSize
-                : _fitFittingMode switch
+            var newDrawSize = _fitFittingMode switch
                 {
                     FitMode.Fill => drawSize,
                     FitMode.Contain => ComputeContainSize(drawSize, widgetSize),
@@ -102,7 +100,7 @@ public class Fitter : ContainerWidget
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-            if (!newDrawSize.Equals(widget.GetContentSize())) widget.ComputeSize(newDrawSize);
+            widget.ComputeSize(newDrawSize);
 
 
             var halfSelfDrawSize = drawSize;
@@ -112,7 +110,7 @@ public class Fitter : ContainerWidget
 
             var diff = halfSelfDrawSize - halfSlotDrawSize;
 
-            if (!widget.Offset.Equals(diff)) widget.Offset = diff;
+            widget.Offset = diff;
 
             return drawSize;
         }
