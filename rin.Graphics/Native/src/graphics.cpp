@@ -59,7 +59,9 @@ EXPORT_IMPL void setWindowCallbacks(GLFWwindow* window, const GlfwKeyCallback ke
                         const GlfwWindowCloseCallback windowCloseCallback,
                         const GlfwCharCallback charCallback,
                         const GlfwMaximizedCallback maximizedCallback,
-                        const GlfwRefreshCallback refreshCallback
+                        const GlfwRefreshCallback refreshCallback,
+                        const GlfwMinimizeCallback minimizeCallback,
+                        const GlfwDropCallback dropCallback
                         //,const GlfwDropCallback dropCallback
                         )
 {
@@ -84,7 +86,9 @@ EXPORT_IMPL void setWindowCallbacks(GLFWwindow* window, const GlfwKeyCallback ke
 
     glfwSetWindowRefreshCallback(window,refreshCallback);
 
-    //glfwSetDropCallback(window,dropCallback);
+    glfwSetWindowIconifyCallback(window,minimizeCallback);
+    
+    glfwSetDropCallback(window,dropCallback);
 }
 
 EXPORT_IMPL void getWindowMousePosition(GLFWwindow* window, double* x, double* y)

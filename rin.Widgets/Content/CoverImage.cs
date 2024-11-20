@@ -24,7 +24,7 @@ public class CoverImage : Image
             var contentSize = GetContentSize();
             var fitSize = Fitter.ComputeCoverSize(contentSize, GetDesiredContentSize());
             var centerDist = (Vector2<float>)fitSize / 2.0f - (Vector2<float>)contentSize / 2.0f;
-            var p1 = centerDist;
+            var p1 = centerDist + 0.5f;
             var p2 = centerDist + contentSize;
             p1 /= fitSize;
             p2 /= fitSize;

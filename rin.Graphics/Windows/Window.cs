@@ -51,6 +51,12 @@ public class Window : Disposable
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly NativeMethods.NativeRefreshDelegate _refreshDelegate;
     
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    private readonly NativeMethods.NativeMinimizeDelegate _minimizeDelegate;
+    
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    private readonly NativeMethods.NativeDropDelegate _dropDelegate;
+    
     public event Action<KeyEvent>? OnKey;
     public event Action<CursorMoveEvent>? OnCursorMoved;
     public event Action<CursorButtonEvent>? OnCursorButton;
@@ -64,33 +70,44 @@ public class Window : Disposable
     public event Action<MaximizedEvent>? OnMaximized;
     
     public event Action<RefreshEvent>? OnRefresh;
+    
+    public event Action<MinimizeEvent>? OnMinimize;
+    
+    public event Action<DropEvent>? OnDrop;
 
     public Window(nint nativePtr, Window? parent)
     {
-        Parent = parent;
-        _keyDelegate = KeyCallback;
-        _cursorDelegate = CursorCallback;
-        _mouseButtonDelegate = MouseButtonCallback;
-        _focusDelegate = FocusCallback;
-        _scrollDelegate = ScrollCallback;
-        _sizeDelegate = SizeCallback;
-        _closeDelegate = CloseCallback;
-        _charDelegate = CharCallback;
-        _maximizedDelegate = MaximizedCallback;
-        _refreshDelegate = RefreshCallback;
-        _nativePtr = nativePtr;
-        PixelSize = GetPixelSize();
-        NativeMethods.SetWindowCallbacks(_nativePtr,
-            _keyDelegate,
-            _cursorDelegate,
-            _mouseButtonDelegate,
-            _focusDelegate,
-            _scrollDelegate,
-            _sizeDelegate,
-            _closeDelegate,
-            _charDelegate,
-            _maximizedDelegate,
-            _refreshDelegate);
+        unsafe
+        {
+            Parent = parent;
+            _keyDelegate = KeyCallback;
+            _cursorDelegate = CursorCallback;
+            _mouseButtonDelegate = MouseButtonCallback;
+            _focusDelegate = FocusCallback;
+            _scrollDelegate = ScrollCallback;
+            _sizeDelegate = SizeCallback;
+            _closeDelegate = CloseCallback;
+            _charDelegate = CharCallback;
+            _maximizedDelegate = MaximizedCallback;
+            _refreshDelegate = RefreshCallback;
+            _minimizeDelegate = MinimizeCallback;
+            _dropDelegate = DropCallback;
+            _nativePtr = nativePtr;
+            PixelSize = GetPixelSize();
+            NativeMethods.SetWindowCallbacks(_nativePtr,
+                _keyDelegate,
+                _cursorDelegate,
+                _mouseButtonDelegate,
+                _focusDelegate,
+                _scrollDelegate,
+                _sizeDelegate,
+                _closeDelegate,
+                _charDelegate,
+                _maximizedDelegate,
+                _refreshDelegate,
+                _minimizeDelegate,
+                _dropDelegate);
+        }
     }
     
     private void KeyCallback(nint window, int key, int scancode, int action, int mods)
@@ -186,12 +203,8 @@ public class Window : Disposable
             Window = this,
             Maximized = maxmized == 1
         });
-        var size = GetPixelSize().Cast<uint>();
-        OnResized?.Invoke(new ResizeEvent
-        {
-            Window = this,
-            Size = size
-        });
+        var size = GetPixelSize().Cast<uint>().Cast<int>();
+        SizeCallback(window,size.X,size.Y);
     }
     
     private void RefreshCallback(nint window)
@@ -199,6 +212,44 @@ public class Window : Disposable
         OnRefresh?.Invoke(new RefreshEvent
         {
             Window = this
+        });
+    }
+    
+    private void MinimizeCallback(nint window,int minimized)
+    {
+        OnMinimize?.Invoke(new MinimizeEvent
+        {
+            Window = this,
+            Minimized = minimized == 1
+        });
+        var size = GetPixelSize().Cast<uint>().Cast<int>();
+        SizeCallback(window,size.X,size.Y);
+    }
+    
+    private unsafe void DropCallback(nint window,int count,char ** paths)
+    {
+        
+        OnDrop?.Invoke(new DropEvent
+        {
+            Window = this,
+            Paths = Enumerable.Range(0,count).Select(c =>
+            {
+                var result = "";
+                for (var i = 0; i < 1024; i++)
+                {
+                
+                    if (paths[c][i] == '\0')
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        result += paths[c][i];
+                    }
+                }
+
+                return result;
+            }).ToArray()
         });
     }
     
