@@ -196,6 +196,7 @@ public partial class WindowRenderer : Disposable
 
         if (_swapchain.Value != 0) vkDestroySwapchainKHR(device, _swapchain, null);
         _swapchain = new VkSwapchainKHR();
+        _swapchainSize = new VkExtent2D();
     }
 
     private void InitFrames()
@@ -207,9 +208,9 @@ public partial class WindowRenderer : Disposable
         _frames = frames.ToArray();
     }
 
-    public bool ShouldDraw()
+    protected bool ShouldDraw()
     {
-        return !_resizing && _viewport is { height: > 0, width: > 0 };
+        return !_resizing && _swapchainImages.Length > 0;
     }
 
     public Window GetWindow()
@@ -294,14 +295,13 @@ public partial class WindowRenderer : Disposable
 
     protected void DrawFrame()
     {
+        if (_resizePending && !_resizing)
+        {
+            CheckSwapchainSize();
+        }
         
         //return;
         if (!ShouldDraw()) return;
-
-        if (_resizePending && CheckSwapchainSize())
-        {
-            return;
-        }
 
         var frame = GetCurrentFrame();
         var device = _module.GetDevice();

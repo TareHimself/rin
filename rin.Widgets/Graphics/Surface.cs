@@ -172,7 +172,7 @@ public abstract class Surface : Disposable
                     VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, clearColor
                         ? new VkClearValue
                         {
-                            color = SGraphicsModule.MakeClearColorValue(0.0f)
+                            color = SGraphicsModule.MakeClearColorValue(1.0f)
                         }
                         : null)
             ], stencilAttachment: SGraphicsModule.MakeRenderingAttachment(GetStencilImage().View,
@@ -477,7 +477,10 @@ public abstract class Surface : Disposable
             return;
         }
         
-
+        // BeginMainPass(new WidgetFrame(this,frame),clearColor: true);
+        // EndActivePass(new WidgetFrame(this,frame));
+        // HandleAfterDraw(frame);
+        // return;
         var properties = new VkPhysicalDeviceProperties();
 
         unsafe

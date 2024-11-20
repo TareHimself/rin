@@ -240,6 +240,13 @@ internal static partial class NativeMethods
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public delegate void NativeRefreshDelegate(nint window);
     
+    
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate void NativeMinimizeDelegate(nint window, int minimized);
+    
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public unsafe delegate void NativeDropDelegate(nint window, int count,char ** paths);
+    
     [LibraryImport(DllName, EntryPoint = "setWindowCallbacks")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
     public static partial void SetWindowCallbacks(nint nativePtr,
@@ -252,5 +259,7 @@ internal static partial class NativeMethods
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeCloseDelegate closeDelegate,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeCharDelegate charDelegate,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeMaximizedDelegate maximizedDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeRefreshDelegate refreshDelegate);
+        [MarshalAs(UnmanagedType.FunctionPtr)] NativeRefreshDelegate refreshDelegate,
+        [MarshalAs(UnmanagedType.FunctionPtr)] NativeMinimizeDelegate minimizeDelegate,
+        [MarshalAs(UnmanagedType.FunctionPtr)] NativeDropDelegate dropDelegate);
 }

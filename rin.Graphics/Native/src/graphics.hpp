@@ -43,8 +43,8 @@ using GlfwWindowCloseCallback = void(__stdcall *)(GLFWwindow* window);
 using GlfwCharCallback =  void(__stdcall *)(GLFWwindow* window, unsigned int codepoint, int mods);
 using GlfwMaximizedCallback =  void(__stdcall *)(GLFWwindow* window, int maximized);
 using GlfwRefreshCallback =  void(__stdcall *)(GLFWwindow* window);
+using GlfwMinimizeCallback = void(__stdcall *)(GLFWwindow* window, int iconified);
 using GlfwDropCallback = void(__stdcall *)(GLFWwindow* window, int path_count, const char* paths[]);
-
 
 
 
@@ -57,7 +57,9 @@ EXPORT_DECL void setWindowCallbacks(GLFWwindow* window, const GlfwKeyCallback ke
                                  const GlfwWindowCloseCallback windowCloseCallback,
                                  const GlfwCharCallback charCallback,
                                  const GlfwMaximizedCallback maximizedCallback,
-                                 const GlfwRefreshCallback refreshCallback
+                                 const GlfwRefreshCallback refreshCallback,
+                                 const GlfwMinimizeCallback minimizeCallback,
+                                 const GlfwDropCallback dropCallback
                                  //,const GlfwDropCallback dropCallback
                                  );
 

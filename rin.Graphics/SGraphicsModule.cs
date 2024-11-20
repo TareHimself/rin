@@ -922,9 +922,9 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
                 }
             }
         }
-        foreach (var kv in _windows)
-            if (kv.Value.ShouldDraw())
-                kv.Value.Draw();
+        foreach (var (_,renderer) in _windows)
+            renderer.Draw();
+                
     }
 
     
