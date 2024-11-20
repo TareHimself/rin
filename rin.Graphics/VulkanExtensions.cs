@@ -502,7 +502,7 @@ public static class VulkanExtensions
     public static void ImageBarrier(this VkCommandBuffer commandBuffer, VkImage image, VkImageLayout from,
         VkImageLayout to, ImageBarrierOptions? options = null)
     {
-        var opts = options ?? new ImageBarrierOptions();
+        var opts = options.GetValueOrDefault();
         var barrier = new VkImageMemoryBarrier2
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,

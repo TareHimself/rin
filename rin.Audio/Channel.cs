@@ -3,7 +3,7 @@ using rin.Core;
 
 namespace rin.Audio;
 
-public class Channel : Disposable
+public class Channel : Disposable, IChannel
 {
     private readonly int _handle;
     public bool IsPlaying => Bass.ChannelIsActive(_handle) == PlaybackState.Playing;

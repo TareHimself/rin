@@ -9,6 +9,7 @@ using rin.Widgets.Content;
 using rin.Widgets.Events;
 using rin.Widgets.Graphics;
 
+
 namespace AudioPlayer.Widgets;
 
 public class TrackPlayer : Overlay
@@ -43,7 +44,7 @@ public class TrackPlayer : Overlay
         }
     };
 
-    private readonly AudioStream _stream;
+    private readonly IChannel _stream;
     private double _lastTime = SRuntime.Get().GetTimeSeconds();
 
     private readonly Panel _backgroundContainer = new Panel();
@@ -54,7 +55,7 @@ public class TrackPlayer : Overlay
         set => _nameText.Content = value;
     }
 
-    public TrackPlayer(string name, AudioStream stream)
+    public TrackPlayer(string name, IChannel stream)
     {
         _nameText.Content = name;
 

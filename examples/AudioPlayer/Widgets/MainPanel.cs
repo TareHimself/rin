@@ -13,7 +13,7 @@ public class MainPanel : Panel
     private readonly ScrollList _trackPlayers = new ScrollList()
     {
         Axis = Axis.Column,
-        Clip = Clip.None//Clip.Bounds
+        Clip = Clip.None
     };
 
     public MainPanel()
@@ -66,7 +66,7 @@ public class MainPanel : Panel
     {
         foreach (var file in files)
         {
-            var player = new TrackPlayer(Path.GetFileNameWithoutExtension(file), AudioStream.FromFile(file));
+            var player = new TrackPlayer(Path.GetFileNameWithoutExtension(file), StreamChannel.FromFile(file));
             _trackPlayers.AddChild(player);
         }
     }

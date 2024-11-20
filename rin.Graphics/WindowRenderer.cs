@@ -207,7 +207,7 @@ public partial class WindowRenderer : Disposable
         _frames = frames.ToArray();
     }
 
-    public bool ShouldDraw()
+    private bool ShouldDraw()
     {
         return !_resizing && _viewport is { height: > 0, width: > 0 };
     }
@@ -217,7 +217,7 @@ public partial class WindowRenderer : Disposable
         return _window;
     }
 
-    public Frame GetCurrentFrame()
+    private Frame GetCurrentFrame()
     {
         return _frames[_framesRendered % FramesInFlight];
     }
