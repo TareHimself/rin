@@ -2,7 +2,7 @@
 
 namespace rin.Core.Animation;
 
-public class SimpleTransitionAnimation<TValue>(Func<TValue> from,TValue to,Action<TValue> setter,double duration = 0.0,Func<double,double>? easingFunction = null) : IAnimation where TValue : ISubtractionOperators<TValue,TValue,TValue>,IMultiplyOperators<TValue,float,TValue>,IAdditionOperators<TValue,TValue,TValue>
+public class TransitionAnimation<TValue>(Func<TValue> from,TValue to,Action<TValue> setter,double duration = 0.0,Func<double,double>? easingFunction = null) : IAnimation where TValue : ISubtractionOperators<TValue,TValue,TValue>,IMultiplyOperators<TValue,float,TValue>,IAdditionOperators<TValue,TValue,TValue>
 {
     public double Duration => duration;
     private TValue _from;

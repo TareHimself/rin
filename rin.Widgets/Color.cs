@@ -1,9 +1,10 @@
 ﻿using System.Drawing;
+using System.Numerics;
 using rin.Core.Math;
 
 namespace rin.Widgets;
 
-public class Color(float inR, float inG, float inB, float inA)
+public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOperators<Color,Color,Color>,IMultiplyOperators<Color,float,Color>,IAdditionOperators<Color,Color,Color>
 {
     public static Color Red = new(1f, 0f, 0f, 1f);
     public static Color Green = new(0f, 1f, 0f, 1f);
@@ -35,5 +36,20 @@ public class Color(float inR, float inG, float inB, float inA)
     {
         var c = ColorTranslator.FromHtml(hexCode);
         return new Color(Convert.ToInt16(c.R), Convert.ToInt16(c.G), Convert.ToInt16(c.B), Convert.ToInt16(c.A));
+    }
+
+    public static Color operator -(Color left, Color right)
+    {
+        return new Color(left.R - right.R, left.G - right.G, left.B - right.B, left.A - right.A);
+    }
+
+    public static Color operator *(Color left, float right)
+    {
+        return new Color(left.R * right, left.G * right, left.B * right, left.A * right);
+    }
+
+    public static Color operator +(Color left, Color right)
+    {
+        return new Color(left.R + right.R, left.G + right.G, left.B + right.B, left.A + right.A);
     }
 }

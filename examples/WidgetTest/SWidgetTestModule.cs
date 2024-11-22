@@ -8,6 +8,8 @@ using rin.Widgets;
 using rin.Widgets.Animation;
 using rin.Widgets.Containers;
 using rin.Widgets.Content;
+using rin.Widgets.Events;
+using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Quads;
 using rin.Windows;
 using Rect = rin.Widgets.Containers.Rect;
@@ -108,6 +110,130 @@ public class SWidgetTestModule : RuntimeModule
                     {
                         WidthOverride = rand.Next(300, 300),
                         HeightOverride = 300,
+                        Child = new Canvas
+                        {
+                            Paint = ((canvas, transform, cmds) =>
+                            {
+                                var rect = Quad.NewRect(transform, canvas.GetContentSize());
+                                rect.Mode = Quad.RenderMode.ColorWheel;
+                                cmds.AddQuads(rect);
+                            })
+                        },
+                        Padding = 10.0f,
+                    });
+                }
+            };
+        }
+    }
+
+
+    class TestAnimationSizer : Sizer
+    {
+        private float _width;
+
+        protected override void OnAddedToSurface(Surface surface)
+        {
+            base.OnAddedToSurface(surface);
+            _width = WidthOverride.GetValueOrDefault(0);
+        }
+
+        public TestAnimationSizer()
+        {
+            _width = WidthOverride.GetValueOrDefault(0);
+        }
+        protected override void OnCursorEnter(CursorMoveEvent e)
+        {
+            this.StopAll().WidthTo(HeightOverride.GetValueOrDefault(0),easingFunction: EasingFunctions.EaseInOutCubic);
+        }
+
+        protected override void OnCursorLeave(CursorMoveEvent e)
+        {
+            this.StopAll().WidthTo(_width,easingFunction: EasingFunctions.EaseInOutCubic);
+        }
+    }
+    public void TestAnimation(WindowRenderer renderer)
+    {
+        if (SWidgetsModule.Get().GetWindowSurface(renderer) is { } surf)
+        {
+            var list = new List()
+            {
+                Axis = Axis.Row,
+            };
+            
+            surf.Add(new Panel()
+            {
+                Slots = [
+                new PanelSlot()
+                {
+                    Child = list,
+                    MinAnchor = 0.5f,
+                    MaxAnchor = 0.5f,
+                    Alignment = 0.5f,
+                    SizeToContent = true
+                },
+                new PanelSlot
+                {
+                    Child = new Rect
+                    {
+                        Child = new FpsWidget
+                        {
+                            FontSize = 30,
+                            Content = "YOOOO"
+                        },
+                        Padding = new Padding(20.0f),
+                        BorderRadius = 10.0f,
+                        BackgroundColor = Color.Black.Clone(a: 0.7f)
+                    },
+                    SizeToContent = true,
+                    MinAnchor = new Vector2<float>(1.0f, 0.0f),
+                    MaxAnchor = new Vector2<float>(1.0f, 0.0f),
+                    Alignment = new Vector2<float>(1.0f, 0.0f)
+                }]
+            });
+
+            var rand = new Random();
+            surf.Window.OnKey += (e) =>
+            {
+                if (e is { State: InputState.Pressed, Key: InputKey.Equal })
+                {
+                    Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true)).After(
+                        (p) =>
+                        {
+                            foreach (var path in p)
+                                list.AddChild(new TestAnimationSizer()
+                                {
+                                    WidthOverride = 200,
+                                    HeightOverride = 800,
+                                    Child = new AsyncFileImage(path)
+                                    {
+                                        BorderRadius = 30.0f
+                                    },
+                                    Padding = 10.0f,
+                                });
+                        });
+                    
+                }
+                
+                if (e is { State: InputState.Pressed, Key: InputKey.Minus })
+                {
+                    list.AddChild(new TestAnimationSizer()
+                    {
+                        WidthOverride = 200,
+                        HeightOverride = 800,
+                        Child = new PrettyWidget()
+                        {
+                            Pivot = 0.5f,
+                        },
+                        Padding = 10.0f,
+                    });
+                }
+                
+                if (e is { State: InputState.Pressed, Key: InputKey.Zero })
+                {
+                    list.AddChild(new Sizer()
+                    {
+                        WidthOverride = 200,
+                        HeightOverride = 900,
                         Child = new Canvas
                         {
                             Paint = ((canvas, transform, cmds) =>
@@ -312,7 +438,7 @@ public class SWidgetTestModule : RuntimeModule
     {
         base.Startup(runtime);
         Console.WriteLine("CREATING WINDOW");
-        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
+        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
 
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin Widget Test", new CreateOptions()

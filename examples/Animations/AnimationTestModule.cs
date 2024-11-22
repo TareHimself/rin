@@ -13,7 +13,7 @@ public class AnimationTestModule : RuntimeModule, IAnimatable
         runtime.OnTick += (_) => ((IAnimatable)this).Update();
 
 
-        this.Test(5,"1").After().Test(5,"2");
+        this.Delay(5).Do(() => Console.WriteLine("Five seconds have passed")).Delay(5).Do(() => Console.WriteLine("Five more seconds have passed"));
     }
 
     public AnimationRunner AnimationRunner { get; init; } = new AnimationRunner();

@@ -10,4 +10,11 @@ public static class MathExtensions
     /// <param name="other"></param>
     /// <returns></returns>
     public static float FiniteOr(this float val, float other = 0.0f) => float.IsFinite(val) ? val : other;
+
+    public static Vector2<float> Abs(this Vector2<float> self) => new Vector2<float>(System.Math.Abs(self.X), System.Math.Abs(self.Y));
+    
+    public static bool NearlyEquals(this Vector2<float> self, Vector2<float> other,float tolerance = 0.01f)
+    {
+        return (self - other).Abs() < tolerance;
+    }
 }

@@ -1,4 +1,5 @@
-﻿using rin.Core.Math;
+﻿using rin.Core.Animation;
+using rin.Core.Math;
 using rin.Widgets.Animation;
 using rin.Widgets.Enums;
 using rin.Widgets.Events;
@@ -21,7 +22,7 @@ public class Sizer : ContainerWidget
         set
         {
             _widthOverride = value;
-            Invalidate(InvalidationType.Layout);
+            Invalidate(InvalidationType.DesiredSize);
         }
     }
 
@@ -31,7 +32,7 @@ public class Sizer : ContainerWidget
         set
         {
             _heightOverride = value;
-            Invalidate(InvalidationType.Layout);
+            Invalidate(InvalidationType.DesiredSize);
         }
     }
 
@@ -60,17 +61,7 @@ public class Sizer : ContainerWidget
 
         return size;
     }
-
-    protected override bool OnCursorDown(CursorDownEvent e)
-    {
-        return true;
-    }
-
-    public override void OnCursorUp(CursorUpEvent e)
-    {
-        this.WidthTo(900).After().WidthTo(300);
-    }
-
+    
     // protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)
     // {
     //     base.CollectSelf(info, drawCommands);

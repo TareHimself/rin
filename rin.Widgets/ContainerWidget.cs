@@ -124,7 +124,7 @@ public abstract class ContainerWidget : Widget
             if (Surface != null)
             {
                 widget.NotifyAddedToSurface(Surface);
-                OnSlotInvalidated(slot, InvalidationType.Layout);
+                OnSlotInvalidated(slot, InvalidationType.DesiredSize);
             }
 
             //Console.WriteLine("Added child [{0}] to container [{1}]", widget.GetType().Name, GetType().Name);

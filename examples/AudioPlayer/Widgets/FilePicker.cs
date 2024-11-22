@@ -1,4 +1,5 @@
 ﻿using rin.Core;
+using rin.Core.Animation;
 using rin.Core.Extensions;
 using rin.Core.Math;
 using rin.Widgets;
@@ -15,6 +16,7 @@ namespace AudioPlayer.Widgets;
 public class FilePicker : Button
 {
     private bool _hasInit = false;
+    private double _animDuration = 0.1;
 
     public event Action<string[]>? OnFileSelected;
     
@@ -23,7 +25,7 @@ public class FilePicker : Button
     public FilePicker() : base()
     {
         BackgroundColor = Color.Red;
-        BorderRadius = 20.0f;
+        BorderRadius = 10.0f;
         Padding = 20.0f;
     }
 
@@ -63,15 +65,20 @@ public class FilePicker : Button
 
     protected override void OnCursorEnter(CursorMoveEvent e)
     {
-        BackgroundColor = Color.Green;
+        this
+            .StopAll()
+            .Transition(BackgroundColor, Color.Green, (c) => BackgroundColor = c,_animDuration)
+            .Transition(BorderRadius,20.0f,(c) => BorderRadius = c,_animDuration);
         base.OnCursorEnter(e);
     }
 
     protected override void OnCursorLeave(CursorMoveEvent e)
     {
-        BackgroundColor = Color.Red;
+        this
+            .StopAll()
+            .Transition(BackgroundColor, Color.Red, (c) => BackgroundColor = c,_animDuration)
+            .Transition(BorderRadius,10.0f,(c) => BorderRadius = c,_animDuration);
         base.OnCursorLeave(e);
-        
     }
     
 }

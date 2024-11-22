@@ -435,7 +435,7 @@ public abstract partial class Widget : Disposable, IAnimatable
                 {
                     var newSize = ComputeDesiredSize();
 
-                    if (newSize.Equals(_cachedDesiredSize)) return;
+                    if (newSize.NearlyEquals(_cachedDesiredSize.Value)) return;
                     _cachedDesiredSize = newSize;
         
                     Parent?.OnChildInvalidated(this,type);

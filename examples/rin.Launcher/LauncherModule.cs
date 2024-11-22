@@ -4,7 +4,7 @@ using rin.Windows;
 
 namespace rin.Launcher;
 
-[RuntimeModule(typeof(SWidgetsModule),typeof(SWindowsModule))]
+[RuntimeModule(typeof(SWidgetsModule))]
 public class LauncherModule : RuntimeModule
 {
     public override void Startup(SRuntime runtime)
