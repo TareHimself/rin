@@ -8,7 +8,7 @@ macro(GetMsdfGen SPECIFIC_PROJECT VERSION)
     )
   endfunction()
 
-  BuildThirdPartyDep(msdfgen ${CMAKE_CURRENT_LIST_DIR}/../../ext https://github.com/Chlumsky/msdfgen ${VERSION} RESULT_DIR "" "BuildMsdfGen")
+  BuildThirdPartyDep(msdfgen ${CMAKE_CURRENT_LIST_DIR}/../../ext  ${VERSION} RESULT_DIR "" "BuildMsdfGen")
 
   # list(APPEND CMAKE_PREFIX_PATH ${RESULT_DIR}/lib/cmake)
 

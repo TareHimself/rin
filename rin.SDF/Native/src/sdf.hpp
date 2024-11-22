@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "macro.hpp"
-#include <msdfgen/msdfgen.h>
+#include <msdfgen.h>
 
 struct GlyphContext
 {

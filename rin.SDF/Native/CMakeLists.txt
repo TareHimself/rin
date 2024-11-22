@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+include(FetchContent)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 include(${CMAKE_CURRENT_SOURCE_DIR}/utils.cmake)
@@ -16,7 +17,20 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${SRC_DIR})
 
-GetMsdfGen(${PROJECT_NAME} v1.12)
+FetchContent_Declare(fetch_msdfgen
+    GIT_REPOSITORY https://github.com/Chlumsky/msdfgen
+    GIT_TAG v1.12
+    GIT_SHALLOW 1
+)
+set(MSDFGEN_DYNAMIC_RUNTIME ON)
+set(BUILD_SHARED_LIBS ON)
+set(MSDFGEN_USE_SKIA OFF)
+set(MSDFGEN_INSTALL ON)
+set(MSDFGEN_CORE_ONLY ON)
+set(MSDFGEN_BUILD_STANDALONE OFF) 
+set(MSDFGEN_USE_VCPKG OFF)
+FetchContent_MakeAvailable(fetch_msdfgen)
+target_link_libraries(${PROJECT_NAME} msdfgen::msdfgen)
 SetDynamicLibraryDir(${PROJECT_NAME})
 
 add_custom_command ( TARGET ${PROJECT_NAME} POST_BUILD
