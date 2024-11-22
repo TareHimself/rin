@@ -125,10 +125,10 @@ public partial class WindowRenderer : Disposable
         var device = _module.GetDevice();
         var physicalDevice = _module.GetPhysicalDevice();
         var format = _module.GetSurfaceFormat();
-        var presentMode = 
-            _supportedPresentModes.Contains(VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR)
-            ? VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR
-            : _supportedPresentModes.First();
+        var presentMode = VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR;
+            // _supportedPresentModes.Contains(VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR)
+            // ? VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR
+            // : _supportedPresentModes.First();
         NativeGraphicsMethods.CreateSwapchain(
             device,
             physicalDevice,

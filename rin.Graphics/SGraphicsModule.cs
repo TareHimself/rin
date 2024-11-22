@@ -246,7 +246,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         _transferQueue = outTransferQueue;
         _transferQueueFamily = outTransferQueueFamily;
         _debugUtilsMessenger = outDebugMessenger;
-        _hasDedicatedTransferQueue = true; //_graphicsQueue != _transferQueue;
+        _hasDedicatedTransferQueue = _graphicsQueue != _transferQueue;
 
         var formats = _physicalDevice.GetSurfaceFormats(outSurface).Where(c =>
         {

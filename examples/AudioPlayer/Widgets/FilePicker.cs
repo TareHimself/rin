@@ -23,6 +23,8 @@ public class FilePicker : Button
     public FilePicker() : base()
     {
         BackgroundColor = Color.Red;
+        BorderRadius = 20.0f;
+        Padding = 20.0f;
     }
 
     protected override void OnAddedToSurface(Surface surface)
@@ -32,12 +34,12 @@ public class FilePicker : Button
         _hasInit = true;
         StatusText.Padding = 20.0f;
         AddChild(StatusText);
-        this.RunAction(new SimpleAnimationAction((s, time) =>
-        {
-            // var num = (float)Math.Sin(time);
-            // s.Target.Angle = 60.0f * num;
-            return true;
-        }));
+        // this.RunAction(new SimpleAnimationAction((s, time) =>
+        // {
+        //     // var num = (float)Math.Sin(time);
+        //     // s.Target.Angle = 60.0f * num;
+        //     return true;
+        // }));
     }
 
     protected void FileSelected(string[] files)

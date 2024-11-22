@@ -84,14 +84,14 @@ public class BackgroundBlur : ContainerWidget
     //     }
     // }
 
-    public override void Collect(TransformInfo info, DrawCommands drawCommands)
+    public override void Collect(Matrix3 transform, Widgets.Rect clip, DrawCommands drawCommands)
     {
         if (IsVisible)
         {
             drawCommands.Add(new ReadBack());
-            drawCommands.Add(new BlurCommand(info.Transform,GetContentSize(),Strength,Tint));
+            drawCommands.Add(new BlurCommand(transform,GetContentSize(),Strength,Tint));
         }
-        base.Collect(info, drawCommands);
+        base.Collect(transform,clip, drawCommands);
     }
 
     protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)

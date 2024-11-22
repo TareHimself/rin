@@ -11,5 +11,4 @@ public interface IAnimatable
     {
         AnimationRunner.Update();
     }
-    
 }

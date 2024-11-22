@@ -86,6 +86,15 @@ push(scalar){
             float4 color = quad.data1;
 
             oColor = mix(color,float4(color.rgb,0.0),opacity);
+        }else if(mode == 3){
+            float2 uv = (iUV * 2.0f) - 1.0f;
+            
+            float r = sqrt((uv.x * uv.x) + (uv.y * uv.y));
+            float theta = atan(uv.y,uv.x);
+            float pi = radians(180);
+            theta = ((theta + pi) / (pi * 2));
+            float4 rgbColor = float4(hsv2rgb(float3(theta,r,1.0)),1.0);
+            oColor = applyBorderRadius(gl_FragCoord.xy, rgbColor, float4(quad.size.x / 2.0), quad.size, quad.transform);
         }
     }
 }

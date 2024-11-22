@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Collections;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace rin.Core.Math;
@@ -13,7 +14,7 @@ public struct Vector4<T> :
     IMultiplyOperators<Vector4<T>, T, Vector4<T>>,
     IDivisionOperators<Vector4<T>, Vector4<T>, Vector4<T>>,
     IDivisionOperators<Vector4<T>, T, Vector4<T>>,
-    ICloneable<Vector4<T>>
+    IVector<Vector4<T>,T>
     where T : notnull, IComparisonOperators<T,T,bool>
 {
     public T X;
@@ -153,5 +154,12 @@ public struct Vector4<T> :
     public static implicit operator Vector4<T>(T data)
     {
         return new Vector4<T>(data);
+    }
+
+    public IEnumerator<T> GetEnumerator() => new ParamsEnumerator<T>(X, Y, Z, W);
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 }

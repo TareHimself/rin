@@ -37,13 +37,13 @@ public class Rect : ContainerWidget
         drawCommands.AddRect(transform,Size, color: BackgroundColor, borderRadius: BorderRadius);
     }
 
-    public override void Collect(TransformInfo info, DrawCommands drawCommands)
+    public override void Collect(Matrix3 transform, Widgets.Rect clip, DrawCommands drawCommands)
     {
         if (IsVisible)
         {
-            CollectSelf(info.Transform,drawCommands);
+            CollectSelf(transform,drawCommands);
         }
-        base.Collect(info, drawCommands);
+        base.Collect(transform,clip, drawCommands);
     }
 
     public override int GetMaxSlotsCount() => 1;

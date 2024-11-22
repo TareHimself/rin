@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Collections;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace rin.Core.Math;
@@ -13,7 +14,7 @@ public struct Vector3<T>(T inX, T inY, T inZ) :
     IMultiplyOperators<Vector3<T>, T, Vector3<T>>,
     IDivisionOperators<Vector3<T>, Vector3<T>, Vector3<T>>,
     IDivisionOperators<Vector3<T>, T, Vector3<T>>,
-    ICloneable<Vector3<T>>
+    IVector<Vector3<T>,T>
     where T : notnull
 {
     public T X = inX;
@@ -135,5 +136,12 @@ public struct Vector3<T>(T inX, T inY, T inZ) :
     public Vector3<T> Clone()
     {
         return new Vector3<T>(X, Y, Z);
+    }
+
+    public IEnumerator<T> GetEnumerator() => new ParamsEnumerator<T>(X, Y, Z);
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 }

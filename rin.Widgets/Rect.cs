@@ -82,4 +82,50 @@ public class Rect : ICloneable<Rect>
     {
         return new Pair<Vector2<float>, Vector2<float>>(rect.Offset, rect.Offset + rect.Size);
     }
+    
+    // ReSharper disable once InconsistentNaming
+    public static Rect MakeAABB(Vector2<float> size,Matrix3 transform,Vector2<float>? offset)
+    {
+        var tl = offset.GetValueOrDefault(new Vector2<float>(0.0f));
+        var br = tl + size;
+        var tr = new Vector2<float>(br.X, tl.Y);
+        var bl = new Vector2<float>(tl.X, br.Y);
+
+        tl = tl.ApplyTransformation(transform);
+        br = br.ApplyTransformation(transform);
+        tr = tr.ApplyTransformation(transform);
+        bl = bl.ApplyTransformation(transform);
+
+        var p1AABB = new Vector2<float>(
+            System.Math.Min(
+                System.Math.Min(tl.X, tr.X),
+                System.Math.Min(bl.X, br.X)
+            ),
+            System.Math.Min(
+                System.Math.Min(tl.Y, tr.Y),
+                System.Math.Min(bl.Y, br.Y)
+            )
+        );
+        var p2AABB = new Vector2<float>(
+            System.Math.Max(
+                System.Math.Max(tl.X, tr.X),
+                System.Math.Max(bl.X, br.X)
+            ),
+            System.Math.Max(
+                System.Math.Max(tl.Y, tr.Y),
+                System.Math.Max(bl.Y, br.Y)
+            )
+        );
+
+        return new Rect
+        {
+            Offset = p1AABB,
+            Size = p2AABB - p1AABB
+        };
+    }
+
+    public bool PointWithin(Vector2<float> point)
+    {
+        return point.Within(this);
+    }
 }

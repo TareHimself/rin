@@ -1,5 +1,7 @@
 ﻿using rin.Core.Math;
+using rin.Widgets.Animation;
 using rin.Widgets.Enums;
+using rin.Widgets.Events;
 using rin.Widgets.Graphics;
 using rin.Widgets.Graphics.Quads;
 
@@ -57,6 +59,16 @@ public class Sizer : ContainerWidget
         }
 
         return size;
+    }
+
+    protected override bool OnCursorDown(CursorDownEvent e)
+    {
+        return true;
+    }
+
+    public override void OnCursorUp(CursorUpEvent e)
+    {
+        this.WidthTo(900).After().WidthTo(300);
     }
 
     // protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.Contracts;
+﻿using System.Collections;
+using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -13,7 +14,10 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
     IMultiplyOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
     IMultiplyOperators<Vector2<T>, T, Vector2<T>>,
     IDivisionOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
-    IDivisionOperators<Vector2<T>, T, Vector2<T>>
+    IDivisionOperators<Vector2<T>, T, Vector2<T>>,
+    IComparisonOperators<Vector2<T>,Vector2<T>,bool>,
+
+IVector<Vector2<T>,T>
     where T : notnull, IComparisonOperators<T,T,bool>
 
 {
@@ -82,18 +86,13 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
 
     public bool Within(Vector2<T> p1, Vector2<T> p2)
     {
-        dynamic p1x = p1.X, p1y = p1.Y, p2x = p2.X, p2y = p2.Y;
-        var isWithinHorizontal = p1x < X && X < p2x;
-        var isWithinVertical = p1y < Y && Y < p2y;
-        return isWithinHorizontal && isWithinVertical;
+        return p1 <= this && this <= p2;
     }
 
     public bool Within(Pair<Vector2<T>, Vector2<T>> bounds)
     {
-        dynamic p1x = bounds.First.X, p1y = bounds.First.Y, p2x = bounds.Second.X, p2y = bounds.Second.Y;
-        var isWithinHorizontal = p1x < X && X < p2x;
-        var isWithinVertical = p1y < Y && Y < p2y;
-        return isWithinHorizontal && isWithinVertical;
+        var (p1, p2) = bounds;
+        return p1 <= this && this <= p2;
     }
 
     public Vector2<T> Clone()
@@ -157,6 +156,43 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
     public static implicit operator Vector2<T>(T data)
     {
         return new Vector2<T>(data);
+    }
+
+    public IEnumerator<T> GetEnumerator() => new ParamsEnumerator<T>(X, Y);
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public static bool operator ==(Vector2<T> left, Vector2<T> right)
+    {
+        return left.X == right.X && left.Y == right.Y;
+    }
+
+    public static bool operator !=(Vector2<T> left, Vector2<T> right)
+    {
+        return !(left == right);
+    }
+
+    public static bool operator >(Vector2<T> left, Vector2<T> right)
+    {
+        return left.X > right.X && left.Y > right.Y;
+    }
+
+    public static bool operator >=(Vector2<T> left, Vector2<T> right)
+    {
+        return left.X >= right.X && left.Y >= right.Y;
+    }
+
+    public static bool operator <(Vector2<T> left, Vector2<T> right)
+    {
+        return left.X < right.X && left.Y < right.Y;
+    }
+
+    public static bool operator <=(Vector2<T> left, Vector2<T> right)
+    {
+        return left.X <= right.X && left.Y <= right.Y;
     }
 }
 

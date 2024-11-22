@@ -16,7 +16,7 @@ namespace WidgetTest;
 
 [RuntimeModule(typeof(SWidgetsModule))]
 public class SWidgetTestModule : RuntimeModule
-{
+{   
     public void TestWrapping(WindowRenderer renderer)
     {
         if (SWidgetsModule.Get().GetWindowSurface(renderer) is { } surf)
@@ -94,7 +94,29 @@ public class SWidgetTestModule : RuntimeModule
                     {
                         WidthOverride = rand.Next(300, 300),
                         HeightOverride = 300,
-                        Child = new PrettyWidget(),
+                        Child = new PrettyWidget()
+                        {
+                            Pivot = 0.5f,
+                        },
+                        Padding = 10.0f,
+                    });
+                }
+                
+                if (e is { State: InputState.Pressed, Key: InputKey.Zero })
+                {
+                    list.AddChild(new Sizer()
+                    {
+                        WidthOverride = rand.Next(300, 300),
+                        HeightOverride = 300,
+                        Child = new Canvas
+                        {
+                            Paint = ((canvas, transform, cmds) =>
+                            {
+                                var rect = Quad.NewRect(transform, canvas.GetContentSize());
+                                rect.Mode = Quad.RenderMode.ColorWheel;
+                                cmds.AddQuads(rect);
+                            })
+                        },
                         Padding = 10.0f,
                     });
                 }
@@ -201,7 +223,7 @@ public class SWidgetTestModule : RuntimeModule
 
             if (e is { State: InputState.Pressed, Key: InputKey.F })
             {
-                switcher.RotateTo(0, 360, 2).Then().RotateTo(360, 0, 2);
+                switcher.RotateTo(0, 360, 2).After().RotateTo(360, 0, 2);
                 return;
             }
 
@@ -290,7 +312,7 @@ public class SWidgetTestModule : RuntimeModule
     {
         base.Startup(runtime);
         Console.WriteLine("CREATING WINDOW");
-        SGraphicsModule.Get().OnRendererCreated += TestBlur;
+        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
 
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin Widget Test", new CreateOptions()

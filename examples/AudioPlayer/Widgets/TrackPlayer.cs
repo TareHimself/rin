@@ -8,6 +8,7 @@ using rin.Widgets.Containers;
 using rin.Widgets.Content;
 using rin.Widgets.Events;
 using rin.Widgets.Graphics;
+using Rect = rin.Widgets.Rect;
 
 
 namespace AudioPlayer.Widgets;
@@ -48,6 +49,8 @@ public class TrackPlayer : Overlay
     private double _lastTime = SRuntime.Get().GetTimeSeconds();
 
     private readonly Panel _backgroundContainer = new Panel();
+
+    private bool _loaded = false;
 
     public string Name
     {
@@ -149,7 +152,11 @@ public class TrackPlayer : Overlay
             MinAnchor = 0.0f,
             MaxAnchor = 1.0f
         });
-        this.ScaleTo(new Vector2<float>(0.0f, 1.0f), 1.0f, 0.2f,easingFunction: EasingFunctions.EaseInExpo);
+        this.ScaleTo(new Vector2<float>(0.0f, 1.0f), 1.0f, 0.2f,easingFunction: EasingFunctions.EaseInExpo).After().Do(
+            () =>
+            {
+                _loaded = true;
+            });
     }
 
     private static string FormatTime(double secs)
@@ -158,10 +165,10 @@ public class TrackPlayer : Overlay
             $"{((int)Math.Floor(secs / 60)).ToString().PadLeft(2, '0')}:{((int)(secs % 60)).ToString().PadLeft(2, '0')}";
     }
 
-    public override void Collect(TransformInfo info, DrawCommands drawCommands)
+    public override void Collect(Matrix3 transform, Rect clip, DrawCommands drawCommands)
     {
         _currentTimeText.Content = FormatTime(_stream.Position);
-        base.Collect(info, drawCommands);
+        base.Collect(transform,clip, drawCommands);
     }
 
     protected override bool OnCursorDown(CursorDownEvent e) => _stream.IsPlaying ? _stream.Pause() : _stream.Play();
@@ -169,14 +176,25 @@ public class TrackPlayer : Overlay
     protected override void OnCursorEnter(CursorMoveEvent e)
     {
         base.OnCursorEnter(e);
-        this.StopAll().TranslateTo(null, new Vector2<float>(40.0f, 0.0f), 0.2,
-            easingFunction: EasingFunctions.EaseInOutCubic);
+        if (_loaded)
+        {
+            this.TranslateTo(new Vector2<float>(40.0f, 0.0f), 0.2,
+                easingFunction: EasingFunctions.EaseInOutCubic);
+        }
     }
 
     protected override void OnCursorLeave(CursorMoveEvent e)
     {
         base.OnCursorLeave(e);
-        this.StopAll().TranslateTo(null, new Vector2<float>(0.0f, 0.0f), 0.2,
-            easingFunction: EasingFunctions.EaseInOutCubic);
+        if (_loaded)
+        {
+            this.TranslateTo(new Vector2<float>(0.0f, 0.0f), 0.2,
+                easingFunction: EasingFunctions.EaseInOutCubic);
+        }
+    }
+
+    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    {
+        return base.LayoutContent(availableSpace);
     }
 }

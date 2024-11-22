@@ -201,8 +201,9 @@ public abstract partial class Widget : Disposable, IAnimatable
         {
             return cached;
         }
-        
-        var transform = Matrix3.Identity.Translate(Offset + Translate).RotateDeg(Angle).Scale(Scale).Translate(Size * Pivot - 1.0f);
+
+        var rotation = Matrix3.Identity.RotateDeg(Angle).Translate(Size * Pivot * -1.0f).Scale(Scale);
+        var transform = Matrix3.Identity.Translate(Offset + Translate) * rotation;
         
         _cachedRelativeTransform.Value = transform;
         return transform;
@@ -240,7 +241,7 @@ public abstract partial class Widget : Disposable, IAnimatable
     }
 
 
-    public virtual Widget? ReceiveCursorDown(CursorDownEvent e, TransformInfo info)
+    public virtual Widget? NotifyCursorDown(CursorDownEvent e, Matrix3 transform)
     {
         if (IsSelfHitTestable)
             if (OnCursorDown(e))
@@ -260,24 +261,24 @@ public abstract partial class Widget : Disposable, IAnimatable
     protected void BindCursorUp()
     {
         var root = _cursorUpRoot;
-        if (root?.Disposed == false) root.OnCursorUp += ReceiveCursorUp;
+        if (root?.Disposed == false) root.OnCursorUp += NotifyCursorUp;
     }
 
     protected void UnBindCursorUp()
     {
         var root = _cursorUpRoot;
-        if (root?.Disposed == false) root.OnCursorUp -= ReceiveCursorUp;
+        if (root?.Disposed == false) root.OnCursorUp -= NotifyCursorUp;
 
         _cursorUpRoot = null;
     }
 
-    public virtual void ReceiveCursorUp(CursorUpEvent e)
+    public virtual void NotifyCursorUp(CursorUpEvent e)
     {
         UnBindCursorUp();
         OnCursorUp(e);
     }
 
-    public virtual void ReceiveCursorEnter(CursorMoveEvent e, TransformInfo info, List<Widget> items)
+    public virtual void NotifyCursorEnter(CursorMoveEvent e, Matrix3 transform, List<Widget> items)
     {
         if (!IsSelfHitTestable) return;
         items.Add(this);
@@ -287,14 +288,14 @@ public abstract partial class Widget : Disposable, IAnimatable
         OnCursorEnter(e);
     }
 
-    public virtual bool ReceiveCursorMove(CursorMoveEvent e, TransformInfo info)
+    public virtual bool NotifyCursorMove(CursorMoveEvent e, Matrix3 transform)
     {
         if (IsSelfHitTestable && OnCursorMove(e)) return true;
 
         return false;
     }
 
-    public virtual bool ReceiveScroll(ScrollEvent e, TransformInfo info)
+    public virtual bool NotifyScroll(ScrollEvent e, Matrix3 transform)
     {
         return IsSelfHitTestable && OnScroll(e);
     }
@@ -317,7 +318,7 @@ public abstract partial class Widget : Disposable, IAnimatable
     {
     }
 
-    public virtual void ReceiveCursorLeave(CursorMoveEvent e)
+    public virtual void NotifyCursorLeave(CursorMoveEvent e)
     {
         if (!IsHovered) return;
 
@@ -385,7 +386,7 @@ public abstract partial class Widget : Disposable, IAnimatable
     // /// <param name="info">The Absolute Transform info of this widget</param>
     // /// <param name="withPadding">Should we also account for padding ? (should be true except when used in <see cref="CollectContent"/>)</param>
     // /// <returns>The Absolute Transform info of content</returns>
-    // public virtual TransformInfo OffsetTransformTo(Widget widget, TransformInfo info, bool withPadding = true)
+    // public virtual TransformInfo OffsetTransformTo(Widget widget, Matrix3 transform, bool withPadding = true)
     // {
     //     var newTransform = withPadding
     //         ? info.Transform.Translate(new Vector2<float>(Padding.Left, Padding.Top))
@@ -398,9 +399,11 @@ public abstract partial class Widget : Disposable, IAnimatable
     /// <summary>
     /// Collect draw commands from this widget
     /// </summary>
-    /// <param name="info"></param>
+    /// <param name="transform"></param>
+    /// <param name="clip"></param>
     /// <param name="drawCommands"></param>
-    public abstract void Collect(TransformInfo info, DrawCommands drawCommands);
+    public abstract void Collect(Matrix3 transform, Rect clip, DrawCommands drawCommands);
+
     // {
     //     if (Visibility is Visibility.Hidden or Visibility.Collapsed)
     //     {
@@ -414,7 +417,7 @@ public abstract partial class Widget : Disposable, IAnimatable
     //     //CollectContent(info.Translate(new Vector2<float>(Padding.Left,Padding.Top)),drawCommands);
     // }
 
-    // protected virtual void CollectSelf(TransformInfo info, DrawCommands drawCommands)
+    // protected virtual void CollectSelf(Matrix3 transform, DrawCommands drawCommands)
     // {
     //     
     // }
@@ -454,4 +457,109 @@ public abstract partial class Widget : Disposable, IAnimatable
     
 
     public AnimationRunner AnimationRunner { get; init; } = new AnimationRunner();
+
+    // ReSharper disable once InconsistentNaming
+    public Rect ComputeAABB(Matrix3 transform)
+    {
+        var tl = new Vector2<float>(0.0f);
+        var br = tl + Size;
+        var tr = new Vector2<float>(br.X, tl.Y);
+        var bl = new Vector2<float>(tl.X, br.Y);
+
+        tl = tl.ApplyTransformation(transform);
+        br = br.ApplyTransformation(transform);
+        tr = tr.ApplyTransformation(transform);
+        bl = bl.ApplyTransformation(transform);
+
+        var p1AABB = new Vector2<float>(
+            System.Math.Min(
+                System.Math.Min(tl.X, tr.X),
+                System.Math.Min(bl.X, br.X)
+            ),
+            System.Math.Min(
+                System.Math.Min(tl.Y, tr.Y),
+                System.Math.Min(bl.Y, br.Y)
+            )
+        );
+        var p2AABB = new Vector2<float>(
+            System.Math.Max(
+                System.Math.Max(tl.X, tr.X),
+                System.Math.Max(bl.X, br.X)
+            ),
+            System.Math.Max(
+                System.Math.Max(tl.Y, tr.Y),
+                System.Math.Max(bl.Y, br.Y)
+            )
+        );
+
+        return new Rect
+        {
+            Offset = p1AABB,
+            Size = p2AABB - p1AABB
+        };
+    }
+    
+    public bool PointWithin(Matrix3 transform,Vector2<float> point)
+    {
+        var tl = new Vector2<float>(0.0f);
+        var br = tl + Size;
+        var tr = new Vector2<float>(br.X, tl.Y);
+        var bl = new Vector2<float>(tl.X, br.Y);
+
+        tl = tl.ApplyTransformation(transform);
+        br = br.ApplyTransformation(transform);
+        tr = tr.ApplyTransformation(transform);
+        bl = bl.ApplyTransformation(transform);
+
+        var p1AABB = new Vector2<float>(
+            System.Math.Min(
+                System.Math.Min(tl.X, tr.X),
+                System.Math.Min(bl.X, br.X)
+            ),
+            System.Math.Min(
+                System.Math.Min(tl.Y, tr.Y),
+                System.Math.Min(bl.Y, br.Y)
+            )
+        );
+        var p2AABB = new Vector2<float>(
+            System.Math.Max(
+                System.Math.Max(tl.X, tr.X),
+                System.Math.Max(bl.X, br.X)
+            ),
+            System.Math.Max(
+                System.Math.Max(tl.Y, tr.Y),
+                System.Math.Max(bl.Y, br.Y)
+            )
+        );
+
+        // Perform AABB test first
+        if (!point.Within(new Rect
+            {
+                Offset = p1AABB,
+                Size = p2AABB - p1AABB
+            })) return false;
+
+        var top = tr - tl;
+        var right = br - tr;
+        var bottom = bl - br;
+        var left = tl - bl;
+        var pTop = point - tl;
+        var pRight = point - tr;
+        var pBottom = point - br;
+        var pLeft = point - bl;
+        
+        var a = top.Acos(pTop);
+        var b = right.Cross(pRight);
+        var c = bottom.Cross(pBottom);
+        var d = left.Cross(pLeft);
+
+        if (a >= 0)
+        {
+            return b >= 0 && c >= 0 && d >= 0;
+        }
+        else
+        {
+            return b < 0 && c < 0 && d < 0;
+        }
+    }
 }

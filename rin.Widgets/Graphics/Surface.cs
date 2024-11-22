@@ -311,7 +311,10 @@ public abstract class Surface : Disposable
     {
         var rawDrawCommands = new DrawCommands();
         var transformInfo = new TransformInfo(this);
-        _rootWidget.Collect(transformInfo, rawDrawCommands);
+        _rootWidget.Collect(Matrix3.Identity,new Rect()
+        {
+            Size = GetDrawSize().Cast<float>()
+        }, rawDrawCommands);
         var rawCommands = rawDrawCommands.Commands.OrderBy(c => c, new RawCommandComparer()).ToArray();
 
         if (rawCommands.Length == 0) return [];
@@ -710,7 +713,7 @@ public abstract class Surface : Disposable
     public virtual void ReceiveCursorDown(CursorDownEvent e)
     {
         var point = e.Position.Cast<float>();
-        if (_rootWidget.ReceiveCursorDown(e, new TransformInfo(this)) is { } result)
+        if (_rootWidget.NotifyCursorDown(e, Matrix3.Identity) is { } result)
         {
             if (FocusedWidget == null) return;
 
@@ -736,14 +739,12 @@ public abstract class Surface : Disposable
     public virtual void ReceiveCursorMove(CursorMoveEvent e)
     {
         _lastMousePosition = e.Position;
-        var point = _lastMousePosition.Value;
-        _rootWidget.ReceiveCursorMove(e, new TransformInfo(this));
+        _rootWidget.NotifyCursorMove(e, Matrix3.Identity);
     }
 
     public virtual void ReceiveScroll(ScrollEvent e)
     {
-        var point = e.Position.Cast<float>();
-        _rootWidget.ReceiveScroll(e, new TransformInfo(this));
+        _rootWidget.NotifyScroll(e, Matrix3.Identity);
     }
     
     public virtual void ReceiveCharacter(CharacterEvent e)
@@ -772,9 +773,12 @@ public abstract class Surface : Disposable
         _lastHovered.Clear();
 
         {
-            var rootTransformInfo = new TransformInfo(this);
-            if (rootTransformInfo.PointWithin(e.Position))
-                _rootWidget.ReceiveCursorEnter(e, rootTransformInfo, _lastHovered);
+            var rootTransformInfo = new Rect()
+            {
+                Size = 0.0f
+            };
+            if (0.0f <= e.Position && e.Position <= GetDrawSize().Cast<float>())
+                _rootWidget.NotifyCursorEnter(e,Matrix3.Identity, _lastHovered);
         }
 
         var hoveredSet = _lastHovered.ToHashSet();
@@ -782,7 +786,7 @@ public abstract class Surface : Disposable
 
         foreach (var widget in oldHoverList.AsReversed())
             if (!hoveredSet.Contains(widget))
-                widget.ReceiveCursorLeave(e);
+                widget.NotifyCursorLeave(e);
     }
 
     public virtual T Add<T>() where T : Widget, new()

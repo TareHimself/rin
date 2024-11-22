@@ -112,9 +112,9 @@ public class ScrollList : List
         }
     }
 
-    public override void Collect(TransformInfo info, DrawCommands drawCommands)
+    public override void Collect(Matrix3 transform, Widgets.Rect clip, DrawCommands drawCommands)
     {
-        base.Collect(info, drawCommands);
+        base.Collect(transform,clip, drawCommands);
         if (IsVisible && IsScrollable())
         {
             var scroll = GetScroll();
@@ -128,19 +128,19 @@ public class ScrollList : List
 
             var size = GetContentSize();
 
-            var transform = info.Transform.Translate(new Vector2<float>(size.X - 10.0f, drawOffset));
-            drawCommands.AddRect(transform, new Vector2<float>(10.0f, barSize), color: Color.White, borderRadius: 7.0f);
+            var barTransform = transform.Translate(new Vector2<float>(size.X - 10.0f, drawOffset));
+            drawCommands.AddRect(barTransform, new Vector2<float>(10.0f, barSize), color: Color.White, borderRadius: 7.0f);
         }
     }
 
-    protected override Matrix3 ComputeSlotOffset(ContainerSlot slot)
+    protected override Matrix3 ComputeSlotTransform(ContainerSlot slot, Matrix3 contentTransform)
     {
-        return Matrix3.Identity.Translate(Axis switch
+        return contentTransform.Translate(Axis switch
         {
             Axis.Row => new Vector2<float>(-GetScroll(), 0.0f),
             Axis.Column => new Vector2<float>(0.0f, -GetScroll()),
             _ => throw new ArgumentOutOfRangeException()
-        });
+        }) * slot.Child.ComputeRelativeTransform();
     }
 
     protected override bool OnCursorDown(CursorDownEvent e)
@@ -174,4 +174,6 @@ public class ScrollList : List
 
         return base.OnCursorMove(e);
     }
+    
+    
 }

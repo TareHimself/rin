@@ -11,7 +11,8 @@ public partial struct Quad(Matrix3 transform, Vector2<float> size) : ICloneable<
     {
         Shape,
         Texture,
-        Sdf
+        Sdf,
+        ColorWheel
     }
     
     public int TextureId
@@ -23,7 +24,7 @@ public partial struct Quad(Matrix3 transform, Vector2<float> size) : ICloneable<
     public RenderMode Mode
     {
         get => (RenderMode)Opts.X;
-        init => Opts.X = (int)value;
+        set => Opts.X = (int)value;
     }
     
     public Vector4<int> Opts = new Vector4<int>(0,0,0,0);

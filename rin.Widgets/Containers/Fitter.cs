@@ -125,8 +125,8 @@ public class Fitter : ContainerWidget
             float.IsFinite(availableSpace.Y) ? availableSpace.Y : desired.Y));
     }
 
-    public override void Collect(TransformInfo info, DrawCommands drawCommands)
+    public override void Collect(Matrix3 transform, Widgets.Rect clip, DrawCommands drawCommands)
     {
-        base.Collect(info, drawCommands);
+        base.Collect(transform,clip, drawCommands);
     }
 }

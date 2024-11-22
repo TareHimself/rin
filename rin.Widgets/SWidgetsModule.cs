@@ -31,10 +31,8 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
     private readonly Dictionary<Type, IBatcher> _batchRenderers = [];
     private SGraphicsModule? _graphicsSubsystem;
     private GraphicsShader? _stencilShader = null;
-
-    public readonly AnimationProcessor Processor = new AnimationProcessor();
-
-    public string RunAnimation(Widget widget,AnimationAction animation) => Processor.Run(widget,animation);
+    
+    
     
     public static SWidgetsModule Get() => SRuntime.Get().GetModule<SWidgetsModule>();
 
@@ -79,7 +77,7 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
 
     public void Tick(double delta)
     {
-        Processor.Apply();
+ 
     }
 
     private void OnRendererCreated(WindowRenderer renderer)
