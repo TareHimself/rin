@@ -1,0 +1,97 @@
+
+@Compute {
+    compute(local_size_x = 1,local_size_y = 1);
+    
+    //ssbo initialization
+    struct VolumeTileAABB{
+        float4 minPoint;
+        float4 maxPoint;
+    };
+    
+    layout(buffer_reference, scalar) readonly buffer ClusterBuffer {
+        VolumeTileAABB cluster[];
+    };
+    
+    push(scalar){
+        mat4 inverseProjection;
+        float4 tileSizes;
+        float4 screenSizeAndDepth;
+        ClusterBuffer data;
+    };
+    
+    //Creates a line from the eye to the screenpoint, then finds its intersection
+    //With a z oriented plane located at the given distance to the origin
+    float3 lineIntersectionToZPlane(float3 A, float3 B, float zDistance){
+        //Because this is a Z based normal this is fixed
+        float3 normal = float3(0.0, 0.0, 1.0);
+    
+        float3 ab =  B - A;
+    
+        //Computing the intersection length for the line and the plane
+        float t = (zDistance - dot(normal, A)) / dot(normal, ab);
+    
+        //Computing the actual xyz position of the point along the line
+        float3 result = A + t * ab;
+    
+        return result;
+    }
+    
+    float4 clipToView(float4 clip){
+        //View space transform
+        float4 view = inverseProjection * clip;
+    
+        //Perspective projection
+        view = view / view.w;
+        
+        return view;
+    }
+    
+    float4 screen2View(float4 screen){
+        //Convert to NDC
+        float2 texCoord = screen.xy / screenDimensions.xy;
+    
+        //Convert to clipSpace
+        // float4 clip = float4(float2(texCoord.x, 1.0 - texCoord.y)* 2.0 - 1.0, screen.z, screen.w);
+        float4 clip = float4(float2(texCoord.x, texCoord.y)* 2.0 - 1.0, screen.z, screen.w);
+        //Not sure which of the two it is just yet
+    
+        return clipToView(clip);
+    }
+    
+    void main(){
+        //Eye position is zero in view space
+        const float3 eyePos = float3(0.0);
+    
+        //Per Tile variables
+        uint tileSizePx = tileSizes[3];
+        uint tileIndex = gl_WorkGroupID.x +
+                         gl_WorkGroupID.y * gl_NumWorkGroups.x +
+                         gl_WorkGroupID.z * (gl_NumWorkGroups.x * gl_NumWorkGroups.y);
+    
+        //Calculating the min and max point in screen space
+        float4 maxPoint_sS = float4(float2(gl_WorkGroupID.x + 1, gl_WorkGroupID.y + 1) * tileSizePx, -1.0, 1.0); // Top Right
+        float4 minPoint_sS = float4(gl_WorkGroupID.xy * tileSizePx, -1.0, 1.0); // Bottom left
+        
+        //Pass min and max to view space
+        float3 maxPoint_vS = screen2View(maxPoint_sS).xyz;
+        float3 minPoint_vS = screen2View(minPoint_sS).xyz;
+    
+        //Near and far values of the cluster in view space
+        float tileNear  = -zNear * pow(zFar/ zNear, gl_WorkGroupID.z/float(gl_NumWorkGroups.z));
+        float tileFar   = -zNear * pow(zFar/ zNear, (gl_WorkGroupID.z + 1) /float(gl_NumWorkGroups.z));
+    
+        //Finding the 4 intersection points made from the maxPoint to the cluster near/far plane
+        float3 minPointNear = lineIntersectionToZPlane(eyePos, minPoint_vS, tileNear );
+        float3 minPointFar  = lineIntersectionToZPlane(eyePos, minPoint_vS, tileFar );
+        float3 maxPointNear = lineIntersectionToZPlane(eyePos, maxPoint_vS, tileNear );
+        float3 maxPointFar  = lineIntersectionToZPlane(eyePos, maxPoint_vS, tileFar );
+    
+        float3 minPointAABB = min(min(minPointNear, minPointFar),min(maxPointNear, maxPointFar));
+        float3 maxPointAABB = max(max(minPointNear, minPointFar),max(maxPointNear, maxPointFar));
+    
+        //Getting the 
+        push.data.cluster[tileIndex].minPoint  = float4(minPointAABB , 0.0);
+        push.data.cluster[tileIndex].maxPoint  = float4(maxPointAABB , 0.0);
+    }
+
+}

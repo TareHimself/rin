@@ -1,0 +1,42 @@
+﻿// using rin.Core;
+// using rin.Graphics;
+// using rin.Graphics.Material;
+// using rin.Widgets;
+// using rin.Widgets.Graphics;
+//
+// namespace WidgetTest;
+//
+// public class LargeShader : Widget
+// {
+//     
+//     private readonly MaterialInstance _materialInstance;
+//     
+//     public LargeShader()
+//     {
+//         var gs = SRuntime.Get().GetModule<SGraphicsModule>();
+//
+//         _materialInstance = new MaterialInstance(Path.Join(SWidgetsModule.ShadersDir,"pretty.ash"));
+//     }
+//     
+//     protected override void OnAddedToSurface(WidgetSurface widgetSurface)
+//     {
+//         base.OnAddedToSurface(widgetSurface);
+//         _materialInstance.BindBuffer("ui", widgetSurface.GlobalBuffer);
+//     }
+//     protected override Vector2<float> ComputeDesiredSize() => new Vector2<float>(0, 0);
+//
+//     public override void Collect(WidgetFrame frame, TransformInfo info)
+//     {
+//         frame.AddMaterialRect(_materialInstance, new WidgetPushConstants()
+//         {
+//             Transform = this.ComputeRelativeTransform(),
+//             Size = this.GetContentSize(),
+//         });
+//     }
+//
+//     protected override void OnDispose(bool isManual)
+//     {
+//         base.OnDispose(isManual);
+//         _materialInstance.Dispose();
+//     }
+// }

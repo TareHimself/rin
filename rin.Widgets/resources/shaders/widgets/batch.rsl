@@ -1,0 +1,100 @@
+#include "utils.rsl"
+#include "../global.rsl"
+
+struct QuadRenderInfo
+{
+    // [TextureId,RenderMode,0,0]
+    int4 opts;
+    float2 size;
+    mat3 transform;
+    float4 data1;
+    float4 data2;
+    float4 data3;
+    float4 data4;
+};
+
+layout(buffer_reference, scalar) readonly buffer QuadBuffer {
+    QuadRenderInfo quads[];
+};
+
+push(scalar){
+    mat4 projection;
+    QuadBuffer batch;
+};
+
+@Vertex{
+
+    layout(location = 0) out float2 oUV;
+    layout(location = 1) out int oQuadIndex;
+
+    void main(){
+        QuadRenderInfo quad = push.batch.quads[gl_InstanceIndex];
+        generateRectVertex(quad.size, push.projection, quad.transform, gl_VertexIndex, gl_Position, oUV);
+        oQuadIndex = gl_InstanceIndex;
+    }
+}
+
+
+@Fragment{
+    layout (location = 0) in float2 iUV;
+    layout (location = 1,$flat) in int iQuadIndex;
+    layout (location = 0) out float4 oColor;
+
+    float median(float r, float g, float b) {
+        return max(min(r, g), min(max(r, g), b));
+    }
+
+    float screenPxRange(float2 uv,float2 size) {
+        float2 unitRange = float2(30.0)/size;
+        float2 screenTexSize = float2(1.0)/fwidth(uv);
+        return max(0.5*dot(unitRange, screenTexSize), 1.0);
+    }
+
+    void main(){
+        QuadRenderInfo quad = push.batch.quads[iQuadIndex];
+        int mode = quad.opts.x;
+
+        if(mode == 0){
+            oColor = applyBorderRadius(gl_FragCoord.xy,quad.data1, quad.data2, quad.size, quad.transform);
+        } else if(mode == 1){
+            float4 tint = quad.data1;
+            float4 uvMapping = quad.data2;
+            float u = mapRangeUnClamped(iUV.x,0.0,1.0,uvMapping.x,uvMapping.z);
+            float v = mapRangeUnClamped(iUV.y,0.0,1.0,uvMapping.y,uvMapping.w);
+            float2 uv = float2(u,v);
+
+            int textureId = quad.opts.y;
+
+            float4 color = sampleTexture(textureId,uv) * tint;
+
+            oColor = applyBorderRadius(gl_FragCoord.xy, color, quad.data3, quad.size, quad.transform);
+        } else if(mode == 2){
+            float4 uvMapping = quad.data2;
+            float u = mapRangeUnClamped(iUV.x,0.0,1.0,uvMapping.x,uvMapping.z);
+            float v = mapRangeUnClamped(iUV.y,0.0,1.0,uvMapping.y,uvMapping.w);
+            float2 uv = float2(u,v);
+
+            int textureId = quad.opts.y;
+
+            float2 texSize = getTextureSize(textureId);
+            float2 actualTexSize = texSize * (uvMapping.zw - uvMapping.xy);
+            float3 msd = sampleTexture(textureId,uv).rgb;
+            float sd = median(msd.r,msd.g,msd.b);
+            float distance = screenPxRange(iUV,actualTexSize)*(sd - 0.5);
+            float opacity = clamp(distance + 0.5, 0.0, 1.0);
+
+            float4 color = quad.data1;
+
+            oColor = mix(color,float4(color.rgb,0.0),opacity);
+        }else if(mode == 3){
+            float2 uv = (iUV * 2.0f) - 1.0f;
+            
+            float r = sqrt((uv.x * uv.x) + (uv.y * uv.y));
+            float theta = atan(uv.y,uv.x);
+            float pi = radians(180);
+            theta = ((theta + pi) / (pi * 2));
+            float4 rgbColor = float4(hsv2rgb(float3(theta,r,1.0)),1.0);
+            oColor = applyBorderRadius(gl_FragCoord.xy, rgbColor, float4(quad.size.x / 2.0), quad.size, quad.transform);
+        }
+    }
+}
