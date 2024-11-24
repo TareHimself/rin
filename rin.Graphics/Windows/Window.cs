@@ -1,4 +1,5 @@
-﻿using rin.Core;
+﻿using System.Runtime.InteropServices;
+using rin.Core;
 using rin.Core.Math;
 using rin.Graphics.Windows.Events;
 using rin.Windows.Native.src;
@@ -228,28 +229,11 @@ public class Window : Disposable
     
     private unsafe void DropCallback(nint window,int count,char ** paths)
     {
-        
+
         OnDrop?.Invoke(new DropEvent
         {
             Window = this,
-            Paths = Enumerable.Range(0,count).Select(c =>
-            {
-                var result = "";
-                for (var i = 0; i < 1024; i++)
-                {
-                
-                    if (paths[c][i] == '\0')
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        result += paths[c][i];
-                    }
-                }
-
-                return result;
-            }).ToArray()
+            Paths = Enumerable.Range(0, count).Select(c => Marshal.PtrToStringAnsi(new IntPtr(paths[c])) ?? "").ToArray()
         });
     }
     

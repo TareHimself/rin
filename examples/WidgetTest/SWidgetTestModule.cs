@@ -66,6 +66,26 @@ public class SWidgetTestModule : RuntimeModule
                 }
                 ]
             });
+            
+            surf.Window.OnDrop += (e) =>
+            {
+                Task.Run(() =>
+                {
+                    foreach (var objPath in e.Paths)
+                    {
+                        list.AddChild(new Sizer()
+                        {
+                            WidthOverride = 200,
+                            HeightOverride = 800,
+                            Child = new AsyncFileImage(objPath)
+                            {
+                                BorderRadius = 30.0f
+                            },
+                            Padding = 10.0f,
+                        });
+                    }
+                });
+            };
 
             var rand = new Random();
             surf.Window.OnKey += (e) =>
@@ -191,6 +211,25 @@ public class SWidgetTestModule : RuntimeModule
                 }]
             });
 
+            surf.Window.OnDrop += (e) =>
+            {
+                Task.Run(() =>
+                {
+                    foreach (var objPath in e.Paths)
+                    {
+                        list.AddChild(new TestAnimationSizer()
+                        {
+                            WidthOverride = 200,
+                            HeightOverride = 800,
+                            Child = new AsyncFileImage(objPath)
+                            {
+                                BorderRadius = 30.0f
+                            },
+                            Padding = 10.0f,
+                        });
+                    }
+                });
+            };
             var rand = new Random();
             surf.Window.OnKey += (e) =>
             {
@@ -438,7 +477,7 @@ public class SWidgetTestModule : RuntimeModule
     {
         base.Startup(runtime);
         Console.WriteLine("CREATING WINDOW");
-        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
+        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
 
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin Widget Test", new CreateOptions()
