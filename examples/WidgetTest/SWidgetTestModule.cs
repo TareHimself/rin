@@ -75,8 +75,8 @@ public class SWidgetTestModule : RuntimeModule
                     {
                         list.AddChild(new Sizer()
                         {
-                            WidthOverride = 200,
-                            HeightOverride = 800,
+                            WidthOverride = 300,
+                            HeightOverride = 300,
                             Child = new AsyncFileImage(objPath)
                             {
                                 BorderRadius = 30.0f
@@ -477,7 +477,7 @@ public class SWidgetTestModule : RuntimeModule
     {
         base.Startup(runtime);
         Console.WriteLine("CREATING WINDOW");
-        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
+        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
 
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin Widget Test", new CreateOptions()

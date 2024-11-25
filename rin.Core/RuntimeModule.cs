@@ -14,17 +14,17 @@ public class NativeRuntimeModuleAttribute : RuntimeModuleAttribute
     }
 }
 
-public class RuntimeModule
+public abstract class RuntimeModule : IRuntimeModule
 {
     private SRuntime? _engine;
 
-    public virtual async void Startup(SRuntime runtime)
+    public virtual void Startup(SRuntime runtime)
     {
         _engine = runtime;
         Console.WriteLine($"Starting up {this.GetType().Name}");
     }
 
-    protected SRuntime? GetEngine()
+    public SRuntime? GetRuntime()
     {
         return _engine;
     }

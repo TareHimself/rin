@@ -26,12 +26,19 @@ public class WidgetFrame
     public bool IsAnyPassActive => ActivePass.Length != 0;
     public Matrix4 Projection;
 
-    public WidgetFrame(Surface surface, Frame raw)
+    public readonly DeviceImage DrawImage;
+    public DeviceImage CopyImage;
+    public readonly DeviceImage StencilImage;
+
+    public WidgetFrame(Surface surface, Frame raw,DeviceImage drawImage,DeviceImage copyImage,DeviceImage stencilImage)
     {
         Surface = surface;
         Raw = raw;
         var size = surface.GetDrawSize();
         Projection = Glm.Orthographic(0, size.X, 0, size.Y);
+        DrawImage = drawImage;
+        CopyImage = copyImage;
+        StencilImage = stencilImage;
         //raw.OnReset += CleanupCommands;
     }
 

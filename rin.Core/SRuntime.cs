@@ -13,8 +13,8 @@ public sealed class SRuntime : Disposable
     private static SRuntime? _instance;
     private static readonly object Padlock = new();
 
-    private readonly List<RuntimeModule> _modules = [];
-    private readonly Dictionary<Type, RuntimeModule> _modulesMap = new();
+    private readonly List<IRuntimeModule> _modules = [];
+    private readonly Dictionary<Type, IRuntimeModule> _modulesMap = new();
 
     private readonly DateTime _startTime;
 
@@ -218,10 +218,12 @@ public sealed class SRuntime : Disposable
     }
 
 
-    public T GetModule<T>() where T : RuntimeModule
+    public T GetModule<T>() where T : IRuntimeModule
     {
         return (T)_modulesMap[typeof(T)];
     }
+
+    public bool IsModuleLoaded<T>() where T : IRuntimeModule => _modulesMap.ContainsKey(typeof(T));
 
     protected override void OnDispose(bool isManual)
     {

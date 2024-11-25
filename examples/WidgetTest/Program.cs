@@ -2,8 +2,11 @@
 
 using rin.Core;
 using rin.Core.Logging;
+using rin.Graphics;
+using rin.Graphics.FrameGraph;
 using rsl;using rsl.Generator;
 using rsl.Nodes;
+using TerraFX.Interop.Vulkan;
 
 // var tokens = Tokenizer.Run("<>", @"for (float i = 0.0; i < 4.0; i++) {
 //             uv = fract(uv * 1.5) - 0.5;
@@ -27,4 +30,27 @@ using rsl.Nodes;
 // ast = ast.ExtractFunctionWithDependencies("main")!;
 // var data = new GlslGenerator().Run(ast.Statements);
 //Console.WriteLine("TO");
+// var graphBuilder = new GraphBuilder();
+// {
+//     IResourceHandle imageHandle = new ResourceHandle();
+//
+//     graphBuilder.AddPass((self,builder) =>
+//     {
+//         imageHandle = builder.RequestImage(self,500, 500, ImageFormat.Rgba8, VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, "Test_Color");
+//     }, (self,graph,frame, buffer) =>
+//     {
+//         
+//     },name: "Write To Image");
+//     
+//     graphBuilder.AddPass((self,builder) =>
+//     {
+//         imageHandle = builder.Read(self,"Test_Color");
+//     }, (self,graph,frame, buffer) =>
+//     {
+//         
+//     },name: "Read From Image",terminal: true);
+// }
+
+//var graph = graphBuilder.Compile();
+
 SRuntime.Get().Run();

@@ -78,6 +78,8 @@ public static class EnumerableExtensions
     
     public static bool Empty<T>(this List<T> target) => target.Count == 0;
     
+    public static bool Empty<T>(this Queue<T> target) => target.Count == 0;
+    
     public static bool Empty(this string target) => target.Length == 0;
     
     public static bool NotEmpty<T>(this T[] target) => target.Length > 0;
@@ -85,6 +87,8 @@ public static class EnumerableExtensions
     public static bool NotEmpty<T>(this IEnumerable<T> target) => target.Any();
     
     public static bool NotEmpty<T>(this List<T> target) => target.Count > 0;
+    
+    public static bool NotEmpty<T>(this Queue<T> target) => target.Count > 0;
     
     public static bool NotEmpty(this string target) => target.Length > 0;
 }

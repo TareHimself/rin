@@ -32,8 +32,8 @@ public class WindowSurface : Surface
 
     public void CopyToSwapchain(Frame frame, VkImage swapchainImage, VkExtent2D extent)
     {
-        var drawImage = GetDrawImage();
-        drawImage.CopyTo(frame.GetCommandBuffer(),swapchainImage,_renderer.GetSwapchainExtent());
+        // var drawImage = GetDrawImage();
+        // drawImage.CopyTo(frame.GetCommandBuffer(),swapchainImage,_renderer.GetSwapchainExtent());
     }
 
     public override void Init()
@@ -45,7 +45,7 @@ public class WindowSurface : Surface
         Window.OnKey += OnKeyboard;
         Window.OnCharacter += OnCharacter;
         _renderer.OnDraw += Draw;
-        _renderer.OnCopyToSwapchain += CopyToSwapchain;
+        _renderer.OnCopy += CopyToSwapchain;
         _renderer.OnResize += OnRendererResized;
     }
 
@@ -104,7 +104,7 @@ public class WindowSurface : Surface
         Window.OnKey -= OnKeyboard;
         Window.OnCharacter -= OnCharacter;
         _renderer.OnDraw -= Draw;
-        _renderer.OnCopyToSwapchain -= CopyToSwapchain;
+        _renderer.OnCopy -= CopyToSwapchain;
     }
 
     public override void Draw(Frame frame)

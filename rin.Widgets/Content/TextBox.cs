@@ -214,6 +214,7 @@ public class TextBox : ContentWidget
         if (Content.NotEmpty() && _cachedLayouts == null)
         {
             List<CachedQuadLayout> layouts = [];
+            List<Quad> quads = [];
             foreach (var bound in GetCharacterBounds(Wrap))
             {
                 var charInfo = _mtsdf?.GetGlyphInfo(bound.Character);
@@ -237,9 +238,10 @@ public class TextBox : ContentWidget
                 var size = new Vector2<float>(bound.Width, bound.Height);
                 var layout = new CachedQuadLayout(atlasId.Value, finalTransform, size, charInfo.Coordinates);
                 layouts.Add(layout);
-                drawCommands.AddSdf(layout.Atlas,transform * layout.Transform,layout.Size,Color.White,layout.UV);
+                quads.Add(Quad.NewSdf(layout.Atlas,transform * layout.Transform,layout.Size,Color.White,layout.UV));
             }
-            
+
+            drawCommands.Add(new QuadDrawCommand(quads));
             //_cachedLayouts = layouts.ToArray();
         }
         else if(_cachedLayouts != null)

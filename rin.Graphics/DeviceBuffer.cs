@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using rin.Core;
+using rin.Graphics.FrameGraph;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 namespace rin.Graphics;
@@ -13,7 +14,7 @@ public class DeviceBuffer : DeviceMemory
     public readonly ulong Size;
     private ulong? _address;
 
-    public class View : MultiDisposable
+    public class View : MultiDisposable, IGraphResource
     {
         public readonly DeviceBuffer Buffer;
         public readonly ulong Offset;

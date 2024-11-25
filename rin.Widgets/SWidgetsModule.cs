@@ -122,7 +122,7 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         foreach (var root in _windowSurfaces) root.Value.Dispose();
         _windowSurfaces.Clear();
 
-        _graphicsSubsystem = GetEngine()?.GetModule<SGraphicsModule>();
+        _graphicsSubsystem = SGraphicsModule.Get();
         if (_graphicsSubsystem != null)
         {
             _graphicsSubsystem.OnRendererCreated -= OnRendererCreated;

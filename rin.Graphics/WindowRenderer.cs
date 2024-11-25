@@ -38,7 +38,7 @@ public partial class WindowRenderer : Disposable
     private VkViewport _viewport;
     
     public event Action<Frame>? OnDraw;
-    public event Action<Frame, VkImage, VkExtent2D>? OnCopyToSwapchain;
+    public event Action<Frame, VkImage, VkExtent2D>? OnCopy;
 
     public event Action<Vector2<uint>>? OnResize;
 
@@ -351,16 +351,24 @@ public partial class WindowRenderer : Disposable
                 .SetRasterizerDiscard(false)
                 .DisableMultiSampling();
         }
-
+        
         if ((OnDraw?.GetInvocationList().Length ?? 0) > 0)
         {
             OnDraw?.Invoke(frame);
-        
-           cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
+
+            var graph = frame.GetBuilder().Compile();
+            graph?.Run(frame);
+            if (graph != null)
+            {
+                frame.OnReset += (_) => graph.Dispose();
+            }
+
+            cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
                 VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
                 VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-            OnCopyToSwapchain?.Invoke(frame, _swapchainImages[swapchainImageIndex], swapchainExtent);
+            
+            frame.DoCopy(_swapchainImages[swapchainImageIndex], swapchainExtent);
+            OnCopy?.Invoke(frame, _swapchainImages[swapchainImageIndex], swapchainExtent);
 
             cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
                 VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,

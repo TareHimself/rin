@@ -1,5 +1,6 @@
 ﻿using rin.Core;
 using rin.Graphics.Descriptors;
+using rin.Graphics.FrameGraph;
 using TerraFX.Interop.Vulkan;
 
 namespace rin.Graphics;
@@ -20,6 +21,9 @@ public class Frame : Disposable
     private readonly VkSemaphore _renderSemaphore;
     private readonly VkSemaphore _swapchainSemaphore;
     public readonly WindowRenderer Renderer;
+    private readonly IGraphBuilder _graphBuilder = new GraphBuilder();
+    
+    public event Action<Frame, VkImage, VkExtent2D>? OnCopy;
 
     public unsafe Frame(WindowRenderer renderer)
     {
@@ -89,9 +93,14 @@ public class Frame : Disposable
         _swapchainSemaphore = sSemaphore;
     }
 
+    public void DoCopy(VkImage swapchainImage,VkExtent2D extent)
+    {
+        OnCopy?.Invoke(this,swapchainImage,extent);
+    }
     public event Action<Frame>? OnReset;
-    
 
+
+    public IGraphBuilder GetBuilder() => _graphBuilder;
     public VkFence GetRenderFence()
     {
         return _renderFence;
@@ -154,6 +163,7 @@ public class Frame : Disposable
     {
         OnReset?.Invoke(this);
         OnReset = null;
+        OnCopy = null;
         _descriptorAllocator.ClearPools();
         unsafe
         {
@@ -166,6 +176,7 @@ public class Frame : Disposable
                 }
             }
         }
+        _graphBuilder.Reset();
     }
 
     protected override unsafe void OnDispose(bool isManual)
@@ -173,6 +184,8 @@ public class Frame : Disposable
         var device = SGraphicsModule.Get().GetDevice();
         SGraphicsModule.Get().WaitDeviceIdle();
         OnReset?.Invoke(this);
+        OnReset = null;
+        OnCopy = null;
         _descriptorAllocator.Dispose();
         vkDestroySemaphore(device, _swapchainSemaphore, null);
         vkDestroySemaphore(device, _renderSemaphore, null);

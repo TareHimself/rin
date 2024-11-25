@@ -1,4 +1,5 @@
-﻿using TerraFX.Interop.Vulkan;
+﻿using rin.Graphics.FrameGraph;
+using TerraFX.Interop.Vulkan;
 
 namespace rin.Graphics;
 
@@ -12,7 +13,7 @@ public class DeviceImage(
     ImageFormat inFormat,
     Allocator allocator,
     IntPtr allocation)
-    : DeviceMemory(allocator, allocation)
+    : DeviceMemory(allocator, allocation), IGraphResource
 {
     public readonly ImageFormat Format = inFormat;
     public VkExtent3D Extent = inExtent;

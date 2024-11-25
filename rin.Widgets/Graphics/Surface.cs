@@ -168,14 +168,14 @@ public abstract class Surface : Disposable
                 width = drawExtent.width,
                 height = drawExtent.height
             }, [
-                SGraphicsModule.MakeRenderingAttachment(GetDrawImage().View,
+                SGraphicsModule.MakeRenderingAttachment(frame.DrawImage.View,
                     VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, clearColor
                         ? new VkClearValue
                         {
                             color = SGraphicsModule.MakeClearColorValue(1.0f)
                         }
                         : null)
-            ], stencilAttachment: SGraphicsModule.MakeRenderingAttachment(GetStencilImage().View,
+            ], stencilAttachment: SGraphicsModule.MakeRenderingAttachment(frame.StencilImage.View,
                 VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, clearColor
                     ? new VkClearValue
                     {
@@ -479,7 +479,9 @@ public abstract class Surface : Disposable
             HandleSkippedDraw(frame);
             return;
         }
-        
+
+        frame.GetBuilder().AddPass(new WidgetPass(this, drawCommands.ToArray()));
+        return;
         // BeginMainPass(new WidgetFrame(this,frame),clearColor: true);
         // EndActivePass(new WidgetFrame(this,frame));
         // HandleAfterDraw(frame);
@@ -493,7 +495,7 @@ public abstract class Surface : Disposable
 
         ulong memoryNeeded = 0;
         List<Pair<ulong,ulong>> bufferOffsetsAndSizes = [];
-        var widgetFrame = new WidgetFrame(this, frame);
+        var widgetFrame = new WidgetFrame(this, frame,GetDrawImage(),GetCopyImage(),GetStencilImage());
 
         foreach (var drawCommand in drawCommands)
             if (drawCommand.Type == CommandType.BatchedDraw)
