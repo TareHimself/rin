@@ -21,6 +21,8 @@ struct WindowCreateOptions
     bool maximized = false;
     
     bool cursorCentered = false;
+
+    bool transparent = false;
 };
 
 EXPORT_DECL int initWindows();

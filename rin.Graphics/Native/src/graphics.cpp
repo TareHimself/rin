@@ -28,7 +28,7 @@ EXPORT_IMPL GLFWwindow* createWindow(int width, int height, const char* name,con
     glfwWindowHint(GLFW_FLOATING, options->floating ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_MAXIMIZED, options->maximized ? GLFW_TRUE : GLFW_FALSE);
     glfwWindowHint(GLFW_CENTER_CURSOR, options->cursorCentered ? GLFW_TRUE : GLFW_FALSE);
-    
+    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER,options->cursorCentered ? GLFW_TRUE : GLFW_FALSE);
     
     if (const auto win = glfwCreateWindow(width, height, name, nullptr, nullptr))
     {

@@ -7,15 +7,14 @@ namespace rin.Graphics.FrameGraph;
 
 public class GraphBuilder : IGraphBuilder
 {
-    private readonly Dictionary<IResourceHandle, ImageResourceDescriptor> _images = [];
-    private readonly Dictionary<IResourceHandle, MemoryResourceDescriptor> _memory = [];
-    private readonly Dictionary<string, IResourceHandle> _resourceNamesToHandles = [];
-    private readonly Dictionary<IResourceHandle,IResourceDescriptor> _resources = [];
+    private readonly Dictionary<string, ImageResourceDescriptor> _images = [];
+    private readonly Dictionary<string, MemoryResourceDescriptor> _memory = [];
+    private readonly Dictionary<string,IResourceDescriptor> _resources = [];
     private readonly Dictionary<string, IPass> _passes = [];
-    private readonly Dictionary<IPass, HashSet<IResourceHandle>> _passWrites = [];
-    private readonly Dictionary<IPass, HashSet<IResourceHandle>> _passReads = [];
-    private readonly Dictionary<IResourceHandle, HashSet<IPass>> _resourceWrites = [];
-    private readonly Dictionary<IResourceHandle, HashSet<IPass>> _resourceReads = [];
+    private readonly Dictionary<IPass, HashSet<string>> _passWrites = [];
+    private readonly Dictionary<IPass, HashSet<string>> _passReads = [];
+    private readonly Dictionary<string, HashSet<IPass>> _resourceWrites = [];
+    private readonly Dictionary<string, HashSet<IPass>> _resourceReads = [];
     
     public IGraphBuilder AddPass(IPass pass)
     {
@@ -23,12 +22,8 @@ public class GraphBuilder : IGraphBuilder
         return this;
     }
     
-    public IResourceHandle MakeResourceHandle(IResourceDescriptor descriptor, string name)
-    {
-        return new ResourceHandle(name);
-    }
 
-    public IResourceHandle RequestImage(IPass pass,uint width, uint height, ImageFormat format, VkImageLayout initialLayout, string? name = null)
+    public string RequestImage(IPass pass,uint width, uint height, ImageFormat format, VkImageLayout initialLayout, string? name = null)
     {
         var flags = format is ImageFormat.Depth or ImageFormat.Stencil
             ? VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
@@ -43,73 +38,50 @@ public class GraphBuilder : IGraphBuilder
             Flags = flags,
             InitialLayout = initialLayout
         };
-        var imageName = name ?? $"image-{Guid.NewGuid().ToString()}";
-        var handle = MakeResourceHandle(descriptor, imageName);
-        _images.Add(handle, descriptor);
-        _resources.Add(handle,descriptor);
-        _resourceNamesToHandles.Add(imageName,handle);
-        Write(pass,handle);
-        return handle;
+        var resourceId = name ?? $"image-{Guid.NewGuid().ToString()}";
+        _images.Add(resourceId, descriptor);
+        _resources.Add(resourceId,descriptor);
+        Write(pass,resourceId);
+        return resourceId;
     }
 
-    public IResourceHandle RequestMemory(IPass pass,ulong size,string? name = null)
+    public string RequestMemory(IPass pass,ulong size,string? name = null)
     {
         var descriptor = new MemoryResourceDescriptor()
         {
             Size = size
         };
-        var memoryName = name ?? $"memory-{size}-{Guid.NewGuid().ToString()}";
-        var handle = MakeResourceHandle(descriptor,memoryName);
-        _memory.Add(handle, descriptor);
-        _resources.Add(handle,descriptor);
-        _resourceNamesToHandles.Add(memoryName,handle);
-        Write(pass,handle);
-        return handle;
+        var resourceId = name ?? $"memory-{size}-{Guid.NewGuid().ToString()}";
+        _memory.Add(resourceId, descriptor);
+        _resources.Add(resourceId,descriptor);
+        Write(pass,resourceId);
+        return resourceId;
     }
+    
 
-    public IResourceHandle Read(IPass pass,string name)
+    public string Read(IPass pass,string id)
     {
-        if (_resourceNamesToHandles.TryGetValue(name,out var handle))
-        {
-            return Read(pass,handle);
-        }
-        
-        throw new Exception("Resource does not exist");
-    }
-
-    public IResourceHandle Write(IPass pass,string name)
-    {
-        if (_resourceNamesToHandles.TryGetValue(name,out var handle))
-        {
-            return Write(pass,handle);
-        }
-        
-        throw new Exception("Resource does not exist");
-    }
-
-    public IResourceHandle Read(IPass pass,IResourceHandle handle)
-    {
-        if (_resources.TryGetValue(handle, out var resource))
+        if (_resources.TryGetValue(id, out var resource))
         {
             {
                 if (_passReads.TryGetValue(pass, out var read))
                 {
-                    read.Add(handle);
+                    read.Add(id);
                 }
                 else
                 {
-                    _passReads.Add(pass,[handle]);
+                    _passReads.Add(pass,[id]);
                 }
             }
             
             {
-                if (_resourceReads.TryGetValue(handle, out var read))
+                if (_resourceReads.TryGetValue(id, out var read))
                 {
                     read.Add(pass);
                 }
                 else
                 {
-                    _resourceReads.Add(handle,[pass]);
+                    _resourceReads.Add(id,[pass]);
                 }
             }
         }
@@ -117,32 +89,32 @@ public class GraphBuilder : IGraphBuilder
         {
             throw new Exception("Resource does not exist");
         }
-        return handle;
+        return id;
     }
 
-    public IResourceHandle Write(IPass pass,IResourceHandle handle)
+    public string Write(IPass pass,string id)
     {
-        if (_resources.TryGetValue(handle, out var resource))
+        if (_resources.TryGetValue(id, out var resource))
         {
             {
                 if (_passWrites.TryGetValue(pass, out var write))
                 {
-                    write.Add(handle);
+                    write.Add(id);
 
                 }
                 else
                 {
-                    _passWrites.Add(pass, [handle]);
+                    _passWrites.Add(pass, [id]);
                 }
             }
             {
-                if (_resourceWrites.TryGetValue(handle, out var write))
+                if (_resourceWrites.TryGetValue(id, out var write))
                 {
                     write.Add(pass);
                 }
                 else
                 {
-                    _resourceWrites.Add(handle,[pass]);
+                    _resourceWrites.Add(id,[pass]);
                 }
             }
         }
@@ -150,7 +122,7 @@ public class GraphBuilder : IGraphBuilder
         {
             throw new Exception("Resource does not exist");
         }
-        return handle;
+        return id;
     }
 
     protected void Configure()
@@ -165,12 +137,12 @@ public class GraphBuilder : IGraphBuilder
 
     struct ResourceCounter
     {
-        public required IResourceHandle Handle;
+        public required string Handle;
         public required int Reads;
         public required int Writes;
     }
     
-    public ICompiledGraph? Compile()
+    public ICompiledGraph? Compile(IImagePool imagePool)
     {
         Configure();
 
@@ -184,7 +156,7 @@ public class GraphBuilder : IGraphBuilder
 
         HashSet<IPass> validPasses = [];
         Dictionary<IPass,ICompiledGraphNode> nodes = [];
-        HashSet<IResourceHandle> validResources = [];
+        HashSet<string> validResources = [];
         Queue<IPass> toSearch = terminals.Aggregate(new Queue<IPass>(),(result,terminal) =>
         {
             nodes.Add(terminal, new CompiledGraphNode()
@@ -232,19 +204,18 @@ public class GraphBuilder : IGraphBuilder
             }
         }
 
-        var descriptors = new Dictionary<IResourceHandle, IResourceDescriptor>();
+        var descriptors = new Dictionary<string, IResourceDescriptor>();
         foreach (var resourceHandle in validResources)
         {
             descriptors.Add(resourceHandle,_resources[resourceHandle]);
         }
-        return new CompiledGraph(descriptors, nodes.Values.ToArray());
+        return new CompiledGraph(imagePool,descriptors, nodes.Values.ToArray());
     }
 
     public void Reset()
     {
         _images.Clear();
         _memory.Clear();
-        _resourceNamesToHandles.Clear();
         _resources.Clear();
         _passes.Clear();
         _passWrites.Clear();

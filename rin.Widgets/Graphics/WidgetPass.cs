@@ -9,10 +9,10 @@ namespace rin.Widgets.Graphics;
 
 public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
 {
-    private IResourceHandle? _drawImageHandle;
-    private IResourceHandle? _copyImageHandle;
-    private IResourceHandle? _stencilImageHandle;
-    private IResourceHandle? _bufferResourceHandle;
+    private string? _drawImageHandle;
+    private string? _copyImageHandle;
+    private string? _stencilImageHandle;
+    private string? _bufferResourceHandle;
     private readonly Vector2<uint> _drawSize = surface.GetDrawSize().Cast<uint>();
     private ulong _memoryNeeded = 0;
     private readonly List<Pair<ulong, ulong>> _offsets = [];
@@ -24,11 +24,11 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
     public void Configure(IGraphBuilder builder)
     {
         _drawImageHandle = builder.RequestImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Rgba32,
-            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,"images.widgets.draw");
         _copyImageHandle = builder.RequestImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Rgba32,
-            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,"images.widgets.copy");
         _stencilImageHandle = builder.RequestImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Stencil,
-            VkImageLayout.VK_IMAGE_LAYOUT_GENERAL);
+            VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,"images.widgets.stencil");
         
         foreach (var drawCommand in commands)
             if (drawCommand.Type == CommandType.BatchedDraw)
@@ -264,7 +264,7 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
         unsafe
         {
             fixed (VkClearColorValue* pColor = new[]
-                       { SGraphicsModule.MakeClearColorValue(new Vector4<float>(0.0f, 0.0f, 0.0f, 1.0f)) })
+                       { SGraphicsModule.MakeClearColorValue(new Vector4<float>(0.0f, 0.0f, 0.0f, 0.0f)) })
             {
                 fixed (VkImageSubresourceRange* pRanges = new[]
                            { SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT) })

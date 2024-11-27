@@ -658,7 +658,6 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
                         });
 
                         vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
-                        Console.WriteLine("Resetting immediate Fence");
                         var r = vkResetFences(_device, 1, pFences);
 
                         if (r != VkResult.VK_SUCCESS)
@@ -888,7 +887,6 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
                         });
 
                         vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
-                        Console.WriteLine("Resetting immediate Fence");
                         var r = vkResetFences(_device, 1, pFences);
 
                         if (r != VkResult.VK_SUCCESS)

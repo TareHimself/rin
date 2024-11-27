@@ -483,7 +483,8 @@ public class SWidgetTestModule : RuntimeModule
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin Widget Test", new CreateOptions()
         {
             Visible = true,
-            Decorated = true
+            Decorated = true,
+            Transparent = true
         });
         //TestText();
     }

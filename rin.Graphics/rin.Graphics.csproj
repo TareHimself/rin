@@ -40,7 +40,7 @@
 
     <Target Name="BuildNative" BeforeTargets="BeforeBuild">
         <Exec Command="cmake -DCMAKE_BUILD_TYPE=$(Configuration) -S ./Native/ -B ./Native/build/$(Configuration)" />
-        <Exec Command="cmake --build ./Native/build/$(Configuration)" />
+        <Exec Command="cmake --build ./Native/build/$(Configuration) -j 4" />
         <ItemGroup>
             <NativeFiles Include=".\Native\bin\$(Configuration)\*.*" />
             <Content Include="@(NativeFiles)">

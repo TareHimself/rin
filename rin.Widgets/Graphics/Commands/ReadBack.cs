@@ -13,8 +13,8 @@ public class ReadBack : CustomCommand
     {
         if(frame.IsAnyPassActive) frame.EndActivePass();
         var cmd = frame.Raw.GetCommandBuffer();
-        var drawImage = frame.Surface.GetDrawImage();
-        var copyImage = frame.Surface.GetCopyImage();
+        var drawImage = frame.DrawImage;
+        var copyImage = frame.CopyImage;
         drawImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
         copyImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,

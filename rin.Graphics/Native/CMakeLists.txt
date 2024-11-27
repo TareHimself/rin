@@ -34,11 +34,21 @@ FetchContent_Declare(fetch_vkb
     GIT_TAG v1.3.283
     GIT_SHALLOW 1
 )
+
 set(BUILD_SHARED_LIBS ON)
 set(GLFW_BUILD_EXAMPLES OFF)
 set(VK_BOOTSTRAP_TEST OFF)
 set(GLFW_BUILD_TESTS OFF)
 set(GLFW_BUILD_DOCS OFF)
+#set(SLANG_ENABLE_TESTS OFF)
+#set(SLANG_ENABLE_REPLAYER OFF)
+#set(SLANG_USE_SYSTEM_VULKAN_HEADERS ON)
+#set(SLANG_ENABLE_EXAMPLES OFF)
+#set(SLANG_ENABLE_SLANG_GLSLANG OFF)
+#set(SLANG_ENABLE_SLANGD OFF)
+#set(SLANG_ENABLE_GFX OFF)
+
+
 FetchContent_MakeAvailable(fetch_glfw fetch_vkma fetch_vkb)
 
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)

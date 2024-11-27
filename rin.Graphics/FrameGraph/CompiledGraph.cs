@@ -7,13 +7,15 @@ namespace rin.Graphics.FrameGraph;
 
 public class CompiledGraph : ICompiledGraph
 {
-    private readonly Dictionary<IResourceHandle, IGraphResource> _resources = [];
-    private readonly Dictionary<IResourceHandle, IResourceDescriptor> _descriptors;
+    private IImagePool _imagePool;
+    private readonly Dictionary<string, IGraphResource> _resources = [];
+    private readonly Dictionary<string, IResourceDescriptor> _descriptors;
     private readonly ICompiledGraphNode[] _nodes;
     private readonly DeviceBuffer? _buffer = null;
     private ulong _bufferOffset = 0;
-    public CompiledGraph(Dictionary<IResourceHandle, IResourceDescriptor> descriptors, ICompiledGraphNode[] nodes)
+    public CompiledGraph(IImagePool imagePool,Dictionary<string, IResourceDescriptor> descriptors, ICompiledGraphNode[] nodes)
     {
+        _imagePool = imagePool;
         var memoryNeeded = descriptors.Values.Aggregate((ulong)0, (total, descriptor) =>
         {
             if (descriptor is MemoryResourceDescriptor asMemoryDescriptor)
@@ -29,20 +31,21 @@ public class CompiledGraph : ICompiledGraph
             _buffer = SGraphicsModule.Get().GetAllocator().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
         }
         
-        
         _descriptors = descriptors;
+        
         _nodes = nodes;
     }
     
     public void Dispose()
     {
+        _buffer?.Dispose();
         foreach (var (_,resource) in _resources)
         {
-            resource.Dispose();
+            if(resource is not DeviceImage) resource.Dispose();
         }
     }
 
-    public IGraphResource GetResource(IResourceHandle handle)
+    public IGraphResource GetResource(string handle)
     {
         {
             if (_resources.TryGetValue(handle, out var resource)) return resource;
@@ -63,12 +66,7 @@ public class CompiledGraph : ICompiledGraph
         {
             if (descriptor is ImageResourceDescriptor asImageResourceDescriptor)
             {
-                var image = SGraphicsModule.Get().CreateImage(new VkExtent3D()
-                {
-                    width = asImageResourceDescriptor.Width,
-                    height = asImageResourceDescriptor.Height,
-                    depth = 1
-                },asImageResourceDescriptor.Format,asImageResourceDescriptor.Flags,debugName: "Frame Graph Image");
+                var image = _imagePool.GetOrCreateImage(asImageResourceDescriptor, handle);
                 _resources.Add(handle,image);
                 return image;
             }

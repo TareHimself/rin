@@ -1,6 +1,6 @@
 namespace rin.Graphics.FrameGraph;
 
-public class MemoryResourceDescriptor : IResourceDescriptor
+public struct MemoryResourceDescriptor : IResourceDescriptor
 {
     public required ulong Size;
 }

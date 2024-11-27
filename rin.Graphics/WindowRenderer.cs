@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using rin.Core;
 using rin.Core.Math;
+using rin.Graphics.FrameGraph;
 using rin.Graphics.Windows;
 using rin.Graphics.Windows.Events;
 using rin.Windows;
@@ -27,6 +28,7 @@ public partial class WindowRenderer : Disposable
     private VkImage[] _swapchainImages = [];
     private readonly HashSet<VkPresentModeKHR> _supportedPresentModes;
     public double LastFrameTime = 0.0;
+    private IImagePool _imagePool;
 
     private VkExtent2D _swapchainSize = new()
     {
@@ -49,6 +51,7 @@ public partial class WindowRenderer : Disposable
         _surface = CreateSurface();
         _module = module;
         _supportedPresentModes = _module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
+        _imagePool = new ImagePool(this);
     }
 
     public WindowRenderer(SGraphicsModule module, Window window, VkSurfaceKHR surface)
@@ -57,6 +60,7 @@ public partial class WindowRenderer : Disposable
         _surface = surface;
         _module = module;
         _supportedPresentModes = _module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
+        _imagePool = new ImagePool(this);
     }
 
     public unsafe VkSurfaceKHR CreateSurface()
@@ -66,6 +70,8 @@ public partial class WindowRenderer : Disposable
         NativeGraphicsMethods.CreateSurface(instance, _window.GetPtr(),&surface);
         return surface;
     }
+
+    public uint GetFrameCount() => FramesInFlight;
 
     public void Init()
     {
@@ -104,6 +110,7 @@ public partial class WindowRenderer : Disposable
         // _window.OnMaximized -= OnMaximized;
         _window.OnRefresh -= OnWindowRefreshed;
         _window.OnResized -= OnWindowResized;
+        _imagePool.Dispose();
         foreach (var frame in _frames) frame.Dispose();
 
         _frames = [];
@@ -307,6 +314,8 @@ public partial class WindowRenderer : Disposable
         var device = _module.GetDevice();
 
         frame.WaitForLastDraw();
+        
+        _imagePool.OnFrameStart(_framesRendered);
 
         frame.Reset();
 
@@ -356,7 +365,7 @@ public partial class WindowRenderer : Disposable
         {
             OnDraw?.Invoke(frame);
 
-            var graph = frame.GetBuilder().Compile();
+            var graph = frame.GetBuilder().Compile(_imagePool);
             graph?.Run(frame);
             if (graph != null)
             {

@@ -66,7 +66,7 @@ public class BlurCommand(Matrix3 transform, Vector2<float> size,float radius, Ve
         var cmd = frame.Raw.GetCommandBuffer();
         if (_blurShader.Bind(cmd,true))
         {
-            var copyImage = frame.Surface.GetCopyImage();
+            var copyImage = frame.DrawImage;
             var descriptorSet = frame.Raw.GetDescriptorAllocator()
                 .Allocate(_blurShader.GetDescriptorSetLayouts().First().Value);
             descriptorSet.WriteImages(_blurShader.Resources["SourceT"].Binding, new ImageWrite(copyImage,
