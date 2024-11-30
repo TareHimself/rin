@@ -4,11 +4,28 @@ namespace rin.Graphics.FrameGraph;
 
 public class ImagePool(WindowRenderer renderer) : IImagePool
 {
-    struct PooledImage
+    struct PooledImage : IDeviceImage
     {
-        public required DeviceImage Image;
+        public required IDeviceImage Image;
         public required ulong LastUsed;
+        
+        public void Dispose()
+        {
+            
+        }
+        
+        public ImageFormat Format => Image.Format;
+        public VkExtent3D Extent => Image.Extent;
+        public VkImage NativeImage => Image.NativeImage;
+
+        public VkImageView NativeView
+        {
+            get => Image.NativeView;
+            set {}
+        }
     }
+    
+    
     
     private readonly Dictionary<string, PooledImage> _imagePool = [];
     private ulong _currentFrame = 0;
@@ -21,7 +38,7 @@ public class ImagePool(WindowRenderer renderer) : IImagePool
         }
     }
 
-    public DeviceImage GetOrCreateImage(ImageResourceDescriptor descriptor, string id)
+    public IDeviceImage GetOrCreateImage(ImageResourceDescriptor descriptor, string id)
     {
         var cacheId = $"{descriptor.GetHashCode()}-{id}";
 

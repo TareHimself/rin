@@ -24,7 +24,7 @@ public sealed class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
 
     protected override QuadBatch MakeNewBatch() => new QuadBatch();
 
-    protected override uint WriteBatch(WidgetFrame frame, DeviceBuffer.View view, QuadBatch batch, GraphicsShader shader)
+    protected override uint WriteBatch(WidgetFrame frame, IDeviceBuffer view, QuadBatch batch, GraphicsShader shader)
     {
         var cmd = frame.Raw.GetCommandBuffer();
         var resourceSet = SGraphicsModule.Get().GetResourceManager().GetDescriptorSet();

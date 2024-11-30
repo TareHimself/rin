@@ -5,7 +5,7 @@ namespace rin.Widgets.Graphics;
 
 public abstract class SimpleQuadBatcher<T>  : IBatcher where T : IBatch
 {
-    public void Draw(WidgetFrame frame, IBatch batch, DeviceBuffer.View view)
+    public void Draw(WidgetFrame frame, IBatch batch, IDeviceBuffer view)
     {
         var shader = GetShader();
         var cmd = frame.Raw.GetCommandBuffer();
@@ -24,7 +24,7 @@ public abstract class SimpleQuadBatcher<T>  : IBatcher where T : IBatch
 
     protected abstract GraphicsShader GetShader();
     protected abstract T MakeNewBatch();
-    
+
     /// <summary>
     /// Bind sets, write data, push constants and return the number of quads to draw
     /// </summary>
@@ -33,5 +33,5 @@ public abstract class SimpleQuadBatcher<T>  : IBatcher where T : IBatch
     /// <param name="batch"></param>
     /// <param name="shader"></param>
     /// <returns></returns>
-    protected abstract uint WriteBatch(WidgetFrame frame, DeviceBuffer.View view,T batch,GraphicsShader shader);
+    protected abstract uint WriteBatch(WidgetFrame frame, IDeviceBuffer view, T batch, GraphicsShader shader);
 }

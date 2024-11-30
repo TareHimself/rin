@@ -67,7 +67,7 @@ internal class StaticMeshDrawCommand : Command
                 vertexBufferAddress = Mesh.Geometry.VertexBufferAddress
             });
             
-            vkCmdBindIndexBuffer(cmd,Mesh.Geometry.IndexBuffer.Buffer,0,VkIndexType.VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(cmd,Mesh.Geometry.IndexBuffer._buffer,0,VkIndexType.VK_INDEX_TYPE_UINT32);
             
             vkCmdDrawIndexed(cmd,surface.Count,1,surface.StartIndex,0,0);
         }

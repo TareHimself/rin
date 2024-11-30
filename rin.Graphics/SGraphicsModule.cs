@@ -503,7 +503,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
 
     public static VkImageViewCreateInfo MakeImageViewCreateInfo(DeviceImage image, VkImageAspectFlags aspect)
     {
-        return MakeImageViewCreateInfo(image.Format, image.Image, aspect);
+        return MakeImageViewCreateInfo(image.Format, image.NativeImage, aspect);
     }
 
     public static VkImageViewCreateInfo MakeImageViewCreateInfo(ImageFormat format, VkImage image,
@@ -545,7 +545,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     }
 
 
-    public DeviceImage CreateImage(VkExtent3D size, ImageFormat format, VkImageUsageFlags usage, bool mipMap = false,
+    public IDeviceImage CreateImage(VkExtent3D size, ImageFormat format, VkImageUsageFlags usage, bool mipMap = false,
         string debugName = "Image")
     {
         var imageCreateInfo = MakeImageCreateInfo(format, size, usage);
@@ -567,11 +567,11 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
         };
 
-        var viewCreateInfo = MakeImageViewCreateInfo(format, newImage.Image, aspectFlags);
+        var viewCreateInfo = MakeImageViewCreateInfo(format, newImage.NativeImage, aspectFlags);
 
         viewCreateInfo.subresourceRange.levelCount = imageCreateInfo.mipLevels;
 
-        newImage.View = CreateImageView(viewCreateInfo);
+        newImage.NativeView = CreateImageView(viewCreateInfo);
 
         return newImage;
     }
@@ -689,7 +689,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         }
     }
 
-    private static void GenerateMipMaps(VkCommandBuffer cmd, DeviceImage image, VkExtent2D size, VkFilter filter)
+    private static void GenerateMipMaps(VkCommandBuffer cmd, IDeviceImage image, VkExtent2D size, VkFilter filter)
     {
         var mipLevels = DeriveMipLevels(size);
         var curSize = size;
@@ -751,9 +751,9 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
                     var blitInfo = new VkBlitImageInfo2
                     {
                         sType = VkStructureType.VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
-                        srcImage = image.Image,
+                        srcImage = image.NativeImage,
                         srcImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        dstImage = image.Image,
+                        dstImage = image.NativeImage,
                         dstImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                         regionCount = 1,
                         pRegions = &blitRegion,
@@ -784,7 +784,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     /// <param name="debugName"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<DeviceImage> CreateImage(NativeBuffer<byte> content, VkExtent3D size, ImageFormat format,
+    public async Task<IDeviceImage> CreateImage(NativeBuffer<byte> content, VkExtent3D size, ImageFormat format,
         VkImageUsageFlags usage,
         bool mipMap = false, ImageFilter mipMapFilter = ImageFilter.Linear,
         string debugName = "Image")
@@ -821,7 +821,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
 
             unsafe
             {
-                vkCmdCopyBufferToImage(cmd, uploadBuffer.Buffer, newImage.Image,
+                vkCmdCopyBufferToImage(cmd, uploadBuffer.NativeBuffer, newImage.NativeImage,
                     VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
             }
 

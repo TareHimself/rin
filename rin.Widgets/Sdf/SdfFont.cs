@@ -4,7 +4,7 @@ using SixLabors.Fonts;
 
 namespace rin.Widgets.Sdf;
 
-public class SdfFont : MultiDisposable
+public class SdfFont : Reservable
 {
     private readonly Mutex _mutex = new();
     private readonly FontFamily _fontFamily;

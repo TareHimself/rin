@@ -75,7 +75,6 @@ public class TextBox : ContentWidget
     public TextBox(string inContent = "", float inFontSize = 100f,string fontFamily = "Arial")
     {
         FontSize = inFontSize;
-        var gs = SGraphicsModule.Get();
         _content = inContent;
         _cachedLayouts = null;
         _cachedBounds = null;
@@ -130,6 +129,7 @@ public class TextBox : ContentWidget
 
     protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
     {
+        _cachedLayouts = null;
         Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X : null : null;
         var bounds = GetCharacterBounds(Wrap).ToArray();
         var width = bounds.MaxBy(c => c.Right)?.Right ?? 0.0f;
@@ -242,7 +242,7 @@ public class TextBox : ContentWidget
             }
 
             drawCommands.Add(new QuadDrawCommand(quads));
-            //_cachedLayouts = layouts.ToArray();
+            _cachedLayouts = layouts.ToArray();
         }
         else if(_cachedLayouts != null)
         {

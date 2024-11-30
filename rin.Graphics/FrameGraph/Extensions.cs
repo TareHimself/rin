@@ -9,11 +9,11 @@ public static class Extensions
         return builder.AddPass(new ActionPass(configure, run,terminal,name));
     }
 
-    public static DeviceImage AsImage(this IGraphResource resource) => resource is DeviceImage asImage
+    public static IDeviceImage AsImage(this IGraphResource resource) => resource is IDeviceImage asImage
         ? asImage
         : throw new Exception("Resource is not image");
     
-    public static DeviceBuffer.View AsMemory(this IGraphResource resource) => resource is DeviceBuffer.View asMemory
+    public static IDeviceBuffer AsMemory(this IGraphResource resource) => resource is IDeviceBuffer asMemory
         ? asMemory
         : throw new Exception("Resource is not memory");
 }

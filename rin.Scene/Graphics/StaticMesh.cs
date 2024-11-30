@@ -6,7 +6,7 @@ using rin.Core.Math;
 
 namespace rin.Scene.Graphics;
 
-public class StaticMesh : MultiDisposable
+public class StaticMesh : Reservable
 {
     public readonly MeshSurface[] Surfaces;
     public DeviceGeometry Geometry;

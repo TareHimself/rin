@@ -27,7 +27,7 @@ public class PrettyShaderDrawCommand(Matrix3 transform,Vector2<float> size,bool 
 
     private readonly GraphicsShader _prettyShader = GraphicsShader.FromFile(Path.Join(SRuntime.ResourcesDirectory,"test","pretty.rsl"));
 
-    public override void Run(WidgetFrame frame, uint stencilMask,DeviceBuffer.View? view = null)
+    public override void Run(WidgetFrame frame, uint stencilMask,IDeviceBuffer? view = null)
     {
         frame.BeginMainPass();
         var cmd = frame.Raw.GetCommandBuffer();

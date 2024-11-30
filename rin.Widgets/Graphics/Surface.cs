@@ -117,14 +117,14 @@ public abstract class Surface : Disposable
                 width = drawExtent.width,
                 height = drawExtent.height
             }, [
-                SGraphicsModule.MakeRenderingAttachment(frame.DrawImage.View,
+                SGraphicsModule.MakeRenderingAttachment(frame.DrawImage.NativeView,
                     VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, clearColor
                         ? new VkClearValue
                         {
                             color = SGraphicsModule.MakeClearColorValue(1.0f)
                         }
                         : null)
-            ], stencilAttachment: SGraphicsModule.MakeRenderingAttachment(frame.StencilImage.View,
+            ], stencilAttachment: SGraphicsModule.MakeRenderingAttachment(frame.StencilImage.NativeView,
                 VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, clearColor
                     ? new VkClearValue
                     {

@@ -20,7 +20,7 @@ public class ResourceManager : Disposable
 
     public class BoundTexture
     {
-        public readonly DeviceImage? Image;
+        public readonly IDeviceImage? Image;
         public readonly ImageFilter Filter;
         public readonly ImageTiling Tiling;
         public bool MipMapped = false;
@@ -32,7 +32,7 @@ public class ResourceManager : Disposable
             DebugName = "";
         }
 
-        public BoundTexture(DeviceImage image, ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
+        public BoundTexture(IDeviceImage image, ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
         {
             Image = image;
             Filter = filter;
@@ -173,7 +173,7 @@ public class ResourceManager : Disposable
             var imageInfo = new VkDescriptorImageInfo()
             {
                 sampler = sampler,
-                imageView = info.Image!.View,
+                imageView = info.Image!.NativeView,
                 imageLayout = VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
             };
 
@@ -225,7 +225,7 @@ public class ResourceManager : Disposable
         return IsTextureIdValid(textureId) ? _textures[textureId] : null;
     }
 
-    public DeviceImage? GetTextureImage(int textureId)
+    public IDeviceImage? GetTextureImage(int textureId)
     {
         return GetTextureInfo(textureId)?.Image;
     }

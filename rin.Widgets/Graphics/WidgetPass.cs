@@ -35,7 +35,7 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
             {
                 var offset = _memoryNeeded;
                 
-                foreach (var size in drawCommand.Batch!.GetMemoryNeeded())
+                foreach (var size in drawCommand.Batch!.GetMemoryNeeded()) 
                 {
                     // memoryNeeded += size;
                     // var dist = memoryNeeded & minOffsetAlignment;
@@ -257,7 +257,7 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
         };
     }
     
-    public virtual void BeforeDraw(VkCommandBuffer cmd,DeviceImage drawImage,DeviceImage copyImage,DeviceImage stencilImage)
+    public virtual void BeforeDraw(VkCommandBuffer cmd,IDeviceImage drawImage,IDeviceImage copyImage,IDeviceImage stencilImage)
     {
         drawImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL);
         copyImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL);
@@ -269,9 +269,9 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
                 fixed (VkImageSubresourceRange* pRanges = new[]
                            { SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT) })
                 {
-                    vkCmdClearColorImage(cmd,drawImage.Image, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL, pColor, 1,
+                    vkCmdClearColorImage(cmd,drawImage.NativeImage, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL, pColor, 1,
                         pRanges);
-                    vkCmdClearColorImage(cmd,copyImage.Image, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL, pColor, 1,
+                    vkCmdClearColorImage(cmd,copyImage.NativeImage, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL, pColor, 1,
                         pRanges);
                 }
             }
@@ -299,7 +299,7 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
                                                                      VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
                        })
                 {
-                    vkCmdClearDepthStencilImage(cmd, stencilImage.Image, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,
+                    vkCmdClearDepthStencilImage(cmd, stencilImage.NativeImage, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,
                         pColor, 1, pRanges);
                     ResetStencilState(cmd);
                 }

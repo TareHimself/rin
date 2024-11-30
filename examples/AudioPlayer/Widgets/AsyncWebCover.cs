@@ -35,6 +35,7 @@ public class AsyncWebCover : CoverImage
             },
             ImageFormat.Rgba8).Then(c => TextureId = c);
         await img.SaveAsPngAsync("./latest.png");
+        
     }
 
     public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)

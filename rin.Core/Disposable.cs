@@ -1,6 +1,6 @@
 ﻿namespace rin.Core;
 
-public abstract class Disposable : IAeroxDisposable
+public abstract class Disposable : IDisposable
 {
     public bool Disposed { get; set; }
 

@@ -7,7 +7,7 @@ namespace rin.Graphics;
 /// <summary>
 ///     GPU Memory
 /// </summary>
-public abstract partial class DeviceMemory(Allocator allocator, IntPtr allocation) : MultiDisposable
+public abstract partial class DeviceMemory(Allocator allocator, IntPtr allocation) : Reservable
 {
     public readonly IntPtr Allocation = allocation;
     protected readonly Allocator Allocator = allocator;

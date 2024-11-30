@@ -4,12 +4,12 @@ namespace rin.Graphics.Descriptors;
 
 public class ImageWrite
 {
-    public readonly DeviceImage Image;
+    public readonly IDeviceImage Image;
     public readonly VkImageLayout Layout;
     public readonly ImageType Type;
     public SamplerSpec Sampler;
 
-    public ImageWrite(DeviceImage image, VkImageLayout layout, ImageType type, SamplerSpec spec)
+    public ImageWrite(IDeviceImage image, VkImageLayout layout, ImageType type, SamplerSpec spec)
     {
         Image = image;
         Layout = layout;

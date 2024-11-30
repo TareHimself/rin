@@ -7,11 +7,11 @@ namespace rin.Graphics.FrameGraph;
 
 public class CompiledGraph : ICompiledGraph
 {
-    private IImagePool _imagePool;
+    private readonly IImagePool _imagePool;
     private readonly Dictionary<string, IGraphResource> _resources = [];
     private readonly Dictionary<string, IResourceDescriptor> _descriptors;
     private readonly ICompiledGraphNode[] _nodes;
-    private readonly DeviceBuffer? _buffer = null;
+    private readonly IDeviceBuffer? _buffer = null;
     private ulong _bufferOffset = 0;
     public CompiledGraph(IImagePool imagePool,Dictionary<string, IResourceDescriptor> descriptors, ICompiledGraphNode[] nodes)
     {

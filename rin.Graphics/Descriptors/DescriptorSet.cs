@@ -8,9 +8,7 @@ public class DescriptorSet : Disposable
 {
     private readonly VkDescriptorSet _descriptorSet;
     private readonly VkDevice _device;
-    private readonly Dictionary<uint, Resource> _resources = [];
-
-
+    
     public DescriptorSet(VkDevice device, VkDescriptorSet descriptorSet)
     {
         _device = device;
@@ -37,52 +35,52 @@ public class DescriptorSet : Disposable
         };
     }
 
-    private bool SetResource(uint binding, IEnumerable<MultiDisposable> items)
-    {
-        if (_resources.TryGetValue(binding, out var resource))
-        {
-            resource.Dispose();
-            _resources.Remove(binding);
-        }
-
-
-        _resources.Add(binding, new Resource(items.Select(item =>
-        {
-            item.Reserve();
-
-            return item;
-        })));
-
-        return true;
-    }
+    // private bool SetResource(uint binding, IEnumerable<IReservable> items)
+    // {
+    //     if (_resources.TryGetValue(binding, out var resource))
+    //     {
+    //         resource.Dispose();
+    //         _resources.Remove(binding);
+    //     }
+    //
+    //
+    //     _resources.Add(binding, new Resource(items.Select(item =>
+    //     {
+    //         item.Reserve();
+    //
+    //         return item;
+    //     })));
+    //
+    //     return true;
+    // }
     
-    private bool SetResource(uint binding, IEnumerable<Pair<MultiDisposable,string>> items)
-    {
-        if (_resources.TryGetValue(binding, out var resource))
-        {
-            resource.Dispose();
-            _resources.Remove(binding);
-        }
-
-
-        _resources.Add(binding, new Resource(items.Select(item =>
-        {
-            item.First.Reserve();
-            
-            return new Pair<IAeroxDisposable,string>(item.First,item.Second);
-        })));
-
-        return true;
-    }
+    // private bool SetResource(uint binding, IEnumerable<Pair<IReservable,string>> items)
+    // {
+    //     if (_resources.TryGetValue(binding, out var resource))
+    //     {
+    //         resource.Dispose();
+    //         _resources.Remove(binding);
+    //     }
+    //
+    //
+    //     _resources.Add(binding, new Resource(items.Select(item =>
+    //     {
+    //         item.First.Reserve();
+    //         
+    //         return new Pair<IDisposable,string>(item.First,item.Second);
+    //     })));
+    //
+    //     return true;
+    // }
 
     public bool WriteImages(uint binding, params ImageWrite[] writes)
     {
-        if (!SetResource(binding,writes.Select(c => c.Image))) return false;
-        
+        // if (!SetResource(binding,writes.Select(c => c.Image))) return false;
+        //
         var infos = writes.Select(image => new VkDescriptorImageInfo
         {
             sampler = SGraphicsModule.Get().GetSampler(image.Sampler),
-            imageView = image.Image.View,
+            imageView = image.Image.NativeView,
             imageLayout = image.Layout
         }).ToArray();
         
@@ -109,11 +107,11 @@ public class DescriptorSet : Disposable
 
     public bool WriteBuffers(uint binding, params BufferWrite[] writes)
     {
-        if (!SetResource(binding, writes.Select(c => c.View))) return false;
-        
+        // if (!SetResource(binding, writes.Select(c => c.View))) return false;
+        //
         var infos = writes.Select(write => new VkDescriptorBufferInfo
         {
-            buffer = write.View,
+            buffer = write.View.NativeBuffer,
             offset = write.Offset,
             range = write.Size
         }).ToArray();
@@ -146,26 +144,24 @@ public class DescriptorSet : Disposable
 
     protected override void OnDispose(bool isManual)
     {
-        foreach (var resource in _resources) resource.Value.Dispose();
-        _resources.Clear();
     }
 
     private class Resource : Disposable
     {
         public string ResourceId { get; private set; }
-        private readonly IAeroxDisposable[] _resources;
+        private readonly IDisposable[] _resources;
 
-        public Resource(IEnumerable<IAeroxDisposable> resources)
+        public Resource(IEnumerable<IDisposable> resources)
         {
             _resources = resources.ToArray();
-            ResourceId = _resources.Aggregate("", (t, c) => t + c.DisposeId);
+            ResourceId = _resources.Aggregate("", (t, c) => t + c.GetHashCode());
         }
         
-        public Resource(IEnumerable<Pair<IAeroxDisposable,string>> resources)
+        public Resource(IEnumerable<Pair<IDisposable,string>> resources)
         {
             var resourcesArray = resources.ToArray();
             _resources = resourcesArray.Select(c => c.First).ToArray();
-            ResourceId = resourcesArray.Aggregate("", (t, c) => t + c.First.DisposeId + c.Second);
+            ResourceId = resourcesArray.Aggregate("", (t, c) => t + c.First.GetHashCode() + c.Second);
         }
 
         protected override void OnDispose(bool isManual)

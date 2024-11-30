@@ -4,6 +4,7 @@ namespace rin.Graphics.FrameGraph;
 
 public interface IPass : IDisposable
 {
+    
     public void Configure(IGraphBuilder builder);
 
     public void Execute(ICompiledGraph graph,Frame frame,VkCommandBuffer cmd);

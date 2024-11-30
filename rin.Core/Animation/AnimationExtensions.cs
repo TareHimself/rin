@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 
 namespace rin.Core.Animation;
 
@@ -124,4 +125,5 @@ public static class AnimationExtensions
         where TValue : struct, ISubtractionOperators<TValue, TValue, TValue>, IMultiplyOperators<TValue, float, TValue>,
         IAdditionOperators<TValue, TValue, TValue>
     => target.Add(new TransitionAnimation<TValue>(() => from, to, setter, duration, easingFunction));
+    
 }

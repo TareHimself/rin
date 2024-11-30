@@ -60,7 +60,7 @@ public class BlurCommand(Matrix3 transform, Vector2<float> size,float radius, Ve
     //     frame.Raw.ConfigureForWidgets(size.Cast<uint>());
     // }
 
-    public override void Run(WidgetFrame frame, uint stencilMask,DeviceBuffer.View? view = null)
+    public override void Run(WidgetFrame frame, uint stencilMask,IDeviceBuffer? view = null)
     {
         frame.BeginMainPass();
         var cmd = frame.Raw.GetCommandBuffer();

@@ -485,10 +485,10 @@ public static class VulkanExtensions
     /// <param name="from"></param>
     /// <param name="to"></param>
     /// <param name="options"></param>
-    public static void ImageBarrier(this VkCommandBuffer commandBuffer, DeviceImage image, VkImageLayout from,
+    public static void ImageBarrier(this VkCommandBuffer commandBuffer, IDeviceImage image, VkImageLayout from,
         VkImageLayout to, ImageBarrierOptions? options = null)
     {
-        ImageBarrier(commandBuffer, image.Image, from, to, options);
+        ImageBarrier(commandBuffer, image.NativeImage, from, to, options);
     }
     
     /// <summary>
@@ -530,17 +530,17 @@ public static class VulkanExtensions
     }
     
     
-    public static void CopyImageToImage(this VkCommandBuffer commandBuffer, DeviceImage src, DeviceImage dst,
+    public static void CopyImageToImage(this VkCommandBuffer commandBuffer, IDeviceImage src, IDeviceImage dst,
         ImageFilter filter = ImageFilter.Linear)
     {
-        CopyImageToImage(commandBuffer, src.Image, dst.Image, src.Extent, dst.Extent, filter);
+        CopyImageToImage(commandBuffer, src.NativeImage, dst.NativeImage, src.Extent, dst.Extent, filter);
     }
 
-    public static void CopyImageToImage(this VkCommandBuffer commandBuffer, DeviceImage src, DeviceImage dst,
+    public static void CopyImageToImage(this VkCommandBuffer commandBuffer, IDeviceImage src, IDeviceImage dst,
         VkExtent3D srcExtent,
         VkExtent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
     {
-        CopyImageToImage(commandBuffer, src.Image, dst.Image, srcExtent, dstExtent, filter);
+        CopyImageToImage(commandBuffer, src.NativeImage, dst.NativeImage, srcExtent, dstExtent, filter);
     }
     
     public static void CopyImageToImage(this VkCommandBuffer commandBuffer, VkImage src, VkImage dst, VkExtent3D srcExtent,

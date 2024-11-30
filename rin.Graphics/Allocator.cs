@@ -38,7 +38,7 @@ public partial class Allocator : Disposable
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" />
     /// </summary>
-    public DeviceBuffer NewBuffer(ulong size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags propertyFlags,
+    public IDeviceBuffer NewBuffer(ulong size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags propertyFlags,
         bool sequentialWrite = true, bool preferHost = false, bool mapped = false, string debugName = "Buffer")
     {
         unsafe
@@ -56,7 +56,7 @@ public partial class Allocator : Disposable
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for transfers/staging
     /// </summary>
-    public DeviceBuffer NewTransferBuffer(ulong size, bool sequentialWrite = true,
+    public IDeviceBuffer NewTransferBuffer(ulong size, bool sequentialWrite = true,
         string debugName = "Transfer Buffer")
     {
         return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -68,7 +68,7 @@ public partial class Allocator : Disposable
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for transfers/staging
     /// </summary>
-    public DeviceBuffer NewStorageBuffer<T>(bool sequentialWrite = true, string debugName = "storageBuffer")
+    public IDeviceBuffer NewStorageBuffer<T>(bool sequentialWrite = true, string debugName = "storageBuffer")
     {
         return NewStorageBuffer((ulong)Marshal.SizeOf<T>(), sequentialWrite, debugName);
     }
@@ -76,7 +76,7 @@ public partial class Allocator : Disposable
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
     /// </summary>
-    public DeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true,
+    public IDeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true,
         string debugName = "Storage Buffer")
     {
         return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -86,7 +86,7 @@ public partial class Allocator : Disposable
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
     /// </summary>
-    public DeviceBuffer NewUniformBuffer(ulong size, bool sequentialWrite = true,
+    public IDeviceBuffer NewUniformBuffer(ulong size, bool sequentialWrite = true,
         string debugName = "Uniform Buffer")
     {
         return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -96,7 +96,7 @@ public partial class Allocator : Disposable
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
     /// </summary>
-    public DeviceBuffer NewUniformBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer")
+    public IDeviceBuffer NewUniformBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer")
     {
         return NewUniformBuffer((ulong)Marshal.SizeOf<T>(), sequentialWrite, debugName);
     }
@@ -104,7 +104,7 @@ public partial class Allocator : Disposable
     /// <summary>
     ///     Allocates a <see cref="DeviceImage" />
     /// </summary>
-    public DeviceImage NewDeviceImage(VkImageCreateInfo imageCreateInfo, string debugName = "Image")
+    public IDeviceImage NewDeviceImage(VkImageCreateInfo imageCreateInfo, string debugName = "Image")
     {
         unsafe
         {
@@ -122,7 +122,7 @@ public partial class Allocator : Disposable
     /// </summary>
     public void FreeBuffer(DeviceBuffer buffer)
     {
-        NativeMethods.FreeBuffer(buffer.Buffer, buffer.Allocation, _allocator);
+        NativeMethods.FreeBuffer(buffer.NativeBuffer, buffer.Allocation, _allocator);
     }
 
     /// <summary>
@@ -132,8 +132,8 @@ public partial class Allocator : Disposable
     {
         unsafe
         {
-            vkDestroyImageView(_module.GetDevice(), image.View, null);
-            NativeMethods.FreeImage(image.Image, image.Allocation, _allocator);
+            vkDestroyImageView(_module.GetDevice(), image.NativeView, null);
+            NativeMethods.FreeImage(image.NativeImage, image.Allocation, _allocator);
         }
     }
 }
