@@ -1,4 +1,4 @@
-﻿using rin.Core;
+﻿using rin.Runtime.Core;
 
 namespace rin.Editor;
 
@@ -6,7 +6,7 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        //Runtime.Instance.EnsureLoad("rin.Core","rin.Audio","rin.Graphics","rin.Windows","rin.Widgets");
+        //Runtime.Instance.EnsureLoad("rin.Framework.Core","rin.Framework.Audio","rin.Framework.Graphics","rin.Windows","rin.Framework.Widgets");
         SRuntime.Get().Run();
     }
 

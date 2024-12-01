@@ -8,10 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\rin.Audio\rin.Audio.csproj"/>
         <ProjectReference Include="..\..\rin.Scene\rin.Scene.csproj"/>
-        <ProjectReference Include="..\..\rin.Widgets\rin.Widgets.csproj"/>
-        <ProjectReference Include="..\..\rin.Core\rin.Core.csproj"/>
+        <ProjectReference Include="..\..\rin.Runtime.Widgets\rin.Runtime.Widgets.csproj" />
+        <ProjectReference Include="..\..\rin.Runtime.Core\rin.Runtime.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>

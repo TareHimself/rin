@@ -1,4 +1,4 @@
-﻿using rin.Core.Math;
+﻿using rin.Runtime.Core.Math;
 using rin.Scene.Graphics;
 
 namespace rin.Scene.Components;

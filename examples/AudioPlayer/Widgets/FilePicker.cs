@@ -1,15 +1,15 @@
-﻿using rin.Core;
-using rin.Core.Animation;
-using rin.Core.Extensions;
-using rin.Core.Math;
-using rin.Widgets;
-using rin.Widgets.Animation;
-using rin.Widgets.Containers;
-using rin.Widgets.Content;
-using rin.Widgets.Graphics.Commands;
-using rin.Widgets.Events;
-using rin.Widgets.Graphics;
-using rin.Widgets.Graphics.Quads;
+﻿
+using rin.Framework.Core;
+using rin.Framework.Core.Animation;
+using rin.Framework.Core.Extensions;
+using rin.Framework.Widgets;
+using rin.Framework.Widgets.Animation;
+using rin.Framework.Widgets.Containers;
+using rin.Framework.Widgets.Content;
+using rin.Framework.Widgets.Graphics.Commands;
+using rin.Framework.Widgets.Events;
+using rin.Framework.Widgets.Graphics;
+using rin.Framework.Widgets.Graphics.Quads;
 
 namespace AudioPlayer.Widgets;
 

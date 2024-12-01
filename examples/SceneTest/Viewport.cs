@@ -1,11 +1,11 @@
 ﻿using rin.Core.Math;
 using rin.Scene;
-using rin.Widgets;
-using rin.Widgets.Content;
-using rin.Widgets.Graphics.Commands;
-using rin.Widgets.Events;
-using rin.Widgets.Graphics;
-using rin.Windows;
+using rin.Runtime.Widgets;
+using rin.Runtime.Widgets.Content;
+using rin.Runtime.Widgets.Graphics.Commands;
+using rin.Runtime.Widgets.Events;
+using rin.Runtime.Widgets.Graphics;
+
 using TerraFX.Interop.Vulkan;
 
 namespace SceneTest;

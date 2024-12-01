@@ -1,10 +1,10 @@
 ﻿using System.Runtime.InteropServices;
-using rin.Core;
-using rin.Core.Math;
-using rin.Graphics;
-using rin.Graphics.Shaders;
-using rin.Widgets.Graphics;
-using rin.Widgets.Graphics.Commands;
+using rin.Framework.Core;
+using rin.Framework.Core.Math;
+using rin.Framework.Graphics;
+using rin.Framework.Graphics.Shaders;
+using rin.Framework.Widgets.Graphics;
+using rin.Framework.Widgets.Graphics.Commands;
 
 namespace WidgetTest;
 

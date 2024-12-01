@@ -8,8 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\rin.Audio\rin.Audio.csproj" />
-      <ProjectReference Include="..\..\rin.Widgets\rin.Widgets.csproj" />
+        <ProjectReference Include="..\..\rin.Framework\rin.Framework.csproj" />
     </ItemGroup>
 
     <ItemGroup>

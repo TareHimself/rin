@@ -1,18 +1,19 @@
-﻿using rin.Core;
-using rin.Core.Animation;
-using rin.Core.Extensions;
-using rin.Core.Math;
-using rin.Graphics;
-using rin.Graphics.Windows;
-using rin.Widgets;
-using rin.Widgets.Animation;
-using rin.Widgets.Containers;
-using rin.Widgets.Content;
-using rin.Widgets.Events;
-using rin.Widgets.Graphics;
-using rin.Widgets.Graphics.Quads;
-using rin.Windows;
-using Rect = rin.Widgets.Containers.Rect;
+﻿
+using rin.Framework.Core;
+using rin.Framework.Core.Animation;
+using rin.Framework.Core.Extensions;
+using rin.Framework.Core.Math;
+using rin.Framework.Graphics;
+using rin.Framework.Graphics.Windows;
+using rin.Framework.Widgets;
+using rin.Framework.Widgets.Animation;
+using rin.Framework.Widgets.Containers;
+using rin.Framework.Widgets.Content;
+using rin.Framework.Widgets.Events;
+using rin.Framework.Widgets.Graphics;
+using rin.Framework.Widgets.Graphics.Quads;
+
+using Rect = rin.Framework.Widgets.Containers.Rect;
 
 namespace WidgetTest;
 
@@ -171,7 +172,8 @@ public class SWidgetTestModule : RuntimeModule
             this.StopAll().WidthTo(_width,easingFunction: EasingFunctions.EaseInOutCubic);
         }
     }
-    public void TestAnimation(WindowRenderer renderer)
+
+    private void TestAnimation(WindowRenderer renderer)
     {
         if (SWidgetsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
@@ -445,12 +447,12 @@ public class SWidgetTestModule : RuntimeModule
         });
     }
 
-    public void OnWindowCreated(Window window)
+    private void OnWindowCreated(IWindow window)
     {
         window.OnCloseRequested += (_) =>
         {
             if (window.Parent != null)
-            {
+            {   
                 window.Dispose();
             }
             else
@@ -468,7 +470,7 @@ public class SWidgetTestModule : RuntimeModule
                 
             if (e is { Key: InputKey.Enter, State: InputState.Pressed, IsAltDown: true })
             {
-                window.SetFullscreen(!window.IsFullscreen());
+                window.SetFullscreen(!window.IsFullscreen);
             }
                 
         });
@@ -476,8 +478,8 @@ public class SWidgetTestModule : RuntimeModule
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
-        Console.WriteLine("CREATING WINDOW");
-        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
+        
+        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
 
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin Widget Test", new CreateOptions()

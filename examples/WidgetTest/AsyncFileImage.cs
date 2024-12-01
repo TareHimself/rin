@@ -1,13 +1,14 @@
 ﻿using System.Runtime.InteropServices;
-using rin.Core;
-using rin.Core.Extensions;
-using rin.Core.Math;
-using rin.Graphics;
-using rin.Widgets;
-using rin.Widgets.Content;
-using rin.Widgets.Events;
-using rin.Widgets.Graphics;
-using rin.Widgets.Graphics.Quads;
+
+using rin.Framework.Core;
+using rin.Framework.Core.Extensions;
+using rin.Framework.Core.Math;
+using rin.Framework.Graphics;
+using rin.Framework.Widgets;
+using rin.Framework.Widgets.Content;
+using rin.Framework.Widgets.Events;
+using rin.Framework.Widgets.Graphics;
+using rin.Framework.Widgets.Graphics.Quads;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
 

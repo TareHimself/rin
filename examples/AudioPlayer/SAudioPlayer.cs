@@ -1,12 +1,11 @@
-﻿using rin.Core;
-using rin.Audio;
-using rin.Core.DataStructures;
-using rin.Widgets;
-using rin.Widgets.Containers;
-using rin.Widgets.Content;
+﻿
+using rin.Framework.Widgets;
+using rin.Framework.Widgets.Containers;
 using AudioPlayer.Widgets;
-using rin.Graphics;
-using rin.Graphics.Windows;
+using rin.Framework.Audio;
+using rin.Framework.Core;
+using rin.Framework.Graphics;
+using rin.Framework.Graphics.Windows;
 using SpotifyExplode;
 using YoutubeExplode;
 
@@ -16,6 +15,7 @@ namespace AudioPlayer;
 public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
 {
     public readonly SpotifyClient SpClient = new SpotifyClient();
+    public readonly YoutubeClient YtClient = new YoutubeClient();
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
@@ -31,7 +31,7 @@ public class SAudioPlayer : RuntimeModule, ISingletonGetter<SAudioPlayer>
         surf.Add(new MainPanel());
     }
     
-    public void Backgrounds(Window window)
+    public void Backgrounds(IWindow window)
     {
         var surf = SWidgetsModule.Get().GetWindowSurface(window);
 

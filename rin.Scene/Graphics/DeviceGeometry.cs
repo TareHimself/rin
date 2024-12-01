@@ -1,5 +1,5 @@
 ﻿using System.Runtime.InteropServices;
-using rin.Graphics;
+using rin.Runtime.Graphics;
 using TerraFX.Interop.Vulkan;
 
 namespace rin.Scene.Graphics;

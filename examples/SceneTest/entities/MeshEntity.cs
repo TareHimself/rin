@@ -8,7 +8,7 @@ using rin.Scene.Components;
 using rin.Scene.Components.Lights;
 using rin.Scene.Entities;
 using rin.Scene.Graphics;
-using rin.Widgets;
+using rin.Runtime.Widgets;
 using SharpCompress;
 using SharpGLTF.Schema2;
 using SixLabors.ImageSharp.PixelFormats;

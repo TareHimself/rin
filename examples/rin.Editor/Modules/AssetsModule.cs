@@ -1,5 +1,5 @@
 ﻿using rin.Editor.Assets;
-using rin.Core;
+using rin.Runtime.Core;
 
 namespace rin.Editor.Modules;
 

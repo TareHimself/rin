@@ -1,5 +1,5 @@
-﻿using rin.Core.Extensions;
-using rin.Graphics;
+﻿using rin.Runtime.Core.Extensions;
+using rin.Runtime.Graphics;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 

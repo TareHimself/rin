@@ -1,7 +1,7 @@
 ﻿using rin.Editor.Assets;
 using rin.Editor.Modules;
-using rin.Core;
-using rin.Core.Extensions;
+using rin.Runtime.Core;
+using rin.Runtime.Core.Extensions;
 using rin.Scene;
 using rin.Scene.Graphics;
 

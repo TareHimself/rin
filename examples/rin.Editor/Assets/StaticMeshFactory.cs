@@ -1,6 +1,6 @@
 ﻿using rin.Editor.Modules;
 using rin.Graphics.Material;
-using rin.Core.Math;
+using rin.Runtime.Core.Math;
 using rin.Scene.Graphics;
 using SharpGLTF.Schema2;
 

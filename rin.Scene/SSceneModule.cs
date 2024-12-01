@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
-using rin.Core;
-using rin.Graphics;
+using rin.Runtime.Core;
+using rin.Runtime.Graphics;
 
 namespace rin.Scene;
 

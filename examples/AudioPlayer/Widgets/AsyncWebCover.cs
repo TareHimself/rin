@@ -1,15 +1,18 @@
-﻿using rin.Core.Extensions;
-using rin.Core.Math;
-using rin.Graphics;
-using rin.Widgets;
-using rin.Widgets.Content;
-using rin.Widgets.Graphics;
-using rin.Widgets.Graphics.Quads;
+﻿
+using rin.Framework.Core.Animation;
+using rin.Framework.Core.Extensions;
+using rin.Framework.Core.Math;
+using rin.Framework.Graphics;
+using rin.Framework.Widgets;
+using rin.Framework.Widgets.Animation;
+using rin.Framework.Widgets.Content;
+using rin.Framework.Widgets.Graphics;
+using rin.Framework.Widgets.Graphics.Quads;
 using SixLabors.ImageSharp;
 using ImageSharpImage = SixLabors.ImageSharp.Image;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
-using Color = rin.Widgets.Color;
+using Color = rin.Framework.Widgets.Color;
 
 namespace AudioPlayer.Widgets;
 
@@ -35,7 +38,8 @@ public class AsyncWebCover : CoverImage
             },
             ImageFormat.Rgba8).Then(c => TextureId = c);
         await img.SaveAsPngAsync("./latest.png");
-        
+        this.Parent?.Parent
+            ?.ScaleTo(new Vector2<float>(1.0f, 1.0f), 1.0f, 0.2f, easingFunction: EasingFunctions.EaseInExpo).After();
     }
 
     public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)

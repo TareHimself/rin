@@ -1,8 +1,8 @@
-﻿// using rin.Core;
-// using rin.Graphics;
-// using rin.Graphics.Material;
-// using rin.Widgets;
-// using rin.Widgets.Graphics;
+﻿// using rin.Framework.Core;
+// using rin.Framework.Graphics;
+// using rin.Framework.Graphics.Material;
+// using rin.Framework.Widgets;
+// using rin.Framework.Widgets.Graphics;
 //
 // namespace WidgetTest;
 //

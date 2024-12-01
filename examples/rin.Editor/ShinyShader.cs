@@ -1,8 +1,8 @@
-﻿using rin.Core;
+﻿using rin.Runtime.Core;
 using rin.Graphics;
 using rin.Graphics.Material;
-using rin.Widgets;
-using rin.Widgets.Graphics;
+using rin.Runtime.Widgets;
+using rin.Runtime.Widgets.Graphics;
 
 namespace rin.Editor;
 

@@ -1,6 +1,7 @@
-﻿using rin.Core.Math;
-using rin.Widgets;
-using rin.Widgets.Graphics;
+﻿
+using rin.Framework.Core.Math;
+using rin.Framework.Widgets;
+using rin.Framework.Widgets.Graphics;
 
 namespace AudioPlayer.Widgets;
 

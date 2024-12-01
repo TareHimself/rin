@@ -1,6 +1,6 @@
-﻿using rin.Graphics;
-using rin.Graphics.Material;
-using rin.Core.Math;
+﻿using rin.Runtime.Graphics;
+using rin.Runtime.Graphics.Material;
+using rin.Runtime.Core.Math;
 using TerraFX.Interop.Vulkan;
 
 namespace rin.Scene.Graphics;

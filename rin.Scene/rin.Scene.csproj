@@ -8,8 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\rin.Graphics\rin.Graphics.csproj"/>
-        <ProjectReference Include="..\rin.Core\rin.Core.csproj"/>
+        <ProjectReference Include="..\rin.Framework\rin.Framework.csproj" />
+        <ProjectReference Include="..\rin.Runtime.Graphics\rin.Runtime.Graphics.csproj" />
+        <ProjectReference Include="..\rin.Runtime.Core\rin.Runtime.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>

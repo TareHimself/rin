@@ -1,14 +1,15 @@
-﻿using rin.Audio;
-using rin.Core;
-using rin.Core.Animation;
-using rin.Core.Math;
-using rin.Widgets;
-using rin.Widgets.Animation;
-using rin.Widgets.Containers;
-using rin.Widgets.Content;
-using rin.Widgets.Events;
-using rin.Widgets.Graphics;
-using Rect = rin.Widgets.Rect;
+﻿
+using rin.Framework.Audio;
+using rin.Framework.Core;
+using rin.Framework.Core.Animation;
+using rin.Framework.Core.Math;
+using rin.Framework.Widgets;
+using rin.Framework.Widgets.Animation;
+using rin.Framework.Widgets.Containers;
+using rin.Framework.Widgets.Content;
+using rin.Framework.Widgets.Events;
+using rin.Framework.Widgets.Graphics;
+using Rect = rin.Framework.Widgets.Rect;
 
 
 namespace AudioPlayer.Widgets;
@@ -50,7 +51,7 @@ public class TrackPlayer : Overlay
 
     private readonly Panel _backgroundContainer = new Panel();
 
-    private bool _loaded = false;
+    private bool _loaded => Scale == 1.0f;
 
     public string Name
     {
@@ -152,11 +153,11 @@ public class TrackPlayer : Overlay
             MinAnchor = 0.0f,
             MaxAnchor = 1.0f
         });
-        this.ScaleTo(new Vector2<float>(1.0f, 1.0f), 1.0f, 0.2f,easingFunction: EasingFunctions.EaseInExpo).After().Do(
-            () =>
-            {
-                _loaded = true;
-            });
+        // this.ScaleTo(new Vector2<float>(1.0f, 1.0f), 1.0f, 0.2f,easingFunction: EasingFunctions.EaseInExpo).After().Do(
+        //     () =>
+        //     {
+        //         _loaded = true;
+        //     });
     }
 
     private static string FormatTime(double secs)

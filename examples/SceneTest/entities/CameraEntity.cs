@@ -2,7 +2,7 @@
 using rin.Scene.Components;
 using rin.Scene.Components.Lights;
 using rin.Scene.Entities;
-using rin.Widgets;
+using rin.Runtime.Widgets;
 
 namespace SceneTest.entities;
 

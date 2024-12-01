@@ -1,8 +1,8 @@
 ﻿using System.Runtime.InteropServices;
-using rin.Core;
-using rin.Graphics;
-using rin.Graphics.Material;
-using rin.Core.Math;
+using rin.Runtime.Core;
+using rin.Runtime.Graphics;
+using rin.Runtime.Graphics.Material;
+using rin.Runtime.Core.Math;
 
 namespace rin.Scene.Graphics;
 

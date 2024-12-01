@@ -1,5 +1,5 @@
-﻿using rin.Core.Math;
-
+﻿using rin.Framework.Core.Math;
+ 
 namespace rin.Scene.Components;
 
 public class CameraComponent : RenderedComponent

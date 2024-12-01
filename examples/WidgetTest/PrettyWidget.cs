@@ -1,11 +1,10 @@
-﻿using rin.Core;
-using rin.Core.Animation;
-using rin.Core.Math;
-using rin.Graphics.Windows;
-using rin.Widgets;
-using rin.Widgets.Animation;
-using rin.Widgets.Events;
-using rin.Widgets.Graphics;
+﻿
+using rin.Framework.Core;
+using rin.Framework.Core.Math;
+using rin.Framework.Widgets;
+using rin.Framework.Widgets.Animation;
+using rin.Framework.Widgets.Events;
+using rin.Framework.Widgets.Graphics;
 
 namespace WidgetTest;
 

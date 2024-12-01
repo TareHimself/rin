@@ -1,4 +1,5 @@
-﻿using rin.Core.Math;
+﻿
+using rin.Framework.Core.Math;
 using rin.Scene.Graphics;
 
 namespace rin.Scene.Components.Lights;

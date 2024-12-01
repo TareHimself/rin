@@ -2,10 +2,10 @@
 using rin.Graphics;
 using rin.Core.Math;
 using rin.Scene;
-using rin.Widgets;
-using rin.Widgets.Containers;
-using rin.Widgets.Content;
-using rin.Windows;
+using rin.Runtime.Widgets;
+using rin.Runtime.Widgets.Containers;
+using rin.Runtime.Widgets.Content;
+
 using SceneTest.entities;
 
 namespace SceneTest;

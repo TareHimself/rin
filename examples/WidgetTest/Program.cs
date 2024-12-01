@@ -1,9 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using rin.Core;
-using rin.Core.Logging;
-using rin.Graphics;
-using rin.Graphics.FrameGraph;
+using rin.Framework.Core;
 using rsl;using rsl.Generator;
 using rsl.Nodes;
 using TerraFX.Interop.Vulkan;

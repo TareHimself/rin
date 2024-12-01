@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
-using rin.Core.Extensions;
-using rin.Graphics.Material;
-using rin.Core.Math;
+using rin.Runtime.Core.Extensions;
+using rin.Runtime.Graphics.Material;
+using rin.Runtime.Core.Math;
 using rin.Scene.Graphics;
 using rin.Scene.Graphics.Commands;
 using TerraFX.Interop.Vulkan;

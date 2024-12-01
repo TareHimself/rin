@@ -1,5 +1,5 @@
-﻿using rin.Core.Extensions;
-using rin.Core.Math;
+﻿using rin.Runtime.Core.Extensions;
+using rin.Runtime.Core.Math;
 using rin.Scene.Components;
 using rin.Scene.Graphics;
 
