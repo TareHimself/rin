@@ -7,6 +7,7 @@ using rin.Framework.Widgets.Graphics;
 using rin.Framework.Widgets.Sdf;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
+using rin.Framework.Graphics.Shaders.Rsl;
 using rin.Framework.Widgets.Animation;
 
 using SixLabors.Fonts;
@@ -30,7 +31,7 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
     private readonly Dictionary<WindowRenderer, WindowSurface> _windowSurfaces = new();
     private readonly Dictionary<Type, IBatcher> _batchRenderers = [];
     private SGraphicsModule? _graphicsSubsystem;
-    private GraphicsShader? _stencilShader = null;
+    private IGraphicsShader? _stencilShader = null;
     
     
     
@@ -87,7 +88,7 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         root.Init();
         if (_stencilShader == null)
         {
-            _stencilShader = GraphicsShader.FromFile(Path.Join(SRuntime.ResourcesDirectory, "shaders", "widgets",
+            _stencilShader = RslGraphicsShader.FromFile(Path.Join(SRuntime.ResourcesDirectory, "shaders", "widgets",
                 "stencil_batch.rsl"));
         }
     }
@@ -159,5 +160,5 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         }
     }
 
-    public GraphicsShader? GetStencilShader() => _stencilShader;
+    public IGraphicsShader? GetStencilShader() => _stencilShader;
 }

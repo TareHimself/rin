@@ -1,5 +1,6 @@
 ﻿using rin.Framework.Graphics;
 using rin.Framework.Graphics.Shaders;
+using rin.Framework.Graphics.Shaders.Rsl;
 
 namespace rin.Framework.Widgets.Graphics;
 
@@ -22,7 +23,7 @@ public abstract class SimpleQuadBatcher<T>  : IBatcher where T : IBatch
         return MakeNewBatch();
     }
 
-    protected abstract GraphicsShader GetShader();
+    protected abstract IGraphicsShader GetShader();
     protected abstract T MakeNewBatch();
 
     /// <summary>
@@ -33,5 +34,5 @@ public abstract class SimpleQuadBatcher<T>  : IBatcher where T : IBatch
     /// <param name="batch"></param>
     /// <param name="shader"></param>
     /// <returns></returns>
-    protected abstract uint WriteBatch(WidgetFrame frame, IDeviceBuffer view, T batch, GraphicsShader shader);
+    protected abstract uint WriteBatch(WidgetFrame frame, IDeviceBuffer view, T batch, IGraphicsShader shader);
 }

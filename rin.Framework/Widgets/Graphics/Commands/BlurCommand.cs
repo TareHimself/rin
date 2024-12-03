@@ -4,6 +4,7 @@ using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.Descriptors;
 using rin.Framework.Graphics.Shaders;
+using rin.Framework.Graphics.Shaders.Rsl;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -26,8 +27,8 @@ public struct BlurPushConstants
 public class BlurCommand(Matrix3 transform, Vector2<float> size,float radius, Vector4<float> tint) : CustomCommand
 {
     private static string _blurPassId = Guid.NewGuid().ToString();
-    private readonly GraphicsShader _blurShader =
-        GraphicsShader.FromFile(Path.Join(SRuntime.ResourcesDirectory, "shaders", "widgets", "blur.rsl"));
+    private readonly IGraphicsShader _blurRslShader =
+        RslGraphicsShader.FromFile(Path.Join(SRuntime.ResourcesDirectory, "shaders", "widgets", "blur.rsl"));
 
     public override bool WillDraw => true;
 
@@ -64,22 +65,22 @@ public class BlurCommand(Matrix3 transform, Vector2<float> size,float radius, Ve
     {
         frame.BeginMainPass();
         var cmd = frame.Raw.GetCommandBuffer();
-        if (_blurShader.Bind(cmd,true))
+        if (_blurRslShader.Bind(cmd,true))
         {
             var copyImage = frame.DrawImage;
             var descriptorSet = frame.Raw.GetDescriptorAllocator()
-                .Allocate(_blurShader.GetDescriptorSetLayouts().First().Value);
-            descriptorSet.WriteImages(_blurShader.Resources["SourceT"].Binding, new ImageWrite(copyImage,
+                .Allocate(_blurRslShader.GetDescriptorSetLayouts().First().Value);
+            descriptorSet.WriteImages(_blurRslShader.Resources["SourceT"].Binding, new ImageWrite(copyImage,
                 VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, ImageType.Texture, new SamplerSpec()
                 {
                     Filter = ImageFilter.Linear,
                     Tiling = ImageTiling.ClampBorder
                 }));
 
-            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _blurShader.GetPipelineLayout(),
+            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _blurRslShader.GetPipelineLayout(),
                 new []{descriptorSet});
 
-            var pushResource = _blurShader.PushConstants.First().Value;
+            var pushResource = _blurRslShader.PushConstants.First().Value;
             var push = new BlurPushConstants()
             {
                 Projection = frame.Projection,
@@ -88,7 +89,7 @@ public class BlurCommand(Matrix3 transform, Vector2<float> size,float radius, Ve
                 Tint = tint,
                 Transform = transform
             };
-            cmd.PushConstant(_blurShader.GetPipelineLayout(), pushResource.Stages, push);
+            cmd.PushConstant(_blurRslShader.GetPipelineLayout(), pushResource.Stages, push);
             vkCmdDraw(cmd,6,1,0,0);
         }
     }

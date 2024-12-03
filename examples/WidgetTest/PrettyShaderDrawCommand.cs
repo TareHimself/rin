@@ -3,6 +3,7 @@ using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.Shaders;
+using rin.Framework.Graphics.Shaders.Rsl;
 using rin.Framework.Widgets.Graphics;
 using rin.Framework.Widgets.Graphics.Commands;
 
@@ -25,15 +26,15 @@ public class PrettyShaderDrawCommand(Matrix3 transform,Vector2<float> size,bool 
     public override ulong MemoryNeeded => (ulong)Marshal.SizeOf<Data>();
 
 
-    private readonly GraphicsShader _prettyShader = GraphicsShader.FromFile(Path.Join(SRuntime.ResourcesDirectory,"test","pretty.rsl"));
+    private readonly IGraphicsShader _prettyRslShader = RslGraphicsShader.FromFile(Path.Join(SRuntime.ResourcesDirectory,"test","pretty.rsl"));
 
     public override void Run(WidgetFrame frame, uint stencilMask,IDeviceBuffer? view = null)
     {
         frame.BeginMainPass();
         var cmd = frame.Raw.GetCommandBuffer();
-        if (_prettyShader.Bind(cmd, true) && view != null)
+        if (_prettyRslShader.Bind(cmd, true) && view != null)
         {
-            var pushResource = _prettyShader.PushConstants.First().Value;
+            var pushResource = _prettyRslShader.PushConstants.First().Value;
             var screenSize = frame.Surface.GetDrawSize().Cast<float>();
             var data = new Data()
             {
@@ -45,7 +46,7 @@ public class PrettyShaderDrawCommand(Matrix3 transform,Vector2<float> size,bool 
                 Center = hovered ?  frame.Surface.GetCursorPosition() : screenSize / 2.0f
             };
             view.Write(data);
-            cmd.PushConstant(_prettyShader.GetPipelineLayout(), pushResource.Stages,view.GetAddress());
+            cmd.PushConstant(_prettyRslShader.GetPipelineLayout(), pushResource.Stages,view.GetAddress());
             cmd.Draw(6);
         }
     }

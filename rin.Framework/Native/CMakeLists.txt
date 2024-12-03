@@ -16,6 +16,7 @@ file(GLOB_RECURSE SOURCE_FILES "${SRC_DIR}/*.cpp" "${SRC_DIR}/*.hpp")
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${SRC_DIR})
+
 FetchContent_Declare(fetch_glm
     GIT_REPOSITORY https://github.com/g-truc/glm
     GIT_TAG 1.0.0
@@ -43,13 +44,6 @@ set(GLFW_BUILD_EXAMPLES OFF)
 set(VK_BOOTSTRAP_TEST OFF)
 set(GLFW_BUILD_TESTS OFF)
 set(GLFW_BUILD_DOCS OFF)
-#set(SLANG_ENABLE_TESTS OFF)
-#set(SLANG_ENABLE_REPLAYER OFF)
-#set(SLANG_USE_SYSTEM_VULKAN_HEADERS ON)
-#set(SLANG_ENABLE_EXAMPLES OFF)
-#set(SLANG_ENABLE_SLANG_GLSLANG OFF)
-#set(SLANG_ENABLE_SLANGD OFF)
-#set(SLANG_ENABLE_GFX OFF)
 
 FetchContent_MakeAvailable(fetch_glm fetch_glfw fetch_vkma fetch_vkb)
 
@@ -59,6 +53,7 @@ target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
 target_link_libraries(${PROJECT_NAME} glfw)
 target_link_libraries(${PROJECT_NAME} vk-bootstrap::vk-bootstrap)
 target_link_libraries(${PROJECT_NAME} GPUOpen::VulkanMemoryAllocator)
+FindSlang(${PROJECT_NAME})
 GetBass()
 SetDynamicLibraryDir(${PROJECT_NAME})
 

@@ -1,40 +1,12 @@
 ﻿using rin.Framework.Core;
-using rin.Framework.Graphics.Descriptors;
 using rsl.Nodes;
 using TerraFX.Interop.Vulkan;
 
-namespace rin.Framework.Graphics.Shaders;
+namespace rin.Framework.Graphics.Shaders.Rsl;
 
-public abstract class Shader : Disposable
+public interface IRslGraphicsShader : IGraphicsShader
 {
-    
-    public class Resource
-    {
-        public string Name = "";
-        public uint Set;
-        public uint Binding;
-        public uint Count;
-        public VkDescriptorType Type;
-        public VkShaderStageFlags Stages;
-        public VkDescriptorBindingFlags BindingFlags;
-        public uint Size = 0;
-    }
-
-    public class PushConstant
-    {
-        public string Name = "";
-        public uint Size;
-        public VkShaderStageFlags Stages;
-    }
-
-    public Dictionary<string, Resource> Resources = [];
-    public Dictionary<string, PushConstant> PushConstants = [];
-
-    public abstract bool Bind(VkCommandBuffer cmd, bool wait = false);
-
-    public abstract CompiledShader Compile(ShaderManager manager);
-
-    protected void ComputeResources(Pair<VkShaderStageFlags, ModuleNode>[] shaders)
+    public void ComputeResources(Pair<VkShaderStageFlags, ModuleNode>[] shaders)
     {
         foreach (var (shaderStages, shader) in shaders)
         {
@@ -198,12 +170,4 @@ public abstract class Shader : Disposable
         }
     }
 
-    public abstract void Init();
-    public abstract Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts();
-    public abstract VkPipelineLayout GetPipelineLayout();
-
-    protected override void OnDispose(bool isManual)
-    {
-        throw new NotImplementedException();
-    }
 }

@@ -4,9 +4,9 @@ using rsl;
 using rsl.Nodes;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
-namespace rin.Framework.Graphics.Shaders;
+namespace rin.Framework.Graphics.Shaders.Rsl;
 
-public class GraphicsShader : Shader
+public class RslGraphicsShader : IRslGraphicsShader
 {
     private readonly string _vertexShaderId;
     private readonly string _fragmentShaderId;
@@ -14,12 +14,16 @@ public class GraphicsShader : Shader
     private readonly ModuleNode _fragmentShader;
     private Task<CompiledShader> _compiledShader = Task.FromResult(new CompiledShader());
 
-
-    public override CompiledShader Compile(ShaderManager manager)
+    public Dictionary<string, Resource> Resources { get; } = [];
+    public Dictionary<string, PushConstant> PushConstants { get; } = [];
+    
+    public CompiledShader Compile(IShaderCompiler compiler)
     {
-        var vertexSpirv = manager.CompileAstToSpirv(_vertexShaderId, VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
+        if (compiler is RslShaderCompiler asManager)
+        {
+           var vertexSpirv = asManager.CompileAstToSpirv(_vertexShaderId, VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
             _vertexShader);
-        var fragmentSpirv = manager.CompileAstToSpirv(_fragmentShaderId,
+        var fragmentSpirv = asManager.CompileAstToSpirv(_fragmentShaderId,
             VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT, _fragmentShader);
 
         var layoutBuilder = new DescriptorLayoutBuilder();
@@ -124,7 +128,7 @@ public class GraphicsShader : Shader
                 }
             }
 
-            manager.OnBeforeDispose += () =>
+            compiler.OnBeforeDispose += () =>
             {
                 vkDestroyPipelineLayout(device, shader.PipelineLayout, null);
                 foreach (var (shaderObj,_ ) in shader.Shaders)
@@ -134,17 +138,20 @@ public class GraphicsShader : Shader
             };
 
             return shader;
+        } 
         }
+
+        throw new UnsupportedShaderManagerException();
     }
 
-    public override void Init()
+    public void Init()
     {
-        ComputeResources([new Pair<VkShaderStageFlags, ModuleNode>(VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,_vertexShader),new Pair<VkShaderStageFlags, ModuleNode>(VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,_fragmentShader)]);
+        ((IRslGraphicsShader)this).ComputeResources([new Pair<VkShaderStageFlags, ModuleNode>(VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,_vertexShader),new Pair<VkShaderStageFlags, ModuleNode>(VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,_fragmentShader)]);
 
-        _compiledShader = SGraphicsModule.Get().GetShaderManager().StartShaderCompilation(this);
+        _compiledShader = SGraphicsModule.Get().GetShaderCompiler().Compile(this);
     }
-    
-    public override bool Bind(VkCommandBuffer cmd, bool wait = false)
+
+    public bool Bind(VkCommandBuffer cmd, bool wait = false)
     {
         if (wait && !_compiledShader.IsCompleted)
         {
@@ -161,19 +168,19 @@ public class GraphicsShader : Shader
         return true;
     }
 
-    public override Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts()
+    public Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts()
     {
         return _compiledShader.Result.DescriptorLayouts;
     }
 
-    public override VkPipelineLayout GetPipelineLayout()
+    public VkPipelineLayout GetPipelineLayout()
     {
         return _compiledShader.Result.PipelineLayout;
     }
 
-    private static readonly Dictionary<string, GraphicsShader> GraphicsShaders = [];
+    private static readonly Dictionary<string, RslGraphicsShader> GraphicsShaders = [];
     
-    public GraphicsShader(ModuleNode vertexShader,ModuleNode fragmentShader)
+    public RslGraphicsShader(ModuleNode vertexShader,ModuleNode fragmentShader)
     {
         _vertexShader = vertexShader;
         _fragmentShader = fragmentShader;
@@ -181,7 +188,7 @@ public class GraphicsShader : Shader
         _fragmentShaderId = fragmentShader.GetHashCode().ToString();
     }
     
-    public static GraphicsShader FromFile(string filePath)
+    public static IGraphicsShader FromFile(string filePath)
     {
         var fullPath = Path.GetFullPath(filePath);
 
@@ -201,11 +208,16 @@ public class GraphicsShader : Shader
         var vertexShader = ast.ExtractScope(ScopeType.Vertex);
         var fragmentShader = ast.ExtractScope(ScopeType.Fragment);
 
-        var shader = new GraphicsShader(vertexShader, fragmentShader);
+        var shader = new RslGraphicsShader(vertexShader, fragmentShader);
             
         GraphicsShaders.Add(fullPath,shader);
             
         shader.Init();
         return shader;
+    }
+
+    public void Dispose()
+    {
+        throw new NotImplementedException();
     }
 }

@@ -5,6 +5,7 @@ using rin.Framework.Graphics.Descriptors;
 using rin.Framework.Graphics.Shaders;
 using rin.Framework.Graphics.Windows;
 using rin.Framework.Core.Extensions;
+using rin.Framework.Graphics.Shaders.Rsl;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -19,7 +20,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     private readonly Dictionary<IWindow, WindowRenderer> _windows = [];
     private readonly Mutex _samplersMutex = new();
     private Allocator? _allocator;
-    private ShaderManager? _shaderManager;
+    private IShaderCompiler? _shaderCompiler;
     private ResourceManager? _resourceManager;
     private VkDebugUtilsMessengerEXT _debugUtilsMessenger;
     private DescriptorAllocator? _descriptorAllocator;
@@ -264,7 +265,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         ]);
         _allocator = new Allocator(this);
 
-        _shaderManager = new ShaderManager();
+        _shaderCompiler = new RslShaderCompiler();
 
         _immediateFence = _device.CreateFence();
 
@@ -298,9 +299,9 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         _instance.DestroySurface(outSurface);
     }
 
-    public ShaderManager GetShaderManager()
+    public IShaderCompiler GetShaderCompiler()
     {
-        return _shaderManager!;
+        return _shaderCompiler!;
     }
 
     public ResourceManager GetResourceManager()
@@ -418,7 +419,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         _backgroundTaskQueue.Dispose();
         _transferQueueThread.Dispose();
         _descriptorAllocator?.Dispose();
-        _shaderManager?.Dispose();
+        _shaderCompiler?.Dispose();
         _resourceManager?.Dispose();
         _descriptorLayoutFactory.Dispose();
         unsafe

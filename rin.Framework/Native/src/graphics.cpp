@@ -7,6 +7,7 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #include <vulkan/vulkan.hpp>
 #include <VkBootstrap.h>
 #include <iostream>
+#include <slang.h>
 
 EXPORT_IMPL int initWindows()
 {

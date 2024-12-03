@@ -5,15 +5,15 @@ using rsl.Nodes;
 using shaderc;
 using TerraFX.Interop.Vulkan;
 
-namespace rin.Framework.Graphics.Shaders;
+namespace rin.Framework.Graphics.Shaders.Rsl;
 
-public class ShaderManager : Disposable
+public class RslShaderCompiler : Disposable, IShaderCompiler
 {
     private readonly Dictionary<string, NativeBuffer<uint>> _spirv = [];
     private readonly Compiler _compiler;
     private readonly BackgroundTaskQueue<CompiledShader> _backgroundTask = new ();
     public event Action? OnBeforeDispose;
-    public ShaderManager()
+    public RslShaderCompiler()
     {
         var opts = new Options()
         {
@@ -37,11 +37,11 @@ public class ShaderManager : Disposable
             VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT => ShaderKind.VertexShader,
             VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT => ShaderKind.FragmentShader,
             VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT => ShaderKind.ComputeShader,
-            _ => throw new ShaderCompileException("Unknown shader stage",shader,node)
+            _ => throw new RslShaderCompileException("Unknown shader stage",shader,node)
         });
         
         if (shaderCompileResult.Status != Status.Success)
-            throw new ShaderCompileException(shaderCompileResult.ErrorMessage,shader,node);
+            throw new RslShaderCompileException(shaderCompileResult.ErrorMessage,shader,node);
         
         unsafe
         {
@@ -54,7 +54,7 @@ public class ShaderManager : Disposable
     }
 
 
-    public Task<CompiledShader> StartShaderCompilation(Shader shader)
+    public Task<CompiledShader> Compile(IShader shader)
     {
         return _backgroundTask.Put(() => shader.Compile(this));
     }
