@@ -72,13 +72,12 @@ macro(FindSlang TARGET_PROJECT)
     "${SLANG_OUTPUT_DIR}/bin/*.*"
   )
   file(COPY ${SLANG_BINARIES} DESTINATION ${SLANG_BINARIES_OUTPUT_DIR})
-  message(STATUS "SLANG BINARIES ${SLANG_BINARIES}")
   find_library(SLANG_LIBRARY
       NAMES slang gfx slang-rt
       HINTS "${SLANG_OUTPUT_DIR}/lib"
   )
   target_include_directories(${TARGET_PROJECT} PRIVATE ${SLANG_OUTPUT_DIR}/include)
-  target_link_libraries(${TARGET_PROJECT} ${SLANG_LIBRARY})
+  target_link_libraries(${TARGET_PROJECT} PUBLIC ${SLANG_LIBRARY})
 endmacro()
 
 
