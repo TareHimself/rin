@@ -23,6 +23,11 @@ void DevModule::Startup(rin::GRuntime* runtime)
     });
 
     auto window =  _ioModule->CreateWindow({500,500},"Test Window",rin::io::IWindow::CreateOptions().Visible(true).Resizable(true));
+    window->onClose->Add([this](const rin::Shared<rin::io::IWindow::CloseEvent>& e)
+    {
+        e->window->Dispose();
+        GetRuntime()->RequestExit();
+    });
     auto task = _testTaskRunner.Run<std::string>([]
     {
         return "This was gotten from a task";

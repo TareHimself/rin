@@ -1,11 +1,9 @@
 ﻿#pragma once
-
 namespace rin::graphics
 {
-    class IShaderCompiler
+    class CompiledGraph
     {
     public:
-    
+        void Execute();
     };
-
 }

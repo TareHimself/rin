@@ -49,8 +49,8 @@ namespace rin::io
         
         struct Event
         {
-            Shared<IWindow> window{};
-            Event(const Shared<IWindow>& inWindow)
+            IWindow*window{nullptr};
+            Event(IWindow* inWindow)
             {
                 window = inWindow;
             }
@@ -58,7 +58,7 @@ namespace rin::io
 
         struct KeyEvent : Event
         {
-            KeyEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            KeyEvent(IWindow* inWindow) : Event(inWindow)
             {
             
             }
@@ -66,7 +66,7 @@ namespace rin::io
 
         struct CursorMoveEvent : Event
         {
-            CursorMoveEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            CursorMoveEvent(IWindow* inWindow) : Event(inWindow)
             {
             
             }
@@ -74,7 +74,7 @@ namespace rin::io
 
         struct ButtonEvent : Event
         {
-            ButtonEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            ButtonEvent(IWindow* inWindow) : Event(inWindow)
             {
             
             }
@@ -82,47 +82,52 @@ namespace rin::io
 
         struct FocusEvent : Event
         {
-            FocusEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            bool focused;
+            FocusEvent(IWindow* inWindow,bool inFocused) : Event(inWindow)
             {
-            
+                focused = inFocused;
             }
         };
 
         struct ScrollEvent : Event
         {
-            ScrollEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            Vec2<double> delta{0};
+            ScrollEvent(IWindow* inWindow,const Vec2<double>& inDelta) : Event(inWindow)
             {
-            
+                delta = inDelta;
             }
         };
         
         struct ResizeEvent : Event
         {
-            ResizeEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            Vec2<int> size{0};
+            ResizeEvent(IWindow* inWindow,const Vec2<int>& inSize) : Event(inWindow)
             {
-            
+                size = inSize;
             }
         };
         
         struct CharacterEvent : Event
         {
-            CharacterEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            char character;
+            CharacterEvent(IWindow* inWindow,char inChar) : Event(inWindow)
             {
-            
+                character = inChar;
             }
         };
 
         struct MaximizeEvent : Event
         {
-            MaximizeEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            bool maximized;
+            MaximizeEvent(IWindow* inWindow,bool inMaximized) : Event(inWindow)
             {
-            
+                maximized = inMaximized;
             }
         };
 
         struct MinimizeEvent : Event
         {
-            MinimizeEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            MinimizeEvent(IWindow* inWindow) : Event(inWindow)
             {
             
             }
@@ -130,7 +135,7 @@ namespace rin::io
 
         struct RefreshEvent : Event
         {
-            RefreshEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            RefreshEvent(IWindow* inWindow) : Event(inWindow)
             {
             
             }
@@ -138,7 +143,7 @@ namespace rin::io
 
         struct DropEvent : Event
         {
-            DropEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            DropEvent(IWindow* inWindow) : Event(inWindow)
             {
             
             }
@@ -146,7 +151,7 @@ namespace rin::io
 
         struct CloseEvent : Event
         {
-            CloseEvent(const Shared<IWindow>& inWindow) : Event(inWindow)
+            CloseEvent(IWindow* inWindow) : Event(inWindow)
             {
             
             }

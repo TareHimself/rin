@@ -15,7 +15,7 @@ file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
 file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.cpp")
 
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES})
-
+SOURCE_GROUP(rin FILES ${HEADER_FILES} ${SOURCE_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
@@ -27,16 +27,16 @@ FetchContent_Declare(glm
     GIT_TAG 1.0.0
     GIT_SHALLOW 1
 )
-FetchContent_Declare(sdl
-    GIT_REPOSITORY https://github.com/libsdl-org/SDL
-    GIT_TAG preview-3.1.6
-    GIT_SHALLOW 1
-)
-# FetchContent_Declare(glfw
-#     GIT_REPOSITORY https://github.com/glfw/glfw
-#     GIT_TAG 3.4
+# FetchContent_Declare(sdl
+#     GIT_REPOSITORY https://github.com/libsdl-org/SDL
+#     GIT_TAG preview-3.1.6
 #     GIT_SHALLOW 1
 # )
+FetchContent_Declare(glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw
+    GIT_TAG 3.4
+    GIT_SHALLOW 1
+)
 FetchContent_Declare(vkma
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
     GIT_TAG v3.1.0
@@ -57,10 +57,10 @@ set(GLFW_BUILD_DOCS OFF)
 set(SDL_TEST_LIBRARY OFF)
 set(SDL_EXAMPLES OFF)
 set(SDL_SHARED ON)
-FetchContent_MakeAvailable(glm vkma vkb sdl)
+FetchContent_MakeAvailable(glm vkma vkb glfw)
 
 find_package(Vulkan REQUIRED)
-target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm SDL3::SDL3 Vulkan::Vulkan vk-bootstrap::vk-bootstrap GPUOpen::VulkanMemoryAllocator)
+target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm glfw Vulkan::Vulkan vk-bootstrap::vk-bootstrap GPUOpen::VulkanMemoryAllocator)
 # target_link_libraries(${PROJECT_NAME} glfw)
 FindSlang(${PROJECT_NAME})
 GetBass()
@@ -78,6 +78,7 @@ if(RIN_BUILD_DEV)
     target_link_libraries(dev ${PROJECT_NAME})
     #target_include_directories(dev PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_include_directories(dev PRIVATE $<TARGET_PROPERTY:rin,INTERFACE_INCLUDE_DIRECTORIES>)
+    SOURCE_GROUP(dev FILES ${HEADER_FILES} ${SOURCE_FILES})
 endif()
 
 

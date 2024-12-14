@@ -71,4 +71,20 @@ namespace rin::io
         _threads.clear();
         
     }
+
+    void TaskRunner::StopAll()
+    {
+        _running = false;
+        _cond.notify_all();
+        {
+            std::lock_guard guard(_queueMutex);
+            _tasks = {};
+        }
+        for (auto &thread : _threads)
+        {
+            thread.join();
+        }
+
+        _threads.clear();
+    }
 }

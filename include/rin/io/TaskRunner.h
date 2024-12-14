@@ -26,7 +26,7 @@ namespace rin::io
         explicit  TaskRunner();
         ~TaskRunner();
 
-        void WaitAll();
+        //void WaitAll();
         void StopAll();
         
         template<typename T,std::enable_if_t<!std::is_void_v<T>>* = nullptr>

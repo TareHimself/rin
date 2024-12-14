@@ -2,7 +2,7 @@
 
 namespace rin::graphics
 {
-    class ITexture
+    class IPass
     {
     public:
     

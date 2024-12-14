@@ -1,19 +1,20 @@
 ﻿#pragma once
 #include "IWindow.h"
-struct SDL_Window;
-union SDL_Event;
+struct GLFWwindow;
 namespace rin::io
 {
-    class SDLWindow : public IWindow
+    class GlfwWindow : public IWindow
     {
-        SDL_Window * _ptr;
-        SDLWindow * _parent{};
+        GLFWwindow* _ptr;
+        GlfwWindow * _parent{};
         std::vector<IWindow *> _children{};
+        bool _fullscreen{false};
+        bool _focused{false};
     protected:
         void OnDispose() override;
         
     public:
-        SDLWindow(SDL_Window * ptr);
+        GlfwWindow(GLFWwindow * ptr);
         Vec2<double> GetCursorPosition() override;
         void SetCursorPosition(const Vec2<double>& position) override;
         void SetFullscreen(bool state) override;
@@ -25,8 +26,7 @@ namespace rin::io
         bool IsFullscreen() override;
         vk::SurfaceKHR CreateSurface(const vk::Instance& instance) override;
         std::vector<std::string> GetRequiredExtensions() override;
-        void HandleEvent(const SDL_Event& event);
-        SDL_Window * GetSdlWindow() const;
-        void SetParent(SDLWindow * parent);
+        GLFWwindow * GetGlfwWindow() const;
+        void SetParent(GlfwWindow * parent);
     };
 }

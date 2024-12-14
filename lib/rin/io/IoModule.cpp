@@ -2,26 +2,14 @@
 
 #include "rin/core/GRuntime.h"
 #include "rin/io/IoModule.h"
-#include "rin/io/SDLWindow.h"
-#include "SDL3/SDL_events.h"
-#include "SDL3/SDL.h"
-#include "rin/io/SDLWindow.h"
+#include "rin/io/GlfwWindow.h"
+#include <GLFW/glfw3.h>
+#include "rin/io/GlfwWindow.h"
 namespace rin::io
 {
     void IoModule::Tick(double delta)
     {
-        SDL_Event e;
-        while(SDL_PollEvent(&e))
-        {
-            auto window = SDL_GetWindowFromEvent(&e);
-            if(_windows.contains(window))
-            {
-                if(const auto asSdlWindow = dynamicCast<SDLWindow>(_windows[window]))
-                {
-                    asSdlWindow->HandleEvent(e);
-                }
-            }
-        }
+        glfwPollEvents();
     }
 
     IoModule* IoModule::Get()
@@ -32,40 +20,23 @@ namespace rin::io
     IWindow * IoModule::CreateWindow(const Vec2<int>& size, const std::string& name,
                                            const std::optional<IWindow::CreateOptions>& options,IWindow * parent)
     {
-        SDL_WindowFlags flags = SDL_WINDOW_MOUSE_RELATIVE_MODE | SDL_WINDOW_VULKAN;
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         const auto createOptions = options.value_or(IWindow::CreateOptions{});
-        if(createOptions.resizable)
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, createOptions.resizable ? GLFW_TRUE : GLFW_FALSE);
+        glfwWindowHint(GLFW_VISIBLE, createOptions.visible ? GLFW_TRUE : GLFW_FALSE);
+        glfwWindowHint(GLFW_DECORATED, createOptions.decorated ? GLFW_TRUE : GLFW_FALSE);
+        glfwWindowHint(GLFW_FLOATING, createOptions.floating ? GLFW_TRUE : GLFW_FALSE);
+        glfwWindowHint(GLFW_MAXIMIZED, createOptions.maximized ? GLFW_TRUE : GLFW_FALSE);
+        //glfwWindowHint(GLFW_CENTER_CURSOR, createOptions.cursorCentered ? GLFW_TRUE : GLFW_FALSE);
+
+        if(auto window = glfwCreateWindow(size.x,size.y,name.c_str(),nullptr,nullptr))
         {
-            flags |= SDL_WINDOW_RESIZABLE;
-        }
-        if(!createOptions.visible)
-        {
-            flags |= SDL_WINDOW_HIDDEN;
-        }
-        // if(createOptions.focused)
-        // {
-        //     flags |= SDL_WINDOW_INPUT_FOCUS || SDL_WINDOW_MOUSE_FOCUS;
-        // }
-        if(createOptions.floating)
-        {
-            flags |= SDL_WINDOW_ALWAYS_ON_TOP;
-        }
-        if(createOptions.maximized)
-        {
-            flags |= SDL_WINDOW_MAXIMIZED;
-        }
-        if(createOptions.transparent)
-        {
-            flags |= SDL_WINDOW_TRANSPARENT;
-        }
-        
-        if(auto window = SDL_CreateWindow(name.c_str(),size.x,size.y,flags))
-        {
-            auto sharedWindow = shared<SDLWindow>(window);
+            auto sharedWindow = shared<GlfwWindow>(window);
             
             _windows.emplace(window,sharedWindow);
             
-            if(auto parentAsSdlWindow = dynamic_cast<SDLWindow *>(parent))
+            if(auto parentAsSdlWindow = dynamic_cast<GlfwWindow *>(parent))
             {
                 sharedWindow->SetParent(parentAsSdlWindow);
             }
@@ -99,12 +70,13 @@ namespace rin::io
 
     void IoModule::Startup(GRuntime* runtime)
     {
-        SDL_Init(SDL_INIT_VIDEO);
+        glfwInit();
     }
 
     void IoModule::Shutdown(GRuntime* runtime)
     {
-        SDL_Quit();
+        glfwTerminate();
+        _mainTaskRunner.StopAll();
     }
 
     std::string IoModule::GetName()
