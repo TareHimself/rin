@@ -3,6 +3,7 @@ namespace rin.Framework.Graphics;
 public class Texture : ITexture
 {
     public IDeviceImage? Image {get; set;}
+    public int Id { get; set; }
     public ImageFilter Filter {get; set;}
     public ImageTiling Tiling {get; set;}
     public bool MipMapped { get; set; } = false;
@@ -17,7 +18,7 @@ public class Texture : ITexture
 
     public Texture(int id,IDeviceImage image, ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
     {
-        Id = id;x   
+        Id = id;
         Image = image;
         Filter = filter;
         Tiling = tiling;

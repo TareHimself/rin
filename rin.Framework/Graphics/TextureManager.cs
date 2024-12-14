@@ -5,7 +5,7 @@ using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace rin.Framework.Graphics;
 
-public class ResourceManager : Disposable
+public class TextureManager : ITextureManager
 {
     private static readonly uint MAX_TEXTURES = 512;
     private readonly Mutex _mutex = new();
@@ -15,34 +15,34 @@ public class ResourceManager : Disposable
     ], VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
     private readonly HashSet<int> _availableIndices = [];
-    private readonly List<BoundTexture> _textures = [];
+    private readonly List<Texture> _textures = [];
     private readonly DescriptorSet _descriptorSet;
 
-    public class BoundTexture
-    {
-        public readonly IDeviceImage? Image;
-        public readonly ImageFilter Filter;
-        public readonly ImageTiling Tiling;
-        public bool MipMapped = false;
-        public string DebugName;
-        public bool Valid => Image != null;
+    // public class BoundTexture : ITexture
+    // {
+    //     public readonly IDeviceImage? Image;
+    //     public readonly ImageFilter Filter;
+    //     public readonly ImageTiling Tiling;
+    //     public bool MipMapped = false;
+    //     public string DebugName;
+    //     public bool Valid => Image != null;
+    //
+    //     public BoundTexture()
+    //     {
+    //         DebugName = "";
+    //     }
+    //
+    //     public BoundTexture(IDeviceImage image, ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
+    //     {
+    //         Image = image;
+    //         Filter = filter;
+    //         Tiling = tiling;
+    //         MipMapped = mipMapped;
+    //         DebugName = debugName;
+    //     }
+    // }
 
-        public BoundTexture()
-        {
-            DebugName = "";
-        }
-
-        public BoundTexture(IDeviceImage image, ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
-        {
-            Image = image;
-            Filter = filter;
-            Tiling = tiling;
-            MipMapped = mipMapped;
-            DebugName = debugName;
-        }
-    }
-
-    public ResourceManager()
+    public TextureManager()
     {
         {
             const VkDescriptorBindingFlags flags = VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
@@ -71,7 +71,7 @@ public class ResourceManager : Disposable
         var image = await SGraphicsModule.Get().CreateImage(data, size, format,
             VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped, filter, debugName);
 
-        var boundText = new BoundTexture(image, filter, tiling, mipMapped, debugName);
+        var boundText = new Texture(0,image, filter, tiling, mipMapped, debugName);
 
         
        lock (_mutex)
@@ -90,6 +90,7 @@ public class ResourceManager : Disposable
                 _textures[textureId] = boundText;
             }
 
+            boundText.Id = textureId;
             UpdateTextures(textureId);
 
             return textureId;
@@ -105,51 +106,14 @@ public class ResourceManager : Disposable
             if (!info.Valid) continue;
 
             info.Image?.Dispose();
-            _textures[textureId] = new BoundTexture();
+            _textures[textureId] = new Texture();
             _availableIndices.Add(textureId);
         }
-        // VkDescriptorSet set = _descriptorSet;
-        //
-        // List<VkWriteDescriptorSet> writes = [];
-        //
-        // foreach (var textureId in textureIds)
-        // {
-        //     var info = _textures[textureId];
-        //
-        //     if (!info.Valid) continue;
-        //
-        //     unsafe
-        //     {
-        //         var imageInfo = new VkDescriptorImageInfo()
-        //         {
-        //         };
-        //
-        //         unsafe
-        //         {
-        //             writes.Add(new VkWriteDescriptorSet()
-        //             {
-        //                 sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        //                 dstSet = set,
-        //                 dstBinding = 0,
-        //                 dstArrayElement = (uint)textureId,
-        //                 descriptorCount = 1,
-        //                 descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        //                 pImageInfo = &imageInfo
-        //             });
-        //         }
-        //     }
-        // }
-        //
-        // if (writes.Count != 0)
-        // {
-        //     unsafe
-        //     {
-        //         fixed (VkWriteDescriptorSet* writeSets = writes.ToArray())
-        //         {
-        //             vkUpdateDescriptorSets(SGraphicsModule.Get().GetDevice(), (uint)writes.Count, writeSets, 0, null);
-        //         }
-        //     }
-        // }
+    }
+
+    public ITexture? GetTexture(int textureId)
+    {
+        return IsTextureIdValid(textureId) ? _textures[textureId] : null;
     }
 
     private void UpdateTextures(params int[] textureIds)
@@ -204,9 +168,22 @@ public class ResourceManager : Disposable
         }
     }
 
-    protected override void OnDispose(bool isManual)
+    public IDeviceImage? GetTextureImage(int textureId)
     {
-        //FreeTextures(_textures.Select((_, i) => i).ToArray());
+        return GetTexture(textureId)?.Image;
+    }
+
+    public bool IsTextureIdValid(int textureId)
+    {
+        if (textureId < 0) return false;
+
+        if (_availableIndices.Contains(textureId)) return false;
+
+        return textureId < _textures.Count;
+    }
+
+    public void Dispose()
+    {
         _allocator.Dispose();
         foreach (var boundTexture in _textures)
         {
@@ -217,25 +194,5 @@ public class ResourceManager : Disposable
         }
 
         _textures.Clear();
-    }
-
-
-    public BoundTexture? GetTextureInfo(int textureId)
-    {
-        return IsTextureIdValid(textureId) ? _textures[textureId] : null;
-    }
-
-    public IDeviceImage? GetTextureImage(int textureId)
-    {
-        return GetTextureInfo(textureId)?.Image;
-    }
-
-    public bool IsTextureIdValid(int textureId)
-    {
-        if (textureId < 0) return false;
-
-        if (_availableIndices.Contains(textureId)) return false;
-
-        return textureId < _textures.Count;
     }
 }

@@ -21,7 +21,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     private readonly Mutex _samplersMutex = new();
     private Allocator? _allocator;
     private IShaderCompiler? _shaderCompiler;
-    private ResourceManager? _resourceManager;
+    private ITextureManager? _resourceManager;
     private VkDebugUtilsMessengerEXT _debugUtilsMessenger;
     private DescriptorAllocator? _descriptorAllocator;
     private VkDevice _device;
@@ -294,7 +294,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
             vkAllocateCommandBuffers(_device, &commandBufferCreateInfo, pCommandBuffer);
         }
 
-        _resourceManager = new ResourceManager();
+        _resourceManager = new TextureManager();
 
         _instance.DestroySurface(outSurface);
     }
@@ -304,7 +304,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         return _shaderCompiler!;
     }
 
-    public ResourceManager GetResourceManager()
+    public ITextureManager GetResourceManager()
     {
         return _resourceManager!;
     }

@@ -19,7 +19,7 @@ public class ImageWrite
     
     public ImageWrite(int textureId)
     {
-        if (SGraphicsModule.Get().GetResourceManager().GetTextureInfo(textureId) is { } boundTexture)
+        if (SGraphicsModule.Get().GetResourceManager().GetTexture(textureId) is { } boundTexture)
         {
             Image = boundTexture.Image!;
             Layout = VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
