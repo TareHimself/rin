@@ -2,11 +2,11 @@
 using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
-using rin.Framework.Widgets;
-using rin.Framework.Widgets.Content;
-using rin.Framework.Widgets.Events;
-using rin.Framework.Widgets.Graphics;
-using rin.Framework.Widgets.Graphics.Quads;
+using rin.Framework.Views;
+using rin.Framework.Views.Content;
+using rin.Framework.Views.Events;
+using rin.Framework.Views.Graphics;
+using rin.Framework.Views.Graphics.Quads;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
 

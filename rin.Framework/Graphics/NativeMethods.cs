@@ -262,4 +262,60 @@ internal static partial class NativeMethods
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeRefreshDelegate refreshDelegate,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeMinimizeDelegate minimizeDelegate,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeDropDelegate dropDelegate);
+    
+    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderCreate")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void * SlangSessionBuilderCreate();
+    
+    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderDestroy")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void SlangSessionBuilderDestroy(void * builder);
+    
+    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderAddTargetSpirv")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void SlangSessionBuilderAddTargetSpirv(void * builder);
+    
+    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderAddTargetGlsl")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void SlangSessionBuilderAddTargetGlsl(void * builder);
+    
+    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderAddPreprocessorDefinition")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void SlangSessionBuilderAddPreprocessorDefinition(void * builder, [MarshalAs(UnmanagedType.BStr)] string name, [MarshalAs(UnmanagedType.BStr)] string value);
+    
+    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderAddSearchPath")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void SlangSessionBuilderAddSearchPath(void * builder, [MarshalAs(UnmanagedType.BStr)] string path);
+    
+    [LibraryImport(DllName, EntryPoint = "slangSessionCreate")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void * SlangSessionCreate(void * builder);
+    
+    [LibraryImport(DllName, EntryPoint = "slangSessionDestroy")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void SlangSessionDestroy(void * builder);
+    
+    [LibraryImport(DllName, EntryPoint = "slangSessionCompile")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void * SlangSessionCompile(void * session, [MarshalAs(UnmanagedType.BStr)] string moduleName, [MarshalAs(UnmanagedType.BStr)] string modulePath, [MarshalAs(UnmanagedType.BStr)] string data, [MarshalAs(UnmanagedType.BStr)] string entry);
+    
+    [LibraryImport(DllName, EntryPoint = "slangResultDestroy")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void SlangResultDestroy(void * result);
+    
+    [LibraryImport(DllName, EntryPoint = "slangResultGetDiagnosticsCount")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial int SlangResultGetDiagnosticsCount(void * result);
+    
+    [LibraryImport(DllName, EntryPoint = "slangResultGetDiagnostic")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial char * SlangResultGetDiagnostic(void * result,int index);
+    
+    [LibraryImport(DllName, EntryPoint = "slangResultGetPointer")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void * SlangResultGetPointer(void * result);
+    
+    [LibraryImport(DllName, EntryPoint = "slangResultGetSize")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial int SlangResultGetSize(void * result);
 }

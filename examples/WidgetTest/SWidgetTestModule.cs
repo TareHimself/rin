@@ -1,89 +1,109 @@
-﻿
-using rin.Framework.Core;
+﻿using rin.Framework.Core;
 using rin.Framework.Core.Animation;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.Windows;
-using rin.Framework.Widgets;
-using rin.Framework.Widgets.Animation;
-using rin.Framework.Widgets.Containers;
-using rin.Framework.Widgets.Content;
-using rin.Framework.Widgets.Events;
-using rin.Framework.Widgets.Graphics;
-using rin.Framework.Widgets.Graphics.Quads;
-
-using Rect = rin.Framework.Widgets.Containers.Rect;
+using rin.Framework.Views;
+using rin.Framework.Views.Animation;
+using rin.Framework.Views.Composite;
+using rin.Framework.Views.Content;
+using rin.Framework.Views.Events;
+using rin.Framework.Views.Graphics;
+using rin.Framework.Views.Graphics.Quads;
+using Rect = rin.Framework.Views.Composite.Rect;
 
 namespace WidgetTest;
 
 [RuntimeModule(typeof(SWidgetsModule))]
 public class SWidgetTestModule : RuntimeModule
-{   
+{
+
+    class WrapContainer : Button
+    {
+        private View _content;
+        public WrapContainer(View content)
+        {
+            _content = content;
+            Child = new Sizer()
+            {
+                WidthOverride = 300,
+                HeightOverride = 300,
+                Child = content,
+                Padding = 10.0f,
+            };
+            content.Pivot = 0.5f;
+            OnReleased += (@event, button) =>
+            {
+               _content.StopAll().RotateTo(360,0.5f).After().Do(() => _content.Angle = 0.0f);
+            };
+        }
+
+        protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+        {
+            var size = base.LayoutContent(availableSpace);
+            _content.Translate = _content.Size * .5f;
+            return size;
+        }
+    }
     public void TestWrapping(WindowRenderer renderer)
     {
         if (SWidgetsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
             var list = new WrapList()
             {
-                Axis = Axis.Row,
+                Axis = Axis.Column,
             };
-            
+
             surf.Add(new Panel()
             {
-                Slots = [
-                new PanelSlot()
-                {
-                    Child = new ScrollList()
+                Slots =
+                [
+                    new PanelSlot()
                     {
-                        Slot = new ListSlot
+                        Child = new ScrollList()
                         {
-                            Child = list,
-                            Fit = CrossFit.Fill
+                            Slot = new ListSlot
+                            {
+                                Child = list,
+                                Fit = CrossFit.Fill
+                            },
+                            Clip = Clip.None
                         },
-                        Clip = Clip.None
+                        MinAnchor = 0.0f,
+                        MaxAnchor = 1.0f
                     },
-                    MinAnchor = 0.0f,
-                    MaxAnchor = 1.0f
-                }
-                ,
-                new PanelSlot
-                {
-                    Child = new Rect
+                    new PanelSlot
                     {
-                        Child = new FpsWidget
+                        Child = new Rect
                         {
-                            FontSize = 30,
-                            Content = "YOOOO"
+                            Child = new FpsWidget
+                            {
+                                FontSize = 30,
+                                Content = "YOOOO"
+                            },
+                            Padding = new Padding(20.0f),
+                            BorderRadius = 10.0f,
+                            BackgroundColor = Color.Black.Clone(a: 0.7f)
                         },
-                        Padding = new Padding(20.0f),
-                        BorderRadius = 10.0f,
-                        BackgroundColor = Color.Black.Clone(a: 0.7f)
-                    },
-                    SizeToContent = true,
-                    MinAnchor = new Vector2<float>(1.0f, 0.0f),
-                    MaxAnchor = new Vector2<float>(1.0f, 0.0f),
-                    Alignment = new Vector2<float>(1.0f, 0.0f)
-                }
+                        SizeToContent = true,
+                        MinAnchor = new Vector2<float>(1.0f, 0.0f),
+                        MaxAnchor = new Vector2<float>(1.0f, 0.0f),
+                        Alignment = new Vector2<float>(1.0f, 0.0f)
+                    }
                 ]
             });
-            
+
             surf.Window.OnDrop += (e) =>
             {
                 Task.Run(() =>
                 {
                     foreach (var objPath in e.Paths)
                     {
-                        list.AddChild(new Sizer()
+                        list.AddChild(new WrapContainer(new AsyncFileImage(objPath)
                         {
-                            WidthOverride = 300,
-                            HeightOverride = 300,
-                            Child = new AsyncFileImage(objPath)
-                            {
-                                BorderRadius = 30.0f
-                            },
-                            Padding = 10.0f,
-                        });
+                            BorderRadius = 30.0f
+                        }));
                     }
                 });
             };
@@ -93,55 +113,37 @@ public class SWidgetTestModule : RuntimeModule
             {
                 if (e is { State: InputState.Pressed, Key: InputKey.Equal })
                 {
-                    Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true)).After(
-                        (p) =>
-                        {
-                            foreach (var path in p)
-                                list.AddChild(new Sizer()
-                                {
-                                    WidthOverride = rand.Next(300,300),
-                                    HeightOverride = 300,
-                                    Child = new AsyncFileImage(path)
-                                    {
-                                        BorderRadius = 30.0f
-                                    },
-                                    Padding = 10.0f,
-                                });
-                        });
-                    
+                    Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
+                        .After(
+                            (p) =>
+                            {
+                                foreach (var path in p)
+                                    list.AddChild(new WrapContainer(new AsyncFileImage(path)
+                                        {
+                                            BorderRadius = 30.0f
+                                        }));
+                            });
                 }
-                
+
                 if (e is { State: InputState.Pressed, Key: InputKey.Minus })
                 {
-                    list.AddChild(new Sizer()
+                    list.AddChild(new WrapContainer(new PrettyView()
                     {
-                        WidthOverride = rand.Next(300, 300),
-                        HeightOverride = 300,
-                        Child = new PrettyWidget()
-                        {
-                            Pivot = 0.5f,
-                        },
-                        Padding = 10.0f,
-                    });
+                        Pivot = 0.5f,
+                    }));
                 }
-                
+
                 if (e is { State: InputState.Pressed, Key: InputKey.Zero })
                 {
-                    list.AddChild(new Sizer()
+                    list.AddChild(new WrapContainer(new Canvas
                     {
-                        WidthOverride = rand.Next(300, 300),
-                        HeightOverride = 300,
-                        Child = new Canvas
+                        Paint = ((canvas, transform, cmds) =>
                         {
-                            Paint = ((canvas, transform, cmds) =>
-                            {
-                                var rect = Quad.NewRect(transform, canvas.GetContentSize());
-                                rect.Mode = Quad.RenderMode.ColorWheel;
-                                cmds.AddQuads(rect);
-                            })
-                        },
-                        Padding = 10.0f,
-                    });
+                            var rect = Quad.NewRect(transform, canvas.GetContentSize());
+                            rect.Mode = Quad.RenderMode.ColorWheel;
+                            cmds.AddQuads(rect);
+                        })
+                    }));
                 }
             };
         }
@@ -162,14 +164,15 @@ public class SWidgetTestModule : RuntimeModule
         {
             _width = WidthOverride.GetValueOrDefault(0);
         }
+
         protected override void OnCursorEnter(CursorMoveEvent e)
         {
-            this.StopAll().WidthTo(HeightOverride.GetValueOrDefault(0),easingFunction: EasingFunctions.EaseInOutCubic);
+            this.StopAll().WidthTo(HeightOverride.GetValueOrDefault(0), easingFunction: EasingFunctions.EaseInOutCubic);
         }
 
         protected override void OnCursorLeave(CursorMoveEvent e)
         {
-            this.StopAll().WidthTo(_width,easingFunction: EasingFunctions.EaseInOutCubic);
+            this.StopAll().WidthTo(_width, easingFunction: EasingFunctions.EaseInOutCubic);
         }
     }
 
@@ -181,36 +184,38 @@ public class SWidgetTestModule : RuntimeModule
             {
                 Axis = Axis.Row,
             };
-            
+
             surf.Add(new Panel()
             {
-                Slots = [
-                new PanelSlot()
-                {
-                    Child = list,
-                    MinAnchor = 0.5f,
-                    MaxAnchor = 0.5f,
-                    Alignment = 0.5f,
-                    SizeToContent = true
-                },
-                new PanelSlot
-                {
-                    Child = new Rect
+                Slots =
+                [
+                    new PanelSlot()
                     {
-                        Child = new FpsWidget
-                        {
-                            FontSize = 30,
-                            Content = "YOOOO"
-                        },
-                        Padding = new Padding(20.0f),
-                        BorderRadius = 10.0f,
-                        BackgroundColor = Color.Black.Clone(a: 0.7f)
+                        Child = list,
+                        MinAnchor = 0.5f,
+                        MaxAnchor = 0.5f,
+                        Alignment = 0.5f,
+                        SizeToContent = true
                     },
-                    SizeToContent = true,
-                    MinAnchor = new Vector2<float>(1.0f, 0.0f),
-                    MaxAnchor = new Vector2<float>(1.0f, 0.0f),
-                    Alignment = new Vector2<float>(1.0f, 0.0f)
-                }]
+                    new PanelSlot
+                    {
+                        Child = new Rect
+                        {
+                            Child = new FpsWidget
+                            {
+                                FontSize = 30,
+                                Content = "YOOOO"
+                            },
+                            Padding = new Padding(20.0f),
+                            BorderRadius = 10.0f,
+                            BackgroundColor = Color.Black.Clone(a: 0.7f)
+                        },
+                        SizeToContent = true,
+                        MinAnchor = new Vector2<float>(1.0f, 0.0f),
+                        MaxAnchor = new Vector2<float>(1.0f, 0.0f),
+                        Alignment = new Vector2<float>(1.0f, 0.0f)
+                    }
+                ]
             });
 
             surf.Window.OnDrop += (e) =>
@@ -237,38 +242,38 @@ public class SWidgetTestModule : RuntimeModule
             {
                 if (e is { State: InputState.Pressed, Key: InputKey.Equal })
                 {
-                    Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true)).After(
-                        (p) =>
-                        {
-                            foreach (var path in p)
-                                list.AddChild(new TestAnimationSizer()
-                                {
-                                    WidthOverride = 200,
-                                    HeightOverride = 800,
-                                    Child = new AsyncFileImage(path)
+                    Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
+                        .After(
+                            (p) =>
+                            {
+                                foreach (var path in p)
+                                    list.AddChild(new TestAnimationSizer()
                                     {
-                                        BorderRadius = 30.0f
-                                    },
-                                    Padding = 10.0f,
-                                });
-                        });
-                    
+                                        WidthOverride = 200,
+                                        HeightOverride = 800,
+                                        Child = new AsyncFileImage(path)
+                                        {
+                                            BorderRadius = 30.0f
+                                        },
+                                        Padding = 10.0f,
+                                    });
+                            });
                 }
-                
+
                 if (e is { State: InputState.Pressed, Key: InputKey.Minus })
                 {
                     list.AddChild(new TestAnimationSizer()
                     {
                         WidthOverride = 200,
                         HeightOverride = 800,
-                        Child = new PrettyWidget()
+                        Child = new PrettyView()
                         {
                             Pivot = 0.5f,
                         },
                         Padding = 10.0f,
                     });
                 }
-                
+
                 if (e is { State: InputState.Pressed, Key: InputKey.Zero })
                 {
                     list.AddChild(new Sizer()
@@ -301,7 +306,6 @@ public class SWidgetTestModule : RuntimeModule
 
     public void TestBlur(WindowRenderer renderer)
     {
-        
         var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
 
         if (surf == null) return;
@@ -415,7 +419,8 @@ public class SWidgetTestModule : RuntimeModule
                 {
                     Child = new Fitter
                     {
-                        Child = new AsyncFileImage(@"C:\Users\Taree\Downloads\Wallpapers-20241117T001814Z-001\Wallpapers\wallpaperflare.com_wallpaper (49).jpg"),
+                        Child = new AsyncFileImage(
+                            @"C:\Users\Taree\Downloads\Wallpapers-20241117T001814Z-001\Wallpapers\wallpaperflare.com_wallpaper (49).jpg"),
                         FittingMode = FitMode.Cover,
                         Clip = Clip.Bounds
                     },
@@ -452,7 +457,7 @@ public class SWidgetTestModule : RuntimeModule
         window.OnCloseRequested += (_) =>
         {
             if (window.Parent != null)
-            {   
+            {
                 window.Dispose();
             }
             else
@@ -460,26 +465,26 @@ public class SWidgetTestModule : RuntimeModule
                 SRuntime.Get().RequestExit();
             }
         };
-            
+
         window.OnKey += (e =>
         {
             if (e is { Key: InputKey.Up, State: InputState.Pressed })
             {
                 window.CreateChild(500, 500, "test child");
             }
-                
+
             if (e is { Key: InputKey.Enter, State: InputState.Pressed, IsAltDown: true })
             {
                 window.SetFullscreen(!window.IsFullscreen);
             }
-                
         });
     }
+
     public override void Startup(SRuntime runtime)
     {
         base.Startup(runtime);
-        
-        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
+
+        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
 
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin Widget Test", new CreateOptions()

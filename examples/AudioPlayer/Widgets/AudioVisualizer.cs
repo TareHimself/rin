@@ -1,11 +1,11 @@
 ﻿
 using rin.Framework.Core.Math;
-using rin.Framework.Widgets;
-using rin.Framework.Widgets.Graphics;
+using rin.Framework.Views;
+using rin.Framework.Views.Graphics;
 
 namespace AudioPlayer.Widgets;
 
-public class AudioVisualizer : ContentWidget
+public class AudioVisualizer : ContentView
 {
     protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
     {

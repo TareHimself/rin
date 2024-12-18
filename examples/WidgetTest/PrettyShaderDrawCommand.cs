@@ -4,8 +4,8 @@ using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.Shaders;
 using rin.Framework.Graphics.Shaders.Rsl;
-using rin.Framework.Widgets.Graphics;
-using rin.Framework.Widgets.Graphics.Commands;
+using rin.Framework.Views.Graphics;
+using rin.Framework.Views.Graphics.Commands;
 
 namespace WidgetTest;
 
@@ -26,7 +26,7 @@ public class PrettyShaderDrawCommand(Matrix3 transform,Vector2<float> size,bool 
     public override ulong MemoryNeeded => (ulong)Marshal.SizeOf<Data>();
 
 
-    private readonly IGraphicsShader _prettyRslShader = RslGraphicsShader.FromFile(Path.Join(SRuntime.ResourcesDirectory,"test","pretty.rsl"));
+    private readonly IGraphicsShader _prettyRslShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SRuntime.ResourcesDirectory,"test","pretty.rsl"));
 
     public override void Run(WidgetFrame frame, uint stencilMask,IDeviceBuffer? view = null)
     {

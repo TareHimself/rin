@@ -1,11 +1,11 @@
 ﻿
 using rin.Framework.Audio;
 using rin.Framework.Core.Math;
-using rin.Framework.Widgets;
-using rin.Framework.Widgets.Containers;
-using rin.Framework.Widgets.Graphics;
-using Clip = rin.Framework.Widgets.Clip;
-using Rect = rin.Framework.Widgets.Containers.Rect;
+using rin.Framework.Views;
+using rin.Framework.Views.Composite;
+using rin.Framework.Views.Graphics;
+using Clip = rin.Framework.Views.Clip;
+using Rect = rin.Framework.Views.Composite.Rect;
 
 namespace AudioPlayer.Widgets;
 

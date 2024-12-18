@@ -2,9 +2,9 @@
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
-using rin.Framework.Widgets.Content;
-using rin.Framework.Widgets.Graphics;
-using rin.Framework.Widgets.Graphics.Commands;
+using rin.Framework.Views.Content;
+using rin.Framework.Views.Graphics;
+using rin.Framework.Views.Graphics.Commands;
 
 namespace WidgetTest;
 

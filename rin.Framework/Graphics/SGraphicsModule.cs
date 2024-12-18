@@ -20,7 +20,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
     private readonly Dictionary<IWindow, WindowRenderer> _windows = [];
     private readonly Mutex _samplersMutex = new();
     private Allocator? _allocator;
-    private IShaderCompiler? _shaderCompiler;
+    private IShaderManager? _shaderCompiler;
     private ITextureManager? _resourceManager;
     private VkDebugUtilsMessengerEXT _debugUtilsMessenger;
     private DescriptorAllocator? _descriptorAllocator;
@@ -265,7 +265,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         ]);
         _allocator = new Allocator(this);
 
-        _shaderCompiler = new RslShaderCompiler();
+        _shaderCompiler = new RslShaderManager();
 
         _immediateFence = _device.CreateFence();
 
@@ -299,7 +299,7 @@ public sealed partial class SGraphicsModule : RuntimeModule, ISingletonGetter<SG
         _instance.DestroySurface(outSurface);
     }
 
-    public IShaderCompiler GetShaderCompiler()
+    public IShaderManager GetShaderManager()
     {
         return _shaderCompiler!;
     }

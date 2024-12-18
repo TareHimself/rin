@@ -17,9 +17,9 @@ public class RslGraphicsShader : IRslGraphicsShader
     public Dictionary<string, Resource> Resources { get; } = [];
     public Dictionary<string, PushConstant> PushConstants { get; } = [];
     
-    public CompiledShader Compile(IShaderCompiler compiler)
+    public CompiledShader Compile(IShaderManager manager)
     {
-        if (compiler is RslShaderCompiler asManager)
+        if (manager is RslShaderManager asManager)
         {
            var vertexSpirv = asManager.CompileAstToSpirv(_vertexShaderId, VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
             _vertexShader);
@@ -128,7 +128,7 @@ public class RslGraphicsShader : IRslGraphicsShader
                 }
             }
 
-            compiler.OnBeforeDispose += () =>
+            manager.OnBeforeDispose += () =>
             {
                 vkDestroyPipelineLayout(device, shader.PipelineLayout, null);
                 foreach (var (shaderObj,_ ) in shader.Shaders)
@@ -148,7 +148,7 @@ public class RslGraphicsShader : IRslGraphicsShader
     {
         ((IRslGraphicsShader)this).ComputeResources([new Pair<VkShaderStageFlags, ModuleNode>(VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,_vertexShader),new Pair<VkShaderStageFlags, ModuleNode>(VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,_fragmentShader)]);
 
-        _compiledShader = SGraphicsModule.Get().GetShaderCompiler().Compile(this);
+        _compiledShader = SGraphicsModule.Get().GetShaderManager().Compile(this);
     }
 
     public bool Bind(VkCommandBuffer cmd, bool wait = false)

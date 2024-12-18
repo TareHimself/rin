@@ -1,6 +1,6 @@
 ﻿
-using rin.Framework.Widgets;
-using rin.Framework.Widgets.Containers;
+using rin.Framework.Views;
+using rin.Framework.Views.Composite;
 using AudioPlayer.Widgets;
 using rin.Framework.Audio;
 using rin.Framework.Core;

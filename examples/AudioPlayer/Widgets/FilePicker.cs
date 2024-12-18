@@ -2,14 +2,14 @@
 using rin.Framework.Core;
 using rin.Framework.Core.Animation;
 using rin.Framework.Core.Extensions;
-using rin.Framework.Widgets;
-using rin.Framework.Widgets.Animation;
-using rin.Framework.Widgets.Containers;
-using rin.Framework.Widgets.Content;
-using rin.Framework.Widgets.Graphics.Commands;
-using rin.Framework.Widgets.Events;
-using rin.Framework.Widgets.Graphics;
-using rin.Framework.Widgets.Graphics.Quads;
+using rin.Framework.Views;
+using rin.Framework.Views.Animation;
+using rin.Framework.Views.Composite;
+using rin.Framework.Views.Content;
+using rin.Framework.Views.Graphics.Commands;
+using rin.Framework.Views.Events;
+using rin.Framework.Views.Graphics;
+using rin.Framework.Views.Graphics.Quads;
 
 namespace AudioPlayer.Widgets;
 
@@ -49,12 +49,12 @@ public class FilePicker : Button
         OnFileSelected?.Invoke(files);
         StatusText.Content = "Select File's";
     }
-
-    protected override bool OnCursorDown(CursorDownEvent e)
+    
+    public override void OnCursorUp(CursorUpEvent e)
     {
+        base.OnCursorUp(e);
         StatusText.Content = "Selecting...";
         Platform.SelectFileAsync("Select File's To Play",multiple:true,filter:"*.wav;*.ogg;*.flac;*.mp3").Then(FileSelected).ConfigureAwait(false);
-        return base.OnCursorDown(e);
     }
 
     protected override void OnDispose(bool isManual)

@@ -17,4 +17,9 @@ public static class MathExtensions
     {
         return (self - other).Abs() < tolerance;
     }
+    
+    public static double Distance(this Vector2<float> a, Vector2<float> b)
+    {
+        return System.Math.Sqrt(System.Math.Pow((b.X - a.X),2) + System.Math.Pow((b.Y - a.Y),2));
+    }
 }

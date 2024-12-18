@@ -3,13 +3,13 @@ using rin.Framework.Audio;
 using rin.Framework.Core;
 using rin.Framework.Core.Animation;
 using rin.Framework.Core.Math;
-using rin.Framework.Widgets;
-using rin.Framework.Widgets.Animation;
-using rin.Framework.Widgets.Containers;
-using rin.Framework.Widgets.Content;
-using rin.Framework.Widgets.Events;
-using rin.Framework.Widgets.Graphics;
-using Rect = rin.Framework.Widgets.Rect;
+using rin.Framework.Views;
+using rin.Framework.Views.Animation;
+using rin.Framework.Views.Composite;
+using rin.Framework.Views.Content;
+using rin.Framework.Views.Events;
+using rin.Framework.Views.Graphics;
+using Rect = rin.Framework.Views.Rect;
 
 
 namespace AudioPlayer.Widgets;
@@ -81,42 +81,46 @@ public class TrackPlayer : Overlay
                     new ListSlot
                     {
                         Fit = CrossFit.Fill,
-                        Child = new FlexBox
+                        Child = new Constraint()
                         {
-                            Axis = Axis.Row,
-                            Slots =
-                            [
-                                new FlexBoxSlot
-                                {
-                                    Child = new Sizer
+                            MinWidth = 500.0f,
+                            Child = new FlexBox
+                            {
+                                Axis = Axis.Row,
+                                Slots =
+                                [
+                                    new FlexBoxSlot
                                     {
-                                        Child = _currentTimeText,
-                                        WidthOverride = 100
-                                    }
-                                },
-                                new FlexBoxSlot
-                                {
-                                    Child = new Sizer
-                                    {
-                                        Child = new ProgressBar(() => (float)(_stream.Position / _stream.Length))
+                                        Child = new Sizer
                                         {
-                                            BackgroundColor = Color.Black,
-                                            BorderRadius = 6.0f
-                                        },
-                                        HeightOverride = 8
+                                            Child = _currentTimeText,
+                                            WidthOverride = 100
+                                        }
                                     },
-                                    Flex = 1,
-                                    Align = CrossAlign.Center
-                                },
-                                new FlexBoxSlot
-                                {
-                                    Child = new Sizer
+                                    new FlexBoxSlot
                                     {
-                                        Child = _endTimeText,
-                                        WidthOverride = 100
+                                        Child = new Sizer
+                                        {
+                                            Child = new ProgressBar(() => (float)(_stream.Position / _stream.Length))
+                                            {
+                                                BackgroundColor = Color.Black,
+                                                BorderRadius = 6.0f
+                                            },
+                                            HeightOverride = 8
+                                        },
+                                        Flex = 1,
+                                        Align = CrossAlign.Center
+                                    },
+                                    new FlexBoxSlot
+                                    {
+                                        Child = new Sizer
+                                        {
+                                            Child = _endTimeText,
+                                            WidthOverride = 100
+                                        }
                                     }
-                                }
-                            ]
+                                ]
+                            }
                         }
                     }
                 ]
@@ -132,27 +136,43 @@ public class TrackPlayer : Overlay
 
     private async Task FetchCover()
     {
-        var data = (await SAudioPlayer.Get().SpClient.Search.GetTracksAsync($"{_nameText.Content} official track"))
-            .FirstOrDefault();
-        if (data == null)
+        try
         {
-            Console.WriteLine($"Failed to find art for {_nameText.Content}");
-            return;
-        }
-
-
-        var thumb = data.Album.Images.MaxBy(c => c.Height * c.Width)!.Url;
-
-        Console.WriteLine($"Using thumb {thumb} for {_nameText.Content}");
-        _backgroundContainer.AddChild(new PanelSlot
-        {
-            Child = new AsyncWebCover(thumb)
+            var data = (await SAudioPlayer.Get().SpClient.Search.GetTracksAsync($"{_nameText.Content} official track"))
+                .FirstOrDefault();
+            if (data == null)
             {
-                BorderRadius = 20.0f
-            },
-            MinAnchor = 0.0f,
-            MaxAnchor = 1.0f
-        });
+                Console.WriteLine($"Failed to find art for {_nameText.Content}");
+                return;
+            }
+
+
+            var thumb = data.Album.Images.MaxBy(c => c.Height * c.Width)!.Url;
+
+            Console.WriteLine($"Using thumb {thumb} for {_nameText.Content}");
+            _backgroundContainer.AddChild(new PanelSlot
+            {
+                Child = new AsyncWebCover(thumb)
+                {
+                    BorderRadius = 20.0f
+                },
+                MinAnchor = 0.0f,
+                MaxAnchor = 1.0f
+            });
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            _backgroundContainer.AddChild(new PanelSlot
+            {
+                Child = new AsyncWebCover("https://i.imgur.com/5fQUPDl.jpg")
+                {
+                    BorderRadius = 20.0f
+                },
+                MinAnchor = 0.0f,
+                MaxAnchor = 1.0f
+            });
+        }
         // this.ScaleTo(new Vector2<float>(1.0f, 1.0f), 1.0f, 0.2f,easingFunction: EasingFunctions.EaseInExpo).After().Do(
         //     () =>
         //     {
@@ -172,7 +192,20 @@ public class TrackPlayer : Overlay
         base.Collect(transform,clip, drawCommands);
     }
 
-    protected override bool OnCursorDown(CursorDownEvent e) => _stream.IsPlaying ? _stream.Pause() : _stream.Play();
+    public override bool OnCursorDown(CursorDownEvent e) => true;
+
+    public override void OnCursorUp(CursorUpEvent e)
+    {
+        if (_stream.IsPlaying)
+        {
+            _stream.Pause();
+        }
+        else
+        {
+            _stream.Play();
+        }
+        base.OnCursorUp(e);
+    }
 
     protected override void OnCursorEnter(CursorMoveEvent e)
     {
