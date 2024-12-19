@@ -62,7 +62,8 @@ FetchContent_MakeAvailable(glm vkma vkb glfw)
 find_package(Vulkan REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm glfw Vulkan::Vulkan vk-bootstrap::vk-bootstrap GPUOpen::VulkanMemoryAllocator)
 # target_link_libraries(${PROJECT_NAME} glfw)
-FindSlang(${PROJECT_NAME})
+GetSlang(${PROJECT_NAME} "2024.14.6")
+GetStb(${PROJECT_NAME} "master")
 GetBass()
 
 add_custom_command ( TARGET ${PROJECT_NAME} POST_BUILD

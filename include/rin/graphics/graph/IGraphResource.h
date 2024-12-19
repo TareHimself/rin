@@ -1,11 +1,9 @@
 ﻿#pragma once
-
 namespace rin::graphics
 {
-    class IPass
+    class IGraphResource
     {
     public:
     
     };
-
 }

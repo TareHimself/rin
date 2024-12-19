@@ -1,3 +1,11 @@
+function(Fetch REPOSITORY BRANCH DESTINATION)
+  if(NOT EXISTS ${DESTINATION})
+    execute_process(
+      COMMAND git clone --depth 1 --branch ${BRANCH} ${REPOSITORY} ${DESTINATION}
+    )
+  endif()
+endfunction()
+
 macro(SetDynamicLibraryDir SPECIFIC_TARGET)
   set(TARGET_DIR ${CMAKE_CURRENT_LIST_DIR}/bin/${CMAKE_BUILD_TYPE})
   set_target_properties(${SPECIFIC_TARGET}
@@ -51,14 +59,13 @@ function(GetBass)
     endif()
 endfunction()
 
-macro(FindSlang TARGET_PROJECT)
+macro(GetSlang TARGET_PROJECT SLANG_VERSION)
   set(SLANG_BINARIES_OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/bin/${CMAKE_BUILD_TYPE})
   set(DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR})
   set(SLANG_OUTPUT_DIR ${DOWNLOAD_DIR}/slang)
   
   if(NOT EXISTS ${SLANG_OUTPUT_DIR})
         set(DOWNLOADED_FILE ${DOWNLOAD_DIR}/slang.zip)
-        set(SLANG_VERSION 2024.14.6)
         if(WIN32)
             file(DOWNLOAD https://github.com/shader-slang/slang/releases/download/v${SLANG_VERSION}/slang-${SLANG_VERSION}-windows-x86_64.zip ${DOWNLOADED_FILE} SHOW_PROGRESS)
             file(ARCHIVE_EXTRACT INPUT ${DOWNLOADED_FILE} DESTINATION ${SLANG_OUTPUT_DIR})
@@ -80,4 +87,36 @@ macro(FindSlang TARGET_PROJECT)
   target_link_libraries(${TARGET_PROJECT} PUBLIC ${SLANG_LIBRARY})
 endmacro()
 
+# STB
+macro(GetStb TARGET_PROJECT VERSION)
+  set(RESULT_DIR ${CMAKE_CURRENT_BINARY_DIR}/stb_${VERSION})
+  set(OUTPUT_FILES "")
+  if(NOT EXISTS ${RESULT_DIR})
+    set(REPO_DIR ${CMAKE_CURRENT_BINARY_DIR}/stb)
+    Fetch(https://github.com/nothings/stb ${VERSION} ${REPO_DIR})
 
+    file(MAKE_DIRECTORY ${RESULT_DIR})
+
+    set(FILES_TO_COPY "stb_image.h" "stb_image_write.h")
+
+    foreach(TO_COPY ${FILES_TO_COPY})
+      file(COPY ${REPO_DIR}/${TO_COPY} DESTINATION ${RESULT_DIR}/include/stb)
+      list(APPEND OUTPUT_FILES ${RESULT_DIR}/include/stb/${TO_COPY})
+    endforeach()
+
+    file(REMOVE_RECURSE ${REPO_DIR})
+    unset(FILES_TO_COPY)
+    unset(REPO_DIR)
+  endif()
+
+  target_include_directories(
+    ${TARGET_PROJECT}
+    PUBLIC
+    $<BUILD_INTERFACE:${RESULT_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+
+  target_sources(${TARGET_PROJECT} PUBLIC ${OUTPUT_FILES})
+  unset(OUTPUT_FILES)
+  unset(RESULT_DIR)
+endmacro()

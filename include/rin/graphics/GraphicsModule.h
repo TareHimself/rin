@@ -1,8 +1,10 @@
 #pragma once
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
+#include "IDeviceBuffer.h"
+#include "IDeviceImage.h"
 #include "rin/core/Module.h"
 #include "rin/io/IoModule.h"
-
+#include "vk_mem_alloc.h"
 
 namespace rin::graphics
 {
@@ -21,6 +23,14 @@ namespace rin::graphics
     public:
         std::string GetName() override;
 
+        Shared<IDeviceImage> NewImage(const vk::Extent3D& size,const ImageFormat& format,const vk::ImageUsageFlags& usage, bool mips = false,
+        const std::string &debugName = "Image");
+        
+        Shared<IDeviceBuffer> NewBuffer(uint64_t size,const vk::BufferUsageFlags& usage,const vk::MemoryPropertyFlags& properties,bool sequentialWrite,bool preferHost,bool mapped = false,const std::string &debugName = "Buffer");
+
+        Shared<IDeviceBuffer> NewTransferBuffer(uint64_t size,bool sequentialWrite,const std::string &debugName = "Transfer Buffer");
+        Shared<IDeviceBuffer> NewStorageBuffer(uint64_t size,bool sequentialWrite,const std::string &debugName = "Storage Buffer");
+        Shared<IDeviceBuffer> NewUniformBuffer(uint64_t size,bool sequentialWrite,const std::string &debugName = "Uniform Buffer");
     protected:
         void RegisterRequiredModules(GRuntime* runtime) override;
 

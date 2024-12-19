@@ -164,6 +164,37 @@ namespace rin::graphics
         return "graphics";
     }
 
+    Shared<IDeviceImage> GraphicsModule::NewImage(const vk::Extent3D& size, const ImageFormat& format,
+        const vk::ImageUsageFlags& usage, bool mips, const std::string& debugName)
+    {
+        
+    }
+
+    Shared<IDeviceBuffer> GraphicsModule::NewBuffer(uint64_t size, const vk::BufferUsageFlags& usage,
+        const vk::MemoryPropertyFlags& properties, bool sequentialWrite, bool preferHost, bool mapped,
+        const std::string& debugName)
+    {
+        
+    }
+
+    Shared<IDeviceBuffer> GraphicsModule::NewTransferBuffer(uint64_t size, bool sequentialWrite,
+        const std::string& debugName)
+    {
+        return NewBuffer(size,vk::BufferUsageFlagBits::eTransferSrc,vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,sequentialWrite,true,true,debugName);
+    }
+
+    Shared<IDeviceBuffer> GraphicsModule::NewStorageBuffer(uint64_t size, bool sequentialWrite,
+        const std::string& debugName)
+    {
+        return NewBuffer(size,vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,vk::MemoryPropertyFlagBits::eHostVisible,sequentialWrite,false,true,debugName);
+    }
+
+    Shared<IDeviceBuffer> GraphicsModule::NewUniformBuffer(uint64_t size, bool sequentialWrite,
+        const std::string& debugName)
+    {
+        return NewBuffer(size,vk::BufferUsageFlagBits::eUniformBuffer,vk::MemoryPropertyFlagBits::eHostVisible,sequentialWrite,false,true,debugName);
+    }
+
     void GraphicsModule::RegisterRequiredModules(GRuntime* runtime)
     {
         _ioModule = runtime->RegisterModule<io::IoModule>();
