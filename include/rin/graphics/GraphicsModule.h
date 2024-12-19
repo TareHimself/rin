@@ -51,6 +51,8 @@ namespace rin::graphics
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
         vk::DebugUtilsMessengerEXT _debugUtilsMessengerExt{};
 #endif
-        
+
+
+        VmaAllocator _allocator{};
     };
 }

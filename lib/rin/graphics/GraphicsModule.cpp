@@ -1,6 +1,5 @@
 #define VMA_IMPLEMENTATION
 #include "rin/graphics/GraphicsModule.h"
-
 #include "VkBootstrap.h"
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -174,7 +173,23 @@ namespace rin::graphics
         const vk::MemoryPropertyFlags& properties, bool sequentialWrite, bool preferHost, bool mapped,
         const std::string& debugName)
     {
+        vk::BufferCreateInfo createInfo{{},size,usage};
+
+        VmaAllocationCreateFlags vmaFlags = sequentialWrite
+                                               ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+                                               : VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+        if (mapped)
+        {
+            vmaFlags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        }
         
+        VmaAllocationCreateInfo allocInfo{};
+        allocInfo.flags = vmaFlags;
+        allocInfo.usage = preferHost ? VMA_MEMORY_USAGE_AUTO_PREFER_HOST : VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+        allocInfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(properties);
+        allocInfo.preferredFlags = 0;
+
+        vmaCreateBuffer(_all)
     }
 
     Shared<IDeviceBuffer> GraphicsModule::NewTransferBuffer(uint64_t size, bool sequentialWrite,
