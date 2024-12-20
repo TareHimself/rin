@@ -22,5 +22,7 @@ namespace rin::graphics
         vk::Extent3D GetExtent() override;
         vk::Image GetImage() override;
         vk::ImageView GetImageView() override;
+
+        
     };
 }

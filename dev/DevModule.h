@@ -1,5 +1,6 @@
 #pragma once
 #include "rin/core/UserModule.h"
+#include "rin/graphics/GraphicsModule.h"
 #include "rin/io/IOModule.h"
 #include "rin/io/TaskRunner.h"
 
@@ -7,6 +8,7 @@
 class DevModule : public rin::UserModule
 {
     rin::io::IoModule * _ioModule{};
+    rin::graphics::GraphicsModule * _graphicsModule{};
     rin::io::TaskRunner _testTaskRunner{};
     void RegisterRequiredModules(rin::GRuntime* runtime) override;
     bool IsDependentOn(Module* module) override;

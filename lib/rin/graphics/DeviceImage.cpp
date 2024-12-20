@@ -8,7 +8,7 @@ namespace rin::graphics
     }
 
     DeviceImage::DeviceImage(const VmaAllocator& allocator,const VmaAllocation& allocation, const vk::Image& image, const vk::ImageView& view,
-        const vk::Extent3D& extent, const ImageFormat& format)
+                             const vk::Extent3D& extent, const ImageFormat& format)
     {
         _allocator = allocator;
         _allocation = allocation;

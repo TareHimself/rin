@@ -1,5 +1,4 @@
 ﻿#include "rin/graphics/DeviceBuffer.h"
-#define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 #include "rin/core/macros.h"
 #include "rin/graphics/DeviceBufferView.h"

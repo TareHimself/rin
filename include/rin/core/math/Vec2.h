@@ -36,7 +36,7 @@ namespace rin
         template <typename E>
         explicit operator Vec2<E>() const
         {
-            return Vec2{static_cast<E>(x), static_cast<E>(y)};
+            return Vec2<E>{static_cast<E>(x), static_cast<E>(y)};
         }
 
         Vec2 operator+(Vec2 const& other)

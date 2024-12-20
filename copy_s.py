@@ -11,4 +11,7 @@ for file in files.split(";"):
     file = os.path.normpath(file)
     dest_dir = os.path.normpath(os.path.join(dest,file.split(os.path.sep)[-1]))
     print(f"Copying [{file}] to [{dest_dir}]")
-    shutil.copy(file,dest_dir)
+    if os.path.isdir(file):
+        shutil.copytree(file,dest_dir,dirs_exist_ok=True)
+    else:
+        shutil.copy(file,dest_dir)

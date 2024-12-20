@@ -3,7 +3,7 @@
 
 namespace rin::io
 {
-    void TaskRunner::__RunTask(const Shared<Task>& task)
+    void TaskRunner::__RunTask(const Shared<__Task>& task)
     {
         {
             std::lock_guard m(_queueMutex);
@@ -23,7 +23,7 @@ namespace rin::io
             if(!_running) return;
 
             
-            Shared<Task> toRun{};
+            Shared<__Task> toRun{};
             {
                 std::lock_guard guard(_queueMutex);
                 if(!_tasks.empty())

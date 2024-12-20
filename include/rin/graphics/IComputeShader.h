@@ -1,11 +1,12 @@
 ﻿#pragma once
+#include "IShader.h"
 
 namespace rin::graphics
 {
-    class IShaderCompiler
+    class IComputeShader : public IShader
     {
     public:
     
     };
-
 }
+

@@ -62,13 +62,29 @@ FetchContent_MakeAvailable(glm vkma vkb glfw)
 find_package(Vulkan REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm glfw Vulkan::Vulkan vk-bootstrap::vk-bootstrap GPUOpen::VulkanMemoryAllocator)
 # target_link_libraries(${PROJECT_NAME} glfw)
-GetSlang(${PROJECT_NAME} "2024.14.6")
+GetSlang(${PROJECT_NAME} "2024.17")
 GetStb(${PROJECT_NAME} "master")
 GetBass()
 
 add_custom_command ( TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/copy_s.py "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>" $<TARGET_FILE_DIR:${PROJECT_NAME}>
 )
+
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE "/MP")
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/resources)
+    
+    set(RIN_RESOURCES ${RIN_RESOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/resources)
+    install(
+      DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources/
+      DESTINATION bin/resources
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND python ${CMAKE_CURRENT_LIST_DIR}/copy_s.py "${RIN_RESOURCES}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+    )
+endif()
 
 if(RIN_BUILD_DEV)
     file(GLOB_RECURSE DEV_HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/dev/*.h")

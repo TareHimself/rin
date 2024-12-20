@@ -10,9 +10,6 @@ namespace rin
 
     template<typename T>
     using Weak = std::weak_ptr<T>;
-
-    template<typename T>
-    using Unique = std::unique_ptr<T>;
     
     template<typename T,typename ...TArgs>
     std::enable_if_t<std::is_base_of_v<IDisposable,T> &&  std::is_constructible_v<T,TArgs...>,Shared<T>> shared(TArgs&&... args)

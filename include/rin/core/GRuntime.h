@@ -9,7 +9,7 @@ namespace rin
 {
     class GRuntime
     {
-        static Unique<GRuntime> _runtime;
+        static Shared<GRuntime> _runtime;
         static std::mutex _mutex;
 
         std::unordered_map<size_t, Shared<Module>> _modules{};

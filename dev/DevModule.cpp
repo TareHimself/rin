@@ -4,15 +4,17 @@
 #include <iostream>
 
 #include "rin/core/GRuntime.h"
+#include "rin/graphics/utils.h"
 
 void DevModule::RegisterRequiredModules(rin::GRuntime* runtime)
 {
     _ioModule = runtime->RegisterModule<rin::io::IoModule>();
+    _graphicsModule = runtime->RegisterModule<rin::graphics::GraphicsModule>();
 }
 
 bool DevModule::IsDependentOn(Module* module)
 {
-    return module == _ioModule;
+    return module == _ioModule || module == _graphicsModule;
 }
 
 void DevModule::Startup(rin::GRuntime* runtime)
@@ -28,26 +30,8 @@ void DevModule::Startup(rin::GRuntime* runtime)
         e->window->Dispose();
         GetRuntime()->RequestExit();
     });
-    auto task = _testTaskRunner.Run<std::string>([]
-    {
-        return "This was gotten from a task";
-    });
-    task->OnCompleted([](const std::string& taskCompleted)
-    {
-        throw std::runtime_error("Text Exception handling");
-        std::cout << "Task Completed: " + taskCompleted << std::endl;
-    });
-    task->OnException([](const std::exception_ptr& exception)
-    {
-        try
-        {
-            std::rethrow_exception(exception);
-        }
-        catch (const std::exception& e)
-        {
-            std::cout << std::string("Task Exception: ") + e.what() << std::endl;
-        }
-    });
+
+    _graphicsModule->GetShaderManager()->GraphicsFromFile(rin::graphics::getBuiltInShadersPath() / "views" / "batch.slang");
 }
 
 void DevModule::Shutdown(rin::GRuntime* runtime)

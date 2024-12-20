@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "ImageBarrierOptions.h"
 #include "ImageFormat.h"
 #include "vulkan/vulkan.hpp"
 #include "graph/IGraphResource.h"
@@ -14,6 +15,8 @@ namespace rin::graphics
         virtual vk::Extent3D GetExtent() = 0;
         virtual vk::Image GetImage() = 0;
         virtual vk::ImageView GetImageView() = 0;
+        void Barrier(const vk::CommandBuffer& cmd,vk::ImageLayout from,
+                             vk::ImageLayout to, const ImageBarrierOptions& options = {});
     };
 
 }

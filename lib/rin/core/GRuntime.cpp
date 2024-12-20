@@ -7,7 +7,7 @@
 
 namespace rin
 {
-    Unique<GRuntime> GRuntime::_runtime{};
+    Shared<GRuntime> GRuntime::_runtime{};
     std::mutex GRuntime::_mutex{};
 
     GRuntime* GRuntime::Get()
@@ -18,7 +18,7 @@ namespace rin
                 std::lock_guard guard(_mutex);
                 if (!_runtime)
                 {
-                    _runtime = std::make_unique<GRuntime>();
+                    _runtime = shared<GRuntime>();
                 }
             }
         }
@@ -43,7 +43,7 @@ namespace rin
             _moduleList.push_back(module);
         }
 
-        std::ranges::sort(_moduleList, [](Shared<Module>& a, Shared<Module>& b)
+        std::ranges::sort_heap(_moduleList.begin(),_moduleList.end(), [](Shared<Module>& a, Shared<Module>& b)
         {
             if (a->IsSystemModule() != b->IsSystemModule())
             {
@@ -57,7 +57,7 @@ namespace rin
 
             if (a->IsDependentOn(b.get()))
             {
-                return -1;
+                return 1;
             }
 
             if (b->IsDependentOn(a.get()))
