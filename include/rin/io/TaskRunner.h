@@ -14,11 +14,11 @@ namespace rin::io
         std::mutex _notifyMutex{};
         std::mutex _queueMutex{};
         std::condition_variable _cond{};
-        std::queue<Shared<__Task>> _tasks{};
+        std::queue<Shared<Runnable>> _tasks{};
         bool _running{true};
 
         
-        void __RunTask(const Shared<__Task>& task);
+        void __RunTask(const Shared<Runnable>& task);
 
         void HandleThread();
     public:
@@ -29,98 +29,62 @@ namespace rin::io
         //void WaitAll();
         void StopAll();
         
-        template<typename T,std::enable_if_t<!std::is_void_v<T>>* = nullptr>
+        template<typename T>
         Task<T> Run(const Shared<Delegate<T>>& delegate);
-        template<typename T,std::enable_if_t<!std::is_void_v<T>>* = nullptr>
+        
+        template<typename T>
         Task<T> Run(const std::function<T()>& func);
-        template<typename T,std::enable_if_t<!std::is_void_v<T>>* = nullptr>
+        template<typename T>
         Task<T> Run(std::function<T()>&& func);
-        template <typename TClass,typename T,std::enable_if_t<!std::is_void_v<T>>* = nullptr>
+        template <typename TClass,typename T>
         Task<T> Run(TClass* instance, ClassFunctionType<TClass,T> function);
-        template <typename TClass,typename T,std::enable_if_t<!std::is_void_v<T>>* = nullptr>
+        template <typename TClass,typename T>
         Task<T> Run(const Shared<TClass>& instance, ClassFunctionType<TClass,T> function);
 
 
-        template<typename T,std::enable_if_t<std::is_void_v<T>>* = nullptr>
-        Task<> Run(const Shared<Delegate<T>>& delegate);
-        template<typename T,std::enable_if_t<std::is_void_v<T>>* = nullptr>
-        Task<> Run(const std::function<T()>& func);
-        template<typename T,std::enable_if_t<std::is_void_v<T>>* = nullptr>
-        Task<> Run(std::function<T()>&& func);
-        template <typename TClass,typename T,std::enable_if_t<std::is_void_v<T>>* = nullptr>
-        Task<> Run(TClass* instance, ClassFunctionType<TClass,T> function);
-        template <typename TClass,typename T,std::enable_if_t<std::is_void_v<T>>* = nullptr>
-        Task<> Run(const Shared<TClass>& instance, ClassFunctionType<TClass,T> function);
+        //
+        // template<typename T,std::enable_if_t<std::is_void_v<T>>* = nullptr>
+        // Task<> Run(const std::function<T()>& func);
+        // template<typename T,std::enable_if_t<std::is_void_v<T>>* = nullptr>
+        // Task<> Run(std::function<T()>&& func);
+        // template <typename TClass,typename T,std::enable_if_t<std::is_void_v<T>>* = nullptr>
+        // Task<> Run(TClass* instance, ClassFunctionType<TClass,T> function);
+        // template <typename TClass,typename T,std::enable_if_t<std::is_void_v<T>>* = nullptr>
+        // Task<> Run(const Shared<TClass>& instance, ClassFunctionType<TClass,T> function);
     };
-
-    template <typename T, std::enable_if_t<!std::is_void_v<T>>*>
+    
+    template <typename T>
     Task<T> TaskRunner::Run(const Shared<Delegate<T>>& delegate)
     {
-        auto task = shared<__TaskWithResult<T>>(delegate);
+        auto task = shared<RunnableTask<T>>(delegate);
         __RunTask(task);
         return task;
     }
 
-    template <typename T, std::enable_if_t<!std::is_void_v<T>>*>
+    template <typename T>
     Task<T> TaskRunner::Run(const std::function<T()>& func)
     {
-        return  Run(newDelegate(func));
+        return  Run(std::static_pointer_cast<Delegate<T>>(newDelegate(func)));
     }
 
-    template <typename T, std::enable_if_t<!std::is_void_v<T>>*>
+    template <typename T>
     Task<T> TaskRunner::Run(std::function<T()>&& func)
     {
         auto delegate = newDelegate(func);
-        return  Run<T>(delegate);
+        return  Run<T>(std::static_pointer_cast<Delegate<T>>(delegate));
     }
 
-    template <typename TClass, typename T, std::enable_if_t<!std::is_void_v<T>>*>
+    template <typename TClass, typename T>
     Task<T> TaskRunner::Run(TClass* instance, ClassFunctionType<TClass, T> function)
     {
         auto delegate = newDelegate(instance,function);
-        return  Run(delegate);
+        return  Run<T>(std::static_pointer_cast<Delegate<T>>(delegate));
     }
 
-    template <typename TClass, typename T, std::enable_if_t<!std::is_void_v<T>>*>
+    template <typename TClass, typename T>
     Task<T> TaskRunner::Run(const Shared<TClass>& instance, ClassFunctionType<TClass, T> function)
     {
         auto delegate = newDelegate(instance,function);
-        return  Run(delegate);
-    }
-
-    template <typename T, std::enable_if_t<std::is_void_v<T>>*>
-    Task<> TaskRunner::Run(const Shared<Delegate<T>>& delegate)
-    {
-        auto task = shared<__TaskNoResult>(delegate);
-        __RunTask(task);
-        return task;
-    }
-
-    template <typename T, std::enable_if_t<std::is_void_v<T>>*>
-    Task<> TaskRunner::Run(const std::function<T()>& func)
-    {
-        auto delegate = newDelegate(func);
-        return  Run(delegate);
-    }
-
-    template <typename T, std::enable_if_t<std::is_void_v<T>>*>
-    Task<> TaskRunner::Run(std::function<T()>&& func)
-    {
-        auto delegate = newDelegate(func);
-        return  Run(std::static_pointer_cast<Delegate<T>>(delegate));
-    }
-
-    template <typename TClass, typename T, std::enable_if_t<std::is_void_v<T>>*>
-    Task<> TaskRunner::Run(TClass* instance, ClassFunctionType<TClass, T> function)
-    {
-        auto delegate = newDelegate(instance,function);
-        return  Run(delegate);
-    }
-
-    template <typename TClass, typename T, std::enable_if_t<std::is_void_v<T>>*>
-    Task<> TaskRunner::Run(const Shared<TClass>& instance, ClassFunctionType<TClass, T> function)
-    {
-        auto delegate = newDelegate(instance,function);
-        return  Run(delegate);
+        return  Run<T>(std::static_pointer_cast<Delegate<T>>(delegate));
     }
 }

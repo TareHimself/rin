@@ -41,7 +41,7 @@ namespace rin::graphics
 
         if (wait || _compilationTask->HasException())
         {
-            _compilationTask->GetFuture().wait();
+            _compilationTask->Wait();
         }
 
         if (!_compilationTask->HasResult())

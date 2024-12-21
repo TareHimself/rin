@@ -15,7 +15,7 @@ namespace rin
     };
 
     template <typename TReturn, typename... TArgs>
-    class Delegate
+    class Delegate : public std::enable_shared_from_this<Delegate<TReturn,TArgs...>>
     {
     public:
         virtual ~Delegate() = default;
@@ -27,6 +27,17 @@ namespace rin
         virtual TReturn Invoke(TArgs... args) = 0;
 
         [[nodiscard]] virtual bool IsValid() const = 0;
+
+        std::function<TReturn(TArgs...)> ToFunction();
     };
-    
+
+    template <typename TReturn, typename ... TArgs>
+    std::function<TReturn(TArgs...)> Delegate<TReturn, TArgs...>::ToFunction()
+    {
+        auto self = this->shared_from_this();
+        return std::function<TReturn(TArgs...)>([self](TArgs... args)
+        {
+            return self->Invoke(std::forward<TArgs>(args)...);
+        });
+    }
 }

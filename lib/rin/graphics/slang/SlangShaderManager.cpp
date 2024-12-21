@@ -65,13 +65,30 @@ namespace rin::graphics
         return _defaultSession;
     }
 
+    bool SlangShaderManager::VariableIsPushConstant(
+        slang::VariableLayoutReflection* variable)
+    {
+        for(auto i = 0; i < variable->getCategoryCount(); i++)
+        {
+            if(static_cast<SlangParameterCategory>(variable->getCategoryByIndex(i)) == SLANG_PARAMETER_CATEGORY_UNIFORM)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     void SlangShaderManager::ReflectVariable(std::unordered_map<std::string, ShaderResource>& resources,
-        std::unordered_map<std::string, ShaderPushConstant>& pushConstants, slang::VariableLayoutReflection* variable,vk::ShaderStageFlagBits stage)
+                                             std::unordered_map<std::string, ShaderPushConstant>& pushConstants, slang::VariableLayoutReflection* variable,vk::ShaderStageFlagBits stage)
     {
         std::string name{variable->getName()};
         if(resources.contains(name))
         {
             resources.at(name).stages |= stage;
+        }else if(pushConstants.contains(name))
+        {
+            pushConstants.at(name).stages |= stage;
         }
         else
         {
@@ -103,18 +120,24 @@ namespace rin::graphics
                         attribute->getArgumentValueInt(0,&count);
                         resource.count = count;
                     }
+                    else if(attributeName == "AllStages")
+                    {
+                        resource.stages |= vk::ShaderStageFlagBits::eAll;
+                    }
                 }
                 resource.set = variable->getBindingIndex(); 
                 resource.binding = variable->getBindingSpace(SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT);
                 
                 resources.emplace(name,resource);
             }
-            else if(categoryCount > 1 && (variable->getCategory() & SLANG_PARAMETER_CATEGORY_UNIFORM) == 1)
+            else if(VariableIsPushConstant(variable))
             {
                 ShaderPushConstant push{};
                 push.name = name;
+                push.stages = stage;
                 //auto offset = variable->getOffset(SLANG_PARAMETER_CATEGORY_UNIFORM);
                 push.size = variable->getTypeLayout()->getSize();
+                pushConstants.emplace(name,push);
             }
         }
     }

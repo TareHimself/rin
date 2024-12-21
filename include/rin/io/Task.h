@@ -1,9 +1,7 @@
 ﻿#pragma once
 #include <mutex>
-
 #include <future>
 #include <optional>
-#include <vulkan/vulkan.hpp>
 #include "rin/core/memory.h"
 #include "rin/core/delegates/DelegateList.h"
 #include "rin/core/math/Vec2.h"
@@ -11,28 +9,27 @@
 namespace rin::io
 {
     class TaskRunner;
-    
-    class __Task
+
+    // Base class for tasks
+    class BaseTask
     {
         std::optional<std::exception_ptr> _exception{};
         std::mutex _mutex{};
-        std::vector<Shared<Delegate<void,std::exception_ptr>>> _exceptionHandlers{};
-        friend TaskRunner;
+        std::vector<Shared<Delegate<void, std::exception_ptr>>> _exceptionHandlers{};
+
     protected:
-        virtual void Run() = 0;
-        
-        void SetException(const std::exception_ptr& exception);
+        virtual void SetException(const std::exception_ptr& exception);
 
         std::optional<std::exception_ptr> GetException() const;
 
         std::mutex& GetMutex();
 
-        std::vector<Shared<Delegate<void,std::exception_ptr>>>& GetExceptionHandlers();
+        std::vector<Shared<Delegate<void, std::exception_ptr>>>& GetExceptionHandlers();
 
     public:
-        virtual ~__Task();
-        void OnException(const Shared<Delegate<void,std::exception_ptr>>& delegate);
-        
+        virtual ~BaseTask();
+        void OnException(const Shared<Delegate<void, std::exception_ptr>>& delegate);
+
         void OnException(const std::function<void(std::exception_ptr)>& func);
 
         void OnException(std::function<void(std::exception_ptr)>&& func);
@@ -43,246 +40,190 @@ namespace rin::io
         template <typename TClass>
         void OnException(const Shared<TClass>& instance, ClassFunctionType<TClass, std::exception_ptr> function);
 
-        
+
         virtual bool HasResult() = 0;
         virtual bool HasException();
     };
 
-    inline void __Task::SetException(const std::exception_ptr& exception)
+    inline void BaseTask::SetException(const std::exception_ptr& exception)
     {
         _exception = exception;
+        {
+            std::unique_lock m(_mutex);
+            for (auto& exceptionHandler : _exceptionHandlers)
+            {
+                exceptionHandler->Invoke(_exception.value());
+            }
+        }
     }
 
-    inline std::optional<std::exception_ptr> __Task::GetException() const
+    inline std::optional<std::exception_ptr> BaseTask::GetException() const
     {
         return _exception;
     }
 
-    inline std::mutex& __Task::GetMutex()
+    inline std::mutex& BaseTask::GetMutex()
     {
         return _mutex;
     }
 
-    inline std::vector<Shared<Delegate<void, std::exception_ptr>>>& __Task::GetExceptionHandlers()
+    inline std::vector<Shared<Delegate<void, std::exception_ptr>>>& BaseTask::GetExceptionHandlers()
     {
         return _exceptionHandlers;
     }
 
-    inline __Task::~__Task() = default;
+    inline BaseTask::~BaseTask() = default;
 
-    inline void __Task::OnException(const std::function<void(std::exception_ptr)>& func)
+    inline void BaseTask::OnException(const std::function<void(std::exception_ptr)>& func)
     {
         OnException(newDelegate(func));
     }
 
-    inline void __Task::OnException(std::function<void(std::exception_ptr)>&& func)
+    inline void BaseTask::OnException(std::function<void(std::exception_ptr)>&& func)
     {
         OnException(newDelegate(func));
     }
 
-    inline bool __Task::HasException()
+    inline bool BaseTask::HasException()
     {
         return _exception.has_value();
     }
 
     template <typename TClass>
-    void __Task::OnException(TClass* instance, ClassFunctionType<TClass, std::exception_ptr> function)
+    void BaseTask::OnException(TClass* instance, ClassFunctionType<TClass, std::exception_ptr> function)
     {
-        OnException(newDelegate(instance,function));
+        OnException(newDelegate(instance, function));
     }
 
     template <typename TClass>
-    void __Task::OnException(const Shared<TClass>& instance, ClassFunctionType<TClass, std::exception_ptr> function)
+    void BaseTask::OnException(const Shared<TClass>& instance, ClassFunctionType<TClass, std::exception_ptr> function)
     {
-        OnException(newDelegate(instance,function));
+        OnException(newDelegate(instance, function));
     }
 
-    inline void __Task::OnException(const Shared<Delegate<void, std::exception_ptr>>& delegate)
+    inline void BaseTask::OnException(const Shared<Delegate<void, std::exception_ptr>>& delegate)
     {
         {
             std::unique_lock m(_mutex);
             _exceptionHandlers.push_back(delegate);
-            if(_exception)
+            if (_exception)
             {
-                auto &exception = _exception.value();
+                auto& exception = _exception.value();
                 delegate->Invoke(exception);
             }
         }
     }
 
-    class __TaskNoResult : public __Task
+    template <typename T>
+    class TTask;
+    template <typename T>
+    class TContinuation;
+    
+
+    template <typename T>
+    class TTask : public BaseTask
     {
-        bool _completed = false;
-        std::promise<void> _promise{};
-        std::shared_future<void> _pending;
-        std::vector<Shared<Delegate<void>>> _completedHandlers{};
-        Shared<Delegate<void>> _toRun{};
-        
-        void Run() override;
+        std::promise<T> _promise{};
+        std::optional<T> _result{};
+        std::vector<Shared<Delegate<void, const T&>>> _completedHandlers{};
 
     public:
-        explicit __TaskNoResult(const Shared<Delegate<void>>& task);
-        
+        void SetException(const std::exception_ptr& exception) override;
+        void SetResult(const T& result);
+
+        void OnCompleted(const Shared<Delegate<void, const T&>>& delegate);
+        void OnCompleted(const std::function<void(const T&)>& func);
+        void OnCompleted(std::function<void(const T&)>&& func);
+        template <typename TClass>
+        void OnCompleted(TClass* instance, ClassFunctionType<TClass, void, const T&> function);
+        template <typename TClass>
+        void OnCompleted(const Shared<TClass>& instance, ClassFunctionType<TClass, void, const T&> function);
+        bool HasResult() override;
+        T Wait();
+
+        // template<typename E>
+        // Shared<TContinuation<E>> Then(const Shared<Delegate<E,T>>& delegate);
+    };
+
+    template <>
+    class TTask<void> : public BaseTask
+    {
+        std::promise<void> _promise{};
+        std::vector<Shared<Delegate<void>>> _completedHandlers{};
+        bool _completed = false;
+
+    public:
+        void SetException(const std::exception_ptr& exception) override;
+        void SetResult();
+
         void OnCompleted(const Shared<Delegate<void>>& delegate);
         void OnCompleted(const std::function<void()>& func);
         void OnCompleted(std::function<void()>&& func);
-        template<typename TClass>
-        void OnCompleted(TClass* instance, ClassFunctionType<TClass,void> function);
-        template<typename TClass>
-        void OnCompleted(const Shared<TClass>& instance, ClassFunctionType<TClass,void> function);
-        std::shared_future<void> GetFuture() const;
-
+        template <typename TClass>
+        void OnCompleted(TClass* instance, ClassFunctionType<TClass, void> function);
+        template <typename TClass>
+        void OnCompleted(const Shared<TClass>& instance, ClassFunctionType<TClass, void> function);
         bool HasResult() override;
+        void Wait();
     };
-
-    inline void __TaskNoResult::Run()
-    {
-        try
-        {
-            _toRun->Invoke();
-            {
-                std::unique_lock m(GetMutex());
-                _completed = true;
-                _promise.set_value();
-                for (auto &completedHandler : _completedHandlers)
-                {
-                    try
-                    {
-                        completedHandler->Invoke();
-                    }
-                    catch (...)
-                    {
-                    }
-                }
-            }
-        }
-        catch (...)
-        {
-            {
-                std::unique_lock m(GetMutex());
-                SetException(std::current_exception());
-                _promise.set_exception(this->GetException().value());
-                for (auto &handler : GetExceptionHandlers())
-                {
-                    try
-                    {
-                        handler->Invoke(*GetException());
-                    }
-                    catch (...)
-                    {
-                    }
-                }
-            }
-        }
-    }
-
-    inline __TaskNoResult::__TaskNoResult(const Shared<Delegate<void>>& task)
-    {
-        _toRun = task;
-        _completed = false;
-        _pending = _promise.get_future();
-    }
     
-    inline void __TaskNoResult::OnCompleted(const Shared<Delegate<void>>& delegate)
-    {
-        std::lock_guard m(this->GetMutex());
-        _completedHandlers.push_back(delegate);
-        if(_completed)
-        {
-            try
-            {
-                delegate->Invoke();
-            }
-            catch (...)
-            {
-            }
-        }
-    }
+    // template <typename T>
+    // class TContinuation : public TTask<T>
+    // {
+    // public:
+    //     template<typename To = T,typename From, std::enable_if_t<std::is_void_v<_T>>* = nullptr>
+    //     TContinuation(TTask<T> * source,const Shared<Delegate<T>>& continuation);
+    //     template<typename To = T,typename From, std::enable_if_t<!std::is_void_v<_T>>* = nullptr>
+    //     TContinuation(TTask<T> * source,const Shared<Delegate<T,>>& continuation);
+    // };
 
-    inline void __TaskNoResult::OnCompleted(const std::function<void()>& func)
+    class Runnable
     {
-        OnCompleted(newDelegate(func));
-    }
-
-    inline void __TaskNoResult::OnCompleted(std::function<void()>&& func)
-    {
-        OnCompleted(newDelegate(func));
-    }
-
-    inline std::shared_future<void> __TaskNoResult::GetFuture() const
-    {
-        return _pending;
-    }
-
-    inline bool __TaskNoResult::HasResult()
-    {
-        return _completed;
-    }
-
-    template <typename TClass>
-    void __TaskNoResult::OnCompleted(TClass* instance, ClassFunctionType<TClass, void> function)
-    {
-        OnCompleted(newDelegate(instance,function));
-    }
-
-    template <typename TClass>
-    void __TaskNoResult::OnCompleted(const Shared<TClass>& instance, ClassFunctionType<TClass, void> function)
-    {
-        OnCompleted(newDelegate(instance,function));
-    }
-
-    template<typename T>
-    class __TaskWithResult : public __Task
-    {
-        std::vector<Shared<Delegate<void,const T&>>> _completedHandlers{};
-        std::promise<T> _promise{};
-        std::shared_future<T> _future;
-        std::optional<T> _result;
-        std::optional<std::exception_ptr> _exception;
-        std::condition_variable _cond{};
-        Shared<Delegate<T>> _task{};
     public:
-        explicit __TaskWithResult(const Shared<Delegate<T>>& task);
-        void OnCompleted(const Shared<Delegate<void,const T&>>& delegate);
-        void OnCompleted(const std::function<void(const T&)>& func);
-        void OnCompleted(std::function<void(const T&)>&& func);
-        template<typename TClass>
-        void OnCompleted(TClass* instance, ClassFunctionType<TClass,void,const T&> function);
-        template<typename TClass>
-        void OnCompleted(const Shared<TClass>& instance, ClassFunctionType<TClass,void,const T&> function);
+        virtual ~Runnable() = default;
 
-        void CallCompleted();
+    private:
+        friend TaskRunner;
 
-        std::shared_future<T> GetFuture() const;
-
-        bool HasResult() override;
     protected:
-        
-        
-        void Run() override;
+        virtual void Run() = 0;
     };
 
-
-    
-
     template <typename T>
-    __TaskWithResult<T>::__TaskWithResult(const Shared<Delegate<T>>& task)
+    class RunnableTask : public TTask<T>, public Runnable
     {
-        _task = task;
-        _future = _promise.get_future();
+        Shared<Delegate<T>> _task{};
+
+    protected:
+        void Run() override;
+
+        template <typename _T = T, std::enable_if_t<!std::is_void_v<_T>>* = nullptr>
+        void HandleRun();
+
+        template <typename _T = T, std::enable_if_t<std::is_void_v<_T>>* = nullptr>
+        void HandleRun();
+
+    public:
+        explicit RunnableTask(const Shared<Delegate<T>>& task);
+    };
+    
+    template <typename T>
+    void TTask<T>::SetException(const std::exception_ptr& exception)
+    {
+        BaseTask::SetException(exception);
     }
 
     template <typename T>
-    void __TaskWithResult<T>::OnCompleted(const Shared<Delegate<void, const T&>>& delegate)
+    void TTask<T>::SetResult(const T& result)
     {
-        std::lock_guard m(this->GetMutex());
-        _completedHandlers.push_back(delegate);
-        if(_result)
+        std::lock_guard g(GetMutex());
+        _promise.set_value(result);
+        _result = result;
+        for (auto& completedHandler : _completedHandlers)
         {
-            auto &result = _result.value();
             try
             {
-                delegate->Invoke(result);
+                completedHandler->Invoke(result);
             }
             catch (...)
             {
@@ -291,92 +232,184 @@ namespace rin::io
     }
 
     template <typename T>
-    void __TaskWithResult<T>::OnCompleted(const std::function<void(const T&)>& func)
+    void TTask<T>::OnCompleted(const Shared<Delegate<void, const T&>>& delegate)
+    {
+        std::lock_guard g(GetMutex());
+        _completedHandlers.emplace_back(delegate);
+        if (_result.has_value())
+        {
+            auto r = _result.value();
+            delegate->Invoke(r);
+        }
+    }
+
+    template <typename T>
+    void TTask<T>::OnCompleted(const std::function<void(const T&)>& func)
     {
         OnCompleted(newDelegate(func));
     }
 
     template <typename T>
-    void __TaskWithResult<T>::OnCompleted(std::function<void(const T&)>&& func)
+    void TTask<T>::OnCompleted(std::function<void(const T&)>&& func)
     {
         OnCompleted(newDelegate(func));
     }
 
     template <typename T>
     template <typename TClass>
-    void __TaskWithResult<T>::OnCompleted(TClass* instance, ClassFunctionType<TClass, void,const T&> function)
+    void TTask<T>::OnCompleted(TClass* instance, ClassFunctionType<TClass, void, const T&> function)
     {
-        OnCompleted(newDelegate(instance,function));
+        OnCompleted(newDelegate(instance, function));
     }
 
     template <typename T>
     template <typename TClass>
-    void __TaskWithResult<T>::OnCompleted(const Shared<TClass>& instance, ClassFunctionType<TClass, void,const T&> function)
+    void TTask<T>::OnCompleted(const Shared<TClass>& instance, ClassFunctionType<TClass, void, const T&> function)
     {
-        OnCompleted(newDelegate(instance,function));
-    }
-    
-
-    template <typename T>
-    std::shared_future<T> __TaskWithResult<T>::GetFuture() const
-    {
-        return _future;
+        OnCompleted(newDelegate(instance, function));
     }
 
     template <typename T>
-    bool __TaskWithResult<T>::HasResult()
+    bool TTask<T>::HasResult()
     {
         return _result.has_value();
     }
 
     template <typename T>
-    void __TaskWithResult<T>::Run()
+    T TTask<T>::Wait()
     {
-        try
+        return _promise.get_future().get();
+    }
+
+    
+
+    inline void TTask<void>::SetException(const std::exception_ptr& exception)
+    {
+        BaseTask::SetException(exception);
+        _promise.set_exception(exception);
+    }
+
+    inline void TTask<void>::SetResult()
+    {
+        std::lock_guard g(GetMutex());
+        _promise.set_value();
+        _completed = true;
+        for (auto& completedHandler : _completedHandlers)
         {
-            _result = _task->Invoke();
+            try
             {
-                std::lock_guard m(this->GetMutex());
-                _promise.set_value(_result.value());
-                for (auto &completedHandler : _completedHandlers)
-                {
-                    auto &result = _result.value();
-                    try
-                    {
-                        completedHandler->Invoke(result);
-                    }
-                    catch (...)
-                    {
-                    }
-                }
+                completedHandler->Invoke();
             }
-        }
-        catch (...)
-        {
+            catch (...)
             {
-                
-                std::lock_guard m(this->GetMutex());
-                auto exception = std::current_exception();
-                this->SetException(exception);
-                _promise.set_exception(exception);
-                for (auto &handler : this->GetExceptionHandlers())
-                {
-                    try
-                    {
-                        handler->Invoke(*this->GetException());
-                    }
-                    catch (...)
-                    {
-                        
-                    }
-                }
             }
         }
     }
 
+    inline void TTask<void>::OnCompleted(const Shared<Delegate<void>>& delegate)
+    {
+        std::lock_guard g(GetMutex());
+        _completedHandlers.emplace_back(delegate);
+        if (_completed)
+        {
+            delegate->Invoke();
+        }
+    }
+
+    inline void TTask<void>::OnCompleted(const std::function<void()>& func)
+    {
+        OnCompleted(newDelegate(func));
+    }
+
+    inline void TTask<void>::OnCompleted(std::function<void()>&& func)
+    {
+        OnCompleted(newDelegate(func));
+    }
+
+    inline bool TTask<void>::HasResult()
+    {
+        return _completed;
+    }
+
+    inline void TTask<void>::Wait()
+    {
+        _promise.get_future().wait();
+    }
+
+    template <typename TClass>
+    void TTask<void>::OnCompleted(TClass* instance, ClassFunctionType<TClass, void> function)
+    {
+        OnCompleted(newDelegate(instance, function));
+    }
+
+    template <typename TClass>
+    void TTask<void>::OnCompleted(const Shared<TClass>& instance, ClassFunctionType<TClass, void> function)
+    {
+        OnCompleted(newDelegate(instance, function));
+    }
+
+    // template <typename T>
+    // template <typename _T, std::enable_if_t<std::is_void_v<_T>>*>
+    // TContinuation<T>::TContinuation(TTask<T>* source)
+    // {
+    //     source->OnCompleted([this]
+    //     {
+    //         this->SetResult();
+    //     });
+    // }
+    //
+    // template <typename T>
+    // template <typename _T, std::enable_if_t<!std::is_void_v<_T>>*>
+    // TContinuation<T>::TContinuation(TTask<T>* source)
+    // {
+    //     source->OnCompleted([this](const T& )
+    //    {
+    //        this->SetResult();
+    //    });
+    // }
+
+    template <typename T>
+    void RunnableTask<T>::Run()
+    {
+        HandleRun();
+    }
+
+    template <typename T>
+    template <typename _T, std::enable_if_t<!std::is_void_v<_T>>*>
+    void RunnableTask<T>::HandleRun()
+    {
+        try
+        {
+            this->SetResult(_task->Invoke());
+        }
+        catch (...)
+        {
+            this->OnException(std::current_exception());
+        }
+    }
+
+    template <typename T>
+    template <typename _T, std::enable_if_t<std::is_void_v<_T>>*>
+    void RunnableTask<T>::HandleRun()
+    {
+        try
+        {
+            _task->Invoke();
+            this->SetResult();
+        }
+        catch (...)
+        {
+            this->SetException(std::current_exception());
+        }
+    }
+
+    template <typename T>
+    RunnableTask<T>::RunnableTask(const Shared<Delegate<T>>& task)
+    {
+        _task = task;
+    }
 
     // Ease of use typedef
-    template<typename T = void>
-    using Task = std::conditional_t<std::is_void_v<T>, Shared<__TaskNoResult>, Shared<__TaskWithResult<T>>>;
-    
+    template <typename T = void>
+    using Task = Shared<TTask<T>>; //std::conditional_t<std::is_void_v<T>, Shared<RTask<void>>, Shared<RTask<T>>>;
 }

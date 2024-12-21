@@ -3,7 +3,7 @@ import rin.attributes;
 //[layout(set = 0, binding = 0), $partial, $update, $variable = 512, $stage = all]
 
 [[vk::binding(2, 3)]]
-[UpdateAfterBind, Partial, Variable(512)]
+[AllStages,UpdateAfterBind, Partial, Variable(512)]
 uniform Sampler2D GLOBAL_TEXTURES[];
 
 // Function to sample a texture

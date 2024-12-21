@@ -24,6 +24,9 @@ namespace rin::graphics
 
         Shared<IDeviceImage> NewImage(const vk::Extent3D& extent, const ImageFormat& format, const vk::ImageUsageFlags& usage, bool mips = false,
                                       const std::string &debugName = "Image");
+
+        io::Task<Shared<IDeviceImage>> NewImage(void * data,const vk::Extent3D& extent, const ImageFormat& format, const vk::ImageUsageFlags& usage, bool mips = false,
+                                      const std::string &debugName = "Image");
         
         Shared<IDeviceBuffer> NewBuffer(uint64_t size,const vk::BufferUsageFlags& usage,const vk::MemoryPropertyFlags& properties,bool sequentialWrite,bool preferHost,bool mapped = false,const std::string &debugName = "Buffer");
 

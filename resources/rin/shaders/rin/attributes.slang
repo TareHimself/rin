@@ -1,3 +1,5 @@
+
+
 [__AttributeUsage(_AttributeTargets.Var)]
 struct UpdateAfterBindAttribute
 {
@@ -12,6 +14,12 @@ struct PartialAttribute
 struct VariableAttribute
 {
     int count;
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct AllStagesAttribute
+{
+
 };
 
 [__AttributeUsage(_AttributeTargets.Var)]

@@ -23,6 +23,7 @@ namespace rin::graphics
         slang::IGlobalSession * GetGlobalSession();
         slang::ISession * GetDefaultSession();
 
+        static bool VariableIsPushConstant(slang::VariableLayoutReflection * variable);
         static void ReflectVariable(std::unordered_map<std::string, ShaderResource>& resources,std::unordered_map<std::string, ShaderPushConstant>& pushConstants,slang::VariableLayoutReflection * variable,vk::ShaderStageFlagBits stage);
         static void Reflect(std::unordered_map<std::string, ShaderResource>& resources,std::unordered_map<std::string, ShaderPushConstant>& pushConstants,slang::ProgramLayout* programLayout,slang::EntryPointReflection* entryPoint,vk::ShaderStageFlagBits stage);
     };

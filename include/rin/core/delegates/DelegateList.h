@@ -79,8 +79,8 @@ namespace rin
     template <typename... TArgs>
     class DelegateList : public _DelegateList
     {
-        std::map<uint64_t, Shared<Delegate<void, TArgs...>>> _delegates{};
-
+        //std::map<uint64_t, Shared<Delegate<void, TArgs...>>> _delegates{};
+        std::map<uint64_t, std::function<void(TArgs...)>> _delegates{};
     public:
         DelegateList() = default;
         DelegateListHandle Add(const Shared<Delegate<void, TArgs...>>& delegate);
