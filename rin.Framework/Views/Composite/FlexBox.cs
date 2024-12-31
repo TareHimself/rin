@@ -1,175 +1,70 @@
 ﻿using rin.Framework.Core.Math;
 using rin.Framework.Core;
+using rin.Framework.Views.Enums;
+using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
 
-public class FlexBoxSlot(FlexBox? container = null) : ListSlot(container)
-{
-    public float? Flex = null;
-}
+
 
 
 /// <summary>
-/// Slot = <see cref="FlexBoxSlot"/>
 /// </summary>
-public class FlexBox : List
+public class FlexBox : MultiSlotCompositeView<FlexBoxSlot>
 {
-    protected override Vector2<float> ArrangeContentRow(Vector2<float> availableSpace)
+    
+
+    private readonly FlexLayout _layout;
+    
+    public FlexBox() : this(Axis.Column)
     {
-        var mainAxisAvailableSpace = availableSpace.X.FiniteOr();
-        var space = new Vector2<float>(float.PositiveInfinity,availableSpace.Y);
-        var mainAxisSize = 0.0f;
-        var crossAxisSize = 0.0f;
-        var flexTotal = 0.0f;
-        var slots = GetSlots();
         
-        if (mainAxisAvailableSpace > 0.0f)
-        {
-            
-            foreach (var slot in slots)
-            {
-                if (slot is FlexBoxSlot {Flex: not null} asFlexSlot)
-                {
-                    flexTotal += asFlexSlot.Flex.Value;
-                }
-                else
-                {
-                    var widgetSize = slot.Child.ComputeSize(new Vector2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
-                    mainAxisAvailableSpace -= widgetSize.X;
-                }
-            }
-
-            mainAxisAvailableSpace = Math.Max(mainAxisAvailableSpace, 0);
-        }
-        
-        
-        {
-            var offset = new Vector2<float>(0.0f);
-            // Compute slot sizes and initial offsets
-            foreach (var slot in slots)
-            {
-                var widget = slot.Child;
-                widget.Offset = offset;
-
-                var slotMainAxisSize = 0.0f;
-                var slotCrossAxisSize = 0.0f;
-                if (slot is FlexBoxSlot { Flex: not null } asFlexSlot)
-                {
-                    var assignedMainAxisSpace =
-                        flexTotal > 0.0f ? mainAxisAvailableSpace * (asFlexSlot.Flex.Value / flexTotal) : 0.0f;
-
-                    var flexSize = new Vector2<float>(assignedMainAxisSpace, GetSlotCrossAxisSize(slot, space.Y));
-
-                    widget.ComputeSize(flexSize);
-                    
-                    slotMainAxisSize = flexSize.X;
-                    slotCrossAxisSize = flexSize.Y;
-                }
-                else
-                {
-                    var widgetSize = widget.ComputeSize(new Vector2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
-                    slotMainAxisSize = widgetSize.X;
-                    slotCrossAxisSize = widgetSize.Y;
-                }
-                
-                offset.X += slotMainAxisSize;
-                mainAxisSize += slotMainAxisSize;
-                crossAxisSize = Math.Max(crossAxisSize,slotCrossAxisSize);
-            }
-
-            crossAxisSize = float.IsFinite(space.Y) ? space.Y : crossAxisSize;
-        }
-        
-        // Handle cross axis offsets (we could also handle main axis offsets here in the future)
-        foreach (var slot in slots)
-        {
-            if (slot is not ListSlot asListContainerSlot) continue;
-            HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
-        }
-
-        return new Vector2<float>(mainAxisSize, crossAxisSize);
     }
 
-
-    protected override Vector2<float> ArrangeContentColumn(Vector2<float> availableSpace)
+    /// <summary>
+    /// A container that draws children left to right
+    /// Slot = <see cref="ListSlot"/>
+    /// </summary>
+    public FlexBox(Axis axis)
     {
-       var mainAxisAvailableSpace = availableSpace.Y.FiniteOr();
-        var space = new Vector2<float>(float.PositiveInfinity,availableSpace.X);
-        var mainAxisSize = 0.0f;
-        var crossAxisSize = 0.0f;
-        var flexTotal = 0.0f;
-        var slots = GetSlots();
-        
-        if (mainAxisAvailableSpace > 0.0f)
-        {
-            
-            foreach (var slot in slots)
-            {
-                if (slot is FlexBoxSlot {Flex: not null} asFlexSlot)
-                {
-                    flexTotal += asFlexSlot.Flex.Value;
-                }
-                else
-                {
-                    var widgetSize = slot.Child.ComputeSize(new Vector2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
-                    mainAxisAvailableSpace -= widgetSize.X;
-                }
-            }
-
-            mainAxisAvailableSpace = Math.Max(mainAxisAvailableSpace, 0);
-        }
-        
-        
-        {
-            var offset = new Vector2<float>(0.0f);
-            // Compute slot sizes and initial offsets
-            foreach (var slot in slots)
-            {
-                var widget = slot.Child;
-                widget.Offset = offset;
-
-                var slotMainAxisSize = 0.0f;
-                var slotCrossAxisSize = 0.0f;
-                if (slot is FlexBoxSlot { Flex: not null } asFlexSlot)
-                {
-                    var assignedMainAxisSpace =
-                        flexTotal > 0.0f ? mainAxisAvailableSpace * (asFlexSlot.Flex.Value / flexTotal) : 0.0f;
-
-                    var flexSize = new Vector2<float>(GetSlotCrossAxisSize(slot,space.Y),assignedMainAxisSpace);
-
-                    widget.ComputeSize(flexSize);
-                    
-                    slotMainAxisSize = flexSize.Y;
-                    slotCrossAxisSize = flexSize.X;
-                }
-                else
-                {
-                    var widgetSize = widget.ComputeSize(new Vector2<float>(GetSlotCrossAxisSize(slot,space.Y),space.X));
-                    slotMainAxisSize = widgetSize.Y;
-                    slotCrossAxisSize = widgetSize.X;
-                }
-                    
-                offset.Y += slotMainAxisSize;
-                mainAxisSize += slotMainAxisSize;
-                crossAxisSize = Math.Max(crossAxisSize,slotCrossAxisSize);
-            }
-
-            crossAxisSize = float.IsFinite(space.X) ? space.X : crossAxisSize;
-        }
-        
-        // Handle cross axis offsets (we could also handle main axis offsets here in the future)
-        foreach (var slot in slots)
-        {
-            if (slot is not ListSlot asListContainerSlot) continue;
-            HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
-        }
-
-        return new Vector2<float>(mainAxisSize, crossAxisSize);
+        _layout = new FlexLayout(axis, this);
     }
 
-    protected override CompositeViewSlot MakeSlot(View view) => new FlexBoxSlot(this)
+    public Axis Axis
     {
-        Child = view,
-    };
+        get => _layout.GetAxis();
+        set
+        {
+            _layout.SetAxis(value);
+            OnDirectionChanged();
+        }
+    }
+    
+    protected void OnDirectionChanged()
+    {
+        Invalidate(InvalidationType.Layout);
+    }
+
+    protected override Vector2<float> ComputeDesiredContentSize()
+    {
+        return _layout.ComputeDesiredContentSize();
+    }
+    
+    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    {
+        return _layout.Apply(availableSpace);
+    }
+
+    public override void OnChildInvalidated(View child, InvalidationType invalidation)
+    {
+        Invalidate(invalidation);
+    }
+
+    public override IEnumerable<ISlot> GetSlots() =>  _layout.GetSlots();
+
+    public override int SlotCount => _layout.SlotCount;
+    public override bool Add(View child) => _layout.Add(child);
+    public override bool Add(FlexBoxSlot slot) => _layout.Add(slot);
+    public override bool Remove(View child) => _layout.Remove(child);
 }

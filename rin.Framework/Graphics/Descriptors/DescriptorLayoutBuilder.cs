@@ -43,7 +43,7 @@ public class DescriptorLayoutBuilder
 
     public unsafe VkDescriptorSetLayout Build()
     {
-        var device = SRuntime.Get().GetModule<SGraphicsModule>().GetDevice();
+        var device = SGraphicsModule.Get().GetDevice();
         var bindings = new List<VkDescriptorSetLayoutBinding>();
 
         var allFlags = new List<VkDescriptorBindingFlags>();

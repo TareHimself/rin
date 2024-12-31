@@ -1,8 +1,8 @@
 ﻿// using rin.Framework.Graphics.Material;
-// using rin.Framework.Widgets.Content;
-// using rin.Framework.Widgets.Mtsdf;
+// using rin.Framework.Views.Content;
+// using rin.Framework.Views.Mtsdf;
 //
-// namespace rin.Framework.Widgets.Graphics.Commands;
+// namespace rin.Framework.Views.Graphics.Commands;
 //
 // public class TextDrawCommand : Command
 // {

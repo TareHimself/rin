@@ -477,6 +477,83 @@ public static class VulkanExtensions
         }
     }
     
+    public static void DestroyFence(this VkDevice self,VkFence fence)
+    {
+        unsafe
+        {
+            vkDestroyFence(self, fence,null);
+        }
+    }
+    
+    public static VkResult ResetFences(this VkDevice self,params VkFence[] fences)
+    {
+        unsafe
+        {
+            fixed (VkFence* pFences = fences)
+            {
+                return vkResetFences(self, (uint)fences.Length, pFences);
+            }
+        }
+    }
+    
+    public static VkResult WaitForFences(this VkDevice self,ulong timeout,bool waitAll,params VkFence[] fences)
+    {
+        unsafe
+        {
+            fixed (VkFence* pFences = fences)
+            {
+                return vkWaitForFences(self, (uint)fences.Length, pFences, 1, timeout);
+            }
+        }
+    }
+    
+    public static VkSemaphore CreateSemaphore(this VkDevice device)
+    {
+        var semaphoreCreateInfo = new VkSemaphoreCreateInfo
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+        };
+
+        unsafe
+        {
+            VkSemaphore rSemaphore;
+            vkCreateSemaphore(device, &semaphoreCreateInfo, null, &rSemaphore);
+            return rSemaphore;
+        }
+    }
+    
+    public static void DestroySemaphore(this VkDevice self,VkSemaphore semaphore)
+    {
+        unsafe
+        {
+            vkDestroySemaphore(self, semaphore,null);
+        }
+    }
+    
+    public static void DestroySampler(this VkDevice self,VkSampler sampler)
+    {
+        unsafe
+        {
+            vkDestroySampler(self, sampler,null);
+        }
+    }
+    
+    public static void Destroy(this VkDevice self)
+    {
+        unsafe
+        {
+            vkDestroyDevice(self,null);
+        }
+    }
+    
+    public static void Destroy(this VkInstance self)
+    {
+        unsafe
+        {
+            vkDestroyInstance(self,null);
+        }
+    }
+    
     /// <summary>
     /// The KING of synchronization
     /// </summary>
@@ -638,5 +715,55 @@ public static class VulkanExtensions
         {
             vkDestroySurfaceKHR(self,surface,null);
         }
+    }
+
+    public static VkCommandPool CreateCommandPool(this VkDevice self, uint queueFamilyIndex,VkCommandPoolCreateFlags flags = VkCommandPoolCreateFlags.VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
+    {
+        var commandPoolCreateInfo = new VkCommandPoolCreateInfo
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            flags = VkCommandPoolCreateFlags.VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            queueFamilyIndex = queueFamilyIndex
+        };
+        
+        VkCommandPool pool = new ();
+        unsafe
+        {
+            vkCreateCommandPool(self, &commandPoolCreateInfo, null, &pool);
+        }
+
+        return pool;
+    }
+    
+    public static void DestroyCommandPool(this VkDevice self, VkCommandPool pool)
+    {
+        unsafe
+        {
+            vkDestroyCommandPool(self,pool ,null);
+        }
+    }
+    
+    public static VkCommandBuffer[] AllocateCommandBuffers(this VkDevice self,VkCommandPool pool,uint count = 1,VkCommandBufferLevel level = VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+    {
+        var commandBufferCreateInfo = new VkCommandBufferAllocateInfo
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            commandPool = pool,
+            commandBufferCount = count,
+            level = level
+        };
+
+        var result = new VkCommandBuffer[count];
+        
+        unsafe
+        {
+            fixed (VkCommandBuffer* pResult = result)
+            {
+                vkAllocateCommandBuffers(self, &commandBufferCreateInfo, pResult);
+            }
+            
+        }
+
+        return result;
     }
 }

@@ -3,8 +3,8 @@ using rin.Graphics;
 using rin.Core.Math;
 using rin.Scene;
 using rin.Runtime.Widgets;
-using rin.Runtime.Widgets.Containers;
-using rin.Runtime.Widgets.Content;
+using rin.Runtime.Views.Containers;
+using rin.Runtime.Views.Content;
 
 using SceneTest.entities;
 

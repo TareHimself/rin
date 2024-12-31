@@ -9,9 +9,8 @@ using rin.Framework.Views.Graphics.Quads;
 namespace rin.Framework.Views.Composite;
 
 /// <summary>
-/// Slot = <see cref="CompositeViewSlot"/>
 /// </summary>
-public class Constraint : CompositeView
+public class Constraint : SingleSlotCompositeView
 {
     private float? _minWidth;
     private float? _maxWidth;
@@ -69,7 +68,7 @@ public class Constraint : CompositeView
 
     protected override Vector2<float> ComputeDesiredContentSize()
     {
-        if (GetSlot(0) is { } slot)
+        if (GetSlot() is { } slot)
         {
             var desiredSize = slot.Child.GetDesiredSize();
             return Constrain(desiredSize);
@@ -78,12 +77,10 @@ public class Constraint : CompositeView
         return new Vector2<float>();
     }
 
-    public override int GetMaxSlotsCount() => 1;
-
     protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
        var size = Constrain(availableSpace);
-        if (GetSlot(0) is { } slot)
+        if (GetSlot() is { } slot)
         {
             slot.Child.Offset = (new Vector2<float>(0, 0)); 
             return Constrain(slot.Child.ComputeSize(size));
@@ -91,7 +88,8 @@ public class Constraint : CompositeView
 
         return size;
     }
-    
+
+
     // protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)
     // {
     //     base.CollectSelf(info, drawCommands);

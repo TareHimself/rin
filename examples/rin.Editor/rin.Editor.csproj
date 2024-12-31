@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\rin.Scene\rin.Scene.csproj"/>
-        <ProjectReference Include="..\..\rin.Runtime.Widgets\rin.Runtime.Widgets.csproj" />
+        <ProjectReference Include="..\..\rin.Runtime.Widgets\rin.Runtime.Views.csproj" />
         <ProjectReference Include="..\..\rin.Runtime.Core\rin.Runtime.Core.csproj" />
     </ItemGroup>
 

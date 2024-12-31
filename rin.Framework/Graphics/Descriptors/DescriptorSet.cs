@@ -95,11 +95,50 @@ public class DescriptorSet : Disposable
                     dstBinding = binding,
                     pImageInfo = pInfos,
                     descriptorCount = (uint)infos.Length,
-                    dstSet = _descriptorSet
+                    dstSet = _descriptorSet,
                 };
 
                 vkUpdateDescriptorSets(_device, 1, &write, 0, null);
             }
+        }
+
+        return true;
+    }
+    
+    public bool WriteImageArray(uint binding, params ImageWrite[] writes)
+    {
+        // if (!SetResource(binding,writes.Select(c => c.Image))) return false;
+        //
+        
+        
+        // var infos = writes.Select(image => new VkDescriptorImageInfo
+        // {
+        //     sampler = SGraphicsModule.Get().GetSampler(image.Sampler),
+        //     imageView = image.Image.NativeView,
+        //     imageLayout = image.Layout
+        // }).ToArray();
+        //
+        unsafe
+        {
+            var infos = stackalloc VkDescriptorImageInfo[writes.Length];
+            var writeSets = stackalloc VkWriteDescriptorSet[writes.Length];
+            for (var i = 0; i < writes.Length; i++)
+            {
+                var write = writes[i];
+                var imageInfo = infos + i;
+                imageInfo->sampler = SGraphicsModule.Get().GetSampler(write.Sampler);
+                imageInfo->imageView = write.Image.NativeView;
+                imageInfo->imageLayout = write.Layout;
+                var writeSet = writeSets + i;
+                writeSet->sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writeSet->descriptorType = ImageTypeToDescriptorType(write.Type);
+                writeSet->dstBinding = binding;
+                writeSet->pImageInfo = imageInfo;
+                writeSet->descriptorCount = 1;
+                writeSet->dstSet = _descriptorSet;
+                writeSet->dstArrayElement = write.Index;
+            }
+            vkUpdateDescriptorSets(_device, (uint)writes.Length,writeSets, 0, null);
         }
 
         return true;

@@ -1,20 +1,60 @@
-﻿using rin.Runtime.Core.Math;
-using rin.Scene.Graphics;
+﻿using JetBrains.Annotations;
+using rin.Framework.Core.Math;
+using rin.Framework.Scene.Graphics;
+using rin.Framework.World.Components;
 
-namespace rin.Scene.Components;
+namespace rin.Framework.Scene.Components;
 
-public class SceneComponent : Component, ISceneDrawable
+public class SceneComponent : Component
 {
+    private readonly object _lock = new();
     private Transform _relativeTransform = new();
+    private SceneComponent? _parent = null;
+    private readonly HashSet<SceneComponent> _children = [];
     
-    public SceneComponent? Parent { get; private set; }
 
-    public readonly List<SceneComponent> Children = []; 
+    [PublicAPI]
+    public SceneComponent? Parent => _parent;
 
+    [PublicAPI]
+    public IEnumerable<SceneComponent> GetAttachedComponents()
+    {
+        lock (_lock)
+        {
+            return _children.ToArray();
+        }
+    }
+    
+    [PublicAPI]
+    protected virtual void OnComponentAttached(SceneComponent component)
+    {
+        lock (_lock)
+        {
+            _children.Add(component);
+        }
+    }
+    
+    protected virtual void OnComponentDetached(SceneComponent component)
+    {
+        lock (_lock)
+        {
+            _children.Remove(component);
+        }
+    }
+    
     public void AttachTo(SceneComponent component)
     {
-        Parent = component;
-        Parent.Children.Add(this);
+        _parent = component;
+        component.OnComponentAttached(this);
+    }
+    
+    public void Detach()
+    {
+        if (_parent is { } parent)
+        {
+            parent.OnComponentDetached(this);
+            _parent = null;
+        }
     }
     
     public Transform GetRelativeTransform()
@@ -79,6 +119,7 @@ public class SceneComponent : Component, ISceneDrawable
         _relativeTransform.Scale.Z = z ?? _relativeTransform.Scale.Z;
     }
 
+    [PublicAPI]
     public Transform GetWorldTransform()
     {
         if (Parent == null) return GetRelativeTransform();
@@ -104,22 +145,13 @@ public class SceneComponent : Component, ISceneDrawable
         SetRelativeTransform(worldTransform);
     }
     
-    protected virtual void CollectSelf(SceneFrame frame, Matrix4 parentTransform,Matrix4 myTransform)
+    public virtual void Collect(DrawCommands drawCommands, Matrix4 parentTransform)
     {
-    }
-
-    protected virtual void CollectChildren(SceneFrame frame, Matrix4 parentTransform,Matrix4 myTransform)
-    {
-        for (var i = 0; i < Children.Count; i++)
+        var myTransform = parentTransform * GetRelativeTransform();
+        
+        foreach (var attachedComponent in GetAttachedComponents())
         {
-            Children[i].Collect(frame,myTransform);
+            attachedComponent.Collect(drawCommands, myTransform);
         }
-    }
-
-    public virtual void Collect(SceneFrame frame, Matrix4 parentSpace)
-    {
-        var myTransform = parentSpace * GetRelativeTransform();
-        CollectSelf(frame,parentSpace,myTransform);
-        CollectChildren(frame,parentSpace,myTransform);
     }
 }

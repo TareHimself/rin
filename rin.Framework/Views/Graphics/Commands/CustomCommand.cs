@@ -4,7 +4,7 @@ namespace rin.Framework.Views.Graphics.Commands;
 
 public abstract class CustomCommand : GraphicsCommand
 {
-    public abstract void Run(WidgetFrame frame, uint stencilMask, IDeviceBuffer? view = null);
+    public abstract void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null);
 
     /// <summary>
     /// Does this command plan to draw anything ?

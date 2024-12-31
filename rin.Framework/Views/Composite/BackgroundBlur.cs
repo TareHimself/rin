@@ -1,11 +1,13 @@
 ﻿using System.Runtime.InteropServices;
 using rin.Framework.Core.Math;
+using rin.Framework.Views.Graphics;
+using rin.Framework.Views.Graphics.Commands;
 using rin.Framework.Core;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.Descriptors;
 using rin.Framework.Graphics.Shaders;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Graphics.Commands;
+using rin.Framework.Views.Enums;
+using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
@@ -50,16 +52,14 @@ namespace rin.Framework.Views.Composite;
 //     }
 // }
 
-/// <summary>
-/// Slot = <see cref="CompositeViewSlot"/>
-/// </summary>
-public class BackgroundBlur : CompositeView
+
+public class BackgroundBlur : SingleSlotCompositeView
 {
     public Color Tint = Color.White;
     public float Strength { get; set; } = 7.0f;
     protected override Vector2<float> ComputeDesiredContentSize()
     {
-        if (GetSlot(0) is { } slot)
+        if (GetSlot() is { } slot)
         {
             return slot.Child.GetDesiredSize();
         }
@@ -96,7 +96,7 @@ public class BackgroundBlur : CompositeView
 
     protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
-        if (GetSlot(0) is { } slot)
+        if (GetSlot() is { } slot)
         {
             var widget = slot.Child;
             widget.Offset = 0.0f;
@@ -105,6 +105,5 @@ public class BackgroundBlur : CompositeView
 
         return 0.0f;
     }
-
-    public override int GetMaxSlotsCount() => 1;
+    
 }

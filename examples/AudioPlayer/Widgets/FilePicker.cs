@@ -27,6 +27,12 @@ public class FilePicker : Button
         BackgroundColor = Color.Red;
         BorderRadius = 10.0f;
         Padding = 20.0f;
+        OnReleased += (_, __) =>
+        {
+            StatusText.Content = "Selecting...";
+            Platform.SelectFileAsync("Select File's To Play", multiple: true, filter: "*.wav;*.ogg;*.flac;*.mp3")
+                .Then(FileSelected).ConfigureAwait(false);
+        };
     }
 
     protected override void OnAddedToSurface(Surface surface)
@@ -35,7 +41,7 @@ public class FilePicker : Button
         if (_hasInit) return;
         _hasInit = true;
         StatusText.Padding = 20.0f;
-        AddChild(StatusText);
+        SetChild(StatusText);
         // this.RunAction(new SimpleAnimationAction((s, time) =>
         // {
         //     // var num = (float)Math.Sin(time);
@@ -48,13 +54,6 @@ public class FilePicker : Button
     {
         OnFileSelected?.Invoke(files);
         StatusText.Content = "Select File's";
-    }
-    
-    public override void OnCursorUp(CursorUpEvent e)
-    {
-        base.OnCursorUp(e);
-        StatusText.Content = "Selecting...";
-        Platform.SelectFileAsync("Select File's To Play",multiple:true,filter:"*.wav;*.ogg;*.flac;*.mp3").Then(FileSelected).ConfigureAwait(false);
     }
 
     protected override void OnDispose(bool isManual)

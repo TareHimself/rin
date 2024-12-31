@@ -17,7 +17,7 @@ public class DescriptorAllocator : Disposable
     {
         _ratios = poolRatios;
         _setsPerPool = maxSets;
-        _device = SRuntime.Get().GetModule<SGraphicsModule>().GetDevice();
+        _device = SGraphicsModule.Get().GetDevice();
         _poolCreateFlags = poolCreateFlags;
     }
 

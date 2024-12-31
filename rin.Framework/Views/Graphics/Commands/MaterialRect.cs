@@ -1,6 +1,6 @@
 ﻿// using rin.Framework.Graphics.Material;
 //
-// namespace rin.Framework.Widgets.Graphics.Commands;
+// namespace rin.Framework.Views.Graphics.Commands;
 //
 // public class MaterialRect : Command
 // {

@@ -35,62 +35,17 @@ public class Frame : Disposable
         ]);
 
         Renderer = renderer;
-        var subsystem = SRuntime.Get().GetModule<SGraphicsModule>();
+        var subsystem = SGraphicsModule.Get();
         var device = subsystem.GetDevice();
         var queueFamily = subsystem.GetGraphicsQueueFamily();
 
         _device = device;
 
-        var cmdPoolCreateInfo = new VkCommandPoolCreateInfo
-        {
-            sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            flags = VkCommandPoolCreateFlags.VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            queueFamilyIndex = queueFamily
-        };
-
-
-        VkCommandPool cmdPool;
-
-        vkCreateCommandPool(device, &cmdPoolCreateInfo, null, &cmdPool);
-
-        _commandPool = cmdPool;
-
-        var cmdBufferAllocInfo = new VkCommandBufferAllocateInfo
-        {
-            sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            commandPool = cmdPool,
-            commandBufferCount = 1,
-            level = VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_PRIMARY
-        };
-
-        VkCommandBuffer buff;
-
-        vkAllocateCommandBuffers(device, &cmdBufferAllocInfo, &buff);
-
-        _commandBuffer = buff;
-
-        var fenceCreateInfo = new VkFenceCreateInfo
-        {
-            sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            flags = VkFenceCreateFlags.VK_FENCE_CREATE_SIGNALED_BIT
-        };
-
-        var semaphoreCreateInfo = new VkSemaphoreCreateInfo
-        {
-            sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
-        };
-
-        VkFence rFence;
-        vkCreateFence(device, &fenceCreateInfo, null, &rFence);
-
-        _renderFence = rFence;
-
-        VkSemaphore rSemaphore, sSemaphore;
-        vkCreateSemaphore(device, &semaphoreCreateInfo, null, &rSemaphore);
-        vkCreateSemaphore(device, &semaphoreCreateInfo, null, &sSemaphore);
-
-        _renderSemaphore = rSemaphore;
-        _swapchainSemaphore = sSemaphore;
+        _commandPool = device.CreateCommandPool(queueFamily);
+        _commandBuffer = device.AllocateCommandBuffers(_commandPool).First();
+        _renderFence = device.CreateFence(true);
+        _renderSemaphore = device.CreateSemaphore();
+        _swapchainSemaphore = device.CreateSemaphore();
     }
 
     public void DoCopy(VkImage swapchainImage,VkExtent2D extent)
@@ -131,28 +86,10 @@ public class Frame : Disposable
     /// </summary>
     public void WaitForLastDraw()
     {
-        unsafe
+        var r = _device.WaitForFences(ulong.MaxValue,true,_renderFence);
+        if (r != VkResult.VK_SUCCESS)
         {
-            // var status = vkGetFenceStatus(_device, _renderFence);
-            // if (status == VkResult.VK_NOT_READY)
-            // {
-            //     fixed (VkFence* pFence = &_renderFence)
-            //     {
-            //         var r = vkWaitForFences(_device, 1, pFence, 1, ulong.MaxValue);
-            //         if (r != VkResult.VK_SUCCESS)
-            //         {
-            //         
-            //         }
-            //     }
-            // }
-            fixed (VkFence* pFence = &_renderFence)
-            {
-                var r = vkWaitForFences(_device, 1, pFence, 1, ulong.MaxValue);
-                if (r != VkResult.VK_SUCCESS)
-                {
-                    
-                }
-            }
+            throw new Exception("Failed to wait for fences");
         }
     }
 
@@ -165,31 +102,24 @@ public class Frame : Disposable
         OnReset = null;
         OnCopy = null;
         _descriptorAllocator.ClearPools();
-        unsafe
+        var r = _device.ResetFences(_renderFence);
+        if (r != VkResult.VK_SUCCESS)
         {
-            fixed (VkFence* pFence = &_renderFence)
-            {
-                var r = vkResetFences(_device, 1, pFence);
-                if (r != VkResult.VK_SUCCESS)
-                {
-                    throw new Exception("Failed to reset fences");
-                }
-            }
+            throw new Exception("Failed to reset fences");
         }
         _graphBuilder.Reset();
     }
 
-    protected override unsafe void OnDispose(bool isManual)
+    protected override void OnDispose(bool isManual)
     {
-        var device = SGraphicsModule.Get().GetDevice();
         SGraphicsModule.Get().WaitDeviceIdle();
         OnReset?.Invoke(this);
         OnReset = null;
         OnCopy = null;
         _descriptorAllocator.Dispose();
-        vkDestroySemaphore(device, _swapchainSemaphore, null);
-        vkDestroySemaphore(device, _renderSemaphore, null);
-        vkDestroyFence(device, _renderFence, null);
-        vkDestroyCommandPool(device, _commandPool, null);
+        _device.DestroySemaphore(_swapchainSemaphore);
+        _device.DestroySemaphore(_renderSemaphore);
+        _device.DestroyFence(_renderFence);
+        _device.DestroyCommandPool(_commandPool);
     }
 }

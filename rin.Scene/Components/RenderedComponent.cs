@@ -3,7 +3,7 @@ using rin.Scene.Graphics;
 
 namespace rin.Scene.Components;
 
-public abstract class RenderedComponent : SceneComponent
+public abstract class RenderedComponent : TransformComponent
 {
     protected override void CollectSelf(SceneFrame frame, Matrix4 parentTransform, Matrix4 myTransform)
     {

@@ -3,18 +3,16 @@ using rin.Framework.Core;
 
 namespace rin.Framework.Audio;
 
-[NativeRuntimeModule]
-public class SAudioModule : RuntimeModule
+[Module]
+public class SAudioModule : IModule
 {
-    public override void Startup(SRuntime runtime)
+    public void Startup(SRuntime runtime)
     {
-        base.Startup(runtime);
         Bass.Init();
     }
 
-    public override void Shutdown(SRuntime runtime)
+    public void Shutdown(SRuntime runtime)
     {
-        base.Shutdown(runtime);
         Bass.Free();
     }
 
@@ -26,4 +24,6 @@ public class SAudioModule : RuntimeModule
     public bool SetVolume(float val) => Bass.Configure(Configuration.GlobalStreamVolume, (int)(val * 10000));
 
     public static SAudioModule Get() => SRuntime.Get().GetModule<SAudioModule>();
+
+
 }

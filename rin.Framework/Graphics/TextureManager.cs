@@ -1,5 +1,8 @@
 ﻿using rin.Framework.Core;
+using rin.Framework.Core.Extensions;
 using rin.Framework.Graphics.Descriptors;
+using rin.Framework.Views;
+using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -9,7 +12,6 @@ public class TextureManager : ITextureManager
 {
     private static readonly uint MAX_TEXTURES = 512;
     private readonly Mutex _mutex = new();
-
     private readonly DescriptorAllocator _allocator = new DescriptorAllocator(512, [
         new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1.0f)
     ], VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
@@ -59,6 +61,55 @@ public class TextureManager : ITextureManager
 
             _descriptorSet = _allocator.Allocate(layout, MAX_TEXTURES);
         }
+        
+        _textures.Add(new Texture());
+
+        LoadDefaultTexture().ConfigureAwait(false);
+    }
+
+    public async Task LoadDefaultTexture()
+    {
+        var defaultTexturePath = Path.Join(SRuntime.ResourcesDirectory, "textures", "default.png");
+        using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(defaultTexturePath);
+        using var buffer = imgData.ToBuffer();
+        var tex = _textures[0];
+        tex.Image = await SGraphicsModule.Get().CreateImage(
+            buffer,
+            new VkExtent3D
+            {
+                width = (uint)imgData.Width,
+                height = (uint)imgData.Height,
+                depth = 1
+            },
+            ImageFormat.Rgba8,
+            VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT,
+            true
+            );
+
+        List<ImageWrite> writes = [];
+
+        var sampler = new SamplerSpec()
+        {
+            Filter = ImageFilter.Linear,
+            Tiling = ImageTiling.Repeat
+        };
+        
+        for (var i = 0; i < MAX_TEXTURES; i++)
+        {
+            var info = i < _textures.Count ? _textures[i] : null;
+            
+            if(info?.Valid == true) continue;
+            
+            writes.Add(new ImageWrite(tex.Image,VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,ImageType.Texture,sampler)
+            {
+                Index = (uint)i
+            });
+        }
+
+        if (writes.Count != 0)
+        {
+            _descriptorSet.WriteImageArray(0, writes.ToArray());
+        }
     }
 
     public DescriptorSet GetDescriptorSet() => _descriptorSet;
@@ -99,8 +150,19 @@ public class TextureManager : ITextureManager
 
     public void FreeTextures(params int[] textureIds)
     {
+        List<ImageWrite> writes = [];
+
+        var sampler = new SamplerSpec()
+        {
+            Filter = ImageFilter.Linear,
+            Tiling = ImageTiling.Repeat
+        };
+        var defaultTexture = _textures[0].Image;
+        
         foreach (var textureId in textureIds)
         {
+            if(textureId == 0) continue;
+            
             var info = _textures[textureId];
 
             if (!info.Valid) continue;
@@ -108,6 +170,19 @@ public class TextureManager : ITextureManager
             info.Image?.Dispose();
             _textures[textureId] = new Texture();
             _availableIndices.Add(textureId);
+
+            if (defaultTexture != null)
+            {
+                writes.Add(new ImageWrite(defaultTexture,VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,ImageType.Texture,sampler)
+                {
+                    Index = (uint)textureId
+                });
+            }
+        }
+        
+        if (writes.Count != 0)
+        {
+            _descriptorSet.WriteImageArray(0, writes.ToArray());
         }
     }
 
@@ -118,53 +193,27 @@ public class TextureManager : ITextureManager
 
     private void UpdateTextures(params int[] textureIds)
     {
-        VkDescriptorSet set = _descriptorSet;
-
-        List<VkWriteDescriptorSet> writes = [];
+        List<ImageWrite> writes = [];
 
         foreach (var textureId in textureIds)
         {
             var info = _textures[textureId];
 
-            if (!info.Valid) continue;
+            if (!info.Valid || info.Image is null) continue;
 
-            var sampler = SGraphicsModule.Get().GetSampler(new SamplerSpec()
+            writes.Add(new ImageWrite(info.Image,VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,ImageType.Texture,new SamplerSpec()
             {
                 Filter = info.Filter,
                 Tiling = info.Tiling
+            })
+            {
+                Index = (uint)textureId
             });
-
-            var imageInfo = new VkDescriptorImageInfo()
-            {
-                sampler = sampler,
-                imageView = info.Image!.NativeView,
-                imageLayout = VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-            };
-
-            unsafe
-            {
-                writes.Add(new VkWriteDescriptorSet()
-                {
-                    sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    dstSet = set,
-                    dstBinding = 0,
-                    dstArrayElement = (uint)textureId,
-                    descriptorCount = 1,
-                    descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    pImageInfo = &imageInfo
-                });
-            }
         }
 
         if (writes.Count != 0)
         {
-            unsafe
-            {
-                fixed (VkWriteDescriptorSet* writeSets = writes.ToArray())
-                {
-                    vkUpdateDescriptorSets(SGraphicsModule.Get().GetDevice(), (uint)writes.Count, writeSets, 0, null);
-                }
-            }
+            _descriptorSet.WriteImageArray(0, writes.ToArray());
         }
     }
 

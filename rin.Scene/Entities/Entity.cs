@@ -10,7 +10,7 @@ public class Entity : SceneDisposable, ISceneDrawable
     private readonly Dictionary<Type, List<Component>> _components = new();
     private readonly List<Component> _componentsList = [];
     private readonly List<RenderedComponent> _renderedComponents = [];
-    public SceneComponent? RootComponent;
+    public TransformComponent? RootComponent;
     public Scene OwningScene = null!;
 
 
@@ -21,12 +21,12 @@ public class Entity : SceneDisposable, ISceneDrawable
         RootComponent?.Collect(frame,parentSpace);
     }
 
-    protected virtual SceneComponent CreateRootComponent()
+    protected virtual TransformComponent CreateRootComponent()
     {
-        return AddComponent<SceneComponent>();
+        return AddComponent<TransformComponent>();
     }
 
-    protected virtual void CreateDefaultComponents(SceneComponent root)
+    protected virtual void CreateDefaultComponents(TransformComponent root)
     {
     }
 

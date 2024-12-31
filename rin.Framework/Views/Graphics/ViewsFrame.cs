@@ -16,7 +16,7 @@ public struct SimpleRectPush
     public Vector4<float> Color;
 }
 
-public class WidgetFrame
+public class ViewsFrame
 {
     //public readonly AeroxLinkedList<GraphicsCommand> DrawCommandList = [];
     public readonly Frame Raw;
@@ -30,7 +30,7 @@ public class WidgetFrame
     public readonly IDeviceImage CopyImage;
     public readonly IDeviceImage StencilImage;
 
-    public WidgetFrame(Surface surface, Frame raw,IDeviceImage drawImage,IDeviceImage copyImage,IDeviceImage stencilImage)
+    public ViewsFrame(Surface surface, Frame raw,IDeviceImage drawImage,IDeviceImage copyImage,IDeviceImage stencilImage)
     {
         Surface = surface;
         Raw = raw;
@@ -47,7 +47,7 @@ public class WidgetFrame
         Surface.BeginMainPass(this,clearColor,clearStencil);
     }
 
-    public void EnsurePass(string passId,Action<WidgetFrame> applyPass) => Surface.EnsurePass(this, passId,applyPass);
+    public void EnsurePass(string passId,Action<ViewsFrame> applyPass) => Surface.EnsurePass(this, passId,applyPass);
 
     public void EndActivePass()
     {
@@ -86,7 +86,7 @@ public class WidgetFrame
     // }
 
 
-    public static implicit operator Frame(WidgetFrame frame)
+    public static implicit operator Frame(ViewsFrame frame)
     {
         return frame.Raw;
     }

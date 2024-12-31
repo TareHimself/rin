@@ -7,15 +7,28 @@ namespace rin.Framework.Graphics.FrameGraph;
 
 public class GraphBuilder : IGraphBuilder
 {
-    private readonly Dictionary<string, ImageResourceDescriptor> _images = [];
-    private readonly Dictionary<string, MemoryResourceDescriptor> _memory = [];
-    private readonly Dictionary<string,IResourceDescriptor> _resources = [];
+    // private readonly Dictionary<uint, ImageResourceDescriptor> _images = [];
+    // private readonly Dictionary<uint, MemoryResourceDescriptor> _memory = [];
+    private readonly Dictionary<uint,IResourceDescriptor> _resources = [];
     private readonly Dictionary<string, IPass> _passes = [];
-    private readonly Dictionary<IPass, HashSet<string>> _passWrites = [];
-    private readonly Dictionary<IPass, HashSet<string>> _passReads = [];
-    private readonly Dictionary<string, HashSet<IPass>> _resourceWrites = [];
-    private readonly Dictionary<string, HashSet<IPass>> _resourceReads = [];
+    private readonly Dictionary<IPass, HashSet<uint>> _passWrites = [];
+    private readonly Dictionary<IPass, HashSet<uint>> _passReads = [];
+    private readonly Dictionary<uint, List<IPass>> _resourceWrites = [];
+    private readonly Dictionary<uint, List<IPass>> _resourceReads = [];
+    private uint _id;
+    private readonly object _lock = new object();
     
+    /// <summary>
+    /// All Resource ID's must be greater than zero
+    /// </summary>
+    /// <returns></returns>
+    uint MakeId()
+    {
+        lock (_lock)
+        {
+            return ++_id;
+        }
+    }
     public IGraphBuilder AddPass(IPass pass)
     {
         _passes.Add(pass.Name,pass);
@@ -23,7 +36,7 @@ public class GraphBuilder : IGraphBuilder
     }
     
 
-    public string RequestImage(IPass pass,uint width, uint height, ImageFormat format, VkImageLayout initialLayout, string? name = null)
+    public uint CreateImage(IPass pass, uint width, uint height, ImageFormat format, VkImageLayout initialLayout)
     {
         var flags = format is ImageFormat.Depth or ImageFormat.Stencil
             ? VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
@@ -38,28 +51,28 @@ public class GraphBuilder : IGraphBuilder
             Flags = flags,
             InitialLayout = initialLayout
         };
-        var resourceId = name ?? $"image-{Guid.NewGuid().ToString()}";
-        _images.Add(resourceId, descriptor);
+        var resourceId = MakeId();
+        // _images.Add(resourceId, descriptor);
         _resources.Add(resourceId,descriptor);
         Write(pass,resourceId);
         return resourceId;
     }
 
-    public string RequestMemory(IPass pass,ulong size,string? name = null)
+    public uint AllocateBuffer(IPass pass, ulong size)
     {
         var descriptor = new MemoryResourceDescriptor()
         {
             Size = size
         };
-        var resourceId = name ?? $"memory-{size}-{Guid.NewGuid().ToString()}";
-        _memory.Add(resourceId, descriptor);
+        var resourceId = MakeId();
+        // _memory.Add(resourceId, descriptor);
         _resources.Add(resourceId,descriptor);
         Write(pass,resourceId);
         return resourceId;
     }
     
 
-    public string Read(IPass pass,string id)
+    public uint Read(IPass pass, uint id)
     {
         if (_resources.TryGetValue(id, out var resource))
         {
@@ -92,7 +105,7 @@ public class GraphBuilder : IGraphBuilder
         return id;
     }
 
-    public string Write(IPass pass,string id)
+    public uint Write(IPass pass, uint id)
     {
         if (_resources.TryGetValue(id, out var resource))
         {
@@ -125,7 +138,7 @@ public class GraphBuilder : IGraphBuilder
         return id;
     }
 
-    protected void Configure()
+    private void Configure()
     {
         _passWrites.Clear();
         _passReads.Clear();
@@ -135,7 +148,7 @@ public class GraphBuilder : IGraphBuilder
         }
     }
     
-    public ICompiledGraph? Compile(IImagePool imagePool)
+    public ICompiledGraph? Compile(IImagePool imagePool,Frame frame)
     {
         Configure();
 
@@ -149,7 +162,7 @@ public class GraphBuilder : IGraphBuilder
 
         HashSet<IPass> validPasses = [];
         Dictionary<IPass,ICompiledGraphNode> nodes = [];
-        HashSet<string> validResources = [];
+        HashSet<uint> validResources = [];
         Queue<IPass> toSearch = terminals.Aggregate(new Queue<IPass>(),(result,terminal) =>
         {
             nodes.Add(terminal, new CompiledGraphNode()
@@ -197,23 +210,27 @@ public class GraphBuilder : IGraphBuilder
             }
         }
 
-        var descriptors = new Dictionary<string, IResourceDescriptor>();
+        var descriptors = new Dictionary<uint, IResourceDescriptor>();
         foreach (var resourceHandle in validResources)
         {
             descriptors.Add(resourceHandle,_resources[resourceHandle]);
         }
-        return new CompiledGraph(imagePool,descriptors, nodes.Values.ToArray());
+        return new CompiledGraph(imagePool,frame,descriptors, nodes.Values.ToArray());
     }
 
     public void Reset()
     {
-        _images.Clear();
-        _memory.Clear();
+        // _images.Clear();
+        // _memory.Clear();
         _resources.Clear();
         _passes.Clear();
         _passWrites.Clear();
         _passReads.Clear();
         _resourceWrites.Clear();
         _resourceReads.Clear();
+        lock (_lock)
+        {
+            _id = 0;
+        }
     }
 }

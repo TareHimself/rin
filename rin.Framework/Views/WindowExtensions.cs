@@ -8,6 +8,6 @@ public static class WindowExtensions
 {
     public static WindowSurface? GetWidgetSurface(this IWindow window)
     {
-        return SWidgetsModule.Get().GetWindowSurface(window);
+        return SViewsModule.Get().GetWindowSurface(window);
     }
 }

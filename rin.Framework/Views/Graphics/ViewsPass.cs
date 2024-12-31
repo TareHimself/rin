@@ -7,12 +7,12 @@ using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 namespace rin.Framework.Views.Graphics;
 
-public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
+public sealed class ViewsPass(Surface surface,FinalDrawCommand[] commands) : IPass
 {
-    private string? _drawImageHandle;
-    private string? _copyImageHandle;
-    private string? _stencilImageHandle;
-    private string? _bufferResourceHandle;
+    private uint _drawImageHandle;
+    private uint _copyImageHandle;
+    private uint _stencilImageHandle;
+    private uint _bufferResourceHandle;
     private readonly Vector2<uint> _drawSize = surface.GetDrawSize().Cast<uint>();
     private ulong _memoryNeeded = 0;
     private readonly List<Pair<ulong, ulong>> _offsets = [];
@@ -23,12 +23,12 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
 
     public void Configure(IGraphBuilder builder)
     {
-        _drawImageHandle = builder.RequestImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Rgba32,
-            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,"images.widgets.draw");
-        _copyImageHandle = builder.RequestImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Rgba32,
-            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,"images.widgets.copy");
-        _stencilImageHandle = builder.RequestImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Stencil,
-            VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,"images.widgets.stencil");
+        _drawImageHandle = builder.CreateImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Rgba32,
+            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        _copyImageHandle = builder.CreateImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Rgba32,
+            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        _stencilImageHandle = builder.CreateImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Stencil,
+            VkImageLayout.VK_IMAGE_LAYOUT_GENERAL);
         
         foreach (var drawCommand in commands)
             if (drawCommand.Type == CommandType.BatchedDraw)
@@ -62,7 +62,7 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
 
         if (_memoryNeeded > 0)
         {
-            _bufferResourceHandle = builder.RequestMemory(this, _memoryNeeded);
+            _bufferResourceHandle = builder.AllocateBuffer(this, _memoryNeeded);
         }
     }
 
@@ -71,8 +71,8 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
         var drawImage = graph.GetResource(_drawImageHandle!).AsImage();
         var copyImage = graph.GetResource(_copyImageHandle!).AsImage();
         var stencilImage = graph.GetResource(_stencilImageHandle!).AsImage();
-        var buffer = _bufferResourceHandle is { } asResourceHandle ? graph.GetResource(asResourceHandle).AsMemory() : null;
-        var widgetFrame = new WidgetFrame(surface, frame,drawImage, copyImage, stencilImage);
+        var buffer = _bufferResourceHandle > 0  ? graph.GetResource(_bufferResourceHandle).AsMemory() : null;
+        var widgetFrame = new ViewsFrame(surface, frame,drawImage, copyImage, stencilImage);
         
         var isWritingStencil = false;
         var isComparingStencil = false;
@@ -106,7 +106,7 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
                             VkStencilOp.VK_STENCIL_OP_REPLACE, VkStencilOp.VK_STENCIL_OP_KEEP,
                             VkCompareOp.VK_COMPARE_OP_ALWAYS);
                         cmd.SetWriteMask(0, 1, 0);
-                        if (SWidgetsModule.Get().GetStencilShader() is { } stencilShader &&
+                        if (SViewsModule.Get().GetStencilShader() is { } stencilShader &&
                             stencilShader.Bind(cmd, true))
                         {
                             isWritingStencil = true;
@@ -115,7 +115,7 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
                     }
 
                     {
-                        if (isWritingStencil && buffer != null && SWidgetsModule.Get().GetStencilShader() is
+                        if (isWritingStencil && buffer != null && SViewsModule.Get().GetStencilShader() is
                                 { } stencilShader)
                         {
                             vkCmdSetStencilWriteMask(cmd, faceFlags, command.Mask);
@@ -257,7 +257,7 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
         };
     }
     
-    public virtual void BeforeDraw(VkCommandBuffer cmd,IDeviceImage drawImage,IDeviceImage copyImage,IDeviceImage stencilImage)
+    public void BeforeDraw(VkCommandBuffer cmd,IDeviceImage drawImage,IDeviceImage copyImage,IDeviceImage stencilImage)
     {
         drawImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL);
         copyImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL);
@@ -325,6 +325,6 @@ public class WidgetPass(Surface surface,FinalDrawCommand[] commands) : IPass
             VkStencilOp.VK_STENCIL_OP_KEEP, VkCompareOp.VK_COMPARE_OP_NEVER);
     }
 
-    public string Name => "Widget Pass";
+    public string Name => "View Pass";
     public bool IsTerminal => true;
 }

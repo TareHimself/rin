@@ -32,7 +32,7 @@
 //     //     Lit,
 //     //     Unlit,
 //     //     Translucent,
-//     //     Widget,
+//     //     View,
 //     //     Compute
 //     // }
 //

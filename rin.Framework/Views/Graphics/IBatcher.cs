@@ -4,6 +4,6 @@ namespace rin.Framework.Views.Graphics;
 
 public interface IBatcher
 {
-    abstract void Draw(WidgetFrame frame, IBatch batch, IDeviceBuffer view);
+    abstract void Draw(ViewsFrame frame, IBatch batch, IDeviceBuffer buffer);
     abstract IBatch NewBatch();
 }

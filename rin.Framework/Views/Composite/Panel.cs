@@ -1,133 +1,54 @@
 ﻿using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
+using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
-/// <summary>
-/// Describes how a <see cref="View" /> will be sized and positioned in a <see cref="Panel" />. Supports Anchors
-/// Slot = <see cref="PanelSlot"/>
-/// </summary>
-public class PanelSlot : CompositeViewSlot
-{
-    public Vector2<float> Alignment = new(0, 0);
-    public Vector2<float> MaxAnchor = new(0, 0);
-    public Vector2<float> MinAnchor = new(0, 0);
-    public Vector2<float> Offset = new(0, 0);
-    public Vector2<float> Size = new();
 
-    /// <summary>
-    ///     Describes how a <see cref="View" /> will be sized and positioned in a <see cref="Panel" />. Supports Anchors
-    /// </summary>
-    public PanelSlot(Panel? panel = null) : base(panel)
-    {
-    }
-
-    public bool SizeToContent { get; set; } = false;
-
-    public static bool NearlyEqual(double a, double b, double tolerance = 0.001f)
-    {
-        return System.Math.Abs(a - b) < tolerance;
-    }
-
-    
-}
 
 /// <summary>
 ///     A container that draws children based on the settings provided in <see cref="PanelSlot" /> . Intended use is for
 ///     dock-able layouts or as a root for a collection of widgets
 /// </summary>
-public class Panel : CompositeView
+public class Panel : MultiSlotCompositeView<PanelSlot>
 {
-    // protected override void ArrangeContent(Vector2<float> drawSize)
-    // {
-    //     foreach (var slot in GetSlots())
-    //     {
-    //         OnSlotUpdated(slot);
-    //     };
-    // }
+    private readonly PanelLayout _layout;
 
 
+    public Panel() : base()
+    {
+        _layout = new PanelLayout(this);
+    }
     protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
-        foreach (var slot in GetSlots())
-        {
-            LayoutSlot(slot,availableSpace);
-        };
-        
-        return availableSpace;
+        return _layout.Apply(availableSpace);
     }
 
-    protected void LayoutSlot(CompositeViewSlot slot,Vector2<float> panelSize)
+    public override void OnChildInvalidated(View child, InvalidationType invalidation)
     {
-        if (slot is PanelSlot asPanelSlot)
+        if (_layout.FindSlot(child) is { } slot)
         {
-            var widget = slot.Child;
-
-            var noOffsetX = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.X, asPanelSlot.MaxAnchor.X);
-            var noOffsetY = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.Y, asPanelSlot.MaxAnchor.Y);
-
-            var widgetSize = widget.GetDesiredSize();
-            
-            var wSize = new Vector2<float>
-            {
-                X = asPanelSlot.SizeToContent && noOffsetX ? widgetSize.X : asPanelSlot.Size.X,
-                Y = asPanelSlot.SizeToContent && noOffsetY ? widgetSize.Y: asPanelSlot.Size.Y
-            };
-
-            var p1 = asPanelSlot.Offset.Clone();
-            var p2 = p1 + wSize;
-
-            if (noOffsetX)
-            {
-                var a = panelSize.X * asPanelSlot.MinAnchor.X;
-                p1.X += a;
-                p2.X += a;
-            }
-            else
-            {
-                p1.X = panelSize.X * asPanelSlot.MinAnchor.X + p1.X;
-                p2.X = panelSize.X * asPanelSlot.MaxAnchor.X - p2.X;
-            }
-
-            if (noOffsetY)
-            {
-                var a = panelSize.Y * asPanelSlot.MinAnchor.Y;
-                p1.Y += a;
-                p2.Y += a;
-            }
-            else
-            {
-                p1.Y = panelSize.Y * asPanelSlot.MinAnchor.Y + p1.Y;
-                p2.Y = panelSize.Y * asPanelSlot.MaxAnchor.Y - p2.Y;
-            }
-
-            var dist = p2 - p1;
-            dist *= asPanelSlot.Alignment;
-            var p1Final = p1 - dist;
-            var p2Final = p2 - dist;
-            var sizeFinal = p2Final - p1Final;
-
-            widget.Offset = p1Final;
-            widget.ComputeSize(sizeFinal);
+            _layout.OnSlotUpdated(slot);
+        }
+    }
+    
+    public override void OnChildAdded(View child)
+    {
+        if (_layout.FindSlot(child) is { } slot)
+        {
+            _layout.OnSlotUpdated(slot);
         }
     }
 
-    public override void OnSlotInvalidated(CompositeViewSlot slot, InvalidationType invalidation)
-    {
-        LayoutSlot(slot,GetContentSize());
-    }
+    public override IEnumerable<ISlot> GetSlots() => _layout.GetSlots();
 
-    
     protected override Vector2<float> ComputeDesiredContentSize()
     {
-        return new Vector2<float>();
+        return _layout.ComputeDesiredContentSize();
     }
 
-    protected override PanelSlot MakeSlot(View view)
-    {
-        return new PanelSlot(this)
-        {
-            Child = view
-        };
-    }
+    public override int SlotCount => _layout.SlotCount;
+    public override bool Add(View child) => _layout.Add(child);
+    public override bool Add(PanelSlot slot) => _layout.Add(slot);
+    public override bool Remove(View child) => _layout.Remove(child);
 }

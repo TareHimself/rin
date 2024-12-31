@@ -53,53 +53,7 @@ public partial class Allocator : Disposable
         }
     }
 
-    /// <summary>
-    ///     Allocates a <see cref="DeviceBuffer" /> for transfers/staging
-    /// </summary>
-    public IDeviceBuffer NewTransferBuffer(ulong size, bool sequentialWrite = true,
-        string debugName = "Transfer Buffer")
-    {
-        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-            , sequentialWrite, true, true, debugName);
-    }
-
-    /// <summary>
-    ///     Allocates a <see cref="DeviceBuffer" /> for transfers/staging
-    /// </summary>
-    public IDeviceBuffer NewStorageBuffer<T>(bool sequentialWrite = true, string debugName = "storageBuffer")
-    {
-        return NewStorageBuffer((ulong)Marshal.SizeOf<T>(), sequentialWrite, debugName);
-    }
     
-    /// <summary>
-    ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
-    /// </summary>
-    public IDeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true,
-        string debugName = "Storage Buffer")
-    {
-        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true, debugName);
-    }
-
-    /// <summary>
-    ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
-    /// </summary>
-    public IDeviceBuffer NewUniformBuffer(ulong size, bool sequentialWrite = true,
-        string debugName = "Uniform Buffer")
-    {
-        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true, debugName);
-    }
-
-    /// <summary>
-    ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
-    /// </summary>
-    public IDeviceBuffer NewUniformBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer")
-    {
-        return NewUniformBuffer((ulong)Marshal.SizeOf<T>(), sequentialWrite, debugName);
-    }
 
     /// <summary>
     ///     Allocates a <see cref="DeviceImage" />

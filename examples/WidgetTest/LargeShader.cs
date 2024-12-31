@@ -1,12 +1,12 @@
 ﻿// using rin.Framework.Core;
 // using rin.Framework.Graphics;
 // using rin.Framework.Graphics.Material;
-// using rin.Framework.Widgets;
-// using rin.Framework.Widgets.Graphics;
+// using rin.Framework.Views;
+// using rin.Framework.Views.Graphics;
 //
 // namespace WidgetTest;
 //
-// public class LargeShader : Widget
+// public class LargeShader : View
 // {
 //     
 //     private readonly MaterialInstance _materialInstance;

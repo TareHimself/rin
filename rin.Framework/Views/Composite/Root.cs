@@ -1,45 +1,56 @@
 ﻿using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
+using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
 
 /// <summary>
-/// Slot = <see cref="CompositeViewSlot"/>
+/// Slot = <see cref="Slot"/>
 /// </summary>
-public class Root : CompositeView
+public class Root : MultiSlotCompositeView<Slot>
 {
+    private readonly RootLayout _layout;
+
+    public Root() : base()
+    {
+        _layout = new RootLayout(this);
+    }
+    
     protected override Vector2<float> ComputeDesiredContentSize()
     {
-        return new Vector2<float>();
+        return _layout.ComputeDesiredContentSize();
     }
 
 
     protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
-        foreach (var slot in GetSlots())
-        {
-            var widget = slot.Child;
-            widget.Offset = 0.0f;
-            widget.ComputeSize(availableSpace);
-        }
-
-        return availableSpace;
+        return _layout.Apply(availableSpace);
     }
 
-    // protected override void ArrangeContent(Vector2<float> drawSize)
-    // {
-    //     foreach (var slot in GetSlots())
-    //     {
-    //         OnSlotUpdated(slot);
-    //     }
-    // }
     
-
-    public override void OnSlotInvalidated(CompositeViewSlot slot, InvalidationType invalidation)
+    public override void OnChildInvalidated(View child, InvalidationType invalidation)
     {
-        var widget = slot.Child;
-        widget.Offset = 0.0f;
-        widget.ComputeSize(GetContentSize());
+        if (_layout.FindSlot(child) is { } slot)
+        {
+            _layout.OnSlotUpdated(slot);
+        }
     }
+    
+    public override void OnChildAdded(View child)
+    {
+        if (_layout.FindSlot(child) is { } slot)
+        {
+            _layout.OnSlotUpdated(slot);
+        }
+    }
+
+    public override IEnumerable<ISlot> GetSlots() => _layout.GetSlots();
+
+    public override int SlotCount => _layout.SlotCount;
+    public override bool Add(View view) => _layout.Add(view);
+    public override bool Add(Slot slot) => _layout.Add(slot);
+    public override bool Remove(View view) => _layout.Remove(view);
+
+    
 }

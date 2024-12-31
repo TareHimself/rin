@@ -4,6 +4,7 @@ using rin.Framework.Core.Math;
 using rin.Framework.Views;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Graphics;
+using rin.Framework.Views.Layouts;
 using Clip = rin.Framework.Views.Clip;
 using Rect = rin.Framework.Views.Composite.Rect;
 
@@ -68,7 +69,7 @@ public class MainPanel : Panel
         foreach (var file in files)
         {
             var player = new TrackPlayer(Path.GetFileNameWithoutExtension(file), StreamChannel.FromFile(file));
-            _trackPlayers.AddChild(player);
+            _trackPlayers.Add(player);
         }
     }
 }

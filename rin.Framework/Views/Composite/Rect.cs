@@ -1,19 +1,23 @@
 ﻿using rin.Framework.Core.Math;
+using rin.Framework.Views.Enums;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
+using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
 /// <summary>
 /// A simple container that draws a rect behind it and contains one child
 /// </summary>
-public class Rect : CompositeView
+public class Rect : SingleSlotCompositeView
 {
+    
     public Color BackgroundColor = Color.Black;
     public Vector4<float> BorderRadius = 0.0f;
+
     protected override Vector2<float> ComputeDesiredContentSize()
     {
-        if (GetSlot(0) is { } slot)
+        if (GetSlot() is { } slot)
         {
             return slot.Child.GetDesiredSize();
         }
@@ -23,7 +27,7 @@ public class Rect : CompositeView
 
     protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
-        if (GetSlot(0) is { } slot)
+        if (GetSlot() is { } slot)
         {
             slot.Child.Offset = (new Vector2<float>(0, 0));
             return slot.Child.ComputeSize(availableSpace);
@@ -31,10 +35,24 @@ public class Rect : CompositeView
 
         return 0.0f;
     }
+    
 
     protected virtual void CollectSelf(Matrix3 transform, DrawCommands drawCommands)
     {
-        drawCommands.AddRect(transform,Size, color: BackgroundColor, borderRadius: BorderRadius);
+        if (BackgroundColor.A > 0.0f)
+        {
+            drawCommands.AddRect(transform,Size, color: BackgroundColor, borderRadius: BorderRadius);
+        }
+    }
+
+    public override IEnumerable<ISlot> GetSlots()
+    {
+        if (GetSlot() is { } slot)
+        {
+            return [slot];
+        }
+
+        return [];
     }
 
     public override void Collect(Matrix3 transform, Views.Rect clip, DrawCommands drawCommands)
@@ -45,6 +63,4 @@ public class Rect : CompositeView
         }
         base.Collect(transform,clip, drawCommands);
     }
-
-    public override int GetMaxSlotsCount() => 1;
 }

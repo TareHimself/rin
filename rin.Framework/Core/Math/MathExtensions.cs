@@ -1,4 +1,6 @@
-﻿namespace rin.Framework.Core.Math;
+﻿using System.Numerics;
+
+namespace rin.Framework.Core.Math;
 
 public static class MathExtensions
 {
@@ -10,8 +12,10 @@ public static class MathExtensions
     /// <param name="other"></param>
     /// <returns></returns>
     public static float FiniteOr(this float val, float other = 0.0f) => float.IsFinite(val) ? val : other;
+    
+    public static Vector2<float> FiniteOr(this Vector2<float> val, float x = 0.0f,float y = 0.0f) => new (float.IsFinite(val.X) ? val.X : x,float.IsFinite(val.Y) ? val.Y : y);
 
-    public static Vector2<float> Abs(this Vector2<float> self) => new Vector2<float>(System.Math.Abs(self.X), System.Math.Abs(self.Y));
+    public static Vector2<float> Abs(this Vector2<float> self) => new (System.Math.Abs(self.X), System.Math.Abs(self.Y));
     
     public static bool NearlyEquals(this Vector2<float> self, Vector2<float> other,float tolerance = 0.01f)
     {

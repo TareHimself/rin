@@ -18,12 +18,9 @@ using TerraFX.Interop.Vulkan;
 
 namespace rin.Framework.Views;
 
-[NativeRuntimeModule( typeof(SGraphicsModule))]
-public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
+[Module( typeof(SGraphicsModule))]
+public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
 {
-    
-    public static readonly string
-        ShadersDir = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "","shaders","widgets");
     private readonly FontCollection _fontCollection = new();
     private readonly Mutex _mtsdfFontMutex = new();
     private readonly Dictionary<string, SdfFont> _mtsdfFonts = new();
@@ -35,7 +32,7 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
     
     
     
-    public static SWidgetsModule Get() => SRuntime.Get().GetModule<SWidgetsModule>();
+    public static SViewsModule Get() => SRuntime.Get().GetModule<SViewsModule>();
 
     public FontCollection GetFontCollection()
     {
@@ -64,21 +61,14 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         return null;
     }
 
-    public override async void Startup(SRuntime runtime)
+    public void Startup(SRuntime runtime)
     {
-        base.Startup(runtime);
         _fontCollection.AddSystemFonts();
         _graphicsSubsystem = runtime.GetModule<SGraphicsModule>();
         if (_graphicsSubsystem == null) return;
         _graphicsSubsystem.OnRendererCreated += OnRendererCreated;
         _graphicsSubsystem.OnRendererDestroyed += OnRendererDestroyed;
         foreach (var renderer in _graphicsSubsystem.GetRenderers()) OnRendererCreated(renderer);
-        runtime.OnTick += Tick;
-    }
-
-    public void Tick(double delta)
-    {
- 
     }
 
     private void OnRendererCreated(WindowRenderer renderer)
@@ -112,10 +102,8 @@ public class SWidgetsModule : RuntimeModule, ISingletonGetter<SWidgetsModule>
         return renderer == null ? null : GetWindowSurface(renderer);
     }
 
-    public override void Shutdown(SRuntime runtime)
+    public void Shutdown(SRuntime runtime)
     {
-        base.Shutdown(runtime);
-        runtime.OnTick -= Tick;
         _graphicsSubsystem?.WaitDeviceIdle();
         foreach (var kv in _mtsdfFonts) kv.Value.Dispose();
         _mtsdfFonts.Clear();

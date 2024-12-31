@@ -17,7 +17,7 @@ public class PrettyView : ContentView
     }
     protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
     {
-        Translate = availableSpace / 2.0f;
+        //Translate = availableSpace / 2.0f;
         return availableSpace;
     }
 
@@ -29,6 +29,6 @@ public class PrettyView : ContentView
     public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
     {
         //Angle = (float)(((SRuntime.Get().GetTimeSeconds() * 100.0) - _createdAt) % 360.0);
-        drawCommands.Add(new PrettyShaderDrawCommand(transform,GetContentSize(),Parent?.Parent?.IsHovered ?? false));
+        drawCommands.Add(new PrettyShaderDrawCommand(transform,GetContentSize(),Parent?.Parent?.Parent?.IsHovered ?? false));
     }
 }

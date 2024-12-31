@@ -4,7 +4,7 @@ namespace rin.Framework.Core.Extensions;
 
 public static class EnumerableExtensions
 {
-    
+
     public static IEnumerable<T> AsReversed<T>(this T[] target)
     {
         for (var i = target.Length - 1; i > -1; i--)

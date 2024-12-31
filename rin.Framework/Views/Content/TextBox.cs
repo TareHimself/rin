@@ -78,7 +78,7 @@ public class TextBox : ContentView
         _content = inContent;
         _cachedLayouts = null;
         _cachedBounds = null;
-        SWidgetsModule.Get().GetOrCreateFont(fontFamily).After(msdf =>
+        SViewsModule.Get().GetOrCreateFont(fontFamily).After(msdf =>
         {
             _mtsdf = msdf;
             

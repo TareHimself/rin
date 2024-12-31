@@ -2,19 +2,24 @@
 
 namespace rin.Framework.Graphics.Descriptors;
 
-public class ImageWrite
+public struct ImageWrite
 {
     public readonly IDeviceImage Image;
     public readonly VkImageLayout Layout;
     public readonly ImageType Type;
     public SamplerSpec Sampler;
+    public uint Index = 0;
 
-    public ImageWrite(IDeviceImage image, VkImageLayout layout, ImageType type, SamplerSpec spec)
+    public ImageWrite(IDeviceImage image, VkImageLayout layout, ImageType type, SamplerSpec? spec = null)
     {
         Image = image;
         Layout = layout;
         Type = type;
-        Sampler = spec;
+        Sampler = spec.GetValueOrDefault(new SamplerSpec()
+        {
+            Filter = ImageFilter.Linear,
+            Tiling = ImageTiling.Repeat
+        });
     }
     
     public ImageWrite(int textureId)

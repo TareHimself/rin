@@ -1,6 +1,6 @@
 ﻿// using rin.Framework.Graphics;
 //
-// namespace rin.Framework.Widgets.Graphics.Commands;
+// namespace rin.Framework.Views.Graphics.Commands;
 //
 // public class SimpleClip(Rect rect) : Command
 // {

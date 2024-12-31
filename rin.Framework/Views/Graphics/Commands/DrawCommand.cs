@@ -1,6 +1,6 @@
 ﻿// using Vulkan = TerraFX.Interop.Vulkan.Vulkan;
 //
-// namespace rin.Framework.Widgets.Graphics.Commands;
+// namespace rin.Framework.Views.Graphics.Commands;
 // using TerraFX.Interop.Vulkan;
 // using static Vulkan;
 //

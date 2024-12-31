@@ -9,6 +9,7 @@ using rin.Framework.Views.Composite;
 using rin.Framework.Views.Content;
 using rin.Framework.Views.Events;
 using rin.Framework.Views.Graphics;
+using rin.Framework.Views.Layouts;
 using Rect = rin.Framework.Views.Rect;
 
 
@@ -150,7 +151,7 @@ public class TrackPlayer : Overlay
             var thumb = data.Album.Images.MaxBy(c => c.Height * c.Width)!.Url;
 
             Console.WriteLine($"Using thumb {thumb} for {_nameText.Content}");
-            _backgroundContainer.AddChild(new PanelSlot
+            _backgroundContainer.Add(new PanelSlot
             {
                 Child = new AsyncWebCover(thumb)
                 {
@@ -163,7 +164,7 @@ public class TrackPlayer : Overlay
         catch (Exception e)
         {
             Console.WriteLine(e);
-            _backgroundContainer.AddChild(new PanelSlot
+            _backgroundContainer.Add(new PanelSlot
             {
                 Child = new AsyncWebCover("https://i.imgur.com/5fQUPDl.jpg")
                 {

@@ -8,14 +8,16 @@ namespace rin.Framework.Graphics.FrameGraph;
 public class CompiledGraph : ICompiledGraph
 {
     private readonly IImagePool _imagePool;
-    private readonly Dictionary<string, IGraphResource> _resources = [];
-    private readonly Dictionary<string, IResourceDescriptor> _descriptors;
+    private readonly Dictionary<uint, IGraphResource> _resources = [];
+    private readonly Dictionary<uint, IResourceDescriptor> _descriptors;
     private readonly ICompiledGraphNode[] _nodes;
     private readonly IDeviceBuffer? _buffer = null;
     private ulong _bufferOffset = 0;
-    public CompiledGraph(IImagePool imagePool,Dictionary<string, IResourceDescriptor> descriptors, ICompiledGraphNode[] nodes)
+    private Frame _frame;
+    public CompiledGraph(IImagePool imagePool,Frame frame,Dictionary<uint, IResourceDescriptor> descriptors, ICompiledGraphNode[] nodes)
     {
         _imagePool = imagePool;
+        _frame = frame;
         var memoryNeeded = descriptors.Values.Aggregate((ulong)0, (total, descriptor) =>
         {
             if (descriptor is MemoryResourceDescriptor asMemoryDescriptor)
@@ -28,7 +30,7 @@ public class CompiledGraph : ICompiledGraph
 
         if (SRuntime.Get().IsModuleLoaded<SGraphicsModule>() && memoryNeeded > 0)
         {
-            _buffer = SGraphicsModule.Get().GetAllocator().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
+            _buffer = SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
         }
         
         _descriptors = descriptors;
@@ -45,7 +47,7 @@ public class CompiledGraph : ICompiledGraph
         }
     }
 
-    public IGraphResource GetResource(string handle)
+    public IGraphResource GetResource(uint handle)
     {
         {
             if (_resources.TryGetValue(handle, out var resource)) return resource;
@@ -66,7 +68,7 @@ public class CompiledGraph : ICompiledGraph
         {
             if (descriptor is ImageResourceDescriptor asImageResourceDescriptor)
             {
-                var image = _imagePool.GetOrCreateImage(asImageResourceDescriptor, handle);
+                var image = _imagePool.CreateImage(asImageResourceDescriptor,_frame);
                 _resources.Add(handle,image);
                 return image;
             }

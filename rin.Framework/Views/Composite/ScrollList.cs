@@ -2,11 +2,12 @@
 using rin.Framework.Views.Events;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
+using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
 /// <summary>
-///     Slot = <see cref="CompositeViewSlot" />
+///     Slot = <see cref="Slot" />
 /// </summary>
 public class ScrollList : List
 {
@@ -15,7 +16,7 @@ public class ScrollList : List
     private float _offset;
     private float _maxOffset;
     private CursorDownEvent? _lastDownEvent;
-
+    
     public float MinBarSize = 40.0f;
 
     public ScrollList()
@@ -134,7 +135,7 @@ public class ScrollList : List
         }
     }
 
-    protected override Matrix3 ComputeSlotTransform(CompositeViewSlot slot, Matrix3 contentTransform)
+    protected override Matrix3 ComputeSlotTransform(ISlot slot, Matrix3 contentTransform)
     {
         return contentTransform.Translate(Axis switch
         {
@@ -182,4 +183,5 @@ public class ScrollList : List
         base.OnCursorUp(e);
         _lastDownEvent = null;
     }
+    
 }

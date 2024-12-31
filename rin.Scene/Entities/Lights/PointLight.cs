@@ -33,5 +33,5 @@ public class PointLight : Entity
                 pointLightComponent.Color = value;
             }}
     }
-    protected override SceneComponent CreateRootComponent() => new PointLightComponent();
+    protected override TransformComponent CreateRootComponent() => new PointLightComponent();
 }

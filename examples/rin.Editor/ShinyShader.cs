@@ -2,11 +2,11 @@
 using rin.Graphics;
 using rin.Graphics.Material;
 using rin.Runtime.Widgets;
-using rin.Runtime.Widgets.Graphics;
+using rin.Runtime.Views.Graphics;
 
 namespace rin.Editor;
 
-public class ShinyShader : Widget
+public class ShinyShader : View
 {
     private readonly MaterialInstance _materialInstance;
 

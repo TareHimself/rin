@@ -10,13 +10,11 @@ public interface IGraphBuilder
     /// <param name="pass"></param>
     /// <returns></returns>
     public IGraphBuilder AddPass(IPass pass);
-
-
-    public string RequestImage(IPass pass, uint width,uint height,ImageFormat format,VkImageLayout initialLayout,string? id = null);
-    public string RequestMemory(IPass pass, ulong size,string? id = null);
-    public string Read(IPass pass,string id);
-    public string Write(IPass pass,string id);
-    public ICompiledGraph? Compile(IImagePool imagePool);
+    public uint CreateImage(IPass pass, uint width, uint height, ImageFormat format, VkImageLayout initialLayout);
+    public uint AllocateBuffer(IPass pass, ulong size);
+    public uint Read(IPass pass, uint id);
+    public uint Write(IPass pass, uint id);
+    public ICompiledGraph? Compile(IImagePool imagePool,Frame frame);
 
     public void Reset();
 }

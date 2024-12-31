@@ -1,6 +1,7 @@
 ﻿using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Graphics;
+using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
@@ -13,13 +14,15 @@ public enum FitMode
 }
 
 /// <summary>
-/// Slot = <see cref="CompositeViewSlot"/>
 /// </summary>
-public class Fitter : CompositeView
+public class Fitter : SingleSlotCompositeView
 {
 
     private FitMode _fitFittingMode = FitMode.Fill;
-
+    /// <summary>
+    /// Adds the View to this container
+    /// </summary>
+    
     public Fitter() : base()
     {
         Clip = Clip.Bounds;
@@ -38,27 +41,17 @@ public class Fitter : CompositeView
             }
         }
     }
-
-    public override void OnSlotInvalidated(CompositeViewSlot slot, InvalidationType invalidation){
-
-        if (FittingMode != FitMode.None)
-        {
-            base.OnSlotInvalidated(slot, invalidation);  
-        }
-        FitContent(GetContentSize());
-    }
+    
 
     protected override Vector2<float> ComputeDesiredContentSize()
     {
-        if (GetSlot(0) is { } slot)
+        if (GetSlot() is { } slot)
         {
             return slot.Child.GetDesiredSize();
         }
 
         return 0.0f;
     }
-
-    public override int GetMaxSlotsCount() => 1;
 
     public static Vector2<float> ComputeContainSize(Vector2<float> drawSize, Vector2<float> widgetSize)
     {
@@ -87,7 +80,7 @@ public class Fitter : CompositeView
 
     public Vector2<float> FitContent(Vector2<float> drawSize)
     {
-        if (GetSlot(0) is { } slot)
+        if (GetSlot() is { } slot)
         {
             var widget = slot.Child;
             var widgetSize = widget.GetDesiredSize();
@@ -125,8 +118,18 @@ public class Fitter : CompositeView
             float.IsFinite(availableSpace.Y) ? availableSpace.Y : desired.Y));
     }
 
-    public override void Collect(Matrix3 transform, Views.Rect clip, DrawCommands drawCommands)
+    public override void OnChildInvalidated(View child, InvalidationType invalidation)
     {
-        base.Collect(transform,clip, drawCommands);
+        FitContent(GetContentSize());
+    }
+
+    public override IEnumerable<ISlot> GetSlots()
+    {
+        if (GetSlot() is { } slot)
+        {
+            return [slot];
+        }
+
+        return [];
     }
 }

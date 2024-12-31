@@ -8,6 +8,7 @@ using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkStructureType;
 using static TerraFX.Interop.Vulkan.Vulkan;
 using NativeGraphicsMethods = rin.Framework.Graphics.NativeMethods;
+
 namespace rin.Framework.Graphics;
 
 /// <summary>
@@ -26,8 +27,10 @@ public partial class WindowRenderer : Disposable
     private VkSwapchainKHR _swapchain;
     private VkImage[] _swapchainImages = [];
     private readonly HashSet<VkPresentModeKHR> _supportedPresentModes;
-    public double LastFrameTime = 0.0;
-    private IImagePool _imagePool;
+    public double LastDrawElapsedTime = 0.0;
+    public double LastDrawTime = 0.0;
+    private readonly IImagePool _imagePool;
+    private object _drawLock = new();
 
     private VkExtent2D _swapchainSize = new()
     {
@@ -37,7 +40,7 @@ public partial class WindowRenderer : Disposable
 
     private VkImageView[] _swapchainViews = [];
     private VkViewport _viewport;
-    
+
     public event Action<Frame>? OnDraw;
     public event Action<Frame, VkImage, VkExtent2D>? OnCopy;
 
@@ -64,9 +67,9 @@ public partial class WindowRenderer : Disposable
 
     public unsafe VkSurfaceKHR CreateSurface()
     {
-        var instance = SRuntime.Get().GetModule<SGraphicsModule>().GetInstance();
+        var instance = SGraphicsModule.Get().GetInstance();
         var surface = new VkSurfaceKHR();
-        NativeMethods.CreateSurface(instance, _window.GetPtr(),&surface);
+        NativeMethods.CreateSurface(instance, _window.GetPtr(), &surface);
         return surface;
     }
 
@@ -86,13 +89,14 @@ public partial class WindowRenderer : Disposable
     protected void OnWindowResized(ResizeEvent e)
     {
         _resizePending = true;
+        //_resizePending = true;
     }
-    
+
     protected void OnWindowRefreshed(RefreshEvent e)
     {
         _resizePending = true;
     }
-    
+
     // protected void OnMaximized(Window.MaximizedEvent e)
     // {
     //     CheckSwapchainSize();
@@ -107,16 +111,20 @@ public partial class WindowRenderer : Disposable
     {
         // _window.OnFocused -= OnFocused;
         // _window.OnMaximized -= OnMaximized;
-        _window.OnRefresh -= OnWindowRefreshed;
-        _window.OnResized -= OnWindowResized;
-        _imagePool.Dispose();
-        foreach (var frame in _frames) frame.Dispose();
-
-        _frames = [];
-        DestroySwapchain();
-        unsafe
+        lock (_drawLock)
         {
-            vkDestroySurfaceKHR(_module.GetInstance(), _surface, null);
+            _module.WaitDeviceIdle();
+            _window.OnRefresh -= OnWindowRefreshed;
+            _window.OnResized -= OnWindowResized;
+            _imagePool.Dispose();
+            foreach (var frame in _frames) frame.Dispose();
+
+            _frames = [];
+            DestroySwapchain();
+            unsafe
+            {
+                vkDestroySurfaceKHR(_module.GetInstance(), _surface, null);
+            }
         }
     }
 
@@ -132,10 +140,10 @@ public partial class WindowRenderer : Disposable
         var device = _module.GetDevice();
         var physicalDevice = _module.GetPhysicalDevice();
         var format = _module.GetSurfaceFormat();
-        var presentMode = VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR;
-            // _supportedPresentModes.Contains(VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR)
-            // ? VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR
-            // : _supportedPresentModes.First();
+        var presentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
+        // _supportedPresentModes.Contains(VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR)
+        // ? VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR
+        // : _supportedPresentModes.First();
         NativeMethods.CreateSwapchain(
             device,
             physicalDevice,
@@ -161,7 +169,7 @@ public partial class WindowRenderer : Disposable
             });
         _swapchainSize = new VkExtent2D()
         {
-            width= windowSize.X,
+            width = windowSize.X,
             height = windowSize.Y
         };
     }
@@ -170,6 +178,7 @@ public partial class WindowRenderer : Disposable
     {
         _resizePending = true;
     }
+
     private bool CheckSwapchainSize()
     {
         if (_resizing) return true;
@@ -186,7 +195,7 @@ public partial class WindowRenderer : Disposable
         // }
         DestroySwapchain();
         CreateSwapchain();
-        OnResize?.Invoke(new Vector2<uint>(_swapchainSize.width,_swapchainSize.height));
+        OnResize?.Invoke(new Vector2<uint>(_swapchainSize.width, _swapchainSize.height));
         _resizing = false;
         _resizePending = false;
         return true;
@@ -245,76 +254,77 @@ public partial class WindowRenderer : Disposable
         var cmd = frame.GetCommandBuffer();
         var queue = _module.GetGraphicsQueue();
         _module.SubmitToQueue(queue, frame.GetRenderFence(), new VkCommandBufferSubmitInfo[]
-                {
-                    new()
-                    {
-                        sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                        deviceMask = 0,
-                        commandBuffer = cmd
-                    }
-                }, new VkSemaphoreSubmitInfo[]
-                {
-                    new()
-                    {
-                        sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                        semaphore = frame.GetRenderSemaphore(),
-                        value = 1,
-                        stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
-                    }
-                },
-                new VkSemaphoreSubmitInfo[]
-                {
-                    new()
-                    {
-                        sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                        semaphore = frame.GetSwapchainSemaphore(),
-                        value = 1,
-                        stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
-                    }
-                });
-            unsafe
             {
-                var renderSemaphore = frame.GetRenderSemaphore();
-                var swapchain = _swapchain;
-                var imIdx = swapchainImageIndex + 0;
-                var presentInfo = new VkPresentInfoKHR
+                new()
                 {
-                    sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                    pWaitSemaphores = &renderSemaphore,
-                    waitSemaphoreCount = 1,
-                    pSwapchains = &swapchain,
-                    swapchainCount = 1,
-                    pImageIndices = &imIdx
-                };
-                try
-                {
-                    vkQueuePresentKHR(queue, &presentInfo);
+                    sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                    deviceMask = 0,
+                    commandBuffer = cmd
                 }
-                catch (Exception e)
+            }, new VkSemaphoreSubmitInfo[]
+            {
+                new()
                 {
-                   RequestResize();
-
-                    Console.WriteLine(e);
-                    throw;
+                    sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                    semaphore = frame.GetRenderSemaphore(),
+                    value = 1,
+                    stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
                 }
+            },
+            new VkSemaphoreSubmitInfo[]
+            {
+                new()
+                {
+                    sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                    semaphore = frame.GetSwapchainSemaphore(),
+                    value = 1,
+                    stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+                }
+            });
+        unsafe
+        {
+            var renderSemaphore = frame.GetRenderSemaphore();
+            var swapchain = _swapchain;
+            var imIdx = swapchainImageIndex + 0;
+            var presentInfo = new VkPresentInfoKHR
+            {
+                sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                pWaitSemaphores = &renderSemaphore,
+                waitSemaphoreCount = 1,
+                pSwapchains = &swapchain,
+                swapchainCount = 1,
+                pImageIndices = &imIdx
+            };
+            try
+            {
+                vkQueuePresentKHR(queue, &presentInfo);
             }
+            catch (Exception e)
+            {
+                RequestResize();
+
+                Console.WriteLine(e);
+                throw;
+            }
+        }
     }
 
-    protected void DrawFrame()
+    private void DrawFrame()
     {
         if (_resizePending && !_resizing)
         {
             CheckSwapchainSize();
         }
-        
+
         //return;
         if (!ShouldDraw()) return;
+
 
         var frame = GetCurrentFrame();
         var device = _module.GetDevice();
 
         frame.WaitForLastDraw();
-        
+
         _imagePool.OnFrameStart(_framesRendered);
 
         frame.Reset();
@@ -355,17 +365,17 @@ public partial class WindowRenderer : Disposable
         unsafe
         {
             vkBeginCommandBuffer(cmd, &commandBeginInfo);
-            
+
             cmd
                 .SetRasterizerDiscard(false)
                 .DisableMultiSampling();
         }
-        
+
         if ((OnDraw?.GetInvocationList().Length ?? 0) > 0)
         {
             OnDraw?.Invoke(frame);
 
-            var graph = frame.GetBuilder().Compile(_imagePool);
+            var graph = frame.GetBuilder().Compile(_imagePool, frame);
             graph?.Run(frame);
             if (graph != null)
             {
@@ -375,7 +385,7 @@ public partial class WindowRenderer : Disposable
             cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
                 VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
                 VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-            
+
             frame.DoCopy(_swapchainImages[swapchainImageIndex], swapchainExtent);
             OnCopy?.Invoke(frame, _swapchainImages[swapchainImageIndex], swapchainExtent);
 
@@ -389,7 +399,7 @@ public partial class WindowRenderer : Disposable
                 VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
                 VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
         }
-       
+
 
         vkEndCommandBuffer(cmd);
 
@@ -397,13 +407,16 @@ public partial class WindowRenderer : Disposable
 
         _framesRendered++;
     }
+
     public void Draw()
     {
-        var start = SRuntime.Get().GetTimeSeconds();
-        DrawFrame();
-        LastFrameTime = SRuntime.Get().GetTimeSeconds() - start;
+        if (Disposed) return;
+        lock (_drawLock)
+        {
+            if (Disposed) return;
+            var start = SRuntime.Get().GetTimeSeconds();
+            DrawFrame();
+            LastDrawElapsedTime = SRuntime.Get().GetTimeSeconds() - start;
+        }
     }
-
-
-    
 }

@@ -1,10 +1,10 @@
 ﻿using rin.Core.Math;
 using rin.Scene;
 using rin.Runtime.Widgets;
-using rin.Runtime.Widgets.Content;
-using rin.Runtime.Widgets.Graphics.Commands;
-using rin.Runtime.Widgets.Events;
-using rin.Runtime.Widgets.Graphics;
+using rin.Runtime.Views.Content;
+using rin.Runtime.Views.Graphics.Commands;
+using rin.Runtime.Views.Events;
+using rin.Runtime.Views.Graphics;
 
 using TerraFX.Interop.Vulkan;
 
@@ -57,7 +57,7 @@ internal class DrawViewportCommand(Scene scene) : DrawCommand
         
     }
 }
-public class Viewport : Widget
+public class Viewport : View
 {
     public readonly Scene TargetScene;
     public EViewportChannel Channel = EViewportChannel.Scene;

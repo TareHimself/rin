@@ -1,52 +1,39 @@
 ﻿using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Graphics;
+using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
 /// <summary>
-/// Slot = <see cref="CompositeViewSlot"/>
+/// Slot = <see cref="Slot"/>
 /// </summary>
-public class Switcher : CompositeView
+public class Switcher : MultiSlotCompositeView<Slot>
 {
-    private int _selected;
+    private readonly SwitcherLayout _layout;
     
     public int SelectedIndex
     {
-        get => _selected;
-        set
-        {
-            var lastSelected = _selected;
-            var numSlots = GetSlotsCount();
-            _selected = System.Math.Clamp(value, 0, numSlots == 0 ? 0 : numSlots - 1);
-            if (lastSelected != _selected) SelectedWidgetUpdated();
-        }
+        get => _layout.SelectedIndex;
+        set => _layout.SelectedIndex = value;
     }
 
-    public View? SelectedWidget => GetSlot(SelectedIndex)?.Child;
+    public View? SelectedWidget => _layout.SelectedSlot?.Child;
 
-    public void SelectedWidgetUpdated()
+    public Switcher()
     {
-        Invalidate(InvalidationType.Layout);
+        _layout = new SwitcherLayout(this);
     }
 
     protected override Vector2<float> ComputeDesiredContentSize()
     {
         return SelectedWidget?.GetDesiredSize() ?? new Vector2<float>();
     }
-    
 
-    public override void OnSlotInvalidated(CompositeViewSlot slot, InvalidationType invalidation)
-    {
-        if (slot.Child == SelectedWidget)
-        {
-            base.OnSlotInvalidated(slot, invalidation);
-        }
-    }
 
     protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
     {
-        if (GetSlot(SelectedIndex) is { } slot)
+        if (_layout.SelectedSlot is { } slot)
         {
             var widget = slot.Child;
 
@@ -59,8 +46,16 @@ public class Switcher : CompositeView
         return 0.0f;
     }
 
-    public override IEnumerable<CompositeViewSlot> GetCollectableSlots() => GetSlot(SelectedIndex) is { } slot ? [slot] : [];
+    public override void OnChildInvalidated(View child, InvalidationType invalidation)
+    {
+        _layout.Apply(GetContentSize());
+    }
 
-    public override IEnumerable<CompositeViewSlot> GetHitTestableSlots() => GetSlot(SelectedIndex) is { } slot ? [slot] : [];
-    
+    public override IEnumerable<ISlot> GetSlots() => _layout.SelectedSlot is { } slot ? [slot] : [];
+
+    public override int SlotCount => _layout.SlotCount;
+    public override bool Add(View child) => _layout.Add(child);
+    public override bool Add(Slot slot) => _layout.Add(slot);
+
+    public override bool Remove(View child) => _layout.Remove(child);
 }

@@ -1,6 +1,8 @@
-﻿using rin.Framework.Core;
+﻿using JetBrains.Annotations;
+using rin.Framework.Core;
 using rin.Framework.Core.Animation;
 using rin.Framework.Core.Math;
+using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Events;
 using rin.Framework.Views.Graphics;
@@ -88,7 +90,7 @@ public abstract partial class View : Disposable, IAnimatable
     }
     
     /// <summary>
-    ///     The Padding For This Widget (Left, Top, Right, Bottom)
+    ///     The Padding For This View (Left, Top, Right, Bottom)
     /// </summary>
     public Padding Padding
     {
@@ -175,9 +177,7 @@ public abstract partial class View : Disposable, IAnimatable
     {
         var padding = new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
         var contentSize = LayoutContent(availableSpace - padding) + padding;
-        var sizeResult = fill ? availableSpace : contentSize;
-        sizeResult.X = sizeResult.X.FiniteOr();
-        sizeResult.Y = sizeResult.Y.FiniteOr();
+        var sizeResult = (fill ? availableSpace : contentSize).FiniteOr();
         return Size = sizeResult;
     }
     
@@ -215,6 +215,19 @@ public abstract partial class View : Disposable, IAnimatable
     public void SetParent(CompositeView? widget)
     {
         Parent = widget;
+        SetSurface(Parent?.Surface);
+    }
+
+    public virtual void SetSurface(Surface? surface)
+    {
+        if (surface != Surface && Surface != null)
+        {
+            NotifyRemovedFromSurface(Surface);
+        }
+        else if(surface != null)
+        {
+            NotifyAddedToSurface(surface);
+        }
     }
     
     public virtual void NotifyAddedToSurface(Surface surface)
@@ -335,19 +348,19 @@ public abstract partial class View : Disposable, IAnimatable
     {
        // UnBindCursorUp();
     }
-
+    [PublicAPI]
     public Vector2<float> GetContentSize()
     {
         return _size - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
-
+    [PublicAPI]
     public Vector2<float> GetDesiredSize()
     {
         if (Surface == null) return ComputeDesiredSize();
         
         return _cachedDesiredSize ??= ComputeDesiredSize();
     }
-    
+    [PublicAPI]
     public Vector2<float> GetDesiredContentSize()
     {
         return GetDesiredSize() - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
@@ -366,7 +379,27 @@ public abstract partial class View : Disposable, IAnimatable
     /// <param name="drawCommands"></param>
     public abstract void Collect(Matrix3 transform, Rect clip, DrawCommands drawCommands);
 
-    protected virtual void Invalidate(InvalidationType type)
+
+    public virtual bool TryUpdateDesiredSize()
+    {
+        if (_cachedDesiredSize is { } asCachedSize)
+        {
+            var newSize = ComputeDesiredSize();
+
+            if (newSize.NearlyEquals(asCachedSize)) return false;
+            
+            _cachedDesiredSize = newSize;
+        }
+        else
+        {
+            _cachedDesiredSize = ComputeDesiredSize();
+        }
+
+        return true;
+    }
+    
+    
+    public virtual void Invalidate(InvalidationType type)
     {
         if(Surface == null) return;
         
@@ -377,7 +410,7 @@ public abstract partial class View : Disposable, IAnimatable
                 if (_cachedDesiredSize is { } asCachedSize)
                 {
                     var newSize = ComputeDesiredSize();
-
+    
                     if (newSize.NearlyEquals(_cachedDesiredSize.Value)) return;
                     _cachedDesiredSize = newSize;
                 }
@@ -385,7 +418,7 @@ public abstract partial class View : Disposable, IAnimatable
                 {
                     _cachedDesiredSize = ComputeDesiredSize();
                 }
-
+    
                 Parent?.OnChildInvalidated(this,type);
             }
                 break;
@@ -398,7 +431,7 @@ public abstract partial class View : Disposable, IAnimatable
     }
     
 
-    public AnimationRunner AnimationRunner { get; init; } = new AnimationRunner();
+    public AnimationRunner AnimationRunner { get; init; } = new ();
 
     // ReSharper disable once InconsistentNaming
     public Rect ComputeAABB(Matrix3 transform)

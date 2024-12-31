@@ -1,5 +1,6 @@
 ﻿using System.Collections.Frozen;
 using System.Reflection;
+using rin.Framework.Core.Extensions;
 
 namespace rin.Framework.Core;
 
@@ -13,8 +14,8 @@ public sealed class SRuntime : Disposable
     private static SRuntime? _instance;
     private static readonly object Padlock = new();
 
-    private readonly List<IRuntimeModule> _modules = [];
-    private readonly Dictionary<Type, IRuntimeModule> _modulesMap = new();
+    private readonly List<IModule> _modules = [];
+    private readonly Dictionary<Type, IModule> _modulesMap = new();
 
     private readonly DateTime _startTime = DateTime.UtcNow;
 
@@ -22,6 +23,8 @@ public sealed class SRuntime : Disposable
     private double _lastDeltaSeconds;
 
     private DateTime _lastTickTime = DateTime.UtcNow;
+    
+    public bool IsRunning { get; private set; }
 
     public event Action<double>? OnTick;
 
@@ -33,17 +36,17 @@ public sealed class SRuntime : Disposable
         return _instance ??= new SRuntime();
     }
 
-    private static RuntimeModuleAttribute? GetModuleAttribute(Type type)
+    private static ModuleAttribute? GetModuleAttribute(Type type)
     {
-        return (RuntimeModuleAttribute?)Attribute.GetCustomAttribute(type, typeof(RuntimeModuleAttribute));
+        return (ModuleAttribute?)Attribute.GetCustomAttribute(type, typeof(ModuleAttribute));
     }
 
-    public static RuntimeModuleAttribute? GetModuleAttribute<T>()
+    public static ModuleAttribute? GetModuleAttribute<T>()
     {
         return GetModuleAttribute(typeof(T));
     }
 
-    public static void LoadRequiredModules<T>(Dictionary<Type, ModuleType> loadedModules) where T : RuntimeModule
+    public static void LoadRequiredModules<T>(Dictionary<Type, ModuleType> loadedModules) where T : IModule
     {
         LoadRequiredModules(typeof(T), loadedModules);
     }
@@ -112,14 +115,17 @@ public sealed class SRuntime : Disposable
 
     private void Startup()
     {
+        
         Platform.Init();
         LoadModules();
+        IsRunning = true;
         InitializeModules();
         OnStartup?.Invoke(this);
     }
 
     private void Shutdown()
     {
+        IsRunning = false;
         OnShutdown?.Invoke(this);
         for (var i = _modules.Count - 1; i >= 0; i--) _modules[i].Shutdown(this);
         Dispose();
@@ -149,18 +155,15 @@ public sealed class SRuntime : Disposable
 
     private void LoadModules()
     {
-        // Get all assemblies loaded in the current application domain
+        var interfaceType = typeof(IModule);
         var assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
-
         var modulesMap = new Dictionary<Type, ModuleType>();
-
-
         foreach (var assembly in assemblies)
         {
-            foreach (var type in assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(RuntimeModule))))
+            foreach (var type in assembly.GetTypes().Where(t => interfaceType.IsAssignableFrom(t)))
             {
                 var attribute =
-                    (RuntimeModuleAttribute?)Attribute.GetCustomAttribute(type, typeof(RuntimeModuleAttribute));
+                    (ModuleAttribute?)Attribute.GetCustomAttribute(type, typeof(ModuleAttribute));
                 if (attribute == null) continue;
                 modulesMap.Add(type, new ModuleType(type, attribute));
             }
@@ -169,9 +172,11 @@ public sealed class SRuntime : Disposable
         foreach (var mod in modulesMap.ToFrozenDictionary()) LoadRequiredModules(mod.Key, modulesMap);
         
         foreach (var mod in modulesMap) mod.Value.ResolveAllDependencies(modulesMap);
-
+        
         var sortedModules = new List<ModuleType>();
 
+        
+        // One day I wrote this, One day I will understand what it does
         foreach (var mod in modulesMap)
         {
             if (sortedModules.Count == 0)
@@ -183,8 +188,7 @@ public sealed class SRuntime : Disposable
             var shorted = false;
             for (var i = 0; i < sortedModules.Count; i++)
             {
-                if (!sortedModules[i].Dependencies.Contains(mod.Key) &&
-                    (!mod.Value.Attribute.IsNativeModule || sortedModules[i].Attribute.IsNativeModule)) continue;
+                if (!sortedModules[i].Dependencies.Contains(mod.Key)) continue;
 
                 sortedModules.Insert(i, mod.Value);
                 shorted = true;
@@ -194,9 +198,22 @@ public sealed class SRuntime : Disposable
             if (!shorted) sortedModules.Add(mod.Value);
         }
         
-        foreach (var mod in sortedModules)
+        var dependencies = new HashSet<Type>();
+        foreach (var sortedModule in sortedModules.AsReversed())
         {
-            var instance = (RuntimeModule?)Activator.CreateInstance(mod.Module);
+            if (sortedModule.AlwaysLoad || dependencies.Contains(sortedModule.Module))
+            {
+                dependencies.Add(sortedModule.Module);
+                foreach (var sortedModuleDependency in sortedModule.Dependencies)
+                {
+                    dependencies.Add(sortedModuleDependency);
+                }
+            }
+        }
+
+        foreach (var mod in sortedModules.Where(c => dependencies.Contains(c.Module)))
+        {
+            var instance = (IModule?)Activator.CreateInstance(mod.Module);
             if (instance != null)
             {
                 _modules.Add(instance);
@@ -211,12 +228,12 @@ public sealed class SRuntime : Disposable
     }
 
 
-    public T GetModule<T>() where T : IRuntimeModule
+    public T GetModule<T>() where T : IModule
     {
         return (T)_modulesMap[typeof(T)];
     }
 
-    public bool IsModuleLoaded<T>() where T : IRuntimeModule => _modulesMap.ContainsKey(typeof(T));
+    public bool IsModuleLoaded<T>() where T : IModule => _modulesMap.ContainsKey(typeof(T));
 
     protected override void OnDispose(bool isManual)
     {

@@ -25,7 +25,7 @@ public class CameraEntity : Entity
         // RootComponent.SetRelativeRotation(RootComponent.GetRelativeRotation().ApplyYaw(20.0f * (float)deltaSeconds));
     }
 
-    protected override void CreateDefaultComponents(SceneComponent root)
+    protected override void CreateDefaultComponents(TransformComponent root)
     {
         base.CreateDefaultComponents(root);
         CameraComp = new CameraComponent();

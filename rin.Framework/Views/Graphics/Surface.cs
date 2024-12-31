@@ -42,17 +42,7 @@ public abstract class Surface : Disposable
 
     public abstract Vector2<int> GetDrawSize();
 
-    // private void UpdateProjectionMatrix()
-    // {
-    //     var size = GetDrawSize();
-    //     _globalData.Projection = Glm.Orthographic(0, size.X, 0, size.Y);
-    // }
-    //
-    // private void UpdateViewport()
-    // {
-    //     var size = GetDrawSize();
-    //     _globalData.Viewport = new Vector4<float>(0, 0, size.X, size.Y);
-    // }
+    
 
     protected override void OnDispose(bool isManual)
     {
@@ -91,7 +81,7 @@ public abstract class Surface : Disposable
     /// <param name="passId"></param>
     /// <param name="applyPass"></param>
     /// <returns></returns>
-    public virtual void EnsurePass(WidgetFrame frame, string passId,Action<WidgetFrame> applyPass)
+    public virtual void EnsurePass(ViewsFrame frame, string passId,Action<ViewsFrame> applyPass)
     {
         if (frame.ActivePass == passId) return;
         if(frame.ActivePass.Length > 0 && frame.ActivePass != passId) EndActivePass(frame);
@@ -99,7 +89,7 @@ public abstract class Surface : Disposable
         frame.ActivePass = passId;
     }
 
-    public virtual void BeginMainPass(WidgetFrame frame, bool clearColor = false, bool clearStencil = false)
+    public virtual void BeginMainPass(ViewsFrame frame, bool clearColor = false, bool clearStencil = false)
     {
         EnsurePass(frame,MainPassId, (_) =>
         {
@@ -150,7 +140,7 @@ public abstract class Surface : Disposable
             VkStencilOp.VK_STENCIL_OP_KEEP, VkCompareOp.VK_COMPARE_OP_NEVER);
     }
 
-    public virtual void EndActivePass(WidgetFrame frame)
+    public virtual void EndActivePass(ViewsFrame frame)
     {
         frame.Raw.GetCommandBuffer().EndRendering();
         frame.ActivePass = "";
@@ -257,14 +247,14 @@ public abstract class Surface : Disposable
         Stats.BatchedDrawCommandCount++;
     }
 
-    public List<FinalDrawCommand> CollectDrawCommands()
+    private List<FinalDrawCommand> CollectDrawCommands()
     {
         var rawDrawCommands = new DrawCommands();
-        var transformInfo = new TransformInfo(this);
         _rootWidget.Collect(Matrix3.Identity,new Rect()
         {
             Size = GetDrawSize().Cast<float>()
         }, rawDrawCommands);
+        
         var rawCommands = rawDrawCommands.Commands.OrderBy(c => c, new RawCommandComparer()).ToArray();
 
         if (rawCommands.Length == 0) return [];
@@ -354,7 +344,7 @@ public abstract class Surface : Disposable
             return;
         }
 
-        frame.GetBuilder().AddPass(new WidgetPass(this, drawCommands.ToArray()));
+        frame.GetBuilder().AddPass(new ViewsPass(this, drawCommands.ToArray()));
     }
 
     public virtual void ReceiveCursorDown(CursorDownEvent e)
@@ -363,22 +353,6 @@ public abstract class Surface : Disposable
         if (_rootWidget.NotifyCursorDown(e, Matrix3.Identity))
         {
             _lastCursorDownEvent = e;
-            
-            // if (FocusedWidget == null) return;
-            //
-            // var shouldKeepFocus = false;
-            // while (result.Parent != null)
-            // {
-            //     if (result != FocusedWidget)
-            //     {
-            //         result = result.Parent;
-            //         continue;
-            //     }
-            //     shouldKeepFocus = true;
-            //     break;
-            // }
-            //
-            // if (shouldKeepFocus) return;
         }
 
         ClearFocus();
@@ -476,12 +450,12 @@ public abstract class Surface : Disposable
 
     public virtual T Add<T>(T widget) where T : View
     {
-        _rootWidget.AddChild(widget);
+        _rootWidget.Add(widget);
         return widget;
     }
 
     public virtual bool Remove(View view)
     {
-        return _rootWidget.RemoveChild(view);
+        return _rootWidget.Remove(view);
     }
 }

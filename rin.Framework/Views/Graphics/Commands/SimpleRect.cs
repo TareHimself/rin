@@ -1,6 +1,6 @@
 ﻿// using rin.Framework.Core.Math;
 //
-// namespace rin.Framework.Widgets.Graphics.Commands;
+// namespace rin.Framework.Views.Graphics.Commands;
 //
 // public class SimpleRect(Matrix3 transform, Vector2<float> size) : Command
 // {

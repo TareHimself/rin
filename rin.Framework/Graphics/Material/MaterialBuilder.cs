@@ -138,7 +138,7 @@
 //         //                 .DisableMultisampling()
 //         //                 .SetLayout(newLayout);
 //         //
-//         //             // if (_type == MaterialInstance.Type.Widget)
+//         //             // if (_type == MaterialInstance.Type.View)
 //         //             // {
 //         //             //     _pipelineBuilder
 //         //             //         .DisableDepthTest()

@@ -11,17 +11,18 @@ using rin.Framework.Views.Content;
 using rin.Framework.Views.Events;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
+using rin.Framework.Views.Layouts;
 using Rect = rin.Framework.Views.Composite.Rect;
 
 namespace WidgetTest;
 
-[RuntimeModule(typeof(SWidgetsModule))]
-public class SWidgetTestModule : RuntimeModule
+[Module(typeof(SViewsModule)),AlwaysLoad]
+public class SWidgetTestModule : IModule
 {
 
     class WrapContainer : Button
     {
-        private View _content;
+        private readonly View _content;
         public WrapContainer(View content)
         {
             _content = content;
@@ -48,26 +49,29 @@ public class SWidgetTestModule : RuntimeModule
     }
     public void TestWrapping(WindowRenderer renderer)
     {
-        if (SWidgetsModule.Get().GetWindowSurface(renderer) is { } surf)
+        if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
             var list = new WrapList()
             {
-                Axis = Axis.Column,
+                Axis = Axis.Row,
             };
 
             surf.Add(new Panel()
             {
+                
                 Slots =
                 [
                     new PanelSlot()
                     {
                         Child = new ScrollList()
                         {
-                            Slot = new ListSlot
-                            {
-                                Child = list,
-                                Fit = CrossFit.Fill
-                            },
+                            Slots = [
+                                new ListSlot
+                                {
+                                    Child = list,
+                                    Fit = CrossFit.Fill
+                                }
+                            ],
                             Clip = Clip.None
                         },
                         MinAnchor = 0.0f,
@@ -100,7 +104,7 @@ public class SWidgetTestModule : RuntimeModule
                 {
                     foreach (var objPath in e.Paths)
                     {
-                        list.AddChild(new WrapContainer(new AsyncFileImage(objPath)
+                        list.Add(new WrapContainer(new AsyncFileImage(objPath)
                         {
                             BorderRadius = 30.0f
                         }));
@@ -118,7 +122,7 @@ public class SWidgetTestModule : RuntimeModule
                             (p) =>
                             {
                                 foreach (var path in p)
-                                    list.AddChild(new WrapContainer(new AsyncFileImage(path)
+                                    list.Add(new WrapContainer(new AsyncFileImage(path)
                                         {
                                             BorderRadius = 30.0f
                                         }));
@@ -127,15 +131,15 @@ public class SWidgetTestModule : RuntimeModule
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Minus })
                 {
-                    list.AddChild(new WrapContainer(new PrettyView()
+                    list.Add(new WrapContainer(new PrettyView()
                     {
-                        Pivot = 0.5f,
+                        //Pivot = 0.5f,
                     }));
                 }
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Zero })
                 {
-                    list.AddChild(new WrapContainer(new Canvas
+                    list.Add(new WrapContainer(new Canvas
                     {
                         Paint = ((canvas, transform, cmds) =>
                         {
@@ -178,7 +182,7 @@ public class SWidgetTestModule : RuntimeModule
 
     private void TestAnimation(WindowRenderer renderer)
     {
-        if (SWidgetsModule.Get().GetWindowSurface(renderer) is { } surf)
+        if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
             var list = new List()
             {
@@ -224,7 +228,7 @@ public class SWidgetTestModule : RuntimeModule
                 {
                     foreach (var objPath in e.Paths)
                     {
-                        list.AddChild(new TestAnimationSizer()
+                        list.Add(new TestAnimationSizer()
                         {
                             WidthOverride = 200,
                             HeightOverride = 800,
@@ -247,7 +251,7 @@ public class SWidgetTestModule : RuntimeModule
                             (p) =>
                             {
                                 foreach (var path in p)
-                                    list.AddChild(new TestAnimationSizer()
+                                    list.Add(new TestAnimationSizer()
                                     {
                                         WidthOverride = 200,
                                         HeightOverride = 800,
@@ -262,7 +266,7 @@ public class SWidgetTestModule : RuntimeModule
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Minus })
                 {
-                    list.AddChild(new TestAnimationSizer()
+                    list.Add(new TestAnimationSizer()
                     {
                         WidthOverride = 200,
                         HeightOverride = 800,
@@ -276,7 +280,7 @@ public class SWidgetTestModule : RuntimeModule
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Zero })
                 {
-                    list.AddChild(new Sizer()
+                    list.Add(new Sizer()
                     {
                         WidthOverride = 200,
                         HeightOverride = 900,
@@ -298,7 +302,7 @@ public class SWidgetTestModule : RuntimeModule
 
     public void TestSimple(WindowRenderer renderer)
     {
-        var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
+        var surf = SViewsModule.Get().GetWindowSurface(renderer);
         //SWidgetsModule.Get().GetOrCreateFont("Arial").ConfigureAwait(false);
         // surf?.Add(new TextInputBox("I expect this very long text to wrap if the space is too small"));
         surf?.Add(new TextBox("A"));
@@ -306,7 +310,7 @@ public class SWidgetTestModule : RuntimeModule
 
     public void TestBlur(WindowRenderer renderer)
     {
-        var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
+        var surf = SViewsModule.Get().GetWindowSurface(renderer);
 
         if (surf == null) return;
 
@@ -364,7 +368,7 @@ public class SWidgetTestModule : RuntimeModule
 
         surf.Window.OnKey += (e) =>
         {
-            var switcherSlots = switcher.GetSlotsCount();
+            var switcherSlots = switcher.GetSlots().Count();
             if (switcherSlots > 0)
             {
                 if (e is { State: InputState.Pressed or InputState.Repeat, Key: InputKey.Left })
@@ -402,7 +406,7 @@ public class SWidgetTestModule : RuntimeModule
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
-                    switcher.AddChild(new AsyncFileImage(path));
+                    switcher.Add(new AsyncFileImage(path));
             }
         };
     }
@@ -410,7 +414,7 @@ public class SWidgetTestModule : RuntimeModule
 
     public void TestClip(WindowRenderer renderer)
     {
-        if (SWidgetsModule.Get().GetWindowSurface(renderer) is { } surface)
+        if (SViewsModule.Get().GetWindowSurface(renderer) is { } surface)
         {
             surface.Add(new Sizer()
             {
@@ -432,7 +436,7 @@ public class SWidgetTestModule : RuntimeModule
 
     public void TestText(WindowRenderer renderer)
     {
-        var surf = SWidgetsModule.Get().GetWindowSurface(renderer);
+        var surf = SViewsModule.Get().GetWindowSurface(renderer);
 
         if (surf == null) return;
 
@@ -480,19 +484,34 @@ public class SWidgetTestModule : RuntimeModule
         });
     }
 
-    public override void Startup(SRuntime runtime)
+    public void Startup(SRuntime runtime)
     {
-        base.Startup(runtime);
-
+        runtime.OnTick += (_) =>
+        {
+            SGraphicsModule.Get().PollWindows();
+        };
+        
+        Task.Factory.StartNew(() =>
+        {
+            while (SRuntime.Get().IsRunning)
+            {
+                SGraphicsModule.Get().DrawWindows();
+            }
+        },TaskCreationOptions.LongRunning);
+        
         SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
-
-        SGraphicsModule.Get().CreateWindow(500, 500, "Rin Widget Test", new CreateOptions()
+        SGraphicsModule.Get().CreateWindow(500, 500, "Rin View Test", new CreateOptions()
         {
             Visible = true,
             Decorated = true,
             Transparent = true
         });
         //TestText();
+    }
+
+    public void Shutdown(SRuntime runtime)
+    {
+
     }
 }

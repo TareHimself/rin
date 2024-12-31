@@ -3,7 +3,7 @@
 public interface IImagePool : IDisposable
 {
     
-    public IDeviceImage GetOrCreateImage(ImageResourceDescriptor descriptor,string id);
+    public IDeviceImage CreateImage(ImageResourceDescriptor descriptor,Frame frame);
     
     public void OnFrameStart(ulong newFrame);
 }

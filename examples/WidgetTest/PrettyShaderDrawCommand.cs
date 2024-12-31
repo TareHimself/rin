@@ -28,11 +28,11 @@ public class PrettyShaderDrawCommand(Matrix3 transform,Vector2<float> size,bool 
 
     private readonly IGraphicsShader _prettyRslShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SRuntime.ResourcesDirectory,"test","pretty.rsl"));
 
-    public override void Run(WidgetFrame frame, uint stencilMask,IDeviceBuffer? view = null)
+    public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null)
     {
         frame.BeginMainPass();
         var cmd = frame.Raw.GetCommandBuffer();
-        if (_prettyRslShader.Bind(cmd, true) && view != null)
+        if (_prettyRslShader.Bind(cmd, true) && buffer != null)
         {
             var pushResource = _prettyRslShader.PushConstants.First().Value;
             var screenSize = frame.Surface.GetDrawSize().Cast<float>();
@@ -45,8 +45,8 @@ public class PrettyShaderDrawCommand(Matrix3 transform,Vector2<float> size,bool 
                 Time = (float)SRuntime.Get().GetTimeSeconds(),
                 Center = hovered ?  frame.Surface.GetCursorPosition() : screenSize / 2.0f
             };
-            view.Write(data);
-            cmd.PushConstant(_prettyRslShader.GetPipelineLayout(), pushResource.Stages,view.GetAddress());
+            buffer.Write(data);
+            cmd.PushConstant(_prettyRslShader.GetPipelineLayout(), pushResource.Stages,buffer.GetAddress());
             cmd.Draw(6);
         }
     }

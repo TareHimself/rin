@@ -11,7 +11,7 @@ public class QuadDrawCommand : BatchedCommand
         _quads.AddRange(quads);
     }
     
-    public override IBatcher GetBatchRenderer() => SWidgetsModule.Get().GetBatchRenderer<DefaultQuadBatcher>();
+    public override IBatcher GetBatchRenderer() => SViewsModule.Get().GetBatchRenderer<DefaultQuadBatcher>();
 
     public IEnumerable<Quad> GetQuads() => _quads;
 }

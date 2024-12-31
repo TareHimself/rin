@@ -6,7 +6,7 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        //Runtime.Instance.EnsureLoad("rin.Framework.Core","rin.Framework.Audio","rin.Framework.Graphics","rin.Windows","rin.Framework.Widgets");
+        //Runtime.Instance.EnsureLoad("rin.Framework.Core","rin.Framework.Audio","rin.Framework.Graphics","rin.Windows","rin.Framework.Views");
         SRuntime.Get().Run();
     }
 
@@ -94,7 +94,7 @@ internal class Program
     //     }
     // }
     //
-    // private class Rect : Widget
+    // private class Rect : View
     // {
     //
     //     public Rect() : base()

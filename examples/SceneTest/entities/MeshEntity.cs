@@ -20,7 +20,7 @@ namespace SceneTest.entities;
 
 public class MeshEntity : Entity
 {
-    protected override void CreateDefaultComponents(SceneComponent root)
+    protected override void CreateDefaultComponents(TransformComponent root)
     {
         base.CreateDefaultComponents(root);
         var dist = 0.0f;
