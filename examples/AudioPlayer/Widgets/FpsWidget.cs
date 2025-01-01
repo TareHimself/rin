@@ -39,7 +39,7 @@ public class FpsWidget : TextBox
         public override CommandStage Stage => CommandStage.Late;
     }
 
-    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
     {
         _averageFps.Add((int)Math.Round((1.0 / SRuntime.Get().GetLastDeltaSeconds())));
         drawCommands.Add(new GetStatsCommand(this));

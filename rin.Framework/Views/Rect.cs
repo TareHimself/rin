@@ -5,16 +5,16 @@ namespace rin.Framework.Views;
 
 public class Rect : ICloneable<Rect>
 {
-    public Vector2<float> Offset;
-    public Vector2<float> Size;
+    public Vec2<float> Offset;
+    public Vec2<float> Size;
 
     public Rect()
     {
-        Offset = new Vector2<float>(0, 0);
-        Size = new Vector2<float>();
+        Offset = new Vec2<float>(0, 0);
+        Size = new Vec2<float>();
     }
 
-    public Rect(Vector2<float> inOffset, Vector2<float> inSize)
+    public Rect(Vec2<float> inOffset, Vec2<float> inSize)
     {
         Offset = inOffset;
         Size = inSize;
@@ -25,9 +25,9 @@ public class Rect : ICloneable<Rect>
         return new Rect(Offset.Clone(), Size.Clone());
     }
 
-    public static implicit operator Vector4<float>(Rect rect)
+    public static implicit operator Vec4<float>(Rect rect)
     {
-        return new Vector4<float>(rect.Offset.X, rect.Offset.Y, rect.Size.X,
+        return new Vec4<float>(rect.Offset.X, rect.Offset.Y, rect.Size.X,
             rect.Size.X);
     }
 
@@ -60,7 +60,7 @@ public class Rect : ICloneable<Rect>
         if (!IntersectsWith(area))
         {
             Offset = area.Offset.Clone();
-            Size = new Vector2<float>();
+            Size = new Vec2<float>();
             return this;
         }
 
@@ -69,34 +69,34 @@ public class Rect : ICloneable<Rect>
         var b1 = area.Offset;
         var b2 = b1 + area.Size;
 
-        Offset = new Vector2<float>(System.Math.Max(a1.X, b1.X), System.Math.Max(a1.Y, b1.Y));
+        Offset = new Vec2<float>(System.Math.Max(a1.X, b1.X), System.Math.Max(a1.Y, b1.Y));
 
-        var p2 = new Vector2<float>(System.Math.Min(a2.X, b2.X), System.Math.Min(a2.Y, b2.Y));
+        var p2 = new Vec2<float>(System.Math.Min(a2.X, b2.X), System.Math.Min(a2.Y, b2.Y));
 
         Size = p2 - Offset;
 
         return this;
     }
 
-    public static implicit operator Pair<Vector2<float>, Vector2<float>>(Rect rect)
+    public static implicit operator Pair<Vec2<float>, Vec2<float>>(Rect rect)
     {
-        return new Pair<Vector2<float>, Vector2<float>>(rect.Offset, rect.Offset + rect.Size);
+        return new Pair<Vec2<float>, Vec2<float>>(rect.Offset, rect.Offset + rect.Size);
     }
     
     // ReSharper disable once InconsistentNaming
-    public static Rect MakeAABB(Vector2<float> size,Matrix3 transform,Vector2<float>? offset)
+    public static Rect MakeAABB(Vec2<float> size,Mat3 transform,Vec2<float>? offset)
     {
-        var tl = offset.GetValueOrDefault(new Vector2<float>(0.0f));
+        var tl = offset.GetValueOrDefault(new Vec2<float>(0.0f));
         var br = tl + size;
-        var tr = new Vector2<float>(br.X, tl.Y);
-        var bl = new Vector2<float>(tl.X, br.Y);
+        var tr = new Vec2<float>(br.X, tl.Y);
+        var bl = new Vec2<float>(tl.X, br.Y);
 
         tl = tl.ApplyTransformation(transform);
         br = br.ApplyTransformation(transform);
         tr = tr.ApplyTransformation(transform);
         bl = bl.ApplyTransformation(transform);
 
-        var p1AABB = new Vector2<float>(
+        var p1AABB = new Vec2<float>(
             System.Math.Min(
                 System.Math.Min(tl.X, tr.X),
                 System.Math.Min(bl.X, br.X)
@@ -106,7 +106,7 @@ public class Rect : ICloneable<Rect>
                 System.Math.Min(bl.Y, br.Y)
             )
         );
-        var p2AABB = new Vector2<float>(
+        var p2AABB = new Vec2<float>(
             System.Math.Max(
                 System.Math.Max(tl.X, tr.X),
                 System.Math.Max(bl.X, br.X)
@@ -124,7 +124,7 @@ public class Rect : ICloneable<Rect>
         };
     }
 
-    public bool PointWithin(Vector2<float> point)
+    public bool PointWithin(Vec2<float> point)
     {
         return point.Within(this);
     }

@@ -19,7 +19,7 @@ public class Panel : MultiSlotCompositeView<PanelSlot>
     {
         _layout = new PanelLayout(this);
     }
-    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
     {
         return _layout.Apply(availableSpace);
     }
@@ -42,7 +42,7 @@ public class Panel : MultiSlotCompositeView<PanelSlot>
 
     public override IEnumerable<ISlot> GetSlots() => _layout.GetSlots();
 
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
         return _layout.ComputeDesiredContentSize();
     }

@@ -57,16 +57,16 @@ public class Constraint : SingleSlotCompositeView
         }
     }
 
-    private Vector2<float> Constrain(Vector2<float> size)
+    private Vec2<float> Constrain(Vec2<float> size)
     {
-        var min = new Vector2<float>(MinWidth ?? size.X, MinHeight ?? size.Y);
+        var min = new Vec2<float>(MinWidth ?? size.X, MinHeight ?? size.Y);
         var maxX = MaxWidth ?? (size.X >= min.X ? size.X : min.X);
         var maxY = MaxHeight ?? (size.Y >= min.Y ? size.Y : min.Y);
-        var max = new Vector2<float>(maxX, maxY);
+        var max = new Vec2<float>(maxX, maxY);
         return size.Clamp(min,max);
     }
 
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
@@ -74,15 +74,15 @@ public class Constraint : SingleSlotCompositeView
             return Constrain(desiredSize);
         }
 
-        return new Vector2<float>();
+        return new Vec2<float>();
     }
 
-    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
     {
        var size = Constrain(availableSpace);
         if (GetSlot() is { } slot)
         {
-            slot.Child.Offset = (new Vector2<float>(0, 0)); 
+            slot.Child.Offset = (new Vec2<float>(0, 0)); 
             return Constrain(slot.Child.ComputeSize(size));
         }
 

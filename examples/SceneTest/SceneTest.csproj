@@ -8,8 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\rin.Scene\rin.Scene.csproj" />
-      <ProjectReference Include="..\..\rin.Runtime.Widgets\rin.Runtime.Views.csproj" />
+      <ProjectReference Include="..\..\rin.Framework\rin.Framework.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -12,7 +12,7 @@ namespace rin.Framework.Views.Composite;
 public class ScrollList : List
 {
     private float _mouseDownOffset;
-    private Vector2<float> _mouseDownPos = new(0.0f);
+    private Vec2<float> _mouseDownPos = new(0.0f);
     private float _offset;
     private float _maxOffset;
     private CursorDownEvent? _lastDownEvent;
@@ -43,7 +43,7 @@ public class ScrollList : List
         return Math.Abs(offset - _offset) > 0.001;
     }
 
-    protected override Vector2<float> ArrangeContent(Vector2<float> spaceGiven)
+    protected override Vec2<float> ArrangeContent(Vec2<float> spaceGiven)
     {
         var spaceTaken = base.ArrangeContent(spaceGiven);
         
@@ -55,7 +55,7 @@ public class ScrollList : List
             _ => throw new ArgumentOutOfRangeException()
         };
         ScrollTo(_offset);
-        return new Vector2<float>(Math.Min(spaceTaken.X,spaceGiven.X),Math.Min(spaceTaken.Y,spaceGiven.Y));
+        return new Vec2<float>(Math.Min(spaceTaken.X,spaceGiven.X),Math.Min(spaceTaken.Y,spaceGiven.Y));
     }
 
     public virtual float GetScroll()
@@ -114,7 +114,7 @@ public class ScrollList : List
         }
     }
 
-    public override void Collect(Matrix3 transform, Views.Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Views.Rect clip, DrawCommands drawCommands)
     {
         base.Collect(transform,clip, drawCommands);
         if (IsVisible && IsScrollable())
@@ -130,17 +130,17 @@ public class ScrollList : List
 
             var size = GetContentSize();
 
-            var barTransform = transform.Translate(new Vector2<float>(size.X - 10.0f, drawOffset));
-            drawCommands.AddRect(barTransform, new Vector2<float>(10.0f, barSize), color: Color.White, borderRadius: 7.0f);
+            var barTransform = transform.Translate(new Vec2<float>(size.X - 10.0f, drawOffset));
+            drawCommands.AddRect(barTransform, new Vec2<float>(10.0f, barSize), color: Color.White, borderRadius: 7.0f);
         }
     }
 
-    protected override Matrix3 ComputeSlotTransform(ISlot slot, Matrix3 contentTransform)
+    protected override Mat3 ComputeSlotTransform(ISlot slot, Mat3 contentTransform)
     {
         return contentTransform.Translate(Axis switch
         {
-            Axis.Row => new Vector2<float>(-GetScroll(), 0.0f),
-            Axis.Column => new Vector2<float>(0.0f, -GetScroll()),
+            Axis.Row => new Vec2<float>(-GetScroll(), 0.0f),
+            Axis.Column => new Vec2<float>(0.0f, -GetScroll()),
             _ => throw new ArgumentOutOfRangeException()
         }) * slot.Child.ComputeRelativeTransform();
     }

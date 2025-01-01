@@ -4,5 +4,5 @@ namespace rin.Framework.Graphics.Windows.Events;
 
 public class ResizeEvent : Event
 {
-    public required Vector2<uint> Size;
+    public required Vec2<uint> Size;
 }

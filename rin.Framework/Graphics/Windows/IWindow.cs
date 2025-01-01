@@ -19,13 +19,13 @@ public interface IWindow : IDisposable
     public event Action<MinimizeEvent>? OnMinimize;
     public event Action<DropEvent>? OnDrop;
 
-    public Vector2<double> GetCursorPosition();
+    public Vec2<double> GetCursorPosition();
 
-    public void SetMousePosition(Vector2<double> position);
+    public void SetMousePosition(Vec2<double> position);
 
     public void SetFullscreen(bool state);
     
-    public Vector2<uint> GetPixelSize();
+    public Vec2<uint> GetPixelSize();
 
     public nint GetPtr();
     

@@ -16,7 +16,7 @@ public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private partial struct Push
     {
-        public Matrix4 Projection;
+        public Mat4 Projection;
         public ulong Buffer;
     }
 

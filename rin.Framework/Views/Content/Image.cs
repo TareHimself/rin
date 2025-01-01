@@ -31,26 +31,26 @@ public class Image : ContentView
 
     public Color Tint { get; set; } = new Color(1.0f);
 
-    public Vector4<float> BorderRadius { get; set; } = new(0.0f);
+    public Vec4<float> BorderRadius { get; set; } = new(0.0f);
 
     protected override void OnDispose(bool isManual)
     {
         base.OnDispose(isManual);
     }
     
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
         if (SGraphicsModule.Get().GetResourceManager()
                 .GetTextureImage(TextureId) is { } texture)
         {
-            return new Vector2<float>
+            return new Vec2<float>
             {
                 X = texture.Extent.width,
                 Y = texture.Extent.height
             };
         }
 
-        return new Vector2<float>();
+        return new Vec2<float>();
     }
     
     protected override void OnRemovedFromSurface(Surface surface)
@@ -68,7 +68,7 @@ public class Image : ContentView
     //     }
     // }
 
-    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
     {
         if (TextureId != -1)
         {
@@ -77,12 +77,12 @@ public class Image : ContentView
         }
     }
 
-    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
     {
         var size = GetDesiredContentSize();
         size.X = availableSpace.X.FiniteOr(size.X);
         size.Y = availableSpace.Y.FiniteOr(size.Y);
         
-        return size.Clamp(new Vector2<float>(0.0f), availableSpace);
+        return size.Clamp(new Vec2<float>(0.0f), availableSpace);
     }
 }

@@ -11,7 +11,7 @@ public class RslShaderManager : Disposable, IShaderManager
 {
     private readonly Dictionary<string, NativeBuffer<uint>> _spirv = [];
     private readonly Compiler _compiler;
-    private readonly BackgroundTaskQueue<CompiledShader> _backgroundTask = new ();
+    private readonly BackgroundTaskQueue _backgroundTask = new ();
     public event Action? OnBeforeDispose;
     public RslShaderManager()
     {
@@ -54,9 +54,9 @@ public class RslShaderManager : Disposable, IShaderManager
     }
 
 
-    public Task<CompiledShader> Compile(IShader shader)
+    public Task Compile(IShader shader)
     {
-        return _backgroundTask.Put(() => shader.Compile(this));
+        return _backgroundTask.Put(() => shader.Compile(new RslCompilationContext(this)));
     }
 
     public IGraphicsShader GraphicsFromPath(string path)

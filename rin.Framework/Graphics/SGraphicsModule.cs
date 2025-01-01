@@ -154,7 +154,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         };
     }
 
-    public static VkClearColorValue MakeClearColorValue(Vector4<float> color)
+    public static VkClearColorValue MakeClearColorValue(Vec4<float> color)
     {
         var clearColor = new VkClearColorValue();
         clearColor.float32[0] = color.X;

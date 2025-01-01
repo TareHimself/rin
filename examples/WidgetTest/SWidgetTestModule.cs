@@ -40,7 +40,7 @@ public class SWidgetTestModule : IModule
             };
         }
 
-        protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+        protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
         {
             var size = base.LayoutContent(availableSpace);
             _content.Translate = _content.Size * .5f;
@@ -91,9 +91,9 @@ public class SWidgetTestModule : IModule
                             BackgroundColor = Color.Black.Clone(a: 0.7f)
                         },
                         SizeToContent = true,
-                        MinAnchor = new Vector2<float>(1.0f, 0.0f),
-                        MaxAnchor = new Vector2<float>(1.0f, 0.0f),
-                        Alignment = new Vector2<float>(1.0f, 0.0f)
+                        MinAnchor = new Vec2<float>(1.0f, 0.0f),
+                        MaxAnchor = new Vec2<float>(1.0f, 0.0f),
+                        Alignment = new Vec2<float>(1.0f, 0.0f)
                     }
                 ]
             });
@@ -215,9 +215,9 @@ public class SWidgetTestModule : IModule
                             BackgroundColor = Color.Black.Clone(a: 0.7f)
                         },
                         SizeToContent = true,
-                        MinAnchor = new Vector2<float>(1.0f, 0.0f),
-                        MaxAnchor = new Vector2<float>(1.0f, 0.0f),
-                        Alignment = new Vector2<float>(1.0f, 0.0f)
+                        MinAnchor = new Vec2<float>(1.0f, 0.0f),
+                        MaxAnchor = new Vec2<float>(1.0f, 0.0f),
+                        Alignment = new Vec2<float>(1.0f, 0.0f)
                     }
                 ]
             });

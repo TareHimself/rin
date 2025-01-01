@@ -56,34 +56,51 @@ struct SessionBuilder
 struct Session
 {
     Slang::ComPtr<slang::ISession> session{};
-    Session(const SessionBuilder * builder);
+    explicit Session(const SessionBuilder * builder);
 };
 
-struct Result
+struct Module
 {
-    Slang::ComPtr<slang::IBlob> data{};
-    std::vector<std::string> diagnostics{};
+    Slang::ComPtr<slang::IModule> module{};
 };
 
-EXPORT_DECL SessionBuilder * slangSessionBuilderCreate();
-EXPORT_DECL void slangSessionBuilderDestroy(const SessionBuilder * builder);
+struct EntryPoint
+{
+    Slang::ComPtr<slang::IEntryPoint> entryPoint{};
+};
 
+struct Blob
+{
+    Slang::ComPtr<slang::IBlob> blob{};
+};
+
+struct Component
+{
+    Slang::ComPtr<slang::IComponentType> component{};
+};
+
+EXPORT_DECL SessionBuilder * slangSessionBuilderNew();
 EXPORT_DECL void slangSessionBuilderAddTargetSpirv(SessionBuilder * builder);
 EXPORT_DECL void slangSessionBuilderAddTargetGlsl(SessionBuilder * builder);
 EXPORT_DECL void slangSessionBuilderAddPreprocessorDefinition(SessionBuilder * builder, const char * name, const char * value);
 EXPORT_DECL void slangSessionBuilderAddSearchPath(SessionBuilder * builder, const char * path);
+EXPORT_DECL Session * slangSessionBuilderBuild(const SessionBuilder * builder);
+EXPORT_DECL void slangSessionBuilderFree(const SessionBuilder * builder);
 
-EXPORT_DECL Session * slangSessionCreate(const SessionBuilder * builder);
-EXPORT_DECL void slangSessionDestroy(const SessionBuilder * builder);
+EXPORT_DECL Module * slangSessionLoadModuleFromSourceString(const Session * session, const char * moduleName, const char * path, const char * string,Blob * outDiagnostics);
+EXPORT_DECL Component * slangSessionCreateComposedProgram(const Session * session,Module * module,EntryPoint * entryPoint,Blob * outDiagnostics);
+EXPORT_DECL void slangSessionFree(const Session * session);
 
-EXPORT_DECL Result * slangSessionCompile(const Session * session, const char * moduleName, const char * modulePath, const char * data, const char * entry);
+EXPORT_DECL EntryPoint * slangModuleFindEntryPointByName(const Module * module, const char * entryPointName);
+EXPORT_DECL void slangEntryPointFree(const EntryPoint * entryPoint);
+EXPORT_DECL void slangModuleFree(const Module * module);
 
-EXPORT_DECL void slangResultDestroy(const Result * result);
+EXPORT_DECL Blob * slangComponentGetEntryPointCode(const Component * component,int entryPointIndex,int targetIndex,Blob * outDiagnostics);
+EXPORT_DECL Component * slangComponentLink(const Component * component,Blob * outDiagnostics);
+EXPORT_DECL Blob * slangComponentToLayoutJson(const Component * component);
+EXPORT_DECL void slangComponentFree(const Component * component);
 
-EXPORT_DECL int slangResultGetDiagnosticsCount(const Result * result);
-
-EXPORT_DECL char * slangResultGetDiagnostic(const Result * result,int index);
-
-EXPORT_DECL void * slangResultGetPointer(const Result * result);
-
-EXPORT_DECL int slangResultGetSize(const Result * result);
+EXPORT_DECL Blob * slangBlobNew();
+EXPORT_DECL int slangBlobGetSize(const Blob * blob);
+EXPORT_DECL void * slangBlobGetPointer(const Blob * blob);
+EXPORT_DECL void slangBlobFree(const Blob * blob);

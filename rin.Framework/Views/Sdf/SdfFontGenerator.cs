@@ -85,8 +85,8 @@ public class SdfFontGenerator(FontFamily family)
                 foreach (var rect in packer.Rects)
                 {
                     var generated = rect.Data;
-                    var pt1 = new Vector2<float>(rect.X, rect.Y);
-                    var pt2 = pt1 + new Vector2<float>(rect.Width,
+                    var pt1 = new Vec2<float>(rect.X, rect.Y);
+                    var pt2 = pt1 + new Vec2<float>(rect.Width,
                         rect.Height);
                     var pt1Coord = pt1 / atlasSize;
                     var pt2Coord = pt2 / atlasSize;
@@ -95,8 +95,8 @@ public class SdfFontGenerator(FontFamily family)
                     {
                         Id = generatedId,
                         AtlasIdx = atlasIdx,
-                        Rect = new Vector4<float>(pt1,pt2),
-                        Coordinates = new Vector4<float>(pt1Coord,pt2Coord)
+                        Rect = new Vec4<float>(pt1,pt2),
+                        Coordinates = new Vec4<float>(pt1Coord,pt2Coord)
                     });
 
                     o.DrawImage(generated.Mtsdf, new Point(rect.X, rect.Y), 1F);

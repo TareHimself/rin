@@ -20,7 +20,7 @@ public abstract class Surface : Disposable
     private readonly List<View> _lastHovered = [];
     private readonly Root _rootWidget = new();
     private readonly SGraphicsModule _sGraphicsModule;
-    private Vector2<float>? _lastMousePosition;
+    private Vec2<float>? _lastMousePosition;
     private CursorDownEvent? _lastCursorDownEvent;
     
     public FrameStats Stats { get; private set; } = new();
@@ -40,7 +40,7 @@ public abstract class Surface : Disposable
         _rootWidget.ComputeSize(GetDrawSize().Cast<float>());
     }
 
-    public abstract Vector2<int> GetDrawSize();
+    public abstract Vec2<int> GetDrawSize();
 
     
 
@@ -250,7 +250,7 @@ public abstract class Surface : Disposable
     private List<FinalDrawCommand> CollectDrawCommands()
     {
         var rawDrawCommands = new DrawCommands();
-        _rootWidget.Collect(Matrix3.Identity,new Rect()
+        _rootWidget.Collect(Mat3.Identity,new Rect()
         {
             Size = GetDrawSize().Cast<float>()
         }, rawDrawCommands);
@@ -350,7 +350,7 @@ public abstract class Surface : Disposable
     public virtual void ReceiveCursorDown(CursorDownEvent e)
     {
         var point = e.Position.Cast<float>();
-        if (_rootWidget.NotifyCursorDown(e, Matrix3.Identity))
+        if (_rootWidget.NotifyCursorDown(e, Mat3.Identity))
         {
             _lastCursorDownEvent = e;
         }
@@ -371,7 +371,7 @@ public abstract class Surface : Disposable
     public virtual void ReceiveCursorMove(CursorMoveEvent e)
     {
         _lastMousePosition = e.Position;
-        _rootWidget.NotifyCursorMove(e, Matrix3.Identity);
+        _rootWidget.NotifyCursorMove(e, Mat3.Identity);
         if (_lastCursorDownEvent is { } lastEvent)
         {
             var dist = lastEvent.Position.Distance(e.Position);
@@ -398,7 +398,7 @@ public abstract class Surface : Disposable
 
     public virtual void ReceiveScroll(ScrollEvent e)
     {
-        _rootWidget.NotifyScroll(e, Matrix3.Identity);
+        _rootWidget.NotifyScroll(e, Mat3.Identity);
     }
     
     public virtual void ReceiveCharacter(CharacterEvent e)
@@ -411,9 +411,9 @@ public abstract class Surface : Disposable
         FocusedWidget?.OnKeyboard(e);
     }
     
-    public abstract Vector2<float> GetCursorPosition();
+    public abstract Vec2<float> GetCursorPosition();
 
-    public abstract void SetCursorPosition(Vector2<float> position);
+    public abstract void SetCursorPosition(Vec2<float> position);
 
     public void DoHover()
     {
@@ -432,7 +432,7 @@ public abstract class Surface : Disposable
                 Size = 0.0f
             };
             if (0.0f <= e.Position && e.Position <= GetDrawSize().Cast<float>())
-                _rootWidget.NotifyCursorEnter(e,Matrix3.Identity, _lastHovered);
+                _rootWidget.NotifyCursorEnter(e,Mat3.Identity, _lastHovered);
         }
 
         var hoveredSet = _lastHovered.ToHashSet();

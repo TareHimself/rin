@@ -5,26 +5,26 @@ using System.Runtime.InteropServices;
 namespace rin.Framework.Core.Math;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public partial struct Quaternion(float inX, float inY, float inZ, float inW)
-    : ICloneable<Quaternion>,
-        IMultiplyOperators<Quaternion, Quaternion, Quaternion>,
-        IMultiplyOperators<Quaternion, Vector3<float>, Vector3<float>>
+public partial struct Quat(float inX, float inY, float inZ, float inW)
+    : ICloneable<Quat>,
+        IMultiplyOperators<Quat, Quat, Quat>,
+        IMultiplyOperators<Quat, Vec3<float>, Vec3<float>>
 {
     public float X = inX;
     public float Y = inY;
     public float Z = inZ;
     public float W = inW;
 
-    public static Quaternion Identity => new(0.0f, 0.0f, 0.0f, 1.0f);
+    public static Quat Identity => new(0.0f, 0.0f, 0.0f, 1.0f);
 
-    public Quaternion(float inData) : this(inData, inData, inData, inData)
+    public Quat(float inData) : this(inData, inData, inData, inData)
     {
     }
 
 
     
 
-    public static Quaternion FromAngle(float angle, Vector3<float> axis)
+    public static Quat FromAngle(float angle, Vec3<float> axis)
     {
         var q = Zero;
 
@@ -32,58 +32,58 @@ public partial struct Quaternion(float inX, float inY, float inZ, float inW)
         return q;
     }
 
-    public static Quaternion FromAngleDeg(float angle, Vector3<float> axis)
+    public static Quat FromAngleDeg(float angle, Vec3<float> axis)
     {
         return FromAngle((float)(angle * System.Math.PI / 180.0f), axis);
     }
 
-    public Quaternion Clone()
+    public Quat Clone()
     {
-        return new Quaternion(X, Y, Z, W);
+        return new Quat(X, Y, Z, W);
     }
 
-    public static Quaternion Zero => new(0.0f);
+    public static Quat Zero => new(0.0f);
 
-    public Vector3<float> Forward => this * Vector3<float>.Forward;
+    public Vec3<float> Forward => this * Vec3<float>.Forward;
 
-    public Vector3<float> Right => this * Vector3<float>.Right;
+    public Vec3<float> Right => this * Vec3<float>.Right;
 
-    public Vector3<float> Up => this * Vector3<float>.Up;
+    public Vec3<float> Up => this * Vec3<float>.Up;
 
 
-    public Quaternion ApplyPitch(float delta)
+    public Quat ApplyPitch(float delta)
     {
-        return this * FromAngleDeg(delta, Vector3<float>.Right);
+        return this * FromAngleDeg(delta, Vec3<float>.Right);
     }
 
-    public Quaternion ApplyRoll(float delta)
+    public Quat ApplyRoll(float delta)
     {
-        return this * FromAngleDeg(delta, Vector3<float>.Forward);
+        return this * FromAngleDeg(delta, Vec3<float>.Forward);
     }
 
-    public Quaternion ApplyYaw(float delta)
+    public Quat ApplyYaw(float delta)
     {
-        return this * FromAngleDeg(delta, Vector3<float>.Up);
+        return this * FromAngleDeg(delta, Vec3<float>.Up);
     }
 
-    public Quaternion ApplyLocalPitch(float delta)
+    public Quat ApplyLocalPitch(float delta)
     {
         return this * FromAngleDeg(delta, Right);
     }
 
-    public Quaternion ApplyLocalRoll(float delta)
+    public Quat ApplyLocalRoll(float delta)
     {
         return this * FromAngleDeg(delta, Forward);
     }
 
-    public Quaternion ApplyLocalYaw(float delta)
+    public Quat ApplyLocalYaw(float delta)
     {
         return this * FromAngleDeg(delta, Up);
     }
 
     
 
-    public static Quaternion operator *(Quaternion left, Quaternion right)
+    public static Quat operator *(Quat left, Quat right)
     {
         var result = Zero;
 
@@ -94,9 +94,9 @@ public partial struct Quaternion(float inX, float inY, float inZ, float inW)
 
     
 
-    public static Vector3<float> operator *(Quaternion left, Vector3<float> right)
+    public static Vec3<float> operator *(Quat left, Vec3<float> right)
     {
-        Vector3<float> result = new(0.0f);
+        Vec3<float> result = new(0.0f);
         NativeMethods.NativeMultiplyQuatVector(ref result, ref left, ref right);
         // var qv = new Vector3<float>(left.X, left.Y, left.Z);
         // var uv = qv.Cross(right);
@@ -106,9 +106,9 @@ public partial struct Quaternion(float inX, float inY, float inZ, float inW)
         return result;
     }
 
-    public static implicit operator Matrix4(Quaternion quat)
+    public static implicit operator Mat4(Quat quat)
     {
-        Matrix4 r = new();
+        Mat4 r = new();
         NativeMethods.NativeQuatToMatrix4(ref r, ref quat);
         return r;
 

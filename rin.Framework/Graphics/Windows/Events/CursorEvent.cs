@@ -4,5 +4,5 @@ namespace rin.Framework.Graphics.Windows.Events;
 
 public class CursorEvent : Event
 {
-    public required Vector2<double> Position;
+    public required Vec2<double> Position;
 }

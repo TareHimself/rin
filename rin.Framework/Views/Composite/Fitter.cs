@@ -43,7 +43,7 @@ public class Fitter : SingleSlotCompositeView
     }
     
 
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
@@ -53,32 +53,32 @@ public class Fitter : SingleSlotCompositeView
         return 0.0f;
     }
 
-    public static Vector2<float> ComputeContainSize(Vector2<float> drawSize, Vector2<float> widgetSize)
+    public static Vec2<float> ComputeContainSize(Vec2<float> drawSize, Vec2<float> widgetSize)
     {
         var widgetAspect = widgetSize.Y / widgetSize.X;
-        var scaledWidgetSize = new Vector2<float>(drawSize.X, drawSize.X * widgetAspect);
+        var scaledWidgetSize = new Vec2<float>(drawSize.X, drawSize.X * widgetAspect);
 
         if (drawSize.Equals(scaledWidgetSize)) return scaledWidgetSize;
 
         return scaledWidgetSize.Y <= drawSize.Y
             ? scaledWidgetSize
-            : new Vector2<float>(drawSize.Y / widgetAspect, drawSize.Y);
+            : new Vec2<float>(drawSize.Y / widgetAspect, drawSize.Y);
     }
 
-    public static Vector2<float> ComputeCoverSize(Vector2<float> drawSize, Vector2<float> widgetSize)
+    public static Vec2<float> ComputeCoverSize(Vec2<float> drawSize, Vec2<float> widgetSize)
     {
         var widgetAspect = widgetSize.Y / widgetSize.X;
-        var scaledWidgetSize = new Vector2<float>(drawSize.X, drawSize.X * widgetAspect);
+        var scaledWidgetSize = new Vec2<float>(drawSize.X, drawSize.X * widgetAspect);
 
         if (drawSize.Equals(scaledWidgetSize)) return scaledWidgetSize;
 
 
         return scaledWidgetSize.Y <= drawSize.Y
-            ? new Vector2<float>(drawSize.Y / widgetAspect, drawSize.Y)
+            ? new Vec2<float>(drawSize.Y / widgetAspect, drawSize.Y)
             : scaledWidgetSize;
     }
 
-    public Vector2<float> FitContent(Vector2<float> drawSize)
+    public Vec2<float> FitContent(Vec2<float> drawSize)
     {
         if (GetSlot() is { } slot)
         {
@@ -111,10 +111,10 @@ public class Fitter : SingleSlotCompositeView
         return drawSize;
     }
 
-    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
     {
         var desired = GetDesiredContentSize();
-        return FitContent(new Vector2<float>(float.IsFinite(availableSpace.X) ? availableSpace.X : desired.X,
+        return FitContent(new Vec2<float>(float.IsFinite(availableSpace.X) ? availableSpace.X : desired.X,
             float.IsFinite(availableSpace.Y) ? availableSpace.Y : desired.Y));
     }
 

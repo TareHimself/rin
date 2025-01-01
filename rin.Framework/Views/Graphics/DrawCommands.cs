@@ -5,11 +5,11 @@ namespace rin.Framework.Views.Graphics;
 
 
 
-public class ClipInfo(uint id, Matrix3 transform, Vector2<float> size)
+public class ClipInfo(uint id, Mat3 transform, Vec2<float> size)
 {
     public readonly uint Id = id;
-    public Matrix3 Transform = transform;
-    public Vector2<float> Size = size;
+    public Mat3 Transform = transform;
+    public Vec2<float> Size = size;
 }
 
 public struct RawCommand(GraphicsCommand drawCommand, string clipId)
@@ -55,7 +55,7 @@ public class DrawCommands
     }
     
     
-    public DrawCommands PushClip(Matrix3 transform, Vector2<float> size)
+    public DrawCommands PushClip(Mat3 transform, Vec2<float> size)
     {
         var id = (uint)Clips.Count;
         var clipInfo = new ClipInfo(id, transform, size);

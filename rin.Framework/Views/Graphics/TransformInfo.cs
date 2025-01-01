@@ -5,17 +5,17 @@ namespace rin.Framework.Views.Graphics;
 
 public struct ClippingRect
 {
-    public Matrix3 Matrix;
-    public Vector2<float> Size;
+    public Mat3 Matrix;
+    public Vec2<float> Size;
 }
 
 public class TransformInfo : ICloneable<TransformInfo>
 {
-    public Matrix3 Transform;
+    public Mat3 Transform;
     /// <summary>
     /// This is only used for intersection estimates
     /// </summary>
-    public Vector2<float> Size;
+    public Vec2<float> Size;
     public int Depth;
 
     protected Rect _clipRect;
@@ -25,7 +25,7 @@ public class TransformInfo : ICloneable<TransformInfo>
     /// </summary>
     public bool Occluded = false;
 
-    public TransformInfo(Matrix3 transform,Vector2<float> size,int depth,bool checkOcclusion = false,TransformInfo? parent = null,Clip clip = Clip.None)
+    public TransformInfo(Mat3 transform,Vec2<float> size,int depth,bool checkOcclusion = false,TransformInfo? parent = null,Clip clip = Clip.None)
     {
         Transform = transform;
         Size = size;
@@ -57,7 +57,7 @@ public class TransformInfo : ICloneable<TransformInfo>
     
     public TransformInfo(Surface surface)
     {
-        Transform = Matrix3.Identity;
+        Transform = Mat3.Identity;
         Size = surface.GetDrawSize().Cast<float>();
         Depth = 0;
         _clipRect = ComputeAxisAlignedBoundingRect(this);
@@ -79,17 +79,17 @@ public class TransformInfo : ICloneable<TransformInfo>
 
     public static Rect ComputeAxisAlignedBoundingRect(TransformInfo target)
     {
-        var tl = new Vector2<float>(0.0f);
+        var tl = new Vec2<float>(0.0f);
         var br = tl + target.Size;
-        var tr = new Vector2<float>(br.X, tl.Y);
-        var bl = new Vector2<float>(tl.X, br.Y);
+        var tr = new Vec2<float>(br.X, tl.Y);
+        var bl = new Vec2<float>(tl.X, br.Y);
 
         tl = tl.ApplyTransformation(target.Transform);
         br = br.ApplyTransformation(target.Transform);
         tr = tr.ApplyTransformation(target.Transform);
         bl = bl.ApplyTransformation(target.Transform);
 
-        var p1AABB = new Vector2<float>(
+        var p1AABB = new Vec2<float>(
             System.Math.Min(
                 System.Math.Min(tl.X, tr.X),
                 System.Math.Min(bl.X, br.X)
@@ -99,7 +99,7 @@ public class TransformInfo : ICloneable<TransformInfo>
                 System.Math.Min(bl.Y, br.Y)
             )
         );
-        var p2AABB = new Vector2<float>(
+        var p2AABB = new Vec2<float>(
             System.Math.Max(
                 System.Math.Max(tl.X, tr.X),
                 System.Math.Max(bl.X, br.X)
@@ -124,19 +124,19 @@ public class TransformInfo : ICloneable<TransformInfo>
         return targetAARect.IntersectsWith(myAARect);
     }
 
-    public bool PointWithin(Vector2<float> point)
+    public bool PointWithin(Vec2<float> point)
     {
-        var tl = new Vector2<float>(0.0f);
+        var tl = new Vec2<float>(0.0f);
         var br = tl + Size;
-        var tr = new Vector2<float>(br.X, tl.Y);
-        var bl = new Vector2<float>(tl.X, br.Y);
+        var tr = new Vec2<float>(br.X, tl.Y);
+        var bl = new Vec2<float>(tl.X, br.Y);
 
         tl = tl.ApplyTransformation(Transform);
         br = br.ApplyTransformation(Transform);
         tr = tr.ApplyTransformation(Transform);
         bl = bl.ApplyTransformation(Transform);
 
-        var p1AABB = new Vector2<float>(
+        var p1AABB = new Vec2<float>(
             System.Math.Min(
                 System.Math.Min(tl.X, tr.X),
                 System.Math.Min(bl.X, br.X)
@@ -146,7 +146,7 @@ public class TransformInfo : ICloneable<TransformInfo>
                 System.Math.Min(bl.Y, br.Y)
             )
         );
-        var p2AABB = new Vector2<float>(
+        var p2AABB = new Vec2<float>(
             System.Math.Max(
                 System.Math.Max(tl.X, tr.X),
                 System.Math.Max(bl.X, br.X)

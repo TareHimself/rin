@@ -4,5 +4,5 @@ namespace rin.Framework.Graphics.Windows.Events;
 
 public class ScrollEvent : CursorEvent
 {
-    public required Vector2<double> Delta;
+    public required Vec2<double> Delta;
 }

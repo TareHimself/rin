@@ -27,9 +27,9 @@ public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOp
     }
 
 
-    public static implicit operator Vector4<float>(Color color)
+    public static implicit operator Vec4<float>(Color color)
     {
-        return new Vector4<float>(color.R, color.G, color.B, color.A);
+        return new Vec4<float>(color.R, color.G, color.B, color.A);
     }
 
     public static Color FromHtml(string hexCode)

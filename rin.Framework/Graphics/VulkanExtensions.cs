@@ -90,7 +90,7 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer SetRenderArea(this VkCommandBuffer cmd, Vector4<float> rect) => cmd.SetViewports([
+    public static VkCommandBuffer SetRenderArea(this VkCommandBuffer cmd, Vec4<float> rect) => cmd.SetViewports([
         new VkViewport()
         {
             x = rect.X,

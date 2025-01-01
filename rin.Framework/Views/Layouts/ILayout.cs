@@ -11,7 +11,7 @@ public interface ILayout : IDisposable
     
     public void OnSlotUpdated(ISlot slot);
     
-    public Vector2<float> Apply(Vector2<float> availableSpace);
+    public Vec2<float> Apply(Vec2<float> availableSpace);
     
-    public Vector2<float> ComputeDesiredContentSize();
+    public Vec2<float> ComputeDesiredContentSize();
 }

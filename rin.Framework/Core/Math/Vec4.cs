@@ -5,16 +5,16 @@ using System.Runtime.InteropServices;
 namespace rin.Framework.Core.Math;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public struct Vector4<T> :
-    IAdditionOperators<Vector4<T>, Vector4<T>, Vector4<T>>,
-    IAdditionOperators<Vector4<T>, T, Vector4<T>>,
-    ISubtractionOperators<Vector4<T>, Vector4<T>, Vector4<T>>,
-    ISubtractionOperators<Vector4<T>, T, Vector4<T>>,
-    IMultiplyOperators<Vector4<T>, Vector4<T>, Vector4<T>>,
-    IMultiplyOperators<Vector4<T>, T, Vector4<T>>,
-    IDivisionOperators<Vector4<T>, Vector4<T>, Vector4<T>>,
-    IDivisionOperators<Vector4<T>, T, Vector4<T>>,
-    IVector<Vector4<T>,T>
+public struct Vec4<T> :
+    IAdditionOperators<Vec4<T>, Vec4<T>, Vec4<T>>,
+    IAdditionOperators<Vec4<T>, T, Vec4<T>>,
+    ISubtractionOperators<Vec4<T>, Vec4<T>, Vec4<T>>,
+    ISubtractionOperators<Vec4<T>, T, Vec4<T>>,
+    IMultiplyOperators<Vec4<T>, Vec4<T>, Vec4<T>>,
+    IMultiplyOperators<Vec4<T>, T, Vec4<T>>,
+    IDivisionOperators<Vec4<T>, Vec4<T>, Vec4<T>>,
+    IDivisionOperators<Vec4<T>, T, Vec4<T>>,
+    IVec<Vec4<T>,T>
     where T : notnull, IComparisonOperators<T,T,bool>
 {
     public T X;
@@ -22,7 +22,7 @@ public struct Vector4<T> :
     public T Z;
     public T W;
 
-    public Vector4(T data)
+    public Vec4(T data)
     {
         X = data;
         Y = data;
@@ -30,7 +30,7 @@ public struct Vector4<T> :
         W = data;
     }
 
-    public Vector4(T inX, T inY, T inZ, T inW)
+    public Vec4(T inX, T inY, T inZ, T inW)
     {
         X = inX;
         Y = inY;
@@ -38,7 +38,7 @@ public struct Vector4<T> :
         W = inW;
     }
     
-    public Vector4(Vector2<T> xy, Vector2<T> zw)
+    public Vec4(Vec2<T> xy, Vec2<T> zw)
     {
         X = xy.X;
         Y = xy.Y;
@@ -46,7 +46,7 @@ public struct Vector4<T> :
         W = zw.Y;
     }
     
-    public Vector4(T xy, T zw)
+    public Vec4(T xy, T zw)
     {
         X = xy;
         Y = xy;
@@ -54,22 +54,22 @@ public struct Vector4<T> :
         W = zw;
     }
     
-    public Vector4(Vector3<T> vector3, T inW)
+    public Vec4(Vec3<T> vec3, T inW)
     {
-        X = vector3.X;
-        Y = vector3.Y;
-        Z = vector3.Z;
+        X = vec3.X;
+        Y = vec3.Y;
+        Z = vec3.Z;
         W = inW;
     }
 
-    public static Vector4<T> operator +(Vector4<T> left, T right)
+    public static Vec4<T> operator +(Vec4<T> left, T right)
     {
         dynamic lx = left.X, ly = left.Y, lz = left.Z, lw = left.W, r = right;
 
-        return new Vector4<T>(lx + r, ly + r, lz + r, lw + r);
+        return new Vec4<T>(lx + r, ly + r, lz + r, lw + r);
     }
 
-    public static Vector4<T> operator +(Vector4<T> left, Vector4<T> right)
+    public static Vec4<T> operator +(Vec4<T> left, Vec4<T> right)
     {
         dynamic lx = left.X,
             ly = left.Y,
@@ -80,17 +80,17 @@ public struct Vector4<T> :
             rz = right.Z,
             rw = right.W;
 
-        return new Vector4<T>(lx + rx, ly + ry, lz + rz, lw + rw);
+        return new Vec4<T>(lx + rx, ly + ry, lz + rz, lw + rw);
     }
 
-    public static Vector4<T> operator /(Vector4<T> left, T right)
+    public static Vec4<T> operator /(Vec4<T> left, T right)
     {
         dynamic lx = left.X, ly = left.Y, lz = left.Z, lw = left.W, r = right;
 
-        return new Vector4<T>(lx / r, ly / r, lz / r, lw / r);
+        return new Vec4<T>(lx / r, ly / r, lz / r, lw / r);
     }
 
-    public static Vector4<T> operator /(Vector4<T> left, Vector4<T> right)
+    public static Vec4<T> operator /(Vec4<T> left, Vec4<T> right)
     {
         dynamic lx = left.X,
             ly = left.Y,
@@ -101,17 +101,17 @@ public struct Vector4<T> :
             rz = right.Z,
             rw = right.W;
 
-        return new Vector4<T>(lx / rx, ly / ry, lz / rz, lw / rw);
+        return new Vec4<T>(lx / rx, ly / ry, lz / rz, lw / rw);
     }
 
-    public static Vector4<T> operator *(Vector4<T> left, T right)
+    public static Vec4<T> operator *(Vec4<T> left, T right)
     {
         dynamic lx = left.X, ly = left.Y, lz = left.Z, lw = left.W, r = right;
 
-        return new Vector4<T>(lx * r, ly * r, lz * r, lw * r);
+        return new Vec4<T>(lx * r, ly * r, lz * r, lw * r);
     }
 
-    public static Vector4<T> operator *(Vector4<T> left, Vector4<T> right)
+    public static Vec4<T> operator *(Vec4<T> left, Vec4<T> right)
     {
         dynamic lx = left.X,
             ly = left.Y,
@@ -122,17 +122,17 @@ public struct Vector4<T> :
             rz = right.Z,
             rw = right.W;
 
-        return new Vector4<T>(lx * rx, ly * ry, lz * rz, lw * rw);
+        return new Vec4<T>(lx * rx, ly * ry, lz * rz, lw * rw);
     }
 
-    public static Vector4<T> operator -(Vector4<T> left, T right)
+    public static Vec4<T> operator -(Vec4<T> left, T right)
     {
         dynamic lx = left.X, ly = left.Y, lz = left.Z, lw = left.W, r = right;
 
-        return new Vector4<T>(lx - r, ly - r, lz - r, lw - r);
+        return new Vec4<T>(lx - r, ly - r, lz - r, lw - r);
     }
 
-    public static Vector4<T> operator -(Vector4<T> left, Vector4<T> right)
+    public static Vec4<T> operator -(Vec4<T> left, Vec4<T> right)
     {
         dynamic lx = left.X,
             ly = left.Y,
@@ -143,17 +143,17 @@ public struct Vector4<T> :
             rz = right.Z,
             rw = right.W;
 
-        return new Vector4<T>(lx - rx, ly - ry, lz - rz, lw - rw);
+        return new Vec4<T>(lx - rx, ly - ry, lz - rz, lw - rw);
     }
 
-    public Vector4<T> Clone()
+    public Vec4<T> Clone()
     {
-        return new Vector4<T>(X, Y, Z, W);
+        return new Vec4<T>(X, Y, Z, W);
     }
 
-    public static implicit operator Vector4<T>(T data)
+    public static implicit operator Vec4<T>(T data)
     {
-        return new Vector4<T>(data);
+        return new Vec4<T>(data);
     }
 
     public IEnumerator<T> GetEnumerator() => new ParamsEnumerator<T>(X, Y, Z, W);

@@ -30,7 +30,7 @@ public class RootLayout(CompositeView container) : InfiniteChildrenLayout
         }
     }
 
-    public override Vector2<float> Apply(Vector2<float> availableSpace)
+    public override Vec2<float> Apply(Vec2<float> availableSpace)
     {
         foreach (var slot in GetSlots())
         {
@@ -41,7 +41,7 @@ public class RootLayout(CompositeView container) : InfiniteChildrenLayout
         return availableSpace;
     }
 
-    public override Vector2<float> ComputeDesiredContentSize()
+    public override Vec2<float> ComputeDesiredContentSize()
     {
         return 0.0f;
     }

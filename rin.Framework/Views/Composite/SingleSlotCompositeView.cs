@@ -70,14 +70,14 @@ public abstract class SingleSlotCompositeView : CompositeView
         return [];
     }
     
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
             return slot.Child.GetDesiredSize();
         }
 
-        return new Vector2<float>();
+        return new Vec2<float>();
     }
 
     public override void OnChildInvalidated(View child, InvalidationType invalidation)

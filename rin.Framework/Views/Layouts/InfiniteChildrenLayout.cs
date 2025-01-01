@@ -99,8 +99,8 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 
     public abstract void OnSlotUpdated(ISlot slot);
 
-    public abstract Vector2<float> Apply(Vector2<float> availableSpace);
-    public abstract Vector2<float> ComputeDesiredContentSize();
+    public abstract Vec2<float> Apply(Vec2<float> availableSpace);
+    public abstract Vec2<float> ComputeDesiredContentSize();
 
     public ISlot? FindSlot(View view)
     {

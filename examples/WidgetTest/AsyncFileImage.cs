@@ -53,7 +53,7 @@ public class AsyncFileImage : CoverImage
     //     base.Draw(frame, info);
     // }
 
-    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
     {
         if (TextureId == -1)
         {
@@ -63,14 +63,14 @@ public class AsyncFileImage : CoverImage
         return base.LayoutContent(availableSpace);
     }
 
-    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
     {
         
         if (TextureId == -1)
         {
             var opacity = (float)Math.Abs(Math.Sin(SRuntime.Get().GetTimeSeconds() * 4.0f)) * 0.7f; 
             drawCommands.AddRect(transform, GetContentSize(),
-                color: new Vector4<float>(new Vector3<float>(0.8f),opacity),BorderRadius);
+                color: new Vec4<float>(new Vec3<float>(0.8f),opacity),BorderRadius);
         }
         else
         {

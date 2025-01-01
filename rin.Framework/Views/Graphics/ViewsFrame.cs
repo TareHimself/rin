@@ -7,13 +7,13 @@ namespace rin.Framework.Views.Graphics;
 [StructLayout(LayoutKind.Sequential)]
 public struct SimpleRectPush
 {
-    public Matrix3 Transform;
+    public Mat3 Transform;
 
-    public Vector2<float> Size;
+    public Vec2<float> Size;
 
-    public Vector4<float> BorderRadius;
+    public Vec4<float> BorderRadius;
 
-    public Vector4<float> Color;
+    public Vec4<float> Color;
 }
 
 public class ViewsFrame
@@ -24,7 +24,7 @@ public class ViewsFrame
     public string ActivePass = "";
     public bool IsMainPassActive => ActivePass == Surface.MainPassId;
     public bool IsAnyPassActive => ActivePass.Length != 0;
-    public Matrix4 Projection;
+    public Mat4 Projection;
 
     public readonly IDeviceImage DrawImage;
     public readonly IDeviceImage CopyImage;

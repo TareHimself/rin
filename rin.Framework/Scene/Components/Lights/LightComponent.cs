@@ -1,18 +1,16 @@
-﻿using rin.Framework.Core.Math;
-using rin.Framework.World.Components;
+﻿using JetBrains.Annotations;
+using rin.Framework.Core.Math;
+using rin.Framework.Scene.Entities;
 
 namespace rin.Framework.Scene.Components.Lights;
 
-public abstract class LightComponent : SceneComponent
+[Component(typeof (TransformComponent))]
+public abstract class LightComponent(Entity owner) : Component(owner)
 {
-    public float Intensity = 0.0f;
-    public float Radius = 0.0f;
-    public Vector4<float> Color = 1.0f;
-    
-
-    public override void Init()
-    {
-        base.Init();
-    }
-
+    [PublicAPI]
+    public float Intensity  { get; set; }
+    [PublicAPI]
+    public float Radius { get; set; }
+    [PublicAPI]
+    public Vec4<float> Color { get; set; }
 }

@@ -13,7 +13,7 @@ public sealed class ViewsPass(Surface surface,FinalDrawCommand[] commands) : IPa
     private uint _copyImageHandle;
     private uint _stencilImageHandle;
     private uint _bufferResourceHandle;
-    private readonly Vector2<uint> _drawSize = surface.GetDrawSize().Cast<uint>();
+    private readonly Vec2<uint> _drawSize = surface.GetDrawSize().Cast<uint>();
     private ulong _memoryNeeded = 0;
     private readonly List<Pair<ulong, ulong>> _offsets = [];
     public void Dispose()
@@ -264,7 +264,7 @@ public sealed class ViewsPass(Surface surface,FinalDrawCommand[] commands) : IPa
         unsafe
         {
             fixed (VkClearColorValue* pColor = new[]
-                       { SGraphicsModule.MakeClearColorValue(new Vector4<float>(0.0f, 0.0f, 0.0f, 0.0f)) })
+                       { SGraphicsModule.MakeClearColorValue(new Vec4<float>(0.0f, 0.0f, 0.0f, 0.0f)) })
             {
                 fixed (VkImageSubresourceRange* pRanges = new[]
                            { SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT) })

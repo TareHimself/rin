@@ -113,11 +113,11 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
         }
     }
     
-    protected virtual Vector2<float> ArrangeContentRow(Vector2<float> availableSpace)
+    protected virtual Vec2<float> ArrangeContentRow(Vec2<float> availableSpace)
     {
-        var offset = new Vector2<float>(0.0f);
+        var offset = new Vec2<float>(0.0f);
         
-        var space = new Vector2<float>(float.PositiveInfinity,availableSpace.Y);
+        var space = new Vec2<float>(float.PositiveInfinity,availableSpace.Y);
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var slots = GetSlots().ToArray();
@@ -127,7 +127,7 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
             var widget = slot.Child;
             widget.Offset = offset;
                     
-            var widgetSize = widget.ComputeSize(new Vector2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
+            var widgetSize = widget.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
                     
             offset.X += widgetSize.X;
             mainAxisSize += widgetSize.X;
@@ -143,14 +143,14 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
             HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
         }
 
-        return new Vector2<float>(mainAxisSize, crossAxisSize);
+        return new Vec2<float>(mainAxisSize, crossAxisSize);
     }
     
-    protected virtual Vector2<float> ArrangeContentColumn(Vector2<float> availableSpace)
+    protected virtual Vec2<float> ArrangeContentColumn(Vec2<float> availableSpace)
     {
-        var offset = new Vector2<float>(0.0f);
+        var offset = new Vec2<float>(0.0f);
         
-        var space = new Vector2<float>(availableSpace.X,float.PositiveInfinity);
+        var space = new Vec2<float>(availableSpace.X,float.PositiveInfinity);
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
                     
@@ -162,7 +162,7 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
             var widget = slot.Child;
             widget.Offset = offset;
                     
-            var widgetSize = widget.ComputeSize(new Vector2<float>(GetSlotCrossAxisSize(slot,space.X),space.Y));
+            var widgetSize = widget.ComputeSize(new Vec2<float>(GetSlotCrossAxisSize(slot,space.X),space.Y));
                     
             offset.Y += widgetSize.Y;
             mainAxisSize += widgetSize.Y;
@@ -178,11 +178,11 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
             HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
         }
 
-        return new Vector2<float>(crossAxisSize,mainAxisSize);
+        return new Vec2<float>(crossAxisSize,mainAxisSize);
     }
 
     
-    public override Vector2<float> Apply(Vector2<float> availableSpace)
+    public override Vec2<float> Apply(Vec2<float> availableSpace)
     {
         return _axis switch
         {
@@ -198,18 +198,18 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
     {
         _axis = axis;
     }
-    public override Vector2<float> ComputeDesiredContentSize()
+    public override Vec2<float> ComputeDesiredContentSize()
     {
         return GetAxis() switch
         {
-            Axis.Row => GetSlots().Aggregate(new Vector2<float>(), (size, slot) =>
+            Axis.Row => GetSlots().Aggregate(new Vec2<float>(), (size, slot) =>
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.X += slotSize.X;
                 size.Y = System.Math.Max(size.Y, slotSize.Y);
                 return size;
             }),
-            Axis.Column => GetSlots().Aggregate(new Vector2<float>(), (size, slot) =>
+            Axis.Column => GetSlots().Aggregate(new Vec2<float>(), (size, slot) =>
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.Y += slotSize.Y;

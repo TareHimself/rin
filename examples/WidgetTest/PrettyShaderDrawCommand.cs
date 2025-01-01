@@ -9,17 +9,17 @@ using rin.Framework.Views.Graphics.Commands;
 
 namespace WidgetTest;
 
-public class PrettyShaderDrawCommand(Matrix3 transform,Vector2<float> size,bool hovered) : CustomCommand
+public class PrettyShaderDrawCommand(Mat3 transform,Vec2<float> size,bool hovered) : CustomCommand
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     struct Data
     {
-        public required Matrix4 Projection;
-        public required Vector2<float> ScreenSize;
-        public required Matrix3 Transform;
-        public required Vector2<float> Size;
+        public required Mat4 Projection;
+        public required Vec2<float> ScreenSize;
+        public required Mat3 Transform;
+        public required Vec2<float> Size;
         public required float Time;
-        public required Vector2<float> Center;
+        public required Vec2<float> Center;
     }
     public override bool WillDraw => true;
 

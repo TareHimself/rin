@@ -106,9 +106,9 @@ public partial class SdfTextRenderer : Disposable, IGlyphRenderer
         return _gen.GenerateMtsdf(angleThreshold,pixelRange);
     }
 
-    private static Vector2<float> ToNative(Vector2 v)
+    private static Vec2<float> ToNative(Vector2 v)
     {
-        return new Vector2<float>(v.X, v.Y);
+        return new Vec2<float>(v.X, v.Y);
     }
 
     protected override void OnDispose(bool isManual)

@@ -17,13 +17,13 @@ public class Root : MultiSlotCompositeView<Slot>
         _layout = new RootLayout(this);
     }
     
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
         return _layout.ComputeDesiredContentSize();
     }
 
 
-    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
     {
         return _layout.Apply(availableSpace);
     }

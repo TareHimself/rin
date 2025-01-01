@@ -132,7 +132,7 @@ public class TrackPlayer : Overlay
         _endTimeText.Content = FormatTime(stream.Length);
         Padding = 10.0f;
         FetchCover().ConfigureAwait(false);
-        Scale = new Vector2<float>(0.0f, 1.0f);
+        Scale = new Vec2<float>(0.0f, 1.0f);
     }
 
     private async Task FetchCover()
@@ -187,7 +187,7 @@ public class TrackPlayer : Overlay
             $"{((int)Math.Floor(secs / 60)).ToString().PadLeft(2, '0')}:{((int)(secs % 60)).ToString().PadLeft(2, '0')}";
     }
 
-    public override void Collect(Matrix3 transform, Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Rect clip, DrawCommands drawCommands)
     {
         _currentTimeText.Content = FormatTime(_stream.Position);
         base.Collect(transform,clip, drawCommands);
@@ -213,7 +213,7 @@ public class TrackPlayer : Overlay
         base.OnCursorEnter(e);
         if (_loaded)
         {
-            this.TranslateTo(new Vector2<float>(40.0f, 0.0f), 0.2,
+            this.TranslateTo(new Vec2<float>(40.0f, 0.0f), 0.2,
                 easingFunction: EasingFunctions.EaseInOutCubic);
         }
     }
@@ -223,12 +223,12 @@ public class TrackPlayer : Overlay
         base.OnCursorLeave(e);
         if (_loaded)
         {
-            this.TranslateTo(new Vector2<float>(0.0f, 0.0f), 0.2,
+            this.TranslateTo(new Vec2<float>(0.0f, 0.0f), 0.2,
                 easingFunction: EasingFunctions.EaseInOutCubic);
         }
     }
 
-    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
     {
         return base.LayoutContent(availableSpace);
     }

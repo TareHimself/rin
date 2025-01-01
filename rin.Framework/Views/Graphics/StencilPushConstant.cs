@@ -6,6 +6,6 @@ namespace rin.Framework.Views.Graphics;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public struct StencilPushConstant
 {
-    public Matrix4 Projection;
+    public Mat4 Projection;
     public ulong data;
 }

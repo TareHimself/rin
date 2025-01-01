@@ -57,7 +57,7 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
         }
     }
 
-    public override Vector2<float> Apply(Vector2<float> availableSpace)
+    public override Vec2<float> Apply(Vec2<float> availableSpace)
     {
         if (SelectedSlot is { } slot)
         {
@@ -68,7 +68,7 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
         return availableSpace;
     }
 
-    public override Vector2<float> ComputeDesiredContentSize()
+    public override Vec2<float> ComputeDesiredContentSize()
     {
         return SelectedSlot?.Child.GetDesiredSize() ?? 0.0f;
     }

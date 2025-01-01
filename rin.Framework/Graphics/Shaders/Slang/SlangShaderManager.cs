@@ -9,7 +9,7 @@ public class SlangShaderManager : IShaderManager
     }
 
     public event Action? OnBeforeDispose;
-    public Task<CompiledShader> Compile(IShader shader)
+    public Task Compile(IShader shader)
     {
         throw new NotImplementedException();
     }

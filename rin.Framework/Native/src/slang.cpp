@@ -37,7 +37,7 @@ Session::Session(const SessionBuilder* builder)
     GLOBAL_SESSION->createSession(sessionDesc,session.writeRef()); 
 }
 
-EXPORT_IMPL SessionBuilder* slangSessionBuilderCreate()
+EXPORT_IMPL SessionBuilder* slangSessionBuilderNew()
 {
     if(!GLOBAL_SESSION)
     {
@@ -46,9 +46,55 @@ EXPORT_IMPL SessionBuilder* slangSessionBuilderCreate()
     return new SessionBuilder();
 }
 
-void slangSessionBuilderDestroy(const SessionBuilder* builder)
+void slangSessionBuilderFree(const SessionBuilder* builder)
 {
     delete builder;
+}
+Module* slangSessionLoadModuleFromSourceString(const Session* session, const char* moduleName, const char* path, const char* string, Blob* outDiagnostics)
+{
+    Slang::ComPtr<slang::IBlob> diagnostics;
+    Slang::ComPtr<slang::IModule> module;
+    module = session->session->loadModuleFromSourceString(moduleName,path,string,diagnostics.writeRef());
+    if(outDiagnostics)
+    {
+        outDiagnostics->blob = diagnostics;
+    }
+    
+    return new Module{module};
+}
+
+Component* slangSessionCreateComposedProgram(const Session* session, Module* module, EntryPoint* entryPoint, Blob* outDiagnostics)
+{
+    std::array<slang::IComponentType*,2> componentTypes =
+                {
+        module->module,
+        entryPoint->entryPoint
+    };
+    Slang::ComPtr<slang::IComponentType> composedProgram;
+    
+    Slang::ComPtr<slang::IBlob> diagnostics;
+    
+    auto operationResult = session->session->createCompositeComponentType(
+        componentTypes.data(),
+        componentTypes.size(),
+        composedProgram.writeRef(),
+        diagnostics.writeRef());
+
+    if(outDiagnostics)
+    {
+        outDiagnostics->blob = diagnostics;
+    }
+    
+    if(SLANG_FAILED(operationResult))
+    {
+        return nullptr;
+    }
+
+    return new Component{composedProgram};
+}
+void slangSessionFree(const Session* session)
+{
+    delete session;
 }
 
 EXPORT_IMPL void slangSessionBuilderAddTargetSpirv(SessionBuilder* builder)
@@ -77,153 +123,93 @@ EXPORT_IMPL void slangSessionBuilderAddSearchPath(SessionBuilder* builder, const
     builder->searchPaths.emplace_back(path);
 }
 
-EXPORT_IMPL Session* slangSessionCreate(const SessionBuilder* builder)
+EXPORT_IMPL Session* slangSessionBuilderBuild(const SessionBuilder* builder)
 {
     return new Session(builder);
 }
 
-EXPORT_IMPL void slangSessionDestroy(const SessionBuilder* builder)
+EXPORT_IMPL void slangSessionFree(const SessionBuilder* builder)
 {
     delete builder;
 }
-
-EXPORT_IMPL Result* slangSessionCompile(const Session* session, const char* moduleName, const char* modulePath, const char* data, const char* entry)
+EntryPoint* slangModuleFindEntryPointByName(const Module* module, const char* entryPointName)
 {
-    const auto result = new Result();
-    
-    Slang::ComPtr<slang::IModule> slangModule;
-    {
-        Slang::ComPtr<slang::IBlob> diagnostics{};
-        // const char* moduleName = "shortest";
-        // const char* modulePath = "shortest.slang";
-        slangModule = session->session->loadModuleFromSourceString(moduleName,modulePath,data,diagnostics.writeRef());
-        
-        if(diagnostics)
-        {
-            result->diagnostics.emplace_back(static_cast<const char *>(diagnostics->getBufferPointer()));
-        }
-        
-        if (!slangModule)
-        {
-            result->diagnostics.emplace_back("failed to load module");
-            return result;
-        }
-    }
-    
     Slang::ComPtr<slang::IEntryPoint> entryPoint;
-    {
-        slangModule->findEntryPointByName(entry, entryPoint.writeRef());
-        if (!entryPoint)
-        {
-            result->diagnostics.emplace_back("Failed to find entry point");
-            return result;
-        }
-    }
+    module->module->findEntryPointByName(entryPointName,entryPoint.writeRef());
     
-    std::array<slang::IComponentType*, 2> componentTypes =
-        {
-        slangModule,
-        entryPoint
-    };
-    
-    Slang::ComPtr<slang::IComponentType> composedProgram;
+    if(entryPoint)
     {
-        Slang::ComPtr<slang::IBlob> diagnostics;
-        auto operationResult = session->session->createCompositeComponentType(
-            componentTypes.data(),
-            componentTypes.size(),
-            composedProgram.writeRef(),
-            diagnostics.writeRef());
-        
-        if(diagnostics)
-        {
-            result->diagnostics.emplace_back(static_cast<const char *>(diagnostics->getBufferPointer()));
-        }
-        
-        if(SLANG_FAILED(operationResult))
-        {
-            result->diagnostics.emplace_back("Failed to create composite component");
-            return result;
-        }
-    }
-    
-    Slang::ComPtr<slang::IComponentType> linkedProgram;
-    {
-        Slang::ComPtr<slang::IBlob> diagnostics;
-        auto operationResult = composedProgram->link(
-            linkedProgram.writeRef(),
-            diagnostics.writeRef());
-
-        if(diagnostics)
-        {
-            result->diagnostics.emplace_back(static_cast<const char *>(diagnostics->getBufferPointer()));
-        }
-        
-        if(SLANG_FAILED(operationResult))
-        {
-            result->diagnostics.emplace_back("Failed to link");
-            return result;
-        }
-    }
-    
-    Slang::ComPtr<slang::IBlob> generatedCode;
-    {
-        Slang::ComPtr<slang::IBlob> diagnostics;
-        auto operationResult = linkedProgram->getEntryPointCode(
-            0, // entryPointIndex
-            0, // targetIndex
-            result->data.writeRef(),
-            diagnostics.writeRef());
-
-        //linkedProgram->getLayout()->toJson(generatedCode.writeRef());
-        
-        if(diagnostics)
-        {
-            result->diagnostics.emplace_back(static_cast<const char *>(diagnostics->getBufferPointer()));
-        }
-
-        if(SLANG_FAILED(operationResult))
-        {
-            result->diagnostics.emplace_back("Failed to generate code");
-            return result;
-        }
-    }
-
-    return result;
-}
-
-EXPORT_IMPL void slangResultDestroy(const Result* result)
-{
-    delete result;
-}
-
-EXPORT_IMPL int slangResultGetDiagnosticsCount(const Result* result)
-{
-    return static_cast<int>(result->diagnostics.size());
-}
-
-EXPORT_IMPL char* slangResultGetDiagnostic(const Result* result, int index)
-{
-    return const_cast<char*>(result->diagnostics[index].data());
-}
-
-EXPORT_IMPL void* slangResultGetPointer(const Result* result)
-{
-    if(result->data)
-    {
-        return const_cast<void*>(result->data->getBufferPointer());
+        return new EntryPoint{entryPoint};
     }
     
     return nullptr;
 }
-
-EXPORT_IMPL int slangResultGetSize(const Result* result)
+void slangModuleFree(const Module* module)
 {
-    if(result->data)
+    delete module;
+}
+
+Blob* slangComponentGetEntryPointCode(const Component* component, int entryPointIndex, int targetIndex, Blob * outDiagnostics)
+{
+    Slang::ComPtr<slang::IBlob> code;
+    
+    Slang::ComPtr<slang::IBlob> diagnostics;
+    
+    component->component->getEntryPointCode(entryPointIndex,targetIndex,code.writeRef(),diagnostics.writeRef());
+    
+    if(outDiagnostics)
     {
-        return static_cast<int>(result->data->getBufferSize());
+        outDiagnostics->blob = diagnostics;
     }
     
-    return 0;
+    return new Blob{code};
+}
+Component* slangComponentLink(const Component* component, Blob* outDiagnostics)
+{
+    Slang::ComPtr<slang::IComponentType> outComponent;
+    
+    Slang::ComPtr<slang::IBlob> diagnostics;
+    
+    component->component->link(outComponent.writeRef(),diagnostics.writeRef());
+    
+    if(outDiagnostics)
+    {
+        outDiagnostics->blob = diagnostics;
+    }
+    
+    return new Component{outComponent};
+}
+
+Blob* slangComponentToLayoutJson(const Component* component)
+{
+    Slang::ComPtr<slang::IBlob> code;
+    
+    component->component->getLayout()->toJson(code.writeRef());
+
+    return new Blob{code};
+}
+
+void slangComponentFree(const Component* component)
+{
+    delete component;
+}
+Blob* slangBlobNew()
+{
+    return new Blob{};
+}
+
+int slangBlobGetSize(const Blob* blob)
+{
+    return static_cast<int>(blob->blob->getBufferSize());
+}
+
+void* slangBlobGetPointer(const Blob* blob)
+{
+    return const_cast<void*>(blob->blob->getBufferPointer());
+}
+
+void slangBlobFree(const Blob* blob)
+{
+    delete blob;
 }
 

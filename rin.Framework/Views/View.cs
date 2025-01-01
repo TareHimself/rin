@@ -11,20 +11,20 @@ namespace rin.Framework.Views;
 
 public abstract partial class View : Disposable, IAnimatable
 {
-    private Vector2<float>? _cachedDesiredSize;
+    private Vec2<float>? _cachedDesiredSize;
     private Transform2d _transform = new();
-    private Vector2<float> _offset = 0.0f;
-    private Vector2<float> _size = 0.0f;
-    private Vector2<float> _pivot = 0.0f;
+    private Vec2<float> _offset = 0.0f;
+    private Vec2<float> _size = 0.0f;
+    private Vec2<float> _pivot = 0.0f;
     private readonly Padding _padding = new();
-    private readonly Atomic<Matrix3?> _cachedRelativeTransform = Matrix3.Identity;
+    private readonly Atomic<Mat3?> _cachedRelativeTransform = Mat3.Identity;
     
     /// <summary>
     /// The offset of this widget in parent space
     /// </summary>
-    public Vector2<float> Offset
+    public Vec2<float> Offset
     {
-        get => new Vector2<float>(_offset.X, _offset.Y);
+        get => new Vec2<float>(_offset.X, _offset.Y);
         set
         {
             _offset.X = value.X;
@@ -36,9 +36,9 @@ public abstract partial class View : Disposable, IAnimatable
     /// <summary>
     /// The size of this widget in parent space
     /// </summary>
-    public Vector2<float> Size
+    public Vec2<float> Size
     {
-        get => new Vector2<float>(_size.X, _size.Y);
+        get => new Vec2<float>(_size.X, _size.Y);
         set
         {
             _size.X = value.X;
@@ -50,9 +50,9 @@ public abstract partial class View : Disposable, IAnimatable
     /// <summary>
     /// The pivot used to render this widget. Affects <see cref="Angle" /> and <see cref="Scale" />.
     /// </summary>
-    public Vector2<float> Pivot
+    public Vec2<float> Pivot
     {
-        get => new Vector2<float>(_pivot.X, _pivot.Y);
+        get => new Vec2<float>(_pivot.X, _pivot.Y);
         set
         {
             _pivot.X = value.X;
@@ -64,9 +64,9 @@ public abstract partial class View : Disposable, IAnimatable
     /// <summary>
     /// The translation of this widget in parent space
     /// </summary>
-    public Vector2<float> Translate
+    public Vec2<float> Translate
     {
-        get => new Vector2<float>(_transform.Translate.X, _transform.Translate.Y);
+        get => new Vec2<float>(_transform.Translate.X, _transform.Translate.Y);
         set
         {
             _transform.Translate.X = value.X;
@@ -78,9 +78,9 @@ public abstract partial class View : Disposable, IAnimatable
     /// <summary>
     /// The scale of this widget in parent space
     /// </summary>
-    public Vector2<float> Scale
+    public Vec2<float> Scale
     {
-        get => new Vector2<float>(_transform.Scale.X, _transform.Scale.Y);
+        get => new Vec2<float>(_transform.Scale.X, _transform.Scale.Y);
         set
         {
             _transform.Scale.X = value.X;
@@ -173,9 +173,9 @@ public abstract partial class View : Disposable, IAnimatable
     /// <param name="availableSpace"></param>
     /// <param name="fill">If true will set <see cref="Size"/> to <see cref="availableSpace"/> irrespective of the space taken by content</param>
     /// <returns></returns>
-    public Vector2<float> ComputeSize(Vector2<float> availableSpace, bool fill = false)
+    public Vec2<float> ComputeSize(Vec2<float> availableSpace, bool fill = false)
     {
-        var padding = new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        var padding = new Vec2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
         var contentSize = LayoutContent(availableSpace - padding) + padding;
         var sizeResult = (fill ? availableSpace : contentSize).FiniteOr();
         return Size = sizeResult;
@@ -186,29 +186,29 @@ public abstract partial class View : Disposable, IAnimatable
     /// </summary>
     /// <param name="availableSpace"></param>
     /// <returns></returns>
-    protected abstract Vector2<float> LayoutContent(Vector2<float> availableSpace);
+    protected abstract Vec2<float> LayoutContent(Vec2<float> availableSpace);
 
     /// <summary>
     ///     Computes the relative/local transformation matrix for this widget
     /// </summary>
     /// <returns></returns>
-    public Matrix3 ComputeRelativeTransform()
+    public Mat3 ComputeRelativeTransform()
     {
         if (_cachedRelativeTransform.Value is { } cached)
         {
             return cached;
         }
 
-        var rotation = Matrix3.Identity.Scale(Scale).RotateDeg(Angle).Translate(Size * Pivot * -1.0f);
-        var transform = Matrix3.Identity.Translate(Offset + Translate) * rotation;
+        var rotation = Mat3.Identity.Scale(Scale).RotateDeg(Angle).Translate(Size * Pivot * -1.0f);
+        var transform = Mat3.Identity.Translate(Offset + Translate) * rotation;
         
         _cachedRelativeTransform.Value = transform;
         return transform;
     }
     
-    public Matrix3 ComputeAbsoluteTransform()
+    public Mat3 ComputeAbsoluteTransform()
     {
-        var parentTransform = Parent?.ComputeAbsoluteTransform() ?? Matrix3.Identity;
+        var parentTransform = Parent?.ComputeAbsoluteTransform() ?? Mat3.Identity;
         return ComputeRelativeTransform() * parentTransform;
     }
 
@@ -251,7 +251,7 @@ public abstract partial class View : Disposable, IAnimatable
     }
 
 
-    public virtual bool NotifyCursorDown(CursorDownEvent e, Matrix3 transform)
+    public virtual bool NotifyCursorDown(CursorDownEvent e, Mat3 transform)
     {
         if (IsSelfHitTestable)
             if (OnCursorDown(e))
@@ -269,7 +269,7 @@ public abstract partial class View : Disposable, IAnimatable
         OnCursorUp(e);
     }
 
-    public virtual void NotifyCursorEnter(CursorMoveEvent e, Matrix3 transform, List<View> items)
+    public virtual void NotifyCursorEnter(CursorMoveEvent e, Mat3 transform, List<View> items)
     {
         if (!IsSelfHitTestable) return;
         items.Add(this);
@@ -279,14 +279,14 @@ public abstract partial class View : Disposable, IAnimatable
         OnCursorEnter(e);
     }
 
-    public virtual bool NotifyCursorMove(CursorMoveEvent e, Matrix3 transform)
+    public virtual bool NotifyCursorMove(CursorMoveEvent e, Mat3 transform)
     {
         if (IsSelfHitTestable && OnCursorMove(e)) return true;
 
         return false;
     }
 
-    public virtual bool NotifyScroll(ScrollEvent e, Matrix3 transform)
+    public virtual bool NotifyScroll(ScrollEvent e, Mat3 transform)
     {
         return IsSelfHitTestable && OnScroll(e);
     }
@@ -349,27 +349,27 @@ public abstract partial class View : Disposable, IAnimatable
        // UnBindCursorUp();
     }
     [PublicAPI]
-    public Vector2<float> GetContentSize()
+    public Vec2<float> GetContentSize()
     {
-        return _size - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        return _size - new Vec2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
     [PublicAPI]
-    public Vector2<float> GetDesiredSize()
+    public Vec2<float> GetDesiredSize()
     {
         if (Surface == null) return ComputeDesiredSize();
         
         return _cachedDesiredSize ??= ComputeDesiredSize();
     }
     [PublicAPI]
-    public Vector2<float> GetDesiredContentSize()
+    public Vec2<float> GetDesiredContentSize()
     {
-        return GetDesiredSize() - new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        return GetDesiredSize() - new Vec2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
     
-    protected abstract Vector2<float> ComputeDesiredContentSize();
+    protected abstract Vec2<float> ComputeDesiredContentSize();
 
-    private Vector2<float> ComputeDesiredSize() =>
-        ComputeDesiredContentSize() + new Vector2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+    private Vec2<float> ComputeDesiredSize() =>
+        ComputeDesiredContentSize() + new Vec2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
 
     /// <summary>
     /// Collect draw commands from this widget
@@ -377,7 +377,7 @@ public abstract partial class View : Disposable, IAnimatable
     /// <param name="transform"></param>
     /// <param name="clip"></param>
     /// <param name="drawCommands"></param>
-    public abstract void Collect(Matrix3 transform, Rect clip, DrawCommands drawCommands);
+    public abstract void Collect(Mat3 transform, Rect clip, DrawCommands drawCommands);
 
 
     public virtual bool TryUpdateDesiredSize()
@@ -434,19 +434,19 @@ public abstract partial class View : Disposable, IAnimatable
     public AnimationRunner AnimationRunner { get; init; } = new ();
 
     // ReSharper disable once InconsistentNaming
-    public Rect ComputeAABB(Matrix3 transform)
+    public Rect ComputeAABB(Mat3 transform)
     {
-        var tl = new Vector2<float>(0.0f);
+        var tl = new Vec2<float>(0.0f);
         var br = tl + Size;
-        var tr = new Vector2<float>(br.X, tl.Y);
-        var bl = new Vector2<float>(tl.X, br.Y);
+        var tr = new Vec2<float>(br.X, tl.Y);
+        var bl = new Vec2<float>(tl.X, br.Y);
 
         tl = tl.ApplyTransformation(transform);
         br = br.ApplyTransformation(transform);
         tr = tr.ApplyTransformation(transform);
         bl = bl.ApplyTransformation(transform);
 
-        var p1AABB = new Vector2<float>(
+        var p1AABB = new Vec2<float>(
             System.Math.Min(
                 System.Math.Min(tl.X, tr.X),
                 System.Math.Min(bl.X, br.X)
@@ -456,7 +456,7 @@ public abstract partial class View : Disposable, IAnimatable
                 System.Math.Min(bl.Y, br.Y)
             )
         );
-        var p2AABB = new Vector2<float>(
+        var p2AABB = new Vec2<float>(
             System.Math.Max(
                 System.Math.Max(tl.X, tr.X),
                 System.Math.Max(bl.X, br.X)
@@ -474,19 +474,19 @@ public abstract partial class View : Disposable, IAnimatable
         };
     }
     
-    public bool PointWithin(Matrix3 transform,Vector2<float> point)
+    public bool PointWithin(Mat3 transform,Vec2<float> point)
     {
-        var tl = new Vector2<float>(0.0f);
+        var tl = new Vec2<float>(0.0f);
         var br = tl + Size;
-        var tr = new Vector2<float>(br.X, tl.Y);
-        var bl = new Vector2<float>(tl.X, br.Y);
+        var tr = new Vec2<float>(br.X, tl.Y);
+        var bl = new Vec2<float>(tl.X, br.Y);
 
         tl = tl.ApplyTransformation(transform);
         br = br.ApplyTransformation(transform);
         tr = tr.ApplyTransformation(transform);
         bl = bl.ApplyTransformation(transform);
 
-        var p1AABB = new Vector2<float>(
+        var p1AABB = new Vec2<float>(
             System.Math.Min(
                 System.Math.Min(tl.X, tr.X),
                 System.Math.Min(bl.X, br.X)
@@ -496,7 +496,7 @@ public abstract partial class View : Disposable, IAnimatable
                 System.Math.Min(bl.Y, br.Y)
             )
         );
-        var p2AABB = new Vector2<float>(
+        var p2AABB = new Vec2<float>(
             System.Math.Max(
                 System.Math.Max(tl.X, tr.X),
                 System.Math.Max(bl.X, br.X)

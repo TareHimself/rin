@@ -25,13 +25,13 @@ public class Switcher : MultiSlotCompositeView<Slot>
         _layout = new SwitcherLayout(this);
     }
 
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
-        return SelectedWidget?.GetDesiredSize() ?? new Vector2<float>();
+        return SelectedWidget?.GetDesiredSize() ?? new Vec2<float>();
     }
 
 
-    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
     {
         if (_layout.SelectedSlot is { } slot)
         {

@@ -12,12 +12,12 @@ using rsl;
 using SixLabors.Fonts;
 
 namespace rin.Framework.Views.Content;
-internal struct CachedQuadLayout(int atlas,Matrix3 transform, Vector2<float> size, Vector4<float> uv)
+internal struct CachedQuadLayout(int atlas,Mat3 transform, Vec2<float> size, Vec4<float> uv)
 {
     public readonly int Atlas = atlas;
-    public Matrix3 Transform = transform;
-    public Vector2<float> Size = size;
-    public Vector4<float> UV = uv;
+    public Mat3 Transform = transform;
+    public Vec2<float> Size = size;
+    public Vec4<float> UV = uv;
 }
 
 
@@ -127,14 +127,14 @@ public class TextBox : ContentView
     
     protected bool FontReady => _mtsdf != null && _latestFont != null;
 
-    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
     {
         _cachedLayouts = null;
         Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X : null : null;
         var bounds = GetCharacterBounds(Wrap).ToArray();
         var width = bounds.MaxBy(c => c.Right)?.Right ?? 0.0f;
         var height = bounds.MaxBy(c => c.Bottom)?.Bottom ?? 0.0f;
-        return new Vector2<float>(width,height);
+        return new Vec2<float>(width,height);
     }
 
     protected override void OnDispose(bool isManual)
@@ -198,17 +198,17 @@ public class TextBox : ContentView
         return result;
     }
 
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
-        if (Content.Empty() || _latestFont == null) return new Vector2<float>(0.0f,LineHeight);
+        if (Content.Empty() || _latestFont == null) return new Vec2<float>(0.0f,LineHeight);
         CharacterBounds? last = GetCharacterBounds(cache: false).MaxBy(c => c.Right);
         var lines = Math.Max(1,Content.Split("\n").Length);
         var height = LineHeight * lines;
 
-        return new Vector2<float>(last?.Right ?? 0.0f, height);
+        return new Vec2<float>(last?.Right ?? 0.0f, height);
     }
     
-    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
     {
         if (!FontReady) return;
         if (Content.NotEmpty() && _cachedLayouts == null)
@@ -225,17 +225,17 @@ public class TextBox : ContentView
                 
                 if (atlasId == null) continue;
 
-                var charOffset = new Vector2<float>(bound.X,
+                var charOffset = new Vec2<float>(bound.X,
                     bound.Y);
                 
-                var charSize = new Vector2<float>(bound.Width, bound.Height);
+                var charSize = new Vec2<float>(bound.Width, bound.Height);
                 
                 //if (!charRect.IntersectsWith(drawInfo.Clip)) continue;
                 //if(!charRect.Offset.Within(drawInfo.Clip) && !(charRect.Offset + charRect.Size).Within(drawInfo.Clip)) continue;
 
-                var finalTransform = Matrix3.Identity.Translate(charOffset)
-                    .Translate(new Vector2<float>(0.0f, charSize.Y)).Scale(new Vector2<float>(1.0f, -1.0f));
-                var size = new Vector2<float>(bound.Width, bound.Height);
+                var finalTransform = Mat3.Identity.Translate(charOffset)
+                    .Translate(new Vec2<float>(0.0f, charSize.Y)).Scale(new Vec2<float>(1.0f, -1.0f));
+                var size = new Vec2<float>(bound.Width, bound.Height);
                 var layout = new CachedQuadLayout(atlasId.Value, finalTransform, size, charInfo.Coordinates);
                 layouts.Add(layout);
                 quads.Add(Quad.NewSdf(layout.Atlas,transform * layout.Transform,layout.Size,Color.White,layout.UV));

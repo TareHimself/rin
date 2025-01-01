@@ -4,7 +4,7 @@ namespace rin.Framework.Core.Math;
 
 public static class MathUtils
 {
-    public static Matrix<float> Translate(this Matrix<float> mat, Vector3<float> translation)
+    public static Matrix<float> Translate(this Matrix<float> mat, Vec3<float> translation)
     {
         mat.SetColumn(
             0,
@@ -17,7 +17,7 @@ public static class MathUtils
     }
 
 
-    public static Matrix<float> Scale(this Matrix<float> mat, Vector3<float> scale)
+    public static Matrix<float> Scale(this Matrix<float> mat, Vec3<float> scale)
     {
         mat.SetColumn(0, mat.Column(0).Multiply(scale.X));
         mat.SetColumn(1, mat.Column(1).Multiply(scale.Y));
@@ -25,7 +25,7 @@ public static class MathUtils
         return mat;
     }
 
-    public static Matrix<float> Rotate(this Matrix<float> mat, Quaternion rotation)
+    public static Matrix<float> Rotate(this Matrix<float> mat, Quat rotation)
     {
         // mat.SetColumn(
         //     0,
@@ -47,9 +47,9 @@ public static class MathUtils
         return current + delta;
     }
     
-    public static Vector2<float> InterpolateTo(Vector2<float> begin, Vector2<float> end, float deltaTime, float speed)
+    public static Vec2<float> InterpolateTo(Vec2<float> begin, Vec2<float> end, float deltaTime, float speed)
     {
-        return new Vector2<float>(InterpolateTo(begin.X, end.X, deltaTime, speed),
+        return new Vec2<float>(InterpolateTo(begin.X, end.X, deltaTime, speed),
             InterpolateTo(begin.Y, end.Y, deltaTime, speed));
     }
 
@@ -79,10 +79,10 @@ public static class MathUtils
     /// <param name="alpha">The alpha</param>
     /// <param name="method">An optional method for interpolation</param>
     /// <returns></returns>
-    public static Vector2<float> Interpolate(Vector2<float> begin, Vector2<float> end, float alpha,
+    public static Vec2<float> Interpolate(Vec2<float> begin, Vec2<float> end, float alpha,
         Func<float, float, float, float>? method = null)
     {
-        return new Vector2<float>(Interpolate(begin.X, end.X, alpha, method),
+        return new Vec2<float>(Interpolate(begin.X, end.X, alpha, method),
             Interpolate(begin.Y, end.Y, alpha, method));
     }
 
@@ -95,10 +95,10 @@ public static class MathUtils
     /// <param name="alpha">The alpha</param>
     /// <param name="method">An optional method for interpolation</param>
     /// <returns></returns>
-    public static Vector3<float> Interpolate(Vector3<float> begin, Vector3<float> end, float alpha,
+    public static Vec3<float> Interpolate(Vec3<float> begin, Vec3<float> end, float alpha,
         Func<float, float, float, float>? method = null)
     {
-        return new Vector3<float>(Interpolate(begin.X, end.X, alpha, method),
+        return new Vec3<float>(Interpolate(begin.X, end.X, alpha, method),
             Interpolate(begin.Y, end.Y, alpha, method), Interpolate(begin.Z, end.Z, alpha, method));
     }
 
@@ -111,10 +111,10 @@ public static class MathUtils
     /// <param name="alpha">The alpha</param>
     /// <param name="method">An optional method for interpolation</param>
     /// <returns></returns>
-    public static Vector4<float> Interpolate(Vector4<float> begin, Vector4<float> end, float alpha,
+    public static Vec4<float> Interpolate(Vec4<float> begin, Vec4<float> end, float alpha,
         Func<float, float, float, float>? method = null)
     {
-        return new Vector4<float>(Interpolate(begin.X, end.X, alpha, method),
+        return new Vec4<float>(Interpolate(begin.X, end.X, alpha, method),
             Interpolate(begin.Y, end.Y, alpha, method), Interpolate(begin.Z, end.Z, alpha, method),
             Interpolate(begin.W, end.W, alpha, method));
     }
@@ -128,10 +128,10 @@ public static class MathUtils
     /// <param name="alpha">The alpha</param>
     /// <param name="method">An optional method for interpolation</param>
     /// <returns></returns>
-    public static Quaternion Interpolate(Quaternion begin, Quaternion end, float alpha,
+    public static Quat Interpolate(Quat begin, Quat end, float alpha,
         Func<float, float, float, float>? method = null)
     {
-        return new Quaternion(Interpolate(begin.X, end.X, alpha, method), Interpolate(begin.Y, end.Y, alpha, method),
+        return new Quat(Interpolate(begin.X, end.X, alpha, method), Interpolate(begin.Y, end.Y, alpha, method),
             Interpolate(begin.Z, end.Z, alpha, method), Interpolate(begin.W, end.W, alpha, method));
     }
 }

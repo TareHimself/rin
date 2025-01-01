@@ -44,7 +44,7 @@ public partial class WindowRenderer : Disposable
     public event Action<Frame>? OnDraw;
     public event Action<Frame, VkImage, VkExtent2D>? OnCopy;
 
-    public event Action<Vector2<uint>>? OnResize;
+    public event Action<Vec2<uint>>? OnResize;
 
 
     public WindowRenderer(SGraphicsModule module, IWindow window)
@@ -195,7 +195,7 @@ public partial class WindowRenderer : Disposable
         // }
         DestroySwapchain();
         CreateSwapchain();
-        OnResize?.Invoke(new Vector2<uint>(_swapchainSize.width, _swapchainSize.height));
+        OnResize?.Invoke(new Vec2<uint>(_swapchainSize.width, _swapchainSize.height));
         _resizing = false;
         _resizePending = false;
         return true;

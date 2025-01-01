@@ -11,7 +11,7 @@ public interface IShader : IDisposable
     public Dictionary<string, PushConstant> PushConstants { get; }
 
     public bool Bind(VkCommandBuffer cmd, bool wait = false);
-    public CompiledShader Compile(IShaderManager manager);
+    public void Compile(ICompilationContext context);
     
     public void Init();
     public Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts();

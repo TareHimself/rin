@@ -13,23 +13,23 @@ public class Rect : SingleSlotCompositeView
 {
     
     public Color BackgroundColor = Color.Black;
-    public Vector4<float> BorderRadius = 0.0f;
+    public Vec4<float> BorderRadius = 0.0f;
 
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
             return slot.Child.GetDesiredSize();
         }
 
-        return new Vector2<float>();
+        return new Vec2<float>();
     }
 
-    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
     {
         if (GetSlot() is { } slot)
         {
-            slot.Child.Offset = (new Vector2<float>(0, 0));
+            slot.Child.Offset = (new Vec2<float>(0, 0));
             return slot.Child.ComputeSize(availableSpace);
         }
 
@@ -37,7 +37,7 @@ public class Rect : SingleSlotCompositeView
     }
     
 
-    protected virtual void CollectSelf(Matrix3 transform, DrawCommands drawCommands)
+    protected virtual void CollectSelf(Mat3 transform, DrawCommands drawCommands)
     {
         if (BackgroundColor.A > 0.0f)
         {
@@ -55,7 +55,7 @@ public class Rect : SingleSlotCompositeView
         return [];
     }
 
-    public override void Collect(Matrix3 transform, Views.Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Views.Rect clip, DrawCommands drawCommands)
     {
         if (IsVisible)
         {

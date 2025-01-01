@@ -11,9 +11,9 @@ public abstract class ContentView : View
     /// </summary>
     /// <param name="transform"></param>
     /// <param name="drawCommands"></param>
-    public abstract void CollectContent(Matrix3 transform,DrawCommands drawCommands);
+    public abstract void CollectContent(Mat3 transform,DrawCommands drawCommands);
 
-    public override void Collect(Matrix3 transform, Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Rect clip, DrawCommands drawCommands)
     {
         ((IAnimatable)this).Update();
         
@@ -22,6 +22,6 @@ public abstract class ContentView : View
             return;
         }
         
-        CollectContent(transform.Translate(new Vector2<float>(Padding.Left,Padding.Top)), drawCommands);
+        CollectContent(transform.Translate(new Vec2<float>(Padding.Left,Padding.Top)), drawCommands);
     }
 }

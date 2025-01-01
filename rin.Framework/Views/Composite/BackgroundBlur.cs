@@ -57,7 +57,7 @@ public class BackgroundBlur : SingleSlotCompositeView
 {
     public Color Tint = Color.White;
     public float Strength { get; set; } = 7.0f;
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
@@ -84,7 +84,7 @@ public class BackgroundBlur : SingleSlotCompositeView
     //     }
     // }
 
-    public override void Collect(Matrix3 transform, Views.Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Views.Rect clip, DrawCommands drawCommands)
     {
         if (IsVisible)
         {
@@ -94,7 +94,7 @@ public class BackgroundBlur : SingleSlotCompositeView
         base.Collect(transform,clip, drawCommands);
     }
 
-    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
     {
         if (GetSlot() is { } slot)
         {

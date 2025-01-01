@@ -13,13 +13,13 @@ public class Window : Disposable, IWindow
 
     public IWindow? Parent { get; private set;}
 
-    private Vector2<double>? _lastCursorPosition;
+    private Vec2<double>? _lastCursorPosition;
 
     public bool Focused { get; private set; }
 
     public bool IsFullscreen => NativeMethods.GetWindowFullscreen(_nativePtr) == 1;
 
-    public Vector2<uint> PixelSize;
+    public Vec2<uint> PixelSize;
     
     public event Action? OnDisposed;
     
@@ -125,8 +125,8 @@ public class Window : Disposable, IWindow
 
     private void CursorCallback(nint window, double x, double y)
     {
-        var position = new Vector2<double>(x, y);
-        var delta = _lastCursorPosition == null ? new Vector2<double>(0, 0) : position - _lastCursorPosition.Value;
+        var position = new Vec2<double>(x, y);
+        var delta = _lastCursorPosition == null ? new Vec2<double>(0, 0) : position - _lastCursorPosition.Value;
         _lastCursorPosition = position;
         OnCursorMoved?.Invoke(new CursorMoveEvent
         {
@@ -164,7 +164,7 @@ public class Window : Disposable, IWindow
         {
             Window = this,
             Position = GetCursorPosition(),
-            Delta = new Vector2<double>(dx, dy),
+            Delta = new Vec2<double>(dx, dy),
         });
     }
 
@@ -238,7 +238,7 @@ public class Window : Disposable, IWindow
         });
     }
     
-    public Vector2<double> GetCursorPosition()
+    public Vec2<double> GetCursorPosition()
     {
         var x = 0.0;
         var y = 0.0;
@@ -247,10 +247,10 @@ public class Window : Disposable, IWindow
             NativeMethods.GetMousePosition(_nativePtr,&x,&y);
         }
 
-        return new Vector2<double>(x, y);
+        return new Vec2<double>(x, y);
     }
     
-    public void SetMousePosition(Vector2<double> position)
+    public void SetMousePosition(Vec2<double> position)
     {
         NativeMethods.SetMousePosition(_nativePtr,position.X,position.Y);
     }
@@ -261,9 +261,9 @@ public class Window : Disposable, IWindow
     }
 
 
-    public Vector2<uint> GetPixelSize()
+    public Vec2<uint> GetPixelSize()
     {
-        Vector2<int> result = 0;
+        Vec2<int> result = 0;
         unsafe
         {
             NativeMethods.GetWindowPixelSize(_nativePtr,&result.X,&result.Y);

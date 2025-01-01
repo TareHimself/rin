@@ -263,13 +263,9 @@ internal static partial class NativeMethods
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeMinimizeDelegate minimizeDelegate,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativeDropDelegate dropDelegate);
     
-    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderCreate")]
+    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderNew")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void * SlangSessionBuilderCreate();
-    
-    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderDestroy")]
-    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void SlangSessionBuilderDestroy(void * builder);
+    public static unsafe partial void * SlangSessionBuilderNew();
     
     [LibraryImport(DllName, EntryPoint = "slangSessionBuilderAddTargetSpirv")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
@@ -287,35 +283,67 @@ internal static partial class NativeMethods
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
     public static unsafe partial void SlangSessionBuilderAddSearchPath(void * builder, [MarshalAs(UnmanagedType.BStr)] string path);
     
-    [LibraryImport(DllName, EntryPoint = "slangSessionCreate")]
+    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderBuild")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void * SlangSessionCreate(void * builder);
+    public static unsafe partial void * SlangSessionBuilderBuild(void * builder);
     
-    [LibraryImport(DllName, EntryPoint = "slangSessionDestroy")]
+    [LibraryImport(DllName, EntryPoint = "slangSessionBuilderFree")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void SlangSessionDestroy(void * builder);
+    public static unsafe partial void SlangSessionBuilderFree(void * builder);
     
-    [LibraryImport(DllName, EntryPoint = "slangSessionCompile")]
+    [LibraryImport(DllName, EntryPoint = "slangSessionLoadModuleFromSourceString")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void * SlangSessionCompile(void * session, [MarshalAs(UnmanagedType.BStr)] string moduleName, [MarshalAs(UnmanagedType.BStr)] string modulePath, [MarshalAs(UnmanagedType.BStr)] string data, [MarshalAs(UnmanagedType.BStr)] string entry);
+    public static unsafe partial void * SlangSessionLoadModuleFromSourceString(void * session,[MarshalAs(UnmanagedType.BStr)] string moduleName,[MarshalAs(UnmanagedType.BStr)] string path,[MarshalAs(UnmanagedType.BStr)] string content,void * outDiagnostics);
     
-    [LibraryImport(DllName, EntryPoint = "slangResultDestroy")]
+    [LibraryImport(DllName, EntryPoint = "slangSessionCreateComposedProgram")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void SlangResultDestroy(void * result);
+    public static unsafe partial void * SlangSessionCreateComposedProgram(void * session,void * module,void * entryPoint,void * outDiagnostics);
     
-    [LibraryImport(DllName, EntryPoint = "slangResultGetDiagnosticsCount")]
+    [LibraryImport(DllName, EntryPoint = "slangSessionFree")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial int SlangResultGetDiagnosticsCount(void * result);
+    public static unsafe partial void SlangSessionFree(void * session);
     
-    [LibraryImport(DllName, EntryPoint = "slangResultGetDiagnostic")]
+    [LibraryImport(DllName, EntryPoint = "slangModuleFindEntryPointByName")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial char * SlangResultGetDiagnostic(void * result,int index);
+    public static unsafe partial void * SlangModuleFindEntryPointByName(void * module,[MarshalAs(UnmanagedType.BStr)] string name);
     
-    [LibraryImport(DllName, EntryPoint = "slangResultGetPointer")]
+    [LibraryImport(DllName, EntryPoint = "slangEntryPointFree")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void * SlangResultGetPointer(void * result);
+    public static unsafe partial void SlangEntryPointFree(void * entryPoint);
     
-    [LibraryImport(DllName, EntryPoint = "slangResultGetSize")]
+    [LibraryImport(DllName, EntryPoint = "slangModuleFree")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial int SlangResultGetSize(void * result);
+    public static unsafe partial void SlangModuleFree(void * module);
+    
+    [LibraryImport(DllName, EntryPoint = "slangComponentGetEntryPointCode")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void * SlangComponentGetEntryPointCode(void * component,int entryPointIndex,int targetIndex,void * outDiagnostics);
+    
+    [LibraryImport(DllName, EntryPoint = "slangComponentLink")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void * SlangComponentLink(void * component,void * outDiagnostics);
+    
+    [LibraryImport(DllName, EntryPoint = "slangComponentToLayoutJson")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void * SlangComponentToLayoutJson(void * component);
+    
+    [LibraryImport(DllName, EntryPoint = "slangComponentFree")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void SlangComponentFree(void * component);
+    
+    [LibraryImport(DllName, EntryPoint = "slangBlobNew")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void * SlangBlobNew();
+    
+    [LibraryImport(DllName, EntryPoint = "slangBlobGetSize")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial int SlangBlobGetSize(void * blob);
+    
+    [LibraryImport(DllName, EntryPoint = "slangBlobGetPointer")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void * SlangBlobGetPointer(void * blob);
+    
+    [LibraryImport(DllName, EntryPoint = "slangBlobFree")]
+    [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+    public static unsafe partial void SlangBlobFree(void * blob);
 }

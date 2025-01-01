@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public partial struct StencilClip(
     
-    Vector2<float> size,
-    Matrix3 transform)
+    Vec2<float> size,
+    Mat3 transform)
 {
-    public Matrix3 Transform = transform;
-    public Vector2<float> Size = size; 
+    public Mat3 Transform = transform;
+    public Vec2<float> Size = size; 
 }

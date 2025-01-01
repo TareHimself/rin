@@ -13,18 +13,18 @@ namespace rin.Framework.Views.Graphics.Commands;
 [StructLayout(LayoutKind.Sequential)]
 public struct BlurPushConstants
 {
-    public required Matrix4 Projection;
+    public required Mat4 Projection;
     
-    public required Matrix3 Transform;
+    public required Mat3 Transform;
 
-    public required Vector2<float> Size;
+    public required Vec2<float> Size;
 
     public required float BlurRadius;
 
-    public required Vector4<float> Tint;
+    public required Vec4<float> Tint;
 }
 
-public class BlurCommand(Matrix3 transform, Vector2<float> size,float radius, Vector4<float> tint) : CustomCommand
+public class BlurCommand(Mat3 transform, Vec2<float> size,float radius, Vec4<float> tint) : CustomCommand
 {
     private static string _blurPassId = Guid.NewGuid().ToString();
     private readonly IGraphicsShader _blurRslShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SRuntime.ResourcesDirectory, "shaders", "widgets", "blur.rsl"));

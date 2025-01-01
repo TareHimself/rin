@@ -13,16 +13,16 @@ public static class MathExtensions
     /// <returns></returns>
     public static float FiniteOr(this float val, float other = 0.0f) => float.IsFinite(val) ? val : other;
     
-    public static Vector2<float> FiniteOr(this Vector2<float> val, float x = 0.0f,float y = 0.0f) => new (float.IsFinite(val.X) ? val.X : x,float.IsFinite(val.Y) ? val.Y : y);
+    public static Vec2<float> FiniteOr(this Vec2<float> val, float x = 0.0f,float y = 0.0f) => new (float.IsFinite(val.X) ? val.X : x,float.IsFinite(val.Y) ? val.Y : y);
 
-    public static Vector2<float> Abs(this Vector2<float> self) => new (System.Math.Abs(self.X), System.Math.Abs(self.Y));
+    public static Vec2<float> Abs(this Vec2<float> self) => new (System.Math.Abs(self.X), System.Math.Abs(self.Y));
     
-    public static bool NearlyEquals(this Vector2<float> self, Vector2<float> other,float tolerance = 0.01f)
+    public static bool NearlyEquals(this Vec2<float> self, Vec2<float> other,float tolerance = 0.01f)
     {
         return (self - other).Abs() < tolerance;
     }
     
-    public static double Distance(this Vector2<float> a, Vector2<float> b)
+    public static double Distance(this Vec2<float> a, Vec2<float> b)
     {
         return System.Math.Sqrt(System.Math.Pow((b.X - a.X),2) + System.Math.Pow((b.Y - a.Y),2));
     }

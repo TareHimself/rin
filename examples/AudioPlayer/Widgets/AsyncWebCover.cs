@@ -46,10 +46,10 @@ public class AsyncWebCover : CoverImage
         }
         
         this.Parent?.Parent
-            ?.ScaleTo(new Vector2<float>(1.0f, 1.0f), 1.0f, 0.2f, easingFunction: EasingFunctions.EaseInExpo).After();
+            ?.ScaleTo(new Vec2<float>(1.0f, 1.0f), 1.0f, 0.2f, easingFunction: EasingFunctions.EaseInExpo).After();
     }
 
-    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
     {
         base.CollectContent(transform, drawCommands);
         drawCommands.AddRect(transform, GetContentSize(), Color.Black.Clone(a: 0.5f),BorderRadius);

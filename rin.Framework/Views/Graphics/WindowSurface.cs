@@ -33,7 +33,7 @@ public class WindowSurface : Surface
 {
     private readonly WindowRenderer _renderer;
     public bool Minimized;
-    public Vector2<int> Size;
+    public Vec2<int> Size;
 
     public WindowSurface(WindowRenderer renderer)
     {
@@ -63,7 +63,7 @@ public class WindowSurface : Surface
         _renderer.OnResize += OnRendererResized;
     }
 
-    protected void OnRendererResized(Vector2<uint> size)
+    protected void OnRendererResized(Vec2<uint> size)
     {
         Size = size.Cast<int>();
         Minimized = Size.X == 0 || Size.Y == 0;
@@ -126,17 +126,17 @@ public class WindowSurface : Surface
         if (!Minimized) base.Draw(frame);
     }
 
-    public override Vector2<float> GetCursorPosition()
+    public override Vec2<float> GetCursorPosition()
     {
         return Window.GetCursorPosition().Cast<float>();
     }
 
-    public override void SetCursorPosition(Vector2<float> position)
+    public override void SetCursorPosition(Vec2<float> position)
     {
         Window.SetMousePosition(position.Cast<double>());
     }
 
-    public override Vector2<int> GetDrawSize()
+    public override Vec2<int> GetDrawSize()
     {
         return Size;
     }

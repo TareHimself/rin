@@ -37,24 +37,24 @@ public class Sizer : SingleSlotCompositeView
         }
     }
     
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
             var desiredSize = slot.Child.GetDesiredSize();
-            return new Vector2<float>(WidthOverride ?? desiredSize.X, HeightOverride ?? desiredSize.Y);
+            return new Vec2<float>(WidthOverride ?? desiredSize.X, HeightOverride ?? desiredSize.Y);
         }
 
-        return new Vector2<float>();
+        return new Vec2<float>();
     }
 
-    protected override Vector2<float> ArrangeContent(Vector2<float> availableSpace)
+    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
     {
-        var size = new Vector2<float>(WidthOverride.GetValueOrDefault(availableSpace.X),
+        var size = new Vec2<float>(WidthOverride.GetValueOrDefault(availableSpace.X),
             HeightOverride.GetValueOrDefault(availableSpace.Y));
         if (GetSlot() is { } slot)
         {
-            slot.Child.Offset = (new Vector2<float>(0, 0)); 
+            slot.Child.Offset = (new Vec2<float>(0, 0)); 
             return slot.Child.ComputeSize(size);
         }
 

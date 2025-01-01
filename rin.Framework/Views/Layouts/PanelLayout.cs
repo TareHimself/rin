@@ -10,11 +10,11 @@ namespace rin.Framework.Views.Layouts;
 /// </summary>
 public class PanelSlot : Slot
 {
-    public Vector2<float> Alignment = new(0, 0);
-    public Vector2<float> MaxAnchor = new(0, 0);
-    public Vector2<float> MinAnchor = new(0, 0);
-    public Vector2<float> Offset = new(0, 0);
-    public Vector2<float> Size = new();
+    public Vec2<float> Alignment = new(0, 0);
+    public Vec2<float> MaxAnchor = new(0, 0);
+    public Vec2<float> MinAnchor = new(0, 0);
+    public Vec2<float> Offset = new(0, 0);
+    public Vec2<float> Size = new();
 
     /// <summary>
     ///     Describes how a <see cref="View" /> will be sized and positioned in a <see cref="PanelLayout" />. Supports Anchors
@@ -55,7 +55,7 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
         }
     }
 
-    public override Vector2<float> Apply(Vector2<float> availableSpace)
+    public override Vec2<float> Apply(Vec2<float> availableSpace)
     {
         foreach (var slot in GetSlots())
         {
@@ -65,12 +65,12 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
         return availableSpace;
     }
 
-    public override Vector2<float> ComputeDesiredContentSize()
+    public override Vec2<float> ComputeDesiredContentSize()
     {
         return 0.0f;
     }
     
-    protected void LayoutSlot(ISlot slot,Vector2<float> panelSize)
+    protected void LayoutSlot(ISlot slot,Vec2<float> panelSize)
     {
         if (slot is PanelSlot asPanelSlot)
         {
@@ -81,7 +81,7 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
 
             var widgetSize = widget.GetDesiredSize();
             
-            var wSize = new Vector2<float>
+            var wSize = new Vec2<float>
             {
                 X = asPanelSlot.SizeToContent && noOffsetX ? widgetSize.X : asPanelSlot.Size.X,
                 Y = asPanelSlot.SizeToContent && noOffsetY ? widgetSize.Y: asPanelSlot.Size.Y

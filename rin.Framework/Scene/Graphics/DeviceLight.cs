@@ -4,7 +4,7 @@ namespace rin.Framework.Scene.Graphics;
 
 public struct DeviceLight
 {
-    public Vector4<float> Location;
-    public Vector4<float> Direction;
-    public Vector4<float> Color;
+    public Vec4<float> Location;
+    public Vec4<float> Direction;
+    public Vec4<float> Color;
 }

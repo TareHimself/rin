@@ -43,9 +43,9 @@ public class MainPanel : Panel
                     BackgroundColor = Color.Black.Clone(a: 0.7f)
                 },
                 SizeToContent = true,
-                MinAnchor = new Vector2<float>(1.0f, 0.0f),
-                MaxAnchor = new Vector2<float>(1.0f, 0.0f),
-                Alignment = new Vector2<float>(1.0f, 0.0f)
+                MinAnchor = new Vec2<float>(1.0f, 0.0f),
+                MaxAnchor = new Vec2<float>(1.0f, 0.0f),
+                Alignment = new Vec2<float>(1.0f, 0.0f)
             },
             new PanelSlot
             {

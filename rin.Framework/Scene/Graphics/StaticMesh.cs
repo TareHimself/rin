@@ -53,7 +53,7 @@ public class StaticMesh : Reservable, IStaticMesh
     // UV in last values of each i.e. U = Location.W, V = Normal.W
     public struct Vertex
     {
-        public Vector4<float> Location;
-        public Vector4<float> Normal;
+        public Vec4<float> Location;
+        public Vec4<float> Normal;
     }
 }

@@ -31,9 +31,9 @@ public class OverlayLayout(CompositeView container) : InfiniteChildrenLayout
         }
     }
     
-    public override Vector2<float> Apply(Vector2<float> availableSpace)
+    public override Vec2<float> Apply(Vec2<float> availableSpace)
     {
-        var dims = new Vector2<float>(0.0f);
+        var dims = new Vec2<float>(0.0f);
         
         // First pass is for widgets with content to figure out their size
         foreach (var slot in GetSlots())
@@ -49,15 +49,15 @@ public class OverlayLayout(CompositeView container) : InfiniteChildrenLayout
         // Second pass is for widgets that adapt to the size of the container
         foreach (var slot in GetSlots())
         {
-            slot.Child.Offset = (new Vector2<float>(0, 0));
+            slot.Child.Offset = (new Vec2<float>(0, 0));
             slot.Child.ComputeSize(dims);
         }
-        return new Vector2<float>(Math.Min(dims.X,availableSpace.X),Math.Min(dims.Y,availableSpace.Y));
+        return new Vec2<float>(Math.Min(dims.X,availableSpace.X),Math.Min(dims.Y,availableSpace.Y));
     }
 
-    public override Vector2<float> ComputeDesiredContentSize()
+    public override Vec2<float> ComputeDesiredContentSize()
     {
-        return GetSlots().Aggregate(new Vector2<float>(), (size, slot) =>
+        return GetSlots().Aggregate(new Vec2<float>(), (size, slot) =>
         {
             var slotSize = slot.Child.GetDesiredSize();
             size.Y = System.Math.Max(size.Y, slotSize.Y);

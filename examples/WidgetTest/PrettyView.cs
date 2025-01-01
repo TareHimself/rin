@@ -15,18 +15,18 @@ public class PrettyView : ContentView
     {
         _createdAt = SRuntime.Get().GetTimeSeconds();
     }
-    protected override Vector2<float> LayoutContent(Vector2<float> availableSpace)
+    protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
     {
         //Translate = availableSpace / 2.0f;
         return availableSpace;
     }
 
-    protected override Vector2<float> ComputeDesiredContentSize()
+    protected override Vec2<float> ComputeDesiredContentSize()
     {
         return 0.0f;
     }
 
-    public override void CollectContent(Matrix3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
     {
         //Angle = (float)(((SRuntime.Get().GetTimeSeconds() * 100.0) - _createdAt) % 360.0);
         drawCommands.Add(new PrettyShaderDrawCommand(transform,GetContentSize(),Parent?.Parent?.Parent?.IsHovered ?? false));
