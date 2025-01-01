@@ -11,15 +11,15 @@ public class SlangComponent : IDisposable
     
     public unsafe void* ToPointer() => _ptr;
     
-    public SlangComponent? GetEntryPointCode(int entryPointIndex,int targetIndex)
+    public SlangBlob? GetEntryPointCode(int entryPointIndex,int targetIndex)
     {
         unsafe
         {
-            return new SlangComponent(NativeMethods.SlangComponentGetEntryPointCode(_ptr, entryPointIndex,targetIndex,null));
+            return new SlangBlob(NativeMethods.SlangComponentGetEntryPointCode(_ptr, entryPointIndex,targetIndex,null));
         }
     }
     
-    public SlangComponent? GetEntryPointCode(int entryPointIndex,int targetIndex, ref SlangBlob outDiagnostics)
+    public SlangComponent? GetEntryPointCode(int entryPointIndex,int targetIndex,SlangBlob outDiagnostics)
     {
         unsafe
         {
@@ -35,7 +35,7 @@ public class SlangComponent : IDisposable
         }
     }
     
-    public SlangComponent? Link(ref SlangBlob outDiagnostics)
+    public SlangComponent? Link(SlangBlob outDiagnostics)
     {
         unsafe
         {

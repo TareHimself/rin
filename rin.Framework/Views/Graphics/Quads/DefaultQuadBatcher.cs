@@ -20,7 +20,7 @@ public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         public ulong Buffer;
     }
 
-    private readonly IGraphicsShader _batchShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SRuntime.ResourcesDirectory, "shaders", "widgets", "batch.rsl"));
+    private readonly IGraphicsShader _batchShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SGraphicsModule.ShadersDirectory ,"views", "batch.slang"));
     
     protected override IGraphicsShader GetShader() => _batchShader;
 

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "rin.Framework": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

@@ -24,9 +24,12 @@ public class SlangBlob : IDisposable
         }
     }
     
-    public unsafe void * GetDataPointer()
+    public IntPtr GetDataPointer()
     {
-        return NativeMethods.SlangBlobGetPointer(_ptr);
+        unsafe
+        {
+            return new IntPtr(NativeMethods.SlangBlobGetPointer(_ptr));
+        }
     }
     private void ReleaseUnmanagedResources()
     {

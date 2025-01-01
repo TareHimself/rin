@@ -87,8 +87,8 @@ EXPORT_DECL void slangSessionBuilderAddSearchPath(SessionBuilder * builder, cons
 EXPORT_DECL Session * slangSessionBuilderBuild(const SessionBuilder * builder);
 EXPORT_DECL void slangSessionBuilderFree(const SessionBuilder * builder);
 
-EXPORT_DECL Module * slangSessionLoadModuleFromSourceString(const Session * session, const char * moduleName, const char * path, const char * string,Blob * outDiagnostics);
-EXPORT_DECL Component * slangSessionCreateComposedProgram(const Session * session,Module * module,EntryPoint * entryPoint,Blob * outDiagnostics);
+EXPORT_DECL Module * slangSessionLoadModuleFromSourceString(const Session * session, char * moduleName,char * path,char * string,Blob * outDiagnostics);
+EXPORT_DECL Component * slangSessionCreateComposedProgram(const Session * session, Module * module, EntryPoint** entryPoints, int entryPointsCount, Blob * outDiagnostics);
 EXPORT_DECL void slangSessionFree(const Session * session);
 
 EXPORT_DECL EntryPoint * slangModuleFindEntryPointByName(const Module * module, const char * entryPointName);

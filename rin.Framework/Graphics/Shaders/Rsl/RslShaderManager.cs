@@ -56,7 +56,7 @@ public class RslShaderManager : Disposable, IShaderManager
 
     public Task Compile(IShader shader)
     {
-        return _backgroundTask.Put(() => shader.Compile(new RslCompilationContext(this)));
+        return _backgroundTask.Enqueue(() => shader.Compile(new RslCompilationContext(this)));
     }
 
     public IGraphicsShader GraphicsFromPath(string path)

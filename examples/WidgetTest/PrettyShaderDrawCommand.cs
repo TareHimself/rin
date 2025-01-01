@@ -26,7 +26,7 @@ public class PrettyShaderDrawCommand(Mat3 transform,Vec2<float> size,bool hovere
     public override ulong MemoryNeeded => (ulong)Marshal.SizeOf<Data>();
 
 
-    private readonly IGraphicsShader _prettyRslShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SRuntime.ResourcesDirectory,"test","pretty.rsl"));
+    private readonly IGraphicsShader _prettyRslShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SRuntime.ResourcesDirectory,"test","pretty.slang"));
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null)
     {

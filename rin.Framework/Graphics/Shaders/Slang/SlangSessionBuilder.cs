@@ -53,7 +53,7 @@ public class SlangSessionBuilder : IDisposable
     {
         unsafe
         {
-            return new SlangSession(_ptr);
+            return new SlangSession(NativeMethods.SlangSessionBuilderBuild(_ptr));
         }
     }
     private void ReleaseUnmanagedResources()

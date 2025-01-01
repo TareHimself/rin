@@ -11,7 +11,7 @@ public class SlangModule : IDisposable
     
     public unsafe void* ToPointer() => _ptr;
     
-    public SlangEntryPoint? FindEntryPointByName(ref SlangSession module,string name)
+    public SlangEntryPoint? FindEntryPointByName(string name)
     {
         unsafe
         {

@@ -27,7 +27,7 @@ public struct BlurPushConstants
 public class BlurCommand(Mat3 transform, Vec2<float> size,float radius, Vec4<float> tint) : CustomCommand
 {
     private static string _blurPassId = Guid.NewGuid().ToString();
-    private readonly IGraphicsShader _blurRslShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SRuntime.ResourcesDirectory, "shaders", "widgets", "blur.rsl"));
+    private readonly IGraphicsShader _blurRslShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SViewsModule.ShadersDirectory,"blur.slang"));
 
     public override bool WillDraw => true;
 

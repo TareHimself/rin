@@ -8,6 +8,9 @@ public sealed class SRuntime : Disposable
 {
     public static readonly string
         ResourcesDirectory = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "","resources");
+    
+    public static readonly string
+        FrameworkResourcesDirectory = Path.Join(ResourcesDirectory,"rin");
 
     public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
     

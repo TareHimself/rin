@@ -58,7 +58,7 @@ macro(FindSlang TARGET_PROJECT)
   
   if(NOT EXISTS ${SLANG_OUTPUT_DIR})
         set(DOWNLOADED_FILE ${DOWNLOAD_DIR}/slang.zip)
-        set(SLANG_VERSION 2024.14.6)
+        set(SLANG_VERSION 2024.17)
         if(WIN32)
             file(DOWNLOAD https://github.com/shader-slang/slang/releases/download/v${SLANG_VERSION}/slang-${SLANG_VERSION}-windows-x86_64.zip ${DOWNLOADED_FILE} SHOW_PROGRESS)
             file(ARCHIVE_EXTRACT INPUT ${DOWNLOADED_FILE} DESTINATION ${SLANG_OUTPUT_DIR})

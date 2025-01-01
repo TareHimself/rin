@@ -12,8 +12,6 @@ public interface IShader : IDisposable
 
     public bool Bind(VkCommandBuffer cmd, bool wait = false);
     public void Compile(ICompilationContext context);
-    
-    public void Init();
     public Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts();
     public VkPipelineLayout GetPipelineLayout();
 }

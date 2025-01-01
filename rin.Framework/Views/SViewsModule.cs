@@ -30,7 +30,8 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
     private SGraphicsModule? _graphicsSubsystem;
     private IGraphicsShader? _stencilShader = null;
     
-    
+    public static readonly string
+        ShadersDirectory = Path.Join(SGraphicsModule.ShadersDirectory,"views");
     
     public static SViewsModule Get() => SRuntime.Get().GetModule<SViewsModule>();
 
@@ -78,8 +79,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
         root.Init();
         if (_stencilShader == null)
         {
-            _stencilShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SRuntime.ResourcesDirectory, "shaders", "widgets",
-                "stencil_batch.rsl"));
+            _stencilShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(ShadersDirectory,"stencil_batch.slang"));
         }
     }
 

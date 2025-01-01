@@ -1,5 +1,6 @@
 ﻿#include "slang.hpp"
 #include <array>
+#include <iostream>
 
 Slang::ComPtr<slang::IGlobalSession> GLOBAL_SESSION;
 
@@ -21,6 +22,7 @@ Session::Session(const SessionBuilder* builder)
 
     sessionDesc.preprocessorMacros = preprocessorMacros.data();
     sessionDesc.preprocessorMacroCount = static_cast<SlangInt>(preprocessorMacros.size());
+    sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
 
     std::vector<const char*> searchPaths{};
 
@@ -46,40 +48,50 @@ EXPORT_IMPL SessionBuilder* slangSessionBuilderNew()
     return new SessionBuilder();
 }
 
-void slangSessionBuilderFree(const SessionBuilder* builder)
+EXPORT_IMPL void slangSessionBuilderFree(const SessionBuilder* builder)
 {
     delete builder;
 }
-Module* slangSessionLoadModuleFromSourceString(const Session* session, const char* moduleName, const char* path, const char* string, Blob* outDiagnostics)
+EXPORT_IMPL Module* slangSessionLoadModuleFromSourceString(const Session* session, char* moduleName, char* path,char* string, Blob* outDiagnostics)
 {
-    Slang::ComPtr<slang::IBlob> diagnostics;
-    Slang::ComPtr<slang::IModule> module;
-    module = session->session->loadModuleFromSourceString(moduleName,path,string,diagnostics.writeRef());
-    if(outDiagnostics)
+    try
     {
-        outDiagnostics->blob = diagnostics;
+        Slang::ComPtr<slang::IBlob> diagnostics;
+        Slang::ComPtr<slang::IModule> module;
+        module = session->session->loadModuleFromSourceString(moduleName,path,string,diagnostics.writeRef());
+        if(outDiagnostics)
+        {
+            outDiagnostics->blob = diagnostics;
+        }
+        
+        return new Module{module};
     }
-    
-    return new Module{module};
+    catch(std::exception& e)
+    {
+        std::cout << "EXCEPTION: " << e.what() << std::endl;
+    }
+    return nullptr;
 }
 
-Component* slangSessionCreateComposedProgram(const Session* session, Module* module, EntryPoint* entryPoint, Blob* outDiagnostics)
+EXPORT_IMPL Component* slangSessionCreateComposedProgram(const Session* session, Module* module, EntryPoint** entryPoints, int entryPointsCount, Blob* outDiagnostics)
 {
-    std::array<slang::IComponentType*,2> componentTypes =
-                {
-        module->module,
-        entryPoint->entryPoint
-    };
+    std::vector<slang::IComponentType*> componentTypes{};
+    componentTypes.reserve(entryPointsCount + 1);
+    componentTypes.push_back(module->module);
+    for(auto i = 0; i < entryPointsCount; ++i)
+    {
+        componentTypes.push_back(entryPoints[i]->entryPoint);
+    }
     Slang::ComPtr<slang::IComponentType> composedProgram;
     
     Slang::ComPtr<slang::IBlob> diagnostics;
     
     auto operationResult = session->session->createCompositeComponentType(
         componentTypes.data(),
-        componentTypes.size(),
+        static_cast<SlangInt>(componentTypes.size()),
         composedProgram.writeRef(),
         diagnostics.writeRef());
-
+    
     if(outDiagnostics)
     {
         outDiagnostics->blob = diagnostics;
@@ -92,7 +104,7 @@ Component* slangSessionCreateComposedProgram(const Session* session, Module* mod
 
     return new Component{composedProgram};
 }
-void slangSessionFree(const Session* session)
+EXPORT_IMPL void slangSessionFree(const Session* session)
 {
     delete session;
 }
@@ -128,11 +140,7 @@ EXPORT_IMPL Session* slangSessionBuilderBuild(const SessionBuilder* builder)
     return new Session(builder);
 }
 
-EXPORT_IMPL void slangSessionFree(const SessionBuilder* builder)
-{
-    delete builder;
-}
-EntryPoint* slangModuleFindEntryPointByName(const Module* module, const char* entryPointName)
+EXPORT_IMPL EntryPoint* slangModuleFindEntryPointByName(const Module* module, const char* entryPointName)
 {
     Slang::ComPtr<slang::IEntryPoint> entryPoint;
     module->module->findEntryPointByName(entryPointName,entryPoint.writeRef());
@@ -144,12 +152,16 @@ EntryPoint* slangModuleFindEntryPointByName(const Module* module, const char* en
     
     return nullptr;
 }
-void slangModuleFree(const Module* module)
+EXPORT_IMPL void slangEntryPointFree(const EntryPoint* entryPoint)
+{
+    delete entryPoint;
+}
+EXPORT_IMPL void slangModuleFree(const Module* module)
 {
     delete module;
 }
 
-Blob* slangComponentGetEntryPointCode(const Component* component, int entryPointIndex, int targetIndex, Blob * outDiagnostics)
+EXPORT_IMPL Blob* slangComponentGetEntryPointCode(const Component* component, int entryPointIndex, int targetIndex, Blob * outDiagnostics)
 {
     Slang::ComPtr<slang::IBlob> code;
     
@@ -164,7 +176,7 @@ Blob* slangComponentGetEntryPointCode(const Component* component, int entryPoint
     
     return new Blob{code};
 }
-Component* slangComponentLink(const Component* component, Blob* outDiagnostics)
+EXPORT_IMPL Component* slangComponentLink(const Component* component, Blob* outDiagnostics)
 {
     Slang::ComPtr<slang::IComponentType> outComponent;
     
@@ -180,35 +192,34 @@ Component* slangComponentLink(const Component* component, Blob* outDiagnostics)
     return new Component{outComponent};
 }
 
-Blob* slangComponentToLayoutJson(const Component* component)
+EXPORT_IMPL Blob* slangComponentToLayoutJson(const Component* component)
 {
     Slang::ComPtr<slang::IBlob> code;
     
     component->component->getLayout()->toJson(code.writeRef());
-
     return new Blob{code};
 }
 
-void slangComponentFree(const Component* component)
+EXPORT_IMPL void slangComponentFree(const Component* component)
 {
     delete component;
 }
-Blob* slangBlobNew()
+EXPORT_IMPL Blob* slangBlobNew()
 {
     return new Blob{};
 }
 
-int slangBlobGetSize(const Blob* blob)
+EXPORT_IMPL int slangBlobGetSize(const Blob* blob)
 {
     return static_cast<int>(blob->blob->getBufferSize());
 }
 
-void* slangBlobGetPointer(const Blob* blob)
+EXPORT_IMPL void* slangBlobGetPointer(const Blob* blob)
 {
     return const_cast<void*>(blob->blob->getBufferPointer());
 }
 
-void slangBlobFree(const Blob* blob)
+EXPORT_IMPL void slangBlobFree(const Blob* blob)
 {
     delete blob;
 }

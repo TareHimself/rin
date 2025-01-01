@@ -48,7 +48,7 @@ public class BackgroundTaskQueue : Disposable
             task.Pending.SetException(e);
         }
     }
-    public Task Put(Action task)
+    public Task Enqueue(Action task)
     {
         var newPending = new PendingTask(task,new TaskCompletionSource());
         
@@ -114,7 +114,7 @@ public class BackgroundTaskQueue<T> : Disposable
             task.Pending.SetException(e);
         }
     }
-    public Task<T> Put(Func<T> task)
+    public Task<T> Enqueue(Func<T> task)
     {
         var newPending = new PendingTask(task,new TaskCompletionSource<T>());
         

@@ -7,6 +7,7 @@ using rin.Framework.Graphics.Shaders;
 using rin.Framework.Graphics.Windows;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Graphics.Shaders.Rsl;
+using rin.Framework.Graphics.Shaders.Slang;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -50,6 +51,9 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         colorSpace = VkColorSpaceKHR.VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
         format = VkFormat.VK_FORMAT_R8G8B8A8_UNORM
     };
+    
+    public static readonly string
+        ShadersDirectory = Path.Join(SRuntime.FrameworkResourcesDirectory,"shaders","rin");
 
     public event Action<IWindow>? OnWindowClosed;
     public event Action<IWindow>? OnWindowCreated;
@@ -181,7 +185,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     /// <returns></returns>
     public Task Sync(Action action)
     {
-        return _backgroundTaskQueue.Put(action);
+        return _backgroundTaskQueue.Enqueue(action);
     }
 
 
@@ -262,7 +266,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         ]);
         _allocator = new Allocator(this);
 
-        _shaderCompiler = new RslShaderManager();
+        _shaderCompiler = new SlangShaderManager();
         _transferFence = _device.CreateFence();
         _transferCommandPool = _device.CreateCommandPool(GetTransferQueueFamily());
         _transferCommandBuffer = _device.AllocateCommandBuffers(_transferCommandPool).First();
@@ -653,7 +657,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     {
         if (_hasDedicatedTransferQueue)
         {
-            return _transferQueueThread.Put(() =>
+            return _transferQueueThread.Enqueue(() =>
             {
                 unsafe
                 {

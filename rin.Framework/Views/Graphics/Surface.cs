@@ -372,12 +372,12 @@ public abstract class Surface : Disposable
     {
         _lastMousePosition = e.Position;
         _rootWidget.NotifyCursorMove(e, Mat3.Identity);
+        // Maybe leave this to the event handler in the future
         if (_lastCursorDownEvent is { } lastEvent)
         {
             var dist = lastEvent.Position.Distance(e.Position);
             if (dist > 5.0)
             {
-                Console.WriteLine("Trying to release button control");
                 var newEvent = new CursorDownEvent(this, lastEvent.Button, e.Position);
                 var parent = lastEvent.Target?.Parent;
                 while (parent != null)

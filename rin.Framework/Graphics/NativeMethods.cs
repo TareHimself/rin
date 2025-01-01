@@ -55,12 +55,12 @@ internal static partial class NativeMethods
     public static unsafe partial  void AllocateBuffer(VkBuffer * buffer, void** allocation, ulong size,
         IntPtr allocator,
         int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
-        int mapped, [MarshalAs(UnmanagedType.BStr)] string debugName);
+        int mapped, [MarshalUsing(typeof(Utf8StringMarshaller))] string debugName);
 
     [LibraryImport(DllName, EntryPoint = "allocatorNewImage")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
     public static unsafe partial  void AllocateImage(VkImage * image, void** allocation,
-        VkImageCreateInfo * createInfo, IntPtr allocator, [MarshalAs(UnmanagedType.BStr)] string debugName);
+        VkImageCreateInfo * createInfo, IntPtr allocator, [MarshalUsing(typeof(Utf8StringMarshaller))] string debugName);
 
     [LibraryImport(DllName, EntryPoint = "allocatorFreeBuffer")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -277,11 +277,11 @@ internal static partial class NativeMethods
     
     [LibraryImport(DllName, EntryPoint = "slangSessionBuilderAddPreprocessorDefinition")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void SlangSessionBuilderAddPreprocessorDefinition(void * builder, [MarshalAs(UnmanagedType.BStr)] string name, [MarshalAs(UnmanagedType.BStr)] string value);
+    public static unsafe partial void SlangSessionBuilderAddPreprocessorDefinition(void * builder, [MarshalUsing(typeof(Utf8StringMarshaller))] string name, [MarshalUsing(typeof(Utf8StringMarshaller))] string value);
     
     [LibraryImport(DllName, EntryPoint = "slangSessionBuilderAddSearchPath")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void SlangSessionBuilderAddSearchPath(void * builder, [MarshalAs(UnmanagedType.BStr)] string path);
+    public static unsafe partial void SlangSessionBuilderAddSearchPath(void * builder, [MarshalUsing(typeof(Utf8StringMarshaller))] string path);
     
     [LibraryImport(DllName, EntryPoint = "slangSessionBuilderBuild")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
@@ -293,11 +293,11 @@ internal static partial class NativeMethods
     
     [LibraryImport(DllName, EntryPoint = "slangSessionLoadModuleFromSourceString")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void * SlangSessionLoadModuleFromSourceString(void * session,[MarshalAs(UnmanagedType.BStr)] string moduleName,[MarshalAs(UnmanagedType.BStr)] string path,[MarshalAs(UnmanagedType.BStr)] string content,void * outDiagnostics);
+    public static unsafe partial void * SlangSessionLoadModuleFromSourceString(void * session,[MarshalUsing(typeof(Utf8StringMarshaller))] string moduleName,[MarshalUsing(typeof(Utf8StringMarshaller))] string path,[MarshalUsing(typeof(Utf8StringMarshaller))] string content,void * outDiagnostics);
     
     [LibraryImport(DllName, EntryPoint = "slangSessionCreateComposedProgram")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void * SlangSessionCreateComposedProgram(void * session,void * module,void * entryPoint,void * outDiagnostics);
+    public static unsafe partial void * SlangSessionCreateComposedProgram(void * session,void * module,nuint* entryPoints, int entryPointsCount, void * outDiagnostics);
     
     [LibraryImport(DllName, EntryPoint = "slangSessionFree")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
@@ -305,7 +305,7 @@ internal static partial class NativeMethods
     
     [LibraryImport(DllName, EntryPoint = "slangModuleFindEntryPointByName")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void * SlangModuleFindEntryPointByName(void * module,[MarshalAs(UnmanagedType.BStr)] string name);
+    public static unsafe partial void * SlangModuleFindEntryPointByName(void * module,[MarshalUsing(typeof(Utf8StringMarshaller))] string name);
     
     [LibraryImport(DllName, EntryPoint = "slangEntryPointFree")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(CallConvCdecl) })]

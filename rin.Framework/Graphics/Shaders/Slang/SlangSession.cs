@@ -22,12 +22,13 @@ public class SlangSession : IDisposable
     {
         unsafe
         {
+            using var diag = new SlangBlob();
             return new SlangModule(
                 NativeMethods.SlangSessionLoadModuleFromSourceString(_ptr, moduleName, path, content, null));
         }
     }
     
-    public SlangModule LoadModuleFromSourceString(string moduleName, string path, string content, ref SlangBlob outDiagnostics)
+    public SlangModule LoadModuleFromSourceString(string moduleName, string path, string content,SlangBlob outDiagnostics)
     {
         unsafe
         {
@@ -35,20 +36,32 @@ public class SlangSession : IDisposable
         }
     }
     
-    public SlangComponent? CreateComposedProgram(ref SlangSession module, ref SlangEntryPoint entryPoint)
+    public SlangComponent? CreateComposedProgram(SlangModule module,IEnumerable<SlangEntryPoint> entryPoints)
     {
         unsafe
         {
-            var ptr = NativeMethods.SlangSessionCreateComposedProgram(_ptr,module.ToPointer(),entryPoint.ToPointer(),null);
+            var asArray = entryPoints.ToArray();
+            var pEntryPoints  = stackalloc nuint[asArray.Length];
+            for (var i = 0; i < asArray.Length; i++)
+            {
+                pEntryPoints[i] = (nuint)asArray[i].ToPointer();
+            }
+            var ptr = NativeMethods.SlangSessionCreateComposedProgram(_ptr,module.ToPointer(),pEntryPoints,asArray.Length,null);
             return ptr != null ? new SlangComponent(ptr) : null;
         }
     }
     
-    public SlangComponent? CreateComposedProgram(ref SlangSession module, ref SlangEntryPoint entryPoint, ref SlangBlob outDiagnostics)
+    public SlangComponent? CreateComposedProgram(SlangModule module, IEnumerable<SlangEntryPoint> entryPoints,SlangBlob outDiagnostics)
     {
         unsafe
         {
-            var ptr = NativeMethods.SlangSessionCreateComposedProgram(_ptr,module.ToPointer(),entryPoint.ToPointer(),outDiagnostics.ToPointer());
+            var asArray = entryPoints.ToArray();
+            var pEntryPoints  = stackalloc nuint[asArray.Length];
+            for (var i = 0; i < asArray.Length; i++)
+            {
+                pEntryPoints[i] = (nuint)asArray[i].ToPointer();
+            }
+            var ptr = NativeMethods.SlangSessionCreateComposedProgram(_ptr,module.ToPointer(),pEntryPoints,asArray.Length, outDiagnostics.ToPointer());
             return ptr != null ? new SlangComponent(ptr) : null;
         }
     }
