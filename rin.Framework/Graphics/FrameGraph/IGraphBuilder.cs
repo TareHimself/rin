@@ -9,12 +9,7 @@ public interface IGraphBuilder
     /// </summary>
     /// <param name="pass"></param>
     /// <returns></returns>
-    public IGraphBuilder AddPass(IPass pass);
-    public uint CreateImage(IPass pass, uint width, uint height, ImageFormat format, VkImageLayout initialLayout);
-    public uint AllocateBuffer(IPass pass, ulong size);
-    public uint Read(IPass pass, uint id);
-    public uint Write(IPass pass, uint id);
+    public uint AddPass(IPass pass);
     public ICompiledGraph? Compile(IImagePool imagePool,Frame frame);
-
     public void Reset();
 }

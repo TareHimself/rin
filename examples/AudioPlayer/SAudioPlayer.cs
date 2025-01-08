@@ -1,6 +1,6 @@
-﻿using rin.Framework.Views;
+﻿using AudioPlayer.Views;
+using rin.Framework.Views;
 using rin.Framework.Views.Composite;
-using AudioPlayer.Widgets;
 using rin.Framework.Audio;
 using rin.Framework.Core;
 using rin.Framework.Graphics;
@@ -8,6 +8,7 @@ using rin.Framework.Graphics.Windows;
 using rin.Framework.Views.Layouts;
 using SpotifyExplode;
 using YoutubeExplode;
+using Utils = rin.Framework.Graphics.Utils;
 
 namespace AudioPlayer;
 
@@ -19,26 +20,15 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
 
     public void Startup(SRuntime runtime)
     {
-        runtime.OnTick += (_) =>
-        {
-            SGraphicsModule.Get().PollWindows();
-        };
-        
-        Task.Factory.StartNew(() =>
-        {
-            while (SRuntime.Get().IsRunning)
-            {
-                SGraphicsModule.Get().DrawWindows();
-            }
-        },TaskCreationOptions.LongRunning);
+        Utils.RunWindowsOnTick();
+        Utils.RunDrawOnTick();
         
         SAudioModule.Get().SetVolume(0.1f);
         var window = SGraphicsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
         window.OnCloseRequested += (_) => { SRuntime.Get().RequestExit(); };
         Backgrounds(window);
         var surf = SViewsModule.Get().GetWindowSurface(window);
-        if (surf == null) return;
-        surf.Add(new MainPanel());
+        surf?.Add(new MainPanel());
     }
 
     public void Backgrounds(IWindow window)

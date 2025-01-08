@@ -4,17 +4,15 @@ using rin.Framework.Graphics;
 using rin.Framework.Graphics.Shaders;
 using rin.Framework.Graphics.Windows;
 using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics.Shaders.Rsl;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Sdf;
-using rin.Framework.Views.Animation;
 
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
+using Font = rin.Framework.Views.Sdf.Font;
 
 namespace rin.Framework.Views;
 
@@ -23,12 +21,15 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
 {
     private readonly FontCollection _fontCollection = new();
     private readonly Mutex _mtsdfFontMutex = new();
-    private readonly Dictionary<string, SdfFont> _mtsdfFonts = new();
-    private readonly Dictionary<string, Task<SdfFont?>> _mtsdfTasks = new();
+    private readonly Dictionary<string, Font> _mtsdfFonts = new();
+    private readonly Dictionary<string, Task<Font?>> _mtsdfTasks = new();
     private readonly Dictionary<WindowRenderer, WindowSurface> _windowSurfaces = new();
     private readonly Dictionary<Type, IBatcher> _batchRenderers = [];
     private SGraphicsModule? _graphicsSubsystem;
     private IGraphicsShader? _stencilShader = null;
+    
+    public event Action<WindowSurface>? OnSurfaceCreated;
+    public event Action<WindowSurface>? OnSurfaceDestroyed;
     
     public static readonly string
         ShadersDirectory = Path.Join(SGraphicsModule.ShadersDirectory,"views");
@@ -79,12 +80,14 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
         root.Init();
         if (_stencilShader == null)
         {
-            _stencilShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(ShadersDirectory,"stencil_batch.slang"));
+            _stencilShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(ShadersDirectory,"stencil_batch.slang"));
         }
+        OnSurfaceCreated?.Invoke(root);
     }
 
     private void OnRendererDestroyed(WindowRenderer renderer)
     {
+        OnSurfaceDestroyed?.Invoke(_windowSurfaces[renderer]);
         _windowSurfaces[renderer].Dispose();
         _windowSurfaces.Remove(renderer);
     }
@@ -119,22 +122,22 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
         }
     }
 
-    private async Task<SdfFont?> GenerateMtsdfFont(FontFamily family)
+    private async Task<Font?> GenerateMtsdfFont(FontFamily family)
     {
-        var newFont = new SdfFontGenerator(family);
+        var newFont = new FontGenerator(family);
         _mtsdfFonts.Add(family.Name, await newFont.GenerateFont(32));
         return _mtsdfFonts[family.Name];
     }
 
-    public Task<SdfFont?> GetOrCreateFont(string fontFamily)
+    public Task<Font?> GetOrCreateFont(string fontFamily)
     {
         lock (_mtsdfFontMutex)
         {
             var family = FindFontFamily(fontFamily);
 
-            if (family == null) return Task.FromResult<SdfFont?>(null);
+            if (family == null) return Task.FromResult<Font?>(null);
 
-            if (_mtsdfFonts.TryGetValue(family.Value.Name, out var font)) return Task.FromResult<SdfFont?>(font);
+            if (_mtsdfFonts.TryGetValue(family.Value.Name, out var font)) return Task.FromResult<Font?>(font);
 
             if (_mtsdfTasks.TryGetValue(family.Value.Name, out var mtsdfFontTask)) return mtsdfFontTask;
 

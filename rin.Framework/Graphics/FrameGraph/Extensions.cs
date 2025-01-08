@@ -4,7 +4,7 @@ namespace rin.Framework.Graphics.FrameGraph;
 
 public static class Extensions
 {
-    public static IGraphBuilder AddPass(this IGraphBuilder builder,Action<IPass,IGraphBuilder> configure, Action<IPass,ICompiledGraph,Frame, VkCommandBuffer> run,bool terminal = false,string? name = null)
+    public static uint AddPass(this IGraphBuilder builder,Action<IPass,IGraphConfig> configure, Action<IPass,ICompiledGraph,Frame, VkCommandBuffer> run,bool terminal = false,string? name = null)
     {
         return builder.AddPass(new ActionPass(configure, run,terminal,name));
     }

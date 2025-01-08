@@ -1,7 +1,9 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Runtime.InteropServices;
+using rin.Framework.Core.Math;
 
 namespace rin.Framework.Scene.Graphics;
 
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 public struct DeviceLight
 {
     public Vec3<float> Location;

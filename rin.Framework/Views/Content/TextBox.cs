@@ -8,8 +8,8 @@ using rin.Framework.Views.Enums;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
 using rin.Framework.Views.Sdf;
-using rsl;
 using SixLabors.Fonts;
+using Font = rin.Framework.Views.Sdf.Font;
 
 namespace rin.Framework.Views.Content;
 internal struct CachedQuadLayout(int atlas,Mat3 transform, Vec2<float> size, Vec4<float> uv)
@@ -50,8 +50,8 @@ public class TextBox : ContentView
     }
     
     private string _content;
-    private Font? _latestFont;
-    private SdfFont? _mtsdf;
+    private SixLabors.Fonts.Font? _latestFont;
+    private Font? _mtsdf;
     private CachedQuadLayout[]? _cachedLayouts;
     private CharacterBounds[]? _cachedBounds;
     private float _fontSize = 100.0f;
@@ -228,14 +228,19 @@ public class TextBox : ContentView
                 var charOffset = new Vec2<float>(bound.X,
                     bound.Y);
                 
-                var charSize = new Vec2<float>(bound.Width, bound.Height);
+                var size = new Vec2<float>(bound.Width, bound.Height);
+                var vectorSize = new Vec2<float>(charInfo.Width, charInfo.Height) - (charInfo.Range * 2);
+                var scale = size / vectorSize;
+                var pxRangeScaled = new Vec2<float>(charInfo.Range) * scale;
+                size += pxRangeScaled * 2;
                 
+                charOffset -= pxRangeScaled;
                 //if (!charRect.IntersectsWith(drawInfo.Clip)) continue;
                 //if(!charRect.Offset.Within(drawInfo.Clip) && !(charRect.Offset + charRect.Size).Within(drawInfo.Clip)) continue;
 
                 var finalTransform = Mat3.Identity.Translate(charOffset)
-                    .Translate(new Vec2<float>(0.0f, charSize.Y)).Scale(new Vec2<float>(1.0f, -1.0f));
-                var size = new Vec2<float>(bound.Width, bound.Height);
+                    .Translate(new Vec2<float>(0.0f, size.Y)).Scale(new Vec2<float>(1.0f, -1.0f));
+                
                 var layout = new CachedQuadLayout(atlasId.Value, finalTransform, size, charInfo.Coordinates);
                 layouts.Add(layout);
                 quads.Add(Quad.NewSdf(layout.Atlas,transform * layout.Transform,layout.Size,Color.White,layout.UV));

@@ -4,8 +4,11 @@ using rin.Framework.Scene.Graphics;
 
 namespace rin.Framework.Scene.Components;
 
-[Component(typeof (TransformComponent))]
-public class StaticMeshComponent(Entity owner) : Component(owner)
+public class StaticMeshComponent : RenderedComponent
 {
     public StaticMesh? Mesh { get; set; }
+    protected override void CollectSelf(DrawCommands drawCommands, Mat4 transform)
+    {
+        throw new NotImplementedException();
+    }
 }

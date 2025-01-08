@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics.Descriptors;
@@ -18,6 +19,138 @@ public static class VulkanExtensions
         vkGetDeviceProcAddr(device, (sbyte*)&name);
 
     public static unsafe void* GetAddressProc(this VkInstance instance, string name) => vkGetInstanceProcAddr(instance, (sbyte*)&name);
+
+    [PublicAPI]
+    public static VkImageLayout ToVk(this ImageLayout layout) => layout switch
+    {
+        ImageLayout.Undefined => VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
+        ImageLayout.General => VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,
+        ImageLayout.ColorAttachment => VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        ImageLayout.StencilAttachment => VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        ImageLayout.DepthAttachment => VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+        ImageLayout.ShaderReadOnly => VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        ImageLayout.TransferSrc => VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        ImageLayout.TransferDst => VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        ImageLayout.PresentSrc => VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
+    };
+
+    [PublicAPI]
+    public static VkFormat ToVk(this ImageFormat format)
+    {
+        return format switch
+        {
+            ImageFormat.Rgba8 => VkFormat.VK_FORMAT_R8G8B8A8_UNORM,
+            ImageFormat.Rgba16 => VkFormat.VK_FORMAT_R16G16B16A16_UNORM,
+            ImageFormat.Rgba32 => VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT,
+            ImageFormat.Depth => VkFormat.VK_FORMAT_D32_SFLOAT,
+            ImageFormat.Stencil => VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    [PublicAPI]
+    public static VkFilter ToVk(this ImageFilter filter)
+    {
+        return filter switch
+        {
+            ImageFilter.Linear => VkFilter.VK_FILTER_LINEAR,
+            ImageFilter.Nearest => VkFilter.VK_FILTER_NEAREST,
+            ImageFilter.Cubic => VkFilter.VK_FILTER_CUBIC_IMG,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+    
+    [PublicAPI]
+    public static VkSamplerAddressMode ToVk(this ImageTiling tiling)
+    {
+        return tiling switch
+        {
+            ImageTiling.Repeat => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            ImageTiling.ClampEdge => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            ImageTiling.ClampBorder => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+    
+    [PublicAPI]
+    public static ImageFormat FromVk(this VkFormat format)
+    {
+        return format switch
+        {
+            VkFormat.VK_FORMAT_R8G8B8A8_UNORM => ImageFormat.Rgba8,
+            VkFormat.VK_FORMAT_R16G16B16A16_UNORM => ImageFormat.Rgba16,
+            VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.Rgba32,
+            VkFormat.VK_FORMAT_D32_SFLOAT => ImageFormat.Depth,
+            VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT => ImageFormat.Stencil,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+    
+    
+    
+    
+    public static VkCommandBuffer ClearColorImages(this VkCommandBuffer cmd,Vec4<float> clearColor,ImageLayout layout,params IDeviceImage[] images)
+    {
+        unsafe
+        {
+            var vkLayout = layout.ToVk();
+            var pColor = stackalloc VkClearColorValue[1];
+            var pRanges = stackalloc VkImageSubresourceRange[1];
+            pColor[0] = SGraphicsModule.MakeClearColorValue(clearColor);
+            pRanges[0] = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
+            
+            foreach (var deviceImage in images)
+            {
+                vkCmdClearColorImage(cmd,deviceImage.NativeImage,vkLayout, pColor, 1,
+                    pRanges);
+            }
+        }
+
+        return cmd;
+    }
+    
+    public static VkCommandBuffer ClearStencilImages(this VkCommandBuffer cmd,uint clearValue,ImageLayout layout,params IDeviceImage[] images)
+    {
+        unsafe
+        {
+            var vkLayout = layout.ToVk();
+            var pColor = stackalloc VkClearDepthStencilValue[1];
+            var pRanges = stackalloc VkImageSubresourceRange[1];
+            pColor[0] = SGraphicsModule.MakeClearDepthStencilValue(stencil: clearValue);
+            pRanges[0] = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT |
+                                                                   VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
+            
+            foreach (var deviceImage in images)
+            {
+                vkCmdClearDepthStencilImage(cmd,deviceImage.NativeImage, vkLayout,
+                    pColor, 1, pRanges);
+            }
+        }
+
+        return cmd;
+    }
+    
+    public static VkCommandBuffer ClearDepthImages(this VkCommandBuffer cmd,float clearValue,ImageLayout layout,params IDeviceImage[] images)
+    {
+        unsafe
+        {
+            var vkLayout = layout.ToVk();
+            var pColor = stackalloc VkClearDepthStencilValue[1];
+            var pRanges = stackalloc VkImageSubresourceRange[1];
+            pColor[0] = SGraphicsModule.MakeClearDepthStencilValue(depth: clearValue);
+            pRanges[0] = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT |
+                                                                   VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
+            
+            foreach (var deviceImage in images)
+            {
+                vkCmdClearDepthStencilImage(cmd,deviceImage.NativeImage, vkLayout,
+                    pColor, 1, pRanges);
+            }
+        }
+
+        return cmd;
+    }
     
     public static VkCommandBuffer BindShaders(this VkCommandBuffer cmd,IEnumerable<Pair<VkShaderEXT,VkShaderStageFlags>> shaders)
     {
@@ -122,6 +255,7 @@ public static class VulkanExtensions
         vkCmdSetLineWidth(cmd,lineWidth);
         return cmd;
     }
+
     
     public static VkCommandBuffer SetRasterizerDiscard(this VkCommandBuffer cmd,bool isEnabled)
     {
@@ -453,6 +587,21 @@ public static class VulkanExtensions
     } 
     
     
+        
+    public static VkResult SignalSemaphore(this VkDevice device,VkSemaphore semaphore)
+    {
+        unsafe
+        {
+            var sigInfo = new VkSemaphoreSignalInfo()
+            {
+                sType = VkStructureType.VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+                semaphore = semaphore,
+            };
+            return vkSignalSemaphore(device,&sigInfo);
+        }
+    } 
+    
+    
     public static void DestroyShader(this VkDevice device,VkShaderEXT shader)
     {
         unsafe
@@ -557,27 +706,27 @@ public static class VulkanExtensions
     /// <summary>
     /// The KING of synchronization
     /// </summary>
-    /// <param name="commandBuffer"></param>
+    /// <param name="cmd"></param>
     /// <param name="image"></param>
     /// <param name="from"></param>
     /// <param name="to"></param>
     /// <param name="options"></param>
-    public static void ImageBarrier(this VkCommandBuffer commandBuffer, IDeviceImage image, VkImageLayout from,
-        VkImageLayout to, ImageBarrierOptions? options = null)
+    public static void ImageBarrier(this VkCommandBuffer cmd, IDeviceImage image, ImageLayout from,
+        ImageLayout to, ImageBarrierOptions? options = null)
     {
-        ImageBarrier(commandBuffer, image.NativeImage, from, to, options);
+        ImageBarrier(cmd, image.NativeImage, from, to, options);
     }
     
     /// <summary>
     /// The KING of synchronization
     /// </summary>
-    /// <param name="commandBuffer"></param>
+    /// <param name="cmd"></param>
     /// <param name="image"></param>
     /// <param name="from"></param>
     /// <param name="to"></param>
     /// <param name="options"></param>
-    public static void ImageBarrier(this VkCommandBuffer commandBuffer, VkImage image, VkImageLayout from,
-        VkImageLayout to, ImageBarrierOptions? options = null)
+    public static VkCommandBuffer ImageBarrier(this VkCommandBuffer cmd, VkImage image, ImageLayout from,
+        ImageLayout to, ImageBarrierOptions? options = null)
     {
         var opts = options.GetValueOrDefault(new ImageBarrierOptions());
         var barrier = new VkImageMemoryBarrier2
@@ -587,8 +736,8 @@ public static class VulkanExtensions
             dstStageMask = opts.NextStages,
             srcAccessMask = opts.SrcAccessFlags,
             dstAccessMask = opts.DstAccessFlags,
-            oldLayout = from,
-            newLayout = to,
+            oldLayout = from.ToVk(),
+            newLayout = to.ToVk(),
             subresourceRange = opts.SubresourceRange,
             image = image
         };
@@ -602,25 +751,53 @@ public static class VulkanExtensions
                 pImageMemoryBarriers = &barrier
             };
 
-            vkCmdPipelineBarrier2(commandBuffer, &depInfo);
+            vkCmdPipelineBarrier2(cmd, &depInfo);
         }
+
+        return cmd;
     }
     
+    public static VkCommandBuffer CopyBufferToImage(this VkCommandBuffer cmd,IDeviceBuffer buffer,IDeviceImage image,VkBufferImageCopy[] regions,ImageLayout layout = ImageLayout.TransferDst)
+    {
+        unsafe
+        {
+            fixed (VkBufferImageCopy* pRegion = regions)
+            {
+                vkCmdCopyBufferToImage(cmd,buffer.NativeBuffer,image.NativeImage,
+                    layout.ToVk(), (uint)regions.Length, pRegion);
+            }
+        }
+        return cmd;
+    }
     
-    public static void CopyImageToImage(this VkCommandBuffer commandBuffer, IDeviceImage src, IDeviceImage dst,
+    public static VkCommandBuffer CopyImageToImage(this VkCommandBuffer cmd, IDeviceImage src, IDeviceImage dst,
         ImageFilter filter = ImageFilter.Linear)
     {
-        CopyImageToImage(commandBuffer, src.NativeImage, dst.NativeImage, src.Extent, dst.Extent, filter);
+        CopyImageToImage(cmd, src.NativeImage, dst.NativeImage, src.Extent, dst.Extent, filter);
+        return cmd;
+    }
+    
+    public static VkCommandBuffer CopyImageToImage(this VkCommandBuffer cmd, IDeviceImage src, VkImage dst,VkExtent3D dstExtent,
+        ImageFilter filter = ImageFilter.Linear)
+    {
+        CopyImageToImage(cmd, src.NativeImage, dst, src.Extent,dstExtent, filter);
+        return cmd;
     }
 
-    public static void CopyImageToImage(this VkCommandBuffer commandBuffer, IDeviceImage src, IDeviceImage dst,
+    public static VkCommandBuffer CopyImageToImage(this VkCommandBuffer cmd, IDeviceImage src, IDeviceImage dst,
         VkExtent3D srcExtent,
         VkExtent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
     {
-        CopyImageToImage(commandBuffer, src.NativeImage, dst.NativeImage, srcExtent, dstExtent, filter);
+        CopyImageToImage(cmd, src.NativeImage, dst.NativeImage, srcExtent, dstExtent, filter);
+        return cmd;
     }
     
-    public static void CopyImageToImage(this VkCommandBuffer commandBuffer, VkImage src, VkImage dst, VkExtent3D srcExtent,
+    // public static VkCommandBuffer CopyImageToImage(VkCommandBuffer cmd,VkImage src,VkImage dest,VkExtent3D destExtent,VkExtent3D? srcExtent = null)
+    // {
+    //     cmd.CopyImageToImage(NativeImage,dest,srcExtent.GetValueOrDefault(Extent),destExtent);
+    // }
+    
+    public static void CopyImageToImage(this VkCommandBuffer cmd, VkImage src, VkImage dst, VkExtent3D srcExtent,
         VkExtent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
     {
         var blitRegion = new VkImageBlit2
@@ -663,14 +840,54 @@ public static class VulkanExtensions
                 dstImage = dst,
                 srcImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 dstImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                filter = SGraphicsModule.FilterToVkFilter(filter),
+                filter = filter.ToVk(),
                 pRegions = &blitRegion,
                 regionCount = 1
             };
 
-            vkCmdBlitImage2(commandBuffer, &blitInfo);
+            vkCmdBlitImage2(cmd, &blitInfo);
         }
     }
+    
+    public static VkRenderingAttachmentInfo MakeAttachmentInfo(this IDeviceImage image, ImageLayout newLayout,
+        VkClearValue? clearValue = null)
+    {
+        var attachment = new VkRenderingAttachmentInfo
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            imageView = image.NativeView,
+            imageLayout = newLayout.ToVk(),
+            loadOp = clearValue == null
+                ? VkAttachmentLoadOp.VK_ATTACHMENT_LOAD_OP_LOAD
+                : VkAttachmentLoadOp.VK_ATTACHMENT_LOAD_OP_CLEAR,
+            storeOp = VkAttachmentStoreOp.VK_ATTACHMENT_STORE_OP_STORE
+        };
+
+        if (clearValue != null) attachment.clearValue = clearValue.Value;
+
+        return attachment;
+    }
+
+    public static VkExtent2D ToVkExtent(this Vec2<uint> self) => new VkExtent2D
+    {
+        height = self.Y,
+        width = self.X
+    };
+    
+    public static VkRenderingAttachmentInfo MakeColorAttachmentInfo(this IDeviceImage image,Vec4<float>? clearValue = null) => MakeAttachmentInfo(image,ImageLayout.ColorAttachment,clearValue.HasValue ? new VkClearValue()
+    {
+        color = SGraphicsModule.MakeClearColorValue(clearValue.Value)
+    } : null);
+    
+    public static VkRenderingAttachmentInfo MakeDepthAttachmentInfo(this IDeviceImage image,float? clearValue = null) => MakeAttachmentInfo(image,ImageLayout.DepthAttachment,clearValue.HasValue ? new VkClearValue()
+    {
+        depthStencil = SGraphicsModule.MakeClearDepthStencilValue(depth: clearValue.Value)
+    } : null);
+    
+    public static VkRenderingAttachmentInfo MakeStencilAttachmentInfo(this IDeviceImage image,uint? clearValue = null) => MakeAttachmentInfo(image,ImageLayout.StencilAttachment,clearValue.HasValue ? new VkClearValue()
+    {
+        depthStencil = SGraphicsModule.MakeClearDepthStencilValue(stencil: clearValue.Value)
+    } : null);
 
     public static VkSurfaceFormatKHR[] GetSurfaceFormats(this VkPhysicalDevice physicalDevice,VkSurfaceKHR surface)
     {

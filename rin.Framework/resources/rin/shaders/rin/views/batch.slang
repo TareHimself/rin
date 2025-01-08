@@ -1,6 +1,7 @@
 import rin.utils;
 import rin.textures;
 
+
 struct QuadRenderInfo
 {
     // [TextureId,RenderMode,0,0]
@@ -40,7 +41,7 @@ float median(float r, float g, float b)
 
 float screenPxRange(float2 uv, float2 size)
 {
-    float2 unitRange = float2(30.0) / size;
+    float2 unitRange = float2(12.0) / size;
     float2 screenTexSize = float2(1.0) / fwidth(uv);
     return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
@@ -106,3 +107,5 @@ float4 fragment(in float2 iUV: UV, in int iQuadIndex: QUAD_INDEX, float2 coordin
         return float4(1.0);
     }
 }
+
+/// Emi 5

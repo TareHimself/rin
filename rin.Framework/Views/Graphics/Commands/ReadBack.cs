@@ -15,14 +15,14 @@ public class ReadBack : CustomCommand
         var cmd = frame.Raw.GetCommandBuffer();
         var drawImage = frame.DrawImage;
         var copyImage = frame.CopyImage;
-        drawImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-        copyImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        drawImage.CopyTo(cmd,copyImage);
-        drawImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        copyImage.Barrier(cmd, 
-            VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        cmd.ImageBarrier(drawImage, ImageLayout.ColorAttachment,
+            ImageLayout.TransferSrc);
+        cmd.ImageBarrier(copyImage, ImageLayout.ShaderReadOnly,
+            ImageLayout.TransferDst);
+        cmd.CopyImageToImage(drawImage, copyImage);
+        cmd.ImageBarrier(drawImage, ImageLayout.TransferSrc,ImageLayout.ColorAttachment);
+        cmd.ImageBarrier(copyImage, 
+            ImageLayout.TransferDst,ImageLayout.ShaderReadOnly);
     }
 
     public override bool CombineWith(CustomCommand other)
@@ -31,5 +31,4 @@ public class ReadBack : CustomCommand
     }
 
     public override bool WillDraw => false;
-    public override CommandStage Stage => CommandStage.Maintain;
 }

@@ -134,10 +134,10 @@ public class SlangGraphicsShader : IGraphicsShader
                     {
                         var set = binding.Set ?? 0;
                         var index = binding.Binding ?? 0;
-                        var count = parameter.Type.ElementCount;
+                        var count = parameter.Type.ElementCount ?? 1;
                         VkShaderStageFlags stages = entryPointStage;
                         VkDescriptorBindingFlags bindingFlags = 0;
-                        var bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                        var bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                         foreach (var parameterAttribute in parameter.UserAttributes)
                         {
                             if (parameterAttribute.Name == "AllStages")
@@ -171,7 +171,7 @@ public class SlangGraphicsShader : IGraphicsShader
 
                             if (typeName == "texture2D")
                             {
-                                bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER;
+                                bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                             }
 
                             Resources.Add(name, new Resource

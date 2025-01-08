@@ -1,6 +1,6 @@
 ﻿namespace rin.Framework.Scene.Graphics;
 
-public interface ICommand : IDisposable
+public interface ICommand
 {
-    public ulong GetRequiredMemory();
+    
 }

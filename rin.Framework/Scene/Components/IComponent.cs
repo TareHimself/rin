@@ -1,9 +1,13 @@
-﻿using rin.Framework.Scene.Entities;
+﻿using rin.Framework.Core;
+using rin.Framework.Scene.Entities;
 
 namespace rin.Framework.Scene.Components;
 
-public interface IComponent
+public interface IComponent : ITickable
 {
-    public string Id { get; set; }
-    public Entity Owner { get; set; }
+    public Entity? Owner { get; set; }
+    
+    public void Init();
+    
+    public void Destroy();
 }

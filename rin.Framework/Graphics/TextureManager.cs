@@ -100,7 +100,7 @@ public class TextureManager : ITextureManager
             
             if(info?.Valid == true) continue;
             
-            writes.Add(new ImageWrite(tex.Image,VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,ImageType.Texture,sampler)
+            writes.Add(new ImageWrite(tex.Image,ImageLayout.ShaderReadOnly,ImageType.Texture,sampler)
             {
                 Index = (uint)i
             });
@@ -108,7 +108,7 @@ public class TextureManager : ITextureManager
 
         if (writes.Count != 0)
         {
-            _descriptorSet.WriteImageArray(0, writes.ToArray());
+            _descriptorSet.WriteImages(0, writes.ToArray());
         }
     }
 
@@ -173,7 +173,7 @@ public class TextureManager : ITextureManager
 
             if (defaultTexture != null)
             {
-                writes.Add(new ImageWrite(defaultTexture,VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,ImageType.Texture,sampler)
+                writes.Add(new ImageWrite(defaultTexture,ImageLayout.ShaderReadOnly,ImageType.Texture,sampler)
                 {
                     Index = (uint)textureId
                 });
@@ -182,7 +182,7 @@ public class TextureManager : ITextureManager
         
         if (writes.Count != 0)
         {
-            _descriptorSet.WriteImageArray(0, writes.ToArray());
+            _descriptorSet.WriteImages(0, writes.ToArray());
         }
     }
 
@@ -201,7 +201,7 @@ public class TextureManager : ITextureManager
 
             if (!info.Valid || info.Image is null) continue;
 
-            writes.Add(new ImageWrite(info.Image,VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,ImageType.Texture,new SamplerSpec()
+            writes.Add(new ImageWrite(info.Image,ImageLayout.ShaderReadOnly,ImageType.Texture,new SamplerSpec()
             {
                 Filter = info.Filter,
                 Tiling = info.Tiling
@@ -213,7 +213,7 @@ public class TextureManager : ITextureManager
 
         if (writes.Count != 0)
         {
-            _descriptorSet.WriteImageArray(0, writes.ToArray());
+            _descriptorSet.WriteImages(0, writes.ToArray());
         }
     }
 

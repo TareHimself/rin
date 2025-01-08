@@ -72,52 +72,10 @@ public class DescriptorSet : Disposable
     //
     //     return true;
     // }
-
+    
     public bool WriteImages(uint binding, params ImageWrite[] writes)
     {
-        // if (!SetResource(binding,writes.Select(c => c.Image))) return false;
-        //
-        var infos = writes.Select(image => new VkDescriptorImageInfo
-        {
-            sampler = SGraphicsModule.Get().GetSampler(image.Sampler),
-            imageView = image.Image.NativeView,
-            imageLayout = image.Layout
-        }).ToArray();
-        
-        unsafe
-        {
-            fixed (VkDescriptorImageInfo* pInfos = infos)
-            {
-                var write = new VkWriteDescriptorSet
-                {
-                    sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    descriptorType = ImageTypeToDescriptorType(writes.First().Type),
-                    dstBinding = binding,
-                    pImageInfo = pInfos,
-                    descriptorCount = (uint)infos.Length,
-                    dstSet = _descriptorSet,
-                };
 
-                vkUpdateDescriptorSets(_device, 1, &write, 0, null);
-            }
-        }
-
-        return true;
-    }
-    
-    public bool WriteImageArray(uint binding, params ImageWrite[] writes)
-    {
-        // if (!SetResource(binding,writes.Select(c => c.Image))) return false;
-        //
-        
-        
-        // var infos = writes.Select(image => new VkDescriptorImageInfo
-        // {
-        //     sampler = SGraphicsModule.Get().GetSampler(image.Sampler),
-        //     imageView = image.Image.NativeView,
-        //     imageLayout = image.Layout
-        // }).ToArray();
-        //
         unsafe
         {
             var infos = stackalloc VkDescriptorImageInfo[writes.Length];
@@ -128,7 +86,7 @@ public class DescriptorSet : Disposable
                 var imageInfo = infos + i;
                 imageInfo->sampler = SGraphicsModule.Get().GetSampler(write.Sampler);
                 imageInfo->imageView = write.Image.NativeView;
-                imageInfo->imageLayout = write.Layout;
+                imageInfo->imageLayout = write.Layout.ToVk();
                 var writeSet = writeSets + i;
                 writeSet->sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeSet->descriptorType = ImageTypeToDescriptorType(write.Type);

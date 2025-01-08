@@ -40,7 +40,7 @@ public class Image : ContentView
     
     protected override Vec2<float> ComputeDesiredContentSize()
     {
-        if (SGraphicsModule.Get().GetResourceManager()
+        if (SGraphicsModule.Get().GetTextureManager()
                 .GetTextureImage(TextureId) is { } texture)
         {
             return new Vec2<float>

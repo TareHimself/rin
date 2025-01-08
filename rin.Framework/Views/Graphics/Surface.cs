@@ -22,10 +22,10 @@ public abstract class Surface : Disposable
     private readonly SGraphicsModule _sGraphicsModule;
     private Vec2<float>? _lastMousePosition;
     private CursorDownEvent? _lastCursorDownEvent;
-    
+
     public FrameStats Stats { get; private set; } = new();
 
-    public Surface()
+    protected Surface()
     {
         _sGraphicsModule = SRuntime.Get().GetModule<SGraphicsModule>();
         _rootWidget.NotifyAddedToSurface(this);
@@ -42,7 +42,6 @@ public abstract class Surface : Disposable
 
     public abstract Vec2<int> GetDrawSize();
 
-    
 
     protected override void OnDispose(bool isManual)
     {
@@ -72,7 +71,7 @@ public abstract class Surface : Disposable
     {
         _rootWidget.ComputeSize(e.Size.Cast<float>());
     }
-    
+
 
     /// <summary>
     /// Returns true if the pass was not the active pass
@@ -81,17 +80,17 @@ public abstract class Surface : Disposable
     /// <param name="passId"></param>
     /// <param name="applyPass"></param>
     /// <returns></returns>
-    public virtual void EnsurePass(ViewsFrame frame, string passId,Action<ViewsFrame> applyPass)
+    public virtual void EnsurePass(ViewsFrame frame, string passId, Action<ViewsFrame> applyPass)
     {
         if (frame.ActivePass == passId) return;
-        if(frame.ActivePass.Length > 0 && frame.ActivePass != passId) EndActivePass(frame);
+        if (frame.ActivePass.Length > 0 && frame.ActivePass != passId) EndActivePass(frame);
         applyPass.Invoke(frame);
         frame.ActivePass = passId;
     }
 
     public virtual void BeginMainPass(ViewsFrame frame, bool clearColor = false, bool clearStencil = false)
     {
-        EnsurePass(frame,MainPassId, (_) =>
+        EnsurePass(frame, MainPassId, (_) =>
         {
             var cmd = frame.Raw.GetCommandBuffer();
 
@@ -104,24 +103,14 @@ public abstract class Surface : Disposable
             };
 
             cmd.BeginRendering(new VkExtent2D
-            {
-                width = drawExtent.width,
-                height = drawExtent.height
-            }, [
-                SGraphicsModule.MakeRenderingAttachment(frame.DrawImage.NativeView,
-                    VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, clearColor
-                        ? new VkClearValue
-                        {
-                            color = SGraphicsModule.MakeClearColorValue(1.0f)
-                        }
-                        : null)
-            ], stencilAttachment: SGraphicsModule.MakeRenderingAttachment(frame.StencilImage.NativeView,
-                VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, clearColor
-                    ? new VkClearValue
-                    {
-                        color = SGraphicsModule.MakeClearColorValue(0.0f)
-                    }
-                    : null));
+                {
+                    width = drawExtent.width,
+                    height = drawExtent.height
+                }, [
+                    frame.DrawImage.MakeColorAttachmentInfo(
+                        clearColor ? 0.0f : null)
+                ],
+                stencilAttachment: frame.StencilImage.MakeStencilAttachmentInfo(clearStencil ? 0 : null));
 
             frame.Raw.ConfigureForWidgets(size.Cast<uint>());
 
@@ -146,18 +135,31 @@ public abstract class Surface : Disposable
         frame.ActivePass = "";
     }
 
-    public void DrawCommandsToFinalCommands(IEnumerable<PendingCommand> drawCommands,
-        ref List<FinalDrawCommand> finalDrawCommands)
+    private void ProcessPendingCommands(IEnumerable<PendingCommand> drawCommands,
+        ref PassInfo result)
     {
         IBatch? activeBatch = null;
         uint currentClipMask = 0x01;
+        
         foreach (var pendingCommand in drawCommands)
         {
+            if (pendingCommand.DrawCommand is UtilityCommand utilCmd)
+            {
+                if (utilCmd.Stage == CommandStage.Before)
+                {
+                    result.PreCommands.Add(utilCmd);
+                }
+                else
+                {
+                    result.PostCommands.Add(utilCmd);
+                }
+            }
+
             if (currentClipMask != pendingCommand.ClipId)
             {
                 if (activeBatch != null)
                 {
-                    finalDrawCommands.Add(new FinalDrawCommand
+                    result.Commands.Add(new FinalDrawCommand
                     {
                         Batch = activeBatch,
                         Mask = currentClipMask,
@@ -182,7 +184,7 @@ public abstract class Surface : Disposable
                     {
                         if (activeBatch.GetRenderer() != asBatchedCommand.GetBatchRenderer())
                         {
-                            finalDrawCommands.Add(new FinalDrawCommand
+                            result.Commands.Add(new FinalDrawCommand
                             {
                                 Batch = activeBatch,
                                 Mask = currentClipMask,
@@ -201,7 +203,7 @@ public abstract class Surface : Disposable
                 {
                     if (activeBatch != null)
                     {
-                        finalDrawCommands.Add(new FinalDrawCommand
+                        result.Commands.Add(new FinalDrawCommand
                         {
                             Batch = activeBatch,
                             Mask = currentClipMask,
@@ -211,13 +213,13 @@ public abstract class Surface : Disposable
                         Stats.BatchedDrawCommandCount++;
                     }
 
-                    if (finalDrawCommands.LastOrDefault() is
+                    if (result.Commands.LastOrDefault() is
                             { Type: CommandType.Custom, Custom: not null } asPreviousCustomCommand &&
                         asPreviousCustomCommand.Mask == currentClipMask)
                         if (asPreviousCustomCommand.Custom.CombineWith(asCustomCommand))
                             continue;
 
-                    finalDrawCommands.Add(new FinalDrawCommand
+                    result.Commands.Add(new FinalDrawCommand
                     {
                         Custom = asCustomCommand,
                         Mask = currentClipMask,
@@ -238,7 +240,7 @@ public abstract class Surface : Disposable
 
         if (activeBatch == null) return;
 
-        finalDrawCommands.Add(new FinalDrawCommand
+        result.Commands.Add(new FinalDrawCommand
         {
             Batch = activeBatch,
             Mask = currentClipMask,
@@ -247,45 +249,62 @@ public abstract class Surface : Disposable
         Stats.BatchedDrawCommandCount++;
     }
 
-    private List<FinalDrawCommand> CollectDrawCommands()
+    private PassInfo? ComputePassInfo()
     {
         var rawDrawCommands = new DrawCommands();
-        _rootWidget.Collect(Mat3.Identity,new Rect()
+        _rootWidget.Collect(Mat3.Identity, new Rect()
         {
             Size = GetDrawSize().Cast<float>()
         }, rawDrawCommands);
-        
+
         var rawCommands = rawDrawCommands.Commands.OrderBy(c => c, new RawCommandComparer()).ToArray();
 
-        if (rawCommands.Length == 0) return [];
+        if (rawCommands.Length == 0) return null;
 
         Stats.InitialCommandCount = rawCommands.Length;
-        
+
         var clips = rawDrawCommands.Clips;
+
+        var result = new PassInfo()
+        {
+            GraphBuilders = rawDrawCommands.Builders.ToList(),
+            GraphConfigs = rawDrawCommands.Configs.ToList(),
+        };
 
         if (clips.Count == 0)
         {
             List<FinalDrawCommand> finalDrawCommands = [];
-            DrawCommandsToFinalCommands(rawCommands.Select(c => new PendingCommand(c.Command, 0x01)),
-                ref finalDrawCommands);
-            return finalDrawCommands;
+            ProcessPendingCommands(rawCommands.Select(c => new PendingCommand(c.Command, 0x01)),
+                ref result);
         }
         else
         {
-            List<FinalDrawCommand> finalDrawCommands = [];
             var uniqueClipStacks = rawDrawCommands.UniqueClipStacks;
             Dictionary<string, uint> computedClipStacks = [];
             List<PendingCommand> pendingCommands = [];
             uint currentMask = 0x01;
             foreach (var rawCommand in rawCommands)
             {
+                {
+                    if (rawCommand.Command is UtilityCommand utilCmd)
+                    {
+                        if (utilCmd.Stage == CommandStage.Before)
+                        {
+                            result.PreCommands.Add(utilCmd);
+                        }
+                        else
+                        {
+                            result.PostCommands.Add(utilCmd);
+                        }
+                    }
+                }
                 if (currentMask == 128)
                 {
-                    DrawCommandsToFinalCommands(pendingCommands, ref finalDrawCommands);
+                    ProcessPendingCommands(pendingCommands, ref result);
                     pendingCommands.Clear();
                     computedClipStacks.Clear();
                     currentMask = 0x01;
-                    finalDrawCommands.Add(new FinalDrawCommand
+                    result.Commands.Add(new FinalDrawCommand
                     {
                         Type = CommandType.ClipClear
                     });
@@ -303,7 +322,7 @@ public abstract class Surface : Disposable
                 else
                 {
                     currentMask <<= 1;
-                    finalDrawCommands.Add(new FinalDrawCommand
+                    result.Commands.Add(new FinalDrawCommand
                     {
                         Type = CommandType.ClipDraw,
                         Clips = uniqueClipStacks[rawCommand.ClipId].Select(c => new StencilClip
@@ -317,19 +336,19 @@ public abstract class Surface : Disposable
                     //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
                     computedClipStacks.Add(rawCommand.ClipId, currentMask);
                     pendingCommands.Add(new PendingCommand(rawCommand.Command, currentMask));
-                    
                 }
             }
 
             if (pendingCommands.Count != 0)
             {
-                DrawCommandsToFinalCommands(pendingCommands, ref finalDrawCommands);
+                ProcessPendingCommands(pendingCommands, ref result);
                 pendingCommands.Clear();
             }
-
-            return finalDrawCommands;
         }
+
+        return result;
     }
+
     public virtual void Draw(Frame frame)
     {
         DoHover();
@@ -337,14 +356,18 @@ public abstract class Surface : Disposable
         {
             Stats = new FrameStats();
         }
-        var drawCommands = CollectDrawCommands();
-        
-        if (drawCommands.Count == 0)
-        {
-            return;
-        }
 
-        frame.GetBuilder().AddPass(new ViewsPass(this, drawCommands.ToArray()));
+        if (ComputePassInfo() is { } passInfo)
+        {
+            var builder = frame.GetBuilder();
+
+            foreach (var passInfoGraphBuilder in passInfo.GraphBuilders)
+            {
+                passInfoGraphBuilder(builder);
+            }
+
+            builder.AddPass(new ViewsPass(this, passInfo));
+        }
     }
 
     public virtual void ReceiveCursorDown(CursorDownEvent e)
@@ -389,8 +412,10 @@ public abstract class Surface : Disposable
                         lastEvent.Position = newEvent.Position;
                         break;
                     }
+
                     parent = parent.Parent;
                 }
+
                 _lastCursorDownEvent.Position = e.Position;
             }
         }
@@ -400,17 +425,17 @@ public abstract class Surface : Disposable
     {
         _rootWidget.NotifyScroll(e, Mat3.Identity);
     }
-    
+
     public virtual void ReceiveCharacter(CharacterEvent e)
     {
         FocusedWidget?.OnCharacter(e);
     }
-    
+
     public virtual void ReceiveKeyboard(KeyboardEvent e)
     {
         FocusedWidget?.OnKeyboard(e);
     }
-    
+
     public abstract Vec2<float> GetCursorPosition();
 
     public abstract void SetCursorPosition(Vec2<float> position);
@@ -418,11 +443,11 @@ public abstract class Surface : Disposable
     public void DoHover()
     {
         var mousePosition = GetCursorPosition();
-        
+
         _lastMousePosition = mousePosition.Cast<float>();
 
         var e = new CursorMoveEvent(this, mousePosition);
-        
+
         var oldHoverList = _lastHovered.ToArray();
         _lastHovered.Clear();
 
@@ -432,7 +457,7 @@ public abstract class Surface : Disposable
                 Size = 0.0f
             };
             if (0.0f <= e.Position && e.Position <= GetDrawSize().Cast<float>())
-                _rootWidget.NotifyCursorEnter(e,Mat3.Identity, _lastHovered);
+                _rootWidget.NotifyCursorEnter(e, Mat3.Identity, _lastHovered);
         }
 
         var hoveredSet = _lastHovered.ToHashSet();

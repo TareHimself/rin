@@ -1,6 +1,5 @@
 ﻿using rin.Framework.Graphics;
 using rin.Framework.Graphics.Shaders;
-using rin.Framework.Graphics.Shaders.Rsl;
 
 namespace rin.Framework.Views.Graphics;
 

@@ -80,7 +80,7 @@ public static class Extensions
     {
         var mesh = await LoadStaticMesh(modelPath);
         if(mesh == null) return null;
-        var entity = scene.CreateEntity();
+        var entity = scene.AddEntity<Entity>();
         var meshComponent = entity.AddComponent<StaticMeshComponent>();
         meshComponent.Mesh = mesh;
         return entity;

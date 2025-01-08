@@ -5,11 +5,11 @@ namespace rin.Framework.Graphics.FrameGraph;
 public interface IPass : IDisposable
 {
     
-    public void Configure(IGraphBuilder builder);
+    public void Configure(IGraphConfig config);
 
     public void Execute(ICompiledGraph graph,Frame frame,VkCommandBuffer cmd);
     
-    public string Name { get; }
+    public uint Id { get; set; }
     
     
     /// <summary>

@@ -1,61 +1,82 @@
-﻿using rin.Framework.Scene.Components;
+﻿using JetBrains.Annotations;
+using rin.Framework.Core;
+using rin.Framework.Scene.Components;
+using rin.Framework.Scene.Components.Lights;
 using rin.Framework.Scene.Entities;
 using rin.Framework.Scene.Systems;
 
 namespace rin.Framework.Scene;
 
-public class Scene
+public class Scene : ITickable
 {
-    private readonly List<ISystem> _systemsList = [];
+    private readonly List<ISystem> _tickableSystems = [];
     private readonly Dictionary<Type, ISystem> _systems = [];
     private readonly Dictionary<string, Entity> _entities = [];
-    private readonly Dictionary<string, IComponent> _components = [];
-    private object _lock = new();
-
     
+    
+    [PublicAPI]
     public Entity AddEntity(Entity entity)
     {
-        throw new Exception();
+        lock (_entities)
+        {
+            _entities.Add(entity.Id, entity);
+            entity.Scene = this;
+        }
+        entity.Init();
+        return entity;
+    }
+    
+    [PublicAPI]
+    public T AddEntity<T>() where T : Entity
+    {
+        var entity = Activator.CreateInstance<T>();
+        AddEntity(entity);
+        return entity;
     }
 
+    [PublicAPI]
     public ISystem AddSystem(ISystem system)
     {
         _systems.Add(system.GetType(), system);
+        if (system.Tickable)
+        {
+            _tickableSystems.Add(system);
+        }
         return system;
     }
 
-    public void OnComponentAdded(IComponent component)
+    public void Tick(double delta)
     {
-        component.Id = Guid.NewGuid().ToString();
-        _components.Add(component.Id, component);
-        foreach (var system in _systemsList)
+        foreach (var tickableSystem in _tickableSystems)
         {
-            system.OnComponentCreated(component);
+            tickableSystem.Tick(delta);
         }
     }
     
-    public void OnComponentRemoved(IComponent component)
+    [PublicAPI]
+    public IEnumerable<SceneComponent> GetRoots()
     {
-        _components.Remove(component.Id);
-        foreach (var system in _systemsList)
+        lock (_entities)
         {
-            system.OnComponentDestroyed(component);
+            foreach (var (key, value) in _entities)
+            {
+                if (value.RootComponent is { } component)
+                {
+                    yield return component;
+                }
+            }
         }
     }
 
-    public Entity CreateEntity()
+    [PublicAPI]
+    public IEnumerable<SceneComponent> GetPureRoots()
     {
-        var id = Guid.NewGuid().ToString();
-        var entity = new Entity(this)
+        foreach (var root in GetRoots())
         {
-            Id = id,
-        };
-        
-        lock (_entities)
-        {
-            _entities.Add(id, entity);
+            if (root is { Parent: null } component)
+            {
+                yield return component;
+            }
         }
-
-        return entity;
     }
 }

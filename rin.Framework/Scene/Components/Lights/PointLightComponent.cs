@@ -5,6 +5,6 @@ using rin.Framework.Scene.Graphics;
 
 namespace rin.Framework.Scene.Components.Lights;
 
-public class PointLightComponent(Entity owner) : LightComponent(owner)
+public class PointLightComponent : LightComponent
 {
 }

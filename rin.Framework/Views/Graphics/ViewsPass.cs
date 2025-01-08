@@ -7,7 +7,7 @@ using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 namespace rin.Framework.Views.Graphics;
 
-public sealed class ViewsPass(Surface surface,FinalDrawCommand[] commands) : IPass
+public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
 {
     private uint _drawImageHandle;
     private uint _copyImageHandle;
@@ -21,16 +21,13 @@ public sealed class ViewsPass(Surface surface,FinalDrawCommand[] commands) : IPa
         throw new NotImplementedException();
     }
 
-    public void Configure(IGraphBuilder builder)
+    public void Configure(IGraphConfig config)
     {
-        _drawImageHandle = builder.CreateImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Rgba32,
-            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        _copyImageHandle = builder.CreateImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Rgba32,
-            VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        _stencilImageHandle = builder.CreateImage(this, _drawSize.X, _drawSize.Y, ImageFormat.Stencil,
-            VkImageLayout.VK_IMAGE_LAYOUT_GENERAL);
+        _drawImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.Rgba32);
+        _copyImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.Rgba32);
+        _stencilImageHandle = config.CreateImage( _drawSize.X, _drawSize.Y, ImageFormat.Stencil);
         
-        foreach (var drawCommand in commands)
+        foreach (var drawCommand in passInfo.Commands)
             if (drawCommand.Type == CommandType.BatchedDraw)
             {
                 var offset = _memoryNeeded;
@@ -62,7 +59,12 @@ public sealed class ViewsPass(Surface surface,FinalDrawCommand[] commands) : IPa
 
         if (_memoryNeeded > 0)
         {
-            _bufferResourceHandle = builder.AllocateBuffer(this, _memoryNeeded);
+            _bufferResourceHandle = config.AllocateBuffer(_memoryNeeded);
+        }
+        
+        foreach (var passInfoGraphConfig in passInfo.GraphConfigs)
+        {
+            passInfoGraphConfig(this,config);
         }
     }
 
@@ -79,7 +81,7 @@ public sealed class ViewsPass(Surface surface,FinalDrawCommand[] commands) : IPa
 
         var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
         
-        surface.Stats.FinalCommandCount = commands.Length;
+        surface.Stats.FinalCommandCount = passInfo.Commands.Count;
         surface.Stats.MemoryAllocatedBytes = _memoryNeeded;
         
         if (buffer != null) frame.OnReset += _ => buffer.Dispose();
@@ -88,10 +90,13 @@ public sealed class ViewsPass(Surface surface,FinalDrawCommand[] commands) : IPa
         
         BeforeDraw(cmd,drawImage, copyImage, stencilImage);
         
-        for (var i = 0; i < commands.Length; i++)
+        foreach (var command in passInfo.PreCommands)
         {
-            var command = commands[i];
-
+            command.Execute(widgetFrame);
+        }
+        
+        foreach (var command in passInfo.Commands)
+        {
             switch (command.Type)
             {
                 case CommandType.None:
@@ -243,12 +248,16 @@ public sealed class ViewsPass(Surface surface,FinalDrawCommand[] commands) : IPa
             widgetFrame.EndActivePass();
         }
         
-        
-        drawImage.Barrier(cmd,VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        foreach (var command in passInfo.PostCommands)
+        {
+            command.Execute(widgetFrame);
+        }
+
+        cmd.ImageBarrier(drawImage, ImageLayout.ColorAttachment, ImageLayout.TransferSrc);
 
         frame.OnCopy += (_, image, extent) =>
         {
-            drawImage.CopyTo(frame.GetCommandBuffer(),image,new VkExtent3D()
+            cmd.CopyImageToImage(drawImage, image,new VkExtent3D()
             {
                 width = extent.width,
                 height = extent.height,
@@ -256,62 +265,30 @@ public sealed class ViewsPass(Surface surface,FinalDrawCommand[] commands) : IPa
             });
         };
     }
-    
+
+    public uint Id { get; set; }
+
     public void BeforeDraw(VkCommandBuffer cmd,IDeviceImage drawImage,IDeviceImage copyImage,IDeviceImage stencilImage)
     {
-        drawImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL);
-        copyImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL);
-        unsafe
-        {
-            fixed (VkClearColorValue* pColor = new[]
-                       { SGraphicsModule.MakeClearColorValue(new Vec4<float>(0.0f, 0.0f, 0.0f, 0.0f)) })
+        ResetStencilState(cmd);
+        cmd.ImageBarrier(drawImage, ImageLayout.Undefined, ImageLayout.General);
+        cmd.ImageBarrier(copyImage, ImageLayout.Undefined, ImageLayout.General);
+        cmd.ImageBarrier(stencilImage, ImageLayout.Undefined,
+            ImageLayout.General, new ImageBarrierOptions
             {
-                fixed (VkImageSubresourceRange* pRanges = new[]
-                           { SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT) })
-                {
-                    vkCmdClearColorImage(cmd,drawImage.NativeImage, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL, pColor, 1,
-                        pRanges);
-                    vkCmdClearColorImage(cmd,copyImage.NativeImage, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL, pColor, 1,
-                        pRanges);
-                }
-            }
-
-            drawImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,
-                VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-            copyImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,
-                VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-            ResetStencilState(cmd);
-
-
-            stencilImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-                VkImageLayout.VK_IMAGE_LAYOUT_GENERAL, new ImageBarrierOptions
-                {
-                    SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(
-                        VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT | VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
-                });
-
-            fixed (VkClearDepthStencilValue* pColor = new[]
-                       { SGraphicsModule.MakeClearDepthStencilValue(stencil: 0) })
+                SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(
+                    VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT | VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
+            });
+        cmd.ClearColorImages(0.0f, ImageLayout.General, drawImage, copyImage);
+        cmd.ClearStencilImages(0, ImageLayout.General, stencilImage);
+        cmd.ImageBarrier(drawImage,  ImageLayout.General,ImageLayout.ColorAttachment);
+        cmd.ImageBarrier(copyImage, ImageLayout.General,ImageLayout.ShaderReadOnly);
+        cmd.ImageBarrier(stencilImage, ImageLayout.General,
+            ImageLayout.StencilAttachment, new ImageBarrierOptions
             {
-                fixed (VkImageSubresourceRange* pRanges = new[]
-                       {
-                           SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT |
-                                                                     VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
-                       })
-                {
-                    vkCmdClearDepthStencilImage(cmd, stencilImage.NativeImage, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,
-                        pColor, 1, pRanges);
-                    ResetStencilState(cmd);
-                }
-            }
-
-            stencilImage.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,
-                VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, new ImageBarrierOptions
-                {
-                    SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(
-                        VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT | VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
-                });
-        }
+                SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(
+                    VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT | VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
+            });
     }
     
     private static void ResetStencilState(VkCommandBuffer cmd,

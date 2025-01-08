@@ -4,7 +4,6 @@ using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.Descriptors;
 using rin.Framework.Graphics.Shaders;
-using rin.Framework.Graphics.Shaders.Rsl;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -20,7 +19,7 @@ public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         public ulong Buffer;
     }
 
-    private readonly IGraphicsShader _batchShader = SGraphicsModule.Get().GetShaderManager().GraphicsFromPath(Path.Join(SGraphicsModule.ShadersDirectory ,"views", "batch.slang"));
+    private readonly IGraphicsShader _batchShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SGraphicsModule.ShadersDirectory ,"views", "batch.slang"));
     
     protected override IGraphicsShader GetShader() => _batchShader;
 
@@ -29,7 +28,7 @@ public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
     protected override uint WriteBatch(ViewsFrame frame, IDeviceBuffer view, QuadBatch batch, IGraphicsShader shader)
     {
         var cmd = frame.Raw.GetCommandBuffer();
-        var resourceSet = SGraphicsModule.Get().GetResourceManager().GetDescriptorSet();
+        var resourceSet = SGraphicsModule.Get().GetTextureManager().GetDescriptorSet();
         var quads = batch.GetQuads().ToArray();
         view.Write(quads);
         cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS,

@@ -10,7 +10,7 @@ namespace rin.Framework.Core;
 
 internal static partial class NativeMethods
 {
-    private const string DllName = "rin.RuntimeN";
+    private const string DllName = "rin.Framework.Native";
     
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public unsafe delegate void NativePathDelegate(char * path);

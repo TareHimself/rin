@@ -5,19 +5,57 @@ using rin.Framework.Scene;
 using rin.Framework.Views;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Content;
-
+using rin.Framework.Views.Layouts;
 using SceneTest.entities;
 
 namespace SceneTest;
 
-[Module(typeof(SSceneModule),typeof(SViewsModule))]
+[Module(typeof(SSceneModule), typeof(SViewsModule)),AlwaysLoad]
 public class SSceneTestModule : IModule
 {
     public void Startup(SRuntime runtime)
     {
-        runtime.OnTick += (_) =>
+        
+        var scene = SSceneModule.Get().CreateScene();
+        var camera = scene.AddEntity<CameraEntity>();
+        
+        runtime.OnTick += (_) => { SGraphicsModule.Get().PollWindows(); };
+
+        SViewsModule.Get().OnSurfaceCreated += (surf) =>
         {
-            SGraphicsModule.Get().PollWindows();
+            var window = surf.GetRenderer().GetWindow();
+            
+            window.OnCloseRequested += (_) =>
+            {
+                if (window.Parent != null)
+                {
+                    window.Dispose();
+                }
+                else
+                {
+                    SRuntime.Get().RequestExit();
+                }
+            };
+            
+            var text = new TextBox("Selected Channel Text", inFontSize: 50);
+            
+            surf.Add(new Panel()
+            {
+                Slots =
+                [
+                    new PanelSlot()
+                    {
+                        Child = new Viewport(camera, text),
+                        MinAnchor = 0.0f,
+                        MaxAnchor = 1.0f,
+                    },
+                    new PanelSlot()
+                    {
+                        Child = text,
+                        SizeToContent = true
+                    }
+                ]
+            });
         };
         
         Task.Factory.StartNew(() =>
@@ -26,59 +64,17 @@ public class SSceneTestModule : IModule
             {
                 SGraphicsModule.Get().DrawWindows();
             }
-        },TaskCreationOptions.LongRunning);
-        
-        var window = SGraphicsModule.Get().CreateWindow(500, 500, "Rin Scene Test", new CreateOptions()
+        }, TaskCreationOptions.LongRunning);
+
+        SGraphicsModule.Get().CreateWindow(500, 500, "Rin Scene Test", new CreateOptions()
         {
             Visible = true,
             Decorated = true,
             Transparent = true
         });
-        
-        var scene = SSceneModule.Get().CreateScene();
-
-        if (SViewsModule.Get().GetWindowSurface(window) is { } surf)
-        {
-            
-        }
-        
-        // var text = new TextBox();
-        //
-        // var viewport = surf?.Add(new Viewport(scene,text));
-        //
-        // var panel = surf?.Add(new Panel());
-        //
-        // var textSlot = panel?.AddChild(text);
-        //
-        // textSlot?.Mutate((c) =>
-        // {
-        //     c.SizeToContent = true;
-        //     c.MinAnchor = 0.0f;
-        //     c.MaxAnchor = 0.0f;
-        // });
-        //
-        // var entity = scene.AddEntity<CameraEntity>();
-        // var meshEntity = scene.AddEntity<MeshEntity>();
-        // scene.SetViewTarget(entity);
-        //
-        // window.OnKey += (k) =>
-        // {
-        //     if (k.Key is Key.Left or Key.Right)
-        //     {
-        //         if (k.Key is Key.Left)
-        //         {
-        //             
-        //         }
-        //         else
-        //         {
-        //             
-        //         }
-        //     }
-        // };
     }
 
     public void Shutdown(SRuntime runtime)
     {
-        
     }
 }

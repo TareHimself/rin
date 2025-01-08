@@ -2,7 +2,10 @@
 
 namespace rin.Framework.Views.Graphics.Commands;
 
-public abstract class CustomCommand : GraphicsCommand
+/// <summary>
+/// Base class for custom commands that will run in the ViewsPass
+/// </summary>
+public abstract class CustomCommand : Command
 {
     public abstract void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null);
 
@@ -13,7 +16,6 @@ public abstract class CustomCommand : GraphicsCommand
     public virtual bool WillDraw => false;
 
     public virtual ulong MemoryNeeded => 0;
-
-    public virtual CommandStage Stage => CommandStage.Maintain;
+    
     public virtual bool CombineWith(CustomCommand other) => false;
 }

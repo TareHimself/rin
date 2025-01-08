@@ -1,6 +1,9 @@
 using rin.Framework.Graphics.FrameGraph;
 using rin.Framework.Core;
+using rin.Framework.Core.Math;
 using TerraFX.Interop.Vulkan;
+using TerraFX.Interop.Vulkan;
+using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace rin.Framework.Graphics;
 
@@ -11,24 +14,4 @@ public interface IDeviceImage :  IGraphResource
     public VkImage NativeImage { get; }
     public VkImageView NativeView { get; set; }
     
-
-    public void Barrier(VkCommandBuffer cmd,VkImageLayout from,VkImageLayout to,ImageBarrierOptions? options = null)
-    {
-        cmd.ImageBarrier(this,from,to,options);
-    }
-    
-    public void CopyTo(VkCommandBuffer cmd,IDeviceImage dest)
-    {
-        cmd.CopyImageToImage(this,dest);
-    }
-    
-    public void CopyTo(VkCommandBuffer cmd,IDeviceImage dest,ImageFilter filter)
-    {
-        cmd.CopyImageToImage(this,dest,filter);
-    }
-    
-    public void CopyTo(VkCommandBuffer cmd,VkImage dest,VkExtent3D destExtent,VkExtent3D? srcExtent = null)
-    {
-        cmd.CopyImageToImage(NativeImage,dest,srcExtent.GetValueOrDefault(Extent),destExtent);
-    }
 }

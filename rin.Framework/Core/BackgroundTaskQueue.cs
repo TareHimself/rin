@@ -74,7 +74,7 @@ public class BackgroundTaskQueue<T> : Disposable
 {
 
     private Task _longTask;
-    private Thread _taskThread;
+    private Thread? _taskThread;
     public class PendingTask
     {
         public Func<T> Fn;

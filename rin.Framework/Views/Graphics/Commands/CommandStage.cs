@@ -6,15 +6,11 @@
 public enum CommandStage
 {
     /// <summary>
-    /// Maintain Execution Position
+    /// Execute before the main pass
     /// </summary>
-    Maintain,
+    Before,
     /// <summary>
-    /// Execute as early as possible
+    /// Execute after the main pass
     /// </summary>
-    Early,
-    /// <summary>
-    /// Execute as late as possible
-    /// </summary>
-    Late
+    After
 }

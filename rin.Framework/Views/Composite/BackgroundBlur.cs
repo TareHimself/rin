@@ -7,6 +7,7 @@ using rin.Framework.Graphics;
 using rin.Framework.Graphics.Descriptors;
 using rin.Framework.Graphics.Shaders;
 using rin.Framework.Views.Enums;
+using rin.Framework.Views.Graphics.Quads;
 using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
@@ -89,7 +90,7 @@ public class BackgroundBlur : SingleSlotCompositeView
         if (IsVisible)
         {
             drawCommands.Add(new ReadBack());
-            drawCommands.Add(new BlurCommand(transform,GetContentSize(),Strength,Tint));
+            drawCommands.Add(new BlurCommand(transform,Size,Strength,Tint));
         }
         base.Collect(transform,clip, drawCommands);
     }
@@ -98,12 +99,10 @@ public class BackgroundBlur : SingleSlotCompositeView
     {
         if (GetSlot() is { } slot)
         {
-            var widget = slot.Child;
-            widget.Offset = 0.0f;
-            return widget.ComputeSize(availableSpace);
+            slot.Child.Offset = (new Vec2<float>(0, 0));
+            return slot.Child.ComputeSize(availableSpace);
         }
 
         return 0.0f;
     }
-    
 }

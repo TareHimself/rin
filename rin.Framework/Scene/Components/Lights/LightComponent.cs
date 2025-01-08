@@ -4,8 +4,8 @@ using rin.Framework.Scene.Entities;
 
 namespace rin.Framework.Scene.Components.Lights;
 
-[Component(typeof (TransformComponent))]
-public abstract class LightComponent(Entity owner) : Component(owner)
+
+public abstract class LightComponent : SceneComponent
 {
     [PublicAPI]
     public float Intensity  { get; set; }
@@ -13,4 +13,5 @@ public abstract class LightComponent(Entity owner) : Component(owner)
     public float Radius { get; set; }
     [PublicAPI]
     public Vec4<float> Color { get; set; }
+    
 }

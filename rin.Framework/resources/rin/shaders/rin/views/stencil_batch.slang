@@ -21,24 +21,13 @@ struct PushConstants
 [[vk::push_constant]]
 uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
 
+
 [shader("vertex")]
 float4 vertex(int instanceId: SV_InstanceID, int vertexId: SV_VertexID,out int oQuadIndex: QUAD_INDEX)
     : SV_Position
 {
     oQuadIndex = instanceId;
     return float4(vertices[vertexId], 0.0, 1.0);
-}
-
-float median(float r, float g, float b)
-{
-    return max(min(r, g), min(max(r, g), b));
-}
-
-float screenPxRange(float2 uv, float2 size)
-{
-    float2 unitRange = float2(30.0) / size;
-    float2 screenTexSize = float2(1.0) / fwidth(uv);
-    return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
 
 [shader("fragment")]

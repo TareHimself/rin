@@ -1,6 +1,5 @@
 using rin.Framework.Core;
 using rin.Framework.Core.Extensions;
-using rsl;
 using TerraFX.Interop.Vulkan;
 
 namespace rin.Framework.Graphics.FrameGraph;

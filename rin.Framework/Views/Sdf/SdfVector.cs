@@ -6,6 +6,10 @@ public class SdfVector
 {
     public string Id = "";
     public int AtlasIdx;
-    public Vec4<float> Rect = new Vec4<float>(0.0f);
+    public float Range { get; set; }
+    public float X { get; set; }
+    public float Y { get; set; }
+    public float Width { get; set; }
+    public float Height { get; set; }
     public Vec4<float> Coordinates = new(0.0f, 0.0f, 1.0f, 1.0f);
 }

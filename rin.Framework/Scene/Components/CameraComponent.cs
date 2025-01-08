@@ -2,8 +2,7 @@
 
 namespace rin.Framework.Scene.Components;
 
-[Component(typeof(TransformComponent))]
-public class CameraComponent(Entity owner) : Component(owner)
+public class CameraComponent : SceneComponent
 {
     public float FieldOfView = 90.0f;
 

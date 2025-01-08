@@ -6,7 +6,6 @@ using rin.Framework.Graphics.Descriptors;
 using rin.Framework.Graphics.Shaders;
 using rin.Framework.Graphics.Windows;
 using rin.Framework.Core.Extensions;
-using rin.Framework.Graphics.Shaders.Rsl;
 using rin.Framework.Graphics.Shaders.Slang;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -23,7 +22,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     private readonly Mutex _samplersMutex = new();
     private Allocator? _allocator;
     private IShaderManager? _shaderCompiler;
-    private ITextureManager? _resourceManager;
+    private ITextureManager? _textureManager;
     private VkDebugUtilsMessengerEXT _debugUtilsMessenger;
     private DescriptorAllocator? _descriptorAllocator;
     private VkDevice _device;
@@ -77,8 +76,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         {
             if (_samplers.TryGetValue(spec, out var sampler)) return sampler;
 
-            var vkFilter = FilterToVkFilter(spec.Filter);
-            var vkAddressMode = TilingToVkSamplerAddressMode(spec.Tiling);
+            var vkFilter = spec.Filter.ToVk();
+            var vkAddressMode = spec.Tiling.ToVk();
 
             var samplerCreateInfo = new VkSamplerCreateInfo
             {
@@ -109,54 +108,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             return sampler;
         }
     }
-
-    public static ImageFormat VkFormatToImageFormat(VkFormat format)
-    {
-        return format switch
-        {
-            VkFormat.VK_FORMAT_R8G8B8A8_UNORM => ImageFormat.Rgba8,
-            VkFormat.VK_FORMAT_R16G16B16A16_UNORM => ImageFormat.Rgba16,
-            VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.Rgba32,
-            VkFormat.VK_FORMAT_D32_SFLOAT => ImageFormat.Depth,
-            VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT => ImageFormat.Stencil,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-    }
-
-    public static VkFormat ImageFormatToVkFormat(ImageFormat format)
-    {
-        return format switch
-        {
-            ImageFormat.Rgba8 => VkFormat.VK_FORMAT_R8G8B8A8_UNORM,
-            ImageFormat.Rgba16 => VkFormat.VK_FORMAT_R16G16B16A16_UNORM,
-            ImageFormat.Rgba32 => VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT,
-            ImageFormat.Depth => VkFormat.VK_FORMAT_D32_SFLOAT,
-            ImageFormat.Stencil => VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-    }
-
-    public static VkFilter FilterToVkFilter(ImageFilter filter)
-    {
-        return filter switch
-        {
-            ImageFilter.Linear => VkFilter.VK_FILTER_LINEAR,
-            ImageFilter.Nearest => VkFilter.VK_FILTER_NEAREST,
-            ImageFilter.Cubic => VkFilter.VK_FILTER_CUBIC_IMG,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-    }
-
-    public static VkSamplerAddressMode TilingToVkSamplerAddressMode(ImageTiling tiling)
-    {
-        return tiling switch
-        {
-            ImageTiling.Repeat => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            ImageTiling.ClampEdge => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-            ImageTiling.ClampBorder => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-    }
+    
 
     public static VkClearColorValue MakeClearColorValue(Vec4<float> color)
     {
@@ -273,7 +225,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         _graphicsFence = _device.CreateFence();
         _graphicsCommandPool = _device.CreateCommandPool(GetGraphicsQueueFamily());
         _graphicsCommandBuffer = _device.AllocateCommandBuffers(_graphicsCommandPool).First();
-        _resourceManager = new TextureManager();
+        _textureManager = new TextureManager();
         _instance.DestroySurface(outSurface);
     }
 
@@ -281,11 +233,16 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     {
         return _shaderCompiler!;
     }
+    
+    public IGraphicsShader GraphicsShaderFromPath(string path) => GetShaderManager().GraphicsFromPath(path);
+    public IComputeShader ComputeShaderFromPath(string path) => GetShaderManager().ComputeFromPath(path);
 
-    public ITextureManager GetResourceManager()
+    public ITextureManager GetTextureManager()
     {
-        return _resourceManager!;
+        return _textureManager!;
     }
+    
+    
 
     private void HandleWindowCreated(IWindow window)
     {
@@ -400,7 +357,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         _transferQueueThread.Dispose();
         _descriptorAllocator?.Dispose();
         _shaderCompiler?.Dispose();
-        _resourceManager?.Dispose();
+        _textureManager?.Dispose();
         _descriptorLayoutFactory.Dispose();
         
         lock (_samplersMutex)
@@ -445,33 +402,13 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         };
     }
 
-    public static VkRenderingAttachmentInfo MakeRenderingAttachment(VkImageView view, VkImageLayout layout,
-        VkClearValue? clearValue = null)
-    {
-        var attachment = new VkRenderingAttachmentInfo
-        {
-            sType = VkStructureType.VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            imageView = view,
-            imageLayout = layout,
-            loadOp = clearValue == null
-                ? VkAttachmentLoadOp.VK_ATTACHMENT_LOAD_OP_LOAD
-                : VkAttachmentLoadOp.VK_ATTACHMENT_LOAD_OP_CLEAR,
-            storeOp = VkAttachmentStoreOp.VK_ATTACHMENT_STORE_OP_STORE
-        };
-
-        if (clearValue != null) attachment.clearValue = clearValue.Value;
-
-        return attachment;
-    }
-
-
     public static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, VkExtent3D size, VkImageUsageFlags usage)
     {
         return new VkImageCreateInfo
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             imageType = VkImageType.VK_IMAGE_TYPE_2D,
-            format = ImageFormatToVkFormat(format),
+            format = format.ToVk(),
             extent = size,
             mipLevels = 1,
             arrayLayers = 1,
@@ -494,7 +431,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             image = image,
             viewType = VkImageViewType.VK_IMAGE_VIEW_TYPE_2D,
-            format = ImageFormatToVkFormat(format),
+            format = format.ToVk(),
             subresourceRange = new VkImageSubresourceRange
             {
                 aspectMask = aspect,
@@ -726,7 +663,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         }
     }
 
-    private static void GenerateMipMaps(VkCommandBuffer cmd, IDeviceImage image, VkExtent2D size, VkFilter filter)
+    private static void GenerateMipMaps(VkCommandBuffer cmd, IDeviceImage image, VkExtent2D size, ImageFilter filter,ImageLayout srcLayout,ImageLayout dstLayout)
     {
         var mipLevels = DeriveMipLevels(size);
         var curSize = size;
@@ -735,9 +672,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             var halfSize = curSize;
             halfSize.width /= 2;
             halfSize.height /= 2;
-
-            image.Barrier(cmd, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, new ImageBarrierOptions
+            cmd.ImageBarrier(image, srcLayout,
+                ImageLayout.TransferSrc, new ImageBarrierOptions
                 {
                     SubresourceRange = new VkImageSubresourceRange
                     {
@@ -748,6 +684,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                         levelCount = 1
                     }
                 });
+            
             if (mip < mipLevels - 1)
             {
                 var blitRegion = new VkImageBlit2
@@ -794,7 +731,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                         dstImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                         regionCount = 1,
                         pRegions = &blitRegion,
-                        filter = filter
+                        filter = filter.ToVk()
                     };
 
                     vkCmdBlitImage2(cmd, &blitInfo);
@@ -804,8 +741,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             }
         }
 
-        cmd.ImageBarrier(image, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        cmd.ImageBarrier(image,ImageLayout.TransferSrc,
+            dstLayout);
     }
 
 
@@ -839,8 +776,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
         await TransferSubmit(cmd =>
         {
-            cmd.ImageBarrier(newImage, VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-                VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+            cmd.ImageBarrier(newImage,ImageLayout.Undefined,ImageLayout.TransferDst);
+            
             var copyRegion = new VkBufferImageCopy
             {
                 bufferOffset = 0,
@@ -856,16 +793,11 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                 imageExtent = size
             };
 
-            unsafe
-            {
-                vkCmdCopyBufferToImage(cmd, uploadBuffer.NativeBuffer, newImage.NativeImage,
-                    VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
-            }
+            cmd.CopyBufferToImage(uploadBuffer, newImage, [copyRegion]);
 
             if (!mips)
             {
-                cmd.ImageBarrier(newImage, VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                cmd.ImageBarrier(newImage,ImageLayout.TransferDst,ImageLayout.ShaderReadOnly);
             }
         });
 
@@ -877,7 +809,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                 {
                     width = size.width,
                     height = size.height
-                }, FilterToVkFilter(mipMapFilter));
+                }, mipMapFilter,ImageLayout.TransferSrc,ImageLayout.ShaderReadOnly);
             });
         }
         

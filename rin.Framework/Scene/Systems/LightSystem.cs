@@ -14,8 +14,8 @@ public class LightSystem : ISystem
             return _lights.ToArray();
         }
     }
-
-    public bool WillTick => false;
+    
+    public bool Tickable => false;
 
     public void Startup(Scene scene)
     {

@@ -1,6 +1,4 @@
-﻿using rsl.Nodes;
-
-namespace rin.Framework.Graphics.Shaders;
+﻿namespace rin.Framework.Graphics.Shaders;
 
 public class ShaderCompileException(string message) : Exception(message)
 {

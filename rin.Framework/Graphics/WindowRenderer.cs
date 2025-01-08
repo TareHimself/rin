@@ -14,8 +14,12 @@ namespace rin.Framework.Graphics;
 /// <summary>
 ///     Handle's rendering on a <see cref="Windows" />
 /// </summary>
-public partial class WindowRenderer : Disposable
+public class WindowRenderer : Disposable
 {
+    private class OutOfDateException : Exception
+    {
+    }
+
     private const uint FramesInFlight = 2;
     private readonly SGraphicsModule _module;
     private readonly VkSurfaceKHR _surface;
@@ -30,7 +34,7 @@ public partial class WindowRenderer : Disposable
     public double LastDrawElapsedTime = 0.0;
     public double LastDrawTime = 0.0;
     private readonly IImagePool _imagePool;
-    private object _drawLock = new();
+    private readonly object _drawLock = new();
 
     private VkExtent2D _swapchainSize = new()
     {
@@ -65,7 +69,7 @@ public partial class WindowRenderer : Disposable
         _imagePool = new ImagePool(this);
     }
 
-    public unsafe VkSurfaceKHR CreateSurface()
+    private unsafe VkSurfaceKHR CreateSurface()
     {
         var instance = SGraphicsModule.Get().GetInstance();
         var surface = new VkSurfaceKHR();
@@ -81,31 +85,21 @@ public partial class WindowRenderer : Disposable
         InitFrames();
         _window.OnResized += OnWindowResized;
         _window.OnRefresh += OnWindowRefreshed;
-        // _window.OnMaximized += OnMaximized;
-        // _window.OnFocused += OnFocused;
     }
 
 
-    protected void OnWindowResized(ResizeEvent e)
+    private void OnWindowResized(ResizeEvent e)
     {
-        _resizePending = true;
-        //_resizePending = true;
+        //CheckSwapchainSize();
+        RequestResize();
+        DrawFrame();
     }
 
-    protected void OnWindowRefreshed(RefreshEvent e)
+    private void OnWindowRefreshed(RefreshEvent e)
     {
-        _resizePending = true;
+        RequestResize();
+        DrawFrame();
     }
-
-    // protected void OnMaximized(Window.MaximizedEvent e)
-    // {
-    //     CheckSwapchainSize();
-    // }
-    //
-    // protected void OnFocused(Window.FocusEvent e)
-    // {
-    //     CheckSwapchainSize();
-    // }
 
     protected override void OnDispose(bool isManual)
     {
@@ -181,24 +175,22 @@ public partial class WindowRenderer : Disposable
 
     private bool CheckSwapchainSize()
     {
-        if (_resizing) return true;
-        var windowSize = _window.GetPixelSize();
-        if (_swapchainSize.width == windowSize.X &&
-            _swapchainSize.height == windowSize.Y) return false;
+        lock (_drawLock)
+        {
+            if (_resizing) return true;
+            var windowSize = _window.GetPixelSize();
+            if (_swapchainSize.width == windowSize.X &&
+                _swapchainSize.height == windowSize.Y) return false;
 
-        _resizing = true;
-        _module.WaitDeviceIdle();
-        // foreach (var frame in _frames)
-        // {
-        //     frame.WaitForLastDraw();
-        //     frame.Reset();
-        // }
-        DestroySwapchain();
-        CreateSwapchain();
-        OnResize?.Invoke(new Vec2<uint>(_swapchainSize.width, _swapchainSize.height));
-        _resizing = false;
-        _resizePending = false;
-        return true;
+            _resizing = true;
+            _module.WaitDeviceIdle();
+            DestroySwapchain();
+            CreateSwapchain();
+            OnResize?.Invoke(new Vec2<uint>(_swapchainSize.width, _swapchainSize.height));
+            _resizing = false;
+            _resizePending = false;
+            return true;
+        }
     }
 
 
@@ -224,7 +216,7 @@ public partial class WindowRenderer : Disposable
         _frames = frames.ToArray();
     }
 
-    protected bool ShouldDraw()
+    private bool ShouldDraw()
     {
         return !_resizing && _swapchainImages.Length > 0;
     }
@@ -249,63 +241,16 @@ public partial class WindowRenderer : Disposable
         };
     }
 
-    private void Submit(Frame frame, uint swapchainImageIndex)
+    private static void CheckResult(VkResult result)
     {
-        var cmd = frame.GetCommandBuffer();
-        var queue = _module.GetGraphicsQueue();
-        _module.SubmitToQueue(queue, frame.GetRenderFence(), new VkCommandBufferSubmitInfo[]
-            {
-                new()
-                {
-                    sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                    deviceMask = 0,
-                    commandBuffer = cmd
-                }
-            }, new VkSemaphoreSubmitInfo[]
-            {
-                new()
-                {
-                    sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                    semaphore = frame.GetRenderSemaphore(),
-                    value = 1,
-                    stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
-                }
-            },
-            new VkSemaphoreSubmitInfo[]
-            {
-                new()
-                {
-                    sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                    semaphore = frame.GetSwapchainSemaphore(),
-                    value = 1,
-                    stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
-                }
-            });
-        unsafe
+        switch (result)
         {
-            var renderSemaphore = frame.GetRenderSemaphore();
-            var swapchain = _swapchain;
-            var imIdx = swapchainImageIndex + 0;
-            var presentInfo = new VkPresentInfoKHR
-            {
-                sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                pWaitSemaphores = &renderSemaphore,
-                waitSemaphoreCount = 1,
-                pSwapchains = &swapchain,
-                swapchainCount = 1,
-                pImageIndices = &imIdx
-            };
-            try
-            {
-                vkQueuePresentKHR(queue, &presentInfo);
-            }
-            catch (Exception e)
-            {
-                RequestResize();
-
-                Console.WriteLine(e);
-                throw;
-            }
+            case VkResult.VK_SUCCESS:
+                return;
+            case VkResult.VK_ERROR_OUT_OF_DATE_KHR:
+                throw new OutOfDateException();
+            default:
+                throw new Exception(result.ToString());
         }
     }
 
@@ -319,104 +264,146 @@ public partial class WindowRenderer : Disposable
         //return;
         if (!ShouldDraw()) return;
 
-
-        var frame = GetCurrentFrame();
-        var device = _module.GetDevice();
-
-        frame.WaitForLastDraw();
-
-        _imagePool.OnFrameStart(_framesRendered);
-
-        frame.Reset();
-
-        uint swapchainImageIndex = 0;
-
-        try
+        lock (_drawLock)
         {
-            unsafe
+            try
             {
-                vkAcquireNextImageKHR(device, _swapchain, ulong.MaxValue, frame.GetSwapchainSemaphore(),
-                    new VkFence(),
-                    &swapchainImageIndex);
+                if (Disposed) return;
+                var frame = GetCurrentFrame();
+                var device = _module.GetDevice();
+
+                frame.WaitForLastDraw();
+
+                _imagePool.OnFrameStart(_framesRendered);
+
+                frame.Reset();
+
+                uint swapchainImageIndex = 0;
+
+                unsafe
+                {
+                    CheckResult(vkAcquireNextImageKHR(device, _swapchain, ulong.MaxValue, frame.GetSwapchainSemaphore(),
+                        new VkFence(),
+                        &swapchainImageIndex));
+                }
+
+                var cmd = frame.GetCommandBuffer();
+
+                vkResetCommandBuffer(cmd, 0);
+
+                var commandBeginInfo = new VkCommandBufferBeginInfo
+                {
+                    sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                    flags = VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+                };
+
+                var swapchainExtent = _swapchainSize;
+
+                unsafe
+                {
+                    vkBeginCommandBuffer(cmd, &commandBeginInfo);
+
+                    cmd
+                        .SetRasterizerDiscard(false)
+                        .DisableMultiSampling();
+                }
+
+                if ((OnDraw?.GetInvocationList().Length ?? 0) > 0)
+                {
+                    OnDraw?.Invoke(frame);
+
+                    var graph = frame.GetBuilder().Compile(_imagePool, frame);
+                    graph?.Run(frame);
+                    if (graph != null)
+                    {
+                        frame.OnReset += (_) => graph.Dispose();
+                    }
+
+                    cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
+                        ImageLayout.Undefined,
+                        ImageLayout.TransferDst);
+
+                    frame.DoCopy(_swapchainImages[swapchainImageIndex], swapchainExtent);
+                    OnCopy?.Invoke(frame, _swapchainImages[swapchainImageIndex], swapchainExtent);
+
+                    cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
+                        ImageLayout.TransferDst,
+                        ImageLayout.PresentSrc);
+                }
+                else
+                {
+                    cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
+                        ImageLayout.Undefined,
+                        ImageLayout.PresentSrc);
+                }
+
+
+                vkEndCommandBuffer(cmd);
+
+                var queue = _module.GetGraphicsQueue();
+
+                _module.SubmitToQueue(queue, frame.GetRenderFence(), [
+                        new VkCommandBufferSubmitInfo
+                        {
+                            sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                            deviceMask = 0,
+                            commandBuffer = cmd
+                        }
+                    ], [
+                        new VkSemaphoreSubmitInfo
+                        {
+                            sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                            semaphore = frame.GetRenderSemaphore(),
+                            value = 1,
+                            stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
+                        }
+                    ],
+                    [
+                        new VkSemaphoreSubmitInfo
+                        {
+                            sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                            semaphore = frame.GetSwapchainSemaphore(),
+                            value = 1,
+                            stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+                        }
+                    ]);
+                unsafe
+                {
+                    var renderSemaphore = frame.GetRenderSemaphore();
+                    var swapchain = _swapchain;
+                    var imIdx = swapchainImageIndex + 0;
+                    var presentInfo = new VkPresentInfoKHR
+                    {
+                        sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                        pWaitSemaphores = &renderSemaphore,
+                        waitSemaphoreCount = 1,
+                        pSwapchains = &swapchain,
+                        swapchainCount = 1,
+                        pImageIndices = &imIdx
+                    };
+
+                    vkQueuePresentKHR(queue, &presentInfo);
+                }
+
+                _framesRendered++;
+            }
+            catch (OutOfDateException e)
+            {
+                RequestResize();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
             }
         }
-        catch (Exception e)
-        {
-            RequestResize();
-
-            Console.WriteLine(e);
-            throw;
-        }
-
-        var cmd = frame.GetCommandBuffer();
-
-        vkResetCommandBuffer(cmd, 0);
-
-        var commandBeginInfo = new VkCommandBufferBeginInfo
-        {
-            sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            flags = VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-        };
-
-
-        var swapchainExtent = _swapchainSize;
-        var drawExtent = swapchainExtent;
-
-        unsafe
-        {
-            vkBeginCommandBuffer(cmd, &commandBeginInfo);
-
-            cmd
-                .SetRasterizerDiscard(false)
-                .DisableMultiSampling();
-        }
-
-        if ((OnDraw?.GetInvocationList().Length ?? 0) > 0)
-        {
-            OnDraw?.Invoke(frame);
-
-            var graph = frame.GetBuilder().Compile(_imagePool, frame);
-            graph?.Run(frame);
-            if (graph != null)
-            {
-                frame.OnReset += (_) => graph.Dispose();
-            }
-
-            cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
-                VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-                VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-            frame.DoCopy(_swapchainImages[swapchainImageIndex], swapchainExtent);
-            OnCopy?.Invoke(frame, _swapchainImages[swapchainImageIndex], swapchainExtent);
-
-            cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
-                VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-        }
-        else
-        {
-            cmd.ImageBarrier(_swapchainImages[swapchainImageIndex],
-                VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-                VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-        }
-
-
-        vkEndCommandBuffer(cmd);
-
-        Submit(frame, swapchainImageIndex);
-
-        _framesRendered++;
     }
 
     public void Draw()
     {
         if (Disposed) return;
-        lock (_drawLock)
-        {
-            if (Disposed) return;
-            var start = SRuntime.Get().GetTimeSeconds();
-            DrawFrame();
-            LastDrawElapsedTime = SRuntime.Get().GetTimeSeconds() - start;
-        }
+        var start = SRuntime.Get().GetTimeSeconds();
+        DrawFrame();
+        LastDrawElapsedTime = SRuntime.Get().GetTimeSeconds() - start;
     }
 }

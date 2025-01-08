@@ -9,7 +9,7 @@ public struct ImageResourceDescriptor : IResourceDescriptor, IEquatable<ImageRes
     public required uint Height;
     public required ImageFormat Format;
     public required VkImageUsageFlags Flags;
-    public required VkImageLayout InitialLayout;
+    public required ImageLayout InitialLayout;
 
     public bool Equals(ImageResourceDescriptor other)
     {

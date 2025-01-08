@@ -2,8 +2,19 @@
 
 namespace rin.Framework.Scene.Components;
 
-public class Component(Entity owner) : IComponent
+public class Component : IComponent
 {
-    public string Id { get; set; } = string.Empty;
-    public Entity Owner { get; set; } = owner;
+    public Entity? Owner { get; set; }
+    public virtual void Init()
+    {
+    }
+
+    public virtual void Destroy()
+    {
+    }
+
+    public void Tick(double delta)
+    {
+        
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using rin.Framework.Core.Math;
+using rin.Framework.Graphics.FrameGraph;
 using rin.Framework.Views.Graphics.Commands;
 
 namespace rin.Framework.Views.Graphics;
@@ -12,16 +13,16 @@ public class ClipInfo(uint id, Mat3 transform, Vec2<float> size)
     public Vec2<float> Size = size;
 }
 
-public struct RawCommand(GraphicsCommand drawCommand, string clipId)
+public struct RawCommand(Command drawCommand, string clipId)
 {
-    public GraphicsCommand Command = drawCommand;
+    public Command Command = drawCommand;
     public readonly string ClipId = clipId;
     public int AbsoluteDepth = 0;
 }
 
-public struct PendingCommand(GraphicsCommand drawCommand, uint clipId)
+public struct PendingCommand(Command drawCommand, uint clipId)
 {
-    public GraphicsCommand DrawCommand = drawCommand;
+    public Command DrawCommand = drawCommand;
     public readonly uint ClipId = clipId;
 }
 
@@ -32,7 +33,22 @@ public class DrawCommands
     private int _depth = 0;
     //private readonly SortedDictionary<int, List<RawCommand>> _commands = new SortedDictionary<int, List<RawCommand>>(Comparer<int>.Create((a,b) => b.CompareTo(a)));
     private readonly List<RawCommand> _commands = [];
-    public DrawCommands Add(GraphicsCommand command)
+    private readonly List<Action<IGraphBuilder>> _builders = [];
+    private readonly List<Action<IPass,IGraphConfig>> _configs = [];
+
+    public DrawCommands AddConfigure(Action<IPass,IGraphConfig> config)
+    {
+        _configs.Add(config);
+        return this;
+    }
+
+    public DrawCommands AddBuilder(Action<IGraphBuilder> builder)
+    {
+        _builders.Add(builder);
+        return this;
+    }
+    
+    public DrawCommands Add(Command command)
     {
         var info = new RawCommand(command, command is CustomCommand asCustom ? !asCustom.WillDraw ? "" : _clipId : _clipId)
         {
@@ -88,6 +104,8 @@ public class DrawCommands
 
     //public IEnumerable<RawCommand> Commands => _commands.Keys.SelectMany(commandsKey => _commands[commandsKey].AsReversed());
     public IEnumerable<RawCommand> Commands => _commands;
+    public IEnumerable<Action<IPass,IGraphConfig>> Configs => _configs;
+    public IEnumerable<Action<IGraphBuilder>> Builders => _builders;
     public List<ClipInfo> Clips { get; } = [];
 
     public Dictionary<string, uint[]> UniqueClipStacks { get; } = [];

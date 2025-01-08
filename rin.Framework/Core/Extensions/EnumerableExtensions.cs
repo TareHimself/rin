@@ -91,4 +91,9 @@ public static class EnumerableExtensions
     public static bool NotEmpty<T>(this Queue<T> target) => target.Count > 0;
     
     public static bool NotEmpty(this string target) => target.Length > 0;
+
+    public static Queue<T> ToQueue<T>(this IEnumerable<T> enumerable)
+    {
+        return new Queue<T>(enumerable);
+    }
 }

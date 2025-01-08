@@ -5,12 +5,14 @@ using rin.Framework.Scene.Graphics;
 
 namespace rin.Framework.Scene.Components;
 
-public class SceneComponent(Entity owner) : Component(owner)
+public class SceneComponent : Component
 {
     private readonly object _lock = new();
-    private Transform _relativeTransform = new();
     private SceneComponent? _parent = null;
     private readonly HashSet<SceneComponent> _children = [];
+    public Vec3<float> Location = new(0.0f);
+    public Quat Rotation = Quat.Identity;
+    public Vec3<float> Scale = new(1.0f);
     
 
     [PublicAPI]
@@ -59,64 +61,71 @@ public class SceneComponent(Entity owner) : Component(owner)
     
     public Transform GetRelativeTransform()
     {
-        return _relativeTransform.Clone();
+        return new Transform()
+        {
+            Location = Location.Clone(),
+            Rotation = Rotation.Clone(),
+            Scale = Scale.Clone()
+        };
     }
     
     public Vec3<float> GetRelativeLocation()
     {
-        return _relativeTransform.Location.Clone();
+        return Location.Clone();
     }
     
     public Quat GetRelativeRotation()
     {
-        return _relativeTransform.Rotation.Clone();
+        return Rotation.Clone();
     }
     
     public Vec3<float> GetRelativeScale()
     {
-        return _relativeTransform.Scale.Clone();
+        return Scale.Clone();
     }
     
     public void SetRelativeTransform(Transform transform)
     {
-        _relativeTransform = transform.Clone();
+        Location = transform.Location.Clone();
+        Rotation = transform.Rotation.Clone();
+        Scale = transform.Scale.Clone();
     }
     
     public void SetRelativeLocation(Vec3<float> location)
     {
-        _relativeTransform.Location = location.Clone();
+        Location = location.Clone();
     }
     
     public void SetRelativeRotation(Quat rotation)
     {
-        _relativeTransform.Rotation = rotation.Clone();
+        Rotation = rotation.Clone();
     }
     
     public void SetRelativeScale(Vec3<float> scale)
     {
-        _relativeTransform.Scale = scale.Clone();
+        Scale = scale.Clone();
     }
     
     public void SetRelativeLocation(float? x = null,float? y = null,float? z = null)
     {
-        _relativeTransform.Location.X = x ?? _relativeTransform.Location.X;
-        _relativeTransform.Location.Y = y ?? _relativeTransform.Location.Y;
-        _relativeTransform.Location.Z = z ?? _relativeTransform.Location.Z;
+        Location.X = x ?? Location.X;
+        Location.Y = y ?? Location.Y;
+        Location.Z = z ?? Location.Z;
     }
     
     public void SetRelativeRotation(float? x = null,float? y = null,float? z = null,float? w = null)
     {
-        _relativeTransform.Rotation.X = x ?? _relativeTransform.Rotation.X;
-        _relativeTransform.Rotation.Y = y ?? _relativeTransform.Rotation.Y;
-        _relativeTransform.Rotation.Z = z ?? _relativeTransform.Rotation.Z;
-        _relativeTransform.Rotation.W = w ?? _relativeTransform.Rotation.W;
+        Rotation.X = x ?? Rotation.X;
+        Rotation.Y = y ?? Rotation.Y;
+        Rotation.Z = z ?? Rotation.Z;
+        Rotation.W = w ?? Rotation.W;
     }
     
     public void SetRelativeScale(float? x = null,float? y = null,float? z = null)
     {
-        _relativeTransform.Scale.X = x ?? _relativeTransform.Scale.X;
-        _relativeTransform.Scale.Y = y ?? _relativeTransform.Scale.Y;
-        _relativeTransform.Scale.Z = z ?? _relativeTransform.Scale.Z;
+        Scale.X = x ?? Scale.X;
+        Scale.Y = y ?? Scale.Y;
+        Scale.Z = z ?? Scale.Z;
     }
 
     [PublicAPI]
@@ -125,7 +134,7 @@ public class SceneComponent(Entity owner) : Component(owner)
         if (Parent == null) return GetRelativeTransform();
 
         Mat4 parentTransform = Parent.GetWorldTransform();
-        return parentTransform * _relativeTransform;
+        return parentTransform * GetRelativeTransform();
     }
 
     public void SetWorldTransform(Transform worldTransform)

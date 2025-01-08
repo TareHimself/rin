@@ -30,7 +30,7 @@ public class ReflectionData
         public string Kind { get; set; } = string.Empty;
         
         [JsonPropertyName("elementCount")]
-        public int ElementCount { get; set; } = 0;
+        public int? ElementCount { get; set; }
         
         [JsonPropertyName("elementType")]
         public ElementType? ElementType { get; set; }

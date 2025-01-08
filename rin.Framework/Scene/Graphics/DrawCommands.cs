@@ -1,12 +1,24 @@
-﻿namespace rin.Framework.Scene.Graphics;
+﻿using JetBrains.Annotations;
+
+namespace rin.Framework.Scene.Graphics;
 
 public class DrawCommands
 {
-    private readonly List<DeviceLight> _lights = [];
+    [PublicAPI]
+    public readonly List<DeviceLight> Lights = [];
+    
+    [PublicAPI]
+    public readonly List<ICommand> Commands = [];
 
     public DrawCommands AddLight(DeviceLight light)
     {
-        _lights.Add(light);
+        Lights.Add(light);
+        return this;
+    }
+
+    public DrawCommands AddCommand(ICommand command)
+    {
+        Commands.Add(command);
         return this;
     }
 }

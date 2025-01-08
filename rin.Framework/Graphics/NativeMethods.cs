@@ -9,7 +9,7 @@ namespace rin.Framework.Graphics;
 
 internal static partial class NativeMethods
 {
-    private const string DllName = "rin.RuntimeN";
+    private const string DllName = "rin.Framework.Native";
     
     [LibraryImport(DllName, EntryPoint = "createVulkanInstance")]
     [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]

@@ -1,6 +1,6 @@
 ﻿namespace rin.Framework.Views.Graphics.Commands;
 
-public abstract  class BatchedCommand : GraphicsCommand
+public abstract  class BatchedCommand : Command
 {
     public abstract IBatcher GetBatchRenderer();
 }
