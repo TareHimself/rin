@@ -40,11 +40,20 @@ public static class VulkanExtensions
     {
         return format switch
         {
-            ImageFormat.Rgba8 => VkFormat.VK_FORMAT_R8G8B8A8_UNORM,
-            ImageFormat.Rgba16 => VkFormat.VK_FORMAT_R16G16B16A16_UNORM,
-            ImageFormat.Rgba32 => VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT,
+            ImageFormat.RGBA8 => VkFormat.VK_FORMAT_R8G8B8A8_UNORM,
+            ImageFormat.RGBA16 => VkFormat.VK_FORMAT_R16G16B16A16_UNORM,
+            ImageFormat.RGBA32 => VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT,
             ImageFormat.Depth => VkFormat.VK_FORMAT_D32_SFLOAT,
             ImageFormat.Stencil => VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT,
+            ImageFormat.R8 => VkFormat.VK_FORMAT_R8_UNORM,
+            ImageFormat.R16 => VkFormat.VK_FORMAT_R16_UNORM,
+            ImageFormat.R32 => VkFormat.VK_FORMAT_R32_SFLOAT,
+            ImageFormat.RG8 => VkFormat.VK_FORMAT_R8G8_UNORM,
+            ImageFormat.RG16 => VkFormat.VK_FORMAT_R16G16_UNORM,
+            ImageFormat.RG32 => VkFormat.VK_FORMAT_R32G32_SFLOAT,
+            ImageFormat.RGB8 => VkFormat.VK_FORMAT_R8G8B8_UNORM,
+            ImageFormat.RGB16 => VkFormat.VK_FORMAT_R16G16B16_UNORM,
+            ImageFormat.RGB32 => VkFormat.VK_FORMAT_R32G32B32_SFLOAT,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -78,9 +87,9 @@ public static class VulkanExtensions
     {
         return format switch
         {
-            VkFormat.VK_FORMAT_R8G8B8A8_UNORM => ImageFormat.Rgba8,
-            VkFormat.VK_FORMAT_R16G16B16A16_UNORM => ImageFormat.Rgba16,
-            VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.Rgba32,
+            VkFormat.VK_FORMAT_R8G8B8A8_UNORM => ImageFormat.RGBA8,
+            VkFormat.VK_FORMAT_R16G16B16A16_UNORM => ImageFormat.RGBA16,
+            VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.RGBA32,
             VkFormat.VK_FORMAT_D32_SFLOAT => ImageFormat.Depth,
             VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT => ImageFormat.Stencil,
             _ => throw new ArgumentOutOfRangeException()
@@ -139,8 +148,7 @@ public static class VulkanExtensions
             var pColor = stackalloc VkClearDepthStencilValue[1];
             var pRanges = stackalloc VkImageSubresourceRange[1];
             pColor[0] = SGraphicsModule.MakeClearDepthStencilValue(depth: clearValue);
-            pRanges[0] = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT |
-                                                                   VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
+            pRanges[0] = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
             
             foreach (var deviceImage in images)
             {
@@ -345,11 +353,28 @@ public static class VulkanExtensions
         return cmd;
     }
     
-    public static VkCommandBuffer DisableBlending(this VkCommandBuffer cmd)
+    public static VkCommandBuffer DisableBlending(this VkCommandBuffer cmd,uint start, uint count,VkColorComponentFlags writeMask = VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
+        VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
+        VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
+        VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT)
     {
-        NativeMethods.vkCmdSetLogicOpEnableEXT(cmd,0);
-        cmd.SetLogicOpExt(VkLogicOp.VK_LOGIC_OP_COPY);
-        return cmd;
+        unsafe
+        {
+            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd,0);
+            cmd.SetLogicOpExt(VkLogicOp.VK_LOGIC_OP_COPY);
+            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd,0);
+            
+            fixed (uint* pEnables = Enumerable.Range(0, (int)count).Select(c => (uint)0).ToArray())
+            {
+                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd,start,count,pEnables);
+            }
+            fixed (VkColorComponentFlags* pWriteMasks= Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
+            {
+                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd,start,count,pWriteMasks);
+            }
+
+            return cmd;
+        }
     }
 
     public static VkCommandBuffer SetBlendConstants(this VkCommandBuffer cmd,IEnumerable<float> constants)
@@ -420,8 +445,8 @@ public static class VulkanExtensions
     public static VkCommandBuffer EnableBlendingAdditive(this VkCommandBuffer cmd,uint start, uint count) =>
         EnableBlending(cmd, start, count, new VkColorBlendEquationEXT()
             {
-                srcColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE,
-                dstColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
+                srcColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
+                dstColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE,
                 colorBlendOp = VkBlendOp.VK_BLEND_OP_ADD,
                 srcAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE,
                 dstAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ZERO,
@@ -587,7 +612,6 @@ public static class VulkanExtensions
     } 
     
     
-        
     public static VkResult SignalSemaphore(this VkDevice device,VkSemaphore semaphore)
     {
         unsafe

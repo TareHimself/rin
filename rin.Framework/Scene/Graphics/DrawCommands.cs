@@ -5,20 +5,20 @@ namespace rin.Framework.Scene.Graphics;
 public class DrawCommands
 {
     [PublicAPI]
-    public readonly List<DeviceLight> Lights = [];
+    public readonly List<LightInfo> Lights = [];
     
     [PublicAPI]
-    public readonly List<ICommand> Commands = [];
+    public readonly List<GeometryInfo> GeometryCommands = [];
 
-    public DrawCommands AddLight(DeviceLight light)
+    public DrawCommands AddLight(LightInfo lightInfo)
     {
-        Lights.Add(light);
+        Lights.Add(lightInfo);
         return this;
     }
 
-    public DrawCommands AddCommand(ICommand command)
+    public DrawCommands AddCommand(GeometryInfo command)
     {
-        Commands.Add(command);
+        GeometryCommands.Add(command);
         return this;
     }
 }

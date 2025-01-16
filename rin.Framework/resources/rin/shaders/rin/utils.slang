@@ -1,5 +1,13 @@
 import rin.operators;
 
+float3 rgb2lin(float3 rgb) { // sRGB to linear approximation
+    return pow(rgb, float3(2.2));
+}
+
+float3 lin2rgb(float3 lin) { // linear to sRGB approximation
+    return pow(lin, float3(1.0 / 2.2));
+}
+
 // https://skia.googlesource.com/skia/+/f95647aa03ca/tests/sksl/intrinsics/Inverse.hlsl?autodive=0%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F
 // Returns the determinant of a 2x2 matrix.
 float spvDet2x2(float a1, float a2, float b1, float b2)

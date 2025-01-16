@@ -69,7 +69,7 @@ public class TextureManager : ITextureManager
 
     public async Task LoadDefaultTexture()
     {
-        var defaultTexturePath = Path.Join(SRuntime.ResourcesDirectory, "textures", "default.png");
+        var defaultTexturePath = Path.Join(SRuntime.FrameworkResourcesDirectory, "textures", "default.png");
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(defaultTexturePath);
         using var buffer = imgData.ToBuffer();
         var tex = _textures[0];
@@ -81,7 +81,7 @@ public class TextureManager : ITextureManager
                 height = (uint)imgData.Height,
                 depth = 1
             },
-            ImageFormat.Rgba8,
+            ImageFormat.RGBA8,
             VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT,
             true
             );
@@ -98,7 +98,7 @@ public class TextureManager : ITextureManager
         {
             var info = i < _textures.Count ? _textures[i] : null;
             
-            if(info?.Valid == true) continue;
+            if(info?.Valid == true && i != 0) continue;
             
             writes.Add(new ImageWrite(tex.Image,ImageLayout.ShaderReadOnly,ImageType.Texture,sampler)
             {

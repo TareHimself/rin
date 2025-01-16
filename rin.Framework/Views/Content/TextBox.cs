@@ -243,7 +243,7 @@ public class TextBox : ContentView
                 
                 var layout = new CachedQuadLayout(atlasId.Value, finalTransform, size, charInfo.Coordinates);
                 layouts.Add(layout);
-                quads.Add(Quad.NewSdf(layout.Atlas,transform * layout.Transform,layout.Size,Color.White,layout.UV));
+                quads.Add(Quad.Sdf(layout.Atlas,transform * layout.Transform,layout.Size,Color.White,layout.UV));
             }
 
             drawCommands.Add(new QuadDrawCommand(quads));
@@ -251,7 +251,7 @@ public class TextBox : ContentView
         }
         else if(_cachedLayouts != null)
         {
-            drawCommands.Add(new QuadDrawCommand(_cachedLayouts.Select(c => Quad.NewSdf(c.Atlas,transform * c.Transform,c.Size,Color.White,c.UV))));
+            drawCommands.Add(new QuadDrawCommand(_cachedLayouts.Select(c => Quad.Sdf(c.Atlas,transform * c.Transform,c.Size,Color.White,c.UV))));
         }
     }
 }

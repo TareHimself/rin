@@ -27,7 +27,6 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
     public static Quat FromAngle(float angle, Vec3<float> axis)
     {
         var q = Zero;
-
         NativeMethods.NativeQuatFromAngle(ref q, angle, ref axis);
         return q;
     }
@@ -50,7 +49,15 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
 
     public Vec3<float> Up => this * Vec3<float>.Up;
 
-
+    public static explicit operator Quat(Rotator rotator) => Quat.FromAngle(0,Vec3<float>.Forward).ApplyPitch(rotator.Pitch).ApplyYaw(rotator.Yaw).ApplyRoll(rotator.Roll);
+    
+    public static Quat LookAt(Vec3<float> from,Vec3<float> to, Vec3<float> up)
+    {
+        var result = new Quat();
+        NativeMethods.NativeQuatLookAt(ref result,ref from,ref to, ref up);
+        return result;
+    }
+    
     public Quat ApplyPitch(float delta)
     {
         return this * FromAngleDeg(delta, Vec3<float>.Right);

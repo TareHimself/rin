@@ -172,13 +172,6 @@ IVec<Vec2<T>,T>, IEquatable<Vec2<T>> where T : notnull, IComparisonOperators<T,T
         return new Vec2<T>(data);
     }
 
-    public IEnumerator<T> GetEnumerator() => new ParamsEnumerator<T>(X, Y);
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
     public static bool operator ==(Vec2<T> left, Vec2<T> right)
     {
         return left.X == right.X && left.Y == right.Y;

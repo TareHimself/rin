@@ -1,19 +1,22 @@
-﻿using rin.Framework.Scene.Entities;
+﻿using rin.Framework.Scene.Actors;
 
 namespace rin.Framework.Scene.Components;
 
 public class Component : IComponent
 {
-    public Entity? Owner { get; set; }
-    public virtual void Init()
+    public Actor? Owner { get; set; }
+    public bool Active { get; protected set; }
+    public virtual void Start()
     {
+        Active = true;
     }
 
-    public virtual void Destroy()
+    public virtual void Stop()
     {
+        Active = false;
     }
 
-    public void Tick(double delta)
+    public virtual void Update(double delta)
     {
         
     }

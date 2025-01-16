@@ -7,5 +7,5 @@ public interface IStaticMesh : IReservable
 {
     public MeshSurface[] Surfaces { get; }
     public DeviceGeometry Geometry { get; }
-    public IShader?[] Shaders { get; }
+    public IMaterial[] Materials { get; }
 }

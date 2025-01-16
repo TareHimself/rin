@@ -260,8 +260,7 @@ public class WindowRenderer : Disposable
         {
             CheckSwapchainSize();
         }
-
-        //return;
+        
         if (!ShouldDraw()) return;
 
         lock (_drawLock)
@@ -313,7 +312,7 @@ public class WindowRenderer : Disposable
                     OnDraw?.Invoke(frame);
 
                     var graph = frame.GetBuilder().Compile(_imagePool, frame);
-                    graph?.Run(frame);
+                    graph?.Execute(frame);
                     if (graph != null)
                     {
                         frame.OnReset += (_) => graph.Dispose();
@@ -389,12 +388,7 @@ public class WindowRenderer : Disposable
             }
             catch (OutOfDateException e)
             {
-                RequestResize();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
+                RequestResize(); 
             }
         }
     }

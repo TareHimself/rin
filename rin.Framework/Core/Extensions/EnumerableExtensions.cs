@@ -64,7 +64,7 @@ public static class EnumerableExtensions
         return target;
     }
     
-    public static T? TryIndex<T>(this T[] target, int index) where T : class?
+    public static T? TryGet<T>(this T[] target, int index) where T : class?
     {
         if (target.Length <= index || index < 0) return null;
 

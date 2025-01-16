@@ -23,8 +23,8 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
 
     public void Configure(IGraphConfig config)
     {
-        _drawImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.Rgba32);
-        _copyImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.Rgba32);
+        _drawImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.RGBA32);
+        _copyImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.RGBA32);
         _stencilImageHandle = config.CreateImage( _drawSize.X, _drawSize.Y, ImageFormat.Stencil);
         
         foreach (var drawCommand in passInfo.Commands)
@@ -127,9 +127,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                             
                             var (offset,size) = offsetsAndSizes.Current;
                             offsetsAndSizes.MoveNext();
-                            var view = buffer.GetView(offset, size);
-                            frame.OnReset += (_) => view.Dispose();
-                            
+                            using var view = buffer.GetView(offset, size);
                             view.Write(command.Clips, offset);
 
                             var push = new StencilPushConstant
@@ -217,8 +215,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                             {
                                 var (offset,size) = offsetsAndSizes.Current;
                                 offsetsAndSizes.MoveNext();
-                                var view = buffer.GetView(offset, size);
-                                frame.OnReset += (_) => view.Dispose();
+                                using var view = buffer.GetView(offset, size);
                                 command.Custom.Run(widgetFrame,command.Mask,view);
                             }
                             else
@@ -232,8 +229,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                             var batch = command.Batch!;
                             var (offset, size) = offsetsAndSizes.Current;
                             offsetsAndSizes.MoveNext();
-                            var view = buffer.GetView(offset, size);
-                            frame.OnReset += (_) => view.Dispose();
+                            using var view = buffer.GetView(offset, size);
                             batch.GetRenderer().Draw(widgetFrame, batch,view);
                             break;
                         }

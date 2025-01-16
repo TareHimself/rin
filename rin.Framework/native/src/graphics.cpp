@@ -66,7 +66,8 @@ EXPORT_IMPL void setWindowCallbacks(GLFWwindow* window, const GlfwKeyCallback ke
                         //,const GlfwDropCallback dropCallback
                         )
 {
-
+    glfwSetWindowUserPointer(window, window);
+    
     glfwSetKeyCallback(window, keyCallback);
 
     glfwSetCursorPosCallback(window, cursorPosCallback);
@@ -197,7 +198,7 @@ EXPORT_IMPL void createVulkanInstance(GLFWwindow * inWindow, VkInstance* outInst
 
 
     builder
-        .set_app_name("Aerox")
+        .set_app_name("Rin Framework")
         .require_api_version(1, 3, 0)
 
         //.request_validation_layers(true)

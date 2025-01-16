@@ -27,7 +27,7 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var flexTotal = 0.0f;
-        var slots = GetSlots();
+        var slots = GetSlots().ToArray();
         
         if (mainAxisAvailableSpace > 0.0f)
         {
@@ -104,7 +104,7 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var flexTotal = 0.0f;
-        var slots = GetSlots();
+        var slots = GetSlots().ToArray();
         
         if (mainAxisAvailableSpace > 0.0f)
         {

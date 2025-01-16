@@ -15,7 +15,7 @@ public struct Vec4<T> :
     IDivisionOperators<Vec4<T>, Vec4<T>, Vec4<T>>,
     IDivisionOperators<Vec4<T>, T, Vec4<T>>,
     IVec<Vec4<T>,T>
-    where T : notnull, IComparisonOperators<T,T,bool>
+    where T : notnull, IComparisonOperators<T,T,bool>, IUnaryNegationOperators<T, T>
 {
     public T X;
     public T Y;
@@ -154,12 +154,5 @@ public struct Vec4<T> :
     public static implicit operator Vec4<T>(T data)
     {
         return new Vec4<T>(data);
-    }
-
-    public IEnumerator<T> GetEnumerator() => new ParamsEnumerator<T>(X, Y, Z, W);
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
     }
 }

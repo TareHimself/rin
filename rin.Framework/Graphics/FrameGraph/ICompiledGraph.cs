@@ -4,5 +4,5 @@ public interface ICompiledGraph : IDisposable
 {
     public IGraphResource GetResource(uint id);
     
-    public void Run(Frame frame);
+    public void Execute(Frame frame);
 }

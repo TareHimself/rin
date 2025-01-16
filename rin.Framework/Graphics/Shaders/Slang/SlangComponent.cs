@@ -15,7 +15,25 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            return new SlangBlob(NativeMethods.SlangComponentGetEntryPointCode(_ptr, entryPointIndex,targetIndex,null));
+            var blob = NativeMethods.SlangComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex, null);
+            if (blob == null)
+            {
+                return null;
+            }
+            return new SlangBlob(blob);
+        }
+    }
+    
+    public SlangBlob? GetEntryPointCode(int entryPointIndex,int targetIndex, ref SlangBlob diagnostics)
+    {
+        unsafe
+        {
+            var blob = NativeMethods.SlangComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex, diagnostics.ToPointer());
+            if (blob == null)
+            {
+                return null;
+            }
+            return new SlangBlob(blob);
         }
     }
     

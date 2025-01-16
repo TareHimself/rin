@@ -26,4 +26,5 @@ public static class MathExtensions
     {
         return System.Math.Sqrt(System.Math.Pow((b.X - a.X),2) + System.Math.Pow((b.Y - a.Y),2));
     }
+    
 }

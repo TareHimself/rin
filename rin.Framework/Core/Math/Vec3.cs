@@ -14,8 +14,9 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
     IMultiplyOperators<Vec3<T>, T, Vec3<T>>,
     IDivisionOperators<Vec3<T>, Vec3<T>, Vec3<T>>,
     IDivisionOperators<Vec3<T>, T, Vec3<T>>,
+    IUnaryNegationOperators<Vec3<T>, Vec3<T>>,
     IVec<Vec3<T>,T>
-    where T : notnull
+    where T : notnull, IComparisonOperators<T,T,bool>, IUnaryNegationOperators<T,T>
 {
     public T X = inX;
     public T Y = inY;
@@ -110,7 +111,7 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
     {
         get
         {
-            dynamic x = 0, y = 0, z = 1;
+            dynamic x = 0, y = 0, z = -1;
             return new Vec3<T>((T)x, (T)y, (T)z);
         }
     }
@@ -133,15 +134,25 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
         }
     }
 
+    public Vec3<T> Normalize()
+    {
+        var max = X < Y ? X : Y;
+        max = max < Z ? Z : max;
+        dynamic c = 0;
+        if (max > c)
+        {
+            return new Vec3<T>(X, Y, Z) / max;
+        }
+        return new Vec3<T>(X, Y, Z);
+    }
+
     public Vec3<T> Clone()
     {
         return new Vec3<T>(X, Y, Z);
     }
 
-    public IEnumerator<T> GetEnumerator() => new ParamsEnumerator<T>(X, Y, Z);
-
-    IEnumerator IEnumerable.GetEnumerator()
+    public static Vec3<T> operator -(Vec3<T> value)
     {
-        return GetEnumerator();
+        return new Vec3<T>(-value.X, -value.Y, -value.Z);
     }
 }

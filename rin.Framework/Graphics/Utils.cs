@@ -6,7 +6,7 @@ public static class Utils
 {
     public static void RunWindowsOnTick()
     {
-        SRuntime.Get().OnTick += (_) =>
+        SRuntime.Get().OnUpdate += (_) =>
         {
             SGraphicsModule.Get().PollWindows();
         };
@@ -14,7 +14,7 @@ public static class Utils
     }
     public static void RunDrawOnTick()
     {
-        SRuntime.Get().OnTick += (_) =>
+        SRuntime.Get().OnUpdate += (_) =>
         {
             SGraphicsModule.Get().DrawWindows();
         };

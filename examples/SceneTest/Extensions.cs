@@ -1,7 +1,8 @@
 ﻿using rin.Framework.Core.Math;
 using rin.Framework.Scene;
+using rin.Framework.Scene.Actors;
 using rin.Framework.Scene.Components;
-using rin.Framework.Scene.Entities;
+using rin.Framework.Scene.Components.Lights;
 using rin.Framework.Scene.Graphics;
 using SharpGLTF.Schema2;
 using Scene = rin.Framework.Scene.Scene;
@@ -76,13 +77,31 @@ public static class Extensions
         
         return await StaticMesh.Create(surfaces,vertices, indices);
     }
-    public static async Task<Entity?> CreateStaticMeshEntity(this Scene scene,string modelPath)
+    public static async Task<Actor?> LoadMeshAsEntity(this Scene scene,string modelPath)
     {
         var mesh = await LoadStaticMesh(modelPath);
         if(mesh == null) return null;
-        var entity = scene.AddEntity<Entity>();
-        var meshComponent = entity.AddComponent<StaticMeshComponent>();
-        meshComponent.Mesh = mesh;
+        var entity = scene.AddActor(new Actor()
+        {
+            RootComponent = new StaticMeshComponent()
+            {
+                Mesh = mesh,
+            }
+        });
+        return entity;
+    }
+    
+    public static Actor AddPointLight(this Scene scene,Vec3<float> location)
+    {
+        var entity = new Actor()
+        {
+            RootComponent = new PointLightComponent()
+            {
+                Location = location,
+                Radiance = 30.0f
+            },
+        };
+        scene.AddActor(entity);
         return entity;
     }
 }

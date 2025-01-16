@@ -2,5 +2,5 @@
 
 public interface ITickable
 {
-    void Tick(double delta);
+    void Update(double delta);
 }

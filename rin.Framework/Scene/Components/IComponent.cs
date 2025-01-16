@@ -1,13 +1,13 @@
 ﻿using rin.Framework.Core;
-using rin.Framework.Scene.Entities;
+using rin.Framework.Scene.Actors;
 
 namespace rin.Framework.Scene.Components;
 
 public interface IComponent : ITickable
 {
-    public Entity? Owner { get; set; }
+    public Actor? Owner { get; set; }
     
-    public void Init();
+    public void Start();
     
-    public void Destroy();
+    public void Stop();
 }

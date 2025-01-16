@@ -71,6 +71,22 @@ struct Quaternion
     }
 };
 
+struct Rotator
+{
+    float pitch = 0.0f;
+    float yaw = 0.0f;
+    float roll = 0.0f;
+    operator glm::vec3();
+    Rotator() = default;
+    Rotator(glm::vec3 other);
+
+    friend std::ostream& operator <<(std::ostream& out, const Rotator& data)
+    {
+        out << "[Vector3]" << "\n"  << "[" << data.pitch << "," << data.yaw  << "," << data.roll << "]";
+        return out;
+    }
+};
+
 struct Matrix3
 {
     Vector3 column1;
@@ -131,7 +147,11 @@ EXPORT void mathQuatToMatrix4(Matrix4 * result,Quaternion * a);
 
 EXPORT void mathTranslateMatrix4(Matrix4 * result,Matrix4 * target,Vector3 * translation);
 
+EXPORT void mathQuatToRotator(Rotator * result,Quaternion * quat);
+
 EXPORT void mathQuatFromAngle(Quaternion * result,float angle,Vector3 * axis);
+
+EXPORT void mathQuatLookAt(Quaternion * result,Vector3* from,Vector3* to, Vector3* up);
 
 EXPORT void mathRotateMatrix4(Matrix4* result,Matrix4 * target, float angle, Vector3* axis);
 

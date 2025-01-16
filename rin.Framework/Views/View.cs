@@ -123,7 +123,7 @@ public abstract partial class View : Disposable, IAnimatable
     /// <summary>
     /// The visibility of this widget
     /// </summary>
-    public virtual Visibility Visibility { get; set; } = Visibility.Visible;
+    public Visibility Visibility { get; set; } = Visibility.Visible;
 
     
     /// <summary>

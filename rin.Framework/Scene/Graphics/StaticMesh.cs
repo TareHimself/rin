@@ -11,7 +11,7 @@ public class StaticMesh : Reservable, IStaticMesh
 {
     public required MeshSurface[] Surfaces { get; init; }
     public required DeviceGeometry Geometry { get; init; }
-    public IShader?[] Shaders { get; set; } = [];
+    public IMaterial?[] Materials { get; set; } = [];
 
 
     // private StaticMesh()
@@ -28,9 +28,10 @@ public class StaticMesh : Reservable, IStaticMesh
 
     public static async Task<StaticMesh> Create(IEnumerable<MeshSurface> inSurfaces,IEnumerable<Vertex> inVertices,IEnumerable<uint> inIndices)
     {
+        var geometry = await SGraphicsModule.Get().NewGeometry(inVertices.ToArray(), inIndices.ToArray());
         return new StaticMesh
         {
-            Geometry = await SGraphicsModule.Get().NewGeometry(inVertices.ToArray(), inIndices.ToArray()),
+            Geometry = geometry,
             Surfaces = inSurfaces.ToArray(),
         };
     }
@@ -49,11 +50,17 @@ public class StaticMesh : Reservable, IStaticMesh
         Geometry.Dispose();
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     // UV in last values of each i.e. U = Location.W, V = Normal.W
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct Vertex
     {
+        /// <summary>
+        /// Location (XYZ) U (W)
+        /// </summary>
         public Vec4<float> Location;
+        /// <summary>
+        /// Normal (XYZ) V (W)
+        /// </summary>
         public Vec4<float> Normal;
     }
 }

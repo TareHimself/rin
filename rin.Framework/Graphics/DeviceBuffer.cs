@@ -12,14 +12,16 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
 {
     private ulong? _address;
     
+    public string Name { get; private set; }
     /// <summary>
     ///     GPU Buffer
     /// </summary>
-    public DeviceBuffer(VkBuffer inBuffer, ulong inSize, Allocator allocator, IntPtr allocation) : base(allocator,
+    public DeviceBuffer(VkBuffer inBuffer, ulong inSize, Allocator allocator, IntPtr allocation, string name) : base(allocator,
         allocation)
     {
         NativeBuffer = inBuffer;
         Size = inSize;
+        Name = name;
     }
 
 
@@ -57,7 +59,6 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
 
     public IDeviceBuffer GetView(ulong offset, ulong size)
     {
-        Reserve();
         return new DeviceBufferView(this, offset, size);
     }
 

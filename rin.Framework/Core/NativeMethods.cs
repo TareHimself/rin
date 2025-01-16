@@ -28,6 +28,10 @@ internal static partial class NativeMethods
     public static partial void NativeSelectPath([MarshalAs(UnmanagedType.BStr)] string title, [MarshalAs(UnmanagedType.Bool)] bool multiple,
         [MarshalAs(UnmanagedType.FunctionPtr)] NativePathDelegate pathCallback);
     
+    [LibraryImport(DllName, EntryPoint = "mathQuatToRotator")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void NativeQuatToRotator(ref Rotator result, ref Quat quat);
+    
     [LibraryImport(DllName, EntryPoint = "mathMultiplyQuatVector4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void NativeMultiplyQuatVector(ref Vec3<float> result, ref Quat left,
@@ -41,10 +45,14 @@ internal static partial class NativeMethods
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void NativeMultiplyQuatQuat(ref Quat result, ref Quat left,
         ref Quat right);
-
+    
     [LibraryImport(DllName, EntryPoint = "mathQuatToMatrix4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void NativeQuatToMatrix4(ref Mat4 result, ref Quat target);
+    
+    [LibraryImport(DllName, EntryPoint = "mathQuatLookAt")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void NativeQuatLookAt(ref Quat result, ref Vec3<float> from,ref Vec3<float> to,ref Vec3<float> up);
     
     [LibraryImport(DllName, EntryPoint = "mathGlmOrthographic")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -105,11 +113,11 @@ internal static partial class NativeMethods
     
     [LibraryImport(DllName, EntryPoint = "mathMatrix4ToTransform")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeMatrix4ToTransform(ref Transform result, ref Mat4 target);
+    public static partial void NativeMatrix4ToTransform(ref Transform.NativeTransform result, ref Mat4 target);
     
     [LibraryImport(DllName, EntryPoint = "mathTransformToMatrix4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeTransformToMatrix4(ref Mat4 result, ref Transform target);
+    public static partial void NativeTransformToMatrix4(ref Mat4 result, ref Transform.NativeTransform target);
     
     
     

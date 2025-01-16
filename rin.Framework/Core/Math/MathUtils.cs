@@ -134,4 +134,7 @@ public static class MathUtils
         return new Quat(Interpolate(begin.X, end.X, alpha, method), Interpolate(begin.Y, end.Y, alpha, method),
             Interpolate(begin.Z, end.Z, alpha, method), Interpolate(begin.W, end.W, alpha, method));
     }
+
+
+    public static double RadToDeg(double radians) => (radians * (180.0f / System.Math.PI));
 }

@@ -29,7 +29,7 @@ public sealed class SRuntime : Disposable
     
     public bool IsRunning { get; private set; }
 
-    public event Action<double>? OnTick;
+    public event Action<double>? OnUpdate;
 
     public event Action<SRuntime>? OnStartup;
     public event Action<SRuntime>? OnShutdown;
@@ -147,7 +147,7 @@ public sealed class SRuntime : Disposable
 
             _lastDeltaSeconds = (tickStart - _lastTickTime).TotalSeconds;
 
-            OnTick?.Invoke(_lastDeltaSeconds);
+            OnUpdate?.Invoke(_lastDeltaSeconds);
 
             _lastTickTime = tickStart;
         }

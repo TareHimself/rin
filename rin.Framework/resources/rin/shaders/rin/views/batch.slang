@@ -107,5 +107,3 @@ float4 fragment(in float2 iUV: UV, in int iQuadIndex: QUAD_INDEX, float2 coordin
         return float4(1.0);
     }
 }
-
-/// Emi 5

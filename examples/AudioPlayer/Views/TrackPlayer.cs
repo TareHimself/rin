@@ -50,7 +50,7 @@ public class TrackPlayer : Overlay
 
     private readonly Panel _backgroundContainer = new Panel();
 
-    private bool _loaded => Scale == 1.0f;
+    private bool Loaded => Pivot.X <= 0.0f;
 
     public string Name
     {
@@ -60,6 +60,7 @@ public class TrackPlayer : Overlay
 
     public TrackPlayer(string name, IChannel stream)
     {
+        Visibility = Visibility.Hidden;
         _nameText.Content = name;
 
         _stream = stream;
@@ -130,7 +131,7 @@ public class TrackPlayer : Overlay
         _endTimeText.Content = FormatTime(stream.Length);
         Padding = 10.0f;
         FetchCover().ConfigureAwait(false);
-        Scale = new Vec2<float>(0.0f, 1.0f);
+        Pivot = new Vec2<float>(1.0f, 0.0f);
     }
 
     private async Task FetchCover()
@@ -209,7 +210,7 @@ public class TrackPlayer : Overlay
     protected override void OnCursorEnter(CursorMoveEvent e)
     {
         base.OnCursorEnter(e);
-        if (_loaded)
+        if (Loaded)
         {
             this.TranslateTo(new Vec2<float>(40.0f, 0.0f), 0.2,
                 easingFunction: EasingFunctions.EaseInOutCubic);
@@ -219,7 +220,7 @@ public class TrackPlayer : Overlay
     protected override void OnCursorLeave(CursorMoveEvent e)
     {
         base.OnCursorLeave(e);
-        if (_loaded)
+        if (Loaded)
         {
             this.TranslateTo(new Vec2<float>(0.0f, 0.0f), 0.2,
                 easingFunction: EasingFunctions.EaseInOutCubic);

@@ -26,6 +26,17 @@ public static class WidgetAnimationExtensions
         => target.Transition(() => from.GetValueOrDefault(target.Target.Translate),
             (a) => target.Target.Translate = a, to, duration, easingFunction);
 
+    public static AnimationSequence<T> PivotTo<T>(this T target, Vec2<float> to, double duration = 0.2f,
+        Vec2<float>? from = null, Func<double, double>? easingFunction = null) where T : View
+        => target.Transition(() => from.GetValueOrDefault(target.Pivot), (a) => target.Pivot = a, to, duration,
+            easingFunction);
+
+    public static AnimationSequence<T> PivotTo<T>(this AnimationSequence<T> target, Vec2<float> to,
+        double duration = 0.2f, Vec2<float>? from = null, Func<double, double>? easingFunction = null)
+        where T : View
+        => target.Transition(() => from.GetValueOrDefault(target.Target.Pivot), (a) => target.Target.Pivot = a, to,
+            duration, easingFunction);
+    
     public static AnimationSequence<T> ScaleTo<T>(this T target, Vec2<float> to, double duration = 0.2f,
         Vec2<float>? from = null, Func<double, double>? easingFunction = null) where T : View
         => target.Transition(() => from.GetValueOrDefault(target.Scale), (a) => target.Scale = a, to, duration,

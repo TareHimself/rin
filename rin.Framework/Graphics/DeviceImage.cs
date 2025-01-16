@@ -8,6 +8,9 @@ namespace rin.Framework.Graphics;
 /// </summary>
 public class DeviceImage : DeviceMemory, IDeviceImage
 {
+    
+    public string Name { get; private set; }
+    
     /// <summary>
     ///     GPU Image
     /// </summary>
@@ -16,12 +19,13 @@ public class DeviceImage : DeviceMemory, IDeviceImage
         VkExtent3D inExtent,
         ImageFormat inFormat,
         Allocator allocator,
-        IntPtr allocation) : base(allocator, allocation)
+        IntPtr allocation,string name) : base(allocator, allocation)
     {
         NativeImage = inImage;
         NativeView = inView;
         Extent = inExtent;
         Format = inFormat;
+        Name = name;
     }
 
     protected override void OnDispose(bool isManual)

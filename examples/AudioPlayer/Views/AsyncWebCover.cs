@@ -35,15 +35,18 @@ public class AsyncWebCover : CoverImage
                     height = (uint)img.Height,
                     depth = 1
                 },
-                ImageFormat.Rgba8).Then(c => TextureId = c);
+                ImageFormat.RGBA8).Then(c => TextureId = c);
         }
         catch (Exception e)
         {
             
         }
-        
-        this.Parent?.Parent
-            ?.ScaleTo(new Vec2<float>(1.0f, 1.0f), 1.0f, 0.2f, easingFunction: EasingFunctions.EaseInExpo).After();
+
+        Parent?.Parent?.Mutate(c =>
+        {
+            c.Visibility = Visibility.Visible;
+            c.PivotTo(new Vec2<float>(0.0f, 0.0f), 1.0f, easingFunction: EasingFunctions.EaseInExpo);
+        });
     }
 
     public override void CollectContent(Mat3 transform, DrawCommands drawCommands)

@@ -18,7 +18,7 @@ using Utils = rin.Framework.Graphics.Utils;
 namespace ViewsTest;
 
 [Module(typeof(SViewsModule)),AlwaysLoad]
-public class SWidgetTestModule : IModule
+public class SViewsTestModule : IModule
 {
 
     class WrapContainer : Button
@@ -152,7 +152,7 @@ public class SWidgetTestModule : IModule
                     {
                         Paint = ((canvas, transform, cmds) =>
                         {
-                            var rect = Quad.NewRect(transform, canvas.GetContentSize());
+                            var rect = Quad.Rect(transform, canvas.GetContentSize());
                             rect.Mode = Quad.RenderMode.ColorWheel;
                             cmds.AddQuads(rect);
                         })
@@ -297,7 +297,7 @@ public class SWidgetTestModule : IModule
                         {
                             Paint = ((canvas, transform, cmds) =>
                             {
-                                var rect = Quad.NewRect(transform, canvas.GetContentSize());
+                                var rect = Quad.Rect(transform, canvas.GetContentSize());
                                 rect.Mode = Quad.RenderMode.ColorWheel;
                                 cmds.AddQuads(rect);
                             })
@@ -369,7 +369,7 @@ public class SWidgetTestModule : IModule
         });
 
         var frames = 0;
-        SRuntime.Get().OnTick += d =>
+        SRuntime.Get().OnUpdate += d =>
         {
             frames++;
             infoText.Content = $"Frame {frames}"; //$"Focused ${panel.Surface?.FocusedWidget}";

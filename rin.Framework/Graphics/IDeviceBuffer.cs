@@ -15,7 +15,7 @@ public interface IDeviceBuffer : IReservable,IGraphResource
 
     public unsafe void Write(void* src, ulong size, ulong offset = 0);
 
-    public unsafe void Write<T>(T[] data, ulong offset = 0) where T : unmanaged
+    public unsafe void Write<T>(T[] data, ulong offset = 0)
     {
         unsafe
         {
@@ -26,7 +26,7 @@ public interface IDeviceBuffer : IReservable,IGraphResource
         }
     }
 
-    public void Write<T>(T src, ulong offset = 0)
+    public void Write<T>(T src, ulong offset = 0) where T : unmanaged
     {
         unsafe
         {

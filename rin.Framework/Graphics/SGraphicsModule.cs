@@ -58,6 +58,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     public event Action<IWindow>? OnWindowCreated;
     public event Action<WindowRenderer>? OnRendererCreated;
     public event Action<WindowRenderer>? OnRendererDestroyed;
+    
+    public event Action? OnFreeRemainingMemory;
 
     [GeneratedRegex("VK_FORMAT_R[0-9]{1,2}G[0-9]{1,2}B[0-9]{1,2}A[0-9]{1,2}_UNORM")]
     private static partial Regex SurfaceFormatRegex();
@@ -156,9 +158,12 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         InitVulkan();
     }
 
-    public List<WindowRenderer> GetRenderers()
+    public WindowRenderer[] GetRenderers()
     {
-        return _renderers;
+        lock (_renderers)
+        {
+            return _renderers.ToArray();
+        }
     }
 
     public VkSurfaceFormatKHR GetSurfaceFormat() => _surfaceFormat;
@@ -170,6 +175,33 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
     private unsafe void InitVulkan()
     {
+
+        // uint numExtensions = 0;
+        // vkEnumerateInstanceExtensionProperties(null, &numExtensions, null);
+        // var extensions = stackalloc VkExtensionProperties[(int)numExtensions];
+        // vkEnumerateInstanceExtensionProperties(null,&numExtensions,extensions);
+        // var shaderObjectExtName = System.Text.Encoding.UTF8.GetString(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
+        // var supportsShaderObject = false;
+        // for (var i = 0; i < numExtensions; i++)
+        // {
+        //
+        //     var name = Marshal.PtrToStringUTF8(new IntPtr(&extensions[i].extensionName));
+        //     if (name == shaderObjectExtName)
+        //     {
+        //         supportsShaderObject = true;
+        //     }
+        // }
+        //
+        // {
+        //     var createInfo = new VkInstanceCreateInfo()
+        //     {
+        //         sType = VkStructureType.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        //         enabledExtensionCount = ,
+        //         pNext = null,
+        //     }
+        // }
+        // vkCreateInstance()
+        
         //IntPtr inWindow,
         var outInstance = _instance;
         var outDevice = _device;
@@ -182,12 +214,13 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         var outDebugMessenger = _debugUtilsMessenger;
 
         // We create a window just for surface information
-        using var window = Internal_CreateWindow(2, 2, "Graphics Init Window", new CreateOptions()
+        using var window = Internal_CreateWindow(1, 1, "Graphics Init Window", new CreateOptions()
         {
             Visible = false,
             Decorated = false,
             Resizable = false
         });
+        
         if (window == null) throw new Exception("Failed to create window to init graphics");
 
         NativeMethods.CreateInstance(window.GetPtr(), &outInstance, &outDevice, &outPhysicalDevice, &outGraphicsQueue,
@@ -216,15 +249,15 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),
             new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4)
         ]);
-        _allocator = new Allocator(this);
-
-        _shaderCompiler = new SlangShaderManager();
         _transferFence = _device.CreateFence();
         _transferCommandPool = _device.CreateCommandPool(GetTransferQueueFamily());
         _transferCommandBuffer = _device.AllocateCommandBuffers(_transferCommandPool).First();
         _graphicsFence = _device.CreateFence();
         _graphicsCommandPool = _device.CreateCommandPool(GetGraphicsQueueFamily());
         _graphicsCommandBuffer = _device.AllocateCommandBuffers(_graphicsCommandPool).First();
+        
+        _allocator = new Allocator(this);
+        _shaderCompiler = new SlangShaderManager();
         _textureManager = new TextureManager();
         _instance.DestroySurface(outSurface);
     }
@@ -242,8 +275,6 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         return _textureManager!;
     }
     
-    
-
     private void HandleWindowCreated(IWindow window)
     {
         var r = new WindowRenderer(this, window);
@@ -351,8 +382,19 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
     public void Shutdown(SRuntime runtime)
     {
-        foreach (var renderer in _renderers.ToArray()) renderer.Dispose();
+        lock (_renderers)
+        {
+            _renderers.Clear();
+        }
         
+        foreach (var (window, renderer) in _windows)
+        {
+            OnWindowClosed?.Invoke(window);
+            OnRendererDestroyed?.Invoke(renderer);
+            renderer.Dispose();
+            window.Dispose();
+        }
+        _windows.Clear();
         _backgroundTaskQueue.Dispose();
         _transferQueueThread.Dispose();
         _descriptorAllocator?.Dispose();
@@ -366,7 +408,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
             _samplers.Clear();
         }
-            
+        
+        OnFreeRemainingMemory?.Invoke();
         _allocator?.Dispose();
         _device.DestroyCommandPool(_graphicsCommandPool);
         _device.DestroyFence(_graphicsFence);
@@ -513,6 +556,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         string debugName = "Image")
     {
         var imageCreateInfo = MakeImageCreateInfo(format, size, usage);
+        
         if (mipMap)
             imageCreateInfo.mipLevels = DeriveMipLevels(new VkExtent2D
             {
@@ -524,11 +568,10 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
         var aspectFlags = format switch
         {
-            ImageFormat.Rgba8 or ImageFormat.Rgba16 or ImageFormat.Rgba32 => VkImageAspectFlags
-                .VK_IMAGE_ASPECT_COLOR_BIT,
             ImageFormat.Depth => VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT,
             ImageFormat.Stencil => VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT,
-            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+            _ => VkImageAspectFlags
+                .VK_IMAGE_ASPECT_COLOR_BIT
         };
 
         var viewCreateInfo = MakeImageViewCreateInfo(format, newImage.NativeImage, aspectFlags);
@@ -809,7 +852,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                 {
                     width = size.width,
                     height = size.height
-                }, mipMapFilter,ImageLayout.TransferSrc,ImageLayout.ShaderReadOnly);
+                }, mipMapFilter,ImageLayout.TransferDst,ImageLayout.ShaderReadOnly);
             });
         }
         

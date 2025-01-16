@@ -38,7 +38,7 @@ public class AsyncFileImage : CoverImage
                 height = (uint)imgData.Height,
                 depth = 1
             },
-            ImageFormat.Rgba8).Then(c => TextureId = c);
+            ImageFormat.RGBA8).Then(c => TextureId = c);
     }
 
     // public override void Draw(WidgetFrame frame, DrawInfo info)

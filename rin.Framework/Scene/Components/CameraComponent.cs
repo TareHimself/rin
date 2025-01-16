@@ -1,6 +1,4 @@
-﻿using rin.Framework.Scene.Entities;
-
-namespace rin.Framework.Scene.Components;
+﻿namespace rin.Framework.Scene.Components;
 
 public class CameraComponent : SceneComponent
 {

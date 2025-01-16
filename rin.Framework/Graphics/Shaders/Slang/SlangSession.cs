@@ -18,21 +18,30 @@ public class SlangSession : IDisposable
     //     }
     // }
 
-    public SlangModule LoadModuleFromSourceString(string moduleName, string path, string content)
+    public SlangModule? LoadModuleFromSourceString(string moduleName, string path, string content)
     {
         unsafe
         {
             using var diag = new SlangBlob();
-            return new SlangModule(
-                NativeMethods.SlangSessionLoadModuleFromSourceString(_ptr, moduleName, path, content, null));
+            var module = NativeMethods.SlangSessionLoadModuleFromSourceString(_ptr, moduleName, path, content, null);
+            if(module == null)
+            {
+                return null;
+            }
+            return new SlangModule(module);
         }
     }
     
-    public SlangModule LoadModuleFromSourceString(string moduleName, string path, string content,SlangBlob outDiagnostics)
+    public SlangModule? LoadModuleFromSourceString(string moduleName, string path, string content,SlangBlob outDiagnostics)
     {
         unsafe
         {
-            return new SlangModule(NativeMethods.SlangSessionLoadModuleFromSourceString(_ptr, moduleName, path, content,outDiagnostics.ToPointer()));
+            var module = NativeMethods.SlangSessionLoadModuleFromSourceString(_ptr, moduleName, path, content, outDiagnostics.ToPointer());
+            if (module == null)
+            {
+                return null;
+            }
+            return new SlangModule(module);
         }
     }
     

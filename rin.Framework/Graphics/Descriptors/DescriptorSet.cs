@@ -134,7 +134,7 @@ public class DescriptorSet : Disposable
         return true;
     }
 
-    public static implicit operator VkDescriptorSet(DescriptorSet set)
+    public static explicit operator VkDescriptorSet(DescriptorSet set)
     {
         return set._descriptorSet;
     }

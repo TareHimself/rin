@@ -1,5 +1,6 @@
 ﻿#include "math.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
+
 #include <iostream>
 #include "glm/ext.hpp"
 #include<glm/glm.hpp>
@@ -53,6 +54,16 @@ Quaternion::Quaternion(glm::qua<float> other)
     x = other.x;
     y = other.y;
     z = other.z;
+}
+Rotator::operator glm::vec<3, float>()
+{
+    return {pitch,yaw,roll};
+}
+Rotator::Rotator(glm::vec3 other)
+{
+    pitch = other.x;
+    yaw = other.y;
+    roll = other.z;
 }
 
 Matrix3::operator glm::mat<3, 3, float>()
@@ -114,11 +125,19 @@ EXPORT_IMPL void mathTranslateMatrix4(Matrix4* result, Matrix4* target, Vector3*
 {
     *result = glm::translate(static_cast<glm::mat4>(*target), static_cast<glm::vec3>(*translation));
 }
-
+ 
+EXPORT_IMPL void mathQuatToRotator(Rotator* result, Quaternion* quat)
+{
+    glm::extractEulerAngleXYZ(static_cast<glm::mat4>(static_cast<glm::quat>(*quat)),result->pitch,result->yaw,result->roll);
+}
 
 EXPORT_IMPL void mathQuatFromAngle(Quaternion* result, float angle, Vector3* axis)
 {
     *result = glm::angleAxis(angle, static_cast<glm::vec3>(*axis));
+}
+EXPORT_IMPL void mathQuatLookAt(Quaternion* result, Vector3* from,Vector3* to, Vector3* up)
+{
+    *result = static_cast<Quaternion>(glm::quatLookAt(normalize((static_cast<glm::vec3>(*to) - static_cast<glm::vec3>(*from))), static_cast<glm::vec3>(*up)));
 }
 
 EXPORT_IMPL void mathRotateMatrix4(Matrix4* result, Matrix4* target, float angle, Vector3* axis)
@@ -137,7 +156,7 @@ EXPORT_IMPL void mathMatrix4ToTransform(Transform* result, Matrix4* target)
     auto mat = static_cast<glm::mat4>(*target);
 
     const auto l = glm::vec3(mat[3]);
-
+    
     result->Location = glm::vec3{l.x, l.y, l.z};
     
     result->Rotation = glm::quat(glm::mat3(mat));
@@ -147,12 +166,13 @@ EXPORT_IMPL void mathMatrix4ToTransform(Transform* result, Matrix4* target)
 
 EXPORT_IMPL void mathTransformToMatrix4(Matrix4* result, Transform* target)
 {
-    auto translated = glm::translate(glm::mat4(1.0f), static_cast<glm::vec3>(target->Location));
-    auto rotated = translated * glm::mat4_cast(
-            static_cast<glm::quat>(target->Rotation));
-    auto scaled = glm::scale(rotated,static_cast<glm::vec3>(target->Scale));
+    auto scaled = glm::scale(glm::mat4(1.0f),static_cast<glm::vec3>(target->Scale));
     
-    *result = scaled;
+    auto rotated = glm::mat4_cast(static_cast<glm::quat>(target->Rotation));
+    
+    auto translated = glm::translate(glm::mat4(1.0f), static_cast<glm::vec3>(target->Location));
+    
+    *result =  translated * rotated * scaled;
 }
 
 EXPORT_IMPL void mathGlmOrthographic(Matrix4* result, float left, float right, float bottom, float top)

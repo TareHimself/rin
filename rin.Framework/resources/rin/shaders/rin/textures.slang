@@ -6,6 +6,9 @@ import rin.attributes;
 [AllStages, UpdateAfterBind, Partial, Variable(512)]
 uniform Sampler2D GLOBAL_TEXTURES[];
 
+
+
+
 // Function to sample a texture
 float4 sampleTexture(int textureId, float2 uv)
 {

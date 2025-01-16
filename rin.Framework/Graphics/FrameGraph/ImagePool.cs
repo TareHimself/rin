@@ -92,6 +92,8 @@ public class ImagePool(WindowRenderer renderer) : IImagePool
                 height = descriptor.Height,
                 depth = 1
             },descriptor.Format,descriptor.Flags,debugName: "Frame Graph Image");
+            
+            Console.WriteLine("Allocating new frame graph image: {0}",descriptor.ToString());
 
             var allocated = new AllocatedImage(image, _currentFrame);
             _imagePool[cacheId].Add(allocated);

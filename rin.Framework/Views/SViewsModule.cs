@@ -111,7 +111,11 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
         foreach (var kv in _mtsdfFonts) kv.Value.Dispose();
         _mtsdfFonts.Clear();
 
-        foreach (var root in _windowSurfaces) root.Value.Dispose();
+        foreach (var (_,surf) in _windowSurfaces)
+        {
+            OnSurfaceDestroyed?.Invoke(surf);
+            surf.Dispose();
+        }
         _windowSurfaces.Clear();
 
         _graphicsSubsystem = SGraphicsModule.Get();

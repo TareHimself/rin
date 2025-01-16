@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SceneTest": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

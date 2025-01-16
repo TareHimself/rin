@@ -64,7 +64,10 @@ EXPORT_IMPL Module* slangSessionLoadModuleFromSourceString(const Session* sessio
             outDiagnostics->blob = diagnostics;
         }
         
-        return new Module{module};
+        if (module) {
+            return new Module{ module };
+        }
+        return nullptr;
     }
     catch(std::exception& e)
     {

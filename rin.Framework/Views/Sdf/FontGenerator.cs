@@ -120,7 +120,7 @@ public class FontGenerator(FontFamily family)
                     width = (uint)c.Width,
                     height = (uint)c.Height,
                     depth = 1
-                }, ImageFormat.Rgba8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}");
+                }, ImageFormat.RGBA8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}");
         }).WaitAll().ToArray();
         return new Font(_family,atlasIds,atlasGlyphs);
     }

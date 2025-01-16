@@ -1,8 +1,9 @@
 ﻿using JetBrains.Annotations;
 using rin.Framework.Core;
+using rin.Framework.Scene.Actors;
 using rin.Framework.Scene.Components;
 using rin.Framework.Scene.Components.Lights;
-using rin.Framework.Scene.Entities;
+using rin.Framework.Scene.Physics;
 using rin.Framework.Scene.Systems;
 
 namespace rin.Framework.Scene;
@@ -10,55 +11,92 @@ namespace rin.Framework.Scene;
 public class Scene : ITickable
 {
     private readonly List<ISystem> _tickableSystems = [];
-    private readonly Dictionary<Type, ISystem> _systems = [];
-    private readonly Dictionary<string, Entity> _entities = [];
-    
-    
+    private readonly Dictionary<string, Actor> _actors = [];
+    private IPhysicsSystem? _physicsSystem;
+    private System.Timers.Timer? _physicsTimer;
+    public float PhysicsUpdateInterval { get; set; } = 1.0f / 60.0f;
     [PublicAPI]
-    public Entity AddEntity(Entity entity)
+    public bool Active { get; protected set; }
+    
+    protected virtual IPhysicsSystem CreatePhysicsSystem() => new Physics.Bepu.BepuPhysics();
+    public IPhysicsSystem GetPhysicsSystem()
     {
-        lock (_entities)
+        if(_physicsSystem == null) throw new InvalidOperationException();
+        return _physicsSystem;
+    }
+    public void Start()
+    {
+        if(Active) return;
+        Active = true;
+        _physicsSystem = CreatePhysicsSystem();
+        _physicsTimer = new System.Timers.Timer(PhysicsUpdateInterval);
+        _physicsTimer.Elapsed += (_,__) => _physicsSystem.Update(PhysicsUpdateInterval);
+        foreach (var actor in GetActors())
         {
-            _entities.Add(entity.Id, entity);
-            entity.Scene = this;
+            actor.Start();
         }
-        entity.Init();
-        return entity;
+        _physicsSystem.Start();
+        _physicsTimer.Start();
+    }
+    
+    public void Stop()
+    {
+        if(!Active) return;
+        Active = false;
+        _physicsTimer?.Stop();
+        foreach (var actor in GetActors())
+        {
+            actor.Stop();
+        }
+        _physicsSystem?.Dispose();
     }
     
     [PublicAPI]
-    public T AddEntity<T>() where T : Entity
+    public Actor AddActor(Actor actor)
     {
-        var entity = Activator.CreateInstance<T>();
-        AddEntity(entity);
-        return entity;
+        lock (_actors)
+        {
+            _actors.Add(actor.Id, actor);
+            actor.Scene = this;
+        }
+        if(Active) actor.Start();
+        return actor;
+    }
+    
+    [PublicAPI]
+    public T AddActor<T>() where T : Actor
+    {
+        var actor = Activator.CreateInstance<T>();
+        AddActor(actor);
+        return actor;
     }
 
     [PublicAPI]
-    public ISystem AddSystem(ISystem system)
+    public Actor[] GetActors()
     {
-        _systems.Add(system.GetType(), system);
-        if (system.Tickable)
+        lock (_actors)
         {
-            _tickableSystems.Add(system);
+            return _actors.Values.ToArray();
         }
-        return system;
     }
 
-    public void Tick(double delta)
+    public void Update(double delta)
     {
-        foreach (var tickableSystem in _tickableSystems)
+        if(!Active) return;
+        
+        foreach (var actor in GetActors())
         {
-            tickableSystem.Tick(delta);
+            if(!actor.Active) continue;
+            actor.Update(delta);
         }
     }
     
     [PublicAPI]
     public IEnumerable<SceneComponent> GetRoots()
     {
-        lock (_entities)
+        lock (_actors)
         {
-            foreach (var (key, value) in _entities)
+            foreach (var (key, value) in _actors)
             {
                 if (value.RootComponent is { } component)
                 {
@@ -73,7 +111,7 @@ public class Scene : ITickable
     {
         foreach (var root in GetRoots())
         {
-            if (root is { Parent: null } component)
+            if (root is { TransformParent: null } component)
             {
                 yield return component;
             }

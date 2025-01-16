@@ -12,7 +12,7 @@ public class CompiledGraph : ICompiledGraph
     private readonly ICompiledGraphNode[] _nodes;
     private readonly IDeviceBuffer? _buffer = null;
     private ulong _bufferOffset = 0;
-    private Frame _frame;
+    private readonly Frame _frame;
     public CompiledGraph(IImagePool imagePool,Frame frame,Dictionary<uint, IResourceDescriptor> descriptors, ICompiledGraphNode[] nodes)
     {
         _imagePool = imagePool;
@@ -39,11 +39,12 @@ public class CompiledGraph : ICompiledGraph
     
     public void Dispose()
     {
-        _buffer?.Dispose();
         foreach (var (_,resource) in _resources)
         {
-            if(resource is not DeviceImage) resource.Dispose();
+            resource.Dispose();
+            //if(resource is not DeviceImage) resource.Dispose();
         }
+        _buffer?.Dispose();
     }
 
     public IGraphResource GetResource(uint handle)
@@ -76,7 +77,7 @@ public class CompiledGraph : ICompiledGraph
         throw new Exception("Failed To Allocate Resource");
     }
 
-    public void Run(Frame frame)
+    public void Execute(Frame frame)
     {
         HashSet<IPass> completed = [];
 

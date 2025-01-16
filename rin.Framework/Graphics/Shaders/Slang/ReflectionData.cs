@@ -47,7 +47,7 @@ public class ReflectionData
         [JsonPropertyName("kind")]
         public string Kind { get; set; } = string.Empty;
 
-        [JsonPropertyName("arguments")] 
+        [JsonPropertyName("index")] 
         public int? Binding { get; set; } = 0;
         
         [JsonPropertyName("space")] 
