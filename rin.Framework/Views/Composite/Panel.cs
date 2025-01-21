@@ -8,7 +8,7 @@ namespace rin.Framework.Views.Composite;
 
 /// <summary>
 ///     A container that draws children based on the settings provided in <see cref="PanelSlot" /> . Intended use is for
-///     dock-able layouts or as a root for a collection of widgets
+///     dock-able layouts or as a root for a collection of views
 /// </summary>
 public class Panel : MultiSlotCompositeView<PanelSlot>
 {

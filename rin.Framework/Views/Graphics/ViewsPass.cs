@@ -14,8 +14,8 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
     private uint _stencilImageHandle;
     private uint _bufferResourceHandle;
     private readonly Vec2<uint> _drawSize = surface.GetDrawSize().Cast<uint>();
-    private ulong _memoryNeeded = 0;
-    private readonly List<Pair<ulong, ulong>> _offsets = [];
+    private int _memoryNeeded = 0;
+    private readonly List<Pair<int, int>> _offsets = [];
     public void Dispose()
     {
         throw new NotImplementedException();
@@ -39,13 +39,13 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                     // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
                     _memoryNeeded += size;
                 }
-                _offsets.Add(new Pair<ulong, ulong>(offset,_memoryNeeded - offset));
+                _offsets.Add(new Pair<int, int>(offset,_memoryNeeded - offset));
             }
             else if (drawCommand.Type == CommandType.ClipDraw)
             {
                 var offset = _memoryNeeded;
-                _memoryNeeded += (ulong)(Marshal.SizeOf<StencilClip>() * drawCommand.Clips.Length);
-                _offsets.Add(new Pair<ulong, ulong>(offset,_memoryNeeded - offset));
+                _memoryNeeded += Marshal.SizeOf<StencilClip>() * drawCommand.Clips.Length;
+                _offsets.Add(new Pair<int, int>(offset,_memoryNeeded - offset));
                 // var dist = memoryNeeded & minOffsetAlignment;
                 // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
             }
@@ -53,7 +53,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
             {
                 var offset = (_memoryNeeded);
                 _memoryNeeded += asCustomMemory;
-                _offsets.Add(new Pair<ulong, ulong>(offset,_memoryNeeded - offset));
+                _offsets.Add(new Pair<int, int>(offset,_memoryNeeded - offset));
             }
 
 
@@ -74,7 +74,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
         var copyImage = graph.GetResource(_copyImageHandle!).AsImage();
         var stencilImage = graph.GetResource(_stencilImageHandle!).AsImage();
         var buffer = _bufferResourceHandle > 0  ? graph.GetResource(_bufferResourceHandle).AsMemory() : null;
-        var widgetFrame = new ViewsFrame(surface, frame,drawImage, copyImage, stencilImage);
+        var viewFrame = new ViewsFrame(surface, frame,drawImage, copyImage, stencilImage);
         
         var isWritingStencil = false;
         var isComparingStencil = false;
@@ -92,7 +92,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
         
         foreach (var command in passInfo.PreCommands)
         {
-            command.Execute(widgetFrame);
+            command.Execute(viewFrame);
         }
         
         foreach (var command in passInfo.Commands)
@@ -103,7 +103,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                     break;
                 case CommandType.ClipDraw:
                 {
-                    surface.BeginMainPass(widgetFrame);
+                    surface.BeginMainPass(viewFrame);
 
                     if (!isWritingStencil)
                     {
@@ -132,7 +132,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
 
                             var push = new StencilPushConstant
                             {
-                                Projection = widgetFrame.Projection,
+                                Projection = viewFrame.Projection,
                                 data = view.GetAddress()
                             };
                             var pushResource = stencilShader.PushConstants.First().Value;
@@ -145,7 +145,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                     break;
                 case CommandType.ClipClear:
                 {
-                    if (widgetFrame.ActivePass.Length == 0) surface.BeginMainPass(widgetFrame);
+                    if (viewFrame.ActivePass.Length == 0) surface.BeginMainPass(viewFrame);
 
                     var clearAttachment = new VkClearAttachment
                     {
@@ -188,7 +188,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                 case CommandType.BatchedDraw:
                 case CommandType.Custom:
                 {
-                    //BeginMainPass(widgetFrame);
+                    //BeginMainPass(viewFrame);
 
                     if (!isComparingStencil)
                     {
@@ -216,11 +216,11 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                                 var (offset,size) = offsetsAndSizes.Current;
                                 offsetsAndSizes.MoveNext();
                                 using var view = buffer.GetView(offset, size);
-                                command.Custom.Run(widgetFrame,command.Mask,view);
+                                command.Custom.Run(viewFrame,command.Mask,view);
                             }
                             else
                             {
-                                command.Custom.Run(widgetFrame, command.Mask);
+                                command.Custom.Run(viewFrame, command.Mask);
                             }
                         }
                             break;
@@ -230,7 +230,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                             var (offset, size) = offsetsAndSizes.Current;
                             offsetsAndSizes.MoveNext();
                             using var view = buffer.GetView(offset, size);
-                            batch.GetRenderer().Draw(widgetFrame, batch,view);
+                            batch.GetRenderer().Draw(viewFrame, batch,view);
                             break;
                         }
                     }
@@ -239,14 +239,14 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
             }
         }
 
-        if (widgetFrame.IsAnyPassActive)
+        if (viewFrame.IsAnyPassActive)
         {
-            widgetFrame.EndActivePass();
+            viewFrame.EndActivePass();
         }
         
         foreach (var command in passInfo.PostCommands)
         {
-            command.Execute(widgetFrame);
+            command.Execute(viewFrame);
         }
 
         cmd.ImageBarrier(drawImage, ImageLayout.ColorAttachment, ImageLayout.TransferSrc);

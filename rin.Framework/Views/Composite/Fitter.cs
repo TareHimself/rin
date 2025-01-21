@@ -53,47 +53,47 @@ public class Fitter : SingleSlotCompositeView
         return 0.0f;
     }
 
-    public static Vec2<float> ComputeContainSize(Vec2<float> drawSize, Vec2<float> widgetSize)
+    public static Vec2<float> ComputeContainSize(Vec2<float> drawSize, Vec2<float> viewSize)
     {
-        var widgetAspect = widgetSize.Y / widgetSize.X;
-        var scaledWidgetSize = new Vec2<float>(drawSize.X, drawSize.X * widgetAspect);
+        var viewAspect = viewSize.Y / viewSize.X;
+        var scaledViewSize = new Vec2<float>(drawSize.X, drawSize.X * viewAspect);
 
-        if (drawSize.Equals(scaledWidgetSize)) return scaledWidgetSize;
+        if (drawSize.Equals(scaledViewSize)) return scaledViewSize;
 
-        return scaledWidgetSize.Y <= drawSize.Y
-            ? scaledWidgetSize
-            : new Vec2<float>(drawSize.Y / widgetAspect, drawSize.Y);
+        return scaledViewSize.Y <= drawSize.Y
+            ? scaledViewSize
+            : new Vec2<float>(drawSize.Y / viewAspect, drawSize.Y);
     }
 
-    public static Vec2<float> ComputeCoverSize(Vec2<float> drawSize, Vec2<float> widgetSize)
+    public static Vec2<float> ComputeCoverSize(Vec2<float> drawSize, Vec2<float> viewSize)
     {
-        var widgetAspect = widgetSize.Y / widgetSize.X;
-        var scaledWidgetSize = new Vec2<float>(drawSize.X, drawSize.X * widgetAspect);
+        var viewAspect = viewSize.Y / viewSize.X;
+        var scaledViewSize = new Vec2<float>(drawSize.X, drawSize.X * viewAspect);
 
-        if (drawSize.Equals(scaledWidgetSize)) return scaledWidgetSize;
+        if (drawSize.Equals(scaledViewSize)) return scaledViewSize;
 
 
-        return scaledWidgetSize.Y <= drawSize.Y
-            ? new Vec2<float>(drawSize.Y / widgetAspect, drawSize.Y)
-            : scaledWidgetSize;
+        return scaledViewSize.Y <= drawSize.Y
+            ? new Vec2<float>(drawSize.Y / viewAspect, drawSize.Y)
+            : scaledViewSize;
     }
 
     public Vec2<float> FitContent(Vec2<float> drawSize)
     {
         if (GetSlot() is { } slot)
         {
-            var widget = slot.Child;
-            var widgetSize = widget.GetDesiredSize();
+            var view = slot.Child;
+            var viewSize = view.GetDesiredSize();
             var newDrawSize = _fitFittingMode switch
                 {
                     FitMode.Fill => drawSize,
-                    FitMode.Contain => ComputeContainSize(drawSize, widgetSize),
-                    FitMode.Cover => ComputeCoverSize(drawSize, widgetSize),
-                    FitMode.None => widgetSize,
+                    FitMode.Contain => ComputeContainSize(drawSize, viewSize),
+                    FitMode.Cover => ComputeCoverSize(drawSize, viewSize),
+                    FitMode.None => viewSize,
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-            widget.ComputeSize(newDrawSize);
+            view.ComputeSize(newDrawSize);
 
 
             var halfSelfDrawSize = drawSize;
@@ -103,7 +103,7 @@ public class Fitter : SingleSlotCompositeView
 
             var diff = halfSelfDrawSize - halfSlotDrawSize;
 
-            widget.Offset = diff;
+            view.Offset = diff;
 
             return drawSize;
         }

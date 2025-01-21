@@ -15,19 +15,19 @@
 //     {
 //         var gs = SRuntime.Get().GetModule<SGraphicsModule>();
 //
-//         _materialInstance = new MaterialInstance(Path.Join(SWidgetsModule.ShadersDir,"pretty.ash"));
+//         _materialInstance = new MaterialInstance(Path.Join(SViewsModule.ShadersDir,"pretty.ash"));
 //     }
 //     
-//     protected override void OnAddedToSurface(WidgetSurface widgetSurface)
+//     protected override void OnAddedToSurface(ViewSurface viewSurface)
 //     {
-//         base.OnAddedToSurface(widgetSurface);
-//         _materialInstance.BindBuffer("ui", widgetSurface.GlobalBuffer);
+//         base.OnAddedToSurface(viewSurface);
+//         _materialInstance.BindBuffer("ui", viewSurface.GlobalBuffer);
 //     }
 //     protected override Vector2<float> ComputeDesiredSize() => new Vector2<float>(0, 0);
 //
-//     public override void Collect(WidgetFrame frame, TransformInfo info)
+//     public override void Collect(ViewFrame frame, TransformInfo info)
 //     {
-//         frame.AddMaterialRect(_materialInstance, new WidgetPushConstants()
+//         frame.AddMaterialRect(_materialInstance, new ViewPushConstants()
 //         {
 //             Transform = this.ComputeRelativeTransform(),
 //             Size = this.GetContentSize(),

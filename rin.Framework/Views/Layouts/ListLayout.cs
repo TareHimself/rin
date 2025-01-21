@@ -39,11 +39,11 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
         
     }
 
-    public override ISlot MakeSlot(View widget)
+    public override ISlot MakeSlot(View view)
     {
         return new ListSlot(this)
         {
-            Child = widget
+            Child = view
         };
     }
 
@@ -72,15 +72,15 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
 
     protected virtual void HandleCrossAxisOffset(ListSlot slot,float crossAxisSize)
     {
-        var widget = slot.Child;
-        var size = widget.Size;
+        var view = slot.Child;
+        var size = view.Size;
         switch (GetAxis())
         {
             case Axis.Column:
             {
                 if (slot.Fit != CrossFit.Fill)
                 {
-                    var offset = widget.Offset;
+                    var offset = view.Offset;
                     offset.X = slot.Align switch
                     {
                         CrossAlign.Start => 0.0f,
@@ -88,7 +88,7 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
                         CrossAlign.End => size.X - crossAxisSize,
                         _ => throw new ArgumentOutOfRangeException()
                     };
-                    widget.Offset = (offset);
+                    view.Offset = (offset);
                 }
             }
                 break;
@@ -96,7 +96,7 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
             {
                 if (slot.Fit != CrossFit.Fill)
                 {
-                    var offset = widget.Offset;
+                    var offset = view.Offset;
                     offset.Y = slot.Align switch
                     {
                         CrossAlign.Start => 0.0f,
@@ -104,7 +104,7 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
                         CrossAlign.End => size.Y - crossAxisSize,
                         _ => throw new ArgumentOutOfRangeException()
                     };
-                    widget.Offset = (offset);
+                    view.Offset = (offset);
                 }
             }
                 break;
@@ -124,14 +124,14 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
         
         foreach (var slot in slots)
         {
-            var widget = slot.Child;
-            widget.Offset = offset;
+            var view = slot.Child;
+            view.Offset = offset;
                     
-            var widgetSize = widget.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
+            var viewSize = view.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
                     
-            offset.X += widgetSize.X;
-            mainAxisSize += widgetSize.X;
-            crossAxisSize = Math.Max(crossAxisSize, widgetSize.Y);
+            offset.X += viewSize.X;
+            mainAxisSize += viewSize.X;
+            crossAxisSize = Math.Max(crossAxisSize, viewSize.Y);
         }
 
         crossAxisSize = float.IsFinite(space.Y) ? space.Y : crossAxisSize;
@@ -159,14 +159,14 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
         // Compute slot sizes and initial offsets
         foreach (var slot in slots)
         {
-            var widget = slot.Child;
-            widget.Offset = offset;
+            var view = slot.Child;
+            view.Offset = offset;
                     
-            var widgetSize = widget.ComputeSize(new Vec2<float>(GetSlotCrossAxisSize(slot,space.X),space.Y));
+            var viewSize = view.ComputeSize(new Vec2<float>(GetSlotCrossAxisSize(slot,space.X),space.Y));
                     
-            offset.Y += widgetSize.Y;
-            mainAxisSize += widgetSize.Y;
-            crossAxisSize = Math.Max(crossAxisSize, widgetSize.X);
+            offset.Y += viewSize.Y;
+            mainAxisSize += viewSize.Y;
+            crossAxisSize = Math.Max(crossAxisSize, viewSize.X);
         }
 
         crossAxisSize = float.IsFinite(space.X) ? space.X : crossAxisSize;

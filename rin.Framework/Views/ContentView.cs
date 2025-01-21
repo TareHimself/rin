@@ -7,7 +7,7 @@ namespace rin.Framework.Views;
 public abstract class ContentView : View
 {
     /// <summary>
-    /// Collect Draw commands from this widget while accounting for padding offsets
+    /// Collect Draw commands from this view while accounting for padding offsets
     /// </summary>
     /// <param name="transform"></param>
     /// <param name="drawCommands"></param>

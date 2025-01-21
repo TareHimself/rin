@@ -1,4 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
@@ -22,10 +24,10 @@ public class PrettyShaderDrawCommand(Mat3 transform,Vec2<float> size,bool hovere
     }
     public override bool WillDraw => true;
 
-    public override ulong MemoryNeeded => (ulong)Marshal.SizeOf<Data>();
+    public override int MemoryNeeded => Marshal.SizeOf<Data>();
 
 
-    private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SRuntime.ResourcesDirectory,"test","pretty.slang"));
+    private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SRuntime.AssetsDirectory,"test","pretty.slang"));
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null)
     {

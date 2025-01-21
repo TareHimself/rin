@@ -8,10 +8,10 @@ using rin.Framework.Views.Graphics.Commands;
 namespace AudioPlayer.Views;
 
 
-public class FpsWidget : TextBox
+public class FpsView : TextBox
 {
     private readonly Averaged<int> _averageFps = new Averaged<int>(0,300);
-    class GetStatsCommand(FpsWidget widget) : UtilityCommand
+    class GetStatsCommand(FpsView view) : UtilityCommand
     {
         public override CommandStage Stage => CommandStage.Before;
         public override void Execute(ViewsFrame frame)
@@ -19,7 +19,7 @@ public class FpsWidget : TextBox
             if (frame.Surface is WindowSurface asWindowSurface)
             {
                 var renderer = asWindowSurface.GetRenderer();
-                widget.Content = $"""
+                view.Content = $"""
                                   STATS
                                   {frame.Surface.Stats.InitialCommandCount} Initial Commands
                                   {frame.Surface.Stats.FinalCommandCount} Final Commands
@@ -28,8 +28,8 @@ public class FpsWidget : TextBox
                                   {frame.Surface.Stats.StencilWriteCount} Stencil Writes
                                   {frame.Surface.Stats.CustomCommandCount} Non Draws
                                   {frame.Surface.Stats.MemoryAllocatedBytes} Bytes Allocated
-                                  {(int)widget._averageFps} FPS
-                                  {((1 / (float)widget._averageFps) * 1000.0f).Round(2)}ms
+                                  {(int)view._averageFps} FPS
+                                  {((1 / (float)view._averageFps) * 1000.0f).Round(2)}ms
                                   """;
             }
         }

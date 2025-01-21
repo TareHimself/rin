@@ -71,7 +71,7 @@ internal class Program
     //             Texture.Tiling.Repeat);
     //     }
     //
-    //     public override void Draw(WidgetFrame frame, DrawInfo info)
+    //     public override void Draw(ViewFrame frame, DrawInfo info)
     //     {
     //         _alpha = MathUtils.InterpolateTo(_alpha, _alphaTarget,(float)Runtime.Instance.GetLastDeltaSeconds(), 0.8f);
     //         
@@ -103,7 +103,7 @@ internal class Program
     //     }
     //     public override Vector2<float> ComputeDesiredSize() => new Vector2<float>(250, 250);
     //
-    //     public override void Draw(WidgetFrame frame, DrawInfo info)
+    //     public override void Draw(ViewFrame frame, DrawInfo info)
     //     {
     //         var sin = (float)Math.Sin(Runtime.Instance.GetTimeSinceCreation() * 1.3f);
     //
@@ -115,27 +115,27 @@ internal class Program
     // }
     //
     //
-    // [RuntimeModule(typeof(WidgetsModule), typeof(GraphicsModule))]
+    // [RuntimeModule(typeof(ViewsModule), typeof(GraphicsModule))]
     // private class GameModule : RuntimeModule
     // {
     //     private Channel? _audioStream;
-    //     private Text? _fpsWidget;
+    //     private Text? _fpsView;
     //
     //     public override async void Startup(Runtime runtime)
     //     {
     //         base.Startup(runtime);
     //         
-    //         var widgetSubsystem = runtime.GetModule<WidgetsModule>()!;
+    //         var viewSubsystem = runtime.GetModule<ViewsModule>()!;
     //         
-    //         widgetSubsystem.AddFont(@"D:\Github\vengine\Roboto\Roboto-Regular.ttf");
-    //         widgetSubsystem.AddFont(@"D:\Github\vengine\futura\FUTURA55REGULAR.TTF");
-    //         //widgetSubsystem.GetOrCreateFont("Roboto").ConfigureAwait(false);
+    //         viewSubsystem.AddFont(@"D:\Github\vengine\Roboto\Roboto-Regular.ttf");
+    //         viewSubsystem.AddFont(@"D:\Github\vengine\futura\FUTURA55REGULAR.TTF");
+    //         //viewSubsystem.GetOrCreateFont("Roboto").ConfigureAwait(false);
     //
     //         var window = runtime.GetModule<GraphicsModule>().GetMainWindow()!;
     //         window.OnKey += async e => { Console.WriteLine("Key Pressed {0}", e.State); };
     //
-    //         var widgetRoot = widgetSubsystem.GetRoot(window);
-    //         if (widgetRoot == null) return;
+    //         var viewRoot = viewSubsystem.GetRoot(window);
+    //         if (viewRoot == null) return;
     //         
     //         var scrollBox = new ScrollableList(new TextBox(50));
     //         var panel = new Panel();
@@ -143,10 +143,10 @@ internal class Program
     //         slot.minAnchor = 0.0f;
     //         slot.maxAnchor = 1.0f;
     //         //slot.alignment = new Vector2<double>(0.5, 0.5);
-    //         widgetRoot.Add(panel);
+    //         viewRoot.Add(panel);
     //         // slot.alignment = new (0.5f, 0.5f);
     //         // slot.sizeToContent = true;
-    //         widgetRoot.Add(panel);
+    //         viewRoot.Add(panel);
     //         _audioStream = Stream.FromFile(@"D:\BH & Kirk Cosier - Slipping Away (ft. Cheney).wav");
     //         _audioStream.SetVolume(0.1f);
     //         //_audioStream.Play();
@@ -155,9 +155,9 @@ internal class Program
     //         runtime.OnTick += delta =>
     //         {
     //             numTicks++;
-    //             if (_fpsWidget == null) return;
-    //             _fpsWidget.Content = $"Ticks => {numTicks}";
-    //             //_fpsWidget.Content = $"";
+    //             if (_fpsView == null) return;
+    //             _fpsView.Content = $"Ticks => {numTicks}";
+    //             //_fpsView.Content = $"";
     //         };
     //         var mainWindow = Runtime.Instance.GetModule<GraphicsModule>().GetMainWindow()!;
     //         mainWindow.OnChar += e => { Console.WriteLine($"Char event {e.Data}"); };

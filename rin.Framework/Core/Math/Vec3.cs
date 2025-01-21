@@ -155,4 +155,9 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
     {
         return new Vec3<T>(-value.X, -value.Y, -value.Z);
     }
+    
+    public static implicit operator Vec3<T>(T data)
+    {
+        return new Vec3<T>(data);
+    }
 }

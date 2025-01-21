@@ -7,7 +7,7 @@ public class Slot(ILayout? owner = null) : ISlot
     
     public T? ChildAs<T>() where T : View
     {
-        return Child is T castedWidget ? castedWidget : null;
+        return Child is T castedView ? castedView : null;
     }
 
     public void SetLayout(ILayout layout)

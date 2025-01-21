@@ -20,7 +20,7 @@ public abstract partial class View : Disposable, IAnimatable
     private readonly Atomic<Mat3?> _cachedRelativeTransform = Mat3.Identity;
     
     /// <summary>
-    /// The offset of this widget in parent space
+    /// The offset of this view in parent space
     /// </summary>
     public Vec2<float> Offset
     {
@@ -34,7 +34,7 @@ public abstract partial class View : Disposable, IAnimatable
     }
 
     /// <summary>
-    /// The size of this widget in parent space
+    /// The size of this view in parent space
     /// </summary>
     public Vec2<float> Size
     {
@@ -48,7 +48,7 @@ public abstract partial class View : Disposable, IAnimatable
     }
     
     /// <summary>
-    /// The pivot used to render this widget. Affects <see cref="Angle" /> and <see cref="Scale" />.
+    /// The pivot used to render this view. Affects <see cref="Angle" /> and <see cref="Scale" />.
     /// </summary>
     public Vec2<float> Pivot
     {
@@ -62,7 +62,7 @@ public abstract partial class View : Disposable, IAnimatable
     }
     
     /// <summary>
-    /// The translation of this widget in parent space
+    /// The translation of this view in parent space
     /// </summary>
     public Vec2<float> Translate
     {
@@ -76,7 +76,7 @@ public abstract partial class View : Disposable, IAnimatable
     }
     
     /// <summary>
-    /// The scale of this widget in parent space
+    /// The scale of this view in parent space
     /// </summary>
     public Vec2<float> Scale
     {
@@ -112,7 +112,7 @@ public abstract partial class View : Disposable, IAnimatable
     }
 
     /// <summary>
-    /// The angle this widget is to be rendered at in parent space
+    /// The angle this view is to be rendered at in parent space
     /// </summary>
     public virtual float Angle
     {
@@ -121,54 +121,54 @@ public abstract partial class View : Disposable, IAnimatable
     }
 
     /// <summary>
-    /// The visibility of this widget
+    /// The visibility of this view
     /// </summary>
     public Visibility Visibility { get; set; } = Visibility.Visible;
 
     
     /// <summary>
-    /// Should this widget be hit tested
+    /// Should this view be hit tested
     /// </summary>
     public bool IsSelfHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestSelf;
 
     /// <summary>
-    /// Should this widget's children be hit tested
+    /// Should this view's children be hit tested
     /// </summary>
     public bool IsChildrenHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestChildren;
 
     /// <summary>
-    /// Should this widget or its children be hit tested
+    /// Should this view or its children be hit tested
     /// </summary>
     public bool IsHitTestable => IsSelfHitTestable || IsChildrenHitTestable;
 
     /// <summary>
-    /// The current hovered state of this widget
+    /// The current hovered state of this view
     /// </summary>
     public bool IsHovered { get; private set; }
 
     public bool IsVisible => Visibility is not (Visibility.Hidden or Visibility.Collapsed);
     
     /// <summary>
-    /// The surface this widget is currently on
+    /// The surface this view is currently on
     /// </summary>
     public Surface? Surface { get; private set; }
 
     /// <summary>
-    /// The parent of this widget
+    /// The parent of this view
     /// </summary>
     public CompositeView? Parent { get; private set; }
     
     
     /// <summary>
-    /// Check if this widget is focused by its current surface
+    /// Check if this view is focused by its current surface
     /// </summary>
-    public bool IsFocused => Surface?.FocusedWidget == this;
+    public bool IsFocused => Surface?.FocusedView == this;
 
     public virtual bool IsFocusable { get; } = false;
 
 
     /// <summary>
-    /// Compute and set this widgets size based on the space available
+    /// Compute and set this views size based on the space available
     /// </summary>
     /// <param name="availableSpace"></param>
     /// <param name="fill">If true will set <see cref="Size"/> to <see cref="availableSpace"/> irrespective of the space taken by content</param>
@@ -189,7 +189,7 @@ public abstract partial class View : Disposable, IAnimatable
     protected abstract Vec2<float> LayoutContent(Vec2<float> availableSpace);
 
     /// <summary>
-    ///     Computes the relative/local transformation matrix for this widget
+    ///     Computes the relative/local transformation matrix for this view
     /// </summary>
     /// <returns></returns>
     public Mat3 ComputeRelativeTransform()
@@ -212,9 +212,9 @@ public abstract partial class View : Disposable, IAnimatable
         return ComputeRelativeTransform() * parentTransform;
     }
 
-    public void SetParent(CompositeView? widget)
+    public void SetParent(CompositeView? view)
     {
-        Parent = widget;
+        Parent = view;
         SetSurface(Parent?.Surface);
     }
 
@@ -372,7 +372,7 @@ public abstract partial class View : Disposable, IAnimatable
         ComputeDesiredContentSize() + new Vec2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
 
     /// <summary>
-    /// Collect draw commands from this widget
+    /// Collect draw commands from this view
     /// </summary>
     /// <param name="transform"></param>
     /// <param name="clip"></param>

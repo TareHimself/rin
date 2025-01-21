@@ -15,11 +15,11 @@ public class OverlayLayout(CompositeView container) : InfiniteChildrenLayout
         
     }
 
-    public override ISlot MakeSlot(View widget)
+    public override ISlot MakeSlot(View view)
     {
         return new Slot(this)
         {
-            Child = widget
+            Child = view
         };
     }
 
@@ -35,18 +35,18 @@ public class OverlayLayout(CompositeView container) : InfiniteChildrenLayout
     {
         var dims = new Vec2<float>(0.0f);
         
-        // First pass is for widgets with content to figure out their size
+        // First pass is for views with content to figure out their size
         foreach (var slot in GetSlots())
         {
             var desiredSize = slot.Child.GetDesiredSize();
             if(desiredSize.X <= 0.0f || desiredSize.Y <= 0.0f) continue;
-            var widgetSize = slot.Child.ComputeSize(availableSpace);
+            var viewSize = slot.Child.ComputeSize(availableSpace);
             
-            dims.X = Math.Max(dims.X, widgetSize.X.FiniteOr());
-            dims.Y = Math.Max(dims.Y, widgetSize.Y.FiniteOr());
+            dims.X = Math.Max(dims.X, viewSize.X.FiniteOr());
+            dims.Y = Math.Max(dims.Y, viewSize.Y.FiniteOr());
         }
         
-        // Second pass is for widgets that adapt to the size of the container
+        // Second pass is for views that adapt to the size of the container
         foreach (var slot in GetSlots())
         {
             slot.Child.Offset = (new Vec2<float>(0, 0));

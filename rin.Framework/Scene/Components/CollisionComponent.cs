@@ -1,20 +1,48 @@
-﻿using rin.Framework.Scene.Physics;
+﻿using rin.Framework.Core.Math;
+using rin.Framework.Scene.Physics;
 
 namespace rin.Framework.Scene.Components;
 
-public abstract class CollisionComponent : SceneComponent
+public abstract class CollisionComponent : SceneComponent, IPhysicsComponent
 {
     IPhysicsBody? _physicsBody;
     private bool _simulating = false;
 
+    public Vec3<float> Velocity { get; set; } = 0.0f;
+    public Vec3<float> AngularVelocity { get; set; } = 0.0f;
+    public float Mass { get; set; } = 1.0f;
+    
+    public event Action<RayCastResult>? OnHit; 
+
     public bool IsSimulating
     {
-        get => _simulating;
+        get
+        {
+            if (_physicsBody is { } body)
+            {
+                _simulating = body.IsSimulating;
+                return body.IsSimulating;
+            }
+
+            return _simulating;
+        }
         set
         {
-            _simulating = value;
-            _physicsBody?.SetSimulatePhysics(_simulating);
+            if (_physicsBody is { } body)
+            {
+                body.SetSimulatePhysics(value);
+                _simulating = body.IsSimulating;
+            }
+            else
+            {
+                _simulating = value;
+            }
         }
+    }
+
+    public void ProcessHit(IPhysicsBody body, RayCastResult result)
+    {
+        OnHit?.Invoke(result);
     }
 
     protected abstract IPhysicsBody CreatePhysicsBody();
@@ -24,6 +52,7 @@ public abstract class CollisionComponent : SceneComponent
         base.Start();
         _physicsBody = CreatePhysicsBody();
         _physicsBody.SetSimulatePhysics(_simulating);
+        _simulating = _physicsBody.IsSimulating;
     }
 
     public override void Stop()

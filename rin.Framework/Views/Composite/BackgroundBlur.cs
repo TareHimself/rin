@@ -34,7 +34,7 @@ namespace rin.Framework.Views.Composite;
 //     //     _materialInstance.Dispose();
 //     // }
 //     //
-//     // protected override void Draw(WidgetFrame frame)
+//     // protected override void Draw(ViewFrame frame)
 //     // {
 //     //     
 //     //     _materialInstance.BindImage("SourceT", frame.Surface.GetCopyImage(), DescriptorSet.ImageType.Texture, new SamplerSpec
@@ -47,7 +47,7 @@ namespace rin.Framework.Views.Composite;
 //     //     _materialInstance.Push(frame.Raw.GetCommandBuffer(),  _pushConstants);
 //     //     Quad(frame);
 //     // }
-//     protected override void Draw(WidgetFrame frame)
+//     protected override void Draw(ViewFrame frame)
 //     {
 //         throw new NotImplementedException();
 //     }
@@ -67,7 +67,7 @@ public class BackgroundBlur : SingleSlotCompositeView
         return 0.0f;
     }
     
-    // public override void Collect(WidgetFrame frame, TransformInfo info)
+    // public override void Collect(ViewFrame frame, TransformInfo info)
     // {
     //     frame.AddCommands(new ReadBack(),new BlurCommand(_materialInstance, new BlurPushConstants
     //     {
@@ -79,9 +79,9 @@ public class BackgroundBlur : SingleSlotCompositeView
     //
     //     foreach (var slot in _slot.ToArray())
     //     {
-    //         var slotDrawInfo = info.AccountFor(slot.GetWidget());
+    //         var slotDrawInfo = info.AccountFor(slot.GetView());
     //         if (slotDrawInfo.Occluded) continue;
-    //         slot.GetWidget().Collect(frame, info.AccountFor(slot.GetWidget()));
+    //         slot.GetView().Collect(frame, info.AccountFor(slot.GetView()));
     //     }
     // }
 
@@ -103,6 +103,6 @@ public class BackgroundBlur : SingleSlotCompositeView
             return slot.Child.ComputeSize(availableSpace);
         }
 
-        return 0.0f;
+        return availableSpace;
     }
 }

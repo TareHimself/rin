@@ -32,7 +32,7 @@ public static class GraphicsModuleExtensions
         {
             var vertexCopy = new VkBufferCopy
             {
-                size = verticesByteSize,
+                size = (ulong)verticesByteSize,
                 dstOffset = 0,
                 srcOffset = 0
             };
@@ -40,8 +40,8 @@ public static class GraphicsModuleExtensions
 
             var indicesCopy = new VkBufferCopy
             {
-                size = indicesByteSize,
-                srcOffset = verticesByteSize,
+                size = (ulong)indicesByteSize,
+                srcOffset = (ulong)verticesByteSize,
                 dstOffset = 0
             };
 

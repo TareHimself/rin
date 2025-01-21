@@ -29,7 +29,7 @@ public struct SceneFrame
 
     public void CleanupCommands(Frame frame)
     {
-        foreach (var widgetFrameDrawCommand in DrawCommands) widgetFrameDrawCommand.Dispose();
+        foreach (var viewFrameDrawCommand in DrawCommands) viewFrameDrawCommand.Dispose();
         DrawCommands.Clear();
     }
 

@@ -37,11 +37,11 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
         
     }
 
-    public override ISlot MakeSlot(View widget)
+    public override ISlot MakeSlot(View view)
     {
         return new Slot(this)
         {
-            Child = widget
+            Child = view
         };
     }
 

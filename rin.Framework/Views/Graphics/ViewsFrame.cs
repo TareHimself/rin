@@ -54,7 +54,7 @@ public class ViewsFrame
         Surface.EndActivePass(this);
     }
 
-    // public WidgetFrame AddRect(Matrix3 transform, Vector2<float> size, Vector4<float>? borderRadius = null,
+    // public ViewFrame AddRect(Matrix3 transform, Vector2<float> size, Vector4<float>? borderRadius = null,
     //     Color? color = null)
     // {
     //     return AddCommands(new SimpleRect(transform, size)
@@ -64,12 +64,12 @@ public class ViewsFrame
     //     });
     // }
     //
-    // public WidgetFrame AddMaterialRect(MaterialInstance materialInstance, WidgetPushConstants pushConstants)
+    // public ViewFrame AddMaterialRect(MaterialInstance materialInstance, ViewPushConstants pushConstants)
     // {
     //     return AddCommands(new MaterialRect(materialInstance, pushConstants));
     // }
     //
-    // public WidgetFrame AddCommands(params GraphicsCommand[] commands)
+    // public ViewFrame AddCommands(params GraphicsCommand[] commands)
     // {
     //     LinkedList<GraphicsCommand> lCommands = [];
     //     foreach (var command in commands)
@@ -81,7 +81,7 @@ public class ViewsFrame
     //
     // public void CleanupCommands(Frame frame)
     // {
-    //     foreach (var widgetFrameDrawCommand in DrawCommandList) widgetFrameDrawCommand.Value.Dispose();
+    //     foreach (var viewFrameDrawCommand in DrawCommandList) viewFrameDrawCommand.Value.Dispose();
     //     DrawCommandList.Clear();
     // }
 

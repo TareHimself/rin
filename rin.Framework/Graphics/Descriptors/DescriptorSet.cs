@@ -109,8 +109,8 @@ public class DescriptorSet : Disposable
         var infos = writes.Select(write => new VkDescriptorBufferInfo
         {
             buffer = write.View.NativeBuffer,
-            offset = write.Offset,
-            range = write.Size
+            offset = (ulong)write.Offset,
+            range = (ulong)write.Size
         }).ToArray();
         
         unsafe

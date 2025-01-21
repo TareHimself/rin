@@ -1,4 +1,6 @@
-﻿using rin.Framework.Core;
+﻿using System;
+using System.Threading.Tasks;
+using rin.Framework.Core;
 using rin.Framework.Core.Animation;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
@@ -27,17 +29,19 @@ public class SViewsTestModule : IModule
         public WrapContainer(View content)
         {
             _content = content;
-            Child = new Sizer()
+            var sizer = new Sizer()
             {
                 WidthOverride = 300,
                 HeightOverride = 300,
                 Child = content,
                 Padding = 10.0f,
             };
+            Child = sizer;
             content.Pivot = 0.5f;
             OnReleased += (@event, button) =>
             {
-               _content.StopAll().RotateTo(360,0.5f).After().Do(() => _content.Angle = 0.0f);
+               //_content.StopAll().RotateTo(360,0.5f).After().Do(() => _content.Angle = 0.0f);
+               sizer.WidthTo(620.0f).Delay(2).WidthTo(300.0f);
             };
         }
 
@@ -82,7 +86,7 @@ public class SViewsTestModule : IModule
                     {
                         // Child = new Rect                                    
                         // {
-                        //     Child = new FpsWidget
+                        //     Child = new FpsView
                         //     {
                         //         FontSize = 30
                         //     },
@@ -92,7 +96,7 @@ public class SViewsTestModule : IModule
                         // },
                         Child = new BackgroundBlur()                                
                         {
-                            Child = new FpsWidget
+                            Child = new FpsView
                             {
                                 FontSize = 30
                             },
@@ -214,7 +218,7 @@ public class SViewsTestModule : IModule
                     {
                         Child = new Rect
                         {
-                            Child = new FpsWidget
+                            Child = new FpsView
                             {
                                 FontSize = 30,
                                 Content = "YOOOO"
@@ -312,7 +316,7 @@ public class SViewsTestModule : IModule
     public void TestSimple(WindowRenderer renderer)
     {
         var surf = SViewsModule.Get().GetWindowSurface(renderer);
-        //SWidgetsModule.Get().GetOrCreateFont("Arial").ConfigureAwait(false);
+        //SViewsModule.Get().GetOrCreateFont("Arial").ConfigureAwait(false);
         // surf?.Add(new TextInputBox("I expect this very long text to wrap if the space is too small"));
         surf?.Add(new TextBox("A"));
     }
@@ -335,6 +339,14 @@ public class SViewsTestModule : IModule
                 new PanelSlot
                 {
                     Child = switcher,
+                    MaxAnchor = 1.0f
+                },
+                new PanelSlot
+                {
+                    Child = new BackgroundBlur()
+                    {
+                        Strength = 10.0f
+                    },
                     MaxAnchor = 1.0f
                 },
                 // new PanelSlot
@@ -372,12 +384,12 @@ public class SViewsTestModule : IModule
         SRuntime.Get().OnUpdate += d =>
         {
             frames++;
-            infoText.Content = $"Frame {frames}"; //$"Focused ${panel.Surface?.FocusedWidget}";
+            infoText.Content = $"Frame {frames}"; //$"Focused ${panel.Surface?.FocusedView}";
         };
 
         surf.Window.OnKey += (e) =>
         {
-            var switcherSlots = switcher.GetSlots().Count();
+            var switcherSlots = switcher.SlotCount;
             if (switcherSlots > 0)
             {
                 if (e is { State: InputState.Pressed or InputState.Repeat, Key: InputKey.Left })

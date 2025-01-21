@@ -31,4 +31,5 @@ public interface ISceneComponent : IComponent
     public Transform GetSceneTransform();
     public void SetSceneTransform(Transform worldTransform);
     public void Collect(DrawCommands drawCommands, Mat4 parentTransform);
+
 }

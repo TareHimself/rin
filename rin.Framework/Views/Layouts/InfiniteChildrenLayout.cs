@@ -7,7 +7,7 @@ namespace rin.Framework.Views.Layouts;
 
 public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 {
-    protected readonly ConcurrentDictionary<View, ISlot> _widgetSlotMap = [];
+    protected readonly ConcurrentDictionary<View, ISlot> _viewSlotMap = [];
     protected readonly List<ISlot> _slots = [];
 
     public virtual int MaxSlotCount => int.MaxValue;
@@ -39,7 +39,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
             {
                 var view = slot.Child;
                 _slots.Add(slot);
-                _widgetSlotMap.TryAdd(view, slot);
+                _viewSlotMap.TryAdd(view, slot);
                 added = true;
             }
         }
@@ -64,7 +64,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
             {
                 if (_slots[i].Child != view) continue;
                 _slots.RemoveAt(i);
-                _widgetSlotMap.TryRemove(view, out var _);
+                _viewSlotMap.TryRemove(view, out var _);
                 removed = true;
                 break;
             }
@@ -79,7 +79,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
         return removed;
     }
 
-    public abstract ISlot MakeSlot(View widget);
+    public abstract ISlot MakeSlot(View view);
 
     public ISlot? GetSlot(int idx)
     {
@@ -106,7 +106,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
     {
         lock (_slots)
         {
-            if (_widgetSlotMap.TryGetValue(view, out var value))
+            if (_viewSlotMap.TryGetValue(view, out var value))
             {
                 return value;
             }

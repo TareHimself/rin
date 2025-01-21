@@ -5,9 +5,9 @@
 // public class MaterialRect : Command
 // {
 //     private readonly MaterialInstance _materialInstance;
-//     private readonly WidgetPushConstants _pushConstants;
+//     private readonly ViewPushConstants _pushConstants;
 //
-//     public MaterialRect(MaterialInstance materialInstance, WidgetPushConstants pushConstant)
+//     public MaterialRect(MaterialInstance materialInstance, ViewPushConstants pushConstant)
 //     {
 //         materialInstance.Reserve();
 //         _materialInstance = materialInstance;
@@ -21,7 +21,7 @@
 //     }
 //     
 //
-//     protected override void Draw(WidgetFrame frame)
+//     protected override void Draw(ViewFrame frame)
 //     {
 //         _materialInstance.BindTo(frame);
 //         _materialInstance.BindBuffer("ui", frame.Surface.GlobalBuffer);

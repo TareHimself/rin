@@ -32,7 +32,7 @@
 //     }
 //     
 //
-//     protected override void Draw(WidgetFrame frame)
+//     protected override void Draw(ViewFrame frame)
 //     {
 //         _materialInstance.BindTo(frame);
 //         _materialInstance.BindBuffer("ui", frame.Surface.GlobalBuffer);

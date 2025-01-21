@@ -7,7 +7,7 @@ namespace rin.Framework.Views.Layouts;
 public interface ILayout : IDisposable
 {
     public CompositeView Container { get; }
-    protected ISlot MakeSlot(View widget);
+    protected ISlot MakeSlot(View view);
     
     public void OnSlotUpdated(ISlot slot);
     

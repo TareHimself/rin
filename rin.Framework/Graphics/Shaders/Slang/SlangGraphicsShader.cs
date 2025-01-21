@@ -52,8 +52,7 @@ public class SlangGraphicsShader : IGraphicsShader
         {
             return false;
         }
-
-        cmd.UnBindShader(VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT);
+        
         cmd.BindShaders(_shaders);
 
         return true;
@@ -67,25 +66,25 @@ public class SlangGraphicsShader : IGraphicsShader
             var fileData = File.ReadAllText(_filePath);
             using var module = session.LoadModuleFromSourceString(_filePath, _filePath, fileData);
             if (module == null) throw new ShaderCompileException("Failed to load slang shader module.");
+            var hasVertex = false;
+            var hasFragment = false;
             List<SlangEntryPoint> entryPoints = [];
             {
                 var entryPoint = module.FindEntryPointByName("vertex");
-                if (entryPoint == null)
+                if (entryPoint != null)
                 {
-                    throw new ShaderCompileException("Failed to find vertex entry point.");
+                    entryPoints.Add(entryPoint);
+                    hasVertex = true;
                 }
-
-                entryPoints.Add(entryPoint);
             }
 
             {
                 var entryPoint = module.FindEntryPointByName("fragment");
-                if (entryPoint == null)
+                if (entryPoint != null)
                 {
-                    throw new ShaderCompileException("Failed to find fragment entry point.");
+                    entryPoints.Add(entryPoint);
+                    hasFragment = true;
                 }
-
-                entryPoints.Add(entryPoint);
             }
 
             List<Pair<VkShaderStageFlags, SlangBlob>> code = [];

@@ -12,11 +12,11 @@ public class FlexBoxSlot(FlexLayout? layout = null) : ListSlot(layout)
 public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, container)
 {
     
-    public override ISlot MakeSlot(View widget)
+    public override ISlot MakeSlot(View view)
     {
         return new FlexBoxSlot(this)
         {
-            Child = widget
+            Child = view
         };
     }
     
@@ -40,8 +40,8 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
                 }
                 else
                 {
-                    var widgetSize = slot.Child.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
-                    mainAxisAvailableSpace -= widgetSize.X;
+                    var viewSize = slot.Child.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
+                    mainAxisAvailableSpace -= viewSize.X;
                 }
             }
 
@@ -54,8 +54,8 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
             // Compute slot sizes and initial offsets
             foreach (var slot in slots)
             {
-                var widget = slot.Child;
-                widget.Offset = offset;
+                var view = slot.Child;
+                view.Offset = offset;
 
                 var slotMainAxisSize = 0.0f;
                 var slotCrossAxisSize = 0.0f;
@@ -66,16 +66,16 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
 
                     var flexSize = new Vec2<float>(assignedMainAxisSpace, GetSlotCrossAxisSize(slot, space.Y));
 
-                    widget.ComputeSize(flexSize);
+                    view.ComputeSize(flexSize);
                     
                     slotMainAxisSize = flexSize.X;
                     slotCrossAxisSize = flexSize.Y;
                 }
                 else
                 {
-                    var widgetSize = widget.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
-                    slotMainAxisSize = widgetSize.X;
-                    slotCrossAxisSize = widgetSize.Y;
+                    var viewSize = view.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
+                    slotMainAxisSize = viewSize.X;
+                    slotCrossAxisSize = viewSize.Y;
                 }
                 
                 offset.X += slotMainAxisSize;
@@ -117,8 +117,8 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
                 }
                 else
                 {
-                    var widgetSize = slot.Child.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
-                    mainAxisAvailableSpace -= widgetSize.X;
+                    var viewSize = slot.Child.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
+                    mainAxisAvailableSpace -= viewSize.X;
                 }
             }
 
@@ -131,8 +131,8 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
             // Compute slot sizes and initial offsets
             foreach (var slot in slots)
             {
-                var widget = slot.Child;
-                widget.Offset = offset;
+                var view = slot.Child;
+                view.Offset = offset;
 
                 var slotMainAxisSize = 0.0f;
                 var slotCrossAxisSize = 0.0f;
@@ -143,16 +143,16 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
 
                     var flexSize = new Vec2<float>(GetSlotCrossAxisSize(slot,space.Y),assignedMainAxisSpace);
 
-                    widget.ComputeSize(flexSize);
+                    view.ComputeSize(flexSize);
                     
                     slotMainAxisSize = flexSize.Y;
                     slotCrossAxisSize = flexSize.X;
                 }
                 else
                 {
-                    var widgetSize = widget.ComputeSize(new Vec2<float>(GetSlotCrossAxisSize(slot,space.Y),space.X));
-                    slotMainAxisSize = widgetSize.Y;
-                    slotCrossAxisSize = widgetSize.X;
+                    var viewSize = view.ComputeSize(new Vec2<float>(GetSlotCrossAxisSize(slot,space.Y),space.X));
+                    slotMainAxisSize = viewSize.Y;
+                    slotCrossAxisSize = viewSize.X;
                 }
                     
                 offset.Y += slotMainAxisSize;

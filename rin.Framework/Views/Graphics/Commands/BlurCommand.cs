@@ -31,7 +31,7 @@ public class BlurCommand(Mat3 transform, Vec2<float> size,float sigma, Vec4<floa
     public override bool WillDraw => true;
 
 
-    // public static void ApplyBlurPass(WidgetFrame frame)
+    // public static void ApplyBlurPass(ViewFrame frame)
     // {
     //     var cmd = frame.Raw.GetCommandBuffer();
     //
@@ -56,7 +56,7 @@ public class BlurCommand(Mat3 transform, Vec2<float> size,float sigma, Vec4<floa
     //     ], stencilAttachment: SGraphicsModule.MakeRenderingAttachment(stencilImage.View,
     //         VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
     //
-    //     frame.Raw.ConfigureForWidgets(size.Cast<uint>());
+    //     frame.Raw.ConfigureForViews(size.Cast<uint>());
     // }
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null)

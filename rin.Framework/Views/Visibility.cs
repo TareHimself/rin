@@ -5,10 +5,10 @@ public enum Visibility
     // visible and all hit tests
     Visible,
 
-    // will not hit test this widget
+    // will not hit test this view
     VisibleNoHitTestSelf,
 
-    // will not hit test this widget's children
+    // will not hit test this view's children
     VisibleNoHitTestChildren,
 
     // will be visible but not hit testable

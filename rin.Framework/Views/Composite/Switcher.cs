@@ -18,7 +18,7 @@ public class Switcher : MultiSlotCompositeView<Slot>
         set => _layout.SelectedIndex = value;
     }
 
-    public View? SelectedWidget => _layout.SelectedSlot?.Child;
+    public View? SelectedView => _layout.SelectedSlot?.Child;
 
     public Switcher()
     {
@@ -27,7 +27,7 @@ public class Switcher : MultiSlotCompositeView<Slot>
 
     protected override Vec2<float> ComputeDesiredContentSize()
     {
-        return SelectedWidget?.GetDesiredSize() ?? new Vec2<float>();
+        return SelectedView?.GetDesiredSize() ?? new Vec2<float>();
     }
 
 
@@ -35,15 +35,15 @@ public class Switcher : MultiSlotCompositeView<Slot>
     {
         if (_layout.SelectedSlot is { } slot)
         {
-            var widget = slot.Child;
+            var view = slot.Child;
 
-            if (widget.Size.Equals(availableSpace)) return widget.Size;
+            if (view.Size.Equals(availableSpace)) return view.Size;
 
-            widget.Offset = (0.0f);
-            return widget.ComputeSize(availableSpace);
+            view.Offset = (0.0f);
+            return view.ComputeSize(availableSpace);
         }
 
-        return 0.0f;
+        return availableSpace;
     }
 
     public override void OnChildInvalidated(View child, InvalidationType invalidation)
@@ -51,7 +51,11 @@ public class Switcher : MultiSlotCompositeView<Slot>
         _layout.Apply(GetContentSize());
     }
 
-    public override IEnumerable<ISlot> GetSlots() => _layout.SelectedSlot is { } slot ? [slot] : [];
+    public override IEnumerable<ISlot> GetSlots() => _layout.GetSlots();
+
+    public override IEnumerable<ISlot> GetCollectableSlots() => _layout.SelectedSlot is { } slot ? [slot] : [];
+
+    public override IEnumerable<ISlot> GetHitTestableSlots() => _layout.SelectedSlot is { } slot ? [slot] : [];
 
     public override int SlotCount => _layout.SlotCount;
     public override bool Add(View child) => _layout.Add(child);

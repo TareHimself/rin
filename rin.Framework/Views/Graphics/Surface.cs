@@ -12,13 +12,13 @@ using static TerraFX.Interop.Vulkan.Vulkan;
 namespace rin.Framework.Views.Graphics;
 
 /// <summary>
-///     Base class for a surface that can display widgets
+///     Base class for a surface that can display views
 /// </summary>
 public abstract class Surface : Disposable
 {
     public static readonly string MainPassId = Guid.NewGuid().ToString();
     private readonly List<View> _lastHovered = [];
-    private readonly Root _rootWidget = new();
+    private readonly Root _rootView = new();
     private readonly SGraphicsModule _sGraphicsModule;
     private Vec2<float>? _lastMousePosition;
     private CursorDownEvent? _lastCursorDownEvent;
@@ -28,16 +28,16 @@ public abstract class Surface : Disposable
     protected Surface()
     {
         _sGraphicsModule = SRuntime.Get().GetModule<SGraphicsModule>();
-        _rootWidget.NotifyAddedToSurface(this);
+        _rootView.NotifyAddedToSurface(this);
     }
 
-    public View? FocusedWidget { get; private set; }
+    public View? FocusedView { get; private set; }
     public event Action<CursorUpEvent>? OnCursorUp;
 
     public virtual void Init()
     {
-        _rootWidget.Offset = (0.0f);
-        _rootWidget.ComputeSize(GetDrawSize().Cast<float>());
+        _rootView.Offset = (0.0f);
+        _rootView.ComputeSize(GetDrawSize().Cast<float>());
     }
 
     public abstract Vec2<int> GetDrawSize();
@@ -46,22 +46,22 @@ public abstract class Surface : Disposable
     protected override void OnDispose(bool isManual)
     {
         _sGraphicsModule.WaitDeviceIdle();
-        _rootWidget.Dispose();
+        _rootView.Dispose();
     }
 
     protected virtual void ClearFocus()
     {
-        FocusedWidget?.OnFocusLost();
-        FocusedWidget = null;
+        FocusedView?.OnFocusLost();
+        FocusedView = null;
     }
 
     public virtual bool RequestFocus(View requester)
     {
-        if (FocusedWidget == requester) return true;
+        if (FocusedView == requester) return true;
         if (!requester.IsFocusable || !requester.IsHitTestable) return false;
 
         ClearFocus();
-        FocusedWidget = requester;
+        FocusedView = requester;
         requester.OnFocus();
         return true;
     }
@@ -69,7 +69,7 @@ public abstract class Surface : Disposable
 
     public virtual void ReceiveResize(ResizeEvent e)
     {
-        _rootWidget.ComputeSize(e.Size.Cast<float>());
+        _rootView.ComputeSize(e.Size.Cast<float>());
     }
 
 
@@ -112,7 +112,7 @@ public abstract class Surface : Disposable
                 ],
                 stencilAttachment: frame.StencilImage.MakeStencilAttachmentInfo(clearStencil ? 0 : null));
 
-            frame.Raw.ConfigureForWidgets(size.Cast<uint>());
+            frame.Raw.ConfigureForViews(size.Cast<uint>());
 
             if (clearStencil) ResetStencilState(cmd);
         });
@@ -252,7 +252,7 @@ public abstract class Surface : Disposable
     private PassInfo? ComputePassInfo()
     {
         var rawDrawCommands = new DrawCommands();
-        _rootWidget.Collect(Mat3.Identity, new Rect()
+        _rootView.Collect(Mat3.Identity, new Rect()
         {
             Size = GetDrawSize().Cast<float>()
         }, rawDrawCommands);
@@ -373,7 +373,7 @@ public abstract class Surface : Disposable
     public virtual void ReceiveCursorDown(CursorDownEvent e)
     {
         var point = e.Position.Cast<float>();
-        if (_rootWidget.NotifyCursorDown(e, Mat3.Identity))
+        if (_rootView.NotifyCursorDown(e, Mat3.Identity))
         {
             _lastCursorDownEvent = e;
         }
@@ -394,7 +394,7 @@ public abstract class Surface : Disposable
     public virtual void ReceiveCursorMove(CursorMoveEvent e)
     {
         _lastMousePosition = e.Position;
-        _rootWidget.NotifyCursorMove(e, Mat3.Identity);
+        _rootView.NotifyCursorMove(e, Mat3.Identity);
         // Maybe leave this to the event handler in the future
         if (_lastCursorDownEvent is { } lastEvent)
         {
@@ -423,17 +423,17 @@ public abstract class Surface : Disposable
 
     public virtual void ReceiveScroll(ScrollEvent e)
     {
-        _rootWidget.NotifyScroll(e, Mat3.Identity);
+        _rootView.NotifyScroll(e, Mat3.Identity);
     }
 
     public virtual void ReceiveCharacter(CharacterEvent e)
     {
-        FocusedWidget?.OnCharacter(e);
+        FocusedView?.OnCharacter(e);
     }
 
     public virtual void ReceiveKeyboard(KeyboardEvent e)
     {
-        FocusedWidget?.OnKeyboard(e);
+        FocusedView?.OnKeyboard(e);
     }
 
     public abstract Vec2<float> GetCursorPosition();
@@ -457,15 +457,15 @@ public abstract class Surface : Disposable
                 Size = 0.0f
             };
             if (0.0f <= e.Position && e.Position <= GetDrawSize().Cast<float>())
-                _rootWidget.NotifyCursorEnter(e, Mat3.Identity, _lastHovered);
+                _rootView.NotifyCursorEnter(e, Mat3.Identity, _lastHovered);
         }
 
         var hoveredSet = _lastHovered.ToHashSet();
 
 
-        foreach (var widget in oldHoverList.AsReversed())
-            if (!hoveredSet.Contains(widget))
-                widget.NotifyCursorLeave(e);
+        foreach (var view in oldHoverList.AsReversed())
+            if (!hoveredSet.Contains(view))
+                view.NotifyCursorLeave(e);
     }
 
     public virtual T Add<T>() where T : View, new()
@@ -473,14 +473,14 @@ public abstract class Surface : Disposable
         return Add(Activator.CreateInstance<T>());
     }
 
-    public virtual T Add<T>(T widget) where T : View
+    public virtual T Add<T>(T view) where T : View
     {
-        _rootWidget.Add(widget);
-        return widget;
+        _rootView.Add(view);
+        return view;
     }
 
     public virtual bool Remove(View view)
     {
-        return _rootWidget.Remove(view);
+        return _rootView.Remove(view);
     }
 }

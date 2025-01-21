@@ -52,9 +52,9 @@ public static class EnumerableExtensions
         return (ulong)(Marshal.SizeOf<T>() * target.Count);
     }
 
-    public static ulong ByteSize<T>(this T[] target)
+    public static int ByteSize<T>(this T[] target)
     {
-        return (ulong)(Marshal.SizeOf<T>() * target.Length);
+        return Marshal.SizeOf<T>() * target.Length;
     }
 
 

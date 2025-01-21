@@ -27,4 +27,7 @@ public static class MathExtensions
         return System.Math.Sqrt(System.Math.Pow((b.X - a.X),2) + System.Math.Pow((b.Y - a.Y),2));
     }
     
+    
+    public static Vec3<float> ToRinVector(this Vector3 self) => new Vec3<float>(self.X, self.Y, self.Z);
+    
 }

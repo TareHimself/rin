@@ -32,7 +32,7 @@ public class MainPanel : Panel
             {
                 Child = new Rect
                 {
-                    Child = new FpsWidget
+                    Child = new FpsView
                     {
                         FontSize = 30,
                     },

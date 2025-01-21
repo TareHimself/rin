@@ -6,7 +6,7 @@ namespace rin.Framework.Views.Graphics;
 using static TerraFX.Interop.Vulkan.Vulkan;
 public static class GraphicsExtensions
 {
-    public static void ConfigureForWidgets(this Frame frame,Vec2<uint> size)
+    public static void ConfigureForViews(this Frame frame,Vec2<uint> size)
     {
 
         var cmd = frame.GetCommandBuffer();

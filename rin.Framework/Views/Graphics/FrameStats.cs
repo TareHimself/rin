@@ -9,12 +9,12 @@ public class FrameStats
     public int CustomCommandCount;
     public int StencilWriteCount;
     public int StencilClearCount;
-    public ulong MemoryAllocatedBytes;
+    public int MemoryAllocatedBytes;
 }
 
 // {frame.BatchedDraws} Batches
 // {frame.NonBatchedDraws} Draws
 // {frame.StencilDraws} Stencil Draws
 // {frame.NonDraws} Non Draws
-// {(int)widget._averageFps} FPS
+// {(int)view._averageFps} FPS
 // {(renderer.LastFrameTime * 1000).Round(2)}ms

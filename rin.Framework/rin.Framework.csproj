@@ -53,12 +53,12 @@
     </Target>
 
     <ItemGroup>
-        <resources Include=".\resources\**"/>
-        <Content Include="@(resources)">
+        <assets Include=".\assets\**"/>
+        <Content Include="@(assets)">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
     <PropertyGroup>
-        <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*;resources\**\*.*</DefaultItemExcludes>
+        <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*;assets\**\*.*</DefaultItemExcludes>
     </PropertyGroup>
 </Project>

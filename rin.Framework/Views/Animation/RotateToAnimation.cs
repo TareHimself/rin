@@ -2,14 +2,14 @@
 
 namespace rin.Framework.Views.Animation;
 
-public class RotateToAnimation<T>(T widget,float? from,float to,double duration = 0.0) : IAnimation where T : View
+public class RotateToAnimation<T>(T view,float? from,float to,double duration = 0.0) : IAnimation where T : View
 {
-    private float _from = from.GetValueOrDefault(widget.Angle);
+    private float _from = from.GetValueOrDefault(view.Angle);
     public double Duration => duration;
 
     public void Start(double elapsed)
     {
-        _from = from.GetValueOrDefault(widget.Angle);
+        _from = from.GetValueOrDefault(view.Angle);
         Update(elapsed);
     }
 
@@ -17,6 +17,6 @@ public class RotateToAnimation<T>(T widget,float? from,float to,double duration 
     {
         var alpha = Duration == 0.0 ? 1.0 : (elapsed / Duration);
 
-        widget.Angle = _from + ((to - _from) * (float)alpha);
+        view.Angle = _from + ((to - _from) * (float)alpha);
     }
 }

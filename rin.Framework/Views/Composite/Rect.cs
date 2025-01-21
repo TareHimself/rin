@@ -33,7 +33,7 @@ public class Rect : SingleSlotCompositeView
             return slot.Child.ComputeSize(availableSpace);
         }
 
-        return 0.0f;
+        return availableSpace;
     }
     
 

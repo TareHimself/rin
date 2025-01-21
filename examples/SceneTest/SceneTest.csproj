@@ -14,15 +14,15 @@
     <ItemGroup>
       <PackageReference Include="SharpGLTF.Core" Version="1.0.0" />
     </ItemGroup>
-
-    <ItemGroup>
-        <Items Include=".\brick_wall\**" />
-        <Items Include=".\gold_tex\**" />
-        <Items Include=".\cube.glb" />
-        <Content Include="@(Items)">
+    
+     <ItemGroup>
+        <assets Include=".\assets\**"/>
+        <Content Include="@(assets)">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
-    
+    <PropertyGroup>
+        <DefaultItemExcludes>$(DefaultItemExcludes);assets\**\*.*</DefaultItemExcludes>
+    </PropertyGroup>
 
 </Project>

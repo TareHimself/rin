@@ -57,7 +57,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return resourceId;
     }
 
-    public uint AllocateBuffer(ulong size)
+    public uint AllocateBuffer(int size)
     {
         var descriptor = new MemoryResourceDescriptor()
         {

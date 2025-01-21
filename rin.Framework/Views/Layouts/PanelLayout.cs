@@ -42,7 +42,7 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
         
     }
 
-    public override ISlot MakeSlot(View widget)
+    public override ISlot MakeSlot(View view)
     {
         throw new NotImplementedException();
     }
@@ -69,22 +69,22 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
     {
         return 0.0f;
     }
-    
-    protected void LayoutSlot(ISlot slot,Vec2<float> panelSize)
+
+    private void LayoutSlot(ISlot slot,Vec2<float> panelSize)
     {
         if (slot is PanelSlot asPanelSlot)
         {
-            var widget = slot.Child;
+            var view = slot.Child;
 
             var noOffsetX = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.X, asPanelSlot.MaxAnchor.X);
             var noOffsetY = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.Y, asPanelSlot.MaxAnchor.Y);
 
-            var widgetSize = widget.GetDesiredSize();
+            var viewSize = view.GetDesiredSize();
             
             var wSize = new Vec2<float>
             {
-                X = asPanelSlot.SizeToContent && noOffsetX ? widgetSize.X : asPanelSlot.Size.X,
-                Y = asPanelSlot.SizeToContent && noOffsetY ? widgetSize.Y: asPanelSlot.Size.Y
+                X = asPanelSlot.SizeToContent && noOffsetX ? viewSize.X : asPanelSlot.Size.X,
+                Y = asPanelSlot.SizeToContent && noOffsetY ? viewSize.Y: asPanelSlot.Size.Y
             };
 
             var p1 = asPanelSlot.Offset.Clone();
@@ -120,8 +120,8 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
             var p2Final = p2 - dist;
             var sizeFinal = p2Final - p1Final;
 
-            widget.Offset = p1Final;
-            widget.ComputeSize(sizeFinal);
+            view.Offset = p1Final;
+            view.ComputeSize(sizeFinal);
         }
     }
 }

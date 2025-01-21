@@ -7,38 +7,38 @@ namespace rin.Framework.Graphics;
 
 public interface IDeviceBuffer : IReservable,IGraphResource
 {
-    public ulong Offset { get; }
-    public ulong Size { get; }
+    public int Offset { get; }
+    public int Size { get; }
     public VkBuffer NativeBuffer { get ;}
     public ulong GetAddress();
-    public IDeviceBuffer GetView(ulong offset,ulong size);
+    public IDeviceBuffer GetView(int offset, int size);
 
-    public unsafe void Write(void* src, ulong size, ulong offset = 0);
+    public unsafe void Write(void* src, int size, int offset = 0);
 
-    public unsafe void Write<T>(T[] data, ulong offset = 0)
+    public unsafe void Write<T>(T[] data,int offset = 0)
     {
         unsafe
         {
             fixed (T* pData = data)
             {
-                Write(pData, (ulong)(data.Length * sizeof(T)), offset);
+                Write(pData, data.Length * Marshal.SizeOf<T>(), offset);
             }
         }
     }
 
-    public void Write<T>(T src, ulong offset = 0) where T : unmanaged
+    public void Write<T>(T src, int offset = 0) where T : unmanaged
     {
         unsafe
         {
-            Write(&src, (ulong)Marshal.SizeOf<T>(), offset);
+            Write(&src, Marshal.SizeOf<T>(), offset);
         }
     }
     
-    public void Write<T>(NativeBuffer<T> src, ulong offset = 0) where T : unmanaged
+    public void Write<T>(NativeBuffer<T> src, int offset = 0) where T : unmanaged
     {
         unsafe
         {
-            Write(src.GetData(), (ulong)(Marshal.SizeOf<T>() * src.GetElements()), offset);
+            Write(src.GetData(), Marshal.SizeOf<T>() * src.GetElements(), offset);
         }
     }
     

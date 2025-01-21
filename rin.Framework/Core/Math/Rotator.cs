@@ -36,16 +36,6 @@ public partial struct Rotator(float inYaw, float inPitch, float inRoll)
     
     public static explicit operator Rotator(Quat quat)
     {
-        // var rotator = new Rotator()
-        // {
-        //     Yaw = (float)System.Math.Atan2(2.0f * (quat.W * quat.Z + quat.X * quat.Y),1.0f - 2.0f * (quat.X * quat.X + quat.Y * quat.Y)),
-        //     Pitch = (float)System.Math.Asin(2.0f * (quat.W * quat.Y - quat.X * quat.Z)),
-        //     Roll = (float)System.Math.Atan2(2.0f * (quat.W * quat.Z + quat.X * quat.Z),1.0f - 2.0f * (quat.Y * quat.Y + quat.Z * quat.Z))
-        // };
-        // rotator.Yaw = (float)MathUtils.RadToDeg(rotator.Yaw);
-        // rotator.Pitch = (float)MathUtils.RadToDeg(rotator.Pitch);
-        // rotator.Roll = (float)MathUtils.RadToDeg(rotator.Roll);
-        // return rotator;
         var rotator = new Rotator(0.0f);
         NativeMethods.NativeQuatToRotator(ref rotator, ref quat);
         rotator.Yaw = (float)MathUtils.RadToDeg(rotator.Yaw);

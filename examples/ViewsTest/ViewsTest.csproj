@@ -11,9 +11,9 @@
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     </PropertyGroup>
 
-    <ItemGroup>
-        <resources Include=".\resources\**" />
-        <Content Include="@(resources)">
+     <ItemGroup>
+        <assets Include=".\assets\**"/>
+        <Content Include="@(assets)">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

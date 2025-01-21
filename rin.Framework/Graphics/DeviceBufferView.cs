@@ -6,10 +6,10 @@ namespace rin.Framework.Graphics;
 public class DeviceBufferView : IDeviceBuffer, IGraphResource
 {
     private readonly IDeviceBuffer _buffer;
-    private readonly ulong _inOffset;
-    private readonly ulong _inSize;
+    private readonly int _inOffset;
+    private readonly int _inSize;
 
-    public DeviceBufferView(IDeviceBuffer buffer, ulong inOffset, ulong inSize)
+    public DeviceBufferView(IDeviceBuffer buffer, int inOffset, int inSize)
     {
         _buffer = buffer;
         _inOffset = inOffset;
@@ -17,17 +17,17 @@ public class DeviceBufferView : IDeviceBuffer, IGraphResource
         _buffer.Reserve();
     }
 
-    public ulong Offset => _inOffset;
-    public ulong Size => _inSize;
+    public int Offset => _inOffset;
+    public int Size => _inSize;
     public VkBuffer NativeBuffer => _buffer.NativeBuffer;
-    public ulong GetAddress() => _buffer.GetAddress() + Offset;
+    public ulong GetAddress() => _buffer.GetAddress() + (ulong)Offset;
 
-    public IDeviceBuffer GetView(ulong offset, ulong size)
+    public IDeviceBuffer GetView(int offset, int size)
     {
         return _buffer.GetView(Offset + offset,size);
     }
 
-    public unsafe void Write(void* src, ulong size, ulong offset = 0)
+    public unsafe void Write(void* src, int size, int offset = 0)
     {
         _buffer.Write(src,size,Offset + offset);
     }

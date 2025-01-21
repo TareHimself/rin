@@ -7,7 +7,7 @@
 //     public Vector4<float>? BorderRadius;
 //     public Color? Color;
 //     
-//     protected override void Draw(WidgetFrame frame)
+//     protected override void Draw(ViewFrame frame)
 //     {
 //         frame.Surface.SimpleRectMat.BindTo(frame);
 //         var constants = new SimpleRectPush

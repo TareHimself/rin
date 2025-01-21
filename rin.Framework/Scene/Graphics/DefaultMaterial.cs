@@ -50,28 +50,28 @@ public class DefaultMaterial : IMaterial
 
     public IShader GetDepthShader() => _depthShader;
 
-    public void Execute(SceneFrame frame, IDeviceBuffer? data, GeometryInfo[] meshes)
+    public void Execute(bool depth, SceneFrame frame, IDeviceBuffer? data, GeometryInfo[] meshes)
     {
-        var requiredMemorySize = GetRequiredMemory();
+        var requiredMemorySize = GetRequiredMemory(depth);
         
         var cmd = frame.GetCommandBuffer();
         if (data == null) throw new Exception("Missing buffer");
         if (_shader.Bind(cmd))
         {
 
-            ulong bufferOffset = 0;
+            var bufferOffset = 0;
             var push = _shader.PushConstants.First().Value;
             var set = SGraphicsModule.Get().GetTextureManager().GetDescriptorSet();
             cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _shader.GetPipelineLayout(),
                 [set]);
 
-            using var view = data.GetView(bufferOffset,requiredMemorySize * (ulong)meshes.Length);
+            using var view = data.GetView(bufferOffset,requiredMemorySize * meshes.Length);
             {
-                ulong writeOffset = 0;
+                var writeOffset = 0;
                 foreach (var item in meshes)
                 {
                     using var mem = view.GetView(writeOffset, requiredMemorySize);
-                    item.Material.WriteToBuffer(mem,item);
+                    item.Material.Write(depth, mem,item);
                     writeOffset += requiredMemorySize;
                 }
             }
@@ -84,14 +84,13 @@ public class DefaultMaterial : IMaterial
                 Projection = frame.Projection,
                 DataAddress = view.GetAddress()
             };
-            
             cmd.PushConstant(_shader.GetPipelineLayout(), push.Stages, pushData);
             vkCmdBindIndexBuffer(cmd,first.Geometry.IndexBuffer.NativeBuffer,offset,VkIndexType.VK_INDEX_TYPE_UINT32);
             vkCmdDrawIndexed(cmd,first.Surface.Count,(uint)meshes.Length,0,0,0);
         }
     }
 
-    public void WriteToBuffer(IDeviceBuffer view, GeometryInfo mesh)
+    public void Write(bool depth, IDeviceBuffer view, GeometryInfo mesh)
     {
         unsafe
         {
@@ -110,12 +109,9 @@ public class DefaultMaterial : IMaterial
         }
     }
 
-    public ulong GetRequiredMemory()
+    public unsafe int GetRequiredMemory(bool depth)
     {
-        unsafe
-        {
-            return (ulong)sizeof(PBRMaterialProperties);
-        }
+        return sizeof(PBRMaterialProperties);
     }
 
 

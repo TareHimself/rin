@@ -16,7 +16,7 @@ public struct CreateOptions()
     [MarshalAs(UnmanagedType.U1)] public bool Visible = true;
 
     /// <summary>
-    ///     Whether the windowed mode window will have window decorations such as a border, a close widget, etc.
+    ///     Whether the windowed mode window will have window decorations such as a border, a close view, etc.
     ///     An undecorated window will not be resizable by the user but will still allow the user to generate close events on
     ///     some platforms.
     /// </summary>

@@ -9,7 +9,7 @@ using TerraFX.Interop.Vulkan;
 namespace rin.Framework.Scene.Graphics;
 
 /// <summary>
-/// Collects the scene, and builds the GBuffer
+/// Collects the scene, and does a depth pre-pass
 /// </summary>
 /// <param name="camera">The perspective the scene is collected from</param>
 /// <param name="size"></param>
@@ -69,7 +69,9 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
     [PublicAPI]
     public Scene Scene  = camera.Owner?.Scene ?? throw new Exception("Camera is not in a scene");
     
-    private uint BufferId { get; set; }
+    private uint MemoryBufferId { get; set; }
+    
+    private uint DepthMemoryBufferId { get; set; }
 
     public void Configure(IGraphConfig config)
     {
@@ -87,9 +89,11 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
         Geometry = drawCommands.GeometryCommands.ToArray();
         Lights = drawCommands.Lights.ToArray();
 
-        var bufferSize = Geometry.Aggregate<GeometryInfo, ulong>(0, (current, geometryDrawCommand) => current + geometryDrawCommand.Material.GetRequiredMemory());
+        var bufferSize = Geometry.Aggregate(0, (current, geometryDrawCommand) => current + geometryDrawCommand.Material.GetRequiredMemory(false));
+        var depthBufferSize = Geometry.Aggregate(0, (current, geometryDrawCommand) => current + geometryDrawCommand.Material.GetRequiredMemory(true));
         
-        BufferId = bufferSize > 0 ? config.AllocateBuffer(bufferSize) : 0;
+        MemoryBufferId = bufferSize > 0 ? config.AllocateBuffer(bufferSize) : 0;
+        DepthMemoryBufferId = depthBufferSize > 0 ? config.AllocateBuffer(depthBufferSize) : 0;
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, VkCommandBuffer cmd)
@@ -157,8 +161,8 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
                 }
             ]);
         var sceneFrame = new SceneFrame(frame,View,Projection);
-        var buffer = BufferId > 0 ? graph.GetResource(BufferId).AsMemory() : null;
-        ulong offset = 0;
+        var buffer = MemoryBufferId > 0 ? graph.GetResource(MemoryBufferId).AsMemory() : null;
+        var offset = 0;
         foreach (var geometryInfos in Geometry.GroupBy(c => new
                  {
                      Type = c.Material.GetType(),
@@ -168,10 +172,11 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
                  }))
         {
             var infos = geometryInfos.ToArray();
-            var size = infos.Aggregate<GeometryInfo, ulong>(0, (current, geometryDrawCommand) => current + geometryDrawCommand.Material.GetRequiredMemory());
+            var first = infos.First();
+            var size = first.Material.GetRequiredMemory(false) * infos.Length;
             using var view = buffer?.GetView(offset, size);
             offset += size;
-            infos.First().Material.Execute(sceneFrame,view,infos);
+            first.Material.Execute(false, sceneFrame,view,infos);
         }
 
         cmd.EndRendering();

@@ -69,7 +69,7 @@ public class TextureManager : ITextureManager
 
     public async Task LoadDefaultTexture()
     {
-        var defaultTexturePath = Path.Join(SRuntime.FrameworkResourcesDirectory, "textures", "default.png");
+        var defaultTexturePath = Path.Join(SRuntime.FrameworkAssetsDirectory, "textures", "default.png");
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(defaultTexturePath);
         using var buffer = imgData.ToBuffer();
         var tex = _textures[0];

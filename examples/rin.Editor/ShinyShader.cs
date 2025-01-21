@@ -1,7 +1,7 @@
 ﻿using rin.Runtime.Core;
 using rin.Graphics;
 using rin.Graphics.Material;
-using rin.Runtime.Widgets;
+using rin.Runtime.Views;
 using rin.Runtime.Views.Graphics;
 
 namespace rin.Editor;
@@ -14,7 +14,7 @@ public class ShinyShader : View
     {
         var gs = SRuntime.Get().GetModule<SGraphicsModule>();
 
-       // _materialInstance = SWidgetsModule.CreateMaterial(Path.Join(SRuntime.ShadersDir,"pretty.ash"));
+       // _materialInstance = SViewsModule.CreateMaterial(Path.Join(SRuntime.ShadersDir,"pretty.ash"));
     }   
 
     protected override void OnDispose(bool isManual)
@@ -40,7 +40,7 @@ public class ShinyShader : View
         return new Vector2<float>(400, 400);
     }
 
-    public override void Collect(WidgetFrame frame, TransformInfo info)
+    public override void Collect(ViewFrame frame, TransformInfo info)
     {
         frame.AddMaterialRect(_materialInstance, info);
     }

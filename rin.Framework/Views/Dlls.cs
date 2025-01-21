@@ -2,5 +2,5 @@
 
 public abstract class Dlls
 {
-    public const string AeroxWidgetsNative = "rin.WidgetsN";
+    public const string AeroxViewsNative = "rin.ViewsN";
 }

@@ -7,10 +7,10 @@ namespace rin.Framework.Core;
 public sealed class SRuntime : Disposable
 {
     public static readonly string
-        ResourcesDirectory = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "","resources");
+        AssetsDirectory = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "","assets");
     
     public static readonly string
-        FrameworkResourcesDirectory = Path.Join(ResourcesDirectory,"rin");
+        FrameworkAssetsDirectory = Path.Join(AssetsDirectory,"rin");
 
     public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
     

@@ -52,7 +52,7 @@ internal class DisplaySceneCommand(CollectScenePass pass,ViewportChannel channel
 
     public override bool WillDraw => true;
 
-    public override ulong MemoryNeeded => (ulong)(Marshal.SizeOf<RenderData>() + Marshal.SizeOf<LightInfo>() * pass.Lights.Length);
+    public override int MemoryNeeded => Marshal.SizeOf<RenderData>() + Marshal.SizeOf<LightInfo>() * pass.Lights.Length;
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null)
     {
@@ -103,7 +103,7 @@ internal class DisplaySceneCommand(CollectScenePass pass,ViewportChannel channel
                 NumLights = pass.Lights.Length
             });
 
-            using var lightsBuffer = buffer.GetView((ulong)Marshal.SizeOf<RenderData>(),(ulong)(Marshal.SizeOf<LightInfo>() * pass.Lights.Length));
+            using var lightsBuffer = buffer.GetView(Marshal.SizeOf<RenderData>(),Marshal.SizeOf<LightInfo>() * pass.Lights.Length);
             
             lightsBuffer.Write(pass.Lights);
             

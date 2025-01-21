@@ -79,7 +79,7 @@ public class SSceneTestModule : IModule
             var scene = SSceneModule.Get().CreateScene();
             scene.Start();
 
-            // Extensions.LoadStaticMesh(@"F:\rin\examples\SceneTest\real_plane.glb").After(mesh =>
+            // Extensions.LoadStaticMesh(Path.Join(SRuntime.ResourcesDirectory,"models","real_plane.glb")).After(mesh =>
             // {
             //     var planeActor = new Actor()
             //     {
@@ -110,7 +110,7 @@ public class SSceneTestModule : IModule
             comp.SetRelativeLocation(location);
             var lookAtRotation = Rotator.LookAt(location,new Vec3<float>(0.0f,50.0f,0.0f), Vec3<float>.Up);
             comp.SetRelativeRotation(lookAtRotation);
-            Extensions.LoadStaticMesh(@"F:\rin\examples\SceneTest\real_cube.glb").After(mesh =>
+            Extensions.LoadStaticMesh(Path.Join(SRuntime.AssetsDirectory,"models","real_cube.glb")).After(mesh =>
             {
                 
                 // scene.AddPointLight(new Vec3<float>(0.0f, 20.0f, 0.0f));
@@ -147,7 +147,12 @@ public class SSceneTestModule : IModule
                 };
                 var box = new BoxCollisionComponent()
                 {
-                    Location = new Vec3<float>(0.0f, 60.0f, 0.0f)
+                    Location = new Vec3<float>(0.0f, 100.0f, 0.0f),
+                };
+
+                box.OnHit += (_) =>
+                {
+                    Console.WriteLine("Box hit something");
                 };
                 
                 var e3 = new Actor()

@@ -15,7 +15,7 @@ public abstract class CustomCommand : Command
     /// <returns></returns>
     public virtual bool WillDraw => false;
 
-    public virtual ulong MemoryNeeded => 0;
+    public virtual int MemoryNeeded => 0;
     
     public virtual bool CombineWith(CustomCommand other) => false;
 }

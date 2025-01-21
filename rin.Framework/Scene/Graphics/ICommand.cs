@@ -1,6 +1,6 @@
 ﻿namespace rin.Framework.Scene.Graphics;
 
-public interface ICommand
+public interface  ICommand
 {
     
 }

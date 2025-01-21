@@ -1,10 +1,13 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using BepuPhysics;
 using BepuPhysics.Collidables;
 using BepuPhysics.CollisionDetection;
 using BepuPhysics.Constraints;
+using BepuPhysics.Trees;
 using BepuUtilities;
 using BepuUtilities.Memory;
+using JetBrains.Annotations;
 using rin.Framework.Core.Math;
 using rin.Framework.Scene.Components;
 
@@ -12,15 +15,23 @@ namespace rin.Framework.Scene.Physics.Bepu;
 
 public class BepuPhysics : IPhysicsSystem
 {
-    private BufferPool _pool = new BufferPool();
-    private readonly Dictionary<ISceneComponent, IPhysicsBody> _bodies = [];
+    private readonly BufferPool _pool = new BufferPool();
+    private readonly Dictionary<IPhysicsComponent, BepuBody> _bodies = [];
+    private readonly Dictionary<StaticHandle, BepuBody> _staticBodies = [];
+    private readonly Dictionary<BodyHandle, BepuBody> _dynamicBodies = [];
+    
     public Simulation Simulation { get; set; }
+    
+    [PublicAPI]
     public int VelocityIterationCount { get; private set; } = 8;
-    public int SubstepCount { get; private set; } = 1;
+    
+    [PublicAPI]
+    public int SubstepCount { get; private set; } = 8;
 
+    [PublicAPI]
     public AngularIntegrationMode AngularIntegrationMode { get; set; } = AngularIntegrationMode.ConserveMomentum;
+    [PublicAPI]
     public bool AllowSubstepsForUnconstrainedBodies { get; set; } = true;
-    public bool IntegrateVelocityForKinematics { get; set; } = true;
 
     struct NarrowPhaseCallbacks(BepuPhysics system) : INarrowPhaseCallbacks
     {
@@ -42,7 +53,21 @@ public class BepuPhysics : IPhysicsSystem
         public bool ConfigureContactManifold<TManifold>(int workerIndex, CollidablePair pair, ref TManifold manifold,
             out PairMaterialProperties pairMaterial) where TManifold : unmanaged, IContactManifold<TManifold>
         {
-            pairMaterial = new PairMaterialProperties { FrictionCoefficient = 1, MaximumRecoveryVelocity = 2,SpringSettings = new SpringSettings(30, 1) };
+            pairMaterial = new PairMaterialProperties { FrictionCoefficient = 1, MaximumRecoveryVelocity = 2,SpringSettings = new SpringSettings(1, 1) };
+            // var a = system.GetBodyFromCollidable(pair.A);
+            // var b = system.GetBodyFromCollidable(pair.B);
+            // for (var i = 0; i < manifold.Count; i++)
+            // {
+            //     if (a.IsSimulating)
+            //     {
+            //     
+            //         var hit = new RayCastResult()
+            //         {
+            //             Location = manifold.get
+            //         }
+            //         a.ProcessHit();
+            //     }
+            // }
             
            return true;
         }
@@ -61,9 +86,9 @@ public class BepuPhysics : IPhysicsSystem
 
     struct PoseIntegratorCallbacks(BepuPhysics system) : IPoseIntegratorCallbacks
     {
-        Vector3Wide _gravityWideDt;
-        Vector<float> _linearDampingDt;
-        Vector<float> _angularDampingDt;
+        private Vector3Wide _gravityWideDt;
+        private Vector<float> _linearDampingDt;
+        private Vector<float> _angularDampingDt;
         
         public void Initialize(Simulation simulation)
         {
@@ -85,7 +110,7 @@ public class BepuPhysics : IPhysicsSystem
 
         public AngularIntegrationMode AngularIntegrationMode => system.AngularIntegrationMode;
         public bool AllowSubstepsForUnconstrainedBodies => system.AllowSubstepsForUnconstrainedBodies;
-        public bool IntegrateVelocityForKinematics => system.IntegrateVelocityForKinematics;
+        public bool IntegrateVelocityForKinematics => false;
     }
     
     public BepuPhysics()
@@ -104,23 +129,39 @@ public class BepuPhysics : IPhysicsSystem
 
     public Vec3<float> Gravity { get; set; } = new Vec3<float>(0.0f, -0.4f, 0.0f);
 
-    public float LinearDamping = 0.03f;
-    public float AngularDamping = 0.03f;
+    [PublicAPI]
+    public float LinearDamping { get; set; } = 0.03f;
+    
+    [PublicAPI]
+    public float AngularDamping { get; set; } = 0.03f;
 
-    public IPhysicsBox CreateBox(ISceneComponent owner, Vec3<float> size)
+    public IPhysicsBox CreateBox(IPhysicsComponent owner, Vec3<float> size)
     {
-        var body = new BepuBox(this, size, owner);
+        var body = new BepuBox(this,owner,size);
+        body.Init();
         lock (_bodies)
         {
             _bodies.Add(owner,body);
         }
-
         return body;
     }
 
-    public IPhysicsSphere CreateSphere(ISceneComponent owner,float radius)
+    public IPhysicsSphere CreateSphere(IPhysicsComponent owner,float radius)
     {
-        var body = new BepuSphere(this,radius, owner);
+        var body = new BepuSphere(this, owner,radius);
+        body.Init();
+        lock (_bodies)
+        {
+            _bodies.Add(owner,body);
+        }
+        
+        return body;
+    }
+
+    public IPhysicsCapsule CreateCapsule(IPhysicsComponent owner, float radius, float halfHeight)
+    {
+        var body = new BepuCapsule(this, owner,radius,halfHeight);
+        body.Init();
         lock (_bodies)
         {
             _bodies.Add(owner,body);
@@ -134,10 +175,10 @@ public class BepuPhysics : IPhysicsSystem
         lock (Simulation)
         {
             Simulation.Timestep((float)deltaTime);
-            KeyValuePair<ISceneComponent,IPhysicsBody>[] bodies = [];
+            KeyValuePair<IPhysicsComponent,BepuBody>[] bodies;
             lock (_bodies)
             {
-                bodies = _bodies.Where(kv => kv.Value.IsSimulating).ToArray();
+                bodies = _bodies.Where(kv => kv.Value is { IsValid: true, IsSimulating: true }).ToArray();
             }
             foreach (var (comp, body ) in bodies)
             {
@@ -149,6 +190,80 @@ public class BepuPhysics : IPhysicsSystem
 
     public void Start()
     {
-        Simulation.Statics.Add(new StaticDescription(new Vector3(0, -100, 0), Simulation.Shapes.Add(new Box(200, 30, 200))));
+        Simulation.Statics.Add(new StaticDescription(new Vector3(0, -30, 0), Simulation.Shapes.Add(new Box(200, 30, 200))));
+    }
+
+    public StaticHandle AddStatic(BepuBody body, StaticDescription description)
+    {
+        var handle = Simulation.Statics.Add(description);
+        _staticBodies.Add(handle,body);
+        return handle;
+    }
+
+    public BodyHandle AddDynamic(BepuBody body, BodyDescription description)
+    {
+        var handle = Simulation.Bodies.Add(description);
+        _dynamicBodies.Add(handle,body);
+        return handle;
+    }
+
+    public void RemoveStatic(BepuBody body, StaticHandle handle)
+    {
+        _staticBodies.Remove(handle);
+        Simulation.Statics.Remove(handle);
+    }
+
+    public void RemoveDynamic(BepuBody body, BodyHandle handle)
+    {
+        _dynamicBodies.Remove(handle);
+        Simulation.Bodies.Remove(handle);
+    }
+
+    public BepuBody GetBodyFromCollidable(CollidableReference reference)
+    {
+        if (Simulation.Statics[reference.StaticHandle].Exists)
+        {
+            return _staticBodies[reference.StaticHandle];
+        }
+        
+        if (Simulation.Bodies[reference.BodyHandle].Exists)
+        {
+            return _dynamicBodies[reference.BodyHandle];
+        }
+        
+        throw new KeyNotFoundException($"The body {reference.StaticHandle} does not exist.");
+    }
+
+    class RayHitHandler(BepuPhysics physics,int channel) : IRayHitHandler
+    {
+        public RayCastResult? Result { get; set; }
+        public bool AllowTest(CollidableReference collidable)
+        {
+            return physics.GetBodyFromCollidable(collidable).CollisionChannel == channel;
+        }
+
+        public bool AllowTest(CollidableReference collidable, int childIndex)
+        {
+            return AllowTest(collidable);
+        }
+
+        public void OnRayHit(in RayData ray, ref float maximumT, float t, in Vector3 normal, CollidableReference collidable,
+            int childIndex)
+        {
+            Result = new RayCastResult
+            {
+                Location = (ray.Origin + (ray.Direction * t)).ToRinVector(),
+                Distance = t,
+                Normal = normal.ToRinVector(),
+                Component = physics.GetBodyFromCollidable(collidable).Owner,
+            };
+        }
+    }
+
+    public RayCastResult? RayCast(Vec3<float> begin, Vec3<float> direction, float distance, int channel)
+    {
+        var hitHandler = new RayHitHandler(this,channel);
+        Simulation.RayCast(begin.ToVector3(),direction.ToVector3(),distance,ref hitHandler,channel);
+        return hitHandler.Result;
     }
 }

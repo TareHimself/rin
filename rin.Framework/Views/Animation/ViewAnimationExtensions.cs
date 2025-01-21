@@ -4,7 +4,7 @@ using rin.Framework.Views.Composite;
 
 namespace rin.Framework.Views.Animation;
 
-public static class WidgetAnimationExtensions
+public static class ViewAnimationExtensions
 {
     public static AnimationSequence<T> RotateTo<T>(this T target, float to, double duration = 0.2f, float? from = null,
         Func<double, double>? easingFunction = null) where T : View => target.Transition(

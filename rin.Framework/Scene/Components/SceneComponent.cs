@@ -17,7 +17,8 @@ public class SceneComponent : Component, ISceneComponent
     public Rotator Rotation = new (0.0f);
     [PublicAPI]
     public Vec3<float> Scale = new (1.0f);
-
+    [PublicAPI]
+    public bool Visible { get; set; } = true;
     [PublicAPI]
     public ISceneComponent? TransformParent => _transformParent;
 
@@ -221,14 +222,22 @@ public class SceneComponent : Component, ISceneComponent
         
         SetRelativeTransform(worldTransform);
     }
+
+    
     
     public virtual void Collect(DrawCommands drawCommands, Mat4 parentTransform)
     {
-        var myTransform = parentTransform * GetRelativeTransform();
-        
+        var relativeTransform = (Mat4)GetRelativeTransform();
+        var myTransform = parentTransform * relativeTransform;
+        if(Visible) CollectSelf(drawCommands, myTransform);
         foreach (var attachedComponent in GetAttachedComponents())
         {
             attachedComponent.Collect(drawCommands, myTransform);
         }
+    }
+    
+    protected virtual void CollectSelf(DrawCommands drawCommands, Mat4 transform)
+    {
+        
     }
 }

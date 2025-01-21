@@ -60,14 +60,14 @@ public partial class Allocator : Disposable
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" />
     /// </summary>
-    public IDeviceBuffer NewBuffer(ulong size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags propertyFlags,
+    public IDeviceBuffer NewBuffer(int size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags propertyFlags,
         bool sequentialWrite = true, bool preferHost = false, bool mapped = false, string debugName = "Buffer")
     {
         unsafe
         {
             VkBuffer buffer = new();
             void* allocation;
-            NativeMethods.AllocateBuffer(&buffer, &allocation, size, _allocator, sequentialWrite ? 1 : 0,
+            NativeMethods.AllocateBuffer(&buffer, &allocation, (ulong)size, _allocator, sequentialWrite ? 1 : 0,
                 preferHost ? 1 : 0,
                 (int)usageFlags, (int)propertyFlags, mapped ? 1 : 0, debugName);
             var result = new DeviceBuffer(buffer, size, this, (IntPtr)allocation, debugName);

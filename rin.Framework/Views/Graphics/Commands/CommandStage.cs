@@ -1,7 +1,7 @@
 ﻿namespace rin.Framework.Views.Graphics.Commands;
 
 /// <summary>
-/// Controls when a custom widget draw command will be executed
+/// Controls when a custom view draw command will be executed
 /// </summary>
 public enum CommandStage
 {

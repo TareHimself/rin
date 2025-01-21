@@ -11,13 +11,13 @@ public class CompiledGraph : ICompiledGraph
     private readonly Dictionary<uint, IResourceDescriptor> _descriptors;
     private readonly ICompiledGraphNode[] _nodes;
     private readonly IDeviceBuffer? _buffer = null;
-    private ulong _bufferOffset = 0;
+    private int _bufferOffset = 0;
     private readonly Frame _frame;
     public CompiledGraph(IImagePool imagePool,Frame frame,Dictionary<uint, IResourceDescriptor> descriptors, ICompiledGraphNode[] nodes)
     {
         _imagePool = imagePool;
         _frame = frame;
-        var memoryNeeded = descriptors.Values.Aggregate((ulong)0, (total, descriptor) =>
+        var memoryNeeded = descriptors.Values.Aggregate(0, (total, descriptor) =>
         {
             if (descriptor is MemoryResourceDescriptor asMemoryDescriptor)
             {
@@ -85,6 +85,7 @@ public class CompiledGraph : ICompiledGraph
 
         var cmd = frame.GetCommandBuffer();
 
+        cmd.UnBindShader(VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT);
         // OPTIMIZE THIS LATER
         while (pending.NotEmpty())
         {

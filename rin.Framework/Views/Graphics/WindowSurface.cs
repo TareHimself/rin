@@ -4,22 +4,10 @@ using rin.Framework.Graphics.Windows;
 using rin.Framework.Graphics.Windows.Events;
 using rin.Framework.Views.Events;
 using TerraFX.Interop.Vulkan;
-using CharacterEvent = rin.Framework.Views.Events.CharacterEvent;
-using CursorMoveEvent = rin.Framework.Views.Events.CursorMoveEvent;
-using Events_CharacterEvent = rin.Framework.Views.Events.CharacterEvent;
-using Events_CursorMoveEvent = rin.Framework.Views.Events.CursorMoveEvent;
-using Events_ResizeEvent = rin.Framework.Views.Events.ResizeEvent;
-using Events_ScrollEvent = rin.Framework.Views.Events.ScrollEvent;
-using ResizeEvent = rin.Framework.Views.Events.ResizeEvent;
-using ScrollEvent = rin.Framework.Views.Events.ScrollEvent;
 using Views_Events_CharacterEvent = rin.Framework.Views.Events.CharacterEvent;
 using Views_Events_CursorMoveEvent = rin.Framework.Views.Events.CursorMoveEvent;
 using Views_Events_ResizeEvent = rin.Framework.Views.Events.ResizeEvent;
 using Views_Events_ScrollEvent = rin.Framework.Views.Events.ScrollEvent;
-using Widgets_Events_CharacterEvent = rin.Framework.Views.Events.CharacterEvent;
-using Widgets_Events_CursorMoveEvent = rin.Framework.Views.Events.CursorMoveEvent;
-using Widgets_Events_ResizeEvent = rin.Framework.Views.Events.ResizeEvent;
-using Widgets_Events_ScrollEvent = rin.Framework.Views.Events.ScrollEvent;
 using Windows_Events_CharacterEvent = rin.Framework.Graphics.Windows.Events.CharacterEvent;
 using Windows_Events_CursorMoveEvent = rin.Framework.Graphics.Windows.Events.CursorMoveEvent;
 using Windows_Events_ScrollEvent = rin.Framework.Graphics.Windows.Events.ScrollEvent;
@@ -27,7 +15,7 @@ using Windows_Events_ScrollEvent = rin.Framework.Graphics.Windows.Events.ScrollE
 namespace rin.Framework.Views.Graphics;
 
 /// <summary>
-///     A surface that displays widgets on a window
+///     A surface that displays views on a window
 /// </summary>
 public class WindowSurface : Surface
 {

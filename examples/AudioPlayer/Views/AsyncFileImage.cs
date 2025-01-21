@@ -41,7 +41,7 @@ public class AsyncFileImage : CoverImage
             ImageFormat.RGBA8).Then(c => TextureId = c);
     }
 
-    // public override void Draw(WidgetFrame frame, DrawInfo info)
+    // public override void Draw(ViewFrame frame, DrawInfo info)
     // {
     //     // _alpha = MathUtils.InterpolateTo(_alpha, _alphaTarget, (float)Runtime.Instance.GetLastDeltaSeconds(), 0.8f);
     //     //

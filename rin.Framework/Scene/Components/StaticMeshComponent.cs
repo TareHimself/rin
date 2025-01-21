@@ -4,7 +4,7 @@ using rin.Framework.Scene.Graphics;
 
 namespace rin.Framework.Scene.Components;
 
-public class StaticMeshComponent : RenderedComponent
+public class StaticMeshComponent : SceneComponent
 {
     public IStaticMesh? Mesh { get; set; }
     public IMaterial?[] Materials = [];
