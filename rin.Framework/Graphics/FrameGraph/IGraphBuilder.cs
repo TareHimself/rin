@@ -10,6 +10,6 @@ public interface IGraphBuilder
     /// <param name="pass"></param>
     /// <returns></returns>
     public uint AddPass(IPass pass);
-    public ICompiledGraph? Compile(IImagePool imagePool,Frame frame);
+    public ICompiledGraph? Compile(IResourcePool resourcePool,Frame frame);
     public void Reset();
 }

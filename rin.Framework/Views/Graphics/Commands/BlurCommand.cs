@@ -59,7 +59,7 @@ public class BlurCommand(Mat3 transform, Vec2<float> size,float sigma, Vec4<floa
     //     frame.Raw.ConfigureForViews(size.Cast<uint>());
     // }
 
-    public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null)
+    public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {
         frame.BeginMainPass();
         var cmd = frame.Raw.GetCommandBuffer();
@@ -70,7 +70,7 @@ public class BlurCommand(Mat3 transform, Vec2<float> size,float sigma, Vec4<floa
             var descriptorSet = frame.Raw.GetDescriptorAllocator()
                 .Allocate(_blurShader.GetDescriptorSetLayouts()[resource.Set]);
             descriptorSet.WriteImages(resource.Binding, new ImageWrite(copyImage,
-                ImageLayout.ShaderReadOnly, ImageType.Texture, new SamplerSpec()
+                ImageLayout.ShaderReadOnly, ImageType.Sampled, new SamplerSpec()
                 {
                     Filter = ImageFilter.Linear,
                     Tiling = ImageTiling.ClampBorder

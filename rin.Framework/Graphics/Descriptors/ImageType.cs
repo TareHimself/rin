@@ -2,6 +2,6 @@
 
 public enum ImageType
 {
-    Texture,
+    Sampled,
     Storage
 }

@@ -507,7 +507,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for transfers/staging
     /// </summary>
-    public IDeviceBuffer NewTransferBuffer(int size, bool sequentialWrite = true,
+    public IDeviceBuffer NewTransferBuffer(ulong size, bool sequentialWrite = true,
         string debugName = "Transfer Buffer")
     {
         return GetAllocator().NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -519,15 +519,16 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for transfers/staging
     /// </summary>
-    public IDeviceBuffer NewStorageBuffer<T>(bool sequentialWrite = true, string debugName = "storageBuffer")
+    public IDeviceBuffer NewStorageBuffer<T>(bool sequentialWrite = true, string debugName = "storageBuffer") where T : unmanaged
     {
-        return NewStorageBuffer(Marshal.SizeOf<T>(), sequentialWrite, debugName);
+        
+        return NewStorageBuffer(Core.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
     }
     
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
     /// </summary>
-    public IDeviceBuffer NewStorageBuffer(int size, bool sequentialWrite = true,
+    public IDeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true,
         string debugName = "Storage Buffer")
     {
         return GetAllocator().NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -537,7 +538,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
     /// </summary>
-    public IDeviceBuffer NewUniformBuffer(int size, bool sequentialWrite = true,
+    public IDeviceBuffer NewUniformBuffer(ulong size, bool sequentialWrite = true,
         string debugName = "Uniform Buffer")
     {
         return GetAllocator().NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -547,9 +548,9 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
     /// </summary>
-    public IDeviceBuffer NewUniformBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer")
+    public IDeviceBuffer NewUniformBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer") where T : unmanaged
     {
-        return NewUniformBuffer(Marshal.SizeOf<T>(), sequentialWrite, debugName);
+        return NewUniformBuffer(Core.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
     }
 
     public IDeviceImage CreateImage(VkExtent3D size, ImageFormat format, VkImageUsageFlags usage, bool mipMap = false,
@@ -810,7 +811,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
         var dataSize = size.depth * size.width * size.height * 4;
 
-        var uploadBuffer = NewTransferBuffer((int)dataSize);
+        var uploadBuffer = NewTransferBuffer(dataSize);
         uploadBuffer.Write(content);
 
         var newImage = CreateImage(size, format,

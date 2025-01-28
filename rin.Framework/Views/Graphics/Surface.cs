@@ -49,7 +49,7 @@ public abstract class Surface : Disposable
         _rootView.Dispose();
     }
 
-    protected virtual void ClearFocus()
+    public virtual void ClearFocus()
     {
         FocusedView?.OnFocusLost();
         FocusedView = null;
@@ -60,7 +60,7 @@ public abstract class Surface : Disposable
         if (FocusedView == requester) return true;
         if (!requester.IsFocusable || !requester.IsHitTestable) return false;
 
-        ClearFocus();
+        if(FocusedView is not null) ClearFocus();
         FocusedView = requester;
         requester.OnFocus();
         return true;
@@ -251,7 +251,7 @@ public abstract class Surface : Disposable
 
     private PassInfo? ComputePassInfo()
     {
-        var rawDrawCommands = new DrawCommands();
+        var rawDrawCommands = new PassCommands();
         _rootView.Collect(Mat3.Identity, new Rect()
         {
             Size = GetDrawSize().Cast<float>()
@@ -267,8 +267,6 @@ public abstract class Surface : Disposable
 
         var result = new PassInfo()
         {
-            GraphBuilders = rawDrawCommands.Builders.ToList(),
-            GraphConfigs = rawDrawCommands.Configs.ToList(),
         };
 
         if (clips.Count == 0)
@@ -360,12 +358,6 @@ public abstract class Surface : Disposable
         if (ComputePassInfo() is { } passInfo)
         {
             var builder = frame.GetBuilder();
-
-            foreach (var passInfoGraphBuilder in passInfo.GraphBuilders)
-            {
-                passInfoGraphBuilder(builder);
-            }
-
             builder.AddPass(new ViewsPass(this, passInfo));
         }
     }
@@ -378,7 +370,7 @@ public abstract class Surface : Disposable
             _lastCursorDownEvent = e;
         }
 
-        ClearFocus();
+        //ClearFocus();
     }
 
     public virtual void ReceiveCursorUp(CursorUpEvent e)

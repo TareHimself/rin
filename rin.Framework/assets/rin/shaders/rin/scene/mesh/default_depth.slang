@@ -4,7 +4,7 @@ import rin.scene.mesh.mesh_depth;
 
 struct PerMeshData {
     float4x4 transform;
-    Vertex *vertices;
+    StructuredBuffer<Vertex,ScalarDataLayout> vertices;
 };
 
 struct PushConstants {

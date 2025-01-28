@@ -13,7 +13,7 @@ public static class Extensions
         ? asImage
         : throw new Exception("Resource is not image");
     
-    public static IDeviceBuffer AsMemory(this IGraphResource resource) => resource is IDeviceBuffer asMemory
+    public static IDeviceBuffer AsBuffer(this IGraphResource resource) => resource is IDeviceBuffer asMemory
         ? asMemory
         : throw new Exception("Resource is not memory");
 }

@@ -13,7 +13,7 @@ public class DirectionalLightComponent : LightComponent
         {
             Color = Color,
             Direction = sceneTransform.Rotation.GetForwardVector(),
-            Intensity = Radiance,
+            Radiance = Radiance,
             LightType = LightType.Directional,
             Location = sceneTransform.Location,
         });

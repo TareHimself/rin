@@ -26,29 +26,14 @@ public struct PendingCommand(Command drawCommand, uint clipId)
     public readonly uint ClipId = clipId;
 }
 
-public class DrawCommands
+public class PassCommands
 {
     private readonly Stack<uint> _clipStack = [];
     private string _clipId = "";
     private int _depth = 0;
     //private readonly SortedDictionary<int, List<RawCommand>> _commands = new SortedDictionary<int, List<RawCommand>>(Comparer<int>.Create((a,b) => b.CompareTo(a)));
     private readonly List<RawCommand> _commands = [];
-    private readonly List<Action<IGraphBuilder>> _builders = [];
-    private readonly List<Action<IPass,IGraphConfig>> _configs = [];
-
-    public DrawCommands AddConfigure(Action<IPass,IGraphConfig> config)
-    {
-        _configs.Add(config);
-        return this;
-    }
-
-    public DrawCommands AddBuilder(Action<IGraphBuilder> builder)
-    {
-        _builders.Add(builder);
-        return this;
-    }
-    
-    public DrawCommands Add(Command command)
+    public PassCommands Add(Command command)
     {
         var info = new RawCommand(command, command is CustomCommand asCustom ? !asCustom.WillDraw ? "" : _clipId : _clipId)
         {
@@ -71,7 +56,7 @@ public class DrawCommands
     }
     
     
-    public DrawCommands PushClip(Mat3 transform, Vec2<float> size)
+    public PassCommands PushClip(Mat3 transform, Vec2<float> size)
     {
         var id = (uint)Clips.Count;
         var clipInfo = new ClipInfo(id, transform, size);
@@ -81,7 +66,7 @@ public class DrawCommands
         return this;
     }
 
-    public DrawCommands PopClip()
+    public PassCommands PopClip()
     {
         var asStr = _clipStack.Peek().ToString();
         _clipStack.Pop();
@@ -90,13 +75,13 @@ public class DrawCommands
     }
 
 
-    public DrawCommands IncrDepth()
+    public PassCommands IncrDepth()
     {
         _depth++;
         return this;
     }
     
-    public DrawCommands DecrDepth()
+    public PassCommands DecrDepth()
     {
         _depth--;
         return this;
@@ -104,8 +89,6 @@ public class DrawCommands
 
     //public IEnumerable<RawCommand> Commands => _commands.Keys.SelectMany(commandsKey => _commands[commandsKey].AsReversed());
     public IEnumerable<RawCommand> Commands => _commands;
-    public IEnumerable<Action<IPass,IGraphConfig>> Configs => _configs;
-    public IEnumerable<Action<IGraphBuilder>> Builders => _builders;
     public List<ClipInfo> Clips { get; } = [];
 
     public Dictionary<string, uint[]> UniqueClipStacks { get; } = [];

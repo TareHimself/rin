@@ -1,10 +1,12 @@
-﻿using JetBrains.Annotations;
+﻿using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.FrameGraph;
 using rin.Framework.Scene.Components;
 using TerraFX.Interop.Vulkan;
+using Utils = rin.Framework.Core.Utils;
 
 namespace rin.Framework.Scene.Graphics;
 
@@ -15,128 +17,96 @@ namespace rin.Framework.Scene.Graphics;
 /// <param name="size"></param>
 public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
 {
-    
-    /// <summary>
-    /// Color(RGB), Roughness(A) Image Id
-    /// </summary>
-    [PublicAPI]
-    public uint ColorRoughnessId { get; private set; }
-    /// <summary>
-    /// Location(RGB), Metallic(A) Image Id
-    /// </summary>
-    [PublicAPI]
-    public uint LocationMetallicId { get; private set; }
-    /// <summary>
-    /// Normal(RGB), Specular(A) Image ID
-    /// </summary>
-    [PublicAPI]
-    public uint NormalSpecularId { get; private set; }
-    
     /// <summary>
     /// Depth Image ID
     /// </summary>
     [PublicAPI]
     public uint DepthImageId { get; private set; }
-    
-    [PublicAPI]
-    public IDeviceImage? ColorRoughnessImage { get; set; }
-    [PublicAPI]
-    public IDeviceImage? LocationMetallicImage { get; set; }
-    [PublicAPI]
-    public IDeviceImage? NormalSpecularImage { get; set; }
-    [PublicAPI]
-    public IDeviceImage? DepthImage { get; set; }
 
-    [PublicAPI] public Mat4 View { get; set; } = camera.GetSceneTransform().Mutate(c =>
+    [PublicAPI] public IDeviceImage? DepthImage { get; set; }
+
+    [PublicAPI]
+    public Mat4 View { get; set; } = camera.GetSceneTransform().Mutate(c =>
     {
         c.Scale = new Vec3<float>(1.0f);
         return ((Mat4)c).Inverse();
     });
+
     [PublicAPI]
-    public Mat4 Projection { get; } = Glm.Perspective(camera.FieldOfView, (float)size.X / (float)size.Y,camera.NearClipPlane,camera.FarClipPlane);
-    [PublicAPI]
-    public float FieldOfView { get; set; } = camera.FieldOfView;
-    [PublicAPI]
-    public float NearClip { get; set; } = camera.NearClipPlane;
-    [PublicAPI]
-    public float FarClip { get; set; } = camera.FarClipPlane;
-    [PublicAPI]
-    public Vec2<uint> Size { get; set; } = size;
-    [PublicAPI]
-    public GeometryInfo[] Geometry = [];
-    [PublicAPI]
-    public LightInfo[] Lights = [];
-    [PublicAPI]
-    public Scene Scene  = camera.Owner?.Scene ?? throw new Exception("Camera is not in a scene");
+    public Mat4 Projection { get; } = Glm.Perspective(camera.FieldOfView, (float)size.X / (float)size.Y,
+        camera.NearClipPlane, camera.FarClipPlane);
+
+    [PublicAPI] public float FieldOfView { get; set; } = camera.FieldOfView;
+    [PublicAPI] public float NearClip { get; set; } = camera.NearClipPlane;
+    [PublicAPI] public float FarClip { get; set; } = camera.FarClipPlane;
+    [PublicAPI] public Vec2<uint> Size { get; set; } = size;
+    [PublicAPI] public GeometryInfo[] Geometry = [];
+    [PublicAPI] public GeometryInfo[] OpaqueGeometry = [];
+    [PublicAPI] public GeometryInfo[] TranslucentGeometry = [];
+    [PublicAPI] public LightInfo[] Lights = [];
+    [PublicAPI] public Scene Scene = camera.Owner?.Scene ?? throw new Exception("Camera is not in a scene");
     
-    private uint MemoryBufferId { get; set; }
     
-    private uint DepthMemoryBufferId { get; set; }
+    private uint DepthSceneBufferId { get; set; }
+    private uint DepthMaterialBufferId { get; set; }
+
+    public void BeforeAdd(IGraphBuilder builder)
+    {
+    }
 
     public void Configure(IGraphConfig config)
     {
-        ColorRoughnessId = config.CreateImage(Size.X, Size.Y,ImageFormat.RGBA32);
-        LocationMetallicId = config.CreateImage(Size.X, Size.Y,ImageFormat.RGBA32);
-        NormalSpecularId = config.CreateImage(Size.X, Size.Y,ImageFormat.RGBA32);
-        DepthImageId = config.CreateImage(Size.X, Size.Y,ImageFormat.Depth);
+        DepthImageId = config.CreateImage(Size.X, Size.Y, ImageFormat.Depth);
         var drawCommands = new rin.Framework.Scene.Graphics.DrawCommands();
 
         foreach (var root in Scene.GetPureRoots().ToArray())
         {
-            root.Collect(drawCommands,Mat4.Identity);
+            root.Collect(drawCommands, Mat4.Identity);
         }
 
         Geometry = drawCommands.GeometryCommands.ToArray();
+        OpaqueGeometry = Geometry.Where(c => !c.Material.Translucent).ToArray();
+        TranslucentGeometry = Geometry.Where(c => c.Material.Translucent).ToArray();
         Lights = drawCommands.Lights.ToArray();
 
-        var bufferSize = Geometry.Aggregate(0, (current, geometryDrawCommand) => current + geometryDrawCommand.Material.GetRequiredMemory(false));
-        var depthBufferSize = Geometry.Aggregate(0, (current, geometryDrawCommand) => current + geometryDrawCommand.Material.GetRequiredMemory(true));
+        DepthSceneBufferId = config.AllocateBuffer<DepthSceneInfo>();
+        var depthMaterialDataSize = OpaqueGeometry.Aggregate(Utils.ByteSizeOf<DepthSceneInfo>(),
+            (current, geometryDrawCommand) => current + geometryDrawCommand.Material.GetRequiredMemory(true));
         
-        MemoryBufferId = bufferSize > 0 ? config.AllocateBuffer(bufferSize) : 0;
-        DepthMemoryBufferId = depthBufferSize > 0 ? config.AllocateBuffer(depthBufferSize) : 0;
+        DepthMaterialBufferId = depthMaterialDataSize > 0 ? config.AllocateBuffer(depthMaterialDataSize) : 0;
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, VkCommandBuffer cmd)
     {
-        ColorRoughnessImage = graph.GetResource(ColorRoughnessId).AsImage();
-        LocationMetallicImage = graph.GetResource(LocationMetallicId).AsImage();
-        NormalSpecularImage = graph.GetResource(NormalSpecularId).AsImage();
-        DepthImage = graph.GetResource(DepthImageId).AsImage();
-        IDeviceImage[] colorImages = [ColorRoughnessImage,LocationMetallicImage,NormalSpecularImage];
-        foreach (var deviceImage in colorImages)
-        {
-            cmd.ImageBarrier(deviceImage, ImageLayout.Undefined, ImageLayout.General);
-        }
-        cmd.ImageBarrier(DepthImage, ImageLayout.Undefined, ImageLayout.General, new ImageBarrierOptions()
-        {
-            SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
-        });
+        var sceneDataBuffer = graph.GetBuffer(DepthSceneBufferId);
+        var materialDataBuffer = DepthMaterialBufferId > 0 ? graph.GetBuffer(DepthMaterialBufferId) : null;
+        ulong materialDataBufferOffset = 0;
 
-        cmd.ClearColorImages(0.0f, ImageLayout.General, colorImages);
-        cmd.ClearDepthImages(1.0f, ImageLayout.General, DepthImage);
-        
-        var colorAttachments = colorImages.Select(c =>
-        {
-            cmd.ImageBarrier(c, ImageLayout.General, ImageLayout.ColorAttachment);
-            return c.MakeColorAttachmentInfo(0.0f);
-        }).ToArray();
-        
-        cmd.ImageBarrier(DepthImage, ImageLayout.General, ImageLayout.DepthAttachment, new ImageBarrierOptions()
-        {
-            SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
-        });
-        
+        DepthImage = graph.GetImage(DepthImageId).AsImage();
+
+        cmd.ImageBarrier(DepthImage, ImageLayout.Undefined, ImageLayout.General, new ImageBarrierOptions()
+            {
+                SubresourceRange =
+                    SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
+            })
+            .ClearDepthImages(1.0f, ImageLayout.General, DepthImage)
+            .ImageBarrier(DepthImage, ImageLayout.General, ImageLayout.DepthAttachment, new ImageBarrierOptions()
+            {
+                SubresourceRange =
+                    SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
+            });
+
         var depthAttachment = DepthImage.MakeDepthAttachmentInfo();
-        
-        cmd.BeginRendering(Size.ToVkExtent(),colorAttachments,depthAttachment);
+
+        cmd.BeginRendering(Size.ToVkExtent(), [], depthAttachment);
         cmd
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
             .DisableStencilTest(false)
-            .SetCullMode(VkCullModeFlags.VK_CULL_MODE_NONE,VkFrontFace.VK_FRONT_FACE_CLOCKWISE)
-            .EnableDepthTest(true,VkCompareOp.VK_COMPARE_OP_LESS_OR_EQUAL)
-            .DisableBlending(0, 5)
-            .SetVertexInput([],[])
+            .SetCullMode(VkCullModeFlags.VK_CULL_MODE_NONE, VkFrontFace.VK_FRONT_FACE_CLOCKWISE)
+            .EnableDepthTest(true, VkCompareOp.VK_COMPARE_OP_LESS_OR_EQUAL)
+            //.DisableBlending(0, 0)
+            .SetVertexInput([], [])
             .SetViewports([
                 // For viewport flipping
                 new VkViewport()
@@ -160,10 +130,17 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
                     }
                 }
             ]);
-        var sceneFrame = new SceneFrame(frame,View,Projection);
-        var buffer = MemoryBufferId > 0 ? graph.GetResource(MemoryBufferId).AsMemory() : null;
-        var offset = 0;
-        foreach (var geometryInfos in Geometry.GroupBy(c => new
+        
+        var sceneFrame = new SceneFrame(frame, View, Projection,sceneDataBuffer);
+
+        sceneDataBuffer.Write(new DepthSceneInfo()
+        {
+            View = sceneFrame.View,
+            Projection = sceneFrame.Projection,
+            ViewProjection = sceneFrame.ViewProjection
+        });
+
+        foreach (var geometryInfos in OpaqueGeometry.GroupBy(c => new
                  {
                      Type = c.Material.GetType(),
                      c.Surface.StartIndex,
@@ -173,23 +150,18 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
         {
             var infos = geometryInfos.ToArray();
             var first = infos.First();
-            var size = first.Material.GetRequiredMemory(false) * infos.Length;
-            using var view = buffer?.GetView(offset, size);
-            offset += size;
-            first.Material.Execute(false, sceneFrame,view,infos);
+            var size = first.Material.GetRequiredMemory(true) * (ulong)infos.Length;
+            var view = materialDataBuffer?.GetView(materialDataBufferOffset, size);
+            materialDataBufferOffset += size;
+            first.Material.Execute(sceneFrame, view, infos, true);
         }
 
         cmd.EndRendering();
-        
-        foreach (var deviceImage in colorImages)
-        {
-            cmd.ImageBarrier(deviceImage, ImageLayout.ColorAttachment, ImageLayout.ShaderReadOnly);
-        }
     }
 
     public uint Id { get; set; }
-    public bool IsTerminal => false;
-    
+    public bool IsTerminal { get; set; } = false;
+
     public void Dispose()
     {
     }

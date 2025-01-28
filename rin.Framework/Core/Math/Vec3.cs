@@ -160,4 +160,11 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
     {
         return new Vec3<T>(data);
     }
+    
+    public void Deconstruct(out T x, out T y, out T z)
+    {
+        x = X;
+        y = Y;
+        z = Z;
+    }
 }

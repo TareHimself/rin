@@ -9,11 +9,11 @@ public class PointLightComponent : LightComponent
     public override void Collect(DrawCommands drawCommands, Mat4 parentTransform)
     {
         var loc = parentTransform * new Vec4<float>(GetRelativeLocation(), 1.0f);
-        drawCommands.AddLight(new LightInfo()
+        drawCommands.AddLight(new LightInfo
         {
             Color = Color,
             Direction = new Vec3<float>(0.0f),
-            Intensity = Radiance,
+            Radiance = Radiance,
             LightType = LightType.Point,
             Location = new Vec3<float>(loc.X, loc.Y, loc.Z),
         });

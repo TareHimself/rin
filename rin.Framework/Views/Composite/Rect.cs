@@ -37,11 +37,11 @@ public class Rect : SingleSlotCompositeView
     }
     
 
-    protected virtual void CollectSelf(Mat3 transform, DrawCommands drawCommands)
+    protected virtual void CollectSelf(Mat3 transform, PassCommands passCommands)
     {
         if (BackgroundColor.A > 0.0f)
         {
-            drawCommands.AddRect(transform,Size, color: BackgroundColor, borderRadius: BorderRadius);
+            passCommands.AddRect(transform,Size, color: BackgroundColor, borderRadius: BorderRadius);
         }
     }
 
@@ -55,12 +55,12 @@ public class Rect : SingleSlotCompositeView
         return [];
     }
 
-    public override void Collect(Mat3 transform, Views.Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
     {
         if (IsVisible)
         {
-            CollectSelf(transform,drawCommands);
+            CollectSelf(transform,passCommands);
         }
-        base.Collect(transform,clip, drawCommands);
+        base.Collect(transform,clip, passCommands);
     }
 }

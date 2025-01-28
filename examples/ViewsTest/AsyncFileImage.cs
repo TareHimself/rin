@@ -65,18 +65,18 @@ public class AsyncFileImage : CoverImage
         return base.LayoutContent(availableSpace);
     }
 
-    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         
         if (TextureId == -1)
         {
             var opacity = (float)Math.Abs(Math.Sin(SRuntime.Get().GetTimeSeconds() * 4.0f)) * 0.7f; 
-            drawCommands.AddRect(transform, GetContentSize(),
+            commands.AddRect(transform, GetContentSize(),
                 color: new Vec4<float>(new Vec3<float>(0.8f),opacity),BorderRadius);
         }
         else
         {
-            base.CollectContent(transform, drawCommands);
+            base.CollectContent(transform, commands);
         }
     }
 

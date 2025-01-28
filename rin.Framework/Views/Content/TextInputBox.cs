@@ -91,9 +91,9 @@ public class TextInputBox : TextBox
         //CursorPosition = Math.Clamp(CursorPosition, -1, Content.Length - 1);
     }
 
-    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, PassCommands commands)
     {
-        base.CollectContent(transform,drawCommands);
+        base.CollectContent(transform,commands);
         
         if (!FontReady || !IsFocused) return;
                 
@@ -121,6 +121,6 @@ public class TextInputBox : TextBox
         var color = ForegroundColor.Clone();
         var sin = (float)((System.Math.Sin(SRuntime.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f);
         color.A *= IsTyping ? 1.0f : sin > 0.35 ? 1.0f : 0.0f;
-        drawCommands.AddRect(transform.Translate(offset), new Vec2<float>(2.0f, height), color: color);
+        commands.AddRect(transform.Translate(offset), new Vec2<float>(2.0f, height), color: color);
     }
 }

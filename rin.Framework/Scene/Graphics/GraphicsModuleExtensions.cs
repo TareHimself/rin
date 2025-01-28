@@ -8,7 +8,7 @@ namespace rin.Framework.Scene.Graphics;
 public static class GraphicsModuleExtensions
 {
     public static async Task<DeviceGeometry> NewGeometry<T>(this SGraphicsModule subsystem, T[] vertices, uint[] indices)
-        where T : struct
+        where T : unmanaged
     {
         var verticesByteSize = vertices.ByteSize();
         var indicesByteSize = indices.ByteSize();

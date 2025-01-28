@@ -9,7 +9,7 @@ public class FrameStats
     public int CustomCommandCount;
     public int StencilWriteCount;
     public int StencilClearCount;
-    public int MemoryAllocatedBytes;
+    public ulong MemoryAllocatedBytes;
 }
 
 // {frame.BatchedDraws} Batches

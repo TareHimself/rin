@@ -4,7 +4,7 @@ namespace rin.Framework.Views.Graphics;
 
 public interface IBatch
 {
-    IEnumerable<int> GetMemoryNeeded();
+    IEnumerable<ulong> GetMemoryNeeded();
     IBatcher GetRenderer();
     void AddFromCommand(BatchedCommand command);
 }

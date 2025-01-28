@@ -68,11 +68,11 @@ public class Image : ContentView
     //     }
     // }
 
-    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         if (TextureId != -1)
         {
-            drawCommands.AddTexture(TextureId,transform, GetContentSize(), Tint, null,
+            commands.AddTexture(TextureId,transform, GetContentSize(), Tint, null,
                 BorderRadius);
         }
     }

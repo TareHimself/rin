@@ -3,6 +3,7 @@ using MathNet.Numerics;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
+using rin.Framework.Graphics.FrameGraph;
 using rin.Framework.Views.Content;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Commands;
@@ -15,11 +16,22 @@ public class FpsView : TextBox
     private readonly Averaged<int> _averageFps = new Averaged<int>(0,300);
     class GetStatsCommand(FpsView view) : UtilityCommand
     {
+        public override void BeforeAdd(IGraphBuilder builder)
+        {
+            
+        }
+
+        public override void Configure(IGraphConfig config)
+        {
+           
+        }
+
         public override CommandStage Stage => CommandStage.Before;
         public override void Execute(ViewsFrame frame)
         {
             if (frame.Surface is WindowSurface asWindowSurface)
             {
+                
                 var renderer = asWindowSurface.GetRenderer();
                 view.Content = $"""
                                   STATS
@@ -30,19 +42,20 @@ public class FpsView : TextBox
                                   {frame.Surface.Stats.StencilWriteCount} Stencil Writes
                                   {frame.Surface.Stats.CustomCommandCount} Non Draws
                                   {frame.Surface.Stats.MemoryAllocatedBytes} Bytes Allocated
-                                  {(int)view._averageFps} FPS
+                                  {(int)view._averageFps} FPS (Average)
+                                  {renderer.LastDrawTime} Last Draw Time 
                                   {((1 / (float)view._averageFps) * 1000.0f).Round(2)}ms
                                   """;
             }
         }
     }
 
-    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         var a = SRuntime.Get().GetLastDeltaSeconds();
         var b = 1.0 / a;
         _averageFps.Add((int)Math.Round((1.0 / SRuntime.Get().GetLastDeltaSeconds())));
-        drawCommands.Add(new GetStatsCommand(this));
-        base.CollectContent(transform, drawCommands);
+        commands.Add(new GetStatsCommand(this));
+        base.CollectContent(transform, commands);
     }
 }

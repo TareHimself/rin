@@ -7,7 +7,8 @@ public class BackgroundTaskQueue : Disposable
 
     private Task _longTask;
     private Thread _taskThread;
-    public class PendingTask
+
+    private class PendingTask
     {
         public Action Fn;
         public TaskCompletionSource Pending;

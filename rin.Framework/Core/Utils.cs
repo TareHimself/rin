@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace rin.Framework.Core;
 
@@ -18,5 +19,14 @@ public static class Utils
         watch.Stop();
         Console.WriteLine($"[MeasureSync]: {name} => {watch.Elapsed.Microseconds / 1000.0f}ms");
         return r;
+    }
+
+    public static ulong ByteSizeOf<T>(int count = 1) where T : unmanaged
+    {
+        unsafe
+        {
+            var size = (ulong)sizeof(T);
+            return size * (ulong)count;
+        }
     }
 }

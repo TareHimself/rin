@@ -86,26 +86,35 @@ public class BepuPhysics : IPhysicsSystem
 
     struct PoseIntegratorCallbacks(BepuPhysics system) : IPoseIntegratorCallbacks
     {
-        private Vector3Wide _gravityWideDt;
+        private Vector3Wide _gravityAcceleration;
         private Vector<float> _linearDampingDt;
         private Vector<float> _angularDampingDt;
         
         public void Initialize(Simulation simulation)
         {
+            
         }
 
         public void PrepareForIntegration(float dt)
         {
             _linearDampingDt = new Vector<float>(MathF.Pow(MathHelper.Clamp(1 - system.LinearDamping, 0, 1), dt));
             _angularDampingDt = new Vector<float>(MathF.Pow(MathHelper.Clamp(1 - system.AngularDamping, 0, 1), dt));
-            _gravityWideDt = Vector3Wide.Broadcast(system.Gravity.ToVector3() * dt);
+            _gravityAcceleration = Vector3Wide.Broadcast(system.Gravity.ToVector3());
         }
 
         public void IntegrateVelocity(Vector<int> bodyIndices, Vector3Wide position, QuaternionWide orientation,
             BodyInertiaWide localInertia, Vector<int> integrationMask, int workerIndex, Vector<float> dt, ref BodyVelocityWide velocity)
         {
-            velocity.Linear = (velocity.Linear + _gravityWideDt) * _linearDampingDt;
-            velocity.Angular *= _angularDampingDt;
+            //Console.WriteLine("INTEGRATING");
+            var acceleration = _gravityAcceleration;
+            var newVelocity = velocity.Linear + acceleration * dt;
+            //var newPosition = position + velocity.Linear * dt + acceleration * ( dt * dt * 0.5f);
+            
+            velocity.Linear = newVelocity;
+            
+            // Apply damping to velocity
+            // velocity.Linear *= _linearDampingDt;
+            // velocity.Angular *= _angularDampingDt;
         }
 
         public AngularIntegrationMode AngularIntegrationMode => system.AngularIntegrationMode;
@@ -127,13 +136,13 @@ public class BepuPhysics : IPhysicsSystem
         _pool.Clear();
     }
 
-    public Vec3<float> Gravity { get; set; } = new Vec3<float>(0.0f, -0.4f, 0.0f);
+    public Vec3<float> Gravity { get; set; } = new Vec3<float>(0.0f, -9.8f, 0.0f);
 
     [PublicAPI]
-    public float LinearDamping { get; set; } = 0.03f;
+    public float LinearDamping { get; set; } = 0.00f;
     
     [PublicAPI]
-    public float AngularDamping { get; set; } = 0.03f;
+    public float AngularDamping { get; set; } = 0.00f;
 
     public IPhysicsBox CreateBox(IPhysicsComponent owner, Vec3<float> size)
     {

@@ -186,10 +186,10 @@ public class TrackPlayer : Overlay
             $"{((int)Math.Floor(secs / 60)).ToString().PadLeft(2, '0')}:{((int)(secs % 60)).ToString().PadLeft(2, '0')}";
     }
 
-    public override void Collect(Mat3 transform, Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Rect clip, PassCommands passCommands)
     {
         _currentTimeText.Content = FormatTime(_stream.Position);
-        base.Collect(transform,clip, drawCommands);
+        base.Collect(transform,clip, passCommands);
     }
 
     public override bool OnCursorDown(CursorDownEvent e) => true;

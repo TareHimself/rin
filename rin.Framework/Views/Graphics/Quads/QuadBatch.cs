@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using rin.Framework.Core;
 using rin.Framework.Views.Graphics.Commands;
 using rin.Framework.Views.Composite;
 
@@ -7,9 +8,9 @@ namespace rin.Framework.Views.Graphics.Quads;
 public class QuadBatch : IBatch
 {
     private readonly List<Quad> _quads = [];
-    public unsafe IEnumerable<int> GetMemoryNeeded()
+    public IEnumerable<ulong> GetMemoryNeeded()
     {
-        return [_quads.Count * sizeof(Quad)];
+        return [Utils.ByteSizeOf<Quad>(_quads.Count)];
     }
 
     public IBatcher GetRenderer() => SViewsModule.Get().GetBatchRenderer<DefaultQuadBatcher>();

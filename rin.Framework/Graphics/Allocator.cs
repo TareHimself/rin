@@ -60,7 +60,7 @@ public partial class Allocator : Disposable
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" />
     /// </summary>
-    public IDeviceBuffer NewBuffer(int size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags propertyFlags,
+    public IDeviceBuffer NewBuffer(ulong size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags propertyFlags,
         bool sequentialWrite = true, bool preferHost = false, bool mapped = false, string debugName = "Buffer")
     {
         unsafe

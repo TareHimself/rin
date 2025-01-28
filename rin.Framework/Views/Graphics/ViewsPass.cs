@@ -5,6 +5,8 @@ using rin.Framework.Graphics;
 using rin.Framework.Graphics.FrameGraph;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
+using Utils = rin.Framework.Core.Utils;
+
 namespace rin.Framework.Views.Graphics;
 
 public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
@@ -14,15 +16,38 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
     private uint _stencilImageHandle;
     private uint _bufferResourceHandle;
     private readonly Vec2<uint> _drawSize = surface.GetDrawSize().Cast<uint>();
-    private int _memoryNeeded = 0;
-    private readonly List<Pair<int, int>> _offsets = [];
+    private ulong _memoryNeeded = 0;
+    private readonly List<Pair<ulong, ulong>> _offsets = [];
     public void Dispose()
     {
         throw new NotImplementedException();
     }
 
+    public void BeforeAdd(IGraphBuilder builder)
+    {
+        foreach (var cmd in passInfo.PreCommands)
+        {
+            cmd.BeforeAdd(builder);
+        }
+        
+        foreach (var cmd in passInfo.PostCommands)
+        {
+            cmd.BeforeAdd(builder);
+        }
+    }
+
     public void Configure(IGraphConfig config)
     {
+        foreach (var cmd in passInfo.PreCommands)
+        {
+            cmd.Configure(config);
+        }
+        
+        foreach (var cmd in passInfo.PostCommands)
+        {
+            cmd.Configure(config);
+        }
+        
         _drawImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.RGBA32);
         _copyImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.RGBA32);
         _stencilImageHandle = config.CreateImage( _drawSize.X, _drawSize.Y, ImageFormat.Stencil);
@@ -39,13 +64,13 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                     // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
                     _memoryNeeded += size;
                 }
-                _offsets.Add(new Pair<int, int>(offset,_memoryNeeded - offset));
+                _offsets.Add(new Pair<ulong, ulong>(offset,_memoryNeeded - offset));
             }
             else if (drawCommand.Type == CommandType.ClipDraw)
             {
                 var offset = _memoryNeeded;
-                _memoryNeeded += Marshal.SizeOf<StencilClip>() * drawCommand.Clips.Length;
-                _offsets.Add(new Pair<int, int>(offset,_memoryNeeded - offset));
+                _memoryNeeded += Utils.ByteSizeOf<StencilClip>(drawCommand.Clips.Length);
+                _offsets.Add(new Pair<ulong, ulong>(offset,_memoryNeeded - offset));
                 // var dist = memoryNeeded & minOffsetAlignment;
                 // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
             }
@@ -53,7 +78,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
             {
                 var offset = (_memoryNeeded);
                 _memoryNeeded += asCustomMemory;
-                _offsets.Add(new Pair<int, int>(offset,_memoryNeeded - offset));
+                _offsets.Add(new Pair<ulong, ulong>(offset,_memoryNeeded - offset));
             }
 
 
@@ -61,19 +86,14 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
         {
             _bufferResourceHandle = config.AllocateBuffer(_memoryNeeded);
         }
-        
-        foreach (var passInfoGraphConfig in passInfo.GraphConfigs)
-        {
-            passInfoGraphConfig(this,config);
-        }
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, VkCommandBuffer cmd)
     {
-        var drawImage = graph.GetResource(_drawImageHandle!).AsImage();
-        var copyImage = graph.GetResource(_copyImageHandle!).AsImage();
-        var stencilImage = graph.GetResource(_stencilImageHandle!).AsImage();
-        var buffer = _bufferResourceHandle > 0  ? graph.GetResource(_bufferResourceHandle).AsMemory() : null;
+        var drawImage = graph.GetImage(_drawImageHandle!).AsImage();
+        var copyImage = graph.GetImage(_copyImageHandle!).AsImage();
+        var stencilImage = graph.GetImage(_stencilImageHandle!).AsImage();
+        var buffer = _bufferResourceHandle > 0  ? graph.GetBuffer(_bufferResourceHandle) : null;
         var viewFrame = new ViewsFrame(surface, frame,drawImage, copyImage, stencilImage);
         
         var isWritingStencil = false;
@@ -83,8 +103,6 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
         
         surface.Stats.FinalCommandCount = passInfo.Commands.Count;
         surface.Stats.MemoryAllocatedBytes = _memoryNeeded;
-        
-        if (buffer != null) frame.OnReset += _ => buffer.Dispose();
         var offsetsAndSizes = _offsets.GetEnumerator();
         offsetsAndSizes.MoveNext();
         
@@ -127,8 +145,8 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                             
                             var (offset,size) = offsetsAndSizes.Current;
                             offsetsAndSizes.MoveNext();
-                            using var view = buffer.GetView(offset, size);
-                            view.Write(command.Clips, offset);
+                            var view = buffer.GetView(offset, size);
+                            view.Write(command.Clips, (ulong)offset);
 
                             var push = new StencilPushConstant
                             {
@@ -215,7 +233,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                             {
                                 var (offset,size) = offsetsAndSizes.Current;
                                 offsetsAndSizes.MoveNext();
-                                using var view = buffer.GetView(offset, size);
+                                var view = buffer.GetView(offset, size);
                                 command.Custom.Run(viewFrame,command.Mask,view);
                             }
                             else
@@ -229,7 +247,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                             var batch = command.Batch!;
                             var (offset, size) = offsetsAndSizes.Current;
                             offsetsAndSizes.MoveNext();
-                            using var view = buffer.GetView(offset, size);
+                            var view = buffer.GetView(offset, size);
                             batch.GetRenderer().Draw(viewFrame, batch,view);
                             break;
                         }

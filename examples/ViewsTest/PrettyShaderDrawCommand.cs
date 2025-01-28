@@ -7,6 +7,7 @@ using rin.Framework.Graphics;
 using rin.Framework.Graphics.Shaders;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Commands;
+using Utils = rin.Framework.Core.Utils;
 
 namespace ViewsTest;
 
@@ -24,16 +25,16 @@ public class PrettyShaderDrawCommand(Mat3 transform,Vec2<float> size,bool hovere
     }
     public override bool WillDraw => true;
 
-    public override int MemoryNeeded => Marshal.SizeOf<Data>();
+    public override ulong MemoryNeeded => Utils.ByteSizeOf<Data>();
 
 
     private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SRuntime.AssetsDirectory,"test","pretty.slang"));
 
-    public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null)
+    public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {
         frame.BeginMainPass();
         var cmd = frame.Raw.GetCommandBuffer();
-        if (_prettyShader.Bind(cmd, true) && buffer != null)
+        if (_prettyShader.Bind(cmd, true) && view != null)
         {
             var pushResource = _prettyShader.PushConstants.First().Value;
             var screenSize = frame.Surface.GetDrawSize().Cast<float>();
@@ -46,8 +47,8 @@ public class PrettyShaderDrawCommand(Mat3 transform,Vec2<float> size,bool hovere
                 Time = (float)SRuntime.Get().GetTimeSeconds(),
                 Center = hovered ?  frame.Surface.GetCursorPosition() : screenSize / 2.0f
             };
-            buffer.Write(data);
-            cmd.PushConstant(_prettyShader.GetPipelineLayout(), pushResource.Stages,buffer.GetAddress());
+            view.Write(data);
+            cmd.PushConstant(_prettyShader.GetPipelineLayout(), pushResource.Stages,view.GetAddress());
             cmd.Draw(6);
         }
     }

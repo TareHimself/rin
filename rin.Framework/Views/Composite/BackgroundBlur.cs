@@ -85,14 +85,14 @@ public class BackgroundBlur : SingleSlotCompositeView
     //     }
     // }
 
-    public override void Collect(Mat3 transform, Views.Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
     {
         if (IsVisible)
         {
-            drawCommands.Add(new ReadBack());
-            drawCommands.Add(new BlurCommand(transform,Size,Strength,Tint));
+            passCommands.Add(new ReadBack());
+            passCommands.Add(new BlurCommand(transform,Size,Strength,Tint));
         }
-        base.Collect(transform,clip, drawCommands);
+        base.Collect(transform,clip, passCommands);
     }
 
     protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)

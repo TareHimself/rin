@@ -47,16 +47,14 @@ public static class EnumerableExtensions
         }
     }
 
-    public static ulong ByteSize<T>(this List<T> target)
+    public static ulong ByteSize<T>(this IEnumerable<T> target) where T : unmanaged
     {
-        return (ulong)(Marshal.SizeOf<T>() * target.Count);
+        var asArray = target.ToArray();
+        unsafe
+        {
+            return (ulong)sizeof(T) * (ulong)asArray.Length;
+        }
     }
-
-    public static int ByteSize<T>(this T[] target)
-    {
-        return Marshal.SizeOf<T>() * target.Length;
-    }
-
 
     public static List<T> UpdateIndex<T>(this List<T> target, int index, Func<T, T> updater)
     {

@@ -58,4 +58,11 @@ public partial struct Rotator(float inYaw, float inPitch, float inRoll)
         
         return new Rotator(Yaw + dYaw,Pitch + dPitch,Roll + dRoll);
     }
+    
+    public void Deconstruct(out float pitch, out float yaw, out float roll)
+    {
+        pitch = Pitch;
+        yaw = Yaw;
+        roll = Roll;
+    }
 }

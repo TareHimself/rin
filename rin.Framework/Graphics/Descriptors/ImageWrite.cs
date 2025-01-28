@@ -28,7 +28,7 @@ public struct ImageWrite
         {
             Image = boundTexture.Image!;
             Layout = ImageLayout.ShaderReadOnly;
-            Type = ImageType.Texture;
+            Type = ImageType.Sampled;
             Sampler = new SamplerSpec()
             {
                 Filter = boundTexture.Filter,

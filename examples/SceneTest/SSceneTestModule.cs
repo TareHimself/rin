@@ -113,20 +113,20 @@ public class SSceneTestModule : IModule
             Extensions.LoadStaticMesh(Path.Join(SRuntime.AssetsDirectory,"models","real_cube.glb")).After(mesh =>
             {
                 
-                // scene.AddPointLight(new Vec3<float>(0.0f, 20.0f, 0.0f));
-                //     
-                // scene.AddPointLight(new Vec3<float>(0.0f, -20.0f, 0.0f));
-                var directionalLight = scene.AddActor(new Actor()
-                {
-                    RootComponent = new DirectionalLightComponent()
-                    {
-                        Radiance = 10.0f,
-                        Location = new Vec3<float>(0.0f, 200.0f, 0.0f),
-                    }
-                });
-                
-                directionalLight.SetRelativeRotation(Rotator.LookAt(directionalLight.GetRelativeLocation(),new Vec3<float>(0.0f),Vec3<float>.Up));
-                
+                scene.AddPointLight(new Vec3<float>(0.0f, 20.0f, 0.0f));
+                    
+                scene.AddPointLight(new Vec3<float>(0.0f, -20.0f, 0.0f));
+                // var directionalLight = scene.AddActor(new Actor()
+                // {
+                //     RootComponent = new DirectionalLightComponent()
+                //     {
+                //         Radiance = 10.0f,
+                //         Location = new Vec3<float>(0.0f, 200.0f, 0.0f),
+                //     }
+                // });
+                //
+                // directionalLight.SetRelativeRotation(Rotator.LookAt(directionalLight.GetRelativeLocation(),new Vec3<float>(0.0f),Vec3<float>.Up));
+                //
                 var dist = 50.0f;
                 var height = 50.0f;
                 var e1 = new Actor()
@@ -214,7 +214,7 @@ public class SSceneTestModule : IModule
                 [
                     new PanelSlot()
                     {
-                        Child = new Viewport(camera, text),
+                        Child = new TestViewport(camera, text),
                         MinAnchor = 0.0f,
                         MaxAnchor = 1.0f,
                     },

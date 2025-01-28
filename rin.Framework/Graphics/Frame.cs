@@ -90,6 +90,7 @@ public class Frame : Disposable
         if (r != VkResult.VK_SUCCESS)
         {
             throw new Exception("Failed to wait for fences");
+            
         }
     }
 

@@ -4,6 +4,7 @@ using rin.Framework.Graphics;
 using rin.Framework.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
+using Utils = rin.Framework.Core.Utils;
 
 namespace rin.Framework.Scene.Graphics;
 
@@ -27,10 +28,17 @@ public class DefaultMaterial : IMaterial
     }
     
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    // ReSharper disable once InconsistentNaming
+    struct DepthMaterialData
+    {
+        public Mat4 Transform;
+        public ulong VertexAddress;
+    }
+    
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     struct PushConstant
     {
-        public Mat4 View;
-        public Mat4 Projection;
+        public ulong SceneAddress;
         public ulong DataAddress;
     }
 
@@ -41,38 +49,40 @@ public class DefaultMaterial : IMaterial
     public float Emissive { get; set; } = 0.0f;
  
     private readonly IShader _shader  = SGraphicsModule.Get()
-        .GraphicsShaderFromPath(Path.Join(SGraphicsModule.ShadersDirectory, "scene","mesh", "default.slang"));
+        .GraphicsShaderFromPath(Path.Join(SGraphicsModule.ShadersDirectory, "scene","forward", "mesh.slang"));
     private readonly IShader _depthShader = SGraphicsModule.Get()
-        .GraphicsShaderFromPath(Path.Join(SGraphicsModule.ShadersDirectory, "scene","mesh", "default_depth.slang"));
+        .GraphicsShaderFromPath(Path.Join(SGraphicsModule.ShadersDirectory, "scene","forward", "mesh_depth.slang"));
     
     public bool Translucent => false;
-    public IShader GetShader() => _shader;
 
-    public IShader GetDepthShader() => _depthShader;
-
-    public void Execute(bool depth, SceneFrame frame, IDeviceBuffer? data, GeometryInfo[] meshes)
+    public void Execute(SceneFrame frame, IDeviceBufferView? data, GeometryInfo[] meshes, bool depth)
     {
         var requiredMemorySize = GetRequiredMemory(depth);
         
         var cmd = frame.GetCommandBuffer();
         if (data == null) throw new Exception("Missing buffer");
-        if (_shader.Bind(cmd))
+        var shader = depth ? _depthShader : _shader;
+        if (shader.Bind(cmd))
         {
 
-            var bufferOffset = 0;
-            var push = _shader.PushConstants.First().Value;
-            var set = SGraphicsModule.Get().GetTextureManager().GetDescriptorSet();
-            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _shader.GetPipelineLayout(),
-                [set]);
-
-            using var view = data.GetView(bufferOffset,requiredMemorySize * meshes.Length);
+            ulong bufferOffset = 0;
+            var push = _shader.PushConstants.Values.First();
+            
+            if (!depth)
             {
-                var writeOffset = 0;
+                var set = SGraphicsModule.Get().GetTextureManager().GetDescriptorSet();
+                cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _shader.GetPipelineLayout(),
+                    [set]);
+            }
+
+            var materialInstanceData = data.GetView(bufferOffset,requiredMemorySize * (ulong)meshes.Length);
+            {
+                ulong writeOffset = 0;
                 foreach (var item in meshes)
                 {
-                    using var mem = view.GetView(writeOffset, requiredMemorySize);
-                    item.Material.Write(depth, mem,item);
-                    writeOffset += requiredMemorySize;
+                    var materialData = materialInstanceData.GetView(writeOffset, requiredMemorySize);
+                    item.Material.Write(materialData,item, depth);
+                    writeOffset += materialData.Size;
                 }
             }
                 
@@ -80,9 +90,8 @@ public class DefaultMaterial : IMaterial
             var offset = ((ulong)first.Surface.StartIndex) * sizeof(uint);
             var pushData = new PushConstant()
             {
-                View = frame.View,
-                Projection = frame.Projection,
-                DataAddress = view.GetAddress()
+                SceneAddress = frame.SceneInfo.GetAddress(),
+                DataAddress = materialInstanceData.GetAddress()
             };
             cmd.PushConstant(_shader.GetPipelineLayout(), push.Stages, pushData);
             vkCmdBindIndexBuffer(cmd,first.Geometry.IndexBuffer.NativeBuffer,offset,VkIndexType.VK_INDEX_TYPE_UINT32);
@@ -90,28 +99,39 @@ public class DefaultMaterial : IMaterial
         }
     }
 
-    public void Write(bool depth, IDeviceBuffer view, GeometryInfo mesh)
+    public void Write(IDeviceBufferView view, GeometryInfo mesh, bool depth)
     {
         unsafe
         {
-            view.Write(new PBRMaterialProperties
+            if (depth)
             {
-                Transform = mesh.Transform,
-                VertexAddress = mesh.Geometry.VertexBuffer.GetAddress() + (ulong)(sizeof(StaticMesh.Vertex) * mesh.Surface.StartIndex),
-                BaseColorTextureId = 0,
-                BaseColor = Color,
-                NormalTextureId = 0,
-                Metallic = Metallic,
-                Specular = Specular,
-                Roughness = Roughness,
-                Emissive = Emissive,
-            });
+                view.Write(new DepthMaterialData
+                {
+                    Transform = mesh.Transform,
+                    VertexAddress = mesh.Geometry.VertexBuffer.GetAddress() + (ulong)(sizeof(StaticMesh.Vertex) * mesh.Surface.StartIndex),
+                });
+            }
+            else
+            {
+                view.Write(new PBRMaterialProperties
+                {
+                    Transform = mesh.Transform,
+                    VertexAddress = mesh.Geometry.VertexBuffer.GetAddress() + (ulong)(sizeof(StaticMesh.Vertex) * mesh.Surface.StartIndex),
+                    BaseColorTextureId = 0,
+                    BaseColor = Color,
+                    NormalTextureId = 0,
+                    Metallic = Metallic,
+                    Specular = Specular,
+                    Roughness = Roughness,
+                    Emissive =  Emissive,
+                });
+            }
         }
     }
 
-    public unsafe int GetRequiredMemory(bool depth)
+    public unsafe ulong GetRequiredMemory(bool depth)
     {
-        return sizeof(PBRMaterialProperties);
+        return depth ? Utils.ByteSizeOf<DepthMaterialData>() : Utils.ByteSizeOf<PBRMaterialProperties>();
     }
 
 

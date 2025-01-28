@@ -9,7 +9,7 @@ namespace rin.Framework.Views.Graphics.Commands;
 /// </summary>
 public class ReadBack : CustomCommand
 {
-    public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null)
+    public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {
         if(frame.IsAnyPassActive) frame.EndActivePass();
         var cmd = frame.Raw.GetCommandBuffer();

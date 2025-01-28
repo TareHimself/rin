@@ -98,7 +98,7 @@ public static class Extensions
             RootComponent = new PointLightComponent()
             {
                 Location = location,
-                Radiance = 30.0f
+                Radiance = 10.0f
             },
         };
         scene.AddActor(entity);

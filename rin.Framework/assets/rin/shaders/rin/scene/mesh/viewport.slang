@@ -3,7 +3,7 @@ import rin.operators;
 import gbuffer_in;
 import rin.scene.light;
 import rin.scene.models.lambert;
-import rin.scene.models.pbr;
+import rin.scene.models.pbr_new;
 
 
 public enum ViewportChannel : int
@@ -30,8 +30,8 @@ struct RenderInfo
 struct PushConstants
 {
     float4x4 projection;
-    RenderInfo* quads;
-    Light* lights;
+    RenderInfo *quads;
+    PackedLight* lights;
 };
 
 [[vk::push_constant]]
@@ -48,85 +48,83 @@ float4 vertex(int instanceId: SV_InstanceID, int vertexId: SV_VertexID, out floa
     return position;
 }
 
+struct Surface : ILambertSurface {
+    float4 colorRoughness;
+    float4 locationMetallic;
+    float4 normalSpecular;
+    float3 getColor() {
+        return colorRoughness.xyz;
+    }
+    float3 getLocation() {
+        return locationMetallic.xyz;
+    }
+    float3 getNormal() {
+        return normalize(normalSpecular.xyz);
+    }
+}
+
+extension Surface : IPBRSurface {
+    float getRoughness() {
+        return colorRoughness.w;
+    }
+    float getMetallic() {
+        return locationMetallic.w;
+    }
+    float getSpecular() {
+        return normalSpecular.w;
+    }
+    float getEmissive() {
+        return 0.0f;
+    }
+}
+
 [shader("fragment")]
 float4 fragment(in float2 iUV: UV, in int iQuadIndex: QUAD_INDEX, float2 coordinate: SV_Position)
     : SV_Target
 {
     RenderInfo quad = push.quads[iQuadIndex];
-    var RGB_COLOR_A_ROUGHNESS_SAMPLE = RGB_COLOR_A_ROUGHNESS.Sample(iUV);
-    var RGB_LOCATION_A_METALLIC_SAMPLE = RGB_LOCATION_A_METALLIC.Sample(iUV);
-    var RGB_NORMAL_A_SPECULAR_SAMPLE = RGB_NORMAL_A_SPECULAR.Sample(iUV);
+    Surface surface = Surface(
+        RGB_COLOR_A_ROUGHNESS.Sample(iUV), 
+        RGB_LOCATION_A_METALLIC.Sample(iUV), 
+        RGB_NORMAL_A_SPECULAR.Sample(iUV)
+        );
     switch (quad.channel)
     {
     case ViewportChannel.Scene:
     {
-        // LambertModel model;
-        
-        // LambertSurface surface;
-
-        // float3 color = float3(0.0f);
-
-        // var eye = (quad.view * float4(float3(0.0f),1.0f)).xyz;
-        // var location = RGB_LOCATION_A_METALLIC_SAMPLE.xyz;
-
-        // surface.location = location;
-        // surface.normal = normalize(RGB_NORMAL_A_SPECULAR_SAMPLE.xyz);
-        // surface.color = RGB_COLOR_A_ROUGHNESS_SAMPLE.xyz;
-
-        // for (int i = 0; i < quad.numLights; i++) {
-        //     color += model.eval(surface, eye, push.lights[i]);
-        // }
-
-        // color /= quad.numLights;
-
-        // return float4(color,1.0);
-
-        var eye = (quad.view * float4(float3(0.0f), 1.0f)).xyz;
-        var location = RGB_LOCATION_A_METALLIC_SAMPLE.xyz;
-
-        
-
         PBRModel model;
-
-        PBRSurface surface;
-
-        surface.location = location;
-        surface.normal = normalize(RGB_NORMAL_A_SPECULAR_SAMPLE.xyz);
-        surface.color = RGB_COLOR_A_ROUGHNESS_SAMPLE.xyz;
-        surface.roughness = RGB_COLOR_A_ROUGHNESS_SAMPLE.w;
-        surface.metallic = RGB_LOCATION_A_METALLIC_SAMPLE.w;
-        surface.specular = RGB_NORMAL_A_SPECULAR_SAMPLE.w;
-        surface.emissive = 0.0f;
-
+        
         float3 color = float3(0.0f);
 
+        var eye = (quad.view * float4(float3(0.0f),1.0f)).xyz;
+
         for (int i = 0; i < quad.numLights; i++) {
-            color += model.eval(surface, eye, push.lights[i]);
+            color += model.eval(surface, eye,push.lights[i]);
         }
 
         color /= quad.numLights;
 
-        return float4(color, 1.0);
+        return float4(color,1.0);
     }
     case ViewportChannel.Color:
     {
-        return float4(RGB_COLOR_A_ROUGHNESS_SAMPLE.xyz, 1.0);
+        return float4(surface.getColor(), 1.0);
     }
     case ViewportChannel.Location:
     {
-        return float4(RGB_LOCATION_A_METALLIC_SAMPLE.xyz, 1.0);
+        return float4(surface.getLocation(), 1.0);
     }
     case ViewportChannel.Normal:
     {
-        return float4(RGB_NORMAL_A_SPECULAR_SAMPLE.xyz, 1.0);
+        return float4(surface.getNormal(), 1.0);
     }
     case ViewportChannel.RoughnessMetallicSpecular:
     {
-        return float4(RGB_COLOR_A_ROUGHNESS_SAMPLE.w, RGB_LOCATION_A_METALLIC_SAMPLE.w, RGB_NORMAL_A_SPECULAR_SAMPLE.w, 1.0);
+        return float4(surface.getRoughness(),surface.getMetallic(),surface.getSpecular(), 1.0);
     }
     case ViewportChannel.Emissive:
     {
-        return float4(0.0);
+        return float4(float3(surface.getEmissive()),1.0f);
     }
     default:
         return float4(1.0);

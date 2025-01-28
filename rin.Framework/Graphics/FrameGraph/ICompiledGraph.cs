@@ -2,7 +2,11 @@ namespace rin.Framework.Graphics.FrameGraph;
 
 public interface ICompiledGraph : IDisposable
 {
-    public IGraphResource GetResource(uint id);
+    public IDeviceImage GetImage(uint id);
+    
+    public IDeviceBufferView GetBuffer(uint id);
+    
+    public IPass GetPass(uint id);
     
     public void Execute(Frame frame);
 }

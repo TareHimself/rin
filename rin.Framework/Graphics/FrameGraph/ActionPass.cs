@@ -4,6 +4,11 @@ namespace rin.Framework.Graphics.FrameGraph;
 
 public class ActionPass(Action<IPass,IGraphConfig> configure,Action<IPass,ICompiledGraph,Frame,VkCommandBuffer> run,bool terminal = false,string? name = null) : IPass
 {
+    public void BeforeAdd(IGraphBuilder builder)
+    {
+        
+    }
+
     public void Configure(IGraphConfig config)
     {
         configure(this,config);

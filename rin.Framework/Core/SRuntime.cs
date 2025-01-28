@@ -15,7 +15,6 @@ public sealed class SRuntime : Disposable
     public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
     
     private static SRuntime? _instance;
-    private static readonly object Padlock = new();
 
     private readonly List<IModule> _modules = [];
     private readonly Dictionary<Type, IModule> _modulesMap = new();
@@ -26,6 +25,8 @@ public sealed class SRuntime : Disposable
     private double _lastDeltaSeconds;
 
     private DateTime _lastTickTime = DateTime.UtcNow;
+
+    public IFileSystem FileSystem { get; set; } = new DefaultFileSystem();
     
     public bool IsRunning { get; private set; }
 

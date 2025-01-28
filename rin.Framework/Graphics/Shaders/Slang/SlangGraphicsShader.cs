@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using rin.Framework.Core;
 using rin.Framework.Graphics.Descriptors;
+using rin.Framework.Views.Composite;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -10,13 +11,15 @@ namespace rin.Framework.Graphics.Shaders.Slang;
 
 public class SlangGraphicsShader : IGraphicsShader
 {
-    private Task _compileTask;
+    private readonly Task _compileTask;
 
-    private string _filePath;
+    private readonly string _filePath;
 
     private readonly List<Pair<VkShaderEXT, VkShaderStageFlags>> _shaders = [];
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
     private VkPipelineLayout _pipelineLayout;
+    private bool _hasFragment;
+    private bool _hasVertex;
 
     public SlangGraphicsShader(SlangShaderManager manager, string filePath)
     {
@@ -55,6 +58,23 @@ public class SlangGraphicsShader : IGraphicsShader
         
         cmd.BindShaders(_shaders);
 
+        if (!_hasFragment || !_hasVertex)
+        {
+            List<VkShaderStageFlags> toUnbind = [];
+            
+            if (!_hasFragment)
+            {
+                toUnbind.Add(VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT);
+            }
+            
+            if (!_hasVertex)
+            {
+                toUnbind.Add(VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT);
+            }
+
+            cmd.UnBindShaders(toUnbind);
+        }
+
         return true;
     }
 
@@ -63,18 +83,17 @@ public class SlangGraphicsShader : IGraphicsShader
         if (context.Manager is SlangShaderManager manager)
         {
             var session = manager.GetSession();
-            var fileData = File.ReadAllText(_filePath);
+
+            var fileData = SRuntime.Get().FileSystem.ReadAllText(_filePath);
             using var module = session.LoadModuleFromSourceString(_filePath, _filePath, fileData);
             if (module == null) throw new ShaderCompileException("Failed to load slang shader module.");
-            var hasVertex = false;
-            var hasFragment = false;
             List<SlangEntryPoint> entryPoints = [];
             {
                 var entryPoint = module.FindEntryPointByName("vertex");
                 if (entryPoint != null)
                 {
                     entryPoints.Add(entryPoint);
-                    hasVertex = true;
+                    _hasVertex = true;
                 }
             }
 
@@ -83,7 +102,7 @@ public class SlangGraphicsShader : IGraphicsShader
                 if (entryPoint != null)
                 {
                     entryPoints.Add(entryPoint);
-                    hasFragment = true;
+                    _hasFragment = true;
                 }
             }
 

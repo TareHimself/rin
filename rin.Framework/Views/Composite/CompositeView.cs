@@ -125,7 +125,7 @@ public abstract class CompositeView : View
     [PublicAPI]
     public virtual IEnumerable<ISlot> GetHitTestableSlots() => GetSlots().Where(c => c.Child.IsHitTestable);
     
-    public override void Collect(Mat3 transform, Views.Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
     {
         ((IAnimatable)this).Update();
         
@@ -134,12 +134,12 @@ public abstract class CompositeView : View
             return;
         }
 
-        drawCommands.IncrDepth();
+        passCommands.IncrDepth();
         var clipRect = clip;
 
         if (Parent != null && Clip == Clip.Bounds)
         {
-            drawCommands.PushClip(transform, GetContentSize());
+            passCommands.PushClip(transform, GetContentSize());
         }
 
         if (Clip == Clip.Bounds)
@@ -164,12 +164,12 @@ public abstract class CompositeView : View
         
         foreach (var (view, mat) in toCollect)
         {
-            view.Collect(mat,clipRect,drawCommands);
+            view.Collect(mat,clipRect,passCommands);
         }
 
         if (Parent != null && Clip == Clip.Bounds)
         {
-            drawCommands.PopClip();
+            passCommands.PopClip();
         }
     }
     

@@ -2,25 +2,39 @@ using TerraFX.Interop.Vulkan;
 
 namespace rin.Framework.Graphics.FrameGraph;
 
-public struct ImageResourceDescriptor : IResourceDescriptor, IEquatable<ImageResourceDescriptor>
+public class ImageResourceDescriptor : IResourceDescriptor
 {
 
-    public required uint Width;
-    public required uint Height;
-    public required ImageFormat Format;
-    public required VkImageUsageFlags Flags;
-    public required ImageLayout InitialLayout;
+    public readonly uint Width;
+    public readonly uint Height;
+    public readonly ImageFormat Format;
+    public readonly VkImageUsageFlags Flags;
+    public readonly ImageLayout InitialLayout;
 
-    public bool Equals(ImageResourceDescriptor other)
+    public ImageResourceDescriptor(uint width, uint height, ImageFormat format, VkImageUsageFlags flags,
+        ImageLayout initialLayout)
     {
-        return Width == other.Width && Height == other.Height && Format == other.Format && Flags == other.Flags && InitialLayout == other.InitialLayout;
+        Width = width;
+        Height = height;
+        Format = format;
+        Flags = flags;
+        InitialLayout = initialLayout;
     }
 
-    public override bool Equals(object? obj)
-    {
-        return obj is ImageResourceDescriptor other && Equals(other);
-    }
-
+    // public bool Equals(ImageResourceDescriptor? other)
+    // {
+    //     return Width == other.Width && Height == other.Height && Format == other.Format && Flags == other.Flags && InitialLayout == other.InitialLayout;
+    // }
+    //
+    // public override bool Equals(object? obj)
+    // {
+    //     return obj is ImageResourceDescriptor other && Equals(other);
+    // }
+    //
+    // public override int GetHashCode()
+    // {
+    //     return HashCode.Combine(Width, Height, (int)Format, (int)Flags, (int)InitialLayout);
+    //}
     public override int GetHashCode()
     {
         return HashCode.Combine(Width, Height, (int)Format, (int)Flags, (int)InitialLayout);

@@ -8,6 +8,4 @@ public class PassInfo
     public List<UtilityCommand> PreCommands = [];
     public List<FinalDrawCommand> Commands = [];
     public List<UtilityCommand> PostCommands = [];
-    public List<Action<IGraphBuilder>> GraphBuilders = [];
-    public List<Action<IPass,IGraphConfig>> GraphConfigs = [];
 }

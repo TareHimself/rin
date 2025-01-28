@@ -5,19 +5,19 @@ namespace rin.Framework.Core;
 public class NativeBuffer<T>(int elements) : IDisposable
     where T : unmanaged
 {
-    private readonly IntPtr _ptr = Marshal.AllocHGlobal((Marshal.SizeOf<T>()) * elements);
+    private readonly IntPtr _ptr = Marshal.AllocHGlobal((int)Utils.ByteSizeOf<T>(elements));
 
     public unsafe T* GetData()
     {
         return (T*)(_ptr);
     }
     
-    public unsafe IntPtr GetPtr()
+    public IntPtr GetPtr()
     {
         return _ptr;
     }
 
-    public int GetElements() => elements;
+    public int GetElementsCount() => elements;
     
     public int GetByteSize() => elements * Marshal.SizeOf<T>();
     
@@ -25,7 +25,7 @@ public class NativeBuffer<T>(int elements) : IDisposable
     {
         unsafe
         {
-            return new Span<T>(buff.GetPtr().ToPointer(), buff.GetElements());
+            return new Span<T>(buff.GetPtr().ToPointer(), buff.GetElementsCount());
         }
     }
 

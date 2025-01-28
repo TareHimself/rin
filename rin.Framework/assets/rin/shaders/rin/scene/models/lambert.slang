@@ -1,30 +1,20 @@
 import rin.scene.light;
 #define PI 3.142
-struct LambertSurface : ILightSurface {
-    float3 color;
-    float3 location;
-    float3 normal;
+interface ILambertSurface : ILightSurface {
+    float3 getColor();
+    float3 getLocation();
+    float3 getNormal();
 };
 
 struct LambertModel : ILightModel {
 
-    typedef LambertSurface Surface;
+    typedef ILambertSurface Surface;
 
-    float3 eval(Surface surface, float3 eye,Light light) {
-        var L = light.direction;
+    float3 eval(Surface surface, float3 eye, ILight light) {
+        var L = -getLightDirectionToLocation(light, surface.getLocation());
 
-        switch(light.type){
-            case LightType.Point:
-                L = normalize(surface.location - light.location);
-                break;
-            default:
-            break;
-        }
-
-        L = -L;
-
-        var NoL = max(0.0f,dot(surface.normal,L));
+        var NoL = max(0.0f,dot(surface.getNormal(),L));
         
-        return surface.color / PI * light.radiance * light.color * NoL;
+        return surface.getColor() / PI * light.getRadiance() * light.getColor() * NoL;
     }
 }

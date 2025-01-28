@@ -53,23 +53,14 @@ struct DisneyModel : ILightModel {
         return F_in * F_out;
     }
 
-    float3 eval(Surface surface, float3 eye, Light light) {
-        float3 L = light.direction;
-        switch(light.type){
-            case LightType.Point:
-                L = normalize(surface.location - light.location);
-                break;
-            default:
-            break;
-        }
-
-        L = -L;
-
+    float3 eval(Surface surface, float3 eye, ILight light) {
+        float3 L = -getLightDirectionToLocation(light,surface.location);
+    
         float3 N = surface.normal;
 
         float3 radiance = rgb2lin(float3(surface.emissive));
 
-        float irradiance = max(dot(L,N), 0.0) * light.radiance;
+        float irradiance = max(dot(L,N), 0.0) * light.getRadiance();
 
         if (irradiance > 0.0) { // if receives light
             float3 V = normalize(eye - surface.location);

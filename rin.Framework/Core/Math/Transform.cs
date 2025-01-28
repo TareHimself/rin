@@ -56,4 +56,11 @@ public partial struct Transform() : ICloneable<Transform>
             Scale = Scale.Clone()
         };
     }
+    
+    public void Deconstruct(out Vec3<float> location, out Rotator rotation, out Vec3<float> scale)
+    {
+        location = Location;
+        rotation = Rotation;
+        scale = Scale;
+    }
 }

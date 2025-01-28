@@ -8,7 +8,7 @@ namespace rin.Framework.Views.Content;
 /// </summary>
 public class Canvas : ContentView
 {
-    public required Action<Canvas,Mat3, DrawCommands> Paint { get; init; }
+    public required Action<Canvas,Mat3, PassCommands> Paint { get; init; }
     protected override Vec2<float> ComputeDesiredContentSize() => 0.0f;
 
     protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
@@ -16,8 +16,8 @@ public class Canvas : ContentView
         return availableSpace;
     }
 
-    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, PassCommands commands)
     {
-        Paint.Invoke(this,transform,drawCommands);
+        Paint.Invoke(this,transform,commands);
     }
 }

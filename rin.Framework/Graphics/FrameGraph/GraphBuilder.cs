@@ -29,6 +29,7 @@ public class GraphBuilder : IGraphBuilder
     }
     public uint AddPass(IPass pass)
     {
+        pass.BeforeAdd(this);
         var passId = MakeId();
         pass.Id = passId;
         _passes.Add(passId,pass);
@@ -46,7 +47,7 @@ public class GraphBuilder : IGraphBuilder
         return config;
     }
     
-    public ICompiledGraph? Compile(IImagePool imagePool,Frame frame)
+    public ICompiledGraph? Compile(IResourcePool resourcePool,Frame frame)
     {
         var config = Configure();
         
@@ -71,7 +72,8 @@ public class GraphBuilder : IGraphBuilder
             var node = new CompiledGraphNode()
             {
                 Pass = _passes[passId],
-                Dependencies = []
+                Dependencies = [],
+                MemoryRequired = 0
             };
             
             foreach (var dependency in config.PassDependencies[passId])
@@ -149,6 +151,12 @@ public class GraphBuilder : IGraphBuilder
                         else
                         {
                             resources.Add(dependency.Id);
+                            {
+                                if (config.Resources[dependency.Id] is BufferResourceDescriptor asBufferDescriptor)
+                                {
+                                    node.MemoryRequired += asBufferDescriptor.Size;
+                                }
+                            }
                         }
                     }
                         break;
@@ -162,7 +170,7 @@ public class GraphBuilder : IGraphBuilder
             visited.Add(passId);
         }
         
-        return new CompiledGraph(imagePool,frame,resources.ToDictionary((id) => id,(id) => config.Resources[id]), nodes.ToArray());
+        return new CompiledGraph(resourcePool,frame,resources.ToDictionary((id) => id,(id) => config.Resources[id]), nodes.ToArray());
     }
 
     public void Reset()

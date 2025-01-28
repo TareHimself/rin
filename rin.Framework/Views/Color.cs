@@ -31,6 +31,11 @@ public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOp
     {
         return new Vec4<float>(color.R, color.G, color.B, color.A);
     }
+    
+    public static implicit operator Vec3<float>(Color color)
+    {
+        return new Vec3<float>(color.R, color.G, color.B);
+    }
 
     public static Color FromHtml(string hexCode)
     {

@@ -9,6 +9,7 @@ public abstract class Factory<TValue,TKey,TInternalKey> : Disposable where TInte
     
     public virtual TValue Get(TKey key)
     {
+        
         var internalKey = ToInternalKey(key);
         if (!_data.ContainsKey(internalKey))
         {

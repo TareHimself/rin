@@ -49,9 +49,9 @@ public class AsyncWebCover : CoverImage
         });
     }
 
-    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, PassCommands commands)
     {
-        base.CollectContent(transform, drawCommands);
-        drawCommands.AddRect(transform, GetContentSize(), Color.Black.Clone(a: 0.5f),BorderRadius);
+        base.CollectContent(transform, commands);
+        commands.AddRect(transform, GetContentSize(), Color.Black.Clone(a: 0.5f),BorderRadius);
     }
 }

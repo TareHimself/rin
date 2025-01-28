@@ -16,7 +16,7 @@ public class AudioVisualizer : ContentView
         throw new NotImplementedException();
     }
 
-    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         throw new NotImplementedException();
     }

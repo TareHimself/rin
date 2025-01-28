@@ -13,8 +13,11 @@ public class Scene : ITickable
     private readonly List<ISystem> _tickableSystems = [];
     private readonly Dictionary<string, Actor> _actors = [];
     private IPhysicsSystem? _physicsSystem;
-    private System.Timers.Timer? _physicsTimer;
-    public float PhysicsUpdateInterval { get; set; } = 1.0f / 60.0f;
+    //private System.Timers.Timer? _physicsTimer;
+
+    private float _remainingPhysicsTime = 0.0f;
+
+    [PublicAPI] public float PhysicsUpdateInterval { get; set; } = 0.01f;//1.0f / 60.0f;
     [PublicAPI]
     public bool Active { get; protected set; }
     
@@ -29,21 +32,21 @@ public class Scene : ITickable
         if(Active) return;
         Active = true;
         _physicsSystem = CreatePhysicsSystem();
-        _physicsTimer = new System.Timers.Timer(PhysicsUpdateInterval);
-        _physicsTimer.Elapsed += (_,__) => _physicsSystem.Update(PhysicsUpdateInterval);
+        // _physicsTimer = new System.Timers.Timer(PhysicsUpdateInterval);
+        // _physicsTimer.Elapsed += (_,__) => _physicsSystem.Update(PhysicsUpdateInterval);
         foreach (var actor in GetActors())
         {
             actor.Start();
         }
         _physicsSystem.Start();
-        _physicsTimer.Start();
+        // _physicsTimer.Start();
     }
     
     public void Stop()
     {
         if(!Active) return;
         Active = false;
-        _physicsTimer?.Stop();
+        //_physicsTimer?.Stop();
         foreach (var actor in GetActors())
         {
             actor.Stop();
@@ -83,7 +86,13 @@ public class Scene : ITickable
     public void Update(double delta)
     {
         if(!Active) return;
-        
+        _remainingPhysicsTime += (float)delta;
+        while (_remainingPhysicsTime > PhysicsUpdateInterval)
+        {
+            _physicsSystem?.Update(PhysicsUpdateInterval);
+            _remainingPhysicsTime -= PhysicsUpdateInterval;
+        }
+        //_physicsSystem?.Update(delta);
         foreach (var actor in GetActors())
         {
             if(!actor.Active) continue;

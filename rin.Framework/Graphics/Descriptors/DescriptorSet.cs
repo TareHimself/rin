@@ -29,7 +29,7 @@ public class DescriptorSet : Disposable
     {
         return type switch
         {
-            ImageType.Texture => VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            ImageType.Sampled => VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             ImageType.Storage => VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
@@ -108,7 +108,7 @@ public class DescriptorSet : Disposable
         //
         var infos = writes.Select(write => new VkDescriptorBufferInfo
         {
-            buffer = write.View.NativeBuffer,
+            buffer = write.Buffer.NativeBuffer,
             offset = (ulong)write.Offset,
             range = (ulong)write.Size
         }).ToArray();

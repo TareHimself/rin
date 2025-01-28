@@ -114,9 +114,9 @@ public class ScrollList : List
         }
     }
 
-    public override void Collect(Mat3 transform, Views.Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
     {
-        base.Collect(transform,clip, drawCommands);
+        base.Collect(transform,clip, passCommands);
         if (IsVisible && IsScrollable())
         {
             var scroll = GetScroll();
@@ -131,7 +131,7 @@ public class ScrollList : List
             var size = GetContentSize();
 
             var barTransform = transform.Translate(new Vec2<float>(size.X - 10.0f, drawOffset));
-            drawCommands.AddRect(barTransform, new Vec2<float>(10.0f, barSize), color: Color.White, borderRadius: 7.0f);
+            passCommands.AddRect(barTransform, new Vec2<float>(10.0f, barSize), color: Color.White, borderRadius: 7.0f);
         }
     }
 

@@ -43,26 +43,16 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
             : VkImageUsageFlags.VK_IMAGE_USAGE_STORAGE_BIT | VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         
         flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT | VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT;
-        var descriptor = new ImageResourceDescriptor()
-        {
-            Width = width,
-            Height = height,
-            Format = format,
-            Flags = flags,
-            InitialLayout = initialLayout
-        };
+        var descriptor = new ImageResourceDescriptor(width,height,format,flags,initialLayout);
         var resourceId = builder.MakeId();
         Resources.Add(resourceId,descriptor);
         Write(resourceId);
         return resourceId;
     }
 
-    public uint AllocateBuffer(int size)
+    public uint AllocateBuffer(ulong size)
     {
-        var descriptor = new MemoryResourceDescriptor()
-        {
-            Size = size
-        };
+        var descriptor = new BufferResourceDescriptor(size);
         var resourceId = builder.MakeId();
         // _memory.Add(resourceId, descriptor);
         Resources.Add(resourceId,descriptor);
@@ -146,6 +136,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint DependOn(uint passId)
     {
+        if (passId == 0) throw new Exception();
         {
             var dep = new Dependency()
             {

@@ -17,23 +17,23 @@ public interface IMaterial
     /// </summary>
     /// <param name="depth"></param>
     /// <returns></returns>
-    public int GetRequiredMemory(bool depth);
+    public ulong GetRequiredMemory(bool depth = false);
 
     /// <summary>
     /// Draw this material. <see cref="meshes"/> all use the same index buffer, the same surface and the same material
     /// </summary>
-    /// <param name="depth"></param>
     /// <param name="frame"></param>
     /// <param name="data">A buffer containing the data written by all instances of this material, will be size of <see cref="GetRequiredMemory"/> * <see cref="meshes"/></param>
     /// <param name="meshes">The meshes to draw</param>
-    public void Execute(bool depth, SceneFrame frame, IDeviceBuffer? data, GeometryInfo[] meshes);
+    /// <param name="depth"></param>
+    public void Execute(SceneFrame frame, IDeviceBufferView? data, GeometryInfo[] meshes, bool depth = false);
 
     /// <summary>
     /// Write to the <see cref="IDeviceBuffer"/> that will be the size returned from <see cref="GetRequiredMemory"/>
     /// </summary>
-    /// <param name="depth"></param>
     /// <param name="view"></param>
     /// <param name="mesh">The mesh this write is for</param>
-    public void Write(bool depth, IDeviceBuffer view, GeometryInfo mesh);
+    /// <param name="depth"></param>
+    public void Write(IDeviceBufferView view, GeometryInfo mesh, bool depth = false);
     
 }

@@ -312,6 +312,12 @@ public static class VulkanExtensions
         return cmd;
     }
     
+    public static VkCommandBuffer DepthWrite(this VkCommandBuffer cmd,bool state)
+    {
+        vkCmdSetDepthWriteEnable(cmd,(uint)(state ? 1 : 0));
+        return cmd;
+    }
+    
     public static VkCommandBuffer EnableDepthTest(this VkCommandBuffer cmd,bool depthWriteEnable,VkCompareOp compareOp)
     {
         vkCmdSetDepthTestEnable(cmd,1);
@@ -735,10 +741,10 @@ public static class VulkanExtensions
     /// <param name="from"></param>
     /// <param name="to"></param>
     /// <param name="options"></param>
-    public static void ImageBarrier(this VkCommandBuffer cmd, IDeviceImage image, ImageLayout from,
+    public static VkCommandBuffer ImageBarrier(this VkCommandBuffer cmd, IDeviceImage image, ImageLayout from,
         ImageLayout to, ImageBarrierOptions? options = null)
     {
-        ImageBarrier(cmd, image.NativeImage, from, to, options);
+        return ImageBarrier(cmd, image.NativeImage, from, to, options);
     }
     
     /// <summary>
@@ -752,6 +758,7 @@ public static class VulkanExtensions
     public static VkCommandBuffer ImageBarrier(this VkCommandBuffer cmd, VkImage image, ImageLayout from,
         ImageLayout to, ImageBarrierOptions? options = null)
     {
+        
         var opts = options.GetValueOrDefault(new ImageBarrierOptions());
         var barrier = new VkImageMemoryBarrier2
         {
@@ -765,7 +772,7 @@ public static class VulkanExtensions
             subresourceRange = opts.SubresourceRange,
             image = image
         };
-
+        
         unsafe
         {
             var depInfo = new VkDependencyInfo

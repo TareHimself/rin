@@ -21,10 +21,10 @@ public class ProgressBar(Func<float> getProgress) : ContentView
 
     protected override Vec2<float> ComputeDesiredContentSize() => new Vec2<float>();
 
-    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         var size = GetContentSize();
-        drawCommands.AddRect(transform, size,color: BackgroundColor, borderRadius: BorderRadius);
-        drawCommands.AddRect(transform, size * new Vec2<float>(Math.Clamp(getProgress(),0.0f,1.0f),1.0f),color: ForegroundColor, borderRadius: BorderRadius);
+        commands.AddRect(transform, size,color: BackgroundColor, borderRadius: BorderRadius);
+        commands.AddRect(transform, size * new Vec2<float>(Math.Clamp(getProgress(),0.0f,1.0f),1.0f),color: ForegroundColor, borderRadius: BorderRadius);
     }
 }

@@ -1,10 +1,13 @@
-﻿namespace rin.Framework.Core;
+﻿using JetBrains.Annotations;
+
+namespace rin.Framework.Core;
 
 public abstract class Disposable : IDisposable
 {
-    public bool Disposed { get; set; }
+    [PublicAPI]
+    public bool Disposed { get; private set; }
 
-    public string DisposeId { get; } = Guid.NewGuid().ToString();
+    //public string DisposeId { get; } = Guid.NewGuid().ToString();
     //public string DisposableId { get; private set; } = 
 
     public void Dispose()

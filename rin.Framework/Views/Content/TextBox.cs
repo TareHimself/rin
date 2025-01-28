@@ -208,7 +208,7 @@ public class TextBox : ContentView
         return new Vec2<float>(last?.Right ?? 0.0f, height);
     }
     
-    public override void CollectContent(Mat3 transform, DrawCommands drawCommands)
+    public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         if (!FontReady) return;
         if (Content.NotEmpty() && _cachedLayouts == null)
@@ -246,12 +246,12 @@ public class TextBox : ContentView
                 quads.Add(Quad.Sdf(layout.Atlas,transform * layout.Transform,layout.Size,Color.White,layout.UV));
             }
 
-            drawCommands.Add(new QuadDrawCommand(quads));
+            commands.Add(new QuadDrawCommand(quads));
             _cachedLayouts = layouts.ToArray();
         }
         else if(_cachedLayouts != null)
         {
-            drawCommands.Add(new QuadDrawCommand(_cachedLayouts.Select(c => Quad.Sdf(c.Atlas,transform * c.Transform,c.Size,Color.White,c.UV))));
+            commands.Add(new QuadDrawCommand(_cachedLayouts.Select(c => Quad.Sdf(c.Atlas,transform * c.Transform,c.Size,Color.White,c.UV))));
         }
     }
 }

@@ -155,4 +155,12 @@ public struct Vec4<T> :
     {
         return new Vec4<T>(data);
     }
+    
+    public void Deconstruct(out T x, out T y, out T z,out T w)
+    {
+        x = X;
+        y = Y;
+        z = Z;
+        w = W;
+    }
 }

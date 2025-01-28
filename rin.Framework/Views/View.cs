@@ -376,8 +376,8 @@ public abstract partial class View : Disposable, IAnimatable
     /// </summary>
     /// <param name="transform"></param>
     /// <param name="clip"></param>
-    /// <param name="drawCommands"></param>
-    public abstract void Collect(Mat3 transform, Rect clip, DrawCommands drawCommands);
+    /// <param name="passCommands"></param>
+    public abstract void Collect(Mat3 transform, Rect clip, PassCommands passCommands);
 
 
     public virtual bool TryUpdateDesiredSize()

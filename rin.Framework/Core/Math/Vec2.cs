@@ -201,6 +201,12 @@ IVec<Vec2<T>,T>, IEquatable<Vec2<T>> where T : notnull, IComparisonOperators<T,T
     {
         return left.X <= right.X && left.Y <= right.Y;
     }
+    
+    public void Deconstruct(out T x, out T y)
+    {
+        x = X;
+        y = Y;
+    }
 }
 
 /*

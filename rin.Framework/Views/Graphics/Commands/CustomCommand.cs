@@ -1,4 +1,6 @@
-﻿using rin.Framework.Graphics;
+﻿using JetBrains.Annotations;
+using rin.Framework.Graphics;
+using rin.Framework.Graphics.FrameGraph;
 
 namespace rin.Framework.Views.Graphics.Commands;
 
@@ -7,7 +9,7 @@ namespace rin.Framework.Views.Graphics.Commands;
 /// </summary>
 public abstract class CustomCommand : Command
 {
-    public abstract void Run(ViewsFrame frame, uint stencilMask, IDeviceBuffer? buffer = null);
+    public abstract void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null);
 
     /// <summary>
     /// Does this command plan to draw anything ?
@@ -15,7 +17,7 @@ public abstract class CustomCommand : Command
     /// <returns></returns>
     public virtual bool WillDraw => false;
 
-    public virtual int MemoryNeeded => 0;
+    public virtual ulong MemoryNeeded => 0;
     
     public virtual bool CombineWith(CustomCommand other) => false;
 }

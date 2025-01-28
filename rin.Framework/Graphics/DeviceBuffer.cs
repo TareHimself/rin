@@ -16,7 +16,7 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
     /// <summary>
     ///     GPU Buffer
     /// </summary>
-    public DeviceBuffer(VkBuffer inBuffer, int inSize, Allocator allocator, IntPtr allocation, string name) : base(allocator,
+    public DeviceBuffer(VkBuffer inBuffer, ulong inSize, Allocator allocator, IntPtr allocation, string name) : base(allocator,
         allocation)
     {
         NativeBuffer = inBuffer;
@@ -35,8 +35,8 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
         Allocator.FreeBuffer(this);
     }
 
-    public int Offset => 0;
-    public int Size { get; }
+    public ulong Offset => 0;
+    public ulong Size { get; }
 
     public VkBuffer NativeBuffer { get; }
 
@@ -57,13 +57,13 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
         return _address.Value;
     }
 
-    public IDeviceBuffer GetView(int offset, int size)
+    public IDeviceBufferView GetView(ulong offset, ulong size)
     {
         return new DeviceBufferView(this, offset, size);
     }
 
-    public unsafe void Write(void* src, int size, int offset = 0)
+    public unsafe void Write(void* src, ulong size, ulong offset = 0)
     {
-        NativeMethods.CopyToBuffer(Allocator, Allocation.ToPointer(), src, (ulong)size, (ulong)offset);
+        NativeMethods.CopyToBuffer(Allocator, Allocation.ToPointer(), src,size,offset);
     }
 }

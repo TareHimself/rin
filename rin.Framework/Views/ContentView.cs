@@ -10,10 +10,10 @@ public abstract class ContentView : View
     /// Collect Draw commands from this view while accounting for padding offsets
     /// </summary>
     /// <param name="transform"></param>
-    /// <param name="drawCommands"></param>
-    public abstract void CollectContent(Mat3 transform,DrawCommands drawCommands);
+    /// <param name="commands"></param>
+    public abstract void CollectContent(Mat3 transform,PassCommands commands);
 
-    public override void Collect(Mat3 transform, Rect clip, DrawCommands drawCommands)
+    public override void Collect(Mat3 transform, Rect clip, PassCommands passCommands)
     {
         ((IAnimatable)this).Update();
         
@@ -22,6 +22,6 @@ public abstract class ContentView : View
             return;
         }
         
-        CollectContent(transform.Translate(new Vec2<float>(Padding.Left,Padding.Top)), drawCommands);
+        CollectContent(transform.Translate(new Vec2<float>(Padding.Left,Padding.Top)), passCommands);
     }
 }

@@ -6,20 +6,22 @@ namespace rin.Framework.Graphics.FrameGraph;
 
 public class CompiledGraph : ICompiledGraph
 {
-    private readonly IImagePool _imagePool;
-    private readonly Dictionary<uint, IGraphResource> _resources = [];
+    private readonly IResourcePool _resourcePool;
+    private readonly Dictionary<uint, IDeviceImage> _images = [];
+    private readonly Dictionary<uint, IDeviceBufferView> _buffers = [];
     private readonly Dictionary<uint, IResourceDescriptor> _descriptors;
     private readonly ICompiledGraphNode[] _nodes;
     private readonly IDeviceBuffer? _buffer = null;
-    private int _bufferOffset = 0;
+    private ulong _bufferOffset = 0;
     private readonly Frame _frame;
-    public CompiledGraph(IImagePool imagePool,Frame frame,Dictionary<uint, IResourceDescriptor> descriptors, ICompiledGraphNode[] nodes)
+    private readonly Dictionary<uint,IPass> _passes;
+    public CompiledGraph(IResourcePool resourcePool,Frame frame,Dictionary<uint, IResourceDescriptor> descriptors, ICompiledGraphNode[] nodes)
     {
-        _imagePool = imagePool;
+        _resourcePool = resourcePool;
         _frame = frame;
-        var memoryNeeded = descriptors.Values.Aggregate(0, (total, descriptor) =>
+        var memoryNeeded = descriptors.Values.Aggregate((ulong)0, (total, descriptor) =>
         {
-            if (descriptor is MemoryResourceDescriptor asMemoryDescriptor)
+            if (descriptor is BufferResourceDescriptor asMemoryDescriptor)
             {
                 return total + asMemoryDescriptor.Size;
             }
@@ -29,52 +31,64 @@ public class CompiledGraph : ICompiledGraph
 
         if (SRuntime.Get().IsModuleLoaded<SGraphicsModule>() && memoryNeeded > 0)
         {
-            _buffer = SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
+            _buffer = resourcePool.CreateBuffer(new BufferResourceDescriptor(memoryNeeded), frame);// SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
         }
         
         _descriptors = descriptors;
         
         _nodes = nodes;
+        _passes = _nodes.ToDictionary((c) => c.Pass.Id, (c) => c.Pass);
     }
     
     public void Dispose()
     {
-        foreach (var (_,resource) in _resources)
+        foreach (var (_,resource) in _images)
         {
             resource.Dispose();
             //if(resource is not DeviceImage) resource.Dispose();
         }
+        _images.Clear();
+        _buffers.Clear();
         _buffer?.Dispose();
     }
+    
 
-    public IGraphResource GetResource(uint handle)
+    public IDeviceImage GetImage(uint id)
     {
         {
-            if (_resources.TryGetValue(handle, out var resource)) return resource;
+            if (_images.TryGetValue(id, out var resource)) return resource;
         }
 
-        if (!_descriptors.TryGetValue(handle, out var descriptor)) throw new Exception("Unknown resource handle");
+        if (_descriptors.TryGetValue(id, out var descriptor) && descriptor is ImageResourceDescriptor asImageResourceDescriptor)
+        {
+            var image = _resourcePool.CreateImage(asImageResourceDescriptor,_frame);
+            _images.Add(id,image);
+            return image;
+        }
+        
+        throw new ResourceAllocationException(id);
+    }
 
+    public IDeviceBufferView GetBuffer(uint id)
+    {
         {
-            if (_buffer != null && descriptor is MemoryResourceDescriptor asMemoryDescriptor)
-            {
-                var view = _buffer.GetView(_bufferOffset, asMemoryDescriptor.Size);
-                _bufferOffset += view.Size;
-                _resources.Add(handle,view);
-                return view;
-            }
+            if (_buffers.TryGetValue(id, out var resource)) return resource;
+        }
+
+        if (_buffer != null && _descriptors.TryGetValue(id, out var descriptor) && descriptor is BufferResourceDescriptor asMemoryDescriptor)
+        {
+            var view = _buffer.GetView(_bufferOffset, asMemoryDescriptor.Size);
+            _bufferOffset += view.Size;
+            _buffers.Add(id,view);
+            return view;
         }
         
-        {
-            if (descriptor is ImageResourceDescriptor asImageResourceDescriptor)
-            {
-                var image = _imagePool.CreateImage(asImageResourceDescriptor,_frame);
-                _resources.Add(handle,image);
-                return image;
-            }
-        }
-        
-        throw new Exception("Failed To Allocate Resource");
+        throw new ResourceAllocationException(id);
+    }
+
+    public IPass GetPass(uint id)
+    {
+        return _passes[id];
     }
 
     public void Execute(Frame frame)

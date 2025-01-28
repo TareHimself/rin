@@ -118,43 +118,13 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
         Mat4 r = new();
         NativeMethods.NativeQuatToMatrix4(ref r, ref quat);
         return r;
-
-        // float qxx = quat.X * quat.X,
-        //     qyy = quat.Y * quat.Y,
-        //     qzz = quat.Z * quat.Z,
-        //     qxz = quat.X * quat.Z,
-        //     qxy = quat.X * quat.Y,
-        //     qyz = quat.Y * quat.Z,
-        //     qwx = quat.W * quat.X,
-        //     qwy = quat.W * quat.Y,
-        //     qwz = quat.W * quat.Z;
-        //
-        //
-        // return DenseMatrix.OfColumns([
-        //     [
-        //         1.0f - 2.0f * (qyy + qzz),
-        //         2.0f * (qxy + qwz),
-        //         2.0f * (qxz - qwy),
-        //         0.0f
-        //     ],
-        //     [
-        //         2.0f * (qxy - qwz),
-        //         1.0f - 2.0f * (qxx + qzz),
-        //         2.0f * (qyz + qwx),
-        //         0.0f
-        //     ],
-        //     [
-        //         2.0f * (qxz + qwy),
-        //         2.0f * (qyz - qwy),
-        //         1.0f - 2.0f * (qxx + qyy),
-        //         0.0f
-        //     ],
-        //     [
-        //         0.0f,
-        //         0.0f,
-        //         0.0f,
-        //         1.0f,
-        //     ]
-        // ]);
+    }
+    
+    public void Deconstruct(out float x, out float y, out float z,out float w)
+    {
+        x = X;
+        y = Y;
+        z = Z;
+        w = W;
     }
 }

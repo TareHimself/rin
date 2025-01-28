@@ -170,9 +170,16 @@ EXPORT_IMPL Blob* slangComponentGetEntryPointCode(const Component* component, in
     
     Slang::ComPtr<slang::IBlob> diagnostics;
     
-    component->component->getEntryPointCode(entryPointIndex,targetIndex,code.writeRef(),diagnostics.writeRef());
-    
-    if(outDiagnostics)
+    try
+    {
+        component->component->getEntryPointCode(entryPointIndex, targetIndex, code.writeRef(), diagnostics.writeRef());
+    }
+    catch (std::exception& e)
+    {
+        std::cout << "EXCEPTION: " << e.what() << std::endl;
+    }
+
+    if(outDiagnostics != nullptr)
     {
         outDiagnostics->blob = diagnostics;
     }
