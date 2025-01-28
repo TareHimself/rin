@@ -94,7 +94,7 @@ public class ReflectionData
         /// <summary>
         /// FIX THIS ONCE SLANG MAKES A NEW RELEASE https://github.com/shader-slang/slang/pull/5927
         /// </summary>
-        [JsonPropertyName("stage:")]
+        [JsonPropertyName("stage")]
         public string Stage { get; set; } = string.Empty;
         
         [JsonPropertyName("parameters")]

@@ -605,8 +605,9 @@ public static class VulkanExtensions
             {
                 fixed (VkShaderEXT* pShaders = shaders)
                 {
-                    
-                    if (NativeMethods.vkCreateShadersEXT(device, (uint)createInfos.Length,pCreateInfos, null, pShaders) !=
+                    var result = NativeMethods.vkCreateShadersEXT(device, (uint)createInfos.Length, pCreateInfos, null,
+                        pShaders);
+                    if (result !=
                         VkResult.VK_SUCCESS)
                     {
                         throw new Exception("Failed to compile shader");         

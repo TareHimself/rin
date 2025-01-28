@@ -282,6 +282,7 @@ public class SlangGraphicsShader : IGraphicsShader
 
                         foreach (var (stage, blob) in code)
                         {
+                            var shaderSize = blob.GetSize();
                             var createInfo = new VkShaderCreateInfoEXT()
                             {
                                 sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
