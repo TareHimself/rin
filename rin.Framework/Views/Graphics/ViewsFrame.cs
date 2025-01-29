@@ -4,7 +4,7 @@ using rin.Framework.Graphics;
 
 namespace rin.Framework.Views.Graphics;
 
-[StructLayout(LayoutKind.Sequential)]
+
 public struct SimpleRectPush
 {
     public Mat3 Transform;

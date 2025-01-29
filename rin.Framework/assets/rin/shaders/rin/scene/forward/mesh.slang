@@ -7,16 +7,76 @@ import rin.textures;
 import rin.scene.light;
 import rin.scene.models.pbr;
 
+// public Mat4 Transform = Mat4.Identity;
+// public ulong VertexAddress = 0;
+// private Vec4<float> _color_textureId = 0.0f;
+// public int NormalTextureId = 0;
+// private Vec4<float> _msre = 0.0f;
+// private Vec4<int> _msreTextureId = 0;
 struct PerMeshData {
-    float4x4 transform;
     Vertex *vertices;
-    int baseColorTextureId;
-    float4 baseColor;
+    float4x4 transform;
+    float4 color_textureId;
     int normalTextureId;
-    float metallic;
-    float specular;
-    float roughness;
-    float emissive;
+    // Metallic Specular Roughness Emissive
+    float4 MSRE;
+    // Metallic Specular Roughness Emissive Texture Ids
+    int4 msreTextureId;
+    
+    float3 getColor(float2 uv) {
+        int id = (int)color_textureId.a;
+        float3 value = color_textureId.rgb;
+
+        if (id > 0) {
+            value = sampleTexture(id, uv).rgb;
+        }
+
+        return value;
+    }
+
+    float getMetallic(float2 uv) {
+        int id = msreTextureId.x;
+        float value = MSRE.x;
+
+        if (id > 0) {
+            value = sampleTexture(id, uv).x;
+        }
+
+        return value;
+    }
+
+    float getSpecular(float2 uv) {
+        int id = msreTextureId.y;
+        float value = MSRE.y;
+
+        if (id > 0) {
+            value = sampleTexture(id, uv).y;
+        }
+
+        return value;
+    }
+
+    float getRoughness(float2 uv) {
+        int id = msreTextureId.z;
+        float value = MSRE.z;
+
+        if (id > 0) {
+            value = sampleTexture(id, uv).z;
+        }
+
+        return value;
+    }
+
+    float getEmissive(float2 uv) {
+        int id = msreTextureId.w;
+        float value = MSRE.w;
+
+        if (id > 0) {
+            value = sampleTexture(id, uv).w;
+        }
+
+        return value;
+    }
 };
 
 struct PushConstants {
@@ -57,6 +117,7 @@ VertexOut vertex(VertexIn input) {
     output.sceneNormal = transpose(inverse(instanceData.transform)) * float4(vertex.normal.xyz, 1.0);
     output.sceneLocation = instanceData.transform * float4(vertex.location.xyz, 1.0);
     output.position = push.scene->projection * push.scene->view * instanceData.transform * float4(vertex.location.xyz, 1.0);
+    output.instanceId = input.instanceId;
     return output;
 }
 
@@ -65,8 +126,6 @@ float4 fragment(FragmentIn input) : SV_Target
 {
     
     var instanceData = push.data[input.instanceId];
-    var texColor = sampleTexture(0, input.uv);
-
     var eye = (push.scene->view * float4(float3(0.0f), 1.0f)).xyz;
 
     PBRModel model;
@@ -75,11 +134,11 @@ float4 fragment(FragmentIn input) : SV_Target
 
     surface.location = input.sceneLocation.xyz;
     surface.normal = normalize(input.sceneNormal.xyz);
-    surface.color = texColor.xyz;
-    surface.roughness = instanceData.roughness;
-    surface.metallic = instanceData.metallic;
-    surface.specular = instanceData.specular;
-    surface.emissive = instanceData.emissive;
+    surface.color = instanceData.getColor(input.uv);
+    surface.roughness = instanceData.getRoughness(input.uv);
+    surface.metallic = instanceData.getMetallic(input.uv);
+    surface.specular = instanceData.getSpecular(input.uv);
+    surface.emissive = instanceData.getEmissive(input.uv);
 
     float3 color = float3(surface.emissive);
 

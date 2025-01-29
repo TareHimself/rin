@@ -3,14 +3,14 @@ using System.Runtime.InteropServices;
 
 namespace rin.Framework.Core.Math;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
+
 public partial struct Transform() : ICloneable<Transform>
 {
     public Vec3<float> Location = new(0.0f);
     public Rotator Rotation = new (0.0f);
     public Vec3<float> Scale = new(1.0f);
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    
     public struct NativeTransform
     {
         public Vec3<float> Location;

@@ -11,30 +11,8 @@ namespace rin.Framework.Graphics;
 /// </summary>
 public partial class Allocator : Disposable
 {
-    class WeakReferenceComparer<T> : IEqualityComparer<WeakReference<T>> where T : class
-    {
-        public bool Equals(WeakReference<T>? x, WeakReference<T>? y)
-        {
-            T? a = null;
-            T? b = null;
-            x?.TryGetTarget(out a);
-            y?.TryGetTarget(out b);
-            return a == b;
-        }
-
-        public int GetHashCode(WeakReference<T> obj)
-        {
-            obj.TryGetTarget(out var a);
-            return a?.GetHashCode() ?? 0;
-        }
-    }
- 
     private readonly IntPtr _allocator;
     private readonly SGraphicsModule _module;
-
-    private HashSet<IDeviceBuffer> _allocatedBuffers = [];
-
-    private HashSet<IDeviceImage> _allocatedImages = [];
 
     public Allocator(SGraphicsModule module)
     {
@@ -71,7 +49,6 @@ public partial class Allocator : Disposable
                 preferHost ? 1 : 0,
                 (int)usageFlags, (int)propertyFlags, mapped ? 1 : 0, debugName);
             var result = new DeviceBuffer(buffer, size, this, (IntPtr)allocation, debugName);
-            _allocatedBuffers.Add(result);
             return result;
         }
     }
@@ -90,7 +67,6 @@ public partial class Allocator : Disposable
             var result = new DeviceImage(image, new VkImageView(), imageCreateInfo.extent,
                 imageCreateInfo.format.FromVk(), this,
                 (IntPtr)allocation, debugName);
-            _allocatedImages.Add(result);
             return result;
         }
     }
@@ -100,7 +76,6 @@ public partial class Allocator : Disposable
     /// </summary>
     public void FreeBuffer(DeviceBuffer buffer)
     {
-        _allocatedBuffers.Remove(buffer);
         NativeMethods.FreeBuffer(buffer.NativeBuffer, buffer.Allocation, _allocator);
     }
 
@@ -111,7 +86,6 @@ public partial class Allocator : Disposable
     {
         unsafe
         {
-            _allocatedImages.Remove(image);
             vkDestroyImageView(_module.GetDevice(), image.NativeView, null);
             NativeMethods.FreeImage(image.NativeImage, image.Allocation, _allocator);
         }

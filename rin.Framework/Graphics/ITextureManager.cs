@@ -7,8 +7,9 @@ namespace rin.Framework.Graphics;
 public interface ITextureManager : IDisposable
 {
     public DescriptorSet GetDescriptorSet();
-
-    public Task<int> CreateTexture(NativeBuffer<byte> data, VkExtent3D size, ImageFormat format,
+    
+        
+    public Task<int> CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mipMapped = false, string debugName = "Texture");
 

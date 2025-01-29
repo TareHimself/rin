@@ -31,7 +31,9 @@ public class CompiledGraph : ICompiledGraph
 
         if (SRuntime.Get().IsModuleLoaded<SGraphicsModule>() && memoryNeeded > 0)
         {
-            _buffer = resourcePool.CreateBuffer(new BufferResourceDescriptor(memoryNeeded), frame);// SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
+            var pooledView =  resourcePool.CreateBuffer(new BufferResourceDescriptor(memoryNeeded), frame);
+            //var validatedBuffer = new DeviceBufferWriteValidator(pooledView);
+            _buffer = pooledView; // SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
         }
         
         _descriptors = descriptors;

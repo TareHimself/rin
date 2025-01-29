@@ -2,7 +2,7 @@
 
 namespace rin.Framework.Graphics.Windows;
 
-[StructLayout(LayoutKind.Sequential)]
+
 public struct CreateOptions()
 {
     /// <summary>

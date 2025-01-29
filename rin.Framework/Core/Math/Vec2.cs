@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 
 namespace rin.Framework.Core.Math;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
 public struct Vec2<T>(T inX, T inY) : ICloneable<Vec2<T>>,
     IAdditionOperators<Vec2<T>, Vec2<T>, Vec2<T>>,
     IAdditionOperators<Vec2<T>, T, Vec2<T>>,

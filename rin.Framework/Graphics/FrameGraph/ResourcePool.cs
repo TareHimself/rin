@@ -98,7 +98,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
 
         public virtual void CheckExpiredProxies(ulong frameId, ulong numFramesInFlight)
         {
-            foreach (var containers in ContainerPool.Values)
+            ContainerPool.RemoveWhere((_, containers) =>
             {
                 containers.RemoveWhere((container) =>
                 {
@@ -115,7 +115,9 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
 
                     return false;
                 });
-            }
+                
+                return containers.Count == 0;
+            });
         }
 
         public void Dispose()
@@ -144,11 +146,10 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
     {
         protected override ResourceContainer<IDeviceImage> CreateNew(ImageResourceDescriptor input, Frame frame, int key, ulong frameId)
         {
-            var image = SGraphicsModule.Get().CreateImage(new VkExtent3D()
+            var image = SGraphicsModule.Get().CreateImage(new Extent3D()
             {
-                width = input.Width,
-                height = input.Height,
-                depth = 1
+                Width = input.Width,
+                Height = input.Height,
             },input.Format,input.Flags,debugName: "Frame Graph Image");
             return new ResourceContainer<IDeviceImage>(image);
         }
@@ -196,7 +197,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
             return items
                 .Where(item => item.Key >= key &&  item.Key - key < MaxBufferReuseDelta)
                 .SelectMany(c => c.Value)
-                .FirstOrDefault(c => !c.Uses.Contains(frame));
+                .FirstOrDefault(c => c.Uses.Empty());
         }
     }
 

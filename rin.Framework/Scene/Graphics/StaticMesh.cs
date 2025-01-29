@@ -51,7 +51,7 @@ public class StaticMesh : Reservable, IStaticMesh
     }
 
     // UV in last values of each i.e. U = Location.W, V = Normal.W
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    
     public struct Vertex
     {
         /// <summary>

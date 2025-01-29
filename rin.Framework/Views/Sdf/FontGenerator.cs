@@ -115,11 +115,10 @@ public class FontGenerator(FontFamily family)
         var atlasIds = atlases.Select((c, idx) =>
         {
             using var buffer = c.ToBuffer();
-            return resourceManager.CreateTexture(buffer, new VkExtent3D()
+            return resourceManager.CreateTexture(buffer, new Extent3D()
                 {
-                    width = (uint)c.Width,
-                    height = (uint)c.Height,
-                    depth = 1
+                    Width = (uint)c.Width,
+                    Height = (uint)c.Height,
                 }, ImageFormat.RGBA8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}");
         }).WaitAll().ToArray();
         return new Font(_family,atlasIds,atlasGlyphs);

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace rin.Framework.Core.Math;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
+
 public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Mat3>,
     IMultiplyOperators<Mat3, Vec3<float>, Vec3<float>>
 {

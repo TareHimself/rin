@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace rin.Framework.Core.Math;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
+
 public partial struct Quat(float inX, float inY, float inZ, float inW)
     : ICloneable<Quat>,
         IMultiplyOperators<Quat, Quat, Quat>,

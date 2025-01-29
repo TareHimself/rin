@@ -2,6 +2,7 @@
 using rin.Framework.Core.Extensions;
 using rin.Framework.Graphics.Descriptors;
 using rin.Framework.Views;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -75,11 +76,10 @@ public class TextureManager : ITextureManager
         var tex = _textures[0];
         tex.Image = await SGraphicsModule.Get().CreateImage(
             buffer,
-            new VkExtent3D
+            new Extent3D
             {
-                width = (uint)imgData.Width,
-                height = (uint)imgData.Height,
-                depth = 1
+                Width = (uint)imgData.Width,
+                Height = (uint)imgData.Height,
             },
             ImageFormat.RGBA8,
             VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -114,7 +114,8 @@ public class TextureManager : ITextureManager
 
     public DescriptorSet GetDescriptorSet() => _descriptorSet;
 
-    public async Task<int> CreateTexture(NativeBuffer<byte> data, VkExtent3D size, ImageFormat format,
+    
+    public async Task<int> CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mipMapped = false, string debugName = "Texture")
     {
@@ -123,7 +124,6 @@ public class TextureManager : ITextureManager
             VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped, filter, debugName);
 
         var boundText = new Texture(0,image, filter, tiling, mipMapped, debugName);
-
         
        lock (_mutex)
         {

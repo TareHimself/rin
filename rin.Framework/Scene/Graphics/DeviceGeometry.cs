@@ -3,7 +3,7 @@ using rin.Framework.Graphics;
 
 namespace rin.Framework.Scene.Graphics;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
+
 public struct DeviceGeometry : IDisposable
 {
     public IDeviceBuffer IndexBuffer;

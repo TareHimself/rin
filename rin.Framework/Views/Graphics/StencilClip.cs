@@ -3,7 +3,7 @@
 namespace rin.Framework.Views.Graphics;
 using System.Runtime.InteropServices;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
+
 public partial struct StencilClip(
     
     Vec2<float> size,

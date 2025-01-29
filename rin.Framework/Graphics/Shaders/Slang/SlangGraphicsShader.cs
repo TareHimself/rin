@@ -55,18 +55,18 @@ public class SlangGraphicsShader : IGraphicsShader
         {
             return false;
         }
-        
+
         cmd.BindShaders(_shaders);
 
         if (!_hasFragment || !_hasVertex)
         {
             List<VkShaderStageFlags> toUnbind = [];
-            
+
             if (!_hasFragment)
             {
                 toUnbind.Add(VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT);
             }
-            
+
             if (!_hasVertex)
             {
                 toUnbind.Add(VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT);
@@ -130,7 +130,7 @@ public class SlangGraphicsShader : IGraphicsShader
 
                 var reflectionData = JsonSerializer.Deserialize<ReflectionData>(jsonString);
 
-                 if (reflectionData == null) throw new ShaderCompileException("Failed to parse reflection data.");
+                if (reflectionData == null) throw new ShaderCompileException("Failed to parse reflection data.");
 
                 var entryPointStage = reflectionData.EntryPoints.FirstOrDefault()?.Stage == "vertex"
                     ? VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT

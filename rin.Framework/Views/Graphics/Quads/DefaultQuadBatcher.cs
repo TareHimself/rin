@@ -12,7 +12,7 @@ namespace rin.Framework.Views.Graphics.Quads;
 [ViewsBatcher]
 public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    
     private partial struct Push
     {
         public Mat4 Projection;

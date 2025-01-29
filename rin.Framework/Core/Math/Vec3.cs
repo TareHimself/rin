@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 
 namespace rin.Framework.Core.Math;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
 public struct Vec3<T>(T inX, T inY, T inZ) :
     IAdditionOperators<Vec3<T>, Vec3<T>, Vec3<T>>,
     IAdditionOperators<Vec3<T>, T, Vec3<T>>,

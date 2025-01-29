@@ -49,7 +49,7 @@ internal class SetupRenderingCommand(CameraComponent camera,Vec2<uint> size) : U
 }
 internal class DisplaySceneCommand(ForwardRenderingPass renderingPass,Vec2<float> size, Mat3 transform) : CustomCommand
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    
     struct PushConstant
     {
         public Mat4 Projection;

@@ -16,12 +16,42 @@ using rin.Framework.Views.Content;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Layouts;
 using SceneTest.entities;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SceneTest;
 
 [Module(typeof(SSceneModule), typeof(SViewsModule)),AlwaysLoad]
 public class SSceneTestModule : IModule
 {
+
+    public static async Task<int> LoadTexture(string path)
+    {
+        using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(path);
+        using var buffer = imgData.ToBuffer();
+        return await SGraphicsModule.Get().GetTextureManager().CreateTexture(buffer,
+            new Extent3D
+            {
+                Width = (uint)imgData.Width,
+                Height = (uint)imgData.Height,
+            },
+            ImageFormat.RGBA8);
+    }
+    public static async Task<DefaultMaterial> LoadGoldMaterial()
+    {
+        var albedo = LoadTexture(Path.Join(SRuntime.AssetsDirectory, "textures", "au_albedo.png"));
+        var roughness = LoadTexture(Path.Join(SRuntime.AssetsDirectory, "textures", "au_roughness.png"));
+        var metallic = LoadTexture(Path.Join(SRuntime.AssetsDirectory, "textures", "au_metallic.png"));
+        var normal = LoadTexture(Path.Join(SRuntime.AssetsDirectory, "textures", "au_normal.png"));
+
+
+        await Task.WhenAll(albedo,roughness,metallic,normal);
+        return new DefaultMaterial()
+        {
+            ColorTextureId = albedo.Result,
+            RoughnessTextureId = roughness.Result,
+            MetallicTextureId = metallic.Result
+        };
+    }
     Task<StaticMesh> CreatePlane(float size = 0.0f)
     {
         var halfSize = size * 0.5f;
@@ -116,16 +146,16 @@ public class SSceneTestModule : IModule
                 scene.AddPointLight(new Vec3<float>(0.0f, 20.0f, 0.0f));
                     
                 scene.AddPointLight(new Vec3<float>(0.0f, -20.0f, 0.0f));
-                // var directionalLight = scene.AddActor(new Actor()
-                // {
-                //     RootComponent = new DirectionalLightComponent()
-                //     {
-                //         Radiance = 10.0f,
-                //         Location = new Vec3<float>(0.0f, 200.0f, 0.0f),
-                //     }
-                // });
-                //
-                // directionalLight.SetRelativeRotation(Rotator.LookAt(directionalLight.GetRelativeLocation(),new Vec3<float>(0.0f),Vec3<float>.Up));
+                var directionalLight = scene.AddActor(new Actor()
+                {
+                    RootComponent = new DirectionalLightComponent()
+                    {
+                        Radiance = 10.0f,
+                        Location = new Vec3<float>(0.0f, 200.0f, 0.0f),
+                    }
+                });
+                
+                directionalLight.SetRelativeRotation(Rotator.LookAt(directionalLight.GetRelativeLocation(),new Vec3<float>(0.0f),Vec3<float>.Up));
                 //
                 var dist = 50.0f;
                 var height = 50.0f;
@@ -170,7 +200,11 @@ public class SSceneTestModule : IModule
                 scene.AddActor(e1);
                 scene.AddActor(e2);
                 scene.AddActor(e3);
-                
+
+                LoadGoldMaterial().After((material) =>
+                {
+                    sm.Materials = ((StaticMeshComponent)e2.RootComponent).Materials = ((StaticMeshComponent)e1.RootComponent).Materials = [material];
+                });
                 runtime.OnUpdate += (delta) =>
                 {
                     

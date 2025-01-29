@@ -57,6 +57,21 @@ public static class VulkanExtensions
             _ => throw new ArgumentOutOfRangeException()
         };
     }
+    
+    [PublicAPI]
+    public static VkExtent3D ToVk(this Extent3D extent) => new VkExtent3D()
+    {
+        width = extent.Width,
+        height = extent.Height,
+        depth = extent.Dimensions
+    };
+    
+    [PublicAPI]
+    public static VkExtent2D ToVk(this Extent2D extent) => new VkExtent2D()
+    {
+        width = extent.Width,
+        height = extent.Height
+    };
 
     [PublicAPI]
     public static VkFilter ToVk(this ImageFilter filter)

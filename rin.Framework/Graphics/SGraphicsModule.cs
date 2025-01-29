@@ -7,6 +7,7 @@ using rin.Framework.Graphics.Shaders;
 using rin.Framework.Graphics.Windows;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Graphics.Shaders.Slang;
+using SixLabors.ImageSharp;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -445,14 +446,14 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         };
     }
 
-    public static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, VkExtent3D size, VkImageUsageFlags usage)
+    public static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, Extent3D size, VkImageUsageFlags usage)
     {
         return new VkImageCreateInfo
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             imageType = VkImageType.VK_IMAGE_TYPE_2D,
             format = format.ToVk(),
-            extent = size,
+            extent = size.ToVk(),
             mipLevels = 1,
             arrayLayers = 1,
             samples = VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT,
@@ -499,9 +500,9 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         };
     }
 
-    private static uint DeriveMipLevels(VkExtent2D extent)
+    private static uint DeriveMipLevels(Extent2D extent)
     {
-        return (uint)(System.Math.Floor(System.Math.Log2(System.Math.Max(extent.width, extent.height))) + 1);
+        return (uint)(System.Math.Floor(System.Math.Log2(System.Math.Max(extent.Width, extent.Height))) + 1);
     }
 
     /// <summary>
@@ -553,17 +554,13 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         return NewUniformBuffer(Core.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
     }
 
-    public IDeviceImage CreateImage(VkExtent3D size, ImageFormat format, VkImageUsageFlags usage, bool mipMap = false,
+    public IDeviceImage CreateImage(Extent3D size, ImageFormat format, VkImageUsageFlags usage, bool mipMap = false,
         string debugName = "Image")
     {
         var imageCreateInfo = MakeImageCreateInfo(format, size, usage);
         
         if (mipMap)
-            imageCreateInfo.mipLevels = DeriveMipLevels(new VkExtent2D
-            {
-                width = size.width,
-                height = size.height
-            });
+            imageCreateInfo.mipLevels = DeriveMipLevels(size);
 
         var newImage = GetAllocator().NewDeviceImage(imageCreateInfo, debugName);
 
@@ -707,15 +704,15 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         }
     }
 
-    private static void GenerateMipMaps(VkCommandBuffer cmd, IDeviceImage image, VkExtent2D size, ImageFilter filter,ImageLayout srcLayout,ImageLayout dstLayout)
+    private static void GenerateMipMaps(VkCommandBuffer cmd, IDeviceImage image, Extent2D size, ImageFilter filter,ImageLayout srcLayout,ImageLayout dstLayout)
     {
         var mipLevels = DeriveMipLevels(size);
         var curSize = size;
         for (var mip = 0; mip < mipLevels; mip++)
         {
             var halfSize = curSize;
-            halfSize.width /= 2;
-            halfSize.height /= 2;
+            halfSize.Width /= 2;
+            halfSize.Height /= 2;
             cmd.ImageBarrier(image, srcLayout,
                 ImageLayout.TransferSrc, new ImageBarrierOptions
                 {
@@ -752,15 +749,15 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
                 blitRegion.srcOffsets[1] = new VkOffset3D
                 {
-                    x = (int)curSize.width,
-                    y = (int)curSize.height,
+                    x = (int)curSize.Width,
+                    y = (int)curSize.Height,
                     z = 1
                 };
 
                 blitRegion.dstOffsets[1] = new VkOffset3D
                 {
-                    x = (int)halfSize.width,
-                    y = (int)halfSize.height,
+                    x = (int)halfSize.Width,
+                    y = (int)halfSize.Height,
                     z = 1
                 };
 
@@ -802,15 +799,17 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     /// <param name="debugName"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<IDeviceImage> CreateImage(NativeBuffer<byte> content, VkExtent3D size, ImageFormat format,
+    public async Task<IDeviceImage> CreateImage(NativeBuffer<byte> content, Extent3D size, ImageFormat format,
         VkImageUsageFlags usage,
         bool mips = false, ImageFilter mipMapFilter = ImageFilter.Linear,
         string debugName = "Image")
     {
         if (_allocator == null) throw new Exception("Allocator is null");
 
-        var dataSize = size.depth * size.width * size.height * 4;
-
+        var dataSize = size.Width * size.Height * format.PixelByteSize(); //size.depth * size.width * size.height * 4;
+        var contentSize = (ulong)content.GetByteSize();
+        if(dataSize != contentSize) throw new Exception("computed data size is not equal to content size");
+        
         var uploadBuffer = NewTransferBuffer(dataSize);
         uploadBuffer.Write(content);
 
@@ -834,7 +833,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                     baseArrayLayer = 0,
                     layerCount = 1
                 },
-                imageExtent = size
+                imageExtent = size.ToVk()
             };
 
             cmd.CopyBufferToImage(uploadBuffer, newImage, [copyRegion]);
@@ -849,11 +848,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         {
             await GraphicsSubmit(cmd =>
             {
-                GenerateMipMaps(cmd, newImage, new VkExtent2D
-                {
-                    width = size.width,
-                    height = size.height
-                }, mipMapFilter,ImageLayout.TransferDst,ImageLayout.ShaderReadOnly);
+                GenerateMipMaps(cmd, newImage,size, mipMapFilter,ImageLayout.TransferDst,ImageLayout.ShaderReadOnly);
             });
         }
         

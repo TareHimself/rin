@@ -6,7 +6,7 @@ namespace rin.Framework.Scene.Graphics;
 /// <summary>
 /// Packed info about a light in the scene
 /// </summary>
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
+
 public struct LightInfo
 {
     // float4 locationRadius;

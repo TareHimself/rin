@@ -4,7 +4,7 @@ using rin.Framework.Core.Math;
 
 namespace rin.Framework.Views.Graphics.Quads;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
+
 public partial struct Quad(Mat3 transform, Vec2<float> size) : ICloneable<Quad>
 {
     public enum RenderMode

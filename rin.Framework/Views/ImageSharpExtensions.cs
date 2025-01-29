@@ -7,6 +7,7 @@ namespace rin.Framework.Views;
 
 public static class ImageSharpExtensions
 {
+    
     public static byte[] ToBytes<TPixel>(this Image<TPixel> image) where TPixel : unmanaged, IPixel<TPixel>
     {
         byte[] pixelBytes = new byte[image.Width * image.Height * Unsafe.SizeOf<Rgba32>()];
@@ -23,4 +24,5 @@ public static class ImageSharpExtensions
         }
         return nativeBuffer;
     }
+
 }

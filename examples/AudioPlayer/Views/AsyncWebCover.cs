@@ -29,11 +29,10 @@ public class AsyncWebCover : CoverImage
             using var img = await ImageSharpImage.LoadAsync<Rgba32>(stream);
             using var imgData = img.ToBuffer();
             await SGraphicsModule.Get().GetTextureManager().CreateTexture(imgData,
-                new VkExtent3D
+                new Extent3D
                 {
-                    width = (uint)img.Width,
-                    height = (uint)img.Height,
-                    depth = 1
+                    Width = (uint)img.Width,
+                    Height = (uint)img.Height
                 },
                 ImageFormat.RGBA8).Then(c => TextureId = c);
         }

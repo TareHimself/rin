@@ -9,7 +9,7 @@ using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace rin.Framework.Views.Graphics.Commands;
 
-[StructLayout(LayoutKind.Sequential)]
+
 public struct BlurPushConstants
 {
     public required Mat4 Projection;

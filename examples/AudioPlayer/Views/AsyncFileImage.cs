@@ -32,11 +32,10 @@ public class AsyncFileImage : CoverImage
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(filePath);
         using var buffer = imgData.ToBuffer();
         await SGraphicsModule.Get().GetTextureManager().CreateTexture(buffer,
-            new VkExtent3D
+            new Extent3D
             {
-                width = (uint)imgData.Width,
-                height = (uint)imgData.Height,
-                depth = 1
+                Width = (uint)imgData.Width,
+                Height = (uint)imgData.Height
             },
             ImageFormat.RGBA8).Then(c => TextureId = c);
     }

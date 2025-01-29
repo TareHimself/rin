@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 
 namespace rin.Framework.Core.Math;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
+
 public partial struct Rotator(float inYaw, float inPitch, float inRoll)
     : ICloneable<Rotator>
 {
