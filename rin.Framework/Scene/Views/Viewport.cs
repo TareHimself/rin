@@ -214,6 +214,8 @@ public class Viewport : ContentView
             .Add(renderingCmd)
         .Add(new DisplaySceneCommand(renderingCmd.RenderPass,contentSize,transform));
     }
+    
+    
 
     protected virtual void OnMouseDelta(Vec2<float> delta)
     {

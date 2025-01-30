@@ -8,9 +8,8 @@ using rin.Framework.Views.Events;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
 using SixLabors.ImageSharp.PixelFormats;
-using TerraFX.Interop.Vulkan;
 
-namespace AudioPlayer.Views;
+namespace rin.Examples.Common.Views;
 
 public class AsyncFileImage : CoverImage
 {
@@ -35,7 +34,7 @@ public class AsyncFileImage : CoverImage
             new Extent3D
             {
                 Width = (uint)imgData.Width,
-                Height = (uint)imgData.Height
+                Height = (uint)imgData.Height,
             },
             ImageFormat.RGBA8).Then(c => TextureId = c);
     }

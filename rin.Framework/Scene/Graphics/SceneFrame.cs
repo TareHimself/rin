@@ -10,7 +10,7 @@ public class SceneFrame(Frame frame,Mat4 view,Mat4 projection,IDeviceBufferView 
     public Mat4 View => view;
     public Mat4 Projection => projection;
     
-    public Mat4 ViewProjection => projection * view;
+    public Mat4 ViewProjection { get; } = projection * view;
 
     public Frame Frame => frame;
 

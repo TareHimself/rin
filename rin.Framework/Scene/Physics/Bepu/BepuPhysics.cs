@@ -256,7 +256,7 @@ public class BepuPhysics : IPhysicsSystem
             return AllowTest(collidable);
         }
 
-        public void OnRayHit(in RayData ray, ref float maximumT, float t, in Vector3 normal, CollidableReference collidable,
+        public void OnRayHit(in RayData ray, ref float maximumT, float t, Vector3 normal, CollidableReference collidable,
             int childIndex)
         {
             Result = new RayCastResult

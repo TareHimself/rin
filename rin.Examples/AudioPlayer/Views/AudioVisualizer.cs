@@ -2,7 +2,7 @@
 using rin.Framework.Views;
 using rin.Framework.Views.Graphics;
 
-namespace AudioPlayer.Views;
+namespace rin.Examples.AudioPlayer.Views;
 
 public class AudioVisualizer : ContentView
 {

@@ -1,12 +1,9 @@
-﻿
-using rin.Framework.Core;
+﻿using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Views;
-using rin.Framework.Views.Animation;
-using rin.Framework.Views.Events;
 using rin.Framework.Views.Graphics;
 
-namespace ViewsTest;
+namespace rin.Examples.ViewsTest;
 
 public class PrettyView : ContentView
 {

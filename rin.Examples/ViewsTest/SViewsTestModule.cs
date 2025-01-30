@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using rin.Examples.Common.Views;
 using rin.Framework.Core;
 using rin.Framework.Core.Animation;
 using rin.Framework.Core.Extensions;
@@ -17,7 +16,7 @@ using rin.Framework.Views.Layouts;
 using Rect = rin.Framework.Views.Composite.Rect;
 using Utils = rin.Framework.Graphics.Utils;
 
-namespace ViewsTest;
+namespace rin.Examples.ViewsTest;
 
 [Module(typeof(SViewsModule)),AlwaysLoad]
 public class SViewsTestModule : IModule

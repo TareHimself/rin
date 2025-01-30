@@ -20,5 +20,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\rin.Framework\rin.Framework.csproj" />
+      <ProjectReference Include="..\Common\rin.Examples.Common.csproj" />
     </ItemGroup>
 </Project>

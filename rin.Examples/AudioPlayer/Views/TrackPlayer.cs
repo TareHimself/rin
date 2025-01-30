@@ -11,7 +11,7 @@ using rin.Framework.Views.Layouts;
 using Rect = rin.Framework.Views.Rect;
 
 
-namespace AudioPlayer.Views;
+namespace rin.Examples.AudioPlayer.Views;
 
 public class TrackPlayer : Overlay
 {
@@ -152,7 +152,7 @@ public class TrackPlayer : Overlay
             Console.WriteLine($"Using thumb {thumb} for {_nameText.Content}");
             _backgroundContainer.Add(new PanelSlot
             {
-                Child = new AsyncWebCover(thumb)
+                Child = new TrackImage(thumb)
                 {
                     BorderRadius = 20.0f
                 },
@@ -165,7 +165,7 @@ public class TrackPlayer : Overlay
             Console.WriteLine(e);
             _backgroundContainer.Add(new PanelSlot
             {
-                Child = new AsyncWebCover("https://i.imgur.com/5fQUPDl.jpg")
+                Child = new TrackImage("https://i.imgur.com/5fQUPDl.jpg")
                 {
                     BorderRadius = 20.0f
                 },

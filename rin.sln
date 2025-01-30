@@ -9,11 +9,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "rin.Editor", "examples\rin.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "rin.Scene", "rin.Scene\rin.Scene.csproj", "{8D4B9623-7DCB-4FA7-B1ED-00E53E9543A5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ViewsTest", "examples\ViewsTest\ViewsTest.csproj", "{515D3A8F-AA58-4533-B73C-03CC30D42BBB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Examples.ViewsTest", "rin.Examples\ViewsTest\rin.Examples.ViewsTest.csproj", "{515D3A8F-AA58-4533-B73C-03CC30D42BBB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SceneTest", "examples\SceneTest\SceneTest.csproj", "{8E6B0876-04C6-4D79-B39F-293090B4802D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Examples.SceneTest", "rin.Examples\SceneTest\rin.Examples.SceneTest.csproj", "{8E6B0876-04C6-4D79-B39F-293090B4802D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AudioPlayer", "examples\AudioPlayer\AudioPlayer.csproj", "{E294D3AB-725E-4456-8794-55A4D115F841}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Examples.AudioPlayer", "rin.Examples\AudioPlayer\rin.Examples.AudioPlayer.csproj", "{E294D3AB-725E-4456-8794-55A4D115F841}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Examples.Common", "rin.Examples\Common\rin.Examples.Common.csproj", "{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -97,6 +99,18 @@ Global
 		{E294D3AB-725E-4456-8794-55A4D115F841}.Release|x64.Build.0 = Release|Any CPU
 		{E294D3AB-725E-4456-8794-55A4D115F841}.Release|x86.ActiveCfg = Release|Any CPU
 		{E294D3AB-725E-4456-8794-55A4D115F841}.Release|x86.Build.0 = Release|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Debug|x64.Build.0 = Debug|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Debug|x86.Build.0 = Debug|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Release|x64.ActiveCfg = Release|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Release|x64.Build.0 = Release|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Release|x86.ActiveCfg = Release|Any CPU
+		{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,5 +1,4 @@
 ﻿using rin.Framework.Core.Math;
-using rin.Framework.Scene;
 using rin.Framework.Scene.Actors;
 using rin.Framework.Scene.Components;
 using rin.Framework.Scene.Components.Lights;
@@ -7,7 +6,7 @@ using rin.Framework.Scene.Graphics;
 using SharpGLTF.Schema2;
 using Scene = rin.Framework.Scene.Scene;
 
-namespace SceneTest;
+namespace rin.Examples.SceneTest;
 
 public static class Extensions
 {

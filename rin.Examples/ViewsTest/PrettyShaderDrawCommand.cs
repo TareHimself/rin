@@ -1,6 +1,4 @@
-﻿using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
@@ -9,7 +7,7 @@ using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Commands;
 using Utils = rin.Framework.Core.Utils;
 
-namespace ViewsTest;
+namespace rin.Examples.ViewsTest;
 
 public class PrettyShaderDrawCommand(Mat3 transform,Vec2<float> size,bool hovered) : CustomCommand
 {

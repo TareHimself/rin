@@ -1,10 +1,10 @@
-﻿using rin.Framework.Scene;
+﻿using rin.Examples.SceneTest.entities;
+using rin.Framework.Scene;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Content;
 using rin.Framework.Views.Layouts;
-using SceneTest.entities;
 
-namespace SceneTest.Views;
+namespace rin.Examples.SceneTest.Views;
 
 public class MainPanel : Panel
 {

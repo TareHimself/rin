@@ -6,7 +6,7 @@ using rin.Framework.Views.Content;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Commands;
 
-namespace AudioPlayer.Views;
+namespace rin.Examples.ViewsTest;
 
 
 public class FpsView : TextBox
@@ -29,17 +29,19 @@ public class FpsView : TextBox
         {
             if (frame.Surface is WindowSurface asWindowSurface)
             {
+                
                 var renderer = asWindowSurface.GetRenderer();
                 view.Content = $"""
                                   STATS
                                   {frame.Surface.Stats.InitialCommandCount} Initial Commands
                                   {frame.Surface.Stats.FinalCommandCount} Final Commands
-                                  {frame.Surface.Stats.BatchedDrawCommandCount} Batch Commands
+                                  {frame.Surface.Stats.BatchedDrawCommandCount} Batches
                                   {frame.Surface.Stats.NonBatchedDrawCommandCount} Draws
                                   {frame.Surface.Stats.StencilWriteCount} Stencil Writes
                                   {frame.Surface.Stats.CustomCommandCount} Non Draws
                                   {frame.Surface.Stats.MemoryAllocatedBytes} Bytes Allocated
-                                  {(int)view._averageFps} FPS
+                                  {(int)view._averageFps} FPS (Average)
+                                  {renderer.LastDrawTime} Last Draw Time 
                                   {((1 / (float)view._averageFps) * 1000.0f).Round(2)}ms
                                   """;
             }
@@ -48,6 +50,8 @@ public class FpsView : TextBox
 
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
+        var a = SRuntime.Get().GetLastDeltaSeconds();
+        var b = 1.0 / a;
         _averageFps.Add((int)Math.Round((1.0 / SRuntime.Get().GetLastDeltaSeconds())));
         commands.Add(new GetStatsCommand(this));
         base.CollectContent(transform, commands);

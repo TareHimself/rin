@@ -1,6 +1,32 @@
-// Source https://media.disneyanimation.com/uploads/production/publication_asset/48/asset/s2012_pbs_disney_brdf_notes_v3.pdf
+// Source https://schuttejoe.github.io/post/disneybsdf/
 import rin.scene.light;
 import rin.utils;
+
+interface IDisneySurface : ILightSurface {
+    float3 getColor();
+    float3 getLocation();
+    float3 getNormal();
+    float getSheen();
+}
+
+float3 calculateTint(float3 baseColor)
+{
+    // -- The color tint is never mentioned in the SIGGRAPH presentations as far as I recall but it was done in
+    // --  the BRDF Explorer so I'll replicate that here.
+    float luminance = dot(float3(0.3f, 0.6f, 1.0f), baseColor);
+    return (luminance > 0.0f) ? baseColor * (1.0f / luminance) : float3(1.0f);
+}
+
+float3 evaluateSheen(IDisneySurface surface, float3 L, float3 H,float3 V)
+{
+    if (surface.getSheen() <= 0.0f) {
+        return float3(0.0f);
+    }
+
+    float dotHL = dot(H, L);
+    float3 tint = calculateTint(surface.getColor());
+    return surface.getSheen() * lerp(float3(1.0f), tint, surface.sheenTint) * Fresnel::SchlickWeight(dotHL);
+}
 
 #define RECIPROCAL_PI 0.3183098861837907
 #define RECIPROCAL_2PI 0.15915494309189535

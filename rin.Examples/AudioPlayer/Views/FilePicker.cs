@@ -7,7 +7,7 @@ using rin.Framework.Views.Content;
 using rin.Framework.Views.Events;
 using rin.Framework.Views.Graphics;
 
-namespace AudioPlayer.Views;
+namespace rin.Examples.AudioPlayer.Views;
 
 public class FilePicker : Button
 {

@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using LibVLCSharp.Shared;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
 
@@ -26,5 +27,10 @@ public class ProgressBar(Func<float> getProgress) : ContentView
         var size = GetContentSize();
         commands.AddRect(transform, size,color: BackgroundColor, borderRadius: BorderRadius);
         commands.AddRect(transform, size * new Vec2<float>(Math.Clamp(getProgress(),0.0f,1.0f),1.0f),color: ForegroundColor, borderRadius: BorderRadius);
+        // using var libvlc = new LibVLC(enableDebugLogs: true);
+        // using var media = new Media(libvlc, new Uri(@"C:\tmp\big_buck_bunny.mp4"));
+        // using var mediaplayer = new MediaPlayer(media);
+        //
+        // mediaplayer.Play();
     }
 }

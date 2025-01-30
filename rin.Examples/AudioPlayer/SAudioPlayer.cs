@@ -1,16 +1,17 @@
-﻿using AudioPlayer.Views;
-using rin.Framework.Views;
-using rin.Framework.Views.Composite;
+﻿using rin.Examples.AudioPlayer.Views;
+using rin.Examples.Common.Views;
 using rin.Framework.Audio;
 using rin.Framework.Core;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.Windows;
+using rin.Framework.Views;
+using rin.Framework.Views.Composite;
 using rin.Framework.Views.Layouts;
 using SpotifyExplode;
 using YoutubeExplode;
 using Utils = rin.Framework.Graphics.Utils;
 
-namespace AudioPlayer;
+namespace rin.Examples.AudioPlayer;
 
 [Module(typeof(SViewsModule), typeof(SAudioModule)),AlwaysLoad]
 public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>

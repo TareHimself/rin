@@ -7,26 +7,26 @@ using rin.Framework.Views.Content;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
 using SixLabors.ImageSharp.PixelFormats;
-using TerraFX.Interop.Vulkan;
-using ImageSharpImage = SixLabors.ImageSharp.Image;
-using Color = rin.Framework.Views.Color;
+using Image = SixLabors.ImageSharp.Image;
 
-namespace AudioPlayer.Views;
+namespace rin.Examples.Common.Views;
 
-public class AsyncWebCover : CoverImage
+public class AsyncWebImage : CoverImage
 {
-    public AsyncWebCover(string uri) : base()
+    public event Action<bool> OnLoaded;
+    
+    public AsyncWebImage(string uri) : base()
     {
         LoadFile(uri).ConfigureAwait(false);
     }
 
-    private async Task LoadFile(string uri)
+    protected async Task LoadFile(string uri)
     {
         try
         {
             using var client = new HttpClient();
             var stream = await client.GetStreamAsync(uri);
-            using var img = await ImageSharpImage.LoadAsync<Rgba32>(stream);
+            using var img = await Image.LoadAsync<Rgba32>(stream);
             using var imgData = img.ToBuffer();
             await SGraphicsModule.Get().GetTextureManager().CreateTexture(imgData,
                 new Extent3D
@@ -35,17 +35,12 @@ public class AsyncWebCover : CoverImage
                     Height = (uint)img.Height
                 },
                 ImageFormat.RGBA8).Then(c => TextureId = c);
+            OnLoaded?.Invoke(true);
         }
         catch (Exception e)
         {
-            
+            OnLoaded?.Invoke(false);
         }
-
-        Parent?.Parent?.Mutate(c =>
-        {
-            c.Visibility = Visibility.Visible;
-            c.PivotTo(new Vec2<float>(0.0f, 0.0f), 1.0f, easingFunction: EasingFunctions.EaseInExpo);
-        });
     }
 
     public override void CollectContent(Mat3 transform, PassCommands commands)

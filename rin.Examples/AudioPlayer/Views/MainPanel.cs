@@ -6,7 +6,7 @@ using rin.Framework.Views.Layouts;
 using Clip = rin.Framework.Views.Clip;
 using Rect = rin.Framework.Views.Composite.Rect;
 
-namespace AudioPlayer.Views;
+namespace rin.Examples.AudioPlayer.Views;
 
 public class MainPanel : Panel
 {

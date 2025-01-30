@@ -2,7 +2,7 @@
 using rin.Framework.Scene.Components;
 using rin.Framework.Scene.Components.Lights;
 
-namespace SceneTest.entities;
+namespace rin.Examples.SceneTest.entities;
 
 public class CameraActor : Actor
 {

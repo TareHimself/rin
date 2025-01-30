@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using System.Runtime.InteropServices;
+﻿using rin.Examples.SceneTest.entities;
 using rin.Framework.Core;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
@@ -13,12 +12,10 @@ using rin.Framework.Scene.Graphics;
 using rin.Framework.Views;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Content;
-using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Layouts;
-using SceneTest.entities;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SceneTest;
+namespace rin.Examples.SceneTest;
 
 [Module(typeof(SSceneModule), typeof(SViewsModule)),AlwaysLoad]
 public class SSceneTestModule : IModule

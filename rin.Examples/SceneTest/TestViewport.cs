@@ -1,12 +1,12 @@
-﻿using rin.Framework.Core;
+﻿using rin.Examples.SceneTest.entities;
+using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics.Windows;
 using rin.Framework.Scene.Views;
 using rin.Framework.Views.Content;
 using rin.Framework.Views.Events;
-using SceneTest.entities;
 
-namespace SceneTest;
+namespace rin.Examples.SceneTest;
 
 public class TestViewport : Viewport
 {

@@ -71,7 +71,7 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
 
         DepthSceneBufferId = config.AllocateBuffer<DepthSceneInfo>();
         var depthMaterialDataSize = OpaqueGeometry.Aggregate(Utils.ByteSizeOf<DepthSceneInfo>(),
-            (current, geometryDrawCommand) => current + geometryDrawCommand.Material.GetRequiredMemory(true));
+            (current, geometryDrawCommand) => current + geometryDrawCommand.Material.DepthPass.GetRequiredMemory());
         
         DepthMaterialBufferId = depthMaterialDataSize > 0 ? config.AllocateBuffer(depthMaterialDataSize) : 0;
     }
@@ -143,17 +143,15 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
         foreach (var geometryInfos in OpaqueGeometry.GroupBy(c => new
                  {
                      Type = c.Material.GetType(),
-                     c.Surface.StartIndex,
-                     c.Surface.Count,
                      c.Geometry.IndexBuffer,
                  }))
         {
             var infos = geometryInfos.ToArray();
             var first = infos.First();
-            var size = first.Material.GetRequiredMemory(true) * (ulong)infos.Length;
+            var size = first.Material.DepthPass.GetRequiredMemory() * (ulong)infos.Length;
             var view = materialDataBuffer?.GetView(materialDataBufferOffset, size);
             materialDataBufferOffset += size;
-            first.Material.Execute(sceneFrame, view, infos, true);
+            first.Material.DepthPass.Execute(sceneFrame, view, infos);
         }
 
         cmd.EndRendering();
