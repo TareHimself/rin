@@ -8,7 +8,7 @@ namespace rin.Framework.Core.Math;
 public partial struct Quat(float inX, float inY, float inZ, float inW)
     : ICloneable<Quat>,
         IMultiplyOperators<Quat, Quat, Quat>,
-        IMultiplyOperators<Quat, Vec3<float>, Vec3<float>>
+        IMultiplyOperators<Quat, Vector3, Vector3>
 {
     public float X = inX;
     public float Y = inY;
@@ -24,14 +24,14 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
 
     
 
-    public static Quat FromAngle(float angle, Vec3<float> axis)
+    public static Quat FromAngle(float angle, Vector3 axis)
     {
         var q = Zero;
         NativeMethods.NativeQuatFromAngle(ref q, angle, ref axis);
         return q;
     }
 
-    public static Quat FromAngleDeg(float angle, Vec3<float> axis)
+    public static Quat FromAngleDeg(float angle, Vector3 axis)
     {
         return FromAngle((float)(angle * System.Math.PI / 180.0f), axis);
     }
@@ -43,15 +43,15 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
 
     public static Quat Zero => new(0.0f);
 
-    public Vec3<float> Forward => this * Vec3<float>.Forward;
+    public Vector3 Forward => this * Constants.ForwardVector;
 
-    public Vec3<float> Right => this * Vec3<float>.Right;
+    public Vector3 Right => this * Constants.RightVector;
 
-    public Vec3<float> Up => this * Vec3<float>.Up;
+    public Vector3 Up => this * Constants.UpVector;
 
-    public static explicit operator Quat(Rotator rotator) => Quat.FromAngle(0,Vec3<float>.Forward).ApplyPitch(rotator.Pitch).ApplyYaw(rotator.Yaw).ApplyRoll(rotator.Roll);
+    public static explicit operator Quat(Rotator rotator) => Quat.FromAngle(0,Constants.ForwardVector).ApplyPitch(rotator.Pitch).ApplyYaw(rotator.Yaw).ApplyRoll(rotator.Roll);
     
-    public static Quat LookAt(Vec3<float> from,Vec3<float> to, Vec3<float> up)
+    public static Quat LookAt(Vector3 from,Vector3 to, Vector3 up)
     {
         var result = new Quat();
         NativeMethods.NativeQuatLookAt(ref result,ref from,ref to, ref up);
@@ -60,17 +60,17 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
     
     public Quat ApplyPitch(float delta)
     {
-        return this * FromAngleDeg(delta, Vec3<float>.Right);
+        return this * FromAngleDeg(delta, Constants.RightVector);
     }
 
     public Quat ApplyRoll(float delta)
     {
-        return this * FromAngleDeg(delta, Vec3<float>.Forward);
+        return this * FromAngleDeg(delta, Constants.ForwardVector);
     }
 
     public Quat ApplyYaw(float delta)
     {
-        return this * FromAngleDeg(delta, Vec3<float>.Up);
+        return this * FromAngleDeg(delta, Constants.UpVector);
     }
 
     public Quat ApplyLocalPitch(float delta)
@@ -101,9 +101,9 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
 
     
 
-    public static Vec3<float> operator *(Quat left, Vec3<float> right)
+    public static Vector3 operator *(Quat left, Vector3 right)
     {
-        Vec3<float> result = new(0.0f);
+        Vector3 result = new(0.0f);
         NativeMethods.NativeMultiplyQuatVector(ref result, ref left, ref right);
         // var qv = new Vector3<float>(left.X, left.Y, left.Z);
         // var uv = qv.Cross(right);

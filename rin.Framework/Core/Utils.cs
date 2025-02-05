@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace rin.Framework.Core;
@@ -29,4 +30,17 @@ public static class Utils
             return size * (ulong)count;
         }
     }
+
+    
+    /// <summary>
+    /// Performns no bounds checking, assumes sizeof(dest) >= sizeof(source)
+    /// </summary>
+    /// <param name="src"></param>
+    /// <typeparam name="TDest"></typeparam>
+    /// <typeparam name="TSource"></typeparam>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe TDest* Reinterpret<TDest, TSource>(TSource* src)
+        where TDest : unmanaged where TSource : unmanaged => (TDest*)src;
+
 }

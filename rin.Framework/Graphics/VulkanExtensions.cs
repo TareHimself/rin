@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using rin.Framework.Core;
@@ -114,7 +115,7 @@ public static class VulkanExtensions
     
     
     
-    public static VkCommandBuffer ClearColorImages(this VkCommandBuffer cmd,Vec4<float> clearColor,ImageLayout layout,params IDeviceImage[] images)
+    public static VkCommandBuffer ClearColorImages(this VkCommandBuffer cmd,Vector4 clearColor,ImageLayout layout,params IDeviceImage[] images)
     {
         unsafe
         {
@@ -246,7 +247,7 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer SetRenderArea(this VkCommandBuffer cmd, Vec4<float> rect) => cmd.SetViewports([
+    public static VkCommandBuffer SetRenderArea(this VkCommandBuffer cmd, Vector4 rect) => cmd.SetViewports([
         new VkViewport()
         {
             x = rect.X,
@@ -484,7 +485,7 @@ public static class VulkanExtensions
            colorBlendOp = VkBlendOp.VK_BLEND_OP_ADD,
            srcAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
            dstAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-           alphaBlendOp = VkBlendOp.VK_BLEND_OP_SUBTRACT
+           alphaBlendOp = VkBlendOp.VK_BLEND_OP_ADD
         }, VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
            VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
            VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
@@ -921,7 +922,7 @@ public static class VulkanExtensions
         width = self.X
     };
     
-    public static VkRenderingAttachmentInfo MakeColorAttachmentInfo(this IDeviceImage image,Vec4<float>? clearValue = null) => MakeAttachmentInfo(image,ImageLayout.ColorAttachment,clearValue.HasValue ? new VkClearValue()
+    public static VkRenderingAttachmentInfo MakeColorAttachmentInfo(this IDeviceImage image,Vector4? clearValue = null) => MakeAttachmentInfo(image,ImageLayout.ColorAttachment,clearValue.HasValue ? new VkClearValue()
     {
         color = SGraphicsModule.MakeClearColorValue(clearValue.Value)
     } : null);

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Numerics;
 using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
@@ -99,8 +100,8 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 
     public abstract void OnSlotUpdated(ISlot slot);
 
-    public abstract Vec2<float> Apply(Vec2<float> availableSpace);
-    public abstract Vec2<float> ComputeDesiredContentSize();
+    public abstract Vector2 Apply(Vector2 availableSpace);
+    public abstract Vector2 ComputeDesiredContentSize();
 
     public ISlot? FindSlot(View view)
     {

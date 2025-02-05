@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Layouts;
 
@@ -41,12 +42,12 @@ public class WrapList : MultiSlotCompositeView<ListSlot>
         Invalidate(InvalidationType.Layout);
     }
 
-    protected override Vec2<float> ComputeDesiredContentSize()
+    protected override Vector2 ComputeDesiredContentSize()
     {
         return _layout.ComputeDesiredContentSize();
     }
     
-    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
+    protected override Vector2 ArrangeContent(Vector2 availableSpace)
     {
         return _layout.Apply(availableSpace);
     }

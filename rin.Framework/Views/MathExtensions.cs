@@ -1,14 +1,15 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 
 namespace rin.Framework.Views;
 
 public static class MathExtensions
 {
-    public static Vec2<float> ApplyTransformation(this Vec2<float> src, Mat3 matrix)
+
+    public static Vector2 ApplyTransformation(this Vector2 src, Mat3 matrix)
     {
-        var vector3 = new Vec3<float>(src.X, src.Y, 1.0f);
+        var vector3 = new Vector3(src.X, src.Y, 1.0f);
         var res = matrix * vector3;
-        return new Vec2<float>(res.X, res.Y);
+        return new Vector2(res.X, res.Y);
     }
-    
 }

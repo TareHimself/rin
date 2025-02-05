@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
@@ -20,7 +21,7 @@ public abstract class Surface : Disposable
     private readonly List<View> _lastHovered = [];
     private readonly Root _rootView = new();
     private readonly SGraphicsModule _sGraphicsModule;
-    private Vec2<float>? _lastMousePosition;
+    private Vector2? _lastMousePosition;
     private CursorDownEvent? _lastCursorDownEvent;
 
     public FrameStats Stats { get; private set; } = new();
@@ -36,11 +37,11 @@ public abstract class Surface : Disposable
 
     public virtual void Init()
     {
-        _rootView.Offset = (0.0f);
-        _rootView.ComputeSize(GetDrawSize().Cast<float>());
+        _rootView.Offset = default;
+        _rootView.ComputeSize(GetDrawSize());
     }
 
-    public abstract Vec2<int> GetDrawSize();
+    public abstract Vector2 GetDrawSize();
 
 
     protected override void OnDispose(bool isManual)
@@ -69,7 +70,7 @@ public abstract class Surface : Disposable
 
     public virtual void ReceiveResize(ResizeEvent e)
     {
-        _rootView.ComputeSize(e.Size.Cast<float>());
+        _rootView.ComputeSize(e.Size.ToNumericsVector());
     }
 
 
@@ -108,11 +109,11 @@ public abstract class Surface : Disposable
                     height = drawExtent.height
                 }, [
                     frame.DrawImage.MakeColorAttachmentInfo(
-                        clearColor ? 0.0f : null)
+                        clearColor ? new Vector4(0.0f) : null)
                 ],
                 stencilAttachment: frame.StencilImage.MakeStencilAttachmentInfo(clearStencil ? 0 : null));
 
-            frame.Raw.ConfigureForViews(size.Cast<uint>());
+            frame.Raw.ConfigureForViews(size);
 
             if (clearStencil) ResetStencilState(cmd);
         });
@@ -254,7 +255,7 @@ public abstract class Surface : Disposable
         var rawDrawCommands = new PassCommands();
         _rootView.Collect(Mat3.Identity, new Rect()
         {
-            Size = GetDrawSize().Cast<float>()
+            Size = GetDrawSize()
         }, rawDrawCommands);
 
         var rawCommands = rawDrawCommands.Commands.OrderBy(c => c, new RawCommandComparer()).ToArray();
@@ -364,12 +365,16 @@ public abstract class Surface : Disposable
 
     public virtual void ReceiveCursorDown(CursorDownEvent e)
     {
-        var point = e.Position.Cast<float>();
+        var point = e.Position;
         if (_rootView.NotifyCursorDown(e, Mat3.Identity))
         {
             _lastCursorDownEvent = e;
         }
 
+        if (e.Target is { IsFocusable: true } target && FocusedView != target)
+        {
+            RequestFocus(target);
+        }
         //ClearFocus();
     }
 
@@ -390,7 +395,7 @@ public abstract class Surface : Disposable
         // Maybe leave this to the event handler in the future
         if (_lastCursorDownEvent is { } lastEvent)
         {
-            var dist = lastEvent.Position.Distance(e.Position);
+            var dist = lastEvent.Position.DistanceTo(e.Position);
             if (dist > 5.0)
             {
                 var newEvent = new CursorDownEvent(this, lastEvent.Button, e.Position);
@@ -428,15 +433,15 @@ public abstract class Surface : Disposable
         FocusedView?.OnKeyboard(e);
     }
 
-    public abstract Vec2<float> GetCursorPosition();
+    public abstract Vector2 GetCursorPosition();
 
-    public abstract void SetCursorPosition(Vec2<float> position);
+    public abstract void SetCursorPosition(Vector2 position);
 
     public void DoHover()
     {
         var mousePosition = GetCursorPosition();
 
-        _lastMousePosition = mousePosition.Cast<float>();
+        _lastMousePosition = mousePosition;
 
         var e = new CursorMoveEvent(this, mousePosition);
 
@@ -446,9 +451,9 @@ public abstract class Surface : Disposable
         {
             var rootTransformInfo = new Rect()
             {
-                Size = 0.0f
+                Size = default
             };
-            if (0.0f <= e.Position && e.Position <= GetDrawSize().Cast<float>())
+            if (e.Position.Within(new Vector2(),GetDrawSize()))
                 _rootView.NotifyCursorEnter(e, Mat3.Identity, _lastHovered);
         }
 

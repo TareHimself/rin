@@ -1,6 +1,19 @@
 import rin.utils;
 import rin.textures;
 
+enum Mode {
+    Primitive,
+    Texture,
+    Glyph,
+    ColorWheel
+}
+
+enum Primitive {
+    Rectangle,
+    Circle,
+    QuadraticCurve,
+    HermaticCurve
+}
 
 struct QuadRenderInfo
 {
@@ -23,15 +36,32 @@ struct PushConstants
 [[vk::push_constant]]
 uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
 
+struct VSIn {
+    int instanceId : SV_InstanceID;
+    int vertexId : SV_VertexID;
+}
+
+struct VSOut {
+    float2 uv : UV;
+    int quadIndex : QUAD_INDEX;
+    float4 position : SV_Position;
+}
+
+struct FSIn {
+    float2 uv : UV;
+    int quadIndex : QUAD_INDEX;
+    float2 coordinate : SV_Position;
+}
+
 [shader("vertex")]
-float4 vertex(int instanceId: SV_InstanceID, int vertexId: SV_VertexID, out float2 oUV: UV, out int oQuadIndex: QUAD_INDEX)
-    : SV_Position
+VSOut vertex(VSIn input)
+
 {
-    QuadRenderInfo quad = push.quads[instanceId];
-    float4 position;
-    generateRectVertex(quad.size, push.projection, quad.transform, vertexId, position, oUV);
-    oQuadIndex = instanceId;
-    return position;
+    VSOut output;
+    output.quadIndex = input.instanceId;
+    QuadRenderInfo quad = push.quads[input.instanceId];
+    generateRectVertex(quad.size, push.projection, quad.transform, input.vertexId, output.position, output.uv);
+    return output;
 }
 
 float median(float r, float g, float b)
@@ -47,36 +77,36 @@ float screenPxRange(float2 uv, float2 size)
 }
 
 [shader("fragment")]
-float4 fragment(in float2 iUV: UV, in int iQuadIndex: QUAD_INDEX, float2 coordinate: SV_Position)
+float4 fragment(FSIn input)
     : SV_Target
 {
-    QuadRenderInfo quad = push.quads[iQuadIndex];
+    QuadRenderInfo quad = push.quads[input.quadIndex];
     int mode = quad.opts.x;
     switch (mode)
     {
-    case 0:
+    case 0: // Primitive Shape
     {
-        return applyBorderRadius(coordinate, quad.data1, quad.data2, quad.size, quad.transform);
+        return applyBorderRadius(input.coordinate, quad.data1, quad.data2, quad.size, quad.transform);
     }
-    case 1:
+    case 1: // Texture
     {
         float4 tint = quad.data1;
         float4 uvMapping = quad.data2;
-        float u = mapRangeUnClamped(iUV.x, 0.0, 1.0, uvMapping.x, uvMapping.z);
-        float v = mapRangeUnClamped(iUV.y, 0.0, 1.0, uvMapping.y, uvMapping.w);
+        float u = mapRangeUnClamped(input.uv.x, 0.0, 1.0, uvMapping.x, uvMapping.z);
+        float v = mapRangeUnClamped(input.uv.y, 0.0, 1.0, uvMapping.y, uvMapping.w);
         float2 uv = float2(u, v);
 
         int textureId = quad.opts.y;
 
         float4 color = sampleTexture(textureId, uv) * tint;
 
-        return applyBorderRadius(coordinate, color, quad.data3, quad.size, quad.transform);
+        return applyBorderRadius(input.coordinate, color, quad.data3, quad.size, quad.transform);
     }
-    case 2:
+    case 2: // MTSDF Glyph
     {
         float4 uvMapping = quad.data2;
-        float u = mapRangeUnClamped(iUV.x, 0.0, 1.0, uvMapping.x, uvMapping.z);
-        float v = mapRangeUnClamped(iUV.y, 0.0, 1.0, uvMapping.y, uvMapping.w);
+        float u = mapRangeUnClamped(input.uv.x, 0.0, 1.0, uvMapping.x, uvMapping.z);
+        float v = mapRangeUnClamped(input.uv.y, 0.0, 1.0, uvMapping.y, uvMapping.w);
         float2 uv = float2(u, v);
 
         int textureId = quad.opts.y;
@@ -85,23 +115,23 @@ float4 fragment(in float2 iUV: UV, in int iQuadIndex: QUAD_INDEX, float2 coordin
         float2 actualTexSize = texSize * (uvMapping.zw - uvMapping.xy);
         float3 msd = sampleTexture(textureId, uv).rgb;
         float sd = median(msd.r, msd.g, msd.b);
-        float distance = screenPxRange(iUV, actualTexSize) * (sd - 0.5);
+        float distance = screenPxRange(input.uv, actualTexSize) * (sd - 0.5);
         float opacity = clamp(distance + 0.5, 0.0, 1.0);
 
         float4 color = quad.data1;
 
         return lerp(color, float4(color.rgb, 0.0), opacity);
     }
-    case 3:
+    case 3: // Color wheel
     {
-        float2 uv = (iUV * 2.0f) - 1.0f;
+        float2 uv = (input.uv * 2.0f) - 1.0f;
 
         float r = sqrt((uv.x * uv.x) + (uv.y * uv.y));
         float theta = atan2(uv.y, uv.x);
         float pi = radians(180);
         theta = ((theta + pi) / (pi * 2));
         float4 rgbColor = float4(hsv2rgb(float3(theta, r, 1.0)), 1.0);
-        return applyBorderRadius(coordinate, rgbColor, float4(quad.size.x / 2.0), quad.size, quad.transform);
+        return applyBorderRadius(input.coordinate, rgbColor, float4(quad.size.x / 2.0), quad.size, quad.transform);
     }
     default:
         return float4(1.0);

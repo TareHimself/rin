@@ -1,19 +1,20 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using rin.Framework.Core.Extensions;
 
 namespace rin.Framework.Core.Math;
 
 public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
-    IMultiplyOperators<Mat4, Vec4<float>, Vec4<float>>
+    IMultiplyOperators<Mat4, Vector4, Vector4>
 {
-    public Vec4<float> Column1 = new(0.0f);
+    public Vector4 Column1;
 
-    public Vec4<float> Column2 = new(0.0f);
+    public Vector4 Column2;
 
-    public Vec4<float> Column3 = new(0.0f);
+    public Vector4 Column3;
 
-    public Vec4<float> Column4 = new(0.0f);
+    public Vector4 Column4;
 
     public Mat4()
     {
@@ -21,10 +22,10 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
 
     public static Mat4 Identity => new()
     {
-        Column1 = new Vec4<float>(1.0f, 0.0f, 0.0f, 0.0f),
-        Column2 = new Vec4<float>(0.0f, 1.0f, 0.0f, 0.0f),
-        Column3 = new Vec4<float>(0.0f, 0.0f, 1.0f, 0.0f),
-        Column4 = new Vec4<float>(0.0f, 0.0f, 0.0f, 1.0f)
+        Column1 = new Vector4(1.0f, 0.0f, 0.0f, 0.0f),
+        Column2 = new Vector4(0.0f, 1.0f, 0.0f, 0.0f),
+        Column3 = new Vector4(0.0f, 0.0f, 1.0f, 0.0f),
+        Column4 = new Vector4(0.0f, 0.0f, 0.0f, 1.0f)
     };
 
 
@@ -51,7 +52,7 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
 
     
 
-    public Mat4 Translate(Vec3<float> translation)
+    public Mat4 Translate(Vector3 translation)
     {
         var r = Clone();
         NativeMethods.NativeTranslate(ref r, ref this, ref translation);
@@ -61,7 +62,7 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
 
     
 
-    public Mat4 Scale(Vec3<float> scale)
+    public Mat4 Scale(Vector3 scale)
     {
         var r = Clone();
         NativeMethods.NativeScale(ref r, ref this, ref scale);
@@ -75,14 +76,14 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
         return r * rotation;
     }
 
-    public Mat4 Rotate(float angle, Vec3<float> axis)
+    public Mat4 Rotate(float angle, Vector3 axis)
     {
         var r = Clone();
         NativeMethods.NativeRotate(ref r, ref this, angle, ref axis);
         return r;
     }
 
-    public Mat4 RotateDeg(float angle, Vec3<float> axis)
+    public Mat4 RotateDeg(float angle, Vector3 axis)
     {
         var r = Clone();
         NativeMethods.NativeRotate(ref r, ref this, float.DegreesToRadians(angle), ref axis);
@@ -99,9 +100,9 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
 
     
 
-    public static Vec4<float> operator *(Mat4 left, Vec4<float> right)
+    public static Vector4 operator *(Mat4 left, Vector4 right)
     {
-        Vec4<float> result = new(0.0f);
+        Vector4 result = new(0.0f);
         NativeMethods.NativeMultiplyMatrix4Vector4(ref result, ref left, ref right);
         return result;
     }

@@ -1,4 +1,7 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using JetBrains.Annotations;
+using rin.Framework.Core.Extensions;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
 
@@ -10,11 +13,16 @@ namespace rin.Framework.Views.Layouts;
 /// </summary>
 public class PanelSlot : Slot
 {
-    public Vec2<float> Alignment = new(0, 0);
-    public Vec2<float> MaxAnchor = new(0, 0);
-    public Vec2<float> MinAnchor = new(0, 0);
-    public Vec2<float> Offset = new(0, 0);
-    public Vec2<float> Size = new();
+    [PublicAPI]
+    public Vector2 Alignment;
+    [PublicAPI]
+    public Vector2 MaxAnchor;
+    [PublicAPI]
+    public Vector2 MinAnchor;
+    [PublicAPI]
+    public Vector2 Offset;
+    [PublicAPI]
+    public Vector2 Size;
 
     /// <summary>
     ///     Describes how a <see cref="View" /> will be sized and positioned in a <see cref="PanelLayout" />. Supports Anchors
@@ -55,7 +63,7 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
         }
     }
 
-    public override Vec2<float> Apply(Vec2<float> availableSpace)
+    public override Vector2 Apply(Vector2 availableSpace)
     {
         foreach (var slot in GetSlots())
         {
@@ -65,53 +73,57 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
         return availableSpace;
     }
 
-    public override Vec2<float> ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
-        return 0.0f;
+        return new Vector2();
     }
 
-    private void LayoutSlot(ISlot slot,Vec2<float> panelSize)
+    private void LayoutSlot(ISlot slot, Vector2 panelSize)
     {
         if (slot is PanelSlot asPanelSlot)
         {
             var view = slot.Child;
 
-            var noOffsetX = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.X, asPanelSlot.MaxAnchor.X);
-            var noOffsetY = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.Y, asPanelSlot.MaxAnchor.Y);
+            var absoluteX = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.X, asPanelSlot.MaxAnchor.X);
+            var absoluteY = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.Y, asPanelSlot.MaxAnchor.Y);
 
-            var viewSize = view.GetDesiredSize();
-            
-            var wSize = new Vec2<float>
-            {
-                X = asPanelSlot.SizeToContent && noOffsetX ? viewSize.X : asPanelSlot.Size.X,
-                Y = asPanelSlot.SizeToContent && noOffsetY ? viewSize.Y: asPanelSlot.Size.Y
-            };
+            var desiredSize = view.GetDesiredSize();
+            var areBothRelative = absoluteX == absoluteY && absoluteX == false;
+            // The size we assume the widget is for offset calculations
+            var workingSize = asPanelSlot.SizeToContent && !areBothRelative
+                ? view.ComputeSize(new Vector2(float.PositiveInfinity))
+                : asPanelSlot.Size;
+            // new Vector2
+            // {
+            //     X = asPanelSlot.SizeToContent && noOffsetX ? desiredSize.X : asPanelSlot.Size.X,
+            //     Y = asPanelSlot.SizeToContent && noOffsetY ? desiredSize.Y: asPanelSlot.Size.Y
+            // };
 
             var p1 = asPanelSlot.Offset.Clone();
-            var p2 = p1 + wSize;
+            var p2 = p1 + workingSize;
 
-            if (noOffsetX)
+            if (absoluteX)
             {
-                var a = panelSize.X * asPanelSlot.MinAnchor.X;
-                p1.X += a;
-                p2.X += a;
+                var delta = panelSize.X * asPanelSlot.MinAnchor.X;
+                p1.X += delta;
+                p2.X += delta;
             }
             else
             {
-                p1.X = panelSize.X * asPanelSlot.MinAnchor.X + p1.X;
-                p2.X = panelSize.X * asPanelSlot.MaxAnchor.X - p2.X;
+                p1.X = panelSize.X * asPanelSlot.MinAnchor.X;
+                p2.X = panelSize.X * asPanelSlot.MaxAnchor.X;
             }
 
-            if (noOffsetY)
+            if (absoluteY)
             {
-                var a = panelSize.Y * asPanelSlot.MinAnchor.Y;
-                p1.Y += a;
-                p2.Y += a;
+                var delta = panelSize.Y * asPanelSlot.MinAnchor.Y;
+                p1.Y += delta;
+                p2.Y += delta;
             }
             else
             {
-                p1.Y = panelSize.Y * asPanelSlot.MinAnchor.Y + p1.Y;
-                p2.Y = panelSize.Y * asPanelSlot.MaxAnchor.Y - p2.Y;
+                p1.Y = panelSize.Y * asPanelSlot.MinAnchor.Y;
+                p2.Y = panelSize.Y * asPanelSlot.MaxAnchor.Y;
             }
 
             var dist = p2 - p1;
@@ -121,7 +133,7 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
             var sizeFinal = p2Final - p1Final;
 
             view.Offset = p1Final;
-            view.ComputeSize(sizeFinal);
+            if (workingSize != sizeFinal) view.ComputeSize(sizeFinal);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core;
+﻿using System.Numerics;
+using rin.Framework.Core;
 using rin.Framework.Core.Animation;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Views;
@@ -21,13 +22,13 @@ public class FilePicker : Button
     public FilePicker() : base()
     {
         BackgroundColor = Color.Red;
-        BorderRadius = 10.0f;
+        BorderRadius = new Vector4(10.0f);
         Padding = 20.0f;
         OnReleased += (_, __) =>
         {
             StatusText.Content = "Selecting...";
             Platform.SelectFileAsync("Select File's To Play", multiple: true, filter: "*.wav;*.ogg;*.flac;*.mp3")
-                .Then(FileSelected).ConfigureAwait(false);
+                .After(FileSelected);
         };
     }
 
@@ -63,7 +64,7 @@ public class FilePicker : Button
         this
             .StopAll()
             .Transition(BackgroundColor, Color.Green, (c) => BackgroundColor = c,_animDuration)
-            .Transition(BorderRadius,20.0f,(c) => BorderRadius = c,_animDuration);
+            .Transition(BorderRadius,new Vector4(20.0f),(c) => BorderRadius = c,_animDuration);
         base.OnCursorEnter(e);
     }
 
@@ -72,7 +73,7 @@ public class FilePicker : Button
         this
             .StopAll()
             .Transition(BackgroundColor, Color.Red, (c) => BackgroundColor = c,_animDuration)
-            .Transition(BorderRadius,10.0f,(c) => BorderRadius = c,_animDuration);
+            .Transition(BorderRadius,new Vector4(10.0f),(c) => BorderRadius = c,_animDuration);
         base.OnCursorLeave(e);
     }
     

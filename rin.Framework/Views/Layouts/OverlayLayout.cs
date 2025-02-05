@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
 
@@ -31,9 +32,9 @@ public class OverlayLayout(CompositeView container) : InfiniteChildrenLayout
         }
     }
     
-    public override Vec2<float> Apply(Vec2<float> availableSpace)
+    public override Vector2 Apply(Vector2 availableSpace)
     {
-        var dims = new Vec2<float>(0.0f);
+        var dims = new Vector2(0.0f);
         
         // First pass is for views with content to figure out their size
         foreach (var slot in GetSlots())
@@ -49,15 +50,15 @@ public class OverlayLayout(CompositeView container) : InfiniteChildrenLayout
         // Second pass is for views that adapt to the size of the container
         foreach (var slot in GetSlots())
         {
-            slot.Child.Offset = (new Vec2<float>(0, 0));
+            slot.Child.Offset = default;
             slot.Child.ComputeSize(dims);
         }
-        return new Vec2<float>(Math.Min(dims.X,availableSpace.X),Math.Min(dims.Y,availableSpace.Y));
+        return new Vector2(Math.Min(dims.X,availableSpace.X),Math.Min(dims.Y,availableSpace.Y));
     }
 
-    public override Vec2<float> ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
-        return GetSlots().Aggregate(new Vec2<float>(), (size, slot) =>
+        return GetSlots().Aggregate(new Vector2(), (size, slot) =>
         {
             var slotSize = slot.Child.GetDesiredSize();
             size.Y = System.Math.Max(size.Y, slotSize.Y);

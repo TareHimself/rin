@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core;
+﻿using System.Numerics;
+using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Sdf;
 
@@ -11,28 +12,28 @@ public partial class Context : IDisposable
 {
     private IntPtr _context = Native.Sdf.ContextNew();
     
-    public Context MoveTo(Vec2<float> point)
+    public Context MoveTo(Vector2 point)
     {
         Native.Sdf.ContextMoveTo(_context, ref point);
         return this;
     }
 
-    public Context QuadraticBezierTo(Vec2<float> control, Vec2<float> point)
+    public Context QuadraticBezierTo(Vector2 control, Vector2 point)
     {
         Native.Sdf.ContextQuadraticBezierTo(_context, ref control, ref point);
         return this;
     }
     
     
-    public Context CubicBezierTo(Vec2<float> control1,
-        Vec2<float> control2,
-        Vec2<float> point)
+    public Context CubicBezierTo(Vector2 control1,
+        Vector2 control2,
+        Vector2 point)
     {
         Native.Sdf.ContextCubicBezierTo(_context,ref control1,ref control2,ref point);
         return this;
     }
     
-    public Context LineTo(Vec2<float> point)
+    public Context LineTo(Vector2 point)
     {
         Native.Sdf.ContextLineTo(_context,ref point);
         return this;

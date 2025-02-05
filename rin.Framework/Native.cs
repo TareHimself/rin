@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using rin.Framework.Core.Math;
 
 namespace rin.Framework;
@@ -20,22 +21,22 @@ internal static partial class Native
 
         [LibraryImport(DllName, EntryPoint = "sdfContextMoveTo")]
         [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
-        public static partial void ContextMoveTo(IntPtr context, ref Vec2<float> to);
+        public static partial void ContextMoveTo(IntPtr context, ref Vector2 to);
 
         [LibraryImport(DllName, EntryPoint = "sdfContextLineTo")]
         [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
-        public static partial void ContextLineTo(IntPtr context, ref Vec2<float> to);
+        public static partial void ContextLineTo(IntPtr context, ref Vector2 to);
 
         [LibraryImport(DllName, EntryPoint = "sdfContextQuadraticBezierTo")]
         [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
-        public static partial void ContextQuadraticBezierTo(IntPtr context, ref Vec2<float> control,
-            ref Vec2<float> to);
+        public static partial void ContextQuadraticBezierTo(IntPtr context, ref Vector2 control,
+            ref Vector2 to);
 
         [LibraryImport(DllName, EntryPoint = "sdfContextCubicBezierTo")]
         [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
-        public static partial void ContextCubicBezierTo(IntPtr context, ref Vec2<float> control1,
-            ref Vec2<float> control2,
-            ref Vec2<float> to);
+        public static partial void ContextCubicBezierTo(IntPtr context, ref Vector2 control1,
+            ref Vector2 control2,
+            ref Vector2 to);
 
         [LibraryImport(DllName, EntryPoint = "sdfContextEnd")]
         [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]

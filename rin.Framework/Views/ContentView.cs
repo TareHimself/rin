@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Animation;
+﻿using System.Numerics;
+using rin.Framework.Core.Animation;
 using rin.Framework.Core.Math;
 using rin.Framework.Views.Graphics;
 
@@ -22,6 +23,6 @@ public abstract class ContentView : View
             return;
         }
         
-        CollectContent(transform.Translate(new Vec2<float>(Padding.Left,Padding.Top)), passCommands);
+        CollectContent(transform.Translate(new Vector2(Padding.Left,Padding.Top)), passCommands);
     }
 }

@@ -1,4 +1,6 @@
-﻿using rin.Examples.Common.Views;
+﻿using System.Numerics;
+using rin.Examples.Common.Views;
+using rin.Examples.ViewsTest.Panels;
 using rin.Framework.Core;
 using rin.Framework.Core.Animation;
 using rin.Framework.Core.Extensions;
@@ -36,7 +38,7 @@ public class SViewsTestModule : IModule
                 Padding = 10.0f,
             };
             Child = sizer;
-            content.Pivot = 0.5f;
+            content.Pivot = new Vector2(0.5f);
             OnReleased += (@event, button) =>
             {
                //_content.StopAll().RotateTo(360,0.5f).After().Do(() => _content.Angle = 0.0f);
@@ -44,7 +46,7 @@ public class SViewsTestModule : IModule
             };
         }
 
-        protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
+        protected override Vector2 LayoutContent(Vector2 availableSpace)
         {
             var size = base.LayoutContent(availableSpace);
             _content.Translate = _content.Size * .5f;
@@ -78,8 +80,8 @@ public class SViewsTestModule : IModule
                             ],
                             Clip = Clip.None
                         },
-                        MinAnchor = 0.0f,
-                        MaxAnchor = 1.0f
+                        MinAnchor = new Vector2(0.0f),
+                        MaxAnchor = new Vector2(1.0f),
                     },
                     new PanelSlot
                     {
@@ -103,9 +105,9 @@ public class SViewsTestModule : IModule
                             Strength = 20.0f
                         },
                         SizeToContent = true,
-                        MinAnchor = new Vec2<float>(1.0f, 0.0f),
-                        MaxAnchor = new Vec2<float>(1.0f, 0.0f),
-                        Alignment = new Vec2<float>(1.0f, 0.0f)
+                        MinAnchor = new Vector2(1.0f, 0.0f),
+                        MaxAnchor = new Vector2(1.0f, 0.0f),
+                        Alignment = new Vector2(1.0f, 0.0f)
                     }
                 ]
             });
@@ -118,7 +120,7 @@ public class SViewsTestModule : IModule
                     {
                         list.Add(new WrapContainer(new AsyncFileImage(objPath)
                         {
-                            BorderRadius = 30.0f
+                            BorderRadius = new Vector4(30.0f)
                         }));
                     }
                 });
@@ -136,7 +138,7 @@ public class SViewsTestModule : IModule
                                 foreach (var path in p)
                                     list.Add(new WrapContainer(new AsyncFileImage(path)
                                         {
-                                            BorderRadius = 30.0f
+                                            BorderRadius = new Vector4(30.0f)
                                         }));
                             });
                 }
@@ -208,9 +210,9 @@ public class SViewsTestModule : IModule
                     new PanelSlot()
                     {
                         Child = list,
-                        MinAnchor = 0.5f,
-                        MaxAnchor = 0.5f,
-                        Alignment = 0.5f,
+                        MinAnchor = new Vector2(0.5f),
+                        MaxAnchor = new Vector2(0.5f),
+                        Alignment = new Vector2(0.5f),
                         SizeToContent = true
                     },
                     new PanelSlot
@@ -223,13 +225,13 @@ public class SViewsTestModule : IModule
                                 Content = "YOOOO"
                             },
                             Padding = new Padding(20.0f),
-                            BorderRadius = 10.0f,
+                            BorderRadius = new Vector4(10.0f),
                             BackgroundColor = Color.Black.Clone(a: 0.7f)
                         },
                         SizeToContent = true,
-                        MinAnchor = new Vec2<float>(1.0f, 0.0f),
-                        MaxAnchor = new Vec2<float>(1.0f, 0.0f),
-                        Alignment = new Vec2<float>(1.0f, 0.0f)
+                        MinAnchor = new Vector2(1.0f, 0.0f),
+                        MaxAnchor = new Vector2(1.0f, 0.0f),
+                        Alignment = new Vector2(1.0f, 0.0f)
                     }
                 ]
             });
@@ -246,7 +248,7 @@ public class SViewsTestModule : IModule
                             HeightOverride = 800,
                             Child = new AsyncFileImage(objPath)
                             {
-                                BorderRadius = 30.0f
+                                BorderRadius = new Vector4(30.0f)
                             },
                             Padding = 10.0f,
                         });
@@ -269,7 +271,7 @@ public class SViewsTestModule : IModule
                                         HeightOverride = 800,
                                         Child = new AsyncFileImage(path)
                                         {
-                                            BorderRadius = 30.0f
+                                            BorderRadius = new Vector4(30.0f)
                                         },
                                         Padding = 10.0f,
                                     });
@@ -284,7 +286,7 @@ public class SViewsTestModule : IModule
                         HeightOverride = 800,
                         Child = new PrettyView()
                         {
-                            Pivot = 0.5f,
+                            Pivot = new Vector2(0.5f),
                         },
                         Padding = 10.0f,
                     });
@@ -316,8 +318,11 @@ public class SViewsTestModule : IModule
     {
         var surf = SViewsModule.Get().GetWindowSurface(renderer);
         //SViewsModule.Get().GetOrCreateFont("Arial").ConfigureAwait(false);
-        // surf?.Add(new TextInputBox("I expect this very long text to wrap if the space is too small"));
-        surf?.Add(new TextBox("A"));
+        surf?.Add(new TextInputBox("AVAVAV")
+        {
+            FontSize = 240
+        });
+    //surf?.Add(new TextBox("A"));
     }
 
     public void TestBlur(WindowRenderer renderer)
@@ -325,108 +330,17 @@ public class SViewsTestModule : IModule
         var surf = SViewsModule.Get().GetWindowSurface(renderer);
 
         if (surf == null) return;
-
-
-        var switcher = new Switcher();
-
-        var infoText = new TextBox("Background Blur Using Blit", 40);
-
-        surf.Add(new Panel
-        {
-            Slots =
-            [
-                new PanelSlot
-                {
-                    Child = switcher,
-                    MaxAnchor = 1.0f
-                },
-                new PanelSlot
-                {
-                    Child = new BackgroundBlur()
-                    {
-                        Strength = 10.0f
-                    },
-                    MaxAnchor = 1.0f
-                },
-                // new PanelSlot
-                // {
-                //     Child = new Canvas
-                //     {
-                //         Paint = (self, transform, d) =>
-                //         {
-                //             d.AddRect(transform, self.GetContentSize(), color: Color.Black.Clone(a: 0.6f));
-                //         }
-                //     },
-                //     MinAnchor = 0.0f,
-                //     MaxAnchor = 1.0f
-                // },
-                new PanelSlot
-                {
-                    Child = infoText,
-                    SizeToContent = true,
-                    Alignment = 0f,
-                    MinAnchor = 0f,
-                    MaxAnchor = 0f
-                },
-                new PanelSlot
-                {
-                    Child = new TextInputBox("Example Text", 100),
-                    SizeToContent = true,
-                    Alignment = 0.5f,
-                    MinAnchor = 0.5f,
-                    MaxAnchor = 0.5f
-                }
-            ]
-        });
-
-        var frames = 0;
-        SRuntime.Get().OnUpdate += d =>
-        {
-            frames++;
-            infoText.Content = $"Frame {frames}"; //$"Focused ${panel.Surface?.FocusedView}";
-        };
+        var panel = new HoverToReveal();
+        
+        surf.Add(panel);
 
         surf.Window.OnKey += (e) =>
         {
-            var switcherSlots = switcher.SlotCount;
-            if (switcherSlots > 0)
-            {
-                if (e is { State: InputState.Pressed or InputState.Repeat, Key: InputKey.Left })
-                {
-                    var newIndex = switcher.SelectedIndex - 1;
-                    if (newIndex < 0)
-                    {
-                        newIndex = switcherSlots + newIndex;
-                    }
-
-                    switcher.SelectedIndex = newIndex;
-                    return;
-                }
-
-                if (e is { State: InputState.Pressed or InputState.Repeat, Key: InputKey.Right })
-                {
-                    var newIndex = switcher.SelectedIndex + 1;
-                    if (newIndex >= switcherSlots)
-                    {
-                        newIndex %= switcherSlots;
-                    }
-
-                    switcher.SelectedIndex = newIndex;
-                    return;
-                }
-            }
-
-            if (e is { State: InputState.Pressed, Key: InputKey.F })
-            {
-                switcher.RotateTo(0, 360, 2).After().RotateTo(360, 0, 2);
-                return;
-            }
-
             if (e is { State: InputState.Pressed, Key: InputKey.Equal })
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
-                    switcher.Add(new AsyncFileImage(path));
+                    panel.AddImage(new AsyncFileImage(path));
             }
         };
     }
@@ -468,9 +382,9 @@ public class SViewsTestModule : IModule
                 {
                     Child = new TextBox("Test Text", 40),
                     SizeToContent = true,
-                    Alignment = 0f,
-                    MinAnchor = 0f,
-                    MaxAnchor = 0f
+                    Alignment = new Vector2(0f),
+                    MinAnchor = new Vector2(0f),
+                    MaxAnchor = new Vector2(0f)
                 }
             ]
         });
@@ -508,7 +422,7 @@ public class SViewsTestModule : IModule
     {
         Utils.RunWindowsOnTick();
         Utils.RunDrawOnThread();
-        
+
         SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin View Test", new CreateOptions()

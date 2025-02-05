@@ -1,4 +1,5 @@
-﻿using rin.Examples.AudioPlayer.Views;
+﻿using System.Numerics;
+using rin.Examples.AudioPlayer.Views;
 using rin.Examples.Common.Views;
 using rin.Framework.Audio;
 using rin.Framework.Core;
@@ -45,7 +46,7 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
             new PanelSlot
             {
                 Child = switcher,
-                MaxAnchor = 1.0f
+                MaxAnchor = new Vector2(1.0f)
             }
         );
 

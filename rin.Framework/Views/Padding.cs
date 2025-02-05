@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core;
+﻿using System.Numerics;
+using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 
@@ -11,8 +12,8 @@ public class Padding : ICloneable<Padding>
     public float Right = 0.0f;
     public float Bottom = 0.0f;
 
-    public static implicit operator Vec4<float>(Padding p) =>
-        new Vec4<float>(p.Left, p.Top, p.Right, p.Bottom);
+    public static implicit operator Vector4(Padding p) =>
+        new Vector4(p.Left, p.Top, p.Right, p.Bottom);
 
     public Padding Clone() => new Padding()
     {

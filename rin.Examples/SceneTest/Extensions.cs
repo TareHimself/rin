@@ -1,10 +1,10 @@
-﻿using rin.Framework.Core.Math;
-using rin.Framework.Scene.Actors;
-using rin.Framework.Scene.Components;
-using rin.Framework.Scene.Components.Lights;
-using rin.Framework.Scene.Graphics;
+﻿using System.Numerics;
+using rin.Editor.Scene.Actors;
+using rin.Editor.Scene.Components;
+using rin.Editor.Scene.Components.Lights;
+using rin.Editor.Scene.Graphics;
 using SharpGLTF.Schema2;
-using Scene = rin.Framework.Scene.Scene;
+using Scene = rin.Editor.Scene.Scene;
 
 namespace rin.Examples.SceneTest;
 
@@ -41,8 +41,8 @@ public static class Extensions
                 foreach (var vec in primitive.GetVertices("POSITION").AsVector3Array())
                     vertices.Add(new StaticMesh.Vertex
                     {
-                        Location = new Vec4<float>(vec.X, vec.Y, vec.Z, 0.0f),
-                        Normal = new Vec4<float>(0.0f)
+                        Location = new Vector4(vec.X, vec.Y, vec.Z, 0.0f),
+                        Normal = new Vector4(0.0f)
                     });
             }
 
@@ -90,7 +90,7 @@ public static class Extensions
         return entity;
     }
     
-    public static Actor AddPointLight(this Scene scene,Vec3<float> location)
+    public static Actor AddPointLight(this Scene scene,Vector3 location)
     {
         var entity = new Actor()
         {

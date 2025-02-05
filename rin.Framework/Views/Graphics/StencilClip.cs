@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 
 namespace rin.Framework.Views.Graphics;
 using System.Runtime.InteropServices;
@@ -6,9 +7,9 @@ using System.Runtime.InteropServices;
 
 public partial struct StencilClip(
     
-    Vec2<float> size,
+    Vector2 size,
     Mat3 transform)
 {
     public Mat3 Transform = transform;
-    public Vec2<float> Size = size; 
+    public Vector2 Size = size; 
 }

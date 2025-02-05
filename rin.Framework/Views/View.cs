@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Numerics;
+using JetBrains.Annotations;
 using rin.Framework.Core;
 using rin.Framework.Core.Animation;
 using rin.Framework.Core.Math;
@@ -11,20 +12,20 @@ namespace rin.Framework.Views;
 
 public abstract partial class View : Disposable, IAnimatable
 {
-    private Vec2<float>? _cachedDesiredSize;
+    private Vector2? _cachedDesiredSize;
     private Transform2d _transform = new();
-    private Vec2<float> _offset = 0.0f;
-    private Vec2<float> _size = 0.0f;
-    private Vec2<float> _pivot = 0.0f;
+    private Vector2 _offset;
+    private Vector2 _size;
+    private Vector2 _pivot;
     private readonly Padding _padding = new();
     private readonly Atomic<Mat3?> _cachedRelativeTransform = Mat3.Identity;
     
     /// <summary>
     /// The offset of this view in parent space
     /// </summary>
-    public Vec2<float> Offset
+    public Vector2 Offset
     {
-        get => new Vec2<float>(_offset.X, _offset.Y);
+        get => new Vector2(_offset.X, _offset.Y);
         set
         {
             _offset.X = value.X;
@@ -36,9 +37,9 @@ public abstract partial class View : Disposable, IAnimatable
     /// <summary>
     /// The size of this view in parent space
     /// </summary>
-    public Vec2<float> Size
+    public Vector2 Size
     {
-        get => new Vec2<float>(_size.X, _size.Y);
+        get => new Vector2(_size.X, _size.Y);
         set
         {
             _size.X = value.X;
@@ -50,9 +51,9 @@ public abstract partial class View : Disposable, IAnimatable
     /// <summary>
     /// The pivot used to render this view. Affects <see cref="Angle" /> and <see cref="Scale" />.
     /// </summary>
-    public Vec2<float> Pivot
+    public Vector2 Pivot
     {
-        get => new Vec2<float>(_pivot.X, _pivot.Y);
+        get => new Vector2(_pivot.X, _pivot.Y);
         set
         {
             _pivot.X = value.X;
@@ -64,9 +65,9 @@ public abstract partial class View : Disposable, IAnimatable
     /// <summary>
     /// The translation of this view in parent space
     /// </summary>
-    public Vec2<float> Translate
+    public Vector2 Translate
     {
-        get => new Vec2<float>(_transform.Translate.X, _transform.Translate.Y);
+        get => new Vector2(_transform.Translate.X, _transform.Translate.Y);
         set
         {
             _transform.Translate.X = value.X;
@@ -78,9 +79,9 @@ public abstract partial class View : Disposable, IAnimatable
     /// <summary>
     /// The scale of this view in parent space
     /// </summary>
-    public Vec2<float> Scale
+    public Vector2 Scale
     {
-        get => new Vec2<float>(_transform.Scale.X, _transform.Scale.Y);
+        get => new Vector2(_transform.Scale.X, _transform.Scale.Y);
         set
         {
             _transform.Scale.X = value.X;
@@ -114,7 +115,7 @@ public abstract partial class View : Disposable, IAnimatable
     /// <summary>
     /// The angle this view is to be rendered at in parent space
     /// </summary>
-    public virtual float Angle
+    public float Angle
     {
         get => _transform.Angle;
         set { _transform.Angle = value; _cachedRelativeTransform.Value = null;}
@@ -173,20 +174,20 @@ public abstract partial class View : Disposable, IAnimatable
     /// <param name="availableSpace"></param>
     /// <param name="fill">If true will set <see cref="Size"/> to <see cref="availableSpace"/> irrespective of the space taken by content</param>
     /// <returns></returns>
-    public Vec2<float> ComputeSize(Vec2<float> availableSpace, bool fill = false)
+    public Vector2 ComputeSize(Vector2 availableSpace, bool fill = false)
     {
-        var padding = new Vec2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        var padding = new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
         var contentSize = LayoutContent(availableSpace - padding) + padding;
         var sizeResult = (fill ? availableSpace : contentSize).FiniteOr();
         return Size = sizeResult;
     }
-    
+
     /// <summary>
     /// Lay's out content in the available space and returns the size taken by the content
     /// </summary>
     /// <param name="availableSpace"></param>
     /// <returns></returns>
-    protected abstract Vec2<float> LayoutContent(Vec2<float> availableSpace);
+    protected abstract Vector2 LayoutContent(Vector2 availableSpace);
 
     /// <summary>
     ///     Computes the relative/local transformation matrix for this view
@@ -349,27 +350,27 @@ public abstract partial class View : Disposable, IAnimatable
        // UnBindCursorUp();
     }
     [PublicAPI]
-    public Vec2<float> GetContentSize()
+    public Vector2 GetContentSize()
     {
-        return _size - new Vec2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        return _size - new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
     [PublicAPI]
-    public Vec2<float> GetDesiredSize()
+    public Vector2 GetDesiredSize()
     {
         if (Surface == null) return ComputeDesiredSize();
         
         return _cachedDesiredSize ??= ComputeDesiredSize();
     }
     [PublicAPI]
-    public Vec2<float> GetDesiredContentSize()
+    public Vector2 GetDesiredContentSize()
     {
-        return GetDesiredSize() - new Vec2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        return GetDesiredSize() - new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
     
-    protected abstract Vec2<float> ComputeDesiredContentSize();
+    protected abstract Vector2 ComputeDesiredContentSize();
 
-    private Vec2<float> ComputeDesiredSize() =>
-        ComputeDesiredContentSize() + new Vec2<float>(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+    private Vector2 ComputeDesiredSize() =>
+        ComputeDesiredContentSize() + new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
 
     /// <summary>
     /// Collect draw commands from this view
@@ -386,7 +387,7 @@ public abstract partial class View : Disposable, IAnimatable
         {
             var newSize = ComputeDesiredSize();
 
-            if (newSize.NearlyEquals(asCachedSize)) return false;
+            if (newSize == asCachedSize) return false;
             
             _cachedDesiredSize = newSize;
         }
@@ -411,7 +412,7 @@ public abstract partial class View : Disposable, IAnimatable
                 {
                     var newSize = ComputeDesiredSize();
     
-                    if (newSize.NearlyEquals(_cachedDesiredSize.Value)) return;
+                    if (newSize == _cachedDesiredSize.Value) return;
                     _cachedDesiredSize = newSize;
                 }
                 else
@@ -436,34 +437,34 @@ public abstract partial class View : Disposable, IAnimatable
     // ReSharper disable once InconsistentNaming
     public Rect ComputeAABB(Mat3 transform)
     {
-        var tl = new Vec2<float>(0.0f);
+        var tl = new Vector2(0.0f);
         var br = tl + Size;
-        var tr = new Vec2<float>(br.X, tl.Y);
-        var bl = new Vec2<float>(tl.X, br.Y);
+        var tr = new Vector2(br.X, tl.Y);
+        var bl = new Vector2(tl.X, br.Y);
 
         tl = tl.ApplyTransformation(transform);
         br = br.ApplyTransformation(transform);
         tr = tr.ApplyTransformation(transform);
         bl = bl.ApplyTransformation(transform);
 
-        var p1AABB = new Vec2<float>(
-            System.Math.Min(
-                System.Math.Min(tl.X, tr.X),
-                System.Math.Min(bl.X, br.X)
+        var p1AABB = new Vector2(
+            Math.Min(
+                Math.Min(tl.X, tr.X),
+                Math.Min(bl.X, br.X)
             ),
-            System.Math.Min(
-                System.Math.Min(tl.Y, tr.Y),
-                System.Math.Min(bl.Y, br.Y)
+            Math.Min(
+                Math.Min(tl.Y, tr.Y),
+                Math.Min(bl.Y, br.Y)
             )
         );
-        var p2AABB = new Vec2<float>(
-            System.Math.Max(
-                System.Math.Max(tl.X, tr.X),
-                System.Math.Max(bl.X, br.X)
+        var p2AABB = new Vector2(
+            Math.Max(
+                Math.Max(tl.X, tr.X),
+                Math.Max(bl.X, br.X)
             ),
-            System.Math.Max(
-                System.Math.Max(tl.Y, tr.Y),
-                System.Math.Max(bl.Y, br.Y)
+            Math.Max(
+                Math.Max(tl.Y, tr.Y),
+                Math.Max(bl.Y, br.Y)
             )
         );
 
@@ -474,19 +475,19 @@ public abstract partial class View : Disposable, IAnimatable
         };
     }
     
-    public bool PointWithin(Mat3 transform,Vec2<float> point)
+    public bool PointWithin(Mat3 transform,Vector2 point)
     {
-        var tl = new Vec2<float>(0.0f);
+        var tl = new Vector2(0.0f);
         var br = tl + Size;
-        var tr = new Vec2<float>(br.X, tl.Y);
-        var bl = new Vec2<float>(tl.X, br.Y);
+        var tr = new Vector2(br.X, tl.Y);
+        var bl = new Vector2(tl.X, br.Y);
 
         tl = tl.ApplyTransformation(transform);
         br = br.ApplyTransformation(transform);
         tr = tr.ApplyTransformation(transform);
         bl = bl.ApplyTransformation(transform);
 
-        var p1AABB = new Vec2<float>(
+        var p1AABB = new Vector2(
             System.Math.Min(
                 System.Math.Min(tl.X, tr.X),
                 System.Math.Min(bl.X, br.X)
@@ -496,7 +497,7 @@ public abstract partial class View : Disposable, IAnimatable
                 System.Math.Min(bl.Y, br.Y)
             )
         );
-        var p2AABB = new Vec2<float>(
+        var p2AABB = new Vector2(
             System.Math.Max(
                 System.Math.Max(tl.X, tr.X),
                 System.Math.Max(bl.X, br.X)
@@ -508,11 +509,7 @@ public abstract partial class View : Disposable, IAnimatable
         );
 
         // Perform AABB test first
-        if (!point.Within(new Rect
-            {
-                Offset = p1AABB,
-                Size = p2AABB - p1AABB
-            })) return false;
+        if (!point.Within(p1AABB,p2AABB)) return false;
 
         var top = tr - tl;
         var right = br - tr;
@@ -522,7 +519,6 @@ public abstract partial class View : Disposable, IAnimatable
         var pRight = point - tr;
         var pBottom = point - br;
         var pLeft = point - bl;
-        
         var a = top.Acos(pTop);
         var b = right.Cross(pRight);
         var c = bottom.Cross(pBottom);

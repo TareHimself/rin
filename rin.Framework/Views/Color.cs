@@ -25,16 +25,12 @@ public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOp
     {
         return new Color(r ?? R,g ?? G,b ?? B,a ?? A);
     }
-
-
-    public static implicit operator Vec4<float>(Color color)
-    {
-        return new Vec4<float>(color.R, color.G, color.B, color.A);
-    }
     
-    public static implicit operator Vec3<float>(Color color)
+    public static implicit operator Vector4(Color color) => new Vector4(color.R, color.G, color.B, color.A);
+    
+    public static implicit operator Vector3(Color color)
     {
-        return new Vec3<float>(color.R, color.G, color.B);
+        return new Vector3(color.R, color.G, color.B);
     }
 
     public static Color FromHtml(string hexCode)

@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using rin.Framework.Core.Math;
@@ -34,12 +35,12 @@ internal static partial class NativeMethods
     
     [LibraryImport(DllName, EntryPoint = "mathMultiplyQuatVector4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeMultiplyQuatVector(ref Vec3<float> result, ref Quat left,
-        ref Vec3<float> right);
+    public static partial void NativeMultiplyQuatVector(ref Vector3 result, ref Quat left,
+        ref Vector3 right);
     
     [LibraryImport(DllName, EntryPoint = "mathQuatFromAngle")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeQuatFromAngle(ref Quat result, float angle, ref Vec3<float> axis);
+    public static partial void NativeQuatFromAngle(ref Quat result, float angle, ref Vector3 axis);
     
     [LibraryImport(DllName, EntryPoint = "mathMultiplyQuatQuat")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -52,7 +53,7 @@ internal static partial class NativeMethods
     
     [LibraryImport(DllName, EntryPoint = "mathQuatLookAt")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeQuatLookAt(ref Quat result, ref Vec3<float> from,ref Vec3<float> to,ref Vec3<float> up);
+    public static partial void NativeQuatLookAt(ref Quat result, ref Vector3 from,ref Vector3 to,ref Vector3 up);
     
     [LibraryImport(DllName, EntryPoint = "mathGlmOrthographic")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -70,11 +71,11 @@ internal static partial class NativeMethods
 
     [LibraryImport(DllName, EntryPoint = "mathTranslateMatrix3")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeTranslate(ref Mat3 result, ref Mat3 target, ref Vec2<float> translation);
+    public static partial void NativeTranslate(ref Mat3 result, ref Mat3 target, ref Vector2 translation);
     
     [LibraryImport(DllName, EntryPoint = "mathScaleMatrix3")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeScale(ref Mat3 result, ref Mat3 target, ref Vec2<float> scale);
+    public static partial void NativeScale(ref Mat3 result, ref Mat3 target, ref Vector2 scale);
 
     [LibraryImport(DllName, EntryPoint = "mathRotateMatrix3")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -85,31 +86,31 @@ internal static partial class NativeMethods
     
     [LibraryImport(DllName, EntryPoint = "mathMultiplyMatrix3Vector3")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeMultiplyMatrix3Vector3(ref Vec3<float> result, ref Mat3 left,
-        ref Vec3<float> right);
+    public static partial void NativeMultiplyMatrix3Vector3(ref Vector3 result, ref Mat3 left,
+        ref Vector3 right);
     
     [LibraryImport(DllName, EntryPoint = "mathInverseMatrix4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void NativeInverse(ref Mat4 result, ref Mat4 target);
     [LibraryImport(DllName, EntryPoint = "mathTranslateMatrix4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeTranslate(ref Mat4 result, ref Mat4 target, ref Vec3<float> translation);
+    public static partial void NativeTranslate(ref Mat4 result, ref Mat4 target, ref Vector3 translation);
     [LibraryImport(DllName, EntryPoint = "mathScaleMatrix4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeScale(ref Mat4 result, ref Mat4 target, ref Vec3<float> scale);
+    public static partial void NativeScale(ref Mat4 result, ref Mat4 target, ref Vector3 scale);
     
     [LibraryImport(DllName, EntryPoint = "mathRotateMatrix4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void NativeRotate(ref Mat4 result, ref Mat4 target, float angle,
-        ref Vec3<float> axis);
+        ref Vector3 axis);
     
     [LibraryImport(DllName, EntryPoint = "mathMultiplyMatrix4Matrix4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void NativeMultiplyMatrix4Matrix4(ref Mat4 result, ref Mat4 left, ref Mat4 right);
     [LibraryImport(DllName, EntryPoint = "mathMultiplyMatrix4Vector4")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void NativeMultiplyMatrix4Vector4(ref Vec4<float> result, ref Mat4 left,
-        ref Vec4<float> right);
+    public static partial void NativeMultiplyMatrix4Vector4(ref Vector4 result, ref Mat4 left,
+        ref Vector4 right);
     
     [LibraryImport(DllName, EntryPoint = "mathMatrix4ToTransform")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]

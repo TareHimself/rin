@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
 
@@ -25,24 +26,24 @@ public class RootLayout(CompositeView container) : InfiniteChildrenLayout
     {
         if (Container.Surface != null)
         {
-            slot.Child.Offset = 0.0f;
+            slot.Child.Offset = default;
             slot.Child.ComputeSize(Container.GetContentSize());
         }
     }
 
-    public override Vec2<float> Apply(Vec2<float> availableSpace)
+    public override Vector2 Apply(Vector2 availableSpace)
     {
         foreach (var slot in GetSlots())
         {
-            slot.Child.Offset = 0.0f;
+            slot.Child.Offset = default;
             slot.Child.ComputeSize(availableSpace);
         };
         
         return availableSpace;
     }
 
-    public override Vec2<float> ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
-        return 0.0f;
+        return new Vector2();
     }
 }

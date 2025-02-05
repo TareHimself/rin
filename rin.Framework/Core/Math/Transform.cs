@@ -1,21 +1,23 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using rin.Framework.Core.Extensions;
 
 namespace rin.Framework.Core.Math;
 
 
 public partial struct Transform() : ICloneable<Transform>
 {
-    public Vec3<float> Location = new(0.0f);
+    public Vector3 Location = new(0.0f);
     public Rotator Rotation = new (0.0f);
-    public Vec3<float> Scale = new(1.0f);
+    public Vector3 Scale = new(1.0f);
 
     
     public struct NativeTransform
     {
-        public Vec3<float> Location;
+        public Vector3 Location;
         public Quat Rotation;
-        public Vec3<float> Scale;
+        public Vector3 Scale;
     }
     
     public static implicit operator Mat4(Transform t)
@@ -57,7 +59,7 @@ public partial struct Transform() : ICloneable<Transform>
         };
     }
     
-    public void Deconstruct(out Vec3<float> location, out Rotator rotation, out Vec3<float> scale)
+    public void Deconstruct(out Vector3 location, out Rotator rotation, out Vector3 scale)
     {
         location = Location;
         rotation = Rotation;

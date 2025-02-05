@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Graphics.FrameGraph;
 using rin.Framework.Views.Graphics.Commands;
 
@@ -6,11 +7,11 @@ namespace rin.Framework.Views.Graphics;
 
 
 
-public class ClipInfo(uint id, Mat3 transform, Vec2<float> size)
+public class ClipInfo(uint id, Mat3 transform, Vector2 size)
 {
     public readonly uint Id = id;
     public Mat3 Transform = transform;
-    public Vec2<float> Size = size;
+    public Vector2 Size = size;
 }
 
 public struct RawCommand(Command drawCommand, string clipId)
@@ -56,7 +57,7 @@ public class PassCommands
     }
     
     
-    public PassCommands PushClip(Mat3 transform, Vec2<float> size)
+    public PassCommands PushClip(Mat3 transform, Vector2 size)
     {
         var id = (uint)Clips.Count;
         var clipInfo = new ClipInfo(id, transform, size);

@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.Windows;
 using rin.Framework.Graphics.Windows.Events;
@@ -73,10 +74,10 @@ public class WindowSurface : Surface
         switch (e.State)
         {
             case InputState.Released:
-                ReceiveCursorUp(new CursorUpEvent(this,e.Button,e.Position.Cast<float>()));
+                ReceiveCursorUp(new CursorUpEvent(this,e.Button,e.Position));
                 break;
             case InputState.Pressed:
-                ReceiveCursorDown(new CursorDownEvent(this,e.Button, e.Position.Cast<float>()));
+                ReceiveCursorDown(new CursorDownEvent(this,e.Button, e.Position));
                 break;
             case InputState.Repeat:
                 break;
@@ -87,12 +88,12 @@ public class WindowSurface : Surface
 
     protected void OnMouseMove(Windows_Events_CursorMoveEvent e)
     {
-        ReceiveCursorMove(new Views_Events_CursorMoveEvent(this, e.Position.Cast<float>()));
+        ReceiveCursorMove(new Views_Events_CursorMoveEvent(this, e.Position));
     }
 
     protected void OnScroll(Windows_Events_ScrollEvent e)
     {
-        ReceiveScroll(new Views_Events_ScrollEvent(this, e.Position.Cast<float>(), e.Delta.Cast<float>()));
+        ReceiveScroll(new Views_Events_ScrollEvent(this, e.Position, e.Delta.ToNumericsVector()));
     }
 
 
@@ -114,18 +115,18 @@ public class WindowSurface : Surface
         if (!Minimized) base.Draw(frame);
     }
 
-    public override Vec2<float> GetCursorPosition()
+    public override Vector2 GetCursorPosition()
     {
-        return Window.GetCursorPosition().Cast<float>();
+        return Window.GetCursorPosition().ToNumericsVector();
     }
 
-    public override void SetCursorPosition(Vec2<float> position)
+    public override void SetCursorPosition(Vector2 position)
     {
-        Window.SetMousePosition(position.Cast<double>());
+        Window.SetMousePosition(new Vec2<double>(position.X, position.Y));
     }
 
-    public override Vec2<int> GetDrawSize()
+    public override Vector2 GetDrawSize()
     {
-        return Size;
+        return new Vector2(Size.X,Size.Y);
     }
 }

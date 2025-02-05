@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Core.Animation;
 using rin.Framework.Views.Animation;
@@ -37,38 +38,39 @@ public class Sizer : SingleSlotCompositeView
         }
     }
     
-    protected override Vec2<float> ComputeDesiredContentSize()
+    protected override Vector2 ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
             var desiredSize = slot.Child.GetDesiredSize();
-            return new Vec2<float>(WidthOverride ?? desiredSize.X, HeightOverride ?? desiredSize.Y);
+            return new Vector2(WidthOverride ?? desiredSize.X, HeightOverride ?? desiredSize.Y);
         }
 
-        return new Vec2<float>();
+        return new Vector2();
     }
 
-    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
+    protected override Vector2 ArrangeContent(Vector2 availableSpace)
     {
-        var size = new Vec2<float>(WidthOverride.GetValueOrDefault(availableSpace.X),
+        var size = new Vector2(WidthOverride.GetValueOrDefault(availableSpace.X),
             HeightOverride.GetValueOrDefault(availableSpace.Y));
         if (GetSlot() is { } slot)
         {
-            slot.Child.Offset = (new Vec2<float>(0, 0)); 
-            return slot.Child.ComputeSize(size);
+            slot.Child.Offset = default; 
+            size = slot.Child.ComputeSize(size);
         }
 
-        return size;
+        return new Vector2(WidthOverride.GetValueOrDefault(size.X), HeightOverride.GetValueOrDefault(size.Y));
     }
 
     public override void OnChildInvalidated(View child, InvalidationType invalidation)
     {
         if (GetSlot() is { } slot)
         {
-            slot.Child.Offset = 0.0f; 
+            slot.Child.Offset = default; 
             slot.Child.ComputeSize(GetContentSize());
         }
     }
+    
 
     public override IEnumerable<ISlot> GetSlots()
     {

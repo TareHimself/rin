@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Layouts;
 
@@ -19,7 +20,7 @@ public class Panel : MultiSlotCompositeView<PanelSlot>
     {
         _layout = new PanelLayout(this);
     }
-    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
+    protected override Vector2 ArrangeContent(Vector2 availableSpace)
     {
         return _layout.Apply(availableSpace);
     }
@@ -42,7 +43,7 @@ public class Panel : MultiSlotCompositeView<PanelSlot>
 
     public override IEnumerable<ISlot> GetSlots() => _layout.GetSlots();
 
-    protected override Vec2<float> ComputeDesiredContentSize()
+    protected override Vector2 ComputeDesiredContentSize()
     {
         return _layout.ComputeDesiredContentSize();
     }

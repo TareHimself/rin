@@ -20,16 +20,16 @@ public partial struct Rotator(float inYaw, float inPitch, float inRoll)
     
     
     [PublicAPI]
-    public Vec3<float> GetForwardVector() => ((Quat)this).Forward;
+    public Vector3 GetForwardVector() => ((Quat)this).Forward;
 
     [PublicAPI]
-    public Vec3<float> GetRightVector() => ((Quat)this).Right;
+    public Vector3 GetRightVector() => ((Quat)this).Right;
 
     [PublicAPI]
-    public Vec3<float> GetUpVector() => ((Quat)this).Up;
+    public Vector3 GetUpVector() => ((Quat)this).Up;
 
 
-    public static Rotator LookAt(Vec3<float> from,Vec3<float> to, Vec3<float> up)
+    public static Rotator LookAt(Vector3 from,Vector3 to, Vector3 up)
     {
         return (Rotator)Quat.LookAt(from,to,up);
     }

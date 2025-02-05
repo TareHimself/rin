@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\rin.Framework\rin.Framework.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="assets\rin_editor\" />
+      <Folder Include="Views\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <assets Include="assets\rin_editor\shaders\editor\scene\depth_scene_info.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\forward\mesh.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\forward\mesh_depth.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\forward\viewport.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\light.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\light_culling.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\mesh.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\mesh\default.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\mesh\default_data.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\mesh\default_depth.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\mesh\gbuffer_in.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\mesh\gbuffer_out.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\mesh\mesh_depth.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\mesh\vertex.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\mesh\viewport.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\mesh_inc.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\models\disney.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\models\lambert.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\models\pbr.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\models\pbr_new.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\scene_info.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\template.slang" />
+      <assets Include="assets\rin_editor\shaders\editor\scene\test.slang" />
+    </ItemGroup>
+
+</Project>

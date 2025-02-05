@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core;
+﻿using System.Numerics;
+using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Views;
 using rin.Framework.Views.Graphics;
@@ -12,15 +13,15 @@ public class PrettyView : ContentView
     {
         _createdAt = SRuntime.Get().GetTimeSeconds();
     }
-    protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
+    protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
         //Translate = availableSpace / 2.0f;
         return availableSpace;
     }
 
-    protected override Vec2<float> ComputeDesiredContentSize()
+    protected override Vector2 ComputeDesiredContentSize()
     {
-        return 0.0f;
+        return new Vector2();
     }
 
     public override void CollectContent(Mat3 transform, PassCommands commands)

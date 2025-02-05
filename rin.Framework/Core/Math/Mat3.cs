@@ -1,18 +1,19 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using rin.Framework.Core.Extensions;
 
 namespace rin.Framework.Core.Math;
 
 
 public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Mat3>,
-    IMultiplyOperators<Mat3, Vec3<float>, Vec3<float>>
+    IMultiplyOperators<Mat3, Vector3, Vector3>
 {
-    public Vec3<float> Column1 = new(0.0f);
+    public Vector3 Column1 = new(0.0f);
 
-    public Vec3<float> Column2 = new(0.0f);
+    public Vector3 Column2 = new(0.0f);
 
-    public Vec3<float> Column3 = new(0.0f);
+    public Vector3 Column3 = new(0.0f);
 
     public Mat3()
     {
@@ -20,9 +21,9 @@ public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Ma
 
     public static Mat3 Identity => new()
     {
-        Column1 = new Vec3<float>(1.0f, 0.0f, 0.0f),
-        Column2 = new Vec3<float>(0.0f, 1.0f, 0.0f),
-        Column3 = new Vec3<float>(0.0f, 0.0f, 1.0f)
+        Column1 = new Vector3(1.0f, 0.0f, 0.0f),
+        Column2 = new Vector3(0.0f, 1.0f, 0.0f),
+        Column3 = new Vector3(0.0f, 0.0f, 1.0f)
     };
 
 
@@ -46,7 +47,7 @@ public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Ma
         return r;
     }
 
-    public Mat3 Translate(Vec2<float> translation)
+    public Mat3 Translate(Vector2 translation)
     {
         var r = Clone();
         NativeMethods.NativeTranslate(ref r, ref this, ref translation);
@@ -55,7 +56,7 @@ public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Ma
 
     
 
-    public Mat3 Scale(Vec2<float> scale)
+    public Mat3 Scale(Vector2 scale)
     {
         var r = Clone();
         NativeMethods.NativeScale(ref r, ref this, ref scale);
@@ -89,9 +90,9 @@ public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Ma
 
    
 
-    public static Vec3<float> operator *(Mat3 left, Vec3<float> right)
+    public static Vector3 operator *(Mat3 left, Vector3 right)
     {
-        Vec3<float> result = new(0.0f);
+        Vector3 result = new(0.0f);
         NativeMethods.NativeMultiplyMatrix3Vector3(ref result, ref left, ref right);
         return result;
     }

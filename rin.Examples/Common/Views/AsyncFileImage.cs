@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core;
+﻿using System.Numerics;
+using rin.Framework.Core;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
@@ -49,7 +50,7 @@ public class AsyncFileImage : CoverImage
     //     base.Draw(frame, info);
     // }
 
-    protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
+    protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
         if (TextureId == -1)
         {
@@ -64,9 +65,9 @@ public class AsyncFileImage : CoverImage
         
         if (TextureId == -1)
         {
-            var opacity = (float)Math.Abs(Math.Sin(SRuntime.Get().GetTimeSeconds() * 4.0f)) * 0.7f; 
+            var opacity = (float)Math.Abs(Math.Sin(SRuntime.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
             commands.AddRect(transform, GetContentSize(),
-                color: new Vec4<float>(new Vec3<float>(0.8f),opacity),BorderRadius);
+                color: new Vector4(new Vector3(0.8f),opacity),BorderRadius);
         }
         else
         {

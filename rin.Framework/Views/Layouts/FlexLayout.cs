@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
 
@@ -20,10 +21,10 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
         };
     }
     
-    protected override Vec2<float> ArrangeContentRow(Vec2<float> availableSpace)
+    protected override Vector2 ArrangeContentRow(Vector2 availableSpace)
     {
         var mainAxisAvailableSpace = availableSpace.X.FiniteOr();
-        var space = new Vec2<float>(float.PositiveInfinity,availableSpace.Y);
+        var space = new Vector2(float.PositiveInfinity,availableSpace.Y);
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var flexTotal = 0.0f;
@@ -40,7 +41,7 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
                 }
                 else
                 {
-                    var viewSize = slot.Child.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
+                    var viewSize = slot.Child.ComputeSize(new Vector2(space.X,GetSlotCrossAxisSize(slot,space.Y)));
                     mainAxisAvailableSpace -= viewSize.X;
                 }
             }
@@ -50,7 +51,7 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
         
         
         {
-            var offset = new Vec2<float>(0.0f);
+            var offset = new Vector2(0.0f);
             // Compute slot sizes and initial offsets
             foreach (var slot in slots)
             {
@@ -64,7 +65,7 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
                     var assignedMainAxisSpace =
                         flexTotal > 0.0f ? mainAxisAvailableSpace * (asFlexSlot.Flex.Value / flexTotal) : 0.0f;
 
-                    var flexSize = new Vec2<float>(assignedMainAxisSpace, GetSlotCrossAxisSize(slot, space.Y));
+                    var flexSize = new Vector2(assignedMainAxisSpace, GetSlotCrossAxisSize(slot, space.Y));
 
                     view.ComputeSize(flexSize);
                     
@@ -73,7 +74,7 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
                 }
                 else
                 {
-                    var viewSize = view.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
+                    var viewSize = view.ComputeSize(new Vector2(space.X,GetSlotCrossAxisSize(slot,space.Y)));
                     slotMainAxisSize = viewSize.X;
                     slotCrossAxisSize = viewSize.Y;
                 }
@@ -93,14 +94,14 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
             HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
         }
 
-        return new Vec2<float>(mainAxisSize, crossAxisSize);
+        return new Vector2(mainAxisSize, crossAxisSize);
     }
 
 
-    protected override Vec2<float> ArrangeContentColumn(Vec2<float> availableSpace)
+    protected override Vector2 ArrangeContentColumn(Vector2 availableSpace)
     {
        var mainAxisAvailableSpace = availableSpace.Y.FiniteOr();
-        var space = new Vec2<float>(float.PositiveInfinity,availableSpace.X);
+        var space = new Vector2(float.PositiveInfinity,availableSpace.X);
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var flexTotal = 0.0f;
@@ -117,7 +118,7 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
                 }
                 else
                 {
-                    var viewSize = slot.Child.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
+                    var viewSize = slot.Child.ComputeSize(new Vector2(space.X,GetSlotCrossAxisSize(slot,space.Y)));
                     mainAxisAvailableSpace -= viewSize.X;
                 }
             }
@@ -127,7 +128,7 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
         
         
         {
-            var offset = new Vec2<float>(0.0f);
+            var offset = new Vector2(0.0f);
             // Compute slot sizes and initial offsets
             foreach (var slot in slots)
             {
@@ -141,7 +142,7 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
                     var assignedMainAxisSpace =
                         flexTotal > 0.0f ? mainAxisAvailableSpace * (asFlexSlot.Flex.Value / flexTotal) : 0.0f;
 
-                    var flexSize = new Vec2<float>(GetSlotCrossAxisSize(slot,space.Y),assignedMainAxisSpace);
+                    var flexSize = new Vector2(GetSlotCrossAxisSize(slot,space.Y),assignedMainAxisSpace);
 
                     view.ComputeSize(flexSize);
                     
@@ -150,7 +151,7 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
                 }
                 else
                 {
-                    var viewSize = view.ComputeSize(new Vec2<float>(GetSlotCrossAxisSize(slot,space.Y),space.X));
+                    var viewSize = view.ComputeSize(new Vector2(GetSlotCrossAxisSize(slot,space.Y),space.X));
                     slotMainAxisSize = viewSize.Y;
                     slotCrossAxisSize = viewSize.X;
                 }
@@ -170,6 +171,6 @@ public class FlexLayout(Axis axis, CompositeView container) : ListLayout(axis, c
             HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
         }
 
-        return new Vec2<float>(mainAxisSize, crossAxisSize);
+        return new Vector2(mainAxisSize, crossAxisSize);
     }
 }

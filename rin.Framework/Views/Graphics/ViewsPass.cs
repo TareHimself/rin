@@ -1,5 +1,7 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
 using rin.Framework.Core;
+using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.FrameGraph;
@@ -15,12 +17,12 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
     private uint _copyImageHandle;
     private uint _stencilImageHandle;
     private uint _bufferResourceHandle;
-    private readonly Vec2<uint> _drawSize = surface.GetDrawSize().Cast<uint>();
+    private readonly Vec2<uint> _drawSize = surface.GetDrawSize().Mutate(c => new Vec2<uint>((uint)c.X,(uint)c.Y));
     private ulong _memoryNeeded = 0;
     private readonly List<Pair<ulong, ulong>> _offsets = [];
     public void Dispose()
     {
-        throw new NotImplementedException();
+        
     }
 
     public void BeforeAdd(IGraphBuilder builder)
@@ -170,7 +172,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                         aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT,
                         clearValue = new VkClearValue
                         {
-                            color = SGraphicsModule.MakeClearColorValue(0.0f),
+                            color = SGraphicsModule.MakeClearColorValue(new Vector4(0.0f)),
                             depthStencil = new VkClearDepthStencilValue
                             {
                                 stencil = 0
@@ -293,7 +295,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                 SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(
                     VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT | VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
             });
-        cmd.ClearColorImages(0.0f, ImageLayout.General, drawImage, copyImage);
+        cmd.ClearColorImages(new Vector4(0.0f), ImageLayout.General, drawImage, copyImage);
         cmd.ClearStencilImages(0, ImageLayout.General, stencilImage);
         cmd.ImageBarrier(drawImage,  ImageLayout.General,ImageLayout.ColorAttachment);
         cmd.ImageBarrier(copyImage, ImageLayout.General,ImageLayout.ShaderReadOnly);

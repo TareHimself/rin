@@ -1,11 +1,12 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Graphics;
 
 namespace rin.Framework.Views.Events;
 
-public class ScrollEvent(Surface surface, Vec2<float> position, Vec2<float> delta)
+public class ScrollEvent(Surface surface, Vector2 position, Vector2 delta)
     : Event(surface)
 {
-    public Vec2<float> Delta = delta;
-    public Vec2<float> Position = position;
+    public Vector2 Delta = delta;
+    public Vector2 Position = position;
 }

@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using TerraFX.Interop.Vulkan;
 
@@ -6,7 +7,7 @@ namespace rin.Framework.Views.Graphics;
 using static TerraFX.Interop.Vulkan.Vulkan;
 public static class GraphicsExtensions
 {
-    public static void ConfigureForViews(this Frame frame,Vec2<uint> size)
+    public static void ConfigureForViews(this Frame frame,Vector2 size)
     {
 
         var cmd = frame.GetCommandBuffer();
@@ -35,8 +36,8 @@ public static class GraphicsExtensions
                     offset = new VkOffset2D(),
                     extent = new VkExtent2D()
                     {
-                        width = surfaceSize.X,
-                        height = surfaceSize.Y
+                        width = (uint)surfaceSize.X,
+                        height = (uint)surfaceSize.Y
                     }
                 }
             ]);

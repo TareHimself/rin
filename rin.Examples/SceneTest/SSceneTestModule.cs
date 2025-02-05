@@ -1,14 +1,15 @@
-﻿using rin.Examples.SceneTest.entities;
+﻿using System.Numerics;
+using rin.Examples.SceneTest.entities;
 using rin.Framework.Core;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.Windows;
-using rin.Framework.Scene;
-using rin.Framework.Scene.Actors;
-using rin.Framework.Scene.Components;
-using rin.Framework.Scene.Components.Lights;
-using rin.Framework.Scene.Graphics;
+using rin.Editor.Scene;
+using rin.Editor.Scene.Actors;
+using rin.Editor.Scene.Components;
+using rin.Editor.Scene.Components.Lights;
+using rin.Editor.Scene.Graphics;
 using rin.Framework.Views;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Content;
@@ -33,7 +34,7 @@ public class SSceneTestModule : IModule
             },
             ImageFormat.RGBA8);
     }
-    public static async Task<DefaultMaterial> LoadGoldMaterial()
+    public static async Task<DefaultMeshMaterial> LoadGoldMaterial()
     {
         var albedo = LoadTexture(Path.Join(SRuntime.AssetsDirectory, "textures", "au_albedo.png"));
         var roughness = LoadTexture(Path.Join(SRuntime.AssetsDirectory, "textures", "au_roughness.png"));
@@ -42,7 +43,7 @@ public class SSceneTestModule : IModule
 
 
         await Task.WhenAll(albedo,roughness,metallic,normal);
-        return new DefaultMaterial()
+        return new DefaultMeshMaterial()
         {
             ColorTextureId = albedo.Result,
             RoughnessTextureId = roughness.Result,
@@ -52,36 +53,36 @@ public class SSceneTestModule : IModule
     Task<StaticMesh> CreatePlane(float size = 0.0f)
     {
         var halfSize = size * 0.5f;
-        var normal = Vec3<float>.Up;
-        var right = new Vec3<float>(0.0f) + (Vec3<float>.Right * halfSize);
-        var forward = new Vec3<float>(0.0f) + (Vec3<float>.Forward * halfSize);
+        var normal = Constants.UpVector;
+        var right = new Vector3(0.0f) + (Constants.RightVector * halfSize);
+        var forward = new Vector3(0.0f) + (Constants.ForwardVector * halfSize);
         StaticMesh.Vertex[] vertices =
         [
             new StaticMesh.Vertex()
             {
-                Location = new Vec4<float>(forward + -right, 0.0f),
-                Normal = new Vec4<float>(normal, 0.0f),
+                Location = new Vector4(forward + -right, 0.0f),
+                Normal = new Vector4(normal, 0.0f),
             },
             new StaticMesh.Vertex()
             {
-                Location = new Vec4<float>(forward + right, 1.0f),
-                Normal = new Vec4<float>(normal, 0.0f),
+                Location = new Vector4(forward + right, 1.0f),
+                Normal = new Vector4(normal, 0.0f),
             },new StaticMesh.Vertex()
             {
-                Location = new Vec4<float>(-forward + right, 1.0f),
-                Normal = new Vec4<float>(normal, 1.0f),
+                Location = new Vector4(-forward + right, 1.0f),
+                Normal = new Vector4(normal, 1.0f),
             },new StaticMesh.Vertex()
             {
-                Location = new Vec4<float>(-forward + right, 1.0f),
-                Normal = new Vec4<float>(normal, 1.0f),
+                Location = new Vector4(-forward + right, 1.0f),
+                Normal = new Vector4(normal, 1.0f),
             },new StaticMesh.Vertex()
             {
-                Location = new Vec4<float>(-forward + -right, 0.0f),
-                Normal = new Vec4<float>(normal, 1.0f),
+                Location = new Vector4(-forward + -right, 0.0f),
+                Normal = new Vector4(normal, 1.0f),
             },new StaticMesh.Vertex()
             {
-                Location = new Vec4<float>(forward + -right, 0.0f),
-                Normal = new Vec4<float>(normal, 0.0f),
+                Location = new Vector4(forward + -right, 0.0f),
+                Normal = new Vector4(normal, 0.0f),
             }
         ];
         return StaticMesh.Create([
@@ -113,8 +114,8 @@ public class SSceneTestModule : IModule
             //         RootComponent = new StaticMeshComponent()
             //         {
             //             Mesh = mesh,
-            //             Location = new Vec3<float>(0.0f, 0.0f, 0.0f),
-            //             Scale = new Vec3<float>(1.0f, 1.0f, 1.0f),
+            //             Location = new Vector3(0.0f, 0.0f, 0.0f),
+            //             Scale = new Vector3(1.0f, 1.0f, 1.0f),
             //             Materials = [
             //             new DefaultMaterial()
             //             {
@@ -133,26 +134,26 @@ public class SSceneTestModule : IModule
             
             var camera = scene.AddActor<CameraActor>();
             var comp = camera.GetCameraComponent();
-            var location = new Vec3<float>(0.0f, 60.0f, -50.0f);
+            var location = new Vector3(0.0f, 60.0f, -50.0f);
             comp.SetRelativeLocation(location);
-            var lookAtRotation = Rotator.LookAt(location,new Vec3<float>(0.0f,50.0f,0.0f), Vec3<float>.Up);
+            var lookAtRotation = Rotator.LookAt(location,new Vector3(0.0f,50.0f,0.0f),Constants.UpVector);
             comp.SetRelativeRotation(lookAtRotation);
             Extensions.LoadStaticMesh(Path.Join(SRuntime.AssetsDirectory,"models","real_cube.glb")).After(mesh =>
             {
                 
-                scene.AddPointLight(new Vec3<float>(0.0f, 20.0f, 0.0f));
+                scene.AddPointLight(new Vector3(0.0f, 20.0f, 0.0f));
                     
-                scene.AddPointLight(new Vec3<float>(0.0f, -20.0f, 0.0f));
+                scene.AddPointLight(new Vector3(0.0f, -20.0f, 0.0f));
                 var directionalLight = scene.AddActor(new Actor()
                 {
                     RootComponent = new DirectionalLightComponent()
                     {
                         Radiance = 10.0f,
-                        Location = new Vec3<float>(0.0f, 200.0f, 0.0f),
+                        Location = new Vector3(0.0f, 200.0f, 0.0f),
                     }
                 });
                 
-                directionalLight.SetRelativeRotation(Rotator.LookAt(directionalLight.GetRelativeLocation(),new Vec3<float>(0.0f),Vec3<float>.Up));
+                directionalLight.SetRelativeRotation(Rotator.LookAt(directionalLight.GetRelativeLocation(),new Vector3(0.0f),Constants.UpVector));
                 //
                 var dist = 50.0f;
                 var height = 50.0f;
@@ -161,7 +162,7 @@ public class SSceneTestModule : IModule
                     RootComponent = new StaticMeshComponent()
                     {
                         Mesh = mesh,
-                        Location = new Vec3<float>(dist,height,0.0f)
+                        Location = new Vector3(dist,height,0.0f)
                     }
                 };
                 var e2 = new Actor()
@@ -169,12 +170,12 @@ public class SSceneTestModule : IModule
                     RootComponent = new StaticMeshComponent()
                     {
                         Mesh = mesh,
-                        Location = new Vec3<float>(-dist,height,0.0f)
+                        Location = new Vector3(-dist,height,0.0f)
                     }
                 };
                 var box = new BoxCollisionComponent()
                 {
-                    Location = new Vec3<float>(0.0f, 100.0f, 0.0f),
+                    Location = new Vector3(0.0f, 100.0f, 0.0f),
                 };
 
                 box.OnHit += (_) =>
@@ -206,7 +207,7 @@ public class SSceneTestModule : IModule
                 {
                     
                     scene.Update(delta);
-                    var lookAtRotation = Rotator.LookAt(camera.GetRelativeLocation(),e3.GetRelativeLocation(), Vec3<float>.Up);
+                    var lookAtRotation = Rotator.LookAt(camera.GetRelativeLocation(),e3.GetRelativeLocation(), Constants.UpVector);
                     comp.SetRelativeRotation(lookAtRotation);
                     // var root = e1.RootComponent!;
                     // root.SetRelativeRotation(root.GetRelativeRotation().Delta(pitch: -50.0f * (float)delta));
@@ -246,8 +247,8 @@ public class SSceneTestModule : IModule
                     new PanelSlot()
                     {
                         Child = new TestViewport(camera, text),
-                        MinAnchor = 0.0f,
-                        MaxAnchor = 1.0f,
+                        MinAnchor = new Vector2(0.0f),
+                        MaxAnchor = new Vector2(1.0f),
                     },
                     new PanelSlot()
                     {

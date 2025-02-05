@@ -5,10 +5,8 @@ using SixLabors.Fonts;
 using Vector2 = System.Numerics.Vector2;
 namespace rin.Framework.Views.Sdf;
 using SdfExt = rin.Sdf;
-public partial class TextRenderer : Disposable, IGlyphRenderer
+public class TextRenderer : IDisposable, IGlyphRenderer
 {
-
-
     private Context _gen = new Context();
     
     public void BeginFigure()
@@ -17,56 +15,22 @@ public partial class TextRenderer : Disposable, IGlyphRenderer
 
     public void MoveTo(Vector2 point)
     {
-        _gen.MoveTo(new Vec2<float>()
-        {
-            X = point.X,
-            Y = point.Y
-        });
+        _gen.MoveTo(point);
     }
 
     public void QuadraticBezierTo(Vector2 secondControlPoint, Vector2 point)
     {
-        _gen.QuadraticBezierTo(new Vec2<float>()
-            {
-                X = secondControlPoint.X,
-                Y = secondControlPoint.Y
-            },
-            new Vec2<float>()
-            {
-                X = point.X,
-                Y = point.Y
-            });
+        _gen.QuadraticBezierTo(secondControlPoint,point);
     }
 
     public void CubicBezierTo(Vector2 secondControlPoint, Vector2 thirdControlPoint, Vector2 point)
     {
-        _gen.CubicBezierTo(
-            new Vec2<float>()
-            {
-                X = secondControlPoint.X,
-                Y = secondControlPoint.Y
-            },
-            new Vec2<float>()
-            {
-                X = thirdControlPoint.X,
-                Y = thirdControlPoint.Y
-            },
-            new Vec2<float>()
-            {
-                X = point.X,
-                Y = point.Y
-            }
-            );
+        _gen.CubicBezierTo(secondControlPoint,thirdControlPoint,point);
     }
 
     public void LineTo(Vector2 point)
     {
-        _gen.LineTo(
-            new Vec2<float>()
-            {
-                X = point.X,
-                Y = point.Y
-            });
+        _gen.LineTo(point);
     }
 
     public void EndFigure()
@@ -105,13 +69,8 @@ public partial class TextRenderer : Disposable, IGlyphRenderer
     {
         return _gen.GenerateMtsdf(angleThreshold,pixelRange);
     }
-
-    private static Vec2<float> ToNative(Vector2 v)
-    {
-        return new Vec2<float>(v.X, v.Y);
-    }
-
-    protected override void OnDispose(bool isManual)
+    
+    public void Dispose()
     {
         _gen.Dispose();
     }

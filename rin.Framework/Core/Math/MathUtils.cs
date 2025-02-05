@@ -1,10 +1,11 @@
-﻿using MathNet.Numerics.LinearAlgebra;
+﻿using System.Numerics;
+using MathNet.Numerics.LinearAlgebra;
 
 namespace rin.Framework.Core.Math;
 
 public static class MathUtils
 {
-    public static Matrix<float> Translate(this Matrix<float> mat, Vec3<float> translation)
+    public static Matrix<float> Translate(this Matrix<float> mat, Vector3 translation)
     {
         mat.SetColumn(
             0,
@@ -17,7 +18,7 @@ public static class MathUtils
     }
 
 
-    public static Matrix<float> Scale(this Matrix<float> mat, Vec3<float> scale)
+    public static Matrix<float> Scale(this Matrix<float> mat, Vector3 scale)
     {
         mat.SetColumn(0, mat.Column(0).Multiply(scale.X));
         mat.SetColumn(1, mat.Column(1).Multiply(scale.Y));
@@ -47,9 +48,9 @@ public static class MathUtils
         return current + delta;
     }
     
-    public static Vec2<float> InterpolateTo(Vec2<float> begin, Vec2<float> end, float deltaTime, float speed)
+    public static Vector2 InterpolateTo(Vector2 begin, Vector2 end, float deltaTime, float speed)
     {
-        return new Vec2<float>(InterpolateTo(begin.X, end.X, deltaTime, speed),
+        return new Vector2(InterpolateTo(begin.X, end.X, deltaTime, speed),
             InterpolateTo(begin.Y, end.Y, deltaTime, speed));
     }
 
@@ -79,10 +80,10 @@ public static class MathUtils
     /// <param name="alpha">The alpha</param>
     /// <param name="method">An optional method for interpolation</param>
     /// <returns></returns>
-    public static Vec2<float> Interpolate(Vec2<float> begin, Vec2<float> end, float alpha,
+    public static Vector2 Interpolate(Vector2 begin, Vector2 end, float alpha,
         Func<float, float, float, float>? method = null)
     {
-        return new Vec2<float>(Interpolate(begin.X, end.X, alpha, method),
+        return new Vector2(Interpolate(begin.X, end.X, alpha, method),
             Interpolate(begin.Y, end.Y, alpha, method));
     }
 
@@ -95,10 +96,10 @@ public static class MathUtils
     /// <param name="alpha">The alpha</param>
     /// <param name="method">An optional method for interpolation</param>
     /// <returns></returns>
-    public static Vec3<float> Interpolate(Vec3<float> begin, Vec3<float> end, float alpha,
+    public static Vector3 Interpolate(Vector3 begin, Vector3 end, float alpha,
         Func<float, float, float, float>? method = null)
     {
-        return new Vec3<float>(Interpolate(begin.X, end.X, alpha, method),
+        return new Vector3(Interpolate(begin.X, end.X, alpha, method),
             Interpolate(begin.Y, end.Y, alpha, method), Interpolate(begin.Z, end.Z, alpha, method));
     }
 
@@ -111,10 +112,10 @@ public static class MathUtils
     /// <param name="alpha">The alpha</param>
     /// <param name="method">An optional method for interpolation</param>
     /// <returns></returns>
-    public static Vec4<float> Interpolate(Vec4<float> begin, Vec4<float> end, float alpha,
+    public static Vector4 Interpolate(Vector4 begin, Vector4 end, float alpha,
         Func<float, float, float, float>? method = null)
     {
-        return new Vec4<float>(Interpolate(begin.X, end.X, alpha, method),
+        return new Vector4(Interpolate(begin.X, end.X, alpha, method),
             Interpolate(begin.Y, end.Y, alpha, method), Interpolate(begin.Z, end.Z, alpha, method),
             Interpolate(begin.W, end.W, alpha, method));
     }

@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Core.Extensions;
 using rin.Sdf;
@@ -86,8 +87,8 @@ public class FontGenerator(FontFamily family)
                 foreach (var rect in packer.Rects)
                 {
                     var generated = rect.Data;
-                    var pt1 = new Vec2<float>(rect.X, rect.Y);
-                    var pt2 = pt1 + generated.Size.Cast<float>();
+                    var pt1 = new Vector2(rect.X, rect.Y);
+                    var pt2 = pt1 + generated.Size.ToNumericsVector();
                     var dims = pt2 - pt1;
                     var pt1Coord = pt1 / atlasSize;
                     var pt2Coord = pt2 / atlasSize;
@@ -100,7 +101,7 @@ public class FontGenerator(FontFamily family)
                         Y = pt1.Y,
                         Width = dims.X,
                         Height = dims.Y,
-                        Coordinates = new Vec4<float>(pt1Coord,pt2Coord),
+                        Coordinates = new Vector4(pt1Coord,pt2Coord.X,pt2Coord.Y),
                         Range = pixelRange
                     });
 

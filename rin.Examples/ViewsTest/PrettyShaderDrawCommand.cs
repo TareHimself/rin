@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
@@ -9,17 +10,17 @@ using Utils = rin.Framework.Core.Utils;
 
 namespace rin.Examples.ViewsTest;
 
-public class PrettyShaderDrawCommand(Mat3 transform,Vec2<float> size,bool hovered) : CustomCommand
+public class PrettyShaderDrawCommand(Mat3 transform,Vector2 size,bool hovered) : CustomCommand
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     struct Data
     {
         public required Mat4 Projection;
-        public required Vec2<float> ScreenSize;
+        public required Vector2 ScreenSize;
         public required Mat3 Transform;
-        public required Vec2<float> Size;
+        public required Vector2 Size;
         public required float Time;
-        public required Vec2<float> Center;
+        public required Vector2 Center;
     }
     public override bool WillDraw => true;
 
@@ -35,7 +36,7 @@ public class PrettyShaderDrawCommand(Mat3 transform,Vec2<float> size,bool hovere
         if (_prettyShader.Bind(cmd, true) && view != null)
         {
             var pushResource = _prettyShader.PushConstants.First().Value;
-            var screenSize = frame.Surface.GetDrawSize().Cast<float>();
+            var screenSize = frame.Surface.GetDrawSize();
             var data = new Data()
             {
                 Projection = frame.Projection,

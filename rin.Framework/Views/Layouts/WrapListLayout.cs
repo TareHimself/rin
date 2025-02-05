@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
 
@@ -21,7 +22,7 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
         }
     }
 
-    protected override Vec2<float> ArrangeContentRow(Vec2<float> availableSpace)
+    protected override Vector2 ArrangeContentRow(Vector2 availableSpace)
     {
         var computedSize = base.ArrangeContentRow(availableSpace);
         if (computedSize.X <= availableSpace.X)
@@ -49,11 +50,11 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
                         
                     }
                     
-                    offset = new Vec2<float>(0.0f, crossAxisOffset);
+                    offset = new Vector2(0.0f, crossAxisOffset);
                 }
                 else
                 {
-                    offset = new Vec2<float>(mainAxisOffset, crossAxisOffset);
+                    offset = new Vector2(mainAxisOffset, crossAxisOffset);
                 }
             }
             
@@ -65,10 +66,10 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
             totalWidth = Math.Max(totalWidth, offset.X + size.X);
         }
 
-        return new Vec2<float>( totalWidth,totalHeight);
+        return new Vector2( totalWidth,totalHeight);
     }
     
-    protected override Vec2<float> ArrangeContentColumn(Vec2<float> availableSpace)
+    protected override Vector2 ArrangeContentColumn(Vector2 availableSpace)
     {
         var computedSize = base.ArrangeContentColumn(availableSpace);
         if (computedSize.Y <= availableSpace.Y)
@@ -97,11 +98,11 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
                         
                     }
                     
-                    offset = new Vec2<float>(0.0f, crossAxisOffset);
+                    offset = new Vector2(0.0f, crossAxisOffset);
                 }
                 else
                 {
-                    offset = new Vec2<float>(mainAxisOffset, crossAxisOffset);
+                    offset = new Vector2(mainAxisOffset, crossAxisOffset);
                 }
             }
             
@@ -113,11 +114,11 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
             totalWidth = Math.Max(totalWidth, offset.X + size.X);
         }
 
-        return new Vec2<float>(totalWidth, totalHeight);
+        return new Vector2(totalWidth, totalHeight);
     }
 
     
-    public override Vec2<float> Apply(Vec2<float> availableSpace)
+    public override Vector2 Apply(Vector2 availableSpace)
     {
         return GetAxis() switch
         {
@@ -127,18 +128,18 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
         };
     }
     
-    public override Vec2<float> ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         return GetAxis() switch
         {
-            Axis.Row => GetSlots().Aggregate(new Vec2<float>(), (size, slot) =>
+            Axis.Row => GetSlots().Aggregate(new Vector2(), (size, slot) =>
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.X += slotSize.X;
                 size.Y = System.Math.Max(size.Y, slotSize.Y);
                 return size;
             }),
-            Axis.Column => GetSlots().Aggregate(new Vec2<float>(), (size, slot) =>
+            Axis.Column => GetSlots().Aggregate(new Vector2(), (size, slot) =>
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.Y += slotSize.Y;

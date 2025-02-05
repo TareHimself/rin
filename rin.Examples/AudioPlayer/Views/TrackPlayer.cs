@@ -1,4 +1,5 @@
-﻿using rin.Framework.Audio;
+﻿using System.Numerics;
+using rin.Framework.Audio;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Views;
@@ -104,7 +105,7 @@ public class TrackPlayer : Overlay
                                             Child = new ProgressBar(() => (float)(_stream.Position / _stream.Length))
                                             {
                                                 BackgroundColor = Color.Black,
-                                                BorderRadius = 6.0f
+                                                BorderRadius = new Vector4(6.0f)
                                             },
                                             HeightOverride = 8
                                         },
@@ -131,7 +132,7 @@ public class TrackPlayer : Overlay
         _endTimeText.Content = FormatTime(stream.Length);
         Padding = 10.0f;
         FetchCover().ConfigureAwait(false);
-        Pivot = new Vec2<float>(1.0f, 0.0f);
+        Pivot = new Vector2(1.0f, 0.0f);
     }
 
     private async Task FetchCover()
@@ -154,10 +155,10 @@ public class TrackPlayer : Overlay
             {
                 Child = new TrackImage(thumb)
                 {
-                    BorderRadius = 20.0f
+                    BorderRadius = new Vector4(20.0f)
                 },
-                MinAnchor = 0.0f,
-                MaxAnchor = 1.0f
+                MinAnchor = new Vector2(0.0f),
+                MaxAnchor = new Vector2(1.0f)
             });
         }
         catch (Exception e)
@@ -167,10 +168,10 @@ public class TrackPlayer : Overlay
             {
                 Child = new TrackImage("https://i.imgur.com/5fQUPDl.jpg")
                 {
-                    BorderRadius = 20.0f
+                    BorderRadius = new Vector4(20.0f)
                 },
-                MinAnchor = 0.0f,
-                MaxAnchor = 1.0f
+                MinAnchor = new Vector2(0.0f),
+                MaxAnchor = new Vector2(1.0f)
             });
         }
         // this.ScaleTo(new Vector2<float>(1.0f, 1.0f), 1.0f, 0.2f,easingFunction: EasingFunctions.EaseInExpo).After().Do(
@@ -212,7 +213,7 @@ public class TrackPlayer : Overlay
         base.OnCursorEnter(e);
         if (Loaded)
         {
-            this.TranslateTo(new Vec2<float>(40.0f, 0.0f), 0.2,
+            this.TranslateTo(new Vector2(40.0f, 0.0f), 0.2,
                 easingFunction: EasingFunctions.EaseInOutCubic);
         }
     }
@@ -222,12 +223,12 @@ public class TrackPlayer : Overlay
         base.OnCursorLeave(e);
         if (Loaded)
         {
-            this.TranslateTo(new Vec2<float>(0.0f, 0.0f), 0.2,
+            this.TranslateTo(new Vector2(0.0f, 0.0f), 0.2,
                 easingFunction: EasingFunctions.EaseInOutCubic);
         }
     }
 
-    protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
+    protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
         return base.LayoutContent(availableSpace);
     }

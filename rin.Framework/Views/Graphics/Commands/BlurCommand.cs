@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
@@ -16,14 +17,16 @@ public struct BlurPushConstants
     
     public required Mat3 Transform;
 
-    public required Vec2<float> Size;
+    public required Vector2 Size;
 
-    public required float Sigma;
+    public required float Strength;
 
-    public required Vec4<float> Tint;
+    public required float Radius;
+
+    public required Vector4 Tint;
 }
 
-public class BlurCommand(Mat3 transform, Vec2<float> size,float sigma, Vec4<float> tint) : CustomCommand
+public class BlurCommand(Mat3 transform, Vector2 size,float strength,float radius, Vector4 tint) : CustomCommand
 {
     private static string _blurPassId = Guid.NewGuid().ToString();
     private readonly IGraphicsShader _blurShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SViewsModule.ShadersDirectory,"blur.slang"));
@@ -84,7 +87,8 @@ public class BlurCommand(Mat3 transform, Vec2<float> size,float sigma, Vec4<floa
             {
                 Projection = frame.Projection,
                 Size = size,
-                Sigma = sigma,
+                Strength = strength,
+                Radius = radius,
                 Tint = tint,
                 Transform = transform
             };

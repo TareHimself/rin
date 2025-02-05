@@ -135,10 +135,6 @@ EXPORT_IMPL void sdfContextGenerateMTSDF(GlyphContext* context,float angleThresh
     
     const auto bounds = shape.getBounds();
 
-    // auto width = (bounds.r - bounds.l) + 1.0f;
-    // auto height = (bounds.t - bounds.b) + 1.0f;
-    // auto offsetX = (width - bounds.r) - 0.5f;
-    // auto offsetY = (height - bounds.t) - 0.5f;
     auto width = (bounds.r - bounds.l);
     auto height = (bounds.t - bounds.b);
     auto offsetX = (width - bounds.r);
@@ -153,6 +149,7 @@ EXPORT_IMPL void sdfContextGenerateMTSDF(GlyphContext* context,float angleThresh
     msdfgen::Bitmap<float, 4> bmp(bmpWidth,bmpHeight);
 
     auto transform = msdfgen::SDFTransformation{{{1.0,1.0},{offsetX,offsetY}},{}};
+
     msdfgen::generateMTSDF(bmp,shape,transform,pixelRange);
     
 

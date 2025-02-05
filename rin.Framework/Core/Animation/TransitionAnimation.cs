@@ -2,7 +2,7 @@
 
 namespace rin.Framework.Core.Animation;
 
-public class TransitionAnimation<TValue>(Func<TValue> from,TValue to,Action<TValue> setter,double duration = 0.0,Func<double,double>? easingFunction = null) : IAnimation where TValue : ISubtractionOperators<TValue,TValue,TValue>,IMultiplyOperators<TValue,float,TValue>,IAdditionOperators<TValue,TValue,TValue>
+public abstract class TransitionAnimation<TValue>(Func<TValue> from,TValue to,Action<TValue> setter,double duration = 0.0,Func<double,double>? easingFunction = null) : IAnimation
 {
     public double Duration => duration;
     private TValue _from = default!;
@@ -22,8 +22,14 @@ public class TransitionAnimation<TValue>(Func<TValue> from,TValue to,Action<TVal
             alpha = easingFunction(alpha);
         }
         
-        var diff = to - _from;
-        var diffAlpha = diff * (float)alpha;
-        setter(_from + diffAlpha);
+        var diff = Subtract(to,_from);
+        var delta = ApplyAlpha(diff, alpha);
+        setter(Add(_from,delta));
     }
+
+    protected abstract TValue ApplyAlpha(in TValue diff, double alpha);
+
+    protected abstract TValue Add(in TValue a,in TValue b);
+    
+    protected abstract TValue Subtract(in TValue a, in TValue b);
 }

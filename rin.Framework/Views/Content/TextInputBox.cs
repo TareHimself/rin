@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core;
+﻿using System.Numerics;
+using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics.Windows;
 using rin.Framework.Core.Extensions;
@@ -97,7 +98,7 @@ public class TextInputBox : TextBox
         
         if (!FontReady || !IsFocused) return;
                 
-        Vec2<float> offset = 0.0f;
+        Vector2 offset = default;
 
         if (CursorPosition != -1)
         {
@@ -121,6 +122,6 @@ public class TextInputBox : TextBox
         var color = ForegroundColor.Clone();
         var sin = (float)((System.Math.Sin(SRuntime.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f);
         color.A *= IsTyping ? 1.0f : sin > 0.35 ? 1.0f : 0.0f;
-        commands.AddRect(transform.Translate(offset), new Vec2<float>(2.0f, height), color: color);
+        commands.AddRect(transform.Translate(offset), new Vector2(2.0f, height), color: color);
     }
 }

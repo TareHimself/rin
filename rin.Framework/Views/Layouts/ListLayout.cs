@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
 
@@ -113,11 +114,11 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
         }
     }
     
-    protected virtual Vec2<float> ArrangeContentRow(Vec2<float> availableSpace)
+    protected virtual Vector2 ArrangeContentRow(Vector2 availableSpace)
     {
-        var offset = new Vec2<float>(0.0f);
+        var offset = new Vector2(0.0f);
         
-        var space = new Vec2<float>(float.PositiveInfinity,availableSpace.Y);
+        var space = new Vector2(float.PositiveInfinity,availableSpace.Y);
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var slots = GetSlots().ToArray();
@@ -127,7 +128,7 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
             var view = slot.Child;
             view.Offset = offset;
                     
-            var viewSize = view.ComputeSize(new Vec2<float>(space.X,GetSlotCrossAxisSize(slot,space.Y)));
+            var viewSize = view.ComputeSize(new Vector2(space.X,GetSlotCrossAxisSize(slot,space.Y)));
                     
             offset.X += viewSize.X;
             mainAxisSize += viewSize.X;
@@ -143,14 +144,14 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
             HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
         }
 
-        return new Vec2<float>(mainAxisSize, crossAxisSize);
+        return new Vector2(mainAxisSize, crossAxisSize);
     }
     
-    protected virtual Vec2<float> ArrangeContentColumn(Vec2<float> availableSpace)
+    protected virtual Vector2 ArrangeContentColumn(Vector2 availableSpace)
     {
-        var offset = new Vec2<float>(0.0f);
+        var offset = new Vector2(0.0f);
         
-        var space = new Vec2<float>(availableSpace.X,float.PositiveInfinity);
+        var space = new Vector2(availableSpace.X,float.PositiveInfinity);
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
                     
@@ -162,7 +163,7 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
             var view = slot.Child;
             view.Offset = offset;
                     
-            var viewSize = view.ComputeSize(new Vec2<float>(GetSlotCrossAxisSize(slot,space.X),space.Y));
+            var viewSize = view.ComputeSize(new Vector2(GetSlotCrossAxisSize(slot,space.X),space.Y));
                     
             offset.Y += viewSize.Y;
             mainAxisSize += viewSize.Y;
@@ -178,11 +179,11 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
             HandleCrossAxisOffset(asListContainerSlot,crossAxisSize);
         }
 
-        return new Vec2<float>(crossAxisSize,mainAxisSize);
+        return new Vector2(crossAxisSize,mainAxisSize);
     }
 
     
-    public override Vec2<float> Apply(Vec2<float> availableSpace)
+    public override Vector2 Apply(Vector2 availableSpace)
     {
         return _axis switch
         {
@@ -198,18 +199,18 @@ public class ListLayout(Axis axis,CompositeView container) : InfiniteChildrenLay
     {
         _axis = axis;
     }
-    public override Vec2<float> ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         return GetAxis() switch
         {
-            Axis.Row => GetSlots().Aggregate(new Vec2<float>(), (size, slot) =>
+            Axis.Row => GetSlots().Aggregate(new Vector2(), (size, slot) =>
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.X += slotSize.X;
                 size.Y = System.Math.Max(size.Y, slotSize.Y);
                 return size;
             }),
-            Axis.Column => GetSlots().Aggregate(new Vec2<float>(), (size, slot) =>
+            Axis.Column => GetSlots().Aggregate(new Vector2(), (size, slot) =>
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.Y += slotSize.Y;

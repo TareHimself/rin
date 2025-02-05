@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Extensions;
+﻿using System.Numerics;
+using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
@@ -51,25 +52,25 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
         {
             if (SelectedSlot == slot)
             {
-                slot.Child.Offset = 0.0f;
+                slot.Child.Offset = default;
                 slot.Child.ComputeSize(Container.GetContentSize());
             }
         }
     }
 
-    public override Vec2<float> Apply(Vec2<float> availableSpace)
+    public override Vector2 Apply(Vector2 availableSpace)
     {
         if (SelectedSlot is { } slot)
         {
             OnSlotUpdated(slot);
-            slot.Child.Offset = 0.0f;
+            slot.Child.Offset = default;
             return slot.Child.ComputeSize(availableSpace);
         }
         return availableSpace;
     }
 
-    public override Vec2<float> ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
-        return SelectedSlot?.Child.GetDesiredSize() ?? 0.0f;
+        return SelectedSlot?.Child.GetDesiredSize() ?? new Vector2(0, 0);
     }
 }

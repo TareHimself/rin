@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
@@ -113,7 +114,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     }
     
 
-    public static VkClearColorValue MakeClearColorValue(Vec4<float> color)
+    public static VkClearColorValue MakeClearColorValue(Vector4 color)
     {
         var clearColor = new VkClearColorValue();
         clearColor.float32[0] = color.X;

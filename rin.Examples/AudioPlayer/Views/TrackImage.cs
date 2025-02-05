@@ -1,4 +1,5 @@
-﻿using rin.Examples.Common.Views;
+﻿using System.Numerics;
+using rin.Examples.Common.Views;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 using rin.Framework.Views.Animation;
@@ -15,7 +16,7 @@ public class TrackImage : AsyncWebImage
             Parent?.Parent?.Mutate(c =>
             {
                 c.Visibility = Visibility.Visible;
-                c.PivotTo(new Vec2<float>(0.0f, 0.0f), 1.0f, easingFunction: EasingFunctions.EaseInExpo);
+                c.PivotTo(new Vector2(0.0f, 0.0f), 1.0f, easingFunction: EasingFunctions.EaseInExpo);
             });
         };
     }

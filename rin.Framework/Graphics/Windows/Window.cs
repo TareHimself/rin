@@ -131,7 +131,7 @@ public class Window : Disposable, IWindow
         OnCursorMoved?.Invoke(new CursorMoveEvent
         {
             Window = this,
-            Position = position,
+            Position = position.ToNumericsVector(),
             Delta = delta
         });
     }
@@ -141,7 +141,7 @@ public class Window : Disposable, IWindow
         OnCursorButton?.Invoke(new CursorButtonEvent
         {
             Window = this,
-            Position = GetCursorPosition(),
+            Position = GetCursorPosition().ToNumericsVector(),
             Button = (CursorButton)button,
             Modifiers = (InputModifier)mods,
             State = (InputState)action,
@@ -163,7 +163,7 @@ public class Window : Disposable, IWindow
         OnScrolled?.Invoke(new ScrollEvent
         {
             Window = this,
-            Position = GetCursorPosition(),
+            Position = GetCursorPosition().ToNumericsVector(),
             Delta = new Vec2<double>(dx, dy),
         });
     }

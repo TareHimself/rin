@@ -1,5 +1,6 @@
-﻿using rin.Examples.SceneTest.entities;
-using rin.Framework.Scene;
+﻿using System.Numerics;
+using rin.Examples.SceneTest.entities;
+using rin.Editor.Scene;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Content;
 using rin.Framework.Views.Layouts;
@@ -19,8 +20,8 @@ public class MainPanel : Panel
             new PanelSlot()
             {
                 Child = new TestViewport(_cameraActor, text),
-                MinAnchor = 0.0f,
-                MaxAnchor = 1.0f,
+                MinAnchor = new Vector2(0.0f),
+                MaxAnchor = new Vector2(1.0f),
             },
             new PanelSlot()
             {

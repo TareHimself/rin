@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Layouts;
@@ -25,13 +26,13 @@ public class Switcher : MultiSlotCompositeView<Slot>
         _layout = new SwitcherLayout(this);
     }
 
-    protected override Vec2<float> ComputeDesiredContentSize()
+    protected override Vector2 ComputeDesiredContentSize()
     {
-        return SelectedView?.GetDesiredSize() ?? new Vec2<float>();
+        return SelectedView?.GetDesiredSize() ?? new Vector2();
     }
 
 
-    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
+    protected override Vector2 ArrangeContent(Vector2 availableSpace)
     {
         if (_layout.SelectedSlot is { } slot)
         {
@@ -39,7 +40,7 @@ public class Switcher : MultiSlotCompositeView<Slot>
 
             if (view.Size.Equals(availableSpace)) return view.Size;
 
-            view.Offset = (0.0f);
+            view.Offset = default;
             return view.ComputeSize(availableSpace);
         }
 

@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 
 namespace rin.Framework.Views.Sdf;
 
@@ -11,5 +12,5 @@ public class SdfVector
     public float Y { get; set; }
     public float Width { get; set; }
     public float Height { get; set; }
-    public Vec4<float> Coordinates = new(0.0f, 0.0f, 1.0f, 1.0f);
+    public Vector4 Coordinates = new(0.0f, 0.0f, 1.0f, 1.0f);
 }

@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Numerics;
+using JetBrains.Annotations;
 using rin.Framework.Core;
 using rin.Framework.Core.Animation;
 using rin.Framework.Core.Extensions;
@@ -14,7 +15,7 @@ public abstract class CompositeView : View
 {
    public Clip Clip = Clip.None;
     
-    protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
+    protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
         return ArrangeContent(availableSpace);
     }
@@ -22,7 +23,7 @@ public abstract class CompositeView : View
     {
         if (IsChildrenHitTestable)
         {
-            var res = ChildrenNotifyCursorDown(e, transform.Translate(new Vec2<float>(Padding.Left, Padding.Top)));
+            var res = ChildrenNotifyCursorDown(e, transform.Translate(new Vector2(Padding.Left, Padding.Top)));
             if (res) return res;
         }
 
@@ -31,14 +32,14 @@ public abstract class CompositeView : View
     public override void NotifyCursorEnter(CursorMoveEvent e, Mat3 transform, List<View> items)
     {
         if (IsChildrenHitTestable)
-            ChildrenNotifyCursorEnter(e, transform.Translate(new Vec2<float>(Padding.Left, Padding.Top)), items);
+            ChildrenNotifyCursorEnter(e, transform.Translate(new Vector2(Padding.Left, Padding.Top)), items);
 
         base.NotifyCursorEnter(e, transform, items);
     }
     public override bool NotifyCursorMove(CursorMoveEvent e, Mat3 transform)
     {
         if (IsChildrenHitTestable &&
-            ChildrenNotifyCursorMove(e, transform.Translate(new Vec2<float>(Padding.Left, Padding.Top))))
+            ChildrenNotifyCursorMove(e, transform.Translate(new Vector2(Padding.Left, Padding.Top))))
             return true;
 
         return base.NotifyCursorMove(e, transform);
@@ -46,7 +47,7 @@ public abstract class CompositeView : View
     public override bool NotifyScroll(ScrollEvent e, Mat3 transform)
     {
         if (IsChildrenHitTestable &&
-            ChildrenNotifyScroll(e, transform.Translate(new Vec2<float>(Padding.Left, Padding.Top)))) return true;
+            ChildrenNotifyScroll(e, transform.Translate(new Vector2(Padding.Left, Padding.Top)))) return true;
 
         return base.NotifyScroll(e, transform);
     }
@@ -147,7 +148,7 @@ public abstract class CompositeView : View
             clipRect = ComputeAABB(transform).Clamp(clipRect);
         }
 
-        var transformWithPadding = transform.Translate(new Vec2<float>(Padding.Left, Padding.Top));
+        var transformWithPadding = transform.Translate(new Vector2(Padding.Left, Padding.Top));
 
         List<Pair<View, Mat3>> toCollect = [];
         
@@ -172,13 +173,13 @@ public abstract class CompositeView : View
             passCommands.PopClip();
         }
     }
-    
+
     /// <summary>
     /// Arranges content and returns their computed total size i.e. the combined length of all items in a list
     /// </summary>
     /// <param name="availableSpace"></param>
     /// <returns></returns>
-    protected abstract Vec2<float> ArrangeContent(Vec2<float> availableSpace);
+    protected abstract Vector2 ArrangeContent(Vector2 availableSpace);
     
     [PublicAPI]
     public abstract void OnChildInvalidated(View child, InvalidationType invalidation);

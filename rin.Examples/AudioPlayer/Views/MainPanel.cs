@@ -1,4 +1,5 @@
-﻿using rin.Framework.Audio;
+﻿using System.Numerics;
+using rin.Framework.Audio;
 using rin.Framework.Core.Math;
 using rin.Framework.Views;
 using rin.Framework.Views.Composite;
@@ -25,8 +26,8 @@ public class MainPanel : Panel
             {
                 Child = _trackPlayers,
                 //SizeToContent = true,
-                MinAnchor = 0.0f,
-                MaxAnchor = 1.0f//new Vector2<float>(0.5f, 0.5f)
+                MinAnchor = new Vector2(0.0f),
+                MaxAnchor = new Vector2(1.0f)//new Vector2<float>(0.5f, 0.5f)
             },
             new PanelSlot
             {
@@ -37,20 +38,20 @@ public class MainPanel : Panel
                         FontSize = 30,
                     },
                     Padding = new Padding(20.0f),
-                    BorderRadius = 10.0f,
+                    BorderRadius = new Vector4(10.0f),
                     BackgroundColor = Color.Black.Clone(a: 0.7f)
                 },
                 SizeToContent = true,
-                MinAnchor = new Vec2<float>(1.0f, 0.0f),
-                MaxAnchor = new Vec2<float>(1.0f, 0.0f),
-                Alignment = new Vec2<float>(1.0f, 0.0f)
+                MinAnchor = new Vector2(1.0f, 0.0f),
+                MaxAnchor = new Vector2(1.0f, 0.0f),
+                Alignment = new Vector2(1.0f, 0.0f)
             },
             new PanelSlot
             {
                 Child = filePicker,
-                MaxAnchor = 0.5f,
-                MinAnchor = 0.5f,
-                Alignment = 0.5f,
+                MaxAnchor = new Vector2(0.5f),
+                MinAnchor = new Vector2(0.5f),
+                Alignment = new Vector2(0.5f),
                 SizeToContent = true
             }
         ];

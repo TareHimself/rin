@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
 
@@ -11,7 +12,7 @@ public interface ILayout : IDisposable
     
     public void OnSlotUpdated(ISlot slot);
     
-    public Vec2<float> Apply(Vec2<float> availableSpace);
+    public Vector2 Apply(Vector2 availableSpace);
     
-    public Vec2<float> ComputeDesiredContentSize();
+    public Vector2 ComputeDesiredContentSize();
 }

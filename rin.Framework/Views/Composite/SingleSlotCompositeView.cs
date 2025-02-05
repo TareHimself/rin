@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Numerics;
+using JetBrains.Annotations;
 using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Layouts;
@@ -70,14 +71,14 @@ public abstract class SingleSlotCompositeView : CompositeView
         return [];
     }
     
-    protected override Vec2<float> ComputeDesiredContentSize()
+    protected override Vector2 ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
             return slot.Child.GetDesiredSize();
         }
 
-        return new Vec2<float>();
+        return new Vector2();
     }
 
     public override void OnChildInvalidated(View child, InvalidationType invalidation)

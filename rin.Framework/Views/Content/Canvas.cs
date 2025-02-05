@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Graphics;
 
 namespace rin.Framework.Views.Content;
@@ -9,9 +10,9 @@ namespace rin.Framework.Views.Content;
 public class Canvas : ContentView
 {
     public required Action<Canvas,Mat3, PassCommands> Paint { get; init; }
-    protected override Vec2<float> ComputeDesiredContentSize() => 0.0f;
+    protected override Vector2 ComputeDesiredContentSize() => new Vector2();
 
-    protected override Vec2<float> LayoutContent(Vec2<float> availableSpace)
+    protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
         return availableSpace;
     }

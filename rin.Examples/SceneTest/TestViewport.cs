@@ -1,8 +1,9 @@
-﻿using rin.Examples.SceneTest.entities;
+﻿using System.Numerics;
+using rin.Examples.SceneTest.entities;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics.Windows;
-using rin.Framework.Scene.Views;
+using rin.Editor.Scene.Views;
 using rin.Framework.Views.Content;
 using rin.Framework.Views.Events;
 
@@ -18,7 +19,7 @@ public class TestViewport : Viewport
         _camera = camera;
     }
 
-    protected override void OnMouseDelta(Vec2<float> delta)
+    protected override void OnMouseDelta(Vector2 delta)
     {
         base.OnMouseDelta(delta);
         var viewTarget = _camera?.RootComponent;

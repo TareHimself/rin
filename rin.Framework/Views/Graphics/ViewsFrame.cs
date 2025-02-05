@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 
@@ -9,11 +10,11 @@ public struct SimpleRectPush
 {
     public Mat3 Transform;
 
-    public Vec2<float> Size;
+    public Vector2 Size;
 
-    public Vec4<float> BorderRadius;
+    public Vector4 BorderRadius;
 
-    public Vec4<float> Color;
+    public Vector4 Color;
 }
 
 public class ViewsFrame

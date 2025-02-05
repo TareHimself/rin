@@ -1,23 +1,17 @@
-﻿using rin.Framework.Core;
+﻿using System.Numerics;
+using rin.Framework.Core;
+using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 
 namespace rin.Framework.Views;
 
-public class Rect : ICloneable<Rect>
+public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
 {
-    public Vec2<float> Offset;
-    public Vec2<float> Size;
+    public Vector2 Offset = inOffset;
+    public Vector2 Size = inSize;
 
-    public Rect()
+    public Rect() : this(new Vector2(0, 0), new Vector2())
     {
-        Offset = new Vec2<float>(0, 0);
-        Size = new Vec2<float>();
-    }
-
-    public Rect(Vec2<float> inOffset, Vec2<float> inSize)
-    {
-        Offset = inOffset;
-        Size = inSize;
     }
 
     public Rect Clone()
@@ -25,9 +19,9 @@ public class Rect : ICloneable<Rect>
         return new Rect(Offset.Clone(), Size.Clone());
     }
 
-    public static implicit operator Vec4<float>(Rect rect)
+    public static implicit operator Vector4(Rect rect)
     {
-        return new Vec4<float>(rect.Offset.X, rect.Offset.Y, rect.Size.X,
+        return new Vector4(rect.Offset.X, rect.Offset.Y, rect.Size.X,
             rect.Size.X);
     }
 
@@ -60,7 +54,7 @@ public class Rect : ICloneable<Rect>
         if (!IntersectsWith(area))
         {
             Offset = area.Offset.Clone();
-            Size = new Vec2<float>();
+            Size = new Vector2();
             return this;
         }
 
@@ -69,63 +63,63 @@ public class Rect : ICloneable<Rect>
         var b1 = area.Offset;
         var b2 = b1 + area.Size;
 
-        Offset = new Vec2<float>(System.Math.Max(a1.X, b1.X), System.Math.Max(a1.Y, b1.Y));
+        Offset = new Vector2(System.Math.Max(a1.X, b1.X), System.Math.Max(a1.Y, b1.Y));
 
-        var p2 = new Vec2<float>(System.Math.Min(a2.X, b2.X), System.Math.Min(a2.Y, b2.Y));
+        var p2 = new Vector2(System.Math.Min(a2.X, b2.X), System.Math.Min(a2.Y, b2.Y));
 
         Size = p2 - Offset;
 
         return this;
     }
 
-    public static implicit operator Pair<Vec2<float>, Vec2<float>>(Rect rect)
+    public static implicit operator Pair<Vector2, Vector2>(Rect rect)
     {
-        return new Pair<Vec2<float>, Vec2<float>>(rect.Offset, rect.Offset + rect.Size);
+        return new Pair<Vector2, Vector2>(rect.Offset, rect.Offset + rect.Size);
     }
-    
-    // ReSharper disable once InconsistentNaming
-    public static Rect MakeAABB(Vec2<float> size,Mat3 transform,Vec2<float>? offset)
-    {
-        var tl = offset.GetValueOrDefault(new Vec2<float>(0.0f));
-        var br = tl + size;
-        var tr = new Vec2<float>(br.X, tl.Y);
-        var bl = new Vec2<float>(tl.X, br.Y);
+    //
+    // // ReSharper disable once InconsistentNaming
+    // public static Rect MakeAABB(Vector2 size,Mat3 transform,Vector2? offset)
+    // {
+    //     var tl = offset.GetValueOrDefault(new Vector2(0.0f));
+    //     var br = tl + size;
+    //     var tr = new Vector2(br.X, tl.Y);
+    //     var bl = new Vector2(tl.X, br.Y);
+    //
+    //     tl = tl.ApplyTransformation(transform);
+    //     br = br.ApplyTransformation(transform);
+    //     tr = tr.ApplyTransformation(transform);
+    //     bl = bl.ApplyTransformation(transform);
+    //
+    //     var p1AABB = new Vector2(
+    //         System.Math.Min(
+    //             System.Math.Min(tl.X, tr.X),
+    //             System.Math.Min(bl.X, br.X)
+    //         ),
+    //         System.Math.Min(
+    //             System.Math.Min(tl.Y, tr.Y),
+    //             System.Math.Min(bl.Y, br.Y)
+    //         )
+    //     );
+    //     var p2AABB = new Vector2(
+    //         System.Math.Max(
+    //             System.Math.Max(tl.X, tr.X),
+    //             System.Math.Max(bl.X, br.X)
+    //         ),
+    //         System.Math.Max(
+    //             System.Math.Max(tl.Y, tr.Y),
+    //             System.Math.Max(bl.Y, br.Y)
+    //         )
+    //     );
+    //
+    //     return new Rect
+    //     {
+    //         Offset = p1AABB,
+    //         Size = p2AABB - p1AABB
+    //     };
+    // }
 
-        tl = tl.ApplyTransformation(transform);
-        br = br.ApplyTransformation(transform);
-        tr = tr.ApplyTransformation(transform);
-        bl = bl.ApplyTransformation(transform);
-
-        var p1AABB = new Vec2<float>(
-            System.Math.Min(
-                System.Math.Min(tl.X, tr.X),
-                System.Math.Min(bl.X, br.X)
-            ),
-            System.Math.Min(
-                System.Math.Min(tl.Y, tr.Y),
-                System.Math.Min(bl.Y, br.Y)
-            )
-        );
-        var p2AABB = new Vec2<float>(
-            System.Math.Max(
-                System.Math.Max(tl.X, tr.X),
-                System.Math.Max(bl.X, br.X)
-            ),
-            System.Math.Max(
-                System.Math.Max(tl.Y, tr.Y),
-                System.Math.Max(bl.Y, br.Y)
-            )
-        );
-
-        return new Rect
-        {
-            Offset = p1AABB,
-            Size = p2AABB - p1AABB
-        };
-    }
-
-    public bool PointWithin(Vec2<float> point)
-    {
-        return point.Within(this);
-    }
+    // public bool PointWithin(Vector2 point)
+    // {
+    //     return point.Within(this);
+    // }
 }

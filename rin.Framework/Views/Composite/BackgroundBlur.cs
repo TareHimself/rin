@@ -1,4 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using rin.Framework.Core.Math;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Commands;
@@ -56,15 +58,20 @@ namespace rin.Framework.Views.Composite;
 
 public class BackgroundBlur : SingleSlotCompositeView
 {
+    [PublicAPI]
     public Color Tint = Color.White;
-    public float Strength { get; set; } = 7.0f;
-    protected override Vec2<float> ComputeDesiredContentSize()
+    [PublicAPI]
+    public float Strength { get; set; } = 5.0f;
+    [PublicAPI]
+    public float Radius { get; set; } = 3.0f;
+
+    protected override Vector2 ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
             return slot.Child.GetDesiredSize();
         }
-        return 0.0f;
+        return new Vector2();
     }
     
     // public override void Collect(ViewFrame frame, TransformInfo info)
@@ -87,19 +94,19 @@ public class BackgroundBlur : SingleSlotCompositeView
 
     public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
     {
-        if (IsVisible)
+        if (IsVisible && Strength > 0.0f && Radius > 0.0f)
         {
             passCommands.Add(new ReadBack());
-            passCommands.Add(new BlurCommand(transform,Size,Strength,Tint));
+            passCommands.Add(new BlurCommand(transform,Size,Strength,Radius,Tint));
         }
         base.Collect(transform,clip, passCommands);
     }
 
-    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
+    protected override Vector2 ArrangeContent(Vector2 availableSpace)
     {
         if (GetSlot() is { } slot)
         {
-            slot.Child.Offset = (new Vec2<float>(0, 0));
+            slot.Child.Offset = default;
             return slot.Child.ComputeSize(availableSpace);
         }
 

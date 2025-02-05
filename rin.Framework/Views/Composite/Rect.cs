@@ -1,4 +1,5 @@
-﻿using rin.Framework.Core.Math;
+﻿using System.Numerics;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
@@ -13,23 +14,23 @@ public class Rect : SingleSlotCompositeView
 {
     
     public Color BackgroundColor = Color.Black;
-    public Vec4<float> BorderRadius = 0.0f;
+    public Vector4 BorderRadius;
 
-    protected override Vec2<float> ComputeDesiredContentSize()
+    protected override Vector2 ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
             return slot.Child.GetDesiredSize();
         }
 
-        return new Vec2<float>();
+        return new Vector2();
     }
 
-    protected override Vec2<float> ArrangeContent(Vec2<float> availableSpace)
+    protected override Vector2 ArrangeContent(Vector2 availableSpace)
     {
         if (GetSlot() is { } slot)
         {
-            slot.Child.Offset = (new Vec2<float>(0, 0));
+            slot.Child.Offset = default;
             return slot.Child.ComputeSize(availableSpace);
         }
 
