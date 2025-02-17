@@ -25,7 +25,7 @@ public class FontGenerator(FontFamily family)
     
     private GeneratedMtsdf? GenerateMtsdf(Glyph glyph, SixLabors.Fonts.Font font,float pixelRange)
     {
-        using var mtsdfRenderer = new TextRenderer();
+        using var mtsdfRenderer = new MtsdfTextRenderer();
         var codepoint = glyph.GlyphMetrics.CodePoint;
         var options = new TextOptions(font);
         var targetStr = codepoint.ToString();
@@ -44,11 +44,13 @@ public class FontGenerator(FontFamily family)
         return new GeneratedMtsdf(img, codepoint.Value,new Vec2<double>(result.Width,result.Height));
     }
 
-    public async Task<Font> GenerateFont(float size,int atlasSize = 512,float pixelRange = 12.0f)
+    public async Task<MtsdfFont> GenerateFont(float size,int atlasSize = 512,float pixelRange = 12.0f)
     {
         var font = _family.CreateFont(size);
 
-        var allGlyphs = font.FontMetrics.GetAvailableCodePoints().Where(c => c is { IsAscii: true, Value: > 32 } && c.Value != 127).Select(c =>
+        var allGlyphs = font.FontMetrics.GetAvailableCodePoints()
+            .Where(c => c is { IsAscii: true, Value: > 32 } && c.Value != 127)
+            .Select(c =>
         {
             font.TryGetGlyphs(c, out var glyphs);
             return glyphs?[0];
@@ -122,6 +124,6 @@ public class FontGenerator(FontFamily family)
                     Height = (uint)c.Height,
                 }, ImageFormat.RGBA8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}");
         }).WaitAll().ToArray();
-        return new Font(_family,atlasIds,atlasGlyphs);
+        return new MtsdfFont(_family,atlasIds,atlasGlyphs);
     }
 }

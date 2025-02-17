@@ -22,10 +22,10 @@ public class PrettyShaderDrawCommand(Mat3 transform,Vector2 size,bool hovered) :
         public required float Time;
         public required Vector2 Center;
     }
-    public override bool WillDraw => true;
 
-    public override ulong MemoryNeeded => Utils.ByteSizeOf<Data>();
+    public override bool WillDraw() => false;
 
+    public override ulong GetRequiredMemory() => Utils.ByteSizeOf<Data>();
 
     private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SRuntime.AssetsDirectory,"test","pretty.slang"));
 

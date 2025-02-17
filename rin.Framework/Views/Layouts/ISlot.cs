@@ -3,5 +3,6 @@
 public interface ISlot
 {
     public View Child { get; }
-    public void SetLayout(ILayout layout);
+    public void OnAddedToLayout(ILayout layout);
+    public void OnRemovedFromLayout(ILayout layout);
 }

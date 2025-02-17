@@ -1,0 +1,4 @@
+
+interface IMeshShader {
+    vo
+}

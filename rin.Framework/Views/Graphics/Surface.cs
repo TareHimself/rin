@@ -226,7 +226,7 @@ public abstract class Surface : Disposable
                         Mask = currentClipMask,
                         Type = CommandType.Custom
                     });
-                    if (asCustomCommand.WillDraw)
+                    if (asCustomCommand.WillDraw())
                     {
                         Stats.NonBatchedDrawCommandCount++;
                     }

@@ -10,7 +10,6 @@ public static class Utils
         {
             SGraphicsModule.Get().PollWindows();
         };
-
     }
     public static void RunDrawOnTick()
     {

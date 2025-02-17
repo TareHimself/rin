@@ -48,7 +48,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
         if (added)
         {
             slot.Child.SetParent(Container);
-            slot.SetLayout(this);
+            slot.OnAddedToLayout(this);
             Container.OnChildAdded(slot.Child);
         }
         
@@ -64,6 +64,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
             for (var i = 0; i < _slots.Count; i++)
             {
                 if (_slots[i].Child != view) continue;
+                _slots[i].OnRemovedFromLayout(this);
                 _slots.RemoveAt(i);
                 _viewSlotMap.TryRemove(view, out var _);
                 removed = true;

@@ -10,9 +10,14 @@ public class Slot(ILayout? owner = null) : ISlot
         return Child is T castedView ? castedView : null;
     }
 
-    public void SetLayout(ILayout layout)
+    public void OnAddedToLayout(ILayout layout)
     {
         _owner = layout;
+    }
+
+    public void OnRemovedFromLayout(ILayout layout)
+    {
+        _owner = null;
     }
 
     public void Apply()

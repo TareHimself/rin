@@ -11,19 +11,6 @@ public enum Axis
     Row
 }
 
-public enum CrossFit
-{
-    Desired,
-    Fill
-}
-
-public enum CrossAlign
-{
-    Start,
-    Center,
-    End
-}
-
 public class ListSlot(ListLayout? layout = null) : Slot(layout)
 {
     public CrossFit Fit = CrossFit.Desired;

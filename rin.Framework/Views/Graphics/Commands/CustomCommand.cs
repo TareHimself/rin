@@ -11,13 +11,9 @@ public abstract class CustomCommand : Command
 {
     public abstract void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null);
 
-    /// <summary>
-    /// Does this command plan to draw anything ?
-    /// </summary>
-    /// <returns></returns>
-    public virtual bool WillDraw => false;
-
-    public virtual ulong MemoryNeeded => 0;
+    public abstract ulong GetRequiredMemory();
+    
+    public abstract bool WillDraw();
     
     public virtual bool CombineWith(CustomCommand other) => false;
 }

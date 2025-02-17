@@ -157,9 +157,13 @@ public class SViewsTestModule : IModule
                     {
                         Paint = ((canvas, transform, cmds) =>
                         {
-                            var rect = Quad.Rect(transform, canvas.GetContentSize());
-                            rect.Mode = Quad.RenderMode.ColorWheel;
-                            cmds.AddQuads(rect);
+                            var size = canvas.GetContentSize();
+                            // var rect = Quad.Rect(transform, canvas.GetContentSize());
+                            // rect.Mode = Quad.RenderMode.ColorWheel;
+                            // cmds.AddQuads(rect);
+                            var a = Vector2.Zero;
+                            cmds.AddQuadraticCurve(transform,new Vector2(0.0f),new Vector2(size.Y),new Vector2(0.0f,size.Y), color: Color.Red);
+                            //cmds.AddCubicCurve(transform,new Vector2(0.0f),new Vector2(size.Y),new Vector2(0.0f,size.Y),new Vector2(size.Y,size.Y), color: Color.Red);
                         })
                     }));
                 }
@@ -318,8 +322,9 @@ public class SViewsTestModule : IModule
     {
         var surf = SViewsModule.Get().GetWindowSurface(renderer);
         //SViewsModule.Get().GetOrCreateFont("Arial").ConfigureAwait(false);
-        surf?.Add(new TextInputBox("AVAVAV")
+        surf?.Add(new TextInputBox
         {
+            Content = "AVAVAV",
             FontSize = 240
         });
     //surf?.Add(new TextBox("A"));
@@ -380,7 +385,11 @@ public class SViewsTestModule : IModule
             [
                 new PanelSlot
                 {
-                    Child = new TextBox("Test Text", 40),
+                    Child = new TextBox
+                    {
+                        Content = "Test Text",
+                        FontSize = 40
+                    },
                     SizeToContent = true,
                     Alignment = new Vector2(0f),
                     MinAnchor = new Vector2(0f),

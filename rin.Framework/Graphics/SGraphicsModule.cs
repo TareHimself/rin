@@ -834,11 +834,11 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                     baseArrayLayer = 0,
                     layerCount = 1
                 },
-                imageExtent = size.ToVk()
+                imageExtent = size.ToVk(),
             };
 
             cmd.CopyBufferToImage(uploadBuffer, newImage, [copyRegion]);
-
+            
             if (!mips)
             {
                 cmd.ImageBarrier(newImage,ImageLayout.TransferDst,ImageLayout.ShaderReadOnly);

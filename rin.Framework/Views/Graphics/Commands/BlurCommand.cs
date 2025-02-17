@@ -30,10 +30,10 @@ public class BlurCommand(Mat3 transform, Vector2 size,float strength,float radiu
 {
     private static string _blurPassId = Guid.NewGuid().ToString();
     private readonly IGraphicsShader _blurShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SViewsModule.ShadersDirectory,"blur.slang"));
+    
+    public override bool WillDraw() => true;
 
-    public override bool WillDraw => true;
-
-
+    public override ulong GetRequiredMemory() => 0;
     // public static void ApplyBlurPass(ViewFrame frame)
     // {
     //     var cmd = frame.Raw.GetCommandBuffer();

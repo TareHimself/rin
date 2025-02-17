@@ -49,9 +49,10 @@ public class MainPanel : Panel
             new PanelSlot
             {
                 Child = filePicker,
-                MaxAnchor = new Vector2(0.5f),
-                MinAnchor = new Vector2(0.5f),
-                Alignment = new Vector2(0.5f),
+                MaxAnchor = new Vector2(1f),
+                MinAnchor = new Vector2(1f),
+                Alignment = new Vector2(1f),
+                Offset = new Vector2(-10.0f),
                 SizeToContent = true
             }
         ];

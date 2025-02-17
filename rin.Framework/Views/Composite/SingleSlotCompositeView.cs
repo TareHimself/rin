@@ -9,7 +9,7 @@ namespace rin.Framework.Views.Composite;
 public class SimpleSlot : ISlot
 {
     public required View Child { get; set; }
-    public void SetLayout(ILayout layout)
+    public void OnAddedToLayout(ILayout layout)
     {
         
     }

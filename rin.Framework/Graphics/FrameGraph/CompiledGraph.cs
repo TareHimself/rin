@@ -32,7 +32,7 @@ public class CompiledGraph : ICompiledGraph
         if (SRuntime.Get().IsModuleLoaded<SGraphicsModule>() && memoryNeeded > 0)
         {
             var pooledView =  resourcePool.CreateBuffer(new BufferResourceDescriptor(memoryNeeded), frame);
-            //var validatedBuffer = new DeviceBufferWriteValidator(pooledView);
+            pooledView = new DeviceBufferWriteValidator(pooledView);
             _buffer = pooledView; // SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
         }
         

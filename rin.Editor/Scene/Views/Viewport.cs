@@ -61,10 +61,11 @@ internal class DisplaySceneCommand(ForwardRenderingPass renderingPass,Vector2 si
     private readonly IShader _shader = SGraphicsModule.Get()
         .GraphicsShaderFromPath(Path.Join(SGraphicsModule.ShadersDirectory, "scene", "forward", "viewport.slang"));
 
-    public override bool WillDraw => true;
-
-    public override ulong MemoryNeeded => 0;
     
+
+    public override ulong GetRequiredMemory() => 0;
+    public override bool WillDraw() => true;
+
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {

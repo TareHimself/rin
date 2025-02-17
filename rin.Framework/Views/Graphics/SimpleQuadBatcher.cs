@@ -13,6 +13,7 @@ public abstract class SimpleQuadBatcher<T>  : IBatcher where T : IBatch
         if (shader.Bind(cmd))
         {
             var numQuads = WriteBatch(frame,buffer,(T)batch,GetShader());
+            if(numQuads == 0) return;
             cmd.Draw(6,numQuads);
         }
     }

@@ -36,7 +36,7 @@ public class PassCommands
     private readonly List<RawCommand> _commands = [];
     public PassCommands Add(Command command)
     {
-        var info = new RawCommand(command, command is CustomCommand asCustom ? !asCustom.WillDraw ? "" : _clipId : _clipId)
+        var info = new RawCommand(command, command is CustomCommand asCustom ? !asCustom.WillDraw() ? "" : _clipId : _clipId)
         {
             AbsoluteDepth = _depth
         };

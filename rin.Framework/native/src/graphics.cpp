@@ -208,11 +208,15 @@ EXPORT_IMPL void createVulkanInstance(GLFWwindow * inWindow, VkInstance* outInst
         .enable_extensions(numExtensions, extensions);
     
 
-    builder.enable_layer("VK_LAYER_KHRONOS_shader_object");
+    
     
     if (systemInfo.is_extension_available(vk::EXTShaderObjectExtensionName))
     {
         builder.enable_extension(vk::EXTShaderObjectExtensionName);
+    }
+    else
+    {
+        builder.enable_layer("VK_LAYER_KHRONOS_shader_object");
     }
     
    

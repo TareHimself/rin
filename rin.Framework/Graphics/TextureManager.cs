@@ -11,15 +11,16 @@ namespace rin.Framework.Graphics;
 
 public class TextureManager : ITextureManager
 {
-    private static readonly uint MAX_TEXTURES = 512;
+    private static readonly uint MAX_TEXTURES = 2048;
     private readonly Mutex _mutex = new();
-    private readonly DescriptorAllocator _allocator = new DescriptorAllocator(512, [
+    private readonly DescriptorAllocator _allocator = new DescriptorAllocator(MAX_TEXTURES, [
         new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1.0f)
     ], VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
     private readonly HashSet<int> _availableIndices = [];
     private readonly List<Texture> _textures = [];
     private readonly DescriptorSet _descriptorSet;
+    private uint _count = 0;
 
     // public class BoundTexture : ITexture
     // {
@@ -150,39 +151,42 @@ public class TextureManager : ITextureManager
 
     public void FreeTextures(params int[] textureIds)
     {
-        List<ImageWrite> writes = [];
-
-        var sampler = new SamplerSpec()
+        lock (_mutex)
         {
-            Filter = ImageFilter.Linear,
-            Tiling = ImageTiling.Repeat
-        };
-        var defaultTexture = _textures[0].Image;
-        
-        foreach (var textureId in textureIds)
-        {
-            if(textureId == 0) continue;
-            
-            var info = _textures[textureId];
+            List<ImageWrite> writes = [];
 
-            if (!info.Valid) continue;
-
-            info.Image?.Dispose();
-            _textures[textureId] = new Texture();
-            _availableIndices.Add(textureId);
-
-            if (defaultTexture != null)
+            var sampler = new SamplerSpec()
             {
-                writes.Add(new ImageWrite(defaultTexture,ImageLayout.ShaderReadOnly,ImageType.Sampled,sampler)
+                Filter = ImageFilter.Linear,
+                Tiling = ImageTiling.Repeat
+            };
+            var defaultTexture = _textures[0].Image;
+
+            foreach (var textureId in textureIds)
+            {
+                if (textureId == 0) continue;
+
+                var info = _textures[textureId];
+
+                if (!info.Valid) continue;
+                _count--;
+                info.Image?.Dispose();
+                _textures[textureId] = new Texture();
+                _availableIndices.Add(textureId);
+
+                if (defaultTexture != null)
                 {
-                    Index = (uint)textureId
-                });
+                    writes.Add(new ImageWrite(defaultTexture, ImageLayout.ShaderReadOnly, ImageType.Sampled, sampler)
+                    {
+                        Index = (uint)textureId
+                    });
+                }
             }
-        }
-        
-        if (writes.Count != 0)
-        {
-            _descriptorSet.WriteImages(0, writes.ToArray());
+
+            if (writes.Count != 0)
+            {
+                _descriptorSet.WriteImages(0, writes.ToArray());
+            }
         }
     }
 
@@ -200,7 +204,7 @@ public class TextureManager : ITextureManager
             var info = _textures[textureId];
 
             if (!info.Valid || info.Image is null) continue;
-
+            
             writes.Add(new ImageWrite(info.Image,ImageLayout.ShaderReadOnly,ImageType.Sampled,new SamplerSpec()
             {
                 Filter = info.Filter,
@@ -230,6 +234,10 @@ public class TextureManager : ITextureManager
 
         return textureId < _textures.Count;
     }
+
+    public uint GetMaxTextures() => MAX_TEXTURES;
+
+    public uint GetTexturesCount() => _count;
 
     public void Dispose()
     {

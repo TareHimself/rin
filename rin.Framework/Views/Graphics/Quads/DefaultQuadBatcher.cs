@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
@@ -16,6 +17,7 @@ public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
     private partial struct Push
     {
         public Mat4 Projection;
+        public Vector4 Viewport;
         public ulong Buffer;
     }
 
@@ -31,6 +33,8 @@ public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         var cmd = frame.Raw.GetCommandBuffer();
         var resourceSet = SGraphicsModule.Get().GetTextureManager().GetDescriptorSet();
         var quads = batch.GetQuads().ToArray();
+        if (quads.Length == 0) return 0;
+        
         view.Write(quads);
         cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS,
             _batchShader.GetPipelineLayout(), new DescriptorSet[] {resourceSet});
@@ -39,8 +43,8 @@ public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         var push = new Push()
         {
             Projection = frame.Projection,
+            Viewport = new Vector4(0,0,frame.SurfaceSize.X, frame.SurfaceSize.Y),
             Buffer = view.GetAddress()
-                    
         };
         cmd.PushConstant(_batchShader.GetPipelineLayout(), pushResource.Stages,push);
         return (uint)quads.Length;

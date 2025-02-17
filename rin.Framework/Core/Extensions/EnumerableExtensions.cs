@@ -4,7 +4,7 @@ namespace rin.Framework.Core.Extensions;
 
 public static class EnumerableExtensions
 {
-
+    
     public static IEnumerable<T> AsReversed<T>(this T[] target)
     {
         for (var i = target.Length - 1; i > -1; i--)
@@ -49,6 +49,7 @@ public static class EnumerableExtensions
 
     public static ulong ByteSize<T>(this IEnumerable<T> target) where T : unmanaged
     {
+        return Utils.ByteSizeOf<T>(target.Count());
         var asArray = target.ToArray();
         unsafe
         {

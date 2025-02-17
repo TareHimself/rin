@@ -11,15 +11,27 @@ using Utils = rin.Framework.Core.Utils;
 
 namespace rin.Framework.Views.Graphics;
 
-public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
+public sealed class ViewsPass : IPass
 {
     private uint _drawImageHandle;
     private uint _copyImageHandle;
     private uint _stencilImageHandle;
     private uint _bufferResourceHandle;
-    private readonly Vec2<uint> _drawSize = surface.GetDrawSize().Mutate(c => new Vec2<uint>((uint)c.X,(uint)c.Y));
+    public readonly Vector2 SurfaceSize;
+    private readonly Vec2<uint> _drawSize;
     private ulong _memoryNeeded = 0;
     private readonly List<Pair<ulong, ulong>> _offsets = [];
+    private readonly Surface _surface;
+    private readonly PassInfo _passInfo;
+
+    public ViewsPass(Surface surface,PassInfo passInfo)
+    {
+        _surface = surface;
+        _passInfo = passInfo;
+        SurfaceSize = surface.GetDrawSize();
+        _drawSize = SurfaceSize.Mutate(c => new Vec2<uint>((uint)c.X, (uint)c.Y));
+    }
+
     public void Dispose()
     {
         
@@ -27,12 +39,12 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
 
     public void BeforeAdd(IGraphBuilder builder)
     {
-        foreach (var cmd in passInfo.PreCommands)
+        foreach (var cmd in _passInfo.PreCommands)
         {
             cmd.BeforeAdd(builder);
         }
         
-        foreach (var cmd in passInfo.PostCommands)
+        foreach (var cmd in _passInfo.PostCommands)
         {
             cmd.BeforeAdd(builder);
         }
@@ -40,12 +52,12 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
 
     public void Configure(IGraphConfig config)
     {
-        foreach (var cmd in passInfo.PreCommands)
+        foreach (var cmd in _passInfo.PreCommands)
         {
             cmd.Configure(config);
         }
         
-        foreach (var cmd in passInfo.PostCommands)
+        foreach (var cmd in _passInfo.PostCommands)
         {
             cmd.Configure(config);
         }
@@ -54,7 +66,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
         _copyImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.RGBA32);
         _stencilImageHandle = config.CreateImage( _drawSize.X, _drawSize.Y, ImageFormat.Stencil);
         
-        foreach (var drawCommand in passInfo.Commands)
+        foreach (var drawCommand in _passInfo.Commands)
             if (drawCommand.Type == CommandType.BatchedDraw)
             {
                 var offset = _memoryNeeded;
@@ -76,10 +88,16 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                 // var dist = memoryNeeded & minOffsetAlignment;
                 // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
             }
-            else if (drawCommand is { Type: CommandType.Custom, Custom.MemoryNeeded: {} asCustomMemory } && asCustomMemory != 0)
+            else if (drawCommand is { Type: CommandType.Custom, Custom: not null})
             {
+                var memoryNeeded = drawCommand.Custom.GetRequiredMemory();
+                
+                if(memoryNeeded == 0) continue;
+                
                 var offset = (_memoryNeeded);
-                _memoryNeeded += asCustomMemory;
+                
+                _memoryNeeded += memoryNeeded;
+                
                 _offsets.Add(new Pair<ulong, ulong>(offset,_memoryNeeded - offset));
             }
 
@@ -96,26 +114,26 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
         var copyImage = graph.GetImage(_copyImageHandle!).AsImage();
         var stencilImage = graph.GetImage(_stencilImageHandle!).AsImage();
         var buffer = _bufferResourceHandle > 0  ? graph.GetBuffer(_bufferResourceHandle) : null;
-        var viewFrame = new ViewsFrame(surface, frame,drawImage, copyImage, stencilImage);
+        var viewFrame = new ViewsFrame(_surface, frame,SurfaceSize,drawImage, copyImage, stencilImage);
         
         var isWritingStencil = false;
         var isComparingStencil = false;
 
         var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
         
-        surface.Stats.FinalCommandCount = passInfo.Commands.Count;
-        surface.Stats.MemoryAllocatedBytes = _memoryNeeded;
+        _surface.Stats.FinalCommandCount = _passInfo.Commands.Count;
+        _surface.Stats.MemoryAllocatedBytes = _memoryNeeded;
         var offsetsAndSizes = _offsets.GetEnumerator();
         offsetsAndSizes.MoveNext();
         
         BeforeDraw(cmd,drawImage, copyImage, stencilImage);
         
-        foreach (var command in passInfo.PreCommands)
+        foreach (var command in _passInfo.PreCommands)
         {
             command.Execute(viewFrame);
         }
         
-        foreach (var command in passInfo.Commands)
+        foreach (var command in _passInfo.Commands)
         {
             switch (command.Type)
             {
@@ -123,7 +141,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                     break;
                 case CommandType.ClipDraw:
                 {
-                    surface.BeginMainPass(viewFrame);
+                    _surface.BeginMainPass(viewFrame);
 
                     if (!isWritingStencil)
                     {
@@ -165,7 +183,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                     break;
                 case CommandType.ClipClear:
                 {
-                    if (viewFrame.ActivePass.Length == 0) surface.BeginMainPass(viewFrame);
+                    if (viewFrame.ActivePass.Length == 0) _surface.BeginMainPass(viewFrame);
 
                     var clearAttachment = new VkClearAttachment
                     {
@@ -230,7 +248,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
                     {
                         case { Type: CommandType.Custom, Custom: not null }:
                         {
-                            var willUseMemory = command.Custom.MemoryNeeded > 0;
+                            var willUseMemory = command.Custom.GetRequiredMemory() > 0;
                             if (willUseMemory && buffer != null)
                             {
                                 var (offset,size) = offsetsAndSizes.Current;
@@ -264,7 +282,7 @@ public sealed class ViewsPass(Surface surface,PassInfo passInfo) : IPass
             viewFrame.EndActivePass();
         }
         
-        foreach (var command in passInfo.PostCommands)
+        foreach (var command in _passInfo.PostCommands)
         {
             command.Execute(viewFrame);
         }

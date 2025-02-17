@@ -12,12 +12,15 @@ namespace rin.Examples.AudioPlayer.Views;
 
 public class FilePicker : Button
 {
-    private bool _hasInit = false;
     private double _animDuration = 0.1;
 
     public event Action<string[]>? OnFileSelected;
-    
-    protected readonly TextBox StatusText = new TextBox("Select File's");
+
+    private readonly TextBox _statusText = new TextBox
+    {
+        Content = "Select File's",
+        FontSize = 24.0f
+    };
     
     public FilePicker() : base()
     {
@@ -26,37 +29,23 @@ public class FilePicker : Button
         Padding = 20.0f;
         OnReleased += (_, __) =>
         {
-            StatusText.Content = "Selecting...";
+            _statusText.Content = "Selecting...";
             Platform.SelectFileAsync("Select File's To Play", multiple: true, filter: "*.wav;*.ogg;*.flac;*.mp3")
                 .After(FileSelected);
         };
-    }
-
-    protected override void OnAddedToSurface(Surface surface)
-    {
-        base.OnAddedToSurface(surface);
-        if (_hasInit) return;
-        _hasInit = true;
-        StatusText.Padding = 20.0f;
-        SetChild(StatusText);
-        // this.RunAction(new SimpleAnimationAction((s, time) =>
-        // {
-        //     // var num = (float)Math.Sin(time);
-        //     // s.Target.Angle = 60.0f * num;
-        //     return true;
-        // }));
+        Child = _statusText;
     }
 
     protected void FileSelected(string[] files)
     {
         OnFileSelected?.Invoke(files);
-        StatusText.Content = "Select File's";
+        _statusText.Content = "Select File's";
     }
 
     protected override void OnDispose(bool isManual)
     {
         base.OnDispose(isManual);
-        StatusText.Dispose();
+        _statusText.Dispose();
     }
 
     protected override void OnCursorEnter(CursorMoveEvent e)

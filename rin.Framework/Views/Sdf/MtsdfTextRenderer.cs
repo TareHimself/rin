@@ -5,7 +5,7 @@ using SixLabors.Fonts;
 using Vector2 = System.Numerics.Vector2;
 namespace rin.Framework.Views.Sdf;
 using SdfExt = rin.Sdf;
-public class TextRenderer : IDisposable, IGlyphRenderer
+public class MtsdfTextRenderer : IDisposable, IGlyphRenderer
 {
     private Context _gen = new Context();
     

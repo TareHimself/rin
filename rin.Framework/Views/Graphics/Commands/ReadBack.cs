@@ -30,5 +30,7 @@ public class ReadBack : CustomCommand
         return other is ReadBack;
     }
 
-    public override bool WillDraw => false;
+    public override ulong GetRequiredMemory() => 0;
+
+    public override bool WillDraw() => false;
 }

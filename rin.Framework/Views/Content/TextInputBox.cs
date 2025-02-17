@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics.Windows;
 using rin.Framework.Core.Extensions;
-using rin.Framework.Graphics;
 using rin.Framework.Views.Events;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
@@ -16,23 +16,25 @@ public class TextInputBox : TextBox
 {
     public override bool IsFocusable => true;
 
-    public int CursorPosition;
+    [PublicAPI]
+    public int CursorPosition { get; private set; }
 
-    public bool IsTyping = false;
+    [PublicAPI]
+    public bool IsTyping { get; private set; }
 
     private readonly Timer _typingTimer = new Timer(200)
     {
         AutoReset = false,
     };
     
-    public TextInputBox(string data = "", int fontSize = 100, string fontFamily = "Arial") : base(data, fontSize, fontFamily)
+    public TextInputBox() : base()
     {
-        CursorPosition = data.Length - 1;
+        CursorPosition = Content.Length - 1;
         _typingTimer.Elapsed += (_, __) => IsTyping = false;
     }
 
 
-    protected void ResetTypingDelay()
+    private void ResetTypingDelay()
     {
         IsTyping = true;
         _typingTimer.Stop();

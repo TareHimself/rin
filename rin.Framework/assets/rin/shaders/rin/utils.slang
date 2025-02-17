@@ -98,15 +98,56 @@ void extentToPoints(float4 extent, out float2 tl, out float2 tr, out float2 bl, 
     bl = float2(tl.x, br.y);
 }
 
+// T mapRangeUnClamped<T : __BuiltinFloatingPointType>(T value, T fromMin, T fromMax, T toMin, T toMax)
+// {
+
+//     // Calculate the normalized position of the value in the input range
+//     var normalizedPosition = (value - fromMin) / (fromMax - fromMin);
+
+//     // Map the normalized position to the output range [toMin, toMax]
+//     return lerp(toMin, toMax, normalizedPosition);
+// }
+
 float mapRangeUnClamped(float value, float fromMin, float fromMax, float toMin, float toMax)
 {
 
     // Calculate the normalized position of the value in the input range
-    float normalizedPosition = (value - fromMin) / (fromMax - fromMin);
+    var normalizedPosition = (value - fromMin) / (fromMax - fromMin);
 
     // Map the normalized position to the output range [toMin, toMax]
     return lerp(toMin, toMax, normalizedPosition);
 }
+
+float2 mapRangeUnClamped(float2 value, float2 fromMin, float2 fromMax, float2 toMin, float2 toMax)
+{
+
+    // Calculate the normalized position of the value in the input range
+    var normalizedPosition = (value - fromMin) / (fromMax - fromMin);
+
+    // Map the normalized position to the output range [toMin, toMax]
+    return lerp(toMin, toMax, normalizedPosition);
+}
+
+float3 mapRangeUnClamped(float3 value, float3 fromMin, float3 fromMax, float3 toMin, float3 toMax)
+{
+
+    // Calculate the normalized position of the value in the input range
+    var normalizedPosition = (value - fromMin) / (fromMax - fromMin);
+
+    // Map the normalized position to the output range [toMin, toMax]
+    return lerp(toMin, toMax, normalizedPosition);
+}
+
+float4 mapRangeUnClamped(float4 value, float4 fromMin, float4 fromMax, float4 toMin, float4 toMax)
+{
+
+    // Calculate the normalized position of the value in the input range
+    var normalizedPosition = (value - fromMin) / (fromMax - fromMin);
+
+    // Map the normalized position to the output range [toMin, toMax]
+    return lerp(toMin, toMax, normalizedPosition);
+}
+
 
 float2 normalizePoint(float4 viewport, float2 point)
 {

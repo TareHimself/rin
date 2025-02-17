@@ -30,8 +30,9 @@ public class ViewsFrame
     public readonly IDeviceImage DrawImage;
     public readonly IDeviceImage CopyImage;
     public readonly IDeviceImage StencilImage;
+    public readonly Vector2 SurfaceSize;
 
-    public ViewsFrame(Surface surface, Frame raw,IDeviceImage drawImage,IDeviceImage copyImage,IDeviceImage stencilImage)
+    public ViewsFrame(Surface surface, Frame raw,Vector2 surfaceSize,IDeviceImage drawImage,IDeviceImage copyImage,IDeviceImage stencilImage)
     {
         Surface = surface;
         Raw = raw;

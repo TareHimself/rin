@@ -4,14 +4,14 @@ using SixLabors.Fonts;
 
 namespace rin.Framework.Views.Sdf;
 
-public class Font : Reservable
+public class MtsdfFont : Reservable
 {
     private readonly Mutex _mutex = new();
     private readonly FontFamily _fontFamily;
     private readonly int[] _atlases;
     private readonly Dictionary<string,SdfVector> _vectors;
 
-    public Font(FontFamily fontFamily,int[] atlases,Dictionary<string,SdfVector> vectors)
+    public MtsdfFont(FontFamily fontFamily,int[] atlases,Dictionary<string,SdfVector> vectors)
     {
         _atlases = atlases;
         _vectors = vectors;

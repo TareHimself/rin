@@ -16,8 +16,11 @@ namespace rin.Examples.AudioPlayer.Views;
 
 public class TrackPlayer : Overlay
 {
-    private readonly TextBox _nameText = new TextBox("NAME", 40)
+    private readonly TextBox _nameText = new TextBox
     {
+        Content = "NAME",
+        FontSize = 40,
+        FontFamily = "Noto Sans JP",
         Padding = new Padding()
         {
             Top = 0.0f,
@@ -26,8 +29,10 @@ public class TrackPlayer : Overlay
         WrapContent = true
     };
 
-    private readonly TextBox _currentTimeText = new TextBox("00:00", 30)
+    private readonly TextBox _currentTimeText = new TextBox
     {
+        Content = "00:00",
+        FontSize = 30,
         Padding = new Padding()
         {
             Top = 5.0f,
@@ -36,8 +41,10 @@ public class TrackPlayer : Overlay
         }
     };
 
-    private readonly TextBox _endTimeText = new TextBox("00:00", 30)
+    private readonly TextBox _endTimeText = new TextBox
     {
+        Content = "00:00",
+        FontSize = 30,
         Padding = new Padding()
         {
             Top = 5.0f,
@@ -190,7 +197,7 @@ public class TrackPlayer : Overlay
     public override void Collect(Mat3 transform, Rect clip, PassCommands passCommands)
     {
         _currentTimeText.Content = FormatTime(_stream.Position);
-        base.Collect(transform,clip, passCommands);
+        base.Collect(transform, clip, passCommands);
     }
 
     public override bool OnCursorDown(CursorDownEvent e) => true;
@@ -205,6 +212,7 @@ public class TrackPlayer : Overlay
         {
             _stream.Play();
         }
+
         base.OnCursorUp(e);
     }
 
