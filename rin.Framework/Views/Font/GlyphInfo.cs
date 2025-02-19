@@ -11,7 +11,8 @@ public struct GlyphInfo : IEquatable<GlyphInfo>
 
     public bool Equals(GlyphInfo other)
     {
-        return AtlasId == other.AtlasId && State == other.State && Size.Equals(other.Size) && Coordinate.Equals(other.Coordinate);
+        return AtlasId == other.AtlasId && State == other.State && Size.Equals(other.Size) &&
+               Coordinate.Equals(other.Coordinate);
     }
 
     public override bool Equals(object? obj)

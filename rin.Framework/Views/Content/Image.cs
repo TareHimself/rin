@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
@@ -14,13 +13,8 @@ namespace rin.Framework.Views.Content;
 /// </summary>
 public class Image : ContentView
 {
-
     private int _textureId = -1;
 
-    public Image()
-    {
-    }
-    
     [PublicAPI]
     public int TextureId
     {
@@ -32,32 +26,28 @@ public class Image : ContentView
         }
     }
 
-    [PublicAPI]
-    public Color Tint { get; set; } = new Color(1.0f);
+    [PublicAPI] public Color Tint { get; set; } = new(1.0f);
 
-    [PublicAPI]
-    public Vector4 BorderRadius { get; set; } = new(0.0f);
+    [PublicAPI] public Vector4 BorderRadius { get; set; } = new(0.0f);
 
     protected override void OnDispose(bool isManual)
     {
         base.OnDispose(isManual);
     }
-    
+
     protected override Vector2 ComputeDesiredContentSize()
     {
         if (SGraphicsModule.Get().GetTextureManager()
                 .GetTextureImage(TextureId) is { } texture)
-        {
             return new Vector2
             {
-                X = texture.Extent.width,
-                Y = texture.Extent.height
+                X = texture.Extent.Width,
+                Y = texture.Extent.Height
             };
-        }
 
         return new Vector2();
     }
-    
+
     protected override void OnRemovedFromSurface(Surface surface)
     {
         base.OnRemovedFromSurface(surface);
@@ -76,10 +66,8 @@ public class Image : ContentView
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         if (TextureId != -1)
-        {
-            commands.AddTexture(TextureId,transform, GetContentSize(), Tint, null,
+            commands.AddTexture(TextureId, transform, GetContentSize(), Tint, null,
                 BorderRadius);
-        }
     }
 
     protected override Vector2 LayoutContent(Vector2 availableSpace)

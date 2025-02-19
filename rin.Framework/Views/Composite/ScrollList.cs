@@ -12,12 +12,12 @@ namespace rin.Framework.Views.Composite;
 /// </summary>
 public class ScrollList : List
 {
+    private CursorDownEvent? _lastDownEvent;
+    private float _maxOffset;
     private float _mouseDownOffset;
     private Vector2 _mouseDownPos;
     private float _offset;
-    private float _maxOffset;
-    private CursorDownEvent? _lastDownEvent;
-    
+
     public float MinBarSize = 40.0f;
 
     public ScrollList()
@@ -47,16 +47,16 @@ public class ScrollList : List
     protected override Vector2 ArrangeContent(Vector2 spaceGiven)
     {
         var spaceTaken = base.ArrangeContent(spaceGiven);
-        
-        
+
+
         _maxOffset = Axis switch
         {
-            Axis.Column => Math.Max(spaceTaken.Y - spaceGiven.Y.FiniteOr(spaceTaken.Y),0),
-            Axis.Row => Math.Max(spaceTaken.X - spaceGiven.X.FiniteOr(spaceTaken.X),0),
+            Axis.Column => Math.Max(spaceTaken.Y - spaceGiven.Y.FiniteOr(spaceTaken.Y), 0),
+            Axis.Row => Math.Max(spaceTaken.X - spaceGiven.X.FiniteOr(spaceTaken.X), 0),
             _ => throw new ArgumentOutOfRangeException()
         };
         ScrollTo(_offset);
-        return new Vector2(Math.Min(spaceTaken.X,spaceGiven.X),Math.Min(spaceTaken.Y,spaceGiven.Y));
+        return new Vector2(Math.Min(spaceTaken.X, spaceGiven.X), Math.Min(spaceTaken.Y, spaceGiven.Y));
     }
 
     public virtual float GetScroll()
@@ -87,7 +87,10 @@ public class ScrollList : List
         };
     }
 
-    public virtual float GetMaxScroll() => _maxOffset;
+    public virtual float GetMaxScroll()
+    {
+        return _maxOffset;
+    }
 
     public virtual bool IsScrollable()
     {
@@ -117,7 +120,7 @@ public class ScrollList : List
 
     public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
     {
-        base.Collect(transform,clip, passCommands);
+        base.Collect(transform, clip, passCommands);
         if (IsVisible && IsScrollable())
         {
             var scroll = GetScroll();
@@ -132,7 +135,7 @@ public class ScrollList : List
             var size = GetContentSize();
 
             var barTransform = transform.Translate(new Vector2(size.X - 10.0f, drawOffset));
-            passCommands.AddRect(barTransform, new Vector2(10.0f, barSize), color: Color.White, borderRadius: new Vector4(7.0f));
+            passCommands.AddRect(barTransform, new Vector2(10.0f, barSize), Color.White, new Vector4(7.0f));
         }
     }
 
@@ -184,5 +187,4 @@ public class ScrollList : List
         base.OnCursorUp(e);
         _lastDownEvent = null;
     }
-    
 }

@@ -13,12 +13,13 @@ namespace rin.Framework.Views.Composite;
 
 public abstract class CompositeView : View
 {
-   public Clip Clip = Clip.None;
-    
+    public Clip Clip = Clip.None;
+
     protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
         return ArrangeContent(availableSpace);
     }
+
     public override bool NotifyCursorDown(CursorDownEvent e, Mat3 transform)
     {
         if (IsChildrenHitTestable)
@@ -29,6 +30,7 @@ public abstract class CompositeView : View
 
         return base.NotifyCursorDown(e, transform);
     }
+
     public override void NotifyCursorEnter(CursorMoveEvent e, Mat3 transform, List<View> items)
     {
         if (IsChildrenHitTestable)
@@ -36,6 +38,7 @@ public abstract class CompositeView : View
 
         base.NotifyCursorEnter(e, transform, items);
     }
+
     public override bool NotifyCursorMove(CursorMoveEvent e, Mat3 transform)
     {
         if (IsChildrenHitTestable &&
@@ -44,6 +47,7 @@ public abstract class CompositeView : View
 
         return base.NotifyCursorMove(e, transform);
     }
+
     public override bool NotifyScroll(ScrollEvent e, Mat3 transform)
     {
         if (IsChildrenHitTestable &&
@@ -51,6 +55,7 @@ public abstract class CompositeView : View
 
         return base.NotifyScroll(e, transform);
     }
+
     protected virtual bool ChildrenNotifyCursorDown(CursorDownEvent e, Mat3 transform)
     {
         foreach (var slot in GetHitTestableSlots().AsReversed())
@@ -63,6 +68,7 @@ public abstract class CompositeView : View
 
         return false;
     }
+
     protected virtual void ChildrenNotifyCursorEnter(CursorMoveEvent e, Mat3 transform, List<View> items)
     {
         foreach (var slot in GetHitTestableSlots())
@@ -72,6 +78,7 @@ public abstract class CompositeView : View
                 slot.Child.NotifyCursorEnter(e, slotTransform, items);
         }
     }
+
     protected virtual bool ChildrenNotifyCursorMove(CursorMoveEvent e, Mat3 transform)
     {
         foreach (var slot in GetHitTestableSlots())
@@ -101,14 +108,11 @@ public abstract class CompositeView : View
     public override void SetSurface(Surface? surface)
     {
         base.SetSurface(surface);
-        foreach (var layoutSlot in GetSlots())
-        {
-            layoutSlot.Child.SetSurface(surface);
-        }
+        foreach (var layoutSlot in GetSlots()) layoutSlot.Child.SetSurface(surface);
     }
 
     /// <summary>
-    /// Compute extra offsets for this slot
+    ///     Compute extra offsets for this slot
     /// </summary>
     /// <param name="slot"></param>
     /// <param name="contentTransform"></param>
@@ -121,37 +125,36 @@ public abstract class CompositeView : View
 
     [PublicAPI]
     public abstract IEnumerable<ISlot> GetSlots();
+
     [PublicAPI]
-    public virtual IEnumerable<ISlot> GetCollectableSlots() => GetSlots().Where(c => c.Child.Visibility is not Visibility.Collapsed);
+    public virtual IEnumerable<ISlot> GetCollectableSlots()
+    {
+        return GetSlots().Where(c => c.Child.Visibility is not Visibility.Collapsed);
+    }
+
     [PublicAPI]
-    public virtual IEnumerable<ISlot> GetHitTestableSlots() => GetSlots().Where(c => c.Child.IsHitTestable);
-    
+    public virtual IEnumerable<ISlot> GetHitTestableSlots()
+    {
+        return GetSlots().Where(c => c.Child.IsHitTestable);
+    }
+
     public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
     {
         ((IAnimatable)this).Update();
-        
-        if (Visibility is Visibility.Hidden or Visibility.Collapsed)
-        {
-            return;
-        }
+
+        if (Visibility is Visibility.Hidden or Visibility.Collapsed) return;
 
         passCommands.IncrDepth();
         var clipRect = clip;
 
-        if (Parent != null && Clip == Clip.Bounds)
-        {
-            passCommands.PushClip(transform, GetContentSize());
-        }
+        if (Parent != null && Clip == Clip.Bounds) passCommands.PushClip(transform, GetContentSize());
 
-        if (Clip == Clip.Bounds)
-        {
-            clipRect = ComputeAABB(transform).Clamp(clipRect);
-        }
+        if (Clip == Clip.Bounds) clipRect = ComputeAABB(transform).Clamp(clipRect);
 
         var transformWithPadding = transform.Translate(new Vector2(Padding.Left, Padding.Top));
 
         List<Pair<View, Mat3>> toCollect = [];
-        
+
         foreach (var slot in GetCollectableSlots())
         {
             var slotTransform = ComputeSlotTransform(slot, transformWithPadding);
@@ -159,28 +162,22 @@ public abstract class CompositeView : View
             var aabb = slot.Child.ComputeAABB(slotTransform);
 
             if (!clipRect.IntersectsWith(aabb)) continue;
-            
-            toCollect.Add(new Pair<View, Mat3>(slot.Child,slotTransform));
-        }
-        
-        foreach (var (view, mat) in toCollect)
-        {
-            view.Collect(mat,clipRect,passCommands);
+
+            toCollect.Add(new Pair<View, Mat3>(slot.Child, slotTransform));
         }
 
-        if (Parent != null && Clip == Clip.Bounds)
-        {
-            passCommands.PopClip();
-        }
+        foreach (var (view, mat) in toCollect) view.Collect(mat, clipRect, passCommands);
+
+        if (Parent != null && Clip == Clip.Bounds) passCommands.PopClip();
     }
 
     /// <summary>
-    /// Arranges content and returns their computed total size i.e. the combined length of all items in a list
+    ///     Arranges content and returns their computed total size i.e. the combined length of all items in a list
     /// </summary>
     /// <param name="availableSpace"></param>
     /// <returns></returns>
     protected abstract Vector2 ArrangeContent(Vector2 availableSpace);
-    
+
     [PublicAPI]
     public abstract void OnChildInvalidated(View child, InvalidationType invalidation);
 
@@ -194,5 +191,11 @@ public abstract class CompositeView : View
     public virtual void OnChildRemoved(View child)
     {
         Invalidate(InvalidationType.Layout);
+    }
+
+    public override void Update(double deltaTime)
+    {
+        base.Update(deltaTime);
+        foreach (var slot in GetSlots()) slot.Child.Update(deltaTime);
     }
 }

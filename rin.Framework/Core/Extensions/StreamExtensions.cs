@@ -8,7 +8,7 @@ public static class StreamExtensions
         stream.ReadExactly(result, 0, (int)(stream.Length - stream.Position));
         return result;
     }
-    
+
     public static async Task<byte[]> ReadAllAsync(this Stream stream)
     {
         var result = new byte[stream.Length];

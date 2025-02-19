@@ -1,11 +1,6 @@
 ﻿using System.Numerics;
 using rin.Framework.Core.Math;
-using rin.Framework.Core.Animation;
 using rin.Framework.Views.Enums;
-using rin.Framework.Views.Animation;
-using rin.Framework.Views.Events;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Graphics.Quads;
 
 namespace rin.Framework.Views.Composite;
 
@@ -13,10 +8,10 @@ namespace rin.Framework.Views.Composite;
 /// </summary>
 public class Constraint : SingleSlotCompositeView
 {
-    private float? _minWidth;
+    private float? _maxHeight;
     private float? _maxWidth;
     private float? _minHeight;
-    private float? _maxHeight;
+    private float? _minWidth;
 
     public float? MinWidth
     {
@@ -37,7 +32,7 @@ public class Constraint : SingleSlotCompositeView
             Invalidate(InvalidationType.DesiredSize);
         }
     }
-    
+
     public float? MinHeight
     {
         get => _minHeight;
@@ -64,7 +59,7 @@ public class Constraint : SingleSlotCompositeView
         var maxX = MaxWidth ?? (size.X >= min.X ? size.X : min.X);
         var maxY = MaxHeight ?? (size.Y >= min.Y ? size.Y : min.Y);
         var max = new Vector2(maxX, maxY);
-        return size.Clamp(min,max);
+        return size.Clamp(min, max);
     }
 
     protected override Vector2 ComputeDesiredContentSize()
@@ -80,10 +75,10 @@ public class Constraint : SingleSlotCompositeView
 
     protected override Vector2 ArrangeContent(Vector2 availableSpace)
     {
-       var size = Constrain(availableSpace);
+        var size = Constrain(availableSpace);
         if (GetSlot() is { } slot)
         {
-            slot.Child.Offset = default; 
+            slot.Child.Offset = default;
             return Constrain(slot.Child.ComputeSize(size));
         }
 

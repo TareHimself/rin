@@ -1,8 +1,6 @@
 ﻿using System.Numerics;
 using Facebook.Yoga;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
-using rin.Framework.Views.Enums;
 
 namespace rin.Framework.Views.Layouts;
 
@@ -11,14 +9,17 @@ public enum AxisMode
     Percent,
     Absolute
 }
+
 public class YogaSlot : Slot
 {
-    private YogaNode _node = new YogaNode();
+    private YogaNode _node = new();
 
     public YogaSlot(YogaLayout? layout = null) : base(layout)
     {
         _node.SetMeasureFunction(Measure);
     }
+
+    public ref YogaNode Node => ref _node;
 
     private YogaSize Measure(YogaNode node,
         float width,
@@ -41,16 +42,13 @@ public class YogaSlot : Slot
 
         return new YogaSize();
     }
-
-    public ref YogaNode Node => ref _node;
-    
 }
 
 public class YogaLayout(Axis axis, CompositeView container) : InfiniteChildrenLayout
 {
-    
     private YogaNode _root = new();
     public override CompositeView Container { get; }
+
     public override void Dispose()
     {
         throw new NotImplementedException();

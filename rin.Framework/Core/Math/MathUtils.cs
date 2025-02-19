@@ -47,7 +47,7 @@ public static class MathUtils
 
         return current + delta;
     }
-    
+
     public static Vector2 InterpolateTo(Vector2 begin, Vector2 end, float deltaTime, float speed)
     {
         return new Vector2(InterpolateTo(begin.X, end.X, deltaTime, speed),
@@ -137,5 +137,8 @@ public static class MathUtils
     }
 
 
-    public static double RadToDeg(double radians) => (radians * (180.0f / System.Math.PI));
+    public static double RadToDeg(double radians)
+    {
+        return radians * (180.0f / System.Math.PI);
+    }
 }

@@ -2,6 +2,6 @@
 
 public interface ISample : IDisposable
 {
-    public abstract IChannel ToChannel();
-    public abstract IChannel Play();
+    public IChannel ToChannel();
+    public IChannel Play();
 }

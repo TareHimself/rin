@@ -1,29 +1,23 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
-
-
-
 /// <summary>
-/// A container that draws children left to right
+///     A container that draws children left to right
 /// </summary>
 public class List : MultiSlotCompositeView<ListSlot>
 {
-
     private readonly ListLayout _layout;
-    
+
     public List() : this(Axis.Column)
     {
-        
     }
 
     /// <summary>
-    /// A container that draws children left to right
-    /// Slot = <see cref="ListSlot"/>
+    ///     A container that draws children left to right
+    ///     Slot = <see cref="ListSlot" />
     /// </summary>
     public List(Axis axis)
     {
@@ -40,6 +34,8 @@ public class List : MultiSlotCompositeView<ListSlot>
         }
     }
 
+    public override int SlotCount => _layout.SlotCount;
+
     protected virtual void OnDirectionChanged()
     {
         Invalidate(InvalidationType.Layout);
@@ -49,7 +45,7 @@ public class List : MultiSlotCompositeView<ListSlot>
     {
         return _layout.ComputeDesiredContentSize();
     }
-    
+
     protected override Vector2 ArrangeContent(Vector2 availableSpace)
     {
         return _layout.Apply(availableSpace);
@@ -60,10 +56,23 @@ public class List : MultiSlotCompositeView<ListSlot>
         Invalidate(invalidation);
     }
 
-    public override IEnumerable<ISlot> GetSlots() => _layout.GetSlots();
+    public override IEnumerable<ISlot> GetSlots()
+    {
+        return _layout.GetSlots();
+    }
 
-    public override int SlotCount => _layout.SlotCount;
-    public override bool Add(View child) => _layout.Add(child);
-    public override bool Add(ListSlot slot) => _layout.Add(slot);
-    public override bool Remove(View child) => _layout.Remove(child);
+    public override bool Add(View child)
+    {
+        return _layout.Add(child);
+    }
+
+    public override bool Add(ListSlot slot)
+    {
+        return _layout.Add(slot);
+    }
+
+    public override bool Remove(View child)
+    {
+        return _layout.Remove(child);
+    }
 }

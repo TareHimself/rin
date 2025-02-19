@@ -1,17 +1,12 @@
-﻿using rin.Framework.Core;
-using rin.Framework.Graphics.Descriptors;
-using rin.Framework.Graphics.FrameGraph;
+﻿using rin.Framework.Graphics.Descriptors;
 using TerraFX.Interop.Vulkan;
 
 namespace rin.Framework.Graphics;
 
-using static VkStructureType;
-using static Vulkan;
-
 /// <summary>
 ///     Represents a <see cref="WindowRenderer" /> frame
 /// </summary>
-public class Frame : Disposable
+public class Frame : IDisposable
 {
     private readonly VkCommandBuffer _commandBuffer;
     private readonly VkCommandPool _commandPool;
@@ -21,11 +16,9 @@ public class Frame : Disposable
     private readonly VkSemaphore _renderSemaphore;
     private readonly VkSemaphore _swapchainSemaphore;
     public readonly WindowRenderer Renderer;
-    private readonly IGraphBuilder _graphBuilder = new GraphBuilder();
-    
-    public event Action<Frame, VkImage, VkExtent2D>? OnCopy;
+    private bool _rendering;
 
-    public unsafe Frame(WindowRenderer renderer)
+    public Frame(WindowRenderer renderer)
     {
         _descriptorAllocator = new DescriptorAllocator(1000, [
             new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3),
@@ -48,14 +41,29 @@ public class Frame : Disposable
         _swapchainSemaphore = device.CreateSemaphore();
     }
 
-    public void DoCopy(VkImage swapchainImage,VkExtent2D extent)
+    public void Dispose()
     {
-        OnCopy?.Invoke(this,swapchainImage,extent);
+        WaitForLastDraw();
+        OnReset?.Invoke(this);
+        OnReset = null;
+        OnCopy = null;
+        _descriptorAllocator.Dispose();
+        _device.DestroySemaphore(_swapchainSemaphore);
+        _device.DestroySemaphore(_renderSemaphore);
+        _device.DestroyFence(_renderFence);
+        _device.DestroyCommandPool(_commandPool);
     }
+
+    public event Action<Frame, IDeviceImage>? OnCopy;
+
+    public void DoCopy(IDeviceImage swapchain)
+    {
+        OnCopy?.Invoke(this, swapchain);
+    }
+
     public event Action<Frame>? OnReset;
 
 
-    public IGraphBuilder GetBuilder() => _graphBuilder;
     public VkFence GetRenderFence()
     {
         return _renderFence;
@@ -84,14 +92,21 @@ public class Frame : Disposable
     /// <summary>
     ///     Wait's for the previous frame to complete
     /// </summary>
-    public void WaitForLastDraw()
+    public VkResult WaitForLastDraw()
     {
-        var r = _device.WaitForFences(ulong.MaxValue,true,_renderFence);
-        if (r != VkResult.VK_SUCCESS)
+        if (_rendering)
         {
-            throw new Exception("Failed to wait for fences");
-            
+            var r = _device.WaitForFences(ulong.MaxValue, true, _renderFence);
+            _rendering = false;
+            return r;
         }
+
+        return VkResult.VK_SUCCESS;
+    }
+
+    public void Finish()
+    {
+        _rendering = true;
     }
 
     /// <summary>
@@ -104,23 +119,7 @@ public class Frame : Disposable
         OnCopy = null;
         _descriptorAllocator.ClearPools();
         var r = _device.ResetFences(_renderFence);
-        if (r != VkResult.VK_SUCCESS)
-        {
-            throw new Exception("Failed to reset fences");
-        }
-        _graphBuilder.Reset();
-    }
-
-    protected override void OnDispose(bool isManual)
-    {
-        SGraphicsModule.Get().WaitDeviceIdle();
-        OnReset?.Invoke(this);
-        OnReset = null;
-        OnCopy = null;
-        _descriptorAllocator.Dispose();
-        _device.DestroySemaphore(_swapchainSemaphore);
-        _device.DestroySemaphore(_renderSemaphore);
-        _device.DestroyFence(_renderFence);
-        _device.DestroyCommandPool(_commandPool);
+        if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");
+        //_graphBuilder.Reset();
     }
 }

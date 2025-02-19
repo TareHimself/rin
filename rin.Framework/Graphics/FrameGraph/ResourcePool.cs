@@ -6,25 +6,57 @@ namespace rin.Framework.Graphics.FrameGraph;
 
 public class ResourcePool(WindowRenderer renderer) : IResourcePool
 {
-    
+    private readonly BufferPool _bufferPool = new();
+
+
+    private readonly ImagePool _imagePool = new();
+
+    private ulong _currentFrame;
+
+    public void Dispose()
+    {
+        _imagePool.Dispose();
+        _bufferPool.Dispose();
+    }
+
+    public IGraphImage CreateImage(ImageResourceDescriptor descriptor, Frame frame)
+    {
+        return _imagePool.Create(descriptor, frame, _currentFrame);
+    }
+
+    public IDeviceBuffer CreateBuffer(BufferResourceDescriptor descriptor, Frame frame)
+    {
+        return _bufferPool.Create(descriptor, frame, _currentFrame);
+    }
+
+    public void OnFrameStart(ulong newFrame)
+    {
+        _currentFrame = newFrame;
+        var framesInFlight = renderer.GetNumFramesInFlight();
+        _imagePool.CheckExpiredProxies(newFrame, framesInFlight);
+        _bufferPool.CheckExpiredProxies(newFrame, framesInFlight);
+    }
+
     /// <summary>
-    /// Pooling is done using proxies, i.e. buffer proxies, image proxies. this also means they are not 
+    ///     Pooling is done using proxies, i.e. buffer proxies, image proxies. this also means they are not
     /// </summary>
     private interface IContainer : IDisposable
     {
         /// <summary>
-        /// The last frame this proxy was used in
+        ///     The last frame this proxy was used in
         /// </summary>
         public ulong LastUsed { get; set; }
-        
+
         /// <summary>
-        /// The frames this proxy is currently used in
+        ///     The frames this proxy is currently used in
         /// </summary>
         public HashSet<Frame> Uses { get; }
     }
-    
+
     private class ResourceContainer<TResource>(TResource resource) : IContainer where TResource : IDisposable
     {
+        [PublicAPI] public TResource Resource => resource;
+
         public void Dispose()
         {
             Resource.Dispose();
@@ -32,21 +64,25 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
 
         public ulong LastUsed { get; set; }
         public HashSet<Frame> Uses { get; } = [];
-
-        [PublicAPI] public TResource Resource => resource;
     }
-    
-    private abstract class Pool<TResult,TResource,TInput,TPoolKey> : IDisposable 
+
+    private abstract class Pool<TResult, TResource, TInput, TPoolKey> : IDisposable
         where TResource : IDisposable
         where TPoolKey : notnull
     {
-        [PublicAPI]
-        protected readonly Dictionary<TPoolKey, HashSet<ResourceContainer<TResource>>> ContainerPool = [];
-        
-        protected abstract ResourceContainer<TResource> CreateNew(TInput input,Frame frame,TPoolKey key,ulong frameId);
-        
-        protected abstract TResult ResultFromContainer(ResourceContainer<TResource> container,Frame frame,TPoolKey key,ulong frameId);
-        
+        [PublicAPI] protected readonly Dictionary<TPoolKey, HashSet<ResourceContainer<TResource>>> ContainerPool = [];
+
+        public void Dispose()
+        {
+            foreach (var container in ContainerPool.Values.SelectMany(c => c)) container.Dispose();
+        }
+
+        protected abstract ResourceContainer<TResource> CreateNew(TInput input, Frame frame, TPoolKey key,
+            ulong frameId);
+
+        protected abstract TResult ResultFromContainer(ResourceContainer<TResource> container, Frame frame,
+            TPoolKey key, ulong frameId);
+
         protected abstract TPoolKey MakeKeyFromInput(TInput input);
 
         protected virtual ResourceContainer<TResource>? FindExistingResource(
@@ -54,26 +90,19 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
             ulong frameId)
         {
             if (ContainerPool.TryGetValue(key, out var containers))
-            {
                 foreach (var container in containers)
-                {
                     if (!container.Uses.Contains(frame))
-                    {
                         return container;
-                    }
-                }
-            }
 
             return null;
         }
 
-        public TResult Create(TInput input, Frame frame,ulong frameId)
+        public TResult Create(TInput input, Frame frame, ulong frameId)
         {
-            
             var key = MakeKeyFromInput(input);
 
             {
-                if (FindExistingResource(ContainerPool, frame, key, frameId) is {} container)
+                if (FindExistingResource(ContainerPool, frame, key, frameId) is { } container)
                 {
                     container.LastUsed = frameId;
                     container.Uses.Add(frame);
@@ -82,11 +111,8 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
             }
 
             {
-                if (!ContainerPool.ContainsKey(key))
-                {
-                    ContainerPool.Add(key,[]);
-                }
-            
+                if (!ContainerPool.ContainsKey(key)) ContainerPool.Add(key, []);
+
                 var created = CreateNew(input, frame, key, frameId);
                 created.Uses.Add(frame);
                 created.LastUsed = frameId;
@@ -100,12 +126,9 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         {
             ContainerPool.RemoveWhere((_, containers) =>
             {
-                containers.RemoveWhere((container) =>
+                containers.RemoveWhere(container =>
                 {
-                    if (container.Uses.NotEmpty())
-                    {
-                        return false;
-                    }
+                    if (container.Uses.NotEmpty()) return false;
 
                     if (container.LastUsed + numFramesInFlight < frameId)
                     {
@@ -115,21 +138,13 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
 
                     return false;
                 });
-                
+
                 return containers.Count == 0;
             });
         }
-
-        public void Dispose()
-        {
-            foreach (var container in ContainerPool.Values.SelectMany(c => c))
-            {
-                container.Dispose();
-            }
-        }
     }
-    
-    private sealed class ProxiedImage(ResourceContainer<IDeviceImage> container,Frame frame) : IDeviceImage
+
+    private sealed class ProxiedImage(ResourceContainer<IDeviceImage> container, Frame frame) : IGraphImage
     {
         public void Dispose()
         {
@@ -137,30 +152,41 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         }
 
         public ImageFormat Format => container.Resource.Format;
-        public VkExtent3D Extent => container.Resource.Extent;
+        public Extent3D Extent => container.Resource.Extent;
         public VkImage NativeImage => container.Resource.NativeImage;
         public VkImageView NativeView { get; set; } = container.Resource.NativeView;
+
+        public ImageLayout Layout { get; set; } = ImageLayout.Undefined;
+        public bool Owned => true;
     }
-    
-    private sealed class ImagePool : Pool<ProxiedImage,IDeviceImage,ImageResourceDescriptor,int>
+
+    private sealed class ImagePool : Pool<ProxiedImage, IDeviceImage, ImageResourceDescriptor, int>
     {
-        protected override ResourceContainer<IDeviceImage> CreateNew(ImageResourceDescriptor input, Frame frame, int key, ulong frameId)
+        protected override ResourceContainer<IDeviceImage> CreateNew(ImageResourceDescriptor input, Frame frame,
+            int key, ulong frameId)
         {
-            var image = SGraphicsModule.Get().CreateImage(new Extent3D()
+            var image = SGraphicsModule.Get().CreateImage(new Extent3D
             {
                 Width = input.Width,
-                Height = input.Height,
-            },input.Format,input.Flags,debugName: "Frame Graph Image");
+                Height = input.Height
+            }, input.Format, input.Flags, debugName: "Frame Graph Image");
             return new ResourceContainer<IDeviceImage>(image);
         }
 
-        protected override ProxiedImage ResultFromContainer(ResourceContainer<IDeviceImage> container, Frame frame, int key, ulong frameId) => new ProxiedImage(container, frame);
+        protected override ProxiedImage ResultFromContainer(ResourceContainer<IDeviceImage> container, Frame frame,
+            int key, ulong frameId)
+        {
+            return new ProxiedImage(container, frame);
+        }
 
-        protected override int MakeKeyFromInput(ImageResourceDescriptor input) => input.GetHashCode();
+        protected override int MakeKeyFromInput(ImageResourceDescriptor input)
+        {
+            return input.GetHashCode();
+        }
     }
-    
 
-    private sealed class ProxiedBuffer(ResourceContainer<IDeviceBuffer> container,Frame frame) : IDeviceBuffer
+
+    private sealed class ProxiedBuffer(ResourceContainer<IDeviceBuffer> container, Frame frame) : IDeviceBuffer
     {
         public void Dispose()
         {
@@ -170,64 +196,52 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         public ulong Offset => container.Resource.Offset;
         public ulong Size => container.Resource.Size;
         public VkBuffer NativeBuffer => container.Resource.NativeBuffer;
-        public ulong GetAddress() => container.Resource.GetAddress();
 
-        public IDeviceBufferView GetView(ulong offset, ulong size) => container.Resource.GetView(offset, size);
-
-        public unsafe void Write(void* src, ulong size, ulong offset = 0) => container.Resource.Write(src, size, offset);
-    }
-    
-    private class BufferPool : Pool<ProxiedBuffer,IDeviceBuffer,BufferResourceDescriptor,ulong>
-    {
-        [PublicAPI]
-        public ulong MaxBufferReuseDelta = 1024;
-        protected override ResourceContainer<IDeviceBuffer> CreateNew(BufferResourceDescriptor input, Frame frame, ulong key, ulong frameId)
+        public ulong GetAddress()
         {
-            var buffer = SGraphicsModule.Get().NewStorageBuffer(input.Size,false,"Frame Graph Storage Buffer");
+            return container.Resource.GetAddress();
+        }
+
+        public IDeviceBufferView GetView(ulong offset, ulong size)
+        {
+            return container.Resource.GetView(offset, size);
+        }
+
+        public unsafe void Write(void* src, ulong size, ulong offset = 0)
+        {
+            container.Resource.Write(src, size, offset);
+        }
+    }
+
+    private class BufferPool : Pool<ProxiedBuffer, IDeviceBuffer, BufferResourceDescriptor, ulong>
+    {
+        [PublicAPI] public ulong MaxBufferReuseDelta = 1024;
+
+        protected override ResourceContainer<IDeviceBuffer> CreateNew(BufferResourceDescriptor input, Frame frame,
+            ulong key, ulong frameId)
+        {
+            var buffer = SGraphicsModule.Get().NewStorageBuffer(input.Size, false, "Frame Graph Storage Buffer");
             return new ResourceContainer<IDeviceBuffer>(buffer);
         }
 
-        protected override ProxiedBuffer ResultFromContainer(ResourceContainer<IDeviceBuffer> container, Frame frame, ulong key, ulong frameId) => new ProxiedBuffer(container, frame);
-
-        protected override ulong MakeKeyFromInput(BufferResourceDescriptor input) => input.Size;
-
-        protected override ResourceContainer<IDeviceBuffer>? FindExistingResource(Dictionary<ulong, HashSet<ResourceContainer<IDeviceBuffer>>> items, Frame frame, ulong key, ulong frameId)
+        protected override ProxiedBuffer ResultFromContainer(ResourceContainer<IDeviceBuffer> container, Frame frame,
+            ulong key, ulong frameId)
         {
-            
+            return new ProxiedBuffer(container, frame);
+        }
+
+        protected override ulong MakeKeyFromInput(BufferResourceDescriptor input)
+        {
+            return input.Size;
+        }
+
+        protected override ResourceContainer<IDeviceBuffer>? FindExistingResource(
+            Dictionary<ulong, HashSet<ResourceContainer<IDeviceBuffer>>> items, Frame frame, ulong key, ulong frameId)
+        {
             return items
-                .Where(item => item.Key >= key &&  item.Key - key < MaxBufferReuseDelta)
+                .Where(item => item.Key >= key && item.Key - key < MaxBufferReuseDelta)
                 .SelectMany(c => c.Value)
                 .FirstOrDefault(c => c.Uses.Empty());
         }
-    }
-
-
-    private readonly ImagePool _imagePool = new ImagePool();
-    private readonly BufferPool _bufferPool = new BufferPool();
-    
-    private ulong _currentFrame = 0;
-    
-    public void Dispose()
-    {
-        _imagePool.Dispose();
-        _bufferPool.Dispose();
-    }
-
-    public IDeviceImage CreateImage(ImageResourceDescriptor descriptor,Frame frame)
-    {
-        return _imagePool.Create(descriptor,frame,_currentFrame);
-    }
-
-    public IDeviceBuffer CreateBuffer(BufferResourceDescriptor descriptor, Frame frame)
-    {
-        return _bufferPool.Create(descriptor,frame,_currentFrame);
-    }
-
-    public void OnFrameStart(ulong newFrame)
-    {
-        _currentFrame = newFrame;
-        var framesInFlight = renderer.GetNumFramesInFlight();
-        _imagePool.CheckExpiredProxies(newFrame, framesInFlight);
-        _bufferPool.CheckExpiredProxies(newFrame, framesInFlight);
     }
 }

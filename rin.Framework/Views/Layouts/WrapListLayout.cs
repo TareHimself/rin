@@ -1,34 +1,25 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
-using rin.Framework.Views.Enums;
 
 namespace rin.Framework.Views.Layouts;
 
-public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis, container)
+public class WrapListLayout(Axis axis, CompositeView container) : ListLayout(axis, container)
 {
     public override CompositeView Container { get; } = container;
-    
+
     public override void Dispose()
     {
-        
     }
 
     public override void OnSlotUpdated(ISlot slot)
     {
-        if (Container.Surface != null)
-        {
-            Apply(Container.GetContentSize());
-        }
+        if (Container.Surface != null) Apply(Container.GetContentSize());
     }
 
     protected override Vector2 ArrangeContentRow(Vector2 availableSpace)
     {
         var computedSize = base.ArrangeContentRow(availableSpace);
-        if (computedSize.X <= availableSpace.X)
-        {
-            return computedSize;
-        }
+        if (computedSize.X <= availableSpace.X) return computedSize;
 
         var mainAxisOffset = 0.0f;
         var crossAxisOffset = 0.0f;
@@ -39,17 +30,13 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
         {
             var offset = containerSlot.Child.Offset;
             var size = containerSlot.Child.Size;
-            
+
             if (offset.X + size.X > availableSpace.X)
             {
-                if ((mainAxisOffset + size.X) > availableSpace.X)
+                if (mainAxisOffset + size.X > availableSpace.X)
                 {
-                    if (mainAxisOffset > 0.0f)
-                    {
-                        crossAxisOffset += maxCrossAxis;
-                        
-                    }
-                    
+                    if (mainAxisOffset > 0.0f) crossAxisOffset += maxCrossAxis;
+
                     offset = new Vector2(0.0f, crossAxisOffset);
                 }
                 else
@@ -57,47 +44,40 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
                     offset = new Vector2(mainAxisOffset, crossAxisOffset);
                 }
             }
-            
+
             maxCrossAxis = Math.Max(size.Y, maxCrossAxis);
-            
+
             containerSlot.Child.Offset = offset;
             mainAxisOffset = offset.X + size.X;
             totalHeight = Math.Max(totalHeight, offset.Y + size.Y);
             totalWidth = Math.Max(totalWidth, offset.X + size.X);
         }
 
-        return new Vector2( totalWidth,totalHeight);
+        return new Vector2(totalWidth, totalHeight);
     }
-    
+
     protected override Vector2 ArrangeContentColumn(Vector2 availableSpace)
     {
         var computedSize = base.ArrangeContentColumn(availableSpace);
-        if (computedSize.Y <= availableSpace.Y)
-        {
-            return computedSize;
-        }
+        if (computedSize.Y <= availableSpace.Y) return computedSize;
 
         var mainAxisOffset = 0.0f;
         var crossAxisOffset = 0.0f;
         var maxCrossAxis = 0.0f;
         var totalHeight = 0.0f;
         var totalWidth = 0.0f;
-        
+
         foreach (var containerSlot in GetSlots())
         {
             var offset = containerSlot.Child.Offset;
             var size = containerSlot.Child.Size;
-            
+
             if (offset.Y + size.Y > availableSpace.Y)
             {
-                if ((mainAxisOffset + size.Y) > availableSpace.Y)
+                if (mainAxisOffset + size.Y > availableSpace.Y)
                 {
-                    if (mainAxisOffset > 0.0f)
-                    {
-                        crossAxisOffset += maxCrossAxis;
-                        
-                    }
-                    
+                    if (mainAxisOffset > 0.0f) crossAxisOffset += maxCrossAxis;
+
                     offset = new Vector2(0.0f, crossAxisOffset);
                 }
                 else
@@ -105,9 +85,9 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
                     offset = new Vector2(mainAxisOffset, crossAxisOffset);
                 }
             }
-            
+
             maxCrossAxis = Math.Max(size.X, maxCrossAxis);
-            
+
             containerSlot.Child.Offset = offset;
             mainAxisOffset = offset.Y + size.Y;
             totalHeight = Math.Max(totalHeight, offset.Y + size.Y);
@@ -117,7 +97,7 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
         return new Vector2(totalWidth, totalHeight);
     }
 
-    
+
     public override Vector2 Apply(Vector2 availableSpace)
     {
         return GetAxis() switch
@@ -127,7 +107,7 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
             _ => throw new ArgumentOutOfRangeException()
         };
     }
-    
+
     public override Vector2 ComputeDesiredContentSize()
     {
         return GetAxis() switch
@@ -136,18 +116,17 @@ public class WrapListLayout(Axis axis,CompositeView container) : ListLayout(axis
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.X += slotSize.X;
-                size.Y = System.Math.Max(size.Y, slotSize.Y);
+                size.Y = Math.Max(size.Y, slotSize.Y);
                 return size;
             }),
             Axis.Column => GetSlots().Aggregate(new Vector2(), (size, slot) =>
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.Y += slotSize.Y;
-                size.X = System.Math.Max(size.X, slotSize.X);
+                size.X = Math.Max(size.X, slotSize.X);
                 return size;
             }),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
-
 }

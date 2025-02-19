@@ -1,4 +1,5 @@
 ﻿// ReSharper disable InconsistentNaming
+
 namespace rin.Framework.Graphics;
 
 public enum ImageFormat

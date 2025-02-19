@@ -4,12 +4,12 @@ namespace rin.Framework.Graphics.FrameGraph;
 
 public class ImageResourceDescriptor : IResourceDescriptor
 {
+    public readonly VkImageUsageFlags Flags;
+    public readonly ImageFormat Format;
+    public readonly uint Height;
+    public readonly ImageLayout InitialLayout;
 
     public readonly uint Width;
-    public readonly uint Height;
-    public readonly ImageFormat Format;
-    public readonly VkImageUsageFlags Flags;
-    public readonly ImageLayout InitialLayout;
 
     public ImageResourceDescriptor(uint width, uint height, ImageFormat format, VkImageUsageFlags flags,
         ImageLayout initialLayout)

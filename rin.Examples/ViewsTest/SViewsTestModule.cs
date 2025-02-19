@@ -53,10 +53,15 @@ public class SViewsTestModule : IModule
             return size;
         }
     }
-    public void TestWrapping(WindowRenderer renderer)
+    public void TestWrapping(IWindowRenderer renderer)
     {
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
+
+            var scheduler = new Scheduler();
+
+            SRuntime.Get().OnUpdate += (_) => scheduler.Update();
+            
             var list = new WrapList()
             {
                 Axis = Axis.Row,
@@ -125,7 +130,7 @@ public class SViewsTestModule : IModule
                     }
                 });
             };
-
+            
             var rand = new Random();
             surf.Window.OnKey += (e) =>
             {
@@ -135,11 +140,14 @@ public class SViewsTestModule : IModule
                         .After(
                             (p) =>
                             {
-                                foreach (var path in p)
-                                    list.Add(new WrapContainer(new AsyncFileImage(path)
+                                scheduler.Schedule(() =>
+                                {
+                                    foreach (var path in p)
+                                        list.Add(new WrapContainer(new AsyncFileImage(path)
                                         {
                                             BorderRadius = new Vector4(30.0f)
                                         }));
+                                });
                             });
                 }
 
@@ -198,7 +206,7 @@ public class SViewsTestModule : IModule
         }
     }
 
-    private void TestAnimation(WindowRenderer renderer)
+    private void TestAnimation(IWindowRenderer renderer)
     {
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
@@ -318,7 +326,7 @@ public class SViewsTestModule : IModule
         }
     }
 
-    public void TestSimple(WindowRenderer renderer)
+    public void TestSimple(IWindowRenderer renderer)
     {
         var surf = SViewsModule.Get().GetWindowSurface(renderer);
         //SViewsModule.Get().GetOrCreateFont("Arial").ConfigureAwait(false);
@@ -330,7 +338,7 @@ public class SViewsTestModule : IModule
     //surf?.Add(new TextBox("A"));
     }
 
-    public void TestBlur(WindowRenderer renderer)
+    public void TestBlur(IWindowRenderer renderer)
     {
         var surf = SViewsModule.Get().GetWindowSurface(renderer);
 
@@ -351,7 +359,7 @@ public class SViewsTestModule : IModule
     }
 
 
-    public void TestClip(WindowRenderer renderer)
+    public void TestClip(IWindowRenderer renderer)
     {
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surface)
         {
@@ -373,7 +381,7 @@ public class SViewsTestModule : IModule
         }
     }
 
-    public void TestText(WindowRenderer renderer)
+    public void TestText(IWindowRenderer renderer)
     {
         var surf = SViewsModule.Get().GetWindowSurface(renderer);
 
@@ -429,10 +437,17 @@ public class SViewsTestModule : IModule
 
     public void Startup(SRuntime runtime)
     {
-        Utils.RunWindowsOnTick();
-        Utils.RunDrawOnThread();
+        Common.Utils.RunSingleThreaded((delta) =>
+        {
+            SGraphicsModule.Get().PollWindows();
+            SViewsModule.Get().Update(delta);
+            SGraphicsModule.Get().Collect();
+        }, () =>
+        {
+            SGraphicsModule.Get().Execute();
+        });
 
-        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
+        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin View Test", new CreateOptions()
         {

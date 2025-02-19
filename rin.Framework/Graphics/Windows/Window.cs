@@ -7,24 +7,10 @@ namespace rin.Framework.Graphics.Windows;
 
 public class Window : Disposable, IWindow
 {
-    private readonly nint _nativePtr;
-
-    private readonly HashSet<IWindow> _children = [];
-
-    public IWindow? Parent { get; private set;}
-
-    private Vec2<double>? _lastCursorPosition;
-
-    public bool Focused { get; private set; }
-
-    public bool IsFullscreen => NativeMethods.GetWindowFullscreen(_nativePtr) == 1;
-
-    public Vec2<uint> PixelSize;
-    
-    public event Action? OnDisposed;
-    
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly NativeMethods.NativeCharDelegate _charDelegate;
+
+    private readonly HashSet<IWindow> _children = [];
 
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly NativeMethods.NativeCloseDelegate _closeDelegate;
@@ -33,13 +19,26 @@ public class Window : Disposable, IWindow
     private readonly NativeMethods.NativeCursorDelegate _cursorDelegate;
 
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    private readonly NativeMethods.NativeDropDelegate _dropDelegate;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly NativeMethods.NativeFocusDelegate _focusDelegate;
 
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly NativeMethods.NativeKeyDelegate _keyDelegate;
 
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    private readonly NativeMethods.NativeMaximizedDelegate _maximizedDelegate;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    private readonly NativeMethods.NativeMinimizeDelegate _minimizeDelegate;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly NativeMethods.NativeMouseButtonDelegate _mouseButtonDelegate;
+    private readonly nint _nativePtr;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    private readonly NativeMethods.NativeRefreshDelegate _refreshDelegate;
 
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly NativeMethods.NativeScrollDelegate _scrollDelegate;
@@ -47,35 +46,9 @@ public class Window : Disposable, IWindow
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly NativeMethods.NativeSizeDelegate _sizeDelegate;
 
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly NativeMethods.NativeMaximizedDelegate _maximizedDelegate;
+    private Vec2<double>? _lastCursorPosition;
 
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly NativeMethods.NativeRefreshDelegate _refreshDelegate;
-    
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly NativeMethods.NativeMinimizeDelegate _minimizeDelegate;
-    
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly NativeMethods.NativeDropDelegate _dropDelegate;
-
-    public event Action<KeyEvent>? OnKey;
-    public event Action<CursorMoveEvent>? OnCursorMoved;
-    public event Action<CursorButtonEvent>? OnCursorButton;
-    public event Action<FocusEvent>? OnFocused;
-    public event Action<ScrollEvent>? OnScrolled;
-    public event Action<ResizeEvent>? OnResized;
-    public event Action<ResizeEvent>? OnAfterResize;
-    public event Action<CloseEvent>? OnCloseRequested;
-    public event Action<CharacterEvent>? OnCharacter;
-    
-    public event Action<MaximizedEvent>? OnMaximized;
-    
-    public event Action<RefreshEvent>? OnRefresh;
-    
-    public event Action<MinimizeEvent>? OnMinimize;
-    
-    public event Action<DropEvent>? OnDrop;
+    public Vec2<uint> PixelSize;
 
     public Window(nint nativePtr, IWindow? parent)
     {
@@ -111,7 +84,80 @@ public class Window : Disposable, IWindow
                 _dropDelegate);
         }
     }
-    
+
+    public IWindow? Parent { get; }
+
+    public bool Focused { get; private set; }
+
+    public bool IsFullscreen => NativeMethods.GetWindowFullscreen(_nativePtr) == 1;
+
+    public event Action? OnDisposed;
+
+    public event Action<KeyEvent>? OnKey;
+    public event Action<CursorMoveEvent>? OnCursorMoved;
+    public event Action<CursorButtonEvent>? OnCursorButton;
+    public event Action<FocusEvent>? OnFocused;
+    public event Action<ScrollEvent>? OnScrolled;
+    public event Action<ResizeEvent>? OnResized;
+    public event Action<ResizeEvent>? OnAfterResize;
+    public event Action<CloseEvent>? OnCloseRequested;
+    public event Action<CharacterEvent>? OnCharacter;
+
+    public event Action<MaximizedEvent>? OnMaximized;
+
+    public event Action<RefreshEvent>? OnRefresh;
+
+    public event Action<MinimizeEvent>? OnMinimize;
+
+    public event Action<DropEvent>? OnDrop;
+
+    public Vec2<double> GetCursorPosition()
+    {
+        var x = 0.0;
+        var y = 0.0;
+        unsafe
+        {
+            NativeMethods.GetMousePosition(_nativePtr, &x, &y);
+        }
+
+        return new Vec2<double>(x, y);
+    }
+
+    public void SetMousePosition(Vec2<double> position)
+    {
+        NativeMethods.SetMousePosition(_nativePtr, position.X, position.Y);
+    }
+
+    public void SetFullscreen(bool state)
+    {
+        NativeMethods.SetWindowFullscreen(_nativePtr, state ? 1 : 0);
+    }
+
+
+    public Vec2<uint> GetPixelSize()
+    {
+        Vec2<int> result = 0;
+        unsafe
+        {
+            NativeMethods.GetWindowPixelSize(_nativePtr, &result.X, &result.Y);
+        }
+
+        return result.Cast<uint>();
+    }
+
+    public nint GetPtr()
+    {
+        return _nativePtr;
+    }
+
+    public IWindow CreateChild(int width, int height, string name, CreateOptions? options = null)
+    {
+        var child = SGraphicsModule.Get().CreateWindow(width, height, name, options, this);
+        _children.Add(child);
+        child.OnDisposed += () => _children.Remove(child);
+        return child;
+    }
+
     private void KeyCallback(nint window, int key, int scancode, int action, int mods)
     {
         OnKey?.Invoke(new KeyEvent
@@ -119,7 +165,7 @@ public class Window : Disposable, IWindow
             Window = this,
             Key = (InputKey)key,
             Modifiers = (InputModifier)mods,
-            State = (InputState)action,
+            State = (InputState)action
         });
     }
 
@@ -144,7 +190,7 @@ public class Window : Disposable, IWindow
             Position = GetCursorPosition().ToNumericsVector(),
             Button = (CursorButton)button,
             Modifiers = (InputModifier)mods,
-            State = (InputState)action,
+            State = (InputState)action
         });
     }
 
@@ -164,7 +210,7 @@ public class Window : Disposable, IWindow
         {
             Window = this,
             Position = GetCursorPosition().ToNumericsVector(),
-            Delta = new Vec2<double>(dx, dy),
+            Delta = new Vec2<double>(dx, dy)
         });
     }
 
@@ -187,7 +233,7 @@ public class Window : Disposable, IWindow
         });
     }
 
-    
+
     private void CharCallback(nint window, uint inCode, int inMods)
     {
         OnCharacter?.Invoke(new CharacterEvent
@@ -197,7 +243,7 @@ public class Window : Disposable, IWindow
             Modifiers = (InputModifier)inMods
         });
     }
-    
+
     private void MaximizedCallback(nint window, int maxmized)
     {
         OnMaximized?.Invoke(new MaximizedEvent
@@ -206,9 +252,9 @@ public class Window : Disposable, IWindow
             Maximized = maxmized == 1
         });
         var size = GetPixelSize().Cast<uint>().Cast<int>();
-        SizeCallback(window,size.X,size.Y);
+        SizeCallback(window, size.X, size.Y);
     }
-    
+
     private void RefreshCallback(nint window)
     {
         OnRefresh?.Invoke(new RefreshEvent
@@ -216,8 +262,8 @@ public class Window : Disposable, IWindow
             Window = this
         });
     }
-    
-    private void MinimizeCallback(nint window,int minimized)
+
+    private void MinimizeCallback(nint window, int minimized)
     {
         OnMinimize?.Invoke(new MinimizeEvent
         {
@@ -225,53 +271,18 @@ public class Window : Disposable, IWindow
             Minimized = minimized == 1
         });
         var size = GetPixelSize().Cast<uint>().Cast<int>();
-        SizeCallback(window,size.X,size.Y);
+        SizeCallback(window, size.X, size.Y);
     }
-    
-    private unsafe void DropCallback(nint window,int count,char ** paths)
-    {
 
+    private unsafe void DropCallback(nint window, int count, char** paths)
+    {
         OnDrop?.Invoke(new DropEvent
         {
             Window = this,
-            Paths = Enumerable.Range(0, count).Select(c => Marshal.PtrToStringAnsi(new IntPtr(paths[c])) ?? "").ToArray()
+            Paths = Enumerable.Range(0, count).Select(c => Marshal.PtrToStringAnsi(new IntPtr(paths[c])) ?? "")
+                .ToArray()
         });
     }
-    
-    public Vec2<double> GetCursorPosition()
-    {
-        var x = 0.0;
-        var y = 0.0;
-        unsafe
-        {
-            NativeMethods.GetMousePosition(_nativePtr,&x,&y);
-        }
-
-        return new Vec2<double>(x, y);
-    }
-    
-    public void SetMousePosition(Vec2<double> position)
-    {
-        NativeMethods.SetMousePosition(_nativePtr,position.X,position.Y);
-    }
-
-    public void SetFullscreen(bool state)
-    {
-        NativeMethods.SetWindowFullscreen(_nativePtr,state ? 1 : 0);
-    }
-
-
-    public Vec2<uint> GetPixelSize()
-    {
-        Vec2<int> result = 0;
-        unsafe
-        {
-            NativeMethods.GetWindowPixelSize(_nativePtr,&result.X,&result.Y);
-        }
-        return result.Cast<uint>();
-    }
-
-    public nint GetPtr() => _nativePtr;
 
     protected override void OnDispose(bool isManual)
     {
@@ -280,13 +291,5 @@ public class Window : Disposable, IWindow
         _children.Clear();
 
         OnDisposed?.Invoke();
-    }
-    
-    public IWindow CreateChild(int width, int height, string name, CreateOptions? options = null)
-    {
-        var child = SGraphicsModule.Get().CreateWindow(width, height, name, options,this);
-        _children.Add(child);
-        child.OnDisposed += () => _children.Remove(child);
-        return child;
     }
 }

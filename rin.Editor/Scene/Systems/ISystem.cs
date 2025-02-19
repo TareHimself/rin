@@ -3,7 +3,7 @@ using rin.Editor.Scene.Components;
 
 namespace rin.Editor.Scene.Systems;
 
-public interface ISystem : ITickable
+public interface ISystem : IReceivesUpdate
 {
     
     public bool Tickable { get; }

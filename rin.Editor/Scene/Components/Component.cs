@@ -16,7 +16,7 @@ public class Component : IComponent
         Active = false;
     }
 
-    public virtual void Update(double delta)
+    public virtual void Update(double deltaSeconds)
     {
         
     }

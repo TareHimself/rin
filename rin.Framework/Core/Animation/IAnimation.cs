@@ -2,14 +2,13 @@
 
 public interface IAnimation
 {
-
-    public abstract double Duration { get; }
-    public abstract void Start(double elapsed);
+    public double Duration { get; }
+    public void Start(double elapsed);
 
     /// <summary>
-    /// Process This animation
+    ///     Process This animation
     /// </summary>
     /// <param name="elapsed"></param>
     /// <returns>The time remaining i.e. float.PositiveInfinity for non finite animations</returns>
-    public abstract void Update(double elapsed);
+    public void Update(double elapsed);
 }

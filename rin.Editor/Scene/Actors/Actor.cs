@@ -5,7 +5,7 @@ using rin.Framework.Core.Math;
 using rin.Editor.Scene.Components;
 namespace rin.Editor.Scene.Actors;
 
-public class Actor : ITickable
+public class Actor : IReceivesUpdate
 {
     private SceneComponent? _root;
     
@@ -187,13 +187,13 @@ public class Actor : ITickable
         }
     }
 
-    public void Update(double delta)
+    public void Update(double deltaSeconds)
     {
         if(!Active) return;
         
         foreach (var component in GetComponents().ToArray())
         {
-            component.Update(delta);
+            component.Update(deltaSeconds);
         }
     }
 

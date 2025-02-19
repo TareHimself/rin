@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using rin.Framework.Core.Math;
 using rin.Framework.Core.Extensions;
+using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Font;
 using rin.Framework.Views.Graphics;
@@ -25,46 +25,22 @@ internal struct CachedQuadLayout(int atlas, Mat3 transform, Vector2 size, Vector
 /// </summary>
 public class TextBox : ContentView
 {
-    protected class CharacterBounds(char character, int contentIndex, float x, float y, float width, float height)
-    {
-        public readonly char Character = character;
-        public readonly int ContentIndex = contentIndex;
-        public readonly float X = x;
-        public readonly float Y = y;
-        public readonly float Width = width;
-        public readonly float Height = height;
-
-        public float Right => X + Width;
-        public float Left => X;
-        public float Top => Y;
-        public float Bottom => Y + Height;
-
-        public CharacterBounds(char character, int contentIndex, FontRectangle bounds) : this(character, contentIndex,
-            bounds.X, bounds.Y, bounds.Width, bounds.Height)
-        {
-        }
-    }
+    private CharacterBounds[]? _cachedBounds;
+    private CachedQuadLayout[]? _cachedLayouts;
 
     private string _content = string.Empty;
-    [PublicAPI]
-    protected SixLabors.Fonts.Font? CurrentFont { get; private set; }
-    private CachedQuadLayout[]? _cachedLayouts;
-    private CharacterBounds[]? _cachedBounds;
-    private float _fontSize = 100.0f;
-    private bool _wrapContent = false;
-    protected float? Wrap = null;
 
-    protected float LineHeight => CurrentFont?.FontMetrics is { } metrics
-        ? (metrics.HorizontalMetrics.AdvanceHeightMax * 64 / metrics.ScaleFactor * FontSize)
-        : 0;
+    private string _fontFamily = "Arial";
     // protected float LineHeight => CurrentFont?.FontMetrics is { } metrics
     //     ? ((float)metrics.HorizontalMetrics.LineHeight / metrics.UnitsPerEm)
     //     : 0;
-    
+
     private IFontManager _fontManager = SViewsModule.Get().GetFontManager();
-    private string _fontFamily = "Arial";
+    private float _fontSize = 100.0f;
     private FontStyle _fontStyle = FontStyle.Regular;
-    
+    private bool _wrapContent;
+    protected float? Wrap;
+
     public TextBox()
     {
         _cachedLayouts = null;
@@ -72,12 +48,16 @@ public class TextBox : ContentView
         MakeNewFont();
     }
 
+    [PublicAPI] protected SixLabors.Fonts.Font? CurrentFont { get; private set; }
 
-    [PublicAPI]
-    public Color ForegroundColor { get; set; } = Color.White;
+    protected float LineHeight => CurrentFont?.FontMetrics is { } metrics
+        ? metrics.HorizontalMetrics.AdvanceHeightMax * 64 / metrics.ScaleFactor * FontSize
+        : 0;
 
-    [PublicAPI]
-    public Color BackgroundColor { get; set; } = Color.White.Clone(a: 0.0f);
+
+    [PublicAPI] public Color ForegroundColor { get; set; } = Color.White;
+
+    [PublicAPI] public Color BackgroundColor { get; set; } = Color.White.Clone(a: 0.0f);
 
     [PublicAPI]
     public bool WrapContent
@@ -89,7 +69,7 @@ public class TextBox : ContentView
             Invalidate(InvalidationType.Layout);
         }
     }
-    
+
     [PublicAPI]
     public IFontManager FontManager
     {
@@ -100,7 +80,7 @@ public class TextBox : ContentView
             MakeNewFont();
         }
     }
-    
+
     [PublicAPI]
     public string FontFamily
     {
@@ -111,7 +91,7 @@ public class TextBox : ContentView
             MakeNewFont();
         }
     }
-    
+
     [PublicAPI]
     public FontStyle Style
     {
@@ -122,7 +102,7 @@ public class TextBox : ContentView
             MakeNewFont();
         }
     }
-    
+
     [PublicAPI]
     public float FontSize
     {
@@ -134,7 +114,7 @@ public class TextBox : ContentView
             MakeNewFont();
         }
     }
-    
+
     [PublicAPI]
     public string Content
     {
@@ -142,12 +122,11 @@ public class TextBox : ContentView
         set
         {
             var hasChanged = _content != value;
-            if (hasChanged)
-            {
-                TextChanged(value);
-            }
+            if (hasChanged) TextChanged(value);
         }
     }
+
+    protected bool FontReady => CurrentFont != null;
 
     protected virtual void TextChanged(string newText)
     {
@@ -157,8 +136,6 @@ public class TextBox : ContentView
         // TextRenderer.RenderTextTo();
         Invalidate(InvalidationType.DesiredSize);
     }
-    
-    protected bool FontReady => CurrentFont != null;
 
     protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
@@ -169,14 +146,10 @@ public class TextBox : ContentView
         var height = bounds.MaxBy(c => c.Bottom)?.Bottom ?? 0.0f;
         return new Vector2(width, height);
     }
-    
+
     private void MakeNewFont()
     {
-        
-        if (_fontManager.TryGetFont(FontFamily, out var family))
-        {
-            CurrentFont = family.CreateFont(FontSize,Style);
-        }
+        if (_fontManager.TryGetFont(FontFamily, out var family)) CurrentFont = family.CreateFont(FontSize, Style);
         _cachedBounds = null;
         _cachedLayouts = null;
         Invalidate(InvalidationType.DesiredSize);
@@ -185,14 +158,11 @@ public class TextBox : ContentView
 
     protected IEnumerable<CharacterBounds> GetCharacterBounds(float? wrap = null, bool cache = true)
     {
-        if (CurrentFont == null)
-        {
-            return [];
-        }
+        if (CurrentFont == null) return [];
 
         var opts = new TextOptions(CurrentFont)
         {
-            WrappingLength = wrap == null ? -1.0f : (float)Math.Ceiling(wrap.Value + 10.0f),
+            WrappingLength = wrap == null ? -1.0f : (float)Math.Ceiling(wrap.Value + 10.0f)
         };
 
         var content = Content + "";
@@ -204,10 +174,7 @@ public class TextBox : ContentView
         var allBounds = new Dictionary<int, FontRectangle>();
         var line = 0;
 
-        foreach (var glyphBounds in tempBounds)
-        {
-            allBounds.Add(glyphBounds.StringIndex, glyphBounds.Bounds);
-        }
+        foreach (var glyphBounds in tempBounds) allBounds.Add(glyphBounds.StringIndex, glyphBounds.Bounds);
 
         var result = content.Select((c, idx) =>
         {
@@ -219,12 +186,9 @@ public class TextBox : ContentView
                 }
             }
 
-            if (c == '\n')
-            {
-                line++;
-            }
+            if (c == '\n') line++;
 
-            return new CharacterBounds(c, idx, 0, (line * LineHeight) + LineHeight / 2.0f, 0, 0);
+            return new CharacterBounds(c, idx, 0, line * LineHeight + LineHeight / 2.0f, 0, 0);
         }).ToArray();
 
         return result;
@@ -233,7 +197,7 @@ public class TextBox : ContentView
     protected override Vector2 ComputeDesiredContentSize()
     {
         if (Content.Empty() || CurrentFont == null) return new Vector2(0.0f, LineHeight);
-        CharacterBounds? last = GetCharacterBounds(cache: false).MaxBy(c => c.Right);
+        var last = GetCharacterBounds(cache: false).MaxBy(c => c.Right);
         var lines = Math.Max(1, Content.Split("\n").Length);
         var height = LineHeight * lines;
 
@@ -247,24 +211,24 @@ public class TextBox : ContentView
         {
             List<CachedQuadLayout> layouts = [];
             List<Quad> quads = [];
-            bool hadAnyPending = false;
+            var hadAnyPending = false;
             foreach (var bound in GetCharacterBounds(Wrap))
             {
                 var range = _fontManager.GetPixelRange();
                 var glyph = _fontManager.GetGlyph(CurrentFont, bound.Character);
-                
+
                 if (glyph.State == GlyphState.Invalid && bound.Character != ' ')
                 {
-                    _fontManager.Prepare(CurrentFont.Family, [bound.Character],FontStyle.Regular);
+                    _fontManager.Prepare(CurrentFont.Family, [bound.Character]);
                     hadAnyPending = true;
                 }
                 else if (glyph.State == GlyphState.Pending)
                 {
                     hadAnyPending = true;
                 }
-                
-                if(glyph.State != GlyphState.Ready) continue;
-                
+
+                if (glyph.State != GlyphState.Ready) continue;
+
                 var charOffset = new Vector2(bound.X, bound.Y);
 
                 var size = new Vector2(bound.Width, bound.Height);
@@ -280,22 +244,40 @@ public class TextBox : ContentView
                 var finalTransform = Mat3.Identity.Translate(charOffset)
                     .Translate(new Vector2(0.0f, size.Y)).Scale(new Vector2(1.0f, -1.0f));
 
-                var layout = new CachedQuadLayout(glyph.AtlasId, finalTransform, size,glyph.Coordinate);
+                var layout = new CachedQuadLayout(glyph.AtlasId, finalTransform, size, glyph.Coordinate);
                 layouts.Add(layout);
                 quads.Add(Quad.Mtsdf(layout.Atlas, transform * layout.Transform, layout.Size, Color.White,
                     layout.Uv));
             }
-            if(quads.Count == 0) return;
+
+            if (quads.Count == 0) return;
             commands.Add(new QuadDrawCommand(quads));
-            if (!hadAnyPending)
-            {
-                _cachedLayouts = layouts.ToArray();
-            }
+            if (!hadAnyPending) _cachedLayouts = layouts.ToArray();
         }
         else if (_cachedLayouts != null)
         {
             commands.Add(new QuadDrawCommand(_cachedLayouts.Select(c =>
                 Quad.Mtsdf(c.Atlas, transform * c.Transform, c.Size, Color.White, c.Uv))));
         }
+    }
+
+    protected class CharacterBounds(char character, int contentIndex, float x, float y, float width, float height)
+    {
+        public readonly char Character = character;
+        public readonly int ContentIndex = contentIndex;
+        public readonly float Height = height;
+        public readonly float Width = width;
+        public readonly float X = x;
+        public readonly float Y = y;
+
+        public CharacterBounds(char character, int contentIndex, FontRectangle bounds) : this(character, contentIndex,
+            bounds.X, bounds.Y, bounds.Width, bounds.Height)
+        {
+        }
+
+        public float Right => X + Width;
+        public float Left => X;
+        public float Top => Y;
+        public float Bottom => Y + Height;
     }
 }

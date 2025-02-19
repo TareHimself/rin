@@ -1,6 +1,4 @@
-﻿using rin.Framework.Views.Graphics.Commands;
-
-namespace rin.Framework.Views.Graphics;
+﻿namespace rin.Framework.Views.Graphics;
 
 public class RawCommandComparer : IComparer<RawCommand>
 {

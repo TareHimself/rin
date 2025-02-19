@@ -2,7 +2,13 @@
 
 namespace rin.Framework.Core.Animation;
 
-public class Vector4TransitionAnimation(Func<Vector4> from,Vector4 to,Action<Vector4> setter,double duration = 0.0,Func<double,double>? easingFunction = null) : TransitionAnimation<Vector4>(from,to,setter,duration,easingFunction)
+public class Vector4TransitionAnimation(
+    Func<Vector4> from,
+    Vector4 to,
+    Action<Vector4> setter,
+    double duration = 0.0,
+    Func<double, double>? easingFunction = null)
+    : TransitionAnimation<Vector4>(from, to, setter, duration, easingFunction)
 {
     protected override Vector4 ApplyAlpha(in Vector4 diff, double alpha)
     {

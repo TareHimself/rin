@@ -1,17 +1,14 @@
 ﻿using System.Numerics;
 using rin.Framework.Core.Math;
-using rin.Framework.Graphics.FrameGraph;
 using rin.Framework.Views.Graphics.Commands;
 
 namespace rin.Framework.Views.Graphics;
 
-
-
 public class ClipInfo(uint id, Mat3 transform, Vector2 size)
 {
     public readonly uint Id = id;
-    public Mat3 Transform = transform;
     public Vector2 Size = size;
+    public Mat3 Transform = transform;
 }
 
 public struct RawCommand(Command drawCommand, string clipId)
@@ -30,13 +27,22 @@ public struct PendingCommand(Command drawCommand, uint clipId)
 public class PassCommands
 {
     private readonly Stack<uint> _clipStack = [];
-    private string _clipId = "";
-    private int _depth = 0;
+
     //private readonly SortedDictionary<int, List<RawCommand>> _commands = new SortedDictionary<int, List<RawCommand>>(Comparer<int>.Create((a,b) => b.CompareTo(a)));
     private readonly List<RawCommand> _commands = [];
+    private string _clipId = "";
+    private int _depth;
+
+    //public IEnumerable<RawCommand> Commands => _commands.Keys.SelectMany(commandsKey => _commands[commandsKey].AsReversed());
+    public IEnumerable<RawCommand> Commands => _commands;
+    public List<ClipInfo> Clips { get; } = [];
+
+    public Dictionary<string, uint[]> UniqueClipStacks { get; } = [];
+
     public PassCommands Add(Command command)
     {
-        var info = new RawCommand(command, command is CustomCommand asCustom ? !asCustom.WillDraw() ? "" : _clipId : _clipId)
+        var info = new RawCommand(command,
+            command is CustomCommand asCustom ? !asCustom.WillDraw() ? "" : _clipId : _clipId)
         {
             AbsoluteDepth = _depth
         };
@@ -55,8 +61,8 @@ public class PassCommands
 
         return this;
     }
-    
-    
+
+
     public PassCommands PushClip(Mat3 transform, Vector2 size)
     {
         var id = (uint)Clips.Count;
@@ -81,17 +87,10 @@ public class PassCommands
         _depth++;
         return this;
     }
-    
+
     public PassCommands DecrDepth()
     {
         _depth--;
         return this;
     }
-
-    //public IEnumerable<RawCommand> Commands => _commands.Keys.SelectMany(commandsKey => _commands[commandsKey].AsReversed());
-    public IEnumerable<RawCommand> Commands => _commands;
-    public List<ClipInfo> Clips { get; } = [];
-
-    public Dictionary<string, uint[]> UniqueClipStacks { get; } = [];
-    
 }

@@ -1,11 +1,8 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
 using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
-
-
 
 /// <summary>
 ///     A container that draws children based on the settings provided in <see cref="PanelSlot" /> . Intended use is for
@@ -16,10 +13,13 @@ public class Panel : MultiSlotCompositeView<PanelSlot>
     private readonly PanelLayout _layout;
 
 
-    public Panel() : base()
+    public Panel()
     {
         _layout = new PanelLayout(this);
     }
+
+    public override int SlotCount => _layout.SlotCount;
+
     protected override Vector2 ArrangeContent(Vector2 availableSpace)
     {
         return _layout.Apply(availableSpace);
@@ -27,29 +27,36 @@ public class Panel : MultiSlotCompositeView<PanelSlot>
 
     public override void OnChildInvalidated(View child, InvalidationType invalidation)
     {
-        if (_layout.FindSlot(child) is { } slot)
-        {
-            _layout.OnSlotUpdated(slot);
-        }
-    }
-    
-    public override void OnChildAdded(View child)
-    {
-        if (_layout.FindSlot(child) is { } slot)
-        {
-            _layout.OnSlotUpdated(slot);
-        }
+        if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }
 
-    public override IEnumerable<ISlot> GetSlots() => _layout.GetSlots();
+    public override void OnChildAdded(View child)
+    {
+        if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
+    }
+
+    public override IEnumerable<ISlot> GetSlots()
+    {
+        return _layout.GetSlots();
+    }
 
     protected override Vector2 ComputeDesiredContentSize()
     {
         return _layout.ComputeDesiredContentSize();
     }
 
-    public override int SlotCount => _layout.SlotCount;
-    public override bool Add(View child) => _layout.Add(child);
-    public override bool Add(PanelSlot slot) => _layout.Add(slot);
-    public override bool Remove(View child) => _layout.Remove(child);
+    public override bool Add(View child)
+    {
+        return _layout.Add(child);
+    }
+
+    public override bool Add(PanelSlot slot)
+    {
+        return _layout.Add(slot);
+    }
+
+    public override bool Remove(View child)
+    {
+        return _layout.Remove(child);
+    }
 }

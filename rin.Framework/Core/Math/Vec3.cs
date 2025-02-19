@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Numerics;
-using System.Runtime.InteropServices;
+﻿using System.Numerics;
 
 namespace rin.Framework.Core.Math;
 
@@ -14,8 +12,8 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
     IDivisionOperators<Vec3<T>, Vec3<T>, Vec3<T>>,
     IDivisionOperators<Vec3<T>, T, Vec3<T>>,
     IUnaryNegationOperators<Vec3<T>, Vec3<T>>,
-    IVec<Vec3<T>,T>
-    where T : notnull, IComparisonOperators<T,T,bool>, IUnaryNegationOperators<T,T>
+    IVec<Vec3<T>, T>
+    where T : notnull, IComparisonOperators<T, T, bool>, IUnaryNegationOperators<T, T>
 {
     public T X = inX;
     public T Y = inY;
@@ -138,10 +136,7 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
         var max = X < Y ? X : Y;
         max = max < Z ? Z : max;
         dynamic c = 0;
-        if (max > c)
-        {
-            return new Vec3<T>(X, Y, Z) / max;
-        }
+        if (max > c) return new Vec3<T>(X, Y, Z) / max;
         return new Vec3<T>(X, Y, Z);
     }
 
@@ -154,12 +149,12 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
     {
         return new Vec3<T>(-value.X, -value.Y, -value.Z);
     }
-    
+
     public static implicit operator Vec3<T>(T data)
     {
         return new Vec3<T>(data);
     }
-    
+
     public void Deconstruct(out T x, out T y, out T z)
     {
         x = X;

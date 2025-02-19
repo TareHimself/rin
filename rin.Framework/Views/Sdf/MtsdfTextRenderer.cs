@@ -1,14 +1,17 @@
-﻿using rin.Framework.Core;
-using rin.Framework.Core.Math;
-using rin.Sdf;
-using SixLabors.Fonts;
+﻿using SixLabors.Fonts;
 using Vector2 = System.Numerics.Vector2;
+
 namespace rin.Framework.Views.Sdf;
-using SdfExt = rin.Sdf;
+
 public class MtsdfTextRenderer : IDisposable, IGlyphRenderer
 {
-    private Context _gen = new Context();
-    
+    private readonly Context _gen = new();
+
+    public void Dispose()
+    {
+        _gen.Dispose();
+    }
+
     public void BeginFigure()
     {
     }
@@ -20,12 +23,12 @@ public class MtsdfTextRenderer : IDisposable, IGlyphRenderer
 
     public void QuadraticBezierTo(Vector2 secondControlPoint, Vector2 point)
     {
-        _gen.QuadraticBezierTo(secondControlPoint,point);
+        _gen.QuadraticBezierTo(secondControlPoint, point);
     }
 
     public void CubicBezierTo(Vector2 secondControlPoint, Vector2 thirdControlPoint, Vector2 point)
     {
-        _gen.CubicBezierTo(secondControlPoint,thirdControlPoint,point);
+        _gen.CubicBezierTo(secondControlPoint, thirdControlPoint, point);
     }
 
     public void LineTo(Vector2 point)
@@ -64,14 +67,10 @@ public class MtsdfTextRenderer : IDisposable, IGlyphRenderer
     {
         throw new NotImplementedException();
     }
+
     // Renders into a 4 channel image
-    public Result? Generate(float angleThreshold,float pixelRange)
+    public Result? Generate(float angleThreshold, float pixelRange)
     {
-        return _gen.GenerateMtsdf(angleThreshold,pixelRange);
-    }
-    
-    public void Dispose()
-    {
-        _gen.Dispose();
+        return _gen.GenerateMtsdf(angleThreshold, pixelRange);
     }
 }

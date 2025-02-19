@@ -1,37 +1,34 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using rin.Framework.Core;
+using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics.Windows;
-using rin.Framework.Core.Extensions;
 using rin.Framework.Views.Events;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
-
 using Timer = System.Timers.Timer;
 
 namespace rin.Framework.Views.Content;
 
 public class TextInputBox : TextBox
 {
-    public override bool IsFocusable => true;
-
-    [PublicAPI]
-    public int CursorPosition { get; private set; }
-
-    [PublicAPI]
-    public bool IsTyping { get; private set; }
-
-    private readonly Timer _typingTimer = new Timer(200)
+    private readonly Timer _typingTimer = new(200)
     {
-        AutoReset = false,
+        AutoReset = false
     };
-    
-    public TextInputBox() : base()
+
+    public TextInputBox()
     {
         CursorPosition = Content.Length - 1;
         _typingTimer.Elapsed += (_, __) => IsTyping = false;
     }
+
+    public override bool IsFocusable => true;
+
+    [PublicAPI] public int CursorPosition { get; private set; }
+
+    [PublicAPI] public bool IsTyping { get; private set; }
 
 
     private void ResetTypingDelay()
@@ -40,6 +37,7 @@ public class TextInputBox : TextBox
         _typingTimer.Stop();
         _typingTimer.Start();
     }
+
     public override bool OnCursorDown(CursorDownEvent e)
     {
         return true;
@@ -50,13 +48,9 @@ public class TextInputBox : TextBox
         base.OnCharacter(e);
         ResetTypingDelay();
         if (Content.Empty())
-        {
             Content += e.Character;
-        }
         else
-        {
             Content = Content[..(CursorPosition + 1)] + e.Character + Content[(CursorPosition + 1)..];
-        }
         CursorPosition++;
     }
 
@@ -68,7 +62,7 @@ public class TextInputBox : TextBox
             if (CursorPosition > -1)
             {
                 ResetTypingDelay();
-                Content = Content.Remove(CursorPosition,1);
+                Content = Content.Remove(CursorPosition, 1);
                 CursorPosition--;
             }
         }
@@ -84,7 +78,7 @@ public class TextInputBox : TextBox
         else if (e is { Key: InputKey.Left or InputKey.Enter, State: InputState.Pressed or InputState.Repeat })
         {
             ResetTypingDelay();
-            OnCharacter(new CharacterEvent(e.Surface,'\n',0));
+            OnCharacter(new CharacterEvent(e.Surface, '\n', 0));
         }
     }
 
@@ -96,18 +90,17 @@ public class TextInputBox : TextBox
 
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
-        base.CollectContent(transform,commands);
-        
+        base.CollectContent(transform, commands);
+
         if (!FontReady || !IsFocused) return;
-                
+
         Vector2 offset = default;
 
         if (CursorPosition != -1)
         {
-            
             var targetBounds = GetCharacterBounds(Wrap).ToArray()[CursorPosition];
             offset.X += targetBounds.Right - 2.0f;
-            offset.Y = LineHeight * (float)Math.Floor(((targetBounds.Y + (targetBounds.Height / 2.0f)) / LineHeight));
+            offset.Y = LineHeight * (float)Math.Floor((targetBounds.Y + targetBounds.Height / 2.0f) / LineHeight);
             // if (Content[CursorPosition] == '\n')
             // {
             //     offset.Y = (Content.Split("\n").Length - 1) * LineHeight;
@@ -122,8 +115,8 @@ public class TextInputBox : TextBox
 
         var height = LineHeight;
         var color = ForegroundColor.Clone();
-        var sin = (float)((System.Math.Sin(SRuntime.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f);
+        var sin = (float)((Math.Sin(SRuntime.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f);
         color.A *= IsTyping ? 1.0f : sin > 0.35 ? 1.0f : 0.0f;
-        commands.AddRect(transform.Translate(offset), new Vector2(2.0f, height), color: color);
+        commands.AddRect(transform.Translate(offset), new Vector2(2.0f, height), color);
     }
 }

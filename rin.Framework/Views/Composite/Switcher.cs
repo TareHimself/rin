@@ -1,18 +1,21 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
-using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
 /// <summary>
-/// Slot = <see cref="Slot"/>
+///     Slot = <see cref="Slot" />
 /// </summary>
 public class Switcher : MultiSlotCompositeView<Slot>
 {
     private readonly SwitcherLayout _layout;
-    
+
+    public Switcher()
+    {
+        _layout = new SwitcherLayout(this);
+    }
+
     public int SelectedIndex
     {
         get => _layout.SelectedIndex;
@@ -21,10 +24,7 @@ public class Switcher : MultiSlotCompositeView<Slot>
 
     public View? SelectedView => _layout.SelectedSlot?.Child;
 
-    public Switcher()
-    {
-        _layout = new SwitcherLayout(this);
-    }
+    public override int SlotCount => _layout.SlotCount;
 
     protected override Vector2 ComputeDesiredContentSize()
     {
@@ -52,15 +52,33 @@ public class Switcher : MultiSlotCompositeView<Slot>
         _layout.Apply(GetContentSize());
     }
 
-    public override IEnumerable<ISlot> GetSlots() => _layout.GetSlots();
+    public override IEnumerable<ISlot> GetSlots()
+    {
+        return _layout.GetSlots();
+    }
 
-    public override IEnumerable<ISlot> GetCollectableSlots() => _layout.SelectedSlot is { } slot ? [slot] : [];
+    public override IEnumerable<ISlot> GetCollectableSlots()
+    {
+        return _layout.SelectedSlot is { } slot ? [slot] : [];
+    }
 
-    public override IEnumerable<ISlot> GetHitTestableSlots() => _layout.SelectedSlot is { } slot ? [slot] : [];
+    public override IEnumerable<ISlot> GetHitTestableSlots()
+    {
+        return _layout.SelectedSlot is { } slot ? [slot] : [];
+    }
 
-    public override int SlotCount => _layout.SlotCount;
-    public override bool Add(View child) => _layout.Add(child);
-    public override bool Add(Slot slot) => _layout.Add(slot);
+    public override bool Add(View child)
+    {
+        return _layout.Add(child);
+    }
 
-    public override bool Remove(View child) => _layout.Remove(child);
+    public override bool Add(Slot slot)
+    {
+        return _layout.Add(slot);
+    }
+
+    public override bool Remove(View child)
+    {
+        return _layout.Remove(child);
+    }
 }

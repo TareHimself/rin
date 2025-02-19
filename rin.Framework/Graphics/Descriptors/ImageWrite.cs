@@ -1,6 +1,4 @@
-﻿using TerraFX.Interop.Vulkan;
-
-namespace rin.Framework.Graphics.Descriptors;
+﻿namespace rin.Framework.Graphics.Descriptors;
 
 public struct ImageWrite
 {
@@ -15,13 +13,13 @@ public struct ImageWrite
         Image = image;
         Layout = layout;
         Type = type;
-        Sampler = spec.GetValueOrDefault(new SamplerSpec()
+        Sampler = spec.GetValueOrDefault(new SamplerSpec
         {
             Filter = ImageFilter.Linear,
             Tiling = ImageTiling.Repeat
         });
     }
-    
+
     public ImageWrite(int textureId)
     {
         if (SGraphicsModule.Get().GetTextureManager().GetTexture(textureId) is { } boundTexture)
@@ -29,7 +27,7 @@ public struct ImageWrite
             Image = boundTexture.Image!;
             Layout = ImageLayout.ShaderReadOnly;
             Type = ImageType.Sampled;
-            Sampler = new SamplerSpec()
+            Sampler = new SamplerSpec
             {
                 Filter = boundTexture.Filter,
                 Tiling = boundTexture.Tiling

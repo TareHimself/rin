@@ -5,12 +5,16 @@ using rin.Framework.Views.Graphics;
 namespace rin.Framework.Views.Content;
 
 /// <summary>
-/// For issuing arbitrary draw commands
+///     For issuing arbitrary draw commands
 /// </summary>
 public class Canvas : ContentView
 {
-    public required Action<Canvas,Mat3, PassCommands> Paint { get; init; }
-    protected override Vector2 ComputeDesiredContentSize() => new Vector2();
+    public required Action<Canvas, Mat3, PassCommands> Paint { get; init; }
+
+    protected override Vector2 ComputeDesiredContentSize()
+    {
+        return new Vector2();
+    }
 
     protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
@@ -19,6 +23,6 @@ public class Canvas : ContentView
 
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
-        Paint.Invoke(this,transform,commands);
+        Paint.Invoke(this, transform, commands);
     }
 }

@@ -1,6 +1,4 @@
-﻿
-using System.Numerics;
-using rin.Framework.Core.Math;
+﻿using System.Numerics;
 
 namespace rin.Framework.Views;
 
@@ -8,7 +6,7 @@ public struct Transform2d
 {
     public float Angle = 0.0f;
     public Vector2 Translate;
-    public Vector2 Scale = new Vector2(1.0f);
+    public Vector2 Scale = new(1.0f);
 
     public Transform2d()
     {

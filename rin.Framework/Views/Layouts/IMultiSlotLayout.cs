@@ -1,7 +1,4 @@
-﻿using rin.Framework.Core.Math;
-using rin.Framework.Views.Enums;
-
-namespace rin.Framework.Views.Layouts;
+﻿namespace rin.Framework.Views.Layouts;
 
 public interface IMultiSlotLayout : ILayout
 {
@@ -12,6 +9,6 @@ public interface IMultiSlotLayout : ILayout
     public bool Remove(View view);
     public ISlot? GetSlot(int idx);
     public IEnumerable<ISlot> GetSlots();
-    
+
     public ISlot? FindSlot(View view);
 }

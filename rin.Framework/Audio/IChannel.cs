@@ -2,24 +2,24 @@
 
 public interface IChannel : IDisposable
 {
-    public abstract bool IsPlaying { get; }
-    public abstract bool IsPaused { get; }
-    
-    public abstract double Position { get; }
+    public bool IsPlaying { get; }
+    public bool IsPaused { get; }
 
-    public abstract double Length { get; }
+    public double Position { get; }
 
-    public abstract bool Play(bool restart = false);
+    public double Length { get; }
 
-    public abstract bool Pause();
+    public bool Play(bool restart = false);
 
-    public abstract bool SetVolume(float value);
+    public bool Pause();
+
+    public bool SetVolume(float value);
 
 
     /// <summary>
-    /// Sets the position of this channel in seconds
+    ///     Sets the position of this channel in seconds
     /// </summary>
     /// <param name="position">The new position</param>
     /// <returns></returns>
-    public abstract bool SetPosition(double position);
+    public bool SetPosition(double position);
 }

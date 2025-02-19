@@ -1,10 +1,10 @@
 ﻿using System.Drawing;
 using System.Numerics;
-using rin.Framework.Core.Math;
 
 namespace rin.Framework.Views;
 
-public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOperators<Color,Color,Color>,IMultiplyOperators<Color,float,Color>,IAdditionOperators<Color,Color,Color>
+public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOperators<Color, Color, Color>,
+    IMultiplyOperators<Color, float, Color>, IAdditionOperators<Color, Color, Color>
 {
     public static Color Red = new(1f, 0f, 0f, 1f);
     public static Color Green = new(0f, 1f, 0f, 1f);
@@ -21,13 +21,16 @@ public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOp
     {
     }
 
-    public Color Clone(float? r = null,float? g = null,float? b = null,float? a = null)
+    public Color Clone(float? r = null, float? g = null, float? b = null, float? a = null)
     {
-        return new Color(r ?? R,g ?? G,b ?? B,a ?? A);
+        return new Color(r ?? R, g ?? G, b ?? B, a ?? A);
     }
-    
-    public static implicit operator Vector4(Color color) => new Vector4(color.R, color.G, color.B, color.A);
-    
+
+    public static implicit operator Vector4(Color color)
+    {
+        return new Vector4(color.R, color.G, color.B, color.A);
+    }
+
     public static implicit operator Vector3(Color color)
     {
         return new Vector3(color.R, color.G, color.B);

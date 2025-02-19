@@ -5,6 +5,11 @@ namespace rin.Framework.Graphics.Windows;
 
 public interface IWindow : IDisposable
 {
+    public IWindow? Parent { get; }
+
+    public bool Focused { get; }
+
+    public bool IsFullscreen { get; }
     public event Action<KeyEvent>? OnKey;
     public event Action<CursorMoveEvent>? OnCursorMoved;
     public event Action<CursorButtonEvent>? OnCursorButton;
@@ -24,18 +29,12 @@ public interface IWindow : IDisposable
     public void SetMousePosition(Vec2<double> position);
 
     public void SetFullscreen(bool state);
-    
+
     public Vec2<uint> GetPixelSize();
 
     public nint GetPtr();
-    
-    public IWindow CreateChild(int width, int height, string name, CreateOptions? options = null);
-    
-    public event Action? OnDisposed;
-    
-    public IWindow? Parent { get; }
 
-    public bool Focused { get; }
-    
-    public bool IsFullscreen { get; }
+    public IWindow CreateChild(int width, int height, string name, CreateOptions? options = null);
+
+    public event Action? OnDisposed;
 }

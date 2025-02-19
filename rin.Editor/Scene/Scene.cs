@@ -8,7 +8,7 @@ using rin.Editor.Scene.Systems;
 
 namespace rin.Editor.Scene;
 
-public class Scene : ITickable
+public class Scene : IReceivesUpdate
 {
     private readonly List<ISystem> _tickableSystems = [];
     private readonly Dictionary<string, Actor> _actors = [];
@@ -83,10 +83,10 @@ public class Scene : ITickable
         }
     }
 
-    public void Update(double delta)
+    public void Update(double deltaSeconds)
     {
         if(!Active) return;
-        _remainingPhysicsTime += (float)delta;
+        _remainingPhysicsTime += (float)deltaSeconds;
         while (_remainingPhysicsTime > PhysicsUpdateInterval)
         {
             _physicsSystem?.Update(PhysicsUpdateInterval);
@@ -96,7 +96,7 @@ public class Scene : ITickable
         foreach (var actor in GetActors())
         {
             if(!actor.Active) continue;
-            actor.Update(delta);
+            actor.Update(deltaSeconds);
         }
     }
     

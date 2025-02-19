@@ -2,5 +2,4 @@
 
 public class ExpectedBufferException() : FrameGraphException("Expected buffer")
 {
-    
 }

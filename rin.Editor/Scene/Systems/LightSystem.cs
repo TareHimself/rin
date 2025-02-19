@@ -27,7 +27,7 @@ public class LightSystem : ISystem
         
     }
 
-    public void Update(double delta)
+    public void Update(double deltaSeconds)
     {
   
     }

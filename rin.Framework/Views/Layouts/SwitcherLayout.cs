@@ -1,6 +1,4 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Enums;
 
@@ -8,7 +6,7 @@ namespace rin.Framework.Views.Layouts;
 
 public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
 {
-    private int _selected = 0;
+    private int _selected;
     public override CompositeView Container { get; } = container;
 
     public int SelectedIndex
@@ -18,7 +16,7 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
         {
             var lastSelected = _selected;
             var numSlots = SlotCount;
-            _selected = System.Math.Clamp(value, 0, numSlots == 0 ? 0 : numSlots - 1);
+            _selected = Math.Clamp(value, 0, numSlots == 0 ? 0 : numSlots - 1);
             if (lastSelected != _selected) Container.Invalidate(InvalidationType.Layout);
         }
     }
@@ -28,14 +26,13 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
         get
         {
             var slots = GetSlots().ToArray();
-            if(slots.Length <= SelectedIndex) return null;
+            if (slots.Length <= SelectedIndex) return null;
             return slots[SelectedIndex];
         }
     }
 
     public override void Dispose()
     {
-        
     }
 
     public override ISlot MakeSlot(View view)
@@ -49,13 +46,11 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
     public override void OnSlotUpdated(ISlot slot)
     {
         if (Container.Surface != null)
-        {
             if (SelectedSlot == slot)
             {
                 slot.Child.Offset = default;
                 slot.Child.ComputeSize(Container.GetContentSize());
             }
-        }
     }
 
     public override Vector2 Apply(Vector2 availableSpace)
@@ -66,6 +61,7 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
             slot.Child.Offset = default;
             return slot.Child.ComputeSize(availableSpace);
         }
+
         return availableSpace;
     }
 

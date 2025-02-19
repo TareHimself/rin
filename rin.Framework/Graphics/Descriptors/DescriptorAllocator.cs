@@ -8,12 +8,13 @@ public class DescriptorAllocator : Disposable
 {
     private readonly VkDevice _device;
     private readonly HashSet<DescriptorPool> _fullPools = [];
-    private readonly HashSet<DescriptorPool> _readyPools = [];
-    private readonly PoolSizeRatio[] _ratios;
     private readonly VkDescriptorPoolCreateFlags _poolCreateFlags;
+    private readonly PoolSizeRatio[] _ratios;
+    private readonly HashSet<DescriptorPool> _readyPools = [];
     private uint _setsPerPool;
 
-    public DescriptorAllocator(uint maxSets, PoolSizeRatio[] poolRatios,VkDescriptorPoolCreateFlags poolCreateFlags = 0)
+    public DescriptorAllocator(uint maxSets, PoolSizeRatio[] poolRatios,
+        VkDescriptorPoolCreateFlags poolCreateFlags = 0)
     {
         _ratios = poolRatios;
         _setsPerPool = maxSets;
@@ -26,13 +27,13 @@ public class DescriptorAllocator : Disposable
         DestroyPools();
     }
 
-    public DescriptorSet Allocate(VkDescriptorSetLayout layout,params uint[] variableCount)
+    public DescriptorSet Allocate(VkDescriptorSetLayout layout, params uint[] variableCount)
     {
         var targetPool = GetPool();
         DescriptorSet set;
         try
         {
-            set = targetPool.Allocate(layout,variableCount);
+            set = targetPool.Allocate(layout, variableCount);
         }
         catch (Exception)
         {

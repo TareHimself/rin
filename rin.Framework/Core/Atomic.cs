@@ -23,7 +23,7 @@ public class Atomic<T>(T value)
         }
     }
 
-    public Atomic<T> Update(Func<T,T> update)
+    public Atomic<T> Update(Func<T, T> update)
     {
         lock (_lock)
         {
@@ -32,9 +32,15 @@ public class Atomic<T>(T value)
 
         return this;
     }
-    
-    
-    
-    public static implicit operator Atomic<T>(T value) => new Atomic<T>(value);
-    public static implicit operator T(Atomic<T> atomic) => atomic.Value;
+
+
+    public static implicit operator Atomic<T>(T value)
+    {
+        return new Atomic<T>(value);
+    }
+
+    public static implicit operator T(Atomic<T> atomic)
+    {
+        return atomic.Value;
+    }
 }

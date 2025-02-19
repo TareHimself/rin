@@ -40,7 +40,7 @@ public class DescriptorPool : Disposable
         }
     }
 
-    public unsafe DescriptorSet Allocate(VkDescriptorSetLayout layout,params uint[] variableCount)
+    public unsafe DescriptorSet Allocate(VkDescriptorSetLayout layout, params uint[] variableCount)
     {
         VkDescriptorSetAllocateInfo info = default;
         info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -53,18 +53,15 @@ public class DescriptorPool : Disposable
             VkDescriptorSetVariableDescriptorCountAllocateInfo variableInfo = default;
             variableInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
             variableInfo.descriptorSetCount = (uint)variableCount.Length;
-            unsafe
+            fixed (uint* pVariableCounts = variableCount)
             {
-                fixed (uint* pVariableCounts = variableCount)
-                {
-                    variableInfo.pDescriptorCounts = pVariableCounts;
-                    info.pNext = &variableInfo;
-                    VkDescriptorSet set;
-                    vkAllocateDescriptorSets(_device, &info, &set);
-                    var mSet = new DescriptorSet(_device, set);
-                    _sets.Add(mSet);
-                    return mSet;
-                }
+                variableInfo.pDescriptorCounts = pVariableCounts;
+                info.pNext = &variableInfo;
+                VkDescriptorSet set;
+                vkAllocateDescriptorSets(_device, &info, &set);
+                var mSet = new DescriptorSet(_device, set);
+                _sets.Add(mSet);
+                return mSet;
             }
         }
 

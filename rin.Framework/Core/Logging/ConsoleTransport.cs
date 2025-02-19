@@ -2,7 +2,8 @@
 
 public class ConsoleTransport : ITransport
 {
-    
+    public static ConsoleTransport Instance = new();
+
     public void Dispose()
     {
         // TODO release managed resources here
@@ -26,6 +27,4 @@ public class ConsoleTransport : ITransport
     {
         Console.Error.WriteLine(message);
     }
-
-    public static ConsoleTransport Instance = new ConsoleTransport();
 }

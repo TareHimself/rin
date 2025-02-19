@@ -1,12 +1,9 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using rin.Framework.Core.Extensions;
 
 namespace rin.Framework.Core.Math;
 
-
-public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Mat3>,
+public struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Mat3>,
     IMultiplyOperators<Mat3, Vector3, Vector3>
 {
     public Vector3 Column1 = new(0.0f);
@@ -29,7 +26,7 @@ public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Ma
 
     public Mat3 Clone()
     {
-        return new Mat3()
+        return new Mat3
         {
             Column1 = Column1.Clone(),
             Column2 = Column2.Clone(),
@@ -37,8 +34,6 @@ public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Ma
         };
     }
 
-
-   
 
     public Mat3 Inverse()
     {
@@ -54,7 +49,6 @@ public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Ma
         return r;
     }
 
-    
 
     public Mat3 Scale(Vector2 scale)
     {
@@ -62,8 +56,8 @@ public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Ma
         NativeMethods.NativeScale(ref r, ref this, ref scale);
         return r;
     }
-    
-    
+
+
     public Mat3 Rotate(float angle)
     {
         var r = Clone();
@@ -79,8 +73,6 @@ public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Ma
     }
 
 
-    
-
     public static Mat3 operator *(Mat3 left, Mat3 right)
     {
         Mat3 result = new();
@@ -88,7 +80,6 @@ public partial struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Ma
         return result;
     }
 
-   
 
     public static Vector3 operator *(Mat3 left, Vector3 right)
     {

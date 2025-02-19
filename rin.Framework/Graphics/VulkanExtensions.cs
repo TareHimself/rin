@@ -1,40 +1,45 @@
-﻿using System.Collections;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics.Descriptors;
-using rin.Framework.Graphics.Shaders;
+using rin.Framework.Graphics.FrameGraph;
+using TerraFX.Interop.Vulkan;
 
 namespace rin.Framework.Graphics;
 
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
-using static TerraFX.Interop.Vulkan.VkCommandBufferManualImports;
+using static Vulkan;
 
 public static class VulkanExtensions
 {
-    
-    public static unsafe void* GetAddressProc(this VkDevice device, string name) =>
-        vkGetDeviceProcAddr(device, (sbyte*)&name);
+    public static unsafe void* GetAddressProc(this VkDevice device, string name)
+    {
+        return vkGetDeviceProcAddr(device, (sbyte*)&name);
+    }
 
-    public static unsafe void* GetAddressProc(this VkInstance instance, string name) => vkGetInstanceProcAddr(instance, (sbyte*)&name);
+    public static unsafe void* GetAddressProc(this VkInstance instance, string name)
+    {
+        return vkGetInstanceProcAddr(instance, (sbyte*)&name);
+    }
 
     [PublicAPI]
-    public static VkImageLayout ToVk(this ImageLayout layout) => layout switch
+    public static VkImageLayout ToVk(this ImageLayout layout)
     {
-        ImageLayout.Undefined => VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-        ImageLayout.General => VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,
-        ImageLayout.ColorAttachment => VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        ImageLayout.StencilAttachment => VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        ImageLayout.DepthAttachment => VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-        ImageLayout.ShaderReadOnly => VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        ImageLayout.TransferSrc => VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        ImageLayout.TransferDst => VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        ImageLayout.PresentSrc => VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
-    };
+        return layout switch
+        {
+            ImageLayout.Undefined => VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
+            ImageLayout.General => VkImageLayout.VK_IMAGE_LAYOUT_GENERAL,
+            ImageLayout.ColorAttachment => VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            ImageLayout.StencilAttachment => VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            ImageLayout.DepthAttachment => VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+            ImageLayout.ShaderReadOnly => VkImageLayout.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            ImageLayout.TransferSrc => VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            ImageLayout.TransferDst => VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            ImageLayout.PresentSrc => VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
+        };
+    }
 
     [PublicAPI]
     public static VkFormat ToVk(this ImageFormat format)
@@ -58,21 +63,27 @@ public static class VulkanExtensions
             _ => throw new ArgumentOutOfRangeException()
         };
     }
-    
+
     [PublicAPI]
-    public static VkExtent3D ToVk(this Extent3D extent) => new VkExtent3D()
+    public static VkExtent3D ToVk(this Extent3D extent)
     {
-        width = extent.Width,
-        height = extent.Height,
-        depth = extent.Dimensions
-    };
-    
+        return new VkExtent3D()
+        {
+            width = extent.Width,
+            height = extent.Height,
+            depth = extent.Dimensions
+        };
+    }
+
     [PublicAPI]
-    public static VkExtent2D ToVk(this Extent2D extent) => new VkExtent2D()
+    public static VkExtent2D ToVk(this Extent2D extent)
     {
-        width = extent.Width,
-        height = extent.Height
-    };
+        return new VkExtent2D()
+        {
+            width = extent.Width,
+            height = extent.Height
+        };
+    }
 
     [PublicAPI]
     public static VkFilter ToVk(this ImageFilter filter)
@@ -85,7 +96,7 @@ public static class VulkanExtensions
             _ => throw new ArgumentOutOfRangeException()
         };
     }
-    
+
     [PublicAPI]
     public static VkSamplerAddressMode ToVk(this ImageTiling tiling)
     {
@@ -97,7 +108,7 @@ public static class VulkanExtensions
             _ => throw new ArgumentOutOfRangeException()
         };
     }
-    
+
     [PublicAPI]
     public static ImageFormat FromVk(this VkFormat format)
     {
@@ -111,11 +122,10 @@ public static class VulkanExtensions
             _ => throw new ArgumentOutOfRangeException()
         };
     }
-    
-    
-    
-    
-    public static VkCommandBuffer ClearColorImages(this VkCommandBuffer cmd,Vector4 clearColor,ImageLayout layout,params IDeviceImage[] images)
+
+
+    public static VkCommandBuffer ClearColorImages(this VkCommandBuffer cmd, Vector4 clearColor, ImageLayout layout,
+        params IDeviceImage[] images)
     {
         unsafe
         {
@@ -124,18 +134,17 @@ public static class VulkanExtensions
             var pRanges = stackalloc VkImageSubresourceRange[1];
             pColor[0] = SGraphicsModule.MakeClearColorValue(clearColor);
             pRanges[0] = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
-            
+
             foreach (var deviceImage in images)
-            {
-                vkCmdClearColorImage(cmd,deviceImage.NativeImage,vkLayout, pColor, 1,
+                vkCmdClearColorImage(cmd, deviceImage.NativeImage, vkLayout, pColor, 1,
                     pRanges);
-            }
         }
 
         return cmd;
     }
-    
-    public static VkCommandBuffer ClearStencilImages(this VkCommandBuffer cmd,uint clearValue,ImageLayout layout,params IDeviceImage[] images)
+
+    public static VkCommandBuffer ClearStencilImages(this VkCommandBuffer cmd, uint clearValue, ImageLayout layout,
+        params IDeviceImage[] images)
     {
         unsafe
         {
@@ -145,43 +154,40 @@ public static class VulkanExtensions
             pColor[0] = SGraphicsModule.MakeClearDepthStencilValue(stencil: clearValue);
             pRanges[0] = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT |
                                                                    VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
-            
+
             foreach (var deviceImage in images)
-            {
-                vkCmdClearDepthStencilImage(cmd,deviceImage.NativeImage, vkLayout,
+                vkCmdClearDepthStencilImage(cmd, deviceImage.NativeImage, vkLayout,
                     pColor, 1, pRanges);
-            }
         }
 
         return cmd;
     }
-    
-    public static VkCommandBuffer ClearDepthImages(this VkCommandBuffer cmd,float clearValue,ImageLayout layout,params IDeviceImage[] images)
+
+    public static VkCommandBuffer ClearDepthImages(this VkCommandBuffer cmd, float clearValue, ImageLayout layout,
+        params IDeviceImage[] images)
     {
         unsafe
         {
             var vkLayout = layout.ToVk();
             var pColor = stackalloc VkClearDepthStencilValue[1];
             var pRanges = stackalloc VkImageSubresourceRange[1];
-            pColor[0] = SGraphicsModule.MakeClearDepthStencilValue(depth: clearValue);
+            pColor[0] = SGraphicsModule.MakeClearDepthStencilValue(clearValue);
             pRanges[0] = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
-            
+
             foreach (var deviceImage in images)
-            {
-                vkCmdClearDepthStencilImage(cmd,deviceImage.NativeImage, vkLayout,
+                vkCmdClearDepthStencilImage(cmd, deviceImage.NativeImage, vkLayout,
                     pColor, 1, pRanges);
-            }
         }
 
         return cmd;
     }
-    
-    public static VkCommandBuffer BindShaders(this VkCommandBuffer cmd,IEnumerable<Pair<VkShaderEXT,VkShaderStageFlags>> shaders)
-    {
 
+    public static VkCommandBuffer BindShaders(this VkCommandBuffer cmd,
+        IEnumerable<Pair<VkShaderEXT, VkShaderStageFlags>> shaders)
+    {
         List<VkShaderStageFlags> flagsList = [];
         List<VkShaderEXT> shaderObjects = [];
-        
+
         foreach (var shader in shaders)
         {
             shaderObjects.Add(shader.First);
@@ -194,99 +200,111 @@ public static class VulkanExtensions
             {
                 fixed (VkShaderEXT* pShaders = shaderObjects.ToArray())
                 {
-                    NativeMethods.vkCmdBindShadersEXT(cmd,(uint)flagsList.Count, pFlags, pShaders);
+                    NativeMethods.vkCmdBindShadersEXT(cmd, (uint)flagsList.Count, pFlags, pShaders);
                 }
             }
         }
-        
+
         return cmd;
     }
 
-    public static VkCommandBuffer BindShader(this VkCommandBuffer cmd, VkShaderEXT shader,VkShaderStageFlags flags) => BindShaders(cmd, [new Pair<VkShaderEXT, VkShaderStageFlags>(shader,flags)]);
-    
-    public static VkCommandBuffer UnBindShaders(this VkCommandBuffer cmd,IEnumerable<VkShaderStageFlags> flags)
+    public static VkCommandBuffer BindShader(this VkCommandBuffer cmd, VkShaderEXT shader, VkShaderStageFlags flags)
     {
-        VkShaderStageFlags[] flagsArr = flags.ToArray();
+        return BindShaders(cmd, [new Pair<VkShaderEXT, VkShaderStageFlags>(shader, flags)]);
+    }
+
+    public static VkCommandBuffer UnBindShaders(this VkCommandBuffer cmd, IEnumerable<VkShaderStageFlags> flags)
+    {
+        var flagsArr = flags.ToArray();
         unsafe
         {
             fixed (VkShaderStageFlags* pFlags = flagsArr)
             {
-                NativeMethods.vkCmdBindShadersEXT(cmd,(uint)flagsArr.Length, pFlags, null);
+                NativeMethods.vkCmdBindShadersEXT(cmd, (uint)flagsArr.Length, pFlags, null);
             }
         }
-        
+
         return cmd;
     }
 
-    public static VkCommandBuffer UnBindShader(this VkCommandBuffer cmd, VkShaderStageFlags flag) => UnBindShaders(cmd, [flag]);
+    public static VkCommandBuffer UnBindShader(this VkCommandBuffer cmd, VkShaderStageFlags flag)
+    {
+        return UnBindShaders(cmd, [flag]);
+    }
 
 
-    public static VkCommandBuffer SetViewports(this VkCommandBuffer cmd,IEnumerable<VkViewport> viewports)
+    public static VkCommandBuffer SetViewports(this VkCommandBuffer cmd, IEnumerable<VkViewport> viewports)
     {
         unsafe
         {
             var items = viewports.ToArray();
             fixed (VkViewport* pItems = items)
             {
-                vkCmdSetViewportWithCount(cmd,(uint)items.Length,pItems);
+                vkCmdSetViewportWithCount(cmd, (uint)items.Length, pItems);
             }
         }
+
         return cmd;
     }
-    
-    public static VkCommandBuffer SetScissors(this VkCommandBuffer cmd,IEnumerable<VkRect2D> scissors)
+
+    public static VkCommandBuffer SetScissors(this VkCommandBuffer cmd, IEnumerable<VkRect2D> scissors)
     {
         unsafe
         {
             var items = scissors.ToArray();
             fixed (VkRect2D* pItems = items)
             {
-                vkCmdSetScissorWithCount(cmd,(uint)items.Length,pItems);
+                vkCmdSetScissorWithCount(cmd, (uint)items.Length, pItems);
             }
         }
+
         return cmd;
     }
 
-    public static VkCommandBuffer SetRenderArea(this VkCommandBuffer cmd, Vector4 rect) => cmd.SetViewports([
-        new VkViewport()
-        {
-            x = rect.X,
-            y = rect.Y,
-            width = rect.Z,
-            height = rect.W,
-            minDepth = 0.0f,
-            maxDepth = 1.0f
-        }
-    ]).SetScissors([
-        new VkRect2D()
-        {
-            offset = new VkOffset2D()
-            {
-                x = (int)rect.X,
-                y = (int)rect.Y
-            },
-            extent = new VkExtent2D()
-            {
-                width = (uint)rect.Z,
-                height = (uint)rect.W
-            }
-        }
-    ]);
-    
-    public static VkCommandBuffer SetPolygonMode(this VkCommandBuffer cmd,VkPolygonMode polygonMode,float lineWidth = 1.0f)
+    public static VkCommandBuffer SetRenderArea(this VkCommandBuffer cmd, Vector4 rect)
     {
-        NativeMethods.vkCmdSetPolygonModeEXT(cmd,polygonMode);
-        vkCmdSetLineWidth(cmd,lineWidth);
+        return cmd.SetViewports([
+            new VkViewport
+            {
+                x = rect.X,
+                y = rect.Y,
+                width = rect.Z,
+                height = rect.W,
+                minDepth = 0.0f,
+                maxDepth = 1.0f
+            }
+        ]).SetScissors([
+            new VkRect2D
+            {
+                offset = new VkOffset2D
+                {
+                    x = (int)rect.X,
+                    y = (int)rect.Y
+                },
+                extent = new VkExtent2D
+                {
+                    width = (uint)rect.Z,
+                    height = (uint)rect.W
+                }
+            }
+        ]);
+    }
+
+    public static VkCommandBuffer SetPolygonMode(this VkCommandBuffer cmd, VkPolygonMode polygonMode,
+        float lineWidth = 1.0f)
+    {
+        NativeMethods.vkCmdSetPolygonModeEXT(cmd, polygonMode);
+        vkCmdSetLineWidth(cmd, lineWidth);
         return cmd;
     }
 
-    
-    public static VkCommandBuffer SetRasterizerDiscard(this VkCommandBuffer cmd,bool isEnabled)
+
+    public static VkCommandBuffer SetRasterizerDiscard(this VkCommandBuffer cmd, bool isEnabled)
     {
-        vkCmdSetRasterizerDiscardEnable(cmd,(uint)(isEnabled ? 1 : 0));
+        vkCmdSetRasterizerDiscardEnable(cmd, (uint)(isEnabled ? 1 : 0));
         return cmd;
     }
-    
+
     public static VkCommandBuffer DisableMultiSampling(this VkCommandBuffer cmd)
     {
         // _multisampling.sampleShadingEnable = 0;
@@ -295,63 +313,69 @@ public static class VulkanExtensions
         // _multisampling.pSampleMask = null;
         // _multisampling.alphaToCoverageEnable = 0;
         // _multisampling.alphaToOneEnable = 0;
-        
-        NativeMethods.vkCmdSetRasterizationSamplesEXT(cmd,VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT);
-        NativeMethods.vkCmdSetAlphaToCoverageEnableEXT(cmd,0);
-        NativeMethods.vkCmdSetAlphaToOneEnableEXT(cmd,0);
+
+        NativeMethods.vkCmdSetRasterizationSamplesEXT(cmd, VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT);
+        NativeMethods.vkCmdSetAlphaToCoverageEnableEXT(cmd, 0);
+        NativeMethods.vkCmdSetAlphaToOneEnableEXT(cmd, 0);
         unsafe
         {
             uint sampleMask = 0x1;
-            NativeMethods.vkCmdSetSampleMaskEXT(cmd,VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT,&sampleMask);
+            NativeMethods.vkCmdSetSampleMaskEXT(cmd, VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT, &sampleMask);
         }
+
         return cmd;
     }
 
-    public static VkCommandBuffer EnableRasterizerDiscard(this VkCommandBuffer cmd) =>
-        SetRasterizerDiscard(cmd, true);
-    
-    public static VkCommandBuffer DisableRasterizerDiscard(this VkCommandBuffer cmd) => SetRasterizerDiscard(cmd, false);
-    
-    
-    
-    public static VkCommandBuffer SetInputTopology(this VkCommandBuffer cmd,VkPrimitiveTopology topology)
+    public static VkCommandBuffer EnableRasterizerDiscard(this VkCommandBuffer cmd)
     {
-        vkCmdSetPrimitiveTopology(cmd,topology);
-        vkCmdSetPrimitiveRestartEnable(cmd,0);
+        return SetRasterizerDiscard(cmd, true);
+    }
+
+    public static VkCommandBuffer DisableRasterizerDiscard(this VkCommandBuffer cmd)
+    {
+        return SetRasterizerDiscard(cmd, false);
+    }
+
+
+    public static VkCommandBuffer SetInputTopology(this VkCommandBuffer cmd, VkPrimitiveTopology topology)
+    {
+        vkCmdSetPrimitiveTopology(cmd, topology);
+        vkCmdSetPrimitiveRestartEnable(cmd, 0);
         return cmd;
     }
 
-    public static VkCommandBuffer SetCullMode(this VkCommandBuffer cmd,VkCullModeFlags cullMode,VkFrontFace frontFace)
+    public static VkCommandBuffer SetCullMode(this VkCommandBuffer cmd, VkCullModeFlags cullMode, VkFrontFace frontFace)
     {
-        vkCmdSetCullMode(cmd,cullMode);
-        vkCmdSetFrontFace(cmd,frontFace);
+        vkCmdSetCullMode(cmd, cullMode);
+        vkCmdSetFrontFace(cmd, frontFace);
         return cmd;
     }
-    
-    public static VkCommandBuffer DepthWrite(this VkCommandBuffer cmd,bool state)
+
+    public static VkCommandBuffer DepthWrite(this VkCommandBuffer cmd, bool state)
     {
-        vkCmdSetDepthWriteEnable(cmd,(uint)(state ? 1 : 0));
+        vkCmdSetDepthWriteEnable(cmd, (uint)(state ? 1 : 0));
         return cmd;
     }
-    
-    public static VkCommandBuffer EnableDepthTest(this VkCommandBuffer cmd,bool depthWriteEnable,VkCompareOp compareOp)
+
+    public static VkCommandBuffer EnableDepthTest(this VkCommandBuffer cmd, bool depthWriteEnable,
+        VkCompareOp compareOp)
     {
-        vkCmdSetDepthTestEnable(cmd,1);
-        vkCmdSetDepthWriteEnable(cmd,(uint)(depthWriteEnable ? 1 : 0));
-        vkCmdSetDepthCompareOp(cmd,compareOp);
-        vkCmdSetDepthBiasEnable(cmd,0);
-        vkCmdSetDepthBoundsTestEnable(cmd,0);
+        vkCmdSetDepthTestEnable(cmd, 1);
+        vkCmdSetDepthWriteEnable(cmd, (uint)(depthWriteEnable ? 1 : 0));
+        vkCmdSetDepthCompareOp(cmd, compareOp);
+        vkCmdSetDepthBiasEnable(cmd, 0);
+        vkCmdSetDepthBoundsTestEnable(cmd, 0);
         // vkCmdSetDepthBounds(cmd,0,1);
         // 
         return cmd;
     }
-    
-    public static VkCommandBuffer DisableDepthTest(this VkCommandBuffer cmd,bool depthWriteEnable = false)
+
+    public static VkCommandBuffer DisableDepthTest(this VkCommandBuffer cmd, bool depthWriteEnable = false)
     {
-        vkCmdSetDepthTestEnable(cmd,0);
-        vkCmdSetDepthWriteEnable(cmd,(uint)(depthWriteEnable ? 1 : 0));
-        vkCmdSetDepthBiasEnable(cmd,0);
-        vkCmdSetDepthBoundsTestEnable(cmd,0);
+        vkCmdSetDepthTestEnable(cmd, 0);
+        vkCmdSetDepthWriteEnable(cmd, (uint)(depthWriteEnable ? 1 : 0));
+        vkCmdSetDepthBiasEnable(cmd, 0);
+        vkCmdSetDepthBoundsTestEnable(cmd, 0);
         return cmd;
     }
 
@@ -362,143 +386,159 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer DisableCulling(this VkCommandBuffer cmd) => SetCullMode(cmd,
-        VkCullModeFlags.VK_CULL_MODE_NONE, VkFrontFace.VK_FRONT_FACE_CLOCKWISE);
-
-    public static VkCommandBuffer SetLogicOpExt(this VkCommandBuffer cmd,VkLogicOp logicOp)
+    public static VkCommandBuffer DisableCulling(this VkCommandBuffer cmd)
     {
-        unsafe
-        {
-            NativeMethods.vkCmdSetLogicOpEXT(cmd,logicOp);
-        }
-        
+        return SetCullMode(cmd,
+            VkCullModeFlags.VK_CULL_MODE_NONE, VkFrontFace.VK_FRONT_FACE_CLOCKWISE);
+    }
+
+    public static VkCommandBuffer SetLogicOpExt(this VkCommandBuffer cmd, VkLogicOp logicOp)
+    {
+        NativeMethods.vkCmdSetLogicOpEXT(cmd, logicOp);
+
         return cmd;
     }
-    
-    public static VkCommandBuffer DisableBlending(this VkCommandBuffer cmd,uint start, uint count,VkColorComponentFlags writeMask = VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
-        VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
-        VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
-        VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT)
+
+    public static VkCommandBuffer DisableBlending(this VkCommandBuffer cmd, uint start, uint count,
+        VkColorComponentFlags writeMask = VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
+                                          VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
+                                          VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
+                                          VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT)
     {
         unsafe
         {
-            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd,0);
+            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd, 0);
             cmd.SetLogicOpExt(VkLogicOp.VK_LOGIC_OP_COPY);
-            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd,0);
-            
+            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd, 0);
+
             fixed (uint* pEnables = Enumerable.Range(0, (int)count).Select(c => (uint)0).ToArray())
             {
-                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd,start,count,pEnables);
+                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd, start, count, pEnables);
             }
-            fixed (VkColorComponentFlags* pWriteMasks= Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
+
+            fixed (VkColorComponentFlags* pWriteMasks =
+                       Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
             {
-                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd,start,count,pWriteMasks);
+                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd, start, count, pWriteMasks);
             }
 
             return cmd;
         }
     }
 
-    public static VkCommandBuffer SetBlendConstants(this VkCommandBuffer cmd,IEnumerable<float> constants)
+    public static VkCommandBuffer SetBlendConstants(this VkCommandBuffer cmd, IEnumerable<float> constants)
     {
         var constantsArray = constants.ToArray();
         unsafe
         {
             fixed (float* pConstants = constantsArray)
             {
-                vkCmdSetBlendConstants(cmd,pConstants);
+                vkCmdSetBlendConstants(cmd, pConstants);
                 return cmd;
             }
-            
         }
     }
 
-    public static VkCommandBuffer EnableBlending(this VkCommandBuffer cmd,uint start, uint count,VkColorBlendEquationEXT equation,VkColorComponentFlags writeMask)
+    public static VkCommandBuffer EnableBlending(this VkCommandBuffer cmd, uint start, uint count,
+        VkColorBlendEquationEXT equation, VkColorComponentFlags writeMask)
     {
         unsafe
         {
-            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd,0);
-            
+            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd, 0);
+
             fixed (uint* pEnables = Enumerable.Range(0, (int)count).Select(c => (uint)1).ToArray())
             {
-                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd,start,count,pEnables);
+                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd, start, count, pEnables);
             }
-            
-            fixed (VkColorBlendEquationEXT* pEquations = Enumerable.Range(0, (int)count).Select(c => equation).ToArray())
+
+            fixed (VkColorBlendEquationEXT* pEquations =
+                       Enumerable.Range(0, (int)count).Select(c => equation).ToArray())
             {
-                NativeMethods.vkCmdSetColorBlendEquationEXT(cmd,start,count,pEquations);
+                NativeMethods.vkCmdSetColorBlendEquationEXT(cmd, start, count, pEquations);
             }
-            
-            fixed (VkColorComponentFlags* pWriteMasks= Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
+
+            fixed (VkColorComponentFlags* pWriteMasks =
+                       Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
             {
-                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd,start,count,pWriteMasks);
+                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd, start, count, pWriteMasks);
             }
 
             return cmd;
         }
     }
-    
-    public static VkCommandBuffer SetColorBlendEnable(this VkCommandBuffer cmd,uint start, uint count,bool enable)
+
+    public static VkCommandBuffer SetColorBlendEnable(this VkCommandBuffer cmd, uint start, uint count, bool enable)
     {
         unsafe
         {
-            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd,0);
-            
+            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd, 0);
+
             fixed (uint* pEnables = Enumerable.Range(0, (int)count).Select(c => (uint)(enable ? 1 : 0)).ToArray())
             {
-                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd,start,count,pEnables);
+                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd, start, count, pEnables);
             }
-            return cmd;
-        }
-    }
-    
-    public static VkCommandBuffer SetWriteMask(this VkCommandBuffer cmd,uint start, uint count,VkColorComponentFlags writeMask)
-    {
-        unsafe
-        {
-            fixed (VkColorComponentFlags* pWriteMasks= Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
-            {
-                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd,start,count,pWriteMasks);
-            }
+
             return cmd;
         }
     }
 
-    public static VkCommandBuffer EnableBlendingAdditive(this VkCommandBuffer cmd,uint start, uint count) =>
-        EnableBlending(cmd, start, count, new VkColorBlendEquationEXT()
+    public static VkCommandBuffer SetWriteMask(this VkCommandBuffer cmd, uint start, uint count,
+        VkColorComponentFlags writeMask)
+    {
+        unsafe
+        {
+            fixed (VkColorComponentFlags* pWriteMasks =
+                       Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
+            {
+                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd, start, count, pWriteMasks);
+            }
+
+            return cmd;
+        }
+    }
+
+    public static VkCommandBuffer EnableBlendingAdditive(this VkCommandBuffer cmd, uint start, uint count)
+    {
+        return EnableBlending(cmd, start, count, new VkColorBlendEquationEXT
             {
                 srcColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
                 dstColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE,
                 colorBlendOp = VkBlendOp.VK_BLEND_OP_ADD,
                 srcAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE,
                 dstAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ZERO,
-                alphaBlendOp = VkBlendOp.VK_BLEND_OP_ADD,
+                alphaBlendOp = VkBlendOp.VK_BLEND_OP_ADD
             }, VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
                VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
                VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
                VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
+    }
 
-    public static VkCommandBuffer EnableBlendingAlphaBlend(this VkCommandBuffer cmd,uint start, uint count) => EnableBlending(cmd, start, count, new VkColorBlendEquationEXT()
-        {
-           srcColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
-           dstColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-           colorBlendOp = VkBlendOp.VK_BLEND_OP_ADD,
-           srcAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
-           dstAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-           alphaBlendOp = VkBlendOp.VK_BLEND_OP_ADD
-        }, VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
-           VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
-           VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
-           VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
-    
-    
-    public static VkCommandBuffer SetPrimitiveRestart(this VkCommandBuffer cmd,bool isEnabled)
+    public static VkCommandBuffer EnableBlendingAlphaBlend(this VkCommandBuffer cmd, uint start, uint count)
     {
-        vkCmdSetPrimitiveRestartEnable(cmd,(uint)(isEnabled ? 1 : 0));
+        return EnableBlending(cmd, start, count, new VkColorBlendEquationEXT
+            {
+                srcColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
+                dstColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+                colorBlendOp = VkBlendOp.VK_BLEND_OP_ADD,
+                srcAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
+                dstAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+                alphaBlendOp = VkBlendOp.VK_BLEND_OP_ADD
+            }, VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
+               VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
+               VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
+               VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
+    }
+
+
+    public static VkCommandBuffer SetPrimitiveRestart(this VkCommandBuffer cmd, bool isEnabled)
+    {
+        vkCmdSetPrimitiveRestartEnable(cmd, (uint)(isEnabled ? 1 : 0));
         return cmd;
     }
-    
-    public static VkCommandBuffer SetVertexInput(this VkCommandBuffer cmd,IEnumerable<VkVertexInputBindingDescription2EXT> bindingDescriptions,IEnumerable<VkVertexInputAttributeDescription2EXT> attributeDescriptions)
+
+    public static VkCommandBuffer SetVertexInput(this VkCommandBuffer cmd,
+        IEnumerable<VkVertexInputBindingDescription2EXT> bindingDescriptions,
+        IEnumerable<VkVertexInputAttributeDescription2EXT> attributeDescriptions)
     {
         unsafe
         {
@@ -508,111 +548,115 @@ public static class VulkanExtensions
             {
                 fixed (VkVertexInputAttributeDescription2EXT* pAttributeDescriptions = attributeDescriptionsArray)
                 {
-                    
                     NativeMethods.vkCmdSetVertexInputEXT(cmd, (uint)bindingDescriptionsArray.Length,
                         pBindingDescriptions, (uint)attributeDescriptionsArray.Length, pAttributeDescriptions);
                 }
             }
         }
+
         return cmd;
     }
-    
-    public static VkCommandBuffer BeginRendering(this VkCommandBuffer cmd,VkRect2D rect,IEnumerable<VkRenderingAttachmentInfo> attachments,VkRenderingAttachmentInfo? depthAttachment = null,VkRenderingAttachmentInfo? stencilAttachment = null)
+
+    public static VkCommandBuffer BeginRendering(this VkCommandBuffer cmd, VkRect2D rect,
+        IEnumerable<VkRenderingAttachmentInfo> attachments, VkRenderingAttachmentInfo? depthAttachment = null,
+        VkRenderingAttachmentInfo? stencilAttachment = null)
     {
         unsafe
         {
             var attachmentsArray = attachments.ToArray();
             fixed (VkRenderingAttachmentInfo* pAttachments = attachmentsArray)
             {
-
                 var renderingInfo = SGraphicsModule.MakeRenderingInfo(rect);
                 renderingInfo.pColorAttachments = pAttachments;
                 renderingInfo.colorAttachmentCount = (uint)attachmentsArray.Length;
-                
+
                 if (depthAttachment.HasValue)
                 {
                     var val = depthAttachment.Value;
                     renderingInfo.pDepthAttachment = &val;
                 }
-                
+
                 if (stencilAttachment.HasValue)
                 {
                     var val = stencilAttachment.Value;
                     renderingInfo.pStencilAttachment = &val;
-                    
                 }
-                
-                vkCmdBeginRendering(cmd,&renderingInfo);
+
+                vkCmdBeginRendering(cmd, &renderingInfo);
             }
         }
+
         return cmd;
     }
 
     public static VkCommandBuffer BeginRendering(this VkCommandBuffer cmd, VkExtent2D extent,
-        IEnumerable<VkRenderingAttachmentInfo> attachments, VkRenderingAttachmentInfo? depthAttachment = null,VkRenderingAttachmentInfo? stencilAttachment = null) =>
-        BeginRendering(cmd, new VkRect2D()
+        IEnumerable<VkRenderingAttachmentInfo> attachments, VkRenderingAttachmentInfo? depthAttachment = null,
+        VkRenderingAttachmentInfo? stencilAttachment = null)
+    {
+        return BeginRendering(cmd, new VkRect2D
         {
-            offset = new VkOffset2D()
+            offset = new VkOffset2D
             {
                 x = 0,
                 y = 0
             },
             extent = extent
-        }, attachments, depthAttachment,stencilAttachment);
-    
-    
+        }, attachments, depthAttachment, stencilAttachment);
+    }
+
+
     public static VkCommandBuffer EndRendering(this VkCommandBuffer cmd)
     {
-        unsafe
-        {
-            vkCmdEndRendering(cmd);
-        }
+        vkCmdEndRendering(cmd);
         return cmd;
     }
 
-    public static VkCommandBuffer BindDescriptorSets(this VkCommandBuffer cmd,VkPipelineBindPoint bindPoint,VkPipelineLayout pipelineLayout,IEnumerable<VkDescriptorSet> sets,uint firstSet = 0)
+    public static VkCommandBuffer BindDescriptorSets(this VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
+        VkPipelineLayout pipelineLayout, IEnumerable<VkDescriptorSet> sets, uint firstSet = 0)
     {
-         unsafe
-         {
-             var allSets = sets.ToArray();
-             fixed (VkDescriptorSet* pSets = allSets)
-             {
-                 vkCmdBindDescriptorSets(cmd, bindPoint,
-                     pipelineLayout, firstSet, (uint)allSets.Length, pSets, 0, null);
-             }
-         }
+        unsafe
+        {
+            var allSets = sets.ToArray();
+            fixed (VkDescriptorSet* pSets = allSets)
+            {
+                vkCmdBindDescriptorSets(cmd, bindPoint,
+                    pipelineLayout, firstSet, (uint)allSets.Length, pSets, 0, null);
+            }
+        }
 
-         return cmd;
+        return cmd;
     }
-    
-    public static VkCommandBuffer BindDescriptorSets(this VkCommandBuffer cmd,VkPipelineBindPoint bindPoint,VkPipelineLayout pipelineLayout,IEnumerable<DescriptorSet> sets,uint firstSet = 0)
+
+    public static VkCommandBuffer BindDescriptorSets(this VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
+        VkPipelineLayout pipelineLayout, IEnumerable<DescriptorSet> sets, uint firstSet = 0)
     {
         unsafe
         {
             var allSets = sets.Select(c => (VkDescriptorSet)c).ToArray();
             fixed (VkDescriptorSet* pSets = allSets)
             {
-                uint numSets = (uint)allSets.Length;
+                var numSets = (uint)allSets.Length;
                 vkCmdBindDescriptorSets(cmd, bindPoint,
-                    pipelineLayout, firstSet,numSets, pSets, 0, null);
+                    pipelineLayout, firstSet, numSets, pSets, 0, null);
             }
         }
 
         return cmd;
     }
 
-    public static VkCommandBuffer PushConstant<T>(this VkCommandBuffer cmd,VkPipelineLayout pipelineLayout,VkShaderStageFlags stageFlags,T data, uint offset = 0) where T : unmanaged
+    public static VkCommandBuffer PushConstant<T>(this VkCommandBuffer cmd, VkPipelineLayout pipelineLayout,
+        VkShaderStageFlags stageFlags, T data, uint offset = 0) where T : unmanaged
     {
         unsafe
         {
             vkCmdPushConstants(cmd, pipelineLayout,
-                stageFlags, offset,(uint)Marshal.SizeOf<T>(),&data);
+                stageFlags, offset, (uint)Marshal.SizeOf<T>(), &data);
         }
 
         return cmd;
     }
 
-    public static VkShaderEXT[] CreateShaders(this VkDevice device,params VkShaderCreateInfoEXT[] createInfos)
+    public static VkShaderEXT[] CreateShaders(this VkDevice device, params VkShaderCreateInfoEXT[] createInfos)
     {
         var shaders = createInfos.Select(c => new VkShaderEXT()).ToArray();
         unsafe
@@ -625,31 +669,30 @@ public static class VulkanExtensions
                         pShaders);
                     if (result !=
                         VkResult.VK_SUCCESS)
-                    {
-                        throw new Exception("Failed to compile shader");         
-                    }
+                        throw new Exception("Failed to compile shader");
                 }
             }
         }
+
         return shaders;
-    } 
-    
-    
-    public static VkResult SignalSemaphore(this VkDevice device,VkSemaphore semaphore)
+    }
+
+
+    public static VkResult SignalSemaphore(this VkDevice device, VkSemaphore semaphore)
     {
         unsafe
         {
-            var sigInfo = new VkSemaphoreSignalInfo()
+            var sigInfo = new VkSemaphoreSignalInfo
             {
                 sType = VkStructureType.VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
-                semaphore = semaphore,
+                semaphore = semaphore
             };
-            return vkSignalSemaphore(device,&sigInfo);
+            return vkSignalSemaphore(device, &sigInfo);
         }
-    } 
-    
-    
-    public static void DestroyShader(this VkDevice device,VkShaderEXT shader)
+    }
+
+
+    public static void DestroyShader(this VkDevice device, VkShaderEXT shader)
     {
         unsafe
         {
@@ -657,7 +700,7 @@ public static class VulkanExtensions
         }
     }
 
-    public static VkFence CreateFence(this VkDevice device,bool signaled = false)
+    public static VkFence CreateFence(this VkDevice device, bool signaled = false)
     {
         var fenceCreateInfo = new VkFenceCreateInfo
         {
@@ -667,21 +710,21 @@ public static class VulkanExtensions
 
         unsafe
         {
-            VkFence result = new VkFence();
+            var result = new VkFence();
             vkCreateFence(device, &fenceCreateInfo, null, &result);
             return result;
         }
     }
-    
-    public static void DestroyFence(this VkDevice self,VkFence fence)
+
+    public static void DestroyFence(this VkDevice self, VkFence fence)
     {
         unsafe
         {
-            vkDestroyFence(self, fence,null);
+            vkDestroyFence(self, fence, null);
         }
     }
-    
-    public static VkResult ResetFences(this VkDevice self,params VkFence[] fences)
+
+    public static VkResult ResetFences(this VkDevice self, params VkFence[] fences)
     {
         unsafe
         {
@@ -691,8 +734,8 @@ public static class VulkanExtensions
             }
         }
     }
-    
-    public static VkResult WaitForFences(this VkDevice self,ulong timeout,bool waitAll,params VkFence[] fences)
+
+    public static VkResult WaitForFences(this VkDevice self, ulong timeout, bool waitAll, params VkFence[] fences)
     {
         unsafe
         {
@@ -702,7 +745,7 @@ public static class VulkanExtensions
             }
         }
     }
-    
+
     public static VkSemaphore CreateSemaphore(this VkDevice device)
     {
         var semaphoreCreateInfo = new VkSemaphoreCreateInfo
@@ -717,41 +760,50 @@ public static class VulkanExtensions
             return rSemaphore;
         }
     }
-    
-    public static void DestroySemaphore(this VkDevice self,VkSemaphore semaphore)
+
+    public static void DestroySemaphore(this VkDevice self, VkSemaphore semaphore)
     {
         unsafe
         {
-            vkDestroySemaphore(self, semaphore,null);
+            vkDestroySemaphore(self, semaphore, null);
         }
     }
-    
-    public static void DestroySampler(this VkDevice self,VkSampler sampler)
+
+    public static void DestroySampler(this VkDevice self, VkSampler sampler)
     {
         unsafe
         {
-            vkDestroySampler(self, sampler,null);
+            vkDestroySampler(self, sampler, null);
         }
     }
-    
+
     public static void Destroy(this VkDevice self)
     {
         unsafe
         {
-            vkDestroyDevice(self,null);
+            vkDestroyDevice(self, null);
         }
     }
-    
+
     public static void Destroy(this VkInstance self)
     {
         unsafe
         {
-            vkDestroyInstance(self,null);
+            vkDestroyInstance(self, null);
         }
     }
-    
+
+    public static VkCommandBuffer ImageBarrier(this VkCommandBuffer cmd, IGraphImage image,
+        ImageLayout to, ImageBarrierOptions? options = null)
+    {
+        var from = image.Layout;
+        image.Layout = to;
+        return ImageBarrier(cmd, image.NativeImage, from, to,
+            options ?? new ImageBarrierOptions(image.Format, from, to));
+    }
+
     /// <summary>
-    /// The KING of synchronization
+    ///     The KING of synchronization
     /// </summary>
     /// <param name="cmd"></param>
     /// <param name="image"></param>
@@ -761,11 +813,12 @@ public static class VulkanExtensions
     public static VkCommandBuffer ImageBarrier(this VkCommandBuffer cmd, IDeviceImage image, ImageLayout from,
         ImageLayout to, ImageBarrierOptions? options = null)
     {
-        return ImageBarrier(cmd, image.NativeImage, from, to, options);
+        return ImageBarrier(cmd, image.NativeImage, from, to,
+            options ?? new ImageBarrierOptions(image.Format, from, to));
     }
-    
+
     /// <summary>
-    /// The KING of synchronization
+    ///     The KING of synchronization
     /// </summary>
     /// <param name="cmd"></param>
     /// <param name="image"></param>
@@ -775,8 +828,7 @@ public static class VulkanExtensions
     public static VkCommandBuffer ImageBarrier(this VkCommandBuffer cmd, VkImage image, ImageLayout from,
         ImageLayout to, ImageBarrierOptions? options = null)
     {
-        
-        var opts = options.GetValueOrDefault(new ImageBarrierOptions());
+        var opts = options ?? new ImageBarrierOptions();
         var barrier = new VkImageMemoryBarrier2
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -789,7 +841,7 @@ public static class VulkanExtensions
             subresourceRange = opts.SubresourceRange,
             image = image
         };
-        
+
         unsafe
         {
             var depInfo = new VkDependencyInfo
@@ -804,49 +856,52 @@ public static class VulkanExtensions
 
         return cmd;
     }
-    
-    public static VkCommandBuffer CopyBufferToImage(this VkCommandBuffer cmd,IDeviceBuffer buffer,IDeviceImage image,VkBufferImageCopy[] regions,ImageLayout layout = ImageLayout.TransferDst)
+
+    public static VkCommandBuffer CopyBufferToImage(this VkCommandBuffer cmd, IDeviceBuffer buffer, IDeviceImage image,
+        VkBufferImageCopy[] regions, ImageLayout layout = ImageLayout.TransferDst)
     {
         unsafe
         {
             fixed (VkBufferImageCopy* pRegion = regions)
             {
-                vkCmdCopyBufferToImage(cmd,buffer.NativeBuffer,image.NativeImage,
+                vkCmdCopyBufferToImage(cmd, buffer.NativeBuffer, image.NativeImage,
                     layout.ToVk(), (uint)regions.Length, pRegion);
             }
         }
+
         return cmd;
     }
-    
+
     public static VkCommandBuffer CopyImageToImage(this VkCommandBuffer cmd, IDeviceImage src, IDeviceImage dst,
         ImageFilter filter = ImageFilter.Linear)
     {
         CopyImageToImage(cmd, src.NativeImage, dst.NativeImage, src.Extent, dst.Extent, filter);
         return cmd;
     }
-    
-    public static VkCommandBuffer CopyImageToImage(this VkCommandBuffer cmd, IDeviceImage src, VkImage dst,VkExtent3D dstExtent,
+
+    public static VkCommandBuffer CopyImageToImage(this VkCommandBuffer cmd, IDeviceImage src, VkImage dst,
+        Extent3D dstExtent,
         ImageFilter filter = ImageFilter.Linear)
     {
-        CopyImageToImage(cmd, src.NativeImage, dst, src.Extent,dstExtent, filter);
+        CopyImageToImage(cmd, src.NativeImage, dst, src.Extent, dstExtent, filter);
         return cmd;
     }
 
     public static VkCommandBuffer CopyImageToImage(this VkCommandBuffer cmd, IDeviceImage src, IDeviceImage dst,
-        VkExtent3D srcExtent,
-        VkExtent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
+        Extent3D srcExtent,
+        Extent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
     {
         CopyImageToImage(cmd, src.NativeImage, dst.NativeImage, srcExtent, dstExtent, filter);
         return cmd;
     }
-    
+
     // public static VkCommandBuffer CopyImageToImage(VkCommandBuffer cmd,VkImage src,VkImage dest,VkExtent3D destExtent,VkExtent3D? srcExtent = null)
     // {
     //     cmd.CopyImageToImage(NativeImage,dest,srcExtent.GetValueOrDefault(Extent),destExtent);
     // }
-    
-    public static void CopyImageToImage(this VkCommandBuffer cmd, VkImage src, VkImage dst, VkExtent3D srcExtent,
-        VkExtent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
+
+    public static void CopyImageToImage(this VkCommandBuffer cmd, VkImage src, VkImage dst, Extent3D srcExtent,
+        Extent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
     {
         var blitRegion = new VkImageBlit2
         {
@@ -869,15 +924,15 @@ public static class VulkanExtensions
 
         blitRegion.srcOffsets[1] = new VkOffset3D
         {
-            x = (int)srcExtent.width,
-            y = (int)srcExtent.height,
-            z = (int)srcExtent.depth
+            x = (int)srcExtent.Width,
+            y = (int)srcExtent.Height,
+            z = (int)srcExtent.Dimensions
         };
         blitRegion.dstOffsets[1] = new VkOffset3D
         {
-            x = (int)dstExtent.width,
-            y = (int)dstExtent.height,
-            z = (int)dstExtent.depth
+            x = (int)dstExtent.Width,
+            y = (int)dstExtent.Height,
+            z = (int)dstExtent.Dimensions
         };
         unsafe
         {
@@ -896,7 +951,7 @@ public static class VulkanExtensions
             vkCmdBlitImage2(cmd, &blitInfo);
         }
     }
-    
+
     public static VkRenderingAttachmentInfo MakeAttachmentInfo(this IDeviceImage image, ImageLayout newLayout,
         VkClearValue? clearValue = null)
     {
@@ -916,28 +971,46 @@ public static class VulkanExtensions
         return attachment;
     }
 
-    public static VkExtent2D ToVkExtent(this Vec2<uint> self) => new VkExtent2D
+    public static VkExtent2D ToVkExtent(this Vec2<uint> self)
     {
-        height = self.Y,
-        width = self.X
-    };
-    
-    public static VkRenderingAttachmentInfo MakeColorAttachmentInfo(this IDeviceImage image,Vector4? clearValue = null) => MakeAttachmentInfo(image,ImageLayout.ColorAttachment,clearValue.HasValue ? new VkClearValue()
-    {
-        color = SGraphicsModule.MakeClearColorValue(clearValue.Value)
-    } : null);
-    
-    public static VkRenderingAttachmentInfo MakeDepthAttachmentInfo(this IDeviceImage image,float? clearValue = null) => MakeAttachmentInfo(image,ImageLayout.DepthAttachment,clearValue.HasValue ? new VkClearValue()
-    {
-        depthStencil = SGraphicsModule.MakeClearDepthStencilValue(depth: clearValue.Value)
-    } : null);
-    
-    public static VkRenderingAttachmentInfo MakeStencilAttachmentInfo(this IDeviceImage image,uint? clearValue = null) => MakeAttachmentInfo(image,ImageLayout.StencilAttachment,clearValue.HasValue ? new VkClearValue()
-    {
-        depthStencil = SGraphicsModule.MakeClearDepthStencilValue(stencil: clearValue.Value)
-    } : null);
+        return new VkExtent2D()
+        {
+            height = self.Y,
+            width = self.X
+        };
+    }
 
-    public static VkSurfaceFormatKHR[] GetSurfaceFormats(this VkPhysicalDevice physicalDevice,VkSurfaceKHR surface)
+    public static VkRenderingAttachmentInfo MakeColorAttachmentInfo(this IDeviceImage image, Vector4? clearValue = null)
+    {
+        return MakeAttachmentInfo(image, ImageLayout.ColorAttachment, clearValue.HasValue
+            ? new VkClearValue
+            {
+                color = SGraphicsModule.MakeClearColorValue(clearValue.Value)
+            }
+            : null);
+    }
+
+    public static VkRenderingAttachmentInfo MakeDepthAttachmentInfo(this IDeviceImage image, float? clearValue = null)
+    {
+        return MakeAttachmentInfo(image, ImageLayout.DepthAttachment, clearValue.HasValue
+            ? new VkClearValue
+            {
+                depthStencil = SGraphicsModule.MakeClearDepthStencilValue(clearValue.Value)
+            }
+            : null);
+    }
+
+    public static VkRenderingAttachmentInfo MakeStencilAttachmentInfo(this IDeviceImage image, uint? clearValue = null)
+    {
+        return MakeAttachmentInfo(image, ImageLayout.StencilAttachment, clearValue.HasValue
+            ? new VkClearValue
+            {
+                depthStencil = SGraphicsModule.MakeClearDepthStencilValue(stencil: clearValue.Value)
+            }
+            : null);
+    }
+
+    public static VkSurfaceFormatKHR[] GetSurfaceFormats(this VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
     {
         unsafe
         {
@@ -952,14 +1025,15 @@ public static class VulkanExtensions
             return result;
         }
     }
-    
-    public static VkPresentModeKHR[] GetSurfacePresentModes(this VkPhysicalDevice physicalDevice,VkSurfaceKHR surface)
+
+    public static VkPresentModeKHR[] GetSurfacePresentModes(this VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
     {
         unsafe
         {
             uint numModes = 0;
             vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &numModes, null);
-            var result = Enumerable.Range(0, (int)numModes).Select(c => VkPresentModeKHR.VK_PRESENT_MODE_MAX_ENUM_KHR).ToArray();
+            var result = Enumerable.Range(0, (int)numModes).Select(c => VkPresentModeKHR.VK_PRESENT_MODE_MAX_ENUM_KHR)
+                .ToArray();
             fixed (VkPresentModeKHR* pResults = result)
             {
                 vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &numModes, pResults);
@@ -969,21 +1043,23 @@ public static class VulkanExtensions
         }
     }
 
-    public static void Draw(this VkCommandBuffer self,uint vertices,uint instances = 1,uint firstVertex = 0, uint firstInstance = 0)
+    public static void Draw(this VkCommandBuffer self, uint vertices, uint instances = 1, uint firstVertex = 0,
+        uint firstInstance = 0)
     {
-        vkCmdDraw(self,vertices,instances,firstVertex,firstInstance);
+        vkCmdDraw(self, vertices, instances, firstVertex, firstInstance);
     }
-    
-    
-    public static void DestroySurface(this VkInstance self,VkSurfaceKHR surface)
+
+
+    public static void DestroySurface(this VkInstance self, VkSurfaceKHR surface)
     {
         unsafe
         {
-            vkDestroySurfaceKHR(self,surface,null);
+            vkDestroySurfaceKHR(self, surface, null);
         }
     }
 
-    public static VkCommandPool CreateCommandPool(this VkDevice self, uint queueFamilyIndex,VkCommandPoolCreateFlags flags = VkCommandPoolCreateFlags.VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
+    public static VkCommandPool CreateCommandPool(this VkDevice self, uint queueFamilyIndex,
+        VkCommandPoolCreateFlags flags = VkCommandPoolCreateFlags.VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
     {
         var commandPoolCreateInfo = new VkCommandPoolCreateInfo
         {
@@ -991,8 +1067,8 @@ public static class VulkanExtensions
             flags = VkCommandPoolCreateFlags.VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
             queueFamilyIndex = queueFamilyIndex
         };
-        
-        VkCommandPool pool = new ();
+
+        VkCommandPool pool = new();
         unsafe
         {
             vkCreateCommandPool(self, &commandPoolCreateInfo, null, &pool);
@@ -1000,16 +1076,17 @@ public static class VulkanExtensions
 
         return pool;
     }
-    
+
     public static void DestroyCommandPool(this VkDevice self, VkCommandPool pool)
     {
         unsafe
         {
-            vkDestroyCommandPool(self,pool ,null);
+            vkDestroyCommandPool(self, pool, null);
         }
     }
-    
-    public static VkCommandBuffer[] AllocateCommandBuffers(this VkDevice self,VkCommandPool pool,uint count = 1,VkCommandBufferLevel level = VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+
+    public static VkCommandBuffer[] AllocateCommandBuffers(this VkDevice self, VkCommandPool pool, uint count = 1,
+        VkCommandBufferLevel level = VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_PRIMARY)
     {
         var commandBufferCreateInfo = new VkCommandBufferAllocateInfo
         {
@@ -1020,14 +1097,13 @@ public static class VulkanExtensions
         };
 
         var result = new VkCommandBuffer[count];
-        
+
         unsafe
         {
             fixed (VkCommandBuffer* pResult = result)
             {
                 vkAllocateCommandBuffers(self, &commandBufferCreateInfo, pResult);
             }
-            
         }
 
         return result;

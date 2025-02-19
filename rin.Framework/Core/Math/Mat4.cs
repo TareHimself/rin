@@ -1,6 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using rin.Framework.Core.Extensions;
 
 namespace rin.Framework.Core.Math;
@@ -31,7 +29,7 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
 
     public Mat4 Clone()
     {
-        return new Mat4()
+        return new Mat4
         {
             Column1 = Column1.Clone(),
             Column2 = Column2.Clone(),
@@ -41,7 +39,6 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
     }
 
 
-    
     public Mat4 Inverse()
     {
         var r = Clone();
@@ -50,17 +47,13 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
     }
 
 
-    
-
     public Mat4 Translate(Vector3 translation)
     {
         var r = Clone();
         NativeMethods.NativeTranslate(ref r, ref this, ref translation);
         return r;
     }
-    
 
-    
 
     public Mat4 Scale(Vector3 scale)
     {
@@ -89,7 +82,7 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
         NativeMethods.NativeRotate(ref r, ref this, float.DegreesToRadians(angle), ref axis);
         return r;
     }
-    
+
 
     public static Mat4 operator *(Mat4 left, Mat4 right)
     {
@@ -98,7 +91,6 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
         return result;
     }
 
-    
 
     public static Vector4 operator *(Mat4 left, Vector4 right)
     {

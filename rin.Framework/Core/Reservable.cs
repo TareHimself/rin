@@ -2,7 +2,7 @@
 
 public abstract class Reservable : Disposable, IReservable
 {
-    private readonly object _lock = new ();
+    private readonly object _lock = new();
     private long _reservations;
 
     public void Reserve()
@@ -18,7 +18,7 @@ public abstract class Reservable : Disposable, IReservable
         lock (_lock)
         {
             _reservations--;
-            if(_reservations < 0) base.Dispose(disposing);
+            if (_reservations < 0) base.Dispose(disposing);
         }
     }
 }

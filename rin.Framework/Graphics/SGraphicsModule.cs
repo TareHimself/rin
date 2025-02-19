@@ -1,78 +1,136 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using rin.Framework.Core;
-using rin.Framework.Core.Math;
+using rin.Framework.Core.Extensions;
 using rin.Framework.Graphics.Descriptors;
 using rin.Framework.Graphics.Shaders;
-using rin.Framework.Graphics.Windows;
-using rin.Framework.Core.Extensions;
 using rin.Framework.Graphics.Shaders.Slang;
-using SixLabors.ImageSharp;
+using rin.Framework.Graphics.Windows;
+using SDL;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
+using static SDL.SDL3;
 
 namespace rin.Framework.Graphics;
-
 
 [Module]
 public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphicsModule>
 {
-    private readonly List<WindowRenderer> _renderers = [];
+    public static readonly string
+        ShadersDirectory = Path.Join(SRuntime.FrameworkAssetsDirectory, "shaders", "rin");
+
+    private readonly BackgroundTaskQueue _backgroundTaskQueue = new();
+    private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
+    private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingGraphicsSubmits = [];
+    private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingTransferSubmits = [];
+    private readonly List<IRenderer> _renderers = [];
     private readonly Dictionary<SamplerSpec, VkSampler> _samplers = [];
-    private readonly Dictionary<IWindow, WindowRenderer> _windows = [];
     private readonly Mutex _samplersMutex = new();
+    private readonly BackgroundTaskQueue _transferQueueThread = new();
+    private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
     private Allocator? _allocator;
-    private IShaderManager? _shaderCompiler;
-    private ITextureManager? _textureManager;
+    private IRenderContext[] _collected = [];
     private VkDebugUtilsMessengerEXT _debugUtilsMessenger;
     private DescriptorAllocator? _descriptorAllocator;
     private VkDevice _device;
-    private VkCommandBuffer _transferCommandBuffer;
-    private VkCommandPool _transferCommandPool;
-    private VkFence _transferFence;
     private VkCommandBuffer _graphicsCommandBuffer;
     private VkCommandPool _graphicsCommandPool;
     private VkFence _graphicsFence;
+    private VkQueue _graphicsQueue;
+    private uint _graphicsQueueFamily;
+    private bool _hasDedicatedTransferQueue;
     private VkInstance _instance;
     private VkPhysicalDevice _physicalDevice;
-    private VkQueue _graphicsQueue;
-    private VkQueue _transferQueue;
-    private uint _graphicsQueueFamily;
-    private uint _transferQueueFamily;
-    private bool _hasDedicatedTransferQueue = false;
-    private readonly BackgroundTaskQueue _transferQueueThread = new();
-    private readonly BackgroundTaskQueue _backgroundTaskQueue = new();
-    private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingTransferSubmits = [];
-    private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingGraphicsSubmits = [];
-    private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
+    private IShaderManager? _shaderCompiler;
+    private Dictionary<IntPtr, SdlWindow> _sdlWindows = [];
 
-    private VkSurfaceFormatKHR _surfaceFormat = new VkSurfaceFormatKHR()
+    private VkSurfaceFormatKHR _surfaceFormat = new()
     {
         colorSpace = VkColorSpaceKHR.VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
         format = VkFormat.VK_FORMAT_R8G8B8A8_UNORM
     };
-    
-    public static readonly string
-        ShadersDirectory = Path.Join(SRuntime.FrameworkAssetsDirectory,"shaders","rin");
 
-    public event Action<IWindow>? OnWindowClosed;
-    public event Action<IWindow>? OnWindowCreated;
-    public event Action<WindowRenderer>? OnRendererCreated;
-    public event Action<WindowRenderer>? OnRendererDestroyed;
-    
-    public event Action? OnFreeRemainingMemory;
+    private ITextureManager? _textureManager;
+    private VkCommandBuffer _transferCommandBuffer;
+    private VkCommandPool _transferCommandPool;
+    private VkFence _transferFence;
+    private VkQueue _transferQueue;
+    private uint _transferQueueFamily;
+    private int _maxEventsPerPeep = 20;
 
-    [GeneratedRegex("VK_FORMAT_R[0-9]{1,2}G[0-9]{1,2}B[0-9]{1,2}A[0-9]{1,2}_UNORM")]
-    private static partial Regex SurfaceFormatRegex();
+    public void Startup(SRuntime runtime)
+    {
+        NativeMethods.InitGlfw();
+        
+        // if (!SDL_InitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD))
+        //     throw new InvalidOperationException($"failed to initialise SDL. Error: {SDL_GetError()}");
+        //
+        // var z = new SDL_Event();
+        
+        InitVulkan();
+    }
+
+    public void Shutdown(SRuntime runtime)
+    {
+        lock (_renderers)
+        {
+            _renderers.Clear();
+        }
+
+        foreach (var (window, renderer) in _windows)
+        {
+            OnWindowClosed?.Invoke(window);
+            OnRendererDestroyed?.Invoke(renderer);
+            window.Dispose();
+        }
+
+        _windows.Clear();
+        _backgroundTaskQueue.Dispose();
+        _transferQueueThread.Dispose();
+        _descriptorAllocator?.Dispose();
+        _shaderCompiler?.Dispose();
+        _textureManager?.Dispose();
+        _descriptorLayoutFactory.Dispose();
+
+        lock (_samplersMutex)
+        {
+            foreach (var sampler in _samplers.Values) _device.DestroySampler(sampler);
+
+            _samplers.Clear();
+        }
+
+        OnFreeRemainingMemory?.Invoke();
+        _allocator?.Dispose();
+        _device.DestroyCommandPool(_graphicsCommandPool);
+        _device.DestroyFence(_graphicsFence);
+        _device.DestroyCommandPool(_transferCommandPool);
+        _device.DestroyFence(_transferFence);
+        _device.Destroy();
+        if (_debugUtilsMessenger.Value != 0) NativeMethods.DestroyMessenger(_instance, _debugUtilsMessenger);
+        _instance.Destroy();
+
+        NativeMethods.StopGlfw();
+    }
 
     public static SGraphicsModule Get()
     {
         return SRuntime.Get().GetModule<SGraphicsModule>();
     }
 
-    public VkDescriptorSetLayout GetDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo createInfo) =>
-        _descriptorLayoutFactory.Get(createInfo);
+    public event Action<IWindow>? OnWindowClosed;
+    public event Action<IWindow>? OnWindowCreated;
+    public event Action<IWindowRenderer>? OnRendererCreated;
+    public event Action<IWindowRenderer>? OnRendererDestroyed;
+
+    public event Action? OnFreeRemainingMemory;
+
+    [GeneratedRegex("VK_FORMAT_R[0-9]{1,2}G[0-9]{1,2}B[0-9]{1,2}A[0-9]{1,2}_UNORM")]
+    private static partial Regex SurfaceFormatRegex();
+
+    public VkDescriptorSetLayout GetDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo createInfo)
+    {
+        return _descriptorLayoutFactory.Get(createInfo);
+    }
 
     public VkSampler GetSampler(SamplerSpec spec)
     {
@@ -112,7 +170,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             return sampler;
         }
     }
-    
+
 
     public static VkClearColorValue MakeClearColorValue(Vector4 color)
     {
@@ -148,19 +206,13 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     //public Task WithGraphicsQueue(Action<VkQueue> action) => _graphicsQueueThread.Put(() => action(_graphicsQueue));
 
 
-    public WindowRenderer? GetWindowRenderer(IWindow window)
+    public IWindowRenderer? GetWindowRenderer(IWindow window)
     {
         _windows.TryGetValue(window, out var windowRenderer);
         return windowRenderer;
     }
 
-    public void Startup(SRuntime runtime)
-    {
-        NativeMethods.InitGlfw();
-        InitVulkan();
-    }
-
-    public WindowRenderer[] GetRenderers()
+    public IRenderer[] GetRenderers()
     {
         lock (_renderers)
         {
@@ -168,7 +220,18 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         }
     }
 
-    public VkSurfaceFormatKHR GetSurfaceFormat() => _surfaceFormat;
+    public IWindowRenderer[] GetWindowRenderers()
+    {
+        lock (_windows)
+        {
+            return _windows.Values.ToArray();
+        }
+    }
+
+    public VkSurfaceFormatKHR GetSurfaceFormat()
+    {
+        return _surfaceFormat;
+    }
 
     public static uint MakeVulkanVersion(uint major, uint minor, uint patch)
     {
@@ -177,7 +240,6 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
     private unsafe void InitVulkan()
     {
-
         // uint numExtensions = 0;
         // vkEnumerateInstanceExtensionProperties(null, &numExtensions, null);
         // var extensions = stackalloc VkExtensionProperties[(int)numExtensions];
@@ -203,7 +265,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         //     }
         // }
         // vkCreateInstance()
-        
+
         //IntPtr inWindow,
         var outInstance = _instance;
         var outDevice = _device;
@@ -216,13 +278,13 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         var outDebugMessenger = _debugUtilsMessenger;
 
         // We create a window just for surface information
-        using var window = Internal_CreateWindow(1, 1, "Graphics Init Window", new CreateOptions()
+        using var window = Internal_CreateWindow(1, 1, "Graphics Init Window", new CreateOptions
         {
             Visible = false,
             Decorated = false,
             Resizable = false
         });
-        
+
         if (window == null) throw new Exception("Failed to create window to init graphics");
 
         NativeMethods.CreateInstance(window.GetPtr(), &outInstance, &outDevice, &outPhysicalDevice, &outGraphicsQueue,
@@ -257,7 +319,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         _graphicsFence = _device.CreateFence();
         _graphicsCommandPool = _device.CreateCommandPool(GetGraphicsQueueFamily());
         _graphicsCommandBuffer = _device.AllocateCommandBuffers(_graphicsCommandPool).First();
-        
+
         _allocator = new Allocator(this);
         _shaderCompiler = new SlangShaderManager();
         _textureManager = new TextureManager();
@@ -268,15 +330,22 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     {
         return _shaderCompiler!;
     }
-    
-    public IGraphicsShader GraphicsShaderFromPath(string path) => GetShaderManager().GraphicsFromPath(path);
-    public IComputeShader ComputeShaderFromPath(string path) => GetShaderManager().ComputeFromPath(path);
+
+    public IGraphicsShader GraphicsShaderFromPath(string path)
+    {
+        return GetShaderManager().GraphicsFromPath(path);
+    }
+
+    public IComputeShader ComputeShaderFromPath(string path)
+    {
+        return GetShaderManager().ComputeFromPath(path);
+    }
 
     public ITextureManager GetTextureManager()
     {
         return _textureManager!;
     }
-    
+
     private void HandleWindowCreated(IWindow window)
     {
         var r = new WindowRenderer(this, window);
@@ -286,6 +355,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         {
             _renderers.Add(r);
         }
+
         OnWindowCreated?.Invoke(window);
         OnRendererCreated?.Invoke(r);
     }
@@ -298,6 +368,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         {
             _renderers.Remove(window1);
         }
+
         OnWindowClosed?.Invoke(window);
         OnRendererDestroyed?.Invoke(_windows[window]);
         _windows[window].Dispose();
@@ -364,7 +435,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         }
     }
 
-    public IWindow CreateWindow(int width, int height, string name, CreateOptions? options = null, IWindow? parent = null
+    public IWindow CreateWindow(int width, int height, string name, CreateOptions? options = null,
+        IWindow? parent = null
     )
     {
         var window = Internal_CreateWindow(width, height, name, options, parent);
@@ -380,48 +452,6 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     public void WaitDeviceIdle()
     {
         Sync(() => { vkDeviceWaitIdle(_device); }).Wait();
-    }
-
-    public void Shutdown(SRuntime runtime)
-    {
-        lock (_renderers)
-        {
-            _renderers.Clear();
-        }
-        
-        foreach (var (window, renderer) in _windows)
-        {
-            OnWindowClosed?.Invoke(window);
-            OnRendererDestroyed?.Invoke(renderer);
-            renderer.Dispose();
-            window.Dispose();
-        }
-        _windows.Clear();
-        _backgroundTaskQueue.Dispose();
-        _transferQueueThread.Dispose();
-        _descriptorAllocator?.Dispose();
-        _shaderCompiler?.Dispose();
-        _textureManager?.Dispose();
-        _descriptorLayoutFactory.Dispose();
-        
-        lock (_samplersMutex)
-        {
-            foreach (var sampler in _samplers.Values) _device.DestroySampler(sampler);
-
-            _samplers.Clear();
-        }
-        
-        OnFreeRemainingMemory?.Invoke();
-        _allocator?.Dispose();
-        _device.DestroyCommandPool(_graphicsCommandPool);
-        _device.DestroyFence(_graphicsFence);
-        _device.DestroyCommandPool(_transferCommandPool);
-        _device.DestroyFence(_transferFence);
-        _device.Destroy();
-        if (_debugUtilsMessenger.Value != 0) NativeMethods.DestroyMessenger(_instance, _debugUtilsMessenger);
-        _instance.Destroy();
-
-        NativeMethods.StopGlfw();
     }
 
     public static VkRenderingInfo MakeRenderingInfo(VkExtent2D extent)
@@ -459,7 +489,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             arrayLayers = 1,
             samples = VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT,
             tiling = VkImageTiling.VK_IMAGE_TILING_OPTIMAL,
-            usage = usage,
+            usage = usage
         };
     }
 
@@ -503,7 +533,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
     private static uint DeriveMipLevels(Extent2D extent)
     {
-        return (uint)(System.Math.Floor(System.Math.Log2(System.Math.Max(extent.Width, extent.Height))) + 1);
+        return (uint)(Math.Floor(Math.Log2(Math.Max(extent.Width, extent.Height))) + 1);
     }
 
     /// <summary>
@@ -521,19 +551,21 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for transfers/staging
     /// </summary>
-    public IDeviceBuffer NewStorageBuffer<T>(bool sequentialWrite = true, string debugName = "storageBuffer") where T : unmanaged
+    public IDeviceBuffer NewStorageBuffer<T>(bool sequentialWrite = true, string debugName = "storageBuffer")
+        where T : unmanaged
     {
-        
         return NewStorageBuffer(Core.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
     }
-    
+
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
     /// </summary>
     public IDeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true,
         string debugName = "Storage Buffer")
     {
-        return GetAllocator().NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        return GetAllocator().NewBuffer(size,
+            VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+            VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true, debugName);
     }
 
@@ -550,7 +582,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     /// <summary>
     ///     Allocates a <see cref="DeviceBuffer" /> for shader uniforms
     /// </summary>
-    public IDeviceBuffer NewUniformBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer") where T : unmanaged
+    public IDeviceBuffer NewUniformBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer")
+        where T : unmanaged
     {
         return NewUniformBuffer(Core.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
     }
@@ -559,7 +592,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         string debugName = "Image")
     {
         var imageCreateInfo = MakeImageCreateInfo(format, size, usage);
-        
+
         if (mipMap)
             imageCreateInfo.mipLevels = DeriveMipLevels(size);
 
@@ -592,7 +625,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     }
 
     /// <summary>
-    /// Submits using the specified queue
+    ///     Submits using the specified queue
     /// </summary>
     /// <param name="queue"></param>
     /// <param name="fence"></param>
@@ -635,7 +668,6 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     public Task TransferSubmit(Action<VkCommandBuffer> action)
     {
         if (_hasDedicatedTransferQueue)
-        {
             return _transferQueueThread.Enqueue(() =>
             {
                 unsafe
@@ -666,22 +698,15 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                         vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
                         var r = vkResetFences(_device, 1, pFences);
 
-                        if (r != VkResult.VK_SUCCESS)
-                        {
-                            throw new Exception("Failed to reset fences");
-                        }
+                        if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");
                     }
                 }
             });
-        }
-        else
+        lock (_pendingTransferSubmits)
         {
-            lock (_pendingTransferSubmits)
-            {
-                var pending = new TaskCompletionSource();
-                _pendingTransferSubmits.Add(new Pair<TaskCompletionSource, Action<VkCommandBuffer>>(pending, action));
-                return pending.Task;
-            }
+            var pending = new TaskCompletionSource();
+            _pendingTransferSubmits.Add(new Pair<TaskCompletionSource, Action<VkCommandBuffer>>(pending, action));
+            return pending.Task;
         }
     }
 
@@ -705,7 +730,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         }
     }
 
-    private static void GenerateMipMaps(VkCommandBuffer cmd, IDeviceImage image, Extent2D size, ImageFilter filter,ImageLayout srcLayout,ImageLayout dstLayout)
+    private static void GenerateMipMaps(VkCommandBuffer cmd, IDeviceImage image, Extent2D size, ImageFilter filter,
+        ImageLayout srcLayout, ImageLayout dstLayout)
     {
         var mipLevels = DeriveMipLevels(size);
         var curSize = size;
@@ -726,7 +752,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                         levelCount = 1
                     }
                 });
-            
+
             if (mip < mipLevels - 1)
             {
                 var blitRegion = new VkImageBlit2
@@ -783,13 +809,13 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             }
         }
 
-        cmd.ImageBarrier(image,ImageLayout.TransferSrc,
+        cmd.ImageBarrier(image, ImageLayout.TransferSrc,
             dstLayout);
     }
 
 
     /// <summary>
-    /// Creates an image from the data in the native buffer
+    ///     Creates an image from the data in the native buffer
     /// </summary>
     /// <param name="content"></param>
     /// <param name="size"></param>
@@ -809,8 +835,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
         var dataSize = size.Width * size.Height * format.PixelByteSize(); //size.depth * size.width * size.height * 4;
         var contentSize = (ulong)content.GetByteSize();
-        if(dataSize != contentSize) throw new Exception("computed data size is not equal to content size");
-        
+        if (dataSize != contentSize) throw new Exception("computed data size is not equal to content size");
+
         var uploadBuffer = NewTransferBuffer(dataSize);
         uploadBuffer.Write(content);
 
@@ -820,8 +846,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
         await TransferSubmit(cmd =>
         {
-            cmd.ImageBarrier(newImage,ImageLayout.Undefined,ImageLayout.TransferDst);
-            
+            cmd.ImageBarrier(newImage, ImageLayout.Undefined, ImageLayout.TransferDst);
+
             var copyRegion = new VkBufferImageCopy
             {
                 bufferOffset = 0,
@@ -834,25 +860,20 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                     baseArrayLayer = 0,
                     layerCount = 1
                 },
-                imageExtent = size.ToVk(),
+                imageExtent = size.ToVk()
             };
 
             cmd.CopyBufferToImage(uploadBuffer, newImage, [copyRegion]);
-            
-            if (!mips)
-            {
-                cmd.ImageBarrier(newImage,ImageLayout.TransferDst,ImageLayout.ShaderReadOnly);
-            }
         });
 
-        if (mips)
+        await GraphicsSubmit(cmd =>
         {
-            await GraphicsSubmit(cmd =>
-            {
-                GenerateMipMaps(cmd, newImage,size, mipMapFilter,ImageLayout.TransferDst,ImageLayout.ShaderReadOnly);
-            });
-        }
-        
+            if (mips)
+                GenerateMipMaps(cmd, newImage, size, mipMapFilter, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+            else
+                cmd.ImageBarrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+        });
+
         uploadBuffer.Dispose();
 
         return newImage;
@@ -862,119 +883,97 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     {
         Pair<TaskCompletionSource, Action<VkCommandBuffer>>[] pending;
 
-            lock (_pendingTransferSubmits)
-            {
-                pending = _pendingTransferSubmits.ToArray();
-                _pendingTransferSubmits.Clear();
-            }
+        lock (_pendingTransferSubmits)
+        {
+            pending = _pendingTransferSubmits.ToArray();
+            _pendingTransferSubmits.Clear();
+        }
 
-            if (pending.NotEmpty())
+        if (pending.NotEmpty())
+            unsafe
             {
-                unsafe
+                fixed (VkFence* pFences = &_transferFence)
                 {
-                    fixed (VkFence* pFences = &_transferFence)
+                    vkResetCommandBuffer(_transferCommandBuffer, 0);
+                    var cmd = _transferCommandBuffer;
+                    var beginInfo =
+                        MakeCommandBufferBeginInfo(
+                            VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+                    vkBeginCommandBuffer(cmd, &beginInfo);
+
+                    foreach (var (_, action) in pending) action.Invoke(cmd);
+
+                    vkEndCommandBuffer(cmd);
+
+                    SubmitToQueue(_transferQueue, _transferFence, new[]
                     {
-                        vkResetCommandBuffer(_transferCommandBuffer, 0);
-                        var cmd = _transferCommandBuffer;
-                        var beginInfo =
-                            MakeCommandBufferBeginInfo(
-                                VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-                        vkBeginCommandBuffer(cmd, &beginInfo);
-
-                        foreach (var (_, action) in pending)
+                        new VkCommandBufferSubmitInfo
                         {
-                            action.Invoke(cmd);
+                            sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                            commandBuffer = cmd,
+                            deviceMask = 0
                         }
+                    });
 
-                        vkEndCommandBuffer(cmd);
+                    vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
+                    var r = vkResetFences(_device, 1, pFences);
 
-                        SubmitToQueue(_transferQueue, _transferFence, new[]
-                        {
-                            new VkCommandBufferSubmitInfo
-                            {
-                                sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                                commandBuffer = cmd,
-                                deviceMask = 0
-                            }
-                        });
+                    if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");
 
-                        vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
-                        var r = vkResetFences(_device, 1, pFences);
-
-                        if (r != VkResult.VK_SUCCESS)
-                        {
-                            throw new Exception("Failed to reset fences");
-                        }
-
-                        foreach (var (task, _) in pending)
-                        {
-                            task.SetResult();
-                        }
-                    }
+                    foreach (var (task, _) in pending) task.SetResult();
                 }
             }
     }
-    
+
     private void HandlePendingGraphicsSubmits()
     {
         Pair<TaskCompletionSource, Action<VkCommandBuffer>>[] pending;
 
-            lock (_pendingGraphicsSubmits)
-            {
-                pending = _pendingGraphicsSubmits.ToArray();
-                _pendingGraphicsSubmits.Clear();
-            }
+        lock (_pendingGraphicsSubmits)
+        {
+            pending = _pendingGraphicsSubmits.ToArray();
+            _pendingGraphicsSubmits.Clear();
+        }
 
-            if (pending.NotEmpty())
+        if (pending.NotEmpty())
+            unsafe
             {
-                unsafe
+                fixed (VkFence* pFences = &_graphicsFence)
                 {
-                    fixed (VkFence* pFences = &_graphicsFence)
+                    vkResetCommandBuffer(_graphicsCommandBuffer, 0);
+                    var cmd = _graphicsCommandBuffer;
+                    var beginInfo =
+                        MakeCommandBufferBeginInfo(
+                            VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+                    vkBeginCommandBuffer(cmd, &beginInfo);
+
+                    foreach (var (_, action) in pending) action.Invoke(cmd);
+
+                    vkEndCommandBuffer(cmd);
+
+                    SubmitToQueue(_graphicsQueue, _graphicsFence, new[]
                     {
-                        vkResetCommandBuffer(_graphicsCommandBuffer, 0);
-                        var cmd = _graphicsCommandBuffer;
-                        var beginInfo =
-                            MakeCommandBufferBeginInfo(
-                                VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-                        vkBeginCommandBuffer(cmd, &beginInfo);
-
-                        foreach (var (_, action) in pending)
+                        new VkCommandBufferSubmitInfo
                         {
-                            action.Invoke(cmd);
+                            sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                            commandBuffer = cmd,
+                            deviceMask = 0
                         }
+                    });
 
-                        vkEndCommandBuffer(cmd);
+                    vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
+                    var r = vkResetFences(_device, 1, pFences);
 
-                        SubmitToQueue(_graphicsQueue, _graphicsFence, new[]
-                        {
-                            new VkCommandBufferSubmitInfo
-                            {
-                                sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                                commandBuffer = cmd,
-                                deviceMask = 0
-                            }
-                        });
+                    if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");
 
-                        vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
-                        var r = vkResetFences(_device, 1, pFences);
-
-                        if (r != VkResult.VK_SUCCESS)
-                        {
-                            throw new Exception("Failed to reset fences");
-                        }
-
-                        foreach (var (task, _) in pending)
-                        {
-                            task.SetResult();
-                        }
-                    }
+                    foreach (var (task, _) in pending) task.SetResult();
                 }
             }
     }
-    
-    
+
+
     /// <summary>
-    /// Poll all windows, could be viewed as the input loop
+    ///     Poll all windows, could be viewed as the input loop
     /// </summary>
     public void PollWindows()
     {
@@ -982,27 +981,32 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     }
 
     /// <summary>
-    /// Draws all <see cref="WindowRenderer"/>, could be viewed as the render loop
+    ///     Call <see cref="IRenderer.Collect" /> for each <see cref="IRenderer" />
     /// </summary>
-    public void DrawWindows()
+    public void Collect()
     {
-        WindowRenderer[] toDraw = [];
+        IRenderer[] renderers;
+
         lock (_renderers)
         {
-            toDraw = _renderers.ToArray();
+            renderers = _renderers.ToArray();
         }
-        if (!_hasDedicatedTransferQueue)
-        {
-            HandlePendingTransferSubmits();
-        }
-        
+
+        _collected = renderers.Select(c => c.Collect()).Where(c => c != null).Select(c => c!).ToArray();
+    }
+
+    /// <summary>
+    ///     Resolve pending transfer submits and call <see cref="IRenderer.Execute" /> on all collected
+    ///     <see cref="IRenderer" />
+    /// </summary>
+    public void Execute()
+    {
+        if (!_hasDedicatedTransferQueue) HandlePendingTransferSubmits();
+
         {
             HandlePendingGraphicsSubmits();
         }
-        
-        
-        foreach (var renderer in toDraw)
-            renderer.Draw();
-                
+
+        foreach (var context in _collected) context.Renderer.Execute(context);
     }
 }

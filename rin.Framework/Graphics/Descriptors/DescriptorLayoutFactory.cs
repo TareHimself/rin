@@ -1,27 +1,24 @@
 ﻿using rin.Framework.Core;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
+
 namespace rin.Framework.Graphics.Descriptors;
 
-public class DescriptorLayoutFactory : Factory<VkDescriptorSetLayout,VkDescriptorSetLayoutCreateInfo,string>
+public class DescriptorLayoutFactory : Factory<VkDescriptorSetLayout, VkDescriptorSetLayoutCreateInfo, string>
 {
-    
     protected override void OnDispose(bool isManual)
     {
         var device = SGraphicsModule.Get().GetDevice();
         unsafe
         {
-            foreach (var (_,layout) in GetData())
-            {
-                vkDestroyDescriptorSetLayout(device,layout,null);
-            }
+            foreach (var (_, layout) in GetData()) vkDestroyDescriptorSetLayout(device, layout, null);
         }
     }
 
     protected override string ToInternalKey(VkDescriptorSetLayoutCreateInfo key)
     {
         var result = ((int)key.flags).ToString();
-        
+
         unsafe
         {
             for (var i = 0; i < key.bindingCount; i++)
@@ -43,6 +40,7 @@ public class DescriptorLayoutFactory : Factory<VkDescriptorSetLayout,VkDescripto
             var device = SGraphicsModule.Get().GetDevice();
             vkCreateDescriptorSetLayout(device, &key, null, &layout);
         }
+
         return layout;
     }
 }

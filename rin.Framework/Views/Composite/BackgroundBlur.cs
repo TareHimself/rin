@@ -1,22 +1,10 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using rin.Framework.Core.Math;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Commands;
-using rin.Framework.Core;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.Descriptors;
-using rin.Framework.Graphics.Shaders;
-using rin.Framework.Views.Enums;
-using rin.Framework.Views.Graphics.Quads;
-using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
-
-
-
-
 
 // internal class BlurCommand : Command
 // {
@@ -55,25 +43,20 @@ namespace rin.Framework.Views.Composite;
 //     }
 // }
 
-
 public class BackgroundBlur : SingleSlotCompositeView
 {
-    [PublicAPI]
-    public Color Tint = Color.White;
-    [PublicAPI]
-    public float Strength { get; set; } = 5.0f;
-    [PublicAPI]
-    public float Radius { get; set; } = 3.0f;
+    [PublicAPI] public Color Tint = Color.White;
+
+    [PublicAPI] public float Strength { get; set; } = 5.0f;
+
+    [PublicAPI] public float Radius { get; set; } = 3.0f;
 
     protected override Vector2 ComputeDesiredContentSize()
     {
-        if (GetSlot() is { } slot)
-        {
-            return slot.Child.GetDesiredSize();
-        }
+        if (GetSlot() is { } slot) return slot.Child.GetDesiredSize();
         return new Vector2();
     }
-    
+
     // public override void Collect(ViewFrame frame, TransformInfo info)
     // {
     //     frame.AddCommands(new ReadBack(),new BlurCommand(_materialInstance, new BlurPushConstants
@@ -97,9 +80,10 @@ public class BackgroundBlur : SingleSlotCompositeView
         if (IsVisible && Strength > 0.0f && Radius > 0.0f)
         {
             passCommands.Add(new ReadBack());
-            passCommands.Add(new BlurCommand(transform,Size,Strength,Radius,Tint));
+            passCommands.Add(new BlurCommand(transform, Size, Strength, Radius, Tint));
         }
-        base.Collect(transform,clip, passCommands);
+
+        base.Collect(transform, clip, passCommands);
     }
 
     protected override Vector2 ArrangeContent(Vector2 availableSpace)

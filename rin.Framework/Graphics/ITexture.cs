@@ -3,7 +3,7 @@ namespace rin.Framework.Graphics;
 public interface ITexture
 {
     public IDeviceImage? Image { get; }
-    
+
     public int Id { get; }
     public ImageFilter Filter { get; }
     public ImageTiling Tiling { get; }

@@ -1,30 +1,19 @@
-﻿using System.Collections.Concurrent;
-using System.Numerics;
-using rin.Framework.Core.Math;
+﻿using System.Numerics;
 using rin.Framework.Views.Composite;
-using rin.Framework.Views.Enums;
 
 namespace rin.Framework.Views.Layouts;
 
 public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 {
-    protected readonly ConcurrentDictionary<View, ISlot> _viewSlotMap = [];
-    protected readonly List<ISlot> _slots = [];
+    private readonly Dictionary<View, ISlot> _slotMap = [];
+    private readonly List<ISlot> _slots = [];
 
     public virtual int MaxSlotCount => int.MaxValue;
-    public int SlotCount {
-        get
-        {
-            lock (_slots)
-            {
-                return _slots.Count;
-            }
-        }
-    }
+    public int SlotCount => _slots.Count;
     public abstract CompositeView Container { get; }
 
     public abstract void Dispose();
-    
+
     public bool Add(View child)
     {
         return Add(MakeSlot(child));
@@ -33,17 +22,17 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
     public bool Add(ISlot slot)
     {
         var added = false;
-        
-        lock (_slots)
+
+        // lock (_slots)
+        // {
+        if (_slots.Count != MaxSlotCount)
         {
-            if (_slots.Count != MaxSlotCount)
-            {
-                var view = slot.Child;
-                _slots.Add(slot);
-                _viewSlotMap.TryAdd(view, slot);
-                added = true;
-            }
+            var view = slot.Child;
+            _slots.Add(slot);
+            _slotMap.TryAdd(view, slot);
+            added = true;
         }
+        // }
 
         if (added)
         {
@@ -51,33 +40,34 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
             slot.OnAddedToLayout(this);
             Container.OnChildAdded(slot.Child);
         }
-        
+
         return added;
     }
 
     public bool Remove(View view)
     {
         var removed = false;
-        
-        lock (_slots)
+
+        // lock (_slots)
+        // {
+        for (var i = 0; i < _slots.Count; i++)
         {
-            for (var i = 0; i < _slots.Count; i++)
-            {
-                if (_slots[i].Child != view) continue;
-                _slots[i].OnRemovedFromLayout(this);
-                _slots.RemoveAt(i);
-                _viewSlotMap.TryRemove(view, out var _);
-                removed = true;
-                break;
-            }
+            if (_slots[i].Child != view) continue;
+            _slots[i].OnRemovedFromLayout(this);
+            _slots.RemoveAt(i);
+            _slotMap.Remove(view);
+            //_slotMap.TryRemove(view, out var _);
+            removed = true;
+            break;
         }
+        // }
 
         if (removed)
         {
             view.SetParent(null);
             Container.OnChildRemoved(view);
         }
-        
+
         return removed;
     }
 
@@ -85,18 +75,18 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 
     public ISlot? GetSlot(int idx)
     {
-        lock (_slots)
-        {
-            return _slots[idx];
-        }
+        // lock (_slots)
+        // {
+        return _slots[idx];
+        // }
     }
 
     public IEnumerable<ISlot> GetSlots()
     {
-        lock (_slots)
-        {
-            return _slots.ToArray();
-        }
+        // lock (_slots)
+        // {
+        return _slots.ToArray();
+        //}
     }
 
     public abstract void OnSlotUpdated(ISlot slot);
@@ -106,13 +96,10 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 
     public ISlot? FindSlot(View view)
     {
-        lock (_slots)
-        {
-            if (_viewSlotMap.TryGetValue(view, out var value))
-            {
-                return value;
-            }
-        }
+        // lock (_slots)
+        // {
+        if (_slotMap.TryGetValue(view, out var value)) return value;
+        // }
 
         return null;
     }

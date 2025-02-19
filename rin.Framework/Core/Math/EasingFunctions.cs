@@ -1,7 +1,7 @@
 ﻿namespace rin.Framework.Core.Math;
 
 /// <summary>
-/// Set of easing functions generated using OpenAI GPT4
+///     Set of easing functions generated using OpenAI GPT4
 /// </summary>
 public static class EasingFunctions
 {
@@ -133,7 +133,7 @@ public static class EasingFunctions
     {
         s *= 1.525;
         return alpha < 0.5
-            ? (System.Math.Pow(2 * alpha, 2) * ((s + 1) * 2 * alpha - s)) / 2
+            ? System.Math.Pow(2 * alpha, 2) * ((s + 1) * 2 * alpha - s) / 2
             : (System.Math.Pow(2 * alpha - 2, 2) * ((s + 1) * (alpha * 2 - 2) + s) + 2) / 2;
     }
 
@@ -145,21 +145,12 @@ public static class EasingFunctions
     public static double EaseOutBounce(double alpha)
     {
         if (alpha < 1 / 2.75)
-        {
             return 7.5625 * alpha * alpha;
-        }
-        else if (alpha < 2 / 2.75)
-        {
+        if (alpha < 2 / 2.75)
             return 7.5625 * (alpha -= 1.5 / 2.75) * alpha + 0.75;
-        }
-        else if (alpha < 2.5 / 2.75)
-        {
+        if (alpha < 2.5 / 2.75)
             return 7.5625 * (alpha -= 2.25 / 2.75) * alpha + 0.9375;
-        }
-        else
-        {
-            return 7.5625 * (alpha -= 2.625 / 2.75) * alpha + 0.984375;
-        }
+        return 7.5625 * (alpha -= 2.625 / 2.75) * alpha + 0.984375;
     }
 
     public static double EaseInOutBounce(double alpha)

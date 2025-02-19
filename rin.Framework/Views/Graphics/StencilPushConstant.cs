@@ -1,8 +1,6 @@
-﻿using System.Runtime.InteropServices;
-using rin.Framework.Core.Math;
+﻿using rin.Framework.Core.Math;
 
 namespace rin.Framework.Views.Graphics;
-
 
 public struct StencilPushConstant
 {

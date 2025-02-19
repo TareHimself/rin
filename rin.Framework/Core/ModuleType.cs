@@ -2,18 +2,18 @@
 
 public class ModuleType
 {
+    public readonly HashSet<Type> Dependencies;
     public readonly Type Module;
     public readonly ModuleAttribute ModuleAttribute;
-    public readonly HashSet<Type> Dependencies;
-    public bool HasResolvedDependencies;
     public bool AlwaysLoad;
+    public bool HasResolvedDependencies;
 
     public ModuleType(Type module, ModuleAttribute moduleAttribute)
     {
         Module = module;
         ModuleAttribute = moduleAttribute;
         HasResolvedDependencies = false;
-       
+
         Dependencies = ModuleAttribute.Dependencies.ToHashSet();
         {
             AlwaysLoad = Attribute.GetCustomAttribute(module, typeof(AlwaysLoadAttribute)) != null;

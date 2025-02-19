@@ -4,8 +4,8 @@ namespace rin.Framework.Core.Math;
 
 public class ParamsEnumerator<T>(params T[] data) : IEnumerator<T>
 {
-    private int _index = 0;
-    
+    private int _index;
+
     public void Dispose()
     {
         // TODO release managed resources here
@@ -13,7 +13,7 @@ public class ParamsEnumerator<T>(params T[] data) : IEnumerator<T>
 
     public bool MoveNext()
     {
-        return (++_index) < data.Length;
+        return ++_index < data.Length;
     }
 
     public void Reset()

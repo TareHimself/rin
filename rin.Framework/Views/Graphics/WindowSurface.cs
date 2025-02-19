@@ -1,10 +1,12 @@
 ﻿using System.Numerics;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
+using rin.Framework.Graphics.FrameGraph;
 using rin.Framework.Graphics.Windows;
 using rin.Framework.Graphics.Windows.Events;
 using rin.Framework.Views.Events;
 using TerraFX.Interop.Vulkan;
+using ResizeEvent = rin.Framework.Graphics.Windows.Events.ResizeEvent;
 using Views_Events_CharacterEvent = rin.Framework.Views.Events.CharacterEvent;
 using Views_Events_CursorMoveEvent = rin.Framework.Views.Events.CursorMoveEvent;
 using Views_Events_ResizeEvent = rin.Framework.Views.Events.ResizeEvent;
@@ -20,18 +22,22 @@ namespace rin.Framework.Views.Graphics;
 /// </summary>
 public class WindowSurface : Surface
 {
-    private readonly WindowRenderer _renderer;
+    private readonly IWindowRenderer _renderer;
     public bool Minimized;
     public Vec2<int> Size;
 
-    public WindowSurface(WindowRenderer renderer)
+    public WindowSurface(IWindowRenderer renderer)
     {
         _renderer = renderer;
         Size = Window.GetPixelSize().Cast<int>();
     }
 
     public IWindow Window => _renderer.GetWindow();
-    public WindowRenderer GetRenderer() => _renderer;
+
+    public IWindowRenderer GetRenderer()
+    {
+        return _renderer;
+    }
 
     public void CopyToSwapchain(Frame frame, VkImage swapchainImage, VkExtent2D extent)
     {
@@ -47,26 +53,31 @@ public class WindowSurface : Surface
         Window.OnScrolled += OnScroll;
         Window.OnKey += OnKeyboard;
         Window.OnCharacter += OnCharacter;
-        _renderer.OnDraw += Draw;
-        _renderer.OnCopy += CopyToSwapchain;
-        _renderer.OnResize += OnRendererResized;
+        _renderer.OnCollect += Collect;
+        Window.OnResized += OnWindowResized;
     }
 
-    protected void OnRendererResized(Vec2<uint> size)
+    private void Collect(IGraphBuilder builder)
     {
-        Size = size.Cast<int>();
+        if (Stats.InitialCommandCount != 0) Stats = new FrameStats();
+        if (ComputePassInfo() is { } passInfo) builder.AddPass(new WindowSurfacePass(this, GetDrawSize(), passInfo));
+    }
+
+    protected void OnWindowResized(ResizeEvent e)
+    {
+        Size = e.Size.Cast<int>();
         Minimized = Size.X == 0 || Size.Y == 0;
         if (!Minimized) ReceiveResize(new Views_Events_ResizeEvent(this, Size.Clone()));
     }
-    
+
     protected void OnKeyboard(KeyEvent e)
     {
-        ReceiveKeyboard(new KeyboardEvent(this,e.Key,e.State));
+        ReceiveKeyboard(new KeyboardEvent(this, e.Key, e.State));
     }
-    
+
     protected void OnCharacter(Windows_Events_CharacterEvent e)
     {
-        ReceiveCharacter(new Views_Events_CharacterEvent(this,e.Data,e.Modifiers));
+        ReceiveCharacter(new Views_Events_CharacterEvent(this, e.Data, e.Modifiers));
     }
 
     protected void OnMouseButton(CursorButtonEvent e)
@@ -74,10 +85,10 @@ public class WindowSurface : Surface
         switch (e.State)
         {
             case InputState.Released:
-                ReceiveCursorUp(new CursorUpEvent(this,e.Button,e.Position));
+                ReceiveCursorUp(new CursorUpEvent(this, e.Button, e.Position));
                 break;
             case InputState.Pressed:
-                ReceiveCursorDown(new CursorDownEvent(this,e.Button, e.Position));
+                ReceiveCursorDown(new CursorDownEvent(this, e.Button, e.Position));
                 break;
             case InputState.Repeat:
                 break;
@@ -100,19 +111,13 @@ public class WindowSurface : Surface
     protected override void OnDispose(bool isManual)
     {
         base.OnDispose(isManual);
-        _renderer.OnResize -= OnRendererResized;
+        Window.OnResized -= OnWindowResized;
+        _renderer.OnCollect -= Collect;
         Window.OnCursorButton -= OnMouseButton;
         Window.OnCursorMoved -= OnMouseMove;
         Window.OnScrolled -= OnScroll;
         Window.OnKey -= OnKeyboard;
         Window.OnCharacter -= OnCharacter;
-        _renderer.OnDraw -= Draw;
-        _renderer.OnCopy -= CopyToSwapchain;
-    }
-
-    public override void Draw(Frame frame)
-    {
-        if (!Minimized) base.Draw(frame);
     }
 
     public override Vector2 GetCursorPosition()
@@ -127,6 +132,6 @@ public class WindowSurface : Surface
 
     public override Vector2 GetDrawSize()
     {
-        return new Vector2(Size.X,Size.Y);
+        return new Vector2(Size.X, Size.Y);
     }
 }

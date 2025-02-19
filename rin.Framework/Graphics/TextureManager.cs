@@ -1,26 +1,25 @@
 ﻿using rin.Framework.Core;
-using rin.Framework.Core.Extensions;
 using rin.Framework.Graphics.Descriptors;
 using rin.Framework.Views;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace rin.Framework.Graphics;
 
 public class TextureManager : ITextureManager
 {
     private static readonly uint MAX_TEXTURES = 2048;
-    private readonly Mutex _mutex = new();
-    private readonly DescriptorAllocator _allocator = new DescriptorAllocator(MAX_TEXTURES, [
+
+    private readonly DescriptorAllocator _allocator = new(MAX_TEXTURES, [
         new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1.0f)
     ], VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
     private readonly HashSet<int> _availableIndices = [];
-    private readonly List<Texture> _textures = [];
     private readonly DescriptorSet _descriptorSet;
-    private uint _count = 0;
+    private readonly Mutex _mutex = new();
+    private readonly List<Texture> _textures = [];
+    private uint _count;
 
     // public class BoundTexture : ITexture
     // {
@@ -63,70 +62,28 @@ public class TextureManager : ITextureManager
 
             _descriptorSet = _allocator.Allocate(layout, MAX_TEXTURES);
         }
-        
+
         _textures.Add(new Texture());
 
         LoadDefaultTexture().ConfigureAwait(false);
     }
 
-    public async Task LoadDefaultTexture()
+    public DescriptorSet GetDescriptorSet()
     {
-        var defaultTexturePath = Path.Join(SRuntime.FrameworkAssetsDirectory, "textures", "default.png");
-        using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(defaultTexturePath);
-        using var buffer = imgData.ToBuffer();
-        var tex = _textures[0];
-        tex.Image = await SGraphicsModule.Get().CreateImage(
-            buffer,
-            new Extent3D
-            {
-                Width = (uint)imgData.Width,
-                Height = (uint)imgData.Height,
-            },
-            ImageFormat.RGBA8,
-            VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT,
-            true
-            );
-
-        List<ImageWrite> writes = [];
-
-        var sampler = new SamplerSpec()
-        {
-            Filter = ImageFilter.Linear,
-            Tiling = ImageTiling.Repeat
-        };
-        
-        for (var i = 0; i < MAX_TEXTURES; i++)
-        {
-            var info = i < _textures.Count ? _textures[i] : null;
-            
-            if(info?.Valid == true && i != 0) continue;
-            
-            writes.Add(new ImageWrite(tex.Image,ImageLayout.ShaderReadOnly,ImageType.Sampled,sampler)
-            {
-                Index = (uint)i
-            });
-        }
-
-        if (writes.Count != 0)
-        {
-            _descriptorSet.WriteImages(0, writes.ToArray());
-        }
+        return _descriptorSet;
     }
 
-    public DescriptorSet GetDescriptorSet() => _descriptorSet;
 
-    
     public async Task<int> CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mipMapped = false, string debugName = "Texture")
     {
-        
         var image = await SGraphicsModule.Get().CreateImage(data, size, format,
             VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mipMapped, filter, debugName);
 
-        var boundText = new Texture(0,image, filter, tiling, mipMapped, debugName);
-        
-       lock (_mutex)
+        var boundText = new Texture(0, image, filter, tiling, mipMapped, debugName);
+
+        lock (_mutex)
         {
             int textureId;
 
@@ -155,7 +112,7 @@ public class TextureManager : ITextureManager
         {
             List<ImageWrite> writes = [];
 
-            var sampler = new SamplerSpec()
+            var sampler = new SamplerSpec
             {
                 Filter = ImageFilter.Linear,
                 Tiling = ImageTiling.Repeat
@@ -175,50 +132,19 @@ public class TextureManager : ITextureManager
                 _availableIndices.Add(textureId);
 
                 if (defaultTexture != null)
-                {
                     writes.Add(new ImageWrite(defaultTexture, ImageLayout.ShaderReadOnly, ImageType.Sampled, sampler)
                     {
                         Index = (uint)textureId
                     });
-                }
             }
 
-            if (writes.Count != 0)
-            {
-                _descriptorSet.WriteImages(0, writes.ToArray());
-            }
+            if (writes.Count != 0) _descriptorSet.WriteImages(0, writes.ToArray());
         }
     }
 
     public ITexture? GetTexture(int textureId)
     {
         return IsTextureIdValid(textureId) ? _textures[textureId] : null;
-    }
-
-    private void UpdateTextures(params int[] textureIds)
-    {
-        List<ImageWrite> writes = [];
-
-        foreach (var textureId in textureIds)
-        {
-            var info = _textures[textureId];
-
-            if (!info.Valid || info.Image is null) continue;
-            
-            writes.Add(new ImageWrite(info.Image,ImageLayout.ShaderReadOnly,ImageType.Sampled,new SamplerSpec()
-            {
-                Filter = info.Filter,
-                Tiling = info.Tiling
-            })
-            {
-                Index = (uint)textureId
-            });
-        }
-
-        if (writes.Count != 0)
-        {
-            _descriptorSet.WriteImages(0, writes.ToArray());
-        }
     }
 
     public IDeviceImage? GetTextureImage(int textureId)
@@ -235,21 +161,87 @@ public class TextureManager : ITextureManager
         return textureId < _textures.Count;
     }
 
-    public uint GetMaxTextures() => MAX_TEXTURES;
+    public uint GetMaxTextures()
+    {
+        return MAX_TEXTURES;
+    }
 
-    public uint GetTexturesCount() => _count;
+    public uint GetTexturesCount()
+    {
+        return _count;
+    }
 
     public void Dispose()
     {
         _allocator.Dispose();
         foreach (var boundTexture in _textures)
-        {
             if (boundTexture.Valid)
-            {
                 boundTexture.Image!.Dispose();
-            }
-        }
 
         _textures.Clear();
+    }
+
+    public async Task LoadDefaultTexture()
+    {
+        var defaultTexturePath = Path.Join(SRuntime.FrameworkAssetsDirectory, "textures", "default.png");
+        using var imgData = await Image.LoadAsync<Rgba32>(defaultTexturePath);
+        using var buffer = imgData.ToBuffer();
+        var tex = _textures[0];
+        tex.Image = await SGraphicsModule.Get().CreateImage(
+            buffer,
+            new Extent3D
+            {
+                Width = (uint)imgData.Width,
+                Height = (uint)imgData.Height
+            },
+            ImageFormat.RGBA8,
+            VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT,
+            true
+        );
+
+        List<ImageWrite> writes = [];
+
+        var sampler = new SamplerSpec
+        {
+            Filter = ImageFilter.Linear,
+            Tiling = ImageTiling.Repeat
+        };
+
+        for (var i = 0; i < MAX_TEXTURES; i++)
+        {
+            var info = i < _textures.Count ? _textures[i] : null;
+
+            if (info?.Valid == true && i != 0) continue;
+
+            writes.Add(new ImageWrite(tex.Image, ImageLayout.ShaderReadOnly, ImageType.Sampled, sampler)
+            {
+                Index = (uint)i
+            });
+        }
+
+        if (writes.Count != 0) _descriptorSet.WriteImages(0, writes.ToArray());
+    }
+
+    private void UpdateTextures(params int[] textureIds)
+    {
+        List<ImageWrite> writes = [];
+
+        foreach (var textureId in textureIds)
+        {
+            var info = _textures[textureId];
+
+            if (!info.Valid || info.Image is null) continue;
+
+            writes.Add(new ImageWrite(info.Image, ImageLayout.ShaderReadOnly, ImageType.Sampled, new SamplerSpec
+            {
+                Filter = info.Filter,
+                Tiling = info.Tiling
+            })
+            {
+                Index = (uint)textureId
+            });
+        }
+
+        if (writes.Count != 0) _descriptorSet.WriteImages(0, writes.ToArray());
     }
 }

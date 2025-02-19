@@ -77,7 +77,7 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
         DepthMaterialBufferId = depthMaterialDataSize > 0 ? config.AllocateBuffer(depthMaterialDataSize) : 0;
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, VkCommandBuffer cmd)
+    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
         var sceneDataBuffer = graph.GetBuffer(DepthSceneBufferId);
         var materialDataBuffer = DepthMaterialBufferId > 0 ? graph.GetBuffer(DepthMaterialBufferId) : null;
@@ -85,7 +85,7 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
 
         DepthImage = graph.GetImage(DepthImageId).AsImage();
 
-        cmd.ImageBarrier(DepthImage, ImageLayout.Undefined, ImageLayout.General, new ImageBarrierOptions()
+        context.ImageBarrier(DepthImage, ImageLayout.Undefined, ImageLayout.General, new ImageBarrierOptions()
             {
                 SubresourceRange =
                     SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
@@ -99,8 +99,8 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
 
         var depthAttachment = DepthImage.MakeDepthAttachmentInfo();
 
-        cmd.BeginRendering(Size.ToVkExtent(), [], depthAttachment);
-        cmd
+        context.BeginRendering(Size.ToVkExtent(), [], depthAttachment);
+        context
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
             .DisableStencilTest(false)
@@ -155,7 +155,7 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
             first.MeshMaterial.DepthPass.Execute(sceneFrame, view, infos);
         }
 
-        cmd.EndRendering();
+        context.EndRendering();
     }
 
     public uint Id { get; set; }

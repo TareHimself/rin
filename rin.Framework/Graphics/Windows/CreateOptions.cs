@@ -2,7 +2,6 @@
 
 namespace rin.Framework.Graphics.Windows;
 
-
 public struct CreateOptions()
 {
     /// <summary>
@@ -43,9 +42,8 @@ public struct CreateOptions()
     ///     Whether the cursor should be centered over newly created full screen windows.
     /// </summary>
     [MarshalAs(UnmanagedType.U1)] public bool CursorCentered = false;
-    
+
     /// <summary>
-    /// 
     /// </summary>
     [MarshalAs(UnmanagedType.U1)] public bool Transparent = false;
 }

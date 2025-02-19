@@ -1,11 +1,8 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace rin.Framework.Core.Math;
 
-
-public partial struct Quat(float inX, float inY, float inZ, float inW)
+public struct Quat(float inX, float inY, float inZ, float inW)
     : ICloneable<Quat>,
         IMultiplyOperators<Quat, Quat, Quat>,
         IMultiplyOperators<Quat, Vector3, Vector3>
@@ -21,8 +18,6 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
     {
     }
 
-
-    
 
     public static Quat FromAngle(float angle, Vector3 axis)
     {
@@ -49,15 +44,19 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
 
     public Vector3 Up => this * Constants.UpVector;
 
-    public static explicit operator Quat(Rotator rotator) => Quat.FromAngle(0,Constants.ForwardVector).ApplyPitch(rotator.Pitch).ApplyYaw(rotator.Yaw).ApplyRoll(rotator.Roll);
-    
-    public static Quat LookAt(Vector3 from,Vector3 to, Vector3 up)
+    public static explicit operator Quat(Rotator rotator)
+    {
+        return FromAngle(0, Constants.ForwardVector).ApplyPitch(rotator.Pitch).ApplyYaw(rotator.Yaw)
+            .ApplyRoll(rotator.Roll);
+    }
+
+    public static Quat LookAt(Vector3 from, Vector3 to, Vector3 up)
     {
         var result = new Quat();
-        NativeMethods.NativeQuatLookAt(ref result,ref from,ref to, ref up);
+        NativeMethods.NativeQuatLookAt(ref result, ref from, ref to, ref up);
         return result;
     }
-    
+
     public Quat ApplyPitch(float delta)
     {
         return this * FromAngleDeg(delta, Constants.RightVector);
@@ -88,18 +87,16 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
         return this * FromAngleDeg(delta, Up);
     }
 
-    
 
     public static Quat operator *(Quat left, Quat right)
     {
         var result = Zero;
 
-        NativeMethods.NativeMultiplyQuatQuat(ref result,ref left,ref right);
+        NativeMethods.NativeMultiplyQuatQuat(ref result, ref left, ref right);
 
         return result;
     }
 
-    
 
     public static Vector3 operator *(Quat left, Vector3 right)
     {
@@ -119,8 +116,8 @@ public partial struct Quat(float inX, float inY, float inZ, float inW)
         NativeMethods.NativeQuatToMatrix4(ref r, ref quat);
         return r;
     }
-    
-    public void Deconstruct(out float x, out float y, out float z,out float w)
+
+    public void Deconstruct(out float x, out float y, out float z, out float w)
     {
         x = X;
         y = Y;

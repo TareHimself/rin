@@ -1,7 +1,5 @@
-﻿using rin.Framework.Core;
-using TerraFX.Interop.Vulkan;
+﻿using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkStructureType;
-using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace rin.Framework.Graphics.Descriptors;
 
@@ -11,7 +9,7 @@ public class DescriptorLayoutBuilder
     private readonly Dictionary<uint, VkDescriptorBindingFlags> _flags = [];
 
     public DescriptorLayoutBuilder AddBinding(uint binding, VkDescriptorType type, VkShaderStageFlags stages,
-        uint count = 1,VkDescriptorBindingFlags bindingFlags = 0)
+        uint count = 1, VkDescriptorBindingFlags bindingFlags = 0)
     {
         if (_bindings.TryGetValue(binding, out var existing))
         {
@@ -28,9 +26,9 @@ public class DescriptorLayoutBuilder
             descriptorCount = count,
             binding = binding
         };
-        
+
         _bindings.Add(binding, newBinding);
-        _flags.Add(binding,bindingFlags);
+        _flags.Add(binding, bindingFlags);
         return this;
     }
 
@@ -49,16 +47,14 @@ public class DescriptorLayoutBuilder
         var allFlags = new List<VkDescriptorBindingFlags>();
 
         VkDescriptorSetLayoutCreateFlags setLayoutCreateFlags = 0;
-        foreach (var (binding,info) in _bindings)
+        foreach (var (binding, info) in _bindings)
         {
             var flags = _flags[binding];
             bindings.Add(info);
             allFlags.Add(flags);
-            if ((flags & VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT) != (VkDescriptorBindingFlags)0)
-            {
+            if ((flags & VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT) != 0)
                 setLayoutCreateFlags |= VkDescriptorSetLayoutCreateFlags
                     .VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-            }
         }
 
         VkDescriptorSetLayoutBindingFlagsCreateInfo pNext = default;
@@ -80,7 +76,7 @@ public class DescriptorLayoutBuilder
         }
 
         createInfo.pNext = &pNext;
-        
+
         return SGraphicsModule.Get().GetDescriptorSetLayout(createInfo);
     }
 }

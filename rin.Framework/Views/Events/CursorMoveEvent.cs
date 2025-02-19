@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Graphics;
 
 namespace rin.Framework.Views.Events;

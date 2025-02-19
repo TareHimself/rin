@@ -1,13 +1,14 @@
-﻿using System.Collections;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace rin.Framework.Core.Extensions;
 
 public static class TaskExtensions
 {
+    public static IEnumerable<T> WaitAll<T>(this IEnumerable<Task<T>> tasks)
+    {
+        return tasks.Select(c => c.WaitForResult());
+    }
 
-    public static IEnumerable<T> WaitAll<T>(this IEnumerable<Task<T>> tasks) => tasks.Select(c => c.WaitForResult());
-    
     public static async Task<TV> Then<T, TV>(this Task<T> task, Func<T, TV> then)
     {
         var result = await task;
@@ -31,9 +32,15 @@ public static class TaskExtensions
         then();
     }
 
-    public static ConfiguredTaskAwaitable After<T>(this Task<T> task, Action<T> then) => task.Then(then).ConfigureAwait(false);
-    
-    public static ConfiguredTaskAwaitable After(this Task task, Action then) => task.Then(then).ConfigureAwait(false);
+    public static ConfiguredTaskAwaitable After<T>(this Task<T> task, Action<T> then)
+    {
+        return task.Then(then).ConfigureAwait(false);
+    }
+
+    public static ConfiguredTaskAwaitable After(this Task task, Action then)
+    {
+        return task.Then(then).ConfigureAwait(false);
+    }
 
     public static T WaitForResult<T>(this Task<T> task)
     {

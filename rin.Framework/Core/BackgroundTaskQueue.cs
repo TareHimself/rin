@@ -4,37 +4,23 @@ namespace rin.Framework.Core;
 
 public class BackgroundTaskQueue : Disposable
 {
+    private readonly BlockingCollection<PendingTask> _pendingTasks = [];
 
     private Task _longTask;
     private Thread _taskThread;
 
-    private class PendingTask
-    {
-        public Action Fn;
-        public TaskCompletionSource Pending;
-
-        public PendingTask(Action fn, TaskCompletionSource pending)
-        {
-            Fn = fn;
-            Pending = pending;
-        }
-    }
-
-    private readonly BlockingCollection<PendingTask> _pendingTasks = [];
-    
     public BackgroundTaskQueue()
     {
         _longTask = Task.Factory.StartNew(() =>
         {
             _taskThread = Thread.CurrentThread;
-            
+
             foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable())
             {
                 pendingTask.Fn();
                 pendingTask.Pending.SetResult();
             }
-            
-        },TaskCreationOptions.LongRunning);
+        }, TaskCreationOptions.LongRunning);
     }
 
     private void RunTask(PendingTask task)
@@ -49,19 +35,16 @@ public class BackgroundTaskQueue : Disposable
             task.Pending.SetException(e);
         }
     }
+
     public Task Enqueue(Action task)
     {
-        var newPending = new PendingTask(task,new TaskCompletionSource());
-        
+        var newPending = new PendingTask(task, new TaskCompletionSource());
+
         if (_taskThread == Thread.CurrentThread)
-        {
             RunTask(newPending);
-        }
         else
-        {
             _pendingTasks.Add(newPending);
-        }
-        
+
         return newPending.Pending.Task;
     }
 
@@ -69,39 +52,36 @@ public class BackgroundTaskQueue : Disposable
     {
         _pendingTasks.CompleteAdding();
     }
-}
 
-public class BackgroundTaskQueue<T> : Disposable
-{
-
-    private Task _longTask;
-    private Thread? _taskThread;
-    public class PendingTask
+    private class PendingTask
     {
-        public Func<T> Fn;
-        public TaskCompletionSource<T> Pending;
+        public readonly Action Fn;
+        public readonly TaskCompletionSource Pending;
 
-        public PendingTask(Func<T> fn, TaskCompletionSource<T> pending)
+        public PendingTask(Action fn, TaskCompletionSource pending)
         {
             Fn = fn;
             Pending = pending;
         }
     }
+}
 
+public class BackgroundTaskQueue<T> : Disposable
+{
     private readonly BlockingCollection<PendingTask> _pendingTasks = [];
-    
+
+    private Task _longTask;
+    private Thread? _taskThread;
+
     public BackgroundTaskQueue()
     {
         _longTask = Task.Factory.StartNew(() =>
         {
             _taskThread = Thread.CurrentThread;
-            
+
             foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable())
-            {
                 pendingTask.Pending.SetResult(pendingTask.Fn());
-            }
-            
-        },TaskCreationOptions.LongRunning);
+        }, TaskCreationOptions.LongRunning);
     }
 
     private void RunTask(PendingTask task)
@@ -115,24 +95,33 @@ public class BackgroundTaskQueue<T> : Disposable
             task.Pending.SetException(e);
         }
     }
+
     public Task<T> Enqueue(Func<T> task)
     {
-        var newPending = new PendingTask(task,new TaskCompletionSource<T>());
-        
+        var newPending = new PendingTask(task, new TaskCompletionSource<T>());
+
         if (_taskThread == Thread.CurrentThread)
-        {
             RunTask(newPending);
-        }
         else
-        {
             _pendingTasks.Add(newPending);
-        }
-        
+
         return newPending.Pending.Task;
     }
 
     protected override void OnDispose(bool isManual)
     {
         _pendingTasks.CompleteAdding();
+    }
+
+    public class PendingTask
+    {
+        public Func<T> Fn;
+        public TaskCompletionSource<T> Pending;
+
+        public PendingTask(Func<T> fn, TaskCompletionSource<T> pending)
+        {
+            Fn = fn;
+            Pending = pending;
+        }
     }
 }

@@ -1,24 +1,24 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Views.Enums;
-using rin.Framework.Views.Events;
 using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
 /// <summary>
-/// A container that draws children on top of each other
+///     A container that draws children on top of each other
 /// </summary>
 public class Overlay : MultiSlotCompositeView<Slot>
 {
     private readonly OverlayLayout _layout;
 
-    public Overlay() : base()
+    public Overlay()
     {
         _layout = new OverlayLayout(this);
     }
-    
+
+    public override int SlotCount => _layout.SlotCount;
+
     protected override Vector2 ComputeDesiredContentSize()
     {
         return _layout.ComputeDesiredContentSize();
@@ -35,12 +35,28 @@ public class Overlay : MultiSlotCompositeView<Slot>
         Invalidate(invalidation);
     }
 
-    public override IEnumerable<ISlot> GetSlots() => _layout.GetSlots();
-    
-    public override IEnumerable<ISlot> GetHitTestableSlots() => _layout.GetSlots().AsReversed();
+    public override IEnumerable<ISlot> GetSlots()
+    {
+        return _layout.GetSlots();
+    }
 
-    public override int SlotCount => _layout.SlotCount;
-    public override bool Add(View child) => _layout.Add(child);
-    public override bool Add(Slot slot) => _layout.Add(slot);
-    public override bool Remove(View child) => _layout.Remove(child);
+    public override IEnumerable<ISlot> GetHitTestableSlots()
+    {
+        return _layout.GetSlots().AsReversed();
+    }
+
+    public override bool Add(View child)
+    {
+        return _layout.Add(child);
+    }
+
+    public override bool Add(Slot slot)
+    {
+        return _layout.Add(slot);
+    }
+
+    public override bool Remove(View child)
+    {
+        return _layout.Remove(child);
+    }
 }

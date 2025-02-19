@@ -1,6 +1,6 @@
 ﻿namespace rin.Framework.Views.Graphics;
 
-public class FrameStats
+public struct FrameStats
 {
     public int InitialCommandCount;
     public int FinalCommandCount;

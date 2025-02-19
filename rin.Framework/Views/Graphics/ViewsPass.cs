@@ -1,5 +1,5 @@
 using System.Numerics;
-using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using rin.Framework.Core;
 using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
@@ -13,128 +13,126 @@ namespace rin.Framework.Views.Graphics;
 
 public sealed class ViewsPass : IPass
 {
-    private uint _drawImageHandle;
-    private uint _copyImageHandle;
-    private uint _stencilImageHandle;
-    private uint _bufferResourceHandle;
-    public readonly Vector2 SurfaceSize;
     private readonly Vec2<uint> _drawSize;
-    private ulong _memoryNeeded = 0;
     private readonly List<Pair<ulong, ulong>> _offsets = [];
-    private readonly Surface _surface;
     private readonly PassInfo _passInfo;
+    private readonly Surface _surface;
+    public readonly Vector2 SurfaceSize;
 
-    public ViewsPass(Surface surface,PassInfo passInfo)
+    private uint _bufferResourceHandle;
+    private ulong _memoryNeeded;
+    private FrameStats _stats;
+
+    public ViewsPass(Surface surface, Vector2 drawSize, PassInfo passInfo)
     {
         _surface = surface;
         _passInfo = passInfo;
-        SurfaceSize = surface.GetDrawSize();
+        SurfaceSize = drawSize;
         _drawSize = SurfaceSize.Mutate(c => new Vec2<uint>((uint)c.X, (uint)c.Y));
+        _stats = surface.Stats;
     }
+
+    [PublicAPI] public uint MainImageId { get; set; }
+
+    [PublicAPI] public uint CopyImageId { get; set; }
+
+    [PublicAPI] public uint StencilImageId { get; set; }
+
+    public string Name => "View Pass";
+
+    [PublicAPI] public bool IsTerminal { get; set; }
 
     public void Dispose()
     {
-        
     }
 
     public void BeforeAdd(IGraphBuilder builder)
     {
-        foreach (var cmd in _passInfo.PreCommands)
-        {
-            cmd.BeforeAdd(builder);
-        }
-        
-        foreach (var cmd in _passInfo.PostCommands)
-        {
-            cmd.BeforeAdd(builder);
-        }
+        foreach (var cmd in _passInfo.PreCommands) cmd.BeforeAdd(builder);
+
+        foreach (var cmd in _passInfo.PostCommands) cmd.BeforeAdd(builder);
     }
 
     public void Configure(IGraphConfig config)
     {
-        foreach (var cmd in _passInfo.PreCommands)
-        {
-            cmd.Configure(config);
-        }
-        
-        foreach (var cmd in _passInfo.PostCommands)
-        {
-            cmd.Configure(config);
-        }
-        
-        _drawImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.RGBA32);
-        _copyImageHandle = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.RGBA32);
-        _stencilImageHandle = config.CreateImage( _drawSize.X, _drawSize.Y, ImageFormat.Stencil);
-        
+        foreach (var cmd in _passInfo.PreCommands) cmd.Configure(config);
+
+        MainImageId = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.RGBA32);
+        CopyImageId = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.RGBA32);
+        StencilImageId = config.CreateImage(_drawSize.X, _drawSize.Y, ImageFormat.Stencil);
+
         foreach (var drawCommand in _passInfo.Commands)
             if (drawCommand.Type == CommandType.BatchedDraw)
             {
                 var offset = _memoryNeeded;
-                
-                foreach (var size in drawCommand.Batch!.GetMemoryNeeded()) 
-                {
+
+                foreach (var size in drawCommand.Batch!.GetMemoryNeeded())
                     // memoryNeeded += size;
                     // var dist = memoryNeeded & minOffsetAlignment;
                     // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
                     _memoryNeeded += size;
-                }
-                _offsets.Add(new Pair<ulong, ulong>(offset,_memoryNeeded - offset));
+                _offsets.Add(new Pair<ulong, ulong>(offset, _memoryNeeded - offset));
             }
             else if (drawCommand.Type == CommandType.ClipDraw)
             {
                 var offset = _memoryNeeded;
                 _memoryNeeded += Utils.ByteSizeOf<StencilClip>(drawCommand.Clips.Length);
-                _offsets.Add(new Pair<ulong, ulong>(offset,_memoryNeeded - offset));
+                _offsets.Add(new Pair<ulong, ulong>(offset, _memoryNeeded - offset));
                 // var dist = memoryNeeded & minOffsetAlignment;
                 // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
             }
-            else if (drawCommand is { Type: CommandType.Custom, Custom: not null})
+            else if (drawCommand is { Type: CommandType.Custom, Custom: not null })
             {
                 var memoryNeeded = drawCommand.Custom.GetRequiredMemory();
-                
-                if(memoryNeeded == 0) continue;
-                
-                var offset = (_memoryNeeded);
-                
+
+                if (memoryNeeded == 0) continue;
+
+                var offset = _memoryNeeded;
+
                 _memoryNeeded += memoryNeeded;
-                
-                _offsets.Add(new Pair<ulong, ulong>(offset,_memoryNeeded - offset));
+
+                _offsets.Add(new Pair<ulong, ulong>(offset, _memoryNeeded - offset));
             }
 
 
-        if (_memoryNeeded > 0)
-        {
-            _bufferResourceHandle = config.AllocateBuffer(_memoryNeeded);
-        }
+        if (_memoryNeeded > 0) _bufferResourceHandle = config.AllocateBuffer(_memoryNeeded);
+
+        foreach (var cmd in _passInfo.PostCommands) cmd.Configure(config);
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, VkCommandBuffer cmd)
+    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
-        var drawImage = graph.GetImage(_drawImageHandle!).AsImage();
-        var copyImage = graph.GetImage(_copyImageHandle!).AsImage();
-        var stencilImage = graph.GetImage(_stencilImageHandle!).AsImage();
-        var buffer = _bufferResourceHandle > 0  ? graph.GetBuffer(_bufferResourceHandle) : null;
-        var viewFrame = new ViewsFrame(_surface, frame,SurfaceSize,drawImage, copyImage, stencilImage);
-        
+        var drawImage = graph.GetImage(MainImageId);
+        var copyImage = graph.GetImage(CopyImageId);
+        var stencilImage = graph.GetImage(StencilImageId);
+        var buffer = _bufferResourceHandle > 0 ? graph.GetBuffer(_bufferResourceHandle) : null;
+        var cmd = frame.GetCommandBuffer();
         var isWritingStencil = false;
         var isComparingStencil = false;
 
         var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
-        
-        _surface.Stats.FinalCommandCount = _passInfo.Commands.Count;
-        _surface.Stats.MemoryAllocatedBytes = _memoryNeeded;
+
+        _stats.FinalCommandCount = _passInfo.Commands.Count;
+        _stats.MemoryAllocatedBytes = _memoryNeeded;
         var offsetsAndSizes = _offsets.GetEnumerator();
         offsetsAndSizes.MoveNext();
-        
-        BeforeDraw(cmd,drawImage, copyImage, stencilImage);
-        
-        foreach (var command in _passInfo.PreCommands)
-        {
-            command.Execute(viewFrame);
-        }
-        
+
+        ResetStencilState(cmd);
+        cmd
+            .ImageBarrier(drawImage, ImageLayout.General)
+            .ImageBarrier(copyImage, ImageLayout.General)
+            .ImageBarrier(stencilImage, ImageLayout.General)
+            .ClearColorImages(new Vector4(0.0f), ImageLayout.General, drawImage, copyImage)
+            .ClearStencilImages(0, stencilImage.Layout, stencilImage)
+            .ImageBarrier(drawImage, ImageLayout.ColorAttachment)
+            .ImageBarrier(copyImage, ImageLayout.ShaderReadOnly)
+            .ImageBarrier(stencilImage, ImageLayout.General, ImageLayout.StencilAttachment);
+
+        var viewFrame = new ViewsFrame(_surface, frame, SurfaceSize, drawImage, copyImage, stencilImage, _stats);
+
+        foreach (var command in _passInfo.PreCommands) command.Execute(viewFrame);
+
         foreach (var command in _passInfo.Commands)
-        {
             switch (command.Type)
             {
                 case CommandType.None:
@@ -162,11 +160,11 @@ public sealed class ViewsPass : IPass
                                 { } stencilShader)
                         {
                             vkCmdSetStencilWriteMask(cmd, faceFlags, command.Mask);
-                            
-                            var (offset,size) = offsetsAndSizes.Current;
+
+                            var (offset, size) = offsetsAndSizes.Current;
                             offsetsAndSizes.MoveNext();
                             var view = buffer.GetView(offset, size);
-                            view.Write(command.Clips, (ulong)offset);
+                            view.Write(command.Clips, offset);
 
                             var push = new StencilPushConstant
                             {
@@ -213,8 +211,8 @@ public sealed class ViewsPass : IPass
                                 },
                                 extent = new VkExtent2D
                                 {
-                                    width = extent.width,
-                                    height = extent.height
+                                    width = extent.Width,
+                                    height = extent.Height
                                 }
                             }
                         };
@@ -227,7 +225,6 @@ public sealed class ViewsPass : IPass
                 case CommandType.Custom:
                 {
                     //BeginMainPass(viewFrame);
-
                     if (!isComparingStencil)
                     {
                         vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
@@ -251,10 +248,10 @@ public sealed class ViewsPass : IPass
                             var willUseMemory = command.Custom.GetRequiredMemory() > 0;
                             if (willUseMemory && buffer != null)
                             {
-                                var (offset,size) = offsetsAndSizes.Current;
+                                var (offset, size) = offsetsAndSizes.Current;
                                 offsetsAndSizes.MoveNext();
                                 var view = buffer.GetView(offset, size);
-                                command.Custom.Run(viewFrame,command.Mask,view);
+                                command.Custom.Run(viewFrame, command.Mask, view);
                             }
                             else
                             {
@@ -268,63 +265,22 @@ public sealed class ViewsPass : IPass
                             var (offset, size) = offsetsAndSizes.Current;
                             offsetsAndSizes.MoveNext();
                             var view = buffer.GetView(offset, size);
-                            batch.GetRenderer().Draw(viewFrame, batch,view);
+                            batch.GetRenderer().Draw(viewFrame, batch, view);
                             break;
                         }
                     }
                 }
                     break;
             }
-        }
 
-        if (viewFrame.IsAnyPassActive)
-        {
-            viewFrame.EndActivePass();
-        }
-        
-        foreach (var command in _passInfo.PostCommands)
-        {
-            command.Execute(viewFrame);
-        }
+        if (viewFrame.IsAnyPassActive) viewFrame.EndActivePass();
 
-        cmd.ImageBarrier(drawImage, ImageLayout.ColorAttachment, ImageLayout.TransferSrc);
-
-        frame.OnCopy += (_, image, extent) =>
-        {
-            cmd.CopyImageToImage(drawImage, image,new VkExtent3D()
-            {
-                width = extent.width,
-                height = extent.height,
-                depth = 1
-            });
-        };
+        foreach (var command in _passInfo.PostCommands) command.Execute(viewFrame);
     }
 
     public uint Id { get; set; }
 
-    public void BeforeDraw(VkCommandBuffer cmd,IDeviceImage drawImage,IDeviceImage copyImage,IDeviceImage stencilImage)
-    {
-        ResetStencilState(cmd);
-        cmd.ImageBarrier(drawImage, ImageLayout.Undefined, ImageLayout.General);
-        cmd.ImageBarrier(copyImage, ImageLayout.Undefined, ImageLayout.General);
-        cmd.ImageBarrier(stencilImage, ImageLayout.Undefined,
-            ImageLayout.General, new ImageBarrierOptions
-            {
-                SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(
-                    VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT | VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
-            });
-        cmd.ClearColorImages(new Vector4(0.0f), ImageLayout.General, drawImage, copyImage);
-        cmd.ClearStencilImages(0, ImageLayout.General, stencilImage);
-        cmd.ImageBarrier(drawImage,  ImageLayout.General,ImageLayout.ColorAttachment);
-        cmd.ImageBarrier(copyImage, ImageLayout.General,ImageLayout.ShaderReadOnly);
-        cmd.ImageBarrier(stencilImage, ImageLayout.General,
-            ImageLayout.StencilAttachment, new ImageBarrierOptions
-            {
-                SubresourceRange = SGraphicsModule.MakeImageSubresourceRange(
-                    VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT | VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
-            });
-    }
-    
+
     private static void ResetStencilState(VkCommandBuffer cmd,
         VkStencilFaceFlags faceMask = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK)
     {
@@ -335,7 +291,4 @@ public sealed class ViewsPass : IPass
         vkCmdSetStencilOp(cmd, faceMask, VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
             VkStencilOp.VK_STENCIL_OP_KEEP, VkCompareOp.VK_COMPARE_OP_NEVER);
     }
-
-    public string Name => "View Pass";
-    public bool IsTerminal => true;
 }

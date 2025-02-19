@@ -2,12 +2,20 @@
 
 namespace rin.Framework.Core.Math;
 
-public class Averaged<T> where T : IDivisionOperators<T,T,T> , IAdditionOperators<T,T,T>, ISubtractionOperators<T,T,T>
+public class Averaged<T>
+    where T : IDivisionOperators<T, T, T>, IAdditionOperators<T, T, T>, ISubtractionOperators<T, T, T>
 {
-    private uint _count = 1;
-    private T _total;
     private readonly LinkedList<T> _items = [];
     private readonly uint _maxCount;
+    private uint _count = 1;
+    private T _total;
+
+    public Averaged(T initial, uint maxCount)
+    {
+        _maxCount = maxCount;
+        _total = initial;
+        _items.AddFirst(initial);
+    }
 
     public Averaged<T> Add(T item)
     {
@@ -20,25 +28,21 @@ public class Averaged<T> where T : IDivisionOperators<T,T,T> , IAdditionOperator
         {
             _count++;
         }
-        
+
         _total += item;
 
         _items.AddFirst(item);
         return this;
     }
-    
+
     public T Get()
     {
         dynamic c = _count;
         return _total / (T)c;
     }
-    
-    public static implicit operator T(Averaged<T> avg) => avg.Get();
 
-    public Averaged(T initial,uint maxCount)
+    public static implicit operator T(Averaged<T> avg)
     {
-        _maxCount = maxCount;
-        _total = initial;
-        _items.AddFirst(initial);
+        return avg.Get();
     }
 }

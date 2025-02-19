@@ -1,6 +1,4 @@
-﻿using TerraFX.Interop.Vulkan;
-
-namespace rin.Framework.Graphics;
+﻿namespace rin.Framework.Graphics;
 
 public class DefaultFrameState : FrameState
 {

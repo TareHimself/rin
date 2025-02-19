@@ -1,28 +1,25 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
-using rin.Framework.Views.Enums;
 
 namespace rin.Framework.Views.Layouts;
 
 /// <summary>
-/// Describes how a <see cref="View" /> will be sized and positioned in a <see cref="Panel" />. Supports Anchors
-/// Slot = <see cref="PanelSlot"/>
+///     Describes how a <see cref="View" /> will be sized and positioned in a <see cref="Panel" />. Supports Anchors
+///     Slot = <see cref="PanelSlot" />
 /// </summary>
 public class PanelSlot : Slot
 {
-    [PublicAPI]
-    public Vector2 Alignment;
-    [PublicAPI]
-    public Vector2 MaxAnchor;
-    [PublicAPI]
-    public Vector2 MinAnchor;
-    [PublicAPI]
-    public Vector2 Offset;
-    [PublicAPI]
-    public Vector2 Size;
+    [PublicAPI] public Vector2 Alignment;
+
+    [PublicAPI] public Vector2 MaxAnchor;
+
+    [PublicAPI] public Vector2 MinAnchor;
+
+    [PublicAPI] public Vector2 Offset;
+
+    [PublicAPI] public Vector2 Size;
 
     /// <summary>
     ///     Describes how a <see cref="View" /> will be sized and positioned in a <see cref="PanelLayout" />. Supports Anchors
@@ -35,10 +32,8 @@ public class PanelSlot : Slot
 
     public static bool NearlyEqual(double a, double b, double tolerance = 0.001f)
     {
-        return System.Math.Abs(a - b) < tolerance;
+        return Math.Abs(a - b) < tolerance;
     }
-
-    
 }
 
 public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
@@ -47,7 +42,6 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
 
     public override void Dispose()
     {
-        
     }
 
     public override ISlot MakeSlot(View view)
@@ -57,19 +51,14 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
 
     public override void OnSlotUpdated(ISlot slot)
     {
-        if (Container.Surface != null)
-        {
-            LayoutSlot(slot,Container.GetContentSize());
-        }
+        if (Container.Surface != null) LayoutSlot(slot, Container.GetContentSize());
     }
 
     public override Vector2 Apply(Vector2 availableSpace)
     {
-        foreach (var slot in GetSlots())
-        {
-            LayoutSlot(slot,availableSpace);
-        };
-        
+        foreach (var slot in GetSlots()) LayoutSlot(slot, availableSpace);
+        ;
+
         return availableSpace;
     }
 

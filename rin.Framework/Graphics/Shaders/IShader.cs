@@ -1,11 +1,9 @@
-using rin.Framework.Core;
 using TerraFX.Interop.Vulkan;
 
 namespace rin.Framework.Graphics.Shaders;
 
 public interface IShader : IDisposable
 {
-
     public Dictionary<string, Resource> Resources { get; }
     public Dictionary<string, PushConstant> PushConstants { get; }
 

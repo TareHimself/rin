@@ -7,13 +7,11 @@ namespace rin.Framework.Core;
 public sealed class SRuntime : Disposable
 {
     public static readonly string
-        AssetsDirectory = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "","assets");
-    
-    public static readonly string
-        FrameworkAssetsDirectory = Path.Join(AssetsDirectory,"rin");
+        AssetsDirectory = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "", "assets");
 
-    public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
-    
+    public static readonly string
+        FrameworkAssetsDirectory = Path.Join(AssetsDirectory, "rin");
+
     private static SRuntime? _instance;
 
     private readonly List<IModule> _modules = [];
@@ -26,8 +24,10 @@ public sealed class SRuntime : Disposable
 
     private DateTime _lastTickTime = DateTime.UtcNow;
 
+    public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
+
     public IFileSystem FileSystem { get; set; } = new DefaultFileSystem();
-    
+
     public bool IsRunning { get; private set; }
 
     public event Action<double>? OnUpdate;
@@ -79,9 +79,9 @@ public sealed class SRuntime : Disposable
         while (pendingModules.Count > 0)
         {
             var dependency = pendingModules.Dequeue();
-            
-            if(loadedModules.ContainsKey(dependency)) continue;
-            
+
+            if (loadedModules.ContainsKey(dependency)) continue;
+
             if (!loadedAssemblies.Contains(dependency.Assembly))
             {
                 Assembly.Load(dependency.Assembly.GetName());
@@ -97,9 +97,9 @@ public sealed class SRuntime : Disposable
                     pendingModules.Enqueue(attribDependency);
         }
     }
-    
+
     /// <summary>
-    /// Returns the time elapsed since the runtime started
+    ///     Returns the time elapsed since the runtime started
     /// </summary>
     /// <returns></returns>
     public double GetTimeSeconds()
@@ -119,7 +119,6 @@ public sealed class SRuntime : Disposable
 
     private void Startup()
     {
-        
         Platform.Init();
         LoadModules();
         IsRunning = true;
@@ -163,23 +162,21 @@ public sealed class SRuntime : Disposable
         var assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
         var modulesMap = new Dictionary<Type, ModuleType>();
         foreach (var assembly in assemblies)
+        foreach (var type in assembly.GetTypes().Where(t => interfaceType.IsAssignableFrom(t)))
         {
-            foreach (var type in assembly.GetTypes().Where(t => interfaceType.IsAssignableFrom(t)))
-            {
-                var attribute =
-                    (ModuleAttribute?)Attribute.GetCustomAttribute(type, typeof(ModuleAttribute));
-                if (attribute == null) continue;
-                modulesMap.Add(type, new ModuleType(type, attribute));
-            }
+            var attribute =
+                (ModuleAttribute?)Attribute.GetCustomAttribute(type, typeof(ModuleAttribute));
+            if (attribute == null) continue;
+            modulesMap.Add(type, new ModuleType(type, attribute));
         }
 
         foreach (var mod in modulesMap.ToFrozenDictionary()) LoadRequiredModules(mod.Key, modulesMap);
-        
+
         foreach (var mod in modulesMap) mod.Value.ResolveAllDependencies(modulesMap);
-        
+
         var sortedModules = new List<ModuleType>();
 
-        
+
         // One day I wrote this, One day I will understand what it does
         foreach (var mod in modulesMap)
         {
@@ -201,19 +198,15 @@ public sealed class SRuntime : Disposable
 
             if (!shorted) sortedModules.Add(mod.Value);
         }
-        
+
         var dependencies = new HashSet<Type>();
         foreach (var sortedModule in sortedModules.AsReversed())
-        {
             if (sortedModule.AlwaysLoad || dependencies.Contains(sortedModule.Module))
             {
                 dependencies.Add(sortedModule.Module);
                 foreach (var sortedModuleDependency in sortedModule.Dependencies)
-                {
                     dependencies.Add(sortedModuleDependency);
-                }
             }
-        }
 
         foreach (var mod in sortedModules.Where(c => dependencies.Contains(c.Module)))
         {
@@ -237,7 +230,10 @@ public sealed class SRuntime : Disposable
         return (T)_modulesMap[typeof(T)];
     }
 
-    public bool IsModuleLoaded<T>() where T : IModule => _modulesMap.ContainsKey(typeof(T));
+    public bool IsModuleLoaded<T>() where T : IModule
+    {
+        return _modulesMap.ContainsKey(typeof(T));
+    }
 
     protected override void OnDispose(bool isManual)
     {

@@ -3,7 +3,7 @@ using rin.Editor.Scene.Actors;
 
 namespace rin.Editor.Scene.Components;
 
-public interface IComponent : ITickable
+public interface IComponent : IReceivesUpdate
 {
     public Actor? Owner { get; set; }
     

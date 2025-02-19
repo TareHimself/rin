@@ -53,7 +53,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vec2<uint> size, Colle
         DepthImageId = config.Read(_collectPass.DepthImageId);
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, VkCommandBuffer cmd)
+    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
         var materialBuffer = MaterialBufferId > 0 ? graph.GetBuffer(MaterialBufferId) : null;
         var sceneBuffer = graph.GetBuffer(SceneBufferId);
@@ -63,7 +63,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vec2<uint> size, Colle
 
         OutputImage = graph.GetImage(OutputImageId);
         DepthImage = graph.GetImage(DepthImageId);
-        cmd.ImageBarrier(OutputImage, ImageLayout.Undefined, ImageLayout.General)
+        context.ImageBarrier(OutputImage, ImageLayout.Undefined, ImageLayout.General)
             .ClearColorImages(new Vector4(0.0f), ImageLayout.General, OutputImage)
             .ImageBarrier(OutputImage, ImageLayout.General, ImageLayout.ColorAttachment);
         //cmd.ImageBarrier(OutputImage, ImageLayout.Undefined,ImageLayout.ColorAttachment);
@@ -71,7 +71,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vec2<uint> size, Colle
         
         var depthAttachment = DepthImage.MakeDepthAttachmentInfo();
 
-        cmd
+        context
             .BeginRendering(_size.ToVkExtent(), [colorAttachment], depthAttachment)
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
@@ -133,9 +133,9 @@ public class ForwardRenderingPass(CameraComponent camera, Vec2<uint> size, Colle
             first.MeshMaterial.ColorPass.Execute(sceneFrame, view, infos);
         }
 
-        cmd.EndRendering();
+        context.EndRendering();
 
-        cmd.ImageBarrier(OutputImage, ImageLayout.ColorAttachment, ImageLayout.ShaderReadOnly);
+        context.ImageBarrier(OutputImage, ImageLayout.ColorAttachment, ImageLayout.ShaderReadOnly);
     }
 
     public uint Id { get; set; }

@@ -14,8 +14,8 @@ public enum CommandType
 public class FinalDrawCommand
 {
     public IBatch? Batch;
-    public Graphics.StencilClip[] Clips = [];
-    public uint Mask = 0x1;
+    public StencilClip[] Clips = [];
     public CustomCommand? Custom;
+    public uint Mask = 0x1;
     public CommandType Type = CommandType.None;
 }

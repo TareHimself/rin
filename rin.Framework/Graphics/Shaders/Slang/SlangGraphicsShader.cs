@@ -1,9 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using rin.Framework.Core;
 using rin.Framework.Graphics.Descriptors;
-using rin.Framework.Views.Composite;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -12,14 +10,14 @@ namespace rin.Framework.Graphics.Shaders.Slang;
 public class SlangGraphicsShader : IGraphicsShader
 {
     private readonly Task _compileTask;
+    private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
 
     private readonly string _filePath;
 
     private readonly List<Pair<VkShaderEXT, VkShaderStageFlags>> _shaders = [];
-    private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
-    private VkPipelineLayout _pipelineLayout;
     private bool _hasFragment;
     private bool _hasVertex;
+    private VkPipelineLayout _pipelineLayout;
 
     public SlangGraphicsShader(SlangShaderManager manager, string filePath)
     {
@@ -35,10 +33,7 @@ public class SlangGraphicsShader : IGraphicsShader
             vkDestroyPipelineLayout(device, _pipelineLayout, null);
         }
 
-        foreach (var (first, second) in _shaders)
-        {
-            device.DestroyShader(first);
-        }
+        foreach (var (first, second) in _shaders) device.DestroyShader(first);
     }
 
     public Dictionary<string, Resource> Resources { get; } = [];
@@ -48,13 +43,8 @@ public class SlangGraphicsShader : IGraphicsShader
     {
         _compileTask.Wait();
         if (wait && !_compileTask.IsCompleted)
-        {
             _compileTask.Wait();
-        }
-        else if (!_compileTask.IsCompleted)
-        {
-            return false;
-        }
+        else if (!_compileTask.IsCompleted) return false;
 
         cmd.BindShaders(_shaders);
 
@@ -62,15 +52,9 @@ public class SlangGraphicsShader : IGraphicsShader
         {
             List<VkShaderStageFlags> toUnbind = [];
 
-            if (!_hasFragment)
-            {
-                toUnbind.Add(VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT);
-            }
+            if (!_hasFragment) toUnbind.Add(VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT);
 
-            if (!_hasVertex)
-            {
-                toUnbind.Add(VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT);
-            }
+            if (!_hasVertex) toUnbind.Add(VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT);
 
             cmd.UnBindShaders(toUnbind);
         }
@@ -141,9 +125,7 @@ public class SlangGraphicsShader : IGraphicsShader
                 var parameters = reflectionData.Parameters.ToList();
 
                 foreach (var reflectionDataEntryPoint in reflectionData.EntryPoints)
-                {
                     parameters.AddRange(reflectionDataEntryPoint.Parameters);
-                }
 
                 foreach (var parameter in parameters)
                 {
@@ -153,11 +135,10 @@ public class SlangGraphicsShader : IGraphicsShader
                         var set = binding.Set ?? 0;
                         var index = binding.Binding ?? 0;
                         var count = parameter.Type.ElementCount ?? 1;
-                        VkShaderStageFlags stages = entryPointStage;
+                        var stages = entryPointStage;
                         VkDescriptorBindingFlags bindingFlags = 0;
                         var bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                         foreach (var parameterAttribute in parameter.UserAttributes)
-                        {
                             if (parameterAttribute.Name == "AllStages")
                             {
                                 stages = VkShaderStageFlags.VK_SHADER_STAGE_ALL;
@@ -176,7 +157,6 @@ public class SlangGraphicsShader : IGraphicsShader
                                     .VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
                                 parameterAttribute.Arguments.FirstOrDefault()?.TryGetValue(out count);
                             }
-                        }
 
                         if (Resources.ContainsKey(name))
                         {
@@ -188,9 +168,7 @@ public class SlangGraphicsShader : IGraphicsShader
                             var typeName = parameter.Type.BaseShape ?? parameter.Type.ElementType?.BaseShape ?? "";
 
                             if (typeName == "texture2D")
-                            {
                                 bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                            }
 
                             Resources.Add(name, new Resource
                             {
@@ -207,18 +185,14 @@ public class SlangGraphicsShader : IGraphicsShader
                     else if (parameter.Binding is { Kind: "pushConstantBuffer" } uniformBinding)
                     {
                         if (PushConstants.TryGetValue(name, out var constant))
-                        {
                             constant.Stages |= entryPointStage;
-                        }
                         else
-                        {
                             PushConstants.Add(name, new PushConstant
                             {
                                 Name = name,
                                 Size = (uint)(parameter.Type.ElementVarLayout?.Binding?.Size ?? 0),
                                 Stages = entryPointStage
                             });
-                        }
                     }
                 }
             }
@@ -228,23 +202,18 @@ public class SlangGraphicsShader : IGraphicsShader
                 SortedDictionary<uint, DescriptorLayoutBuilder> builders = [];
                 foreach (var (key, item) in Resources)
                 {
-                    if (!builders.ContainsKey(item.Set))
-                    {
-                        builders.Add(item.Set, new DescriptorLayoutBuilder());
-                    }
+                    if (!builders.ContainsKey(item.Set)) builders.Add(item.Set, new DescriptorLayoutBuilder());
 
                     builders[item.Set].AddBinding(item.Binding, item.Type, item.Stages, item.Count, item.BindingFlags);
                 }
 
                 foreach (var (key, item) in PushConstants)
-                {
-                    pushConstantRanges.Add(new VkPushConstantRange()
+                    pushConstantRanges.Add(new VkPushConstantRange
                     {
                         stageFlags = item.Stages,
                         offset = 0,
-                        size = (uint)item.Size
+                        size = item.Size
                     });
-                }
 
                 var max = builders.Count == 0 ? 0 : builders.Keys.Max();
                 List<VkDescriptorSetLayout> layouts = [];
@@ -267,7 +236,7 @@ public class SlangGraphicsShader : IGraphicsShader
                     {
                         var setLayoutCount = (uint)layouts.Count;
                         var pushConstantRangeCount = (uint)pushConstantRanges.Count;
-                        var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo()
+                        var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
                         {
                             sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                             setLayoutCount = setLayoutCount,
@@ -283,7 +252,7 @@ public class SlangGraphicsShader : IGraphicsShader
                         foreach (var (stage, blob) in code)
                         {
                             var shaderSize = blob.GetSize();
-                            var createInfo = new VkShaderCreateInfoEXT()
+                            var createInfo = new VkShaderCreateInfoEXT
                             {
                                 sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
                                 stage = stage,

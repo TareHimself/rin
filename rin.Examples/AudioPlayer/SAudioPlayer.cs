@@ -22,8 +22,15 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
 
     public void Startup(SRuntime runtime)
     {
-        Utils.RunWindowsOnTick();
-        Utils.RunDrawOnThread();
+        Common.Utils.RunSingleThreaded((delta) =>
+        {
+            SGraphicsModule.Get().PollWindows();
+            SViewsModule.Get().Update(delta);
+            SGraphicsModule.Get().Collect();
+        }, () =>
+        {
+            SGraphicsModule.Get().Execute();
+        });
         
         SAudioModule.Get().SetVolume(0.1f);
         var window = SGraphicsModule.Get().CreateWindow(500, 500, "Rin Audio Player");

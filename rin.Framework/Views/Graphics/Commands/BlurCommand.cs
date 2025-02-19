@@ -1,20 +1,16 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
-using rin.Framework.Core;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Graphics.Descriptors;
 using rin.Framework.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace rin.Framework.Views.Graphics.Commands;
-
 
 public struct BlurPushConstants
 {
     public required Mat4 Projection;
-    
+
     public required Mat3 Transform;
 
     public required Vector2 Size;
@@ -26,14 +22,22 @@ public struct BlurPushConstants
     public required Vector4 Tint;
 }
 
-public class BlurCommand(Mat3 transform, Vector2 size,float strength,float radius, Vector4 tint) : CustomCommand
+public class BlurCommand(Mat3 transform, Vector2 size, float strength, float radius, Vector4 tint) : CustomCommand
 {
     private static string _blurPassId = Guid.NewGuid().ToString();
-    private readonly IGraphicsShader _blurShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SViewsModule.ShadersDirectory,"blur.slang"));
-    
-    public override bool WillDraw() => true;
 
-    public override ulong GetRequiredMemory() => 0;
+    private readonly IGraphicsShader _blurShader = SGraphicsModule.Get()
+        .GraphicsShaderFromPath(Path.Join(SViewsModule.ShadersDirectory, "blur.slang"));
+
+    public override bool WillDraw()
+    {
+        return true;
+    }
+
+    public override ulong GetRequiredMemory()
+    {
+        return 0;
+    }
     // public static void ApplyBlurPass(ViewFrame frame)
     // {
     //     var cmd = frame.Raw.GetCommandBuffer();
@@ -66,24 +70,24 @@ public class BlurCommand(Mat3 transform, Vector2 size,float strength,float radiu
     {
         frame.BeginMainPass();
         var cmd = frame.Raw.GetCommandBuffer();
-        if (_blurShader.Bind(cmd,true))
+        if (_blurShader.Bind(cmd, true))
         {
             var resource = _blurShader.Resources["SourceT"];
             var copyImage = frame.CopyImage;
             var descriptorSet = frame.Raw.GetDescriptorAllocator()
                 .Allocate(_blurShader.GetDescriptorSetLayouts()[resource.Set]);
             descriptorSet.WriteImages(resource.Binding, new ImageWrite(copyImage,
-                ImageLayout.ShaderReadOnly, ImageType.Sampled, new SamplerSpec()
+                ImageLayout.ShaderReadOnly, ImageType.Sampled, new SamplerSpec
                 {
                     Filter = ImageFilter.Linear,
                     Tiling = ImageTiling.ClampBorder
                 }));
 
             cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _blurShader.GetPipelineLayout(),
-                new []{descriptorSet});
+                new[] { descriptorSet });
 
             var pushResource = _blurShader.PushConstants.First().Value;
-            var push = new BlurPushConstants()
+            var push = new BlurPushConstants
             {
                 Projection = frame.Projection,
                 Size = size,

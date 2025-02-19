@@ -16,14 +16,18 @@ public class SAudioModule : IModule
         Bass.Free();
     }
 
-/// <summary>
-/// Set Volume
-/// </summary>
-/// <param name="val">Value between 0 and 1</param>
-/// <returns></returns>
-    public bool SetVolume(float val) => Bass.Configure(Configuration.GlobalStreamVolume, (int)(val * 10000));
+    /// <summary>
+    ///     Set Volume
+    /// </summary>
+    /// <param name="val">Value between 0 and 1</param>
+    /// <returns></returns>
+    public bool SetVolume(float val)
+    {
+        return Bass.Configure(Configuration.GlobalStreamVolume, (int)(val * 10000));
+    }
 
-    public static SAudioModule Get() => SRuntime.Get().GetModule<SAudioModule>();
-
-
+    public static SAudioModule Get()
+    {
+        return SRuntime.Get().GetModule<SAudioModule>();
+    }
 }

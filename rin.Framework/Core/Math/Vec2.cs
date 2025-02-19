@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using System.Diagnostics.Contracts;
+﻿using System.Diagnostics.Contracts;
 using System.Numerics;
-using System.Runtime.InteropServices;
 
 namespace rin.Framework.Core.Math;
 
@@ -14,9 +12,8 @@ public struct Vec2<T>(T inX, T inY) : ICloneable<Vec2<T>>,
     IMultiplyOperators<Vec2<T>, T, Vec2<T>>,
     IDivisionOperators<Vec2<T>, Vec2<T>, Vec2<T>>,
     IDivisionOperators<Vec2<T>, T, Vec2<T>>,
-    IComparisonOperators<Vec2<T>,Vec2<T>,bool>,
-
-IVec<Vec2<T>,T>, IEquatable<Vec2<T>> where T : notnull, IComparisonOperators<T,T,bool>
+    IComparisonOperators<Vec2<T>, Vec2<T>, bool>,
+    IVec<Vec2<T>, T>, IEquatable<Vec2<T>> where T : notnull, IComparisonOperators<T, T, bool>
 
 {
     public bool Equals(Vec2<T> other)
@@ -112,19 +109,19 @@ IVec<Vec2<T>,T>, IEquatable<Vec2<T>> where T : notnull, IComparisonOperators<T,T
     {
         return new Vec2<T>(X, Y);
     }
-    
+
     public Vec2<T> Clamp(Vec2<T> min, Vec2<T> max)
     {
         return new Vec2<T>(X < min.X ? min.X : X > max.X ? max.X : X, Y < min.X ? min.Y : Y > max.Y ? max.Y : Y);
     }
-    
+
     public Vec2<T> Clamp(T min, T max)
     {
-        return this.Clamp(new Vec2<T>(min),new Vec2<T>(max));
+        return Clamp(new Vec2<T>(min), new Vec2<T>(max));
     }
 
     [Pure]
-    public Vec2<E> Cast<E>() where E : notnull, IComparisonOperators<E,E,bool>
+    public Vec2<E> Cast<E>() where E : notnull, IComparisonOperators<E, E, bool>
     {
         dynamic a = X, b = Y;
 
@@ -159,13 +156,13 @@ IVec<Vec2<T>,T>, IEquatable<Vec2<T>> where T : notnull, IComparisonOperators<T,T
     {
         return Acos(other) * System.Math.PI / 180.0f;
     }
-    
+
     public double Cross(Vec2<T> other)
     {
-        dynamic ux = X,uy = Y,vx = other.X,vy = other.Y;
+        dynamic ux = X, uy = Y, vx = other.X, vy = other.Y;
         return ux * vy - uy * vx;
     }
-    
+
     public static implicit operator Vec2<T>(T data)
     {
         return new Vec2<T>(data);
@@ -200,7 +197,7 @@ IVec<Vec2<T>,T>, IEquatable<Vec2<T>> where T : notnull, IComparisonOperators<T,T
     {
         return left.X <= right.X && left.Y <= right.Y;
     }
-    
+
     public void Deconstruct(out T x, out T y)
     {
         x = X;

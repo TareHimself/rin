@@ -2,10 +2,10 @@
 
 public class AnimationState
 {
-    public required double StartTime;
+    public bool Active;
     public required IAnimation Animation;
+    public required double StartTime;
     public double Duration => Animation.Duration;
-    public bool Active = false;
 
     public bool Update(double elapsed)
     {
@@ -15,6 +15,7 @@ public class AnimationState
             Active = true;
             Animation.Start(animElapsed);
         }
+
         Animation.Update(System.Math.Min(animElapsed, Duration));
         return animElapsed >= Duration;
     }

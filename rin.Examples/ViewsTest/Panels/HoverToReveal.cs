@@ -24,8 +24,8 @@ public class HoverToReveal : Panel
                     _blur
                 ]
             };
-            WidthOverride = 250;
-            HeightOverride = 600;
+            WidthOverride = 110;
+            HeightOverride = 400;
             image.BorderRadius = new Vector4(30.0f);
         }
 
@@ -35,7 +35,7 @@ public class HoverToReveal : Panel
             var duration = 0.1;
             this.StopAll()
                 .Transition(_blur.Strength, 0.0f, (c) => _blur.Strength = c, duration)
-                .WidthTo(600);
+                .WidthTo(400);
         }
 
         protected override void OnCursorLeave(CursorMoveEvent e)
@@ -44,7 +44,7 @@ public class HoverToReveal : Panel
             var duration = 0.1;
             this.StopAll()
                 .Transition(_blur.Strength,5.0f, (c) => _blur.Strength = c, duration)
-                .WidthTo(250);
+                .WidthTo(110);
         }
     }
 

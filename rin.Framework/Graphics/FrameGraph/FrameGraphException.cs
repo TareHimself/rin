@@ -2,5 +2,4 @@
 
 public class FrameGraphException(string? message) : Exception(message)
 {
-    
 }

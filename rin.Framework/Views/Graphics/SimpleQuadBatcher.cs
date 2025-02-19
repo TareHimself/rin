@@ -3,7 +3,7 @@ using rin.Framework.Graphics.Shaders;
 
 namespace rin.Framework.Views.Graphics;
 
-public abstract class SimpleQuadBatcher<T>  : IBatcher where T : IBatch
+public abstract class SimpleQuadBatcher<T> : IBatcher where T : IBatch
 {
     public void Draw(ViewsFrame frame, IBatch batch, IDeviceBufferView buffer)
     {
@@ -12,9 +12,9 @@ public abstract class SimpleQuadBatcher<T>  : IBatcher where T : IBatch
         frame.BeginMainPass();
         if (shader.Bind(cmd))
         {
-            var numQuads = WriteBatch(frame,buffer,(T)batch,GetShader());
-            if(numQuads == 0) return;
-            cmd.Draw(6,numQuads);
+            var numQuads = WriteBatch(frame, buffer, (T)batch, GetShader());
+            if (numQuads == 0) return;
+            cmd.Draw(6, numQuads);
         }
     }
 
@@ -27,7 +27,7 @@ public abstract class SimpleQuadBatcher<T>  : IBatcher where T : IBatch
     protected abstract T MakeNewBatch();
 
     /// <summary>
-    /// Bind sets, write data, push constants and return the number of quads to draw
+    ///     Bind sets, write data, push constants and return the number of quads to draw
     /// </summary>
     /// <param name="frame"></param>
     /// <param name="view"></param>

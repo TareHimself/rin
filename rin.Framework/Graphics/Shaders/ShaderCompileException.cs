@@ -2,5 +2,4 @@
 
 public class ShaderCompileException(string message) : Exception(message)
 {
-
 }

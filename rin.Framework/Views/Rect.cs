@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using rin.Framework.Core;
 using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
 
 namespace rin.Framework.Views;
 
@@ -63,9 +62,9 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
         var b1 = area.Offset;
         var b2 = b1 + area.Size;
 
-        Offset = new Vector2(System.Math.Max(a1.X, b1.X), System.Math.Max(a1.Y, b1.Y));
+        Offset = new Vector2(Math.Max(a1.X, b1.X), Math.Max(a1.Y, b1.Y));
 
-        var p2 = new Vector2(System.Math.Min(a2.X, b2.X), System.Math.Min(a2.Y, b2.Y));
+        var p2 = new Vector2(Math.Min(a2.X, b2.X), Math.Min(a2.Y, b2.Y));
 
         Size = p2 - Offset;
 

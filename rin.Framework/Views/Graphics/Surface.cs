@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using rin.Framework.Core;
+using rin.Framework.Core.Extensions;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
-using rin.Framework.Core.Extensions;
 using rin.Framework.Views.Composite;
 using rin.Framework.Views.Events;
 using rin.Framework.Views.Graphics.Commands;
@@ -21,10 +21,10 @@ public abstract class Surface : Disposable
     private readonly List<View> _lastHovered = [];
     private readonly Root _rootView = new();
     private readonly SGraphicsModule _sGraphicsModule;
-    private Vector2? _lastMousePosition;
     private CursorDownEvent? _lastCursorDownEvent;
+    private Vector2? _lastMousePosition;
 
-    public FrameStats Stats { get; private set; } = new();
+    public FrameStats Stats;
 
     protected Surface()
     {
@@ -61,7 +61,7 @@ public abstract class Surface : Disposable
         if (FocusedView == requester) return true;
         if (!requester.IsFocusable || !requester.IsHitTestable) return false;
 
-        if(FocusedView is not null) ClearFocus();
+        if (FocusedView is not null) ClearFocus();
         FocusedView = requester;
         requester.OnFocus();
         return true;
@@ -75,7 +75,7 @@ public abstract class Surface : Disposable
 
 
     /// <summary>
-    /// Returns true if the pass was not the active pass
+    ///     Returns true if the pass was not the active pass
     /// </summary>
     /// <param name="frame"></param>
     /// <param name="passId"></param>
@@ -91,11 +91,11 @@ public abstract class Surface : Disposable
 
     public virtual void BeginMainPass(ViewsFrame frame, bool clearColor = false, bool clearStencil = false)
     {
-        EnsurePass(frame, MainPassId, (_) =>
+        EnsurePass(frame, MainPassId, _ =>
         {
             var cmd = frame.Raw.GetCommandBuffer();
 
-            var size = GetDrawSize();
+            var size = frame.SurfaceSize;
 
             var drawExtent = new VkExtent3D
             {
@@ -141,19 +141,15 @@ public abstract class Surface : Disposable
     {
         IBatch? activeBatch = null;
         uint currentClipMask = 0x01;
-        
+
         foreach (var pendingCommand in drawCommands)
         {
             if (pendingCommand.DrawCommand is UtilityCommand utilCmd)
             {
                 if (utilCmd.Stage == CommandStage.Before)
-                {
                     result.PreCommands.Add(utilCmd);
-                }
                 else
-                {
                     result.PostCommands.Add(utilCmd);
-                }
             }
 
             if (currentClipMask != pendingCommand.ClipId)
@@ -227,13 +223,9 @@ public abstract class Surface : Disposable
                         Type = CommandType.Custom
                     });
                     if (asCustomCommand.WillDraw())
-                    {
                         Stats.NonBatchedDrawCommandCount++;
-                    }
                     else
-                    {
                         Stats.CustomCommandCount++;
-                    }
                 }
                     break;
             }
@@ -250,10 +242,11 @@ public abstract class Surface : Disposable
         Stats.BatchedDrawCommandCount++;
     }
 
-    private PassInfo? ComputePassInfo()
+    [PublicAPI]
+    protected PassInfo? ComputePassInfo()
     {
         var rawDrawCommands = new PassCommands();
-        _rootView.Collect(Mat3.Identity, new Rect()
+        _rootView.Collect(Mat3.Identity, new Rect
         {
             Size = GetDrawSize()
         }, rawDrawCommands);
@@ -266,9 +259,7 @@ public abstract class Surface : Disposable
 
         var clips = rawDrawCommands.Clips;
 
-        var result = new PassInfo()
-        {
-        };
+        var result = new PassInfo();
 
         if (clips.Count == 0)
         {
@@ -288,13 +279,9 @@ public abstract class Surface : Disposable
                     if (rawCommand.Command is UtilityCommand utilCmd)
                     {
                         if (utilCmd.Stage == CommandStage.Before)
-                        {
                             result.PreCommands.Add(utilCmd);
-                        }
                         else
-                        {
                             result.PostCommands.Add(utilCmd);
-                        }
                     }
                 }
                 if (currentMask == 128)
@@ -348,33 +335,13 @@ public abstract class Surface : Disposable
         return result;
     }
 
-    public virtual void Draw(Frame frame)
-    {
-        DoHover();
-        if (Stats.InitialCommandCount != 0)
-        {
-            Stats = new FrameStats();
-        }
-
-        if (ComputePassInfo() is { } passInfo)
-        {
-            var builder = frame.GetBuilder();
-            builder.AddPass(new ViewsPass(this, passInfo));
-        }
-    }
 
     public virtual void ReceiveCursorDown(CursorDownEvent e)
     {
         var point = e.Position;
-        if (_rootView.NotifyCursorDown(e, Mat3.Identity))
-        {
-            _lastCursorDownEvent = e;
-        }
+        if (_rootView.NotifyCursorDown(e, Mat3.Identity)) _lastCursorDownEvent = e;
 
-        if (e.Target is { IsFocusable: true } target && FocusedView != target)
-        {
-            RequestFocus(target);
-        }
+        if (e.Target is { IsFocusable: true } target && FocusedView != target) RequestFocus(target);
         //ClearFocus();
     }
 
@@ -449,11 +416,11 @@ public abstract class Surface : Disposable
         _lastHovered.Clear();
 
         {
-            var rootTransformInfo = new Rect()
+            var rootTransformInfo = new Rect
             {
                 Size = default
             };
-            if (e.Position.Within(new Vector2(),GetDrawSize()))
+            if (e.Position.Within(new Vector2(), GetDrawSize()))
                 _rootView.NotifyCursorEnter(e, Mat3.Identity, _lastHovered);
         }
 
@@ -479,5 +446,10 @@ public abstract class Surface : Disposable
     public virtual bool Remove(View view)
     {
         return _rootView.Remove(view);
+    }
+
+    public void Update(double deltaTime)
+    {
+        DoHover();
     }
 }

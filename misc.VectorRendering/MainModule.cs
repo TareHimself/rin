@@ -25,8 +25,16 @@ public class MainModule : IModule
     private IFontManager _fontManager = new DefaultFontManager();
     public void Startup(SRuntime runtime)
     {
-        Utils.RunWindowsOnTick();
-        Utils.RunDrawOnTick();
+        
+        rin.Examples.Common.Utils.RunMultithreaded((delta) =>
+        {
+            SGraphicsModule.Get().PollWindows();
+            SViewsModule.Get().Update(delta);
+            SGraphicsModule.Get().Collect();
+        }, () =>
+        {
+            SGraphicsModule.Get().Execute();
+        });
         
         _fontManager.LoadSystemFonts();
         if(!_fontManager.TryGetFont("Noto Sans JP", out var family)) return;

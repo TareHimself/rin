@@ -1,7 +1,5 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
-using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
@@ -18,13 +16,12 @@ public enum FitMode
 /// </summary>
 public class Fitter : SingleSlotCompositeView
 {
-
     private FitMode _fitFittingMode = FitMode.Fill;
+
     /// <summary>
-    /// Adds the View to this container
+    ///     Adds the View to this container
     /// </summary>
-    
-    public Fitter() : base()
+    public Fitter()
     {
         Clip = Clip.Bounds;
     }
@@ -36,20 +33,14 @@ public class Fitter : SingleSlotCompositeView
         {
             var old = _fitFittingMode;
             _fitFittingMode = value;
-            if (_fitFittingMode != old)
-            {
-                FitContent(GetContentSize());
-            }
+            if (_fitFittingMode != old) FitContent(GetContentSize());
         }
     }
-    
+
 
     protected override Vector2 ComputeDesiredContentSize()
     {
-        if (GetSlot() is { } slot)
-        {
-            return slot.Child.GetDesiredSize();
-        }
+        if (GetSlot() is { } slot) return slot.Child.GetDesiredSize();
 
         return new Vector2();
     }
@@ -86,13 +77,13 @@ public class Fitter : SingleSlotCompositeView
             var view = slot.Child;
             var viewSize = view.GetDesiredSize();
             var newDrawSize = _fitFittingMode switch
-                {
-                    FitMode.Fill => drawSize,
-                    FitMode.Contain => ComputeContainSize(drawSize, viewSize),
-                    FitMode.Cover => ComputeCoverSize(drawSize, viewSize),
-                    FitMode.None => viewSize,
-                    _ => throw new ArgumentOutOfRangeException()
-                };
+            {
+                FitMode.Fill => drawSize,
+                FitMode.Contain => ComputeContainSize(drawSize, viewSize),
+                FitMode.Cover => ComputeCoverSize(drawSize, viewSize),
+                FitMode.None => viewSize,
+                _ => throw new ArgumentOutOfRangeException()
+            };
 
             view.ComputeSize(newDrawSize);
 
@@ -126,10 +117,7 @@ public class Fitter : SingleSlotCompositeView
 
     public override IEnumerable<ISlot> GetSlots()
     {
-        if (GetSlot() is { } slot)
-        {
-            return [slot];
-        }
+        if (GetSlot() is { } slot) return [slot];
 
         return [];
     }

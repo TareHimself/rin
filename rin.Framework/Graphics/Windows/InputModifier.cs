@@ -1,4 +1,5 @@
 ﻿namespace rin.Framework.Graphics.Windows;
+
 [Flags]
 public enum InputModifier
 {
@@ -7,5 +8,5 @@ public enum InputModifier
     Alt = 0x0004,
     Super = 0x0008,
     CapsLock = 0x0010,
-    NumLock = 0x0020    
+    NumLock = 0x0020
 }

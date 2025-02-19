@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using rin.Examples.Common.Views;
 using rin.Framework.Audio;
 using rin.Framework.Core.Math;
 using rin.Framework.Views;

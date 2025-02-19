@@ -8,7 +8,7 @@ public class DescriptorSet : Disposable
 {
     private readonly VkDescriptorSet _descriptorSet;
     private readonly VkDevice _device;
-    
+
     public DescriptorSet(VkDevice device, VkDescriptorSet descriptorSet)
     {
         _device = device;
@@ -53,7 +53,7 @@ public class DescriptorSet : Disposable
     //
     //     return true;
     // }
-    
+
     // private bool SetResource(uint binding, IEnumerable<Pair<IReservable,string>> items)
     // {
     //     if (_resources.TryGetValue(binding, out var resource))
@@ -72,10 +72,9 @@ public class DescriptorSet : Disposable
     //
     //     return true;
     // }
-    
+
     public bool WriteImages(uint binding, params ImageWrite[] writes)
     {
-
         unsafe
         {
             var infos = stackalloc VkDescriptorImageInfo[writes.Length];
@@ -96,7 +95,8 @@ public class DescriptorSet : Disposable
                 writeSet->dstSet = _descriptorSet;
                 writeSet->dstArrayElement = write.Index;
             }
-            vkUpdateDescriptorSets(_device, (uint)writes.Length,writeSets, 0, null);
+
+            vkUpdateDescriptorSets(_device, (uint)writes.Length, writeSets, 0, null);
         }
 
         return true;
@@ -109,10 +109,10 @@ public class DescriptorSet : Disposable
         var infos = writes.Select(write => new VkDescriptorBufferInfo
         {
             buffer = write.Buffer.NativeBuffer,
-            offset = (ulong)write.Offset,
-            range = (ulong)write.Size
+            offset = write.Offset,
+            range = write.Size
         }).ToArray();
-        
+
         unsafe
         {
             fixed (VkDescriptorBufferInfo* pInfos = infos)
@@ -145,7 +145,6 @@ public class DescriptorSet : Disposable
 
     private class Resource : Disposable
     {
-        public string ResourceId { get; private set; }
         private readonly IDisposable[] _resources;
 
         public Resource(IEnumerable<IDisposable> resources)
@@ -153,13 +152,15 @@ public class DescriptorSet : Disposable
             _resources = resources.ToArray();
             ResourceId = _resources.Aggregate("", (t, c) => t + c.GetHashCode());
         }
-        
-        public Resource(IEnumerable<Pair<IDisposable,string>> resources)
+
+        public Resource(IEnumerable<Pair<IDisposable, string>> resources)
         {
             var resourcesArray = resources.ToArray();
             _resources = resourcesArray.Select(c => c.First).ToArray();
             ResourceId = resourcesArray.Aggregate("", (t, c) => t + c.First.GetHashCode() + c.Second);
         }
+
+        public string ResourceId { get; private set; }
 
         protected override void OnDispose(bool isManual)
         {

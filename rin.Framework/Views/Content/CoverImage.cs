@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using rin.Framework.Views.Composite;
@@ -17,7 +16,7 @@ public class CoverImage : Image
     {
         return base.LayoutContent(availableSpace);
     }
-    
+
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         if (TextureId != -1)
@@ -29,7 +28,7 @@ public class CoverImage : Image
             var p2 = centerDist + contentSize;
             p1 /= fitSize;
             p2 /= fitSize;
-            commands.AddTexture(TextureId,transform, GetContentSize(), Tint, new Vector4(p1.X,p1.Y, p2.X,p2.Y),
+            commands.AddTexture(TextureId, transform, GetContentSize(), Tint, new Vector4(p1.X, p1.Y, p2.X, p2.Y),
                 BorderRadius);
         }
         else
@@ -37,5 +36,4 @@ public class CoverImage : Image
             base.CollectContent(transform, commands);
         }
     }
-
 }

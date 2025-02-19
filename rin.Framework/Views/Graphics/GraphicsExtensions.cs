@@ -1,26 +1,24 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
 using TerraFX.Interop.Vulkan;
 
 namespace rin.Framework.Views.Graphics;
-using static TerraFX.Interop.Vulkan.Vulkan;
+
 public static class GraphicsExtensions
 {
-    public static void ConfigureForViews(this Frame frame,Vector2 size)
+    public static void ConfigureForViews(this Frame frame, Vector2 size)
     {
-
         var cmd = frame.GetCommandBuffer();
         var surfaceSize = size;
         cmd
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
-            .SetVertexInput([],[])
+            .SetVertexInput([], [])
             .DisableCulling()
             .DisableDepthTest()
             .EnableBlendingAlphaBlend(0, 1)
             .SetViewports([
-                new VkViewport()
+                new VkViewport
                 {
                     x = 0,
                     y = 0,
@@ -31,10 +29,10 @@ public static class GraphicsExtensions
                 }
             ])
             .SetScissors([
-                new VkRect2D()
+                new VkRect2D
                 {
                     offset = new VkOffset2D(),
-                    extent = new VkExtent2D()
+                    extent = new VkExtent2D
                     {
                         width = (uint)surfaceSize.X,
                         height = (uint)surfaceSize.Y

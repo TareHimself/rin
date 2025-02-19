@@ -1,30 +1,28 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using rin.Framework.Core.Extensions;
 
 namespace rin.Framework.Core.Math;
 
-
-public partial struct Transform() : ICloneable<Transform>
+public struct Transform() : ICloneable<Transform>
 {
     public Vector3 Location = new(0.0f);
-    public Rotator Rotation = new (0.0f);
+    public Rotator Rotation = new(0.0f);
     public Vector3 Scale = new(1.0f);
 
-    
+
     public struct NativeTransform
     {
         public Vector3 Location;
         public Quat Rotation;
         public Vector3 Scale;
     }
-    
+
     public static implicit operator Mat4(Transform t)
-    {//
+    {
+        //
         //return Mat4.Identity.Scale(t.Scale).Rotate((Quat)t.Rotation).Translate(t.Location);
         Mat4 r = new();
-        var n = new NativeTransform()
+        var n = new NativeTransform
         {
             Location = t.Location,
             Rotation = (Quat)t.Rotation,
@@ -35,13 +33,12 @@ public partial struct Transform() : ICloneable<Transform>
     }
 
 
-
     public static implicit operator Transform(Mat4 mat)
     {
         NativeTransform r = new();
         NativeMethods.NativeMatrix4ToTransform(ref r, ref mat);
-        
-        return new Transform()
+
+        return new Transform
         {
             Location = r.Location,
             Rotation = (Rotator)r.Rotation,
@@ -51,14 +48,14 @@ public partial struct Transform() : ICloneable<Transform>
 
     public Transform Clone()
     {
-        return new Transform()
+        return new Transform
         {
             Location = Location.Clone(),
             Rotation = Rotation.Clone(),
             Scale = Scale.Clone()
         };
     }
-    
+
     public void Deconstruct(out Vector3 location, out Rotator rotation, out Vector3 scale)
     {
         location = Location;

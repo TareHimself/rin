@@ -1,10 +1,9 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 using rin.Framework.Core.Math;
 using rin.Framework.Graphics;
+using rin.Framework.Graphics.FrameGraph;
 
 namespace rin.Framework.Views.Graphics;
-
 
 public struct SimpleRectPush
 {
@@ -19,37 +18,45 @@ public struct SimpleRectPush
 
 public class ViewsFrame
 {
+    public readonly IGraphImage CopyImage;
+
+    public readonly IGraphImage DrawImage;
+
     //public readonly AeroxLinkedList<GraphicsCommand> DrawCommandList = [];
     public readonly Frame Raw;
+    public readonly IGraphImage StencilImage;
     public readonly Surface Surface;
-    public string ActivePass = "";
-    public bool IsMainPassActive => ActivePass == Surface.MainPassId;
-    public bool IsAnyPassActive => ActivePass.Length != 0;
-    public Mat4 Projection;
-
-    public readonly IDeviceImage DrawImage;
-    public readonly IDeviceImage CopyImage;
-    public readonly IDeviceImage StencilImage;
     public readonly Vector2 SurfaceSize;
+    public string ActivePass = "";
+    public Mat4 Projection;
+    public FrameStats Stats;
 
-    public ViewsFrame(Surface surface, Frame raw,Vector2 surfaceSize,IDeviceImage drawImage,IDeviceImage copyImage,IDeviceImage stencilImage)
+    public ViewsFrame(Surface surface, Frame raw, Vector2 surfaceSize, IGraphImage drawImage, IGraphImage copyImage,
+        IGraphImage stencilImage, FrameStats stats)
     {
         Surface = surface;
         Raw = raw;
-        var size = surface.GetDrawSize();
-        Projection = Glm.Orthographic(0, size.X, 0, size.Y);
+        Projection = Glm.Orthographic(0, surfaceSize.X, 0, surfaceSize.Y);
         DrawImage = drawImage;
         CopyImage = copyImage;
         StencilImage = stencilImage;
+        SurfaceSize = surfaceSize;
+        Stats = stats;
         //raw.OnReset += CleanupCommands;
     }
 
-    public void BeginMainPass(bool clearColor = false,bool clearStencil = false)
+    public bool IsMainPassActive => ActivePass == Surface.MainPassId;
+    public bool IsAnyPassActive => ActivePass.Length != 0;
+
+    public void BeginMainPass(bool clearColor = false, bool clearStencil = false)
     {
-        Surface.BeginMainPass(this,clearColor,clearStencil);
+        Surface.BeginMainPass(this, clearColor, clearStencil);
     }
 
-    public void EnsurePass(string passId,Action<ViewsFrame> applyPass) => Surface.EnsurePass(this, passId,applyPass);
+    public void EnsurePass(string passId, Action<ViewsFrame> applyPass)
+    {
+        Surface.EnsurePass(this, passId, applyPass);
+    }
 
     public void EndActivePass()
     {

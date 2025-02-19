@@ -1,32 +1,35 @@
 ﻿using System.Numerics;
-using LibVLCSharp.Shared;
 using rin.Framework.Core.Math;
 using rin.Framework.Views.Graphics;
 using rin.Framework.Views.Graphics.Quads;
 
 namespace rin.Framework.Views.Content;
 
-
 /// <summary>
-/// Simple progress bar implementation
+///     Simple progress bar implementation
 /// </summary>
 public class ProgressBar(Func<float> getProgress) : ContentView
 {
     public Color BackgroundColor { get; set; } = Color.Red;
     public Color ForegroundColor { get; set; } = Color.White;
     public Vector4 BorderRadius { get; set; }
+
     protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
         return availableSpace;
     }
 
-    protected override Vector2 ComputeDesiredContentSize() => new Vector2();
+    protected override Vector2 ComputeDesiredContentSize()
+    {
+        return new Vector2();
+    }
 
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         var size = GetContentSize();
-        commands.AddRect(transform, size,color: BackgroundColor, borderRadius: BorderRadius);
-        commands.AddRect(transform, size * new Vector2(Math.Clamp(getProgress(),0.0f,1.0f),1.0f),color: ForegroundColor, borderRadius: BorderRadius);
+        commands.AddRect(transform, size, BackgroundColor, BorderRadius);
+        commands.AddRect(transform, size * new Vector2(Math.Clamp(getProgress(), 0.0f, 1.0f), 1.0f), ForegroundColor,
+            BorderRadius);
         // using var libvlc = new LibVLC(enableDebugLogs: true);
         // using var media = new Media(libvlc, new Uri(@"C:\tmp\big_buck_bunny.mp4"));
         // using var mediaplayer = new MediaPlayer(media);

@@ -2,8 +2,8 @@
 
 public interface ITransport : IDisposable
 {
-    abstract void OnAdded(ILogger logger);
-    abstract void Info(string message);
-    abstract void Warn(string message);
-    abstract void Error(string message,Exception? exception);
+    void OnAdded(ILogger logger);
+    void Info(string message);
+    void Warn(string message);
+    void Error(string message, Exception? exception);
 }

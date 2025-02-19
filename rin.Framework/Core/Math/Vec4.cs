@@ -1,9 +1,6 @@
-﻿using System.Collections;
-using System.Numerics;
-using System.Runtime.InteropServices;
+﻿using System.Numerics;
 
 namespace rin.Framework.Core.Math;
-
 
 public struct Vec4<T> :
     IAdditionOperators<Vec4<T>, Vec4<T>, Vec4<T>>,
@@ -14,8 +11,8 @@ public struct Vec4<T> :
     IMultiplyOperators<Vec4<T>, T, Vec4<T>>,
     IDivisionOperators<Vec4<T>, Vec4<T>, Vec4<T>>,
     IDivisionOperators<Vec4<T>, T, Vec4<T>>,
-    IVec<Vec4<T>,T>
-    where T : notnull, IComparisonOperators<T,T,bool>, IUnaryNegationOperators<T, T>
+    IVec<Vec4<T>, T>
+    where T : notnull, IComparisonOperators<T, T, bool>, IUnaryNegationOperators<T, T>
 {
     public T X;
     public T Y;
@@ -37,7 +34,7 @@ public struct Vec4<T> :
         Z = inZ;
         W = inW;
     }
-    
+
     public Vec4(Vec2<T> xy, Vec2<T> zw)
     {
         X = xy.X;
@@ -45,7 +42,7 @@ public struct Vec4<T> :
         Z = zw.X;
         W = zw.Y;
     }
-    
+
     public Vec4(T xy, T zw)
     {
         X = xy;
@@ -53,7 +50,7 @@ public struct Vec4<T> :
         Z = zw;
         W = zw;
     }
-    
+
     public Vec4(Vec3<T> vec3, T inW)
     {
         X = vec3.X;
@@ -155,8 +152,8 @@ public struct Vec4<T> :
     {
         return new Vec4<T>(data);
     }
-    
-    public void Deconstruct(out T x, out T y, out T z,out T w)
+
+    public void Deconstruct(out T x, out T y, out T z, out T w)
     {
         x = X;
         y = Y;

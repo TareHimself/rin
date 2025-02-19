@@ -1,8 +1,6 @@
-﻿using System.Runtime.InteropServices;
-using rin.Framework.Core;
-using rin.Framework.Graphics.FrameGraph;
-using TerraFX.Interop.Vulkan;
+﻿using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
+
 namespace rin.Framework.Graphics;
 
 /// <summary>
@@ -11,12 +9,12 @@ namespace rin.Framework.Graphics;
 public class DeviceBuffer : DeviceMemory, IDeviceBuffer
 {
     private ulong? _address;
-    
-    public string Name { get; private set; }
+
     /// <summary>
     ///     GPU Buffer
     /// </summary>
-    public DeviceBuffer(VkBuffer inBuffer, ulong inSize, Allocator allocator, IntPtr allocation, string name) : base(allocator,
+    public DeviceBuffer(VkBuffer inBuffer, ulong inSize, Allocator allocator, IntPtr allocation, string name) : base(
+        allocator,
         allocation)
     {
         NativeBuffer = inBuffer;
@@ -24,16 +22,7 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
         Name = name;
     }
 
-
-    public static implicit operator VkBuffer(DeviceBuffer from)
-    {
-        return from.NativeBuffer;
-    }
-
-    protected override void OnDispose(bool isManual)
-    {
-        Allocator.FreeBuffer(this);
-    }
+    public string Name { get; private set; }
 
     public ulong Offset => 0;
     public ulong Size { get; }
@@ -43,8 +32,8 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
     public ulong GetAddress()
     {
         if (_address.HasValue) return _address.Value;
-        
-        var info = new VkBufferDeviceAddressInfo()
+
+        var info = new VkBufferDeviceAddressInfo
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
             buffer = NativeBuffer
@@ -64,6 +53,17 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
 
     public unsafe void Write(void* src, ulong size, ulong offset = 0)
     {
-        NativeMethods.CopyToBuffer(Allocator, Allocation.ToPointer(), src,size,offset);
+        NativeMethods.CopyToBuffer(Allocator, Allocation.ToPointer(), src, size, offset);
+    }
+
+
+    public static implicit operator VkBuffer(DeviceBuffer from)
+    {
+        return from.NativeBuffer;
+    }
+
+    protected override void OnDispose(bool isManual)
+    {
+        Allocator.FreeBuffer(this);
     }
 }

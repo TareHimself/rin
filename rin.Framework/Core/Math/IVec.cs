@@ -1,9 +1,6 @@
-﻿using System.Numerics;
+﻿namespace rin.Framework.Core.Math;
 
-namespace rin.Framework.Core.Math;
-
-public interface IVec<out TVector, out TValue> : 
+public interface IVec<out TVector, out TValue> :
     ICloneable<TVector>
 {
-    
 }

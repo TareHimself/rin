@@ -1,17 +1,11 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Enums;
-using rin.Framework.Core.Animation;
-using rin.Framework.Views.Animation;
-using rin.Framework.Views.Events;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Graphics.Quads;
 using rin.Framework.Views.Layouts;
 
 namespace rin.Framework.Views.Composite;
 
 /// <summary>
-/// Slot = <see cref="Slot"/>
+///     Slot = <see cref="Slot" />
 /// </summary>
 public class Sizer : SingleSlotCompositeView
 {
@@ -37,7 +31,7 @@ public class Sizer : SingleSlotCompositeView
             Invalidate(InvalidationType.DesiredSize);
         }
     }
-    
+
     protected override Vector2 ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
@@ -55,7 +49,7 @@ public class Sizer : SingleSlotCompositeView
             HeightOverride.GetValueOrDefault(availableSpace.Y));
         if (GetSlot() is { } slot)
         {
-            slot.Child.Offset = default; 
+            slot.Child.Offset = default;
             size = slot.Child.ComputeSize(size);
         }
 
@@ -66,18 +60,15 @@ public class Sizer : SingleSlotCompositeView
     {
         if (GetSlot() is { } slot)
         {
-            slot.Child.Offset = default; 
+            slot.Child.Offset = default;
             slot.Child.ComputeSize(GetContentSize());
         }
     }
-    
+
 
     public override IEnumerable<ISlot> GetSlots()
     {
-        if (GetSlot() is { } slot)
-        {
-            return [slot];
-        }
+        if (GetSlot() is { } slot) return [slot];
 
         return [];
     }

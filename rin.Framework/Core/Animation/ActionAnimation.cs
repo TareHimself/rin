@@ -3,6 +3,7 @@
 public class ActionAnimation(Action action) : IAnimation
 {
     public double Duration => 0.0f;
+
     public void Start(double elapsed)
     {
         action();
@@ -10,6 +11,5 @@ public class ActionAnimation(Action action) : IAnimation
 
     public void Update(double elapsed)
     {
-        
     }
 }

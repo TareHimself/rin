@@ -2,8 +2,7 @@
 
 public class SlangSessionBuilder : IDisposable
 {
-
-    private readonly unsafe void * _ptr;
+    private readonly unsafe void* _ptr;
 
     public SlangSessionBuilder()
     {
@@ -13,39 +12,49 @@ public class SlangSessionBuilder : IDisposable
         }
     }
 
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+    }
+
     public SlangSessionBuilder AddTargetSpirv()
     {
         unsafe
         {
             NativeMethods.SlangSessionBuilderAddTargetSpirv(_ptr);
         }
+
         return this;
     }
-    
+
     public SlangSessionBuilder AddTargetGlsl()
     {
         unsafe
         {
             NativeMethods.SlangSessionBuilderAddTargetGlsl(_ptr);
         }
+
         return this;
     }
-    
-    public SlangSessionBuilder AddPreprocessorDefinition(string name,string value)
+
+    public SlangSessionBuilder AddPreprocessorDefinition(string name, string value)
     {
         unsafe
         {
-            NativeMethods.SlangSessionBuilderAddPreprocessorDefinition(_ptr,name,value);
+            NativeMethods.SlangSessionBuilderAddPreprocessorDefinition(_ptr, name, value);
         }
+
         return this;
     }
-    
+
     public SlangSessionBuilder AddSearchPath(string searchPath)
     {
         unsafe
         {
-            NativeMethods.SlangSessionBuilderAddSearchPath(_ptr,searchPath);
+            NativeMethods.SlangSessionBuilderAddSearchPath(_ptr, searchPath);
         }
+
         return this;
     }
 
@@ -56,18 +65,13 @@ public class SlangSessionBuilder : IDisposable
             return new SlangSession(NativeMethods.SlangSessionBuilderBuild(_ptr));
         }
     }
+
     private void ReleaseUnmanagedResources()
     {
         unsafe
         {
             NativeMethods.SlangSessionBuilderFree(_ptr);
         }
-    }
-
-    public void Dispose()
-    {
-        ReleaseUnmanagedResources();
-        GC.SuppressFinalize(this);
     }
 
     ~SlangSessionBuilder()

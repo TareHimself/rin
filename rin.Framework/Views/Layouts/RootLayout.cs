@@ -1,7 +1,5 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
 using rin.Framework.Views.Composite;
-using rin.Framework.Views.Enums;
 
 namespace rin.Framework.Views.Layouts;
 
@@ -11,7 +9,6 @@ public class RootLayout(CompositeView container) : InfiniteChildrenLayout
 
     public override void Dispose()
     {
-        
     }
 
     public override ISlot MakeSlot(View view)
@@ -37,8 +34,10 @@ public class RootLayout(CompositeView container) : InfiniteChildrenLayout
         {
             slot.Child.Offset = default;
             slot.Child.ComputeSize(availableSpace);
-        };
-        
+        }
+
+        ;
+
         return availableSpace;
     }
 

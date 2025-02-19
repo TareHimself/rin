@@ -1,19 +1,20 @@
-﻿using JetBrains.Annotations;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.FrameGraph;
+﻿using rin.Framework.Graphics;
 
 namespace rin.Framework.Views.Graphics.Commands;
 
 /// <summary>
-/// Base class for custom commands that will run in the ViewsPass
+///     Base class for custom commands that will run in the ViewsPass
 /// </summary>
 public abstract class CustomCommand : Command
 {
     public abstract void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null);
 
     public abstract ulong GetRequiredMemory();
-    
+
     public abstract bool WillDraw();
-    
-    public virtual bool CombineWith(CustomCommand other) => false;
+
+    public virtual bool CombineWith(CustomCommand other)
+    {
+        return false;
+    }
 }

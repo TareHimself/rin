@@ -6,12 +6,12 @@ namespace rin.Framework.Views.Sdf;
 
 public class MtsdfFont : Reservable
 {
-    private readonly Mutex _mutex = new();
-    private readonly FontFamily _fontFamily;
     private readonly int[] _atlases;
-    private readonly Dictionary<string,SdfVector> _vectors;
+    private readonly FontFamily _fontFamily;
+    private readonly Mutex _mutex = new();
+    private readonly Dictionary<string, SdfVector> _vectors;
 
-    public MtsdfFont(FontFamily fontFamily,int[] atlases,Dictionary<string,SdfVector> vectors)
+    public MtsdfFont(FontFamily fontFamily, int[] atlases, Dictionary<string, SdfVector> vectors)
     {
         _atlases = atlases;
         _vectors = vectors;
@@ -32,11 +32,14 @@ public class MtsdfFont : Reservable
     {
         return _atlases[atlasId];
     }
-    
+
     public int[] GetAtlases()
     {
         return _atlases;
     }
 
-    public SdfVector? GetGlyphInfo(int glyphId) => _vectors.GetValueOrDefault(glyphId.ToString());
+    public SdfVector? GetGlyphInfo(int glyphId)
+    {
+        return _vectors.GetValueOrDefault(glyphId.ToString());
+    }
 }
