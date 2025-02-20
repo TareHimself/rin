@@ -3,17 +3,17 @@
 
 #include "TaskRunner.h"
 #include "rin/core/Module.h"
-#include "rin/io/IWindow.h"
+#include "rin/io/Window.h"
 #include "rin/core/math/Vec2.h"
 
 struct GLFWwindow;
 namespace rin::io
 {
-    class IWindow;
+    class Window;
 
     class IoModule : public Module
     {
-        std::unordered_map<GLFWwindow*,Shared<IWindow>> _windows{};
+        std::unordered_map<GLFWwindow*,Shared<Window>> _windows{};
         //std::unordered_map<>
         TaskRunner _mainTaskRunner{};
     public:
@@ -21,8 +21,8 @@ namespace rin::io
         void Tick(double delta);
 
         static IoModule* Get();
-        IWindow * CreateWindow(const Vec2<int>& size, const std::string& name,
-            const std::optional<IWindow::CreateOptions>& options,IWindow * parent = {});
+        Window * CreateWindow(const Vec2<int>& size, const std::string& name,
+            const std::optional<Window::CreateOptions>& options,Window * parent = {});
 
         void OnDispose() override;
 
@@ -33,5 +33,8 @@ namespace rin::io
         void RegisterRequiredModules(GRuntime* runtime) override;
 
         TaskRunner& GetTaskRunner();
+
+        DEFINE_DELEGATE_LIST(onWindowCreated,Window *)
+        DEFINE_DELEGATE_LIST(onWindowDestroyed,Window *)
     };
 }

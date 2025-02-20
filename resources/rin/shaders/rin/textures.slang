@@ -2,8 +2,8 @@ import rin.attributes;
 // Define a texture array resource
 //[layout(set = 0, binding = 0), $partial, $update, $variable = 512, $stage = all]
 
-[[vk::binding(2, 3)]]
-[AllStages,UpdateAfterBind, Partial, Variable(512)]
+[[vk::binding(0, 0)]]
+[AllStages, UpdateAfterBind, Partial, Variable(512)]
 uniform Sampler2D GLOBAL_TEXTURES[];
 
 // Function to sample a texture

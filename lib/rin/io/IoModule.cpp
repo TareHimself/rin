@@ -17,11 +17,11 @@ namespace rin::io
         return GRuntime::Get()->GetModule<IoModule>();
     }
 
-    IWindow * IoModule::CreateWindow(const Vec2<int>& size, const std::string& name,
-                                           const std::optional<IWindow::CreateOptions>& options,IWindow * parent)
+    Window * IoModule::CreateWindow(const Vec2<int>& size, const std::string& name,
+                                           const std::optional<Window::CreateOptions>& options,Window * parent)
     {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        const auto createOptions = options.value_or(IWindow::CreateOptions{});
+        const auto createOptions = options.value_or(Window::CreateOptions{});
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, createOptions.resizable ? GLFW_TRUE : GLFW_FALSE);
         glfwWindowHint(GLFW_VISIBLE, createOptions.visible ? GLFW_TRUE : GLFW_FALSE);
@@ -36,7 +36,7 @@ namespace rin::io
             
             _windows.emplace(window,sharedWindow);
             
-            if(auto parentAsSdlWindow = dynamic_cast<GlfwWindow *>(parent))
+            if(const auto parentAsSdlWindow = dynamic_cast<GlfwWindow *>(parent))
             {
                 sharedWindow->SetParent(parentAsSdlWindow);
             }
@@ -45,10 +45,12 @@ namespace rin::io
             {
                 if(const auto found = _windows.find(window); found != _windows.end())
                 {
+                    onWindowDestroyed->Invoke(found->second.get());
                     _windows.erase(found);
                 }
             });
-            
+
+            onWindowCreated->Invoke(sharedWindow.get());
             return sharedWindow.get();
         }
 
@@ -57,7 +59,7 @@ namespace rin::io
 
     void IoModule::OnDispose()
     {
-        for (auto windows = _windows; const auto window : windows | std::views::values)
+        for (auto windows = _windows; const auto& window : windows | std::views::values)
         {
             if(!window->GetParent())
             {

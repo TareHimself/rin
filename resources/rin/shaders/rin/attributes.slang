@@ -19,11 +19,9 @@ struct VariableAttribute
 [__AttributeUsage(_AttributeTargets.Var)]
 struct AllStagesAttribute
 {
-
 };
 
 [__AttributeUsage(_AttributeTargets.Var)]
 struct PushAttribute
 {
-
 };

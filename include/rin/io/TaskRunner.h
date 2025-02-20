@@ -30,16 +30,16 @@ namespace rin::io
         void StopAll();
         
         template<typename T>
-        Task<T> Run(const Shared<Delegate<T>>& delegate);
+        Task<T> Enqueue(const Shared<Delegate<T>>& delegate);
         
         template<typename T>
-        Task<T> Run(const std::function<T()>& func);
+        Task<T> Enqueue(const std::function<T()>& func);
         template<typename T>
-        Task<T> Run(std::function<T()>&& func);
+        Task<T> Enqueue(std::function<T()>&& func);
         template <typename TClass,typename T>
-        Task<T> Run(TClass* instance, ClassFunctionType<TClass,T> function);
+        Task<T> Enqueue(TClass* instance, ClassFunctionType<TClass,T> function);
         template <typename TClass,typename T>
-        Task<T> Run(const Shared<TClass>& instance, ClassFunctionType<TClass,T> function);
+        Task<T> Enqueue(const Shared<TClass>& instance, ClassFunctionType<TClass,T> function);
 
 
         //
@@ -54,7 +54,7 @@ namespace rin::io
     };
     
     template <typename T>
-    Task<T> TaskRunner::Run(const Shared<Delegate<T>>& delegate)
+    Task<T> TaskRunner::Enqueue(const Shared<Delegate<T>>& delegate)
     {
         auto task = shared<RunnableTask<T>>(delegate);
         __RunTask(task);
@@ -62,29 +62,29 @@ namespace rin::io
     }
 
     template <typename T>
-    Task<T> TaskRunner::Run(const std::function<T()>& func)
+    Task<T> TaskRunner::Enqueue(const std::function<T()>& func)
     {
-        return  Run(std::static_pointer_cast<Delegate<T>>(newDelegate(func)));
+        return  Enqueue(std::static_pointer_cast<Delegate<T>>(newDelegate(func)));
     }
 
     template <typename T>
-    Task<T> TaskRunner::Run(std::function<T()>&& func)
+    Task<T> TaskRunner::Enqueue(std::function<T()>&& func)
     {
         auto delegate = newDelegate(func);
-        return  Run<T>(std::static_pointer_cast<Delegate<T>>(delegate));
+        return  Enqueue<T>(std::static_pointer_cast<Delegate<T>>(delegate));
     }
 
     template <typename TClass, typename T>
-    Task<T> TaskRunner::Run(TClass* instance, ClassFunctionType<TClass, T> function)
+    Task<T> TaskRunner::Enqueue(TClass* instance, ClassFunctionType<TClass, T> function)
     {
         auto delegate = newDelegate(instance,function);
-        return  Run<T>(std::static_pointer_cast<Delegate<T>>(delegate));
+        return  Enqueue<T>(std::static_pointer_cast<Delegate<T>>(delegate));
     }
 
     template <typename TClass, typename T>
-    Task<T> TaskRunner::Run(const Shared<TClass>& instance, ClassFunctionType<TClass, T> function)
+    Task<T> TaskRunner::Enqueue(const Shared<TClass>& instance, ClassFunctionType<TClass, T> function)
     {
         auto delegate = newDelegate(instance,function);
-        return  Run<T>(std::static_pointer_cast<Delegate<T>>(delegate));
+        return  Enqueue<T>(std::static_pointer_cast<Delegate<T>>(delegate));
     }
 }

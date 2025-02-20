@@ -45,6 +45,7 @@ namespace rin
 
         std::ranges::sort_heap(_moduleList.begin(),_moduleList.end(), [](Shared<Module>& a, Shared<Module>& b)
         {
+            
             if (a->IsSystemModule() != b->IsSystemModule())
             {
                 if (a->IsSystemModule())

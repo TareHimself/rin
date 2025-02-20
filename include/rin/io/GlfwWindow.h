@@ -1,13 +1,13 @@
 ﻿#pragma once
-#include "IWindow.h"
+#include "Window.h"
 struct GLFWwindow;
 namespace rin::io
 {
-    class GlfwWindow : public IWindow
+    class GlfwWindow : public Window
     {
         GLFWwindow* _ptr;
         GlfwWindow * _parent{};
-        std::vector<IWindow *> _children{};
+        std::vector<Window *> _children{};
         bool _fullscreen{false};
         bool _focused{false};
     protected:
@@ -15,13 +15,14 @@ namespace rin::io
         
     public:
         GlfwWindow(GLFWwindow * ptr);
-        Vec2<double> GetCursorPosition() override;
+        Vec2<> GetCursorPosition() override;
         void SetCursorPosition(const Vec2<double>& position) override;
         void SetFullscreen(bool state) override;
-        Vec2<uint32_t> GetPixelSize() override;
-        IWindow * CreateChild(const Vec2<int>& size, const std::string& name,
+        Vec2<uint32_t> GetSize() override;
+        Vec2<uint32_t> GetFrameBufferSize() override;
+        Window * CreateChild(const Vec2<int>& size, const std::string& name,
             const std::optional<CreateOptions>& options) override;
-        IWindow * GetParent() override;
+        Window * GetParent() override;
         bool IsFocused() override;
         bool IsFullscreen() override;
         vk::SurfaceKHR CreateSurface(const vk::Instance& instance) override;

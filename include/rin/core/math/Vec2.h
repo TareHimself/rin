@@ -1,14 +1,20 @@
 #pragma once
-#include <glm/glm.hpp>
+#include "glm.h"
 
 namespace rin
 {
-    template <typename T>
-    class Vec2
+    template <typename T = float>
+    struct Vec2
     {
-    public:
         T x;
         T y;
+
+        template<std::enable_if_t<std::is_default_constructible_v<T>>* = nullptr>
+        Vec2()
+        {
+            x = {};
+            y = {};
+        }
 
         Vec2(const T& data)
         {
@@ -39,24 +45,64 @@ namespace rin
             return Vec2<E>{static_cast<E>(x), static_cast<E>(y)};
         }
 
-        Vec2 operator+(Vec2 const& other)
+
+        // Vec2 operator+(Vec2 const& a,Vec2 const& b) const
+        // {
+        //     return Vec2{a.x + b.x, a.y + b.y};
+        // }
+        //
+        // Vec2 operator-(Vec2 const& a,Vec2 const& b) const
+        // {
+        //     return Vec2{a.x - b.x, a.y - b.y};
+        // }
+        //
+        // Vec2 operator*(Vec2 const& a,Vec2 const& b) const
+        // {
+        //     return Vec2{a.x * b.x, a.y * b.y};
+        // }
+        //
+        // Vec2 operator/(Vec2 const& a,Vec2 const& b) const
+        // {
+        //     return Vec2{a.x / b.x, a.y / b.y};
+        // }
+        Vec2 operator+(Vec2 const& other) const
         {
             return Vec2{x + other.x, y + other.y};
         }
 
-        Vec2 operator-(Vec2 const& other)
+        Vec2 operator-(Vec2 const& other) const
         {
             return Vec2{x - other.x, y - other.y};
         }
 
-        Vec2 operator*(Vec2 const& other)
+        Vec2 operator*(Vec2 const& other) const
         {
             return Vec2{x * other.x, y * other.y};
         }
 
-        Vec2 operator/(Vec2 const& other)
+        Vec2 operator/(Vec2 const& other) const
         {
             return Vec2{x / other.x, y / other.y};
+        }
+
+        Vec2 operator+(T const& other) const
+        {
+            return Vec2{x + other, y + other};
+        }
+
+        Vec2 operator-(T const& other) const
+        {
+            return Vec2{x - other, y - other};
+        }
+
+        Vec2 operator*(T const& other) const
+        {
+            return Vec2{x * other, y * other};
+        }
+
+        Vec2 operator/(T const& other) const
+        {
+            return Vec2{x / other, y / other};
         }
     };
 }

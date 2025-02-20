@@ -1,14 +1,22 @@
 #pragma once
-#include <glm/glm.hpp>
+#include "glm.h"
 
 namespace rin
 {
-    template <typename T>
-    class Vec3
+    template <typename T = float>
+    struct Vec3
     {
         T x;
         T y;
         T z;
+
+        template<std::enable_if_t<std::is_default_constructible_v<T>>* = nullptr>
+        Vec3()
+        {
+            x = {};
+            y = {};
+            z = {};
+        }
 
         Vec3(const T& data)
         {
@@ -31,9 +39,9 @@ namespace rin
             z = vec.z;
         }
 
-        explicit operator glm::vec<3, T>() const
+        explicit operator glm::vec<3, T,glm::defaultp>() const
         {
-            return glm::vec<2, T>{x, y, z};
+            return glm::vec<3, T,glm::defaultp>{x, y, z};
         }
 
         template <typename E>
@@ -42,22 +50,22 @@ namespace rin
             return Vec3{static_cast<E>(x), static_cast<E>(y), static_cast<E>(z)};
         }
 
-        Vec3 operator+(Vec3 const& other)
+        Vec3 operator+(Vec3 const& other) const
         {
             return Vec3{x + other.x, y + other.y, z + other.z};
         }
 
-        Vec3 operator-(Vec3 const& other)
+        Vec3 operator-(Vec3 const& other) const
         {
             return Vec3{x - other.x, y - other.y, z - other.z};
         }
 
-        Vec3 operator*(Vec3 const& other)
+        Vec3 operator*(Vec3 const& other) const
         {
             return Vec3{x * other.x, y * other.y, z * other.z};
         }
 
-        Vec3 operator/(Vec3 const& other)
+        Vec3 operator/(Vec3 const& other) const
         {
             return Vec3{x / other.x, y / other.y, z / other.z};
         }

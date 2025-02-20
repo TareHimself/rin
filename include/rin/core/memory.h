@@ -1,7 +1,7 @@
 #pragma once
 #include <type_traits>
 #include <memory>
-#include "IDisposable.h"
+#include "Disposable.h"
 
 namespace rin
 {
@@ -12,18 +12,18 @@ namespace rin
     using Weak = std::weak_ptr<T>;
     
     template<typename T,typename ...TArgs>
-    std::enable_if_t<std::is_base_of_v<IDisposable,T> &&  std::is_constructible_v<T,TArgs...>,Shared<T>> shared(TArgs&&... args)
+    std::enable_if_t<std::is_base_of_v<Disposable,T> &&  std::is_constructible_v<T,TArgs...>,Shared<T>> shared(TArgs&&... args)
     {
         auto ptr = new T(std::forward<TArgs>(args)...);
         
         return std::shared_ptr<T>(ptr,[](T * ptr)
         {
-            static_cast<IDisposable*>(ptr)->Dispose();
+            static_cast<Disposable*>(ptr)->Dispose();
         });
     }
 
     template<typename T,typename ...TArgs>
-    std::enable_if_t<!std::is_base_of_v<IDisposable,T> && std::is_constructible_v<T,TArgs...>,Shared<T>> shared(TArgs&&... args)
+    std::enable_if_t<!std::is_base_of_v<Disposable,T> && std::is_constructible_v<T,TArgs...>,Shared<T>> shared(TArgs&&... args)
     {
         return std::make_shared<T>(std::forward<TArgs>(args)...);
     }

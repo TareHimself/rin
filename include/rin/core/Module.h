@@ -1,14 +1,14 @@
 ﻿#pragma once
 #include <string>
 
-#include "IDisposable.h"
+#include "Disposable.h"
 #include "delegates/DelegateList.h"
 
 
 namespace rin
 {
     class GRuntime;
-    class Module : public IDisposable
+    class Module : public Disposable
     {
     protected:
         friend GRuntime;

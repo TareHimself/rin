@@ -28,12 +28,13 @@ namespace rin
         bool UnBind();
     };
 
-    class _DelegateList : public IDisposable, public std::enable_shared_from_this<_DelegateList>
+    class _DelegateList : public Disposable, public std::enable_shared_from_this<_DelegateList>
     {
     public:
         virtual bool IsBound(uint64_t id) const = 0;
         virtual bool UnBind(uint64_t id) = 0;
         virtual bool HasBindings() const = 0;
+        virtual void Clear() = 0;
     };
 
 
@@ -79,8 +80,8 @@ namespace rin
     template <typename... TArgs>
     class DelegateList : public _DelegateList
     {
-        //std::map<uint64_t, Shared<Delegate<void, TArgs...>>> _delegates{};
-        std::map<uint64_t, std::function<void(TArgs...)>> _delegates{};
+        std::map<uint64_t, Shared<Delegate<void, TArgs...>>> _delegates{};
+        //std::map<uint64_t, std::function<void(TArgs...)>> _delegates{};
     public:
         DelegateList() = default;
         DelegateListHandle Add(const Shared<Delegate<void, TArgs...>>& delegate);
@@ -99,6 +100,8 @@ namespace rin
         bool UnBind(uint64_t id) override;
 
         bool HasBindings() const override;
+
+        void Clear() override;
 
     protected:
         void OnDispose() override;
@@ -183,6 +186,11 @@ namespace rin
     bool DelegateList<TArgs...>::HasBindings() const
     {
         return !_delegates.empty();
+    }
+    template <typename ... TArgs>
+    void DelegateList<TArgs...>::Clear()
+    {
+        _delegates.clear();
     }
 
     template <typename ... TArgs>
