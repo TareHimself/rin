@@ -1,12 +1,14 @@
 ﻿using rin.Framework.Core;
 using rin.Framework.Graphics.FrameGraph;
 using rin.Framework.Graphics.Windows;
+using SDL;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkStructureType;
 using static TerraFX.Interop.Vulkan.Vulkan;
+using static SDL.SDL3;
 
 namespace rin.Framework.Graphics;
-
+    
 /// <summary>
 ///     Handle's rendering on a <see cref="Windows" />
 /// </summary>
@@ -99,7 +101,10 @@ public class WindowRenderer : IWindowRenderer
             if (_swapchainExtent != ctx.RenderExtent)
             {
                 DestroySwapchain();
-                CreateSwapchain(ctx.RenderExtent);
+                if (!CreateSwapchain(ctx.RenderExtent))
+                {
+                    return;
+                }
             }
 
             var start = SRuntime.Get().GetTimeSeconds();
@@ -115,7 +120,10 @@ public class WindowRenderer : IWindowRenderer
     {
         var instance = SGraphicsModule.Get().GetInstance();
         var surface = new VkSurfaceKHR();
-        NativeMethods.CreateSurface(instance, _window.GetPtr(), &surface);
+        var surfValuePtr = &surface.Value;
+        // ReSharper disable once AccessToDisposedClosure
+        SDL_Vulkan_CreateSurface((SDL_Window*)_window.GetPtr(), (SDL.VkInstance_T*)instance.Value, null,(SDL.VkSurfaceKHR_T**)surfValuePtr);
+        //NativeMethods.CreateSurface(instance, _window.GetPtr(), &surface);
         return surface;
     }
 
@@ -127,20 +135,33 @@ public class WindowRenderer : IWindowRenderer
     public void Init()
     {
         var windowSize = _window.GetPixelSize();
-        CreateSwapchain(new Extent2D
-        {
-            Width = windowSize.X,
-            Height = windowSize.Y
-        });
+        // CreateSwapchain(new Extent2D
+        // {
+        //     Width = windowSize.X,
+        //     Height = windowSize.Y
+        // });
         InitFrames();
     }
 
-    private unsafe void CreateSwapchain(Extent2D extent)
+    private unsafe bool CreateSwapchain(Extent2D extent)
     {
+        var surfaceCapabilities = new VkSurfaceCapabilitiesKHR();
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(),_surface,&surfaceCapabilities);
+
+        if (surfaceCapabilities.minImageExtent.width > extent.Width ||
+            surfaceCapabilities.minImageExtent.height > extent.Height ||
+            surfaceCapabilities.maxImageExtent.width < extent.Width ||
+            surfaceCapabilities.maxImageExtent.height < extent.Height)
+        {
+            return false;
+        }
+        
         _viewport.minDepth = 0.0f;
         _viewport.maxDepth = 1.0f;
         _viewport.width = extent.Width;
         _viewport.height = extent.Height;
+        
+        
         var device = _module.GetDevice();
         var physicalDevice = _module.GetPhysicalDevice();
         var format = _module.GetSurfaceFormat();
@@ -148,30 +169,79 @@ public class WindowRenderer : IWindowRenderer
         // _supportedPresentModes.Contains(VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR)
         // ? VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR
         // : _supportedPresentModes.First();
-        NativeMethods.CreateSwapchain(
-            device,
-            physicalDevice,
-            _surface,
-            (int)format.format,
-            (int)format.colorSpace,
-            (int)presentMode,
-            extent.Width,
-            extent.Height,
-            (swapchain, swapchainImages, numSwapchainImages, swapchainImageViews, numSwapchainImageViews) =>
+        // var createInfo = new VkSwapchainCreateInfoKHR()
+        // {
+        //     sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        //     
+        // }
+        // vkCreateSwapchainKHR()
+
+        var createInfo = new VkSwapchainCreateInfoKHR()
+        {
+            sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            surface = _surface,
+            presentMode = presentMode,
+            imageFormat = format.format,
+            compositeAlpha = VkCompositeAlphaFlagsKHR.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            imageColorSpace = format.colorSpace,
+            imageExtent = extent.ToVk(),
+            imageUsage = VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT | VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            imageArrayLayers = 1,
+            minImageCount = surfaceCapabilities.minImageCount + 1,
+            preTransform = VkSurfaceTransformFlagsKHR.VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
+        };
+
+        var swapchain = new VkSwapchainKHR();
+        vkCreateSwapchainKHR(device,&createInfo, null, &swapchain);
+
+        uint imagesCount = 0;
+        vkGetSwapchainImagesKHR(device,swapchain,&imagesCount,null);
+        
+        _swapchainImages = new VkImage[(int)imagesCount];
+
+        fixed (VkImage* imagesPtr = _swapchainImages)
+        {
+            vkGetSwapchainImagesKHR(device,swapchain,&imagesCount,imagesPtr);
+        }
+
+        _swapchainViews = _swapchainImages.Select(c =>
+        {
+            unsafe
             {
-                _swapchain = new VkSwapchainKHR(swapchain);
-                var images = (VkImage*)swapchainImages;
-                var imageViews = (VkImageView*)swapchainImageViews;
-
-                _swapchainImages = new VkImage[numSwapchainImages];
-
-                for (var i = 0; i < numSwapchainImages; i++) _swapchainImages[i] = images[i];
-
-                _swapchainViews = new VkImageView[numSwapchainImageViews];
-
-                for (var i = 0; i < numSwapchainImages; i++) _swapchainViews[i] = imageViews[i];
-            });
+                var viewCreateInfo = SGraphicsModule.MakeImageViewCreateInfo(ImageFormat.RGBA8, c,
+                    VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
+                var view = new VkImageView();
+                vkCreateImageView(device, &viewCreateInfo, null, &view);
+                return view;
+            }
+        }).ToArray();
+        _swapchain = swapchain;
+        // vkGetSwapchainImagesKHR()
+        // NativeMethods.CreateSwapchain(
+        //     device,
+        //     physicalDevice,
+        //     _surface,
+        //     (int)format.format,
+        //     (int)format.colorSpace,
+        //     (int)presentMode,
+        //     extent.Width,
+        //     extent.Height,
+        //     (swapchain, swapchainImages, numSwapchainImages, swapchainImageViews, numSwapchainImageViews) =>
+        //     {
+        //         _swapchain = new VkSwapchainKHR(swapchain);
+        //         var images = (VkImage*)swapchainImages;
+        //         var imageViews = (VkImageView*)swapchainImageViews;
+        //
+        //         _swapchainImages = new VkImage[numSwapchainImages];
+        //
+        //         for (var i = 0; i < numSwapchainImages; i++) _swapchainImages[i] = images[i];
+        //
+        //         _swapchainViews = new VkImageView[numSwapchainImageViews];
+        //
+        //         for (var i = 0; i < numSwapchainImages; i++) _swapchainViews[i] = imageViews[i];
+        //     });
         _swapchainExtent = extent;
+        return true;
     }
 
     private unsafe void DestroySwapchain()
@@ -374,6 +444,7 @@ public class WindowRenderer : IWindowRenderer
             }
             catch (OutOfDateException e)
             {
+                DestroySwapchain();
             }
         }
     }

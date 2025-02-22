@@ -28,7 +28,7 @@ public enum ViewportChannel : int
     Emissive
 }
 
-internal class SetupRenderingCommand(CameraComponent camera,Vec2<uint> size) : UtilityCommand
+internal class SetupRenderingCommand(CameraComponent camera,Vector2<uint> size) : UtilityCommand
 {
     [PublicAPI]
     public ForwardRenderingPass RenderPass = new ForwardRenderingPass(camera,size);
@@ -210,7 +210,7 @@ public class Viewport : ContentView
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         var contentSize = GetContentSize();
-        var size = new Vec2<uint>((uint)Math.Ceiling(contentSize.X), (uint)Math.Ceiling(contentSize.Y));
+        var size = new Vector2<uint>((uint)Math.Ceiling(contentSize.X), (uint)Math.Ceiling(contentSize.Y));
         var renderingCmd = new SetupRenderingCommand(_targetCamera,size);
         commands
             .Add(renderingCmd)

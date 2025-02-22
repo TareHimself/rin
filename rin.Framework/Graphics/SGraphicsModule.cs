@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
+using System.Text;
 using System.Text.RegularExpressions;
 using rin.Framework.Core;
 using rin.Framework.Core.Extensions;
@@ -42,7 +44,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     private VkInstance _instance;
     private VkPhysicalDevice _physicalDevice;
     private IShaderManager? _shaderCompiler;
-    private Dictionary<IntPtr, SdlWindow> _sdlWindows = [];
+    private Dictionary<nuint, SdlWindow> _sdlWindows = [];
 
     private VkSurfaceFormatKHR _surfaceFormat = new()
     {
@@ -56,16 +58,14 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     private VkFence _transferFence;
     private VkQueue _transferQueue;
     private uint _transferQueueFamily;
-    private int _maxEventsPerPeep = 20;
+    private int _maxEventsPerPeep = 64;
 
     public void Startup(SRuntime runtime)
     {
-        NativeMethods.InitGlfw();
+        //NativeMethods.InitGlfw();
         
-        // if (!SDL_InitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD))
-        //     throw new InvalidOperationException($"failed to initialise SDL. Error: {SDL_GetError()}");
-        //
-        // var z = new SDL_Event();
+        if (!SDL_InitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD))
+            throw new InvalidOperationException($"failed to initialise SDL. Error: {SDL_GetError()}");
         
         InitVulkan();
     }
@@ -109,7 +109,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         if (_debugUtilsMessenger.Value != 0) NativeMethods.DestroyMessenger(_instance, _debugUtilsMessenger);
         _instance.Destroy();
 
-        NativeMethods.StopGlfw();
+        SDL_QuitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD);
+        // NativeMethods.StopGlfw();
     }
 
     public static SGraphicsModule Get()
@@ -284,10 +285,24 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             Decorated = false,
             Resizable = false
         });
+        
+        PollWindows();
 
         if (window == null) throw new Exception("Failed to create window to init graphics");
-
-        NativeMethods.CreateInstance(window.GetPtr(), &outInstance, &outDevice, &outPhysicalDevice, &outGraphicsQueue,
+        uint extensionCount = 0;
+        var extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
+        NativeMethods.CreateInstance(extensions,extensionCount,(inst) =>
+            {
+                unsafe
+                {
+                    VkSurfaceKHR surface = new();
+                    var surfValuePtr = &surface.Value;
+                    // ReSharper disable once AccessToDisposedClosure
+                    var windowPtr = (SDL_Window*)window.GetPtr();
+                    SDL_Vulkan_CreateSurface(windowPtr, (SDL.VkInstance_T*)inst.Value, null,(SDL.VkSurfaceKHR_T**)surfValuePtr);
+                    return surface;
+                }
+            }, &outInstance, &outDevice, &outPhysicalDevice, &outGraphicsQueue,
             &outTransferQueueFamily, &outTransferQueue, &outTransferQueueFamily, &outSurface, &outDebugMessenger);
         _instance = outInstance;
         _device = outDevice;
@@ -422,6 +437,19 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         return _descriptorAllocator;
     }
 
+    // private IWindow Internal_CreateWindow(int width, int height, string name, CreateOptions? options = null,
+    //     IWindow? parent = null
+    // )
+    // {
+    //     unsafe
+    //     {
+    //         var opts = options.GetValueOrDefault(new CreateOptions());
+    //         var winPtr = NativeMethods.Create(width, height, name, &opts);
+    //         var win = new Window(winPtr, parent);
+    //         return win;
+    //     }
+    // }
+    
     private IWindow Internal_CreateWindow(int width, int height, string name, CreateOptions? options = null,
         IWindow? parent = null
     )
@@ -429,9 +457,54 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         unsafe
         {
             var opts = options.GetValueOrDefault(new CreateOptions());
-            var winPtr = NativeMethods.Create(width, height, name, &opts);
-            var win = new Window(winPtr, parent);
-            return win;
+            
+            SDL_WindowFlags flags = SDL_WindowFlags.SDL_WINDOW_VULKAN;
+
+            if (opts.Resizable)
+            {
+                flags |= SDL_WindowFlags.SDL_WINDOW_RESIZABLE;
+            }
+
+            if (!opts.Visible)
+            {
+                flags |= SDL_WindowFlags.SDL_WINDOW_HIDDEN;
+            }
+
+            if (!opts.Decorated)
+            {
+                flags |= SDL_WindowFlags.SDL_WINDOW_BORDERLESS;
+            }
+
+            if (opts.Focused)
+            {
+                flags |= SDL_WindowFlags.SDL_WINDOW_INPUT_FOCUS | SDL_WindowFlags.SDL_WINDOW_MOUSE_FOCUS;
+            }
+
+            if (opts.Floating)
+            {
+                flags |= SDL_WindowFlags.SDL_WINDOW_ALWAYS_ON_TOP;
+            }
+
+            if (opts.Transparent)
+            {
+                flags |= SDL_WindowFlags.SDL_WINDOW_TRANSPARENT;
+            }
+
+            fixed(byte* data = Encoding.UTF8.GetBytes(name))
+            {
+                var windowPtr = SDL_CreateWindow(data, width, height, flags);
+
+                var win = new SdlWindow(windowPtr, parent);
+
+                _sdlWindows.Add((nuint)windowPtr,win);
+
+                win.OnDisposed += () =>
+                {
+                    _sdlWindows.Remove((nuint)windowPtr);
+                };
+            
+                return win; 
+            }
         }
     }
 
@@ -443,7 +516,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         window.OnDisposed += () =>
         {
             HandleWindowClosed(window);
-            NativeMethods.Destroy(window.GetPtr());
+            //NativeMethods.Destroy(window.GetPtr());
         };
         HandleWindowCreated(window);
         return window;
@@ -977,7 +1050,27 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     /// </summary>
     public void PollWindows()
     {
-        NativeMethods.PollEvents();
+        // NativeMethods.PollEvents();
+        SDL_PumpEvents();
+
+        unsafe
+        {
+            var events = stackalloc SDL_Event[_maxEventsPerPeep];
+            var eventsPumped = 0;
+            do
+            {
+                eventsPumped = SDL_PeepEvents(events, _maxEventsPerPeep, SDL_EventAction.SDL_GETEVENT, (uint)SDL_EventType.SDL_EVENT_FIRST, (uint)SDL_EventType.SDL_EVENT_LAST);
+                for (var i = 0; i < eventsPumped; i++)
+                {
+                    var e = events + i;
+                    var windowPtr = SDL_GetWindowFromEvent(e);
+                    if(windowPtr == null) continue;
+                    var window = _sdlWindows[(nuint)windowPtr];
+                    window.HandleEvent(*e);
+                }
+            } while (eventsPumped == _maxEventsPerPeep);
+            
+        }
     }
 
     /// <summary>

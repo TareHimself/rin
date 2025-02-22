@@ -50,12 +50,15 @@ internal static partial class NativeMethods
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public unsafe delegate void SwapchainCreatedDelegate(ulong swapchain, void* swapchainImages,
         uint numSwapchainImages, void* swapchainImageViews, uint numSwapchainImageViews);
+    
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public unsafe delegate VkSurfaceKHR CreateSurfaceDelegate(VkInstance swapchain);
 
     private const string DllName = "rin.Framework.Native";
 
     [LibraryImport(DllName, EntryPoint = "createVulkanInstance")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void CreateInstance(IntPtr inWindow, VkInstance* outInstance, VkDevice* outDevice,
+    public static unsafe partial void CreateInstance(byte** extensions,uint numExtensions,[MarshalAs(UnmanagedType.FunctionPtr)] CreateSurfaceDelegate createSurfaceDelegate, VkInstance* outInstance, VkDevice* outDevice,
         VkPhysicalDevice* outPhysicalDevice, VkQueue* outGraphicsQueue, uint* outGraphicsQueueFamily,
         VkQueue* outTransferQueue, uint* outTransferQueueFamily, VkSurfaceKHR* outSurface,
         VkDebugUtilsMessengerEXT* debugMessenger);
@@ -63,17 +66,7 @@ internal static partial class NativeMethods
     [LibraryImport(DllName, EntryPoint = "destroyVulkanMessenger")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
     public static unsafe partial void DestroyMessenger(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger);
-
-    [LibraryImport(DllName, EntryPoint = "createSurface")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void CreateSurface(VkInstance instance, IntPtr window, VkSurfaceKHR* surface);
-
-    [LibraryImport(DllName, EntryPoint = "createSwapchain")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static partial ulong CreateSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
-        int swapchainFormat, int colorSpace, int presentMode, uint width, uint height,
-        [MarshalAs(UnmanagedType.FunctionPtr)] SwapchainCreatedDelegate onCreatedDelegate);
-
+    
     [LibraryImport(DllName, EntryPoint = "allocatorCopyToBuffer")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
     public static unsafe partial void CopyToBuffer(IntPtr allocator, void* allocation, void* data, ulong size,
@@ -197,73 +190,6 @@ internal static partial class NativeMethods
         VkCommandBuffer commandBuffer,
         VkSampleCountFlags samples,
         uint* pSampleMask);
-
-
-    [LibraryImport(DllName, EntryPoint = "getWindowMousePosition")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void GetMousePosition(IntPtr window, double* x, double* y);
-
-    [LibraryImport(DllName, EntryPoint = "setWindowMousePosition")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static partial void SetMousePosition(IntPtr window, double x, double y);
-
-    [LibraryImport(DllName, EntryPoint = "getWindowPosition")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void GetWindowPosition(IntPtr window, int* x, int* y);
-
-    [LibraryImport(DllName, EntryPoint = "setWindowPosition")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static partial void SetWindowPosition(IntPtr window, int x, int y);
-
-    [LibraryImport(DllName, EntryPoint = "getWindowPixelSize")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static unsafe partial void GetWindowPixelSize(IntPtr window, int* width, int* height);
-
-
-    [LibraryImport(DllName, EntryPoint = "setWindowFullScreen")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static partial void SetWindowFullscreen(IntPtr window, int fullscreen);
-
-    [LibraryImport(DllName, EntryPoint = "getWindowFullScreen")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static partial int GetWindowFullscreen(IntPtr window);
-
-    [LibraryImport(DllName, EntryPoint = "createWindow")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static unsafe partial nint Create(int width, int height,
-        [MarshalUsing(typeof(Utf8StringMarshaller))] string name, CreateOptions* options);
-
-    [LibraryImport(DllName, EntryPoint = "destroyWindow")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static partial nint Destroy(IntPtr nativePtr);
-
-    [LibraryImport(DllName, EntryPoint = "initWindows")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static partial int InitGlfw();
-
-    [LibraryImport(DllName, EntryPoint = "stopWindows")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static partial void StopGlfw();
-
-    [LibraryImport(DllName, EntryPoint = "pollWindows")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static partial void PollEvents();
-
-    [LibraryImport(DllName, EntryPoint = "setWindowCallbacks")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
-    public static partial void SetWindowCallbacks(nint nativePtr,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeKeyDelegate keyDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeCursorDelegate cursorDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeMouseButtonDelegate mouseButtonDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeFocusDelegate focusDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeScrollDelegate scrollDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeSizeDelegate sizeDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeCloseDelegate closeDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeCharDelegate charDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeMaximizedDelegate maximizedDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeRefreshDelegate refreshDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeMinimizeDelegate minimizeDelegate,
-        [MarshalAs(UnmanagedType.FunctionPtr)] NativeDropDelegate dropDelegate);
 
     [LibraryImport(DllName, EntryPoint = "slangSessionBuilderNew")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

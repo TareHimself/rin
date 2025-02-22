@@ -36,7 +36,7 @@ public class PrettyShaderDrawCommand(Mat3 transform,Vector2 size,bool hovered) :
         if (_prettyShader.Bind(cmd, true) && view != null)
         {
             var pushResource = _prettyShader.PushConstants.First().Value;
-            var screenSize = frame.Surface.GetDrawSize();
+            var screenSize = frame.Surface.GetSize();
             var data = new Data()
             {
                 Projection = frame.Projection,

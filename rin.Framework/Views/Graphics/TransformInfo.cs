@@ -57,7 +57,7 @@ public class TransformInfo : ICloneable<TransformInfo>
     public TransformInfo(Surface surface)
     {
         Transform = Mat3.Identity;
-        Size = surface.GetDrawSize();
+        Size = surface.GetSize();
         Depth = 0;
         _clipRect = ComputeAxisAlignedBoundingRect(this);
     }

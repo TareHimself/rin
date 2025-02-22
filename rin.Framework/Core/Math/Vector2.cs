@@ -3,27 +3,27 @@ using System.Numerics;
 
 namespace rin.Framework.Core.Math;
 
-public struct Vec2<T>(T inX, T inY) : ICloneable<Vec2<T>>,
-    IAdditionOperators<Vec2<T>, Vec2<T>, Vec2<T>>,
-    IAdditionOperators<Vec2<T>, T, Vec2<T>>,
-    ISubtractionOperators<Vec2<T>, Vec2<T>, Vec2<T>>,
-    ISubtractionOperators<Vec2<T>, T, Vec2<T>>,
-    IMultiplyOperators<Vec2<T>, Vec2<T>, Vec2<T>>,
-    IMultiplyOperators<Vec2<T>, T, Vec2<T>>,
-    IDivisionOperators<Vec2<T>, Vec2<T>, Vec2<T>>,
-    IDivisionOperators<Vec2<T>, T, Vec2<T>>,
-    IComparisonOperators<Vec2<T>, Vec2<T>, bool>,
-    IVec<Vec2<T>, T>, IEquatable<Vec2<T>> where T : notnull, IComparisonOperators<T, T, bool>
+public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
+    IAdditionOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
+    IAdditionOperators<Vector2<T>, T, Vector2<T>>,
+    ISubtractionOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
+    ISubtractionOperators<Vector2<T>, T, Vector2<T>>,
+    IMultiplyOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
+    IMultiplyOperators<Vector2<T>, T, Vector2<T>>,
+    IDivisionOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
+    IDivisionOperators<Vector2<T>, T, Vector2<T>>,
+    IComparisonOperators<Vector2<T>, Vector2<T>, bool>,
+    IVec<Vector2<T>, T>, IEquatable<Vector2<T>> where T : notnull, IComparisonOperators<T, T, bool>
 
 {
-    public bool Equals(Vec2<T> other)
+    public bool Equals(Vector2<T> other)
     {
         return EqualityComparer<T>.Default.Equals(X, other.X) && EqualityComparer<T>.Default.Equals(Y, other.Y);
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is Vec2<T> other && Equals(other);
+        return obj is Vector2<T> other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -34,101 +34,101 @@ public struct Vec2<T>(T inX, T inY) : ICloneable<Vec2<T>>,
     public T X = inX;
     public T Y = inY;
 
-    public Vec2(T data) : this(data, data)
+    public Vector2(T data) : this(data, data)
     {
     }
 
-    public static Vec2<T> operator +(Vec2<T> left, T right)
-    {
-        dynamic lx = left.X, ly = left.Y, r = right;
-
-        return new Vec2<T>(lx + r, ly + r);
-    }
-
-    public static Vec2<T> operator +(Vec2<T> left, Vec2<T> right)
-    {
-        dynamic lx = left.X, ly = left.Y, rx = right.X, ry = right.Y;
-
-        return new Vec2<T>(lx + rx, ly + ry);
-    }
-
-    public static Vec2<T> operator /(Vec2<T> left, T right)
+    public static Vector2<T> operator +(Vector2<T> left, T right)
     {
         dynamic lx = left.X, ly = left.Y, r = right;
 
-        return new Vec2<T>(lx / r, ly / r);
+        return new Vector2<T>(lx + r, ly + r);
     }
 
-    public static Vec2<T> operator /(Vec2<T> left, Vec2<T> right)
+    public static Vector2<T> operator +(Vector2<T> left, Vector2<T> right)
     {
         dynamic lx = left.X, ly = left.Y, rx = right.X, ry = right.Y;
 
-        return new Vec2<T>(lx / rx, ly / ry);
+        return new Vector2<T>(lx + rx, ly + ry);
     }
 
-    public static Vec2<T> operator *(Vec2<T> left, T right)
+    public static Vector2<T> operator /(Vector2<T> left, T right)
     {
         dynamic lx = left.X, ly = left.Y, r = right;
 
-        return new Vec2<T>(lx * r, ly * r);
+        return new Vector2<T>(lx / r, ly / r);
     }
 
-    public static Vec2<T> operator *(Vec2<T> left, Vec2<T> right)
+    public static Vector2<T> operator /(Vector2<T> left, Vector2<T> right)
     {
         dynamic lx = left.X, ly = left.Y, rx = right.X, ry = right.Y;
 
-        return new Vec2<T>(lx * rx, ly * ry);
+        return new Vector2<T>(lx / rx, ly / ry);
     }
 
-    public static Vec2<T> operator -(Vec2<T> left, T right)
+    public static Vector2<T> operator *(Vector2<T> left, T right)
     {
         dynamic lx = left.X, ly = left.Y, r = right;
 
-        return new Vec2<T>(lx - r, ly - r);
+        return new Vector2<T>(lx * r, ly * r);
     }
 
-    public static Vec2<T> operator -(Vec2<T> left, Vec2<T> right)
+    public static Vector2<T> operator *(Vector2<T> left, Vector2<T> right)
     {
         dynamic lx = left.X, ly = left.Y, rx = right.X, ry = right.Y;
 
-        return new Vec2<T>(lx - rx, ly - ry);
+        return new Vector2<T>(lx * rx, ly * ry);
     }
 
-    public bool Within(Vec2<T> p1, Vec2<T> p2)
+    public static Vector2<T> operator -(Vector2<T> left, T right)
+    {
+        dynamic lx = left.X, ly = left.Y, r = right;
+
+        return new Vector2<T>(lx - r, ly - r);
+    }
+
+    public static Vector2<T> operator -(Vector2<T> left, Vector2<T> right)
+    {
+        dynamic lx = left.X, ly = left.Y, rx = right.X, ry = right.Y;
+
+        return new Vector2<T>(lx - rx, ly - ry);
+    }
+
+    public bool Within(Vector2<T> p1, Vector2<T> p2)
     {
         return p1 <= this && this <= p2;
     }
 
-    public bool Within(Pair<Vec2<T>, Vec2<T>> bounds)
+    public bool Within(Pair<Vector2<T>, Vector2<T>> bounds)
     {
         var (p1, p2) = bounds;
         return p1 <= this && this <= p2;
     }
 
-    public Vec2<T> Clone()
+    public Vector2<T> Clone()
     {
-        return new Vec2<T>(X, Y);
+        return new Vector2<T>(X, Y);
     }
 
-    public Vec2<T> Clamp(Vec2<T> min, Vec2<T> max)
+    public Vector2<T> Clamp(Vector2<T> min, Vector2<T> max)
     {
-        return new Vec2<T>(X < min.X ? min.X : X > max.X ? max.X : X, Y < min.X ? min.Y : Y > max.Y ? max.Y : Y);
+        return new Vector2<T>(X < min.X ? min.X : X > max.X ? max.X : X, Y < min.X ? min.Y : Y > max.Y ? max.Y : Y);
     }
 
-    public Vec2<T> Clamp(T min, T max)
+    public Vector2<T> Clamp(T min, T max)
     {
-        return Clamp(new Vec2<T>(min), new Vec2<T>(max));
+        return Clamp(new Vector2<T>(min), new Vector2<T>(max));
     }
 
     [Pure]
-    public Vec2<E> Cast<E>() where E : notnull, IComparisonOperators<E, E, bool>
+    public Vector2<E> Cast<E>() where E : notnull, IComparisonOperators<E, E, bool>
     {
         dynamic a = X, b = Y;
 
-        return new Vec2<E>((E)a, (E)b);
+        return new Vector2<E>((E)a, (E)b);
     }
 
-    public T Dot(Vec2<T> other)
+    public T Dot(Vector2<T> other)
     {
         dynamic ax = X, ay = Y, bx = other.X, by = other.Y;
         return ax * bx + ay * by;
@@ -140,7 +140,7 @@ public struct Vec2<T>(T inX, T inY) : ICloneable<Vec2<T>>,
         return System.Math.Sqrt(ax * ax + ay * ay);
     }
 
-    public double Acos(Vec2<T> other)
+    public double Acos(Vector2<T> other)
     {
         dynamic dot = Dot(other);
 
@@ -152,48 +152,48 @@ public struct Vec2<T>(T inX, T inY) : ICloneable<Vec2<T>>,
         return System.Math.Acos(cosine);
     }
 
-    public double Acosd(Vec2<T> other)
+    public double Acosd(Vector2<T> other)
     {
         return Acos(other) * System.Math.PI / 180.0f;
     }
 
-    public double Cross(Vec2<T> other)
+    public double Cross(Vector2<T> other)
     {
         dynamic ux = X, uy = Y, vx = other.X, vy = other.Y;
         return ux * vy - uy * vx;
     }
 
-    public static implicit operator Vec2<T>(T data)
+    public static implicit operator Vector2<T>(T data)
     {
-        return new Vec2<T>(data);
+        return new Vector2<T>(data);
     }
 
-    public static bool operator ==(Vec2<T> left, Vec2<T> right)
+    public static bool operator ==(Vector2<T> left, Vector2<T> right)
     {
         return left.X == right.X && left.Y == right.Y;
     }
 
-    public static bool operator !=(Vec2<T> left, Vec2<T> right)
+    public static bool operator !=(Vector2<T> left, Vector2<T> right)
     {
         return !(left == right);
     }
 
-    public static bool operator >(Vec2<T> left, Vec2<T> right)
+    public static bool operator >(Vector2<T> left, Vector2<T> right)
     {
         return left.X > right.X && left.Y > right.Y;
     }
 
-    public static bool operator >=(Vec2<T> left, Vec2<T> right)
+    public static bool operator >=(Vector2<T> left, Vector2<T> right)
     {
         return left.X >= right.X && left.Y >= right.Y;
     }
 
-    public static bool operator <(Vec2<T> left, Vec2<T> right)
+    public static bool operator <(Vector2<T> left, Vector2<T> right)
     {
         return left.X < right.X && left.Y < right.Y;
     }
 
-    public static bool operator <=(Vec2<T> left, Vec2<T> right)
+    public static bool operator <=(Vector2<T> left, Vector2<T> right)
     {
         return left.X <= right.X && left.Y <= right.Y;
     }

@@ -44,6 +44,7 @@ public class FpsView : TextBox
                 var renderer = asWindowSurface.GetRenderer();
                 _view.Content = $"""
                                  STATS
+                                 {frame.Surface.GetCursorPosition()} Cursor Position
                                  {frame.Stats.InitialCommandCount} Initial Commands
                                  {frame.Stats.FinalCommandCount} Final Commands
                                  {frame.Stats.BatchedDrawCommandCount} Batches

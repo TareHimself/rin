@@ -29,6 +29,7 @@ public class SViewsTestModule : IModule
         private readonly View _content;
         public WrapContainer(View content)
         {
+            BackgroundColor = Color.Transparent;
             _content = content;
             var sizer = new Sizer()
             {
@@ -200,7 +201,7 @@ public class SViewsTestModule : IModule
             this.StopAll().WidthTo(HeightOverride.GetValueOrDefault(0), easingFunction: EasingFunctions.EaseInOutCubic);
         }
 
-        protected override void OnCursorLeave(CursorMoveEvent e)
+        protected override void OnCursorLeave()
         {
             this.StopAll().WidthTo(_width, easingFunction: EasingFunctions.EaseInOutCubic);
         }
@@ -447,13 +448,13 @@ public class SViewsTestModule : IModule
             SGraphicsModule.Get().Execute();
         });
 
-        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
+        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin View Test", new CreateOptions()
         {
             Visible = true,
             Decorated = true,
-            Transparent = true,
+            Transparent = false,
             Focused = false
         });
         //TestText();

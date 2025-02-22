@@ -1,10 +1,11 @@
-﻿using System.Numerics;
+﻿using System.Globalization;
+using System.Numerics;
 using JetBrains.Annotations;
 using rin.Framework.Core.Math;
 
 namespace rin.Framework.Graphics;
 
-public struct Extent2D : IEqualityOperators<Extent2D, Vec2<uint>, bool>, IEquatable<Extent2D>
+public struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool>, IEquatable<Extent2D>, IFormattable
 {
     public bool Equals(Extent2D other)
     {
@@ -21,6 +22,14 @@ public struct Extent2D : IEqualityOperators<Extent2D, Vec2<uint>, bool>, IEquata
         return HashCode.Combine(Width, Height);
     }
 
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;
+
+        return
+            $"<{Width.ToString(format, formatProvider)}{separator} {Height.ToString(format, formatProvider)}>";
+    }
+
     [PublicAPI] public uint Width = 0;
     [PublicAPI] public uint Height = 0;
 
@@ -35,22 +44,22 @@ public struct Extent2D : IEqualityOperators<Extent2D, Vec2<uint>, bool>, IEquata
     }
 
 
-    public bool Equals(Vec2<uint> other)
+    public bool Equals(Vector2<uint> other)
     {
         return Width == other.X && Height == other.Y;
     }
 
-    public static bool operator ==(Extent2D left, Vec2<uint> right)
+    public static bool operator ==(Extent2D left, Vector2<uint> right)
     {
         return left.Width == right.X && left.Height == right.Y;
     }
 
-    public static bool operator !=(Extent2D left, Vec2<uint> right)
+    public static bool operator !=(Extent2D left, Vector2<uint> right)
     {
         return left.Width != right.X || left.Height != right.Y;
     }
 
-    public static implicit operator Extent2D(Vec2<uint> target)
+    public static implicit operator Extent2D(Vector2<uint> target)
     {
         return new Extent2D()
         {
@@ -59,9 +68,9 @@ public struct Extent2D : IEqualityOperators<Extent2D, Vec2<uint>, bool>, IEquata
         };
     }
 
-    public static implicit operator Vec2<uint>(Extent2D target)
+    public static implicit operator Vector2<uint>(Extent2D target)
     {
-        return new Vec2<uint>()
+        return new Vector2<uint>()
         {
             X = target.Width,
             Y = target.Height

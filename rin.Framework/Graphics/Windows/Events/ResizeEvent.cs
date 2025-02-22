@@ -2,7 +2,7 @@
 
 namespace rin.Framework.Graphics.Windows.Events;
 
-public class ResizeEvent : Event
+public class ResizeEvent : WindowEvent
 {
-    public required Vec2<uint> Size;
+    public required Vector2<uint> Size;
 }

@@ -35,7 +35,7 @@ public struct Vec4<T> :
         W = inW;
     }
 
-    public Vec4(Vec2<T> xy, Vec2<T> zw)
+    public Vec4(Vector2<T> xy, Vector2<T> zw)
     {
         X = xy.X;
         Y = xy.Y;

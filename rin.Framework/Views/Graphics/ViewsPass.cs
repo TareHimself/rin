@@ -13,7 +13,7 @@ namespace rin.Framework.Views.Graphics;
 
 public sealed class ViewsPass : IPass
 {
-    private readonly Vec2<uint> _drawSize;
+    private readonly Vector2<uint> _drawSize;
     private readonly List<Pair<ulong, ulong>> _offsets = [];
     private readonly PassInfo _passInfo;
     private readonly Surface _surface;
@@ -28,7 +28,7 @@ public sealed class ViewsPass : IPass
         _surface = surface;
         _passInfo = passInfo;
         SurfaceSize = drawSize;
-        _drawSize = SurfaceSize.Mutate(c => new Vec2<uint>((uint)c.X, (uint)c.Y));
+        _drawSize = SurfaceSize.Mutate(c => new Vector2<uint>((uint)c.X, (uint)c.Y));
         _stats = surface.Stats;
     }
 

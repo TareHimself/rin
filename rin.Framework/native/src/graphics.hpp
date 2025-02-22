@@ -83,7 +83,9 @@ EXPORT_DECL void setWindowFullScreen(GLFWwindow* window,int fullscreen);
 
 EXPORT_DECL int getWindowFullScreen(GLFWwindow* window);
 
-EXPORT_DECL void createVulkanInstance(GLFWwindow * inWindow, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,VkSurfaceKHR * outSurface,VkDebugUtilsMessengerEXT * outMessenger);
+using CreateSurfaceCallback = VkSurfaceKHR(__stdcall *)(VkInstance instance);
+
+EXPORT_DECL void createVulkanInstance(char** extensions,uint32_t numExtensions,CreateSurfaceCallback createSurfaceCallback, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,VkSurfaceKHR * outSurface,VkDebugUtilsMessengerEXT * outMessenger);
 
 EXPORT_DECL void destroyVulkanMessenger(VkInstance instance,VkDebugUtilsMessengerEXT messenger);
 

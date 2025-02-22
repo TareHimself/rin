@@ -1,6 +1,6 @@
 ﻿namespace rin.Framework.Graphics.Windows.Events;
 
-public class MaximizedEvent : Event
+public class MaximizedEvent : WindowEvent
 {
-    public required bool Maximized;
+
 }

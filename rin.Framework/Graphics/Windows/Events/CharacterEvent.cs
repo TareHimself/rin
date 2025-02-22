@@ -1,6 +1,6 @@
 ﻿namespace rin.Framework.Graphics.Windows.Events;
 
-public class CharacterEvent : Event
+public class CharacterEvent : WindowEvent
 {
     public required char Data;
     public required InputModifier Modifiers;

@@ -57,13 +57,13 @@ public class FilePicker : Button
         base.OnCursorEnter(e);
     }
 
-    protected override void OnCursorLeave(CursorMoveEvent e)
+    protected override void OnCursorLeave()
     {
         this
             .StopAll()
             .Transition(BackgroundColor, Color.Red, (c) => BackgroundColor = c,_animDuration)
             .Transition(BorderRadius,new Vector4(10.0f),(c) => BorderRadius = c,_animDuration);
-        base.OnCursorLeave(e);
+        base.OnCursorLeave();
     }
     
 }

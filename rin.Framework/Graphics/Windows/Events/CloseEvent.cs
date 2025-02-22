@@ -1,5 +1,5 @@
 ﻿namespace rin.Framework.Graphics.Windows.Events;
 
-public class CloseEvent : Event
+public class CloseEvent : WindowEvent
 {
 }

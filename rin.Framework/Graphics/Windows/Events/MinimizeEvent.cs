@@ -1,6 +1,6 @@
 ﻿namespace rin.Framework.Graphics.Windows.Events;
 
-public class MinimizeEvent : Event
+public class MinimizeEvent : WindowEvent
 {
-    public required bool Minimized;
+
 }

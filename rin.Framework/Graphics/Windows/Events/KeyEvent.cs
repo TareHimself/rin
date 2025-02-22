@@ -1,6 +1,6 @@
 ﻿namespace rin.Framework.Graphics.Windows.Events;
 
-public class KeyEvent : Event
+public class KeyEvent : WindowEvent
 {
     public required InputKey Key;
     public required InputModifier Modifiers;

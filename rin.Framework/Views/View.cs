@@ -316,15 +316,15 @@ public abstract class View : Disposable, IAnimatable, IReceivesUpdate
     {
     }
 
-    public virtual void NotifyCursorLeave(CursorMoveEvent e)
+    public virtual void NotifyCursorLeave()
     {
         if (!IsHovered) return;
 
         IsHovered = false;
-        OnCursorLeave(e);
+        OnCursorLeave();
     }
 
-    protected virtual void OnCursorLeave(CursorMoveEvent e)
+    protected virtual void OnCursorLeave()
     {
     }
 

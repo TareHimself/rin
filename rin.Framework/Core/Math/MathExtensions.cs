@@ -45,17 +45,17 @@ public static class MathExtensions
         return new Vector4(self.X, self.Y, self.Z, self.W);
     }
 
-    public static Vector2 ToNumericsVector(this Vec2<float> self)
+    public static Vector2 ToNumericsVector(this Vector2<float> self)
     {
         return new Vector2(self.X, self.Y);
     }
 
-    public static Vector2 ToNumericsVector(this Vec2<double> self)
+    public static Vector2 ToNumericsVector(this Vector2<double> self)
     {
         return new Vector2((float)self.X, (float)self.Y);
     }
 
-    public static Vector2 ToNumericsVector(this Vec2<int> self)
+    public static Vector2 ToNumericsVector(this Vector2<int> self)
     {
         return new Vector2(self.X, self.Y);
     }

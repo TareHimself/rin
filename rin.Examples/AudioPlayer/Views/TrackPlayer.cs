@@ -226,9 +226,9 @@ public class TrackPlayer : Overlay
         }
     }
 
-    protected override void OnCursorLeave(CursorMoveEvent e)
+    protected override void OnCursorLeave()
     {
-        base.OnCursorLeave(e);
+        base.OnCursorLeave();
         if (Loaded)
         {
             this.TranslateTo(new Vector2(0.0f, 0.0f), 0.2,

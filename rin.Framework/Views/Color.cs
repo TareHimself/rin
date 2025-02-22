@@ -11,6 +11,7 @@ public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOp
     public static Color Blue = new(0f, 0f, 1f, 1f);
     public static Color White = new(1f, 1f, 1f, 1f);
     public static Color Black = new(0f, 0f, 0f, 1f);
+    public static Color Transparent = new(0f, 0f, 0f, 0f);
 
     public float A = inA;
     public float B = inB;

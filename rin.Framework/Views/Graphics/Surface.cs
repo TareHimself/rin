@@ -15,15 +15,14 @@ namespace rin.Framework.Views.Graphics;
 /// <summary>
 ///     Base class for a surface that can display views
 /// </summary>
-public abstract class Surface : Disposable
+public abstract class Surface : IDisposable
 {
     public static readonly string MainPassId = Guid.NewGuid().ToString();
     private readonly List<View> _lastHovered = [];
     private readonly Root _rootView = new();
+    private bool _isCursorIn;
     private readonly SGraphicsModule _sGraphicsModule;
     private CursorDownEvent? _lastCursorDownEvent;
-    private Vector2? _lastMousePosition;
-
     public FrameStats Stats;
 
     protected Surface()
@@ -31,25 +30,23 @@ public abstract class Surface : Disposable
         _sGraphicsModule = SRuntime.Get().GetModule<SGraphicsModule>();
         _rootView.NotifyAddedToSurface(this);
     }
+    
+    public abstract Vector2 GetCursorPosition();
 
+    public abstract void SetCursorPosition(Vector2 position);
+    
     public View? FocusedView { get; private set; }
     public event Action<CursorUpEvent>? OnCursorUp;
 
     public virtual void Init()
     {
         _rootView.Offset = default;
-        _rootView.ComputeSize(GetDrawSize());
+        _rootView.ComputeSize(GetSize());
     }
 
-    public abstract Vector2 GetDrawSize();
+    public abstract Vector2 GetSize();
 
-
-    protected override void OnDispose(bool isManual)
-    {
-        _sGraphicsModule.WaitDeviceIdle();
-        _rootView.Dispose();
-    }
-
+    
     public virtual void ClearFocus()
     {
         FocusedView?.OnFocusLost();
@@ -66,14 +63,7 @@ public abstract class Surface : Disposable
         requester.OnFocus();
         return true;
     }
-
-
-    public virtual void ReceiveResize(ResizeEvent e)
-    {
-        _rootView.ComputeSize(e.Size.ToNumericsVector());
-    }
-
-
+    
     /// <summary>
     ///     Returns true if the pass was not the active pass
     /// </summary>
@@ -248,7 +238,7 @@ public abstract class Surface : Disposable
         var rawDrawCommands = new PassCommands();
         _rootView.Collect(Mat3.Identity, new Rect
         {
-            Size = GetDrawSize()
+            Size = GetSize()
         }, rawDrawCommands);
 
         var rawCommands = rawDrawCommands.Commands.OrderBy(c => c, new RawCommandComparer()).ToArray();
@@ -334,7 +324,28 @@ public abstract class Surface : Disposable
 
         return result;
     }
-
+    
+    public virtual void ReceiveCursorEnter(CursorMoveEvent e)
+    {
+        _isCursorIn = true;
+    }
+    
+    public virtual void ReceiveCursorLeave()
+    {
+        _isCursorIn = false;
+        foreach (var view in _lastHovered)
+        {
+            view.NotifyCursorLeave();
+        }
+        
+        _lastHovered.Clear();
+    }
+    
+    public virtual void ReceiveResize(ResizeEvent e)
+    {
+        var size = e.Size.ToNumericsVector();
+        _rootView.ComputeSize(size);
+    }
 
     public virtual void ReceiveCursorDown(CursorDownEvent e)
     {
@@ -357,7 +368,6 @@ public abstract class Surface : Disposable
 
     public virtual void ReceiveCursorMove(CursorMoveEvent e)
     {
-        _lastMousePosition = e.Position;
         _rootView.NotifyCursorMove(e, Mat3.Identity);
         // Maybe leave this to the event handler in the future
         if (_lastCursorDownEvent is { } lastEvent)
@@ -399,17 +409,11 @@ public abstract class Surface : Disposable
     {
         FocusedView?.OnKeyboard(e);
     }
+    
 
-    public abstract Vector2 GetCursorPosition();
-
-    public abstract void SetCursorPosition(Vector2 position);
-
-    public void DoHover()
+    protected void DoHover()
     {
         var mousePosition = GetCursorPosition();
-
-        _lastMousePosition = mousePosition;
-
         var e = new CursorMoveEvent(this, mousePosition);
 
         var oldHoverList = _lastHovered.ToArray();
@@ -420,7 +424,7 @@ public abstract class Surface : Disposable
             {
                 Size = default
             };
-            if (e.Position.Within(new Vector2(), GetDrawSize()))
+            if (e.Position.Within(new Vector2(), GetSize()))
                 _rootView.NotifyCursorEnter(e, Mat3.Identity, _lastHovered);
         }
 
@@ -429,7 +433,7 @@ public abstract class Surface : Disposable
 
         foreach (var view in oldHoverList.AsReversed())
             if (!hoveredSet.Contains(view))
-                view.NotifyCursorLeave(e);
+                view.NotifyCursorLeave();
     }
 
     public virtual T Add<T>() where T : View, new()
@@ -450,6 +454,15 @@ public abstract class Surface : Disposable
 
     public void Update(double deltaTime)
     {
-        DoHover();
+        if (_isCursorIn)
+        {
+            DoHover();
+        }
+    }
+
+    public virtual void Dispose()
+    {
+        _sGraphicsModule.WaitDeviceIdle();
+        _rootView.Dispose();
     }
 }

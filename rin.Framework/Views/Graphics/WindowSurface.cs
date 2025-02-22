@@ -23,13 +23,13 @@ namespace rin.Framework.Views.Graphics;
 public class WindowSurface : Surface
 {
     private readonly IWindowRenderer _renderer;
-    public bool Minimized;
-    public Vec2<int> Size;
+    private bool _minimized;
+    private Vector2<int> _size;
 
     public WindowSurface(IWindowRenderer renderer)
     {
         _renderer = renderer;
-        Size = Window.GetPixelSize().Cast<int>();
+        _size = Window.GetPixelSize().Cast<int>();
     }
 
     public IWindow Window => _renderer.GetWindow();
@@ -37,12 +37,6 @@ public class WindowSurface : Surface
     public IWindowRenderer GetRenderer()
     {
         return _renderer;
-    }
-
-    public void CopyToSwapchain(Frame frame, VkImage swapchainImage, VkExtent2D extent)
-    {
-        // var drawImage = GetDrawImage();
-        // drawImage.CopyTo(frame.GetCommandBuffer(),swapchainImage,_renderer.GetSwapchainExtent());
     }
 
     public override void Init()
@@ -55,19 +49,21 @@ public class WindowSurface : Surface
         Window.OnCharacter += OnCharacter;
         _renderer.OnCollect += Collect;
         Window.OnResized += OnWindowResized;
+        Window.OnCursorEnter += OnCursorEnter;
+        Window.OnCursorLeave += OnCursorLeave;
     }
 
     private void Collect(IGraphBuilder builder)
     {
         if (Stats.InitialCommandCount != 0) Stats = new FrameStats();
-        if (ComputePassInfo() is { } passInfo) builder.AddPass(new WindowSurfacePass(this, GetDrawSize(), passInfo));
+        if (ComputePassInfo() is { } passInfo) builder.AddPass(new WindowSurfacePass(this, GetSize(), passInfo));
     }
 
     protected void OnWindowResized(ResizeEvent e)
     {
-        Size = e.Size.Cast<int>();
-        Minimized = Size.X == 0 || Size.Y == 0;
-        if (!Minimized) ReceiveResize(new Views_Events_ResizeEvent(this, Size.Clone()));
+        _size = e.Size.Cast<int>();
+        _minimized = _size.X == 0 || _size.Y == 0;
+        if (!_minimized) ReceiveResize(new Views_Events_ResizeEvent(this, _size.Clone()));
     }
 
     protected void OnKeyboard(KeyEvent e)
@@ -104,13 +100,23 @@ public class WindowSurface : Surface
 
     protected void OnScroll(Windows_Events_ScrollEvent e)
     {
-        ReceiveScroll(new Views_Events_ScrollEvent(this, e.Position, e.Delta.ToNumericsVector()));
+        ReceiveScroll(new Views_Events_ScrollEvent(this, e.Position, e.Delta));
+    }
+    
+    protected void OnCursorEnter(CursorEvent e)
+    {
+        ReceiveCursorEnter(new Views_Events_CursorMoveEvent(this,e.Position));
+    }
+    
+    protected void OnCursorLeave(WindowEvent e)
+    {
+        ReceiveCursorLeave();
     }
 
 
-    protected override void OnDispose(bool isManual)
+    public override void Dispose()
     {
-        base.OnDispose(isManual);
+        base.Dispose();
         Window.OnResized -= OnWindowResized;
         _renderer.OnCollect -= Collect;
         Window.OnCursorButton -= OnMouseButton;
@@ -118,20 +124,22 @@ public class WindowSurface : Surface
         Window.OnScrolled -= OnScroll;
         Window.OnKey -= OnKeyboard;
         Window.OnCharacter -= OnCharacter;
+        Window.OnCursorEnter -= OnCursorEnter;
+        Window.OnCursorLeave -= OnCursorLeave;
     }
-
+    
     public override Vector2 GetCursorPosition()
     {
-        return Window.GetCursorPosition().ToNumericsVector();
+        return Window.GetCursorPosition();
     }
 
     public override void SetCursorPosition(Vector2 position)
     {
-        Window.SetMousePosition(new Vec2<double>(position.X, position.Y));
+        Window.SetCursorPosition(position);
     }
 
-    public override Vector2 GetDrawSize()
+    public override Vector2 GetSize()
     {
-        return new Vector2(Size.X, Size.Y);
+        return new Vector2(_size.X, _size.Y);
     }
 }

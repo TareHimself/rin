@@ -183,14 +183,12 @@ EXPORT_IMPL int getWindowFullScreen(GLFWwindow* window)
     return 0;
 }
 
-EXPORT_IMPL void createVulkanInstance(GLFWwindow * inWindow, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily, VkSurfaceKHR* outSurface,
+EXPORT_IMPL void createVulkanInstance(char** extensions,uint32_t numExtensions,CreateSurfaceCallback createSurfaceCallback, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily, VkSurfaceKHR* outSurface,
                                   VkDebugUtilsMessengerEXT* outMessenger)
 {
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init();
     
-    uint32_t numExtensions = 0;
-    auto extensions = glfwGetRequiredInstanceExtensions(&numExtensions);
     auto systemInfo = vkb::SystemInfo::get_system_info().value();
 
 
@@ -256,8 +254,7 @@ EXPORT_IMPL void createVulkanInstance(GLFWwindow * inWindow, VkInstance* outInst
         .setScalarBlockLayout(true)
     .setBufferDeviceAddress(true);
     
-    VkSurfaceKHR surf;
-    glfwCreateWindowSurface(instance, static_cast<GLFWwindow*>(inWindow), nullptr, &surf);
+    VkSurfaceKHR surf = createSurfaceCallback(instance);
     vkb::PhysicalDeviceSelector selector{vkbInstance};
 
     selector.add_required_extension(vk::EXTShaderObjectExtensionName);

@@ -520,7 +520,7 @@ public static class VulkanExtensions
                 srcColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
                 dstColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
                 colorBlendOp = VkBlendOp.VK_BLEND_OP_ADD,
-                srcAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
+                srcAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE,
                 dstAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
                 alphaBlendOp = VkBlendOp.VK_BLEND_OP_ADD
             }, VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
@@ -971,7 +971,7 @@ public static class VulkanExtensions
         return attachment;
     }
 
-    public static VkExtent2D ToVkExtent(this Vec2<uint> self)
+    public static VkExtent2D ToVkExtent(this Vector2<uint> self)
     {
         return new VkExtent2D()
         {

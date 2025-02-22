@@ -38,9 +38,9 @@ public class HoverToReveal : Panel
                 .WidthTo(400);
         }
 
-        protected override void OnCursorLeave(CursorMoveEvent e)
+        protected override void OnCursorLeave()
         {
-            base.OnCursorLeave(e);
+            base.OnCursorLeave();
             var duration = 0.1;
             this.StopAll()
                 .Transition(_blur.Strength,5.0f, (c) => _blur.Strength = c, duration)

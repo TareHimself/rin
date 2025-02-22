@@ -35,7 +35,7 @@ public class FontGenerator(FontFamily family)
 
         result.Data.Dispose();
 
-        return new GeneratedMtsdf(img, codepoint.Value, new Vec2<double>(result.Width, result.Height));
+        return new GeneratedMtsdf(img, codepoint.Value, new Vector2<double>(result.Width, result.Height));
     }
 
     public async Task<MtsdfFont> GenerateFont(float size, int atlasSize = 512, float pixelRange = 12.0f)
@@ -122,10 +122,10 @@ public class FontGenerator(FontFamily family)
         return new MtsdfFont(_family, atlasIds, atlasGlyphs);
     }
 
-    private struct GeneratedMtsdf(Image mtsdf, int id, Vec2<double> size)
+    private struct GeneratedMtsdf(Image mtsdf, int id, Vector2<double> size)
     {
         public readonly Image Mtsdf = mtsdf;
         public readonly int Id = id;
-        public readonly Vec2<double> Size = size;
+        public readonly Vector2<double> Size = size;
     }
 }

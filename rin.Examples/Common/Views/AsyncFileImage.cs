@@ -81,9 +81,9 @@ public class AsyncFileImage : CoverImage
         _alphaTarget = 1.0f;
     }
 
-    protected override void OnCursorLeave(CursorMoveEvent e)
+    protected override void OnCursorLeave()
     {
-        base.OnCursorLeave(e);
+        base.OnCursorLeave();
         _alphaTarget = 0.0f;
     }
 

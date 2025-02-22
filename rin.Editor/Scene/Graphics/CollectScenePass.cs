@@ -16,7 +16,7 @@ namespace rin.Editor.Scene.Graphics;
 /// </summary>
 /// <param name="camera">The perspective the scene is collected from</param>
 /// <param name="size"></param>
-public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
+public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPass
 {
     /// <summary>
     /// Depth Image ID
@@ -40,7 +40,7 @@ public class CollectScenePass(CameraComponent camera, Vec2<uint> size) : IPass
     [PublicAPI] public float FieldOfView { get; set; } = camera.FieldOfView;
     [PublicAPI] public float NearClip { get; set; } = camera.NearClipPlane;
     [PublicAPI] public float FarClip { get; set; } = camera.FarClipPlane;
-    [PublicAPI] public Vec2<uint> Size { get; set; } = size;
+    [PublicAPI] public Vector2<uint> Size { get; set; } = size;
     [PublicAPI] public GeometryInfo[] Geometry = [];
     [PublicAPI] public GeometryInfo[] OpaqueGeometry = [];
     [PublicAPI] public GeometryInfo[] TranslucentGeometry = [];

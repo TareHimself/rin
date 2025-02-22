@@ -9,11 +9,11 @@ using TerraFX.Interop.Vulkan;
 
 namespace rin.Editor.Scene.Graphics;
 
-public class ForwardRenderingPass(CameraComponent camera, Vec2<uint> size, CollectScenePass? collectPass = null) : IPass
+public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, CollectScenePass? collectPass = null) : IPass
 {
     private readonly bool _ownCollectPass = collectPass == null;
     private readonly CollectScenePass _collectPass = collectPass ?? new CollectScenePass(camera, size);
-    private Vec2<uint> _size = size;
+    private Vector2<uint> _size = size;
 
     [PublicAPI] public uint OutputImageId { get; private set; }
 

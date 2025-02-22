@@ -24,19 +24,14 @@ public struct CreateOptions()
     /// <summary>
     ///     Specifies whether the windowed mode window will be given input focus when created.
     /// </summary>
-    [MarshalAs(UnmanagedType.U1)] public bool Focused = true;
+    [MarshalAs(UnmanagedType.U1)] public bool Focused = false;
 
     /// <summary>
     ///     Whether the windowed mode window will be floating above other regular windows, also called topmost or
-    ///     always-on-top.
+    ///     always-on-top.a
     ///     This is intended primarily for debugging purposes and cannot be used to implement proper full screen windows.
     /// </summary>
     [MarshalAs(UnmanagedType.U1)] public bool Floating = false;
-
-    /// <summary>
-    ///     Whether the windowed mode window will be maximized when created.
-    /// </summary>
-    [MarshalAs(UnmanagedType.U1)] public bool Maximized = false;
 
     /// <summary>
     ///     Whether the cursor should be centered over newly created full screen windows.
