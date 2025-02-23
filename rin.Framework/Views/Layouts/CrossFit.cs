@@ -3,5 +3,6 @@
 public enum CrossFit
 {
     Desired,
+    Available,
     Fill
 }

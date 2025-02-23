@@ -1,15 +1,15 @@
 ﻿using ManagedBass;
 using rin.Framework.Core;
 
-namespace rin.Framework.Audio;
+namespace rin.Framework.Audio.BassAudio;
 
-public class Channel : Disposable, IChannel
+public class BassChannel : IChannel
 {
     private readonly int _handle;
 
     private readonly Sync _onEndSync = new();
 
-    public Channel(int handle)
+    public BassChannel(int handle)
     {
         _handle = handle;
 
@@ -58,7 +58,7 @@ public class Channel : Disposable, IChannel
         return Bass.ChannelSetAttribute(_handle, ChannelAttribute.Pitch, value);
     }
 
-    protected override void OnDispose(bool isManual)
+    public void Dispose()
     {
         Bass.StreamFree(_handle);
     }

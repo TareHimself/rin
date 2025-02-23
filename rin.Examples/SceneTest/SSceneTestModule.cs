@@ -93,7 +93,7 @@ public class SSceneTestModule : IModule
             }
         ], vertices, [0, 1, 2, 2, 3, 0]);
     }
-    public void Startup(SRuntime runtime)
+    public void Start(SRuntime runtime)
     {
         
         runtime.OnUpdate += (delta) =>
@@ -275,7 +275,7 @@ public class SSceneTestModule : IModule
         });
     }
 
-    public void Shutdown(SRuntime runtime)
+    public void Stop(SRuntime runtime)
     {
     }
 }

@@ -6,12 +6,12 @@ namespace rin.Editor.Scene;
 [Module(typeof(SViewsModule))]
 public class SSceneModule : IModule, ISingletonGetter<SSceneModule>
 {
-    public void Startup(SRuntime runtime)
+    public void Start(SRuntime runtime)
     {
         //throw new NotImplementedException();
     }
 
-    public void Shutdown(SRuntime runtime)
+    public void Stop(SRuntime runtime)
     {
         //throw new NotImplementedException();
     }

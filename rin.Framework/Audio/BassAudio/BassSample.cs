@@ -1,20 +1,20 @@
 ﻿using ManagedBass;
 using rin.Framework.Core;
 
-namespace rin.Framework.Audio;
+namespace rin.Framework.Audio.BassAudio;
 
-public class Sample : Disposable, ISample
+public class BassSample : ISample
 {
     private readonly int _handle;
 
-    protected Sample(int handle)
+    public BassSample(int handle)
     {
         _handle = handle;
     }
 
     public IChannel ToChannel()
     {
-        return new Channel(Bass.SampleGetChannel(_handle,
+        return new BassChannel(Bass.SampleGetChannel(_handle,
             BassFlags.SampleChannelStream | BassFlags.Decode | BassFlags.AsyncFile));
     }
 
@@ -25,12 +25,12 @@ public class Sample : Disposable, ISample
         return channel;
     }
 
-    public static Sample FromFile(string filePath)
+    public static BassSample FromFile(string filePath)
     {
-        return new Sample(Bass.SampleLoad(filePath, 0, 0, 1000, 0));
+        return new BassSample(Bass.SampleLoad(filePath, 0, 0, 1000, 0));
     }
 
-    protected override void OnDispose(bool isManual)
+    public void Dispose()
     {
         Bass.SampleFree(_handle);
     }

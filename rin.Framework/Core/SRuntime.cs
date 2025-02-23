@@ -26,7 +26,7 @@ public sealed class SRuntime : Disposable
 
     public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
 
-    public IFileSystem FileSystem { get; set; } = new DefaultFileSystem();
+    public IFileSystem FileSystem { get; set; } = new DefaultFileSystem("");
 
     public bool IsRunning { get; private set; }
 
@@ -130,7 +130,7 @@ public sealed class SRuntime : Disposable
     {
         IsRunning = false;
         OnShutdown?.Invoke(this);
-        for (var i = _modules.Count - 1; i >= 0; i--) _modules[i].Shutdown(this);
+        for (var i = _modules.Count - 1; i >= 0; i--) _modules[i].Stop(this);
         Dispose();
     }
 
@@ -221,7 +221,7 @@ public sealed class SRuntime : Disposable
 
     private void InitializeModules()
     {
-        foreach (var module in _modules) module.Startup(this);
+        foreach (var module in _modules) module.Start(this);
     }
 
 

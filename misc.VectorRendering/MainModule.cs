@@ -23,7 +23,7 @@ public class MainModule : IModule
     private Font _font;
 
     private IFontManager _fontManager = new DefaultFontManager();
-    public void Startup(SRuntime runtime)
+    public void Start(SRuntime runtime)
     {
         
         rin.Examples.Common.Utils.RunMultithreaded((delta) =>
@@ -116,7 +116,7 @@ public class MainModule : IModule
         //cmds.Add(new PathCommand(transform, _font,str));
     }
 
-    public void Shutdown(SRuntime runtime)
+    public void Stop(SRuntime runtime)
     {
     }
 }

@@ -15,7 +15,7 @@ public class Allocator : Disposable
     public Allocator(SGraphicsModule module)
     {
         _module = module;
-        _allocator = NativeMethods.CreateAllocator(module.GetInstance(), module.GetDevice(),
+        _allocator = Native.Vulkan.CreateAllocator(module.GetInstance(), module.GetDevice(),
             module.GetPhysicalDevice());
     }
 
@@ -27,7 +27,7 @@ public class Allocator : Disposable
 
     protected override void OnDispose(bool isManual)
     {
-        NativeMethods.DestroyAllocator(_allocator);
+        Native.Vulkan.DestroyAllocator(_allocator);
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public class Allocator : Disposable
         {
             VkBuffer buffer = new();
             void* allocation;
-            NativeMethods.AllocateBuffer(&buffer, &allocation, size, _allocator, sequentialWrite ? 1 : 0,
+            Native.Vulkan.AllocateBuffer(&buffer, &allocation, size, _allocator, sequentialWrite ? 1 : 0,
                 preferHost ? 1 : 0,
                 (int)usageFlags, (int)propertyFlags, mapped ? 1 : 0, debugName);
             var result = new DeviceBuffer(buffer, size, this, (IntPtr)allocation, debugName);
@@ -58,7 +58,7 @@ public class Allocator : Disposable
         {
             VkImage image = new();
             void* allocation;
-            NativeMethods.AllocateImage(&image, &allocation, &imageCreateInfo, _allocator, debugName);
+            Native.Vulkan.AllocateImage(&image, &allocation, &imageCreateInfo, _allocator, debugName);
             var result = new DeviceImage(image, new VkImageView(), new Extent3D
                 {
                     Width = imageCreateInfo.extent.width,
@@ -76,7 +76,7 @@ public class Allocator : Disposable
     /// </summary>
     public void FreeBuffer(DeviceBuffer buffer)
     {
-        NativeMethods.FreeBuffer(buffer.NativeBuffer, buffer.Allocation, _allocator);
+        Native.Vulkan.FreeBuffer(buffer.NativeBuffer, buffer.Allocation, _allocator);
     }
 
     /// <summary>
@@ -87,7 +87,7 @@ public class Allocator : Disposable
         unsafe
         {
             vkDestroyImageView(_module.GetDevice(), image.NativeView, null);
-            NativeMethods.FreeImage(image.NativeImage, image.Allocation, _allocator);
+            Native.Vulkan.FreeImage(image.NativeImage, image.Allocation, _allocator);
         }
     }
 }

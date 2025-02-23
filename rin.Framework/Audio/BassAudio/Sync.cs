@@ -1,6 +1,6 @@
 ﻿using ManagedBass;
 
-namespace rin.Framework.Audio;
+namespace rin.Framework.Audio.BassAudio;
 
 public class Sync
 {

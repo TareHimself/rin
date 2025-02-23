@@ -60,17 +60,17 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     private uint _transferQueueFamily;
     private int _maxEventsPerPeep = 64;
 
-    public void Startup(SRuntime runtime)
+    public void Start(SRuntime runtime)
     {
         //NativeMethods.InitGlfw();
-        
+
         if (!SDL_InitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD))
             throw new InvalidOperationException($"failed to initialise SDL. Error: {SDL_GetError()}");
-        
+
         InitVulkan();
     }
 
-    public void Shutdown(SRuntime runtime)
+    public void Stop(SRuntime runtime)
     {
         lock (_renderers)
         {
@@ -106,7 +106,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         _device.DestroyCommandPool(_transferCommandPool);
         _device.DestroyFence(_transferFence);
         _device.Destroy();
-        if (_debugUtilsMessenger.Value != 0) NativeMethods.DestroyMessenger(_instance, _debugUtilsMessenger);
+        if (_debugUtilsMessenger.Value != 0) Native.Vulkan.DestroyMessenger(_instance, _debugUtilsMessenger);
         _instance.Destroy();
 
         SDL_QuitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD);
@@ -241,33 +241,6 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
     private unsafe void InitVulkan()
     {
-        // uint numExtensions = 0;
-        // vkEnumerateInstanceExtensionProperties(null, &numExtensions, null);
-        // var extensions = stackalloc VkExtensionProperties[(int)numExtensions];
-        // vkEnumerateInstanceExtensionProperties(null,&numExtensions,extensions);
-        // var shaderObjectExtName = System.Text.Encoding.UTF8.GetString(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
-        // var supportsShaderObject = false;
-        // for (var i = 0; i < numExtensions; i++)
-        // {
-        //
-        //     var name = Marshal.PtrToStringUTF8(new IntPtr(&extensions[i].extensionName));
-        //     if (name == shaderObjectExtName)
-        //     {
-        //         supportsShaderObject = true;
-        //     }
-        // }
-        //
-        // {
-        //     var createInfo = new VkInstanceCreateInfo()
-        //     {
-        //         sType = VkStructureType.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        //         enabledExtensionCount = ,
-        //         pNext = null,
-        //     }
-        // }
-        // vkCreateInstance()
-
-        //IntPtr inWindow,
         var outInstance = _instance;
         var outDevice = _device;
         var outPhysicalDevice = _physicalDevice;
@@ -285,13 +258,13 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             Decorated = false,
             Resizable = false
         });
-        
+
         PollWindows();
 
         if (window == null) throw new Exception("Failed to create window to init graphics");
         uint extensionCount = 0;
         var extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
-        NativeMethods.CreateInstance(extensions,extensionCount,(inst) =>
+        Native.Vulkan.CreateInstance(extensions, extensionCount, (inst) =>
             {
                 unsafe
                 {
@@ -299,7 +272,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                     var surfValuePtr = &surface.Value;
                     // ReSharper disable once AccessToDisposedClosure
                     var windowPtr = (SDL_Window*)window.GetPtr();
-                    SDL_Vulkan_CreateSurface(windowPtr, (SDL.VkInstance_T*)inst.Value, null,(SDL.VkSurfaceKHR_T**)surfValuePtr);
+                    SDL_Vulkan_CreateSurface(windowPtr, (SDL.VkInstance_T*)inst.Value, null,
+                        (SDL.VkSurfaceKHR_T**)surfValuePtr);
                     return surface;
                 }
             }, &outInstance, &outDevice, &outPhysicalDevice, &outGraphicsQueue,
@@ -449,7 +423,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     //         return win;
     //     }
     // }
-    
+
     private IWindow Internal_CreateWindow(int width, int height, string name, CreateOptions? options = null,
         IWindow? parent = null
     )
@@ -457,7 +431,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         unsafe
         {
             var opts = options.GetValueOrDefault(new CreateOptions());
-            
+
             SDL_WindowFlags flags = SDL_WindowFlags.SDL_WINDOW_VULKAN;
 
             if (opts.Resizable)
@@ -490,20 +464,17 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                 flags |= SDL_WindowFlags.SDL_WINDOW_TRANSPARENT;
             }
 
-            fixed(byte* data = Encoding.UTF8.GetBytes(name))
+            fixed (byte* data = Encoding.UTF8.GetBytes(name))
             {
                 var windowPtr = SDL_CreateWindow(data, width, height, flags);
 
                 var win = new SdlWindow(windowPtr, parent);
 
-                _sdlWindows.Add((nuint)windowPtr,win);
+                _sdlWindows.Add((nuint)windowPtr, win);
 
-                win.OnDisposed += () =>
-                {
-                    _sdlWindows.Remove((nuint)windowPtr);
-                };
-            
-                return win; 
+                win.OnDisposed += () => { _sdlWindows.Remove((nuint)windowPtr); };
+
+                return win;
             }
         }
     }
@@ -1059,17 +1030,17 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             var eventsPumped = 0;
             do
             {
-                eventsPumped = SDL_PeepEvents(events, _maxEventsPerPeep, SDL_EventAction.SDL_GETEVENT, (uint)SDL_EventType.SDL_EVENT_FIRST, (uint)SDL_EventType.SDL_EVENT_LAST);
+                eventsPumped = SDL_PeepEvents(events, _maxEventsPerPeep, SDL_EventAction.SDL_GETEVENT,
+                    (uint)SDL_EventType.SDL_EVENT_FIRST, (uint)SDL_EventType.SDL_EVENT_LAST);
                 for (var i = 0; i < eventsPumped; i++)
                 {
                     var e = events + i;
                     var windowPtr = SDL_GetWindowFromEvent(e);
-                    if(windowPtr == null) continue;
+                    if (windowPtr == null) continue;
                     var window = _sdlWindows[(nuint)windowPtr];
                     window.HandleEvent(*e);
                 }
             } while (eventsPumped == _maxEventsPerPeep);
-            
         }
     }
 

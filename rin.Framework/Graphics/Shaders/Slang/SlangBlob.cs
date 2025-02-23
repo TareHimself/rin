@@ -6,7 +6,7 @@ public class SlangBlob : IDisposable
 
     public unsafe SlangBlob()
     {
-        _ptr = NativeMethods.SlangBlobNew();
+        _ptr = Native.Slang.SlangBlobNew();
     }
 
     public unsafe SlangBlob(void* ptr)
@@ -29,7 +29,7 @@ public class SlangBlob : IDisposable
     {
         unsafe
         {
-            return NativeMethods.SlangBlobGetSize(_ptr);
+            return Native.Slang.SlangBlobGetSize(_ptr);
         }
     }
 
@@ -37,7 +37,7 @@ public class SlangBlob : IDisposable
     {
         unsafe
         {
-            return new IntPtr(NativeMethods.SlangBlobGetPointer(_ptr));
+            return new IntPtr(Native.Slang.SlangBlobGetPointer(_ptr));
         }
     }
 
@@ -45,7 +45,7 @@ public class SlangBlob : IDisposable
     {
         unsafe
         {
-            NativeMethods.SlangBlobFree(_ptr);
+            Native.Slang.SlangBlobFree(_ptr);
         }
     }
 

@@ -24,7 +24,7 @@ public class SlangModule : IDisposable
     {
         unsafe
         {
-            var ptr = NativeMethods.SlangModuleFindEntryPointByName(_ptr, name);
+            var ptr = Native.Slang.SlangModuleFindEntryPointByName(_ptr, name);
             return ptr != null ? new SlangEntryPoint(ptr) : null;
         }
     }
@@ -33,7 +33,7 @@ public class SlangModule : IDisposable
     {
         unsafe
         {
-            NativeMethods.SlangModuleFree(_ptr);
+            Native.Slang.SlangModuleFree(_ptr);
         }
     }
 

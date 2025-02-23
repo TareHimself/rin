@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using rin.Examples.Common.Views;
 using rin.Framework.Audio;
+using rin.Framework.Audio.BassAudio;
 using rin.Framework.Core.Math;
 using rin.Framework.Views;
 using rin.Framework.Views.Composite;

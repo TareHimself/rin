@@ -96,7 +96,7 @@ float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
 
     //return float4(imageUV,0.0f, 1.0);
     float2 uvRadius = 1.0 / imageSize;
-    float3 color = 0;
+    float4 color = 0;
     float weightSum = 0;
 
     float sigma = push.radius * 0.5 * push.strength;
@@ -114,10 +114,10 @@ float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
             var dist = distanceFromZero(x,y);
             var uv = float2(x * uvRadius.x,  y * uvRadius.y);
             float weight = normpdf(dist,sigma);
-            color += SourceT.Sample(imageUV + uv).rgb * weight;
+            color += SourceT.Sample(imageUV + uv) * weight;
             weightSum += weight;
         }
     }
 
-    return float4(color / weightSum, 1.0);
+    return color / weightSum;
 }

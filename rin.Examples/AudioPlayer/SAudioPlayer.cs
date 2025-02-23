@@ -20,7 +20,7 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
     public readonly SpotifyClient SpClient = new SpotifyClient();
     public readonly YoutubeClient YtClient = new YoutubeClient();
 
-    public void Startup(SRuntime runtime)
+    public void Start(SRuntime runtime)
     {
         Common.Utils.RunSingleThreaded((delta) =>
         {
@@ -100,7 +100,7 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
         };
     }
 
-    public void Shutdown(SRuntime runtime)
+    public void Stop(SRuntime runtime)
     {
 
     }

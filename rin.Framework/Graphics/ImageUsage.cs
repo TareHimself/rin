@@ -23,11 +23,15 @@
 // VK_IMAGE_USAGE_SAMPLE_BLOCK_MATCH_BIT_QCOM = 0x00200000,
 // VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV = VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,
 // VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF,
-public struct ImageUsage
+[Flags]
+public enum ImageUsage
 {
-    public bool TransferSrc;
-    public bool TransferDst;
-    public bool Sampled;
-    public bool Storage;
-    public bool Attachment;
+    None   = 0,
+    TransferSrc  = 1 << 0,
+    TransferDst = 1 << 1,
+    Sampled  = 1 << 2,
+    Storage = 1 << 3,
+    ColorAttachment = 1 << 4,
+    DepthAttachment = 1 << 5,
+    StencilAttachment = 1 << 6,
 }

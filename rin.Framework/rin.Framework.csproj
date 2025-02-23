@@ -16,6 +16,7 @@
         <PackageReference Include="LibVLCSharp" Version="3.9.2"/>
         <PackageReference Include="MathNet.Numerics" Version="6.0.0-beta1"/>
         <PackageReference Include="MathNet.Numerics.Signed" Version="5.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.2" />
         <PackageReference Include="ppy.SDL3-CS" Version="2025.127.0" />
         <PackageReference Include="SharpCompress" Version="0.39.0"/>
         <PackageReference Include="System.Text.Json" Version="9.0.1"/>
@@ -36,8 +37,8 @@
     </Target>
 
     <ItemGroup>
-        <NativeFiles Include=".\native\bin\$(Configuration)\*.*"/>
-        <Content Include="@(NativeFiles)">
+        <NativeFiles Include=".\native\bin\$(Configuration)\*.*" Visible="false"/>
+        <Content Include="@(NativeFiles)" Visible="false">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
             <Link>%(Filename)%(Extension)</Link>
         </Content>
@@ -47,7 +48,7 @@
         <Exec Command="cmake -DCMAKE_BUILD_TYPE=$(Configuration) -S ./native/ -B ./native/build/$(Configuration)"/>
         <Exec Command="cmake --build ./native/build/$(Configuration) -j 4"/>
         <ItemGroup>
-            <NativeFiles Include=".\native\bin\$(Configuration)\*.*"/>
+            <NativeFiles Include=".\native\bin\$(Configuration)\*.*" Visible="false"/>
             <Content Include="@(NativeFiles)" Visible="false">
                 <CopyToOutputDirectory>Always</CopyToOutputDirectory>
                 <Link>%(Filename)%(Extension)</Link>

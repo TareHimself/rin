@@ -1,9 +1,9 @@
 ﻿using ManagedBass;
 using rin.Framework.Core.Extensions;
 
-namespace rin.Framework.Audio;
+namespace rin.Framework.Audio.BassAudio;
 
-public class StreamChannel : Channel
+public class StreamChannel : BassChannel, IStream
 {
     public StreamChannel(int handle) : base(handle)
     {

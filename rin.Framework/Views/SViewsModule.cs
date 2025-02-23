@@ -22,7 +22,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
     private IGraphicsShader? _stencilShader;
 
 
-    public void Startup(SRuntime runtime)
+    public void Start(SRuntime runtime)
     {
         _fontManager.LoadSystemFonts();
         _graphicsSubsystem = runtime.GetModule<SGraphicsModule>();
@@ -32,7 +32,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
         foreach (var renderer in _graphicsSubsystem.GetWindowRenderers()) OnRendererCreated(renderer);
     }
 
-    public void Shutdown(SRuntime runtime)
+    public void Stop(SRuntime runtime)
     {
         _graphicsSubsystem?.WaitDeviceIdle();
 
@@ -68,7 +68,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
     public void AddFont(string fontPath, IFileSystem? fileSystem = null)
     {
         var fs = fileSystem ?? SRuntime.Get().FileSystem;
-        _fontManager.LoadFont(fs.OpenRead(fontPath));
+        _fontManager.LoadFont(fs.OpenRead(FileUri.FromSystemPath(fontPath)));
     }
 
     public IBatcher GetBatchRenderer<T>() where T : IBatcher

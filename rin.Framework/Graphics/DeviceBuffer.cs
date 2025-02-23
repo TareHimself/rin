@@ -53,7 +53,7 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
 
     public unsafe void Write(void* src, ulong size, ulong offset = 0)
     {
-        NativeMethods.CopyToBuffer(Allocator, Allocation.ToPointer(), src, size, offset);
+        Native.Vulkan.CopyToBuffer(Allocator, Allocation.ToPointer(), src, size, offset);
     }
 
 

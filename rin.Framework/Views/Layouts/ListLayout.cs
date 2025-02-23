@@ -44,6 +44,7 @@ public class ListLayout(Axis axis, CompositeView container) : InfiniteChildrenLa
             {
                 CrossFit.Desired => Math.Clamp(asListContainerSlot.Child.GetDesiredSize().X, 0.0f,
                     crossAxisAvailableSize),
+                CrossFit.Available => crossAxisAvailableSize,
                 CrossFit.Fill => crossAxisAvailableSize,
                 _ => throw new ArgumentOutOfRangeException()
             };

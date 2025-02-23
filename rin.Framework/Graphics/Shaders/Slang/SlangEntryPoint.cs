@@ -24,7 +24,7 @@ public class SlangEntryPoint : IDisposable
     {
         unsafe
         {
-            NativeMethods.SlangEntryPointFree(_ptr);
+            Native.Slang.SlangEntryPointFree(_ptr);
         }
     }
 

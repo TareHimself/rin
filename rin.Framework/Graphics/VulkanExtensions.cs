@@ -9,7 +9,7 @@ using TerraFX.Interop.Vulkan;
 
 namespace rin.Framework.Graphics;
 
-using static Vulkan;
+using static TerraFX.Interop.Vulkan.Vulkan;
 
 public static class VulkanExtensions
 {
@@ -39,6 +39,60 @@ public static class VulkanExtensions
             ImageLayout.PresentSrc => VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
             _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
         };
+    }
+    
+    // public enum ImageUsage
+    // {
+    //     None   = 0,
+    //     TransferSrc  = 1 << 0,
+    //     TransferDst = 1 << 1,
+    //     Sampled  = 1 << 2,
+    //     Storage = 1 << 3,
+    //     ColorAttachment = 1 << 4,
+    //     DepthAttachment = 1 << 5,
+    //     StencilAttachment = 1 << 6,
+    // }
+    [PublicAPI]
+    public static VkImageUsageFlags ToVk(this ImageUsage usage)
+    {
+        VkImageUsageFlags flags = 0;
+        
+        if (usage.HasFlag(ImageUsage.TransferSrc))
+        {
+            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
+        
+        if (usage.HasFlag(ImageUsage.TransferDst))
+        {
+            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        }
+        
+        if (usage.HasFlag(ImageUsage.Sampled))
+        {
+            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT;
+        }
+        
+        if (usage.HasFlag(ImageUsage.Storage))
+        {
+            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_STORAGE_BIT;
+        }
+        
+        if (usage.HasFlag(ImageUsage.ColorAttachment))
+        {
+            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        }
+        
+        if (usage.HasFlag(ImageUsage.DepthAttachment))
+        {
+            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        }
+        
+        if (usage.HasFlag(ImageUsage.StencilAttachment))
+        {
+            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        }
+
+        return flags;
     }
 
     [PublicAPI]
@@ -200,7 +254,7 @@ public static class VulkanExtensions
             {
                 fixed (VkShaderEXT* pShaders = shaderObjects.ToArray())
                 {
-                    NativeMethods.vkCmdBindShadersEXT(cmd, (uint)flagsList.Count, pFlags, pShaders);
+                    Native.Vulkan.vkCmdBindShadersEXT(cmd, (uint)flagsList.Count, pFlags, pShaders);
                 }
             }
         }
@@ -220,7 +274,7 @@ public static class VulkanExtensions
         {
             fixed (VkShaderStageFlags* pFlags = flagsArr)
             {
-                NativeMethods.vkCmdBindShadersEXT(cmd, (uint)flagsArr.Length, pFlags, null);
+                Native.Vulkan.vkCmdBindShadersEXT(cmd, (uint)flagsArr.Length, pFlags, null);
             }
         }
 
@@ -293,7 +347,7 @@ public static class VulkanExtensions
     public static VkCommandBuffer SetPolygonMode(this VkCommandBuffer cmd, VkPolygonMode polygonMode,
         float lineWidth = 1.0f)
     {
-        NativeMethods.vkCmdSetPolygonModeEXT(cmd, polygonMode);
+        Native.Vulkan.vkCmdSetPolygonModeEXT(cmd, polygonMode);
         vkCmdSetLineWidth(cmd, lineWidth);
         return cmd;
     }
@@ -314,13 +368,13 @@ public static class VulkanExtensions
         // _multisampling.alphaToCoverageEnable = 0;
         // _multisampling.alphaToOneEnable = 0;
 
-        NativeMethods.vkCmdSetRasterizationSamplesEXT(cmd, VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT);
-        NativeMethods.vkCmdSetAlphaToCoverageEnableEXT(cmd, 0);
-        NativeMethods.vkCmdSetAlphaToOneEnableEXT(cmd, 0);
+        Native.Vulkan.vkCmdSetRasterizationSamplesEXT(cmd, VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT);
+        Native.Vulkan.vkCmdSetAlphaToCoverageEnableEXT(cmd, 0);
+        Native.Vulkan.vkCmdSetAlphaToOneEnableEXT(cmd, 0);
         unsafe
         {
             uint sampleMask = 0x1;
-            NativeMethods.vkCmdSetSampleMaskEXT(cmd, VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT, &sampleMask);
+            Native.Vulkan.vkCmdSetSampleMaskEXT(cmd, VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT, &sampleMask);
         }
 
         return cmd;
@@ -394,7 +448,7 @@ public static class VulkanExtensions
 
     public static VkCommandBuffer SetLogicOpExt(this VkCommandBuffer cmd, VkLogicOp logicOp)
     {
-        NativeMethods.vkCmdSetLogicOpEXT(cmd, logicOp);
+        Native.Vulkan.vkCmdSetLogicOpEXT(cmd, logicOp);
 
         return cmd;
     }
@@ -407,19 +461,19 @@ public static class VulkanExtensions
     {
         unsafe
         {
-            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd, 0);
+            Native.Vulkan.vkCmdSetLogicOpEnableEXT(cmd, 0);
             cmd.SetLogicOpExt(VkLogicOp.VK_LOGIC_OP_COPY);
-            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd, 0);
+            Native.Vulkan.vkCmdSetLogicOpEnableEXT(cmd, 0);
 
             fixed (uint* pEnables = Enumerable.Range(0, (int)count).Select(c => (uint)0).ToArray())
             {
-                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd, start, count, pEnables);
+                Native.Vulkan.vkCmdSetColorBlendEnableEXT(cmd, start, count, pEnables);
             }
 
             fixed (VkColorComponentFlags* pWriteMasks =
                        Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
             {
-                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd, start, count, pWriteMasks);
+                Native.Vulkan.vkCmdSetColorWriteMaskEXT(cmd, start, count, pWriteMasks);
             }
 
             return cmd;
@@ -444,23 +498,23 @@ public static class VulkanExtensions
     {
         unsafe
         {
-            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd, 0);
+            Native.Vulkan.vkCmdSetLogicOpEnableEXT(cmd, 0);
 
             fixed (uint* pEnables = Enumerable.Range(0, (int)count).Select(c => (uint)1).ToArray())
             {
-                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd, start, count, pEnables);
+                Native.Vulkan.vkCmdSetColorBlendEnableEXT(cmd, start, count, pEnables);
             }
 
             fixed (VkColorBlendEquationEXT* pEquations =
                        Enumerable.Range(0, (int)count).Select(c => equation).ToArray())
             {
-                NativeMethods.vkCmdSetColorBlendEquationEXT(cmd, start, count, pEquations);
+                Native.Vulkan.vkCmdSetColorBlendEquationEXT(cmd, start, count, pEquations);
             }
 
             fixed (VkColorComponentFlags* pWriteMasks =
                        Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
             {
-                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd, start, count, pWriteMasks);
+                Native.Vulkan.vkCmdSetColorWriteMaskEXT(cmd, start, count, pWriteMasks);
             }
 
             return cmd;
@@ -471,11 +525,11 @@ public static class VulkanExtensions
     {
         unsafe
         {
-            NativeMethods.vkCmdSetLogicOpEnableEXT(cmd, 0);
+            Native.Vulkan.vkCmdSetLogicOpEnableEXT(cmd, 0);
 
             fixed (uint* pEnables = Enumerable.Range(0, (int)count).Select(c => (uint)(enable ? 1 : 0)).ToArray())
             {
-                NativeMethods.vkCmdSetColorBlendEnableEXT(cmd, start, count, pEnables);
+                Native.Vulkan.vkCmdSetColorBlendEnableEXT(cmd, start, count, pEnables);
             }
 
             return cmd;
@@ -490,7 +544,7 @@ public static class VulkanExtensions
             fixed (VkColorComponentFlags* pWriteMasks =
                        Enumerable.Range(0, (int)count).Select(c => writeMask).ToArray())
             {
-                NativeMethods.vkCmdSetColorWriteMaskEXT(cmd, start, count, pWriteMasks);
+                Native.Vulkan.vkCmdSetColorWriteMaskEXT(cmd, start, count, pWriteMasks);
             }
 
             return cmd;
@@ -548,7 +602,7 @@ public static class VulkanExtensions
             {
                 fixed (VkVertexInputAttributeDescription2EXT* pAttributeDescriptions = attributeDescriptionsArray)
                 {
-                    NativeMethods.vkCmdSetVertexInputEXT(cmd, (uint)bindingDescriptionsArray.Length,
+                    Native.Vulkan.vkCmdSetVertexInputEXT(cmd, (uint)bindingDescriptionsArray.Length,
                         pBindingDescriptions, (uint)attributeDescriptionsArray.Length, pAttributeDescriptions);
                 }
             }
@@ -665,7 +719,7 @@ public static class VulkanExtensions
             {
                 fixed (VkShaderEXT* pShaders = shaders)
                 {
-                    var result = NativeMethods.vkCreateShadersEXT(device, (uint)createInfos.Length, pCreateInfos, null,
+                    var result = Native.Vulkan.vkCreateShadersEXT(device, (uint)createInfos.Length, pCreateInfos, null,
                         pShaders);
                     if (result !=
                         VkResult.VK_SUCCESS)
@@ -696,7 +750,7 @@ public static class VulkanExtensions
     {
         unsafe
         {
-            NativeMethods.vkDestroyShaderEXT(device, shader, null);
+            Native.Vulkan.vkDestroyShaderEXT(device, shader, null);
         }
     }
 
@@ -1085,6 +1139,26 @@ public static class VulkanExtensions
         }
     }
 
+    public static VkClearColorValue MakeClearColorValue(Vector4 color)
+    {
+        var clearColor = new VkClearColorValue();
+        clearColor.float32[0] = color.X;
+        clearColor.float32[1] = color.Y;
+        clearColor.float32[2] = color.Z;
+        clearColor.float32[3] = color.W;
+        return clearColor;
+    }
+
+    public static VkClearDepthStencilValue MakeClearDepthStencilValue(float depth = 0.0f, uint stencil = 0)
+    {
+        var clearColor = new VkClearDepthStencilValue
+        {
+            depth = depth,
+            stencil = stencil
+        };
+        return clearColor;
+    }
+    
     public static VkCommandBuffer[] AllocateCommandBuffers(this VkDevice self, VkCommandPool pool, uint count = 1,
         VkCommandBufferLevel level = VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_PRIMARY)
     {
@@ -1107,5 +1181,134 @@ public static class VulkanExtensions
         }
 
         return result;
+    }
+    
+    public static VkRenderingInfo MakeRenderingInfo(VkExtent2D extent)
+    {
+        return MakeRenderingInfo(new VkRect2D
+        {
+            offset = new VkOffset2D
+            {
+                x = 0,
+                y = 0
+            },
+            extent = extent
+        });
+    }
+
+    public static VkRenderingInfo MakeRenderingInfo(VkRect2D area)
+    {
+        return new VkRenderingInfo
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_RENDERING_INFO,
+            renderArea = area,
+            layerCount = 1
+        };
+    }
+
+    public static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, Extent3D size, VkImageUsageFlags usage)
+    {
+        return new VkImageCreateInfo
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            imageType = VkImageType.VK_IMAGE_TYPE_2D,
+            format = format.ToVk(),
+            extent = size.ToVk(),
+            mipLevels = 1,
+            arrayLayers = 1,
+            samples = VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT,
+            tiling = VkImageTiling.VK_IMAGE_TILING_OPTIMAL,
+            usage = usage
+        };
+    }
+
+    public static VkImageViewCreateInfo MakeImageViewCreateInfo(DeviceImage image, VkImageAspectFlags aspect)
+    {
+        return MakeImageViewCreateInfo(image.Format, image.NativeImage, aspect);
+    }
+
+    public static VkImageViewCreateInfo MakeImageViewCreateInfo(ImageFormat format, VkImage image,
+        VkImageAspectFlags aspect)
+    {
+        return new VkImageViewCreateInfo
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            image = image,
+            viewType = VkImageViewType.VK_IMAGE_VIEW_TYPE_2D,
+            format = format.ToVk(),
+            subresourceRange = new VkImageSubresourceRange
+            {
+                aspectMask = aspect,
+                baseMipLevel = 0,
+                levelCount = VK_REMAINING_MIP_LEVELS,
+                baseArrayLayer = 0,
+                layerCount = 1
+            }
+        };
+    }
+
+
+    public static VkImageSubresourceRange MakeImageSubresourceRange(VkImageAspectFlags aspectMask)
+    {
+        return new VkImageSubresourceRange
+        {
+            aspectMask = aspectMask,
+            baseMipLevel = 0,
+            levelCount = VK_REMAINING_MIP_LEVELS,
+            baseArrayLayer = 0,
+            layerCount = VK_REMAINING_ARRAY_LAYERS
+        };
+    }
+    
+    /// <summary>
+    ///     Submits using the specified queue
+    /// </summary>
+    /// <param name="queue"></param>
+    /// <param name="fence"></param>
+    /// <param name="commandBuffers"></param>
+    /// <param name="signalSemaphores"></param>
+    /// <param name="waitSemaphores"></param>
+    /// <returns></returns>
+    public static void Submit(this VkQueue queue, VkFence fence, VkCommandBufferSubmitInfo[] commandBuffers,
+        VkSemaphoreSubmitInfo[]? signalSemaphores = null, VkSemaphoreSubmitInfo[]? waitSemaphores = null)
+    {
+        unsafe
+        {
+            var waitArr = waitSemaphores ?? [];
+            var signalArr = signalSemaphores ??
+                            (waitSemaphores != null ? [] : waitArr);
+            fixed (VkSemaphoreSubmitInfo* pWaitSemaphores = waitArr)
+            {
+                fixed (VkSemaphoreSubmitInfo* pSignalSemaphores = signalArr)
+                {
+                    fixed (VkCommandBufferSubmitInfo* pCommandBuffers = commandBuffers)
+                    {
+                        var submit = new VkSubmitInfo2
+                        {
+                            sType = VkStructureType.VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+                            pCommandBufferInfos = pCommandBuffers,
+                            commandBufferInfoCount = (uint)commandBuffers.Length,
+                            pSignalSemaphoreInfos = pSignalSemaphores,
+                            signalSemaphoreInfoCount = (uint)signalArr.Length,
+                            pWaitSemaphoreInfos = pWaitSemaphores,
+                            waitSemaphoreInfoCount = (uint)waitArr.Length
+                        };
+
+                        vkQueueSubmit2(queue, 1, &submit, fence);
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    public static VkImageView CreateImageView(this VkDevice device, VkImageViewCreateInfo createInfo)
+    {
+        unsafe
+        {
+            VkImageView view;
+            vkCreateImageView(device, &createInfo, null, &view);
+            return view;
+        }
     }
 }

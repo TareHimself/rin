@@ -24,6 +24,7 @@ namespace rin.Examples.ViewsTest;
 public class SViewsTestModule : IModule
 {
 
+    private static int _tileSize = 400;
     class WrapContainer : Button
     {
         private readonly View _content;
@@ -33,8 +34,8 @@ public class SViewsTestModule : IModule
             _content = content;
             var sizer = new Sizer()
             {
-                WidthOverride = 300,
-                HeightOverride = 300,
+                WidthOverride = _tileSize,
+                HeightOverride = _tileSize,
                 Child = content,
                 Padding = 10.0f,
             };
@@ -43,7 +44,7 @@ public class SViewsTestModule : IModule
             OnReleased += (@event, button) =>
             {
                //_content.StopAll().RotateTo(360,0.5f).After().Do(() => _content.Angle = 0.0f);
-               sizer.WidthTo(620.0f).Delay(2).WidthTo(300.0f);
+               sizer.WidthTo(_tileSize * 2f + 20.0f).Delay(2).WidthTo(_tileSize);
             };
         }
 
@@ -81,7 +82,8 @@ public class SViewsTestModule : IModule
                                 new ListSlot
                                 {
                                     Child = list,
-                                    Fit = CrossFit.Fill
+                                    Fit = CrossFit.Available,
+                                    Align = CrossAlign.Center
                                 }
                             ],
                             Clip = Clip.None
@@ -117,17 +119,16 @@ public class SViewsTestModule : IModule
                     }
                 ]
             });
-
             surf.Window.OnDrop += (e) =>
             {
                 Task.Run(() =>
                 {
                     foreach (var objPath in e.Paths)
                     {
-                        list.Add(new WrapContainer(new AsyncFileImage(objPath)
+                        scheduler.Schedule(() => list.Add(new WrapContainer(new AsyncFileImage(objPath)
                         {
                             BorderRadius = new Vector4(30.0f)
-                        }));
+                        })));
                     }
                 });
             };
@@ -436,8 +437,10 @@ public class SViewsTestModule : IModule
         });
     }
 
-    public void Startup(SRuntime runtime)
+    public void Start(SRuntime runtime)
     {
+        
+        
         Common.Utils.RunSingleThreaded((delta) =>
         {
             SGraphicsModule.Get().PollWindows();
@@ -447,6 +450,16 @@ public class SViewsTestModule : IModule
         {
             SGraphicsModule.Get().Execute();
         });
+        
+        // Common.Utils.RunMultithreaded((delta) =>
+        // {
+        //     SGraphicsModule.Get().PollWindows();
+        //     SViewsModule.Get().Update(delta);
+        //     SGraphicsModule.Get().Collect();
+        // }, () =>
+        // {
+        //     SGraphicsModule.Get().Execute();
+        // });
 
         SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
@@ -454,14 +467,14 @@ public class SViewsTestModule : IModule
         {
             Visible = true,
             Decorated = true,
-            Transparent = false,
+            Transparent = true,
             Focused = false
         });
         //TestText();
     }
 
-    public void Shutdown(SRuntime runtime)
+    public void Stop(SRuntime runtime)
     {
-
+        
     }
 }

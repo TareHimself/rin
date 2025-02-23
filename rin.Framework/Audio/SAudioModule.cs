@@ -6,12 +6,12 @@ namespace rin.Framework.Audio;
 [Module]
 public class SAudioModule : IModule
 {
-    public void Startup(SRuntime runtime)
+    public void Start(SRuntime runtime)
     {
         Bass.Init();
     }
 
-    public void Shutdown(SRuntime runtime)
+    public void Stop(SRuntime runtime)
     {
         Bass.Free();
     }
