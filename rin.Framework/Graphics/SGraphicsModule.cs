@@ -66,7 +66,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
         if (!SDL_InitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD))
             throw new InvalidOperationException($"failed to initialise SDL. Error: {SDL_GetError()}");
-
+        SDL_SetEventEnabled(SDL_EventType.SDL_EVENT_DROP_FILE,true);
         InitVulkan();
     }
 

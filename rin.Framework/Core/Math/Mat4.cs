@@ -42,7 +42,7 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
     public Mat4 Inverse()
     {
         var r = Clone();
-        NativeMethods.NativeInverse(ref r, ref this);
+        Native.Math.Inverse(ref r, ref this);
         return r;
     }
 
@@ -50,7 +50,7 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
     public Mat4 Translate(Vector3 translation)
     {
         var r = Clone();
-        NativeMethods.NativeTranslate(ref r, ref this, ref translation);
+        Native.Math.Translate(ref r, ref this, ref translation);
         return r;
     }
 
@@ -58,7 +58,7 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
     public Mat4 Scale(Vector3 scale)
     {
         var r = Clone();
-        NativeMethods.NativeScale(ref r, ref this, ref scale);
+        Native.Math.Scale(ref r, ref this, ref scale);
         return r;
     }
 
@@ -72,14 +72,14 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
     public Mat4 Rotate(float angle, Vector3 axis)
     {
         var r = Clone();
-        NativeMethods.NativeRotate(ref r, ref this, angle, ref axis);
+        Native.Math.Rotate(ref r, ref this, angle, ref axis);
         return r;
     }
 
     public Mat4 RotateDeg(float angle, Vector3 axis)
     {
         var r = Clone();
-        NativeMethods.NativeRotate(ref r, ref this, float.DegreesToRadians(angle), ref axis);
+        Native.Math.Rotate(ref r, ref this, float.DegreesToRadians(angle), ref axis);
         return r;
     }
 
@@ -87,7 +87,7 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
     public static Mat4 operator *(Mat4 left, Mat4 right)
     {
         Mat4 result = new();
-        NativeMethods.NativeMultiplyMatrix4Matrix4(ref result, ref left, ref right);
+        Native.Math.MultiplyMatrix4Matrix4(ref result, ref left, ref right);
         return result;
     }
 
@@ -95,7 +95,7 @@ public struct Mat4 : ICloneable<Mat4>, IMultiplyOperators<Mat4, Mat4, Mat4>,
     public static Vector4 operator *(Mat4 left, Vector4 right)
     {
         Vector4 result = new(0.0f);
-        NativeMethods.NativeMultiplyMatrix4Vector4(ref result, ref left, ref right);
+        Native.Math.MultiplyMatrix4Vector4(ref result, ref left, ref right);
         return result;
     }
 }

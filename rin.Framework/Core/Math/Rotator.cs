@@ -42,7 +42,7 @@ public struct Rotator(float inYaw, float inPitch, float inRoll)
     public static explicit operator Rotator(Quat quat)
     {
         var rotator = new Rotator(0.0f);
-        NativeMethods.NativeQuatToRotator(ref rotator, ref quat);
+        Native.Math.QuatToRotator(ref rotator, ref quat);
         rotator.Yaw = (float)MathUtils.RadToDeg(rotator.Yaw);
         rotator.Pitch = (float)MathUtils.RadToDeg(rotator.Pitch);
         // IDK WHY THIS NEEDS TO BE DONE, COULD BE A MISTAKE 

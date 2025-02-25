@@ -427,7 +427,13 @@ public class SViewsTestModule : IModule
         {
             if (e is { Key: InputKey.Up, State: InputState.Pressed })
             {
-                window.CreateChild(500, 500, "test child");
+                window.CreateChild(500, 500, "test child",new CreateOptions()
+                {
+                    Visible = true,
+                    Decorated = true,
+                    Transparent = true,
+                    Focused = false
+                });
             }
 
             if (e is { Key: InputKey.Enter, State: InputState.Pressed, IsAltDown: true })
@@ -461,7 +467,7 @@ public class SViewsTestModule : IModule
         //     SGraphicsModule.Get().Execute();
         // });
 
-        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
+        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin View Test", new CreateOptions()
         {

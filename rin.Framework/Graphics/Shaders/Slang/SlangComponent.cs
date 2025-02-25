@@ -24,7 +24,7 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            var blob = Native.Slang.SlangComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex, null);
+            var blob = Native.Slang.ComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex, null);
             if (blob == null) return null;
             return new SlangBlob(blob);
         }
@@ -34,7 +34,7 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            var blob = Native.Slang.SlangComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex,
+            var blob = Native.Slang.ComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex,
                 diagnostics.ToPointer());
             if (blob == null) return null;
             return new SlangBlob(blob);
@@ -45,7 +45,7 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            return new SlangComponent(Native.Slang.SlangComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex,
+            return new SlangComponent(Native.Slang.ComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex,
                 outDiagnostics.ToPointer()));
         }
     }
@@ -54,7 +54,7 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            return new SlangComponent(Native.Slang.SlangComponentLink(_ptr, null));
+            return new SlangComponent(Native.Slang.ComponentLink(_ptr, null));
         }
     }
 
@@ -62,7 +62,7 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            return new SlangComponent(Native.Slang.SlangComponentLink(_ptr, outDiagnostics.ToPointer()));
+            return new SlangComponent(Native.Slang.ComponentLink(_ptr, outDiagnostics.ToPointer()));
         }
     }
 
@@ -70,7 +70,7 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            return new SlangBlob(Native.Slang.SlangComponentToLayoutJson(_ptr));
+            return new SlangBlob(Native.Slang.ComponentToLayoutJson(_ptr));
         }
     }
 
@@ -78,7 +78,7 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            Native.Slang.SlangComponentFree(_ptr);
+            Native.Slang.ComponentFree(_ptr);
         }
     }
 

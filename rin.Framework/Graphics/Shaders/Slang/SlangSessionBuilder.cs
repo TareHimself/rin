@@ -8,7 +8,7 @@ public class SlangSessionBuilder : IDisposable
     {
         unsafe
         {
-            _ptr = Native.Slang.SlangSessionBuilderNew();
+            _ptr = Native.Slang.SessionBuilderNew();
         }
     }
 
@@ -22,7 +22,7 @@ public class SlangSessionBuilder : IDisposable
     {
         unsafe
         {
-            Native.Slang.SlangSessionBuilderAddTargetSpirv(_ptr);
+            Native.Slang.SessionBuilderAddTargetSpirv(_ptr);
         }
 
         return this;
@@ -32,7 +32,7 @@ public class SlangSessionBuilder : IDisposable
     {
         unsafe
         {
-            Native.Slang.SlangSessionBuilderAddTargetGlsl(_ptr);
+            Native.Slang.SessionBuilderAddTargetGlsl(_ptr);
         }
 
         return this;
@@ -42,7 +42,7 @@ public class SlangSessionBuilder : IDisposable
     {
         unsafe
         {
-            Native.Slang.SlangSessionBuilderAddPreprocessorDefinition(_ptr, name, value);
+            Native.Slang.SessionBuilderAddPreprocessorDefinition(_ptr, name, value);
         }
 
         return this;
@@ -52,7 +52,7 @@ public class SlangSessionBuilder : IDisposable
     {
         unsafe
         {
-            Native.Slang.SlangSessionBuilderAddSearchPath(_ptr, searchPath);
+            Native.Slang.SessionBuilderAddSearchPath(_ptr, searchPath);
         }
 
         return this;
@@ -62,7 +62,7 @@ public class SlangSessionBuilder : IDisposable
     {
         unsafe
         {
-            return new SlangSession(Native.Slang.SlangSessionBuilderBuild(_ptr));
+            return new SlangSession(Native.Slang.SessionBuilderBuild(_ptr));
         }
     }
 
@@ -70,7 +70,7 @@ public class SlangSessionBuilder : IDisposable
     {
         unsafe
         {
-            Native.Slang.SlangSessionBuilderFree(_ptr);
+            Native.Slang.SessionBuilderFree(_ptr);
         }
     }
 

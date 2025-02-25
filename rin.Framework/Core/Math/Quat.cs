@@ -22,7 +22,7 @@ public struct Quat(float inX, float inY, float inZ, float inW)
     public static Quat FromAngle(float angle, Vector3 axis)
     {
         var q = Zero;
-        NativeMethods.NativeQuatFromAngle(ref q, angle, ref axis);
+        Native.Math.QuatFromAngle(ref q, angle, ref axis);
         return q;
     }
 
@@ -53,7 +53,7 @@ public struct Quat(float inX, float inY, float inZ, float inW)
     public static Quat LookAt(Vector3 from, Vector3 to, Vector3 up)
     {
         var result = new Quat();
-        NativeMethods.NativeQuatLookAt(ref result, ref from, ref to, ref up);
+        Native.Math.QuatLookAt(ref result, ref from, ref to, ref up);
         return result;
     }
 
@@ -92,7 +92,7 @@ public struct Quat(float inX, float inY, float inZ, float inW)
     {
         var result = Zero;
 
-        NativeMethods.NativeMultiplyQuatQuat(ref result, ref left, ref right);
+        Native.Math.MultiplyQuatQuat(ref result, ref left, ref right);
 
         return result;
     }
@@ -101,7 +101,7 @@ public struct Quat(float inX, float inY, float inZ, float inW)
     public static Vector3 operator *(Quat left, Vector3 right)
     {
         Vector3 result = new(0.0f);
-        NativeMethods.NativeMultiplyQuatVector(ref result, ref left, ref right);
+        Native.Math.MultiplyQuatVector(ref result, ref left, ref right);
         // var qv = new Vector3<float>(left.X, left.Y, left.Z);
         // var uv = qv.Cross(right);
         // var uuv = qv.Cross(uv);
@@ -113,7 +113,7 @@ public struct Quat(float inX, float inY, float inZ, float inW)
     public static implicit operator Mat4(Quat quat)
     {
         Mat4 r = new();
-        NativeMethods.NativeQuatToMatrix4(ref r, ref quat);
+        Native.Math.QuatToMatrix4(ref r, ref quat);
         return r;
     }
 

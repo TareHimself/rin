@@ -38,14 +38,14 @@ public struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Mat3>,
     public Mat3 Inverse()
     {
         var r = Clone();
-        NativeMethods.NativeInverse(ref r, ref this);
+        Native.Math.Inverse(ref r, ref this);
         return r;
     }
 
     public Mat3 Translate(Vector2 translation)
     {
         var r = Clone();
-        NativeMethods.NativeTranslate(ref r, ref this, ref translation);
+        Native.Math.Translate(ref r, ref this, ref translation);
         return r;
     }
 
@@ -53,7 +53,7 @@ public struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Mat3>,
     public Mat3 Scale(Vector2 scale)
     {
         var r = Clone();
-        NativeMethods.NativeScale(ref r, ref this, ref scale);
+        Native.Math.Scale(ref r, ref this, ref scale);
         return r;
     }
 
@@ -61,14 +61,14 @@ public struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Mat3>,
     public Mat3 Rotate(float angle)
     {
         var r = Clone();
-        NativeMethods.NativeRotate(ref r, ref this, angle);
+        Native.Math.Rotate(ref r, ref this, angle);
         return r;
     }
 
     public Mat3 RotateDeg(float angle)
     {
         var r = Clone();
-        NativeMethods.NativeRotate(ref r, ref this, (float)(angle * System.Math.PI / 180.0f));
+        Native.Math.Rotate(ref r, ref this, (float)(angle * System.Math.PI / 180.0f));
         return r;
     }
 
@@ -76,7 +76,7 @@ public struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Mat3>,
     public static Mat3 operator *(Mat3 left, Mat3 right)
     {
         Mat3 result = new();
-        NativeMethods.NativeMultiplyMatrix3Matrix3(ref result, ref left, ref right);
+        Native.Math.MultiplyMatrix3Matrix3(ref result, ref left, ref right);
         return result;
     }
 
@@ -84,7 +84,7 @@ public struct Mat3 : ICloneable<Mat3>, IMultiplyOperators<Mat3, Mat3, Mat3>,
     public static Vector3 operator *(Mat3 left, Vector3 right)
     {
         Vector3 result = new(0.0f);
-        NativeMethods.NativeMultiplyMatrix3Vector3(ref result, ref left, ref right);
+        Native.Math.MultiplyMatrix3Vector3(ref result, ref left, ref right);
         return result;
     }
 }

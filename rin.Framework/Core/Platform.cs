@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 
 namespace rin.Framework.Core;
 
@@ -6,27 +7,29 @@ public static class Platform
 {
     public static void Init()
     {
-        NativeMethods.NativeInit();
+        Native.Platform.Init();
     }
 
+    [PublicAPI]
     public static string[] SelectFile(string title = "Select File's", bool multiple = false, string filter = "")
     {
         List<string> results = [];
         unsafe
         {
-            NativeMethods.NativeSelectFile(title, multiple, filter,
+            Native.Platform.SelectFile(title, multiple, filter,
                 p => { results.Add(Marshal.PtrToStringUTF8((nint)p) ?? ""); });
         }
 
         return results.ToArray();
     }
 
+    [PublicAPI]
     public static string[] SelectPath(string title = "Select Path's", bool multiple = false)
     {
         List<string> results = [];
         unsafe
         {
-            NativeMethods.NativeSelectPath(title, multiple,
+            Native.Platform.SelectPath(title, multiple,
                 p => { results.Add(Marshal.PtrToStringUTF8((nint)p) ?? ""); });
         }
 

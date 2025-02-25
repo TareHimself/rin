@@ -28,7 +28,7 @@ public struct Transform() : ICloneable<Transform>
             Rotation = (Quat)t.Rotation,
             Scale = t.Scale
         };
-        NativeMethods.NativeTransformToMatrix4(ref r, ref n);
+        Native.Math.TransformToMatrix4(ref r, ref n);
         return r;
     }
 
@@ -36,7 +36,7 @@ public struct Transform() : ICloneable<Transform>
     public static implicit operator Transform(Mat4 mat)
     {
         NativeTransform r = new();
-        NativeMethods.NativeMatrix4ToTransform(ref r, ref mat);
+        Native.Math.Matrix4ToTransform(ref r, ref mat);
 
         return new Transform
         {
