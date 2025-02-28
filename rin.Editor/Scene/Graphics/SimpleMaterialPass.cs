@@ -1,9 +1,9 @@
-﻿using rin.Framework.Graphics;
-using rin.Framework.Graphics.Shaders;
+﻿using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 /// <summary>
 /// Interface for a material pass
 /// </summary>

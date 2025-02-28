@@ -1,16 +1,16 @@
 ﻿using System.Numerics;
 using rin.Examples.AudioPlayer.Views;
 using rin.Examples.Common.Views;
-using rin.Framework.Audio;
-using rin.Framework.Core;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.Windows;
-using rin.Framework.Views;
-using rin.Framework.Views.Composite;
-using rin.Framework.Views.Layouts;
+using Rin.Engine.Audio;
+using Rin.Engine.Core;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Windows;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Composite;
+using Rin.Engine.Views.Layouts;
 using SpotifyExplode;
 using YoutubeExplode;
-using Utils = rin.Framework.Graphics.Utils;
+using Utils = Rin.Engine.Graphics.Utils;
 
 namespace rin.Examples.AudioPlayer;
 
@@ -20,7 +20,7 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
     public readonly SpotifyClient SpClient = new SpotifyClient();
     public readonly YoutubeClient YtClient = new YoutubeClient();
 
-    public void Start(SRuntime runtime)
+    public void Start(SEngine engine)
     {
         Common.Utils.RunSingleThreaded((delta) =>
         {
@@ -34,7 +34,7 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
         
         SAudioModule.Get().SetVolume(0.1f);
         var window = SGraphicsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
-        window.OnCloseRequested += (_) => { SRuntime.Get().RequestExit(); };
+        window.OnCloseRequested += (_) => { SEngine.Get().RequestExit(); };
         Backgrounds(window);
         var surf = SViewsModule.Get().GetWindowSurface(window);
         surf?.Add(new MainPanel());
@@ -100,10 +100,10 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
         };
     }
 
-    public void Stop(SRuntime runtime)
+    public void Stop(SEngine engine)
     {
 
     }
 
-    public static SAudioPlayer Get() => SRuntime.Get().GetModule<SAudioPlayer>();
+    public static SAudioPlayer Get() => SEngine.Get().GetModule<SAudioPlayer>();
 }

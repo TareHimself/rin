@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
-using rin.Framework.Graphics;
+using Rin.Engine.Graphics;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 
 
 public struct DeviceGeometry : IDisposable

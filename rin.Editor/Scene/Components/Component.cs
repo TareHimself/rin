@@ -1,6 +1,6 @@
-﻿using rin.Editor.Scene.Actors;
+﻿using Rin.Editor.Scene.Actors;
 
-namespace rin.Editor.Scene.Components;
+namespace Rin.Editor.Scene.Components;
 
 public class Component : IComponent
 {
@@ -16,7 +16,7 @@ public class Component : IComponent
         Active = false;
     }
 
-    public virtual void Update(double deltaSeconds)
+    public virtual void Update(float deltaSeconds)
     {
         
     }

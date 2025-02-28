@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using rin.Framework.Core.Math;
-using rin.Editor.Scene.Graphics;
+using Rin.Editor.Scene.Graphics;
+using Rin.Engine.Core.Math;
 
-namespace rin.Editor.Scene.Components.Lights;
+namespace Rin.Editor.Scene.Components.Lights;
 
 public class PointLightComponent : LightComponent
 {

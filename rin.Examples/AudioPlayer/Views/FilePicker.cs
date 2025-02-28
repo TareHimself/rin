@@ -1,18 +1,18 @@
 ﻿using System.Numerics;
-using rin.Framework.Core;
-using rin.Framework.Core.Animation;
-using rin.Framework.Core.Extensions;
-using rin.Framework.Views;
-using rin.Framework.Views.Composite;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Events;
-using rin.Framework.Views.Graphics;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Animation;
+using Rin.Engine.Core.Extensions;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Composite;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Events;
+using Rin.Engine.Views.Graphics;
 
 namespace rin.Examples.AudioPlayer.Views;
 
 public class FilePicker : Button
 {
-    private double _animDuration = 0.1;
+    private float _animDuration = 0.1f;
 
     public event Action<string[]>? OnFileSelected;
 
@@ -40,12 +40,6 @@ public class FilePicker : Button
     {
         OnFileSelected?.Invoke(files);
         _statusText.Content = "Select File's";
-    }
-
-    protected override void OnDispose(bool isManual)
-    {
-        base.OnDispose(isManual);
-        _statusText.Dispose();
     }
 
     protected override void OnCursorEnter(CursorMoveEvent e)

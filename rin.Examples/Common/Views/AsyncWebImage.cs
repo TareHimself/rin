@@ -1,11 +1,11 @@
-﻿using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Views;
-using rin.Framework.Views.Animation;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Graphics.Quads;
+﻿using Rin.Engine.Core.Extensions;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Animation;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.Quads;
 using SixLabors.ImageSharp.PixelFormats;
 using Image = SixLabors.ImageSharp.Image;
 

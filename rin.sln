@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34714.143
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "rin.Framework", "rin.Framework\rin.Framework.csproj", "{5D8EAE44-56A0-4744-B71A-A9CCB45C8C4A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Rin.Engine", "Rin.Engine\Rin.Engine.csproj", "{5D8EAE44-56A0-4744-B71A-A9CCB45C8C4A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Examples.ViewsTest", "rin.Examples\ViewsTest\rin.Examples.ViewsTest.csproj", "{515D3A8F-AA58-4533-B73C-03CC30D42BBB}"
 EndProject
@@ -13,9 +13,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Examples.AudioPlayer", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Examples.Common", "rin.Examples\Common\rin.Examples.Common.csproj", "{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Editor", "rin.Editor\rin.Editor.csproj", "{58FA237F-22F4-4454-8C3D-6BCDF39F170A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Editor", "Rin.Editor\Rin.Editor.csproj", "{58FA237F-22F4-4454-8C3D-6BCDF39F170A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "misc.VectorRendering", "misc.VectorRendering\misc.VectorRendering.csproj", "{0ABED806-8139-4A4C-B9DB-C9C2DA187996}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.assets", "rin.assets\rin.assets.csproj", "{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -111,6 +113,18 @@ Global
 		{0ABED806-8139-4A4C-B9DB-C9C2DA187996}.Release|x64.Build.0 = Release|Any CPU
 		{0ABED806-8139-4A4C-B9DB-C9C2DA187996}.Release|x86.ActiveCfg = Release|Any CPU
 		{0ABED806-8139-4A4C-B9DB-C9C2DA187996}.Release|x86.Build.0 = Release|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Debug|x64.Build.0 = Debug|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Debug|x86.Build.0 = Debug|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Release|x64.ActiveCfg = Release|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Release|x64.Build.0 = Release|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Release|x86.ActiveCfg = Release|Any CPU
+		{5092A9EA-CDE6-4F68-8FDD-8DF6BDC58000}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

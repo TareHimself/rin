@@ -1,5 +1,5 @@
 ﻿
-using rin.Framework.Core;
+using Rin.Engine.Core;
 
-SRuntime.Get().Run();
+SEngine.Get().Run();
 

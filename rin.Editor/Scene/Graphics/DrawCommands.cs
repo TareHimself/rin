@@ -1,6 +1,6 @@
 ﻿using JetBrains.Annotations;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 
 public class DrawCommands
 {

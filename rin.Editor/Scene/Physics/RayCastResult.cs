@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
-using rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Components;
+using Rin.Engine.Core.Math;
 
-namespace rin.Editor.Scene.Physics;
+namespace Rin.Editor.Scene.Physics;
 
 public class RayCastResult
 {

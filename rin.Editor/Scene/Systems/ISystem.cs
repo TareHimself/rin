@@ -1,7 +1,7 @@
-﻿using rin.Framework.Core;
-using rin.Editor.Scene.Components;
+﻿using Rin.Editor.Scene.Components;
+using Rin.Engine.Core;
 
-namespace rin.Editor.Scene.Systems;
+namespace Rin.Editor.Scene.Systems;
 
 public interface ISystem : IReceivesUpdate
 {

@@ -2,11 +2,11 @@
 using BepuPhysics;
 using BepuPhysics.Collidables;
 using JetBrains.Annotations;
-using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
-using rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Components;
+using Rin.Engine.Core.Extensions;
+using Rin.Engine.Core.Math;
 
-namespace rin.Editor.Scene.Physics.Bepu;
+namespace Rin.Editor.Scene.Physics.Bepu;
 
 public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : IPhysicsBody
 {

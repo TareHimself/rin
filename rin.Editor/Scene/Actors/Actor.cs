@@ -1,9 +1,10 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using rin.Framework.Core;
-using rin.Framework.Core.Math;
-using rin.Editor.Scene.Components;
-namespace rin.Editor.Scene.Actors;
+using Rin.Editor.Scene.Components;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Math;
+
+namespace Rin.Editor.Scene.Actors;
 
 public class Actor : IReceivesUpdate
 {
@@ -187,7 +188,7 @@ public class Actor : IReceivesUpdate
         }
     }
 
-    public void Update(double deltaSeconds)
+    public void Update(float deltaSeconds)
     {
         if(!Active) return;
         

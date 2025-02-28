@@ -1,7 +1,7 @@
-﻿using rin.Framework.Core.Math;
-using rin.Editor.Scene.Physics;
+﻿using Rin.Editor.Scene.Physics;
+using Rin.Engine.Core.Math;
 
-namespace rin.Editor.Scene.Components;
+namespace Rin.Editor.Scene.Components;
 
 public class SphereCollisionComponent : CollisionComponent
 {

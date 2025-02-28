@@ -1,29 +1,29 @@
 ﻿using System.Numerics;
 using rin.Examples.Common.Views;
-using rin.Framework.Core;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Views;
-using rin.Framework.Views.Composite;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Font;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Graphics.Quads;
-using rin.Framework.Views.Layouts;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Composite;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Font;
+using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.Quads;
+using Rin.Engine.Views.Layouts;
 using SixLabors.Fonts;
-using Utils = rin.Framework.Graphics.Utils;
+using Utils = Rin.Engine.Graphics.Utils;
 
 namespace misc.VectorRendering;
 
 [Module(typeof(SViewsModule)),AlwaysLoad]
 public class MainModule : IModule
 {
-    public static MainModule Get() => SRuntime.Get().GetModule<MainModule>();
+    public static MainModule Get() => SEngine.Get().GetModule<MainModule>();
     
     private Font _font;
 
     private IFontManager _fontManager = new DefaultFontManager();
-    public void Start(SRuntime runtime)
+    public void Start(SEngine engine)
     {
         
         rin.Examples.Common.Utils.RunMultithreaded((delta) =>
@@ -50,7 +50,7 @@ public class MainModule : IModule
                 }
                 else
                 {
-                    SRuntime.Get().RequestExit();
+                    SEngine.Get().RequestExit();
                 }
             };
         };
@@ -116,7 +116,7 @@ public class MainModule : IModule
         //cmds.Add(new PathCommand(transform, _font,str));
     }
 
-    public void Stop(SRuntime runtime)
+    public void Stop(SEngine engine)
     {
     }
 }

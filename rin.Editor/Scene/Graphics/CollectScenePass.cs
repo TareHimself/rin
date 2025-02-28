@@ -1,15 +1,15 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.FrameGraph;
-using rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Components;
+using Rin.Engine.Core.Extensions;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.FrameGraph;
 using TerraFX.Interop.Vulkan;
-using Utils = rin.Framework.Core.Utils;
+using Utils = Rin.Engine.Core.Utils;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 
 /// <summary>
 /// Collects the scene, and does a depth pre-pass
@@ -58,7 +58,7 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
     public void Configure(IGraphConfig config)
     {
         DepthImageId = config.CreateImage(Size.X, Size.Y, ImageFormat.Depth);
-        var drawCommands = new rin.Editor.Scene.Graphics.DrawCommands();
+        var drawCommands = new DrawCommands();
 
         foreach (var root in Scene.GetPureRoots().ToArray())
         {

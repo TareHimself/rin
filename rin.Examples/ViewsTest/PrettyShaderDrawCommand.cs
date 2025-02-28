@@ -1,12 +1,12 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using rin.Framework.Core;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.Shaders;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Graphics.Commands;
-using Utils = rin.Framework.Core.Utils;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Shaders;
+using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.Commands;
+using Utils = Rin.Engine.Core.Utils;
 
 namespace rin.Examples.ViewsTest;
 
@@ -27,7 +27,7 @@ public class PrettyShaderDrawCommand(Mat3 transform,Vector2 size,bool hovered) :
 
     public override ulong GetRequiredMemory() => Utils.ByteSizeOf<Data>();
 
-    private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SRuntime.AssetsDirectory,"test","pretty.slang"));
+    private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SEngine.AssetsDirectory,"test","pretty.slang"));
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {
@@ -43,7 +43,7 @@ public class PrettyShaderDrawCommand(Mat3 transform,Vector2 size,bool hovered) :
                 ScreenSize = screenSize,
                 Transform = transform,
                 Size = size,
-                Time = (float)SRuntime.Get().GetTimeSeconds(),
+                Time = (float)SEngine.Get().GetTimeSeconds(),
                 Center = hovered ?  frame.Surface.GetCursorPosition() : screenSize / 2.0f
             };
             view.Write(data);

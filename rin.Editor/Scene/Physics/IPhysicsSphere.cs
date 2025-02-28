@@ -1,4 +1,4 @@
-﻿namespace rin.Editor.Scene.Physics;
+﻿namespace Rin.Editor.Scene.Physics;
 
 public interface IPhysicsSphere : IPhysicsBody
 {

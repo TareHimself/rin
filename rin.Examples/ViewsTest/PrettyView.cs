@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
-using rin.Framework.Core;
-using rin.Framework.Core.Math;
-using rin.Framework.Views;
-using rin.Framework.Views.Graphics;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Graphics;
 
 namespace rin.Examples.ViewsTest;
 
@@ -11,7 +11,7 @@ public class PrettyView : ContentView
     private double _createdAt = 0.0f;
     public PrettyView()
     {
-        _createdAt = SRuntime.Get().GetTimeSeconds();
+        _createdAt = SEngine.Get().GetTimeSeconds();
     }
     protected override Vector2 LayoutContent(Vector2 availableSpace)
     {

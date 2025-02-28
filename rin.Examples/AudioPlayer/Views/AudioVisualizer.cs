@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
-using rin.Framework.Views;
-using rin.Framework.Views.Graphics;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Graphics;
 
 namespace rin.Examples.AudioPlayer.Views;
 

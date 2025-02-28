@@ -1,10 +1,10 @@
 ﻿using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
-using rin.Framework.Core.Math;
-using rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Components;
+using Rin.Engine.Core.Math;
 
-namespace rin.Editor.Scene.Physics.Bepu;
+namespace Rin.Editor.Scene.Physics.Bepu;
 
 public class BepuBox : BepuBody,IPhysicsBox
 {

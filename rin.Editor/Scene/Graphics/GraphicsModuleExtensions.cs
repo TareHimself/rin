@@ -1,10 +1,10 @@
-﻿using rin.Framework.Core.Extensions;
-using rin.Framework.Graphics;
-using rin.Editor.Scene.Graphics;
+﻿using Rin.Engine.Core.Extensions;
+using Rin.Engine.Graphics;
+using Rin.Editor.Scene.Graphics;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 
 public static class GraphicsModuleExtensions
 {

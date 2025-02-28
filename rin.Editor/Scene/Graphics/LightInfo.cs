@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using rin.Framework.Core.Math;
+using Rin.Engine.Core.Math;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 
 /// <summary>
 /// Packed info about a light in the scene

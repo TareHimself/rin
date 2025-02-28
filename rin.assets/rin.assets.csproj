@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>rin.engine.asset</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="shaders\Views\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <assets Include="shaders\attributes.slang" />
+      <assets Include="textures\default.png" />
+    </ItemGroup>
+
+</Project>

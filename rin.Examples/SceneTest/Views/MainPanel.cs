@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using rin.Examples.SceneTest.entities;
 using rin.Editor.Scene;
-using rin.Framework.Views.Composite;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Layouts;
+using Rin.Engine.Views.Composite;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Layouts;
 
 namespace rin.Examples.SceneTest.Views;
 

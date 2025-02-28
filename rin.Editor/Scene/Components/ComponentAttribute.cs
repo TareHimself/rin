@@ -1,4 +1,4 @@
-﻿namespace rin.Editor.Scene.Components;
+﻿namespace Rin.Editor.Scene.Components;
 
 [AttributeUsage(AttributeTargets.Class)]
 public class ComponentAttribute(params Type[] required) : Attribute

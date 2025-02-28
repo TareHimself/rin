@@ -1,15 +1,15 @@
 ﻿using System.Numerics;
-using rin.Framework.Audio;
-using rin.Framework.Core;
-using rin.Framework.Core.Math;
-using rin.Framework.Views;
-using rin.Framework.Views.Animation;
-using rin.Framework.Views.Composite;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Events;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Layouts;
-using Rect = rin.Framework.Views.Rect;
+using Rin.Engine.Audio;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Animation;
+using Rin.Engine.Views.Composite;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Events;
+using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Layouts;
+using Rect = Rin.Engine.Views.Rect;
 
 
 namespace rin.Examples.AudioPlayer.Views;
@@ -54,7 +54,7 @@ public class TrackPlayer : Overlay
     };
 
     private readonly IChannel _stream;
-    private double _lastTime = SRuntime.Get().GetTimeSeconds();
+    private double _lastTime = SEngine.Get().GetTimeSeconds();
 
     private readonly Panel _backgroundContainer = new Panel();
 
@@ -221,7 +221,7 @@ public class TrackPlayer : Overlay
         base.OnCursorEnter(e);
         if (Loaded)
         {
-            this.TranslateTo(new Vector2(40.0f, 0.0f), 0.2,
+            this.TranslateTo(new Vector2(40.0f, 0.0f), 0.2f,
                 easingFunction: EasingFunctions.EaseInOutCubic);
         }
     }
@@ -231,7 +231,7 @@ public class TrackPlayer : Overlay
         base.OnCursorLeave();
         if (Loaded)
         {
-            this.TranslateTo(new Vector2(0.0f, 0.0f), 0.2,
+            this.TranslateTo(new Vector2(0.0f, 0.0f), 0.2f,
                 easingFunction: EasingFunctions.EaseInOutCubic);
         }
     }

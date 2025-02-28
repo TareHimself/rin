@@ -1,12 +1,12 @@
 ﻿using JetBrains.Annotations;
-using rin.Framework.Core;
-using rin.Editor.Scene.Actors;
-using rin.Editor.Scene.Components;
-using rin.Editor.Scene.Components.Lights;
-using rin.Editor.Scene.Physics;
-using rin.Editor.Scene.Systems;
+using Rin.Engine.Core;
+using Rin.Editor.Scene.Components.Lights;
+using Rin.Editor.Scene.Actors;
+using Rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Physics;
+using Rin.Editor.Scene.Systems;
 
-namespace rin.Editor.Scene;
+namespace Rin.Editor.Scene;
 
 public class Scene : IReceivesUpdate
 {
@@ -83,7 +83,7 @@ public class Scene : IReceivesUpdate
         }
     }
 
-    public void Update(double deltaSeconds)
+    public void Update(float deltaSeconds)
     {
         if(!Active) return;
         _remainingPhysicsTime += (float)deltaSeconds;

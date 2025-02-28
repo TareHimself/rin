@@ -1,7 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using rin.Framework.Core;
+using Rin.Engine.Core;
 
 // Console.WriteLine("Hello, World!");
 
-SRuntime.Get().Run();
+SEngine.Get().Run();

@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
 using rin.Examples.SceneTest.entities;
-using rin.Framework.Core;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics.Windows;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics.Windows;
 using rin.Editor.Scene.Views;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Events;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Events;
 
 namespace rin.Examples.SceneTest;
 
@@ -30,13 +30,13 @@ public class TestViewport : Viewport
     public override void OnFocus()
     {
         base.OnFocus();
-        SRuntime.Get().OnUpdate += OnUpdate;
+        SEngine.Get().OnUpdate += OnUpdate;
     }
 
     public override void OnFocusLost()
     {
         base.OnFocusLost();
-        SRuntime.Get().OnUpdate -= OnUpdate;
+        SEngine.Get().OnUpdate -= OnUpdate;
     }
 
     public override void OnKeyboard(KeyboardEvent e)

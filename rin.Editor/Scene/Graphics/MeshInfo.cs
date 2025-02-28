@@ -1,6 +1,6 @@
-﻿using rin.Framework.Core.Math;
+﻿using Rin.Engine.Core.Math;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 
 public class MeshInfo
 {

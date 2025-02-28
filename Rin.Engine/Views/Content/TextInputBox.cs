@@ -1,0 +1,122 @@
+﻿using System.Numerics;
+using JetBrains.Annotations;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics.Windows;
+using Rin.Engine.Views.Events;
+using Rin.Engine.Views.Graphics;
+using Rin.Engine.Core.Extensions;
+using Rin.Engine.Views.Graphics.Quads;
+using Timer = System.Timers.Timer;
+
+namespace Rin.Engine.Views.Content;
+
+public class TextInputBox : TextBox
+{
+    private readonly Timer _typingTimer = new(200)
+    {
+        AutoReset = false
+    };
+
+    public TextInputBox()
+    {
+        CursorPosition = Content.Length - 1;
+        _typingTimer.Elapsed += (_, __) => IsTyping = false;
+    }
+
+    public override bool IsFocusable => true;
+
+    [PublicAPI] public int CursorPosition { get; private set; }
+
+    [PublicAPI] public bool IsTyping { get; private set; }
+
+
+    private void ResetTypingDelay()
+    {
+        IsTyping = true;
+        _typingTimer.Stop();
+        _typingTimer.Start();
+    }
+
+    public override bool OnCursorDown(CursorDownEvent e)
+    {
+        return true;
+    }
+
+    public override void OnCharacter(CharacterEvent e)
+    {
+        base.OnCharacter(e);
+        ResetTypingDelay();
+        if (Content.Empty())
+            Content += e.Character;
+        else
+            Content = Content[..(CursorPosition + 1)] + e.Character + Content[(CursorPosition + 1)..];
+        CursorPosition++;
+    }
+
+    public override void OnKeyboard(KeyboardEvent e)
+    {
+        base.OnKeyboard(e);
+        if (e is { Key: InputKey.Backspace, State: InputState.Pressed or InputState.Repeat })
+        {
+            if (CursorPosition > -1)
+            {
+                ResetTypingDelay();
+                Content = Content.Remove(CursorPosition, 1);
+                CursorPosition--;
+            }
+        }
+        else if (e is { Key: InputKey.Left or InputKey.Right, State: InputState.Pressed or InputState.Repeat })
+        {
+            if (Content.NotEmpty())
+            {
+                ResetTypingDelay();
+                var delta = e.Key == InputKey.Left ? -1 : 1;
+                CursorPosition = Math.Clamp(CursorPosition + delta, -1, Content.Length - 1);
+            }
+        }
+        else if (e is { Key: InputKey.Left or InputKey.Enter, State: InputState.Pressed or InputState.Repeat })
+        {
+            ResetTypingDelay();
+            OnCharacter(new CharacterEvent(e.Surface, '\n', 0));
+        }
+    }
+
+    protected override void TextChanged(string newText)
+    {
+        base.TextChanged(newText);
+        //CursorPosition = Math.Clamp(CursorPosition, -1, Content.Length - 1);
+    }
+
+    public override void CollectContent(Mat3 transform, PassCommands commands)
+    {
+        base.CollectContent(transform, commands);
+
+        if (!FontReady || !IsFocused) return;
+
+        Vector2 offset = default;
+
+        if (CursorPosition != -1)
+        {
+            var targetBounds = GetCharacterBounds(Wrap).ToArray()[CursorPosition];
+            offset.X += targetBounds.Right - 2.0f;
+            offset.Y = LineHeight * (float)Math.Floor((targetBounds.Y + targetBounds.Height / 2.0f) / LineHeight);
+            // if (Content[CursorPosition] == '\n')
+            // {
+            //     offset.Y = (Content.Split("\n").Length - 1) * LineHeight;
+            // }
+            // else
+            // {
+            //     var targetBounds = GetContentBounds().ToArray()[CursorPosition];
+            //     offset.X += targetBounds.Right - 2.0f;
+            //     offset.Y = (float)Math.Floor(((targetBounds.Y + (targetBounds.Height / 2.0f)) / LineHeight));
+            // }
+        }
+
+        var height = LineHeight;
+        var color = ForegroundColor.Clone();
+        var sin = (float)((Math.Sin(SEngine.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f);
+        color.A *= IsTyping ? 1.0f : sin > 0.35 ? 1.0f : 0.0f;
+        commands.AddRect(transform.Translate(offset), new Vector2(2.0f, height), color);
+    }
+}

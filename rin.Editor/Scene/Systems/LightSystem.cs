@@ -1,7 +1,7 @@
-﻿using rin.Editor.Scene.Components;
-using rin.Editor.Scene.Components.Lights;
+﻿using Rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Components.Lights;
 
-namespace rin.Editor.Scene.Systems;
+namespace Rin.Editor.Scene.Systems;
 
 public class LightSystem : ISystem
 {
@@ -27,7 +27,7 @@ public class LightSystem : ISystem
         
     }
 
-    public void Update(double deltaSeconds)
+    public void Update(float deltaSeconds)
     {
   
     }

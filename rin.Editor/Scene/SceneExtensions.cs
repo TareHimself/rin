@@ -1,7 +1,7 @@
-﻿using rin.Editor.Scene.Actors;
-using rin.Editor.Scene.Components;
+﻿using Rin.Editor.Scene.Actors;
+using Rin.Editor.Scene.Components;
 
-namespace rin.Editor.Scene;
+namespace Rin.Editor.Scene;
 
 public static class SceneExtensions
 {

@@ -1,11 +1,11 @@
 ﻿using MathNet.Numerics;
-using rin.Framework.Core;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.FrameGraph;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Graphics.Commands;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.FrameGraph;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.Commands;
 
 namespace rin.Examples.Common.Views;
 
@@ -15,6 +15,7 @@ public class FpsView : TextBox
     private readonly Averaged<int> _averageFps = new Averaged<int>(0,300);
     private readonly Averaged<double> _averageCollectTime = new Averaged<double>(0,300);
     private readonly Averaged<double> _averageExecuteTime = new Averaged<double>(0,300);
+    private Scheduler _scheduler = new Scheduler();
     class GetStatsCommand : UtilityCommand
     {
         private readonly FpsView _view;
@@ -39,33 +40,39 @@ public class FpsView : TextBox
         {
             if (_view.Surface is WindowSurface asWindowSurface && asWindowSurface.GetRenderer() is WindowRenderer asWindowRenderer)
             {
-                _view._averageCollectTime.Add(asWindowRenderer.LastCollectElapsedTime);
-                _view._averageExecuteTime.Add(asWindowRenderer.LastExecuteElapsedTime);
-                var renderer = asWindowSurface.GetRenderer();
-                _view.Content = $"""
-                                 STATS
-                                 {frame.Surface.GetCursorPosition()} Cursor Position
-                                 {frame.Stats.InitialCommandCount} Initial Commands
-                                 {frame.Stats.FinalCommandCount} Final Commands
-                                 {frame.Stats.BatchedDrawCommandCount} Batches
-                                 {frame.Stats.NonBatchedDrawCommandCount} Draws
-                                 {frame.Stats.StencilWriteCount} Stencil Writes
-                                 {frame.Stats.CustomCommandCount} Non Draws
-                                 {frame.Stats.MemoryAllocatedBytes} Bytes Allocated
-                                 {(int)_view._averageFps} Average Frames Per Second
-                                 {((1 / (float)_view._averageFps) * 1000.0f).Round(2)}ms Average Frame Time 
-                                 {(_view._averageExecuteTime  * 1000.0f).Round(2)}ms Execute Time 
-                                 {(_view._averageCollectTime  * 1000.0f).Round(2)}ms Collect Time 
-                                 """;
+                _view._scheduler.Schedule(() =>
+                {
+                    _view._averageCollectTime.Add(asWindowRenderer.LastCollectElapsedTime);
+                    _view._averageExecuteTime.Add(asWindowRenderer.LastExecuteElapsedTime);
+                    _view.Content = $"""
+                                     STATS
+                                     {frame.Surface.GetCursorPosition()} Cursor Position
+                                     {frame.Stats.InitialCommandCount} Initial Commands
+                                     {frame.Stats.FinalCommandCount} Final Commands
+                                     {frame.Stats.BatchedDrawCommandCount} Batches
+                                     {frame.Stats.NonBatchedDrawCommandCount} Draws
+                                     {frame.Stats.StencilWriteCount} Stencil Writes
+                                     {frame.Stats.CustomCommandCount} Non Draws
+                                     {frame.Stats.MemoryAllocatedBytes} Bytes Allocated
+                                     {(int)_view._averageFps} Average Frames Per Second
+                                     {((1 / (float)_view._averageFps) * 1000.0f).Round(2)}ms Average Frame Time 
+                                     {(_view._averageExecuteTime  * 1000.0f).Round(2)}ms Execute Time 
+                                     {(_view._averageCollectTime  * 1000.0f).Round(2)}ms Collect Time 
+                                     """;
+                });
+                
             }
         }
     }
+    
 
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
-        var a = SRuntime.Get().GetLastDeltaSeconds();
+        _scheduler.Update();
+        
+        var a = SEngine.Get().GetLastDeltaSeconds();
         var b = 1.0 / a;
-        _averageFps.Add((int)Math.Round((1.0 / SRuntime.Get().GetLastDeltaSeconds())));
+        _averageFps.Add((int)Math.Round((1.0 / SEngine.Get().GetLastDeltaSeconds())));
         
         commands.Add(new GetStatsCommand(this));
         base.CollectContent(transform, commands);

@@ -1,6 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using rin.Framework.Core;
+using Rin.Engine.Core;
 using TerraFX.Interop.Vulkan;
 
-SRuntime.Get().Run();
+SEngine.Get().Run();

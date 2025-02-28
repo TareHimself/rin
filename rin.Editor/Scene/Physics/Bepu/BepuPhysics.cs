@@ -8,10 +8,10 @@ using BepuPhysics.Trees;
 using BepuUtilities;
 using BepuUtilities.Memory;
 using JetBrains.Annotations;
-using rin.Framework.Core.Math;
-using rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Components;
+using Rin.Engine.Core.Math;
 
-namespace rin.Editor.Scene.Physics.Bepu;
+namespace Rin.Editor.Scene.Physics.Bepu;
 
 public class BepuPhysics : IPhysicsSystem
 {

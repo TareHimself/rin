@@ -1,7 +1,7 @@
-﻿using rin.Framework.Core;
-using rin.Framework.Graphics.Shaders;
+﻿using Rin.Engine.Core;
+using Rin.Engine.Graphics.Shaders;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 
 public interface IStaticMesh : IReservable
 {

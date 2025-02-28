@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using rin.Examples.Common.Views;
-using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
-using rin.Framework.Views.Animation;
-using rin.Framework.Views;
+using Rin.Engine.Core.Extensions;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Views.Animation;
+using Rin.Engine.Views;
 
 namespace rin.Examples.AudioPlayer.Views;
 

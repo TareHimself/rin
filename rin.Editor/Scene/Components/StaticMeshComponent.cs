@@ -1,8 +1,8 @@
-﻿using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
-using rin.Editor.Scene.Graphics;
+﻿using Rin.Editor.Scene.Graphics;
+using Rin.Engine.Core.Extensions;
+using Rin.Engine.Core.Math;
 
-namespace rin.Editor.Scene.Components;
+namespace Rin.Editor.Scene.Components;
 
 public class StaticMeshComponent : SceneComponent
 {

@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Math;
+using Rin.Engine.Core.Math;
 
-namespace rin.Editor.Scene.Physics;
+namespace Rin.Editor.Scene.Physics;
 
 public interface IPhysicsBox : IPhysicsBody
 {

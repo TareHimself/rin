@@ -1,22 +1,22 @@
 ﻿using System.Numerics;
 using rin.Examples.Common.Views;
 using rin.Examples.ViewsTest.Panels;
-using rin.Framework.Core;
-using rin.Framework.Core.Animation;
-using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.Windows;
-using rin.Framework.Views;
-using rin.Framework.Views.Animation;
-using rin.Framework.Views.Composite;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Events;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Graphics.Quads;
-using rin.Framework.Views.Layouts;
-using Rect = rin.Framework.Views.Composite.Rect;
-using Utils = rin.Framework.Graphics.Utils;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Animation;
+using Rin.Engine.Core.Extensions;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Windows;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Animation;
+using Rin.Engine.Views.Composite;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Events;
+using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.Quads;
+using Rin.Engine.Views.Layouts;
+using Rect = Rin.Engine.Views.Composite.Rect;
+using Utils = Rin.Engine.Graphics.Utils;
 
 namespace rin.Examples.ViewsTest;
 
@@ -59,10 +59,10 @@ public class SViewsTestModule : IModule
     {
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
-
+            
             var scheduler = new Scheduler();
 
-            SRuntime.Get().OnUpdate += (_) => scheduler.Update();
+            SEngine.Get().OnUpdate += (_) => scheduler.Update();
             
             var list = new WrapList()
             {
@@ -401,9 +401,9 @@ public class SViewsTestModule : IModule
                         FontSize = 40
                     },
                     SizeToContent = true,
-                    Alignment = new Vector2(0f),
-                    MinAnchor = new Vector2(0f),
-                    MaxAnchor = new Vector2(0f)
+                    Alignment = Vector2.Zero,
+                    MinAnchor = Vector2.Zero,
+                    MaxAnchor = Vector2.Zero
                 }
             ]
         });
@@ -419,7 +419,7 @@ public class SViewsTestModule : IModule
             }
             else
             {
-                SRuntime.Get().RequestExit();
+                SEngine.Get().RequestExit();
             }
         };
 
@@ -443,7 +443,7 @@ public class SViewsTestModule : IModule
         });
     }
 
-    public void Start(SRuntime runtime)
+    public void Start(SEngine engine)
     {
         
         
@@ -467,6 +467,13 @@ public class SViewsTestModule : IModule
         //     SGraphicsModule.Get().Execute();
         // });
 
+        // {
+        //     var fontManager = SViewsModule.Get().GetFontManager();
+        //     if (fontManager.TryGetFont("Arial", out var family))
+        //     {
+        //         fontManager.Prepare(family, Enumerable.Range(33, 126 - 33).Select(c => (char)c).ToArray());
+        //     }
+        // }
         SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin View Test", new CreateOptions()
@@ -479,7 +486,7 @@ public class SViewsTestModule : IModule
         //TestText();
     }
 
-    public void Stop(SRuntime runtime)
+    public void Stop(SEngine engine)
     {
         
     }

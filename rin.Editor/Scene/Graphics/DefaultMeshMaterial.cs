@@ -1,14 +1,14 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.Shaders;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
-using Utils = rin.Framework.Core.Utils;
+using Utils = Rin.Engine.Core.Utils;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 
 public class DefaultMeshMaterial : IMeshMaterial
 {

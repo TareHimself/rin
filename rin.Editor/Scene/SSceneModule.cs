@@ -1,17 +1,17 @@
-﻿using rin.Framework.Core;
-using rin.Framework.Views;
+﻿using Rin.Engine.Core;
+using Rin.Engine.Views;
 
-namespace rin.Editor.Scene;
+namespace Rin.Editor.Scene;
 
 [Module(typeof(SViewsModule))]
 public class SSceneModule : IModule, ISingletonGetter<SSceneModule>
 {
-    public void Start(SRuntime runtime)
+    public void Start(SEngine engine)
     {
         //throw new NotImplementedException();
     }
 
-    public void Stop(SRuntime runtime)
+    public void Stop(SEngine engine)
     {
         //throw new NotImplementedException();
     }
@@ -23,6 +23,6 @@ public class SSceneModule : IModule, ISingletonGetter<SSceneModule>
 
     public static SSceneModule Get()
     {
-        return SRuntime.Get().GetModule<SSceneModule>();
+        return SEngine.Get().GetModule<SSceneModule>();
     }
 }

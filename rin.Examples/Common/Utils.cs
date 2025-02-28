@@ -1,4 +1,4 @@
-﻿using rin.Framework.Core;
+﻿using Rin.Engine.Core;
 
 namespace rin.Examples.Common;
 
@@ -36,7 +36,7 @@ public static class Utils
         var mainMutex = new ManualResetEvent(false);
         var renderMutex = new ManualResetEvent(true);
         
-        SRuntime.Get().OnUpdate += (dt) =>
+        SEngine.Get().OnUpdate += (dt) =>
         {
             main(dt);
             mainMutex.Set();
@@ -44,7 +44,7 @@ public static class Utils
         
         Task.Factory.StartNew(() =>
         {
-            while (SRuntime.Get().IsRunning)
+            while (SEngine.Get().IsRunning)
             {
                 mainMutex.WaitOne();
                 try
@@ -61,7 +61,7 @@ public static class Utils
     
     public static void RunSingleThreaded(Action<double> main, Action render)
     {
-        SRuntime.Get().OnUpdate += (dt) =>
+        SEngine.Get().OnUpdate += (dt) =>
         {
             main(dt);
             render();

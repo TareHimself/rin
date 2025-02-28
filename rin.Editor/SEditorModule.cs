@@ -1,17 +1,17 @@
-﻿using rin.Framework.Core;
+﻿using Rin.Engine.Core;
 
-namespace rin.Editor;
+namespace Rin.Editor;
 
 
 [Module]
 public class SEditorModule : IModule
 {
-    public void Start(SRuntime runtime)
+    public void Start(SEngine engine)
     {
         throw new NotImplementedException();
     }
 
-    public void Stop(SRuntime runtime)
+    public void Stop(SEngine engine)
     {
         throw new NotImplementedException();
     }

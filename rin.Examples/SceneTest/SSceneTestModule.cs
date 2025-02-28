@@ -1,19 +1,19 @@
 ﻿using System.Numerics;
 using rin.Examples.SceneTest.entities;
-using rin.Framework.Core;
-using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.Windows;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Extensions;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Windows;
 using rin.Editor.Scene;
 using rin.Editor.Scene.Actors;
 using rin.Editor.Scene.Components;
 using rin.Editor.Scene.Components.Lights;
 using rin.Editor.Scene.Graphics;
-using rin.Framework.Views;
-using rin.Framework.Views.Composite;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Layouts;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Composite;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Layouts;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace rin.Examples.SceneTest;
@@ -36,10 +36,10 @@ public class SSceneTestModule : IModule
     }
     public static async Task<DefaultMeshMaterial> LoadGoldMaterial()
     {
-        var albedo = LoadTexture(Path.Join(SRuntime.AssetsDirectory, "textures", "au_albedo.png"));
-        var roughness = LoadTexture(Path.Join(SRuntime.AssetsDirectory, "textures", "au_roughness.png"));
-        var metallic = LoadTexture(Path.Join(SRuntime.AssetsDirectory, "textures", "au_metallic.png"));
-        var normal = LoadTexture(Path.Join(SRuntime.AssetsDirectory, "textures", "au_normal.png"));
+        var albedo = LoadTexture(Path.Join(SEngine.AssetsDirectory, "textures", "au_albedo.png"));
+        var roughness = LoadTexture(Path.Join(SEngine.AssetsDirectory, "textures", "au_roughness.png"));
+        var metallic = LoadTexture(Path.Join(SEngine.AssetsDirectory, "textures", "au_metallic.png"));
+        var normal = LoadTexture(Path.Join(SEngine.AssetsDirectory, "textures", "au_normal.png"));
 
 
         await Task.WhenAll(albedo,roughness,metallic,normal);
@@ -93,10 +93,10 @@ public class SSceneTestModule : IModule
             }
         ], vertices, [0, 1, 2, 2, 3, 0]);
     }
-    public void Start(SRuntime runtime)
+    public void Start(SEngine engine)
     {
         
-        runtime.OnUpdate += (delta) =>
+        engine.OnUpdate += (delta) =>
         {
             SGraphicsModule.Get().PollWindows();
           // camera.GetCameraComponent().SetRelativeRotation(camera.GetCameraComponent().GetRelativeRotation().ApplyYaw(20.0f * (float)delta));
@@ -138,7 +138,7 @@ public class SSceneTestModule : IModule
             comp.SetRelativeLocation(location);
             var lookAtRotation = Rotator.LookAt(location,new Vector3(0.0f,50.0f,0.0f),Constants.UpVector);
             comp.SetRelativeRotation(lookAtRotation);
-            Extensions.LoadStaticMesh(Path.Join(SRuntime.AssetsDirectory,"models","real_cube.glb")).After(mesh =>
+            Extensions.LoadStaticMesh(Path.Join(SEngine.AssetsDirectory,"models","real_cube.glb")).After(mesh =>
             {
                 
                 scene.AddPointLight(new Vector3(0.0f, 20.0f, 0.0f));
@@ -203,7 +203,7 @@ public class SSceneTestModule : IModule
                 {
                     sm.Materials = ((StaticMeshComponent)e2.RootComponent).Materials = ((StaticMeshComponent)e1.RootComponent).Materials = [material];
                 });
-                runtime.OnUpdate += (delta) =>
+                engine.OnUpdate += (delta) =>
                 {
                     
                     scene.Update(delta);
@@ -234,7 +234,7 @@ public class SSceneTestModule : IModule
                 }
                 else
                 {
-                    SRuntime.Get().RequestExit();
+                    SEngine.Get().RequestExit();
                 }
             };
             
@@ -261,7 +261,7 @@ public class SSceneTestModule : IModule
         
         Task.Factory.StartNew(() =>
         {
-            while (SRuntime.Get().IsRunning)
+            while (SEngine.Get().IsRunning)
             {
                 SGraphicsModule.Get().DrawWindows();
             }
@@ -275,7 +275,7 @@ public class SSceneTestModule : IModule
         });
     }
 
-    public void Stop(SRuntime runtime)
+    public void Stop(SEngine engine)
     {
     }
 }

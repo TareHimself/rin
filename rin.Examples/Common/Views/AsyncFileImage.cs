@@ -1,13 +1,13 @@
 ﻿using System.Numerics;
-using rin.Framework.Core;
-using rin.Framework.Core.Extensions;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Views;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Events;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Graphics.Quads;
+using Rin.Engine.Core;
+using Rin.Engine.Core.Extensions;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Events;
+using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.Quads;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace rin.Examples.Common.Views;
@@ -65,7 +65,7 @@ public class AsyncFileImage : CoverImage
         
         if (TextureId == -1)
         {
-            var opacity = (float)Math.Abs(Math.Sin(SRuntime.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
+            var opacity = (float)Math.Abs(Math.Sin(SEngine.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
             commands.AddRect(transform, GetContentSize(),
                 color: new Vector4(new Vector3(0.8f),opacity),BorderRadius);
         }

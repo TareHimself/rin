@@ -1,8 +1,8 @@
-﻿// using rin.Framework.Core;
-// using rin.Framework.Graphics;
-// using rin.Framework.Graphics.Material;
-// using rin.Framework.Views;
-// using rin.Framework.Views.Graphics;
+﻿// using Rin.Engine.Core;
+// using Rin.Engine.Graphics;
+// using Rin.Engine.Graphics.Material;
+// using Rin.Engine.Views;
+// using Rin.Engine.Views.Graphics;
 //
 // namespace ViewsTest;
 //

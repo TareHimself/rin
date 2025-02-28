@@ -1,4 +1,4 @@
-﻿namespace rin.Editor.Scene.Graphics;
+﻿namespace Rin.Editor.Scene.Graphics;
 
 public enum LightType : int
 {

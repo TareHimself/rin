@@ -1,8 +1,8 @@
-﻿using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
+﻿using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
 using TerraFX.Interop.Vulkan;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 
 public class SceneFrame(Frame frame,Mat4 view,Mat4 projection,IDeviceBufferView sceneInfo)
 {

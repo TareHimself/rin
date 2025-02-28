@@ -1,4 +1,4 @@
-﻿namespace rin.Editor.Scene.Components;
+﻿namespace Rin.Editor.Scene.Components;
 
 public class CameraComponent : SceneComponent
 {

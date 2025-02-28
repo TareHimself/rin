@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
-using rin.Framework.Core.Animation;
-using rin.Framework.Views.Animation;
-using rin.Framework.Views.Composite;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Events;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Layouts;
+using Rin.Engine.Core.Animation;
+using Rin.Engine.Views.Animation;
+using Rin.Engine.Views.Composite;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Events;
+using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Layouts;
 
 namespace rin.Examples.ViewsTest.Panels;
 
@@ -32,7 +32,7 @@ public class HoverToReveal : Panel
         protected override void OnCursorEnter(CursorMoveEvent e)
         {
             base.OnCursorEnter(e);
-            var duration = 0.1;
+            var duration = 0.1f;
             this.StopAll()
                 .Transition(_blur.Strength, 0.0f, (c) => _blur.Strength = c, duration)
                 .WidthTo(400);
@@ -41,7 +41,7 @@ public class HoverToReveal : Panel
         protected override void OnCursorLeave()
         {
             base.OnCursorLeave();
-            var duration = 0.1;
+            var duration = 0.1f;
             this.StopAll()
                 .Transition(_blur.Strength,5.0f, (c) => _blur.Strength = c, duration)
                 .WidthTo(110);

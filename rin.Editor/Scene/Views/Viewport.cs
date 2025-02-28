@@ -1,22 +1,22 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.Descriptors;
-using rin.Framework.Graphics.FrameGraph;
-using rin.Framework.Graphics.Shaders;
-using rin.Framework.Graphics.Windows;
-using rin.Editor.Scene.Components;
-using rin.Editor.Scene.Graphics;
-using rin.Framework.Views;
-using rin.Framework.Views.Content;
-using rin.Framework.Views.Events;
-using rin.Framework.Views.Graphics;
-using rin.Framework.Views.Graphics.Commands;
+using Rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Graphics;
+using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Descriptors;
+using Rin.Engine.Graphics.FrameGraph;
+using Rin.Engine.Graphics.Shaders;
+using Rin.Engine.Graphics.Windows;
+using Rin.Engine.Views;
+using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Events;
+using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.Commands;
 using TerraFX.Interop.Vulkan;
 
-namespace rin.Editor.Scene.Views;
+namespace Rin.Editor.Scene.Views;
 
 public enum ViewportChannel : int
 {

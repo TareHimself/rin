@@ -1,8 +1,8 @@
-﻿using rin.Framework.Core.Math;
-using rin.Framework.Graphics;
-using rin.Framework.Graphics.Shaders;
+﻿using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Shaders;
 
-namespace rin.Editor.Scene.Graphics;
+namespace Rin.Editor.Scene.Graphics;
 
 /// <summary>
 /// Base class for all draws involving <see cref="DeviceGeometry"/>
