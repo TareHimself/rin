@@ -88,9 +88,8 @@ public class AsyncFileImage : CoverImage
     }
 
 
-    protected override void OnDispose(bool isManual)
+    public override void Dispose()
     {
         _token.Cancel();
-        base.OnDispose(isManual);
     }
 }
