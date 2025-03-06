@@ -60,9 +60,13 @@ public class Image : ContentView
 
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
-        if (TextureId != -1)
-            commands.AddTexture(TextureId, transform, GetContentSize(), Tint, null,
-                BorderRadius);
+        if (TextureId != -1) DrawImage(TextureId, transform, commands);
+    }
+    
+    protected virtual void DrawImage(int textureId, Mat3 transform, PassCommands commands)
+    {
+        commands.AddTexture(textureId, transform, GetContentSize(), Tint, null,
+            BorderRadius);
     }
 
     protected override Vector2 LayoutContent(Vector2 availableSpace)

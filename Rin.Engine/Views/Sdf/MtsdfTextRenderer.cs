@@ -69,7 +69,7 @@ public class MtsdfTextRenderer : IDisposable, IGlyphRenderer
     }
 
     // Renders into a 4 channel image
-    public Result? Generate(float angleThreshold, float pixelRange)
+    public SdfResult? Generate(float angleThreshold, float pixelRange)
     {
         return _gen.GenerateMtsdf(angleThreshold, pixelRange);
     }

@@ -1,4 +1,5 @@
-﻿using Rin.Engine.Core;
+﻿using Rin.Assets;
+using Rin.Engine.Core;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Views;
 using SixLabors.ImageSharp;
@@ -9,9 +10,9 @@ namespace Rin.Engine.Graphics;
 
 public class TextureManager : ITextureManager
 {
-    private static readonly uint MAX_TEXTURES = 2048;
+    private const uint MaxTextures = 2048;
 
-    private readonly DescriptorAllocator _allocator = new(MAX_TEXTURES, [
+    private readonly DescriptorAllocator _allocator = new(MaxTextures, [
         new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1.0f)
     ], VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
@@ -56,11 +57,11 @@ public class TextureManager : ITextureManager
                 0,
                 VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 VkShaderStageFlags.VK_SHADER_STAGE_ALL,
-                MAX_TEXTURES,
+                MaxTextures,
                 flags
             ).Build();
 
-            _descriptorSet = _allocator.Allocate(layout, MAX_TEXTURES);
+            _descriptorSet = _allocator.Allocate(layout, MaxTextures);
         }
 
         _textures.Add(new Texture());
@@ -163,7 +164,7 @@ public class TextureManager : ITextureManager
 
     public uint GetMaxTextures()
     {
-        return MAX_TEXTURES;
+        return MaxTextures;
     }
 
     public uint GetTexturesCount()
@@ -176,15 +177,14 @@ public class TextureManager : ITextureManager
         _allocator.Dispose();
         foreach (var boundTexture in _textures)
             if (boundTexture.Valid)
-                boundTexture.Image!.Dispose();
+                boundTexture.Image?.Dispose();
 
         _textures.Clear();
     }
 
-    public async Task LoadDefaultTexture()
+    private async Task LoadDefaultTexture()
     {
-        var defaultTexturePath = Path.Join(SEngine.FrameworkAssetsDirectory, "textures", "default.png");
-        using var imgData = await Image.LoadAsync<Rgba32>(defaultTexturePath);
+        using var imgData = await Image.LoadAsync<Rgba32>(RinAssets.FileSystem.OpenRead("Textures.default.png"));
         using var buffer = imgData.ToBuffer();
         var tex = _textures[0];
         tex.Image = await SGraphicsModule.Get().CreateImage(
@@ -207,7 +207,7 @@ public class TextureManager : ITextureManager
             Tiling = ImageTiling.Repeat
         };
 
-        for (var i = 0; i < MAX_TEXTURES; i++)
+        for (var i = 0; i < MaxTextures; i++)
         {
             var info = i < _textures.Count ? _textures[i] : null;
 

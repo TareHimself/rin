@@ -13,14 +13,14 @@ namespace rin.Examples.Common.Views;
 
 public class AsyncWebImage : CoverImage
 {
-    public event Action<bool> OnLoaded;
+    public event Action<bool>? OnLoaded;
     
     public AsyncWebImage(string uri) : base()
     {
         LoadFile(uri).ConfigureAwait(false);
     }
 
-    protected async Task LoadFile(string uri)
+    private async Task LoadFile(string uri)
     {
         try
         {

@@ -11,11 +11,41 @@ namespace Rin.Engine.Views;
 [Module(typeof(SGraphicsModule))]
 public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
 {
+
+    class TestExternalFontCache : IExternalFontCache
+    {
+        public TestExternalFontCache()
+        {
+            Directory.CreateDirectory(Path.Join(SEngine.Directory, ".gen", "mtsdf"));
+        }
+        
+        public Stream? Get(int id)
+        {
+            return null;
+            var filePath = Path.Join(SEngine.Directory,".gen","mtsdf", $"{id}.mtsdf");
+            if (!File.Exists(filePath)) return null;
+            return File.OpenRead(filePath);
+        }
+
+        public void Set(int id, Stream data)
+        {
+            // var filePath = Path.Join(SEngine.Directory,".gen","mtsdf", $"{id}.mtsdf");
+            // Task.Run(() =>
+            // {
+            //     if (File.Exists(filePath)) File.Delete(filePath);
+            //     
+            //     var stream = File.Create(filePath);
+            //     data.CopyTo(stream);
+            // });
+        }
+
+        public bool SupportsSet => true;
+    }
     public static readonly string
         ShadersDirectory = Path.Join(SGraphicsModule.ShadersDirectory, "views");
 
     private readonly Dictionary<Type, IBatcher> _batchRenderers = [];
-    private readonly IFontManager _fontManager = new DefaultFontManager();
+    private readonly IFontManager _fontManager = new DefaultFontManager(new TestExternalFontCache());
     private readonly Dictionary<string, Task<MtsdfFont?>> _mtsdfTasks = new();
     private readonly Dictionary<IWindowRenderer, WindowSurface> _windowSurfaces = new();
     private SGraphicsModule? _graphicsSubsystem;

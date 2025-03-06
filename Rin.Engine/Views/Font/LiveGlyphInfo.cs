@@ -2,14 +2,14 @@
 
 namespace Rin.Engine.Views.Font;
 
-public struct GlyphInfo : IEquatable<GlyphInfo>
+public struct LiveGlyphInfo : IEquatable<LiveGlyphInfo>
 {
     public required int AtlasId;
-    public required GlyphState State;
+    public required LiveGlyphState State;
     public required Vector2 Size;
     public required Vector4 Coordinate;
 
-    public bool Equals(GlyphInfo other)
+    public bool Equals(LiveGlyphInfo other)
     {
         return AtlasId == other.AtlasId && State == other.State && Size.Equals(other.Size) &&
                Coordinate.Equals(other.Coordinate);
@@ -17,7 +17,7 @@ public struct GlyphInfo : IEquatable<GlyphInfo>
 
     public override bool Equals(object? obj)
     {
-        return obj is GlyphInfo other && Equals(other);
+        return obj is LiveGlyphInfo other && Equals(other);
     }
 
     public override int GetHashCode()

@@ -6,6 +6,10 @@ namespace Rin.Engine.Core;
 
 public sealed class SEngine : Disposable
 {
+    
+    public static readonly string
+        Directory = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "";
+    
     public static readonly string
         AssetsDirectory = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "", "assets");
 

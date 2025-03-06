@@ -141,7 +141,7 @@ public class Viewport : ContentView
     //     TargetScene.Drawer?.Resize(new Vector2<uint>((uint)Math.Ceiling(size.Width),(uint)Math.Ceiling(size.Height)));
     // }
 
-    public override void OnCursorUp(CursorUpEvent e)
+    public override void OnCursorUp(SurfaceCursorUpEvent e)
     {
         if (_captureMouse)
         {
@@ -153,7 +153,7 @@ public class Viewport : ContentView
         base.OnCursorUp(e);
     }
 
-    public override bool OnCursorDown(CursorDownEvent e)
+    public override bool OnCursorDown(SurfaceCursorDownEvent e)
     {
         if (e.Button == CursorButton.One)
         {
@@ -177,7 +177,7 @@ public class Viewport : ContentView
         return false;
     }
 
-    protected override bool OnCursorMove(CursorMoveEvent e)
+    protected override bool OnCursorMove(SurfaceCursorMoveEvent e)
     {
         if (_captureMouse && !_ignoreNextMove)
         {

@@ -258,8 +258,57 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     {
     }
 
+    public virtual void HandleEvent(SurfaceEvent e, Mat3 transform)
+    {
+        switch (e)
+        {
+            case SurfaceCursorEnterEvent ev:
+                if (IsSelfHitTestable)
+                {
+                    ev.Entered.Add(this);
+                    if (!IsHovered)
+                    {
+                        IsHovered = true;
+                        OnCursorEnter(ev);
+                    }
+                }
+                break;
+            case SurfaceCursorDownEvent ev:
+                if (IsSelfHitTestable && OnCursorDown(ev))
+                {
+                    ev.Target = this;
+                }
+                break;
+            case SurfaceCursorUpEvent ev:
+                OnCursorUp(ev);
+                break;
+            case SurfaceCursorMoveEvent ev:
+                if (IsSelfHitTestable)
+                {
+                    ev.Over.Add(this);  
+                    
+                    if (!IsHovered)
+                    {
+                        IsHovered = true;
+                        OnCursorEnter(ev);
+                    }
+                    
+                    if (OnCursorMove(ev))
+                    {
+                        ev.Handler = this;
+                    }
+                }
+                break;
+            case SurfaceScrollEvent ev:
+                if (IsSelfHitTestable && OnScroll(ev))
+                {
+                    ev.Handler = this;
+                }
+                break;
+        }
+    }
 
-    public virtual bool NotifyCursorDown(CursorDownEvent e, Mat3 transform)
+    public virtual bool NotifyCursorDown(SurfaceCursorDownEvent e, Mat3 transform)
     {
         if (IsSelfHitTestable)
             if (OnCursorDown(e))
@@ -271,13 +320,13 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         return false;
     }
 
-    public virtual void NotifyCursorUp(CursorUpEvent e)
+    public virtual void NotifyCursorUp(SurfaceCursorUpEvent e)
     {
         //UnBindCursorUp();
         OnCursorUp(e);
     }
 
-    public virtual void NotifyCursorEnter(CursorMoveEvent e, Mat3 transform, List<View> items)
+    public virtual void NotifyCursorEnter(SurfaceCursorMoveEvent e, Mat3 transform, List<View> items)
     {
         if (!IsSelfHitTestable) return;
         items.Add(this);
@@ -287,33 +336,33 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         OnCursorEnter(e);
     }
 
-    public virtual bool NotifyCursorMove(CursorMoveEvent e, Mat3 transform)
+    public virtual bool NotifyCursorMove(SurfaceCursorMoveEvent e, Mat3 transform)
     {
         if (IsSelfHitTestable && OnCursorMove(e)) return true;
 
         return false;
     }
 
-    public virtual bool NotifyScroll(ScrollEvent e, Mat3 transform)
+    public virtual bool NotifyScroll(SurfaceScrollEvent e, Mat3 transform)
     {
         return IsSelfHitTestable && OnScroll(e);
     }
 
-    public virtual bool OnCursorDown(CursorDownEvent e)
+    public virtual bool OnCursorDown(SurfaceCursorDownEvent e)
     {
         return false;
     }
 
-    public virtual void OnCursorUp(CursorUpEvent e)
+    public virtual void OnCursorUp(SurfaceCursorUpEvent e)
     {
     }
 
-    protected virtual bool OnCursorMove(CursorMoveEvent e)
+    protected virtual bool OnCursorMove(SurfaceCursorMoveEvent e)
     {
         return false;
     }
 
-    protected virtual void OnCursorEnter(CursorMoveEvent e)
+    protected virtual void OnCursorEnter(SurfaceCursorMoveEvent e)
     {
     }
 
@@ -329,16 +378,16 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     {
     }
 
-    protected virtual bool OnScroll(ScrollEvent e)
+    protected virtual bool OnScroll(SurfaceScrollEvent e)
     {
         return false;
     }
 
-    public virtual void OnCharacter(CharacterEvent e)
+    public virtual void OnCharacter(SurfaceCharacterEvent e)
     {
     }
 
-    public virtual void OnKeyboard(KeyboardEvent e)
+    public virtual void OnKeyboard(SurfaceKeyboardEvent e)
     {
     }
 
@@ -482,12 +531,22 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         };
     }
 
-    public bool PointWithin(Mat3 transform, Vector2 point)
+    public bool PointWithin(Mat3 transform, Vector2 point,bool useInverse = false)
     {
         var tl = new Vector2(0.0f);
         var br = tl + Size;
         var tr = new Vector2(br.X, tl.Y);
         var bl = new Vector2(tl.X, br.Y);
+
+        if (useInverse)
+        {
+            var transformedPoint = point.ApplyTransformation(transform.Inverse());
+            
+            return transformedPoint.Within(Vector2.Zero, Size);
+        }
+        // var transformedPoint = point.ApplyTransformation(transform.Inverse());
+        //
+        // return transformedPoint.Within(Vector2.Zero, Size);
 
         tl = tl.ApplyTransformation(transform);
         br = br.ApplyTransformation(transform);

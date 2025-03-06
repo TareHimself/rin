@@ -1,61 +1,61 @@
 ﻿using System.Collections.Concurrent;
 using System.Numerics;
+using System.Security.Cryptography;
 using Rin.Engine.Core;
 using Rin.Engine.Graphics;
 using Rin.Engine.Views.Sdf;
 using Rin.Engine.Core.Extensions;
 using SixLabors.Fonts;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace Rin.Engine.Views.Font;
 
-public class DefaultFontManager : IFontManager
+public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFontManager
 {
-    // public struct OfflineCacheKey : IEquatable<OfflineCacheKey>
-    // {
-    //     public required char Character;
-    //     public required FontStyle Style;
-    //     public required float RenderedAtSize;
-    //     public required string FontFamilyName;
-    //
-    //     public bool Equals(OfflineCacheKey other)
-    //     {
-    //         return Character == other.Character && Style == other.Style && RenderedAtSize.Equals(other.RenderedAtSize) && FontFamilyName == other.FontFamilyName;
-    //     }
-    //
-    //     public override bool Equals(object? obj)
-    //     {
-    //         return obj is OfflineCacheKey other && Equals(other);
-    //     }
-    //
-    //     public override int GetHashCode()
-    //     {
-    //         return HashCode.Combine(Character, (int)Style, RenderedAtSize, FontFamilyName);
-    //     }
-    // }
-    //
-    // public struct OfflineAtlas
-    // {
-    //     public 
-    // }
-
-    //public ICache<OfflineCacheKey, Stream>? Cache { get; set; } = null;
-    
-    
+    private IExternalFontCache? _externalCache = externalCache;
     private const float RenderSize = 32.0f;
-    private readonly ConcurrentDictionary<CacheKey, GlyphInfo> _atlases = [];
+    private readonly ConcurrentDictionary<CacheKey, LiveGlyphInfo> _atlases = [];
     private readonly CancellationTokenSource _cancellationSource = new();
     private readonly BackgroundTaskQueue _backgroundTaskQueue = new();
 
     private readonly FontCollection _collection = new();
 
-    private readonly GlyphInfo _defaultGlyph = new()
+    private readonly LiveGlyphInfo _defaultLiveGlyph = new()
     {
         AtlasId = -1,
-        State = GlyphState.Invalid,
+        State = LiveGlyphState.Invalid,
         Size = Vector2.Zero,
         Coordinate = Vector4.Zero
     };
 
+    private SdfResult? GenerateGlyph(char character,SixLabors.Fonts.Font font,CacheKey cacheKey)
+    {
+        if (_externalCache?.Get(cacheKey.GetHashCode()) is {} data)
+        {
+            var result = new SdfResult();
+            data.Read(result);
+            data.Dispose();
+            return result;
+        }
+
+        {
+            var options = new TextOptions(font);
+            using var renderer = new MtsdfTextRenderer();
+            TextRenderer.RenderTextTo(renderer, [character], options);
+            var result = renderer.Generate(3f, GetPixelRange());
+            
+            if (_externalCache is { SupportsSet: true } && result != null)
+            {
+                var stream = new MemoryStream();
+                stream.Write(result);
+                _externalCache.Set(cacheKey.GetHashCode(), stream);
+            }
+
+            return result;
+        }
+    }
+    
     public Task Prepare(FontFamily fontFamily, ReadOnlySpan<char> characters, FontStyle style = FontStyle.Regular)
     {
         var font = fontFamily.CreateFont(RenderSize, style);
@@ -68,9 +68,9 @@ public class DefaultFontManager : IFontManager
         }
 
         if (toGenerate.Empty()) return Task.CompletedTask;
-        var pending = _defaultGlyph.Mutate(c =>
+        var pending = _defaultLiveGlyph.Mutate(c =>
         {
-            c.State = GlyphState.Pending;
+            c.State = LiveGlyphState.Pending;
             return c;
         });
         foreach (var (_, key) in toGenerate) _atlases.AddOrUpdate(key, pending, (k, i) => pending);
@@ -80,14 +80,8 @@ public class DefaultFontManager : IFontManager
         {
             try
             {
-                
-                var options = new TextOptions(font);
-                var renderers = toGenerate.Select(c => new MtsdfTextRenderer()).ToArray();
-                for (var i = 0; i < toGenerate.Count; i++)
-                    TextRenderer.RenderTextTo(renderers[i], [toGenerate[i].First], options);
-
-                var results = (IEnumerable<Pair<Result, int>>)renderers
-                    .Select((c, idx) => new Pair<Result?, int>(c.Generate(3f, GetPixelRange()), idx))
+                var results = toGenerate
+                    .Select((c, idx) => new Pair<SdfResult?, int>(GenerateGlyph(c.First,font,c.Second), idx))
                     .Where(c => c.First != null);
                 var textureManager = SGraphicsModule.Get().GetTextureManager();
                 //var textureManager = SGraphicsModule.Get().GetTextureManager();
@@ -96,10 +90,10 @@ public class DefaultFontManager : IFontManager
                     var (result, index) = c;
                     var data = result.Data;
                     var size = new Vector2((float)result.Width, (float)result.Height);
-                    var glyph = new GlyphInfo
+                    var glyph = new LiveGlyphInfo
                     {
                         AtlasId = 0,
-                        State = GlyphState.Ready,
+                        State = LiveGlyphState.Ready,
                         Size = size,
                         Coordinate = new Vector4(0.0f, 0.0f, size.X / result.PixelWidth, size.Y / result.PixelHeight)
                     };
@@ -110,7 +104,7 @@ public class DefaultFontManager : IFontManager
                         {
                             glyph.AtlasId = id;
                             data.Dispose();
-                            return new Pair<int, GlyphInfo>(index, glyph);
+                            return new Pair<int, LiveGlyphInfo>(index, glyph);
                         });
                 }).WaitAll();
 
@@ -147,10 +141,10 @@ public class DefaultFontManager : IFontManager
         _collection.Add(fileStream);
     }
 
-    public GlyphInfo GetGlyph(SixLabors.Fonts.Font font, char character)
+    public LiveGlyphInfo GetGlyph(SixLabors.Fonts.Font font, char character)
     {
         var key = new CacheKey(font.IsBold, font.IsItalic, character, font.Family.Name);
-        return _atlases.GetValueOrDefault(key, _defaultGlyph);
+        return _atlases.GetValueOrDefault(key, _defaultLiveGlyph);
     }
 
     public bool TryGetFont(string name, out FontFamily family)

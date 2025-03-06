@@ -1,8 +1,8 @@
-﻿using System.Reflection;
+﻿using Rin.FileSystem;
 
-namespace rin.engine.asset;
+namespace Rin.Assets;
 
 public static class RinAssets
 {
-    public static Assembly AssetsAssembly => typeof(RinAssets).Assembly;
+    public static ResourcesFileSystem FileSystem { get; } = new ResourcesFileSystem(typeof(RinAssets).Assembly);
 }

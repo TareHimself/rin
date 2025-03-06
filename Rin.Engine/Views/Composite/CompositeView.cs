@@ -20,7 +20,71 @@ public abstract class CompositeView : View
         return ArrangeContent(availableSpace);
     }
 
-    public override bool NotifyCursorDown(CursorDownEvent e, Mat3 transform)
+    public override void HandleEvent(SurfaceEvent e, Mat3 transform)
+    {
+        var withPadding = transform.Translate(new Vector2(Padding.Left, Padding.Top));
+        
+        switch (e)
+        {
+            case SurfaceCursorDownEvent ev:
+                if (IsChildrenHitTestable)
+                {
+                    var candidates = GetHitTestableSlots()
+                        .Select(c => new Pair<ISlot, Mat3>(c, ComputeSlotTransform(c, withPadding)))
+                        .Where(c => c.First.Child.PointWithin(c.Second,ev.Position))
+                        .ToArray();
+                    
+                    foreach (var (slot, slotTransform) in candidates.AsReversed())
+                    {
+                        slot.Child.HandleEvent(e,slotTransform);
+                        if (ev.Target != null)
+                        {
+                            return;
+                        }
+                    }
+                }
+                break;
+            case SurfaceCursorMoveEvent ev:
+                if (IsChildrenHitTestable)
+                {
+                    var candidates = GetHitTestableSlots()
+                        .Select(c => new Pair<ISlot, Mat3>(c, ComputeSlotTransform(c, withPadding)))
+                        .Where(c => c.First.Child.PointWithin(c.Second,ev.Position))
+                        .ToArray();
+                    
+                    foreach (var (slot, slotTransform) in candidates)
+                    {
+                        slot.Child.HandleEvent(e,slotTransform);
+                        if (ev.Handler != null)
+                        {
+                            return;
+                        }
+                    }
+                }
+                break;
+            case SurfaceScrollEvent ev:
+                if (IsChildrenHitTestable)
+                {
+                    var candidates = GetHitTestableSlots()
+                        .Select(c => new Pair<ISlot, Mat3>(c, ComputeSlotTransform(c, withPadding)))
+                        .Where(c => c.First.Child.PointWithin(c.Second,ev.Position))
+                        .ToArray();
+                    
+                    foreach (var (slot, slotTransform) in candidates)
+                    {
+                        slot.Child.HandleEvent(e,slotTransform);
+                        if (ev.Handler != null)
+                        {
+                            return;
+                        }
+                    }
+                }
+                break;
+        }
+        base.HandleEvent(e,transform);
+    }
+
+    public override bool NotifyCursorDown(SurfaceCursorDownEvent e, Mat3 transform)
     {
         if (IsChildrenHitTestable)
         {
@@ -31,7 +95,7 @@ public abstract class CompositeView : View
         return base.NotifyCursorDown(e, transform);
     }
 
-    public override void NotifyCursorEnter(CursorMoveEvent e, Mat3 transform, List<View> items)
+    public override void NotifyCursorEnter(SurfaceCursorMoveEvent e, Mat3 transform, List<View> items)
     {
         if (IsChildrenHitTestable)
             ChildrenNotifyCursorEnter(e, transform.Translate(new Vector2(Padding.Left, Padding.Top)), items);
@@ -39,7 +103,7 @@ public abstract class CompositeView : View
         base.NotifyCursorEnter(e, transform, items);
     }
 
-    public override bool NotifyCursorMove(CursorMoveEvent e, Mat3 transform)
+    public override bool NotifyCursorMove(SurfaceCursorMoveEvent e, Mat3 transform)
     {
         if (IsChildrenHitTestable &&
             ChildrenNotifyCursorMove(e, transform.Translate(new Vector2(Padding.Left, Padding.Top))))
@@ -48,7 +112,7 @@ public abstract class CompositeView : View
         return base.NotifyCursorMove(e, transform);
     }
 
-    public override bool NotifyScroll(ScrollEvent e, Mat3 transform)
+    public override bool NotifyScroll(SurfaceScrollEvent e, Mat3 transform)
     {
         if (IsChildrenHitTestable &&
             ChildrenNotifyScroll(e, transform.Translate(new Vector2(Padding.Left, Padding.Top)))) return true;
@@ -56,7 +120,7 @@ public abstract class CompositeView : View
         return base.NotifyScroll(e, transform);
     }
 
-    protected virtual bool ChildrenNotifyCursorDown(CursorDownEvent e, Mat3 transform)
+    protected virtual bool ChildrenNotifyCursorDown(SurfaceCursorDownEvent e, Mat3 transform)
     {
         foreach (var slot in GetHitTestableSlots().AsReversed())
         {
@@ -69,7 +133,7 @@ public abstract class CompositeView : View
         return false;
     }
 
-    protected virtual void ChildrenNotifyCursorEnter(CursorMoveEvent e, Mat3 transform, List<View> items)
+    protected virtual void ChildrenNotifyCursorEnter(SurfaceCursorMoveEvent e, Mat3 transform, List<View> items)
     {
         foreach (var slot in GetHitTestableSlots())
         {
@@ -79,7 +143,7 @@ public abstract class CompositeView : View
         }
     }
 
-    protected virtual bool ChildrenNotifyCursorMove(CursorMoveEvent e, Mat3 transform)
+    protected virtual bool ChildrenNotifyCursorMove(SurfaceCursorMoveEvent e, Mat3 transform)
     {
         foreach (var slot in GetHitTestableSlots())
         {
@@ -92,7 +156,7 @@ public abstract class CompositeView : View
         return false;
     }
 
-    protected virtual bool ChildrenNotifyScroll(ScrollEvent e, Mat3 transform)
+    protected virtual bool ChildrenNotifyScroll(SurfaceScrollEvent e, Mat3 transform)
     {
         foreach (var slot in GetHitTestableSlots())
         {

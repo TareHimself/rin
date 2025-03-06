@@ -3,7 +3,7 @@
 /// <summary>
 ///     The current state of a glypj
 /// </summary>
-public enum GlyphState
+public enum LiveGlyphState
 {
     /// <summary>
     ///     The glyph has not been generated and is not pending

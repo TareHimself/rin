@@ -217,17 +217,17 @@ public class TextBox : ContentView
                 var range = _fontManager.GetPixelRange();
                 var glyph = _fontManager.GetGlyph(CurrentFont, bound.Character);
 
-                if (glyph.State == GlyphState.Invalid && bound.Character != ' ')
+                if (glyph.State == LiveGlyphState.Invalid && bound.Character != ' ')
                 {
                     _fontManager.Prepare(CurrentFont.Family, [bound.Character]);
                     hadAnyPending = true;
                 }
-                else if (glyph.State == GlyphState.Pending)
+                else if (glyph.State == LiveGlyphState.Pending)
                 {
                     hadAnyPending = true;
                 }
 
-                if (glyph.State != GlyphState.Ready) continue;
+                if (glyph.State != LiveGlyphState.Ready) continue;
 
                 var charOffset = new Vector2(bound.X, bound.Y);
 

@@ -17,11 +17,11 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
 
     [PublicAPI] public uint OutputImageId { get; private set; }
 
-    [PublicAPI] public IDeviceImage? OutputImage { get; set; }
+    [PublicAPI] public IGraphImage? OutputImage { get; set; }
 
     [PublicAPI] public uint DepthImageId { get; private set; }
 
-    [PublicAPI] public IDeviceImage? DepthImage { get; set; }
+    [PublicAPI] public IGraphImage? DepthImage { get; set; }
     
     [PublicAPI] public uint SceneBufferId { get; set; }
     
@@ -55,6 +55,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
+        var cmd = frame.GetCommandBuffer();
         var materialBuffer = MaterialBufferId > 0 ? graph.GetBuffer(MaterialBufferId) : null;
         var sceneBuffer = graph.GetBuffer(SceneBufferId);
         var lightsBuffer = LightsBufferId > 0 ? graph.GetBuffer(LightsBufferId) : null;
@@ -63,16 +64,11 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
 
         OutputImage = graph.GetImage(OutputImageId);
         DepthImage = graph.GetImage(DepthImageId);
-        context.ImageBarrier(OutputImage, ImageLayout.Undefined, ImageLayout.General)
+        cmd
+            .ImageBarrier(OutputImage,ImageLayout.General)
             .ClearColorImages(new Vector4(0.0f), ImageLayout.General, OutputImage)
-            .ImageBarrier(OutputImage, ImageLayout.General, ImageLayout.ColorAttachment);
-        //cmd.ImageBarrier(OutputImage, ImageLayout.Undefined,ImageLayout.ColorAttachment);
-        var colorAttachment = OutputImage.MakeColorAttachmentInfo(new Vector4(0.0f));
-        
-        var depthAttachment = DepthImage.MakeDepthAttachmentInfo();
-
-        context
-            .BeginRendering(_size.ToVkExtent(), [colorAttachment], depthAttachment)
+            .ImageBarrier(OutputImage,ImageLayout.General,ImageLayout.ColorAttachment)
+            .BeginRendering(_size.ToVkExtent(), [OutputImage.MakeColorAttachmentInfo(new Vector4(0.0f))], DepthImage.MakeDepthAttachmentInfo())
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
             .DisableStencilTest(false)
@@ -133,9 +129,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
             first.MeshMaterial.ColorPass.Execute(sceneFrame, view, infos);
         }
 
-        context.EndRendering();
-
-        context.ImageBarrier(OutputImage, ImageLayout.ColorAttachment, ImageLayout.ShaderReadOnly);
+        cmd.EndRendering();
     }
 
     public uint Id { get; set; }

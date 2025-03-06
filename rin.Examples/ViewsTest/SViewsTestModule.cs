@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Rin.Assets;
 using rin.Examples.Common.Views;
 using rin.Examples.ViewsTest.Panels;
 using Rin.Engine.Core;
@@ -197,7 +198,7 @@ public class SViewsTestModule : IModule
             _width = WidthOverride.GetValueOrDefault(0);
         }
 
-        protected override void OnCursorEnter(CursorMoveEvent e)
+        protected override void OnCursorEnter(SurfaceCursorMoveEvent e)
         {
             this.StopAll().WidthTo(HeightOverride.GetValueOrDefault(0), easingFunction: EasingFunctions.EaseInOutCubic);
         }
@@ -445,9 +446,9 @@ public class SViewsTestModule : IModule
 
     public void Start(SEngine engine)
     {
-        
-        
-        Common.Utils.RunSingleThreaded((delta) =>
+
+        var resources = RinAssets.FileSystem.GetAllResources().ToArray();
+        Common.Utils.RunMultithreaded((delta) =>
         {
             SGraphicsModule.Get().PollWindows();
             SViewsModule.Get().Update(delta);
@@ -473,7 +474,7 @@ public class SViewsTestModule : IModule
         //     {
         //         fontManager.Prepare(family, Enumerable.Range(33, 126 - 33).Select(c => (char)c).ToArray());
         //     }
-        // }
+        // }R
         SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin View Test", new CreateOptions()

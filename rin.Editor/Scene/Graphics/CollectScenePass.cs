@@ -24,7 +24,7 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
     [PublicAPI]
     public uint DepthImageId { get; private set; }
 
-    [PublicAPI] public IDeviceImage? DepthImage { get; set; }
+    [PublicAPI] public IGraphImage? DepthImage { get; set; }
 
     [PublicAPI]
     public Mat4 View { get; set; } = camera.GetSceneTransform().Mutate(c =>
@@ -79,28 +79,18 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
+        var cmd = frame.GetCommandBuffer();
         var sceneDataBuffer = graph.GetBuffer(DepthSceneBufferId);
         var materialDataBuffer = DepthMaterialBufferId > 0 ? graph.GetBuffer(DepthMaterialBufferId) : null;
         ulong materialDataBufferOffset = 0;
 
-        DepthImage = graph.GetImage(DepthImageId).AsImage();
+        DepthImage = graph.GetImage(DepthImageId);
 
-        context.ImageBarrier(DepthImage, ImageLayout.Undefined, ImageLayout.General, new ImageBarrierOptions()
-            {
-                SubresourceRange =
-                    SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
-            })
+        cmd
+            .ImageBarrier(DepthImage, ImageLayout.General)
             .ClearDepthImages(1.0f, ImageLayout.General, DepthImage)
-            .ImageBarrier(DepthImage, ImageLayout.General, ImageLayout.DepthAttachment, new ImageBarrierOptions()
-            {
-                SubresourceRange =
-                    SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT)
-            });
-
-        var depthAttachment = DepthImage.MakeDepthAttachmentInfo();
-
-        context.BeginRendering(Size.ToVkExtent(), [], depthAttachment);
-        context
+            .ImageBarrier(DepthImage, ImageLayout.DepthAttachment)
+            .BeginRendering(Size.ToVkExtent(), [], DepthImage.MakeDepthAttachmentInfo())
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
             .DisableStencilTest(false)
@@ -155,7 +145,7 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
             first.MeshMaterial.DepthPass.Execute(sceneFrame, view, infos);
         }
 
-        context.EndRendering();
+        cmd.EndRendering();
     }
 
     public uint Id { get; set; }

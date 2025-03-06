@@ -1,0 +1,123 @@
+import rin.utils;
+
+struct PushConstants
+{
+    float4x4 projection;
+    float3x3 transform;
+    float2 size;
+    float strength;
+    float radius;
+    float4 tint;
+};
+
+uniform Sampler2D SourceT;
+
+[[vk::push_constant]]
+uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
+
+[shader("vertex")]
+float4 vertex(int vertexId: SV_VertexID, out float2 oUV: UV)
+    : SV_Position
+{
+    float4 position;
+    generateRectVertex(push.size, push.projection, push.transform, vertexId, position, oUV);
+    return position;
+}
+
+float normpdf(in float x, in float sigma)
+{
+    return 0.39894 * exp(-0.5 * x * x / (sigma * sigma)) / sigma;
+}
+
+// [shader("fragment")]
+// float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
+//     : SV_Target
+// {
+    
+//     uint width, height, levels;
+
+//     SourceT.GetDimensions(0, width, height, levels);
+
+//     var imageSize = float2(width,height);
+
+//     const int mSize = 11;
+//     const int kSize = (mSize - 1) / 2;
+//     float kernel[mSize];
+//     float3 final_colour = float3(0.0);
+
+//     // create the 1-D kernel
+//     float sigma = push.sigma;
+//     float Z = 0.0;
+//     for (int j = 0; j <= kSize; ++j)
+//     {
+//         kernel[kSize + j] = kernel[kSize - j] = normpdf(float(j), sigma);
+//     }
+
+//     // get the normalization factor (as the gaussian has been clamped)
+//     for (int j = 0; j < mSize; ++j)
+//     {
+//         Z += kernel[j];
+//     }
+
+//     // read out the texels
+//     for (int i = -kSize; i <= kSize; ++i)
+//     {
+//         for (int j = -kSize; j <= kSize; ++j)
+//         {
+//             final_colour += kernel[kSize + j] * kernel[kSize + i] * SourceT.Sample((coordinate.xy + float2(float(i), float(j))) / imageSize).rgb;
+//         }
+//     }
+
+//     return float4(final_colour / (Z * Z), 1.0) * push.tint;
+// }
+
+// Gaussian function
+float gaussianWeight(float x, float sigma) {
+    return exp(-(x * x) / (2.0 * sigma * sigma)) / (sqrt(2.0 * 3.14159265359) * sigma);
+}
+
+float distanceFromZero(float x,float y){
+    return sqrt((x * x) + (y * y));
+}
+
+[shader("fragment")]
+float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
+    : SV_Target
+{
+
+    
+    uint width, height, levels;
+
+    SourceT.GetDimensions(0, width, height, levels);
+
+    var imageSize = float2(width, height);
+
+    var imageUV = coordinate / imageSize;
+
+    //return float4(imageUV,0.0f, 1.0);
+    float2 uvRadius = 1.0 / imageSize;
+    float4 color = 0;
+    float weightSum = 0;
+
+    float sigma = push.radius * 0.5 * push.strength;
+    int kernelRadius = int(push.radius);
+
+    // for (int i = -kernelRadius; i <= kernelRadius; i++) {
+    //     float weight = gaussianWeight(i, sigma);
+    //     color += SourceT.Sample(imageUV + float2(i * uvRadius.x, 0)).rgb * weight;
+    //     color += SourceT.Sample(imageUV + float2(0, i * uvRadius.y)).rgb * weight;
+    //     weightSum += 2.0 * weight;
+    // }
+
+    for (int x = -kernelRadius; x <= kernelRadius; x++) {
+        for (int y = -kernelRadius; y <= kernelRadius; y++) {
+            var dist = distanceFromZero(x,y);
+            var uv = float2(x * uvRadius.x,  y * uvRadius.y);
+            float weight = normpdf(dist,sigma);
+            color += SourceT.Sample(imageUV + uv) * weight;
+            weightSum += weight;
+        }
+    }
+
+    return color / weightSum;
+}

@@ -33,15 +33,11 @@ public static class Utils
         //         renderMutex.Set();
         //     }
         // },TaskCreationOptions.LongRunning);
-        var mainMutex = new ManualResetEvent(false);
-        var renderMutex = new ManualResetEvent(true);
-        
-        SEngine.Get().OnUpdate += (dt) =>
-        {
-            main(dt);
-            mainMutex.Set();
-        };
-        
+        var mainMutex = new AutoResetEvent(false);
+        var renderBegin = new AutoResetEvent(false);
+
+        int mains = 0;
+        int renders = 0;
         Task.Factory.StartNew(() =>
         {
             while (SEngine.Get().IsRunning)
@@ -50,6 +46,7 @@ public static class Utils
                 try
                 {
                     render();
+                    renders++;
                 }
                 catch (Exception e)
                 {
@@ -57,6 +54,13 @@ public static class Utils
                 }
             }
         },TaskCreationOptions.LongRunning);
+        
+        SEngine.Get().OnUpdate += (dt) =>
+        {
+            main(dt);
+            mains++;
+            mainMutex.Set();
+        };
     }
     
     public static void RunSingleThreaded(Action<double> main, Action render)

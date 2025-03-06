@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using Rin.Engine.Core;
@@ -59,7 +61,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     private VkQueue _transferQueue;
     private uint _transferQueueFamily;
     private int _maxEventsPerPeep = 64;
-
+    
     public void Start(SEngine engine)
     {
         //NativeMethods.InitGlfw();

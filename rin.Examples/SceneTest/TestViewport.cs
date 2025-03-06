@@ -39,7 +39,7 @@ public class TestViewport : Viewport
         SEngine.Get().OnUpdate -= OnUpdate;
     }
 
-    public override void OnKeyboard(KeyboardEvent e)
+    public override void OnKeyboard(SurfaceKeyboardEvent e)
     {
         base.OnKeyboard(e);
         if (e is { Key: InputKey.W or InputKey.A or InputKey.S or InputKey.D, State: InputState.Pressed or InputState.Released })

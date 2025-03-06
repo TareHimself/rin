@@ -42,7 +42,7 @@ public class FilePicker : Button
         _statusText.Content = "Select File's";
     }
 
-    protected override void OnCursorEnter(CursorMoveEvent e)
+    protected override void OnCursorEnter(SurfaceCursorMoveEvent e)
     {
         this
             .StopAll()

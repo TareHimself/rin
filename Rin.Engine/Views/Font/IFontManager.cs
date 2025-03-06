@@ -24,12 +24,12 @@ public interface IFontManager : IDisposable
     public void LoadFont(Stream fileStream);
 
     /// <summary>
-    ///     Returns the <see cref="GlyphInfo" /> Generated at the size it was generated at
+    ///     Returns the <see cref="LiveGlyphInfo" /> Generated at the size it was generated at
     /// </summary>
     /// <param name="font">The font</param>
     /// <param name="character">The character to get the glyph of</param>
     /// <returns></returns>
-    public GlyphInfo GetGlyph(SixLabors.Fonts.Font font, char character);
+    public LiveGlyphInfo GetGlyph(SixLabors.Fonts.Font font, char character);
 
     public bool TryGetFont(string name, out FontFamily family);
 

@@ -7,8 +7,8 @@ using Rin.Engine.Graphics.Windows.Events;
 using Rin.Engine.Views.Events;
 using TerraFX.Interop.Vulkan;
 using CharacterEvent = Rin.Engine.Graphics.Windows.Events.CharacterEvent;
+using CursorEvent = Rin.Engine.Graphics.Windows.Events.CursorEvent;
 using CursorMoveEvent = Rin.Engine.Graphics.Windows.Events.CursorMoveEvent;
-using Engine_Views_Events_ResizeEvent = Rin.Engine.Views.Events.ResizeEvent;
 using Events_CharacterEvent = Rin.Engine.Graphics.Windows.Events.CharacterEvent;
 using Events_CursorMoveEvent = Rin.Engine.Graphics.Windows.Events.CursorMoveEvent;
 using Events_ResizeEvent = Rin.Engine.Graphics.Windows.Events.ResizeEvent;
@@ -18,13 +18,7 @@ using Graphics_Windows_Events_CursorMoveEvent = Rin.Engine.Graphics.Windows.Even
 using Graphics_Windows_Events_ResizeEvent = Rin.Engine.Graphics.Windows.Events.ResizeEvent;
 using Graphics_Windows_Events_ScrollEvent = Rin.Engine.Graphics.Windows.Events.ScrollEvent;
 using ResizeEvent = Rin.Engine.Graphics.Windows.Events.ResizeEvent;
-using Rin_Engine_Views_Events_ResizeEvent = Rin.Engine.Views.Events.ResizeEvent;
-using Rrin_Engine_Views_Events_ResizeEvent = Rin.Engine.Views.Events.ResizeEvent;
 using ScrollEvent = Rin.Engine.Graphics.Windows.Events.ScrollEvent;
-using Views_Events_CharacterEvent = Rin.Engine.Views.Events.CharacterEvent;
-using Views_Events_CursorMoveEvent = Rin.Engine.Views.Events.CursorMoveEvent;
-using Views_Events_ResizeEvent = Rin.Engine.Views.Events.ResizeEvent;
-using Views_Events_ScrollEvent = Rin.Engine.Views.Events.ScrollEvent;
 using Windows_Events_CharacterEvent = Rin.Engine.Graphics.Windows.Events.CharacterEvent;
 using Windows_Events_CursorMoveEvent = Rin.Engine.Graphics.Windows.Events.CursorMoveEvent;
 using Windows_Events_ResizeEvent = Rin.Engine.Graphics.Windows.Events.ResizeEvent;
@@ -78,17 +72,17 @@ public class WindowSurface : Surface
     {
         _size = e.Size.Cast<int>();
         _minimized = _size.X == 0 || _size.Y == 0;
-        if (!_minimized) ReceiveResize(new Rin_Engine_Views_Events_ResizeEvent(this, _size.Clone()));
+        if (!_minimized) ReceiveResize(new SurfaceResizeEvent(this, _size.Clone()));
     }
 
     protected void OnKeyboard(KeyEvent e)
     {
-        ReceiveKeyboard(new KeyboardEvent(this, e.Key, e.State));
+        ReceiveKeyboard(new SurfaceKeyboardEvent(this, e.Key, e.State));
     }
 
     protected void OnCharacter(Graphics_Windows_Events_CharacterEvent e)
     {
-        ReceiveCharacter(new Events.CharacterEvent(this, e.Data, e.Modifiers));
+        ReceiveCharacter(new Events.SurfaceCharacterEvent(this, e.Data, e.Modifiers));
     }
 
     protected void OnMouseButton(CursorButtonEvent e)
@@ -96,10 +90,10 @@ public class WindowSurface : Surface
         switch (e.State)
         {
             case InputState.Released:
-                ReceiveCursorUp(new CursorUpEvent(this, e.Button, e.Position));
+                ReceiveCursorUp(new SurfaceCursorUpEvent(this, e.Button, e.Position));
                 break;
             case InputState.Pressed:
-                ReceiveCursorDown(new CursorDownEvent(this, e.Button, e.Position));
+                ReceiveCursorDown(new SurfaceCursorDownEvent(this, e.Button, e.Position));
                 break;
             case InputState.Repeat:
                 break;
@@ -110,17 +104,17 @@ public class WindowSurface : Surface
 
     protected void OnMouseMove(Graphics_Windows_Events_CursorMoveEvent e)
     {
-        ReceiveCursorMove(new Events.CursorMoveEvent(this, e.Position));
+        ReceiveCursorMove(new Events.SurfaceCursorMoveEvent(this, e.Position));
     }
 
     protected void OnScroll(Graphics_Windows_Events_ScrollEvent e)
     {
-        ReceiveScroll(new Events.ScrollEvent(this, e.Position, e.Delta));
+        ReceiveScroll(new Events.SurfaceScrollEvent(this, e.Position, e.Delta));
     }
     
     protected void OnCursorEnter(CursorEvent e)
     {
-        ReceiveCursorEnter(new Events.CursorMoveEvent(this,e.Position));
+        ReceiveCursorEnter(new Events.SurfaceCursorMoveEvent(this,e.Position));
     }
     
     protected void OnCursorLeave(WindowEvent e)

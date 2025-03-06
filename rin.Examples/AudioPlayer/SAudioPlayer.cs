@@ -22,7 +22,7 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
 
     public void Start(SEngine engine)
     {
-        Common.Utils.RunSingleThreaded((delta) =>
+        Common.Utils.RunMultithreaded((delta) =>
         {
             SGraphicsModule.Get().PollWindows();
             SViewsModule.Get().Update(delta);

@@ -53,45 +53,31 @@ public class Context : IDisposable
         return this;
     }
 
-    public Result? GenerateMsdf(float angleThreshold, float pixelRange)
+    public SdfResult? GenerateMsdf(float angleThreshold, float pixelRange)
     {
-        Result? result = null;
+        SdfResult? result = null;
 
         Native.Sdf.ContextGenerateMsdf(_context, angleThreshold, pixelRange,
             (data, pixelWidth, pixelHeight, count, width, height) =>
             {
                 var buffer = new NativeBuffer<byte>((int)count);
                 buffer.Write(data, count);
-                result = new Result(buffer)
-                {
-                    PixelWidth = (int)pixelWidth,
-                    PixelHeight = (int)pixelHeight,
-                    Width = width,
-                    Height = height,
-                    Channels = 3
-                };
+                result = new SdfResult(buffer,3,width,height,(int)pixelWidth,(int)pixelHeight);
             });
 
         return result;
     }
 
-    public Result? GenerateMtsdf(float angleThreshold, float pixelRange)
+    public SdfResult? GenerateMtsdf(float angleThreshold, float pixelRange)
     {
-        Result? result = null;
+        SdfResult? result = null;
 
         Native.Sdf.ContextGenerateMtsdf(_context, angleThreshold, pixelRange,
             (data, pixelWidth, pixelHeight, count, width, height) =>
             {
                 var buffer = new NativeBuffer<byte>((int)count);
                 buffer.Write(data, count);
-                result = new Result(buffer)
-                {
-                    PixelWidth = (int)pixelWidth,
-                    PixelHeight = (int)pixelHeight,
-                    Width = width,
-                    Height = height,
-                    Channels = 4
-                };
+                result = new SdfResult(buffer,4,width,height,(int)pixelWidth,(int)pixelHeight);
             });
 
         return result;

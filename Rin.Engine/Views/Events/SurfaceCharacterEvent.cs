@@ -3,7 +3,7 @@ using Rin.Engine.Views.Graphics;
 
 namespace Rin.Engine.Views.Events;
 
-public class CharacterEvent(Surface surface, char character, InputModifier mods) : Event(surface)
+public class SurfaceCharacterEvent(Surface surface, char character, InputModifier mods) : SurfaceEvent(surface)
 {
     public char Character = character;
     public InputModifier Mods = mods;
