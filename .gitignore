@@ -16,7 +16,6 @@ compile_commands.json
 *.bmp
 __pycache__
 gen/*.png
-*.ttf
 *.vs
 bin/
 obj/
