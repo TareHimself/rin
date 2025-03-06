@@ -101,5 +101,6 @@
         "numbers": "cpp",
         "semaphore": "cpp"
     },
-    "cmake.sourceDirectory": "D:/Github/rin/standalone"
+    "cmake.sourceDirectory": "D:/Github/rin/standalone",
+    "editor.multiCursorModifier": "ctrlCmd"
 }

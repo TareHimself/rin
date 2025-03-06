@@ -7,7 +7,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/utils.cmake)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # include(ExternalProject)
 
-project(rin.Engine.Native LANGUAGES CXX VERSION 1.0.0 DESCRIPTION "Native abstractions for the rin.Engine")
+project(Rin.Engine.Native LANGUAGES CXX VERSION 1.0.0 DESCRIPTION "Native abstractions for the Rin.Engine")
 
 set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 

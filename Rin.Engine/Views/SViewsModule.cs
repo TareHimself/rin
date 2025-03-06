@@ -1,4 +1,5 @@
-﻿using Rin.Engine.Core;
+﻿using Rin.Assets;
+using Rin.Engine.Core;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Windows;
@@ -54,7 +55,8 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
 
     public void Start(SEngine engine)
     {
-        _fontManager.LoadSystemFonts();
+        _fontManager.LoadFont(RinAssets.Assets.OpenRead("Fonts","NotoSans-Regular.ttf"));
+        var r = RinAssets.Assets.GetAllResources().ToArray();
         _graphicsSubsystem = engine.GetModule<SGraphicsModule>();
         if (_graphicsSubsystem == null) return;
         _graphicsSubsystem.OnRendererCreated += OnRendererCreated;

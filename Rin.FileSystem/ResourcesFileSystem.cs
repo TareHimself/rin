@@ -10,7 +10,7 @@ public class ResourcesFileSystem(Assembly assembly) : IFileSystem
     private string MakeResourceName(FileUri uri)
     {
         if (uri.Target != Target) throw new UnsupportedFileUriException(this,uri);
-        return string.Join(".",Target,uri.Path);
+        return uri.Path.Aggregate(Target, (t, c) => t + '.' + c);
     }
     
     public bool Exists(FileUri uri)

@@ -108,7 +108,7 @@ public class SViewsTestModule : IModule
                         {
                             Child = new FpsView
                             {
-                                FontSize = 30
+                                FontSize = 3
                             },
                             Padding = new Padding(20.0f),
                             Strength = 20.0f
@@ -447,7 +447,8 @@ public class SViewsTestModule : IModule
     public void Start(SEngine engine)
     {
 
-        var resources = RinAssets.FileSystem.GetAllResources().ToArray();
+        var resources = RinAssets.Assets.GetAllResources().ToArray();
+        SViewsModule.Get().GetFontManager().LoadSystemFonts();
         Common.Utils.RunMultithreaded((delta) =>
         {
             SGraphicsModule.Get().PollWindows();

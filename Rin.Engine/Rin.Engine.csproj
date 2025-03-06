@@ -9,35 +9,48 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="BepuPhysics" Version="2.5.0-beta.24"/>
-        <PackageReference Include="Facebook.Yoga" Version="1.5.0-pre1"/>
-        <PackageReference Include="JetBrains.Annotations" Version="2025.1.0-eap1"/>
-        <PackageReference Include="JoltPhysicsSharp" Version="2.13.0"/>
-        <PackageReference Include="LibVLCSharp" Version="3.9.2"/>
-        <PackageReference Include="MathNet.Numerics" Version="6.0.0-beta1"/>
-        <PackageReference Include="MathNet.Numerics.Signed" Version="5.0.0"/>
+        <PackageReference Include="BepuPhysics" Version="2.5.0-beta.24" />
+        <PackageReference Include="Facebook.Yoga" Version="1.5.0-pre1" />
+        <PackageReference Include="JetBrains.Annotations" Version="2025.1.0-eap1" />
+        <PackageReference Include="JoltPhysicsSharp" Version="2.13.0" />
+        <PackageReference Include="LibVLCSharp" Version="3.9.2" />
+        <PackageReference Include="MathNet.Numerics" Version="6.0.0-beta1" />
+        <PackageReference Include="MathNet.Numerics.Signed" Version="5.0.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.2" />
         <PackageReference Include="ppy.SDL3-CS" Version="2025.127.0" />
-        <PackageReference Include="SharpCompress" Version="0.39.0"/>
-        <PackageReference Include="System.Text.Json" Version="9.0.1"/>
-        <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.3.268"/>
-        <PackageReference Include="ManagedBass" Version="3.1.1"/>
-        <PackageReference Include="SixLabors.Fonts" Version="2.1.0"/>
-        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6"/>
-        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5"/>
-        <PackageReference Include="StbRectPackSharp" Version="1.0.4"/>
+        <PackageReference Include="SharpCompress" Version="0.39.0" />
+        <PackageReference Include="System.Text.Json" Version="9.0.1" />
+        <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.3.268" />
+        <PackageReference Include="ManagedBass" Version="3.1.1" />
+        <PackageReference Include="SixLabors.Fonts" Version="2.1.0" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
+        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5" />
+        <PackageReference Include="StbRectPackSharp" Version="1.0.4" />
     </ItemGroup>
+
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <DefineConstants>OS_WINDOWS</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+        <DefineConstants>OS_LINUX</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('FreeBSD'))">
+        <DefineConstants>OS_FREEBSD</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+        <DefineConstants>OS_MAC</DefineConstants>
+    </PropertyGroup>
 
     <Target Name="CleanNative" BeforeTargets="CoreClean">
         <ItemGroup>
-            <_Dirs Include=".\native\bin\$(Configuration)"/>
-            <_Dirs Include=".\native\build\$(Configuration)"/>
+            <_Dirs Include=".\native\bin\$(Configuration)" />
+            <_Dirs Include=".\native\build\$(Configuration)" />
         </ItemGroup>
-        <RemoveDir Directories="@(_Dirs)"/>
+        <RemoveDir Directories="@(_Dirs)" />
     </Target>
 
     <ItemGroup>
-        <NativeFiles Include=".\native\bin\$(Configuration)\*.*" Visible="false"/>
+        <NativeFiles Include=".\native\bin\$(Configuration)\*.*" Visible="false" />
         <Content Include="@(NativeFiles)" Visible="false">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
             <Link>%(Filename)%(Extension)</Link>
@@ -45,10 +58,11 @@
     </ItemGroup>
 
     <Target Name="BuildNative" BeforeTargets="BeforeBuild">
-        <Exec Command="cmake -DCMAKE_BUILD_TYPE=$(Configuration) -S ./native/ -B ./native/build/$(Configuration)"/>
-        <Exec Command="cmake --build ./native/build/$(Configuration) -j 4"/>
+        <Exec
+            Command="cmake -DCMAKE_BUILD_TYPE=$(Configuration) -S ./native/ -B ./native/build/$(Configuration)" />
+        <Exec Command="cmake --build ./native/build/$(Configuration) -j 4" />
         <ItemGroup>
-            <NativeFiles Include=".\native\bin\$(Configuration)\*.*" Visible="false"/>
+            <NativeFiles Include=".\native\bin\$(Configuration)\*.*" Visible="false" />
             <Content Include="@(NativeFiles)" Visible="false">
                 <CopyToOutputDirectory>Always</CopyToOutputDirectory>
                 <Link>%(Filename)%(Extension)</Link>
@@ -57,14 +71,14 @@
     </Target>
 
     <ItemGroup>
-        <assets Include=".\assets\**"/>
+        <assets Include=".\assets\**" />
         <Content Include="@(assets)">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Rin.Assets\Rin.Assets.csproj" />
+        <ProjectReference Include="..\Rin.Assets\Rin.Assets.csproj" />
     </ItemGroup>
     <PropertyGroup>
         <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*;assets\**\*.*</DefaultItemExcludes>

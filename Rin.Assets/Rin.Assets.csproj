@@ -13,6 +13,7 @@
     <ItemGroup Label="Assets">
       <EmbeddedResource Include="Shaders\**\*.*" />
       <EmbeddedResource Include="Textures\**\*.*" />
+      <EmbeddedResource Include="Fonts\**\*.*" />
     </ItemGroup>
 
     <ItemGroup>

@@ -184,7 +184,7 @@ public class TextureManager : ITextureManager
 
     private async Task LoadDefaultTexture()
     {
-        using var imgData = await Image.LoadAsync<Rgba32>(RinAssets.FileSystem.OpenRead("Textures.default.png"));
+        using var imgData = await Image.LoadAsync<Rgba32>(RinAssets.Assets.OpenRead("Textures.default.png"));
         using var buffer = imgData.ToBuffer();
         var tex = _textures[0];
         tex.Image = await SGraphicsModule.Get().CreateImage(

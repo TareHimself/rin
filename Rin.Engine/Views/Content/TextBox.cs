@@ -30,7 +30,7 @@ public class TextBox : ContentView
 
     private string _content = string.Empty;
 
-    private string _fontFamily = "Arial";
+    private string _fontFamily = "Noto Sans";
     // protected float LineHeight => CurrentFont?.FontMetrics is { } metrics
     //     ? ((float)metrics.HorizontalMetrics.LineHeight / metrics.UnitsPerEm)
     //     : 0;

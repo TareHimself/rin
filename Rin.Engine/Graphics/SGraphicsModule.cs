@@ -243,6 +243,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
     private unsafe void InitVulkan()
     {
+        
         var outInstance = _instance;
         var outDevice = _device;
         var outPhysicalDevice = _physicalDevice;

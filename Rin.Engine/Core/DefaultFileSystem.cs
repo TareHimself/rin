@@ -25,39 +25,32 @@ public class DefaultFileSystem(string assetsBasePath) : IFileSystem
     // {
     //     return File.ReadAllText(path);
     // }
-    public bool Exists(FileUri uri)
+
+    private string ToNativePath(FileUri uri)
     {
         return uri.Scheme switch
         {
-            "system" => Path.Exists(Path.Join(uri.Path)),
+            "system" => OperatingSystem.IsLinux() ? "/" + Path.Combine(uri.Path) : Path.Combine(uri.Path),
             _ => throw new NotImplementedException()
         };
+    }
+    public bool Exists(FileUri uri)
+    {
+        return Path.Exists(ToNativePath(uri));
     }
 
     public Stream OpenRead(FileUri uri)
     {
-        return uri.Scheme switch
-        {
-            "system" => File.OpenRead(Path.Join(uri.Path)),
-            _ => throw new NotImplementedException()
-        };
+        return File.OpenRead(ToNativePath(uri));
     }
 
     public Stream OpenWrite(FileUri uri)
     {
-        return uri.Scheme switch
-        {
-            "system" => File.OpenWrite(Path.Join(uri.Path)),
-            _ => throw new NotImplementedException()
-        };
+        return File.OpenWrite(ToNativePath(uri));
     }
 
     public string ReadAllText(FileUri uri)
     {
-        return uri.Scheme switch
-        {
-            "system" => File.ReadAllText(Path.Join(uri.Path)),
-            _ => throw new NotImplementedException()
-        };
+        return File.ReadAllText(ToNativePath(uri));
     }
 }

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "macro.hpp"
 #include <msdfgen.h>
+#include <cstdint>
 
 struct GlyphContext
 {
@@ -34,7 +35,7 @@ EXPORT_DECL void sdfContextCubicBezierTo(GlyphContext * context, Vec2* control1,
 
 EXPORT_DECL void sdfContextEnd(GlyphContext * context);
 
-using GenerateCallback = void(__stdcall *)(void * data,uint32_t pixelWidth,uint32_t pixelHeight,uint32_t count,double width,double height);
+using GenerateCallback = void(RIN_CALLBACK_CONVENTION *)(void * data,uint32_t pixelWidth,uint32_t pixelHeight,uint32_t count,double width,double height);
 EXPORT_DECL void sdfContextGenerateMSDF(GlyphContext * context,float angleThreshold,float pixelRange,GenerateCallback callback);
 
 EXPORT_DECL void sdfContextGenerateMTSDF(GlyphContext * context,float angleThreshold,float pixelRange,GenerateCallback callback);

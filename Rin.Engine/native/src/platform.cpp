@@ -1,7 +1,7 @@
 ﻿#include "platform.hpp"
 
 #include <string>
-#ifdef AEROX_PLATFORM_WIN
+#ifdef RIN_PLATFORM_WIN
 #include <shlobj.h>
 #include <combaseapi.h>
 #include <stringapiset.h>
@@ -10,15 +10,15 @@
 
 EXPORT_IMPL int platformGet()
 {
-#ifdef AEROX_PLATFORM_WIN
+#ifdef RIN_PLATFORM_WIN
     return static_cast<int>(EPlatform::Windows);
 #endif
 
-#ifdef AEROX_PLATFORM_MAC
+#ifdef RIN_PLATFORM_MAC
     return static_cast<int>(EPlatform::Mac);
 #endif
 
-#ifdef AEROX_PLATFORM_LINUX
+#ifdef RIN_PLATFORM_LINUX
     return static_cast<int>(EPlatform::Linux);
 #endif
     
@@ -26,14 +26,14 @@ EXPORT_IMPL int platformGet()
 
 EXPORT_IMPL void platformInit()
 {
-#ifdef AEROX_PLATFORM_WIN
+#ifdef RIN_PLATFORM_WIN
     CoInitializeEx(nullptr,COINIT::COINIT_MULTITHREADED);
 #endif  
 }
 
 EXPORT_IMPL void platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback)
 {
-#ifdef AEROX_PLATFORM_WIN
+#ifdef RIN_PLATFORM_WIN
     IFileOpenDialog * fd;
     if(SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog,NULL,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&fd)))) {
         DWORD options;
@@ -121,7 +121,7 @@ EXPORT_IMPL void platformSelectFile(const char* title, bool multiple, const char
 
 EXPORT_IMPL void platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback)
 {
-#ifdef AEROX_PLATFORM_WIN
+#ifdef RIN_PLATFORM_WIN
     IFileOpenDialog * fd;
     if(SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog,NULL,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&fd)))) {
         DWORD options;

@@ -46,7 +46,7 @@ public class FpsView : TextBox
                     _view._averageExecuteTime.Add(asWindowRenderer.LastExecuteElapsedTime);
                     _view.Content = $"""
                                      STATS
-                                     {frame.Surface.GetCursorPosition()} Cursor Position
+                                     {frame.Surface.GetCursorPosition().} Cursor Position
                                      {frame.Stats.InitialCommandCount} Initial Commands
                                      {frame.Stats.FinalCommandCount} Final Commands
                                      {frame.Stats.BatchedDrawCommandCount} Batches

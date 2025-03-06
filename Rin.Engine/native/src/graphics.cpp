@@ -38,15 +38,16 @@ EXPORT_IMPL void createVulkanInstance(char** extensions,uint32_t numExtensions,C
     
 
     
-    
-    if (systemInfo.is_extension_available(vk::EXTShaderObjectExtensionName))
-    {
-        builder.enable_extension(vk::EXTShaderObjectExtensionName);
-    }
-    else
-    {
-        builder.enable_layer("VK_LAYER_KHRONOS_shader_object");
-    }
+        //builder.enable_extension(vk::EXTShaderObjectExtensionName);
+    // if (systemInfo.is_extension_available(vk::EXTShaderObjectExtensionName))
+    // {
+    //     builder.enable_extension(vk::EXTShaderObjectExtensionName);
+    // }
+    // else
+    // {
+    //     std::cout << "Enabling shader object layer since device does not support it" << "\n";
+    //     builder.enable_layer("VK_LAYER_KHRONOS_shader_object");
+    // }
     
    
 

@@ -68,7 +68,8 @@ public class SlangGraphicsShader : IGraphicsShader
         {
             var session = manager.GetSession();
 
-            var fileData = SEngine.Get().FileSystem.ReadAllText(FileUri.FromSystemPath(_filePath));
+            var fileUri = FileUri.FromSystemPath(_filePath);
+            var fileData = SEngine.Get().FileSystem.ReadAllText(fileUri);
             using var module = session.LoadModuleFromSourceString(_filePath, _filePath, fileData);
             if (module == null) throw new ShaderCompileException("Failed to load slang shader module.");
             List<SlangEntryPoint> entryPoints = [];

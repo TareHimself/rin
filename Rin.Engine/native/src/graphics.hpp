@@ -4,13 +4,13 @@
 #include <vulkan/vulkan.hpp>
 #include <vk_mem_alloc.h>
 
-using CreateSurfaceCallback = VkSurfaceKHR(__stdcall *)(VkInstance instance);
+using CreateSurfaceCallback = VkSurfaceKHR(RIN_CALLBACK_CONVENTION *)(VkInstance instance);
 
 EXPORT_DECL void createVulkanInstance(char** extensions,uint32_t numExtensions,CreateSurfaceCallback createSurfaceCallback, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,VkSurfaceKHR * outSurface,VkDebugUtilsMessengerEXT * outMessenger);
 
 EXPORT_DECL void destroyVulkanMessenger(VkInstance instance,VkDebugUtilsMessengerEXT messenger);
 
-using CreateSwapchainCallback = void(__stdcall *)(uintptr_t swapchain,void * swapchainImages,uint32_t numSwapchainImages,void * swapchainImageViews,uint32_t numSwapchainImageViews);
+using CreateSwapchainCallback = void(RIN_CALLBACK_CONVENTION *)(uintptr_t swapchain,void * swapchainImages,uint32_t numSwapchainImages,void * swapchainImageViews,uint32_t numSwapchainImageViews);
 EXPORT_DECL void createSwapchain(VkDevice device,VkPhysicalDevice physicalDevice,VkSurfaceKHR surface,int swapchainFormat,int colorSpace,int presentMode,uint32_t width,uint32_t height,CreateSwapchainCallback callback);
 
 
