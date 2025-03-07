@@ -3,9 +3,9 @@
 
     #if defined(_MSC_VER)
         //  Microsoft 
-        #define EXPORT "C" __declspec(dllexport)
-        #define EXPORT_DECL "C" __declspec(dllexport)
-        #define EXPORT_IMPL "C" __declspec(dllexport)
+        #define EXPORT extern "C" __declspec(dllexport)
+        #define EXPORT_DECL extern "C" __declspec(dllexport)
+        #define EXPORT_IMPL extern "C" __declspec(dllexport)
     #elif defined(__GNUC__)
         //  GCC
         #define EXPORT extern "C" __attribute__((visibility("default")))

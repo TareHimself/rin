@@ -262,7 +262,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     {
         switch (e)
         {
-            case SurfaceCursorEnterEvent ev:
+            case CursorEnterSurfaceEvent ev:
                 if (IsSelfHitTestable)
                 {
                     ev.Entered.Add(this);
@@ -273,42 +273,39 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
                     }
                 }
                 break;
-            case SurfaceCursorDownEvent ev:
+            case CursorDownSurfaceEvent ev:
                 if (IsSelfHitTestable && OnCursorDown(ev))
                 {
                     ev.Target = this;
                 }
                 break;
-            case SurfaceCursorUpEvent ev:
+            case CursorUpSurfaceEvent ev:
                 OnCursorUp(ev);
                 break;
-            case SurfaceCursorMoveEvent ev:
+            case CursorMoveSurfaceEvent ev:
                 if (IsSelfHitTestable)
                 {
-                    ev.Over.Add(this);  
+                    ev.Over.Add(this); 
                     
                     if (!IsHovered)
                     {
                         IsHovered = true;
                         OnCursorEnter(ev);
                     }
-                    
-                    if (OnCursorMove(ev))
-                    {
-                        ev.Handler = this;
-                    }
+
+                    OnCursorMove(ev);
                 }
                 break;
-            case SurfaceScrollEvent ev:
+            case ScrollSurfaceEvent ev:
                 if (IsSelfHitTestable && OnScroll(ev))
                 {
-                    ev.Handler = this;
+                    ev.Target = this;
                 }
                 break;
         }
     }
 
-    public virtual bool NotifyCursorDown(SurfaceCursorDownEvent e, Mat3 transform)
+    public virtual bool NotifyCursorDown(CursorDownSurfaceEvent e, Mat3 transform)
     {
         if (IsSelfHitTestable)
             if (OnCursorDown(e))
@@ -320,13 +317,13 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         return false;
     }
 
-    public virtual void NotifyCursorUp(SurfaceCursorUpEvent e)
+    public virtual void NotifyCursorUp(CursorUpSurfaceEvent e)
     {
         //UnBindCursorUp();
         OnCursorUp(e);
     }
 
-    public virtual void NotifyCursorEnter(SurfaceCursorMoveEvent e, Mat3 transform, List<View> items)
+    public virtual void NotifyCursorEnter(CursorMoveSurfaceEvent e, Mat3 transform, List<View> items)
     {
         if (!IsSelfHitTestable) return;
         items.Add(this);
@@ -336,33 +333,33 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         OnCursorEnter(e);
     }
 
-    public virtual bool NotifyCursorMove(SurfaceCursorMoveEvent e, Mat3 transform)
+    public virtual bool NotifyCursorMove(CursorMoveSurfaceEvent e, Mat3 transform)
     {
-        if (IsSelfHitTestable && OnCursorMove(e)) return true;
+        if (IsSelfHitTestable) OnCursorMove(e);
 
         return false;
     }
 
-    public virtual bool NotifyScroll(SurfaceScrollEvent e, Mat3 transform)
+    public virtual bool NotifyScroll(ScrollSurfaceEvent e, Mat3 transform)
     {
         return IsSelfHitTestable && OnScroll(e);
     }
 
-    public virtual bool OnCursorDown(SurfaceCursorDownEvent e)
+    public virtual bool OnCursorDown(CursorDownSurfaceEvent e)
     {
         return false;
     }
 
-    public virtual void OnCursorUp(SurfaceCursorUpEvent e)
+    public virtual void OnCursorUp(CursorUpSurfaceEvent e)
     {
     }
 
-    protected virtual bool OnCursorMove(SurfaceCursorMoveEvent e)
+    protected virtual void OnCursorMove(CursorMoveSurfaceEvent e)
     {
-        return false;
+
     }
 
-    protected virtual void OnCursorEnter(SurfaceCursorMoveEvent e)
+    protected virtual void OnCursorEnter(CursorMoveSurfaceEvent e)
     {
     }
 
@@ -378,16 +375,16 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     {
     }
 
-    protected virtual bool OnScroll(SurfaceScrollEvent e)
+    protected virtual bool OnScroll(ScrollSurfaceEvent e)
     {
         return false;
     }
 
-    public virtual void OnCharacter(SurfaceCharacterEvent e)
+    public virtual void OnCharacter(CharacterSurfaceEvent e)
     {
     }
 
-    public virtual void OnKeyboard(SurfaceKeyboardEvent e)
+    public virtual void OnKeyboard(KeyboardSurfaceEvent e)
     {
     }
 

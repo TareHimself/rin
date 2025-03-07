@@ -29,7 +29,7 @@ public class HoverToReveal : Panel
             image.BorderRadius = new Vector4(30.0f);
         }
 
-        protected override void OnCursorEnter(SurfaceCursorMoveEvent e)
+        protected override void OnCursorEnter(CursorMoveSurfaceEvent e)
         {
             base.OnCursorEnter(e);
             var duration = 0.1f;

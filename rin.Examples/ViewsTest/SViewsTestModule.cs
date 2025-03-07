@@ -106,10 +106,7 @@ public class SViewsTestModule : IModule
                         // },
                         Child = new BackgroundBlur()                                
                         {
-                            Child = new FpsView
-                            {
-                                FontSize = 3
-                            },
+                            Child = new FpsView(),
                             Padding = new Padding(20.0f),
                             Strength = 20.0f
                         },
@@ -198,7 +195,7 @@ public class SViewsTestModule : IModule
             _width = WidthOverride.GetValueOrDefault(0);
         }
 
-        protected override void OnCursorEnter(SurfaceCursorMoveEvent e)
+        protected override void OnCursorEnter(CursorMoveSurfaceEvent e)
         {
             this.StopAll().WidthTo(HeightOverride.GetValueOrDefault(0), easingFunction: EasingFunctions.EaseInOutCubic);
         }
@@ -476,14 +473,14 @@ public class SViewsTestModule : IModule
         //         fontManager.Prepare(family, Enumerable.Range(33, 126 - 33).Select(c => (char)c).ToArray());
         //     }
         // }R
-        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
+        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin View Test", new CreateOptions()
         {
             Visible = true,
             Decorated = true,
-            Transparent = true,
-            Focused = false
+            Transparent = false,
+            Focused = true
         });
         //TestText();
     }

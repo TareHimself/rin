@@ -22,7 +22,7 @@ public abstract class Surface : IDisposable
     private readonly Root _rootView = new();
     private bool _isCursorIn;
     private readonly SGraphicsModule _sGraphicsModule;
-    private SurfaceCursorDownEvent? _lastCursorDownEvent;
+    private CursorDownSurfaceEvent? _lastCursorDownEvent;
     public FrameStats Stats;
 
     protected Surface()
@@ -36,7 +36,7 @@ public abstract class Surface : IDisposable
     public abstract void SetCursorPosition(Vector2 position);
     
     public View? FocusedView { get; private set; }
-    public event Action<SurfaceCursorUpEvent>? OnCursorUp;
+    public event Action<CursorUpSurfaceEvent>? OnCursorUp;
 
     public virtual void Init()
     {
@@ -325,7 +325,7 @@ public abstract class Surface : IDisposable
         return result;
     }
 
-    protected virtual void ReceiveCursorEnter(SurfaceCursorMoveEvent e)
+    protected virtual void ReceiveCursorEnter(CursorMoveSurfaceEvent e)
     {
         _isCursorIn = true;
     }
@@ -341,13 +341,13 @@ public abstract class Surface : IDisposable
         _lastHovered.Clear();
     }
 
-    protected virtual void ReceiveResize(SurfaceResizeEvent e)
+    protected virtual void ReceiveResize(ResizeSurfaceEvent e)
     {
         var size = e.Size.ToNumericsVector();
         _rootView.ComputeSize(size);
     }
 
-    protected virtual void ReceiveCursorDown(SurfaceCursorDownEvent e)
+    protected virtual void ReceiveCursorDown(CursorDownSurfaceEvent e)
     {
         var point = e.Position;
         _rootView.HandleEvent(e, Mat3.Identity);
@@ -362,7 +362,7 @@ public abstract class Surface : IDisposable
         }
     }
 
-    protected virtual void ReceiveCursorUp(SurfaceCursorUpEvent e)
+    protected virtual void ReceiveCursorUp(CursorUpSurfaceEvent e)
     {
         OnCursorUp?.Invoke(e);
         if (_lastCursorDownEvent is { } lastEvent)
@@ -372,7 +372,7 @@ public abstract class Surface : IDisposable
         }
     }
 
-    protected virtual void ReceiveCursorMove(SurfaceCursorMoveEvent e)
+    protected virtual void ReceiveCursorMove(CursorMoveSurfaceEvent e)
     {
         _rootView.HandleEvent(e, Mat3.Identity);
         // Maybe leave this to the event handler in the future
@@ -381,7 +381,7 @@ public abstract class Surface : IDisposable
             var dist = lastEvent.Position.DistanceTo(e.Position);
             if (dist > 5.0)
             {
-                var newEvent = new SurfaceCursorDownEvent(this, lastEvent.Button, e.Position);
+                var newEvent = new CursorDownSurfaceEvent(this, lastEvent.Button, e.Position);
                 var parent = lastEvent.Target?.Parent;
                 while (parent != null)
                 {
@@ -401,17 +401,17 @@ public abstract class Surface : IDisposable
         }
     }
 
-    protected virtual void ReceiveScroll(SurfaceScrollEvent e)
+    protected virtual void ReceiveScroll(ScrollSurfaceEvent e)
     {
         _rootView.HandleEvent(e, Mat3.Identity);
     }
 
-    protected virtual void ReceiveCharacter(SurfaceCharacterEvent e)
+    protected virtual void ReceiveCharacter(CharacterSurfaceEvent e)
     {
         FocusedView?.OnCharacter(e);
     }
 
-    protected virtual void ReceiveKeyboard(SurfaceKeyboardEvent e)
+    protected virtual void ReceiveKeyboard(KeyboardSurfaceEvent e)
     {
         FocusedView?.OnKeyboard(e);
     }
@@ -420,7 +420,7 @@ public abstract class Surface : IDisposable
     private void DoHover()
     {
         var mousePosition = GetCursorPosition();
-        var e = new SurfaceCursorMoveEvent(this, mousePosition);
+        var e = new CursorMoveSurfaceEvent(this, mousePosition);
 
         var oldHoverList = _lastHovered.ToArray();
         _lastHovered.Clear();

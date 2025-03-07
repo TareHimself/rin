@@ -1,9 +1,11 @@
 ﻿using System.Diagnostics.Contracts;
+using System.Globalization;
 using System.Numerics;
 
 namespace Rin.Engine.Core.Math;
 
 public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
+    IFormattable,
     IAdditionOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
     IAdditionOperators<Vector2<T>, T, Vector2<T>>,
     ISubtractionOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
@@ -29,6 +31,20 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
     public override int GetHashCode()
     {
         return HashCode.Combine(X, Y);
+    }
+
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;
+        
+        if (X is IFormattable xFormat && Y is IFormattable yFormat)
+        {
+            return
+                $"<{xFormat.ToString(format, formatProvider)}{separator} {yFormat.ToString(format, formatProvider)}>";
+        }
+        
+        return
+            $"<{X}{separator} {Y}>";
     }
 
     public T X = inX;

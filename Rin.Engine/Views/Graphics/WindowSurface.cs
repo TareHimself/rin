@@ -72,17 +72,17 @@ public class WindowSurface : Surface
     {
         _size = e.Size.Cast<int>();
         _minimized = _size.X == 0 || _size.Y == 0;
-        if (!_minimized) ReceiveResize(new SurfaceResizeEvent(this, _size.Clone()));
+        if (!_minimized) ReceiveResize(new ResizeSurfaceEvent(this, _size.Clone()));
     }
 
     protected void OnKeyboard(KeyEvent e)
     {
-        ReceiveKeyboard(new SurfaceKeyboardEvent(this, e.Key, e.State));
+        ReceiveKeyboard(new KeyboardSurfaceEvent(this, e.Key, e.State));
     }
 
     protected void OnCharacter(Graphics_Windows_Events_CharacterEvent e)
     {
-        ReceiveCharacter(new Events.SurfaceCharacterEvent(this, e.Data, e.Modifiers));
+        ReceiveCharacter(new Events.CharacterSurfaceEvent(this, e.Data, e.Modifiers));
     }
 
     protected void OnMouseButton(CursorButtonEvent e)
@@ -90,10 +90,10 @@ public class WindowSurface : Surface
         switch (e.State)
         {
             case InputState.Released:
-                ReceiveCursorUp(new SurfaceCursorUpEvent(this, e.Button, e.Position));
+                ReceiveCursorUp(new CursorUpSurfaceEvent(this, e.Button, e.Position));
                 break;
             case InputState.Pressed:
-                ReceiveCursorDown(new SurfaceCursorDownEvent(this, e.Button, e.Position));
+                ReceiveCursorDown(new CursorDownSurfaceEvent(this, e.Button, e.Position));
                 break;
             case InputState.Repeat:
                 break;
@@ -104,17 +104,17 @@ public class WindowSurface : Surface
 
     protected void OnMouseMove(Graphics_Windows_Events_CursorMoveEvent e)
     {
-        ReceiveCursorMove(new Events.SurfaceCursorMoveEvent(this, e.Position));
+        ReceiveCursorMove(new Events.CursorMoveSurfaceEvent(this, e.Position));
     }
 
     protected void OnScroll(Graphics_Windows_Events_ScrollEvent e)
     {
-        ReceiveScroll(new Events.SurfaceScrollEvent(this, e.Position, e.Delta));
+        ReceiveScroll(new Events.ScrollSurfaceEvent(this, e.Position, e.Delta));
     }
     
     protected void OnCursorEnter(CursorEvent e)
     {
-        ReceiveCursorEnter(new Events.SurfaceCursorMoveEvent(this,e.Position));
+        ReceiveCursorEnter(new Events.CursorMoveSurfaceEvent(this,e.Position));
     }
     
     protected void OnCursorLeave(WindowEvent e)

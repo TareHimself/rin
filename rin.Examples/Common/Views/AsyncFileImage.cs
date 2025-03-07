@@ -75,7 +75,7 @@ public class AsyncFileImage : CoverImage
         }
     }
 
-    protected override void OnCursorEnter(SurfaceCursorMoveEvent e)
+    protected override void OnCursorEnter(CursorMoveSurfaceEvent e)
     {
         base.OnCursorEnter(e);
         _alphaTarget = 1.0f;

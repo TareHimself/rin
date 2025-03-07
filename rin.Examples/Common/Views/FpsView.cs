@@ -12,10 +12,16 @@ namespace rin.Examples.Common.Views;
 
 public class FpsView : TextBox
 {
+    
     private readonly Averaged<int> _averageFps = new Averaged<int>(0,300);
     private readonly Averaged<double> _averageCollectTime = new Averaged<double>(0,300);
     private readonly Averaged<double> _averageExecuteTime = new Averaged<double>(0,300);
     private Scheduler _scheduler = new Scheduler();
+    
+    public FpsView()
+    {
+        FontSize = 30;
+    }
     class GetStatsCommand : UtilityCommand
     {
         private readonly FpsView _view;
@@ -44,9 +50,10 @@ public class FpsView : TextBox
                 {
                     _view._averageCollectTime.Add(asWindowRenderer.LastCollectElapsedTime);
                     _view._averageExecuteTime.Add(asWindowRenderer.LastExecuteElapsedTime);
+                    var position = frame.Surface.GetCursorPosition();
                     _view.Content = $"""
                                      STATS
-                                     {frame.Surface.GetCursorPosition().} Cursor Position
+                                     {new Vector2<int>((int)position.X,(int)position.Y)} Cursor Position
                                      {frame.Stats.InitialCommandCount} Initial Commands
                                      {frame.Stats.FinalCommandCount} Final Commands
                                      {frame.Stats.BatchedDrawCommandCount} Batches

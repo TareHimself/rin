@@ -12,7 +12,7 @@ namespace Rin.Engine.Views.Composite;
 /// </summary>
 public class ScrollList : List
 {
-    private SurfaceCursorDownEvent? _lastDownEvent;
+    private CursorDownSurfaceEvent? _lastDownEvent;
     private float _maxOffset;
     private float _mouseDownOffset;
     private Vector2 _mouseDownPos;
@@ -97,7 +97,7 @@ public class ScrollList : List
         return GetMaxScroll() > 0;
     }
 
-    protected override bool OnScroll(SurfaceScrollEvent e)
+    protected override bool OnScroll(ScrollSurfaceEvent e)
     {
         if (!IsScrollable()) return base.OnScroll(e);
 
@@ -149,7 +149,7 @@ public class ScrollList : List
         }) * slot.Child.ComputeRelativeTransform();
     }
 
-    public override bool OnCursorDown(SurfaceCursorDownEvent e)
+    public override bool OnCursorDown(CursorDownSurfaceEvent e)
     {
         _mouseDownOffset = _offset;
         _mouseDownPos = e.Position;
@@ -157,13 +157,13 @@ public class ScrollList : List
         return true;
     }
 
-    protected override bool OnCursorMove(SurfaceCursorMoveEvent e)
+    protected override void OnCursorMove(CursorMoveSurfaceEvent e)
     {
         if (_lastDownEvent?.Target == this)
         {
             var pos = _mouseDownPos - e.Position;
 
-            return ScrollTo(Axis switch
+            ScrollTo(Axis switch
             {
                 Axis.Row => _mouseDownOffset + pos.X,
                 Axis.Column => _mouseDownOffset + pos.Y,
@@ -178,11 +178,9 @@ public class ScrollList : List
 
             // return ScrollBy((float)delta);
         }
-
-        return base.OnCursorMove(e);
     }
 
-    public override void OnCursorUp(SurfaceCursorUpEvent e)
+    public override void OnCursorUp(CursorUpSurfaceEvent e)
     {
         base.OnCursorUp(e);
         _lastDownEvent = null;

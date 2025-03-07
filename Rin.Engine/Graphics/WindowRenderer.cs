@@ -83,8 +83,7 @@ public class WindowRenderer : IWindowRenderer
     {
         var start = SEngine.Get().GetTimeSeconds();
         var c = DoCollect();
-        var now = SEngine.Get().GetTimeSeconds();
-        LastCollectElapsedTime = now - start;
+        LastCollectElapsedTime = SEngine.Get().GetTimeSeconds() - start;
         return c;
     }
 

@@ -200,9 +200,9 @@ public class TrackPlayer : Overlay
         base.Collect(transform, clip, passCommands);
     }
 
-    public override bool OnCursorDown(SurfaceCursorDownEvent e) => true;
+    public override bool OnCursorDown(CursorDownSurfaceEvent e) => true;
 
-    public override void OnCursorUp(SurfaceCursorUpEvent e)
+    public override void OnCursorUp(CursorUpSurfaceEvent e)
     {
         if (_stream.IsPlaying)
         {
@@ -216,7 +216,7 @@ public class TrackPlayer : Overlay
         base.OnCursorUp(e);
     }
 
-    protected override void OnCursorEnter(SurfaceCursorMoveEvent e)
+    protected override void OnCursorEnter(CursorMoveSurfaceEvent e)
     {
         base.OnCursorEnter(e);
         if (Loaded)

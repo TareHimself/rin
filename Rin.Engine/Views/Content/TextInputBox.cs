@@ -38,12 +38,12 @@ public class TextInputBox : TextBox
         _typingTimer.Start();
     }
 
-    public override bool OnCursorDown(SurfaceCursorDownEvent e)
+    public override bool OnCursorDown(CursorDownSurfaceEvent e)
     {
         return true;
     }
 
-    public override void OnCharacter(SurfaceCharacterEvent e)
+    public override void OnCharacter(CharacterSurfaceEvent e)
     {
         base.OnCharacter(e);
         ResetTypingDelay();
@@ -54,7 +54,7 @@ public class TextInputBox : TextBox
         CursorPosition++;
     }
 
-    public override void OnKeyboard(SurfaceKeyboardEvent e)
+    public override void OnKeyboard(KeyboardSurfaceEvent e)
     {
         base.OnKeyboard(e);
         if (e is { Key: InputKey.Backspace, State: InputState.Pressed or InputState.Repeat })
@@ -78,7 +78,7 @@ public class TextInputBox : TextBox
         else if (e is { Key: InputKey.Left or InputKey.Enter, State: InputState.Pressed or InputState.Repeat })
         {
             ResetTypingDelay();
-            OnCharacter(new SurfaceCharacterEvent(e.Surface, '\n', 0));
+            OnCharacter(new CharacterSurfaceEvent(e.Surface, '\n', 0));
         }
     }
 
