@@ -2,5 +2,5 @@
 
 public interface IUpdatable
 {
-    void Update(float deltaSeconds);
+    void Update(float deltaTime);
 }

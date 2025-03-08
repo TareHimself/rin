@@ -16,10 +16,14 @@ public abstract class ContentView : View
 
     public override void Collect(Mat3 transform, Rect clip, PassCommands passCommands)
     {
-        ((IAnimatable)this).UpdateRunner();
-
         if (!IsVisible) return;
 
         CollectContent(transform.Translate(new Vector2(Padding.Left, Padding.Top)), passCommands);
+    }
+
+    public override void Update(float deltaTime)
+    {
+        ((IAnimatable)this).UpdateRunner();
+        base.Update(deltaTime);
     }
 }

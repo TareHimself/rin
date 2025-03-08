@@ -10,7 +10,7 @@ using Rin.Engine.Views.Sdf;
 namespace Rin.Engine.Views;
 
 [Module(typeof(SGraphicsModule))]
-public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
+public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
 {
 
     class TestExternalFontCache : IExternalFontCache
@@ -148,8 +148,8 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>
     {
         return _stencilShader;
     }
-
-    public void Update(double deltaTime)
+    
+    public void Update(float deltaTime)
     {
         foreach (var surface in _windowSurfaces.Values) surface.Update(deltaTime);
     }

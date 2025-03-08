@@ -75,13 +75,16 @@ public class FpsView : TextBox
 
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
-        _scheduler.Update();
-        
-        var a = SEngine.Get().GetLastDeltaSeconds();
-        var b = 1.0 / a;
-        _averageFps.Add((int)Math.Round((1.0 / SEngine.Get().GetLastDeltaSeconds())));
+        _averageFps.Add((int)Math.Round(1.0 / SEngine.Get().GetLastDeltaSeconds()));
         
         commands.Add(new GetStatsCommand(this));
+        
         base.CollectContent(transform, commands);
+    }
+
+    public override void Update(float deltaTime)
+    {
+        base.Update(deltaTime);
+        _scheduler.Update();
     }
 }

@@ -45,7 +45,14 @@ public class SViewsTestModule : IModule
             OnReleased += (@event, button) =>
             {
                //_content.StopAll().RotateTo(360,0.5f).After().Do(() => _content.Angle = 0.0f);
-               sizer.WidthTo(_tileSize * 2f + 20.0f).Delay(2).WidthTo(_tileSize);
+               var transitionDuration = 0.8f;
+               var method = EasingFunctions.EaseInOutCubic;
+               sizer
+                   .WidthTo(_tileSize * 4f + 60.0f,duration: transitionDuration,easingFunction: method)
+                   .HeightTo(_tileSize * 2f + 10.0f,duration: transitionDuration,easingFunction: method)
+                   .Delay(4)
+                   .WidthTo(_tileSize,duration: transitionDuration,easingFunction: method)
+                   .HeightTo(_tileSize,duration: transitionDuration,easingFunction: method);
             };
         }
 
@@ -123,10 +130,14 @@ public class SViewsTestModule : IModule
                 {
                     foreach (var objPath in e.Paths)
                     {
-                        scheduler.Schedule(() => list.Add(new WrapContainer(new AsyncFileImage(objPath)
+                        scheduler.Schedule(() => list.Add(new ListSlot
                         {
-                            BorderRadius = new Vector4(30.0f)
-                        })));
+                            Child = new WrapContainer(new AsyncFileImage(objPath)
+                            {
+                                BorderRadius = new Vector4(30.0f)
+                            }),
+                            Align = CrossAlign.Center,
+                        }));
                     }
                 });
             };
@@ -446,6 +457,7 @@ public class SViewsTestModule : IModule
 
         var resources = RinAssets.Assets.GetAllResources().ToArray();
         SViewsModule.Get().GetFontManager().LoadSystemFonts();
+        
         Common.Utils.RunMultithreaded((delta) =>
         {
             SGraphicsModule.Get().PollWindows();

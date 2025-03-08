@@ -11,13 +11,7 @@ using SixLabors.Fonts;
 
 namespace Rin.Engine.Views.Content;
 
-internal struct CachedQuadLayout(int atlas, Mat3 transform, Vector2 size, Vector4 uv)
-{
-    public readonly int Atlas = atlas;
-    public Mat3 Transform = transform;
-    public Vector2 Size = size;
-    public Vector4 Uv = uv;
-}
+
 
 /// <summary>
 ///     Draw's text using an <see cref="MtsdfFont" />. Currently, hardcoded to
@@ -25,6 +19,14 @@ internal struct CachedQuadLayout(int atlas, Mat3 transform, Vector2 size, Vector
 /// </summary>
 public class TextBox : ContentView
 {
+    protected struct CachedQuadLayout(int atlas, Mat3 transform, Vector2 size, Vector4 uv)
+    {
+        public readonly int Atlas = atlas;
+        public Mat3 Transform = transform;
+        public Vector2 Size = size;
+        public Vector4 Uv = uv;
+    }
+    
     private CharacterBounds[]? _cachedBounds;
     private CachedQuadLayout[]? _cachedLayouts;
 
@@ -130,7 +132,11 @@ public class TextBox : ContentView
 
     protected virtual void TextChanged(string newText)
     {
-        _cachedLayouts = null;
+        _cachedLayouts = ComputeLayout(out var pending);
+        if (pending)
+        {
+            _cachedLayouts = null;
+        }
         _cachedBounds = null;
         _content = newText;
         // TextRenderer.RenderTextTo();
@@ -151,7 +157,11 @@ public class TextBox : ContentView
     {
         if (_fontManager.TryGetFont(FontFamily, out var family)) CurrentFont = family.CreateFont(FontSize, Style);
         _cachedBounds = null;
-        _cachedLayouts = null;
+        _cachedLayouts = ComputeLayout(out var pending);
+        if (pending)
+        {
+            _cachedLayouts = null;
+        }
         Invalidate(InvalidationType.DesiredSize);
     }
 
@@ -204,55 +214,66 @@ public class TextBox : ContentView
         return new Vector2(last?.Right ?? 0.0f, height);
     }
 
+    protected CachedQuadLayout[] ComputeLayout(out bool anyPending)
+    {
+        if (CurrentFont == null || Content.Empty())
+        {
+            anyPending = false;
+            return [];
+        }
+        
+        var pending = false;
+        List<CachedQuadLayout> results = [];
+        foreach (var bound in GetCharacterBounds(Wrap))
+        {
+            var range = _fontManager.GetPixelRange();
+            var glyph = _fontManager.GetGlyph(CurrentFont, bound.Character);
+            if (glyph.State == LiveGlyphState.Invalid && bound.Character.IsPrintable())
+            {
+                _fontManager.Prepare(CurrentFont.Family, [bound.Character]);
+                pending = true;
+            }
+            else if (glyph.State == LiveGlyphState.Pending)
+            {
+                pending = true;
+            }
+
+            if (glyph.State != LiveGlyphState.Ready) continue;
+
+            var charOffset = new Vector2(bound.X, bound.Y);
+
+            var size = new Vector2(bound.Width, bound.Height);
+            var vectorSize = glyph.Size - new Vector2(range * 2);
+            var scale = size / vectorSize;
+            var pxRangeScaled = new Vector2(range) * scale;
+            size += pxRangeScaled * 2;
+
+            charOffset -= pxRangeScaled;
+            
+            var finalTransform = Mat3.Identity.Translate(charOffset)
+                .Translate(new Vector2(0.0f, size.Y)).Scale(new Vector2(1.0f, -1.0f));
+
+            results.Add(new CachedQuadLayout(glyph.AtlasId, finalTransform, size, glyph.Coordinate));
+        }
+
+        anyPending = pending;
+
+        return results.ToArray();
+    }
+
     public override void CollectContent(Mat3 transform, PassCommands commands)
     {
         if (CurrentFont == null) return;
         if (Content.NotEmpty() && _cachedLayouts == null)
         {
-            List<CachedQuadLayout> layouts = [];
             List<Quad> quads = [];
-            var hadAnyPending = false;
-            foreach (var bound in GetCharacterBounds(Wrap))
-            {
-                var range = _fontManager.GetPixelRange();
-                var glyph = _fontManager.GetGlyph(CurrentFont, bound.Character);
 
-                if (glyph.State == LiveGlyphState.Invalid && bound.Character != ' ')
-                {
-                    _fontManager.Prepare(CurrentFont.Family, [bound.Character]);
-                    hadAnyPending = true;
-                }
-                else if (glyph.State == LiveGlyphState.Pending)
-                {
-                    hadAnyPending = true;
-                }
-
-                if (glyph.State != LiveGlyphState.Ready) continue;
-
-                var charOffset = new Vector2(bound.X, bound.Y);
-
-                var size = new Vector2(bound.Width, bound.Height);
-                var vectorSize = glyph.Size - new Vector2(range * 2);
-                var scale = size / vectorSize;
-                var pxRangeScaled = new Vector2(range) * scale;
-                size += pxRangeScaled * 2;
-
-                charOffset -= pxRangeScaled;
-                //if (!charRect.IntersectsWith(drawInfo.Clip)) continue;
-                //if(!charRect.Offset.Within(drawInfo.Clip) && !(charRect.Offset + charRect.Size).Within(drawInfo.Clip)) continue;
-
-                var finalTransform = Mat3.Identity.Translate(charOffset)
-                    .Translate(new Vector2(0.0f, size.Y)).Scale(new Vector2(1.0f, -1.0f));
-
-                var layout = new CachedQuadLayout(glyph.AtlasId, finalTransform, size, glyph.Coordinate);
-                layouts.Add(layout);
-                quads.Add(Quad.Mtsdf(layout.Atlas, transform * layout.Transform, layout.Size, Color.White,
-                    layout.Uv));
-            }
-
+            var layout = ComputeLayout(out var hadAnyPending);
+            quads.AddRange(layout.Select(c => Quad.Mtsdf(c.Atlas, transform * c.Transform, c.Size, Color.White,
+                c.Uv) ));
             if (quads.Count == 0) return;
             commands.Add(new QuadDrawCommand(quads));
-            if (!hadAnyPending) _cachedLayouts = layouts.ToArray();
+            if (!hadAnyPending) _cachedLayouts = layout;
         }
         else if (_cachedLayouts != null)
         {

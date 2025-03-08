@@ -205,8 +205,6 @@ public abstract class CompositeView : View
 
     public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
     {
-        ((IAnimatable)this).UpdateRunner();
-
         if (Visibility is Visibility.Hidden or Visibility.Collapsed) return;
 
         passCommands.IncrDepth();
@@ -261,6 +259,7 @@ public abstract class CompositeView : View
     public override void Update(float deltaTime)
     {
         base.Update(deltaTime);
+        ((IAnimatable)this).UpdateRunner();
         foreach (var slot in GetSlots()) slot.Child.Update(deltaTime);
     }
 

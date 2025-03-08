@@ -15,7 +15,7 @@ namespace Rin.Engine.Views.Graphics;
 /// <summary>
 ///     Base class for a surface that can display views
 /// </summary>
-public abstract class Surface : IDisposable
+public abstract class Surface : IDisposable, IUpdatable
 {
     public static readonly string MainPassId = Guid.NewGuid().ToString();
     private readonly List<View> _lastHovered = [];
@@ -375,6 +375,7 @@ public abstract class Surface : IDisposable
     protected virtual void ReceiveCursorMove(CursorMoveSurfaceEvent e)
     {
         _rootView.HandleEvent(e, Mat3.Identity);
+        _lastHovered.AddRange(e.Over);
         // Maybe leave this to the event handler in the future
         if (_lastCursorDownEvent is { } lastEvent)
         {
@@ -421,7 +422,6 @@ public abstract class Surface : IDisposable
     {
         var mousePosition = GetCursorPosition();
         var e = new CursorMoveSurfaceEvent(this, mousePosition);
-
         var oldHoverList = _lastHovered.ToArray();
         _lastHovered.Clear();
 
@@ -456,18 +456,19 @@ public abstract class Surface : IDisposable
     {
         return _rootView.Remove(view);
     }
+    
+    public virtual void Dispose()
+    {
+        _sGraphicsModule.WaitDeviceIdle();
+        _rootView.Dispose();
+    }
 
-    public void Update(double deltaTime)
+    public void Update(float deltaTime)
     {
         if (_isCursorIn)
         {
             DoHover();
         }
-    }
-
-    public virtual void Dispose()
-    {
-        _sGraphicsModule.WaitDeviceIdle();
-        _rootView.Dispose();
+        _rootView.Update(deltaTime);
     }
 }
