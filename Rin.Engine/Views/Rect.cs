@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Extensions;
+using Rin.Engine.Core.Math;
 
 namespace Rin.Engine.Views;
 
@@ -75,6 +76,71 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
     {
         return new Pair<Vector2, Vector2>(rect.Offset, rect.Offset + rect.Size);
     }
+    
+    public static bool PointWithin(Vector2 size,Mat3 transform, Vector2 point,bool useInverse = false)
+    {
+        var tl = Vector2.Zero;
+        var br = tl + size;
+        var tr = new Vector2(br.X, tl.Y);
+        var bl = new Vector2(tl.X, br.Y);
+
+        if (useInverse)
+        {
+            var transformedPoint = point.ApplyTransformation(transform.Inverse());
+            
+            return transformedPoint.Within(Vector2.Zero, size);
+        }
+        // var transformedPoint = point.ApplyTransformation(transform.Inverse());
+        //
+        // return transformedPoint.Within(Vector2.Zero, Size);
+
+        tl = tl.ApplyTransformation(transform);
+        br = br.ApplyTransformation(transform);
+        tr = tr.ApplyTransformation(transform);
+        bl = bl.ApplyTransformation(transform);
+
+        var p1 = new Vector2(
+            Math.Min(
+                Math.Min(tl.X, tr.X),
+                Math.Min(bl.X, br.X)
+            ),
+            Math.Min(
+                Math.Min(tl.Y, tr.Y),
+                Math.Min(bl.Y, br.Y)
+            )
+        );
+        var p2 = new Vector2(
+            Math.Max(
+                Math.Max(tl.X, tr.X),
+                Math.Max(bl.X, br.X)
+            ),
+            Math.Max(
+                Math.Max(tl.Y, tr.Y),
+                Math.Max(bl.Y, br.Y)
+            )
+        );
+
+        // Perform AABB test first
+        if (!point.Within(p1, p2)) return false;
+
+        var top = tr - tl;
+        var right = br - tr;
+        var bottom = bl - br;
+        var left = tl - bl;
+        var pTop = point - tl;
+        var pRight = point - tr;
+        var pBottom = point - br;
+        var pLeft = point - bl;
+        var a = top.Acos(pTop);
+        var b = right.Cross(pRight);
+        var c = bottom.Cross(pBottom);
+        var d = left.Cross(pLeft);
+
+        if (a >= 0)
+            return b >= 0 && c >= 0 && d >= 0;
+        return b < 0 && c < 0 && d < 0;
+    }
+    
     //
     // // ReSharper disable once InconsistentNaming
     // public static Rect MakeAABB(Vector2 size,Mat3 transform,Vector2? offset)

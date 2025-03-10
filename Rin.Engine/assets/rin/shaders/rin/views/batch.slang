@@ -82,7 +82,7 @@ float median(float r, float g, float b)
 
 float screenPxRange(float2 uv, float2 size)
 {
-    float2 unitRange = float2(12.0) / size;
+    float2 unitRange = float2(6.0) / size;
     float2 screenTexSize = float2(1.0) / fwidth(uv);
     return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
@@ -200,7 +200,9 @@ float4 fragment(FSIn input)
         float3 msd = sampleTexture(textureId, uv).rgb;
         //return float4(msd,1.0f);
         float sd = median(msd.r, msd.g, msd.b);
+
         float distance = screenPxRange(input.uv, actualTexSize) * (sd - 0.5);
+
         float opacity = clamp(distance + 0.5, 0.0, 1.0);
 
         float4 color = asMtsdf.color;

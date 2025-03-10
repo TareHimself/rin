@@ -22,7 +22,7 @@ public class MainModule : IModule
     
     private Font _font;
 
-    private IFontManager _fontManager = new DefaultFontManager();
+    private readonly IFontManager _fontManager = new DefaultFontManager();
     public void Start(SEngine engine)
     {
         
@@ -65,7 +65,7 @@ public class MainModule : IModule
                 {
                     Child = new AsyncWebImage(
                         "https://applescoop.org/image/wallpapers/mac/samurai-in-a-field-of-flowers-with-mountains-landscape-hdr-anime-style-best-most-popular-free-download-wallpapers-for-macbook-pro-and-macbook-air-and-microsoft-windows-desktop-pcs-4k-07-12-2024-1733638427-hd-wallpaper.png"),
-                    MinAnchor = new Vector2(),
+                    MinAnchor = Vector2.Zero,
                     MaxAnchor = new Vector2(1.0f),
                 },
                 new PanelSlot
@@ -80,9 +80,10 @@ public class MainModule : IModule
                             [
                                 new PanelSlot
                                 {
-                                    Child = new TextInputBox
+                                    Child = new TextBox
                                     {
-                                        Content = "Hello World!",
+                                        Content = "A",
+                                        FontSize = 700
                                         //FontFamily = "Noto Sans JP"
                                     },
                                     Alignment = new Vector2(0.5f),
@@ -93,7 +94,7 @@ public class MainModule : IModule
                             ]
                         }
                     },
-                    MinAnchor = new Vector2(),
+                    MinAnchor = Vector2.Zero,
                     MaxAnchor = new Vector2(1.0f),
                 }
             ]

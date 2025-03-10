@@ -530,6 +530,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
 
     public bool PointWithin(Mat3 transform, Vector2 point,bool useInverse = false)
     {
+        return Rect.PointWithin(Size,transform, point, useInverse);
         var tl = new Vector2(0.0f);
         var br = tl + Size;
         var tr = new Vector2(br.X, tl.Y);

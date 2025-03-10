@@ -4,6 +4,7 @@ using rin.Examples.Common.Views;
 using rin.Examples.ViewsTest.Panels;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Animation;
+using Rin.Engine.Core.Curves;
 using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
@@ -454,7 +455,6 @@ public class SViewsTestModule : IModule
 
     public void Start(SEngine engine)
     {
-
         var resources = RinAssets.Assets.GetAllResources().ToArray();
         SViewsModule.Get().GetFontManager().LoadSystemFonts();
         
