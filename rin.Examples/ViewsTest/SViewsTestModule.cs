@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Assets;
 using rin.Examples.Common.Views;
 using rin.Examples.ViewsTest.Panels;
 using Rin.Engine.Core;
@@ -455,12 +454,11 @@ public class SViewsTestModule : IModule
 
     public void Start(SEngine engine)
     {
-        var resources = RinAssets.Assets.GetAllResources().ToArray();
-        SViewsModule.Get().GetFontManager().LoadSystemFonts();
+        //SViewsModule.Get().GetFontManager().LoadSystemFonts();
         
         Common.Utils.RunMultithreaded((delta) =>
         {
-            SGraphicsModule.Get().PollWindows();
+            SGraphicsModule.Get().Update(delta);
             SViewsModule.Get().Update(delta);
             SGraphicsModule.Get().Collect();
         }, () =>
@@ -485,13 +483,22 @@ public class SViewsTestModule : IModule
         //         fontManager.Prepare(family, Enumerable.Range(33, 126 - 33).Select(c => (char)c).ToArray());
         //     }
         // }R
+        
+        {
+            var manager = SViewsModule.Get().GetFontManager();
+            if (manager.TryGetFont("Noto Sans", out var family))
+            {
+                manager
+                    .PrepareAtlas(family,Enumerable.Range(32,127).Select(c => (char)c).Where(c => c.IsPrintable())).Wait();
+            }
+        }
         SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
-        SGraphicsModule.Get().CreateWindow(500, 500, "Rin View Test", new CreateOptions()
+        SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", new CreateOptions()
         {
             Visible = true,
             Decorated = true,
-            Transparent = false,
+            Transparent = true,
             Focused = true
         });
         //TestText();

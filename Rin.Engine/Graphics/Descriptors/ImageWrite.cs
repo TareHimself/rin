@@ -22,7 +22,7 @@ public struct ImageWrite
 
     public ImageWrite(int textureId)
     {
-        if (SGraphicsModule.Get().GetTextureManager().GetTexture(textureId) is { } boundTexture)
+        if (SGraphicsModule.Get().GetTextureFactory().GetTexture(textureId) is { } boundTexture)
         {
             Image = boundTexture.Image!;
             Layout = ImageLayout.ShaderReadOnly;

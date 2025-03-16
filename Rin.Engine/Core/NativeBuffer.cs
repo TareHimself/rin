@@ -3,7 +3,7 @@ using Rin.Engine.Core.Extensions;
 
 namespace Rin.Engine.Core;
 
-public class NativeBuffer<T> : IDisposable, IBinarySerializable
+public class NativeBuffer<T> : IDisposable, IBinarySerializable, ICloneable<NativeBuffer<T>>
     where T : unmanaged
 {
     private IntPtr _ptr = IntPtr.Zero;
@@ -11,10 +11,26 @@ public class NativeBuffer<T> : IDisposable, IBinarySerializable
 
     public NativeBuffer(int elements)
     {
-        if (elements > 0)
+        if (elements <= 0) return;
+        
+        _elements = elements;
+        
+        _ptr = Marshal.AllocHGlobal((int)Utils.ByteSizeOf<T>(elements));
+    }
+    
+    public NativeBuffer(ReadOnlySpan<T> elements)
+    {
+        var elementCount = elements.Length;
+        
+        if (elementCount <= 0) return;
+        
+        _elements = elementCount;
+        
+        _ptr = Marshal.AllocHGlobal((int)Utils.ByteSizeOf<T>(elementCount));
+        
+        unsafe
         {
-            _elements = elements;
-            _ptr = Marshal.AllocHGlobal((int)Utils.ByteSizeOf<T>(elements));
+            elements.CopyTo(new Span<T>(_ptr.ToPointer(), elementCount));
         }
     }
     
@@ -81,7 +97,14 @@ public class NativeBuffer<T> : IDisposable, IBinarySerializable
             return new ReadOnlySpan<T>(GetPtr().ToPointer(), GetElementsCount());
         }
     }
-    
+
+    public NativeBuffer<T> Clone()
+    {
+        var buff = new NativeBuffer<T>(_elements);
+        buff.Write(GetPtr(), (uint)GetElementByteSize());
+        return buff;
+    }
+
     ~NativeBuffer()
     {
         ReleaseUnmanagedResources();

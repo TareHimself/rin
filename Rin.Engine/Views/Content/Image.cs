@@ -32,7 +32,7 @@ public class Image : ContentView
 
     protected override Vector2 ComputeDesiredContentSize()
     {
-        if (SGraphicsModule.Get().GetTextureManager()
+        if (SGraphicsModule.Get().GetTextureFactory()
                 .GetTextureImage(TextureId) is { } texture)
             return new Vector2
             {

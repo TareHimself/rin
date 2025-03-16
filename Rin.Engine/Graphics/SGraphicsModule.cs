@@ -4,12 +4,14 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 using Rin.Engine.Core;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Shaders.Slang;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Core.Extensions;
+using Rin.Engine.Graphics.Meshes;
 using SDL;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -18,7 +20,7 @@ using static SDL.SDL3;
 namespace Rin.Engine.Graphics;
 
 [Module]
-public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphicsModule>
+public sealed partial class SGraphicsModule : IModule,IUpdatable, ISingletonGetter<SGraphicsModule>
 {
     public static readonly string
         ShadersDirectory = Path.Join(SEngine.FrameworkAssetsDirectory, "shaders", "rin");
@@ -31,6 +33,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     private readonly Dictionary<SamplerSpec, VkSampler> _samplers = [];
     private readonly Mutex _samplersMutex = new();
     private readonly BackgroundTaskQueue _transferQueueThread = new();
+    private readonly BackgroundTaskQueue _graphicsQueueThread = new();
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
     private Allocator? _allocator;
     private IRenderContext[] _collected = [];
@@ -45,8 +48,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
     private bool _hasDedicatedTransferQueue;
     private VkInstance _instance;
     private VkPhysicalDevice _physicalDevice;
-    private IShaderManager? _shaderCompiler;
-    private Dictionary<nuint, SdlWindow> _sdlWindows = [];
+    private IShaderManager? _shaderManager;
+    private readonly Dictionary<nuint, SdlWindow> _sdlWindows = [];
 
     private VkSurfaceFormatKHR _surfaceFormat = new()
     {
@@ -54,7 +57,8 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         format = VkFormat.VK_FORMAT_R8G8B8A8_UNORM
     };
 
-    private ITextureManager? _textureManager;
+    private ITextureFactory? _textureFactory;
+    private IMeshFactory? _meshFactory;
     private VkCommandBuffer _transferCommandBuffer;
     private VkCommandPool _transferCommandPool;
     private VkFence _transferFence;
@@ -90,8 +94,9 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         _backgroundTaskQueue.Dispose();
         _transferQueueThread.Dispose();
         _descriptorAllocator?.Dispose();
-        _shaderCompiler?.Dispose();
-        _textureManager?.Dispose();
+        _shaderManager?.Dispose();
+        _textureFactory?.Dispose();
+        _meshFactory?.Dispose();
         _descriptorLayoutFactory.Dispose();
 
         lock (_samplersMutex)
@@ -262,25 +267,29 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             Resizable = false
         });
 
-        PollWindows();
+        Update(0);
 
-        if (window == null) throw new Exception("Failed to create window to init graphics");
         uint extensionCount = 0;
         var extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
         Native.Vulkan.CreateInstance(extensions, extensionCount, (inst) =>
             {
-                unsafe
-                {
-                    VkSurfaceKHR surface = new();
-                    var surfValuePtr = &surface.Value;
-                    // ReSharper disable once AccessToDisposedClosure
-                    var windowPtr = (SDL_Window*)window.GetPtr();
-                    SDL_Vulkan_CreateSurface(windowPtr, (SDL.VkInstance_T*)inst.Value, null,
-                        (SDL.VkSurfaceKHR_T**)surfValuePtr);
-                    return surface;
-                }
-            }, &outInstance, &outDevice, &outPhysicalDevice, &outGraphicsQueue,
-            &outTransferQueueFamily, &outTransferQueue, &outTransferQueueFamily, &outSurface, &outDebugMessenger);
+                VkSurfaceKHR surface = new();
+                var surfValuePtr = &surface.Value;
+                // ReSharper disable once AccessToDisposedClosure
+                var windowPtr = (SDL_Window*)window.GetPtr();
+                SDL_Vulkan_CreateSurface(windowPtr, (SDL.VkInstance_T*)inst.Value, null,
+                    (SDL.VkSurfaceKHR_T**)surfValuePtr);
+                return surface;
+            }, 
+            &outInstance, 
+            &outDevice, 
+            &outPhysicalDevice, 
+            &outGraphicsQueue, 
+            &outTransferQueueFamily, 
+            &outTransferQueue, 
+            &outTransferQueueFamily, 
+            &outSurface, 
+            &outDebugMessenger);
         _instance = outInstance;
         _device = outDevice;
         _physicalDevice = outPhysicalDevice;
@@ -313,30 +322,52 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
         _graphicsCommandBuffer = _device.AllocateCommandBuffers(_graphicsCommandPool).First();
 
         _allocator = new Allocator(this);
-        _shaderCompiler = new SlangShaderManager();
-        _textureManager = new TextureManager();
+        _shaderManager = new SlangShaderManager();
+        _textureFactory = new TextureFactory();
+        _meshFactory = new MeshFactory();
         _instance.DestroySurface(outSurface);
     }
 
+    [PublicAPI]
     public IShaderManager GetShaderManager()
     {
-        return _shaderCompiler!;
+        return _shaderManager ?? throw new NullReferenceException();
     }
 
-    public IGraphicsShader GraphicsShaderFromPath(string path)
+    public IGraphicsShader MakeGraphics(string path)
     {
-        return GetShaderManager().GraphicsFromPath(path);
+        return GetShaderManager().MakeGraphics(path);
     }
 
-    public IComputeShader ComputeShaderFromPath(string path)
+    public IComputeShader MakeCompute(string path)
     {
-        return GetShaderManager().ComputeFromPath(path);
+        return GetShaderManager().MakeCompute(path);
     }
 
-    public ITextureManager GetTextureManager()
+    public ITextureFactory GetTextureFactory()
     {
-        return _textureManager!;
+        return _textureFactory ?? throw new NullReferenceException();
     }
+    
+    public IMeshFactory GetMeshFactory()
+    {
+        return _meshFactory ?? throw new NullReferenceException();
+    }
+    
+    /// <summary>
+    /// Assigns an id to this texture and creates it as soon as possible. does not own the data and makes a copy of it
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="size"></param>
+    /// <param name="format"></param>
+    /// <param name="filter"></param>
+    /// <param name="tiling"></param>
+    /// <param name="mips"></param>
+    /// <param name="debugName"></param>
+    /// <returns></returns>
+    public int CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
+        ImageFilter filter = ImageFilter.Linear,
+        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture") => GetTextureFactory().CreateTexture(data, size, format, filter, tiling, mips, debugName);
 
     private void HandleWindowCreated(IWindow window)
     {
@@ -404,8 +435,7 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
 
     public Allocator GetAllocator()
     {
-        if (_allocator == null) throw new Exception("How have you done this");
-        return _allocator;
+        return _allocator ?? throw new NullReferenceException();
     }
 
     public DescriptorAllocator GetDescriptorAllocator()
@@ -1018,11 +1048,49 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
             }
     }
 
+    
+    /// <summary>
+    ///     Call <see cref="IRenderer.Collect" /> for each <see cref="IRenderer" />
+    /// </summary>
+    public void Collect()
+    {
+        IRenderer[] renderers;
+
+        lock (_renderers)
+        {
+            renderers = _renderers.ToArray();
+        }
+
+        List<IRenderContext> collected = [];
+        foreach (var renderer in renderers)
+        {
+            if (renderer.Collect() is { } context)
+            {
+                collected.Add(context);
+            }
+        }
+        _collected = collected.ToArray();
+    }
+
+    /// <summary>
+    ///     Resolve pending transfer submits and call <see cref="IRenderer.Execute" /> on all collected
+    ///     <see cref="IRenderer" />
+    /// </summary>
+    public void Execute()
+    {
+        if (!_hasDedicatedTransferQueue) HandlePendingTransferSubmits();
+
+        {
+            HandlePendingGraphicsSubmits();
+        }
+
+        foreach (var context in _collected) context.Renderer.Execute(context);
+    }
 
     /// <summary>
     ///     Poll all windows, could be viewed as the input loop
     /// </summary>
-    public void PollWindows()
+    public void Update(float deltaTime)
     {
         // NativeMethods.PollEvents();
         SDL_PumpEvents();
@@ -1045,35 +1113,5 @@ public sealed partial class SGraphicsModule : IModule, ISingletonGetter<SGraphic
                 }
             } while (eventsPumped == _maxEventsPerPeep);
         }
-    }
-
-    /// <summary>
-    ///     Call <see cref="IRenderer.Collect" /> for each <see cref="IRenderer" />
-    /// </summary>
-    public void Collect()
-    {
-        IRenderer[] renderers;
-
-        lock (_renderers)
-        {
-            renderers = _renderers.ToArray();
-        }
-
-        _collected = renderers.Select(c => c.Collect()).Where(c => c != null).Select(c => c!).ToArray();
-    }
-
-    /// <summary>
-    ///     Resolve pending transfer submits and call <see cref="IRenderer.Execute" /> on all collected
-    ///     <see cref="IRenderer" />
-    /// </summary>
-    public void Execute()
-    {
-        if (!_hasDedicatedTransferQueue) HandlePendingTransferSubmits();
-
-        {
-            HandlePendingGraphicsSubmits();
-        }
-
-        foreach (var context in _collected) context.Renderer.Execute(context);
     }
 }

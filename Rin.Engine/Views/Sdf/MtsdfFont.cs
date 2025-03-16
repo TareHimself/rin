@@ -25,7 +25,7 @@ public class MtsdfFont : Reservable
 
     protected override void OnDispose(bool isManual)
     {
-        SGraphicsModule.Get().GetTextureManager().FreeTextures(_atlases);
+        SGraphicsModule.Get().GetTextureFactory().FreeTextures(_atlases);
     }
 
     public int GetAtlasTextureId(int atlasId)

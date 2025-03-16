@@ -1,10 +1,33 @@
 ﻿#include "slang.hpp"
 #include <array>
+#include <fstream>
 #include <iostream>
 
 Slang::ComPtr<slang::IGlobalSession> GLOBAL_SESSION;
 
 
+// SlangResult CustomFileSystem::queryInterface(const SlangUUID& uuid, void** outObject)
+// {
+//     return SLANG_OK;
+// }
+// uint32_t CustomFileSystem::addRef()
+// {
+//     return ++refs;
+// }
+// uint32_t CustomFileSystem::release()
+// {
+//     return --refs;
+// }
+// void* CustomFileSystem::castAs(const SlangUUID& guid)
+// {
+//     return static_cast<void*>(this);
+// }
+//
+// SlangResult CustomFileSystem::loadFile(const char* path, ISlangBlob** outBlob)
+// {
+//     std::cout << "Loading file: " << path << std::endl;
+//     std::ifstream data(path);
+// }
 Session::Session(const SessionBuilder* builder)
 {
     slang::SessionDesc sessionDesc{};
@@ -36,6 +59,7 @@ Session::Session(const SessionBuilder* builder)
 
     sessionDesc.searchPaths = searchPaths.data();
     sessionDesc.searchPathCount = static_cast<SlangInt>(searchPaths.size());
+    //sessionDesc.fileSystem = new FileS
     //sessionDesc.fileSystem = new FileSystem()
     GLOBAL_SESSION->createSession(sessionDesc,session.writeRef()); 
 }

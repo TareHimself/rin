@@ -26,7 +26,7 @@ public class SSceneTestModule : IModule
     {
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(path);
         using var buffer = imgData.ToBuffer();
-        return await SGraphicsModule.Get().GetTextureManager().CreateTexture(buffer,
+        return await SGraphicsModule.Get().GetTextureFactory().CreateTexture(buffer,
             new Extent3D
             {
                 Width = (uint)imgData.Width,

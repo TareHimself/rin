@@ -28,13 +28,13 @@ public class AsyncWebImage : CoverImage
             var stream = await client.GetStreamAsync(uri);
             using var img = await Image.LoadAsync<Rgba32>(stream);
             using var imgData = img.ToBuffer();
-            await SGraphicsModule.Get().GetTextureManager().CreateTexture(imgData,
+            TextureId = SGraphicsModule.Get().CreateTexture(imgData,
                 new Extent3D
                 {
                     Width = (uint)img.Width,
                     Height = (uint)img.Height
                 },
-                ImageFormat.RGBA8).Then(c => TextureId = c);
+                ImageFormat.RGBA8);
             OnLoaded?.Invoke(true);
         }
         catch (Exception e)

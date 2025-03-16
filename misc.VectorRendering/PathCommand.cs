@@ -15,7 +15,7 @@ namespace misc.VectorRendering;
 public class PathCommand : CustomCommand
 {
     private IShader _shader = SGraphicsModule.Get()
-        .GraphicsShaderFromPath(Path.Join(SViewsModule.ShadersDirectory, "path.slang"));
+        .MakeGraphics(Path.Join(SViewsModule.ShadersDirectory, "path.slang"));
 
     private readonly Mat3 _transform;
     private readonly Font _font;

@@ -10,7 +10,7 @@ namespace Rin.Engine.Views.Graphics.Quads;
 public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
 {
     private readonly IGraphicsShader _batchShader = SGraphicsModule.Get()
-        .GraphicsShaderFromPath(Path.Join(SGraphicsModule.ShadersDirectory, "views", "batch.slang"));
+        .MakeGraphics(Path.Join(SGraphicsModule.ShadersDirectory, "views", "batch.slang"));
 
     protected override IGraphicsShader GetShader()
     {
@@ -26,7 +26,7 @@ public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         IGraphicsShader shader)
     {
         var cmd = frame.Raw.GetCommandBuffer();
-        var resourceSet = SGraphicsModule.Get().GetTextureManager().GetDescriptorSet();
+        var resourceSet = SGraphicsModule.Get().GetTextureFactory().GetDescriptorSet();
         var quads = batch.GetQuads().ToArray();
         if (quads.Length == 0) return 0;
 

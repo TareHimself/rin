@@ -4,15 +4,15 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace Rin.Engine.Views.Sdf;
 
-public class SdfContainer : Disposable
+public class SdfContainer : ISdfContainer
 {
-    private readonly Image<Rgba32>[] _atlases;
+    private readonly Dictionary<int,SdfResult> _atlases;
     private readonly Dictionary<string, SdfVector> _vectors;
 
-    public SdfContainer(Dictionary<string, SdfVector> vectors, IEnumerable<Image<Rgba32>> atlases)
+    public SdfContainer(Dictionary<string, SdfVector> vectors, Dictionary<int,SdfResult> atlases)
     {
         _vectors = vectors;
-        _atlases = atlases.ToArray();
+        _atlases = atlases;
     }
 
 
@@ -21,8 +21,19 @@ public class SdfContainer : Disposable
         return _vectors.GetValueOrDefault(id);
     }
 
-    protected override void OnDispose(bool isManual)
+    public SdfResult? GetResult(int id)
     {
-        foreach (var atlas in _atlases) atlas.Dispose();
+        return _atlases.GetValueOrDefault(id);
     }
+
+    public IEnumerable<SdfVector> GetVectors()
+    {
+        return _vectors.Values;
+    }
+
+    public Dictionary<int, SdfResult> GetAtlases()
+    {
+        return _atlases;
+    }
+    
 }

@@ -281,8 +281,8 @@ float4 applyBorderRadius(float2 fragPosition, float4 color, float4 radius, float
     float distance = roundedBoxSDF(transformedFrag - halfSize, halfSize, radius);
 
     // Smooth the result (free antialiasing).
-    float smoothedAlpha = smoothstep(0.0f, edgeSoftness, distance);
-
+    // float smoothedAlpha = smoothstep(0.0f, edgeSoftness, distance);
+    float smoothedAlpha = smoothstep(-0.5, 0.5, distance);
     return lerp(color, float4(color.xyz, 0.0), smoothedAlpha);
 }
 

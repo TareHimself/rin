@@ -82,6 +82,7 @@ float median(float r, float g, float b)
 
 float screenPxRange(float2 uv, float2 size)
 {
+    //return (max(size.x, size.y) / 32.0f) * 6.0f;
     float2 unitRange = float2(6.0) / size;
     float2 screenTexSize = float2(1.0) / fwidth(uv);
     return max(0.5 * dot(unitRange, screenTexSize), 1.0);
@@ -111,7 +112,7 @@ struct Mtsdf {
     float4 uv;
 }
 
-#define FEATHER 3
+#define SDF_HALF_STEP 0.5
 [shader("fragment")]
 float4 fragment(FSIn input)
     : SV_Target
@@ -134,7 +135,7 @@ float4 fragment(FSIn input)
             var d = sdSegment(input.coordinate, a, b);
 
             float thickness = asPrimitive.data3.x; // Assuming thickness is stored in data3.z
-            float smoothedAlpha = smoothstep(thickness, thickness + FEATHER, d);
+            float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness + SDF_HALF_STEP, d);
             // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
             // return float4(float3(abs(d),0.0f,0.0f),1.0f);
             return float4(asPrimitive.data1.rgb,1 - smoothedAlpha);
@@ -142,7 +143,7 @@ float4 fragment(FSIn input)
         case PrimitiveType.Circle:
         {
             var d = sdCircle(input.coordinate, asPrimitive.data2.x);
-            float smoothedAlpha = smoothstep(0.0f, FEATHER, d);
+            float smoothedAlpha = smoothstep(-0.5, 0.5, d);
             return float4(asPrimitive.data1.rgb,1 - smoothedAlpha);
         }
         case PrimitiveType.Rectangle:
@@ -155,7 +156,7 @@ float4 fragment(FSIn input)
 
             var d = sdBezier(input.coordinate, a, b, C);
             float thickness = asPrimitive.data3.z; // Assuming thickness is stored in data3.z
-            float smoothedAlpha = smoothstep(thickness, thickness + FEATHER, d);
+            float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness + SDF_HALF_STEP, d);
             // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
             // return float4(float3(abs(d),0.0f,0.0f),1.0f);
             return float4(asPrimitive.data1.rgb, 1 - smoothedAlpha);
@@ -169,7 +170,7 @@ float4 fragment(FSIn input)
 
             var d = sdBezierCubic(input.coordinate, a, b, aC,bC);
             float thickness = asPrimitive.data3.z; // Assuming thickness is stored in data3.z
-            float smoothedAlpha = smoothstep(thickness, thickness + FEATHER, d);
+            float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness + SDF_HALF_STEP, d);
             // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
             // return float4(float3(abs(d),0.0f,0.0f),1.0f);
             return lerp(asPrimitive.data1, float4(asPrimitive.data1.rgb, 0.0), smoothedAlpha);

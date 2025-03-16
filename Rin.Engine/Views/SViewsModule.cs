@@ -1,5 +1,4 @@
-﻿using Rin.Assets;
-using Rin.Engine.Core;
+﻿using Rin.Engine.Core;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Windows;
@@ -55,8 +54,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
 
     public void Start(SEngine engine)
     {
-        _fontManager.LoadFont(RinAssets.Assets.OpenRead("Fonts","NotoSans-Regular.ttf"));
-        var r = RinAssets.Assets.GetAllResources().ToArray();
+        _fontManager.LoadFont(SEngine.Get().Sources.Read("/Engine/Fonts/NotoSans-Regular.ttf"));
         _graphicsSubsystem = engine.GetModule<SGraphicsModule>();
         if (_graphicsSubsystem == null) return;
         _graphicsSubsystem.OnRendererCreated += OnRendererCreated;
@@ -97,10 +95,9 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
         return _fontManager;
     }
 
-    public void AddFont(string fontPath, IFileSystem? fileSystem = null)
+    public void AddFont(string fontPath)
     {
-        var fs = fileSystem ?? SEngine.Get().FileSystem;
-        _fontManager.LoadFont(fs.OpenRead(FileUri.FromSystemPath(fontPath)));
+        _fontManager.LoadFont(SEngine.Get().Sources.Read(fontPath));
     }
 
     public IBatcher GetBatchRenderer<T>() where T : IBatcher
@@ -120,7 +117,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
         root.Init();
         if (_stencilShader == null)
             _stencilShader = SGraphicsModule.Get()
-                .GraphicsShaderFromPath(Path.Join(ShadersDirectory, "stencil_batch.slang"));
+                .MakeGraphics(Path.Join(ShadersDirectory, "stencil_batch.slang"));
         OnSurfaceCreated?.Invoke(root);
     }
 

@@ -27,7 +27,7 @@ public class PrettyShaderDrawCommand(Mat3 transform,Vector2 size,bool hovered) :
 
     public override ulong GetRequiredMemory() => Utils.ByteSizeOf<Data>();
 
-    private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().GraphicsShaderFromPath(Path.Join(SEngine.AssetsDirectory,"test","pretty.slang"));
+    private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().MakeGraphics(Path.Join(SEngine.AssetsDirectory,"test","pretty.slang"));
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {

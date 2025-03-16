@@ -27,7 +27,7 @@ public class BlurCommand(Mat3 transform, Vector2 size, float strength, float rad
     private static string _blurPassId = Guid.NewGuid().ToString();
 
     private readonly IGraphicsShader _blurShader = SGraphicsModule.Get()
-        .GraphicsShaderFromPath(Path.Join(SViewsModule.ShadersDirectory, "blur.slang"));
+        .MakeGraphics(Path.Join(SViewsModule.ShadersDirectory, "blur.slang"));
 
     public override bool WillDraw()
     {

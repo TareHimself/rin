@@ -3,7 +3,7 @@ using Rin.Engine.Core.Extensions;
 
 namespace Rin.Engine.Views.Sdf;
 
-public class SdfResult : IBinarySerializable
+public class SdfResult : IBinarySerializable, IDisposable
 {
     public readonly NativeBuffer<byte> Data;
     public int Channels = 0;
@@ -45,5 +45,10 @@ public class SdfResult : IBinarySerializable
         PixelWidth = input.ReadInt32();
         PixelHeight = input.ReadInt32();
         input.Read((IBinarySerializable)Data);
+    }
+
+    public void Dispose()
+    {
+        Data.Dispose();
     }
 }

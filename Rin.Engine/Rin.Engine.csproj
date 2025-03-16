@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <PackageReference Include="BepuPhysics" Version="2.5.0-beta.24" />
+        <PackageReference Include="CSCore" Version="1.2.1.2" />
         <PackageReference Include="Facebook.Yoga" Version="1.5.0-pre1" />
         <PackageReference Include="HarfBuzzSharp" Version="8.3.1-preview.2.3" />
         <PackageReference Include="JetBrains.Annotations" Version="2025.1.0-eap1" />
@@ -27,6 +28,10 @@
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
         <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5" />
         <PackageReference Include="StbRectPackSharp" Version="1.0.4" />
+    </ItemGroup>
+
+    <ItemGroup Label="Content">
+      <EmbeddedResource Include="Content\**\*.*" />
     </ItemGroup>
 
     <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
@@ -79,8 +84,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Rin.Assets\Rin.Assets.csproj" />
+      <ProjectReference Include="..\Rin.Sources\Rin.Sources.csproj" />
     </ItemGroup>
+
     <PropertyGroup>
         <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*;assets\**\*.*</DefaultItemExcludes>
     </PropertyGroup>

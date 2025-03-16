@@ -46,6 +46,16 @@
 //  */
 // uint32_t compilerOptionEntryCount = 0;
 
+// struct CustomFileSystem : ISlangFileSystem
+// {
+//     uint32_t refs;
+//     SlangResult queryInterface(const SlangUUID& uuid, void** outObject) override;
+//     uint32_t addRef() override;
+//     uint32_t release() override;
+//     void* castAs(const SlangUUID& guid) override;
+//     SlangResult loadFile(const char* path, ISlangBlob** outBlob) override;
+// };
+
 struct SessionBuilder
 {
     std::vector<slang::TargetDesc> targets{};

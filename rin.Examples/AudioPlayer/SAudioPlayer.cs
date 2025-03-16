@@ -24,7 +24,7 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
     {
         Common.Utils.RunMultithreaded((delta) =>
         {
-            SGraphicsModule.Get().PollWindows();
+            SGraphicsModule.Get().Update(delta);
             SViewsModule.Get().Update(delta);
             SGraphicsModule.Get().Collect();
         }, () =>

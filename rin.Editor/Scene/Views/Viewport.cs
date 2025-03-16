@@ -59,7 +59,7 @@ internal class DisplaySceneCommand(ForwardRenderingPass renderingPass,Vector2 si
     }
 
     private readonly IShader _shader = SGraphicsModule.Get()
-        .GraphicsShaderFromPath(Path.Join(SGraphicsModule.ShadersDirectory, "scene", "forward", "viewport.slang"));
+        .MakeGraphics(Path.Join(SGraphicsModule.ShadersDirectory, "scene", "forward", "viewport.slang"));
 
     
 

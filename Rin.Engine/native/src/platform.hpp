@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "macro.hpp"
 
-enum EPlatform
+enum class EPlatform
 {
     Windows,
     Linux,

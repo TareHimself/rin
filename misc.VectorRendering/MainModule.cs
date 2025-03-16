@@ -28,7 +28,7 @@ public class MainModule : IModule
         
         rin.Examples.Common.Utils.RunMultithreaded((delta) =>
         {
-            SGraphicsModule.Get().PollWindows();
+            SGraphicsModule.Get().Update(delta);
             SViewsModule.Get().Update(delta);
             SGraphicsModule.Get().Collect();
         }, () =>
@@ -38,7 +38,7 @@ public class MainModule : IModule
         
         _fontManager.LoadSystemFonts();
         if(!_fontManager.TryGetFont("Noto Sans JP", out var family)) return;
-        var font = family.CreateFont(200, FontStyle.Regular);
+        var font = family.CreateFont(100, FontStyle.Regular);
         _font = font;
         SGraphicsModule.Get().OnWindowCreated += (window) =>
         {
@@ -80,11 +80,15 @@ public class MainModule : IModule
                             [
                                 new PanelSlot
                                 {
-                                    Child = new TextBox
+                                    // Child = new TextBox
+                                    // {
+                                    //     Content = "A",
+                                    //     FontSize = 700
+                                    //     //FontFamily = "Noto Sans JP"
+                                    // },
+                                    Child = new Canvas
                                     {
-                                        Content = "A",
-                                        FontSize = 700
-                                        //FontFamily = "Noto Sans JP"
+                                        Paint = PaintCanvas
                                     },
                                     Alignment = new Vector2(0.5f),
                                     MinAnchor = new Vector2(0.5f),
@@ -107,13 +111,12 @@ public class MainModule : IModule
        // var glyph = _fontManager.GetGlyph(_font, 'A', out TODO);
         var opts = new TextOptions(_font)
         {
-
         };
-        TextMeasurer.TryMeasureCharacterBounds(str, opts, out var bounds);
+        //TextMeasurer.TryMeasureCharacterBounds(str, opts, out var bounds);
         
         
-        // var renderer = new ViewsTextRenderer(cmds);
-        //TextRenderer.RenderTextTo(new ViewsTextRenderer(cmds),"/////////////",new TextOptions(_font));
+         //var renderer = new ViewsTextRenderer(cmds);
+        TextRenderer.RenderTextTo(new ViewsTextRenderer(cmds),"Hello World",new TextOptions(_font));
         //cmds.Add(new PathCommand(transform, _font,str));
     }
 

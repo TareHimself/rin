@@ -32,7 +32,7 @@ public class SlangShaderManager : IShaderManager
         return _compileTasks.Enqueue(() => shader.Compile(new SlangCompilationContext(this)));
     }
 
-    public IGraphicsShader GraphicsFromPath(string path)
+    public IGraphicsShader MakeGraphics(string path)
     {
         var absPath = Path.GetFullPath(path);
 
@@ -47,7 +47,7 @@ public class SlangShaderManager : IShaderManager
         }
     }
 
-    public IComputeShader ComputeFromPath(string path)
+    public IComputeShader MakeCompute(string path)
     {
         throw new NotImplementedException();
     }

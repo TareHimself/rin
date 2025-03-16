@@ -40,7 +40,7 @@ public static class VulkanExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
         };
     }
-    
+
     // public enum ImageUsage
     // {
     //     None   = 0,
@@ -56,37 +56,37 @@ public static class VulkanExtensions
     public static VkImageUsageFlags ToVk(this ImageUsage usage)
     {
         VkImageUsageFlags flags = 0;
-        
+
         if (usage.HasFlag(ImageUsage.TransferSrc))
         {
             flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         }
-        
+
         if (usage.HasFlag(ImageUsage.TransferDst))
         {
             flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         }
-        
+
         if (usage.HasFlag(ImageUsage.Sampled))
         {
             flags |= VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT;
         }
-        
+
         if (usage.HasFlag(ImageUsage.Storage))
         {
             flags |= VkImageUsageFlags.VK_IMAGE_USAGE_STORAGE_BIT;
         }
-        
+
         if (usage.HasFlag(ImageUsage.ColorAttachment))
         {
             flags |= VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         }
-        
+
         if (usage.HasFlag(ImageUsage.DepthAttachment))
         {
             flags |= VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
         }
-        
+
         if (usage.HasFlag(ImageUsage.StencilAttachment))
         {
             flags |= VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -731,6 +731,37 @@ public static class VulkanExtensions
         return shaders;
     }
 
+    // public static VkInstance CreateInstance(ReadOnlySpan<byte> appName,in Version appVersion,ReadOnlySpan<byte> engineName,in Version engineVersion)
+    // {
+    //     unsafe
+    //     {
+    //         fixed (byte* pApplicationName = appName)
+    //         fixed(byte* pEngineName = engineName)
+    //         {
+    //             var appInfo = new VkApplicationInfo()
+    //             {
+    //                 sType = VkStructureType.VK_STRUCTURE_TYPE_APPLICATION_INFO,
+    //                 pApplicationName = (sbyte*)pApplicationName,
+    //                 pEngineName = (sbyte*)pEngineName,
+    //                 applicationVersion = VK_MAKE_VERSION(appVersion.Major,appVersion.Minor,appVersion.Patch),
+    //                 engineVersion = VK_MAKE_VERSION(engineVersion.Major,engineVersion.Minor,engineVersion.Patch),
+    //                 apiVersion = VK_API_VERSION_1_3,
+    //             };
+    //
+    //             var instance = new VkInstance();
+    //
+    //             var instanceInfo = new VkInstanceCreateInfo()
+    //             {
+    //                 sType = VkStructureType.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+    //                 pApplicationInfo = &appInfo,
+    //             };
+    //             
+    //             vkCreateInstance(&instanceInfo,null, &instance);
+    //
+    //             return instance;
+    //         }
+    //     }
+    // }
 
     public static VkResult SignalSemaphore(this VkDevice device, VkSemaphore semaphore)
     {
@@ -1158,7 +1189,7 @@ public static class VulkanExtensions
         };
         return clearColor;
     }
-    
+
     public static VkCommandBuffer[] AllocateCommandBuffers(this VkDevice self, VkCommandPool pool, uint count = 1,
         VkCommandBufferLevel level = VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_PRIMARY)
     {
@@ -1182,7 +1213,7 @@ public static class VulkanExtensions
 
         return result;
     }
-    
+
     public static VkRenderingInfo MakeRenderingInfo(VkExtent2D extent)
     {
         return MakeRenderingInfo(new VkRect2D
@@ -1259,7 +1290,7 @@ public static class VulkanExtensions
             layerCount = VK_REMAINING_ARRAY_LAYERS
         };
     }
-    
+
     /// <summary>
     ///     Submits using the specified queue
     /// </summary>
@@ -1300,8 +1331,8 @@ public static class VulkanExtensions
             }
         }
     }
-    
-    
+
+
     public static VkImageView CreateImageView(this VkDevice device, VkImageViewCreateInfo createInfo)
     {
         unsafe

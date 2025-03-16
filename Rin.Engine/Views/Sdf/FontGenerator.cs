@@ -93,31 +93,27 @@ public class FontGenerator(FontFamily family)
                     {
                         Id = generatedId,
                         AtlasIdx = atlasIdx,
-                        X = pt1.X,
-                        Y = pt1.Y,
-                        Width = dims.X,
-                        Height = dims.Y,
+                        Offset = pt1,
+                        Size = dims,
                         Coordinates = new Vector4(pt1Coord, pt2Coord.X, pt2Coord.Y),
-                        Range = pixelRange
+                        PixelRange = pixelRange
                     });
 
                     o.DrawImage(generated.Mtsdf, new Point(rect.X, rect.Y), 1F);
                 }
             });
 
-            await atlas.SaveAsPngAsync($"./atlas_{i}.png");
+            //await atlas.SaveAsPngAsync($"./atlas_{i}.png");
         }
 
-        var resourceManager = SGraphicsModule.Get().GetTextureManager();
         var atlasIds = atlases.Select((c, idx) =>
         {
-            using var buffer = c.ToBuffer();
-            return resourceManager.CreateTexture(buffer, new Extent3D
+            return SGraphicsModule.Get().CreateTexture(c.ToBuffer(), new Extent3D
                 {
                     Width = (uint)c.Width,
                     Height = (uint)c.Height
                 }, ImageFormat.RGBA8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}");
-        }).WaitAll().ToArray();
+        }).ToArray();
         return new MtsdfFont(_family, atlasIds, atlasGlyphs);
     }
 

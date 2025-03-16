@@ -11,6 +11,7 @@ public struct Extent3D : IFormattable
 
     public Extent3D()
     {
+        
     }
 
     public Extent3D(Extent2D extent, uint dimensions = 1)

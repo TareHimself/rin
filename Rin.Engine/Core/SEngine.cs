@@ -1,20 +1,30 @@
 ﻿using System.Collections.Frozen;
 using System.Reflection;
+using JetBrains.Annotations;
 using Rin.Engine.Core.Extensions;
+using Rin.Sources;
 
 namespace Rin.Engine.Core;
 
 public sealed class SEngine : Disposable
 {
-    
     public static readonly string
         Directory = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "";
-    
+
     public static readonly string
         AssetsDirectory = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "", "assets");
 
     public static readonly string
         FrameworkAssetsDirectory = Path.Join(AssetsDirectory, "rin");
+
+    [PublicAPI] public SourceResolver Sources = new SourceResolver()
+    {
+        Sources =
+        [
+            new FileSystemSource(),
+            new ResourcesSource(typeof(SEngine).Assembly, "/Engine", ".Content.Engine.")
+        ]
+    };
 
     private static SEngine? _instance;
 
@@ -29,8 +39,6 @@ public sealed class SEngine : Disposable
     private DateTime _lastTickTime = DateTime.UtcNow;
 
     public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
-
-    public IFileSystem FileSystem { get; set; } = new DefaultFileSystem("");
 
     public bool IsRunning { get; private set; }
 

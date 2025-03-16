@@ -12,6 +12,14 @@ public class Allocator : Disposable
     private readonly IntPtr _allocator;
     private readonly SGraphicsModule _module;
 
+#if DEBUG
+    private readonly HashSet<WeakReference<IDeviceBuffer>> _buffers =
+        new(new WeakReferenceEqualityComparer<IDeviceBuffer>());
+
+    private readonly HashSet<WeakReference<IDeviceImage>> _images =
+        new(new WeakReferenceEqualityComparer<IDeviceImage>());
+#endif
+
     public Allocator(SGraphicsModule module)
     {
         _module = module;
@@ -44,6 +52,12 @@ public class Allocator : Disposable
                 preferHost ? 1 : 0,
                 (int)usageFlags, (int)propertyFlags, mapped ? 1 : 0, debugName);
             var result = new DeviceBuffer(buffer, size, this, (IntPtr)allocation, debugName);
+#if DEBUG
+            lock (_buffers)
+            {
+                _buffers.Add(new(result));
+            }
+#endif
             return result;
         }
     }
@@ -67,6 +81,12 @@ public class Allocator : Disposable
                 },
                 imageCreateInfo.format.FromVk(), this,
                 (IntPtr)allocation, debugName);
+#if DEBUG
+            lock (_images)
+            {
+                _images.Add(new(result));
+            }
+#endif
             return result;
         }
     }
@@ -76,6 +96,16 @@ public class Allocator : Disposable
     /// </summary>
     public void FreeBuffer(DeviceBuffer buffer)
     {
+#if DEBUG
+        lock (_buffers)
+        {
+            _buffers.RemoveWhere(c =>
+            {
+                c.TryGetTarget(out var target);
+                return buffer == target;
+            });
+        }
+#endif
         Native.Vulkan.FreeBuffer(buffer.NativeBuffer, buffer.Allocation, _allocator);
     }
 
@@ -86,6 +116,16 @@ public class Allocator : Disposable
     {
         unsafe
         {
+#if DEBUG
+            lock (_images)
+            {
+                _images.RemoveWhere(c =>
+                {
+                    c.TryGetTarget(out var target);
+                    return image == target;
+                });
+            }
+#endif
             vkDestroyImageView(_module.GetDevice(), image.NativeView, null);
             Native.Vulkan.FreeImage(image.NativeImage, image.Allocation, _allocator);
         }

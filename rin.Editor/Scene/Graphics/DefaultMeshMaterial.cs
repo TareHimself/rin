@@ -101,7 +101,7 @@ public class DefaultMeshMaterial : IMeshMaterial
 
         public override ulong GetRequiredMemory() => Utils.ByteSizeOf<DefaultMaterialProperties>();
         protected override IShader Shader { get; } = SGraphicsModule.Get()
-            .GraphicsShaderFromPath(Path.Join(SGraphicsModule.ShadersDirectory, "scene", "forward", "mesh.slang"));
+            .MakeGraphics(Path.Join(SGraphicsModule.ShadersDirectory, "scene", "forward", "mesh.slang"));
 
         protected override IMaterialPass GetPass(GeometryInfo mesh) => mesh.MeshMaterial.ColorPass;
 
@@ -110,7 +110,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             var cmd = frame.GetCommandBuffer();
             var push = Shader.PushConstants.Values.First();
             
-            var set = SGraphicsModule.Get().GetTextureManager().GetDescriptorSet();
+            var set = SGraphicsModule.Get().GetTextureFactory().GetDescriptorSet();
             cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, Shader.GetPipelineLayout(),
                 [set]);
             
@@ -170,7 +170,7 @@ public class DefaultMeshMaterial : IMeshMaterial
         
         public override ulong GetRequiredMemory() => Utils.ByteSizeOf<DepthMaterialData>();
         protected override IShader Shader { get; } = SGraphicsModule.Get()
-            .GraphicsShaderFromPath(Path.Join(SGraphicsModule.ShadersDirectory, "scene", "forward", "mesh_depth.slang"));
+            .MakeGraphics(Path.Join(SGraphicsModule.ShadersDirectory, "scene", "forward", "mesh_depth.slang"));
         protected override IMaterialPass GetPass(GeometryInfo mesh) => mesh.MeshMaterial.DepthPass;
 
         protected override ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data, GeometryInfo[] meshes)
