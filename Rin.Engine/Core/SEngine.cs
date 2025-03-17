@@ -27,7 +27,6 @@ public sealed class SEngine : Disposable
     };
 
     private static SEngine? _instance;
-
     private readonly List<IModule> _modules = [];
     private readonly Dictionary<Type, IModule> _modulesMap = new();
 
@@ -38,11 +37,21 @@ public sealed class SEngine : Disposable
 
     private DateTime _lastTickTime = DateTime.UtcNow;
 
+    private Task? _renderTask;
+
     public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
 
+    private readonly Dispatcher _mainDispatcher = new Dispatcher();
+    private readonly Dispatcher _renderDispatcher = new Dispatcher();
+    private readonly AutoResetEvent _mainUpdateEvent = new(false);
     public bool IsRunning { get; private set; }
-
+    public event Action? OnPreUpdate;
     public event Action<float>? OnUpdate;
+    public event Action? OnPostUpdate;
+
+    public event Action? OnPreRender;
+    public event Action? OnRender;
+    public event Action? OnPostRender;
 
     public event Action<SEngine>? OnStartup;
     public event Action<SEngine>? OnShutdown;
@@ -110,6 +119,26 @@ public sealed class SEngine : Disposable
         }
     }
 
+    public void DispatchMain(Action action)
+    {
+        _mainDispatcher.Enqueue(action);
+    }
+    
+    public void DispatchRender(Action action)
+    {
+        _renderDispatcher.Enqueue(action);
+    }
+    
+    public Dispatcher GetMainDispatcher()
+    {
+       return _mainDispatcher;
+    }
+    
+    public Dispatcher GetRenderDispatcher()
+    {
+        return _renderDispatcher;
+    }
+
     /// <summary>
     ///     Returns the time elapsed since the runtime started
     /// </summary>
@@ -147,23 +176,41 @@ public sealed class SEngine : Disposable
     }
 
 
+    private void Render()
+    {
+        while (!_exitRequested)
+        {
+            _mainUpdateEvent.WaitOne();
+            if (_exitRequested) return;
+            _renderDispatcher.DispatchPending();
+            OnPreRender?.Invoke();
+            OnRender?.Invoke();
+            OnPostRender?.Invoke();
+        }
+    }
+
     public void Run()
     {
         Startup();
-
+        
+        _renderTask = Task.Factory.StartNew(Render, TaskCreationOptions.LongRunning);
         _lastTickTime = DateTime.UtcNow;
 
         while (!_exitRequested)
         {
+            
+            OnPreUpdate?.Invoke();
             var tickStart = DateTime.UtcNow;
-
+            _mainDispatcher.DispatchPending();
             _lastDeltaSeconds = (float)(tickStart - _lastTickTime).TotalSeconds;
-
             OnUpdate?.Invoke(_lastDeltaSeconds);
-
+            OnPostUpdate?.Invoke();
             _lastTickTime = tickStart;
+
+            _mainUpdateEvent.Set();
         }
 
+        _renderTask.Wait();
         Shutdown();
     }
 

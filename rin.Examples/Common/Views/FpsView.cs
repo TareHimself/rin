@@ -16,7 +16,7 @@ public class FpsView : TextBox
     private readonly Averaged<int> _averageFps = new Averaged<int>(0,300);
     private readonly Averaged<double> _averageCollectTime = new Averaged<double>(0,300);
     private readonly Averaged<double> _averageExecuteTime = new Averaged<double>(0,300);
-    private Scheduler _scheduler = new Scheduler();
+    private Dispatcher _dispatcher = new Dispatcher();
     
     public FpsView()
     {
@@ -46,7 +46,7 @@ public class FpsView : TextBox
         {
             if (_view.Surface is WindowSurface asWindowSurface && asWindowSurface.GetRenderer() is WindowRenderer asWindowRenderer)
             {
-                _view._scheduler.Schedule(() =>
+                _view._dispatcher.Enqueue(() =>
                 {
                     _view._averageCollectTime.Add(asWindowRenderer.LastCollectElapsedTime);
                     _view._averageExecuteTime.Add(asWindowRenderer.LastExecuteElapsedTime);
@@ -85,6 +85,6 @@ public class FpsView : TextBox
     public override void Update(float deltaTime)
     {
         base.Update(deltaTime);
-        _scheduler.Update();
+        _dispatcher.DispatchPending();
     }
 }

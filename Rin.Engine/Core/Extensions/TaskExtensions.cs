@@ -41,6 +41,16 @@ public static class TaskExtensions
     {
         return task.Then(then).ConfigureAwait(false);
     }
+    
+    public static ConfiguredTaskAwaitable DispatchAfter<T>(this Task<T> task,Dispatcher dispatcher, Action<T> then)
+    {
+        return task.After(c => dispatcher.Enqueue(() => then(c)));
+    }
+
+    public static ConfiguredTaskAwaitable DispatchAfter(this Task task,Dispatcher dispatcher, Action then)
+    {
+        return task.After(() => dispatcher.Enqueue(then));
+    }
 
     public static T WaitForResult<T>(this Task<T> task)
     {

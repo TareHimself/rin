@@ -68,9 +68,9 @@ public class SViewsTestModule : IModule
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
             
-            var scheduler = new Scheduler();
+            var scheduler = new Dispatcher();
 
-            SEngine.Get().OnUpdate += (_) => scheduler.Update();
+            SEngine.Get().OnUpdate += (_) => scheduler.DispatchPending();
             
             var list = new WrapList()
             {
@@ -130,7 +130,7 @@ public class SViewsTestModule : IModule
                 {
                     foreach (var objPath in e.Paths)
                     {
-                        scheduler.Schedule(() => list.Add(new ListSlot
+                        scheduler.Enqueue(() => list.Add(new ListSlot
                         {
                             Child = new WrapContainer(new AsyncFileImage(objPath)
                             {
@@ -151,7 +151,7 @@ public class SViewsTestModule : IModule
                         .After(
                             (p) =>
                             {
-                                scheduler.Schedule(() =>
+                                scheduler.Enqueue(() =>
                                 {
                                     foreach (var path in p)
                                         list.Add(new WrapContainer(new AsyncFileImage(path)
@@ -454,36 +454,6 @@ public class SViewsTestModule : IModule
 
     public void Start(SEngine engine)
     {
-        //SViewsModule.Get().GetFontManager().LoadSystemFonts();
-        
-        Common.Utils.RunMultithreaded((delta) =>
-        {
-            SGraphicsModule.Get().Update(delta);
-            SViewsModule.Get().Update(delta);
-            SGraphicsModule.Get().Collect();
-        }, () =>
-        {
-            SGraphicsModule.Get().Execute();
-        });
-        
-        // Common.Utils.RunMultithreaded((delta) =>
-        // {
-        //     SGraphicsModule.Get().PollWindows();
-        //     SViewsModule.Get().Update(delta);
-        //     SGraphicsModule.Get().Collect();
-        // }, () =>
-        // {
-        //     SGraphicsModule.Get().Execute();
-        // });
-
-        // {
-        //     var fontManager = SViewsModule.Get().GetFontManager();
-        //     if (fontManager.TryGetFont("Arial", out var family))
-        //     {
-        //         fontManager.Prepare(family, Enumerable.Range(33, 126 - 33).Select(c => (char)c).ToArray());
-        //     }
-        // }R
-        
         {
             var manager = SViewsModule.Get().GetFontManager();
             if (manager.TryGetFont("Noto Sans", out var family))
@@ -498,7 +468,6 @@ public class SViewsTestModule : IModule
         {
             Visible = true,
             Decorated = true,
-            Transparent = true,
             Focused = true
         });
         //TestText();

@@ -1,4 +1,5 @@
-﻿using Rin.Engine.Core.Extensions;
+﻿using Rin.Engine.Core;
+using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Views;
@@ -27,15 +28,18 @@ public class AsyncWebImage : CoverImage
             using var client = new HttpClient();
             var stream = await client.GetStreamAsync(uri);
             using var img = await Image.LoadAsync<Rgba32>(stream);
-            using var imgData = img.ToBuffer();
-            TextureId = SGraphicsModule.Get().CreateTexture(imgData,
+            var (texId,task) = SGraphicsModule.Get().CreateTexture(img.ToBuffer(),
                 new Extent3D
                 {
                     Width = (uint)img.Width,
                     Height = (uint)img.Height
                 },
                 ImageFormat.RGBA8);
-            OnLoaded?.Invoke(true);
+            task.DispatchAfter(SEngine.Get().GetMainDispatcher(), () =>
+            {
+                TextureId = texId;
+                OnLoaded?.Invoke(true);
+            });
         }
         catch (Exception e)
         {

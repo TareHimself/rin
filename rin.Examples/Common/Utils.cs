@@ -6,7 +6,7 @@ public static class Utils
 {
     public static void RunMultithreaded(Action<float> main, Action render)
     {
-
+        
         var mainMutex = new AutoResetEvent(false);
         int mains = 0;
         int renders = 0;

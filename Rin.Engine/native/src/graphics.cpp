@@ -8,11 +8,11 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #include <slang.h>
 
 #define VK_DISPATCH_CHECKED(FUNCTION,...) \
-if(VULKAN_HPP_DEFAULT_DISPATCHER.##FUNCTION == nullptr) \
+if(VULKAN_HPP_DEFAULT_DISPATCHER.FUNCTION == nullptr) \
 { \
     std::cerr << #FUNCTION << " Was Not Loaded" << "\n"; \
 } \
-return VULKAN_HPP_DEFAULT_DISPATCHER.##FUNCTION(__VA_ARGS__);
+return VULKAN_HPP_DEFAULT_DISPATCHER.FUNCTION(__VA_ARGS__);
 
 EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions, CreateSurfaceCallback createSurfaceCallback, VkInstance* outInstance, VkDevice* outDevice,
     VkPhysicalDevice* outPhysicalDevice, VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily, VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,

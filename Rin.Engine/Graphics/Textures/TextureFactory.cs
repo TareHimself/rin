@@ -6,7 +6,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using TerraFX.Interop.Vulkan;
 
-namespace Rin.Engine.Graphics;
+namespace Rin.Engine.Graphics.Textures;
 
 public class TextureFactory : ITextureFactory
 {
@@ -18,8 +18,9 @@ public class TextureFactory : ITextureFactory
 
     private readonly HashSet<int> _availableIndices = [];
     private readonly DescriptorSet _descriptorSet;
-    private readonly Mutex _mutex = new();
+    private readonly object _sync = new();
     private readonly List<Texture> _textures = [];
+    private readonly Dictionary<int,TaskCompletionSource> _pendingTextures = [];
     private uint _count;
 
     // public class BoundTexture : ITexture
@@ -75,7 +76,31 @@ public class TextureFactory : ITextureFactory
     }
 
 
-    public int CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
+    private async Task AsyncCreateTexture(Texture boundText,TaskCompletionSource completionSource,NativeBuffer<byte> data, Extent3D size, ImageFormat format,
+        ImageFilter filter = ImageFilter.Linear, bool mips = false, string debugName = "Texture")
+    {
+        
+        var image = await SGraphicsModule.Get().CreateImage(data, size, format,
+            VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mips, filter, debugName);
+        boundText.Image = image;
+        lock (_sync)
+        {
+            // In-case the texture was disposed before we finished creating the image
+            if (_textures[boundText.Id] != boundText)
+            {
+                if (!completionSource.Task.IsCanceled)
+                {
+                    completionSource.SetCanceled();
+                }
+                image.Dispose();
+                return;
+            }
+            boundText.Image = image;
+            UpdateTextures(boundText.Id);
+            completionSource.SetResult();
+        }
+    }
+    public Pair<int,Task> CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture")
     {
@@ -87,7 +112,9 @@ public class TextureFactory : ITextureFactory
         };
 
         int textureId;
-        lock (_mutex)
+        var completionSource = new TaskCompletionSource();
+        var task = completionSource.Task;
+        lock (_sync)
         {
             if (_availableIndices.Count == 0)
             {
@@ -100,31 +127,39 @@ public class TextureFactory : ITextureFactory
                 _availableIndices.Remove(textureId);
                 _textures[textureId] = boundText;
             }
+            _pendingTextures.Add(textureId,completionSource);
             boundText.Id = textureId;
         }
+        
+        Task.Run(() => AsyncCreateTexture(boundText,completionSource,data, size, format, filter, mips, debugName)).ConfigureAwait(false);
+        
+        return new (textureId,task);
+    }
 
-        SGraphicsModule.Get().CreateImage(data, size, format,
-            VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mips, filter, debugName).After(image =>
+    public Task? GetPendingTexture(int textureId)
+    {
+        lock (_sync)
         {
-            boundText.Image = image;
-            lock (_mutex)
+            if (_pendingTextures.TryGetValue(textureId, out var src))
             {
-                // In-case the texture was disposed before we finished creating the image
-                if (_textures[boundText.Id] != boundText)
-                {
-                    image.Dispose();
-                    return;
-                }
-                boundText.Image = image;
-                UpdateTextures(textureId);
+                return src.Task;
             }
-        });
-        return textureId;
+        }
+
+        return null;
+    }
+
+    public bool IsTextureReady(int textureId)
+    {
+        lock (_sync)
+        {
+            return _textures[textureId].Uploaded;
+        }
     }
 
     public void FreeTextures(params int[] textureIds)
     {
-        lock (_mutex)
+        lock (_sync)
         {
             List<ImageWrite> writes = [];
 
@@ -144,6 +179,8 @@ public class TextureFactory : ITextureFactory
                 if (info.Uploading)
                 {
                     _textures[textureId] = new Texture();
+                    _pendingTextures[textureId].SetCanceled();
+                    _pendingTextures.Remove(textureId);
                     continue;
                 }
                 

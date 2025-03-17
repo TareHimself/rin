@@ -101,7 +101,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                    
                             glyph.AtlasId = SGraphicsModule.Get().CreateTexture(data,
                                 new Extent3D((uint)result.PixelWidth, (uint)result.PixelHeight), ImageFormat.RGBA8,
-                                tiling: ImageTiling.ClampEdge);
+                                tiling: ImageTiling.ClampEdge).First;
                             data.Dispose();
                             return new Pair<int, LiveGlyphInfo>(index, glyph);
                 });
@@ -214,13 +214,9 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                 }
                 
                 // Upload textures to gpu
-                var atlasIds = atlases.Select(c =>
-                {
-                    using var data = c.ToBuffer();
-                    return SGraphicsModule.Get().CreateTexture(data,
-                        new Extent3D((uint)c.Width, (uint)c.Height), ImageFormat.RGBA8,
-                        tiling: ImageTiling.ClampEdge);
-                }).ToArray();
+                var atlasIds = atlases.Select(c => SGraphicsModule.Get().CreateTexture(c.ToBuffer(),
+                    new Extent3D((uint)c.Width, (uint)c.Height), ImageFormat.RGBA8,
+                    tiling: ImageTiling.ClampEdge).First).ToArray();
                 
                 // Update Live glyphs
                 for (var i = 0; i < packers.Count; i++)

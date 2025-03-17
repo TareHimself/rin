@@ -106,14 +106,11 @@ public class FontGenerator(FontFamily family)
             //await atlas.SaveAsPngAsync($"./atlas_{i}.png");
         }
 
-        var atlasIds = atlases.Select((c, idx) =>
-        {
-            return SGraphicsModule.Get().CreateTexture(c.ToBuffer(), new Extent3D
-                {
-                    Width = (uint)c.Width,
-                    Height = (uint)c.Height
-                }, ImageFormat.RGBA8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}");
-        }).ToArray();
+        var atlasIds = atlases.Select((c, idx) => SGraphicsModule.Get().CreateTexture(c.ToBuffer(), new Extent3D
+            {
+                Width = (uint)c.Width,
+                Height = (uint)c.Height
+            }, ImageFormat.RGBA8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}").First).ToArray();
         return new MtsdfFont(_family, atlasIds, atlasGlyphs);
     }
 

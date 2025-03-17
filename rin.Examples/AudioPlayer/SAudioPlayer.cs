@@ -22,16 +22,6 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
 
     public void Start(SEngine engine)
     {
-        Common.Utils.RunMultithreaded((delta) =>
-        {
-            SGraphicsModule.Get().Update(delta);
-            SViewsModule.Get().Update(delta);
-            SGraphicsModule.Get().Collect();
-        }, () =>
-        {
-            SGraphicsModule.Get().Execute();
-        });
-        
         SAudioModule.Get().SetVolume(0.1f);
         var window = SGraphicsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
         window.OnCloseRequested += (_) => { SEngine.Get().RequestExit(); };

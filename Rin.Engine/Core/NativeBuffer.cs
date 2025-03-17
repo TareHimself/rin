@@ -75,6 +75,7 @@ public class NativeBuffer<T> : IDisposable, IBinarySerializable, ICloneable<Nati
     private void ReleaseUnmanagedResources()
     {
         if (_ptr != IntPtr.Zero) Marshal.FreeHGlobal(_ptr);
+        _ptr = IntPtr.Zero;
     }
 
     public unsafe void Write(IntPtr src, uint size)

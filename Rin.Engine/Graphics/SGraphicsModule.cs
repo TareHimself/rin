@@ -12,6 +12,7 @@ using Rin.Engine.Graphics.Shaders.Slang;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Core.Extensions;
 using Rin.Engine.Graphics.Meshes;
+using Rin.Engine.Graphics.Textures;
 using SDL;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -20,7 +21,7 @@ using static SDL.SDL3;
 namespace Rin.Engine.Graphics;
 
 [Module]
-public sealed partial class SGraphicsModule : IModule,IUpdatable, ISingletonGetter<SGraphicsModule>
+public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGetter<SGraphicsModule>
 {
     public static readonly string
         ShadersDirectory = Path.Join(SEngine.FrameworkAssetsDirectory, "shaders", "rin");
@@ -64,20 +65,26 @@ public sealed partial class SGraphicsModule : IModule,IUpdatable, ISingletonGett
     private VkFence _transferFence;
     private VkQueue _transferQueue;
     private uint _transferQueueFamily;
-    private int _maxEventsPerPeep = 64;
-    
+    private readonly int _maxEventsPerPeep = 64;
+
     public void Start(SEngine engine)
     {
-        //NativeMethods.InitGlfw();
-
+        engine.OnUpdate += Update;
+        engine.OnPostUpdate += Collect;
+        engine.OnRender += Execute;
         if (!SDL_InitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD))
             throw new InvalidOperationException($"failed to initialise SDL. Error: {SDL_GetError()}");
-        SDL_SetEventEnabled(SDL_EventType.SDL_EVENT_DROP_FILE,true);
+        SDL_SetEventEnabled(SDL_EventType.SDL_EVENT_DROP_FILE, true);
         InitVulkan();
     }
 
     public void Stop(SEngine engine)
     {
+        engine.OnRender -= Execute;
+        engine.OnPostUpdate -= Collect;
+        engine.OnUpdate -= Update;
+
+
         lock (_renderers)
         {
             _renderers.Clear();
@@ -248,7 +255,6 @@ public sealed partial class SGraphicsModule : IModule,IUpdatable, ISingletonGett
 
     private unsafe void InitVulkan()
     {
-        
         var outInstance = _instance;
         var outDevice = _device;
         var outPhysicalDevice = _physicalDevice;
@@ -280,15 +286,15 @@ public sealed partial class SGraphicsModule : IModule,IUpdatable, ISingletonGett
                 SDL_Vulkan_CreateSurface(windowPtr, (SDL.VkInstance_T*)inst.Value, null,
                     (SDL.VkSurfaceKHR_T**)surfValuePtr);
                 return surface;
-            }, 
-            &outInstance, 
-            &outDevice, 
-            &outPhysicalDevice, 
-            &outGraphicsQueue, 
-            &outTransferQueueFamily, 
-            &outTransferQueue, 
-            &outTransferQueueFamily, 
-            &outSurface, 
+            },
+            &outInstance,
+            &outDevice,
+            &outPhysicalDevice,
+            &outGraphicsQueue,
+            &outTransferQueueFamily,
+            &outTransferQueue,
+            &outTransferQueueFamily,
+            &outSurface,
             &outDebugMessenger);
         _instance = outInstance;
         _device = outDevice;
@@ -302,6 +308,7 @@ public sealed partial class SGraphicsModule : IModule,IUpdatable, ISingletonGett
 
         var formats = _physicalDevice.GetSurfaceFormats(outSurface).Where(c =>
         {
+            //return c.format.ToString().ContainsAll("R","G","B","A","UNORM");
             var asString = c.format.ToString();
             return SurfaceFormatRegex().IsMatch(asString);
         }).ToArray();
@@ -348,12 +355,12 @@ public sealed partial class SGraphicsModule : IModule,IUpdatable, ISingletonGett
     {
         return _textureFactory ?? throw new NullReferenceException();
     }
-    
+
     public IMeshFactory GetMeshFactory()
     {
         return _meshFactory ?? throw new NullReferenceException();
     }
-    
+
     /// <summary>
     /// Assigns an id to this texture and creates it as soon as possible. does not own the data and makes a copy of it
     /// </summary>
@@ -365,9 +372,10 @@ public sealed partial class SGraphicsModule : IModule,IUpdatable, ISingletonGett
     /// <param name="mips"></param>
     /// <param name="debugName"></param>
     /// <returns></returns>
-    public int CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
+    public Pair<int, Task> CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
-        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture") => GetTextureFactory().CreateTexture(data, size, format, filter, tiling, mips, debugName);
+        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture") =>
+        GetTextureFactory().CreateTexture(data, size, format, filter, tiling, mips, debugName);
 
     private void HandleWindowCreated(IWindow window)
     {
@@ -1048,7 +1056,7 @@ public sealed partial class SGraphicsModule : IModule,IUpdatable, ISingletonGett
             }
     }
 
-    
+
     /// <summary>
     ///     Call <see cref="IRenderer.Collect" /> for each <see cref="IRenderer" />
     /// </summary>
@@ -1069,6 +1077,7 @@ public sealed partial class SGraphicsModule : IModule,IUpdatable, ISingletonGett
                 collected.Add(context);
             }
         }
+
         _collected = collected.ToArray();
     }
 

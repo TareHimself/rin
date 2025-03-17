@@ -17,5 +17,6 @@ public enum ImageFormat
     RGBA16,
     RGBA32,
     Depth,
-    Stencil
+    Stencil,
+    Surface
 }

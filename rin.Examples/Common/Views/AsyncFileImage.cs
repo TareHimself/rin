@@ -17,6 +17,7 @@ public class AsyncFileImage : CoverImage
     private float _alpha = 0.0f;
     private float _alphaTarget;
     private CancellationTokenSource _token = new CancellationTokenSource();
+    
     public AsyncFileImage(string filePath) : base()
     {
         Task.Run(() => LoadFile(filePath),_token.Token);
@@ -30,14 +31,14 @@ public class AsyncFileImage : CoverImage
     private async Task LoadFile(string filePath)
     {
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(filePath);
-        using var buffer = imgData.ToBuffer();
-        TextureId = SGraphicsModule.Get().CreateTexture(buffer,
+        var (texId,task) = SGraphicsModule.Get().CreateTexture(imgData.ToBuffer(),
             new Extent3D
             {
                 Width = (uint)imgData.Width,
                 Height = (uint)imgData.Height,
             },
             ImageFormat.RGBA8);
+        task.DispatchAfter(SEngine.Get().GetMainDispatcher(),() => TextureId = texId);
     }
 
     // public override void Draw(ViewFrame frame, DrawInfo info)

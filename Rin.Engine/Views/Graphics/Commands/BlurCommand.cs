@@ -4,24 +4,35 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
+using Utils = Rin.Engine.Core.Utils;
 
 namespace Rin.Engine.Views.Graphics.Commands;
 
-public struct BlurPushConstants
+
+internal struct BlurData()
 {
-    public required Mat4 Projection;
+    public required Mat4 Projection = Mat4.Identity;
 
-    public required Mat3 Transform;
+    public required Mat3 Transform = Mat3.Identity;
 
-    public required Vector2 Size;
+    private Vector4 _options = Vector4.Zero;
 
-    public required float Strength;
+    public Vector2 Size
+    {
+        get => new Vector2(_options.X, _options.Y);
+        set
+        {
+            _options.X = value.X;
+            _options.Y = value.Y;
+        }
+    }
 
-    public required float Radius;
+    public float Strength { get => _options.Y; set => _options.Y = value; }
 
-    public required Vector4 Tint;
+    public float Radius { get => _options.W; set => _options.W = value; }
+
+    public Vector4 Tint = Vector4.Zero;
 }
-
 public class BlurCommand(Mat3 transform, Vector2 size, float strength, float radius, Vector4 tint) : CustomCommand
 {
     private static string _blurPassId = Guid.NewGuid().ToString();
@@ -36,38 +47,12 @@ public class BlurCommand(Mat3 transform, Vector2 size, float strength, float rad
 
     public override ulong GetRequiredMemory()
     {
-        return 0;
+        return Utils.ByteSizeOf<BlurData>();
     }
-    // public static void ApplyBlurPass(ViewFrame frame)
-    // {
-    //     var cmd = frame.Raw.GetCommandBuffer();
-    //
-    //     var drawImage = frame.Surface.GetDrawImage();
-    //     var stencilImage = frame.Surface.GetStencilImage();
-    //
-    //     var size = frame.Surface.GetDrawSize();
-    //
-    //     var drawExtent = new VkExtent3D
-    //     {
-    //         width = (uint)size.X,
-    //         height = (uint)size.Y
-    //     };
-    //
-    //     cmd.BeginRendering(new VkExtent2D
-    //     {
-    //         width = drawExtent.width,
-    //         height = drawExtent.height
-    //     }, [
-    //         SGraphicsModule.MakeRenderingAttachment(drawImage.View,
-    //             VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-    //     ], stencilAttachment: SGraphicsModule.MakeRenderingAttachment(stencilImage.View,
-    //         VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
-    //
-    //     frame.Raw.ConfigureForViews(size.Cast<uint>());
-    // }
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {
+        var buffer = view ?? throw new NullReferenceException();
         frame.BeginMainPass();
         var cmd = frame.Raw.GetCommandBuffer();
         if (_blurShader.Bind(cmd, true))
@@ -87,7 +72,7 @@ public class BlurCommand(Mat3 transform, Vector2 size, float strength, float rad
                 new[] { descriptorSet });
 
             var pushResource = _blurShader.PushConstants.First().Value;
-            var push = new BlurPushConstants
+            buffer.Write(new BlurData()
             {
                 Projection = frame.Projection,
                 Size = size,
@@ -95,8 +80,8 @@ public class BlurCommand(Mat3 transform, Vector2 size, float strength, float rad
                 Radius = radius,
                 Tint = tint,
                 Transform = transform
-            };
-            cmd.PushConstant(_blurShader.GetPipelineLayout(), pushResource.Stages, push);
+            });
+            cmd.PushConstant(_blurShader.GetPipelineLayout(), pushResource.Stages,buffer.GetAddress());
             cmd.Draw(6);
         }
     }

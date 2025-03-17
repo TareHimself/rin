@@ -2,7 +2,6 @@
 #include <slang.h>
 #include <slang-com-ptr.h>
 #include <slang-com-helper.h>
-#include <slang-com-helper.h>
 #include <vector>
 #include <string>
 #include "macro.hpp"
@@ -46,15 +45,50 @@
 //  */
 // uint32_t compilerOptionEntryCount = 0;
 
-// struct CustomFileSystem : ISlangFileSystem
-// {
-//     uint32_t refs;
-//     SlangResult queryInterface(const SlangUUID& uuid, void** outObject) override;
-//     uint32_t addRef() override;
-//     uint32_t release() override;
-//     void* castAs(const SlangUUID& guid) override;
-//     SlangResult loadFile(const char* path, ISlangBlob** outBlob) override;
-// };
+
+struct CustomBlob : ISlangBlob, ISlangCastable
+{
+    virtual ~CustomBlob();
+
+    std::atomic<uint32_t> refs{0};
+    SLANG_NO_THROW SlangResult queryInterface(const SlangUUID& uuid, void** outObject) override;
+    SLANG_NO_THROW uint32_t addRef() override;
+    SLANG_NO_THROW uint32_t release() override;
+    ISlangUnknown* getInterface(const Slang::Guid& guid);
+    SLANG_NO_THROW void* castAs(const SlangUUID& guid) override;
+    
+};
+
+struct CustomBinaryBlob : CustomBlob
+{
+    std::vector<char> data{};
+    explicit CustomBinaryBlob(const std::vector<char>& inData);
+    SLANG_NO_THROW const void* getBufferPointer() override;
+    SLANG_NO_THROW size_t getBufferSize() override;
+};
+
+struct CustomStringBlob : CustomBlob
+{
+    std::string data{};
+    explicit CustomStringBlob(const std::string& inData);
+    SLANG_NO_THROW const void* getBufferPointer() override;
+    SLANG_NO_THROW size_t getBufferSize() override;
+};
+struct CustomFileSystem final : ISlangFileSystemExt
+{
+    SLANG_NO_THROW SlangResult queryInterface(const SlangUUID& uuid, void** outObject) override;
+    SLANG_NO_THROW uint32_t addRef() override;
+    SLANG_NO_THROW uint32_t release() override;
+    SLANG_NO_THROW void* castAs(const SlangUUID& guid) override;
+    SLANG_NO_THROW SlangResult loadFile(const char* path, ISlangBlob** outBlob) override;
+    SLANG_NO_THROW SlangResult getFileUniqueIdentity(const char* path, ISlangBlob** outUniqueIdentity) override;
+    SLANG_NO_THROW SlangResult calcCombinedPath(SlangPathType fromPathType, const char* fromPath, const char* path, ISlangBlob** pathOut) override;
+    SLANG_NO_THROW SlangResult getPathType(const char* path, SlangPathType* pathTypeOut) override;
+    SLANG_NO_THROW SlangResult getPath(PathKind kind, const char* path, ISlangBlob** outPath) override;
+    SLANG_NO_THROW void clearCache() override;
+    SLANG_NO_THROW SlangResult enumeratePathContents(const char* path, FileSystemContentsCallBack callback, void* userData) override;
+    SLANG_NO_THROW OSPathKind getOSPathKind() override;
+};
 
 struct SessionBuilder
 {
@@ -66,7 +100,9 @@ struct SessionBuilder
 struct Session
 {
     Slang::ComPtr<slang::ISession> session{};
+    CustomFileSystem* fileSystem{nullptr};
     explicit Session(const SessionBuilder * builder);
+    ~Session();
 };
 
 struct Module

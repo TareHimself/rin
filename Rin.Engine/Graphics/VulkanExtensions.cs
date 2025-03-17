@@ -114,6 +114,7 @@ public static class VulkanExtensions
             ImageFormat.RGB8 => VkFormat.VK_FORMAT_R8G8B8_UNORM,
             ImageFormat.RGB16 => VkFormat.VK_FORMAT_R16G16B16_UNORM,
             ImageFormat.RGB32 => VkFormat.VK_FORMAT_R32G32B32_SFLOAT,
+            ImageFormat.Surface => SGraphicsModule.Get().GetSurfaceFormat().format,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -173,7 +174,7 @@ public static class VulkanExtensions
             VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.RGBA32,
             VkFormat.VK_FORMAT_D32_SFLOAT => ImageFormat.Depth,
             VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT => ImageFormat.Stencil,
-            _ => throw new ArgumentOutOfRangeException()
+            _ => format == ImageFormat.Surface.ToVk() ? ImageFormat.Surface : throw new ArgumentOutOfRangeException(),
         };
     }
 
@@ -701,10 +702,18 @@ public static class VulkanExtensions
     public static VkCommandBuffer PushConstant<T>(this VkCommandBuffer cmd, VkPipelineLayout pipelineLayout,
         VkShaderStageFlags stageFlags, T data, uint offset = 0) where T : unmanaged
     {
+        
         unsafe
         {
+            var size = (uint)Core.Utils.ByteSizeOf<T>();
+            #if DEBUG
+            if (size > 128)
+            {
+                Console.WriteLine("PushConstant of size {0} is greater than 128 bytes, this may be an issue on some devices",size);
+            }
+            #endif
             vkCmdPushConstants(cmd, pipelineLayout,
-                stageFlags, offset, (uint)Marshal.SizeOf<T>(), &data);
+                stageFlags, offset,size, &data);
         }
 
         return cmd;

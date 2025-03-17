@@ -1,13 +1,25 @@
 import rin.utils;
 
-struct PushConstants
+struct BlurData
 {
     float4x4 projection;
     float3x3 transform;
-    float2 size;
-    float strength;
-    float radius;
+    float4 _options;
     float4 tint;
+    float2 getSize() {
+        return _options.xy;
+    }
+    float getStrength() {
+        return _options.y;
+    }
+    float getRadius() {
+        return _options.w;
+    }
+};
+
+struct PushConstants
+{
+    BlurData *data;
 };
 
 uniform Sampler2D SourceT;
@@ -20,7 +32,7 @@ float4 vertex(int vertexId: SV_VertexID, out float2 oUV: UV)
     : SV_Position
 {
     float4 position;
-    generateRectVertex(push.size, push.projection, push.transform, vertexId, position, oUV);
+    generateRectVertex(push.data->getStrength(), push.data->projection, push.data->transform, vertexId, position, oUV);
     return position;
 }
 
@@ -99,8 +111,8 @@ float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
     float4 color = 0;
     float weightSum = 0;
 
-    float sigma = push.radius * 0.5 * push.strength;
-    int kernelRadius = int(push.radius);
+    float sigma = push.data->getRadius() * 0.5 * push.data->getStrength();
+    int kernelRadius = int(push.data->getRadius());
 
     // for (int i = -kernelRadius; i <= kernelRadius; i++) {
     //     float weight = gaussianWeight(i, sigma);

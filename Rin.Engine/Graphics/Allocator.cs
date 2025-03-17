@@ -7,10 +7,10 @@ namespace Rin.Engine.Graphics;
 /// <summary>
 ///     Allocates GPU memory
 /// </summary>
-public class Allocator : Disposable
+public class Allocator(SGraphicsModule module) : Disposable
 {
-    private readonly IntPtr _allocator;
-    private readonly SGraphicsModule _module;
+    private readonly IntPtr _allocator = Native.Vulkan.CreateAllocator(module.GetInstance(), module.GetDevice(),
+        module.GetPhysicalDevice());
 
 #if DEBUG
     private readonly HashSet<WeakReference<IDeviceBuffer>> _buffers =
@@ -19,13 +19,6 @@ public class Allocator : Disposable
     private readonly HashSet<WeakReference<IDeviceImage>> _images =
         new(new WeakReferenceEqualityComparer<IDeviceImage>());
 #endif
-
-    public Allocator(SGraphicsModule module)
-    {
-        _module = module;
-        _allocator = Native.Vulkan.CreateAllocator(module.GetInstance(), module.GetDevice(),
-            module.GetPhysicalDevice());
-    }
 
     public static implicit operator IntPtr(Allocator allocator)
     {
@@ -126,7 +119,7 @@ public class Allocator : Disposable
                 });
             }
 #endif
-            vkDestroyImageView(_module.GetDevice(), image.NativeView, null);
+            vkDestroyImageView(module.GetDevice(), image.NativeView, null);
             Native.Vulkan.FreeImage(image.NativeImage, image.Allocation, _allocator);
         }
     }

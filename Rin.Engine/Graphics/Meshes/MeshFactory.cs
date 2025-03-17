@@ -97,20 +97,22 @@ public class MeshFactory : IMeshFactory
         }
     }
     
-    public int CreateMesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices,MeshSurface[] surfaces)
+    public Pair<int,Task> CreateMesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices,MeshSurface[] surfaces)
     {
         var id = _factory.NewId();
         var nVertices = new NativeBuffer<Vertex>(vertices);
         var nIndices = new NativeBuffer<uint>(indices);
-        
+
+        Task task;
         lock (_sync)
         {
             _pendingMeshes[id] = new TaskCompletionSource();
+            task = _pendingMeshes[id].Task;
         }
         
         Task.Run(() => AsyncCreateMesh(id,nVertices, nIndices, surfaces)).ConfigureAwait(false);
         
-        return id;
+        return new(id,task);
     }
 
     public bool IsMeshReady(int meshId)
@@ -121,16 +123,16 @@ public class MeshFactory : IMeshFactory
         }
     }
 
-    public Task GetCreateTask(int meshId)
+    public Task? GetPendingMesh(int meshId)
     {
-        TaskCompletionSource? toComplete;
         lock (_sync)
         {
-            _pendingMeshes.TryGetValue(meshId, out toComplete);
+            if (_pendingMeshes.TryGetValue(meshId, out var src))
+            {
+                return src.Task;
+            }
         }
-
-        
-        return toComplete?.Task ?? Task.CompletedTask;
+        return null;
     }
 
     public void FreeMeshes(params int[] meshIds)

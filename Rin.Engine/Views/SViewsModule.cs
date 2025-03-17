@@ -11,18 +11,17 @@ namespace Rin.Engine.Views;
 [Module(typeof(SGraphicsModule))]
 public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
 {
-
     class TestExternalFontCache : IExternalFontCache
     {
         public TestExternalFontCache()
         {
             Directory.CreateDirectory(Path.Join(SEngine.Directory, ".gen", "mtsdf"));
         }
-        
+
         public Stream? Get(int id)
         {
             return null;
-            var filePath = Path.Join(SEngine.Directory,".gen","mtsdf", $"{id}.mtsdf");
+            var filePath = Path.Join(SEngine.Directory, ".gen", "mtsdf", $"{id}.mtsdf");
             if (!File.Exists(filePath)) return null;
             return File.OpenRead(filePath);
         }
@@ -41,6 +40,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
 
         public bool SupportsSet => true;
     }
+
     public static readonly string
         ShadersDirectory = Path.Join(SGraphicsModule.ShadersDirectory, "views");
 
@@ -54,6 +54,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
 
     public void Start(SEngine engine)
     {
+        engine.OnUpdate += Update;
         _fontManager.LoadFont(SEngine.Get().Sources.Read("/Engine/Fonts/NotoSans-Regular.ttf"));
         _graphicsSubsystem = engine.GetModule<SGraphicsModule>();
         if (_graphicsSubsystem == null) return;
@@ -64,6 +65,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
 
     public void Stop(SEngine engine)
     {
+        engine.OnUpdate -= Update;
         _graphicsSubsystem?.WaitDeviceIdle();
 
         foreach (var (_, surf) in _windowSurfaces)
@@ -145,7 +147,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
     {
         return _stencilShader;
     }
-    
+
     public void Update(float deltaTime)
     {
         foreach (var surface in _windowSurfaces.Values) surface.Update(deltaTime);

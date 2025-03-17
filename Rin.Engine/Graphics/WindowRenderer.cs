@@ -207,7 +207,7 @@ public class WindowRenderer : IWindowRenderer
         {
             unsafe
             {
-                var viewCreateInfo = SGraphicsModule.MakeImageViewCreateInfo(ImageFormat.RGBA8, c,
+                var viewCreateInfo = SGraphicsModule.MakeImageViewCreateInfo(ImageFormat.Surface, c,
                     VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
                 var view = new VkImageView();
                 vkCreateImageView(device, &viewCreateInfo, null, &view);

@@ -2,7 +2,6 @@
 #include "Engine/Shaders/sd.slang"
 #include "Engine/Shaders/textures.slang"
 
-
 enum QuadMode
 {
     Primitive,
@@ -26,7 +25,6 @@ struct Quad
     int4 opts;
     float2 size;
     float3x3 transform;
-    
 };
 
 struct CompleteQuad {
@@ -83,7 +81,8 @@ float median(float r, float g, float b)
 
 float screenPxRange(float2 uv, float2 size)
 {
-    float2 unitRange = float2(12.0) / size;
+    // return (max(size.x, size.y) / 32.0f) * 6.0f;
+    float2 unitRange = float2(6.0) / size;
     float2 screenTexSize = float2(1.0) / fwidth(uv);
     return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
@@ -112,7 +111,7 @@ struct Mtsdf {
     float4 uv;
 }
 
-#define FEATHER 3
+#define SDF_HALF_STEP 0.5
 [shader("fragment")]
 float4 fragment(FSIn input)
     : SV_Target
@@ -135,16 +134,16 @@ float4 fragment(FSIn input)
             var d = sdSegment(input.coordinate, a, b);
 
             float thickness = asPrimitive.data3.x; // Assuming thickness is stored in data3.z
-            float smoothedAlpha = smoothstep(thickness, thickness + FEATHER, d);
+            float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness + SDF_HALF_STEP, d);
             // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
             // return float4(float3(abs(d),0.0f,0.0f),1.0f);
-            return float4(asPrimitive.data1.rgb,1 - smoothedAlpha);
+            return float4(asPrimitive.data1.rgb, 1 - smoothedAlpha);
         }
         case PrimitiveType.Circle:
         {
             var d = sdCircle(input.coordinate, asPrimitive.data2.x);
-            float smoothedAlpha = smoothstep(0.0f, FEATHER, d);
-            return float4(asPrimitive.data1.rgb,1 - smoothedAlpha);
+            float smoothedAlpha = smoothstep(-0.5, 0.5, d);
+            return float4(asPrimitive.data1.rgb, 1 - smoothedAlpha);
         }
         case PrimitiveType.Rectangle:
             return applyBorderRadius(input.coordinate, asPrimitive.data1, asPrimitive.data2, size, transform);
@@ -156,7 +155,7 @@ float4 fragment(FSIn input)
 
             var d = sdBezier(input.coordinate, a, b, C);
             float thickness = asPrimitive.data3.z; // Assuming thickness is stored in data3.z
-            float smoothedAlpha = smoothstep(thickness, thickness + FEATHER, d);
+            float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness + SDF_HALF_STEP, d);
             // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
             // return float4(float3(abs(d),0.0f,0.0f),1.0f);
             return float4(asPrimitive.data1.rgb, 1 - smoothedAlpha);
@@ -168,9 +167,9 @@ float4 fragment(FSIn input)
             var aC = asPrimitive.data3.xy;
             var bC = asPrimitive.data3.zw;
 
-            var d = sdBezierCubic(input.coordinate, a, b, aC,bC);
+            var d = sdBezierCubic(input.coordinate, a, b, aC, bC);
             float thickness = asPrimitive.data3.z; // Assuming thickness is stored in data3.z
-            float smoothedAlpha = smoothstep(thickness, thickness + FEATHER, d);
+            float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness + SDF_HALF_STEP, d);
             // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
             // return float4(float3(abs(d),0.0f,0.0f),1.0f);
             return lerp(asPrimitive.data1, float4(asPrimitive.data1.rgb, 0.0), smoothedAlpha);
@@ -190,18 +189,20 @@ float4 fragment(FSIn input)
     }
     case QuadMode.Mtsdf: // MTSDF Mtsdf
     {
-        
+
         var asMtsdf = reinterpret<Mtsdf>(quad);
         float4 uvMapping = asMtsdf.uv;
         var uv = mapRangeUnClamped(input.uv, float2(0.0), float2(1.0), uvMapping.xy, uvMapping.zw);
         int textureId = asMtsdf.textureId;
-        
+
         float2 texSize = getTextureSize(textureId);
         float2 actualTexSize = texSize * (uvMapping.zw - uvMapping.xy);
         float3 msd = sampleTexture(textureId, uv).rgb;
-        //return float4(msd,1.0f);
+        // return float4(msd,1.0f);
         float sd = median(msd.r, msd.g, msd.b);
+
         float distance = screenPxRange(input.uv, actualTexSize) * (sd - 0.5);
+
         float opacity = clamp(distance + 0.5, 0.0, 1.0);
 
         float4 color = asMtsdf.color;

@@ -25,17 +25,6 @@ public class MainModule : IModule
     private readonly IFontManager _fontManager = new DefaultFontManager();
     public void Start(SEngine engine)
     {
-        
-        rin.Examples.Common.Utils.RunMultithreaded((delta) =>
-        {
-            SGraphicsModule.Get().Update(delta);
-            SViewsModule.Get().Update(delta);
-            SGraphicsModule.Get().Collect();
-        }, () =>
-        {
-            SGraphicsModule.Get().Execute();
-        });
-        
         _fontManager.LoadSystemFonts();
         if(!_fontManager.TryGetFont("Noto Sans JP", out var family)) return;
         var font = family.CreateFont(100, FontStyle.Regular);

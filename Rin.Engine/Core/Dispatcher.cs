@@ -1,6 +1,9 @@
 ﻿namespace Rin.Engine.Core;
 
-public class Scheduler
+/// <summary>
+/// Used to schedule actions to be called on <see cref="DispatchPending"/> . usefull for threading
+/// </summary>
+public class Dispatcher
 {
     private readonly Queue<Scheduled> _actions = [];
 
@@ -9,7 +12,7 @@ public class Scheduler
     /// <summary>
     ///     Resolve scheduled tasks
     /// </summary>
-    public void Update()
+    public void DispatchPending()
     {
         Queue<Scheduled> actions;
         lock (_lock)
@@ -19,6 +22,9 @@ public class Scheduler
         }
 
         foreach (var action in actions)
+        {
+            if(action.CancellationToken is { IsCancellationRequested: true }) continue;
+            
             try
             {
                 action.PendingAction.Invoke();
@@ -28,14 +34,15 @@ public class Scheduler
             {
                 action.CompletionSource.SetException(e);
             }
+        }
     }
 
     /// <summary>
-    ///     Schedule an action to be run on <see cref="Update" />
+    ///     Schedule an action to be run on <see cref="DispatchPending" />
     /// </summary>
     /// <param name="action"></param>
     /// <returns></returns>
-    public Task Schedule(Action action)
+    public Task Enqueue(Action action)
     {
         var pending = new Scheduled
         {
@@ -49,9 +56,31 @@ public class Scheduler
         return pending.CompletionSource.Task;
     }
 
+    /// <summary>
+    ///     Schedule an action to be run on <see cref="DispatchPending" />
+    /// </summary>
+    /// <param name="action"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task Enqueue(Action action,CancellationToken cancellationToken)
+    {
+        var pending = new Scheduled
+        {
+            PendingAction = action,
+            CancellationToken = cancellationToken
+        };
+        lock (_lock)
+        {
+            _actions.Enqueue(pending);
+        }
+
+        return pending.CompletionSource.Task;
+    }
+
     private class Scheduled
     {
         public readonly TaskCompletionSource CompletionSource = new();
+        public CancellationToken? CancellationToken;
         public required Action PendingAction;
     }
 }
