@@ -1043,6 +1043,7 @@ public static class VulkanExtensions
             };
 
             vkCmdBlitImage2(cmd, &blitInfo);
+            
         }
     }
 

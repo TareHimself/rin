@@ -139,7 +139,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
     public event Action? OnFreeRemainingMemory;
 
-    [GeneratedRegex("VK_FORMAT_R[0-9]{1,2}G[0-9]{1,2}B[0-9]{1,2}A[0-9]{1,2}_UNORM")]
+    [GeneratedRegex("(VK_FORMAT_(R|B)[0-9]{1,2}G[0-9]{1,2}(B|R)[0-9]{1,2}A[0-9]{1,2}_UNORM)")]
     private static partial Regex SurfaceFormatRegex();
 
     public VkDescriptorSetLayout GetDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo createInfo)

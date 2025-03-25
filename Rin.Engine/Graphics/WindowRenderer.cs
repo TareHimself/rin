@@ -282,6 +282,7 @@ public class WindowRenderer : IWindowRenderer
             case VkResult.VK_SUCCESS:
                 return;
             case VkResult.VK_ERROR_OUT_OF_DATE_KHR:
+            case VkResult.VK_SUBOPTIMAL_KHR:
                 throw new OutOfDateException();
             default:
                 throw new Exception(result.ToString());
