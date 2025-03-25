@@ -1,16 +1,19 @@
 ﻿using System.Numerics;
-using rin.Editor.Scene.Actors;
-using rin.Editor.Scene.Components;
-using rin.Editor.Scene.Components.Lights;
-using rin.Editor.Scene.Graphics;
+using Rin.Editor.Scene.Actors;
+using Rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Components.Lights;
+using Rin.Editor.Scene.Graphics;
+using Rin.Engine.Core.Extensions;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Meshes;
 using SharpGLTF.Schema2;
-using Scene = rin.Editor.Scene.Scene;
+using Scene = Rin.Editor.Scene.Scene;
 
 namespace rin.Examples.SceneTest;
 
 public static class Extensions
 {
-    public static async Task<StaticMesh?> LoadStaticMesh(string filename)
+    public static async Task<int?> LoadStaticMesh(string filename)
     {
         var model = ModelRoot.Load(filename);
 
@@ -20,15 +23,16 @@ public static class Extensions
 
         List<MeshSurface> surfaces = [];
         List<uint> indices = [];
-        List<StaticMesh.Vertex> vertices = [];
+        List<Vertex> vertices = [];
 
         foreach (var primitive in mesh.Primitives)
         {
             if (primitive == null) continue;
+            
             var newSurface = new MeshSurface
             {
-                StartIndex = (uint)indices.Count,
-                Count = (uint)primitive.IndexAccessor.Count
+                Index = (uint)vertices.Count,
+                Count = (uint)primitive.VertexAccessors.First().Value.Count,
             };
 
             var initialVertex = vertices.Count;
@@ -39,10 +43,10 @@ public static class Extensions
 
             {
                 foreach (var vec in primitive.GetVertices("POSITION").AsVector3Array())
-                    vertices.Add(new StaticMesh.Vertex
+                    vertices.Add(new Vertex
                     {
-                        Location = new Vector4(vec.X, vec.Y, vec.Z, 0.0f),
-                        Normal = new Vector4(0.0f)
+                        Location = new Vector3(vec.X, vec.Y, vec.Z),
+                        Normal = new Vector3(0.0f)
                     });
             }
 
@@ -51,9 +55,7 @@ public static class Extensions
                 foreach (var vec in primitive.GetVertices("NORMAL").AsVector3Array())
                 {
                     var vert = vertices[idx];
-                    vert.Normal.X = vec.X;
-                    vert.Normal.Y = vec.Y;
-                    vert.Normal.Z = vec.Z;
+                    vert.Normal = vec;
                     vertices[idx] = vert;
                     idx++;
                 }
@@ -64,8 +66,7 @@ public static class Extensions
                 foreach (var vec in primitive.GetVertices("TEXCOORD_0").AsVector2Array())
                 {
                     var vert = vertices[idx];
-                    vert.Location.W = vec.X;
-                    vert.Normal.W = vec.Y;
+                    vert.UV = vec;
                     vertices[idx] = vert;
                     idx++;
                 }
@@ -73,18 +74,21 @@ public static class Extensions
 
             surfaces.Add(newSurface);
         }
-        
-        return await StaticMesh.Create(surfaces,vertices, indices);
+
+        var (id, task) = SGraphicsModule.Get().GetMeshFactory()
+            .CreateMesh(vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
+        await task;
+        return id;
     }
     public static async Task<Actor?> LoadMeshAsEntity(this Scene scene,string modelPath)
     {
-        var mesh = await LoadStaticMesh(modelPath);
-        if(mesh == null) return null;
+        var meshId = await LoadStaticMesh(modelPath);
+        if(meshId == null) return null;
         var entity = scene.AddActor(new Actor()
         {
             RootComponent = new StaticMeshComponent()
             {
-                Mesh = mesh,
+                MeshId = meshId.Value,
             }
         });
         return entity;

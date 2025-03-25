@@ -14,12 +14,12 @@ public static class ImageSharpExtensions
         return pixelBytes;
     }
 
-    public static NativeBuffer<byte> ToBuffer<TPixel>(this Image<TPixel> image) where TPixel : unmanaged, IPixel<TPixel>
+    public static Buffer<byte> ToBuffer<TPixel>(this Image<TPixel> image) where TPixel : unmanaged, IPixel<TPixel>
     {
-        var nativeBuffer = new NativeBuffer<byte>(image.Width * image.Height * Unsafe.SizeOf<Rgba32>());
+        var nativeBuffer = new Buffer<byte>(image.Width * image.Height * Unsafe.SizeOf<Rgba32>());
         unsafe
         {
-            image.CopyPixelDataTo(new Span<byte>(nativeBuffer.GetData(), nativeBuffer.GetByteSize()));
+            image.CopyPixelDataTo(new Span<byte>(nativeBuffer.GetData(), (int)nativeBuffer.GetByteSize()));
         }
 
         return nativeBuffer;

@@ -22,16 +22,22 @@ public static class Utils
         return r;
     }
 
-    public static ulong ByteSizeOf<T>(int count = 1) where T : unmanaged
+    public static ulong ByteSizeOf<T>() where T : unmanaged
     {
         unsafe
         {
-            var size = (ulong)sizeof(T);
-            return size * (ulong)count;
+            return (ulong)sizeof(T);
         }
     }
 
-
+    public static ulong ByteSizeOf<T>(int count) where T : unmanaged
+    {
+        unsafe
+        {
+            return (ulong)sizeof(T) * (ulong)count;
+        }
+    }
+    
     /// <summary>
     ///     Performns no bounds checking, assumes sizeof(dest) >= sizeof(source)
     /// </summary>

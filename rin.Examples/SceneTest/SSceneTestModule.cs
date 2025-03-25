@@ -5,11 +5,11 @@ using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Windows;
-using rin.Editor.Scene;
-using rin.Editor.Scene.Actors;
-using rin.Editor.Scene.Components;
-using rin.Editor.Scene.Components.Lights;
-using rin.Editor.Scene.Graphics;
+using Rin.Editor.Scene;
+using Rin.Editor.Scene.Actors;
+using Rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Components.Lights;
+using Rin.Editor.Scene.Graphics;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;
@@ -26,13 +26,15 @@ public class SSceneTestModule : IModule
     {
         using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(path);
         using var buffer = imgData.ToBuffer();
-        return await SGraphicsModule.Get().GetTextureFactory().CreateTexture(buffer,
+        var (id,task) = SGraphicsModule.Get().GetTextureFactory().CreateTexture(buffer,
             new Extent3D
             {
                 Width = (uint)imgData.Width,
                 Height = (uint)imgData.Height,
             },
             ImageFormat.RGBA8);
+        await task;
+        return id;
     }
     public static async Task<DefaultMeshMaterial> LoadGoldMaterial()
     {
@@ -50,58 +52,8 @@ public class SSceneTestModule : IModule
             MetallicTextureId = metallic.Result
         };
     }
-    Task<StaticMesh> CreatePlane(float size = 0.0f)
-    {
-        var halfSize = size * 0.5f;
-        var normal = Constants.UpVector;
-        var right = new Vector3(0.0f) + (Constants.RightVector * halfSize);
-        var forward = new Vector3(0.0f) + (Constants.ForwardVector * halfSize);
-        StaticMesh.Vertex[] vertices =
-        [
-            new StaticMesh.Vertex()
-            {
-                Location = new Vector4(forward + -right, 0.0f),
-                Normal = new Vector4(normal, 0.0f),
-            },
-            new StaticMesh.Vertex()
-            {
-                Location = new Vector4(forward + right, 1.0f),
-                Normal = new Vector4(normal, 0.0f),
-            },new StaticMesh.Vertex()
-            {
-                Location = new Vector4(-forward + right, 1.0f),
-                Normal = new Vector4(normal, 1.0f),
-            },new StaticMesh.Vertex()
-            {
-                Location = new Vector4(-forward + right, 1.0f),
-                Normal = new Vector4(normal, 1.0f),
-            },new StaticMesh.Vertex()
-            {
-                Location = new Vector4(-forward + -right, 0.0f),
-                Normal = new Vector4(normal, 1.0f),
-            },new StaticMesh.Vertex()
-            {
-                Location = new Vector4(forward + -right, 0.0f),
-                Normal = new Vector4(normal, 0.0f),
-            }
-        ];
-        return StaticMesh.Create([
-            new MeshSurface()
-            {
-                StartIndex = 0,
-                Count = (uint)vertices.Length,
-            }
-        ], vertices, [0, 1, 2, 2, 3, 0]);
-    }
     public void Start(SEngine engine)
     {
-        
-        engine.OnUpdate += (delta) =>
-        {
-            SGraphicsModule.Get().PollWindows();
-          // camera.GetCameraComponent().SetRelativeRotation(camera.GetCameraComponent().GetRelativeRotation().ApplyYaw(20.0f * (float)delta));
-        };
-
         SViewsModule.Get().OnSurfaceCreated += (surf) =>
         {
             var scene = SSceneModule.Get().CreateScene();
@@ -161,7 +113,7 @@ public class SSceneTestModule : IModule
                 {
                     RootComponent = new StaticMeshComponent()
                     {
-                        Mesh = mesh,
+                        MeshId = mesh,
                         Location = new Vector3(dist,height,0.0f)
                     }
                 };
@@ -169,7 +121,7 @@ public class SSceneTestModule : IModule
                 {
                     RootComponent = new StaticMeshComponent()
                     {
-                        Mesh = mesh,
+                        MeshId = mesh,
                         Location = new Vector3(-dist,height,0.0f)
                     }
                 };
@@ -190,7 +142,7 @@ public class SSceneTestModule : IModule
 
                 var sm = e3.AddComponent(new StaticMeshComponent()
                 {
-                    Mesh = mesh,
+                    MeshId = mesh,
                 });
 
                 sm.AttachTo(box);
@@ -216,10 +168,10 @@ public class SSceneTestModule : IModule
                     //e3.AddRelativeRotation(yaw: 50.0f * (float)delta,pitch: -20.0f * (float)delta);
                 };
                 
-                SGraphicsModule.Get().OnFreeRemainingMemory += () =>
-                {
-                    mesh?.Dispose();
-                };
+                // SGraphicsModule.Get().OnFreeRemainingMemory += () =>
+                // {
+                //     mesh?.Dispose();
+                // };
             });
             
            
@@ -237,8 +189,12 @@ public class SSceneTestModule : IModule
                     SEngine.Get().RequestExit();
                 }
             };
-            
-            var text = new TextBox("Selected Channel Text", inFontSize: 50);
+
+            var text = new TextBox
+            {
+                Content = "Selected Channel Text",
+                FontSize = 50
+            };
             
             surf.Add(new Panel()
             {
@@ -258,15 +214,6 @@ public class SSceneTestModule : IModule
                 ]
             });
         };
-        
-        Task.Factory.StartNew(() =>
-        {
-            while (SEngine.Get().IsRunning)
-            {
-                SGraphicsModule.Get().DrawWindows();
-            }
-        }, TaskCreationOptions.LongRunning);
-
         SGraphicsModule.Get().CreateWindow(500, 500, "Rin Scene Test", new CreateOptions()
         {
             Visible = true,

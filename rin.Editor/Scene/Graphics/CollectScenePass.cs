@@ -134,7 +134,7 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
         foreach (var geometryInfos in OpaqueGeometry.GroupBy(c => new
                  {
                      Type = c.MeshMaterial.GetType(),
-                     c.Geometry.IndexBuffer,
+                     c.Mesh
                  }))
         {
             var infos = geometryInfos.ToArray();

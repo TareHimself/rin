@@ -236,7 +236,7 @@ EXPORT_IMPL void allocatorDestroy(void* allocator)
     vmaDestroyAllocator(static_cast<VmaAllocator>(allocator));
 }
 
-EXPORT_IMPL void allocatorNewBuffer(VkBuffer* buffer, void** allocation, unsigned long size, void* allocator,
+EXPORT_IMPL void allocatorNewBuffer(VkBuffer* buffer, void** allocation, size_t size, void* allocator,
     int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
     int mapped, const char* debugName)
 {
@@ -291,8 +291,8 @@ EXPORT_IMPL void allocatorFreeImage(VkImage image, void* allocation, void* alloc
                     static_cast<VmaAllocation>(allocation));
 }
 
-EXPORT_IMPL void allocatorCopyToBuffer(void* allocator, void* allocation, void* data, const unsigned long size,
-    unsigned long offset)
+EXPORT_IMPL void allocatorCopyToBuffer(void* allocator, void* allocation, void* data, const size_t size,
+    size_t offset)
 {
     // auto dataCasted = static_cast<TestStruct*>(data);
     // std::cout << "SENDING TO SHADER " << dataCasted->viewport[2] << std::endl;

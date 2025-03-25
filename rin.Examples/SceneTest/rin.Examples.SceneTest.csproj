@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\Rin.Editor\Rin.Editor.csproj" />
       <ProjectReference Include="..\..\Rin.Engine\Rin.Engine.csproj" />
     </ItemGroup>
 

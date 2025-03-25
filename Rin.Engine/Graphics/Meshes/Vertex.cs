@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 
 namespace Rin.Engine.Graphics.Meshes;
 
@@ -7,42 +8,62 @@ public struct Vertex
     /// <summary>
     /// Location (XYZ) U (W)
     /// </summary>
-    private Vector4 _location = Vector4.Zero;
+    private Vector4 _locationU = Vector4.Zero;
 
     /// <summary>
     /// Normal (XYZ) V (W)
     /// </summary>
-    private Vector4 _normal = Vector4.Zero;
+    private Vector4 _normalV = Vector4.Zero;
+    
+    /// <summary>
+    /// Normal (XYZ) V (W)
+    /// </summary>
+    private Vector4 _tangent = Vector4.Zero;
 
+    [PublicAPI]
     public Vector3 Location
     {
-        get => new Vector3(_location.X, _location.Y, _location.Z);
+        get => new Vector3(_locationU.X, _locationU.Y, _locationU.Z);
         set
         {
-            _location.X = value.X;
-            _location.Y = value.Y;
-            _location.Z = value.Z;
+            _locationU.X = value.X;
+            _locationU.Y = value.Y;
+            _locationU.Z = value.Z;
         }
     }
 
+    [PublicAPI]
     public Vector3 Normal
     {
-        get => new Vector3(_normal.X, _normal.Y, _normal.Z);
+        get => new Vector3(_normalV.X, _normalV.Y, _normalV.Z);
         set
         {
-            _normal.X = value.X;
-            _normal.Y = value.Y;
-            _normal.Z = value.Z;
+            _normalV.X = value.X;
+            _normalV.Y = value.Y;
+            _normalV.Z = value.Z;
+        }
+    }
+    
+    [PublicAPI]
+    public Vector3 Tangent
+    {
+        get => new Vector3(_tangent.X, _tangent.Y, _tangent.Z);
+        set
+        {
+            _tangent.X = value.X;
+            _tangent.Y = value.Y;
+            _tangent.Z = value.Z;
         }
     }
 
+    [PublicAPI]
     public Vector2 UV
     {
-        get => new Vector2(_location.W, _normal.W);
+        get => new Vector2(_locationU.W, _normalV.W);
         set
         {
-            _location.W = value.X;
-            _normal.W = value.Y;
+            _locationU.W = value.X;
+            _normalV.W = value.Y;
         }
     }
 

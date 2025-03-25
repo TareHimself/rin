@@ -17,13 +17,26 @@ internal static partial class Native
 #elif OS_FREEBSD
 #elif OS_MAC
 #endif
-    
 
+
+    public static partial class Memory
+    {
+        [LibraryImport(DllName, EntryPoint = "memoryAllocate")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static unsafe partial void* Allocate(ulong size);
+
+        [LibraryImport(DllName, EntryPoint = "memoryFree")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static unsafe partial void Free(void* ptr);
+    }
     public static partial class Slang
     {
+        // [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        // public unsafe delegate int LoadFileDelegate(byte** data);
+        //
         [LibraryImport(DllName, EntryPoint = "slangSessionBuilderNew")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        public static unsafe partial void* SessionBuilderNew();
+        public static unsafe partial void* SessionBuilderNew(delegate*<byte*,byte**,int> loadFileDelegate);
 
         [LibraryImport(DllName, EntryPoint = "slangSessionBuilderAddTargetSpirv")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]

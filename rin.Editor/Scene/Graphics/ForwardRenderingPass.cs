@@ -116,9 +116,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
         foreach (var geometryInfos in _collectPass.OpaqueGeometry.GroupBy(c => new
                  {
                      Type = c.MeshMaterial.GetType(),
-                     c.Surface.StartIndex,
-                     c.Surface.Count,
-                     c.Geometry.IndexBuffer,
+                     c.Mesh,
                  }))
         {
             var infos = geometryInfos.ToArray();

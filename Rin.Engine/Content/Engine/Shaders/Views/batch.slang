@@ -115,7 +115,7 @@ struct Mtsdf {
 [shader("fragment")]
 float4 fragment(FSIn input)
     : SV_Target
-{
+    {
     var quad = push.quads[input.quadIndex];
     var mode = (QuadMode)quad.super.opts.x;
     var transform = quad.super.transform;
@@ -189,15 +189,16 @@ float4 fragment(FSIn input)
     }
     case QuadMode.Mtsdf: // MTSDF Mtsdf
     {
-
+        
         var asMtsdf = reinterpret<Mtsdf>(quad);
         float4 uvMapping = asMtsdf.uv;
         var uv = mapRangeUnClamped(input.uv, float2(0.0), float2(1.0), uvMapping.xy, uvMapping.zw);
         int textureId = asMtsdf.textureId;
 
+        float3 msd = sampleTexture(textureId, uv).rgb;
         float2 texSize = getTextureSize(textureId);
         float2 actualTexSize = texSize * (uvMapping.zw - uvMapping.xy);
-        float3 msd = sampleTexture(textureId, uv).rgb;
+        
         // return float4(msd,1.0f);
         float sd = median(msd.r, msd.g, msd.b);
 

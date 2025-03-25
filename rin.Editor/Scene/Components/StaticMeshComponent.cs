@@ -1,27 +1,30 @@
 ﻿using Rin.Editor.Scene.Graphics;
 using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
+using Rin.Engine.Graphics;
 
 namespace Rin.Editor.Scene.Components;
 
 public class StaticMeshComponent : SceneComponent
 {
-    public IStaticMesh? Mesh { get; set; }
+    public int? MeshId { get; set; }
     public IMeshMaterial?[] Materials = [];
     protected override void CollectSelf(DrawCommands drawCommands, Mat4 transform)
     {
-        if (Mesh is not { } mesh) return;
-        for (var i = 0; i < mesh.Surfaces.Length; i++)
+        if (MeshId != null && SGraphicsModule.Get().GetMeshFactory().GetMesh(MeshId.Value) is { } mesh)
         {
-            var material = Materials.TryGet(i) ?? mesh.Materials.TryGet(i) ?? DefaultMeshMaterial.DefaultMesh;
-            var surface = mesh.Surfaces[i];
-            drawCommands.AddCommand(new GeometryInfo
+            var surfaces = mesh.GetSurfaces();
+            for (var i = 0; i < surfaces.Length; i++)
             {
-                MeshMaterial = material,
-                Geometry = mesh.Geometry,
-                Surface = surface,
-                Transform = transform
-            });
+                var material = Materials.TryGet(i) ?? DefaultMeshMaterial.DefaultMesh;
+                drawCommands.AddCommand(new GeometryInfo
+                {
+                    MeshMaterial = material,
+                    Mesh = mesh,
+                    SurfaceIndex = i,
+                    Transform = transform
+                });
+            }
         }
     }
 }

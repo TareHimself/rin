@@ -7,7 +7,7 @@ public interface ITextureFactory : IDisposable
 {
     public DescriptorSet GetDescriptorSet();
 
-    public Pair<int,Task> CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
+    public Pair<int,Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture");
     

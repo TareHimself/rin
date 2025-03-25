@@ -5,7 +5,7 @@ namespace Rin.Sources;
 
 public class FileSystemSource : ISource
 {
-    public string BasePath => "/fs";
+    public string BasePath => "fs";
 
     private string ToSystemPath(string path)
     {

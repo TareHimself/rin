@@ -12,6 +12,8 @@ public interface IDeviceBuffer : IGraphResource
     public VkBuffer NativeBuffer { get; }
     public ulong GetAddress();
     public IDeviceBufferView GetView(ulong offset, ulong size);
+    
+    public IDeviceBufferView GetView() => this.GetView(0, Size);
 
     public unsafe void Write(void* src, ulong size, ulong offset = 0);
 
@@ -28,11 +30,11 @@ public interface IDeviceBuffer : IGraphResource
     {
         unsafe
         {
-            Write(&src, Core.Utils.ByteSizeOf<T>(), offset);
+            Write(&src,Core.Utils.ByteSizeOf<T>(), offset);
         }
     }
 
-    public void Write<T>(NativeBuffer<T> src, ulong offset = 0) where T : unmanaged
+    public void Write<T>(Buffer<T> src, ulong offset = 0) where T : unmanaged
     {
         unsafe
         {

@@ -3,6 +3,7 @@ using rin.Examples.AudioPlayer.Views;
 using rin.Examples.Common.Views;
 using Rin.Engine.Audio;
 using Rin.Engine.Core;
+using Rin.Engine.Core.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Views;
@@ -22,6 +23,14 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
 
     public void Start(SEngine engine)
     {
+        // {
+        //     var manager = SViewsModule.Get().GetFontManager();
+        //     if (manager.TryGetFont("Noto Sans", out var family))
+        //     {
+        //         manager
+        //             .PrepareAtlas(family,Enumerable.Range(32,127).Select(c => (char)c).Where(c => c.IsPrintable())).Wait();
+        //     }
+        // }
         SAudioModule.Get().SetVolume(0.1f);
         var window = SGraphicsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
         window.OnCloseRequested += (_) => { SEngine.Get().RequestExit(); };
@@ -46,21 +55,7 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
                 MaxAnchor = new Vector2(1.0f)
             }
         );
-
-        // panel.AddChild(new WCBlur
-        // {
-        //     Tint = new Color(1.0f)
-        //     {
-        //         R = 0.3f,
-        //         G = 0.3f,
-        //         B = 0.3f
-        //     }
-        // })?.Mutate(slot =>
-        // {
-        //     slot.MinAnchor = 0.0f;
-        //     slot.MaxAnchor = 1.0f;
-        // });
-
+        
         surf.Window.OnKey += (e) =>
         {
             if (e is { State: InputState.Pressed, Key: InputKey.Left })

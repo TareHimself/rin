@@ -71,13 +71,13 @@ public sealed class ViewsPass : IPass
                     // var dist = memoryNeeded & minOffsetAlignment;
                     // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
                     _memoryNeeded += size;
-                _offsets.Add(new Pair<ulong, ulong>(offset, _memoryNeeded - offset));
+                _offsets.Add(new (offset, _memoryNeeded - offset));
             }
             else if (drawCommand.Type == CommandType.ClipDraw)
             {
                 var offset = _memoryNeeded;
                 _memoryNeeded += Core.Utils.ByteSizeOf<StencilClip>(drawCommand.Clips.Length);
-                _offsets.Add(new Pair<ulong, ulong>(offset, _memoryNeeded - offset));
+                _offsets.Add(new (offset, _memoryNeeded - offset));
                 // var dist = memoryNeeded & minOffsetAlignment;
                 // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
             }
@@ -91,7 +91,7 @@ public sealed class ViewsPass : IPass
 
                 _memoryNeeded += memoryNeeded;
 
-                _offsets.Add(new Pair<ulong, ulong>(offset, _memoryNeeded - offset));
+                _offsets.Add(new (offset, _memoryNeeded - offset));
             }
 
 

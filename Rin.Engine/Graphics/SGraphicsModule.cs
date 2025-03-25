@@ -252,7 +252,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     {
         return (major << 22) | (minor << 16) | patch;
     }
-
+    
     private unsafe void InitVulkan()
     {
         var outInstance = _instance;
@@ -345,6 +345,12 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     {
         return GetShaderManager().MakeGraphics(path);
     }
+    
+    // public IGraphicsShader MakeGraphicsFromContent(string content)
+    // {
+    //     var path = SEngine.Get().Temp.AddStream(() => new MemoryStream(Encoding.UTF8.GetBytes(content)));
+    //     return GetShaderManager().MakeGraphics(path);
+    // }
 
     public IComputeShader MakeCompute(string path)
     {
@@ -372,7 +378,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     /// <param name="mips"></param>
     /// <param name="debugName"></param>
     /// <returns></returns>
-    public Pair<int, Task> CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
+    public Pair<int, Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture") =>
         GetTextureFactory().CreateTexture(data, size, format, filter, tiling, mips, debugName);
@@ -911,7 +917,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     /// <param name="debugName"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<IDeviceImage> CreateImage(NativeBuffer<byte> content, Extent3D size, ImageFormat format,
+    public async Task<IDeviceImage> CreateImage(Buffer<byte> content, Extent3D size, ImageFormat format,
         VkImageUsageFlags usage,
         bool mips = false, ImageFilter mipMapFilter = ImageFilter.Linear,
         string debugName = "Image")

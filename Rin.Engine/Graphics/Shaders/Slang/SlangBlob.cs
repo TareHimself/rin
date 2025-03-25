@@ -1,4 +1,6 @@
-﻿namespace Rin.Engine.Graphics.Shaders.Slang;
+﻿using System.Runtime.InteropServices;
+
+namespace Rin.Engine.Graphics.Shaders.Slang;
 
 public class SlangBlob : IDisposable
 {
@@ -46,6 +48,14 @@ public class SlangBlob : IDisposable
         unsafe
         {
             Native.Slang.BlobFree(_ptr);
+        }
+    }
+
+    public string GetString()
+    {
+        unsafe
+        {
+            return Marshal.PtrToStringAnsi(GetDataPointer()) ?? throw new NullReferenceException();
         }
     }
 

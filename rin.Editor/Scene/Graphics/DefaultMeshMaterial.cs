@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Meshes;
 using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -101,7 +102,7 @@ public class DefaultMeshMaterial : IMeshMaterial
 
         public override ulong GetRequiredMemory() => Utils.ByteSizeOf<DefaultMaterialProperties>();
         protected override IShader Shader { get; } = SGraphicsModule.Get()
-            .MakeGraphics(Path.Join(SGraphicsModule.ShadersDirectory, "scene", "forward", "mesh.slang"));
+            .MakeGraphics("Editor/Shaders/Mesh/mesh.slang");
 
         protected override IMaterialPass GetPass(GeometryInfo mesh) => mesh.MeshMaterial.ColorPass;
 
@@ -132,7 +133,8 @@ public class DefaultMeshMaterial : IMeshMaterial
             };
             
             cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
-            vkCmdDrawIndexed(cmd, first.Surface.Count, (uint)meshes.Length, 0, (int)first.Surface.StartIndex, 0);
+            var firstSurface = first.Mesh.GetSurface(first.SurfaceIndex);
+            vkCmdDrawIndexed(cmd, firstSurface.Count, (uint)meshes.Length, 0, (int)firstSurface.Index, 0);
             return memoryUsed;
         }
         
@@ -141,7 +143,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             var data = new DefaultMaterialProperties()
             {
                 Transform = mesh.Transform,
-                VertexAddress = mesh.Geometry.VertexBuffer.GetAddress() + (Utils.ByteSizeOf<StaticMesh.Vertex>() * mesh.Surface.StartIndex),
+                VertexAddress = mesh.Mesh.GetVertices(mesh.SurfaceIndex).GetAddress(),
                 BaseColorTextureId = meshMaterial.ColorTextureId,
                 BaseColor = meshMaterial.Color,
                 NormalTextureId = meshMaterial.NormaTextureId,
@@ -170,7 +172,8 @@ public class DefaultMeshMaterial : IMeshMaterial
         
         public override ulong GetRequiredMemory() => Utils.ByteSizeOf<DepthMaterialData>();
         protected override IShader Shader { get; } = SGraphicsModule.Get()
-            .MakeGraphics(Path.Join(SGraphicsModule.ShadersDirectory, "scene", "forward", "mesh_depth.slang"));
+            .MakeGraphics("Editor/Shaders/Mesh/mesh_depth.slang");
+        
         protected override IMaterialPass GetPass(GeometryInfo mesh) => mesh.MeshMaterial.DepthPass;
 
         protected override ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data, GeometryInfo[] meshes)
@@ -196,7 +199,8 @@ public class DefaultMeshMaterial : IMeshMaterial
             };
             
             cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
-            vkCmdDrawIndexed(cmd, first.Surface.Count, (uint)meshes.Length, 0, (int)first.Surface.StartIndex, 0);
+            var firstSurface = first.Mesh.GetSurface(first.SurfaceIndex);
+            vkCmdDrawIndexed(cmd, firstSurface.Count, (uint)meshes.Length, 0, (int)firstSurface.Index, 0);
             return memoryUsed;
         }
         
@@ -205,7 +209,7 @@ public class DefaultMeshMaterial : IMeshMaterial
                 view.Write(new DepthMaterialData
                 {
                     Transform = mesh.Transform,
-                    VertexAddress = mesh.Geometry.VertexBuffer.GetAddress() + (Utils.ByteSizeOf<StaticMesh.Vertex>() * mesh.Surface.StartIndex),
+                    VertexAddress = mesh.Mesh.GetVertices(mesh.SurfaceIndex).GetAddress(),
                 });
         }
     }

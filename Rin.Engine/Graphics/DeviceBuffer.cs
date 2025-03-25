@@ -8,7 +8,7 @@ namespace Rin.Engine.Graphics;
 /// </summary>
 public class DeviceBuffer : DeviceMemory, IDeviceBuffer
 {
-    private ulong? _address;
+    private nuint? _address;
 
     /// <summary>
     ///     GPU Buffer
@@ -40,7 +40,7 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
         };
         unsafe
         {
-            _address = vkGetBufferDeviceAddress(SGraphicsModule.Get().GetDevice(), &info);
+            _address = (nuint)vkGetBufferDeviceAddress(SGraphicsModule.Get().GetDevice(), &info);
         }
 
         return _address.Value;

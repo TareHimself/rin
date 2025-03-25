@@ -5,14 +5,14 @@ namespace Rin.Engine.Views.Sdf;
 
 public class SdfResult : IBinarySerializable, IDisposable
 {
-    public readonly NativeBuffer<byte> Data;
+    public readonly Buffer<byte> Data;
     public int Channels = 0;
     public double Width = 0;
     public double Height = 0;
     public int PixelWidth = 0;
     public int PixelHeight = 0;
     
-    public SdfResult(NativeBuffer<byte> data, int channels, double width,double height, int pixelWidth,int pixelHeight)
+    public SdfResult(Buffer<byte> data, int channels, double width,double height, int pixelWidth,int pixelHeight)
     {
         Data = data;
         Channels = channels;
@@ -24,7 +24,7 @@ public class SdfResult : IBinarySerializable, IDisposable
 
     public SdfResult()
     {
-        Data = new NativeBuffer<byte>();
+        Data = new Buffer<byte>();
     }
 
     public void BinarySerialize(Stream output)

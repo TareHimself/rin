@@ -55,7 +55,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
     public void Start(SEngine engine)
     {
         engine.OnUpdate += Update;
-        _fontManager.LoadFont(SEngine.Get().Sources.Read("/Engine/Fonts/NotoSans-Regular.ttf"));
+        _fontManager.LoadFont(SEngine.Get().Sources.Read("Engine/Fonts/NotoSans-Regular.ttf"));
         _graphicsSubsystem = engine.GetModule<SGraphicsModule>();
         if (_graphicsSubsystem == null) return;
         _graphicsSubsystem.OnRendererCreated += OnRendererCreated;
@@ -119,7 +119,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
         root.Init();
         if (_stencilShader == null)
             _stencilShader = SGraphicsModule.Get()
-                .MakeGraphics(Path.Join(ShadersDirectory, "stencil_batch.slang"));
+                .MakeGraphics("Engine/Shaders/Views/stencil_batch.slang");
         OnSurfaceCreated?.Invoke(root);
     }
 

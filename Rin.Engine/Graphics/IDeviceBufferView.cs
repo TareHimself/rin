@@ -33,7 +33,7 @@ public interface IDeviceBufferView
         DeviceBuffer.Write(src, Offset + offset);
     }
 
-    public void Write<T>(NativeBuffer<T> src, ulong offset = 0) where T : unmanaged
+    public void Write<T>(Buffer<T> src, ulong offset = 0) where T : unmanaged
     {
         DeviceBuffer.Write(src, Offset + offset);
     }

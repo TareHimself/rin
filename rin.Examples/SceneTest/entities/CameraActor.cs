@@ -1,6 +1,6 @@
-﻿using rin.Editor.Scene.Actors;
-using rin.Editor.Scene.Components;
-using rin.Editor.Scene.Components.Lights;
+﻿using Rin.Editor.Scene.Actors;
+using Rin.Editor.Scene.Components;
+using Rin.Editor.Scene.Components.Lights;
 
 namespace rin.Examples.SceneTest.entities;
 

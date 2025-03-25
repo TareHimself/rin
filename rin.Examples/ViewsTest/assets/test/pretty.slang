@@ -1,4 +1,4 @@
-﻿import rin.utils;
+﻿#include "Engine/Shaders/utils.slang"
 
 struct Data {
     float4x4 projection;

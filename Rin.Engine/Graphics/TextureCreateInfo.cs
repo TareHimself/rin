@@ -4,7 +4,7 @@ namespace Rin.Engine.Graphics;
 
 public struct TextureCreateInfo()
 {
-    public required NativeBuffer<byte> Data;
+    public required Buffer<byte> Data;
     public required Extent3D Size;
     public required ImageFormat Format;
     public ImageFilter Filter = ImageFilter.Linear;

@@ -1,4 +1,3 @@
-using BepuPhysics.Collidables;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Extensions;
 using Rin.Engine.Graphics.Descriptors;
@@ -35,15 +34,15 @@ public class MeshFactory : IMeshFactory
         }
     }
 
-    private async Task AsyncCreateMesh(int id,NativeBuffer<Vertex> vertices, NativeBuffer<uint> indices,MeshSurface[] surfaces)
+    private async Task AsyncCreateMesh(int id,Buffer<Vertex> vertices, Buffer<uint> indices,MeshSurface[] surfaces)
     {
         using (vertices)
         using(indices)
         {
             if(_disposed) return;
             
-            var verticesByteSize = (ulong)vertices.GetByteSize();
-            var indicesByteSize = (ulong)indices.GetByteSize();
+            var verticesByteSize = vertices.GetByteSize();
+            var indicesByteSize = indices.GetByteSize();
             var vertexBuffer = SGraphicsModule.Get().GetAllocator().NewBuffer(verticesByteSize,
                 VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                 VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_DST_BIT |
@@ -84,7 +83,7 @@ public class MeshFactory : IMeshFactory
                 }
             });
 
-            var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces);
+            var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces,vertices);
 
             TaskCompletionSource? toComplete;
             lock (_sync)
@@ -97,11 +96,11 @@ public class MeshFactory : IMeshFactory
         }
     }
     
-    public Pair<int,Task> CreateMesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices,MeshSurface[] surfaces)
+    public Pair<int, Task> CreateMesh(Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces)
     {
         var id = _factory.NewId();
-        var nVertices = new NativeBuffer<Vertex>(vertices);
-        var nIndices = new NativeBuffer<uint>(indices);
+        var nVertices = new Buffer<Vertex>(vertices);
+        var nIndices = new Buffer<uint>(indices);
 
         Task task;
         lock (_sync)
@@ -121,6 +120,18 @@ public class MeshFactory : IMeshFactory
         {
             return _meshes.ContainsKey(meshId);
         }
+    }
+
+    public IMesh? GetMesh(int meshId)
+    {
+        lock (_sync)
+        {
+            if (_meshes.TryGetValue(meshId, out var mesh))
+            {
+                return mesh;
+            }
+        }
+        return null;
     }
 
     public Task? GetPendingMesh(int meshId)

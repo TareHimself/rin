@@ -17,12 +17,15 @@ public sealed class SEngine : Disposable
     public static readonly string
         FrameworkAssetsDirectory = Path.Join(AssetsDirectory, "rin");
 
+    
+    public TempSource Temp { get; private set; } = new TempSource();
+    
     [PublicAPI] public SourceResolver Sources = new SourceResolver()
     {
         Sources =
         [
             new FileSystemSource(),
-            new ResourcesSource(typeof(SEngine).Assembly, "/Engine", ".Content.Engine.")
+            new ResourcesSource(typeof(SEngine).Assembly, "Engine", ".Content.Engine.")
         ]
     };
 
@@ -117,6 +120,11 @@ public sealed class SEngine : Disposable
                 if (!checkedModules.Contains(attribDependency))
                     pendingModules.Enqueue(attribDependency);
         }
+    }
+
+    public SEngine()
+    {
+        Sources.AddSource(Temp);
     }
 
     public void DispatchMain(Action action)

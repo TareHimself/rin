@@ -3,7 +3,7 @@ using rin.Examples.SceneTest.entities;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics.Windows;
-using rin.Editor.Scene.Views;
+using Rin.Editor.Scene.Views;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
 
@@ -26,17 +26,18 @@ public class TestViewport : Viewport
         if (viewTarget == null) return;//.ApplyYaw(delta.X).ApplyPitch(delta.Y)
         viewTarget.SetRelativeRotation(viewTarget.GetRelativeRotation().Delta(pitch: delta.Y, yaw: delta.X));
     }
-
-    public override void OnFocus()
+    
+    public override void Update(float deltaTime)
     {
-        base.OnFocus();
-        SEngine.Get().OnUpdate += OnUpdate;
-    }
-
-    public override void OnFocusLost()
-    {
-        base.OnFocusLost();
-        SEngine.Get().OnUpdate -= OnUpdate;
+        base.Update(deltaTime);
+        if (IsFocused)
+        {
+            float speed = 100.0f;
+            var transform = _camera.GetWorldTransform();
+            transform.Location += transform.Rotation.GetForwardVector() * _forwardAxis * deltaTime * speed;
+            transform.Location += transform.Rotation.GetRightVector() * _rightAxis * deltaTime * speed;
+            _camera.SetWorldTransform(transform);
+        }
     }
 
     public override void OnKeyboard(KeyboardSurfaceEvent e)
@@ -80,14 +81,5 @@ public class TestViewport : Viewport
                 };
             }
         }
-    }
-
-    void OnUpdate(double delta)
-    {
-        float speed = 100.0f;
-        var transform = _camera.GetWorldTransform();
-        transform.Location += transform.Rotation.GetForwardVector() * _forwardAxis * (float)delta * speed;
-        transform.Location += transform.Rotation.GetRightVector() * _rightAxis * (float)delta * speed;
-        _camera.SetWorldTransform(transform);
     }
 }

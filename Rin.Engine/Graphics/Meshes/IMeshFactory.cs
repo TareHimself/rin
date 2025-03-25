@@ -5,9 +5,9 @@ namespace Rin.Engine.Graphics.Meshes;
 
 public interface IMeshFactory : IDisposable
 {
-    public Pair<int,Task> CreateMesh(ReadOnlySpan<Vertex> vertices,ReadOnlySpan<uint> indices,MeshSurface[] surfaces);
+    public Pair<int, Task> CreateMesh(Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces);
     public Task? GetPendingMesh(int meshId);
     public bool IsMeshReady(int meshId);
-    
+    public IMesh? GetMesh(int meshId);
     public void FreeMeshes(params int[] meshIds);
 }

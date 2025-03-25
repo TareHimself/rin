@@ -59,10 +59,8 @@ internal class DisplaySceneCommand(ForwardRenderingPass renderingPass,Vector2 si
     }
 
     private readonly IShader _shader = SGraphicsModule.Get()
-        .MakeGraphics(Path.Join(SGraphicsModule.ShadersDirectory, "scene", "forward", "viewport.slang"));
-
+        .MakeGraphics("Editor/Shaders/viewport.slang");
     
-
     public override ulong GetRequiredMemory() => 0;
     public override bool WillDraw() => true;
 
@@ -183,14 +181,14 @@ public class Viewport : ContentView
         {
             var delta = e.Position - _mousePosition;
 
-            if (!(Math.Abs(delta.X) > 0) && !(Math.Abs(delta.Y) > 0)) return true;
+            if (!(Math.Abs(delta.X) > 0) && !(Math.Abs(delta.Y) > 0)) return;// true;
 
             OnMouseDelta(delta);
             
             _mousePosition = GetAbsoluteCenter();
             _ignoreNextMove = true;
             e.Surface.SetCursorPosition(_mousePosition);
-            return true;
+            return; // true;
         }
 
         if (_ignoreNextMove)
@@ -199,7 +197,7 @@ public class Viewport : ContentView
             _mousePosition = e.Position;
         }
 
-        return base.OnCursorMove(e);
+        //return base.OnCursorMove(e);
     }
 
     protected override Vector2 ComputeDesiredContentSize()

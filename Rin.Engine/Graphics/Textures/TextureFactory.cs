@@ -76,7 +76,7 @@ public class TextureFactory : ITextureFactory
     }
 
 
-    private async Task AsyncCreateTexture(Texture boundText,TaskCompletionSource completionSource,NativeBuffer<byte> data, Extent3D size, ImageFormat format,
+    private async Task AsyncCreateTexture(Texture boundText,TaskCompletionSource completionSource,Buffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear, bool mips = false, string debugName = "Texture")
     {
         
@@ -100,7 +100,7 @@ public class TextureFactory : ITextureFactory
             completionSource.SetResult();
         }
     }
-    public Pair<int,Task> CreateTexture(NativeBuffer<byte> data, Extent3D size, ImageFormat format,
+    public Pair<int,Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture")
     {
@@ -256,7 +256,7 @@ public class TextureFactory : ITextureFactory
 
     private async Task LoadDefaultTexture()
     {
-        using var imgData = await Image.LoadAsync<Rgba32>(SEngine.Get().Sources.Read("/Engine/Textures/default.png"));
+        using var imgData = await Image.LoadAsync<Rgba32>(SEngine.Get().Sources.Read("Engine/Textures/default.png"));
         using var buffer = imgData.ToBuffer();
         var tex = _textures[0];
         tex.Image = await SGraphicsModule.Get().CreateImage(

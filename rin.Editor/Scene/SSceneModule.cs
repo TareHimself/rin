@@ -1,5 +1,6 @@
 ﻿using Rin.Engine.Core;
 using Rin.Engine.Views;
+using Rin.Sources;
 
 namespace Rin.Editor.Scene;
 
@@ -8,7 +9,8 @@ public class SSceneModule : IModule, ISingletonGetter<SSceneModule>
 {
     public void Start(SEngine engine)
     {
-        //throw new NotImplementedException();
+        SEngine.Get().Sources.AddSource(
+            new ResourcesSource(typeof(SSceneModule).Assembly, "Editor", ".Content.Editor."));
     }
 
     public void Stop(SEngine engine)

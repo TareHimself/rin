@@ -32,6 +32,13 @@ public static class StreamExtensions
         stream.Write(buffer);
     }
     
+    public static void Write(this Stream stream,in UInt64 data)
+    {
+        Span<byte> buffer = stackalloc byte[sizeof(UInt64)];
+        BinaryPrimitives.WriteSingleLittleEndian(buffer,data);
+        stream.Write(buffer);
+    }
+    
     public static void Write(this Stream stream,in double data)
     {
         Span<byte> buffer = stackalloc byte[sizeof(double)];
@@ -49,6 +56,13 @@ public static class StreamExtensions
         Span<byte> buffer = stackalloc byte[sizeof(int)];
         stream.ReadExactly(buffer);
         return BinaryPrimitives.ReadInt32LittleEndian(buffer);
+    }
+    
+    public static UInt64 ReadUInt64(this Stream stream)
+    {
+        Span<byte> buffer = stackalloc byte[sizeof(UInt64)];
+        stream.ReadExactly(buffer);
+        return BinaryPrimitives.ReadUInt64LittleEndian(buffer);
     }
     
     public static float ReadFloat(this Stream stream)

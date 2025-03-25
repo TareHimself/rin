@@ -74,8 +74,14 @@ struct CustomStringBlob : CustomBlob
     SLANG_NO_THROW const void* getBufferPointer() override;
     SLANG_NO_THROW size_t getBufferSize() override;
 };
+
+using LoadFileFunction = int(RIN_CALLBACK_CONVENTION *)(char* path,char** data);
+
 struct CustomFileSystem final : ISlangFileSystemExt
 {
+    uint32_t refs;
+    LoadFileFunction loadFunction;
+    CustomFileSystem(LoadFileFunction load);
     SLANG_NO_THROW SlangResult queryInterface(const SlangUUID& uuid, void** outObject) override;
     SLANG_NO_THROW uint32_t addRef() override;
     SLANG_NO_THROW uint32_t release() override;
@@ -90,9 +96,13 @@ struct CustomFileSystem final : ISlangFileSystemExt
     SLANG_NO_THROW OSPathKind getOSPathKind() override;
 };
 
+
 struct SessionBuilder
 {
+    SessionBuilder(LoadFileFunction inLoadFunction);
+    LoadFileFunction loadFile;
     std::vector<slang::TargetDesc> targets{};
+    std::vector<slang::CompilerOptionEntry> options;
     std::vector<std::pair<std::string,std::string>> preprocessorMacros{};
     std::vector<std::string> searchPaths{};
 };
@@ -125,7 +135,14 @@ struct Component
     Slang::ComPtr<slang::IComponentType> component{};
 };
 
-EXPORT_DECL SessionBuilder * slangSessionBuilderNew();
+enum class ShaderStage : int
+{
+    Vertex,
+    Fragment,
+    Compute,
+};
+
+EXPORT_DECL SessionBuilder * slangSessionBuilderNew(LoadFileFunction loadFileFunction);
 EXPORT_DECL void slangSessionBuilderAddTargetSpirv(SessionBuilder * builder);
 EXPORT_DECL void slangSessionBuilderAddTargetGlsl(SessionBuilder * builder);
 EXPORT_DECL void slangSessionBuilderAddPreprocessorDefinition(SessionBuilder * builder, const char * name, const char * value);
@@ -133,9 +150,13 @@ EXPORT_DECL void slangSessionBuilderAddSearchPath(SessionBuilder * builder, cons
 EXPORT_DECL Session * slangSessionBuilderBuild(const SessionBuilder * builder);
 EXPORT_DECL void slangSessionBuilderFree(const SessionBuilder * builder);
 
+EXPORT_DECL void slangSessionClearCache(const Session * session);
 EXPORT_DECL Module * slangSessionLoadModuleFromSourceString(const Session * session, char * moduleName,char * path,char * string,Blob * outDiagnostics);
 EXPORT_DECL Component * slangSessionCreateComposedProgram(const Session * session, Module * module, EntryPoint** entryPoints, int entryPointsCount, Blob * outDiagnostics);
+EXPORT_DECL Blob * slangSessionCompile(const Session * session,const char* compileId,const char* content, const char * entryPointName,int stage,Blob * outDiagnostics);
 EXPORT_DECL void slangSessionFree(const Session * session);
+
+
 
 EXPORT_DECL EntryPoint * slangModuleFindEntryPointByName(const Module * module, const char * entryPointName);
 EXPORT_DECL void slangEntryPointFree(const EntryPoint * entryPoint);

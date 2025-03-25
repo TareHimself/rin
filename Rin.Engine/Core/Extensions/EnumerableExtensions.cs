@@ -46,11 +46,6 @@ public static class EnumerableExtensions
     public static ulong ByteSize<T>(this IEnumerable<T> target) where T : unmanaged
     {
         return Utils.ByteSizeOf<T>(target.Count());
-        var asArray = target.ToArray();
-        unsafe
-        {
-            return (ulong)sizeof(T) * (ulong)asArray.Length;
-        }
     }
 
     public static List<T> UpdateIndex<T>(this List<T> target, int index, Func<T, T> updater)

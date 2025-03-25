@@ -222,16 +222,16 @@ bool shouldDiscard(float4 viewport, float4 clip, float2 pixel)
     return pixel_ss.x > clip_ss.z || pixel_ss.x < clip_ss.x || pixel_ss.y < clip_ss.y || pixel_ss.y > clip_ss.w;
 }
 
-struct Result
+struct SegmentResult
 {
     float dist; // Regular SDF distance
     float side; // Which side of the line segment the point is (-1,0,1)
 };
 
 // https://www.shadertoy.com/view/wdffWH
-Result udSegment(float2 p, float2 a, float2 b)
+SegmentResult udSegment(float2 p, float2 a, float2 b)
 {
-    Result res;
+    SegmentResult res;
     // All this is basically Inigo's regular line SDF function - but store it in 'dist' instead:
     float2 ba = b - a;
     float2 pa = p - a;
@@ -245,10 +245,10 @@ Result udSegment(float2 p, float2 a, float2 b)
 float sdfConvex4(float2 point, float2[4] points)
 {
 
-    Result r1 = udSegment(point, points[0], points[1]);
-    Result r2 = udSegment(point, points[1], points[2]);
-    Result r3 = udSegment(point, points[2], points[3]);
-    Result r4 = udSegment(point, points[3], points[0]);
+    var r1 = udSegment(point, points[0], points[1]);
+    var r2 = udSegment(point, points[1], points[2]);
+    var r3 = udSegment(point, points[2], points[3]);
+    var r4 = udSegment(point, points[3], points[0]);
 
     float d = min(r1.dist, r2.dist);
     d = min(d, r3.dist);

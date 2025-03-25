@@ -1,4 +1,7 @@
-﻿namespace Rin.Engine.Graphics;
+﻿using Rin.Engine.Core;
+using Rin.Engine.Graphics.Meshes;
+
+namespace Rin.Engine.Graphics;
 
 public static class Extensions
 {
@@ -24,9 +27,9 @@ public static class Extensions
         };
     }
 
-    public static ulong PixelByteSize(this ImageFormat format)
+    public static nuint PixelByteSize(this ImageFormat format)
     {
-        return format.ComponentCount() * (ulong)(format switch
+        return format.ComponentCount() * (nuint)(format switch
         {
             ImageFormat.R8 => 1,
             ImageFormat.R16 => 2,
@@ -44,5 +47,23 @@ public static class Extensions
             ImageFormat.Stencil => 4, // Kinda finiky
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
         });
+    }
+
+    public static Bounds3D ComputeBounds(this IEnumerable<Vertex> vertices)
+    {
+        var bounds = new Bounds3D();
+
+        foreach (var vertex in vertices)
+        {
+            var location = vertex.Location;
+            bounds.X.Max = Math.Max(bounds.X.Max, location.X);
+            bounds.X.Min = Math.Min(bounds.X.Min, location.X);
+            bounds.Y.Max = Math.Max(bounds.Y.Max, location.Y);
+            bounds.Y.Min = Math.Min(bounds.Y.Min, location.Y);
+            bounds.Z.Max = Math.Max(bounds.Z.Max, location.Z);
+            bounds.Z.Min = Math.Min(bounds.Z.Min, location.Z);
+        }
+
+        return bounds;
     }
 }

@@ -18,7 +18,7 @@ public class SourceResolver : ISource
 
     private Dictionary<string, ISource> _sources = [];
     
-    public string BasePath => "/";
+    public string BasePath => "";
 
     public SourceResolver AddSource(ISource source)
     {

@@ -39,13 +39,12 @@ public abstract class SimpleMaterialPass : IMaterialPass
         if (requiredMemorySize > 0 && data == null) throw new Exception("Missing buffer");
         if (Shader.Bind(cmd))
         {
-            vkCmdBindIndexBuffer(cmd, first.Geometry.IndexBuffer.NativeBuffer, 0, VkIndexType.VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(cmd, first.Mesh.GetIndices().NativeBuffer, 0, VkIndexType.VK_INDEX_TYPE_UINT32);
 
             ulong offset = 0;
             foreach (var groupedMeshes in meshes.GroupBy(c => new
                      {
-                         c.Surface.StartIndex,
-                         c.Surface.Count
+                         c.SurfaceIndex,
                      }))
             {
                 var groupArray = groupedMeshes.ToArray();

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Numerics;
 using System.Security.Cryptography;
 using Rin.Engine.Core;
@@ -9,6 +10,7 @@ using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+
 namespace Rin.Engine.Views.Font;
 
 public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFontManager
@@ -29,9 +31,9 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
         Coordinate = Vector4.Zero
     };
 
-    private SdfResult? GenerateGlyph(char character,SixLabors.Fonts.Font font,CacheKey cacheKey)
+    private SdfResult? GenerateGlyph(char character, SixLabors.Fonts.Font font, CacheKey cacheKey)
     {
-        if (_externalCache?.Get(cacheKey.GetHashCode()) is {} data)
+        if (_externalCache?.Get(cacheKey.GetHashCode()) is { } data)
         {
             var result = new SdfResult();
             data.Read(result);
@@ -44,7 +46,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
             using var renderer = new MtsdfTextRenderer();
             TextRenderer.RenderTextTo(renderer, [character], options);
             var result = renderer.Generate(3f, GetPixelRange());
-            
+
             if (_externalCache is { SupportsSet: true } && result != null)
             {
                 var stream = new MemoryStream();
@@ -55,7 +57,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
             return result;
         }
     }
-    
+
     public Task Prepare(FontFamily fontFamily, IEnumerable<char> characters, FontStyle style = FontStyle.Regular)
     {
         var font = fontFamily.CreateFont(RenderSize, style);
@@ -68,28 +70,29 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
         }
 
         if (toGenerate.Empty()) return Task.CompletedTask;
-        
+
         var pending = _defaultLiveGlyph.Mutate(c =>
         {
             c.State = LiveGlyphState.Pending;
             return c;
         });
         foreach (var (_, key) in toGenerate) _atlases.AddOrUpdate(key, pending, (k, i) => pending);
-        
-        
+
+
         return Task.Run(() =>
         {
             try
             {
                 var results = toGenerate
-                    .Select((c, idx) => new Pair<SdfResult?, int>(GenerateGlyph(c.First,font,c.Second), idx))
+                    .Select((c, idx) => new Pair<SdfResult?, int>(GenerateGlyph(c.First, font, c.Second), idx))
                     .Where(c => c.First != null);
                 var textureManager = SGraphicsModule.Get().GetTextureFactory();
                 //var textureManager = SGraphicsModule.Get().GetTextureManager();
                 var generated = results.Select(c =>
                 {
                     var (result, index) = c;
-                    var data = result.Data;
+                    Debug.Assert(result != null, nameof(result) + " != null");
+                    using var data = result.Data;
                     var size = new Vector2((float)result.Width, (float)result.Height);
                     var glyph = new LiveGlyphInfo
                     {
@@ -98,27 +101,15 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                         Size = size,
                         Coordinate = new Vector4(0.0f, 0.0f, size.X / result.PixelWidth, size.Y / result.PixelHeight)
                     };
-                   
-                            glyph.AtlasId = SGraphicsModule.Get().CreateTexture(data,
-                                new Extent3D((uint)result.PixelWidth, (uint)result.PixelHeight), ImageFormat.RGBA8,
-                                tiling: ImageTiling.ClampEdge).First;
-                            data.Dispose();
-                            return new Pair<int, LiveGlyphInfo>(index, glyph);
+
+                    glyph.AtlasId = SGraphicsModule.Get().CreateTexture(result.Data.Clone(),
+                        new Extent3D((uint)result.PixelWidth, (uint)result.PixelHeight), ImageFormat.RGBA8,
+                        tiling: ImageTiling.ClampEdge).First;
+                    return new Pair<int, LiveGlyphInfo>(index, glyph);
                 });
 
                 foreach (var (index, glyph) in generated)
                     _atlases.AddOrUpdate(toGenerate[index].Second, glyph, (k, i) => glyph);
-                // var codepoint = glyph.GlyphMetrics.CodePoint;
-                // var targetStr = codepoint.ToString();
-                // SixLaborsTextRenderer.RenderTextTo(mtsdfRenderer,targetStr,options);
-                //
-                // var result = mtsdfRenderer.Generate(3f,pixelRange);
-                //
-                // if (result == null) return null;
-                //
-                // Span<byte> data = result.Data;
-                //
-                // var img = Image.LoadPixelData<Rgba32>(data, result.PixelWidth, result.PixelHeight);
             }
             catch (Exception e)
             {
@@ -141,7 +132,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
         }
 
         if (toGenerate.Empty()) return Task.CompletedTask;
-        
+
         var pending = _defaultLiveGlyph.Mutate(c =>
         {
             c.State = LiveGlyphState.Pending;
@@ -153,7 +144,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
             try
             {
                 var initialResults = Enumerable.Range(0, toGenerate.Count).Select(SdfResult? (c) => null).ToArray();
-                
+
                 var rangePartitioner = Partitioner.Create(0, toGenerate.Count);
 
                 Parallel.ForEach(rangePartitioner, range =>
@@ -164,9 +155,10 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                         initialResults[i] = GenerateGlyph(item.First, font, item.Second);
                     }
                 });
-                
-                var results = initialResults.Select((c,idx) => new Pair<SdfResult,int>(c,idx)).Where(c => c.First != null).ToArray();
-                
+
+                var results = initialResults.Select((c, idx) => new Pair<SdfResult, int>(c, idx))
+                    .Where(c => c.First != null).ToArray();
+
                 var textureManager = SGraphicsModule.Get().GetTextureFactory();
 
                 var atlasSize = 512;
@@ -185,11 +177,12 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
 
                     i--;
                 }
-                
-                var atlases = packers.Select(p => new Image<Rgba32>(p.Width, p.Height, new Rgba32(255, 255, 255, 0))).ToArray();
-                
-                List<Pair<int,LiveGlyphInfo>> generatedGlyphs = [];
-                
+
+                var atlases = packers.Select(p => new Image<Rgba32>(p.Width, p.Height, new Rgba32(255, 255, 255, 0)))
+                    .ToArray();
+
+                List<Pair<int, LiveGlyphInfo>> generatedGlyphs = [];
+
                 // Write glyphs to images
                 for (var i = 0; i < packers.Count; i++)
                 {
@@ -201,23 +194,24 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                         foreach (var rect in packer.Rects)
                         {
                             var generated = rect.Data;
-                            
+
                             Span<byte> data = generated.First.Data;
 
-                            using var img = Image.LoadPixelData<Rgba32>(data, generated.First.PixelWidth,generated.First.PixelHeight);
+                            using var img = Image.LoadPixelData<Rgba32>(data, generated.First.PixelWidth,
+                                generated.First.PixelHeight);
 
                             generated.First.Data.Dispose();
-                            
+
                             o.DrawImage(img, new Point(rect.X, rect.Y), 1F);
                         }
                     });
                 }
-                
+
                 // Upload textures to gpu
                 var atlasIds = atlases.Select(c => SGraphicsModule.Get().CreateTexture(c.ToBuffer(),
                     new Extent3D((uint)c.Width, (uint)c.Height), ImageFormat.RGBA8,
                     tiling: ImageTiling.ClampEdge).First).ToArray();
-                
+
                 // Update Live glyphs
                 for (var i = 0; i < packers.Count; i++)
                 {
@@ -241,7 +235,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                         _atlases.AddOrUpdate(toGenerate[generated.Second].Second, glyph, (k, i) => glyph);
                     }
                 }
-                
+
                 foreach (var atlas in atlases)
                 {
                     atlas.Dispose();

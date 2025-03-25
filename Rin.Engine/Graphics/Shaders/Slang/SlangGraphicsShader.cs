@@ -2,6 +2,7 @@
 using System.Text.Json;
 using Rin.Engine.Core;
 using Rin.Engine.Graphics.Descriptors;
+using Rin.Engine.Views.Composite;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -61,18 +62,48 @@ public class SlangGraphicsShader : IGraphicsShader
 
         return true;
     }
+    
+
+
+    private IEnumerable<string> ImportFile(string filePath,HashSet<string> included)
+    {
+        List<string> allLines = [];
+        using var dataStream = SEngine.Get().Sources.Read(filePath);
+        using var reader = new StreamReader(dataStream);
+        while (reader.ReadLine() is { } line)
+        {
+            if (line.StartsWith("#include"))
+            {
+                var includeString = line[(line.IndexOf('"') + 1)..line.LastIndexOf('"')];
+                if (included.Add(includeString))
+                {
+                    allLines.AddRange(ImportFile(includeString,included));
+                }
+            }
+            else
+            {
+                allLines.Add(line);
+            }
+        }
+
+        return allLines;
+    }
 
     public void Compile(ICompilationContext context)
     {
         if (context.Manager is SlangShaderManager manager)
         {
+            var includesProcessed = new HashSet<string>();
             var session = manager.GetSession();
-            
-            using var dataStream = SEngine.Get().Sources.Read($"/fs/{_filePath}");
-            using var reader = new StreamReader(_filePath);
-            var fileData = reader.ReadToEnd();
-            using var module = session.LoadModuleFromSourceString(_filePath, _filePath, fileData);
-            if (module == null) throw new ShaderCompileException("Failed to load slang shader module.");
+            var fileData = string.Join('\n',ImportFile(_filePath,includesProcessed));//reader.ReadToEnd();
+            var diag = new SlangBlob();
+            var id = $"{Guid.NewGuid().ToString()}.slang";
+            using var module = session.LoadModuleFromSourceString(id,id, fileData,diag);
+            if (module == null)
+            {
+                var str = Marshal.PtrToStringAnsi(diag.GetDataPointer()) ?? string.Empty;
+                throw new ShaderCompileException("Failed to load slang shader module:\n" + str);
+            }
             List<SlangEntryPoint> entryPoints = [];
             {
                 var entryPoint = module.FindEntryPointByName("vertex");
@@ -97,16 +128,24 @@ public class SlangGraphicsShader : IGraphicsShader
             foreach (var entryPoint in entryPoints)
             {
                 using var composedProgram = session.CreateComposedProgram(module, [entryPoint]);
-
+                
                 if (composedProgram == null) throw new ShaderCompileException("Failed to create composed program.");
 
                 using var linkedProgram = composedProgram.Link();
 
                 if (linkedProgram == null) throw new ShaderCompileException("Failed to link composed program.");
+                
+                diag.Dispose();
+                diag = new SlangBlob();
+                
+                var generatedCode = linkedProgram.GetEntryPointCode(0, 0, ref diag);
 
-                var generatedCode = linkedProgram.GetEntryPointCode(0, 0);
-
-                if (generatedCode == null) throw new ShaderCompileException("Failed to generate code.");
+                if (generatedCode == null)
+                {
+                    var msg = diag.GetString();
+                    var length = diag.GetSize();
+                    throw new ShaderCompileException("Failed to generate code.\n" + msg);
+                }
 
                 using var reflectionBlob = linkedProgram.ToLayoutJson();
 

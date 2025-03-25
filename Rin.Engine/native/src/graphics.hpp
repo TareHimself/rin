@@ -21,7 +21,7 @@ EXPORT_DECL void * allocatorCreate(VkInstance instance,VkDevice device,VkPhysica
 
 EXPORT_DECL void allocatorDestroy(void * allocator);
 
-EXPORT_DECL void allocatorNewBuffer(VkBuffer * buffer, void** allocation, unsigned long size, void* allocator,
+EXPORT_DECL void allocatorNewBuffer(VkBuffer * buffer, void** allocation, size_t size, void* allocator,
                                 int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
                                 int mapped, const char* debugName);
 
@@ -31,7 +31,7 @@ EXPORT_DECL void allocatorFreeBuffer(VkBuffer buffer,void * allocation,void * al
 
 EXPORT_DECL void allocatorFreeImage(VkImage image,void * allocation,void * allocator);
 
-EXPORT_DECL void allocatorCopyToBuffer(void * allocator,void * allocation,void * data,unsigned long size,unsigned long offset);
+EXPORT_DECL void allocatorCopyToBuffer(void * allocator,void * allocation,void * data,size_t size,size_t offset);
 
 EXPORT_DECL void dVkCmdBindShadersEXT(VkCommandBuffer commandBuffer, 
    uint32_t stageCount, 

@@ -60,7 +60,7 @@ public class Context : IDisposable
         Native.Sdf.ContextGenerateMsdf(_context, angleThreshold, pixelRange,
             (data, pixelWidth, pixelHeight, count, width, height) =>
             {
-                var buffer = new NativeBuffer<byte>((int)count);
+                var buffer = new Buffer<byte>((int)count);
                 buffer.Write(data, count);
                 result = new SdfResult(buffer,3,width,height,(int)pixelWidth,(int)pixelHeight);
             });
@@ -75,7 +75,7 @@ public class Context : IDisposable
         Native.Sdf.ContextGenerateMtsdf(_context, angleThreshold, pixelRange,
             (data, pixelWidth, pixelHeight, count, width, height) =>
             {
-                var buffer = new NativeBuffer<byte>((int)count);
+                var buffer = new Buffer<byte>((int)count);
                 buffer.Write(data, count);
                 result = new SdfResult(buffer,4,width,height,(int)pixelWidth,(int)pixelHeight);
             });
