@@ -4,6 +4,7 @@
 #include <slang-com-helper.h>
 #include <vector>
 #include <string>
+#include <cstddef>
 #include "macro.hpp"
 
 

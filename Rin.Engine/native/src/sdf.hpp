@@ -2,7 +2,7 @@
 #include "macro.hpp"
 #include <msdfgen.h>
 #include <cstdint>
-
+#include <cstddef>
 struct GlyphContext
 {
     msdfgen::Point2 position{};
