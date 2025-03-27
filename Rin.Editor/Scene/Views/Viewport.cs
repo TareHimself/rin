@@ -175,7 +175,7 @@ public class Viewport : ContentView
         return false;
     }
 
-    protected override void OnCursorMove(CursorMoveSurfaceEvent e)
+    protected override bool OnCursorMove(CursorMoveSurfaceEvent e)
     {
         if (_captureMouse && !_ignoreNextMove)
         {

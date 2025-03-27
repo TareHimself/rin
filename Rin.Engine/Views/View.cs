@@ -293,7 +293,10 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
                         OnCursorEnter(ev);
                     }
 
-                    OnCursorMove(ev);
+                    if (!ev.Handled)
+                    {
+                        ev.Handled = OnCursorMove(ev);
+                    }
                 }
                 break;
             case ScrollSurfaceEvent ev:
@@ -354,9 +357,9 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     {
     }
 
-    protected virtual void OnCursorMove(CursorMoveSurfaceEvent e)
+    protected virtual bool OnCursorMove(CursorMoveSurfaceEvent e)
     {
-
+        return false;
     }
 
     protected virtual void OnCursorEnter(CursorMoveSurfaceEvent e)

@@ -134,7 +134,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             
             cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
             var firstSurface = first.Mesh.GetSurface(first.SurfaceIndex);
-            vkCmdDrawIndexed(cmd, firstSurface.Count, (uint)meshes.Length, 0, (int)firstSurface.Index, 0);
+            vkCmdDrawIndexed(cmd, firstSurface.IndicesCount, (uint)meshes.Length, 0, (int)firstSurface.VertexIndex, 0);
             return memoryUsed;
         }
         
@@ -200,7 +200,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             
             cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
             var firstSurface = first.Mesh.GetSurface(first.SurfaceIndex);
-            vkCmdDrawIndexed(cmd, firstSurface.Count, (uint)meshes.Length, 0, (int)firstSurface.Index, 0);
+            vkCmdDrawIndexed(cmd, firstSurface.IndicesCount, (uint)meshes.Length, 0, (int)firstSurface.VertexIndex, 0);
             return memoryUsed;
         }
         

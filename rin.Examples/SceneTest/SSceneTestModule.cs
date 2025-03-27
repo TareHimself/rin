@@ -5,11 +5,11 @@ using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Windows;
-using Rin.Editor.Scene;
-using Rin.Editor.Scene.Actors;
-using Rin.Editor.Scene.Components;
-using Rin.Editor.Scene.Components.Lights;
-using Rin.Editor.Scene.Graphics;
+using Rin.Engine.Scene;
+using Rin.Engine.Scene.Actors;
+using Rin.Engine.Scene.Components;
+using Rin.Engine.Scene.Components.Lights;
+using Rin.Engine.Scene.Graphics;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;
@@ -56,7 +56,7 @@ public class SSceneTestModule : IModule
     {
         SViewsModule.Get().OnSurfaceCreated += (surf) =>
         {
-            var scene = SSceneModule.Get().CreateScene();
+            var scene = new Scene();
             scene.Start();
 
             // Extensions.LoadStaticMesh(Path.Join(SRuntime.ResourcesDirectory,"models","real_plane.glb")).After(mesh =>
@@ -86,11 +86,9 @@ public class SSceneTestModule : IModule
             
             var camera = scene.AddActor<CameraActor>();
             var comp = camera.GetCameraComponent();
-            var location = new Vector3(0.0f, 60.0f, -50.0f);
+            var location = new Vector3(0.0f, 15.0f, -9.0f);
             comp.SetRelativeLocation(location);
-            var lookAtRotation = Rotator.LookAt(location,new Vector3(0.0f,50.0f,0.0f),Constants.UpVector);
-            comp.SetRelativeRotation(lookAtRotation);
-            Extensions.LoadStaticMesh(Path.Join(SEngine.AssetsDirectory,"models","real_cube.glb")).After(mesh =>
+            Extensions.LoadStaticMesh(Path.Join(SEngine.AssetsDirectory,"models","cube.glb")).After(mesh =>
             {
                 
                 scene.AddPointLight(new Vector3(0.0f, 20.0f, 0.0f));
@@ -98,7 +96,7 @@ public class SSceneTestModule : IModule
                 scene.AddPointLight(new Vector3(0.0f, -20.0f, 0.0f));
                 var directionalLight = scene.AddActor(new Actor()
                 {
-                    RootComponent = new DirectionalLightComponent()
+                        RootComponent = new DirectionalLightComponent()
                     {
                         Radiance = 10.0f,
                         Location = new Vector3(0.0f, 200.0f, 0.0f),
@@ -107,8 +105,8 @@ public class SSceneTestModule : IModule
                 
                 directionalLight.SetRelativeRotation(Rotator.LookAt(directionalLight.GetRelativeLocation(),new Vector3(0.0f),Constants.UpVector));
                 //
-                var dist = 50.0f;
-                var height = 50.0f;
+                var dist = 8.0f;
+                var height = 15.0f;
                 var e1 = new Actor()
                 {
                     RootComponent = new StaticMeshComponent()
@@ -125,9 +123,12 @@ public class SSceneTestModule : IModule
                         Location = new Vector3(-dist,height,0.0f)
                     }
                 };
+                var boxCollisionLocation = new Vector3(0.0f, 30, 0.0f);
+                var lookAtRotation = Rotator.LookAt(location,boxCollisionLocation,Constants.UpVector);
+                comp.SetRelativeRotation(lookAtRotation);
                 var box = new BoxCollisionComponent()
                 {
-                    Location = new Vector3(0.0f, 100.0f, 0.0f),
+                    Location = boxCollisionLocation,
                 };
 
                 box.OnHit += (_) =>

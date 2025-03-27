@@ -27,7 +27,7 @@ public class DeviceMesh : IMesh, IDisposable
         Surfaces = surfaces;
         var verticesArray = vertices.ToArray();
 
-        SurfaceBounds = Surfaces.Select(c => verticesArray[(int)c.Index..(int)(c.Index + (c.Count - 1))].ComputeBounds())
+        SurfaceBounds = Surfaces.Select(c => verticesArray[(int)c.VertexIndex..(int)(c.VertexIndex + (c.VertexCount - 1))].ComputeBounds())
             .ToArray();
         Bounds = SurfaceBounds.Aggregate((t,c) => t + c);
     }
@@ -56,7 +56,7 @@ public class DeviceMesh : IMesh, IDisposable
     public IDeviceBufferView GetVertices(int surfaceIndex)
     {
         var surface = Surfaces[surfaceIndex];
-        return VertexBuffer.GetView(surface.Index  * sizeof(uint),surface.Count * sizeof(uint));
+        return VertexBuffer.GetView(surface.VertexIndex  * sizeof(uint),surface.VertexCount * sizeof(uint));
     }
 
     public IDeviceBufferView GetIndices()

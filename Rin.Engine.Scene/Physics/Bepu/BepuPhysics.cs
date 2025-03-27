@@ -197,7 +197,7 @@ public class BepuPhysics : IPhysicsSystem
 
     public void Start()
     {
-        Simulation.Statics.Add(new StaticDescription(new Vector3(0, -30, 0), Simulation.Shapes.Add(new Box(200, 30, 200))));
+        Simulation.Statics.Add(new StaticDescription(new Vector3(0, -7, 0), Simulation.Shapes.Add(new Box(200, 5, 200))));
     }
 
     public StaticHandle AddStatic(BepuBody body, StaticDescription description)

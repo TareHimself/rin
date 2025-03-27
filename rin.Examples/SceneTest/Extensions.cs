@@ -1,13 +1,12 @@
 ﻿using System.Numerics;
-using Rin.Editor.Scene.Actors;
-using Rin.Editor.Scene.Components;
-using Rin.Editor.Scene.Components.Lights;
-using Rin.Editor.Scene.Graphics;
+using Rin.Engine.Scene.Actors;
+using Rin.Engine.Scene.Components;
+using Rin.Engine.Scene.Components.Lights;
 using Rin.Engine.Core.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Meshes;
 using SharpGLTF.Schema2;
-using Scene = Rin.Editor.Scene.Scene;
+using Scene = Rin.Engine.Scene.Scene;
 
 namespace rin.Examples.SceneTest;
 
@@ -31,8 +30,9 @@ public static class Extensions
             
             var newSurface = new MeshSurface
             {
-                Index = (uint)vertices.Count,
-                Count = (uint)primitive.VertexAccessors.First().Value.Count,
+                VertexIndex = (uint)vertices.Count,
+                VertexCount = (uint)primitive.VertexAccessors.First().Value.Count,
+                IndicesCount = (uint)primitive.IndexAccessor.Count
             };
 
             var initialVertex = vertices.Count;
@@ -42,34 +42,18 @@ public static class Extensions
             }
 
             {
-                foreach (var vec in primitive.GetVertices("POSITION").AsVector3Array())
+                foreach (var (position,normal,uv) in primitive.GetVertices("POSITION")
+                             .AsVector3Array()
+                             .Zip(
+                                 primitive.GetVertices("NORMAL").AsVector3Array(),
+                                 primitive.GetVertices("TEXCOORD_0").AsVector2Array()
+                                 ))
                     vertices.Add(new Vertex
                     {
-                        Location = new Vector3(vec.X, vec.Y, vec.Z),
-                        Normal = new Vector3(0.0f)
+                        Location = position,
+                        Normal = normal,
+                        UV = uv
                     });
-            }
-
-            {
-                var idx = initialVertex;
-                foreach (var vec in primitive.GetVertices("NORMAL").AsVector3Array())
-                {
-                    var vert = vertices[idx];
-                    vert.Normal = vec;
-                    vertices[idx] = vert;
-                    idx++;
-                }
-            }
-
-            {
-                var idx = initialVertex;
-                foreach (var vec in primitive.GetVertices("TEXCOORD_0").AsVector2Array())
-                {
-                    var vert = vertices[idx];
-                    vert.UV = vec;
-                    vertices[idx] = vert;
-                    idx++;
-                }
             }
 
             surfaces.Add(newSurface);

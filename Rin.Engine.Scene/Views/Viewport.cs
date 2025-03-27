@@ -58,7 +58,7 @@ internal class DisplaySceneCommand(ForwardRenderingPass renderingPass,Vector2 si
     }
 
     private readonly IShader _shader = SGraphicsModule.Get()
-        .MakeGraphics("Editor/Shaders/viewport.slang");
+        .MakeGraphics("Scene/Shaders/viewport.slang");
     
     public override ulong GetRequiredMemory() => 0;
     public override bool WillDraw() => true;
@@ -152,42 +152,42 @@ public class Viewport : ContentView
 
     public override bool OnCursorDown(CursorDownSurfaceEvent e)
     {
-        if (e.Button == CursorButton.One)
+        switch (e.Button)
         {
-            var currentIdx = (int)_channel;
-            currentIdx = (currentIdx + 1) % 5;
-            _channel = (ViewportChannel)currentIdx;
-            UpdateModeText();
-            return true;
+            case CursorButton.One:
+            {
+                var currentIdx = (int)_channel;
+                currentIdx = (currentIdx + 1) % 5;
+                _channel = (ViewportChannel)currentIdx;
+                UpdateModeText();
+                return true;
+            }
+            case CursorButton.Two:
+                _captureMouse = true;
+                _ignoreNextMove = true;
+                _mousePosition = GetAbsoluteCenter();
+                e.Surface.SetCursorPosition(_mousePosition);
+                e.Surface.RequestFocus(this);
+                return true;
+            default:
+                return false;
         }
-
-        if (e.Button == CursorButton.Two)
-        {
-            _captureMouse = true;
-            _ignoreNextMove = true;
-            _mousePosition = GetAbsoluteCenter();
-            e.Surface.SetCursorPosition(_mousePosition);
-            e.Surface.RequestFocus(this);
-            return true;
-        }
-
-        return false;
     }
 
-    protected override void OnCursorMove(CursorMoveSurfaceEvent e)
+    protected override bool OnCursorMove(CursorMoveSurfaceEvent e)
     {
         if (_captureMouse && !_ignoreNextMove)
         {
             var delta = e.Position - _mousePosition;
 
-            if (!(Math.Abs(delta.X) > 0) && !(Math.Abs(delta.Y) > 0)) return;// true;
+            if (!(Math.Abs(delta.X) > 0) && !(Math.Abs(delta.Y) > 0)) return true;
 
             OnMouseDelta(delta);
             
             _mousePosition = GetAbsoluteCenter();
             _ignoreNextMove = true;
             e.Surface.SetCursorPosition(_mousePosition);
-            return; // true;
+            return true;
         }
 
         if (_ignoreNextMove)
@@ -196,7 +196,7 @@ public class Viewport : ContentView
             _mousePosition = e.Position;
         }
 
-        //return base.OnCursorMove(e);
+        return base.OnCursorMove(e);
     }
 
     protected override Vector2 ComputeDesiredContentSize()

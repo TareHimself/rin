@@ -100,7 +100,7 @@ public class DefaultMeshMaterial : IMeshMaterial
 
         public override ulong GetRequiredMemory() => Utils.ByteSizeOf<DefaultMaterialProperties>();
         protected override IShader Shader { get; } = SGraphicsModule.Get()
-            .MakeGraphics("Editor/Shaders/Mesh/mesh.slang");
+            .MakeGraphics("Scene/Shaders/Mesh/mesh.slang");
 
         protected override IMaterialPass GetPass(GeometryInfo mesh) => mesh.MeshMaterial.ColorPass;
 
@@ -132,7 +132,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             
             cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
             var firstSurface = first.Mesh.GetSurface(first.SurfaceIndex);
-            vkCmdDrawIndexed(cmd, firstSurface.Count, (uint)meshes.Length, 0, (int)firstSurface.Index, 0);
+            vkCmdDrawIndexed(cmd, firstSurface.IndicesCount, (uint)meshes.Length, 0, (int)firstSurface.VertexIndex, 0);
             return memoryUsed;
         }
         
@@ -170,7 +170,7 @@ public class DefaultMeshMaterial : IMeshMaterial
         
         public override ulong GetRequiredMemory() => Utils.ByteSizeOf<DepthMaterialData>();
         protected override IShader Shader { get; } = SGraphicsModule.Get()
-            .MakeGraphics("Editor/Shaders/Mesh/mesh_depth.slang");
+            .MakeGraphics("Scene/Shaders/Mesh/mesh_depth.slang");
         
         protected override IMaterialPass GetPass(GeometryInfo mesh) => mesh.MeshMaterial.DepthPass;
 
@@ -198,7 +198,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             
             cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
             var firstSurface = first.Mesh.GetSurface(first.SurfaceIndex);
-            vkCmdDrawIndexed(cmd, firstSurface.Count, (uint)meshes.Length, 0, (int)firstSurface.Index, 0);
+            vkCmdDrawIndexed(cmd, firstSurface.IndicesCount, (uint)meshes.Length, 0, (int)firstSurface.VertexIndex, 0);
             return memoryUsed;
         }
         

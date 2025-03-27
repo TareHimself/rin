@@ -3,7 +3,7 @@ using rin.Examples.SceneTest.entities;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics.Windows;
-using Rin.Editor.Scene.Views;
+using Rin.Engine.Scene.Views;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
 

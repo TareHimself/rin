@@ -1,9 +1,9 @@
 ﻿namespace Rin.Engine.Views.Events;
 
+/// <summary>
+/// Interfaces for events that will stop propagating once handled
+/// </summary>
 public interface IHandleableEvent
 {
-    /// <summary>
-    /// The view that handled this event
-    /// </summary>
     public bool Handled { get; }
 }

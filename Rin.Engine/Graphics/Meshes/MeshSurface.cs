@@ -2,8 +2,9 @@
 
 namespace Rin.Engine.Graphics.Meshes;
 
-public struct MeshSurface
+public record struct MeshSurface
 {
-    public uint Index;
-    public uint Count;
+    public uint VertexIndex;
+    public uint VertexCount;
+    public uint IndicesCount;
 }

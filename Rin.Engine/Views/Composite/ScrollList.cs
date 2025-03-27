@@ -158,13 +158,13 @@ public class ScrollList : List
         return true;
     }
 
-    protected override void OnCursorMove(CursorMoveSurfaceEvent e)
+    protected override bool OnCursorMove(CursorMoveSurfaceEvent e)
     {
         if (_lastDownEvent?.Target == this)
         {
             var pos = _mouseDownPos - e.Position;
 
-            ScrollTo(Axis switch
+            return ScrollTo(Axis switch
             {
                 Axis.Row => _mouseDownOffset + pos.X,
                 Axis.Column => _mouseDownOffset + pos.Y,
@@ -179,6 +179,8 @@ public class ScrollList : List
 
             // return ScrollBy((float)delta);
         }
+
+        return false;
     }
 
     public override void OnCursorUp(CursorUpSurfaceEvent e)

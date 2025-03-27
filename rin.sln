@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Shading.Tests", "Rin.Sh
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Engine.Scene", "Rin.Engine.Scene\Rin.Engine.Scene.csproj", "{44F876E5-9EDC-4734-A74B-AEEE8DE885FE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatApp", "examples\ChatApp\ChatApp.csproj", "{6546ED52-12B2-4CC3-A410-038CCB279FCA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -167,6 +169,18 @@ Global
 		{44F876E5-9EDC-4734-A74B-AEEE8DE885FE}.Release|x64.Build.0 = Release|Any CPU
 		{44F876E5-9EDC-4734-A74B-AEEE8DE885FE}.Release|x86.ActiveCfg = Release|Any CPU
 		{44F876E5-9EDC-4734-A74B-AEEE8DE885FE}.Release|x86.Build.0 = Release|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Debug|x64.Build.0 = Debug|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Debug|x86.Build.0 = Debug|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Release|x64.ActiveCfg = Release|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Release|x64.Build.0 = Release|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Release|x86.ActiveCfg = Release|Any CPU
+		{6546ED52-12B2-4CC3-A410-038CCB279FCA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -8,4 +8,6 @@ public class CursorMoveSurfaceEvent(Surface surface, Vector2 position,View? targ
     public Vector2 Position = position;
     
     public readonly List<View> Over = [];
+    
+    public bool Handled { get; set; }
 }

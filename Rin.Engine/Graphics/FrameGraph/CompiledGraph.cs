@@ -31,7 +31,7 @@ public class CompiledGraph : ICompiledGraph
         if (SEngine.Get().IsModuleLoaded<SGraphicsModule>() && memoryNeeded > 0)
         {
             var pooledView = resourcePool.CreateBuffer(new BufferResourceDescriptor(memoryNeeded), frame);
-            pooledView = new DeviceBufferWriteValidator(pooledView);
+            //pooledView = new DeviceBufferWriteValidator(pooledView);
             _buffer = pooledView; // SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
         }
 
