@@ -8,7 +8,6 @@ public interface IPhysicsSystem : IDisposable
     public Vector3 Gravity { get; set; }
     public IPhysicsBox CreateBox(IPhysicsComponent owner,Vector3 size);
     public IPhysicsSphere CreateSphere(IPhysicsComponent owner,float radius);
-    
     public IPhysicsCapsule CreateCapsule(IPhysicsComponent owner,float radius, float halfHeight);
     
     public void Update(double deltaTime);

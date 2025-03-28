@@ -83,7 +83,7 @@ public class MeshFactory : IMeshFactory
                 }
             });
 
-            var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces,vertices);
+            var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces);
 
             TaskCompletionSource? toComplete;
             lock (_sync)

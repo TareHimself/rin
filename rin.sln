@@ -25,7 +25,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Shading.Tests", "Rin.Sh
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Engine.Scene", "Rin.Engine.Scene\Rin.Engine.Scene.csproj", "{44F876E5-9EDC-4734-A74B-AEEE8DE885FE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatApp", "examples\ChatApp\ChatApp.csproj", "{6546ED52-12B2-4CC3-A410-038CCB279FCA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatApp", "Examples\ChatApp\ChatApp.csproj", "{6546ED52-12B2-4CC3-A410-038CCB279FCA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

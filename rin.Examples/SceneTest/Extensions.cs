@@ -14,7 +14,7 @@ public static class Extensions
 {
     public static async Task<int?> LoadStaticMesh(string filename)
     {
-        var model = ModelRoot.Load(filename);
+        var model = ModelRoot.Load("/home/tare/Downloads/anim.glb");//filename);
 
         var mesh = model?.LogicalMeshes.FirstOrDefault();
 
@@ -23,16 +23,17 @@ public static class Extensions
         List<MeshSurface> surfaces = [];
         List<uint> indices = [];
         List<Vertex> vertices = [];
-
+        
         foreach (var primitive in mesh.Primitives)
         {
             if (primitive == null) continue;
-            
+            List<Vertex> surfaceVertices = [];
             var newSurface = new MeshSurface
             {
-                VertexIndex = (uint)vertices.Count,
+                VertexStart = (uint)vertices.Count,
                 VertexCount = (uint)primitive.VertexAccessors.First().Value.Count,
-                IndicesCount = (uint)primitive.IndexAccessor.Count
+                IndicesStart = (uint)indices.Count,
+                IndicesCount = (uint)primitive.IndexAccessor.Count,
             };
 
             var initialVertex = vertices.Count;
@@ -48,7 +49,7 @@ public static class Extensions
                                  primitive.GetVertices("NORMAL").AsVector3Array(),
                                  primitive.GetVertices("TEXCOORD_0").AsVector2Array()
                                  ))
-                    vertices.Add(new Vertex
+                    surfaceVertices.Add(new Vertex
                     {
                         Location = position,
                         Normal = normal,
@@ -56,6 +57,8 @@ public static class Extensions
                     });
             }
 
+            newSurface.Bounds = surfaceVertices.ComputeBounds();
+            vertices.AddRange(surfaceVertices);
             surfaces.Add(newSurface);
         }
 

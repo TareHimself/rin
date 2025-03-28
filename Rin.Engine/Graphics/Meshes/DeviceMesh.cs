@@ -15,21 +15,14 @@ public class DeviceMesh : IMesh, IDisposable
     public MeshSurface[] Surfaces;
     
     [PublicAPI]
-    public Bounds3D[] SurfaceBounds;
-    
-    [PublicAPI]
     public Bounds3D Bounds;
 
-    public DeviceMesh(IDeviceBuffer vertexBuffer, IDeviceBuffer indexBuffer,MeshSurface[] surfaces,IEnumerable<Vertex> vertices)
+    public DeviceMesh(IDeviceBuffer vertexBuffer, IDeviceBuffer indexBuffer,MeshSurface[] surfaces)
     {
         VertexBuffer = vertexBuffer;
         IndexBuffer = indexBuffer;
         Surfaces = surfaces;
-        var verticesArray = vertices.ToArray();
-
-        SurfaceBounds = Surfaces.Select(c => verticesArray[(int)c.VertexIndex..(int)(c.VertexIndex + (c.VertexCount - 1))].ComputeBounds())
-            .ToArray();
-        Bounds = SurfaceBounds.Aggregate((t,c) => t + c);
+        Bounds = Surfaces.Aggregate(Surfaces.First().Bounds,(t,c) => t + c.Bounds);
     }
 
     public void Dispose()
@@ -56,7 +49,7 @@ public class DeviceMesh : IMesh, IDisposable
     public IDeviceBufferView GetVertices(int surfaceIndex)
     {
         var surface = Surfaces[surfaceIndex];
-        return VertexBuffer.GetView(surface.VertexIndex  * sizeof(uint),surface.VertexCount * sizeof(uint));
+        return VertexBuffer.GetView(surface.VertexStart  * sizeof(uint),surface.VertexCount * sizeof(uint));
     }
 
     public IDeviceBufferView GetIndices()
@@ -67,10 +60,5 @@ public class DeviceMesh : IMesh, IDisposable
     public Bounds3D GetBounds()
     {
         return Bounds;
-    }
-
-    public Bounds3D GetBounds(int surfaceIndex)
-    {
-        return SurfaceBounds[surfaceIndex];
     }
 }

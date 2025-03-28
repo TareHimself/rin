@@ -14,5 +14,4 @@ public interface IMesh
     public IDeviceBufferView GetIndices();
     
     public Bounds3D GetBounds();
-    public Bounds3D GetBounds(int surfaceIndex);
 }
