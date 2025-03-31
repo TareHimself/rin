@@ -24,7 +24,7 @@ struct Quad
     // [RenderMode,Reserved,Reserved,Reserved]
     int4 opts;
     float2 size;
-    float3x3 transform;
+    float4x4 transform;
 };
 
 struct CompleteQuad {

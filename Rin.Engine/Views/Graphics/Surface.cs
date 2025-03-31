@@ -236,7 +236,7 @@ public abstract class Surface : IDisposable, IUpdatable
     protected PassInfo? ComputePassInfo()
     {
         var rawDrawCommands = new PassCommands();
-        _rootView.Collect(Mat3.Identity, new Rect
+        _rootView.Collect(Matrix4x4.Identity, new Rect
         {
             Size = GetSize()
         }, rawDrawCommands);
@@ -350,7 +350,7 @@ public abstract class Surface : IDisposable, IUpdatable
     protected virtual void ReceiveCursorDown(CursorDownSurfaceEvent e)
     {
         var point = e.Position;
-        _rootView.HandleEvent(e, Mat3.Identity);
+        _rootView.HandleEvent(e, Matrix4x4.Identity);
         if (e.Target is not null)
         {
             _lastCursorDownEvent = e;
@@ -374,7 +374,7 @@ public abstract class Surface : IDisposable, IUpdatable
 
     protected virtual void ReceiveCursorMove(CursorMoveSurfaceEvent e)
     {
-        _rootView.HandleEvent(e, Mat3.Identity);
+        _rootView.HandleEvent(e, Matrix4x4.Identity);
         _lastHovered.AddRange(e.Over);
         // Maybe leave this to the event handler in the future
         if (_lastCursorDownEvent is { } lastEvent)
@@ -404,7 +404,7 @@ public abstract class Surface : IDisposable, IUpdatable
 
     protected virtual void ReceiveScroll(ScrollSurfaceEvent e)
     {
-        _rootView.HandleEvent(e, Mat3.Identity);
+        _rootView.HandleEvent(e, Matrix4x4.Identity);
     }
 
     protected virtual void ReceiveCharacter(CharacterSurfaceEvent e)
@@ -428,7 +428,7 @@ public abstract class Surface : IDisposable, IUpdatable
         {
             if (e.Position.Within(new Vector2(), GetSize()))
             {
-                _rootView.HandleEvent(e, Mat3.Identity);
+                _rootView.HandleEvent(e, Matrix4x4.Identity);
                 _lastHovered.AddRange(e.Over);
             }
         }

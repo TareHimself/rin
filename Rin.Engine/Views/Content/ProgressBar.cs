@@ -24,7 +24,7 @@ public class ProgressBar(Func<float> getProgress) : ContentView
         return new Vector2();
     }
 
-    public override void CollectContent(Mat3 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         var size = GetContentSize();
         commands.AddRect(transform, size, BackgroundColor, BorderRadius);

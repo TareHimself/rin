@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Rin.Engine.Scene\Rin.Engine.Scene.csproj" />
+      <ProjectReference Include="..\..\Rin.Engine.World\Rin.Engine.World.csproj" />
       <ProjectReference Include="..\..\Rin.Engine\Rin.Engine.csproj" />
     </ItemGroup>
 

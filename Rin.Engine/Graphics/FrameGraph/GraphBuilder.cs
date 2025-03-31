@@ -16,7 +16,7 @@ public class GraphBuilder : IGraphBuilder
 
     public uint AddPass(IPass pass)
     {
-        pass.BeforeAdd(this);
+        pass.Added(this);
         var passId = MakeId();
         pass.Id = passId;
         _passes.Add(passId, pass);

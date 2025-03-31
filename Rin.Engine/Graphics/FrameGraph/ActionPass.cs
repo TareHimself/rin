@@ -8,7 +8,7 @@ public class ActionPass(
 {
     public string Name { get; } = name ?? $"unknown-pass-{Guid.NewGuid().ToString()}";
 
-    public void BeforeAdd(IGraphBuilder builder)
+    public void Added(IGraphBuilder builder)
     {
     }
 

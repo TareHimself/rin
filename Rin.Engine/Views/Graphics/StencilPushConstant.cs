@@ -1,9 +1,10 @@
-﻿using Rin.Engine.Core.Math;
+﻿using System.Numerics;
+using Rin.Engine.Core.Math;
 
 namespace Rin.Engine.Views.Graphics;
 
 public struct StencilPushConstant
 {
-    public Mat4 Projection;
+    public Matrix4x4 Projection;
     public ulong data;
 }

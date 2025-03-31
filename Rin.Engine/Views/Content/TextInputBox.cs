@@ -88,7 +88,7 @@ public class TextInputBox : TextBox
         //CursorPosition = Math.Clamp(CursorPosition, -1, Content.Length - 1);
     }
 
-    public override void CollectContent(Mat3 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         base.CollectContent(transform, commands);
 

@@ -14,7 +14,7 @@ public class WindowSurfacePass(Surface surface, Vector2 drawSize, PassInfo passI
     {
     }
 
-    public void BeforeAdd(IGraphBuilder builder)
+    public void Added(IGraphBuilder builder)
     {
         _viewsPassId = builder.AddPass(_viewsPass);
     }

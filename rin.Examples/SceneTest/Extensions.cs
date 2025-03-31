@@ -1,12 +1,12 @@
 ﻿using System.Numerics;
-using Rin.Engine.Scene.Actors;
-using Rin.Engine.Scene.Components;
-using Rin.Engine.Scene.Components.Lights;
+using Rin.Engine.World.Actors;
+using Rin.Engine.World.Components;
+using Rin.Engine.World.Components.Lights;
 using Rin.Engine.Core.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Meshes;
+using Rin.Engine.World;
 using SharpGLTF.Schema2;
-using Scene = Rin.Engine.Scene.Scene;
 
 namespace rin.Examples.SceneTest;
 
@@ -14,7 +14,7 @@ public static class Extensions
 {
     public static async Task<int?> LoadStaticMesh(string filename)
     {
-        var model = ModelRoot.Load("/home/tare/Downloads/anim.glb");//filename);
+        var model = ModelRoot.Load(filename);
 
         var mesh = model?.LogicalMeshes.FirstOrDefault();
 
@@ -67,11 +67,11 @@ public static class Extensions
         await task;
         return id;
     }
-    public static async Task<Actor?> LoadMeshAsEntity(this Scene scene,string modelPath)
+    public static async Task<Actor?> LoadMeshAsEntity(this World world,string modelPath)
     {
         var meshId = await LoadStaticMesh(modelPath);
         if(meshId == null) return null;
-        var entity = scene.AddActor(new Actor()
+        var entity = world.AddActor(new Actor()
         {
             RootComponent = new StaticMeshComponent()
             {
@@ -81,7 +81,7 @@ public static class Extensions
         return entity;
     }
     
-    public static Actor AddPointLight(this Scene scene,Vector3 location)
+    public static Actor AddPointLight(this World world,Vector3 location)
     {
         var entity = new Actor()
         {
@@ -91,7 +91,7 @@ public static class Extensions
                 Radiance = 10.0f
             },
         };
-        scene.AddActor(entity);
+        world.AddActor(entity);
         return entity;
     }
 }

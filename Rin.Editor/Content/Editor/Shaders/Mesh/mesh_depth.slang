@@ -1,4 +1,4 @@
-#include "Editor/Shaders/Scene/depth_scene_info.slang"
+#include "Editor/Shaders/World/depth_scene_info.slang"
 #include "Engine/Shaders/operators.slang"
 #include "Editor/Shaders/Mesh/vertex.slang"
 

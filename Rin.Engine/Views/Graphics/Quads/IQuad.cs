@@ -7,5 +7,5 @@ public interface IQuad
 {
     public Vec4<int> Opts { get; set; }
     public Vector2 Size { get; set; }
-    public Mat3 Transform { get; set; }
+    public Matrix4x4 Transform { get; set; }
 }

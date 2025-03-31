@@ -5,8 +5,8 @@ namespace Rin.Engine.Views.Graphics;
 
 public struct StencilClip(
     Vector2 size,
-    Mat3 transform)
+    Matrix4x4 transform)
 {
-    public Mat3 Transform = transform;
+    public Matrix4x4 Transform = transform;
     public Vector2 Size = size;
 }

@@ -12,7 +12,7 @@ namespace Rin.Engine.Views;
 
 public abstract class View : IDisposable, IAnimatable, IUpdatable
 {
-    private readonly Atomic<Mat3?> _cachedRelativeTransform = Mat3.Identity;
+    private readonly Atomic<Matrix4x4?> _cachedRelativeTransform = Matrix4x4.Identity;
     private readonly Padding _padding = new();
     private Vector2? _cachedDesiredSize;
     private Vector2 _offset;
@@ -208,21 +208,21 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     ///     Computes the relative/local transformation matrix for this view
     /// </summary>
     /// <returns></returns>
-    public Mat3 ComputeRelativeTransform()
+    public Matrix4x4 ComputeLocalTransform()
     {
         if (_cachedRelativeTransform.Value is { } cached) return cached;
 
-        var rotation = Mat3.Identity.Scale(Scale).RotateDeg(Angle).Translate(Size * Pivot * -1.0f);
-        var transform = Mat3.Identity.Translate(Offset + Translate) * rotation;
+        var rotation = Matrix4x4.Identity.Scale(Scale).Rotate2dDegrees(Angle).Translate(Size * Pivot * -1.0f);
+        var transform = Matrix4x4.Identity.Translate(Offset + Translate) * rotation;
 
         _cachedRelativeTransform.Value = transform;
         return transform;
     }
 
-    public Mat3 ComputeAbsoluteTransform()
+    public Matrix4x4 ComputeAbsoluteTransform()
     {
-        var parentTransform = Parent?.ComputeAbsoluteTransform() ?? Mat3.Identity;
-        return ComputeRelativeTransform() * parentTransform;
+        var parentTransform = Parent?.ComputeAbsoluteTransform() ?? Matrix4x4.Identity;
+        return ComputeLocalTransform() * parentTransform;
     }
 
     public void SetParent(CompositeView? view)
@@ -258,7 +258,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     {
     }
 
-    public virtual void HandleEvent(SurfaceEvent e, Mat3 transform)
+    public virtual void HandleEvent(SurfaceEvent e, Matrix4x4 transform)
     {
         switch (e)
         {
@@ -308,7 +308,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         }
     }
 
-    public virtual bool NotifyCursorDown(CursorDownSurfaceEvent e, Mat3 transform)
+    public virtual bool NotifyCursorDown(CursorDownSurfaceEvent e, Matrix4x4 transform)
     {
         if (IsSelfHitTestable)
             if (OnCursorDown(e))
@@ -326,7 +326,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         OnCursorUp(e);
     }
 
-    public virtual void NotifyCursorEnter(CursorMoveSurfaceEvent e, Mat3 transform, List<View> items)
+    public virtual void NotifyCursorEnter(CursorMoveSurfaceEvent e, Matrix4x4 transform, List<View> items)
     {
         if (!IsSelfHitTestable) return;
         items.Add(this);
@@ -336,14 +336,14 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         OnCursorEnter(e);
     }
 
-    public virtual bool NotifyCursorMove(CursorMoveSurfaceEvent e, Mat3 transform)
+    public virtual bool NotifyCursorMove(CursorMoveSurfaceEvent e, Matrix4x4 transform)
     {
         if (IsSelfHitTestable) OnCursorMove(e);
 
         return false;
     }
 
-    public virtual bool NotifyScroll(ScrollSurfaceEvent e, Mat3 transform)
+    public virtual bool NotifyScroll(ScrollSurfaceEvent e, Matrix4x4 transform)
     {
         return IsSelfHitTestable && OnScroll(e);
     }
@@ -438,7 +438,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     /// <param name="transform"></param>
     /// <param name="clip"></param>
     /// <param name="passCommands"></param>
-    public abstract void Collect(Mat3 transform, Rect clip, PassCommands passCommands);
+    public abstract void Collect(Matrix4x4 transform, Rect clip, PassCommands passCommands);
 
 
     public virtual bool TryUpdateDesiredSize()
@@ -491,17 +491,17 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     }
 
     // ReSharper disable once InconsistentNaming
-    public Rect ComputeAABB(Mat3 transform)
+    public Rect ComputeAABB(Matrix4x4 transform)
     {
         var tl = new Vector2(0.0f);
         var br = tl + Size;
         var tr = new Vector2(br.X, tl.Y);
         var bl = new Vector2(tl.X, br.Y);
 
-        tl = tl.ApplyTransformation(transform);
-        br = br.ApplyTransformation(transform);
-        tr = tr.ApplyTransformation(transform);
-        bl = bl.ApplyTransformation(transform);
+        tl = tl.Transform(transform);
+        br = br.Transform(transform);
+        tr = tr.Transform(transform);
+        bl = bl.Transform(transform);
 
         var p1AABB = new Vector2(
             Math.Min(
@@ -531,7 +531,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         };
     }
 
-    public bool PointWithin(Mat3 transform, Vector2 point,bool useInverse = false)
+    public bool PointWithin(Matrix4x4 transform, Vector2 point, bool useInverse = false)
     {
         return Rect.PointWithin(Size,transform, point, useInverse);
         var tl = new Vector2(0.0f);
@@ -541,7 +541,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
 
         if (useInverse)
         {
-            var transformedPoint = point.ApplyTransformation(transform.Inverse());
+            var transformedPoint = point.Transform(transform.Inverse());
             
             return transformedPoint.Within(Vector2.Zero, Size);
         }
@@ -549,10 +549,10 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         //
         // return transformedPoint.Within(Vector2.Zero, Size);
 
-        tl = tl.ApplyTransformation(transform);
-        br = br.ApplyTransformation(transform);
-        tr = tr.ApplyTransformation(transform);
-        bl = bl.ApplyTransformation(transform);
+        tl = tl.Transform(transform);
+        br = br.Transform(transform);
+        tr = tr.Transform(transform);
+        bl = bl.Transform(transform);
 
         var p1AABB = new Vector2(
             Math.Min(

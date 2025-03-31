@@ -1,6 +1,6 @@
-﻿using Rin.Engine.Scene.Actors;
-using Rin.Engine.Scene.Components;
-using Rin.Engine.Scene.Components.Lights;
+﻿using Rin.Engine.World.Actors;
+using Rin.Engine.World.Components;
+using Rin.Engine.World.Components.Lights;
 
 namespace rin.Examples.SceneTest.entities;
 
@@ -12,8 +12,8 @@ public class CameraActor : Actor
     
     public CameraActor()
     {
-        RootComponent = _camera = AddComponent<CameraComponent>();
-        var light = AddComponent<DirectionalLightComponent>();
+        RootComponent = _camera = new CameraComponent();
+        var light = AddComponent<PointLightComponent>();
         light.Radiance = 10.0f;
         light.AttachTo(RootComponent);
     }

@@ -23,7 +23,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Shading", "Rin.Shading\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Shading.Tests", "Rin.Shading.Tests\Rin.Shading.Tests.csproj", "{1F5411EF-E2A2-4D88-895B-AF5A0417DF0B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Engine.Scene", "Rin.Engine.Scene\Rin.Engine.Scene.csproj", "{44F876E5-9EDC-4734-A74B-AEEE8DE885FE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Engine.World", "Rin.Engine.World\Rin.Engine.World.csproj", "{44F876E5-9EDC-4734-A74B-AEEE8DE885FE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatApp", "Examples\ChatApp\ChatApp.csproj", "{6546ED52-12B2-4CC3-A410-038CCB279FCA}"
 EndProject

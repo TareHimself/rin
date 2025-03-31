@@ -5,16 +5,6 @@ using Rin.Engine.Graphics.FrameGraph;
 
 namespace Rin.Engine.Views.Graphics;
 
-public struct SimpleRectPush
-{
-    public Mat3 Transform;
-
-    public Vector2 Size;
-
-    public Vector4 BorderRadius;
-
-    public Vector4 Color;
-}
 
 public class ViewsFrame
 {
@@ -28,15 +18,16 @@ public class ViewsFrame
     public readonly Surface Surface;
     public readonly Vector2 SurfaceSize;
     public string ActivePass = "";
-    public Mat4 Projection;
+    public Matrix4x4 Projection;
     public FrameStats Stats;
 
     public ViewsFrame(Surface surface, Frame raw, Vector2 surfaceSize, IGraphImage drawImage, IGraphImage copyImage,
         IGraphImage stencilImage, FrameStats stats)
     {
+        
         Surface = surface;
         Raw = raw;
-        Projection = Glm.Orthographic(0, surfaceSize.X, 0, surfaceSize.Y);
+        Projection = Matrix4x4.CreateOrthographicOffCenter(0.0f,surfaceSize.X,0.0f,surfaceSize.Y,0.0f, 1.0f);
         DrawImage = drawImage;
         CopyImage = copyImage;
         StencilImage = stencilImage;

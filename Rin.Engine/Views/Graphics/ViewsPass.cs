@@ -46,7 +46,7 @@ public sealed class ViewsPass : IPass
     {
     }
 
-    public void BeforeAdd(IGraphBuilder builder)
+    public void Added(IGraphBuilder builder)
     {
         foreach (var cmd in _passInfo.PreCommands) cmd.BeforeAdd(builder);
 

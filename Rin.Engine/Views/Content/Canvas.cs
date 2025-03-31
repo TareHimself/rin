@@ -9,7 +9,7 @@ namespace Rin.Engine.Views.Content;
 /// </summary>
 public class Canvas : ContentView
 {
-    public required Action<Canvas, Mat3, PassCommands> Paint { get; init; }
+    public required Action<Canvas, Matrix4x4, PassCommands> Paint { get; init; }
 
     protected override Vector2 ComputeDesiredContentSize()
     {
@@ -21,7 +21,7 @@ public class Canvas : ContentView
         return availableSpace;
     }
 
-    public override void CollectContent(Mat3 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         Paint.Invoke(this, transform, commands);
     }

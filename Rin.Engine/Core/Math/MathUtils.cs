@@ -17,27 +17,6 @@ public static class MathUtils
         return mat;
     }
 
-
-    public static Matrix<float> Scale(this Matrix<float> mat, Vector3 scale)
-    {
-        mat.SetColumn(0, mat.Column(0).Multiply(scale.X));
-        mat.SetColumn(1, mat.Column(1).Multiply(scale.Y));
-        mat.SetColumn(2, mat.Column(2).Multiply(scale.Z));
-        return mat;
-    }
-
-    public static Matrix<float> Rotate(this Matrix<float> mat, Quat rotation)
-    {
-        // mat.SetColumn(
-        //     0,
-        //     mat.Column(0).Multiply(translation.X) +
-        //     mat.Column(1).Multiply(translation.Y) +
-        //     mat.Column(2).Multiply(translation.Z) +
-        //     mat.Column(3)
-        // );
-        return mat;
-    }
-
     public static float InterpolateTo(float current, float target, float deltaTime, float speed)
     {
         var dist = target - current;
@@ -129,16 +108,10 @@ public static class MathUtils
     /// <param name="alpha">The alpha</param>
     /// <param name="method">An optional method for interpolation</param>
     /// <returns></returns>
-    public static Quat Interpolate(Quat begin, Quat end, float alpha,
+    public static Quaternion Interpolate(Quaternion begin, Quaternion end, float alpha,
         Func<float, float, float, float>? method = null)
     {
-        return new Quat(Interpolate(begin.X, end.X, alpha, method), Interpolate(begin.Y, end.Y, alpha, method),
+        return new Quaternion(Interpolate(begin.X, end.X, alpha, method), Interpolate(begin.Y, end.Y, alpha, method),
             Interpolate(begin.Z, end.Z, alpha, method), Interpolate(begin.W, end.W, alpha, method));
-    }
-
-
-    public static double RadToDeg(double radians)
-    {
-        return radians * (180.0f / System.Math.PI);
     }
 }

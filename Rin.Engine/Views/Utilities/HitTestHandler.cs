@@ -17,13 +17,13 @@ public class HitTestHandler
         _items.Remove(item);
     }
 
-    public void TryHitTest(Vector2 position, Mat3 transform)
+    public void TryHitTest(Vector2 position, Matrix4x4 transform)
     {
         List<IHitTestable> itemsHit = [];
         
         foreach (var item in _items)
         {
-            var finalTransform = item.GetRelativeTransform() * transform;
+            var finalTransform = item.GetLocalTransform() * transform;
             if (Rect.PointWithin(item.GetRelativeSize(), finalTransform, position))
             {
                 itemsHit.Add(item);

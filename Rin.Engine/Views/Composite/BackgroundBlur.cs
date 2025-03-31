@@ -75,7 +75,7 @@ public class BackgroundBlur : SingleSlotCompositeView
     //     }
     // }
 
-    public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
+    public override void Collect(Matrix4x4 transform, Views.Rect clip, PassCommands passCommands)
     {
         if (IsVisible && Strength > 0.0f && Radius > 0.0f)
         {

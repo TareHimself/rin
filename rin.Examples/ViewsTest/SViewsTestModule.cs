@@ -31,7 +31,7 @@ public class SViewsTestModule : IModule
         private readonly View _content;
         public WrapContainer(View content)
         {
-            BackgroundColor = Color.Transparent;
+            Color = Color.Transparent;
             _content = content;
             var sizer = new Sizer()
             {
@@ -67,11 +67,6 @@ public class SViewsTestModule : IModule
     {
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
-            
-            var scheduler = new Dispatcher();
-
-            SEngine.Get().OnUpdate += (_) => scheduler.DispatchPending();
-            
             var list = new WrapList()
             {
                 Axis = Axis.Row,
@@ -130,7 +125,7 @@ public class SViewsTestModule : IModule
                 {
                     foreach (var objPath in e.Paths)
                     {
-                        scheduler.Enqueue(() => list.Add(new ListSlot
+                        SEngine.Get().DispatchMain(() => list.Add(new ListSlot
                         {
                             Child = new WrapContainer(new AsyncFileImage(objPath)
                             {
@@ -151,7 +146,7 @@ public class SViewsTestModule : IModule
                         .After(
                             (p) =>
                             {
-                                scheduler.Enqueue(() =>
+                                SEngine.Get().DispatchMain(() =>
                                 {
                                     foreach (var path in p)
                                         list.Add(new WrapContainer(new AsyncFileImage(path)
@@ -189,8 +184,7 @@ public class SViewsTestModule : IModule
             };
         }
     }
-
-
+    
     class TestAnimationSizer : Sizer
     {
         private float _width;
@@ -249,7 +243,7 @@ public class SViewsTestModule : IModule
                             },
                             Padding = new Padding(20.0f),
                             BorderRadius = new Vector4(10.0f),
-                            BackgroundColor = Color.Black.Clone(a: 0.7f)
+                            Color = Color.Black.Clone(a: 0.7f)
                         },
                         SizeToContent = true,
                         MinAnchor = new Vector2(1.0f, 0.0f),
@@ -386,7 +380,7 @@ public class SViewsTestModule : IModule
                         FittingMode = FitMode.Cover,
                         Clip = Clip.Bounds
                     },
-                    BackgroundColor = Color.Red
+                    Color = Color.Red
                 }
             });
         }
@@ -416,6 +410,22 @@ public class SViewsTestModule : IModule
                 }
             ]
         });
+    }
+    
+    public void TestCanvas(IWindowRenderer renderer)
+    {
+        if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
+        {
+            surf.Add(new Canvas()
+            {
+                Paint = (self, transform, cmds) =>
+                {
+                    var topLeft = Vector2.Zero.Transform(transform);
+                    var angle = ((float.Sin(SEngine.Get().GetTimeSeconds()) + 1.0f) / 2.0f) * 180.0f;
+                    cmds.AddRect(Matrix4x4.Identity.Translate(self.GetContentSize() / 2.0f).Rotate2dDegrees(angle),self.GetContentSize() - new Vector2(100.0f),color: Color.White);
+                }
+            });
+        }
     }
 
     private void OnWindowCreated(IWindow window)

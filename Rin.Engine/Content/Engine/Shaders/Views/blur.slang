@@ -3,7 +3,7 @@
 struct BlurData
 {
     float4x4 projection;
-    float3x3 transform;
+    float4x4 transform;
     float4 _options;
     float4 tint;
     float2 getSize() {

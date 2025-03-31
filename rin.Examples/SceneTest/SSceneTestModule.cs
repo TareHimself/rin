@@ -5,20 +5,21 @@ using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Windows;
-using Rin.Engine.Scene;
-using Rin.Engine.Scene.Actors;
-using Rin.Engine.Scene.Components;
-using Rin.Engine.Scene.Components.Lights;
-using Rin.Engine.Scene.Graphics;
+using Rin.Engine.World;
+using Rin.Engine.World.Actors;
+using Rin.Engine.World.Components;
+using Rin.Engine.World.Components.Lights;
+using Rin.Engine.World.Graphics;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Layouts;
+using Rin.Engine.World.Math;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace rin.Examples.SceneTest;
 
-[Module(typeof(SSceneModule), typeof(SViewsModule)),AlwaysLoad]
+[Module(typeof(SWorldModule), typeof(SViewsModule)),AlwaysLoad]
 public class SSceneTestModule : IModule
 {
 
@@ -56,7 +57,7 @@ public class SSceneTestModule : IModule
     {
         SViewsModule.Get().OnSurfaceCreated += (surf) =>
         {
-            var scene = new Scene();
+            var scene = new World();
             scene.Start();
 
             // Extensions.LoadStaticMesh(Path.Join(SRuntime.ResourcesDirectory,"models","real_plane.glb")).After(mesh =>
@@ -86,8 +87,8 @@ public class SSceneTestModule : IModule
             
             var camera = scene.AddActor<CameraActor>();
             var comp = camera.GetCameraComponent();
-            var location = new Vector3(0.0f, 15.0f, -9.0f);
-            comp.SetRelativeLocation(location);
+            var location = new Vector3(0.0f, 15.0f, -10.0f);
+            comp.SetLocation(location);
             Extensions.LoadStaticMesh(Path.Join(SEngine.AssetsDirectory,"models","cube.glb")).After(mesh =>
             {
                 
@@ -103,7 +104,7 @@ public class SSceneTestModule : IModule
                     }
                 });
                 
-                directionalLight.SetRelativeRotation(Rotator.LookAt(directionalLight.GetRelativeLocation(),new Vector3(0.0f),Constants.UpVector));
+                directionalLight.SetRotation(RMath.LookTo(directionalLight.GetLocation(),new Vector3(0.0f),RMath.Up).ToQuaternion());
                 //
                 var dist = 8.0f;
                 var height = 15.0f;
@@ -115,17 +116,17 @@ public class SSceneTestModule : IModule
                         Location = new Vector3(dist,height,0.0f)
                     }
                 };
-                var e2 = new Actor()
-                {
-                    RootComponent = new StaticMeshComponent()
-                    {
-                        MeshId = mesh,
-                        Location = new Vector3(-dist,height,0.0f)
-                    }
-                };
+                // var e2 = new Actor()
+                // {
+                //     RootComponent = new StaticMeshComponent()
+                //     {
+                //         MeshId = mesh,
+                //         Location = new Vector3(-dist,height,0.0f)
+                //     }
+                // };
                 var boxCollisionLocation = new Vector3(0.0f, 30, 0.0f);
-                var lookAtRotation = Rotator.LookAt(location,boxCollisionLocation,Constants.UpVector);
-                comp.SetRelativeRotation(lookAtRotation);
+                // var lookAtRotation = RMath.LookAt(location,boxCollisionLocation,RMath.Up).ToQuaternion();
+                // comp.SetRotation(lookAtRotation);
                 var box = new BoxCollisionComponent()
                 {
                     Location = boxCollisionLocation,
@@ -149,23 +150,24 @@ public class SSceneTestModule : IModule
                 sm.AttachTo(box);
                 box.IsSimulating = true;
                 scene.AddActor(e1);
-                scene.AddActor(e2);
+                //scene.AddActor(e2);
                 scene.AddActor(e3);
 
                 LoadGoldMaterial().After((material) =>
                 {
-                    sm.Materials = ((StaticMeshComponent)e2.RootComponent).Materials = ((StaticMeshComponent)e1.RootComponent).Materials = [material];
+                    //((StaticMeshComponent)e2.RootComponent).Materials
+                    sm.Materials  = ((StaticMeshComponent)e1.RootComponent).Materials = [material];
                 });
                 engine.OnUpdate += (delta) =>
                 {
                     
                     scene.Update(delta);
-                    var lookAtRotation = Rotator.LookAt(camera.GetRelativeLocation(),e3.GetRelativeLocation(), Constants.UpVector);
-                    comp.SetRelativeRotation(lookAtRotation);
+                    var lookAtRotation = RMath.LookAt(camera.GetLocation(),e3.GetLocation(),RMath.Up).ToQuaternion();
+                    comp.SetRotation(lookAtRotation);
                     // var root = e1.RootComponent!;
                     // root.SetRelativeRotation(root.GetRelativeRotation().Delta(pitch: -50.0f * (float)delta));
-                    e1.AddRelativeRotation(yaw: -50.0f * (float)delta,pitch: -20.0f * (float)delta);
-                    e2.AddRelativeRotation(yaw: -50.0f * (float)delta,pitch: 20.0f * (float)delta);
+                    e1.SetRotation(e1.GetRotation().AddLocalYaw(-50.0f * delta).AddLocalPitch(-20.0f * delta));
+                    //e2.AddRelativeRotation(yaw: -50.0f * (float)delta,pitch: 20.0f * (float)delta);
                     //e3.AddRelativeRotation(yaw: 50.0f * (float)delta,pitch: -20.0f * (float)delta);
                 };
                 

@@ -1,4 +1,5 @@
-﻿using Rin.Engine.Core;
+﻿using System.Numerics;
+using Rin.Engine.Core;
 using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
@@ -47,7 +48,7 @@ public class AsyncWebImage : CoverImage
         }
     }
 
-    public override void CollectContent(Mat3 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         base.CollectContent(transform, commands);
         commands.AddRect(transform, GetContentSize(), Color.Black.Clone(a: 0.5f),BorderRadius);

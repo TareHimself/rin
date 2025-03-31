@@ -203,6 +203,26 @@ void generateRectVertex(float2 size, float4x4 projection, float3x3 transform, in
     uv = vertex[index] / size;
 }
 
+void generateRectVertex(float2 size, float4x4 projection, float4x4 transform, int index, out float4 location, out float2 uv)
+{
+    float4 extent = float4(0.0, 0.0, size);
+    float2 tl;
+    float2 tr;
+    float2 bl;
+    float2 br;
+    extentToPoints(extent, tl, tr, bl, br);
+
+    float2 vertex[] = { tl, tr, br, tl, br, bl };
+
+    float2 finalVert = projection * (transform * vertex[index]);
+
+    location = float4(finalVert, 0, 1);
+
+    float2 uvs[] = { float2(0.0), float2(1.0, 0.0), float2(1.0), float2(0.0), float2(1.0), float2(1.0, 0.0) };
+
+    uv = vertex[index] / size;
+}
+
 void generateFullScreenVertex(int index, out float4 location, out float2 uv)
 {
     float2 vertex[] = { float2(-1.0), float2(1.0, -1.0), float2(1.0), float2(-1.0), float2(1.0), float2(-1.0, 1.0) };
@@ -272,6 +292,24 @@ float4 applyBorderRadius(float2 fragPosition, float4 color, float4 radius, float
 {
 
     float2 transformedFrag = applyTransform3(fragPosition, inverse(transform));
+
+    // How soft the edges should be (in pixels). Higher values could be used to simulate a drop shadow.
+    float edgeSoftness = 1.0f;
+
+    float2 halfSize = size / 2.0f;
+    // Calculate distance to edge.
+    float distance = roundedBoxSDF(transformedFrag - halfSize, halfSize, radius);
+
+    // Smooth the result (free antialiasing).
+    float smoothedAlpha = smoothstep(0.0f, edgeSoftness, distance);
+
+    return lerp(color, float4(color.xyz, 0.0), smoothedAlpha);
+}
+
+float4 applyBorderRadius(float2 fragPosition, float4 color, float4 radius, float2 size, float4x4 transform)
+{
+
+    float2 transformedFrag = inverse(transform) * fragPosition;
 
     // How soft the edges should be (in pixels). Higher values could be used to simulate a drop shadow.
     float edgeSoftness = 1.0f;

@@ -77,7 +77,7 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
         return new Pair<Vector2, Vector2>(rect.Offset, rect.Offset + rect.Size);
     }
     
-    public static bool PointWithin(Vector2 size,Mat3 transform, Vector2 point,bool useInverse = false)
+    public static bool PointWithin(Vector2 size, Matrix4x4 transform, Vector2 point, bool useInverse = false)
     {
         var tl = Vector2.Zero;
         var br = tl + size;
@@ -86,7 +86,7 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
 
         if (useInverse)
         {
-            var transformedPoint = point.ApplyTransformation(transform.Inverse());
+            var transformedPoint = point.Transform(transform.Inverse());
             
             return transformedPoint.Within(Vector2.Zero, size);
         }
@@ -94,10 +94,10 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
         //
         // return transformedPoint.Within(Vector2.Zero, Size);
 
-        tl = tl.ApplyTransformation(transform);
-        br = br.ApplyTransformation(transform);
-        tr = tr.ApplyTransformation(transform);
-        bl = bl.ApplyTransformation(transform);
+        tl = tl.Transform(transform);
+        br = br.Transform(transform);
+        tr = tr.Transform(transform);
+        bl = bl.Transform(transform);
 
         var p1 = new Vector2(
             Math.Min(

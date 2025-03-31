@@ -119,7 +119,7 @@ public class ScrollList : List
         }
     }
 
-    public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
+    public override void Collect(Matrix4x4 transform, Views.Rect clip, PassCommands passCommands)
     {
         base.Collect(transform, clip, passCommands);
         if (IsVisible && IsScrollable())
@@ -140,14 +140,14 @@ public class ScrollList : List
         }
     }
 
-    protected override Mat3 ComputeSlotTransform(ISlot slot, Mat3 contentTransform)
+    protected override Matrix4x4 ComputeSlotTransform(ISlot slot, Matrix4x4 contentTransform)
     {
-        return contentTransform.Translate(Axis switch
+        return slot.Child.ComputeLocalTransform() * contentTransform.Translate(Axis switch
         {
             Axis.Row => new Vector2(-GetScroll(), 0.0f),
             Axis.Column => new Vector2(0.0f, -GetScroll()),
             _ => throw new ArgumentOutOfRangeException()
-        }) * slot.Child.ComputeRelativeTransform();
+        });
     }
 
     public override bool OnCursorDown(CursorDownSurfaceEvent e)

@@ -12,9 +12,9 @@ public abstract class ContentView : View
     /// </summary>
     /// <param name="transform"></param>
     /// <param name="commands"></param>
-    public abstract void CollectContent(Mat3 transform, PassCommands commands);
+    public abstract void CollectContent(Matrix4x4 transform, PassCommands commands);
 
-    public override void Collect(Mat3 transform, Rect clip, PassCommands passCommands)
+    public override void Collect(Matrix4x4 transform, Rect clip, PassCommands passCommands)
     {
         if (!IsVisible) return;
 

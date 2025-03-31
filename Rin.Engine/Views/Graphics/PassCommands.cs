@@ -4,11 +4,11 @@ using Rin.Engine.Views.Graphics.Commands;
 
 namespace Rin.Engine.Views.Graphics;
 
-public class ClipInfo(uint id, Mat3 transform, Vector2 size)
+public class ClipInfo(uint id, Matrix4x4 transform, Vector2 size)
 {
     public readonly uint Id = id;
     public Vector2 Size = size;
-    public Mat3 Transform = transform;
+    public Matrix4x4 Transform = transform;
 }
 
 public struct RawCommand(Command drawCommand, string clipId)
@@ -63,7 +63,7 @@ public class PassCommands
     }
 
 
-    public PassCommands PushClip(Mat3 transform, Vector2 size)
+    public PassCommands PushClip(Matrix4x4 transform, Vector2 size)
     {
         var id = (uint)Clips.Count;
         var clipInfo = new ClipInfo(id, transform, size);

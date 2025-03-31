@@ -24,7 +24,7 @@ public class FilePicker : Button
     
     public FilePicker() : base()
     {
-        BackgroundColor = Color.Red;
+        Color = Color.Red;
         BorderRadius = new Vector4(10.0f);
         Padding = 20.0f;
         OnReleased += (_, __) =>
@@ -46,7 +46,7 @@ public class FilePicker : Button
     {
         this
             .StopAll()
-            .Transition(BackgroundColor, Color.Green, (c) => BackgroundColor = c,_animDuration)
+            .Transition(Color, Color.Green, (c) => Color = c,_animDuration)
             .Transition(BorderRadius,new Vector4(20.0f),(c) => BorderRadius = c,_animDuration);
         base.OnCursorEnter(e);
     }
@@ -55,7 +55,7 @@ public class FilePicker : Button
     {
         this
             .StopAll()
-            .Transition(BackgroundColor, Color.Red, (c) => BackgroundColor = c,_animDuration)
+            .Transition(Color, Color.Red, (c) => Color = c,_animDuration)
             .Transition(BorderRadius,new Vector4(10.0f),(c) => BorderRadius = c,_animDuration);
         base.OnCursorLeave();
     }

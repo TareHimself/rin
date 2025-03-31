@@ -6,6 +6,6 @@ namespace Rin.Engine.Views.Utilities;
 public interface IHitTestable
 {
     public Vector2 GetRelativeSize();
-    public Mat3 GetRelativeTransform();
+    public Matrix4x4 GetLocalTransform();
     public void OnHit();
 }

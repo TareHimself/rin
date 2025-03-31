@@ -24,7 +24,7 @@ public class PrettyView : ContentView
         return new Vector2();
     }
 
-    public override void CollectContent(Mat3 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         //Angle = (float)(((SRuntime.Get().GetTimeSeconds() * 100.0) - _createdAt) % 360.0);
         commands.Add(new PrettyShaderDrawCommand(transform,GetContentSize(),Parent?.Parent?.Parent?.IsHovered ?? false));

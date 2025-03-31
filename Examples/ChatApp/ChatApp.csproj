@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Views\" />
+      <ProjectReference Include="..\..\Rin.Engine\Rin.Engine.csproj" />
     </ItemGroup>
 
 </Project>

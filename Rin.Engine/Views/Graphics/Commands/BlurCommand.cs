@@ -11,9 +11,9 @@ namespace Rin.Engine.Views.Graphics.Commands;
 
 internal struct BlurData()
 {
-    public required Mat4 Projection = Mat4.Identity;
+    public required Matrix4x4 Projection = Matrix4x4.Identity;
 
-    public required Mat3 Transform = Mat3.Identity;
+    public required Matrix4x4 Transform = Matrix4x4.Identity;
 
     private Vector4 _options = Vector4.Zero;
 
@@ -33,7 +33,7 @@ internal struct BlurData()
 
     public Vector4 Tint = Vector4.Zero;
 }
-public class BlurCommand(Mat3 transform, Vector2 size, float strength, float radius, Vector4 tint) : CustomCommand
+public class BlurCommand(Matrix4x4 transform, Vector2 size, float strength, float radius, Vector4 tint) : CustomCommand
 {
     private static string _blurPassId = Guid.NewGuid().ToString();
 

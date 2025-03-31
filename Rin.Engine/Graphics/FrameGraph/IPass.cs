@@ -1,6 +1,6 @@
 namespace Rin.Engine.Graphics.FrameGraph;
 
-public interface IPass : IDisposable
+public interface IPass
 {
     /// <summary>
     ///     The id of this pass, zero if invalid and greater than zero if valid
@@ -15,13 +15,13 @@ public interface IPass : IDisposable
     public bool IsTerminal { get; }
 
     /// <summary>
-    ///     Called when this pass is added to a <see cref="IGraphBuilder" /> and has been assigned an ID
+    /// Called when this pass is added to a <see cref="IGraphBuilder" /> and has been assigned an ID
     /// </summary>
     /// <param name="builder"></param>
-    public void BeforeAdd(IGraphBuilder builder);
+    public void Added(IGraphBuilder builder);
 
     /// <summary>
-    ///     Called when all passes have been added and the graph is being compiled
+    /// Called when all passes have been added and the graph is being compiled
     /// </summary>
     /// <param name="config"></param>
     public void Configure(IGraphConfig config);

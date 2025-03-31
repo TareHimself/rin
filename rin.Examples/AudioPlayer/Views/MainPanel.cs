@@ -41,7 +41,7 @@ public class MainPanel : Panel
                     },
                     Padding = new Padding(20.0f),
                     BorderRadius = new Vector4(10.0f),
-                    BackgroundColor = Color.Black.Clone(a: 0.7f)
+                    Color = Color.Black.Clone(a: 0.7f)
                 },
                 SizeToContent = true,
                 MinAnchor = new Vector2(1.0f, 0.0f),

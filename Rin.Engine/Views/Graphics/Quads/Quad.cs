@@ -24,7 +24,7 @@ public struct Quad() // : ICloneable<Quad>
 
     [PublicAPI] public Vec4<int> Opts = 0;
     [PublicAPI] public required Vector2 Size;
-    [PublicAPI] public required Mat3 Transform;
+    [PublicAPI] public required Matrix4x4 Transform;
     private unsafe fixed byte _data[16 * 8];
 
     // public Vector4 Data1 = new Vector4(0.0f);
@@ -46,7 +46,7 @@ public struct Quad() // : ICloneable<Quad>
     {
         public Vec4<int> Opts { get; set; }
         public Vector2 Size { get; set; }
-        public Mat3 Transform { get; set; }
+        public Matrix4x4 Transform { get; set; }
         public required PrimitiveType Type { get; set; }
         public Vector4 Data1 { get; set; }
         public Vector4 Data2 { get; set; }
@@ -58,7 +58,7 @@ public struct Quad() // : ICloneable<Quad>
     {
         public Vec4<int> Opts { get; set; }
         public Vector2 Size { get; set; }
-        public Mat3 Transform { get; set; }
+        public Matrix4x4 Transform { get; set; }
         public Vector4 Color;
         public Vector4 BorderRadius;
     }
@@ -67,7 +67,7 @@ public struct Quad() // : ICloneable<Quad>
     {
         public Vec4<int> Opts { get; set; }
         public Vector2 Size { get; set; }
-        public Mat3 Transform { get; set; }
+        public Matrix4x4 Transform { get; set; }
         public int TextureId { get; set; }
         public Vector4 Tint { get; set; }
         public Vector4 UV { get; set; }
@@ -78,13 +78,13 @@ public struct Quad() // : ICloneable<Quad>
     {
         public Vec4<int> Opts { get; set; }
         public Vector2 Size { get; set; }
-        public Mat3 Transform { get; set; }
+        public Matrix4x4 Transform { get; set; }
         public int TextureId { get; set; }
         public Vector4 Color { get; set; }
         public Vector4 UV { get; set; }
     }
 
-    public static Quad Circle(Mat3 transform, float radius, Vector4? color = null)
+    public static Quad Circle(Matrix4x4 transform, float radius, Vector4? color = null)
     {
         var quad = new Quad
         {
@@ -116,7 +116,7 @@ public struct Quad() // : ICloneable<Quad>
         var quad = new Quad
         {
             Mode = RenderMode.Primitive,
-            Transform = Mat3.Identity.Translate(p1),
+            Transform = Matrix4x4.Identity.Translate(p1),
             Size = size + thicknessVector * 2.0f
         };
 
@@ -132,7 +132,7 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Rect(Mat3 transform, Vector2 size, Vector4? color = null, Vector4? borderRadius = null)
+    public static Quad Rect(Matrix4x4 transform, Vector2 size, Vector4? color = null, Vector4? borderRadius = null)
     {
         var quad = new Quad
         {
@@ -164,7 +164,7 @@ public struct Quad() // : ICloneable<Quad>
         var quad = new Quad
         {
             Mode = RenderMode.Primitive,
-            Transform = Mat3.Identity.Translate(p1),
+            Transform = Matrix4x4.Identity.Translate(p1),
             Size = size + thicknessVector * 2.0f
         };
 
@@ -193,7 +193,7 @@ public struct Quad() // : ICloneable<Quad>
         var quad = new Quad
         {
             Mode = RenderMode.Primitive,
-            Transform = Mat3.Identity.Translate(p1),
+            Transform = Matrix4x4.Identity.Translate(p1),
             Size = size + thicknessVector * 2.0f
         };
         unsafe
@@ -209,7 +209,7 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Texture(int textureId, Mat3 transform, Vector2 size, Vector4? tint = null,
+    public static Quad Texture(int textureId, Matrix4x4 transform, Vector2 size, Vector4? tint = null,
         Vector4? borderRadius = null, Vector4? uv = null)
     {
         var quad = new Quad
@@ -231,7 +231,8 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Mtsdf(int textureId, Mat3 transform, Vector2 size, Vector4? color = null, Vector4? uv = null)
+    public static Quad Mtsdf(int textureId, Matrix4x4 transform, Vector2 size, Vector4? color = null,
+        Vector4? uv = null)
     {
         var quad = new Quad
         {

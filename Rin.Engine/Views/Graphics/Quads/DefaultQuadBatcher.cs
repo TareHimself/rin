@@ -47,7 +47,7 @@ public partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
 
     private struct Push
     {
-        public Mat4 Projection;
+        public Matrix4x4 Projection;
         public Vector4 Viewport;
         public ulong Buffer;
     }

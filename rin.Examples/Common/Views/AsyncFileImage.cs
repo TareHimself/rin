@@ -61,14 +61,14 @@ public class AsyncFileImage : CoverImage
         return base.LayoutContent(availableSpace);
     }
 
-    public override void CollectContent(Mat3 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         
         if (TextureId == -1)
         {
             var opacity = (float)Math.Abs(Math.Sin(SEngine.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
             commands.AddRect(transform, GetContentSize(),
-                color: new Vector4(new Vector3(0.8f),opacity),BorderRadius);
+                color: new Vector4(new Vector3(0.8f),opacity),borderRadius: BorderRadius);
         }
         else
         {

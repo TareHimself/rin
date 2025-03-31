@@ -1,4 +1,5 @@
-﻿using MathNet.Numerics;
+﻿using System.Numerics;
+using MathNet.Numerics;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
@@ -73,7 +74,7 @@ public class FpsView : TextBox
     }
     
 
-    public override void CollectContent(Mat3 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         _averageFps.Add((int)Math.Round(1.0 / SEngine.Get().GetLastDeltaSeconds()));
         

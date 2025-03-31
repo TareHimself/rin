@@ -11,7 +11,7 @@ namespace Rin.Engine.Views.Composite;
 /// </summary>
 public class Rect : SingleSlotCompositeView
 {
-    public Color BackgroundColor = Color.Black;
+    public Color Color = Color.Black;
     public Vector4 BorderRadius;
 
     protected override Vector2 ComputeDesiredContentSize()
@@ -33,9 +33,9 @@ public class Rect : SingleSlotCompositeView
     }
 
 
-    protected virtual void CollectSelf(Mat3 transform, PassCommands passCommands)
+    protected virtual void CollectSelf(Matrix4x4 transform, PassCommands passCommands)
     {
-        if (BackgroundColor.A > 0.0f) passCommands.AddRect(transform, Size, BackgroundColor, BorderRadius);
+        if (Color.A > 0.0f) passCommands.AddRect(transform, Size, Color, BorderRadius);
     }
 
     public override IEnumerable<ISlot> GetSlots()
@@ -45,7 +45,7 @@ public class Rect : SingleSlotCompositeView
         return [];
     }
 
-    public override void Collect(Mat3 transform, Views.Rect clip, PassCommands passCommands)
+    public override void Collect(Matrix4x4 transform, Views.Rect clip, PassCommands passCommands)
     {
         if (IsVisible) CollectSelf(transform, passCommands);
         base.Collect(transform, clip, passCommands);

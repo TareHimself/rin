@@ -3,7 +3,7 @@
 struct StencilInfo
 {
     // [TextureId,RenderMode,0,0]
-    float3x3 transform;
+    float4x4 transform;
     float2 size;
 };
 

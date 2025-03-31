@@ -539,8 +539,8 @@ public class SdlWindow : IWindow
                     Button = e.button.Button switch
                     {
                         SDLButton.SDL_BUTTON_LEFT => CursorButton.One,
-                        SDLButton.SDL_BUTTON_MIDDLE => CursorButton.Two,
-                        SDLButton.SDL_BUTTON_RIGHT => CursorButton.Three,
+                        SDLButton.SDL_BUTTON_MIDDLE => CursorButton.Three,
+                        SDLButton.SDL_BUTTON_RIGHT => CursorButton.Two,
                         SDLButton.SDL_BUTTON_X1 => CursorButton.Four,
                         SDLButton.SDL_BUTTON_X2 => CursorButton.Five,
                         _ => throw new ArgumentOutOfRangeException()

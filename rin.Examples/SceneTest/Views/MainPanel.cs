@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using rin.Examples.SceneTest.entities;
-using Rin.Engine.Scene;
+using Rin.Engine.World;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Layouts;
@@ -9,11 +9,11 @@ namespace rin.Examples.SceneTest.Views;
 
 public class MainPanel : Panel
 {
-    private Scene _scene = new Scene();
+    private World _world = new World();
     private CameraActor _cameraActor;
     public MainPanel()
     {
-        _cameraActor = _scene.AddActor<CameraActor>();
+        _cameraActor = _world.AddActor<CameraActor>();
         var text = new TextBox();
         Slots =
         [

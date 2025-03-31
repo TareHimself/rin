@@ -19,10 +19,10 @@ namespace Rin.Engine.Views.Content;
 /// </summary>
 public class TextBox : ContentView
 {
-    protected struct CachedQuadLayout(int atlas, Mat3 transform, Vector2 size, Vector4 uv)
+    protected struct CachedQuadLayout(int atlas, Matrix4x4 transform, Vector2 size, Vector4 uv)
     {
         public readonly int Atlas = atlas;
-        public Mat3 Transform = transform;
+        public Matrix4x4 Transform = transform;
         public Vector2 Size = size;
         public Vector4 Uv = uv;
     }
@@ -250,10 +250,12 @@ public class TextBox : ContentView
 
             charOffset -= pxRangeScaled;
             
-            var finalTransform = Mat3.Identity.Translate(charOffset)
-                .Translate(new Vector2(0.0f, size.Y)).Scale(new Vector2(1.0f, -1.0f));
+            var finalTransform = Matrix4x4.Identity.Scale(new Vector2(1.0f, -1.0f)).Translate(charOffset with
+            {
+                Y = charOffset.Y + size.Y,
+            });
 
-            results.Add(new CachedQuadLayout(glyph.AtlasId, finalTransform, size, glyph.Coordinate));
+            results.Add(new CachedQuadLayout(glyph.AtlasId,finalTransform, size, glyph.Coordinate));
         }
 
         anyPending = pending;
@@ -261,7 +263,7 @@ public class TextBox : ContentView
         return results.ToArray();
     }
 
-    public override void CollectContent(Mat3 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         if (CurrentFont == null) return;
         if (Content.NotEmpty() && _cachedLayouts == null)
@@ -269,7 +271,7 @@ public class TextBox : ContentView
             List<Quad> quads = [];
 
             var layout = ComputeLayout(out var hadAnyPending);
-            quads.AddRange(layout.Select(c => Quad.Mtsdf(c.Atlas, transform * c.Transform, c.Size, Color.White,
+            quads.AddRange(layout.Select(c => Quad.Mtsdf(c.Atlas, c.Transform * transform, c.Size, Color.White,
                 c.Uv) ));
             if (quads.Count == 0) return;
             commands.Add(new QuadDrawCommand(quads));
@@ -278,7 +280,7 @@ public class TextBox : ContentView
         else if (_cachedLayouts != null)
         {
             commands.Add(new QuadDrawCommand(_cachedLayouts.Select(c =>
-                Quad.Mtsdf(c.Atlas, transform * c.Transform, c.Size, Color.White, c.Uv))));
+                Quad.Mtsdf(c.Atlas, c.Transform * transform, c.Size, Color.White, c.Uv))));
         }
     }
 

@@ -11,14 +11,14 @@ using Utils = Rin.Engine.Core.Utils;
 
 namespace rin.Examples.ViewsTest;
 
-public class PrettyShaderDrawCommand(Mat3 transform,Vector2 size,bool hovered) : CustomCommand
+public class PrettyShaderDrawCommand(Matrix4x4 transform,Vector2 size,bool hovered) : CustomCommand
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     struct Data
     {
-        public required Mat4 Projection;
+        public required Matrix4x4 Projection;
         public required Vector2 ScreenSize;
-        public required Mat3 Transform;
+        public required Matrix4x4 Transform;
         public required Vector2 Size;
         public required float Time;
         public required Vector2 Center;
