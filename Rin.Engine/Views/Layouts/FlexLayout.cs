@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Engine.Views.Composite;
 using Rin.Engine.Core.Math;
+using Rin.Engine.Views.Composite;
 
 namespace Rin.Engine.Views.Layouts;
 
@@ -45,6 +45,7 @@ public class FlexLayout : ListLayout
             default:
                 throw new ArgumentOutOfRangeException();
         }
+
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var flexTotal = 0.0f;
@@ -94,7 +95,7 @@ public class FlexLayout : ListLayout
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
-                
+
 
                 var slotMainAxisSize = 0.0f;
                 var slotCrossAxisSize = 0.0f;
@@ -107,7 +108,7 @@ public class FlexLayout : ListLayout
                     {
                         case Axis.Column:
                         {
-                            flexSize = new Vector2(GetSlotCrossAxisSize(slot, space.X),assignedMainAxisSpace);
+                            flexSize = new Vector2(GetSlotCrossAxisSize(slot, space.X), assignedMainAxisSpace);
 
                             slotMainAxisSize = flexSize.Y;
                             slotCrossAxisSize = flexSize.X;
@@ -124,7 +125,7 @@ public class FlexLayout : ListLayout
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
-                    
+
                     view.ComputeSize(flexSize);
                 }
                 else
@@ -167,7 +168,7 @@ public class FlexLayout : ListLayout
 
         return axis switch
         {
-            Axis.Column => new Vector2(crossAxisSize,mainAxisSize),
+            Axis.Column => new Vector2(crossAxisSize, mainAxisSize),
             Axis.Row => new Vector2(mainAxisSize, crossAxisSize),
             _ => throw new ArgumentOutOfRangeException()
         };

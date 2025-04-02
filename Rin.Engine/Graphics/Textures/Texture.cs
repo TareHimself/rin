@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace Rin.Engine.Graphics;
 
 public class Texture : ITexture
@@ -18,8 +16,8 @@ public class Texture : ITexture
         MipMapped = mipMapped;
         DebugName = debugName;
     }
-    
-    public Texture(int id,ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
+
+    public Texture(int id, ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
     {
         Id = id;
         Filter = filter;
@@ -27,7 +25,9 @@ public class Texture : ITexture
         MipMapped = mipMapped;
         DebugName = debugName;
     }
-    
+
+    public bool Uploading { get; set; } = false;
+
     public IDeviceImage? Image { get; set; }
     public int Id { get; set; }
     public ImageFilter Filter { get; set; }
@@ -36,6 +36,4 @@ public class Texture : ITexture
     public string DebugName { get; set; }
 
     public bool Uploaded { get; set; } = false;
-    
-    public bool Uploading { get; set; } = false;
 }

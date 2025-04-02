@@ -12,14 +12,6 @@ public class Allocator(SGraphicsModule module) : Disposable
     private readonly IntPtr _allocator = Native.Vulkan.CreateAllocator(module.GetInstance(), module.GetDevice(),
         module.GetPhysicalDevice());
 
-#if DEBUG
-    private readonly HashSet<WeakReference<IDeviceBuffer>> _buffers =
-        new(new WeakReferenceEqualityComparer<IDeviceBuffer>());
-
-    private readonly HashSet<WeakReference<IDeviceImage>> _images =
-        new(new WeakReferenceEqualityComparer<IDeviceImage>());
-#endif
-
     public static implicit operator IntPtr(Allocator allocator)
     {
         return allocator._allocator;
@@ -48,7 +40,7 @@ public class Allocator(SGraphicsModule module) : Disposable
 #if DEBUG
             lock (_buffers)
             {
-                _buffers.Add(new(result));
+                _buffers.Add(new WeakReference<IDeviceBuffer>(result));
             }
 #endif
             return result;
@@ -77,7 +69,7 @@ public class Allocator(SGraphicsModule module) : Disposable
 #if DEBUG
             lock (_images)
             {
-                _images.Add(new(result));
+                _images.Add(new WeakReference<IDeviceImage>(result));
             }
 #endif
             return result;
@@ -123,4 +115,12 @@ public class Allocator(SGraphicsModule module) : Disposable
             Native.Vulkan.FreeImage(image.NativeImage, image.Allocation, _allocator);
         }
     }
+
+#if DEBUG
+    private readonly HashSet<WeakReference<IDeviceBuffer>> _buffers =
+        new(new WeakReferenceEqualityComparer<IDeviceBuffer>());
+
+    private readonly HashSet<WeakReference<IDeviceImage>> _images =
+        new(new WeakReferenceEqualityComparer<IDeviceImage>());
+#endif
 }

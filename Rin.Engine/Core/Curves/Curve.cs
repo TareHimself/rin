@@ -2,10 +2,10 @@
 
 public abstract class Curve<TValue>
 {
-    private readonly SortedList<float,TValue> _points  = [];
-    
+    private readonly SortedList<float, TValue> _points = [];
+
     protected abstract TValue Interpolate(float alpha, TValue previous, TValue next);
-    
+
     private int NearestIndex(float time)
     {
         switch (_points.Count)
@@ -26,37 +26,35 @@ public abstract class Curve<TValue>
             {
                 var distToCurrent = System.Math.Abs(time - _points.Keys[currentIdx]);
                 var distToNext = System.Math.Abs(time - _points.Keys[currentIdx + 1]);
-                if (distToNext < distToCurrent)
-                {
-                    currentIdx++;
-                }
+                if (distToNext < distToCurrent) currentIdx++;
             }
-            
+
             if (time < _points.Keys[currentIdx])
             {
-                if(maxIdx == currentIdx) return currentIdx;
+                if (maxIdx == currentIdx) return currentIdx;
                 maxIdx = currentIdx;
             }
             else
             {
-                if(minIdx == currentIdx) return currentIdx;
+                if (minIdx == currentIdx) return currentIdx;
                 minIdx = currentIdx;
             }
-            
+
             currentIdx = maxIdx + (maxIdx - minIdx) / 2;
-            totalRange = (maxIdx - minIdx) + 1;
+            totalRange = maxIdx - minIdx + 1;
         }
     }
+
     public void Add(float time, TValue data)
     {
-        _points.Add(time,data);
+        _points.Add(time, data);
     }
 
     public void Remove(float time)
     {
         _points.Remove(time);
     }
-    
+
     public void RemoveAt(int index)
     {
         _points.RemoveAt(index);
@@ -65,22 +63,16 @@ public abstract class Curve<TValue>
 
     public TValue Evaluate(float time)
     {
-        if(_points.Count < 1) throw new IndexOutOfRangeException();
+        if (_points.Count < 1) throw new IndexOutOfRangeException();
         if (_points.Count == 1) return _points[_points.Keys.First()];
 
         var minKey = _points.Keys.Min();
-        if (time < minKey)
-        {
-            return _points.First().Value;
-        }
+        if (time < minKey) return _points.First().Value;
         var maxKey = _points.Keys.Last();
-        if (time > maxKey)
-        {
-            return _points.Last().Value;
-        }
-        
+        if (time > maxKey) return _points.Last().Value;
+
         var idx = NearestIndex(time);
-        if(idx < 0) throw new Exception("Failed to evaluate curve");
+        if (idx < 0) throw new Exception("Failed to evaluate curve");
         var nearest = _points.Keys[idx];
         TValue previousValue;
         TValue nextValue;
@@ -97,17 +89,14 @@ public abstract class Curve<TValue>
         else
         {
             var previousIdx = idx - 1;
-            if (previousIdx < 0)
-            {
-                previousIdx = _points.Count - System.Math.Abs(idx);
-            }
+            if (previousIdx < 0) previousIdx = _points.Count - System.Math.Abs(idx);
             previousTime = _points.Keys[previousIdx];
             nextTime = _points.Keys[idx];
             previousValue = _points.Values[previousIdx];
             nextValue = _points.Values[idx];
         }
 
-        var dist = (nextTime - previousTime);
+        var dist = nextTime - previousTime;
         var alpha = (time - previousTime) / dist;
         return Interpolate(alpha, previousValue, nextValue);
     }

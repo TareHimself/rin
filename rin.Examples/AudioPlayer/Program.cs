@@ -1,5 +1,3 @@
-﻿
-using Rin.Engine.Core;
+﻿using Rin.Engine.Core;
 
 SEngine.Get().Run();
-

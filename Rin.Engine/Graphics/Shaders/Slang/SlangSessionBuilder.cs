@@ -8,28 +8,6 @@ public class SlangSessionBuilder : IDisposable
 {
     private readonly unsafe void* _ptr;
 
-    private static unsafe int LoadFile(byte* path,byte** data)
-    {
-        var asStringPath = Marshal.PtrToStringUTF8(new IntPtr(path)) ?? string.Empty;
-        try
-        {
-            using var stream = SEngine.Get().Sources.Read(asStringPath);
-            using var reader = new StreamReader(stream);
-            var content = reader.ReadToEnd();
-            var contentBytes = (byte*)Native.Memory.Allocate((uint)Core.Utils.ByteSizeOf<byte>(content.Length));
-            var contentBytesSpan = new Span<byte>(contentBytes, content.Length);
-            Encoding.UTF8.GetBytes(content,contentBytesSpan);
-            *data = contentBytes;
-            return content.Length;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return 0;
-        }
-        return 0;
-    }
-    
     public SlangSessionBuilder()
     {
         unsafe
@@ -42,6 +20,29 @@ public class SlangSessionBuilder : IDisposable
     {
         ReleaseUnmanagedResources();
         GC.SuppressFinalize(this);
+    }
+
+    private static unsafe int LoadFile(byte* path, byte** data)
+    {
+        var asStringPath = Marshal.PtrToStringUTF8(new IntPtr(path)) ?? string.Empty;
+        try
+        {
+            using var stream = SEngine.Get().Sources.Read(asStringPath);
+            using var reader = new StreamReader(stream);
+            var content = reader.ReadToEnd();
+            var contentBytes = (byte*)Native.Memory.Allocate((uint)Core.Utils.ByteSizeOf<byte>(content.Length));
+            var contentBytesSpan = new Span<byte>(contentBytes, content.Length);
+            Encoding.UTF8.GetBytes(content, contentBytesSpan);
+            *data = contentBytes;
+            return content.Length;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return 0;
+        }
+
+        return 0;
     }
 
     public SlangSessionBuilder AddTargetSpirv()

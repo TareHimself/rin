@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.World.Graphics;
 
@@ -8,8 +7,9 @@ namespace Rin.Engine.World.Components;
 
 public class StaticMeshComponent : SceneComponent
 {
-    public int? MeshId { get; set; }
     public IMeshMaterial?[] Materials = [];
+    public int? MeshId { get; set; }
+
     protected override void CollectSelf(DrawCommands drawCommands, Matrix4x4 transform)
     {
         if (MeshId != null && SGraphicsModule.Get().GetMeshFactory().GetMesh(MeshId.Value) is { } mesh)

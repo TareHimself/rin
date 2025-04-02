@@ -14,10 +14,11 @@ using Rin.Engine.Views.Graphics.Commands;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics;
 using TerraFX.Interop.Vulkan;
+using Utils = Rin.Engine.Core.Utils;
 
 namespace Rin.Engine.World.Views;
 
-public enum ViewportChannel : int
+public enum ViewportChannel
 {
     Scene,
     Color,
@@ -27,10 +28,9 @@ public enum ViewportChannel : int
     Emissive
 }
 
-internal class SetupRenderingCommand(CameraComponent camera,Vector2<uint> size) : UtilityCommand
+internal class SetupRenderingCommand(CameraComponent camera, Vector2<uint> size) : UtilityCommand
 {
-    [PublicAPI]
-    public ForwardRenderingPass RenderPass = new ForwardRenderingPass(camera,size);
+    [PublicAPI] public ForwardRenderingPass RenderPass = new(camera, size);
 
     public override void BeforeAdd(IGraphBuilder builder)
     {
@@ -44,76 +44,87 @@ internal class SetupRenderingCommand(CameraComponent camera,Vector2<uint> size) 
 
     public override void Execute(ViewsFrame frame)
     {
-        return;
     }
 }
-internal class DisplaySceneCommand(ForwardRenderingPass renderingPass,Vector2 size, Matrix4x4 transform) : CustomCommand
+
+internal class DisplaySceneCommand(ForwardRenderingPass renderingPass, Vector2 size, Matrix4x4 transform)
+    : CustomCommand
 {
-
-    struct Data
-    {
-        public Matrix4x4 Projection;
-        public Matrix4x4 Transform;
-        public Vector2 Size;
-    }
-
     private readonly IShader _shader = SGraphicsModule.Get()
         .MakeGraphics("World/Shaders/viewport.slang");
-    
-    public override ulong GetRequiredMemory() => Core.Utils.ByteSizeOf<Data>();
-    public override bool WillDraw() => true;
+
+    public override ulong GetRequiredMemory()
+    {
+        return Utils.ByteSizeOf<Data>();
+    }
+
+    public override bool WillDraw()
+    {
+        return true;
+    }
 
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {
         var buffer = view ?? throw new NullReferenceException(nameof(view));
         var cmd = frame.Raw.GetCommandBuffer();
-        if (renderingPass.OutputImage is {} outputImage && _shader.Bind(cmd))
+        if (renderingPass.OutputImage is { } outputImage && _shader.Bind(cmd))
         {
             frame.BeginMainPass();
             var pushResource = _shader.PushConstants.Values.First();
             var descriptor = frame.Raw.GetDescriptorAllocator()
-                     .Allocate(_shader.GetDescriptorSetLayouts().Values.First());
+                .Allocate(_shader.GetDescriptorSetLayouts().Values.First());
             descriptor.WriteImages(0, new ImageWrite(outputImage, ImageLayout.ShaderReadOnly,
-                ImageType.Sampled, new SamplerSpec()
+                ImageType.Sampled, new SamplerSpec
                 {
                     Filter = ImageFilter.Linear,
                     Tiling = ImageTiling.ClampEdge
                 }));
-            
+
             buffer.Write(
-                new Data()
+                new Data
                 {
                     Projection = frame.Projection,
                     Transform = transform,
-                    Size = size,
+                    Size = size
                 });
-            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS,_shader.GetPipelineLayout(),[descriptor]);
-            cmd.PushConstant(_shader.GetPipelineLayout(), pushResource.Stages,buffer.GetAddress());
-            
-            cmd.Draw(6, 1);
+            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _shader.GetPipelineLayout(),
+                [descriptor]);
+            cmd.PushConstant(_shader.GetPipelineLayout(), pushResource.Stages, buffer.GetAddress());
+
+            cmd.Draw(6);
         }
+    }
+
+    private struct Data
+    {
+        public Matrix4x4 Projection;
+        public Matrix4x4 Transform;
+        public Vector2 Size;
     }
 }
 
 public class Viewport : ContentView
 {
-    private readonly CameraComponent _targetCamera;
-    private ViewportChannel _channel = ViewportChannel.Scene;
     private readonly TextBox _modeText;
+    private readonly CameraComponent _targetCamera;
+    private bool _captureMouse;
+    private ViewportChannel _channel = ViewportChannel.Scene;
     private bool _ignoreNextMove;
     private Vector2 _mousePosition;
-    private bool _captureMouse;
-
-    public override bool IsFocusable => true;
-    
-    protected Vector2 GetAbsoluteCenter() => (GetContentSize() / 2.0f).Transform(ComputeAbsoluteTransform());
 
     public Viewport(CameraComponent camera, TextBox modeText)
     {
         _targetCamera = camera;
         _modeText = modeText;
         UpdateModeText();
+    }
+
+    public override bool IsFocusable => true;
+
+    protected Vector2 GetAbsoluteCenter()
+    {
+        return (GetContentSize() / 2.0f).Transform(ComputeAbsoluteTransform());
     }
 
     private void UpdateModeText()
@@ -147,7 +158,7 @@ public class Viewport : ContentView
         {
             _captureMouse = false;
             _ignoreNextMove = false;
-            if(IsFocused) e.Surface.ClearFocus();
+            if (IsFocused) e.Surface.ClearFocus();
         }
 
         base.OnCursorUp(e);
@@ -185,7 +196,7 @@ public class Viewport : ContentView
             if (!(float.Abs(delta.X) > 0) && !(float.Abs(delta.Y) > 0)) return true;
 
             OnMouseDelta(delta);
-            
+
             _mousePosition = GetAbsoluteCenter();
             _ignoreNextMove = true;
             e.Surface.SetCursorPosition(_mousePosition);
@@ -209,14 +220,13 @@ public class Viewport : ContentView
     public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         var contentSize = GetContentSize();
-        var size = new Vector2<uint>((uint) float.Ceiling(contentSize.X), (uint)float.Ceiling(contentSize.Y));
-        var renderingCmd = new SetupRenderingCommand(_targetCamera,size);
+        var size = new Vector2<uint>((uint)float.Ceiling(contentSize.X), (uint)float.Ceiling(contentSize.Y));
+        var renderingCmd = new SetupRenderingCommand(_targetCamera, size);
         commands
             .Add(renderingCmd)
-        .Add(new DisplaySceneCommand(renderingCmd.RenderPass,contentSize,transform));
+            .Add(new DisplaySceneCommand(renderingCmd.RenderPass, contentSize, transform));
     }
-    
-    
+
 
     protected virtual void OnMouseDelta(Vector2 delta)
     {

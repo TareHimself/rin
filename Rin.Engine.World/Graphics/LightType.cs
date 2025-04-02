@@ -1,7 +1,7 @@
 ﻿namespace Rin.Engine.World.Graphics;
 
-public enum LightType : int
+public enum LightType
 {
     Directional = 0,
-    Point = 1,
+    Point = 1
 }

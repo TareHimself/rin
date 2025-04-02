@@ -1,11 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using ManagedBass;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
+﻿namespace Rin.Engine.Audio.BassAudio;
 
-namespace Rin.Engine.Audio.BassAudio;
-
-public class BassAudioModule 
+public class BassAudioModule
 {
     // private App? _app;
     //

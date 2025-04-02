@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
+using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
-using Rin.Engine.Core.Extensions;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -107,10 +107,11 @@ public class FontGenerator(FontFamily family)
         }
 
         var atlasIds = atlases.Select((c, idx) => SGraphicsModule.Get().CreateTexture(c.ToBuffer(), new Extent3D
-            {
-                Width = (uint)c.Width,
-                Height = (uint)c.Height
-            }, ImageFormat.RGBA8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}").First).ToArray();
+                {
+                    Width = (uint)c.Width,
+                    Height = (uint)c.Height
+                }, ImageFormat.RGBA8, ImageFilter.Linear, ImageTiling.ClampEdge, false, $"{_family.Name} Atlas {idx}")
+            .First).ToArray();
         return new MtsdfFont(_family, atlasIds, atlasGlyphs);
     }
 

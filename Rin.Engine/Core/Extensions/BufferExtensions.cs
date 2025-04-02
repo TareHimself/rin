@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Rin.Engine.Core.Extensions;
+﻿namespace Rin.Engine.Core.Extensions;
 
 public static class BufferExtensions
 {
@@ -10,11 +8,11 @@ public static class BufferExtensions
         {
             fixed (T* data = array)
             {
-                return new Buffer<T>(data,array.Length);
+                return new Buffer<T>(data, array.Length);
             }
         }
     }
-    
+
     public static Buffer<T> ToBuffer<T>(this IEnumerable<T> items) where T : unmanaged
     {
         unsafe
@@ -22,7 +20,7 @@ public static class BufferExtensions
             var asArray = items.ToArray();
             fixed (T* data = asArray)
             {
-                return new Buffer<T>(data,asArray.Length);
+                return new Buffer<T>(data, asArray.Length);
             }
         }
     }

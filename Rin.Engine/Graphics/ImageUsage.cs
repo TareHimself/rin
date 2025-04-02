@@ -26,12 +26,12 @@
 [Flags]
 public enum ImageUsage
 {
-    None   = 0,
-    TransferSrc  = 1 << 0,
+    None = 0,
+    TransferSrc = 1 << 0,
     TransferDst = 1 << 1,
-    Sampled  = 1 << 2,
+    Sampled = 1 << 2,
     Storage = 1 << 3,
     ColorAttachment = 1 << 4,
     DepthAttachment = 1 << 5,
-    StencilAttachment = 1 << 6,
+    StencilAttachment = 1 << 6
 }

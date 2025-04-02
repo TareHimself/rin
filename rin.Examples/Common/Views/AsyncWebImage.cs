@@ -1,10 +1,8 @@
 ﻿using System.Numerics;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Views;
-using Rin.Engine.Views.Animation;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Quads;
@@ -15,12 +13,12 @@ namespace rin.Examples.Common.Views;
 
 public class AsyncWebImage : CoverImage
 {
-    public event Action<bool>? OnLoaded;
-    
-    public AsyncWebImage(string uri) : base()
+    public AsyncWebImage(string uri)
     {
         LoadFile(uri).ConfigureAwait(false);
     }
+
+    public event Action<bool>? OnLoaded;
 
     private async Task LoadFile(string uri)
     {
@@ -29,7 +27,7 @@ public class AsyncWebImage : CoverImage
             using var client = new HttpClient();
             var stream = await client.GetStreamAsync(uri);
             using var img = await Image.LoadAsync<Rgba32>(stream);
-            var (texId,task) = SGraphicsModule.Get().CreateTexture(img.ToBuffer(),
+            var (texId, task) = SGraphicsModule.Get().CreateTexture(img.ToBuffer(),
                 new Extent3D
                 {
                     Width = (uint)img.Width,
@@ -51,6 +49,6 @@ public class AsyncWebImage : CoverImage
     public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         base.CollectContent(transform, commands);
-        commands.AddRect(transform, GetContentSize(), Color.Black.Clone(a: 0.5f),BorderRadius);
+        commands.AddRect(transform, GetContentSize(), Color.Black.Clone(a: 0.5f), BorderRadius);
     }
 }

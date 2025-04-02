@@ -1,10 +1,10 @@
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Core;
+using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Core.Extensions;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 using Utils = Rin.Engine.Core.Utils;
@@ -42,10 +42,6 @@ public sealed class ViewsPass : IPass
 
     [PublicAPI] public bool IsTerminal { get; set; }
 
-    public void Dispose()
-    {
-    }
-
     public void Added(IGraphBuilder builder)
     {
         foreach (var cmd in _passInfo.PreCommands) cmd.BeforeAdd(builder);
@@ -71,13 +67,13 @@ public sealed class ViewsPass : IPass
                     // var dist = memoryNeeded & minOffsetAlignment;
                     // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
                     _memoryNeeded += size;
-                _offsets.Add(new (offset, _memoryNeeded - offset));
+                _offsets.Add(new Pair<ulong, ulong>(offset, _memoryNeeded - offset));
             }
             else if (drawCommand.Type == CommandType.ClipDraw)
             {
                 var offset = _memoryNeeded;
-                _memoryNeeded += Core.Utils.ByteSizeOf<StencilClip>(drawCommand.Clips.Length);
-                _offsets.Add(new (offset, _memoryNeeded - offset));
+                _memoryNeeded += Utils.ByteSizeOf<StencilClip>(drawCommand.Clips.Length);
+                _offsets.Add(new Pair<ulong, ulong>(offset, _memoryNeeded - offset));
                 // var dist = memoryNeeded & minOffsetAlignment;
                 // memoryNeeded += dist > 0 ? minOffsetAlignment - dist : 0;
             }
@@ -91,7 +87,7 @@ public sealed class ViewsPass : IPass
 
                 _memoryNeeded += memoryNeeded;
 
-                _offsets.Add(new (offset, _memoryNeeded - offset));
+                _offsets.Add(new Pair<ulong, ulong>(offset, _memoryNeeded - offset));
             }
 
 
@@ -279,6 +275,10 @@ public sealed class ViewsPass : IPass
     }
 
     public uint Id { get; set; }
+
+    public void Dispose()
+    {
+    }
 
 
     private static void ResetStencilState(VkCommandBuffer cmd,

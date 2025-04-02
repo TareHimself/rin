@@ -6,13 +6,13 @@ namespace Rin.Engine.Views.Sdf;
 public class SdfResult : IBinarySerializable, IDisposable
 {
     public readonly Buffer<byte> Data;
-    public int Channels = 0;
-    public double Width = 0;
-    public double Height = 0;
-    public int PixelWidth = 0;
-    public int PixelHeight = 0;
-    
-    public SdfResult(Buffer<byte> data, int channels, double width,double height, int pixelWidth,int pixelHeight)
+    public int Channels;
+    public double Height;
+    public int PixelHeight;
+    public int PixelWidth;
+    public double Width;
+
+    public SdfResult(Buffer<byte> data, int channels, double width, double height, int pixelWidth, int pixelHeight)
     {
         Data = data;
         Channels = channels;

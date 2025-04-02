@@ -12,14 +12,20 @@ using Utils = Rin.Engine.Core.Utils;
 namespace Rin.Engine.World.Graphics;
 
 /// <summary>
-/// Collects the scene, and does a depth pre-pass
+///     Collects the scene, and does a depth pre-pass
 /// </summary>
 /// <param name="camera">The perspective the scene is collected from</param>
 /// <param name="size"></param>
 public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPass
 {
+    [PublicAPI] public GeometryInfo[] Geometry = [];
+    [PublicAPI] public LightInfo[] Lights = [];
+    [PublicAPI] public GeometryInfo[] OpaqueGeometry = [];
+    [PublicAPI] public GeometryInfo[] TranslucentGeometry = [];
+    [PublicAPI] public World World = camera.Owner?.World ?? throw new Exception("Camera is not in a scene");
+
     /// <summary>
-    /// Depth Image ID
+    ///     Depth Image ID
     /// </summary>
     [PublicAPI]
     public uint DepthImageId { get; private set; }
@@ -30,23 +36,19 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
     public Matrix4x4 View { get; set; } = camera.GetTransform(Space.World).Mutate(c =>
     {
         c.Scale = new Vector3(1.0f);
-        return RMath.LookTo(c.Location,c.Rotation,Vector3.UnitY);
+        return RMath.LookTo(c.Location, c.Rotation, Vector3.UnitY);
     });
 
     [PublicAPI]
-    public Matrix4x4 Projection { get; } = RMath.Perspective(float.DegreesToRadians(camera.FieldOfView),size.X,size.Y,camera.NearClipPlane,camera.FarClipPlane);
+    public Matrix4x4 Projection { get; } = RMath.Perspective(float.DegreesToRadians(camera.FieldOfView), size.X, size.Y,
+        camera.NearClipPlane, camera.FarClipPlane);
 
     [PublicAPI] public float FieldOfView { get; set; } = camera.FieldOfView;
     [PublicAPI] public float NearClip { get; set; } = camera.NearClipPlane;
     [PublicAPI] public float FarClip { get; set; } = camera.FarClipPlane;
     [PublicAPI] public Vector2<uint> Size { get; set; } = size;
-    [PublicAPI] public GeometryInfo[] Geometry = [];
-    [PublicAPI] public GeometryInfo[] OpaqueGeometry = [];
-    [PublicAPI] public GeometryInfo[] TranslucentGeometry = [];
-    [PublicAPI] public LightInfo[] Lights = [];
-    [PublicAPI] public World World = camera.Owner?.World ?? throw new Exception("Camera is not in a scene");
-    
-    
+
+
     private uint DepthSceneBufferId { get; set; }
     private uint DepthMaterialBufferId { get; set; }
 
@@ -58,12 +60,9 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
     {
         DepthImageId = config.CreateImage(Size.X, Size.Y, ImageFormat.Depth);
         var drawCommands = new DrawCommands();
-        
-        var world =  Matrix4x4.CreateWorld(Vector3.Zero, Vector3.UnitZ, Vector3.UnitY);
-        foreach (var root in World.GetPureRoots().ToArray())
-        {
-            root.Collect(drawCommands,world);
-        }
+
+        var world = Matrix4x4.CreateWorld(Vector3.Zero, Vector3.UnitZ, Vector3.UnitY);
+        foreach (var root in World.GetPureRoots().ToArray()) root.Collect(drawCommands, world);
 
         Geometry = drawCommands.GeometryCommands.ToArray();
         OpaqueGeometry = Geometry.Where(c => !c.MeshMaterial.Translucent).ToArray();
@@ -73,7 +72,7 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
         DepthSceneBufferId = config.AllocateBuffer<DepthSceneInfo>();
         var depthMaterialDataSize = OpaqueGeometry.Aggregate(Utils.ByteSizeOf<DepthSceneInfo>(),
             (current, geometryDrawCommand) => current + geometryDrawCommand.MeshMaterial.DepthPass.GetRequiredMemory());
-        
+
         DepthMaterialBufferId = depthMaterialDataSize > 0 ? config.AllocateBuffer(depthMaterialDataSize) : 0;
     }
 
@@ -100,7 +99,7 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
             .SetVertexInput([], [])
             .SetViewports([
                 // For viewport flipping
-                new VkViewport()
+                new VkViewport
                 {
                     x = 0,
                     y = Size.X,
@@ -111,20 +110,20 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
                 }
             ])
             .SetScissors([
-                new VkRect2D()
+                new VkRect2D
                 {
                     offset = new VkOffset2D(),
-                    extent = new VkExtent2D()
+                    extent = new VkExtent2D
                     {
                         width = Size.X,
                         height = Size.Y
                     }
                 }
             ]);
-        
-        var sceneFrame = new SceneFrame(frame, View, Projection,sceneDataBuffer);
 
-        sceneDataBuffer.Write(new DepthSceneInfo()
+        var sceneFrame = new SceneFrame(frame, View, Projection, sceneDataBuffer);
+
+        sceneDataBuffer.Write(new DepthSceneInfo
         {
             View = sceneFrame.View,
             Projection = sceneFrame.Projection,

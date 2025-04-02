@@ -8,20 +8,18 @@ namespace Rin.Engine.World.Components;
 
 public class SceneComponent : Component, ISceneComponent
 {
-    private readonly object _lock = new();
-    private ISceneComponent? _transformParent = null;
     private readonly HashSet<ISceneComponent> _children = [];
-    
-    [PublicAPI]
-    public Vector3 Location = new(0.0f);
-    [PublicAPI]
-    public Quaternion Rotation = Quaternion.Identity;
-    [PublicAPI]
-    public Vector3 Scale = new (1.0f);
-    [PublicAPI]
-    public bool Visible { get; set; } = true;
-    [PublicAPI]
-    public ISceneComponent? TransformParent => _transformParent;
+    private readonly object _lock = new();
+
+    [PublicAPI] public Vector3 Location = new(0.0f);
+
+    [PublicAPI] public Quaternion Rotation = Quaternion.Identity;
+
+    [PublicAPI] public Vector3 Scale = new(1.0f);
+
+    [PublicAPI] public bool Visible { get; set; } = true;
+
+    [PublicAPI] public ISceneComponent? TransformParent { get; private set; }
 
     [PublicAPI]
     public bool TryHandleDetachment(ISceneComponent target)
@@ -30,6 +28,7 @@ public class SceneComponent : Component, ISceneComponent
         {
             _children.Remove(target);
         }
+
         return true;
     }
 
@@ -40,6 +39,7 @@ public class SceneComponent : Component, ISceneComponent
         {
             _children.Add(target);
         }
+
         return true;
     }
 
@@ -47,22 +47,23 @@ public class SceneComponent : Component, ISceneComponent
     {
         if (component.TryHandleAttachment(this))
         {
-            _transformParent = component;
+            TransformParent = component;
             return true;
         }
 
         return false;
     }
-    
+
     public bool Detach()
     {
-        if (_transformParent is { } parent)
+        if (TransformParent is { } parent)
         {
             if (parent.TryHandleDetachment(this))
             {
-                _transformParent = null;
+                TransformParent = null;
                 return true;
             }
+
             return false;
         }
 
@@ -78,7 +79,7 @@ public class SceneComponent : Component, ISceneComponent
                 break;
             case Space.World:
             {
-                SetTransform(GetTransform(space) with { Location = location},space);
+                SetTransform(GetTransform(space) with { Location = location }, space);
             }
                 break;
             default:
@@ -97,7 +98,7 @@ public class SceneComponent : Component, ISceneComponent
             {
                 var worldTransform = GetTransform(space);
                 worldTransform.Location += translation;
-                SetTransform(worldTransform,space);
+                SetTransform(worldTransform, space);
             }
                 break;
             default:
@@ -114,7 +115,7 @@ public class SceneComponent : Component, ISceneComponent
                 break;
             case Space.World:
             {
-                SetTransform(GetTransform(space) with { Rotation = rotation},space);
+                SetTransform(GetTransform(space) with { Rotation = rotation }, space);
             }
                 break;
             default:
@@ -124,7 +125,7 @@ public class SceneComponent : Component, ISceneComponent
 
     public void Rotate(in Vector3 axis, float delta, Space space = Space.Local)
     {
-         switch (space)
+        switch (space)
         {
             case Space.Local:
                 Rotation = Rotation.AddLocal(axis, delta);
@@ -133,14 +134,14 @@ public class SceneComponent : Component, ISceneComponent
             {
                 var worldTransform = GetTransform(space);
                 worldTransform.Rotation = Rotation.Add(axis, delta);
-                SetTransform(worldTransform,space);
+                SetTransform(worldTransform, space);
             }
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(space), space, null);
         }
     }
-    
+
     public void SetScale(in Vector3 scale, Space space = Space.Local)
     {
         switch (space)
@@ -150,7 +151,7 @@ public class SceneComponent : Component, ISceneComponent
                 break;
             case Space.World:
             {
-                SetTransform(GetTransform(space) with { Scale = scale},space);
+                SetTransform(GetTransform(space) with { Scale = scale }, space);
             }
                 break;
             default:
@@ -176,8 +177,8 @@ public class SceneComponent : Component, ISceneComponent
 
                     var thisToTarget = thisWorldMatrix.Inverse() * targetWorldMatrix;
                     var thisToParent = GetTransform().ToMatrix();
-                    
-                    Matrix4x4.Decompose(thisToTarget * thisToParent.Inverse(),out Location,out Rotation,out Scale);
+
+                    Matrix4x4.Decompose(thisToTarget * thisToParent.Inverse(), out Location, out Rotation, out Scale);
                     return;
                 }
 
@@ -226,7 +227,7 @@ public class SceneComponent : Component, ISceneComponent
         switch (space)
         {
             case Space.Local:
-                return new Transform()
+                return new Transform
                 {
                     Location = Location,
                     Rotation = Rotation,
@@ -234,21 +235,31 @@ public class SceneComponent : Component, ISceneComponent
                 };
             case Space.World:
             {
-                if (TransformParent == null) return new Transform()
-                {
-                    Location = Location,
-                    Rotation = Rotation,
-                    Scale = Scale
-                };
+                if (TransformParent == null)
+                    return new Transform
+                    {
+                        Location = Location,
+                        Rotation = Rotation,
+                        Scale = Scale
+                    };
 
                 var parentTransform = TransformParent.GetTransform(space);
-                
+
                 return GetTransform().InParentSpace(parentTransform);
             }
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(space), space, null);
         }
+    }
+
+
+    public virtual void Collect(DrawCommands drawCommands, Matrix4x4 parentTransform)
+    {
+        var relativeTransform = GetTransform().ToMatrix();
+        var myTransform = relativeTransform * parentTransform;
+        if (Visible) CollectSelf(drawCommands, myTransform);
+        foreach (var attachedComponent in GetAttachedComponents()) attachedComponent.Collect(drawCommands, myTransform);
     }
 
 
@@ -260,21 +271,8 @@ public class SceneComponent : Component, ISceneComponent
             return _children.ToArray();
         }
     }
-    
-    
-    public virtual void Collect(DrawCommands drawCommands, Matrix4x4 parentTransform)
-    {
-        var relativeTransform = GetTransform().ToMatrix();
-        var myTransform = relativeTransform * parentTransform;
-        if(Visible) CollectSelf(drawCommands, myTransform);
-        foreach (var attachedComponent in GetAttachedComponents())
-        {
-            attachedComponent.Collect(drawCommands, myTransform);
-        }
-    }
-    
+
     protected virtual void CollectSelf(DrawCommands drawCommands, Matrix4x4 transform)
     {
-        
     }
 }

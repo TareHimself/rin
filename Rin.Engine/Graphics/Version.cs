@@ -11,16 +11,15 @@ public struct Version : IFormattable
 
     public Version()
     {
-        
     }
-    
+
     public Version(uint major, uint minor, uint patch)
     {
         Major = major;
         Minor = minor;
         Patch = patch;
     }
-    
+
     public string ToString(string? format, IFormatProvider? formatProvider)
     {
         var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;

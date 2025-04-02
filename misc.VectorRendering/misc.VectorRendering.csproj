@@ -8,12 +8,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\rin.Examples\Common\rin.Examples.Common.csproj" />
-      <ProjectReference Include="..\Rin.Engine\Rin.Engine.csproj" />
+        <ProjectReference Include="..\rin.Examples\Common\rin.Examples.Common.csproj"/>
+        <ProjectReference Include="..\Rin.Engine\Rin.Engine.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="SixLabors.Fonts" Version="2.1.2" />
+        <PackageReference Include="SixLabors.Fonts" Version="2.1.2"/>
     </ItemGroup>
 
 </Project>

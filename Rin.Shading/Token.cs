@@ -6,10 +6,10 @@ public class Token(TokenType type, string value, DebugInfo debugInfo) : IFormatt
 {
     private static readonly Dictionary<string, TokenType> KeywordToTokenTypeMap = BuildTokenMap();
     public static readonly SortedDictionary<int, HashSet<string>> TokenSizesToKeywords = BuildSizesMap();
-
-    public string Value = value;
     public DebugInfo DebugInfo = debugInfo;
     public TokenType Type = type;
+
+    public string Value = value;
 
 
     public Token(TokenType type, uint line, uint col) : this(type, new DebugInfo(line, col))
@@ -20,20 +20,27 @@ public class Token(TokenType type, string value, DebugInfo debugInfo) : IFormatt
     {
     }
 
-    public Token(string value, Token other) : this(KeywordToTokenType(value) ?? TokenType.Unknown, value, other.DebugInfo)
+    public Token(string value, Token other) : this(KeywordToTokenType(value) ?? TokenType.Unknown, value,
+        other.DebugInfo)
     {
     }
-    
-    public Token(string value, DebugInfo debugInfo) : this(KeywordToTokenType(value) ?? TokenType.Unknown, value, debugInfo)
+
+    public Token(string value, DebugInfo debugInfo) : this(KeywordToTokenType(value) ?? TokenType.Unknown, value,
+        debugInfo)
     {
     }
-    
+
 
     public Token(Token other) : this(other.Type, other.Value, other.DebugInfo)
     {
     }
 
-   
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        FormattableString formattable =
+            $"Token({nameof(Value)}: {Value}, {nameof(Type)}: {Type}, {nameof(DebugInfo)}: {DebugInfo})";
+        return formattable.ToString(formatProvider);
+    }
 
 
     public static string? TokenTypeToKeyword(TokenType type)
@@ -62,8 +69,8 @@ public class Token(TokenType type, string value, DebugInfo debugInfo) : IFormatt
 
         return tokenMap;
     }
-    
-    
+
+
     public static SortedDictionary<int, HashSet<string>> BuildSizesMap()
     {
         var sizeMap = new SortedDictionary<int, HashSet<string>>();
@@ -73,13 +80,9 @@ public class Token(TokenType type, string value, DebugInfo debugInfo) : IFormatt
             var tok = TokenTypeToKeyword(token);
             if (tok == null) continue;
             if (sizeMap.TryGetValue(tok.Length, out var value))
-            {
                 value.Add(tok);
-            }
             else
-            {
                 sizeMap.Add(tok.Length, [tok]);
-            }
         }
 
         return sizeMap;
@@ -88,13 +91,6 @@ public class Token(TokenType type, string value, DebugInfo debugInfo) : IFormatt
     public static TokenType? KeywordToTokenType(string keyword)
     {
         return KeywordToTokenTypeMap.TryGetValue(keyword, out var tokType) ? tokType : null;
-    }
-
-    public string ToString(string? format, IFormatProvider? formatProvider)
-    {
-        FormattableString formattable =
-            $"Token({nameof(Value)}: {Value}, {nameof(Type)}: {Type}, {nameof(DebugInfo)}: {DebugInfo})";
-        return formattable.ToString(formatProvider);
     }
 
     public override string ToString()

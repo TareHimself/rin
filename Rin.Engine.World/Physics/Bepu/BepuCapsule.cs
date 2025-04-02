@@ -6,10 +6,21 @@ namespace Rin.Engine.World.Physics.Bepu;
 
 public class BepuCapsule : BepuBody, IPhysicsCapsule
 {
+    private readonly TypedIndex _typedIndex;
+    private float _halfHeight;
 
     private float _radius;
-    private float _halfHeight;
-    
+
+    private Capsule _shape;
+
+    public BepuCapsule(BepuPhysics physics, IPhysicsComponent owner, float radius, float halfHeight) : base(physics,
+        owner)
+    {
+        _radius = radius;
+        _shape = CreateShape();
+        _typedIndex = physics.Simulation.Shapes.Add(_shape);
+    }
+
     public float Radius
     {
         get => _radius;
@@ -19,7 +30,7 @@ public class BepuCapsule : BepuBody, IPhysicsCapsule
             UpdateShape();
         }
     }
-    
+
     public float HalfHeight
     {
         get => _halfHeight;
@@ -30,14 +41,10 @@ public class BepuCapsule : BepuBody, IPhysicsCapsule
         }
     }
 
-    private Capsule _shape;
-    private readonly TypedIndex _typedIndex;
-
-    public BepuCapsule(BepuPhysics physics,IPhysicsComponent owner, float radius,float halfHeight) : base(physics,owner)
+    public override void Dispose()
     {
-        _radius = radius;
-        _shape = CreateShape();
-        _typedIndex = physics.Simulation.Shapes.Add(_shape);
+        base.Dispose();
+        Physics.Simulation.Shapes.Remove(_typedIndex);
     }
 
     private void UpdateShape()
@@ -48,20 +55,20 @@ public class BepuCapsule : BepuBody, IPhysicsCapsule
 
     private Capsule CreateShape()
     {
-        return new Capsule()
+        return new Capsule
         {
             Radius = _radius,
             HalfLength = _halfHeight
         };
     }
 
-    protected override TypedIndex GetTypedIndex() => _typedIndex;
-
-    protected override BodyInertia ComputeInertia() => _shape.ComputeInertia(Mass);
-
-    public override void Dispose()
+    protected override TypedIndex GetTypedIndex()
     {
-        base.Dispose();
-        Physics.Simulation.Shapes.Remove(_typedIndex);
+        return _typedIndex;
+    }
+
+    protected override BodyInertia ComputeInertia()
+    {
+        return _shape.ComputeInertia(Mass);
     }
 }

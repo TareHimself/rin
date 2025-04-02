@@ -8,7 +8,8 @@ public class SidePanel : Sizer
 {
     public SidePanel()
     {
-        Child = new Rect()
+        Padding = new Padding(20.0f);
+        Child = new Rect
         {
             Color = Color.Red
         };

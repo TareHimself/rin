@@ -4,32 +4,24 @@ using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Engine.World.Graphics;
+
 /// <summary>
-/// Interface for a material pass
+///     Interface for a material pass
 /// </summary>
 public abstract class SimpleMaterialPass : IMaterialPass
 {
+    protected abstract IShader Shader { get; }
     public abstract ulong GetRequiredMemory();
 
-    protected abstract IShader Shader { get; }
-
-    protected abstract IMaterialPass GetPass(GeometryInfo mesh);
-
     /// <summary>
-    /// Execute this pass for all <see cref="meshes"/>. The index buffer and shader are already bound
-    /// </summary>
-    /// <param name="shader">The bound shader</param>
-    /// <param name="frame"></param>
-    /// <param name="data"></param>
-    /// <param name="meshes"></param>
-    /// <returns>The total memory used</returns>
-    protected abstract ulong ExecuteBatch(IShader shader,SceneFrame frame, IDeviceBufferView? data, GeometryInfo[] meshes);
-    
-    /// <summary>
-    /// Execute this pass for all <see cref="meshes"/>. All <see cref="meshes"/> use the same index buffer, and the same material
+    ///     Execute this pass for all <see cref="meshes" />. All <see cref="meshes" /> use the same index buffer, and the same
+    ///     material
     /// </summary>
     /// <param name="frame"></param>
-    /// <param name="data">A buffer containing the data written by all instances of this pass will be size of <see cref="GetRequiredMemory"/> * <see cref="meshes"/></param>
+    /// <param name="data">
+    ///     A buffer containing the data written by all instances of this pass will be size of
+    ///     <see cref="GetRequiredMemory" /> * <see cref="meshes" />
+    /// </param>
     /// <param name="meshes">The meshes to draw</param>
     public void Execute(SceneFrame frame, IDeviceBufferView? data, GeometryInfo[] meshes)
     {
@@ -44,7 +36,7 @@ public abstract class SimpleMaterialPass : IMaterialPass
             ulong offset = 0;
             foreach (var groupedMeshes in meshes.GroupBy(c => new
                      {
-                         c.SurfaceIndex,
+                         c.SurfaceIndex
                      }))
             {
                 var groupArray = groupedMeshes.ToArray();
@@ -55,4 +47,17 @@ public abstract class SimpleMaterialPass : IMaterialPass
     }
 
     public abstract void Write(IDeviceBufferView view, GeometryInfo mesh);
+
+    protected abstract IMaterialPass GetPass(GeometryInfo mesh);
+
+    /// <summary>
+    ///     Execute this pass for all <see cref="meshes" />. The index buffer and shader are already bound
+    /// </summary>
+    /// <param name="shader">The bound shader</param>
+    /// <param name="frame"></param>
+    /// <param name="data"></param>
+    /// <param name="meshes"></param>
+    /// <returns>The total memory used</returns>
+    protected abstract ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data,
+        GeometryInfo[] meshes);
 }

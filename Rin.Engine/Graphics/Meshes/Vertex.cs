@@ -6,24 +6,24 @@ namespace Rin.Engine.Graphics.Meshes;
 public struct Vertex
 {
     /// <summary>
-    /// Location (XYZ) U (W)
+    ///     Location (XYZ) U (W)
     /// </summary>
     private Vector4 _locationU = Vector4.Zero;
 
     /// <summary>
-    /// Normal (XYZ) V (W)
+    ///     Normal (XYZ) V (W)
     /// </summary>
     private Vector4 _normalV = Vector4.Zero;
-    
+
     /// <summary>
-    /// Normal (XYZ) V (W)
+    ///     Normal (XYZ) V (W)
     /// </summary>
     private Vector4 _tangent = Vector4.Zero;
 
     [PublicAPI]
     public Vector3 Location
     {
-        get => new Vector3(_locationU.X, _locationU.Y, _locationU.Z);
+        get => new(_locationU.X, _locationU.Y, _locationU.Z);
         set
         {
             _locationU.X = value.X;
@@ -35,7 +35,7 @@ public struct Vertex
     [PublicAPI]
     public Vector3 Normal
     {
-        get => new Vector3(_normalV.X, _normalV.Y, _normalV.Z);
+        get => new(_normalV.X, _normalV.Y, _normalV.Z);
         set
         {
             _normalV.X = value.X;
@@ -43,11 +43,11 @@ public struct Vertex
             _normalV.Z = value.Z;
         }
     }
-    
+
     [PublicAPI]
     public Vector3 Tangent
     {
-        get => new Vector3(_tangent.X, _tangent.Y, _tangent.Z);
+        get => new(_tangent.X, _tangent.Y, _tangent.Z);
         set
         {
             _tangent.X = value.X;
@@ -59,7 +59,7 @@ public struct Vertex
     [PublicAPI]
     public Vector2 UV
     {
-        get => new Vector2(_locationU.W, _normalV.W);
+        get => new(_locationU.W, _normalV.W);
         set
         {
             _locationU.W = value.X;

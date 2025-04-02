@@ -11,7 +11,7 @@ public class WeakReferenceEqualityComparer<T> : IEqualityComparer<WeakReference<
 
     public WeakReferenceEqualityComparer()
     {
-        _comparer = null;   
+        _comparer = null;
     }
 
     public bool Equals(WeakReference<T>? x, WeakReference<T>? y)
@@ -26,10 +26,7 @@ public class WeakReferenceEqualityComparer<T> : IEqualityComparer<WeakReference<
     public int GetHashCode(WeakReference<T> obj)
     {
         obj.TryGetTarget(out var target);
-        if (_comparer is not null && target is not null)
-        {
-            return _comparer.GetHashCode(target);
-        }
+        if (_comparer is not null && target is not null) return _comparer.GetHashCode(target);
         return target?.GetHashCode() ?? 0;
     }
 }

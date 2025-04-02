@@ -1,46 +1,43 @@
-﻿using Rin.Engine.Core;
-using Rin.Engine.Views.Sdf;
-using SixLabors.Fonts;
-
-namespace Rin.Engine.Views.Font;
+﻿namespace Rin.Engine.Views.Font;
 
 public interface IFontManager : IDisposable
 {
     /// <summary>
-    /// Begin loading the textures for these characters
+    ///     Begin loading the textures for these characters
     /// </summary>
-    /// <param name="fontFamily"></param>
+    /// <param name="font"></param>
     /// <param name="characters"></param>
-    /// <param name="style"></param>
-    public Task Prepare(FontFamily fontFamily, IEnumerable<char> characters, FontStyle style = FontStyle.Regular);
-    
+    public Task Prepare(IFont font, IEnumerable<char> characters);
+
     /// <summary>
-    /// Begin loading the textures for these characters and insert all characters into one atlas
+    ///     Begin loading the textures for these characters and insert all characters into one atlas
     /// </summary>
-    /// <param name="fontFamily"></param>
+    /// <param name="font"></param>
     /// <param name="characters"></param>
-    /// <param name="style"></param>
-    public Task PrepareAtlas(FontFamily fontFamily, IEnumerable<char> characters, FontStyle style = FontStyle.Regular);
-    
+    public Task PrepareAtlas(IFont font, IEnumerable<char> characters);
+
     /// <summary>
-    /// Try load all system fonts
+    ///     Try load all system fonts
     /// </summary>
     public void LoadSystemFonts();
 
     /// <summary>
-    /// Try load a font from a stream
+    ///     Try load a font from a stream
     /// </summary>
     public void LoadFont(Stream fileStream);
 
     /// <summary>
-    /// Returns the <see cref="LiveGlyphInfo" /> Generated at the size it was generated at
+    ///     Returns the <see cref="LiveGlyphInfo" /> Generated at the size it was generated at
     /// </summary>
     /// <param name="font">The font</param>
     /// <param name="character">The character to get the glyph of</param>
     /// <returns></returns>
-    public LiveGlyphInfo GetGlyph(SixLabors.Fonts.Font font, char character);
+    public LiveGlyphInfo GetGlyph(IFont font, char character);
 
-    public bool TryGetFont(string name, out FontFamily family);
+    public IFont? GetFont(string name);
+
+    public GlyphRect[] MeasureText(IFont font, ReadOnlySpan<char> text, float size,
+        float maxWidth = float.PositiveInfinity);
 
     public float GetPixelRange();
 }

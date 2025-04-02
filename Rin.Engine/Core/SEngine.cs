@@ -17,21 +17,13 @@ public sealed class SEngine : Disposable
     public static readonly string
         FrameworkAssetsDirectory = Path.Join(AssetsDirectory, "rin");
 
-    
-    public TempSource Temp { get; private set; } = new TempSource();
-    
-    [PublicAPI] public SourceResolver Sources = new SourceResolver()
-    {
-        Sources =
-        [
-            new FileSystemSource(),
-            new ResourcesSource(typeof(SEngine).Assembly, "Engine", ".Content.Engine.")
-        ]
-    };
-
     private static SEngine? _instance;
+
+    private readonly Dispatcher _mainDispatcher = new();
+    private readonly AutoResetEvent _mainUpdateEvent = new(false);
     private readonly List<IModule> _modules = [];
     private readonly Dictionary<Type, IModule> _modulesMap = new();
+    private readonly Dispatcher _renderDispatcher = new();
 
     private readonly DateTime _startTime = DateTime.UtcNow;
 
@@ -44,9 +36,22 @@ public sealed class SEngine : Disposable
 
     public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
 
-    private readonly Dispatcher _mainDispatcher = new Dispatcher();
-    private readonly Dispatcher _renderDispatcher = new Dispatcher();
-    private readonly AutoResetEvent _mainUpdateEvent = new(false);
+    [PublicAPI] public SourceResolver Sources = new()
+    {
+        Sources =
+        [
+            new FileSystemSource(),
+            new ResourcesSource(typeof(SEngine).Assembly, "Engine", ".Content.Engine.")
+        ]
+    };
+
+    public SEngine()
+    {
+        Sources.AddSource(Temp);
+    }
+
+
+    public TempSource Temp { get; } = new();
     public bool IsRunning { get; private set; }
     public event Action? OnPreUpdate;
     public event Action<float>? OnUpdate;
@@ -122,26 +127,21 @@ public sealed class SEngine : Disposable
         }
     }
 
-    public SEngine()
-    {
-        Sources.AddSource(Temp);
-    }
-
     public void DispatchMain(Action action)
     {
         _mainDispatcher.Enqueue(action);
     }
-    
+
     public void DispatchRender(Action action)
     {
         _renderDispatcher.Enqueue(action);
     }
-    
+
     public Dispatcher GetMainDispatcher()
     {
-       return _mainDispatcher;
+        return _mainDispatcher;
     }
-    
+
     public Dispatcher GetRenderDispatcher()
     {
         return _renderDispatcher;
@@ -200,13 +200,12 @@ public sealed class SEngine : Disposable
     public void Run()
     {
         Startup();
-        
+
         _renderTask = Task.Factory.StartNew(Render, TaskCreationOptions.LongRunning);
         _lastTickTime = DateTime.UtcNow;
 
         while (!_exitRequested)
         {
-            
             OnPreUpdate?.Invoke();
             var tickStart = DateTime.UtcNow;
             _mainDispatcher.DispatchPending();

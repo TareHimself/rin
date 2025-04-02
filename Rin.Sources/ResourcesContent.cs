@@ -3,8 +3,11 @@ using Rin.Sources.Exceptions;
 
 namespace Rin.Sources;
 
-public class ResourcesSource(Assembly assembly,string basePath,string? assemblySuffix = null) : ISource
+public class ResourcesSource(Assembly assembly, string basePath, string? assemblySuffix = null) : ISource
 {
+    private readonly string _assemblyName = assembly.GetName().Name ?? string.Empty;
+
+    private readonly string _assemblySuffix = assemblySuffix ?? ".";
     // public string Target { get; } = 
     //
     // private string MakeResourceName(FileUri uri)
@@ -29,37 +32,36 @@ public class ResourcesSource(Assembly assembly,string basePath,string? assemblyS
     // {
     //     throw new WriteNotSupportedException(this, uri);
     // }
-        
+
     // public Stream OpenRead(params string[] name) => OpenRead(new FileUri(Target,name));
     // public Stream OpenWrite(params string[] name) => OpenWrite(new FileUri(Target,name));
     public string BasePath { get; } = basePath;
-    private string _assemblyName = assembly.GetName().Name ?? string.Empty;
-    private string _assemblySuffix = assemblySuffix ?? ".";
 
-    private string ToResourceName(string path)
-    {
-        return _assemblyName + _assemblySuffix + string.Join('.',path[(BasePath.Length + 1)..].Split('/'));
-    }
-
-    private string FromResourceName(string resourceName)
-    {
-        var name = resourceName[(_assemblyName.Length + _assemblySuffix.Length)..].Split('.');
-        return BasePath + "/" + string.Join('/',name[..^1]) + '.' + name[^1];
-    }
-    public IEnumerable<string> GetAllResources()
-    {
-        return assembly.GetManifestResourceNames().Select(FromResourceName);
-}
-    
     public Stream Read(string path)
     {
         var stream = assembly.GetManifestResourceStream(ToResourceName(path));
-        if(stream == null) throw new DoesNotExistException();
+        if (stream == null) throw new DoesNotExistException();
         return stream;
     }
 
     public Stream Write(string path)
     {
         throw new WriteNotSupportedException();
+    }
+
+    private string ToResourceName(string path)
+    {
+        return _assemblyName + _assemblySuffix + string.Join('.', path[(BasePath.Length + 1)..].Split('/'));
+    }
+
+    private string FromResourceName(string resourceName)
+    {
+        var name = resourceName[(_assemblyName.Length + _assemblySuffix.Length)..].Split('.');
+        return BasePath + "/" + string.Join('/', name[..^1]) + '.' + name[^1];
+    }
+
+    public IEnumerable<string> GetAllResources()
+    {
+        return assembly.GetManifestResourceNames().Select(FromResourceName);
     }
 }

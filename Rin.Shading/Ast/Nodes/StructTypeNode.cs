@@ -8,6 +8,6 @@ public class StructTypeNode : IType
     {
         return Struct.GetSize();
     }
-    
+
     public IEnumerable<INode> Children { get; } = [];
 }

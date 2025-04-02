@@ -126,11 +126,14 @@ public static class MathExtensions
         };
     }
 
-    public static Vector2 ToVector2(this JsonObject self) => new Vector2()
+    public static Vector2 ToVector2(this JsonObject self)
     {
-        X = self["X"]?.GetValue<float>() ?? 0,
-        Y = self["Y"]?.GetValue<float>() ?? 0,
-    };
+        return new Vector2
+        {
+            X = self["X"]?.GetValue<float>() ?? 0,
+            Y = self["Y"]?.GetValue<float>() ?? 0
+        };
+    }
 
     public static JsonObject ToJson(this in Vector3 self)
     {
@@ -142,12 +145,15 @@ public static class MathExtensions
         };
     }
 
-    public static Vector3 ToVector3(this JsonObject self) => new Vector3()
+    public static Vector3 ToVector3(this JsonObject self)
     {
-        X = self["X"]?.GetValue<float>() ?? 0,
-        Y = self["Y"]?.GetValue<float>() ?? 0,
-        Z = self["Z"]?.GetValue<float>() ?? 0,
-    };
+        return new Vector3
+        {
+            X = self["X"]?.GetValue<float>() ?? 0,
+            Y = self["Y"]?.GetValue<float>() ?? 0,
+            Z = self["Z"]?.GetValue<float>() ?? 0
+        };
+    }
 
     public static JsonObject ToJson(this in Vector4 self)
     {
@@ -156,17 +162,20 @@ public static class MathExtensions
             ["X"] = self.X,
             ["Y"] = self.Y,
             ["Z"] = self.X,
-            ["W"] = self.Y,
+            ["W"] = self.Y
         };
     }
 
-    public static Vector4 ToVector4(this JsonObject self) => new Vector4()
+    public static Vector4 ToVector4(this JsonObject self)
     {
-        X = self["X"]?.GetValue<float>() ?? 0,
-        Y = self["Y"]?.GetValue<float>() ?? 0,
-        Z = self["Z"]?.GetValue<float>() ?? 0,
-        W = self["W"]?.GetValue<float>() ?? 0,
-    };
+        return new Vector4
+        {
+            X = self["X"]?.GetValue<float>() ?? 0,
+            Y = self["Y"]?.GetValue<float>() ?? 0,
+            Z = self["Z"]?.GetValue<float>() ?? 0,
+            W = self["W"]?.GetValue<float>() ?? 0
+        };
+    }
 
     public static Quaternion Clone(this in Quaternion self)
     {
@@ -233,10 +242,7 @@ public static class MathExtensions
 
     public static Matrix4x4 Rotate2d(this in Matrix4x4 matrix, in float angle)
     {
-        if (matrix.IsIdentity)
-        {
-            return Matrix4x4.CreateRotationZ(angle);
-        }
+        if (matrix.IsIdentity) return Matrix4x4.CreateRotationZ(angle);
 
         return matrix * Matrix4x4.CreateRotationZ(angle);
     }
@@ -265,35 +271,47 @@ public static class MathExtensions
     {
         return Vector4.Transform(src, matrix);
     }
-    
-    public static Quaternion Add(this in Quaternion self,in Vector3 axis, in float delta)
+
+    public static Quaternion Add(this in Quaternion self, in Vector3 axis, in float delta)
     {
         return Quaternion.CreateFromAxisAngle(axis, float.DegreesToRadians(delta)) * self;
     }
-    
+
     public static Quaternion AddYaw(this in Quaternion self, in float delta)
-        => Add(self, RMath.Up, delta);
-    
+    {
+        return Add(self, RMath.Up, delta);
+    }
+
     public static Quaternion AddPitch(this in Quaternion self, in float delta)
-        => Add(self, RMath.Right, delta);
-    
+    {
+        return Add(self, RMath.Right, delta);
+    }
+
     public static Quaternion AddRoll(this in Quaternion self, in float delta)
-        => Add(self, RMath.Forward, delta);
-    
-    public static Quaternion AddLocal(this in Quaternion self,in Vector3 axis, in float delta)
+    {
+        return Add(self, RMath.Forward, delta);
+    }
+
+    public static Quaternion AddLocal(this in Quaternion self, in Vector3 axis, in float delta)
     {
         return self * Quaternion.CreateFromAxisAngle(axis, float.DegreesToRadians(delta));
     }
 
-    public static Quaternion AddLocalYaw(this in Quaternion self, in float delta) =>
-        AddLocal(self, RMath.Up, delta);
-    
-    public static Quaternion AddLocalPitch(this in Quaternion self, in float delta) =>
-        AddLocal(self, RMath.Right, delta);
-    
-    public static Quaternion AddLocalRoll(this in Quaternion self, in float delta) =>
-        AddLocal(self, RMath.Forward, delta);
-    
+    public static Quaternion AddLocalYaw(this in Quaternion self, in float delta)
+    {
+        return AddLocal(self, RMath.Up, delta);
+    }
+
+    public static Quaternion AddLocalPitch(this in Quaternion self, in float delta)
+    {
+        return AddLocal(self, RMath.Right, delta);
+    }
+
+    public static Quaternion AddLocalRoll(this in Quaternion self, in float delta)
+    {
+        return AddLocal(self, RMath.Forward, delta);
+    }
+
     [Pure]
     public static Vector3 GetForward(in this Quaternion self)
     {
@@ -311,16 +329,16 @@ public static class MathExtensions
     {
         return Vector3.Transform(RMath.Up, self);
     }
-    
+
     [Pure]
     public static Quaternion ToQuaternion(in this Matrix4x4 self)
     {
         return Quaternion.CreateFromRotationMatrix(self);
     }
-    
+
     [Pure]
     public static Quaternion ToQuaternion(in this Vector3 self)
     {
-        return Quaternion.CreateFromRotationMatrix(RMath.LookTo(Vector3.Zero,self,RMath.Up));
+        return Quaternion.CreateFromRotationMatrix(RMath.LookTo(Vector3.Zero, self, RMath.Up));
     }
 }

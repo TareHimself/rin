@@ -3,6 +3,4 @@
 public interface INode
 {
     public IEnumerable<INode> Children { get; }
-    
-    
 }

@@ -1,7 +1,7 @@
 ﻿namespace Rin.Engine.Core;
 
 /// <summary>
-/// Used to schedule actions to be called on <see cref="DispatchPending"/> . usefull for threading
+///     Used to schedule actions to be called on <see cref="DispatchPending" /> . usefull for threading
 /// </summary>
 public class Dispatcher
 {
@@ -23,8 +23,8 @@ public class Dispatcher
 
         foreach (var action in actions)
         {
-            if(action.CancellationToken is { IsCancellationRequested: true }) continue;
-            
+            if (action.CancellationToken is { IsCancellationRequested: true }) continue;
+
             try
             {
                 action.PendingAction.Invoke();
@@ -62,7 +62,7 @@ public class Dispatcher
     /// <param name="action"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task Enqueue(Action action,CancellationToken cancellationToken)
+    public Task Enqueue(Action action, CancellationToken cancellationToken)
     {
         var pending = new Scheduled
         {

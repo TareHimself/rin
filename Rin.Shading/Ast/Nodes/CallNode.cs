@@ -10,10 +10,7 @@ public class CallNode : INode
         get
         {
             yield return Target;
-            foreach (var argument in Arguments)
-            {
-                yield return argument;
-            }
+            foreach (var argument in Arguments) yield return argument;
         }
     }
 }

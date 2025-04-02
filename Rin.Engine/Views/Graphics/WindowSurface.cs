@@ -5,24 +5,11 @@ using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Graphics.Windows.Events;
 using Rin.Engine.Views.Events;
-using TerraFX.Interop.Vulkan;
-using CharacterEvent = Rin.Engine.Graphics.Windows.Events.CharacterEvent;
 using CursorEvent = Rin.Engine.Graphics.Windows.Events.CursorEvent;
-using CursorMoveEvent = Rin.Engine.Graphics.Windows.Events.CursorMoveEvent;
-using Events_CharacterEvent = Rin.Engine.Graphics.Windows.Events.CharacterEvent;
-using Events_CursorMoveEvent = Rin.Engine.Graphics.Windows.Events.CursorMoveEvent;
-using Events_ResizeEvent = Rin.Engine.Graphics.Windows.Events.ResizeEvent;
-using Events_ScrollEvent = Rin.Engine.Graphics.Windows.Events.ScrollEvent;
 using Graphics_Windows_Events_CharacterEvent = Rin.Engine.Graphics.Windows.Events.CharacterEvent;
 using Graphics_Windows_Events_CursorMoveEvent = Rin.Engine.Graphics.Windows.Events.CursorMoveEvent;
 using Graphics_Windows_Events_ResizeEvent = Rin.Engine.Graphics.Windows.Events.ResizeEvent;
 using Graphics_Windows_Events_ScrollEvent = Rin.Engine.Graphics.Windows.Events.ScrollEvent;
-using ResizeEvent = Rin.Engine.Graphics.Windows.Events.ResizeEvent;
-using ScrollEvent = Rin.Engine.Graphics.Windows.Events.ScrollEvent;
-using Windows_Events_CharacterEvent = Rin.Engine.Graphics.Windows.Events.CharacterEvent;
-using Windows_Events_CursorMoveEvent = Rin.Engine.Graphics.Windows.Events.CursorMoveEvent;
-using Windows_Events_ResizeEvent = Rin.Engine.Graphics.Windows.Events.ResizeEvent;
-using Windows_Events_ScrollEvent = Rin.Engine.Graphics.Windows.Events.ScrollEvent;
 
 namespace Rin.Engine.Views.Graphics;
 
@@ -82,7 +69,7 @@ public class WindowSurface : Surface
 
     protected void OnCharacter(Graphics_Windows_Events_CharacterEvent e)
     {
-        ReceiveCharacter(new Events.CharacterSurfaceEvent(this, e.Data, e.Modifiers));
+        ReceiveCharacter(new CharacterSurfaceEvent(this, e.Data, e.Modifiers));
     }
 
     protected void OnMouseButton(CursorButtonEvent e)
@@ -104,19 +91,19 @@ public class WindowSurface : Surface
 
     protected void OnMouseMove(Graphics_Windows_Events_CursorMoveEvent e)
     {
-        ReceiveCursorMove(new Events.CursorMoveSurfaceEvent(this, e.Position));
+        ReceiveCursorMove(new CursorMoveSurfaceEvent(this, e.Position));
     }
 
     protected void OnScroll(Graphics_Windows_Events_ScrollEvent e)
     {
-        ReceiveScroll(new Events.ScrollSurfaceEvent(this, e.Position, e.Delta));
+        ReceiveScroll(new ScrollSurfaceEvent(this, e.Position, e.Delta));
     }
-    
+
     protected void OnCursorEnter(CursorEvent e)
     {
-        ReceiveCursorEnter(new Events.CursorMoveSurfaceEvent(this,e.Position));
+        ReceiveCursorEnter(new CursorMoveSurfaceEvent(this, e.Position));
     }
-    
+
     protected void OnCursorLeave(WindowEvent e)
     {
         ReceiveCursorLeave();
@@ -136,7 +123,7 @@ public class WindowSurface : Surface
         Window.OnCursorEnter -= OnCursorEnter;
         Window.OnCursorLeave -= OnCursorLeave;
     }
-    
+
     public override Vector2 GetCursorPosition()
     {
         return Window.GetCursorPosition();
@@ -145,6 +132,16 @@ public class WindowSurface : Surface
     public override void SetCursorPosition(Vector2 position)
     {
         Window.SetCursorPosition(position);
+    }
+
+    public override void StartTyping(View view)
+    {
+        Window.StartTyping();
+    }
+
+    public override void StopTyping(View view)
+    {
+        Window.StopTyping();
     }
 
     public override Vector2 GetSize()

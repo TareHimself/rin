@@ -1,6 +1,5 @@
-﻿using Rin.Engine.Views.Events;
-using Rin.Engine.Core.Extensions;
-using Rin.Engine.Views.Graphics;
+﻿using Rin.Engine.Core.Extensions;
+using Rin.Engine.Views.Events;
 
 namespace Rin.Engine.Views.Composite;
 

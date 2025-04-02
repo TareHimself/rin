@@ -3,7 +3,6 @@ using BepuPhysics;
 using BepuPhysics.Collidables;
 using JetBrains.Annotations;
 using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
 
@@ -12,17 +11,17 @@ namespace Rin.Engine.World.Physics.Bepu;
 public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : IPhysicsBody
 {
     [PublicAPI] protected readonly BepuPhysics Physics = physics;
-
-    public IPhysicsComponent Owner { get; set; } = owner;
+    private Vector3 _angularVelocity = Vector3.Zero;
 
     private Vector3 _linearVelocity = Vector3.Zero;
-    private Vector3 _angularVelocity = Vector3.Zero;
-    private bool _static = false;
-    private bool _simulating = false;
-    [PublicAPI] protected StaticHandle? StaticBodyHandle { get; set; } = null;
-    [PublicAPI] protected BodyHandle? DynamicBodyHandle { get; set; } = null;
-    
+    private bool _simulating;
+    private bool _static;
+    [PublicAPI] protected StaticHandle? StaticBodyHandle { get; set; }
+    [PublicAPI] protected BodyHandle? DynamicBodyHandle { get; set; }
+
     public bool IsValid => StaticBodyHandle.HasValue || DynamicBodyHandle.HasValue;
+
+    public IPhysicsComponent Owner { get; set; } = owner;
 
     public Vector3 LinearVelocity
     {
@@ -39,10 +38,7 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
         set
         {
             _linearVelocity = value;
-            if (!IsStatic && DynamicBodyHandle is { } handle)
-            {
-                Physics.Simulation.Bodies[handle].Velocity.Linear = value;
-            }
+            if (!IsStatic && DynamicBodyHandle is { } handle) Physics.Simulation.Bodies[handle].Velocity.Linear = value;
         }
     }
 
@@ -62,9 +58,7 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
         {
             _angularVelocity = value;
             if (!IsStatic && DynamicBodyHandle is { } handle)
-            {
                 Physics.Simulation.Bodies[handle].Velocity.Angular = value;
-            }
         }
     }
 
@@ -97,11 +91,6 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
     public float Mass { get; set; } = 1.0f;
     public int CollisionChannel { get; set; } = 0;
 
-    public void Init()
-    {
-        CreateBody();
-    }
-
     public void SetSimulatePhysics(bool simulate)
     {
         var state = IsSimulating;
@@ -112,30 +101,10 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
         _simulating = simulate;
     }
 
-    private RigidPose GetRigidPose()
-    {
-        if (IsStatic)
-        {
-            if (StaticBodyHandle is { } handle)
-            {
-                return Physics.Simulation.Statics[handle].Pose;
-            }
-        }
-        else
-        {
-            if (DynamicBodyHandle is { } handle)
-            {
-                return Physics.Simulation.Bodies[handle].Pose;
-            }
-        }
-
-        return RigidPose.Identity;
-    }
-
     public Transform GetTransform()
     {
         var pose = GetRigidPose();
-        return new Transform()
+        return new Transform
         {
             Location = pose.Position,
             Rotation = pose.Orientation,
@@ -145,12 +114,31 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
 
     public void ProcessHit(RayCastResult result)
     {
-        Owner.ProcessHit(this,result);
+        Owner.ProcessHit(this, result);
     }
 
     public virtual void Dispose()
     {
         DestroyExistingBody();
+    }
+
+    public void Init()
+    {
+        CreateBody();
+    }
+
+    private RigidPose GetRigidPose()
+    {
+        if (IsStatic)
+        {
+            if (StaticBodyHandle is { } handle) return Physics.Simulation.Statics[handle].Pose;
+        }
+        else
+        {
+            if (DynamicBodyHandle is { } handle) return Physics.Simulation.Bodies[handle].Pose;
+        }
+
+        return RigidPose.Identity;
     }
 
     protected abstract TypedIndex GetTypedIndex();
@@ -175,15 +163,11 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
         var bodyActivityDescription = new BodyActivityDescription(0.01f);
         var pose = RigidPoseFromComponentTransform();
         if (simulating.GetValueOrDefault(IsSimulating))
-        {
             return BodyDescription.CreateDynamic(pose,
                 new BodyVelocity(LinearVelocity, AngularVelocity),
                 ComputeInertia(), collidableDescription, bodyActivityDescription);
-        }
-        else
-        {
-            return BodyDescription.CreateKinematic(pose, collidableDescription, bodyActivityDescription);
-        }
+
+        return BodyDescription.CreateKinematic(pose, collidableDescription, bodyActivityDescription);
     }
 
     [PublicAPI]
@@ -205,16 +189,12 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
         if (IsStatic)
         {
             if (StaticBodyHandle is { } handle)
-            {
                 Physics.Simulation.Statics.ApplyDescription(handle, MakeStaticDescription(GetTypedIndex()));
-            }
         }
         else
         {
             if (DynamicBodyHandle is { } handle)
-            {
-                Physics.Simulation.Bodies.ApplyDescription(handle, MakeDynamicDescription(GetTypedIndex(),simulating));
-            }
+                Physics.Simulation.Bodies.ApplyDescription(handle, MakeDynamicDescription(GetTypedIndex(), simulating));
         }
     }
 
@@ -223,19 +203,13 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
     {
         if (IsStatic)
         {
-            if (StaticBodyHandle is { } handle)
-            {
-                Physics.RemoveStatic(this,handle);
-            }
+            if (StaticBodyHandle is { } handle) Physics.RemoveStatic(this, handle);
 
             StaticBodyHandle = null;
         }
         else
         {
-            if (DynamicBodyHandle is { } handle)
-            {
-                Physics.RemoveDynamic(this,handle);
-            }
+            if (DynamicBodyHandle is { } handle) Physics.RemoveDynamic(this, handle);
 
             DynamicBodyHandle = null;
         }
@@ -244,12 +218,8 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
     protected virtual void CreateBody()
     {
         if (IsStatic)
-        {
-            StaticBodyHandle = Physics.AddStatic(this,MakeStaticDescription(GetTypedIndex()));
-        }
+            StaticBodyHandle = Physics.AddStatic(this, MakeStaticDescription(GetTypedIndex()));
         else
-        {
-            DynamicBodyHandle = Physics.AddDynamic(this,MakeDynamicDescription(GetTypedIndex()));
-        }
+            DynamicBodyHandle = Physics.AddDynamic(this, MakeDynamicDescription(GetTypedIndex()));
     }
 }

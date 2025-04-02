@@ -1,8 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
 
 namespace Rin.Engine.World.Graphics;
-
 
 public struct DepthSceneInfo
 {

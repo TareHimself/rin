@@ -1,34 +1,31 @@
 ﻿namespace Rin.Shading;
 
-
 public sealed class TokenList
 {
     private readonly LinkedList<Token> _list;
-    private Token? _lastFont = null;
-    private Token? _lastBack = null;
+    private Token? _lastBack;
+    private Token? _lastFont;
 
     public TokenList() : this([])
     {
-        
     }
+
     public TokenList(IEnumerable<Token> tokens)
     {
         _list = new LinkedList<Token>(tokens);
         _lastFont = _list.FirstOrDefault();
         _lastBack = _list.LastOrDefault();
     }
-    
+
     public Exception CreateException(string message, Token token)
     {
-        throw new NotImplementedException(); 
+        throw new NotImplementedException();
         //return new ExceptionWithDebug(token.DebugInfo,message);
     }
 
     public void ThrowExpectedInput()
     {
-        if(_lastFont != null){
-            throw new Exception($"Expected Input After Token {_lastFont}");
-        }
+        if (_lastFont != null) throw new Exception($"Expected Input After Token {_lastFont}");
         throw new Exception("Expected Input");
     }
 
@@ -44,7 +41,7 @@ public sealed class TokenList
     {
         if (Empty()) ThrowExpectedInput();
 
-        var a= _lastBack = Back();
+        var a = _lastBack = Back();
         _list.RemoveLast();
         return a;
     }
@@ -68,7 +65,10 @@ public sealed class TokenList
 
         var a = Front();
 
-        if (!type.Contains(a.Type)) throw CreateException("Expected " + "[" + type.Aggregate("",(c,d) => $" {d.ToString()} ") + "]" + $" but got {a.Type.ToString()}", a);
+        if (!type.Contains(a.Type))
+            throw CreateException(
+                "Expected " + "[" + type.Aggregate("", (c, d) => $" {d.ToString()} ") + "]" +
+                $" but got {a.Type.ToString()}", a);
         return this;
     }
 
@@ -90,7 +90,10 @@ public sealed class TokenList
 
         var a = Back();
 
-        if (!type.Contains(a.Type)) throw CreateException("Expected " + "[" + type.Aggregate("",(c,d) => $" {d.ToString()} ") + "]" + $" but got {a.Type.ToString()}", a);
+        if (!type.Contains(a.Type))
+            throw CreateException(
+                "Expected " + "[" + type.Aggregate("", (c, d) => $" {d.ToString()} ") + "]" +
+                $" but got {a.Type.ToString()}", a);
         return this;
     }
 
@@ -115,10 +118,7 @@ public sealed class TokenList
 
     public TokenList InsertFront(TokenList other)
     {
-        while (other.NotEmpty())
-        {
-            _list.AddFirst(other.RemoveBack());
-        }
+        while (other.NotEmpty()) _list.AddFirst(other.RemoveBack());
 
         return this;
     }
@@ -132,10 +132,7 @@ public sealed class TokenList
 
     public TokenList InsertBack(TokenList other)
     {
-        while (other.NotEmpty())
-        {
-            _list.AddLast(other.RemoveFront());
-        }
+        while (other.NotEmpty()) _list.AddLast(other.RemoveFront());
         _lastBack = _list.LastOrDefault();
         return this;
     }

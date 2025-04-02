@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.Shaders;
@@ -7,7 +6,6 @@ using TerraFX.Interop.Vulkan;
 using Utils = Rin.Engine.Core.Utils;
 
 namespace Rin.Engine.Views.Graphics.Commands;
-
 
 internal struct BlurData()
 {
@@ -19,7 +17,7 @@ internal struct BlurData()
 
     public Vector2 Size
     {
-        get => new Vector2(_options.X, _options.Y);
+        get => new(_options.X, _options.Y);
         set
         {
             _options.X = value.X;
@@ -27,12 +25,21 @@ internal struct BlurData()
         }
     }
 
-    public float Strength { get => _options.Y; set => _options.Y = value; }
+    public float Strength
+    {
+        get => _options.Y;
+        set => _options.Y = value;
+    }
 
-    public float Radius { get => _options.W; set => _options.W = value; }
+    public float Radius
+    {
+        get => _options.W;
+        set => _options.W = value;
+    }
 
     public Vector4 Tint = Vector4.Zero;
 }
+
 public class BlurCommand(Matrix4x4 transform, Vector2 size, float strength, float radius, Vector4 tint) : CustomCommand
 {
     private static string _blurPassId = Guid.NewGuid().ToString();
@@ -72,7 +79,7 @@ public class BlurCommand(Matrix4x4 transform, Vector2 size, float strength, floa
                 new[] { descriptorSet });
 
             var pushResource = _blurShader.PushConstants.First().Value;
-            buffer.Write(new BlurData()
+            buffer.Write(new BlurData
             {
                 Projection = frame.Projection,
                 Size = size,
@@ -81,7 +88,7 @@ public class BlurCommand(Matrix4x4 transform, Vector2 size, float strength, floa
                 Tint = tint,
                 Transform = transform
             });
-            cmd.PushConstant(_blurShader.GetPipelineLayout(), pushResource.Stages,buffer.GetAddress());
+            cmd.PushConstant(_blurShader.GetPipelineLayout(), pushResource.Stages, buffer.GetAddress());
             cmd.Draw(6);
         }
     }

@@ -5,14 +5,12 @@ namespace Rin.Engine.World.Components;
 
 public abstract class CollisionComponent : SceneComponent, IPhysicsComponent
 {
-    IPhysicsBody? _physicsBody;
-    private bool _simulating = false;
+    private IPhysicsBody? _physicsBody;
+    private bool _simulating;
 
     public Vector3 Velocity { get; set; }
     public Vector3 AngularVelocity { get; set; }
     public float Mass { get; set; } = 1.0f;
-    
-    public event Action<RayCastResult>? OnHit; 
 
     public bool IsSimulating
     {
@@ -45,8 +43,6 @@ public abstract class CollisionComponent : SceneComponent, IPhysicsComponent
         OnHit?.Invoke(result);
     }
 
-    protected abstract IPhysicsBody CreatePhysicsBody();
-
     public override void Start()
     {
         base.Start();
@@ -60,4 +56,8 @@ public abstract class CollisionComponent : SceneComponent, IPhysicsComponent
         base.Stop();
         _physicsBody?.Dispose();
     }
+
+    public event Action<RayCastResult>? OnHit;
+
+    protected abstract IPhysicsBody CreatePhysicsBody();
 }

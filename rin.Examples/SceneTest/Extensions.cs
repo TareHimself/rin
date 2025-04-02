@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
-using Rin.Engine.World.Actors;
-using Rin.Engine.World.Components;
-using Rin.Engine.World.Components.Lights;
 using Rin.Engine.Core.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Meshes;
 using Rin.Engine.World;
+using Rin.Engine.World.Actors;
+using Rin.Engine.World.Components;
+using Rin.Engine.World.Components.Lights;
 using SharpGLTF.Schema2;
 
 namespace rin.Examples.SceneTest;
@@ -23,7 +23,7 @@ public static class Extensions
         List<MeshSurface> surfaces = [];
         List<uint> indices = [];
         List<Vertex> vertices = [];
-        
+
         foreach (var primitive in mesh.Primitives)
         {
             if (primitive == null) continue;
@@ -33,7 +33,7 @@ public static class Extensions
                 VertexStart = (uint)vertices.Count,
                 VertexCount = (uint)primitive.VertexAccessors.First().Value.Count,
                 IndicesStart = (uint)indices.Count,
-                IndicesCount = (uint)primitive.IndexAccessor.Count,
+                IndicesCount = (uint)primitive.IndexAccessor.Count
             };
 
             var initialVertex = vertices.Count;
@@ -43,12 +43,12 @@ public static class Extensions
             }
 
             {
-                foreach (var (position,normal,uv) in primitive.GetVertices("POSITION")
+                foreach (var (position, normal, uv) in primitive.GetVertices("POSITION")
                              .AsVector3Array()
                              .Zip(
                                  primitive.GetVertices("NORMAL").AsVector3Array(),
                                  primitive.GetVertices("TEXCOORD_0").AsVector2Array()
-                                 ))
+                             ))
                     surfaceVertices.Add(new Vertex
                     {
                         Location = position,
@@ -67,29 +67,30 @@ public static class Extensions
         await task;
         return id;
     }
-    public static async Task<Actor?> LoadMeshAsEntity(this World world,string modelPath)
+
+    public static async Task<Actor?> LoadMeshAsEntity(this World world, string modelPath)
     {
         var meshId = await LoadStaticMesh(modelPath);
-        if(meshId == null) return null;
-        var entity = world.AddActor(new Actor()
+        if (meshId == null) return null;
+        var entity = world.AddActor(new Actor
         {
-            RootComponent = new StaticMeshComponent()
+            RootComponent = new StaticMeshComponent
             {
-                MeshId = meshId.Value,
+                MeshId = meshId.Value
             }
         });
         return entity;
     }
-    
-    public static Actor AddPointLight(this World world,Vector3 location)
+
+    public static Actor AddPointLight(this World world, Vector3 location)
     {
-        var entity = new Actor()
+        var entity = new Actor
         {
-            RootComponent = new PointLightComponent()
+            RootComponent = new PointLightComponent
             {
                 Location = location,
                 Radiance = 10.0f
-            },
+            }
         };
         world.AddActor(entity);
         return entity;

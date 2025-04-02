@@ -3,9 +3,8 @@
 namespace Rin.Engine.World.Graphics;
 
 /// <summary>
-/// Packed info about a light in the scene
+///     Packed info about a light in the scene
 /// </summary>
-
 public struct LightInfo
 {
     // float4 locationRadius;
@@ -21,7 +20,7 @@ public struct LightInfo
 
     public required Vector3 Location
     {
-        get =>  new(_locationRadius.X, _locationRadius.Y, _locationRadius.Z);
+        get => new(_locationRadius.X, _locationRadius.Y, _locationRadius.Z);
         set
         {
             _locationRadius.X = value.X;
@@ -30,8 +29,9 @@ public struct LightInfo
         }
     }
 
-    public required Vector3 Direction  {
-        get =>  new(_directionType.X, _directionType.Y, _directionType.Z);
+    public required Vector3 Direction
+    {
+        get => new(_directionType.X, _directionType.Y, _directionType.Z);
         set
         {
             _directionType.X = value.X;
@@ -39,7 +39,9 @@ public struct LightInfo
             _directionType.Z = value.Z;
         }
     }
-    public required Vector3 Color {
+
+    public required Vector3 Color
+    {
         get => new(_colorRadiance.X, _colorRadiance.Y, _colorRadiance.Z);
         set
         {
@@ -54,6 +56,7 @@ public struct LightInfo
         get => _colorRadiance.W;
         set => _colorRadiance.W = value;
     }
+
     public required LightType LightType
     {
         get => (LightType)_directionType.W;

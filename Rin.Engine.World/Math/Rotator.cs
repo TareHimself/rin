@@ -26,7 +26,7 @@ public struct Rotator(float inYaw, float inPitch, float inRoll)
     [PublicAPI]
     public Vector3 GetRight()
     {
-        return  ToQuaternion().GetRight();
+        return ToQuaternion().GetRight();
     }
 
     [PublicAPI]
@@ -34,7 +34,7 @@ public struct Rotator(float inYaw, float inPitch, float inRoll)
     {
         return ToQuaternion().GetUp();
     }
-    
+
     public Rotator Clone()
     {
         return new Rotator(Yaw, Pitch, Roll);
@@ -52,10 +52,7 @@ public struct Rotator(float inYaw, float inPitch, float inRoll)
     public static float ClampAxis(float angle)
     {
         angle = angle % 360.0f;
-        if (angle < 0f)
-        {
-            angle += 360.0f;
-        }
+        if (angle < 0f) angle += 360.0f;
 
         return angle;
     }

@@ -1,6 +1,5 @@
 ﻿namespace Rin.Engine.World.Graphics;
 
-public interface  ICommand
+public interface ICommand
 {
-    
 }

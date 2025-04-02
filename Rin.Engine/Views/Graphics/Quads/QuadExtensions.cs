@@ -53,7 +53,8 @@ public static class QuadExtensions
             control.Transform(transform), thickness, color);
     }
 
-    public static PassCommands AddCubicCurve(this PassCommands passCommands, Matrix4x4 transform, Vector2 begin, Vector2 end,
+    public static PassCommands AddCubicCurve(this PassCommands passCommands, Matrix4x4 transform, Vector2 begin,
+        Vector2 end,
         Vector2 controlA,
         Vector2 controlB, float thickness = 2.0f, Vector4? color = null)
     {

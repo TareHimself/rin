@@ -6,13 +6,9 @@ namespace Rin.Engine.Views.Graphics;
 
 public class WindowSurfacePass(Surface surface, Vector2 drawSize, PassInfo passInfo) : IPass
 {
-    private uint _viewsImageId;
     private readonly ViewsPass _viewsPass = new(surface, drawSize, passInfo);
+    private uint _viewsImageId;
     private uint _viewsPassId;
-
-    public void Dispose()
-    {
-    }
 
     public void Added(IGraphBuilder builder)
     {
@@ -35,4 +31,8 @@ public class WindowSurfacePass(Surface surface, Vector2 drawSize, PassInfo passI
 
     public uint Id { get; set; }
     public bool IsTerminal => true;
+
+    public void Dispose()
+    {
+    }
 }

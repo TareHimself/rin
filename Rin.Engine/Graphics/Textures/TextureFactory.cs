@@ -1,5 +1,4 @@
 ﻿using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Views;
 using SixLabors.ImageSharp;
@@ -18,9 +17,9 @@ public class TextureFactory : ITextureFactory
 
     private readonly HashSet<int> _availableIndices = [];
     private readonly DescriptorSet _descriptorSet;
+    private readonly Dictionary<int, TaskCompletionSource> _pendingTextures = [];
     private readonly object _sync = new();
     private readonly List<Texture> _textures = [];
-    private readonly Dictionary<int,TaskCompletionSource> _pendingTextures = [];
     private uint _count;
 
     // public class BoundTexture : ITexture
@@ -75,32 +74,7 @@ public class TextureFactory : ITextureFactory
         return _descriptorSet;
     }
 
-
-    private async Task AsyncCreateTexture(Texture boundText,TaskCompletionSource completionSource,Buffer<byte> data, Extent3D size, ImageFormat format,
-        ImageFilter filter = ImageFilter.Linear, bool mips = false, string debugName = "Texture")
-    {
-        
-        var image = await SGraphicsModule.Get().CreateImage(data, size, format,
-            VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mips, filter, debugName);
-        boundText.Image = image;
-        lock (_sync)
-        {
-            // In-case the texture was disposed before we finished creating the image
-            if (_textures[boundText.Id] != boundText)
-            {
-                if (!completionSource.Task.IsCanceled)
-                {
-                    completionSource.SetCanceled();
-                }
-                image.Dispose();
-                return;
-            }
-            boundText.Image = image;
-            UpdateTextures(boundText.Id);
-            completionSource.SetResult();
-        }
-    }
-    public Pair<int,Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
+    public Pair<int, Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture")
     {
@@ -127,23 +101,22 @@ public class TextureFactory : ITextureFactory
                 _availableIndices.Remove(textureId);
                 _textures[textureId] = boundText;
             }
-            _pendingTextures.Add(textureId,completionSource);
+
+            _pendingTextures.Add(textureId, completionSource);
             boundText.Id = textureId;
         }
-        
-        Task.Run(() => AsyncCreateTexture(boundText,completionSource,data, size, format, filter, mips, debugName)).ConfigureAwait(false);
-        
-        return new (textureId,task);
+
+        Task.Run(() => AsyncCreateTexture(boundText, completionSource, data, size, format, filter, mips, debugName))
+            .ConfigureAwait(false);
+
+        return new Pair<int, Task>(textureId, task);
     }
 
     public Task? GetPendingTexture(int textureId)
     {
         lock (_sync)
         {
-            if (_pendingTextures.TryGetValue(textureId, out var src))
-            {
-                return src.Task;
-            }
+            if (_pendingTextures.TryGetValue(textureId, out var src)) return src.Task;
         }
 
         return null;
@@ -183,7 +156,7 @@ public class TextureFactory : ITextureFactory
                     _pendingTextures.Remove(textureId);
                     continue;
                 }
-                
+
                 if (!info.Uploaded) continue;
                 _count--;
                 info.Image?.Dispose();
@@ -236,22 +209,40 @@ public class TextureFactory : ITextureFactory
         for (var i = 0; i < _textures.Count; i++)
         {
             var bound = _textures[i];
-            if (bound.Uploaded)
-            {
-                bound.Image?.Dispose();
-            }
+            if (bound.Uploaded) bound.Image?.Dispose();
 
-            if (bound.Uploading)
-            {
-                bound = new Texture();
-            }
+            if (bound.Uploading) bound = new Texture();
         }
-        
+
         foreach (var boundTexture in _textures)
             if (boundTexture.Uploaded)
                 boundTexture.Image?.Dispose();
 
         _textures.Clear();
+    }
+
+
+    private async Task AsyncCreateTexture(Texture boundText, TaskCompletionSource completionSource, Buffer<byte> data,
+        Extent3D size, ImageFormat format,
+        ImageFilter filter = ImageFilter.Linear, bool mips = false, string debugName = "Texture")
+    {
+        var image = await SGraphicsModule.Get().CreateImage(data, size, format,
+            VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mips, filter, debugName);
+        boundText.Image = image;
+        lock (_sync)
+        {
+            // In-case the texture was disposed before we finished creating the image
+            if (_textures[boundText.Id] != boundText)
+            {
+                if (!completionSource.Task.IsCanceled) completionSource.SetCanceled();
+                image.Dispose();
+                return;
+            }
+
+            boundText.Image = image;
+            UpdateTextures(boundText.Id);
+            completionSource.SetResult();
+        }
     }
 
     private async Task LoadDefaultTexture()
@@ -272,7 +263,7 @@ public class TextureFactory : ITextureFactory
             debugName: "Default Texture"
         );
         tex.DebugName = "Default Texture";
-        
+
         List<ImageWrite> writes = [];
 
         var sampler = new SamplerSpec
@@ -292,9 +283,9 @@ public class TextureFactory : ITextureFactory
                 Index = (uint)i
             });
         }
-        
+
         if (writes.Count != 0) _descriptorSet.WriteImages(0, writes.ToArray());
-        
+
         tex.Uploaded = true;
     }
 
@@ -305,7 +296,7 @@ public class TextureFactory : ITextureFactory
         foreach (var textureId in textureIds)
         {
             var info = _textures[textureId];
-            if(info.Uploaded || info.Image is null) continue;
+            if (info.Uploaded || info.Image is null) continue;
 
             writes.Add(new ImageWrite(info.Image, ImageLayout.ShaderReadOnly, ImageType.Sampled, new SamplerSpec
             {
@@ -315,7 +306,7 @@ public class TextureFactory : ITextureFactory
             {
                 Index = (uint)textureId
             });
-            
+
             infos.Add(info);
         }
 

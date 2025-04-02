@@ -1,12 +1,12 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Core;
+using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics.Commands;
-using Rin.Engine.Core.Extensions;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -20,8 +20,8 @@ public abstract class Surface : IDisposable, IUpdatable
     public static readonly string MainPassId = Guid.NewGuid().ToString();
     private readonly List<View> _lastHovered = [];
     private readonly Root _rootView = new();
-    private bool _isCursorIn;
     private readonly SGraphicsModule _sGraphicsModule;
+    private bool _isCursorIn;
     private CursorDownSurfaceEvent? _lastCursorDownEvent;
     public FrameStats Stats;
 
@@ -30,12 +30,27 @@ public abstract class Surface : IDisposable, IUpdatable
         _sGraphicsModule = SEngine.Get().GetModule<SGraphicsModule>();
         _rootView.NotifyAddedToSurface(this);
     }
-    
+
+    public View? FocusedView { get; private set; }
+
+    public virtual void Dispose()
+    {
+        _sGraphicsModule.WaitDeviceIdle();
+        _rootView.Dispose();
+    }
+
+    public void Update(float deltaTime)
+    {
+        if (_isCursorIn) DoHover();
+        _rootView.Update(deltaTime);
+    }
+
     public abstract Vector2 GetCursorPosition();
 
     public abstract void SetCursorPosition(Vector2 position);
-    
-    public View? FocusedView { get; private set; }
+
+    public abstract void StartTyping(View view);
+    public abstract void StopTyping(View view);
     public event Action<CursorUpSurfaceEvent>? OnCursorUp;
 
     public virtual void Init()
@@ -46,7 +61,6 @@ public abstract class Surface : IDisposable, IUpdatable
 
     public abstract Vector2 GetSize();
 
-    
     public virtual void ClearFocus()
     {
         FocusedView?.OnFocusLost();
@@ -63,7 +77,7 @@ public abstract class Surface : IDisposable, IUpdatable
         requester.OnFocus();
         return true;
     }
-    
+
     /// <summary>
     ///     Returns true if the pass was not the active pass
     /// </summary>
@@ -333,11 +347,8 @@ public abstract class Surface : IDisposable, IUpdatable
     protected virtual void ReceiveCursorLeave()
     {
         _isCursorIn = false;
-        foreach (var view in _lastHovered)
-        {
-            view.NotifyCursorLeave();
-        }
-        
+        foreach (var view in _lastHovered) view.NotifyCursorLeave();
+
         _lastHovered.Clear();
     }
 
@@ -417,7 +428,6 @@ public abstract class Surface : IDisposable, IUpdatable
         FocusedView?.OnKeyboard(e);
     }
 
-
     private void DoHover()
     {
         var mousePosition = GetCursorPosition();
@@ -455,20 +465,5 @@ public abstract class Surface : IDisposable, IUpdatable
     public virtual bool Remove(View view)
     {
         return _rootView.Remove(view);
-    }
-    
-    public virtual void Dispose()
-    {
-        _sGraphicsModule.WaitDeviceIdle();
-        _rootView.Dispose();
-    }
-
-    public void Update(float deltaTime)
-    {
-        if (_isCursorIn)
-        {
-            DoHover();
-        }
-        _rootView.Update(deltaTime);
     }
 }

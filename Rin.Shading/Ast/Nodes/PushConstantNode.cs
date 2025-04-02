@@ -2,6 +2,6 @@
 
 public class PushConstantNode : INode
 {
-    public IEnumerable<INode> Children => Declarations;
     public VariableDeclarationNode[] Declarations { get; set; } = [];
+    public IEnumerable<INode> Children => Declarations;
 }

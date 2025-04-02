@@ -2,10 +2,10 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
-using Rin.Engine.Core.Math;
-using Rin.Engine.Graphics;
 using TerraFX.Interop.Vulkan;
+
 [assembly: DisableRuntimeMarshalling]
+
 namespace Rin.Engine;
 
 internal static partial class Native
@@ -29,6 +29,7 @@ internal static partial class Native
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         public static unsafe partial void Free(void* ptr);
     }
+
     public static partial class Slang
     {
         // [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -36,7 +37,7 @@ internal static partial class Native
         //
         [LibraryImport(DllName, EntryPoint = "slangSessionBuilderNew")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        public static unsafe partial void* SessionBuilderNew(delegate*<byte*,byte**,int> loadFileDelegate);
+        public static unsafe partial void* SessionBuilderNew(delegate*<byte*, byte**, int> loadFileDelegate);
 
         [LibraryImport(DllName, EntryPoint = "slangSessionBuilderAddTargetSpirv")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -332,7 +333,7 @@ internal static partial class Native
             [MarshalAs(UnmanagedType.FunctionPtr)] GenerateDelegate callback);
     }
 
-    public static partial class Math
+    public static class Math
     {
         // [LibraryImport(DllName, EntryPoint = "mathQuatToRotator")]
         // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -433,10 +434,9 @@ internal static partial class Native
 
     public static partial class Platform
     {
-        
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public unsafe delegate void NativePathDelegate(char* path);
-        
+
         [DllImport(DllName, EntryPoint = "platformInit", CallingConvention = CallingConvention.Cdecl)]
         public static extern void Init();
 

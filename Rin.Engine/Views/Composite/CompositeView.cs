@@ -2,12 +2,12 @@
 using JetBrains.Annotations;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Animation;
+using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Views.Enums;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Layouts;
-using Rin.Engine.Core.Extensions;
 
 namespace Rin.Engine.Views.Composite;
 
@@ -27,25 +27,17 @@ public abstract class CompositeView : View
         if (slots.NotEmpty())
         {
             if (e is IHandleableEvent asHandleable)
-            {
                 foreach (var (slot, slotTransform) in slots)
                 {
-                    slot.Child.HandleEvent(e,slotTransform);
-                    if (asHandleable.Handled)
-                    {
-                        return;
-                    }
+                    slot.Child.HandleEvent(e, slotTransform);
+                    if (asHandleable.Handled) return;
                 }
-            }
             else
-            {
                 foreach (var (slot, slotTransform) in slots)
-                {
-                    slot.Child.HandleEvent(e,slotTransform);
-                }
-            }
+                    slot.Child.HandleEvent(e, slotTransform);
         }
-        base.HandleEvent(e,transform);
+
+        base.HandleEvent(e, transform);
     }
 
     protected virtual Pair<ISlot, Matrix4x4>[] ComputeHitTestableSlotsForEvent(SurfaceEvent e, Matrix4x4 transform)
@@ -54,31 +46,25 @@ public abstract class CompositeView : View
         {
             case CursorDownSurfaceEvent ev:
                 if (IsChildrenHitTestable)
-                {
                     return GetHitTestableSlots()
-                        .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c,transform)))
-                        .Where(c => c.First.Child.PointWithin(c.Second,ev.Position))
+                        .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c, transform)))
+                        .Where(c => c.First.Child.PointWithin(c.Second, ev.Position))
                         .AsReversed()
                         .ToArray();
-                }
                 break;
             case CursorMoveSurfaceEvent ev:
                 if (IsChildrenHitTestable)
-                {
                     return GetHitTestableSlots()
-                        .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c,transform)))
-                        .Where(c => c.First.Child.PointWithin(c.Second,ev.Position))
+                        .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c, transform)))
+                        .Where(c => c.First.Child.PointWithin(c.Second, ev.Position))
                         .ToArray();
-                }
                 break;
             case ScrollSurfaceEvent ev:
                 if (IsChildrenHitTestable)
-                {
                     return GetHitTestableSlots()
-                        .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c,transform)))
-                        .Where(c => c.First.Child.PointWithin(c.Second,ev.Position))
+                        .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c, transform)))
+                        .Where(c => c.First.Child.PointWithin(c.Second, ev.Position))
                         .ToArray();
-                }
                 break;
         }
 
@@ -265,10 +251,7 @@ public abstract class CompositeView : View
 
     public override void Dispose()
     {
-        foreach (var slot in GetSlots())
-        {
-            slot.Child.Dispose();
-        }
+        foreach (var slot in GetSlots()) slot.Child.Dispose();
         base.Dispose();
     }
 }

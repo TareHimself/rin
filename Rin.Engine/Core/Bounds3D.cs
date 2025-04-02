@@ -2,14 +2,14 @@
 
 namespace Rin.Engine.Core;
 
-public struct Bounds3D : IAdditionOperators<Bounds3D,Bounds3D,Bounds3D>
+public struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
 {
     public Bounds1D X;
     public Bounds1D Y;
     public Bounds1D Z;
-    
+
     /// <summary>
-    /// Combines two bounds together
+    ///     Combines two bounds together
     /// </summary>
     /// <param name="left"></param>
     /// <param name="right"></param>
@@ -20,7 +20,7 @@ public struct Bounds3D : IAdditionOperators<Bounds3D,Bounds3D,Bounds3D>
         {
             X = left.X + right.X,
             Y = left.Y + right.Y,
-            Z = left.Z + right.Z,
+            Z = left.Z + right.Z
         };
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Graphics;
@@ -16,7 +15,7 @@ public class CoverImage : Image
     {
         return base.LayoutContent(availableSpace);
     }
-    
+
     protected override void DrawImage(int textureId, Matrix4x4 transform, PassCommands commands)
     {
         var contentSize = GetContentSize();

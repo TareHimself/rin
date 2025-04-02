@@ -1,25 +1,24 @@
 ﻿using System.Numerics;
-using rin.Examples.AudioPlayer.Views;
-using rin.Examples.Common.Views;
 using Rin.Engine.Audio;
 using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Layouts;
+using rin.Examples.AudioPlayer.Views;
+using rin.Examples.Common.Views;
 using SpotifyExplode;
 using YoutubeExplode;
-using Utils = Rin.Engine.Graphics.Utils;
 
 namespace rin.Examples.AudioPlayer;
 
-[Module(typeof(SViewsModule), typeof(SAudioModule)),AlwaysLoad]
+[Module(typeof(SViewsModule), typeof(SAudioModule))]
+[AlwaysLoad]
 public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
 {
-    public readonly SpotifyClient SpClient = new SpotifyClient();
-    public readonly YoutubeClient YtClient = new YoutubeClient();
+    public readonly SpotifyClient SpClient = new();
+    public readonly YoutubeClient YtClient = new();
 
     public void Start(SEngine engine)
     {
@@ -33,10 +32,19 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
         // }
         SAudioModule.Get().SetVolume(0.1f);
         var window = SGraphicsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
-        window.OnCloseRequested += (_) => { SEngine.Get().RequestExit(); };
+        window.OnCloseRequested += _ => { SEngine.Get().RequestExit(); };
         Backgrounds(window);
         var surf = SViewsModule.Get().GetWindowSurface(window);
         surf?.Add(new MainPanel());
+    }
+
+    public void Stop(SEngine engine)
+    {
+    }
+
+    public static SAudioPlayer Get()
+    {
+        return SEngine.Get().GetModule<SAudioPlayer>();
     }
 
     public void Backgrounds(IWindow window)
@@ -55,8 +63,8 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
                 MaxAnchor = new Vector2(1.0f)
             }
         );
-        
-        surf.Window.OnKey += (e) =>
+
+        surf.Window.OnKey += e =>
         {
             if (e is { State: InputState.Pressed, Key: InputKey.Left })
             {
@@ -84,11 +92,4 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
             }
         };
     }
-
-    public void Stop(SEngine engine)
-    {
-
-    }
-
-    public static SAudioPlayer Get() => SEngine.Get().GetModule<SAudioPlayer>();
 }

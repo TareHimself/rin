@@ -1,6 +1,6 @@
 using Rin.Engine.Core;
-using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Core.Extensions;
+using Rin.Engine.Graphics.FrameGraph;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics;
@@ -12,8 +12,11 @@ public interface IDeviceBuffer : IGraphResource
     public VkBuffer NativeBuffer { get; }
     public ulong GetAddress();
     public IDeviceBufferView GetView(ulong offset, ulong size);
-    
-    public IDeviceBufferView GetView() => this.GetView(0, Size);
+
+    public IDeviceBufferView GetView()
+    {
+        return GetView(0, Size);
+    }
 
     public unsafe void Write(void* src, ulong size, ulong offset = 0);
 
@@ -30,7 +33,7 @@ public interface IDeviceBuffer : IGraphResource
     {
         unsafe
         {
-            Write(&src,Core.Utils.ByteSizeOf<T>(), offset);
+            Write(&src, Core.Utils.ByteSizeOf<T>(), offset);
         }
     }
 

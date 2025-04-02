@@ -8,15 +8,7 @@ public class GlyphBezierRenderer : IGlyphRenderer
     private readonly List<Bezier> _curves = [];
     private readonly List<CurvePath> _paths = [];
     private Vector2 _point = Vector2.Zero;
-    
-    public IEnumerable<CurvePath> GetPaths() => _paths;
 
-    public void Reset()
-    {
-        _curves.Clear();
-        _paths.Clear();
-        _point = Vector2.Zero;
-    }
     public void BeginFigure()
     {
         //throw new NotImplementedException();
@@ -46,15 +38,15 @@ public class GlyphBezierRenderer : IGlyphRenderer
         var p3 = point;
 
         // Compute correct quadratic control points
-        Vector2 q1 = (3f / 8f) * p0 + (3f / 4f) * p1 + (1f / 8f) * p2;
-        Vector2 q2 = (1f / 8f) * p1 + (3f / 4f) * p2 + (3f / 8f) * p3;
+        var q1 = 3f / 8f * p0 + 3f / 4f * p1 + 1f / 8f * p2;
+        var q2 = 1f / 8f * p1 + 3f / 4f * p2 + 3f / 8f * p3;
 
         // First quadratic segment
         QuadraticBezierTo(q1, (p0 + 2f * p1) / 3f);
-    
+
         // Second quadratic segment
         QuadraticBezierTo(q2, p3);
-    
+
         // Update current position
         _point = p3;
     }
@@ -83,7 +75,7 @@ public class GlyphBezierRenderer : IGlyphRenderer
         {
             Curves = _curves.ToArray()
         });
-        
+
         _curves.Clear();
     }
 
@@ -106,14 +98,23 @@ public class GlyphBezierRenderer : IGlyphRenderer
     public TextDecorations EnabledDecorations()
     {
         //throw new NotImplementedException();
-        return new TextDecorations()
-        {
-            
-        };
+        return new TextDecorations();
     }
 
     public void SetDecoration(TextDecorations textDecorations, Vector2 start, Vector2 end, float thickness)
     {
         //throw new NotImplementedException();
+    }
+
+    public IEnumerable<CurvePath> GetPaths()
+    {
+        return _paths;
+    }
+
+    public void Reset()
+    {
+        _curves.Clear();
+        _paths.Clear();
+        _point = Vector2.Zero;
     }
 }

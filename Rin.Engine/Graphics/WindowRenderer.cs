@@ -8,7 +8,7 @@ using static TerraFX.Interop.Vulkan.Vulkan;
 using static SDL.SDL3;
 
 namespace Rin.Engine.Graphics;
-    
+
 /// <summary>
 ///     Handle's rendering on a <see cref="Windows" />
 /// </summary>
@@ -100,10 +100,7 @@ public class WindowRenderer : IWindowRenderer
             if (_swapchainExtent != ctx.RenderExtent)
             {
                 DestroySwapchain();
-                if (!CreateSwapchain(ctx.RenderExtent))
-                {
-                    return;
-                }
+                if (!CreateSwapchain(ctx.RenderExtent)) return;
             }
 
             var start = SEngine.Get().GetTimeSeconds();
@@ -121,7 +118,8 @@ public class WindowRenderer : IWindowRenderer
         var surface = new VkSurfaceKHR();
         var surfValuePtr = &surface.Value;
         // ReSharper disable once AccessToDisposedClosure
-        SDL_Vulkan_CreateSurface((SDL_Window*)_window.GetPtr(), (SDL.VkInstance_T*)instance.Value, null,(SDL.VkSurfaceKHR_T**)surfValuePtr);
+        SDL_Vulkan_CreateSurface((SDL_Window*)_window.GetPtr(), (VkInstance_T*)instance.Value, null,
+            (VkSurfaceKHR_T**)surfValuePtr);
         //NativeMethods.CreateSurface(instance, _window.GetPtr(), &surface);
         return surface;
     }
@@ -145,22 +143,20 @@ public class WindowRenderer : IWindowRenderer
     private unsafe bool CreateSwapchain(Extent2D extent)
     {
         var surfaceCapabilities = new VkSurfaceCapabilitiesKHR();
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(),_surface,&surfaceCapabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities);
 
         if (surfaceCapabilities.minImageExtent.width > extent.Width ||
             surfaceCapabilities.minImageExtent.height > extent.Height ||
             surfaceCapabilities.maxImageExtent.width < extent.Width ||
             surfaceCapabilities.maxImageExtent.height < extent.Height)
-        {
             return false;
-        }
-        
+
         _viewport.minDepth = 0.0f;
         _viewport.maxDepth = 1.0f;
         _viewport.width = extent.Width;
         _viewport.height = extent.Height;
-        
-        
+
+
         var device = _module.GetDevice();
         var physicalDevice = _module.GetPhysicalDevice();
         var format = _module.GetSurfaceFormat();
@@ -175,7 +171,7 @@ public class WindowRenderer : IWindowRenderer
         // }
         // vkCreateSwapchainKHR()
 
-        var createInfo = new VkSwapchainCreateInfoKHR()
+        var createInfo = new VkSwapchainCreateInfoKHR
         {
             sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             surface = _surface,
@@ -184,35 +180,33 @@ public class WindowRenderer : IWindowRenderer
             compositeAlpha = VkCompositeAlphaFlagsKHR.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             imageColorSpace = format.colorSpace,
             imageExtent = extent.ToVk(),
-            imageUsage = VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT | VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            imageUsage = VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                         VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             imageArrayLayers = 1,
             minImageCount = surfaceCapabilities.minImageCount + 1,
             preTransform = VkSurfaceTransformFlagsKHR.VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
         };
 
         var swapchain = new VkSwapchainKHR();
-        vkCreateSwapchainKHR(device,&createInfo, null, &swapchain);
+        vkCreateSwapchainKHR(device, &createInfo, null, &swapchain);
 
         uint imagesCount = 0;
-        vkGetSwapchainImagesKHR(device,swapchain,&imagesCount,null);
-        
+        vkGetSwapchainImagesKHR(device, swapchain, &imagesCount, null);
+
         _swapchainImages = new VkImage[(int)imagesCount];
 
         fixed (VkImage* imagesPtr = _swapchainImages)
         {
-            vkGetSwapchainImagesKHR(device,swapchain,&imagesCount,imagesPtr);
+            vkGetSwapchainImagesKHR(device, swapchain, &imagesCount, imagesPtr);
         }
 
         _swapchainViews = _swapchainImages.Select(c =>
         {
-            unsafe
-            {
-                var viewCreateInfo = SGraphicsModule.MakeImageViewCreateInfo(ImageFormat.Surface, c,
-                    VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
-                var view = new VkImageView();
-                vkCreateImageView(device, &viewCreateInfo, null, &view);
-                return view;
-            }
+            var viewCreateInfo = SGraphicsModule.MakeImageViewCreateInfo(ImageFormat.Surface, c,
+                VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
+            var view = new VkImageView();
+            vkCreateImageView(device, &viewCreateInfo, null, &view);
+            return view;
         }).ToArray();
         _swapchain = swapchain;
         // vkGetSwapchainImagesKHR()

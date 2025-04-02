@@ -1,5 +1,4 @@
 ﻿using ManagedBass;
-using Rin.Engine.Core;
 
 namespace Rin.Engine.Audio.BassAudio;
 
@@ -51,15 +50,15 @@ public class BassChannel : IChannel
         return Bass.ChannelSetPosition(_handle, Bass.ChannelSeconds2Bytes(_handle, position));
     }
 
+    public void Dispose()
+    {
+        Bass.StreamFree(_handle);
+    }
+
     public event Action? OnEnd;
 
     public bool SetPitch(float value)
     {
         return Bass.ChannelSetAttribute(_handle, ChannelAttribute.Pitch, value);
-    }
-
-    public void Dispose()
-    {
-        Bass.StreamFree(_handle);
     }
 }

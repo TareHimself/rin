@@ -1,7 +1,4 @@
-﻿using System.Diagnostics;
-using System.Numerics;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Math;
+﻿using System.Numerics;
 using Rin.Engine.Views.Enums;
 using Rin.Engine.Views.Layouts;
 

@@ -4,8 +4,9 @@ namespace Rin.Engine.World.Components;
 
 public class Component : IComponent
 {
-    public Actor? Owner { get; set; }
     public bool Active { get; protected set; }
+    public Actor? Owner { get; set; }
+
     public virtual void Start()
     {
         Active = true;
@@ -18,6 +19,5 @@ public class Component : IComponent
 
     public virtual void Update(float deltaSeconds)
     {
-        
     }
 }

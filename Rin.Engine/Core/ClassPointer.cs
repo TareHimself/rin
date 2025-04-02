@@ -2,15 +2,15 @@
 
 namespace Rin.Engine.Core;
 
-public readonly struct ClassPointer<T>  : IDisposable where T : class
+public readonly struct ClassPointer<T> : IDisposable where T : class
 {
     private readonly IntPtr _handle = IntPtr.Zero;
 
-    public ClassPointer(T value,GCHandleType handleType)
+    public ClassPointer(T value, GCHandleType handleType)
     {
-        _handle = GCHandle.ToIntPtr(GCHandle.Alloc(value,handleType));
+        _handle = GCHandle.ToIntPtr(GCHandle.Alloc(value, handleType));
     }
-    
+
     public ClassPointer(IntPtr handle)
     {
         _handle = handle;

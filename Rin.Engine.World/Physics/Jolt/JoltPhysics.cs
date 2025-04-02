@@ -5,17 +5,13 @@ namespace Rin.Engine.World.Physics.Jolt;
 
 public class JoltPhysics : IPhysicsSystem
 {
-
-    public JoltPhysics()
-    {
-       // JoltPhysicsSharp.Foundation.Init()
-    }
     public void Dispose()
     {
         throw new NotImplementedException();
     }
 
     public Vector3 Gravity { get; set; }
+
     public IPhysicsBox CreateBox(IPhysicsComponent owner, Vector3 size)
     {
         throw new NotImplementedException();

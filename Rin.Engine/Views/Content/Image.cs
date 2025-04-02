@@ -62,7 +62,7 @@ public class Image : ContentView
     {
         if (TextureId != -1) DrawImage(TextureId, transform, commands);
     }
-    
+
     protected virtual void DrawImage(int textureId, Matrix4x4 transform, PassCommands commands)
     {
         commands.AddTexture(textureId, transform, GetContentSize(), Tint, null,

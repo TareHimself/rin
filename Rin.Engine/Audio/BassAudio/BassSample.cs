@@ -1,5 +1,4 @@
 ﻿using ManagedBass;
-using Rin.Engine.Core;
 
 namespace Rin.Engine.Audio.BassAudio;
 
@@ -25,13 +24,13 @@ public class BassSample : ISample
         return channel;
     }
 
-    public static BassSample FromFile(string filePath)
-    {
-        return new BassSample(Bass.SampleLoad(filePath, 0, 0, 1000, 0));
-    }
-
     public void Dispose()
     {
         Bass.SampleFree(_handle);
+    }
+
+    public static BassSample FromFile(string filePath)
+    {
+        return new BassSample(Bass.SampleLoad(filePath, 0, 0, 1000, 0));
     }
 }

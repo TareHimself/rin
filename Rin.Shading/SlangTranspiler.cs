@@ -1,10 +1,14 @@
-﻿using System.Globalization;
-using Rin.Shading.Ast.Nodes;
+﻿using Rin.Shading.Ast.Nodes;
 
 namespace Rin.Shading;
 
 public class SlangTranspiler : ITranspiler
 {
+    public void Transpile(IEnumerable<INode> source, Stream output)
+    {
+        using var writer = new TextWriter(output);
+        Transpile(source, writer);
+    }
 
     private string TranspileType(IType type)
     {
@@ -13,25 +17,29 @@ public class SlangTranspiler : ITranspiler
             BuiltInTypeNode builtInTypeNode => builtInTypeNode.Value,
             PointerNode pointerNode => $"{TranspileType(pointerNode.Type)}*",
             StructTypeNode structTypeNode => structTypeNode.Struct.Name,
-            UnknownType unknownType => unknownType.TypeName,//throw new Exception($"Unknown type: {unknownType.TypeName}"),
+            UnknownType unknownType => unknownType
+                .TypeName, //throw new Exception($"Unknown type: {unknownType.TypeName}"),
             _ => throw new ArgumentOutOfRangeException(nameof(type))
         };
     }
-    
+
     private string TranspileDeclaration(DeclarationNode declaration)
     {
         return declaration switch
         {
             ParameterDeclarationNode node => (node.IsInput ? "in" : "out") + $" {TranspileType(node.Type)} {node.Name}",
-            StructVariableDeclarationNode node => $"{TranspileType(node.Type)} {node.Name}" + (node.Mapping.Length > 0 ? $" : {node.Mapping}" : string.Empty),
+            StructVariableDeclarationNode node => $"{TranspileType(node.Type)} {node.Name}" +
+                                                  (node.Mapping.Length > 0 ? $" : {node.Mapping}" : string.Empty),
             VariableDeclarationNode node => $"{TranspileType(node.Type)} {node.Name}",
             _ => throw new ArgumentOutOfRangeException(nameof(declaration))
         };
     }
-    
+
     private string TranspileExpressionList(INode[] expressions)
     {
-        return expressions.Length == 0 ? string.Empty : expressions.Aggregate("",(t,c) => t + " , " + TranspileExpression(c))[3..];
+        return expressions.Length == 0
+            ? string.Empty
+            : expressions.Aggregate("", (t, c) => t + " , " + TranspileExpression(c))[3..];
     }
 
     private string TranspileExpression(INode expression)
@@ -45,16 +53,21 @@ public class SlangTranspiler : ITranspiler
             BreakNode node => "break",
             IType node => TranspileType(node),
             CallNode node => $"{TranspileExpression(node.Target)}( {TranspileExpressionList(node.Arguments)} )",
-            ConditionalNode node => $"{TranspileExpression(node.Condition)} ? {TranspileExpression(node.Left)} : {TranspileExpression(node.Right)}",
+            ConditionalNode node =>
+                $"{TranspileExpression(node.Condition)} ? {TranspileExpression(node.Left)} : {TranspileExpression(node.Right)}",
             ContinueNode node => "continue",
             DeclarationNode node => TranspileDeclaration(node),
-            DecrementNode node => (node.Before ? $"--{TranspileExpression(node.Expression)}" : $"{TranspileExpression(node.Expression)}--"),
+            DecrementNode node => node.Before
+                ? $"--{TranspileExpression(node.Expression)}"
+                : $"{TranspileExpression(node.Expression)}--",
             DefineNode node => $"#define {node.Name} {TranspileExpression(node.Expression)}",
             DiscardNode node => "discard",
             FloatLiteralNode node => node.Value,
             IdentifierNode node => node.Value,
             IncludeNode node => $"#include \"{node.Path}\"",
-            IncrementNode node => (node.Before ? $"++{TranspileExpression(node.Expression)}" : $"{TranspileExpression(node.Expression)}++"),
+            IncrementNode node => node.Before
+                ? $"++{TranspileExpression(node.Expression)}"
+                : $"{TranspileExpression(node.Expression)}++",
             IndexNode node => $"{TranspileExpression(node.Target)}[ {TranspileExpression(node.Expression)} ]",
             InjectNode node => node.Code,
             IntLiteralNode node => node.Value.ToString(),
@@ -65,13 +78,18 @@ public class SlangTranspiler : ITranspiler
             {
                 BinaryOperator.Addition => $"{TranspileExpression(node.Left)} + {TranspileExpression(node.Right)}",
                 BinaryOperator.Subtraction => $"{TranspileExpression(node.Left)} - {TranspileExpression(node.Right)}",
-                BinaryOperator.Multiplication => $"{TranspileExpression(node.Left)} * {TranspileExpression(node.Right)}",
+                BinaryOperator.Multiplication =>
+                    $"{TranspileExpression(node.Left)} * {TranspileExpression(node.Right)}",
                 BinaryOperator.Division => $"{TranspileExpression(node.Left)} / {TranspileExpression(node.Right)}",
                 BinaryOperator.Assign => $"{TranspileExpression(node.Left)} = {TranspileExpression(node.Right)}",
-                BinaryOperator.AdditionAssign => $"{TranspileExpression(node.Left)} += {TranspileExpression(node.Right)}",
-                BinaryOperator.SubtractionAssign => $"{TranspileExpression(node.Left)} -= {TranspileExpression(node.Right)}",
-                BinaryOperator.MultiplicationAssign => $"{TranspileExpression(node.Left)} *= {TranspileExpression(node.Right)}",
-                BinaryOperator.DivisionAssign => $"{TranspileExpression(node.Left)} /= {TranspileExpression(node.Right)}",
+                BinaryOperator.AdditionAssign =>
+                    $"{TranspileExpression(node.Left)} += {TranspileExpression(node.Right)}",
+                BinaryOperator.SubtractionAssign =>
+                    $"{TranspileExpression(node.Left)} -= {TranspileExpression(node.Right)}",
+                BinaryOperator.MultiplicationAssign =>
+                    $"{TranspileExpression(node.Left)} *= {TranspileExpression(node.Right)}",
+                BinaryOperator.DivisionAssign =>
+                    $"{TranspileExpression(node.Left)} /= {TranspileExpression(node.Right)}",
                 BinaryOperator.Equal => $"{TranspileExpression(node.Left)} == {TranspileExpression(node.Right)}",
                 BinaryOperator.NotEqual => $"{TranspileExpression(node.Left)} != {TranspileExpression(node.Right)}",
                 BinaryOperator.Less => $"{TranspileExpression(node.Left)} < {TranspileExpression(node.Right)}",
@@ -87,6 +105,7 @@ public class SlangTranspiler : ITranspiler
             _ => throw new ArgumentOutOfRangeException(nameof(expression))
         };
     }
+
     private void TranspileStatement(INode statement, TextWriter output)
     {
         switch (statement)
@@ -108,13 +127,14 @@ public class SlangTranspiler : ITranspiler
                 output.Write("}");
                 if (node.Else is not null)
                 {
-                    output.Write($"else");
+                    output.Write("else");
                     TranspileStatement(node.Else, output);
                 }
             }
                 break;
             case ForNode node:
-                output.Write($"for({TranspileExpression(node.Init)};{TranspileExpression(node.Condition)};{TranspileExpression(node.Update)})");
+                output.Write(
+                    $"for({TranspileExpression(node.Init)};{TranspileExpression(node.Condition)};{TranspileExpression(node.Update)})");
                 output.Write("{");
                 output.AddTab();
                 TranspileStatements(node.Scope.Children, output);
@@ -123,10 +143,7 @@ public class SlangTranspiler : ITranspiler
                 break;
             case InjectNode asInjected:
             {
-                foreach (var line in asInjected.Code.Split('\n'))
-                {
-                    output.Write(line);
-                }
+                foreach (var line in asInjected.Code.Split('\n')) output.Write(line);
             }
                 break;
             default:
@@ -134,18 +151,17 @@ public class SlangTranspiler : ITranspiler
                 break;
         }
     }
-    
+
     private void TranspileStatements(IEnumerable<INode> statements, TextWriter output)
     {
-        foreach (var statement in statements)
-        {
-            TranspileStatement(statement, output);
-        }
+        foreach (var statement in statements) TranspileStatement(statement, output);
     }
-    
+
     private string TranspileFunctionParameters(ParameterDeclarationNode[] parameters)
     {
-        return parameters.Length == 0 ? string.Empty : parameters.Aggregate("",(t,c) => t + " , " + TranspileDeclaration(c))[3..];
+        return parameters.Length == 0
+            ? string.Empty
+            : parameters.Aggregate("", (t, c) => t + " , " + TranspileDeclaration(c))[3..];
     }
 
     private void TranspileFunction(FunctionNode node, TextWriter output)
@@ -154,15 +170,15 @@ public class SlangTranspiler : ITranspiler
             .Write($"{TranspileType(node.ReturnType)} {node.Name}({TranspileFunctionParameters(node.Params)})")
             .Write("{")
             .AddTab();
-        TranspileStatements(node.Scope.Statements,output);
+        TranspileStatements(node.Scope.Statements, output);
         output
             .RemoveTab()
             .Write("}");
     }
+
     private void Transpile(IEnumerable<INode> source, TextWriter output)
     {
         foreach (var node in source)
-        {
             switch (node)
             {
                 case FunctionNode asFunction:
@@ -174,9 +190,7 @@ public class SlangTranspiler : ITranspiler
                     output.Write("{");
                     output.AddTab();
                     foreach (var declaration in asPushConstant.Declarations)
-                    {
                         output.Write($"{TranspileDeclaration(declaration)};");
-                    }
                     output.RemoveTab();
                     output.Write("};");
                     output.Write("[[vk::push_constant]]");
@@ -189,27 +203,16 @@ public class SlangTranspiler : ITranspiler
                     output.Write("{");
                     output.AddTab();
                     foreach (var declaration in asStruct.Declarations)
-                    {
                         output.Write($"{TranspileDeclaration(declaration)};");
-                    }
                     output.RemoveTab();
                     output.Write("};");
                 }
                     break;
                 case InjectNode asInjected:
                 {
-                    foreach (var line in asInjected.Code.Split('\n'))
-                    {
-                        output.Write(line);
-                    }
+                    foreach (var line in asInjected.Code.Split('\n')) output.Write(line);
                 }
                     break;
             }
-        }
-    }
-    public void Transpile(IEnumerable<INode> source, Stream output)
-    {
-        using var writer = new TextWriter(output);
-        Transpile(source, writer);
     }
 }

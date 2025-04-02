@@ -1,13 +1,16 @@
 ﻿namespace Rin.Shading.Exceptions;
 
-public class ParserException  : Exception
+public class ParserException : Exception
 {
     public DebugInfo Debug;
-    public ParserException(DebugInfo debugInfo){
+
+    public ParserException(DebugInfo debugInfo)
+    {
         Debug = debugInfo;
     }
 
-    public ParserException(DebugInfo debugInfo,string message) : base(message){
+    public ParserException(DebugInfo debugInfo, string message) : base(message)
+    {
         Debug = debugInfo;
     }
 }

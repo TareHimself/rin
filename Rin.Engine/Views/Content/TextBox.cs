@@ -1,17 +1,14 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Views.Enums;
 using Rin.Engine.Views.Font;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Quads;
 using Rin.Engine.Views.Sdf;
-using Rin.Engine.Core.Extensions;
-using SixLabors.Fonts;
 
 namespace Rin.Engine.Views.Content;
-
-
 
 /// <summary>
 ///     Draw's text using an <see cref="MtsdfFont" />. Currently, hardcoded to
@@ -19,15 +16,7 @@ namespace Rin.Engine.Views.Content;
 /// </summary>
 public class TextBox : ContentView
 {
-    protected struct CachedQuadLayout(int atlas, Matrix4x4 transform, Vector2 size, Vector4 uv)
-    {
-        public readonly int Atlas = atlas;
-        public Matrix4x4 Transform = transform;
-        public Vector2 Size = size;
-        public Vector4 Uv = uv;
-    }
-    
-    private CharacterBounds[]? _cachedBounds;
+    private GlyphRect[]? _cachedBounds;
     private CachedQuadLayout[]? _cachedLayouts;
 
     private string _content = string.Empty;
@@ -39,7 +28,6 @@ public class TextBox : ContentView
 
     private IFontManager _fontManager = SViewsModule.Get().GetFontManager();
     private float _fontSize = 100.0f;
-    private FontStyle _fontStyle = FontStyle.Regular;
     private bool _wrapContent;
     protected float? Wrap;
 
@@ -50,11 +38,9 @@ public class TextBox : ContentView
         MakeNewFont();
     }
 
-    [PublicAPI] protected SixLabors.Fonts.Font? CurrentFont { get; private set; }
+    [PublicAPI] protected IFont? CurrentFont { get; private set; }
 
-    protected float LineHeight => CurrentFont?.FontMetrics is { } metrics
-        ? metrics.HorizontalMetrics.AdvanceHeightMax * 64 / metrics.ScaleFactor * FontSize
-        : 0;
+    protected float LineHeight => CurrentFont?.GetLineHeight(FontSize) ?? 0;
 
 
     [PublicAPI] public Color ForegroundColor { get; set; } = Color.White;
@@ -95,17 +81,6 @@ public class TextBox : ContentView
     }
 
     [PublicAPI]
-    public FontStyle Style
-    {
-        get => _fontStyle;
-        set
-        {
-            _fontStyle = value;
-            MakeNewFont();
-        }
-    }
-
-    [PublicAPI]
     public float FontSize
     {
         get => _fontSize;
@@ -133,10 +108,7 @@ public class TextBox : ContentView
     protected virtual void TextChanged(string newText)
     {
         _cachedLayouts = ComputeLayout(out var pending);
-        if (pending)
-        {
-            _cachedLayouts = null;
-        }
+        if (pending) _cachedLayouts = null;
         _cachedBounds = null;
         _content = newText;
         // TextRenderer.RenderTextTo();
@@ -148,70 +120,44 @@ public class TextBox : ContentView
         _cachedLayouts = null;
         Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X : null : null;
         var bounds = GetCharacterBounds(Wrap).ToArray();
-        var width = bounds.MaxBy(c => c.Right)?.Right ?? 0.0f;
-        var height = bounds.MaxBy(c => c.Bottom)?.Bottom ?? 0.0f;
+        if(bounds.Empty()) return Vector2.Zero;
+        var width = bounds.MaxBy(c => c.Right).Right;
+        var height = bounds.MaxBy(c => c.Bottom).Bottom;
         return new Vector2(width, height);
     }
 
     private void MakeNewFont()
     {
-        if (_fontManager.TryGetFont(FontFamily, out var family)) CurrentFont = family.CreateFont(FontSize, Style);
+        if (_fontManager.GetFont(FontFamily) is { } font) CurrentFont = font;
         _cachedBounds = null;
         _cachedLayouts = ComputeLayout(out var pending);
-        if (pending)
-        {
-            _cachedLayouts = null;
-        }
+        if (pending) _cachedLayouts = null;
         Invalidate(InvalidationType.DesiredSize);
     }
 
 
-    protected IEnumerable<CharacterBounds> GetCharacterBounds(float? wrap = null, bool cache = true)
+    protected GlyphRect[] GetCharacterBounds(float? wrap = null, bool cache = true)
     {
         if (CurrentFont == null) return [];
 
-        var opts = new TextOptions(CurrentFont)
-        {
-            WrappingLength = wrap == null ? -1.0f : (float)Math.Ceiling(wrap.Value + 10.0f)
-        };
+        if (cache && _cachedBounds is { } cached) return cached;
 
-        var content = Content + "";
+        var bounds = FontManager.MeasureText(CurrentFont, Content, FontSize, wrap ?? float.PositiveInfinity);
 
-        TextMeasurer.TryMeasureCharacterBounds(content, opts, out var tempBounds);
+        if (cache) return _cachedBounds = bounds;
 
-        if (tempBounds.IsEmpty) return [];
-
-        var allBounds = new Dictionary<int, FontRectangle>();
-        var line = 0;
-
-        foreach (var glyphBounds in tempBounds) allBounds.Add(glyphBounds.StringIndex, glyphBounds.Bounds);
-
-        var result = content.Select((c, idx) =>
-        {
-            {
-                if (allBounds.TryGetValue(idx, out var bounds))
-                {
-                    line = (int)Math.Floor(bounds.Y / LineHeight);
-                    return new CharacterBounds(c, idx, bounds);
-                }
-            }
-
-            if (c == '\n') line++;
-
-            return new CharacterBounds(c, idx, 0, line * LineHeight + LineHeight / 2.0f, 0, 0);
-        }).ToArray();
-
-        return result;
+        return bounds;
     }
 
     protected override Vector2 ComputeDesiredContentSize()
     {
         if (Content.Empty() || CurrentFont == null) return new Vector2(0.0f, LineHeight);
-        var last = GetCharacterBounds(cache: false).MaxBy(c => c.Right);
+        var bounds = GetCharacterBounds(cache: false);
+        var width = bounds.Empty() ? 0 : bounds.Max(c => c.Right);
         var lines = Math.Max(1, Content.Split("\n").Length);
         var height = LineHeight * lines;
 
-        return new Vector2(last?.Right ?? 0.0f, height);
+        return new Vector2(width, height);
     }
 
     protected CachedQuadLayout[] ComputeLayout(out bool anyPending)
@@ -221,7 +167,7 @@ public class TextBox : ContentView
             anyPending = false;
             return [];
         }
-        
+
         var pending = false;
         List<CachedQuadLayout> results = [];
         foreach (var bound in GetCharacterBounds(Wrap))
@@ -230,7 +176,7 @@ public class TextBox : ContentView
             var glyph = _fontManager.GetGlyph(CurrentFont, bound.Character);
             if (glyph.State == LiveGlyphState.Invalid && bound.Character.IsPrintable())
             {
-                _fontManager.Prepare(CurrentFont.Family, [bound.Character]);
+                _fontManager.Prepare(CurrentFont, [bound.Character]);
                 pending = true;
             }
             else if (glyph.State == LiveGlyphState.Pending)
@@ -240,22 +186,22 @@ public class TextBox : ContentView
 
             if (glyph.State != LiveGlyphState.Ready) continue;
 
-            var charOffset = new Vector2(bound.X, bound.Y);
+            var charOffset = bound.Position;
 
-            var size = new Vector2(bound.Width, bound.Height);
+            var size = bound.Size;
             var vectorSize = glyph.Size - new Vector2(range * 2);
             var scale = size / vectorSize;
             var pxRangeScaled = new Vector2(range) * scale;
             size += pxRangeScaled * 2;
 
             charOffset -= pxRangeScaled;
-            
+
             var finalTransform = Matrix4x4.Identity.Scale(new Vector2(1.0f, -1.0f)).Translate(charOffset with
             {
-                Y = charOffset.Y + size.Y,
+                Y = charOffset.Y + size.Y
             });
 
-            results.Add(new CachedQuadLayout(glyph.AtlasId,finalTransform, size, glyph.Coordinate));
+            results.Add(new CachedQuadLayout(glyph.AtlasId, finalTransform, size, glyph.Coordinate));
         }
 
         anyPending = pending;
@@ -272,7 +218,7 @@ public class TextBox : ContentView
 
             var layout = ComputeLayout(out var hadAnyPending);
             quads.AddRange(layout.Select(c => Quad.Mtsdf(c.Atlas, c.Transform * transform, c.Size, Color.White,
-                c.Uv) ));
+                c.Uv)));
             if (quads.Count == 0) return;
             commands.Add(new QuadDrawCommand(quads));
             if (!hadAnyPending) _cachedLayouts = layout;
@@ -284,23 +230,11 @@ public class TextBox : ContentView
         }
     }
 
-    protected class CharacterBounds(char character, int contentIndex, float x, float y, float width, float height)
+    protected struct CachedQuadLayout(int atlas, Matrix4x4 transform, Vector2 size, Vector4 uv)
     {
-        public readonly char Character = character;
-        public readonly int ContentIndex = contentIndex;
-        public readonly float Height = height;
-        public readonly float Width = width;
-        public readonly float X = x;
-        public readonly float Y = y;
-
-        public CharacterBounds(char character, int contentIndex, FontRectangle bounds) : this(character, contentIndex,
-            bounds.X, bounds.Y, bounds.Width, bounds.Height)
-        {
-        }
-
-        public float Right => X + Width;
-        public float Left => X;
-        public float Top => Y;
-        public float Bottom => Y + Height;
+        public readonly int Atlas = atlas;
+        public Matrix4x4 Transform = transform;
+        public Vector2 Size = size;
+        public Vector4 Uv = uv;
     }
 }

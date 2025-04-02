@@ -1,19 +1,22 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics;
 
-public class SceneFrame(Frame frame,Matrix4x4 view,Matrix4x4 projection,IDeviceBufferView sceneInfo)
+public class SceneFrame(Frame frame, Matrix4x4 view, Matrix4x4 projection, IDeviceBufferView sceneInfo)
 {
-    public VkCommandBuffer GetCommandBuffer() => frame.GetCommandBuffer();
     public Matrix4x4 View => view;
     public Matrix4x4 Projection => projection;
-    
+
     public Matrix4x4 ViewProjection { get; } = projection * view;
 
     public Frame Frame => frame;
 
     public IDeviceBufferView SceneInfo => sceneInfo;
+
+    public VkCommandBuffer GetCommandBuffer()
+    {
+        return frame.GetCommandBuffer();
+    }
 }

@@ -53,7 +53,7 @@ public class ListLayout(Axis axis, CompositeView container) : InfiniteChildrenLa
     }
 
     /// <summary>
-    /// Assumes the slot is at the start of the cross axis
+    ///     Assumes the slot is at the start of the cross axis
     /// </summary>
     /// <param name="slot"></param>
     /// <param name="crossAxisSize"></param>

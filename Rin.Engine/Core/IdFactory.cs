@@ -4,21 +4,20 @@ namespace Rin.Engine.Core;
 
 public class IdFactory
 {
-    private readonly object _lock = new();
     private readonly Queue<int> _freeIds = [];
-    
-    [PublicAPI]
-    public int CurrentId { get; private set; }
-    
+    private readonly object _lock = new();
+
+    [PublicAPI] public int CurrentId { get; private set; }
+
     [PublicAPI]
     public int NewId()
     {
         lock (_lock)
         {
-            if(_freeIds.Count != 0) return _freeIds.Dequeue();
-            
+            if (_freeIds.Count != 0) return _freeIds.Dequeue();
+
             var id = CurrentId++;
-            
+
             return id;
         }
     }

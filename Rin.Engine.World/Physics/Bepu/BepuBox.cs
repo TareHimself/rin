@@ -5,9 +5,19 @@ using Rin.Engine.World.Components;
 
 namespace Rin.Engine.World.Physics.Bepu;
 
-public class BepuBox : BepuBody,IPhysicsBox
+public class BepuBox : BepuBody, IPhysicsBox
 {
+    private readonly TypedIndex _typedIndex;
+
+    private Box _shape;
     private Vector3 _size;
+
+    public BepuBox(BepuPhysics physics, IPhysicsComponent owner, Vector3 size) : base(physics, owner)
+    {
+        _size = size;
+        _shape = CreateBox();
+        _typedIndex = physics.Simulation.Shapes.Add(_shape);
+    }
 
     public Vector3 Size
     {
@@ -19,14 +29,10 @@ public class BepuBox : BepuBody,IPhysicsBox
         }
     }
 
-    private Box _shape;
-    private readonly TypedIndex _typedIndex;
-
-    public BepuBox(BepuPhysics physics, IPhysicsComponent owner,Vector3 size) : base(physics,owner)
+    public override void Dispose()
     {
-        _size = size;
-        _shape = CreateBox();
-        _typedIndex = physics.Simulation.Shapes.Add(_shape);
+        base.Dispose();
+        Physics.Simulation.Shapes.Remove(_typedIndex);
     }
 
     private void UpdateShape()
@@ -40,12 +46,13 @@ public class BepuBox : BepuBody,IPhysicsBox
         return new Box(Size.X, Size.Y, Size.Z);
     }
 
-    protected override TypedIndex GetTypedIndex() => _typedIndex;
-    protected override BodyInertia ComputeInertia() => _shape.ComputeInertia(Mass);
-
-    public override void Dispose()
+    protected override TypedIndex GetTypedIndex()
     {
-        base.Dispose();
-        Physics.Simulation.Shapes.Remove(_typedIndex);
+        return _typedIndex;
+    }
+
+    protected override BodyInertia ComputeInertia()
+    {
+        return _shape.ComputeInertia(Mass);
     }
 }

@@ -36,13 +36,11 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
     public string ToString(string? format, IFormatProvider? formatProvider)
     {
         var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;
-        
+
         if (X is IFormattable xFormat && Y is IFormattable yFormat)
-        {
             return
                 $"<{xFormat.ToString(format, formatProvider)}{separator} {yFormat.ToString(format, formatProvider)}>";
-        }
-        
+
         return
             $"<{X}{separator} {Y}>";
     }

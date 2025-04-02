@@ -14,7 +14,7 @@ public interface IWindow : IDisposable
     public event Action<KeyEvent>? OnKey;
     public event Action<CursorMoveEvent>? OnCursorMoved;
     public event Action<CursorButtonEvent>? OnCursorButton;
-    
+
     public event Action<CursorEvent>? OnCursorEnter;
     public event Action<WindowEvent>? OnCursorLeave;
     public event Action<FocusEvent>? OnFocused;
@@ -32,9 +32,9 @@ public interface IWindow : IDisposable
     public void SetCursorPosition(Vector2 position);
 
     public void SetFullscreen(bool state);
-    
+
     public void SetSize(int width, int height);
-    
+
     public void SetPosition(int x, int y);
 
     public Vector2<uint> GetPixelSize();
@@ -42,6 +42,10 @@ public interface IWindow : IDisposable
     public nuint GetPtr();
 
     public IWindow CreateChild(int width, int height, string name, CreateOptions? options = null);
+
+    public void StartTyping();
+
+    public void StopTyping();
 
     public event Action? OnDisposed;
 }

@@ -61,7 +61,7 @@ public struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool>, IEqu
 
     public static implicit operator Extent2D(Vector2<uint> target)
     {
-        return new Extent2D()
+        return new Extent2D
         {
             Height = target.Y,
             Width = target.X
@@ -70,7 +70,7 @@ public struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool>, IEqu
 
     public static implicit operator Vector2<uint>(Extent2D target)
     {
-        return new Vector2<uint>()
+        return new Vector2<uint>
         {
             X = target.Width,
             Y = target.Height

@@ -1,7 +1,5 @@
-﻿using Rin.Engine.Views;
-using Rin.Engine.Views.Composite;
+﻿using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Layouts;
-using Rect = Rin.Engine.Views.Composite.Rect;
 
 namespace ChatApp.Views;
 

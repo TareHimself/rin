@@ -6,10 +6,9 @@ public static class Utils
 {
     public static void RunMultithreaded(Action<float> main, Action render)
     {
-        
         var mainMutex = new AutoResetEvent(false);
-        int mains = 0;
-        int renders = 0;
+        var mains = 0;
+        var renders = 0;
         Task.Factory.StartNew(() =>
         {
             while (SEngine.Get().IsRunning)
@@ -25,19 +24,19 @@ public static class Utils
                     // ignored
                 }
             }
-        },TaskCreationOptions.LongRunning);
-        
-        SEngine.Get().OnUpdate += (dt) =>
+        }, TaskCreationOptions.LongRunning);
+
+        SEngine.Get().OnUpdate += dt =>
         {
             main(dt);
             mains++;
             mainMutex.Set();
         };
     }
-    
+
     public static void RunSingleThreaded(Action<float> main, Action render)
     {
-        SEngine.Get().OnUpdate += (dt) =>
+        SEngine.Get().OnUpdate += dt =>
         {
             main(dt);
             render();

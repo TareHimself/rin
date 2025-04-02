@@ -6,15 +6,12 @@ namespace Rin.Engine.Core;
 
 public class TempSource : ISource
 {
+    private readonly ConcurrentDictionary<string, Func<Stream>> _streams = [];
     public string BasePath { get; } = "temp";
-    
-    private readonly ConcurrentDictionary<string,Func<Stream>> _streams = [];
+
     public Stream Read(string path)
     {
-        if (_streams.TryGetValue(path, out var stream))
-        {
-            return stream();
-        }
+        if (_streams.TryGetValue(path, out var stream)) return stream();
 
         throw new FileNotFoundException();
     }
@@ -26,8 +23,8 @@ public class TempSource : ISource
 
     public string AddStream(Func<Stream> stream)
     {
-        var streamName = $"{BasePath}/{Guid.NewGuid().ToString().Replace("-","")}";
-        _streams.AddOrUpdate(streamName,stream,(_,_) => stream);
+        var streamName = $"{BasePath}/{Guid.NewGuid().ToString().Replace("-", "")}";
+        _streams.AddOrUpdate(streamName, stream, (_, _) => stream);
         return streamName;
     }
 }

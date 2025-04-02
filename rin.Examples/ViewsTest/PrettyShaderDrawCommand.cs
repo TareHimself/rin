@@ -2,7 +2,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using Rin.Engine.Core;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Views.Graphics;
@@ -11,25 +10,8 @@ using Utils = Rin.Engine.Core.Utils;
 
 namespace rin.Examples.ViewsTest;
 
-public class PrettyShaderDrawCommand(Matrix4x4 transform,Vector2 size,bool hovered) : CustomCommand
+public class PrettyShaderDrawCommand(Matrix4x4 transform, Vector2 size, bool hovered) : CustomCommand
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    struct Data
-    {
-        public required Matrix4x4 Projection;
-        public required Vector2 ScreenSize;
-        public required Matrix4x4 Transform;
-        public required Vector2 Size;
-        public required float Time;
-        public required Vector2 Center;
-    }
-
-    public override bool WillDraw() => false;
-
-    public override ulong GetRequiredMemory() => Utils.ByteSizeOf<Data>();
-    //private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().MakeGraphics( $"fs/{Path.Join(SEngine.AssetsDirectory,"test","pretty.slang").Replace('\\', '/' )}");
-    private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().MakeGraphics(ShaderPath);//($"fs/{Path.Join(SEngine.AssetsDirectory,"test","pretty.slang").Replace('\\', '/' )}");
-
     public static string ShaderSource = @"
 #include ""Engine/Shaders/utils.slang""
 
@@ -114,15 +96,35 @@ float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
 }
 ";
 
+    private static bool _test = HandleLoad();
+
+    private static readonly string ShaderPath =
+        SEngine.Get().Temp.AddStream(() => new MemoryStream(Encoding.UTF8.GetBytes(ShaderSource)));
+
+    //private readonly IGraphicsShader _prettyShader = SGraphicsModule.Get().MakeGraphics( $"fs/{Path.Join(SEngine.AssetsDirectory,"test","pretty.slang").Replace('\\', '/' )}");
+    private readonly IGraphicsShader
+        _prettyShader =
+            SGraphicsModule.Get()
+                .MakeGraphics(
+                    ShaderPath); //($"fs/{Path.Join(SEngine.AssetsDirectory,"test","pretty.slang").Replace('\\', '/' )}");
+
+    public override bool WillDraw()
+    {
+        return false;
+    }
+
+    public override ulong GetRequiredMemory()
+    {
+        return Utils.ByteSizeOf<Data>();
+    }
+
     public static bool HandleLoad()
     {
         Console.WriteLine("Assembly loaded");
-        
+
         return false;
     }
-    
-    private static bool _test = HandleLoad();
-    private static string ShaderPath = SEngine.Get().Temp.AddStream(() => new MemoryStream(Encoding.UTF8.GetBytes(ShaderSource)));
+
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {
         frame.BeginMainPass();
@@ -131,18 +133,29 @@ float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
         {
             var pushResource = _prettyShader.PushConstants.First().Value;
             var screenSize = frame.Surface.GetSize();
-            var data = new Data()
+            var data = new Data
             {
                 Projection = frame.Projection,
                 ScreenSize = screenSize,
                 Transform = transform,
                 Size = size,
-                Time = (float)SEngine.Get().GetTimeSeconds(),
-                Center = hovered ?  frame.Surface.GetCursorPosition() : screenSize / 2.0f
+                Time = SEngine.Get().GetTimeSeconds(),
+                Center = hovered ? frame.Surface.GetCursorPosition() : screenSize / 2.0f
             };
             view.Write(data);
-            cmd.PushConstant(_prettyShader.GetPipelineLayout(), pushResource.Stages,view.GetAddress());
+            cmd.PushConstant(_prettyShader.GetPipelineLayout(), pushResource.Stages, view.GetAddress());
             cmd.Draw(6);
         }
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private struct Data
+    {
+        public required Matrix4x4 Projection;
+        public required Vector2 ScreenSize;
+        public required Matrix4x4 Transform;
+        public required Vector2 Size;
+        public required float Time;
+        public required Vector2 Center;
     }
 }

@@ -56,9 +56,7 @@ public class BackgroundTaskQueue : Disposable
 
 
         if (_taskThread == Thread.CurrentThread)
-        {
             RunTask(newPending);
-        }
         else
             _pendingTasks.Add(newPending, cancellationToken);
 
@@ -127,9 +125,7 @@ public class BackgroundTaskQueue<T> : Disposable
 
 
         if (_taskThread == Thread.CurrentThread)
-        {
             RunTask(newPending);
-        }
         else
             _pendingTasks.Add(newPending, cancellationToken);
 
@@ -143,8 +139,8 @@ public class BackgroundTaskQueue<T> : Disposable
 
     public class PendingTask(Func<T> fn, TaskCompletionSource<T> pending, CancellationToken? token = null)
     {
+        public readonly CancellationToken? Token = token;
         public Func<T> Fn = fn;
         public TaskCompletionSource<T> Pending = pending;
-        public readonly CancellationToken? Token = token;
     }
 }

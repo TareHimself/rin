@@ -14,7 +14,7 @@ public class GenericTransitionAnimation<TValue>(
 {
     protected override TValue ApplyAlpha(in TValue diff, float alpha)
     {
-        return diff * (float)alpha;
+        return diff * alpha;
     }
 
     protected override TValue Add(in TValue a, in TValue b)

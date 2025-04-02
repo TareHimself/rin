@@ -1,15 +1,11 @@
-﻿using Rin.Engine.Core;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-
-namespace Rin.Engine.Views.Sdf;
+﻿namespace Rin.Engine.Views.Sdf;
 
 public class SdfContainer : ISdfContainer
 {
-    private readonly Dictionary<int,SdfResult> _atlases;
+    private readonly Dictionary<int, SdfResult> _atlases;
     private readonly Dictionary<string, SdfVector> _vectors;
 
-    public SdfContainer(Dictionary<string, SdfVector> vectors, Dictionary<int,SdfResult> atlases)
+    public SdfContainer(Dictionary<string, SdfVector> vectors, Dictionary<int, SdfResult> atlases)
     {
         _vectors = vectors;
         _atlases = atlases;
@@ -35,5 +31,4 @@ public class SdfContainer : ISdfContainer
     {
         return _atlases;
     }
-    
 }

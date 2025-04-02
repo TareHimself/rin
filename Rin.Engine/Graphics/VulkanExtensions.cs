@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Math;
@@ -9,7 +8,7 @@ using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics;
 
-using static TerraFX.Interop.Vulkan.Vulkan;
+using static Vulkan;
 
 public static class VulkanExtensions
 {
@@ -57,40 +56,21 @@ public static class VulkanExtensions
     {
         VkImageUsageFlags flags = 0;
 
-        if (usage.HasFlag(ImageUsage.TransferSrc))
-        {
-            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        }
+        if (usage.HasFlag(ImageUsage.TransferSrc)) flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-        if (usage.HasFlag(ImageUsage.TransferDst))
-        {
-            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        }
+        if (usage.HasFlag(ImageUsage.TransferDst)) flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-        if (usage.HasFlag(ImageUsage.Sampled))
-        {
-            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT;
-        }
+        if (usage.HasFlag(ImageUsage.Sampled)) flags |= VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT;
 
-        if (usage.HasFlag(ImageUsage.Storage))
-        {
-            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_STORAGE_BIT;
-        }
+        if (usage.HasFlag(ImageUsage.Storage)) flags |= VkImageUsageFlags.VK_IMAGE_USAGE_STORAGE_BIT;
 
-        if (usage.HasFlag(ImageUsage.ColorAttachment))
-        {
-            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        }
+        if (usage.HasFlag(ImageUsage.ColorAttachment)) flags |= VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
         if (usage.HasFlag(ImageUsage.DepthAttachment))
-        {
             flags |= VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-        }
 
         if (usage.HasFlag(ImageUsage.StencilAttachment))
-        {
             flags |= VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-        }
 
         return flags;
     }
@@ -122,7 +102,7 @@ public static class VulkanExtensions
     [PublicAPI]
     public static VkExtent3D ToVk(this Extent3D extent)
     {
-        return new VkExtent3D()
+        return new VkExtent3D
         {
             width = extent.Width,
             height = extent.Height,
@@ -133,7 +113,7 @@ public static class VulkanExtensions
     [PublicAPI]
     public static VkExtent2D ToVk(this Extent2D extent)
     {
-        return new VkExtent2D()
+        return new VkExtent2D
         {
             width = extent.Width,
             height = extent.Height
@@ -174,7 +154,7 @@ public static class VulkanExtensions
             VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.RGBA32,
             VkFormat.VK_FORMAT_D32_SFLOAT => ImageFormat.Depth,
             VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT => ImageFormat.Stencil,
-            _ => format == ImageFormat.Surface.ToVk() ? ImageFormat.Surface : throw new ArgumentOutOfRangeException(),
+            _ => format == ImageFormat.Surface.ToVk() ? ImageFormat.Surface : throw new ArgumentOutOfRangeException()
         };
     }
 
@@ -702,18 +682,16 @@ public static class VulkanExtensions
     public static VkCommandBuffer PushConstant<T>(this VkCommandBuffer cmd, VkPipelineLayout pipelineLayout,
         VkShaderStageFlags stageFlags, T data, uint offset = 0) where T : unmanaged
     {
-        
         unsafe
         {
             var size = (uint)Core.Utils.ByteSizeOf<T>();
-            #if DEBUG
+#if DEBUG
             if (size > 128)
-            {
-                Console.WriteLine("PushConstant of size {0} is greater than 128 bytes, this may be an issue on some devices",size);
-            }
-            #endif
+                Console.WriteLine(
+                    "PushConstant of size {0} is greater than 128 bytes, this may be an issue on some devices", size);
+#endif
             vkCmdPushConstants(cmd, pipelineLayout,
-                stageFlags, offset,size, &data);
+                stageFlags, offset, size, &data);
         }
 
         return cmd;
@@ -1043,7 +1021,6 @@ public static class VulkanExtensions
             };
 
             vkCmdBlitImage2(cmd, &blitInfo);
-            
         }
     }
 
@@ -1068,7 +1045,7 @@ public static class VulkanExtensions
 
     public static VkExtent2D ToVkExtent(this Vector2<uint> self)
     {
-        return new VkExtent2D()
+        return new VkExtent2D
         {
             height = self.Y,
             width = self.X

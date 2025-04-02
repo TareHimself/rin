@@ -18,5 +18,5 @@ public enum BinaryOperator
     Greater,
     GreaterEqual,
     And,
-    Or,
+    Or
 }

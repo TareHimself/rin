@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
-using rin.Examples.Common.Views;
 using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
-using Rin.Engine.Views.Animation;
 using Rin.Engine.Views;
+using Rin.Engine.Views.Animation;
+using rin.Examples.Common.Views;
 
 namespace rin.Examples.AudioPlayer.Views;
 
@@ -11,7 +11,7 @@ public class TrackImage : AsyncWebImage
 {
     public TrackImage(string uri) : base(uri)
     {
-        OnLoaded += (_) =>
+        OnLoaded += _ =>
         {
             Parent?.Parent?.Mutate(c =>
             {

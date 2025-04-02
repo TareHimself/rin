@@ -1,9 +1,7 @@
 ﻿using System.Numerics;
 using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
-using Rin.Engine.Views;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Commands;
 using SixLabors.Fonts;
@@ -14,11 +12,13 @@ namespace misc.VectorRendering;
 
 public class PathCommand : CustomCommand
 {
-    private IShader _shader = SGraphicsModule.Get()
+    private readonly Font _font;
+
+    private readonly IShader _shader = SGraphicsModule.Get()
         .MakeGraphics("Engine/Shaders/Views/path.slang");
 
     private readonly Mat3 _transform;
-    private readonly Font _font;
+
     public List<CurvePath> Paths = [];
     // private Bezier[] _beziers = [
     //     new Bezier
@@ -47,25 +47,16 @@ public class PathCommand : CustomCommand
     //     }
     // ];
 
-    public PathCommand(Mat3 transform,Font font,string text)
+    public PathCommand(Mat3 transform, Font font, string text)
     {
         _transform = transform;
         _font = font;
         var renderer = new GlyphBezierRenderer();
-        TextRenderer.RenderTextTo(renderer,text,new TextOptions(font));
+        TextRenderer.RenderTextTo(renderer, text, new TextOptions(font));
         Paths.AddRange(renderer.GetPaths());
         //var z = paths.First();
     }
-    
-    struct PushConstant
-    {
-        public required Mat4 Projection;
-        public required Mat3 Transform;
-        public required Vector2 Size;
-        public required int BezierCount;
-        public required ulong BeziersAddress;
-    }
-    
+
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {
@@ -76,10 +67,9 @@ public class PathCommand : CustomCommand
             ulong offset = 0;
             foreach (var path in Paths)
             {
-                
                 var beziers = path.Curves;
-                if(beziers.Length == 0) continue;
-                var section = view?.GetView(offset,beziers.ByteSize());
+                if (beziers.Length == 0) continue;
+                var section = view?.GetView(offset, beziers.ByteSize());
                 var min = new Vector2(float.PositiveInfinity);
                 var max = new Vector2();
                 foreach (var bezier in beziers)
@@ -95,7 +85,7 @@ public class PathCommand : CustomCommand
 
                 min = new Vector2(0.0f);
                 section?.Write(beziers);
-                
+
                 cmd.PushConstant(_shader.GetPipelineLayout(),
                     VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT | VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,
                     new PushConstant
@@ -104,7 +94,7 @@ public class PathCommand : CustomCommand
                         Transform = _transform,
                         Size = max - min,
                         BezierCount = beziers.Length,
-                        BeziersAddress = (section?.GetAddress() ?? 0),
+                        BeziersAddress = section?.GetAddress() ?? 0
                     });
                 cmd.Draw(6);
                 offset += beziers.ByteSize();
@@ -114,8 +104,20 @@ public class PathCommand : CustomCommand
 
     public override ulong GetRequiredMemory()
     {
-        return Paths.Select(c => Utils.ByteSizeOf<Bezier>(c.Curves.Length)).Aggregate((a,b) => a + b);
+        return Paths.Select(c => Utils.ByteSizeOf<Bezier>(c.Curves.Length)).Aggregate((a, b) => a + b);
     }
 
-    public override bool WillDraw() => true;
+    public override bool WillDraw()
+    {
+        return true;
+    }
+
+    private struct PushConstant
+    {
+        public required Mat4 Projection;
+        public required Mat3 Transform;
+        public required Vector2 Size;
+        public required int BezierCount;
+        public required ulong BeziersAddress;
+    }
 }

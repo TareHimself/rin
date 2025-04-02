@@ -16,24 +16,13 @@ namespace rin.Examples.AudioPlayer.Views;
 
 public class TrackPlayer : Overlay
 {
-    private readonly TextBox _nameText = new TextBox
-    {
-        Content = "NAME",
-        FontSize = 40,
-        FontFamily = "Noto Sans JP",
-        Padding = new Padding()
-        {
-            Top = 0.0f,
-            Bottom = 5.0f,
-        },
-        WrapContent = true
-    };
+    private readonly Panel _backgroundContainer = new();
 
-    private readonly TextBox _currentTimeText = new TextBox
+    private readonly TextBox _currentTimeText = new()
     {
         Content = "00:00",
         FontSize = 30,
-        Padding = new Padding()
+        Padding = new Padding
         {
             Top = 5.0f,
             Bottom = 5.0f,
@@ -41,11 +30,11 @@ public class TrackPlayer : Overlay
         }
     };
 
-    private readonly TextBox _endTimeText = new TextBox
+    private readonly TextBox _endTimeText = new()
     {
         Content = "00:00",
         FontSize = 30,
-        Padding = new Padding()
+        Padding = new Padding
         {
             Top = 5.0f,
             Bottom = 5.0f,
@@ -53,18 +42,21 @@ public class TrackPlayer : Overlay
         }
     };
 
+    private readonly TextBox _nameText = new()
+    {
+        Content = "NAME",
+        FontSize = 40,
+        FontFamily = "Noto Sans JP",
+        Padding = new Padding
+        {
+            Top = 0.0f,
+            Bottom = 5.0f
+        },
+        WrapContent = true
+    };
+
     private readonly IChannel _stream;
     private double _lastTime = SEngine.Get().GetTimeSeconds();
-
-    private readonly Panel _backgroundContainer = new Panel();
-
-    private bool Loaded => Pivot.X <= 0.0f;
-
-    public string Name
-    {
-        get => _nameText.Content;
-        set => _nameText.Content = value;
-    }
 
     public TrackPlayer(string name, IChannel stream)
     {
@@ -89,7 +81,7 @@ public class TrackPlayer : Overlay
                     new ListSlot
                     {
                         Fit = CrossFit.Fill,
-                        Child = new Constraint()
+                        Child = new Constraint
                         {
                             MinWidth = 500.0f,
                             Child = new FlexBox
@@ -140,6 +132,14 @@ public class TrackPlayer : Overlay
         Padding = 10.0f;
         FetchCover().ConfigureAwait(false);
         Pivot = new Vector2(1.0f, 0.0f);
+    }
+
+    private bool Loaded => Pivot.X <= 0.0f;
+
+    public string Name
+    {
+        get => _nameText.Content;
+        set => _nameText.Content = value;
     }
 
     private async Task FetchCover()
@@ -200,18 +200,17 @@ public class TrackPlayer : Overlay
         base.Collect(transform, clip, passCommands);
     }
 
-    public override bool OnCursorDown(CursorDownSurfaceEvent e) => true;
+    public override bool OnCursorDown(CursorDownSurfaceEvent e)
+    {
+        return true;
+    }
 
     public override void OnCursorUp(CursorUpSurfaceEvent e)
     {
         if (_stream.IsPlaying)
-        {
             _stream.Pause();
-        }
         else
-        {
             _stream.Play();
-        }
 
         base.OnCursorUp(e);
     }
@@ -220,20 +219,16 @@ public class TrackPlayer : Overlay
     {
         base.OnCursorEnter(e);
         if (Loaded)
-        {
-            this.TranslateTo(new Vector2(40.0f, 0.0f), 0.2f,
+            this.TranslateTo(new Vector2(40.0f, 0.0f),
                 easingFunction: EasingFunctions.EaseInOutCubic);
-        }
     }
 
     protected override void OnCursorLeave()
     {
         base.OnCursorLeave();
         if (Loaded)
-        {
-            this.TranslateTo(new Vector2(0.0f, 0.0f), 0.2f,
+            this.TranslateTo(new Vector2(0.0f, 0.0f),
                 easingFunction: EasingFunctions.EaseInOutCubic);
-        }
     }
 
     protected override Vector2 LayoutContent(Vector2 availableSpace)

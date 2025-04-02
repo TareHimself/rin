@@ -2,7 +2,6 @@
 
 namespace Rin.Editor;
 
-
 [Module]
 public class SEditorModule : IModule, ISingletonGetter<SEditorModule>
 {

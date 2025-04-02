@@ -14,11 +14,7 @@ public class OsFileSystem : IFileSystem
 
     public string GetFullIncludePath(string fullSourcePath, string includePath)
     {
-
-        if (!Path.IsPathRooted(includePath))
-        {
-            return Path.GetFullPath(includePath,fullSourcePath);
-        }
+        if (!Path.IsPathRooted(includePath)) return Path.GetFullPath(includePath, fullSourcePath);
         return Path.GetFullPath(fullSourcePath);
     }
 

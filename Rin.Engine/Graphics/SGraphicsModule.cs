@@ -1,18 +1,15 @@
-﻿using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Rin.Engine.Core;
+using Rin.Engine.Core.Extensions;
 using Rin.Engine.Graphics.Descriptors;
+using Rin.Engine.Graphics.Meshes;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Shaders.Slang;
-using Rin.Engine.Graphics.Windows;
-using Rin.Engine.Core.Extensions;
-using Rin.Engine.Graphics.Meshes;
 using Rin.Engine.Graphics.Textures;
+using Rin.Engine.Graphics.Windows;
 using SDL;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -28,13 +25,15 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
     private readonly BackgroundTaskQueue _backgroundTaskQueue = new();
     private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
+    private readonly BackgroundTaskQueue _graphicsQueueThread = new();
+    private readonly int _maxEventsPerPeep = 64;
     private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingGraphicsSubmits = [];
     private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingTransferSubmits = [];
     private readonly List<IRenderer> _renderers = [];
     private readonly Dictionary<SamplerSpec, VkSampler> _samplers = [];
     private readonly Mutex _samplersMutex = new();
+    private readonly Dictionary<nuint, SdlWindow> _sdlWindows = [];
     private readonly BackgroundTaskQueue _transferQueueThread = new();
-    private readonly BackgroundTaskQueue _graphicsQueueThread = new();
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
     private Allocator? _allocator;
     private IRenderContext[] _collected = [];
@@ -48,9 +47,9 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     private uint _graphicsQueueFamily;
     private bool _hasDedicatedTransferQueue;
     private VkInstance _instance;
+    private IMeshFactory? _meshFactory;
     private VkPhysicalDevice _physicalDevice;
     private IShaderManager? _shaderManager;
-    private readonly Dictionary<nuint, SdlWindow> _sdlWindows = [];
 
     private VkSurfaceFormatKHR _surfaceFormat = new()
     {
@@ -59,13 +58,11 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     };
 
     private ITextureFactory? _textureFactory;
-    private IMeshFactory? _meshFactory;
     private VkCommandBuffer _transferCommandBuffer;
     private VkCommandPool _transferCommandPool;
     private VkFence _transferFence;
     private VkQueue _transferQueue;
     private uint _transferQueueFamily;
-    private readonly int _maxEventsPerPeep = 64;
 
     public void Start(SEngine engine)
     {
@@ -130,6 +127,34 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     public static SGraphicsModule Get()
     {
         return SEngine.Get().GetModule<SGraphicsModule>();
+    }
+
+    /// <summary>
+    ///     Poll all windows, could be viewed as the input loop
+    /// </summary>
+    public void Update(float deltaTime)
+    {
+        // NativeMethods.PollEvents();
+        SDL_PumpEvents();
+
+        unsafe
+        {
+            var events = stackalloc SDL_Event[_maxEventsPerPeep];
+            var eventsPumped = 0;
+            do
+            {
+                eventsPumped = SDL_PeepEvents(events, _maxEventsPerPeep, SDL_EventAction.SDL_GETEVENT,
+                    (uint)SDL_EventType.SDL_EVENT_FIRST, (uint)SDL_EventType.SDL_EVENT_LAST);
+                for (var i = 0; i < eventsPumped; i++)
+                {
+                    var e = events + i;
+                    var windowPtr = SDL_GetWindowFromEvent(e);
+                    if (windowPtr == null) continue;
+                    var window = _sdlWindows[(nuint)windowPtr];
+                    window.HandleEvent(*e);
+                }
+            } while (eventsPumped == _maxEventsPerPeep);
+        }
     }
 
     public event Action<IWindow>? OnWindowClosed;
@@ -252,7 +277,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     {
         return (major << 22) | (minor << 16) | patch;
     }
-    
+
     private unsafe void InitVulkan()
     {
         var outInstance = _instance;
@@ -277,14 +302,14 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
         uint extensionCount = 0;
         var extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
-        Native.Vulkan.CreateInstance(extensions, extensionCount, (inst) =>
+        Native.Vulkan.CreateInstance(extensions, extensionCount, inst =>
             {
                 VkSurfaceKHR surface = new();
                 var surfValuePtr = &surface.Value;
                 // ReSharper disable once AccessToDisposedClosure
                 var windowPtr = (SDL_Window*)window.GetPtr();
-                SDL_Vulkan_CreateSurface(windowPtr, (SDL.VkInstance_T*)inst.Value, null,
-                    (SDL.VkSurfaceKHR_T**)surfValuePtr);
+                SDL_Vulkan_CreateSurface(windowPtr, (VkInstance_T*)inst.Value, null,
+                    (VkSurfaceKHR_T**)surfValuePtr);
                 return surface;
             },
             &outInstance,
@@ -345,7 +370,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     {
         return GetShaderManager().MakeGraphics(path);
     }
-    
+
     // public IGraphicsShader MakeGraphicsFromContent(string content)
     // {
     //     var path = SEngine.Get().Temp.AddStream(() => new MemoryStream(Encoding.UTF8.GetBytes(content)));
@@ -368,7 +393,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     }
 
     /// <summary>
-    /// Assigns an id to this texture and creates it as soon as possible. does not own the data and makes a copy of it
+    ///     Assigns an id to this texture and creates it as soon as possible. does not own the data and makes a copy of it
     /// </summary>
     /// <param name="data"></param>
     /// <param name="size"></param>
@@ -380,8 +405,10 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     /// <returns></returns>
     public Pair<int, Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
-        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture") =>
-        GetTextureFactory().CreateTexture(data, size, format, filter, tiling, mips, debugName);
+        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture")
+    {
+        return GetTextureFactory().CreateTexture(data, size, format, filter, tiling, mips, debugName);
+    }
 
     private void HandleWindowCreated(IWindow window)
     {
@@ -479,37 +506,19 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         {
             var opts = options.GetValueOrDefault(new CreateOptions());
 
-            SDL_WindowFlags flags = SDL_WindowFlags.SDL_WINDOW_VULKAN;
+            var flags = SDL_WindowFlags.SDL_WINDOW_VULKAN;
 
-            if (opts.Resizable)
-            {
-                flags |= SDL_WindowFlags.SDL_WINDOW_RESIZABLE;
-            }
+            if (opts.Resizable) flags |= SDL_WindowFlags.SDL_WINDOW_RESIZABLE;
 
-            if (!opts.Visible)
-            {
-                flags |= SDL_WindowFlags.SDL_WINDOW_HIDDEN;
-            }
+            if (!opts.Visible) flags |= SDL_WindowFlags.SDL_WINDOW_HIDDEN;
 
-            if (!opts.Decorated)
-            {
-                flags |= SDL_WindowFlags.SDL_WINDOW_BORDERLESS;
-            }
+            if (!opts.Decorated) flags |= SDL_WindowFlags.SDL_WINDOW_BORDERLESS;
 
-            if (opts.Focused)
-            {
-                flags |= SDL_WindowFlags.SDL_WINDOW_INPUT_FOCUS | SDL_WindowFlags.SDL_WINDOW_MOUSE_FOCUS;
-            }
+            if (opts.Focused) flags |= SDL_WindowFlags.SDL_WINDOW_INPUT_FOCUS | SDL_WindowFlags.SDL_WINDOW_MOUSE_FOCUS;
 
-            if (opts.Floating)
-            {
-                flags |= SDL_WindowFlags.SDL_WINDOW_ALWAYS_ON_TOP;
-            }
+            if (opts.Floating) flags |= SDL_WindowFlags.SDL_WINDOW_ALWAYS_ON_TOP;
 
-            if (opts.Transparent)
-            {
-                flags |= SDL_WindowFlags.SDL_WINDOW_TRANSPARENT;
-            }
+            if (opts.Transparent) flags |= SDL_WindowFlags.SDL_WINDOW_TRANSPARENT;
 
             fixed (byte* data = Encoding.UTF8.GetBytes(name))
             {
@@ -925,7 +934,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         if (_allocator == null) throw new Exception("Allocator is null");
 
         var dataSize = size.Width * size.Height * format.PixelByteSize(); //size.depth * size.width * size.height * 4;
-        var contentSize = (ulong)content.GetByteSize();
+        var contentSize = content.GetByteSize();
         if (dataSize != contentSize) throw new Exception("computed data size is not equal to content size");
 
         var uploadBuffer = NewTransferBuffer(dataSize);
@@ -1077,12 +1086,8 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
         List<IRenderContext> collected = [];
         foreach (var renderer in renderers)
-        {
             if (renderer.Collect() is { } context)
-            {
                 collected.Add(context);
-            }
-        }
 
         _collected = collected.ToArray();
     }
@@ -1100,33 +1105,5 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         }
 
         foreach (var context in _collected) context.Renderer.Execute(context);
-    }
-
-    /// <summary>
-    ///     Poll all windows, could be viewed as the input loop
-    /// </summary>
-    public void Update(float deltaTime)
-    {
-        // NativeMethods.PollEvents();
-        SDL_PumpEvents();
-
-        unsafe
-        {
-            var events = stackalloc SDL_Event[_maxEventsPerPeep];
-            var eventsPumped = 0;
-            do
-            {
-                eventsPumped = SDL_PeepEvents(events, _maxEventsPerPeep, SDL_EventAction.SDL_GETEVENT,
-                    (uint)SDL_EventType.SDL_EVENT_FIRST, (uint)SDL_EventType.SDL_EVENT_LAST);
-                for (var i = 0; i < eventsPumped; i++)
-                {
-                    var e = events + i;
-                    var windowPtr = SDL_GetWindowFromEvent(e);
-                    if (windowPtr == null) continue;
-                    var window = _sdlWindows[(nuint)windowPtr];
-                    window.HandleEvent(*e);
-                }
-            } while (eventsPumped == _maxEventsPerPeep);
-        }
     }
 }

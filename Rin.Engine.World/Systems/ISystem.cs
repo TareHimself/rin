@@ -5,7 +5,6 @@ namespace Rin.Engine.World.Systems;
 
 public interface ISystem : IReceivesUpdate
 {
-    
     public bool Tickable { get; }
     public void Startup(World world);
     public void Shutdown(World world);

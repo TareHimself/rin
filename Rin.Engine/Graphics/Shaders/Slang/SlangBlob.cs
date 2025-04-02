@@ -53,10 +53,7 @@ public class SlangBlob : IDisposable
 
     public string GetString()
     {
-        unsafe
-        {
-            return Marshal.PtrToStringAnsi(GetDataPointer()) ?? throw new NullReferenceException();
-        }
+        return Marshal.PtrToStringAnsi(GetDataPointer()) ?? throw new NullReferenceException();
     }
 
     ~SlangBlob()

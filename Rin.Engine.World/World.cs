@@ -11,52 +11,70 @@ namespace Rin.Engine.World;
 
 public class World : IReceivesUpdate
 {
-    private readonly List<ISystem> _tickableSystems = [];
     private readonly Dictionary<string, Actor> _actors = [];
+    private readonly List<ISystem> _tickableSystems = [];
     private IPhysicsSystem? _physicsSystem;
+
+    private float _remainingPhysicsTime;
     //private System.Timers.Timer? _physicsTimer;
-    
-    public Matrix4x4 WorldTransform { get; set; } = Vector3.UnitZ.ToQuaternion().ToRotationMatrix() * Matrix4x4.CreateWorld(Vector3.Zero,Vector3.UnitZ,Vector3.UnitY);
 
-    private float _remainingPhysicsTime = 0.0f;
+    public Matrix4x4 WorldTransform { get; set; } = Vector3.UnitZ.ToQuaternion().ToRotationMatrix() *
+                                                    Matrix4x4.CreateWorld(Vector3.Zero, Vector3.UnitZ, Vector3.UnitY);
 
-    [PublicAPI] public float PhysicsUpdateInterval { get; set; } = 0.01f;//1.0f / 60.0f;
-    [PublicAPI]
-    public bool Active { get; protected set; }
-    
-    protected virtual IPhysicsSystem CreatePhysicsSystem() => new Physics.Bepu.BepuPhysics();
+    [PublicAPI] public float PhysicsUpdateInterval { get; set; } = 0.01f; //1.0f / 60.0f;
+
+    [PublicAPI] public bool Active { get; protected set; }
+
+    public void Update(float deltaSeconds)
+    {
+        if (!Active) return;
+        _remainingPhysicsTime += deltaSeconds;
+        while (_remainingPhysicsTime > PhysicsUpdateInterval)
+        {
+            _physicsSystem?.Update(PhysicsUpdateInterval);
+            _remainingPhysicsTime -= PhysicsUpdateInterval;
+        }
+
+        //_physicsSystem?.Update(delta);
+        foreach (var actor in GetActors())
+        {
+            if (!actor.Active) continue;
+            actor.Update(deltaSeconds);
+        }
+    }
+
+    protected virtual IPhysicsSystem CreatePhysicsSystem()
+    {
+        return new Physics.Bepu.BepuPhysics();
+    }
+
     public IPhysicsSystem GetPhysicsSystem()
     {
-        if(_physicsSystem == null) throw new InvalidOperationException();
+        if (_physicsSystem == null) throw new InvalidOperationException();
         return _physicsSystem;
     }
+
     public void Start()
     {
-        if(Active) return;
+        if (Active) return;
         Active = true;
         _physicsSystem = CreatePhysicsSystem();
         // _physicsTimer = new System.Timers.Timer(PhysicsUpdateInterval);
         // _physicsTimer.Elapsed += (_,__) => _physicsSystem.Update(PhysicsUpdateInterval);
-        foreach (var actor in GetActors())
-        {
-            actor.Start();
-        }
+        foreach (var actor in GetActors()) actor.Start();
         _physicsSystem.Start();
         // _physicsTimer.Start();
     }
-    
+
     public void Stop()
     {
-        if(!Active) return;
+        if (!Active) return;
         Active = false;
         //_physicsTimer?.Stop();
-        foreach (var actor in GetActors())
-        {
-            actor.Stop();
-        }
+        foreach (var actor in GetActors()) actor.Stop();
         _physicsSystem?.Dispose();
     }
-    
+
     [PublicAPI]
     public Actor AddActor(Actor actor)
     {
@@ -65,10 +83,11 @@ public class World : IReceivesUpdate
             _actors.Add(actor.Id, actor);
             actor.World = this;
         }
-        if(Active) actor.Start();
+
+        if (Active) actor.Start();
         return actor;
     }
-    
+
     [PublicAPI]
     public T AddActor<T>() where T : Actor
     {
@@ -86,35 +105,14 @@ public class World : IReceivesUpdate
         }
     }
 
-    public void Update(float deltaSeconds)
-    {
-        if(!Active) return;
-        _remainingPhysicsTime += (float)deltaSeconds;
-        while (_remainingPhysicsTime > PhysicsUpdateInterval)
-        {
-            _physicsSystem?.Update(PhysicsUpdateInterval);
-            _remainingPhysicsTime -= PhysicsUpdateInterval;
-        }
-        //_physicsSystem?.Update(delta);
-        foreach (var actor in GetActors())
-        {
-            if(!actor.Active) continue;
-            actor.Update(deltaSeconds);
-        }
-    }
-    
     [PublicAPI]
     public IEnumerable<SceneComponent> GetRoots()
     {
         lock (_actors)
         {
             foreach (var (key, value) in _actors)
-            {
                 if (value.RootComponent is { } component)
-                {
                     yield return component;
-                }
-            }
         }
     }
 
@@ -122,11 +120,7 @@ public class World : IReceivesUpdate
     public IEnumerable<SceneComponent> GetPureRoots()
     {
         foreach (var root in GetRoots())
-        {
             if (root is { TransformParent: null } component)
-            {
                 yield return component;
-            }
-        }
     }
 }

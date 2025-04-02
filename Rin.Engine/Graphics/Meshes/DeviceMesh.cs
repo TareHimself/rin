@@ -1,28 +1,24 @@
-using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Core;
-using Rin.Engine.Graphics.Descriptors;
 
 namespace Rin.Engine.Graphics.Meshes;
 
 public class DeviceMesh : IMesh, IDisposable
 {
-    [PublicAPI]
-    public IDeviceBuffer VertexBuffer;
-    [PublicAPI]
-    public IDeviceBuffer IndexBuffer;
-    [PublicAPI]
-    public MeshSurface[] Surfaces;
-    
-    [PublicAPI]
-    public Bounds3D Bounds;
+    [PublicAPI] public Bounds3D Bounds;
 
-    public DeviceMesh(IDeviceBuffer vertexBuffer, IDeviceBuffer indexBuffer,MeshSurface[] surfaces)
+    [PublicAPI] public IDeviceBuffer IndexBuffer;
+
+    [PublicAPI] public MeshSurface[] Surfaces;
+
+    [PublicAPI] public IDeviceBuffer VertexBuffer;
+
+    public DeviceMesh(IDeviceBuffer vertexBuffer, IDeviceBuffer indexBuffer, MeshSurface[] surfaces)
     {
         VertexBuffer = vertexBuffer;
         IndexBuffer = indexBuffer;
         Surfaces = surfaces;
-        Bounds = Surfaces.Aggregate(Surfaces.First().Bounds,(t,c) => t + c.Bounds);
+        Bounds = Surfaces.Aggregate(Surfaces.First().Bounds, (t, c) => t + c.Bounds);
     }
 
     public void Dispose()
@@ -49,7 +45,7 @@ public class DeviceMesh : IMesh, IDisposable
     public IDeviceBufferView GetVertices(int surfaceIndex)
     {
         var surface = Surfaces[surfaceIndex];
-        return VertexBuffer.GetView(surface.VertexStart  * sizeof(uint),surface.VertexCount * sizeof(uint));
+        return VertexBuffer.GetView(surface.VertexStart * sizeof(uint), surface.VertexCount * sizeof(uint));
     }
 
     public IDeviceBufferView GetIndices()

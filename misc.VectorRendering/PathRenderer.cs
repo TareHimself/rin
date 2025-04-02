@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Graphics;
 
@@ -19,6 +18,5 @@ public class PathRenderer : ContentView
 
     public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
-        
     }
 }

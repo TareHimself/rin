@@ -8,10 +8,11 @@ using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics;
 
-public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, CollectScenePass? collectPass = null) : IPass
+public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, CollectScenePass? collectPass = null)
+    : IPass
 {
-    private readonly bool _ownCollectPass = collectPass == null;
     private readonly CollectScenePass _collectPass = collectPass ?? new CollectScenePass(camera, size);
+    private readonly bool _ownCollectPass = collectPass == null;
     private Vector2<uint> _size = size;
 
     [PublicAPI] public uint OutputImageId { get; private set; }
@@ -21,28 +22,23 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
     [PublicAPI] public uint DepthImageId { get; private set; }
 
     [PublicAPI] public IGraphImage? DepthImage { get; set; }
-    
-    [PublicAPI] public uint SceneBufferId { get; set; }
-    
-    [PublicAPI] public uint LightsBufferId { get; set; }
-    
-    [PublicAPI] public uint MaterialBufferId { get; set; }
 
-    public void Dispose()
-    {
-    }
+    [PublicAPI] public uint SceneBufferId { get; set; }
+
+    [PublicAPI] public uint LightsBufferId { get; set; }
+
+    [PublicAPI] public uint MaterialBufferId { get; set; }
 
     public void Added(IGraphBuilder builder)
     {
-        if (_ownCollectPass)
-        {
-            builder.AddPass(_collectPass);
-        }
+        if (_ownCollectPass) builder.AddPass(_collectPass);
     }
 
     public void Configure(IGraphConfig config)
     {
-        LightsBufferId = _collectPass.Lights.Length > 0 ? config.AllocateBuffer<LightInfo>(_collectPass.Lights.Length) : 0;
+        LightsBufferId = _collectPass.Lights.Length > 0
+            ? config.AllocateBuffer<LightInfo>(_collectPass.Lights.Length)
+            : 0;
         SceneBufferId = config.AllocateBuffer<SceneInfo>();
         var materialBufferSize = _collectPass.Geometry.Aggregate((ulong)0,
             (total, geometryDrawCommand) => total + geometryDrawCommand.MeshMaterial.ColorPass.GetRequiredMemory());
@@ -58,16 +54,17 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
         var materialBuffer = MaterialBufferId > 0 ? graph.GetBuffer(MaterialBufferId) : null;
         var sceneBuffer = graph.GetBuffer(SceneBufferId);
         var lightsBuffer = LightsBufferId > 0 ? graph.GetBuffer(LightsBufferId) : null;
-        
+
         ulong materialBufferSize = 0;
 
         OutputImage = graph.GetImage(OutputImageId);
         DepthImage = graph.GetImage(DepthImageId);
         cmd
-            .ImageBarrier(OutputImage,ImageLayout.General)
+            .ImageBarrier(OutputImage, ImageLayout.General)
             .ClearColorImages(new Vector4(0.0f), ImageLayout.General, OutputImage)
-            .ImageBarrier(OutputImage,ImageLayout.General,ImageLayout.ColorAttachment)
-            .BeginRendering(_size.ToVkExtent(), [OutputImage.MakeColorAttachmentInfo(new Vector4(0.0f))], DepthImage.MakeDepthAttachmentInfo())
+            .ImageBarrier(OutputImage, ImageLayout.General, ImageLayout.ColorAttachment)
+            .BeginRendering(_size.ToVkExtent(), [OutputImage.MakeColorAttachmentInfo(new Vector4(0.0f))],
+                DepthImage.MakeDepthAttachmentInfo())
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
             .DisableStencilTest(false)
@@ -77,7 +74,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
             .SetVertexInput([], [])
             .SetViewports([
                 // For viewport flipping
-                new VkViewport()
+                new VkViewport
                 {
                     x = 0,
                     y = _size.X,
@@ -88,17 +85,17 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
                 }
             ])
             .SetScissors([
-                new VkRect2D()
+                new VkRect2D
                 {
                     offset = new VkOffset2D(),
-                    extent = new VkExtent2D()
+                    extent = new VkExtent2D
                     {
                         width = _size.X,
                         height = _size.Y
                     }
                 }
             ]);
-        
+
         var sceneFrame = new SceneFrame(frame, _collectPass.View, _collectPass.Projection, sceneBuffer);
         lightsBuffer?.Write(_collectPass.Lights);
         var lightsAddress = lightsBuffer?.GetAddress() ?? 0;
@@ -110,12 +107,12 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
             NumLights = _collectPass.Lights.Length,
             LightsAddress = lightsAddress
         });
-        
-        
+
+
         foreach (var geometryInfos in _collectPass.OpaqueGeometry.GroupBy(c => new
                  {
                      Type = c.MeshMaterial.GetType(),
-                     c.Mesh,
+                     c.Mesh
                  }))
         {
             var infos = geometryInfos.ToArray();
@@ -131,4 +128,8 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
 
     public uint Id { get; set; }
     public bool IsTerminal { get; set; } = false;
+
+    public void Dispose()
+    {
+    }
 }

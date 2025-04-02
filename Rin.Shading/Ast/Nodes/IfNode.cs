@@ -12,10 +12,7 @@ public class IfNode : INode
         {
             yield return Condition;
             yield return Scope;
-            if (Else is not null)
-            {
-                yield return Else;
-            }
+            if (Else is not null) yield return Else;
         }
     }
 }

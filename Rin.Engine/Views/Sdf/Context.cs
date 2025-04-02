@@ -62,7 +62,7 @@ public class Context : IDisposable
             {
                 var buffer = new Buffer<byte>((int)count);
                 buffer.Write(data, count);
-                result = new SdfResult(buffer,3,width,height,(int)pixelWidth,(int)pixelHeight);
+                result = new SdfResult(buffer, 3, width, height, (int)pixelWidth, (int)pixelHeight);
             });
 
         return result;
@@ -77,7 +77,7 @@ public class Context : IDisposable
             {
                 var buffer = new Buffer<byte>((int)count);
                 buffer.Write(data, count);
-                result = new SdfResult(buffer,4,width,height,(int)pixelWidth,(int)pixelHeight);
+                result = new SdfResult(buffer, 4, width, height, (int)pixelWidth, (int)pixelHeight);
             });
 
         return result;

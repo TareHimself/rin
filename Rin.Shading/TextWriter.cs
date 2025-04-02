@@ -2,8 +2,15 @@
 
 public class TextWriter(Stream stream) : IDisposable
 {
-    private readonly StreamWriter _target = new StreamWriter(stream);
+    private readonly StreamWriter _target = new(stream);
     private string _tabs = string.Empty;
+
+
+    public void Dispose()
+    {
+        _target.Flush();
+        _target.Dispose();
+    }
 
     public TextWriter AddTab()
     {
@@ -18,7 +25,7 @@ public class TextWriter(Stream stream) : IDisposable
     }
 
     /// <summary>
-    /// Write a line of text to the output <see cref="Stream"/>
+    ///     Write a line of text to the output <see cref="Stream" />
     /// </summary>
     /// <param name="line"></param>
     /// <returns></returns>
@@ -27,17 +34,10 @@ public class TextWriter(Stream stream) : IDisposable
         _target.WriteLine(_tabs + line);
         return this;
     }
-    
+
     public TextWriter Flush()
     {
         _target.Flush();
         return this;
-    }
-    
-
-    public void Dispose()
-    {
-        _target.Flush();
-        _target.Dispose();
     }
 }

@@ -1,22 +1,9 @@
 ﻿using System.Numerics;
-using MathNet.Numerics.LinearAlgebra;
 
 namespace Rin.Engine.Core.Math;
 
 public static class MathUtils
 {
-    public static Matrix<float> Translate(this Matrix<float> mat, Vector3 translation)
-    {
-        mat.SetColumn(
-            0,
-            mat.Column(0).Multiply(translation.X) +
-            mat.Column(1).Multiply(translation.Y) +
-            mat.Column(2).Multiply(translation.Z) +
-            mat.Column(3)
-        );
-        return mat;
-    }
-
     public static float InterpolateTo(float current, float target, float deltaTime, float speed)
     {
         var dist = target - current;

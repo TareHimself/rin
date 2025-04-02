@@ -1,29 +1,30 @@
 ﻿using System.Numerics;
-using rin.Examples.SceneTest.entities;
-using Rin.Engine.World;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Layouts;
+using Rin.Engine.World;
+using rin.Examples.SceneTest.entities;
 
 namespace rin.Examples.SceneTest.Views;
 
 public class MainPanel : Panel
 {
-    private World _world = new World();
-    private CameraActor _cameraActor;
+    private readonly CameraActor _cameraActor;
+    private readonly World _world = new();
+
     public MainPanel()
     {
         _cameraActor = _world.AddActor<CameraActor>();
         var text = new TextBox();
         Slots =
         [
-            new PanelSlot()
+            new PanelSlot
             {
                 Child = new TestViewport(_cameraActor, text),
                 MinAnchor = new Vector2(0.0f),
-                MaxAnchor = new Vector2(1.0f),
+                MaxAnchor = new Vector2(1.0f)
             },
-            new PanelSlot()
+            new PanelSlot
             {
                 Child = text,
                 SizeToContent = true

@@ -1,6 +1,4 @@
 using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
-using Rin.Engine.Graphics.Descriptors;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -8,39 +6,92 @@ namespace Rin.Engine.Graphics.Meshes;
 
 public class MeshFactory : IMeshFactory
 {
-    private readonly object _sync = new();
-    private bool _disposed = false;
     private readonly IdFactory _factory = new();
-    private readonly Dictionary<int,DeviceMesh> _meshes = [];
-    private readonly Dictionary<int,TaskCompletionSource> _pendingMeshes = [];
-    
+    private readonly Dictionary<int, DeviceMesh> _meshes = [];
+    private readonly Dictionary<int, TaskCompletionSource> _pendingMeshes = [];
+    private readonly object _sync = new();
+    private bool _disposed;
+
     public void Dispose()
     {
         _disposed = true;
         lock (_sync)
         {
-            foreach (var (key, pending) in _pendingMeshes)
-            {
-                pending.SetCanceled();
-            }
-            
-            foreach (var (key, mesh) in _meshes)
-            {
-                mesh.Dispose();
-            }
-            
+            foreach (var (key, pending) in _pendingMeshes) pending.SetCanceled();
+
+            foreach (var (key, mesh) in _meshes) mesh.Dispose();
+
             _pendingMeshes.Clear();
             _meshes.Clear();
         }
     }
 
-    private async Task AsyncCreateMesh(int id,Buffer<Vertex> vertices, Buffer<uint> indices,MeshSurface[] surfaces)
+    public Pair<int, Task> CreateMesh(Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces)
+    {
+        var id = _factory.NewId();
+        var nVertices = new Buffer<Vertex>(vertices);
+        var nIndices = new Buffer<uint>(indices);
+
+        Task task;
+        lock (_sync)
+        {
+            _pendingMeshes[id] = new TaskCompletionSource();
+            task = _pendingMeshes[id].Task;
+        }
+
+        Task.Run(() => AsyncCreateMesh(id, nVertices, nIndices, surfaces)).ConfigureAwait(false);
+
+        return new Pair<int, Task>(id, task);
+    }
+
+    public bool IsMeshReady(int meshId)
+    {
+        lock (_sync)
+        {
+            return _meshes.ContainsKey(meshId);
+        }
+    }
+
+    public IMesh? GetMesh(int meshId)
+    {
+        lock (_sync)
+        {
+            if (_meshes.TryGetValue(meshId, out var mesh)) return mesh;
+        }
+
+        return null;
+    }
+
+    public Task? GetPendingMesh(int meshId)
+    {
+        lock (_sync)
+        {
+            if (_pendingMeshes.TryGetValue(meshId, out var src)) return src.Task;
+        }
+
+        return null;
+    }
+
+    public void FreeMeshes(params int[] meshIds)
+    {
+        lock (_sync)
+        {
+            foreach (var meshId in meshIds)
+            {
+                if (!_meshes.TryGetValue(meshId, out var mesh)) continue;
+                mesh.Dispose();
+                _meshes.Remove(meshId);
+            }
+        }
+    }
+
+    private async Task AsyncCreateMesh(int id, Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces)
     {
         using (vertices)
-        using(indices)
+        using (indices)
         {
-            if(_disposed) return;
-            
+            if (_disposed) return;
+
             var verticesByteSize = vertices.GetByteSize();
             var indicesByteSize = indices.GetByteSize();
             var vertexBuffer = SGraphicsModule.Get().GetAllocator().NewBuffer(verticesByteSize,
@@ -92,70 +143,8 @@ public class MeshFactory : IMeshFactory
                 _pendingMeshes.TryGetValue(id, out toComplete);
                 _pendingMeshes.Remove(id);
             }
+
             toComplete?.SetResult();
-        }
-    }
-    
-    public Pair<int, Task> CreateMesh(Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces)
-    {
-        var id = _factory.NewId();
-        var nVertices = new Buffer<Vertex>(vertices);
-        var nIndices = new Buffer<uint>(indices);
-
-        Task task;
-        lock (_sync)
-        {
-            _pendingMeshes[id] = new TaskCompletionSource();
-            task = _pendingMeshes[id].Task;
-        }
-        
-        Task.Run(() => AsyncCreateMesh(id,nVertices, nIndices, surfaces)).ConfigureAwait(false);
-        
-        return new(id,task);
-    }
-
-    public bool IsMeshReady(int meshId)
-    {
-        lock (_sync)
-        {
-            return _meshes.ContainsKey(meshId);
-        }
-    }
-
-    public IMesh? GetMesh(int meshId)
-    {
-        lock (_sync)
-        {
-            if (_meshes.TryGetValue(meshId, out var mesh))
-            {
-                return mesh;
-            }
-        }
-        return null;
-    }
-
-    public Task? GetPendingMesh(int meshId)
-    {
-        lock (_sync)
-        {
-            if (_pendingMeshes.TryGetValue(meshId, out var src))
-            {
-                return src.Task;
-            }
-        }
-        return null;
-    }
-
-    public void FreeMeshes(params int[] meshIds)
-    {
-        lock (_sync)
-        {
-            foreach (var meshId in meshIds)
-            {
-                if (!_meshes.TryGetValue(meshId, out var mesh)) continue;
-                mesh.Dispose();
-                _meshes.Remove(meshId);
-            }
         }
     }
 }

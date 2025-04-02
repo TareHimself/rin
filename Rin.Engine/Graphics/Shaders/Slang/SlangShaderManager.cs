@@ -25,8 +25,6 @@ public class SlangShaderManager : IShaderManager
         _session.Dispose();
     }
 
-    public event Action? OnBeforeDispose;
-
     public Task Compile(IShader shader)
     {
         return _compileTasks.Enqueue(() => shader.Compile(new SlangCompilationContext(this)));
@@ -51,6 +49,8 @@ public class SlangShaderManager : IShaderManager
     {
         throw new NotImplementedException();
     }
+
+    public event Action? OnBeforeDispose;
 
     public SlangSession GetSession()
     {

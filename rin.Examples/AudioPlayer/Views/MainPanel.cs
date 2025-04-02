@@ -1,11 +1,9 @@
 ﻿using System.Numerics;
-using rin.Examples.Common.Views;
-using Rin.Engine.Audio;
 using Rin.Engine.Audio.BassAudio;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Layouts;
+using rin.Examples.Common.Views;
 using Clip = Rin.Engine.Views.Clip;
 using Rect = Rin.Engine.Views.Composite.Rect;
 
@@ -13,7 +11,7 @@ namespace rin.Examples.AudioPlayer.Views;
 
 public class MainPanel : Panel
 {
-    private readonly ScrollList _trackPlayers = new ScrollList()
+    private readonly ScrollList _trackPlayers = new()
     {
         Axis = Axis.Column,
         Clip = Clip.None
@@ -29,7 +27,7 @@ public class MainPanel : Panel
                 Child = _trackPlayers,
                 //SizeToContent = true,
                 MinAnchor = new Vector2(0.0f),
-                MaxAnchor = new Vector2(1.0f)//new Vector2<float>(0.5f, 0.5f)
+                MaxAnchor = new Vector2(1.0f) //new Vector2<float>(0.5f, 0.5f)
             },
             new PanelSlot
             {
@@ -37,7 +35,7 @@ public class MainPanel : Panel
                 {
                     Child = new FpsView
                     {
-                        FontSize = 30,
+                        FontSize = 30
                     },
                     Padding = new Padding(20.0f),
                     BorderRadius = new Vector4(10.0f),
@@ -65,7 +63,7 @@ public class MainPanel : Panel
             OnFileSelected(s);
         };
     }
-    
+
     private void OnFileSelected(string[] files)
     {
         foreach (var file in files)

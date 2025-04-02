@@ -6,23 +6,20 @@ using Rin.Engine.Views;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
-using Rin.Engine.Views.Graphics;
 
 namespace rin.Examples.AudioPlayer.Views;
 
 public class FilePicker : Button
 {
-    private float _animDuration = 0.1f;
+    private readonly float _animDuration = 0.1f;
 
-    public event Action<string[]>? OnFileSelected;
-
-    private readonly TextBox _statusText = new TextBox
+    private readonly TextBox _statusText = new()
     {
         Content = "Select File's",
         FontSize = 24.0f
     };
-    
-    public FilePicker() : base()
+
+    public FilePicker()
     {
         Color = Color.Red;
         BorderRadius = new Vector4(10.0f);
@@ -30,11 +27,13 @@ public class FilePicker : Button
         OnReleased += (_, __) =>
         {
             _statusText.Content = "Selecting...";
-            Platform.SelectFileAsync("Select File's To Play", multiple: true, filter: "*.wav;*.ogg;*.flac;*.mp3")
+            Platform.SelectFileAsync("Select File's To Play", true, "*.wav;*.ogg;*.flac;*.mp3")
                 .After(FileSelected);
         };
         Child = _statusText;
     }
+
+    public event Action<string[]>? OnFileSelected;
 
     protected void FileSelected(string[] files)
     {
@@ -46,8 +45,8 @@ public class FilePicker : Button
     {
         this
             .StopAll()
-            .Transition(Color, Color.Green, (c) => Color = c,_animDuration)
-            .Transition(BorderRadius,new Vector4(20.0f),(c) => BorderRadius = c,_animDuration);
+            .Transition(Color, Color.Green, c => Color = c, _animDuration)
+            .Transition(BorderRadius, new Vector4(20.0f), c => BorderRadius = c, _animDuration);
         base.OnCursorEnter(e);
     }
 
@@ -55,9 +54,8 @@ public class FilePicker : Button
     {
         this
             .StopAll()
-            .Transition(Color, Color.Red, (c) => Color = c,_animDuration)
-            .Transition(BorderRadius,new Vector4(10.0f),(c) => BorderRadius = c,_animDuration);
+            .Transition(Color, Color.Red, c => Color = c, _animDuration)
+            .Transition(BorderRadius, new Vector4(10.0f), c => BorderRadius = c, _animDuration);
         base.OnCursorLeave();
     }
-    
 }

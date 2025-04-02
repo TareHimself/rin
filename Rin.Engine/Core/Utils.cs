@@ -12,7 +12,7 @@ public static class Utils
         watch.Stop();
         Console.WriteLine($"[Measure: {name}]: {watch.Elapsed.Microseconds / 1000.0f}ms");
     }
-    
+
     public static void Benchmark(string name, Action func, int iterations)
     {
         var watch = Stopwatch.StartNew();
@@ -25,8 +25,8 @@ public static class Utils
             watch.Stop();
             total += watch.Elapsed;
         }
-        
-        Console.WriteLine($"[Benchmark: {name}]: {(total.TotalNanoseconds / iterations) / 1000.0f}ms");
+
+        Console.WriteLine($"[Benchmark: {name}]: {total.TotalNanoseconds / iterations / 1000.0f}ms");
     }
 
     public static T Measure<T>(string name, Func<T> func)
@@ -53,7 +53,7 @@ public static class Utils
             return (ulong)sizeof(T) * (ulong)count;
         }
     }
-    
+
     /// <summary>
     ///     Performns no bounds checking, assumes sizeof(dest) >= sizeof(source)
     /// </summary>

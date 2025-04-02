@@ -8,13 +8,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Rin.Engine\Rin.Engine.csproj" />
-        <ProjectReference Include="..\Common\rin.Examples.Common.csproj" />
+        <ProjectReference Include="..\..\Rin.Engine\Rin.Engine.csproj"/>
+        <ProjectReference Include="..\Common\rin.Examples.Common.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="SpotifyExplode" Version="1.1.2" />
-      <PackageReference Include="YoutubeExplode" Version="6.5.4" />
+        <PackageReference Include="SpotifyExplode" Version="1.1.2"/>
+        <PackageReference Include="YoutubeExplode" Version="6.5.4"/>
     </ItemGroup>
     <PropertyGroup>
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>

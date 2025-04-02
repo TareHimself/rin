@@ -11,36 +11,6 @@ namespace Rin.Engine.Views;
 [Module(typeof(SGraphicsModule))]
 public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
 {
-    class TestExternalFontCache : IExternalFontCache
-    {
-        public TestExternalFontCache()
-        {
-            Directory.CreateDirectory(Path.Join(SEngine.Directory, ".gen", "mtsdf"));
-        }
-
-        public Stream? Get(int id)
-        {
-            return null;
-            var filePath = Path.Join(SEngine.Directory, ".gen", "mtsdf", $"{id}.mtsdf");
-            if (!File.Exists(filePath)) return null;
-            return File.OpenRead(filePath);
-        }
-
-        public void Set(int id, Stream data)
-        {
-            // var filePath = Path.Join(SEngine.Directory,".gen","mtsdf", $"{id}.mtsdf");
-            // Task.Run(() =>
-            // {
-            //     if (File.Exists(filePath)) File.Delete(filePath);
-            //     
-            //     var stream = File.Create(filePath);
-            //     data.CopyTo(stream);
-            // });
-        }
-
-        public bool SupportsSet => true;
-    }
-
     public static readonly string
         ShadersDirectory = Path.Join(SGraphicsModule.ShadersDirectory, "views");
 
@@ -87,6 +57,11 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
     public static SViewsModule Get()
     {
         return SEngine.Get().GetModule<SViewsModule>();
+    }
+
+    public void Update(float deltaTime)
+    {
+        foreach (var surface in _windowSurfaces.Values) surface.Update(deltaTime);
     }
 
     public event Action<WindowSurface>? OnSurfaceCreated;
@@ -148,8 +123,33 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
         return _stencilShader;
     }
 
-    public void Update(float deltaTime)
+    private class TestExternalFontCache : IExternalFontCache
     {
-        foreach (var surface in _windowSurfaces.Values) surface.Update(deltaTime);
+        public TestExternalFontCache()
+        {
+            Directory.CreateDirectory(Path.Join(SEngine.Directory, ".gen", "mtsdf"));
+        }
+
+        public Stream? Get(int id)
+        {
+            return null;
+            var filePath = Path.Join(SEngine.Directory, ".gen", "mtsdf", $"{id}.mtsdf");
+            if (!File.Exists(filePath)) return null;
+            return File.OpenRead(filePath);
+        }
+
+        public void Set(int id, Stream data)
+        {
+            // var filePath = Path.Join(SEngine.Directory,".gen","mtsdf", $"{id}.mtsdf");
+            // Task.Run(() =>
+            // {
+            //     if (File.Exists(filePath)) File.Delete(filePath);
+            //     
+            //     var stream = File.Create(filePath);
+            //     data.CopyTo(stream);
+            // });
+        }
+
+        public bool SupportsSet => true;
     }
 }

@@ -26,10 +26,7 @@ public static class Parser
 
             if (targets.Contains(frontToken.Type) && scope == 0)
             {
-                if (includeTarget)
-                {
-                    result.InsertBack(input.RemoveFront());
-                }
+                if (includeTarget) result.InsertBack(input.RemoveFront());
 
                 return result;
             }
@@ -64,32 +61,26 @@ public static class Parser
     {
         {
             if (int.TryParse(token.Value, out var result))
-            {
                 return new IntLiteralNode
                 {
                     Value = result
                 };
-            }
         }
 
         {
             if (bool.TryParse(token.Value, out var result))
-            {
                 return new BooleanLiteralNode
                 {
                     Value = result
                 };
-            }
         }
 
         {
             if (float.TryParse(token.Value, out var result))
-            {
                 return new FloatLiteralNode
                 {
                     Value = token.Value
                 };
-            }
         }
 
         return new IdentifierNode
@@ -112,10 +103,7 @@ public static class Parser
         {
             var itemTokens = ConsumeTokensTill(ref allItemsTokens, [TokenType.Comma]);
 
-            if (allItemsTokens.NotEmpty())
-            {
-                allItemsTokens.ExpectFront(TokenType.Comma).RemoveFront();
-            }
+            if (allItemsTokens.NotEmpty()) allItemsTokens.ExpectFront(TokenType.Comma).RemoveFront();
 
             nodes.Add(ParseExpression(ref itemTokens));
         }
@@ -162,13 +150,11 @@ public static class Parser
                 var op = input.RemoveFront();
                 var next = ParseAccessorsExpression(ref input);
                 if (op.Type == TokenType.OpIncrement)
-                {
                     return new IncrementNode
                     {
                         Expression = next,
                         Before = true
                     };
-                }
 
                 return new DecrementNode
                 {
@@ -194,9 +180,9 @@ public static class Parser
             case TokenType.OpSubtract:
             {
                 input.RemoveFront();
-                return new NegateNode()
+                return new NegateNode
                 {
-                    Expression = ParsePrimary(ref input),
+                    Expression = ParsePrimary(ref input)
                 };
             }
             case TokenType.PushConstant:
@@ -229,7 +215,6 @@ public static class Parser
         while (input.NotEmpty() &&
                input.Front().Type is TokenType.OpenParen or TokenType.Access or TokenType.Arrow
                    or TokenType.OpenBracket)
-        {
             switch (input.Front().Type)
             {
                 case TokenType.OpenParen:
@@ -246,10 +231,7 @@ public static class Parser
                         {
                             var argsTokens = ConsumeTokensTill(ref allArgsTokens, [TokenType.Comma]);
 
-                            if (allArgsTokens.NotEmpty())
-                            {
-                                allArgsTokens.ExpectFront(TokenType.Comma).RemoveFront();
-                            }
+                            if (allArgsTokens.NotEmpty()) allArgsTokens.ExpectFront(TokenType.Comma).RemoveFront();
 
                             args.Add(ParseExpression(ref argsTokens));
                         }
@@ -276,7 +258,7 @@ public static class Parser
                         Target = left,
                         Identifier = new IdentifierNode
                         {
-                            Value = id.Value,
+                            Value = id.Value
                         }
                     };
                 }
@@ -291,7 +273,7 @@ public static class Parser
                         Target = left,
                         Identifier = new IdentifierNode
                         {
-                            Value = id.Value,
+                            Value = id.Value
                         }
                     };
                 }
@@ -309,7 +291,6 @@ public static class Parser
                 }
                     break;
             }
-        }
 
         return left;
     }
@@ -332,7 +313,7 @@ public static class Parser
                     TokenType.OpDivide => BinaryOperator.Division,
                     TokenType.OpMultiply => BinaryOperator.Multiplication,
                     _ => throw new ArgumentOutOfRangeException()
-                },
+                }
             };
         }
 
@@ -357,7 +338,7 @@ public static class Parser
                     TokenType.OpAdd => BinaryOperator.Addition,
                     TokenType.OpSubtract => BinaryOperator.Subtraction,
                     _ => throw new ArgumentOutOfRangeException()
-                },
+                }
             };
         }
 
@@ -387,7 +368,7 @@ public static class Parser
                     TokenType.OpGreater => BinaryOperator.Greater,
                     TokenType.OpGreaterEqual => BinaryOperator.GreaterEqual,
                     _ => throw new ArgumentOutOfRangeException()
-                },
+                }
             };
         }
 
@@ -412,7 +393,7 @@ public static class Parser
                     TokenType.OpAnd => BinaryOperator.And,
                     TokenType.OpOr => BinaryOperator.Or,
                     _ => throw new ArgumentOutOfRangeException()
-                },
+                }
             };
         }
 
@@ -439,7 +420,7 @@ public static class Parser
 
         return left;
     }
-    
+
     public static INode ParseAsExpression(ref TokenList input)
     {
         var left = ParseConditionalExpression(ref input);
@@ -452,7 +433,7 @@ public static class Parser
             left = new AsNode
             {
                 Target = left,
-                Type = right,
+                Type = right
             };
         }
 
@@ -472,7 +453,7 @@ public static class Parser
             {
                 Left = left,
                 Right = right,
-                Operator = BinaryOperator.Assign,
+                Operator = BinaryOperator.Assign
             };
         }
 
@@ -502,17 +483,11 @@ public static class Parser
             {
                 var argsTokens = ConsumeTokensTill(ref allArgsTokens, [TokenType.Comma]);
 
-                if (allArgsTokens.NotEmpty())
-                {
-                    allArgsTokens.ExpectFront(TokenType.Comma).RemoveFront();
-                }
+                if (allArgsTokens.NotEmpty()) allArgsTokens.ExpectFront(TokenType.Comma).RemoveFront();
 
                 var id = argsTokens.RemoveFront().Value;
 
-                if (argsTokens.NotEmpty() && allArgsTokens.Front().Type == TokenType.Assign)
-                {
-                    argsTokens.RemoveFront();
-                }
+                if (argsTokens.NotEmpty() && allArgsTokens.Front().Type == TokenType.Assign) argsTokens.RemoveFront();
 
                 tags.Add(id, argsTokens.NotEmpty() ? argsTokens.RemoveFront().Value : string.Empty);
             }
@@ -539,7 +514,7 @@ public static class Parser
         input.ExpectFront(TokenType.StatementEnd).RemoveFront();
         return new IncludeNode
         {
-            Path = token.Value,
+            Path = token.Value
         };
     }
 
@@ -576,7 +551,6 @@ public static class Parser
     {
         input.ExpectFront(TokenType.OpenBrace).RemoveFront();
         while (input.Front().Type != TokenType.CloseBrace)
-        {
             if (input.Front().Type == TokenType.Function)
             {
                 functions.Add(ParseFunction(ref input));
@@ -586,7 +560,6 @@ public static class Parser
                 declarations.Add(ParseStructDeclaration(ref input));
                 input.ExpectFront(TokenType.StatementEnd).RemoveFront();
             }
-        }
 
         input.ExpectFront(TokenType.CloseBrace).RemoveFront();
     }
@@ -613,7 +586,7 @@ public static class Parser
 
         return new PushConstantNode
         {
-            Declarations = declarations.ToArray(),
+            Declarations = declarations.ToArray()
         };
     }
 
@@ -632,10 +605,7 @@ public static class Parser
         {
             var argsTokens = ConsumeTokensTill(ref allArgsTokens, [TokenType.Comma]);
 
-            if (allArgsTokens.NotEmpty())
-            {
-                allArgsTokens.ExpectFront(TokenType.Comma).RemoveFront();
-            }
+            if (allArgsTokens.NotEmpty()) allArgsTokens.ExpectFront(TokenType.Comma).RemoveFront();
 
             var id = argsTokens.RemoveFront().Value;
             if (id is "set" or "binding")
@@ -654,10 +624,7 @@ public static class Parser
             }
             else
             {
-                if (argsTokens.NotEmpty() && allArgsTokens.Front().Type == TokenType.Assign)
-                {
-                    argsTokens.RemoveFront();
-                }
+                if (argsTokens.NotEmpty() && allArgsTokens.Front().Type == TokenType.Assign) argsTokens.RemoveFront();
 
                 tags.Add(id, argsTokens.NotEmpty() ? argsTokens.RemoveFront().Value : string.Empty);
             }
@@ -704,7 +671,7 @@ public static class Parser
         return new IfNode
         {
             Condition = cond,
-            Scope = scope,
+            Scope = scope
         };
     }
 
@@ -760,14 +727,11 @@ public static class Parser
                         IsStatic = isStatic,
                         Type = type,
                         Name = name,
-                        Count = count,
+                        Count = count
                     },
                     Right = expr
                 });
-                if (input.Front().Type == TokenType.Comma)
-                {
-                    input.RemoveFront();
-                }
+                if (input.Front().Type == TokenType.Comma) input.RemoveFront();
             }
             else
             {
@@ -777,7 +741,7 @@ public static class Parser
                     IsStatic = isStatic,
                     Type = type,
                     Name = name,
-                    Count = count,
+                    Count = count
                 });
             }
         } while (input.NotEmpty() && input.Front().Type != TokenType.StatementEnd);
@@ -792,7 +756,6 @@ public static class Parser
         input.ExpectFront(TokenType.OpenBrace).RemoveFront();
 
         while (input.Front().Type != TokenType.CloseBrace)
-        {
             switch (input.Front().Type)
             {
                 case TokenType.If:
@@ -833,7 +796,6 @@ public static class Parser
                 }
                     break;
             }
-        }
 
         input.RemoveFront();
 
@@ -920,7 +882,7 @@ public static class Parser
             IsStatic = isStatic,
             Type = type,
             Name = name,
-            Count = count,
+            Count = count
         };
     }
 
@@ -945,7 +907,7 @@ public static class Parser
             Type = type,
             Name = name,
             Count = count,
-            Mapping = alias,
+            Mapping = alias
         };
     }
 
@@ -955,9 +917,7 @@ public static class Parser
         var isInput = true;
 
         if (input.Front().Type is TokenType.DataIn or TokenType.DataOut)
-        {
             isInput = input.RemoveFront().Type == TokenType.DataIn;
-        }
 
         var type = input.RemoveFront();
 
@@ -999,10 +959,7 @@ public static class Parser
         {
             var argsTokens = ConsumeTokensTill(ref allArgsTokens, [TokenType.Comma]);
 
-            if (allArgsTokens.NotEmpty())
-            {
-                allArgsTokens.ExpectFront(TokenType.Comma).RemoveFront();
-            }
+            if (allArgsTokens.NotEmpty()) allArgsTokens.ExpectFront(TokenType.Comma).RemoveFront();
 
             args.Add(ParseFunctionArgument(ref argsTokens));
         }
@@ -1052,7 +1009,6 @@ public static class Parser
         if (input.Empty()) return [];
         List<INode> statements = [];
         while (input.NotEmpty())
-        {
             switch (input.Front().Type)
             {
                 case TokenType.NamedScopeBegin:
@@ -1086,7 +1042,6 @@ public static class Parser
                 default:
                     throw new ParserException(input.Front().DebugInfo, "Unknown node type");
             }
-        }
 
         return statements.ToArray();
     }

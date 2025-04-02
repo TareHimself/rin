@@ -1,9 +1,6 @@
 ﻿using System.Numerics;
-using rin.Examples.Common.Views;
-using rin.Examples.ViewsTest.Panels;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Animation;
-using Rin.Engine.Core.Curves;
 using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
@@ -16,72 +13,63 @@ using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Quads;
 using Rin.Engine.Views.Layouts;
+using rin.Examples.Common.Views;
+using rin.Examples.ViewsTest.Panels;
 using Rect = Rin.Engine.Views.Composite.Rect;
-using Utils = Rin.Engine.Graphics.Utils;
 
 namespace rin.Examples.ViewsTest;
 
-[Module(typeof(SViewsModule)),AlwaysLoad]
+[Module(typeof(SViewsModule))]
+[AlwaysLoad]
 public class SViewsTestModule : IModule
 {
+    private static readonly int _tileSize = 400;
 
-    private static int _tileSize = 400;
-    class WrapContainer : Button
+    public void Start(SEngine engine)
     {
-        private readonly View _content;
-        public WrapContainer(View content)
         {
-            Color = Color.Transparent;
-            _content = content;
-            var sizer = new Sizer()
-            {
-                WidthOverride = _tileSize,
-                HeightOverride = _tileSize,
-                Child = content,
-                Padding = 10.0f,
-            };
-            Child = sizer;
-            content.Pivot = new Vector2(0.5f);
-            OnReleased += (@event, button) =>
-            {
-               //_content.StopAll().RotateTo(360,0.5f).After().Do(() => _content.Angle = 0.0f);
-               var transitionDuration = 0.8f;
-               var method = EasingFunctions.EaseInOutCubic;
-               sizer
-                   .WidthTo(_tileSize * 4f + 60.0f,duration: transitionDuration,easingFunction: method)
-                   .HeightTo(_tileSize * 2f + 10.0f,duration: transitionDuration,easingFunction: method)
-                   .Delay(4)
-                   .WidthTo(_tileSize,duration: transitionDuration,easingFunction: method)
-                   .HeightTo(_tileSize,duration: transitionDuration,easingFunction: method);
-            };
+            var manager = SViewsModule.Get().GetFontManager();
+            if (manager.GetFont("Noto Sans") is { } font)
+                manager
+                    .PrepareAtlas(font, Enumerable.Range(32, 127).Select(c => (char)c).Where(c => c.IsPrintable()))
+                    .Wait();
         }
+        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
+        SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
+        SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", new CreateOptions
+        {
+            Visible = true,
+            Decorated = true,
+            Focused = true
+        });
 
-        protected override Vector2 LayoutContent(Vector2 availableSpace)
-        {
-            var size = base.LayoutContent(availableSpace);
-            _content.Translate = _content.Size * .5f;
-            return size;
-        }
+
+        //TestText();
     }
+
+    public void Stop(SEngine engine)
+    {
+    }
+
     public void TestWrapping(IWindowRenderer renderer)
     {
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
-            var list = new WrapList()
+            var list = new WrapList
             {
-                Axis = Axis.Row,
+                Axis = Axis.Row
             };
 
-            surf.Add(new Panel()
+            surf.Add(new Panel
             {
-                
                 Slots =
                 [
-                    new PanelSlot()
+                    new PanelSlot
                     {
-                        Child = new ScrollList()
+                        Child = new ScrollList
                         {
-                            Slots = [
+                            Slots =
+                            [
                                 new ListSlot
                                 {
                                     Child = list,
@@ -92,7 +80,7 @@ public class SViewsTestModule : IModule
                             Clip = Clip.None
                         },
                         MinAnchor = new Vector2(0.0f),
-                        MaxAnchor = new Vector2(1.0f),
+                        MaxAnchor = new Vector2(1.0f)
                     },
                     new PanelSlot
                     {
@@ -106,7 +94,7 @@ public class SViewsTestModule : IModule
                         //     BorderRadius = 10.0f,
                         //     BackgroundColor = Color.Black.Clone(a: 0.7f)
                         // },
-                        Child = new BackgroundBlur()                                
+                        Child = new BackgroundBlur
                         {
                             Child = new FpsView(),
                             Padding = new Padding(20.0f),
@@ -119,32 +107,29 @@ public class SViewsTestModule : IModule
                     }
                 ]
             });
-            surf.Window.OnDrop += (e) =>
+            surf.Window.OnDrop += e =>
             {
                 Task.Run(() =>
                 {
                     foreach (var objPath in e.Paths)
-                    {
                         SEngine.Get().DispatchMain(() => list.Add(new ListSlot
                         {
                             Child = new WrapContainer(new AsyncFileImage(objPath)
                             {
                                 BorderRadius = new Vector4(30.0f)
                             }),
-                            Align = CrossAlign.Center,
+                            Align = CrossAlign.Center
                         }));
-                    }
                 });
             };
-            
+
             var rand = new Random();
-            surf.Window.OnKey += (e) =>
+            surf.Window.OnKey += e =>
             {
                 if (e is { State: InputState.Pressed, Key: InputKey.Equal })
-                {
                     Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
                         .After(
-                            (p) =>
+                            p =>
                             {
                                 SEngine.Get().DispatchMain(() =>
                                 {
@@ -155,59 +140,29 @@ public class SViewsTestModule : IModule
                                         }));
                                 });
                             });
-                }
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Minus })
-                {
-                    list.Add(new WrapContainer(new PrettyView()
+                    list.Add(new WrapContainer(new PrettyView
                     {
                         //Pivot = 0.5f,
                     }));
-                }
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Zero })
-                {
                     list.Add(new WrapContainer(new Canvas
                     {
-                        Paint = ((canvas, transform, cmds) =>
+                        Paint = (canvas, transform, cmds) =>
                         {
                             var size = canvas.GetContentSize();
                             // var rect = Quad.Rect(transform, canvas.GetContentSize());
                             // rect.Mode = Quad.RenderMode.ColorWheel;
                             // cmds.AddQuads(rect);
                             var a = Vector2.Zero;
-                            cmds.AddQuadraticCurve(transform,new Vector2(0.0f),new Vector2(size.Y),new Vector2(0.0f,size.Y), color: Color.Red);
+                            cmds.AddQuadraticCurve(transform, new Vector2(0.0f), new Vector2(size.Y),
+                                new Vector2(0.0f, size.Y), color: Color.Red);
                             //cmds.AddCubicCurve(transform,new Vector2(0.0f),new Vector2(size.Y),new Vector2(0.0f,size.Y),new Vector2(size.Y,size.Y), color: Color.Red);
-                        })
+                        }
                     }));
-                }
             };
-        }
-    }
-    
-    class TestAnimationSizer : Sizer
-    {
-        private float _width;
-
-        protected override void OnAddedToSurface(Surface surface)
-        {
-            base.OnAddedToSurface(surface);
-            _width = WidthOverride.GetValueOrDefault(0);
-        }
-
-        public TestAnimationSizer()
-        {
-            _width = WidthOverride.GetValueOrDefault(0);
-        }
-
-        protected override void OnCursorEnter(CursorMoveSurfaceEvent e)
-        {
-            this.StopAll().WidthTo(HeightOverride.GetValueOrDefault(0), easingFunction: EasingFunctions.EaseInOutCubic);
-        }
-
-        protected override void OnCursorLeave()
-        {
-            this.StopAll().WidthTo(_width, easingFunction: EasingFunctions.EaseInOutCubic);
         }
     }
 
@@ -215,16 +170,16 @@ public class SViewsTestModule : IModule
     {
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
-            var list = new List()
+            var list = new List
             {
-                Axis = Axis.Row,
+                Axis = Axis.Row
             };
 
-            surf.Add(new Panel()
+            surf.Add(new Panel
             {
                 Slots =
                 [
-                    new PanelSlot()
+                    new PanelSlot
                     {
                         Child = list,
                         MinAnchor = new Vector2(0.5f),
@@ -253,13 +208,12 @@ public class SViewsTestModule : IModule
                 ]
             });
 
-            surf.Window.OnDrop += (e) =>
+            surf.Window.OnDrop += e =>
             {
                 Task.Run(() =>
                 {
                     foreach (var objPath in e.Paths)
-                    {
-                        list.Add(new TestAnimationSizer()
+                        list.Add(new TestAnimationSizer
                         {
                             WidthOverride = 200,
                             HeightOverride = 800,
@@ -267,22 +221,20 @@ public class SViewsTestModule : IModule
                             {
                                 BorderRadius = new Vector4(30.0f)
                             },
-                            Padding = 10.0f,
+                            Padding = 10.0f
                         });
-                    }
                 });
             };
             var rand = new Random();
-            surf.Window.OnKey += (e) =>
+            surf.Window.OnKey += e =>
             {
                 if (e is { State: InputState.Pressed, Key: InputKey.Equal })
-                {
                     Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
                         .After(
-                            (p) =>
+                            p =>
                             {
                                 foreach (var path in p)
-                                    list.Add(new TestAnimationSizer()
+                                    list.Add(new TestAnimationSizer
                                     {
                                         WidthOverride = 200,
                                         HeightOverride = 800,
@@ -290,43 +242,38 @@ public class SViewsTestModule : IModule
                                         {
                                             BorderRadius = new Vector4(30.0f)
                                         },
-                                        Padding = 10.0f,
+                                        Padding = 10.0f
                                     });
                             });
-                }
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Minus })
-                {
-                    list.Add(new TestAnimationSizer()
+                    list.Add(new TestAnimationSizer
                     {
                         WidthOverride = 200,
                         HeightOverride = 800,
-                        Child = new PrettyView()
+                        Child = new PrettyView
                         {
-                            Pivot = new Vector2(0.5f),
+                            Pivot = new Vector2(0.5f)
                         },
-                        Padding = 10.0f,
+                        Padding = 10.0f
                     });
-                }
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Zero })
-                {
-                    list.Add(new Sizer()
+                    list.Add(new Sizer
                     {
                         WidthOverride = 200,
                         HeightOverride = 900,
                         Child = new Canvas
                         {
-                            Paint = ((canvas, transform, cmds) =>
+                            Paint = (canvas, transform, cmds) =>
                             {
                                 var rect = Quad.Rect(transform, canvas.GetContentSize());
                                 rect.Mode = Quad.RenderMode.ColorWheel;
                                 cmds.AddQuads(rect);
-                            })
+                            }
                         },
-                        Padding = 10.0f,
+                        Padding = 10.0f
                     });
-                }
             };
         }
     }
@@ -340,7 +287,7 @@ public class SViewsTestModule : IModule
             Content = "AVAVAV",
             FontSize = 240
         });
-    //surf?.Add(new TextBox("A"));
+        //surf?.Add(new TextBox("A"));
     }
 
     public void TestBlur(IWindowRenderer renderer)
@@ -349,10 +296,10 @@ public class SViewsTestModule : IModule
 
         if (surf == null) return;
         var panel = new HoverToReveal();
-        
+
         surf.Add(panel);
 
-        surf.Window.OnKey += (e) =>
+        surf.Window.OnKey += e =>
         {
             if (e is { State: InputState.Pressed, Key: InputKey.Equal })
             {
@@ -367,11 +314,10 @@ public class SViewsTestModule : IModule
     public void TestClip(IWindowRenderer renderer)
     {
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surface)
-        {
-            surface.Add(new Sizer()
+            surface.Add(new Sizer
             {
                 Padding = 20.0f,
-                Child = new Rect()
+                Child = new Rect
                 {
                     Child = new Fitter
                     {
@@ -383,7 +329,6 @@ public class SViewsTestModule : IModule
                     Color = Color.Red
                 }
             });
-        }
     }
 
     public void TestText(IWindowRenderer renderer)
@@ -392,7 +337,7 @@ public class SViewsTestModule : IModule
 
         if (surf == null) return;
 
-        var panel = surf.Add(new Panel()
+        var panel = surf.Add(new Panel
         {
             Slots =
             [
@@ -411,80 +356,110 @@ public class SViewsTestModule : IModule
             ]
         });
     }
-    
+
     public void TestCanvas(IWindowRenderer renderer)
     {
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
-        {
-            surf.Add(new Canvas()
+            surf.Add(new Canvas
             {
                 Paint = (self, transform, cmds) =>
                 {
                     var topLeft = Vector2.Zero.Transform(transform);
-                    var angle = ((float.Sin(SEngine.Get().GetTimeSeconds()) + 1.0f) / 2.0f) * 180.0f;
-                    cmds.AddRect(Matrix4x4.Identity.Translate(self.GetContentSize() / 2.0f).Rotate2dDegrees(angle),self.GetContentSize() - new Vector2(100.0f),color: Color.White);
+                    var angle = (float.Sin(SEngine.Get().GetTimeSeconds()) + 1.0f) / 2.0f * 180.0f;
+                    cmds.AddRect(Matrix4x4.Identity.Translate(self.GetContentSize() / 2.0f).Rotate2dDegrees(angle),
+                        self.GetContentSize() - new Vector2(100.0f), Color.White);
                 }
             });
-        }
     }
 
     private void OnWindowCreated(IWindow window)
     {
-        window.OnCloseRequested += (_) =>
+        window.OnCloseRequested += _ =>
         {
             if (window.Parent != null)
-            {
                 window.Dispose();
-            }
             else
-            {
                 SEngine.Get().RequestExit();
-            }
         };
 
-        window.OnKey += (e =>
+        window.OnKey += e =>
         {
             if (e is { Key: InputKey.Up, State: InputState.Pressed })
-            {
-                window.CreateChild(500, 500, "test child",new CreateOptions()
+                window.CreateChild(500, 500, "test child", new CreateOptions
                 {
                     Visible = true,
                     Decorated = true,
                     Transparent = true,
                     Focused = false
                 });
-            }
 
             if (e is { Key: InputKey.Enter, State: InputState.Pressed, IsAltDown: true })
-            {
                 window.SetFullscreen(!window.IsFullscreen);
-            }
-        });
+        };
     }
 
-    public void Start(SEngine engine)
+    private class WrapContainer : Button
     {
+        private readonly View _content;
+
+        public WrapContainer(View content)
         {
-            var manager = SViewsModule.Get().GetFontManager();
-            if (manager.TryGetFont("Noto Sans", out var family))
+            Color = Color.Transparent;
+            _content = content;
+            var sizer = new Sizer
             {
-                manager
-                    .PrepareAtlas(family,Enumerable.Range(32,127).Select(c => (char)c).Where(c => c.IsPrintable())).Wait();
-            }
+                WidthOverride = _tileSize,
+                HeightOverride = _tileSize,
+                Child = content,
+                Padding = 10.0f
+            };
+            Child = sizer;
+            content.Pivot = new Vector2(0.5f);
+            OnReleased += (@event, button) =>
+            {
+                //_content.StopAll().RotateTo(360,0.5f).After().Do(() => _content.Angle = 0.0f);
+                var transitionDuration = 0.8f;
+                var method = EasingFunctions.EaseInOutCubic;
+                sizer
+                    .WidthTo(_tileSize * 4f + 60.0f, transitionDuration, easingFunction: method)
+                    .HeightTo(_tileSize * 2f + 10.0f, transitionDuration, easingFunction: method)
+                    .Delay(4)
+                    .WidthTo(_tileSize, transitionDuration, easingFunction: method)
+                    .HeightTo(_tileSize, transitionDuration, easingFunction: method);
+            };
         }
-        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
-        SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
-        SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", new CreateOptions()
+
+        protected override Vector2 LayoutContent(Vector2 availableSpace)
         {
-            Visible = true,
-            Decorated = true,
-            Focused = true
-        });
-        //TestText();
+            var size = base.LayoutContent(availableSpace);
+            _content.Translate = _content.Size * .5f;
+            return size;
+        }
     }
 
-    public void Stop(SEngine engine)
+    private class TestAnimationSizer : Sizer
     {
-        
+        private float _width;
+
+        public TestAnimationSizer()
+        {
+            _width = WidthOverride.GetValueOrDefault(0);
+        }
+
+        protected override void OnAddedToSurface(Surface surface)
+        {
+            base.OnAddedToSurface(surface);
+            _width = WidthOverride.GetValueOrDefault(0);
+        }
+
+        protected override void OnCursorEnter(CursorMoveSurfaceEvent e)
+        {
+            this.StopAll().WidthTo(HeightOverride.GetValueOrDefault(0), easingFunction: EasingFunctions.EaseInOutCubic);
+        }
+
+        protected override void OnCursorLeave()
+        {
+            this.StopAll().WidthTo(_width, easingFunction: EasingFunctions.EaseInOutCubic);
+        }
     }
 }

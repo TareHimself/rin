@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Engine.Views.Enums;
 using Rin.Engine.Core.Math;
+using Rin.Engine.Views.Enums;
 
 namespace Rin.Engine.Views.Composite;
 

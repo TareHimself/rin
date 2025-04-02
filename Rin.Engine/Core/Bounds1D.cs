@@ -2,13 +2,13 @@
 
 namespace Rin.Engine.Core;
 
-public struct Bounds1D : IAdditionOperators<Bounds1D, Bounds1D,Bounds1D>
+public struct Bounds1D : IAdditionOperators<Bounds1D, Bounds1D, Bounds1D>
 {
     public float Min;
     public float Max;
-    
+
     /// <summary>
-    /// Combines two bounds together
+    ///     Combines two bounds together
     /// </summary>
     /// <param name="left"></param>
     /// <param name="right"></param>
@@ -18,7 +18,7 @@ public struct Bounds1D : IAdditionOperators<Bounds1D, Bounds1D,Bounds1D>
         return new Bounds1D
         {
             Min = System.Math.Min(left.Min, right.Min),
-            Max = System.Math.Max(left.Max, right.Max),
+            Max = System.Math.Max(left.Max, right.Max)
         };
     }
 }

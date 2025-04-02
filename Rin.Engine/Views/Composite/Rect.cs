@@ -1,8 +1,7 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Layouts;
 using Rin.Engine.Views.Graphics.Quads;
+using Rin.Engine.Views.Layouts;
 
 namespace Rin.Engine.Views.Composite;
 
@@ -11,8 +10,8 @@ namespace Rin.Engine.Views.Composite;
 /// </summary>
 public class Rect : SingleSlotCompositeView
 {
-    public Color Color = Color.Black;
     public Vector4 BorderRadius;
+    public Color Color = Color.Black;
 
     protected override Vector2 ComputeDesiredContentSize()
     {

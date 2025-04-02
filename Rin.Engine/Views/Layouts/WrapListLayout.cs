@@ -15,7 +15,7 @@ public class WrapListLayout(Axis axis, CompositeView container) : ListLayout(axi
     {
         if (Container.Surface != null) Apply(Container.GetContentSize());
     }
-    
+
     public override Vector2 Apply(Vector2 availableSpace)
     {
         var axis = GetAxis();
@@ -53,10 +53,7 @@ public class WrapListLayout(Axis axis, CompositeView container) : ListLayout(axi
                 // If it does not fit on this line go to the next line
                 if (projectedSlotEndMain >= availableMain && offsetMain >= 0.0f)
                 {
-                    foreach (var listSlot in currentLine)
-                    {
-                        HandleCrossAxisOffset(listSlot,currentMaxSizeCross);
-                    }
+                    foreach (var listSlot in currentLine) HandleCrossAxisOffset(listSlot, currentMaxSizeCross);
                     currentLine.Clear();
                     offsetMain = 0.0f;
                     offsetCross += currentMaxSizeCross;
@@ -69,21 +66,21 @@ public class WrapListLayout(Axis axis, CompositeView container) : ListLayout(axi
             {
                 finalSlotOffsetMain = projectedSlotEndMain - slotSizeMain;
             }
-            
+
             currentLine.Add(slot as ListSlot ?? throw new InvalidOperationException());
             offsetMain += slotSizeMain;
             var finalSlotOffsetCross = offsetCross;
-            currentMaxSizeCross = Math.Max(currentMaxSizeCross,slotSizeCross);
+            currentMaxSizeCross = Math.Max(currentMaxSizeCross, slotSizeCross);
             var finalSlotEndMain = finalSlotOffsetMain + slotSizeMain;
             var finalSlotEndCross = finalSlotOffsetCross + slotSizeCross;
             totalSizeMain = Math.Max(totalSizeMain, Math.Min(availableMain, finalSlotEndMain));
             totalSizeCross = Math.Max(totalSizeCross, finalSlotEndCross);
-            
-             
-             slot.Child.Offset = axis switch
+
+
+            slot.Child.Offset = axis switch
             {
-                Axis.Row => new Vector2(finalSlotOffsetMain,finalSlotOffsetCross),
-                Axis.Column => new Vector2(finalSlotOffsetCross,finalSlotOffsetMain),
+                Axis.Row => new Vector2(finalSlotOffsetMain, finalSlotOffsetCross),
+                Axis.Column => new Vector2(finalSlotOffsetCross, finalSlotOffsetMain),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }

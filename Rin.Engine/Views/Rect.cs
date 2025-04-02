@@ -76,7 +76,7 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
     {
         return new Pair<Vector2, Vector2>(rect.Offset, rect.Offset + rect.Size);
     }
-    
+
     public static bool PointWithin(Vector2 size, Matrix4x4 transform, Vector2 point, bool useInverse = false)
     {
         var tl = Vector2.Zero;
@@ -87,7 +87,7 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
         if (useInverse)
         {
             var transformedPoint = point.Transform(transform.Inverse());
-            
+
             return transformedPoint.Within(Vector2.Zero, size);
         }
         // var transformedPoint = point.ApplyTransformation(transform.Inverse());
@@ -140,7 +140,7 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
             return b >= 0 && c >= 0 && d >= 0;
         return b < 0 && c < 0 && d < 0;
     }
-    
+
     //
     // // ReSharper disable once InconsistentNaming
     // public static Rect MakeAABB(Vector2 size,Mat3 transform,Vector2? offset)

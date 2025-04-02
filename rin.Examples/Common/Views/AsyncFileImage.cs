@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Engine.Core;
 using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Content;
@@ -9,36 +8,37 @@ using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Quads;
 using SixLabors.ImageSharp.PixelFormats;
+using Image = SixLabors.ImageSharp.Image;
 
 namespace rin.Examples.Common.Views;
 
 public class AsyncFileImage : CoverImage
 {
+    private readonly CancellationTokenSource _token = new();
     private float _alpha = 0.0f;
     private float _alphaTarget;
-    private CancellationTokenSource _token = new CancellationTokenSource();
-    
-    public AsyncFileImage(string filePath) : base()
+
+    public AsyncFileImage(string filePath)
     {
-        Task.Run(() => LoadFile(filePath),_token.Token);
+        Task.Run(() => LoadFile(filePath), _token.Token);
     }
 
-    public AsyncFileImage(string filePath, Action<AsyncFileImage> loadCallback) : base()
+    public AsyncFileImage(string filePath, Action<AsyncFileImage> loadCallback)
     {
-        Task.Run(() => LoadFile(filePath),_token.Token).Then(() => loadCallback.Invoke(this)).ConfigureAwait(false);
+        Task.Run(() => LoadFile(filePath), _token.Token).Then(() => loadCallback.Invoke(this)).ConfigureAwait(false);
     }
 
     private async Task LoadFile(string filePath)
     {
-        using var imgData = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(filePath);
-        var (texId,task) = SGraphicsModule.Get().CreateTexture(imgData.ToBuffer(),
+        using var imgData = await Image.LoadAsync<Rgba32>(filePath);
+        var (texId, task) = SGraphicsModule.Get().CreateTexture(imgData.ToBuffer(),
             new Extent3D
             {
                 Width = (uint)imgData.Width,
-                Height = (uint)imgData.Height,
+                Height = (uint)imgData.Height
             },
             ImageFormat.RGBA8);
-        task.DispatchAfter(SEngine.Get().GetMainDispatcher(),() => TextureId = texId);
+        task.DispatchAfter(SEngine.Get().GetMainDispatcher(), () => TextureId = texId);
     }
 
     // public override void Draw(ViewFrame frame, DrawInfo info)
@@ -53,22 +53,18 @@ public class AsyncFileImage : CoverImage
 
     protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
-        if (TextureId == -1)
-        {
-            return availableSpace;
-        }
+        if (TextureId == -1) return availableSpace;
 
         return base.LayoutContent(availableSpace);
     }
 
     public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
-        
         if (TextureId == -1)
         {
             var opacity = (float)Math.Abs(Math.Sin(SEngine.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
             commands.AddRect(transform, GetContentSize(),
-                color: new Vector4(new Vector3(0.8f),opacity),borderRadius: BorderRadius);
+                new Vector4(new Vector3(0.8f), opacity), BorderRadius);
         }
         else
         {

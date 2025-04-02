@@ -2,7 +2,6 @@
 
 public class ScopeNode : INode
 {
-    public IEnumerable<INode> Children => Statements;
-
     public INode[] Statements { get; set; } = [];
+    public IEnumerable<INode> Children => Statements;
 }

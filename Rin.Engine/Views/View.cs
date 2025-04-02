@@ -174,9 +174,13 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
 
     public AnimationRunner AnimationRunner { get; init; } = new();
 
+
+    public virtual void Dispose()
+    {
+    }
+
     public virtual void Update(float deltaTime)
     {
-
     }
 
 
@@ -272,12 +276,10 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
                         OnCursorEnter(ev);
                     }
                 }
+
                 break;
             case CursorDownSurfaceEvent ev:
-                if (IsSelfHitTestable && OnCursorDown(ev))
-                {
-                    ev.Target = this;
-                }
+                if (IsSelfHitTestable && OnCursorDown(ev)) ev.Target = this;
                 break;
             case CursorUpSurfaceEvent ev:
                 OnCursorUp(ev);
@@ -285,25 +287,20 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
             case CursorMoveSurfaceEvent ev:
                 if (IsSelfHitTestable)
                 {
-                    ev.Over.Add(this); 
-                    
+                    ev.Over.Add(this);
+
                     if (!IsHovered)
                     {
                         IsHovered = true;
                         OnCursorEnter(ev);
                     }
 
-                    if (!ev.Handled)
-                    {
-                        ev.Handled = OnCursorMove(ev);
-                    }
+                    if (!ev.Handled) ev.Handled = OnCursorMove(ev);
                 }
+
                 break;
             case ScrollSurfaceEvent ev:
-                if (IsSelfHitTestable && OnScroll(ev))
-                {
-                    ev.Target = this;
-                }
+                if (IsSelfHitTestable && OnScroll(ev)) ev.Target = this;
                 break;
         }
     }
@@ -399,12 +396,6 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     {
     }
 
-
-    public virtual void Dispose()
-    {
-        
-    }
-    
     [PublicAPI]
     public Vector2 GetContentSize()
     {
@@ -533,7 +524,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
 
     public bool PointWithin(Matrix4x4 transform, Vector2 point, bool useInverse = false)
     {
-        return Rect.PointWithin(Size,transform, point, useInverse);
+        return Rect.PointWithin(Size, transform, point, useInverse);
         var tl = new Vector2(0.0f);
         var br = tl + Size;
         var tr = new Vector2(br.X, tl.Y);
@@ -542,7 +533,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         if (useInverse)
         {
             var transformedPoint = point.Transform(transform.Inverse());
-            
+
             return transformedPoint.Within(Vector2.Zero, Size);
         }
         // var transformedPoint = point.ApplyTransformation(transform.Inverse());

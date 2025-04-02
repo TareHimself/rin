@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Rin.Shading\Rin.Shading.csproj" />
+        <ProjectReference Include="..\Rin.Shading\Rin.Shading.csproj"/>
     </ItemGroup>
 
 </Project>

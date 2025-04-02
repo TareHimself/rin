@@ -10,21 +10,14 @@ public class StructNode : INode
     {
         get
         {
-            foreach (var declaration in Declarations)
-            {
-                yield return declaration;
-            }
+            foreach (var declaration in Declarations) yield return declaration;
 
-            foreach (var function in Functions)
-            {
-                yield return function;
-            }
+            foreach (var function in Functions) yield return function;
         }
-
     }
 
     public ulong GetSize()
     {
-        return Declarations.Aggregate((ulong)0,(t,c) => t + c.GetSize());
+        return Declarations.Aggregate((ulong)0, (t, c) => t + c.GetSize());
     }
 }

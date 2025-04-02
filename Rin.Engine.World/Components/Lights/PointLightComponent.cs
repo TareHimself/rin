@@ -15,7 +15,7 @@ public class PointLightComponent : LightComponent
             Direction = new Vector3(0.0f),
             Radiance = Radiance,
             LightType = LightType.Point,
-            Location = new Vector3(loc.X, loc.Y, loc.Z),
+            Location = new Vector3(loc.X, loc.Y, loc.Z)
         });
         base.Collect(drawCommands, parentTransform);
     }

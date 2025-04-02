@@ -3,7 +3,6 @@
 using System.Text;
 using Rin.Shading;
 using Rin.Shading.Ast.Nodes;
-using TextWriter = Rin.Shading.TextWriter;
 
 //var tokens = Tokenizer.Run("<>",new MemoryStream(Encoding.UTF8.GetBytes("1.0e-10")));
 var source = @"
@@ -51,26 +50,17 @@ scope compute {
 var session = new Session();
 var module = session.LoadSourceString("./test.rsh", source);
 Dictionary<string, StructNode> structs = [];
-module.Statements.Transverse((node) =>
+module.Statements.Transverse(node =>
 {
-    if (node is StructNode asStructNode)
-    {
-        structs.Add(asStructNode.Name, asStructNode);
-    }
+    if (node is StructNode asStructNode) structs.Add(asStructNode.Name, asStructNode);
 
     if (node is DeclarationNode asDeclarationNode)
-    {
         if (asDeclarationNode.Type is UnknownType asUnknownType)
-        {
             if (structs.TryGetValue(asUnknownType.TypeName, out var structFound))
-            {
                 asDeclarationNode.Type = new StructTypeNode
                 {
                     Struct = structFound
                 };
-            }
-        }
-    }
 
     return true;
 });
@@ -86,7 +76,7 @@ if (module.TryGetScope("compute") is { } compute)
         Code = "[shader(\"fragment\")]"
     });
     nodes.Add(compute.Last());
-    transpiler.Transpile(nodes,output);
+    transpiler.Transpile(nodes, output);
     var resultText = Encoding.UTF8.GetString(output.ToArray());
 
     Console.WriteLine("Hello, World!");

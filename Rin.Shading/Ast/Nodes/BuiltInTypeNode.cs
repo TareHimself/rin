@@ -17,23 +17,25 @@ public class BuiltInTypeNode(TokenType type) : IType
             TokenType.TypeFloat3X3 => 36,
             TokenType.TypeFloat4X4 => 64,
             TokenType.TypeBoolean => 4, // Not Sure
-            TokenType.TypeVar or TokenType.TypeVoid or TokenType.TypeTexture or TokenType.TypeCubemap or TokenType.TypeImage =>
+            TokenType.TypeVar or TokenType.TypeVoid or TokenType.TypeTexture or TokenType.TypeCubemap
+                or TokenType.TypeImage =>
                 throw new Exception("cannot get size of var"),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
 
+    public IEnumerable<INode> Children { get; } = [];
+
     public static bool IsBuiltInType(TokenType type)
     {
         return type switch
         {
-            TokenType.TypeVar or TokenType.TypeVoid or TokenType.TypeTexture or TokenType.TypeCubemap or TokenType.TypeImage
+            TokenType.TypeVar or TokenType.TypeVoid or TokenType.TypeTexture or TokenType.TypeCubemap
+                or TokenType.TypeImage
                 or TokenType.TypeFloat or TokenType.TypeInt or TokenType.TypeFloat2 or TokenType.TypeInt2
                 or TokenType.TypeFloat3 or TokenType.TypeInt3 or TokenType.TypeFloat4 or TokenType.TypeInt4
                 or TokenType.TypeFloat3X3 or TokenType.TypeFloat4X4 or TokenType.TypeBoolean => true,
             _ => false
         };
     }
-
-    public IEnumerable<INode> Children { get; } = [];
 }

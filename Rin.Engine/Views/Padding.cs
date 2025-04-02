@@ -32,7 +32,7 @@ public class Padding : ICloneable<Padding>
 
     public Padding Clone()
     {
-        return new Padding()
+        return new Padding
         {
             Left = Left,
             Right = Right,

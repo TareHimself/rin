@@ -8,37 +8,37 @@ namespace Rin.Engine.Core;
 public class Buffer<T> : IReservable, IBinarySerializable, ICloneable<Buffer<T>>, IEnumerable<T>
     where T : unmanaged
 {
+    private readonly object _sync = new();
+    private int _elements;
     private IntPtr _ptr = IntPtr.Zero;
-    private int _elements = 0;
-    private int _reservations = 0;
-    private object _sync = new();
+    private int _reservations;
 
     public Buffer(int elements)
     {
         if (elements <= 0) return;
-        
+
         _elements = elements;
         unsafe
         {
             _ptr = new IntPtr(Native.Memory.Allocate(Utils.ByteSizeOf<T>(elements)));
         }
     }
-    
-    public unsafe Buffer(T* data,int elements)
+
+    public unsafe Buffer(T* data, int elements)
     {
         if (elements <= 0) return;
-        
+
         _elements = elements;
         _ptr = new IntPtr(Native.Memory.Allocate(Utils.ByteSizeOf<T>(elements)));
-        Write(data,elements);
+        Write(data, elements);
     }
-    
+
     public Buffer(ReadOnlySpan<T> elements)
     {
         var elementCount = elements.Length;
-        
+
         if (elementCount <= 0) return;
-        
+
         _elements = elementCount;
         unsafe
         {
@@ -46,10 +46,56 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICloneable<Buffer<T>>
             elements.CopyTo(new Span<T>(_ptr.ToPointer(), elementCount));
         }
     }
-    
+
     public Buffer() : this(0)
     {
     }
+
+    public void BinarySerialize(Stream output)
+    {
+        unsafe
+        {
+            var byteSize = GetByteSize();
+            output.Write(byteSize);
+            output.Write(new ReadOnlySpan<byte>(_ptr.ToPointer(), (int)byteSize));
+        }
+    }
+
+    public void BinaryDeserialize(Stream input)
+    {
+        unsafe
+        {
+            if (_ptr != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(_ptr);
+                _ptr = IntPtr.Zero;
+                _elements = 0;
+            }
+
+            var byteSize = (nuint)input.ReadUInt64();
+            _ptr = new IntPtr(Native.Memory.Allocate(byteSize));
+            _elements = (int)(byteSize / GetElementByteSize());
+            var read = input.Read(new Span<byte>(_ptr.ToPointer(), (int)byteSize));
+        }
+    }
+
+    public Buffer<T> Clone()
+    {
+        var buff = new Buffer<T>(_elements);
+        buff.Write(AsReadOnlySpan());
+        return buff;
+    }
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        return new Enumerator(this);
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
     public void Dispose()
     {
         lock (_sync)
@@ -78,7 +124,7 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICloneable<Buffer<T>>
     {
         unsafe
         {
-            return *((T*)(_ptr) + index);
+            return *((T*)_ptr + index);
         }
     }
 
@@ -96,7 +142,7 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICloneable<Buffer<T>>
     {
         return _elements;
     }
-    
+
     public ulong GetElementByteSize()
     {
         return Utils.ByteSizeOf<T>();
@@ -107,35 +153,43 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICloneable<Buffer<T>>
         return (ulong)_elements * GetElementByteSize();
     }
 
-    public static implicit operator Span<T>(Buffer<T> buff) => buff.AsSpan();
-    
-    public static implicit operator ReadOnlySpan<T>(Buffer<T> buff) => buff.AsReadOnlySpan();
+    public static implicit operator Span<T>(Buffer<T> buff)
+    {
+        return buff.AsSpan();
+    }
+
+    public static implicit operator ReadOnlySpan<T>(Buffer<T> buff)
+    {
+        return buff.AsReadOnlySpan();
+    }
 
     private void ReleaseUnmanagedResources()
     {
         unsafe
         {
-            if (_ptr != IntPtr.Zero)  Native.Memory.Free(_ptr.ToPointer());
+            if (_ptr != IntPtr.Zero) Native.Memory.Free(_ptr.ToPointer());
         }
+
         _ptr = IntPtr.Zero;
     }
 
-    public unsafe void Write(void * src, ulong size,ulong  offset = 0)
+    public unsafe void Write(void* src, ulong size, ulong offset = 0)
     {
         Buffer.MemoryCopy(src, (void*)((nuint)GetPtr().ToPointer() + offset), GetByteSize(), size);
     }
-    
-    public unsafe void Write<TE>(TE * src,int numElements,ulong offset = 0) where TE : unmanaged
+
+    public unsafe void Write<TE>(TE* src, int numElements, ulong offset = 0) where TE : unmanaged
     {
-        Buffer.MemoryCopy(src, (void*)((nuint)GetPtr().ToPointer() + offset), GetByteSize(), (ulong)numElements * Utils.ByteSizeOf<TE>());
+        Buffer.MemoryCopy(src, (void*)((nuint)GetPtr().ToPointer() + offset), GetByteSize(),
+            (ulong)numElements * Utils.ByteSizeOf<TE>());
     }
-    
-    public unsafe void Write(IntPtr src, ulong  size,ulong  offset = 0)
+
+    public unsafe void Write(IntPtr src, ulong size, ulong offset = 0)
     {
         Buffer.MemoryCopy(src.ToPointer(), (void*)((nuint)GetPtr().ToPointer() + offset), GetByteSize(), size);
     }
-    
-    public unsafe void Write(ReadOnlySpan<T> data, ulong  offset = 0)
+
+    public unsafe void Write(ReadOnlySpan<T> data, ulong offset = 0)
     {
         data.CopyTo(new Span<T>((void*)((nuint)GetPtr().ToPointer() + offset), data.Length));
     }
@@ -156,25 +210,22 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICloneable<Buffer<T>>
         }
     }
 
-    public Buffer<T> Clone()
+    ~Buffer()
     {
-        var buff = new Buffer<T>(_elements);
-        buff.Write(AsReadOnlySpan());
-        return buff;
+        Debug.Assert(_reservations == 0, $"Native buffer was finalized but still has reservations: {_reservations}");
+        ReleaseUnmanagedResources();
     }
 
     public class Enumerator(Buffer<T> buffer) : IEnumerator<T>
     {
-        private int _index = 0;
+        private int _index;
+
         public bool MoveNext()
         {
-            if (_index + 1 >= buffer.GetElementsCount())
-            {
-                return false;
-            }
+            if (_index + 1 >= buffer.GetElementsCount()) return false;
 
             ++_index;
-            
+
             return true;
         }
 
@@ -189,50 +240,6 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICloneable<Buffer<T>>
 
         public void Dispose()
         {
-            
-        }
-    }
-
-    public IEnumerator<T> GetEnumerator()
-    {
-        return new Buffer<T>.Enumerator(this);
-    }
-
-    ~Buffer()
-    {
-        Debug.Assert(_reservations == 0,$"Native buffer was finalized but still has reservations: {_reservations}");
-        ReleaseUnmanagedResources();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-    public void BinarySerialize(Stream output)
-    {
-        unsafe
-        {
-            var byteSize = GetByteSize();
-            output.Write(byteSize);
-            output.Write(new ReadOnlySpan<byte>(_ptr.ToPointer(),(int)byteSize));
-        }
-    }
-
-    public void BinaryDeserialize(Stream input)
-    {
-        unsafe
-        {
-            if (_ptr != IntPtr.Zero)
-            {
-                Marshal.FreeHGlobal(_ptr);
-                _ptr = IntPtr.Zero;
-                _elements = 0;
-            }
-            var byteSize = (nuint)input.ReadUInt64();
-            _ptr = new IntPtr(Native.Memory.Allocate(byteSize));
-            _elements = (int)(byteSize / GetElementByteSize());
-            var read = input.Read(new Span<byte>(_ptr.ToPointer(), (int)byteSize));
         }
     }
 }

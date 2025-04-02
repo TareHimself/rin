@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Core;
+using Rin.Engine.Core.Extensions;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
-using Rin.Engine.Core.Extensions;
 using Rin.Engine.Views.Graphics.Quads;
 using Timer = System.Timers.Timer;
 
@@ -54,6 +54,18 @@ public class TextInputBox : TextBox
         CursorPosition++;
     }
 
+    public override void OnFocus()
+    {
+        base.OnFocus();
+        Surface?.StartTyping(this);
+    }
+
+    public override void OnFocusLost()
+    {
+        base.OnFocusLost();
+        Surface?.StopTyping(this);
+    }
+
     public override void OnKeyboard(KeyboardSurfaceEvent e)
     {
         base.OnKeyboard(e);
@@ -88,6 +100,12 @@ public class TextInputBox : TextBox
         //CursorPosition = Math.Clamp(CursorPosition, -1, Content.Length - 1);
     }
 
+    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    {
+        base.LayoutContent(availableSpace);
+        return availableSpace;
+    }
+
     public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         base.CollectContent(transform, commands);
@@ -100,7 +118,7 @@ public class TextInputBox : TextBox
         {
             var targetBounds = GetCharacterBounds(Wrap).ToArray()[CursorPosition];
             offset.X += targetBounds.Right - 2.0f;
-            offset.Y = LineHeight * (float)Math.Floor((targetBounds.Y + targetBounds.Height / 2.0f) / LineHeight);
+            //offset.Y = LineHeight * (float)Math.Floor((targetBounds.Y + targetBounds.Height / 2.0f) / LineHeight);
             // if (Content[CursorPosition] == '\n')
             // {
             //     offset.Y = (Content.Split("\n").Length - 1) * LineHeight;

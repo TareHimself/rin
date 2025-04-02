@@ -2,5 +2,4 @@
 
 public interface ISurface : IDisposable
 {
-    public void Update(double deltaTime);
 }

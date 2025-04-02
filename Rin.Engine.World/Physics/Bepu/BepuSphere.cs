@@ -6,8 +6,19 @@ namespace Rin.Engine.World.Physics.Bepu;
 
 public class BepuSphere : BepuBody, IPhysicsSphere
 {
+    private readonly TypedIndex _typedIndex;
 
     private float _radius;
+
+    private Sphere _shape;
+
+    public BepuSphere(BepuPhysics physics, IPhysicsComponent owner, float radius) : base(physics, owner)
+    {
+        _radius = radius;
+        _shape = CreateShape();
+        _typedIndex = physics.Simulation.Shapes.Add(_shape);
+    }
+
     public float Radius
     {
         get => _radius;
@@ -18,14 +29,10 @@ public class BepuSphere : BepuBody, IPhysicsSphere
         }
     }
 
-    private Sphere _shape;
-    private readonly TypedIndex _typedIndex;
-
-    public BepuSphere(BepuPhysics physics,IPhysicsComponent owner, float radius) : base(physics,owner)
+    public override void Dispose()
     {
-        _radius = radius;
-        _shape = CreateShape();
-        _typedIndex = physics.Simulation.Shapes.Add(_shape);
+        base.Dispose();
+        Physics.Simulation.Shapes.Remove(_typedIndex);
     }
 
     private void UpdateShape()
@@ -36,19 +43,19 @@ public class BepuSphere : BepuBody, IPhysicsSphere
 
     private Sphere CreateShape()
     {
-        return new Sphere()
+        return new Sphere
         {
-            Radius = _radius,
+            Radius = _radius
         };
     }
 
-    protected override TypedIndex GetTypedIndex() => _typedIndex;
-
-    protected override BodyInertia ComputeInertia() => _shape.ComputeInertia(Mass);
-
-    public override void Dispose()
+    protected override TypedIndex GetTypedIndex()
     {
-        base.Dispose();
-        Physics.Simulation.Shapes.Remove(_typedIndex);
+        return _typedIndex;
+    }
+
+    protected override BodyInertia ComputeInertia()
+    {
+        return _shape.ComputeInertia(Mass);
     }
 }

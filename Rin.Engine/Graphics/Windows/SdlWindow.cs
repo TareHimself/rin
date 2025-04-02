@@ -2,7 +2,6 @@
 using System.Runtime.InteropServices;
 using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics.Windows.Events;
-using Rin.Engine.Core;
 using SDL;
 using static SDL.SDL3;
 
@@ -10,42 +9,198 @@ namespace Rin.Engine.Graphics.Windows;
 
 public class SdlWindow : IWindow
 {
+    private readonly HashSet<IWindow> _children = [];
+
+    private readonly unsafe SDL_Window* _nativePtr;
+
+
+    private readonly List<string> _pendingDrop = [];
     private Vector2 _cursorPosition = Vector2.Zero;
+
+    //public Vec2<uint> PixelSize;
+
+    public unsafe SdlWindow(SDL_Window* windowPointer, IWindow? parent)
+    {
+        _nativePtr = windowPointer;
+        Parent = parent;
+        // _keyDelegate = KeyCallback;
+        // _cursorDelegate = CursorCallback;
+        // _mouseButtonDelegate = MouseButtonCallback;
+        // _focusDelegate = FocusCallback;
+        // _scrollDelegate = ScrollCallback;
+        // _sizeDelegate = SizeCallback;
+        // _closeDelegate = CloseCallback;
+        // _charDelegate = CharCallback;
+        // _maximizedDelegate = MaximizedCallback;
+        // _refreshDelegate = RefreshCallback;
+        // _minimizeDelegate = MinimizeCallback;
+        // _dropDelegate = DropCallback;
+        // _nativePtr = nativePtr;
+        // PixelSize = GetPixelSize();
+        // NativeMethods.SetWindowCallbacks(_nativePtr,
+        //     _keyDelegate,
+        //     _cursorDelegate,
+        //     _mouseButtonDelegate,
+        //     _focusDelegate,
+        //     _scrollDelegate,
+        //     _sizeDelegate,
+        //     _closeDelegate,
+        //     _charDelegate,
+        //     _maximizedDelegate,
+        //     _refreshDelegate,
+        //     _minimizeDelegate,
+        //     _dropDelegate);
+    }
+
+    public IWindow? Parent { get; }
+
+    public bool Focused { get; private set; }
+
+    public bool IsFullscreen
+    {
+        get
+        {
+            unsafe
+            {
+                return (SDL_GetWindowFlags(_nativePtr) & SDL_WindowFlags.SDL_WINDOW_FULLSCREEN) != 0;
+            }
+        }
+    }
+
+    public event Action? OnDisposed;
+
+    public event Action<KeyEvent>? OnKey;
+    public event Action<CursorMoveEvent>? OnCursorMoved;
+    public event Action<CursorButtonEvent>? OnCursorButton;
+    public event Action<CursorEvent>? OnCursorEnter;
+    public event Action<WindowEvent>? OnCursorLeave;
+    public event Action<FocusEvent>? OnFocused;
+    public event Action<ScrollEvent>? OnScrolled;
+    public event Action<ResizeEvent>? OnResized;
+    public event Action<CloseEvent>? OnCloseRequested;
+    public event Action<CharacterEvent>? OnCharacter;
+
+    public event Action<MaximizedEvent>? OnMaximized;
+
+    public event Action<RefreshEvent>? OnRefresh;
+
+    public event Action<MinimizeEvent>? OnMinimized;
+
+    public event Action<DropEvent>? OnDrop;
+
+    public Vector2 GetCursorPosition()
+    {
+        return _cursorPosition;
+    }
+
+    public void SetCursorPosition(Vector2 position)
+    {
+        //NativeMethods.SetMousePosition(_nativePtr, position.X, position.Y);
+    }
+
+    public void SetFullscreen(bool state)
+    {
+        unsafe
+        {
+            SDL_SetWindowFullscreen(_nativePtr, state);
+        }
+        //NativeMethods.SetWindowFullscreen(_nativePtr, state ? 1 : 0);
+    }
+
+    public void SetSize(int width, int height)
+    {
+        unsafe
+        {
+            SDL_SetWindowSize(_nativePtr, width, height);
+        }
+    }
+
+    public void SetPosition(int x, int y)
+    {
+        unsafe
+        {
+            SDL_SetWindowPosition(_nativePtr, x, y);
+        }
+    }
+
+
+    public Vector2<uint> GetPixelSize()
+    {
+        Vector2<int> result = 0;
+        unsafe
+        {
+            SDL_GetWindowSizeInPixels(_nativePtr, &result.X, &result.Y);
+            //NativeMethods.GetWindowPixelSize(_nativePtr, &result.X, &result.Y);
+        }
+
+        return result.Cast<uint>();
+    }
+
+    public nuint GetPtr()
+    {
+        unsafe
+        {
+            return (nuint)_nativePtr;
+        }
+        //return _nativePtr;
+    }
+
+    public IWindow CreateChild(int width, int height, string name, CreateOptions? options = null)
+    {
+        var child = SGraphicsModule.Get().CreateWindow(width, height, name, options, this);
+        _children.Add(child);
+        child.OnDisposed += () => _children.Remove(child);
+        return child;
+    }
+
+    public void StartTyping()
+    {
+        unsafe
+        {
+            SDL_StartTextInput(_nativePtr);
+        }
+    }
+
+    public void StopTyping()
+    {
+        unsafe
+        {
+            SDL_StopTextInput(_nativePtr);
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (var window in _children) window.Dispose();
+
+        _children.Clear();
+
+        OnDisposed?.Invoke();
+
+        unsafe
+        {
+            SDL_DestroyWindow(_nativePtr);
+        }
+    }
+
     public static InputModifier TranslateSdl3KeyMod(SDL_Keymod keymod)
     {
         InputModifier mods = 0;
-        if ((keymod & SDL_Keymod.SDL_KMOD_SHIFT) != 0)
-        {
-            mods |= InputModifier.Shift;
-        }
+        if ((keymod & SDL_Keymod.SDL_KMOD_SHIFT) != 0) mods |= InputModifier.Shift;
 
-        if ((keymod & SDL_Keymod.SDL_KMOD_CTRL) != 0)
-        {
-            mods |= InputModifier.Control;
-        }
-        
-        if ((keymod & SDL_Keymod.SDL_KMOD_ALT) != 0)
-        {
-            mods |= InputModifier.Alt;
-        }
-        
-        if ((keymod & SDL_Keymod.SDL_KMOD_MODE) != 0)
-        {
-            mods |= InputModifier.Super;
-        }
-        
-        if ((keymod & SDL_Keymod.SDL_KMOD_CAPS) != 0)
-        {
-            mods |= InputModifier.CapsLock;
-        }
-        
-        if ((keymod & SDL_Keymod.SDL_KMOD_NUM) != 0)
-        {
-            mods |= InputModifier.NumLock;
-        }
-        
+        if ((keymod & SDL_Keymod.SDL_KMOD_CTRL) != 0) mods |= InputModifier.Control;
+
+        if ((keymod & SDL_Keymod.SDL_KMOD_ALT) != 0) mods |= InputModifier.Alt;
+
+        if ((keymod & SDL_Keymod.SDL_KMOD_MODE) != 0) mods |= InputModifier.Super;
+
+        if ((keymod & SDL_Keymod.SDL_KMOD_CAPS) != 0) mods |= InputModifier.CapsLock;
+
+        if ((keymod & SDL_Keymod.SDL_KMOD_NUM) != 0) mods |= InputModifier.NumLock;
+
         return mods;
     }
+
     public static InputKey TranslateSdl3Key(SDL_Keycode sdlKey)
     {
         switch (sdlKey)
@@ -177,201 +332,11 @@ public class SdlWindow : IWindow
             case SDL_Keycode.SDLK_RGUI: return InputKey.KeyRightSuper;
             case SDL_Keycode.SDLK_MENU: return InputKey.KeyMenu;
 
-            default: 
+            default:
                 throw new Exception("Unknown sdl key"); // No match found
         }
     }
-    
-    private readonly HashSet<IWindow> _children = [];
 
-    private readonly unsafe SDL_Window* _nativePtr;
-
-    //public Vec2<uint> PixelSize;
-    
-    public unsafe SdlWindow(SDL_Window* windowPointer, IWindow? parent)
-    {
-        _nativePtr = windowPointer;
-        Parent = parent;
-            // _keyDelegate = KeyCallback;
-            // _cursorDelegate = CursorCallback;
-            // _mouseButtonDelegate = MouseButtonCallback;
-            // _focusDelegate = FocusCallback;
-            // _scrollDelegate = ScrollCallback;
-            // _sizeDelegate = SizeCallback;
-            // _closeDelegate = CloseCallback;
-            // _charDelegate = CharCallback;
-            // _maximizedDelegate = MaximizedCallback;
-            // _refreshDelegate = RefreshCallback;
-            // _minimizeDelegate = MinimizeCallback;
-            // _dropDelegate = DropCallback;
-            // _nativePtr = nativePtr;
-            // PixelSize = GetPixelSize();
-            // NativeMethods.SetWindowCallbacks(_nativePtr,
-            //     _keyDelegate,
-            //     _cursorDelegate,
-            //     _mouseButtonDelegate,
-            //     _focusDelegate,
-            //     _scrollDelegate,
-            //     _sizeDelegate,
-            //     _closeDelegate,
-            //     _charDelegate,
-            //     _maximizedDelegate,
-            //     _refreshDelegate,
-            //     _minimizeDelegate,
-            //     _dropDelegate);
-    }
-
-    public IWindow? Parent { get; }
-
-    public bool Focused { get; private set; }
-
-    public bool IsFullscreen
-    {
-        get
-        {
-            unsafe
-            {
-                return (SDL_GetWindowFlags(_nativePtr) & SDL_WindowFlags.SDL_WINDOW_FULLSCREEN) != 0;
-            }
-        }
-    }
-
-    public event Action? OnDisposed;
-
-    public event Action<KeyEvent>? OnKey;
-    public event Action<CursorMoveEvent>? OnCursorMoved;
-    public event Action<CursorButtonEvent>? OnCursorButton;
-    public event Action<CursorEvent>? OnCursorEnter;
-    public event Action<WindowEvent>? OnCursorLeave;
-    public event Action<FocusEvent>? OnFocused;
-    public event Action<ScrollEvent>? OnScrolled;
-    public event Action<ResizeEvent>? OnResized;
-    public event Action<CloseEvent>? OnCloseRequested;
-    public event Action<CharacterEvent>? OnCharacter;
-
-    public event Action<MaximizedEvent>? OnMaximized;
-
-    public event Action<RefreshEvent>? OnRefresh;
-
-    public event Action<MinimizeEvent>? OnMinimized;
-
-    public event Action<DropEvent>? OnDrop;
-
-    public Vector2 GetCursorPosition()
-    {
-        return _cursorPosition;
-    }
-
-    public void SetCursorPosition(Vector2 position)
-    {
-        //NativeMethods.SetMousePosition(_nativePtr, position.X, position.Y);
-    }
-
-    public void SetFullscreen(bool state)
-    {
-        unsafe
-        {
-            SDL_SetWindowFullscreen(_nativePtr, state);
-        }
-        //NativeMethods.SetWindowFullscreen(_nativePtr, state ? 1 : 0);
-    }
-
-    public void SetSize(int width, int height)
-    {
-        unsafe
-        {
-            SDL_SetWindowSize(_nativePtr, width, height);
-        }
-    }
-
-    public void SetPosition(int x, int y)
-    {
-        unsafe
-        {
-            SDL_SetWindowPosition(_nativePtr, x,y);
-        }
-    }
-
-
-    public Vector2<uint> GetPixelSize()
-    {
-        Vector2<int> result = 0;
-        unsafe
-        {
-            SDL_GetWindowSizeInPixels(_nativePtr, &result.X, &result.Y);
-            //NativeMethods.GetWindowPixelSize(_nativePtr, &result.X, &result.Y);
-        }
-
-        return result.Cast<uint>();
-    }
-
-    public nuint GetPtr()
-    {
-        unsafe
-        {
-            return (nuint)_nativePtr;
-        }
-        //return _nativePtr;
-    }
-
-    public IWindow CreateChild(int width, int height, string name, CreateOptions? options = null)
-    {
-        var child = SGraphicsModule.Get().CreateWindow(width, height, name, options, this);
-        _children.Add(child);
-        child.OnDisposed += () => _children.Remove(child);
-        return child;
-    }
-
-    private void SizeCallback(nint window, int eWidth, int eHeight)
-    {
-        // PixelSize.X = (uint)eWidth;
-        // PixelSize.Y = (uint)eHeight;
-        // OnResized?.Invoke(new ResizeEvent
-        // {
-        //     Window = this,
-        //     Size = PixelSize.Clone()
-        // });
-    }
-
-    private void CloseCallback(nint window)
-    {
-        OnCloseRequested?.Invoke(new CloseEvent
-        {
-            Window = this
-        });
-    }
-
-
-    private void CharCallback(nint window, uint inCode, int inMods)
-    {
-        OnCharacter?.Invoke(new CharacterEvent
-        {
-            Window = this,
-            Data = (char)inCode,
-            Modifiers = (InputModifier)inMods
-        });
-    }
-
-
-    private void RefreshCallback(nint window)
-    {
-        OnRefresh?.Invoke(new RefreshEvent
-        {
-            Window = this
-        });
-    }
-
-    private unsafe void DropCallback(nint window, int count, char** paths)
-    {
-        OnDrop?.Invoke(new DropEvent
-        {
-            Window = this,
-            Paths = Enumerable.Range(0, count).Select(c => Marshal.PtrToStringAnsi(new IntPtr(paths[c])) ?? "")
-                .ToArray()
-        });
-    }
-
-    private List<string> _pendingDrop = [];
     public void HandleEvent(in SDL_Event e)
     {
         switch (e.Type)
@@ -432,26 +397,26 @@ public class SdlWindow : IWindow
             case SDL_EventType.SDL_EVENT_WINDOW_MINIMIZED:
                 OnMinimized?.Invoke(new MinimizeEvent
                 {
-                    Window = this,
+                    Window = this
                 });
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_MAXIMIZED:
-                OnMaximized?.Invoke(new MaximizedEvent()
+                OnMaximized?.Invoke(new MaximizedEvent
                 {
-                    Window = this,
+                    Window = this
                 });
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_RESTORED:
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_MOUSE_ENTER:
-                OnCursorEnter?.Invoke(new CursorEvent()
+                OnCursorEnter?.Invoke(new CursorEvent
                 {
                     Window = this,
                     Position = GetCursorPosition()
                 });
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_MOUSE_LEAVE:
-                OnCursorLeave?.Invoke(new WindowEvent()
+                OnCursorLeave?.Invoke(new WindowEvent
                 {
                     Window = this
                 });
@@ -473,7 +438,7 @@ public class SdlWindow : IWindow
                 });
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-                OnCloseRequested?.Invoke(new CloseEvent()
+                OnCloseRequested?.Invoke(new CloseEvent
                 {
                     Window = this
                 });
@@ -505,12 +470,25 @@ public class SdlWindow : IWindow
                     Window = this,
                     Key = TranslateSdl3Key(e.key.key),
                     Modifiers = TranslateSdl3KeyMod(e.key.mod),
-                    State = e.key.down ? (e.key.repeat ? InputState.Repeat : InputState.Pressed) : InputState.Released
+                    State = e.key.down ? e.key.repeat ? InputState.Repeat : InputState.Pressed : InputState.Released
                 });
                 break;
             case SDL_EventType.SDL_EVENT_TEXT_EDITING:
                 break;
             case SDL_EventType.SDL_EVENT_TEXT_INPUT:
+            {
+                unsafe
+                {
+                    var data = Marshal.PtrToStringAuto((nint)e.text.text) ?? string.Empty;
+                    foreach (var c in data)
+                        OnCharacter?.Invoke(new CharacterEvent
+                        {
+                            Window = this,
+                            Data = c,
+                            Modifiers = 0
+                        });
+                }
+            }
                 break;
             case SDL_EventType.SDL_EVENT_KEYMAP_CHANGED:
                 break;
@@ -526,7 +504,7 @@ public class SdlWindow : IWindow
                 OnCursorMoved?.Invoke(new CursorMoveEvent
                 {
                     Window = this,
-                    Position = _cursorPosition,
+                    Position = _cursorPosition
                 });
             }
                 break;
@@ -554,7 +532,7 @@ public class SdlWindow : IWindow
                 {
                     Window = this,
                     Position = GetCursorPosition(),
-                    Delta = new Vector2(e.wheel.x,e.wheel.y),
+                    Delta = new Vector2(e.wheel.x, e.wheel.y)
                 });
                 break;
             case SDL_EventType.SDL_EVENT_MOUSE_ADDED:
@@ -692,20 +670,6 @@ public class SdlWindow : IWindow
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
-        }
-    }
-    
-    public void Dispose()
-    {
-        foreach (var window in _children) window.Dispose();
-
-        _children.Clear();
-
-        OnDisposed?.Invoke();
-
-        unsafe
-        {
-            SDL_DestroyWindow(_nativePtr);
         }
     }
 }

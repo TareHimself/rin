@@ -15,13 +15,13 @@ public interface IPass
     public bool IsTerminal { get; }
 
     /// <summary>
-    /// Called when this pass is added to a <see cref="IGraphBuilder" /> and has been assigned an ID
+    ///     Called when this pass is added to a <see cref="IGraphBuilder" /> and has been assigned an ID
     /// </summary>
     /// <param name="builder"></param>
     public void Added(IGraphBuilder builder);
 
     /// <summary>
-    /// Called when all passes have been added and the graph is being compiled
+    ///     Called when all passes have been added and the graph is being compiled
     /// </summary>
     /// <param name="config"></param>
     public void Configure(IGraphConfig config);

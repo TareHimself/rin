@@ -2,19 +2,19 @@
 
 public static class EnumerableExtensions
 {
-    
-    public static IEnumerable<(TFirst First, TSecond Second,TThird Third,TFourth Fourth)> Zip<TFirst,TSecond,TThird,TFourth>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second,IEnumerable<TThird> third,IEnumerable<TFourth> fourth)
+    public static IEnumerable<(TFirst First, TSecond Second, TThird Third, TFourth Fourth)>
+        Zip<TFirst, TSecond, TThird, TFourth>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second,
+            IEnumerable<TThird> third, IEnumerable<TFourth> fourth)
     {
         using var e1 = first.GetEnumerator();
         using var e2 = second.GetEnumerator();
         using var e3 = third.GetEnumerator();
         using var e4 = fourth.GetEnumerator();
-        
+
         while (e1.MoveNext() && e2.MoveNext() && e3.MoveNext() && e4.MoveNext())
-        {
-            yield return (e1.Current, e2.Current, e3.Current,e4.Current);
-        }
+            yield return (e1.Current, e2.Current, e3.Current, e4.Current);
     }
+
     public static IEnumerable<T> AsReversed<T>(this T[] target)
     {
         for (var i = target.Length - 1; i > -1; i--)

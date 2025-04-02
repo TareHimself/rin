@@ -1,10 +1,8 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 
 namespace Rin.Engine.Views.Graphics;
-
 
 public class ViewsFrame
 {
@@ -24,10 +22,9 @@ public class ViewsFrame
     public ViewsFrame(Surface surface, Frame raw, Vector2 surfaceSize, IGraphImage drawImage, IGraphImage copyImage,
         IGraphImage stencilImage, FrameStats stats)
     {
-        
         Surface = surface;
         Raw = raw;
-        Projection = Matrix4x4.CreateOrthographicOffCenter(0.0f,surfaceSize.X,0.0f,surfaceSize.Y,0.0f, 1.0f);
+        Projection = Matrix4x4.CreateOrthographicOffCenter(0.0f, surfaceSize.X, 0.0f, surfaceSize.Y, 0.0f, 1.0f);
         DrawImage = drawImage;
         CopyImage = copyImage;
         StencilImage = stencilImage;

@@ -67,7 +67,9 @@ public static class EasingFunctions
 
     public static float EaseInOutQuint(float alpha)
     {
-        return (float)(alpha < 0.5 ? 16 * alpha * alpha * alpha * alpha * alpha : 1 + 16 * System.Math.Pow(alpha - 1, 5));
+        return (float)(alpha < 0.5
+            ? 16 * alpha * alpha * alpha * alpha * alpha
+            : 1 + 16 * System.Math.Pow(alpha - 1, 5));
     }
 
     public static float EaseInSine(float alpha)
@@ -77,7 +79,7 @@ public static class EasingFunctions
 
     public static float EaseOutSine(float alpha)
     {
-        return (float)(System.Math.Sin(alpha * System.Math.PI / 2));
+        return (float)System.Math.Sin(alpha * System.Math.PI / 2);
     }
 
     public static float EaseInOutSine(float alpha)
@@ -99,7 +101,9 @@ public static class EasingFunctions
     {
         if (alpha == 0.0) return 0;
         if (System.Math.Abs(alpha - 1.0) < 0.001) return 1;
-        return (float)(alpha < 0.5 ? 0.5 * System.Math.Pow(2, 20 * alpha - 10) : 1 - 0.5 * System.Math.Pow(2, -20 * alpha + 10));
+        return (float)(alpha < 0.5
+            ? 0.5 * System.Math.Pow(2, 20 * alpha - 10)
+            : 1 - 0.5 * System.Math.Pow(2, -20 * alpha + 10));
     }
 
     public static float EaseInCirc(float alpha)
