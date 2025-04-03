@@ -73,7 +73,7 @@ public class SSceneTestModule : IModule
                     }
                 });
 
-                directionalLight.SetRotation(RMath.LookTo(directionalLight.GetLocation(), new Vector3(0.0f), RMath.Up)
+                directionalLight.SetRotation(MathR.LookTo(directionalLight.GetLocation(), new Vector3(0.0f), MathR.Up)
                     .ToQuaternion());
                 //
                 var dist = 8.0f;
@@ -94,36 +94,36 @@ public class SSceneTestModule : IModule
                 //         Location = new Vector3(-dist,height,0.0f)
                 //     }
                 // };
-                var boxCollisionLocation = new Vector3(0.0f, 30, 0.0f);
+                // var boxCollisionLocation = new Vector3(0.0f, 30, 0.0f);
                 // var lookAtRotation = RMath.LookAt(location,boxCollisionLocation,RMath.Up).ToQuaternion();
                 // comp.SetRotation(lookAtRotation);
-                var box = new BoxCollisionComponent
-                {
-                    Location = boxCollisionLocation
-                };
+                // var box = new BoxCollisionComponent
+                // {
+                //     Location = boxCollisionLocation
+                // };
 
-                box.OnHit += _ => { Console.WriteLine("Box hit something"); };
+                //box.OnHit += _ => { Console.WriteLine("Box hit something"); };
 
-                var e3 = new Actor
-                {
-                    RootComponent = box
-                };
+                // var e3 = new Actor
+                // {
+                //     RootComponent = box
+                // };
 
-                var sm = e3.AddComponent(new StaticMeshComponent
-                {
-                    MeshId = mesh
-                });
+                // var sm = e3.AddComponent(new StaticMeshComponent
+                // {
+                //     MeshId = mesh
+                // });
 
-                sm.AttachTo(box);
-                box.IsSimulating = true;
+                // sm.AttachTo(box);
+                // box.IsSimulating = true;
                 scene.AddActor(e1);
                 //scene.AddActor(e2);
-                scene.AddActor(e3);
+                // scene.AddActor(e3);
 
                 LoadGoldMaterial().After(material =>
                 {
                     //((StaticMeshComponent)e2.RootComponent).Materials
-                    sm.Materials = ((StaticMeshComponent)e1.RootComponent).Materials = [material];
+                    ((StaticMeshComponent)e1.RootComponent).Materials = [material];
                 });
                 engine.OnUpdate += delta =>
                 {

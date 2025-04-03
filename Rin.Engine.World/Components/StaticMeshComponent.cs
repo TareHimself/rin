@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
+using Rin.Engine.Math;
 using Rin.Engine.World.Graphics;
 
 namespace Rin.Engine.World.Components;
@@ -23,7 +24,7 @@ public class StaticMeshComponent : SceneComponent
                     MeshMaterial = material,
                     Mesh = mesh,
                     SurfaceIndex = i,
-                    Transform = transform
+                    Transform = Matrix4x4.Identity.Rotate(Rotation) * Matrix4x4.Identity.Translate(new Vector3(0,0,5))// transform
                 });
             }
         }

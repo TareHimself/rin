@@ -13,16 +13,16 @@ namespace rin.Examples.SceneTest;
 
 public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camera.GetCameraComponent(), modeText)
 {
-    private readonly Actor _testActor = camera.World?.AddActor(new Actor
+    private readonly Actor _testActor = new Actor
     {
         RootComponent = new StaticMeshComponent
         {
             MeshId = 0,
             Scale = new Vector3(1, 1, 2),
             Location = new Vector3(3, 15, 3),
-            Rotation = RMath.Forward.ToQuaternion()
+            Rotation = MathR.Forward.ToQuaternion()
         }
-    }) ?? throw new NullReferenceException();
+    } ?? throw new NullReferenceException();
 
     private float _forwardAxis;
     private float _pitch;
@@ -38,13 +38,13 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
         _yaw -= delta.X;
         _pitch = float.Clamp(_pitch, -90, 90);
         Console.WriteLine("Pitch: {0}, Yaw: {1}", _pitch, _yaw);
-        viewTarget.SetRotation(RMath.Forward.ToQuaternion().AddYaw(_yaw).AddLocalPitch(_pitch));
+        viewTarget.SetRotation(MathR.Forward.ToQuaternion().AddYaw(_yaw).AddLocalPitch(_pitch));
     }
 
     public override void Update(float deltaTime)
     {
         base.Update(deltaTime);
-        _testActor.SetRotation(RMath.LookAt(_testActor.GetLocation(),camera.GetLocation(),RMath.Up).ToQuaternion());
+        _testActor.SetRotation(MathR.LookAt(_testActor.GetLocation(),camera.GetLocation(),MathR.Up).ToQuaternion());
         if (IsFocused)
         {
             var speed = 100.0f;
@@ -62,7 +62,7 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
         if (e is { Key: InputKey.Space, State: InputState.Pressed })
         {
             var world = camera.GetTransform(Space.World);
-            world.Rotation = RMath.LookAt(world.Location, new Vector3(8, 15, 0), RMath.Up).ToQuaternion();
+            world.Rotation = MathR.LookAt(world.Location, new Vector3(8, 15, 0), MathR.Up).ToQuaternion();
             camera.SetTransform(world, Space.World);
         }
 

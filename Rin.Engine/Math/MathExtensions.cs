@@ -266,6 +266,14 @@ public static class MathExtensions
         vec = Vector4.Transform(vec, matrix);
         return new Vector3(vec.X, vec.Y, vec.Z);
     }
+    
+    public static Vector3 Project(this in Vector3 src, in Matrix4x4 matrix)
+    {
+        var vec = new Vector4(src, 1.0f);
+        vec = Vector4.Transform(vec, matrix);
+        vec /= vec.W;
+        return new Vector3(vec.X, vec.Y, vec.Z);
+    }
 
     public static Vector4 Transform(this in Vector4 src, in Matrix4x4 matrix)
     {
@@ -279,17 +287,17 @@ public static class MathExtensions
 
     public static Quaternion AddYaw(this in Quaternion self, in float delta)
     {
-        return Add(self, RMath.Up, delta);
+        return Add(self, MathR.Up, delta);
     }
 
     public static Quaternion AddPitch(this in Quaternion self, in float delta)
     {
-        return Add(self, RMath.Right, delta);
+        return Add(self, MathR.Right, delta);
     }
 
     public static Quaternion AddRoll(this in Quaternion self, in float delta)
     {
-        return Add(self, RMath.Forward, delta);
+        return Add(self, MathR.Forward, delta);
     }
 
     public static Quaternion AddLocal(this in Quaternion self, in Vector3 axis, in float delta)
@@ -299,35 +307,35 @@ public static class MathExtensions
 
     public static Quaternion AddLocalYaw(this in Quaternion self, in float delta)
     {
-        return AddLocal(self, RMath.Up, delta);
+        return AddLocal(self, MathR.Up, delta);
     }
 
     public static Quaternion AddLocalPitch(this in Quaternion self, in float delta)
     {
-        return AddLocal(self, RMath.Right, delta);
+        return AddLocal(self, MathR.Right, delta);
     }
 
     public static Quaternion AddLocalRoll(this in Quaternion self, in float delta)
     {
-        return AddLocal(self, RMath.Forward, delta);
+        return AddLocal(self, MathR.Forward, delta);
     }
 
     [Pure]
     public static Vector3 GetForward(in this Quaternion self)
     {
-        return Vector3.Transform(RMath.Forward, self);
+        return Vector3.Transform(MathR.Forward, self);
     }
 
     [Pure]
     public static Vector3 GetRight(in this Quaternion self)
     {
-        return Vector3.Transform(RMath.Right, self);
+        return Vector3.Transform(MathR.Right, self);
     }
 
     [Pure]
     public static Vector3 GetUp(in this Quaternion self)
     {
-        return Vector3.Transform(RMath.Up, self);
+        return Vector3.Transform(MathR.Up, self);
     }
 
     [Pure]
@@ -339,6 +347,6 @@ public static class MathExtensions
     [Pure]
     public static Quaternion ToQuaternion(in this Vector3 self)
     {
-        return Quaternion.CreateFromRotationMatrix(RMath.LookTo(Vector3.Zero, self, RMath.Up));
+        return Quaternion.CreateFromRotationMatrix(MathR.LookTo(Vector3.Zero, self, MathR.Up));
     }
 }

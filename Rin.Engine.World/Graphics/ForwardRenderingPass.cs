@@ -77,9 +77,9 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
                 new VkViewport
                 {
                     x = 0,
-                    y = _size.X,
+                    y = 0,
                     width = _size.X,
-                    height = -_size.Y,
+                    height = _size.Y,
                     minDepth = 0.0f,
                     maxDepth = 1.0f
                 }
