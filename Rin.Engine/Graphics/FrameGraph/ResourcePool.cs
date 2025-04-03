@@ -1,5 +1,5 @@
 ﻿using JetBrains.Annotations;
-using Rin.Engine.Core.Extensions;
+using Rin.Engine.Extensions;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics.FrameGraph;

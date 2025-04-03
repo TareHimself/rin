@@ -1,6 +1,4 @@
-﻿using Rin.Engine.Core;
-
-namespace Rin.Engine.Graphics.Meshes;
+﻿namespace Rin.Engine.Graphics.Meshes;
 
 public record struct MeshSurface
 {

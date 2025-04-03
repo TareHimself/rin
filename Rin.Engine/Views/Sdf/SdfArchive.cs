@@ -1,8 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json.Nodes;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Archives;
-using Rin.Engine.Core.Extensions;
+using Rin.Engine.Archives;
+using Rin.Engine.Extensions;
 
 namespace Rin.Engine.Views.Sdf;
 

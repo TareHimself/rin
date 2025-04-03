@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
-using Rin.Engine.Core;
 
 namespace Rin.Engine.Graphics.Shaders.Slang;
 
@@ -30,7 +29,7 @@ public class SlangSessionBuilder : IDisposable
             using var stream = SEngine.Get().Sources.Read(asStringPath);
             using var reader = new StreamReader(stream);
             var content = reader.ReadToEnd();
-            var contentBytes = (byte*)Native.Memory.Allocate((uint)Core.Utils.ByteSizeOf<byte>(content.Length));
+            var contentBytes = (byte*)Native.Memory.Allocate((uint)Engine.Utils.ByteSizeOf<byte>(content.Length));
             var contentBytesSpan = new Span<byte>(contentBytes, content.Length);
             Encoding.UTF8.GetBytes(content, contentBytesSpan);
             *data = contentBytes;

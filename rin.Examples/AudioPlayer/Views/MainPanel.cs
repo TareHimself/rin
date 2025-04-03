@@ -29,23 +29,23 @@ public class MainPanel : Panel
                 MinAnchor = new Vector2(0.0f),
                 MaxAnchor = new Vector2(1.0f) //new Vector2<float>(0.5f, 0.5f)
             },
-            new PanelSlot
-            {
-                Child = new Rect
-                {
-                    Child = new FpsView
-                    {
-                        FontSize = 30
-                    },
-                    Padding = new Padding(20.0f),
-                    BorderRadius = new Vector4(10.0f),
-                    Color = Color.Black.Clone(a: 0.7f)
-                },
-                SizeToContent = true,
-                MinAnchor = new Vector2(1.0f, 0.0f),
-                MaxAnchor = new Vector2(1.0f, 0.0f),
-                Alignment = new Vector2(1.0f, 0.0f)
-            },
+            // new PanelSlot
+            // {
+            //     Child = new Rect
+            //     {
+            //         Child = new FpsView
+            //         {
+            //             FontSize = 30
+            //         },
+            //         Padding = new Padding(20.0f),
+            //         BorderRadius = new Vector4(10.0f),
+            //         Color = Color.Black.Clone(a: 0.7f)
+            //     },
+            //     SizeToContent = true,
+            //     MinAnchor = new Vector2(1.0f, 0.0f),
+            //     MaxAnchor = new Vector2(1.0f, 0.0f),
+            //     Alignment = new Vector2(1.0f, 0.0f)
+            // },
             new PanelSlot
             {
                 Child = filePicker,

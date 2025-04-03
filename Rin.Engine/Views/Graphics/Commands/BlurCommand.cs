@@ -3,7 +3,7 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
-using Utils = Rin.Engine.Core.Utils;
+using Utils = Rin.Engine.Utils;
 
 namespace Rin.Engine.Views.Graphics.Commands;
 

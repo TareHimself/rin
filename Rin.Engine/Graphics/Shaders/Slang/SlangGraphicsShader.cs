@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text.Json;
-using Rin.Engine.Core;
 using Rin.Engine.Graphics.Descriptors;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;

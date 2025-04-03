@@ -1,4 +1,4 @@
-﻿using Rin.Engine.Core.Math;
+﻿using Rin.Engine.Math;
 using Rin.Engine.Views.Graphics;
 
 namespace Rin.Engine.Views.Events;

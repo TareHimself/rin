@@ -1,9 +1,8 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Extensions;
 using Rin.Engine.Graphics.Windows;
+using Rin.Engine.Math;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Quads;
@@ -84,7 +83,7 @@ public class TextInputBox : TextBox
             {
                 ResetTypingDelay();
                 var delta = e.Key == InputKey.Left ? -1 : 1;
-                CursorPosition = Math.Clamp(CursorPosition + delta, -1, Content.Length - 1);
+                CursorPosition = int.Clamp(CursorPosition + delta, -1, Content.Length - 1);
             }
         }
         else if (e is { Key: InputKey.Left or InputKey.Enter, State: InputState.Pressed or InputState.Repeat })
@@ -97,7 +96,7 @@ public class TextInputBox : TextBox
     protected override void TextChanged(string newText)
     {
         base.TextChanged(newText);
-        //CursorPosition = Math.Clamp(CursorPosition, -1, Content.Length - 1);
+        //CursorPosition = float.Clamp(CursorPosition, -1, Content.Length - 1);
     }
 
     protected override Vector2 LayoutContent(Vector2 availableSpace)
@@ -133,7 +132,7 @@ public class TextInputBox : TextBox
 
         var height = LineHeight;
         var color = ForegroundColor.Clone();
-        var sin = (float)((Math.Sin(SEngine.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f);
+        var sin = (float.Sin(SEngine.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f;
         color.A *= IsTyping ? 1.0f : sin > 0.35 ? 1.0f : 0.0f;
         commands.AddRect(transform.Translate(offset), new Vector2(2.0f, height), color);
     }

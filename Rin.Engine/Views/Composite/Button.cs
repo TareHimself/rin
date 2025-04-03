@@ -1,4 +1,4 @@
-﻿using Rin.Engine.Core.Extensions;
+﻿using Rin.Engine.Extensions;
 using Rin.Engine.Views.Events;
 
 namespace Rin.Engine.Views.Composite;

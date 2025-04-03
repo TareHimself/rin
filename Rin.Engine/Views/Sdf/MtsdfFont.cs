@@ -1,5 +1,4 @@
-﻿using Rin.Engine.Core;
-using Rin.Engine.Graphics;
+﻿using Rin.Engine.Graphics;
 using SixLabors.Fonts;
 
 namespace Rin.Engine.Views.Sdf;

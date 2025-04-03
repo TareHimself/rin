@@ -25,16 +25,16 @@ public struct DebugInfo(string file, uint beginLine, uint beginCol, uint endLine
 
     public static DebugInfo operator +(DebugInfo left, DebugInfo right)
     {
-        var minBeginLine = Math.Min(left.BeginLine, right.BeginLine);
+        var minBeginLine = float.Min(left.BeginLine, right.BeginLine);
         var minBeginCol = left.BeginLine == minBeginLine && right.BeginLine == minBeginLine
-            ? Math.Min(left.BeginCol, right.BeginCol)
+            ? float.Min(left.BeginCol, right.BeginCol)
             : left.BeginLine == minBeginLine
                 ? left.BeginCol
                 : right.BeginCol;
 
-        var maxEndLine = Math.Max(left.EndLine, right.EndLine);
+        var maxEndLine = float.Max(left.EndLine, right.EndLine);
         var maxEndCol = left.EndLine == maxEndLine && right.EndLine == maxEndLine
-            ? Math.Max(left.EndCol, right.EndCol)
+            ? float.Max(left.EndCol, right.EndCol)
             : left.EndLine == maxEndLine
                 ? left.EndCol
                 : right.EndCol;

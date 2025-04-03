@@ -1,6 +1,4 @@
-﻿using Rin.Engine.Core;
-
-namespace Rin.Engine.Views.Graphics.Commands;
+﻿namespace Rin.Engine.Views.Graphics.Commands;
 
 /// <summary>
 ///     Used to run custom passes, i.e. render a scene before displaying it in a viewport, all commands of this nature will

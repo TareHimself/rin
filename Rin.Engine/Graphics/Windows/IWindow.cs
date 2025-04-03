@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics.Windows.Events;
+using Rin.Engine.Math;
 
 namespace Rin.Engine.Graphics.Windows;
 

@@ -13,11 +13,11 @@ public interface IGraphConfig
 
     public uint AllocateBuffer<T>() where T : unmanaged
     {
-        return AllocateBuffer(Core.Utils.ByteSizeOf<T>());
+        return AllocateBuffer(Engine.Utils.ByteSizeOf<T>());
     }
 
     public uint AllocateBuffer<T>(int count) where T : unmanaged
     {
-        return AllocateBuffer(Core.Utils.ByteSizeOf<T>(count));
+        return AllocateBuffer(Engine.Utils.ByteSizeOf<T>(count));
     }
 }

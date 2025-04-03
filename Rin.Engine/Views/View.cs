@@ -1,8 +1,7 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Animation;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Animation;
+using Rin.Engine.Math;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Enums;
 using Rin.Engine.Views.Events;
@@ -495,23 +494,23 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         bl = bl.Transform(transform);
 
         var p1AABB = new Vector2(
-            Math.Min(
-                Math.Min(tl.X, tr.X),
-                Math.Min(bl.X, br.X)
+            float.Min(
+                float.Min(tl.X, tr.X),
+                float.Min(bl.X, br.X)
             ),
-            Math.Min(
-                Math.Min(tl.Y, tr.Y),
-                Math.Min(bl.Y, br.Y)
+            float.Min(
+                float.Min(tl.Y, tr.Y),
+                float.Min(bl.Y, br.Y)
             )
         );
         var p2AABB = new Vector2(
-            Math.Max(
-                Math.Max(tl.X, tr.X),
-                Math.Max(bl.X, br.X)
+            float.Max(
+                float.Max(tl.X, tr.X),
+                float.Max(bl.X, br.X)
             ),
-            Math.Max(
-                Math.Max(tl.Y, tr.Y),
-                Math.Max(bl.Y, br.Y)
+            float.Max(
+                float.Max(tl.Y, tr.Y),
+                float.Max(bl.Y, br.Y)
             )
         );
 
@@ -546,23 +545,23 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         bl = bl.Transform(transform);
 
         var p1AABB = new Vector2(
-            Math.Min(
-                Math.Min(tl.X, tr.X),
-                Math.Min(bl.X, br.X)
+            float.Min(
+                float.Min(tl.X, tr.X),
+                float.Min(bl.X, br.X)
             ),
-            Math.Min(
-                Math.Min(tl.Y, tr.Y),
-                Math.Min(bl.Y, br.Y)
+            float.Min(
+                float.Min(tl.Y, tr.Y),
+                float.Min(bl.Y, br.Y)
             )
         );
         var p2AABB = new Vector2(
-            Math.Max(
-                Math.Max(tl.X, tr.X),
-                Math.Max(bl.X, br.X)
+            float.Max(
+                float.Max(tl.X, tr.X),
+                float.Max(bl.X, br.X)
             ),
-            Math.Max(
-                Math.Max(tl.Y, tr.Y),
-                Math.Max(bl.Y, br.Y)
+            float.Max(
+                float.Max(tl.Y, tr.Y),
+                float.Max(bl.Y, br.Y)
             )
         );
 

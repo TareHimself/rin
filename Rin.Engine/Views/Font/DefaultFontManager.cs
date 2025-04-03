@@ -1,8 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
+using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Views.Sdf;
 using SixLabors.Fonts;

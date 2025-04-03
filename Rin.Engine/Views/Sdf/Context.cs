@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core;
 
 namespace Rin.Engine.Views.Sdf;
 

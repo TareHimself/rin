@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core.Extensions;
+using Rin.Engine.Extensions;
 using Rin.Engine.Views.Composite;
 
 namespace Rin.Engine.Views.Layouts;
@@ -30,9 +30,9 @@ public class PanelSlot : Slot
 
     public bool SizeToContent { get; set; } = false;
 
-    public static bool NearlyEqual(double a, double b, double tolerance = 0.001f)
+    public static bool NearlyEqual(float a, float b, float tolerance = 0.001f)
     {
-        return Math.Abs(a - b) < tolerance;
+        return float.Abs(a - b) < tolerance;
     }
 }
 

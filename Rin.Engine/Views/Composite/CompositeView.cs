@@ -1,9 +1,8 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Animation;
-using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Animation;
+using Rin.Engine.Extensions;
+using Rin.Engine.Math;
 using Rin.Engine.Views.Enums;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;

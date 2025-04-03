@@ -42,7 +42,7 @@ public class ListLayout(Axis axis, CompositeView container) : InfiniteChildrenLa
         if (slot is ListSlot asListContainerSlot)
             return asListContainerSlot.Fit switch
             {
-                CrossFit.Desired => Math.Clamp(asListContainerSlot.Child.GetDesiredSize().X, 0.0f,
+                CrossFit.Desired => float.Clamp(asListContainerSlot.Child.GetDesiredSize().X, 0.0f,
                     crossAxisAvailableSize),
                 CrossFit.Available => crossAxisAvailableSize,
                 CrossFit.Fill => crossAxisAvailableSize,
@@ -119,7 +119,7 @@ public class ListLayout(Axis axis, CompositeView container) : InfiniteChildrenLa
 
             offset.X += viewSize.X;
             mainAxisSize += viewSize.X;
-            crossAxisSize = Math.Max(crossAxisSize, viewSize.Y);
+            crossAxisSize = float.Max(crossAxisSize, viewSize.Y);
         }
 
         crossAxisSize = float.IsFinite(space.Y) ? space.Y : crossAxisSize;
@@ -154,7 +154,7 @@ public class ListLayout(Axis axis, CompositeView container) : InfiniteChildrenLa
 
             offset.Y += viewSize.Y;
             mainAxisSize += viewSize.Y;
-            crossAxisSize = Math.Max(crossAxisSize, viewSize.X);
+            crossAxisSize = float.Max(crossAxisSize, viewSize.X);
         }
 
         crossAxisSize = float.IsFinite(space.X) ? space.X : crossAxisSize;
@@ -198,14 +198,14 @@ public class ListLayout(Axis axis, CompositeView container) : InfiniteChildrenLa
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.X += slotSize.X;
-                size.Y = Math.Max(size.Y, slotSize.Y);
+                size.Y = float.Max(size.Y, slotSize.Y);
                 return size;
             }),
             Axis.Column => GetSlots().Aggregate(new Vector2(), (size, slot) =>
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.Y += slotSize.Y;
-                size.X = Math.Max(size.X, slotSize.X);
+                size.X = float.Max(size.X, slotSize.X);
                 return size;
             }),
             _ => throw new ArgumentOutOfRangeException()

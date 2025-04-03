@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.Contracts;
 using System.Numerics;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
+using Rin.Engine.Extensions;
 
 namespace Rin.Engine.World.Math;
 

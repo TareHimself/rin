@@ -2,8 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
+using Rin.Engine.Extensions;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.Meshes;
 using Rin.Engine.Graphics.Shaders;
@@ -633,7 +632,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
     private static uint DeriveMipLevels(Extent2D extent)
     {
-        return (uint)(Math.Floor(Math.Log2(Math.Max(extent.Width, extent.Height))) + 1);
+        return (uint)(float.Floor(float.Log2(float.Max(extent.Width, extent.Height))) + 1);
     }
 
     /// <summary>
@@ -654,7 +653,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     public IDeviceBuffer NewStorageBuffer<T>(bool sequentialWrite = true, string debugName = "storageBuffer")
         where T : unmanaged
     {
-        return NewStorageBuffer(Core.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
+        return NewStorageBuffer(Engine.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
     }
 
     /// <summary>
@@ -685,7 +684,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     public IDeviceBuffer NewUniformBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer")
         where T : unmanaged
     {
-        return NewUniformBuffer(Core.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
+        return NewUniformBuffer(Engine.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
     }
 
     public IDeviceImage CreateImage(Extent3D size, ImageFormat format, VkImageUsageFlags usage, bool mipMap = false,

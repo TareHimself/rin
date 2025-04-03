@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
+using Rin.Engine.Math;
 
 namespace Rin.Engine.Views.Graphics;
 
@@ -24,7 +25,7 @@ public class ViewsFrame
     {
         Surface = surface;
         Raw = raw;
-        Projection = Matrix4x4.CreateOrthographicOffCenter(0.0f, surfaceSize.X, 0.0f, surfaceSize.Y, 0.0f, 1.0f);
+        Projection = RMath.ViewportProjection(surfaceSize.X, surfaceSize.Y, 0.0f, 1.0f);
         DrawImage = drawImage;
         CopyImage = copyImage;
         StencilImage = stencilImage;

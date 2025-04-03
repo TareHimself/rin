@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Animation;
+using Rin.Engine.Animation;
 using Rin.Engine.Views.Animation;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;

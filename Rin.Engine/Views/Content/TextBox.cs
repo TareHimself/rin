@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Extensions;
+using Rin.Engine.Math;
 using Rin.Engine.Views.Enums;
 using Rin.Engine.Views.Font;
 using Rin.Engine.Views.Graphics;
@@ -118,7 +118,7 @@ public class TextBox : ContentView
     protected override Vector2 LayoutContent(Vector2 availableSpace)
     {
         _cachedLayouts = null;
-        Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X : null : null;
+        Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X + 2f : null : null;
         var bounds = GetCharacterBounds(Wrap).ToArray();
         if(bounds.Empty()) return Vector2.Zero;
         var width = bounds.MaxBy(c => c.Right).Right;
@@ -154,7 +154,7 @@ public class TextBox : ContentView
         if (Content.Empty() || CurrentFont == null) return new Vector2(0.0f, LineHeight);
         var bounds = GetCharacterBounds(cache: false);
         var width = bounds.Empty() ? 0 : bounds.Max(c => c.Right);
-        var lines = Math.Max(1, Content.Split("\n").Length);
+        var lines = float.Max(1, Content.Split("\n").Length);
         var height = LineHeight * lines;
 
         return new Vector2(width, height);

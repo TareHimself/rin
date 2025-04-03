@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Windows;
+using Rin.Engine.Math;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
@@ -14,7 +14,7 @@ using Rin.Engine.Views.Graphics.Commands;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics;
 using TerraFX.Interop.Vulkan;
-using Utils = Rin.Engine.Core.Utils;
+using Utils = Rin.Engine.Utils;
 
 namespace Rin.Engine.World.Views;
 

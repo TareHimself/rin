@@ -1,5 +1,5 @@
 ﻿using ChatApp.Views;
-using Rin.Engine.Core;
+using Rin.Engine;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Views;

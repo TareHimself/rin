@@ -1,6 +1,4 @@
-﻿using Rin.Engine.Core;
-
-namespace Rin.Engine.Graphics.Shaders.Slang;
+﻿namespace Rin.Engine.Graphics.Shaders.Slang;
 
 public class SlangShaderManager : IShaderManager
 {

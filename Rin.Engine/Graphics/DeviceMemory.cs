@@ -1,6 +1,4 @@
-﻿using Rin.Engine.Core;
-
-namespace Rin.Engine.Graphics;
+﻿namespace Rin.Engine.Graphics;
 
 /// <summary>
 ///     GPU Memory

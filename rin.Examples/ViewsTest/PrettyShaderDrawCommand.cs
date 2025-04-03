@@ -1,12 +1,12 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
-using Rin.Engine.Core;
+using Rin.Engine;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Commands;
-using Utils = Rin.Engine.Core.Utils;
+using Utils = Rin.Engine.Utils;
 
 namespace rin.Examples.ViewsTest;
 

@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Math;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Quads;
@@ -39,9 +39,9 @@ public class ScrollList : List
 
         if (scrollSize < 0) return false;
 
-        _offset = Math.Clamp(offset, 0, scrollSize);
+        _offset = float.Clamp(offset, 0, scrollSize);
 
-        return Math.Abs(offset - _offset) > 0.001;
+        return float.Abs(offset - _offset) > 0.001;
     }
 
     protected override Vector2 ArrangeContent(Vector2 spaceGiven)
@@ -51,12 +51,12 @@ public class ScrollList : List
 
         _maxOffset = Axis switch
         {
-            Axis.Column => Math.Max(spaceTaken.Y - spaceGiven.Y.FiniteOr(spaceTaken.Y), 0),
-            Axis.Row => Math.Max(spaceTaken.X - spaceGiven.X.FiniteOr(spaceTaken.X), 0),
+            Axis.Column => float.Max(spaceTaken.Y - spaceGiven.Y.FiniteOr(spaceTaken.Y), 0),
+            Axis.Row => float.Max(spaceTaken.X - spaceGiven.X.FiniteOr(spaceTaken.X), 0),
             _ => throw new ArgumentOutOfRangeException()
         };
         ScrollTo(_offset);
-        return new Vector2(Math.Min(spaceTaken.X, spaceGiven.X), Math.Min(spaceTaken.Y, spaceGiven.Y));
+        return new Vector2(float.Min(spaceTaken.X, spaceGiven.X), float.Min(spaceTaken.Y, spaceGiven.Y));
     }
 
     public virtual float GetScroll()
@@ -128,9 +128,9 @@ public class ScrollList : List
             var axisSize = GetAxisSize();
             var desiredAxisSize = axisSize + maxScroll;
 
-            var barSize = Math.Max(MinBarSize, axisSize - (desiredAxisSize - axisSize));
+            var barSize = float.Max(MinBarSize, axisSize - (desiredAxisSize - axisSize));
             var availableDist = axisSize - barSize;
-            var drawOffset = (float)(availableDist * (Math.Max(scroll, 0.0001) / maxScroll));
+            var drawOffset = availableDist * (float.Max(scroll, 0.0001f) / maxScroll);
 
             var size = GetContentSize();
 

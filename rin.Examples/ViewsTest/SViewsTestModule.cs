@@ -1,10 +1,10 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Animation;
-using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
+using Rin.Engine;
+using Rin.Engine.Animation;
+using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Windows;
+using Rin.Engine.Math;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Animation;
 using Rin.Engine.Views.Composite;
@@ -34,7 +34,7 @@ public class SViewsTestModule : IModule
                     .PrepareAtlas(font, Enumerable.Range(32, 127).Select(c => (char)c).Where(c => c.IsPrintable()))
                     .Wait();
         }
-        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
+        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", new CreateOptions
         {

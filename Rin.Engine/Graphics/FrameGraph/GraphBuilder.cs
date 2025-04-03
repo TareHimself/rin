@@ -1,4 +1,4 @@
-using Rin.Engine.Core.Extensions;
+using Rin.Engine.Extensions;
 
 namespace Rin.Engine.Graphics.FrameGraph;
 

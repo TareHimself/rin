@@ -1,4 +1,3 @@
-using Rin.Engine.Core;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 

@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics.Windows.Events;
+using Rin.Engine.Math;
 using SDL;
 using static SDL.SDL3;
 

@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Math;
 
 namespace Rin.Engine.Views.Graphics.Quads;
 

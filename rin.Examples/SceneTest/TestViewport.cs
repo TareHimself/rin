@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics.Windows;
+using Rin.Engine.Math;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
 using Rin.Engine.World.Actors;
@@ -44,6 +44,7 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
     public override void Update(float deltaTime)
     {
         base.Update(deltaTime);
+        _testActor.SetRotation(RMath.LookAt(_testActor.GetLocation(),camera.GetLocation(),RMath.Up).ToQuaternion());
         if (IsFocused)
         {
             var speed = 100.0f;

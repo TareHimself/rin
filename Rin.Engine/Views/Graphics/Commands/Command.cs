@@ -1,6 +1,4 @@
-﻿using Rin.Engine.Core;
-
-namespace Rin.Engine.Views.Graphics.Commands;
+﻿namespace Rin.Engine.Views.Graphics.Commands;
 
 /// <summary>
 ///     Base class for commands

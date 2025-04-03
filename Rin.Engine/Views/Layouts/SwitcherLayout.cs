@@ -16,7 +16,7 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
         {
             var lastSelected = _selected;
             var numSlots = SlotCount;
-            _selected = Math.Clamp(value, 0, numSlots == 0 ? 0 : numSlots - 1);
+            _selected = int.Clamp(value, 0, numSlots == 0 ? 0 : numSlots - 1);
             if (lastSelected != _selected) Container.Invalidate(InvalidationType.Layout);
         }
     }

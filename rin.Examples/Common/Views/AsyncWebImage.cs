@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
+using Rin.Engine;
+using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Content;

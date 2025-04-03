@@ -1,13 +1,13 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
+using Rin.Engine.Math;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
 using TerraFX.Interop.Vulkan;
-using Utils = Rin.Engine.Core.Utils;
+using Utils = Rin.Engine.Utils;
 
 namespace Rin.Engine.World.Graphics;
 
@@ -36,11 +36,13 @@ public class CollectScenePass(CameraComponent camera, Vector2<uint> size) : IPas
     public Matrix4x4 View { get; set; } = camera.GetTransform(Space.World).Mutate(c =>
     {
         c.Scale = new Vector3(1.0f);
-        return RMath.LookTo(c.Location, c.Rotation, Vector3.UnitY);
+        
+        var rot = c.Inverse();
+        return loc * rot;
     });
 
     [PublicAPI]
-    public Matrix4x4 Projection { get; } = RMath.Perspective(float.DegreesToRadians(camera.FieldOfView), size.X, size.Y,
+    public Matrix4x4 Projection { get; } = RMath.PerspectiveProjection(float.DegreesToRadians(camera.FieldOfView), size.X, size.Y,
         camera.NearClipPlane, camera.FarClipPlane);
 
     [PublicAPI] public float FieldOfView { get; set; } = camera.FieldOfView;

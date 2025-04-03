@@ -1,4 +1,4 @@
-﻿using Rin.Engine.Core;
+﻿using Rin.Engine;
 
 namespace rin.Examples.Common;
 

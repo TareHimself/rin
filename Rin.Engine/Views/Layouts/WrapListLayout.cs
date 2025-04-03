@@ -70,11 +70,11 @@ public class WrapListLayout(Axis axis, CompositeView container) : ListLayout(axi
             currentLine.Add(slot as ListSlot ?? throw new InvalidOperationException());
             offsetMain += slotSizeMain;
             var finalSlotOffsetCross = offsetCross;
-            currentMaxSizeCross = Math.Max(currentMaxSizeCross, slotSizeCross);
+            currentMaxSizeCross = float.Max(currentMaxSizeCross, slotSizeCross);
             var finalSlotEndMain = finalSlotOffsetMain + slotSizeMain;
             var finalSlotEndCross = finalSlotOffsetCross + slotSizeCross;
-            totalSizeMain = Math.Max(totalSizeMain, Math.Min(availableMain, finalSlotEndMain));
-            totalSizeCross = Math.Max(totalSizeCross, finalSlotEndCross);
+            totalSizeMain = float.Max(totalSizeMain, float.Min(availableMain, finalSlotEndMain));
+            totalSizeCross = float.Max(totalSizeCross, finalSlotEndCross);
 
 
             slot.Child.Offset = axis switch
@@ -96,14 +96,14 @@ public class WrapListLayout(Axis axis, CompositeView container) : ListLayout(axi
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.X += slotSize.X;
-                size.Y = Math.Max(size.Y, slotSize.Y);
+                size.Y = float.Max(size.Y, slotSize.Y);
                 return size;
             }),
             Axis.Column => GetSlots().Aggregate(new Vector2(), (size, slot) =>
             {
                 var slotSize = slot.Child.GetDesiredSize();
                 size.Y += slotSize.Y;
-                size.X = Math.Max(size.X, slotSize.X);
+                size.X = float.Max(size.X, slotSize.X);
                 return size;
             }),
             _ => throw new ArgumentOutOfRangeException()

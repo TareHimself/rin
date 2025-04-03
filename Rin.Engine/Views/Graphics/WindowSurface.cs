@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Graphics.Windows.Events;
+using Rin.Engine.Math;
 using Rin.Engine.Views.Events;
 using CursorEvent = Rin.Engine.Graphics.Windows.Events.CursorEvent;
 using Graphics_Windows_Events_CharacterEvent = Rin.Engine.Graphics.Windows.Events.CharacterEvent;

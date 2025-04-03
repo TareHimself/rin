@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Math;
 using Rin.Engine.Views.Composite;
 
 namespace Rin.Engine.Views.Layouts;
@@ -74,7 +74,7 @@ public class FlexLayout : ListLayout
                     };
                 }
 
-            mainAxisAvailableSpace = Math.Max(mainAxisAvailableSpace, 0);
+            mainAxisAvailableSpace = float.Max(mainAxisAvailableSpace, 0);
         }
 
 
@@ -153,7 +153,7 @@ public class FlexLayout : ListLayout
 
                 offset += slotMainAxisSize;
                 mainAxisSize += slotMainAxisSize;
-                crossAxisSize = Math.Max(crossAxisSize, slotCrossAxisSize);
+                crossAxisSize = float.Max(crossAxisSize, slotCrossAxisSize);
             }
 
             crossAxisSize = float.IsFinite(space.Y) ? space.Y : crossAxisSize;
@@ -196,7 +196,7 @@ public class FlexLayout : ListLayout
                     mainAxisAvailableSpace -= viewSize.X;
                 }
 
-            mainAxisAvailableSpace = Math.Max(mainAxisAvailableSpace, 0);
+            mainAxisAvailableSpace = float.Max(mainAxisAvailableSpace, 0);
         }
 
 
@@ -231,7 +231,7 @@ public class FlexLayout : ListLayout
 
                 offset.X += slotMainAxisSize;
                 mainAxisSize += slotMainAxisSize;
-                crossAxisSize = Math.Max(crossAxisSize, slotCrossAxisSize);
+                crossAxisSize = float.Max(crossAxisSize, slotCrossAxisSize);
             }
 
             crossAxisSize = float.IsFinite(space.Y) ? space.Y : crossAxisSize;
@@ -270,7 +270,7 @@ public class FlexLayout : ListLayout
                     mainAxisAvailableSpace -= viewSize.X;
                 }
 
-            mainAxisAvailableSpace = Math.Max(mainAxisAvailableSpace, 0);
+            mainAxisAvailableSpace = float.Max(mainAxisAvailableSpace, 0);
         }
 
 
@@ -305,7 +305,7 @@ public class FlexLayout : ListLayout
 
                 offset.Y += slotMainAxisSize;
                 mainAxisSize += slotMainAxisSize;
-                crossAxisSize = Math.Max(crossAxisSize, slotCrossAxisSize);
+                crossAxisSize = float.Max(crossAxisSize, slotCrossAxisSize);
             }
 
             crossAxisSize = float.IsFinite(space.X) ? space.X : crossAxisSize;

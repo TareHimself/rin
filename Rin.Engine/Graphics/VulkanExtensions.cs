@@ -1,9 +1,8 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.FrameGraph;
+using Rin.Engine.Math;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics;
@@ -684,7 +683,7 @@ public static class VulkanExtensions
     {
         unsafe
         {
-            var size = (uint)Core.Utils.ByteSizeOf<T>();
+            var size = (uint)Engine.Utils.ByteSizeOf<T>();
 #if DEBUG
             if (size > 128)
                 Console.WriteLine(

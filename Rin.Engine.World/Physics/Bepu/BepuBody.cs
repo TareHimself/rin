@@ -2,7 +2,7 @@
 using BepuPhysics;
 using BepuPhysics.Collidables;
 using JetBrains.Annotations;
-using Rin.Engine.Core.Extensions;
+using Rin.Engine.Extensions;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
 

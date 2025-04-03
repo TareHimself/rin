@@ -1,5 +1,4 @@
-﻿using Rin.Engine.Core;
-using TerraFX.Interop.Vulkan;
+﻿using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics.Shaders;
 

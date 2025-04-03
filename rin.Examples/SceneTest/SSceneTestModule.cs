@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
+using Rin.Engine;
+using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Windows;
+using Rin.Engine.Math;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;
@@ -128,8 +128,8 @@ public class SSceneTestModule : IModule
                 engine.OnUpdate += delta =>
                 {
                     scene.Update(delta);
-                    var lookAtRotation = RMath.LookAt(camera.GetLocation(), e3.GetLocation(), RMath.Up).ToQuaternion();
-                    comp.SetRotation(lookAtRotation);
+                    // var lookAtRotation = RMath.LookAt(camera.GetLocation(), e3.GetLocation(), RMath.Up).ToQuaternion();
+                    // comp.SetRotation(lookAtRotation);
                     // var root = e1.RootComponent!;
                     // root.SetRelativeRotation(root.GetRelativeRotation().Delta(pitch: -50.0f * (float)delta));
                     e1.SetRotation(e1.GetRotation().AddLocalYaw(-50.0f * delta).AddLocalPitch(-20.0f * delta));

@@ -1,5 +1,3 @@
-using Rin.Engine.Core;
-
 namespace Rin.Engine.Graphics.Meshes;
 
 public interface IMeshFactory : IDisposable

@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Extensions;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Extensions;
+using Rin.Engine.Math;
 
 namespace Rin.Engine.Views;
 
@@ -63,9 +62,9 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
         var b1 = area.Offset;
         var b2 = b1 + area.Size;
 
-        Offset = new Vector2(Math.Max(a1.X, b1.X), Math.Max(a1.Y, b1.Y));
+        Offset = new Vector2(float.Max(a1.X, b1.X), float.Max(a1.Y, b1.Y));
 
-        var p2 = new Vector2(Math.Min(a2.X, b2.X), Math.Min(a2.Y, b2.Y));
+        var p2 = new Vector2(float.Min(a2.X, b2.X), float.Min(a2.Y, b2.Y));
 
         Size = p2 - Offset;
 
@@ -100,23 +99,23 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
         bl = bl.Transform(transform);
 
         var p1 = new Vector2(
-            Math.Min(
-                Math.Min(tl.X, tr.X),
-                Math.Min(bl.X, br.X)
+            float.Min(
+                float.Min(tl.X, tr.X),
+                float.Min(bl.X, br.X)
             ),
-            Math.Min(
-                Math.Min(tl.Y, tr.Y),
-                Math.Min(bl.Y, br.Y)
+            float.Min(
+                float.Min(tl.Y, tr.Y),
+                float.Min(bl.Y, br.Y)
             )
         );
         var p2 = new Vector2(
-            Math.Max(
-                Math.Max(tl.X, tr.X),
-                Math.Max(bl.X, br.X)
+            float.Max(
+                float.Max(tl.X, tr.X),
+                float.Max(bl.X, br.X)
             ),
-            Math.Max(
-                Math.Max(tl.Y, tr.Y),
-                Math.Max(bl.Y, br.Y)
+            float.Max(
+                float.Max(tl.Y, tr.Y),
+                float.Max(bl.Y, br.Y)
             )
         );
 
@@ -156,23 +155,23 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
     //     bl = bl.ApplyTransformation(transform);
     //
     //     var p1AABB = new Vector2(
-    //         System.Math.Min(
-    //             System.Math.Min(tl.X, tr.X),
-    //             System.Math.Min(bl.X, br.X)
+    //         System.float.Min(
+    //             System.float.Min(tl.X, tr.X),
+    //             System.float.Min(bl.X, br.X)
     //         ),
-    //         System.Math.Min(
-    //             System.Math.Min(tl.Y, tr.Y),
-    //             System.Math.Min(bl.Y, br.Y)
+    //         System.float.Min(
+    //             System.float.Min(tl.Y, tr.Y),
+    //             System.float.Min(bl.Y, br.Y)
     //         )
     //     );
     //     var p2AABB = new Vector2(
-    //         System.Math.Max(
-    //             System.Math.Max(tl.X, tr.X),
-    //             System.Math.Max(bl.X, br.X)
+    //         System.float.Max(
+    //             System.float.Max(tl.X, tr.X),
+    //             System.float.Max(bl.X, br.X)
     //         ),
-    //         System.Math.Max(
-    //             System.Math.Max(tl.Y, tr.Y),
-    //             System.Math.Max(bl.Y, br.Y)
+    //         System.float.Max(
+    //             System.float.Max(tl.Y, tr.Y),
+    //             System.float.Max(bl.Y, br.Y)
     //         )
     //     );
     //

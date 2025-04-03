@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
+using Rin.Engine;
 using Rin.Engine.Audio;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Math;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Animation;
 using Rin.Engine.Views.Composite;

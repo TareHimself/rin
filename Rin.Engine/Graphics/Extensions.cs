@@ -1,5 +1,4 @@
-﻿using Rin.Engine.Core;
-using Rin.Engine.Graphics.Meshes;
+﻿using Rin.Engine.Graphics.Meshes;
 
 namespace Rin.Engine.Graphics;
 
@@ -56,12 +55,12 @@ public static class Extensions
         foreach (var vertex in vertices)
         {
             var location = vertex.Location;
-            bounds.X.Max = Math.Max(bounds.X.Max, location.X);
-            bounds.X.Min = Math.Min(bounds.X.Min, location.X);
-            bounds.Y.Max = Math.Max(bounds.Y.Max, location.Y);
-            bounds.Y.Min = Math.Min(bounds.Y.Min, location.Y);
-            bounds.Z.Max = Math.Max(bounds.Z.Max, location.Z);
-            bounds.Z.Min = Math.Min(bounds.Z.Min, location.Z);
+            bounds.X.Max = float.Max(bounds.X.Max, location.X);
+            bounds.X.Min = float.Min(bounds.X.Min, location.X);
+            bounds.Y.Max = float.Max(bounds.Y.Max, location.Y);
+            bounds.Y.Min = float.Min(bounds.Y.Min, location.Y);
+            bounds.Z.Max = float.Max(bounds.Z.Max, location.Z);
+            bounds.Z.Min = float.Min(bounds.Z.Min, location.Z);
         }
 
         return bounds;

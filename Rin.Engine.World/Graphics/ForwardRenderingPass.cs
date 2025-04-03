@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
+using Rin.Engine.Math;
 using Rin.Engine.World.Components;
 using TerraFX.Interop.Vulkan;
 

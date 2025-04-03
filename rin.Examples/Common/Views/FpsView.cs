@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Math;
+using Rin.Engine;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
+using Rin.Engine.Math;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Commands;

@@ -1,5 +1,4 @@
-﻿using Rin.Engine.Core;
-using Rin.Engine.Graphics.FrameGraph;
+﻿using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Windows;
 using SDL;
 using TerraFX.Interop.Vulkan;

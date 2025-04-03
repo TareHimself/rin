@@ -1,5 +1,5 @@
 ﻿using ManagedBass;
-using Rin.Engine.Core.Extensions;
+using Rin.Engine.Extensions;
 
 namespace Rin.Engine.Audio.BassAudio;
 

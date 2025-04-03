@@ -1,5 +1,4 @@
-﻿using Rin.Engine.Core;
-using Rin.Engine.World.Components;
+﻿using Rin.Engine.World.Components;
 
 namespace Rin.Engine.World.Systems;
 

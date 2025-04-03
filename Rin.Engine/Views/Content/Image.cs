@@ -1,7 +1,8 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core.Math;
 using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Textures;
+using Rin.Engine.Math;
 using Rin.Engine.Views.Enums;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Quads;

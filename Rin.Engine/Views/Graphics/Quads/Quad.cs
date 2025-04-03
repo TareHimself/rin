@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Core;
-using Rin.Engine.Core.Math;
+using Rin.Engine.Math;
 
 namespace Rin.Engine.Views.Graphics.Quads;
 

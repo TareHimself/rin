@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
+using Rin.Engine;
 using Rin.Engine.Audio;
-using Rin.Engine.Core;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Views;

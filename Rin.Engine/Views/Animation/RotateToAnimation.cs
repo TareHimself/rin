@@ -1,4 +1,4 @@
-﻿using Rin.Engine.Core.Animation;
+﻿using Rin.Engine.Animation;
 
 namespace Rin.Engine.Views.Animation;
 

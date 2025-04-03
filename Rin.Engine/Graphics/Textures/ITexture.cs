@@ -1,4 +1,4 @@
-namespace Rin.Engine.Graphics;
+namespace Rin.Engine.Graphics.Textures;
 
 public interface ITexture
 {
