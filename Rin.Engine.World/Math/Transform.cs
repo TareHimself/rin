@@ -24,6 +24,7 @@ public struct Transform() : ICloneable<Transform>
         var rotation = Matrix4x4.CreateFromQuaternion(Rotation);
         var scale = Matrix4x4.CreateScale(Scale);
         var translation = Matrix4x4.CreateTranslation(Location);
+
         return scale * rotation * translation;
     }
 

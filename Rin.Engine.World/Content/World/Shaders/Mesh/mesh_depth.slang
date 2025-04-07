@@ -31,6 +31,9 @@ VertexOut vertex(VertexIn input) {
     var instanceData = push.data[input.instanceId];
     VertexOut output;
     var vertex = instanceData.vertices[input.vertexId];
-    output.position = push.scene->projection * push.scene->view * instanceData.transform * float4(vertex.getLocation(), 1.0);
+    // We do this separately because of depth precision https://developer.nvidia.com/blog/visualizing-depth-precision/
+    var sceneLocation = instanceData.transform * float4(vertex.getLocation(), 1.0);
+    var viewLocation = push.scene->view * sceneLocation;
+    output.position = push.scene->projection * viewLocation;
     return output;
 }

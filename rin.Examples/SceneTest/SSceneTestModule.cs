@@ -13,6 +13,7 @@ using Rin.Engine.World.Actors;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Components.Lights;
 using Rin.Engine.World.Graphics;
+using rin.Examples.Common.Views;
 using rin.Examples.SceneTest.entities;
 using SixLabors.ImageSharp.PixelFormats;
 using Image = SixLabors.ImageSharp.Image;
@@ -57,7 +58,7 @@ public class SSceneTestModule : IModule
 
             var camera = scene.AddActor<CameraActor>();
             var comp = camera.GetCameraComponent();
-            var location = new Vector3(0.0f, 15.0f, -10.0f);
+            var location = new Vector3(0.0f,0, 0);
             comp.SetLocation(location);
             Extensions.LoadStaticMesh(Path.Join(SEngine.AssetsDirectory, "models", "cube.glb")).After(mesh =>
             {
@@ -78,13 +79,15 @@ public class SSceneTestModule : IModule
                 //
                 var dist = 8.0f;
                 var height = 15.0f;
+                
                 var e1 = new Actor
                 {
                     RootComponent = new StaticMeshComponent
                     {
                         MeshId = mesh,
-                        Location = new Vector3(dist, height, 0.0f)
-                    }
+                        Location = new Vector3(0,0,10),//new Vector3(dist, height, 0.0f)
+                        //Scale = new Vector3(3.0f)
+                    },
                 };
                 // var e2 = new Actor()
                 // {
@@ -119,6 +122,7 @@ public class SSceneTestModule : IModule
                 scene.AddActor(e1);
                 //scene.AddActor(e2);
                 // scene.AddActor(e3);
+                e1.SetRotation(Quaternion.Identity.AddPitch(45).AddYaw(45));
 
                 LoadGoldMaterial().After(material =>
                 {
@@ -128,6 +132,10 @@ public class SSceneTestModule : IModule
                 engine.OnUpdate += delta =>
                 {
                     scene.Update(delta);
+                    var sin = float.Abs(float.Sin(SEngine.Get().GetTimeSeconds()));
+                    //e1.SetLocation(new Vector3(0.0f, 0.0f,float.Max(sin * 20.0f,3)));
+                    // e1.SetScale(new Vector3(sin));
+                    // Console.WriteLine("Scale {0}",sin);
                     // var lookAtRotation = RMath.LookAt(camera.GetLocation(), e3.GetLocation(), RMath.Up).ToQuaternion();
                     // comp.SetRotation(lookAtRotation);
                     // var root = e1.RootComponent!;
@@ -173,6 +181,14 @@ public class SSceneTestModule : IModule
                     new PanelSlot
                     {
                         Child = text,
+                        SizeToContent = true
+                    },
+                    new PanelSlot
+                    {
+                        Child = new FpsView(),
+                        MinAnchor = new Vector2(1f,0f),
+                        MaxAnchor = new Vector2(1f,0f),
+                        Alignment = new Vector2(1,0),
                         SizeToContent = true
                     }
                 ]

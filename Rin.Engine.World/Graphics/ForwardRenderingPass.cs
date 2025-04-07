@@ -69,7 +69,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
             .DisableStencilTest(false)
             .SetCullMode(VkCullModeFlags.VK_CULL_MODE_NONE, VkFrontFace.VK_FRONT_FACE_CLOCKWISE)
-            .EnableDepthTest(false, VkCompareOp.VK_COMPARE_OP_LESS_OR_EQUAL)
+            .EnableDepthTest(false,VkCompareOp.VK_COMPARE_OP_GREATER_OR_EQUAL)
             .DisableBlending(0, 1)
             .SetVertexInput([], [])
             .SetViewports([
@@ -104,6 +104,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
             View = sceneFrame.View,
             Projection = sceneFrame.Projection,
             ViewProjection = sceneFrame.ViewProjection,
+            CameraPosition = _collectPass.CameraTransform.Location,
             NumLights = _collectPass.Lights.Length,
             LightsAddress = lightsAddress
         });

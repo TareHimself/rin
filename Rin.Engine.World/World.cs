@@ -17,8 +17,7 @@ public class World : IReceivesUpdate
     private float _remainingPhysicsTime;
     //private System.Timers.Timer? _physicsTimer;
 
-    public Matrix4x4 WorldTransform { get; set; } = Vector3.UnitZ.ToQuaternion().ToRotationMatrix() *
-                                                    Matrix4x4.CreateWorld(Vector3.Zero, Vector3.UnitZ, Vector3.UnitY);
+    public Matrix4x4 WorldTransform { get; set; } = Matrix4x4.Identity;
 
     [PublicAPI] public float PhysicsUpdateInterval { get; set; } = 0.01f; //1.0f / 60.0f;
 

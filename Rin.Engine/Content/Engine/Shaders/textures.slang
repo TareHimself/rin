@@ -8,12 +8,16 @@
 
 [[vk::binding(0, 0)]]
 [AllStages, UpdateAfterBind, Partial, Variable(RIN_GLOBAL_TEXTURES_COUNT)]
-uniform Sampler2D GLOBAL_TEXTURES[];
+uniform Sampler2D TEXTURES[];
+
+// [[vk::binding(0,1)]]
+// [AllStages, UpdateAfterBind, Partial, Variable(RIN_GLOBAL_TEXTURES_COUNT)]
+// uniform Sampler3D CUBEMAPS[];
 
 // Function to sample a texture
 float4 sampleTexture(int textureId, float2 uv)
 {
-    return GLOBAL_TEXTURES[textureId].Sample(uv);
+    return TEXTURES[textureId].Sample(uv);
 }
 
 // Function to get the size of a texture
@@ -21,6 +25,6 @@ uint2 getTextureSize(int textureId, uint mip = 0)
 {
     uint2 size;
     uint levels;
-    GLOBAL_TEXTURES[textureId].GetDimensions(mip, size.x, size.y, levels);
+    TEXTURES[textureId].GetDimensions(mip, size.x, size.y, levels);
     return size;
 }

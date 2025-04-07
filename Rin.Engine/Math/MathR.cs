@@ -13,20 +13,21 @@ public static class MathR
 
     public static Matrix4x4 PerspectiveProjection(float fieldOfView, float width, float height, float near, float far)
     {
+        var isInverse = far < near;
         var tan = 1 / float.Tan(float.DegreesToRadians(fieldOfView / 2));
         var aspect = width / height;
         var y = tan;
         var x = y / aspect;
-        var z = far / (far - near);
+        
         var mat = Matrix4x4.Identity;
         
-        mat.M11 = x;
-        mat.M22 = -y;
-        mat.M33 = z;
-        mat.M34 = 1f;
-        mat.M43 = (far * near) / (far - near);
-        mat.M44 = 0f;
-
+        mat[0,0] = x;
+        mat[1,1] = -y;
+        mat[2,2] = (near * near * near) / (far + near);
+        mat[3,2] = (near * far) / (far + near);
+        mat[2,3] = 1f;
+        mat[3,3] = 0f;
+        
         return mat;   
         // float y = 1f / float.Tan(fieldOfView * 0.5f);
         // float x = y / aspectRatio;

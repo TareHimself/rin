@@ -16,10 +16,11 @@ namespace Rin.Engine.World.Graphics;
 /// </summary>
 public class CollectScenePass : IPass
 {
-    [PublicAPI] public GeometryInfo[] Geometry = [];
-    [PublicAPI] public LightInfo[] Lights = [];
-    [PublicAPI] public GeometryInfo[] OpaqueGeometry = [];
-    [PublicAPI] public GeometryInfo[] TranslucentGeometry = [];
+    [PublicAPI] public GeometryInfo[] Geometry;
+    [PublicAPI] public LightInfo[] Lights;
+    [PublicAPI] public GeometryInfo[] OpaqueGeometry;
+    [PublicAPI] public GeometryInfo[] TranslucentGeometry;
+    [PublicAPI] public Transform CameraTransform;
     [PublicAPI] public World World;
 
     /// <summary>
@@ -30,34 +31,34 @@ public class CollectScenePass : IPass
     public CollectScenePass(CameraComponent camera, Vector2<uint> size)
     {
         World = camera.Owner?.World ?? throw new Exception("Camera is not in a scene");
-        View = camera.GetTransform(Space.World).Mutate(c =>
-        {
-            c.Scale = new Vector3(1.0f);
-            return (camera.Owner.World.WorldTransform * c.ToMatrix()).Inverse();
-        });
-        View = Matrix4x4.Identity; // View needs work, assume we are at the center for now
-        Projection = MathR.PerspectiveProjection(90.0f, size.X, size.Y,
-            0.0001f, 2000);
-        ViewProjection = Projection * View;
+        CameraTransform = camera.GetTransform(Space.World);
+        View =  Matrix4x4.Identity.Translate(CameraTransform.Location).Inverse();
         FieldOfView = camera.FieldOfView;
         NearClip = camera.NearClipPlane;
         FarClip = camera.FarClipPlane;
+        Projection = MathR.PerspectiveProjection(FieldOfView, size.X, size.Y,
+            NearClip,FarClip);
+        ViewProjection = View * Projection;
         Size = size;
+
+        var cameraLocation = camera.Location;
+        var cameraProjected = cameraLocation.Project(Projection);
+        var finalLoc = new Vector3(0, 0, 10) - cameraLocation;
+        var finalLocProjected = finalLoc.Project(Projection);
+        var a = new Vector3(0, 0, 10).Transform(View).Project(Projection);
+        var b = new Vector3(0, 0, 10).Project(ViewProjection);
+        var c = new Vector3(0, 0, 30).Project(Projection);
         
-        var test = new Vector3(50,0,1000);
-        var result = test.Project(Projection);
-        
-        var test2 = new Vector3(-50,10,50f);
-        var result2 = test2.Project(Projection);
-        var x = Matrix4x4.Identity;
+        var a1 = new Vector3(0, 0, 1).Project(Projection);
+        var b1 = new Vector3(0, 0, 2).Project(Projection);
+        var c1 = new Vector3(0, 0, 3).Project(Projection);
         
         // Collect Scene On Main Thread
         var drawCommands = new DrawCommands();
-        var world = Matrix4x4.CreateWorld(Vector3.Zero, Vector3.UnitZ, Vector3.UnitY);
-        foreach (var root in World.GetPureRoots().ToArray()) root.Collect(drawCommands, world);
+        foreach (var root in World.GetPureRoots().ToArray()) root.Collect(drawCommands, World.WorldTransform);
         Geometry = drawCommands.GeometryCommands.ToArray();
-        OpaqueGeometry = Geometry.Where(c => !c.MeshMaterial.Translucent).ToArray();
-        TranslucentGeometry = Geometry.Where(c => c.MeshMaterial.Translucent).ToArray();
+        OpaqueGeometry = Geometry.Where(info => !info.MeshMaterial.Translucent).ToArray();
+        TranslucentGeometry = Geometry.Where(info => info.MeshMaterial.Translucent).ToArray();
         Lights = drawCommands.Lights.ToArray();
     }
 
@@ -107,19 +108,18 @@ public class CollectScenePass : IPass
         var sceneDataBuffer = graph.GetBuffer(DepthSceneBufferId);
         var materialDataBuffer = DepthMaterialBufferId > 0 ? graph.GetBuffer(DepthMaterialBufferId) : null;
         ulong materialDataBufferOffset = 0;
-
         DepthImage = graph.GetImage(DepthImageId);
 
         cmd
             .ImageBarrier(DepthImage, ImageLayout.General)
-            .ClearDepthImages(1.0f, ImageLayout.General, DepthImage)
+            .ClearDepthImages(0.0f, ImageLayout.General, DepthImage)
             .ImageBarrier(DepthImage, ImageLayout.DepthAttachment)
             .BeginRendering(Size.ToVkExtent(), [], DepthImage.MakeDepthAttachmentInfo())
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
             .DisableStencilTest(false)
             .SetCullMode(VkCullModeFlags.VK_CULL_MODE_NONE, VkFrontFace.VK_FRONT_FACE_CLOCKWISE)
-            .EnableDepthTest(true, VkCompareOp.VK_COMPARE_OP_LESS_OR_EQUAL)
+            .EnableDepthTest(true, VkCompareOp.VK_COMPARE_OP_GREATER_OR_EQUAL)
             //.DisableBlending(0, 0)
             .SetVertexInput([], [])
             .SetViewports([
@@ -131,7 +131,7 @@ public class CollectScenePass : IPass
                     width = Size.X,
                     height = Size.Y,
                     minDepth = 0.0f,
-                    maxDepth = 1.0f
+                    maxDepth = 1.0f 
                 }
             ])
             .SetScissors([

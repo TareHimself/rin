@@ -16,6 +16,7 @@ public class StaticMeshComponent : SceneComponent
         if (MeshId != null && SGraphicsModule.Get().GetMeshFactory().GetMesh(MeshId.Value) is { } mesh)
         {
             var surfaces = mesh.GetSurfaces();
+            
             for (var i = 0; i < surfaces.Length; i++)
             {
                 var material = Materials.TryGet(i) ?? DefaultMeshMaterial.DefaultMesh;
@@ -24,7 +25,7 @@ public class StaticMeshComponent : SceneComponent
                     MeshMaterial = material,
                     Mesh = mesh,
                     SurfaceIndex = i,
-                    Transform = Matrix4x4.Identity.Rotate(Rotation) * Matrix4x4.Identity.Translate(new Vector3(0,0,5))// transform
+                    Transform = transform
                 });
             }
         }

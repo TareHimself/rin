@@ -1,6 +1,6 @@
 #include "Engine/Shaders/textures.slang"
 #include "Engine/Shaders/utils.slang"
-#include "World/Shaders/Lights/Models/pbr.slang"
+#include "World/Shaders/Lights/Models/pbr_new.slang"
 #include "World/Shaders/Lights/Models/lambert.slang"
 #include "World/Shaders/Lights/light.slang"
 #include "World/Shaders/Mesh/vertex.slang"
@@ -112,18 +112,26 @@ VertexOut vertex(VertexIn input) {
     var instanceData = push.data[input.instanceId];
     VertexOut output;
     var vertex = instanceData.vertices[input.vertexId];
+    var location4 = float4(vertex.getLocation(), 1.0);
+    var sceneLocation = instanceData.transform * location4;
     output.uv = vertex.getUV();
     output.sceneNormal = transpose(inverse(instanceData.transform)) * float4(vertex.getNormal(), 1.0);
-    output.sceneLocation = instanceData.transform * float4(vertex.getLocation(), 1.0);
-    output.position = push.scene->projection * push.scene->view * instanceData.transform * float4(vertex.getLocation(), 1.0);
+    output.sceneLocation = sceneLocation;
+    // We do this separately because of depth precision https://developer.nvidia.com/blog/visualizing-depth-precision/
+    var viewLocation = push.scene->view * float4(sceneLocation.xyz, 1.0);
+    output.position = push.scene->projection * viewLocation;
     output.instanceId = input.instanceId;
     return output;
 }
 
-struct LambertSurface : ILambertSurface {
+struct MeshSurface : ILambertSurface, IPBRSurface {
     float3 color;
     float3 location;
     float3 normal;
+    float roughness;
+    float metallic;
+    float specular;
+    float emissive;
 
     float3 getColor() {
         return color;
@@ -134,32 +142,40 @@ struct LambertSurface : ILambertSurface {
     float3 getNormal() {
         return normal;
     }
+
+    float getRoughness() {
+        return roughness;
+    }
+    float getMetallic() {
+        return metallic;
+    }
+    float getSpecular() {
+        return specular;
+    }
+    float getEmissive() {
+        return emissive;
+    }
 }
 [shader("fragment")]
 float4 fragment(FragmentIn input) : SV_Target
 {
-    
+
     var instanceData = push.data[input.instanceId];
-    var eye = (push.scene->view * float4(float3(0.0f), 1.0f)).xyz;
+    var eye = push.scene->cameraPosition;
 
-    // PBRModel model;
+    //return float4(input.uv, float2(1.0, 1.0));
+    // return float4(instanceData.getColor(input.uv),1.0);
+    PBRModel model;
 
-    // PBRSurface surface;
-
-    // surface.location = input.sceneLocation.xyz;
-    // surface.normal = normalize(input.sceneNormal.xyz);
-    // surface.color = instanceData.getColor(input.uv);
-    // surface.roughness = instanceData.getRoughness(input.uv);
-    // surface.metallic = instanceData.getMetallic(input.uv);
-    // surface.specular = instanceData.getSpecular(input.uv);
-    // surface.emissive = instanceData.getEmissive(input.uv);
-    LambertModel model;
-
-    LambertSurface surface;
+    MeshSurface surface;
 
     surface.location = input.sceneLocation.xyz;
     surface.normal = normalize(input.sceneNormal.xyz);
     surface.color = instanceData.getColor(input.uv);
+    surface.roughness = instanceData.getRoughness(input.uv);
+    surface.metallic = instanceData.getMetallic(input.uv);
+    surface.specular = instanceData.getSpecular(input.uv);
+    surface.emissive = instanceData.getEmissive(input.uv);
 
     float3 color = float3(0.0);
 

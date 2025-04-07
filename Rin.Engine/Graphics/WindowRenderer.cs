@@ -34,7 +34,6 @@ public class WindowRenderer : IWindowRenderer
     private VkImage[] _swapchainImages = [];
 
     private VkImageView[] _swapchainViews = [];
-    private VkViewport _viewport;
     public double LastCollectElapsedTime;
     public double LastExecuteElapsedTime;
 
@@ -149,13 +148,7 @@ public class WindowRenderer : IWindowRenderer
             surfaceCapabilities.maxImageExtent.width < extent.Width ||
             surfaceCapabilities.maxImageExtent.height < extent.Height)
             return false;
-
-        _viewport.minDepth = 0.0f;
-        _viewport.maxDepth = 1.0f;
-        _viewport.width = extent.Width;
-        _viewport.height = extent.Height;
-
-
+        
         var device = _module.GetDevice();
         var physicalDevice = _module.GetPhysicalDevice();
         var format = _module.GetSurfaceFormat();

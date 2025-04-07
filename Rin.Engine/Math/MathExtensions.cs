@@ -269,6 +269,7 @@ public static class MathExtensions
     
     public static Vector3 Project(this in Vector3 src, in Matrix4x4 matrix)
     {
+
         var vec = new Vector4(src, 1.0f);
         vec = Vector4.Transform(vec, matrix);
         vec /= vec.W;
