@@ -23,7 +23,7 @@ public abstract class SimpleMaterialPass : IMaterialPass
     ///     <see cref="GetRequiredMemory" /> * <see cref="meshes" />
     /// </param>
     /// <param name="meshes">The meshes to draw</param>
-    public void Execute(SceneFrame frame, IDeviceBufferView? data, GeometryInfo[] meshes)
+    public void Execute(SceneFrame frame, IDeviceBufferView? data, StaticMeshInfo[] meshes)
     {
         var requiredMemorySize = GetRequiredMemory();
         var cmd = frame.GetCommandBuffer();
@@ -46,9 +46,9 @@ public abstract class SimpleMaterialPass : IMaterialPass
         }
     }
 
-    public abstract void Write(IDeviceBufferView view, GeometryInfo mesh);
+    public abstract void Write(IDeviceBufferView view, StaticMeshInfo mesh);
 
-    protected abstract IMaterialPass GetPass(GeometryInfo mesh);
+    protected abstract IMaterialPass GetPass(StaticMeshInfo mesh);
 
     /// <summary>
     ///     Execute this pass for all <see cref="meshes" />. The index buffer and shader are already bound
@@ -59,5 +59,5 @@ public abstract class SimpleMaterialPass : IMaterialPass
     /// <param name="meshes"></param>
     /// <returns>The total memory used</returns>
     protected abstract ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data,
-        GeometryInfo[] meshes);
+        StaticMeshInfo[] meshes);
 }

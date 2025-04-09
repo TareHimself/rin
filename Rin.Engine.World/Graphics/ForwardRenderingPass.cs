@@ -41,7 +41,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
             : 0;
         SceneBufferId = config.AllocateBuffer<SceneInfo>();
         var materialBufferSize = _collectPass.Geometry.Aggregate((ulong)0,
-            (total, geometryDrawCommand) => total + geometryDrawCommand.MeshMaterial.ColorPass.GetRequiredMemory());
+            (total, geometryDrawCommand) => total + geometryDrawCommand.Material.ColorPass.GetRequiredMemory());
         MaterialBufferId = materialBufferSize > 0 ? config.AllocateBuffer(materialBufferSize) : 0;
         var (width, height) = _size;
         OutputImageId = config.CreateImage(width, height, ImageFormat.RGBA32);
@@ -112,16 +112,16 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
 
         foreach (var geometryInfos in _collectPass.OpaqueGeometry.GroupBy(c => new
                  {
-                     Type = c.MeshMaterial.GetType(),
+                     Type = c.Material.GetType(),
                      c.Mesh
                  }))
         {
             var infos = geometryInfos.ToArray();
             var first = infos.First();
-            var size = first.MeshMaterial.ColorPass.GetRequiredMemory() * (ulong)infos.Length;
+            var size = first.Material.ColorPass.GetRequiredMemory() * (ulong)infos.Length;
             var view = materialBuffer?.GetView(materialBufferSize, size);
             materialBufferSize += size;
-            first.MeshMaterial.ColorPass.Execute(sceneFrame, view, infos);
+            first.Material.ColorPass.Execute(sceneFrame, view, infos);
         }
 
         cmd.EndRendering();

@@ -60,7 +60,8 @@ public class SSceneTestModule : IModule
             var comp = camera.GetCameraComponent();
             var location = new Vector3(0.0f,0, 0);
             comp.SetLocation(location);
-            Extensions.LoadStaticMesh(Path.Join(SEngine.AssetsDirectory, "models", "cube.glb")).After(mesh =>
+            Extensions.LoadStaticMesh(@"/home/tare/Downloads/monke.glb"//Path.Join(SEngine.AssetsDirectory, "models", "cube.glb")
+            ).After(mesh =>
             {
                 scene.AddPointLight(new Vector3(0.0f, 20.0f, 0.0f));
 
@@ -74,8 +75,7 @@ public class SSceneTestModule : IModule
                     }
                 });
 
-                directionalLight.SetRotation(MathR.LookTo(directionalLight.GetLocation(), new Vector3(0.0f), MathR.Up)
-                    .ToQuaternion());
+                directionalLight.SetRotation(MathR.LookTowards(directionalLight.GetLocation(), new Vector3(0.0f), MathR.Up));
                 //
                 var dist = 8.0f;
                 var height = 15.0f;

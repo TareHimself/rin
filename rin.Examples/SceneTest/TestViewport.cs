@@ -13,7 +13,7 @@ namespace rin.Examples.SceneTest;
 
 public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camera.GetCameraComponent(), modeText)
 {
-    private readonly Actor _testActor = new Actor
+    private readonly Actor _testActor = camera.World?.AddActor(new Actor
     {
         RootComponent = new StaticMeshComponent
         {
@@ -22,7 +22,7 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
             Location = new Vector3(3, 15, 3),
             Rotation = MathR.Forward.ToQuaternion()
         }
-    } ?? throw new NullReferenceException();
+    }) ?? throw new NullReferenceException();
 
     private float _forwardAxis;
     private float _pitch;
@@ -44,7 +44,7 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
     public override void Update(float deltaTime)
     {
         base.Update(deltaTime);
-        _testActor.SetRotation(MathR.LookAt(_testActor.GetLocation(),camera.GetLocation(),MathR.Up).ToQuaternion());
+        //_testActor.SetRotation(MathR.LookTowards(_testActor.GetLocation(),camera.GetLocation(),MathR.Up));
         if (IsFocused)
         {
             var speed = 100.0f;
@@ -62,7 +62,7 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
         if (e is { Key: InputKey.Space, State: InputState.Pressed })
         {
             var world = camera.GetTransform(Space.World);
-            world.Rotation = MathR.LookAt(world.Location, new Vector3(8, 15, 0), MathR.Up).ToQuaternion();
+            world.Rotation = MathR.LookTowards(world.Location, new Vector3(8, 15, 0), MathR.Up);
             camera.SetTransform(world, Space.World);
         }
 

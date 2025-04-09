@@ -348,6 +348,6 @@ public static class MathExtensions
     [Pure]
     public static Quaternion ToQuaternion(in this Vector3 self)
     {
-        return Quaternion.CreateFromRotationMatrix(MathR.LookTo(Vector3.Zero, self, MathR.Up));
+        return MathR.LookTowards(Vector3.Zero, self, MathR.Up);
     }
 }

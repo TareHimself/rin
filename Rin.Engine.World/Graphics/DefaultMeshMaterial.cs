@@ -57,13 +57,13 @@ public class DefaultMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DefaultMaterialProperties>();
         }
 
-        protected override IMaterialPass GetPass(GeometryInfo mesh)
+        protected override IMaterialPass GetPass(StaticMeshInfo mesh)
         {
-            return mesh.MeshMaterial.ColorPass;
+            return mesh.Material.ColorPass;
         }
 
         protected override ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data,
-            GeometryInfo[] meshes)
+            StaticMeshInfo[] meshes)
         {
             var cmd = frame.GetCommandBuffer();
             var push = Shader.PushConstants.Values.First();
@@ -95,7 +95,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             return memoryUsed;
         }
 
-        public override void Write(IDeviceBufferView view, GeometryInfo mesh)
+        public override void Write(IDeviceBufferView view, StaticMeshInfo mesh)
         {
             var data = new DefaultMaterialProperties
             {
@@ -203,13 +203,13 @@ public class DefaultMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DepthMaterialData>();
         }
 
-        protected override IMaterialPass GetPass(GeometryInfo mesh)
+        protected override IMaterialPass GetPass(StaticMeshInfo mesh)
         {
-            return mesh.MeshMaterial.DepthPass;
+            return mesh.Material.DepthPass;
         }
 
         protected override ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data,
-            GeometryInfo[] meshes)
+            StaticMeshInfo[] meshes)
         {
             var cmd = frame.GetCommandBuffer();
             var push = Shader.PushConstants.Values.First();
@@ -237,7 +237,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             return memoryUsed;
         }
 
-        public override void Write(IDeviceBufferView view, GeometryInfo mesh)
+        public override void Write(IDeviceBufferView view, StaticMeshInfo mesh)
         {
             view.Write(new DepthMaterialData
             {

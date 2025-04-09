@@ -16,10 +16,10 @@ namespace Rin.Engine.World.Graphics;
 /// </summary>
 public class CollectScenePass : IPass
 {
-    [PublicAPI] public GeometryInfo[] Geometry;
+    [PublicAPI] public StaticMeshInfo[] Geometry;
     [PublicAPI] public LightInfo[] Lights;
-    [PublicAPI] public GeometryInfo[] OpaqueGeometry;
-    [PublicAPI] public GeometryInfo[] TranslucentGeometry;
+    [PublicAPI] public StaticMeshInfo[] OpaqueGeometry;
+    [PublicAPI] public StaticMeshInfo[] TranslucentGeometry;
     [PublicAPI] public Transform CameraTransform;
     [PublicAPI] public World World;
 
@@ -57,8 +57,8 @@ public class CollectScenePass : IPass
         var drawCommands = new DrawCommands();
         foreach (var root in World.GetPureRoots().ToArray()) root.Collect(drawCommands, World.WorldTransform);
         Geometry = drawCommands.GeometryCommands.ToArray();
-        OpaqueGeometry = Geometry.Where(info => !info.MeshMaterial.Translucent).ToArray();
-        TranslucentGeometry = Geometry.Where(info => info.MeshMaterial.Translucent).ToArray();
+        OpaqueGeometry = Geometry.Where(info => !info.Material.Translucent).ToArray();
+        TranslucentGeometry = Geometry.Where(info => info.Material.Translucent).ToArray();
         Lights = drawCommands.Lights.ToArray();
     }
 
@@ -97,7 +97,7 @@ public class CollectScenePass : IPass
         DepthImageId = config.CreateImage(Size.X, Size.Y, ImageFormat.Depth);
         DepthSceneBufferId = config.AllocateBuffer<DepthSceneInfo>();
         var depthMaterialDataSize = OpaqueGeometry.Aggregate(Utils.ByteSizeOf<DepthSceneInfo>(),
-            (current, geometryDrawCommand) => current + geometryDrawCommand.MeshMaterial.DepthPass.GetRequiredMemory());
+            (current, geometryDrawCommand) => current + geometryDrawCommand.Material.DepthPass.GetRequiredMemory());
 
         DepthMaterialBufferId = depthMaterialDataSize > 0 ? config.AllocateBuffer(depthMaterialDataSize) : 0;
     }
@@ -157,16 +157,16 @@ public class CollectScenePass : IPass
 
         foreach (var geometryInfos in OpaqueGeometry.GroupBy(c => new
                  {
-                     Type = c.MeshMaterial.GetType(),
+                     Type = c.Material.GetType(),
                      c.Mesh
                  }))
         {
             var infos = geometryInfos.ToArray();
             var first = infos.First();
-            var size = first.MeshMaterial.DepthPass.GetRequiredMemory() * (ulong)infos.Length;
+            var size = first.Material.DepthPass.GetRequiredMemory() * (ulong)infos.Length;
             var view = materialDataBuffer?.GetView(materialDataBufferOffset, size);
             materialDataBufferOffset += size;
-            first.MeshMaterial.DepthPass.Execute(sceneFrame, view, infos);
+            first.Material.DepthPass.Execute(sceneFrame, view, infos);
         }
 
         cmd.EndRendering();

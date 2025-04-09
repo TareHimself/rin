@@ -4,7 +4,7 @@ namespace Rin.Engine.World.Graphics;
 
 public class DrawCommands
 {
-    [PublicAPI] public readonly List<GeometryInfo> GeometryCommands = [];
+    [PublicAPI] public readonly List<StaticMeshInfo> GeometryCommands = [];
 
     [PublicAPI] public readonly List<LightInfo> Lights = [];
 
@@ -14,7 +14,7 @@ public class DrawCommands
         return this;
     }
 
-    public DrawCommands AddCommand(GeometryInfo command)
+    public DrawCommands AddCommand(StaticMeshInfo command)
     {
         GeometryCommands.Add(command);
         return this;

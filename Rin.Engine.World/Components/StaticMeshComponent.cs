@@ -16,13 +16,13 @@ public class StaticMeshComponent : SceneComponent
         if (MeshId != null && SGraphicsModule.Get().GetMeshFactory().GetMesh(MeshId.Value) is { } mesh)
         {
             var surfaces = mesh.GetSurfaces();
-            
+            IMeshMaterial lastMaterial = DefaultMeshMaterial.DefaultMesh;
             for (var i = 0; i < surfaces.Length; i++)
             {
-                var material = Materials.TryGet(i) ?? DefaultMeshMaterial.DefaultMesh;
-                drawCommands.AddCommand(new GeometryInfo
+                var material = lastMaterial = Materials.TryGet(i) ?? lastMaterial;
+                drawCommands.AddCommand(new StaticMeshInfo
                 {
-                    MeshMaterial = material,
+                    Material = material,
                     Mesh = mesh,
                     SurfaceIndex = i,
                     Transform = transform
