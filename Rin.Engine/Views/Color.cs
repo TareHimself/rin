@@ -21,12 +21,7 @@ public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOp
     public Color(float data) : this(data, data, data, data)
     {
     }
-
-    public Color Clone(float? r = null, float? g = null, float? b = null, float? a = null)
-    {
-        return new Color(r ?? R, g ?? G, b ?? B, a ?? A);
-    }
-
+    
     public static implicit operator Vector4(Color color)
     {
         return new Vector4(color.R, color.G, color.B, color.A);

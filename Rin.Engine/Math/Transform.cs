@@ -2,9 +2,9 @@
 using System.Numerics;
 using Rin.Engine.Extensions;
 
-namespace Rin.Engine.World.Math;
+namespace Rin.Engine.Math;
 
-public struct Transform() : ICloneable<Transform>
+public struct Transform()
 {
     public Vector3 Location = new(0.0f);
     public Quaternion Rotation = Quaternion.Identity;
@@ -27,17 +27,7 @@ public struct Transform() : ICloneable<Transform>
 
         return scale * rotation * translation;
     }
-
-    public Transform Clone()
-    {
-        return new Transform
-        {
-            Location = Location.Clone(),
-            Rotation = new Quaternion(Rotation.X, Rotation.Y, Rotation.Z, Rotation.W),
-            Scale = Scale.Clone()
-        };
-    }
-
+    
     public void Deconstruct(out Vector3 location, out Quaternion rotation, out Vector3 scale)
     {
         location = Location;

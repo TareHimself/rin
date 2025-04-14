@@ -13,16 +13,17 @@ namespace rin.Examples.SceneTest;
 
 public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camera.GetCameraComponent(), modeText)
 {
-    private readonly Actor _testActor = camera.World?.AddActor(new Actor
-    {
-        RootComponent = new StaticMeshComponent
-        {
-            MeshId = 0,
-            Scale = new Vector3(1, 1, 2),
-            Location = new Vector3(3, 15, 3),
-            Rotation = MathR.Forward.ToQuaternion()
-        }
-    }) ?? throw new NullReferenceException();
+    private readonly Actor _testActor = camera;
+    // private readonly Actor _testActor = camera.World?.AddActor(new Actor
+    // {
+    //     RootComponent = new StaticMeshComponent
+    //     {
+    //         MeshId = 0,
+    //         Scale = new Vector3(1, 1, 2),
+    //         Location = new Vector3(3, 15, 3),
+    //         Rotation = MathR.Forward.ToQuaternion()
+    //     }
+    // }) ?? throw new NullReferenceException();
 
     private float _forwardAxis;
     private float _pitch;
@@ -35,7 +36,7 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
         var viewTarget = _testActor?.RootComponent;
         if (viewTarget == null) return; //.ApplyYaw(delta.X).ApplyPitch(delta.Y)
         _pitch += delta.Y;
-        _yaw -= delta.X;
+        _yaw += delta.X;
         _pitch = float.Clamp(_pitch, -90, 90);
         Console.WriteLine("Pitch: {0}, Yaw: {1}", _pitch, _yaw);
         viewTarget.SetRotation(MathR.Forward.ToQuaternion().AddYaw(_yaw).AddLocalPitch(_pitch));
@@ -61,11 +62,13 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
         base.OnKeyboard(e);
         if (e is { Key: InputKey.Space, State: InputState.Pressed })
         {
-            var world = camera.GetTransform(Space.World);
-            world.Rotation = MathR.LookTowards(world.Location, new Vector3(8, 15, 0), MathR.Up);
-            camera.SetTransform(world, Space.World);
+            
+            // var world = camera.GetTransform(Space.World);
+            // world.Rotation = MathR.LookTowards(world.Location, new Vector3(8, 15, 0), MathR.Up);
+            // camera.SetTransform(world, Space.World);
         }
 
+        var moveSpeed = 0.5f;
         if (e is
             {
                 Key: InputKey.W or InputKey.A or InputKey.S or InputKey.D,
@@ -75,29 +78,29 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
             if (e is { Key: InputKey.W })
                 _forwardAxis += e.State switch
                 {
-                    InputState.Pressed => +1.0f,
-                    InputState.Released => -1.0f
+                    InputState.Pressed => +moveSpeed,
+                    InputState.Released => -moveSpeed
                 };
 
             if (e is { Key: InputKey.S })
                 _forwardAxis += e.State switch
                 {
-                    InputState.Pressed => -1.0f,
-                    InputState.Released => +1.0f
+                    InputState.Pressed => -moveSpeed,
+                    InputState.Released => +moveSpeed
                 };
 
             if (e is { Key: InputKey.D })
                 _rightAxis += e.State switch
                 {
-                    InputState.Pressed => +1.0f,
-                    InputState.Released => -1.0f
+                    InputState.Pressed => +moveSpeed,
+                    InputState.Released => -moveSpeed
                 };
 
             if (e is { Key: InputKey.A })
                 _rightAxis += e.State switch
                 {
-                    InputState.Pressed => -1.0f,
-                    InputState.Released => +1.0f
+                    InputState.Pressed => -moveSpeed,
+                    InputState.Released => +moveSpeed
                 };
         }
     }

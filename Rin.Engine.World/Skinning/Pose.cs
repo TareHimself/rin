@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Numerics;
 using Rin.Engine.Math;
 using Rin.Engine.World.Math;
 
@@ -9,29 +10,21 @@ public struct Pose
 {
     public FrozenDictionary<string, Transform> Transforms;
 
-    public static Pose Interpolate(Pose a, Pose b, float alpha)
+    
+    public static Pose Blend(Pose a, Pose b, float alpha)
     {
         var allKeys = a.Transforms.Keys.ToImmutableHashSet().Union(b.Transforms.Keys.ToImmutableHashSet());
         return new Pose
         {
-            Transforms = allKeys.ToFrozenDictionary((k) => k, (k) =>
+            Transforms = allKeys.ToFrozenDictionary(k => k, k =>
             {
                 var inA = a.Transforms.ContainsKey(k);
                 var inB = b.Transforms.ContainsKey(k);
-                if (inA && inB)
-                {
-                    return MathR.Interpolate(a.Transforms[k], b.Transforms[k], alpha);
-                }
+                if (inA && inB) return MathR.Interpolate(a.Transforms[k], b.Transforms[k], alpha);
 
-                if (inA)
-                {
-                    return a.Transforms[k];
-                }
+                if (inA) return a.Transforms[k];
 
-                if (inB)
-                {
-                    return b.Transforms[k];
-                }
+                if (inB) return b.Transforms[k];
 
                 throw new NotSupportedException();
             })

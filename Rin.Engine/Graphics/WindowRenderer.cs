@@ -148,7 +148,7 @@ public class WindowRenderer : IWindowRenderer
             surfaceCapabilities.maxImageExtent.width < extent.Width ||
             surfaceCapabilities.maxImageExtent.height < extent.Height)
             return false;
-        
+
         var device = _module.GetDevice();
         var physicalDevice = _module.GetPhysicalDevice();
         var format = _module.GetSurfaceFormat();

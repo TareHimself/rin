@@ -11,8 +11,7 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
     IMultiplyOperators<Vec3<T>, T, Vec3<T>>,
     IDivisionOperators<Vec3<T>, Vec3<T>, Vec3<T>>,
     IDivisionOperators<Vec3<T>, T, Vec3<T>>,
-    IUnaryNegationOperators<Vec3<T>, Vec3<T>>,
-    IVec<Vec3<T>, T>
+    IUnaryNegationOperators<Vec3<T>, Vec3<T>>
     where T : notnull, IComparisonOperators<T, T, bool>, IUnaryNegationOperators<T, T>
 {
     public T X = inX;
@@ -139,12 +138,7 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
         if (max > c) return new Vec3<T>(X, Y, Z) / max;
         return new Vec3<T>(X, Y, Z);
     }
-
-    public Vec3<T> Clone()
-    {
-        return new Vec3<T>(X, Y, Z);
-    }
-
+    
     public static Vec3<T> operator -(Vec3<T> value)
     {
         return new Vec3<T>(-value.X, -value.Y, -value.Z);

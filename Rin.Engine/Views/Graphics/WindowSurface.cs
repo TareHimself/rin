@@ -59,7 +59,7 @@ public class WindowSurface : Surface
     {
         _size = e.Size.Cast<int>();
         _minimized = _size.X == 0 || _size.Y == 0;
-        if (!_minimized) ReceiveResize(new ResizeSurfaceEvent(this, _size.Clone()));
+        if (!_minimized) ReceiveResize(new ResizeSurfaceEvent(this, _size));
     }
 
     protected void OnKeyboard(KeyEvent e)

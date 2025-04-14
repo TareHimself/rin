@@ -4,18 +4,13 @@ using Rin.Engine.Math;
 
 namespace Rin.Engine.Views;
 
-public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
+public struct Rect(Vector2 inOffset, Vector2 inSize)
 {
     public Vector2 Offset = inOffset;
     public Vector2 Size = inSize;
 
     public Rect() : this(new Vector2(0, 0), new Vector2())
     {
-    }
-
-    public Rect Clone()
-    {
-        return new Rect(Offset.Clone(), Size.Clone());
     }
 
     public static implicit operator Vector4(Rect rect)
@@ -52,7 +47,7 @@ public class Rect(Vector2 inOffset, Vector2 inSize) : ICloneable<Rect>
     {
         if (!IntersectsWith(area))
         {
-            Offset = area.Offset.Clone();
+            Offset = area.Offset;
             Size = new Vector2();
             return this;
         }

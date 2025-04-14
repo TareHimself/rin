@@ -176,12 +176,7 @@ public static class MathExtensions
             W = self["W"]?.GetValue<float>() ?? 0
         };
     }
-
-    public static Quaternion Clone(this in Quaternion self)
-    {
-        return new Quaternion(self.X, self.Y, self.Z, self.W);
-    }
-
+    
     public static Matrix4x4 ToTranslationMatrix(this in Vector3 self)
     {
         return Matrix4x4.CreateTranslation(self);
@@ -266,10 +261,9 @@ public static class MathExtensions
         vec = Vector4.Transform(vec, matrix);
         return new Vector3(vec.X, vec.Y, vec.Z);
     }
-    
+
     public static Vector3 Project(this in Vector3 src, in Matrix4x4 matrix)
     {
-
         var vec = new Vector4(src, 1.0f);
         vec = Vector4.Transform(vec, matrix);
         vec /= vec.W;

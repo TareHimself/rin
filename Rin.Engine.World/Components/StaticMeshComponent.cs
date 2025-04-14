@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
-using Rin.Engine.Math;
 using Rin.Engine.World.Graphics;
 
 namespace Rin.Engine.World.Components;

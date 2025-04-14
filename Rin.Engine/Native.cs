@@ -11,7 +11,7 @@ namespace Rin.Engine;
 internal static partial class Native
 {
 #if OS_WINDOWS
-  private const string DllName = "Rin.Engine.Native";
+    private const string DllName = "Rin.Engine.Native";
 #elif OS_LINUX
     private const string DllName = "libRin.Engine.Native.so";
 #elif OS_FREEBSD

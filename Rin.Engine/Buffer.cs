@@ -5,7 +5,7 @@ using Rin.Engine.Extensions;
 
 namespace Rin.Engine;
 
-public class Buffer<T> : IReservable, IBinarySerializable, ICloneable<Buffer<T>>, IEnumerable<T>
+public class Buffer<T> : IReservable, IBinarySerializable, ICopyable<Buffer<T>>, IEnumerable<T>
     where T : unmanaged
 {
     private readonly object _sync = new();
@@ -79,7 +79,7 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICloneable<Buffer<T>>
         }
     }
 
-    public Buffer<T> Clone()
+    public Buffer<T> Copy()
     {
         var buff = new Buffer<T>(_elements);
         buff.Write(AsReadOnlySpan());

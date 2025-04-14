@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Rin.Engine.Math;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Math;
 

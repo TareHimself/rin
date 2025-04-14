@@ -45,7 +45,7 @@ public class TextBox : ContentView
 
     [PublicAPI] public Color ForegroundColor { get; set; } = Color.White;
 
-    [PublicAPI] public Color BackgroundColor { get; set; } = Color.White.Clone(a: 0.0f);
+    [PublicAPI] public Color BackgroundColor { get; set; } = Color.White with {A = 0.0f};
 
     [PublicAPI]
     public bool WrapContent
@@ -120,7 +120,7 @@ public class TextBox : ContentView
         _cachedLayouts = null;
         Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X + 2f : null : null;
         var bounds = GetCharacterBounds(Wrap).ToArray();
-        if(bounds.Empty()) return Vector2.Zero;
+        if (bounds.Empty()) return Vector2.Zero;
         var width = bounds.MaxBy(c => c.Right).Right;
         var height = bounds.MaxBy(c => c.Bottom).Bottom;
         return new Vector2(width, height);

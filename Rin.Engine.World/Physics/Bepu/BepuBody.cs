@@ -3,6 +3,7 @@ using BepuPhysics;
 using BepuPhysics.Collidables;
 using JetBrains.Annotations;
 using Rin.Engine.Extensions;
+using Rin.Engine.Math;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
 
@@ -33,7 +34,7 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
                 _linearVelocity = new Vector3(vel.X, vel.Y, vel.Z);
             }
 
-            return _linearVelocity.Clone();
+            return _linearVelocity;
         }
         set
         {
@@ -52,7 +53,7 @@ public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : I
                 _angularVelocity = new Vector3(vel.X, vel.Y, vel.Z);
             }
 
-            return _angularVelocity.Clone();
+            return _angularVelocity;
         }
         set
         {

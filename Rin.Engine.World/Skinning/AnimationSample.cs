@@ -1,21 +1,17 @@
 using System.Collections.Frozen;
-using Rin.Engine.World.Math;
 
 namespace Rin.Engine.World.Skinning;
 
 public class AnimationSample
 {
     public Dictionary<string, BoneCurve> BoneCurves = [];
-    
+
     public BoneCurve? this[string boneName]
     {
         get
         {
             {
-                if (BoneCurves.TryGetValue(boneName, out var boneCurve))
-                {
-                    return boneCurve;
-                }
+                if (BoneCurves.TryGetValue(boneName, out var boneCurve)) return boneCurve;
             }
 
             return null;
@@ -25,17 +21,14 @@ public class AnimationSample
     public BoneCurve GetOrCreate(string boneName)
     {
         {
-            if (BoneCurves.TryGetValue(boneName, out var boneCurve))
-            {
-                return boneCurve;
-            }
+            if (BoneCurves.TryGetValue(boneName, out var boneCurve)) return boneCurve;
         }
 
-        var curve = new BoneCurve()
+        var curve = new BoneCurve
         {
-            BoneName = boneName,
+            BoneName = boneName
         };
-        
+
         BoneCurves.Add(boneName, curve);
 
         return curve;
@@ -47,5 +40,5 @@ public class AnimationSample
         {
             Transforms = BoneCurves.ToFrozenDictionary(c => c.Key, c => c.Value.Evaluate(time))
         };
-    } 
+    }
 }

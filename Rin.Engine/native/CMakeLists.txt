@@ -4,8 +4,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 include(${CMAKE_CURRENT_SOURCE_DIR}/utils.cmake)
 
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # include(ExternalProject)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
 
 project(Rin.Engine.Native LANGUAGES CXX VERSION 1.0.0 DESCRIPTION "Native abstractions for the Rin.Engine")
 
@@ -17,16 +19,6 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${SRC_DIR})
 
-FetchContent_Declare(fetch_glm
-    GIT_REPOSITORY https://github.com/g-truc/glm
-    GIT_TAG 1.0.0
-    GIT_SHALLOW 1
-)
-FetchContent_Declare(fetch_glfw
-    GIT_REPOSITORY https://github.com/glfw/glfw
-    GIT_TAG 3.4
-    GIT_SHALLOW 1
-)
 FetchContent_Declare(fetch_vkma
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
     GIT_TAG v3.1.0
@@ -44,11 +36,7 @@ FetchContent_Declare(fetch_msdfgen
 )
 
 set(BUILD_SHARED_LIBS ON)
-set(GLM_BUILD_TESTS OFF)
-set(GLFW_BUILD_EXAMPLES OFF)
 set(VK_BOOTSTRAP_TEST OFF)
-set(GLFW_BUILD_TESTS OFF)
-set(GLFW_BUILD_DOCS OFF)
 set(MSDFGEN_DYNAMIC_RUNTIME ON)
 set(BUILD_SHARED_LIBS ON)
 set(MSDFGEN_USE_SKIA OFF)
@@ -58,11 +46,11 @@ set(MSDFGEN_BUILD_STANDALONE OFF)
 set(MSDFGEN_USE_VCPKG OFF)
 
 
-FetchContent_MakeAvailable(fetch_glm fetch_vkma fetch_vkb fetch_msdfgen)
+FetchContent_MakeAvailable(fetch_vkma fetch_vkb fetch_msdfgen)
 
 find_package(Vulkan REQUIRED FATAL_ERROR)
 
-target_link_libraries(${PROJECT_NAME} glm::glm msdfgen::msdfgen Vulkan::Vulkan vk-bootstrap::vk-bootstrap GPUOpen::VulkanMemoryAllocator)
+target_link_libraries(${PROJECT_NAME} msdfgen::msdfgen Vulkan::Vulkan vk-bootstrap::vk-bootstrap GPUOpen::VulkanMemoryAllocator)
 
 FindSlang(${PROJECT_NAME})
 GetBass()

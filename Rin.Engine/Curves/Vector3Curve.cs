@@ -2,9 +2,8 @@
 
 namespace Rin.Engine.Curves;
 
-public class Vector3Curve : Curve<Vector3,Vector3>
+public class Vector3Curve : Curve<Vector3, Vector3>
 {
-    
     protected override Vector3 Interpolate(in Vector3 previous, in Vector3 next, float alpha)
     {
         var dist = next - previous;

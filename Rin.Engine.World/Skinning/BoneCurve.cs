@@ -6,19 +6,18 @@ namespace Rin.Engine.World.Skinning;
 
 public class BoneCurve : ICurve<Transform>
 {
+    public readonly Vector3Curve LocationCurve = new();
+    public readonly QuaternionCurve RotationCurve = new();
+    public readonly Vector3Curve ScaleCurve = new();
     public string BoneName = string.Empty;
-
-    public readonly Vector3Curve LocationCurve = new Vector3Curve();
-    public readonly QuaternionCurve RotationCurve = new QuaternionCurve();
-    public readonly Vector3Curve ScaleCurve = new Vector3Curve();
 
     public Transform Evaluate(float time)
     {
-        return new Transform()
+        return new Transform
         {
             Location = LocationCurve.Evaluate(time),
             Rotation = RotationCurve.Evaluate(time),
-            Scale = ScaleCurve.Evaluate(time),
+            Scale = ScaleCurve.Evaluate(time)
         };
     }
 }

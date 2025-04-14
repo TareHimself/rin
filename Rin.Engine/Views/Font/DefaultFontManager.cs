@@ -45,11 +45,11 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
 
             if (toGenerate.Empty()) return Task.CompletedTask;
 
-            var pending = _defaultLiveGlyph.Mutate(c =>
+
+            var pending = _defaultLiveGlyph with
             {
-                c.State = LiveGlyphState.Pending;
-                return c;
-            });
+                State = LiveGlyphState.Pending
+            };
             foreach (var (_, key) in toGenerate) _atlases.AddOrUpdate(key, pending, (k, i) => pending);
 
 
@@ -78,7 +78,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                                 size.Y / result.PixelHeight)
                         };
 
-                        glyph.AtlasId = SGraphicsModule.Get().CreateTexture(result.Data.Clone(),
+                        glyph.AtlasId = SGraphicsModule.Get().CreateTexture(result.Data.Copy(),
                             new Extent3D((uint)result.PixelWidth, (uint)result.PixelHeight), ImageFormat.RGBA8,
                             tiling: ImageTiling.ClampEdge).First;
                         return new Pair<int, LiveGlyphInfo>(index, glyph);
@@ -114,11 +114,10 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
 
             if (toGenerate.Empty()) return Task.CompletedTask;
 
-            var pending = _defaultLiveGlyph.Mutate(c =>
+            var pending = _defaultLiveGlyph with
             {
-                c.State = LiveGlyphState.Pending;
-                return c;
-            });
+                State = LiveGlyphState.Pending
+            };
             foreach (var (_, key) in toGenerate) _atlases.AddOrUpdate(key, pending, (k, i) => pending);
             return Task.Run(() =>
             {
@@ -254,7 +253,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
         {
             if (_fonts.ContainsKey(family)) return _fonts[family];
             var insert = new SixLaborsFont(family);
-            _fonts.AddOrUpdate(family,insert, (k, i) => insert);
+            _fonts.AddOrUpdate(family, insert, (k, i) => insert);
             return insert;
         }
 

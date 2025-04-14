@@ -1,13 +1,11 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Math;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
 using TerraFX.Interop.Vulkan;
-using Utils = Rin.Engine.Utils;
 
 namespace Rin.Engine.World.Graphics;
 
@@ -16,11 +14,11 @@ namespace Rin.Engine.World.Graphics;
 /// </summary>
 public class CollectScenePass : IPass
 {
+    [PublicAPI] public Transform CameraTransform;
     [PublicAPI] public StaticMeshInfo[] Geometry;
     [PublicAPI] public LightInfo[] Lights;
     [PublicAPI] public StaticMeshInfo[] OpaqueGeometry;
     [PublicAPI] public StaticMeshInfo[] TranslucentGeometry;
-    [PublicAPI] public Transform CameraTransform;
     [PublicAPI] public World World;
 
     /// <summary>
@@ -32,27 +30,14 @@ public class CollectScenePass : IPass
     {
         World = camera.Owner?.World ?? throw new Exception("Camera is not in a scene");
         CameraTransform = camera.GetTransform(Space.World);
-        View =  Matrix4x4.Identity.Translate(CameraTransform.Location).Inverse();
+        View = (CameraTransform with { Scale = Vector3.One }).ToMatrix().Inverse();
         FieldOfView = camera.FieldOfView;
         NearClip = camera.NearClipPlane;
         FarClip = camera.FarClipPlane;
         Projection = MathR.PerspectiveProjection(FieldOfView, size.X, size.Y,
-            NearClip,FarClip);
+            NearClip, FarClip);
         ViewProjection = View * Projection;
         Size = size;
-
-        var cameraLocation = camera.Location;
-        var cameraProjected = cameraLocation.Project(Projection);
-        var finalLoc = new Vector3(0, 0, 10) - cameraLocation;
-        var finalLocProjected = finalLoc.Project(Projection);
-        var a = new Vector3(0, 0, 10).Transform(View).Project(Projection);
-        var b = new Vector3(0, 0, 10).Project(ViewProjection);
-        var c = new Vector3(0, 0, 30).Project(Projection);
-        
-        var a1 = new Vector3(0, 0, 1).Project(Projection);
-        var b1 = new Vector3(0, 0, 2).Project(Projection);
-        var c1 = new Vector3(0, 0, 3).Project(Projection);
-        
         // Collect Scene On Main Thread
         var drawCommands = new DrawCommands();
         foreach (var root in World.GetPureRoots().ToArray()) root.Collect(drawCommands, World.WorldTransform);
@@ -70,27 +55,24 @@ public class CollectScenePass : IPass
 
     [PublicAPI] public IGraphImage? DepthImage { get; set; }
 
-    [PublicAPI]
-    public Matrix4x4 View { get; set; }
+    [PublicAPI] public Matrix4x4 View { get; set; }
 
-    [PublicAPI]
-    public Matrix4x4 Projection { get; }
-    
+    [PublicAPI] public Matrix4x4 Projection { get; }
+
     public Matrix4x4 ViewProjection { get; }
     [PublicAPI] public float FieldOfView { get; set; }
     [PublicAPI] public float NearClip { get; set; }
     [PublicAPI] public float FarClip { get; set; }
     [PublicAPI] public Vector2<uint> Size { get; set; }
-    
+
     private uint DepthSceneBufferId { get; set; }
     private uint DepthMaterialBufferId { get; set; }
 
-    
+
     public void Added(IGraphBuilder builder)
     {
-        
     }
-    
+
 
     public void Configure(IGraphConfig config)
     {
@@ -131,7 +113,7 @@ public class CollectScenePass : IPass
                     width = Size.X,
                     height = Size.Y,
                     minDepth = 0.0f,
-                    maxDepth = 1.0f 
+                    maxDepth = 1.0f
                 }
             ])
             .SetScissors([

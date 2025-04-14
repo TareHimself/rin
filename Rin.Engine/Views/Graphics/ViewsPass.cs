@@ -1,12 +1,10 @@
 using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Math;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
-using Utils = Rin.Engine.Utils;
 
 namespace Rin.Engine.Views.Graphics;
 
@@ -27,7 +25,7 @@ public sealed class ViewsPass : IPass
         _surface = surface;
         _passInfo = passInfo;
         SurfaceSize = drawSize;
-        _drawSize = SurfaceSize.Mutate(c => new Vector2<uint>((uint)c.X, (uint)c.Y));
+        _drawSize = new Vector2<uint>((uint)SurfaceSize.X, (uint)SurfaceSize.Y);
         _stats = surface.Stats;
     }
 

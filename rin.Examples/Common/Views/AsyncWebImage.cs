@@ -49,6 +49,6 @@ public class AsyncWebImage : CoverImage
     public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
         base.CollectContent(transform, commands);
-        commands.AddRect(transform, GetContentSize(), Color.Black.Clone(a: 0.5f), BorderRadius);
+        commands.AddRect(transform, GetContentSize(), Color.Black with { A = 0.5f }, BorderRadius);
     }
 }

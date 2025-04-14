@@ -3,7 +3,6 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
-using Utils = Rin.Engine.Utils;
 
 namespace Rin.Engine.Views.Graphics.Commands;
 
@@ -27,8 +26,8 @@ internal struct BlurData()
 
     public float Strength
     {
-        get => _options.Y;
-        set => _options.Y = value;
+        get => _options.Z;
+        set => _options.Z = value;
     }
 
     public float Radius
@@ -76,7 +75,7 @@ public class BlurCommand(Matrix4x4 transform, Vector2 size, float strength, floa
                 }));
 
             cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _blurShader.GetPipelineLayout(),
-                new[] { descriptorSet });
+                [descriptorSet]);
 
             var pushResource = _blurShader.PushConstants.First().Value;
             buffer.Write(new BlurData

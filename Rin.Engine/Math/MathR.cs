@@ -1,47 +1,46 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
-using Rin.Engine.World.Math;
 
 namespace Rin.Engine.Math;
 
 /// <summary>
-/// Provides functions and constants for math in Rin
+///     Provides functions and constants for math in Rin
 /// </summary>
 public static class MathR
 {
     public static Vector3 Up => Vector3.UnitY;
-    public static Vector3 Right => Vector3.UnitX;   
+    public static Vector3 Right => Vector3.UnitX;
     public static Vector3 Forward => Vector3.UnitZ;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Matrix4x4 PerspectiveProjection(float fieldOfView, float width, float height, float near, float far)
     {
-        var isInverse = far < near;
         var tan = 1 / float.Tan(float.DegreesToRadians(fieldOfView / 2));
         var aspect = width / height;
         var y = tan;
         var x = y / aspect;
-        
+
         var mat = Matrix4x4.Identity;
+
+        mat[0, 0] = x;
+        mat[1, 1] = -y;
+        mat[2, 2] = near * near * near / (far + near);
+        mat[2, 3] = 1f;
+        mat[3, 3] = 0f;
+        mat[3, 2] = near * far / (far + near);
         
-        mat[0,0] = x;
-        mat[1,1] = -y;
-        mat[2,2] = (near * near * near) / (far + near);
-        mat[3,2] = (near * far) / (far + near);
-        mat[2,3] = 1f;
-        mat[3,3] = 0f;
-        
-        return mat;   
+        return mat;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 OrthographicProjection(float left,float right,float top,float bottom,float near,float far)
+    public static Matrix4x4 OrthographicProjection(float left, float right, float top, float bottom, float near,
+        float far)
     {
         return Matrix4x4.CreateOrthographicOffCenter(left, right, top, bottom, near, far);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 ViewportProjection(float width,float height,float near,float far)
+    public static Matrix4x4 ViewportProjection(float width, float height, float near, float far)
     {
         return OrthographicProjection(0.0f, width, 0.0f, height, near, far);
     }
@@ -51,40 +50,38 @@ public static class MathR
     {
         return begin + alpha * (end - begin);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3 Interpolate(in Vector3 begin, in Vector3 end, float alpha)
     {
         return begin + alpha * (end - begin);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 Interpolate(in Vector4 begin, in Vector4 end, float alpha)
     {
         return begin + alpha * (end - begin);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Quaternion Interpolate(in Quaternion begin, in Quaternion end, float alpha)
     {
-        
-        return Quaternion.Lerp(begin,end,alpha);
+        return Quaternion.Lerp(begin, end, alpha);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Transform Interpolate(in Transform begin, in Transform end, float alpha)
     {
-        
         return new Transform
         {
-            Location = MathR.Interpolate(begin.Location, end.Location, alpha),
-            Rotation = MathR.Interpolate(begin.Rotation, end.Rotation, alpha),
-            Scale = MathR.Interpolate(begin.Scale, end.Scale, alpha),
+            Location = Interpolate(begin.Location, end.Location, alpha),
+            Rotation = Interpolate(begin.Rotation, end.Rotation, alpha),
+            Scale = Interpolate(begin.Scale, end.Scale, alpha)
         };
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion LookTowards(in Vector3 position,in Vector3 direction,in Vector3 up)
+    public static Quaternion LookTowards(in Vector3 position, in Vector3 direction, in Vector3 up)
     {
         return Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateLookToLeftHanded(position, direction, up));
         // // Normalize input vectors

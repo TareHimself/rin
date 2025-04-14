@@ -58,9 +58,9 @@ public class SSceneTestModule : IModule
 
             var camera = scene.AddActor<CameraActor>();
             var comp = camera.GetCameraComponent();
-            var location = new Vector3(0.0f,0, 0);
+            var location = new Vector3(0.0f, 0, 0);
             comp.SetLocation(location);
-            Extensions.LoadStaticMesh(@"/home/tare/Downloads/monke.glb"//Path.Join(SEngine.AssetsDirectory, "models", "cube.glb")
+            Extensions.LoadStaticMesh(Path.Join(SEngine.AssetsDirectory, "models", "cube.glb")
             ).After(mesh =>
             {
                 scene.AddPointLight(new Vector3(0.0f, 20.0f, 0.0f));
@@ -75,19 +75,20 @@ public class SSceneTestModule : IModule
                     }
                 });
 
-                directionalLight.SetRotation(MathR.LookTowards(directionalLight.GetLocation(), new Vector3(0.0f), MathR.Up));
+                directionalLight.SetRotation(MathR.LookTowards(directionalLight.GetLocation(), new Vector3(0.0f),
+                    MathR.Up));
                 //
                 var dist = 8.0f;
                 var height = 15.0f;
-                
+
                 var e1 = new Actor
                 {
                     RootComponent = new StaticMeshComponent
                     {
                         MeshId = mesh,
-                        Location = new Vector3(0,0,10),//new Vector3(dist, height, 0.0f)
+                        Location = new Vector3(0, 0, 10) //new Vector3(dist, height, 0.0f)
                         //Scale = new Vector3(3.0f)
-                    },
+                    }
                 };
                 // var e2 = new Actor()
                 // {
@@ -140,7 +141,7 @@ public class SSceneTestModule : IModule
                     // comp.SetRotation(lookAtRotation);
                     // var root = e1.RootComponent!;
                     // root.SetRelativeRotation(root.GetRelativeRotation().Delta(pitch: -50.0f * (float)delta));
-                    e1.SetRotation(e1.GetRotation().AddLocalYaw(-50.0f * delta).AddLocalPitch(-20.0f * delta));
+                    e1.SetRotation(e1.GetRotation().AddLocalYaw(-50.0f * delta * 2F).AddLocalPitch(-20.0f * delta * 2F));
                     //e2.AddRelativeRotation(yaw: -50.0f * (float)delta,pitch: 20.0f * (float)delta);
                     //e3.AddRelativeRotation(yaw: 50.0f * (float)delta,pitch: -20.0f * (float)delta);
                 };
@@ -186,9 +187,9 @@ public class SSceneTestModule : IModule
                     new PanelSlot
                     {
                         Child = new FpsView(),
-                        MinAnchor = new Vector2(1f,0f),
-                        MaxAnchor = new Vector2(1f,0f),
-                        Alignment = new Vector2(1,0),
+                        MinAnchor = new Vector2(1f, 0f),
+                        MaxAnchor = new Vector2(1f, 0f),
+                        Alignment = new Vector2(1, 0),
                         SizeToContent = true
                     }
                 ]

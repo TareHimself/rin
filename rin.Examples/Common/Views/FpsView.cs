@@ -13,8 +13,7 @@ public class FpsView : TextBox
 {
     private readonly Averaged<double> _averageCollectTime = new(0, 300);
     private readonly Averaged<double> _averageExecuteTime = new(0, 300);
-
-    private readonly Averaged<int> _averageFps = new(0, 300);
+    private readonly Averaged<double> _averageFps = new(0, 300);
     private readonly Dispatcher _dispatcher = new();
 
     public FpsView()
@@ -25,7 +24,7 @@ public class FpsView : TextBox
 
     public override void CollectContent(Matrix4x4 transform, PassCommands commands)
     {
-        _averageFps.Add((int)Math.Round(1.0 / SEngine.Get().GetLastDeltaSeconds()));
+        _averageFps.Add(1.0 / SEngine.Get().GetLastDeltaSeconds());
 
         commands.Add(new GetStatsCommand(this));
 
@@ -38,15 +37,8 @@ public class FpsView : TextBox
         _dispatcher.DispatchPending();
     }
 
-    private class GetStatsCommand : UtilityCommand
+    private class GetStatsCommand(FpsView view) : UtilityCommand
     {
-        private readonly FpsView _view;
-
-        public GetStatsCommand(FpsView view)
-        {
-            _view = view;
-        }
-
         public override CommandStage Stage => CommandStage.Before;
 
         public override void BeforeAdd(IGraphBuilder builder)
@@ -59,14 +51,14 @@ public class FpsView : TextBox
 
         public override void Execute(ViewsFrame frame)
         {
-            if (_view.Surface is WindowSurface asWindowSurface &&
+            if (view.Surface is WindowSurface asWindowSurface &&
                 asWindowSurface.GetRenderer() is WindowRenderer asWindowRenderer)
-                _view._dispatcher.Enqueue(() =>
+                view._dispatcher.Enqueue(() =>
                 {
-                    _view._averageCollectTime.Add(asWindowRenderer.LastCollectElapsedTime);
-                    _view._averageExecuteTime.Add(asWindowRenderer.LastExecuteElapsedTime);
+                    view._averageCollectTime.Add(asWindowRenderer.LastCollectElapsedTime);
+                    view._averageExecuteTime.Add(asWindowRenderer.LastExecuteElapsedTime);
                     var position = frame.Surface.GetCursorPosition();
-                    _view.Content = $"""
+                    view.Content = $"""
                                      STATS
                                      {new Vector2<int>((int)position.X, (int)position.Y)} Cursor Position
                                      {frame.Stats.InitialCommandCount} Initial Commands
@@ -76,10 +68,9 @@ public class FpsView : TextBox
                                      {frame.Stats.StencilWriteCount} Stencil Writes
                                      {frame.Stats.CustomCommandCount} Non Draws
                                      {frame.Stats.MemoryAllocatedBytes} Bytes Allocated
-                                     {(int)_view._averageFps} Average Frames Per Second
-                                     {float.Round(1 / (float)_view._averageFps * 1000.0f, 2)}ms Average Frame Time 
-                                     {float.Round((float)_view._averageExecuteTime * 1000.0f, 2)}ms Execute Time 
-                                     {float.Round((float)_view._averageCollectTime * 1000.0f, 2)}ms Collect Time 
+                                     {float.Round(1 / (float)view._averageFps * 1000.0f, 2)}ms Tick Time 
+                                     {float.Round((float)view._averageExecuteTime * 1000.0f, 2)}ms Execute Time 
+                                     {float.Round((float)view._averageCollectTime * 1000.0f, 2)}ms Collect Time 
                                      """;
                 });
         }

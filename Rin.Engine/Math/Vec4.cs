@@ -10,8 +10,7 @@ public struct Vec4<T> :
     IMultiplyOperators<Vec4<T>, Vec4<T>, Vec4<T>>,
     IMultiplyOperators<Vec4<T>, T, Vec4<T>>,
     IDivisionOperators<Vec4<T>, Vec4<T>, Vec4<T>>,
-    IDivisionOperators<Vec4<T>, T, Vec4<T>>,
-    IVec<Vec4<T>, T>
+    IDivisionOperators<Vec4<T>, T, Vec4<T>>
     where T : notnull, IComparisonOperators<T, T, bool>, IUnaryNegationOperators<T, T>
 {
     public T X;
@@ -141,11 +140,6 @@ public struct Vec4<T> :
             rw = right.W;
 
         return new Vec4<T>(lx - rx, ly - ry, lz - rz, lw - rw);
-    }
-
-    public Vec4<T> Clone()
-    {
-        return new Vec4<T>(X, Y, Z, W);
     }
 
     public static implicit operator Vec4<T>(T data)

@@ -34,13 +34,14 @@ public class SViewsTestModule : IModule
                     .PrepareAtlas(font, Enumerable.Range(32, 127).Select(c => (char)c).Where(c => c.IsPrintable()))
                     .Wait();
         }
-        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
+        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", new CreateOptions
         {
             Visible = true,
             Decorated = true,
-            Focused = true
+            Focused = true,
+            Transparent = true
         });
 
 
@@ -198,7 +199,7 @@ public class SViewsTestModule : IModule
                             },
                             Padding = new Padding(20.0f),
                             BorderRadius = new Vector4(10.0f),
-                            Color = Color.Black.Clone(a: 0.7f)
+                            Color = Color.Black  with { A = 0.7f }
                         },
                         SizeToContent = true,
                         MinAnchor = new Vector2(1.0f, 0.0f),

@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Math;
 using Rin.Engine.World.Actors;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Physics;

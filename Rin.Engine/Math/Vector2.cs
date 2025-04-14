@@ -4,8 +4,7 @@ using System.Numerics;
 
 namespace Rin.Engine.Math;
 
-public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
-    IFormattable,
+public struct Vector2<T>(T inX, T inY) : IFormattable,
     IAdditionOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
     IAdditionOperators<Vector2<T>, T, Vector2<T>>,
     ISubtractionOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
@@ -15,7 +14,7 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
     IDivisionOperators<Vector2<T>, Vector2<T>, Vector2<T>>,
     IDivisionOperators<Vector2<T>, T, Vector2<T>>,
     IComparisonOperators<Vector2<T>, Vector2<T>, bool>,
-    IVec<Vector2<T>, T>, IEquatable<Vector2<T>> where T : notnull, IComparisonOperators<T, T, bool>
+     IEquatable<Vector2<T>> where T : notnull, IComparisonOperators<T, T, bool>
 
 {
     public bool Equals(Vector2<T> other)
@@ -118,12 +117,7 @@ public struct Vector2<T>(T inX, T inY) : ICloneable<Vector2<T>>,
         var (p1, p2) = bounds;
         return p1 <= this && this <= p2;
     }
-
-    public Vector2<T> Clone()
-    {
-        return new Vector2<T>(X, Y);
-    }
-
+    
     public Vector2<T> Clamp(Vector2<T> min, Vector2<T> max)
     {
         return new Vector2<T>(X < min.X ? min.X : X > max.X ? max.X : X, Y < min.X ? min.Y : Y > max.Y ? max.Y : Y);

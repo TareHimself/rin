@@ -5,7 +5,6 @@ using Rin.Engine.Math;
 namespace Rin.Engine.World.Math;
 
 public struct Rotator(float inYaw, float inPitch, float inRoll)
-    : ICloneable<Rotator>
 {
     public float Pitch = inPitch % 360.0f;
     public float Yaw = inYaw % 360.0f;
@@ -32,11 +31,6 @@ public struct Rotator(float inYaw, float inPitch, float inRoll)
     public Vector3 GetUp()
     {
         return ToQuaternion().GetUp();
-    }
-
-    public Rotator Clone()
-    {
-        return new Rotator(Yaw, Pitch, Roll);
     }
 
     public Rotator Delta(float? pitch = null, float? yaw = null, float? roll = null)

@@ -1,11 +1,8 @@
 ﻿using System.Numerics;
 using Rin.Engine.Audio.BassAudio;
-using Rin.Engine.Views;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Layouts;
-using rin.Examples.Common.Views;
 using Clip = Rin.Engine.Views.Clip;
-using Rect = Rin.Engine.Views.Composite.Rect;
 
 namespace rin.Examples.AudioPlayer.Views;
 

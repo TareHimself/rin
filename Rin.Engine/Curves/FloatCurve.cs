@@ -1,9 +1,7 @@
 ﻿namespace Rin.Engine.Curves;
 
-public class FloatCurve : Curve<float,float>
+public class FloatCurve : Curve<float, float>
 {
-    
-    
     protected override float Interpolate(in float previous, in float next, float alpha)
     {
         var dist = next - previous;

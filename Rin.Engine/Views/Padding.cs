@@ -2,7 +2,7 @@
 
 namespace Rin.Engine.Views;
 
-public class Padding : ICloneable<Padding>
+public class Padding : ICopyable<Padding>
 {
     public float Bottom;
     public float Left;
@@ -29,7 +29,7 @@ public class Padding : ICloneable<Padding>
         Bottom = vertical;
     }
 
-    public Padding Clone()
+    public Padding Copy()
     {
         return new Padding
         {

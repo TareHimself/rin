@@ -1,13 +1,52 @@
 ﻿namespace Rin.Engine.Curves;
 
-public abstract class Curve<TValue,TInterpolatedValue> : ICurve<TInterpolatedValue> where TValue : struct where TInterpolatedValue : struct 
+public abstract class Curve<TValue, TInterpolatedValue> : ICurve<TInterpolatedValue>
+    where TValue : struct where TInterpolatedValue : struct
 {
-    
-    
     private readonly SortedList<float, TValue> _points = [];
 
+    public TInterpolatedValue Evaluate(float time)
+    {
+        if (_points.Count < 1) throw new IndexOutOfRangeException();
+        if (_points.Count == 1) return ToInterpolatedValue(_points[_points.Keys.First()]);
+
+        var minKey = _points.Keys.Min();
+        if (time < minKey) return ToInterpolatedValue(_points.First().Value);
+        var maxKey = _points.Keys.Last();
+        if (time > maxKey) return ToInterpolatedValue(_points.Last().Value);
+
+        var idx = NearestIndex(time);
+        if (idx < 0) throw new Exception("Failed to evaluate curve");
+        var nearest = _points.Keys[idx];
+        TValue previousValue;
+        TValue nextValue;
+        float previousTime;
+        float nextTime;
+        if (nearest <= time)
+        {
+            var nextIdx = (idx + 1) % _points.Count;
+            previousTime = _points.Keys[idx];
+            nextTime = _points.Keys[nextIdx];
+            previousValue = _points.Values[idx];
+            nextValue = _points.Values[nextIdx];
+        }
+        else
+        {
+            var previousIdx = idx - 1;
+            if (previousIdx < 0) previousIdx = _points.Count - int.Abs(idx);
+            previousTime = _points.Keys[previousIdx];
+            nextTime = _points.Keys[idx];
+            previousValue = _points.Values[previousIdx];
+            nextValue = _points.Values[idx];
+        }
+
+        var dist = nextTime - previousTime;
+        var alpha = (time - previousTime) / dist;
+        return Interpolate(previousValue, nextValue, alpha);
+    }
+
     protected abstract TInterpolatedValue Interpolate(in TValue previous, in TValue next, float alpha);
-    
+
     protected abstract TInterpolatedValue ToInterpolatedValue(in TValue value);
 
     private int NearestIndex(float time)
@@ -64,45 +103,8 @@ public abstract class Curve<TValue,TInterpolatedValue> : ICurve<TInterpolatedVal
         _points.RemoveAt(index);
     }
 
-    public IEnumerable<KeyValuePair<float,TValue>> GetPoints() => _points;
-    
-    public TInterpolatedValue Evaluate(float time)
+    public IEnumerable<KeyValuePair<float, TValue>> GetPoints()
     {
-        if (_points.Count < 1) throw new IndexOutOfRangeException();
-        if (_points.Count == 1) return ToInterpolatedValue(_points[_points.Keys.First()]);
-
-        var minKey = _points.Keys.Min();
-        if (time < minKey) return ToInterpolatedValue(_points.First().Value);
-        var maxKey = _points.Keys.Last();
-        if (time > maxKey) return ToInterpolatedValue(_points.Last().Value);
-
-        var idx = NearestIndex(time);
-        if (idx < 0) throw new Exception("Failed to evaluate curve");
-        var nearest = _points.Keys[idx];
-        TValue previousValue;
-        TValue nextValue;
-        float previousTime;
-        float nextTime;
-        if (nearest <= time)
-        {
-            var nextIdx = (idx + 1) % _points.Count;
-            previousTime = _points.Keys[idx];
-            nextTime = _points.Keys[nextIdx];
-            previousValue = _points.Values[idx];
-            nextValue = _points.Values[nextIdx];
-        }
-        else
-        {
-            var previousIdx = idx - 1;
-            if (previousIdx < 0) previousIdx = _points.Count - int.Abs(idx);
-            previousTime = _points.Keys[previousIdx];
-            nextTime = _points.Keys[idx];
-            previousValue = _points.Values[previousIdx];
-            nextValue = _points.Values[idx];
-        }
-
-        var dist = nextTime - previousTime;
-        var alpha = (time - previousTime) / dist;
-        return Interpolate(previousValue, nextValue, alpha);
+        return _points;
     }
 }

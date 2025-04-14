@@ -2,9 +2,8 @@
 
 namespace Rin.Engine.Curves;
 
-public class QuaternionCurve : Curve<Quaternion,Quaternion>
+public class QuaternionCurve : Curve<Quaternion, Quaternion>
 {
-    
     protected override Quaternion Interpolate(in Quaternion previous, in Quaternion next, float alpha)
     {
         var dist = next - previous;

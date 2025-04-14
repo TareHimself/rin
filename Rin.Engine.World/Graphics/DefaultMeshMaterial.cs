@@ -5,7 +5,6 @@ using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Math;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
-using Utils = Rin.Engine.Utils;
 
 namespace Rin.Engine.World.Graphics;
 

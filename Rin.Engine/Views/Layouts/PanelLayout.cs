@@ -88,7 +88,7 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
             //     Y = asPanelSlot.SizeToContent && noOffsetY ? desiredSize.Y: asPanelSlot.Size.Y
             // };
 
-            var p1 = asPanelSlot.Offset.Clone();
+            var p1 = asPanelSlot.Offset;
             var p2 = p1 + workingSize;
 
             if (absoluteX)
