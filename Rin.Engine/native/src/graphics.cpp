@@ -75,6 +75,9 @@ EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions,
     features.synchronization2 = true;
 
     vk::PhysicalDeviceVulkan12Features features12{};
+
+    vk::PhysicalDeviceShaderDrawParametersFeatures drawParametersFeatures{};
+    drawParametersFeatures.setShaderDrawParameters(true);
     features12
         .setBufferDeviceAddress(true)
         .setDescriptorIndexing(true)
@@ -96,8 +99,10 @@ EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions,
             .set_required_features_13(features)
             .set_required_features_12(features12)
             .set_surface(surf);
-    selector.add_required_extension_features(
-        static_cast<VkPhysicalDeviceShaderObjectFeaturesEXT>(shaderObjectFeatures));
+    selector
+    .add_required_extension_features(
+        static_cast<VkPhysicalDeviceShaderObjectFeaturesEXT>(shaderObjectFeatures))
+    .add_required_extension_features(static_cast<VkPhysicalDeviceShaderDrawParametersFeatures>(drawParametersFeatures));
     // if (systemInfo.is_extension_available(vk::EXTShaderObjectExtensionName))
     // {
     //     selector.add_required_extension_features(
