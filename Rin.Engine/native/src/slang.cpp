@@ -384,6 +384,10 @@ EXPORT_IMPL void slangSessionBuilderAddTargetSpirv(SessionBuilder* builder)
     builder->options.push_back(
         {slang::CompilerOptionName::EmitSpirvDirectly,
          {slang::CompilerOptionValueKind::Int, SLANG_DEBUG_INFO_LEVEL_STANDARD, 0, nullptr, nullptr}});
+    // Spirv-OPT error https://github.com/KhronosGroup/SPIRV-Tools/issues/5959
+    builder->options.push_back(
+       {slang::CompilerOptionName::Optimization,
+        {slang::CompilerOptionValueKind::Int, SLANG_OPTIMIZATION_LEVEL_NONE, 0, nullptr, nullptr}});
     builder->targets.push_back(desc);
 }
 
