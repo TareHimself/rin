@@ -12,8 +12,8 @@ public struct ImageBarrierOptions
     public VkAccessFlags2 DstAccessFlags =
         VkAccessFlags2.VK_ACCESS_2_MEMORY_WRITE_BIT | VkAccessFlags2.VK_ACCESS_2_MEMORY_READ_BIT;
 
-    public VkPipelineStageFlags2 WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    public VkPipelineStageFlags2 NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    public VkPipelineStageFlags2 WaitCompleteStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    public VkPipelineStageFlags2 StartAfterStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 
     public VkImageSubresourceRange SubresourceRange =
         SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
@@ -60,19 +60,19 @@ public struct ImageBarrierOptions
                 // Assuming Nothing
                 break;
             case ImageLayout.ColorAttachment:
-                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+                WaitCompleteStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
                 break;
             case ImageLayout.StencilAttachment:
             case ImageLayout.DepthAttachment:
-                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+                WaitCompleteStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
                 break;
             case ImageLayout.ShaderReadOnly:
-                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+                WaitCompleteStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
                 break;
             case ImageLayout.General:
             case ImageLayout.TransferSrc:
             case ImageLayout.TransferDst:
-                WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+                WaitCompleteStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT;
                 break;
             case ImageLayout.PresentSrc:
                 // Not Sure
@@ -88,19 +88,19 @@ public struct ImageBarrierOptions
                 // Assuming Nothing
                 break;
             case ImageLayout.ColorAttachment:
-                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+                StartAfterStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
                 break;
             case ImageLayout.StencilAttachment:
             case ImageLayout.DepthAttachment:
-                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
+                StartAfterStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
                 break;
             case ImageLayout.ShaderReadOnly:
-                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+                StartAfterStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
                 break;
             case ImageLayout.General:
             case ImageLayout.TransferSrc:
             case ImageLayout.TransferDst:
-                NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+                StartAfterStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT;
                 break;
             case ImageLayout.PresentSrc:
                 // Not Sure

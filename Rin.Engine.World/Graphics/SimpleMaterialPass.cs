@@ -23,7 +23,7 @@ public abstract class SimpleMaterialPass : IMaterialPass
     ///     <see cref="GetRequiredMemory" /> * <see cref="meshes" />
     /// </param>
     /// <param name="meshes">The meshes to draw</param>
-    public void Execute(SceneFrame frame, IDeviceBufferView? data, StaticMeshInfo[] meshes)
+    public void Execute(SceneFrame frame, IDeviceBufferView? data, ProcessedMesh[] meshes)
     {
         var requiredMemorySize = GetRequiredMemory();
         var cmd = frame.GetCommandBuffer();
@@ -31,13 +31,10 @@ public abstract class SimpleMaterialPass : IMaterialPass
         if (requiredMemorySize > 0 && data == null) throw new Exception("Missing buffer");
         if (Shader.Bind(cmd))
         {
-            vkCmdBindIndexBuffer(cmd, first.Mesh.GetIndices().NativeBuffer, 0, VkIndexType.VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(cmd, first.IndexBuffer.NativeBuffer, 0, VkIndexType.VK_INDEX_TYPE_UINT32);
 
             ulong offset = 0;
-            foreach (var groupedMeshes in meshes.GroupBy(c => new
-                     {
-                         c.SurfaceIndex
-                     }))
+            foreach (var groupedMeshes in meshes.GroupBy(c => c.VertexBuffer.Offset))
             {
                 var groupArray = groupedMeshes.ToArray();
 
@@ -46,9 +43,9 @@ public abstract class SimpleMaterialPass : IMaterialPass
         }
     }
 
-    public abstract void Write(IDeviceBufferView view, StaticMeshInfo mesh);
+    public abstract void Write(IDeviceBufferView view, ProcessedMesh mesh);
 
-    protected abstract IMaterialPass GetPass(StaticMeshInfo mesh);
+    protected abstract IMaterialPass GetPass(ProcessedMesh mesh);
 
     /// <summary>
     ///     Execute this pass for all <see cref="meshes" />. The index buffer and shader are already bound
@@ -59,5 +56,5 @@ public abstract class SimpleMaterialPass : IMaterialPass
     /// <param name="meshes"></param>
     /// <returns>The total memory used</returns>
     protected abstract ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data,
-        StaticMeshInfo[] meshes);
+        ProcessedMesh[] meshes);
 }

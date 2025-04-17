@@ -67,9 +67,9 @@ public class SlangGraphicsShader : IGraphicsShader
         {
             var includesProcessed = new HashSet<string>();
             var session = manager.GetSession();
-            var fileData = string.Join('\n', ImportFile(_filePath, includesProcessed)); //reader.ReadToEnd();
+            var fileData = string.Join('\n', SlangShaderManager.ImportFile(_filePath, includesProcessed)); //reader.ReadToEnd();
             var diag = new SlangBlob();
-            var id = $"{Guid.NewGuid().ToString()}.slang";
+            var id = $"graphics-{Guid.NewGuid().ToString()}.slang";
             using var module = session.LoadModuleFromSourceString(id, id, fileData, diag);
             if (module == null)
             {
@@ -307,22 +307,5 @@ public class SlangGraphicsShader : IGraphicsShader
     }
 
 
-    private IEnumerable<string> ImportFile(string filePath, HashSet<string> included)
-    {
-        List<string> allLines = [];
-        using var dataStream = SEngine.Get().Sources.Read(filePath);
-        using var reader = new StreamReader(dataStream);
-        while (reader.ReadLine() is { } line)
-            if (line.StartsWith("#include"))
-            {
-                var includeString = line[(line.IndexOf('"') + 1)..line.LastIndexOf('"')];
-                if (included.Add(includeString)) allLines.AddRange(ImportFile(includeString, included));
-            }
-            else
-            {
-                allLines.Add(line);
-            }
-
-        return allLines;
-    }
+    
 }

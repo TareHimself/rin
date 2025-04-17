@@ -1,7 +1,6 @@
 using Rin.Engine.Math;
-using Rin.Engine.World.Math;
 
-namespace Rin.Engine.World.Skinning;
+namespace Rin.Engine.World.Mesh.Skinning;
 
 public struct BoneOffset
 {

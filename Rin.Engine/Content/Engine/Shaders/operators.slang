@@ -1,4 +1,4 @@
-
+#pragma once
 float4 operator *(float4x4 matrix, float4 vec)
 {
     return mul(matrix, vec);
@@ -8,6 +8,16 @@ float4x4 operator *(float4x4 matrixLeft, float4x4 matrixRight)
 {
     return mul(matrixLeft, matrixRight);
 }
+
+// float4x4 operator *(float4x4 matrixLeft, float right)
+// {
+//     return float4x4(
+//         matrixLeft[0] * right,
+//         matrixLeft[1] * right,
+//         matrixLeft[2] * right,
+//         matrixLeft[3] * right
+//     );
+// }
 
 float3 operator *(float3x3 matrix, float3 vec)
 {

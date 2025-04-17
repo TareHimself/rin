@@ -6,12 +6,12 @@ namespace Rin.Engine.World.Graphics;
 /// <summary>
 ///     Contains info about a static mesh to be drawn in the scene
 /// </summary>
-public class StaticMeshInfo : ICommand
+public class StaticMeshInfo : IMeshCommand
 {
     public required Matrix4x4 Transform;
 
-    public bool CastShadows { get; set; }
-    public required IMeshMaterial Material { get; init; }
+    public bool CastShadow { get; set; }
+    public required int[] SurfaceIndices { get; init; }
+    public required IMeshMaterial[] Materials { get; init; }
     public required IMesh Mesh { get; init; }
-    public required int SurfaceIndex { get; init; }
 }

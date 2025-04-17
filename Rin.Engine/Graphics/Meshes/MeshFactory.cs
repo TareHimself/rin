@@ -25,11 +25,11 @@ public class MeshFactory : IMeshFactory
         }
     }
 
-    public Pair<int, Task> CreateMesh(Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces)
+    public Pair<int, Task> CreateMesh<TVertexFormat>(Buffer<TVertexFormat> vertices, Buffer<uint> indices, MeshSurface[] surfaces) where TVertexFormat : unmanaged, IVertex
     {
         var id = _factory.NewId();
-        var nVertices = new Buffer<Vertex>(vertices);
-        var nIndices = new Buffer<uint>(indices);
+        var nVertices = vertices.Copy();
+        var nIndices = indices.Copy();
 
         Task task;
         lock (_sync)
@@ -42,6 +42,8 @@ public class MeshFactory : IMeshFactory
 
         return new Pair<int, Task>(id, task);
     }
+
+    public Pair<int, Task> CreateMesh(Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces) => CreateMesh<Vertex>(vertices, indices, surfaces);
 
     public bool IsMeshReady(int meshId)
     {
@@ -84,7 +86,7 @@ public class MeshFactory : IMeshFactory
         }
     }
 
-    private async Task AsyncCreateMesh(int id, Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces)
+    private async Task AsyncCreateMesh<TVertexFormat>(int id, Buffer<TVertexFormat> vertices, Buffer<uint> indices, MeshSurface[] surfaces) where TVertexFormat : unmanaged, IVertex
     {
         using (vertices)
         using (indices)
@@ -133,7 +135,7 @@ public class MeshFactory : IMeshFactory
                 }
             });
 
-            var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces);
+            var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces,Engine.Utils.ByteSizeOf<TVertexFormat>());
 
             TaskCompletionSource? toComplete;
             lock (_sync)

@@ -23,4 +23,26 @@ public struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
             Z = left.Z + right.Z
         };
     }
+
+    public static Bounds3D FromLocation(Vector3 location)
+    {
+        return new Bounds3D
+        {
+            X = new Bounds1D()
+            {
+                Min = location.X,
+                Max = location.X,
+            },
+            Y = new Bounds1D()
+            {
+                Min = location.Y,
+                Max = location.Y,
+            },
+            Z = new Bounds1D()
+            {
+                Min = location.Z,
+                Max = location.Z,
+            },
+        };
+    }
 }

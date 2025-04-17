@@ -4,7 +4,8 @@ namespace Rin.Engine.World.Graphics;
 
 public class DrawCommands
 {
-    [PublicAPI] public readonly List<StaticMeshInfo> GeometryCommands = [];
+    [PublicAPI] public readonly List<SkinnedMeshInfo> SkinnedMeshes = [];
+    [PublicAPI] public readonly List<StaticMeshInfo> StaticMeshes = [];
 
     [PublicAPI] public readonly List<LightInfo> Lights = [];
 
@@ -16,7 +17,13 @@ public class DrawCommands
 
     public DrawCommands AddCommand(StaticMeshInfo command)
     {
-        GeometryCommands.Add(command);
+        StaticMeshes.Add(command);
+        return this;
+    }
+    
+    public DrawCommands AddCommand(SkinnedMeshInfo command)
+    {
+        SkinnedMeshes.Add(command);
         return this;
     }
 }

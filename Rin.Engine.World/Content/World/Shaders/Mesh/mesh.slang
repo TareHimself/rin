@@ -93,16 +93,16 @@ struct VertexIn {
 
 struct VertexOut {
     float2 uv : UV;
-    float4 sceneLocation : SCENE_LOCATION;
-    float4 sceneNormal : SCENE_NORMAL;
+    float3 sceneLocation : SCENE_LOCATION;
+    float3 sceneNormal : SCENE_NORMAL;
     float4 position : SV_Position;
     int instanceId : INSTANCE_ID;
 };
 
 struct FragmentIn {
     float2 uv : UV;
-    float4 sceneLocation : SCENE_LOCATION;
-    float4 sceneNormal : SCENE_NORMAL;
+    float3 sceneLocation : SCENE_LOCATION;
+    float3 sceneNormal : SCENE_NORMAL;
     float2 coordinate : SV_Position;
     int instanceId : INSTANCE_ID;
 };
@@ -115,8 +115,8 @@ VertexOut vertex(VertexIn input) {
     var location4 = float4(vertex.getLocation(), 1.0);
     var sceneLocation = instanceData.transform * location4;
     output.uv = vertex.getUV();
-    output.sceneNormal = transpose(inverse(instanceData.transform)) * float4(vertex.getNormal(), 1.0);
-    output.sceneLocation = sceneLocation;
+    output.sceneNormal = transformNormal(vertex.getNormal(), instanceData.transform); // transpose(inverse(instanceData.transform)) * float4(vertex.getNormal(), 1.0);
+    output.sceneLocation = sceneLocation.xyz;   
     // We do this separately because of depth precision https://developer.nvidia.com/blog/visualizing-depth-precision/
     var viewLocation = push.scene->view * float4(sceneLocation.xyz, 1.0);
     output.position = push.scene->projection * viewLocation;

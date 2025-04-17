@@ -48,7 +48,7 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
         //_testActor.SetRotation(MathR.LookTowards(_testActor.GetLocation(),camera.GetLocation(),MathR.Up));
         if (IsFocused)
         {
-            var speed = 100.0f;
+            var speed = 50.0f;
             var transform = camera.GetTransform(Space.World);
             transform.Location += transform.Rotation.GetForward() * _forwardAxis * deltaTime * speed;
             transform.Location += transform.Rotation.GetRight() * _rightAxis * deltaTime * speed;
@@ -68,7 +68,7 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
             // camera.SetTransform(world, Space.World);
         }
 
-        var moveSpeed = 0.5f;
+        var moveSpeed = 1f;
         if (e is
             {
                 Key: InputKey.W or InputKey.A or InputKey.S or InputKey.D,

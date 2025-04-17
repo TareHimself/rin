@@ -1,14 +1,15 @@
+using System.Numerics;
 using Rin.Engine.Math;
-using Rin.Engine.World.Math;
 
-namespace Rin.Engine.World.Skinning;
+namespace Rin.Engine.World.Mesh.Skinning;
 
 public class Bone
 {
     public Bone[] Children = [];
     public string Name { get; set; } = string.Empty;
-    
     public Bone? Parent { get; set; }
+    
+    public Matrix4x4 Bind { get; set; }
     public Transform LocalTransform { get; set; }
     
     private Transform? _worldTransform;

@@ -26,6 +26,7 @@ public class SSceneTestModule : IModule
 {
     public void Start(SEngine engine)
     {
+        //var compShader = SGraphicsModule.Get().MakeCompute("World/Shaders/Mesh/compute_skinning.slang");
         SViewsModule.Get().OnSurfaceCreated += surf =>
         {
             var scene = new World();
@@ -85,7 +86,7 @@ public class SSceneTestModule : IModule
                 {
                     RootComponent = new StaticMeshComponent
                     {
-                        MeshId = mesh,
+                        Mesh = mesh,
                         Location = new Vector3(0, 0, 10) //new Vector3(dist, height, 0.0f)
                         //Scale = new Vector3(3.0f)
                     }
@@ -133,7 +134,16 @@ public class SSceneTestModule : IModule
                 engine.OnUpdate += delta =>
                 {
                     scene.Update(delta);
-                    var sin = float.Abs(float.Sin(SEngine.Get().GetTimeSeconds()));
+                    var weight = (float.Sin(SEngine.Get().GetTimeSeconds()) + 1) / 2.0f;
+                    var loc1 = new Transform()
+                    {
+                        Location = new Vector3(-10, 0, 10)
+                    }.ToMatrix() * weight;
+                    var loc2 = new Transform()
+                    {
+                        Location = new Vector3(10, 0, 10)
+                    }.ToMatrix() * (1f - weight);
+                    e1.SetTransform(Transform.From(loc1 + loc2));
                     //e1.SetLocation(new Vector3(0.0f, 0.0f,float.Max(sin * 20.0f,3)));
                     // e1.SetScale(new Vector3(sin));
                     // Console.WriteLine("Scale {0}",sin);

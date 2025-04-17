@@ -1,3 +1,4 @@
+#pragma once
 #include "Engine/Shaders/attributes.slang"
 
 #ifndef RIN_GLOBAL_TEXTURES_COUNT

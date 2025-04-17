@@ -80,5 +80,7 @@ public class ReflectionData
         public string Stage { get; set; } = string.Empty;
 
         [JsonPropertyName("parameters")] public Parameter[] Parameters { get; set; } = [];
+
+        [JsonPropertyName("threadGroupSize")] public uint[] ThreadGroupSize { get; set; } = [];
     }
 }

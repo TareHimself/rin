@@ -1,4 +1,26 @@
+#pragma once
 #include "Engine/Shaders/operators.slang"
+
+// Transform normal without inverse https://lxjk.github.io/2017/10/01/Stop-Using-Normal-Matrix.html
+float3 transformNormal(float3 normal, float4x4 transformation)
+{
+    // Extract the 3x3 rotation+scale part (column-major: columns are basis vectors)
+    float3 X = float3(transformation[0].x, transformation[1].x, transformation[2].x); // X axis
+    float3 Y = float3(transformation[0].y, transformation[1].y, transformation[2].y); // Y axis
+    float3 Z = float3(transformation[0].z, transformation[1].z, transformation[2].z); // Z axis
+
+    // Get squared scale on each axis (length^2 of basis vectors)
+    float3 scaleSq = float3(dot(X, X), dot(Y, Y), dot(Z, Z));
+
+    // Rescale the normal using reciprocal sqrt of scale
+    float3 scaledNormal = normal / sqrt(scaleSq);
+
+    // Multiply by the rotation-scale part of model matrix (float3x3)
+    float3 transformed = scaledNormal.x * X + scaledNormal.y * Y + scaledNormal.z * Z;
+
+    // Normalize before returning (should always normalize transformed normals!)
+    return normalize(transformed);
+}
 
 float3 rgb2lin(float3 rgb) { // sRGB to linear approximation
     return pow(rgb, float3(2.2));

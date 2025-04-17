@@ -2,23 +2,26 @@
 using JetBrains.Annotations;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
+using Rin.Engine.Graphics.Meshes;
 using Rin.Engine.Math;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
+using Rin.Engine.World.Mesh.Skinning;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics;
 
 /// <summary>
-///     Collects the scene, and does a depth pre-pass
+///  Collects the <see cref="Rin.Engine.World.World"/>, performs skinning and does a depth pre-pass
 /// </summary>
-public class CollectScenePass : IPass
+public class CollectPass : IPass
 {
     [PublicAPI] public Transform CameraTransform;
     [PublicAPI] public StaticMeshInfo[] Geometry;
     [PublicAPI] public LightInfo[] Lights;
-    [PublicAPI] public StaticMeshInfo[] OpaqueGeometry;
-    [PublicAPI] public StaticMeshInfo[] TranslucentGeometry;
+    [PublicAPI] public SkinnedMeshInfo[] SkinnedGeometry;
+    [PublicAPI] public StaticMeshInfo[] StaticGeometry;
+    [PublicAPI] public ProcessedMesh[] ProcessedGeometry;
     [PublicAPI] public World World;
 
     /// <summary>
@@ -26,7 +29,7 @@ public class CollectScenePass : IPass
     /// </summary>
     /// <param name="camera">The perspective the scene is collected from</param>
     /// <param name="size"></param>
-    public CollectScenePass(CameraComponent camera, Vector2<uint> size)
+    public CollectPass(CameraComponent camera, Vector2<uint> size)
     {
         World = camera.Owner?.World ?? throw new Exception("Camera is not in a scene");
         CameraTransform = camera.GetTransform(Space.World);
@@ -41,9 +44,9 @@ public class CollectScenePass : IPass
         // Collect Scene On Main Thread
         var drawCommands = new DrawCommands();
         foreach (var root in World.GetPureRoots().ToArray()) root.Collect(drawCommands, World.WorldTransform);
-        Geometry = drawCommands.GeometryCommands.ToArray();
-        OpaqueGeometry = Geometry.Where(info => !info.Material.Translucent).ToArray();
-        TranslucentGeometry = Geometry.Where(info => info.Material.Translucent).ToArray();
+        Geometry = drawCommands.StaticMeshes.ToArray();
+        StaticGeometry = drawCommands.StaticMeshes.ToArray();
+        SkinnedGeometry = drawCommands.SkinnedMeshes.ToArray();
         Lights = drawCommands.Lights.ToArray();
     }
 
@@ -65,9 +68,13 @@ public class CollectScenePass : IPass
     [PublicAPI] public float FarClip { get; set; }
     [PublicAPI] public Vector2<uint> Size { get; set; }
 
+    private uint SkinnedMeshBufferId { get; set; }
+    private uint SkinningExecutionInfoBufferId { get; set; }
+    private uint SkinningPoseBufferId { get; set; }
+    private uint SkinningOutputBufferId { get; set; }
     private uint DepthSceneBufferId { get; set; }
     private uint DepthMaterialBufferId { get; set; }
-
+    private int _firstSkinnedIndex;
 
     public void Added(IGraphBuilder builder)
     {
@@ -78,10 +85,66 @@ public class CollectScenePass : IPass
     {
         DepthImageId = config.CreateImage(Size.X, Size.Y, ImageFormat.Depth);
         DepthSceneBufferId = config.AllocateBuffer<DepthSceneInfo>();
-        var depthMaterialDataSize = OpaqueGeometry.Aggregate(Utils.ByteSizeOf<DepthSceneInfo>(),
-            (current, geometryDrawCommand) => current + geometryDrawCommand.Material.DepthPass.GetRequiredMemory());
-
+        List<ProcessedMesh> processedMeshes = StaticGeometry.SelectMany(c =>
+        {
+            return c.SurfaceIndices.Select(idx =>
+            {
+                var surface = c.Mesh.GetSurface(idx);
+                return new ProcessedMesh
+                {
+                    IndexBuffer = c.Mesh.GetIndices(),
+                    VertexBuffer = c.Mesh.GetVertices(idx),
+                    Material = c.Materials[idx],
+                    IndicesCount = surface.IndicesCount,
+                    IndicesStart = surface.IndicesStart,
+                    VertexCount = surface.VertexCount,
+                    VertexStart = surface.VertexStart,
+                };
+            });
+        }).ToList();
+        
+        _firstSkinnedIndex = processedMeshes.Count;
+        
+        processedMeshes.AddRange(SkinnedGeometry.SelectMany(c =>
+        {
+            return c.SurfaceIndices.Select(idx =>
+            {
+                // Need to spoof a regular vertex buffer here since this is a skinned mesh
+                var vertexBuffer = c.Mesh.GetVertices(idx);
+                var offset = (vertexBuffer.Offset / Utils.ByteSizeOf<SkinnedVertex>()) * Utils.ByteSizeOf<Vertex>();
+                var size = c.Mesh.GetVertexCount(idx) * Utils.ByteSizeOf<Vertex>();
+                var surface = c.Mesh.GetSurface(idx);
+                return new ProcessedMesh
+                {
+                    IndexBuffer = c.Mesh.GetIndices(),
+                    VertexBuffer = new SkinnedVertexBufferView(offset,size),
+                    Material = c.Materials[idx],
+                    IndicesCount = surface.IndicesCount,
+                    IndicesStart = surface.IndicesStart,
+                    VertexCount = surface.VertexCount,
+                    VertexStart = surface.VertexStart,
+                };
+            });
+        }));
+        
+        ProcessedGeometry = processedMeshes.ToArray();
+        
+        var depthMaterialDataSize = ProcessedGeometry.Aggregate(Utils.ByteSizeOf<DepthSceneInfo>(),
+            (current, gcmd) => current + gcmd.Material.DepthPass.GetRequiredMemory());
+        
         DepthMaterialBufferId = depthMaterialDataSize > 0 ? config.AllocateBuffer(depthMaterialDataSize) : 0;
+
+    // private uint SkinnedMeshBufferId { get; set; }
+    // private uint SkinningExecutionInfoBufferId { get; set; }
+    // private uint SkinningPoseBufferId { get; set; }
+    // private uint SkinningOutputBufferId { get; set; }
+    
+        var uniqueSkinnedGeometry = SkinnedGeometry.Select(c => c.Mesh).ToHashSet().ToArray();
+
+        if (uniqueSkinnedGeometry.Length > 0)
+        {
+            var totalVertices = uniqueSkinnedGeometry.Aggregate<IMesh,ulong>(0,(t,c) => t + c.GetVertexCount());   
+        }
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -137,10 +200,10 @@ public class CollectScenePass : IPass
             ViewProjection = sceneFrame.ViewProjection
         });
 
-        foreach (var geometryInfos in OpaqueGeometry.GroupBy(c => new
+        foreach (var geometryInfos in ProcessedGeometry.GroupBy(c => new
                  {
                      Type = c.Material.GetType(),
-                     c.Mesh
+                     c.IndexBuffer
                  }))
         {
             var infos = geometryInfos.ToArray();

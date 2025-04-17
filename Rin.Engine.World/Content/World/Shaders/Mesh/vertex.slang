@@ -1,4 +1,12 @@
-struct Vertex {
+#pragma once
+
+interface IVertex {
+    float3 getLocation();
+    float2 getUV();
+    float3 getTangent();
+}
+
+struct Vertex : IVertex {
     float4 _locationU;
     float4 _normalV;
     float4 _tangent;

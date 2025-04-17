@@ -1,10 +1,8 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
-using System.Numerics;
 using Rin.Engine.Math;
-using Rin.Engine.World.Math;
 
-namespace Rin.Engine.World.Skinning;
+namespace Rin.Engine.World.Mesh.Skinning;
 
 public struct Pose
 {

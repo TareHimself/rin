@@ -21,7 +21,7 @@ public struct Quad() // : ICloneable<Quad>
         set => Opts.X = (int)value;
     }
 
-    [PublicAPI] public Vec4<int> Opts = 0;
+    [PublicAPI] public Vector4<int> Opts = 0;
     [PublicAPI] public required Vector2 Size;
     [PublicAPI] public required Matrix4x4 Transform;
     private unsafe fixed byte _data[16 * 8];
@@ -43,7 +43,7 @@ public struct Quad() // : ICloneable<Quad>
 
     private struct PrimitiveData : IQuad
     {
-        public Vec4<int> Opts { get; set; }
+        public Vector4<int> Opts { get; set; }
         public Vector2 Size { get; set; }
         public Matrix4x4 Transform { get; set; }
         public required PrimitiveType Type { get; set; }
@@ -55,7 +55,7 @@ public struct Quad() // : ICloneable<Quad>
 
     private struct RectData : IQuad
     {
-        public Vec4<int> Opts { get; set; }
+        public Vector4<int> Opts { get; set; }
         public Vector2 Size { get; set; }
         public Matrix4x4 Transform { get; set; }
         public Vector4 Color;
@@ -64,7 +64,7 @@ public struct Quad() // : ICloneable<Quad>
 
     private struct TextureData : IQuad
     {
-        public Vec4<int> Opts { get; set; }
+        public Vector4<int> Opts { get; set; }
         public Vector2 Size { get; set; }
         public Matrix4x4 Transform { get; set; }
         public int TextureId { get; set; }
@@ -75,7 +75,7 @@ public struct Quad() // : ICloneable<Quad>
 
     private struct MtsdfData : IQuad
     {
-        public Vec4<int> Opts { get; set; }
+        public Vector4<int> Opts { get; set; }
         public Vector2 Size { get; set; }
         public Matrix4x4 Transform { get; set; }
         public int TextureId { get; set; }

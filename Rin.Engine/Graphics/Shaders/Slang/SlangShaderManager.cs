@@ -4,8 +4,30 @@ public class SlangShaderManager : IShaderManager
 {
     private readonly BackgroundTaskQueue _compileTasks = new();
     private readonly Dictionary<string, SlangGraphicsShader> _graphicsShaders = [];
+    private readonly Dictionary<string, SlangComputeShader> _computeShaders = [];
     private readonly SlangSession _session;
 
+    
+    public static  IEnumerable<string> ImportFile(string filePath, HashSet<string> included)
+    {
+        List<string> allLines = [];
+        using var dataStream = SEngine.Get().Sources.Read(filePath);
+        using var reader = new StreamReader(dataStream);
+        while (reader.ReadLine() is { } line)
+            if (line.StartsWith("#include"))
+            {
+                var includeString = line[(line.IndexOf('"') + 1)..line.LastIndexOf('"')];
+                if (included.Add(includeString)) allLines.AddRange(ImportFile(includeString, included));
+            }
+            else
+            {
+                allLines.Add(line);
+            }
+
+        return allLines;
+    }
+    
+    
     public SlangShaderManager()
     {
         using var builder = new SlangSessionBuilder();
@@ -45,11 +67,19 @@ public class SlangShaderManager : IShaderManager
 
     public IComputeShader MakeCompute(string path)
     {
-        throw new NotImplementedException();
+        var absPath = Path.GetFullPath(path);
+
+        {
+            if (_computeShaders.TryGetValue(absPath, out var shader)) return shader;
+        }
+
+        {
+            var shader = new SlangComputeShader(this, path);
+            _computeShaders.Add(absPath, shader);
+            return shader;
+        }
     }
-
-    public event Action? OnBeforeDispose;
-
+    
     public SlangSession GetSession()
     {
         return _session;

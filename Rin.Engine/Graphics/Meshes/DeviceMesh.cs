@@ -12,18 +12,25 @@ public class DeviceMesh : IMesh, IDisposable
 
     [PublicAPI] public IDeviceBuffer VertexBuffer;
 
-    public DeviceMesh(IDeviceBuffer vertexBuffer, IDeviceBuffer indexBuffer, MeshSurface[] surfaces)
+    private readonly ulong _formatSize;
+    public DeviceMesh(IDeviceBuffer vertexBuffer, IDeviceBuffer indexBuffer, MeshSurface[] surfaces,ulong vertexFormatSize)
     {
         VertexBuffer = vertexBuffer;
         IndexBuffer = indexBuffer;
         Surfaces = surfaces;
         Bounds = Surfaces.Aggregate(Surfaces.First().Bounds, (t, c) => t + c.Bounds);
+        _formatSize = vertexFormatSize;
     }
 
     public void Dispose()
     {
         VertexBuffer.Dispose();
         IndexBuffer.Dispose();
+    }
+
+    public ulong GetVertexFormatSize()
+    {
+        return _formatSize;
     }
 
     public MeshSurface[] GetSurfaces()
@@ -44,7 +51,19 @@ public class DeviceMesh : IMesh, IDisposable
     public IDeviceBufferView GetVertices(int surfaceIndex)
     {
         var surface = Surfaces[surfaceIndex];
-        return VertexBuffer.GetView(surface.VertexStart * sizeof(uint), surface.VertexCount * sizeof(uint));
+        var formatSize = GetVertexFormatSize();
+        return VertexBuffer.GetView(surface.VertexStart * formatSize, surface.VertexCount * formatSize);
+    }
+    
+    public uint GetVertexCount()
+    {
+        var vertices = GetVertices();
+        return (uint)(vertices.Size / _formatSize);
+    }
+    
+    public uint GetVertexCount(int surfaceIndex)
+    {
+        return GetSurface(surfaceIndex).VertexCount;
     }
 
     public IDeviceBufferView GetIndices()

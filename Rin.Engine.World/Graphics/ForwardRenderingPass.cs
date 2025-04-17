@@ -8,10 +8,10 @@ using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics;
 
-public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, CollectScenePass? collectPass = null)
+public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, CollectPass? collectPass = null)
     : IPass
 {
-    private readonly CollectScenePass _collectPass = collectPass ?? new CollectScenePass(camera, size);
+    private readonly CollectPass _collectPass = collectPass ?? new CollectPass(camera, size);
     private readonly bool _ownCollectPass = collectPass == null;
     private Vector2<uint> _size = size;
 
@@ -40,7 +40,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
             ? config.AllocateBuffer<LightInfo>(_collectPass.Lights.Length)
             : 0;
         SceneBufferId = config.AllocateBuffer<SceneInfo>();
-        var materialBufferSize = _collectPass.Geometry.Aggregate((ulong)0,
+        var materialBufferSize = _collectPass.ProcessedGeometry.Aggregate((ulong)0,
             (total, geometryDrawCommand) => total + geometryDrawCommand.Material.ColorPass.GetRequiredMemory());
         MaterialBufferId = materialBufferSize > 0 ? config.AllocateBuffer(materialBufferSize) : 0;
         var (width, height) = _size;
@@ -110,10 +110,10 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
         });
 
 
-        foreach (var geometryInfos in _collectPass.OpaqueGeometry.GroupBy(c => new
+        foreach (var geometryInfos in _collectPass.ProcessedGeometry.GroupBy(c => new
                  {
                      Type = c.Material.GetType(),
-                     c.Mesh
+                     c.IndexBuffer
                  }))
         {
             var infos = geometryInfos.ToArray();

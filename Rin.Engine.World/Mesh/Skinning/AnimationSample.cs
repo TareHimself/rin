@@ -1,6 +1,6 @@
 using System.Collections.Frozen;
 
-namespace Rin.Engine.World.Skinning;
+namespace Rin.Engine.World.Mesh.Skinning;
 
 public class AnimationSample
 {

@@ -42,7 +42,7 @@ public static class MathExtensions
         return System.Math.Sqrt(System.Math.Pow(b.X - a.X, 2) + System.Math.Pow(b.Y - a.Y, 2));
     }
 
-    public static Vector4 ToNumericsVector(this in Vec4<float> self)
+    public static Vector4 ToNumericsVector(this in Vector4<float> self)
     {
         return new Vector4(self.X, self.Y, self.Z, self.W);
     }

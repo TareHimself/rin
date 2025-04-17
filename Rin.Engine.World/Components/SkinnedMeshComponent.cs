@@ -2,15 +2,15 @@
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.World.Graphics;
-using Rin.Engine.World.Mesh;
+using Rin.Engine.World.Mesh.Skinning;
 
 namespace Rin.Engine.World.Components;
 
-public class StaticMeshComponent : SceneComponent
+public class SkinnedMeshComponent : SceneComponent
 {
+    public SkinnedMesh? Mesh { get; set; }
     public IMeshMaterial?[] Materials = [];
-    public StaticMesh? Mesh { get; set; }
-
+    public IPoseSource? PoseSource { get; set; }
     protected override void CollectSelf(DrawCommands drawCommands, Matrix4x4 transform)
     {
         if (Mesh is not null && SGraphicsModule.Get().GetMeshFactory().GetMesh(Mesh.MeshId) is { } mesh)
@@ -24,8 +24,10 @@ public class StaticMeshComponent : SceneComponent
                 materials.Add(material);
             }
             
-            drawCommands.AddCommand(new StaticMeshInfo
+            drawCommands.AddCommand(new SkinnedMeshInfo()
             {
+                Skeleton = Mesh.Skeleton,
+                Pose = PoseSource?.GetPose() ?? Mesh.Skeleton.BasePose,
                 Mesh = mesh,
                 Transform = transform,
                 SurfaceIndices = Enumerable.Range(0, surfaces.Length).ToArray(),

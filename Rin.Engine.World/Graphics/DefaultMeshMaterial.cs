@@ -56,13 +56,13 @@ public class DefaultMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DefaultMaterialProperties>();
         }
 
-        protected override IMaterialPass GetPass(StaticMeshInfo mesh)
+        protected override IMaterialPass GetPass(ProcessedMesh mesh)
         {
             return mesh.Material.ColorPass;
         }
 
         protected override ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data,
-            StaticMeshInfo[] meshes)
+            ProcessedMesh[] meshes)
         {
             var cmd = frame.GetCommandBuffer();
             var push = Shader.PushConstants.Values.First();
@@ -89,17 +89,16 @@ public class DefaultMeshMaterial : IMeshMaterial
             };
 
             cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
-            var firstSurface = first.Mesh.GetSurface(first.SurfaceIndex);
-            vkCmdDrawIndexed(cmd, firstSurface.IndicesCount, (uint)meshes.Length, 0, (int)firstSurface.VertexStart, 0);
+            vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, 0, (int)first.VertexStart, 0);
             return memoryUsed;
         }
 
-        public override void Write(IDeviceBufferView view, StaticMeshInfo mesh)
+        public override void Write(IDeviceBufferView view, ProcessedMesh mesh)
         {
             var data = new DefaultMaterialProperties
             {
                 Transform = mesh.Transform,
-                VertexAddress = mesh.Mesh.GetVertices(mesh.SurfaceIndex).GetAddress(),
+                VertexAddress = mesh.VertexBuffer.GetAddress(),
                 BaseColorTextureId = meshMaterial.ColorTextureId,
                 BaseColor = meshMaterial.Color,
                 NormalTextureId = meshMaterial.NormaTextureId,
@@ -122,7 +121,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             private Vector4 _color_textureId;
             [PublicAPI] public int NormalTextureId = 0;
             private Vector4 _msre;
-            private Vec4<int> _msreTextureId;
+            private Vector4<int> _msreTextureId;
 
             public Vector3 BaseColor
             {
@@ -202,13 +201,13 @@ public class DefaultMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DepthMaterialData>();
         }
 
-        protected override IMaterialPass GetPass(StaticMeshInfo mesh)
+        protected override IMaterialPass GetPass(ProcessedMesh mesh)
         {
             return mesh.Material.DepthPass;
         }
 
         protected override ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data,
-            StaticMeshInfo[] meshes)
+            ProcessedMesh[] meshes)
         {
             var cmd = frame.GetCommandBuffer();
             var push = Shader.PushConstants.Values.First();
@@ -231,17 +230,16 @@ public class DefaultMeshMaterial : IMeshMaterial
             };
 
             cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
-            var firstSurface = first.Mesh.GetSurface(first.SurfaceIndex);
-            vkCmdDrawIndexed(cmd, firstSurface.IndicesCount, (uint)meshes.Length, 0, (int)firstSurface.VertexStart, 0);
+            vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, 0, (int)first.VertexStart, 0);
             return memoryUsed;
         }
 
-        public override void Write(IDeviceBufferView view, StaticMeshInfo mesh)
+        public override void Write(IDeviceBufferView view, ProcessedMesh mesh)
         {
             view.Write(new DepthMaterialData
             {
                 Transform = mesh.Transform,
-                VertexAddress = mesh.Mesh.GetVertices(mesh.SurfaceIndex).GetAddress()
+                VertexAddress = mesh.VertexBuffer.GetAddress()
             });
         }
 

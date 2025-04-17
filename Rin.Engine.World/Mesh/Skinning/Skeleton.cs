@@ -1,28 +1,22 @@
 using System.Numerics;
 using JetBrains.Annotations;
 
-namespace Rin.Engine.World.Skinning;
+namespace Rin.Engine.World.Mesh.Skinning;
 
 public class Skeleton
 {
     [PublicAPI]
-    public readonly VertexBoneWeight[] Weights;
-    [PublicAPI]
     public readonly Bone[] Bones;
     [PublicAPI]
     public Bone Root;
-
-    /// <summary>
-    /// First bone should be the root bone
-    /// </summary>
-    /// <param name="bones"></param>
-    /// <param name="weights"></param>
-    /// <exception cref="NullReferenceException"></exception>
-    public Skeleton(Bone[] bones, VertexBoneWeight[] weights)
+    
+    public Pose BasePose;
+    
+    public Skeleton(Bone[] bones,Pose basePose)
     {
         Bones = bones;
-        Root = bones.FirstOrDefault()  ?? throw new NullReferenceException();
-        Weights = weights;
+        Root = bones.FirstOrDefault(c => c.Name == "root")  ?? throw new NullReferenceException();
+        BasePose = basePose;
     }
 
     public IEnumerable<Matrix4x4> ResolvePose(in Pose pose)

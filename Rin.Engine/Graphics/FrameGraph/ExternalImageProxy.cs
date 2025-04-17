@@ -10,6 +10,7 @@ public class ExternalImageProxy : IGraphImage
 {
     public void Dispose()
     {
+        
     }
 
     public required ImageFormat Format { get; set; }

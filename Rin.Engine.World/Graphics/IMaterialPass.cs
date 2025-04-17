@@ -23,12 +23,12 @@ public interface IMaterialPass
     ///     <see cref="GetRequiredMemory" /> * <see cref="meshes" />
     /// </param>
     /// <param name="meshes">The meshes to draw</param>
-    public void Execute(SceneFrame frame, IDeviceBufferView? data, StaticMeshInfo[] meshes);
+    public void Execute(SceneFrame frame, IDeviceBufferView? data, ProcessedMesh[] meshes);
 
     /// <summary>
     ///     Write to the <see cref="IDeviceBuffer" /> that will be the size returned from <see cref="GetRequiredMemory" />
     /// </summary>
     /// <param name="view"></param>
     /// <param name="mesh">The mesh this write is for</param>
-    public void Write(IDeviceBufferView view, StaticMeshInfo mesh);
+    public void Write(IDeviceBufferView view, ProcessedMesh mesh);
 }

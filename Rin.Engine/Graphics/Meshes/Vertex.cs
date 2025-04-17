@@ -1,22 +1,23 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Engine.Math;
 
 namespace Rin.Engine.Graphics.Meshes;
 
-public struct Vertex
+public struct Vertex : IVertex
 {
     /// <summary>
-    ///     Location (XYZ) U (W)
+    ///    Location (XYZ) U (W)
     /// </summary>
     private Vector4 _locationU = Vector4.Zero;
 
     /// <summary>
-    ///     Normal (XYZ) V (W)
+    ///    Normal (XYZ) V (W)
     /// </summary>
     private Vector4 _normalV = Vector4.Zero;
 
     /// <summary>
-    ///     Normal (XYZ) V (W)
+    ///    NOT USED RIGHT NOW
     /// </summary>
     private Vector4 _tangent = Vector4.Zero;
 

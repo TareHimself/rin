@@ -1,5 +1,5 @@
-//https://iquilezles.org/articles/distfunctions2d/
-
+// https://iquilezles.org/articles/distfunctions2d/
+#pragma once
 float dot2(float2 v) { return dot(v, v); }
 
 float sdSegment(in float2 p, in float2 a, in float2 b)
