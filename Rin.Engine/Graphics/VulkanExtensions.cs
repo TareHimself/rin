@@ -870,7 +870,7 @@ public static class VulkanExtensions
         var opts = options;
         var barrier = new VkBufferMemoryBarrier2()
         {
-            sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
             srcStageMask = opts.WaitForStages,
             dstStageMask = opts.NextStages,
             srcAccessMask = opts.SrcAccessFlags,
@@ -1156,7 +1156,7 @@ public static class VulkanExtensions
         vkCmdDraw(self, vertices, instances, firstVertex, firstInstance);
     }
 
-    public static void Dispatch(in this VkCommandBuffer self, uint x, uint y = 0, uint z = 0)
+    public static void Dispatch(in this VkCommandBuffer self, uint x, uint y = 1, uint z = 1)
     {
         vkCmdDispatch(self, x, y, z);
     }

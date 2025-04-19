@@ -26,7 +26,7 @@ struct PerMeshData {
         int id = (int)color_textureId.a;
         float3 value = color_textureId.rgb;
 
-        if (id > 0) {
+        if (id > -1) {
             value = sampleTexture(id, uv).rgb;
         }
 
@@ -37,7 +37,7 @@ struct PerMeshData {
         int id = msreTextureId.x;
         float value = MSRE.x;
 
-        if (id > 0) {
+        if (id > -1) {
             value = sampleTexture(id, uv).x;
         }
 
@@ -48,7 +48,7 @@ struct PerMeshData {
         int id = msreTextureId.y;
         float value = MSRE.y;
 
-        if (id > 0) {
+        if (id > -1) {
             value = sampleTexture(id, uv).y;
         }
 
@@ -59,7 +59,7 @@ struct PerMeshData {
         int id = msreTextureId.z;
         float value = MSRE.z;
 
-        if (id > 0) {
+        if (id > -1) {
             value = sampleTexture(id, uv).z;
         }
 
@@ -70,7 +70,7 @@ struct PerMeshData {
         int id = msreTextureId.w;
         float value = MSRE.w;
 
-        if (id > 0) {
+        if (id > -1) {
             value = sampleTexture(id, uv).w;
         }
 

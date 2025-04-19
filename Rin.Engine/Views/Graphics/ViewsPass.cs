@@ -166,8 +166,8 @@ public sealed class ViewsPass : IPass
                             };
                             var pushResource = stencilShader.PushConstants.First().Value;
                             cmd.PushConstant(stencilShader.GetPipelineLayout(), pushResource.Stages, push);
-
-                            vkCmdDraw(cmd, 6, (uint)command.Clips.Length, 0, 0);
+                            
+                            cmd.Draw(6, (uint)command.Clips.Length, 0, 0);
                         }
                     }
                 }

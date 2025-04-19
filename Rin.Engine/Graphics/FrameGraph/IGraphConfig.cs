@@ -20,4 +20,9 @@ public interface IGraphConfig
     {
         return AllocateBuffer(Engine.Utils.ByteSizeOf<T>(count));
     }
+    
+    public uint AllocateBuffer<T>(uint count) where T : unmanaged
+    {
+        return AllocateBuffer(Engine.Utils.ByteSizeOf<T>() * count);
+    }
 }

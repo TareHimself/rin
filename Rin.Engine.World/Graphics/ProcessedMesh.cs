@@ -9,7 +9,7 @@ namespace Rin.Engine.World.Graphics;
 /// </summary>
 public class ProcessedMesh
 {
-    public Matrix4x4 Transform { get; set; }
+    public required Matrix4x4 Transform { get; set; }
 
     public required uint IndicesCount { get; set; }
     public required uint IndicesStart { get; set; }

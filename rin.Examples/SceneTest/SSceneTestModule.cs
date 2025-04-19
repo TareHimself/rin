@@ -61,6 +61,7 @@ public class SSceneTestModule : IModule
             var comp = camera.GetCameraComponent();
             var location = new Vector3(0.0f, 0, 0);
             comp.SetLocation(location);
+            
             Extensions.LoadStaticMesh(Path.Join(SEngine.AssetsDirectory, "models", "cube.glb")
             ).After(mesh =>
             {
@@ -160,6 +161,25 @@ public class SSceneTestModule : IModule
                 // {
                 //     mesh?.Dispose();
                 // };
+
+                Extensions.LoadSkinnedMesh(Path.Join(SEngine.AssetsDirectory, "models", "cube.glb")).After((skinned) =>
+                {
+                    if (skinned is not null)
+                    {
+                        scene.AddActor(new Actor()
+                        {
+                            RootComponent = new SkinnedMeshComponent()
+                            {
+                                Mesh = skinned,
+                                PoseSource = new TestPoseSource()
+                                {
+                                    Skeleton = skinned.Skeleton,
+                                },
+                                Location = new Vector3(0,0,50)
+                            }
+                        });
+                    }
+                });
             });
 
 

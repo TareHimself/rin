@@ -1,8 +1,12 @@
-﻿using System.Numerics;
+﻿using System.Collections.Frozen;
+using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Meshes;
+using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Math;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
@@ -16,6 +20,21 @@ namespace Rin.Engine.World.Graphics;
 /// </summary>
 public class CollectPass : IPass
 {
+    struct SkinningExecutionInfo
+    {
+        public required int PoseId;
+        public required int VertexId;
+        public required int MeshId;
+    }
+    
+    public struct SkinningPushConstants 
+    {
+        public required int TotalInvocations;
+        public required ulong MeshesBuffer;
+        public required ulong PosesBuffer;
+        public required ulong ExecutionInfoBuffer;
+    }
+    
     [PublicAPI] public Transform CameraTransform;
     [PublicAPI] public StaticMeshInfo[] Geometry;
     [PublicAPI] public LightInfo[] Lights;
@@ -23,7 +42,10 @@ public class CollectPass : IPass
     [PublicAPI] public StaticMeshInfo[] StaticGeometry;
     [PublicAPI] public ProcessedMesh[] ProcessedGeometry;
     [PublicAPI] public World World;
-
+    
+    private IComputeShader _skinningShader = SGraphicsModule
+        .Get()
+        .MakeCompute("World/Shaders/Mesh/compute_skinning.slang");
     /// <summary>
     ///     Collects the scene, and does a depth pre-pass
     /// </summary>
@@ -68,9 +90,16 @@ public class CollectPass : IPass
     [PublicAPI] public float FarClip { get; set; }
     [PublicAPI] public Vector2<uint> Size { get; set; }
 
-    private uint SkinnedMeshBufferId { get; set; }
+
+    private IMesh[] _skinnedMeshes = [];
+    
+    private uint TotalVerticesToSkin { get; set; }
+    private Matrix4x4[][] SkinnedPoses { get; set; }
+    private SkinningExecutionInfo[] ExecutionInfos { get; set; }
+    private uint SkinnedMeshArrayBufferId { get; set; }
     private uint SkinningExecutionInfoBufferId { get; set; }
-    private uint SkinningPoseBufferId { get; set; }
+    private uint[] SkinningPosesBufferId { get; set; }
+    private uint SkinningPoseIdArrayBufferId { get; set; }
     private uint SkinningOutputBufferId { get; set; }
     private uint DepthSceneBufferId { get; set; }
     private uint DepthMaterialBufferId { get; set; }
@@ -85,13 +114,14 @@ public class CollectPass : IPass
     {
         DepthImageId = config.CreateImage(Size.X, Size.Y, ImageFormat.Depth);
         DepthSceneBufferId = config.AllocateBuffer<DepthSceneInfo>();
-        List<ProcessedMesh> processedMeshes = StaticGeometry.SelectMany(c =>
+        var processedMeshes = StaticGeometry.SelectMany(c =>
         {
             return c.SurfaceIndices.Select(idx =>
             {
                 var surface = c.Mesh.GetSurface(idx);
                 return new ProcessedMesh
                 {
+                    Transform = c.Transform,
                     IndexBuffer = c.Mesh.GetIndices(),
                     VertexBuffer = c.Mesh.GetVertices(idx),
                     Material = c.Materials[idx],
@@ -103,29 +133,59 @@ public class CollectPass : IPass
             });
         }).ToList();
         
-        _firstSkinnedIndex = processedMeshes.Count;
-        
-        processedMeshes.AddRange(SkinnedGeometry.SelectMany(c =>
+        // If shader is not ready we can't skin this frame
+        if (_skinningShader.Ready)
         {
-            return c.SurfaceIndices.Select(idx =>
+            _firstSkinnedIndex = processedMeshes.Count;
+            processedMeshes.AddRange(SkinnedGeometry.SelectMany(c =>
             {
-                // Need to spoof a regular vertex buffer here since this is a skinned mesh
-                var vertexBuffer = c.Mesh.GetVertices(idx);
-                var offset = (vertexBuffer.Offset / Utils.ByteSizeOf<SkinnedVertex>()) * Utils.ByteSizeOf<Vertex>();
-                var size = c.Mesh.GetVertexCount(idx) * Utils.ByteSizeOf<Vertex>();
-                var surface = c.Mesh.GetSurface(idx);
-                return new ProcessedMesh
+                return c.SurfaceIndices.Select(idx =>
                 {
-                    IndexBuffer = c.Mesh.GetIndices(),
-                    VertexBuffer = new SkinnedVertexBufferView(offset,size),
-                    Material = c.Materials[idx],
-                    IndicesCount = surface.IndicesCount,
-                    IndicesStart = surface.IndicesStart,
-                    VertexCount = surface.VertexCount,
-                    VertexStart = surface.VertexStart,
-                };
-            });
-        }));
+                    // Need to spoof a regular vertex buffer here since this is a skinned mesh
+                    var vertexBuffer = c.Mesh.GetVertices(idx);
+                    var offset = (vertexBuffer.Offset / Utils.ByteSizeOf<SkinnedVertex>()) * Utils.ByteSizeOf<Vertex>();
+                    var size = c.Mesh.GetVertexCount(idx) * Utils.ByteSizeOf<Vertex>();
+                    var surface = c.Mesh.GetSurface(idx);
+                    return new ProcessedMesh
+                    {
+                        Transform = c.Transform,
+                        IndexBuffer = c.Mesh.GetIndices(),
+                        VertexBuffer = new SkinnedVertexBufferView(offset,size),
+                        Material = c.Materials[idx],
+                        IndicesCount = surface.IndicesCount,
+                        IndicesStart = surface.IndicesStart,
+                        VertexCount = surface.VertexCount,
+                        VertexStart = surface.VertexStart,
+                    };
+                });
+            }));
+            
+            _skinnedMeshes = SkinnedGeometry.Select(c => c.Mesh).Distinct().ToArray();
+
+            if (_skinnedMeshes.Length > 0)
+            {
+                var skinnedGeometryDictionary = _skinnedMeshes
+                    .Select((c, idx) => new KeyValuePair<IMesh, int>(c, idx)).ToFrozenDictionary();
+                TotalVerticesToSkin = _skinnedMeshes.Aggregate<IMesh,uint>(0,(t,c) => t + c.GetVertexCount());
+                SkinnedPoses = SkinnedGeometry.Select(c => c.Skeleton.ResolvePose(c.Pose).ToArray()).ToArray();
+                ExecutionInfos = SkinnedGeometry.SelectMany((c,poseIdx) =>
+                {
+                    return Enumerable.Range(0, (int)c.Mesh.GetVertexCount()).Select((idx) => new SkinningExecutionInfo
+                    {
+                        MeshId = skinnedGeometryDictionary[c.Mesh],
+                        PoseId = poseIdx,
+                        VertexId = idx,
+                    });
+                }).ToArray();
+            
+                SkinningOutputBufferId = config.AllocateBuffer<Vertex>(TotalVerticesToSkin);
+                SkinnedMeshArrayBufferId = config.AllocateBuffer<ulong>(_skinnedMeshes.Length);
+                SkinningPosesBufferId = SkinnedPoses.Select(c => config.AllocateBuffer<Matrix4x4>(c.Length)).ToArray();
+                SkinningPoseIdArrayBufferId = config.AllocateBuffer<ulong>(SkinnedPoses.Length);
+                SkinningExecutionInfoBufferId = config.AllocateBuffer<SkinningExecutionInfo>(ExecutionInfos.Length);
+            }
+        }
+        
         
         ProcessedGeometry = processedMeshes.ToArray();
         
@@ -133,25 +193,67 @@ public class CollectPass : IPass
             (current, gcmd) => current + gcmd.Material.DepthPass.GetRequiredMemory());
         
         DepthMaterialBufferId = depthMaterialDataSize > 0 ? config.AllocateBuffer(depthMaterialDataSize) : 0;
-
-    // private uint SkinnedMeshBufferId { get; set; }
-    // private uint SkinningExecutionInfoBufferId { get; set; }
-    // private uint SkinningPoseBufferId { get; set; }
-    // private uint SkinningOutputBufferId { get; set; }
-    
-        var uniqueSkinnedGeometry = SkinnedGeometry.Select(c => c.Mesh).ToHashSet().ToArray();
-
-        if (uniqueSkinnedGeometry.Length > 0)
-        {
-            var totalVertices = uniqueSkinnedGeometry.Aggregate<IMesh,ulong>(0,(t,c) => t + c.GetVertexCount());   
-        }
     }
 
+    private void DoSkinning(ICompiledGraph graph, Frame frame)
+    {
+        // SkinningOutputBufferId = config.AllocateBuffer<Vertex>(totalVertices);
+        // SkinnedMeshArrayBufferId = config.AllocateBuffer<ulong>(SkinnedMeshes.Length);
+        // SkinningPosesBufferId = config.AllocateBuffer<Matrix4x4>(SkinnedPoses.Aggregate(0,(t,c) => t + c.Length));
+        // SkinningPoseArrayBufferId = config.AllocateBuffer<ulong>(SkinnedPoses.Length);
+        // SkinningExecutionInfoBufferId = config.AllocateBuffer<SkinningExecutionInfo>(ExecutionInfos.Length);
+        var output = graph.GetBuffer(SkinningOutputBufferId);
+        var meshArray = graph.GetBufferOrException(SkinnedMeshArrayBufferId);
+        var poseBuffers = SkinningPosesBufferId.Select(graph.GetBufferOrException).ToArray();
+        var posesArray = graph.GetBuffer(SkinningPoseIdArrayBufferId);
+        var executionInfos = graph.GetBuffer(SkinningExecutionInfoBufferId);
+        
+        meshArray.Write(_skinnedMeshes.Select(c => c.GetVertices().GetAddress()));
+        posesArray.Write(SkinnedPoses.Select((pose,idx) =>
+        {
+            poseBuffers[idx].Write(pose);
+            return poseBuffers[idx].GetAddress();
+        }));
+        executionInfos.Write(ExecutionInfos);
+
+        var cmd = frame.GetCommandBuffer();
+        if (_skinningShader.Bind(cmd))
+        {
+            var descriptorLayout = _skinningShader.GetDescriptorSetLayouts().Values.First();
+            var set = frame.GetDescriptorAllocator().Allocate(descriptorLayout);
+            set.WriteBuffers(0, new BufferWrite(output,BufferType.Storage));
+            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE,
+                _skinningShader.GetPipelineLayout(), [set]);
+            _skinningShader.Push(cmd,new SkinningPushConstants
+            {
+                TotalInvocations = (int)TotalVerticesToSkin,
+                MeshesBuffer = meshArray.GetAddress(),
+                PosesBuffer = posesArray.GetAddress(),
+                ExecutionInfoBuffer = executionInfos.GetAddress(),
+            });
+            cmd.Dispatch(TotalVerticesToSkin);
+            cmd.BufferBarrier(output, MemoryBarrierOptions.ComputeToGraphics());
+            ulong offset = 0;
+            for (var i = _firstSkinnedIndex; i < ProcessedGeometry.Length; i++)
+            {
+                var buffer = ProcessedGeometry[i].VertexBuffer as SkinnedVertexBufferView ?? throw new InvalidCastException();
+                buffer.UnderlyingView = output.GetView(offset, buffer.Size);
+                offset += buffer.Size;
+            }
+        }
+    }
+    
+    
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
+        if (_skinnedMeshes.NotEmpty())
+        {
+            DoSkinning(graph, frame);
+        }
+        
         var cmd = frame.GetCommandBuffer();
-        var sceneDataBuffer = graph.GetBuffer(DepthSceneBufferId);
-        var materialDataBuffer = DepthMaterialBufferId > 0 ? graph.GetBuffer(DepthMaterialBufferId) : null;
+        var sceneDataBuffer = graph.GetBufferOrException(DepthSceneBufferId);
+        var materialDataBuffer = graph.GetBufferOrNull(DepthMaterialBufferId);
         ulong materialDataBufferOffset = 0;
         DepthImage = graph.GetImage(DepthImageId);
 

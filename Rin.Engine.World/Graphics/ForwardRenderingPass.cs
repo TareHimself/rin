@@ -62,7 +62,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
         cmd
             .ImageBarrier(OutputImage, ImageLayout.General)
             .ClearColorImages(new Vector4(0.0f), ImageLayout.General, OutputImage)
-            .ImageBarrier(OutputImage, ImageLayout.General, ImageLayout.ColorAttachment)
+            .ImageBarrier(OutputImage, ImageLayout.ColorAttachment)
             .BeginRendering(_size.ToVkExtent(), [OutputImage.MakeColorAttachmentInfo(new Vector4(0.0f))],
                 DepthImage.MakeDepthAttachmentInfo())
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -124,7 +124,8 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
             first.Material.ColorPass.Execute(sceneFrame, view, infos);
         }
 
-        cmd.EndRendering();
+        cmd.EndRendering()
+            .ImageBarrier(OutputImage, ImageLayout.ShaderReadOnly);
     }
 
     public uint Id { get; set; }

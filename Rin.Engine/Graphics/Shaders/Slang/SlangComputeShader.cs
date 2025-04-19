@@ -35,8 +35,9 @@ public class SlangComputeShader : IComputeShader
 
     public Dictionary<string, Resource> Resources { get; } = [];
     public Dictionary<string, PushConstant> PushConstants { get; } = [];
+    public bool Ready => _compileTask.IsCompleted;
 
-    public bool Bind(VkCommandBuffer cmd, bool wait = false)
+    public bool Bind(in VkCommandBuffer cmd, bool wait = false)
     {
         _compileTask.Wait();
         if (wait && !_compileTask.IsCompleted)
@@ -275,6 +276,11 @@ public class SlangComputeShader : IComputeShader
     public VkPipelineLayout GetPipelineLayout()
     {
         return _pipelineLayout;
+    }
+
+    public VkShaderStageFlags GetStageFlags()
+    {
+        return VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT;
     }
 
     public uint GroupSizeX { get; set; }

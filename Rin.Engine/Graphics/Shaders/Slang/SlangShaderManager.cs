@@ -40,8 +40,16 @@ public class SlangShaderManager : IShaderManager
     {
         GC.SuppressFinalize(this);
         _compileTasks.Dispose();
-        foreach (var (key, shader) in _graphicsShaders) shader.Dispose();
+        foreach (var shader in _graphicsShaders.Values)
+        {
+            shader.Dispose();
+        }
+        foreach (var shader in _computeShaders.Values)
+        {
+            shader.Dispose();
+        }
         _graphicsShaders.Clear();
+        _computeShaders.Clear();
         _session.Dispose();
     }
 

@@ -18,7 +18,6 @@ public static class Extensions
 {
     public static async Task<StaticMesh?> LoadStaticMesh(string filename)
     {
-        LoadSkinnedMesh(filename).ConfigureAwait(false);
         var model = ModelRoot.Load(filename);
 
         var mesh = model?.LogicalMeshes.FirstOrDefault();

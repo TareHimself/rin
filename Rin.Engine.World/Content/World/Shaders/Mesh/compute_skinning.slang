@@ -15,9 +15,6 @@ struct Pose {
     float4x4 *transforms;
 }
 
-struct GlobalInfo {
-    int totalInvocations;
-}
 
 RWStructuredBuffer<Vertex, ScalarDataLayout> outVertices;
 
@@ -26,7 +23,7 @@ struct ComputeIn {
 }
 
 struct PushConstants {
-    GlobalInfo *global;
+    int totalInvocations;
     SkinnedMesh *meshes;
     Pose *poses;
     ExecutionInfo *info;
@@ -40,7 +37,7 @@ uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
 void compute(ComputeIn input)
 {
     var index = input.threadId.x;
-    if (index >= push.global->totalInvocations) return;
+    if (index >= push.totalInvocations) return;
     var info = push.info[index];
     var mesh = push.meshes[info.meshId];
     var inVertex = mesh.vertices[index];

@@ -8,6 +8,15 @@ public struct Pose
 {
     public FrozenDictionary<string, Transform> Transforms;
 
+    public Pose()
+    {
+        Transforms = FrozenDictionary<string,Transform>.Empty;
+    }
+
+    public Pose(FrozenDictionary<string, Transform> transforms)
+    {
+        Transforms = transforms;
+    }
     
     public static Pose Blend(Pose a, Pose b, float alpha)
     {

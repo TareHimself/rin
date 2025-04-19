@@ -14,6 +14,7 @@ public class SlangGraphicsShader : IGraphicsShader
     private readonly string _filePath;
 
     private readonly List<Pair<VkShaderEXT, VkShaderStageFlags>> _shaders = [];
+    private VkShaderStageFlags _shaderStageFlags = 0;
     private bool _hasFragment;
     private bool _hasVertex;
     private VkPipelineLayout _pipelineLayout;
@@ -37,8 +38,9 @@ public class SlangGraphicsShader : IGraphicsShader
 
     public Dictionary<string, Resource> Resources { get; } = [];
     public Dictionary<string, PushConstant> PushConstants { get; } = [];
+    public bool Ready => _compileTask.IsCompleted;
 
-    public bool Bind(VkCommandBuffer cmd, bool wait = false)
+    public bool Bind(in VkCommandBuffer cmd, bool wait = false)
     {
         _compileTask.Wait();
         if (wait && !_compileTask.IsCompleted)
@@ -265,7 +267,6 @@ public class SlangGraphicsShader : IGraphicsShader
 
                         foreach (var (stage, blob) in code)
                         {
-                            var shaderSize = blob.GetSize();
                             var createInfo = new VkShaderCreateInfoEXT
                             {
                                 sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
@@ -287,7 +288,7 @@ public class SlangGraphicsShader : IGraphicsShader
                             var result = device.CreateShaders(createInfo).First();
                             _shaders.Add(new Pair<VkShaderEXT, VkShaderStageFlags>(result,
                                 stage));
-
+                            _shaderStageFlags |= stage;
                             blob.Dispose();
                         }
                     }
@@ -306,6 +307,8 @@ public class SlangGraphicsShader : IGraphicsShader
         return _pipelineLayout;
     }
 
-
-    
+    public VkShaderStageFlags GetStageFlags()
+    {
+        return _shaderStageFlags;
+    }
 }
