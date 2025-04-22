@@ -64,7 +64,7 @@ public class CollectPass : IPass
         ViewProjection = View * Projection;
         Size = size;
         // Collect Scene On Main Thread
-        var drawCommands = new DrawCommands();
+        var drawCommands = new CommandList();
         foreach (var root in World.GetPureRoots().ToArray()) root.Collect(drawCommands, World.WorldTransform);
         Geometry = drawCommands.StaticMeshes.ToArray();
         StaticGeometry = drawCommands.StaticMeshes.ToArray();

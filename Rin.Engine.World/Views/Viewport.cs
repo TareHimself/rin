@@ -14,6 +14,7 @@ using Rin.Engine.Views.Graphics.Commands;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics;
 using TerraFX.Interop.Vulkan;
+using CommandList = Rin.Engine.Views.Graphics.CommandList;
 
 namespace Rin.Engine.World.Views;
 
@@ -65,34 +66,34 @@ internal class DisplaySceneCommand(ForwardRenderingPass renderingPass, Vector2 s
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {
-        var buffer = view ?? throw new NullReferenceException(nameof(view));
-        var cmd = frame.Raw.GetCommandBuffer();
-        if (renderingPass.OutputImage is { } outputImage && _shader.Bind(cmd))
-        {
-            frame.BeginMainPass();
-            var pushResource = _shader.PushConstants.Values.First();
-            var descriptor = frame.Raw.GetDescriptorAllocator()
-                .Allocate(_shader.GetDescriptorSetLayouts().Values.First());
-            descriptor.WriteImages(0, new ImageWrite(outputImage, ImageLayout.ShaderReadOnly,
-                ImageType.Sampled, new SamplerSpec
-                {
-                    Filter = ImageFilter.Linear,
-                    Tiling = ImageTiling.ClampEdge
-                }));
-
-            buffer.Write(
-                new Data
-                {
-                    Projection = frame.Projection,
-                    Transform = transform,
-                    Size = size
-                });
-            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _shader.GetPipelineLayout(),
-                [descriptor]);
-            cmd.PushConstant(_shader.GetPipelineLayout(), pushResource.Stages, buffer.GetAddress());
-
-            cmd.Draw(6);
-        }
+        // var buffer = view ?? throw new NullReferenceException(nameof(view));
+        // var cmd = frame.Raw.GetCommandBuffer();
+        // if (renderingPass.OutputImage is { } outputImage && _shader.Bind(cmd))
+        // {
+        //     frame.BeginMainPass();
+        //     var pushResource = _shader.PushConstants.Values.First();
+        //     var descriptor = frame.Raw.GetDescriptorAllocator()
+        //         .Allocate(_shader.GetDescriptorSetLayouts().Values.First());
+        //     descriptor.WriteImages(0, new ImageWrite(outputImage, ImageLayout.ShaderReadOnly,
+        //         ImageType.Sampled, new SamplerSpec
+        //         {
+        //             Filter = ImageFilter.Linear,
+        //             Tiling = ImageTiling.ClampEdge
+        //         }));
+        //
+        //     buffer.Write(
+        //         new Data
+        //         {
+        //             Projection = frame.ProjectionMatrix,
+        //             Transform = transform,
+        //             Size = size
+        //         });
+        //     cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _shader.GetPipelineLayout(),
+        //         [descriptor]);
+        //     cmd.PushConstant(_shader.GetPipelineLayout(), pushResource.Stages, buffer.GetAddress());
+        //
+        //     cmd.Draw(6);
+        // }
     }
 
     private struct Data
@@ -216,7 +217,7 @@ public class Viewport : ContentView
         return new Vector2();
     }
 
-    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, CommandList commands)
     {
         var contentSize = GetContentSize();
         var size = new Vector2<uint>((uint)float.Ceiling(contentSize.X), (uint)float.Ceiling(contentSize.Y));

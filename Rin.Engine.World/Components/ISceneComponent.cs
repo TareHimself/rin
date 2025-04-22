@@ -22,5 +22,5 @@ public interface ISceneComponent : IComponent
     public Quaternion GetRotation(Space space = Space.Local);
     public Vector3 GetScale(Space space = Space.Local);
     public Transform GetTransform(Space space = Space.Local);
-    public void Collect(DrawCommands drawCommands, Matrix4x4 parentTransform);
+    public void Collect(CommandList commandList, Matrix4x4 parentTransform);
 }

@@ -209,7 +209,7 @@ public class TextBox : ContentView
         return results.ToArray();
     }
 
-    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, CommandList commands)
     {
         if (CurrentFont == null) return;
         if (Content.NotEmpty() && _cachedLayouts == null)

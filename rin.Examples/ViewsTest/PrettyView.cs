@@ -25,10 +25,10 @@ public class PrettyView : ContentView
         return new Vector2();
     }
 
-    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, CommandList commands)
     {
         //Angle = (float)(((SRuntime.Get().GetTimeSeconds() * 100.0) - _createdAt) % 360.0);
-        commands.Add(new PrettyShaderDrawCommand(transform, GetContentSize(),
-            Parent?.Parent?.Parent?.IsHovered ?? false));
+        commands.Add(new CustomShaderCommand(transform, GetContentSize(),
+            Parent?.Parent?.Parent?.IsHovered ?? false, Surface?.GetCursorPosition() ?? Vector2.Zero));
     }
 }

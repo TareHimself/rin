@@ -15,7 +15,6 @@ public class FinalDrawCommand
 {
     public IBatch? Batch;
     public StencilClip[] Clips = [];
-    public CustomCommand? Custom;
     public uint Mask = 0x1;
     public CommandType Type = CommandType.None;
 }

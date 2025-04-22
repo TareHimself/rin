@@ -2,26 +2,26 @@
 
 namespace Rin.Engine.World.Graphics;
 
-public class DrawCommands
+public class CommandList
 {
     [PublicAPI] public readonly List<SkinnedMeshInfo> SkinnedMeshes = [];
     [PublicAPI] public readonly List<StaticMeshInfo> StaticMeshes = [];
 
     [PublicAPI] public readonly List<LightInfo> Lights = [];
 
-    public DrawCommands AddLight(LightInfo lightInfo)
+    public CommandList AddLight(LightInfo lightInfo)
     {
         Lights.Add(lightInfo);
         return this;
     }
 
-    public DrawCommands AddCommand(StaticMeshInfo command)
+    public CommandList AddCommand(StaticMeshInfo command)
     {
         StaticMeshes.Add(command);
         return this;
     }
     
-    public DrawCommands AddCommand(SkinnedMeshInfo command)
+    public CommandList AddCommand(SkinnedMeshInfo command)
     {
         SkinnedMeshes.Add(command);
         return this;

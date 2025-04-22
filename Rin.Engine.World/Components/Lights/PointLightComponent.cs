@@ -6,10 +6,10 @@ namespace Rin.Engine.World.Components.Lights;
 
 public class PointLightComponent : LightComponent
 {
-    public override void Collect(DrawCommands drawCommands, Matrix4x4 parentTransform)
+    public override void Collect(CommandList commandList, Matrix4x4 parentTransform)
     {
         var loc = GetLocation().Transform(parentTransform);
-        drawCommands.AddLight(new LightInfo
+        commandList.AddLight(new LightInfo
         {
             Color = Color,
             Direction = new Vector3(0.0f),
@@ -17,6 +17,6 @@ public class PointLightComponent : LightComponent
             LightType = LightType.Point,
             Location = new Vector3(loc.X, loc.Y, loc.Z)
         });
-        base.Collect(drawCommands, parentTransform);
+        base.Collect(commandList, parentTransform);
     }
 }

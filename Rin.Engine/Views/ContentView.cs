@@ -12,13 +12,13 @@ public abstract class ContentView : View
     /// </summary>
     /// <param name="transform"></param>
     /// <param name="commands"></param>
-    public abstract void CollectContent(Matrix4x4 transform, PassCommands commands);
+    public abstract void CollectContent(Matrix4x4 transform, CommandList commands);
 
-    public override void Collect(Matrix4x4 transform, Rect clip, PassCommands passCommands)
+    public override void Collect(in Matrix4x4 transform, in Rect clip, CommandList cmds)
     {
         if (!IsVisible) return;
 
-        CollectContent(transform.Translate(new Vector2(Padding.Left, Padding.Top)), passCommands);
+        CollectContent(transform.Translate(new Vector2(Padding.Left, Padding.Top)), cmds);
     }
 
     public override void Update(float deltaTime)

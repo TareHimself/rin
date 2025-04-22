@@ -11,7 +11,7 @@ public class SkinnedMeshComponent : SceneComponent
     public SkinnedMesh? Mesh { get; set; }
     public IMeshMaterial?[] Materials = [];
     public IPoseSource? PoseSource { get; set; }
-    protected override void CollectSelf(DrawCommands drawCommands, Matrix4x4 transform)
+    protected override void CollectSelf(CommandList commandList, Matrix4x4 transform)
     {
         if (Mesh is not null && SGraphicsModule.Get().GetMeshFactory().GetMesh(Mesh.MeshId) is { } mesh)
         {
@@ -24,7 +24,7 @@ public class SkinnedMeshComponent : SceneComponent
                 materials.Add(material);
             }
             
-            drawCommands.AddCommand(new SkinnedMeshInfo()
+            commandList.AddCommand(new SkinnedMeshInfo()
             {
                 Skeleton = Mesh.Skeleton,
                 Pose = PoseSource?.GetPose() ?? Mesh.Skeleton.BasePose,

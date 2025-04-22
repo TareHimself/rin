@@ -11,7 +11,7 @@ public class StaticMeshComponent : SceneComponent
     public IMeshMaterial?[] Materials = [];
     public StaticMesh? Mesh { get; set; }
 
-    protected override void CollectSelf(DrawCommands drawCommands, Matrix4x4 transform)
+    protected override void CollectSelf(CommandList commandList, Matrix4x4 transform)
     {
         if (Mesh is not null && SGraphicsModule.Get().GetMeshFactory().GetMesh(Mesh.MeshId) is { } mesh)
         {
@@ -24,7 +24,7 @@ public class StaticMeshComponent : SceneComponent
                 materials.Add(material);
             }
             
-            drawCommands.AddCommand(new StaticMeshInfo
+            commandList.AddCommand(new StaticMeshInfo
             {
                 Mesh = mesh,
                 Transform = transform,

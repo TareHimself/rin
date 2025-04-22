@@ -39,6 +39,11 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return resourceId;
     }
 
+    public uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout initialLayout = ImageLayout.Undefined)
+    {
+        return CreateImage(extent.Width, extent.Height, format, initialLayout);
+    }
+
     public uint AllocateBuffer(ulong size)
     {
         var descriptor = new BufferResourceDescriptor(size);

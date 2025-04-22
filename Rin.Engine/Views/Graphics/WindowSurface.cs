@@ -52,7 +52,8 @@ public class WindowSurface : Surface
     private void Collect(IGraphBuilder builder)
     {
         if (Stats.InitialCommandCount != 0) Stats = new FrameStats();
-        if (ComputePassInfo() is { } passInfo) builder.AddPass(new WindowSurfacePass(this, GetSize(), passInfo));
+        ;
+        if (BuildPasses(builder) is { } context) builder.AddPass(new WindowSurfacePass(this, GetSize(), context));
     }
 
     protected void OnWindowResized(Graphics_Windows_Events_ResizeEvent e)

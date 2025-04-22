@@ -6,10 +6,9 @@ namespace Rin.Engine.Views.Graphics;
 
 public static class GraphicsExtensions
 {
-    public static void ConfigureForViews(this Frame frame, Vector2 size)
+    public static void ConfigureForViews(this Frame frame, in Extent2D extent)
     {
         var cmd = frame.GetCommandBuffer();
-        var surfaceSize = size;
         cmd
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
@@ -22,8 +21,8 @@ public static class GraphicsExtensions
                 {
                     x = 0,
                     y = 0,
-                    width = surfaceSize.X,
-                    height = surfaceSize.Y,
+                    width = extent.Width,
+                    height = extent.Height,
                     minDepth = 0.0f,
                     maxDepth = 1.0f
                 }
@@ -34,8 +33,8 @@ public static class GraphicsExtensions
                     offset = new VkOffset2D(),
                     extent = new VkExtent2D
                     {
-                        width = (uint)surfaceSize.X,
-                        height = (uint)surfaceSize.Y
+                        width = extent.Width,
+                        height = extent.Height
                     }
                 }
             ]);

@@ -4,6 +4,9 @@ public interface IGraphConfig
 {
     public uint CreateImage(uint width, uint height, ImageFormat format,
         ImageLayout initialLayout = ImageLayout.Undefined);
+    
+    public uint CreateImage(in Extent2D extent, ImageFormat format,
+        ImageLayout initialLayout = ImageLayout.Undefined);
 
     public uint AllocateBuffer(ulong size);
     public uint Read(uint resourceId);

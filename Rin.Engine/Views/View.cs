@@ -427,8 +427,8 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     /// </summary>
     /// <param name="transform"></param>
     /// <param name="clip"></param>
-    /// <param name="passCommands"></param>
-    public abstract void Collect(Matrix4x4 transform, Rect clip, PassCommands passCommands);
+    /// <param name="cmds"></param>
+    public abstract void Collect(in Matrix4x4 transform, in Rect clip, CommandList cmds);
 
 
     public virtual bool TryUpdateDesiredSize()

@@ -10,20 +10,20 @@ public class ClipInfo(uint id, Matrix4x4 transform, Vector2 size)
     public Matrix4x4 Transform = transform;
 }
 
-public struct RawCommand(Command drawCommand, string clipId)
+public struct RawCommand(ICommand cmd, string clipId)
 {
-    public Command Command = drawCommand;
+    public ICommand Cmd = cmd;
     public readonly string ClipId = clipId;
     public int AbsoluteDepth = 0;
 }
 
-public struct PendingCommand(Command drawCommand, uint clipId)
+public struct PendingCommand(ICommand cmd, uint clipId)
 {
-    public Command DrawCommand = drawCommand;
+    public ICommand Cmd = cmd;
     public readonly uint ClipId = clipId;
 }
 
-public class PassCommands
+public class CommandList
 {
     private readonly Stack<uint> _clipStack = [];
 
@@ -38,11 +38,9 @@ public class PassCommands
 
     public Dictionary<string, uint[]> UniqueClipStacks { get; } = [];
 
-    public PassCommands Add(Command command)
+    public CommandList Add(ICommand command)
     {
-        var info = new RawCommand(command,
-            command is CustomCommand asCustom ? !asCustom.WillDraw() ? "" : _clipId : _clipId)
-        {
+        var info = new RawCommand(command,_clipId){
             AbsoluteDepth = _depth
         };
 
@@ -62,7 +60,7 @@ public class PassCommands
     }
 
 
-    public PassCommands PushClip(Matrix4x4 transform, Vector2 size)
+    public CommandList PushClip(Matrix4x4 transform, Vector2 size)
     {
         var id = (uint)Clips.Count;
         var clipInfo = new ClipInfo(id, transform, size);
@@ -72,7 +70,7 @@ public class PassCommands
         return this;
     }
 
-    public PassCommands PopClip()
+    public CommandList PopClip()
     {
         var asStr = _clipStack.Peek().ToString();
         _clipStack.Pop();
@@ -81,13 +79,13 @@ public class PassCommands
     }
 
 
-    public PassCommands IncrDepth()
+    public CommandList IncrDepth()
     {
         _depth++;
         return this;
     }
 
-    public PassCommands DecrDepth()
+    public CommandList DecrDepth()
     {
         _depth--;
         return this;

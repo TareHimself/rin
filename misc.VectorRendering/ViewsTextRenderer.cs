@@ -5,7 +5,7 @@ using SixLabors.Fonts;
 
 namespace misc.VectorRendering;
 
-public class ViewsTextRenderer(PassCommands cmds) : IGlyphRenderer
+public class ViewsTextRenderer(CommandList cmds) : IGlyphRenderer
 {
     private Vector2 _point = Vector2.Zero;
 

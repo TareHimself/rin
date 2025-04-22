@@ -16,7 +16,7 @@ public class AudioVisualizer : ContentView
         throw new NotImplementedException();
     }
 
-    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, CommandList commands)
     {
         throw new NotImplementedException();
     }

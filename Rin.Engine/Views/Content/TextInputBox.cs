@@ -105,7 +105,7 @@ public class TextInputBox : TextBox
         return availableSpace;
     }
 
-    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, CommandList commands)
     {
         base.CollectContent(transform, commands);
 

@@ -96,7 +96,7 @@ public class MainModule : IModule
         return SEngine.Get().GetModule<MainModule>();
     }
 
-    public void PaintCanvas(Canvas target, Mat3 transform, PassCommands cmds)
+    public void PaintCanvas(Canvas target, Mat3 transform, CommandList cmds)
     {
         var str = "A B C"; //"素早い茶色のキツネ";
         // var glyph = _fontManager.GetGlyph(_font, 'A', out TODO);

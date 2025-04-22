@@ -5,84 +5,36 @@ using Rin.Engine.Math;
 
 namespace Rin.Engine.Views.Graphics;
 
-public class ViewsFrame
+public class ViewsFrame(
+    Frame raw,
+    IGraphImage drawImage,
+    IGraphImage copyImage,
+    IGraphImage stencilImage,
+    SharedPassContext passContext)
 {
-    public readonly IGraphImage CopyImage;
-
-    public readonly IGraphImage DrawImage;
-
-    //public readonly AeroxLinkedList<GraphicsCommand> DrawCommandList = [];
-    public readonly Frame Raw;
-    public readonly IGraphImage StencilImage;
-    public readonly Surface Surface;
-    public readonly Vector2 SurfaceSize;
-    public string ActivePass = "";
-    public Matrix4x4 Projection;
-    public FrameStats Stats;
-
-    public ViewsFrame(Surface surface, Frame raw, Vector2 surfaceSize, IGraphImage drawImage, IGraphImage copyImage,
-        IGraphImage stencilImage, FrameStats stats)
-    {
-        Surface = surface;
-        Raw = raw;
-        Projection = MathR.ViewportProjection(surfaceSize.X, surfaceSize.Y, 0.0f, 1.0f);
-        DrawImage = drawImage;
-        CopyImage = copyImage;
-        StencilImage = stencilImage;
-        SurfaceSize = surfaceSize;
-        Stats = stats;
-        //raw.OnReset += CleanupCommands;
-    }
-
-    public bool IsMainPassActive => ActivePass == Surface.MainPassId;
-    public bool IsAnyPassActive => ActivePass.Length != 0;
-
-    public void BeginMainPass(bool clearColor = false, bool clearStencil = false)
-    {
-        Surface.BeginMainPass(this, clearColor, clearStencil);
-    }
-
-    public void EnsurePass(string passId, Action<ViewsFrame> applyPass)
-    {
-        Surface.EnsurePass(this, passId, applyPass);
-    }
-
-    public void EndActivePass()
-    {
-        Surface.EndActivePass(this);
-    }
-
-    // public ViewFrame AddRect(Matrix3 transform, Vector2<float> size, Vector4<float>? borderRadius = null,
-    //     Color? color = null)
+    public readonly IGraphImage CopyImage = copyImage;
+    public readonly IGraphImage DrawImage = drawImage;
+    public readonly Frame Raw = raw;
+    public readonly IGraphImage StencilImage = stencilImage;
+    public Matrix4x4 ProjectionMatrix = passContext.ProjectionMatrix;
+    public Extent2D Extent = passContext.Extent;
+    // public SharedPassContext PassContext = passContext;
+    
+    // public void BeginMainPass(bool clearColor = false, bool clearStencil = false)
     // {
-    //     return AddCommands(new SimpleRect(transform, size)
-    //     {
-    //         BorderRadius = borderRadius,
-    //         Color = color
-    //     });
+    //     //Surface.BeginMainPass(this, clearColor, clearStencil);
     // }
     //
-    // public ViewFrame AddMaterialRect(MaterialInstance materialInstance, ViewPushConstants pushConstants)
+    // public void EnsurePass(string passId, Action<ViewsFrame> applyPass)
     // {
-    //     return AddCommands(new MaterialRect(materialInstance, pushConstants));
+    //     //Surface.EnsurePass(this, passId, applyPass);
     // }
     //
-    // public ViewFrame AddCommands(params GraphicsCommand[] commands)
+    // public void EndActivePass()
     // {
-    //     LinkedList<GraphicsCommand> lCommands = [];
-    //     foreach (var command in commands)
-    //     {
-    //         DrawCommandList.InsertBack(command);
-    //     }
-    //     return this;
+    //     //Surface.EndActivePass(this);
     // }
-    //
-    // public void CleanupCommands(Frame frame)
-    // {
-    //     foreach (var viewFrameDrawCommand in DrawCommandList) viewFrameDrawCommand.Value.Dispose();
-    //     DrawCommandList.Clear();
-    // }
-
+    
 
     public static implicit operator Frame(ViewsFrame frame)
     {

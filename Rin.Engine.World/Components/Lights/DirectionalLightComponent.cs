@@ -7,10 +7,10 @@ namespace Rin.Engine.World.Components.Lights;
 
 public class DirectionalLightComponent : LightComponent
 {
-    public override void Collect(DrawCommands drawCommands, Matrix4x4 parentTransform)
+    public override void Collect(CommandList commandList, Matrix4x4 parentTransform)
     {
         var sceneTransform = Transform.From(GetTransform().ToMatrix() * parentTransform);
-        drawCommands.AddLight(new LightInfo
+        commandList.AddLight(new LightInfo
         {
             Color = Color,
             Direction = sceneTransform.Rotation.GetForward(),
@@ -18,6 +18,6 @@ public class DirectionalLightComponent : LightComponent
             LightType = LightType.Directional,
             Location = sceneTransform.Location
         });
-        base.Collect(drawCommands, parentTransform);
+        base.Collect(commandList, parentTransform);
     }
 }

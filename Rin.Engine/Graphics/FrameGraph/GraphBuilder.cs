@@ -31,17 +31,14 @@ public class GraphBuilder : IGraphBuilder
 
         if (terminals.Empty()) return null;
 
-        HashSet<uint> visited = [];
+        
         LinkedList<ICompiledGraphNode> nodes = [];
         HashSet<uint> resources = [];
         var toCheck = terminals.Select(c => c.Id).ToQueue();
-
+        var visited = toCheck.ToHashSet();
         while (toCheck.NotEmpty())
         {
             var passId = toCheck.Dequeue();
-
-            if (visited.Contains(passId)) continue;
-
             var node = new CompiledGraphNode
             {
                 Pass = _passes[passId],
@@ -54,6 +51,7 @@ public class GraphBuilder : IGraphBuilder
                 {
                     case GraphConfig.DependencyType.Pass:
                     {
+                        if(!visited.Add(dependency.Id)) continue;
                         toCheck.Enqueue(dependency.Id);
                         node.Dependencies.Add(_passes[dependency.Id]);
                     }
@@ -70,7 +68,7 @@ public class GraphBuilder : IGraphBuilder
                         if (targetIdx != -1)
                         {
                             GraphConfig.ResourceAction? targetAction = null;
-                            for (var i = targetIdx; i > -1; i--)
+                            for (var i = targetIdx - 1; i > -1; i--)
                                 if (resourceActions[i].Type == GraphConfig.ActionType.Write)
                                 {
                                     targetAction = resourceActions[i];
@@ -78,10 +76,10 @@ public class GraphBuilder : IGraphBuilder
                                 }
 
                             // If found add the write as a dependency and to the search
-                            if (targetAction != null)
+                            if (targetAction is {} action && visited.Add(action.PassId))
                             {
-                                toCheck.Enqueue(targetAction.PassId);
-                                node.Dependencies.Add(_passes[targetAction.PassId]);
+                                toCheck.Enqueue(action.PassId);
+                                node.Dependencies.Add(_passes[action.PassId]);
                                 resources.Add(dependency.Id);
                             }
                         }
@@ -98,22 +96,28 @@ public class GraphBuilder : IGraphBuilder
                             var targetIdx = resourceActions.FindLastIndex(c =>
                                 c.PassId == passId && c.Type == GraphConfig.ActionType.Write);
 
-                            // If found find the position of the write before it
+                            // If found get all reads till the previous write
                             if (targetIdx != -1)
                             {
                                 GraphConfig.ResourceAction? targetAction = null;
-                                for (var i = targetIdx; i > -1; i--)
+                                List<GraphConfig.ResourceAction> actions = [];
+                                for (var i = targetIdx - 1; i > -1; i--)
+                                {
                                     if (resourceActions[i].Type == GraphConfig.ActionType.Write)
                                     {
-                                        targetAction = resourceActions[i];
+                                        actions.Add(resourceActions[i]);
                                         break;
                                     }
-
-                                // If found add the write as a dependency and to the search
-                                if (targetAction != null)
+                                    
+                                    actions.Add(resourceActions[i]);
+                                }
+                                
+                                // Write can't happen till all reads since last write happen
+                                foreach (var action in actions)
                                 {
-                                    toCheck.Enqueue(targetAction.PassId);
-                                    node.Dependencies.Add(_passes[targetAction.PassId]);
+                                    if(!visited.Add(action.PassId)) continue;
+                                    toCheck.Enqueue(action.PassId);
+                                    node.Dependencies.Add(_passes[action.PassId]);
                                     resources.Add(dependency.Id);
                                 }
                             }
@@ -133,8 +137,6 @@ public class GraphBuilder : IGraphBuilder
                 }
 
             nodes.AddFirst(node);
-
-            visited.Add(passId);
         }
 
         return new CompiledGraph(resourcePool, frame, resources.ToDictionary(id => id, id => config.Resources[id]),

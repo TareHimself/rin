@@ -11,12 +11,12 @@ public class QuadBatch : IBatch
         return [Utils.ByteSizeOf<Quad>(_quads.Count)];
     }
 
-    public IBatcher GetRenderer()
+    public IBatcher GetBatcher()
     {
-        return SViewsModule.Get().GetBatchRenderer<DefaultQuadBatcher>();
+        return SViewsModule.Get().GetBatcher<DefaultQuadBatcher>();
     }
 
-    public void AddFromCommand(BatchedCommand command)
+    public void AddFromCommand(ICommand command)
     {
         if (command is QuadDrawCommand asQuadDraw) _quads.AddRange(asQuadDraw.GetQuads());
     }

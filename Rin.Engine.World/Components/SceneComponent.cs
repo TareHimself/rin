@@ -254,12 +254,12 @@ public class SceneComponent : Component, ISceneComponent
     }
 
 
-    public virtual void Collect(DrawCommands drawCommands, Matrix4x4 parentTransform)
+    public virtual void Collect(CommandList commandList, Matrix4x4 parentTransform)
     {
         var relativeTransform = GetTransform().ToMatrix();
         var myTransform = relativeTransform * parentTransform;
-        if (Visible) CollectSelf(drawCommands, myTransform);
-        foreach (var attachedComponent in GetAttachedComponents()) attachedComponent.Collect(drawCommands, myTransform);
+        if (Visible) CollectSelf(commandList, myTransform);
+        foreach (var attachedComponent in GetAttachedComponents()) attachedComponent.Collect(commandList, myTransform);
     }
 
 
@@ -272,7 +272,7 @@ public class SceneComponent : Component, ISceneComponent
         }
     }
 
-    protected virtual void CollectSelf(DrawCommands drawCommands, Matrix4x4 transform)
+    protected virtual void CollectSelf(CommandList commandList, Matrix4x4 transform)
     {
     }
 }

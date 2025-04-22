@@ -11,6 +11,7 @@ using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.Passes.Blur;
 using Rin.Engine.Views.Graphics.Quads;
 using Rin.Engine.Views.Layouts;
 using rin.Examples.Common.Views;
@@ -435,6 +436,19 @@ public class SViewsTestModule : IModule
             var size = base.LayoutContent(availableSpace);
             _content.Translate = _content.Size * .5f;
             return size;
+        }
+
+        protected override void CollectSelf(Matrix4x4 transform, CommandList cmds)
+        {
+            
+            base.CollectSelf(transform, cmds);
+            
+        }
+
+        public override void Collect(in Matrix4x4 transform, in Rin.Engine.Views.Rect clip, CommandList cmds)
+        {
+            base.Collect(transform, clip, cmds);
+            cmds.AddBlur(transform, GetContentSize());
         }
     }
 

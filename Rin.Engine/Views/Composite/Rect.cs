@@ -32,9 +32,9 @@ public class Rect : SingleSlotCompositeView
     }
 
 
-    protected virtual void CollectSelf(Matrix4x4 transform, PassCommands passCommands)
+    protected virtual void CollectSelf(Matrix4x4 transform, CommandList cmds)
     {
-        if (Color.A > 0.0f) passCommands.AddRect(transform, Size, Color, BorderRadius);
+        if (Color.A > 0.0f) cmds.AddRect(transform, Size, Color, BorderRadius);
     }
 
     public override IEnumerable<ISlot> GetSlots()
@@ -44,9 +44,9 @@ public class Rect : SingleSlotCompositeView
         return [];
     }
 
-    public override void Collect(Matrix4x4 transform, Views.Rect clip, PassCommands passCommands)
+    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList cmds)
     {
-        if (IsVisible) CollectSelf(transform, passCommands);
-        base.Collect(transform, clip, passCommands);
+        if (IsVisible) CollectSelf(transform, cmds);
+        base.Collect(transform, clip, cmds);
     }
 }

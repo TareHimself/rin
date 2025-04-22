@@ -90,7 +90,7 @@ public class PathCommand : CustomCommand
                     VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT | VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,
                     new PushConstant
                     {
-                        Projection = frame.Projection,
+                        Projection = frame.ProjectionMatrix,
                         Transform = _transform,
                         Size = max - min,
                         BezierCount = beziers.Length,

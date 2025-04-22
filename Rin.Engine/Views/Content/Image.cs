@@ -59,12 +59,12 @@ public class Image : ContentView
     //     }
     // }
 
-    public override void CollectContent(Matrix4x4 transform, PassCommands commands)
+    public override void CollectContent(Matrix4x4 transform, CommandList commands)
     {
         if (TextureId != -1) DrawImage(TextureId, transform, commands);
     }
 
-    protected virtual void DrawImage(int textureId, Matrix4x4 transform, PassCommands commands)
+    protected virtual void DrawImage(int textureId, Matrix4x4 transform, CommandList commands)
     {
         commands.AddTexture(textureId, transform, GetContentSize(), Tint, null,
             BorderRadius);

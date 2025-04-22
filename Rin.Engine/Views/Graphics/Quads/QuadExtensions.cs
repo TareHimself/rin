@@ -5,74 +5,74 @@ namespace Rin.Engine.Views.Graphics.Quads;
 
 public static class QuadExtensions
 {
-    public static PassCommands AddQuads(this PassCommands passCommands, params Quad[] quads)
+    public static CommandList AddQuads(this CommandList commandList, params Quad[] quads)
     {
-        return passCommands.Add(new QuadDrawCommand(quads));
+        return commandList.Add(new QuadDrawCommand(quads));
     }
 
-    public static PassCommands AddRect(this PassCommands passCommands, Matrix4x4 transform, Vector2 size,
+    public static CommandList AddRect(this CommandList commandList, Matrix4x4 transform, Vector2 size,
         Vector4? color = null, Vector4? borderRadius = null)
     {
-        return passCommands.AddQuads(Quad.Rect(transform, size, color, borderRadius));
+        return commandList.AddQuads(Quad.Rect(transform, size, color, borderRadius));
     }
 
-    public static PassCommands AddCircle(this PassCommands passCommands, Vector2 center, float radius,
+    public static CommandList AddCircle(this CommandList commandList, Vector2 center, float radius,
         Vector4? color = null)
     {
-        return passCommands.AddQuads(Quad.Circle(Matrix4x4.Identity.Translate(center), radius, color));
+        return commandList.AddQuads(Quad.Circle(Matrix4x4.Identity.Translate(center), radius, color));
     }
 
-    public static PassCommands AddLine(this PassCommands passCommands, Vector2 begin, Vector2 end,
+    public static CommandList AddLine(this CommandList commandList, Vector2 begin, Vector2 end,
         float thickness = 2.0f,
         Vector4? color = null)
     {
-        return passCommands.AddQuads(Quad.Line(begin, end, thickness, color));
+        return commandList.AddQuads(Quad.Line(begin, end, thickness, color));
     }
 
-    public static PassCommands AddQuadraticCurve(this PassCommands passCommands, Vector2 begin, Vector2 end,
+    public static CommandList AddQuadraticCurve(this CommandList commandList, Vector2 begin, Vector2 end,
         Vector2 control,
         float thickness = 2.0f,
         Vector4? color = null)
     {
-        return passCommands.AddQuads(Quad.QuadraticCurve(begin, control, end, thickness, color));
+        return commandList.AddQuads(Quad.QuadraticCurve(begin, control, end, thickness, color));
     }
 
-    public static PassCommands AddCubicCurve(this PassCommands passCommands, Vector2 begin, Vector2 end,
+    public static CommandList AddCubicCurve(this CommandList commandList, Vector2 begin, Vector2 end,
         Vector2 controlA,
         Vector2 controlB, float thickness = 2.0f, Vector4? color = null)
     {
-        return passCommands.AddQuads(Quad.CubicCurve(begin, controlA, end, controlB, thickness, color));
+        return commandList.AddQuads(Quad.CubicCurve(begin, controlA, end, controlB, thickness, color));
     }
 
-    public static PassCommands AddQuadraticCurve(this PassCommands passCommands, Matrix4x4 transform, Vector2 begin,
+    public static CommandList AddQuadraticCurve(this CommandList commandList, Matrix4x4 transform, Vector2 begin,
         Vector2 end,
         Vector2 control, float thickness = 2.0f,
         Vector4? color = null)
     {
-        return passCommands.AddQuadraticCurve(begin.Transform(transform), end.Transform(transform),
+        return commandList.AddQuadraticCurve(begin.Transform(transform), end.Transform(transform),
             control.Transform(transform), thickness, color);
     }
 
-    public static PassCommands AddCubicCurve(this PassCommands passCommands, Matrix4x4 transform, Vector2 begin,
+    public static CommandList AddCubicCurve(this CommandList commandList, Matrix4x4 transform, Vector2 begin,
         Vector2 end,
         Vector2 controlA,
         Vector2 controlB, float thickness = 2.0f, Vector4? color = null)
     {
-        return passCommands.AddCubicCurve(begin.Transform(transform), end.Transform(transform),
+        return commandList.AddCubicCurve(begin.Transform(transform), end.Transform(transform),
             controlA.Transform(transform), controlB.Transform(transform), thickness, color);
     }
 
-    public static PassCommands AddTexture(this PassCommands passCommands, int textureId, Matrix4x4 transform,
+    public static CommandList AddTexture(this CommandList commandList, int textureId, Matrix4x4 transform,
         Vector2 size, Vector4? tint = null, Vector4? uv = null,
         Vector4? borderRadius = null)
     {
-        return passCommands.AddQuads(Quad.Texture(textureId, transform, size, tint, borderRadius, uv));
+        return commandList.AddQuads(Quad.Texture(textureId, transform, size, tint, borderRadius, uv));
     }
 
 
-    public static PassCommands AddMtsdf(this PassCommands passCommands, int textureId, Matrix4x4 transform,
+    public static CommandList AddMtsdf(this CommandList commandList, int textureId, Matrix4x4 transform,
         Vector2 size, Vector4? color = null, Vector4? uv = null)
     {
-        return passCommands.AddQuads(Quad.Mtsdf(textureId, transform, size, color, uv));
+        return commandList.AddQuads(Quad.Mtsdf(textureId, transform, size, color, uv));
     }
 }

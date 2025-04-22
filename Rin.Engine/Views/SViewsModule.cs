@@ -76,7 +76,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
         _fontManager.LoadFont(SEngine.Get().Sources.Read(fontPath));
     }
 
-    public IBatcher GetBatchRenderer<T>() where T : IBatcher
+    public IBatcher GetBatcher<T>() where T : IBatcher
     {
         var type = typeof(T);
         if (_batchRenderers.TryGetValue(type, out var value)) return value;

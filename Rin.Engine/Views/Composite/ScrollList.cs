@@ -118,9 +118,9 @@ public class ScrollList : List
         }
     }
 
-    public override void Collect(Matrix4x4 transform, Views.Rect clip, PassCommands passCommands)
+    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList cmds)
     {
-        base.Collect(transform, clip, passCommands);
+        base.Collect(transform, clip, cmds);
         if (IsVisible && IsScrollable())
         {
             var scroll = GetScroll();
@@ -135,7 +135,7 @@ public class ScrollList : List
             var size = GetContentSize();
 
             var barTransform = transform.Translate(new Vector2(size.X - 10.0f, drawOffset));
-            passCommands.AddRect(barTransform, new Vector2(10.0f, barSize), Color.White, new Vector4(7.0f));
+            cmds.AddRect(barTransform, new Vector2(10.0f, barSize), Color.White, new Vector4(7.0f));
         }
     }
 

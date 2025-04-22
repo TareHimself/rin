@@ -5,6 +5,6 @@ namespace Rin.Engine.Views.Graphics;
 public interface IBatch
 {
     IEnumerable<ulong> GetMemoryNeeded();
-    IBatcher GetRenderer();
-    void AddFromCommand(BatchedCommand command);
+    IBatcher GetBatcher();
+    void AddFromCommand(ICommand command);
 }

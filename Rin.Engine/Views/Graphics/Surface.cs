@@ -2,10 +2,12 @@
 using JetBrains.Annotations;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Math;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics.Commands;
+using Rin.Engine.Views.Graphics.Passes;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -84,43 +86,43 @@ public abstract class Surface : IDisposable, IUpdatable
     /// <param name="passId"></param>
     /// <param name="applyPass"></param>
     /// <returns></returns>
-    public virtual void EnsurePass(ViewsFrame frame, string passId, Action<ViewsFrame> applyPass)
-    {
-        if (frame.ActivePass == passId) return;
-        if (frame.ActivePass.Length > 0 && frame.ActivePass != passId) EndActivePass(frame);
-        applyPass.Invoke(frame);
-        frame.ActivePass = passId;
-    }
+    // public virtual void EnsurePass(ViewsFrame frame, string passId, Action<ViewsFrame> applyPass)
+    // {
+    //     if (frame.ActivePass == passId) return;
+    //     if (frame.ActivePass.Length > 0 && frame.ActivePass != passId) EndActivePass(frame);
+    //     applyPass.Invoke(frame);
+    //     frame.ActivePass = passId;
+    // }
 
-    public virtual void BeginMainPass(ViewsFrame frame, bool clearColor = false, bool clearStencil = false)
-    {
-        EnsurePass(frame, MainPassId, _ =>
-        {
-            var cmd = frame.Raw.GetCommandBuffer();
-
-            var size = frame.SurfaceSize;
-
-            var drawExtent = new VkExtent3D
-            {
-                width = (uint)size.X,
-                height = (uint)size.Y
-            };
-
-            cmd.BeginRendering(new VkExtent2D
-                {
-                    width = drawExtent.width,
-                    height = drawExtent.height
-                }, [
-                    frame.DrawImage.MakeColorAttachmentInfo(
-                        clearColor ? new Vector4(0.0f) : null)
-                ],
-                stencilAttachment: frame.StencilImage.MakeStencilAttachmentInfo(clearStencil ? 0 : null));
-
-            frame.Raw.ConfigureForViews(size);
-
-            if (clearStencil) ResetStencilState(cmd);
-        });
-    }
+    // public virtual void BeginMainPass(ViewsFrame frame, bool clearColor = false, bool clearStencil = false)
+    // {
+    //     EnsurePass(frame, MainPassId, _ =>
+    //     {
+    //         var cmd = frame.Raw.GetCommandBuffer();
+    //
+    //         var size = frame.SurfaceSize;
+    //
+    //         var drawExtent = new VkExtent3D
+    //         {
+    //             width = (uint)size.X,
+    //             height = (uint)size.Y
+    //         };
+    //
+    //         cmd.BeginRendering(new VkExtent2D
+    //             {
+    //                 width = drawExtent.width,
+    //                 height = drawExtent.height
+    //             }, [
+    //                 frame.DrawImage.MakeColorAttachmentInfo(
+    //                     clearColor ? new Vector4(0.0f) : null)
+    //             ],
+    //             stencilAttachment: frame.StencilImage.MakeStencilAttachmentInfo(clearStencil ? 0 : null));
+    //
+    //         frame.Raw.ConfigureForViews(size);
+    //
+    //         if (clearStencil) ResetStencilState(cmd);
+    //     });
+    // }
 
     private static void ResetStencilState(VkCommandBuffer cmd,
         VkStencilFaceFlags faceMask = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK)
@@ -133,122 +135,58 @@ public abstract class Surface : IDisposable, IUpdatable
             VkStencilOp.VK_STENCIL_OP_KEEP, VkCompareOp.VK_COMPARE_OP_NEVER);
     }
 
-    public virtual void EndActivePass(ViewsFrame frame)
-    {
-        frame.Raw.GetCommandBuffer().EndRendering();
-        frame.ActivePass = "";
-    }
+    // public virtual void EndActivePass(ViewsFrame frame)
+    // {
+    //     frame.Raw.GetCommandBuffer().EndRendering();
+    //     frame.ActivePass = "";
+    // }
 
-    private void ProcessPendingCommands(IEnumerable<PendingCommand> drawCommands,
-        ref PassInfo result)
+    private void ProcessPendingCommands(IEnumerable<ICommand> drawCommands,
+        SharedPassContext context,List<IPass> passes)
     {
-        IBatch? activeBatch = null;
-        uint currentClipMask = 0x01;
-
+        List<ICommand> currentCommands = []; 
+        Type? currentPassType = null;
+        
         foreach (var pendingCommand in drawCommands)
         {
-            if (pendingCommand.DrawCommand is UtilityCommand utilCmd)
+            if (pendingCommand is NoOpCommand && currentCommands.NotEmpty())
             {
-                if (utilCmd.Stage == CommandStage.Before)
-                    result.PreCommands.Add(utilCmd);
+                passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context,currentCommands.ToArray())));
+                continue;
+            }
+            
+            if (currentCommands.Empty())
+            {
+                currentCommands.Add(pendingCommand);
+                currentPassType = pendingCommand.PassType;
+            }
+            else
+            {
+                var passType = pendingCommand.PassType;
+                if (currentPassType == passType)
+                {
+                    currentCommands.Add(pendingCommand);
+                }
                 else
-                    result.PostCommands.Add(utilCmd);
-            }
-
-            if (currentClipMask != pendingCommand.ClipId)
-            {
-                if (activeBatch != null)
                 {
-                    result.Commands.Add(new FinalDrawCommand
-                    {
-                        Batch = activeBatch,
-                        Mask = currentClipMask,
-                        Type = CommandType.BatchedDraw
-                    });
-                    activeBatch = null;
-                    Stats.BatchedDrawCommandCount++;
+                    passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context,currentCommands.ToArray())));
+                    currentCommands = [pendingCommand];
+                    currentPassType = passType;
                 }
-
-                currentClipMask = pendingCommand.ClipId;
-            }
-
-            switch (pendingCommand.DrawCommand)
-            {
-                case BatchedCommand asBatchedCommand:
-                {
-                    if (activeBatch == null)
-                    {
-                        activeBatch = asBatchedCommand.GetBatchRenderer().NewBatch();
-                    }
-                    else
-                    {
-                        if (activeBatch.GetRenderer() != asBatchedCommand.GetBatchRenderer())
-                        {
-                            result.Commands.Add(new FinalDrawCommand
-                            {
-                                Batch = activeBatch,
-                                Mask = currentClipMask,
-                                Type = CommandType.BatchedDraw
-                            });
-                            activeBatch = asBatchedCommand.GetBatchRenderer().NewBatch();
-                            Stats.BatchedDrawCommandCount++;
-                        }
-                    }
-
-
-                    activeBatch.AddFromCommand(asBatchedCommand);
-                    break;
-                }
-                case CustomCommand asCustomCommand:
-                {
-                    if (activeBatch != null)
-                    {
-                        result.Commands.Add(new FinalDrawCommand
-                        {
-                            Batch = activeBatch,
-                            Mask = currentClipMask,
-                            Type = CommandType.BatchedDraw
-                        });
-                        activeBatch = null;
-                        Stats.BatchedDrawCommandCount++;
-                    }
-
-                    if (result.Commands.LastOrDefault() is
-                            { Type: CommandType.Custom, Custom: not null } asPreviousCustomCommand &&
-                        asPreviousCustomCommand.Mask == currentClipMask)
-                        if (asPreviousCustomCommand.Custom.CombineWith(asCustomCommand))
-                            continue;
-
-                    result.Commands.Add(new FinalDrawCommand
-                    {
-                        Custom = asCustomCommand,
-                        Mask = currentClipMask,
-                        Type = CommandType.Custom
-                    });
-                    if (asCustomCommand.WillDraw())
-                        Stats.NonBatchedDrawCommandCount++;
-                    else
-                        Stats.CustomCommandCount++;
-                }
-                    break;
             }
         }
 
-        if (activeBatch == null) return;
-
-        result.Commands.Add(new FinalDrawCommand
+        if (currentCommands.NotEmpty())
         {
-            Batch = activeBatch,
-            Mask = currentClipMask,
-            Type = CommandType.BatchedDraw
-        });
+            passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context,currentCommands.ToArray())));
+        }
         Stats.BatchedDrawCommandCount++;
     }
 
     [PublicAPI]
-    protected PassInfo? ComputePassInfo()
+    protected SharedPassContext? BuildPasses(IGraphBuilder builder)
     {
-        var rawDrawCommands = new PassCommands();
+        var rawDrawCommands = new CommandList();
         _rootView.Collect(Matrix4x4.Identity, new Rect
         {
             Size = GetSize()
@@ -262,80 +200,72 @@ public abstract class Surface : IDisposable, IUpdatable
 
         var clips = rawDrawCommands.Clips;
 
-        var result = new PassInfo();
+        // var result = new PassInfo();
 
-        if (clips.Count == 0)
+        var size = GetSize();
+        var context = new SharedPassContext(new Extent2D()
         {
-            List<FinalDrawCommand> finalDrawCommands = [];
-            ProcessPendingCommands(rawCommands.Select(c => new PendingCommand(c.Command, 0x01)),
-                ref result);
-        }
-        else
+            Width = (uint)float.Ceiling(size.X),
+            Height = (uint)float.Ceiling(size.Y)
+        });
+        
+        List<IPass> passes = [new CreateImagesPass(context)];
         {
             var uniqueClipStacks = rawDrawCommands.UniqueClipStacks;
             Dictionary<string, uint> computedClipStacks = [];
-            List<PendingCommand> pendingCommands = [];
+            List<ICommand> pendingCommands = [];
             uint currentMask = 0x01;
             foreach (var rawCommand in rawCommands)
             {
-                {
-                    if (rawCommand.Command is UtilityCommand utilCmd)
-                    {
-                        if (utilCmd.Stage == CommandStage.Before)
-                            result.PreCommands.Add(utilCmd);
-                        else
-                            result.PostCommands.Add(utilCmd);
-                    }
-                }
                 if (currentMask == 128)
                 {
-                    ProcessPendingCommands(pendingCommands, ref result);
+                    ProcessPendingCommands(pendingCommands,context,passes);
                     pendingCommands.Clear();
                     computedClipStacks.Clear();
                     currentMask = 0x01;
-                    result.Commands.Add(new FinalDrawCommand
-                    {
-                        Type = CommandType.ClipClear
-                    });
+                    passes.Add(new StencilClearPass(context));
                     Stats.StencilClearCount++;
                 }
 
                 if (rawCommand.ClipId.Length <= 0)
                 {
-                    pendingCommands.Add(new PendingCommand(rawCommand.Command, 0x01));
+                    rawCommand.Cmd.StencilMask = 0x01;
+                    pendingCommands.Add(rawCommand.Cmd);
                 }
                 else if (computedClipStacks.TryGetValue(rawCommand.ClipId, out var stack))
                 {
-                    pendingCommands.Add(new PendingCommand(rawCommand.Command, stack));
+                    rawCommand.Cmd.StencilMask = stack;
+                    pendingCommands.Add(rawCommand.Cmd);
                 }
                 else
                 {
                     currentMask <<= 1;
-                    result.Commands.Add(new FinalDrawCommand
+                    passes.Add(new StencilWritePass(context,currentMask,uniqueClipStacks[rawCommand.ClipId].Select(c => new StencilClip
                     {
-                        Type = CommandType.ClipDraw,
-                        Clips = uniqueClipStacks[rawCommand.ClipId].Select(c => new StencilClip
-                        {
-                            Transform = clips[(int)c].Transform,
-                            Size = clips[(int)c].Size
-                        }).ToArray(),
-                        Mask = currentMask
-                    });
+                        Transform = clips[(int)c].Transform,
+                        Size = clips[(int)c].Size
+                    }).ToArray()));
                     Stats.StencilWriteCount++;
                     //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
                     computedClipStacks.Add(rawCommand.ClipId, currentMask);
-                    pendingCommands.Add(new PendingCommand(rawCommand.Command, currentMask));
+                    rawCommand.Cmd.StencilMask = currentMask;
+                    pendingCommands.Add(rawCommand.Cmd);
                 }
             }
 
             if (pendingCommands.Count != 0)
             {
-                ProcessPendingCommands(pendingCommands, ref result);
+                ProcessPendingCommands(pendingCommands,context,passes);
                 pendingCommands.Clear();
             }
         }
-
-        return result;
+        
+        foreach (var pass in passes)
+        {
+            builder.AddPass(pass);
+        }
+        return context;
+        // return result;
     }
 
     protected virtual void ReceiveCursorEnter(CursorMoveSurfaceEvent e)

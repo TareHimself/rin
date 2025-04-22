@@ -188,14 +188,14 @@ public abstract class CompositeView : View
         return GetSlots().Where(c => c.Child.IsHitTestable);
     }
 
-    public override void Collect(Matrix4x4 transform, Views.Rect clip, PassCommands passCommands)
+    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList cmds)
     {
         if (Visibility is Visibility.Hidden or Visibility.Collapsed) return;
 
-        passCommands.IncrDepth();
+        cmds.IncrDepth();
         var clipRect = clip;
 
-        if (Parent != null && Clip == Clip.Bounds) passCommands.PushClip(transform, GetContentSize());
+        if (Parent != null && Clip == Clip.Bounds) cmds.PushClip(transform, GetContentSize());
 
         if (Clip == Clip.Bounds) clipRect = ComputeAABB(transform).Clamp(clipRect);
 
@@ -214,9 +214,9 @@ public abstract class CompositeView : View
             toCollect.Add(new Pair<View, Matrix4x4>(slot.Child, slotTransform));
         }
 
-        foreach (var (view, mat) in toCollect) view.Collect(mat, clipRect, passCommands);
+        foreach (var (view, mat) in toCollect) view.Collect(mat, clipRect, cmds);
 
-        if (Parent != null && Clip == Clip.Bounds) passCommands.PopClip();
+        if (Parent != null && Clip == Clip.Bounds) cmds.PopClip();
     }
 
     /// <summary>
