@@ -51,14 +51,14 @@ public class AsyncFileImage : CoverImage
     //     base.Draw(frame, info);
     // }
 
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         if (TextureId == -1) return availableSpace;
 
         return base.LayoutContent(availableSpace);
     }
 
-    public override void CollectContent(Matrix4x4 transform, CommandList commands)
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         if (TextureId == -1)
         {

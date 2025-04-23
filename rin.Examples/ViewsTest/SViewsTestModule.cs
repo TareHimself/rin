@@ -431,7 +431,7 @@ public class SViewsTestModule : IModule
             };
         }
 
-        protected override Vector2 LayoutContent(Vector2 availableSpace)
+        protected override Vector2 LayoutContent(in Vector2 availableSpace)
         {
             var size = base.LayoutContent(availableSpace);
             _content.Translate = _content.Size * .5f;
@@ -445,10 +445,9 @@ public class SViewsTestModule : IModule
             
         }
 
-        public override void Collect(in Matrix4x4 transform, in Rin.Engine.Views.Rect clip, CommandList cmds)
+        public override void Collect(in Matrix4x4 transform, in Rin.Engine.Views.Rect clip, CommandList commands)
         {
-            base.Collect(transform, clip, cmds);
-            cmds.AddBlur(transform, GetContentSize());
+            base.Collect(transform, clip, commands);
         }
     }
 

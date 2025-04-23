@@ -14,12 +14,12 @@ public abstract class CompositeView : View
 {
     public Clip Clip = Clip.None;
 
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         return ArrangeContent(availableSpace);
     }
 
-    public override void HandleEvent(SurfaceEvent e, Matrix4x4 transform)
+    public override void HandleEvent(SurfaceEvent e, in Matrix4x4 transform)
     {
         var withPadding = transform.Translate(new Vector2(Padding.Left, Padding.Top));
         var slots = ComputeHitTestableSlotsForEvent(e, withPadding);
@@ -69,92 +69,7 @@ public abstract class CompositeView : View
 
         return [];
     }
-
-    public override bool NotifyCursorDown(CursorDownSurfaceEvent e, Matrix4x4 transform)
-    {
-        if (IsChildrenHitTestable)
-        {
-            var res = ChildrenNotifyCursorDown(e, transform.Translate(new Vector2(Padding.Left, Padding.Top)));
-            if (res) return res;
-        }
-
-        return base.NotifyCursorDown(e, transform);
-    }
-
-    public override void NotifyCursorEnter(CursorMoveSurfaceEvent e, Matrix4x4 transform, List<View> items)
-    {
-        if (IsChildrenHitTestable)
-            ChildrenNotifyCursorEnter(e, transform.Translate(new Vector2(Padding.Left, Padding.Top)), items);
-
-        base.NotifyCursorEnter(e, transform, items);
-    }
-
-    public override bool NotifyCursorMove(CursorMoveSurfaceEvent e, Matrix4x4 transform)
-    {
-        if (IsChildrenHitTestable &&
-            ChildrenNotifyCursorMove(e, transform.Translate(new Vector2(Padding.Left, Padding.Top))))
-            return true;
-
-        return base.NotifyCursorMove(e, transform);
-    }
-
-    public override bool NotifyScroll(ScrollSurfaceEvent e, Matrix4x4 transform)
-    {
-        if (IsChildrenHitTestable &&
-            ChildrenNotifyScroll(e, transform.Translate(new Vector2(Padding.Left, Padding.Top)))) return true;
-
-        return base.NotifyScroll(e, transform);
-    }
-
-    protected virtual bool ChildrenNotifyCursorDown(CursorDownSurfaceEvent e, Matrix4x4 transform)
-    {
-        foreach (var slot in GetHitTestableSlots().AsReversed())
-        {
-            var slotTransform = ComputeSlotTransform(slot, transform);
-            if (!slot.Child.PointWithin(slotTransform, e.Position)) continue;
-            var res = slot.Child.NotifyCursorDown(e, slotTransform);
-            if (res) return true;
-        }
-
-        return false;
-    }
-
-    protected virtual void ChildrenNotifyCursorEnter(CursorMoveSurfaceEvent e, Matrix4x4 transform, List<View> items)
-    {
-        foreach (var slot in GetHitTestableSlots())
-        {
-            var slotTransform = ComputeSlotTransform(slot, transform);
-            if (slot.Child.PointWithin(slotTransform, e.Position))
-                slot.Child.NotifyCursorEnter(e, slotTransform, items);
-        }
-    }
-
-    protected virtual bool ChildrenNotifyCursorMove(CursorMoveSurfaceEvent e, Matrix4x4 transform)
-    {
-        foreach (var slot in GetHitTestableSlots())
-        {
-            var slotTransform = ComputeSlotTransform(slot, transform);
-            if (slot.Child.PointWithin(slotTransform, e.Position) &&
-                slot.Child.NotifyCursorMove(e, slotTransform))
-                return true;
-        }
-
-        return false;
-    }
-
-    protected virtual bool ChildrenNotifyScroll(ScrollSurfaceEvent e, Matrix4x4 transform)
-    {
-        foreach (var slot in GetHitTestableSlots())
-        {
-            var slotTransform = ComputeSlotTransform(slot, transform);
-            if (slot.Child.PointWithin(slotTransform, e.Position) &&
-                slot.Child.NotifyScroll(e, slotTransform))
-                return true;
-        }
-
-        return false;
-    }
-
+    
     public override void SetSurface(Surface? surface)
     {
         base.SetSurface(surface);
@@ -167,7 +82,7 @@ public abstract class CompositeView : View
     /// <param name="slot"></param>
     /// <param name="contentTransform"></param>
     /// <returns></returns>
-    protected virtual Matrix4x4 ComputeSlotTransform(ISlot slot, Matrix4x4 contentTransform)
+    protected virtual Matrix4x4 ComputeSlotTransform(ISlot slot, in Matrix4x4 contentTransform)
     {
         var relativeTransform = slot.Child.ComputeLocalTransform();
         return relativeTransform * contentTransform;
@@ -188,14 +103,14 @@ public abstract class CompositeView : View
         return GetSlots().Where(c => c.Child.IsHitTestable);
     }
 
-    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList cmds)
+    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList commands)
     {
         if (Visibility is Visibility.Hidden or Visibility.Collapsed) return;
 
-        cmds.IncrDepth();
+        commands.IncrDepth();
         var clipRect = clip;
 
-        if (Parent != null && Clip == Clip.Bounds) cmds.PushClip(transform, GetContentSize());
+        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transform, GetContentSize());
 
         if (Clip == Clip.Bounds) clipRect = ComputeAABB(transform).Clamp(clipRect);
 
@@ -214,9 +129,9 @@ public abstract class CompositeView : View
             toCollect.Add(new Pair<View, Matrix4x4>(slot.Child, slotTransform));
         }
 
-        foreach (var (view, mat) in toCollect) view.Collect(mat, clipRect, cmds);
+        foreach (var (view, mat) in toCollect) view.Collect(mat, clipRect, commands);
 
-        if (Parent != null && Clip == Clip.Bounds) cmds.PopClip();
+        if (Parent != null && Clip == Clip.Bounds) commands.PopClip();
     }
 
     /// <summary>
@@ -224,7 +139,7 @@ public abstract class CompositeView : View
     /// </summary>
     /// <param name="availableSpace"></param>
     /// <returns></returns>
-    protected abstract Vector2 ArrangeContent(Vector2 availableSpace);
+    protected abstract Vector2 ArrangeContent(in Vector2 availableSpace);
 
     [PublicAPI]
     public abstract void OnChildInvalidated(View child, InvalidationType invalidation);

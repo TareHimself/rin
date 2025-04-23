@@ -10,21 +10,24 @@ public class SlangShaderManager : IShaderManager
     
     public static  IEnumerable<string> ImportFile(string filePath, HashSet<string> included)
     {
-        List<string> allLines = [];
         using var dataStream = SEngine.Get().Sources.Read(filePath);
         using var reader = new StreamReader(dataStream);
         while (reader.ReadLine() is { } line)
             if (line.StartsWith("#include"))
             {
                 var includeString = line[(line.IndexOf('"') + 1)..line.LastIndexOf('"')];
-                if (included.Add(includeString)) allLines.AddRange(ImportFile(includeString, included));
+                if (included.Add(includeString))
+                {
+                    foreach(var importedLine in ImportFile(includeString, included))
+                    {
+                        yield return importedLine;
+                    }
+                }
             }
             else
             {
-                allLines.Add(line);
+                yield return line;
             }
-
-        return allLines;
     }
     
     

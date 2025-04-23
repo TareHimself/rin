@@ -22,7 +22,15 @@ public class StencilWritePass : IPass
     private uint StencilImageId => _sharedContext.StencilImageId;
     public uint Id { get; set; }
     public bool IsTerminal => false;
-    public void Added(IGraphBuilder builder)
+    public bool HandlesPreAdd => false;
+    public bool HandlesPostAdd => false;
+
+    public void PreAdd(IGraphBuilder builder)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void PostAdd(IGraphBuilder builder)
     {
         
     }

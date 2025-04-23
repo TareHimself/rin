@@ -105,7 +105,12 @@ public class CollectPass : IPass
     private uint DepthMaterialBufferId { get; set; }
     private int _firstSkinnedIndex;
 
-    public void Added(IGraphBuilder builder)
+    public void PreAdd(IGraphBuilder builder)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void PostAdd(IGraphBuilder builder)
     {
     }
 
@@ -321,6 +326,8 @@ public class CollectPass : IPass
 
     public uint Id { get; set; }
     public bool IsTerminal { get; set; } = false;
+    public bool HandlesPreAdd => false;
+    public bool HandlesPostAdd => false;
 
     public void Dispose()
     {

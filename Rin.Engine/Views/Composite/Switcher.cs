@@ -32,7 +32,7 @@ public class Switcher : MultiSlotCompositeView<Slot>
     }
 
 
-    protected override Vector2 ArrangeContent(Vector2 availableSpace)
+    protected override Vector2 ArrangeContent(in Vector2 availableSpace)
     {
         if (_layout.SelectedSlot is { } slot)
         {

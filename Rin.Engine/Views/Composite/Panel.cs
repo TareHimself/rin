@@ -20,7 +20,7 @@ public class Panel : MultiSlotCompositeView<PanelSlot>
 
     public override int SlotCount => _layout.SlotCount;
 
-    protected override Vector2 ArrangeContent(Vector2 availableSpace)
+    protected override Vector2 ArrangeContent(in Vector2 availableSpace)
     {
         return _layout.Apply(availableSpace);
     }

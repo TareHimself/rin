@@ -20,7 +20,7 @@ public class Rect : SingleSlotCompositeView
         return new Vector2();
     }
 
-    protected override Vector2 ArrangeContent(Vector2 availableSpace)
+    protected override Vector2 ArrangeContent(in Vector2 availableSpace)
     {
         if (GetSlot() is { } slot)
         {
@@ -44,9 +44,9 @@ public class Rect : SingleSlotCompositeView
         return [];
     }
 
-    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList cmds)
+    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList commands)
     {
-        if (IsVisible) CollectSelf(transform, cmds);
-        base.Collect(transform, clip, cmds);
+        if (IsVisible) CollectSelf(transform, commands);
+        base.Collect(transform, clip, commands);
     }
 }

@@ -4,22 +4,22 @@ namespace Rin.Engine.Graphics.FrameGraph;
 
 public class GraphBuilder : IGraphBuilder
 {
-    private readonly Dictionary<uint, IGraphImage> _externalImages = [];
     private readonly object _lock = new();
-
-
-    // private readonly Dictionary<uint, ImageResourceDescriptor> _images = [];
-    // private readonly Dictionary<uint, MemoryResourceDescriptor> _memory = [];
-
+    private readonly Dictionary<uint, IGraphImage> _externalImages = [];
     private readonly Dictionary<uint, IPass> _passes = [];
     private uint _id;
 
     public uint AddPass(IPass pass)
     {
-        pass.Added(this);
+        if(pass.HandlesPreAdd)
+            pass.PreAdd(this);
+
         var passId = MakeId();
         pass.Id = passId;
         _passes.Add(passId, pass);
+        
+        if(pass.HandlesPostAdd)
+            pass.PostAdd(this);
         return passId;
     }
 

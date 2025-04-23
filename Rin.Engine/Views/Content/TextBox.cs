@@ -115,7 +115,7 @@ public class TextBox : ContentView
         Invalidate(InvalidationType.DesiredSize);
     }
 
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         _cachedLayouts = null;
         Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X + 2f : null : null;
@@ -209,7 +209,7 @@ public class TextBox : ContentView
         return results.ToArray();
     }
 
-    public override void CollectContent(Matrix4x4 transform, CommandList commands)
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         if (CurrentFont == null) return;
         if (Content.NotEmpty() && _cachedLayouts == null)
@@ -217,7 +217,8 @@ public class TextBox : ContentView
             List<Quad> quads = [];
 
             var layout = ComputeLayout(out var hadAnyPending);
-            quads.AddRange(layout.Select(c => Quad.Mtsdf(c.Atlas, c.Transform * transform, c.Size, Color.White,
+            var x4 = transform;
+            quads.AddRange(layout.Select(c => Quad.Mtsdf(c.Atlas, c.Transform * x4, c.Size, Color.White,
                 c.Uv)));
             if (quads.Count == 0) return;
             commands.Add(new QuadDrawCommand(quads));
@@ -225,8 +226,9 @@ public class TextBox : ContentView
         }
         else if (_cachedLayouts != null)
         {
+            var x4 = transform;
             commands.Add(new QuadDrawCommand(_cachedLayouts.Select(c =>
-                Quad.Mtsdf(c.Atlas, c.Transform * transform, c.Size, Color.White, c.Uv))));
+                Quad.Mtsdf(c.Atlas, c.Transform * x4, c.Size, Color.White, c.Uv))));
         }
     }
 

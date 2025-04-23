@@ -26,7 +26,14 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
     private uint BufferId { get; set; }
     public uint Id { get; set; }
     public bool IsTerminal => false;
-    public void Added(IGraphBuilder builder)
+    public bool HandlesPreAdd => false;
+    public bool HandlesPostAdd => false;
+
+    public void PreAdd(IGraphBuilder builder)
+    {
+    }
+
+    public void PostAdd(IGraphBuilder builder)
     {
        
     }

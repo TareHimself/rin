@@ -22,7 +22,7 @@ public class FpsView : TextBox
     }
 
 
-    public override void CollectContent(Matrix4x4 transform, CommandList commands)
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         _averageFps.Add(1.0 / SEngine.Get().GetLastDeltaSeconds());
 
@@ -34,6 +34,7 @@ public class FpsView : TextBox
     public override void Update(float deltaTime)
     {
         base.Update(deltaTime);
+        
         _dispatcher.DispatchPending();
     }
 

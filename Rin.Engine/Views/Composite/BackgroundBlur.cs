@@ -74,7 +74,7 @@ public class BackgroundBlur : SingleSlotCompositeView
     //     }
     // }
 
-    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList cmds)
+    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList commands)
     {
         if (IsVisible && Strength > 0.0f && Radius > 0.0f)
         {
@@ -82,10 +82,10 @@ public class BackgroundBlur : SingleSlotCompositeView
             // commandList.Add(new BlurCommand(transform, Size, Strength, Radius, Tint));
         }
 
-        base.Collect(transform, clip, cmds);
+        base.Collect(transform, clip, commands);
     }
 
-    protected override Vector2 ArrangeContent(Vector2 availableSpace)
+    protected override Vector2 ArrangeContent(in Vector2 availableSpace)
     {
         if (GetSlot() is { } slot)
         {

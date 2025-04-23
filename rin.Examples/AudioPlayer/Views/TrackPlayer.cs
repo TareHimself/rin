@@ -194,10 +194,10 @@ public class TrackPlayer : Overlay
             $"{((int)Math.Floor(secs / 60)).ToString().PadLeft(2, '0')}:{((int)(secs % 60)).ToString().PadLeft(2, '0')}";
     }
 
-    public override void Collect(in Matrix4x4 transform, in Rect clip, CommandList cmds)
+    public override void Collect(in Matrix4x4 transform, in Rect clip, CommandList commands)
     {
         _currentTimeText.Content = FormatTime(_stream.Position);
-        base.Collect(transform, clip, cmds);
+        base.Collect(transform, clip, commands);
     }
 
     public override bool OnCursorDown(CursorDownSurfaceEvent e)
@@ -231,7 +231,7 @@ public class TrackPlayer : Overlay
                 easingFunction: EasingFunctions.EaseInOutCubic);
     }
 
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         return base.LayoutContent(availableSpace);
     }

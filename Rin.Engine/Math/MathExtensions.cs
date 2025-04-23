@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Text.Json.Nodes;
 using JetBrains.Annotations;
+using Rin.Engine.Graphics;
 
 namespace Rin.Engine.Math;
 
@@ -343,5 +344,15 @@ public static class MathExtensions
     public static Quaternion ToQuaternion(in this Vector3 self)
     {
         return MathR.LookTowards(Vector3.Zero, self, MathR.Up);
+    }
+    
+    [Pure]
+    public static Extent2D ToExtent(in this Vector2 self)
+    {
+        return new Extent2D
+        {
+            Width = (uint)float.Ceiling(self.X),
+            Height = (uint)float.Ceiling(self.Y)
+        };
     }
 }

@@ -15,12 +15,12 @@ public class Canvas : ContentView
         return new Vector2();
     }
 
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         return availableSpace;
     }
 
-    public override void CollectContent(Matrix4x4 transform, CommandList commands)
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         Paint.Invoke(this, transform, commands);
     }

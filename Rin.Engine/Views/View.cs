@@ -11,13 +11,15 @@ namespace Rin.Engine.Views;
 
 public abstract class View : IDisposable, IAnimatable, IUpdatable
 {
-    private readonly Atomic<Matrix4x4?> _cachedRelativeTransform = Matrix4x4.Identity;
+    private Matrix4x4? _cachedRelativeTransform = Matrix4x4.Identity;
     private readonly Padding _padding = new();
     private Vector2? _cachedDesiredSize;
     private Vector2 _offset;
     private Vector2 _pivot;
     private Vector2 _size;
-    private Transform2d _transform = new();
+    private float _angle = 0.0f;
+    private Vector2 _translate = Vector2.Zero;
+    private Vector2 _scale = Vector2.One;
 
     /// <summary>
     ///     The offset of this view in parent space
@@ -29,7 +31,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         {
             _offset.X = value.X;
             _offset.Y = value.Y;
-            _cachedRelativeTransform.Value = null;
+            _cachedRelativeTransform = null;
         }
     }
 
@@ -43,7 +45,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         {
             _size.X = value.X;
             _size.Y = value.Y;
-            _cachedRelativeTransform.Value = null;
+            _cachedRelativeTransform = null;
         }
     }
 
@@ -57,7 +59,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         {
             _pivot.X = value.X;
             _pivot.Y = value.Y;
-            _cachedRelativeTransform.Value = null;
+            _cachedRelativeTransform = null;
         }
     }
 
@@ -66,12 +68,12 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     /// </summary>
     public Vector2 Translate
     {
-        get => new(_transform.Translate.X, _transform.Translate.Y);
+        get => new(_translate.X, _translate.Y);
         set
-        {
-            _transform.Translate.X = value.X;
-            _transform.Translate.Y = value.Y;
-            _cachedRelativeTransform.Value = null;
+        { 
+            _translate.X = value.X; 
+            _translate.Y = value.Y;
+            _cachedRelativeTransform = null;
         }
     }
 
@@ -80,12 +82,12 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     /// </summary>
     public Vector2 Scale
     {
-        get => new(_transform.Scale.X, _transform.Scale.Y);
+        get => new(_scale.X, _scale.Y);
         set
         {
-            _transform.Scale.X = value.X;
-            _transform.Scale.Y = value.Y;
-            _cachedRelativeTransform.Value = null;
+            _scale.X = value.X;
+            _scale.Y = value.Y;
+            _cachedRelativeTransform = null;
         }
     }
 
@@ -116,11 +118,11 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     /// </summary>
     public float Angle
     {
-        get => _transform.Angle;
+        get => _angle;
         set
         {
-            _transform.Angle = value;
-            _cachedRelativeTransform.Value = null;
+            _angle = value;
+            _cachedRelativeTransform = null;
         }
     }
 
@@ -192,7 +194,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     ///     taken by content
     /// </param>
     /// <returns></returns>
-    public Vector2 ComputeSize(Vector2 availableSpace, bool fill = false)
+    public Vector2 ComputeSize(in Vector2 availableSpace, bool fill = false)
     {
         var padding = new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
         var contentSize = LayoutContent(availableSpace - padding) + padding;
@@ -205,7 +207,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     /// </summary>
     /// <param name="availableSpace"></param>
     /// <returns></returns>
-    protected abstract Vector2 LayoutContent(Vector2 availableSpace);
+    protected abstract Vector2 LayoutContent(in Vector2 availableSpace);
 
     /// <summary>
     ///     Computes the relative/local transformation matrix for this view
@@ -213,12 +215,12 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     /// <returns></returns>
     public Matrix4x4 ComputeLocalTransform()
     {
-        if (_cachedRelativeTransform.Value is { } cached) return cached;
+        if (_cachedRelativeTransform is { } cached) return cached;
 
         var rotation = Matrix4x4.Identity.Scale(Scale).Rotate2dDegrees(Angle).Translate(Size * Pivot * -1.0f);
         var transform = Matrix4x4.Identity.Translate(Offset + Translate) * rotation;
 
-        _cachedRelativeTransform.Value = transform;
+        _cachedRelativeTransform = transform;
         return transform;
     }
 
@@ -261,7 +263,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     {
     }
 
-    public virtual void HandleEvent(SurfaceEvent e, Matrix4x4 transform)
+    public virtual void HandleEvent(SurfaceEvent e, in Matrix4x4 transform)
     {
         switch (e)
         {
@@ -302,46 +304,6 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
                 if (IsSelfHitTestable && OnScroll(ev)) ev.Target = this;
                 break;
         }
-    }
-
-    public virtual bool NotifyCursorDown(CursorDownSurfaceEvent e, Matrix4x4 transform)
-    {
-        if (IsSelfHitTestable)
-            if (OnCursorDown(e))
-            {
-                e.Target = this;
-                return true;
-            }
-
-        return false;
-    }
-
-    public virtual void NotifyCursorUp(CursorUpSurfaceEvent e)
-    {
-        //UnBindCursorUp();
-        OnCursorUp(e);
-    }
-
-    public virtual void NotifyCursorEnter(CursorMoveSurfaceEvent e, Matrix4x4 transform, List<View> items)
-    {
-        if (!IsSelfHitTestable) return;
-        items.Add(this);
-        if (IsHovered) return;
-
-        IsHovered = true;
-        OnCursorEnter(e);
-    }
-
-    public virtual bool NotifyCursorMove(CursorMoveSurfaceEvent e, Matrix4x4 transform)
-    {
-        if (IsSelfHitTestable) OnCursorMove(e);
-
-        return false;
-    }
-
-    public virtual bool NotifyScroll(ScrollSurfaceEvent e, Matrix4x4 transform)
-    {
-        return IsSelfHitTestable && OnScroll(e);
     }
 
     public virtual bool OnCursorDown(CursorDownSurfaceEvent e)
@@ -427,8 +389,8 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     /// </summary>
     /// <param name="transform"></param>
     /// <param name="clip"></param>
-    /// <param name="cmds"></param>
-    public abstract void Collect(in Matrix4x4 transform, in Rect clip, CommandList cmds);
+    /// <param name="commands"></param>
+    public abstract void Collect(in Matrix4x4 transform, in Rect clip, CommandList commands);
 
 
     public virtual bool TryUpdateDesiredSize()
@@ -481,7 +443,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     }
 
     // ReSharper disable once InconsistentNaming
-    public Rect ComputeAABB(Matrix4x4 transform)
+    public Rect ComputeAABB(in Matrix4x4 transform)
     {
         var tl = new Vector2(0.0f);
         var br = tl + Size;
@@ -521,68 +483,8 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         };
     }
 
-    public bool PointWithin(Matrix4x4 transform, Vector2 point, bool useInverse = false)
+    public bool PointWithin(in Matrix4x4 transform, in Vector2 point, bool useInverse = false)
     {
         return Rect.PointWithin(Size, transform, point, useInverse);
-        var tl = new Vector2(0.0f);
-        var br = tl + Size;
-        var tr = new Vector2(br.X, tl.Y);
-        var bl = new Vector2(tl.X, br.Y);
-
-        if (useInverse)
-        {
-            var transformedPoint = point.Transform(transform.Inverse());
-
-            return transformedPoint.Within(Vector2.Zero, Size);
-        }
-        // var transformedPoint = point.ApplyTransformation(transform.Inverse());
-        //
-        // return transformedPoint.Within(Vector2.Zero, Size);
-
-        tl = tl.Transform(transform);
-        br = br.Transform(transform);
-        tr = tr.Transform(transform);
-        bl = bl.Transform(transform);
-
-        var p1AABB = new Vector2(
-            float.Min(
-                float.Min(tl.X, tr.X),
-                float.Min(bl.X, br.X)
-            ),
-            float.Min(
-                float.Min(tl.Y, tr.Y),
-                float.Min(bl.Y, br.Y)
-            )
-        );
-        var p2AABB = new Vector2(
-            float.Max(
-                float.Max(tl.X, tr.X),
-                float.Max(bl.X, br.X)
-            ),
-            float.Max(
-                float.Max(tl.Y, tr.Y),
-                float.Max(bl.Y, br.Y)
-            )
-        );
-
-        // Perform AABB test first
-        if (!point.Within(p1AABB, p2AABB)) return false;
-
-        var top = tr - tl;
-        var right = br - tr;
-        var bottom = bl - br;
-        var left = tl - bl;
-        var pTop = point - tl;
-        var pRight = point - tr;
-        var pBottom = point - br;
-        var pLeft = point - bl;
-        var a = top.Acos(pTop);
-        var b = right.Cross(pRight);
-        var c = bottom.Cross(pBottom);
-        var d = left.Cross(pLeft);
-
-        if (a >= 0)
-            return b >= 0 && c >= 0 && d >= 0;
-        return b < 0 && c < 0 && d < 0;
     }
 }

@@ -8,7 +8,12 @@ public class ActionPass(
 {
     public string Name { get; } = name ?? $"unknown-pass-{Guid.NewGuid().ToString()}";
 
-    public void Added(IGraphBuilder builder)
+    public void PreAdd(IGraphBuilder builder)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void PostAdd(IGraphBuilder builder)
     {
     }
 
@@ -25,6 +30,8 @@ public class ActionPass(
     public uint Id { get; set; }
 
     public bool IsTerminal => terminal;
+    public bool HandlesPreAdd => false;
+    public bool HandlesPostAdd => false;
 
     public void Dispose()
     {

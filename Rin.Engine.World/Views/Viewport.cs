@@ -14,6 +14,7 @@ using Rin.Engine.Views.Graphics.Commands;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics;
 using TerraFX.Interop.Vulkan;
+using static TerraFX.Interop.Vulkan.Vulkan;
 using CommandList = Rin.Engine.Views.Graphics.CommandList;
 
 namespace Rin.Engine.World.Views;
@@ -28,80 +29,116 @@ public enum ViewportChannel
     Emissive
 }
 
-internal class SetupRenderingCommand(CameraComponent camera, Vector2<uint> size) : UtilityCommand
+internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) : IViewsPass
 {
-    [PublicAPI] public ForwardRenderingPass RenderPass = new(camera, size);
-
-    public override void BeforeAdd(IGraphBuilder builder)
-    {
-        builder.AddPass(RenderPass);
-    }
-
-    public override void Configure(IGraphConfig config)
-    {
-        config.DependOn(RenderPass.Id);
-    }
-
-    public override void Execute(ViewsFrame frame)
-    {
-    }
-}
-
-internal class DisplaySceneCommand(ForwardRenderingPass renderingPass, Vector2 size, Matrix4x4 transform)
-    : CustomCommand
-{
-    private readonly IShader _shader = SGraphicsModule.Get()
-        .MakeGraphics("World/Shaders/viewport.slang");
-
-    public override ulong GetRequiredMemory()
-    {
-        return Utils.ByteSizeOf<Data>();
-    }
-
-    public override bool WillDraw()
-    {
-        return true;
-    }
-
-
-    public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
-    {
-        // var buffer = view ?? throw new NullReferenceException(nameof(view));
-        // var cmd = frame.Raw.GetCommandBuffer();
-        // if (renderingPass.OutputImage is { } outputImage && _shader.Bind(cmd))
-        // {
-        //     frame.BeginMainPass();
-        //     var pushResource = _shader.PushConstants.Values.First();
-        //     var descriptor = frame.Raw.GetDescriptorAllocator()
-        //         .Allocate(_shader.GetDescriptorSetLayouts().Values.First());
-        //     descriptor.WriteImages(0, new ImageWrite(outputImage, ImageLayout.ShaderReadOnly,
-        //         ImageType.Sampled, new SamplerSpec
-        //         {
-        //             Filter = ImageFilter.Linear,
-        //             Tiling = ImageTiling.ClampEdge
-        //         }));
-        //
-        //     buffer.Write(
-        //         new Data
-        //         {
-        //             Projection = frame.ProjectionMatrix,
-        //             Transform = transform,
-        //             Size = size
-        //         });
-        //     cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _shader.GetPipelineLayout(),
-        //         [descriptor]);
-        //     cmd.PushConstant(_shader.GetPipelineLayout(), pushResource.Stages, buffer.GetAddress());
-        //
-        //     cmd.Draw(6);
-        // }
-    }
-
-    private struct Data
+    
+    private struct SceneData
     {
         public Matrix4x4 Projection;
         public Matrix4x4 Transform;
         public Vector2 Size;
     }
+    
+    private readonly IShader _shader = SGraphicsModule.Get()
+        .MakeGraphics("World/Shaders/viewport.slang");
+    public uint Id { get; set; }
+    public bool IsTerminal => false;
+    public bool HandlesPreAdd => true;
+    public bool HandlesPostAdd => false;
+
+    private uint _sceneImageId = 0;
+    private uint _viewportBufferId = 0;
+    private Extent2D _renderExtent = command.Size.ToExtent();
+    private ForwardRenderingPass _forwardPass = new ForwardRenderingPass(command.Camera, command.Size.ToExtent());
+
+    public void PreAdd(IGraphBuilder builder)
+    {
+        builder.AddPass(_forwardPass);
+    }
+
+    public void PostAdd(IGraphBuilder builder)
+    {
+        
+    }
+
+    public void Configure(IGraphConfig config)
+    {
+         _sceneImageId = config.Read(_forwardPass.OutputImageId);
+         config.Write(info.MainImageId);
+         config.Read(info.StencilImageId);
+         _viewportBufferId = config.AllocateBuffer<SceneData>();
+    }
+
+    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+    {
+        var cmd = frame.GetCommandBuffer();
+        if (_shader.Bind(cmd))
+        {
+            var sceneImage = graph.GetImageOrException(_sceneImageId);
+            var mainImage = graph.GetImageOrException(info.MainImageId);
+            var stencilImage = graph.GetImageOrException(info.StencilImageId);
+            var buffer = graph.GetBufferOrException(_viewportBufferId);
+            
+            cmd
+                .ImageBarrier(mainImage, ImageLayout.ColorAttachment)
+                .ImageBarrier(sceneImage, ImageLayout.ShaderReadOnly)
+                .ImageBarrier(stencilImage, ImageLayout.StencilAttachment);
+            
+            cmd.BeginRendering(_renderExtent.ToVk(), [
+                    mainImage.MakeColorAttachmentInfo()
+                ],
+                stencilAttachment: stencilImage.MakeStencilAttachmentInfo()
+            );
+
+            frame.ConfigureForViews(_renderExtent);
+            var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
+
+            vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
+                VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
+                VkCompareOp.VK_COMPARE_OP_NOT_EQUAL);
+
+            cmd.SetWriteMask(0, 1,
+                VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
+                VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
+                VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
+                VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
+            
+            var pushResource = _shader.PushConstants.Values.First();
+            var descriptor = frame.GetDescriptorAllocator()
+                .Allocate(_shader.GetDescriptorSetLayouts().Values.First());
+            descriptor.WriteImages(0, new ImageWrite(sceneImage, ImageLayout.ShaderReadOnly,
+                ImageType.Sampled, new SamplerSpec
+                {
+                    Filter = ImageFilter.Linear,
+                    Tiling = ImageTiling.ClampEdge
+                }));
+            
+            buffer.Write(
+                new SceneData
+                {
+                    Projection = info.ProjectionMatrix,
+                    Transform = command.Transform,
+                    Size = command.Size
+                });
+            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _shader.GetPipelineLayout(),
+                [descriptor]);
+            cmd.PushConstant(_shader.GetPipelineLayout(), pushResource.Stages, buffer.GetAddress());
+            
+            cmd.Draw(6);
+        }
+    }
+
+    public static IViewsPass Create(PassCreateInfo info)
+    {
+        var cmd = info.Commands.First() as DrawViewportCommand ?? throw new NullReferenceException();
+        return new ViewPortPass(info.Context,cmd);
+    }
+}
+internal class DrawViewportCommand(CameraComponent camera,in Vector2 extent,in Matrix4x4 transform) : TCommand<ViewPortPass>
+{
+    public Vector2 Size { get; } = extent;
+    public CameraComponent Camera { get; } = camera;
+    public Matrix4x4 Transform { get; } = transform;
 }
 
 public class Viewport : ContentView
@@ -141,7 +178,7 @@ public class Viewport : ContentView
         };
     }
 
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         return availableSpace;
     }
@@ -217,14 +254,9 @@ public class Viewport : ContentView
         return new Vector2();
     }
 
-    public override void CollectContent(Matrix4x4 transform, CommandList commands)
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        var contentSize = GetContentSize();
-        var size = new Vector2<uint>((uint)float.Ceiling(contentSize.X), (uint)float.Ceiling(contentSize.Y));
-        var renderingCmd = new SetupRenderingCommand(_targetCamera, size);
-        commands
-            .Add(renderingCmd)
-            .Add(new DisplaySceneCommand(renderingCmd.RenderPass, contentSize, transform));
+        commands.Add(new DrawViewportCommand(_targetCamera, GetContentSize(),transform));
     }
 
 

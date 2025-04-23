@@ -6,7 +6,12 @@ namespace Rin.Engine.Views.Graphics;
 
 public class WindowSurfacePass(Surface surface, Vector2 drawSize,SharedPassContext passContext) : IPass
 {
-    public void Added(IGraphBuilder builder)
+    public void PreAdd(IGraphBuilder builder)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void PostAdd(IGraphBuilder builder)
     {
         // _viewsPassId = builder.AddPass(_viewsPass);
     }
@@ -26,6 +31,8 @@ public class WindowSurfacePass(Surface surface, Vector2 drawSize,SharedPassConte
 
     public uint Id { get; set; }
     public bool IsTerminal => true;
+    public bool HandlesPreAdd => false;
+    public bool HandlesPostAdd => false;
 
     public void Dispose()
     {

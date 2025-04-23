@@ -8,12 +8,12 @@ using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics;
 
-public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, CollectPass? collectPass = null)
+public class ForwardRenderingPass(CameraComponent camera, Extent2D size, CollectPass? collectPass = null)
     : IPass
 {
     private readonly CollectPass _collectPass = collectPass ?? new CollectPass(camera, size);
     private readonly bool _ownCollectPass = collectPass == null;
-    private Vector2<uint> _size = size;
+    private Extent2D _size = size;
 
     [PublicAPI] public uint OutputImageId { get; private set; }
 
@@ -29,9 +29,14 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
 
     [PublicAPI] public uint MaterialBufferId { get; set; }
 
-    public void Added(IGraphBuilder builder)
+    public void PreAdd(IGraphBuilder builder)
     {
         if (_ownCollectPass) builder.AddPass(_collectPass);
+    }
+
+    public void PostAdd(IGraphBuilder builder)
+    {
+        
     }
 
     public void Configure(IGraphConfig config)
@@ -63,7 +68,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
             .ImageBarrier(OutputImage, ImageLayout.General)
             .ClearColorImages(new Vector4(0.0f), ImageLayout.General, OutputImage)
             .ImageBarrier(OutputImage, ImageLayout.ColorAttachment)
-            .BeginRendering(_size.ToVkExtent(), [OutputImage.MakeColorAttachmentInfo(new Vector4(0.0f))],
+            .BeginRendering(_size.ToVk(), [OutputImage.MakeColorAttachmentInfo(new Vector4(0.0f))],
                 DepthImage.MakeDepthAttachmentInfo())
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
@@ -78,8 +83,8 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
                 {
                     x = 0,
                     y = 0,
-                    width = _size.X,
-                    height = _size.Y,
+                    width = _size.Width,
+                    height = _size.Height,
                     minDepth = 0.0f,
                     maxDepth = 1.0f
                 }
@@ -88,11 +93,7 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
                 new VkRect2D
                 {
                     offset = new VkOffset2D(),
-                    extent = new VkExtent2D
-                    {
-                        width = _size.X,
-                        height = _size.Y
-                    }
+                    extent = _size.ToVk()
                 }
             ]);
 
@@ -124,12 +125,13 @@ public class ForwardRenderingPass(CameraComponent camera, Vector2<uint> size, Co
             first.Material.ColorPass.Execute(sceneFrame, view, infos);
         }
 
-        cmd.EndRendering()
-            .ImageBarrier(OutputImage, ImageLayout.ShaderReadOnly);
+        cmd.EndRendering();
     }
 
     public uint Id { get; set; }
     public bool IsTerminal { get; set; } = false;
+    public bool HandlesPreAdd => true;
+    public bool HandlesPostAdd => false;
 
     public void Dispose()
     {

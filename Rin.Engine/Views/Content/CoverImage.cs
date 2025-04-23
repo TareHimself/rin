@@ -11,7 +11,7 @@ namespace Rin.Engine.Views.Content;
 /// </summary>
 public class CoverImage : Image
 {
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         return base.LayoutContent(availableSpace);
     }

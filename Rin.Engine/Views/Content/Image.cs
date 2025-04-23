@@ -59,7 +59,7 @@ public class Image : ContentView
     //     }
     // }
 
-    public override void CollectContent(Matrix4x4 transform, CommandList commands)
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         if (TextureId != -1) DrawImage(TextureId, transform, commands);
     }
@@ -70,7 +70,7 @@ public class Image : ContentView
             BorderRadius);
     }
 
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         var size = GetDesiredContentSize();
         size = availableSpace.FiniteOr(size);

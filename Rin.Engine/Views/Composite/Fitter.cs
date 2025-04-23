@@ -103,7 +103,7 @@ public class Fitter : SingleSlotCompositeView
         return drawSize;
     }
 
-    protected override Vector2 ArrangeContent(Vector2 availableSpace)
+    protected override Vector2 ArrangeContent(in Vector2 availableSpace)
     {
         var desired = GetDesiredContentSize();
         return FitContent(new Vector2(float.IsFinite(availableSpace.X) ? availableSpace.X : desired.X,

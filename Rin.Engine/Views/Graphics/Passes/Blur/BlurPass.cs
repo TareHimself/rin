@@ -62,7 +62,15 @@ public class BlurPass : IViewsPass
     private uint _bufferId = 0;
     public uint Id { get; set; }
     public bool IsTerminal { get; } = false;
-    public void Added(IGraphBuilder builder)
+    public bool HandlesPreAdd => false;
+    public bool HandlesPostAdd => false;
+
+    public void PreAdd(IGraphBuilder builder)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void PostAdd(IGraphBuilder builder)
     {
         
     }

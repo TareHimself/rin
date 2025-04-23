@@ -44,7 +44,7 @@ public class ScrollList : List
         return float.Abs(offset - _offset) > 0.001;
     }
 
-    protected override Vector2 ArrangeContent(Vector2 spaceGiven)
+    protected override Vector2 ArrangeContent(in Vector2 spaceGiven)
     {
         var spaceTaken = base.ArrangeContent(spaceGiven);
 
@@ -118,9 +118,9 @@ public class ScrollList : List
         }
     }
 
-    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList cmds)
+    public override void Collect(in Matrix4x4 transform, in Views.Rect clip, CommandList commands)
     {
-        base.Collect(transform, clip, cmds);
+        base.Collect(transform, clip, commands);
         if (IsVisible && IsScrollable())
         {
             var scroll = GetScroll();
@@ -135,11 +135,11 @@ public class ScrollList : List
             var size = GetContentSize();
 
             var barTransform = transform.Translate(new Vector2(size.X - 10.0f, drawOffset));
-            cmds.AddRect(barTransform, new Vector2(10.0f, barSize), Color.White, new Vector4(7.0f));
+            commands.AddRect(barTransform, new Vector2(10.0f, barSize), Color.White, new Vector4(7.0f));
         }
     }
 
-    protected override Matrix4x4 ComputeSlotTransform(ISlot slot, Matrix4x4 contentTransform)
+    protected override Matrix4x4 ComputeSlotTransform(ISlot slot, in Matrix4x4 contentTransform)
     {
         return slot.Child.ComputeLocalTransform() * contentTransform.Translate(Axis switch
         {

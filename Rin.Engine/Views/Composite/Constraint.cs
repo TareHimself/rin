@@ -73,7 +73,7 @@ public class Constraint : SingleSlotCompositeView
         return new Vector2();
     }
 
-    protected override Vector2 ArrangeContent(Vector2 availableSpace)
+    protected override Vector2 ArrangeContent(in Vector2 availableSpace)
     {
         var size = Constrain(availableSpace);
         if (GetSlot() is { } slot)

@@ -76,4 +76,10 @@ public struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool>, IEqu
             Y = target.Height
         };
     }
+
+    public void Deconstruct(out uint width, out uint height)
+    {
+        width = Width;
+        height = Height;
+    }
 }

@@ -6,7 +6,7 @@ namespace rin.Examples.AudioPlayer.Views;
 
 public class AudioVisualizer : ContentView
 {
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         return availableSpace;
     }
@@ -16,7 +16,7 @@ public class AudioVisualizer : ContentView
         throw new NotImplementedException();
     }
 
-    public override void CollectContent(Matrix4x4 transform, CommandList commands)
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         throw new NotImplementedException();
     }

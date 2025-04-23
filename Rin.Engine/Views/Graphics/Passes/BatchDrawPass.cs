@@ -54,8 +54,15 @@ public sealed class BatchDrawPass : IViewsPass
     public string Name => "View Pass";
 
     [PublicAPI] public bool IsTerminal { get; set; }
+    public bool HandlesPreAdd => false;
+    public bool HandlesPostAdd => false;
 
-    public void Added(IGraphBuilder builder)
+    public void PreAdd(IGraphBuilder builder)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void PostAdd(IGraphBuilder builder)
     {
         // foreach (var cmd in _passInfo.PreCommands) cmd.BeforeAdd(builder);
         //
@@ -84,11 +91,6 @@ public sealed class BatchDrawPass : IViewsPass
         var buffer = graph.GetBufferOrNull(_bufferId);
         var cmd = frame.GetCommandBuffer();
         cmd
-            // .ImageBarrier(drawImage, ImageLayout.General)
-            // .ImageBarrier(copyImage, ImageLayout.General)
-            // .ImageBarrier(stencilImage, ImageLayout.General)
-            // .ClearColorImages(new Vector4(0.0f), ImageLayout.General, drawImage, copyImage)
-            // .ClearStencilImages(0, stencilImage.Layout, stencilImage)
             .ImageBarrier(drawImage, ImageLayout.ColorAttachment)
             .ImageBarrier(copyImage, ImageLayout.ShaderReadOnly)
             .ImageBarrier(stencilImage, ImageLayout.StencilAttachment);
@@ -156,12 +158,4 @@ public sealed class BatchDrawPass : IViewsPass
     }
 
     public SharedPassContext Context { get; set; }
-
-    public static void BeginRendering(in VkCommandBuffer cmd)
-    {
-    }
-
-    public static void EndRendering(in VkCommandBuffer cmd)
-    {
-    }
 }

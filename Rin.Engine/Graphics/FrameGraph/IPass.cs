@@ -14,11 +14,15 @@ public interface IPass
     /// </summary>
     public bool IsTerminal { get; }
 
+    public bool HandlesPreAdd { get; }
+    public bool HandlesPostAdd { get; }
+    
+    public void PreAdd(IGraphBuilder builder);
     /// <summary>
-    ///     Called when this pass is added to a <see cref="IGraphBuilder" /> and has been assigned an ID
+    /// <see cref="IGraphBuilder" /> and has been assigned an ID
     /// </summary>
     /// <param name="builder"></param>
-    public void Added(IGraphBuilder builder);
+    public void PostAdd(IGraphBuilder builder);
 
     /// <summary>
     ///     Called when all passes have been added and the graph is being compiled

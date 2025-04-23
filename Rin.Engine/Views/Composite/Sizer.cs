@@ -43,7 +43,7 @@ public class Sizer : SingleSlotCompositeView
         return new Vector2();
     }
 
-    protected override Vector2 ArrangeContent(Vector2 availableSpace)
+    protected override Vector2 ArrangeContent(in Vector2 availableSpace)
     {
         var size = new Vector2(WidthOverride.GetValueOrDefault(availableSpace.X),
             HeightOverride.GetValueOrDefault(availableSpace.Y));

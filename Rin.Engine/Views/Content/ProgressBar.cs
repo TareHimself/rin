@@ -13,7 +13,7 @@ public class ProgressBar(Func<float> getProgress) : ContentView
     public Color ForegroundColor { get; set; } = Color.White;
     public Vector4 BorderRadius { get; set; }
 
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         return availableSpace;
     }
@@ -23,7 +23,7 @@ public class ProgressBar(Func<float> getProgress) : ContentView
         return new Vector2();
     }
 
-    public override void CollectContent(Matrix4x4 transform, CommandList commands)
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         var size = GetContentSize();
         commands.AddRect(transform, size, BackgroundColor, BorderRadius);

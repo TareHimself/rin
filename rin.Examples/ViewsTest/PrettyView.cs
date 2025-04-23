@@ -14,7 +14,7 @@ public class PrettyView : ContentView
         _createdAt = SEngine.Get().GetTimeSeconds();
     }
 
-    protected override Vector2 LayoutContent(Vector2 availableSpace)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         //Translate = availableSpace / 2.0f;
         return availableSpace;
@@ -25,7 +25,7 @@ public class PrettyView : ContentView
         return new Vector2();
     }
 
-    public override void CollectContent(Matrix4x4 transform, CommandList commands)
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         //Angle = (float)(((SRuntime.Get().GetTimeSeconds() * 100.0) - _createdAt) % 360.0);
         commands.Add(new CustomShaderCommand(transform, GetContentSize(),

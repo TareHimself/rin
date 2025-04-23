@@ -46,7 +46,7 @@ public class List : MultiSlotCompositeView<ListSlot>
         return _layout.ComputeDesiredContentSize();
     }
 
-    protected override Vector2 ArrangeContent(Vector2 availableSpace)
+    protected override Vector2 ArrangeContent(in Vector2 availableSpace)
     {
         return _layout.Apply(availableSpace);
     }
