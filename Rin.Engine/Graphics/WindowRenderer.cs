@@ -333,7 +333,7 @@ public class WindowRenderer : IWindowRenderer
                 };
 
                 ctx.SwapchainImageId = ctx.GraphBuilder.AddExternalImage(swapchainImage);
-
+ 
                 var graph = ctx.GraphBuilder.Compile(_resourcePool, frame);
 
                 var cmd = frame.GetCommandBuffer();

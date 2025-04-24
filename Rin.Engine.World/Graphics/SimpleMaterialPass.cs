@@ -34,7 +34,11 @@ public abstract class SimpleMaterialPass : IMaterialPass
             vkCmdBindIndexBuffer(cmd, first.IndexBuffer.NativeBuffer, 0, VkIndexType.VK_INDEX_TYPE_UINT32);
 
             ulong offset = 0;
-            foreach (var groupedMeshes in meshes.GroupBy(c => c.VertexBuffer.Offset))
+            foreach (var groupedMeshes in meshes.GroupBy(c => new
+                     {
+                         c.VertexCount,
+                         c.VertexStart
+                     }))
             {
                 var groupArray = groupedMeshes.ToArray();
 

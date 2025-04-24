@@ -12,8 +12,6 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
     public int SlotCount => _slots.Count;
     public abstract CompositeView Container { get; }
 
-    public abstract void Dispose();
-
     public bool Add(View child)
     {
         return Add(MakeSlot(child));

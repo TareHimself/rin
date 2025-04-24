@@ -3,7 +3,7 @@ using Rin.Engine.Views.Composite;
 
 namespace Rin.Engine.Views.Layouts;
 
-public interface ILayout : IDisposable
+public interface ILayout
 {
     public CompositeView Container { get; }
     protected ISlot MakeSlot(View view);

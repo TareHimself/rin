@@ -56,7 +56,7 @@ public sealed class SEngine : Disposable
     public event Action? OnPreUpdate;
     public event Action<float>? OnUpdate;
     public event Action? OnPostUpdate;
-
+    public event Action? OnCollect;
     public event Action? OnPreRender;
     public event Action? OnRender;
     public event Action? OnPostRender;
@@ -191,15 +191,9 @@ public sealed class SEngine : Disposable
             _mainUpdateEvent.WaitOne();
             if (_exitRequested) return;
             _renderDispatcher.DispatchPending();
-            Profiling.Begin("SEngine.PreRender");
-            OnPreRender?.Invoke();
-            Profiling.End("SEngine.PreRender");
-            Profiling.Begin("SEngine.Render");
-            OnRender?.Invoke();
-            Profiling.End("SEngine.Render");
-            Profiling.Begin("SEngine.PostRender");
-            OnPostRender?.Invoke();
-            Profiling.End("SEngine.PostRender");
+            Profiling.Measure("Engine.PreRender",OnPreRender);
+            Profiling.Measure("Engine.Render",OnRender);
+            Profiling.Measure("Engine.PostRender",OnPostRender);
         }
     }
 
@@ -212,21 +206,18 @@ public sealed class SEngine : Disposable
 
         while (!_exitRequested)
         {
-            Profiling.Begin("SEngine.PreUpdate");
-            OnPreUpdate?.Invoke();
-            Profiling.End("SEngine.PreUpdate");
+            Profiling.Measure("Engine.PreUpdate",OnPreUpdate);
+            Profiling.Measure("Engine.DispatchPending", _mainDispatcher.DispatchPending);
+            
+            Profiling.Begin("Engine.Update");
             var tickStart = DateTime.UtcNow;
-            Profiling.Begin("SEngine.DispatchPending");
-            _mainDispatcher.DispatchPending();
-            Profiling.End("SEngine.DispatchPending");
             _lastDeltaSeconds = (float)(tickStart - _lastTickTime).TotalSeconds;
-            Profiling.Begin("SEngine.Update");
             OnUpdate?.Invoke(_lastDeltaSeconds);
-            Profiling.End("SEngine.Update");
-            Profiling.Begin("SEngine.PostUpdate");
-            OnPostUpdate?.Invoke();
-            Profiling.End("SEngine.PostUpdate");
             _lastTickTime = tickStart;
+            Profiling.End("Engine.Update");
+            
+            Profiling.Measure("Engine.PostUpdate",OnPostUpdate);
+            Profiling.Measure("Engine.Collect",OnCollect);
 
             _mainUpdateEvent.Set();
         }

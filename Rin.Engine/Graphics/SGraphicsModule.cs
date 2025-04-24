@@ -66,7 +66,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     public void Start(SEngine engine)
     {
         engine.OnUpdate += Update;
-        engine.OnPostUpdate += Collect;
+        engine.OnCollect += Collect;
         engine.OnRender += Execute;
         if (!SDL_InitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD))
             throw new InvalidOperationException($"failed to initialise SDL. Error: {SDL_GetError()}");
@@ -77,7 +77,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     public void Stop(SEngine engine)
     {
         engine.OnRender -= Execute;
-        engine.OnPostUpdate -= Collect;
+        engine.OnCollect -= Collect;
         engine.OnUpdate -= Update;
 
 

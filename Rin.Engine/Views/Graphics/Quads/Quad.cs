@@ -53,15 +53,6 @@ public struct Quad() // : ICloneable<Quad>
         public Vector4 Data4 { get; set; }
     }
 
-    private struct RectData : IQuad
-    {
-        public Vector4<int> Opts { get; set; }
-        public Vector2 Size { get; set; }
-        public Matrix4x4 Transform { get; set; }
-        public Vector4 Color;
-        public Vector4 BorderRadius;
-    }
-
     private struct TextureData : IQuad
     {
         public Vector4<int> Opts { get; set; }
@@ -83,7 +74,7 @@ public struct Quad() // : ICloneable<Quad>
         public Vector4 UV { get; set; }
     }
 
-    public static Quad Circle(Matrix4x4 transform, float radius, Vector4? color = null)
+    public static Quad Circle(in Matrix4x4 transform, float radius, in Color? color = null)
     {
         var quad = new Quad
         {
@@ -96,14 +87,14 @@ public struct Quad() // : ICloneable<Quad>
         {
             var asData = Utils.Reinterpret<PrimitiveData, Quad>(&quad);
             asData->Type = PrimitiveType.Circle;
-            asData->Data1 = color.GetValueOrDefault(new Vector4(1.0f));
+            asData->Data1 = color.GetValueOrDefault(Color.White);
             asData->Data2 = new Vector4(radius, 0.0f, 0.0f, 0.0f);
         }
 
         return quad;
     }
 
-    public static Quad Line(Vector2 begin, Vector2 end, float thickness = 2.0f, Vector4? color = null)
+    public static Quad Line(in Vector2 begin, in Vector2 end, float thickness = 2.0f, in Color? color = null)
     {
         const float feather = 3.0f;
         var p1 = Vector2.Min(begin, end);
@@ -123,7 +114,7 @@ public struct Quad() // : ICloneable<Quad>
         {
             var asData = Utils.Reinterpret<PrimitiveData, Quad>(&quad);
             asData->Type = PrimitiveType.Line;
-            asData->Data1 = color.GetValueOrDefault(new Vector4(1.0f));
+            asData->Data1 = color.GetValueOrDefault(Color.White);
             asData->Data2 = new Vector4(begin, end.X, end.Y);
             asData->Data3 = new Vector4(thickness);
         }
@@ -131,7 +122,7 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Rect(Matrix4x4 transform, Vector2 size, Vector4? color = null, Vector4? borderRadius = null)
+    public static Quad Rect(in Matrix4x4 transform, in Vector2 size, in Color? color = null, in Vector4? borderRadius = null)
     {
         var quad = new Quad
         {
@@ -144,15 +135,15 @@ public struct Quad() // : ICloneable<Quad>
         {
             var asData = Utils.Reinterpret<PrimitiveData, Quad>(&quad);
             asData->Type = PrimitiveType.Rectangle;
-            asData->Data1 = color.GetValueOrDefault(new Vector4(1.0f));
+            asData->Data1 = color.GetValueOrDefault(Color.White);
             asData->Data2 = borderRadius.GetValueOrDefault();
         }
 
         return quad;
     }
 
-    public static Quad QuadraticCurve(Vector2 a, Vector2 control, Vector2 b, float thickness = 2.0f,
-        Vector4? color = null)
+    public static Quad QuadraticCurve(in Vector2 a, in Vector2 control, in Vector2 b, float thickness = 2.0f,
+        in Color? color = null)
     {
         const float feather = 3.0f;
         var p1 = Vector2.Min(control, Vector2.Min(a, b));
@@ -171,7 +162,7 @@ public struct Quad() // : ICloneable<Quad>
         {
             var asData = Utils.Reinterpret<PrimitiveData, Quad>(&quad);
             asData->Type = PrimitiveType.QuadraticCurve;
-            asData->Data1 = color.GetValueOrDefault(new Vector4(1.0f));
+            asData->Data1 = color.GetValueOrDefault(Color.White);
             asData->Data2 = new Vector4(a, b.X, b.Y);
             asData->Data3 = new Vector4(control, thickness, 0);
         }
@@ -179,8 +170,8 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad CubicCurve(Vector2 a, Vector2 controlA, Vector2 b, Vector2 controlB, float thickness = 2.0f,
-        Vector4? color = null)
+    public static Quad CubicCurve(in Vector2 a, in Vector2 controlA, in Vector2 b, in Vector2 controlB, float thickness = 2.0f,
+        in Color? color = null)
     {
         const float feather = 3.0f;
         var p1 = Vector2.Min(Vector2.Min(controlA, controlB), Vector2.Min(a, b));
@@ -199,7 +190,7 @@ public struct Quad() // : ICloneable<Quad>
         {
             var asData = Utils.Reinterpret<PrimitiveData, Quad>(&quad);
             asData->Type = PrimitiveType.CubicCurve;
-            asData->Data1 = color.GetValueOrDefault(new Vector4(1.0f));
+            asData->Data1 = color.GetValueOrDefault(Color.White);
             asData->Data2 = new Vector4(a, b.X, b.Y);
             asData->Data3 = new Vector4(controlA, controlB.X, controlB.Y);
             asData->Data4 = new Vector4(thickness, 0, 0, 0);
@@ -208,8 +199,8 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Texture(int textureId, Matrix4x4 transform, Vector2 size, Vector4? tint = null,
-        Vector4? borderRadius = null, Vector4? uv = null)
+    public static Quad Texture(int textureId, in Matrix4x4 transform, in Vector2 size, Color? tint = null,
+        in Vector4? borderRadius = null, in Vector4? uv = null)
     {
         var quad = new Quad
         {
@@ -222,7 +213,7 @@ public struct Quad() // : ICloneable<Quad>
         {
             var asData = Utils.Reinterpret<TextureData, Quad>(&quad);
             asData->TextureId = textureId;
-            asData->Tint = tint.GetValueOrDefault(new Vector4(1.0f));
+            asData->Tint = tint.GetValueOrDefault(Color.White);
             asData->BorderRadius = borderRadius.GetValueOrDefault();
             asData->UV = uv.GetValueOrDefault(new Vector4(0.0f, 0.0f, 1.0f, 1.0f));
         }
@@ -230,8 +221,8 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Mtsdf(int textureId, Matrix4x4 transform, Vector2 size, Vector4? color = null,
-        Vector4? uv = null)
+    public static Quad Mtsdf(int textureId, in Matrix4x4 transform, in Vector2 size, in Color? color = null,
+        in Vector4? uv = null)
     {
         var quad = new Quad
         {
@@ -244,7 +235,7 @@ public struct Quad() // : ICloneable<Quad>
         {
             var asData = Utils.Reinterpret<MtsdfData, Quad>(&quad);
             asData->TextureId = textureId;
-            asData->Color = color.GetValueOrDefault(new Vector4(1.0f));
+            asData->Color = color.GetValueOrDefault(Color.White);
             asData->UV = uv.GetValueOrDefault(new Vector4(0.0f, 0.0f, 1.0f, 1.0f));
         }
 

@@ -1,8 +1,11 @@
 ﻿using System.Numerics;
 using Rin.Engine.Audio.BassAudio;
+using Rin.Engine.Views;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Layouts;
+using rin.Examples.Common.Views;
 using Clip = Rin.Engine.Views.Clip;
+using Rect = Rin.Engine.Views.Composite.Rect;
 
 namespace rin.Examples.AudioPlayer.Views;
 
@@ -26,23 +29,23 @@ public class MainPanel : Panel
                 MinAnchor = new Vector2(0.0f),
                 MaxAnchor = new Vector2(1.0f) //new Vector2<float>(0.5f, 0.5f)
             },
-            // new PanelSlot
-            // {
-            //     Child = new Rect
-            //     {
-            //         Child = new FpsView
-            //         {
-            //             FontSize = 30
-            //         },
-            //         Padding = new Padding(20.0f),
-            //         BorderRadius = new Vector4(10.0f),
-            //         Color = Color.Black.Clone(a: 0.7f)
-            //     },
-            //     SizeToContent = true,
-            //     MinAnchor = new Vector2(1.0f, 0.0f),
-            //     MaxAnchor = new Vector2(1.0f, 0.0f),
-            //     Alignment = new Vector2(1.0f, 0.0f)
-            // },
+            new PanelSlot
+            {
+                Child = new Rect
+                {
+                    Child = new FpsView
+                    {
+                        FontSize = 30
+                    },
+                    Padding = new Padding(20.0f),
+                    BorderRadius = new Vector4(10.0f),
+                    Color = Color.Black with{A = 0.7f}
+                },
+                SizeToContent = true,
+                MinAnchor = new Vector2(1.0f, 0.0f),
+                MaxAnchor = new Vector2(1.0f, 0.0f),
+                Alignment = new Vector2(1.0f, 0.0f)
+            },
             new PanelSlot
             {
                 Child = filePicker,

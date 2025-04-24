@@ -1,24 +1,33 @@
 ﻿using System.Drawing;
 using System.Numerics;
+using JetBrains.Annotations;
 
 namespace Rin.Engine.Views;
 
 public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOperators<Color, Color, Color>,
     IMultiplyOperators<Color, float, Color>, IAdditionOperators<Color, Color, Color>
 {
-    public static Color Red = new(1f, 0f, 0f, 1f);
-    public static Color Green = new(0f, 1f, 0f, 1f);
-    public static Color Blue = new(0f, 0f, 1f, 1f);
-    public static Color White = new(1f, 1f, 1f, 1f);
-    public static Color Black = new(0f, 0f, 0f, 1f);
-    public static Color Transparent = new(0f, 0f, 0f, 0f);
-
-    public float A = inA;
-    public float B = inB;
-    public float G = inG;
+    public static Color Red => new(1f, 0f, 0f, 1f);
+    public static Color Green => new(0f, 1f, 0f, 1f);
+    public static Color Blue => new(0f, 0f, 1f, 1f);
+    public static Color White => new(1f, 1f, 1f, 1f);
+    public static Color Black => new(0f, 0f, 0f, 1f);
+    public static Color Transparent => new(0f, 0f, 0f, 0f);
+    
+    [PublicAPI]
     public float R = inR;
+    [PublicAPI]
+    public float G = inG;
+    [PublicAPI]
+    public float B = inB;
+    [PublicAPI]
+    public float A = inA;
 
     public Color(float data) : this(data, data, data, data)
+    {
+    }
+    
+    public Color(float color,float alpha) : this(color,color,color, alpha)
     {
     }
     

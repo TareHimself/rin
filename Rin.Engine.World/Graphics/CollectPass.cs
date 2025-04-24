@@ -134,6 +134,7 @@ public class CollectPass : IPass
                     IndicesStart = surface.IndicesStart,
                     VertexCount = surface.VertexCount,
                     VertexStart = surface.VertexStart,
+                    Bounds = surface.Bounds,
                 };
             });
         }).ToList();
@@ -161,6 +162,7 @@ public class CollectPass : IPass
                         IndicesStart = surface.IndicesStart,
                         VertexCount = surface.VertexCount,
                         VertexStart = surface.VertexStart,
+                        Bounds = c.Mesh.GetBounds()
                     };
                 });
             }));
@@ -171,7 +173,7 @@ public class CollectPass : IPass
             {
                 var skinnedGeometryDictionary = _skinnedMeshes
                     .Select((c, idx) => new KeyValuePair<IMesh, int>(c, idx)).ToFrozenDictionary();
-                TotalVerticesToSkin = _skinnedMeshes.Aggregate<IMesh,uint>(0,(t,c) => t + c.GetVertexCount());
+                TotalVerticesToSkin = SkinnedGeometry.Aggregate<SkinnedMeshInfo,uint>(0,(t,c) => t + c.Mesh.GetVertexCount());
                 SkinnedPoses = SkinnedGeometry.Select(c => c.Skeleton.ResolvePose(c.Pose).ToArray()).ToArray();
                 ExecutionInfos = SkinnedGeometry.SelectMany((c,poseIdx) =>
                 {
@@ -306,12 +308,8 @@ public class CollectPass : IPass
             Projection = sceneFrame.Projection,
             ViewProjection = sceneFrame.ViewProjection
         });
-
-        foreach (var geometryInfos in ProcessedGeometry.GroupBy(c => new
-                 {
-                     Type = c.Material.GetType(),
-                     c.IndexBuffer
-                 }))
+        
+        foreach (var geometryInfos in ProcessedGeometry.GroupBy(c => c,new ProcessedMesh.CompareByIndexAndMaterial()))
         {
             var infos = geometryInfos.ToArray();
             var first = infos.First();

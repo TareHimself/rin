@@ -111,11 +111,7 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
         });
 
 
-        foreach (var geometryInfos in _collectPass.ProcessedGeometry.GroupBy(c => new
-                 {
-                     Type = c.Material.GetType(),
-                     c.IndexBuffer
-                 }))
+        foreach (var geometryInfos in _collectPass.ProcessedGeometry.GroupBy(c => c,new ProcessedMesh.CompareByIndexAndMaterial()))
         {
             var infos = geometryInfos.ToArray();
             var first = infos.First();

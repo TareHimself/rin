@@ -7,10 +7,6 @@ public class RootLayout(CompositeView container) : InfiniteChildrenLayout
 {
     public override CompositeView Container { get; } = container;
 
-    public override void Dispose()
-    {
-    }
-
     public override ISlot MakeSlot(View view)
     {
         return new Slot(this)

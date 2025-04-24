@@ -24,7 +24,7 @@ public class StaticMeshComponent : SceneComponent
                 materials.Add(material);
             }
             
-            commandList.AddCommand(new StaticMeshInfo
+            commandList.AddStatic(new StaticMeshInfo
             {
                 Mesh = mesh,
                 Transform = transform,

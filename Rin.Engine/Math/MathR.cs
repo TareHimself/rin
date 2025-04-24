@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using Rin.Engine.Graphics;
 
 namespace Rin.Engine.Math;
 
@@ -30,6 +31,12 @@ public static class MathR
         mat[3, 2] = near * far / (far + near);
         
         return mat;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix4x4 PerspectiveProjection(float fieldOfView, in Extent2D extent, float near, float far)
+    {
+        return PerspectiveProjection(fieldOfView, extent.Width, extent.Height, near, far);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

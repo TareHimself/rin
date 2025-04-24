@@ -178,6 +178,32 @@ public class SSceneTestModule : IModule
                                 Location = new Vector3(0,0,50)
                             }
                         });
+                        
+                        scene.AddActor(new Actor()
+                        {
+                            RootComponent = new SkinnedMeshComponent()
+                            {
+                                Mesh = skinned,
+                                PoseSource = new TestPoseSource()
+                                {
+                                    Skeleton = skinned.Skeleton,
+                                },
+                                Location = new Vector3(-30,0,50)
+                            }
+                        });
+                        
+                        scene.AddActor(new Actor()
+                        {
+                            RootComponent = new SkinnedMeshComponent()
+                            {
+                                Mesh = skinned,
+                                PoseSource = new TestPoseSource()
+                                {
+                                    Skeleton = skinned.Skeleton,
+                                },
+                                Location = new Vector3(30,0,50)
+                            }
+                        });
                     }
                 });
             });

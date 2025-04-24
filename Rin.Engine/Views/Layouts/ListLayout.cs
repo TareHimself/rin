@@ -19,11 +19,7 @@ public class ListLayout(Axis axis, CompositeView container) : InfiniteChildrenLa
 {
     private Axis _axis = axis;
     public override CompositeView Container { get; } = container;
-
-    public override void Dispose()
-    {
-    }
-
+    
     public override ISlot MakeSlot(View view)
     {
         return new ListSlot(this)

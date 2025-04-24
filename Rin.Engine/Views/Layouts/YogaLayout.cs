@@ -49,11 +49,6 @@ public class YogaLayout(Axis axis, CompositeView container) : InfiniteChildrenLa
     private YogaNode _root = new();
     public override CompositeView Container { get; }
 
-    public override void Dispose()
-    {
-        throw new NotImplementedException();
-    }
-
     public override ISlot MakeSlot(View view)
     {
         return new YogaSlot(this)

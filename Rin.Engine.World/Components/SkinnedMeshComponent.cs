@@ -24,7 +24,7 @@ public class SkinnedMeshComponent : SceneComponent
                 materials.Add(material);
             }
             
-            commandList.AddCommand(new SkinnedMeshInfo()
+            commandList.AddSkinned(new SkinnedMeshInfo()
             {
                 Skeleton = Mesh.Skeleton,
                 Pose = PoseSource?.GetPose() ?? Mesh.Skeleton.BasePose,

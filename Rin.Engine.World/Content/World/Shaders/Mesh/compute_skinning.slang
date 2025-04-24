@@ -40,13 +40,12 @@ void compute(ComputeIn input)
     if (index >= push.totalInvocations) return;
     var info = push.info[index];
     var mesh = push.meshes[info.meshId];
-    var inVertex = mesh.vertices[index];
+    var inVertex = mesh.vertices[info.vertexId];
     var weights = inVertex.boneWeights;
     var pose = push.poses[info.poseId];
     var boneIds = inVertex.boneIndices;
     float4x4 t1 = pose.transforms[boneIds[0]], t2 = pose.transforms[boneIds[1]], t3 = pose.transforms[boneIds[2]], t4 = pose.transforms[boneIds[3]];
     float4x4 z;
-    var y = t1 * 20.0f;
     var location4 = float4(inVertex.getLocation(), 1.0);
     var normal = inVertex.getNormal();
     var location = (t1 * location4 * weights.x) + (t2 * location4 * weights.y) + (t3 * location4 * weights.z) + (t4 * location4 * weights.w);

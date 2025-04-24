@@ -15,13 +15,13 @@ public class CommandList
         return this;
     }
 
-    public CommandList AddCommand(StaticMeshInfo command)
+    public CommandList AddStatic(StaticMeshInfo command)
     {
         StaticMeshes.Add(command);
         return this;
     }
     
-    public CommandList AddCommand(SkinnedMeshInfo command)
+    public CommandList AddSkinned(SkinnedMeshInfo command)
     {
         SkinnedMeshes.Add(command);
         return this;

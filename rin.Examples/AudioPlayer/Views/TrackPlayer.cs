@@ -9,6 +9,7 @@ using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Layouts;
+using YoutubeExplode.Common;
 using Rect = Rin.Engine.Views.Rect;
 
 
@@ -76,7 +77,8 @@ public class TrackPlayer : Overlay
                 [
                     new ListSlot
                     {
-                        Child = _nameText
+                        Child = _nameText,
+                        Fit = CrossFit.Fill
                     },
                     new ListSlot
                     {
@@ -146,7 +148,7 @@ public class TrackPlayer : Overlay
     {
         try
         {
-            var data = (await SAudioPlayer.Get().SpClient.Search.GetTracksAsync($"{_nameText.Content} official track"))
+            var data = (await SAudioPlayer.Get().YtClient.Search.GetVideosAsync($"{_nameText.Content} official track"))
                 .FirstOrDefault();
             if (data == null)
             {
@@ -155,7 +157,7 @@ public class TrackPlayer : Overlay
             }
 
 
-            var thumb = data.Album.Images.MaxBy(c => c.Height * c.Width)!.Url;
+            var thumb = data.Thumbnails.MaxBy(c => c.Resolution.Width * c.Resolution.Height)!.Url;
 
             Console.WriteLine($"Using thumb {thumb} for {_nameText.Content}");
             _backgroundContainer.Add(new PanelSlot

@@ -5,15 +5,13 @@ namespace Rin.Engine.Graphics.FrameGraph;
 
 public class CompiledGraph : ICompiledGraph
 {
-    
-    
     private readonly Dictionary<uint, IResourceDescriptor> _descriptors;
     private readonly Frame _frame;
     private readonly Dictionary<uint, IGraphImage> _images = [];
     private readonly ICompiledGraphNode[] _nodes;
     private readonly Dictionary<uint, IPass> _passes;
     private readonly IResourcePool _resourcePool;
-    
+
 #if DEBUG
     private readonly Dictionary<uint, IDeviceBuffer> _buffers = [];
 #else
@@ -21,7 +19,7 @@ public class CompiledGraph : ICompiledGraph
     private ulong _bufferOffset;
     private readonly Dictionary<uint, IDeviceBufferView> _buffers = [];
 #endif
-    
+
     public CompiledGraph(IResourcePool resourcePool, Frame frame, Dictionary<uint, IResourceDescriptor> descriptors,
         ICompiledGraphNode[] nodes)
     {
@@ -39,7 +37,8 @@ public class CompiledGraph : ICompiledGraph
         {
             var pooledView = resourcePool.CreateBuffer(new BufferResourceDescriptor(memoryNeeded), frame);
             //pooledView = new DeviceBufferWriteValidator(pooledView);
-            _buffer = pooledView; // SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
+            _buffer =
+ pooledView; // SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
         }
 #endif
 
@@ -55,14 +54,16 @@ public class CompiledGraph : ICompiledGraph
         {
             image.Dispose();
         }
+
         //if(resource is not DeviceImage) resource.Dispose();
         _images.Clear();
-        
+
 #if DEBUG
         foreach (var buffers in _buffers.Values)
         {
             buffers.Dispose();
         }
+
         _buffers.Clear();
 #else
         _buffers.Clear();
@@ -106,17 +107,17 @@ public class CompiledGraph : ICompiledGraph
     public IDeviceBufferView GetBuffer(uint id)
     {
 #if DEBUG
-{
+        {
             if (_buffers.TryGetValue(id, out var resource)) return resource.GetView();
         }
         if (_descriptors.TryGetValue(id, out var descriptor) &&
             descriptor is BufferResourceDescriptor asMemoryDescriptor)
         {
-            var buffer = _resourcePool.CreateBuffer(asMemoryDescriptor,_frame);
+            var buffer = _resourcePool.CreateBuffer(asMemoryDescriptor, _frame);
             _buffers.Add(id, buffer);
             return buffer.GetView();
         }
-        
+
 #else
         {
             if (_buffers.TryGetValue(id, out var resource)) return resource;
@@ -130,7 +131,7 @@ public class CompiledGraph : ICompiledGraph
             return view;
         }
 #endif
-        
+
         throw new ResourceAllocationException(id);
     }
 

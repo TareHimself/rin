@@ -9,10 +9,6 @@ public class OverlayLayout(CompositeView container) : InfiniteChildrenLayout
     public override CompositeView Container { get; } = container;
     public override int MaxSlotCount => int.MaxValue;
 
-    public override void Dispose()
-    {
-    }
-
     public override ISlot MakeSlot(View view)
     {
         return new Slot(this)

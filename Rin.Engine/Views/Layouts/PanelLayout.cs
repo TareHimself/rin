@@ -39,11 +39,7 @@ public class PanelSlot : Slot
 public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
 {
     public override CompositeView Container { get; } = container;
-
-    public override void Dispose()
-    {
-    }
-
+    
     public override ISlot MakeSlot(View view)
     {
         throw new NotImplementedException();

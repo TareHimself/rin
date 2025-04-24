@@ -81,7 +81,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
             ulong frameId);
 
         protected abstract TResult ResultFromContainer(ResourceContainer<TResource> container, Frame frame,
-            TPoolKey key, ulong frameId);
+            TPoolKey key, TInput input, ulong frameId);
 
         protected abstract TPoolKey MakeKeyFromInput(TInput input);
 
@@ -106,7 +106,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
                 {
                     container.LastUsed = frameId;
                     container.Uses.Add(frame);
-                    return ResultFromContainer(container, frame, key, frameId);
+                    return ResultFromContainer(container, frame, key,input, frameId);
                 }
             }
 
@@ -118,7 +118,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
                 created.LastUsed = frameId;
                 ContainerPool[key].Add(created);
 
-                return ResultFromContainer(created, frame, key, frameId);
+                return ResultFromContainer(created, frame, key,input, frameId);
             }
         }
 
@@ -174,7 +174,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         }
 
         protected override ProxiedImage ResultFromContainer(ResourceContainer<IDeviceImage> container, Frame frame,
-            int key, ulong frameId)
+            int key, ImageResourceDescriptor input, ulong frameId)
         {
             return new ProxiedImage(container, frame);
         }
@@ -186,30 +186,41 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
     }
 
 
-    private sealed class ProxiedBuffer(ResourceContainer<IDeviceBuffer> container, Frame frame) : IDeviceBuffer
+    private sealed class ProxiedBuffer : IDeviceBuffer
     {
-        public void Dispose()
+        private readonly ResourceContainer<IDeviceBuffer> _container;
+        private readonly Frame _frame;
+        private readonly ulong? _size;
+
+        public ProxiedBuffer(ResourceContainer<IDeviceBuffer> container, Frame frame,ulong? size = null)
         {
-            container.Uses.Remove(frame);
+            _container = container;
+            _frame = frame;
+            _size = size;
         }
 
-        public ulong Offset => container.Resource.Offset;
-        public ulong Size => container.Resource.Size;
-        public VkBuffer NativeBuffer => container.Resource.NativeBuffer;
+        public void Dispose()
+        {
+            _container.Uses.Remove(_frame);
+        }
+
+        public ulong Offset => _container.Resource.Offset;
+        public ulong Size => _size ?? _container.Resource.Size;
+        public VkBuffer NativeBuffer => _container.Resource.NativeBuffer;
 
         public ulong GetAddress()
         {
-            return container.Resource.GetAddress();
+            return _container.Resource.GetAddress();
         }
 
         public IDeviceBufferView GetView(ulong offset, ulong size)
         {
-            return container.Resource.GetView(offset, size);
+            return new DeviceBufferView(this, offset, size);
         }
 
         public unsafe void Write(void* src, ulong size, ulong offset = 0)
         {
-            container.Resource.Write(src, size, offset);
+            _container.Resource.Write(src, size, offset);
         }
     }
 
@@ -225,9 +236,9 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         }
 
         protected override ProxiedBuffer ResultFromContainer(ResourceContainer<IDeviceBuffer> container, Frame frame,
-            ulong key, ulong frameId)
+            ulong key, BufferResourceDescriptor input, ulong frameId)
         {
-            return new ProxiedBuffer(container, frame);
+            return new ProxiedBuffer(container, frame,input.Size);
         }
 
         protected override ulong MakeKeyFromInput(BufferResourceDescriptor input)

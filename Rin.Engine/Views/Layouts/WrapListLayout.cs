@@ -7,10 +7,6 @@ public class WrapListLayout(Axis axis, CompositeView container) : ListLayout(axi
 {
     public override CompositeView Container { get; } = container;
 
-    public override void Dispose()
-    {
-    }
-
     public override void OnSlotUpdated(ISlot slot)
     {
         if (Container.Surface != null) Apply(Container.GetContentSize());

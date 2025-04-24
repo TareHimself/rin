@@ -24,18 +24,24 @@ public class FpsView : TextBox
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        _averageFps.Add(1.0 / SEngine.Get().GetLastDeltaSeconds());
-
         //commands.Add(new GetStatsCommand(this));
-
         base.CollectContent(transform, commands);
     }
 
     public override void Update(float deltaTime)
     {
         base.Update(deltaTime);
-        
-        _dispatcher.DispatchPending();
+        var position = Surface?.GetCursorPosition() ?? Vector2.Zero;
+        _averageFps.Add(1.0 / SEngine.Get().GetLastDeltaSeconds());
+        _averageCollectTime.Add(Profiling.GetElapsedOrZero("Engine.Collect").TotalSeconds);
+        _averageExecuteTime.Add(Profiling.GetElapsedOrZero("Engine.Render").TotalSeconds);
+        Content =  $"""
+                    STATS
+                    {new Vector2<int>((int)position.X, (int)position.Y)} Cursor Position
+                    {float.Round(1 / (float)_averageFps * 1000.0f, 2)}ms Tick Time 
+                    {float.Round((float)_averageExecuteTime * 1000.0f, 2)}ms Execute Time 
+                    {float.Round((float)_averageCollectTime * 1000.0f, 2)}ms Collect Time 
+                    """;
     }
 
 //     private class GetStatsCommand(FpsView view) : UtilityCommand

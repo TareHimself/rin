@@ -31,10 +31,6 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
         }
     }
 
-    public override void Dispose()
-    {
-    }
-
     public override ISlot MakeSlot(View view)
     {
         return new Slot(this)
