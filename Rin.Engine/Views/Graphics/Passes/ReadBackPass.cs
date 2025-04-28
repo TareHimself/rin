@@ -26,8 +26,8 @@ public class ReadBackPass(SharedPassContext sharedContext) : IViewsPass
 
     public void Configure(IGraphConfig config)
     {
-        config.Read(MainImageId);
-        config.Write(CopyImageId);
+        config.UseImage(MainImageId,ImageLayout.TransferSrc,ResourceUsage.Read);
+        config.UseImage(CopyImageId,ImageLayout.TransferDst,ResourceUsage.Write);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -38,8 +38,8 @@ public class ReadBackPass(SharedPassContext sharedContext) : IViewsPass
         var cmd = frame.GetCommandBuffer();
 
         cmd
-            .ImageBarrier(mainImage, ImageLayout.TransferSrc)
-            .ImageBarrier(copyImage, ImageLayout.TransferDst)
+            // .ImageBarrier(mainImage, ImageLayout.TransferSrc)
+            // .ImageBarrier(copyImage, ImageLayout.TransferDst)
             .CopyImageToImage(mainImage, copyImage);
     }
 

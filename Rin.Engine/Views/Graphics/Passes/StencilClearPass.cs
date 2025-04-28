@@ -32,48 +32,14 @@ public class StencilClearPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        config.Write(StencilImageId);
+        config.UseImage(StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Write);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
         var image = graph.GetImageOrException(StencilImageId);
         
-        var clearAttachment = new VkClearAttachment
-        {
-            aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT,
-            clearValue = new VkClearValue
-            {
-                color = SGraphicsModule.MakeClearColorValue(Vector4.Zero),
-                depthStencil = new VkClearDepthStencilValue
-                {
-                    stencil = 0
-                }
-            }
-        };
-        unsafe
-        {
-            var clearRect = new VkClearRect
-            {
-                baseArrayLayer = 0,
-                layerCount = 1,
-                rect = new VkRect2D
-                {
-                    offset = new VkOffset2D
-                    {
-                        x = 0,
-                        y = 0
-                    },
-                    extent = new VkExtent2D
-                    {
-                        width = image.Extent.Width,
-                        height = image.Extent.Height
-                    }
-                }
-            };
-            
-            var cmd = frame.GetCommandBuffer();
-            vkCmdClearAttachments(cmd, 1, &clearAttachment, 1, &clearRect);
-        }
+        var cmd = frame.GetCommandBuffer();
+        cmd.ClearStencilImages(0, image.Layout, image);
     }
 }

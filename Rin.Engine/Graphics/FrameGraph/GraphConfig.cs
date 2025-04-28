@@ -35,7 +35,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         var descriptor = new ImageResourceDescriptor(width, height, format, flags, initialLayout);
         var resourceId = builder.MakeId();
         Resources.Add(resourceId, descriptor);
-        Write(resourceId);
+        UseImage(resourceId, ImageLayout.Undefined, ResourceUsage.Write);
         return resourceId;
     }
 
@@ -50,46 +50,78 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         var resourceId = builder.MakeId();
         // _memory.Add(resourceId, descriptor);
         Resources.Add(resourceId, descriptor);
-        Write(resourceId);
+        UseBuffer(resourceId, BufferStage.Undefined, ResourceUsage.Write);
+        //Write(resourceId);
         return resourceId;
     }
 
-    public uint Read(uint resourceId)
-    {
-        {
-            var dep = new Dependency
-            {
-                Type = DependencyType.Read,
-                Id = resourceId
-            };
+    // public uint Read(uint resourceId)
+    // {
+    //     {
+    //         var dep = new Dependency
+    //         {
+    //             Type = DependencyType.Read,
+    //             Id = resourceId
+    //         };
+    //
+    //         if (PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
+    //             dependencies.Add(dep);
+    //         else
+    //             PassDependencies.Add(CurrentPassId, [dep]);
+    //     }
+    //     {
+    //         var action = new ResourceAction
+    //         {
+    //             Usage = ResourceUsage.Read,
+    //             PassId = CurrentPassId,
+    //             Type = Resources[resourceId] is ImageResourceDescriptor ? ResourceType.Image : ResourceType.Buffer,
+    //         };
+    //
+    //         if (ResourceActions.TryGetValue(resourceId, out var passes))
+    //             passes.Add(action);
+    //         else
+    //             ResourceActions.Add(resourceId, [action]);
+    //     }
+    //     return resourceId;
+    // }
+    //
+    // public uint Write(uint resourceId)
+    // {
+    //     {
+    //         var dep = new Dependency
+    //         {
+    //             Type = DependencyType.Write,
+    //             Id = resourceId
+    //         };
+    //
+    //         if (PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
+    //             dependencies.Add(dep);
+    //         else
+    //             PassDependencies.Add(CurrentPassId, [dep]);
+    //     }
+    //     {
+    //         var action = new ResourceAction
+    //         {
+    //             Usage = ResourceUsage.Write,
+    //             PassId = CurrentPassId,
+    //             Type = Resources[resourceId] is ImageResourceDescriptor ? ResourceType.Image : ResourceType.Buffer,
+    //         };
+    //
+    //         if (ResourceActions.TryGetValue(resourceId, out var passes))
+    //             passes.Add(action);
+    //         else
+    //             ResourceActions.Add(resourceId, [action]);
+    //     }
+    //     return resourceId;
+    // }
 
-            if (PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
-                dependencies.Add(dep);
-            else
-                PassDependencies.Add(CurrentPassId, [dep]);
-        }
-        {
-            var action = new ResourceAction
-            {
-                Type = ActionType.Read,
-                PassId = CurrentPassId
-            };
-
-            if (ResourceActions.TryGetValue(resourceId, out var passes))
-                passes.Add(action);
-            else
-                ResourceActions.Add(resourceId, [action]);
-        }
-        return resourceId;
-    }
-
-    public uint Write(uint resourceId)
+    public uint UseImage(uint id, ImageLayout layout, ResourceUsage usage)
     {
         {
             var dep = new Dependency
             {
                 Type = DependencyType.Write,
-                Id = resourceId
+                Id = id
             };
 
             if (PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
@@ -100,16 +132,49 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         {
             var action = new ResourceAction
             {
-                Type = ActionType.Write,
-                PassId = CurrentPassId
+                Usage = usage,
+                PassId = CurrentPassId,
+                Type = ResourceType.Image,
+                ImageLayout = layout
             };
 
-            if (ResourceActions.TryGetValue(resourceId, out var passes))
+            if (ResourceActions.TryGetValue(id, out var passes))
                 passes.Add(action);
             else
-                ResourceActions.Add(resourceId, [action]);
+                ResourceActions.Add(id, [action]);
         }
-        return resourceId;
+        return id;
+    }
+
+    public uint UseBuffer(uint id, BufferStage stage, ResourceUsage usage)
+    {
+        {
+            var dep = new Dependency
+            {
+                Type = DependencyType.Write,
+                Id = id
+            };
+
+            if (PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
+                dependencies.Add(dep);
+            else
+                PassDependencies.Add(CurrentPassId, [dep]);
+        }
+        {
+            var action = new ResourceAction
+            {
+                Usage = usage,
+                PassId = CurrentPassId,
+                Type = ResourceType.Image,
+                BufferStage = stage
+            };
+
+            if (ResourceActions.TryGetValue(id, out var passes))
+                passes.Add(action);
+            else
+                ResourceActions.Add(id, [action]);
+        }
+        return id;
     }
 
     public uint DependOn(uint passId)
@@ -138,7 +203,11 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public class ResourceAction
     {
-        public ActionType Type { get; set; }
-        public uint PassId { get; set; }
+        public required ResourceUsage Usage { get; set; }
+        public required uint PassId { get; set; }
+        public required ResourceType Type { get; set; }
+        public ImageLayout ImageLayout { get; set; }
+        public BufferStage BufferStage { get; set; }
+        
     }
 }

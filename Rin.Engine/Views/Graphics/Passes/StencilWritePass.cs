@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
+using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 namespace Rin.Engine.Views.Graphics.Passes;
@@ -8,6 +9,8 @@ namespace Rin.Engine.Views.Graphics.Passes;
 public class StencilWritePass : IPass
 {
     private readonly SharedPassContext _sharedContext;
+    private IShader _stencilShader = SGraphicsModule.Get()
+        .MakeGraphics("Engine/Shaders/Views/stencil_batch.slang");
     private StencilClip[] _clips;
     private uint _mask;
     public StencilWritePass(SharedPassContext sharedContext,uint mask,StencilClip[] clips)
@@ -37,12 +40,17 @@ public class StencilWritePass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        config.Write(StencilImageId);
+        config.UseImage(StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Write);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
         var image = graph.GetImageOrException(StencilImageId);
+        
+        foreach (var clip in _clips)
+        {
+            
+        }
         
         var clearAttachment = new VkClearAttachment
         {

@@ -63,9 +63,9 @@ internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) 
 
     public void Configure(IGraphConfig config)
     {
-         _sceneImageId = config.Read(_forwardPass.OutputImageId);
-         config.Write(info.MainImageId);
-         config.Read(info.StencilImageId);
+         _sceneImageId = config.UseImage(_forwardPass.OutputImageId,ImageLayout.ShaderReadOnly,ResourceUsage.Read);
+         config.UseImage(info.MainImageId,ImageLayout.ColorAttachment,ResourceUsage.Write);
+         config.UseImage(info.StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Read);
          _viewportBufferId = config.AllocateBuffer<SceneData>();
     }
 

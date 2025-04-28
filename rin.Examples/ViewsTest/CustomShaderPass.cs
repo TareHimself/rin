@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Drawing;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Rin.Engine;
 using Rin.Engine.Graphics;
@@ -40,8 +41,8 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
 
     public void Configure(IGraphConfig config)
     {
-        config.Write(MainImageId);
-        config.Read(StencilImageId);
+        config.UseImage(MainImageId,ImageLayout.ColorAttachment,ResourceUsage.Write);
+        config.UseImage(StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Read);
         _customCommands = info.Commands.Cast<CustomShaderCommand>().ToArray();
         BufferId = config.AllocateBuffer(Utils.ByteSizeOf<Data>(_customCommands.Length));
     }

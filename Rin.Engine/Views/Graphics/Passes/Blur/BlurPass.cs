@@ -77,9 +77,9 @@ public class BlurPass : IViewsPass
 
     public void Configure(IGraphConfig config)
     {
-        config.Write(MainImageId);
-        config.Read(CopyImageId);
-        config.Write(StencilImageId);
+        config.UseImage(MainImageId,ImageLayout.ColorAttachment,ResourceUsage.Write);
+        config.UseImage(CopyImageId,ImageLayout.ShaderReadOnly,ResourceUsage.Read);
+        config.UseImage(StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Read);
         _bufferId = config.AllocateBuffer<BlurData>(_blurCommands.Length);
     }
 
@@ -92,10 +92,10 @@ public class BlurPass : IViewsPass
             var copyImage = graph.GetImage(CopyImageId);
             var stencilImage = graph.GetImage(StencilImageId);
             var buffer = graph.GetBufferOrException(_bufferId);
-            cmd
-                .ImageBarrier(drawImage, ImageLayout.ColorAttachment)
-                .ImageBarrier(copyImage, ImageLayout.ShaderReadOnly)
-                .ImageBarrier(stencilImage, ImageLayout.StencilAttachment);
+            // cmd
+            //     .ImageBarrier(drawImage, ImageLayout.ColorAttachment)
+            //     .ImageBarrier(copyImage, ImageLayout.ShaderReadOnly)
+            //     .ImageBarrier(stencilImage, ImageLayout.StencilAttachment);
 
             // foreach (var command in _passInfo.PreCommands) command.Execute(viewFrame);
             cmd.BeginRendering(_sharedContext.Extent.ToVk(), [

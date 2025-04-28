@@ -50,7 +50,7 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
         MaterialBufferId = materialBufferSize > 0 ? config.AllocateBuffer(materialBufferSize) : 0;
         var (width, height) = _size;
         OutputImageId = config.CreateImage(width, height, ImageFormat.RGBA32);
-        DepthImageId = config.Read(_collectPass.DepthImageId);
+        DepthImageId = config.UseImage(_collectPass.DepthImageId,ImageLayout.DepthAttachment,ResourceUsage.Write);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)

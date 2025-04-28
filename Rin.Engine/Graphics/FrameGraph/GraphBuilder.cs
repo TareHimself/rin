@@ -62,14 +62,14 @@ public class GraphBuilder : IGraphBuilder
 
                         // Find the position of our read
                         var targetIdx = resourceActions.FindLastIndex(c =>
-                            c.PassId == passId && c.Type == GraphConfig.ActionType.Read);
+                            c.PassId == passId && c.Usage == ResourceUsage.Read);
 
                         // If found find the position of the write before it
                         if (targetIdx != -1)
                         {
                             GraphConfig.ResourceAction? targetAction = null;
                             for (var i = targetIdx - 1; i > -1; i--)
-                                if (resourceActions[i].Type == GraphConfig.ActionType.Write)
+                                if (resourceActions[i].Usage == ResourceUsage.Write)
                                 {
                                     targetAction = resourceActions[i];
                                     break;
@@ -94,7 +94,7 @@ public class GraphBuilder : IGraphBuilder
                         {
                             // Find the position of our write
                             var targetIdx = resourceActions.FindLastIndex(c =>
-                                c.PassId == passId && c.Type == GraphConfig.ActionType.Write);
+                                c.PassId == passId && c.Usage == ResourceUsage.Write);
 
                             // If found get all reads till the previous write
                             if (targetIdx != -1)
@@ -103,7 +103,7 @@ public class GraphBuilder : IGraphBuilder
                                 List<GraphConfig.ResourceAction> actions = [];
                                 for (var i = targetIdx - 1; i > -1; i--)
                                 {
-                                    if (resourceActions[i].Type == GraphConfig.ActionType.Write)
+                                    if (resourceActions[i].Usage == ResourceUsage.Write)
                                     {
                                         actions.Add(resourceActions[i]);
                                         break;
@@ -139,6 +139,7 @@ public class GraphBuilder : IGraphBuilder
             nodes.AddFirst(node);
         }
 
+        return null;
         return new CompiledGraph(resourcePool, frame, resources.ToDictionary(id => id, id => config.Resources[id]),
             nodes.ToArray());
     }

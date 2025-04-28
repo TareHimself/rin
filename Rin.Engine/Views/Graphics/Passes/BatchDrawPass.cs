@@ -71,9 +71,9 @@ public sealed class BatchDrawPass : IViewsPass
 
     public void Configure(IGraphConfig config)
     {
-        MainImageId = config.Write(Context.MainImageId);
-        CopyImageId = config.Read(Context.CopyImageId);
-        StencilImageId = config.Write(Context.StencilImageId);
+        MainImageId = config.UseImage(Context.MainImageId,ImageLayout.ColorAttachment,ResourceUsage.Write);
+        CopyImageId = config.UseImage(Context.CopyImageId,ImageLayout.ShaderReadOnly,ResourceUsage.Read);
+        StencilImageId = config.UseImage(Context.StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Read);
 
         var memoryNeeded = _batchSizes.Aggregate<ulong, ulong>(0, (t, c) => t + c);
 
@@ -90,10 +90,10 @@ public sealed class BatchDrawPass : IViewsPass
         var stencilImage = graph.GetImage(StencilImageId);
         var buffer = graph.GetBufferOrNull(_bufferId);
         var cmd = frame.GetCommandBuffer();
-        cmd
-            .ImageBarrier(drawImage, ImageLayout.ColorAttachment)
-            .ImageBarrier(copyImage, ImageLayout.ShaderReadOnly)
-            .ImageBarrier(stencilImage, ImageLayout.StencilAttachment);
+        // cmd
+        //     .ImageBarrier(drawImage, ImageLayout.ColorAttachment)
+        //     .ImageBarrier(copyImage, ImageLayout.ShaderReadOnly)
+        //     .ImageBarrier(stencilImage, ImageLayout.StencilAttachment);
 
         var viewFrame = new ViewsFrame(frame, drawImage, copyImage, stencilImage, Context);
 

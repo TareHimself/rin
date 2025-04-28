@@ -15,11 +15,8 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
 
     private readonly Dictionary<Type, IBatcher> _batchRenderers = [];
     private readonly IFontManager _fontManager = new DefaultFontManager(new TestExternalFontCache());
-    private readonly Dictionary<string, Task<MtsdfFont?>> _mtsdfTasks = new();
     private readonly Dictionary<IWindowRenderer, WindowSurface> _windowSurfaces = new();
     private SGraphicsModule? _graphicsSubsystem;
-    private IGraphicsShader? _stencilShader;
-
 
     public void Start(SEngine engine)
     {
@@ -91,9 +88,6 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
         var root = new WindowSurface(renderer);
         _windowSurfaces.Add(renderer, root);
         root.Init();
-        if (_stencilShader == null)
-            _stencilShader = SGraphicsModule.Get()
-                .MakeGraphics("Engine/Shaders/Views/stencil_batch.slang");
         OnSurfaceCreated?.Invoke(root);
     }
 
@@ -115,11 +109,6 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
     {
         var renderer = _graphicsSubsystem?.GetWindowRenderer(window);
         return renderer == null ? null : GetWindowSurface(renderer);
-    }
-
-    public IGraphicsShader? GetStencilShader()
-    {
-        return _stencilShader;
     }
 
     private class TestExternalFontCache : IExternalFontCache

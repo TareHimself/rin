@@ -9,8 +9,11 @@ public interface IGraphConfig
         ImageLayout initialLayout = ImageLayout.Undefined);
 
     public uint AllocateBuffer(ulong size);
-    public uint Read(uint resourceId);
-    public uint Write(uint resourceId);
+    // public uint Read(uint resourceId);
+    // public uint Write(uint resourceId);
+    //
+    public uint UseImage(uint id,ImageLayout layout,ResourceUsage usage);
+    public uint UseBuffer(uint id,BufferStage stage,ResourceUsage usage);
 
     public uint DependOn(uint passId);
 
