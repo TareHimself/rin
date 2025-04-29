@@ -100,7 +100,7 @@ public class CollectPass : IPass
     private uint SkinningExecutionInfoBufferId { get; set; }
     private uint[] SkinningPosesBufferId { get; set; }
     private uint SkinningPoseIdArrayBufferId { get; set; }
-    private uint SkinningOutputBufferId { get; set; }
+    public uint SkinningOutputBufferId { get; set; }
     private uint DepthSceneBufferId { get; set; }
     private uint DepthMaterialBufferId { get; set; }
     private int _firstSkinnedIndex;
@@ -117,8 +117,8 @@ public class CollectPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        DepthImageId = config.CreateImage(Size.X, Size.Y, ImageFormat.Depth);
-        DepthSceneBufferId = config.AllocateBuffer<DepthSceneInfo>();
+        DepthImageId = config.CreateImage(Size.X, Size.Y, ImageFormat.Depth,ImageLayout.DepthAttachment);
+        DepthSceneBufferId = config.CreateBuffer<DepthSceneInfo>(BufferStage.Graphics);
         var processedMeshes = StaticGeometry.SelectMany(c =>
         {
             return c.SurfaceIndices.Select(idx =>
@@ -185,11 +185,11 @@ public class CollectPass : IPass
                     });
                 }).ToArray();
             
-                SkinningOutputBufferId = config.AllocateBuffer<Vertex>(TotalVerticesToSkin);
-                SkinnedMeshArrayBufferId = config.AllocateBuffer<ulong>(_skinnedMeshes.Length);
-                SkinningPosesBufferId = SkinnedPoses.Select(c => config.AllocateBuffer<Matrix4x4>(c.Length)).ToArray();
-                SkinningPoseIdArrayBufferId = config.AllocateBuffer<ulong>(SkinnedPoses.Length);
-                SkinningExecutionInfoBufferId = config.AllocateBuffer<SkinningExecutionInfo>(ExecutionInfos.Length);
+                SkinningOutputBufferId = config.CreateBuffer<Vertex>(TotalVerticesToSkin, BufferStage.Compute);
+                SkinnedMeshArrayBufferId = config.CreateBuffer<ulong>(_skinnedMeshes.Length, BufferStage.Compute);
+                SkinningPosesBufferId = SkinnedPoses.Select(c => config.CreateBuffer<Matrix4x4>(c.Length, BufferStage.Compute)).ToArray();
+                SkinningPoseIdArrayBufferId = config.CreateBuffer<ulong>(SkinnedPoses.Length, BufferStage.Compute);
+                SkinningExecutionInfoBufferId = config.CreateBuffer<SkinningExecutionInfo>(ExecutionInfos.Length, BufferStage.Compute);
             }
         }
         
@@ -199,7 +199,7 @@ public class CollectPass : IPass
         var depthMaterialDataSize = ProcessedGeometry.Aggregate(Utils.ByteSizeOf<DepthSceneInfo>(),
             (current, gcmd) => current + gcmd.Material.DepthPass.GetRequiredMemory());
         
-        DepthMaterialBufferId = depthMaterialDataSize > 0 ? config.AllocateBuffer(depthMaterialDataSize) : 0;
+        DepthMaterialBufferId = depthMaterialDataSize > 0 ? config.CreateBuffer(depthMaterialDataSize, BufferStage.Compute) : 0;
     }
 
     private void DoSkinning(ICompiledGraph graph, Frame frame)
@@ -239,7 +239,7 @@ public class CollectPass : IPass
                 ExecutionInfoBuffer = executionInfos.GetAddress(),
             });
             cmd.Dispatch(TotalVerticesToSkin);
-            cmd.BufferBarrier(output, MemoryBarrierOptions.ComputeToGraphics());
+            //cmd.BufferBarrier(output, MemoryBarrierOptions.ComputeToGraphics());
             ulong offset = 0;
             for (var i = _firstSkinnedIndex; i < ProcessedGeometry.Length; i++)
             {
@@ -265,10 +265,7 @@ public class CollectPass : IPass
         DepthImage = graph.GetImage(DepthImageId);
 
         cmd
-            .ImageBarrier(DepthImage, ImageLayout.General)
-            .ClearDepthImages(0.0f, ImageLayout.General, DepthImage)
-            .ImageBarrier(DepthImage, ImageLayout.DepthAttachment)
-            .BeginRendering(Size.ToVkExtent(), [], DepthImage.MakeDepthAttachmentInfo())
+            .BeginRendering(Size.ToVkExtent(), [], DepthImage.MakeDepthAttachmentInfo(0.0f))
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
             .DisableStencilTest(false)

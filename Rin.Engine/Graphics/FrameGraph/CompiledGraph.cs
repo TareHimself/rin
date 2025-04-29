@@ -149,19 +149,24 @@ public class CompiledGraph : ICompiledGraph
         var cmd = frame.GetCommandBuffer();
 
         cmd.UnBindShader(VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT);
-        // OPTIMIZE THIS LATER
-        while (pending.NotEmpty())
+        // This works because nodes are sorted in compile pass
+        foreach (var node in _nodes)
         {
-            var next = pending.Dequeue();
-            if (next.Dependencies.IsSubsetOf(completed))
-            {
-                next.Pass.Execute(this, frame, context);
-                completed.Add(next.Pass);
-            }
-            else
-            {
-                pending.Enqueue(next);
-            }
+            node.Pass.Execute(this,frame,context);
         }
+        // // OPTIMIZE THIS LATER
+        // while (pending.NotEmpty())
+        // {
+        //     var next = pending.Dequeue();
+        //     if (next.Dependencies.IsSubsetOf(completed))
+        //     {
+        //         next.Pass.Execute(this, frame, context);
+        //         completed.Add(next.Pass);
+        //     }
+        //     else
+        //     {
+        //         pending.Enqueue(next);
+        //     }
+        // }
     }
 }

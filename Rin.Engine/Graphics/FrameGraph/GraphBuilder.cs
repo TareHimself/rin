@@ -8,7 +8,7 @@ public class GraphBuilder : IGraphBuilder
     private readonly Dictionary<uint, IGraphImage> _externalImages = [];
     private readonly Dictionary<uint, IPass> _passes = [];
     private uint _id;
-
+    
     public uint AddPass(IPass pass)
     {
         if(pass.HandlesPreAdd)
@@ -32,7 +32,7 @@ public class GraphBuilder : IGraphBuilder
         if (terminals.Empty()) return null;
 
         
-        LinkedList<ICompiledGraphNode> nodes = [];
+        Dictionary<uint,ICompiledGraphNode> nodes = [];
         HashSet<uint> resources = [];
         var toCheck = terminals.Select(c => c.Id).ToQueue();
         var visited = toCheck.ToHashSet();
@@ -42,8 +42,7 @@ public class GraphBuilder : IGraphBuilder
             var node = new CompiledGraphNode
             {
                 Pass = _passes[passId],
-                Dependencies = [],
-                MemoryRequired = 0
+                Dependencies = []
             };
 
             foreach (var dependency in config.PassDependencies[passId])
@@ -125,10 +124,6 @@ public class GraphBuilder : IGraphBuilder
                         else
                         {
                             resources.Add(dependency.Id);
-                            {
-                                if (config.Resources[dependency.Id] is BufferResourceDescriptor asBufferDescriptor)
-                                    node.MemoryRequired += asBufferDescriptor.Size;
-                            }
                         }
                     }
                         break;
@@ -136,31 +131,134 @@ public class GraphBuilder : IGraphBuilder
                         throw new ArgumentOutOfRangeException();
                 }
 
-            nodes.AddFirst(node);
+            nodes.Add(passId,node);
         }
 
-        var finalPassIds = nodes.Select(c => c.Pass.Id).ToHashSet();
+        var finalPassIds = nodes.Keys.ToHashSet();
         var finalResourceActions = config.ResourceActions.ToDictionary(c => c.Key, c =>
         {
             c.Value.RemoveAll(a => !finalPassIds.Contains(a.PassId));
             return c.Value.ToArray();
         });
-        var passParents = finalPassIds.ToDictionary(c => c,_ => new List<uint>());
-        foreach (var node in nodes)
+        
+        var syncPoints = new List<PassResourceSync>();
+        // Sync just before use (could change to batch syncing)
+        foreach (var (resourceId,actions) in finalResourceActions)
         {
-            foreach (var dependency in node.Dependencies)
+            if(actions.Empty()) continue;
+            GraphConfig.ResourceAction? lastAction = null;
+            for (var i = 0; i < actions.Length; i++)
             {
-                passParents[dependency.Id].Add(node.Pass.Id);
+                var action = actions[i];
+                
+                if (action.Type == ResourceType.Buffer)
+                {
+                    if (lastAction != null)
+                    {
+                        if (action.Usage != lastAction.Usage || action.Usage == ResourceUsage.Write)
+                        {
+                            syncPoints.Add(new BufferResourceSync
+                            {
+                                PreviousStage = lastAction.BufferStage,
+                                NextStage = action.BufferStage,
+                                PreviousUsage = lastAction.Usage,
+                                NextUsage = action.Usage,
+                                ResourceId = resourceId,
+                                PassId = action.PassId
+                            });
+                        } 
+                    }
+                }
+                else
+                {
+                    if (lastAction == null && action.ImageLayout != ImageLayout.Undefined)
+                    {
+                        syncPoints.Add(new ImageResourceSync()
+                        {
+                            PreviousLayout = ImageLayout.Undefined,
+                            NextLayout = action.ImageLayout,
+                            PreviousUsage = ResourceUsage.Write,
+                            NextUsage = action.Usage,
+                            ResourceId = resourceId,
+                            PassId = action.PassId
+                        });
+                    }
+                    else
+                    if (lastAction != null && (action.Usage == ResourceUsage.Write || action.ImageLayout != lastAction.ImageLayout || action.Usage != lastAction.Usage))
+                    {
+                        syncPoints.Add(new ImageResourceSync()
+                        {
+                            PreviousLayout = lastAction.ImageLayout,
+                            NextLayout = action.ImageLayout,
+                            PreviousUsage = lastAction.Usage,
+                            NextUsage = action.Usage,
+                            ResourceId = resourceId,
+                            PassId = action.PassId
+                        });
+                    }
+                }
+                
+                lastAction = action;
+                
             }
+            
+            
         }
 
-        var current = nodes.Where(c => c.Dependencies.Empty()).ToArray();
-        //var parents = nodes.Where(c => c.Pass.IsTerminal).Select(c => c.Pass.Id).ToDictionary()
-        var executionStages = new LinkedList<CompiledGraphNode[]>();
+        foreach (var syncsPointsEnumerable in syncPoints.GroupBy(p => p.PassId))
+        {
+            var syncs = syncsPointsEnumerable.ToArray();
+            var passId = syncs.First().PassId;
+            
+            var bufferSyncs = syncsPointsEnumerable.Where(c => c is BufferResourceSync).Cast<BufferResourceSync>();
+            var imageSyncs = syncsPointsEnumerable.Where(c => c is ImageResourceSync).Cast<ImageResourceSync>();
+            var targetPass = nodes[passId];
+            var barrierPass = new BarrierPass(bufferSyncs, imageSyncs)
+            {
+                Id = MakeId()
+            };
+            var newNode = new CompiledGraphNode
+            {
+                Pass = barrierPass,
+                Dependencies = targetPass.Dependencies,
+            };
+
+            nodes[passId] = new CompiledGraphNode()
+            {
+                Pass = targetPass.Pass,
+                Dependencies = [barrierPass]
+            };
+
+            nodes[passId].Dependencies.Add(barrierPass);
+            
+            nodes.Add(barrierPass.Id,newNode);
+        }
+
+        Dictionary<IPass,int> executionLevels = [];
+
+        var currentLevel = 0;
+        var nextLevelQueue = new Queue<IPass>();
+        var currentLevelQueue = terminals.ToQueue();
+        while (currentLevelQueue.NotEmpty() || nextLevelQueue.NotEmpty())
+        {
+            if (currentLevelQueue.Empty())
+            {
+                currentLevelQueue = nextLevelQueue;
+                nextLevelQueue = new Queue<IPass>();
+                currentLevel++;
+            }
+            
+            var pass = currentLevelQueue.Dequeue();
+            executionLevels[pass] = currentLevel;
+            foreach (var dependency in nodes[pass.Id].Dependencies)
+            {
+                nextLevelQueue.Enqueue(dependency);
+            }
+        }
         
-        return null;
-        return new CompiledGraph(resourcePool, frame, resources.ToDictionary(id => id, id => config.Resources[id]),
-            nodes.ToArray());
+        var finalOrder = executionLevels.OrderByDescending(c => c.Value).Select(c => nodes[c.Key.Id]).ToArray();
+        return new CompiledGraph(resourcePool, frame, finalResourceActions.Keys.ToDictionary(id => id, id => config.Resources[id]),
+            finalOrder);
     }
 
     public uint AddExternalImage(IGraphImage image)
@@ -207,5 +305,65 @@ public class GraphBuilder : IGraphBuilder
         }
 
         return config;
+    }
+    
+    class PassResourceSync
+    {
+        public required uint ResourceId { get; set; }
+        public required uint PassId { get; set; }
+    }
+    class ImageResourceSync : PassResourceSync
+    {
+        
+        public required ImageLayout PreviousLayout { get; set; }
+        public required ImageLayout NextLayout { get; set; }
+        public required ResourceUsage PreviousUsage { get; set; }
+        public required ResourceUsage NextUsage { get; set; }
+    }
+
+    class BufferResourceSync : PassResourceSync
+    {
+        public required BufferStage PreviousStage { get; set; }
+        public required BufferStage NextStage { get; set; }
+        public required ResourceUsage PreviousUsage { get; set; }
+        public required ResourceUsage NextUsage { get; set; }
+    }
+    
+    class BarrierPass(IEnumerable<BufferResourceSync> buffers,IEnumerable<ImageResourceSync> images) : IPass
+    {
+        public uint Id { get; set; }
+        public bool IsTerminal => false;
+        public bool HandlesPreAdd => false;
+        public bool HandlesPostAdd => false;
+        public void PreAdd(IGraphBuilder builder)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void PostAdd(IGraphBuilder builder)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Configure(IGraphConfig config)
+        {
+            throw new Exception("HOW HAVE YOU DONE THIS?");
+        }
+
+        public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+        {
+            var cmd = frame.GetCommandBuffer();
+            foreach (var bufferResourceSync in buffers)
+            {
+                var buffer = graph.GetBufferOrException(bufferResourceSync.ResourceId);
+                cmd.BufferBarrier(buffer,bufferResourceSync.PreviousStage,bufferResourceSync.NextStage);
+            }
+                
+            foreach (var imageResourceSync in images)
+            {
+                var image = graph.GetImageOrException(imageResourceSync.ResourceId);
+                cmd.ImageBarrier(image,imageResourceSync.PreviousLayout,imageResourceSync.NextLayout);
+            }
+        }
     }
 }

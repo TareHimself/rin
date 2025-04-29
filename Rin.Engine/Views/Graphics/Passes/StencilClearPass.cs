@@ -32,7 +32,7 @@ public class StencilClearPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        config.UseImage(StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Write);
+        config.WriteImage(StencilImageId,ImageLayout.StencilAttachment);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)

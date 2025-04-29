@@ -18,15 +18,13 @@ public class WindowSurfacePass(Surface surface, Vector2 drawSize,SharedPassConte
 
     public void Configure(IGraphConfig config)
     {
-        config.UseImage(passContext.MainImageId,ImageLayout.ShaderReadOnly,ResourceUsage.Read);
+        config.ReadImage(passContext.MainImageId,ImageLayout.ShaderReadOnly);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
         var mainImage = graph.GetImageOrException(passContext.MainImageId);
         var cmd = frame.GetCommandBuffer();
-        
-        //cmd.ImageBarrier(mainImage, ImageLayout.TransferSrc);
         frame.OnCopy += (_, image) => { cmd.CopyImageToImage(mainImage, image); };
     }
 

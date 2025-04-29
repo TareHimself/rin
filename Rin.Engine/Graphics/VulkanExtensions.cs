@@ -864,6 +864,12 @@ public static class VulkanExtensions
             vkDestroyInstance(self, null);
         }
     }
+
+    public static VkCommandBuffer BufferBarrier(in this VkCommandBuffer cmd, IDeviceBufferView view,
+        BufferStage fromStage, BufferStage toStage)
+    {
+        return cmd.BufferBarrier(view, new MemoryBarrierOptions(fromStage, toStage));
+    }
     
     public static VkCommandBuffer BufferBarrier(in this VkCommandBuffer cmd, IDeviceBufferView view,in MemoryBarrierOptions options)
     {

@@ -334,8 +334,10 @@ public class WindowRenderer : IWindowRenderer
 
                 ctx.SwapchainImageId = ctx.GraphBuilder.AddExternalImage(swapchainImage);
  
+                Profiling.Begin("Rendering.Graph.Compile");
                 var graph = ctx.GraphBuilder.Compile(_resourcePool, frame);
-
+                Profiling.End("Rendering.Graph.Compile");
+                
                 var cmd = frame.GetCommandBuffer();
 
                 vkResetCommandBuffer(cmd, 0);
@@ -357,7 +359,9 @@ public class WindowRenderer : IWindowRenderer
 
                 if (graph != null)
                 {
+                    Profiling.Begin("Engine.Rendering.Graph.Execute");
                     graph.Execute(frame, ctx);
+                    Profiling.End("Engine.Rendering.Graph.Execute");
                     frame.OnReset += _ => graph.Dispose();
 
                     cmd.ImageBarrier(swapchainImage,

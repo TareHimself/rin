@@ -63,10 +63,10 @@ internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) 
 
     public void Configure(IGraphConfig config)
     {
-         _sceneImageId = config.UseImage(_forwardPass.OutputImageId,ImageLayout.ShaderReadOnly,ResourceUsage.Read);
-         config.UseImage(info.MainImageId,ImageLayout.ColorAttachment,ResourceUsage.Write);
-         config.UseImage(info.StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Read);
-         _viewportBufferId = config.AllocateBuffer<SceneData>();
+         _sceneImageId = config.ReadImage(_forwardPass.OutputImageId,ImageLayout.ShaderReadOnly);
+         config.WriteImage(info.MainImageId,ImageLayout.ColorAttachment);
+         config.ReadImage(info.StencilImageId,ImageLayout.StencilAttachment);
+         _viewportBufferId = config.CreateBuffer<SceneData>(BufferStage.Graphics);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -78,11 +78,6 @@ internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) 
             var mainImage = graph.GetImageOrException(info.MainImageId);
             var stencilImage = graph.GetImageOrException(info.StencilImageId);
             var buffer = graph.GetBufferOrException(_viewportBufferId);
-            
-            cmd
-                .ImageBarrier(mainImage, ImageLayout.ColorAttachment)
-                .ImageBarrier(sceneImage, ImageLayout.ShaderReadOnly)
-                .ImageBarrier(stencilImage, ImageLayout.StencilAttachment);
             
             cmd.BeginRendering(_renderExtent.ToVk(), [
                     mainImage.MakeColorAttachmentInfo()

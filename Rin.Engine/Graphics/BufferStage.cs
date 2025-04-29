@@ -1,8 +1,9 @@
-namespace Rin.Engine.Graphics.FrameGraph;
+namespace Rin.Engine.Graphics;
 
 public enum BufferStage
 {
     Undefined,
+    Transfer,
     Graphics,
     Compute
 }

@@ -192,7 +192,7 @@ public sealed class SEngine : Disposable
             if (_exitRequested) return;
             _renderDispatcher.DispatchPending();
             Profiling.Measure("Engine.PreRender",OnPreRender);
-            Profiling.Measure("Engine.Render",OnRender);
+            Profiling.Measure("Engine.Rendering",OnRender);
             Profiling.Measure("Engine.PostRender",OnPostRender);
         }
     }

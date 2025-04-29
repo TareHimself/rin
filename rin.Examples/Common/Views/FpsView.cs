@@ -11,8 +11,24 @@ namespace rin.Examples.Common.Views;
 
 public class FpsView : TextBox
 {
-    private readonly Averaged<double> _averageCollectTime = new(0, 300);
-    private readonly Averaged<double> _averageExecuteTime = new(0, 300);
+    class AveragedStatCategory(string statId)
+    {
+        private readonly Averaged<double> _stat = new Averaged<double>(0, 300);
+
+        public void Update()
+        {
+            _stat.Add(Profiling.GetElapsedOrZero(statId).TotalSeconds);
+        }
+
+        public float GetMilliseconds()
+        {
+            return float.Round((float)(_stat * 1000.0), 2);
+        }
+    }
+    private readonly AveragedStatCategory _collectTime = new AveragedStatCategory("Engine.Collect");
+    private readonly AveragedStatCategory _renderTime = new AveragedStatCategory("Engine.Rendering");
+    private readonly AveragedStatCategory _graphCompileTime = new AveragedStatCategory("Engine.Rendering.Graph.Compile");
+    private readonly AveragedStatCategory _graphExecuteTime = new AveragedStatCategory("Engine.Rendering.Graph.Execute");
     private readonly Averaged<double> _averageFps = new(0, 300);
     private readonly Dispatcher _dispatcher = new();
 
@@ -33,14 +49,18 @@ public class FpsView : TextBox
         base.Update(deltaTime);
         var position = Surface?.GetCursorPosition() ?? Vector2.Zero;
         _averageFps.Add(1.0 / SEngine.Get().GetLastDeltaSeconds());
-        _averageCollectTime.Add(Profiling.GetElapsedOrZero("Engine.Collect").TotalSeconds);
-        _averageExecuteTime.Add(Profiling.GetElapsedOrZero("Engine.Render").TotalSeconds);
+        _collectTime.Update();
+        _renderTime.Update();
+        _graphCompileTime.Update();
+        _graphExecuteTime.Update();
         Content =  $"""
                     STATS
                     {new Vector2<int>((int)position.X, (int)position.Y)} Cursor Position
                     {float.Round(1 / (float)_averageFps * 1000.0f, 2)}ms Tick Time 
-                    {float.Round((float)_averageExecuteTime * 1000.0f, 2)}ms Execute Time 
-                    {float.Round((float)_averageCollectTime * 1000.0f, 2)}ms Collect Time 
+                    {_collectTime.GetMilliseconds()}ms Collect
+                    {_renderTime.GetMilliseconds()}ms Render
+                    {_graphCompileTime.GetMilliseconds()}ms Graph Compile
+                    {_graphExecuteTime.GetMilliseconds()}ms Graph Execute
                     """;
     }
 

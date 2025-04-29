@@ -35,7 +35,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         var descriptor = new ImageResourceDescriptor(width, height, format, flags, initialLayout);
         var resourceId = builder.MakeId();
         Resources.Add(resourceId, descriptor);
-        UseImage(resourceId, ImageLayout.Undefined, ResourceUsage.Write);
+        UseImage(resourceId,initialLayout, ResourceUsage.Write);
         return resourceId;
     }
 
@@ -44,13 +44,13 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return CreateImage(extent.Width, extent.Height, format, initialLayout);
     }
 
-    public uint AllocateBuffer(ulong size)
+    public uint CreateBuffer(ulong size, BufferStage stage)
     {
         var descriptor = new BufferResourceDescriptor(size);
         var resourceId = builder.MakeId();
         // _memory.Add(resourceId, descriptor);
         Resources.Add(resourceId, descriptor);
-        UseBuffer(resourceId, BufferStage.Undefined, ResourceUsage.Write);
+        UseBuffer(resourceId, stage, ResourceUsage.Write);
         //Write(resourceId);
         return resourceId;
     }
@@ -175,7 +175,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
             {
                 Usage = usage,
                 PassId = CurrentPassId,
-                Type = ResourceType.Image,
+                Type = ResourceType.Buffer,
                 BufferStage = stage
             };
 

@@ -71,15 +71,15 @@ public sealed class BatchDrawPass : IViewsPass
 
     public void Configure(IGraphConfig config)
     {
-        MainImageId = config.UseImage(Context.MainImageId,ImageLayout.ColorAttachment,ResourceUsage.Write);
-        CopyImageId = config.UseImage(Context.CopyImageId,ImageLayout.ShaderReadOnly,ResourceUsage.Read);
-        StencilImageId = config.UseImage(Context.StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Read);
+        MainImageId = config.WriteImage(Context.MainImageId,ImageLayout.ColorAttachment);
+        CopyImageId = config.ReadImage(Context.CopyImageId,ImageLayout.ShaderReadOnly);
+        StencilImageId = config.ReadImage(Context.StencilImageId,ImageLayout.StencilAttachment);
 
         var memoryNeeded = _batchSizes.Aggregate<ulong, ulong>(0, (t, c) => t + c);
 
         if (memoryNeeded > 0)
         {
-            _bufferId = config.AllocateBuffer(memoryNeeded);
+            _bufferId = config.CreateBuffer(memoryNeeded,BufferStage.Graphics);
         }
     }
 
@@ -90,10 +90,6 @@ public sealed class BatchDrawPass : IViewsPass
         var stencilImage = graph.GetImage(StencilImageId);
         var buffer = graph.GetBufferOrNull(_bufferId);
         var cmd = frame.GetCommandBuffer();
-        // cmd
-        //     .ImageBarrier(drawImage, ImageLayout.ColorAttachment)
-        //     .ImageBarrier(copyImage, ImageLayout.ShaderReadOnly)
-        //     .ImageBarrier(stencilImage, ImageLayout.StencilAttachment);
 
         var viewFrame = new ViewsFrame(frame, drawImage, copyImage, stencilImage, Context);
 

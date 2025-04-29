@@ -19,6 +19,26 @@ public struct MemoryBarrierOptions
     {
     }
     
+    public MemoryBarrierOptions(BufferStage fromStage, BufferStage toStage)
+    {
+        WaitForStages = fromStage switch
+        {
+            BufferStage.Undefined => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_NONE,
+            BufferStage.Transfer => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+            BufferStage.Graphics => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+            BufferStage.Compute => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            _ => throw new ArgumentOutOfRangeException(nameof(fromStage), fromStage, null)
+        };
+        NextStages = toStage switch
+        {
+            BufferStage.Undefined => throw new Exception("Buffer cannot transition to undefined stage"),
+            BufferStage.Transfer => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+            BufferStage.Graphics => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+            BufferStage.Compute => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            _ => throw new ArgumentOutOfRangeException(nameof(fromStage), fromStage, null)
+        };
+    }
+    
     public static MemoryBarrierOptions ComputeToTransfer() => new MemoryBarrierOptions
     {
         WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,

@@ -77,10 +77,10 @@ public class BlurPass : IViewsPass
 
     public void Configure(IGraphConfig config)
     {
-        config.UseImage(MainImageId,ImageLayout.ColorAttachment,ResourceUsage.Write);
-        config.UseImage(CopyImageId,ImageLayout.ShaderReadOnly,ResourceUsage.Read);
-        config.UseImage(StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Read);
-        _bufferId = config.AllocateBuffer<BlurData>(_blurCommands.Length);
+        config.WriteImage(MainImageId,ImageLayout.ColorAttachment);
+        config.ReadImage(CopyImageId,ImageLayout.ShaderReadOnly);
+        config.ReadImage(StencilImageId,ImageLayout.StencilAttachment);
+        _bufferId = config.CreateBuffer<BlurData>(_blurCommands.Length,BufferStage.Graphics);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -92,12 +92,7 @@ public class BlurPass : IViewsPass
             var copyImage = graph.GetImage(CopyImageId);
             var stencilImage = graph.GetImage(StencilImageId);
             var buffer = graph.GetBufferOrException(_bufferId);
-            // cmd
-            //     .ImageBarrier(drawImage, ImageLayout.ColorAttachment)
-            //     .ImageBarrier(copyImage, ImageLayout.ShaderReadOnly)
-            //     .ImageBarrier(stencilImage, ImageLayout.StencilAttachment);
-
-            // foreach (var command in _passInfo.PreCommands) command.Execute(viewFrame);
+            
             cmd.BeginRendering(_sharedContext.Extent.ToVk(), [
                     drawImage.MakeColorAttachmentInfo()
                 ],

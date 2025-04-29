@@ -41,10 +41,10 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
 
     public void Configure(IGraphConfig config)
     {
-        config.UseImage(MainImageId,ImageLayout.ColorAttachment,ResourceUsage.Write);
-        config.UseImage(StencilImageId,ImageLayout.StencilAttachment,ResourceUsage.Read);
+        config.WriteImage(MainImageId,ImageLayout.ColorAttachment);
+        config.ReadImage(StencilImageId,ImageLayout.StencilAttachment);
         _customCommands = info.Commands.Cast<CustomShaderCommand>().ToArray();
-        BufferId = config.AllocateBuffer(Utils.ByteSizeOf<Data>(_customCommands.Length));
+        BufferId = config.CreateBuffer<Data>(_customCommands.Length, BufferStage.Graphics);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -53,19 +53,9 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
         if (_prettyShader.Bind(cmd))
         {
             var drawImage = graph.GetImage(MainImageId);
-            var copyImage = graph.GetImage(CopyImageId);
             var stencilImage = graph.GetImage(StencilImageId);
             var view = graph.GetBufferOrException(BufferId);
             
-            cmd
-                // .ImageBarrier(drawImage, ImageLayout.General)
-                // .ImageBarrier(copyImage, ImageLayout.General)
-                // .ImageBarrier(stencilImage, ImageLayout.General)
-                // .ClearColorImages(new Vector4(0.0f), ImageLayout.General, drawImage, copyImage)
-                // .ClearStencilImages(0, stencilImage.Layout, stencilImage)
-                .ImageBarrier(drawImage, ImageLayout.ColorAttachment)
-                .ImageBarrier(stencilImage, ImageLayout.StencilAttachment);
-            // foreach (var command in _passInfo.PreCommands) command.Execute(viewFrame);
             cmd.BeginRendering(info.Context.Extent.ToVk(), [
                     drawImage.MakeColorAttachmentInfo()
                 ],

@@ -42,15 +42,20 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
     public void Configure(IGraphConfig config)
     {
         LightsBufferId = _collectPass.Lights.Length > 0
-            ? config.AllocateBuffer<LightInfo>(_collectPass.Lights.Length)
+            ? config.CreateBuffer<LightInfo>(_collectPass.Lights.Length,BufferStage.Graphics)
             : 0;
-        SceneBufferId = config.AllocateBuffer<SceneInfo>();
+        SceneBufferId = config.CreateBuffer<SceneInfo>(BufferStage.Graphics);
         var materialBufferSize = _collectPass.ProcessedGeometry.Aggregate((ulong)0,
             (total, geometryDrawCommand) => total + geometryDrawCommand.Material.ColorPass.GetRequiredMemory());
-        MaterialBufferId = materialBufferSize > 0 ? config.AllocateBuffer(materialBufferSize) : 0;
+        MaterialBufferId = materialBufferSize > 0 ? config.CreateBuffer(materialBufferSize, BufferStage.Graphics) : 0;
         var (width, height) = _size;
-        OutputImageId = config.CreateImage(width, height, ImageFormat.RGBA32);
-        DepthImageId = config.UseImage(_collectPass.DepthImageId,ImageLayout.DepthAttachment,ResourceUsage.Write);
+        OutputImageId = config.CreateImage(width, height, ImageFormat.RGBA32,ImageLayout.ColorAttachment);
+        DepthImageId = config.ReadImage(_collectPass.DepthImageId,ImageLayout.DepthAttachment);
+        
+        if (_collectPass.SkinningOutputBufferId > 0)
+        {
+            config.ReadBuffer(_collectPass.SkinningOutputBufferId, BufferStage.Graphics);
+        }
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -65,9 +70,6 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
         OutputImage = graph.GetImage(OutputImageId);
         DepthImage = graph.GetImage(DepthImageId);
         cmd
-            .ImageBarrier(OutputImage, ImageLayout.General)
-            .ClearColorImages(new Vector4(0.0f), ImageLayout.General, OutputImage)
-            .ImageBarrier(OutputImage, ImageLayout.ColorAttachment)
             .BeginRendering(_size.ToVk(), [OutputImage.MakeColorAttachmentInfo(new Vector4(0.0f))],
                 DepthImage.MakeDepthAttachmentInfo())
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)

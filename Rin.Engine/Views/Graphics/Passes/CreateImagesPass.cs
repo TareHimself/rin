@@ -46,9 +46,6 @@ public class CreateImagesPass : IPass
         ResetStencilState(cmd);
 
         cmd
-            .ImageBarrier(drawImage, ImageLayout.General)
-            .ImageBarrier(copyImage, ImageLayout.General)
-            .ImageBarrier(stencilImage, ImageLayout.General)
             .ClearColorImages(new Vector4(0.0f), ImageLayout.General, drawImage, copyImage)
             .ClearStencilImages(0, stencilImage.Layout, stencilImage);
     }
