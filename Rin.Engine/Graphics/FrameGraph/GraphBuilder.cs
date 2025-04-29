@@ -139,6 +139,25 @@ public class GraphBuilder : IGraphBuilder
             nodes.AddFirst(node);
         }
 
+        var finalPassIds = nodes.Select(c => c.Pass.Id).ToHashSet();
+        var finalResourceActions = config.ResourceActions.ToDictionary(c => c.Key, c =>
+        {
+            c.Value.RemoveAll(a => !finalPassIds.Contains(a.PassId));
+            return c.Value.ToArray();
+        });
+        var passParents = finalPassIds.ToDictionary(c => c,_ => new List<uint>());
+        foreach (var node in nodes)
+        {
+            foreach (var dependency in node.Dependencies)
+            {
+                passParents[dependency.Id].Add(node.Pass.Id);
+            }
+        }
+
+        var current = nodes.Where(c => c.Dependencies.Empty()).ToArray();
+        //var parents = nodes.Where(c => c.Pass.IsTerminal).Select(c => c.Pass.Id).ToDictionary()
+        var executionStages = new LinkedList<CompiledGraphNode[]>();
+        
         return null;
         return new CompiledGraph(resourcePool, frame, resources.ToDictionary(id => id, id => config.Resources[id]),
             nodes.ToArray());

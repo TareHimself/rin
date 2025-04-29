@@ -120,7 +120,12 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         {
             var dep = new Dependency
             {
-                Type = DependencyType.Write,
+                Type = usage switch
+                {
+                    ResourceUsage.Write => DependencyType.Write,
+                    ResourceUsage.Read => DependencyType.Read,
+                    _ => throw new ArgumentOutOfRangeException(nameof(usage), usage, null)
+                },
                 Id = id
             };
 
@@ -151,7 +156,12 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         {
             var dep = new Dependency
             {
-                Type = DependencyType.Write,
+                Type = usage switch
+                {
+                    ResourceUsage.Write => DependencyType.Write,
+                    ResourceUsage.Read => DependencyType.Read,
+                    _ => throw new ArgumentOutOfRangeException(nameof(usage), usage, null)
+                },
                 Id = id
             };
 
