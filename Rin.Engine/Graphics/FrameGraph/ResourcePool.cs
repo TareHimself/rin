@@ -249,10 +249,17 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         protected override ResourceContainer<IDeviceBuffer>? FindExistingResource(
             Dictionary<ulong, HashSet<ResourceContainer<IDeviceBuffer>>> items, Frame frame, ulong key, ulong frameId)
         {
+            #if DEBUG
+            return items
+                .Where(item => item.Key == key)
+                .SelectMany(c => c.Value)
+                .FirstOrDefault(c => c.Uses.Empty());
+            #else
             return items
                 .Where(item => item.Key >= key && item.Key - key < MaxBufferReuseDelta)
                 .SelectMany(c => c.Value)
                 .FirstOrDefault(c => c.Uses.Empty());
+            #endif
         }
     }
 }

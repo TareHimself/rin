@@ -255,7 +255,7 @@ public class SSceneTestModule : IModule
         {
             Visible = true,
             Decorated = true,
-            Transparent = true
+            Transparent = false
         });
     }
 
