@@ -33,7 +33,6 @@ public class GraphBuilder : IGraphBuilder
 
         
         Dictionary<uint,ICompiledGraphNode> nodes = [];
-        HashSet<uint> resources = [];
         var toCheck = terminals.Select(c => c.Id).ToQueue();
         var visited = toCheck.ToHashSet();
         while (toCheck.NotEmpty())
@@ -75,11 +74,11 @@ public class GraphBuilder : IGraphBuilder
                                 }
 
                             // If found add the write as a dependency and to the search
-                            if (targetAction is {} action && visited.Add(action.PassId))
+                            if (targetAction is {} action)
                             {
-                                toCheck.Enqueue(action.PassId);
                                 node.Dependencies.Add(_passes[action.PassId]);
-                                resources.Add(dependency.Id);
+                                if(!visited.Add(action.PassId)) continue;
+                                toCheck.Enqueue(action.PassId);
                             }
                         }
                     }
@@ -98,7 +97,6 @@ public class GraphBuilder : IGraphBuilder
                             // If found get all reads till the previous write
                             if (targetIdx != -1)
                             {
-                                GraphConfig.ResourceAction? targetAction = null;
                                 List<GraphConfig.ResourceAction> actions = [];
                                 for (var i = targetIdx - 1; i > -1; i--)
                                 {
@@ -114,16 +112,12 @@ public class GraphBuilder : IGraphBuilder
                                 // Write can't happen till all reads since last write happen
                                 foreach (var action in actions)
                                 {
+                                    node.Dependencies.Add(_passes[action.PassId]);
+                                    
                                     if(!visited.Add(action.PassId)) continue;
                                     toCheck.Enqueue(action.PassId);
-                                    node.Dependencies.Add(_passes[action.PassId]);
-                                    resources.Add(dependency.Id);
                                 }
                             }
-                        }
-                        else
-                        {
-                            resources.Add(dependency.Id);
                         }
                     }
                         break;
@@ -201,8 +195,6 @@ public class GraphBuilder : IGraphBuilder
                 lastAction = action;
                 
             }
-            
-            
         }
 
         foreach (var syncsPointsEnumerable in syncPoints.GroupBy(p => p.PassId))
