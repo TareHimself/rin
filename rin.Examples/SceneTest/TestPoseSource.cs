@@ -6,17 +6,21 @@ using Rin.Engine.World.Mesh.Skinning;
 
 namespace rin.Examples.SceneTest;
 
-public class TestPoseSource() : IPoseSource
+public class TestPoseSource : IPoseSource
 {
     public required Skeleton Skeleton { get; init; }
+
     public Pose GetPose()
     {
-        return new Pose(new Dictionary<string,Transform>()
+        var rot = Quaternion.Identity.AddYaw(SEngine.Get().GetTimeSeconds() * 20f);
+        return new Pose(new Dictionary<string, Transform>
         {
-            {"root",new Transform()
             {
-                Scale = new Vector3(((float.Sin(SEngine.Get().GetTimeSeconds()) + 1f) * 0.5f * 4f) + 1f)
-            }}
+                "root", new Transform
+                {
+                    Orientation = rot
+                }
+            }
         }.ToFrozenDictionary());
     }
 }

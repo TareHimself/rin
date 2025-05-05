@@ -123,7 +123,6 @@ public abstract class Surface : IDisposable, IUpdatable
     //         if (clearStencil) ResetStencilState(cmd);
     //     });
     // }
-
     private static void ResetStencilState(VkCommandBuffer cmd,
         VkStencilFaceFlags faceMask = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK)
     {
@@ -142,19 +141,19 @@ public abstract class Surface : IDisposable, IUpdatable
     // }
 
     private void ProcessPendingCommands(IEnumerable<ICommand> drawCommands,
-        SharedPassContext context,List<IPass> passes)
+        SharedPassContext context, List<IPass> passes)
     {
-        List<ICommand> currentCommands = []; 
+        List<ICommand> currentCommands = [];
         Type? currentPassType = null;
-        
+
         foreach (var pendingCommand in drawCommands)
         {
             if (pendingCommand is NoOpCommand && currentCommands.NotEmpty())
             {
-                passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context,currentCommands.ToArray())));
+                passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context, currentCommands.ToArray())));
                 continue;
             }
-            
+
             if (currentCommands.Empty())
             {
                 currentCommands.Add(pendingCommand);
@@ -169,7 +168,8 @@ public abstract class Surface : IDisposable, IUpdatable
                 }
                 else
                 {
-                    passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context,currentCommands.ToArray())));
+                    passes.Add(currentCommands.First()
+                        .CreatePass(new PassCreateInfo(context, currentCommands.ToArray())));
                     currentCommands = [pendingCommand];
                     currentPassType = passType;
                 }
@@ -177,9 +177,7 @@ public abstract class Surface : IDisposable, IUpdatable
         }
 
         if (currentCommands.NotEmpty())
-        {
-            passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context,currentCommands.ToArray())));
-        }
+            passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context, currentCommands.ToArray())));
         Stats.BatchedDrawCommandCount++;
     }
 
@@ -203,12 +201,12 @@ public abstract class Surface : IDisposable, IUpdatable
         // var result = new PassInfo();
 
         var size = GetSize();
-        var context = new SharedPassContext(new Extent2D()
+        var context = new SharedPassContext(new Extent2D
         {
             Width = (uint)float.Ceiling(size.X),
             Height = (uint)float.Ceiling(size.Y)
         });
-        
+
         List<IPass> passes = [new CreateImagesPass(context)];
         {
             var uniqueClipStacks = rawDrawCommands.UniqueClipStacks;
@@ -219,7 +217,7 @@ public abstract class Surface : IDisposable, IUpdatable
             {
                 if (currentMask == 128)
                 {
-                    ProcessPendingCommands(pendingCommands,context,passes);
+                    ProcessPendingCommands(pendingCommands, context, passes);
                     pendingCommands.Clear();
                     computedClipStacks.Clear();
                     currentMask = 0x01;
@@ -240,11 +238,12 @@ public abstract class Surface : IDisposable, IUpdatable
                 else
                 {
                     currentMask <<= 1;
-                    passes.Add(new StencilWritePass(context,currentMask,uniqueClipStacks[rawCommand.ClipId].Select(c => new StencilClip
-                    {
-                        Transform = clips[(int)c].Transform,
-                        Size = clips[(int)c].Size
-                    }).ToArray()));
+                    passes.Add(new StencilWritePass(context, currentMask, uniqueClipStacks[rawCommand.ClipId].Select(
+                        c => new StencilClip
+                        {
+                            Transform = clips[(int)c].Transform,
+                            Size = clips[(int)c].Size
+                        }).ToArray()));
                     Stats.StencilWriteCount++;
                     //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
                     computedClipStacks.Add(rawCommand.ClipId, currentMask);
@@ -255,15 +254,12 @@ public abstract class Surface : IDisposable, IUpdatable
 
             if (pendingCommands.Count != 0)
             {
-                ProcessPendingCommands(pendingCommands,context,passes);
+                ProcessPendingCommands(pendingCommands, context, passes);
                 pendingCommands.Clear();
             }
         }
-        
-        foreach (var pass in passes)
-        {
-            builder.AddPass(pass);
-        }
+
+        foreach (var pass in passes) builder.AddPass(pass);
         return context;
         // return result;
     }

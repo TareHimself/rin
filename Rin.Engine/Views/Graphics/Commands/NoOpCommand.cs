@@ -3,7 +3,7 @@
 public class NoOpCommand : ICommand
 {
     public Type PassType => typeof(NoOpCommand);
-    
+
     public IViewsPass CreatePass(PassCreateInfo createInfo)
     {
         throw new NotImplementedException();

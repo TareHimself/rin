@@ -40,7 +40,8 @@ public class CommandList
 
     public CommandList Add(ICommand command)
     {
-        var info = new RawCommand(command,_clipId){
+        var info = new RawCommand(command, _clipId)
+        {
             AbsoluteDepth = _depth
         };
 

@@ -12,7 +12,7 @@ public interface IStaticProfiler
 
     public static abstract TimeSpan GetElapsed(string id);
 
-    public static abstract  TimeSpan GetElapsedOrZero(string id);
+    public static abstract TimeSpan GetElapsedOrZero(string id);
 
-    public static abstract  string[] GetIds();
+    public static abstract string[] GetIds();
 }

@@ -2,5 +2,9 @@
 
 public interface IPhysicsSphere : IPhysicsBody
 {
-    public float Radius { get; set; }
+    public float GetRadius();
+    public float GetScaledRadius();
+
+    public void SetRadius(float radius);
+    public void SetScaledRadius(float radius);
 }

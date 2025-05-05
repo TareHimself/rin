@@ -28,21 +28,21 @@ public struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
     {
         return new Bounds3D
         {
-            X = new Bounds1D()
+            X = new Bounds1D
             {
                 Min = location.X,
-                Max = location.X,
+                Max = location.X
             },
-            Y = new Bounds1D()
+            Y = new Bounds1D
             {
                 Min = location.Y,
-                Max = location.Y,
+                Max = location.Y
             },
-            Z = new Bounds1D()
+            Z = new Bounds1D
             {
                 Min = location.Z,
-                Max = location.Z,
-            },
+                Max = location.Z
+            }
         };
     }
 }

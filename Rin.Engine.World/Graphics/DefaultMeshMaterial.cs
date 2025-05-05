@@ -23,15 +23,15 @@ public class DefaultMeshMaterial : IMeshMaterial
 
     [PublicAPI] public int NormalTextureId { get; set; } = -1;
     [PublicAPI] public float Metallic { get; set; }
-    [PublicAPI] public int MetallicTextureId { get; set; }  = -1;
+    [PublicAPI] public int MetallicTextureId { get; set; } = -1;
 
     [PublicAPI] public float Specular { get; set; }
 
-    [PublicAPI] public int SpecularTextureId { get; set; }  = -1;
+    [PublicAPI] public int SpecularTextureId { get; set; } = -1;
     [PublicAPI] public float Roughness { get; set; }
-    [PublicAPI] public int RoughnessTextureId { get; set; }  = -1;
+    [PublicAPI] public int RoughnessTextureId { get; set; } = -1;
     [PublicAPI] public float Emissive { get; set; }
-    [PublicAPI] public int EmissiveTextureId { get; set; }  = -1;
+    [PublicAPI] public int EmissiveTextureId { get; set; } = -1;
 
     public static DefaultMeshMaterial DefaultMesh => _defaultInstance ??= new DefaultMeshMaterial();
 

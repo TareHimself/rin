@@ -14,10 +14,10 @@ public class SlangGraphicsShader : IGraphicsShader
     private readonly string _filePath;
 
     private readonly List<Pair<VkShaderEXT, VkShaderStageFlags>> _shaders = [];
-    private VkShaderStageFlags _shaderStageFlags = 0;
     private bool _hasFragment;
     private bool _hasVertex;
     private VkPipelineLayout _pipelineLayout;
+    private VkShaderStageFlags _shaderStageFlags = 0;
 
     public SlangGraphicsShader(SlangShaderManager manager, string filePath)
     {
@@ -69,7 +69,8 @@ public class SlangGraphicsShader : IGraphicsShader
         {
             var includesProcessed = new HashSet<string>();
             var session = manager.GetSession();
-            var fileData = string.Join('\n', SlangShaderManager.ImportFile(_filePath, includesProcessed)); //reader.ReadToEnd();
+            var fileData =
+                string.Join('\n', SlangShaderManager.ImportFile(_filePath, includesProcessed)); //reader.ReadToEnd();
             var diag = new SlangBlob();
             var id = $"graphics-{Guid.NewGuid().ToString()}.slang";
             using var module = session.LoadModuleFromSourceString(id, id, fileData, diag);

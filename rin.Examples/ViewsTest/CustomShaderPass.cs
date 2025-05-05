@@ -1,15 +1,12 @@
-﻿using System.Drawing;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Rin.Engine;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Graphics.Passes;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
-using Utils = Rin.Engine.Utils;
 
 namespace rin.Examples.ViewsTest;
 
@@ -18,12 +15,12 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
     private readonly IGraphicsShader
         _prettyShader =
             SGraphicsModule.Get()
-                .MakeGraphics($"fs/{Path.Join(SEngine.AssetsDirectory,"test","pretty.slang").Replace('\\', '/' )}");
+                .MakeGraphics($"fs/{Path.Join(SEngine.AssetsDirectory, "test", "pretty.slang").Replace('\\', '/')}");
+
+    private CustomShaderCommand[] _customCommands = [];
     public uint MainImageId => info.Context.MainImageId;
     public uint CopyImageId => info.Context.CopyImageId;
     public uint StencilImageId => info.Context.StencilImageId;
-
-    private CustomShaderCommand[] _customCommands =  [];
     private uint BufferId { get; set; }
     public uint Id { get; set; }
     public bool IsTerminal => false;
@@ -36,13 +33,12 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
 
     public void PostAdd(IGraphBuilder builder)
     {
-       
     }
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteImage(MainImageId,ImageLayout.ColorAttachment);
-        config.ReadImage(StencilImageId,ImageLayout.StencilAttachment);
+        config.WriteImage(MainImageId, ImageLayout.ColorAttachment);
+        config.ReadImage(StencilImageId, ImageLayout.StencilAttachment);
         _customCommands = info.Commands.Cast<CustomShaderCommand>().ToArray();
         BufferId = config.CreateBuffer<Data>(_customCommands.Length, BufferStage.Graphics);
     }
@@ -55,7 +51,7 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
             var drawImage = graph.GetImage(MainImageId);
             var stencilImage = graph.GetImage(StencilImageId);
             var view = graph.GetBufferOrException(BufferId);
-            
+
             cmd.BeginRendering(info.Context.Extent.ToVk(), [
                     drawImage.MakeColorAttachmentInfo()
                 ],
@@ -63,7 +59,7 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
             );
 
             frame.ConfigureForViews(info.Context.Extent);
-            
+
             var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
 
             vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
@@ -79,10 +75,10 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
             var compareMask = uint.MaxValue;
             foreach (var customShaderCommand in _customCommands)
             {
-                vkCmdSetStencilCompareMask(cmd,faceFlags,customShaderCommand.StencilMask);
+                vkCmdSetStencilCompareMask(cmd, faceFlags, customShaderCommand.StencilMask);
                 var pushResource = _prettyShader.PushConstants.First().Value;
                 var extent = info.Context.Extent;
-                var screenSize = new Vector2(extent.Width,extent.Height);
+                var screenSize = new Vector2(extent.Width, extent.Height);
                 var data = new Data
                 {
                     Projection = info.Context.ProjectionMatrix,
@@ -96,7 +92,7 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
                 cmd.PushConstant(_prettyShader.GetPipelineLayout(), pushResource.Stages, view.GetAddress());
                 cmd.Draw(6);
             }
-            
+
             cmd.EndRendering();
         }
     }
@@ -105,7 +101,7 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
     {
         return new CustomShaderPass(info);
     }
-    
+
     [StructLayout(LayoutKind.Sequential)]
     private struct Data
     {

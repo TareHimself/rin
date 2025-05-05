@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -14,10 +14,6 @@
 
     <ItemGroup Label="Content">
         <EmbeddedResource Include="Content\**\*.*"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="BepuPhysics" Version="2.5.0-beta.25"/>
     </ItemGroup>
 
 </Project>

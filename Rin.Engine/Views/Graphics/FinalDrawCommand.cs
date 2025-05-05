@@ -1,6 +1,4 @@
-﻿using Rin.Engine.Views.Graphics.Commands;
-
-namespace Rin.Engine.Views.Graphics;
+﻿namespace Rin.Engine.Views.Graphics;
 
 public enum CommandType
 {

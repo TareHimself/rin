@@ -23,7 +23,7 @@ public class StaticMeshComponent : SceneComponent
                 var material = lastMaterial = Materials.TryGet(i) ?? lastMaterial;
                 materials.Add(material);
             }
-            
+
             commandList.AddStatic(new StaticMeshInfo
             {
                 Mesh = mesh,

@@ -71,7 +71,7 @@ public static class QuadExtensions
 
 
     public static CommandList AddMtsdf(this CommandList commandList, int textureId, in Matrix4x4 transform,
-        in Vector2 size,in  Color? color = null,in  Vector4? uv = null)
+        in Vector2 size, in Color? color = null, in Vector4? uv = null)
     {
         return commandList.AddQuads(Quad.Mtsdf(textureId, transform, size, color, uv));
     }

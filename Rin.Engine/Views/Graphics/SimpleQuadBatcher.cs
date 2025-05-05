@@ -26,7 +26,7 @@ public abstract class SimpleQuadBatcher<T> : IBatcher where T : IBatch
     protected abstract T MakeNewBatch();
 
     /// <summary>
-    /// Bind sets, write data, push constants and return the number of quads to draw
+    ///     Bind sets, write data, push constants and return the number of quads to draw
     /// </summary>
     /// <param name="frame"></param>
     /// <param name="view"></param>

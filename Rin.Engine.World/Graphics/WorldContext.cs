@@ -11,31 +11,14 @@ namespace Rin.Engine.World.Graphics;
 
 public class WorldContext
 {
-    [PublicAPI] public Transform ViewTransform;
+    private int _firstSkinnedIndex = -1;
     [PublicAPI] public LightInfo[] Lights;
+    [PublicAPI] public ProcessedMesh[] ProcessedGeometry = [];
     [PublicAPI] public SkinnedMeshInfo[] SkinnedGeometry;
     [PublicAPI] public StaticMeshInfo[] StaticGeometry;
-    [PublicAPI] public ProcessedMesh[] ProcessedGeometry = [];
-    
-    [PublicAPI] public Matrix4x4 View { get; set; }
-    [PublicAPI] public Matrix4x4 Projection { get; }
-    
-    [PublicAPI] public Matrix4x4 ViewProjection { get; }
-    
-    [PublicAPI] public float FieldOfView { get; set; }
-    [PublicAPI] public float NearClip { get; set; }
-    [PublicAPI] public float FarClip { get; set; }
-    
-    [PublicAPI]
-    public Extent2D Extent { get; }
-    
-    private int _firstSkinnedIndex = -1;
-    
-    public IEnumerable<ProcessedMesh> ProcessedStaticMeshes => ProcessedGeometry.Take(_firstSkinnedIndex >= 0 ? _firstSkinnedIndex : ProcessedGeometry.Length);
-    
-    public IEnumerable<ProcessedMesh> ProcessedSkinnedMeshes => ProcessedGeometry.Take(_firstSkinnedIndex >= 0 ? new Range(_firstSkinnedIndex,ProcessedGeometry.Length) : new Range(0,0));
+    [PublicAPI] public Transform ViewTransform;
 
-    public WorldContext(CameraComponent viewer,in Extent2D extent)
+    public WorldContext(CameraComponent viewer, in Extent2D extent)
     {
         var world = viewer.Owner?.World ?? throw new Exception("Camera is not in a scene");
         ViewTransform = viewer.GetTransform(Space.World) with { Scale = Vector3.One };
@@ -54,8 +37,26 @@ public class WorldContext
         Lights = drawCommands.Lights.ToArray();
     }
 
+    [PublicAPI] public Matrix4x4 View { get; set; }
+    [PublicAPI] public Matrix4x4 Projection { get; }
+
+    [PublicAPI] public Matrix4x4 ViewProjection { get; }
+
+    [PublicAPI] public float FieldOfView { get; set; }
+    [PublicAPI] public float NearClip { get; set; }
+    [PublicAPI] public float FarClip { get; set; }
+
+    [PublicAPI] public Extent2D Extent { get; }
+
+    public IEnumerable<ProcessedMesh> ProcessedStaticMeshes =>
+        ProcessedGeometry.Take(_firstSkinnedIndex >= 0 ? _firstSkinnedIndex : ProcessedGeometry.Length);
+
+    public IEnumerable<ProcessedMesh> ProcessedSkinnedMeshes => ProcessedGeometry.Take(_firstSkinnedIndex >= 0
+        ? new Range(_firstSkinnedIndex, ProcessedGeometry.Length)
+        : new Range(0, 0));
+
     /// <summary>
-    /// Called on the Render Thread
+    ///     Called on the Render Thread
     /// </summary>
     public void Init()
     {
@@ -74,11 +75,11 @@ public class WorldContext
                     IndicesStart = surface.IndicesStart,
                     VertexCount = surface.VertexCount,
                     VertexStart = surface.VertexStart,
-                    Bounds = surface.Bounds,
+                    Bounds = surface.Bounds
                 };
             });
         }).ToList();
-        
+
         _firstSkinnedIndex = processedMeshes.Count;
         processedMeshes.AddRange(SkinnedGeometry.SelectMany(c =>
         {
@@ -86,14 +87,14 @@ public class WorldContext
             {
                 // Need to spoof a regular vertex buffer here since this is a skinned mesh
                 var vertexBuffer = c.Mesh.GetVertices(idx);
-                var offset = (vertexBuffer.Offset / Utils.ByteSizeOf<SkinnedVertex>()) * Utils.ByteSizeOf<Vertex>();
+                var offset = vertexBuffer.Offset / Utils.ByteSizeOf<SkinnedVertex>() * Utils.ByteSizeOf<Vertex>();
                 var size = c.Mesh.GetVertexCount(idx) * Utils.ByteSizeOf<Vertex>();
                 var surface = c.Mesh.GetSurface(idx);
                 return new ProcessedMesh
                 {
                     Transform = c.Transform,
                     IndexBuffer = c.Mesh.GetIndices(),
-                    VertexBuffer = new SkinnedVertexBufferView(offset,size),
+                    VertexBuffer = new SkinnedVertexBufferView(offset, size),
                     Material = c.Materials[idx],
                     IndicesCount = surface.IndicesCount,
                     IndicesStart = surface.IndicesStart,
@@ -103,7 +104,7 @@ public class WorldContext
                 };
             });
         }));
-            
+
         //_skinnedMeshes = SkinnedGeometry.Select(c => c.Mesh).Distinct().ToArray();
     }
 }

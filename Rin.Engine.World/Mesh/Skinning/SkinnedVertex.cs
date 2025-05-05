@@ -5,7 +5,7 @@ using Rin.Engine.Math;
 namespace Rin.Engine.World.Mesh.Skinning;
 
 /// <summary>
-/// 4 bones per vertex
+///     4 bones per vertex
 /// </summary>
 public struct SkinnedVertex : IVertex
 {

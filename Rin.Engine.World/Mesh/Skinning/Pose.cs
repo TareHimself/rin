@@ -10,14 +10,14 @@ public struct Pose
 
     public Pose()
     {
-        Transforms = FrozenDictionary<string,Transform>.Empty;
+        Transforms = FrozenDictionary<string, Transform>.Empty;
     }
 
     public Pose(FrozenDictionary<string, Transform> transforms)
     {
         Transforms = transforms;
     }
-    
+
     public static Pose Blend(Pose a, Pose b, float alpha)
     {
         var allKeys = a.Transforms.Keys.ToImmutableHashSet().Union(b.Transforms.Keys.ToImmutableHashSet());

@@ -9,6 +9,8 @@ namespace Rin.Engine.Views.Graphics.Passes;
 
 public sealed class BatchDrawPass : IViewsPass
 {
+    private readonly List<Pair<IBatch, uint>> _batches;
+    private readonly ulong[] _batchSizes;
     private readonly Extent2D _extent;
 
     private readonly List<Pair<ulong, ulong>> _offsets = [];
@@ -16,8 +18,6 @@ public sealed class BatchDrawPass : IViewsPass
     // private readonly PassInfo _passInfo;
     private uint _bufferId;
     private FrameStats _stats;
-    private readonly List<Pair<IBatch, uint>> _batches;
-    private readonly ulong[] _batchSizes;
 
     public BatchDrawPass(PassCreateInfo createInfo)
     {
@@ -53,6 +53,8 @@ public sealed class BatchDrawPass : IViewsPass
 
     public string Name => "View Pass";
 
+    public SharedPassContext Context { get; set; }
+
     [PublicAPI] public bool IsTerminal { get; set; }
     public bool HandlesPreAdd => false;
     public bool HandlesPostAdd => false;
@@ -71,16 +73,13 @@ public sealed class BatchDrawPass : IViewsPass
 
     public void Configure(IGraphConfig config)
     {
-        MainImageId = config.WriteImage(Context.MainImageId,ImageLayout.ColorAttachment);
-        CopyImageId = config.ReadImage(Context.CopyImageId,ImageLayout.ShaderReadOnly);
-        StencilImageId = config.ReadImage(Context.StencilImageId,ImageLayout.StencilAttachment);
+        MainImageId = config.WriteImage(Context.MainImageId, ImageLayout.ColorAttachment);
+        CopyImageId = config.ReadImage(Context.CopyImageId, ImageLayout.ShaderReadOnly);
+        StencilImageId = config.ReadImage(Context.StencilImageId, ImageLayout.StencilAttachment);
 
         var memoryNeeded = _batchSizes.Aggregate<ulong, ulong>(0, (t, c) => t + c);
 
-        if (memoryNeeded > 0)
-        {
-            _bufferId = config.CreateBuffer(memoryNeeded,BufferStage.Graphics);
-        }
+        if (memoryNeeded > 0) _bufferId = config.CreateBuffer(memoryNeeded, BufferStage.Graphics);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -152,6 +151,4 @@ public sealed class BatchDrawPass : IViewsPass
         vkCmdSetStencilOp(cmd, faceMask, VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
             VkStencilOp.VK_STENCIL_OP_KEEP, VkCompareOp.VK_COMPARE_OP_NEVER);
     }
-
-    public SharedPassContext Context { get; set; }
 }

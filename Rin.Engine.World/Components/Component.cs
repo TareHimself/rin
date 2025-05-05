@@ -7,6 +7,7 @@ public class Component : IComponent
     public bool Active { get; protected set; }
     public Actor? Owner { get; set; }
 
+
     public virtual void Start()
     {
         Active = true;

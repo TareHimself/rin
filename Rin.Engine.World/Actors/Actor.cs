@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Math;
 using Rin.Engine.World.Components;
@@ -23,11 +24,18 @@ public class Actor : IReceivesUpdate
         get => _root;
         set
         {
-            if (_root != null) RemoveComponent(_root);
-
-            if (value != null) AddComponent(value);
-
+            if (value != null)
+                if (!HasComponent(value))
+                    AddComponent(value);
             _root = value;
+        }
+    }
+
+    public SceneComponent[] InitialComponents
+    {
+        init
+        {
+            foreach (var component in value) AddComponent(component);
         }
     }
 
@@ -46,7 +54,15 @@ public class Actor : IReceivesUpdate
         else
             _components.Add(component.GetType(), [component]);
         component.Owner = this;
-        if (Active) component.Start();
+        if (Active)
+        {
+            Debug.Assert(World != null);
+            Debug.Assert(RootComponent != null);
+            if (!ReferenceEquals(RootComponent, component) && component is ISceneComponent asSceneComponent)
+                asSceneComponent.AttachTo(RootComponent);
+            if (component is IPhysicsComponent asPhysicsComponent) World.AddPhysicsComponent(asPhysicsComponent);
+            component.Start();
+        }
 
         return component;
     }
@@ -76,34 +92,48 @@ public class Actor : IReceivesUpdate
     {
         var type = component.GetType();
 
-        if (_components.TryGetValue(type, out var components)) components.Remove(component);
+        if (_components.TryGetValue(type, out var components))
+        {
+            components.Remove(component);
+            if (Active)
+            {
+                Debug.Assert(World != null);
+                component.Stop();
+                if (component is IPhysicsComponent asPhysicsComponent) World.RemovePhysicsComponent(asPhysicsComponent);
+            }
+        }
     }
 
-    public T? FindComponent<T>() where T : IComponent
+    public bool HasComponent<T>(T component) where T : IComponent
     {
-        lock (_components)
-        {
-            var type = typeof(T);
-            if (_components.TryGetValue(type, out var components)) return (T?)components.FirstOrDefault();
-        }
+        var type = typeof(T);
+        return _components.TryGetValue(type, out var components) && components.Contains(component);
+    }
 
+    public bool HasComponentByType<T>() where T : IComponent
+    {
+        var type = typeof(T);
+        return _components.ContainsKey(type);
+    }
+
+    public T? FindComponentByType<T>() where T : IComponent
+    {
+        var type = typeof(T);
+        if (_components.TryGetValue(type, out var components)) return (T?)components.FirstOrDefault();
         return default;
     }
 
-    public IComponent[] FindComponents<T>() where T : IComponent
+    public IComponent[] FindComponentsByType<T>() where T : IComponent
     {
         var type = typeof(T);
         if (_components.TryGetValue(type, out var components)) return components.ToArray();
-
         return [];
     }
 
     [PublicAPI]
     public IEnumerable<IComponent> GetComponents()
     {
-        foreach (var (_, comps) in _components)
-        foreach (var component in comps)
-            yield return component;
+        return _components.Values.SelectMany(c => c);
     }
 
     [PublicAPI]
@@ -111,7 +141,16 @@ public class Actor : IReceivesUpdate
     {
         if (Active) return;
         Active = true;
-        foreach (var component in GetComponents().ToArray()) component.Start();
+        Debug.Assert(World != null);
+        Debug.Assert(RootComponent != null);
+        var comps = GetComponents().ToArray();
+        foreach (var component in comps)
+        {
+            if (component != RootComponent && component is ISceneComponent asSceneComponent)
+                asSceneComponent.AttachTo(RootComponent);
+            if (component is IPhysicsComponent asPhysicsComponent) World.AddPhysicsComponent(asPhysicsComponent);
+            component.Start();
+        }
     }
 
     [PublicAPI]
@@ -119,7 +158,12 @@ public class Actor : IReceivesUpdate
     {
         if (!Active) return;
         Active = false;
-        foreach (var component in GetComponents().ToArray()) component.Stop();
+        Debug.Assert(World != null);
+        foreach (var component in GetComponents().ToArray())
+        {
+            if (component is IPhysicsComponent asPhysicsComponent) World.AddPhysicsComponent(asPhysicsComponent);
+            component.Stop();
+        }
 
         _components.Clear();
     }

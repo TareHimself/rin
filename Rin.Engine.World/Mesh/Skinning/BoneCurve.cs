@@ -14,8 +14,8 @@ public class BoneCurve : ICurve<Transform>
     {
         return new Transform
         {
-            Location = LocationCurve.Evaluate(time),
-            Rotation = RotationCurve.Evaluate(time),
+            Position = LocationCurve.Evaluate(time),
+            Orientation = RotationCurve.Evaluate(time),
             Scale = ScaleCurve.Evaluate(time)
         };
     }

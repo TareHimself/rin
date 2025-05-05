@@ -13,24 +13,20 @@ public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOp
     public static Color White => new(1f, 1f, 1f, 1f);
     public static Color Black => new(0f, 0f, 0f, 1f);
     public static Color Transparent => new(0f, 0f, 0f, 0f);
-    
-    [PublicAPI]
-    public float R = inR;
-    [PublicAPI]
-    public float G = inG;
-    [PublicAPI]
-    public float B = inB;
-    [PublicAPI]
-    public float A = inA;
+
+    [PublicAPI] public float R = inR;
+    [PublicAPI] public float G = inG;
+    [PublicAPI] public float B = inB;
+    [PublicAPI] public float A = inA;
 
     public Color(float data) : this(data, data, data, data)
     {
     }
-    
-    public Color(float color,float alpha) : this(color,color,color, alpha)
+
+    public Color(float color, float alpha) : this(color, color, color, alpha)
     {
     }
-    
+
     public static implicit operator Vector4(Color color)
     {
         return new Vector4(color.R, color.G, color.B, color.A);

@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using JetBrains.Annotations;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.FrameGraph;
@@ -29,27 +28,20 @@ public enum ViewportChannel
     Emissive
 }
 
-internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) : IViewsPass
+internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command) : IViewsPass
 {
-    
-    private struct SceneData
-    {
-        public Matrix4x4 Projection;
-        public Matrix4x4 Transform;
-        public Vector2 Size;
-    }
-    
+    private readonly ForwardRenderingPass _forwardPass = new(command.Camera, command.Size.ToExtent());
+    private readonly Extent2D _renderExtent = command.Size.ToExtent();
+
     private readonly IShader _shader = SGraphicsModule.Get()
         .MakeGraphics("World/Shaders/viewport.slang");
+
+    private uint _sceneImageId;
+    private uint _viewportBufferId;
     public uint Id { get; set; }
     public bool IsTerminal => false;
     public bool HandlesPreAdd => true;
     public bool HandlesPostAdd => false;
-
-    private uint _sceneImageId = 0;
-    private uint _viewportBufferId = 0;
-    private Extent2D _renderExtent = command.Size.ToExtent();
-    private ForwardRenderingPass _forwardPass = new ForwardRenderingPass(command.Camera, command.Size.ToExtent());
 
     public void PreAdd(IGraphBuilder builder)
     {
@@ -58,15 +50,14 @@ internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) 
 
     public void PostAdd(IGraphBuilder builder)
     {
-        
     }
 
     public void Configure(IGraphConfig config)
     {
-         _sceneImageId = config.ReadImage(_forwardPass.OutputImageId,ImageLayout.ShaderReadOnly);
-         config.WriteImage(info.MainImageId,ImageLayout.ColorAttachment);
-         config.ReadImage(info.StencilImageId,ImageLayout.StencilAttachment);
-         _viewportBufferId = config.CreateBuffer<SceneData>(BufferStage.Graphics);
+        _sceneImageId = config.ReadImage(_forwardPass.OutputImageId, ImageLayout.ShaderReadOnly);
+        config.WriteImage(info.MainImageId, ImageLayout.ColorAttachment);
+        config.ReadImage(info.StencilImageId, ImageLayout.StencilAttachment);
+        _viewportBufferId = config.CreateBuffer<SceneData>(BufferStage.Graphics);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -78,7 +69,7 @@ internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) 
             var mainImage = graph.GetImageOrException(info.MainImageId);
             var stencilImage = graph.GetImageOrException(info.StencilImageId);
             var buffer = graph.GetBufferOrException(_viewportBufferId);
-            
+
             cmd.BeginRendering(_renderExtent.ToVk(), [
                     mainImage.MakeColorAttachmentInfo()
                 ],
@@ -97,7 +88,7 @@ internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) 
                 VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
                 VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
                 VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
-            
+
             var pushResource = _shader.PushConstants.Values.First();
             var descriptor = frame.GetDescriptorAllocator()
                 .Allocate(_shader.GetDescriptorSetLayouts().Values.First());
@@ -107,7 +98,7 @@ internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) 
                     Filter = ImageFilter.Linear,
                     Tiling = ImageTiling.ClampEdge
                 }));
-            
+
             buffer.Write(
                 new SceneData
                 {
@@ -118,7 +109,7 @@ internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) 
             cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _shader.GetPipelineLayout(),
                 [descriptor]);
             cmd.PushConstant(_shader.GetPipelineLayout(), pushResource.Stages, buffer.GetAddress());
-            
+
             cmd.Draw(6);
         }
     }
@@ -126,10 +117,19 @@ internal class ViewPortPass(SharedPassContext info,DrawViewportCommand command) 
     public static IViewsPass Create(PassCreateInfo info)
     {
         var cmd = info.Commands.First() as DrawViewportCommand ?? throw new NullReferenceException();
-        return new ViewPortPass(info.Context,cmd);
+        return new ViewPortPass(info.Context, cmd);
+    }
+
+    private struct SceneData
+    {
+        public Matrix4x4 Projection;
+        public Matrix4x4 Transform;
+        public Vector2 Size;
     }
 }
-internal class DrawViewportCommand(CameraComponent camera,in Vector2 extent,in Matrix4x4 transform) : TCommand<ViewPortPass>
+
+internal class DrawViewportCommand(CameraComponent camera, in Vector2 extent, in Matrix4x4 transform)
+    : TCommand<ViewPortPass>
 {
     public Vector2 Size { get; } = extent;
     public CameraComponent Camera { get; } = camera;
@@ -251,7 +251,7 @@ public class Viewport : ContentView
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        commands.Add(new DrawViewportCommand(_targetCamera, GetContentSize(),transform));
+        commands.Add(new DrawViewportCommand(_targetCamera, GetContentSize(), transform));
     }
 
 

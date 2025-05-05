@@ -14,11 +14,11 @@ public static class EnumerableExtensions
         while (e1.MoveNext() && e2.MoveNext() && e3.MoveNext() && e4.MoveNext())
             yield return (e1.Current, e2.Current, e3.Current, e4.Current);
     }
-    
-    
-    public static IEnumerable<(TFirst First, TSecond Second, TThird Third, TFourth Fourth,TFifth Fifth)>
-        Zip<TFirst, TSecond, TThird, TFourth,TFifth>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second,
-            IEnumerable<TThird> third, IEnumerable<TFourth> fourth,IEnumerable<TFifth> fifth)
+
+
+    public static IEnumerable<(TFirst First, TSecond Second, TThird Third, TFourth Fourth, TFifth Fifth)>
+        Zip<TFirst, TSecond, TThird, TFourth, TFifth>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second,
+            IEnumerable<TThird> third, IEnumerable<TFourth> fourth, IEnumerable<TFifth> fifth)
     {
         using var e1 = first.GetEnumerator();
         using var e2 = second.GetEnumerator();

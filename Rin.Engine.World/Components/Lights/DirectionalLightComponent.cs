@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Engine.Math;
 using Rin.Engine.World.Graphics;
-using Rin.Engine.World.Math;
 
 namespace Rin.Engine.World.Components.Lights;
 
@@ -13,10 +12,10 @@ public class DirectionalLightComponent : LightComponent
         commandList.AddLight(new LightInfo
         {
             Color = Color,
-            Direction = sceneTransform.Rotation.GetForward(),
+            Direction = sceneTransform.Orientation.GetForward(),
             Radiance = Radiance,
             LightType = LightType.Directional,
-            Location = sceneTransform.Location
+            Location = sceneTransform.Position
         });
         base.Collect(commandList, parentTransform);
     }

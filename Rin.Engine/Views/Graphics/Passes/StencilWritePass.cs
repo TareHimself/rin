@@ -4,16 +4,19 @@ using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
+
 namespace Rin.Engine.Views.Graphics.Passes;
 
 public class StencilWritePass : IPass
 {
+    private readonly StencilClip[] _clips;
     private readonly SharedPassContext _sharedContext;
+    private uint _mask;
+
     private IShader _stencilShader = SGraphicsModule.Get()
         .MakeGraphics("Engine/Shaders/Views/stencil_batch.slang");
-    private StencilClip[] _clips;
-    private uint _mask;
-    public StencilWritePass(SharedPassContext sharedContext,uint mask,StencilClip[] clips)
+
+    public StencilWritePass(SharedPassContext sharedContext, uint mask, StencilClip[] clips)
     {
         _sharedContext = sharedContext;
         _mask = mask;
@@ -35,23 +38,21 @@ public class StencilWritePass : IPass
 
     public void PostAdd(IGraphBuilder builder)
     {
-        
     }
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteImage(StencilImageId,ImageLayout.StencilAttachment);
+        config.WriteImage(StencilImageId, ImageLayout.StencilAttachment);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
         var image = graph.GetImageOrException(StencilImageId);
-        
+
         foreach (var clip in _clips)
         {
-            
         }
-        
+
         var clearAttachment = new VkClearAttachment
         {
             aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT,
@@ -84,7 +85,7 @@ public class StencilWritePass : IPass
                     }
                 }
             };
-            
+
             var cmd = frame.GetCommandBuffer();
             vkCmdClearAttachments(cmd, 1, &clearAttachment, 1, &clearRect);
         }

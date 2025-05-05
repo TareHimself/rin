@@ -5,7 +5,6 @@ namespace Rin.Engine.Views.Graphics.Passes;
 
 public class ReadBackPass(SharedPassContext sharedContext) : IViewsPass
 {
-
     private uint MainImageId => sharedContext.MainImageId;
     private uint CopyImageId => sharedContext.CopyImageId;
     private uint StencilImageId => sharedContext.StencilImageId;
@@ -21,13 +20,12 @@ public class ReadBackPass(SharedPassContext sharedContext) : IViewsPass
 
     public void PostAdd(IGraphBuilder builder)
     {
-        
     }
 
     public void Configure(IGraphConfig config)
     {
-        config.ReadImage(MainImageId,ImageLayout.TransferSrc);
-        config.WriteImage(CopyImageId,ImageLayout.TransferDst);
+        config.ReadImage(MainImageId, ImageLayout.TransferSrc);
+        config.WriteImage(CopyImageId, ImageLayout.TransferDst);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)

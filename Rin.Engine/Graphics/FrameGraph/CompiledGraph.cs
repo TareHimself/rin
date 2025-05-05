@@ -38,7 +38,7 @@ public class CompiledGraph : ICompiledGraph
             var pooledView = resourcePool.CreateBuffer(new BufferResourceDescriptor(memoryNeeded), frame);
             //pooledView = new DeviceBufferWriteValidator(pooledView);
             _buffer =
- pooledView; // SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
+                pooledView; // SGraphicsModule.Get().NewStorageBuffer(memoryNeeded,debugName: "Compiled Frame Graph Memory");
         }
 #endif
 
@@ -50,10 +50,7 @@ public class CompiledGraph : ICompiledGraph
 
     public void Dispose()
     {
-        foreach (var image in _images.Values)
-        {
-            image.Dispose();
-        }
+        foreach (var image in _images.Values) image.Dispose();
 
         //if(resource is not DeviceImage) resource.Dispose();
         _images.Clear();
@@ -150,10 +147,7 @@ public class CompiledGraph : ICompiledGraph
 
         cmd.UnBindShader(VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT);
         // This works because nodes are sorted in compile pass
-        foreach (var node in _nodes)
-        {
-            node.Pass.Execute(this,frame,context);
-        }
+        foreach (var node in _nodes) node.Pass.Execute(this, frame, context);
         // // OPTIMIZE THIS LATER
         // while (pending.NotEmpty())
         // {

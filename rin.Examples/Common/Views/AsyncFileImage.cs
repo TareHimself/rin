@@ -63,7 +63,7 @@ public class AsyncFileImage : CoverImage
         if (TextureId == -1)
         {
             var opacity = (float)Math.Abs(Math.Sin(SEngine.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
-            commands.AddRect(transform, GetContentSize(),new Color(0.8f,opacity), BorderRadius);
+            commands.AddRect(transform, GetContentSize(), new Color(0.8f, opacity), BorderRadius);
         }
         else
         {

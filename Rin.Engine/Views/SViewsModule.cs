@@ -1,9 +1,7 @@
 ﻿using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Views.Font;
 using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Sdf;
 
 namespace Rin.Engine.Views;
 

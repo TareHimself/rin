@@ -191,9 +191,9 @@ public sealed class SEngine : Disposable
             _mainUpdateEvent.WaitOne();
             if (_exitRequested) return;
             _renderDispatcher.DispatchPending();
-            Profiling.Measure("Engine.PreRender",OnPreRender);
-            Profiling.Measure("Engine.Rendering",OnRender);
-            Profiling.Measure("Engine.PostRender",OnPostRender);
+            Profiling.Measure("Engine.PreRender", OnPreRender);
+            Profiling.Measure("Engine.Rendering", OnRender);
+            Profiling.Measure("Engine.PostRender", OnPostRender);
         }
     }
 
@@ -206,18 +206,18 @@ public sealed class SEngine : Disposable
 
         while (!_exitRequested)
         {
-            Profiling.Measure("Engine.PreUpdate",OnPreUpdate);
+            Profiling.Measure("Engine.PreUpdate", OnPreUpdate);
             Profiling.Measure("Engine.DispatchPending", _mainDispatcher.DispatchPending);
-            
+
             Profiling.Begin("Engine.Update");
             var tickStart = DateTime.UtcNow;
             _lastDeltaSeconds = (float)(tickStart - _lastTickTime).TotalSeconds;
             OnUpdate?.Invoke(_lastDeltaSeconds);
             _lastTickTime = tickStart;
             Profiling.End("Engine.Update");
-            
-            Profiling.Measure("Engine.PostUpdate",OnPostUpdate);
-            Profiling.Measure("Engine.Collect",OnCollect);
+
+            Profiling.Measure("Engine.PostUpdate", OnPostUpdate);
+            Profiling.Measure("Engine.Collect", OnCollect);
 
             _mainUpdateEvent.Set();
         }

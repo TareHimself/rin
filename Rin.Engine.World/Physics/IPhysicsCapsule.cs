@@ -2,6 +2,12 @@
 
 public interface IPhysicsCapsule : IPhysicsBody
 {
-    public float Radius { get; set; }
-    public float HalfHeight { get; set; }
+    public float GetRadius();
+    public float GetHalfHeight();
+    public float GetScaledRadius();
+    public float GetScaledHalfHeight();
+    public void SetRadius(float radius);
+    public void SetHalfHeight(float halfHeight);
+    public void SetScaledRadius(float radius);
+    public void SetScaledHalfHeight(float halfHeight);
 }

@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Extensions;
 using Rin.Engine.Views.Composite;
 
 namespace Rin.Engine.Views.Layouts;
@@ -39,7 +38,7 @@ public class PanelSlot : Slot
 public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
 {
     public override CompositeView Container { get; } = container;
-    
+
     public override ISlot MakeSlot(View view)
     {
         throw new NotImplementedException();

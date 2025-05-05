@@ -870,11 +870,12 @@ public static class VulkanExtensions
     {
         return cmd.BufferBarrier(view, new MemoryBarrierOptions(fromStage, toStage));
     }
-    
-    public static VkCommandBuffer BufferBarrier(in this VkCommandBuffer cmd, IDeviceBufferView view,in MemoryBarrierOptions options)
+
+    public static VkCommandBuffer BufferBarrier(in this VkCommandBuffer cmd, IDeviceBufferView view,
+        in MemoryBarrierOptions options)
     {
         var opts = options;
-        var barrier = new VkBufferMemoryBarrier2()
+        var barrier = new VkBufferMemoryBarrier2
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
             srcStageMask = opts.WaitForStages,
@@ -883,7 +884,7 @@ public static class VulkanExtensions
             dstAccessMask = opts.DstAccessFlags,
             buffer = view.NativeBuffer,
             offset = view.Offset,
-            size = view.Size,
+            size = view.Size
         };
 
         unsafe
@@ -926,7 +927,7 @@ public static class VulkanExtensions
     }
 
     /// <summary>
-    /// Image syncronization
+    ///     Image syncronization
     /// </summary>
     /// <param name="cmd"></param>
     /// <param name="image"></param>

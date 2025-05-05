@@ -10,12 +10,12 @@
         <ProjectReference Include="..\Rin.Engine\Rin.Engine.csproj"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="BepuPhysics" Version="2.5.0-beta.25"/>
-    </ItemGroup>
-
     <ItemGroup Label="Content">
         <EmbeddedResource Include="Content\**\*.*"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="BepuPhysics" Version="2.5.0-beta.25"/>
     </ItemGroup>
 
 </Project>

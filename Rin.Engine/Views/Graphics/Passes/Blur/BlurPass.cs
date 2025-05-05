@@ -44,11 +44,13 @@ internal struct BlurData()
 
 public class BlurPass : IViewsPass
 {
+    private readonly BlurCommand[] _blurCommands;
+
     private readonly IGraphicsShader _blurShader = SGraphicsModule.Get()
         .MakeGraphics("Engine/Shaders/Views/blur.slang");
 
     private readonly SharedPassContext _sharedContext;
-    private BlurCommand[] _blurCommands;
+    private uint _bufferId;
 
     public BlurPass(PassCreateInfo info)
     {
@@ -59,7 +61,6 @@ public class BlurPass : IViewsPass
     private uint MainImageId => _sharedContext.MainImageId;
     private uint CopyImageId => _sharedContext.CopyImageId;
     private uint StencilImageId => _sharedContext.StencilImageId;
-    private uint _bufferId = 0;
     public uint Id { get; set; }
     public bool IsTerminal { get; } = false;
     public bool HandlesPreAdd => false;
@@ -72,15 +73,14 @@ public class BlurPass : IViewsPass
 
     public void PostAdd(IGraphBuilder builder)
     {
-        
     }
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteImage(MainImageId,ImageLayout.ColorAttachment);
-        config.ReadImage(CopyImageId,ImageLayout.ShaderReadOnly);
-        config.ReadImage(StencilImageId,ImageLayout.StencilAttachment);
-        _bufferId = config.CreateBuffer<BlurData>(_blurCommands.Length,BufferStage.Graphics);
+        config.WriteImage(MainImageId, ImageLayout.ColorAttachment);
+        config.ReadImage(CopyImageId, ImageLayout.ShaderReadOnly);
+        config.ReadImage(StencilImageId, ImageLayout.StencilAttachment);
+        _bufferId = config.CreateBuffer<BlurData>(_blurCommands.Length, BufferStage.Graphics);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -92,7 +92,7 @@ public class BlurPass : IViewsPass
             var copyImage = graph.GetImage(CopyImageId);
             var stencilImage = graph.GetImage(StencilImageId);
             var buffer = graph.GetBufferOrException(_bufferId);
-            
+
             cmd.BeginRendering(_sharedContext.Extent.ToVk(), [
                     drawImage.MakeColorAttachmentInfo()
                 ],

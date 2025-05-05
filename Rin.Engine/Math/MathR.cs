@@ -29,10 +29,10 @@ public static class MathR
         mat[2, 3] = 1f;
         mat[3, 3] = 0f;
         mat[3, 2] = near * far / (far + near);
-        
+
         return mat;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Matrix4x4 PerspectiveProjection(float fieldOfView, in Extent2D extent, float near, float far)
     {
@@ -81,8 +81,8 @@ public static class MathR
     {
         return new Transform
         {
-            Location = Interpolate(begin.Location, end.Location, alpha),
-            Rotation = Interpolate(begin.Rotation, end.Rotation, alpha),
+            Position = Interpolate(begin.Position, end.Position, alpha),
+            Orientation = Interpolate(begin.Orientation, end.Orientation, alpha),
             Scale = Interpolate(begin.Scale, end.Scale, alpha)
         };
     }

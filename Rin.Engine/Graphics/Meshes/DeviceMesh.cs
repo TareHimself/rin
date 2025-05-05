@@ -4,6 +4,7 @@ namespace Rin.Engine.Graphics.Meshes;
 
 public class DeviceMesh : IMesh, IDisposable
 {
+    private readonly ulong _formatSize;
     [PublicAPI] public Bounds3D Bounds;
 
     [PublicAPI] public IDeviceBuffer IndexBuffer;
@@ -12,8 +13,8 @@ public class DeviceMesh : IMesh, IDisposable
 
     [PublicAPI] public IDeviceBuffer VertexBuffer;
 
-    private readonly ulong _formatSize;
-    public DeviceMesh(IDeviceBuffer vertexBuffer, IDeviceBuffer indexBuffer, MeshSurface[] surfaces,ulong vertexFormatSize)
+    public DeviceMesh(IDeviceBuffer vertexBuffer, IDeviceBuffer indexBuffer, MeshSurface[] surfaces,
+        ulong vertexFormatSize)
     {
         VertexBuffer = vertexBuffer;
         IndexBuffer = indexBuffer;
@@ -54,13 +55,13 @@ public class DeviceMesh : IMesh, IDisposable
         var formatSize = GetVertexFormatSize();
         return VertexBuffer.GetView(surface.VertexStart * formatSize, surface.VertexCount * formatSize);
     }
-    
+
     public uint GetVertexCount()
     {
         var vertices = GetVertices();
         return (uint)(vertices.Size / _formatSize);
     }
-    
+
     public uint GetVertexCount(int surfaceIndex)
     {
         return GetSurface(surfaceIndex).VertexCount;

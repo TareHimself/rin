@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Math;
 
 namespace Rin.Engine.Views.Graphics;
 
@@ -16,10 +15,11 @@ public class ViewsFrame(
     public readonly IGraphImage DrawImage = drawImage;
     public readonly Frame Raw = raw;
     public readonly IGraphImage StencilImage = stencilImage;
-    public Matrix4x4 ProjectionMatrix = passContext.ProjectionMatrix;
     public Extent2D Extent = passContext.Extent;
+
+    public Matrix4x4 ProjectionMatrix = passContext.ProjectionMatrix;
     // public SharedPassContext PassContext = passContext;
-    
+
     // public void BeginMainPass(bool clearColor = false, bool clearStencil = false)
     // {
     //     //Surface.BeginMainPass(this, clearColor, clearStencil);
@@ -34,7 +34,7 @@ public class ViewsFrame(
     // {
     //     //Surface.EndActivePass(this);
     // }
-    
+
 
     public static implicit operator Frame(ViewsFrame frame)
     {

@@ -45,7 +45,7 @@ public class TextBox : ContentView
 
     [PublicAPI] public Color ForegroundColor { get; set; } = Color.White;
 
-    [PublicAPI] public Color BackgroundColor { get; set; } = Color.White with {A = 0.0f};
+    [PublicAPI] public Color BackgroundColor { get; set; } = Color.White with { A = 0.0f };
 
     [PublicAPI]
     public bool WrapContent

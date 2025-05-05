@@ -11,15 +11,15 @@ namespace Rin.Engine.Views;
 
 public abstract class View : IDisposable, IAnimatable, IUpdatable
 {
-    private Matrix4x4? _cachedRelativeTransform = Matrix4x4.Identity;
     private readonly Padding _padding = new();
+    private float _angle;
     private Vector2? _cachedDesiredSize;
+    private Matrix4x4? _cachedRelativeTransform = Matrix4x4.Identity;
     private Vector2 _offset;
     private Vector2 _pivot;
-    private Vector2 _size;
-    private float _angle = 0.0f;
-    private Vector2 _translate = Vector2.Zero;
     private Vector2 _scale = Vector2.One;
+    private Vector2 _size;
+    private Vector2 _translate = Vector2.Zero;
 
     /// <summary>
     ///     The offset of this view in parent space
@@ -70,8 +70,8 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     {
         get => new(_translate.X, _translate.Y);
         set
-        { 
-            _translate.X = value.X; 
+        {
+            _translate.X = value.X;
             _translate.Y = value.Y;
             _cachedRelativeTransform = null;
         }

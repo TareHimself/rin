@@ -1,11 +1,10 @@
 using System.Numerics;
 using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Meshes;
 
 namespace Rin.Engine.World.Graphics;
 
 /// <summary>
-/// Final mesh after processing i.e. skinning or static meshes, split into surfaces
+///     Final mesh after processing i.e. skinning or static meshes, split into surfaces
 /// </summary>
 public class ProcessedMesh
 {
@@ -18,36 +17,37 @@ public class ProcessedMesh
     public required IDeviceBufferView IndexBuffer { get; set; }
     public required IDeviceBufferView VertexBuffer { get; set; }
     public required IMeshMaterial Material { get; set; }
-    
+
     public required Bounds3D Bounds { get; set; }
 
     public class CompareByIndexAndMaterial : IEqualityComparer<ProcessedMesh>
     {
         public bool Equals(ProcessedMesh? x, ProcessedMesh? y)
         {
-            if(x == null && y == null) return true;
-            if(x == null || y == null) return false;
-            if(x.Material.GetType() != y.Material.GetType()) return false;
-            if(x.IndexBuffer.NativeBuffer != y.IndexBuffer.NativeBuffer) return false;
-            if(x.IndexBuffer.Offset != y.IndexBuffer.Offset) return false;
-            if(x.IndexBuffer.Size != y.IndexBuffer.Size) return false;
+            if (x == null && y == null) return true;
+            if (x == null || y == null) return false;
+            if (x.Material.GetType() != y.Material.GetType()) return false;
+            if (x.IndexBuffer.NativeBuffer != y.IndexBuffer.NativeBuffer) return false;
+            if (x.IndexBuffer.Offset != y.IndexBuffer.Offset) return false;
+            if (x.IndexBuffer.Size != y.IndexBuffer.Size) return false;
             return true;
         }
 
         public int GetHashCode(ProcessedMesh obj)
         {
-            return HashCode.Combine(obj.Material.GetType(),obj.IndicesCount,obj.IndicesStart,obj.IndexBuffer.NativeBuffer);
+            return HashCode.Combine(obj.Material.GetType(), obj.IndicesCount, obj.IndicesStart,
+                obj.IndexBuffer.NativeBuffer);
         }
-    } 
-    
+    }
+
     public class CompareByVertexCountAndOffset : IEqualityComparer<ProcessedMesh>
     {
         public bool Equals(ProcessedMesh? x, ProcessedMesh? y)
         {
-            if(x == null && y == null) return true;
-            if(x == null || y == null) return false;
-            if(x.VertexCount != y.VertexCount) return false;
-            if(x.VertexStart != y.VertexStart) return false;
+            if (x == null && y == null) return true;
+            if (x == null || y == null) return false;
+            if (x.VertexCount != y.VertexCount) return false;
+            if (x.VertexStart != y.VertexStart) return false;
             return true;
         }
 
@@ -55,5 +55,5 @@ public class ProcessedMesh
         {
             return HashCode.Combine(obj.VertexCount, obj.VertexStart);
         }
-    } 
+    }
 }

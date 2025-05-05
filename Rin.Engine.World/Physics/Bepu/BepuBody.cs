@@ -1,226 +1,284 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
-using JetBrains.Annotations;
-using Rin.Engine.Extensions;
 using Rin.Engine.Math;
-using Rin.Engine.World.Components;
-using Rin.Engine.World.Math;
 
 namespace Rin.Engine.World.Physics.Bepu;
 
-public abstract class BepuBody(BepuPhysics physics, IPhysicsComponent owner) : IPhysicsBody
+public abstract class BepuBody : IPhysicsBody
 {
-    [PublicAPI] protected readonly BepuPhysics Physics = physics;
-    private Vector3 _angularVelocity = Vector3.Zero;
+    protected readonly BepuPhysicsSystem System;
+    private float _mass = 1.0f;
+    private PhysicsState _state;
+    public BodyHandle? BodyHandle;
+    public StaticHandle? StaticHandle;
 
-    private Vector3 _linearVelocity = Vector3.Zero;
-    private bool _simulating;
-    private bool _static;
-    [PublicAPI] protected StaticHandle? StaticBodyHandle { get; set; }
-    [PublicAPI] protected BodyHandle? DynamicBodyHandle { get; set; }
-
-    public bool IsValid => StaticBodyHandle.HasValue || DynamicBodyHandle.HasValue;
-
-    public IPhysicsComponent Owner { get; set; } = owner;
-
-    public Vector3 LinearVelocity
+    public BepuBody(PhysicsState state, Transform transform, BepuPhysicsSystem system)
     {
-        get
-        {
-            if (!IsStatic && DynamicBodyHandle is { } handle)
-            {
-                var vel = Physics.Simulation.Bodies[handle].Velocity.Linear;
-                _linearVelocity = new Vector3(vel.X, vel.Y, vel.Z);
-            }
-
-            return _linearVelocity;
-        }
-        set
-        {
-            _linearVelocity = value;
-            if (!IsStatic && DynamicBodyHandle is { } handle) Physics.Simulation.Bodies[handle].Velocity.Linear = value;
-        }
+        _state = state;
+        _position = transform.Position;
+        _scale = transform.Scale;
+        _orientation = transform.Orientation;
+        System = system;
     }
 
-    public Vector3 AngularVelocity
-    {
-        get
-        {
-            if (!IsStatic && DynamicBodyHandle is { } handle)
-            {
-                var vel = Physics.Simulation.Bodies[handle].Velocity.Angular;
-                _angularVelocity = new Vector3(vel.X, vel.Y, vel.Z);
-            }
+    private Vector3 _scale { get; set; }
+    private Quaternion _orientation { get; set; }
+    private Vector3 _position { get; set; }
 
-            return _angularVelocity;
+    public void Dispose()
+    {
+        switch (GetState())
+        {
+            case PhysicsState.Static:
+                System.Simulation.Statics.Remove(StaticHandle ?? throw new NullReferenceException());
+                break;
+            case PhysicsState.Controlled or PhysicsState.Simulated:
+                System.Simulation.Bodies.Remove(BodyHandle ?? throw new NullReferenceException());
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
-        set
-        {
-            _angularVelocity = value;
-            if (!IsStatic && DynamicBodyHandle is { } handle)
-                Physics.Simulation.Bodies[handle].Velocity.Angular = value;
-        }
+
+        System.Simulation.Shapes.Remove(GetShapeIndex());
     }
 
-    public bool IsStatic
-    {
-        get => _static;
-        set
-        {
-            var changed = _static != value;
-            if (changed)
-            {
-                TryUpdateVelocityFromBody();
-                DestroyExistingBody();
-            }
-
-            _static = value;
-            if (changed)
-            {
-                if (_static)
-                {
-                }
-
-                CreateBody();
-            }
-        }
-    }
-
-    public bool IsSimulating => _simulating && !IsStatic;
-
-    public float Mass { get; set; } = 1.0f;
-    public int CollisionChannel { get; set; } = 0;
-
-    public void SetSimulatePhysics(bool simulate)
-    {
-        var state = IsSimulating;
-        if (state == simulate) return;
-        if (IsStatic && simulate) return;
-        TryUpdateVelocityFromBody();
-        UpdateBodyDescription(simulate);
-        _simulating = simulate;
-    }
-
-    public Transform GetTransform()
-    {
-        var pose = GetRigidPose();
-        return new Transform
-        {
-            Location = pose.Position,
-            Rotation = pose.Orientation,
-            Scale = Owner.GetTransform(Space.World).Scale
-        };
-    }
+    public int CollisionChannel { get; set; }
 
     public void ProcessHit(RayCastResult result)
     {
-        Owner.ProcessHit(this, result);
+        throw new NotImplementedException();
     }
 
-    public virtual void Dispose()
+    public Vector3 GetLinearVelocity()
     {
-        DestroyExistingBody();
-    }
-
-    public void Init()
-    {
-        CreateBody();
-    }
-
-    private RigidPose GetRigidPose()
-    {
-        if (IsStatic)
+        return GetState() switch
         {
-            if (StaticBodyHandle is { } handle) return Physics.Simulation.Statics[handle].Pose;
-        }
-        else
-        {
-            if (DynamicBodyHandle is { } handle) return Physics.Simulation.Bodies[handle].Pose;
-        }
-
-        return RigidPose.Identity;
+            PhysicsState.Static => Vector3.Zero,
+            PhysicsState.Controlled => GetBodyReference().Velocity.Linear,
+            PhysicsState.Simulated => GetBodyReference().Velocity.Linear,
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 
-    protected abstract TypedIndex GetTypedIndex();
+    public Vector3 GetAngularVelocity()
+    {
+        return GetState() switch
+        {
+            PhysicsState.Static => Vector3.Zero,
+            PhysicsState.Controlled => GetBodyReference().Velocity.Angular,
+            PhysicsState.Simulated => GetBodyReference().Velocity.Angular,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    public Vector3 GetPosition()
+    {
+        if (!HasAnyHandle()) return _position;
+
+        return _position = GetState() switch
+        {
+            PhysicsState.Static => GetStaticReference().Pose.Position,
+            PhysicsState.Controlled or PhysicsState.Simulated => GetBodyReference().Pose.Position,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    public Quaternion GetOrientation()
+    {
+        if (!HasAnyHandle()) return _orientation;
+
+        return _orientation = GetState() switch
+        {
+            PhysicsState.Static => GetStaticReference().Pose.Orientation,
+            PhysicsState.Controlled or PhysicsState.Simulated => GetBodyReference().Pose.Orientation,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    public Vector3 GetScale()
+    {
+        return _scale;
+    }
+
+    public PhysicsState GetState()
+    {
+        return _state;
+    }
+
+    public float GetMass()
+    {
+        return _mass;
+    }
+
+    public void SetLinearVelocity(in Vector3 velocity)
+    {
+        switch (GetState())
+        {
+            case PhysicsState.Static:
+                break;
+            case PhysicsState.Controlled or PhysicsState.Simulated:
+                GetBodyReference().Velocity.Linear = velocity;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    public void SetAngularVelocity(in Vector3 angularVelocity)
+    {
+        switch (GetState())
+        {
+            case PhysicsState.Static:
+                break;
+            case PhysicsState.Controlled or PhysicsState.Simulated:
+                GetBodyReference().Velocity.Angular = angularVelocity;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    public void SetPosition(in Vector3 position)
+    {
+        _position = position;
+        switch (GetState())
+        {
+            case PhysicsState.Static:
+                GetStaticReference().Pose.Position = position;
+                break;
+            case PhysicsState.Controlled or PhysicsState.Simulated:
+                GetBodyReference().Pose.Position = position;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    public void SetOrientation(in Quaternion orientation)
+    {
+        _orientation = orientation;
+        switch (GetState())
+        {
+            case PhysicsState.Static:
+                GetStaticReference().Pose.Orientation = orientation;
+                break;
+            case PhysicsState.Controlled or PhysicsState.Simulated:
+                GetBodyReference().Pose.Orientation = orientation;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    public void SetScale(in Vector3 scale)
+    {
+        _scale = scale;
+        ScaleUpdated();
+    }
+
+    public void SetMass(float mass)
+    {
+        _mass = mass;
+        UpdateInertia();
+    }
+
+    public void SetState(PhysicsState state)
+    {
+        var oldState = _state;
+        _state = state;
+        if (oldState == _state) return;
+
+        if (oldState == PhysicsState.Static)
+        {
+        }
+    }
+
+    protected abstract TypedIndex GetShapeIndex();
+    protected abstract void UpdateShape();
+    protected abstract void ScaleUpdated();
+
+    protected bool HasAnyHandle()
+    {
+        return BodyHandle.HasValue || StaticHandle.HasValue;
+    }
+
+    protected BodyReference GetBodyReference()
+    {
+        return GetState() switch
+        {
+            PhysicsState.Static => throw new NullReferenceException(),
+            PhysicsState.Controlled or PhysicsState.Simulated => System.Simulation.Bodies[
+                BodyHandle ?? throw new NullReferenceException()],
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    protected StaticReference GetStaticReference()
+    {
+        return GetState() switch
+        {
+            PhysicsState.Static => System.Simulation.Statics[StaticHandle ?? throw new NullReferenceException()],
+            PhysicsState.Controlled or PhysicsState.Simulated => throw new NullReferenceException(),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    protected BodyDescription CreateBodyDescription()
+    {
+        var state = GetState();
+        var pose = new RigidPose(GetPosition(), GetOrientation());
+        var collidable = new CollidableDescription(GetShapeIndex(), ContinuousDetection.Continuous());
+        var bodyActivityDescription = new BodyActivityDescription(0.01f);
+        return state switch
+        {
+            PhysicsState.Controlled => BodyDescription.CreateKinematic(pose, collidable, bodyActivityDescription),
+            PhysicsState.Simulated => BodyDescription.CreateDynamic(pose, ComputeInertia(), collidable,
+                bodyActivityDescription),
+            PhysicsState.Static => throw new UnreachableException(),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    protected StaticDescription CreateStaticDescription()
+    {
+        return new StaticDescription
+        {
+            Pose = new RigidPose(GetPosition(), GetOrientation()),
+            Shape = GetShapeIndex(),
+            Continuity = ContinuousDetection.Continuous()
+        };
+    }
 
     protected abstract BodyInertia ComputeInertia();
 
-    [PublicAPI]
-    protected RigidPose RigidPoseFromComponentTransform()
+    public void Init()
     {
-        var transform = Owner.GetTransform(Space.World);
-        return new RigidPose(transform.Location, transform.Rotation);
-    }
-
-    protected virtual StaticDescription MakeStaticDescription(TypedIndex typedIndex)
-    {
-        return new StaticDescription(RigidPoseFromComponentTransform(), typedIndex);
-    }
-
-    protected virtual BodyDescription MakeDynamicDescription(TypedIndex typedIndex, bool? simulating = false)
-    {
-        var collidableDescription = new CollidableDescription(typedIndex);
-        var bodyActivityDescription = new BodyActivityDescription(0.01f);
-        var pose = RigidPoseFromComponentTransform();
-        if (simulating.GetValueOrDefault(IsSimulating))
-            return BodyDescription.CreateDynamic(pose,
-                new BodyVelocity(LinearVelocity, AngularVelocity),
-                ComputeInertia(), collidableDescription, bodyActivityDescription);
-
-        return BodyDescription.CreateKinematic(pose, collidableDescription, bodyActivityDescription);
-    }
-
-    [PublicAPI]
-    protected void TryUpdateVelocityFromBody()
-    {
-        // if (IsStatic || DynamicBodyHandle is not { } handle) return;
-        // {
-        //     var vel = Physics.Simulation.Bodies[handle].Velocity.Linear;
-        //     _linearVelocity = new Vector3(vel.X, vel.Y, vel.Z);
-        // }
-        // {
-        //     var vel = Physics.Simulation.Bodies[handle].Velocity.Angular;
-        //     _angularVelocity = new Vector3(vel.X, vel.Y, vel.Z);
-        // }
-    }
-
-    protected virtual void UpdateBodyDescription(bool? simulating = false)
-    {
-        if (IsStatic)
+        switch (GetState())
         {
-            if (StaticBodyHandle is { } handle)
-                Physics.Simulation.Statics.ApplyDescription(handle, MakeStaticDescription(GetTypedIndex()));
-        }
-        else
-        {
-            if (DynamicBodyHandle is { } handle)
-                Physics.Simulation.Bodies.ApplyDescription(handle, MakeDynamicDescription(GetTypedIndex(), simulating));
+            case PhysicsState.Static:
+                StaticHandle = System.Simulation.Statics.Add(CreateStaticDescription());
+                break;
+            case PhysicsState.Controlled or PhysicsState.Simulated:
+                BodyHandle = System.Simulation.Bodies.Add(CreateBodyDescription());
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 
-    [PublicAPI]
-    protected void DestroyExistingBody()
+    protected void UpdateInertia()
     {
-        if (IsStatic)
+        switch (GetState())
         {
-            if (StaticBodyHandle is { } handle) Physics.RemoveStatic(this, handle);
-
-            StaticBodyHandle = null;
+            case PhysicsState.Static:
+                break;
+            case PhysicsState.Controlled or PhysicsState.Simulated:
+                GetBodyReference().LocalInertia = ComputeInertia();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
-        else
-        {
-            if (DynamicBodyHandle is { } handle) Physics.RemoveDynamic(this, handle);
-
-            DynamicBodyHandle = null;
-        }
-    }
-
-    protected virtual void CreateBody()
-    {
-        if (IsStatic)
-            StaticBodyHandle = Physics.AddStatic(this, MakeStaticDescription(GetTypedIndex()));
-        else
-            DynamicBodyHandle = Physics.AddDynamic(this, MakeDynamicDescription(GetTypedIndex()));
     }
 }

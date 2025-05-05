@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Engine;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Meshes;
@@ -74,7 +73,7 @@ public static class Extensions
             MeshId = id
         };
     }
-    
+
     public static async Task<SkinnedMesh?> LoadSkinnedMesh(string filename)
     {
         var model = ModelRoot.Load(filename);
@@ -82,22 +81,22 @@ public static class Extensions
         var mesh = model?.LogicalMeshes.FirstOrDefault();
         var skin = model?.LogicalSkins.FirstOrDefault();
         if (mesh == null) return null;
-        if(skin == null) return null;
-        
-        var bones = Enumerable.Range(0,skin.JointsCount).Select(idx =>
+        if (skin == null) return null;
+
+        var bones = Enumerable.Range(0, skin.JointsCount).Select(idx =>
         {
-            var (joint,_) = skin.GetJoint(idx);
-            return new Bone()
+            var (joint, _) = skin.GetJoint(idx);
+            return new Bone
             {
                 Name = joint.Name,
                 LocalTransform = Transform.From(joint.LocalMatrix)
             };
         }).ToArray();
-        
+
         var namesToBones = bones.ToDictionary(c => c.Name, c => c);
         for (var i = 0; i < skin.JointsCount; ++i)
         {
-            var (joint,_) = skin.GetJoint(i);
+            var (joint, _) = skin.GetJoint(i);
             var bone = bones[i];
             var children = new List<Bone>();
             foreach (var boneChild in joint.VisualChildren)
@@ -106,14 +105,15 @@ public static class Extensions
                 childBone.Parent = bone;
                 children.Add(childBone);
             }
+
             bone.Children = children.ToArray();
         }
 
-        var skeleton = new Skeleton(bones,new Pose());
+        var skeleton = new Skeleton(bones, new Pose());
         List<MeshSurface> surfaces = [];
         List<uint> indices = [];
         List<SkinnedVertex> vertices = [];
-        
+
         foreach (var primitive in mesh.Primitives)
         {
             if (primitive == null) continue;
@@ -131,9 +131,9 @@ public static class Extensions
             {
                 foreach (var idx in primitive.GetIndices()) indices.Add((uint)(idx + initialVertex));
             }
-            
+
             {
-                foreach (var (position, normal, uv,jointIndices,weights) in primitive.GetVertices("POSITION")
+                foreach (var (position, normal, uv, jointIndices, weights) in primitive.GetVertices("POSITION")
                              .AsVector3Array()
                              .Zip(
                                  primitive.GetVertices("NORMAL").AsVector3Array(),
@@ -149,10 +149,10 @@ public static class Extensions
                             Normal = normal,
                             UV = uv
                         },
-                        BoneIndices = new Vector4<int>(jointIndices[0],jointIndices[1],jointIndices[2],jointIndices[3]),
-                        BoneWeights = weights,
+                        BoneIndices = new Vector4<int>(jointIndices[0], jointIndices[1], jointIndices[2],
+                            jointIndices[3]),
+                        BoneWeights = weights
                     });
-                
             }
 
             newSurface.Bounds = surfaceVertices.ComputeBounds();

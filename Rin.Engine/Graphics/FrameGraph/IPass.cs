@@ -16,10 +16,11 @@ public interface IPass
 
     public bool HandlesPreAdd { get; }
     public bool HandlesPostAdd { get; }
-    
+
     public void PreAdd(IGraphBuilder builder);
+
     /// <summary>
-    /// <see cref="IGraphBuilder" /> and has been assigned an ID
+    ///     <see cref="IGraphBuilder" /> and has been assigned an ID
     /// </summary>
     /// <param name="builder"></param>
     public void PostAdd(IGraphBuilder builder);

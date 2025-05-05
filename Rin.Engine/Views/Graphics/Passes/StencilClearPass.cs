@@ -1,8 +1,6 @@
-﻿using System.Numerics;
-using Rin.Engine.Graphics;
+﻿using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
+
 namespace Rin.Engine.Views.Graphics.Passes;
 
 public class StencilClearPass : IPass
@@ -27,18 +25,17 @@ public class StencilClearPass : IPass
 
     public void PostAdd(IGraphBuilder builder)
     {
-        
     }
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteImage(StencilImageId,ImageLayout.StencilAttachment);
+        config.WriteImage(StencilImageId, ImageLayout.StencilAttachment);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
         var image = graph.GetImageOrException(StencilImageId);
-        
+
         var cmd = frame.GetCommandBuffer();
         cmd.ClearStencilImages(0, image.Layout, image);
     }

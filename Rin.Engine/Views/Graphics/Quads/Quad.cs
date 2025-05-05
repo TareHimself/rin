@@ -122,7 +122,8 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Rect(in Matrix4x4 transform, in Vector2 size, in Color? color = null, in Vector4? borderRadius = null)
+    public static Quad Rect(in Matrix4x4 transform, in Vector2 size, in Color? color = null,
+        in Vector4? borderRadius = null)
     {
         var quad = new Quad
         {
@@ -170,7 +171,8 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad CubicCurve(in Vector2 a, in Vector2 controlA, in Vector2 b, in Vector2 controlB, float thickness = 2.0f,
+    public static Quad CubicCurve(in Vector2 a, in Vector2 controlA, in Vector2 b, in Vector2 controlB,
+        float thickness = 2.0f,
         in Color? color = null)
     {
         const float feather = 3.0f;

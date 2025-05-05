@@ -11,7 +11,6 @@ using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Graphics.Passes.Blur;
 using Rin.Engine.Views.Graphics.Quads;
 using Rin.Engine.Views.Layouts;
 using rin.Examples.Common.Views;
@@ -35,7 +34,7 @@ public class SViewsTestModule : IModule
                     .PrepareAtlas(font, Enumerable.Range(32, 127).Select(c => (char)c).Where(c => c.IsPrintable()))
                     .Wait();
         }
-        SGraphicsModule.Get().OnRendererCreated += TestWrapping;
+        SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", new CreateOptions
         {
@@ -86,21 +85,12 @@ public class SViewsTestModule : IModule
                     },
                     new PanelSlot
                     {
-                        // Child = new Rect                                    
-                        // {
-                        //     Child = new FpsView
-                        //     {
-                        //         FontSize = 30
-                        //     },
-                        //     Padding = new Padding(20.0f),
-                        //     BorderRadius = 10.0f,
-                        //     BackgroundColor = Color.Black.Clone(a: 0.7f)
-                        // },
-                        Child = new BackgroundBlur
+                        Child = new Rect
                         {
                             Child = new FpsView(),
                             Padding = new Padding(20.0f),
-                            Strength = 20.0f
+                            BorderRadius = new Vector4(10.0f),
+                            Color = Color.Black with { A = 0.7f }
                         },
                         SizeToContent = true,
                         MinAnchor = new Vector2(1.0f, 0.0f),
@@ -193,14 +183,10 @@ public class SViewsTestModule : IModule
                     {
                         Child = new Rect
                         {
-                            Child = new FpsView
-                            {
-                                FontSize = 30,
-                                Content = "YOOOO"
-                            },
+                            Child = new FpsView(),
                             Padding = new Padding(20.0f),
                             BorderRadius = new Vector4(10.0f),
-                            Color = Color.Black  with { A = 0.7f }
+                            Color = Color.Black with { A = 0.7f }
                         },
                         SizeToContent = true,
                         MinAnchor = new Vector2(1.0f, 0.0f),
@@ -440,9 +426,7 @@ public class SViewsTestModule : IModule
 
         protected override void CollectSelf(Matrix4x4 transform, CommandList cmds)
         {
-            
             base.CollectSelf(transform, cmds);
-            
         }
 
         public override void Collect(in Matrix4x4 transform, in Rin.Engine.Views.Rect clip, CommandList commands)

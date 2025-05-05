@@ -18,7 +18,7 @@ public struct MemoryBarrierOptions
     public MemoryBarrierOptions()
     {
     }
-    
+
     public MemoryBarrierOptions(BufferStage fromStage, BufferStage toStage)
     {
         WaitForStages = fromStage switch
@@ -38,34 +38,49 @@ public struct MemoryBarrierOptions
             _ => throw new ArgumentOutOfRangeException(nameof(fromStage), fromStage, null)
         };
     }
-    
-    public static MemoryBarrierOptions ComputeToTransfer() => new MemoryBarrierOptions
-    {
-        WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT
-    };
-    
-    public static MemoryBarrierOptions TransferToCompute() => new MemoryBarrierOptions
-    {
-        WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-        NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
-    };
 
-    public static MemoryBarrierOptions ComputeToGraphics() => new MemoryBarrierOptions
+    public static MemoryBarrierOptions ComputeToTransfer()
     {
-        WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
-    };
-    
-    public static MemoryBarrierOptions GraphicsToCompute() => new MemoryBarrierOptions
+        return new MemoryBarrierOptions
+        {
+            WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT
+        };
+    }
+
+    public static MemoryBarrierOptions TransferToCompute()
     {
-        WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-        NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
-    };
-    
-    public static MemoryBarrierOptions ComputeToAll() => new MemoryBarrierOptions
+        return new MemoryBarrierOptions
+        {
+            WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+            NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+        };
+    }
+
+    public static MemoryBarrierOptions ComputeToGraphics()
     {
-        WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
-    };
+        return new MemoryBarrierOptions
+        {
+            WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
+        };
+    }
+
+    public static MemoryBarrierOptions GraphicsToCompute()
+    {
+        return new MemoryBarrierOptions
+        {
+            WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+            NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+        };
+    }
+
+    public static MemoryBarrierOptions ComputeToAll()
+    {
+        return new MemoryBarrierOptions
+        {
+            WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
+        };
+    }
 }

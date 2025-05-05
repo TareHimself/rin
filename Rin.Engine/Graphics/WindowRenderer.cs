@@ -333,11 +333,11 @@ public class WindowRenderer : IWindowRenderer
                 };
 
                 ctx.SwapchainImageId = ctx.GraphBuilder.AddExternalImage(swapchainImage);
- 
-                Profiling.Begin("Rendering.Graph.Compile");
+
+                Profiling.Begin("Engine.Rendering.Graph.Compile");
                 var graph = ctx.GraphBuilder.Compile(_resourcePool, frame);
-                Profiling.End("Rendering.Graph.Compile");
-                
+                Profiling.End("Engine.Rendering.Graph.Compile");
+
                 var cmd = frame.GetCommandBuffer();
 
                 vkResetCommandBuffer(cmd, 0);

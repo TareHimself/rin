@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Rin.Engine\Rin.Engine.csproj" />
+        <ProjectReference Include="..\Rin.Engine\Rin.Engine.csproj"/>
     </ItemGroup>
 
 </Project>

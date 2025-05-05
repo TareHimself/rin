@@ -106,7 +106,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
                 {
                     container.LastUsed = frameId;
                     container.Uses.Add(frame);
-                    return ResultFromContainer(container, frame, key,input, frameId);
+                    return ResultFromContainer(container, frame, key, input, frameId);
                 }
             }
 
@@ -118,7 +118,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
                 created.LastUsed = frameId;
                 ContainerPool[key].Add(created);
 
-                return ResultFromContainer(created, frame, key,input, frameId);
+                return ResultFromContainer(created, frame, key, input, frameId);
             }
         }
 
@@ -192,7 +192,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         private readonly Frame _frame;
         private readonly ulong? _size;
 
-        public ProxiedBuffer(ResourceContainer<IDeviceBuffer> container, Frame frame,ulong? size = null)
+        public ProxiedBuffer(ResourceContainer<IDeviceBuffer> container, Frame frame, ulong? size = null)
         {
             _container = container;
             _frame = frame;
@@ -238,7 +238,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         protected override ProxiedBuffer ResultFromContainer(ResourceContainer<IDeviceBuffer> container, Frame frame,
             ulong key, BufferResourceDescriptor input, ulong frameId)
         {
-            return new ProxiedBuffer(container, frame,input.Size);
+            return new ProxiedBuffer(container, frame, input.Size);
         }
 
         protected override ulong MakeKeyFromInput(BufferResourceDescriptor input)
@@ -249,17 +249,17 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         protected override ResourceContainer<IDeviceBuffer>? FindExistingResource(
             Dictionary<ulong, HashSet<ResourceContainer<IDeviceBuffer>>> items, Frame frame, ulong key, ulong frameId)
         {
-            #if DEBUG
+#if DEBUG
             return items
                 .Where(item => item.Key == key)
                 .SelectMany(c => c.Value)
                 .FirstOrDefault(c => c.Uses.Empty());
-            #else
+#else
             return items
                 .Where(item => item.Key >= key && item.Key - key < MaxBufferReuseDelta)
                 .SelectMany(c => c.Value)
                 .FirstOrDefault(c => c.Uses.Empty());
-            #endif
+#endif
         }
     }
 }

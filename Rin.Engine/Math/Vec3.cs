@@ -138,7 +138,7 @@ public struct Vec3<T>(T inX, T inY, T inZ) :
         if (max > c) return new Vec3<T>(X, Y, Z) / max;
         return new Vec3<T>(X, Y, Z);
     }
-    
+
     public static Vec3<T> operator -(Vec3<T> value)
     {
         return new Vec3<T>(-value.X, -value.Y, -value.Z);

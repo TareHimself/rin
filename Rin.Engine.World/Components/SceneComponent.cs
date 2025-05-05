@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Math;
 using Rin.Engine.World.Graphics;
@@ -21,30 +22,30 @@ public class SceneComponent : Component, ISceneComponent
 
     [PublicAPI] public ISceneComponent? TransformParent { get; private set; }
 
+
+    public override void Stop()
+    {
+        if (TransformParent is not null) Detach();
+        base.Stop();
+    }
+
     [PublicAPI]
     public bool TryHandleDetachment(ISceneComponent target)
     {
-        lock (_lock)
-        {
-            _children.Remove(target);
-        }
-
+        _children.Remove(target);
         return true;
     }
 
     [PublicAPI]
     public bool TryHandleAttachment(ISceneComponent target)
     {
-        lock (_lock)
-        {
-            _children.Add(target);
-        }
-
+        _children.Add(target);
         return true;
     }
 
     public bool AttachTo(ISceneComponent component)
     {
+        Debug.Assert(this != component, "Cannot attach component to self");
         if (component.TryHandleAttachment(this))
         {
             TransformParent = component;
@@ -79,7 +80,7 @@ public class SceneComponent : Component, ISceneComponent
                 break;
             case Space.World:
             {
-                SetTransform(GetTransform(space) with { Location = location }, space);
+                SetTransform(GetTransform(space) with { Position = location }, space);
             }
                 break;
             default:
@@ -97,7 +98,7 @@ public class SceneComponent : Component, ISceneComponent
             case Space.World:
             {
                 var worldTransform = GetTransform(space);
-                worldTransform.Location += translation;
+                worldTransform.Position += translation;
                 SetTransform(worldTransform, space);
             }
                 break;
@@ -115,7 +116,7 @@ public class SceneComponent : Component, ISceneComponent
                 break;
             case Space.World:
             {
-                SetTransform(GetTransform(space) with { Rotation = rotation }, space);
+                SetTransform(GetTransform(space) with { Orientation = rotation }, space);
             }
                 break;
             default:
@@ -133,7 +134,7 @@ public class SceneComponent : Component, ISceneComponent
             case Space.World:
             {
                 var worldTransform = GetTransform(space);
-                worldTransform.Rotation = Rotation.Add(axis, delta);
+                worldTransform.Orientation = Rotation.Add(axis, delta);
                 SetTransform(worldTransform, space);
             }
                 break;
@@ -164,8 +165,8 @@ public class SceneComponent : Component, ISceneComponent
         switch (space)
         {
             case Space.Local:
-                Location = transform.Location;
-                Rotation = transform.Rotation;
+                Location = transform.Position;
+                Rotation = transform.Orientation;
                 Scale = transform.Scale;
                 break;
             case Space.World:
@@ -182,8 +183,8 @@ public class SceneComponent : Component, ISceneComponent
                     return;
                 }
 
-                Location = transform.Location;
-                Rotation = transform.Rotation;
+                Location = transform.Position;
+                Rotation = transform.Orientation;
                 Scale = transform.Scale;
             }
                 break;
@@ -197,7 +198,7 @@ public class SceneComponent : Component, ISceneComponent
         return space switch
         {
             Space.Local => Location,
-            Space.World => GetTransform(space).Location,
+            Space.World => GetTransform(space).Position,
             _ => throw new ArgumentOutOfRangeException(nameof(space), space, null)
         };
     }
@@ -207,7 +208,7 @@ public class SceneComponent : Component, ISceneComponent
         return space switch
         {
             Space.Local => Rotation,
-            Space.World => GetTransform(space).Rotation,
+            Space.World => GetTransform(space).Orientation,
             _ => throw new ArgumentOutOfRangeException(nameof(space), space, null)
         };
     }
@@ -229,8 +230,8 @@ public class SceneComponent : Component, ISceneComponent
             case Space.Local:
                 return new Transform
                 {
-                    Location = Location,
-                    Rotation = Rotation,
+                    Position = Location,
+                    Orientation = Rotation,
                     Scale = Scale
                 };
             case Space.World:
@@ -238,8 +239,8 @@ public class SceneComponent : Component, ISceneComponent
                 if (TransformParent == null)
                     return new Transform
                     {
-                        Location = Location,
-                        Rotation = Rotation,
+                        Position = Location,
+                        Orientation = Rotation,
                         Scale = Scale
                     };
 
@@ -266,10 +267,7 @@ public class SceneComponent : Component, ISceneComponent
     [PublicAPI]
     public ISceneComponent[] GetAttachedComponents()
     {
-        lock (_lock)
-        {
-            return _children.ToArray();
-        }
+        return _children.ToArray();
     }
 
     protected virtual void CollectSelf(CommandList commandList, Matrix4x4 transform)

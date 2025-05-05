@@ -3,16 +3,17 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
+
 namespace Rin.Engine.Views.Graphics.Passes;
 
 public class CreateImagesPass : IPass
 {
-    public SharedPassContext Context { get; set; }
-
     public CreateImagesPass(SharedPassContext context)
     {
         Context = context;
     }
+
+    public SharedPassContext Context { get; set; }
 
     public uint Id { get; set; }
     public bool IsTerminal => false;
@@ -26,7 +27,6 @@ public class CreateImagesPass : IPass
 
     public void PostAdd(IGraphBuilder builder)
     {
-        
     }
 
     public void Configure(IGraphConfig config)
@@ -42,14 +42,14 @@ public class CreateImagesPass : IPass
         var drawImage = graph.GetImage(Context.MainImageId);
         var copyImage = graph.GetImage(Context.CopyImageId);
         var stencilImage = graph.GetImage(Context.StencilImageId);
-        
+
         ResetStencilState(cmd);
 
         cmd
             .ClearColorImages(new Vector4(0.0f), ImageLayout.General, drawImage, copyImage)
             .ClearStencilImages(0, stencilImage.Layout, stencilImage);
     }
-    
+
     private static void ResetStencilState(VkCommandBuffer cmd,
         VkStencilFaceFlags faceMask = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK)
     {
@@ -60,5 +60,4 @@ public class CreateImagesPass : IPass
         vkCmdSetStencilOp(cmd, faceMask, VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
             VkStencilOp.VK_STENCIL_OP_KEEP, VkCompareOp.VK_COMPARE_OP_NEVER);
     }
-    
 }

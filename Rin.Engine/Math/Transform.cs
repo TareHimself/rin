@@ -1,37 +1,36 @@
 ﻿using System.Diagnostics.Contracts;
 using System.Numerics;
-using Rin.Engine.Extensions;
 
 namespace Rin.Engine.Math;
 
 public struct Transform()
 {
-    public Vector3 Location = new(0.0f);
-    public Quaternion Rotation = Quaternion.Identity;
-    public Vector3 Scale = new(1.0f);
+    public Vector3 Position = Vector3.Zero;
+    public Quaternion Orientation = Quaternion.Identity;
+    public Vector3 Scale = Vector3.One;
 
 
     public static Transform From(Matrix4x4 matrix)
     {
         var result = new Transform();
-        Matrix4x4.Decompose(matrix, out result.Scale, out result.Rotation, out result.Location);
+        Matrix4x4.Decompose(matrix, out result.Scale, out result.Orientation, out result.Position);
         return result;
     }
 
     [Pure]
     public Matrix4x4 ToMatrix()
     {
-        var rotation = Matrix4x4.CreateFromQuaternion(Rotation);
+        var rotation = Matrix4x4.CreateFromQuaternion(Orientation);
         var scale = Matrix4x4.CreateScale(Scale);
-        var translation = Matrix4x4.CreateTranslation(Location);
+        var translation = Matrix4x4.CreateTranslation(Position);
 
         return scale * rotation * translation;
     }
-    
+
     public void Deconstruct(out Vector3 location, out Quaternion rotation, out Vector3 scale)
     {
-        location = Location;
-        rotation = Rotation;
+        location = Position;
+        rotation = Orientation;
         scale = Scale;
     }
 

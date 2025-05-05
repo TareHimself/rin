@@ -4,10 +4,9 @@ namespace Rin.Engine.World.Graphics;
 
 public class CommandList
 {
+    [PublicAPI] public readonly List<LightInfo> Lights = [];
     [PublicAPI] public readonly List<SkinnedMeshInfo> SkinnedMeshes = [];
     [PublicAPI] public readonly List<StaticMeshInfo> StaticMeshes = [];
-
-    [PublicAPI] public readonly List<LightInfo> Lights = [];
 
     public CommandList AddLight(LightInfo lightInfo)
     {
@@ -20,7 +19,7 @@ public class CommandList
         StaticMeshes.Add(command);
         return this;
     }
-    
+
     public CommandList AddSkinned(SkinnedMeshInfo command)
     {
         SkinnedMeshes.Add(command);

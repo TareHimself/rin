@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using Rin.Engine.Graphics;
+﻿using Rin.Engine.Graphics;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Views.Graphics;

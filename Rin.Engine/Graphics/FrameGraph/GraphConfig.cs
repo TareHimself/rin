@@ -35,7 +35,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         var descriptor = new ImageResourceDescriptor(width, height, format, flags, initialLayout);
         var resourceId = builder.MakeId();
         Resources.Add(resourceId, descriptor);
-        UseImage(resourceId,initialLayout, ResourceUsage.Write);
+        UseImage(resourceId, initialLayout, ResourceUsage.Write);
         return resourceId;
     }
 
@@ -218,6 +218,5 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         public required ResourceType Type { get; set; }
         public ImageLayout ImageLayout { get; set; }
         public BufferStage BufferStage { get; set; }
-        
     }
 }

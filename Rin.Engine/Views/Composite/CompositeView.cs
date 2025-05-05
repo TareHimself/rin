@@ -69,7 +69,7 @@ public abstract class CompositeView : View
 
         return [];
     }
-    
+
     public override void SetSurface(Surface? surface)
     {
         base.SetSurface(surface);

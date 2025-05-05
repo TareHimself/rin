@@ -4,7 +4,6 @@ using Rin.Engine.Math;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
 using Rin.Engine.World.Actors;
-using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
 using Rin.Engine.World.Views;
 using rin.Examples.SceneTest.entities;
@@ -50,8 +49,8 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
         {
             var speed = 50.0f;
             var transform = camera.GetTransform(Space.World);
-            transform.Location += transform.Rotation.GetForward() * _forwardAxis * deltaTime * speed;
-            transform.Location += transform.Rotation.GetRight() * _rightAxis * deltaTime * speed;
+            transform.Position += transform.Orientation.GetForward() * _forwardAxis * deltaTime * speed;
+            transform.Position += transform.Orientation.GetRight() * _rightAxis * deltaTime * speed;
             Console.WriteLine("AXIS {0}", _forwardAxis);
             camera.SetTransform(transform, Space.World);
         }
@@ -62,7 +61,6 @@ public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camer
         base.OnKeyboard(e);
         if (e is { Key: InputKey.Space, State: InputState.Pressed })
         {
-            
             // var world = camera.GetTransform(Space.World);
             // world.Rotation = MathR.LookTowards(world.Location, new Vector3(8, 15, 0), MathR.Up);
             // camera.SetTransform(world, Space.World);

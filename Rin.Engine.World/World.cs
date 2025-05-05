@@ -1,8 +1,10 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.World.Actors;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Physics;
+using Rin.Engine.World.Physics.Bepu;
 using Rin.Engine.World.Systems;
 
 namespace Rin.Engine.World;
@@ -10,6 +12,7 @@ namespace Rin.Engine.World;
 public class World : IReceivesUpdate
 {
     private readonly Dictionary<string, Actor> _actors = [];
+    private readonly HashSet<IPhysicsComponent> _physicsComponents = [];
     private readonly List<ISystem> _tickableSystems = [];
     private IPhysicsSystem? _physicsSystem;
 
@@ -25,10 +28,13 @@ public class World : IReceivesUpdate
     public void Update(float deltaSeconds)
     {
         if (!Active) return;
+        Debug.Assert(_physicsSystem != null);
+        foreach (var physicsComponent in _physicsComponents) physicsComponent.PrePhysicsUpdate();
+
         _remainingPhysicsTime += deltaSeconds;
         while (_remainingPhysicsTime > PhysicsUpdateInterval)
         {
-            _physicsSystem?.Update(PhysicsUpdateInterval);
+            _physicsSystem.Update(PhysicsUpdateInterval);
             _remainingPhysicsTime -= PhysicsUpdateInterval;
         }
 
@@ -40,9 +46,19 @@ public class World : IReceivesUpdate
         }
     }
 
+    public void AddPhysicsComponent(IPhysicsComponent component)
+    {
+        _physicsComponents.Add(component);
+    }
+
+    public void RemovePhysicsComponent(IPhysicsComponent component)
+    {
+        _physicsComponents.Remove(component);
+    }
+
     protected virtual IPhysicsSystem CreatePhysicsSystem()
     {
-        return new Physics.Bepu.BepuPhysics();
+        return new BepuPhysicsSystem();
     }
 
     public IPhysicsSystem GetPhysicsSystem()
@@ -56,30 +72,22 @@ public class World : IReceivesUpdate
         if (Active) return;
         Active = true;
         _physicsSystem = CreatePhysicsSystem();
-        // _physicsTimer = new System.Timers.Timer(PhysicsUpdateInterval);
-        // _physicsTimer.Elapsed += (_,__) => _physicsSystem.Update(PhysicsUpdateInterval);
         foreach (var actor in GetActors()) actor.Start();
-        _physicsSystem.Start();
-        // _physicsTimer.Start();
     }
 
     public void Stop()
     {
         if (!Active) return;
         Active = false;
-        //_physicsTimer?.Stop();
         foreach (var actor in GetActors()) actor.Stop();
-        _physicsSystem?.Dispose();
+        _physicsSystem?.Destroy();
     }
 
     [PublicAPI]
     public Actor AddActor(Actor actor)
     {
-        lock (_actors)
-        {
-            _actors.Add(actor.Id, actor);
-            actor.World = this;
-        }
+        _actors.Add(actor.Id, actor);
+        actor.World = this;
 
         if (Active) actor.Start();
         return actor;
@@ -96,21 +104,15 @@ public class World : IReceivesUpdate
     [PublicAPI]
     public Actor[] GetActors()
     {
-        lock (_actors)
-        {
-            return _actors.Values.ToArray();
-        }
+        return _actors.Values.ToArray();
     }
 
     [PublicAPI]
     public IEnumerable<SceneComponent> GetRoots()
     {
-        lock (_actors)
-        {
-            foreach (var (key, value) in _actors)
-                if (value.RootComponent is { } component)
-                    yield return component;
-        }
+        foreach (var (key, value) in _actors)
+            if (value.RootComponent is { } component)
+                yield return component;
     }
 
     [PublicAPI]

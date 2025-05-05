@@ -8,9 +8,10 @@ namespace Rin.Engine.World.Components;
 
 public class SkinnedMeshComponent : SceneComponent
 {
-    public SkinnedMesh? Mesh { get; set; }
     public IMeshMaterial?[] Materials = [];
+    public SkinnedMesh? Mesh { get; set; }
     public IPoseSource? PoseSource { get; set; }
+
     protected override void CollectSelf(CommandList commandList, Matrix4x4 transform)
     {
         if (Mesh is not null && SGraphicsModule.Get().GetMeshFactory().GetMesh(Mesh.MeshId) is { } mesh)
@@ -23,8 +24,8 @@ public class SkinnedMeshComponent : SceneComponent
                 var material = lastMaterial = Materials.TryGet(i) ?? lastMaterial;
                 materials.Add(material);
             }
-            
-            commandList.AddSkinned(new SkinnedMeshInfo()
+
+            commandList.AddSkinned(new SkinnedMeshInfo
             {
                 Skeleton = Mesh.Skeleton,
                 Pose = PoseSource?.GetPose() ?? Mesh.Skeleton.BasePose,

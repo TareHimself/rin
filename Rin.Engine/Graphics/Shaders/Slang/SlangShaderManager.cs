@@ -3,34 +3,11 @@
 public class SlangShaderManager : IShaderManager
 {
     private readonly BackgroundTaskQueue _compileTasks = new();
-    private readonly Dictionary<string, SlangGraphicsShader> _graphicsShaders = [];
     private readonly Dictionary<string, SlangComputeShader> _computeShaders = [];
+    private readonly Dictionary<string, SlangGraphicsShader> _graphicsShaders = [];
     private readonly SlangSession _session;
 
-    
-    public static  IEnumerable<string> ImportFile(string filePath, HashSet<string> included)
-    {
-        using var dataStream = SEngine.Get().Sources.Read(filePath);
-        using var reader = new StreamReader(dataStream);
-        while (reader.ReadLine() is { } line)
-            if (line.StartsWith("#include"))
-            {
-                var includeString = line[(line.IndexOf('"') + 1)..line.LastIndexOf('"')];
-                if (included.Add(includeString))
-                {
-                    foreach(var importedLine in ImportFile(includeString, included))
-                    {
-                        yield return importedLine;
-                    }
-                }
-            }
-            else
-            {
-                yield return line;
-            }
-    }
-    
-    
+
     public SlangShaderManager()
     {
         using var builder = new SlangSessionBuilder();
@@ -43,14 +20,8 @@ public class SlangShaderManager : IShaderManager
     {
         GC.SuppressFinalize(this);
         _compileTasks.Dispose();
-        foreach (var shader in _graphicsShaders.Values)
-        {
-            shader.Dispose();
-        }
-        foreach (var shader in _computeShaders.Values)
-        {
-            shader.Dispose();
-        }
+        foreach (var shader in _graphicsShaders.Values) shader.Dispose();
+        foreach (var shader in _computeShaders.Values) shader.Dispose();
         _graphicsShaders.Clear();
         _computeShaders.Clear();
         _session.Dispose();
@@ -90,7 +61,26 @@ public class SlangShaderManager : IShaderManager
             return shader;
         }
     }
-    
+
+
+    public static IEnumerable<string> ImportFile(string filePath, HashSet<string> included)
+    {
+        using var dataStream = SEngine.Get().Sources.Read(filePath);
+        using var reader = new StreamReader(dataStream);
+        while (reader.ReadLine() is { } line)
+            if (line.StartsWith("#include"))
+            {
+                var includeString = line[(line.IndexOf('"') + 1)..line.LastIndexOf('"')];
+                if (included.Add(includeString))
+                    foreach (var importedLine in ImportFile(includeString, included))
+                        yield return importedLine;
+            }
+            else
+            {
+                yield return line;
+            }
+    }
+
     public SlangSession GetSession()
     {
         return _session;

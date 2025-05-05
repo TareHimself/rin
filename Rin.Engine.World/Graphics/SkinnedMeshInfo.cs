@@ -9,9 +9,9 @@ namespace Rin.Engine.World.Graphics;
 /// </summary>
 public class SkinnedMeshInfo : IMeshCommand
 {
-    public required Matrix4x4 Transform;
     public required Pose Pose;
     public required Skeleton Skeleton;
+    public required Matrix4x4 Transform;
     public bool CastShadow { get; set; }
     public required int[] SurfaceIndices { get; init; }
     public required IMeshMaterial[] Materials { get; init; }

@@ -8,15 +8,15 @@ namespace Rin.Engine;
 
 public abstract class Profiling : IStaticProfiler
 {
-    #if RIN_PROFILING
-    class ProfilingInfo
+#if RIN_PROFILING
+    private class ProfilingInfo
     {
-        public readonly Stopwatch Watch = new Stopwatch();
+        public readonly Stopwatch Watch = new();
         public TimeSpan LastElapsedTime = TimeSpan.Zero;
     }
 
     private static readonly ConcurrentDictionary<string, ProfilingInfo> ProfilingInfos = [];
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Begin(string id)
     {
@@ -28,67 +28,60 @@ public abstract class Profiling : IStaticProfiler
         if (info == null)
         {
             info = new ProfilingInfo();
-            ProfilingInfos.AddOrUpdate(id,(_) => info,(_,__) => info);
+            ProfilingInfos.AddOrUpdate(id, _ => info, (_, __) => info);
         }
-        
+
         info.Watch.Restart();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void End(string id)
     {
-        if (!ProfilingInfos.TryGetValue(id, out var info))
-        {
-            throw new Exception($"Begin was never called for {id}");
-        }
-        
+        if (!ProfilingInfos.TryGetValue(id, out var info)) throw new Exception($"Begin was never called for {id}");
+
         info.Watch.Stop();
         info.LastElapsedTime = info.Watch.Elapsed;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Measure(string id,Action? action)
+    public static void Measure(string id, Action? action)
     {
         if (action == null) return;
         Begin(id);
         action.Invoke();
         End(id);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Measure<T>(string id,Func<T> action)
+    public static T Measure<T>(string id, Func<T> action)
     {
         Begin(id);
         var result = action();
         End(id);
         return result;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TimeSpan GetElapsed(string id)
     {
-        if (!ProfilingInfos.TryGetValue(id, out var info))
-        {
-            throw new Exception($"no profiling info found for {id}");
-        }
+        if (!ProfilingInfos.TryGetValue(id, out var info)) throw new Exception($"no profiling info found for {id}");
 
         return info.LastElapsedTime;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TimeSpan GetElapsedOrZero(string id)
     {
-        if (!ProfilingInfos.TryGetValue(id, out var info))
-        {
-            return TimeSpan.Zero;
-        }
+        if (!ProfilingInfos.TryGetValue(id, out var info)) return TimeSpan.Zero;
 
         return info.LastElapsedTime;
     }
 
-    public static string[] GetIds() => ProfilingInfos.Keys.ToArray();
-    #else
-    
+    public static string[] GetIds()
+    {
+        return ProfilingInfos.Keys.ToArray();
+    }
+#else
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Begin(string id)
     {

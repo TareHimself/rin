@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Rin.Engine.Graphics.Descriptors;
@@ -12,8 +11,8 @@ public class SlangComputeShader : IComputeShader
     private readonly Task _compileTask;
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
     private readonly string _filePath;
-    private VkShaderEXT _shader;
     private VkPipelineLayout _pipelineLayout;
+    private VkShaderEXT _shader;
 
     public SlangComputeShader(SlangShaderManager manager, string filePath)
     {
@@ -98,7 +97,8 @@ public class SlangComputeShader : IComputeShader
 
             if (reflectionData == null) throw new ShaderCompileException("Failed to parse reflection data.");
 
-            var entryPointReflection = reflectionData.EntryPoints.FirstOrDefault() ?? throw new ShaderCompileException("Missing entry point");
+            var entryPointReflection = reflectionData.EntryPoints.FirstOrDefault() ??
+                                       throw new ShaderCompileException("Missing entry point");
 #if DEBUG
             Debug.Assert(entryPointReflection.Stage == "compute");
 #endif
@@ -150,20 +150,15 @@ public class SlangComputeShader : IComputeShader
                     }
                     else
                     {
-                        var typeName = parameter.Type.BaseShape ?? parameter.Type.ElementType?.BaseShape ?? parameter.Type.Kind ?? "";
+                        var typeName = parameter.Type.BaseShape ??
+                                       parameter.Type.ElementType?.BaseShape ?? parameter.Type.Kind ?? "";
                         uint size = 0;
                         if (typeName == "texture2D")
-                        {
                             bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                        }
-                        else if(typeName == "shaderStorageBuffer")
-                        {
+                        else if (typeName == "shaderStorageBuffer")
                             bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                        }
-                        else if(typeName == "structuredBuffer")
-                        {
+                        else if (typeName == "structuredBuffer")
                             bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                        }
 
                         Resources.Add(name, new Resource
                         {

@@ -4,7 +4,7 @@ using Rin.Engine.Graphics.FrameGraph;
 
 namespace Rin.Engine.Views.Graphics;
 
-public class WindowSurfacePass(Surface surface, Vector2 drawSize,SharedPassContext passContext) : IPass
+public class WindowSurfacePass(Surface surface, Vector2 drawSize, SharedPassContext passContext) : IPass
 {
     public void PreAdd(IGraphBuilder builder)
     {
@@ -18,7 +18,7 @@ public class WindowSurfacePass(Surface surface, Vector2 drawSize,SharedPassConte
 
     public void Configure(IGraphConfig config)
     {
-        config.ReadImage(passContext.MainImageId,ImageLayout.ShaderReadOnly);
+        config.ReadImage(passContext.MainImageId, ImageLayout.ShaderReadOnly);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)

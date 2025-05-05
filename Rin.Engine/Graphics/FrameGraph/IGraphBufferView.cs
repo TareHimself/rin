@@ -1,7 +1,7 @@
 ﻿namespace Rin.Engine.Graphics.FrameGraph;
 
 /// <summary>
-/// Not currently in use
+///     Not currently in use
 /// </summary>
 public interface IGraphBufferView : IDeviceBufferView
 {

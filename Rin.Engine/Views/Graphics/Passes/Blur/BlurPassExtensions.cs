@@ -5,7 +5,8 @@ namespace Rin.Engine.Views.Graphics.Passes.Blur;
 
 public static class BlurPassExtensions
 {
-    public static CommandList AddBlur(this CommandList self,in Matrix4x4 transform,in Vector2 size, float strength = 5.0f,
+    public static CommandList AddBlur(this CommandList self, in Matrix4x4 transform, in Vector2 size,
+        float strength = 5.0f,
         float radius = 5.0f, Vector4? tint = null)
     {
         self.Add(new ReadBackCommand());

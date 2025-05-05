@@ -177,7 +177,7 @@ public static class MathExtensions
             W = self["W"]?.GetValue<float>() ?? 0
         };
     }
-    
+
     public static Matrix4x4 ToTranslationMatrix(this in Vector3 self)
     {
         return Matrix4x4.CreateTranslation(self);
@@ -345,7 +345,7 @@ public static class MathExtensions
     {
         return MathR.LookTowards(Vector3.Zero, self, MathR.Up);
     }
-    
+
     [Pure]
     public static Extent2D ToExtent(in this Vector2 self)
     {

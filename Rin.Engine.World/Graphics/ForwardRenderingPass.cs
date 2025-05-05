@@ -2,7 +2,6 @@
 using JetBrains.Annotations;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Math;
 using Rin.Engine.World.Components;
 using TerraFX.Interop.Vulkan;
 
@@ -36,26 +35,23 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
 
     public void PostAdd(IGraphBuilder builder)
     {
-        
     }
 
     public void Configure(IGraphConfig config)
     {
         LightsBufferId = _collectPass.Lights.Length > 0
-            ? config.CreateBuffer<LightInfo>(_collectPass.Lights.Length,BufferStage.Graphics)
+            ? config.CreateBuffer<LightInfo>(_collectPass.Lights.Length, BufferStage.Graphics)
             : 0;
         SceneBufferId = config.CreateBuffer<SceneInfo>(BufferStage.Graphics);
         var materialBufferSize = _collectPass.ProcessedGeometry.Aggregate((ulong)0,
             (total, geometryDrawCommand) => total + geometryDrawCommand.Material.ColorPass.GetRequiredMemory());
         MaterialBufferId = materialBufferSize > 0 ? config.CreateBuffer(materialBufferSize, BufferStage.Graphics) : 0;
         var (width, height) = _size;
-        OutputImageId = config.CreateImage(width, height, ImageFormat.RGBA32,ImageLayout.ColorAttachment);
-        DepthImageId = config.ReadImage(_collectPass.DepthImageId,ImageLayout.DepthAttachment);
-        
+        OutputImageId = config.CreateImage(width, height, ImageFormat.RGBA32, ImageLayout.ColorAttachment);
+        DepthImageId = config.ReadImage(_collectPass.DepthImageId, ImageLayout.DepthAttachment);
+
         if (_collectPass.SkinningOutputBufferId > 0)
-        {
             config.ReadBuffer(_collectPass.SkinningOutputBufferId, BufferStage.Graphics);
-        }
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -75,7 +71,7 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
             .DisableStencilTest(false)
-            .SetCullMode(VkCullModeFlags.VK_CULL_MODE_NONE, VkFrontFace.VK_FRONT_FACE_CLOCKWISE)
+            .SetCullMode(VkCullModeFlags.VK_CULL_MODE_BACK_BIT, VkFrontFace.VK_FRONT_FACE_CLOCKWISE)
             .EnableDepthTest(false, VkCompareOp.VK_COMPARE_OP_GREATER_OR_EQUAL)
             .DisableBlending(0, 1)
             .SetVertexInput([], [])
@@ -107,13 +103,14 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
             View = sceneFrame.View,
             Projection = sceneFrame.Projection,
             ViewProjection = sceneFrame.ViewProjection,
-            CameraPosition = _collectPass.CameraTransform.Location,
+            CameraPosition = _collectPass.CameraTransform.Position,
             NumLights = _collectPass.Lights.Length,
             LightsAddress = lightsAddress
         });
 
 
-        foreach (var geometryInfos in _collectPass.ProcessedGeometry.GroupBy(c => c,new ProcessedMesh.CompareByIndexAndMaterial()))
+        foreach (var geometryInfos in _collectPass.ProcessedGeometry.GroupBy(c => c,
+                     new ProcessedMesh.CompareByIndexAndMaterial()))
         {
             var infos = geometryInfos.ToArray();
             var first = infos.First();

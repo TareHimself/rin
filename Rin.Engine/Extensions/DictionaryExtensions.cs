@@ -17,5 +17,4 @@ public static class DictionaryExtensions
             if (predicate(key))
                 target.Remove(key);
     }
-    
 }
