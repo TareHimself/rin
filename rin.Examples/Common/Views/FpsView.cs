@@ -8,7 +8,8 @@ namespace rin.Examples.Common.Views;
 
 public class FpsView : TextBox
 {
-    private readonly Averaged<double> _averageFps = new(0, 300);
+    private static uint NumAveragedSamples = 8000;
+    private readonly Averaged<double> _averageFps = new(0, NumAveragedSamples);
     private readonly AveragedStatCategory _collectTime = new("Engine.Collect");
     private readonly Dispatcher _dispatcher = new();
     private readonly AveragedStatCategory _graphCompileTime = new("Engine.Rendering.Graph.Compile");
@@ -50,7 +51,7 @@ public class FpsView : TextBox
 
     private class AveragedStatCategory(string statId)
     {
-        private readonly Averaged<double> _stat = new(0, 300);
+        private readonly Averaged<double> _stat = new(0, NumAveragedSamples);
 
         public void Update()
         {

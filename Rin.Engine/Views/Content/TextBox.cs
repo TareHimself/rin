@@ -20,12 +20,7 @@ public class TextBox : ContentView
     private CachedQuadLayout[]? _cachedLayouts;
 
     private string _content = string.Empty;
-
     private string _fontFamily = "Noto Sans";
-    // protected float LineHeight => CurrentFont?.FontMetrics is { } metrics
-    //     ? ((float)metrics.HorizontalMetrics.LineHeight / metrics.UnitsPerEm)
-    //     : 0;
-
     private IFontManager _fontManager = SViewsModule.Get().GetFontManager();
     private float _fontSize = 100.0f;
     private bool _wrapContent;
@@ -41,8 +36,7 @@ public class TextBox : ContentView
     [PublicAPI] protected IFont? CurrentFont { get; private set; }
 
     protected float LineHeight => CurrentFont?.GetLineHeight(FontSize) ?? 0;
-
-
+    
     [PublicAPI] public Color ForegroundColor { get; set; } = Color.White;
 
     [PublicAPI] public Color BackgroundColor { get; set; } = Color.White with { A = 0.0f };

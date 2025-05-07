@@ -1,6 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.Numerics;
+using System.Text;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Views.Sdf;
@@ -251,8 +253,8 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
     {
         if (_collection.TryGet(name, out var family))
         {
-            if (_fonts.ContainsKey(family)) return _fonts[family];
-            var insert = new SixLaborsFont(family);
+            if (_fonts.TryGetValue(family, out var font)) return font;
+            var insert = new SixLaborsFont(family,this);
             _fonts.AddOrUpdate(family, insert, (k, i) => insert);
             return insert;
         }
@@ -260,29 +262,46 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
         return null;
     }
 
-    public GlyphRect[] MeasureText(IFont font, ReadOnlySpan<char> text, float size,
+    private Dictionary<string, GlyphBounds[]> _boundsCache = [];
+    private GlyphBounds[] GetCharacterBounds(SixLaborsFont font,in ReadOnlySpan<char> text, float size,
         float maxWidth = float.PositiveInfinity)
     {
-        if (font is SixLaborsFont asFont)
+        
+        // var key = new StringBuilder().Append(size.ToString(CultureInfo.InvariantCulture)).Append('|').Append(maxWidth.ToString(CultureInfo.InvariantCulture)).Append('|').Append(text).ToString();
+        // {
+        //     if(_boundsCache.TryGetValue(key, out var bounds)) return bounds;
+        // }
         {
-            var actualFont = asFont.Family.CreateFont(size);
-
+            var actualFont = font.Family.CreateFont(size);
+            
             var opts = new TextOptions(actualFont)
             {
                 WrappingLength = maxWidth < float.PositiveInfinity ? maxWidth : -1
             };
 
-            TextMeasurer.TryMeasureCharacterBounds(text, opts, out var bounds);
+            TextMeasurer.TryMeasureCharacterBounds(text, opts, out var boundsSpan);
 
-            return bounds.ToArray().Select(c => new GlyphRect
-            {
-                Character = c.Codepoint.ToString().First(),
-                Position = new Vector2(c.Bounds.X, c.Bounds.Y),
-                Size = new Vector2(c.Bounds.Width, c.Bounds.Height)
-            }).ToArray();
+            var bounds = boundsSpan.ToArray();
+            
+            // _boundsCache[key] = bounds;
+
+            return bounds;
         }
+    }
 
-        throw new Exception("Unknown font type");
+    public GlyphRect[] MeasureText(IFont font, in ReadOnlySpan<char> text, float size,
+        float maxWidth = float.PositiveInfinity)
+    {
+        Debug.Assert(font is SixLaborsFont);
+        var myFont = (SixLaborsFont)font;
+        var bounds = GetCharacterBounds(myFont, text, size, maxWidth);
+        
+        return bounds.ToArray().Select(c => new GlyphRect
+        {
+            Character = c.Codepoint.ToString().First(),
+            Position = new Vector2(c.Bounds.X, c.Bounds.Y),
+            Size = new Vector2(c.Bounds.Width, c.Bounds.Height)
+        }).ToArray();
     }
 
     public void Dispose()

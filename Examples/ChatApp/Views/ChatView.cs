@@ -2,6 +2,7 @@
 using Rin.Engine.Views;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Content;
+using Rin.Engine.Views.Graphics.Quads;
 using Rin.Engine.Views.Layouts;
 using Rect = Rin.Engine.Views.Composite.Rect;
 
@@ -36,7 +37,13 @@ public class ChatView : FlexBox
         [
             new FlexBoxSlot
             {
-                Child = _chatItems,
+                Child = new Canvas
+                {
+                    Paint = (self, transform, cmds) =>
+                    {
+                        cmds.AddText("Noto Sans","Hello World",transform,fontSize: 60.0f); 
+                    }
+                },//_chatItems,
                 Fit = CrossFit.Fill,
                 Flex = 1
             },

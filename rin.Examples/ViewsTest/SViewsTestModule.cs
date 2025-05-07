@@ -41,7 +41,7 @@ public class SViewsTestModule : IModule
             Visible = true,
             Decorated = true,
             Focused = true,
-            Transparent = true
+            Transparent = false
         });
 
 
@@ -377,7 +377,7 @@ public class SViewsTestModule : IModule
                 {
                     Visible = true,
                     Decorated = true,
-                    Transparent = true,
+                    Transparent = false,
                     Focused = false
                 });
 

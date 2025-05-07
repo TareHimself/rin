@@ -4,9 +4,10 @@ namespace Rin.Engine.Views.Font;
 
 public class SixLaborsFont : IFont
 {
-    public SixLaborsFont(FontFamily font)
+    public SixLaborsFont(FontFamily font,IFontManager fontManager)
     {
         Family = font;
+        FontManager = fontManager;
     }
 
 
@@ -21,4 +22,6 @@ public class SixLaborsFont : IFont
             ? metrics.HorizontalMetrics.AdvanceHeightMax * 64 / metrics.ScaleFactor * fontSize
             : 0;
     }
+
+    public IFontManager FontManager { get; }
 }

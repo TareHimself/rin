@@ -36,7 +36,7 @@ public interface IFontManager : IDisposable
 
     public IFont? GetFont(string name);
 
-    public GlyphRect[] MeasureText(IFont font, ReadOnlySpan<char> text, float size,
+    public GlyphRect[] MeasureText(IFont font, in ReadOnlySpan<char> text, float size,
         float maxWidth = float.PositiveInfinity);
 
     public float GetPixelRange();

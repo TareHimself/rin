@@ -17,7 +17,10 @@ public class MainView : FlexBox
             },
             new FlexBoxSlot
             {
-                Child = new ChatView(),
+                Child = new Rect
+                {
+                    Child = new ChatView()
+                },
                 Flex = 1,
                 Fit = CrossFit.Fill
             }
