@@ -1,6 +1,6 @@
 ﻿namespace Rin.Engine.Graphics.Descriptors;
 
-public enum ImageType
+public enum DescriptorImageType
 {
     Sampled,
     Storage

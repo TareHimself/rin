@@ -1,14 +1,16 @@
-﻿namespace Rin.Engine.Graphics.Descriptors;
+﻿using Rin.Engine.Graphics.Textures;
+
+namespace Rin.Engine.Graphics.Descriptors;
 
 public struct ImageWrite
 {
     public readonly IDeviceImage Image;
     public readonly ImageLayout Layout;
-    public readonly ImageType Type;
+    public readonly DescriptorImageType Type;
     public SamplerSpec Sampler;
     public uint Index = 0;
 
-    public ImageWrite(IDeviceImage image, ImageLayout layout, ImageType type, SamplerSpec? spec = null)
+    public ImageWrite(IDeviceImage image, ImageLayout layout, DescriptorImageType type, SamplerSpec? spec = null)
     {
         Image = image;
         Layout = layout;
@@ -20,13 +22,13 @@ public struct ImageWrite
         });
     }
 
-    public ImageWrite(int textureId)
+    public ImageWrite(in TextureHandle handle)
     {
-        if (SGraphicsModule.Get().GetTextureFactory().GetTexture(textureId) is { } boundTexture)
+        if (SGraphicsModule.Get().GetTextureFactory().GetTexture(handle) is { } boundTexture)
         {
             Image = boundTexture.Image!;
             Layout = ImageLayout.ShaderReadOnly;
-            Type = ImageType.Sampled;
+            Type = DescriptorImageType.Sampled;
             Sampler = new SamplerSpec
             {
                 Filter = boundTexture.Filter,
@@ -35,7 +37,7 @@ public struct ImageWrite
         }
         else
         {
-            throw new Exception($"Invalid Texture Id [{textureId}]");
+            throw new Exception($"Invalid Texture Id [{handle}]");
         }
     }
 }

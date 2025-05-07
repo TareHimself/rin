@@ -14,9 +14,9 @@ public class TextureFactory : ITextureFactory
         new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1.0f)
     ], VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
-    private readonly HashSet<int> _availableIndices = [];
+    private IdFactory _imageIdFactory = new IdFactory();
     private readonly DescriptorSet _descriptorSet;
-    private readonly Dictionary<int, TaskCompletionSource> _pendingTextures = [];
+    private readonly Dictionary<TextureHandle, TaskCompletionSource> _pendingTextures = [];
     private readonly object _sync = new();
     private readonly List<Texture> _textures = [];
     private uint _count;
@@ -64,6 +64,7 @@ public class TextureFactory : ITextureFactory
         }
 
         _textures.Add(new Texture());
+        _imageIdFactory.NewId();
 
         LoadDefaultTexture().ConfigureAwait(false);
     }
@@ -73,63 +74,61 @@ public class TextureFactory : ITextureFactory
         return _descriptorSet;
     }
 
-    public Pair<int, Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
+    public Pair<TextureHandle, Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture")
     {
         // var image = await SGraphicsModule.Get().CreateImage(data, size, format,
         //     VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT, mips, filter, debugName);
-        var boundText = new Texture(0, filter, tiling, mips, debugName)
+        var boundText = new Texture(TextureHandle.InvalidImage, filter, tiling, mips, debugName)
         {
             Uploading = true
         };
 
-        int textureId;
+        TextureHandle textureHandle;
         var completionSource = new TaskCompletionSource();
         var task = completionSource.Task;
         lock (_sync)
         {
-            if (_availableIndices.Count == 0)
+            textureHandle = new TextureHandle(ImageType.Image,_imageIdFactory.NewId(out var addToArray));
+            if (addToArray)
             {
                 _textures.Add(boundText);
-                textureId = _textures.Count - 1;
             }
             else
             {
-                textureId = _availableIndices.First();
-                _availableIndices.Remove(textureId);
-                _textures[textureId] = boundText;
+                _textures[textureHandle.Id] = boundText;
             }
 
-            _pendingTextures.Add(textureId, completionSource);
-            boundText.Id = textureId;
+            _pendingTextures.Add(textureHandle, completionSource);
+            boundText.Handle = textureHandle;
         }
 
         Task.Run(() => AsyncCreateTexture(boundText, completionSource, data, size, format, filter, mips, debugName))
             .ConfigureAwait(false);
 
-        return new Pair<int, Task>(textureId, task);
+        return new Pair<TextureHandle, Task>(textureHandle, task);
     }
 
-    public Task? GetPendingTexture(int textureId)
+    public Task? GetPendingTexture(in TextureHandle textureHandle)
     {
         lock (_sync)
         {
-            if (_pendingTextures.TryGetValue(textureId, out var src)) return src.Task;
+            if (_pendingTextures.TryGetValue(textureHandle, out var src)) return src.Task;
         }
 
         return null;
     }
 
-    public bool IsTextureReady(int textureId)
+    public bool IsTextureReady(in TextureHandle textureHandle)
     {
         lock (_sync)
         {
-            return _textures[textureId].Uploaded;
+            return _textures[textureHandle.Id].Uploaded;
         }
     }
 
-    public void FreeTextures(params int[] textureIds)
+    public void FreeTextures(params TextureHandle[] textureIds)
     {
         lock (_sync)
         {
@@ -144,13 +143,13 @@ public class TextureFactory : ITextureFactory
 
             foreach (var textureId in textureIds)
             {
-                if (textureId == 0) continue;
+                if (textureId.Id == 0) continue;
 
-                var info = _textures[textureId];
+                var info = _textures[textureId.Id];
 
                 if (info.Uploading)
                 {
-                    _textures[textureId] = new Texture();
+                    _textures[textureId.Id] = new Texture();
                     _pendingTextures[textureId].SetCanceled();
                     _pendingTextures.Remove(textureId);
                     continue;
@@ -159,13 +158,13 @@ public class TextureFactory : ITextureFactory
                 if (!info.Uploaded) continue;
                 _count--;
                 info.Image?.Dispose();
-                _textures[textureId] = new Texture();
-                _availableIndices.Add(textureId);
-
+                _textures[textureId.Id] = new Texture();
+                _imageIdFactory.FreeId(textureId.Id);
+                
                 if (defaultTexture != null)
-                    writes.Add(new ImageWrite(defaultTexture, ImageLayout.ShaderReadOnly, ImageType.Sampled, sampler)
+                    writes.Add(new ImageWrite(defaultTexture, ImageLayout.ShaderReadOnly, Descriptors.DescriptorImageType.Sampled, sampler)
                     {
-                        Index = (uint)textureId
+                        Index = (uint)textureId.Id
                     });
             }
 
@@ -173,23 +172,22 @@ public class TextureFactory : ITextureFactory
         }
     }
 
-    public ITexture? GetTexture(int textureId)
+    public ITexture? GetTexture(TextureHandle textureHandle)
     {
-        return IsTextureIdValid(textureId) ? _textures[textureId] : null;
+        return IsHandleValid(textureHandle) ? _textures[textureHandle.Id] : null;
     }
 
-    public IDeviceImage? GetTextureImage(int textureId)
+    public IDeviceImage? GetTextureImage(TextureHandle textureHandle)
     {
-        return GetTexture(textureId)?.Image;
+        return GetTexture(textureHandle)?.Image;
     }
 
-    public bool IsTextureIdValid(int textureId)
+    public bool IsHandleValid(in TextureHandle textureHandle)
     {
-        if (textureId < 0) return false;
-
-        if (_availableIndices.Contains(textureId)) return false;
-
-        return textureId < _textures.Count;
+        // 0 is reserved
+        if(textureHandle.Id == 0) return false;
+        
+        return !_imageIdFactory.IsFree(textureHandle.Id);
     }
 
     public uint GetMaxTextures()
@@ -231,7 +229,7 @@ public class TextureFactory : ITextureFactory
         lock (_sync)
         {
             // In-case the texture was disposed before we finished creating the image
-            if (_textures[boundText.Id] != boundText)
+            if (_textures[boundText.Handle.Id] != boundText)
             {
                 if (!completionSource.Task.IsCanceled) completionSource.SetCanceled();
                 image.Dispose();
@@ -239,7 +237,7 @@ public class TextureFactory : ITextureFactory
             }
 
             boundText.Image = image;
-            UpdateTextures(boundText.Id);
+            UpdateTextures(boundText.Handle);
             completionSource.SetResult();
         }
     }
@@ -277,7 +275,7 @@ public class TextureFactory : ITextureFactory
 
             if (info?.Uploaded == true && i != 0) continue;
 
-            writes.Add(new ImageWrite(tex.Image, ImageLayout.ShaderReadOnly, ImageType.Sampled, sampler)
+            writes.Add(new ImageWrite(tex.Image, ImageLayout.ShaderReadOnly, Descriptors.DescriptorImageType.Sampled, sampler)
             {
                 Index = (uint)i
             });
@@ -288,22 +286,22 @@ public class TextureFactory : ITextureFactory
         tex.Uploaded = true;
     }
 
-    private void UpdateTextures(params int[] textureIds)
+    private void UpdateTextures(params TextureHandle[] textureIds)
     {
         List<ImageWrite> writes = [];
         List<Texture> infos = [];
         foreach (var textureId in textureIds)
         {
-            var info = _textures[textureId];
+            var info = _textures[textureId.Id];
             if (info.Uploaded || info.Image is null) continue;
 
-            writes.Add(new ImageWrite(info.Image, ImageLayout.ShaderReadOnly, ImageType.Sampled, new SamplerSpec
+            writes.Add(new ImageWrite(info.Image, ImageLayout.ShaderReadOnly, Descriptors.DescriptorImageType.Sampled, new SamplerSpec
             {
                 Filter = info.Filter,
                 Tiling = info.Tiling
             })
             {
-                Index = (uint)textureId
+                Index = (uint)textureId.Id
             });
 
             infos.Add(info);

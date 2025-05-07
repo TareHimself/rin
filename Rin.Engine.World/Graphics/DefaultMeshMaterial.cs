@@ -2,6 +2,7 @@
 using JetBrains.Annotations;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
+using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Math;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -19,19 +20,19 @@ public class DefaultMeshMaterial : IMeshMaterial
 
     [PublicAPI] public Vector3 Color { get; set; } = new(1.0f);
 
-    [PublicAPI] public int ColorTextureId { get; set; }
+    [PublicAPI] public TextureHandle ColorTextureId { get; set; }
 
-    [PublicAPI] public int NormalTextureId { get; set; } = -1;
+    [PublicAPI] public TextureHandle NormalTextureId { get; set; } = TextureHandle.InvalidImage;
     [PublicAPI] public float Metallic { get; set; }
-    [PublicAPI] public int MetallicTextureId { get; set; } = -1;
+    [PublicAPI] public TextureHandle MetallicTextureId { get; set; } = TextureHandle.InvalidImage;
 
     [PublicAPI] public float Specular { get; set; }
 
-    [PublicAPI] public int SpecularTextureId { get; set; } = -1;
+    [PublicAPI] public TextureHandle SpecularTextureId { get; set; } = TextureHandle.InvalidImage;
     [PublicAPI] public float Roughness { get; set; }
-    [PublicAPI] public int RoughnessTextureId { get; set; } = -1;
+    [PublicAPI] public TextureHandle RoughnessTextureId { get; set; } = TextureHandle.InvalidImage;
     [PublicAPI] public float Emissive { get; set; }
-    [PublicAPI] public int EmissiveTextureId { get; set; } = -1;
+    [PublicAPI] public TextureHandle EmissiveTextureId { get; set; } = TextureHandle.InvalidImage;
 
     public static DefaultMeshMaterial DefaultMesh => _defaultInstance ??= new DefaultMeshMaterial();
 
@@ -99,17 +100,17 @@ public class DefaultMeshMaterial : IMeshMaterial
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress(),
-                BaseColorTextureId = meshMaterial.ColorTextureId,
+                BaseColorTextureId = meshMaterial.ColorTextureId.Id,
                 BaseColor = meshMaterial.Color,
-                NormalTextureId = meshMaterial.NormalTextureId,
+                NormalTextureId = meshMaterial.NormalTextureId.Id,
                 Metallic = meshMaterial.Metallic,
-                MetallicTextureId = meshMaterial.MetallicTextureId,
+                MetallicTextureId = meshMaterial.MetallicTextureId.Id,
                 Specular = meshMaterial.Specular,
-                SpecularTextureId = meshMaterial.SpecularTextureId,
+                SpecularTextureId = meshMaterial.SpecularTextureId.Id,
                 Roughness = meshMaterial.Roughness,
-                RoughnessTextureId = meshMaterial.RoughnessTextureId,
+                RoughnessTextureId = meshMaterial.RoughnessTextureId.Id,
                 Emissive = meshMaterial.Emissive,
-                EmissiveTextureId = meshMaterial.EmissiveTextureId
+                EmissiveTextureId = meshMaterial.EmissiveTextureId.Id
             };
             view.Write(data);
         }

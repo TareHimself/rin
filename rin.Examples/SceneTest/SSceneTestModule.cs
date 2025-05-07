@@ -2,6 +2,7 @@
 using Rin.Engine;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Math;
 using Rin.Engine.Views;
@@ -238,7 +239,7 @@ public class SSceneTestModule : IModule
     {
     }
 
-    public static async Task<int> LoadTexture(string path)
+    public static async Task<TextureHandle> LoadTexture(string path)
     {
         using var imgData = await Image.LoadAsync<Rgba32>(path);
         using var buffer = imgData.ToBuffer();

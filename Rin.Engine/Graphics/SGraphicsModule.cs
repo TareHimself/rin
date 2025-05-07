@@ -402,7 +402,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     /// <param name="mips"></param>
     /// <param name="debugName"></param>
     /// <returns></returns>
-    public Pair<int, Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
+    public Pair<TextureHandle, Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
         ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture")
     {

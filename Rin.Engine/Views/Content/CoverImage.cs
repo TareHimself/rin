@@ -16,7 +16,7 @@ public class CoverImage : Image
         return base.LayoutContent(availableSpace);
     }
 
-    protected override void DrawImage(int textureId, Matrix4x4 transform, CommandList commands)
+    protected override void DrawImage(in TextureHandle textureId, Matrix4x4 transform, CommandList commands)
     {
         var contentSize = GetContentSize();
         var fitSize = Fitter.ComputeCoverSize(contentSize, GetDesiredContentSize());

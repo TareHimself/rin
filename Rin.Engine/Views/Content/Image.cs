@@ -14,10 +14,10 @@ namespace Rin.Engine.Views.Content;
 /// </summary>
 public class Image : ContentView
 {
-    private int _textureId = -1;
+    private TextureHandle _textureId = TextureHandle.InvalidImage;
 
     [PublicAPI]
-    public int TextureId
+    public TextureHandle TextureId
     {
         get => _textureId;
         set
@@ -61,10 +61,10 @@ public class Image : ContentView
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        if (TextureId != -1) DrawImage(TextureId, transform, commands);
+        if (TextureId.IsValid()) DrawImage(TextureId, transform, commands);
     }
 
-    protected virtual void DrawImage(int textureId, Matrix4x4 transform, CommandList commands)
+    protected virtual void DrawImage(in TextureHandle textureId, Matrix4x4 transform, CommandList commands)
     {
         commands.AddTexture(textureId, transform, GetContentSize(), Tint, null,
             BorderRadius);

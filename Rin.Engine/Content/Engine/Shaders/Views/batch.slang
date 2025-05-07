@@ -98,7 +98,7 @@ struct Primitive {
 
 struct Texture {
     Quad super;
-    int textureId;
+    TextureHandle textureHandle;
     float4 tint;
     float4 uv;
     float4 borderRadius;
@@ -106,7 +106,7 @@ struct Texture {
 
 struct Mtsdf {
     Quad super;
-    int textureId;
+    TextureHandle textureHandle;
     float4 color;
     float4 uv;
 }
@@ -181,9 +181,9 @@ float4 fragment(FSIn input)
         var asTexture = reinterpret<Texture>(quad);
         float4 uvMapping = asTexture.uv;
         var uv = mapRangeUnClamped(input.uv, float2(0.0), float2(1.0), uvMapping.xy, uvMapping.zw);
-        int textureId = asTexture.textureId;
+        var textureHandle = asTexture.textureHandle;
 
-        float4 color = sampleTexture(textureId, uv) * asTexture.tint;
+        float4 color = sampleTexture(textureHandle, uv) * asTexture.tint;
 
         return applyBorderRadius(input.coordinate, color, asTexture.borderRadius, size, transform);
     }
@@ -193,10 +193,10 @@ float4 fragment(FSIn input)
         var asMtsdf = reinterpret<Mtsdf>(quad);
         float4 uvMapping = asMtsdf.uv;
         var uv = mapRangeUnClamped(input.uv, float2(0.0), float2(1.0), uvMapping.xy, uvMapping.zw);
-        int textureId = asMtsdf.textureId;
+        var textureHandle = asMtsdf.textureHandle;
 
-        float3 msd = sampleTexture(textureId, uv).rgb;
-        float2 texSize = getTextureSize(textureId);
+        float3 msd = sampleTexture(textureHandle, uv).rgb;
+        float2 texSize = getTextureSize(textureHandle);
         float2 actualTexSize = texSize * (uvMapping.zw - uvMapping.xy);
         
         // return float4(msd,1.0f);
