@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Numerics;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Views.Sdf;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -21,7 +22,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
 
     private readonly LiveGlyphInfo _defaultLiveGlyph = new()
     {
-        AtlasId = -1,
+        AtlasHandle = TextureHandle.InvalidImage,
         State = LiveGlyphState.Invalid,
         Size = Vector2.Zero,
         Coordinate = Vector4.Zero
@@ -71,14 +72,14 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                         var size = new Vector2((float)result.Width, (float)result.Height);
                         var glyph = new LiveGlyphInfo
                         {
-                            AtlasId = 0,
+                            AtlasHandle = TextureHandle.InvalidImage,
                             State = LiveGlyphState.Ready,
                             Size = size,
                             Coordinate = new Vector4(0.0f, 0.0f, size.X / result.PixelWidth,
                                 size.Y / result.PixelHeight)
                         };
 
-                        glyph.AtlasId = SGraphicsModule.Get().CreateTexture(result.Data.Copy(),
+                        glyph.AtlasHandle = SGraphicsModule.Get().CreateTexture(result.Data.Copy(),
                             new Extent3D((uint)result.PixelWidth, (uint)result.PixelHeight), ImageFormat.RGBA8,
                             tiling: ImageTiling.ClampEdge).First;
                         return new Pair<int, LiveGlyphInfo>(index, glyph);
@@ -208,7 +209,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                             var pt2Coord = pt2 / atlasSize;
                             var glyph = new LiveGlyphInfo
                             {
-                                AtlasId = atlasIds[i],
+                                AtlasHandle = atlasIds[i],
                                 State = LiveGlyphState.Ready,
                                 Size = pixelSize,
                                 Coordinate = new Vector4(pt1Coord, pt2Coord.X, pt2Coord.Y)
@@ -290,7 +291,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
         _cancellationSource.Cancel();
         _backgroundTaskQueue.Dispose();
         SGraphicsModule.Get().GetTextureFactory()
-            .FreeTextures(_atlases.Select(c => c.Value.AtlasId).Where(c => c != -1).ToArray());
+            .FreeTextures(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
         _atlases.Clear();
     }
 

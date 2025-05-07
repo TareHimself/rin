@@ -53,14 +53,14 @@ public class AsyncFileImage : CoverImage
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
-        if (TextureId == -1) return availableSpace;
+        if (!TextureId.IsValid()) return availableSpace;
 
         return base.LayoutContent(availableSpace);
     }
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        if (TextureId == -1)
+        if (!TextureId.IsValid())
         {
             var opacity = (float)Math.Abs(Math.Sin(SEngine.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
             commands.AddRect(transform, GetContentSize(), new Color(0.8f, opacity), BorderRadius);

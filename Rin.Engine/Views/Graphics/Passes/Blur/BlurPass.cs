@@ -118,7 +118,7 @@ public class BlurPass : IViewsPass
             var descriptorSet = frame.GetDescriptorAllocator()
                 .Allocate(_blurShader.GetDescriptorSetLayouts()[resource.Set]);
             descriptorSet.WriteImages(resource.Binding, new ImageWrite(copyImage,
-                ImageLayout.ShaderReadOnly, ImageType.Sampled, new SamplerSpec
+                ImageLayout.ShaderReadOnly, DescriptorImageType.Sampled, new SamplerSpec
                 {
                     Filter = ImageFilter.Linear,
                     Tiling = ImageTiling.ClampBorder

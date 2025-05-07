@@ -4,7 +4,7 @@ public interface ITexture
 {
     public IDeviceImage? Image { get; }
 
-    public int Id { get; }
+    public TextureHandle Handle { get; }
     public ImageFilter Filter { get; }
     public ImageTiling Tiling { get; }
     public bool MipMapped { get; }

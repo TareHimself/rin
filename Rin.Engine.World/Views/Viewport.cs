@@ -93,7 +93,7 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
             var descriptor = frame.GetDescriptorAllocator()
                 .Allocate(_shader.GetDescriptorSetLayouts().Values.First());
             descriptor.WriteImages(0, new ImageWrite(sceneImage, ImageLayout.ShaderReadOnly,
-                ImageType.Sampled, new SamplerSpec
+                DescriptorImageType.Sampled, new SamplerSpec
                 {
                     Filter = ImageFilter.Linear,
                     Tiling = ImageTiling.ClampEdge

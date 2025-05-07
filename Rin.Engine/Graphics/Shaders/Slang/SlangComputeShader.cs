@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Rin.Engine.Graphics.Descriptors;
@@ -99,9 +100,9 @@ public class SlangComputeShader : IComputeShader
 
             var entryPointReflection = reflectionData.EntryPoints.FirstOrDefault() ??
                                        throw new ShaderCompileException("Missing entry point");
-#if DEBUG
+            
             Debug.Assert(entryPointReflection.Stage == "compute");
-#endif
+            
             var groupSize = entryPointReflection.ThreadGroupSize;
             GroupSizeX = groupSize[0];
             GroupSizeY = groupSize[1];

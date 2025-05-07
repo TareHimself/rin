@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Math;
 
 namespace Rin.Engine.Views.Graphics.Quads;
@@ -62,17 +63,17 @@ public static class QuadExtensions
             controlA.Transform(transform), controlB.Transform(transform), thickness, color);
     }
 
-    public static CommandList AddTexture(this CommandList commandList, int textureId, in Matrix4x4 transform,
+    public static CommandList AddTexture(this CommandList commandList, in TextureHandle textureHandle, in Matrix4x4 transform,
         in Vector2 size, in Color? tint = null, in Vector4? uv = null,
         in Vector4? borderRadius = null)
     {
-        return commandList.AddQuads(Quad.Texture(textureId, transform, size, tint, borderRadius, uv));
+        return commandList.AddQuads(Quad.Texture(textureHandle, transform, size, tint, borderRadius, uv));
     }
 
 
-    public static CommandList AddMtsdf(this CommandList commandList, int textureId, in Matrix4x4 transform,
+    public static CommandList AddMtsdf(this CommandList commandList, in TextureHandle textureHandle, in Matrix4x4 transform,
         in Vector2 size, in Color? color = null, in Vector4? uv = null)
     {
-        return commandList.AddQuads(Quad.Mtsdf(textureId, transform, size, color, uv));
+        return commandList.AddQuads(Quad.Mtsdf(textureHandle, transform, size, color, uv));
     }
 }

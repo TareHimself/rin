@@ -24,12 +24,12 @@ public class DescriptorSet : Disposable
         };
     }
 
-    public static VkDescriptorType ImageTypeToDescriptorType(ImageType type)
+    public static VkDescriptorType ImageTypeToDescriptorType(DescriptorImageType type)
     {
         return type switch
         {
-            ImageType.Sampled => VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            ImageType.Storage => VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            DescriptorImageType.Sampled => VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            DescriptorImageType.Storage => VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }

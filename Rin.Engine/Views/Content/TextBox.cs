@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Extensions;
+using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Math;
 using Rin.Engine.Views.Enums;
 using Rin.Engine.Views.Font;
@@ -201,7 +202,7 @@ public class TextBox : ContentView
                 Y = charOffset.Y + size.Y
             });
 
-            results.Add(new CachedQuadLayout(glyph.AtlasId, finalTransform, size, glyph.Coordinate));
+            results.Add(new CachedQuadLayout(glyph.AtlasHandle, finalTransform, size, glyph.Coordinate));
         }
 
         anyPending = pending;
@@ -232,9 +233,9 @@ public class TextBox : ContentView
         }
     }
 
-    protected struct CachedQuadLayout(int atlas, Matrix4x4 transform, Vector2 size, Vector4 uv)
+    protected struct CachedQuadLayout(in TextureHandle atlas, Matrix4x4 transform, Vector2 size, Vector4 uv)
     {
-        public readonly int Atlas = atlas;
+        public readonly TextureHandle Atlas = atlas;
         public Matrix4x4 Transform = transform;
         public Vector2 Size = size;
         public Vector4 Uv = uv;
