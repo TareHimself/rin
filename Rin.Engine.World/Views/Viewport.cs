@@ -111,6 +111,8 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
             cmd.PushConstant(_shader.GetPipelineLayout(), pushResource.Stages, buffer.GetAddress());
 
             cmd.Draw(6);
+
+            cmd.EndRendering();
         }
     }
 

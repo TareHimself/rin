@@ -63,7 +63,10 @@ public class TextureFactory : ITextureFactory
             _descriptorSet = _allocator.Allocate(layout, MaxTextures);
         }
 
-        _textures.Add(new Texture());
+        var defaultTex = new Texture();
+        _textures.Add(defaultTex);
+        _textures.Add(defaultTex);
+        _imageIdFactory.NewId();
         _imageIdFactory.NewId();
 
         LoadDefaultTexture().ConfigureAwait(false);
@@ -206,15 +209,15 @@ public class TextureFactory : ITextureFactory
         for (var i = 0; i < _textures.Count; i++)
         {
             var bound = _textures[i];
-            if (bound.Uploaded) bound.Image?.Dispose();
-
-            if (bound.Uploading) bound = new Texture();
+            if (bound.Uploaded)
+            {
+                bound.Image?.Dispose();
+                bound.Uploaded = false;
+                bound.Uploading = false;
+            }
+            else if (bound.Uploading) bound = new Texture();
         }
-
-        foreach (var boundTexture in _textures)
-            if (boundTexture.Uploaded)
-                boundTexture.Image?.Dispose();
-
+        
         _textures.Clear();
     }
 

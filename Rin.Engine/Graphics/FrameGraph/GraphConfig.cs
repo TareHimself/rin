@@ -24,6 +24,15 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     public uint CurrentPassId { get; set; }
 
 
+    public uint SwapchainImageId { get; set; }
+
+    public uint AddExternalImage(IDeviceImage image, Action? onDispose = null)
+    {
+        var resourceId = builder.MakeId();
+        Resources.Add(resourceId,new ExternalImageResourceDescriptor(new ExternalImage(image,onDispose)));
+        return resourceId;
+    }
+
     public uint CreateImage(uint width, uint height, ImageFormat format, ImageLayout initialLayout)
     {
         var flags = format is ImageFormat.Depth or ImageFormat.Stencil

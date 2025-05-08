@@ -47,7 +47,7 @@ public class CreateImagesPass : IPass
 
         cmd
             .ClearColorImages(new Vector4(0.0f), ImageLayout.General, drawImage, copyImage)
-            .ClearStencilImages(0, stencilImage.Layout, stencilImage);
+            .ClearStencilImages(0, ImageLayout.General, stencilImage);
     }
 
     private static void ResetStencilState(VkCommandBuffer cmd,

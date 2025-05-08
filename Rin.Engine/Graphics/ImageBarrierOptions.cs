@@ -38,6 +38,7 @@ public struct ImageBarrierOptions
             case ImageFormat.RGBA8:
             case ImageFormat.RGBA16:
             case ImageFormat.RGBA32:
+            case ImageFormat.Swapchain:
                 SubresourceRange =
                     SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
                 break;

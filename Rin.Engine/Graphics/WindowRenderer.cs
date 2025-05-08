@@ -1,4 +1,5 @@
-﻿using Rin.Engine.Graphics.FrameGraph;
+﻿using System.Diagnostics;
+using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Windows;
 using SDL;
 using TerraFX.Interop.Vulkan;
@@ -24,6 +25,19 @@ public class WindowRenderer : IWindowRenderer
     private Frame[] _frames = [];
     private ulong _framesRendered;
     private VkSwapchainKHR _swapchain;
+
+    class SwapchainImage : IDeviceImage
+    {
+        public void Dispose()
+        {
+            
+        }
+
+        public required ImageFormat Format { get; set; }
+        public required Extent3D Extent { get; set; }
+        public required VkImage NativeImage { get; set; }
+        public required VkImageView NativeView { get; set; }
+    }
 
     private Extent2D _swapchainExtent = new()
     {
@@ -194,7 +208,7 @@ public class WindowRenderer : IWindowRenderer
 
         _swapchainViews = _swapchainImages.Select(c =>
         {
-            var viewCreateInfo = SGraphicsModule.MakeImageViewCreateInfo(ImageFormat.Surface, c,
+            var viewCreateInfo = SGraphicsModule.MakeImageViewCreateInfo(ImageFormat.Swapchain, c,
                 VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
             var view = new VkImageView();
             vkCreateImageView(device, &viewCreateInfo, null, &view);
@@ -288,6 +302,8 @@ public class WindowRenderer : IWindowRenderer
         var extent = (Extent2D)_window.GetPixelSize();
 
         OnCollect?.Invoke(builder);
+        
+        builder.AddPass(new PrepareForPresentPass()); // Always terminal
 
         return new RenderContext
         {
@@ -323,63 +339,44 @@ public class WindowRenderer : IWindowRenderer
                         &swapchainImageIndex));
                 }
 
-                var swapchainImage = new ExternalImageProxy
+                var swapchainImage = new SwapchainImage
                 {
-                    Format = ImageFormat.R8,
+                    Format = ImageFormat.Swapchain,
                     Extent = new Extent3D(ctx.RenderExtent),
                     NativeImage = _swapchainImages[swapchainImageIndex],
-                    NativeView = _swapchainViews[swapchainImageIndex],
-                    Layout = ImageLayout.Undefined
+                    NativeView = _swapchainViews[swapchainImageIndex]
                 };
 
-                ctx.SwapchainImageId = ctx.GraphBuilder.AddExternalImage(swapchainImage);
-
+                ctx.SwapchainImageId = ctx.GraphBuilder.AddSwapchainImage(swapchainImage);
+               
                 Profiling.Begin("Engine.Rendering.Graph.Compile");
                 var graph = ctx.GraphBuilder.Compile(_resourcePool, frame);
                 Profiling.End("Engine.Rendering.Graph.Compile");
-
+                
+                Debug.Assert(graph != null,"Frame Graph is empty"); // Since we always prepare for present the graph can never be empty
+                
                 var cmd = frame.GetCommandBuffer();
-
-                vkResetCommandBuffer(cmd, 0);
-
-                var commandBeginInfo = new VkCommandBufferBeginInfo
-                {
-                    sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                    flags = VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-                };
-
+                
                 unsafe
                 {
+                    vkResetCommandBuffer(cmd, 0);
+                    var commandBeginInfo = new VkCommandBufferBeginInfo
+                    {
+                        sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                        flags = VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+                    };
                     vkBeginCommandBuffer(cmd, &commandBeginInfo);
 
                     cmd
                         .SetRasterizerDiscard(false)
                         .DisableMultiSampling();
                 }
-
-                if (graph != null)
-                {
-                    Profiling.Begin("Engine.Rendering.Graph.Execute");
-                    graph.Execute(frame, ctx);
-                    Profiling.End("Engine.Rendering.Graph.Execute");
-                    frame.OnReset += _ => graph.Dispose();
-
-                    cmd.ImageBarrier(swapchainImage,
-                        ImageLayout.Undefined,
-                        ImageLayout.TransferDst);
-
-                    frame.DoCopy(swapchainImage);
-
-                    cmd.ImageBarrier(swapchainImage,
-                        ImageLayout.TransferDst,
-                        ImageLayout.PresentSrc);
-                }
-                else
-                {
-                    cmd.ImageBarrier(swapchainImage,
-                        ImageLayout.Undefined,
-                        ImageLayout.PresentSrc);
-                }
+                
+                frame.OnReset += _ => graph.Dispose();
+                
+                Profiling.Begin("Engine.Rendering.Graph.Execute");
+                graph.Execute(frame, ctx);
+                Profiling.End("Engine.Rendering.Graph.Execute");
 
                 vkEndCommandBuffer(cmd);
 

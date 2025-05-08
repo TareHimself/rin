@@ -18,5 +18,5 @@ public enum ImageFormat
     RGBA32,
     Depth,
     Stencil,
-    Surface
+    Swapchain
 }

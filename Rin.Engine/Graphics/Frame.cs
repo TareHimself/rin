@@ -46,21 +46,13 @@ public class Frame : IDisposable
         WaitForLastDraw();
         OnReset?.Invoke(this);
         OnReset = null;
-        OnCopy = null;
         _descriptorAllocator.Dispose();
         _device.DestroySemaphore(_swapchainSemaphore);
         _device.DestroySemaphore(_renderSemaphore);
         _device.DestroyFence(_renderFence);
         _device.DestroyCommandPool(_commandPool);
     }
-
-    public event Action<Frame, IDeviceImage>? OnCopy;
-
-    public void DoCopy(IDeviceImage swapchain)
-    {
-        OnCopy?.Invoke(this, swapchain);
-    }
-
+    
     public event Action<Frame>? OnReset;
 
 
@@ -116,7 +108,6 @@ public class Frame : IDisposable
     {
         OnReset?.Invoke(this);
         OnReset = null;
-        OnCopy = null;
         _descriptorAllocator.ClearPools();
         var r = _device.ResetFences(_renderFence);
         if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");

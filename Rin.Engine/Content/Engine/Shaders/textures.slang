@@ -22,7 +22,7 @@ struct TextureHandle {
     }
 
     bool IsValid() {
-        return GetId() >= 0;
+        return GetId() > 0;
     }
 }
 // Define a texture array resource

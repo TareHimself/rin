@@ -2,6 +2,10 @@ namespace Rin.Engine.Graphics.FrameGraph;
 
 public interface IGraphConfig
 {
+    public uint SwapchainImageId { get; }
+
+    public uint AddExternalImage(IDeviceImage image,Action? onDispose = null);
+    
     public uint CreateImage(uint width, uint height, ImageFormat format,
         ImageLayout initialLayout);
 

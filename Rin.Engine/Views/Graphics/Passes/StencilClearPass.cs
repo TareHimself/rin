@@ -29,7 +29,7 @@ public class StencilClearPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteImage(StencilImageId, ImageLayout.StencilAttachment);
+        config.WriteImage(StencilImageId, ImageLayout.General);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
@@ -37,6 +37,6 @@ public class StencilClearPass : IPass
         var image = graph.GetImageOrException(StencilImageId);
 
         var cmd = frame.GetCommandBuffer();
-        cmd.ClearStencilImages(0, image.Layout, image);
+        cmd.ClearStencilImages(0, ImageLayout.General, image);
     }
 }

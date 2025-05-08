@@ -10,14 +10,23 @@ public record struct TextureHandle
     public ImageType Type => (ImageType)(_data & 0xFF);
     public int Id => (_data >> 8) & 0xFFFFFF;
     
-    public bool IsValid() => Id >= 0 && SGraphicsModule.Get().GetTextureFactory().IsHandleValid(this);
+    public bool IsValid() => Id > 0 && SGraphicsModule.Get().GetTextureFactory().IsHandleValid(this);
     
     public TextureHandle(ImageType type, int id)
     {
         _data = ((id & 0xFFFFFF) << 8) | ((int)type & 0xFF);
     }
     
-    public static TextureHandle InvalidImage => new(ImageType.Image,-1);
-    public static TextureHandle InvalidCube => new (ImageType.Cube,-1);
-    public static TextureHandle InvalidVolume => new (ImageType.Volume,-1);
+    public TextureHandle(int data)
+    {
+        _data = data;
+    }
+    
+    public static explicit operator int(TextureHandle handle) => handle._data;
+    
+    public static explicit operator TextureHandle(int data) => new TextureHandle(data);
+    
+    public static TextureHandle InvalidImage => new(ImageType.Image,0);
+    public static TextureHandle InvalidCube => new (ImageType.Cube,0);
+    public static TextureHandle InvalidVolume => new (ImageType.Volume,0);
 }

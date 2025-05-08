@@ -4,8 +4,9 @@ using Rin.Engine.Graphics.FrameGraph;
 
 namespace Rin.Engine.Views.Graphics;
 
-public class WindowSurfacePass(Surface surface, Vector2 drawSize, SharedPassContext passContext) : IPass
+public class CopySurfaceToSwapchain(SharedPassContext passContext) : IPass
 {
+    private uint _swapchainImageId;
     public void PreAdd(IGraphBuilder builder)
     {
         throw new NotImplementedException();
@@ -18,18 +19,20 @@ public class WindowSurfacePass(Surface surface, Vector2 drawSize, SharedPassCont
 
     public void Configure(IGraphConfig config)
     {
-        config.ReadImage(passContext.MainImageId, ImageLayout.ShaderReadOnly);
+        config.ReadImage(passContext.MainImageId, ImageLayout.TransferSrc);
+        _swapchainImageId = config.WriteImage(config.SwapchainImageId, ImageLayout.TransferDst);
     }
 
     public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
     {
         var mainImage = graph.GetImageOrException(passContext.MainImageId);
+        var swapchainImage = graph.GetImageOrException(_swapchainImageId);
         var cmd = frame.GetCommandBuffer();
-        frame.OnCopy += (_, image) => { cmd.CopyImageToImage(mainImage, image); };
+        cmd.CopyImageToImage(mainImage, swapchainImage);
     }
 
     public uint Id { get; set; }
-    public bool IsTerminal => true;
+    public bool IsTerminal => false;
     public bool HandlesPreAdd => false;
     public bool HandlesPostAdd => false;
 

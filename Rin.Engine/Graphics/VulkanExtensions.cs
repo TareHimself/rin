@@ -93,7 +93,7 @@ public static class VulkanExtensions
             ImageFormat.RGB8 => VkFormat.VK_FORMAT_R8G8B8_UNORM,
             ImageFormat.RGB16 => VkFormat.VK_FORMAT_R16G16B16_UNORM,
             ImageFormat.RGB32 => VkFormat.VK_FORMAT_R32G32B32_SFLOAT,
-            ImageFormat.Surface => SGraphicsModule.Get().GetSurfaceFormat().format,
+            ImageFormat.Swapchain => SGraphicsModule.Get().GetSurfaceFormat().format,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -153,7 +153,7 @@ public static class VulkanExtensions
             VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.RGBA32,
             VkFormat.VK_FORMAT_D32_SFLOAT => ImageFormat.Depth,
             VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT => ImageFormat.Stencil,
-            _ => format == ImageFormat.Surface.ToVk() ? ImageFormat.Surface : throw new ArgumentOutOfRangeException()
+            _ => format == ImageFormat.Swapchain.ToVk() ? ImageFormat.Swapchain : throw new ArgumentOutOfRangeException()
         };
     }
 
@@ -902,14 +902,14 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer ImageBarrier(in this VkCommandBuffer cmd, IGraphImage image,
-        ImageLayout to, ImageBarrierOptions? options = null)
-    {
-        var from = image.Layout;
-        image.Layout = to;
-        return ImageBarrier(cmd, image.NativeImage, from, to,
-            options ?? new ImageBarrierOptions(image.Format, from, to));
-    }
+    // public static VkCommandBuffer ImageBarrier(in this VkCommandBuffer cmd, IGraphImage image,
+    //     ImageLayout to, ImageBarrierOptions? options = null)
+    // {
+    //     var from = image.Layout;
+    //     image.Layout = to;
+    //     return ImageBarrier(cmd, image.NativeImage, from, to,
+    //         options ?? new ImageBarrierOptions(image.Format, from, to));
+    // }
 
     /// <summary>
     ///     The KING of synchronization

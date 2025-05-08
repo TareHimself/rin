@@ -11,7 +11,9 @@ public interface IGraphBuilder
 
     public ICompiledGraph? Compile(IResourcePool resourcePool, Frame frame);
 
-    public uint AddExternalImage(IGraphImage image);
+    public uint AddExternalImage(IDeviceImage image,Action? onDispose = null);
+    
+    public uint AddSwapchainImage(IDeviceImage image,Action? onDispose = null);
 
     public void Reset();
 }

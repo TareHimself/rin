@@ -709,7 +709,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
         viewCreateInfo.subresourceRange.levelCount = imageCreateInfo.mipLevels;
 
-        newImage.NativeView = CreateImageView(viewCreateInfo);
+        ((DeviceImage)(newImage)).NativeView = CreateImageView(viewCreateInfo);
 
         return newImage;
     }

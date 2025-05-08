@@ -25,6 +25,8 @@ public class CompiledGraph : ICompiledGraph
     {
         _resourcePool = resourcePool;
         _frame = frame;
+        
+#if !DEBUG
         var memoryNeeded = descriptors.Values.Aggregate((ulong)0, (total, descriptor) =>
         {
             if (descriptor is BufferResourceDescriptor asMemoryDescriptor) return total + asMemoryDescriptor.Size;
@@ -32,7 +34,6 @@ public class CompiledGraph : ICompiledGraph
             return total;
         });
 
-#if !DEBUG
         if (SEngine.Get().IsModuleLoaded<SGraphicsModule>() && memoryNeeded > 0)
         {
             var pooledView = resourcePool.CreateBuffer(new BufferResourceDescriptor(memoryNeeded), frame);

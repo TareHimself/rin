@@ -100,17 +100,17 @@ public class DefaultMeshMaterial : IMeshMaterial
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress(),
-                BaseColorTextureId = meshMaterial.ColorTextureId.Id,
+                BaseColorTextureId = (int)meshMaterial.ColorTextureId,
                 BaseColor = meshMaterial.Color,
-                NormalTextureId = meshMaterial.NormalTextureId.Id,
+                NormalTextureId = (int)meshMaterial.NormalTextureId,
                 Metallic = meshMaterial.Metallic,
-                MetallicTextureId = meshMaterial.MetallicTextureId.Id,
+                MetallicTextureId = (int)meshMaterial.MetallicTextureId,
                 Specular = meshMaterial.Specular,
-                SpecularTextureId = meshMaterial.SpecularTextureId.Id,
+                SpecularTextureId = (int)meshMaterial.SpecularTextureId,
                 Roughness = meshMaterial.Roughness,
-                RoughnessTextureId = meshMaterial.RoughnessTextureId.Id,
+                RoughnessTextureId = (int)meshMaterial.RoughnessTextureId,
                 Emissive = meshMaterial.Emissive,
-                EmissiveTextureId = meshMaterial.EmissiveTextureId.Id
+                EmissiveTextureId = (int)meshMaterial.EmissiveTextureId
             };
             view.Write(data);
         }

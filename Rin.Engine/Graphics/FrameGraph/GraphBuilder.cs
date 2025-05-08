@@ -1,13 +1,15 @@
+using System.Diagnostics;
 using Rin.Engine.Extensions;
 
 namespace Rin.Engine.Graphics.FrameGraph;
 
 public class GraphBuilder : IGraphBuilder
 {
-    private readonly Dictionary<uint, IGraphImage> _externalImages = [];
+    private readonly Dictionary<uint,ExternalImageResourceDescriptor> _externalImages = [];
     private readonly object _lock = new();
     private readonly Dictionary<uint, IPass> _passes = [];
     private uint _id;
+    private uint _swapchainImageId;
 
     public uint AddPass(IPass pass)
     {
@@ -260,13 +262,18 @@ public class GraphBuilder : IGraphBuilder
             finalOrder);
     }
 
-    public uint AddExternalImage(IGraphImage image)
+    public uint AddExternalImage(IDeviceImage image, Action? onDispose)
     {
         var id = MakeId();
-        _externalImages.Add(id, image);
+        _externalImages.Add(id,new ExternalImageResourceDescriptor(image,onDispose));
         return id;
     }
 
+    public uint AddSwapchainImage(IDeviceImage image, Action? onDispose)
+    {
+        return _swapchainImageId = AddExternalImage(image, onDispose);
+    }
+    
     public void Reset()
     {
         // _images.Clear();
@@ -292,10 +299,15 @@ public class GraphBuilder : IGraphBuilder
 
     private GraphConfig Configure()
     {
-        var config = new GraphConfig(this);
+        Debug.Assert(_swapchainImageId != 0,"A swapchain image must be added to the graph");
+        
+        var config = new GraphConfig(this)
+        {
+            SwapchainImageId = _swapchainImageId
+        };
 
-        foreach (var (id, externalImage) in _externalImages)
-            config.Resources.Add(id, new ExternalImageResourceDescriptor(externalImage));
+        foreach (var (id, externalImageResourceDescriptor) in _externalImages)
+            config.Resources.Add(id,externalImageResourceDescriptor);
 
         foreach (var (id, pass) in _passes)
         {
@@ -356,12 +368,14 @@ public class GraphBuilder : IGraphBuilder
             foreach (var bufferResourceSync in buffers)
             {
                 var buffer = graph.GetBufferOrException(bufferResourceSync.ResourceId);
+                // Console.WriteLine("GRAPH :: Buffer Barrier :: Resource Id {0},Transition {1} => {2}",bufferResourceSync.ResourceId,bufferResourceSync.PreviousUsage,bufferResourceSync.NextUsage);
                 cmd.BufferBarrier(buffer, bufferResourceSync.PreviousStage, bufferResourceSync.NextStage);
             }
 
             foreach (var imageResourceSync in images)
             {
                 var image = graph.GetImageOrException(imageResourceSync.ResourceId);
+                // Console.WriteLine("GRAPH :: Image Barrier :: Resource Id {0}, Format {1},Transition {2} => {3}",imageResourceSync.ResourceId,image.Format,imageResourceSync.PreviousLayout,imageResourceSync.NextLayout);
                 cmd.ImageBarrier(image, imageResourceSync.PreviousLayout, imageResourceSync.NextLayout);
             }
         }

@@ -157,7 +157,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         public VkImageView NativeView { get; set; } = container.Resource.NativeView;
 
         public ImageLayout Layout { get; set; } = ImageLayout.Undefined;
-        public bool Owned => true;
+        public bool CreatedByGraph => true;
     }
 
     private sealed class ImagePool : Pool<ProxiedImage, IDeviceImage, ImageResourceDescriptor, int>
