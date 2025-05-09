@@ -301,7 +301,7 @@ public class WindowRenderer : IWindowRenderer
 
         var extent = (Extent2D)_window.GetPixelSize();
 
-        OnCollect?.Invoke(builder);
+        //OnCollect?.Invoke(builder);
         
         builder.AddPass(new PrepareForPresentPass()); // Always terminal
 
@@ -319,26 +319,28 @@ public class WindowRenderer : IWindowRenderer
     {
         lock (_drawLock)
         {
+            
             try
             {
                 var frame = ctx.TargetFrame;
                 var device = _module.GetDevice();
-
+                
+                
                 CheckResult(frame.WaitForLastDraw());
-
+                
                 _resourcePool.OnFrameStart(_framesRendered);
 
                 frame.Reset();
 
                 uint swapchainImageIndex = 0;
-
+                
                 unsafe
                 {
                     CheckResult(vkAcquireNextImageKHR(device, _swapchain, ulong.MaxValue, frame.GetSwapchainSemaphore(),
                         new VkFence(),
                         &swapchainImageIndex));
                 }
-
+                Profiling.Begin("Test");
                 var swapchainImage = new SwapchainImage
                 {
                     Format = ImageFormat.Swapchain,
@@ -433,6 +435,8 @@ public class WindowRenderer : IWindowRenderer
             {
                 DestroySwapchain();
             }
+            Profiling.End("Test");
+            Console.WriteLine("RENDER TIME {0}",float.Round((float)(Profiling.GetElapsedOrZero("Test").TotalMilliseconds),2));
         }
     }
 

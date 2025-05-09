@@ -11,9 +11,27 @@ namespace Rin.Engine.World.Graphics;
 
 public class WorldContext
 {
-    private int _firstSkinnedIndex = -1;
     [PublicAPI] public LightInfo[] Lights;
-    [PublicAPI] public ProcessedMesh[] ProcessedGeometry = [];
+    [PublicAPI] public ProcessedMesh[] ProcessedStaticMeshes = [];
+    [PublicAPI] public ProcessedMesh[] ProcessedSkinnedMeshes = [];
+
+    [PublicAPI]
+    public IEnumerable<ProcessedMesh> ProcessedMeshes
+    {
+        get
+        {
+            foreach (var processedStaticMesh in ProcessedStaticMeshes)
+            {
+                yield return processedStaticMesh;
+            }
+
+            foreach (var processedSkinnedMesh in ProcessedSkinnedMeshes)
+            {
+                yield return processedSkinnedMesh;
+            }
+        }
+    }
+    
     [PublicAPI] public SkinnedMeshInfo[] SkinnedGeometry;
     [PublicAPI] public StaticMeshInfo[] StaticGeometry;
     [PublicAPI] public Transform ViewTransform;
@@ -48,63 +66,74 @@ public class WorldContext
 
     [PublicAPI] public Extent2D Extent { get; }
 
-    public IEnumerable<ProcessedMesh> ProcessedStaticMeshes =>
-        ProcessedGeometry.Take(_firstSkinnedIndex >= 0 ? _firstSkinnedIndex : ProcessedGeometry.Length);
-
-    public IEnumerable<ProcessedMesh> ProcessedSkinnedMeshes => ProcessedGeometry.Take(_firstSkinnedIndex >= 0
-        ? new Range(_firstSkinnedIndex, ProcessedGeometry.Length)
-        : new Range(0, 0));
-
+    private bool Culled(in Bounds3D bounds)
+    {
+        var viewSpaceBounds = bounds.Transform(View);
+        
+        
+        return false;
+    }
     /// <summary>
     ///     Called on the Render Thread
     /// </summary>
     public void Init()
     {
-        var processedMeshes = StaticGeometry.SelectMany(c =>
+        var staticMeshes = new List<ProcessedMesh>();
+        var skeletalMeshes = new List<ProcessedMesh>();
+        foreach (var mesh in StaticGeometry)
         {
-            return c.SurfaceIndices.Select(idx =>
+            foreach (var surfaceIndex in mesh.SurfaceIndices)
             {
-                var surface = c.Mesh.GetSurface(idx);
-                return new ProcessedMesh
+                var surface = mesh.Mesh.GetSurface(surfaceIndex);
+                var bounds = surface.Bounds.Transform(mesh.Transform);
+                if (!Culled(bounds))
                 {
-                    Transform = c.Transform,
-                    IndexBuffer = c.Mesh.GetIndices(),
-                    VertexBuffer = c.Mesh.GetVertices(idx),
-                    Material = c.Materials[idx],
-                    IndicesCount = surface.IndicesCount,
-                    IndicesStart = surface.IndicesStart,
-                    VertexCount = surface.VertexCount,
-                    VertexStart = surface.VertexStart,
-                    Bounds = surface.Bounds
-                };
-            });
-        }).ToList();
-
-        _firstSkinnedIndex = processedMeshes.Count;
-        processedMeshes.AddRange(SkinnedGeometry.SelectMany(c =>
+                    staticMeshes.Add(new ProcessedMesh
+                    {
+                        Transform = mesh.Transform,
+                        IndexBuffer = mesh.Mesh.GetIndices(),
+                        VertexBuffer = mesh.Mesh.GetVertices(surfaceIndex),
+                        Material = mesh.Materials[surfaceIndex],
+                        IndicesCount = surface.IndicesCount,
+                        IndicesStart = surface.IndicesStart,
+                        VertexCount = surface.VertexCount,
+                        VertexStart = surface.VertexStart,
+                        Bounds = bounds,
+                    });
+                }
+            }
+        }
+        
+        foreach (var mesh in SkinnedGeometry)
         {
-            return c.SurfaceIndices.Select(idx =>
+            var bounds = mesh.Mesh.GetBounds().Transform(mesh.Transform);
+            foreach (var surfaceIndex in mesh.SurfaceIndices)
             {
-                // Need to spoof a regular vertex buffer here since this is a skinned mesh
-                var vertexBuffer = c.Mesh.GetVertices(idx);
+                var surface = mesh.Mesh.GetSurface(surfaceIndex);
+                var vertexBuffer = mesh.Mesh.GetVertices(surfaceIndex);
                 var offset = vertexBuffer.Offset / Utils.ByteSizeOf<SkinnedVertex>() * Utils.ByteSizeOf<Vertex>();
-                var size = c.Mesh.GetVertexCount(idx) * Utils.ByteSizeOf<Vertex>();
-                var surface = c.Mesh.GetSurface(idx);
-                return new ProcessedMesh
+                var size = mesh.Mesh.GetVertexCount(surfaceIndex) * Utils.ByteSizeOf<Vertex>();
+                
+                if (!Culled(bounds))
                 {
-                    Transform = c.Transform,
-                    IndexBuffer = c.Mesh.GetIndices(),
-                    VertexBuffer = new SkinnedVertexBufferView(offset, size),
-                    Material = c.Materials[idx],
-                    IndicesCount = surface.IndicesCount,
-                    IndicesStart = surface.IndicesStart,
-                    VertexCount = surface.VertexCount,
-                    VertexStart = surface.VertexStart,
-                    Bounds = c.Mesh.GetBounds() // We use the full mesh bounds for 
-                };
-            });
-        }));
-
-        //_skinnedMeshes = SkinnedGeometry.Select(c => c.Mesh).Distinct().ToArray();
+                    skeletalMeshes.Add(new ProcessedMesh
+                    {
+                        Transform = mesh.Transform,
+                        IndexBuffer = mesh.Mesh.GetIndices(),
+                        VertexBuffer = new SkinnedVertexBufferView(offset, size),
+                        Material = mesh.Materials[surfaceIndex],
+                        IndicesCount = surface.IndicesCount,
+                        IndicesStart = surface.IndicesStart,
+                        VertexCount = surface.VertexCount,
+                        VertexStart = surface.VertexStart,
+                        Bounds = bounds // We use the full mesh bounds for skinned meshes 
+                    });
+                }
+            }
+        }
+        
+        
+        ProcessedStaticMeshes = staticMeshes.ToArray();
+        ProcessedSkinnedMeshes = skeletalMeshes.ToArray();
     }
 }

@@ -14,7 +14,7 @@ public class FpsView : TextBox
     private readonly Dispatcher _dispatcher = new();
     private readonly AveragedStatCategory _graphCompileTime = new("Engine.Rendering.Graph.Compile");
     private readonly AveragedStatCategory _graphExecuteTime = new("Engine.Rendering.Graph.Execute");
-    private readonly AveragedStatCategory _renderTime = new("Engine.Rendering");
+    private readonly AveragedStatCategory _renderTime = new("Test");//"Engine.Rendering");
 
     public FpsView()
     {

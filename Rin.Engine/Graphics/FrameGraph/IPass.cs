@@ -26,7 +26,7 @@ public interface IPass
     public void PostAdd(IGraphBuilder builder);
 
     /// <summary>
-    ///     Called when all passes have been added and the graph is being compiled
+    /// Called when all passes have been added and the graph is being compiled. Perform the least amount of work required to figure out pass requirements
     /// </summary>
     /// <param name="config"></param>
     public void Configure(IGraphConfig config);
