@@ -35,7 +35,7 @@ public class ProcessedMesh
 
         public int GetHashCode(ProcessedMesh obj)
         {
-            return HashCode.Combine(obj.Material.GetType(), obj.IndicesCount, obj.IndicesStart,
+            return HashCode.Combine(obj.Material.GetType(), obj.IndexBuffer.Size, obj.IndexBuffer.Offset,
                 obj.IndexBuffer.NativeBuffer);
         }
     }

@@ -51,14 +51,14 @@ public struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
     [Pure]
     public Bounds3D Transform(in Matrix4x4 matrix)
     {
-        var p1 = new Vector4(X.Min,Y.Min,Z.Min,1f).Transform(matrix);
-        var p2 = new Vector4(X.Min,Y.Min,Z.Max,1f).Transform(matrix);
-        var p3 = new Vector4(X.Max,Y.Min,Z.Min,1f).Transform(matrix);
-        var p4 = new Vector4(X.Max,Y.Min,Z.Max,1f).Transform(matrix);
-        var p5 = new Vector4(X.Min,Y.Max,Z.Min,1f).Transform(matrix);
-        var p6 = new Vector4(X.Min,Y.Max,Z.Max,1f).Transform(matrix);
-        var p7 = new Vector4(X.Max,Y.Max,Z.Min,1f).Transform(matrix);
-        var p8 = new Vector4(X.Max,Y.Max,Z.Max,1f).Transform(matrix);
+        var p1 = new Vector4(X.Min, Y.Min, Z.Min, 1f).Transform(matrix);
+        var p2 = new Vector4(X.Min, Y.Min, Z.Max, 1f).Transform(matrix);
+        var p3 = new Vector4(X.Max, Y.Min, Z.Min, 1f).Transform(matrix);
+        var p4 = new Vector4(X.Max, Y.Min, Z.Max, 1f).Transform(matrix);
+        var p5 = new Vector4(X.Min, Y.Max, Z.Min, 1f).Transform(matrix);
+        var p6 = new Vector4(X.Min, Y.Max, Z.Max, 1f).Transform(matrix);
+        var p7 = new Vector4(X.Max, Y.Max, Z.Min, 1f).Transform(matrix);
+        var p8 = new Vector4(X.Max, Y.Max, Z.Max, 1f).Transform(matrix);
 
         var min = Vector4.Min(p1, p2);
         min = Vector4.Min(min, p3);
@@ -67,7 +67,7 @@ public struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
         min = Vector4.Min(min, p6);
         min = Vector4.Min(min, p7);
         min = Vector4.Min(min, p8);
-        
+
         var max = Vector4.Max(p1, p2);
         max = Vector4.Max(max, p3);
         max = Vector4.Max(max, p4);
@@ -75,7 +75,7 @@ public struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
         max = Vector4.Max(max, p6);
         max = Vector4.Max(max, p7);
         max = Vector4.Max(max, p8);
-        
-        return FromVector(new Vector3(min.X, min.Y, min.Z)) + FromVector(new Vector3(max.X, max.Y, max.Z)); 
+
+        return FromVector(new Vector3(min.X, min.Y, min.Z)) + FromVector(new Vector3(max.X, max.Y, max.Z));
     }
 }

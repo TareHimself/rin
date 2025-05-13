@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
@@ -56,7 +57,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         format = VkFormat.VK_FORMAT_R8G8B8A8_UNORM
     };
 
-    private ITextureFactory? _textureFactory;
+    private IBindlessImageFactory? _textureFactory;
     private VkCommandBuffer _transferCommandBuffer;
     private VkCommandPool _transferCommandPool;
     private VkFence _transferFence;
@@ -354,7 +355,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
         _allocator = new Allocator(this);
         _shaderManager = new SlangShaderManager();
-        _textureFactory = new TextureFactory();
+        _textureFactory = new BindlessImageFactory();
         _meshFactory = new MeshFactory();
         _instance.DestroySurface(outSurface);
     }
@@ -381,7 +382,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         return GetShaderManager().MakeCompute(path);
     }
 
-    public ITextureFactory GetTextureFactory()
+    public IBindlessImageFactory GetImageFactory()
     {
         return _textureFactory ?? throw new NullReferenceException();
     }
@@ -389,24 +390,6 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     public IMeshFactory GetMeshFactory()
     {
         return _meshFactory ?? throw new NullReferenceException();
-    }
-
-    /// <summary>
-    ///     Assigns an id to this texture and creates it as soon as possible. does not own the data and makes a copy of it
-    /// </summary>
-    /// <param name="data"></param>
-    /// <param name="size"></param>
-    /// <param name="format"></param>
-    /// <param name="filter"></param>
-    /// <param name="tiling"></param>
-    /// <param name="mips"></param>
-    /// <param name="debugName"></param>
-    /// <returns></returns>
-    public Pair<TextureHandle, Task> CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
-        ImageFilter filter = ImageFilter.Linear,
-        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string debugName = "Texture")
-    {
-        return GetTextureFactory().CreateTexture(data, size, format, filter, tiling, mips, debugName);
     }
 
     private void HandleWindowCreated(IWindow window)
@@ -576,7 +559,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         };
     }
 
-    public static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, Extent3D size, VkImageUsageFlags usage)
+    public static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, Extent3D size, ImageUsage usage)
     {
         return new VkImageCreateInfo
         {
@@ -588,7 +571,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
             arrayLayers = 1,
             samples = VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT,
             tiling = VkImageTiling.VK_IMAGE_TILING_OPTIMAL,
-            usage = usage
+            usage = usage.ToVk()
         };
     }
 
@@ -653,7 +636,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     public IDeviceBuffer NewStorageBuffer<T>(bool sequentialWrite = true, string debugName = "storageBuffer")
         where T : unmanaged
     {
-        return NewStorageBuffer(Engine.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
+        return NewStorageBuffer(Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
     }
 
     /// <summary>
@@ -684,15 +667,15 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     public IDeviceBuffer NewUniformBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer")
         where T : unmanaged
     {
-        return NewUniformBuffer(Engine.Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
+        return NewUniformBuffer(Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
     }
 
-    public IDeviceImage CreateImage(Extent3D size, ImageFormat format, VkImageUsageFlags usage, bool mipMap = false,
+    public IDeviceImage CreateDeviceImage(Extent3D size, ImageFormat format, ImageUsage usage, bool mips = false,
         string debugName = "Image")
     {
         var imageCreateInfo = MakeImageCreateInfo(format, size, usage);
 
-        if (mipMap)
+        if (mips)
             imageCreateInfo.mipLevels = DeriveMipLevels(size);
 
         var newImage = GetAllocator().NewDeviceImage(imageCreateInfo, debugName);
@@ -709,7 +692,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
         viewCreateInfo.subresourceRange.levelCount = imageCreateInfo.mipLevels;
 
-        ((DeviceImage)(newImage)).NativeView = CreateImageView(viewCreateInfo);
+        ((DeviceImage)newImage).NativeView = CreateImageView(viewCreateInfo);
 
         return newImage;
     }
@@ -913,6 +896,60 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     }
 
 
+    public async Task<IDeviceImage> CreateDeviceImage(IHostImage image, ImageUsage usage, bool mips = false,
+        ImageFilter mipMapFilter = ImageFilter.Linear, string debugName = "Image")
+    {
+        Debug.Assert(_allocator != null, "Allocator cannot be null");
+        var extent = new Extent3D(image.Extent);
+        var format = image.Format;
+        var dataSize =
+            extent.Width * extent.Height * image.Format.PixelByteSize(); //size.depth * size.width * size.height * 4;
+        using var buffer = image.ToBuffer();
+        Debug.Assert(dataSize == buffer.GetByteSize(), "Unexpected image buffer size");
+
+        var uploadBuffer = NewTransferBuffer(dataSize);
+        uploadBuffer.Write(buffer);
+
+        var newImage = CreateDeviceImage(extent, format,
+            usage | ImageUsage.TransferDst |
+            ImageUsage.TransferSrc, mips, debugName);
+
+        await TransferSubmit(cmd =>
+        {
+            cmd.ImageBarrier(newImage, ImageLayout.Undefined, ImageLayout.TransferDst);
+
+            var copyRegion = new VkBufferImageCopy
+            {
+                bufferOffset = 0,
+                bufferRowLength = 0,
+                bufferImageHeight = 0,
+                imageSubresource = new VkImageSubresourceLayers
+                {
+                    aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
+                    mipLevel = 0,
+                    baseArrayLayer = 0,
+                    layerCount = 1
+                },
+                imageExtent = extent.ToVk()
+            };
+
+            cmd.CopyBufferToImage(uploadBuffer, newImage, [copyRegion]);
+        });
+
+        await GraphicsSubmit(cmd =>
+        {
+            if (mips)
+                GenerateMipMaps(cmd, newImage, extent, mipMapFilter, ImageLayout.TransferDst,
+                    ImageLayout.ShaderReadOnly);
+            else
+                cmd.ImageBarrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+        });
+
+        uploadBuffer.Dispose();
+
+        return newImage;
+    }
+
     /// <summary>
     ///     Creates an image from the data in the native buffer
     /// </summary>
@@ -925,8 +962,8 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     /// <param name="debugName"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<IDeviceImage> CreateImage(Buffer<byte> content, Extent3D size, ImageFormat format,
-        VkImageUsageFlags usage,
+    public async Task<IDeviceImage> CreateDeviceImage(Buffer<byte> content, Extent3D size, ImageFormat format,
+        ImageUsage usage,
         bool mips = false, ImageFilter mipMapFilter = ImageFilter.Linear,
         string debugName = "Image")
     {
@@ -934,14 +971,15 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
         var dataSize = size.Width * size.Height * format.PixelByteSize(); //size.depth * size.width * size.height * 4;
         var contentSize = content.GetByteSize();
-        if (dataSize != contentSize) throw new Exception("computed data size is not equal to content size");
+        if (dataSize != contentSize)
+            throw new Exception($"computed data size {dataSize} is not equal to content size {contentSize}");
 
         var uploadBuffer = NewTransferBuffer(dataSize);
         uploadBuffer.Write(content);
 
-        var newImage = CreateImage(size, format,
-            usage | VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-            VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT, mips, debugName);
+        var newImage = CreateDeviceImage(size, format,
+            usage | ImageUsage.TransferSrc |
+            ImageUsage.TransferDst, mips, debugName);
 
         await TransferSubmit(cmd =>
         {

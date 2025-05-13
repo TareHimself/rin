@@ -7,7 +7,8 @@ public class Texture : ITexture
         DebugName = "";
     }
 
-    public Texture(in TextureHandle handle, IDeviceImage image, ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
+    public Texture(in ImageHandle handle, IDeviceImage image, ImageFilter filter, ImageTiling tiling, bool mipMapped,
+        string debugName)
     {
         Handle = handle;
         Image = image;
@@ -17,7 +18,7 @@ public class Texture : ITexture
         DebugName = debugName;
     }
 
-    public Texture(in TextureHandle handle, ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
+    public Texture(in ImageHandle handle, ImageFilter filter, ImageTiling tiling, bool mipMapped, string debugName)
     {
         Handle = handle;
         Filter = filter;
@@ -29,7 +30,7 @@ public class Texture : ITexture
     public bool Uploading { get; set; } = false;
 
     public IDeviceImage? Image { get; set; }
-    public TextureHandle Handle { get; set; }
+    public ImageHandle Handle { get; set; }
     public ImageFilter Filter { get; set; }
     public ImageTiling Tiling { get; set; }
     public bool MipMapped { get; set; }

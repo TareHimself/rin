@@ -42,7 +42,7 @@ public static class Extensions
             var initialVertex = vertices.Count;
 
             {
-                foreach (var idx in primitive.GetIndices()) indices.Add((uint)(idx + initialVertex));
+                foreach (var idx in primitive.GetIndices()) indices.Add(idx - (uint)initialVertex);
             }
 
             {

@@ -140,7 +140,7 @@ public class MeshFactory : IMeshFactory
                 }
             });
 
-            var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces, Engine.Utils.ByteSizeOf<TVertexFormat>());
+            var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces, Utils.ByteSizeOf<TVertexFormat>());
 
             TaskCompletionSource? toComplete;
             lock (_sync)

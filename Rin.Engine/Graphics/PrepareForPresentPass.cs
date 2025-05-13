@@ -1,9 +1,10 @@
 ﻿using Rin.Engine.Graphics.FrameGraph;
+using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics;
 
 /// <summary>
-/// Transitions the swapchain into present mode
+///     Transitions the swapchain into present mode
 /// </summary>
 public class PrepareForPresentPass : IPass
 {
@@ -11,6 +12,7 @@ public class PrepareForPresentPass : IPass
     public bool IsTerminal => true;
     public bool HandlesPreAdd => false;
     public bool HandlesPostAdd => false;
+
     public void PreAdd(IGraphBuilder builder)
     {
         throw new NotImplementedException();
@@ -23,11 +25,10 @@ public class PrepareForPresentPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteImage(config.SwapchainImageId,ImageLayout.PresentSrc);
+        config.WriteImage(config.SwapchainImageId, ImageLayout.PresentSrc);
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
     {
-        
     }
 }

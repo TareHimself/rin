@@ -20,19 +20,19 @@ public class DefaultMeshMaterial : IMeshMaterial
 
     [PublicAPI] public Vector3 Color { get; set; } = new(1.0f);
 
-    [PublicAPI] public TextureHandle ColorTextureId { get; set; }
+    [PublicAPI] public ImageHandle ColorImageId { get; set; }
 
-    [PublicAPI] public TextureHandle NormalTextureId { get; set; } = TextureHandle.InvalidImage;
+    [PublicAPI] public ImageHandle NormalImageId { get; set; } = ImageHandle.InvalidImage;
     [PublicAPI] public float Metallic { get; set; }
-    [PublicAPI] public TextureHandle MetallicTextureId { get; set; } = TextureHandle.InvalidImage;
+    [PublicAPI] public ImageHandle MetallicImageId { get; set; } = ImageHandle.InvalidImage;
 
     [PublicAPI] public float Specular { get; set; }
 
-    [PublicAPI] public TextureHandle SpecularTextureId { get; set; } = TextureHandle.InvalidImage;
+    [PublicAPI] public ImageHandle SpecularImageId { get; set; } = ImageHandle.InvalidImage;
     [PublicAPI] public float Roughness { get; set; }
-    [PublicAPI] public TextureHandle RoughnessTextureId { get; set; } = TextureHandle.InvalidImage;
+    [PublicAPI] public ImageHandle RoughnessImageId { get; set; } = ImageHandle.InvalidImage;
     [PublicAPI] public float Emissive { get; set; }
-    [PublicAPI] public TextureHandle EmissiveTextureId { get; set; } = TextureHandle.InvalidImage;
+    [PublicAPI] public ImageHandle EmissiveImageId { get; set; } = ImageHandle.InvalidImage;
 
     public static DefaultMeshMaterial DefaultMesh => _defaultInstance ??= new DefaultMeshMaterial();
 
@@ -68,7 +68,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             var cmd = frame.GetCommandBuffer();
             var push = Shader.PushConstants.Values.First();
 
-            var set = SGraphicsModule.Get().GetTextureFactory().GetDescriptorSet();
+            var set = SGraphicsModule.Get().GetImageFactory().GetDescriptorSet();
             cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, Shader.GetPipelineLayout(),
                 [set]);
 
@@ -90,7 +90,8 @@ public class DefaultMeshMaterial : IMeshMaterial
             };
 
             cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
-            vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, 0, (int)first.VertexStart, 0);
+            vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, first.IndicesStart, (int)first.VertexStart,
+                0);
             return memoryUsed;
         }
 
@@ -100,17 +101,17 @@ public class DefaultMeshMaterial : IMeshMaterial
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress(),
-                BaseColorTextureId = (int)meshMaterial.ColorTextureId,
+                BaseColorTextureId = (int)meshMaterial.ColorImageId,
                 BaseColor = meshMaterial.Color,
-                NormalTextureId = (int)meshMaterial.NormalTextureId,
+                NormalTextureId = (int)meshMaterial.NormalImageId,
                 Metallic = meshMaterial.Metallic,
-                MetallicTextureId = (int)meshMaterial.MetallicTextureId,
+                MetallicTextureId = (int)meshMaterial.MetallicImageId,
                 Specular = meshMaterial.Specular,
-                SpecularTextureId = (int)meshMaterial.SpecularTextureId,
+                SpecularTextureId = (int)meshMaterial.SpecularImageId,
                 Roughness = meshMaterial.Roughness,
-                RoughnessTextureId = (int)meshMaterial.RoughnessTextureId,
+                RoughnessTextureId = (int)meshMaterial.RoughnessImageId,
                 Emissive = meshMaterial.Emissive,
-                EmissiveTextureId = (int)meshMaterial.EmissiveTextureId
+                EmissiveTextureId = (int)meshMaterial.EmissiveImageId
             };
             view.Write(data);
         }
@@ -231,7 +232,8 @@ public class DefaultMeshMaterial : IMeshMaterial
             };
 
             cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
-            vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, 0, (int)first.VertexStart, 0);
+            vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, first.IndicesStart, (int)first.VertexStart,
+                0);
             return memoryUsed;
         }
 

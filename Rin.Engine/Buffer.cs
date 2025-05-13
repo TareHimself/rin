@@ -1,17 +1,14 @@
 ﻿using System.Collections;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Rin.Engine.Extensions;
 
 namespace Rin.Engine;
 
-public class Buffer<T> : IReservable, IBinarySerializable, ICopyable<Buffer<T>>, IEnumerable<T>
+public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> //, IEnumerable<T>
     where T : unmanaged
 {
-    private readonly object _sync = new();
     private int _elements;
     private IntPtr _ptr = IntPtr.Zero;
-    private int _reservations;
 
     public Buffer(int elements)
     {
@@ -86,39 +83,30 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICopyable<Buffer<T>>,
         return buff;
     }
 
-    public IEnumerator<T> GetEnumerator()
-    {
-        return new Enumerator(this);
-    }
+    // public IEnumerator<T> GetEnumerator()
+    // {
+    //     return new Enumerator(this);
+    // }
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
+    // IEnumerator IEnumerable.GetEnumerator()
+    // {
+    //     return GetEnumerator();
+    // }
 
     public void Dispose()
     {
-        lock (_sync)
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+    }
+
+    public void Zero()
+    {
+        unsafe
         {
-            if (_reservations == 0)
-            {
-                ReleaseUnmanagedResources();
-                GC.SuppressFinalize(this);
-            }
-            else
-            {
-                --_reservations;
-            }
+            Native.Memory.Set((void*)_ptr, 0, GetByteSize());
         }
     }
 
-    public void Reserve()
-    {
-        lock (_sync)
-        {
-            ++_reservations;
-        }
-    }
 
     public T GetElement(int index)
     {
@@ -162,6 +150,7 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICopyable<Buffer<T>>,
     {
         return buff.AsReadOnlySpan();
     }
+
 
     private void ReleaseUnmanagedResources()
     {
@@ -212,7 +201,6 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICopyable<Buffer<T>>,
 
     ~Buffer()
     {
-        Debug.Assert(_reservations == 0, $"Native buffer was finalized but still has reservations: {_reservations}");
         ReleaseUnmanagedResources();
     }
 
@@ -231,7 +219,7 @@ public class Buffer<T> : IReservable, IBinarySerializable, ICopyable<Buffer<T>>,
 
         public void Reset()
         {
-            _index = 0;
+            _index = -1;
         }
 
         public T Current => buffer.GetElement(_index);

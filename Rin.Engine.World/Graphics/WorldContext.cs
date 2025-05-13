@@ -12,26 +12,9 @@ namespace Rin.Engine.World.Graphics;
 public class WorldContext
 {
     [PublicAPI] public LightInfo[] Lights;
-    [PublicAPI] public ProcessedMesh[] ProcessedStaticMeshes = [];
     [PublicAPI] public ProcessedMesh[] ProcessedSkinnedMeshes = [];
+    [PublicAPI] public ProcessedMesh[] ProcessedStaticMeshes = [];
 
-    [PublicAPI]
-    public IEnumerable<ProcessedMesh> ProcessedMeshes
-    {
-        get
-        {
-            foreach (var processedStaticMesh in ProcessedStaticMeshes)
-            {
-                yield return processedStaticMesh;
-            }
-
-            foreach (var processedSkinnedMesh in ProcessedSkinnedMeshes)
-            {
-                yield return processedSkinnedMesh;
-            }
-        }
-    }
-    
     [PublicAPI] public SkinnedMeshInfo[] SkinnedGeometry;
     [PublicAPI] public StaticMeshInfo[] StaticGeometry;
     [PublicAPI] public Transform ViewTransform;
@@ -55,6 +38,17 @@ public class WorldContext
         Lights = drawCommands.Lights.ToArray();
     }
 
+    [PublicAPI]
+    public IEnumerable<ProcessedMesh> ProcessedMeshes
+    {
+        get
+        {
+            foreach (var processedStaticMesh in ProcessedStaticMeshes) yield return processedStaticMesh;
+
+            foreach (var processedSkinnedMesh in ProcessedSkinnedMeshes) yield return processedSkinnedMesh;
+        }
+    }
+
     [PublicAPI] public Matrix4x4 View { get; set; }
     [PublicAPI] public Matrix4x4 Projection { get; }
 
@@ -69,10 +63,11 @@ public class WorldContext
     private bool Culled(in Bounds3D bounds)
     {
         var viewSpaceBounds = bounds.Transform(View);
-        
-        
+
+
         return false;
     }
+
     /// <summary>
     ///     Called on the Render Thread
     /// </summary>
@@ -81,29 +76,25 @@ public class WorldContext
         var staticMeshes = new List<ProcessedMesh>();
         var skeletalMeshes = new List<ProcessedMesh>();
         foreach (var mesh in StaticGeometry)
+        foreach (var surfaceIndex in mesh.SurfaceIndices)
         {
-            foreach (var surfaceIndex in mesh.SurfaceIndices)
-            {
-                var surface = mesh.Mesh.GetSurface(surfaceIndex);
-                var bounds = surface.Bounds.Transform(mesh.Transform);
-                if (!Culled(bounds))
+            var surface = mesh.Mesh.GetSurface(surfaceIndex);
+            var bounds = surface.Bounds.Transform(mesh.Transform);
+            if (!Culled(bounds))
+                staticMeshes.Add(new ProcessedMesh
                 {
-                    staticMeshes.Add(new ProcessedMesh
-                    {
-                        Transform = mesh.Transform,
-                        IndexBuffer = mesh.Mesh.GetIndices(),
-                        VertexBuffer = mesh.Mesh.GetVertices(surfaceIndex),
-                        Material = mesh.Materials[surfaceIndex],
-                        IndicesCount = surface.IndicesCount,
-                        IndicesStart = surface.IndicesStart,
-                        VertexCount = surface.VertexCount,
-                        VertexStart = surface.VertexStart,
-                        Bounds = bounds,
-                    });
-                }
-            }
+                    Transform = mesh.Transform,
+                    IndexBuffer = mesh.Mesh.GetIndices(),
+                    VertexBuffer = mesh.Mesh.GetVertices(surfaceIndex),
+                    Material = mesh.Materials[surfaceIndex],
+                    IndicesCount = surface.IndicesCount,
+                    IndicesStart = surface.IndicesStart,
+                    VertexCount = surface.VertexCount,
+                    VertexStart = surface.VertexStart,
+                    Bounds = bounds
+                });
         }
-        
+
         foreach (var mesh in SkinnedGeometry)
         {
             var bounds = mesh.Mesh.GetBounds().Transform(mesh.Transform);
@@ -113,9 +104,8 @@ public class WorldContext
                 var vertexBuffer = mesh.Mesh.GetVertices(surfaceIndex);
                 var offset = vertexBuffer.Offset / Utils.ByteSizeOf<SkinnedVertex>() * Utils.ByteSizeOf<Vertex>();
                 var size = mesh.Mesh.GetVertexCount(surfaceIndex) * Utils.ByteSizeOf<Vertex>();
-                
+
                 if (!Culled(bounds))
-                {
                     skeletalMeshes.Add(new ProcessedMesh
                     {
                         Transform = mesh.Transform,
@@ -128,11 +118,10 @@ public class WorldContext
                         VertexStart = surface.VertexStart,
                         Bounds = bounds // We use the full mesh bounds for skinned meshes 
                     });
-                }
             }
         }
-        
-        
+
+
         ProcessedStaticMeshes = staticMeshes.ToArray();
         ProcessedSkinnedMeshes = skeletalMeshes.ToArray();
     }

@@ -66,33 +66,33 @@ public static class QuadExtensions
             controlA.Transform(transform), controlB.Transform(transform), thickness, color);
     }
 
-    public static CommandList AddTexture(this CommandList commandList, in TextureHandle textureHandle, in Matrix4x4 transform,
+    public static CommandList AddTexture(this CommandList commandList, in ImageHandle imageHandle,
+        in Matrix4x4 transform,
         in Vector2 size, in Color? tint = null, in Vector4? uv = null,
         in Vector4? borderRadius = null)
     {
-        return commandList.AddQuads(Quad.Texture(textureHandle, transform, size, tint, borderRadius, uv));
+        return commandList.AddQuads(Quad.Texture(imageHandle, transform, size, tint, borderRadius, uv));
     }
 
 
-    public static CommandList AddMtsdf(this CommandList commandList, in TextureHandle textureHandle, in Matrix4x4 transform,
+    public static CommandList AddMtsdf(this CommandList commandList, in ImageHandle imageHandle, in Matrix4x4 transform,
         in Vector2 size, in Color? color = null, in Vector4? uv = null)
     {
-        return commandList.AddQuads(Quad.Mtsdf(textureHandle, transform, size, color, uv));
+        return commandList.AddQuads(Quad.Mtsdf(imageHandle, transform, size, color, uv));
     }
-    
-    public static CommandList AddText(this CommandList commandList,IFont font,ReadOnlySpan<char> text, in Matrix4x4 transform,float fontSize = 24f,in Color? color = null)
+
+    public static CommandList AddText(this CommandList commandList, IFont font, ReadOnlySpan<char> text,
+        in Matrix4x4 transform, float fontSize = 24f, in Color? color = null)
     {
         var fontManager = font.FontManager;
-        var textureFactory = SGraphicsModule.Get().GetTextureFactory();
+        var textureFactory = SGraphicsModule.Get().GetImageFactory();
         foreach (var bound in font.MeasureText(text, fontSize))
         {
             var range = fontManager.GetPixelRange();
             var glyph = fontManager.GetGlyph(font, bound.Character);
-            
+
             if (glyph.State == LiveGlyphState.Invalid && bound.Character.IsPrintable())
-            {
                 fontManager.Prepare(font, [bound.Character]);
-            }
 
             if (glyph.State != LiveGlyphState.Ready || !textureFactory.IsTextureReady(glyph.AtlasHandle)) continue;
 
@@ -113,17 +113,15 @@ public static class QuadExtensions
 
             commandList.AddMtsdf(glyph.AtlasHandle, finalTransform * transform, size, color, glyph.Coordinate);
         }
-        
+
         return commandList;
     }
 
     public static CommandList AddText(this CommandList commandList, string fontName, ReadOnlySpan<char> text,
-        in Matrix4x4 transform,float fontSize = 24f, in Color? color = null)
+        in Matrix4x4 transform, float fontSize = 24f, in Color? color = null)
     {
         if (SViewsModule.Get().GetFontManager().GetFont(fontName) is { } font)
-        {
-            commandList.AddText(font, text, in transform,fontSize, in color);
-        }
+            commandList.AddText(font, text, in transform, fontSize, in color);
 
         return commandList;
     }

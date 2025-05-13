@@ -83,9 +83,8 @@ public class BlurPass : IViewsPass
         _bufferId = config.CreateBuffer<BlurData>(_blurCommands.Length, BufferStage.Graphics);
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
     {
-        var cmd = frame.GetCommandBuffer();
         if (_blurShader.Bind(cmd, true))
         {
             var drawImage = graph.GetImage(MainImageId);
@@ -99,7 +98,7 @@ public class BlurPass : IViewsPass
                 stencilAttachment: stencilImage.MakeStencilAttachmentInfo()
             );
 
-            frame.ConfigureForViews(_sharedContext.Extent);
+            cmd.SetViewState(_sharedContext.Extent);
             var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
 
             vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,

@@ -22,9 +22,9 @@ public struct ImageWrite
         });
     }
 
-    public ImageWrite(in TextureHandle handle)
+    public ImageWrite(in ImageHandle handle)
     {
-        if (SGraphicsModule.Get().GetTextureFactory().GetTexture(handle) is { } boundTexture)
+        if (SGraphicsModule.Get().GetImageFactory().GetTexture(handle) is { } boundTexture)
         {
             Image = boundTexture.Image!;
             Layout = ImageLayout.ShaderReadOnly;

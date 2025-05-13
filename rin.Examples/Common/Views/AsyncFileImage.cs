@@ -7,8 +7,6 @@ using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Quads;
-using SixLabors.ImageSharp.PixelFormats;
-using Image = SixLabors.ImageSharp.Image;
 
 namespace rin.Examples.Common.Views;
 
@@ -30,15 +28,12 @@ public class AsyncFileImage : CoverImage
 
     private async Task LoadFile(string filePath)
     {
-        using var imgData = await Image.LoadAsync<Rgba32>(filePath);
-        var (texId, task) = SGraphicsModule.Get().CreateTexture(imgData.ToBuffer(),
-            new Extent3D
-            {
-                Width = (uint)imgData.Width,
-                Height = (uint)imgData.Height
-            },
+        using var image = HostImage.Create(File.OpenRead(filePath)); //await Image.LoadAsync<Rgba32>(filePath);
+        image.CreateTexture();
+        var (texId, task) = SGraphicsModule.Get().GetImageFactory().CreateTexture(image.ToBuffer(),
+            new Extent3D(image.Extent),
             ImageFormat.RGBA8);
-        task.DispatchAfter(SEngine.Get().GetMainDispatcher(), () => TextureId = texId);
+        task.DispatchAfter(SEngine.Get().GetMainDispatcher(), () => ImageId = texId);
     }
 
     // public override void Draw(ViewFrame frame, DrawInfo info)
@@ -53,14 +48,14 @@ public class AsyncFileImage : CoverImage
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
-        if (!TextureId.IsValid()) return availableSpace;
+        if (!ImageId.IsValid()) return availableSpace;
 
         return base.LayoutContent(availableSpace);
     }
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        if (!TextureId.IsValid())
+        if (!ImageId.IsValid())
         {
             var opacity = (float)Math.Abs(Math.Sin(SEngine.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
             commands.AddRect(transform, GetContentSize(), new Color(0.8f, opacity), BorderRadius);

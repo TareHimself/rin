@@ -1,4 +1,3 @@
-using Rin.Engine.Extensions;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics.FrameGraph;
@@ -8,8 +7,7 @@ public class CompiledGraph : ICompiledGraph
     private readonly Dictionary<uint, IResourceDescriptor> _descriptors;
     private readonly Frame _frame;
     private readonly Dictionary<uint, IGraphImage> _images = [];
-    private readonly ICompiledGraphNode[] _nodes;
-    private readonly Dictionary<uint, IPass> _passes;
+    private readonly IEnumerable<ExecutionGroup> _nodes;
     private readonly IResourcePool _resourcePool;
 
 #if DEBUG
@@ -21,11 +19,11 @@ public class CompiledGraph : ICompiledGraph
 #endif
 
     public CompiledGraph(IResourcePool resourcePool, Frame frame, Dictionary<uint, IResourceDescriptor> descriptors,
-        ICompiledGraphNode[] nodes)
+        IEnumerable<ExecutionGroup> nodes)
     {
         _resourcePool = resourcePool;
         _frame = frame;
-        
+
 #if !DEBUG
         var memoryNeeded = descriptors.Values.Aggregate((ulong)0, (total, descriptor) =>
         {
@@ -46,7 +44,6 @@ public class CompiledGraph : ICompiledGraph
         _descriptors = descriptors;
 
         _nodes = nodes;
-        _passes = _nodes.ToDictionary(c => c.Pass.Id, c => c.Pass);
     }
 
     public void Dispose()
@@ -133,35 +130,75 @@ public class CompiledGraph : ICompiledGraph
         throw new ResourceAllocationException(id);
     }
 
-    public IPass GetPass(uint id)
+    public void Execute(Frame frame, IRenderContext context, TaskPool taskPool)
     {
-        return _passes[id];
-    }
+        var cmds = new BlockingStack<VkCommandBuffer>();
 
-    public void Execute(Frame frame, IRenderContext context)
-    {
-        HashSet<IPass> completed = [];
+        var primaryCmd = frame.GetPrimaryCommandBuffer();
+        foreach (var secondaryCommandBuffer in frame.GetSecondaryCommandBuffers()) cmds.Push(secondaryCommandBuffer);
 
-        var pending = _nodes.ToQueue();
-
-        var cmd = frame.GetCommandBuffer();
-
-        cmd.UnBindShader(VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT);
-        // This works because nodes are sorted in compile pass
-        foreach (var node in _nodes) node.Pass.Execute(this, frame, context);
-        // // OPTIMIZE THIS LATER
-        // while (pending.NotEmpty())
+        var used = new HashSet<VkCommandBuffer>();
+        foreach (var stage in _nodes)
+        foreach (var pass in stage.Passes)
+            pass.Execute(this, frame.GetPrimaryCommandBuffer(), frame, context);
+        // if (stage.IsBarrier)
         // {
-        //     var next = pending.Dequeue();
-        //     if (next.Dependencies.IsSubsetOf(completed))
+        //     if (used.NotEmpty())
         //     {
-        //         next.Pass.Execute(this, frame, context);
-        //         completed.Add(next.Pass);
+        //         unsafe
+        //         {
+        //             foreach (var cmd in used)
+        //             {
+        //                 cmd.End();
+        //             }
+        //         
+        //             fixed (VkCommandBuffer* pCmds = used.ToArray())
+        //             {
+        //                 vkCmdExecuteCommands(primaryCmd,(uint)used.Count,pCmds);
+        //             }
+        //
+        //             foreach (var cmd in used)
+        //             {
+        //                 cmd.BeginSecondary();
+        //             }
+        //         }
         //     }
-        //     else
+        //     
+        //     foreach (var pass in stage.Passes)
         //     {
-        //         pending.Enqueue(next);
+        //         pass.Execute(this,primaryCmd,frame,context);
         //     }
+        //     
+        //     used.Clear();
+        // }
+        // else
+        // {
+        //     var tasks = stage.Passes.Select(node => taskPool.Enqueue(() =>
+        //     {
+        //         var cmd = cmds.Pop();
+        //         node.Execute(this, cmd, frame, context);
+        //         used.Add(cmd);
+        //         cmds.Push(cmd);
+        //     })).ToArray();
+        //     
+        //     foreach (var task in tasks)
+        //     {
+        //         task.Wait();
+        //     }
+        // }
+        // var tasks = stage.Select(node => taskPool.Enqueue(() =>
+        // {
+        //     foreach (var cmd in cmds.GetConsumingEnumerable())
+        //     {
+        //         node.Execute(this, cmd, frame, context);
+        //         cmds.Add(cmd);
+        //         break;
+        //     }
+        // })).ToArray();
+        //
+        // foreach (var task in tasks)
+        // {
+        //     task.Wait();
         // }
     }
 }

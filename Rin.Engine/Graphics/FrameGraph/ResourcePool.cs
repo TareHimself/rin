@@ -146,6 +146,8 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
 
     private sealed class ProxiedImage(ResourceContainer<IDeviceImage> container, Frame frame) : IGraphImage
     {
+        public ImageLayout Layout { get; set; } = ImageLayout.Undefined;
+
         public void Dispose()
         {
             container.Uses.Remove(frame);
@@ -154,9 +156,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         public ImageFormat Format => container.Resource.Format;
         public Extent3D Extent => container.Resource.Extent;
         public VkImage NativeImage => container.Resource.NativeImage;
-        public VkImageView NativeView { get; set; } = container.Resource.NativeView;
-
-        public ImageLayout Layout { get; set; } = ImageLayout.Undefined;
+        public VkImageView NativeView { get; } = container.Resource.NativeView;
         public bool CreatedByGraph => true;
     }
 
@@ -165,7 +165,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         protected override ResourceContainer<IDeviceImage> CreateNew(ImageResourceDescriptor input, Frame frame,
             int key, ulong frameId)
         {
-            var image = SGraphicsModule.Get().CreateImage(new Extent3D
+            var image = SGraphicsModule.Get().CreateDeviceImage(new Extent3D
             {
                 Width = input.Width,
                 Height = input.Height

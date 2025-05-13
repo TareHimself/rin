@@ -5,9 +5,8 @@ namespace Rin.Engine.Views.Graphics;
 
 public static class GraphicsExtensions
 {
-    public static void ConfigureForViews(this Frame frame, in Extent2D extent)
+    public static void SetViewState(this in VkCommandBuffer cmd, in Extent2D extent)
     {
-        var cmd = frame.GetCommandBuffer();
         cmd
             .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)

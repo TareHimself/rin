@@ -6,10 +6,10 @@ using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Math;
 using Rin.Engine.Views;
-using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Commands;
+using Rin.Engine.Views.Graphics.Quads;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics;
 using TerraFX.Interop.Vulkan;
@@ -60,9 +60,8 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
         _viewportBufferId = config.CreateBuffer<SceneData>(BufferStage.Graphics);
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
     {
-        var cmd = frame.GetCommandBuffer();
         if (_shader.Bind(cmd))
         {
             var sceneImage = graph.GetImageOrException(_sceneImageId);
@@ -75,8 +74,7 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
                 ],
                 stencilAttachment: stencilImage.MakeStencilAttachmentInfo()
             );
-
-            frame.ConfigureForViews(_renderExtent);
+            cmd.SetViewState(_renderExtent);
             var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
 
             vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
@@ -140,18 +138,16 @@ internal class DrawViewportCommand(CameraComponent camera, in Vector2 extent, in
 
 public class Viewport : ContentView
 {
-    private readonly TextBox _modeText;
     private readonly CameraComponent _targetCamera;
     private bool _captureMouse;
     private ViewportChannel _channel = ViewportChannel.Scene;
     private bool _ignoreNextMove;
     private Vector2 _mousePosition;
 
-    public Viewport(CameraComponent camera, TextBox modeText)
+    public Viewport(CameraComponent camera)
     {
         _targetCamera = camera;
-        _modeText = modeText;
-        UpdateModeText();
+        GetModeText();
     }
 
     public override bool IsFocusable => true;
@@ -161,9 +157,9 @@ public class Viewport : ContentView
         return (GetContentSize() / 2.0f).Transform(ComputeAbsoluteTransform());
     }
 
-    private void UpdateModeText()
+    private string GetModeText()
     {
-        _modeText.Content = _channel switch
+        return _channel switch
         {
             ViewportChannel.Scene => "Default",
             ViewportChannel.Color => "Color",
@@ -207,7 +203,7 @@ public class Viewport : ContentView
                 var currentIdx = (int)_channel;
                 currentIdx = (currentIdx + 1) % 5;
                 _channel = (ViewportChannel)currentIdx;
-                UpdateModeText();
+                GetModeText();
                 return true;
             }
             case CursorButton.Two:
@@ -254,6 +250,7 @@ public class Viewport : ContentView
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         commands.Add(new DrawViewportCommand(_targetCamera, GetContentSize(), transform));
+        commands.AddText("Noto Sans", GetModeText(), transform, 100);
     }
 
 

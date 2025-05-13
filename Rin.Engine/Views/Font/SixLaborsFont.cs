@@ -4,7 +4,7 @@ namespace Rin.Engine.Views.Font;
 
 public class SixLaborsFont : IFont
 {
-    public SixLaborsFont(FontFamily font,IFontManager fontManager)
+    public SixLaborsFont(FontFamily font, IFontManager fontManager)
     {
         Family = font;
         FontManager = fontManager;

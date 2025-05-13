@@ -1,22 +1,18 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Globalization;
 using System.Numerics;
-using System.Text;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Views.Sdf;
 using SixLabors.Fonts;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 
 namespace Rin.Engine.Views.Font;
 
 public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFontManager
 {
     private const float RenderSize = 32.0f;
+    private const float PixelRange = 12.0f;
     private readonly ConcurrentDictionary<CacheKey, LiveGlyphInfo> _atlases = [];
     private readonly BackgroundTaskQueue _backgroundTaskQueue = new();
     private readonly CancellationTokenSource _cancellationSource = new();
@@ -24,7 +20,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
 
     private readonly LiveGlyphInfo _defaultLiveGlyph = new()
     {
-        AtlasHandle = TextureHandle.InvalidImage,
+        AtlasHandle = ImageHandle.InvalidImage,
         State = LiveGlyphState.Invalid,
         Size = Vector2.Zero,
         Coordinate = Vector4.Zero
@@ -32,6 +28,8 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
 
     private readonly IExternalFontCache? _externalCache = externalCache;
     private readonly ConcurrentDictionary<FontFamily, IFont> _fonts = [];
+
+    private Dictionary<string, GlyphBounds[]> _boundsCache = [];
 
     public Task Prepare(IFont font, IEnumerable<char> characters)
     {
@@ -64,7 +62,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                         .Select((c, idx) =>
                             new Pair<SdfResult?, int>(GenerateGlyph(c.First, actualFont, c.Second), idx))
                         .Where(c => c.First != null);
-                    var textureManager = SGraphicsModule.Get().GetTextureFactory();
+                    var textureManager = SGraphicsModule.Get().GetImageFactory();
                     //var textureManager = SGraphicsModule.Get().GetTextureManager();
                     var generated = results.Select(c =>
                     {
@@ -74,16 +72,16 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                         var size = new Vector2((float)result.Width, (float)result.Height);
                         var glyph = new LiveGlyphInfo
                         {
-                            AtlasHandle = TextureHandle.InvalidImage,
+                            AtlasHandle = ImageHandle.InvalidImage,
                             State = LiveGlyphState.Ready,
                             Size = size,
                             Coordinate = new Vector4(0.0f, 0.0f, size.X / result.PixelWidth,
                                 size.Y / result.PixelHeight)
                         };
 
-                        glyph.AtlasHandle = SGraphicsModule.Get().CreateTexture(result.Data.Copy(),
+                        glyph.AtlasHandle = SGraphicsModule.Get().GetImageFactory().CreateTexture(result.Data.Copy(),
                             new Extent3D((uint)result.PixelWidth, (uint)result.PixelHeight), ImageFormat.RGBA8,
-                            tiling: ImageTiling.ClampEdge).First;
+                            tiling: ImageTiling.ClampEdge).handle;
                         return new Pair<int, LiveGlyphInfo>(index, glyph);
                     });
 
@@ -142,7 +140,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                     var results = initialResults.Select((c, idx) => new Pair<SdfResult, int>(c, idx))
                         .Where(c => c.First != null).ToArray();
 
-                    var textureManager = SGraphicsModule.Get().GetTextureFactory();
+                    var textureManager = SGraphicsModule.Get().GetImageFactory();
 
                     var atlasSize = 512;
                     var padding = 2;
@@ -162,7 +160,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                     }
 
                     var atlases = packers
-                        .Select(p => new Image<Rgba32>(p.Width, p.Height, new Rgba32(255, 255, 255, 0)))
+                        .Select(p => HostImage.Create(new Extent2D(p.Width, p.Height), ImageFormat.RGBA8))
                         .ToArray();
 
                     List<Pair<int, LiveGlyphInfo>> generatedGlyphs = [];
@@ -175,26 +173,23 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                         var atlas = atlases[i];
                         atlas.Mutate(o =>
                         {
+                            o.Fill(255, 255, 255, 0);
                             foreach (var rect in packer.Rects)
                             {
                                 var generated = rect.Data;
-
-                                Span<byte> data = generated.First.Data;
-
-                                using var img = Image.LoadPixelData<Rgba32>(data, generated.First.PixelWidth,
-                                    generated.First.PixelHeight);
-
+                                using var img = HostImage.Create(generated.First.Data, (uint)generated.First.PixelWidth,
+                                    (uint)generated.First.PixelHeight, 4);
                                 generated.First.Data.Dispose();
-
-                                o.DrawImage(img, new Point(rect.X, rect.Y), 1F);
+                                o.DrawImage(img, new Offset2D(rect.X, rect.Y));
+                                //o.DrawImage(img, new Point(rect.X, rect.Y), 1F);
                             }
                         });
+
+                        //atlas.Save(File.OpenWrite($"./atlas{i}.png"));
                     }
 
                     // Upload textures to gpu
-                    var atlasIds = atlases.Select(c => SGraphicsModule.Get().CreateTexture(c.ToBuffer(),
-                        new Extent3D((uint)c.Width, (uint)c.Height), ImageFormat.RGBA8,
-                        tiling: ImageTiling.ClampEdge).First).ToArray();
+                    var atlasIds = atlases.Select(c => c.CreateTexture(tiling: ImageTiling.ClampEdge).handle).ToArray();
 
                     // Update Live glyphs
                     for (var i = 0; i < packers.Count; i++)
@@ -255,39 +250,12 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
         if (_collection.TryGet(name, out var family))
         {
             if (_fonts.TryGetValue(family, out var font)) return font;
-            var insert = new SixLaborsFont(family,this);
+            var insert = new SixLaborsFont(family, this);
             _fonts.AddOrUpdate(family, insert, (k, i) => insert);
             return insert;
         }
 
         return null;
-    }
-
-    private Dictionary<string, GlyphBounds[]> _boundsCache = [];
-    private GlyphBounds[] GetCharacterBounds(SixLaborsFont font,in ReadOnlySpan<char> text, float size,
-        float maxWidth = float.PositiveInfinity)
-    {
-        
-        // var key = new StringBuilder().Append(size.ToString(CultureInfo.InvariantCulture)).Append('|').Append(maxWidth.ToString(CultureInfo.InvariantCulture)).Append('|').Append(text).ToString();
-        // {
-        //     if(_boundsCache.TryGetValue(key, out var bounds)) return bounds;
-        // }
-        {
-            var actualFont = font.Family.CreateFont(size);
-            
-            var opts = new TextOptions(actualFont)
-            {
-                WrappingLength = maxWidth < float.PositiveInfinity ? maxWidth : -1
-            };
-
-            TextMeasurer.TryMeasureCharacterBounds(text, opts, out var boundsSpan);
-
-            var bounds = boundsSpan.ToArray();
-            
-            // _boundsCache[key] = bounds;
-
-            return bounds;
-        }
     }
 
     public GlyphRect[] MeasureText(IFont font, in ReadOnlySpan<char> text, float size,
@@ -296,7 +264,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
         Debug.Assert(font is SixLaborsFont);
         var myFont = (SixLaborsFont)font;
         var bounds = GetCharacterBounds(myFont, text, size, maxWidth);
-        
+
         return bounds.ToArray().Select(c => new GlyphRect
         {
             Character = c.Codepoint.ToString().First(),
@@ -309,14 +277,39 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
     {
         _cancellationSource.Cancel();
         _backgroundTaskQueue.Dispose();
-        SGraphicsModule.Get().GetTextureFactory()
+        SGraphicsModule.Get().GetImageFactory()
             .FreeTextures(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
         _atlases.Clear();
     }
 
     public float GetPixelRange()
     {
-        return 6.0f;
+        return PixelRange;
+    }
+
+    private GlyphBounds[] GetCharacterBounds(SixLaborsFont font, in ReadOnlySpan<char> text, float size,
+        float maxWidth = float.PositiveInfinity)
+    {
+        // var key = new StringBuilder().Append(size.ToString(CultureInfo.InvariantCulture)).Append('|').Append(maxWidth.ToString(CultureInfo.InvariantCulture)).Append('|').Append(text).ToString();
+        // {
+        //     if(_boundsCache.TryGetValue(key, out var bounds)) return bounds;
+        // }
+        {
+            var actualFont = font.Family.CreateFont(size);
+
+            var opts = new TextOptions(actualFont)
+            {
+                WrappingLength = maxWidth < float.PositiveInfinity ? maxWidth : -1
+            };
+
+            TextMeasurer.TryMeasureCharacterBounds(text, opts, out var boundsSpan);
+
+            var bounds = boundsSpan.ToArray();
+
+            // _boundsCache[key] = bounds;
+
+            return bounds;
+        }
     }
 
     private SdfResult? GenerateGlyph(char character, SixLabors.Fonts.Font font, CacheKey cacheKey)

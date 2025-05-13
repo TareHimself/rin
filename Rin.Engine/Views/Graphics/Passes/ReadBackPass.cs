@@ -1,5 +1,6 @@
 ﻿using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
+using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Views.Graphics.Passes;
 
@@ -28,12 +29,10 @@ public class ReadBackPass(SharedPassContext sharedContext) : IViewsPass
         config.WriteImage(CopyImageId, ImageLayout.TransferDst);
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
     {
         var mainImage = graph.GetImageOrException(MainImageId);
         var copyImage = graph.GetImageOrException(CopyImageId);
-
-        var cmd = frame.GetCommandBuffer();
 
         cmd
             .CopyImageToImage(mainImage, copyImage);

@@ -21,7 +21,7 @@ public interface IShader : IDisposable
             fixed (T* pData = &data)
             {
                 vkCmdPushConstants(cmd, GetPipelineLayout(), GetStageFlags(), offset,
-                    (uint)Engine.Utils.ByteSizeOf<T>(), pData);
+                    (uint)Utils.ByteSizeOf<T>(), pData);
             }
         }
     }

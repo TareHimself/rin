@@ -71,7 +71,7 @@ public static class EnumerableExtensions
         }
     }
 
-    public static ulong ByteSize<T>(this IEnumerable<T> target) where T : unmanaged
+    public static ulong ComputeByteSize<T>(this IEnumerable<T> target) where T : unmanaged
     {
         return Utils.ByteSizeOf<T>(target.Count());
     }

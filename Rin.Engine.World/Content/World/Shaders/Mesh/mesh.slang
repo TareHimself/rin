@@ -26,7 +26,7 @@ struct PerMeshData {
         int id = (int)color_textureId.a;
         float3 value = color_textureId.rgb;
 
-        var handle = TextureHandle(id);
+        var handle = ImageHandle(id);
         if (handle.IsValid()) {
             value = sampleTexture(handle, uv).rgb;
         }
@@ -38,7 +38,7 @@ struct PerMeshData {
         int id = msreTextureId.x;
         float value = MSRE.x;
 
-        var handle = TextureHandle(id);
+        var handle = ImageHandle(id);
         if (handle.IsValid()) {
             value = sampleTexture(handle, uv).r;
         }
@@ -50,7 +50,7 @@ struct PerMeshData {
         int id = msreTextureId.y;
         float value = MSRE.y;
 
-        var handle = TextureHandle(id);
+        var handle = ImageHandle(id);
         if (handle.IsValid()) {
             value = sampleTexture(handle, uv).r;
         }
@@ -62,7 +62,7 @@ struct PerMeshData {
         int id = msreTextureId.z;
         float value = MSRE.z;
 
-        var handle = TextureHandle(id);
+        var handle = ImageHandle(id);
         if (handle.IsValid()) {
             value = sampleTexture(handle, uv).r;
         }
@@ -74,7 +74,7 @@ struct PerMeshData {
         int id = msreTextureId.w;
         float value = MSRE.w;
 
-        var handle = TextureHandle(id);
+        var handle = ImageHandle(id);
         if (handle.IsValid()) {
             value = sampleTexture(handle, uv).r;
         }

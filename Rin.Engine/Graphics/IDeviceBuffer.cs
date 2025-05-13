@@ -1,4 +1,3 @@
-using Rin.Engine.Extensions;
 using Rin.Engine.Graphics.FrameGraph;
 using TerraFX.Interop.Vulkan;
 
@@ -24,7 +23,7 @@ public interface IDeviceBuffer : IGraphResource
         var asArray = data.ToArray();
         fixed (T* pData = asArray)
         {
-            Write(pData, asArray.ByteSize(), offset);
+            Write(pData, Utils.ByteSizeOf<T>(asArray.Length), offset);
         }
     }
 
@@ -32,7 +31,7 @@ public interface IDeviceBuffer : IGraphResource
     {
         unsafe
         {
-            Write(&src, Engine.Utils.ByteSizeOf<T>(), offset);
+            Write(&src, Utils.ByteSizeOf<T>(), offset);
         }
     }
 
@@ -40,7 +39,7 @@ public interface IDeviceBuffer : IGraphResource
     {
         unsafe
         {
-            Write(src.GetData(), Engine.Utils.ByteSizeOf<T>(src.GetElementsCount()), offset);
+            Write(src.GetData(), Utils.ByteSizeOf<T>(src.GetElementsCount()), offset);
         }
     }
 }

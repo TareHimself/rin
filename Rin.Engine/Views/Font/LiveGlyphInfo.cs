@@ -5,7 +5,7 @@ namespace Rin.Engine.Views.Font;
 
 public struct LiveGlyphInfo : IEquatable<LiveGlyphInfo>
 {
-    public required TextureHandle AtlasHandle;
+    public required ImageHandle AtlasHandle;
     public required LiveGlyphState State;
     public required Vector2 Size;
     public required Vector4 Coordinate;

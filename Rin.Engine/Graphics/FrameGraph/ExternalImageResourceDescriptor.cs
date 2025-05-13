@@ -10,10 +10,10 @@ public class ExternalImageResourceDescriptor : IResourceDescriptor
     {
         Image = image;
     }
-    
-    public ExternalImageResourceDescriptor(IDeviceImage image,Action? onDispose = null)
+
+    public ExternalImageResourceDescriptor(IDeviceImage image, Action? onDispose = null)
     {
-        Image = new ExternalImage(image,onDispose);
+        Image = new ExternalImage(image, onDispose);
     }
 
     // public bool Equals(ImageResourceDescriptor? other)

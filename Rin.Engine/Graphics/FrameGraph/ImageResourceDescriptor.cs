@@ -1,17 +1,15 @@
-using TerraFX.Interop.Vulkan;
-
 namespace Rin.Engine.Graphics.FrameGraph;
 
 public class ImageResourceDescriptor : IResourceDescriptor
 {
-    public readonly VkImageUsageFlags Flags;
+    public readonly ImageUsage Flags;
     public readonly ImageFormat Format;
     public readonly uint Height;
     public readonly ImageLayout InitialLayout;
 
     public readonly uint Width;
 
-    public ImageResourceDescriptor(uint width, uint height, ImageFormat format, VkImageUsageFlags flags,
+    public ImageResourceDescriptor(uint width, uint height, ImageFormat format, ImageUsage flags,
         ImageLayout initialLayout)
     {
         Width = width;

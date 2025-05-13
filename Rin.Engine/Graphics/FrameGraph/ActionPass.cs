@@ -1,3 +1,5 @@
+using TerraFX.Interop.Vulkan;
+
 namespace Rin.Engine.Graphics.FrameGraph;
 
 public class ActionPass(
@@ -22,7 +24,7 @@ public class ActionPass(
         configure(this, config);
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
     {
         run(this, graph, frame, context);
     }

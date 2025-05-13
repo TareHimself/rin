@@ -14,15 +14,15 @@ namespace Rin.Engine.Views.Content;
 /// </summary>
 public class Image : ContentView
 {
-    private TextureHandle _textureId = TextureHandle.InvalidImage;
+    private ImageHandle _imageId = ImageHandle.InvalidImage;
 
     [PublicAPI]
-    public TextureHandle TextureId
+    public ImageHandle ImageId
     {
-        get => _textureId;
+        get => _imageId;
         set
         {
-            _textureId = value;
+            _imageId = value;
             Invalidate(InvalidationType.DesiredSize);
         }
     }
@@ -33,8 +33,8 @@ public class Image : ContentView
 
     protected override Vector2 ComputeDesiredContentSize()
     {
-        if (SGraphicsModule.Get().GetTextureFactory()
-                .GetTextureImage(TextureId) is { } texture)
+        if (SGraphicsModule.Get().GetImageFactory()
+                .GetTextureImage(ImageId) is { } texture)
             return new Vector2
             {
                 X = texture.Extent.Width,
@@ -61,12 +61,12 @@ public class Image : ContentView
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        if (TextureId.IsValid()) DrawImage(TextureId, transform, commands);
+        if (ImageId.IsValid()) DrawImage(ImageId, transform, commands);
     }
 
-    protected virtual void DrawImage(in TextureHandle textureId, Matrix4x4 transform, CommandList commands)
+    protected virtual void DrawImage(in ImageHandle imageId, Matrix4x4 transform, CommandList commands)
     {
-        commands.AddTexture(textureId, transform, GetContentSize(), Tint, null,
+        commands.AddTexture(imageId, transform, GetContentSize(), Tint, null,
             BorderRadius);
     }
 

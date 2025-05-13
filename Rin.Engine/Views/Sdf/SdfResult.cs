@@ -48,6 +48,7 @@ public class SdfResult : IBinarySerializable, IDisposable
 
     public void Dispose()
     {
+        GC.SuppressFinalize(this);
         Data.Dispose();
     }
 }

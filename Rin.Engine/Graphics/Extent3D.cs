@@ -27,6 +27,13 @@ public struct Extent3D : IFormattable
         Dimensions = dimensions;
     }
 
+    public Extent3D(int width, int height, int dimensions = 1)
+    {
+        Width = (uint)width;
+        Height = (uint)height;
+        Dimensions = (uint)dimensions;
+    }
+
 
     public static implicit operator Extent2D(Extent3D extent)
     {

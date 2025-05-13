@@ -43,9 +43,8 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
         BufferId = config.CreateBuffer<Data>(_customCommands.Length, BufferStage.Graphics);
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
     {
-        var cmd = frame.GetCommandBuffer();
         if (_prettyShader.Bind(cmd))
         {
             var drawImage = graph.GetImage(MainImageId);
@@ -58,8 +57,7 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
                 stencilAttachment: stencilImage.MakeStencilAttachmentInfo()
             );
 
-            frame.ConfigureForViews(info.Context.Extent);
-
+            cmd.SetViewState(info.Context.Extent);
             var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
 
             vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,

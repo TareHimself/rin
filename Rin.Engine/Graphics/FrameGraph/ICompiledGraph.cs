@@ -6,7 +6,5 @@ public interface ICompiledGraph : IDisposable
 
     public IDeviceBufferView GetBuffer(uint id);
 
-    public IPass GetPass(uint id);
-
-    public void Execute(Frame frame, IRenderContext context);
+    public void Execute(Frame frame, IRenderContext context, TaskPool taskPool);
 }

@@ -26,8 +26,8 @@ public class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         IGraphicsShader shader)
     {
         Debug.Assert(view is not null);
-        var cmd = frame.Raw.GetCommandBuffer();
-        var resourceSet = SGraphicsModule.Get().GetTextureFactory().GetDescriptorSet();
+        var cmd = frame.CommandBuffer;
+        var resourceSet = SGraphicsModule.Get().GetImageFactory().GetDescriptorSet();
         var quads = batch.GetQuads().ToArray();
         if (quads.Length == 0) return 0;
 

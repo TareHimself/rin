@@ -6,8 +6,6 @@ using Rin.Engine.Views;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Graphics;
 using Rin.Engine.Views.Graphics.Quads;
-using SixLabors.ImageSharp.PixelFormats;
-using Image = SixLabors.ImageSharp.Image;
 
 namespace rin.Examples.Common.Views;
 
@@ -26,17 +24,11 @@ public class AsyncWebImage : CoverImage
         {
             using var client = new HttpClient();
             var stream = await client.GetStreamAsync(uri);
-            using var img = await Image.LoadAsync<Rgba32>(stream);
-            var (texId, task) = SGraphicsModule.Get().CreateTexture(img.ToBuffer(),
-                new Extent3D
-                {
-                    Width = (uint)img.Width,
-                    Height = (uint)img.Height
-                },
-                ImageFormat.RGBA8);
+            using var img = await Task.Run(() => HostImage.Create(stream));
+            var (texId, task) = img.CreateTexture();
             task.DispatchAfter(SEngine.Get().GetMainDispatcher(), () =>
             {
-                TextureId = texId;
+                ImageId = texId;
                 OnLoaded?.Invoke(true);
             });
         }

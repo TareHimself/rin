@@ -100,9 +100,9 @@ public class SlangComputeShader : IComputeShader
 
             var entryPointReflection = reflectionData.EntryPoints.FirstOrDefault() ??
                                        throw new ShaderCompileException("Missing entry point");
-            
+
             Debug.Assert(entryPointReflection.Stage == "compute");
-            
+
             var groupSize = entryPointReflection.ThreadGroupSize;
             GroupSizeX = groupSize[0];
             GroupSizeY = groupSize[1];

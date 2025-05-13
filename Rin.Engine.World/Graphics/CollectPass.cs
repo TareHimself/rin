@@ -99,7 +99,6 @@ public class CollectPass : IPass
 
     public void PostAdd(IGraphBuilder builder)
     {
-        
     }
 
 
@@ -196,11 +195,10 @@ public class CollectPass : IPass
     }
 
 
-    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
     {
-        if (_skinnedMeshes.NotEmpty()) DoSkinning(graph, frame);
+        if (_skinnedMeshes.NotEmpty()) DoSkinning(graph, frame, cmd);
 
-        var cmd = frame.GetCommandBuffer();
         var sceneDataBuffer = graph.GetBufferOrException(DepthSceneBufferId);
         var materialDataBuffer = graph.GetBufferOrNull(DepthMaterialBufferId);
         ulong materialDataBufferOffset = 0;
@@ -239,7 +237,7 @@ public class CollectPass : IPass
                 }
             ]);
 
-        var sceneFrame = new SceneFrame(frame, View, Projection, sceneDataBuffer);
+        var sceneFrame = new SceneFrame(frame, View, Projection, sceneDataBuffer, cmd);
 
         sceneDataBuffer.Write(new DepthSceneInfo
         {
@@ -266,7 +264,7 @@ public class CollectPass : IPass
     public bool HandlesPreAdd => false;
     public bool HandlesPostAdd => false;
 
-    private void DoSkinning(ICompiledGraph graph, Frame frame)
+    private void DoSkinning(ICompiledGraph graph, Frame frame, in VkCommandBuffer cmd)
     {
         // SkinningOutputBufferId = config.AllocateBuffer<Vertex>(totalVertices);
         // SkinnedMeshArrayBufferId = config.AllocateBuffer<ulong>(SkinnedMeshes.Length);
@@ -287,7 +285,6 @@ public class CollectPass : IPass
         }));
         executionInfos.Write(ExecutionInfos);
 
-        var cmd = frame.GetCommandBuffer();
         if (_skinningShader.Bind(cmd))
         {
             var descriptorLayout = _skinningShader.GetDescriptorSetLayouts().Values.First();

@@ -17,8 +17,6 @@ using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Physics;
 using rin.Examples.Common.Views;
 using rin.Examples.SceneTest.entities;
-using SixLabors.ImageSharp.PixelFormats;
-using Image = SixLabors.ImageSharp.Image;
 
 namespace rin.Examples.SceneTest;
 
@@ -91,8 +89,8 @@ public class SSceneTestModule : IModule
                     {
                         Size = new Vector3(2, 2, 2),
                         Location = new Vector3(0, 0, 15),
-                        Scale = new Vector3(1),
-                        PhysicsState = PhysicsState.Simulated
+                        Scale = new Vector3(3),
+                        PhysicsState = PhysicsState.Static
                     },
                     InitialComponents =
                     [
@@ -239,17 +237,10 @@ public class SSceneTestModule : IModule
     {
     }
 
-    public static async Task<TextureHandle> LoadTexture(string path)
+    public static async Task<ImageHandle> LoadTexture(string path)
     {
-        using var imgData = await Image.LoadAsync<Rgba32>(path);
-        using var buffer = imgData.ToBuffer();
-        var (id, task) = SGraphicsModule.Get().GetTextureFactory().CreateTexture(buffer,
-            new Extent3D
-            {
-                Width = (uint)imgData.Width,
-                Height = (uint)imgData.Height
-            },
-            ImageFormat.RGBA8);
+        using var imgData = await Task.Run(() => HostImage.Create(File.OpenRead(path)));
+        var (id, task) = imgData.CreateTexture();
         await task;
         return id;
     }
@@ -265,9 +256,9 @@ public class SSceneTestModule : IModule
         await Task.WhenAll(albedo, roughness, metallic, normal);
         return new DefaultMeshMaterial
         {
-            ColorTextureId = albedo.Result,
-            RoughnessTextureId = roughness.Result,
-            MetallicTextureId = metallic.Result
+            ColorImageId = albedo.Result,
+            RoughnessImageId = roughness.Result,
+            MetallicImageId = metallic.Result
         };
     }
 }

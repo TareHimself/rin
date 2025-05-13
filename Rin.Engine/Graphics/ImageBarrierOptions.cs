@@ -32,9 +32,6 @@ public struct ImageBarrierOptions
             case ImageFormat.RG8:
             case ImageFormat.RG16:
             case ImageFormat.RG32:
-            case ImageFormat.RGB8:
-            case ImageFormat.RGB16:
-            case ImageFormat.RGB32:
             case ImageFormat.RGBA8:
             case ImageFormat.RGBA16:
             case ImageFormat.RGBA32:

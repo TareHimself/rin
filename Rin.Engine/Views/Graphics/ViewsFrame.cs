@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
+using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Views.Graphics;
 
@@ -9,12 +10,14 @@ public class ViewsFrame(
     IGraphImage drawImage,
     IGraphImage copyImage,
     IGraphImage stencilImage,
-    SharedPassContext passContext)
+    SharedPassContext passContext,
+    in VkCommandBuffer cmd)
 {
     public readonly IGraphImage CopyImage = copyImage;
     public readonly IGraphImage DrawImage = drawImage;
     public readonly Frame Raw = raw;
     public readonly IGraphImage StencilImage = stencilImage;
+    public VkCommandBuffer CommandBuffer = cmd;
     public Extent2D Extent = passContext.Extent;
 
     public Matrix4x4 ProjectionMatrix = passContext.ProjectionMatrix;

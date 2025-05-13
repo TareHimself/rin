@@ -43,6 +43,12 @@ public struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool>, IEqu
         Height = height;
     }
 
+    public Extent2D(int width, int height)
+    {
+        Width = (uint)width;
+        Height = (uint)height;
+    }
+
 
     public bool Equals(Vector2<uint> other)
     {

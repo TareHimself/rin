@@ -1,6 +1,4 @@
-﻿using TerraFX.Interop.Vulkan;
-
-namespace Rin.Engine.Graphics.FrameGraph;
+﻿namespace Rin.Engine.Graphics.FrameGraph;
 
 public class GraphConfig(GraphBuilder builder) : IGraphConfig
 {
@@ -29,18 +27,17 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     public uint AddExternalImage(IDeviceImage image, Action? onDispose = null)
     {
         var resourceId = builder.MakeId();
-        Resources.Add(resourceId,new ExternalImageResourceDescriptor(new ExternalImage(image,onDispose)));
+        Resources.Add(resourceId, new ExternalImageResourceDescriptor(new ExternalImage(image, onDispose)));
         return resourceId;
     }
 
     public uint CreateImage(uint width, uint height, ImageFormat format, ImageLayout initialLayout)
     {
         var flags = format is ImageFormat.Depth or ImageFormat.Stencil
-            ? VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-            : VkImageUsageFlags.VK_IMAGE_USAGE_STORAGE_BIT | VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            ? ImageUsage.StencilAttachment
+            : ImageUsage.Storage | ImageUsage.ColorAttachment;
 
-        flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                 VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT;
+        flags |= ImageUsage.TransferSrc | ImageUsage.TransferDst | ImageUsage.Sampled;
         var descriptor = new ImageResourceDescriptor(width, height, format, flags, initialLayout);
         var resourceId = builder.MakeId();
         Resources.Add(resourceId, descriptor);

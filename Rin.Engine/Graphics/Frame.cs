@@ -14,6 +14,7 @@ public class Frame : IDisposable
     private readonly VkDevice _device;
     private readonly VkFence _renderFence;
     private readonly VkSemaphore _renderSemaphore;
+    private readonly VkCommandBuffer[] _secondaryCommandBuffers;
     private readonly VkSemaphore _swapchainSemaphore;
     public readonly WindowRenderer Renderer;
     private bool _rendering;
@@ -36,6 +37,9 @@ public class Frame : IDisposable
 
         _commandPool = device.CreateCommandPool(queueFamily);
         _commandBuffer = device.AllocateCommandBuffers(_commandPool).First();
+        _secondaryCommandBuffers = device.AllocateCommandBuffers(_commandPool,
+            uint.Min((uint)Environment.ProcessorCount, 6),
+            VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_SECONDARY);
         _renderFence = device.CreateFence(true);
         _renderSemaphore = device.CreateSemaphore();
         _swapchainSemaphore = device.CreateSemaphore();
@@ -52,7 +56,7 @@ public class Frame : IDisposable
         _device.DestroyFence(_renderFence);
         _device.DestroyCommandPool(_commandPool);
     }
-    
+
     public event Action<Frame>? OnReset;
 
 
@@ -71,9 +75,20 @@ public class Frame : IDisposable
         return _swapchainSemaphore;
     }
 
-    public VkCommandBuffer GetCommandBuffer()
+    public VkCommandBuffer GetPrimaryCommandBuffer()
     {
         return _commandBuffer;
+    }
+
+    public VkCommandBuffer[] GetSecondaryCommandBuffers()
+    {
+        return _secondaryCommandBuffers;
+    }
+
+    public IEnumerable<VkCommandBuffer> GetCommandBuffers()
+    {
+        yield return _commandBuffer;
+        foreach (var secondaryCommandBuffer in _secondaryCommandBuffers) yield return secondaryCommandBuffer;
     }
 
     public DescriptorAllocator GetDescriptorAllocator()

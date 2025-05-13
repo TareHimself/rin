@@ -16,7 +16,7 @@ public class CoverImage : Image
         return base.LayoutContent(availableSpace);
     }
 
-    protected override void DrawImage(in TextureHandle textureId, Matrix4x4 transform, CommandList commands)
+    protected override void DrawImage(in ImageHandle imageId, Matrix4x4 transform, CommandList commands)
     {
         var contentSize = GetContentSize();
         var fitSize = Fitter.ComputeCoverSize(contentSize, GetDesiredContentSize());
@@ -25,7 +25,7 @@ public class CoverImage : Image
         var p2 = centerDist + contentSize;
         p1 /= fitSize;
         p2 /= fitSize;
-        commands.AddTexture(textureId, transform, GetContentSize(), Tint, new Vector4(p1.X, p1.Y, p2.X, p2.Y),
+        commands.AddTexture(imageId, transform, GetContentSize(), Tint, new Vector4(p1.X, p1.Y, p2.X, p2.Y),
             BorderRadius);
     }
 }

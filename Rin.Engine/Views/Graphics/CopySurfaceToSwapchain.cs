@@ -1,12 +1,13 @@
-﻿using System.Numerics;
-using Rin.Engine.Graphics;
+﻿using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
+using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Views.Graphics;
 
 public class CopySurfaceToSwapchain(SharedPassContext passContext) : IPass
 {
     private uint _swapchainImageId;
+
     public void PreAdd(IGraphBuilder builder)
     {
         throw new NotImplementedException();
@@ -23,11 +24,10 @@ public class CopySurfaceToSwapchain(SharedPassContext passContext) : IPass
         _swapchainImageId = config.WriteImage(config.SwapchainImageId, ImageLayout.TransferDst);
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
     {
         var mainImage = graph.GetImageOrException(passContext.MainImageId);
         var swapchainImage = graph.GetImageOrException(_swapchainImageId);
-        var cmd = frame.GetCommandBuffer();
         cmd.CopyImageToImage(mainImage, swapchainImage);
     }
 

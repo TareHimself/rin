@@ -10,7 +10,7 @@ using rin.Examples.SceneTest.entities;
 
 namespace rin.Examples.SceneTest;
 
-public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camera.GetCameraComponent(), modeText)
+public class TestViewport(CameraActor camera, TextBox modeText) : Viewport(camera.GetCameraComponent())
 {
     private readonly Actor _testActor = camera;
     // private readonly Actor _testActor = camera.World?.AddActor(new Actor

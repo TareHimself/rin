@@ -82,7 +82,7 @@ float median(float r, float g, float b)
 float screenPxRange(float2 uv, float2 size)
 {
     // return (max(size.x, size.y) / 32.0f) * 6.0f;
-    float2 unitRange = float2(6.0) / size;
+    float2 unitRange = float2(12.0) / size;
     float2 screenTexSize = float2(1.0) / fwidth(uv);
     return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
@@ -98,7 +98,7 @@ struct Primitive {
 
 struct Texture {
     Quad super;
-    TextureHandle textureHandle;
+    ImageHandle textureHandle;
     float4 tint;
     float4 uv;
     float4 borderRadius;
@@ -106,7 +106,7 @@ struct Texture {
 
 struct Mtsdf {
     Quad super;
-    TextureHandle textureHandle;
+    ImageHandle textureHandle;
     float4 color;
     float4 uv;
 }

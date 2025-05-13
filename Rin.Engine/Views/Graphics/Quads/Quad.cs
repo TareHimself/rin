@@ -59,7 +59,7 @@ public struct Quad() // : ICloneable<Quad>
         public Vector4<int> Opts { get; set; }
         public Vector2 Size { get; set; }
         public Matrix4x4 Transform { get; set; }
-        public TextureHandle TextureHandle { get; set; }
+        public ImageHandle ImageHandle { get; set; }
         public Vector4 Tint { get; set; }
         public Vector4 UV { get; set; }
         public Vector4 BorderRadius { get; set; }
@@ -70,7 +70,7 @@ public struct Quad() // : ICloneable<Quad>
         public Vector4<int> Opts { get; set; }
         public Vector2 Size { get; set; }
         public Matrix4x4 Transform { get; set; }
-        public TextureHandle TextureHandle { get; set; }
+        public ImageHandle ImageHandle { get; set; }
         public Vector4 Color { get; set; }
         public Vector4 UV { get; set; }
     }
@@ -202,7 +202,7 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Texture(TextureHandle textureHandle, in Matrix4x4 transform, in Vector2 size, Color? tint = null,
+    public static Quad Texture(ImageHandle imageHandle, in Matrix4x4 transform, in Vector2 size, Color? tint = null,
         in Vector4? borderRadius = null, in Vector4? uv = null)
     {
         var quad = new Quad
@@ -215,7 +215,7 @@ public struct Quad() // : ICloneable<Quad>
         unsafe
         {
             var asData = Utils.Reinterpret<TextureData, Quad>(&quad);
-            asData->TextureHandle = textureHandle;
+            asData->ImageHandle = imageHandle;
             asData->Tint = tint.GetValueOrDefault(Color.White);
             asData->BorderRadius = borderRadius.GetValueOrDefault();
             asData->UV = uv.GetValueOrDefault(new Vector4(0.0f, 0.0f, 1.0f, 1.0f));
@@ -224,7 +224,7 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Mtsdf(TextureHandle textureHandle, in Matrix4x4 transform, in Vector2 size, in Color? color = null,
+    public static Quad Mtsdf(ImageHandle imageHandle, in Matrix4x4 transform, in Vector2 size, in Color? color = null,
         in Vector4? uv = null)
     {
         var quad = new Quad
@@ -237,7 +237,7 @@ public struct Quad() // : ICloneable<Quad>
         unsafe
         {
             var asData = Utils.Reinterpret<MtsdfData, Quad>(&quad);
-            asData->TextureHandle = textureHandle;
+            asData->ImageHandle = imageHandle;
             asData->Color = color.GetValueOrDefault(Color.White);
             asData->UV = uv.GetValueOrDefault(new Vector4(0.0f, 0.0f, 1.0f, 1.0f));
         }

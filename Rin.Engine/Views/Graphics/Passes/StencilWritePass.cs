@@ -45,7 +45,7 @@ public class StencilWritePass : IPass
         config.WriteImage(StencilImageId, ImageLayout.StencilAttachment);
     }
 
-    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
     {
         var image = graph.GetImageOrException(StencilImageId);
 
@@ -86,7 +86,6 @@ public class StencilWritePass : IPass
                 }
             };
 
-            var cmd = frame.GetCommandBuffer();
             vkCmdClearAttachments(cmd, 1, &clearAttachment, 1, &clearRect);
         }
     }

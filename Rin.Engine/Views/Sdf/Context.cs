@@ -77,7 +77,11 @@ public class Context : IDisposable
                 var buffer = new Buffer<byte>((int)count);
                 buffer.Write(data, count);
                 result = new SdfResult(buffer, 4, width, height, (int)pixelWidth, (int)pixelHeight);
+                var expected = (ulong)(result.PixelHeight * result.PixelWidth * result.Channels);
+                var actual = buffer.GetByteSize();
+                if (count == 2304) Console.Write("FUK");
             });
+
 
         return result;
     }

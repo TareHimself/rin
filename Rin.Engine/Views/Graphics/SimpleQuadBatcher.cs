@@ -8,7 +8,7 @@ public abstract class SimpleQuadBatcher<T> : IBatcher where T : IBatch
     public void Draw(ViewsFrame frame, IBatch batch, IDeviceBufferView? buffer)
     {
         var shader = GetShader();
-        var cmd = frame.Raw.GetCommandBuffer();
+        var cmd = frame.CommandBuffer;
         if (shader.Bind(cmd))
         {
             var numQuads = WriteBatch(frame, buffer, (T)batch, GetShader());

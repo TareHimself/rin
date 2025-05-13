@@ -6,12 +6,12 @@ namespace Rin.Engine.Views.Sdf;
 
 public class MtsdfFont : Reservable
 {
-    private readonly TextureHandle[] _atlases;
+    private readonly ImageHandle[] _atlases;
     private readonly FontFamily _fontFamily;
     private readonly Mutex _mutex = new();
     private readonly Dictionary<string, SdfVector> _vectors;
 
-    public MtsdfFont(FontFamily fontFamily, TextureHandle[] atlases, Dictionary<string, SdfVector> vectors)
+    public MtsdfFont(FontFamily fontFamily, ImageHandle[] atlases, Dictionary<string, SdfVector> vectors)
     {
         _atlases = atlases;
         _vectors = vectors;
@@ -25,15 +25,15 @@ public class MtsdfFont : Reservable
 
     protected override void OnDispose(bool isManual)
     {
-        SGraphicsModule.Get().GetTextureFactory().FreeTextures(_atlases);
+        SGraphicsModule.Get().GetImageFactory().FreeTextures(_atlases);
     }
 
-    public TextureHandle GetAtlasTextureId(int atlasId)
+    public ImageHandle GetAtlasTextureId(int atlasId)
     {
         return _atlases[atlasId];
     }
 
-    public TextureHandle[] GetAtlases()
+    public ImageHandle[] GetAtlases()
     {
         return _atlases;
     }

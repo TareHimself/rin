@@ -3,7 +3,9 @@
 public class SlangShaderManager : IShaderManager
 {
     private readonly BackgroundTaskQueue _compileTasks = new();
+    private readonly object _computeLock = new();
     private readonly Dictionary<string, SlangComputeShader> _computeShaders = [];
+    private readonly object _graphicsLock = new();
     private readonly Dictionary<string, SlangGraphicsShader> _graphicsShaders = [];
     private readonly SlangSession _session;
 
@@ -34,31 +36,37 @@ public class SlangShaderManager : IShaderManager
 
     public IGraphicsShader MakeGraphics(string path)
     {
-        var absPath = Path.GetFullPath(path);
-
+        lock (_graphicsLock)
         {
-            if (_graphicsShaders.TryGetValue(absPath, out var shader)) return shader;
-        }
+            var absPath = Path.GetFullPath(path);
 
-        {
-            var shader = new SlangGraphicsShader(this, path);
-            _graphicsShaders.Add(absPath, shader);
-            return shader;
+            {
+                if (_graphicsShaders.TryGetValue(absPath, out var shader)) return shader;
+            }
+
+            {
+                var shader = new SlangGraphicsShader(this, path);
+                _graphicsShaders.Add(absPath, shader);
+                return shader;
+            }
         }
     }
 
     public IComputeShader MakeCompute(string path)
     {
-        var absPath = Path.GetFullPath(path);
-
+        lock (_computeLock)
         {
-            if (_computeShaders.TryGetValue(absPath, out var shader)) return shader;
-        }
+            var absPath = Path.GetFullPath(path);
 
-        {
-            var shader = new SlangComputeShader(this, path);
-            _computeShaders.Add(absPath, shader);
-            return shader;
+            {
+                if (_computeShaders.TryGetValue(absPath, out var shader)) return shader;
+            }
+
+            {
+                var shader = new SlangComputeShader(this, path);
+                _computeShaders.Add(absPath, shader);
+                return shader;
+            }
         }
     }
 

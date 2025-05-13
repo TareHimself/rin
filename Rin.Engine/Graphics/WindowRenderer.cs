@@ -20,24 +20,12 @@ public class WindowRenderer : IWindowRenderer
     private readonly IResourcePool _resourcePool;
     private readonly HashSet<VkPresentModeKHR> _supportedPresentModes;
     private readonly VkSurfaceKHR _surface;
+    private readonly TaskPool _taskPool = new();
     private readonly IWindow _window;
     private bool _disposed;
     private Frame[] _frames = [];
     private ulong _framesRendered;
     private VkSwapchainKHR _swapchain;
-
-    class SwapchainImage : IDeviceImage
-    {
-        public void Dispose()
-        {
-            
-        }
-
-        public required ImageFormat Format { get; set; }
-        public required Extent3D Extent { get; set; }
-        public required VkImage NativeImage { get; set; }
-        public required VkImageView NativeView { get; set; }
-    }
 
     private Extent2D _swapchainExtent = new()
     {
@@ -301,8 +289,8 @@ public class WindowRenderer : IWindowRenderer
 
         var extent = (Extent2D)_window.GetPixelSize();
 
-        //OnCollect?.Invoke(builder);
-        
+        OnCollect?.Invoke(builder);
+
         builder.AddPass(new PrepareForPresentPass()); // Always terminal
 
         return new RenderContext
@@ -319,28 +307,26 @@ public class WindowRenderer : IWindowRenderer
     {
         lock (_drawLock)
         {
-            
             try
             {
                 var frame = ctx.TargetFrame;
                 var device = _module.GetDevice();
-                
-                
+
+
                 CheckResult(frame.WaitForLastDraw());
-                
+
                 _resourcePool.OnFrameStart(_framesRendered);
 
                 frame.Reset();
 
                 uint swapchainImageIndex = 0;
-                
                 unsafe
                 {
                     CheckResult(vkAcquireNextImageKHR(device, _swapchain, ulong.MaxValue, frame.GetSwapchainSemaphore(),
                         new VkFence(),
                         &swapchainImageIndex));
                 }
-                Profiling.Begin("Test");
+
                 var swapchainImage = new SwapchainImage
                 {
                     Format = ImageFormat.Swapchain,
@@ -350,37 +336,47 @@ public class WindowRenderer : IWindowRenderer
                 };
 
                 ctx.SwapchainImageId = ctx.GraphBuilder.AddSwapchainImage(swapchainImage);
-               
+
                 Profiling.Begin("Engine.Rendering.Graph.Compile");
                 var graph = ctx.GraphBuilder.Compile(_resourcePool, frame);
                 Profiling.End("Engine.Rendering.Graph.Compile");
-                
-                Debug.Assert(graph != null,"Frame Graph is empty"); // Since we always prepare for present the graph can never be empty
-                
-                var cmd = frame.GetCommandBuffer();
-                
-                unsafe
-                {
-                    vkResetCommandBuffer(cmd, 0);
-                    var commandBeginInfo = new VkCommandBufferBeginInfo
-                    {
-                        sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                        flags = VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-                    };
-                    vkBeginCommandBuffer(cmd, &commandBeginInfo);
 
+                Debug.Assert(graph != null,
+                    "Frame Graph is empty"); // Since we always prepare for present the graph can never be empty
+
+                // var cmd = frame.GetPrimaryCommandBuffer();
+                //
+                frame.GetPrimaryCommandBuffer().Begin();
+                foreach (var cmd in frame.GetSecondaryCommandBuffers()) cmd.BeginSecondary();
+                foreach (var cmd in frame.GetCommandBuffers())
                     cmd
                         .SetRasterizerDiscard(false)
-                        .DisableMultiSampling();
-                }
-                
+                        .DisableMultiSampling()
+                        .UnBindShaders([
+                            VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT,
+                            VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
+                            VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT
+                        ]);
+
                 frame.OnReset += _ => graph.Dispose();
-                
+
                 Profiling.Begin("Engine.Rendering.Graph.Execute");
-                graph.Execute(frame, ctx);
+                graph.Execute(frame, ctx, _taskPool);
                 Profiling.End("Engine.Rendering.Graph.Execute");
 
-                vkEndCommandBuffer(cmd);
+                foreach (var cmd in frame.GetSecondaryCommandBuffers()) vkEndCommandBuffer(cmd);
+                unsafe
+                {
+                    var cmd = frame.GetPrimaryCommandBuffer();
+                    var cmds = frame.GetSecondaryCommandBuffers();
+                    fixed (VkCommandBuffer* pCommandBuffers = cmds)
+                    {
+                        vkCmdExecuteCommands(cmd, (uint)cmds.Length, pCommandBuffers);
+                    }
+                }
+
+
+                vkEndCommandBuffer(frame.GetPrimaryCommandBuffer());
 
                 var queue = _module.GetGraphicsQueue();
 
@@ -389,7 +385,7 @@ public class WindowRenderer : IWindowRenderer
                         {
                             sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                             deviceMask = 0,
-                            commandBuffer = cmd
+                            commandBuffer = frame.GetPrimaryCommandBuffer()
                         }
                     ], [
                         new VkSemaphoreSubmitInfo
@@ -435,9 +431,19 @@ public class WindowRenderer : IWindowRenderer
             {
                 DestroySwapchain();
             }
-            Profiling.End("Test");
-            Console.WriteLine("RENDER TIME {0}",float.Round((float)(Profiling.GetElapsedOrZero("Test").TotalMilliseconds),2));
         }
+    }
+
+    private class SwapchainImage : IDeviceImage
+    {
+        public void Dispose()
+        {
+        }
+
+        public required ImageFormat Format { get; set; }
+        public required Extent3D Extent { get; set; }
+        public required VkImage NativeImage { get; set; }
+        public required VkImageView NativeView { get; set; }
     }
 
     private class OutOfDateException : Exception

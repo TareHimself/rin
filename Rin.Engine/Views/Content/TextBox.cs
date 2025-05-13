@@ -37,7 +37,7 @@ public class TextBox : ContentView
     [PublicAPI] protected IFont? CurrentFont { get; private set; }
 
     protected float LineHeight => CurrentFont?.GetLineHeight(FontSize) ?? 0;
-    
+
     [PublicAPI] public Color ForegroundColor { get; set; } = Color.White;
 
     [PublicAPI] public Color BackgroundColor { get; set; } = Color.White with { A = 0.0f };
@@ -227,9 +227,9 @@ public class TextBox : ContentView
         }
     }
 
-    protected struct CachedQuadLayout(in TextureHandle atlas, Matrix4x4 transform, Vector2 size, Vector4 uv)
+    protected struct CachedQuadLayout(in ImageHandle atlas, Matrix4x4 transform, Vector2 size, Vector4 uv)
     {
-        public readonly TextureHandle Atlas = atlas;
+        public readonly ImageHandle Atlas = atlas;
         public Matrix4x4 Transform = transform;
         public Vector2 Size = size;
         public Vector4 Uv = uv;

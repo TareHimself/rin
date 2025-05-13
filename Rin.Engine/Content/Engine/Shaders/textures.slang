@@ -11,20 +11,6 @@ enum ImageType {
     Volume
 }
 
-struct TextureHandle {
-    int _data;
-    int GetId() {
-        return (_data >> 8) & 0xFFFFFF;
-    }
-
-    ImageType GetType() {
-        return (ImageType)(_data & 0xFF);
-    }
-
-    bool IsValid() {
-        return GetId() > 0;
-    }
-}
 // Define a texture array resource
 //[layout(set = 0, binding = 0), $partial, $update, $variable = 512, $stage = all]
 
@@ -37,16 +23,35 @@ uniform Sampler2D TEXTURES[];
 // uniform Sampler3D CUBEMAPS[];
 
 // Function to sample a texture
-float4 sampleTexture(TextureHandle handle, float2 uv)
+float4 sampleTexture(ImageHandle handle, float2 uv)
 {
     return TEXTURES[handle.GetId()].Sample(uv);
 }
 
 // Function to get the size of a texture
-uint2 getTextureSize(TextureHandle handle, uint mip = 0)
+uint2 getTextureSize(ImageHandle handle, uint mip = 0)
 {
     uint2 size;
     uint levels;
     TEXTURES[handle.GetId()].GetDimensions(mip, size.x, size.y, levels);
     return size;
+}
+
+struct ImageHandle {
+    int _data;
+    int GetId() {
+        return (_data >> 8) & 0xFFFFFF;
+    }
+
+    ImageType GetType() {
+        return (ImageType)(_data & 0xFF);
+    }
+
+    bool IsValid() {
+        return GetId() > 0;
+    }
+
+    float4 SampleTexture(float2 uv) {
+        return sampleTexture(this, uv);
+    }
 }

@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Graphics.Descriptors;
-using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Math;
 using TerraFX.Interop.Vulkan;
 
@@ -80,19 +79,16 @@ public static class VulkanExtensions
         return format switch
         {
             ImageFormat.RGBA8 => VkFormat.VK_FORMAT_R8G8B8A8_UNORM,
-            ImageFormat.RGBA16 => VkFormat.VK_FORMAT_R16G16B16A16_UNORM,
+            ImageFormat.RGBA16 => VkFormat.VK_FORMAT_R16G16B16A16_SFLOAT,
             ImageFormat.RGBA32 => VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT,
             ImageFormat.Depth => VkFormat.VK_FORMAT_D32_SFLOAT,
             ImageFormat.Stencil => VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT,
             ImageFormat.R8 => VkFormat.VK_FORMAT_R8_UNORM,
-            ImageFormat.R16 => VkFormat.VK_FORMAT_R16_UNORM,
+            ImageFormat.R16 => VkFormat.VK_FORMAT_R16_SFLOAT,
             ImageFormat.R32 => VkFormat.VK_FORMAT_R32_SFLOAT,
             ImageFormat.RG8 => VkFormat.VK_FORMAT_R8G8_UNORM,
-            ImageFormat.RG16 => VkFormat.VK_FORMAT_R16G16_UNORM,
+            ImageFormat.RG16 => VkFormat.VK_FORMAT_R16G16_SFLOAT,
             ImageFormat.RG32 => VkFormat.VK_FORMAT_R32G32_SFLOAT,
-            ImageFormat.RGB8 => VkFormat.VK_FORMAT_R8G8B8_UNORM,
-            ImageFormat.RGB16 => VkFormat.VK_FORMAT_R16G16B16_UNORM,
-            ImageFormat.RGB32 => VkFormat.VK_FORMAT_R32G32B32_SFLOAT,
             ImageFormat.Swapchain => SGraphicsModule.Get().GetSurfaceFormat().format,
             _ => throw new ArgumentOutOfRangeException()
         };
@@ -153,7 +149,9 @@ public static class VulkanExtensions
             VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.RGBA32,
             VkFormat.VK_FORMAT_D32_SFLOAT => ImageFormat.Depth,
             VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT => ImageFormat.Stencil,
-            _ => format == ImageFormat.Swapchain.ToVk() ? ImageFormat.Swapchain : throw new ArgumentOutOfRangeException()
+            _ => format == ImageFormat.Swapchain.ToVk()
+                ? ImageFormat.Swapchain
+                : throw new ArgumentOutOfRangeException()
         };
     }
 
@@ -592,6 +590,50 @@ public static class VulkanExtensions
         return cmd;
     }
 
+    public static VkCommandBuffer Begin(in this VkCommandBuffer cmd)
+    {
+        unsafe
+        {
+            var commandBeginInfo = new VkCommandBufferBeginInfo
+            {
+                sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                flags = VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+            };
+            vkResetCommandBuffer(cmd, 0);
+            vkBeginCommandBuffer(cmd, &commandBeginInfo);
+        }
+
+        return cmd;
+    }
+
+    public static VkCommandBuffer End(in this VkCommandBuffer cmd)
+    {
+        vkEndCommandBuffer(cmd);
+        return cmd;
+    }
+
+    public static VkCommandBuffer BeginSecondary(in this VkCommandBuffer cmd)
+    {
+        unsafe
+        {
+            var inheritanceInfo = new VkCommandBufferInheritanceInfo
+            {
+                sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO
+            };
+            var commandBeginInfo = new VkCommandBufferBeginInfo
+            {
+                sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                flags = VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+                pInheritanceInfo = &inheritanceInfo
+            };
+            vkResetCommandBuffer(cmd, 0);
+            vkBeginCommandBuffer(cmd, &commandBeginInfo);
+        }
+
+        return cmd;
+    }
+
+
     public static VkCommandBuffer BeginRendering(in this VkCommandBuffer cmd, VkRect2D rect,
         IEnumerable<VkRenderingAttachmentInfo> attachments, VkRenderingAttachmentInfo? depthAttachment = null,
         VkRenderingAttachmentInfo? stencilAttachment = null)
@@ -684,7 +726,7 @@ public static class VulkanExtensions
     {
         unsafe
         {
-            var size = (uint)Engine.Utils.ByteSizeOf<T>();
+            var size = (uint)Utils.ByteSizeOf<T>();
 #if DEBUG
             if (size > 128)
                 Console.WriteLine(
@@ -1271,7 +1313,7 @@ public static class VulkanExtensions
         };
     }
 
-    public static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, Extent3D size, VkImageUsageFlags usage)
+    public static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, Extent3D size, ImageUsage usage)
     {
         return new VkImageCreateInfo
         {
@@ -1283,7 +1325,7 @@ public static class VulkanExtensions
             arrayLayers = 1,
             samples = VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT,
             tiling = VkImageTiling.VK_IMAGE_TILING_OPTIMAL,
-            usage = usage
+            usage = usage.ToVk()
         };
     }
 

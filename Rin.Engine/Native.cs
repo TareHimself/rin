@@ -25,6 +25,10 @@ internal static partial class Native
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         public static unsafe partial void* Allocate(ulong size);
 
+        [LibraryImport(DllName, EntryPoint = "memorySet")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static unsafe partial void* Set(void* ptr, int value, ulong size);
+
         [LibraryImport(DllName, EntryPoint = "memoryFree")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         public static unsafe partial void Free(void* ptr);

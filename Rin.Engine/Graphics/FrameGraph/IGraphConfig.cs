@@ -4,8 +4,8 @@ public interface IGraphConfig
 {
     public uint SwapchainImageId { get; }
 
-    public uint AddExternalImage(IDeviceImage image,Action? onDispose = null);
-    
+    public uint AddExternalImage(IDeviceImage image, Action? onDispose = null);
+
     public uint CreateImage(uint width, uint height, ImageFormat format,
         ImageLayout initialLayout);
 
@@ -16,17 +16,17 @@ public interface IGraphConfig
 
     public uint CreateBuffer<T>(BufferStage stage) where T : unmanaged
     {
-        return CreateBuffer(Engine.Utils.ByteSizeOf<T>(), stage);
+        return CreateBuffer(Utils.ByteSizeOf<T>(), stage);
     }
 
     public uint CreateBuffer<T>(int count, BufferStage stage) where T : unmanaged
     {
-        return CreateBuffer(Engine.Utils.ByteSizeOf<T>(count), stage);
+        return CreateBuffer(Utils.ByteSizeOf<T>(count), stage);
     }
 
     public uint CreateBuffer<T>(uint count, BufferStage stage) where T : unmanaged
     {
-        return CreateBuffer(Engine.Utils.ByteSizeOf<T>() * count, stage);
+        return CreateBuffer(Utils.ByteSizeOf<T>() * count, stage);
     }
 
     // public uint Read(uint resourceId);

@@ -59,7 +59,7 @@ public class PathCommand : CustomCommand
 
     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
     {
-        var cmd = frame.Raw.GetCommandBuffer();
+        var cmd = frame.Raw.GetPrimaryCommandBuffer();
 
         if (_shader.Bind(cmd))
         {
@@ -68,7 +68,7 @@ public class PathCommand : CustomCommand
             {
                 var beziers = path.Curves;
                 if (beziers.Length == 0) continue;
-                var section = view?.GetView(offset, beziers.ByteSize());
+                var section = view?.GetView(offset, beziers.ComputeByteSize());
                 var min = new Vector2(float.PositiveInfinity);
                 var max = new Vector2();
                 foreach (var bezier in beziers)
@@ -96,7 +96,7 @@ public class PathCommand : CustomCommand
                         BeziersAddress = section?.GetAddress() ?? 0
                     });
                 cmd.Draw(6);
-                offset += beziers.ByteSize();
+                offset += beziers.ComputeByteSize();
             }
         }
     }

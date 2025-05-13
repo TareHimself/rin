@@ -4,7 +4,12 @@ using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics;
 
-public class SceneFrame(Frame frame, Matrix4x4 view, Matrix4x4 projection, IDeviceBufferView sceneInfo)
+public class SceneFrame(
+    Frame frame,
+    Matrix4x4 view,
+    Matrix4x4 projection,
+    IDeviceBufferView sceneInfo,
+    VkCommandBuffer commandBuffer)
 {
     public Matrix4x4 View => view;
     public Matrix4x4 Projection => projection;
@@ -17,6 +22,6 @@ public class SceneFrame(Frame frame, Matrix4x4 view, Matrix4x4 projection, IDevi
 
     public VkCommandBuffer GetCommandBuffer()
     {
-        return frame.GetCommandBuffer();
+        return commandBuffer;
     }
 }

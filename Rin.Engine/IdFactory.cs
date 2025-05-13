@@ -21,7 +21,7 @@ public class IdFactory
             return id;
         }
     }
-    
+
     [PublicAPI]
     public int NewId(out bool isNew)
     {
@@ -34,7 +34,7 @@ public class IdFactory
             }
 
             var id = CurrentId++;
-            
+
             isNew = true;
             return id;
         }
@@ -51,7 +51,7 @@ public class IdFactory
 
     public bool IsFree(int id)
     {
-        if(id > CurrentId) return true;
+        if (id > CurrentId) return true;
         lock (_freeIds)
         {
             return _freeIds.Contains(id);

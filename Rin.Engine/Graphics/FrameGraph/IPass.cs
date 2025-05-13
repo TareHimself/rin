@@ -1,3 +1,5 @@
+using TerraFX.Interop.Vulkan;
+
 namespace Rin.Engine.Graphics.FrameGraph;
 
 public interface IPass
@@ -26,7 +28,8 @@ public interface IPass
     public void PostAdd(IGraphBuilder builder);
 
     /// <summary>
-    /// Called when all passes have been added and the graph is being compiled. Perform the least amount of work required to figure out pass requirements
+    ///     Called when all passes have been added and the graph is being compiled. Perform the least amount of work required
+    ///     to figure out pass requirements
     /// </summary>
     /// <param name="config"></param>
     public void Configure(IGraphConfig config);
@@ -35,7 +38,8 @@ public interface IPass
     ///     Called during graph execution to run this pass
     /// </summary>
     /// <param name="graph"></param>
+    /// <param name="cmd"></param>
     /// <param name="frame"></param>
     /// <param name="context"></param>
-    public void Execute(ICompiledGraph graph, Frame frame, IRenderContext context);
+    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context);
 }
