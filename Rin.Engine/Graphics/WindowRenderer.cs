@@ -15,7 +15,7 @@ namespace Rin.Engine.Graphics;
 public class WindowRenderer : IWindowRenderer
 {
     private const uint FramesInFlight = 1;
-    private readonly object _drawLock = new();
+    private readonly Lock _drawLock = new();
     private readonly SGraphicsModule _module;
     private readonly IResourcePool _resourcePool;
     private readonly HashSet<VkPresentModeKHR> _supportedPresentModes;
@@ -79,7 +79,7 @@ public class WindowRenderer : IWindowRenderer
         }
     }
 
-    public IRenderContext? Collect()
+    public IRenderData? Collect()
     {
         var start = SEngine.Get().GetTimeSeconds();
         var c = DoCollect();
@@ -87,11 +87,11 @@ public class WindowRenderer : IWindowRenderer
         return c;
     }
 
-    public void Execute(IRenderContext context)
+    public void Execute(IRenderData context)
     {
         if (_disposed) return;
 
-        if (context is RenderContext ctx)
+        if (context is RenderData ctx)
         {
             if (ctx.RenderExtent.Width == 0 || ctx.RenderExtent.Height == 0) return;
 
@@ -277,7 +277,7 @@ public class WindowRenderer : IWindowRenderer
         }
     }
 
-    public IRenderContext? DoCollect()
+    public IRenderData? DoCollect()
     {
         if (_disposed) return null;
 
@@ -293,7 +293,7 @@ public class WindowRenderer : IWindowRenderer
 
         builder.AddPass(new PrepareForPresentPass()); // Always terminal
 
-        return new RenderContext
+        return new RenderData
         {
             Renderer = this,
             TargetFrame = frame,
@@ -303,7 +303,7 @@ public class WindowRenderer : IWindowRenderer
     }
 
 
-    private void DoExecute(RenderContext ctx)
+    private void DoExecute(RenderData ctx)
     {
         lock (_drawLock)
         {
@@ -347,34 +347,13 @@ public class WindowRenderer : IWindowRenderer
                 // var cmd = frame.GetPrimaryCommandBuffer();
                 //
                 frame.GetPrimaryCommandBuffer().Begin();
-                foreach (var cmd in frame.GetSecondaryCommandBuffers()) cmd.BeginSecondary();
-                foreach (var cmd in frame.GetCommandBuffers())
-                    cmd
-                        .SetRasterizerDiscard(false)
-                        .DisableMultiSampling()
-                        .UnBindShaders([
-                            VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT,
-                            VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
-                            VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT
-                        ]);
 
                 frame.OnReset += _ => graph.Dispose();
 
                 Profiling.Begin("Engine.Rendering.Graph.Execute");
                 graph.Execute(frame, ctx, _taskPool);
                 Profiling.End("Engine.Rendering.Graph.Execute");
-
-                foreach (var cmd in frame.GetSecondaryCommandBuffers()) vkEndCommandBuffer(cmd);
-                unsafe
-                {
-                    var cmd = frame.GetPrimaryCommandBuffer();
-                    var cmds = frame.GetSecondaryCommandBuffers();
-                    fixed (VkCommandBuffer* pCommandBuffers = cmds)
-                    {
-                        vkCmdExecuteCommands(cmd, (uint)cmds.Length, pCommandBuffers);
-                    }
-                }
-
+                
 
                 vkEndCommandBuffer(frame.GetPrimaryCommandBuffer());
 
@@ -450,7 +429,7 @@ public class WindowRenderer : IWindowRenderer
     {
     }
 
-    private class RenderContext : IRenderContext
+    private class RenderData : IRenderData
     {
         public required Frame TargetFrame { get; init; }
         public required IGraphBuilder GraphBuilder { get; init; }

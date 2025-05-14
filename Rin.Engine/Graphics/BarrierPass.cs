@@ -47,8 +47,12 @@ internal class BarrierPass(IEnumerable<BufferResourceSync> buffers, IEnumerable<
         throw new Exception("HOW HAVE YOU DONE THIS?");
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
+        
+        
         foreach (var bufferResourceSync in buffers)
         {
             var buffer = graph.GetBufferOrException(bufferResourceSync.ResourceId);

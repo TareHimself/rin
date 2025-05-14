@@ -24,8 +24,11 @@ public class CopySurfaceToSwapchain(SharedPassContext passContext) : IPass
         _swapchainImageId = config.WriteImage(config.SwapchainImageId, ImageLayout.TransferDst);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
+        
         var mainImage = graph.GetImageOrException(passContext.MainImageId);
         var swapchainImage = graph.GetImageOrException(_swapchainImageId);
         cmd.CopyImageToImage(mainImage, swapchainImage);

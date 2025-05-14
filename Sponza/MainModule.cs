@@ -30,7 +30,7 @@ public class MainModule : IModule
         {
             Task.Run(() =>
             {
-                LoadSponza(@"F:\rin\Sponza\Content\sponza\Sponza.gltf")
+                LoadSponza(@"/home/tare/Github/rin/Sponza/assets/sponza/Sponza.gltf")
                     .After(world =>
                     {
                         SEngine.Get().DispatchMain(() =>

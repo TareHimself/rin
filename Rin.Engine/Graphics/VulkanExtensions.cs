@@ -601,6 +601,15 @@ public static class VulkanExtensions
             };
             vkResetCommandBuffer(cmd, 0);
             vkBeginCommandBuffer(cmd, &commandBeginInfo);
+            cmd
+                .SetRasterizerDiscard(false)
+                .DisableMultiSampling()
+                .DisableStencilTest(false)
+                .UnBindShaders([
+                    VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT,
+                    VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
+                    VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT
+                ]);
         }
 
         return cmd;
@@ -628,6 +637,15 @@ public static class VulkanExtensions
             };
             vkResetCommandBuffer(cmd, 0);
             vkBeginCommandBuffer(cmd, &commandBeginInfo);
+            cmd
+                .SetRasterizerDiscard(false)
+                .DisableMultiSampling()
+                .DisableStencilTest(false)
+                .UnBindShaders([
+                    VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT,
+                    VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
+                    VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT
+                ]);
         }
 
         return cmd;

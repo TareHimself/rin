@@ -28,7 +28,7 @@ public class PrepareForPresentPass : IPass
         config.WriteImage(config.SwapchainImageId, ImageLayout.PresentSrc);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
     }
 }

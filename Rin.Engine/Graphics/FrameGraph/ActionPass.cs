@@ -4,7 +4,7 @@ namespace Rin.Engine.Graphics.FrameGraph;
 
 public class ActionPass(
     Action<IPass, IGraphConfig> configure,
-    Action<IPass, ICompiledGraph, Frame, IRenderContext> run,
+    Action<IPass, ICompiledGraph,IExecutionContext> run,
     bool terminal = false,
     string? name = null) : IPass
 {
@@ -24,9 +24,9 @@ public class ActionPass(
         configure(this, config);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
-        run(this, graph, frame, context);
+        run(this, graph,ctx);
     }
 
     public uint Id { get; set; }

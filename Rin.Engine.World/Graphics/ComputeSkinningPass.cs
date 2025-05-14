@@ -37,7 +37,7 @@ public class ComputeSkinningPass(WorldContext worldContext) : IPass
         //worldContext.ProcessedSkinnedMeshes.
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
         throw new NotImplementedException();
     }

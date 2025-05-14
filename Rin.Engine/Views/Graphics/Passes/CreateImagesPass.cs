@@ -36,8 +36,11 @@ public class CreateImagesPass : IPass
         Context.StencilImageId = config.CreateImage(Context.Extent, ImageFormat.Stencil, ImageLayout.General);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
+        
         var drawImage = graph.GetImage(Context.MainImageId);
         var copyImage = graph.GetImage(Context.CopyImageId);
         var stencilImage = graph.GetImage(Context.StencilImageId);

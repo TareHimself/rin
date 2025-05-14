@@ -82,14 +82,17 @@ public sealed class BatchDrawPass : IViewsPass
         if (memoryNeeded > 0) _bufferId = config.CreateBuffer(memoryNeeded, BufferStage.Graphics);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
+        
         var drawImage = graph.GetImage(MainImageId);
         var copyImage = graph.GetImage(CopyImageId);
         var stencilImage = graph.GetImage(StencilImageId);
         var buffer = graph.GetBufferOrNull(_bufferId);
 
-        var viewFrame = new ViewsFrame(frame, drawImage, copyImage, stencilImage, Context, cmd);
+        var viewFrame = new ViewsFrame(drawImage, copyImage, stencilImage, Context, cmd);
 
         // foreach (var command in _passInfo.PreCommands) command.Execute(viewFrame);
         cmd.BeginRendering(_extent.ToVk(), [
@@ -129,7 +132,6 @@ public sealed class BatchDrawPass : IViewsPass
             batcher.Draw(viewFrame, batch, view);
             offset += bufferSize;
         }
-
         cmd.EndRendering();
     }
 

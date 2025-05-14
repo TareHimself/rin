@@ -6,7 +6,6 @@ using TerraFX.Interop.Vulkan;
 namespace Rin.Engine.Views.Graphics;
 
 public class ViewsFrame(
-    Frame raw,
     IGraphImage drawImage,
     IGraphImage copyImage,
     IGraphImage stencilImage,
@@ -15,7 +14,6 @@ public class ViewsFrame(
 {
     public readonly IGraphImage CopyImage = copyImage;
     public readonly IGraphImage DrawImage = drawImage;
-    public readonly Frame Raw = raw;
     public readonly IGraphImage StencilImage = stencilImage;
     public VkCommandBuffer CommandBuffer = cmd;
     public Extent2D Extent = passContext.Extent;
@@ -37,10 +35,4 @@ public class ViewsFrame(
     // {
     //     //Surface.EndActivePass(this);
     // }
-
-
-    public static implicit operator Frame(ViewsFrame frame)
-    {
-        return frame.Raw;
-    }
 }

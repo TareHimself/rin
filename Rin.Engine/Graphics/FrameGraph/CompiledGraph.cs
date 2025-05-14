@@ -2,7 +2,7 @@ using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics.FrameGraph;
 
-public class CompiledGraph : ICompiledGraph
+public sealed class CompiledGraph : ICompiledGraph
 {
     private readonly Dictionary<uint, IResourceDescriptor> _descriptors;
     private readonly Frame _frame;
@@ -129,18 +129,42 @@ public class CompiledGraph : ICompiledGraph
 
         throw new ResourceAllocationException(id);
     }
+    
+    
 
-    public void Execute(Frame frame, IRenderContext context, TaskPool taskPool)
+    public void Execute(Frame frame, IRenderData context, TaskPool taskPool)
     {
-        var cmds = new BlockingStack<VkCommandBuffer>();
-
-        var primaryCmd = frame.GetPrimaryCommandBuffer();
-        foreach (var secondaryCommandBuffer in frame.GetSecondaryCommandBuffers()) cmds.Push(secondaryCommandBuffer);
-
-        var used = new HashSet<VkCommandBuffer>();
+        using var executionContext = new ExecutionContext(this,frame);
         foreach (var stage in _nodes)
-        foreach (var pass in stage.Passes)
-            pass.Execute(this, frame.GetPrimaryCommandBuffer(), frame, context);
+        {
+            if (stage.IsBarrier)
+            {
+                executionContext.ExecuteSecondaries();
+                foreach (var pass in stage.Passes)
+                    pass.Execute(this, executionContext);
+            }
+            else
+            {
+                foreach (var pass in stage.Passes)
+                    pass.Execute(this, executionContext);
+                // if (stage.Passes.Count > 0)
+                // {
+                //     var tasks = stage.Passes.Select(c => taskPool.Enqueue(() => c.Execute(this, executionContext))).ToArray();
+                //     foreach (var task in tasks)
+                //     {
+                //         task.Wait();
+                //     }
+                // }
+                // else
+                // {
+                //     foreach (var pass in stage.Passes)
+                //         pass.Execute(this, executionContext);
+                // }
+            }
+        }
+        
+        executionContext.ExecuteSecondaries();
+        
         // if (stage.IsBarrier)
         // {
         //     if (used.NotEmpty())

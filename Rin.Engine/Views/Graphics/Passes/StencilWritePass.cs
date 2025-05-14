@@ -45,8 +45,10 @@ public class StencilWritePass : IPass
         config.WriteImage(StencilImageId, ImageLayout.StencilAttachment);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
         var image = graph.GetImageOrException(StencilImageId);
 
         foreach (var clip in _clips)

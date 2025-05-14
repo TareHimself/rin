@@ -29,8 +29,10 @@ public class ReadBackPass(SharedPassContext sharedContext) : IViewsPass
         config.WriteImage(CopyImageId, ImageLayout.TransferDst);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
         var mainImage = graph.GetImageOrException(MainImageId);
         var copyImage = graph.GetImageOrException(CopyImageId);
 

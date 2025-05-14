@@ -83,8 +83,11 @@ public class BlurPass : IViewsPass
         _bufferId = config.CreateBuffer<BlurData>(_blurCommands.Length, BufferStage.Graphics);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
+        
         if (_blurShader.Bind(cmd, true))
         {
             var drawImage = graph.GetImage(MainImageId);
@@ -114,7 +117,7 @@ public class BlurPass : IViewsPass
             var compareMask = uint.MaxValue;
 
             var resource = _blurShader.Resources["SourceT"];
-            var descriptorSet = frame.GetDescriptorAllocator()
+            var descriptorSet = ctx.DescriptorAllocator
                 .Allocate(_blurShader.GetDescriptorSetLayouts()[resource.Set]);
             descriptorSet.WriteImages(resource.Binding, new ImageWrite(copyImage,
                 ImageLayout.ShaderReadOnly, DescriptorImageType.Sampled, new SamplerSpec
@@ -123,7 +126,8 @@ public class BlurPass : IViewsPass
                     Tiling = ImageTiling.ClampBorder
                 }));
 
-            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _blurShader.GetPipelineLayout(),
+            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS,
+                _blurShader.GetPipelineLayout(),
                 [descriptorSet]);
 
             foreach (var blur in _blurCommands)

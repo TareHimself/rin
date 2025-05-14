@@ -1,4 +1,5 @@
-﻿using Rin.Engine.Graphics.Descriptors;
+﻿using Rin.Engine.Extensions;
+using Rin.Engine.Graphics.Descriptors;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics;
@@ -14,9 +15,9 @@ public class Frame : IDisposable
     private readonly VkDevice _device;
     private readonly VkFence _renderFence;
     private readonly VkSemaphore _renderSemaphore;
-    private readonly VkCommandBuffer[] _secondaryCommandBuffers;
     private readonly VkSemaphore _swapchainSemaphore;
     public readonly WindowRenderer Renderer;
+    private LinkedList<VkCommandBuffer> _secondaryCommandBuffers = [];
     private bool _rendering;
 
     public Frame(WindowRenderer renderer)
@@ -37,12 +38,54 @@ public class Frame : IDisposable
 
         _commandPool = device.CreateCommandPool(queueFamily);
         _commandBuffer = device.AllocateCommandBuffers(_commandPool).First();
-        _secondaryCommandBuffers = device.AllocateCommandBuffers(_commandPool,
-            uint.Min((uint)Environment.ProcessorCount, 6),
-            VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_SECONDARY);
         _renderFence = device.CreateFence(true);
         _renderSemaphore = device.CreateSemaphore();
         _swapchainSemaphore = device.CreateSemaphore();
+    }
+    
+    public VkCommandBuffer AllocateSecondaryCommandBuffer()
+    {
+        if (_secondaryCommandBuffers.Count > 0)
+        {
+            var cmd = _secondaryCommandBuffers.First();
+            _secondaryCommandBuffers.RemoveFirst();
+            return cmd;
+        }
+
+        return _device.AllocateCommandBuffers(_commandPool,
+            uint.Min((uint)Environment.ProcessorCount, 1),
+            VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_SECONDARY)[0];
+    }
+
+    public IEnumerable<VkCommandBuffer> AllocateSecondaryCommandBuffers(uint count)
+    {
+        
+        var total = 0;
+
+        while (_secondaryCommandBuffers.Count > 0 && total != count)
+        {
+            yield return _secondaryCommandBuffers.First();
+            _secondaryCommandBuffers.RemoveFirst();
+            total++;
+        }
+
+        if (total != count)
+        {
+            foreach (var cmd in _device.AllocateCommandBuffers(_commandPool,
+                         uint.Min((uint)Environment.ProcessorCount, 6),
+                         VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_SECONDARY))
+            {
+                yield return cmd;
+            }
+        }
+    }
+    
+    public void FreeCommandBuffers(IEnumerable<VkCommandBuffer> commandBuffers)
+    {
+        foreach (var cmd in commandBuffers)
+        {
+            _secondaryCommandBuffers.AddLast(cmd);
+        }
     }
 
     public void Dispose()
@@ -79,12 +122,7 @@ public class Frame : IDisposable
     {
         return _commandBuffer;
     }
-
-    public VkCommandBuffer[] GetSecondaryCommandBuffers()
-    {
-        return _secondaryCommandBuffers;
-    }
-
+    
     public IEnumerable<VkCommandBuffer> GetCommandBuffers()
     {
         yield return _commandBuffer;

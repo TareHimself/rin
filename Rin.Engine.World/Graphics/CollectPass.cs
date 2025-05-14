@@ -195,9 +195,11 @@ public class CollectPass : IPass
     }
 
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
-        if (_skinnedMeshes.NotEmpty()) DoSkinning(graph, frame, cmd);
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
+        if (_skinnedMeshes.NotEmpty()) DoSkinning(graph, ctx,cmd);
 
         var sceneDataBuffer = graph.GetBufferOrException(DepthSceneBufferId);
         var materialDataBuffer = graph.GetBufferOrNull(DepthMaterialBufferId);
@@ -237,7 +239,7 @@ public class CollectPass : IPass
                 }
             ]);
 
-        var sceneFrame = new SceneFrame(frame, View, Projection, sceneDataBuffer, cmd);
+        var sceneFrame = new SceneFrame(View, Projection, sceneDataBuffer, cmd);
 
         sceneDataBuffer.Write(new DepthSceneInfo
         {
@@ -264,7 +266,7 @@ public class CollectPass : IPass
     public bool HandlesPreAdd => false;
     public bool HandlesPostAdd => false;
 
-    private void DoSkinning(ICompiledGraph graph, Frame frame, in VkCommandBuffer cmd)
+    private void DoSkinning(ICompiledGraph graph, IExecutionContext ctx, in VkCommandBuffer cmd)
     {
         // SkinningOutputBufferId = config.AllocateBuffer<Vertex>(totalVertices);
         // SkinnedMeshArrayBufferId = config.AllocateBuffer<ulong>(SkinnedMeshes.Length);
@@ -288,7 +290,7 @@ public class CollectPass : IPass
         if (_skinningShader.Bind(cmd))
         {
             var descriptorLayout = _skinningShader.GetDescriptorSetLayouts().Values.First();
-            var set = frame.GetDescriptorAllocator().Allocate(descriptorLayout);
+            var set = ctx.DescriptorAllocator.Allocate(descriptorLayout);
             set.WriteBuffers(0, new BufferWrite(output, BufferType.Storage));
             cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE,
                 _skinningShader.GetPipelineLayout(), [set]);

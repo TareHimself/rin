@@ -33,10 +33,12 @@ public class StencilClearPass : IPass
         config.WriteImage(StencilImageId, ImageLayout.General);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
+        
         var image = graph.GetImageOrException(StencilImageId);
-
         cmd.ClearStencilImages(0, ImageLayout.General, image);
     }
 }

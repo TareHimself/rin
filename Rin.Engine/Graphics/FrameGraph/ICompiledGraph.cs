@@ -6,5 +6,5 @@ public interface ICompiledGraph : IDisposable
 
     public IDeviceBufferView GetBuffer(uint id);
 
-    public void Execute(Frame frame, IRenderContext context, TaskPool taskPool);
+    public void Execute(Frame frame, IRenderData context, TaskPool taskPool);
 }

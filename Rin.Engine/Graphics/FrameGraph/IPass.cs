@@ -38,8 +38,6 @@ public interface IPass
     ///     Called during graph execution to run this pass
     /// </summary>
     /// <param name="graph"></param>
-    /// <param name="cmd"></param>
-    /// <param name="frame"></param>
-    /// <param name="context"></param>
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context);
+    /// <param name="ctx"></param>
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx);
 }

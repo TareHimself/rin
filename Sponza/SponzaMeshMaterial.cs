@@ -31,7 +31,7 @@ public class SponzaMeshMaterial : IMeshMaterial
     private class ColorMeshPass : SimpleMaterialPass
     {
         protected override IShader Shader { get; } = SGraphicsModule.Get()
-            .MakeGraphics(@"fs/F:/rin/Sponza/Content/mesh.slang");
+            .MakeGraphics(@"fs/home/tare/Github/rin/Sponza/Content/mesh.slang");
 
         public override ulong GetRequiredMemory()
         {

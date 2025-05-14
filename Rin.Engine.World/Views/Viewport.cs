@@ -60,8 +60,10 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
         _viewportBufferId = config.CreateBuffer<SceneData>(BufferStage.Graphics);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
         if (_shader.Bind(cmd))
         {
             var sceneImage = graph.GetImageOrException(_sceneImageId);
@@ -88,7 +90,7 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
                 VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
 
             var pushResource = _shader.PushConstants.Values.First();
-            var descriptor = frame.GetDescriptorAllocator()
+            var descriptor = ctx.DescriptorAllocator
                 .Allocate(_shader.GetDescriptorSetLayouts().Values.First());
             descriptor.WriteImages(0, new ImageWrite(sceneImage, ImageLayout.ShaderReadOnly,
                 DescriptorImageType.Sampled, new SamplerSpec
@@ -250,7 +252,7 @@ public class Viewport : ContentView
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         commands.Add(new DrawViewportCommand(_targetCamera, GetContentSize(), transform));
-        commands.AddText("Noto Sans", GetModeText(), transform, 100);
+        commands.AddText("Noto Sans", GetModeText(), transform);
     }
 
 

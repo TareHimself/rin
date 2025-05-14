@@ -54,8 +54,10 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
             config.ReadBuffer(_collectPass.SkinningOutputBufferId, BufferStage.Graphics);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, in IExecutionContext ctx)
     {
+        using var commandContext = ctx.UsingCmd();
+        var cmd = commandContext.Get();
         var materialBuffer = MaterialBufferId > 0 ? graph.GetBuffer(MaterialBufferId) : null;
         var sceneBuffer = graph.GetBuffer(SceneBufferId);
         var lightsBuffer = LightsBufferId > 0 ? graph.GetBuffer(LightsBufferId) : null;
@@ -94,7 +96,7 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
                 }
             ]);
 
-        var sceneFrame = new SceneFrame(frame, _collectPass.View, _collectPass.Projection, sceneBuffer, cmd);
+        var sceneFrame = new SceneFrame(_collectPass.View, _collectPass.Projection, sceneBuffer, cmd);
         lightsBuffer?.Write(_collectPass.Lights);
         var lightsAddress = lightsBuffer?.GetAddress() ?? 0;
         sceneBuffer.Write(new SceneInfo
