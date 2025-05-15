@@ -80,8 +80,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                         };
 
                         glyph.AtlasHandle = SGraphicsModule.Get().GetImageFactory().CreateTexture(result.Data.Copy(),
-                            new Extent3D((uint)result.PixelWidth, (uint)result.PixelHeight), ImageFormat.RGBA8,
-                            tiling: ImageTiling.ClampEdge).handle;
+                            new Extent3D((uint)result.PixelWidth, (uint)result.PixelHeight), ImageFormat.RGBA8).handle;
                         return new Pair<int, LiveGlyphInfo>(index, glyph);
                     });
 
@@ -278,7 +277,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
         _cancellationSource.Cancel();
         _backgroundTaskQueue.Dispose();
         SGraphicsModule.Get().GetImageFactory()
-            .FreeTextures(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
+            .FreeHandles(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
         _atlases.Clear();
     }
 

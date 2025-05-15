@@ -331,6 +331,8 @@ public class GraphBuilder : IGraphBuilder
             config.CurrentPassId = id;
             pass.Configure(config);
         }
+        
+        config.FillImageResources();
 
         return config;
     }

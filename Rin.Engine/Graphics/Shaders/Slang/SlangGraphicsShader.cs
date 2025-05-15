@@ -156,25 +156,36 @@ public class SlangGraphicsShader : IGraphicsShader
                         VkDescriptorBindingFlags bindingFlags = 0;
                         var bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                         foreach (var parameterAttribute in parameter.UserAttributes)
-                            if (parameterAttribute.Name == "AllStages")
+                            switch (parameterAttribute.Name)
                             {
-                                stages = VkShaderStageFlags.VK_SHADER_STAGE_ALL;
+                                case "AllStages":
+                                    stages = VkShaderStageFlags.VK_SHADER_STAGE_ALL;
+                                    break;
+                                case "UpdateAfterBind":
+                                    bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+                                    break;
+                                case "Partial":
+                                    bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+                                    break;
+                                case "Variable":
+                                    bindingFlags |= VkDescriptorBindingFlags
+                                        .VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+                                    parameterAttribute.Arguments.FirstOrDefault()?.TryGetValue(out count);
+                                    break;
+                                case "TextureBinding":
+                                    bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                                    break;
+                                case "StorageImageBinding":
+                                    bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                                    break;
+                                case "SamplerBinding":
+                                    bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER;
+                                    break;
+                                case "UniformBuffer":
+                                    bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                                    break;
                             }
-                            else if (parameterAttribute.Name == "UpdateAfterBind")
-                            {
-                                bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-                            }
-                            else if (parameterAttribute.Name == "Partial")
-                            {
-                                bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-                            }
-                            else if (parameterAttribute.Name == "Variable")
-                            {
-                                bindingFlags |= VkDescriptorBindingFlags
-                                    .VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-                                parameterAttribute.Arguments.FirstOrDefault()?.TryGetValue(out count);
-                            }
-
+                        
                         if (Resources.ContainsKey(name))
                         {
                             Resources[name].Stages |= stages;
@@ -182,11 +193,6 @@ public class SlangGraphicsShader : IGraphicsShader
                         }
                         else
                         {
-                            var typeName = parameter.Type.BaseShape ?? parameter.Type.ElementType?.BaseShape ?? "";
-
-                            if (typeName == "texture2D")
-                                bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
                             Resources.Add(name, new Resource
                             {
                                 Binding = (uint)index,

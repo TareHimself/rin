@@ -1,9 +1,11 @@
 #include "Engine/Shaders/utils.slang"
+#include "Engine/Shaders/textures.slang"
 
 struct BlurData
 {
     float4x4 projection;
     float4x4 transform;
+    ImageHandle SourceImageHandle;
     float4 _options;
     float4 tint;
     float2 getSize() {
@@ -21,8 +23,6 @@ struct PushConstants
 {
     BlurData *data;
 };
-
-uniform Sampler2D SourceT;
 
 [[vk::push_constant]]
 uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
@@ -56,9 +56,10 @@ float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
 {
 
     uint width, height, levels;
+    var handle = push->data.SourceImageHandle;
 
-    SourceT.GetDimensions(0, width, height, levels);
-
+    var size = getTextureSize(push.data->SourceImageHandle);
+    
     var imageSize = float2(width, height);
 
     var imageUV = coordinate / imageSize;
@@ -83,7 +84,7 @@ float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
             var dist = distanceFromZero(x, y);
             var uv = float2(x * uvRadius.x, y * uvRadius.y);
             float weight = normpdf(dist, sigma);
-            color += SourceT.Sample(imageUV + uv) * weight;
+            color += handle.SampleTexture(imageUV + uv,ImageTiling.ClampEdge) * weight;
             weightSum += weight;
         }
     }

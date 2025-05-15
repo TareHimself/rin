@@ -9,4 +9,5 @@ public interface IDeviceImage : IGraphResource
     public Extent3D Extent { get; }
     public VkImage NativeImage { get; }
     public VkImageView NativeView { get; }
+    
 }

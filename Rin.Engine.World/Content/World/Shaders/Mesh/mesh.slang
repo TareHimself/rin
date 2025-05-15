@@ -1,17 +1,14 @@
 #include "Engine/Shaders/textures.slang"
 #include "Engine/Shaders/utils.slang"
-#include "World/Shaders/Lights/Models/pbr_new.slang"
-#include "World/Shaders/Lights/Models/lambert.slang"
-#include "World/Shaders/Lights/light.slang"
 #include "World/Shaders/Mesh/vertex.slang"
 #include "World/Shaders/scene_info.slang"
-
+#include "World/Shaders/gbuffer_out.slang"
 // public Mat4 Transform = Mat4.Identity;
 // public ulong VertexAddress = 0;
 // private Vector4 _color_textureId = 0.0f;
 // public int NormalTextureId = 0;
 // private Vector4 _msre = 0.0f;
-// private Vec4<int> _msreTextureId = 0;
+// private Vec4<int> _msreTextureId = 0; 
 struct PerMeshData {
     Vertex *vertices;
     float4x4 transform;
@@ -129,66 +126,20 @@ VertexOut vertex(VertexIn input) {
     return output;
 }
 
-struct MeshSurface : ILambertSurface, IPBRSurface {
-    float3 color;
-    float3 location;
-    float3 normal;
-    float roughness;
-    float metallic;
-    float specular;
-    float emissive;
-
-    float3 getColor() {
-        return color;
-    }
-    float3 getLocation() {
-        return location;
-    }
-    float3 getNormal() {
-        return normal;
-    }
-
-    float getRoughness() {
-        return roughness;
-    }
-    float getMetallic() {
-        return metallic;
-    }
-    float getSpecular() {
-        return specular;
-    }
-    float getEmissive() {
-        return emissive;
-    }
-}
 [shader("fragment")]
-float4 fragment(FragmentIn input) : SV_Target
+GBuffer fragment(FragmentIn input)
 {
 
     var instanceData = push.data[input.instanceId];
     var eye = push.scene->cameraPosition;
 
-    //return float4(input.uv, float2(1.0, 1.0));
-    // return float4(instanceData.getColor(input.uv),1.0);
-    PBRModel model;
+    var location = input.sceneLocation.xyz;
+    var normal = normalize(input.sceneNormal.xyz);
+    var color = instanceData.getColor(input.uv);
+    var roughnes = instanceData.getRoughness(input.uv);
+    var metallic = instanceData.getMetallic(input.uv);
+    var specular = instanceData.getSpecular(input.uv);
+    var emissive = instanceData.getEmissive(input.uv);
 
-    MeshSurface surface;
-
-    surface.location = input.sceneLocation.xyz;
-    surface.normal = normalize(input.sceneNormal.xyz);
-    surface.color = instanceData.getColor(input.uv);
-    surface.roughness = instanceData.getRoughness(input.uv);
-    surface.metallic = instanceData.getMetallic(input.uv);
-    surface.specular = instanceData.getSpecular(input.uv);
-    surface.emissive = instanceData.getEmissive(input.uv);
-
-    float3 color = float3(0.0);
-
-    for (int i = 0; i < push.scene->numLights; i++) {
-        color += model.eval(surface, eye, push.scene->lights[i]);
-    }
-
-    color /= push.scene->numLights;
-
-    return float4(color, 1.0);
+    return GBuffer(color,normal,location,roughnes,metallic,specular,emissive);
 }

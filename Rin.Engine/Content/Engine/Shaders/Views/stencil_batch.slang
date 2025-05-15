@@ -7,10 +7,6 @@ struct StencilInfo
     float2 size;
 };
 
-struct Buffer {
-    StencilInfo data[];
-}
-
 struct PushConstants
 {
     float4x4 projection;

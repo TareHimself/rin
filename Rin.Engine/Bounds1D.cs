@@ -2,7 +2,7 @@
 
 namespace Rin.Engine;
 
-public struct Bounds1D : IAdditionOperators<Bounds1D, Bounds1D, Bounds1D>
+public record struct Bounds1D : IAdditionOperators<Bounds1D, Bounds1D, Bounds1D>
 {
     public float Min;
     public float Max;

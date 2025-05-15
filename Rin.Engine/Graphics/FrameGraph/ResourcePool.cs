@@ -1,5 +1,6 @@
 ﻿using JetBrains.Annotations;
 using Rin.Engine.Extensions;
+using Rin.Engine.Graphics.Textures;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics.FrameGraph;
@@ -144,7 +145,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         }
     }
 
-    private sealed class ProxiedImage(ResourceContainer<IDeviceImage> container, Frame frame) : IGraphImage
+    private sealed class ProxiedImage(ResourceContainer<IDeviceImage> container,ImageHandle handle, Frame frame) : IGraphImage
     {
         public ImageLayout Layout { get; set; } = ImageLayout.Undefined;
 
@@ -158,6 +159,22 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         public VkImage NativeImage => container.Resource.NativeImage;
         public VkImageView NativeView { get; } = container.Resource.NativeView;
         public bool CreatedByGraph => true;
+        public ImageHandle BindlessHandle => handle;
+    }
+
+    private class BindlessImage(ImageHandle handle, IDeviceImage image) : IDeviceImage
+    {
+        public void Dispose()
+        {
+            SGraphicsModule.Get().GetImageFactory().FreeHandles(BindlessHandle);
+        }
+
+        public ImageFormat Format => image.Format;
+        public Extent3D Extent => image.Extent;
+        public VkImage NativeImage => image.NativeImage;
+        public VkImageView NativeView => image.NativeView;
+        
+        public ImageHandle BindlessHandle { get; private set; } = handle;
     }
 
     private sealed class ImagePool : Pool<ProxiedImage, IDeviceImage, ImageResourceDescriptor, int>
@@ -165,18 +182,26 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         protected override ResourceContainer<IDeviceImage> CreateNew(ImageResourceDescriptor input, Frame frame,
             int key, ulong frameId)
         {
-            var image = SGraphicsModule.Get().CreateDeviceImage(new Extent3D
+            IDeviceImage image;
+            if (input.Usage.HasFlag(ImageUsage.Sampled))
             {
-                Width = input.Width,
-                Height = input.Height
-            }, input.Format, input.Flags, debugName: "Frame Graph Image");
+                var (handle,img) = SGraphicsModule.Get().GetImageFactory().CreateTexture(input.Extent, input.Format,usage: input.Usage, debugName: "Frame Graph Image");
+                image = new BindlessImage(handle,img);
+            }
+            else
+            {
+                image = SGraphicsModule.Get().CreateDeviceImage(input.Extent, input.Format, input.Usage, debugName: "Frame Graph Image");
+            }
             return new ResourceContainer<IDeviceImage>(image);
         }
 
         protected override ProxiedImage ResultFromContainer(ResourceContainer<IDeviceImage> container, Frame frame,
             int key, ImageResourceDescriptor input, ulong frameId)
         {
-            return new ProxiedImage(container, frame);
+            var imageHandle = container.Resource is BindlessImage asBindless
+                ? asBindless.BindlessHandle
+                : ImageHandle.InvalidImage;
+            return new ProxiedImage(container,imageHandle, frame);
         }
 
         protected override int MakeKeyFromInput(ImageResourceDescriptor input)

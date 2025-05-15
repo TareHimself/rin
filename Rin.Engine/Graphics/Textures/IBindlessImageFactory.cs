@@ -1,19 +1,20 @@
 using Rin.Engine.Graphics.Descriptors;
+using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics.Textures;
 
 public interface IBindlessImageFactory : IDisposable
 {
+
+    public void Bind(in VkCommandBuffer cmd);
     public DescriptorSet GetDescriptorSet();
 
-    public ImageHandle CreateTexture(in Extent3D size, ImageFormat format,
-        ImageFilter filter = ImageFilter.Linear,
-        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, ImageUsage usage = ImageUsage.None,
+    public (ImageHandle handle,IDeviceImage image) CreateTexture(in Extent3D size, ImageFormat format,
+        bool mips = false, ImageUsage usage = ImageUsage.None,
         string? debugName = null);
 
     public (ImageHandle handle, Task task) CreateTexture(Buffer<byte> data, Extent3D size, ImageFormat format,
-        ImageFilter filter = ImageFilter.Linear,
-        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, ImageUsage usage = ImageUsage.None,
+        bool mips = false, ImageUsage usage = ImageUsage.None,
         string? debugName = null);
 
     public Task? GetPendingTexture(in ImageHandle imageHandle);
@@ -25,9 +26,9 @@ public interface IBindlessImageFactory : IDisposable
     //     ImageFilter filter = ImageFilter.Linear,
     //     ImageTiling tiling = ImageTiling.Repeat, bool mipMapped = false, string debugName = "Texture");
 
-    public void FreeTextures(params ImageHandle[] textureIds);
+    public void FreeHandles(params ImageHandle[] textureIds);
 
-    public ITexture? GetTexture(ImageHandle imageHandle);
+    public IBindlessImage? GetTexture(ImageHandle imageHandle);
 
     public IDeviceImage? GetTextureImage(ImageHandle imageHandle);
 

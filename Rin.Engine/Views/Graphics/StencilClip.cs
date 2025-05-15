@@ -2,10 +2,9 @@
 
 namespace Rin.Engine.Views.Graphics;
 
-public struct StencilClip(
-    Vector2 size,
-    Matrix4x4 transform)
+public readonly struct StencilClip(
+    in Matrix4x4 transform,in Vector2 size)
 {
-    public Matrix4x4 Transform = transform;
-    public Vector2 Size = size;
+    public readonly Matrix4x4 Transform = transform;
+    public readonly Vector2 Size = size;
 }

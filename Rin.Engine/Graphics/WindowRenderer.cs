@@ -346,38 +346,26 @@ public class WindowRenderer : IWindowRenderer
 
                 // var cmd = frame.GetPrimaryCommandBuffer();
                 //
-                frame.GetPrimaryCommandBuffer().Begin();
-                foreach (var cmd in frame.GetSecondaryCommandBuffers()) cmd.BeginSecondary();
-                foreach (var cmd in frame.GetCommandBuffers())
-                    cmd
-                        .SetRasterizerDiscard(false)
-                        .DisableMultiSampling()
-                        .UnBindShaders([
-                            VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT,
-                            VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
-                            VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT
-                        ]);
-
+                var cmd = frame.GetPrimaryCommandBuffer();
+                cmd
+                    .Begin()
+                    .SetRasterizerDiscard(false)
+                    .DisableMultiSampling()
+                    .UnBindShaders([
+                        VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT,
+                        VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
+                        VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT
+                    ]);
+                
+                SGraphicsModule.Get().GetImageFactory().Bind(cmd);
                 frame.OnReset += _ => graph.Dispose();
 
+                
                 Profiling.Begin("Engine.Rendering.Graph.Execute");
                 graph.Execute(frame, ctx, _taskPool);
                 Profiling.End("Engine.Rendering.Graph.Execute");
 
-                foreach (var cmd in frame.GetSecondaryCommandBuffers()) vkEndCommandBuffer(cmd);
-                unsafe
-                {
-                    var cmd = frame.GetPrimaryCommandBuffer();
-                    var cmds = frame.GetSecondaryCommandBuffers();
-                    fixed (VkCommandBuffer* pCommandBuffers = cmds)
-                    {
-                        vkCmdExecuteCommands(cmd, (uint)cmds.Length, pCommandBuffers);
-                    }
-                }
-
-
-                vkEndCommandBuffer(frame.GetPrimaryCommandBuffer());
-
+                vkEndCommandBuffer(cmd);
                 var queue = _module.GetGraphicsQueue();
 
                 _module.SubmitToQueue(queue, frame.GetRenderFence(), [

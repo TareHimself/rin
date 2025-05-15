@@ -287,17 +287,13 @@ public class CollectPass : IPass
 
         if (_skinningShader.Bind(cmd))
         {
-            var descriptorLayout = _skinningShader.GetDescriptorSetLayouts().Values.First();
-            var set = frame.GetDescriptorAllocator().Allocate(descriptorLayout);
-            set.WriteBuffers(0, new BufferWrite(output, BufferType.Storage));
-            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE,
-                _skinningShader.GetPipelineLayout(), [set]);
             _skinningShader.Push(cmd, new SkinningPushConstants
             {
                 TotalInvocations = (int)TotalVerticesToSkin,
                 MeshesBuffer = meshArray.GetAddress(),
                 PosesBuffer = posesArray.GetAddress(),
-                ExecutionInfoBuffer = executionInfos.GetAddress()
+                ExecutionInfoBuffer = executionInfos.GetAddress(),
+                OutputBuffer = output.GetAddress()
             });
             cmd.Dispatch(TotalVerticesToSkin);
             //cmd.BufferBarrier(output, MemoryBarrierOptions.ComputeToGraphics());
@@ -323,11 +319,12 @@ public class CollectPass : IPass
         public required int MeshId;
     }
 
-    public struct SkinningPushConstants
+    public record struct SkinningPushConstants
     {
         public required int TotalInvocations;
         public required ulong MeshesBuffer;
         public required ulong PosesBuffer;
         public required ulong ExecutionInfoBuffer;
+        public required ulong OutputBuffer;
     }
 }

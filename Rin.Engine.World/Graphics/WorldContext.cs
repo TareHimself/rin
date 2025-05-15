@@ -11,6 +11,12 @@ namespace Rin.Engine.World.Graphics;
 
 public class WorldContext
 {
+    public uint DepthImageId { get; set; }
+    
+    public uint GBufferImage0 { get; set; }
+    public uint GBufferImage1 { get; set; }
+    public uint GBufferImage2 { get; set; }
+    
     [PublicAPI] public LightInfo[] Lights;
     [PublicAPI] public ProcessedMesh[] ProcessedSkinnedMeshes = [];
     [PublicAPI] public ProcessedMesh[] ProcessedStaticMeshes = [];

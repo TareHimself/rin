@@ -4,7 +4,7 @@ using Rin.Engine.Math;
 
 namespace Rin.Engine;
 
-public struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
+public record struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
 {
     public Bounds1D X;
     public Bounds1D Y;

@@ -1,10 +1,12 @@
 #include "Engine/Shaders/textures.slang"
 #include "Engine/Shaders/utils.slang"
-#include "World/Shaders/Lights/Models/pbr_new.slang"
 #include "World/Shaders/Lights/Models/lambert.slang"
+#include "World/Shaders/Lights/Models/pbr_new.slang"
 #include "World/Shaders/Lights/light.slang"
 #include "World/Shaders/Mesh/vertex.slang"
+#include "World/Shaders/gbuffer_out.slang"
 #include "World/Shaders/scene_info.slang"
+
 
 // public Mat4 Transform = Mat4.Identity;
 // public ulong VertexAddress = 0;
@@ -100,7 +102,7 @@ struct MeshSurface : ILambertSurface, IPBRSurface {
     }
 }
 [shader("fragment")]
-float4 fragment(FragmentIn input) : SV_Target
+GBuffer fragment(FragmentIn input) : SV_Target
 {
 
     var instanceData = push.data[input.instanceId];
@@ -109,36 +111,11 @@ float4 fragment(FragmentIn input) : SV_Target
     //return float4(input.uv, float2(1.0, 1.0));
     // return float4(instanceData.getColor(input.uv),1.0);
     PBRModel model;
-
     MeshSurface surface;
+    var color = instanceData.colorHandle.SampleTexture(input.uv).rgb;
+    var metallicRoughness = instanceData.metallicRoughnessHandle.SampleTexture(input.uv).rg;
+    var location = input.sceneLocation.xyz;
+    var normal = normalize(input.sceneNormal.xyz);
 
-    // if (handle.IsValid()) {
-    //     return float4(0.0, 1.0, 0.0, 1.0);
-    // }
-    // else
-    // {
-    //     return float4(1.0, 0.0, 0.0, 1.0);
-    // }
-
-    var inColor = instanceData.colorHandle.SampleTexture(input.uv);
-    var inNormal = instanceData.normalHandle.SampleTexture(input.uv);
-    var inMetallicRoughness = instanceData.metallicRoughnessHandle.SampleTexture(input.uv);
-    surface.location = input.sceneLocation.xyz;
-    surface.normal = normalize(input.sceneNormal.xyz);
-    surface.color = inColor.rgb;
-    surface.roughness = inMetallicRoughness.g;
-    surface.metallic = inMetallicRoughness.r;
-    return float4(surface.color, 1.0);
-    // surface.specular = instanceData.getSpecular(input.uv);
-    // surface.emissive = instanceData.getEmissive(input.uv);
-
-    float3 color = float3(0.0);
-
-    for (int i = 0; i < push.scene->numLights; i++) {
-        color += model.eval(surface, eye, push.scene->lights[i]);
-    }
-
-    color /= push.scene->numLights;
-
-    return float4(color, 1.0);
+    return GBuffer(color,normal,location,metallicRoughness.g,metallicRoughness.r,0.0,0.0);
 }

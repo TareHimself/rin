@@ -1,4 +1,5 @@
-﻿using TerraFX.Interop.Vulkan;
+﻿using Rin.Engine.Graphics.Textures;
+using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics.FrameGraph;
 
@@ -18,4 +19,5 @@ public class ExternalImage(IDeviceImage image, Action? onDispose = null) : IGrap
     public VkImage NativeImage => image.NativeImage;
     public VkImageView NativeView => image.NativeView;
     public bool CreatedByGraph => false;
+    public ImageHandle BindlessHandle => ImageHandle.InvalidImage;
 }

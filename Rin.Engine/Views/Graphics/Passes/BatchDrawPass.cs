@@ -74,7 +74,6 @@ public sealed class BatchDrawPass : IViewsPass
     public void Configure(IGraphConfig config)
     {
         MainImageId = config.WriteImage(Context.MainImageId, ImageLayout.ColorAttachment);
-        CopyImageId = config.ReadImage(Context.CopyImageId, ImageLayout.ShaderReadOnly);
         StencilImageId = config.ReadImage(Context.StencilImageId, ImageLayout.StencilAttachment);
 
         var memoryNeeded = _batchSizes.Aggregate<ulong, ulong>(0, (t, c) => t + c);
@@ -85,11 +84,10 @@ public sealed class BatchDrawPass : IViewsPass
     public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
     {
         var drawImage = graph.GetImage(MainImageId);
-        var copyImage = graph.GetImage(CopyImageId);
         var stencilImage = graph.GetImage(StencilImageId);
         var buffer = graph.GetBufferOrNull(_bufferId);
 
-        var viewFrame = new ViewsFrame(frame, drawImage, copyImage, stencilImage, Context, cmd);
+        var viewFrame = new ViewsFrame(Context, cmd);
 
         // foreach (var command in _passInfo.PreCommands) command.Execute(viewFrame);
         cmd.BeginRendering(_extent.ToVk(), [

@@ -27,22 +27,16 @@ public class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
     {
         Debug.Assert(view is not null);
         var cmd = frame.CommandBuffer;
-        var resourceSet = SGraphicsModule.Get().GetImageFactory().GetDescriptorSet();
         var quads = batch.GetQuads().ToArray();
         if (quads.Length == 0) return 0;
 
         view.Write(quads);
-        cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS,
-            _batchShader.GetPipelineLayout(), [resourceSet]);
-
-        var pushResource = _batchShader.PushConstants.First().Value;
-        var push = new Push
+        _batchShader.Push(cmd,new Push
         {
             Projection = frame.ProjectionMatrix,
             Viewport = new Vector4(0, 0, frame.Extent.Width, frame.Extent.Height),
             Buffer = view.GetAddress()
-        };
-        cmd.PushConstant(_batchShader.GetPipelineLayout(), pushResource.Stages, push);
+        });
         return (uint)quads.Length;
     }
 

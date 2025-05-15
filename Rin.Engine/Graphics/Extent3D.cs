@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 
 namespace Rin.Engine.Graphics;
 
-public struct Extent3D : IFormattable
+public record struct Extent3D : IFormattable
 {
     [PublicAPI] public uint Width = 0;
     [PublicAPI] public uint Height = 0;

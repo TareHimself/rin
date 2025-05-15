@@ -11,21 +11,35 @@ enum ImageType {
     Volume
 }
 
-// Define a texture array resource
-//[layout(set = 0, binding = 0), $partial, $update, $variable = 512, $stage = all]
+enum ImageFilter {
+    Linear,
+    Nearest
+}
+
+enum ImageTiling {
+    Repeat,
+    ClampEdge,
+    ClampBorder
+}
+
+
 
 [[vk::binding(0, 0)]]
-[AllStages, UpdateAfterBind, Partial, Variable(RIN_GLOBAL_TEXTURES_COUNT)]
-uniform Sampler2D TEXTURES[];
+[SamplerBinding,AllStages, UpdateAfterBind, Partial]
+uniform SamplerState SAMPLERS[6];
 
-// [[vk::binding(0,1)]]
-// [AllStages, UpdateAfterBind, Partial, Variable(RIN_GLOBAL_TEXTURES_COUNT)]
-// uniform Sampler3D CUBEMAPS[];
+[[vk::binding(1, 0)]]
+[TextureBinding,AllStages, UpdateAfterBind, Partial, Variable(RIN_GLOBAL_TEXTURES_COUNT)]
+uniform Texture2D READ_TEXTURES[];
 
-// Function to sample a texture
-float4 sampleTexture(ImageHandle handle, float2 uv)
+SamplerState getSampler(ImageTiling tiling = ImageTiling.Repeat,ImageFilter filter = ImageFilter.Linear) {
+    return SAMPLERS[((int)filter * 2) + (int)tiling];
+}
+
+float4 sampleTexture(ImageHandle handle, float2 uv, ImageTiling tiling = ImageTiling.Repeat, ImageFilter filter = ImageFilter.Linear)
 {
-    return TEXTURES[handle.GetId()].Sample(uv);
+    var sampler = getSampler(tiling, filter);
+    return READ_TEXTURES[handle.GetId()].Sample(sampler,uv);
 }
 
 // Function to get the size of a texture
@@ -33,7 +47,7 @@ uint2 getTextureSize(ImageHandle handle, uint mip = 0)
 {
     uint2 size;
     uint levels;
-    TEXTURES[handle.GetId()].GetDimensions(mip, size.x, size.y, levels);
+    READ_TEXTURES[handle.GetId()].GetDimensions(mip, size.x, size.y, levels);
     return size;
 }
 
@@ -51,7 +65,7 @@ struct ImageHandle {
         return GetId() > 0;
     }
 
-    float4 SampleTexture(float2 uv) {
-        return sampleTexture(this, uv);
+    float4 SampleTexture(float2 uv, ImageTiling tiling = ImageTiling.Repeat, ImageFilter filter = ImageFilter.Linear) {
+        return sampleTexture(this, uv,tiling, filter);
     }
 }

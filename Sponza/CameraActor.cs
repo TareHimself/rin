@@ -12,7 +12,7 @@ public class CameraActor : Actor
     {
         RootComponent = _camera = new CameraComponent();
         var light = AddComponent<PointLightComponent>();
-        light.Radiance = 20.0f;
+        light.Radiance = 5.0f;
         light.AttachTo(RootComponent);
     }
 

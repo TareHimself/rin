@@ -7,12 +7,16 @@ using Rin.Engine.Graphics.Meshes;
 using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Math;
 using Rin.Engine.Views;
+using Rin.Engine.Views.Composite;
+using Rin.Engine.Views.Layouts;
 using Rin.Engine.World;
 using Rin.Engine.World.Actors;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Components.Lights;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Mesh;
+using rin.Examples.Common.Views;
+using Rin.Sources;
 using SharpGLTF.Schema2;
 using Texture = SharpGLTF.Schema2.Texture;
 
@@ -26,17 +30,33 @@ public class MainModule : IModule
 
     public void Start(SEngine engine)
     {
+        SEngine.Get().Sources.AddSource(
+            new ResourcesSource(typeof(MainModule).Assembly, "Sponza", ".Content."));
         SViewsModule.Get().OnSurfaceCreated += surf =>
         {
             Task.Run(() =>
             {
-                LoadSponza(@"F:\rin\Sponza\Content\sponza\Sponza.gltf")
+                LoadSponza(@"Sponza/sponza.glb")
                     .After(world =>
                     {
                         SEngine.Get().DispatchMain(() =>
                         {
                             var camera = world.AddActor<CameraActor>();
                             surf.Add(new TestViewport(camera));
+                            surf.Add(new Panel()
+                            {
+                                Slots =
+                                [
+                                    new PanelSlot
+                                    {
+                                        Child = new FpsView(),
+                                        MinAnchor = new Vector2(1f, 0f),
+                                        MaxAnchor = new Vector2(1f, 0f),
+                                        Alignment = new Vector2(1f,0f),
+                                        SizeToContent = true
+                                    }
+                                ]
+                            });
                         });
                     });
             });
@@ -57,7 +77,7 @@ public class MainModule : IModule
     {
     }
 
-    private ImageHandle LoadImage(Texture? texture, Dictionary<string, ImageHandle> cache)
+    private ImageHandle LoadImage(Texture? texture, Dictionary<int, ImageHandle> cache)
     {
         if (texture == null) return ImageHandle.InvalidImage;
         var tex = texture.PrimaryImage;
@@ -65,13 +85,13 @@ public class MainModule : IModule
         Debug.Assert(tex != null && sampler != null);
         lock (_lock)
         {
-            var id = tex.Content.SourcePath;
+            var id = tex.Content.Content.GetHashCode();
             {
                 if (cache.TryGetValue(id, out var image)) return image;
             }
 
             {
-                using var image = HostImage.Create(File.OpenRead(texture.PrimaryImage.Content.SourcePath));
+                using var image = HostImage.Create(new MemoryStream(tex.Content.Content.ToArray()));
                 var handle = image.CreateTexture(sampler.MagFilter switch
                 {
                     TextureInterpolationFilter.NEAREST => ImageFilter.Nearest,
@@ -87,15 +107,15 @@ public class MainModule : IModule
 
     public async Task<World> LoadSponza(string filename)
     {
-        var model = ModelRoot.Load(filename);
 
+        var model = ModelRoot.Load(filename,ReadContext.Create((f) => SEngine.Get().Sources.Read(filename).ReadAll()));
         var mesh = model?.LogicalMeshes?.FirstOrDefault() ?? throw new NullReferenceException();
         IMeshMaterial?[] materials = new SponzaMeshMaterial?[mesh.Primitives.Count];
         List<MeshSurface> surfaces = [];
         List<uint> indices = [];
         List<Vertex> vertices = [];
 
-        var textures = new Dictionary<string, ImageHandle>();
+        var textures = new Dictionary<int, ImageHandle>();
 
         Console.WriteLine("Loading Textures...");
         mesh.Primitives.Select((c, idx) => (c, idx)).AsParallel().ForAll(data =>
@@ -181,7 +201,7 @@ public class MainModule : IModule
         {
             RootComponent = new DirectionalLightComponent
             {
-                Radiance = 2000,
+                Radiance = 0,
                 Rotation = Quaternion.Identity.AddYaw(45)
             }
         });

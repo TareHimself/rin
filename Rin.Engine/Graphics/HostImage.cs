@@ -30,7 +30,7 @@ public class HostImage : IHostImage
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string? debugName = null)
     {
         return SGraphicsModule.Get().GetImageFactory()
-            .CreateTexture(ToBuffer(), new Extent3D(Extent), Format, filter, tiling, mips, ImageUsage.None, debugName);
+            .CreateTexture(ToBuffer(), new Extent3D(Extent), Format, mips, ImageUsage.None, debugName);
     }
 
     public Extent2D Extent => new()

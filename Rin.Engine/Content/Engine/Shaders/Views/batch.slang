@@ -195,7 +195,7 @@ float4 fragment(FSIn input)
         var uv = mapRangeUnClamped(input.uv, float2(0.0), float2(1.0), uvMapping.xy, uvMapping.zw);
         var textureHandle = asMtsdf.textureHandle;
 
-        float3 msd = sampleTexture(textureHandle, uv).rgb;
+        float3 msd = sampleTexture(textureHandle, uv,ImageTiling.ClampEdge).rgb;
         float2 texSize = getTextureSize(textureHandle);
         float2 actualTexSize = texSize * (uvMapping.zw - uvMapping.xy);
         

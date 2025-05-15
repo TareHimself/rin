@@ -1,16 +1,17 @@
+#pragma once
 [[vk::binding(0, 0)]]
-uniform Sampler2D COLOR_ROUGHNESS;
-
+uniform Sampler2D G_BUFFER_0;
 [[vk::binding(1, 0)]]
-uniform Sampler2D LOCATION_METALLIC;
-
+uniform Sampler2D G_BUFFER_1;
 [[vk::binding(2, 0)]]
-uniform Sampler2D NORMAL_SPECULAR;
+uniform Sampler2D G_BUFFER_2;
 
 
-struct GBufferIn {
-    float getColor() {
-        
-    }
+struct GBuffer {
+    static 
 };
+
+struct GBufferSample {
+
+}
 

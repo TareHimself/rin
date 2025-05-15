@@ -31,7 +31,7 @@ public class SponzaMeshMaterial : IMeshMaterial
     private class ColorMeshPass : SimpleMaterialPass
     {
         protected override IShader Shader { get; } = SGraphicsModule.Get()
-            .MakeGraphics(@"fs/F:/rin/Sponza/Content/mesh.slang");
+            .MakeGraphics(@"Sponza/mesh.slang");
 
         public override ulong GetRequiredMemory()
         {
@@ -48,11 +48,7 @@ public class SponzaMeshMaterial : IMeshMaterial
         {
             var cmd = frame.GetCommandBuffer();
             var push = Shader.PushConstants.Values.First();
-
-            var set = SGraphicsModule.Get().GetImageFactory().GetDescriptorSet();
-            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, Shader.GetPipelineLayout(),
-                [set]);
-
+            
             ulong memoryUsed = 0;
             foreach (var item in meshes)
             {

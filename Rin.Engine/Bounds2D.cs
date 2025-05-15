@@ -2,7 +2,7 @@
 
 namespace Rin.Engine;
 
-public struct Bounds2D : IAdditionOperators<Bounds2D, Bounds2D, Bounds2D>
+public record struct Bounds2D : IAdditionOperators<Bounds2D, Bounds2D, Bounds2D>
 {
     public Bounds1D X;
     public Bounds1D Y;

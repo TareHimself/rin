@@ -1,5 +1,5 @@
 #include "World/Shaders/Lights/light.slang"
-
+#pragma once
 struct SceneInfo
 {
     float4x4 view;

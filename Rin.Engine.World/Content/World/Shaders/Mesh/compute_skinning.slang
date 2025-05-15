@@ -15,9 +15,6 @@ struct Pose {
     float4x4 *transforms;
 }
 
-
-RWStructuredBuffer<Vertex, ScalarDataLayout> outVertices;
-
 struct ComputeIn {
     uint3 threadId : SV_DispatchThreadID;
 }
@@ -27,6 +24,7 @@ struct PushConstants {
     SkinnedMesh *meshes;
     Pose *poses;
     ExecutionInfo *info;
+    Vertex *output;
 };
 
 [[vk::push_constant]]
@@ -57,5 +55,5 @@ void compute(ComputeIn input)
     result._normalV = float4(normal, inVertex.vertex._normalV.w);
     result._tangent = inVertex.vertex._tangent;
 
-    outVertices[index] = result;
+    push.output[index] = result;
 }

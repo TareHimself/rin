@@ -10,7 +10,7 @@ using Rin.Engine.Views.Graphics.Quads;
 namespace Rin.Engine.Views.Content;
 
 /// <summary>
-///     Draw's a <see cref="Texture" /> if provided or a colored rectangle. Supports tint.
+///     Draw's a <see cref="BindlessImage" /> if provided or a colored rectangle. Supports tint.
 /// </summary>
 public class Image : ContentView
 {

@@ -193,7 +193,6 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
                 {
                     ImageFilter.Linear => VkSamplerMipmapMode.VK_SAMPLER_MIPMAP_MODE_LINEAR,
                     ImageFilter.Nearest => VkSamplerMipmapMode.VK_SAMPLER_MIPMAP_MODE_NEAREST,
-                    ImageFilter.Cubic => throw new Exception("Cubic sampler not supported"),
                     _ => throw new ArgumentOutOfRangeException()
                 },
                 anisotropyEnable = 0,
@@ -355,7 +354,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
         _allocator = new Allocator(this);
         _shaderManager = new SlangShaderManager();
-        _textureFactory = new BindlessImageFactory();
+        _textureFactory = new BindlessImageFactory(_device);
         _meshFactory = new MeshFactory();
         _instance.DestroySurface(outSurface);
     }
@@ -958,13 +957,13 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     /// <param name="format"></param>
     /// <param name="usage"></param>
     /// <param name="mips"></param>
-    /// <param name="mipMapFilter"></param>
+    /// <param name="mipsGenerateFilter"></param>
     /// <param name="debugName"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     public async Task<IDeviceImage> CreateDeviceImage(Buffer<byte> content, Extent3D size, ImageFormat format,
         ImageUsage usage,
-        bool mips = false, ImageFilter mipMapFilter = ImageFilter.Linear,
+        bool mips = false, ImageFilter mipsGenerateFilter = ImageFilter.Linear,
         string debugName = "Image")
     {
         if (_allocator == null) throw new Exception("Allocator is null");
@@ -1006,7 +1005,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         await GraphicsSubmit(cmd =>
         {
             if (mips)
-                GenerateMipMaps(cmd, newImage, size, mipMapFilter, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+                GenerateMipMaps(cmd, newImage, size, mipsGenerateFilter, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
             else
                 cmd.ImageBarrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
         });

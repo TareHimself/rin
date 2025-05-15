@@ -1,8 +1,10 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
+using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Views.Graphics.Commands;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -11,6 +13,8 @@ namespace Rin.Engine.Views.Graphics.Passes.Blur;
 
 internal struct BlurData()
 {
+    public required ImageHandle SourceT;
+    
     public required Matrix4x4 Projection = Matrix4x4.Identity;
 
     public required Matrix4x4 Transform = Matrix4x4.Identity;
@@ -91,7 +95,9 @@ public class BlurPass : IViewsPass
             var copyImage = graph.GetImage(CopyImageId);
             var stencilImage = graph.GetImage(StencilImageId);
             var buffer = graph.GetBufferOrException(_bufferId);
-
+            
+            Debug.Assert(copyImage.BindlessHandle != ImageHandle.InvalidImage,"copyImage bindless handle is invalid");
+            
             cmd.BeginRendering(_sharedContext.Extent.ToVk(), [
                     drawImage.MakeColorAttachmentInfo()
                 ],
@@ -113,25 +119,13 @@ public class BlurPass : IViewsPass
 
             var compareMask = uint.MaxValue;
 
-            var resource = _blurShader.Resources["SourceT"];
-            var descriptorSet = frame.GetDescriptorAllocator()
-                .Allocate(_blurShader.GetDescriptorSetLayouts()[resource.Set]);
-            descriptorSet.WriteImages(resource.Binding, new ImageWrite(copyImage,
-                ImageLayout.ShaderReadOnly, DescriptorImageType.Sampled, new SamplerSpec
-                {
-                    Filter = ImageFilter.Linear,
-                    Tiling = ImageTiling.ClampBorder
-                }));
-
-            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _blurShader.GetPipelineLayout(),
-                [descriptorSet]);
-
             foreach (var blur in _blurCommands)
             {
                 vkCmdSetStencilCompareMask(cmd, faceFlags, compareMask);
                 var pushResource = _blurShader.PushConstants.First().Value;
                 buffer.Write(new BlurData
                 {
+                    SourceT = copyImage.BindlessHandle,
                     Projection = _sharedContext.ProjectionMatrix,
                     Size = blur.Size,
                     Strength = blur.Strength,

@@ -2,39 +2,19 @@ namespace Rin.Engine.Graphics.FrameGraph;
 
 public class ImageResourceDescriptor : IResourceDescriptor
 {
-    public readonly ImageUsage Flags;
+    public readonly Extent3D Extent;
+    public readonly ImageUsage Usage;
     public readonly ImageFormat Format;
-    public readonly uint Height;
-    public readonly ImageLayout InitialLayout;
 
-    public readonly uint Width;
-
-    public ImageResourceDescriptor(uint width, uint height, ImageFormat format, ImageUsage flags,
-        ImageLayout initialLayout)
+    public ImageResourceDescriptor(in Extent3D extent, ImageFormat format, ImageUsage usage)
     {
-        Width = width;
-        Height = height;
+        Extent = extent;
         Format = format;
-        Flags = flags;
-        InitialLayout = initialLayout;
+        Usage = usage;
     }
 
-    // public bool Equals(ImageResourceDescriptor? other)
-    // {
-    //     return Width == other.Width && Height == other.Height && Format == other.Format && Flags == other.Flags && InitialLayout == other.InitialLayout;
-    // }
-    //
-    // public override bool Equals(object? obj)
-    // {
-    //     return obj is ImageResourceDescriptor other && Equals(other);
-    // }
-    //
-    // public override int GetHashCode()
-    // {
-    //     return HashCode.Combine(Width, Height, (int)Format, (int)Flags, (int)InitialLayout);
-    //}
     public override int GetHashCode()
     {
-        return HashCode.Combine(Width, Height, (int)Format, (int)Flags, (int)InitialLayout);
+        return HashCode.Combine(Extent, (int)Format, (int)Usage);
     }
 }

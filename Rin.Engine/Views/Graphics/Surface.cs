@@ -239,11 +239,7 @@ public abstract class Surface : IDisposable, IUpdatable
                 {
                     currentMask <<= 1;
                     passes.Add(new StencilWritePass(context, currentMask, uniqueClipStacks[rawCommand.ClipId].Select(
-                        c => new StencilClip
-                        {
-                            Transform = clips[(int)c].Transform,
-                            Size = clips[(int)c].Size
-                        }).ToArray()));
+                        c => new StencilClip(clips[(int)c].Transform, clips[(int)c].Size)).ToArray()));
                     Stats.StencilWriteCount++;
                     //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
                     computedClipStacks.Add(rawCommand.ClipId, currentMask);

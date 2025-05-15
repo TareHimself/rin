@@ -1,13 +1,14 @@
-struct GBufferOut {
-    float4 COLOR_ROUGHNESS : SV_Target1;
-    float4 LOCATION_METALLIC : SV_Target2;
-    float4 NORMAL_SPECULAR : SV_Target3;
+
+struct GBuffer {
+    float4 G_BUFFER_0 : SV_Target1;
+    float4 G_BUFFER_1 : SV_Target2;
+    float4 G_BUFFER_2 : SV_Target3;
 
     [mutating]
-    void setOutput(float3 color, float3 normal, float3 location, float roughness, float metallic, float specular) {
-        this.COLOR_ROUGHNESS = float4(color, roughness);
-        this.LOCATION_METALLIC = float4(location, metallic);
-        this.NORMAL_SPECULAR = float4(normal, specular);
+    __init(float3 color, float3 normal, float3 location, float roughness, float metallic, float specular, float emissive) {
+        this.G_BUFFER_0 = float4(color, roughness);
+        this.G_BUFFER_1 = float4(location, metallic);
+        this.G_BUFFER_2 = float4(normal, specular);
     }
 };
 

@@ -3,6 +3,5 @@
 public enum ImageFilter
 {
     Linear,
-    Nearest,
-    Cubic
+    Nearest
 }

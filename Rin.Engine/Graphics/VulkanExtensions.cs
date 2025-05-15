@@ -122,7 +122,6 @@ public static class VulkanExtensions
         {
             ImageFilter.Linear => VkFilter.VK_FILTER_LINEAR,
             ImageFilter.Nearest => VkFilter.VK_FILTER_NEAREST,
-            ImageFilter.Cubic => VkFilter.VK_FILTER_CUBIC_IMG,
             _ => throw new ArgumentOutOfRangeException()
         };
     }

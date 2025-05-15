@@ -25,3 +25,28 @@ struct AllStagesAttribute
 struct PushAttribute
 {
 };
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct SampledTextureBindingAttribute
+{
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct TextureBindingAttribute
+{
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct StorageImageBindingAttribute
+{
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct SamplerBindingAttribute
+{
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct UniformBufferBindingAttribute
+{
+};

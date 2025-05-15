@@ -132,15 +132,10 @@ public class CompiledGraph : ICompiledGraph
 
     public void Execute(Frame frame, IRenderContext context, TaskPool taskPool)
     {
-        var cmds = new BlockingStack<VkCommandBuffer>();
-
-        var primaryCmd = frame.GetPrimaryCommandBuffer();
-        foreach (var secondaryCommandBuffer in frame.GetSecondaryCommandBuffers()) cmds.Push(secondaryCommandBuffer);
-
-        var used = new HashSet<VkCommandBuffer>();
+        var cmd = frame.GetPrimaryCommandBuffer();
         foreach (var stage in _nodes)
         foreach (var pass in stage.Passes)
-            pass.Execute(this, frame.GetPrimaryCommandBuffer(), frame, context);
+            pass.Execute(this,cmd, frame, context);
         // if (stage.IsBarrier)
         // {
         //     if (used.NotEmpty())

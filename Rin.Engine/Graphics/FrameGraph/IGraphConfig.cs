@@ -7,10 +7,13 @@ public interface IGraphConfig
     public uint AddExternalImage(IDeviceImage image, Action? onDispose = null);
 
     public uint CreateImage(uint width, uint height, ImageFormat format,
-        ImageLayout initialLayout);
+        ImageLayout layout);
 
     public uint CreateImage(in Extent2D extent, ImageFormat format,
-        ImageLayout initialLayout);
+        ImageLayout layout);
+    
+    public uint CreateImage(in Extent3D extent, ImageFormat format,
+        ImageLayout layout);
 
     public uint CreateBuffer(ulong size, BufferStage stage);
 
@@ -61,4 +64,5 @@ public interface IGraphConfig
     /// <param name="passId"></param>
     /// <returns></returns>
     public uint DependOn(uint passId);
+    
 }

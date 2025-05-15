@@ -5,23 +5,8 @@ using Rin.Engine.Math;
 
 namespace Rin.Engine.Graphics;
 
-public struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool>, IEquatable<Extent2D>, IFormattable
+public record struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool>, IFormattable
 {
-    public bool Equals(Extent2D other)
-    {
-        return Width == other.Width && Height == other.Height;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is Extent2D other && Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Width, Height);
-    }
-
     public string ToString(string? format, IFormatProvider? formatProvider)
     {
         var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;

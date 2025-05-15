@@ -18,6 +18,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     public readonly Dictionary<uint, List<Dependency>> PassDependencies = [];
     public readonly Dictionary<uint, List<ResourceAction>> ResourceActions = [];
     public readonly Dictionary<uint, IResourceDescriptor> Resources = [];
+    private readonly Dictionary<uint, GraphConfigImage> _images = [];
 
     public uint CurrentPassId { get; set; }
 
@@ -31,23 +32,47 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return resourceId;
     }
 
-    public uint CreateImage(uint width, uint height, ImageFormat format, ImageLayout initialLayout)
+    private ImageUsage DeriveImageUsage(ImageLayout layout) => layout switch
     {
-        var flags = format is ImageFormat.Depth or ImageFormat.Stencil
-            ? ImageUsage.StencilAttachment
-            : ImageUsage.Storage | ImageUsage.ColorAttachment;
+        ImageLayout.Undefined => ImageUsage.None,
+        ImageLayout.General or ImageLayout.PresentSrc or ImageLayout.TransferSrc or ImageLayout.TransferDst =>
+            ImageUsage.TransferSrc | ImageUsage.TransferDst,
+        ImageLayout.ColorAttachment => ImageUsage.ColorAttachment,
+        ImageLayout.StencilAttachment => ImageUsage.StencilAttachment,
+        ImageLayout.DepthAttachment => ImageUsage.DepthAttachment,
+        ImageLayout.ShaderReadOnly => ImageUsage.Sampled,
+        _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
+    };
 
-        flags |= ImageUsage.TransferSrc | ImageUsage.TransferDst | ImageUsage.Sampled;
-        var descriptor = new ImageResourceDescriptor(width, height, format, flags, initialLayout);
-        var resourceId = builder.MakeId();
-        Resources.Add(resourceId, descriptor);
-        UseImage(resourceId, initialLayout, ResourceUsage.Write);
-        return resourceId;
+    public uint CreateImage(uint width, uint height, ImageFormat format, ImageLayout layout)
+    {
+        return CreateImage(new Extent3D(width,height), format, layout);
     }
 
-    public uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout initialLayout = ImageLayout.Undefined)
+    public uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout layout)
     {
-        return CreateImage(extent.Width, extent.Height, format, initialLayout);
+        return CreateImage(new Extent3D(extent), format, layout);
+    }
+
+    public uint CreateImage(in Extent3D extent, ImageFormat format, ImageLayout layout)
+    {
+        var flags = format switch
+        {
+            ImageFormat.Depth => ImageUsage.DepthAttachment,
+            ImageFormat.Stencil => ImageUsage.StencilAttachment,
+            _ => ImageUsage.None
+        };
+        var resourceId = builder.MakeId();
+        _images.Add(resourceId,new GraphConfigImage
+        {
+            Extent = extent,
+            Usage = DeriveImageUsage(layout) | flags,
+            Format = format
+        });
+        //Resources.Add(resourceId, descriptor); // We do this at the end for images
+        // This is always a write because the image was created here
+        UseImage(resourceId,layout, ResourceUsage.Write);
+        return resourceId;
     }
 
     public uint CreateBuffer(ulong size, BufferStage stage)
@@ -60,66 +85,6 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         //Write(resourceId);
         return resourceId;
     }
-
-    // public uint Read(uint resourceId)
-    // {
-    //     {
-    //         var dep = new Dependency
-    //         {
-    //             Type = DependencyType.Read,
-    //             Id = resourceId
-    //         };
-    //
-    //         if (PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
-    //             dependencies.Add(dep);
-    //         else
-    //             PassDependencies.Add(CurrentPassId, [dep]);
-    //     }
-    //     {
-    //         var action = new ResourceAction
-    //         {
-    //             Usage = ResourceUsage.Read,
-    //             PassId = CurrentPassId,
-    //             Type = Resources[resourceId] is ImageResourceDescriptor ? ResourceType.Image : ResourceType.Buffer,
-    //         };
-    //
-    //         if (ResourceActions.TryGetValue(resourceId, out var passes))
-    //             passes.Add(action);
-    //         else
-    //             ResourceActions.Add(resourceId, [action]);
-    //     }
-    //     return resourceId;
-    // }
-    //
-    // public uint Write(uint resourceId)
-    // {
-    //     {
-    //         var dep = new Dependency
-    //         {
-    //             Type = DependencyType.Write,
-    //             Id = resourceId
-    //         };
-    //
-    //         if (PassDependencies.TryGetValue(CurrentPassId, out var dependencies))
-    //             dependencies.Add(dep);
-    //         else
-    //             PassDependencies.Add(CurrentPassId, [dep]);
-    //     }
-    //     {
-    //         var action = new ResourceAction
-    //         {
-    //             Usage = ResourceUsage.Write,
-    //             PassId = CurrentPassId,
-    //             Type = Resources[resourceId] is ImageResourceDescriptor ? ResourceType.Image : ResourceType.Buffer,
-    //         };
-    //
-    //         if (ResourceActions.TryGetValue(resourceId, out var passes))
-    //             passes.Add(action);
-    //         else
-    //             ResourceActions.Add(resourceId, [action]);
-    //     }
-    //     return resourceId;
-    // }
 
     public uint UseImage(uint id, ImageLayout layout, ResourceUsage usage)
     {
@@ -154,6 +119,14 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
             else
                 ResourceActions.Add(id, [action]);
         }
+
+        {
+            if (_images.TryGetValue(id, out var image))
+            {
+                image.Usage |= DeriveImageUsage(layout);
+            }
+        }
+        
         return id;
     }
 
@@ -209,6 +182,14 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
                 PassDependencies.Add(CurrentPassId, [dep]);
         }
         return passId;
+    }
+
+    public void FillImageResources()
+    {
+        foreach (var (key, image) in _images)
+        {
+            Resources.Add(key,new ImageResourceDescriptor(image.Extent,image.Format,image.Usage));
+        }
     }
 
     public class Dependency
