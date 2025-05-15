@@ -87,8 +87,10 @@ public class BlurPass : IViewsPass
         _bufferId = config.CreateBuffer<BlurData>(_blurCommands.Length, BufferStage.Graphics);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
+        var cmd = ctx.GetCommandBuffer();
+        
         if (_blurShader.Bind(cmd, true))
         {
             var drawImage = graph.GetImage(MainImageId);

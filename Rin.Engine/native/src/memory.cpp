@@ -1,5 +1,5 @@
 ﻿#include "memory.hpp"
-#include <memory>
+#include <cstring>
 EXPORT_IMPL void* memoryAllocate(size_t size)
 {
     return new char[size];

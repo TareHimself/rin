@@ -34,8 +34,9 @@ public class FillGBufferPass : IPass
         _worldContext.GBufferImage2 = config.CreateImage(_worldContext.Extent,ImageFormat.RGBA32, ImageLayout.ColorAttachment);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph,IExecutionContext ctx)
     {
-        var gbuffer0 = graph.
+        var cmd = ctx.GetCommandBuffer();
+        //var gbuffer0 = graph.
     }
 }

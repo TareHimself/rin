@@ -192,12 +192,7 @@ public class SSceneTestModule : IModule
                 else
                     SEngine.Get().RequestExit();
             };
-
-            var text = new TextBox
-            {
-                Content = "Selected Channel Text",
-                FontSize = 50
-            };
+            
 
             surf.Add(new Panel
             {
@@ -205,14 +200,9 @@ public class SSceneTestModule : IModule
                 [
                     new PanelSlot
                     {
-                        Child = new TestViewport(camera, text),
+                        Child = new TestViewport(camera),
                         MinAnchor = new Vector2(0.0f),
                         MaxAnchor = new Vector2(1.0f)
-                    },
-                    new PanelSlot
-                    {
-                        Child = text,
-                        SizeToContent = true
                     },
                     new PanelSlot
                     {

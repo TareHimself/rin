@@ -1,4 +1,5 @@
-﻿using Rin.Engine.Graphics.Descriptors;
+﻿using Rin.Engine.Extensions;
+using Rin.Engine.Graphics.Descriptors;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics;
@@ -40,7 +41,8 @@ public class Frame : IDisposable
         _renderSemaphore = device.CreateSemaphore();
         _swapchainSemaphore = device.CreateSemaphore();
     }
-
+    
+    
     public void Dispose()
     {
         WaitForLastDraw();

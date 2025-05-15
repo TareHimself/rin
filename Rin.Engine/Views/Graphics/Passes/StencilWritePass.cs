@@ -46,9 +46,9 @@ public class StencilWritePass : IPass
         _clipsBufferId = config.CreateBuffer<StencilClip>(_clips.Length, BufferStage.Graphics);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-       
+        var cmd = ctx.GetCommandBuffer();
         if (_stencilShader.Bind(cmd, true))
         {
             var stencilImage = graph.GetImageOrException(StencilImageId);

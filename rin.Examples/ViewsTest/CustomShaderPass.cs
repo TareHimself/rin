@@ -43,8 +43,9 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
         BufferId = config.CreateBuffer<Data>(_customCommands.Length, BufferStage.Graphics);
     }
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
+        var cmd = ctx.GetCommandBuffer();
         if (_prettyShader.Bind(cmd))
         {
             var drawImage = graph.GetImage(MainImageId);

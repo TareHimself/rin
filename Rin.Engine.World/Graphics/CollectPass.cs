@@ -195,9 +195,10 @@ public class CollectPass : IPass
     }
 
 
-    public void Execute(ICompiledGraph graph, in VkCommandBuffer cmd, Frame frame, IRenderContext context)
+    public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_skinnedMeshes.NotEmpty()) DoSkinning(graph, frame, cmd);
+        var cmd = ctx.GetCommandBuffer();
+        if (_skinnedMeshes.NotEmpty()) DoSkinning(graph, ctx,cmd);
 
         var sceneDataBuffer = graph.GetBufferOrException(DepthSceneBufferId);
         var materialDataBuffer = graph.GetBufferOrNull(DepthMaterialBufferId);
@@ -237,7 +238,7 @@ public class CollectPass : IPass
                 }
             ]);
 
-        var sceneFrame = new SceneFrame(frame, View, Projection, sceneDataBuffer, cmd);
+        var sceneFrame = new SceneFrame(View, Projection, sceneDataBuffer, cmd);
 
         sceneDataBuffer.Write(new DepthSceneInfo
         {
@@ -264,7 +265,7 @@ public class CollectPass : IPass
     public bool HandlesPreAdd => false;
     public bool HandlesPostAdd => false;
 
-    private void DoSkinning(ICompiledGraph graph, Frame frame, in VkCommandBuffer cmd)
+    private void DoSkinning(ICompiledGraph graph, IExecutionContext ctx, in VkCommandBuffer cmd)
     {
         // SkinningOutputBufferId = config.AllocateBuffer<Vertex>(totalVertices);
         // SkinnedMeshArrayBufferId = config.AllocateBuffer<ulong>(SkinnedMeshes.Length);

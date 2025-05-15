@@ -36,7 +36,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     private readonly BackgroundTaskQueue _transferQueueThread = new();
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
     private Allocator? _allocator;
-    private IRenderContext[] _collected = [];
+    private IRenderData[] _collected = [];
     private VkDebugUtilsMessengerEXT _debugUtilsMessenger;
     private DescriptorAllocator? _descriptorAllocator;
     private VkDevice _device;
@@ -529,7 +529,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         HandleWindowCreated(window);
         return window;
     }
-
+    
     public void WaitDeviceIdle()
     {
         Sync(() => { vkDeviceWaitIdle(_device); }).Wait();
@@ -1120,7 +1120,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
             renderers = _renderers.ToArray();
         }
 
-        List<IRenderContext> collected = [];
+        List<IRenderData> collected = [];
         foreach (var renderer in renderers)
             if (renderer.Collect() is { } context)
                 collected.Add(context);

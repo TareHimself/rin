@@ -15,19 +15,13 @@ public class MainPanel : Panel
     public MainPanel()
     {
         _cameraActor = _world.AddActor<CameraActor>();
-        var text = new TextBox();
         Slots =
         [
             new PanelSlot
             {
-                Child = new TestViewport(_cameraActor, text),
+                Child = new TestViewport(_cameraActor),
                 MinAnchor = new Vector2(0.0f),
                 MaxAnchor = new Vector2(1.0f)
-            },
-            new PanelSlot
-            {
-                Child = text,
-                SizeToContent = true
             }
         ];
     }

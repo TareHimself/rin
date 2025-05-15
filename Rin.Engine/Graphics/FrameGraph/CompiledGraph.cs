@@ -2,7 +2,7 @@ using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics.FrameGraph;
 
-public class CompiledGraph : ICompiledGraph
+public sealed class CompiledGraph : ICompiledGraph
 {
     private readonly Dictionary<uint, IResourceDescriptor> _descriptors;
     private readonly Frame _frame;
@@ -129,71 +129,14 @@ public class CompiledGraph : ICompiledGraph
 
         throw new ResourceAllocationException(id);
     }
+    
+    
 
-    public void Execute(Frame frame, IRenderContext context, TaskPool taskPool)
+    public void Execute(Frame frame, IRenderData context, TaskPool taskPool)
     {
-        var cmd = frame.GetPrimaryCommandBuffer();
+        var executionContext = new ExecutionContext(this, frame);
         foreach (var stage in _nodes)
         foreach (var pass in stage.Passes)
-            pass.Execute(this,cmd, frame, context);
-        // if (stage.IsBarrier)
-        // {
-        //     if (used.NotEmpty())
-        //     {
-        //         unsafe
-        //         {
-        //             foreach (var cmd in used)
-        //             {
-        //                 cmd.End();
-        //             }
-        //         
-        //             fixed (VkCommandBuffer* pCmds = used.ToArray())
-        //             {
-        //                 vkCmdExecuteCommands(primaryCmd,(uint)used.Count,pCmds);
-        //             }
-        //
-        //             foreach (var cmd in used)
-        //             {
-        //                 cmd.BeginSecondary();
-        //             }
-        //         }
-        //     }
-        //     
-        //     foreach (var pass in stage.Passes)
-        //     {
-        //         pass.Execute(this,primaryCmd,frame,context);
-        //     }
-        //     
-        //     used.Clear();
-        // }
-        // else
-        // {
-        //     var tasks = stage.Passes.Select(node => taskPool.Enqueue(() =>
-        //     {
-        //         var cmd = cmds.Pop();
-        //         node.Execute(this, cmd, frame, context);
-        //         used.Add(cmd);
-        //         cmds.Push(cmd);
-        //     })).ToArray();
-        //     
-        //     foreach (var task in tasks)
-        //     {
-        //         task.Wait();
-        //     }
-        // }
-        // var tasks = stage.Select(node => taskPool.Enqueue(() =>
-        // {
-        //     foreach (var cmd in cmds.GetConsumingEnumerable())
-        //     {
-        //         node.Execute(this, cmd, frame, context);
-        //         cmds.Add(cmd);
-        //         break;
-        //     }
-        // })).ToArray();
-        //
-        // foreach (var task in tasks)
-        // {
-        //     task.Wait();
-        // }
+            pass.Execute(this,executionContext);
     }
 }
