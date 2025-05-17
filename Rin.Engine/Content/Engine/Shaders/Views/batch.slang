@@ -1,6 +1,6 @@
 #include "Engine/Shaders/utils.slang"
 #include "Engine/Shaders/sd.slang"
-#include "Engine/Shaders/textures.slang"
+#include "Engine/Shaders/images.slang"
 
 enum QuadMode
 {

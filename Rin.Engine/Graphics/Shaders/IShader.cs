@@ -18,10 +18,19 @@ public interface IShader : IDisposable
     {
         unsafe
         {
+            var flags = VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS |
+                        VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT;
             fixed (T* pData = &data)
             {
-                vkCmdPushConstants(cmd, GetPipelineLayout(), GetStageFlags(), offset,
+                var size = (uint)Utils.ByteSizeOf<T>();
+                vkCmdPushConstants(cmd, GetPipelineLayout(),flags, offset,
                     (uint)Utils.ByteSizeOf<T>(), pData);
+                if (size < 256)
+                {
+                    var diff = 256 - size;
+                    var padding = stackalloc byte[(int)diff];
+                    vkCmdPushConstants(cmd,GetPipelineLayout(),flags,size,diff,padding);
+                }
             }
         }
     }

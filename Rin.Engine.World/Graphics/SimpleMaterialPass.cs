@@ -23,7 +23,7 @@ public abstract class SimpleMaterialPass : IMaterialPass
     ///     <see cref="GetRequiredMemory" /> * <see cref="meshes" />
     /// </param>
     /// <param name="meshes">The meshes to draw</param>
-    public void Execute(SceneFrame frame, IDeviceBufferView? data, ProcessedMesh[] meshes)
+    public void Execute(WorldFrame frame, IDeviceBufferView? data, ProcessedMesh[] meshes)
     {
         var requiredMemorySize = GetRequiredMemory();
         var cmd = frame.GetCommandBuffer();
@@ -59,6 +59,6 @@ public abstract class SimpleMaterialPass : IMaterialPass
     /// <param name="data"></param>
     /// <param name="meshes"></param>
     /// <returns>The total memory used</returns>
-    protected abstract ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data,
+    protected abstract ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
         ProcessedMesh[] meshes);
 }

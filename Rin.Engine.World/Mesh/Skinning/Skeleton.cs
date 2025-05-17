@@ -16,7 +16,7 @@ public class Skeleton
     public Skeleton(Bone[] bones, Pose basePose)
     {
         Bones = bones;
-        Root = bones.FirstOrDefault(c => c.Name == "root") ?? throw new NullReferenceException();
+        Root = bones.FirstOrDefault(c => c.Parent == null) ?? throw new NullReferenceException();
         BasePose = basePose;
     }
 

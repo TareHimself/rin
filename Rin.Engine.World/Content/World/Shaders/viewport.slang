@@ -1,12 +1,13 @@
-#include "Engine/Shaders/utils.slang"
+#include "World/Shaders/gbuffer_in.slang"
 #include "Engine/Shaders/operators.slang"
-[[vk::binding(0, 0)]]
-uniform Sampler2D SceneImage;
+#include "Engine/Shaders/images.slang"
+#include "Engine/Shaders/utils.slang"
 
 struct PushData {
     float4x4 projection;
     float4x4 transform;
     float2 size;
+    GBuffer gBuffer;
 }
 struct PushConstants
 {
@@ -29,5 +30,8 @@ float4 vertex(int vertexId: SV_VertexID, out float2 oUV: UV)
 float4 fragment(in float2 iUV: UV,float2 coordinate: SV_Position)
     : SV_Target
 {
-    return float4(SceneImage.Sample(iUV).xyz,1.0f);
+    var sample = push.data->gBuffer.sample(iUV);
+
+    //return float4(push.data->gBuffer.G_BUFFER_0.SampleTexture(iUV).rgb,1.0);
+    return float4(sample.color,1.0f);
 }

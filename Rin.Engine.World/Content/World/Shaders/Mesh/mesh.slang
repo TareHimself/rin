@@ -1,4 +1,4 @@
-#include "Engine/Shaders/textures.slang"
+#include "Engine/Shaders/images.slang"
 #include "Engine/Shaders/utils.slang"
 #include "World/Shaders/Mesh/vertex.slang"
 #include "World/Shaders/scene_info.slang"
@@ -135,7 +135,7 @@ GBuffer fragment(FragmentIn input)
 
     var location = input.sceneLocation.xyz;
     var normal = normalize(input.sceneNormal.xyz);
-    var color = instanceData.getColor(input.uv);
+    var color = ImageHandle(ImageType.Image, 0).SampleTexture(input.uv).rgb ;//instanceData.getColor(input.uv);
     var roughnes = instanceData.getRoughness(input.uv);
     var metallic = instanceData.getMetallic(input.uv);
     var specular = instanceData.getSpecular(input.uv);

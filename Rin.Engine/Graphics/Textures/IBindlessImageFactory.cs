@@ -8,7 +8,7 @@ public interface IBindlessImageFactory : IDisposable
 
     public void Bind(in VkCommandBuffer cmd);
     public DescriptorSet GetDescriptorSet();
-
+    public VkPipelineLayout GetPipelineLayout();
     public (ImageHandle handle,IDeviceImage image) CreateTexture(in Extent3D size, ImageFormat format,
         bool mips = false, ImageUsage usage = ImageUsage.None,
         string? debugName = null);

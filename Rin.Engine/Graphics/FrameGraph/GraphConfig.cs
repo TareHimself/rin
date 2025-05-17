@@ -188,6 +188,11 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     {
         foreach (var (key, image) in _images)
         {
+            if (!image.Usage.HasFlag(ImageUsage.ColorAttachment) && !image.Usage.HasFlag(ImageUsage.StencilAttachment) && !image.Usage.HasFlag(ImageUsage.DepthAttachment) && !image.Usage.HasFlag(ImageUsage.Sampled) && !image.Usage.HasFlag(ImageUsage.Storage))
+            {
+                // We add this because vulkan images require one of the above at minimum
+                image.Usage |= ImageUsage.Sampled;
+            }
             Resources.Add(key,new ImageResourceDescriptor(image.Extent,image.Format,image.Usage));
         }
     }

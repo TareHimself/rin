@@ -1,4 +1,4 @@
-#include "Engine/Shaders/textures.slang"
+#include "Engine/Shaders/images.slang"
 #include "Engine/Shaders/utils.slang"
 #include "World/Shaders/Lights/Models/lambert.slang"
 #include "World/Shaders/Lights/Models/pbr_new.slang"

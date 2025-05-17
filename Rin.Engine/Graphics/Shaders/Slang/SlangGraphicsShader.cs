@@ -12,6 +12,7 @@ public class SlangGraphicsShader : IGraphicsShader
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
 
     private readonly string _filePath;
+    private DescriptorLayoutBuilder _layoutBuilder;
 
     private readonly List<Pair<VkShaderEXT, VkShaderStageFlags>> _shaders = [];
     private bool _hasFragment;
@@ -139,85 +140,7 @@ public class SlangGraphicsShader : IGraphicsShader
 
                 code.Add(new Pair<VkShaderStageFlags, SlangBlob>(entryPointStage, generatedCode));
 
-                var parameters = reflectionData.Parameters.ToList();
-
-                foreach (var reflectionDataEntryPoint in reflectionData.EntryPoints)
-                    parameters.AddRange(reflectionDataEntryPoint.Parameters);
-
-                foreach (var parameter in parameters)
-                {
-                    var name = parameter.Name;
-                    if (parameter.Binding is { Kind: "descriptorTableSlot" } binding)
-                    {
-                        var set = binding.Set ?? 0;
-                        var index = binding.Binding ?? 0;
-                        var count = parameter.Type.ElementCount ?? 1;
-                        var stages = entryPointStage;
-                        VkDescriptorBindingFlags bindingFlags = 0;
-                        var bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                        foreach (var parameterAttribute in parameter.UserAttributes)
-                            switch (parameterAttribute.Name)
-                            {
-                                case "AllStages":
-                                    stages = VkShaderStageFlags.VK_SHADER_STAGE_ALL;
-                                    break;
-                                case "UpdateAfterBind":
-                                    bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-                                    break;
-                                case "Partial":
-                                    bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-                                    break;
-                                case "Variable":
-                                    bindingFlags |= VkDescriptorBindingFlags
-                                        .VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-                                    parameterAttribute.Arguments.FirstOrDefault()?.TryGetValue(out count);
-                                    break;
-                                case "TextureBinding":
-                                    bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                                    break;
-                                case "StorageImageBinding":
-                                    bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-                                    break;
-                                case "SamplerBinding":
-                                    bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER;
-                                    break;
-                                case "UniformBuffer":
-                                    bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                                    break;
-                            }
-                        
-                        if (Resources.ContainsKey(name))
-                        {
-                            Resources[name].Stages |= stages;
-                            Resources[name].BindingFlags |= bindingFlags;
-                        }
-                        else
-                        {
-                            Resources.Add(name, new Resource
-                            {
-                                Binding = (uint)index,
-                                BindingFlags = bindingFlags,
-                                Count = (uint)count,
-                                Name = name,
-                                Set = (uint)set,
-                                Stages = stages,
-                                Type = bindingType
-                            });
-                        }
-                    }
-                    else if (parameter.Binding is { Kind: "pushConstantBuffer" } uniformBinding)
-                    {
-                        if (PushConstants.TryGetValue(name, out var constant))
-                            constant.Stages |= entryPointStage;
-                        else
-                            PushConstants.Add(name, new PushConstant
-                            {
-                                Name = name,
-                                Size = (uint)(parameter.Type.ElementVarLayout?.Binding?.Size ?? 0),
-                                Stages = entryPointStage
-                            });
-                    }
-                }
+                SlangShaderManager.ReflectShader(reflectionData,Resources,PushConstants,entryPointStage);
             }
 
             {
@@ -225,7 +148,7 @@ public class SlangGraphicsShader : IGraphicsShader
                 SortedDictionary<uint, DescriptorLayoutBuilder> builders = [];
                 foreach (var (key, item) in Resources)
                 {
-                    if (!builders.ContainsKey(item.Set)) builders.Add(item.Set, new DescriptorLayoutBuilder());
+                    if (!builders.ContainsKey(item.Set)) builders.Add(item.Set, _layoutBuilder = new DescriptorLayoutBuilder());
 
                     builders[item.Set].AddBinding(item.Binding, item.Type, item.Stages, item.Count, item.BindingFlags);
                 }
@@ -235,7 +158,7 @@ public class SlangGraphicsShader : IGraphicsShader
                     {
                         stageFlags = item.Stages,
                         offset = 0,
-                        size = item.Size
+                        size = 256//item.Size
                     });
 
                 var max = builders.Count == 0 ? 0 : builders.Keys.Max();
@@ -259,18 +182,19 @@ public class SlangGraphicsShader : IGraphicsShader
                     {
                         var setLayoutCount = (uint)layouts.Count;
                         var pushConstantRangeCount = (uint)pushConstantRanges.Count;
-                        var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
-                        {
-                            sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                            setLayoutCount = setLayoutCount,
-                            pSetLayouts = pSetLayouts,
-                            pushConstantRangeCount = pushConstantRangeCount,
-                            pPushConstantRanges = pPushConstants
-                        };
-
-                        var pipelineLayout = new VkPipelineLayout();
-                        vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, null, &pipelineLayout);
-                        _pipelineLayout = pipelineLayout;
+                        // var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
+                        // {
+                        //     sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                        //     setLayoutCount = setLayoutCount,
+                        //     pSetLayouts = pSetLayouts,
+                        //     pushConstantRangeCount = pushConstantRangeCount,
+                        //     pPushConstantRanges = pPushConstants
+                        // };
+                        //
+                        // var pipelineLayout = new VkPipelineLayout();
+                        // vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, null, &pipelineLayout);
+                        // _pipelineLayout = pipelineLayout;
+                        _pipelineLayout = device.CreatePipelineLayout(layouts);
 
                         foreach (var (stage, blob) in code)
                         {

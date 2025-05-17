@@ -42,7 +42,7 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
         LightsBufferId = _collectPass.Lights.Length > 0
             ? config.CreateBuffer<LightInfo>(_collectPass.Lights.Length, BufferStage.Graphics)
             : 0;
-        SceneBufferId = config.CreateBuffer<SceneInfo>(BufferStage.Graphics);
+        SceneBufferId = config.CreateBuffer<FillGBufferPass.WorldInfo>(BufferStage.Graphics);
         var materialBufferSize = _collectPass.ProcessedGeometry.Aggregate((ulong)0,
             (total, geometryDrawCommand) => total + geometryDrawCommand.Material.ColorPass.GetRequiredMemory());
         MaterialBufferId = materialBufferSize > 0 ? config.CreateBuffer(materialBufferSize, BufferStage.Graphics) : 0;
@@ -96,10 +96,10 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
                 }
             ]);
 
-        var sceneFrame = new SceneFrame(_collectPass.View, _collectPass.Projection, sceneBuffer, cmd);
+        var sceneFrame = new WorldFrame(_collectPass.View, _collectPass.Projection, sceneBuffer, cmd);
         lightsBuffer?.Write(_collectPass.Lights);
         var lightsAddress = lightsBuffer?.GetAddress() ?? 0;
-        sceneBuffer.Write(new SceneInfo
+        sceneBuffer.Write(new FillGBufferPass.WorldInfo
         {
             View = sceneFrame.View,
             Projection = sceneFrame.Projection,

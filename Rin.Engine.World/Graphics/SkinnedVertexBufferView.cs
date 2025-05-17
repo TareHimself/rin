@@ -1,7 +1,8 @@
 using JetBrains.Annotations;
+using Rin.Engine.Graphics;
 using TerraFX.Interop.Vulkan;
 
-namespace Rin.Engine.Graphics;
+namespace Rin.Engine.World.Graphics;
 
 /// <summary>
 ///     A <see cref="IDeviceBufferView" /> for skinned vertices, <see cref="DeviceBuffer" /> and <see cref="GetView" />

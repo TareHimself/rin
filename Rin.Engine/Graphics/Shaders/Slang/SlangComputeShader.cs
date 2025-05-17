@@ -13,7 +13,8 @@ public class SlangComputeShader : IComputeShader
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
     private readonly string _filePath;
     private VkPipelineLayout _pipelineLayout;
-    private VkShaderEXT _shader;
+    private VkPipeline _pipeline;
+    private VkShaderModule _shaderModule;
 
     public SlangComputeShader(SlangShaderManager manager, string filePath)
     {
@@ -27,10 +28,10 @@ public class SlangComputeShader : IComputeShader
         var device = SGraphicsModule.Get().GetDevice();
         unsafe
         {
+            vkDestroyPipeline(device, _pipeline, null);
+            vkDestroyShaderModule(device,_shaderModule, null);
             vkDestroyPipelineLayout(device, _pipelineLayout, null);
         }
-
-        if (_shader.Value != 0) device.DestroyShader(_shader);
     }
 
     public Dictionary<string, Resource> Resources { get; } = [];
@@ -43,9 +44,8 @@ public class SlangComputeShader : IComputeShader
         if (wait && !_compileTask.IsCompleted)
             _compileTask.Wait();
         else if (!_compileTask.IsCompleted) return false;
-
-        cmd.BindShader(_shader, VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT);
-
+        
+        vkCmdBindPipeline(cmd,VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE,_pipeline);
         return true;
     }
 
@@ -107,105 +107,20 @@ public class SlangComputeShader : IComputeShader
             GroupSizeX = groupSize[0];
             GroupSizeY = groupSize[1];
             GroupSizeZ = groupSize[2];
-            var entryPointStage = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT;
-            var parameters = reflectionData.Parameters.ToList();
-
-            foreach (var reflectionDataEntryPoint in reflectionData.EntryPoints)
-                parameters.AddRange(reflectionDataEntryPoint.Parameters);
-
-            foreach (var parameter in parameters)
+            const VkShaderStageFlags entryPointStage = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT;
+            
+            SlangShaderManager.ReflectShader(reflectionData,Resources,PushConstants,entryPointStage);
+            
             {
-                var name = parameter.Name;
-                if (parameter.Binding is { Kind: "descriptorTableSlot" } binding)
-                {
-                    var set = binding.Set ?? 0;
-                    var index = binding.Binding ?? 0;
-                    var count = parameter.Type.ElementCount ?? 1;
-                    var stages = entryPointStage;
-                    VkDescriptorBindingFlags bindingFlags = 0;
-                    var bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    foreach (var parameterAttribute in parameter.UserAttributes)
-                        if (parameterAttribute.Name == "AllStages")
-                        {
-                            stages = VkShaderStageFlags.VK_SHADER_STAGE_ALL;
-                        }
-                        else if (parameterAttribute.Name == "UpdateAfterBind")
-                        {
-                            bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-                        }
-                        else if (parameterAttribute.Name == "Partial")
-                        {
-                            bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-                        }
-                        else if (parameterAttribute.Name == "Variable")
-                        {
-                            bindingFlags |= VkDescriptorBindingFlags
-                                .VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-                            parameterAttribute.Arguments.FirstOrDefault()?.TryGetValue(out count);
-                        }
 
-                    if (Resources.ContainsKey(name))
-                    {
-                        Resources[name].Stages |= stages;
-                        Resources[name].BindingFlags |= bindingFlags;
-                    }
-                    else
-                    {
-                        var typeName = parameter.Type.BaseShape ??
-                                       parameter.Type.ElementType?.BaseShape ?? parameter.Type.Kind ?? "";
-                        uint size = 0;
-                        if (typeName == "texture2D")
-                            bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                        else if (typeName == "shaderStorageBuffer")
-                            bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                        else if (typeName == "structuredBuffer")
-                            bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-
-                        Resources.Add(name, new Resource
-                        {
-                            Binding = (uint)index,
-                            BindingFlags = bindingFlags,
-                            Count = (uint)count,
-                            Name = name,
-                            Set = (uint)set,
-                            Stages = stages,
-                            Type = bindingType,
-                            Size = size
-                        });
-                    }
-                }
-                else if (parameter.Binding is { Kind: "pushConstantBuffer" } uniformBinding)
-                {
-                    if (PushConstants.TryGetValue(name, out var constant))
-                        constant.Stages |= entryPointStage;
-                    else
-                        PushConstants.Add(name, new PushConstant
-                        {
-                            Name = name,
-                            Size = (uint)(parameter.Type.ElementVarLayout?.Binding?.Size ?? 0),
-                            Stages = entryPointStage
-                        });
-                }
-            }
-
-            {
-                List<VkPushConstantRange> pushConstantRanges = [];
                 SortedDictionary<uint, DescriptorLayoutBuilder> builders = [];
-                foreach (var (key, item) in Resources)
+                foreach (var item in Resources.Values)
                 {
                     if (!builders.ContainsKey(item.Set)) builders.Add(item.Set, new DescriptorLayoutBuilder());
 
                     builders[item.Set].AddBinding(item.Binding, item.Type, item.Stages, item.Count, item.BindingFlags);
                 }
-
-                foreach (var (key, item) in PushConstants)
-                    pushConstantRanges.Add(new VkPushConstantRange
-                    {
-                        stageFlags = item.Stages,
-                        offset = 0,
-                        size = item.Size
-                    });
-
+                
                 var max = builders.Count == 0 ? 0 : builders.Keys.Max();
                 List<VkDescriptorSetLayout> layouts = [];
 
@@ -219,47 +134,11 @@ public class SlangComputeShader : IComputeShader
                 }
 
                 var device = SGraphicsModule.Get().GetDevice();
-                unsafe
-                {
-                    fixed (VkDescriptorSetLayout* pSetLayouts = layouts.ToArray())
-                    fixed (VkPushConstantRange* pPushConstants = pushConstantRanges.ToArray())
-                    fixed (byte* pName = "main"u8)
-                    {
-                        var setLayoutCount = (uint)layouts.Count;
-                        var pushConstantRangeCount = (uint)pushConstantRanges.Count;
-                        var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
-                        {
-                            sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                            setLayoutCount = setLayoutCount,
-                            pSetLayouts = pSetLayouts,
-                            pushConstantRangeCount = pushConstantRangeCount,
-                            pPushConstantRanges = pPushConstants
-                        };
-
-                        var pipelineLayout = new VkPipelineLayout();
-                        vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, null, &pipelineLayout);
-                        _pipelineLayout = pipelineLayout;
-
-                        var createInfo = new VkShaderCreateInfoEXT
-                        {
-                            sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
-                            stage = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT,
-                            nextStage = 0,
-                            codeType = VkShaderCodeTypeEXT.VK_SHADER_CODE_TYPE_SPIRV_EXT,
-                            codeSize = (nuint)codeBlob.GetSize(),
-                            pCode = codeBlob.GetDataPointer().ToPointer(),
-                            pName = (sbyte*)pName,
-                            pushConstantRangeCount = pushConstantRangeCount,
-                            setLayoutCount = setLayoutCount,
-                            pPushConstantRanges = pPushConstants,
-                            pSetLayouts = pSetLayouts,
-                            pSpecializationInfo = null,
-                            pNext = null
-                        };
-                        _shader = device.CreateShaders(createInfo).First();
-                        codeBlob.Dispose();
-                    }
-                }
+                
+                _pipelineLayout = device.CreatePipelineLayout(layouts);
+                _shaderModule = device.CreateShaderModule(codeBlob.AsReadOnlySpan());
+                _pipeline = device.CreateComputePipeline(_pipelineLayout, _shaderModule);
+                codeBlob.Dispose();
             }
         }
     }
@@ -279,7 +158,14 @@ public class SlangComputeShader : IComputeShader
         return VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT;
     }
 
-    public uint GroupSizeX { get; set; }
-    public uint GroupSizeY { get; set; }
-    public uint GroupSizeZ { get; set; }
+    public uint GroupSizeX { get; private set; }
+    public uint GroupSizeY { get; private set; }
+    public uint GroupSizeZ { get; private set; }
+    public void Dispatch(in VkCommandBuffer cmd, uint x, uint y = 1, uint z = 1)
+    {
+        Debug.Assert(x != 0 && y != 0 && z != 0);
+        vkCmdDispatch(cmd, x,y,z);
+    }
+
+    public void Invoke(in VkCommandBuffer cmd,uint x, uint y = 1, uint z = 1) => Dispatch(cmd,(uint)float.Ceiling(x / (float)GroupSizeX), (uint)float.Ceiling(y / (float)GroupSizeY), (uint)float.Ceiling(z / (float)GroupSizeZ));
 }

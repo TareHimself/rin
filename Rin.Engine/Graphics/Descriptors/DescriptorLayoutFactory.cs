@@ -24,7 +24,7 @@ public class DescriptorLayoutFactory : Factory<VkDescriptorSetLayout, VkDescript
             {
                 var binding = key.pBindings[i];
                 result +=
-                    $"{binding.binding}${binding.descriptorCount}${(int)binding.descriptorType}{(int)binding.stageFlags}";
+                    $"{binding.binding}{binding.descriptorCount}{(int)binding.descriptorType}{(int)binding.stageFlags}";
             }
         }
 

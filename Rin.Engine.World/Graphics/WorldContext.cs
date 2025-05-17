@@ -17,6 +17,8 @@ public class WorldContext
     public uint GBufferImage1 { get; set; }
     public uint GBufferImage2 { get; set; }
     
+    public uint SkinningOutputBufferId { get; set; }
+    
     [PublicAPI] public LightInfo[] Lights;
     [PublicAPI] public ProcessedMesh[] ProcessedSkinnedMeshes = [];
     [PublicAPI] public ProcessedMesh[] ProcessedStaticMeshes = [];
@@ -75,9 +77,9 @@ public class WorldContext
     }
 
     /// <summary>
-    ///     Called on the Render Thread
+    ///  Process and cull meshes
     /// </summary>
-    public void Init()
+    public void ProcessMeshes()
     {
         var staticMeshes = new List<ProcessedMesh>();
         var skeletalMeshes = new List<ProcessedMesh>();

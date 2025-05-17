@@ -22,6 +22,34 @@ enum ImageTiling {
     ClampBorder
 }
 
+struct ImageHandle {
+    int _data;
+
+    __init(int data) {
+        _data = data; 
+    }
+
+    __init(ImageType type, int id) {
+        _data = ((id & 0xFFFFFF) << 8) | ((int)type & 0xFF);
+    }
+    
+    int GetId() {
+        return (_data >> 8) & 0xFFFFFF;
+    }
+
+    ImageType GetType() {
+        return (ImageType)(_data & 0xFF);
+    }
+
+    bool IsValid() {
+        return GetId() > 0;
+    }
+
+    float4 SampleTexture(float2 uv, ImageTiling tiling = ImageTiling.Repeat, ImageFilter filter = ImageFilter.Linear) {
+        return sampleTexture(this, uv, tiling, filter);
+    }
+}
+
 
 
 [[vk::binding(0, 0)]]
@@ -51,21 +79,3 @@ uint2 getTextureSize(ImageHandle handle, uint mip = 0)
     return size;
 }
 
-struct ImageHandle {
-    int _data;
-    int GetId() {
-        return (_data >> 8) & 0xFFFFFF;
-    }
-
-    ImageType GetType() {
-        return (ImageType)(_data & 0xFF);
-    }
-
-    bool IsValid() {
-        return GetId() > 0;
-    }
-
-    float4 SampleTexture(float2 uv, ImageTiling tiling = ImageTiling.Repeat, ImageFilter filter = ImageFilter.Linear) {
-        return sampleTexture(this, uv,tiling, filter);
-    }
-}

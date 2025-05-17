@@ -54,7 +54,7 @@ public class StencilWritePass : IPass
             var stencilImage = graph.GetImageOrException(StencilImageId);
             var clipsBuffer = graph.GetBufferOrException(_clipsBufferId);
             clipsBuffer.Write(_clips);
-            cmd.BeginRendering(_sharedContext.Extent.ToVk(), [],
+            cmd.BeginRendering(_sharedContext.Extent, [],
                 stencilAttachment: stencilImage.MakeStencilAttachmentInfo())
                 .SetViewState(_sharedContext.Extent);
             

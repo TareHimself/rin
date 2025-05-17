@@ -92,7 +92,7 @@ public sealed class BatchDrawPass : IViewsPass
         var viewFrame = new ViewsFrame(Context, cmd);
 
         // foreach (var command in _passInfo.PreCommands) command.Execute(viewFrame);
-        cmd.BeginRendering(_extent.ToVk(), [
+        cmd.BeginRendering(_extent, [
                 drawImage.MakeColorAttachmentInfo()
             ],
             stencilAttachment: stencilImage.MakeStencilAttachmentInfo()

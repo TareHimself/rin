@@ -3,6 +3,7 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
+using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Math;
 using Rin.Engine.Views;
@@ -30,7 +31,7 @@ public enum ViewportChannel
 
 internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command) : IViewsPass
 {
-    private readonly ForwardRenderingPass _forwardPass = new(command.Camera, command.Size.ToExtent());
+    private readonly WorldContext _worldContext = new WorldContext(command.Camera,command.Size.ToExtent());
     private readonly Extent2D _renderExtent = command.Size.ToExtent();
 
     private readonly IShader _shader = SGraphicsModule.Get()
@@ -45,16 +46,22 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
 
     public void PreAdd(IGraphBuilder builder)
     {
-        builder.AddPass(_forwardPass);
+        builder.AddPass(new CollectPass(_worldContext));
+        builder.AddPass(new FillGBufferPass(_worldContext));
     }
 
     public void PostAdd(IGraphBuilder builder)
     {
     }
 
+    private uint _gBuffer0Id;
+    private uint _gBuffer1Id;
+    private uint _gBuffer2Id;
     public void Configure(IGraphConfig config)
     {
-        _sceneImageId = config.ReadImage(_forwardPass.OutputImageId, ImageLayout.ShaderReadOnly);
+        _gBuffer0Id = config.ReadImage(_worldContext.GBufferImage0, ImageLayout.ShaderReadOnly);
+        _gBuffer1Id = config.ReadImage(_worldContext.GBufferImage1, ImageLayout.ShaderReadOnly);
+        _gBuffer2Id = config.ReadImage(_worldContext.GBufferImage2, ImageLayout.ShaderReadOnly);
         config.WriteImage(info.MainImageId, ImageLayout.ColorAttachment);
         config.ReadImage(info.StencilImageId, ImageLayout.StencilAttachment);
         _viewportBufferId = config.CreateBuffer<SceneData>(BufferStage.Graphics);
@@ -65,12 +72,14 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
         var cmd = ctx.GetCommandBuffer();
         if (_shader.Bind(cmd))
         {
-            var sceneImage = graph.GetImageOrException(_sceneImageId);
+            var gBuffer0 = graph.GetImageOrException(_gBuffer0Id);
+            var gBuffer1 = graph.GetImageOrException(_gBuffer1Id);
+            var gBuffer2 = graph.GetImageOrException(_gBuffer2Id);
             var mainImage = graph.GetImageOrException(info.MainImageId);
             var stencilImage = graph.GetImageOrException(info.StencilImageId);
             var buffer = graph.GetBufferOrException(_viewportBufferId);
 
-            cmd.BeginRendering(_renderExtent.ToVk(), [
+            cmd.BeginRendering(_renderExtent, [
                     mainImage.MakeColorAttachmentInfo()
                 ],
                 stencilAttachment: stencilImage.MakeStencilAttachmentInfo()
@@ -88,27 +97,18 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
                 VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
                 VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
 
-            var pushResource = _shader.PushConstants.Values.First();
-            var descriptor = ctx.DescriptorAllocator
-                .Allocate(_shader.GetDescriptorSetLayouts().Values.First());
-            descriptor.WriteImages(0, new ImageWrite(sceneImage, ImageLayout.ShaderReadOnly,
-                DescriptorImageType.Sampled, new SamplerSpec
-                {
-                    Filter = ImageFilter.Linear,
-                    Tiling = ImageTiling.ClampEdge
-                }));
-
             buffer.Write(
                 new SceneData
                 {
                     Projection = info.ProjectionMatrix,
                     Transform = command.Transform,
-                    Size = command.Size
+                    Size = command.Size,
+                    GBuffer0 = gBuffer0.BindlessHandle,
+                    GBuffer1 = gBuffer1.BindlessHandle,
+                    GBuffer2 = gBuffer2.BindlessHandle
                 });
-            cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _shader.GetPipelineLayout(),
-                [descriptor]);
-            cmd.PushConstant(_shader.GetPipelineLayout(), pushResource.Stages, buffer.GetAddress());
 
+            _shader.Push(cmd,buffer.GetAddress());
             cmd.Draw(6);
 
             cmd.EndRendering();
@@ -123,9 +123,12 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
 
     private struct SceneData
     {
-        public Matrix4x4 Projection;
-        public Matrix4x4 Transform;
-        public Vector2 Size;
+        public required Matrix4x4 Projection;
+        public required Matrix4x4 Transform;
+        public required Vector2 Size;
+        public required ImageHandle GBuffer0;
+        public required ImageHandle GBuffer1;
+        public required ImageHandle GBuffer2;
     }
 }
 

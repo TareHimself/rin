@@ -100,7 +100,7 @@ public class BlurPass : IViewsPass
             
             Debug.Assert(copyImage.BindlessHandle != ImageHandle.InvalidImage,"copyImage bindless handle is invalid");
             
-            cmd.BeginRendering(_sharedContext.Extent.ToVk(), [
+            cmd.BeginRendering(_sharedContext.Extent, [
                     drawImage.MakeColorAttachmentInfo()
                 ],
                 stencilAttachment: stencilImage.MakeStencilAttachmentInfo()
@@ -124,7 +124,6 @@ public class BlurPass : IViewsPass
             foreach (var blur in _blurCommands)
             {
                 vkCmdSetStencilCompareMask(cmd, faceFlags, compareMask);
-                var pushResource = _blurShader.PushConstants.First().Value;
                 buffer.Write(new BlurData
                 {
                     SourceT = copyImage.BindlessHandle,
@@ -135,7 +134,7 @@ public class BlurPass : IViewsPass
                     Tint = blur.Tint,
                     Transform = blur.Transform
                 });
-                cmd.PushConstant(_blurShader.GetPipelineLayout(), pushResource.Stages, buffer.GetAddress());
+                _blurShader.Push(cmd,buffer.GetAddress());
                 cmd.Draw(6);
             }
 

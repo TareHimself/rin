@@ -56,6 +56,14 @@ public class SlangBlob : IDisposable
         return Marshal.PtrToStringAnsi(GetDataPointer()) ?? throw new NullReferenceException();
     }
 
+    public ReadOnlySpan<byte> AsReadOnlySpan()
+    {
+        unsafe
+        {
+            return new ReadOnlySpan<byte>(GetDataPointer().ToPointer(), GetSize());
+        }
+    }
+
     ~SlangBlob()
     {
         ReleaseUnmanagedResources();

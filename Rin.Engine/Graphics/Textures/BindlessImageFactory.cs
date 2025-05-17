@@ -50,28 +50,29 @@ public class BindlessImageFactory : IBindlessImageFactory
 
     private VkDevice _device;
 
+    private DescriptorLayoutBuilder _layoutBuilder = new();
     public BindlessImageFactory(in VkDevice device)
     {
         _device = device;
         {
             const VkDescriptorBindingFlags flags = VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
                                                    VkDescriptorBindingFlags
-                                                       .VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
-                                                   VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-            _descriptorSetLayout = new DescriptorLayoutBuilder()
+                                                       .VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT ;
+            _descriptorSetLayout = _layoutBuilder
                     .AddBinding(
                         0,
                         VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER,
                         VkShaderStageFlags.VK_SHADER_STAGE_ALL,
                         SamplerCount,
-                        VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
+                        flags
                     )
                     .AddBinding(
                         1,
                         VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                         VkShaderStageFlags.VK_SHADER_STAGE_ALL,
                         MaxTextures,
-                        flags
+                        flags | 
+                        VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
                     )
                     .Build();
 
@@ -97,16 +98,18 @@ public class BindlessImageFactory : IBindlessImageFactory
             {
                 var setLayout = _descriptorSetLayout;
                 
-                var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
-                {
-                    sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                    setLayoutCount = 1,
-                    pSetLayouts = &setLayout
-                };
-                
-                var pipelineLayout = new VkPipelineLayout();
-                vkCreatePipelineLayout(_device, &pipelineLayoutCreateInfo, null, &pipelineLayout);
-                _pipelineLayout = pipelineLayout;
+                // var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
+                // {
+                //     sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                //     setLayoutCount = 1,
+                //     pSetLayouts = &setLayout
+                // };
+                //
+                // var pipelineLayout = new VkPipelineLayout();
+                // vkCreatePipelineLayout(_device, &pipelineLayoutCreateInfo, null, &pipelineLayout);
+                // _pipelineLayout = pipelineLayout;
+
+                _pipelineLayout = _device.CreatePipelineLayout([_descriptorSetLayout]);
             }
         }
 
@@ -128,6 +131,11 @@ public class BindlessImageFactory : IBindlessImageFactory
     public DescriptorSet GetDescriptorSet()
     {
         return _descriptorSet;
+    }
+
+    public VkPipelineLayout GetPipelineLayout()
+    {
+        return _pipelineLayout;
     }
 
     public (ImageHandle handle, IDeviceImage image) CreateTexture(in Extent3D size, ImageFormat format, bool mips = false,
@@ -242,7 +250,7 @@ public class BindlessImageFactory : IBindlessImageFactory
                     });
             }
 
-            if (writes.Count != 0) _descriptorSet.WriteImages(0, writes.ToArray());
+            if (writes.Count != 0) _descriptorSet.WriteImages(1, writes.ToArray());
         }
     }
 

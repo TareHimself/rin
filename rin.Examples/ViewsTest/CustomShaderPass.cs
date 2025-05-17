@@ -52,7 +52,7 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
             var stencilImage = graph.GetImage(StencilImageId);
             var view = graph.GetBufferOrException(BufferId);
 
-            cmd.BeginRendering(info.Context.Extent.ToVk(), [
+            cmd.BeginRendering(info.Context.Extent, [
                     drawImage.MakeColorAttachmentInfo()
                 ],
                 stencilAttachment: stencilImage.MakeStencilAttachmentInfo()
@@ -88,7 +88,8 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
                     Center = customShaderCommand.Hovered ? customShaderCommand.CursorPosition : screenSize / 2.0f
                 };
                 view.Write(data);
-                cmd.PushConstant(_prettyShader.GetPipelineLayout(), pushResource.Stages, view.GetAddress());
+                _prettyShader.Push(cmd,view.GetAddress());
+                //cmd.PushConstant(_prettyShader.GetPipelineLayout(), pushResource.Stages, view.GetAddress());
                 cmd.Draw(6);
             }
 

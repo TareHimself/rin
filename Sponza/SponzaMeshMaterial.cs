@@ -43,7 +43,7 @@ public class SponzaMeshMaterial : IMeshMaterial
             return mesh.Material.ColorPass;
         }
 
-        protected override ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data,
+        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
             ProcessedMesh[] meshes)
         {
             var cmd = frame.GetCommandBuffer();
@@ -126,7 +126,7 @@ public class SponzaMeshMaterial : IMeshMaterial
             return mesh.Material.DepthPass;
         }
 
-        protected override ulong ExecuteBatch(IShader shader, SceneFrame frame, IDeviceBufferView? data,
+        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
             ProcessedMesh[] meshes)
         {
             var cmd = frame.GetCommandBuffer();

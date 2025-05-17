@@ -132,7 +132,7 @@ public class SSceneTestModule : IModule
                     // e1.SetRotation(e1.GetRotation().AddLocalYaw(-50.0f * delta * 2F).AddLocalPitch(-20.0f * delta * 2F));
                 };
 
-                Extensions.LoadSkinnedMesh(Path.Join(SEngine.AssetsDirectory, "models", "cube.glb")).After(skinned =>
+                Extensions.LoadSkinnedMesh(Path.Join(SEngine.AssetsDirectory, "models", "fox.glb")).After(skinned =>
                 {
                     if (skinned is not null)
                         LoadGoldMaterial().After(material =>

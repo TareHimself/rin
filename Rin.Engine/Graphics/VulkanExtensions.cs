@@ -683,7 +683,7 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer BeginRendering(in this VkCommandBuffer cmd, VkExtent2D extent,
+    public static VkCommandBuffer BeginRendering(in this VkCommandBuffer cmd, in Extent2D extent,
         IEnumerable<VkRenderingAttachmentInfo> attachments, VkRenderingAttachmentInfo? depthAttachment = null,
         VkRenderingAttachmentInfo? stencilAttachment = null)
     {
@@ -694,7 +694,7 @@ public static class VulkanExtensions
                 x = 0,
                 y = 0
             },
-            extent = extent
+            extent = extent.ToVk()
         }, attachments, depthAttachment, stencilAttachment);
     }
 
@@ -738,22 +738,47 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer PushConstant<T>(in this VkCommandBuffer cmd, VkPipelineLayout pipelineLayout,
-        VkShaderStageFlags stageFlags, T data, uint offset = 0) where T : unmanaged
+//     public static VkCommandBuffer PushConstant<T>(in this VkCommandBuffer cmd, VkPipelineLayout pipelineLayout,
+//         VkShaderStageFlags stageFlags, T data, uint offset = 0) where T : unmanaged
+//     {
+//         unsafe
+//         {
+//             var size = (uint)Utils.ByteSizeOf<T>();
+// #if DEBUG
+//             if (size > 128)
+//                 Console.WriteLine(
+//                     "PushConstant of size {0} is greater than 128 bytes, this may be an issue on some devices", size);
+// #endif
+//             vkCmdPushConstants(cmd, pipelineLayout,
+//                 stageFlags, offset, size, &data);
+//         }
+//
+//         return cmd;
+//     }
+
+    public static VkPipeline CreateComputePipeline(in this VkDevice device,in VkPipelineLayout layout,in VkShaderModule shader)
     {
         unsafe
         {
-            var size = (uint)Utils.ByteSizeOf<T>();
-#if DEBUG
-            if (size > 128)
-                Console.WriteLine(
-                    "PushConstant of size {0} is greater than 128 bytes, this may be an issue on some devices", size);
-#endif
-            vkCmdPushConstants(cmd, pipelineLayout,
-                stageFlags, offset, size, &data);
+            fixed (byte* pName = "main"u8)
+            {
+                var createInfo = new VkComputePipelineCreateInfo
+                {
+                    sType = VkStructureType.VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                    layout = layout,
+                    stage = new VkPipelineShaderStageCreateInfo
+                    {
+                        sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                        module = shader,
+                        stage = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT,
+                        pName = (sbyte*)pName,
+                    }
+                };
+                var pipeline = new VkPipeline();
+                vkCreateComputePipelines(device,new VkPipelineCache(),1,&createInfo,null,&pipeline);
+                return pipeline;
+            }
         }
-
-        return cmd;
     }
 
     public static VkShaderEXT[] CreateShaders(in this VkDevice device, params VkShaderCreateInfoEXT[] createInfos)
@@ -775,6 +800,57 @@ public static class VulkanExtensions
         }
 
         return shaders;
+    }
+    
+    public static VkShaderModule CreateShaderModule(in this VkDevice device,in ReadOnlySpan<byte> code)
+    {
+        
+        unsafe
+        {
+            fixed (byte* pCode = code)
+            {
+                var createInfo = new VkShaderModuleCreateInfo
+                {
+                    sType = VkStructureType.VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                    pCode = (uint*)pCode,
+                    codeSize = (uint)code.Length,
+                };
+
+                var shaderModule = new VkShaderModule();
+                vkCreateShaderModule(device,&createInfo,null,&shaderModule);
+                return shaderModule;
+            }
+        }
+    }
+    
+    public static VkPipelineLayout CreatePipelineLayout(in this VkDevice device,IEnumerable<VkDescriptorSetLayout> layouts)
+    {
+        unsafe
+        {
+            var layoutsArray = layouts.ToArray();
+            var range = new VkPushConstantRange
+            {
+                size = 256, // Max expected per platform
+                stageFlags = VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS | VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT
+            };
+            fixed (VkDescriptorSetLayout* pSetLayouts = layoutsArray)
+            {
+                var setLayoutCount = (uint)layoutsArray.Length;
+                var pushConstantRangeCount = (uint)1;
+                var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
+                {
+                    sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                    setLayoutCount = setLayoutCount,
+                    pSetLayouts = pSetLayouts,
+                    pushConstantRangeCount = pushConstantRangeCount,
+                    pPushConstantRanges = &range
+                };
+
+                var result = new VkPipelineLayout();
+                vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, null, &result);
+                return result;
+            }
+        }
     }
 
     // public static VkInstance CreateInstance(ReadOnlySpan<byte> appName,in Version appVersion,ReadOnlySpan<byte> engineName,in Version engineVersion)
@@ -1329,6 +1405,8 @@ public static class VulkanExtensions
             layerCount = 1
         };
     }
+    
+    
 
     public static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, Extent3D size, ImageUsage usage)
     {
