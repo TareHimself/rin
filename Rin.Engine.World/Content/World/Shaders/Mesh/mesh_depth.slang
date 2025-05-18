@@ -1,7 +1,7 @@
 #include "Engine/Shaders/operators.slang"
 #include "World/Shaders/Mesh/vertex.slang"
 #include "World/Shaders/depth_scene_info.slang"
-
+#include "Engine/Shaders/Attributes/blending.slang"
 
 struct PerMeshData {
     float4x4 transform;
@@ -26,7 +26,7 @@ struct VertexOut {
 };
 
 
-[shader("vertex")]
+[shader("vertex"),Depth]
 VertexOut vertex(VertexIn input) {
     var instanceData = push.data[input.instanceId];
     VertexOut output;

@@ -9,7 +9,7 @@ using SixLabors.Fonts;
 
 namespace Rin.Engine.Views.Font;
 
-public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFontManager
+public class DefaultFontManager : IFontManager
 {
     private const float RenderSize = 32.0f;
     private const float PixelRange = 12.0f;
@@ -26,10 +26,13 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
         Coordinate = Vector4.Zero
     };
 
-    private readonly IExternalFontCache? _externalCache = externalCache;
+    private readonly IExternalFontCache? _externalCache;
     private readonly ConcurrentDictionary<FontFamily, IFont> _fonts = [];
 
-    private Dictionary<string, GlyphBounds[]> _boundsCache = [];
+    public DefaultFontManager(IExternalFontCache? externalCache = null)
+    {
+        _externalCache = externalCache;
+    }
 
     public Task Prepare(IFont font, IEnumerable<char> characters)
     {
@@ -51,7 +54,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
             {
                 State = LiveGlyphState.Pending
             };
-            foreach (var (_, key) in toGenerate) _atlases.AddOrUpdate(key, pending, (k, i) => pending);
+            foreach (var (_, key) in toGenerate) _atlases.AddOrUpdate(key, pending, (_, _) => pending);
 
 
             return Task.Run(() =>
@@ -62,7 +65,6 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                         .Select((c, idx) =>
                             new Pair<SdfResult?, int>(GenerateGlyph(c.First, actualFont, c.Second), idx))
                         .Where(c => c.First != null);
-                    var textureManager = SGraphicsModule.Get().GetImageFactory();
                     //var textureManager = SGraphicsModule.Get().GetTextureManager();
                     var generated = results.Select(c =>
                     {
@@ -85,7 +87,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                     });
 
                     foreach (var (index, glyph) in generated)
-                        _atlases.AddOrUpdate(toGenerate[index].Second, glyph, (k, i) => glyph);
+                        _atlases.AddOrUpdate(toGenerate[index].Second, glyph, (_, _) => glyph);
                 }
                 catch (Exception e)
                 {
@@ -118,12 +120,12 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
             {
                 State = LiveGlyphState.Pending
             };
-            foreach (var (_, key) in toGenerate) _atlases.AddOrUpdate(key, pending, (k, i) => pending);
+            foreach (var (_, key) in toGenerate) _atlases.AddOrUpdate(key, pending, (_, _) => pending);
             return Task.Run(() =>
             {
                 try
                 {
-                    var initialResults = Enumerable.Range(0, toGenerate.Count).Select(SdfResult? (c) => null).ToArray();
+                    var initialResults = Enumerable.Range(0, toGenerate.Count).Select(SdfResult? (_) => null).ToArray();
 
                     var rangePartitioner = Partitioner.Create(0, toGenerate.Count);
 
@@ -138,8 +140,6 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
 
                     var results = initialResults.Select((c, idx) => new Pair<SdfResult, int>(c, idx))
                         .Where(c => c.First != null).ToArray();
-
-                    var textureManager = SGraphicsModule.Get().GetImageFactory();
 
                     var atlasSize = 512;
                     var padding = 2;
@@ -161,8 +161,6 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                     var atlases = packers
                         .Select(p => HostImage.Create(new Extent2D(p.Width, p.Height), ImageFormat.RGBA8))
                         .ToArray();
-
-                    List<Pair<int, LiveGlyphInfo>> generatedGlyphs = [];
 
                     // Write glyphs to images
                     for (var i = 0; i < packers.Count; i++)
@@ -210,7 +208,7 @@ public class DefaultFontManager(IExternalFontCache? externalCache = null) : IFon
                                 Size = pixelSize,
                                 Coordinate = new Vector4(pt1Coord, pt2Coord.X, pt2Coord.Y)
                             };
-                            _atlases.AddOrUpdate(toGenerate[generated.Second].Second, glyph, (k, i) => glyph);
+                            _atlases.AddOrUpdate(toGenerate[generated.Second].Second, glyph, (_, _) => glyph);
                         }
                     }
 

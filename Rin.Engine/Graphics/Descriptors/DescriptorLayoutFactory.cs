@@ -5,7 +5,7 @@ namespace Rin.Engine.Graphics.Descriptors;
 
 public class DescriptorLayoutFactory : Factory<VkDescriptorSetLayout, VkDescriptorSetLayoutCreateInfo, string>
 {
-    protected override void OnDispose(bool isManual)
+    public override void Dispose()
     {
         var device = SGraphicsModule.Get().GetDevice();
         unsafe

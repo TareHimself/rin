@@ -93,15 +93,15 @@ EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions,
     VkSurfaceKHR surf = createSurfaceCallback(instance);
     vkb::PhysicalDeviceSelector selector{vkbInstance};
 
-    selector.add_required_extension(vk::EXTShaderObjectExtensionName);
+    //selector.add_required_extension(vk::EXTShaderObjectExtensionName);
 
     selector.set_minimum_version(1,3)
             .set_required_features_13(features)
             .set_required_features_12(features12)
             .set_surface(surf);
     selector
-    .add_required_extension_features(
-        static_cast<VkPhysicalDeviceShaderObjectFeaturesEXT>(shaderObjectFeatures))
+    // .add_required_extension_features(
+    //     static_cast<VkPhysicalDeviceShaderObjectFeaturesEXT>(shaderObjectFeatures))
     .add_required_extension_features(static_cast<VkPhysicalDeviceShaderDrawParametersFeatures>(drawParametersFeatures));
     // if (systemInfo.is_extension_available(vk::EXTShaderObjectExtensionName))
     // {
@@ -119,7 +119,7 @@ EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions,
 
     vkb::PhysicalDevice physicalDevice = physicalDeviceResult.value();
 
-    physicalDevice.enable_extension_if_present(vk::EXTShaderObjectExtensionName);
+    //physicalDevice.enable_extension_if_present(vk::EXTShaderObjectExtensionName);
     vkb::DeviceBuilder deviceBuilder{physicalDevice};
 
     auto deviceResult = deviceBuilder.build();
@@ -138,11 +138,8 @@ EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions,
 
     *outGraphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
     auto transfer = vkbDevice.get_queue(vkb::QueueType::transfer);
-    // std::cout << "INit VULKAN " << std::endl;
-    // std::cout << "Transfer Queue Error " << transfer.error().message() << std::endl;
     auto hasTransferQueue = transfer.has_value();
     *outTransferQueue = hasTransferQueue ? transfer.value() : vkbDevice.get_queue(vkb::QueueType::graphics).value();
-
     *outGraphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
     *outTransferQueueFamily = hasTransferQueue ? vkbDevice.get_queue_index(vkb::QueueType::transfer).value() : vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 

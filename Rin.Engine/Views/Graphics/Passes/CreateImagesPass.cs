@@ -39,7 +39,7 @@ public class CreateImagesPass : IPass
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var cmd = ctx.GetCommandBuffer();
-        
+
         var drawImage = graph.GetImage(Context.MainImageId);
         var copyImage = graph.GetImage(Context.CopyImageId);
         var stencilImage = graph.GetImage(Context.StencilImageId);

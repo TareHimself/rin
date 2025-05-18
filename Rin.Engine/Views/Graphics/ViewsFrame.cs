@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Views.Graphics;
@@ -11,6 +10,7 @@ public class ViewsFrame(
 {
     public VkCommandBuffer CommandBuffer = cmd;
     public Extent2D Extent = passContext.Extent;
+
     public Matrix4x4 ProjectionMatrix = passContext.ProjectionMatrix;
     // public SharedPassContext PassContext = passContext;
 

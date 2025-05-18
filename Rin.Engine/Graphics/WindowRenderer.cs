@@ -348,20 +348,13 @@ public class WindowRenderer : IWindowRenderer
                 //
                 var cmd = frame.GetPrimaryCommandBuffer();
                 cmd
-                    .Begin()
-                    .SetRasterizerDiscard(false)
-                    .DisableMultiSampling()
-                    .UnBindShaders([
-                        VkShaderStageFlags.VK_SHADER_STAGE_GEOMETRY_BIT,
-                        VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
-                        VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT
-                    ]);
-                
+                    .Begin();
+
                 SGraphicsModule.Get().GetImageFactory().Bind(cmd);
 
                 frame.OnReset += _ => graph.Dispose();
 
-                
+
                 Profiling.Begin("Engine.Rendering.Graph.Execute");
                 graph.Execute(frame, ctx, _taskPool);
                 Profiling.End("Engine.Rendering.Graph.Execute");

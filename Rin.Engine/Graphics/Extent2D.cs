@@ -7,16 +7,9 @@ namespace Rin.Engine.Graphics;
 
 public record struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool>, IFormattable
 {
-    public string ToString(string? format, IFormatProvider? formatProvider)
-    {
-        var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;
-
-        return
-            $"<{Width.ToString(format, formatProvider)}{separator} {Height.ToString(format, formatProvider)}>";
-    }
+    [PublicAPI] public uint Height = 0;
 
     [PublicAPI] public uint Width = 0;
-    [PublicAPI] public uint Height = 0;
 
     public Extent2D()
     {
@@ -34,12 +27,6 @@ public record struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool
         Height = (uint)height;
     }
 
-
-    public bool Equals(Vector2<uint> other)
-    {
-        return Width == other.X && Height == other.Y;
-    }
-
     public static bool operator ==(Extent2D left, Vector2<uint> right)
     {
         return left.Width == right.X && left.Height == right.Y;
@@ -48,6 +35,20 @@ public record struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool
     public static bool operator !=(Extent2D left, Vector2<uint> right)
     {
         return left.Width != right.X || left.Height != right.Y;
+    }
+
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;
+
+        return
+            $"<{Width.ToString(format, formatProvider)}{separator} {Height.ToString(format, formatProvider)}>";
+    }
+
+
+    public bool Equals(Vector2<uint> other)
+    {
+        return Width == other.X && Height == other.Y;
     }
 
     public static implicit operator Extent2D(Vector2<uint> target)

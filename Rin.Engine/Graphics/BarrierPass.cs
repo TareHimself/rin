@@ -1,5 +1,4 @@
 ﻿using Rin.Engine.Graphics.FrameGraph;
-using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics;
 
@@ -50,8 +49,8 @@ internal class BarrierPass(IEnumerable<BufferResourceSync> buffers, IEnumerable<
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var cmd = ctx.GetCommandBuffer();
-        
-        
+
+
         foreach (var bufferResourceSync in buffers)
         {
             var buffer = graph.GetBufferOrException(bufferResourceSync.ResourceId);

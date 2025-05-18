@@ -84,7 +84,7 @@ public sealed class BatchDrawPass : IViewsPass
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var cmd = ctx.GetCommandBuffer();
-        
+
         var drawImage = graph.GetImage(MainImageId);
         var stencilImage = graph.GetImage(StencilImageId);
         var buffer = graph.GetBufferOrNull(_bufferId);
@@ -100,16 +100,9 @@ public sealed class BatchDrawPass : IViewsPass
 
         cmd.SetViewState(_extent);
         var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
-
         vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
             VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
             VkCompareOp.VK_COMPARE_OP_NOT_EQUAL);
-
-        cmd.SetWriteMask(0, 1,
-            VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
-            VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
-            VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
-            VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
 
         var compareMask = uint.MaxValue;
 
@@ -129,6 +122,7 @@ public sealed class BatchDrawPass : IViewsPass
             batcher.Draw(viewFrame, batch, view);
             offset += bufferSize;
         }
+
         cmd.EndRendering();
     }
 

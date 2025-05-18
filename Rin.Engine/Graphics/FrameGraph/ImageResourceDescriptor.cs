@@ -3,8 +3,8 @@ namespace Rin.Engine.Graphics.FrameGraph;
 public class ImageResourceDescriptor : IResourceDescriptor
 {
     public readonly Extent3D Extent;
-    public readonly ImageUsage Usage;
     public readonly ImageFormat Format;
+    public readonly ImageUsage Usage;
 
     public ImageResourceDescriptor(in Extent3D extent, ImageFormat format, ImageUsage usage)
     {

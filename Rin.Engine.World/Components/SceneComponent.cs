@@ -10,7 +10,6 @@ namespace Rin.Engine.World.Components;
 public class SceneComponent : Component, ISceneComponent
 {
     private readonly HashSet<ISceneComponent> _children = [];
-    private readonly object _lock = new();
 
     [PublicAPI] public Vector3 Location = new(0.0f);
 

@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Textures;
@@ -14,7 +13,7 @@ namespace Rin.Engine.Views.Graphics.Passes.Blur;
 internal struct BlurData()
 {
     public required ImageHandle SourceT;
-    
+
     public required Matrix4x4 Projection = Matrix4x4.Identity;
 
     public required Matrix4x4 Transform = Matrix4x4.Identity;
@@ -90,16 +89,16 @@ public class BlurPass : IViewsPass
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var cmd = ctx.GetCommandBuffer();
-        
-        if (_blurShader.Bind(cmd, true))
+
+        if (_blurShader.Bind(cmd))
         {
             var drawImage = graph.GetImage(MainImageId);
             var copyImage = graph.GetImage(CopyImageId);
             var stencilImage = graph.GetImage(StencilImageId);
             var buffer = graph.GetBufferOrException(_bufferId);
-            
-            Debug.Assert(copyImage.BindlessHandle != ImageHandle.InvalidImage,"copyImage bindless handle is invalid");
-            
+
+            Debug.Assert(copyImage.BindlessHandle != ImageHandle.InvalidImage, "copyImage bindless handle is invalid");
+
             cmd.BeginRendering(_sharedContext.Extent, [
                     drawImage.MakeColorAttachmentInfo()
                 ],
@@ -113,17 +112,11 @@ public class BlurPass : IViewsPass
                 VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
                 VkCompareOp.VK_COMPARE_OP_NOT_EQUAL);
 
-            cmd.SetWriteMask(0, 1,
-                VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
-                VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
-                VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
-                VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
-
             var compareMask = uint.MaxValue;
 
             foreach (var blur in _blurCommands)
             {
-                vkCmdSetStencilCompareMask(cmd, faceFlags, compareMask);
+                cmd.SetStencilCompareMask(compareMask);
                 buffer.Write(new BlurData
                 {
                     SourceT = copyImage.BindlessHandle,
@@ -134,7 +127,7 @@ public class BlurPass : IViewsPass
                     Tint = blur.Tint,
                     Transform = blur.Transform
                 });
-                _blurShader.Push(cmd,buffer.GetAddress());
+                _blurShader.Push(cmd, buffer.GetAddress());
                 cmd.Draw(6);
             }
 

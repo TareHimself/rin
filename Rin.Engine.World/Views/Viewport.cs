@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Textures;
@@ -31,11 +30,17 @@ public enum ViewportChannel
 
 internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command) : IViewsPass
 {
-    private readonly WorldContext _worldContext = new WorldContext(command.Camera,command.Size.ToExtent());
     private readonly Extent2D _renderExtent = command.Size.ToExtent();
 
     private readonly IShader _shader = SGraphicsModule.Get()
         .MakeGraphics("World/Shaders/viewport.slang");
+
+    private readonly WorldContext _worldContext = new(command.Camera, command.Size.ToExtent());
+
+    private uint _gBuffer0Id;
+    private uint _gBuffer1Id;
+    private uint _gBuffer2Id;
+    private uint _lightsBufferId;
 
     private uint _sceneImageId;
     private uint _viewportBufferId;
@@ -54,9 +59,6 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
     {
     }
 
-    private uint _gBuffer0Id;
-    private uint _gBuffer1Id;
-    private uint _gBuffer2Id;
     public void Configure(IGraphConfig config)
     {
         _gBuffer0Id = config.ReadImage(_worldContext.GBufferImage0, ImageLayout.ShaderReadOnly);
@@ -65,6 +67,7 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
         config.WriteImage(info.MainImageId, ImageLayout.ColorAttachment);
         config.ReadImage(info.StencilImageId, ImageLayout.StencilAttachment);
         _viewportBufferId = config.CreateBuffer<SceneData>(BufferStage.Graphics);
+        _lightsBufferId = config.CreateBuffer<LightInfo>(_worldContext.Lights.Length, BufferStage.Graphics);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
@@ -78,7 +81,8 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
             var mainImage = graph.GetImageOrException(info.MainImageId);
             var stencilImage = graph.GetImageOrException(info.StencilImageId);
             var buffer = graph.GetBufferOrException(_viewportBufferId);
-
+            var lightsBuffer = graph.GetBufferOrException(_lightsBufferId);
+            lightsBuffer.Write(_worldContext.Lights);
             cmd.BeginRendering(_renderExtent, [
                     mainImage.MakeColorAttachmentInfo()
                 ],
@@ -90,13 +94,7 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
             vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
                 VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
                 VkCompareOp.VK_COMPARE_OP_NOT_EQUAL);
-
-            cmd.SetWriteMask(0, 1,
-                VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
-                VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
-                VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
-                VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
-
+            cmd.SetStencilCompareMask(command.StencilMask);
             buffer.Write(
                 new SceneData
                 {
@@ -105,10 +103,13 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
                     Size = command.Size,
                     GBuffer0 = gBuffer0.BindlessHandle,
                     GBuffer1 = gBuffer1.BindlessHandle,
-                    GBuffer2 = gBuffer2.BindlessHandle
+                    GBuffer2 = gBuffer2.BindlessHandle,
+                    EyeLocation = _worldContext.ViewTransform.Position,
+                    LightsBuffer = lightsBuffer.GetAddress(),
+                    NumLights = _worldContext.Lights.Length
                 });
 
-            _shader.Push(cmd,buffer.GetAddress());
+            _shader.Push(cmd, buffer.GetAddress());
             cmd.Draw(6);
 
             cmd.EndRendering();
@@ -129,6 +130,9 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
         public required ImageHandle GBuffer0;
         public required ImageHandle GBuffer1;
         public required ImageHandle GBuffer2;
+        public required Vector3 EyeLocation;
+        public required ulong LightsBuffer;
+        public required int NumLights;
     }
 }
 

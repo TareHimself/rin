@@ -25,13 +25,10 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
     private readonly BackgroundTaskQueue _backgroundTaskQueue = new();
     private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
-    private readonly BackgroundTaskQueue _graphicsQueueThread = new();
     private readonly int _maxEventsPerPeep = 64;
     private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingGraphicsSubmits = [];
     private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingTransferSubmits = [];
     private readonly List<IRenderer> _renderers = [];
-    private readonly Dictionary<SamplerSpec, VkSampler> _samplers = [];
-    private readonly Mutex _samplersMutex = new();
     private readonly Dictionary<nuint, SdlWindow> _sdlWindows = [];
     private readonly BackgroundTaskQueue _transferQueueThread = new();
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
@@ -49,6 +46,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     private VkInstance _instance;
     private IMeshFactory? _meshFactory;
     private VkPhysicalDevice _physicalDevice;
+    private SamplerFactory? _samplerFactory;
     private IShaderManager? _shaderManager;
 
     private VkSurfaceFormatKHR _surfaceFormat = new()
@@ -72,6 +70,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         if (!SDL_InitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD))
             throw new InvalidOperationException($"failed to initialise SDL. Error: {SDL_GetError()}");
         SDL_SetEventEnabled(SDL_EventType.SDL_EVENT_DROP_FILE, true);
+        SDL_SetEventEnabled(SDL_EventType.SDL_EVENT_DROP_TEXT, true);
         InitVulkan();
     }
 
@@ -103,12 +102,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         _meshFactory?.Dispose();
         _descriptorLayoutFactory.Dispose();
 
-        lock (_samplersMutex)
-        {
-            foreach (var sampler in _samplers.Values) _device.DestroySampler(sampler);
-
-            _samplers.Clear();
-        }
+        _samplerFactory?.Dispose();
 
         OnFreeRemainingMemory?.Invoke();
         _allocator?.Dispose();
@@ -172,42 +166,9 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         return _descriptorLayoutFactory.Get(createInfo);
     }
 
-    public VkSampler GetSampler(SamplerSpec spec)
+    public VkSampler GetSampler(in SamplerSpec spec)
     {
-        lock (_samplersMutex)
-        {
-            if (_samplers.TryGetValue(spec, out var sampler)) return sampler;
-
-            var vkFilter = spec.Filter.ToVk();
-            var vkAddressMode = spec.Tiling.ToVk();
-
-            var samplerCreateInfo = new VkSamplerCreateInfo
-            {
-                sType = VkStructureType.VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-                magFilter = vkFilter,
-                minFilter = vkFilter,
-                addressModeU = vkAddressMode,
-                addressModeV = vkAddressMode,
-                addressModeW = vkAddressMode,
-                mipmapMode = spec.Filter switch
-                {
-                    ImageFilter.Linear => VkSamplerMipmapMode.VK_SAMPLER_MIPMAP_MODE_LINEAR,
-                    ImageFilter.Nearest => VkSamplerMipmapMode.VK_SAMPLER_MIPMAP_MODE_NEAREST,
-                    _ => throw new ArgumentOutOfRangeException()
-                },
-                anisotropyEnable = 0,
-                borderColor = VkBorderColor.VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK
-            };
-
-            unsafe
-            {
-                vkCreateSampler(GetDevice(), &samplerCreateInfo, null, &sampler);
-            }
-
-            _samplers.Add(spec, sampler);
-
-            return sampler;
-        }
+        return _samplerFactory?.Get(spec) ?? throw new NullReferenceException();
     }
 
 
@@ -352,6 +313,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         _graphicsCommandPool = _device.CreateCommandPool(GetGraphicsQueueFamily());
         _graphicsCommandBuffer = _device.AllocateCommandBuffers(_graphicsCommandPool).First();
 
+        _samplerFactory = new SamplerFactory(_device);
         _allocator = new Allocator(this);
         _shaderManager = new SlangShaderManager();
         _textureFactory = new BindlessImageFactory(_device);
@@ -529,7 +491,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         HandleWindowCreated(window);
         return window;
     }
-    
+
     public void WaitDeviceIdle()
     {
         Sync(() => { vkDeviceWaitIdle(_device); }).Wait();
@@ -1005,7 +967,8 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         await GraphicsSubmit(cmd =>
         {
             if (mips)
-                GenerateMipMaps(cmd, newImage, size, mipsGenerateFilter, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+                GenerateMipMaps(cmd, newImage, size, mipsGenerateFilter, ImageLayout.TransferDst,
+                    ImageLayout.ShaderReadOnly);
             else
                 cmd.ImageBarrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
         });

@@ -1,6 +1,5 @@
 ﻿using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
-using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Views.Graphics.Passes;
 
@@ -36,7 +35,7 @@ public class StencilClearPass : IPass
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var cmd = ctx.GetCommandBuffer();
-        
+
         var image = graph.GetImageOrException(StencilImageId);
         cmd.ClearStencilImages(0, ImageLayout.General, image);
     }

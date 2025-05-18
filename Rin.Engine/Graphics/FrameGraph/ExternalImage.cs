@@ -9,6 +9,8 @@ namespace Rin.Engine.Graphics.FrameGraph;
 /// </summary>
 public class ExternalImage(IDeviceImage image, Action? onDispose = null) : IGraphImage
 {
+    public bool CreatedByGraph => false;
+
     public void Dispose()
     {
         onDispose?.Invoke();
@@ -18,6 +20,5 @@ public class ExternalImage(IDeviceImage image, Action? onDispose = null) : IGrap
     public Extent3D Extent => image.Extent;
     public VkImage NativeImage => image.NativeImage;
     public VkImageView NativeView => image.NativeView;
-    public bool CreatedByGraph => false;
     public ImageHandle BindlessHandle => ImageHandle.InvalidImage;
 }

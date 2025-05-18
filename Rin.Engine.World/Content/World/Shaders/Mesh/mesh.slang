@@ -3,6 +3,7 @@
 #include "World/Shaders/Mesh/vertex.slang"
 #include "World/Shaders/scene_info.slang"
 #include "World/Shaders/gbuffer_out.slang"
+#include "Engine/Shaders/Attributes/blending.slang"
 // public Mat4 Transform = Mat4.Identity;
 // public ulong VertexAddress = 0;
 // private Vector4 _color_textureId = 0.0f;
@@ -126,7 +127,7 @@ VertexOut vertex(VertexIn input) {
     return output;
 }
 
-[shader("fragment")]
+[shader("fragment"),BlendOpaque,Depth]
 GBuffer fragment(FragmentIn input)
 {
 

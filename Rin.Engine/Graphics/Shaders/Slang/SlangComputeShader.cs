@@ -12,8 +12,8 @@ public class SlangComputeShader : IComputeShader
     private readonly Task _compileTask;
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
     private readonly string _filePath;
-    private VkPipelineLayout _pipelineLayout;
     private VkPipeline _pipeline;
+    private VkPipelineLayout _pipelineLayout;
     private VkShaderModule _shaderModule;
 
     public SlangComputeShader(SlangShaderManager manager, string filePath)
@@ -29,7 +29,7 @@ public class SlangComputeShader : IComputeShader
         unsafe
         {
             vkDestroyPipeline(device, _pipeline, null);
-            vkDestroyShaderModule(device,_shaderModule, null);
+            vkDestroyShaderModule(device, _shaderModule, null);
             vkDestroyPipelineLayout(device, _pipelineLayout, null);
         }
     }
@@ -38,14 +38,14 @@ public class SlangComputeShader : IComputeShader
     public Dictionary<string, PushConstant> PushConstants { get; } = [];
     public bool Ready => _compileTask.IsCompleted;
 
-    public bool Bind(in VkCommandBuffer cmd, bool wait = false)
+    public bool Bind(in VkCommandBuffer cmd, bool wait = true)
     {
         _compileTask.Wait();
         if (wait && !_compileTask.IsCompleted)
             _compileTask.Wait();
         else if (!_compileTask.IsCompleted) return false;
-        
-        vkCmdBindPipeline(cmd,VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE,_pipeline);
+
+        vkCmdBindPipeline(cmd, VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE, _pipeline);
         return true;
     }
 
@@ -108,11 +108,10 @@ public class SlangComputeShader : IComputeShader
             GroupSizeY = groupSize[1];
             GroupSizeZ = groupSize[2];
             const VkShaderStageFlags entryPointStage = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT;
-            
-            SlangShaderManager.ReflectShader(reflectionData,Resources,PushConstants,entryPointStage);
-            
-            {
 
+            SlangShaderManager.ReflectShader(reflectionData, Resources, PushConstants, entryPointStage);
+
+            {
                 SortedDictionary<uint, DescriptorLayoutBuilder> builders = [];
                 foreach (var item in Resources.Values)
                 {
@@ -120,7 +119,7 @@ public class SlangComputeShader : IComputeShader
 
                     builders[item.Set].AddBinding(item.Binding, item.Type, item.Stages, item.Count, item.BindingFlags);
                 }
-                
+
                 var max = builders.Count == 0 ? 0 : builders.Keys.Max();
                 List<VkDescriptorSetLayout> layouts = [];
 
@@ -134,7 +133,7 @@ public class SlangComputeShader : IComputeShader
                 }
 
                 var device = SGraphicsModule.Get().GetDevice();
-                
+
                 _pipelineLayout = device.CreatePipelineLayout(layouts);
                 _shaderModule = device.CreateShaderModule(codeBlob.AsReadOnlySpan());
                 _pipeline = device.CreateComputePipeline(_pipelineLayout, _shaderModule);
@@ -161,11 +160,16 @@ public class SlangComputeShader : IComputeShader
     public uint GroupSizeX { get; private set; }
     public uint GroupSizeY { get; private set; }
     public uint GroupSizeZ { get; private set; }
+
     public void Dispatch(in VkCommandBuffer cmd, uint x, uint y = 1, uint z = 1)
     {
         Debug.Assert(x != 0 && y != 0 && z != 0);
-        vkCmdDispatch(cmd, x,y,z);
+        vkCmdDispatch(cmd, x, y, z);
     }
 
-    public void Invoke(in VkCommandBuffer cmd,uint x, uint y = 1, uint z = 1) => Dispatch(cmd,(uint)float.Ceiling(x / (float)GroupSizeX), (uint)float.Ceiling(y / (float)GroupSizeY), (uint)float.Ceiling(z / (float)GroupSizeZ));
+    public void Invoke(in VkCommandBuffer cmd, uint x, uint y = 1, uint z = 1)
+    {
+        Dispatch(cmd, (uint)float.Ceiling(x / (float)GroupSizeX), (uint)float.Ceiling(y / (float)GroupSizeY),
+            (uint)float.Ceiling(z / (float)GroupSizeZ));
+    }
 }

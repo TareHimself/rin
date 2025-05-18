@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using Rin.Engine.Views.Composite;
-using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Layouts;
 using Rin.Engine.World;
 using rin.Examples.SceneTest.entities;

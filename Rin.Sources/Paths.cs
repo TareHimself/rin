@@ -2,5 +2,8 @@ namespace Rin.Sources;
 
 public static class Paths
 {
-    public static string Normalize(string path) => path.Contains('\\') ? path.Replace('\\', '/') : path;
+    public static string Normalize(string path)
+    {
+        return path.Contains('\\') ? path.Replace('\\', '/') : path;
+    }
 }

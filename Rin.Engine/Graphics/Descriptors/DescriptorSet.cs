@@ -24,11 +24,13 @@ public class DescriptorSet : Disposable
         };
     }
 
-    public static VkDescriptorType ImageTypeToDescriptorType(DescriptorImageType type,SamplerSpec? samplerSpec = null)
+    public static VkDescriptorType ImageTypeToDescriptorType(DescriptorImageType type, SamplerSpec? samplerSpec = null)
     {
         return type switch
         {
-            DescriptorImageType.Sampled => samplerSpec.HasValue ? VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            DescriptorImageType.Sampled => samplerSpec.HasValue
+                ? VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                : VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
             DescriptorImageType.Storage => VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
@@ -82,15 +84,12 @@ public class DescriptorSet : Disposable
             {
                 var write = writes[i];
                 var imageInfo = infos + i;
-                if (write.Sampler.HasValue)
-                {
-                    imageInfo->sampler = SGraphicsModule.Get().GetSampler(write.Sampler.Value);
-                }
+                if (write.Sampler.HasValue) imageInfo->sampler = SGraphicsModule.Get().GetSampler(write.Sampler.Value);
                 imageInfo->imageView = write.Image.NativeView;
                 imageInfo->imageLayout = write.Layout.ToVk();
                 var writeSet = writeSets + i;
                 writeSet->sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                writeSet->descriptorType = ImageTypeToDescriptorType(write.Type,write.Sampler);
+                writeSet->descriptorType = ImageTypeToDescriptorType(write.Type, write.Sampler);
                 writeSet->dstBinding = binding;
                 writeSet->pImageInfo = imageInfo;
                 writeSet->descriptorCount = 1;
@@ -103,7 +102,7 @@ public class DescriptorSet : Disposable
 
         return true;
     }
-    
+
     public bool WriteSamplers(uint binding, params SamplerWrite[] writes)
     {
         unsafe
@@ -124,12 +123,13 @@ public class DescriptorSet : Disposable
                 writeSet->dstSet = _descriptorSet;
                 writeSet->dstArrayElement = write.Index;
             }
+
             vkUpdateDescriptorSets(_device, (uint)writes.Length, writeSets, 0, null);
         }
 
         return true;
     }
-    
+
 
     public bool WriteBuffers(uint binding, params BufferWrite[] writes)
     {

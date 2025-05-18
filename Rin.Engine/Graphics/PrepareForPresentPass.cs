@@ -1,5 +1,4 @@
 ﻿using Rin.Engine.Graphics.FrameGraph;
-using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics;
 

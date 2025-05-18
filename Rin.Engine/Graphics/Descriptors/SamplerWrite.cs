@@ -1,15 +1,7 @@
-﻿using Rin.Engine.Graphics.Textures;
+﻿namespace Rin.Engine.Graphics.Descriptors;
 
-namespace Rin.Engine.Graphics.Descriptors;
-
-public struct SamplerWrite
+public struct SamplerWrite(SamplerSpec spec)
 {
-    public SamplerSpec Sampler;
+    public SamplerSpec Sampler = spec;
     public uint Index = 0;
-
-    public SamplerWrite(SamplerSpec spec)
-    {
-        Sampler = spec;
-    }
-    
 }

@@ -10,7 +10,7 @@ public interface IGraphImage : IDeviceImage
     // public ImageLayout Layout { get; set; }
 
     /// <summary>
-    ///  The image handle if this image was marked for read
+    ///     The image handle if this image was marked for read
     /// </summary>
     public ImageHandle BindlessHandle { get; }
 }

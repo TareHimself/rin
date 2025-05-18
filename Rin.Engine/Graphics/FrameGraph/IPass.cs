@@ -1,5 +1,3 @@
-using TerraFX.Interop.Vulkan;
-
 namespace Rin.Engine.Graphics.FrameGraph;
 
 public interface IPass

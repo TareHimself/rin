@@ -1,6 +1,5 @@
 ﻿using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
-using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Views.Graphics;
 
@@ -27,7 +26,7 @@ public class CopySurfaceToSwapchain(SharedPassContext passContext) : IPass
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var cmd = ctx.GetCommandBuffer();
-        
+
         var mainImage = graph.GetImageOrException(passContext.MainImageId);
         var swapchainImage = graph.GetImageOrException(_swapchainImageId);
         cmd.CopyImageToImage(mainImage, swapchainImage);

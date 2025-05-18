@@ -1,3 +1,4 @@
+#include "Engine/Shaders/Attributes/blending.slang"
 #include "Engine/Shaders/utils.slang"
 
 struct StencilInfo
@@ -25,7 +26,7 @@ float4 vertex(int instanceId: SV_InstanceID, int vertexId: SV_VertexID,out int o
     return float4(vertices[vertexId], 0.0, 1.0);
 }
 
-[shader("fragment")]
+[shader("fragment"), BlendNone,Stencil]
 float4 fragment(in int iQuadIndex: QUAD_INDEX, float2 coordinate: SV_Position)
     : SV_Target
 {

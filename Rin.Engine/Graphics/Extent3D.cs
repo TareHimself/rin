@@ -5,9 +5,9 @@ namespace Rin.Engine.Graphics;
 
 public record struct Extent3D : IFormattable
 {
-    [PublicAPI] public uint Width = 0;
-    [PublicAPI] public uint Height = 0;
     [PublicAPI] public uint Dimensions = 1;
+    [PublicAPI] public uint Height = 0;
+    [PublicAPI] public uint Width = 0;
 
     public Extent3D()
     {
@@ -34,17 +34,17 @@ public record struct Extent3D : IFormattable
         Dimensions = (uint)dimensions;
     }
 
-
-    public static implicit operator Extent2D(Extent3D extent)
-    {
-        return new Extent2D(extent.Width, extent.Height);
-    }
-
     public string ToString(string? format, IFormatProvider? formatProvider)
     {
         var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;
 
         return
             $"<{Width.ToString(format, formatProvider)}{separator} {Height.ToString(format, formatProvider)}{separator} {Dimensions.ToString(format, formatProvider)}>";
+    }
+
+
+    public static implicit operator Extent2D(Extent3D extent)
+    {
+        return new Extent2D(extent.Width, extent.Height);
     }
 }

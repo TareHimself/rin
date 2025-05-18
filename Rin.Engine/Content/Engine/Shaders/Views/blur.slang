@@ -1,5 +1,7 @@
-#include "Engine/Shaders/utils.slang"
+
+#include "Engine/Shaders/Attributes/blending.slang"
 #include "Engine/Shaders/images.slang"
+#include "Engine/Shaders/utils.slang"
 
 struct BlurData
 {
@@ -50,7 +52,7 @@ float distanceFromZero(float x, float y) {
     return sqrt((x * x) + (y * y));
 }
 
-[shader("fragment")]
+[shader("fragment"),Attachment(AttachmentFormat.RGBA32), BlendUI,Stencil]
 float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
     : SV_Target
 {

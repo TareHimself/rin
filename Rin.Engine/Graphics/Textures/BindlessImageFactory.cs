@@ -1,12 +1,15 @@
 ﻿using Rin.Engine.Graphics.Descriptors;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
+
 namespace Rin.Engine.Graphics.Textures;
 
 public class BindlessImageFactory : IBindlessImageFactory
 {
     private const uint MaxTextures = 2048;
     private const uint SamplerCount = 6;
+    private const uint SamplersBinding = 0;
+    private const uint TexturesBinding = 1;
     private const uint DescriptorTotal = MaxTextures + SamplerCount;
 
     private readonly DescriptorAllocator _allocator = new(DescriptorTotal, [
@@ -15,14 +18,7 @@ public class BindlessImageFactory : IBindlessImageFactory
     ], VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
     private readonly DescriptorSet _descriptorSet;
-
-    private readonly IdFactory _imageIdFactory = new();
-    private readonly Dictionary<ImageHandle, TaskCompletionSource> _pendingTextures = [];
-    private readonly Lock _sync = new();
-    private readonly List<BindlessImage> _textures = [];
-    private uint _count;
-    private VkDescriptorSetLayout _descriptorSetLayout;
-    private VkPipelineLayout _pipelineLayout;
+    private readonly VkDescriptorSetLayout _descriptorSetLayout;
 
     // public class BoundTexture : ITexture
     // {
@@ -48,69 +44,68 @@ public class BindlessImageFactory : IBindlessImageFactory
     //     }
     // }
 
-    private VkDevice _device;
+    private readonly VkDevice _device;
 
-    private DescriptorLayoutBuilder _layoutBuilder = new();
+    private readonly IdFactory _imageIdFactory = new();
+    private readonly Dictionary<ImageHandle, TaskCompletionSource> _pendingTextures = [];
+    private readonly VkPipelineLayout _pipelineLayout;
+    private readonly Lock _sync = new();
+    private readonly List<BindlessImage> _textures = [];
+    private uint _count;
+
     public BindlessImageFactory(in VkDevice device)
     {
         _device = device;
         {
             const VkDescriptorBindingFlags flags = VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
                                                    VkDescriptorBindingFlags
-                                                       .VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT ;
-            _descriptorSetLayout = _layoutBuilder
-                    .AddBinding(
-                        0,
-                        VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER,
-                        VkShaderStageFlags.VK_SHADER_STAGE_ALL,
-                        SamplerCount,
-                        flags
-                    )
-                    .AddBinding(
-                        1,
-                        VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        VkShaderStageFlags.VK_SHADER_STAGE_ALL,
-                        MaxTextures,
-                        flags | 
-                        VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
-                    )
-                    .Build();
+                                                       .VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+            _descriptorSetLayout = new DescriptorLayoutBuilder()
+                .AddBinding(
+                    SamplersBinding,
+                    VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER,
+                    VkShaderStageFlags.VK_SHADER_STAGE_ALL,
+                    SamplerCount,
+                    flags
+                )
+                .AddBinding(
+                    TexturesBinding,
+                    VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                    VkShaderStageFlags.VK_SHADER_STAGE_ALL,
+                    MaxTextures,
+                    flags |
+                    VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
+                )
+                .Build();
 
             _descriptorSet = _allocator.Allocate(_descriptorSetLayout, MaxTextures);
 
             for (var filter = 0; filter < 2; filter++)
-            {
-                for (var tiling = 0; tiling < 3; tiling++)
-                {
-                    _descriptorSet.WriteSamplers(0, new SamplerWrite(new SamplerSpec()
-                        {
-                            Filter = (ImageFilter)filter,
-                            Tiling = (ImageTiling)tiling,
-                        })
-                        {
-                            Index = (uint)((filter * 2) + tiling)
-                        }
-                    );
-                }
-            }
+            for (var tiling = 0; tiling < 3; tiling++)
+                _descriptorSet.WriteSamplers(0, new SamplerWrite(new SamplerSpec
+                    {
+                        Filter = (ImageFilter)filter,
+                        Tiling = (ImageTiling)tiling
+                    })
+                    {
+                        Index = (uint)(filter * 2 + tiling)
+                    }
+                );
 
-            unsafe
-            {
-                var setLayout = _descriptorSetLayout;
-                
-                // var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
-                // {
-                //     sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                //     setLayoutCount = 1,
-                //     pSetLayouts = &setLayout
-                // };
-                //
-                // var pipelineLayout = new VkPipelineLayout();
-                // vkCreatePipelineLayout(_device, &pipelineLayoutCreateInfo, null, &pipelineLayout);
-                // _pipelineLayout = pipelineLayout;
+            var setLayout = _descriptorSetLayout;
 
-                _pipelineLayout = _device.CreatePipelineLayout([_descriptorSetLayout]);
-            }
+            // var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
+            // {
+            //     sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            //     setLayoutCount = 1,
+            //     pSetLayouts = &setLayout
+            // };
+            //
+            // var pipelineLayout = new VkPipelineLayout();
+            // vkCreatePipelineLayout(_device, &pipelineLayoutCreateInfo, null, &pipelineLayout);
+            // _pipelineLayout = pipelineLayout;
+
+            _pipelineLayout = _device.CreatePipelineLayout([_descriptorSetLayout]);
         }
 
         var defaultTex = new BindlessImage();
@@ -138,7 +133,8 @@ public class BindlessImageFactory : IBindlessImageFactory
         return _pipelineLayout;
     }
 
-    public (ImageHandle handle, IDeviceImage image) CreateTexture(in Extent3D size, ImageFormat format, bool mips = false,
+    public (ImageHandle handle, IDeviceImage image) CreateTexture(in Extent3D size, ImageFormat format,
+        bool mips = false,
         ImageUsage usage = ImageUsage.None,
         string? debugName = null)
     {
@@ -160,7 +156,7 @@ public class BindlessImageFactory : IBindlessImageFactory
 
             UpdateTextures(boundText.Handle);
 
-            return (boundText.Handle,image);
+            return (boundText.Handle, image);
         }
     }
 
@@ -220,7 +216,7 @@ public class BindlessImageFactory : IBindlessImageFactory
         lock (_sync)
         {
             List<ImageWrite> writes = [];
-            
+
             var defaultTexture = _textures[0].Image;
 
             foreach (var textureId in textureIds)
@@ -250,7 +246,7 @@ public class BindlessImageFactory : IBindlessImageFactory
                     });
             }
 
-            if (writes.Count != 0) _descriptorSet.WriteImages(1, writes.ToArray());
+            if (writes.Count != 0) _descriptorSet.WriteImages(TexturesBinding, writes.ToArray());
         }
     }
 
@@ -303,7 +299,7 @@ public class BindlessImageFactory : IBindlessImageFactory
         _textures.Clear();
         unsafe
         {
-            vkDestroyPipelineLayout(_device,_pipelineLayout,null);
+            vkDestroyPipelineLayout(_device, _pipelineLayout, null);
         }
     }
 
@@ -354,7 +350,7 @@ public class BindlessImageFactory : IBindlessImageFactory
             debugName: tex.DebugName);
 
         List<ImageWrite> writes = [];
-        
+
         for (var i = 0; i < MaxTextures; i++)
         {
             var info = i < _textures.Count ? _textures[i] : null;
@@ -367,7 +363,7 @@ public class BindlessImageFactory : IBindlessImageFactory
             });
         }
 
-        if (writes.Count != 0) _descriptorSet.WriteImages(1, writes.ToArray());
+        if (writes.Count != 0) _descriptorSet.WriteImages(TexturesBinding, writes.ToArray());
 
         tex.Uploaded = true;
     }
@@ -389,7 +385,7 @@ public class BindlessImageFactory : IBindlessImageFactory
             infos.Add(info);
         }
 
-        if (writes.Count != 0) _descriptorSet.WriteImages(1, writes.ToArray());
+        if (writes.Count != 0) _descriptorSet.WriteImages(TexturesBinding, writes.ToArray());
         foreach (var texture in infos)
         {
             texture.Uploaded = true;

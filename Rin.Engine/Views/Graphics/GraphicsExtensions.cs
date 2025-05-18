@@ -8,12 +8,9 @@ public static class GraphicsExtensions
     public static void SetViewState(this in VkCommandBuffer cmd, in Extent2D extent)
     {
         cmd
-            .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
-            .SetVertexInput([], [])
             .DisableCulling()
             .DisableDepthTest()
-            .EnableBlendingAlphaBlend(0, 1)
+            .EnableStencilTest()
             .SetViewports([
                 new VkViewport
                 {

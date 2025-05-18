@@ -2,7 +2,6 @@
 using System.Numerics;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
-using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Views.Graphics.Quads;
 
@@ -31,7 +30,7 @@ public class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         if (quads.Length == 0) return 0;
 
         view.Write(quads);
-        _batchShader.Push(cmd,new Push
+        _batchShader.Push(cmd, new Push
         {
             Projection = frame.ProjectionMatrix,
             Viewport = new Vector4(0, 0, frame.Extent.Width, frame.Extent.Height),

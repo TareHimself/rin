@@ -61,15 +61,10 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
             cmd.SetViewState(info.Context.Extent);
             var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
 
+            cmd.SetStencilCompareMask();
             vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
                 VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
                 VkCompareOp.VK_COMPARE_OP_NOT_EQUAL);
-
-            cmd.SetWriteMask(0, 1,
-                VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
-                VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
-                VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
-                VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT);
 
             var compareMask = uint.MaxValue;
             foreach (var customShaderCommand in _customCommands)
@@ -88,7 +83,7 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
                     Center = customShaderCommand.Hovered ? customShaderCommand.CursorPosition : screenSize / 2.0f
                 };
                 view.Write(data);
-                _prettyShader.Push(cmd,view.GetAddress());
+                _prettyShader.Push(cmd, view.GetAddress());
                 //cmd.PushConstant(_prettyShader.GetPipelineLayout(), pushResource.Stages, view.GetAddress());
                 cmd.Draw(6);
             }

@@ -50,3 +50,5 @@ struct SamplerBindingAttribute
 struct UniformBufferBindingAttribute
 {
 };
+
+

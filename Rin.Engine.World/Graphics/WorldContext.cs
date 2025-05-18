@@ -11,14 +11,6 @@ namespace Rin.Engine.World.Graphics;
 
 public class WorldContext
 {
-    public uint DepthImageId { get; set; }
-    
-    public uint GBufferImage0 { get; set; }
-    public uint GBufferImage1 { get; set; }
-    public uint GBufferImage2 { get; set; }
-    
-    public uint SkinningOutputBufferId { get; set; }
-    
     [PublicAPI] public LightInfo[] Lights;
     [PublicAPI] public ProcessedMesh[] ProcessedSkinnedMeshes = [];
     [PublicAPI] public ProcessedMesh[] ProcessedStaticMeshes = [];
@@ -45,6 +37,14 @@ public class WorldContext
         SkinnedGeometry = drawCommands.SkinnedMeshes.ToArray();
         Lights = drawCommands.Lights.ToArray();
     }
+
+    public uint DepthImageId { get; set; }
+
+    public uint GBufferImage0 { get; set; }
+    public uint GBufferImage1 { get; set; }
+    public uint GBufferImage2 { get; set; }
+
+    public uint SkinningOutputBufferId { get; set; }
 
     [PublicAPI]
     public IEnumerable<ProcessedMesh> ProcessedMeshes
@@ -77,7 +77,7 @@ public class WorldContext
     }
 
     /// <summary>
-    ///  Process and cull meshes
+    ///     Process and cull meshes
     /// </summary>
     public void ProcessMeshes()
     {

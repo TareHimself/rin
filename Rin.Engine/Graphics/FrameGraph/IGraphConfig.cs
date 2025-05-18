@@ -11,7 +11,7 @@ public interface IGraphConfig
 
     public uint CreateImage(in Extent2D extent, ImageFormat format,
         ImageLayout layout);
-    
+
     public uint CreateImage(in Extent3D extent, ImageFormat format,
         ImageLayout layout);
 
@@ -64,5 +64,4 @@ public interface IGraphConfig
     /// <param name="passId"></param>
     /// <returns></returns>
     public uint DependOn(uint passId);
-    
 }

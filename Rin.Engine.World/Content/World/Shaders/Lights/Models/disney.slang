@@ -7,26 +7,20 @@ interface IDisneySurface : ILightSurface {
     float3 getColor();
     float3 getLocation();
     float3 getNormal();
-    float getSheen();
+    float getRoughness();
+    float getMetallic();
+    float getSpecular();
+    float getEmissive();
 }
 
 
 #define RECIPROCAL_PI 0.3183098861837907
 #define RECIPROCAL_2PI 0.15915494309189535
 #define PI 3.142
-struct DisneySurface : ILightSurface {
-    float3 color;
-    float3 location;
-    float3 normal;
-    float roughness;
-    float metallic;
-    float specular;
-    float emissive;
-};
 
 struct DisneyModel : ILightModel {
 
-    typedef DisneySurface Surface;
+    typedef IDisneySurface Surface;
 
     float3 fresnelSchlick(float cosTheta, float3 F0) {
         return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
@@ -63,21 +57,22 @@ struct DisneyModel : ILightModel {
     }
 
     float3 eval(Surface surface, float3 eye, ILight light) {
-        float3 L = -getLightDirectionToLocation(light,surface.location);
+        float3 location = surface.getLocation();
+        float3 L = -getLightDirectionToLocation(light,location);
     
-        float3 N = surface.normal;
+        float3 N = surface.getNormal();
 
-        float3 radiance = rgb2lin(float3(surface.emissive));
+        float3 radiance = rgb2lin(float3(surface.getEmissive()));
 
         float irradiance = max(dot(L,N), 0.0) * light.getRadiance();
 
         if (irradiance > 0.0) { // if receives light
-            float3 V = normalize(eye - surface.location);
+            float3 V = normalize(eye - location);
             
-            float reflectance = surface.specular;
-            float roughness = surface.roughness;
-            float metallic = surface.metallic;
-            float3 baseColor = surface.color;
+            float reflectance = surface.getSpecular();
+            float roughness = surface.getRoughness();
+            float metallic = surface.getMetallic();
+            float3 baseColor = surface.getColor();
             float3 H = normalize(V + L);
 
             float NoV = clamp(dot(N, V), 0.0, 1.0);
@@ -107,7 +102,7 @@ struct DisneyModel : ILightModel {
             float3 color = (diff + spec);
 
             // irradiance contribution from directional light
-            radiance += color * irradiance * surface.color;
+            radiance += color * irradiance * light.getColor();
         }
 
         return lin2rgb(radiance);

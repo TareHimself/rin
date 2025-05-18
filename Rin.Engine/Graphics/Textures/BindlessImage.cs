@@ -7,7 +7,7 @@ public class BindlessImage : IBindlessImage
         DebugName = "";
     }
 
-    public BindlessImage(in ImageHandle handle, IDeviceImage image,bool mipMapped,
+    public BindlessImage(in ImageHandle handle, IDeviceImage image, bool mipMapped,
         string debugName)
     {
         Handle = handle;
@@ -16,7 +16,7 @@ public class BindlessImage : IBindlessImage
         DebugName = debugName;
     }
 
-    public BindlessImage(in ImageHandle handle,bool mipMapped, string debugName)
+    public BindlessImage(in ImageHandle handle, bool mipMapped, string debugName)
     {
         Handle = handle;
         MipMapped = mipMapped;

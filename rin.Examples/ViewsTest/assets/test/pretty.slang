@@ -1,4 +1,5 @@
-﻿#include "Engine/Shaders/utils.slang"
+﻿#include "Engine/Shaders/Attributes/blending.slang"
+#include "Engine/Shaders/utils.slang"
 
 struct Data {
     float4x4 projection;
@@ -41,7 +42,7 @@ float3 palette(float t) {
 }
 
 // https://www.shadertoy.com/view/mtyGWy
-[shader("fragment")]
+[shader("fragment"),BlendUI,Stencil,Attachment(AttachmentFormat.RGBA32)]
 float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
     : SV_Target
 {

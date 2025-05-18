@@ -19,7 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Graphics\ForwardRenderingPass.cs" />
+        <Compile Remove="Graphics\ForwardRenderingPass.cs"/>
     </ItemGroup>
 
 </Project>

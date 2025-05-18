@@ -69,6 +69,26 @@ public class ReflectionData
         [JsonPropertyName("type")] public ParameterType Type { get; set; }
     }
 
+    public class EntryPointResultTypeField
+    {
+        [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
+        [JsonPropertyName("semanticName")] public string SemanticName { get; set; } = string.Empty;
+
+        [JsonPropertyName("userAttribs")] public UserAttributeField[] UserAttributes { get; set; } = [];
+    }
+
+    public class EntryPointResultType
+    {
+        [JsonPropertyName("kind")] public string Kind { get; set; } = string.Empty;
+        [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
+        [JsonPropertyName("fields")] public EntryPointResultTypeField[] Fields { get; set; } = [];
+    }
+
+    public class EntryPointResult
+    {
+        [JsonPropertyName("type")] public EntryPointResultType Type { get; set; }
+    }
+
     public class EntryPoint
     {
         [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
@@ -82,5 +102,9 @@ public class ReflectionData
         [JsonPropertyName("parameters")] public Parameter[] Parameters { get; set; } = [];
 
         [JsonPropertyName("threadGroupSize")] public uint[] ThreadGroupSize { get; set; } = [];
+
+        [JsonPropertyName("result")] public EntryPointResult Result { get; set; }
+
+        [JsonPropertyName("userAttribs")] public UserAttributeField[] UserAttributes { get; set; } = [];
     }
 }

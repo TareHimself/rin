@@ -8,7 +8,7 @@ public interface IShader : IDisposable
     public Dictionary<string, Resource> Resources { get; }
     public Dictionary<string, PushConstant> PushConstants { get; }
     public bool Ready { get; }
-    public bool Bind(in VkCommandBuffer cmd, bool wait = false);
+    public bool Bind(in VkCommandBuffer cmd, bool wait = true);
     public void Compile(ICompilationContext context);
     public Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts();
     public VkPipelineLayout GetPipelineLayout();
@@ -23,13 +23,13 @@ public interface IShader : IDisposable
             fixed (T* pData = &data)
             {
                 var size = (uint)Utils.ByteSizeOf<T>();
-                vkCmdPushConstants(cmd, GetPipelineLayout(),flags, offset,
+                vkCmdPushConstants(cmd, GetPipelineLayout(), flags, offset,
                     (uint)Utils.ByteSizeOf<T>(), pData);
                 if (size < 256)
                 {
                     var diff = 256 - size;
                     var padding = stackalloc byte[(int)diff];
-                    vkCmdPushConstants(cmd,GetPipelineLayout(),flags,size,diff,padding);
+                    vkCmdPushConstants(cmd, GetPipelineLayout(), flags, size, diff, padding);
                 }
             }
         }

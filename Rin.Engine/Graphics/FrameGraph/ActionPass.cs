@@ -1,10 +1,8 @@
-using TerraFX.Interop.Vulkan;
-
 namespace Rin.Engine.Graphics.FrameGraph;
 
 public class ActionPass(
     Action<IPass, IGraphConfig> configure,
-    Action<IPass, ICompiledGraph,IExecutionContext> run,
+    Action<IPass, ICompiledGraph, IExecutionContext> run,
     bool terminal = false,
     string? name = null) : IPass
 {
@@ -26,7 +24,7 @@ public class ActionPass(
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        run(this, graph,ctx);
+        run(this, graph, ctx);
     }
 
     public uint Id { get; set; }

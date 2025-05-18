@@ -3,14 +3,9 @@ using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Descriptors;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Meshes;
 using Rin.Engine.Graphics.Shaders;
-using Rin.Engine.Math;
-using Rin.Engine.World.Components;
-using Rin.Engine.World.Math;
-using Rin.Engine.World.Mesh.Skinning;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics;
@@ -23,21 +18,20 @@ public class CollectPass : IPass
     private readonly IComputeShader _skinningShader = SGraphicsModule
         .Get()
         .MakeCompute("World/Shaders/Mesh/compute_skinning.slang");
-    
-    private WorldContext _worldContext;
-    
+
+    private readonly WorldContext _worldContext;
+
+
+    private IMesh[] _skinnedMeshes;
+
     public CollectPass(WorldContext worldContext)
     {
         _worldContext = worldContext;
     }
-    
-    [PublicAPI]
-    public uint DepthImageId { get; private set; }
+
+    [PublicAPI] public uint DepthImageId { get; private set; }
 
     [PublicAPI] public IGraphImage? DepthImage { get; set; }
-
-
-    private IMesh[] _skinnedMeshes;
     private uint TotalVerticesToSkin { get; set; }
     private Matrix4x4[][] SkinnedPoses { get; set; }
     private SkinningExecutionInfo[] ExecutionInfos { get; set; }
@@ -62,8 +56,9 @@ public class CollectPass : IPass
     public void Configure(IGraphConfig config)
     {
         _worldContext.ProcessMeshes();
-        
-        DepthImageId =  _worldContext.DepthImageId = config.CreateImage(_worldContext.Extent, ImageFormat.Depth, ImageLayout.DepthAttachment);
+
+        DepthImageId = _worldContext.DepthImageId =
+            config.CreateImage(_worldContext.Extent, ImageFormat.Depth, ImageLayout.DepthAttachment);
         DepthSceneBufferId = config.CreateBuffer<DepthSceneInfo>(BufferStage.Graphics);
         // If shader is not ready we can't skin this frame
         if (_skinningShader.Ready)
@@ -75,8 +70,10 @@ public class CollectPass : IPass
                 var skinnedGeometryDictionary = _skinnedMeshes
                     .Select((c, idx) => new KeyValuePair<IMesh, int>(c, idx)).ToFrozenDictionary();
                 TotalVerticesToSkin =
-                    _worldContext.SkinnedGeometry.Aggregate<SkinnedMeshInfo, uint>(0, (t, c) => t + c.Mesh.GetVertexCount());
-                SkinnedPoses = _worldContext.SkinnedGeometry.Select(c => c.Skeleton.ResolvePose(c.Pose).ToArray()).ToArray();
+                    _worldContext.SkinnedGeometry.Aggregate<SkinnedMeshInfo, uint>(0,
+                        (t, c) => t + c.Mesh.GetVertexCount());
+                SkinnedPoses = _worldContext.SkinnedGeometry.Select(c => c.Skeleton.ResolvePose(c.Pose).ToArray())
+                    .ToArray();
                 ExecutionInfos = _worldContext.SkinnedGeometry.SelectMany((c, poseIdx) =>
                 {
                     return Enumerable.Range(0, (int)c.Mesh.GetVertexCount()).Select(idx => new SkinningExecutionInfo
@@ -101,7 +98,7 @@ public class CollectPass : IPass
             _skinnedMeshes = [];
             _worldContext.ProcessedSkinnedMeshes = [];
         }
-        
+
         var depthMaterialDataSize = _worldContext.ProcessedMeshes.Aggregate(Utils.ByteSizeOf<DepthSceneInfo>(),
             (current, gcmd) => current + gcmd.Material.DepthPass.GetRequiredMemory());
 
@@ -114,7 +111,7 @@ public class CollectPass : IPass
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var cmd = ctx.GetCommandBuffer();
-        if (_skinnedMeshes.NotEmpty()) DoSkinning(graph, ctx,cmd);
+        if (_skinnedMeshes.NotEmpty()) DoSkinning(graph, ctx, cmd);
 
         var sceneDataBuffer = graph.GetBufferOrException(DepthSceneBufferId);
         var materialDataBuffer = graph.GetBufferOrNull(DepthMaterialBufferId);
@@ -123,20 +120,16 @@ public class CollectPass : IPass
         var extent = _worldContext.Extent;
         cmd
             .BeginRendering(extent, [], DepthImage.MakeDepthAttachmentInfo(0.0f))
-            .SetInputTopology(VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .SetPolygonMode(VkPolygonMode.VK_POLYGON_MODE_FILL)
-            .DisableStencilTest(false)
+            .DisableStencilTest()
             .SetCullMode(VkCullModeFlags.VK_CULL_MODE_BACK_BIT, VkFrontFace.VK_FRONT_FACE_CLOCKWISE)
-            .EnableDepthTest(true, VkCompareOp.VK_COMPARE_OP_GREATER_OR_EQUAL)
-            //.DisableBlending(0, 0)
-            .SetVertexInput([], [])
+            .EnableDepthTest(true)
             .SetViewports([
                 // For viewport flipping
                 new VkViewport
                 {
                     x = 0,
                     y = 0,
-                    width =extent.Width,
+                    width = extent.Width,
                     height = extent.Height,
                     minDepth = 0.0f,
                     maxDepth = 1.0f
@@ -150,7 +143,7 @@ public class CollectPass : IPass
                 }
             ]);
 
-        var sceneFrame = new WorldFrame(_worldContext.View,_worldContext.Projection, sceneDataBuffer, cmd);
+        var sceneFrame = new WorldFrame(_worldContext.View, _worldContext.Projection, sceneDataBuffer, cmd);
 
         sceneDataBuffer.Write(new DepthSceneInfo
         {
@@ -159,7 +152,8 @@ public class CollectPass : IPass
             ViewProjection = sceneFrame.ViewProjection
         });
 
-        foreach (var geometryInfos in _worldContext.ProcessedMeshes.GroupBy(c => c, new ProcessedMesh.CompareByIndexAndMaterial()))
+        foreach (var geometryInfos in _worldContext.ProcessedMeshes.GroupBy(c => c,
+                     new ProcessedMesh.CompareByIndexAndMaterial()))
         {
             var infos = geometryInfos.ToArray();
             var first = infos.First();
@@ -208,7 +202,7 @@ public class CollectPass : IPass
                 ExecutionInfoBuffer = executionInfos.GetAddress(),
                 OutputBuffer = output.GetAddress()
             });
-            _skinningShader.Invoke(cmd,TotalVerticesToSkin);
+            _skinningShader.Invoke(cmd, TotalVerticesToSkin);
             //cmd.BufferBarrier(output, MemoryBarrierOptions.ComputeToGraphics());
             ulong offset = 0;
             var skinnedMeshes = _worldContext.ProcessedSkinnedMeshes;
@@ -235,10 +229,10 @@ public class CollectPass : IPass
 
     public record struct SkinningPushConstants
     {
-        public required int TotalInvocations;
-        public required ulong MeshesBuffer;
-        public required ulong PosesBuffer;
         public required ulong ExecutionInfoBuffer;
+        public required ulong MeshesBuffer;
         public required ulong OutputBuffer;
+        public required ulong PosesBuffer;
+        public required int TotalInvocations;
     }
 }

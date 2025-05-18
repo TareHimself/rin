@@ -43,7 +43,7 @@ public class MainModule : IModule
                         {
                             var camera = world.AddActor<CameraActor>();
                             surf.Add(new TestViewport(camera));
-                            surf.Add(new Panel()
+                            surf.Add(new Panel
                             {
                                 Slots =
                                 [
@@ -52,7 +52,7 @@ public class MainModule : IModule
                                         Child = new FpsView(),
                                         MinAnchor = new Vector2(1f, 0f),
                                         MaxAnchor = new Vector2(1f, 0f),
-                                        Alignment = new Vector2(1f,0f),
+                                        Alignment = new Vector2(1f, 0f),
                                         SizeToContent = true
                                     }
                                 ]
@@ -107,8 +107,7 @@ public class MainModule : IModule
 
     public async Task<World> LoadSponza(string filename)
     {
-
-        var model = ModelRoot.Load(filename,ReadContext.Create((f) => SEngine.Get().Sources.Read(filename).ReadAll()));
+        var model = ModelRoot.Load(filename, ReadContext.Create(f => SEngine.Get().Sources.Read(filename).ReadAll()));
         var mesh = model?.LogicalMeshes?.FirstOrDefault() ?? throw new NullReferenceException();
         IMeshMaterial?[] materials = new SponzaMeshMaterial?[mesh.Primitives.Count];
         List<MeshSurface> surfaces = [];
@@ -201,7 +200,7 @@ public class MainModule : IModule
         {
             RootComponent = new DirectionalLightComponent
             {
-                Radiance = 0,
+                Radiance = 2,
                 Rotation = Quaternion.Identity.AddYaw(45)
             }
         });

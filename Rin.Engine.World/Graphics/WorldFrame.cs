@@ -14,10 +14,10 @@ public class WorldFrame(
     public Matrix4x4 Projection => projection;
 
     public Matrix4x4 ViewProjection { get; } = projection * view;
-    
+
     public IDeviceBufferView SceneInfo => worldInfo;
-    
-    public VkCommandBuffer CommandBuffer { get; } =  commandBuffer;
+
+    public VkCommandBuffer CommandBuffer { get; } = commandBuffer;
 
     public VkCommandBuffer GetCommandBuffer()
     {

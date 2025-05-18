@@ -14,7 +14,8 @@ public class SdlWindow : IWindow
     private readonly unsafe SDL_Window* _nativePtr;
 
 
-    private readonly List<string> _pendingDrop = [];
+    private readonly List<string> _pendingDropPaths = [];
+    private readonly List<string> _pendingDropTexts = [];
     private Vector2 _cursorPosition = Vector2.Zero;
 
     //public Vec2<uint> PixelSize;
@@ -339,6 +340,7 @@ public class SdlWindow : IWindow
 
     public void HandleEvent(in SDL_Event e)
     {
+        
         switch (e.Type)
         {
             case SDL_EventType.SDL_EVENT_FIRST:
@@ -595,22 +597,32 @@ public class SdlWindow : IWindow
             {
                 unsafe
                 {
-                    _pendingDrop.Add(Marshal.PtrToStringUTF8(new IntPtr(e.drop.data)) ?? "");
+                    _pendingDropTexts.Add(Marshal.PtrToStringUTF8(new IntPtr(e.drop.data)) ?? "");
                 }
             }
                 break;
             case SDL_EventType.SDL_EVENT_DROP_TEXT:
+            {
+                unsafe
+                {
+                    _pendingDropTexts.Add(Marshal.PtrToStringUTF8(new IntPtr(e.drop.data)) ?? "");
+                }
+            }
                 break;
             case SDL_EventType.SDL_EVENT_DROP_BEGIN:
-                _pendingDrop.Clear();
+                _pendingDropPaths.Clear();
+                _pendingDropTexts.Clear();
                 break;
             case SDL_EventType.SDL_EVENT_DROP_COMPLETE:
                 OnDrop?.Invoke(new DropEvent
                 {
                     Window = this,
-                    Paths = _pendingDrop.ToArray()
+                    Paths = _pendingDropPaths.ToArray(),
+                    Texts = _pendingDropTexts.ToArray()
                 });
-                _pendingDrop.Clear();
+                _pendingDropPaths.Clear();
+                _pendingDropTexts.Clear();
+                
                 break;
             case SDL_EventType.SDL_EVENT_DROP_POSITION:
                 break;

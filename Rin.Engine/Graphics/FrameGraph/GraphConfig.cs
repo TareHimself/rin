@@ -15,10 +15,11 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         Write
     }
 
+    private readonly Dictionary<uint, GraphConfigImage> _images = [];
+
     public readonly Dictionary<uint, List<Dependency>> PassDependencies = [];
     public readonly Dictionary<uint, List<ResourceAction>> ResourceActions = [];
     public readonly Dictionary<uint, IResourceDescriptor> Resources = [];
-    private readonly Dictionary<uint, GraphConfigImage> _images = [];
 
     public uint CurrentPassId { get; set; }
 
@@ -32,21 +33,9 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return resourceId;
     }
 
-    private ImageUsage DeriveImageUsage(ImageLayout layout) => layout switch
-    {
-        ImageLayout.Undefined => ImageUsage.None,
-        ImageLayout.General or ImageLayout.PresentSrc or ImageLayout.TransferSrc or ImageLayout.TransferDst =>
-            ImageUsage.TransferSrc | ImageUsage.TransferDst,
-        ImageLayout.ColorAttachment => ImageUsage.ColorAttachment,
-        ImageLayout.StencilAttachment => ImageUsage.StencilAttachment,
-        ImageLayout.DepthAttachment => ImageUsage.DepthAttachment,
-        ImageLayout.ShaderReadOnly => ImageUsage.Sampled,
-        _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
-    };
-
     public uint CreateImage(uint width, uint height, ImageFormat format, ImageLayout layout)
     {
-        return CreateImage(new Extent3D(width,height), format, layout);
+        return CreateImage(new Extent3D(width, height), format, layout);
     }
 
     public uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout layout)
@@ -63,7 +52,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
             _ => ImageUsage.None
         };
         var resourceId = builder.MakeId();
-        _images.Add(resourceId,new GraphConfigImage
+        _images.Add(resourceId, new GraphConfigImage
         {
             Extent = extent,
             Usage = DeriveImageUsage(layout) | flags,
@@ -71,7 +60,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         });
         //Resources.Add(resourceId, descriptor); // We do this at the end for images
         // This is always a write because the image was created here
-        UseImage(resourceId,layout, ResourceUsage.Write);
+        UseImage(resourceId, layout, ResourceUsage.Write);
         return resourceId;
     }
 
@@ -121,12 +110,9 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         }
 
         {
-            if (_images.TryGetValue(id, out var image))
-            {
-                image.Usage |= DeriveImageUsage(layout);
-            }
+            if (_images.TryGetValue(id, out var image)) image.Usage |= DeriveImageUsage(layout);
         }
-        
+
         return id;
     }
 
@@ -184,16 +170,32 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return passId;
     }
 
+    private ImageUsage DeriveImageUsage(ImageLayout layout)
+    {
+        return layout switch
+        {
+            ImageLayout.Undefined => ImageUsage.None,
+            ImageLayout.General or ImageLayout.PresentSrc or ImageLayout.TransferSrc or ImageLayout.TransferDst =>
+                ImageUsage.TransferSrc | ImageUsage.TransferDst,
+            ImageLayout.ColorAttachment => ImageUsage.ColorAttachment,
+            ImageLayout.StencilAttachment => ImageUsage.StencilAttachment,
+            ImageLayout.DepthAttachment => ImageUsage.DepthAttachment,
+            ImageLayout.ShaderReadOnly => ImageUsage.Sampled,
+            _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
+        };
+    }
+
     public void FillImageResources()
     {
         foreach (var (key, image) in _images)
         {
-            if (!image.Usage.HasFlag(ImageUsage.ColorAttachment) && !image.Usage.HasFlag(ImageUsage.StencilAttachment) && !image.Usage.HasFlag(ImageUsage.DepthAttachment) && !image.Usage.HasFlag(ImageUsage.Sampled) && !image.Usage.HasFlag(ImageUsage.Storage))
-            {
+            if (!image.Usage.HasFlag(ImageUsage.ColorAttachment) &&
+                !image.Usage.HasFlag(ImageUsage.StencilAttachment) &&
+                !image.Usage.HasFlag(ImageUsage.DepthAttachment) && !image.Usage.HasFlag(ImageUsage.Sampled) &&
+                !image.Usage.HasFlag(ImageUsage.Storage))
                 // We add this because vulkan images require one of the above at minimum
                 image.Usage |= ImageUsage.Sampled;
-            }
-            Resources.Add(key,new ImageResourceDescriptor(image.Extent,image.Format,image.Usage));
+            Resources.Add(key, new ImageResourceDescriptor(image.Extent, image.Format, image.Usage));
         }
     }
 

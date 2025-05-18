@@ -1,7 +1,7 @@
 #include "Engine/Shaders/utils.slang"
 #include "Engine/Shaders/sd.slang"
 #include "Engine/Shaders/images.slang"
-
+#include "Engine/Shaders/Attributes/blending.slang"
 enum QuadMode
 {
     Primitive,
@@ -112,7 +112,8 @@ struct Mtsdf {
 }
 
 #define SDF_HALF_STEP 0.5
-[shader("fragment")]
+
+[shader("fragment"),Attachment(AttachmentFormat.RGBA32), BlendUI,Stencil]
 float4 fragment(FSIn input)
     : SV_Target
     {

@@ -14,8 +14,8 @@ struct LambertModel : ILightModel {
     float3 eval(Surface surface, float3 eye, ILight light) {
         var L = -getLightDirectionToLocation(light, surface.getLocation());
 
-        var NoL = max(0.0f,dot(surface.getNormal(),L));
-        
+        var NoL = max(0.0f, dot(surface.getNormal(), L));
+        //return surface.getColor() * light.getRadiance() * light.getColor() * NoL;
         return surface.getColor() / PI * light.getRadiance() * light.getColor() * NoL;
     }
 }

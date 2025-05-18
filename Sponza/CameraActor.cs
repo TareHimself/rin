@@ -1,4 +1,5 @@
-﻿using Rin.Engine.World.Actors;
+﻿using System.Numerics;
+using Rin.Engine.World.Actors;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Components.Lights;
 
@@ -12,8 +13,9 @@ public class CameraActor : Actor
     {
         RootComponent = _camera = new CameraComponent();
         var light = AddComponent<PointLightComponent>();
-        light.Radiance = 5.0f;
+        light.Radiance = 0.0f;
         light.AttachTo(RootComponent);
+        SetLocation(new Vector3(0, 100, 0));
     }
 
     public CameraComponent GetCameraComponent()

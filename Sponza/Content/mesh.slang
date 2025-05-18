@@ -101,7 +101,8 @@ struct MeshSurface : ILambertSurface, IPBRSurface {
         return emissive;
     }
 }
-[shader("fragment")]
+
+[shader("fragment"), BlendOpaque, Depth]
 GBuffer fragment(FragmentIn input) : SV_Target
 {
 

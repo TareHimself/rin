@@ -4,7 +4,6 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Math;
-using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Engine.World.Graphics;
@@ -66,7 +65,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             ProcessedMesh[] meshes)
         {
             var cmd = frame.GetCommandBuffer();
-            
+
             //var push = Shader.PushConstants.Values.First();
             // var set = SGraphicsModule.Get().GetImageFactory().GetDescriptorSet();
             // cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, Shader.GetPipelineLayout(),
@@ -88,8 +87,8 @@ public class DefaultMeshMaterial : IMeshMaterial
                 SceneAddress = frame.SceneInfo.GetAddress(),
                 DataAddress = data!.GetAddress()
             };
-            
-            Shader.Push(cmd,pushData);
+
+            Shader.Push(cmd, pushData);
             //cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
             vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, first.IndicesStart, (int)first.VertexStart,
                 0);
@@ -213,7 +212,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             ProcessedMesh[] meshes)
         {
             var cmd = frame.GetCommandBuffer();
-            
+
             //var push = Shader.PushConstants.Values.First();
 
             ulong memoryUsed = 0;
@@ -233,7 +232,7 @@ public class DefaultMeshMaterial : IMeshMaterial
                 DataAddress = data!.GetAddress()
             };
 
-            Shader.Push(cmd,pushData);
+            Shader.Push(cmd, pushData);
             //cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
             vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, first.IndicesStart, (int)first.VertexStart,
                 0);

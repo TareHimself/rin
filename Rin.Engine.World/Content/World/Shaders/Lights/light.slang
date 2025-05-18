@@ -1,3 +1,4 @@
+#pragma once
 #ifndef RIN_LIGHT_TILE_MAX_BINS
 #define RIN_LIGHT_TILE_MAX_BINS 1024
 #endif
@@ -64,7 +65,7 @@ float3 getLightDirectionToLocation(ILight light, float3 location) {
     case LightType.Point:
         return normalize(location - light.getLocation());
     default:
-        return light.getDirection();
+        return normalize(light.getDirection());
     }
 }
 

@@ -2,10 +2,10 @@
 
 namespace Rin.Engine.Graphics;
 
-public struct SamplerSpec
+public record struct SamplerSpec
 {
-    public ImageTiling Tiling;
-    public ImageFilter Filter;
+    public required ImageFilter Filter;
+    public required ImageTiling Tiling;
 
     public static implicit operator VkSampler(SamplerSpec spec)
     {
