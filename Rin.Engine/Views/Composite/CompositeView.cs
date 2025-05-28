@@ -19,7 +19,7 @@ public abstract class CompositeView : View
         return ArrangeContent(availableSpace);
     }
 
-    public override void HandleEvent(SurfaceEvent e, in Matrix4x4 transform)
+    public override void HandleEvent(ISurfaceEvent e, in Matrix4x4 transform)
     {
         var withPadding = transform.Translate(new Vector2(Padding.Left, Padding.Top));
         var slots = ComputeHitTestableSlotsForEvent(e, withPadding);
@@ -39,7 +39,7 @@ public abstract class CompositeView : View
         base.HandleEvent(e, transform);
     }
 
-    protected virtual Pair<ISlot, Matrix4x4>[] ComputeHitTestableSlotsForEvent(SurfaceEvent e, Matrix4x4 transform)
+    protected virtual Pair<ISlot, Matrix4x4>[] ComputeHitTestableSlotsForEvent(ISurfaceEvent e, Matrix4x4 transform)
     {
         switch (e)
         {

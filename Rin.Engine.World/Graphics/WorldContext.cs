@@ -18,7 +18,15 @@ public class WorldContext
     [PublicAPI] public SkinnedMeshInfo[] SkinnedGeometry;
     [PublicAPI] public StaticMeshInfo[] StaticGeometry;
     [PublicAPI] public Transform ViewTransform;
-
+    
+    
+    [PublicAPI] public uint[] IndirectCommandBuffers;
+    [PublicAPI] public uint[] DepthIndirectCommandBuffers;
+    [PublicAPI] public uint[] IndirectCommandCountBuffers;
+    [PublicAPI] public uint[] DepthIndirectCommandCountBuffers;
+    
+    [PublicAPI] public uint[] IndirectMaterialDataBuffers;
+    [PublicAPI] public uint[] DepthIndirectMaterialDataBuffers;
     public WorldContext(CameraComponent viewer, in Extent2D extent)
     {
         var world = viewer.Owner?.World ?? throw new Exception("Camera is not in a scene");
@@ -37,6 +45,8 @@ public class WorldContext
         SkinnedGeometry = drawCommands.SkinnedMeshes.ToArray();
         Lights = drawCommands.Lights.ToArray();
     }
+    
+    public uint InitPassId { get; set; }
 
     public uint DepthImageId { get; set; }
 
@@ -56,6 +66,9 @@ public class WorldContext
             foreach (var processedSkinnedMesh in ProcessedSkinnedMeshes) yield return processedSkinnedMesh;
         }
     }
+    
+    [PublicAPI] public ProcessedMesh[][] DepthIndirectGroups = [];
+    [PublicAPI] public ProcessedMesh[][] IndirectGroups = [];
 
     [PublicAPI] public Matrix4x4 View { get; set; }
     [PublicAPI] public Matrix4x4 Projection { get; }
@@ -79,8 +92,9 @@ public class WorldContext
     /// <summary>
     ///     Process and cull meshes
     /// </summary>
-    public void ProcessMeshes()
+    public void Init(uint passId)
     {
+        InitPassId = passId;
         var staticMeshes = new List<ProcessedMesh>();
         var skeletalMeshes = new List<ProcessedMesh>();
         foreach (var mesh in StaticGeometry)
@@ -132,5 +146,8 @@ public class WorldContext
 
         ProcessedStaticMeshes = staticMeshes.ToArray();
         ProcessedSkinnedMeshes = skeletalMeshes.ToArray();
+        
+        IndirectGroups = ProcessedMeshes.GroupBy((c) => c, new ProcessedMesh.CompareIndirectBatch()).Select(c => c.ToArray()).ToArray();
+        DepthIndirectGroups = ProcessedMeshes.GroupBy((c) => c, new ProcessedMesh.CompareIndirectBatchDepth()).Select(c => c.ToArray()).ToArray();
     }
 }

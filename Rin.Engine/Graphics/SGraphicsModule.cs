@@ -29,7 +29,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingGraphicsSubmits = [];
     private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingTransferSubmits = [];
     private readonly List<IRenderer> _renderers = [];
-    private readonly Dictionary<nuint, SdlWindow> _sdlWindows = [];
+    private readonly Dictionary<IntPtr, RinWindow> _rinWindows = [];
     private readonly BackgroundTaskQueue _transferQueueThread = new();
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
     private Allocator? _allocator;
@@ -128,27 +128,44 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     /// </summary>
     public void Update(float deltaTime)
     {
-        // NativeMethods.PollEvents();
-        SDL_PumpEvents();
+        Native.Platform.Window.PumpEvents();
 
         unsafe
         {
-            var events = stackalloc SDL_Event[_maxEventsPerPeep];
+            var events = stackalloc Native.Platform.Window.WindowEvent[_maxEventsPerPeep];
             var eventsPumped = 0;
             do
             {
-                eventsPumped = SDL_PeepEvents(events, _maxEventsPerPeep, SDL_EventAction.SDL_GETEVENT,
-                    (uint)SDL_EventType.SDL_EVENT_FIRST, (uint)SDL_EventType.SDL_EVENT_LAST);
+                eventsPumped = Native.Platform.Window.GetEvents(events, _maxEventsPerPeep);
                 for (var i = 0; i < eventsPumped; i++)
                 {
                     var e = events + i;
-                    var windowPtr = SDL_GetWindowFromEvent(e);
-                    if (windowPtr == null) continue;
-                    var window = _sdlWindows[(nuint)windowPtr];
-                    window.HandleEvent(*e);
+                    var window = _rinWindows[e->info.handle];
+                    window.ProcessEvent(*e);
                 }
             } while (eventsPumped == _maxEventsPerPeep);
         }
+
+        // SDL_PumpEvents();
+        //
+        // unsafe
+        // {
+        //     var events = stackalloc SDL_Event[_maxEventsPerPeep];
+        //     var eventsPumped = 0;
+        //     do
+        //     {
+        //         eventsPumped = SDL_PeepEvents(events, _maxEventsPerPeep, SDL_EventAction.SDL_GETEVENT,
+        //             (uint)SDL_EventType.SDL_EVENT_FIRST, (uint)SDL_EventType.SDL_EVENT_LAST);
+        //         for (var i = 0; i < eventsPumped; i++)
+        //         {
+        //             var e = events + i;
+        //             var windowPtr = SDL_GetWindowFromEvent(e);
+        //             if (windowPtr == null) continue;
+        //             var window = _rinWindows[(nuint)windowPtr];
+        //             window.HandleEvent(*e);
+        //         }
+        //     } while (eventsPumped == _maxEventsPerPeep);
+        // }
     }
 
     public event Action<IWindow>? OnWindowClosed;
@@ -251,27 +268,11 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         var outDebugMessenger = _debugUtilsMessenger;
 
         // We create a window just for surface information
-        using var window = Internal_CreateWindow(1, 1, "Graphics Init Window", new CreateOptions
-        {
-            Visible = false,
-            Decorated = false,
-            Resizable = false
-        });
+        using var window = Internal_CreateWindow(1, 1, "Graphics Init Window") as RinWindow ?? throw new NullReferenceException();
 
         Update(0);
 
-        uint extensionCount = 0;
-        var extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
-        Native.Vulkan.CreateInstance(extensions, extensionCount, inst =>
-            {
-                VkSurfaceKHR surface = new();
-                var surfValuePtr = &surface.Value;
-                // ReSharper disable once AccessToDisposedClosure
-                var windowPtr = (SDL_Window*)window.GetPtr();
-                SDL_Vulkan_CreateSurface(windowPtr, (VkInstance_T*)inst.Value, null,
-                    (VkSurfaceKHR_T**)surfValuePtr);
-                return surface;
-            },
+        Native.Vulkan.CreateInstance(window.GetHandle(),
             &outInstance,
             &outDevice,
             &outPhysicalDevice,
@@ -441,49 +442,46 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     //     }
     // }
 
-    private IWindow Internal_CreateWindow(int width, int height, string name, CreateOptions? options = null,
+    private IWindow Internal_CreateWindow(int width, int height, string name, WindowFlags flags = WindowFlags.None,
         IWindow? parent = null
     )
     {
         unsafe
         {
-            var opts = options.GetValueOrDefault(new CreateOptions());
+            // var opts = options.GetValueOrDefault(new CreateOptions());
+            //
+            // var flags = SDL_WindowFlags.SDL_WINDOW_VULKAN;
+            //
+            // if (opts.Resizable) flags |= SDL_WindowFlags.SDL_WINDOW_RESIZABLE;
+            //
+            // if (!opts.Visible) flags |= SDL_WindowFlags.SDL_WINDOW_HIDDEN;
+            //
+            // if (!opts.Decorated) flags |= SDL_WindowFlags.SDL_WINDOW_BORDERLESS;
+            //
+            // if (opts.Focused) flags |= SDL_WindowFlags.SDL_WINDOW_INPUT_FOCUS | SDL_WindowFlags.SDL_WINDOW_MOUSE_FOCUS;
+            //
+            // if (opts.Floating) flags |= SDL_WindowFlags.SDL_WINDOW_ALWAYS_ON_TOP;
+            //
+            // if (opts.Transparent) flags |= SDL_WindowFlags.SDL_WINDOW_TRANSPARENT;
 
-            var flags = SDL_WindowFlags.SDL_WINDOW_VULKAN;
+            var handle = Native.Platform.Window.Create(name, width, height,flags);
+                
+            var win = new RinWindow(handle, parent);
+                
+            _rinWindows.Add(handle, win);
 
-            if (opts.Resizable) flags |= SDL_WindowFlags.SDL_WINDOW_RESIZABLE;
+            win.OnDispose += () => { _rinWindows.Remove(handle); };
 
-            if (!opts.Visible) flags |= SDL_WindowFlags.SDL_WINDOW_HIDDEN;
-
-            if (!opts.Decorated) flags |= SDL_WindowFlags.SDL_WINDOW_BORDERLESS;
-
-            if (opts.Focused) flags |= SDL_WindowFlags.SDL_WINDOW_INPUT_FOCUS | SDL_WindowFlags.SDL_WINDOW_MOUSE_FOCUS;
-
-            if (opts.Floating) flags |= SDL_WindowFlags.SDL_WINDOW_ALWAYS_ON_TOP;
-
-            if (opts.Transparent) flags |= SDL_WindowFlags.SDL_WINDOW_TRANSPARENT;
-
-            fixed (byte* data = Encoding.UTF8.GetBytes(name))
-            {
-                var windowPtr = SDL_CreateWindow(data, width, height, flags);
-
-                var win = new SdlWindow(windowPtr, parent);
-
-                _sdlWindows.Add((nuint)windowPtr, win);
-
-                win.OnDisposed += () => { _sdlWindows.Remove((nuint)windowPtr); };
-
-                return win;
-            }
+            return win;
         }
     }
 
-    public IWindow CreateWindow(int width, int height, string name, CreateOptions? options = null,
+    public IWindow CreateWindow(int width, int height, string name, WindowFlags flags = WindowFlags.Visible,
         IWindow? parent = null
     )
     {
-        var window = Internal_CreateWindow(width, height, name, options, parent);
-        window.OnDisposed += () =>
+        var window = Internal_CreateWindow(width, height, name, flags, parent);
+        window.OnDispose += () =>
         {
             HandleWindowClosed(window);
             //NativeMethods.Destroy(window.GetPtr());
@@ -573,6 +571,19 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
             layerCount = VK_REMAINING_ARRAY_LAYERS
         };
     }
+    
+    
+    public static VkImageSubresourceRange MakeImageSubresourceRange(ImageFormat format)
+    {
+        return new VkImageSubresourceRange
+        {
+            aspectMask = format.ToAspectFlags(),
+            baseMipLevel = 0,
+            levelCount = VK_REMAINING_MIP_LEVELS,
+            baseArrayLayer = 0,
+            layerCount = VK_REMAINING_ARRAY_LAYERS
+        };
+    }
 
     private static uint DeriveMipLevels(Extent2D extent)
     {
@@ -610,6 +621,13 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
             VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
             VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true, debugName);
+    }
+    
+    public IDeviceBuffer NewBuffer(ulong size,VkBufferUsageFlags usage, bool sequentialWrite = true,
+        bool mapped = true,string debugName = "Buffer")
+    {
+        return GetAllocator().NewBuffer(size,usage,mapped ? 
+            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sequentialWrite, false, mapped, debugName);
     }
 
     /// <summary>

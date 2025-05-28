@@ -184,7 +184,7 @@ public class SSceneTestModule : IModule
 
             var window = surf.GetRenderer().GetWindow();
 
-            window.OnCloseRequested += _ =>
+            window.OnClose += _ =>
             {
                 if (window.Parent != null)
                     window.Dispose();
@@ -214,12 +214,7 @@ public class SSceneTestModule : IModule
                 ]
             });
         };
-        SGraphicsModule.Get().CreateWindow(500, 500, "Rin Scene Test", new CreateOptions
-        {
-            Visible = true,
-            Decorated = true,
-            Transparent = false
-        });
+        SGraphicsModule.Get().CreateWindow(500, 500, "Rin Scene Test");
     }
 
     public void Stop(SEngine engine)

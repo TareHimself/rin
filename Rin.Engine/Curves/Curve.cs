@@ -5,7 +5,7 @@ public abstract class Curve<TValue, TInterpolatedValue> : ICurve<TInterpolatedVa
 {
     private readonly SortedList<float, TValue> _points = [];
 
-    public TInterpolatedValue Evaluate(float time)
+    public TInterpolatedValue Sample(float time)
     {
         if (_points.Count < 1) throw new IndexOutOfRangeException();
         if (_points.Count == 1) return ToInterpolatedValue(_points[_points.Keys.First()]);

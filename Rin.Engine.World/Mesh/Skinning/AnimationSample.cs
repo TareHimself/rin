@@ -38,7 +38,7 @@ public class AnimationSample
     {
         return new Pose
         {
-            Transforms = BoneCurves.ToFrozenDictionary(c => c.Key, c => c.Value.Evaluate(time))
+            Transforms = BoneCurves.ToFrozenDictionary(c => c.Key, c => c.Value.Sample(time))
         };
     }
 }

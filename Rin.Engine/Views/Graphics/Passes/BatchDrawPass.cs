@@ -78,42 +78,34 @@ public sealed class BatchDrawPass : IViewsPass
 
         var memoryNeeded = _batchSizes.Aggregate<ulong, ulong>(0, (t, c) => t + c);
 
-        if (memoryNeeded > 0) _bufferId = config.CreateBuffer(memoryNeeded, BufferStage.Graphics);
+        if (memoryNeeded > 0) _bufferId = config.CreateBuffer(memoryNeeded,GraphBufferUsage.HostThenGraphics);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var cmd = ctx.GetCommandBuffer();
-
         var drawImage = graph.GetImage(MainImageId);
         var stencilImage = graph.GetImage(StencilImageId);
         var buffer = graph.GetBufferOrNull(_bufferId);
 
-        var viewFrame = new ViewsFrame(Context, cmd);
+        var viewFrame = new ViewsFrame(Context, ctx);
 
         // foreach (var command in _passInfo.PreCommands) command.Execute(viewFrame);
-        cmd.BeginRendering(_extent, [
-                drawImage.MakeColorAttachmentInfo()
-            ],
-            stencilAttachment: stencilImage.MakeStencilAttachmentInfo()
-        );
 
-        cmd.SetViewState(_extent);
-        var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
-        vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
-            VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
-            VkCompareOp.VK_COMPARE_OP_NOT_EQUAL);
-
+        ctx.BeginRendering(_extent, [drawImage], stencilAttachment: stencilImage)
+            .DisableFaceCulling()
+            .StencilCompareOnly();
+        
         var compareMask = uint.MaxValue;
 
         ulong offset = 0;
         for (var i = 0; i < _batches.Count; i++)
         {
+            
             var (batch, currentCompareMask) = _batches[i];
             if (currentCompareMask != compareMask)
             {
                 compareMask = currentCompareMask;
-                vkCmdSetStencilCompareMask(cmd, faceFlags, compareMask);
+                ctx.SetStencilCompareMask(compareMask);
             }
 
             var batcher = batch.GetBatcher();
@@ -123,7 +115,7 @@ public sealed class BatchDrawPass : IViewsPass
             offset += bufferSize;
         }
 
-        cmd.EndRendering();
+        ctx.EndRendering();
     }
 
     public static IViewsPass Create(PassCreateInfo info)
@@ -132,15 +124,4 @@ public sealed class BatchDrawPass : IViewsPass
     }
 
     public uint Id { get; set; }
-
-    private static void ResetStencilState(VkCommandBuffer cmd,
-        VkStencilFaceFlags faceMask = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK)
-    {
-        vkCmdSetStencilTestEnable(cmd, 1);
-        vkCmdSetStencilReference(cmd, faceMask, 255);
-        vkCmdSetStencilWriteMask(cmd, faceMask, 0x01);
-        vkCmdSetStencilCompareMask(cmd, faceMask, 0x01);
-        vkCmdSetStencilOp(cmd, faceMask, VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
-            VkStencilOp.VK_STENCIL_OP_KEEP, VkCompareOp.VK_COMPARE_OP_NEVER);
-    }
 }

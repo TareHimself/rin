@@ -40,36 +40,23 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
         config.WriteImage(MainImageId, ImageLayout.ColorAttachment);
         config.ReadImage(StencilImageId, ImageLayout.StencilAttachment);
         _customCommands = info.Commands.Cast<CustomShaderCommand>().ToArray();
-        BufferId = config.CreateBuffer<Data>(_customCommands.Length, BufferStage.Graphics);
+        BufferId = config.CreateBuffer<Data>(_customCommands.Length,GraphBufferUsage.HostThenGraphics);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var cmd = ctx.GetCommandBuffer();
-        if (_prettyShader.Bind(cmd))
+        if (_prettyShader.Bind(ctx))
         {
             var drawImage = graph.GetImage(MainImageId);
             var stencilImage = graph.GetImage(StencilImageId);
             var view = graph.GetBufferOrException(BufferId);
 
-            cmd.BeginRendering(info.Context.Extent, [
-                    drawImage.MakeColorAttachmentInfo()
-                ],
-                stencilAttachment: stencilImage.MakeStencilAttachmentInfo()
-            );
-
-            cmd.SetViewState(info.Context.Extent);
-            var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
-
-            cmd.SetStencilCompareMask();
-            vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
-                VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
-                VkCompareOp.VK_COMPARE_OP_NOT_EQUAL);
-
-            var compareMask = uint.MaxValue;
+            ctx.BeginRendering(info.Context.Extent, [drawImage], stencilAttachment: stencilImage)
+                .DisableFaceCulling()
+                .StencilCompareOnly();
             foreach (var customShaderCommand in _customCommands)
             {
-                vkCmdSetStencilCompareMask(cmd, faceFlags, customShaderCommand.StencilMask);
+                ctx.SetStencilCompareMask(customShaderCommand.StencilMask);
                 var pushResource = _prettyShader.PushConstants.First().Value;
                 var extent = info.Context.Extent;
                 var screenSize = new Vector2(extent.Width, extent.Height);
@@ -83,12 +70,12 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
                     Center = customShaderCommand.Hovered ? customShaderCommand.CursorPosition : screenSize / 2.0f
                 };
                 view.Write(data);
-                _prettyShader.Push(cmd, view.GetAddress());
-                //cmd.PushConstant(_prettyShader.GetPipelineLayout(), pushResource.Stages, view.GetAddress());
-                cmd.Draw(6);
+                _prettyShader.Push(ctx,view.GetAddress());
+                ctx
+                    .Draw(6);
             }
 
-            cmd.EndRendering();
+            ctx.EndRendering();
         }
     }
 

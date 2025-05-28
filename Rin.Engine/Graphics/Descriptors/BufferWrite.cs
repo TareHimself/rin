@@ -1,6 +1,6 @@
 ﻿namespace Rin.Engine.Graphics.Descriptors;
 
-public class BufferWrite
+public readonly struct BufferWrite
 {
     public readonly IDeviceBuffer Buffer;
     public readonly ulong Offset;
@@ -33,7 +33,7 @@ public class BufferWrite
     /// <param name="size">The size of the write from the offset</param>
     public BufferWrite(IDeviceBufferView view, BufferType type, ulong? offset = null, ulong? size = null)
     {
-        Buffer = view.DeviceBuffer;
+        Buffer = view.Buffer;
         Type = type;
         Offset = view.Offset + offset.GetValueOrDefault(0);
         Size = size.GetValueOrDefault(view.Size);

@@ -30,12 +30,9 @@ public class ReadBackPass(SharedPassContext sharedContext) : IViewsPass
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var cmd = ctx.GetCommandBuffer();
         var mainImage = graph.GetImageOrException(MainImageId);
         var copyImage = graph.GetImageOrException(CopyImageId);
-
-        cmd
-            .CopyImageToImage(mainImage, copyImage);
+        ctx.CopyToImage(mainImage,copyImage);
     }
 
     public static IViewsPass Create(PassCreateInfo info)

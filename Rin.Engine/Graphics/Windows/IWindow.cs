@@ -17,35 +17,62 @@ public interface IWindow : IDisposable
 
     public event Action<CursorEvent>? OnCursorEnter;
     public event Action<WindowEvent>? OnCursorLeave;
-    public event Action<FocusEvent>? OnFocused;
-    public event Action<ScrollEvent>? OnScrolled;
-    public event Action<ResizeEvent>? OnResized;
-    public event Action<CloseEvent>? OnCloseRequested;
+    public event Action<FocusEvent>? OnFocus;
+    public event Action<ScrollEvent>? OnScroll;
+    public event Action<ResizeEvent>? OnResize;
+    public event Action<CloseEvent>? OnClose;
     public event Action<CharacterEvent>? OnCharacter;
-    public event Action<MaximizedEvent>? OnMaximized;
+    public event Action<MaximizeEvent>? OnMaximize;
     public event Action<RefreshEvent>? OnRefresh;
-    public event Action<MinimizeEvent>? OnMinimized;
+    public event Action<MinimizeEvent>? OnMinimize;
     public event Action<DropEvent>? OnDrop;
 
+    public void SetHitTestCallback(Func<WindowHitTestResult, IWindow>? callback);
+
+    /// <summary>
+    /// Gets the position of the cursor relative to the drawable area of this window
+    /// </summary>
+    /// <returns></returns>
     public Vector2 GetCursorPosition();
 
-    public void SetCursorPosition(Vector2 position);
+    /// <summary>
+    /// Sets the position of the cursor relative to the drawable area of this window
+    /// </summary>
+    /// <param name="position"></param>
+    public void SetCursorPosition(in Vector2 position);
 
+    
     public void SetFullscreen(bool state);
 
-    public void SetSize(int width, int height);
+    /// <summary>
+    /// Sets the size of this window
+    /// </summary>
+    /// <param name="size"></param>
+    public void SetSize(in Extent2D size);
 
-    public void SetPosition(int x, int y);
+    /// <summary>
+    /// Sets the position of the window
+    /// </summary>
+    /// <param name="position"></param>
+    public void SetPosition(in Offset2D position);
 
-    public Vector2<uint> GetPixelSize();
+    /// <summary>
+    /// Gets the rect for the drawable area of this window
+    /// </summary>
+    /// <returns></returns>
+    public WindowRect GetDrawRect();
+    
+    /// <summary>
+    /// Gets the rect for this window
+    /// </summary>
+    /// <returns></returns>
+    public WindowRect GetRect();
 
-    public nuint GetPtr();
-
-    public IWindow CreateChild(int width, int height, string name, CreateOptions? options = null);
+    public IWindow CreateChild(int width, int height, string name, WindowFlags flags = WindowFlags.Visible);
 
     public void StartTyping();
 
     public void StopTyping();
 
-    public event Action? OnDisposed;
+    public event Action? OnDispose;
 }

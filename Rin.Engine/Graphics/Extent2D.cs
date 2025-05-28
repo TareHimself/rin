@@ -7,10 +7,11 @@ namespace Rin.Engine.Graphics;
 
 public record struct Extent2D : IEqualityOperators<Extent2D, Vector2<uint>, bool>, IFormattable
 {
-    [PublicAPI] public uint Height = 0;
-
+    
     [PublicAPI] public uint Width = 0;
-
+    
+    [PublicAPI] public uint Height = 0;
+    
     public Extent2D()
     {
     }

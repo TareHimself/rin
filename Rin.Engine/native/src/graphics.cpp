@@ -1,11 +1,13 @@
 #define VMA_IMPLEMENTATION
 //#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #include "graphics.hpp"
+
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #include <vulkan/vulkan.hpp>
 #include <VkBootstrap.h>
 #include <iostream>
 #include <slang.h>
+#include "platform.hpp"
 
 #define VK_DISPATCH_CHECKED(FUNCTION,...) \
 if(VULKAN_HPP_DEFAULT_DISPATCHER.FUNCTION == nullptr) \
@@ -14,7 +16,7 @@ if(VULKAN_HPP_DEFAULT_DISPATCHER.FUNCTION == nullptr) \
 } \
 return VULKAN_HPP_DEFAULT_DISPATCHER.FUNCTION(__VA_ARGS__);
 
-EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions, CreateSurfaceCallback createSurfaceCallback, VkInstance* outInstance, VkDevice* outDevice,
+EXPORT_IMPL void createVulkanInstance(void * windowHandle, VkInstance* outInstance, VkDevice* outDevice,
     VkPhysicalDevice* outPhysicalDevice, VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily, VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,
     VkSurfaceKHR* outSurface,
     VkDebugUtilsMessengerEXT* outMessenger)
@@ -31,12 +33,14 @@ EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions,
     builder
         .set_app_name("Rin Engine")
         .require_api_version(1,3,0)
-
+#ifdef RIN_PLATFORM_WIN
+        .enable_extension("VK_KHR_win32_surface")
+#endif
         //.request_validation_layers(true)
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
         .use_default_debug_messenger()
 #endif
-        .enable_extensions(numExtensions,extensions);
+        .enable_extension("VK_KHR_surface");
 
 
     //builder.enable_extension(vk::EXTShaderObjectExtensionName);
@@ -67,9 +71,6 @@ EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions,
     *outMessenger = vkbInstance.debug_messenger;
 #endif
 
-    vk::PhysicalDeviceShaderObjectFeaturesEXT shaderObjectFeatures{};
-    shaderObjectFeatures.setShaderObject(true);
-
     vk::PhysicalDeviceVulkan13Features features{};
     features.dynamicRendering = true;
     features.synchronization2 = true;
@@ -88,9 +89,10 @@ EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions,
         .setDescriptorBindingStorageBufferUpdateAfterBind(true)
         .setDescriptorBindingVariableDescriptorCount(true)
         .setScalarBlockLayout(true)
+        .setDrawIndirectCount(true)
         .setBufferDeviceAddress(true);
 
-    VkSurfaceKHR surf = createSurfaceCallback(instance);
+    VkSurfaceKHR surf = platformWindowCreateSurface(instance,windowHandle);
     vkb::PhysicalDeviceSelector selector{vkbInstance};
 
     //selector.add_required_extension(vk::EXTShaderObjectExtensionName);
@@ -117,7 +119,7 @@ EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions,
         throw std::runtime_error("");
     }
 
-    vkb::PhysicalDevice physicalDevice = physicalDeviceResult.value();
+    const vkb::PhysicalDevice& physicalDevice = physicalDeviceResult.value();
 
     //physicalDevice.enable_extension_if_present(vk::EXTShaderObjectExtensionName);
     vkb::DeviceBuilder deviceBuilder{physicalDevice};
@@ -130,7 +132,7 @@ EXPORT_IMPL void createVulkanInstance(char** extensions, uint32_t numExtensions,
         throw std::runtime_error("");
     }
 
-    vkb::Device vkbDevice = deviceResult.value();
+    const vkb::Device& vkbDevice = deviceResult.value();
 
     auto device = vkbDevice.device;
 

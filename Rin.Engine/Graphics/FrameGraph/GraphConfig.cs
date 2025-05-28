@@ -1,4 +1,7 @@
-﻿namespace Rin.Engine.Graphics.FrameGraph;
+﻿using System.Diagnostics;
+using TerraFX.Interop.Vulkan;
+
+namespace Rin.Engine.Graphics.FrameGraph;
 
 public class GraphConfig(GraphBuilder builder) : IGraphConfig
 {
@@ -16,6 +19,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     }
 
     private readonly Dictionary<uint, GraphConfigImage> _images = [];
+    private readonly Dictionary<uint, GraphConfigBuffer> _buffers = [];
 
     public readonly Dictionary<uint, List<Dependency>> PassDependencies = [];
     public readonly Dictionary<uint, List<ResourceAction>> ResourceActions = [];
@@ -60,31 +64,67 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         });
         //Resources.Add(resourceId, descriptor); // We do this at the end for images
         // This is always a write because the image was created here
-        UseImage(resourceId, layout, ResourceUsage.Write);
+        UseImage(resourceId, layout, ResourceOperation.Write);
         return resourceId;
     }
-
-    public uint CreateBuffer(ulong size, BufferStage stage)
+    
+    private BufferUsage GraphBufferUsageToBufferUsage(GraphBufferUsage usage)
     {
-        var descriptor = new BufferResourceDescriptor(size);
+        return usage switch
+        {
+            GraphBufferUsage.Undefined => BufferUsage.Undefined,
+            GraphBufferUsage.Transfer or GraphBufferUsage.HostThenTransfer => BufferUsage.Transfer,
+            GraphBufferUsage.Graphics or GraphBufferUsage.HostThenGraphics => BufferUsage.Graphics,
+            GraphBufferUsage.Compute or GraphBufferUsage.HostThenCompute => BufferUsage.Compute,
+            GraphBufferUsage.Indirect or GraphBufferUsage.HostThenIndirect => BufferUsage.Indirect,
+            _ => throw new ArgumentOutOfRangeException(nameof(usage), usage, null)
+        };
+    }
+
+    private VkBufferUsageFlags GraphBufferUsageToVkUsage(GraphBufferUsage usage)
+    {
+        return usage switch
+        {
+            GraphBufferUsage.Transfer or GraphBufferUsage.HostThenTransfer => VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_DST_BIT | VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            GraphBufferUsage.Indirect or GraphBufferUsage.HostThenIndirect => VkBufferUsageFlags.VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+            _ => 0
+        };
+    }
+    
+    private bool WillUsageRequireMapping(GraphBufferUsage usage)
+    {
+        return usage switch
+        {
+             GraphBufferUsage.HostThenCompute or GraphBufferUsage.HostThenGraphics or GraphBufferUsage.HostThenIndirect or GraphBufferUsage.HostThenTransfer => true,
+            _ => false
+        };
+    }
+    public uint CreateBuffer(ulong size, GraphBufferUsage usage)
+    {
         var resourceId = builder.MakeId();
         // _memory.Add(resourceId, descriptor);
-        Resources.Add(resourceId, descriptor);
-        UseBuffer(resourceId, stage, ResourceUsage.Write);
+        _buffers.Add(resourceId,new GraphConfigBuffer
+        {
+            Size = size,
+            Usage = GraphBufferUsageToVkUsage(usage),
+            Mapped = WillUsageRequireMapping(usage)
+        });
+        UseBuffer(resourceId, usage, ResourceOperation.Write);
         //Write(resourceId);
         return resourceId;
     }
 
-    public uint UseImage(uint id, ImageLayout layout, ResourceUsage usage)
+    public uint UseImage(uint id, ImageLayout layout, ResourceOperation operation)
     {
+        Debug.Assert(id != 0,"Invalid Image Id");
         {
             var dep = new Dependency
             {
-                Type = usage switch
+                Type = operation switch
                 {
-                    ResourceUsage.Write => DependencyType.Write,
-                    ResourceUsage.Read => DependencyType.Read,
-                    _ => throw new ArgumentOutOfRangeException(nameof(usage), usage, null)
+                    ResourceOperation.Write => DependencyType.Write,
+                    ResourceOperation.Read => DependencyType.Read,
+                    _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null)
                 },
                 Id = id
             };
@@ -97,7 +137,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         {
             var action = new ResourceAction
             {
-                Usage = usage,
+                Operation = operation,
                 PassId = CurrentPassId,
                 Type = ResourceType.Image,
                 ImageLayout = layout
@@ -116,16 +156,17 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return id;
     }
 
-    public uint UseBuffer(uint id, BufferStage stage, ResourceUsage usage)
+    public uint UseBuffer(uint id, GraphBufferUsage usage, ResourceOperation operation)
     {
+        Debug.Assert(id != 0,"Invalid Buffer Id");
         {
             var dep = new Dependency
             {
-                Type = usage switch
+                Type = operation switch
                 {
-                    ResourceUsage.Write => DependencyType.Write,
-                    ResourceUsage.Read => DependencyType.Read,
-                    _ => throw new ArgumentOutOfRangeException(nameof(usage), usage, null)
+                    ResourceOperation.Write => DependencyType.Write,
+                    ResourceOperation.Read => DependencyType.Read,
+                    _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null)
                 },
                 Id = id
             };
@@ -138,10 +179,10 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         {
             var action = new ResourceAction
             {
-                Usage = usage,
+                Operation = operation,
                 PassId = CurrentPassId,
                 Type = ResourceType.Buffer,
-                BufferStage = stage
+                BufferUsage = GraphBufferUsageToBufferUsage(usage)
             };
 
             if (ResourceActions.TryGetValue(id, out var passes))
@@ -149,11 +190,16 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
             else
                 ResourceActions.Add(id, [action]);
         }
+
+        var configBuffer = _buffers[id];
+        configBuffer.Usage |= GraphBufferUsageToVkUsage(usage);
+        configBuffer.Mapped = configBuffer.Mapped || WillUsageRequireMapping(usage);
         return id;
     }
 
     public uint DependOn(uint passId)
     {
+        Debug.Assert(passId != 0,"Invalid Pass Id");
         if (passId == 0) throw new Exception();
         {
             var dep = new Dependency
@@ -185,7 +231,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         };
     }
 
-    public void FillImageResources()
+    public void FillResources()
     {
         foreach (var (key, image) in _images)
         {
@@ -197,6 +243,11 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
                 image.Usage |= ImageUsage.Sampled;
             Resources.Add(key, new ImageResourceDescriptor(image.Extent, image.Format, image.Usage));
         }
+
+        foreach (var (key, buffer) in _buffers)
+        {
+            Resources.Add(key,new BufferResourceDescriptor(buffer.Size,buffer.Usage,buffer.Mapped));
+        }
     }
 
     public class Dependency
@@ -207,10 +258,10 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public class ResourceAction
     {
-        public required ResourceUsage Usage { get; set; }
+        public required ResourceOperation Operation { get; set; }
         public required uint PassId { get; set; }
         public required ResourceType Type { get; set; }
         public ImageLayout ImageLayout { get; set; }
-        public BufferStage BufferStage { get; set; }
+        public BufferUsage BufferUsage { get; set; }
     }
 }

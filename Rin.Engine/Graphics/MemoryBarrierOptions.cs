@@ -19,68 +19,66 @@ public struct MemoryBarrierOptions
     {
     }
 
-    public MemoryBarrierOptions(BufferStage fromStage, BufferStage toStage)
+    public MemoryBarrierOptions(BufferUsage fromUsage, BufferUsage toUsage,ResourceOperation fromOperation, ResourceOperation toOperation)
     {
-        WaitForStages = fromStage switch
+        WaitForStages = fromUsage switch
         {
-            BufferStage.Undefined => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_NONE,
-            BufferStage.Transfer => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-            BufferStage.Graphics => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-            BufferStage.Compute => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            _ => throw new ArgumentOutOfRangeException(nameof(fromStage), fromStage, null)
+            BufferUsage.Undefined => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_NONE,
+            BufferUsage.Transfer => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+            BufferUsage.Graphics => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+            BufferUsage.Compute => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            BufferUsage.Indirect => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, // Graphics pipelines execute after a drawIndirect call
+            _ => throw new ArgumentOutOfRangeException(nameof(fromUsage), fromUsage, null)
         };
-        NextStages = toStage switch
+        NextStages = toUsage switch
         {
-            BufferStage.Undefined => throw new Exception("Buffer cannot transition to undefined stage"),
-            BufferStage.Transfer => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-            BufferStage.Graphics => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-            BufferStage.Compute => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            _ => throw new ArgumentOutOfRangeException(nameof(fromStage), fromStage, null)
+            BufferUsage.Undefined => throw new Exception("Buffer cannot transition to undefined stage"),
+            BufferUsage.Transfer => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+            BufferUsage.Graphics => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+            BufferUsage.Compute => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            BufferUsage.Indirect => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+            _ => throw new ArgumentOutOfRangeException(nameof(fromUsage), fromUsage, null)
         };
-    }
 
-    public static MemoryBarrierOptions ComputeToTransfer()
-    {
-        return new MemoryBarrierOptions
+        SrcAccessFlags = fromOperation switch
         {
-            WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT
+            ResourceOperation.Read => fromUsage switch
+            {
+                BufferUsage.Undefined => VkAccessFlags2.VK_ACCESS_2_NONE,
+                BufferUsage.Transfer => VkAccessFlags2.VK_ACCESS_2_TRANSFER_READ_BIT,
+                BufferUsage.Graphics or BufferUsage.Compute => VkAccessFlags2.VK_ACCESS_2_SHADER_READ_BIT,
+                BufferUsage.Indirect => VkAccessFlags2.VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
+                _ => throw new ArgumentOutOfRangeException(nameof(fromUsage), fromUsage, null)
+            },
+            ResourceOperation.Write  => fromUsage switch
+            {
+                BufferUsage.Undefined => VkAccessFlags2.VK_ACCESS_2_NONE,
+                BufferUsage.Transfer => VkAccessFlags2.VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                BufferUsage.Graphics or BufferUsage.Compute => VkAccessFlags2.VK_ACCESS_2_SHADER_WRITE_BIT,
+                BufferUsage.Indirect => VkAccessFlags2.VK_ACCESS_2_SHADER_WRITE_BIT,
+                _ => throw new ArgumentOutOfRangeException(nameof(fromUsage), fromUsage, null)
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(fromOperation), fromOperation, null)
         };
-    }
+        
+        DstAccessFlags = toOperation switch
+        {
+            ResourceOperation.Read => toUsage switch
+            {
+                BufferUsage.Transfer  => VkAccessFlags2.VK_ACCESS_2_TRANSFER_READ_BIT,
+                BufferUsage.Graphics or BufferUsage.Compute => VkAccessFlags2.VK_ACCESS_2_SHADER_READ_BIT,
+                BufferUsage.Indirect  => VkAccessFlags2.VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
+                _ => throw new ArgumentOutOfRangeException(nameof(toUsage), toUsage, null)
+            },
+            ResourceOperation.Write => toUsage switch
+            {
+                BufferUsage.Transfer  => VkAccessFlags2.VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                BufferUsage.Graphics or BufferUsage.Compute => VkAccessFlags2.VK_ACCESS_2_SHADER_WRITE_BIT,
+                BufferUsage.Indirect  => VkAccessFlags2.VK_ACCESS_2_SHADER_WRITE_BIT,
+                _ => throw new ArgumentOutOfRangeException(nameof(toUsage), toUsage, null)
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(toOperation), toOperation, null)
+        };
 
-    public static MemoryBarrierOptions TransferToCompute()
-    {
-        return new MemoryBarrierOptions
-        {
-            WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-            NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
-        };
-    }
-
-    public static MemoryBarrierOptions ComputeToGraphics()
-    {
-        return new MemoryBarrierOptions
-        {
-            WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
-        };
-    }
-
-    public static MemoryBarrierOptions GraphicsToCompute()
-    {
-        return new MemoryBarrierOptions
-        {
-            WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-            NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
-        };
-    }
-
-    public static MemoryBarrierOptions ComputeToAll()
-    {
-        return new MemoryBarrierOptions
-        {
-            WaitForStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            NextStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
-        };
     }
 }

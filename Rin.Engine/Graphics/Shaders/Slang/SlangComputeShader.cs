@@ -7,7 +7,7 @@ using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Engine.Graphics.Shaders.Slang;
 
-public class SlangComputeShader : IComputeShader
+public class SlangComputeShader : IComputeShader, IVulkanShader
 {
     private readonly Task _compileTask;
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
@@ -38,14 +38,15 @@ public class SlangComputeShader : IComputeShader
     public Dictionary<string, PushConstant> PushConstants { get; } = [];
     public bool Ready => _compileTask.IsCompleted;
 
-    public bool Bind(in VkCommandBuffer cmd, bool wait = true)
+    public bool Bind(IExecutionContext ctx, bool wait = true)
     {
         _compileTask.Wait();
         if (wait && !_compileTask.IsCompleted)
             _compileTask.Wait();
         else if (!_compileTask.IsCompleted) return false;
-
-        vkCmdBindPipeline(cmd, VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE, _pipeline);
+        
+        Debug.Assert(ctx is VulkanExecutionContext);
+        vkCmdBindPipeline(((VulkanExecutionContext)ctx).CommandBuffer, VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE, _pipeline);
         return true;
     }
 
@@ -142,9 +143,38 @@ public class SlangComputeShader : IComputeShader
         }
     }
 
+    public void Push<T>(IExecutionContext ctx, in T data, uint offset = 0) where T : unmanaged
+    {
+        Debug.Assert(ctx is VulkanExecutionContext);
+        var cmd = ((VulkanExecutionContext)ctx).CommandBuffer;
+        unsafe
+        {
+            var layout  = GetPipelineLayout();
+            const VkShaderStageFlags flags = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT | VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS;
+            fixed (T* pData = &data)
+            {
+                
+                vkCmdPushConstants(cmd,layout, flags, offset,
+                    (uint)Utils.ByteSizeOf<T>(), pData);
+                // var size = (uint)Utils.ByteSizeOf<T>();
+                // if (size < 256)
+                // {
+                //     var diff = 256 - size;
+                //     var padding = stackalloc byte[(int)diff];
+                //     vkCmdPushConstants(cmd, GetPipelineLayout(), flags, size, diff, padding);
+                // }
+            }
+        }
+    }
+
     public Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts()
     {
         return _descriptorLayouts;
+    }
+
+    public VkPipelineBindPoint GetBindPoint()
+    {
+        return VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE;
     }
 
     public VkPipelineLayout GetPipelineLayout()

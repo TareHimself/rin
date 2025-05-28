@@ -38,27 +38,12 @@ public class CreateImagesPass : IPass
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var cmd = ctx.GetCommandBuffer();
-
         var drawImage = graph.GetImage(Context.MainImageId);
         var copyImage = graph.GetImage(Context.CopyImageId);
         var stencilImage = graph.GetImage(Context.StencilImageId);
 
-        ResetStencilState(cmd);
-
-        cmd
+        ctx
             .ClearColorImages(new Vector4(0.0f), ImageLayout.General, drawImage, copyImage)
             .ClearStencilImages(0, ImageLayout.General, stencilImage);
-    }
-
-    private static void ResetStencilState(VkCommandBuffer cmd,
-        VkStencilFaceFlags faceMask = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK)
-    {
-        vkCmdSetStencilTestEnable(cmd, 1);
-        vkCmdSetStencilReference(cmd, faceMask, 255);
-        vkCmdSetStencilWriteMask(cmd, faceMask, 0x01);
-        vkCmdSetStencilCompareMask(cmd, faceMask, 0x01);
-        vkCmdSetStencilOp(cmd, faceMask, VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
-            VkStencilOp.VK_STENCIL_OP_KEEP, VkCompareOp.VK_COMPARE_OP_NEVER);
     }
 }

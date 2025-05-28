@@ -1,7 +1,6 @@
 ﻿using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
+
 
 namespace Rin.Engine.World.Graphics;
 
@@ -10,7 +9,7 @@ namespace Rin.Engine.World.Graphics;
 /// </summary>
 public abstract class SimpleMaterialPass : IMaterialPass
 {
-    protected abstract IShader Shader { get; }
+    public abstract IShader Shader { get; }
     public abstract ulong GetRequiredMemory();
 
     /// <summary>
@@ -26,28 +25,16 @@ public abstract class SimpleMaterialPass : IMaterialPass
     public void Execute(WorldFrame frame, IDeviceBufferView? data, ProcessedMesh[] meshes)
     {
         var requiredMemorySize = GetRequiredMemory();
-        var cmd = frame.GetCommandBuffer();
-        var first = meshes.First();
+        var ctx = frame.ExecutionContext;
         if (requiredMemorySize > 0 && data == null) throw new Exception("Missing buffer");
-        if (Shader.Bind(cmd))
+        if (Shader.Bind(ctx))
         {
-            vkCmdBindIndexBuffer(cmd, first.IndexBuffer.NativeBuffer, 0, VkIndexType.VK_INDEX_TYPE_UINT32);
-
-            ulong offset = 0;
-            foreach (var groupedMeshes in meshes.GroupBy(c => new
-                     {
-                         c.VertexCount,
-                         c.VertexStart
-                     }))
-            {
-                var groupArray = groupedMeshes.ToArray();
-
-                offset += ExecuteBatch(Shader, frame, data!.GetView(offset, data.Size - offset), groupArray);
-            }
+            ExecuteBatch(Shader, frame, data, meshes);
         }
     }
 
     public abstract void Write(IDeviceBufferView view, ProcessedMesh mesh);
+    public abstract bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer);
 
     protected abstract IMaterialPass GetPass(ProcessedMesh mesh);
 

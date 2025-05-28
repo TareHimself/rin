@@ -4,7 +4,7 @@ namespace Rin.Engine.Graphics;
 
 public class DeviceBufferView(IDeviceBuffer buffer, ulong inOffset, ulong inSize) : IDeviceBufferView
 {
-    public IDeviceBuffer DeviceBuffer => buffer;
+    public IDeviceBuffer Buffer => buffer;
     public ulong Offset { get; } = inOffset;
     public ulong Size { get; } = inSize;
 

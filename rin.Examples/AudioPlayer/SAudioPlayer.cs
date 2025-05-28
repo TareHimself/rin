@@ -32,7 +32,7 @@ public class SAudioPlayer : IModule, ISingletonGetter<SAudioPlayer>
         // }
         SAudioModule.Get().SetVolume(0.1f);
         var window = SGraphicsModule.Get().CreateWindow(500, 500, "Rin Audio Player");
-        window.OnCloseRequested += _ => { SEngine.Get().RequestExit(); };
+        window.OnClose += _ => { SEngine.Get().RequestExit(); };
         Backgrounds(window);
         var surf = SViewsModule.Get().GetWindowSurface(window);
         surf?.Add(new MainPanel());

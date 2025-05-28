@@ -15,6 +15,7 @@ public class DeviceBufferWriteValidator(IDeviceBuffer buffer) : IDeviceBuffer
         buffer.Dispose();
     }
 
+    public IDeviceBuffer Buffer => this;
     public ulong Offset => buffer.Offset;
     public ulong Size => buffer.Size;
     public VkBuffer NativeBuffer => buffer.NativeBuffer;

@@ -34,9 +34,7 @@ public class StencilClearPass : IPass
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var cmd = ctx.GetCommandBuffer();
-
         var image = graph.GetImageOrException(StencilImageId);
-        cmd.ClearStencilImages(0, ImageLayout.General, image);
+        ctx.ClearStencilImages(0, ImageLayout.General, image);
     }
 }

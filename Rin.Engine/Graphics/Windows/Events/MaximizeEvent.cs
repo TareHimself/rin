@@ -1,5 +1,5 @@
 ﻿namespace Rin.Engine.Graphics.Windows.Events;
 
-public class MaximizedEvent : WindowEvent
+public class MaximizeEvent : WindowEvent
 {
 }

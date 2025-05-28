@@ -95,7 +95,7 @@ public class WindowRenderer : IWindowRenderer
         {
             if (ctx.RenderExtent.Width == 0 || ctx.RenderExtent.Height == 0) return;
 
-            if (ctx.RenderExtent != _window.GetPixelSize()) return;
+            if (ctx.RenderExtent != _window.GetDrawRect().Extent) return;
 
             if (_swapchainExtent != ctx.RenderExtent)
             {
@@ -112,15 +112,12 @@ public class WindowRenderer : IWindowRenderer
 
     public event Action<IGraphBuilder>? OnCollect;
 
-    private unsafe VkSurfaceKHR CreateSurface()
+    private VkSurfaceKHR CreateSurface()
     {
         var instance = SGraphicsModule.Get().GetInstance();
-        var surface = new VkSurfaceKHR();
-        var surfValuePtr = &surface.Value;
+        var rinWindow = _window as RinWindow ?? throw new NullReferenceException();
         // ReSharper disable once AccessToDisposedClosure
-        SDL_Vulkan_CreateSurface((SDL_Window*)_window.GetPtr(), (VkInstance_T*)instance.Value, null,
-            (VkSurfaceKHR_T**)surfValuePtr);
-        //NativeMethods.CreateSurface(instance, _window.GetPtr(), &surface);
+        var surface = Native.Platform.Window.CreateSurface(instance, rinWindow.GetHandle());
         return surface;
     }
 
@@ -131,7 +128,7 @@ public class WindowRenderer : IWindowRenderer
 
     public void Init()
     {
-        var windowSize = _window.GetPixelSize();
+        var windowSize = _window.GetDrawRect();
         // CreateSwapchain(new Extent2D
         // {
         //     Width = windowSize.X,
@@ -287,7 +284,7 @@ public class WindowRenderer : IWindowRenderer
 
         if (OnCollect == null || OnCollect.GetInvocationList().Length == 0) return null;
 
-        var extent = (Extent2D)_window.GetPixelSize();
+        var extent = _window.GetDrawRect().Extent;
 
         OnCollect?.Invoke(builder);
 

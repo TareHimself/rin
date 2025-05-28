@@ -6,7 +6,7 @@
 #include <cstddef>
 using CreateSurfaceCallback = VkSurfaceKHR(RIN_CALLBACK_CONVENTION *)(VkInstance instance);
 
-EXPORT_DECL void createVulkanInstance(char** extensions,uint32_t numExtensions,CreateSurfaceCallback createSurfaceCallback, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,VkSurfaceKHR * outSurface,VkDebugUtilsMessengerEXT * outMessenger);
+EXPORT_DECL void createVulkanInstance(void * windowHandle, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,VkSurfaceKHR * outSurface,VkDebugUtilsMessengerEXT * outMessenger);
 
 EXPORT_DECL void destroyVulkanMessenger(VkInstance instance,VkDebugUtilsMessengerEXT messenger);
 

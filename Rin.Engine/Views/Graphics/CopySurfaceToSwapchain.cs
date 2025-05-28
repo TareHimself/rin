@@ -25,11 +25,9 @@ public class CopySurfaceToSwapchain(SharedPassContext passContext) : IPass
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var cmd = ctx.GetCommandBuffer();
-
         var mainImage = graph.GetImageOrException(passContext.MainImageId);
         var swapchainImage = graph.GetImageOrException(_swapchainImageId);
-        cmd.CopyImageToImage(mainImage, swapchainImage);
+        ctx.CopyToImage(swapchainImage,mainImage);
     }
 
     public uint Id { get; set; }

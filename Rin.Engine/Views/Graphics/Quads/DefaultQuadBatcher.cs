@@ -25,12 +25,12 @@ public class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         IGraphicsShader shader)
     {
         Debug.Assert(view is not null);
-        var cmd = frame.CommandBuffer;
+        var ctx = frame.ExecutionContext;
         var quads = batch.GetQuads().ToArray();
         if (quads.Length == 0) return 0;
 
         view.Write(quads);
-        _batchShader.Push(cmd, new Push
+        _batchShader.Push(ctx,new Push
         {
             Projection = frame.ProjectionMatrix,
             Viewport = new Vector4(0, 0, frame.Extent.Width, frame.Extent.Height),

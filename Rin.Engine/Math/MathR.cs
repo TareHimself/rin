@@ -12,6 +12,24 @@ public static class MathR
     public static Vector3 Up => Vector3.UnitY;
     public static Vector3 Right => Vector3.UnitX;
     public static Vector3 Forward => Vector3.UnitZ;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix4x4 PerspectiveProjection(float fieldOfViewX,float fieldOfViewY, float near, float far)
+    {
+        var y = 1 / float.Tan(float.DegreesToRadians(fieldOfViewY));
+        var x = 1 / float.Tan(float.DegreesToRadians(fieldOfViewX));
+
+        var mat = Matrix4x4.Identity;
+
+        mat[0, 0] = x;
+        mat[1, 1] = -y;
+        mat[2, 2] = near * near * near / (far + near);
+        mat[2, 3] = 1f;
+        mat[3, 3] = 0f;
+        mat[3, 2] = near * far / (far + near);
+
+        return mat;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Matrix4x4 PerspectiveProjection(float fieldOfView, float width, float height, float near, float far)

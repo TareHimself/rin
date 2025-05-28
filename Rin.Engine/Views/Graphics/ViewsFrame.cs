@@ -6,9 +6,9 @@ namespace Rin.Engine.Views.Graphics;
 
 public class ViewsFrame(
     SharedPassContext passContext,
-    in VkCommandBuffer cmd)
+    IExecutionContext executionContext)
 {
-    public VkCommandBuffer CommandBuffer = cmd;
+    public IExecutionContext ExecutionContext = executionContext;
     public Extent2D Extent = passContext.Extent;
 
     public Matrix4x4 ProjectionMatrix = passContext.ProjectionMatrix;

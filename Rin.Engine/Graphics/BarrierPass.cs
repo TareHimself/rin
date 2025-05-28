@@ -6,22 +6,22 @@ internal class PassResourceSync
 {
     public required uint ResourceId { get; set; }
     public required uint PassId { get; set; }
+    
+    public required ResourceOperation PreviousOperation { get; set; }
+    
+    public required ResourceOperation NextOperation { get; set; }
 }
 
 internal class ImageResourceSync : PassResourceSync
 {
     public required ImageLayout PreviousLayout { get; set; }
     public required ImageLayout NextLayout { get; set; }
-    public required ResourceUsage PreviousUsage { get; set; }
-    public required ResourceUsage NextUsage { get; set; }
 }
 
 internal class BufferResourceSync : PassResourceSync
 {
-    public required BufferStage PreviousStage { get; set; }
-    public required BufferStage NextStage { get; set; }
-    public required ResourceUsage PreviousUsage { get; set; }
-    public required ResourceUsage NextUsage { get; set; }
+    public required BufferUsage PreviousUsage { get; set; }
+    public required BufferUsage NextUsage { get; set; }
 }
 
 internal class BarrierPass(IEnumerable<BufferResourceSync> buffers, IEnumerable<ImageResourceSync> images) : IPass
@@ -48,21 +48,16 @@ internal class BarrierPass(IEnumerable<BufferResourceSync> buffers, IEnumerable<
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var cmd = ctx.GetCommandBuffer();
-
-
         foreach (var bufferResourceSync in buffers)
         {
             var buffer = graph.GetBufferOrException(bufferResourceSync.ResourceId);
-            // Console.WriteLine("GRAPH :: Buffer Barrier :: Resource Id {0},Transition {1} => {2}",bufferResourceSync.ResourceId,bufferResourceSync.PreviousUsage,bufferResourceSync.NextUsage);
-            cmd.BufferBarrier(buffer, bufferResourceSync.PreviousStage, bufferResourceSync.NextStage);
+            ctx.Barrier(buffer,bufferResourceSync.PreviousUsage, bufferResourceSync.NextUsage, bufferResourceSync.PreviousOperation, bufferResourceSync.NextOperation);
         }
 
         foreach (var imageResourceSync in images)
         {
             var image = graph.GetImageOrException(imageResourceSync.ResourceId);
-            // Console.WriteLine("GRAPH :: Image Barrier :: Resource Id {0}, Format {1},Transition {2} => {3}",imageResourceSync.ResourceId,image.Format,imageResourceSync.PreviousLayout,imageResourceSync.NextLayout);
-            cmd.ImageBarrier(image, imageResourceSync.PreviousLayout, imageResourceSync.NextLayout);
+            ctx.Barrier(image, imageResourceSync.PreviousLayout, imageResourceSync.NextLayout);
         }
     }
 }

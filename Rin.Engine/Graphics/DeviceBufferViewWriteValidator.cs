@@ -7,7 +7,7 @@ namespace Rin.Engine.Graphics;
 /// </summary>
 public class DeviceBufferViewWriteValidator(IDeviceBufferView view) : IDeviceBufferView
 {
-    public IDeviceBuffer DeviceBuffer { get; } = new DeviceBufferWriteValidator(view.DeviceBuffer);
+    public IDeviceBuffer Buffer { get; } = new DeviceBufferWriteValidator(view.Buffer);
     public ulong Offset => view.Offset;
     public ulong Size => view.Size;
 

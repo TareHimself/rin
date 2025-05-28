@@ -51,4 +51,9 @@ struct UniformBufferBindingAttribute
 {
 };
 
+[__AttributeUsage(_AttributeTargets.Var)]
+struct StorageBufferBindingAttribute
+{
+};
+
 

@@ -4,7 +4,7 @@ namespace Rin.Engine.Graphics;
 
 public interface IDeviceBufferView
 {
-    public IDeviceBuffer DeviceBuffer { get; }
+    public IDeviceBuffer Buffer { get; }
 
     public ulong Offset { get; }
     public ulong Size { get; }
@@ -12,28 +12,41 @@ public interface IDeviceBufferView
 
     public ulong GetAddress()
     {
-        return DeviceBuffer.GetAddress() + Offset;
+        return Buffer.GetAddress() + Offset;
     }
 
     public IDeviceBufferView GetView(ulong offset, ulong size);
 
     public unsafe void Write(void* src, ulong size, ulong offset = 0)
     {
-        DeviceBuffer.Write(src, size, Offset + offset);
+        Buffer.Write(src, size, Offset + offset);
     }
 
     public void Write<T>(IEnumerable<T> data, ulong offset = 0) where T : unmanaged
     {
-        DeviceBuffer.Write(data, Offset + offset);
+        unsafe
+        {
+            var asArray = data.ToArray();
+            fixed (T* pData = asArray)
+            {
+                Write(pData, Utils.ByteSizeOf<T>(asArray.Length), offset);
+            }
+        }
     }
 
     public void Write<T>(T src, ulong offset = 0) where T : unmanaged
     {
-        DeviceBuffer.Write(src, Offset + offset);
+        unsafe
+        {
+            Write(&src, Utils.ByteSizeOf<T>(), offset);
+        }
     }
 
     public void Write<T>(Buffer<T> src, ulong offset = 0) where T : unmanaged
     {
-        DeviceBuffer.Write(src, Offset + offset);
+        unsafe
+        {
+            Write(src.GetData(), Utils.ByteSizeOf<T>(src.GetElementsCount()), offset);
+        }
     }
 }

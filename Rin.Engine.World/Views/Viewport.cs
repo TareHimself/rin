@@ -51,8 +51,17 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
 
     public void PreAdd(IGraphBuilder builder)
     {
-        builder.AddPass(new CollectPass(_worldContext));
-        builder.AddPass(new FillGBufferPass(_worldContext));
+        builder.AddPass(new InitWorldPass(_worldContext));
+        if (_worldContext.SkinnedGeometry.Length > 0)
+        {
+            builder.AddPass(new ComputeSkinningPass(_worldContext));
+        }
+        //builder.AddPass(new FillIndirectBuffersDebugPass(_worldContext));
+        builder.AddPass(new FillIndirectBuffersPass(_worldContext));
+        builder.AddPass(new DepthPrepassIndirectPass(_worldContext));
+        builder.AddPass(new FillGBufferIndirectPass(_worldContext));
+        // builder.AddPass(new CollectPass(_worldContext));
+        // builder.AddPass(new FillGBufferPass(_worldContext));
     }
 
     public void PostAdd(IGraphBuilder builder)
@@ -66,14 +75,13 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
         _gBuffer2Id = config.ReadImage(_worldContext.GBufferImage2, ImageLayout.ShaderReadOnly);
         config.WriteImage(info.MainImageId, ImageLayout.ColorAttachment);
         config.ReadImage(info.StencilImageId, ImageLayout.StencilAttachment);
-        _viewportBufferId = config.CreateBuffer<SceneData>(BufferStage.Graphics);
-        _lightsBufferId = config.CreateBuffer<LightInfo>(_worldContext.Lights.Length, BufferStage.Graphics);
+        _viewportBufferId = config.CreateBuffer<SceneData>(GraphBufferUsage.HostThenGraphics);
+        _lightsBufferId = config.CreateBuffer<LightInfo>(_worldContext.Lights.Length,GraphBufferUsage.HostThenGraphics);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var cmd = ctx.GetCommandBuffer();
-        if (_shader.Bind(cmd))
+        if (_shader.Bind(ctx))
         {
             var gBuffer0 = graph.GetImageOrException(_gBuffer0Id);
             var gBuffer1 = graph.GetImageOrException(_gBuffer1Id);
@@ -83,18 +91,6 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
             var buffer = graph.GetBufferOrException(_viewportBufferId);
             var lightsBuffer = graph.GetBufferOrException(_lightsBufferId);
             lightsBuffer.Write(_worldContext.Lights);
-            cmd.BeginRendering(_renderExtent, [
-                    mainImage.MakeColorAttachmentInfo()
-                ],
-                stencilAttachment: stencilImage.MakeStencilAttachmentInfo()
-            );
-            cmd.SetViewState(_renderExtent);
-            var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
-
-            vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
-                VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
-                VkCompareOp.VK_COMPARE_OP_NOT_EQUAL);
-            cmd.SetStencilCompareMask(command.StencilMask);
             buffer.Write(
                 new SceneData
                 {
@@ -109,10 +105,14 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
                     NumLights = _worldContext.Lights.Length
                 });
 
-            _shader.Push(cmd, buffer.GetAddress());
-            cmd.Draw(6);
-
-            cmd.EndRendering();
+            ctx
+                .BeginRendering(_renderExtent, [mainImage], stencilAttachment: stencilImage)
+                .DisableFaceCulling()
+                .StencilCompareOnly()
+                .SetStencilCompareMask(command.StencilMask);
+                _shader.Push(ctx,buffer.GetAddress());
+                ctx.Draw(6)
+                .EndRendering();
         }
     }
 

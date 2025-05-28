@@ -219,13 +219,13 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
     {
         private readonly ResourceContainer<IDeviceBuffer> _container;
         private readonly Frame _frame;
-        private readonly ulong? _size;
+        private readonly BufferResourceDescriptor _descriptor;
 
-        public ProxiedBuffer(ResourceContainer<IDeviceBuffer> container, Frame frame, ulong? size = null)
+        public ProxiedBuffer(ResourceContainer<IDeviceBuffer> container, Frame frame, BufferResourceDescriptor descriptor)
         {
             _container = container;
             _frame = frame;
-            _size = size;
+            _descriptor = descriptor;
         }
 
         public void Dispose()
@@ -233,8 +233,9 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
             _container.Uses.Remove(_frame);
         }
 
+        public IDeviceBuffer Buffer => _container.Resource;
         public ulong Offset => _container.Resource.Offset;
-        public ulong Size => _size ?? _container.Resource.Size;
+        public ulong Size => _descriptor.Size;
         public VkBuffer NativeBuffer => _container.Resource.NativeBuffer;
 
         public ulong GetAddress()
@@ -253,42 +254,46 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         }
     }
 
-    private class BufferPool : Pool<ProxiedBuffer, IDeviceBuffer, BufferResourceDescriptor, ulong>
+    private class BufferPool : Pool<ProxiedBuffer, IDeviceBuffer, BufferResourceDescriptor, int>
     {
         [PublicAPI] public ulong MaxBufferReuseDelta = 1024;
 
         protected override ResourceContainer<IDeviceBuffer> CreateNew(BufferResourceDescriptor input, Frame frame,
-            ulong key, ulong frameId)
+            int key, ulong frameId)
         {
-            var buffer = SGraphicsModule.Get().NewStorageBuffer(input.Size, false, "Frame Graph Storage Buffer");
+            var buffer = SGraphicsModule.Get().NewBuffer(input.Size, input.Usage, false, input.Mapped,"Frame Graph Storage Buffer");
             return new ResourceContainer<IDeviceBuffer>(buffer);
         }
 
         protected override ProxiedBuffer ResultFromContainer(ResourceContainer<IDeviceBuffer> container, Frame frame,
-            ulong key, BufferResourceDescriptor input, ulong frameId)
+            int key, BufferResourceDescriptor input, ulong frameId)
         {
-            return new ProxiedBuffer(container, frame, input.Size);
+            return new ProxiedBuffer(container, frame, input);
         }
 
-        protected override ulong MakeKeyFromInput(BufferResourceDescriptor input)
+        protected override int MakeKeyFromInput(BufferResourceDescriptor input)
         {
-            return input.Size;
+            return input.GetHashCode();
         }
 
         protected override ResourceContainer<IDeviceBuffer>? FindExistingResource(
-            Dictionary<ulong, HashSet<ResourceContainer<IDeviceBuffer>>> items, Frame frame, ulong key, ulong frameId)
+            Dictionary<int, HashSet<ResourceContainer<IDeviceBuffer>>> items, Frame frame, int key, ulong frameId)
         {
-#if DEBUG
             return items
                 .Where(item => item.Key == key)
                 .SelectMany(c => c.Value)
                 .FirstOrDefault(c => c.Uses.Empty());
-#else
-            return items
-                .Where(item => item.Key >= key && item.Key - key < MaxBufferReuseDelta)
-                .SelectMany(c => c.Value)
-                .FirstOrDefault(c => c.Uses.Empty());
-#endif
+// #if DEBUG
+//             return items
+//                 .Where(item => item.Key == key)
+//                 .SelectMany(c => c.Value)
+//                 .FirstOrDefault(c => c.Uses.Empty());
+// #else
+//             return items
+//                 .Where(item => item.Key >= key && item.Key - key < MaxBufferReuseDelta)
+//                 .SelectMany(c => c.Value)
+//                 .FirstOrDefault(c => c.Uses.Empty());
+// #endif
         }
     }
 }

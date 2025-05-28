@@ -28,7 +28,7 @@ public class MainModule : IModule
         _font = font;
         SGraphicsModule.Get().OnWindowCreated += window =>
         {
-            window.OnCloseRequested += _ =>
+            window.OnClose += _ =>
             {
                 if (window.Parent != null)
                     window.Dispose();

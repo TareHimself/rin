@@ -29,12 +29,29 @@ public class SponzaMeshMaterial : IMeshMaterial
 
     private class ColorMeshPass : SimpleMaterialPass
     {
-        protected override IShader Shader { get; } = SGraphicsModule.Get()
+        public override IShader Shader { get; } = SGraphicsModule.Get()
             .MakeGraphics(@"Sponza/mesh.slang");
 
         public override ulong GetRequiredMemory()
         {
             return Utils.ByteSizeOf<DefaultMaterialProperties>();
+        }
+
+        public override bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer)
+        {
+            var ctx = frame.ExecutionContext;
+            if (Shader.Bind(ctx))
+            {
+                var pushData = new PushConstant
+                {
+                    SceneAddress = frame.SceneInfo.GetAddress(),
+                    DataAddress = groupMaterialBuffer!.GetAddress()
+                };
+
+                Shader.Push(frame.ExecutionContext,pushData);
+                return true;
+            }
+            return false;
         }
 
         protected override IMaterialPass GetPass(ProcessedMesh mesh)
@@ -45,9 +62,6 @@ public class SponzaMeshMaterial : IMeshMaterial
         protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
             ProcessedMesh[] meshes)
         {
-            var cmd = frame.GetCommandBuffer();
-            var push = Shader.PushConstants.Values.First();
-
             ulong memoryUsed = 0;
             foreach (var item in meshes)
             {
@@ -65,9 +79,11 @@ public class SponzaMeshMaterial : IMeshMaterial
                 DataAddress = data!.GetAddress()
             };
 
-            Shader.Push(cmd, pushData);
-            vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, first.IndicesStart, (int)first.VertexStart,
-                0);
+            var ctx = frame.ExecutionContext;
+            Shader.Push(ctx,pushData);
+            ctx
+                .DrawIndexed(first.IndicesCount, (uint)meshes.Length,
+                first.IndicesStart, first.VertexStart);
             return memoryUsed;
         }
 
@@ -112,12 +128,29 @@ public class SponzaMeshMaterial : IMeshMaterial
 
     private class DepthMeshPass : SimpleMaterialPass
     {
-        protected override IShader Shader { get; } = SGraphicsModule.Get()
+        public override IShader Shader { get; } = SGraphicsModule.Get()
             .MakeGraphics("World/Shaders/Mesh/mesh_depth.slang");
 
         public override ulong GetRequiredMemory()
         {
             return Utils.ByteSizeOf<DepthMaterialData>();
+        }
+
+        public override bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer)
+        {
+            var ctx = frame.ExecutionContext;
+            if (Shader.Bind(ctx))
+            {
+                var pushData = new PushConstant
+                {
+                    SceneAddress = frame.SceneInfo.GetAddress(),
+                    DataAddress = groupMaterialBuffer!.GetAddress()
+                };
+
+                Shader.Push(frame.ExecutionContext,pushData);
+                return true;
+            }
+            return false;
         }
 
         protected override IMaterialPass GetPass(ProcessedMesh mesh)
@@ -128,9 +161,6 @@ public class SponzaMeshMaterial : IMeshMaterial
         protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
             ProcessedMesh[] meshes)
         {
-            var cmd = frame.GetCommandBuffer();
-            var push = Shader.PushConstants.Values.First();
-
             ulong memoryUsed = 0;
             foreach (var item in meshes)
             {
@@ -147,9 +177,11 @@ public class SponzaMeshMaterial : IMeshMaterial
                 SceneAddress = frame.SceneInfo.GetAddress(),
                 DataAddress = data!.GetAddress()
             };
-            shader.Push(cmd, pushData);
-            vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, first.IndicesStart, (int)first.VertexStart,
-                0);
+            var ctx = frame.ExecutionContext;
+            Shader.Push(ctx,pushData);
+            ctx
+                .DrawIndexed(first.IndicesCount, (uint)meshes.Length,
+                    first.IndicesStart, first.VertexStart);
             return memoryUsed;
         }
 

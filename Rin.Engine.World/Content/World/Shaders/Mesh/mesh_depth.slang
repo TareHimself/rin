@@ -17,8 +17,8 @@ struct PushConstants {
 uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
 
 struct VertexIn {
-    int vertexId : SV_VertexID;
-    int instanceId : SV_InstanceID;
+    int vertexId : SV_VulkanVertexID;
+    int instanceId : SV_VulkanInstanceID;
 };
 
 struct VertexOut {
@@ -28,6 +28,7 @@ struct VertexOut {
 
 [shader("vertex"),Depth]
 VertexOut vertex(VertexIn input) {
+    var instanceId = input.instanceId;
     var instanceData = push.data[input.instanceId];
     VertexOut output;
     var vertex = instanceData.vertices[input.vertexId];

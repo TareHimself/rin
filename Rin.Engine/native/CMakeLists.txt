@@ -52,7 +52,7 @@ find_package(Vulkan REQUIRED FATAL_ERROR)
 
 target_link_libraries(${PROJECT_NAME} msdfgen::msdfgen Vulkan::Vulkan vk-bootstrap::vk-bootstrap GPUOpen::VulkanMemoryAllocator)
 
-FindSlang(${PROJECT_NAME})
+FindSlang(${PROJECT_NAME} 2025.9.2)
 GetBass()
 SetDynamicLibraryDir(${PROJECT_NAME})
 

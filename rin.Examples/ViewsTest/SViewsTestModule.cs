@@ -36,13 +36,7 @@ public class SViewsTestModule : IModule
         }
         SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
-        SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", new CreateOptions
-        {
-            Visible = true,
-            Decorated = true,
-            Focused = true,
-            Transparent = false
-        });
+        SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", WindowFlags.Visible  | WindowFlags.Frameless);
 
 
         //TestText();
@@ -362,7 +356,7 @@ public class SViewsTestModule : IModule
 
     private void OnWindowCreated(IWindow window)
     {
-        window.OnCloseRequested += _ =>
+        window.OnClose += _ =>
         {
             if (window.Parent != null)
                 window.Dispose();
@@ -373,13 +367,7 @@ public class SViewsTestModule : IModule
         window.OnKey += e =>
         {
             if (e is { Key: InputKey.Up, State: InputState.Pressed })
-                window.CreateChild(500, 500, "test child", new CreateOptions
-                {
-                    Visible = true,
-                    Decorated = true,
-                    Transparent = false,
-                    Focused = false
-                });
+                window.CreateChild(500, 500, "test child");
 
             if (e is { Key: InputKey.Enter, State: InputState.Pressed, IsAltDown: true })
                 window.SetFullscreen(!window.IsFullscreen);

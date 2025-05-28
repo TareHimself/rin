@@ -8,7 +8,7 @@ public class WorldFrame(
     Matrix4x4 view,
     Matrix4x4 projection,
     IDeviceBufferView worldInfo,
-    VkCommandBuffer commandBuffer)
+    IExecutionContext executionContext)
 {
     public Matrix4x4 View => view;
     public Matrix4x4 Projection => projection;
@@ -17,10 +17,5 @@ public class WorldFrame(
 
     public IDeviceBufferView SceneInfo => worldInfo;
 
-    public VkCommandBuffer CommandBuffer { get; } = commandBuffer;
-
-    public VkCommandBuffer GetCommandBuffer()
-    {
-        return CommandBuffer;
-    }
+    public IExecutionContext ExecutionContext { get; } = executionContext;
 }

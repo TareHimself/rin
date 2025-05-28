@@ -79,67 +79,6 @@ public abstract class Surface : IDisposable, IUpdatable
         return true;
     }
 
-    /// <summary>
-    ///     Returns true if the pass was not the active pass
-    /// </summary>
-    /// <param name="frame"></param>
-    /// <param name="passId"></param>
-    /// <param name="applyPass"></param>
-    /// <returns></returns>
-    // public virtual void EnsurePass(ViewsFrame frame, string passId, Action<ViewsFrame> applyPass)
-    // {
-    //     if (frame.ActivePass == passId) return;
-    //     if (frame.ActivePass.Length > 0 && frame.ActivePass != passId) EndActivePass(frame);
-    //     applyPass.Invoke(frame);
-    //     frame.ActivePass = passId;
-    // }
-
-    // public virtual void BeginMainPass(ViewsFrame frame, bool clearColor = false, bool clearStencil = false)
-    // {
-    //     EnsurePass(frame, MainPassId, _ =>
-    //     {
-    //         var cmd = frame.Raw.GetCommandBuffer();
-    //
-    //         var size = frame.SurfaceSize;
-    //
-    //         var drawExtent = new VkExtent3D
-    //         {
-    //             width = (uint)size.X,
-    //             height = (uint)size.Y
-    //         };
-    //
-    //         cmd.BeginRendering(new VkExtent2D
-    //             {
-    //                 width = drawExtent.width,
-    //                 height = drawExtent.height
-    //             }, [
-    //                 frame.DrawImage.MakeColorAttachmentInfo(
-    //                     clearColor ? new Vector4(0.0f) : null)
-    //             ],
-    //             stencilAttachment: frame.StencilImage.MakeStencilAttachmentInfo(clearStencil ? 0 : null));
-    //
-    //         frame.Raw.ConfigureForViews(size);
-    //
-    //         if (clearStencil) ResetStencilState(cmd);
-    //     });
-    // }
-    private static void ResetStencilState(VkCommandBuffer cmd,
-        VkStencilFaceFlags faceMask = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK)
-    {
-        vkCmdSetStencilTestEnable(cmd, 1);
-        vkCmdSetStencilReference(cmd, faceMask, 255);
-        vkCmdSetStencilWriteMask(cmd, faceMask, 0x01);
-        vkCmdSetStencilCompareMask(cmd, faceMask, 0x01);
-        vkCmdSetStencilOp(cmd, faceMask, VkStencilOp.VK_STENCIL_OP_KEEP, VkStencilOp.VK_STENCIL_OP_KEEP,
-            VkStencilOp.VK_STENCIL_OP_KEEP, VkCompareOp.VK_COMPARE_OP_NEVER);
-    }
-
-    // public virtual void EndActivePass(ViewsFrame frame)
-    // {
-    //     frame.Raw.GetCommandBuffer().EndRendering();
-    //     frame.ActivePass = "";
-    // }
-
     private void ProcessPendingCommands(IEnumerable<ICommand> drawCommands,
         SharedPassContext context, List<IPass> passes)
     {
@@ -275,8 +214,7 @@ public abstract class Surface : IDisposable, IUpdatable
 
     protected virtual void ReceiveResize(ResizeSurfaceEvent e)
     {
-        var size = e.Size.ToNumericsVector();
-        _rootView.ComputeSize(size);
+        _rootView.ComputeSize(new Vector2(e.Size.Width, e.Size.Height));
     }
 
     protected virtual void ReceiveCursorDown(CursorDownSurfaceEvent e)

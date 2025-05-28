@@ -64,7 +64,7 @@ public class MainModule : IModule
 
         var window = SGraphicsModule.Get().CreateWindow(500, 500, "Sponza");
 
-        window.OnCloseRequested += _ =>
+        window.OnClose += _ =>
         {
             if (window.Parent != null)
                 window.Dispose();

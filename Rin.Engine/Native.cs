@@ -2,6 +2,8 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
+using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Windows;
 using TerraFX.Interop.Vulkan;
 
 [assembly: DisableRuntimeMarshalling]
@@ -23,15 +25,15 @@ internal static partial class Native
     {
         [LibraryImport(DllName, EntryPoint = "memoryAllocate")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        public static unsafe partial void* Allocate(ulong size);
+        public static partial IntPtr Allocate(ulong size);
 
         [LibraryImport(DllName, EntryPoint = "memorySet")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        public static unsafe partial void* Set(void* ptr, int value, ulong size);
+        public static partial void Set(IntPtr ptr, int value, ulong size);
 
         [LibraryImport(DllName, EntryPoint = "memoryFree")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        public static unsafe partial void Free(void* ptr);
+        public static partial void Free(IntPtr ptr);
     }
 
     public static partial class Slang
@@ -148,8 +150,7 @@ internal static partial class Native
 
         [LibraryImport(DllName, EntryPoint = "createVulkanInstance")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        public static unsafe partial void CreateInstance(byte** extensions, uint numExtensions,
-            [MarshalAs(UnmanagedType.FunctionPtr)] CreateSurfaceDelegate createSurfaceDelegate, VkInstance* outInstance,
+        public static unsafe partial void CreateInstance(IntPtr windowHandle, VkInstance* outInstance,
             VkDevice* outDevice,
             VkPhysicalDevice* outPhysicalDevice, VkQueue* outGraphicsQueue, uint* outGraphicsQueueFamily,
             VkQueue* outTransferQueue, uint* outTransferQueueFamily, VkSurfaceKHR* outSurface,
@@ -455,5 +456,203 @@ internal static partial class Native
         public static partial void SelectPath([MarshalAs(UnmanagedType.BStr)] string title,
             [MarshalAs(UnmanagedType.Bool)] bool multiple,
             [MarshalAs(UnmanagedType.FunctionPtr)] NativePathDelegate pathCallback);
+
+        public static partial class Window
+        {
+            public enum EventType : uint
+            {
+                Key,
+                Resize,
+                Minimize,
+                Maximize,
+                Scroll,
+                CursorMove,
+                CursorButton,
+                CursorEnter,
+                CursorLeave,
+                Focus,
+                Close,
+                Text
+            }
+            
+            [StructLayout(LayoutKind.Sequential)]
+            public struct Info
+            {
+                public EventType type;
+                public IntPtr handle;
+            }
+            
+            [StructLayout(LayoutKind.Sequential)]
+            public struct KeyEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+                public InputKey key;
+                public InputState state;
+                public InputModifier modifier;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct ResizeEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+                public WindowRect rect;
+                public WindowRect drawRect;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct MinimizeEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct MaximizeEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct ScrollEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+                public float x;
+                public float y;
+                public float dx;
+                public float dy;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct CursorMoveEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+                public float x;
+                public float y;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct CursorButtonEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+                public CursorButton button;
+                public InputState state;
+                public InputModifier modifier;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct CursorEnterEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct CursorLeaveEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct FocusEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+                public int focused;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct CloseEvent
+            {
+                public EventType type;
+                public IntPtr handle;
+            }
+            
+            [StructLayout(LayoutKind.Sequential)]
+            public struct TextEvent 
+            {
+                public EventType type;
+                public IntPtr handle;
+                public char text;
+            };
+            
+            [StructLayout(LayoutKind.Explicit)]
+            public struct WindowEvent
+            {
+                [FieldOffset(0)] public Info info;
+                [FieldOffset(0)] public KeyEvent key;
+                [FieldOffset(0)] public ResizeEvent resize;
+                [FieldOffset(0)] public MinimizeEvent minimize;
+                [FieldOffset(0)] public MaximizeEvent maximize;
+                [FieldOffset(0)] public ScrollEvent scroll;
+                [FieldOffset(0)] public CursorMoveEvent cursorMove;
+                [FieldOffset(0)] public CursorButtonEvent cursorButton;
+                [FieldOffset(0)] public CursorEnterEvent enter;
+                [FieldOffset(0)] public CursorLeaveEvent leave;
+                [FieldOffset(0)] public FocusEvent focus;
+                [FieldOffset(0)] public CloseEvent close;
+                [FieldOffset(0)] public TextEvent text;
+            }
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowCreate")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial IntPtr Create([MarshalUsing(typeof(Utf8StringMarshaller))] string title, int width,
+                int height,WindowFlags flags = WindowFlags.None);
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowDestroy")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void Destroy(IntPtr handle);
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowShow")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void Show(IntPtr handle);
+            
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowHide")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void Hide(IntPtr handle);
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowGetRect")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial WindowRect GetRect(IntPtr handle);
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowGetDrawRect")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial WindowRect GetDrawRect(IntPtr handle);
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowPump")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void PumpEvents();
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowGetEvents")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static unsafe partial int GetEvents(WindowEvent * events,int size);
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowCreateSurface")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial VkSurfaceKHR CreateSurface(VkInstance instance,IntPtr handle);
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowSetCursorPosition")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void SetCursorPosition(IntPtr handle,Vector2 position);
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowGetCursorPosition")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial Vector2 GetCursorPosition(IntPtr handle);
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowSetSize")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void SetSize(IntPtr handle,Extent2D size);
+            
+            [LibraryImport(DllName, EntryPoint = "platformWindowSetPosition")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void SetPosition(IntPtr handle,Point2D position);
+        }
     }
 }

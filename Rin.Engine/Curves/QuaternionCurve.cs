@@ -2,16 +2,12 @@
 
 namespace Rin.Engine.Curves;
 
-public class QuaternionCurve : Curve<Quaternion, Quaternion>
+public class QuaternionCurve : AdvancedCurve<Quaternion>
 {
-    protected override Quaternion Interpolate(in Quaternion previous, in Quaternion next, float alpha)
+
+    protected override Quaternion LinearInterpolateValue(in Quaternion previous, in Quaternion next, float alpha)
     {
         var dist = next - previous;
         return previous + dist * alpha;
-    }
-
-    protected override Quaternion ToInterpolatedValue(in Quaternion value)
-    {
-        return value;
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Rin.Engine.Views.Events;
 
-public class SurfaceEvent(Surface surface)
+public class SurfaceEvent(Surface surface) : ISurfaceEvent
 {
-    public readonly Surface Surface = surface;
+    public Surface Surface { get; }  = surface;
 }

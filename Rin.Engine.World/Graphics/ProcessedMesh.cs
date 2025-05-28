@@ -56,4 +56,93 @@ public class ProcessedMesh
             return HashCode.Combine(obj.VertexCount, obj.VertexStart);
         }
     }
+    
+    
+    /// <summary>
+    /// Groups together meshes that can be drawn in one vkCmdDrawIndexed
+    /// </summary>
+    public class CompareBatchable : IEqualityComparer<ProcessedMesh>
+    {
+        public bool Equals(ProcessedMesh? x, ProcessedMesh? y)
+        {
+            if (x == null && y == null) return true;
+            if (x == null || y == null) return false;
+            if (x.VertexCount != y.VertexCount) return false;
+            if (x.VertexStart != y.VertexStart) return false;
+            if (x.Material.ColorPass.Shader != y.Material.ColorPass.Shader) return false;
+            if (x.IndexBuffer.NativeBuffer != y.IndexBuffer.NativeBuffer) return false;
+            if (x.IndexBuffer.Offset != y.IndexBuffer.Offset) return false;
+            if (x.IndexBuffer.Size != y.IndexBuffer.Size) return false;
+            return true;
+        }
+
+        public int GetHashCode(ProcessedMesh obj)
+        {
+            return HashCode.Combine(obj.Material.ColorPass.Shader, obj.IndexBuffer.Size, obj.IndexBuffer.Offset,
+                obj.IndexBuffer.NativeBuffer,obj.VertexCount, obj.VertexStart);
+        }
+    }
+    
+    public class CompareBatchableDepth : IEqualityComparer<ProcessedMesh>
+    {
+        public bool Equals(ProcessedMesh? x, ProcessedMesh? y)
+        {
+            if (x == null && y == null) return true;
+            if (x == null || y == null) return false;
+            if (x.VertexCount != y.VertexCount) return false;
+            if (x.VertexStart != y.VertexStart) return false;
+            if (x.Material.DepthPass.Shader != y.Material.DepthPass.Shader) return false;
+            if (x.IndexBuffer.NativeBuffer != y.IndexBuffer.NativeBuffer) return false;
+            if (x.IndexBuffer.Offset != y.IndexBuffer.Offset) return false;
+            if (x.IndexBuffer.Size != y.IndexBuffer.Size) return false;
+            return true;
+        }
+
+        public int GetHashCode(ProcessedMesh obj)
+        {
+            return HashCode.Combine(obj.Material.DepthPass.Shader, obj.IndexBuffer.Size, obj.IndexBuffer.Offset,
+                obj.IndexBuffer.NativeBuffer,obj.VertexCount, obj.VertexStart);
+        }
+    }
+    
+
+    public class CompareIndirectBatch : IEqualityComparer<ProcessedMesh>
+    {
+        public bool Equals(ProcessedMesh? x, ProcessedMesh? y)
+        {
+            if (x == null && y == null) return true;
+            if (x == null || y == null) return false;
+            if (x.Material.ColorPass.Shader != y.Material.ColorPass.Shader) return false;
+            if (x.IndexBuffer.NativeBuffer != y.IndexBuffer.NativeBuffer) return false;
+            if (x.IndexBuffer.Offset != y.IndexBuffer.Offset) return false;
+            if (x.IndexBuffer.Size != y.IndexBuffer.Size) return false;
+            return true;
+        }
+
+        public int GetHashCode(ProcessedMesh obj)
+        {
+            return HashCode.Combine(obj.Material.ColorPass.Shader, obj.IndexBuffer.Size, obj.IndexBuffer.Offset,
+                obj.IndexBuffer.NativeBuffer);
+        }
+    }
+    
+    public class CompareIndirectBatchDepth : IEqualityComparer<ProcessedMesh>
+    {
+        public bool Equals(ProcessedMesh? x, ProcessedMesh? y)
+        {
+            if (x == null && y == null) return true;
+            if (x == null || y == null) return false;
+            if (x.Material.DepthPass.Shader != y.Material.DepthPass.Shader) return false;
+            if (x.IndexBuffer.NativeBuffer != y.IndexBuffer.NativeBuffer) return false;
+            if (x.IndexBuffer.Offset != y.IndexBuffer.Offset) return false;
+            if (x.IndexBuffer.Size != y.IndexBuffer.Size) return false;
+            return true;
+        }
+
+        public int GetHashCode(ProcessedMesh obj)
+        {
+            return HashCode.Combine(obj.Material.DepthPass.Shader, obj.IndexBuffer.Size, obj.IndexBuffer.Offset,
+                obj.IndexBuffer.NativeBuffer);
+        }
+    }
 }

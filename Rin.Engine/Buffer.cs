@@ -15,10 +15,7 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
         if (elements <= 0) return;
 
         _elements = elements;
-        unsafe
-        {
-            _ptr = new IntPtr(Native.Memory.Allocate(Utils.ByteSizeOf<T>(elements)));
-        }
+        _ptr = Native.Memory.Allocate(Utils.ByteSizeOf<T>(elements));
     }
 
     public unsafe Buffer(T* data, int elements)
@@ -26,7 +23,7 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
         if (elements <= 0) return;
 
         _elements = elements;
-        _ptr = new IntPtr(Native.Memory.Allocate(Utils.ByteSizeOf<T>(elements)));
+        _ptr = Native.Memory.Allocate(Utils.ByteSizeOf<T>(elements));
         Write(data, elements);
     }
 
@@ -72,7 +69,7 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
             var byteSize = (nuint)input.ReadUInt64();
             _ptr = new IntPtr(Native.Memory.Allocate(byteSize));
             _elements = (int)(byteSize / GetElementByteSize());
-            var read = input.Read(new Span<byte>(_ptr.ToPointer(), (int)byteSize));
+            var _ = input.Read(new Span<byte>(_ptr.ToPointer(), (int)byteSize));
         }
     }
 
@@ -101,10 +98,7 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
 
     public void Zero()
     {
-        unsafe
-        {
-            Native.Memory.Set((void*)_ptr, 0, GetByteSize());
-        }
+        Native.Memory.Set(_ptr, 0, GetByteSize());
     }
 
 
@@ -154,11 +148,7 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
 
     private void ReleaseUnmanagedResources()
     {
-        unsafe
-        {
-            if (_ptr != IntPtr.Zero) Native.Memory.Free(_ptr.ToPointer());
-        }
-
+        if (_ptr != IntPtr.Zero) Native.Memory.Free(_ptr);
         _ptr = IntPtr.Zero;
     }
 

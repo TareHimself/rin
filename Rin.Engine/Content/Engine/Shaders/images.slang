@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/Shaders/defs.slang"
 #include "Engine/Shaders/attributes.slang"
 
 #ifndef RIN_GLOBAL_TEXTURES_COUNT
@@ -50,13 +51,11 @@ struct ImageHandle {
     }
 }
 
-
-
-[[vk::binding(0, 0)]]
+[[_RIN_INTERNAL_BINDING(0, 0)]]
 [SamplerBinding,AllStages, UpdateAfterBind, Partial]
 uniform SamplerState SAMPLERS[6];
 
-[[vk::binding(1, 0)]]
+[[_RIN_INTERNAL_BINDING(0, 1)]]
 [TextureBinding,AllStages, UpdateAfterBind, Partial, Variable(RIN_GLOBAL_TEXTURES_COUNT)]
 uniform Texture2D READ_TEXTURES[];
 

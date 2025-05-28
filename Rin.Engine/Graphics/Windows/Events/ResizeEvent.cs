@@ -4,5 +4,6 @@ namespace Rin.Engine.Graphics.Windows.Events;
 
 public class ResizeEvent : WindowEvent
 {
-    public required Vector2<uint> Size;
+    public required WindowRect Rect;
+    public required WindowRect DrawRect;
 }

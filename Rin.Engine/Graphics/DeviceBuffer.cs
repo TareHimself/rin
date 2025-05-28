@@ -6,7 +6,7 @@ namespace Rin.Engine.Graphics;
 /// <summary>
 ///     GPU Buffer
 /// </summary>
-public class DeviceBuffer : DeviceMemory, IDeviceBuffer
+public class DeviceBuffer : DeviceMemory, IDeviceBuffer, IDeviceBufferView
 {
     private nuint? _address;
 
@@ -24,6 +24,7 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer
 
     public string Name { get; private set; }
 
+    public IDeviceBuffer Buffer => this;
     public ulong Offset => 0;
     public ulong Size { get; }
 

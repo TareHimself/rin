@@ -42,30 +42,25 @@ public class StencilWritePass : IPass
     public void Configure(IGraphConfig config)
     {
         config.WriteImage(StencilImageId, ImageLayout.StencilAttachment);
-        _clipsBufferId = config.CreateBuffer<StencilClip>(_clips.Length, BufferStage.Graphics);
+        _clipsBufferId = config.CreateBuffer<StencilClip>(_clips.Length, GraphBufferUsage.HostThenGraphics);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var cmd = ctx.GetCommandBuffer();
-        if (_stencilShader.Bind(cmd))
+        if (_stencilShader.Bind(ctx))
         {
             var stencilImage = graph.GetImageOrException(StencilImageId);
             var clipsBuffer = graph.GetBufferOrException(_clipsBufferId);
             clipsBuffer.Write(_clips);
-            cmd.BeginRendering(_sharedContext.Extent, [],
-                    stencilAttachment: stencilImage.MakeStencilAttachmentInfo())
-                .SetViewState(_sharedContext.Extent);
-
-            var faceFlags = VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK;
-
-            vkCmdSetStencilOp(cmd, faceFlags, VkStencilOp.VK_STENCIL_OP_KEEP,
-                VkStencilOp.VK_STENCIL_OP_REPLACE, VkStencilOp.VK_STENCIL_OP_KEEP,
-                VkCompareOp.VK_COMPARE_OP_ALWAYS);
-
-            _stencilShader.Push(cmd, clipsBuffer.GetAddress());
-            cmd.Draw(6, (uint)_clips.Length);
-            cmd.EndRendering();
+            ctx
+                .BeginRendering(_sharedContext.Extent, [], stencilAttachment: stencilImage)
+                .DisableFaceCulling()
+                .StencilWriteOnly()
+                .SetStencilWriteMask(_mask)
+                .SetStencilWriteValue(_clipsBufferId);
+                _stencilShader.Push(ctx,clipsBuffer.GetAddress());
+                ctx.Draw(6,(uint)_clips.Length)
+                .EndRendering();
         }
     }
 }

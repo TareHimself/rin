@@ -15,7 +15,7 @@ public class SChatAppModule : IModule, ISingletonGetter<SChatAppModule>
     public void Start(SEngine engine)
     {
         _window = SGraphicsModule.Get().CreateWindow(500, 500, "Chat");
-        _window.OnCloseRequested += _ => { _window.Dispose(); };
+        _window.OnClose += _ => { _window.Dispose(); };
         _window.GetViewSurface()?.Add(new MainView());
     }
 

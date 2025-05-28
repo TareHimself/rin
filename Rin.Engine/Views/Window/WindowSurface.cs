@@ -3,15 +3,15 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Windows;
 using Rin.Engine.Graphics.Windows.Events;
-using Rin.Engine.Math;
 using Rin.Engine.Views.Events;
+using Rin.Engine.Views.Graphics;
 using CursorEvent = Rin.Engine.Graphics.Windows.Events.CursorEvent;
 using Graphics_Windows_Events_CharacterEvent = Rin.Engine.Graphics.Windows.Events.CharacterEvent;
 using Graphics_Windows_Events_CursorMoveEvent = Rin.Engine.Graphics.Windows.Events.CursorMoveEvent;
 using Graphics_Windows_Events_ResizeEvent = Rin.Engine.Graphics.Windows.Events.ResizeEvent;
 using Graphics_Windows_Events_ScrollEvent = Rin.Engine.Graphics.Windows.Events.ScrollEvent;
 
-namespace Rin.Engine.Views.Graphics;
+namespace Rin.Engine.Views.Window;
 
 /// <summary>
 ///     A surface that displays views on a window
@@ -20,12 +20,12 @@ public class WindowSurface : Surface
 {
     private readonly IWindowRenderer _renderer;
     private bool _minimized;
-    private Vector2<int> _size;
+    private Extent2D _size;
 
     public WindowSurface(IWindowRenderer renderer)
     {
         _renderer = renderer;
-        _size = Window.GetPixelSize().Cast<int>();
+        _size = Window.GetDrawRect().Extent;
     }
 
     public IWindow Window => _renderer.GetWindow();
@@ -40,11 +40,11 @@ public class WindowSurface : Surface
         base.Init();
         Window.OnCursorButton += OnMouseButton;
         Window.OnCursorMoved += OnMouseMove;
-        Window.OnScrolled += OnScroll;
+        Window.OnScroll += OnScroll;
         Window.OnKey += OnKeyboard;
         Window.OnCharacter += OnCharacter;
         _renderer.OnCollect += Collect;
-        Window.OnResized += OnWindowResized;
+        Window.OnResize += OnWindowResized;
         Window.OnCursorEnter += OnCursorEnter;
         Window.OnCursorLeave += OnCursorLeave;
     }
@@ -57,8 +57,8 @@ public class WindowSurface : Surface
 
     protected void OnWindowResized(Graphics_Windows_Events_ResizeEvent e)
     {
-        _size = e.Size.Cast<int>();
-        _minimized = _size.X == 0 || _size.Y == 0;
+        _size = e.DrawRect.Extent;
+        _minimized = _size.Width == 0 || _size.Height == 0;
         if (!_minimized) ReceiveResize(new ResizeSurfaceEvent(this, _size));
     }
 
@@ -113,11 +113,11 @@ public class WindowSurface : Surface
     public override void Dispose()
     {
         base.Dispose();
-        Window.OnResized -= OnWindowResized;
+        Window.OnResize -= OnWindowResized;
         _renderer.OnCollect -= Collect;
         Window.OnCursorButton -= OnMouseButton;
         Window.OnCursorMoved -= OnMouseMove;
-        Window.OnScrolled -= OnScroll;
+        Window.OnScroll -= OnScroll;
         Window.OnKey -= OnKeyboard;
         Window.OnCharacter -= OnCharacter;
         Window.OnCursorEnter -= OnCursorEnter;
@@ -146,6 +146,6 @@ public class WindowSurface : Surface
 
     public override Vector2 GetSize()
     {
-        return new Vector2(_size.X, _size.Y);
+        return new Vector2(_size.Width, _size.Height);
     }
 }

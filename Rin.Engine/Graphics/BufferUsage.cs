@@ -1,9 +1,10 @@
 namespace Rin.Engine.Graphics;
 
-public enum BufferStage
+public enum BufferUsage
 {
     Undefined,
     Transfer,
     Graphics,
-    Compute
+    Compute,
+    Indirect
 }

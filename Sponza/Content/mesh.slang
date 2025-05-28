@@ -32,8 +32,8 @@ struct PushConstants {
 uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
 
 struct VertexIn {
-    int vertexId : SV_VertexID;
-    int instanceId : SV_InstanceID;
+    int vertexId : SV_VulkanVertexID;
+    int instanceId : SV_VulkanInstanceID;
 };
 
 struct VertexOut {
@@ -54,7 +54,8 @@ struct FragmentIn {
 
 [shader("vertex")]
 VertexOut vertex(VertexIn input) {
-    var instanceData = push.data[input.instanceId];
+    var instanceId = input.instanceId;
+    var instanceData = push.data[instanceId];
     VertexOut output;
     var vertex = instanceData.vertices[input.vertexId];
     var location4 = float4(vertex.getLocation(), 1.0);
@@ -65,7 +66,7 @@ VertexOut vertex(VertexIn input) {
     // We do this separately because of depth precision https://developer.nvidia.com/blog/visualizing-depth-precision/
     var viewLocation = push.scene->view * float4(sceneLocation.xyz, 1.0);
     output.position = push.scene->projection * viewLocation;
-    output.instanceId = input.instanceId;
+    output.instanceId = instanceId;
     return output;
 }
 

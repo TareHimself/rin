@@ -118,8 +118,11 @@ public class SlangShaderManager : IShaderManager
                         case "SamplerBinding":
                             bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER;
                             break;
-                        case "UniformBuffer":
+                        case "UniformBufferBinding":
                             bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                            break;
+                        case "StorageBufferBinding":
+                            bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                             break;
                     }
 

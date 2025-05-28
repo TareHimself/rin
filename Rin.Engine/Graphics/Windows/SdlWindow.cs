@@ -19,9 +19,11 @@ public class SdlWindow : IWindow
     private Vector2 _cursorPosition = Vector2.Zero;
 
     //public Vec2<uint> PixelSize;
-
+    private unsafe IntPtr _ptr;
     public unsafe SdlWindow(SDL_Window* windowPointer, IWindow? parent)
     {
+        _ptr = Native.Platform.Window.Create("Very Long Window Name", 500, 500,WindowFlags.Resizable);
+        Native.Platform.Window.Show(_ptr);
         _nativePtr = windowPointer;
         Parent = parent;
         // _keyDelegate = KeyCallback;
@@ -68,33 +70,38 @@ public class SdlWindow : IWindow
         }
     }
 
-    public event Action? OnDisposed;
+    public event Action? OnDispose;
 
     public event Action<KeyEvent>? OnKey;
     public event Action<CursorMoveEvent>? OnCursorMoved;
     public event Action<CursorButtonEvent>? OnCursorButton;
     public event Action<CursorEvent>? OnCursorEnter;
     public event Action<WindowEvent>? OnCursorLeave;
-    public event Action<FocusEvent>? OnFocused;
-    public event Action<ScrollEvent>? OnScrolled;
-    public event Action<ResizeEvent>? OnResized;
-    public event Action<CloseEvent>? OnCloseRequested;
+    public event Action<FocusEvent>? OnFocus;
+    public event Action<ScrollEvent>? OnScroll;
+    public event Action<ResizeEvent>? OnResize;
+    public event Action<CloseEvent>? OnClose;
     public event Action<CharacterEvent>? OnCharacter;
 
-    public event Action<MaximizedEvent>? OnMaximized;
+    public event Action<MaximizeEvent>? OnMaximize;
 
     public event Action<RefreshEvent>? OnRefresh;
 
-    public event Action<MinimizeEvent>? OnMinimized;
+    public event Action<MinimizeEvent>? OnMinimize;
 
     public event Action<DropEvent>? OnDrop;
+
+    public void SetHitTestCallback(Func<WindowHitTestResult, IWindow>? callback)
+    {
+        throw new NotImplementedException();
+    }
 
     public Vector2 GetCursorPosition()
     {
         return _cursorPosition;
     }
 
-    public void SetCursorPosition(Vector2 position)
+    public void SetCursorPosition(in Vector2 position)
     {
         //NativeMethods.SetMousePosition(_nativePtr, position.X, position.Y);
     }
@@ -108,33 +115,38 @@ public class SdlWindow : IWindow
         //NativeMethods.SetWindowFullscreen(_nativePtr, state ? 1 : 0);
     }
 
-    public void SetSize(int width, int height)
+    public void SetSize(in Extent2D size)
     {
         unsafe
         {
-            SDL_SetWindowSize(_nativePtr, width, height);
+            //SDL_SetWindowSize(_nativePtr, size, height);
         }
     }
 
-    public void SetPosition(int x, int y)
+    public void SetPosition(in Offset2D position)
     {
         unsafe
         {
-            SDL_SetWindowPosition(_nativePtr, x, y);
+            //SDL_SetWindowPosition(_nativePtr, position, y);
         }
     }
 
 
-    public Vector2<uint> GetPixelSize()
+    public WindowRect GetDrawRect()
     {
-        Vector2<int> result = 0;
+        WindowRect result = default;
         unsafe
         {
-            SDL_GetWindowSizeInPixels(_nativePtr, &result.X, &result.Y);
+            //SDL_GetWindowSizeInPixels(_nativePtr, &result.Extent.X, &result.Extent.Y);
             //NativeMethods.GetWindowPixelSize(_nativePtr, &result.X, &result.Y);
         }
 
-        return result.Cast<uint>();
+        return result;
+    }
+
+    public WindowRect GetRect()
+    {
+        throw new NotImplementedException();
     }
 
     public nuint GetPtr()
@@ -146,12 +158,13 @@ public class SdlWindow : IWindow
         //return _nativePtr;
     }
 
-    public IWindow CreateChild(int width, int height, string name, CreateOptions? options = null)
+    public IWindow CreateChild(int width, int height, string name, WindowFlags flags = WindowFlags.Visible)
     {
-        var child = SGraphicsModule.Get().CreateWindow(width, height, name, options, this);
-        _children.Add(child);
-        child.OnDisposed += () => _children.Remove(child);
-        return child;
+        throw new NotImplementedException();
+        // var child = SGraphicsModule.Get().CreateWindow(width, height, name, options, this);
+        // _children.Add(child);
+        // child.OnDispose += () => _children.Remove(child);
+        // return child;
     }
 
     public void StartTyping()
@@ -172,11 +185,16 @@ public class SdlWindow : IWindow
 
     public void Dispose()
     {
+        unsafe
+        {
+            Native.Platform.Window.Destroy(_ptr);
+            _ptr = IntPtr.Zero;
+        }
         foreach (var window in _children) window.Dispose();
 
         _children.Clear();
 
-        OnDisposed?.Invoke();
+        OnDispose?.Invoke();
 
         unsafe
         {
@@ -303,36 +321,6 @@ public class SdlWindow : IWindow
             case SDL_Keycode.SDLK_F23: return InputKey.F23;
             case SDL_Keycode.SDLK_F24: return InputKey.F24;
 
-            // Keypad keys
-            case SDL_Keycode.SDLK_KP_0: return InputKey.KP0;
-            case SDL_Keycode.SDLK_KP_1: return InputKey.KP1;
-            case SDL_Keycode.SDLK_KP_2: return InputKey.KP2;
-            case SDL_Keycode.SDLK_KP_3: return InputKey.KP3;
-            case SDL_Keycode.SDLK_KP_4: return InputKey.KP4;
-            case SDL_Keycode.SDLK_KP_5: return InputKey.KP5;
-            case SDL_Keycode.SDLK_KP_6: return InputKey.KP6;
-            case SDL_Keycode.SDLK_KP_7: return InputKey.KP7;
-            case SDL_Keycode.SDLK_KP_8: return InputKey.KP8;
-            case SDL_Keycode.SDLK_KP_9: return InputKey.KeyKP9;
-            case SDL_Keycode.SDLK_KP_DECIMAL: return InputKey.KeyKPDecimal;
-            case SDL_Keycode.SDLK_KP_DIVIDE: return InputKey.KeyKPDivide;
-            case SDL_Keycode.SDLK_KP_MULTIPLY: return InputKey.KeyKPMultiply;
-            case SDL_Keycode.SDLK_KP_MINUS: return InputKey.KeyKPSubtract;
-            case SDL_Keycode.SDLK_KP_PLUS: return InputKey.KeyKPAdd;
-            case SDL_Keycode.SDLK_KP_ENTER: return InputKey.KeyKPEnter;
-            case SDL_Keycode.SDLK_KP_EQUALS: return InputKey.KeyKPEqual;
-
-            // Modifier keys
-            case SDL_Keycode.SDLK_LSHIFT: return InputKey.KeyLeftShift;
-            case SDL_Keycode.SDLK_LCTRL: return InputKey.KeyLeftControl;
-            case SDL_Keycode.SDLK_LALT: return InputKey.KeyLeftAlt;
-            case SDL_Keycode.SDLK_LGUI: return InputKey.KeyLeftSuper;
-            case SDL_Keycode.SDLK_RSHIFT: return InputKey.KeyRightShift;
-            case SDL_Keycode.SDLK_RCTRL: return InputKey.KeyRightControl;
-            case SDL_Keycode.SDLK_RALT: return InputKey.KeyRightAlt;
-            case SDL_Keycode.SDLK_RGUI: return InputKey.KeyRightSuper;
-            case SDL_Keycode.SDLK_MENU: return InputKey.KeyMenu;
-
             default:
                 throw new Exception("Unknown sdl key"); // No match found
         }
@@ -386,24 +374,25 @@ public class SdlWindow : IWindow
             case SDL_EventType.SDL_EVENT_WINDOW_MOVED:
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_RESIZED:
-                OnResized?.Invoke(new ResizeEvent
-                {
-                    Window = this,
-                    Size = GetPixelSize()
-                });
+                // OnResize?.Invoke(new ResizeEvent
+                // {
+                //     Window = this,
+                //     Rect = GetRect(),
+                //     DrawRect = GetDrawRect(),
+                // });
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_METAL_VIEW_RESIZED:
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_MINIMIZED:
-                OnMinimized?.Invoke(new MinimizeEvent
+                OnMinimize?.Invoke(new MinimizeEvent
                 {
                     Window = this
                 });
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_MAXIMIZED:
-                OnMaximized?.Invoke(new MaximizedEvent
+                OnMaximize?.Invoke(new MaximizeEvent
                 {
                     Window = this
                 });
@@ -425,7 +414,7 @@ public class SdlWindow : IWindow
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_FOCUS_GAINED:
                 Focused = true;
-                OnFocused?.Invoke(new FocusEvent
+                OnFocus?.Invoke(new FocusEvent
                 {
                     Window = this,
                     IsFocused = true
@@ -433,14 +422,14 @@ public class SdlWindow : IWindow
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_FOCUS_LOST:
                 Focused = false;
-                OnFocused?.Invoke(new FocusEvent
+                OnFocus?.Invoke(new FocusEvent
                 {
                     Window = this,
                     IsFocused = false
                 });
                 break;
             case SDL_EventType.SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-                OnCloseRequested?.Invoke(new CloseEvent
+                OnClose?.Invoke(new CloseEvent
                 {
                     Window = this
                 });
@@ -530,7 +519,7 @@ public class SdlWindow : IWindow
                 });
                 break;
             case SDL_EventType.SDL_EVENT_MOUSE_WHEEL:
-                OnScrolled?.Invoke(new ScrollEvent
+                OnScroll?.Invoke(new ScrollEvent
                 {
                     Window = this,
                     Position = GetCursorPosition(),

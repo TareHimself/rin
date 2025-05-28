@@ -1,12 +1,16 @@
 ﻿using Rin.Engine.Graphics;
+using Rin.Engine.Graphics.Shaders;
 
 namespace Rin.Engine.World.Graphics;
 
 /// <summary>
-///     Interface for a material pass
+/// Interface for a material pass
 /// </summary>
 public interface IMaterialPass
 {
+    
+    public IShader Shader { get; }
+    
     /// <summary>
     ///     The memory required for a single draw using this pass
     /// </summary>
@@ -31,4 +35,6 @@ public interface IMaterialPass
     /// <param name="view"></param>
     /// <param name="mesh">The mesh this write is for</param>
     public void Write(IDeviceBufferView view, ProcessedMesh mesh);
+    
+    public bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer);
 }

@@ -83,7 +83,7 @@ public sealed class CompiledGraph : ICompiledGraph
 
     public void Execute(Frame frame, IRenderData context, TaskPool taskPool)
     {
-        var executionContext = new ExecutionContext(this, frame);
+        var executionContext = new VulkanExecutionContext(frame.GetPrimaryCommandBuffer(), frame.GetDescriptorAllocator());
         foreach (var stage in _nodes)
         foreach (var pass in stage.Passes)
             pass.Execute(this, executionContext);

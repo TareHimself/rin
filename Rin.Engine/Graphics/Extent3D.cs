@@ -5,10 +5,10 @@ namespace Rin.Engine.Graphics;
 
 public record struct Extent3D : IFormattable
 {
-    [PublicAPI] public uint Dimensions = 1;
-    [PublicAPI] public uint Height = 0;
+   
     [PublicAPI] public uint Width = 0;
-
+    [PublicAPI] public uint Height = 0;
+    [PublicAPI] public uint Dimensions = 1;
     public Extent3D()
     {
     }

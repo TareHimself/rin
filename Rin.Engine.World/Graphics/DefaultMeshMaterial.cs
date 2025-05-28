@@ -48,12 +48,29 @@ public class DefaultMeshMaterial : IMeshMaterial
 
     private class DefaultColorPass(DefaultMeshMaterial meshMaterial) : SimpleMaterialPass
     {
-        protected override IShader Shader { get; } = SGraphicsModule.Get()
+        public override IShader Shader { get; } = SGraphicsModule.Get()
             .MakeGraphics("World/Shaders/Mesh/mesh.slang");
 
         public override ulong GetRequiredMemory()
         {
             return Utils.ByteSizeOf<DefaultMaterialProperties>();
+        }
+
+        public override bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer)
+        {
+            var ctx = frame.ExecutionContext;
+            if (Shader.Bind(ctx))
+            {
+                var pushData = new PushConstant
+                {
+                    SceneAddress = frame.SceneInfo.GetAddress(),
+                    DataAddress = groupMaterialBuffer!.GetAddress()
+                };
+
+                Shader.Push(frame.ExecutionContext,pushData);
+                return true;
+            }
+            return false;
         }
 
         protected override IMaterialPass GetPass(ProcessedMesh mesh)
@@ -64,8 +81,7 @@ public class DefaultMeshMaterial : IMeshMaterial
         protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
             ProcessedMesh[] meshes)
         {
-            var cmd = frame.GetCommandBuffer();
-
+            var ctx = frame.ExecutionContext;
             //var push = Shader.PushConstants.Values.First();
             // var set = SGraphicsModule.Get().GetImageFactory().GetDescriptorSet();
             // cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, Shader.GetPipelineLayout(),
@@ -87,11 +103,9 @@ public class DefaultMeshMaterial : IMeshMaterial
                 SceneAddress = frame.SceneInfo.GetAddress(),
                 DataAddress = data!.GetAddress()
             };
-
-            Shader.Push(cmd, pushData);
-            //cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
-            vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, first.IndicesStart, (int)first.VertexStart,
-                0);
+            Shader.Push(ctx,pushData);
+            ctx
+                .DrawIndexed(first.IndicesCount,(uint)meshes.Length, first.IndicesCount,first.VertexStart);
             return memoryUsed;
         }
 
@@ -195,12 +209,29 @@ public class DefaultMeshMaterial : IMeshMaterial
 
     private class DefaultDepthPass : SimpleMaterialPass
     {
-        protected override IShader Shader { get; } = SGraphicsModule.Get()
+        public override IShader Shader { get; } = SGraphicsModule.Get()
             .MakeGraphics("World/Shaders/Mesh/mesh_depth.slang");
 
         public override ulong GetRequiredMemory()
         {
             return Utils.ByteSizeOf<DepthMaterialData>();
+        }
+
+        public override bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer)
+        {
+            var ctx = frame.ExecutionContext;
+            if (Shader.Bind(ctx))
+            {
+                var pushData = new PushConstant
+                {
+                    SceneAddress = frame.SceneInfo.GetAddress(),
+                    DataAddress = groupMaterialBuffer!.GetAddress()
+                };
+
+                Shader.Push(frame.ExecutionContext,pushData);
+                return true;
+            }
+            return false;
         }
 
         protected override IMaterialPass GetPass(ProcessedMesh mesh)
@@ -211,7 +242,7 @@ public class DefaultMeshMaterial : IMeshMaterial
         protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
             ProcessedMesh[] meshes)
         {
-            var cmd = frame.GetCommandBuffer();
+            var ctx = frame.ExecutionContext;
 
             //var push = Shader.PushConstants.Values.First();
 
@@ -232,10 +263,9 @@ public class DefaultMeshMaterial : IMeshMaterial
                 DataAddress = data!.GetAddress()
             };
 
-            Shader.Push(cmd, pushData);
-            //cmd.PushConstant(Shader.GetPipelineLayout(), push.Stages, pushData);
-            vkCmdDrawIndexed(cmd, first.IndicesCount, (uint)meshes.Length, first.IndicesStart, (int)first.VertexStart,
-                0);
+            Shader.Push(ctx,pushData);
+            ctx
+                .DrawIndexed(first.IndicesCount,(uint)meshes.Length, first.IndicesCount,first.VertexStart);
             return memoryUsed;
         }
 
