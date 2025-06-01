@@ -132,9 +132,9 @@ public class SdlWindow : IWindow
     }
 
 
-    public WindowRect GetDrawRect()
+    public Extent2D GetSize()
     {
-        WindowRect result = default;
+        Extent2D result = default;
         unsafe
         {
             //SDL_GetWindowSizeInPixels(_nativePtr, &result.Extent.X, &result.Extent.Y);

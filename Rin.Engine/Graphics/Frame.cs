@@ -13,7 +13,6 @@ public class Frame : IDisposable
     private readonly DescriptorAllocator _descriptorAllocator;
     private readonly VkDevice _device;
     private readonly VkFence _renderFence;
-    private readonly VkSemaphore _renderSemaphore;
     private readonly VkSemaphore _swapchainSemaphore;
     public readonly WindowRenderer Renderer;
     private bool _rendering;
@@ -37,7 +36,6 @@ public class Frame : IDisposable
         _commandPool = device.CreateCommandPool(queueFamily);
         _commandBuffer = device.AllocateCommandBuffers(_commandPool).First();
         _renderFence = device.CreateFence(true);
-        _renderSemaphore = device.CreateSemaphore();
         _swapchainSemaphore = device.CreateSemaphore();
     }
 
@@ -49,7 +47,6 @@ public class Frame : IDisposable
         OnReset = null;
         _descriptorAllocator.Dispose();
         _device.DestroySemaphore(_swapchainSemaphore);
-        _device.DestroySemaphore(_renderSemaphore);
         _device.DestroyFence(_renderFence);
         _device.DestroyCommandPool(_commandPool);
     }
@@ -61,12 +58,7 @@ public class Frame : IDisposable
     {
         return _renderFence;
     }
-
-    public VkSemaphore GetRenderSemaphore()
-    {
-        return _renderSemaphore;
-    }
-
+    
     public VkSemaphore GetSwapchainSemaphore()
     {
         return _swapchainSemaphore;

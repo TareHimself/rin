@@ -34,26 +34,29 @@ public class WindowRenderer : IWindowRenderer
     };
 
     private VkImage[] _swapchainImages = [];
+    private VkSemaphore[] _renderSemaphores = [];
 
     private VkImageView[] _swapchainViews = [];
     public double LastCollectElapsedTime;
     public double LastExecuteElapsedTime;
 
+
+
     public WindowRenderer(SGraphicsModule module, IWindow window)
     {
+        _module = module;
         _window = window;
         _surface = CreateSurface();
-        _module = module;
-        _supportedPresentModes = _module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
+        _supportedPresentModes = module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
         _resourcePool = new ResourcePool(this);
     }
 
     public WindowRenderer(SGraphicsModule module, IWindow window, VkSurfaceKHR surface)
     {
+        _module = module;
         _window = window;
         _surface = surface;
-        _module = module;
-        _supportedPresentModes = _module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
+        _supportedPresentModes = module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
         _resourcePool = new ResourcePool(this);
     }
 
@@ -95,7 +98,7 @@ public class WindowRenderer : IWindowRenderer
         {
             if (ctx.RenderExtent.Width == 0 || ctx.RenderExtent.Height == 0) return;
 
-            if (ctx.RenderExtent != _window.GetDrawRect().Extent) return;
+            if (ctx.RenderExtent != _window.GetSize()) return;
 
             if (_swapchainExtent != ctx.RenderExtent)
             {
@@ -128,7 +131,7 @@ public class WindowRenderer : IWindowRenderer
 
     public void Init()
     {
-        var windowSize = _window.GetDrawRect();
+        var windowSize = _window.GetSize();
         // CreateSwapchain(new Extent2D
         // {
         //     Width = windowSize.X,
@@ -149,19 +152,8 @@ public class WindowRenderer : IWindowRenderer
             return false;
 
         var device = _module.GetDevice();
-        var physicalDevice = _module.GetPhysicalDevice();
         var format = _module.GetSurfaceFormat();
-        var presentMode = VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR;
-        // _supportedPresentModes.Contains(VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR)
-        // ? VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR
-        // : _supportedPresentModes.First();
-        // var createInfo = new VkSwapchainCreateInfoKHR()
-        // {
-        //     sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        //     
-        // }
-        // vkCreateSwapchainKHR()
-
+        var presentMode = _supportedPresentModes.First();
         var createInfo = new VkSwapchainCreateInfoKHR
         {
             sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -185,6 +177,7 @@ public class WindowRenderer : IWindowRenderer
         vkGetSwapchainImagesKHR(device, swapchain, &imagesCount, null);
 
         _swapchainImages = new VkImage[(int)imagesCount];
+        _renderSemaphores = Enumerable.Range(0, (int)imagesCount).Select(_ => device.CreateSemaphore()).ToArray();
 
         fixed (VkImage* imagesPtr = _swapchainImages)
         {
@@ -200,30 +193,6 @@ public class WindowRenderer : IWindowRenderer
             return view;
         }).ToArray();
         _swapchain = swapchain;
-        // vkGetSwapchainImagesKHR()
-        // NativeMethods.CreateSwapchain(
-        //     device,
-        //     physicalDevice,
-        //     _surface,
-        //     (int)format.format,
-        //     (int)format.colorSpace,
-        //     (int)presentMode,
-        //     extent.Width,
-        //     extent.Height,
-        //     (swapchain, swapchainImages, numSwapchainImages, swapchainImageViews, numSwapchainImageViews) =>
-        //     {
-        //         _swapchain = new VkSwapchainKHR(swapchain);
-        //         var images = (VkImage*)swapchainImages;
-        //         var imageViews = (VkImageView*)swapchainImageViews;
-        //
-        //         _swapchainImages = new VkImage[numSwapchainImages];
-        //
-        //         for (var i = 0; i < numSwapchainImages; i++) _swapchainImages[i] = images[i];
-        //
-        //         _swapchainViews = new VkImageView[numSwapchainImageViews];
-        //
-        //         for (var i = 0; i < numSwapchainImages; i++) _swapchainViews[i] = imageViews[i];
-        //     });
         _swapchainExtent = extent;
         return true;
     }
@@ -235,6 +204,11 @@ public class WindowRenderer : IWindowRenderer
         if (_swapchainExtent != new Extent2D())
         {
             var device = _module.GetDevice();
+            
+            foreach (var renderSemaphore in _renderSemaphores)
+            {
+                device.DestroySemaphore(renderSemaphore);
+            }
             foreach (var view in _swapchainViews) vkDestroyImageView(device, view, null);
             _swapchainViews = [];
             _swapchainImages = [];
@@ -284,7 +258,7 @@ public class WindowRenderer : IWindowRenderer
 
         if (OnCollect == null || OnCollect.GetInvocationList().Length == 0) return null;
 
-        var extent = _window.GetDrawRect().Extent;
+        var extent = _window.GetSize();
 
         OnCollect?.Invoke(builder);
 
@@ -360,6 +334,8 @@ public class WindowRenderer : IWindowRenderer
 
                 var queue = _module.GetGraphicsQueue();
 
+                var renderSemaphore = _renderSemaphores[swapchainImageIndex];
+
                 _module.SubmitToQueue(queue, frame.GetRenderFence(), [
                         new VkCommandBufferSubmitInfo
                         {
@@ -371,7 +347,7 @@ public class WindowRenderer : IWindowRenderer
                         new VkSemaphoreSubmitInfo
                         {
                             sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                            semaphore = frame.GetRenderSemaphore(),
+                            semaphore = renderSemaphore,
                             value = 1,
                             stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
                         }
@@ -387,7 +363,6 @@ public class WindowRenderer : IWindowRenderer
                     ]);
                 unsafe
                 {
-                    var renderSemaphore = frame.GetRenderSemaphore();
                     var swapchain = _swapchain;
                     var imIdx = swapchainImageIndex + 0;
                     var presentInfo = new VkPresentInfoKHR

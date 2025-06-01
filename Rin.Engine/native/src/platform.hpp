@@ -15,6 +15,8 @@ EXPORT int platformGet();
 
 EXPORT void platformInit();
 
+EXPORT void platformShutdown();
+
 using PathReceivedCallback = void(RIN_CALLBACK_CONVENTION *)(const char* text);
 
 EXPORT void platformSelectFile(const char * title,bool multiple, const char * filter,PathReceivedCallback callback);
@@ -46,9 +48,7 @@ EXPORT Vector2 platformWindowGetCursorPosition(void * handle);
 
 EXPORT void platformWindowSetCursorPosition(void * handle,Vector2 position);
 
-EXPORT WindowRect platformWindowGetRect(void* handle);
-
-EXPORT WindowRect platformWindowGetDrawRect(void* handle);
+EXPORT Extent2D platformWindowGetSize(void *handle);
 
 EXPORT VkSurfaceKHR platformWindowCreateSurface(VkInstance instance,void * handle);
 

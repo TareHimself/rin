@@ -8,6 +8,13 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #include <iostream>
 #include <slang.h>
 #include "platform.hpp"
+#ifdef RIN_PLATFORM_WINDOWS
+#endif
+
+#ifdef RIN_PLATFORM_LINUX
+#include <vulkan/vulkan_wayland.h>
+#endif
+
 
 #define VK_DISPATCH_CHECKED(FUNCTION,...) \
 if(VULKAN_HPP_DEFAULT_DISPATCHER.FUNCTION == nullptr) \
@@ -35,6 +42,9 @@ EXPORT_IMPL void createVulkanInstance(void * windowHandle, VkInstance* outInstan
         .require_api_version(1,3,0)
 #ifdef RIN_PLATFORM_WIN
         .enable_extension("VK_KHR_win32_surface")
+#endif
+#ifdef RIN_PLATFORM_LINUX
+    .enable_extension(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME)
 #endif
         //.request_validation_layers(true)
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE

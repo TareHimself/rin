@@ -51,22 +51,10 @@ public interface IWindow : IDisposable
     public void SetSize(in Extent2D size);
 
     /// <summary>
-    /// Sets the position of the window
-    /// </summary>
-    /// <param name="position"></param>
-    public void SetPosition(in Offset2D position);
-
-    /// <summary>
     /// Gets the rect for the drawable area of this window
     /// </summary>
     /// <returns></returns>
-    public WindowRect GetDrawRect();
-    
-    /// <summary>
-    /// Gets the rect for this window
-    /// </summary>
-    /// <returns></returns>
-    public WindowRect GetRect();
+    public Extent2D GetSize();
 
     public IWindow CreateChild(int width, int height, string name, WindowFlags flags = WindowFlags.Visible);
 

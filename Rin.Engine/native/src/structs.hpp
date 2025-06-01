@@ -33,6 +33,9 @@ struct Extent2D
 {
     uint32_t width;
     uint32_t height;
+    bool operator==(const Extent2D &other) const {
+        return width == other.width && height == other.height;
+    }
 };
 
 struct Extent3D : Extent2D
@@ -214,8 +217,7 @@ struct ResizeEvent
 {
     WindowEventType type;
     void * handle;
-    WindowRect rect;
-    WindowRect drawRect;
+    Extent2D size;
 };
 
 struct MinimizeEvent

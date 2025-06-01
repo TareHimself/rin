@@ -1,7 +1,8 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 include(FetchContent)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
 include(${CMAKE_CURRENT_SOURCE_DIR}/utils.cmake)
 
 # include(ExternalProject)
@@ -9,13 +10,27 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-project(Rin.Engine.Native LANGUAGES CXX VERSION 1.0.0 DESCRIPTION "Native abstractions for the Rin.Engine")
-
+project(Rin.Engine.Native LANGUAGES C CXX VERSION 1.0.0 DESCRIPTION "Native abstractions for the Rin.Engine")
 set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
-
 file(GLOB_RECURSE SOURCE_FILES "${SRC_DIR}/*.cpp" "${SRC_DIR}/*.hpp")
+option(BUILD_TEST_MAIN "Build a test main file for debugging" OFF)
 
-add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
+if(LINUX)
+    find_package(Wayland REQUIRED)
+    list(APPEND SOURCE_FILES ${WAYLAND_GENERATED_SOURCES})
+endif()
+
+add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES}
+        test/main.cpp
+)
+
+if(LINUX)
+    find_package(Decor REQUIRED)
+    target_include_directories(${PROJECT_NAME} PUBLIC  ${DECOR_INCLUDE_DIRS} ${WAYLAND_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME} ${DECOR_LIBRARIES} ${WAYLAND_LIBRARIES})
+
+
+endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${SRC_DIR})
 
@@ -48,16 +63,27 @@ set(MSDFGEN_USE_VCPKG OFF)
 
 FetchContent_MakeAvailable(fetch_vkma fetch_vkb fetch_msdfgen)
 
-find_package(Vulkan REQUIRED FATAL_ERROR)
+find_package(Vulkan REQUIRED)
 
-target_link_libraries(${PROJECT_NAME} msdfgen::msdfgen Vulkan::Vulkan vk-bootstrap::vk-bootstrap GPUOpen::VulkanMemoryAllocator)
-
+target_link_libraries(${PROJECT_NAME} msdfgen::msdfgen Vulkan::Vulkan vk-bootstrap::vk-bootstrap GPUOpen::VulkanMemoryAllocator ${WAYLAND_LIBRARIES})
 FindSlang(${PROJECT_NAME} 2025.9.2)
 GetBass()
 SetDynamicLibraryDir(${PROJECT_NAME})
 
+
 add_custom_command ( TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/../../copy_s.py "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>" ${TARGET_DIR}
 )
+
+
+if(BUILD_TEST_MAIN)
+    add_executable(test ${CMAKE_CURRENT_LIST_DIR}/test/main.cpp)
+    target_link_libraries(test ${PROJECT_NAME})
+    target_include_directories(test PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
+    SetDynamicLibraryDir("test")
+    add_custom_command ( TARGET test POST_BUILD
+            COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/../../copy_s.py "$<TARGET_RUNTIME_DLLS:test>" ${TARGET_DIR}
+    )
+endif()
 
 

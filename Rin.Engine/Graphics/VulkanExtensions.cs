@@ -919,7 +919,7 @@ public static class VulkanExtensions
             var layoutsArray = layouts.ToArray();
             var range = new VkPushConstantRange
             {
-                size = 256, // Max expected per platform
+                size = 128, // Minimum required by vulkan
                 stageFlags = VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS |
                              VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT
             };
@@ -1058,7 +1058,7 @@ public static class VulkanExtensions
         }
     }
 
-    public static void DestroySemaphore(in this VkDevice self, VkSemaphore semaphore)
+    public static void DestroySemaphore(in this VkDevice self,in VkSemaphore semaphore)
     {
         unsafe
         {
@@ -1066,7 +1066,7 @@ public static class VulkanExtensions
         }
     }
 
-    public static void DestroySampler(in this VkDevice self, VkSampler sampler)
+    public static void DestroySampler(in this VkDevice self,in VkSampler sampler)
     {
         unsafe
         {

@@ -7,6 +7,11 @@ public static class Platform
 {
     public static void Init()
     {
+        
+    }
+    
+    public static void Shutdown()
+    {
         Native.Platform.Init();
     }
 

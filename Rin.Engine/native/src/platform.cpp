@@ -1,7 +1,6 @@
 ﻿#include "platform.hpp"
 
 #include <iostream>
-#include <ostream>
 
 #ifdef RIN_PLATFORM_WIN
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -669,10 +668,167 @@ EXPORT_IMPL void platformWindowSetPosition(void* handle,Point2D position)
 
 
 #ifdef RIN_PLATFORM_LINUX
-EXPORT_IMPL void platformInit()
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_wayland.h>
+#include <list>
+#include <wayland-client.h>
+#include <xdg-shell-client-protocol.h>
+#include <libdecor.h>
+
+wl_registry * REGISTRY;
+wl_compositor * COMPOSITOR;
+wl_display * DISPLAY;
+xdg_wm_base * SHELL;
+
+static std::list<WindowEvent> PENDING_EVENTS = {};
+
+static void handleRegistry(
+    void* data,
+    struct wl_registry* registry,
+    uint32_t name,
+    const char* interface,
+    uint32_t version
+);
+static void handleShellPing(void* data, struct xdg_wm_base* shell, uint32_t serial);
+static void handleShellSurfaceConfigure(void* data, struct xdg_surface* shellSurface, uint32_t serial);
+static void handleToplevelConfigure(
+    void* data,
+    struct xdg_toplevel* toplevel,
+    int32_t width,
+    int32_t height,
+    struct wl_array* states
+);
+static void handleToplevelClose(void* data, struct xdg_toplevel* toplevel);
+static void handleTopLevelDecorationConfigure(void *data,
+              struct zxdg_toplevel_decoration_v1 *zxdg_toplevel_decoration_v1,
+              uint32_t mode);
+
+static const struct wl_registry_listener registryListener = {
+    .global = handleRegistry
+};
+
+static const struct xdg_wm_base_listener shellListener = {
+    .ping = handleShellPing
+};
+
+static const struct xdg_surface_listener shellSurfaceListener = {
+    .configure = handleShellSurfaceConfigure
+};
+
+static const struct xdg_toplevel_listener topLevelListener = {
+    .configure = handleToplevelConfigure,
+    .close = handleToplevelClose
+};
+
+struct WindowHandle {
+    wl_surface * surface;
+    xdg_surface * xdgSurface;
+    xdg_toplevel * xdgToplevel;
+    Flags<WindowFlags> flags;
+    Extent2D size;
+    zxdg_toplevel_decoration_v1 * decoration;
+    bool resizePending = false;
+};
+
+static void handleRegistry(
+    void* data,
+    struct wl_registry* registry,
+    uint32_t name,
+    const char* interface,
+    uint32_t version
+)
 {
+    auto interfaceName = std::string{interface};
+
+    if (interfaceName == wl_compositor_interface.name)
+    {
+        COMPOSITOR = static_cast<wl_compositor *>(wl_registry_bind(registry, name, &wl_compositor_interface, 1));
+    }
+    else if (interfaceName == xdg_wm_base_interface.name)
+    {
+        SHELL = static_cast<xdg_wm_base*>(wl_registry_bind(registry, name, &xdg_wm_base_interface, 1));
+        xdg_wm_base_add_listener(SHELL, &shellListener, nullptr);
+    }
+}
+
+static void handleShellPing(void* data, struct xdg_wm_base* shell, uint32_t serial)
+{
+    xdg_wm_base_pong(shell, serial);
+}
+
+static void handleShellSurfaceConfigure(void* data, struct xdg_surface* shellSurface, uint32_t serial)
+{
+    auto handle = static_cast<WindowHandle*>(data);
+
+    xdg_surface_ack_configure(shellSurface, serial);
+
+    if (handle->resizePending) {
+        handle->resizePending = false;
+
+        WindowEvent ev{};
+        new(&ev.resize) ResizeEvent{
+            .type = WindowEventType::Resize,
+            .handle = handle,
+            .size = handle->size,
+
+        };
+        PENDING_EVENTS.push_back(ev);
+    }
+}
+
+static void handleToplevelConfigure(
+    void* data,
+    struct xdg_toplevel* toplevel,
+    int32_t width,
+    int32_t height,
+    struct wl_array* states
+)
+{
+    auto handle = static_cast<WindowHandle*>(data);
+    if (width == 0 || height == 0) {
+        // Compositor is asking us to size ourself
+        return;
+    }
+    auto newExtent = Extent2D{static_cast<uint32_t>(width),static_cast<uint32_t>(height)};
+    if (newExtent != handle->size) {
+        handle->size = newExtent;
+        handle->resizePending = true;
+    }
+}
+
+static void handleToplevelClose(void* data, struct xdg_toplevel* toplevel)
+{
+    auto handle = static_cast<WindowHandle*>(data);
+    WindowEvent ev{};
+    new(&ev.close) CloseEvent{
+        .type = WindowEventType::Close,
+        .handle = handle,
+    };
+    PENDING_EVENTS.push_back(ev);
+}
+
+static void handleTopLevelDecorationConfigure(void *data,
+              struct zxdg_toplevel_decoration_v1 *zxdg_toplevel_decoration_v1,
+              uint32_t mode) {
+    auto handle = static_cast<WindowHandle*>(data);
+
 
 }
+EXPORT_IMPL void platformInit()
+{
+    DISPLAY = wl_display_connect(nullptr);
+    REGISTRY = wl_display_get_registry(DISPLAY);
+    wl_registry_add_listener(REGISTRY, &registryListener,nullptr);
+    wl_display_roundtrip(DISPLAY);
+}
+
+EXPORT_IMPL void platformShutdown() {
+    xdg_wm_base_destroy(SHELL);
+    wl_compositor_destroy(COMPOSITOR);
+    wl_registry_destroy(REGISTRY);
+    wl_display_disconnect(DISPLAY);
+}
+
 EXPORT_IMPL int platformGet()
 {
     return static_cast<int>(EPlatform::Linux);
@@ -684,6 +840,101 @@ EXPORT_IMPL void platformSelectFile(const char* title, bool multiple, const char
 EXPORT_IMPL void platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback)
 {
     
+}
+
+EXPORT_IMPL void platformWindowPump() {
+
+    wl_display_roundtrip(DISPLAY);
+}
+
+EXPORT_IMPL void * platformWindowCreate(const char *title, int width, int height, Flags<WindowFlags> flags) {
+
+    auto surface = wl_compositor_create_surface(COMPOSITOR);
+    auto shellSurface = xdg_wm_base_get_xdg_surface(SHELL, surface);
+    auto toplevel = xdg_surface_get_toplevel(shellSurface);
+    xdg_toplevel_set_title(toplevel,title);
+    xdg_toplevel_set_app_id(toplevel,"Test APP");
+    auto windowHandle = new WindowHandle{
+        .surface = surface,
+        .xdgSurface = shellSurface,
+        .xdgToplevel = toplevel,
+        .flags = flags,
+        .size = {static_cast<uint32_t>(width),static_cast<uint32_t>(height)},
+    };
+    xdg_surface_add_listener(shellSurface, &shellSurfaceListener, windowHandle);
+    xdg_toplevel_add_listener(toplevel, &topLevelListener, windowHandle);
+    wl_surface_commit(surface);
+    wl_display_roundtrip(DISPLAY);
+    wl_surface_commit(surface);
+    return windowHandle;
+}
+
+EXPORT_IMPL void platformWindowDestroy(void *handle) {
+    auto windowHandle = static_cast<WindowHandle*>(handle);
+    xdg_toplevel_destroy(windowHandle->xdgToplevel);
+    xdg_surface_destroy(windowHandle->xdgSurface);
+    wl_surface_destroy(windowHandle->surface);
+    delete windowHandle;
+}
+
+EXPORT_IMPL void platformWindowShow(void *handle) {
+
+}
+
+EXPORT_IMPL void platformWindowHide(void *handle) {
+}
+
+EXPORT_IMPL Vector2 platformWindowGetCursorPosition(void *handle) {
+    return Vector2{};
+}
+
+EXPORT_IMPL void platformWindowSetCursorPosition(void *handle, Vector2 position) {
+}
+
+EXPORT_IMPL Extent2D platformWindowGetSize(void *handle) {
+    auto windowHandle = static_cast<WindowHandle*>(handle);
+    return windowHandle->size;
+}
+
+EXPORT_IMPL VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, void *handle) {
+    auto windowHandle = static_cast<WindowHandle*>(handle);
+
+    const VkWaylandSurfaceCreateInfoKHR createInfo{
+        .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
+        .display = DISPLAY,
+        .surface = windowHandle->surface
+    };
+
+    VkSurfaceKHR surface{};
+    vkCreateWaylandSurfaceKHR(instance, &createInfo, nullptr, &surface);
+    return surface;
+}
+
+EXPORT_IMPL int platformWindowGetEvents(WindowEvent *output, int size) {
+    int events = 0;
+    for(auto i = 0; i < size; i++)
+    {
+        if(PENDING_EVENTS.empty())
+        {
+            break;
+        }
+
+        auto event = PENDING_EVENTS.front();
+        PENDING_EVENTS.pop_front();
+        output[i] = event;
+        events++;
+    }
+    return events;
+}
+
+EXPORT_IMPL void platformWindowStartTyping(void *handle) {
+}
+
+EXPORT_IMPL void platformWindowStopTyping(void *handle) {
+}
+
+EXPORT_IMPL void platformWindowSetSize(void *handle, Extent2D size) {
+
 }
 #endif
 

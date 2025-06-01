@@ -15,7 +15,7 @@ internal static partial class Native
 #if OS_WINDOWS
     private const string DllName = "Rin.Engine.Native";
 #elif OS_LINUX
-    private const string DllName = "libRin.Engine.Native.so";
+    private const string DllName = "libRin.Engine.Native";
 #elif OS_FREEBSD
 #elif OS_MAC
 #endif
@@ -337,113 +337,19 @@ internal static partial class Native
         public static partial void ContextGenerateMtsdf(IntPtr context, float angleThreshold, float pixelRange,
             [MarshalAs(UnmanagedType.FunctionPtr)] GenerateDelegate callback);
     }
-
-    public static class Math
-    {
-        // [LibraryImport(DllName, EntryPoint = "mathQuatToRotator")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void QuatToRotator(ref Rotator result, ref Quat quat);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathMultiplyQuatVector4")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void MultiplyQuatVector(ref Vector3 result, ref Quat left,
-        //     ref Vector3 right);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathQuatFromAngle")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void QuatFromAngle(ref Quat result, float angle, ref Vector3 axis);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathMultiplyQuatQuat")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void MultiplyQuatQuat(ref Quat result, ref Quat left,
-        //     ref Quat right);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathQuatToMatrix4")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void QuatToMatrix4(ref Mat4 result, ref Quat target);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathQuatLookAt")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void QuatLookAt(ref Quat result, ref Vector3 from, ref Vector3 to, ref Vector3 up);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathGlmOrthographic")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void GlmOrthographic(ref Mat4 result, float left, float right, float bottom,
-        //     float top);
-        //
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathGlmPerspective")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void
-        //     GlmPerspective(ref Mat4 result, float fov, float aspect, float near, float far);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathInverseMatrix3")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void Inverse(ref Mat3 result, ref Mat3 target);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathTranslateMatrix3")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void Translate(ref Mat3 result, ref Mat3 target, ref Vector2 translation);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathScaleMatrix3")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void Scale(ref Mat3 result, ref Mat3 target, ref Vector2 scale);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathRotateMatrix3")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void Rotate(ref Mat3 result, ref Mat3 target, float angle);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathMultiplyMatrix3Matrix3")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void MultiplyMatrix3Matrix3(ref Mat3 result, ref Mat3 left, ref Mat3 right);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathMultiplyMatrix3Vector3")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void MultiplyMatrix3Vector3(ref Vector3 result, ref Mat3 left,
-        //     ref Vector3 right);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathInverseMatrix4")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void Inverse(ref Mat4 result, ref Mat4 target);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathTranslateMatrix4")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void Translate(ref Mat4 result, ref Mat4 target, ref Vector3 translation);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathScaleMatrix4")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void Scale(ref Mat4 result, ref Mat4 target, ref Vector3 scale);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathRotateMatrix4")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void Rotate(ref Mat4 result, ref Mat4 target, float angle,
-        //     ref Vector3 axis);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathMultiplyMatrix4Matrix4")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void MultiplyMatrix4Matrix4(ref Mat4 result, ref Mat4 left, ref Mat4 right);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathMultiplyMatrix4Vector4")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void MultiplyMatrix4Vector4(ref Vector4 result, ref Mat4 left,
-        //     ref Vector4 right);
-
-        // [LibraryImport(DllName, EntryPoint = "mathMatrix4ToTransform")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void Matrix4ToTransform(ref Transform.NativeTransform result, ref Mat4 target);
-        //
-        // [LibraryImport(DllName, EntryPoint = "mathTransformToMatrix4")]
-        // [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        // public static partial void TransformToMatrix4(ref Mat4 result, ref Transform.NativeTransform target);
-    }
-
+    
     public static partial class Platform
     {
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public unsafe delegate void NativePathDelegate(char* path);
-
-        [DllImport(DllName, EntryPoint = "platformInit", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void Init();
+        
+        [LibraryImport(DllName, EntryPoint = "platformInit")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial void Init();
+        
+        [LibraryImport(DllName, EntryPoint = "platformShutdown")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial void Shutdown();
 
         [LibraryImport(DllName, EntryPoint = "platformSelectFile")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -497,8 +403,7 @@ internal static partial class Native
             {
                 public EventType type;
                 public IntPtr handle;
-                public WindowRect rect;
-                public WindowRect drawRect;
+                public Extent2D size;
             }
 
             [StructLayout(LayoutKind.Sequential)]
@@ -618,13 +523,9 @@ internal static partial class Native
             [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
             public static partial void Hide(IntPtr handle);
             
-            [LibraryImport(DllName, EntryPoint = "platformWindowGetRect")]
+            [LibraryImport(DllName, EntryPoint = "platformWindowGetSize")]
             [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial WindowRect GetRect(IntPtr handle);
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowGetDrawRect")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial WindowRect GetDrawRect(IntPtr handle);
+            public static partial Extent2D GetSize(IntPtr handle);
             
             [LibraryImport(DllName, EntryPoint = "platformWindowPump")]
             [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -649,10 +550,6 @@ internal static partial class Native
             [LibraryImport(DllName, EntryPoint = "platformWindowSetSize")]
             [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
             public static partial void SetSize(IntPtr handle,Extent2D size);
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowSetPosition")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial void SetPosition(IntPtr handle,Point2D position);
         }
     }
 }

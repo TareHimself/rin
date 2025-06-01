@@ -143,7 +143,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
                     var window = _rinWindows[e->info.handle];
                     window.ProcessEvent(*e);
                 }
-            } while (eventsPumped == _maxEventsPerPeep);
+            } while (eventsPumped > 0 );
         }
 
         // SDL_PumpEvents();
@@ -446,34 +446,15 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         IWindow? parent = null
     )
     {
-        unsafe
-        {
-            // var opts = options.GetValueOrDefault(new CreateOptions());
-            //
-            // var flags = SDL_WindowFlags.SDL_WINDOW_VULKAN;
-            //
-            // if (opts.Resizable) flags |= SDL_WindowFlags.SDL_WINDOW_RESIZABLE;
-            //
-            // if (!opts.Visible) flags |= SDL_WindowFlags.SDL_WINDOW_HIDDEN;
-            //
-            // if (!opts.Decorated) flags |= SDL_WindowFlags.SDL_WINDOW_BORDERLESS;
-            //
-            // if (opts.Focused) flags |= SDL_WindowFlags.SDL_WINDOW_INPUT_FOCUS | SDL_WindowFlags.SDL_WINDOW_MOUSE_FOCUS;
-            //
-            // if (opts.Floating) flags |= SDL_WindowFlags.SDL_WINDOW_ALWAYS_ON_TOP;
-            //
-            // if (opts.Transparent) flags |= SDL_WindowFlags.SDL_WINDOW_TRANSPARENT;
-
-            var handle = Native.Platform.Window.Create(name, width, height,flags);
+        var handle = Native.Platform.Window.Create(name, width, height,flags);
                 
-            var win = new RinWindow(handle, parent);
+        var win = new RinWindow(handle, parent);
                 
-            _rinWindows.Add(handle, win);
+        _rinWindows.Add(handle, win);
 
-            win.OnDispose += () => { _rinWindows.Remove(handle); };
+        win.OnDispose += () => { _rinWindows.Remove(handle); };
 
-            return win;
-        }
+        return win;
     }
 
     public IWindow CreateWindow(int width, int height, string name, WindowFlags flags = WindowFlags.Visible,

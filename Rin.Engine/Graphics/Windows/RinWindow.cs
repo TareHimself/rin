@@ -27,8 +27,7 @@ public class RinWindow(in IntPtr handle, IWindow? parent) : IWindow
                 OnResize?.Invoke(new ResizeEvent
                 {
                     Window = this,
-                    Rect = e.resize.rect,
-                    DrawRect = e.resize.drawRect,
+                    Size = e.resize.size
                 });
                 break;
             case Native.Platform.Window.EventType.Minimize:
@@ -157,14 +156,9 @@ public class RinWindow(in IntPtr handle, IWindow? parent) : IWindow
         throw new NotImplementedException();
     }
 
-    public WindowRect GetDrawRect()
+    public Extent2D GetSize()
     {
-        return Native.Platform.Window.GetDrawRect(_handle);
-    }
-
-    public WindowRect GetRect()
-    {
-        return Native.Platform.Window.GetRect(_handle);
+        return Native.Platform.Window.GetSize(_handle);
     }
     
     public IntPtr GetHandle() => _handle;

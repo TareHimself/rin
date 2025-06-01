@@ -6,7 +6,7 @@ using Rin.Sources;
 
 namespace Rin.Engine;
 
-public sealed class SEngine : Disposable
+public sealed class SEngine
 {
     public static readonly string
         Directory = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "";
@@ -168,7 +168,7 @@ public sealed class SEngine : Disposable
 
     private void Startup()
     {
-        Platform.Init();
+        Native.Platform.Init();
         LoadModules();
         IsRunning = true;
         InitializeModules();
@@ -180,7 +180,7 @@ public sealed class SEngine : Disposable
         IsRunning = false;
         OnShutdown?.Invoke(this);
         for (var i = _modules.Count - 1; i >= 0; i--) _modules[i].Stop(this);
-        Dispose();
+        Native.Platform.Shutdown();
     }
 
 
@@ -200,29 +200,36 @@ public sealed class SEngine : Disposable
     public void Run()
     {
         Startup();
-
-        _renderTask = Task.Factory.StartNew(Render, TaskCreationOptions.LongRunning);
-        _lastTickTime = DateTime.UtcNow;
-
-        while (!_exitRequested)
+        try
         {
-            Profiling.Measure("Engine.PreUpdate", OnPreUpdate);
-            Profiling.Measure("Engine.DispatchPending", _mainDispatcher.DispatchPending);
+            _renderTask = Task.Factory.StartNew(Render, TaskCreationOptions.LongRunning);
+            _lastTickTime = DateTime.UtcNow;
 
-            Profiling.Begin("Engine.Update");
-            var tickStart = DateTime.UtcNow;
-            _lastDeltaSeconds = (float)(tickStart - _lastTickTime).TotalSeconds;
-            OnUpdate?.Invoke(_lastDeltaSeconds);
-            _lastTickTime = tickStart;
-            Profiling.End("Engine.Update");
+            while (!_exitRequested)
+            {
+                Profiling.Measure("Engine.PreUpdate", OnPreUpdate);
+                Profiling.Measure("Engine.DispatchPending", _mainDispatcher.DispatchPending);
 
-            Profiling.Measure("Engine.PostUpdate", OnPostUpdate);
-            Profiling.Measure("Engine.Collect", OnCollect);
+                Profiling.Begin("Engine.Update");
+                var tickStart = DateTime.UtcNow;
+                _lastDeltaSeconds = (float)(tickStart - _lastTickTime).TotalSeconds;
+                OnUpdate?.Invoke(_lastDeltaSeconds);
+                _lastTickTime = tickStart;
+                Profiling.End("Engine.Update");
 
-            _mainUpdateEvent.Set();
+                Profiling.Measure("Engine.PostUpdate", OnPostUpdate);
+                Profiling.Measure("Engine.Collect", OnCollect);
+
+                _mainUpdateEvent.Set();
+            }
+
+            _renderTask.Wait();
         }
-
-        _renderTask.Wait();
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+        
         Shutdown();
     }
 
@@ -305,8 +312,5 @@ public sealed class SEngine : Disposable
     {
         return _modulesMap.ContainsKey(typeof(T));
     }
-
-    protected override void OnDispose(bool isManual)
-    {
-    }
+    
 }
