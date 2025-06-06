@@ -247,7 +247,6 @@ public class SceneComponent : Component, ISceneComponent
 
                 return GetTransform().InParentSpace(parentTransform);
             }
-                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(space), space, null);
         }

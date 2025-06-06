@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using System.Text;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Rin.Engine.Extensions;
@@ -10,10 +9,8 @@ using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Shaders.Slang;
 using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Graphics.Windows;
-using SDL;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
-using static SDL.SDL3;
 
 namespace Rin.Engine.Graphics;
 
@@ -67,10 +64,6 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         engine.OnUpdate += Update;
         engine.OnCollect += Collect;
         engine.OnRender += Execute;
-        if (!SDL_InitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD))
-            throw new InvalidOperationException($"failed to initialise SDL. Error: {SDL_GetError()}");
-        SDL_SetEventEnabled(SDL_EventType.SDL_EVENT_DROP_FILE, true);
-        SDL_SetEventEnabled(SDL_EventType.SDL_EVENT_DROP_TEXT, true);
         InitVulkan();
     }
 
@@ -113,9 +106,6 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         _device.Destroy();
         if (_debugUtilsMessenger.Value != 0) Native.Vulkan.DestroyMessenger(_instance, _debugUtilsMessenger);
         _instance.Destroy();
-
-        SDL_QuitSubSystem(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD);
-        // NativeMethods.StopGlfw();
     }
 
     public static SGraphicsModule Get()
@@ -133,7 +123,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         unsafe
         {
             var events = stackalloc Native.Platform.Window.WindowEvent[_maxEventsPerPeep];
-            var eventsPumped = 0;
+            int eventsPumped;
             do
             {
                 eventsPumped = Native.Platform.Window.GetEvents(events, _maxEventsPerPeep);
@@ -143,7 +133,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
                     var window = _rinWindows[e->info.handle];
                     window.ProcessEvent(*e);
                 }
-            } while (eventsPumped > 0 );
+            } while (eventsPumped > 0);
         }
 
         // SDL_PumpEvents();
@@ -268,7 +258,8 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         var outDebugMessenger = _debugUtilsMessenger;
 
         // We create a window just for surface information
-        using var window = Internal_CreateWindow(1, 1, "Graphics Init Window") as RinWindow ?? throw new NullReferenceException();
+        using var window = Internal_CreateWindow(1, 1, "Graphics Init Window") as RinWindow ??
+                           throw new NullReferenceException();
 
         Update(0);
 
@@ -446,10 +437,10 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         IWindow? parent = null
     )
     {
-        var handle = Native.Platform.Window.Create(name, width, height,flags);
-                
+        var handle = Native.Platform.Window.Create(name, width, height, flags);
+
         var win = new RinWindow(handle, parent);
-                
+
         _rinWindows.Add(handle, win);
 
         win.OnDispose += () => { _rinWindows.Remove(handle); };
@@ -552,8 +543,8 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
             layerCount = VK_REMAINING_ARRAY_LAYERS
         };
     }
-    
-    
+
+
     public static VkImageSubresourceRange MakeImageSubresourceRange(ImageFormat format)
     {
         return new VkImageSubresourceRange
@@ -603,12 +594,14 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
             VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true, debugName);
     }
-    
-    public IDeviceBuffer NewBuffer(ulong size,VkBufferUsageFlags usage, bool sequentialWrite = true,
-        bool mapped = true,string debugName = "Buffer")
+
+    public IDeviceBuffer NewBuffer(ulong size, VkBufferUsageFlags usage, bool sequentialWrite = true,
+        bool mapped = true, string debugName = "Buffer")
     {
-        return GetAllocator().NewBuffer(size,usage,mapped ? 
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sequentialWrite, false, mapped, debugName);
+        return GetAllocator().NewBuffer(size, usage,
+            mapped
+                ? VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                : VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sequentialWrite, false, mapped, debugName);
     }
 
     /// <summary>

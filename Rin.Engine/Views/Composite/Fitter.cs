@@ -70,8 +70,9 @@ public class Fitter : SingleSlotCompositeView
             : scaledViewSize;
     }
 
-    public Vector2 FitContent(Vector2 drawSize)
+    private Vector2 FitContent(Vector2 drawSize)
     {
+        // If we have any content fit it 
         if (GetSlot() is { } slot)
         {
             var view = slot.Child;
@@ -86,8 +87,7 @@ public class Fitter : SingleSlotCompositeView
             };
 
             view.ComputeSize(newDrawSize);
-
-
+            
             var halfSelfDrawSize = drawSize;
             halfSelfDrawSize /= 2.0f;
             var halfSlotDrawSize = newDrawSize;
@@ -96,8 +96,6 @@ public class Fitter : SingleSlotCompositeView
             var diff = halfSelfDrawSize - halfSlotDrawSize;
 
             view.Offset = diff;
-
-            return drawSize;
         }
 
         return drawSize;

@@ -10,6 +10,6 @@ namespace Rin.Engine.World.Mesh.Skinning;
 public struct SkinnedVertex : IVertex
 {
     public Vertex Vertex;
-    public Vector4<int> BoneIndices;
+    public Int4 BoneIndices;
     public Vector4 BoneWeights;
 }

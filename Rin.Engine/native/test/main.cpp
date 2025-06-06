@@ -6,9 +6,8 @@
 #include "graphics.hpp"
 #include "platform.hpp"
 
-int main() {
-    platformInit();
 
+void testWindow() {
     VkInstance instance;
     VkDevice device;
     VkPhysicalDevice physicalDevice;
@@ -43,6 +42,15 @@ int main() {
         }
     }
     platformWindowDestroy(window);
+}
 
+void testFileSelect() {
+    platformSelectFile("Select a file",false,"*.wav;*.ogg;*.flac;*.mp3",[](const char * path) {
+        std::cout << "Got Path " << path << std::endl;
+    });
+}
+int main() {
+    platformInit();
+    testFileSelect();
     platformShutdown();
 }

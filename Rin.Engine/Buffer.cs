@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Rin.Engine.Extensions;
 
@@ -214,7 +215,14 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
 
         public T Current => buffer.GetElement(_index);
 
-        object? IEnumerator.Current => Current;
+        object IEnumerator.Current
+        {
+            get
+            {
+                Debug.Write("Calling current on an enumerator with unmanaged types");
+                return Current;
+            }
+        }
 
         public void Dispose()
         {

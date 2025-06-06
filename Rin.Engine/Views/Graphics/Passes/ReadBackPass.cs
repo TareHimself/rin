@@ -10,17 +10,6 @@ public class ReadBackPass(SharedPassContext sharedContext) : IViewsPass
     private uint StencilImageId => sharedContext.StencilImageId;
     public uint Id { get; set; }
     public bool IsTerminal { get; } = false;
-    public bool HandlesPreAdd => false;
-    public bool HandlesPostAdd => false;
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-    }
 
     public void Configure(IGraphConfig config)
     {
@@ -32,7 +21,7 @@ public class ReadBackPass(SharedPassContext sharedContext) : IViewsPass
     {
         var mainImage = graph.GetImageOrException(MainImageId);
         var copyImage = graph.GetImageOrException(CopyImageId);
-        ctx.CopyToImage(mainImage,copyImage);
+        ctx.CopyToImage(mainImage, copyImage);
     }
 
     public static IViewsPass Create(PassCreateInfo info)

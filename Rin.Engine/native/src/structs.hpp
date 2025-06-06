@@ -238,18 +238,15 @@ struct ScrollEvent
 {
     WindowEventType type;
     void * handle;
-    float x;
-    float y;
-    float dx;
-    float dy;
+    Vector2 position;
+    Vector2 delta;
 };
 
 struct CursorMoveEvent
 {
     WindowEventType type;
     void * handle;
-    float x;
-    float y;
+    Vector2 position;
 };
 
 struct CursorButtonEvent

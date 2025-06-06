@@ -31,7 +31,7 @@ public interface IGraphConfig
     {
         return CreateBuffer(Utils.ByteSizeOf<T>() * count, usage);
     }
-    
+
     public uint UseImage(uint id, ImageLayout layout, ResourceOperation operation);
     public uint UseBuffer(uint id, GraphBufferUsage usage, ResourceOperation operation);
 

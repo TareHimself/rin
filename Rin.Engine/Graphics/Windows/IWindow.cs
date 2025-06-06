@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using Rin.Engine.Graphics.Windows.Events;
-using Rin.Engine.Math;
 
 namespace Rin.Engine.Graphics.Windows;
 
@@ -30,28 +29,28 @@ public interface IWindow : IDisposable
     public void SetHitTestCallback(Func<WindowHitTestResult, IWindow>? callback);
 
     /// <summary>
-    /// Gets the position of the cursor relative to the drawable area of this window
+    ///     Gets the position of the cursor relative to the drawable area of this window
     /// </summary>
     /// <returns></returns>
     public Vector2 GetCursorPosition();
 
     /// <summary>
-    /// Sets the position of the cursor relative to the drawable area of this window
+    ///     Sets the position of the cursor relative to the drawable area of this window
     /// </summary>
     /// <param name="position"></param>
     public void SetCursorPosition(in Vector2 position);
 
-    
+
     public void SetFullscreen(bool state);
 
     /// <summary>
-    /// Sets the size of this window
+    ///     Sets the size of this window
     /// </summary>
     /// <param name="size"></param>
     public void SetSize(in Extent2D size);
 
     /// <summary>
-    /// Gets the rect for the drawable area of this window
+    ///     Gets the rect for the drawable area of this window
     /// </summary>
     /// <returns></returns>
     public Extent2D GetSize();

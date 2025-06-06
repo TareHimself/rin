@@ -50,31 +50,6 @@ public struct Offset2D : IEquatable<Offset2D>, IFormattable
 
     public static Offset2D Zero => new(0, 0);
 
-
-    public bool Equals(Vector2<uint> other)
-    {
-        return X == other.X && Y == other.Y;
-    }
-
-    public static bool operator ==(Offset2D left, Vector2<uint> right)
-    {
-        return left.X == right.X && left.Y == right.Y;
-    }
-
-    public static bool operator !=(Offset2D left, Vector2<uint> right)
-    {
-        return left.X != right.X || left.Y != right.Y;
-    }
-
-    public static implicit operator Offset2D(Vector2<uint> target)
-    {
-        return new Offset2D
-        {
-            Y = target.Y,
-            X = target.X
-        };
-    }
-
     public void Deconstruct(out uint x, out uint y)
     {
         x = X;

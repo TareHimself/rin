@@ -84,9 +84,7 @@ public sealed class SEngine
         LoadRequiredModules(typeof(T), loadedModules);
     }
 
-    /// <summary>
-    ///     Ensures all the modules needed by <see cref="T" /> have their assemblies loaded
-    /// </summary>
+
     private static void LoadRequiredModules(Type type, Dictionary<Type, ModuleType> loadedModules)
     {
         HashSet<Type> checkedModules = new();
@@ -229,7 +227,7 @@ public sealed class SEngine
         {
             Console.WriteLine(e);
         }
-        
+
         Shutdown();
     }
 
@@ -312,5 +310,4 @@ public sealed class SEngine
     {
         return _modulesMap.ContainsKey(typeof(T));
     }
-    
 }

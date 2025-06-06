@@ -6,7 +6,6 @@ using Rin.Engine.Math;
 
 namespace Rin.Engine.Views.Graphics.Quads;
 
-
 public enum PrimitiveType
 {
     Line,
@@ -33,22 +32,18 @@ public struct Quad() // : ICloneable<Quad>
         get => (RenderMode)Opts.X;
         set => Opts.X = (int)value;
     }
-    
-    [PublicAPI,FieldOffset(0)] public Vector4<int> Opts = 0;
-    [PublicAPI,FieldOffset(16)] public required Vector2 Size;
-    [PublicAPI,FieldOffset(24)] public required Matrix4x4 Transform;
-    [FieldOffset(88)]
-    private unsafe fixed byte _data[16 * 8];
-    
-    [FieldOffset(88)]
-    public PrimitiveData PrimitiveInfo = default;
-    
-    [FieldOffset(88)]
-    public TextureData TextureInfo = default;
-    
-    [FieldOffset(88)]
-    public MtsdfData MtsdfInfo = default;
-    
+
+    [PublicAPI] [FieldOffset(0)] public Int4 Opts = default;
+    [PublicAPI] [FieldOffset(16)] public required Vector2 Size;
+    [PublicAPI] [FieldOffset(24)] public required Matrix4x4 Transform;
+    [FieldOffset(88)] private unsafe fixed byte _data[16 * 8];
+
+    [FieldOffset(88)] public PrimitiveData PrimitiveInfo = default;
+
+    [FieldOffset(88)] public TextureData TextureInfo = default;
+
+    [FieldOffset(88)] public MtsdfData MtsdfInfo = default;
+
     public struct PrimitiveData
     {
         public PrimitiveType Type { get; set; }
@@ -112,7 +107,7 @@ public struct Quad() // : ICloneable<Quad>
                 Data3 = new Vector4(thickness)
             }
         };
-        
+
         return quad;
     }
 
@@ -157,7 +152,7 @@ public struct Quad() // : ICloneable<Quad>
                 Data3 = new Vector4(control, thickness, 0)
             }
         };
-        
+
         return quad;
     }
 

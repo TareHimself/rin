@@ -1,6 +1,6 @@
 ﻿using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
-
+using Rin.Engine.World.Graphics.Default;
 
 namespace Rin.Engine.World.Graphics;
 
@@ -27,10 +27,7 @@ public abstract class SimpleMaterialPass : IMaterialPass
         var requiredMemorySize = GetRequiredMemory();
         var ctx = frame.ExecutionContext;
         if (requiredMemorySize > 0 && data == null) throw new Exception("Missing buffer");
-        if (Shader.Bind(ctx))
-        {
-            ExecuteBatch(Shader, frame, data, meshes);
-        }
+        if (Shader.Bind(ctx)) ExecuteBatch(Shader, frame, data, meshes);
     }
 
     public abstract void Write(IDeviceBufferView view, ProcessedMesh mesh);

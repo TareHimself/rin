@@ -5,8 +5,6 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Views.Graphics;
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace rin.Examples.ViewsTest;
 
@@ -24,23 +22,13 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
     private uint BufferId { get; set; }
     public uint Id { get; set; }
     public bool IsTerminal => false;
-    public bool HandlesPreAdd => false;
-    public bool HandlesPostAdd => false;
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-    }
 
     public void Configure(IGraphConfig config)
     {
         config.WriteImage(MainImageId, ImageLayout.ColorAttachment);
         config.ReadImage(StencilImageId, ImageLayout.StencilAttachment);
         _customCommands = info.Commands.Cast<CustomShaderCommand>().ToArray();
-        BufferId = config.CreateBuffer<Data>(_customCommands.Length,GraphBufferUsage.HostThenGraphics);
+        BufferId = config.CreateBuffer<Data>(_customCommands.Length, GraphBufferUsage.HostThenGraphics);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
@@ -70,7 +58,7 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
                     Center = customShaderCommand.Hovered ? customShaderCommand.CursorPosition : screenSize / 2.0f
                 };
                 view.Write(data);
-                _prettyShader.Push(ctx,view.GetAddress());
+                _prettyShader.Push(ctx, view.GetAddress());
                 ctx
                     .Draw(6);
             }

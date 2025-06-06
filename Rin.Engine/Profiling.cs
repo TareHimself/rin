@@ -28,7 +28,7 @@ public abstract class Profiling : IStaticProfiler
         if (info == null)
         {
             info = new ProfilingInfo();
-            ProfilingInfos.AddOrUpdate(id, _ => info, (_, __) => info);
+            ProfilingInfos.AddOrUpdate(id, _ => info, (_, _) => info);
         }
 
         info.Watch.Restart();

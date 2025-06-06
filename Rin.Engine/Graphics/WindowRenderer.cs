@@ -1,11 +1,9 @@
 ﻿using System.Diagnostics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Windows;
-using SDL;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkStructureType;
 using static TerraFX.Interop.Vulkan.Vulkan;
-using static SDL.SDL3;
 
 namespace Rin.Engine.Graphics;
 
@@ -25,6 +23,7 @@ public class WindowRenderer : IWindowRenderer
     private bool _disposed;
     private Frame[] _frames = [];
     private ulong _framesRendered;
+    private VkSemaphore[] _renderSemaphores = [];
     private VkSwapchainKHR _swapchain;
 
     private Extent2D _swapchainExtent = new()
@@ -34,12 +33,10 @@ public class WindowRenderer : IWindowRenderer
     };
 
     private VkImage[] _swapchainImages = [];
-    private VkSemaphore[] _renderSemaphores = [];
 
     private VkImageView[] _swapchainViews = [];
     public double LastCollectElapsedTime;
     public double LastExecuteElapsedTime;
-
 
 
     public WindowRenderer(SGraphicsModule module, IWindow window)
@@ -204,11 +201,8 @@ public class WindowRenderer : IWindowRenderer
         if (_swapchainExtent != new Extent2D())
         {
             var device = _module.GetDevice();
-            
-            foreach (var renderSemaphore in _renderSemaphores)
-            {
-                device.DestroySemaphore(renderSemaphore);
-            }
+
+            foreach (var renderSemaphore in _renderSemaphores) device.DestroySemaphore(renderSemaphore);
             foreach (var view in _swapchainViews) vkDestroyImageView(device, view, null);
             _swapchainViews = [];
             _swapchainImages = [];

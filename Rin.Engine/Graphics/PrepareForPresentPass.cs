@@ -9,18 +9,6 @@ public class PrepareForPresentPass : IPass
 {
     public uint Id { get; set; }
     public bool IsTerminal => true;
-    public bool HandlesPreAdd => false;
-    public bool HandlesPostAdd => false;
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-        throw new NotImplementedException();
-    }
 
     public void Configure(IGraphConfig config)
     {

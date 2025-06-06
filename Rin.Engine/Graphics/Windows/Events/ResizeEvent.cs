@@ -1,6 +1,4 @@
-﻿using Rin.Engine.Math;
-
-namespace Rin.Engine.Graphics.Windows.Events;
+﻿namespace Rin.Engine.Graphics.Windows.Events;
 
 public class ResizeEvent : WindowEvent
 {

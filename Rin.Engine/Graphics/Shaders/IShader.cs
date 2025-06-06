@@ -1,6 +1,3 @@
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
-
 namespace Rin.Engine.Graphics.Shaders;
 
 public interface IShader : IDisposable

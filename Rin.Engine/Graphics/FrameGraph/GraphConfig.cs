@@ -18,8 +18,9 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         Write
     }
 
-    private readonly Dictionary<uint, GraphConfigImage> _images = [];
     private readonly Dictionary<uint, GraphConfigBuffer> _buffers = [];
+
+    private readonly Dictionary<uint, GraphConfigImage> _images = [];
 
     public readonly Dictionary<uint, List<Dependency>> PassDependencies = [];
     public readonly Dictionary<uint, List<ResourceAction>> ResourceActions = [];
@@ -67,43 +68,12 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         UseImage(resourceId, layout, ResourceOperation.Write);
         return resourceId;
     }
-    
-    private BufferUsage GraphBufferUsageToBufferUsage(GraphBufferUsage usage)
-    {
-        return usage switch
-        {
-            GraphBufferUsage.Undefined => BufferUsage.Undefined,
-            GraphBufferUsage.Transfer or GraphBufferUsage.HostThenTransfer => BufferUsage.Transfer,
-            GraphBufferUsage.Graphics or GraphBufferUsage.HostThenGraphics => BufferUsage.Graphics,
-            GraphBufferUsage.Compute or GraphBufferUsage.HostThenCompute => BufferUsage.Compute,
-            GraphBufferUsage.Indirect or GraphBufferUsage.HostThenIndirect => BufferUsage.Indirect,
-            _ => throw new ArgumentOutOfRangeException(nameof(usage), usage, null)
-        };
-    }
 
-    private VkBufferUsageFlags GraphBufferUsageToVkUsage(GraphBufferUsage usage)
-    {
-        return usage switch
-        {
-            GraphBufferUsage.Transfer or GraphBufferUsage.HostThenTransfer => VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_DST_BIT | VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            GraphBufferUsage.Indirect or GraphBufferUsage.HostThenIndirect => VkBufferUsageFlags.VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
-            _ => 0
-        };
-    }
-    
-    private bool WillUsageRequireMapping(GraphBufferUsage usage)
-    {
-        return usage switch
-        {
-             GraphBufferUsage.HostThenCompute or GraphBufferUsage.HostThenGraphics or GraphBufferUsage.HostThenIndirect or GraphBufferUsage.HostThenTransfer => true,
-            _ => false
-        };
-    }
     public uint CreateBuffer(ulong size, GraphBufferUsage usage)
     {
         var resourceId = builder.MakeId();
         // _memory.Add(resourceId, descriptor);
-        _buffers.Add(resourceId,new GraphConfigBuffer
+        _buffers.Add(resourceId, new GraphConfigBuffer
         {
             Size = size,
             Usage = GraphBufferUsageToVkUsage(usage),
@@ -116,7 +86,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint UseImage(uint id, ImageLayout layout, ResourceOperation operation)
     {
-        Debug.Assert(id != 0,"Invalid Image Id");
+        Debug.Assert(id != 0, "Invalid Image Id");
         {
             var dep = new Dependency
             {
@@ -158,7 +128,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint UseBuffer(uint id, GraphBufferUsage usage, ResourceOperation operation)
     {
-        Debug.Assert(id != 0,"Invalid Buffer Id");
+        Debug.Assert(id != 0, "Invalid Buffer Id");
         {
             var dep = new Dependency
             {
@@ -199,8 +169,8 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint DependOn(uint passId)
     {
-        Debug.Assert(passId != 0,"Invalid Pass Id");
-        if (passId == 0) throw new Exception();
+        Debug.Assert(passId != 0, "Invalid Pass Id");
+
         {
             var dep = new Dependency
             {
@@ -214,6 +184,42 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
                 PassDependencies.Add(CurrentPassId, [dep]);
         }
         return passId;
+    }
+
+    private BufferUsage GraphBufferUsageToBufferUsage(GraphBufferUsage usage)
+    {
+        return usage switch
+        {
+            GraphBufferUsage.Undefined => BufferUsage.Undefined,
+            GraphBufferUsage.Host => BufferUsage.Host,
+            GraphBufferUsage.Transfer or GraphBufferUsage.HostThenTransfer => BufferUsage.Transfer,
+            GraphBufferUsage.Graphics or GraphBufferUsage.HostThenGraphics => BufferUsage.Graphics,
+            GraphBufferUsage.Compute or GraphBufferUsage.HostThenCompute => BufferUsage.Compute,
+            GraphBufferUsage.Indirect or GraphBufferUsage.HostThenIndirect => BufferUsage.Indirect,
+            _ => throw new ArgumentOutOfRangeException(nameof(usage), usage, null)
+        };
+    }
+
+    private VkBufferUsageFlags GraphBufferUsageToVkUsage(GraphBufferUsage usage)
+    {
+        return usage switch
+        {
+            GraphBufferUsage.Transfer or GraphBufferUsage.HostThenTransfer => VkBufferUsageFlags
+                .VK_BUFFER_USAGE_TRANSFER_DST_BIT | VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            GraphBufferUsage.Indirect or GraphBufferUsage.HostThenIndirect => VkBufferUsageFlags
+                .VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+            _ => 0
+        };
+    }
+
+    private bool WillUsageRequireMapping(GraphBufferUsage usage)
+    {
+        return usage switch
+        {
+            GraphBufferUsage.Host or GraphBufferUsage.HostThenCompute or GraphBufferUsage.HostThenGraphics
+                or GraphBufferUsage.HostThenIndirect or GraphBufferUsage.HostThenTransfer => true,
+            _ => false
+        };
     }
 
     private ImageUsage DeriveImageUsage(ImageLayout layout)
@@ -245,9 +251,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         }
 
         foreach (var (key, buffer) in _buffers)
-        {
-            Resources.Add(key,new BufferResourceDescriptor(buffer.Size,buffer.Usage,buffer.Mapped));
-        }
+            Resources.Add(key, new BufferResourceDescriptor(buffer.Size, buffer.Usage, buffer.Mapped));
     }
 
     public class Dependency

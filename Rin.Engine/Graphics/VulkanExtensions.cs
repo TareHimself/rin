@@ -23,13 +23,16 @@ public static class VulkanExtensions
     }
 
     [PublicAPI]
-    public static VkImageAspectFlags ToAspectFlags(this ImageFormat format) => format switch
+    public static VkImageAspectFlags ToAspectFlags(this ImageFormat format)
     {
-        ImageFormat.Depth => VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT,
-        ImageFormat.Stencil => VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT |
-                               VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT,
-        _ => VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT
-    };
+        return format switch
+        {
+            ImageFormat.Depth => VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT,
+            ImageFormat.Stencil => VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT |
+                                   VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT,
+            _ => VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT
+        };
+    }
 
     [PublicAPI]
     public static VkImageLayout ToVk(this ImageLayout layout)
@@ -166,7 +169,8 @@ public static class VulkanExtensions
     }
 
 
-    public static VkCommandBuffer ClearColorImages(in this VkCommandBuffer cmd,in Vector4 clearColor, ImageLayout layout,
+    public static VkCommandBuffer ClearColorImages(in this VkCommandBuffer cmd, in Vector4 clearColor,
+        ImageLayout layout,
         params IDeviceImage[] images)
     {
         unsafe
@@ -1058,7 +1062,7 @@ public static class VulkanExtensions
         }
     }
 
-    public static void DestroySemaphore(in this VkDevice self,in VkSemaphore semaphore)
+    public static void DestroySemaphore(in this VkDevice self, in VkSemaphore semaphore)
     {
         unsafe
         {
@@ -1066,7 +1070,7 @@ public static class VulkanExtensions
         }
     }
 
-    public static void DestroySampler(in this VkDevice self,in VkSampler sampler)
+    public static void DestroySampler(in this VkDevice self, in VkSampler sampler)
     {
         unsafe
         {
@@ -1091,9 +1095,9 @@ public static class VulkanExtensions
     }
 
     public static VkCommandBuffer BufferBarrier(in this VkCommandBuffer cmd, IDeviceBufferView view,
-        BufferUsage fromUsage, BufferUsage toUsage,ResourceOperation fromOperation,ResourceOperation toOperation)
+        BufferUsage fromUsage, BufferUsage toUsage, ResourceOperation fromOperation, ResourceOperation toOperation)
     {
-        return cmd.BufferBarrier(view, new MemoryBarrierOptions(fromUsage, toUsage,fromOperation,toOperation));
+        return cmd.BufferBarrier(view, new MemoryBarrierOptions(fromUsage, toUsage, fromOperation, toOperation));
     }
 
     public static VkCommandBuffer BufferBarrier(in this VkCommandBuffer cmd, IDeviceBufferView view,
@@ -1304,15 +1308,6 @@ public static class VulkanExtensions
         if (clearValue != null) attachment.clearValue = clearValue.Value;
 
         return attachment;
-    }
-
-    public static VkExtent2D ToVkExtent(in this Vector2<uint> self)
-    {
-        return new VkExtent2D
-        {
-            height = self.Y,
-            width = self.X
-        };
     }
 
     public static VkRenderingAttachmentInfo MakeColorAttachmentInfo(this IDeviceImage image,

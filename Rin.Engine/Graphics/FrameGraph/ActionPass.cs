@@ -1,21 +1,19 @@
 namespace Rin.Engine.Graphics.FrameGraph;
 
+/// <summary>
+///     Very basic callback based pass that can be used for debug/simple operations
+/// </summary>
+/// <param name="configure"></param>
+/// <param name="execute"></param>
+/// <param name="terminal"></param>
+/// <param name="name"></param>
 public class ActionPass(
     Action<IPass, IGraphConfig> configure,
-    Action<IPass, ICompiledGraph, IExecutionContext> run,
+    Action<IPass, ICompiledGraph, IExecutionContext> execute,
     bool terminal = false,
     string? name = null) : IPass
 {
     public string Name { get; } = name ?? $"unknown-pass-{Guid.NewGuid().ToString()}";
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-    }
 
     public void Configure(IGraphConfig config)
     {
@@ -24,16 +22,10 @@ public class ActionPass(
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        run(this, graph, ctx);
+        execute(this, graph, ctx);
     }
 
     public uint Id { get; set; }
 
     public bool IsTerminal => terminal;
-    public bool HandlesPreAdd => false;
-    public bool HandlesPostAdd => false;
-
-    public void Dispose()
-    {
-    }
 }

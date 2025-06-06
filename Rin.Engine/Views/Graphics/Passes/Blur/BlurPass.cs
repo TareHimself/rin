@@ -5,8 +5,6 @@ using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Views.Graphics.Commands;
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Engine.Views.Graphics.Passes.Blur;
 
@@ -66,17 +64,6 @@ public class BlurPass : IViewsPass
     private uint StencilImageId => _sharedContext.StencilImageId;
     public uint Id { get; set; }
     public bool IsTerminal { get; } = false;
-    public bool HandlesPreAdd => false;
-    public bool HandlesPostAdd => false;
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-    }
 
     public void Configure(IGraphConfig config)
     {
@@ -100,7 +87,7 @@ public class BlurPass : IViewsPass
                 .BeginRendering(_sharedContext.Extent, [drawImage], stencilAttachment: stencilImage)
                 .DisableFaceCulling()
                 .StencilCompareOnly();
-            
+
             foreach (var blur in _blurCommands)
             {
                 ctx.SetStencilCompareMask(blur.StencilMask);
@@ -114,7 +101,7 @@ public class BlurPass : IViewsPass
                     Tint = blur.Tint,
                     Transform = blur.Transform
                 });
-                _blurShader.Push(ctx,buffer.GetAddress());
+                _blurShader.Push(ctx, buffer.GetAddress());
                 ctx
                     .Draw(6);
             }

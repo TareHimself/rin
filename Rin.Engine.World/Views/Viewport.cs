@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
@@ -12,8 +13,7 @@ using Rin.Engine.Views.Graphics.Commands;
 using Rin.Engine.Views.Graphics.Quads;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics;
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
+using Rin.Engine.World.Graphics.Default;
 using CommandList = Rin.Engine.Views.Graphics.CommandList;
 
 namespace Rin.Engine.World.Views;
@@ -28,81 +28,44 @@ public enum ViewportChannel
     Emissive
 }
 
-internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command) : IViewsPass
+internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command) : IViewsPass, IWithPreAdd
 {
     private readonly Extent2D _renderExtent = command.Size.ToExtent();
 
     private readonly IShader _shader = SGraphicsModule.Get()
         .MakeGraphics("World/Shaders/viewport.slang");
 
-    private readonly WorldContext _worldContext = new(command.Camera, command.Size.ToExtent());
-
-    private uint _gBuffer0Id;
-    private uint _gBuffer1Id;
-    private uint _gBuffer2Id;
-    private uint _lightsBufferId;
-
-    private uint _sceneImageId;
-    private uint _viewportBufferId;
+    private uint _outputImageId;
+    private uint _pushBufferId;
+    private IWorldRenderContext? _renderContext;
     public uint Id { get; set; }
     public bool IsTerminal => false;
-    public bool HandlesPreAdd => true;
-    public bool HandlesPostAdd => false;
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-        builder.AddPass(new InitWorldPass(_worldContext));
-        if (_worldContext.SkinnedGeometry.Length > 0)
-        {
-            builder.AddPass(new ComputeSkinningPass(_worldContext));
-        }
-        //builder.AddPass(new FillIndirectBuffersDebugPass(_worldContext));
-        builder.AddPass(new FillIndirectBuffersPass(_worldContext));
-        builder.AddPass(new DepthPrepassIndirectPass(_worldContext));
-        builder.AddPass(new FillGBufferIndirectPass(_worldContext));
-        // builder.AddPass(new CollectPass(_worldContext));
-        // builder.AddPass(new FillGBufferPass(_worldContext));
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-    }
 
     public void Configure(IGraphConfig config)
     {
-        _gBuffer0Id = config.ReadImage(_worldContext.GBufferImage0, ImageLayout.ShaderReadOnly);
-        _gBuffer1Id = config.ReadImage(_worldContext.GBufferImage1, ImageLayout.ShaderReadOnly);
-        _gBuffer2Id = config.ReadImage(_worldContext.GBufferImage2, ImageLayout.ShaderReadOnly);
+        Debug.Assert(_renderContext != null);
+
         config.WriteImage(info.MainImageId, ImageLayout.ColorAttachment);
         config.ReadImage(info.StencilImageId, ImageLayout.StencilAttachment);
-        _viewportBufferId = config.CreateBuffer<SceneData>(GraphBufferUsage.HostThenGraphics);
-        _lightsBufferId = config.CreateBuffer<LightInfo>(_worldContext.Lights.Length,GraphBufferUsage.HostThenGraphics);
+        _pushBufferId = config.CreateBuffer<PushData>(GraphBufferUsage.HostThenGraphics);
+        _outputImageId = config.ReadImage(_renderContext.GetOutputImageId(), ImageLayout.ShaderReadOnly);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         if (_shader.Bind(ctx))
         {
-            var gBuffer0 = graph.GetImageOrException(_gBuffer0Id);
-            var gBuffer1 = graph.GetImageOrException(_gBuffer1Id);
-            var gBuffer2 = graph.GetImageOrException(_gBuffer2Id);
+            var outputImage = graph.GetImage(_outputImageId);
             var mainImage = graph.GetImageOrException(info.MainImageId);
             var stencilImage = graph.GetImageOrException(info.StencilImageId);
-            var buffer = graph.GetBufferOrException(_viewportBufferId);
-            var lightsBuffer = graph.GetBufferOrException(_lightsBufferId);
-            lightsBuffer.Write(_worldContext.Lights);
-            buffer.Write(
-                new SceneData
+            var pushBuffer = graph.GetBufferOrException(_pushBufferId);
+            pushBuffer.Write(
+                new PushData
                 {
                     Projection = info.ProjectionMatrix,
                     Transform = command.Transform,
                     Size = command.Size,
-                    GBuffer0 = gBuffer0.BindlessHandle,
-                    GBuffer1 = gBuffer1.BindlessHandle,
-                    GBuffer2 = gBuffer2.BindlessHandle,
-                    EyeLocation = _worldContext.ViewTransform.Position,
-                    LightsBuffer = lightsBuffer.GetAddress(),
-                    NumLights = _worldContext.Lights.Length
+                    OutputImage = outputImage.BindlessHandle
                 });
 
             ctx
@@ -110,8 +73,8 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
                 .DisableFaceCulling()
                 .StencilCompareOnly()
                 .SetStencilCompareMask(command.StencilMask);
-                _shader.Push(ctx,buffer.GetAddress());
-                ctx.Draw(6)
+            _shader.Push(ctx, pushBuffer.GetAddress());
+            ctx.Draw(6)
                 .EndRendering();
         }
     }
@@ -122,31 +85,38 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
         return new ViewPortPass(info.Context, cmd);
     }
 
-    private struct SceneData
+    public void PreAdd(IGraphBuilder builder)
+    {
+        _renderContext = command.Render.Collect(builder, command.Camera, _renderExtent);
+    }
+
+    private struct PushData
     {
         public required Matrix4x4 Projection;
         public required Matrix4x4 Transform;
         public required Vector2 Size;
-        public required ImageHandle GBuffer0;
-        public required ImageHandle GBuffer1;
-        public required ImageHandle GBuffer2;
-        public required Vector3 EyeLocation;
-        public required ulong LightsBuffer;
-        public required int NumLights;
+        public required ImageHandle OutputImage;
     }
 }
 
-internal class DrawViewportCommand(CameraComponent camera, in Vector2 extent, in Matrix4x4 transform)
+internal class DrawViewportCommand(
+    CameraComponent camera,
+    in Vector2 extent,
+    in Matrix4x4 transform,
+    IWorldRenderer renderer)
     : TCommand<ViewPortPass>
 {
     public Vector2 Size { get; } = extent;
     public CameraComponent Camera { get; } = camera;
     public Matrix4x4 Transform { get; } = transform;
+
+    public IWorldRenderer Render { get; } = renderer;
 }
 
 public class Viewport : ContentView
 {
     private readonly CameraComponent _targetCamera;
+    private readonly DefaultWorldRenderer _worldRenderer = new();
     private bool _captureMouse;
     private ViewportChannel _channel = ViewportChannel.Scene;
     private bool _ignoreNextMove;
@@ -257,7 +227,7 @@ public class Viewport : ContentView
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        commands.Add(new DrawViewportCommand(_targetCamera, GetContentSize(), transform));
+        commands.Add(new DrawViewportCommand(_targetCamera, GetContentSize(), transform, _worldRenderer));
         commands.AddText("Noto Sans", GetModeText(), transform);
     }
 
@@ -268,5 +238,11 @@ public class Viewport : ContentView
         // var viewTarget = _targetCamera?.RootComponent;
         // if (viewTarget == null) return;//.ApplyYaw(delta.X).ApplyPitch(delta.Y)
         // viewTarget.SetRelativeRotation(viewTarget.GetRelativeRotation().Delta(pitch: delta.Y, yaw: delta.X));
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _worldRenderer.Dispose();
     }
 }

@@ -3,6 +3,7 @@ namespace Rin.Engine.Graphics.FrameGraph;
 public enum GraphBufferUsage
 {
     Undefined,
+    Host,
     HostThenTransfer,
     HostThenGraphics,
     HostThenCompute,

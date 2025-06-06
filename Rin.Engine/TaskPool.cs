@@ -6,12 +6,12 @@ public class TaskPool : IDisposable
 {
     private readonly BlockingCollection<PendingTask> _pendingTasks = [];
 
-    private Task[] _tasks;
+    private readonly Task[] _tasks;
 
     public TaskPool(int numThreads)
     {
         _tasks = Enumerable.Range(0, numThreads)
-            .Select(idx => Task.Factory.StartNew(RunTask, TaskCreationOptions.LongRunning)).ToArray();
+            .Select(_ => Task.Factory.StartNew(RunTask, TaskCreationOptions.LongRunning)).ToArray();
     }
 
     public TaskPool() : this(Environment.ProcessorCount)
@@ -22,6 +22,11 @@ public class TaskPool : IDisposable
     {
         _pendingTasks.CompleteAdding();
         _pendingTasks.Dispose();
+        
+        foreach (var task in _tasks)
+        {
+            task.Wait();
+        }
     }
 
     private void RunTask()
@@ -58,12 +63,12 @@ public class TaskPool<T> : IDisposable
 {
     private readonly BlockingCollection<PendingTask> _pendingTasks = [];
 
-    private Task[] _tasks;
+    private readonly Task[] _tasks;
 
     public TaskPool(int numThreads)
     {
         _tasks = Enumerable.Range(0, numThreads)
-            .Select(idx => Task.Factory.StartNew(RunTask, TaskCreationOptions.LongRunning)).ToArray();
+            .Select(_ => Task.Factory.StartNew(RunTask, TaskCreationOptions.LongRunning)).ToArray();
     }
 
     public TaskPool() : this(Environment.ProcessorCount)
@@ -74,6 +79,11 @@ public class TaskPool<T> : IDisposable
     {
         _pendingTasks.CompleteAdding();
         _pendingTasks.Dispose();
+        
+        foreach (var task in _tasks)
+        {
+            task.Wait();
+        }
     }
 
 

@@ -1,13 +1,14 @@
 using System.Numerics;
 using Rin.Engine.Graphics;
 
-namespace Rin.Engine.World.Graphics;
+namespace Rin.Engine.World.Graphics.Default;
 
 /// <summary>
 ///     Final mesh after processing i.e. skinning or static meshes, split into surfaces
 /// </summary>
 public class ProcessedMesh
 {
+    public required int Id;
     public required Matrix4x4 Transform { get; set; }
 
     public required uint IndicesCount { get; set; }
@@ -56,10 +57,10 @@ public class ProcessedMesh
             return HashCode.Combine(obj.VertexCount, obj.VertexStart);
         }
     }
-    
-    
+
+
     /// <summary>
-    /// Groups together meshes that can be drawn in one vkCmdDrawIndexed
+    ///     Groups together meshes that can be drawn in one vkCmdDrawIndexed
     /// </summary>
     public class CompareBatchable : IEqualityComparer<ProcessedMesh>
     {
@@ -79,10 +80,10 @@ public class ProcessedMesh
         public int GetHashCode(ProcessedMesh obj)
         {
             return HashCode.Combine(obj.Material.ColorPass.Shader, obj.IndexBuffer.Size, obj.IndexBuffer.Offset,
-                obj.IndexBuffer.NativeBuffer,obj.VertexCount, obj.VertexStart);
+                obj.IndexBuffer.NativeBuffer, obj.VertexCount, obj.VertexStart);
         }
     }
-    
+
     public class CompareBatchableDepth : IEqualityComparer<ProcessedMesh>
     {
         public bool Equals(ProcessedMesh? x, ProcessedMesh? y)
@@ -101,10 +102,10 @@ public class ProcessedMesh
         public int GetHashCode(ProcessedMesh obj)
         {
             return HashCode.Combine(obj.Material.DepthPass.Shader, obj.IndexBuffer.Size, obj.IndexBuffer.Offset,
-                obj.IndexBuffer.NativeBuffer,obj.VertexCount, obj.VertexStart);
+                obj.IndexBuffer.NativeBuffer, obj.VertexCount, obj.VertexStart);
         }
     }
-    
+
 
     public class CompareIndirectBatch : IEqualityComparer<ProcessedMesh>
     {
@@ -125,7 +126,7 @@ public class ProcessedMesh
                 obj.IndexBuffer.NativeBuffer);
         }
     }
-    
+
     public class CompareIndirectBatchDepth : IEqualityComparer<ProcessedMesh>
     {
         public bool Equals(ProcessedMesh? x, ProcessedMesh? y)

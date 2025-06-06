@@ -665,239 +665,464 @@ EXPORT_IMPL void platformWindowSetPosition(void* handle,Point2D position)
 #endif
 
 
-
-
 #ifdef RIN_PLATFORM_LINUX
+#include <libdecor.h>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_wayland.h>
 #include <list>
+#include <sstream>
+#include <unordered_map>
 #include <wayland-client.h>
 #include <xdg-shell-client-protocol.h>
-#include <libdecor.h>
+#include <linux/input-event-codes.h>
 
-wl_registry * REGISTRY;
-wl_compositor * COMPOSITOR;
-wl_display * DISPLAY;
-xdg_wm_base * SHELL;
-
-static std::list<WindowEvent> PENDING_EVENTS = {};
-
-static void handleRegistry(
-    void* data,
-    struct wl_registry* registry,
-    uint32_t name,
-    const char* interface,
-    uint32_t version
-);
-static void handleShellPing(void* data, struct xdg_wm_base* shell, uint32_t serial);
-static void handleShellSurfaceConfigure(void* data, struct xdg_surface* shellSurface, uint32_t serial);
-static void handleToplevelConfigure(
-    void* data,
-    struct xdg_toplevel* toplevel,
-    int32_t width,
-    int32_t height,
-    struct wl_array* states
-);
-static void handleToplevelClose(void* data, struct xdg_toplevel* toplevel);
-static void handleTopLevelDecorationConfigure(void *data,
-              struct zxdg_toplevel_decoration_v1 *zxdg_toplevel_decoration_v1,
-              uint32_t mode);
-
-static const struct wl_registry_listener registryListener = {
-    .global = handleRegistry
-};
-
-static const struct xdg_wm_base_listener shellListener = {
-    .ping = handleShellPing
-};
-
-static const struct xdg_surface_listener shellSurfaceListener = {
-    .configure = handleShellSurfaceConfigure
-};
-
-static const struct xdg_toplevel_listener topLevelListener = {
-    .configure = handleToplevelConfigure,
-    .close = handleToplevelClose
-};
+wl_registry *REGISTRY = nullptr;
+wl_compositor *COMPOSITOR = nullptr;
+wl_display *DISPLAY = nullptr;
+xdg_wm_base *SHELL = nullptr;
+libdecor *DECOR_CONTEXT = nullptr;
+wl_seat *SEAT = nullptr;
+wl_keyboard *KEYBOARD = nullptr;
+wl_pointer *POINTER = nullptr;
 
 struct WindowHandle {
-    wl_surface * surface;
-    xdg_surface * xdgSurface;
-    xdg_toplevel * xdgToplevel;
-    Flags<WindowFlags> flags;
-    Extent2D size;
-    zxdg_toplevel_decoration_v1 * decoration;
-    bool resizePending = false;
+    wl_surface *surface = nullptr;
+    Flags<WindowFlags> flags{};
+    Extent2D size{};
+    libdecor_frame *frame = nullptr;
+    Vector2 cursorPosition{};
 };
 
-static void handleRegistry(
-    void* data,
-    struct wl_registry* registry,
-    uint32_t name,
-    const char* interface,
-    uint32_t version
-)
-{
-    auto interfaceName = std::string{interface};
+static std::unordered_map<const wl_surface *, WindowHandle *> SURFACE_TO_HANDLES{};
+static WindowHandle *FOCUSED_HANDLE = nullptr;
+static std::list<WindowEvent> PENDING_EVENTS = {};
 
-    if (interfaceName == wl_compositor_interface.name)
-    {
-        COMPOSITOR = static_cast<wl_compositor *>(wl_registry_bind(registry, name, &wl_compositor_interface, 1));
+WindowHandle *tryGetWindowFromSurface(const wl_surface *surface) {
+    if (const auto result = SURFACE_TO_HANDLES.find(surface); result != SURFACE_TO_HANDLES.end()) {
+        return result->second;
     }
-    else if (interfaceName == xdg_wm_base_interface.name)
-    {
-        SHELL = static_cast<xdg_wm_base*>(wl_registry_bind(registry, name, &xdg_wm_base_interface, 1));
-        xdg_wm_base_add_listener(SHELL, &shellListener, nullptr);
-    }
+    return nullptr;
 }
 
-static void handleShellPing(void* data, struct xdg_wm_base* shell, uint32_t serial)
-{
-    xdg_wm_base_pong(shell, serial);
-}
+static constexpr struct wl_display_listener displayListener = {
+    .error = [](void *data,
+                struct wl_display *wl_display,
+                void *object_id,
+                uint32_t code,
+                const char *message) {
+        std::cerr << message << std::endl;
+    }
+};
 
-static void handleShellSurfaceConfigure(void* data, struct xdg_surface* shellSurface, uint32_t serial)
-{
-    auto handle = static_cast<WindowHandle*>(data);
+static constexpr struct wl_keyboard_listener keyboardListener = {
+    .keymap = [](void *data,
+                 struct wl_keyboard *wl_keyboard,
+                 uint32_t format,
+                 int32_t fd,
+                 uint32_t size) {
+    },
+    .enter = [](void *data,
+                struct wl_keyboard *wl_keyboard,
+                uint32_t serial,
+                struct wl_surface *surface,
+                struct wl_array *keys) {
+    },
+    .leave = [](void *data,
+                struct wl_keyboard *wl_keyboard,
+                uint32_t serial,
+                struct wl_surface *surface) {
+    },
+    .key = [](void *data,
+              struct wl_keyboard *wl_keyboard,
+              uint32_t serial,
+              uint32_t time,
+              uint32_t key,
+              uint32_t state) {
+    },
+    .modifiers = [](void *data,
+                    struct wl_keyboard *wl_keyboard,
+                    uint32_t serial,
+                    uint32_t mods_depressed,
+                    uint32_t mods_latched,
+                    uint32_t mods_locked,
+                    uint32_t group) {
+    },
+    .repeat_info = [](void *data,
+                      struct wl_keyboard *wl_keyboard,
+                      int32_t rate,
+                      int32_t delay) {
+    },
+};
 
-    xdg_surface_ack_configure(shellSurface, serial);
+static constexpr struct wl_pointer_listener pointerListener = {
+    .enter = [](void *data,
+                struct wl_pointer *wl_pointer,
+                uint32_t serial,
+                struct wl_surface *surface,
+                wl_fixed_t surface_x,
+                wl_fixed_t surface_y) {
+        if (const auto handle = tryGetWindowFromSurface(surface)) {
+            FOCUSED_HANDLE = handle;
+            WindowEvent ev{};
+            new(&ev.enter) CursorEnterEvent{
+                .type = WindowEventType::CursorEnter,
+                .handle = handle,
+            };
+            PENDING_EVENTS.push_back(ev);
+        }
+    },
+    .leave = [](void *data,
+                struct wl_pointer *wl_pointer,
+                uint32_t serial,
+                struct wl_surface *surface) {
+        if (const auto handle = tryGetWindowFromSurface(surface)) {
+            FOCUSED_HANDLE = nullptr;
+            WindowEvent ev{};
+            new(&ev.enter) CursorLeaveEvent{
+                .type = WindowEventType::CursorLeave,
+                .handle = handle,
+            };
+            PENDING_EVENTS.push_back(ev);
+        }
+    },
+    .motion = [](void *data,
+                 struct wl_pointer *wl_pointer,
+                 uint32_t time,
+                 wl_fixed_t surface_x,
+                 wl_fixed_t surface_y) {
+        if (const auto handle = FOCUSED_HANDLE) {
+            const auto x = static_cast<float>(wl_fixed_to_double(surface_x));
+            const auto y = static_cast<float>(wl_fixed_to_double(surface_y));
+            WindowEvent ev{};
+            handle->cursorPosition = {x, y};
 
-    if (handle->resizePending) {
-        handle->resizePending = false;
+            new(&ev.enter) CursorMoveEvent{
+                .type = WindowEventType::CursorMove,
+                .handle = handle,
+                .position = handle->cursorPosition,
+            };
+            PENDING_EVENTS.push_back(ev);
+        }
+    },
+    .button = [](void *data,
+                 struct wl_pointer *wl_pointer,
+                 uint32_t serial,
+                 uint32_t time,
+                 uint32_t button,
+                 uint32_t state) {
+        if (const auto handle = FOCUSED_HANDLE) {
+            WindowEvent ev{};
+            CursorButton btn;
+            switch (button) {
+                case BTN_LEFT: btn = CursorButton::One;
+                    break;
+                case BTN_RIGHT: btn = CursorButton::Two;
+                    break;
+                case BTN_MIDDLE: btn = CursorButton::Three;
+                    break;
+                case BTN_SIDE: btn = CursorButton::Four;
+                    break;
+                case BTN_EXTRA: btn = CursorButton::Five;
+                    break;
+                case BTN_FORWARD: btn = CursorButton::Six;
+                    break;
+                case BTN_BACK: btn = CursorButton::Seven;
+                    break;
+                default: return; // unknown button
+            }
 
+            const InputState btnState = (state == WL_POINTER_BUTTON_STATE_PRESSED)
+                                            ? InputState::Pressed
+                                            : InputState::Released;
+            new(&ev.enter) CursorButtonEvent{
+                .type = WindowEventType::CursorButton,
+                .handle = handle,
+                .button = btn,
+                .state = btnState,
+                .modifier = static_cast<InputModifier>(0),
+            };
+            PENDING_EVENTS.push_back(ev);
+        }
+    },
+    .axis = [](void *data,
+               struct wl_pointer *wl_pointer,
+               uint32_t time,
+               uint32_t axis,
+               wl_fixed_t value) {
+    },
+    .frame = [](void *data,
+                struct wl_pointer *wl_pointer) {
+    },
+    .axis_source = [](void *data,
+                      struct wl_pointer *wl_pointer,
+                      uint32_t axis_source) {
+    },
+    .axis_stop = [](void *data,
+                    struct wl_pointer *wl_pointer,
+                    uint32_t time,
+                    uint32_t axis) {
+    },
+    .axis_discrete = [](void *data,
+                        struct wl_pointer *wl_pointer,
+                        uint32_t axis,
+                        int32_t discrete) {
+    },
+    .axis_value120 = [](void *data,
+                        struct wl_pointer *wl_pointer,
+                        uint32_t axis,
+                        int32_t value120) {
+    },
+    .axis_relative_direction = [](void *data,
+                                  struct wl_pointer *wl_pointer,
+                                  uint32_t axis,
+                                  uint32_t direction) {
+    },
+};
+
+static constexpr struct wl_seat_listener seatListener = {
+    .capabilities = [](void *data,
+                       struct wl_seat *wl_seat,
+                       uint32_t capabilities) {
+        if ((capabilities & WL_SEAT_CAPABILITY_KEYBOARD) > 0) {
+            KEYBOARD = wl_seat_get_keyboard(SEAT);
+            wl_keyboard_add_listener(KEYBOARD, &keyboardListener, nullptr);
+        }
+
+        if ((capabilities & WL_SEAT_CAPABILITY_POINTER) > 0) {
+            POINTER = wl_seat_get_pointer(SEAT);
+            wl_pointer_add_listener(POINTER, &pointerListener, nullptr);
+        }
+    },
+    .name = [](void *data,
+               struct wl_seat *wl_seat,
+               const char *name) {
+    }
+};
+static constexpr struct wl_registry_listener registryListener = {
+    .global = [](
+void *data,
+struct wl_registry *registry,
+uint32_t name,
+const char *interface,
+uint32_t version
+) {
+        auto interfaceName = std::string{interface};
+
+        if (interfaceName == wl_compositor_interface.name) {
+            const auto bindVersion = std::min<uint32_t>(version, wl_seat_interface.version);
+            COMPOSITOR = static_cast<wl_compositor *>(wl_registry_bind(registry, name, &wl_compositor_interface,
+                                                                       bindVersion));
+        } else if (interfaceName == wl_seat_interface.name) {
+            const auto bindVersion = std::min<uint32_t>(version, wl_seat_interface.version);
+            SEAT = static_cast<wl_seat *>(wl_registry_bind(registry, name, &wl_seat_interface, bindVersion));
+            wl_seat_add_listener(SEAT, &seatListener, nullptr);
+        }
+    }
+};
+
+static struct libdecor_frame_interface frameInterface{
+    .configure = [](struct libdecor_frame *frame,
+                    struct libdecor_configuration *configuration,
+                    void *user_data) {
+        auto handle = static_cast<WindowHandle *>(user_data);
+
+        int width, height;
+        if (libdecor_configuration_get_content_size(configuration, frame, &width, &height)) {
+            if (width == 0 || height == 0) {
+                // Compositor is asking us to size ourself
+
+                return;
+            }
+
+            auto newExtent = Extent2D{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+
+            auto state = libdecor_state_new(newExtent.width, newExtent.height);
+            libdecor_frame_commit(frame, state, configuration);
+            libdecor_state_free(state);
+
+            if (newExtent != handle->size) {
+                handle->size = newExtent;
+                WindowEvent ev{};
+                new(&ev.resize) ResizeEvent{
+                    .type = WindowEventType::Resize,
+                    .handle = handle,
+                    .size = handle->size,
+                };
+                PENDING_EVENTS.push_back(ev);
+            }
+        }
+    },
+    .close = [](struct libdecor_frame *frame, void *user_data) {
+        auto handle = static_cast<WindowHandle *>(user_data);
         WindowEvent ev{};
-        new(&ev.resize) ResizeEvent{
-            .type = WindowEventType::Resize,
+        new(&ev.close) CloseEvent{
+            .type = WindowEventType::Close,
             .handle = handle,
-            .size = handle->size,
-
         };
         PENDING_EVENTS.push_back(ev);
+    },
+    .commit = [](struct libdecor_frame *frame, void *user_data) {
+        auto handle = static_cast<WindowHandle *>(user_data);
+        wl_surface_commit(handle->surface);
     }
-}
+};
 
-static void handleToplevelConfigure(
-    void* data,
-    struct xdg_toplevel* toplevel,
-    int32_t width,
-    int32_t height,
-    struct wl_array* states
-)
-{
-    auto handle = static_cast<WindowHandle*>(data);
-    if (width == 0 || height == 0) {
-        // Compositor is asking us to size ourself
-        return;
+static struct libdecor_interface decorInterface = {
+    .error = [](struct libdecor *context,
+                enum libdecor_error error,
+                const char *message) {
+        std::cerr << "Caught error (" << error << "): " << message << std::endl;
+        exit(EXIT_FAILURE);
     }
-    auto newExtent = Extent2D{static_cast<uint32_t>(width),static_cast<uint32_t>(height)};
-    if (newExtent != handle->size) {
-        handle->size = newExtent;
-        handle->resizePending = true;
-    }
-}
+};
 
-static void handleToplevelClose(void* data, struct xdg_toplevel* toplevel)
-{
-    auto handle = static_cast<WindowHandle*>(data);
-    WindowEvent ev{};
-    new(&ev.close) CloseEvent{
-        .type = WindowEventType::Close,
-        .handle = handle,
-    };
-    PENDING_EVENTS.push_back(ev);
-}
-
-static void handleTopLevelDecorationConfigure(void *data,
-              struct zxdg_toplevel_decoration_v1 *zxdg_toplevel_decoration_v1,
-              uint32_t mode) {
-    auto handle = static_cast<WindowHandle*>(data);
-
-
-}
-EXPORT_IMPL void platformInit()
-{
+EXPORT_IMPL void platformInit() {
     DISPLAY = wl_display_connect(nullptr);
+    //wl_display_add_listener(DISPLAY,&displayListener,nullptr); // errors out with display already has a listener ?
     REGISTRY = wl_display_get_registry(DISPLAY);
-    wl_registry_add_listener(REGISTRY, &registryListener,nullptr);
+    wl_registry_add_listener(REGISTRY, &registryListener, nullptr);
     wl_display_roundtrip(DISPLAY);
+    DECOR_CONTEXT = libdecor_new(DISPLAY, &decorInterface);
 }
 
 EXPORT_IMPL void platformShutdown() {
-    xdg_wm_base_destroy(SHELL);
-    wl_compositor_destroy(COMPOSITOR);
-    wl_registry_destroy(REGISTRY);
-    wl_display_disconnect(DISPLAY);
+    if (KEYBOARD) wl_keyboard_destroy(KEYBOARD);
+    if (POINTER) wl_pointer_destroy(POINTER);
+    if (SEAT) wl_seat_destroy(SEAT);
+    if (DECOR_CONTEXT) libdecor_unref(DECOR_CONTEXT);
+    if (COMPOSITOR) wl_compositor_destroy(COMPOSITOR);
+    if (REGISTRY) wl_registry_destroy(REGISTRY);
+    if (DISPLAY) wl_display_disconnect(DISPLAY);
 }
 
-EXPORT_IMPL int platformGet()
-{
+EXPORT_IMPL int platformGet() {
     return static_cast<int>(EPlatform::Linux);
 }
-EXPORT_IMPL void platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback)
-{
 
+static void runZenityCommand(std::ostringstream& command, bool multiple,const char* filter, PathReceivedCallback callback) {
+    if (filter) {
+        std::string filterString{filter};
+        if (!filterString.empty()) {
+            std::stringstream filterStream{filter};
+            std::string parsedFilter;
+            command << " --file-filter=\"";
+
+            while (std::getline(filterStream,parsedFilter,';')) {
+                if (!parsedFilter.empty()) {
+                    command << " " << parsedFilter;
+                }
+            }
+
+            command << "\"";
+        }
+    }
+
+    command << " 2> /dev/null";
+
+    auto cmd = command.str();
+    FILE *pipe = popen(command.str().c_str(), "r");
+    if (!pipe) return;
+
+    std::string result;
+    char buffer[4096];
+    while (fgets(buffer, sizeof(buffer), pipe)) {
+        result += buffer;
+    }
+    pclose(pipe);
+
+    // Remove trailing newline
+    if (!result.empty() && result.back() == '\n')
+        result.pop_back();
+
+    if (multiple) {
+        std::stringstream ss(result);
+        std::string path;
+        while (std::getline(ss, path, ':')) {
+            if (!path.empty())
+                callback(path.c_str());
+        }
+    } else {
+        if (!result.empty())
+            callback(result.c_str());
+    }
 }
-EXPORT_IMPL void platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback)
-{
-    
+
+EXPORT_IMPL void platformSelectFile(const char *title, bool multiple, const char *filter,
+                                    PathReceivedCallback callback) {
+    std::ostringstream cmd;
+    cmd << "zenity --file-selection";
+    if (multiple)
+        cmd << " --multiple --separator=\":\"";
+    if (title)
+        cmd << " --title=\"" << title << "\"";
+
+    runZenityCommand(cmd, multiple,filter, callback);
+}
+
+EXPORT_IMPL void platformSelectPath(const char *title, bool multiple, PathReceivedCallback callback) {
+    std::ostringstream cmd;
+    cmd << "zenity --file-selection --directory";
+    if (multiple)
+        cmd << " --multiple --separator=\":\"";
+    if (title)
+        cmd << " --title=\"" << title << "\"";
+
+    runZenityCommand(cmd, multiple,nullptr, callback);
 }
 
 EXPORT_IMPL void platformWindowPump() {
-
     wl_display_roundtrip(DISPLAY);
 }
 
-EXPORT_IMPL void * platformWindowCreate(const char *title, int width, int height, Flags<WindowFlags> flags) {
-
+EXPORT_IMPL void *platformWindowCreate(const char *title, int width, int height, Flags<WindowFlags> flags) {
+    auto windowHandle = new WindowHandle{};
     auto surface = wl_compositor_create_surface(COMPOSITOR);
-    auto shellSurface = xdg_wm_base_get_xdg_surface(SHELL, surface);
-    auto toplevel = xdg_surface_get_toplevel(shellSurface);
-    xdg_toplevel_set_title(toplevel,title);
-    xdg_toplevel_set_app_id(toplevel,"Test APP");
-    auto windowHandle = new WindowHandle{
-        .surface = surface,
-        .xdgSurface = shellSurface,
-        .xdgToplevel = toplevel,
-        .flags = flags,
-        .size = {static_cast<uint32_t>(width),static_cast<uint32_t>(height)},
-    };
-    xdg_surface_add_listener(shellSurface, &shellSurfaceListener, windowHandle);
-    xdg_toplevel_add_listener(toplevel, &topLevelListener, windowHandle);
-    wl_surface_commit(surface);
-    wl_display_roundtrip(DISPLAY);
-    wl_surface_commit(surface);
+    auto frame = libdecor_decorate(DECOR_CONTEXT, surface, &frameInterface, windowHandle);
+    SURFACE_TO_HANDLES.insert_or_assign(surface, windowHandle);
+    windowHandle->surface = surface;
+    windowHandle->flags = flags;
+    windowHandle->size = Extent2D{static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+    windowHandle->frame = frame;
+
+    libdecor_frame_set_title(frame, title);
+    libdecor_frame_set_app_id(frame, "rin_app");
+    libdecor_frame_map(frame);
+
     return windowHandle;
 }
 
 EXPORT_IMPL void platformWindowDestroy(void *handle) {
-    auto windowHandle = static_cast<WindowHandle*>(handle);
-    xdg_toplevel_destroy(windowHandle->xdgToplevel);
-    xdg_surface_destroy(windowHandle->xdgSurface);
+    if (handle == FOCUSED_HANDLE) {
+        FOCUSED_HANDLE = nullptr;
+    }
+    auto windowHandle = static_cast<WindowHandle *>(handle);
+    SURFACE_TO_HANDLES.erase(windowHandle->surface);
+    libdecor_frame_unref(windowHandle->frame);
     wl_surface_destroy(windowHandle->surface);
     delete windowHandle;
 }
 
 EXPORT_IMPL void platformWindowShow(void *handle) {
-
 }
 
 EXPORT_IMPL void platformWindowHide(void *handle) {
 }
 
 EXPORT_IMPL Vector2 platformWindowGetCursorPosition(void *handle) {
-    return Vector2{};
+    auto windowHandle = static_cast<WindowHandle *>(handle);
+    return windowHandle->cursorPosition;
 }
 
 EXPORT_IMPL void platformWindowSetCursorPosition(void *handle, Vector2 position) {
 }
 
 EXPORT_IMPL Extent2D platformWindowGetSize(void *handle) {
-    auto windowHandle = static_cast<WindowHandle*>(handle);
+    auto windowHandle = static_cast<WindowHandle *>(handle);
     return windowHandle->size;
 }
 
 EXPORT_IMPL VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, void *handle) {
-    auto windowHandle = static_cast<WindowHandle*>(handle);
+    auto windowHandle = static_cast<WindowHandle *>(handle);
 
     const VkWaylandSurfaceCreateInfoKHR createInfo{
         .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
@@ -912,10 +1137,8 @@ EXPORT_IMPL VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, void *
 
 EXPORT_IMPL int platformWindowGetEvents(WindowEvent *output, int size) {
     int events = 0;
-    for(auto i = 0; i < size; i++)
-    {
-        if(PENDING_EVENTS.empty())
-        {
+    for (auto i = 0; i < size; i++) {
+        if (PENDING_EVENTS.empty()) {
             break;
         }
 
@@ -934,7 +1157,6 @@ EXPORT_IMPL void platformWindowStopTyping(void *handle) {
 }
 
 EXPORT_IMPL void platformWindowSetSize(void *handle, Extent2D size) {
-
 }
 #endif
 

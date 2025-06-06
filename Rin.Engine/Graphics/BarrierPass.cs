@@ -6,9 +6,9 @@ internal class PassResourceSync
 {
     public required uint ResourceId { get; set; }
     public required uint PassId { get; set; }
-    
+
     public required ResourceOperation PreviousOperation { get; set; }
-    
+
     public required ResourceOperation NextOperation { get; set; }
 }
 
@@ -28,18 +28,6 @@ internal class BarrierPass(IEnumerable<BufferResourceSync> buffers, IEnumerable<
 {
     public uint Id { get; set; }
     public bool IsTerminal => false;
-    public bool HandlesPreAdd => false;
-    public bool HandlesPostAdd => false;
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-        throw new NotImplementedException();
-    }
 
     public void Configure(IGraphConfig config)
     {
@@ -51,7 +39,8 @@ internal class BarrierPass(IEnumerable<BufferResourceSync> buffers, IEnumerable<
         foreach (var bufferResourceSync in buffers)
         {
             var buffer = graph.GetBufferOrException(bufferResourceSync.ResourceId);
-            ctx.Barrier(buffer,bufferResourceSync.PreviousUsage, bufferResourceSync.NextUsage, bufferResourceSync.PreviousOperation, bufferResourceSync.NextOperation);
+            ctx.Barrier(buffer, bufferResourceSync.PreviousUsage, bufferResourceSync.NextUsage,
+                bufferResourceSync.PreviousOperation, bufferResourceSync.NextOperation);
         }
 
         foreach (var imageResourceSync in images)

@@ -2,8 +2,6 @@ using JetBrains.Annotations;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Views.Graphics.Commands;
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Engine.Views.Graphics.Passes;
 
@@ -56,20 +54,6 @@ public sealed class BatchDrawPass : IViewsPass
     public SharedPassContext Context { get; set; }
 
     [PublicAPI] public bool IsTerminal { get; set; }
-    public bool HandlesPreAdd => false;
-    public bool HandlesPostAdd => false;
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-        // foreach (var cmd in _passInfo.PreCommands) cmd.BeforeAdd(builder);
-        //
-        // foreach (var cmd in _passInfo.PostCommands) cmd.BeforeAdd(builder);
-    }
 
     public void Configure(IGraphConfig config)
     {
@@ -78,7 +62,7 @@ public sealed class BatchDrawPass : IViewsPass
 
         var memoryNeeded = _batchSizes.Aggregate<ulong, ulong>(0, (t, c) => t + c);
 
-        if (memoryNeeded > 0) _bufferId = config.CreateBuffer(memoryNeeded,GraphBufferUsage.HostThenGraphics);
+        if (memoryNeeded > 0) _bufferId = config.CreateBuffer(memoryNeeded, GraphBufferUsage.HostThenGraphics);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
@@ -94,13 +78,12 @@ public sealed class BatchDrawPass : IViewsPass
         ctx.BeginRendering(_extent, [drawImage], stencilAttachment: stencilImage)
             .DisableFaceCulling()
             .StencilCompareOnly();
-        
+
         var compareMask = uint.MaxValue;
 
         ulong offset = 0;
         for (var i = 0; i < _batches.Count; i++)
         {
-            
             var (batch, currentCompareMask) = _batches[i];
             if (currentCompareMask != compareMask)
             {

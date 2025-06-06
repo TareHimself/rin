@@ -265,7 +265,6 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
 
     public virtual void HandleCustomEvent(ISurfaceEvent e, in Matrix4x4 transform)
     {
-        
     }
 
     public virtual void HandleEvent(ISurfaceEvent e, in Matrix4x4 transform)
@@ -282,6 +281,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
                         OnCursorEnter(ev);
                     }
                 }
+
                 break;
             case CursorDownSurfaceEvent ev:
                 if (IsSelfHitTestable && OnCursorDown(ev)) ev.Target = this;
@@ -302,6 +302,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
 
                     if (!ev.Handled) ev.Handled = OnCursorMove(ev);
                 }
+
                 break;
             case ScrollSurfaceEvent ev:
                 if (IsSelfHitTestable && OnScroll(ev)) ev.Target = this;
@@ -429,7 +430,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
                 {
                     var newSize = ComputeDesiredSize();
 
-                    if (newSize == _cachedDesiredSize.Value) return;
+                    if (newSize == asCachedSize) return;
                     _cachedDesiredSize = newSize;
                 }
                 else

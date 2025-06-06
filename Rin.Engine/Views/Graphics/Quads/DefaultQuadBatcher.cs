@@ -30,7 +30,7 @@ public class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         if (quads.Length == 0) return 0;
 
         view.Write(quads);
-        _batchShader.Push(ctx,new Push
+        _batchShader.Push(ctx, new Push
         {
             Projection = frame.ProjectionMatrix,
             Viewport = new Vector4(0, 0, frame.Extent.Width, frame.Extent.Height),

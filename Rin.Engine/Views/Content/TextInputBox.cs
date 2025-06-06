@@ -20,7 +20,7 @@ public class TextInputBox : TextBox
     public TextInputBox()
     {
         CursorPosition = Content.Length - 1;
-        _typingTimer.Elapsed += (_, __) => IsTyping = false;
+        _typingTimer.Elapsed += (_, _) => IsTyping = false;
     }
 
     public override bool IsFocusable => true;

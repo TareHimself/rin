@@ -44,9 +44,10 @@ public class SlangComputeShader : IComputeShader, IVulkanShader
         if (wait && !_compileTask.IsCompleted)
             _compileTask.Wait();
         else if (!_compileTask.IsCompleted) return false;
-        
+
         Debug.Assert(ctx is VulkanExecutionContext);
-        vkCmdBindPipeline(((VulkanExecutionContext)ctx).CommandBuffer, VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE, _pipeline);
+        vkCmdBindPipeline(((VulkanExecutionContext)ctx).CommandBuffer,
+            VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE, _pipeline);
         return true;
     }
 
@@ -149,12 +150,12 @@ public class SlangComputeShader : IComputeShader, IVulkanShader
         var cmd = ((VulkanExecutionContext)ctx).CommandBuffer;
         unsafe
         {
-            var layout  = GetPipelineLayout();
-            const VkShaderStageFlags flags = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT | VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS;
+            var layout = GetPipelineLayout();
+            const VkShaderStageFlags flags = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT |
+                                             VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS;
             fixed (T* pData = &data)
             {
-                
-                vkCmdPushConstants(cmd,layout, flags, offset,
+                vkCmdPushConstants(cmd, layout, flags, offset,
                     (uint)Utils.ByteSizeOf<T>(), pData);
                 // var size = (uint)Utils.ByteSizeOf<T>();
                 // if (size < 256)
@@ -165,6 +166,22 @@ public class SlangComputeShader : IComputeShader, IVulkanShader
                 // }
             }
         }
+    }
+
+    public uint GroupSizeX { get; private set; }
+    public uint GroupSizeY { get; private set; }
+    public uint GroupSizeZ { get; private set; }
+
+    public void Dispatch(in VkCommandBuffer cmd, uint x, uint y = 1, uint z = 1)
+    {
+        Debug.Assert(x != 0 && y != 0 && z != 0);
+        vkCmdDispatch(cmd, x, y, z);
+    }
+
+    public void Invoke(in VkCommandBuffer cmd, uint x, uint y = 1, uint z = 1)
+    {
+        Dispatch(cmd, (uint)float.Ceiling(x / (float)GroupSizeX), (uint)float.Ceiling(y / (float)GroupSizeY),
+            (uint)float.Ceiling(z / (float)GroupSizeZ));
     }
 
     public Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts()
@@ -185,21 +202,5 @@ public class SlangComputeShader : IComputeShader, IVulkanShader
     public VkShaderStageFlags GetStageFlags()
     {
         return VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT;
-    }
-
-    public uint GroupSizeX { get; private set; }
-    public uint GroupSizeY { get; private set; }
-    public uint GroupSizeZ { get; private set; }
-
-    public void Dispatch(in VkCommandBuffer cmd, uint x, uint y = 1, uint z = 1)
-    {
-        Debug.Assert(x != 0 && y != 0 && z != 0);
-        vkCmdDispatch(cmd, x, y, z);
-    }
-
-    public void Invoke(in VkCommandBuffer cmd, uint x, uint y = 1, uint z = 1)
-    {
-        Dispatch(cmd, (uint)float.Ceiling(x / (float)GroupSizeX), (uint)float.Ceiling(y / (float)GroupSizeY),
-            (uint)float.Ceiling(z / (float)GroupSizeZ));
     }
 }

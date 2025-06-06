@@ -4,9 +4,8 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Textures;
 using Rin.Engine.Math;
-using static TerraFX.Interop.Vulkan.Vulkan;
 
-namespace Rin.Engine.World.Graphics;
+namespace Rin.Engine.World.Graphics.Default;
 
 public class DefaultMeshMaterial : IMeshMaterial
 {
@@ -67,9 +66,10 @@ public class DefaultMeshMaterial : IMeshMaterial
                     DataAddress = groupMaterialBuffer!.GetAddress()
                 };
 
-                Shader.Push(frame.ExecutionContext,pushData);
+                Shader.Push(frame.ExecutionContext, pushData);
                 return true;
             }
+
             return false;
         }
 
@@ -103,9 +103,9 @@ public class DefaultMeshMaterial : IMeshMaterial
                 SceneAddress = frame.SceneInfo.GetAddress(),
                 DataAddress = data!.GetAddress()
             };
-            Shader.Push(ctx,pushData);
+            Shader.Push(ctx, pushData);
             ctx
-                .DrawIndexed(first.IndicesCount,(uint)meshes.Length, first.IndicesCount,first.VertexStart);
+                .DrawIndexed(first.IndicesCount, (uint)meshes.Length, first.IndicesCount, first.VertexStart);
             return memoryUsed;
         }
 
@@ -137,7 +137,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             private Vector4 _color_textureId;
             [PublicAPI] public int NormalTextureId = 0;
             private Vector4 _msre;
-            private Vector4<int> _msreTextureId;
+            private Int4 _msreTextureId;
 
             public Vector3 BaseColor
             {
@@ -228,9 +228,10 @@ public class DefaultMeshMaterial : IMeshMaterial
                     DataAddress = groupMaterialBuffer!.GetAddress()
                 };
 
-                Shader.Push(frame.ExecutionContext,pushData);
+                Shader.Push(frame.ExecutionContext, pushData);
                 return true;
             }
+
             return false;
         }
 
@@ -263,9 +264,9 @@ public class DefaultMeshMaterial : IMeshMaterial
                 DataAddress = data!.GetAddress()
             };
 
-            Shader.Push(ctx,pushData);
+            Shader.Push(ctx, pushData);
             ctx
-                .DrawIndexed(first.IndicesCount,(uint)meshes.Length, first.IndicesCount,first.VertexStart);
+                .DrawIndexed(first.IndicesCount, (uint)meshes.Length, first.IndicesCount, first.VertexStart);
             return memoryUsed;
         }
 

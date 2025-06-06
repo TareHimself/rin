@@ -47,9 +47,10 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
         if (wait && !_compileTask.IsCompleted)
             _compileTask.Wait();
         else if (!_compileTask.IsCompleted) return false;
-        
+
         Debug.Assert(ctx is VulkanExecutionContext);
-        vkCmdBindPipeline(((VulkanExecutionContext)ctx).CommandBuffer, VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
+        vkCmdBindPipeline(((VulkanExecutionContext)ctx).CommandBuffer,
+            VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
         return true;
     }
 
@@ -227,12 +228,12 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
         var cmd = ((VulkanExecutionContext)ctx).CommandBuffer;
         unsafe
         {
-            var layout  = GetPipelineLayout();
-            const VkShaderStageFlags flags = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT | VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS;
+            var layout = GetPipelineLayout();
+            const VkShaderStageFlags flags = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT |
+                                             VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS;
             fixed (T* pData = &data)
             {
-                
-                vkCmdPushConstants(cmd,layout, flags, offset,
+                vkCmdPushConstants(cmd, layout, flags, offset,
                     (uint)Utils.ByteSizeOf<T>(), pData);
                 // var size = (uint)Utils.ByteSizeOf<T>();
                 // if (size < 256)
@@ -244,6 +245,11 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
             }
         }
     }
+
+    public ImageFormat[] AttachmentFormats { get; set; } = [];
+    public BlendMode BlendMode { get; set; } = BlendMode.None;
+    public bool UsesStencil { get; set; }
+    public bool UsesDepth { get; set; }
 
     public Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts()
     {
@@ -264,9 +270,4 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
     {
         return _shaderStageFlags;
     }
-
-    public ImageFormat[] AttachmentFormats { get; set; } = [];
-    public BlendMode BlendMode { get; set; } = BlendMode.None;
-    public bool UsesStencil { get; set; }
-    public bool UsesDepth { get; set; }
 }

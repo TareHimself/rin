@@ -4,8 +4,8 @@ namespace Rin.Engine;
 
 public record struct Bounds1D : IAdditionOperators<Bounds1D, Bounds1D, Bounds1D>
 {
-    public float Min;
     public float Max;
+    public float Min;
 
     /// <summary>
     ///     Combines two bounds together

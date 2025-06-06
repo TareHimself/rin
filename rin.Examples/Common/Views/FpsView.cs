@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Engine;
+using Rin.Engine.Graphics;
 using Rin.Engine.Math;
 using Rin.Engine.Views.Content;
 using Rin.Engine.Views.Graphics;
@@ -39,7 +40,7 @@ public class FpsView : TextBox
         _graphExecuteTime.Update();
         Content = $"""
                    STATS
-                   {new Vector2<int>((int)position.X, (int)position.Y)} Cursor Position
+                   {new Point2D((int)position.X, (int)position.Y)} Cursor Position
                    {float.Round(1 / (float)_averageFps * 1000.0f, 2)}ms Tick Time 
                    {float.Round(1f / (_renderTime.GetMilliseconds() / 1000f))} FPS
                    {_collectTime.GetMilliseconds()}ms Collect

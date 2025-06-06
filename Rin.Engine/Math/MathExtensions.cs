@@ -42,27 +42,7 @@ public static class MathExtensions
     {
         return System.Math.Sqrt(System.Math.Pow(b.X - a.X, 2) + System.Math.Pow(b.Y - a.Y, 2));
     }
-
-    public static Vector4 ToNumericsVector(this in Vector4<float> self)
-    {
-        return new Vector4(self.X, self.Y, self.Z, self.W);
-    }
-
-    public static Vector2 ToNumericsVector(this in Vector2<float> self)
-    {
-        return new Vector2(self.X, self.Y);
-    }
-
-    public static Vector2 ToNumericsVector(this in Vector2<double> self)
-    {
-        return new Vector2((float)self.X, (float)self.Y);
-    }
-
-    public static Vector2 ToNumericsVector(this in Vector2<int> self)
-    {
-        return new Vector2(self.X, self.Y);
-    }
-
+    
     public static bool Within(this in Vector2 self, in Vector2 p1, in Vector2 p2)
     {
         return p1.X <= self.X && self.X <= p2.X && p1.Y <= self.Y && self.Y <= p2.Y;

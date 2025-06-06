@@ -2,7 +2,7 @@ using JetBrains.Annotations;
 using Rin.Engine.Graphics;
 using TerraFX.Interop.Vulkan;
 
-namespace Rin.Engine.World.Graphics;
+namespace Rin.Engine.World.Graphics.Default;
 
 /// <summary>
 ///     A <see cref="IDeviceBufferView" /> for skinned vertices, <see cref="Buffer" /> and <see cref="GetView" />
@@ -22,5 +22,10 @@ public class SkinnedVertexBufferView(ulong defaultOffset, ulong defaultSize) : I
     public IDeviceBufferView GetView(ulong offset, ulong size)
     {
         return UnderlyingView?.GetView(offset, size) ?? throw new NullReferenceException();
+    }
+
+    public ulong GetElementSize<T>() where T : unmanaged
+    {
+        return Size / Utils.ByteSizeOf<T>();
     }
 }

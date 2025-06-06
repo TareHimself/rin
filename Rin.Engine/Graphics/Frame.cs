@@ -58,7 +58,7 @@ public class Frame : IDisposable
     {
         return _renderFence;
     }
-    
+
     public VkSemaphore GetSwapchainSemaphore()
     {
         return _swapchainSemaphore;

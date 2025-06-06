@@ -149,7 +149,7 @@ public static class Extensions
                             Normal = normal,
                             UV = uv
                         },
-                        BoneIndices = new Vector4<int>(jointIndices[0], jointIndices[1], jointIndices[2],
+                        BoneIndices = new Int4(jointIndices[0], jointIndices[1], jointIndices[2],
                             jointIndices[3]),
                         BoneWeights = weights
                     });

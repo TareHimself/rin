@@ -12,7 +12,6 @@
         <PackageReference Include="JetBrains.Annotations" Version="2025.1.0-eap1"/>
         <PackageReference Include="NetVips" Version="3.0.1"/>
         <PackageReference Include="NetVips.Native" Version="8.16.1"/>
-        <PackageReference Include="ppy.SDL3-CS" Version="2025.220.0"/>
         <PackageReference Include="SharpCompress" Version="0.39.0"/>
         <PackageReference Include="StbRectPackSharp" Version="1.0.4"/>
         <PackageReference Include="System.Text.Json" Version="10.0.0-preview.3.25171.5"/>

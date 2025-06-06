@@ -36,7 +36,7 @@ public class SViewsTestModule : IModule
         }
         SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
-        SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", WindowFlags.Visible  | WindowFlags.Frameless);
+        SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", WindowFlags.Visible | WindowFlags.Frameless);
 
 
         //TestText();
@@ -114,18 +114,17 @@ public class SViewsTestModule : IModule
             {
                 if (e is { State: InputState.Pressed, Key: InputKey.Equal })
                     Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
-                        .After(
-                            p =>
+                        .After(p =>
+                        {
+                            SEngine.Get().DispatchMain(() =>
                             {
-                                SEngine.Get().DispatchMain(() =>
-                                {
-                                    foreach (var path in p)
-                                        list.Add(new WrapContainer(new AsyncFileImage(path)
-                                        {
-                                            BorderRadius = new Vector4(30.0f)
-                                        }));
-                                });
+                                foreach (var path in p)
+                                    list.Add(new WrapContainer(new AsyncFileImage(path)
+                                    {
+                                        BorderRadius = new Vector4(30.0f)
+                                    }));
                             });
+                        });
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Minus })
                     list.Add(new WrapContainer(new PrettyView
@@ -212,21 +211,20 @@ public class SViewsTestModule : IModule
             {
                 if (e is { State: InputState.Pressed, Key: InputKey.Equal })
                     Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
-                        .After(
-                            p =>
-                            {
-                                foreach (var path in p)
-                                    list.Add(new TestAnimationSizer
+                        .After(p =>
+                        {
+                            foreach (var path in p)
+                                list.Add(new TestAnimationSizer
+                                {
+                                    WidthOverride = 200,
+                                    HeightOverride = 800,
+                                    Child = new AsyncFileImage(path)
                                     {
-                                        WidthOverride = 200,
-                                        HeightOverride = 800,
-                                        Child = new AsyncFileImage(path)
-                                        {
-                                            BorderRadius = new Vector4(30.0f)
-                                        },
-                                        Padding = 10.0f
-                                    });
-                            });
+                                        BorderRadius = new Vector4(30.0f)
+                                    },
+                                    Padding = 10.0f
+                                });
+                        });
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Minus })
                     list.Add(new TestAnimationSizer

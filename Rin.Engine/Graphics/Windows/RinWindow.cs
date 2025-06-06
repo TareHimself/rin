@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using Rin.Engine.Graphics.Windows.Events;
-using Rin.Engine.Math;
 
 namespace Rin.Engine.Graphics.Windows;
 
@@ -10,106 +9,18 @@ public class RinWindow(in IntPtr handle, IWindow? parent) : IWindow
     private IntPtr _handle = handle;
     public IWindow? Parent { get; } = parent;
 
-    internal void ProcessEvent(in Native.Platform.Window.WindowEvent e)
-    {
-        switch (e.info.type)
-        {
-            case Native.Platform.Window.EventType.Key:
-                OnKey?.Invoke(new KeyEvent
-                {
-                    Key = e.key.key,
-                    Modifiers = e.key.modifier,
-                    State = e.key.state,
-                    Window = this,
-                });
-                break;
-            case Native.Platform.Window.EventType.Resize:
-                OnResize?.Invoke(new ResizeEvent
-                {
-                    Window = this,
-                    Size = e.resize.size
-                });
-                break;
-            case Native.Platform.Window.EventType.Minimize:
-                OnMinimize?.Invoke(new MinimizeEvent
-                {
-                    Window = this,
-                });
-                break;
-            case Native.Platform.Window.EventType.Maximize:
-                OnMaximize?.Invoke(new MaximizeEvent
-                {
-                    Window = this,
-                });
-                break;
-            case Native.Platform.Window.EventType.Scroll:
-                OnScroll?.Invoke(new ScrollEvent
-                {
-                    Window = this,
-                    Delta = new Vector2(e.scroll.dx,e.scroll.dy),
-                    Position = GetCursorPosition()
-                });
-                break;
-            case Native.Platform.Window.EventType.CursorMove:
-                OnCursorEnter?.Invoke(new CursorMoveEvent
-                {
-                    Window = this,
-                    Position = GetCursorPosition()
-                });
-                break;
-            case Native.Platform.Window.EventType.CursorButton:
-                break;
-            case Native.Platform.Window.EventType.CursorEnter:
-                OnCursorEnter?.Invoke(new CursorEvent
-                {
-                    Window = this,
-                    Position = GetCursorPosition()
-                });
-                break;
-            case Native.Platform.Window.EventType.CursorLeave:
-                OnCursorLeave?.Invoke(new CursorEvent
-                {
-                    Window = this,
-                    Position = GetCursorPosition()
-                });
-                break;
-            case Native.Platform.Window.EventType.Focus:
-                OnFocus?.Invoke(new FocusEvent
-                {
-                    Window = this,
-                    IsFocused = e.focus.focused == 1,
-                });
-                break;
-            case Native.Platform.Window.EventType.Close:
-                OnClose?.Invoke(new CloseEvent
-                {
-                    Window = this
-                });
-                break;
-            case Native.Platform.Window.EventType.Text:
-                OnCharacter?.Invoke(new CharacterEvent
-                {
-                    Window = this,
-                    Data = e.text.text,
-                    Modifiers = 0
-                });
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
     public void Dispose()
     {
         foreach (var window in _children) window.Dispose();
         _children.Clear();
-        
+
         OnDispose?.Invoke();
         if (_handle == IntPtr.Zero) return;
         Native.Platform.Window.Destroy(_handle);
         _handle = IntPtr.Zero;
     }
 
-    
+
     public bool Focused { get; }
     public bool IsFullscreen { get; }
     public event Action<KeyEvent>? OnKey;
@@ -126,6 +37,7 @@ public class RinWindow(in IntPtr handle, IWindow? parent) : IWindow
     public event Action<RefreshEvent>? OnRefresh;
     public event Action<MinimizeEvent>? OnMinimize;
     public event Action<DropEvent>? OnDrop;
+
     public void SetHitTestCallback(Func<WindowHitTestResult, IWindow>? callback)
     {
         throw new NotImplementedException();
@@ -151,21 +63,14 @@ public class RinWindow(in IntPtr handle, IWindow? parent) : IWindow
         throw new NotImplementedException();
     }
 
-    public void SetPosition(in Offset2D position)
-    {
-        throw new NotImplementedException();
-    }
-
     public Extent2D GetSize()
     {
         return Native.Platform.Window.GetSize(_handle);
     }
-    
-    public IntPtr GetHandle() => _handle;
 
     public IWindow CreateChild(int width, int height, string name, WindowFlags flags = WindowFlags.Visible)
     {
-        var child = SGraphicsModule.Get().CreateWindow(width, height, name, flags,this);
+        var child = SGraphicsModule.Get().CreateWindow(width, height, name, flags, this);
         _children.Add(child);
         child.OnDispose += () => _children.Remove(child);
         return child;
@@ -182,4 +87,111 @@ public class RinWindow(in IntPtr handle, IWindow? parent) : IWindow
     }
 
     public event Action? OnDispose;
+
+    internal void ProcessEvent(in Native.Platform.Window.WindowEvent e)
+    {
+        switch (e.info.type)
+        {
+            case Native.Platform.Window.EventType.Key:
+                OnKey?.Invoke(new KeyEvent
+                {
+                    Key = e.key.key,
+                    Modifiers = e.key.modifier,
+                    State = e.key.state,
+                    Window = this
+                });
+                break;
+            case Native.Platform.Window.EventType.Resize:
+                OnResize?.Invoke(new ResizeEvent
+                {
+                    Window = this,
+                    Size = e.resize.size
+                });
+                break;
+            case Native.Platform.Window.EventType.Minimize:
+                OnMinimize?.Invoke(new MinimizeEvent
+                {
+                    Window = this
+                });
+                break;
+            case Native.Platform.Window.EventType.Maximize:
+                OnMaximize?.Invoke(new MaximizeEvent
+                {
+                    Window = this
+                });
+                break;
+            case Native.Platform.Window.EventType.Scroll:
+                OnScroll?.Invoke(new ScrollEvent
+                {
+                    Window = this,
+                    Delta = e.scroll.delta,
+                    Position = GetCursorPosition()
+                });
+                break;
+            case Native.Platform.Window.EventType.CursorMove:
+                OnCursorMoved?.Invoke(new CursorMoveEvent
+                {
+                    Window = this,
+                    Position = GetCursorPosition()
+                });
+                break;
+            case Native.Platform.Window.EventType.CursorButton:
+                OnCursorButton?.Invoke(new CursorButtonEvent
+                {
+                    Window = this,
+                    Position = GetCursorPosition(),
+                    Button = e.cursorButton.button,
+                    Modifiers = e.cursorButton.modifier,
+                    State = e.cursorButton.state
+                });
+                break;
+            case Native.Platform.Window.EventType.CursorEnter:
+                OnCursorEnter?.Invoke(new CursorEvent
+                {
+                    Window = this,
+                    Position = GetCursorPosition()
+                });
+                break;
+            case Native.Platform.Window.EventType.CursorLeave:
+                OnCursorLeave?.Invoke(new CursorEvent
+                {
+                    Window = this,
+                    Position = GetCursorPosition()
+                });
+                break;
+            case Native.Platform.Window.EventType.Focus:
+                OnFocus?.Invoke(new FocusEvent
+                {
+                    Window = this,
+                    IsFocused = e.focus.focused == 1
+                });
+                break;
+            case Native.Platform.Window.EventType.Close:
+                OnClose?.Invoke(new CloseEvent
+                {
+                    Window = this
+                });
+                break;
+            case Native.Platform.Window.EventType.Text:
+                OnCharacter?.Invoke(new CharacterEvent
+                {
+                    Window = this,
+                    Data = e.text.text,
+                    Modifiers = 0
+                });
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    public void SetPosition(in Offset2D position)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IntPtr GetHandle()
+    {
+        return _handle;
+    }
 }

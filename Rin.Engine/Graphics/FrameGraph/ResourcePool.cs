@@ -218,10 +218,11 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
     private sealed class ProxiedBuffer : IDeviceBuffer
     {
         private readonly ResourceContainer<IDeviceBuffer> _container;
-        private readonly Frame _frame;
         private readonly BufferResourceDescriptor _descriptor;
+        private readonly Frame _frame;
 
-        public ProxiedBuffer(ResourceContainer<IDeviceBuffer> container, Frame frame, BufferResourceDescriptor descriptor)
+        public ProxiedBuffer(ResourceContainer<IDeviceBuffer> container, Frame frame,
+            BufferResourceDescriptor descriptor)
         {
             _container = container;
             _frame = frame;
@@ -261,7 +262,8 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         protected override ResourceContainer<IDeviceBuffer> CreateNew(BufferResourceDescriptor input, Frame frame,
             int key, ulong frameId)
         {
-            var buffer = SGraphicsModule.Get().NewBuffer(input.Size, input.Usage, false, input.Mapped,"Frame Graph Storage Buffer");
+            var buffer = SGraphicsModule.Get()
+                .NewBuffer(input.Size, input.Usage, false, input.Mapped, "Frame Graph Storage Buffer");
             return new ResourceContainer<IDeviceBuffer>(buffer);
         }
 

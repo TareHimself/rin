@@ -6,7 +6,7 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Graphics.Textures;
 using Rin.Engine.World.Graphics;
-using static TerraFX.Interop.Vulkan.Vulkan;
+using Rin.Engine.World.Graphics.Default;
 
 namespace Sponza;
 
@@ -48,9 +48,10 @@ public class SponzaMeshMaterial : IMeshMaterial
                     DataAddress = groupMaterialBuffer!.GetAddress()
                 };
 
-                Shader.Push(frame.ExecutionContext,pushData);
+                Shader.Push(frame.ExecutionContext, pushData);
                 return true;
             }
+
             return false;
         }
 
@@ -80,10 +81,10 @@ public class SponzaMeshMaterial : IMeshMaterial
             };
 
             var ctx = frame.ExecutionContext;
-            Shader.Push(ctx,pushData);
+            Shader.Push(ctx, pushData);
             ctx
                 .DrawIndexed(first.IndicesCount, (uint)meshes.Length,
-                first.IndicesStart, first.VertexStart);
+                    first.IndicesStart, first.VertexStart);
             return memoryUsed;
         }
 
@@ -147,9 +148,10 @@ public class SponzaMeshMaterial : IMeshMaterial
                     DataAddress = groupMaterialBuffer!.GetAddress()
                 };
 
-                Shader.Push(frame.ExecutionContext,pushData);
+                Shader.Push(frame.ExecutionContext, pushData);
                 return true;
             }
+
             return false;
         }
 
@@ -178,7 +180,7 @@ public class SponzaMeshMaterial : IMeshMaterial
                 DataAddress = data!.GetAddress()
             };
             var ctx = frame.ExecutionContext;
-            Shader.Push(ctx,pushData);
+            Shader.Push(ctx, pushData);
             ctx
                 .DrawIndexed(first.IndicesCount, (uint)meshes.Length,
                     first.IndicesStart, first.VertexStart);

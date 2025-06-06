@@ -337,16 +337,16 @@ internal static partial class Native
         public static partial void ContextGenerateMtsdf(IntPtr context, float angleThreshold, float pixelRange,
             [MarshalAs(UnmanagedType.FunctionPtr)] GenerateDelegate callback);
     }
-    
+
     public static partial class Platform
     {
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public unsafe delegate void NativePathDelegate(char* path);
-        
+
         [LibraryImport(DllName, EntryPoint = "platformInit")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         public static partial void Init();
-        
+
         [LibraryImport(DllName, EntryPoint = "platformShutdown")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         public static partial void Shutdown();
@@ -380,14 +380,60 @@ internal static partial class Native
                 Close,
                 Text
             }
-            
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowCreate")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial IntPtr Create([MarshalUsing(typeof(Utf8StringMarshaller))] string title, int width,
+                int height, WindowFlags flags = WindowFlags.None);
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowDestroy")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void Destroy(IntPtr handle);
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowShow")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void Show(IntPtr handle);
+
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowHide")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void Hide(IntPtr handle);
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowGetSize")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial Extent2D GetSize(IntPtr handle);
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowPump")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void PumpEvents();
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowGetEvents")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static unsafe partial int GetEvents(WindowEvent* events, int size);
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowCreateSurface")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial VkSurfaceKHR CreateSurface(VkInstance instance, IntPtr handle);
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowSetCursorPosition")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void SetCursorPosition(IntPtr handle, Vector2 position);
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowGetCursorPosition")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial Vector2 GetCursorPosition(IntPtr handle);
+
+            [LibraryImport(DllName, EntryPoint = "platformWindowSetSize")]
+            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+            public static partial void SetSize(IntPtr handle, Extent2D size);
+
             [StructLayout(LayoutKind.Sequential)]
             public struct Info
             {
                 public EventType type;
                 public IntPtr handle;
             }
-            
+
             [StructLayout(LayoutKind.Sequential)]
             public struct KeyEvent
             {
@@ -425,10 +471,8 @@ internal static partial class Native
             {
                 public EventType type;
                 public IntPtr handle;
-                public float x;
-                public float y;
-                public float dx;
-                public float dy;
+                public Vector2 position;
+                public Vector2 delta;
             }
 
             [StructLayout(LayoutKind.Sequential)]
@@ -436,8 +480,7 @@ internal static partial class Native
             {
                 public EventType type;
                 public IntPtr handle;
-                public float x;
-                public float y;
+                public Vector2 position;
             }
 
             [StructLayout(LayoutKind.Sequential)]
@@ -478,15 +521,15 @@ internal static partial class Native
                 public EventType type;
                 public IntPtr handle;
             }
-            
+
             [StructLayout(LayoutKind.Sequential)]
-            public struct TextEvent 
+            public struct TextEvent
             {
                 public EventType type;
                 public IntPtr handle;
                 public char text;
-            };
-            
+            }
+
             [StructLayout(LayoutKind.Explicit)]
             public struct WindowEvent
             {
@@ -504,52 +547,6 @@ internal static partial class Native
                 [FieldOffset(0)] public CloseEvent close;
                 [FieldOffset(0)] public TextEvent text;
             }
-
-            [LibraryImport(DllName, EntryPoint = "platformWindowCreate")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial IntPtr Create([MarshalUsing(typeof(Utf8StringMarshaller))] string title, int width,
-                int height,WindowFlags flags = WindowFlags.None);
-
-            [LibraryImport(DllName, EntryPoint = "platformWindowDestroy")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial void Destroy(IntPtr handle);
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowShow")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial void Show(IntPtr handle);
-            
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowHide")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial void Hide(IntPtr handle);
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowGetSize")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial Extent2D GetSize(IntPtr handle);
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowPump")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial void PumpEvents();
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowGetEvents")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static unsafe partial int GetEvents(WindowEvent * events,int size);
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowCreateSurface")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial VkSurfaceKHR CreateSurface(VkInstance instance,IntPtr handle);
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowSetCursorPosition")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial void SetCursorPosition(IntPtr handle,Vector2 position);
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowGetCursorPosition")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial Vector2 GetCursorPosition(IntPtr handle);
-            
-            [LibraryImport(DllName, EntryPoint = "platformWindowSetSize")]
-            [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-            public static partial void SetSize(IntPtr handle,Extent2D size);
         }
     }
 }

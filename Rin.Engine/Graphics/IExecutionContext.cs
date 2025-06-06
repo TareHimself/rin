@@ -8,52 +8,57 @@ public interface IExecutionContext
 {
     public DescriptorAllocator DescriptorAllocator { get; }
 
-    public DescriptorSet AllocateDescriptorSet(IShader shader,uint set);
-    public IExecutionContext BindDescriptorSets(IShader shader,uint offset,params DescriptorSet[] sets);
-    
+    public DescriptorSet AllocateDescriptorSet(IShader shader, uint set);
+    public IExecutionContext BindDescriptorSets(IShader shader, uint offset, params DescriptorSet[] sets);
+
     public IExecutionContext BindIndexBuffer(IDeviceBufferView buffer);
-    
+
     public IExecutionContext Draw(uint vertices, uint instances = 1, uint firstVertex = 0,
         uint firstInstance = 0);
-    
-    public IExecutionContext DrawIndexed(uint indexCount, 
-    uint instanceCount = 1, 
-    uint firstIndex = 0, 
-    uint firstVertex = 0, 
-    uint firstInstance = 0);
+
+    public IExecutionContext DrawIndexed(uint indexCount,
+        uint instanceCount = 1,
+        uint firstIndex = 0,
+        uint firstVertex = 0,
+        uint firstInstance = 0);
+
     public IExecutionContext Dispatch(uint x, uint y = 1, uint z = 1);
 
     public IExecutionContext Invoke(IComputeShader computeShader, uint x, uint y = 1, uint z = 1)
     {
-        return Dispatch((uint)float.Ceiling(x / (float)computeShader.GroupSizeX), y: (uint)float.Ceiling(y / (float)computeShader.GroupSizeY),
-            z: (uint)float.Ceiling(z / (float)computeShader.GroupSizeZ));
+        return Dispatch((uint)float.Ceiling(x / (float)computeShader.GroupSizeX),
+            (uint)float.Ceiling(y / (float)computeShader.GroupSizeY),
+            (uint)float.Ceiling(z / (float)computeShader.GroupSizeZ));
     }
 
     public IExecutionContext Barrier(IDeviceImage image, ImageLayout from, ImageLayout to);
-    
+
     public IExecutionContext Barrier(IDeviceBufferView view, BufferUsage from, BufferUsage to,
         ResourceOperation fromOperation, ResourceOperation toOperation);
 
-    public IExecutionContext CopyToImage(IDeviceImage dest,IDeviceBufferView src);
-    
+    public IExecutionContext CopyToImage(IDeviceImage dest, IDeviceBufferView src);
+
     public IExecutionContext CopyToImage(IDeviceImage dest, IDeviceImage src, ImageFilter filter = ImageFilter.Linear);
 
-    public IExecutionContext DrawIndexedIndirect(IDeviceBufferView commands,uint drawCount, uint stride,uint commandsOffset = 0);
-    
-    public IExecutionContext DrawIndexedIndirectCount(IDeviceBufferView commands,IDeviceBufferView drawCount,uint maxDrawCount, uint stride,uint commandsOffset = 0, uint drawCountOffset = 0);
+    public IExecutionContext DrawIndexedIndirect(IDeviceBufferView commands, uint drawCount, uint stride,
+        uint commandsOffset = 0);
+
+    public IExecutionContext DrawIndexedIndirectCount(IDeviceBufferView commands, IDeviceBufferView drawCount,
+        uint maxDrawCount, uint stride, uint commandsOffset = 0, uint drawCountOffset = 0);
 
     public IExecutionContext EnableBackFaceCulling();
     public IExecutionContext EnableFrontFaceCulling();
     public IExecutionContext DisableFaceCulling();
+
     public IExecutionContext BeginRendering(in Extent2D extent,
         IEnumerable<IDeviceImage> attachments, IDeviceImage? depthAttachment = null,
         IDeviceImage? stencilAttachment = null);
 
     public IExecutionContext EndRendering();
-    
+
     public IExecutionContext EnableDepthTest();
     public IExecutionContext DisableDepthTest();
-    
+
     public IExecutionContext EnableDepthWrite();
     public IExecutionContext DisableDepthWrite();
     public IExecutionContext StencilWriteOnly();
@@ -61,7 +66,7 @@ public interface IExecutionContext
     public IExecutionContext SetStencilWriteMask(uint mask);
     public IExecutionContext SetStencilWriteValue(uint value);
     public IExecutionContext SetStencilCompareMask(uint mask);
-    
+
     //public IExecutionContext
 
     public IExecutionContext ClearColorImages(in Vector4 clearColor, ImageLayout layout,

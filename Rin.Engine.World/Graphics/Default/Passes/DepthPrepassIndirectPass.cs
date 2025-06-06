@@ -1,25 +1,22 @@
-﻿using System.Collections.Frozen;
-using System.Numerics;
-using JetBrains.Annotations;
-using Rin.Engine.Extensions;
+﻿using JetBrains.Annotations;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Graphics.Meshes;
-using Rin.Engine.Graphics.Shaders;
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
-namespace Rin.Engine.World.Graphics;
+
+namespace Rin.Engine.World.Graphics.Default.Passes;
 
 /// <summary>
 ///     Collects the <see cref="Rin.Engine.World.World" />, performs skinning and does a depth pre-pass
 /// </summary>
 public class DepthPrepassIndirectPass : IPass
 {
-    private readonly WorldContext _worldContext;
-    
-    public DepthPrepassIndirectPass(WorldContext worldContext)
+    private readonly DefaultWorldRenderContext _renderContext;
+
+
+    private uint[] _materialBufferIds = [];
+
+    public DepthPrepassIndirectPass(DefaultWorldRenderContext renderContext)
     {
-        _worldContext = worldContext;
+        _renderContext = renderContext;
     }
 
     [PublicAPI] public uint DepthImageId { get; private set; }
@@ -27,44 +24,27 @@ public class DepthPrepassIndirectPass : IPass
     [PublicAPI] public IGraphImage? DepthImage { get; set; }
     private uint DepthSceneBufferId { get; set; }
 
-    public void PreAdd(IGraphBuilder builder)
-    {
-        
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-    }
-    
-    private uint[] _materialBufferIds = [];
     public void Configure(IGraphConfig config)
     {
-        DepthImageId = config.WriteImage(_worldContext.DepthImageId, ImageLayout.DepthAttachment);
+        DepthImageId = config.WriteImage(_renderContext.DepthImageId, ImageLayout.DepthAttachment);
         DepthSceneBufferId = config.CreateBuffer<DepthSceneInfo>(GraphBufferUsage.HostThenGraphics);
-        
-        var indirectGroups = _worldContext.DepthIndirectGroups;
-        
+
+        var indirectGroups = _renderContext.DepthIndirectGroups;
+
         _materialBufferIds = new uint[indirectGroups.Length];
-        
+
         for (var i = 0; i < _materialBufferIds.Length; i++)
         {
             var group = indirectGroups[i];
             var size = group.First().Material.DepthPass.GetRequiredMemory() * (ulong)group.Length;
             if (size > 0)
-            {
                 _materialBufferIds[i] = config.CreateBuffer(size,
                     GraphBufferUsage.HostThenGraphics);
-            }
         }
-        
-        foreach (var id in _worldContext.DepthIndirectCommandBuffers)
-        {
+
+        foreach (var id in _renderContext.DepthIndirectCommandBuffers) config.ReadBuffer(id, GraphBufferUsage.Indirect);
+        foreach (var id in _renderContext.DepthIndirectCommandCountBuffers)
             config.ReadBuffer(id, GraphBufferUsage.Indirect);
-        }
-        foreach (var id in _worldContext.DepthIndirectCommandCountBuffers)
-        {
-            config.ReadBuffer(id, GraphBufferUsage.Indirect);
-        }
     }
 
 
@@ -73,15 +53,17 @@ public class DepthPrepassIndirectPass : IPass
         //var cmd = ctx.GetCommandBuffer();
         var worldDataBuffer = graph.GetBufferOrException(DepthSceneBufferId);
         var materialDataBuffers = _materialBufferIds.Select(graph.GetBufferOrNull).ToArray();
-        var indirectCommandBuffers = _worldContext.DepthIndirectCommandBuffers.Select(graph.GetBufferOrException).ToArray();
-        var indirectCommandCountBuffers = _worldContext.DepthIndirectCommandCountBuffers.Select(graph.GetBufferOrException).ToArray();
+        var indirectCommandBuffers =
+            _renderContext.DepthIndirectCommandBuffers.Select(graph.GetBufferOrException).ToArray();
+        var indirectCommandCountBuffers = _renderContext.DepthIndirectCommandCountBuffers
+            .Select(graph.GetBufferOrException).ToArray();
         DepthImage = graph.GetImage(DepthImageId);
-        var extent = _worldContext.Extent;
+        var extent = _renderContext.Extent;
         ctx
-            .BeginRendering(extent, [], depthAttachment: DepthImage)
+            .BeginRendering(extent, [], DepthImage)
             .EnableBackFaceCulling();
 
-        var worldFrame = new WorldFrame(_worldContext.View, _worldContext.Projection, worldDataBuffer,ctx);
+        var worldFrame = new WorldFrame(_renderContext.View, _renderContext.Projection, worldDataBuffer, ctx);
 
         worldDataBuffer.Write(new DepthSceneInfo
         {
@@ -90,7 +72,7 @@ public class DepthPrepassIndirectPass : IPass
             ViewProjection = worldFrame.ViewProjection
         });
 
-        var indirectGroups = _worldContext.DepthIndirectGroups;
+        var indirectGroups = _renderContext.DepthIndirectGroups;
         for (var i = 0; i < indirectGroups.Length; i++)
         {
             var group = indirectGroups[i];
@@ -105,25 +87,21 @@ public class DepthPrepassIndirectPass : IPass
                 ulong offset = 0;
                 foreach (var mesh in group)
                 {
-                    mesh.Material.DepthPass.Write(materialDataBuffer.GetView(offset,dataSize),mesh);
+                    mesh.Material.DepthPass.Write(materialDataBuffer.GetView(offset, dataSize), mesh);
                     offset += dataSize;
                 }
             }
+
             ctx.BindIndexBuffer(first.IndexBuffer);
-            firstPass.BindAndPush(worldFrame,materialDataBuffer);
+            firstPass.BindAndPush(worldFrame, materialDataBuffer);
             ctx.DrawIndexedIndirectCount(commandBuffer, countBuffer, (uint)group.Length, 0);
         }
+
         ctx.EndRendering();
     }
 
     public uint Id { get; set; }
     public bool IsTerminal { get; set; } = true;
-    public bool HandlesPreAdd => false;
-    public bool HandlesPostAdd => false;
-    
-    public void Dispose()
-    {
-    }
 
     private struct SkinningExecutionInfo
     {

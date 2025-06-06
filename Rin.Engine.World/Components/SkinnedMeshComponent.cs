@@ -2,6 +2,7 @@
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.World.Graphics;
+using Rin.Engine.World.Graphics.Default;
 using Rin.Engine.World.Mesh.Skinning;
 
 namespace Rin.Engine.World.Components;

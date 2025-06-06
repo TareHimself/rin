@@ -43,12 +43,7 @@ public class Image : ContentView
 
         return new Vector2();
     }
-
-    protected override void OnRemovedFromSurface(Surface surface)
-    {
-        base.OnRemovedFromSurface(surface);
-    }
-
+    
     // public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
     // {
     //     //throw new NotImplementedException();

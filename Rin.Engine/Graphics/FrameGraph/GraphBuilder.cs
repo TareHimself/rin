@@ -13,15 +13,17 @@ public class GraphBuilder : IGraphBuilder
 
     public uint AddPass(IPass pass)
     {
-        if (pass.HandlesPreAdd)
-            pass.PreAdd(this);
+        {
+            if (pass is IWithPreAdd p) p.PreAdd(this);
+        }
 
         var passId = MakeId();
         pass.Id = passId;
         _passes.Add(passId, pass);
 
-        if (pass.HandlesPostAdd)
-            pass.PostAdd(this);
+        {
+            if (pass is IWithPostAdd p) p.PostAdd(this);
+        }
         return passId;
     }
 
@@ -47,7 +49,6 @@ public class GraphBuilder : IGraphBuilder
             HashSet<uint> dependencies = [];
             nodes[passId] = dependencies;
             if (config.PassDependencies.TryGetValue(passId, out var passDependencies))
-            {
                 foreach (var dependency in passDependencies)
                     switch (dependency.Type)
                     {
@@ -123,8 +124,6 @@ public class GraphBuilder : IGraphBuilder
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
-            }
-            
         }
 
         //var finalPassIds = nodes.Keys.ToHashSet();

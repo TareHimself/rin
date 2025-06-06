@@ -1,5 +1,4 @@
 ﻿using Rin.Engine.Graphics;
-using Rin.Engine.Math;
 using Rin.Engine.Views.Graphics;
 
 namespace Rin.Engine.Views.Events;

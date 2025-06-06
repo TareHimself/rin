@@ -12,9 +12,9 @@ public static class MathR
     public static Vector3 Up => Vector3.UnitY;
     public static Vector3 Right => Vector3.UnitX;
     public static Vector3 Forward => Vector3.UnitZ;
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 PerspectiveProjection(float fieldOfViewX,float fieldOfViewY, float near, float far)
+    public static Matrix4x4 PerspectiveProjection(float fieldOfViewX, float fieldOfViewY, float near, float far)
     {
         var y = 1 / float.Tan(float.DegreesToRadians(fieldOfViewY));
         var x = 1 / float.Tan(float.DegreesToRadians(fieldOfViewX));
@@ -68,6 +68,61 @@ public static class MathR
     public static Matrix4x4 ViewportProjection(float width, float height, float near, float far)
     {
         return OrthographicProjection(0.0f, width, 0.0f, height, near, far);
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Frustum ExtractWorldSpaceFrustum(in Matrix4x4 view, in Matrix4x4 projection,
+        in Matrix4x4 viewProjection)
+    {
+        // Step 1: Extract clip-space frustum planes from the viewProjection matrix
+        var m = viewProjection;
+
+        Vector4 left = new(m.M14 + m.M11, m.M24 + m.M21, m.M34 + m.M31, m.M44 + m.M41);
+        Vector4 right = new(m.M14 - m.M11, m.M24 - m.M21, m.M34 - m.M31, m.M44 - m.M41);
+        Vector4 bottom = new(m.M14 + m.M12, m.M24 + m.M22, m.M34 + m.M32, m.M44 + m.M42);
+        Vector4 top = new(m.M14 - m.M12, m.M24 - m.M22, m.M34 - m.M32, m.M44 - m.M42);
+        Vector4 near = new(m.M14 + m.M13, m.M24 + m.M23, m.M34 + m.M33, m.M44 + m.M43);
+        Vector4 far = new(m.M14 - m.M13, m.M24 - m.M23, m.M34 - m.M33, m.M44 - m.M43);
+
+        // Step 2: Normalize the planes
+        static Vector4 Normalize(Vector4 p)
+        {
+            var normal = new Vector3(p.X, p.Y, p.Z);
+            var length = normal.Length();
+            return p / length;
+        }
+
+        left = Normalize(left);
+        right = Normalize(right);
+        bottom = Normalize(bottom);
+        top = Normalize(top);
+        near = Normalize(near);
+        far = Normalize(far);
+
+        // Step 3: Transform to world space using inverse-transpose of the view matrix
+        if (!Matrix4x4.Invert(viewProjection, out var invView))
+            throw new InvalidOperationException("View matrix is not invertible");
+
+        var invViewT = Matrix4x4.Transpose(invView);
+
+        left = Vector4.Transform(left, invViewT);
+        right = Vector4.Transform(right, invViewT);
+        bottom = Vector4.Transform(bottom, invViewT);
+        top = Vector4.Transform(top, invViewT);
+        near = Vector4.Transform(near, invViewT);
+        far = Vector4.Transform(far, invViewT);
+
+        // Step 4: Assign to Frustum struct
+        return new Frustum
+        {
+            Left = left,
+            Right = right,
+            Bottom = bottom,
+            Top = top,
+            Near = near,
+            Far = far
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

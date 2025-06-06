@@ -2,7 +2,6 @@ namespace Rin.Engine.Graphics.FrameGraph;
 
 public interface IGraphBuilder
 {
-
     public uint AddPass(IPass pass);
 
     public ICompiledGraph? Compile(IResourcePool resourcePool, Frame frame);

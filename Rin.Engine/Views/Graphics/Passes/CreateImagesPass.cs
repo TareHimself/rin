@@ -1,8 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Engine.Views.Graphics.Passes;
 
@@ -17,17 +15,6 @@ public class CreateImagesPass : IPass
 
     public uint Id { get; set; }
     public bool IsTerminal => false;
-    public bool HandlesPreAdd => false;
-    public bool HandlesPostAdd => false;
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-    }
 
     public void Configure(IGraphConfig config)
     {

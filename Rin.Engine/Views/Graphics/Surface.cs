@@ -8,8 +8,6 @@ using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics.Commands;
 using Rin.Engine.Views.Graphics.Passes;
-using TerraFX.Interop.Vulkan;
-using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Engine.Views.Graphics;
 
@@ -177,8 +175,9 @@ public abstract class Surface : IDisposable, IUpdatable
                 else
                 {
                     currentMask <<= 1;
-                    passes.Add(new StencilWritePass(context, currentMask, uniqueClipStacks[rawCommand.ClipId].Select(
-                        c => new StencilClip(clips[(int)c].Transform, clips[(int)c].Size)).ToArray()));
+                    passes.Add(new StencilWritePass(context, currentMask,
+                        uniqueClipStacks[rawCommand.ClipId]
+                            .Select(c => new StencilClip(clips[(int)c].Transform, clips[(int)c].Size)).ToArray()));
                     Stats.StencilWriteCount++;
                     //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
                     computedClipStacks.Add(rawCommand.ClipId, currentMask);
@@ -219,7 +218,6 @@ public abstract class Surface : IDisposable, IUpdatable
 
     protected virtual void ReceiveCursorDown(CursorDownSurfaceEvent e)
     {
-        var point = e.Position;
         _rootView.HandleEvent(e, Matrix4x4.Identity);
         if (e.Target is not null)
         {
