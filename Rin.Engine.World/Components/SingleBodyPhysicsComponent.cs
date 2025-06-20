@@ -6,7 +6,7 @@ using Rin.Engine.World.Physics;
 
 namespace Rin.Engine.World.Components;
 
-public abstract class SingleBodyPhysicsComponent : SceneComponent, IPhysicsComponent
+public abstract class SingleBodyPhysicsComponent : WorldComponent, IPhysicsComponent
 {
     private Vector3 _angularVelocity;
     private Vector3 _linearVelocity;

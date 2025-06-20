@@ -3,7 +3,7 @@ using Rin.Engine.Graphics.FrameGraph;
 
 namespace Rin.Engine.Views.Graphics;
 
-public class CopySurfaceToSwapchain(SharedPassContext passContext) : IPass
+public class CopySurfaceToSwapchain(SurfacePassContext passContext) : IPass
 {
     private uint _swapchainImageId;
 

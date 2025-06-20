@@ -213,7 +213,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     ///     Computes the relative/local transformation matrix for this view
     /// </summary>
     /// <returns></returns>
-    public Matrix4x4 ComputeLocalTransform()
+    public Matrix4x4 GetLocalTransform()
     {
         if (_cachedRelativeTransform is { } cached) return cached;
 
@@ -227,7 +227,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     public Matrix4x4 ComputeAbsoluteTransform()
     {
         var parentTransform = Parent?.ComputeAbsoluteTransform() ?? Matrix4x4.Identity;
-        return ComputeLocalTransform() * parentTransform;
+        return GetLocalTransform() * parentTransform;
     }
 
     public void SetParent(CompositeView? view)

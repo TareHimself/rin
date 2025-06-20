@@ -22,4 +22,6 @@ public interface IChannel : IDisposable
     /// <param name="position">The new position</param>
     /// <returns></returns>
     public bool SetPosition(double position);
+
+    //public event Action? OnStart;
 }

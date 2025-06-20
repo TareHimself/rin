@@ -78,7 +78,7 @@ public abstract class Surface : IDisposable, IUpdatable
     }
 
     private void ProcessPendingCommands(IEnumerable<ICommand> drawCommands,
-        SharedPassContext context, List<IPass> passes)
+        SurfacePassContext context, List<IPass> passes)
     {
         List<ICommand> currentCommands = [];
         Type? currentPassType = null;
@@ -117,9 +117,9 @@ public abstract class Surface : IDisposable, IUpdatable
             passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context, currentCommands.ToArray())));
         Stats.BatchedDrawCommandCount++;
     }
-
+    
     [PublicAPI]
-    protected SharedPassContext? BuildPasses(IGraphBuilder builder)
+    protected SurfacePassContext? BuildPasses(IGraphBuilder builder)
     {
         var rawDrawCommands = new CommandList();
         _rootView.Collect(Matrix4x4.Identity, new Rect
@@ -138,7 +138,7 @@ public abstract class Surface : IDisposable, IUpdatable
         // var result = new PassInfo();
 
         var size = GetSize();
-        var context = new SharedPassContext(new Extent2D
+        var context = new SurfacePassContext(new Extent2D
         {
             Width = (uint)float.Ceiling(size.X),
             Height = (uint)float.Ceiling(size.Y)

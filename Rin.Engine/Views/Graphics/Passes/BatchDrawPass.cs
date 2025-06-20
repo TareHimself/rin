@@ -7,7 +7,8 @@ namespace Rin.Engine.Views.Graphics.Passes;
 
 public sealed class BatchDrawPass : IViewsPass
 {
-    private readonly List<Pair<IBatch, uint>> _batches;
+    private readonly List<IBatch> _batches = [];
+    private readonly List<uint> _masks = [];
     private readonly ulong[] _batchSizes;
     private readonly Extent2D _extent;
 
@@ -22,25 +23,24 @@ public sealed class BatchDrawPass : IViewsPass
         Context = createInfo.Context;
         var commands = createInfo.Commands.Cast<IBatchedCommand>();
         _extent = Context.Extent;
-
-        _batches = commands.Aggregate(new List<Pair<IBatch, uint>>(), (batches, cmd) =>
+        
+        foreach (var cmd in commands)
         {
-            var isSameBatcher = batches.LastOrDefault() is { } batch && batch.First.GetBatcher() == cmd.GetBatcher() &&
-                                batch.Second == cmd.StencilMask;
-            if (isSameBatcher)
+            var canBeBatchedWithPrevious = _batches.LastOrDefault() is { } batch && batch.GetBatcher() == cmd.GetBatcher() &&
+                                           _masks.Last() == cmd.StencilMask;
+            if (canBeBatchedWithPrevious)
             {
-                batches.Last().First.AddFromCommand(cmd);
+                _batches.Last().AddFromCommand(cmd);
             }
             else
             {
                 var newBatch = cmd.GetBatcher().NewBatch();
                 newBatch.AddFromCommand(cmd);
-                batches.Add(new Pair<IBatch, uint>(newBatch, cmd.StencilMask));
+                _batches.Add(newBatch);
+                _masks.Add(cmd.StencilMask);
             }
-
-            return batches;
-        });
-        _batchSizes = _batches.Select(c => c.First.GetMemoryNeeded().Aggregate((a, b) => a + b)).ToArray();
+        }
+        _batchSizes = _batches.Select(c => c.GetMemoryNeeded().Aggregate((a, b) => a + b)).ToArray();
     }
 
     [PublicAPI] public uint MainImageId { get; set; }
@@ -51,7 +51,7 @@ public sealed class BatchDrawPass : IViewsPass
 
     public string Name => "View Pass";
 
-    public SharedPassContext Context { get; set; }
+    public SurfacePassContext Context { get; set; }
 
     [PublicAPI] public bool IsTerminal { get; set; }
 
@@ -84,17 +84,17 @@ public sealed class BatchDrawPass : IViewsPass
         ulong offset = 0;
         for (var i = 0; i < _batches.Count; i++)
         {
-            var (batch, currentCompareMask) = _batches[i];
-            if (currentCompareMask != compareMask)
+            var batch = _batches[i];
+            var mask = _masks[i];
+            if (mask != compareMask)
             {
-                compareMask = currentCompareMask;
+                compareMask = mask;
                 ctx.SetStencilCompareMask(compareMask);
             }
 
             var batcher = batch.GetBatcher();
             var bufferSize = _batchSizes[i];
-            var view = bufferSize > 0 ? buffer?.GetView(offset, bufferSize) : null;
-            batcher.Draw(viewFrame, batch, view);
+            batcher.Draw(viewFrame, batch, buffer.GetView(offset, bufferSize));
             offset += bufferSize;
         }
 

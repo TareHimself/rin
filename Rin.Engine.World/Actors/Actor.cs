@@ -10,7 +10,7 @@ namespace Rin.Engine.World.Actors;
 public class Actor : IReceivesUpdate
 {
     private readonly Dictionary<Type, List<IComponent>> _components = [];
-    private SceneComponent? _root;
+    private WorldComponent? _root;
 
     public bool Active { get; private set; }
     [PublicAPI] public World? World { get; set; }
@@ -19,7 +19,7 @@ public class Actor : IReceivesUpdate
     /// <summary>
     ///     The Root of this entity, if null this entity cannot be transformed or drawn in the scene
     /// </summary>
-    public SceneComponent? RootComponent
+    public WorldComponent? RootComponent
     {
         get => _root;
         set
@@ -31,7 +31,7 @@ public class Actor : IReceivesUpdate
         }
     }
 
-    public SceneComponent[] InitialComponents
+    public WorldComponent[] InitialComponents
     {
         init
         {
@@ -58,7 +58,7 @@ public class Actor : IReceivesUpdate
         {
             Debug.Assert(World != null);
             Debug.Assert(RootComponent != null);
-            if (!ReferenceEquals(RootComponent, component) && component is ISceneComponent asSceneComponent)
+            if (!ReferenceEquals(RootComponent, component) && component is IWorldComponent asSceneComponent)
                 asSceneComponent.AttachTo(RootComponent);
             if (component is IPhysicsComponent asPhysicsComponent) World.AddPhysicsComponent(asPhysicsComponent);
             component.Start();
@@ -146,7 +146,7 @@ public class Actor : IReceivesUpdate
         var comps = GetComponents().ToArray();
         foreach (var component in comps)
         {
-            if (component != RootComponent && component is ISceneComponent asSceneComponent)
+            if (component != RootComponent && component is IWorldComponent asSceneComponent)
                 asSceneComponent.AttachTo(RootComponent);
             if (component is IPhysicsComponent asPhysicsComponent) World.AddPhysicsComponent(asPhysicsComponent);
             component.Start();
@@ -168,7 +168,7 @@ public class Actor : IReceivesUpdate
         _components.Clear();
     }
 
-    public bool AttachTo(SceneComponent target)
+    public bool AttachTo(WorldComponent target)
     {
         return _root?.AttachTo(target) ?? false;
     }

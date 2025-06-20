@@ -55,7 +55,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DefaultMaterialProperties>();
         }
 
-        public override bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer)
+        public override bool BindAndPush(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
             if (Shader.Bind(ctx))
@@ -78,7 +78,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             return mesh.Material.ColorPass;
         }
 
-        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
+        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, in DeviceBufferView data,
             ProcessedMesh[] meshes)
         {
             var ctx = frame.ExecutionContext;
@@ -91,7 +91,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             foreach (var item in meshes)
             {
                 var pass = GetPass(item);
-                var materialData = data!.GetView(memoryUsed, pass.GetRequiredMemory());
+                var materialData = data.GetView(memoryUsed, pass.GetRequiredMemory());
                 pass.Write(materialData, item);
                 memoryUsed += materialData.Size;
             }
@@ -109,7 +109,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             return memoryUsed;
         }
 
-        public override void Write(IDeviceBufferView view, ProcessedMesh mesh)
+        public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
             var data = new DefaultMaterialProperties
             {
@@ -127,7 +127,7 @@ public class DefaultMeshMaterial : IMeshMaterial
                 Emissive = meshMaterial.Emissive,
                 EmissiveTextureId = (int)meshMaterial.EmissiveImageId
             };
-            view.Write(data);
+            view.WriteStruct(data);
         }
 
         private struct DefaultMaterialProperties()
@@ -217,7 +217,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DepthMaterialData>();
         }
 
-        public override bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer)
+        public override bool BindAndPush(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
             if (Shader.Bind(ctx))
@@ -240,7 +240,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             return mesh.Material.DepthPass;
         }
 
-        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
+        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, in DeviceBufferView data,
             ProcessedMesh[] meshes)
         {
             var ctx = frame.ExecutionContext;
@@ -270,9 +270,9 @@ public class DefaultMeshMaterial : IMeshMaterial
             return memoryUsed;
         }
 
-        public override void Write(IDeviceBufferView view, ProcessedMesh mesh)
+        public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
-            view.Write(new DepthMaterialData
+            view.WriteStruct(new DepthMaterialData
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress()

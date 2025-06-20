@@ -50,18 +50,18 @@ public class BlurPass : IViewsPass
     private readonly IGraphicsShader _blurShader = SGraphicsModule.Get()
         .MakeGraphics("Engine/Shaders/Views/blur.slang");
 
-    private readonly SharedPassContext _sharedContext;
+    private readonly SurfacePassContext _surfaceContext;
     private uint _bufferId;
 
     public BlurPass(PassCreateInfo info)
     {
-        _sharedContext = info.Context;
+        _surfaceContext = info.Context;
         _blurCommands = info.Commands.Cast<BlurCommand>().ToArray();
     }
 
-    private uint MainImageId => _sharedContext.MainImageId;
-    private uint CopyImageId => _sharedContext.CopyImageId;
-    private uint StencilImageId => _sharedContext.StencilImageId;
+    private uint MainImageId => _surfaceContext.MainImageId;
+    private uint CopyImageId => _surfaceContext.CopyImageId;
+    private uint StencilImageId => _surfaceContext.StencilImageId;
     public uint Id { get; set; }
     public bool IsTerminal { get; } = false;
 
@@ -84,17 +84,17 @@ public class BlurPass : IViewsPass
 
             Debug.Assert(copyImage.BindlessHandle != ImageHandle.InvalidImage, "copyImage bindless handle is invalid");
             ctx
-                .BeginRendering(_sharedContext.Extent, [drawImage], stencilAttachment: stencilImage)
+                .BeginRendering(_surfaceContext.Extent, [drawImage], stencilAttachment: stencilImage)
                 .DisableFaceCulling()
                 .StencilCompareOnly();
 
             foreach (var blur in _blurCommands)
             {
                 ctx.SetStencilCompareMask(blur.StencilMask);
-                buffer.Write(new BlurData
+                buffer.WriteStruct(new BlurData
                 {
                     SourceT = copyImage.BindlessHandle,
-                    Projection = _sharedContext.ProjectionMatrix,
+                    Projection = _surfaceContext.ProjectionMatrix,
                     Size = blur.Size,
                     Strength = blur.Strength,
                     Radius = blur.Radius,

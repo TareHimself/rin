@@ -108,7 +108,7 @@ public class World : IReceivesUpdate
     }
 
     [PublicAPI]
-    public IEnumerable<SceneComponent> GetRoots()
+    public IEnumerable<WorldComponent> GetRoots()
     {
         foreach (var (key, value) in _actors)
             if (value.RootComponent is { } component)
@@ -116,7 +116,7 @@ public class World : IReceivesUpdate
     }
 
     [PublicAPI]
-    public IEnumerable<SceneComponent> GetPureRoots()
+    public IEnumerable<WorldComponent> GetPureRoots()
     {
         foreach (var root in GetRoots())
             if (root is { TransformParent: null } component)

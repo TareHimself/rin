@@ -1,41 +1,7 @@
 ﻿namespace Rin.Engine.Graphics.Descriptors;
 
-public readonly struct BufferWrite
+public readonly struct BufferWrite(in DeviceBufferView view, BufferType type)
 {
-    public readonly IDeviceBuffer Buffer;
-    public readonly ulong Offset;
-    public readonly ulong Size;
-    public readonly BufferType Type;
-
-
-    /// <summary>
-    ///     Construct a buffer write using a buffer
-    /// </summary>
-    /// <param name="buffer">The Buffer</param>
-    /// <param name="type">The buffer type</param>
-    /// <param name="offset">The offset of the write from the start of the buffer</param>
-    /// <param name="size">The size of the write from the offset</param>
-    public BufferWrite(IDeviceBuffer buffer, BufferType type, ulong? offset = null, ulong? size = null)
-    {
-        Buffer = buffer;
-        Type = type;
-        Offset = offset.GetValueOrDefault();
-        Size = size.GetValueOrDefault(buffer.Size);
-    }
-
-    /// <summary>
-    ///     Construct a buffer write using a view
-    /// </summary>
-    /// <param name="view">The view</param>
-    /// <param name="type">The buffer type</param>
-    /// ///
-    /// <param name="offset">The offset of the write relative to the offset of the view</param>
-    /// <param name="size">The size of the write from the offset</param>
-    public BufferWrite(IDeviceBufferView view, BufferType type, ulong? offset = null, ulong? size = null)
-    {
-        Buffer = view.Buffer;
-        Type = type;
-        Offset = view.Offset + offset.GetValueOrDefault(0);
-        Size = size.GetValueOrDefault(view.Size);
-    }
+    public readonly DeviceBufferView Buffer = view;
+    public readonly BufferType Type = type;
 }

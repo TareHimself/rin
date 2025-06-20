@@ -4,7 +4,7 @@ namespace Rin.Engine.Audio.BassAudio;
 
 public class BassChannel : IChannel
 {
-    private readonly int _handle;
+    protected readonly int _handle;
 
     private readonly Sync _onEndSync = new();
 

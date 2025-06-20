@@ -1,6 +1,5 @@
 #pragma once
-#include <cstddef>
-#include <uchar.h>
+#include <cstdint>
 struct Vector2
 {
     float x;
@@ -64,11 +63,10 @@ enum class WindowEventType : uint32_t
     Scroll,
     CursorMove,
     CursorButton,
-    CursorEnter,
-    CursorLeave,
-    Focus,
     Close,
-    Text
+    Text,
+    CursorFocus,
+    KeyboardFocus,
 };
 
 enum class InputState : uint32_t
@@ -90,6 +88,7 @@ enum class InputModifier : uint32_t
 
 enum class InputKey
 {
+    Unknown,
     A,
     B,
     C,
@@ -258,26 +257,13 @@ struct CursorButtonEvent
     InputModifier modifier;
 };
 
-struct CursorEnterEvent 
-{
-    WindowEventType type;
-    void * handle;
-    
-};
-
-struct CursorLeaveEvent 
-{
-    WindowEventType type;
-    void * handle;
-    
-};
-
-struct FocusEvent 
+struct FocusEvent
 {
     WindowEventType type;
     void * handle;
     int focused;
 };
+
 
 struct CloseEvent 
 {
@@ -305,9 +291,8 @@ struct WindowEvent
         ScrollEvent scroll;
         CursorMoveEvent cursorMove;
         CursorButtonEvent cursorButton;
-        CursorEnterEvent enter;
-        CursorLeaveEvent leave;
-        FocusEvent focus;
+        FocusEvent cursorFocus;
+        FocusEvent keyboardFocus;
         CloseEvent close;
         TextEvent text;
     };

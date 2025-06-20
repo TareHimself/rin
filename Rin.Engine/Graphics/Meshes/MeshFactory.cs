@@ -113,31 +113,14 @@ public class MeshFactory : IMeshFactory
 
             using var stagingBuffer = SGraphicsModule.Get().NewTransferBuffer(verticesByteSize + indicesByteSize);
 
-            stagingBuffer.Write(vertices);
-            stagingBuffer.Write(indices, verticesByteSize);
+            stagingBuffer.WriteBuffer(vertices);
+            stagingBuffer.WriteBuffer(indices, verticesByteSize);
 
             await SGraphicsModule.Get().TransferSubmit(cmd =>
             {
-                var vertexCopy = new VkBufferCopy
-                {
-                    size = verticesByteSize,
-                    dstOffset = 0,
-                    srcOffset = 0
-                };
-
-
-                var indicesCopy = new VkBufferCopy
-                {
-                    size = indicesByteSize,
-                    srcOffset = verticesByteSize,
-                    dstOffset = 0
-                };
-
-                unsafe
-                {
-                    vkCmdCopyBuffer(cmd, stagingBuffer.NativeBuffer, vertexBuffer.NativeBuffer, 1, &vertexCopy);
-                    vkCmdCopyBuffer(cmd, stagingBuffer.NativeBuffer, indexBuffer.NativeBuffer, 1, &indicesCopy);
-                }
+                cmd
+                    .CopyToBuffer(vertexBuffer.GetView(), stagingBuffer.GetView(0, verticesByteSize))
+                    .CopyToBuffer(indexBuffer.GetView(), stagingBuffer.GetView(verticesByteSize, indicesByteSize));
             });
 
             var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces, Utils.ByteSizeOf<TVertexFormat>());

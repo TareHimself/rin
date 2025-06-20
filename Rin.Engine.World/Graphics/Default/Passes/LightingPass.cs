@@ -37,9 +37,9 @@ public class LightingPass(DefaultWorldRenderContext context) : IPass
             var outputImage = graph.GetImageOrException(context.OutputImageId);
             var buffer = graph.GetBufferOrException(_worldBufferId);
             var lightsBuffer = graph.GetBufferOrException(_lightBufferId);
-            lightsBuffer.Write(context.Lights);
+            lightsBuffer.WriteArray(context.Lights);
 
-            buffer.Write(
+            buffer.WriteStruct(
                 new LightingInfo
                 {
                     GBuffer0 = gBuffer0.BindlessHandle,

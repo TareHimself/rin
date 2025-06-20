@@ -39,14 +39,14 @@ public class FpsView : TextBox
         _graphCompileTime.Update();
         _graphExecuteTime.Update();
         Content = $"""
-                   STATS
-                   {new Point2D((int)position.X, (int)position.Y)} Cursor Position
-                   {float.Round(1 / (float)_averageFps * 1000.0f, 2)}ms Tick Time 
-                   {float.Round(1f / (_renderTime.GetMilliseconds() / 1000f))} FPS
+                   [Main Thread]
+                   {float.Round(1 / (float)_averageFps * 1000.0f, 2)}ms Tick
                    {_collectTime.GetMilliseconds()}ms Collect
-                   {_renderTime.GetMilliseconds()}ms Render
+                   
+                   [Render Thread]
                    {_graphCompileTime.GetMilliseconds()}ms Graph Compile
                    {_graphExecuteTime.GetMilliseconds()}ms Graph Execute
+                   {_renderTime.GetMilliseconds()}ms Total
                    """;
     }
 

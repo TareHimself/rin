@@ -12,6 +12,7 @@ public class DefaultWorldRenderer : IWorldRenderer
         var context = new DefaultWorldRenderContext(view, extent);
 
         builder.AddPass(new InitWorldPass(context));
+        
         if (context.HasSkinnedMeshes)
         {
             builder.AddPass(new SkinningPass(context));

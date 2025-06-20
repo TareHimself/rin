@@ -147,7 +147,7 @@ public class DefaultWorldRenderContext : IWorldRenderContext
                 Id = TotalMeshCount++,
                 Transform = mesh.Transform,
                 IndexBuffer = mesh.Mesh.GetIndices(),
-                VertexBuffer = new SkinnedVertexBufferView(offset, size),
+                VertexBuffer = new DeviceBufferView(null,offset, size),
                 Material = mesh.Materials[surfaceIndex],
                 IndicesCount = surface.IndicesCount,
                 IndicesStart = surface.IndicesStart,

@@ -33,7 +33,7 @@ public class BoundsUpdatePass(DefaultWorldRenderContext renderContext) : IComput
     {
         var boundsBuffer = graph.GetBufferOrException(renderContext.BoundsBufferId);
         var skinnedMeshBuffer = graph.GetBufferOrException(SkinnedMeshBufferId);
-        skinnedMeshBuffer.Write(renderContext.ProcessedSkinnedMeshes.Select(c => new SkinnedMesh
+        skinnedMeshBuffer.WriteArray(renderContext.ProcessedSkinnedMeshes.Select(c => new SkinnedMesh
         {
             MeshId = c.Id,
             VertexBuffer = c.VertexBuffer.GetAddress(),

@@ -1,4 +1,5 @@
 ﻿using ManagedBass;
+using Rin.Engine.Audio.BassAudio;
 
 namespace Rin.Engine.Audio;
 
@@ -29,4 +30,11 @@ public class SAudioModule : IModule
     {
         return SEngine.Get().GetModule<SAudioModule>();
     }
+
+    public IPushStream CreateAudioStream(int frequency,int channels)
+    {
+        var bassStream = Bass.CreateStream(frequency, channels,BassFlags.Float, StreamProcedureType.Push);
+        return new BassPushStream(bassStream);
+    }
+    
 }

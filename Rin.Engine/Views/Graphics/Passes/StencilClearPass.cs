@@ -5,14 +5,14 @@ namespace Rin.Engine.Views.Graphics.Passes;
 
 public class StencilClearPass : IPass
 {
-    private readonly SharedPassContext _sharedContext;
+    private readonly SurfacePassContext _surfaceContext;
 
-    public StencilClearPass(SharedPassContext sharedContext)
+    public StencilClearPass(SurfacePassContext surfaceContext)
     {
-        _sharedContext = sharedContext;
+        _surfaceContext = surfaceContext;
     }
 
-    private uint StencilImageId => _sharedContext.StencilImageId;
+    private uint StencilImageId => _surfaceContext.StencilImageId;
     public uint Id { get; set; }
     public bool IsTerminal => false;
 

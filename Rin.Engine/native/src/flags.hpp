@@ -47,6 +47,20 @@
             _value &= ~static_cast<ContainedType>(value);
             return *this;
         }
+
+        Flags& operator|=(const T& value) {
+            _value |= static_cast<ContainedType>(value);
+            return *this;
+        }
+
+        Flags& operator&=(const T& value) {
+            _value &= static_cast<ContainedType>(value);
+            return *this;
+        }
+
+        bool operator&(const T& value) {
+            return this->Has(value);
+        }
     };
 
     // template <typename T, std::enable_if_t<std::is_enum_v<T> && std::is_arithmetic_v<std::underlying_type_t<T>>>* = nullptr>

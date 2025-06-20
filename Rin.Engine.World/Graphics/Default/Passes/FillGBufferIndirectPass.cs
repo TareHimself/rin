@@ -66,7 +66,7 @@ public class FillGBufferIndirectPass : IPass
 
         var worldFrame = new WorldFrame(_renderContext.View, _renderContext.Projection, worldBuffer, ctx);
 
-        worldBuffer.Write(new WorldInfo
+        worldBuffer.WriteStruct(new WorldInfo
         {
             View = worldFrame.View,
             Projection = worldFrame.Projection,
@@ -83,7 +83,7 @@ public class FillGBufferIndirectPass : IPass
             var countBuffer = indirectCommandCountBuffers[i];
             var first = group.First();
             var firstPass = first.Material.ColorPass;
-            if (materialDataBuffer != null)
+            if (materialDataBuffer.IsValid)
             {
                 var dataSize = firstPass.GetRequiredMemory();
                 ulong offset = 0;

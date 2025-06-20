@@ -5,12 +5,12 @@ using Rin.Engine.World.Math;
 
 namespace Rin.Engine.World.Components;
 
-public interface ISceneComponent : IComponent
+public interface IWorldComponent : IComponent
 {
-    public ISceneComponent? TransformParent { get; }
-    public bool TryHandleDetachment(ISceneComponent target);
-    public bool TryHandleAttachment(ISceneComponent target);
-    public bool AttachTo(ISceneComponent component);
+    public IWorldComponent? TransformParent { get; }
+    public bool TryHandleDetachment(IWorldComponent target);
+    public bool TryHandleAttachment(IWorldComponent target);
+    public bool AttachTo(IWorldComponent component);
     public bool Detach();
     public void SetLocation(in Vector3 location, Space space = Space.Local);
     public void Translate(in Vector3 translation, Space space = Space.Local);

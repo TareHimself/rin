@@ -12,12 +12,12 @@ public static class CompiledGraphExtensions
         return imageId <= 0 ? throw new NullReferenceException() : graph.GetImage(imageId);
     }
 
-    public static IDeviceBufferView? GetBufferOrNull(this ICompiledGraph graph, uint bufferId)
+    public static DeviceBufferView GetBufferOrNull(this ICompiledGraph graph, uint bufferId)
     {
-        return bufferId <= 0 ? null : graph.GetBuffer(bufferId);
+        return bufferId <= 0 ? new DeviceBufferView() : graph.GetBuffer(bufferId);
     }
 
-    public static IDeviceBufferView GetBufferOrException(this ICompiledGraph graph, uint bufferId)
+    public static DeviceBufferView GetBufferOrException(this ICompiledGraph graph, uint bufferId)
     {
         return bufferId <= 0 ? throw new NullReferenceException() : graph.GetBuffer(bufferId);
     }

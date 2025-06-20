@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.Commands;
 
 namespace Rin.Engine.Views.Composite;
 
@@ -77,6 +78,8 @@ public class BackgroundBlur : SingleSlotCompositeView
     {
         if (IsVisible && Strength > 0.0f && Radius > 0.0f)
         {
+            commands.Add(new ReadBackCommand());
+            commands.Add(new BlurCommand(transform,GetContentSize(),Strength,Radius,Tint));
             // commandList.Add(new ReadBack());
             // commandList.Add(new BlurCommand(transform, Size, Strength, Radius, Tint));
         }

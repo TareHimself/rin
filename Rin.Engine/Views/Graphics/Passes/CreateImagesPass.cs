@@ -6,12 +6,12 @@ namespace Rin.Engine.Views.Graphics.Passes;
 
 public class CreateImagesPass : IPass
 {
-    public CreateImagesPass(SharedPassContext context)
+    public CreateImagesPass(SurfacePassContext context)
     {
         Context = context;
     }
 
-    public SharedPassContext Context { get; set; }
+    public SurfacePassContext Context { get; set; }
 
     public uint Id { get; set; }
     public bool IsTerminal => false;

@@ -30,7 +30,7 @@ public class HostImage : IHostImage
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string? debugName = null)
     {
         return SGraphicsModule.Get().GetImageFactory()
-            .CreateTexture(ToBuffer(), new Extent3D(Extent), Format, mips, ImageUsage.None, debugName);
+            .CreateTexture(ToBuffer(), new Extent3D(Extent), Format.ToDeviceFormat(), mips, ImageUsage.None, debugName);
     }
 
     public Extent2D Extent => new()
@@ -41,7 +41,7 @@ public class HostImage : IHostImage
 
     public uint Channels => (uint)_image.Bands;
 
-    public ImageFormat Format
+    public HostImageFormat Format
     {
         get
         {
@@ -49,23 +49,23 @@ public class HostImage : IHostImage
             {
                 1 => _image.Format switch
                 {
-                    Enums.BandFormat.Uchar or Enums.BandFormat.Char => ImageFormat.R8,
-                    Enums.BandFormat.Ushort or Enums.BandFormat.Short => ImageFormat.R16,
-                    Enums.BandFormat.Uint or Enums.BandFormat.Int or Enums.BandFormat.Float => ImageFormat.R32,
+                    Enums.BandFormat.Uchar or Enums.BandFormat.Char => HostImageFormat.R8,
+                    Enums.BandFormat.Ushort or Enums.BandFormat.Short => HostImageFormat.R16,
+                    Enums.BandFormat.Uint or Enums.BandFormat.Int or Enums.BandFormat.Float => HostImageFormat.R32,
                     _ => throw new ArgumentOutOfRangeException()
                 },
                 2 => _image.Format switch
                 {
-                    Enums.BandFormat.Uchar or Enums.BandFormat.Char => ImageFormat.RG8,
-                    Enums.BandFormat.Ushort or Enums.BandFormat.Short => ImageFormat.RG16,
-                    Enums.BandFormat.Uint or Enums.BandFormat.Int or Enums.BandFormat.Float => ImageFormat.RG32,
+                    Enums.BandFormat.Uchar or Enums.BandFormat.Char => HostImageFormat.RG8,
+                    Enums.BandFormat.Ushort or Enums.BandFormat.Short => HostImageFormat.RG16,
+                    Enums.BandFormat.Uint or Enums.BandFormat.Int or Enums.BandFormat.Float => HostImageFormat.RG32,
                     _ => throw new ArgumentOutOfRangeException()
                 },
                 4 => _image.Format switch
                 {
-                    Enums.BandFormat.Uchar or Enums.BandFormat.Char => ImageFormat.RGBA8,
-                    Enums.BandFormat.Ushort or Enums.BandFormat.Short => ImageFormat.RGBA16,
-                    Enums.BandFormat.Uint or Enums.BandFormat.Int or Enums.BandFormat.Float => ImageFormat.RGBA32,
+                    Enums.BandFormat.Uchar or Enums.BandFormat.Char => HostImageFormat.RGBA8,
+                    Enums.BandFormat.Ushort or Enums.BandFormat.Short => HostImageFormat.RGBA16,
+                    Enums.BandFormat.Uint or Enums.BandFormat.Int or Enums.BandFormat.Float => HostImageFormat.RGBA32,
                     _ => throw new ArgumentOutOfRangeException()
                 },
                 _ => throw new ArgumentOutOfRangeException()
@@ -78,12 +78,12 @@ public class HostImage : IHostImage
         _image.PngsaveStream(output);
     }
 
-    public void Mutate(Action<IMutationContext> mutator)
+    public IHostImage Mutate(Action<IMutationContext> mutator)
     {
-        _image = _image.Mutate(image => mutator(new MutationContext(image)));
+        return new HostImage(_image.Mutate(image => mutator(new MutationContext(image))));
     }
 
-    public static HostImage Create(in Extent2D extent, ImageFormat format)
+    public static IHostImage Create(in Extent2D extent, ImageFormat format)
     {
         //VipsImage.Black(width,height,).
         uint channels = 0;
@@ -147,20 +147,26 @@ public class HostImage : IHostImage
             (int)channels, bandFormat));
     }
 
-    public static HostImage Create(Stream data)
+    public static IHostImage Create(Stream data)
     {
         return new HostImage(VipsImage.NewFromStream(data));
     }
 
-    public static HostImage Create(in ReadOnlyMemory<byte> data, uint width, uint height, uint channels)
+    public static IHostImage Create(in ReadOnlyMemory<byte> data, uint width, uint height, uint channels)
     {
         return new HostImage(VipsImage.NewFromMemory(data, (int)width, (int)height, (int)channels,
             Enums.BandFormat.Char));
     }
 
-    public static HostImage Create(Buffer<byte> data, uint width, uint height, uint channels)
+    public static IHostImage Create(Buffer<byte> data, uint width, uint height, uint channels)
     {
         return new HostImage(VipsImage.NewFromMemoryCopy(data.GetPtr(), data.GetByteSize(), (int)width, (int)height,
+            (int)channels, Enums.BandFormat.Uchar));
+    }
+    
+    public static IHostImage Create(IntPtr ptr, uint width, uint height, uint channels)
+    {
+        return new HostImage(VipsImage.NewFromMemoryCopy(ptr,width * height * channels, (int)width, (int)height,
             (int)channels, Enums.BandFormat.Uchar));
     }
 

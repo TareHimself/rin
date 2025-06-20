@@ -6,12 +6,13 @@ namespace Rin.Engine.Graphics;
 
 public interface IExecutionContext
 {
+    public string Id { get; }
     public DescriptorAllocator DescriptorAllocator { get; }
 
     public DescriptorSet AllocateDescriptorSet(IShader shader, uint set);
     public IExecutionContext BindDescriptorSets(IShader shader, uint offset, params DescriptorSet[] sets);
 
-    public IExecutionContext BindIndexBuffer(IDeviceBufferView buffer);
+    public IExecutionContext BindIndexBuffer(in DeviceBufferView buffer);
 
     public IExecutionContext Draw(uint vertices, uint instances = 1, uint firstVertex = 0,
         uint firstInstance = 0);
@@ -33,17 +34,19 @@ public interface IExecutionContext
 
     public IExecutionContext Barrier(IDeviceImage image, ImageLayout from, ImageLayout to);
 
-    public IExecutionContext Barrier(IDeviceBufferView view, BufferUsage from, BufferUsage to,
+    public IExecutionContext Barrier(in DeviceBufferView view, BufferUsage from, BufferUsage to,
         ResourceOperation fromOperation, ResourceOperation toOperation);
 
-    public IExecutionContext CopyToImage(IDeviceImage dest, IDeviceBufferView src);
+    public IExecutionContext CopyToBuffer(in DeviceBufferView dest, in DeviceBufferView src);
+    
+    public IExecutionContext CopyToImage(IDeviceImage dest, in DeviceBufferView src);
 
     public IExecutionContext CopyToImage(IDeviceImage dest, IDeviceImage src, ImageFilter filter = ImageFilter.Linear);
 
-    public IExecutionContext DrawIndexedIndirect(IDeviceBufferView commands, uint drawCount, uint stride,
+    public IExecutionContext DrawIndexedIndirect(in DeviceBufferView commands, uint drawCount, uint stride,
         uint commandsOffset = 0);
 
-    public IExecutionContext DrawIndexedIndirectCount(IDeviceBufferView commands, IDeviceBufferView drawCount,
+    public IExecutionContext DrawIndexedIndirectCount(in DeviceBufferView commands, in DeviceBufferView drawCount,
         uint maxDrawCount, uint stride, uint commandsOffset = 0, uint drawCountOffset = 0);
 
     public IExecutionContext EnableBackFaceCulling();

@@ -103,7 +103,7 @@ public class ReflectionData
 
         [JsonPropertyName("threadGroupSize")] public uint[] ThreadGroupSize { get; set; } = [];
 
-        [JsonPropertyName("result")] public EntryPointResult Result { get; set; }
+        [JsonPropertyName("result")] public EntryPointResult? Result { get; set; }
 
         [JsonPropertyName("userAttribs")] public UserAttributeField[] UserAttributes { get; set; } = [];
     }

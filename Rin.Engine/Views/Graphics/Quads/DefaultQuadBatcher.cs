@@ -21,15 +21,15 @@ public class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         return new QuadBatch();
     }
 
-    protected override uint WriteBatch(ViewsFrame frame, IDeviceBufferView? view, QuadBatch batch,
+    protected override uint WriteBatch(ViewsFrame frame, in DeviceBufferView view, QuadBatch batch,
         IGraphicsShader shader)
     {
-        Debug.Assert(view is not null);
+        Debug.Assert(view.IsValid);
         var ctx = frame.ExecutionContext;
         var quads = batch.GetQuads().ToArray();
         if (quads.Length == 0) return 0;
 
-        view.Write(quads);
+        view.WriteArray(quads);
         _batchShader.Push(ctx, new Push
         {
             Projection = frame.ProjectionMatrix,

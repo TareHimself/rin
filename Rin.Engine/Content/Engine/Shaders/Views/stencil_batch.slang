@@ -27,13 +27,11 @@ float4 vertex(int instanceId: SV_InstanceID, int vertexId: SV_VertexID,out int o
 }
 
 [shader("fragment"), BlendNone,Stencil]
-float4 fragment(in int iQuadIndex: QUAD_INDEX, float2 coordinate: SV_Position)
-    : SV_Target
+void fragment(in int iQuadIndex: QUAD_INDEX, float2 coordinate: SV_Position)
 {
     StencilInfo clip = push.quads[iQuadIndex];
     float4 result = applyBorderRadius(coordinate, float4(float3(0.0), 1.0), float4(0.0), clip.size, clip.transform);
     if (result.w > 0.5) {
         discard;
     }
-    return float4(float3(1.0), 1.0);
 }

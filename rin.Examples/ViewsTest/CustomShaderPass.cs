@@ -57,7 +57,7 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
                     Time = SEngine.Get().GetTimeSeconds(),
                     Center = customShaderCommand.Hovered ? customShaderCommand.CursorPosition : screenSize / 2.0f
                 };
-                view.Write(data);
+                view.WriteStruct(data);
                 _prettyShader.Push(ctx, view.GetAddress());
                 ctx
                     .Draw(6);

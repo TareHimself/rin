@@ -66,11 +66,11 @@ public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRender
                 var commandBuffer = indirectCommandBuffers[i];
                 var meshBuffer = meshBuffers[i];
                 var countBuffer = indirectCommandCountBuffers[i];
-                countBuffer.Write<uint>(0);
+                countBuffer.WriteStruct<uint>(0);
                 var set = ctx.AllocateDescriptorSet(_shader, param.Set);
                 ctx.BindDescriptorSets(_shader, param.Set, set);
                 set.WriteBuffers(param.Binding, new BufferWrite(countBuffer, BufferType.Storage));
-                meshBuffer.Write(group.Select((m, idx) => new Mesh
+                meshBuffer.WriteArray(group.Select((m, idx) => new Mesh
                 {
                     IndicesCount = m.IndicesCount,
                     IndicesStart = m.IndicesStart,
@@ -95,11 +95,11 @@ public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRender
                 var commandBuffer = depthIndirectCommandBuffers[i];
                 var meshBuffer = depthMeshBuffers[i];
                 var countBuffer = depthIndirectCommandCountBuffers[i];
-                countBuffer.Write<uint>(0);
+                countBuffer.WriteStruct<uint>(0);
                 var set = ctx.AllocateDescriptorSet(_shader, param.Set);
                 ctx.BindDescriptorSets(_shader, param.Set, set);
                 set.WriteBuffers(param.Binding, new BufferWrite(countBuffer, BufferType.Storage));
-                meshBuffer.Write(group.Select((m, idx) => new Mesh
+                meshBuffer.WriteArray(group.Select((m, idx) => new Mesh
                 {
                     IndicesCount = m.IndicesCount,
                     IndicesStart = m.IndicesStart,

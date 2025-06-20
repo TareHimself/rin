@@ -2,8 +2,8 @@
 
 namespace Rin.Engine.Views.Graphics;
 
-public class PassCreateInfo(SharedPassContext context, ICommand[] commands)
+public class PassCreateInfo(SurfacePassContext context, ICommand[] commands)
 {
-    public SharedPassContext Context { get; } = context;
+    public SurfacePassContext Context { get; } = context;
     public ICommand[] Commands { get; } = commands;
 }

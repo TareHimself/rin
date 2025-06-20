@@ -27,14 +27,14 @@ public interface IMaterialPass
     ///     <see cref="GetRequiredMemory" /> * <see cref="meshes" />
     /// </param>
     /// <param name="meshes">The meshes to draw</param>
-    public void Execute(WorldFrame frame, IDeviceBufferView? data, ProcessedMesh[] meshes);
+    public void Execute(WorldFrame frame, in DeviceBufferView data, ProcessedMesh[] meshes);
 
     /// <summary>
     ///     Write to the <see cref="IDeviceBuffer" /> that will be the size returned from <see cref="GetRequiredMemory" />
     /// </summary>
     /// <param name="view"></param>
     /// <param name="mesh">The mesh this write is for</param>
-    public void Write(IDeviceBufferView view, ProcessedMesh mesh);
+    public void Write(in DeviceBufferView view, ProcessedMesh mesh);
 
-    public bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer);
+    public bool BindAndPush(WorldFrame frame, in DeviceBufferView groupMaterialBuffer);
 }

@@ -3,11 +3,11 @@ using Rin.Engine.Graphics.FrameGraph;
 
 namespace Rin.Engine.Views.Graphics.Passes;
 
-public class ReadBackPass(SharedPassContext sharedContext) : IViewsPass
+public class ReadBackPass(SurfacePassContext surfaceContext) : IViewsPass
 {
-    private uint MainImageId => sharedContext.MainImageId;
-    private uint CopyImageId => sharedContext.CopyImageId;
-    private uint StencilImageId => sharedContext.StencilImageId;
+    private uint MainImageId => surfaceContext.MainImageId;
+    private uint CopyImageId => surfaceContext.CopyImageId;
+    private uint StencilImageId => surfaceContext.StencilImageId;
     public uint Id { get; set; }
     public bool IsTerminal { get; } = false;
 

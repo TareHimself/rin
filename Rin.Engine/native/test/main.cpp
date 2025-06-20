@@ -1,10 +1,11 @@
 
-
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
 #include <iostream>
 #include <vector>
-
 #include "graphics.hpp"
 #include "platform.hpp"
+#include "video.hpp"
 
 
 void testWindow() {
@@ -36,6 +37,9 @@ void testWindow() {
                 case WindowEventType::Close:
                     quit = true;
                     break;
+                case WindowEventType::Key:
+                    std::cout << "Something happened to a key" << std::endl;
+                    break;
                 default:
                     break;
             }
@@ -49,8 +53,22 @@ void testFileSelect() {
         std::cout << "Got Path " << path << std::endl;
     });
 }
+
+void testVideo() {
+    auto ctx = videoContextFromFile("/home/tare/Downloads/zzz.webm");
+    auto extent = videoContextGetVideoExtent(ctx);
+    while (!videoContextEnded(ctx)) {
+        videoContextDecode(ctx,3);
+
+        auto data = static_cast<std::uint8_t*>(videoContextCopyRecentFrame(ctx,videoContextGetPosition(ctx) - 1.0f));
+        stbi_write_png("./latest.png",extent.width,extent.height,4,data,extent.width * 4);
+        delete[] data;
+    }
+    videoContextFree(ctx);
+}
 int main() {
     platformInit();
-    testFileSelect();
+    //testFileSelect();
+    testVideo();
     platformShutdown();
 }

@@ -20,15 +20,12 @@ public class RinWindow(in IntPtr handle, IWindow? parent) : IWindow
         _handle = IntPtr.Zero;
     }
 
-
-    public bool Focused { get; }
     public bool IsFullscreen { get; }
     public event Action<KeyEvent>? OnKey;
     public event Action<CursorMoveEvent>? OnCursorMoved;
     public event Action<CursorButtonEvent>? OnCursorButton;
-    public event Action<CursorEvent>? OnCursorEnter;
-    public event Action<WindowEvent>? OnCursorLeave;
-    public event Action<FocusEvent>? OnFocus;
+    public event Action<FocusEvent>? OnCursorFocus;
+    public event Action<FocusEvent>? OnKeyboardFocus;
     public event Action<ScrollEvent>? OnScroll;
     public event Action<ResizeEvent>? OnResize;
     public event Action<CloseEvent>? OnClose;
@@ -145,25 +142,18 @@ public class RinWindow(in IntPtr handle, IWindow? parent) : IWindow
                     State = e.cursorButton.state
                 });
                 break;
-            case Native.Platform.Window.EventType.CursorEnter:
-                OnCursorEnter?.Invoke(new CursorEvent
+            case Native.Platform.Window.EventType.CursorFocus:
+                OnCursorFocus?.Invoke(new FocusEvent
                 {
                     Window = this,
-                    Position = GetCursorPosition()
+                    IsFocused = e.cursorFocus.focused == 1
                 });
                 break;
-            case Native.Platform.Window.EventType.CursorLeave:
-                OnCursorLeave?.Invoke(new CursorEvent
+            case Native.Platform.Window.EventType.KeyboardFocus:
+                OnKeyboardFocus?.Invoke(new FocusEvent
                 {
                     Window = this,
-                    Position = GetCursorPosition()
-                });
-                break;
-            case Native.Platform.Window.EventType.Focus:
-                OnFocus?.Invoke(new FocusEvent
-                {
-                    Window = this,
-                    IsFocused = e.focus.focused == 1
+                    IsFocused = e.keyboardFocus.focused == 1
                 });
                 break;
             case Native.Platform.Window.EventType.Close:

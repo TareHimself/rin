@@ -7,9 +7,9 @@ using Rin.Engine.World.Math;
 
 namespace Rin.Engine.World.Components;
 
-public class SceneComponent : Component, ISceneComponent
+public class WorldComponent : Component, IWorldComponent
 {
-    private readonly HashSet<ISceneComponent> _children = [];
+    private readonly HashSet<IWorldComponent> _children = [];
 
     [PublicAPI] public Vector3 Location = new(0.0f);
 
@@ -19,7 +19,7 @@ public class SceneComponent : Component, ISceneComponent
 
     [PublicAPI] public bool Visible { get; set; } = true;
 
-    [PublicAPI] public ISceneComponent? TransformParent { get; private set; }
+    [PublicAPI] public IWorldComponent? TransformParent { get; private set; }
 
 
     public override void Stop()
@@ -29,20 +29,20 @@ public class SceneComponent : Component, ISceneComponent
     }
 
     [PublicAPI]
-    public bool TryHandleDetachment(ISceneComponent target)
+    public bool TryHandleDetachment(IWorldComponent target)
     {
         _children.Remove(target);
         return true;
     }
 
     [PublicAPI]
-    public bool TryHandleAttachment(ISceneComponent target)
+    public bool TryHandleAttachment(IWorldComponent target)
     {
         _children.Add(target);
         return true;
     }
 
-    public bool AttachTo(ISceneComponent component)
+    public bool AttachTo(IWorldComponent component)
     {
         Debug.Assert(this != component, "Cannot attach component to self");
         if (component.TryHandleAttachment(this))
@@ -263,7 +263,7 @@ public class SceneComponent : Component, ISceneComponent
 
 
     [PublicAPI]
-    public ISceneComponent[] GetAttachedComponents()
+    public IWorldComponent[] GetAttachedComponents()
     {
         return _children.ToArray();
     }

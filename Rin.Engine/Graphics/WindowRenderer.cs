@@ -196,6 +196,7 @@ public class WindowRenderer : IWindowRenderer
 
     private unsafe void DestroySwapchain()
     {
+        SGraphicsModule.Get().WaitDeviceIdle();
         foreach (var frame in _frames) frame.WaitForLastDraw();
 
         if (_swapchainExtent != new Extent2D())

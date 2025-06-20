@@ -244,14 +244,50 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
             return _container.Resource.GetAddress();
         }
 
-        public IDeviceBufferView GetView(ulong offset, ulong size)
+        public DeviceBufferView GetView(ulong offset, ulong size)
         {
-            return new DeviceBufferView(this, offset, size);
+            return new DeviceBufferView(this,Offset + offset, size);
         }
 
         public unsafe void Write(void* src, ulong size, ulong offset = 0)
         {
-            _container.Resource.Write(src, size, offset);
+            _container.Resource.Write(src, size,Offset + offset);
+        }
+        
+        public void WriteArray<T>(IEnumerable<T> data, ulong offset = 0) where T : unmanaged
+        {
+            unsafe
+            {
+                var asArray = data.ToArray();
+                fixed (T* pData = asArray)
+                {
+                    Write(pData, Utils.ByteSizeOf<T>(asArray.Length), offset);
+                }
+            }
+        }
+    
+        public void Write(IntPtr src,ulong size, ulong offset = 0)
+        {
+            unsafe
+            {
+                Write(src.ToPointer(),size, offset);
+            }
+        }
+
+        public void WriteStruct<T>(T src, ulong offset = 0) where T : unmanaged
+        {
+            unsafe
+            {
+                Write(&src, Utils.ByteSizeOf<T>(), offset);
+            }
+        }
+
+        public void WriteBuffer<T>(Buffer<T> src, ulong offset = 0) where T : unmanaged
+        {
+            unsafe
+            {
+                Write(src.GetData(), Utils.ByteSizeOf<T>(src.GetElementsCount()), offset);
+            }
         }
     }
 

@@ -14,10 +14,14 @@ public interface IMeshMaterial
     ///     Main rendering pass
     /// </summary>
     public IMaterialPass ColorPass { get; }
-
-
+    
     /// <summary>
     ///     The pass used for the depth pre-pass
     /// </summary>
     public IMaterialPass DepthPass { get; }
+
+    public bool IsBatchable(bool depth, IMeshMaterial other)
+    {
+        return GetType() == other.GetType() && (depth ? DepthPass.Shader == other.DepthPass.Shader : ColorPass.Shader == other.ColorPass.Shader);
+    }
 }

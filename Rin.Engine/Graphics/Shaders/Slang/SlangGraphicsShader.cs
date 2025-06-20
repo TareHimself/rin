@@ -132,7 +132,7 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
 
                 if (reflectionData.EntryPoints.FirstOrDefault() is { } reflectionEntryPoint)
                 {
-                    if (reflectionEntryPoint.Name == "fragment")
+                    if (reflectionEntryPoint is { Name: "fragment", Result: not null })
                         switch (reflectionEntryPoint.Result.Type.Kind)
                         {
                             case "struct":

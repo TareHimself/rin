@@ -45,8 +45,8 @@ public class WindowSurface : Surface
         Window.OnCharacter += OnCharacter;
         _renderer.OnCollect += Collect;
         Window.OnResize += OnWindowResized;
-        Window.OnCursorEnter += OnCursorEnter;
-        Window.OnCursorLeave += OnCursorLeave;
+        Window.OnCursorFocus += OnCursorFocus;
+
     }
 
     private void Collect(IGraphBuilder builder)
@@ -99,16 +99,17 @@ public class WindowSurface : Surface
         ReceiveScroll(new ScrollSurfaceEvent(this, e.Position, e.Delta));
     }
 
-    protected void OnCursorEnter(CursorEvent e)
+    protected void OnCursorFocus(FocusEvent e)
     {
-        ReceiveCursorEnter(new CursorMoveSurfaceEvent(this, e.Position));
+        if (e.IsFocused)
+        {
+            ReceiveCursorEnter(new CursorMoveSurfaceEvent(this,Window.GetCursorPosition()));
+        }
+        else
+        {
+            ReceiveCursorLeave();
+        }
     }
-
-    protected void OnCursorLeave(WindowEvent e)
-    {
-        ReceiveCursorLeave();
-    }
-
 
     public override void Dispose()
     {
@@ -120,8 +121,7 @@ public class WindowSurface : Surface
         Window.OnScroll -= OnScroll;
         Window.OnKey -= OnKeyboard;
         Window.OnCharacter -= OnCharacter;
-        Window.OnCursorEnter -= OnCursorEnter;
-        Window.OnCursorLeave -= OnCursorLeave;
+        Window.OnCursorFocus -= OnCursorFocus;
     }
 
     public override Vector2 GetCursorPosition()

@@ -37,7 +37,7 @@ public class SponzaMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DefaultMaterialProperties>();
         }
 
-        public override bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer)
+        public override bool BindAndPush(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
             if (Shader.Bind(ctx))
@@ -60,7 +60,7 @@ public class SponzaMeshMaterial : IMeshMaterial
             return mesh.Material.ColorPass;
         }
 
-        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
+        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, in DeviceBufferView data,
             ProcessedMesh[] meshes)
         {
             ulong memoryUsed = 0;
@@ -88,7 +88,7 @@ public class SponzaMeshMaterial : IMeshMaterial
             return memoryUsed;
         }
 
-        public override void Write(IDeviceBufferView view, ProcessedMesh mesh)
+        public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
             Debug.Assert(mesh.Material is SponzaMeshMaterial);
             var meshMaterial = (SponzaMeshMaterial)mesh.Material;
@@ -113,7 +113,7 @@ public class SponzaMeshMaterial : IMeshMaterial
                 // Emissive = meshMaterial.Emissive,
                 // EmissiveTextureId = (int)meshMaterial.EmissiveTextureId
             };
-            view.Write(data);
+            view.WriteStruct(data);
         }
 
         private struct DefaultMaterialProperties()
@@ -137,7 +137,7 @@ public class SponzaMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DepthMaterialData>();
         }
 
-        public override bool BindAndPush(WorldFrame frame, IDeviceBufferView? groupMaterialBuffer)
+        public override bool BindAndPush(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
             if (Shader.Bind(ctx))
@@ -160,7 +160,7 @@ public class SponzaMeshMaterial : IMeshMaterial
             return mesh.Material.DepthPass;
         }
 
-        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, IDeviceBufferView? data,
+        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, in DeviceBufferView data,
             ProcessedMesh[] meshes)
         {
             ulong memoryUsed = 0;
@@ -187,9 +187,9 @@ public class SponzaMeshMaterial : IMeshMaterial
             return memoryUsed;
         }
 
-        public override void Write(IDeviceBufferView view, ProcessedMesh mesh)
+        public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
-            view.Write(new DepthMaterialData
+            view.WriteStruct(new DepthMaterialData
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress()

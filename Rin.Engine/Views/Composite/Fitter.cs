@@ -45,21 +45,20 @@ public class Fitter : SingleSlotCompositeView
         return new Vector2();
     }
 
-    public static Vector2 ComputeContainSize(Vector2 drawSize, Vector2 viewSize)
+    public static Vector2 ComputeContainSize(Vector2 drawSize, Vector2 desiredSize)
     {
-        var viewAspect = viewSize.Y / viewSize.X;
-        var scaledViewSize = new Vector2(drawSize.X, drawSize.X * viewAspect);
-
-        if (drawSize == scaledViewSize) return scaledViewSize;
-
-        return scaledViewSize.Y <= drawSize.Y
-            ? scaledViewSize
-            : new Vector2(drawSize.Y / viewAspect, drawSize.Y);
+        var desiredAspect = desiredSize.Y / desiredSize.X;
+        
+        var xConstrainedSize = drawSize with { Y = drawSize.X * desiredAspect };
+        
+        return xConstrainedSize.Y <= drawSize.Y
+            ? xConstrainedSize
+            : drawSize with { X = drawSize.Y / desiredAspect };
     }
 
-    public static Vector2 ComputeCoverSize(Vector2 drawSize, Vector2 viewSize)
+    public static Vector2 ComputeCoverSize(Vector2 drawSize, Vector2 desiredSize)
     {
-        var viewAspect = viewSize.Y / viewSize.X;
+        var viewAspect = desiredSize.Y / desiredSize.X;
         var scaledViewSize = new Vector2(drawSize.X, drawSize.X * viewAspect);
 
         if (drawSize == scaledViewSize) return scaledViewSize;

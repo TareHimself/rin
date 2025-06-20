@@ -57,7 +57,7 @@
 //     }
 //
 //
-//     public override void Run(ViewsFrame frame, uint stencilMask, IDeviceBufferView? view = null)
+//     public override void Run(ViewsFrame frame, uint stencilMask, DeviceBufferView? view = null)
 //     {
 //         var cmd = frame.Raw.GetPrimaryCommandBuffer();
 //

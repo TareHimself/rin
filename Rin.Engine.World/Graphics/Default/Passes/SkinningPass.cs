@@ -75,13 +75,13 @@ public class SkinningPass(DefaultWorldRenderContext renderContext) : IComputePas
         var posesArray = graph.GetBuffer(SkinningPoseIdArrayBufferId);
         var executionInfos = graph.GetBuffer(SkinningExecutionInfoBufferId);
 
-        meshArray.Write(_skinnedMeshes.Select(c => c.GetVertices().GetAddress()));
-        posesArray.Write(SkinnedPoses.Select((pose, idx) =>
+        meshArray.WriteArray(_skinnedMeshes.Select(c => c.GetVertices().GetAddress()));
+        posesArray.WriteArray(SkinnedPoses.Select((pose, idx) =>
         {
-            poseBuffers[idx].Write(pose);
+            poseBuffers[idx].WriteArray(pose);
             return poseBuffers[idx].GetAddress();
         }));
-        executionInfos.Write(ExecutionInfos);
+        executionInfos.WriteArray(ExecutionInfos);
 
         if (_skinningShader.Bind(ctx))
         {
@@ -100,10 +100,10 @@ public class SkinningPass(DefaultWorldRenderContext renderContext) : IComputePas
             var skinnedMeshes = renderContext.ProcessedSkinnedMeshes;
             for (var i = 0; i < skinnedMeshes.Length; i++)
             {
-                var buffer = skinnedMeshes[i].VertexBuffer as SkinnedVertexBufferView ??
-                             throw new InvalidCastException();
-                buffer.UnderlyingView = output.GetView(offset, buffer.Size);
-                offset += buffer.Size;
+                var mesh = skinnedMeshes[i];
+                var bufferSize = mesh.VertexBuffer.Size;
+                skinnedMeshes[i].VertexBuffer = output.GetView(offset, bufferSize);
+                offset += bufferSize;
             }
         }
     }

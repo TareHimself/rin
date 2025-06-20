@@ -1,4 +1,5 @@
-﻿using TerraFX.Interop.Vulkan;
+﻿using System.Diagnostics;
+using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Engine.Graphics.Descriptors;
@@ -135,11 +136,15 @@ public class DescriptorSet : Disposable
     {
         // if (!SetResource(binding, writes.Select(c => c.View))) return false;
         //
-        var infos = writes.Select(write => new VkDescriptorBufferInfo
+        var infos = writes.Select(write =>
         {
-            buffer = write.Buffer.NativeBuffer,
-            offset = write.Offset,
-            range = write.Size
+            Debug.Assert(write.Buffer.IsValid,"Buffer is not valid");
+            return new VkDescriptorBufferInfo
+            {
+                buffer = write.Buffer.Buffer.NativeBuffer,
+                offset = write.Buffer.Offset,
+                range = write.Buffer.Size,
+            };
         }).ToArray();
 
         unsafe

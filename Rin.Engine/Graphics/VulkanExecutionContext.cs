@@ -14,6 +14,7 @@ public class VulkanExecutionContext(in VkCommandBuffer commandBuffer, Descriptor
     public readonly VkCommandBuffer CommandBuffer = commandBuffer;
 
     //private bool _primaryAvailable = true;
+    public string Id { get; } = Guid.NewGuid().ToString();
     public DescriptorAllocator DescriptorAllocator { get; } = allocator;
 
     public DescriptorSet AllocateDescriptorSet(IShader shader, uint set)
@@ -31,9 +32,10 @@ public class VulkanExecutionContext(in VkCommandBuffer commandBuffer, Descriptor
         return this;
     }
 
-    public IExecutionContext BindIndexBuffer(IDeviceBufferView buffer)
+    public IExecutionContext BindIndexBuffer(in DeviceBufferView buffer)
     {
-        vkCmdBindIndexBuffer(CommandBuffer, buffer.NativeBuffer, 0, VkIndexType.VK_INDEX_TYPE_UINT32);
+        Debug.Assert(buffer.IsValid,"Index buffer is not valid");
+        vkCmdBindIndexBuffer(CommandBuffer, buffer.Buffer.NativeBuffer, 0, VkIndexType.VK_INDEX_TYPE_UINT32);
         return this;
     }
 
@@ -63,14 +65,32 @@ public class VulkanExecutionContext(in VkCommandBuffer commandBuffer, Descriptor
         return this;
     }
 
-    public IExecutionContext Barrier(IDeviceBufferView view, BufferUsage from, BufferUsage to,
+    public IExecutionContext Barrier(in DeviceBufferView view, BufferUsage from, BufferUsage to,
         ResourceOperation fromOperation, ResourceOperation toOperation)
     {
         CommandBuffer.BufferBarrier(view, from, to, fromOperation, toOperation);
         return this;
     }
 
-    public IExecutionContext CopyToImage(IDeviceImage dest, IDeviceBufferView src)
+    public IExecutionContext CopyToBuffer(in DeviceBufferView dest, in DeviceBufferView src)
+    {
+        Debug.Assert(src.IsValid,"src buffer is not valid");
+        Debug.Assert(dest.IsValid,"dest buffer is not valid");
+        unsafe
+        {
+            var copy = new VkBufferCopy
+            {
+                size = src.Size,
+                dstOffset = dest.Offset,
+                srcOffset = src.Offset,
+            };
+            vkCmdCopyBuffer(CommandBuffer, src.Buffer.NativeBuffer, dest.Buffer.NativeBuffer,1,&copy);
+        }
+
+        return this;
+    }
+
+    public IExecutionContext CopyToImage(IDeviceImage dest, in DeviceBufferView src)
     {
         var copyRegion = new VkBufferImageCopy
         {
@@ -97,18 +117,21 @@ public class VulkanExecutionContext(in VkCommandBuffer commandBuffer, Descriptor
         return this;
     }
 
-    public IExecutionContext DrawIndexedIndirect(IDeviceBufferView commands, uint drawCount, uint stride,
+    public IExecutionContext DrawIndexedIndirect(in DeviceBufferView commands, uint drawCount, uint stride,
         uint commandsOffset = 0)
     {
-        vkCmdDrawIndexedIndirect(CommandBuffer, commands.NativeBuffer, commands.Offset, drawCount, stride);
+        Debug.Assert(commands.IsValid,"Indirect command buffer is not valid");
+        vkCmdDrawIndexedIndirect(CommandBuffer, commands.Buffer.NativeBuffer, commands.Offset, drawCount, stride);
         return this;
     }
 
-    public IExecutionContext DrawIndexedIndirectCount(IDeviceBufferView commands, IDeviceBufferView drawCount,
+    public IExecutionContext DrawIndexedIndirectCount(in DeviceBufferView commands, in DeviceBufferView drawCount,
         uint maxDrawCount,
         uint stride, uint commandsOffset = 0, uint drawCountOffset = 0)
     {
-        vkCmdDrawIndexedIndirectCount(CommandBuffer, commands.NativeBuffer, commands.Offset, drawCount.NativeBuffer,
+        Debug.Assert(commands.IsValid,"Indirect command buffer is not valid");
+        Debug.Assert(drawCount.IsValid,"Draw count buffer is not valid");
+        vkCmdDrawIndexedIndirectCount(CommandBuffer, commands.Buffer.NativeBuffer, commands.Offset, drawCount.Buffer.NativeBuffer,
             drawCount.Offset, maxDrawCount, (uint)Utils.ByteSizeOf<VkDrawIndexedIndirectCommand>());
         return this;
     }

@@ -7,7 +7,7 @@ using Rin.Engine.World.Mesh;
 
 namespace Rin.Engine.World.Components;
 
-public class StaticMeshComponent : SceneComponent
+public class StaticMeshComponent : WorldComponent
 {
     public IMeshMaterial?[] Materials = [];
     public StaticMesh? Mesh { get; set; }

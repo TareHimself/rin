@@ -141,7 +141,7 @@ public class ScrollList : List
 
     protected override Matrix4x4 ComputeSlotTransform(ISlot slot, in Matrix4x4 contentTransform)
     {
-        return slot.Child.ComputeLocalTransform() * contentTransform.Translate(Axis switch
+        return slot.Child.GetLocalTransform() * contentTransform.Translate(Axis switch
         {
             Axis.Row => new Vector2(-GetScroll(), 0.0f),
             Axis.Column => new Vector2(0.0f, -GetScroll()),

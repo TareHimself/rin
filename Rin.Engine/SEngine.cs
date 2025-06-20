@@ -1,4 +1,5 @@
 ﻿using System.Collections.Frozen;
+using System.Diagnostics;
 using System.Reflection;
 using JetBrains.Annotations;
 using Rin.Engine.Extensions;
@@ -21,6 +22,7 @@ public sealed class SEngine
 
     private readonly Dispatcher _mainDispatcher = new();
     private readonly AutoResetEvent _mainUpdateEvent = new(false);
+    private readonly AutoResetEvent _renderFinishedEvent = new(true);
     private readonly List<IModule> _modules = [];
     private readonly Dictionary<Type, IModule> _modulesMap = new();
     private readonly Dispatcher _renderDispatcher = new();
@@ -32,7 +34,7 @@ public sealed class SEngine
 
     private DateTime _lastTickTime = DateTime.UtcNow;
 
-    private Task? _renderTask;
+    private Thread? _renderTask;
 
     public string CachePath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "rin");
 
@@ -192,6 +194,7 @@ public sealed class SEngine
             Profiling.Measure("Engine.PreRender", OnPreRender);
             Profiling.Measure("Engine.Rendering", OnRender);
             Profiling.Measure("Engine.PostRender", OnPostRender);
+            _renderFinishedEvent.Set();
         }
     }
 
@@ -200,7 +203,9 @@ public sealed class SEngine
         Startup();
         try
         {
-            _renderTask = Task.Factory.StartNew(Render, TaskCreationOptions.LongRunning);
+            
+            _renderTask = new Thread(Render) { IsBackground = true };
+            _renderTask.Start();
             _lastTickTime = DateTime.UtcNow;
 
             while (!_exitRequested)
@@ -216,12 +221,13 @@ public sealed class SEngine
                 Profiling.End("Engine.Update");
 
                 Profiling.Measure("Engine.PostUpdate", OnPostUpdate);
+                _renderFinishedEvent.WaitOne();
                 Profiling.Measure("Engine.Collect", OnCollect);
-
                 _mainUpdateEvent.Set();
             }
-
-            _renderTask.Wait();
+            
+            _mainUpdateEvent.Set();
+            _renderTask.Join();
         }
         catch (Exception e)
         {
@@ -303,6 +309,7 @@ public sealed class SEngine
 
     public T GetModule<T>() where T : IModule
     {
+        Debug.Assert(_modulesMap.ContainsKey(typeof(T)),$"Module {typeof(T).Name} was not loaded");
         return (T)_modulesMap[typeof(T)];
     }
 

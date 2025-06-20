@@ -5,15 +5,6 @@ namespace Rin.Engine;
 
 public static class Platform
 {
-    public static void Init()
-    {
-    }
-
-    public static void Shutdown()
-    {
-        Native.Platform.Init();
-    }
-
     [PublicAPI]
     public static string[] SelectFile(string title = "Select File's", bool multiple = false, string filter = "")
     {

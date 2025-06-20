@@ -33,8 +33,8 @@ public class DeviceImage : DeviceMemory, IDeviceImage
     public VkImage NativeImage { get; }
 
     public VkImageView NativeView { get; set; }
-
-    protected override void OnDispose(bool isManual)
+    
+    public override void Dispose()
     {
         Allocator.FreeImage(this);
     }

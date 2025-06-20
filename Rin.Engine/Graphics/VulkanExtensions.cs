@@ -1094,15 +1094,16 @@ public static class VulkanExtensions
         }
     }
 
-    public static VkCommandBuffer BufferBarrier(in this VkCommandBuffer cmd, IDeviceBufferView view,
+    public static VkCommandBuffer BufferBarrier(this in VkCommandBuffer cmd, in DeviceBufferView view,
         BufferUsage fromUsage, BufferUsage toUsage, ResourceOperation fromOperation, ResourceOperation toOperation)
     {
         return cmd.BufferBarrier(view, new MemoryBarrierOptions(fromUsage, toUsage, fromOperation, toOperation));
     }
 
-    public static VkCommandBuffer BufferBarrier(in this VkCommandBuffer cmd, IDeviceBufferView view,
+    public static VkCommandBuffer BufferBarrier(this in VkCommandBuffer cmd, in DeviceBufferView view,
         in MemoryBarrierOptions options)
     {
+        Debug.Assert(view.IsValid,"View is not valid");
         var opts = options;
         var barrier = new VkBufferMemoryBarrier2
         {
@@ -1111,7 +1112,7 @@ public static class VulkanExtensions
             dstStageMask = opts.NextStages,
             srcAccessMask = opts.SrcAccessFlags,
             dstAccessMask = opts.DstAccessFlags,
-            buffer = view.NativeBuffer,
+            buffer = view.Buffer.NativeBuffer,
             offset = view.Offset,
             size = view.Size
         };
@@ -1195,15 +1196,16 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer CopyBufferToImage(in this VkCommandBuffer cmd, IDeviceBufferView buffer,
+    public static VkCommandBuffer CopyBufferToImage(this in VkCommandBuffer cmd, in DeviceBufferView buffer,
         IDeviceImage image,
         VkBufferImageCopy[] regions, ImageLayout layout = ImageLayout.TransferDst)
     {
+        Debug.Assert(buffer.IsValid,"Buffer buffer is not valid");
         unsafe
         {
             fixed (VkBufferImageCopy* pRegion = regions)
             {
-                vkCmdCopyBufferToImage(cmd, buffer.NativeBuffer, image.NativeImage,
+                vkCmdCopyBufferToImage(cmd, buffer.Buffer.NativeBuffer, image.NativeImage,
                     layout.ToVk(), (uint)regions.Length, pRegion);
             }
         }

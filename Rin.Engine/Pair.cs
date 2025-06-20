@@ -1,6 +1,6 @@
 ﻿namespace Rin.Engine;
 
-public class Pair<T, TU>(T inFirst, TU inSecond)
+public struct Pair<T, TU>(T inFirst, TU inSecond)
 {
     public T First = inFirst;
     public TU Second = inSecond;

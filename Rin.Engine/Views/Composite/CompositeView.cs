@@ -84,7 +84,7 @@ public abstract class CompositeView : View
     /// <returns></returns>
     protected virtual Matrix4x4 ComputeSlotTransform(ISlot slot, in Matrix4x4 contentTransform)
     {
-        var relativeTransform = slot.Child.ComputeLocalTransform();
+        var relativeTransform = slot.Child.GetLocalTransform();
         return relativeTransform * contentTransform;
     }
 

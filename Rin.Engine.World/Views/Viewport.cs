@@ -28,7 +28,7 @@ public enum ViewportChannel
     Emissive
 }
 
-internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command) : IViewsPass, IWithPreAdd
+internal class ViewPortPass(SurfacePassContext info, DrawViewportCommand command) : IViewsPass, IWithPreAdd
 {
     private readonly Extent2D _renderExtent = command.Size.ToExtent();
 
@@ -59,7 +59,7 @@ internal class ViewPortPass(SharedPassContext info, DrawViewportCommand command)
             var mainImage = graph.GetImageOrException(info.MainImageId);
             var stencilImage = graph.GetImageOrException(info.StencilImageId);
             var pushBuffer = graph.GetBufferOrException(_pushBufferId);
-            pushBuffer.Write(
+            pushBuffer.WriteStruct(
                 new PushData
                 {
                     Projection = info.ProjectionMatrix,

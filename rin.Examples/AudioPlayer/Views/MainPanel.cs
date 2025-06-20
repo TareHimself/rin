@@ -68,7 +68,7 @@ public class MainPanel : Panel
     {
         foreach (var file in files)
         {
-            var player = new TrackPlayer(Path.GetFileNameWithoutExtension(file), StreamChannel.FromFile(file));
+            var player = new TrackPlayer(Path.GetFileNameWithoutExtension(file), BassStreamChannel.FromFile(file));
             _trackPlayers.Add(player);
         }
     }

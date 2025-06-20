@@ -64,7 +64,7 @@ public sealed class CompiledGraph : ICompiledGraph
         throw new ResourceAllocationException(id);
     }
 
-    public IDeviceBufferView GetBuffer(uint id)
+    public DeviceBufferView GetBuffer(uint id)
     {
         {
             if (_buffers.TryGetValue(id, out var resource)) return resource.GetView();

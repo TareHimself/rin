@@ -8,21 +8,21 @@ public class StencilWritePass : IPass
 {
     private readonly StencilClip[] _clips;
     private readonly uint _mask;
-    private readonly SharedPassContext _sharedContext;
+    private readonly SurfacePassContext _surfaceContext;
 
     private readonly IShader _stencilShader = SGraphicsModule.Get()
         .MakeGraphics("Engine/Shaders/Views/stencil_batch.slang");
 
     private uint _clipsBufferId;
 
-    public StencilWritePass(SharedPassContext sharedContext, uint mask, StencilClip[] clips)
+    public StencilWritePass(SurfacePassContext surfaceContext, uint mask, StencilClip[] clips)
     {
-        _sharedContext = sharedContext;
+        _surfaceContext = surfaceContext;
         _mask = mask;
         _clips = clips;
     }
 
-    private uint StencilImageId => _sharedContext.StencilImageId;
+    private uint StencilImageId => _surfaceContext.StencilImageId;
     public uint Id { get; set; }
     public bool IsTerminal => false;
 
@@ -38,13 +38,12 @@ public class StencilWritePass : IPass
         {
             var stencilImage = graph.GetImageOrException(StencilImageId);
             var clipsBuffer = graph.GetBufferOrException(_clipsBufferId);
-            clipsBuffer.Write(_clips);
+            clipsBuffer.WriteArray(_clips);
             ctx
-                .BeginRendering(_sharedContext.Extent, [], stencilAttachment: stencilImage)
+                .BeginRendering(_surfaceContext.Extent, [], stencilAttachment: stencilImage)
                 .DisableFaceCulling()
                 .StencilWriteOnly()
-                .SetStencilWriteMask(_mask)
-                .SetStencilWriteValue(_clipsBufferId);
+                .SetStencilWriteMask(_mask);
             _stencilShader.Push(ctx, clipsBuffer.GetAddress());
             ctx.Draw(6, (uint)_clips.Length)
                 .EndRendering();

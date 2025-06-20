@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 
 namespace Rin.Engine.World.Components.Lights;
 
-public abstract class LightComponent : SceneComponent
+public abstract class LightComponent : WorldComponent
 {
     [PublicAPI] public float Radiance { get; set; } = 5.0f;
 

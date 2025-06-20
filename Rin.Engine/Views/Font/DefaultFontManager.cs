@@ -167,8 +167,8 @@ public class DefaultFontManager : IFontManager
                     {
                         var packer = packers[i];
 
-                        var atlas = atlases[i];
-                        atlas.Mutate(o =>
+                        using var atlas = atlases[i];
+                        atlases[i] = atlas.Mutate(o =>
                         {
                             o.Fill(255, 255, 255, 0);
                             foreach (var rect in packer.Rects)

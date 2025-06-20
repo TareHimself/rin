@@ -19,6 +19,19 @@ public class PanelSlot : Slot
     [PublicAPI] public Vector2 Offset;
 
     [PublicAPI] public Vector2 Size;
+    
+    [PublicAPI] public Vector2 MinAnchorOffset
+    {
+        get => Offset;
+        set => Offset = value;
+    }
+
+    [PublicAPI]
+    public Vector2 MaxAnchorOffset
+    {
+        get => Size;
+        set => Size = value;
+    }
 
     /// <summary>
     ///     Describes how a <see cref="View" /> will be sized and positioned in a <see cref="PanelLayout" />. Supports Anchors

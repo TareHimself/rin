@@ -10,7 +10,7 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
 {
     private int _elements;
     private IntPtr _ptr = IntPtr.Zero;
-
+    public bool Track = false;
     public Buffer(int elements)
     {
         if (elements <= 0) return;
@@ -19,6 +19,22 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
         _ptr = Native.Memory.Allocate(Utils.ByteSizeOf<T>(elements));
     }
 
+    public Buffer(IntPtr data, ulong byteSize,bool copy = false)
+    {
+        if (byteSize <= 0) return;
+
+        _elements = (int)(byteSize / Utils.ByteSizeOf<T>());
+        if (copy)
+        {
+            _ptr = Native.Memory.Allocate(byteSize);
+            Write(data,byteSize); 
+        }
+        else
+        {
+            _ptr = data;
+        }
+    }
+    
     public unsafe Buffer(T* data, int elements)
     {
         if (elements <= 0) return;
@@ -93,6 +109,7 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
 
     public void Dispose()
     {
+        
         ReleaseUnmanagedResources();
         GC.SuppressFinalize(this);
     }
@@ -146,11 +163,15 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
         return buff.AsReadOnlySpan();
     }
 
-
+    public StackTrace? DisposedAt;
     private void ReleaseUnmanagedResources()
     {
         if (_ptr != IntPtr.Zero) Native.Memory.Free(_ptr);
         _ptr = IntPtr.Zero;
+        if (Track)
+        {
+            DisposedAt = new StackTrace(true);
+        }
     }
 
     public unsafe void Write(void* src, ulong size, ulong offset = 0)

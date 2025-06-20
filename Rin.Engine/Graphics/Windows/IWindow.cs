@@ -6,17 +6,14 @@ namespace Rin.Engine.Graphics.Windows;
 public interface IWindow : IDisposable
 {
     public IWindow? Parent { get; }
-
-    public bool Focused { get; }
-
+    
     public bool IsFullscreen { get; }
     public event Action<KeyEvent>? OnKey;
     public event Action<CursorMoveEvent>? OnCursorMoved;
     public event Action<CursorButtonEvent>? OnCursorButton;
-
-    public event Action<CursorEvent>? OnCursorEnter;
-    public event Action<WindowEvent>? OnCursorLeave;
-    public event Action<FocusEvent>? OnFocus;
+    public event Action<FocusEvent>? OnCursorFocus;
+    
+    public event Action<FocusEvent>? OnKeyboardFocus;
     public event Action<ScrollEvent>? OnScroll;
     public event Action<ResizeEvent>? OnResize;
     public event Action<CloseEvent>? OnClose;

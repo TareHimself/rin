@@ -23,8 +23,8 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     private readonly BackgroundTaskQueue _backgroundTaskQueue = new();
     private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
     private readonly int _maxEventsPerPeep = 64;
-    private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingGraphicsSubmits = [];
-    private readonly List<Pair<TaskCompletionSource, Action<VkCommandBuffer>>> _pendingTransferSubmits = [];
+    private readonly List<Pair<TaskCompletionSource, Action<IExecutionContext>>> _pendingGraphicsSubmits = [];
+    private readonly List<Pair<TaskCompletionSource, Action<IExecutionContext>>> _pendingTransferSubmits = [];
     private readonly List<IRenderer> _renderers = [];
     private readonly Dictionary<IntPtr, RinWindow> _rinWindows = [];
     private readonly BackgroundTaskQueue _transferQueueThread = new();
@@ -700,7 +700,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         }
     }
 
-    public Task TransferSubmit(Action<VkCommandBuffer> action)
+    public Task TransferSubmit(Action<IExecutionContext> action)
     {
         if (_hasDedicatedTransferQueue)
             return _transferQueueThread.Enqueue(() =>
@@ -715,20 +715,20 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
                             MakeCommandBufferBeginInfo(
                                 VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
                         vkBeginCommandBuffer(cmd, &beginInfo);
-
-                        action.Invoke(cmd);
+                        
+                        
+                        action.Invoke(new VulkanExecutionContext(_transferCommandBuffer,GetDescriptorAllocator()));
 
                         vkEndCommandBuffer(cmd);
 
-                        SubmitToQueue(_transferQueue, _transferFence, new[]
-                        {
+                        SubmitToQueue(_transferQueue, _transferFence, [
                             new VkCommandBufferSubmitInfo
                             {
                                 sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                                 commandBuffer = cmd,
                                 deviceMask = 0
                             }
-                        });
+                        ]);
 
                         vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
                         var r = vkResetFences(_device, 1, pFences);
@@ -740,17 +740,17 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         lock (_pendingTransferSubmits)
         {
             var pending = new TaskCompletionSource();
-            _pendingTransferSubmits.Add(new Pair<TaskCompletionSource, Action<VkCommandBuffer>>(pending, action));
+            _pendingTransferSubmits.Add(new Pair<TaskCompletionSource, Action<IExecutionContext>>(pending, action));
             return pending.Task;
         }
     }
 
-    public Task GraphicsSubmit(Action<VkCommandBuffer> action)
+    public Task GraphicsSubmit(Action<IExecutionContext> action)
     {
         lock (_pendingGraphicsSubmits)
         {
             var pending = new TaskCompletionSource();
-            _pendingGraphicsSubmits.Add(new Pair<TaskCompletionSource, Action<VkCommandBuffer>>(pending, action));
+            _pendingGraphicsSubmits.Add(new Pair<TaskCompletionSource, Action<IExecutionContext>>(pending, action));
             return pending.Task;
         }
     }
@@ -765,9 +765,11 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         }
     }
 
-    private static void GenerateMipMaps(VkCommandBuffer cmd, IDeviceImage image, Extent2D size, ImageFilter filter,
+    private static void GenerateMipMaps(IExecutionContext ctx, IDeviceImage image, Extent2D size, ImageFilter filter,
         ImageLayout srcLayout, ImageLayout dstLayout)
     {
+        Debug.Assert(ctx is VulkanExecutionContext);
+        var cmd = ((VulkanExecutionContext)ctx).CommandBuffer;
         var mipLevels = DeriveMipLevels(size);
         var curSize = size;
         for (var mip = 0; mip < mipLevels; mip++)
@@ -854,14 +856,14 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     {
         Debug.Assert(_allocator != null, "Allocator cannot be null");
         var extent = new Extent3D(image.Extent);
-        var format = image.Format;
+        var format = image.Format.ToDeviceFormat();
         var dataSize =
-            extent.Width * extent.Height * image.Format.PixelByteSize(); //size.depth * size.width * size.height * 4;
+            extent.Width * extent.Height * format.PixelByteSize(); //size.depth * size.width * size.height * 4;
         using var buffer = image.ToBuffer();
         Debug.Assert(dataSize == buffer.GetByteSize(), "Unexpected image buffer size");
 
         var uploadBuffer = NewTransferBuffer(dataSize);
-        uploadBuffer.Write(buffer);
+        uploadBuffer.WriteBuffer(buffer);
 
         var newImage = CreateDeviceImage(extent, format,
             usage | ImageUsage.TransferDst |
@@ -869,24 +871,9 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
         await TransferSubmit(cmd =>
         {
-            cmd.ImageBarrier(newImage, ImageLayout.Undefined, ImageLayout.TransferDst);
-
-            var copyRegion = new VkBufferImageCopy
-            {
-                bufferOffset = 0,
-                bufferRowLength = 0,
-                bufferImageHeight = 0,
-                imageSubresource = new VkImageSubresourceLayers
-                {
-                    aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
-                    mipLevel = 0,
-                    baseArrayLayer = 0,
-                    layerCount = 1
-                },
-                imageExtent = extent.ToVk()
-            };
-
-            cmd.CopyBufferToImage(uploadBuffer, newImage, [copyRegion]);
+            cmd
+                .Barrier(newImage, ImageLayout.Undefined, ImageLayout.TransferDst)
+                .CopyToImage(newImage, uploadBuffer.GetView());
         });
 
         await GraphicsSubmit(cmd =>
@@ -895,7 +882,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
                 GenerateMipMaps(cmd, newImage, extent, mipMapFilter, ImageLayout.TransferDst,
                     ImageLayout.ShaderReadOnly);
             else
-                cmd.ImageBarrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+                cmd.Barrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
         });
 
         uploadBuffer.Dispose();
@@ -928,42 +915,47 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
             throw new Exception($"computed data size {dataSize} is not equal to content size {contentSize}");
 
         var uploadBuffer = NewTransferBuffer(dataSize);
-        uploadBuffer.Write(content);
+        uploadBuffer.WriteBuffer(content);
 
         var newImage = CreateDeviceImage(size, format,
             usage | ImageUsage.TransferSrc |
             ImageUsage.TransferDst, mips, debugName);
 
-        await TransferSubmit(cmd =>
-        {
-            cmd.ImageBarrier(newImage, ImageLayout.Undefined, ImageLayout.TransferDst);
 
-            var copyRegion = new VkBufferImageCopy
+        if (_hasDedicatedTransferQueue)
+        {
+            await TransferSubmit(cmd =>
             {
-                bufferOffset = 0,
-                bufferRowLength = 0,
-                bufferImageHeight = 0,
-                imageSubresource = new VkImageSubresourceLayers
-                {
-                    aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
-                    mipLevel = 0,
-                    baseArrayLayer = 0,
-                    layerCount = 1
-                },
-                imageExtent = size.ToVk()
-            };
+                cmd
+                    .Barrier(newImage, ImageLayout.Undefined, ImageLayout.TransferDst)
+                    .CopyToImage(newImage, uploadBuffer.GetView());
+            });
 
-            cmd.CopyBufferToImage(uploadBuffer, newImage, [copyRegion]);
-        });
-
-        await GraphicsSubmit(cmd =>
+            await GraphicsSubmit(cmd =>
+            {
+                if (mips)
+                    GenerateMipMaps(cmd, newImage, size, mipsGenerateFilter, ImageLayout.TransferDst,
+                        ImageLayout.ShaderReadOnly);
+                else
+                    cmd.Barrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+            });
+        }
+        else
         {
-            if (mips)
-                GenerateMipMaps(cmd, newImage, size, mipsGenerateFilter, ImageLayout.TransferDst,
-                    ImageLayout.ShaderReadOnly);
-            else
-                cmd.ImageBarrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
-        });
+            await GraphicsSubmit(cmd =>
+            {
+                cmd
+                    .Barrier(newImage, ImageLayout.Undefined, ImageLayout.TransferDst)
+                    .CopyToImage(newImage, uploadBuffer.GetView());
+                
+                if (mips)
+                    GenerateMipMaps(cmd, newImage, size, mipsGenerateFilter, ImageLayout.TransferDst,
+                        ImageLayout.ShaderReadOnly);
+                else
+                    cmd.Barrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+            });
+        }
+        
 
         uploadBuffer.Dispose();
 
@@ -972,7 +964,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
     private void HandlePendingTransferSubmits()
     {
-        Pair<TaskCompletionSource, Action<VkCommandBuffer>>[] pending;
+        Pair<TaskCompletionSource, Action<IExecutionContext>>[] pending;
 
         lock (_pendingTransferSubmits)
         {
@@ -983,28 +975,29 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         if (pending.NotEmpty())
             unsafe
             {
+                var cmd = _transferCommandBuffer;
+                var ctx = new VulkanExecutionContext(cmd,GetDescriptorAllocator());
                 fixed (VkFence* pFences = &_transferFence)
                 {
-                    vkResetCommandBuffer(_transferCommandBuffer, 0);
-                    var cmd = _transferCommandBuffer;
+                    vkResetCommandBuffer(cmd, 0);
+                    
                     var beginInfo =
                         MakeCommandBufferBeginInfo(
                             VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
                     vkBeginCommandBuffer(cmd, &beginInfo);
 
-                    foreach (var (_, action) in pending) action.Invoke(cmd);
+                    foreach (var (_, action) in pending) action.Invoke(ctx);
 
                     vkEndCommandBuffer(cmd);
 
-                    SubmitToQueue(_transferQueue, _transferFence, new[]
-                    {
+                    SubmitToQueue(_transferQueue, _transferFence, [
                         new VkCommandBufferSubmitInfo
                         {
                             sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                             commandBuffer = cmd,
                             deviceMask = 0
                         }
-                    });
+                    ]);
 
                     vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
                     var r = vkResetFences(_device, 1, pFences);
@@ -1018,7 +1011,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
     private void HandlePendingGraphicsSubmits()
     {
-        Pair<TaskCompletionSource, Action<VkCommandBuffer>>[] pending;
+        Pair<TaskCompletionSource, Action<IExecutionContext>>[] pending;
 
         lock (_pendingGraphicsSubmits)
         {
@@ -1029,6 +1022,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         if (pending.NotEmpty())
             unsafe
             {
+                var ctx = new VulkanExecutionContext(_graphicsCommandBuffer,GetDescriptorAllocator());
                 fixed (VkFence* pFences = &_graphicsFence)
                 {
                     vkResetCommandBuffer(_graphicsCommandBuffer, 0);
@@ -1038,19 +1032,18 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
                             VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
                     vkBeginCommandBuffer(cmd, &beginInfo);
 
-                    foreach (var (_, action) in pending) action.Invoke(cmd);
+                    foreach (var (_, action) in pending) action.Invoke(ctx);
 
                     vkEndCommandBuffer(cmd);
 
-                    SubmitToQueue(_graphicsQueue, _graphicsFence, new[]
-                    {
+                    SubmitToQueue(_graphicsQueue, _graphicsFence, [
                         new VkCommandBufferSubmitInfo
                         {
                             sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                             commandBuffer = cmd,
                             deviceMask = 0
                         }
-                    });
+                    ]);
 
                     vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
                     var r = vkResetFences(_device, 1, pFences);

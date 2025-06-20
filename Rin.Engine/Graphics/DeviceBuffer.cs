@@ -6,10 +6,10 @@ namespace Rin.Engine.Graphics;
 /// <summary>
 ///     GPU Buffer
 /// </summary>
-public class DeviceBuffer : DeviceMemory, IDeviceBuffer, IDeviceBufferView
+public class DeviceBuffer : DeviceMemory, IDeviceBuffer
 {
     private nuint? _address;
-
+    
     /// <summary>
     ///     GPU Buffer
     /// </summary>
@@ -28,7 +28,7 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer, IDeviceBufferView
     public ulong Offset => 0;
     public ulong Size { get; }
 
-    public VkBuffer NativeBuffer { get; }
+    public VkBuffer NativeBuffer { get; set; }
 
     public ulong GetAddress()
     {
@@ -47,7 +47,7 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer, IDeviceBufferView
         return _address.Value;
     }
 
-    public IDeviceBufferView GetView(ulong offset, ulong size)
+    public DeviceBufferView GetView(ulong offset, ulong size)
     {
         return new DeviceBufferView(this, offset, size);
     }
@@ -63,8 +63,45 @@ public class DeviceBuffer : DeviceMemory, IDeviceBuffer, IDeviceBufferView
         return from.NativeBuffer;
     }
 
-    protected override void OnDispose(bool isManual)
+    public override void Dispose()
     {
         Allocator.FreeBuffer(this);
+        NativeBuffer = new VkBuffer();
+    }
+    
+    public void WriteArray<T>(IEnumerable<T> data, ulong offset = 0) where T : unmanaged
+    {
+        unsafe
+        {
+            var asArray = data.ToArray();
+            fixed (T* pData = asArray)
+            {
+                Write(pData, Utils.ByteSizeOf<T>(asArray.Length), offset);
+            }
+        }
+    }
+    
+    public void Write(IntPtr src,ulong size, ulong offset = 0)
+    {
+        unsafe
+        {
+            Write(src.ToPointer(),size, offset);
+        }
+    }
+
+    public void WriteStruct<T>(T src, ulong offset = 0) where T : unmanaged
+    {
+        unsafe
+        {
+            Write(&src, Utils.ByteSizeOf<T>(), offset);
+        }
+    }
+
+    public void WriteBuffer<T>(Buffer<T> src, ulong offset = 0) where T : unmanaged
+    {
+        unsafe
+        {
+            Write(src.GetData(), Utils.ByteSizeOf<T>(src.GetElementsCount()), offset);
+        }
     }
 }

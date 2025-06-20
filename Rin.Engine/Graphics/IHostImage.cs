@@ -7,7 +7,7 @@ public interface IHostImage : IDisposable
     public Extent2D Extent { get; }
     public uint Channels { get; }
 
-    public ImageFormat Format { get; }
+    public HostImageFormat Format { get; }
 
     public (ImageHandle handle, Task task) CreateTexture(ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat,
@@ -19,7 +19,12 @@ public interface IHostImage : IDisposable
     /// <param name="stream"></param>
     public void Save(Stream stream);
 
-    public void Mutate(Action<IMutationContext> mutator);
+    public IHostImage Mutate(Action<IMutationContext> mutator);
+
+    public IHostImage Mutate(Func<IMutationContext,IMutationContext> mutator) => Mutate((m) =>
+    {
+        mutator(m);
+    });
 
     public Buffer<byte> ToBuffer();
 }

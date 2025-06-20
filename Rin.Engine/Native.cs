@@ -338,6 +338,106 @@ internal static partial class Native
             [MarshalAs(UnmanagedType.FunctionPtr)] GenerateDelegate callback);
     }
 
+
+    public static partial class Video
+    {
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public unsafe delegate void AudioCallbackDelegate(float* data,int count,double time);
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public unsafe delegate void SourceReadCallbackDelegate(ulong position, ulong size,IntPtr destination);
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public unsafe delegate ulong SourceAvailableCallbackDelegate();
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public unsafe delegate ulong SourceLengthCallbackDelegate();
+
+        [LibraryImport(DllName, EntryPoint = "videoContextCreate")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial IntPtr ContextCreate();
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextHasVideo")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial int ContextHasVideo(IntPtr context);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextGetVideoExtent")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial Extent2D ContextGetVideoExtent(IntPtr context);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextSeek")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial void ContextSeek(IntPtr context,double time);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextHasAudio")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial int ContextHasAudio(IntPtr context);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextSetAudioCallback")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial void ContextSetAudioCallback(IntPtr context,[MarshalAs(UnmanagedType.FunctionPtr)] AudioCallbackDelegate callback);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextGetAudioSampleRate")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial int ContextGetAudioSampleRate(IntPtr context);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextGetAudioChannels")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial int ContextGetAudioChannels(IntPtr context);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextGetAudioTrackCount")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial int ContextGetAudioTrackCount(IntPtr context);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextSetAudioTrack")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial void ContextSetAudioTrack(IntPtr context,int track);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextGetDuration")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial double ContextGetDuration(IntPtr context);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextGetPosition")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial double ContextGetPosition(IntPtr context);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextSeek")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial void ContextSeek(double time);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextDecode")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial void ContextDecode(IntPtr context,double delta);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextEnded")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial int ContextEnded(IntPtr context);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextCopyRecentFrame")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial IntPtr ContextCopyRecentFrame(IntPtr context,double time);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextSetSource")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial void ContextSetSource(IntPtr context,IntPtr source);
+        
+        [LibraryImport(DllName, EntryPoint = "videoContextFree")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial void ContextFree(IntPtr context);
+        
+        [LibraryImport(DllName, EntryPoint = "videoSourceCreate")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial IntPtr SourceCreate(
+            [MarshalAs(UnmanagedType.FunctionPtr)] SourceReadCallbackDelegate readCallback,
+            [MarshalAs(UnmanagedType.FunctionPtr)] SourceAvailableCallbackDelegate availableCallback,
+            [MarshalAs(UnmanagedType.FunctionPtr)] SourceLengthCallbackDelegate lengthCallback);
+        
+        [LibraryImport(DllName, EntryPoint = "videoSourceFree")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        public static partial void SourceFree(IntPtr source);
+    }
+
     public static partial class Platform
     {
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -353,13 +453,13 @@ internal static partial class Native
 
         [LibraryImport(DllName, EntryPoint = "platformSelectFile")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        public static partial void SelectFile([MarshalAs(UnmanagedType.BStr)] string title,
-            [MarshalAs(UnmanagedType.Bool)] bool multiple, [MarshalAs(UnmanagedType.BStr)] string filter,
+        public static partial void SelectFile( [MarshalUsing(typeof(Utf8StringMarshaller))] string title,
+            [MarshalAs(UnmanagedType.Bool)] bool multiple,  [MarshalUsing(typeof(Utf8StringMarshaller))] string filter,
             [MarshalAs(UnmanagedType.FunctionPtr)] NativePathDelegate pathCallback);
 
         [LibraryImport(DllName, EntryPoint = "platformSelectPath")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        public static partial void SelectPath([MarshalAs(UnmanagedType.BStr)] string title,
+        public static partial void SelectPath( [MarshalUsing(typeof(Utf8StringMarshaller))] string title,
             [MarshalAs(UnmanagedType.Bool)] bool multiple,
             [MarshalAs(UnmanagedType.FunctionPtr)] NativePathDelegate pathCallback);
 
@@ -374,11 +474,10 @@ internal static partial class Native
                 Scroll,
                 CursorMove,
                 CursorButton,
-                CursorEnter,
-                CursorLeave,
-                Focus,
                 Close,
-                Text
+                Text,
+                CursorFocus,
+                KeyboardFocus,
             }
 
             [LibraryImport(DllName, EntryPoint = "platformWindowCreate")]
@@ -541,9 +640,8 @@ internal static partial class Native
                 [FieldOffset(0)] public ScrollEvent scroll;
                 [FieldOffset(0)] public CursorMoveEvent cursorMove;
                 [FieldOffset(0)] public CursorButtonEvent cursorButton;
-                [FieldOffset(0)] public CursorEnterEvent enter;
-                [FieldOffset(0)] public CursorLeaveEvent leave;
-                [FieldOffset(0)] public FocusEvent focus;
+                [FieldOffset(0)] public FocusEvent cursorFocus;
+                [FieldOffset(0)] public FocusEvent keyboardFocus;
                 [FieldOffset(0)] public CloseEvent close;
                 [FieldOffset(0)] public TextEvent text;
             }

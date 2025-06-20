@@ -4,7 +4,7 @@ using Rin.Engine.Graphics;
 namespace Rin.Engine.Views.Graphics;
 
 public class ViewsFrame(
-    SharedPassContext passContext,
+    SurfacePassContext passContext,
     IExecutionContext executionContext)
 {
     public IExecutionContext ExecutionContext = executionContext;

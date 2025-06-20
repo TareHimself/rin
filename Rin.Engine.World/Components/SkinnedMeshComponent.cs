@@ -7,7 +7,7 @@ using Rin.Engine.World.Mesh.Skinning;
 
 namespace Rin.Engine.World.Components;
 
-public class SkinnedMeshComponent : SceneComponent
+public class SkinnedMeshComponent : WorldComponent
 {
     public IMeshMaterial?[] Materials = [];
     public SkinnedMesh? Mesh { get; set; }

@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Rin.Engine;
 using Rin.Engine.Animation;
+using Rin.Engine.Audio;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.Windows;
@@ -19,7 +20,7 @@ using Rect = Rin.Engine.Views.Composite.Rect;
 
 namespace rin.Examples.ViewsTest;
 
-[Module(typeof(SViewsModule))]
+[Module(typeof(SViewsModule),typeof(SAudioModule))]
 [AlwaysLoad]
 public class SViewsTestModule : IModule
 {
@@ -153,17 +154,55 @@ public class SViewsTestModule : IModule
 
     private void TestAnimation(IWindowRenderer renderer)
     {
+        const string videoSource = $"/home/tare/Downloads/Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Music Video] - League of Legends (1080p, vp9).webm";
+        //const string videoSource = $"/home/tare/Downloads/WHY WE FIGHT ／／ EGO ft. Qing Madi ／／ Year 5 Music Video - VALORANT - VALORANT (720p, vp9).webm";
+        //const string videoSource = $"/home/tare/Downloads/Alan Wake 2 - 8k Ultra Ray Tracing Settings RTX 4090 Ultra Graphics! Next Gen PC Graphics Gameplay! - DubStepZz (2160p, vp9).webm";
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
             var list = new List
             {
-                Axis = Axis.Row
+                Axis = Axis.Row 
             };
 
             surf.Add(new Panel
             {
                 Slots =
                 [
+                    new PanelSlot()
+                    {
+                        // Child = new Rect
+                        // {
+                        //     Child = new Sizer
+                        //     {
+                        //         Child = new Sizer
+                        //         {
+                        //             Child = new Fitter
+                        //             {
+                        //                 Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
+                        //                 FittingMode = FitMode.Contain,
+                        //                 Padding = new Padding(10.0f),
+                        //                 Clip = Clip.None,
+                        //             },
+                        //             WidthOverride = 1000,
+                        //             HeightOverride = 1000,
+                        //         },
+                        //         WidthOverride = 500,
+                        //         HeightOverride = 500,
+                        //         Clip = Clip.Bounds,
+                        //         Padding = 10.0f
+                        //     },
+                        //     Color = Color.Green
+                        // },
+                        Child = new Fitter
+                        {
+                            Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
+                            FittingMode = FitMode.Contain,
+                            Padding = new Padding(10.0f),
+                            Clip = Clip.None,
+                        },
+                        MinAnchor = Vector2.Zero,
+                        MaxAnchor = Vector2.One,
+                    },
                     new PanelSlot
                     {
                         Child = list,
@@ -185,7 +224,7 @@ public class SViewsTestModule : IModule
                         MinAnchor = new Vector2(1.0f, 0.0f),
                         MaxAnchor = new Vector2(1.0f, 0.0f),
                         Alignment = new Vector2(1.0f, 0.0f)
-                    }
+                    },
                 ]
             });
 

@@ -44,12 +44,12 @@ public class DeviceMesh : IMesh, IDisposable
         return Surfaces[surfaceIndex];
     }
 
-    public IDeviceBufferView GetVertices()
+    public DeviceBufferView GetVertices()
     {
         return VertexBuffer.GetView();
     }
 
-    public IDeviceBufferView GetVertices(int surfaceIndex)
+    public DeviceBufferView GetVertices(int surfaceIndex)
     {
         var surface = Surfaces[surfaceIndex];
         var formatSize = GetVertexFormatSize();
@@ -67,7 +67,7 @@ public class DeviceMesh : IMesh, IDisposable
         return GetSurface(surfaceIndex).VertexCount;
     }
 
-    public IDeviceBufferView GetIndices()
+    public DeviceBufferView GetIndices()
     {
         return IndexBuffer.GetView();
     }
