@@ -2,7 +2,7 @@
 
 namespace Rin.Engine.Views;
 
-public class Padding : ICopyable<Padding>
+public record struct Padding
 {
     public float Bottom;
     public float Left;

@@ -182,10 +182,12 @@ public class VideoPlayer : ContentView
 
         return Vector2.Zero;
     }
+    
+    private Matrix4x4 _lastCollectAbsoluteTransform = Matrix4x4.Identity;
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        
+        _lastCollectAbsoluteTransform = transform;
         if (_player.HasVideo)
         {
             var buff = _player.CopyRecentFrame();
@@ -197,7 +199,11 @@ public class VideoPlayer : ContentView
         var barOffset = contentSize with{ X = 0 };
         barOffset.Y -= barSize;
         var barTransform = transform.Translate(barOffset);
-        
+
+        if (IsHovered)
+        {
+            commands.AddText(transform, "Noto Sans", "Hovered");
+        }
         commands.AddRect(barTransform,new Vector2(contentSize.X * (float)(_player.Position / _player.Duration),barSize),Color.White);
         commands.AddRect(barTransform,new Vector2(contentSize.X * (float)(_player.DecodedPosition / _player.Duration),barSize),Color.White with{ A = 0.5f});
     }
@@ -225,8 +231,7 @@ public class VideoPlayer : ContentView
 
         if (e.Button is CursorButton.Two)
         {
-            var position = e.Position;
-            var localPosition = e.Position.Transform(GetLocalTransform().Inverse());
+            var localPosition = e.Position.Transform(_lastCollectAbsoluteTransform.Inverse());
             var size = GetContentSize();
             var percent = localPosition.X / size.X;
             var time = _player.Duration * percent;

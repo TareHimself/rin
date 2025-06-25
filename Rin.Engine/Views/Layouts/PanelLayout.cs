@@ -65,7 +65,6 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
     public override Vector2 Apply(Vector2 availableSpace)
     {
         foreach (var slot in GetSlots()) LayoutSlot(slot, availableSpace);
-        ;
 
         return availableSpace;
     }

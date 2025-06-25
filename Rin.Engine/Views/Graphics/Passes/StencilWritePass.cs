@@ -1,4 +1,5 @@
-﻿using Rin.Engine.Graphics;
+﻿using System.Numerics;
+using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
 
@@ -21,7 +22,7 @@ public class StencilWritePass : IPass
         _mask = mask;
         _clips = clips;
     }
-
+    
     private uint StencilImageId => _surfaceContext.StencilImageId;
     public uint Id { get; set; }
     public bool IsTerminal => false;
@@ -44,9 +45,20 @@ public class StencilWritePass : IPass
                 .DisableFaceCulling()
                 .StencilWriteOnly()
                 .SetStencilWriteMask(_mask);
-            _stencilShader.Push(ctx, clipsBuffer.GetAddress());
+            _stencilShader.Push(ctx, new PushConstants
+            {
+                Projection = _surfaceContext.ProjectionMatrix,
+                ClipsBufferAddress = clipsBuffer.GetAddress()
+            });
             ctx.Draw(6, (uint)_clips.Length)
                 .EndRendering();
         }
     }
+
+    private struct PushConstants
+    {
+        public required Matrix4x4 Projection;
+        public required ulong ClipsBufferAddress;
+    }
+
 }

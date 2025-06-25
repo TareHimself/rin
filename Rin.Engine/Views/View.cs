@@ -11,7 +11,7 @@ namespace Rin.Engine.Views;
 
 public abstract class View : IDisposable, IAnimatable, IUpdatable
 {
-    private readonly Padding _padding = new();
+    private Padding _padding;
     private float _angle;
     private Vector2? _cachedDesiredSize;
     private Matrix4x4? _cachedRelativeTransform = Matrix4x4.Identity;
@@ -105,10 +105,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         };
         set
         {
-            _padding.Top = value.Top;
-            _padding.Bottom = value.Bottom;
-            _padding.Left = value.Left;
-            _padding.Right = value.Right;
+            _padding = value;
             Invalidate(InvalidationType.DesiredSize);
         }
     }

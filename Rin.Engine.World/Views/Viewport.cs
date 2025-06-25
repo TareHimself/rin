@@ -228,7 +228,7 @@ public class Viewport : ContentView
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         commands.Add(new DrawViewportCommand(_targetCamera, GetContentSize(), transform, _worldRenderer));
-        commands.AddText("Noto Sans", GetModeText(), transform);
+        commands.AddText(transform, "Noto Sans", GetModeText());
     }
 
 

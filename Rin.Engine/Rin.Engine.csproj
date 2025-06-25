@@ -39,14 +39,13 @@
 
     <Target Name="CleanNative" BeforeTargets="CoreClean">
         <ItemGroup>
-            <_Dirs Include=".\native\bin\$(Configuration)"/>
-            <_Dirs Include=".\native\build\$(Configuration)"/>
+            <_Dirs Include=".\native\build_rin\$(Configuration)"/>
         </ItemGroup>
         <RemoveDir Directories="@(_Dirs)"/>
     </Target>
 
     <ItemGroup>
-        <NativeFiles Include=".\native\bin\$(Configuration)\*.*" Visible="false"/>
+        <NativeFiles Include=".\native\build_rin\$(Configuration)\$(Configuration)\*.*" Visible="false"/>
         <Content Include="@(NativeFiles)" Visible="false">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
             <Link>%(Filename)%(Extension)</Link>
@@ -54,11 +53,10 @@
     </ItemGroup>
 
     <Target Name="BuildNative" BeforeTargets="BeforeBuild">
-        <Exec
-                Command="cmake -DCMAKE_BUILD_TYPE=$(Configuration) -S ./native/ -B ./native/build/$(Configuration)"/>
-        <Exec Command="cmake --build ./native/build/$(Configuration) -j 4"/>
+        <Exec Command="cmake --preset Rin-$(Configuration) --fresh" WorkingDirectory=".\native"/>
+        <Exec Command="cmake --build --preset Rin-$(Configuration)" WorkingDirectory=".\native"/>
         <ItemGroup>
-            <NativeFiles Include=".\native\bin\$(Configuration)\*.*" Visible="false"/>
+            <NativeFiles Include=".\native\build_rin\$(Configuration)\$(Configuration)\*.*" Visible="false"/>
             <Content Include="@(NativeFiles)" Visible="false">
                 <CopyToOutputDirectory>Always</CopyToOutputDirectory>
                 <Link>%(Filename)%(Extension)</Link>

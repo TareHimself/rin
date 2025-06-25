@@ -39,7 +39,7 @@ public class ChatView : FlexBox
             {
                 Child = new Canvas
                 {
-                    Paint = (self, transform, cmds) => { cmds.AddText("Noto Sans", "Hello World", transform, 60.0f); }
+                    Paint = (self, transform, cmds) => { cmds.AddText(transform, "Noto Sans", "Hello World", 60.0f); }
                 }, //_chatItems,
                 Fit = CrossFit.Fill,
                 Flex = 1

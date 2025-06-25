@@ -1,0 +1,72 @@
+﻿{
+    "version": 4,
+    "include": [
+        "build/generators/CMakePresets.json"
+    ],
+    "configurePresets": [
+        {
+            "name": "conan-default-override",
+            "inherits": "conan-default",
+            "toolchainFile": "${sourceDir}/build/generators/conan_toolchain.cmake"
+        },
+        {
+            "name": "conan-default-override-debug",
+            "inherits": "conan-default-override",
+            "cacheVariables": {
+                "RIN_BUILD_TEST_MAIN": "ON",
+                "CMAKE_BUILD_TYPE" : "Debug"
+            }
+        },
+        {
+            "name": "conan-default-override-release",
+            "inherits": "conan-default-override",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE" : "Release"
+            }
+        },
+         {
+            "name": "Rin-Debug",
+            "inherits": "conan-default-override-debug",
+            "binaryDir" : "build_rin/Debug"
+        },
+         {
+            "name": "Rin-Release",
+            "inherits": "conan-default-override-release",
+            "binaryDir" : "build_rin/Release"
+        }
+    ],
+     "buildPresets": [
+        {
+            "name": "Debug",
+            "inherits": "conan-debug",
+            "configurePreset": "conan-default-override-debug"
+        },
+        {
+            "name": "Release",
+            "inherits": "conan-release",
+            "configurePreset": "conan-default-override-release"
+        },
+        {
+            "name": "Rin-Debug",
+            "inherits": "Debug",
+            "configurePreset": "Rin-Debug"
+        },
+        {
+            "name": "Rin-Release",
+            "inherits": "Release",
+            "configurePreset": "Rin-Release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "Debug",
+            "inherits": "conan-debug",
+            "configurePreset": "conan-default-override-debug"
+        },
+        {
+            "name": "Release",
+            "inherits": "conan-release",
+            "configurePreset": "conan-default-override-release"
+        }
+    ]
+}

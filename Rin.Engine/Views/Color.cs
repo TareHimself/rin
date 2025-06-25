@@ -40,7 +40,7 @@ public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOp
     public static Color FromHtml(string hexCode)
     {
         var c = ColorTranslator.FromHtml(hexCode);
-        return new Color(Convert.ToInt16(c.R), Convert.ToInt16(c.G), Convert.ToInt16(c.B), Convert.ToInt16(c.A));
+        return new Color(c.R / 255f, c.G  / 255f, c.B  / 255f, c.A  / 255f);
     }
 
     public static Color operator -(Color left, Color right)

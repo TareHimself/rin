@@ -11,12 +11,21 @@
 #include <combaseapi.h>
 #include <stringapiset.h>
 #include <dwmapi.h>
+#include <unordered_map>
+#include <windowsx.h>
 #pragma comment (lib, "Dwmapi")
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static HINSTANCE INSTANCE;
 const LPCSTR DEFAULT_WINDOW_CLASS_NAME = "Default Window Class";
 
+struct WindowInfo
+{
+    HWND hwnd{};
+    bool trackingMouse{false};
+};
+
+static std::unordered_map<HWND, WindowInfo*> HWND_TO_WINDOW_INFO{};
 static std::wstring stringToWstring(const std::string& str)
 {
     return {str.begin(), str.end()};
@@ -50,6 +59,11 @@ EXPORT_IMPL void platformInit()
         wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
         RegisterClass(&wc);
     }
+}
+
+void platformShutdown()
+{
+
 }
 
 EXPORT_IMPL void platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback)
@@ -376,18 +390,137 @@ static std::list<WindowEvent> PENDING_EVENTS = {};
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    if (!HWND_TO_WINDOW_INFO.contains(hwnd)) return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    auto windowInfo = HWND_TO_WINDOW_INFO[hwnd];
+
     switch(uMsg)
     {
-    // case WM_KEYDOWN:
-    //     break;
     // case WM_KEYUP:
     //     break;
+    case WM_MOUSEHOVER:
+        {
+
+            return 0;
+        }
+    case WM_MOUSELEAVE:
+        {
+            windowInfo->trackingMouse = false;
+            WindowEvent ev{};
+            new(&ev.cursorFocus) FocusEvent{
+                .type = WindowEventType::CursorFocus,
+                .handle = windowInfo,
+                .focused = 0,
+            };
+            PENDING_EVENTS.push_back(ev);
+            return 0;
+        }
+    case WM_MOUSEMOVE:
+        {
+            WindowEvent ev{};
+
+            if (!windowInfo->trackingMouse)
+            {
+                TRACKMOUSEEVENT event{};
+                event.dwFlags = TME_LEAVE;
+                event.dwHoverTime = 0;
+                event.hwndTrack = hwnd;
+                event.cbSize = sizeof(TRACKMOUSEEVENT);
+                if (TrackMouseEvent(&event))
+                {
+                    windowInfo->trackingMouse = true;
+
+                    new(&ev.cursorFocus) FocusEvent{
+                        .type = WindowEventType::CursorFocus,
+                        .handle = windowInfo,
+                        .focused = 1,
+                    };
+                    PENDING_EVENTS.push_back(ev);
+                }
+                else
+                {
+                    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+                }
+            }
+
+            const float x = GET_X_LPARAM(lParam);
+            const float y = GET_Y_LPARAM(lParam);
+
+            new(&ev.cursorMove) CursorMoveEvent{
+                .type = WindowEventType::CursorMove,
+                .handle = windowInfo,
+                .position = Vector2{x,y},
+            };
+            PENDING_EVENTS.push_back(ev);
+            return 0;
+        }
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONUP:
+    case WM_XBUTTONDOWN:
+    case WM_XBUTTONUP: {
+        WindowEvent ev{};
+
+        // Map message to InputState
+        const bool isDown = (uMsg == WM_LBUTTONDOWN || uMsg == WM_RBUTTONDOWN ||
+                             uMsg == WM_MBUTTONDOWN || uMsg == WM_XBUTTONDOWN);
+        const auto state = isDown ? InputState::Pressed : InputState::Released;
+
+        // Determine which button
+        CursorButton button;
+        switch (uMsg) {
+            case WM_LBUTTONDOWN:
+            case WM_LBUTTONUP:
+                button = CursorButton::One; break;
+            case WM_RBUTTONDOWN:
+            case WM_RBUTTONUP:
+                button = CursorButton::Two; break;
+            case WM_MBUTTONDOWN:
+            case WM_MBUTTONUP:
+                button = CursorButton::Three; break;
+            case WM_XBUTTONDOWN:
+            case WM_XBUTTONUP: {
+                WORD btn = GET_XBUTTON_WPARAM(wParam);
+                if (btn == XBUTTON1)
+                    button = CursorButton::Four;
+                else if (btn == XBUTTON2)
+                    button = CursorButton::Five;
+                else
+                    button = CursorButton::Six; // fallback
+                break;
+            }
+            default:
+                button = CursorButton::One; break; // fallback
+        }
+
+        // Modifier keys
+        Flags<InputModifier> modifiers{};
+        if (GetKeyState(VK_SHIFT) & KF_UP)    modifiers.Add(InputModifier::Shift);
+        if (GetKeyState(VK_CONTROL) & KF_UP)  modifiers.Add(InputModifier::Control);
+        if (GetKeyState(VK_MENU) & KF_UP)     modifiers.Add(InputModifier::Alt);
+        if ((GetKeyState(VK_LWIN) & KF_UP) || (GetKeyState(VK_RWIN) & KF_UP))
+            modifiers.Add(InputModifier::Super);
+        if (GetKeyState(VK_CAPITAL) & 0x0001) modifiers.Add(InputModifier::CapsLock);
+        if (GetKeyState(VK_NUMLOCK) & 0x0001) modifiers.Add(InputModifier::NumLock);
+
+        new(&ev.cursorButton) CursorButtonEvent{
+            .type = WindowEventType::CursorButton,
+            .handle = windowInfo,
+            .button = button,
+            .state = state,
+            .modifier = static_cast<InputModifier>(modifiers),
+        };
+        PENDING_EVENTS.push_back(ev);
+        return 0;
+    }
     case WM_CHAR:
         {
             WindowEvent ev{};
             new(&ev.text) TextEvent{
                 .type = WindowEventType::Text,
-                .handle = hwnd,
+                .handle = windowInfo,
                 .text = static_cast<char16_t>(wParam)
             };
             PENDING_EVENTS.push_back(ev);
@@ -421,7 +554,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             WindowEvent ev{};
             new(&ev.key) KeyEvent{
                 .type = WindowEventType::Key,
-                .handle = hwnd,
+                .handle = windowInfo,
                 .key = key,
                 .state = state,
                 .modifier = static_cast<InputModifier>(modifiers),
@@ -436,9 +569,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             WindowEvent ev{};
             new(&ev.resize) ResizeEvent{
                 .type = WindowEventType::Resize,
-                .handle = hwnd,
-                .rect = platformWindowGetRect(hwnd),
-                .drawRect = platformWindowGetDrawRect(hwnd)
+                .handle = windowInfo,
+                .size = platformWindowGetSize(windowInfo)
             };
             if(!PENDING_EVENTS.empty() && PENDING_EVENTS.back().type == WindowEventType::Resize)
             {
@@ -455,7 +587,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             WindowEvent ev{};
             new(&ev.close) CloseEvent{
                 .type = WindowEventType::Close,
-                .handle = hwnd,
+                .handle = windowInfo,
             };
             PENDING_EVENTS.push_back(ev);
             return 0;
@@ -513,32 +645,37 @@ EXPORT_IMPL void* platformWindowCreate(const char* title, int width, int height,
     }
 
     ShowWindow(hwnd,flags.Has(WindowFlags::Visible) ? SW_SHOW : SW_HIDE);
-    return hwnd;
+
+    auto ptr = new WindowInfo{hwnd};
+    HWND_TO_WINDOW_INFO.emplace(hwnd,ptr);
+    return ptr;
 }
 EXPORT_IMPL void platformWindowDestroy(void* handle)
 {
-    const auto asHandle = static_cast<HWND>(handle);
-    DestroyWindow(asHandle);
+    const auto asWindowInfo = static_cast<WindowInfo*>(handle);
+    HWND_TO_WINDOW_INFO.erase(asWindowInfo->hwnd);
+    DestroyWindow(asWindowInfo->hwnd);
+    delete asWindowInfo;
 }
 EXPORT_IMPL void platformWindowShow(void* handle)
 {
-    const auto asHandle = static_cast<HWND>(handle);
-    ShowWindow(asHandle, SW_SHOW);
+    const auto asWindowInfo = static_cast<WindowInfo*>(handle);
+    ShowWindow(asWindowInfo->hwnd, SW_SHOW);
 }
 EXPORT_IMPL void platformWindowHide(void* handle)
 {
-    const auto asHandle = static_cast<HWND>(handle);
-    ShowWindow(asHandle, SW_HIDE);
+    const auto asWindowInfo = static_cast<WindowInfo*>(handle);
+    ShowWindow(asWindowInfo->hwnd, SW_HIDE);
 }
 EXPORT_IMPL Vector2 platformWindowGetCursorPosition(void* handle)
 {
-    const auto hwnd = static_cast<HWND>(handle);
+    const auto hwnd = static_cast<WindowInfo*>(handle);
 
     POINT pt;
     if(GetCursorPos(&pt))
     {
         // Convert from screen coordinates to client (drawable area) coordinates
-        ScreenToClient(hwnd,&pt);
+        ScreenToClient(hwnd->hwnd,&pt);
         return {
             .x = static_cast<float>(pt.x),
             .y = static_cast<float>(pt.y)
@@ -552,69 +689,104 @@ EXPORT_IMPL Vector2 platformWindowGetCursorPosition(void* handle)
 }
 EXPORT_IMPL void platformWindowSetCursorPosition(void* handle, Vector2 position)
 {
-    const auto [offset, extent] = platformWindowGetDrawRect(handle);
-    SetCursorPos(static_cast<int>(offset.x) + static_cast<int>(position.x),static_cast<int>(offset.y) + static_cast<int>(position.y));
+    // RECT rect;
+    //
+    // const auto hwnd = static_cast<WindowInfo*>(handle);
+    //
+    // if(GetClientRect(hwnd,&rect))
+    // {
+    //
+    //     const auto width = rect.right - rect.left;
+    //     const auto height = rect.bottom - rect.top;
+    //     return Extent2D{
+    //         .width = static_cast<uint32_t>(width),
+    //         .height = static_cast<uint32_t>(height)
+    //     };
+    // }
+    //
+    // const auto [offset, extent] = platformWindowGetDrawRect(handle);
+    // SetCursorPos(static_cast<int>(offset.x) + static_cast<int>(position.x),static_cast<int>(offset.y) + static_cast<int>(position.y));
 }
 
-EXPORT_IMPL WindowRect platformWindowGetRect(void* handle)
+EXPORT_IMPL Extent2D platformWindowGetSize(void* handle)
 {
     RECT rect;
 
-    const auto hwnd = static_cast<HWND>(handle);
+    const auto asWindowInfo = static_cast<WindowInfo*>(handle);
 
-    if(GetWindowRect(hwnd,&rect))
+    if(GetClientRect(asWindowInfo->hwnd,&rect))
     {
+
         const auto width = rect.right - rect.left;
         const auto height = rect.bottom - rect.top;
-        return {
-            .position = Point2D{
-                .x = static_cast<int>(rect.left),
-                .y = static_cast<int>(rect.top)
-            },
-            .extent = Extent2D{
-                .width = static_cast<uint32_t>(width),
-                .height = static_cast<uint32_t>(height)
-            }
+        return Extent2D{
+            .width = static_cast<uint32_t>(width),
+            .height = static_cast<uint32_t>(height)
         };
     }
 
     return {};
 }
-EXPORT_IMPL WindowRect platformWindowGetDrawRect(void* handle)
-{
-    RECT rect;
 
-    const auto hwnd = static_cast<HWND>(handle);
-
-    if(GetClientRect(hwnd,&rect))
-    {
-        const auto width = rect.right - rect.left;
-        const auto height = rect.bottom - rect.top;
-        return {
-            .position = Point2D{
-                .x = static_cast<int>(rect.left),
-                .y = static_cast<int>(rect.top)
-            },
-            .extent = Extent2D{
-                .width = static_cast<uint32_t>(width),
-                .height = static_cast<uint32_t>(height)
-            }
-        };
-    }
-
-    return {};
-}
+// EXPORT_IMPL WindowRect platformWindowGetRect(void* handle)
+// {
+//     RECT rect;
+//
+//     const auto hwnd = static_cast<WindowInfo*>(handle);
+//
+//     if(GetWindowRect(hwnd,&rect))
+//     {
+//         const auto width = rect.right - rect.left;
+//         const auto height = rect.bottom - rect.top;
+//         return {
+//             .position = Point2D{
+//                 .x = static_cast<int>(rect.left),
+//                 .y = static_cast<int>(rect.top)
+//             },
+//             .extent = Extent2D{
+//                 .width = static_cast<uint32_t>(width),
+//                 .height = static_cast<uint32_t>(height)
+//             }
+//         };
+//     }
+//
+//     return {};
+// }
+// EXPORT_IMPL WindowRect platformWindowGetDrawRect(void* handle)
+// {
+//     RECT rect;
+//
+//     const auto hwnd = static_cast<WindowInfo*>(handle);
+//
+//     if(GetClientRect(hwnd,&rect))
+//     {
+//         const auto width = rect.right - rect.left;
+//         const auto height = rect.bottom - rect.top;
+//         return {
+//             .position = Point2D{
+//                 .x = static_cast<int>(rect.left),
+//                 .y = static_cast<int>(rect.top)
+//             },
+//             .extent = Extent2D{
+//                 .width = static_cast<uint32_t>(width),
+//                 .height = static_cast<uint32_t>(height)
+//             }
+//         };
+//     }
+//
+//     return {};
+// }
 
 EXPORT_IMPL VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, void* handle)
 {
-    const auto hwnd = static_cast<HWND>(handle);
+    const auto asWindowInfo = static_cast<WindowInfo*>(handle);
 
     const auto createInfo = VkWin32SurfaceCreateInfoKHR{
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
         .flags = 0,
         .hinstance = INSTANCE,
-        .hwnd = hwnd,
+        .hwnd = asWindowInfo->hwnd,
     };
     VkSurfaceKHR surface{};
     vkCreateWin32SurfaceKHR(instance,&createInfo,nullptr,&surface);
@@ -650,7 +822,7 @@ EXPORT_IMPL void platformWindowStopTyping(void* handle)
 EXPORT_IMPL void platformWindowSetSize(void* handle,Extent2D size)
 {
 /*
-    auto hwnd = static_cast<HWND>(handle);
+    auto hwnd = static_cast<WindowInfo*>(handle);
     auto cRect = platformWindowGetDrawRect(handle);
     auto rect = platformWindowGetRect(handle);
     
@@ -659,7 +831,7 @@ EXPORT_IMPL void platformWindowSetSize(void* handle,Extent2D size)
 
 EXPORT_IMPL void platformWindowSetPosition(void* handle,Point2D position)
 {
-    /*auto hwnd = static_cast<HWND>(handle);
+    /*auto hwnd = static_cast<WindowInfo*>(handle);
     SetWindowPos(hwnd,HWND_NOTOPMOST,position.x,position.y,0,0,SWP_NOREPOSITION);*/
 }
 #endif

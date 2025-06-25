@@ -37,7 +37,7 @@ public class SViewsTestModule : IModule
         }
         SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
-        SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", WindowFlags.Visible | WindowFlags.Frameless);
+        SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", WindowFlags.Visible | WindowFlags.Resizable);
 
 
         //TestText();
@@ -154,9 +154,6 @@ public class SViewsTestModule : IModule
 
     private void TestAnimation(IWindowRenderer renderer)
     {
-        const string videoSource = $"/home/tare/Downloads/Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Music Video] - League of Legends (1080p, vp9).webm";
-        //const string videoSource = $"/home/tare/Downloads/WHY WE FIGHT ／／ EGO ft. Qing Madi ／／ Year 5 Music Video - VALORANT - VALORANT (720p, vp9).webm";
-        //const string videoSource = $"/home/tare/Downloads/Alan Wake 2 - 8k Ultra Ray Tracing Settings RTX 4090 Ultra Graphics! Next Gen PC Graphics Gameplay! - DubStepZz (2160p, vp9).webm";
         if (SViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
             var list = new List
@@ -170,61 +167,45 @@ public class SViewsTestModule : IModule
                 [
                     new PanelSlot()
                     {
-                        // Child = new Rect
-                        // {
-                        //     Child = new Sizer
-                        //     {
-                        //         Child = new Sizer
-                        //         {
-                        //             Child = new Fitter
-                        //             {
-                        //                 Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
-                        //                 FittingMode = FitMode.Contain,
-                        //                 Padding = new Padding(10.0f),
-                        //                 Clip = Clip.None,
-                        //             },
-                        //             WidthOverride = 1000,
-                        //             HeightOverride = 1000,
-                        //         },
-                        //         WidthOverride = 500,
-                        //         HeightOverride = 500,
-                        //         Clip = Clip.Bounds,
-                        //         Padding = 10.0f
-                        //     },
-                        //     Color = Color.Green
-                        // },
                         Child = new Fitter
                         {
                             Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
-                            FittingMode = FitMode.Contain,
-                            Padding = new Padding(10.0f),
-                            Clip = Clip.None,
+                            FittingMode = FitMode.Cover,
+                            Padding = 50.0f,
+                            Clip = Clip.Bounds
                         },
+                        // Child = new Fitter
+                        // {
+                        //     Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
+                        //     FittingMode = FitMode.Contain,
+                        //     Padding = new Padding(10.0f),
+                        //     Clip = Clip.None,
+                        // },
                         MinAnchor = Vector2.Zero,
                         MaxAnchor = Vector2.One,
                     },
-                    new PanelSlot
-                    {
-                        Child = list,
-                        MinAnchor = new Vector2(0.5f),
-                        MaxAnchor = new Vector2(0.5f),
-                        Alignment = new Vector2(0.5f),
-                        SizeToContent = true
-                    },
-                    new PanelSlot
-                    {
-                        Child = new Rect
-                        {
-                            Child = new FpsView(),
-                            Padding = new Padding(20.0f),
-                            BorderRadius = new Vector4(10.0f),
-                            Color = Color.Black with { A = 0.7f }
-                        },
-                        SizeToContent = true,
-                        MinAnchor = new Vector2(1.0f, 0.0f),
-                        MaxAnchor = new Vector2(1.0f, 0.0f),
-                        Alignment = new Vector2(1.0f, 0.0f)
-                    },
+                    // new PanelSlot
+                    // {
+                    //     Child = list,
+                    //     MinAnchor = new Vector2(0.5f),
+                    //     MaxAnchor = new Vector2(0.5f),
+                    //     Alignment = new Vector2(0.5f),
+                    //     SizeToContent = true
+                    // },
+                    // new PanelSlot
+                    // {
+                    //     Child = new Rect
+                    //     {
+                    //         Child = new FpsView(),
+                    //         Padding = new Padding(20.0f),
+                    //         BorderRadius = new Vector4(10.0f),
+                    //         Color = Color.Black with { A = 0.7f }
+                    //     },
+                    //     SizeToContent = true,
+                    //     MinAnchor = new Vector2(1.0f, 0.0f),
+                    //     MaxAnchor = new Vector2(1.0f, 0.0f),
+                    //     Alignment = new Vector2(1.0f, 0.0f)
+                    // },
                 ]
             });
 

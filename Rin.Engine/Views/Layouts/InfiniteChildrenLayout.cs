@@ -94,11 +94,6 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 
     public ISlot? FindSlot(View view)
     {
-        // lock (_slots)
-        // {
-        if (_slotMap.TryGetValue(view, out var value)) return value;
-        // }
-
-        return null;
+        return _slotMap.GetValueOrDefault(view);
     }
 }

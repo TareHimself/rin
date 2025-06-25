@@ -83,7 +83,7 @@ EXPORT_IMPL void * videoContextCreate() {
     return ctx;
 }
 
-EXPORT_IMPL void * videoContextFromFile(char *filename) {
+EXPORT_IMPL void * videoContextFromFile(const char *filename) {
     const auto ctx = new VideoDecodeContext{};
     ctx->decoder = std::make_shared<wdx::SourceDecoder>();
     ctx->decoder->SetSource(std::make_shared<wdx::FileSource>(filename));

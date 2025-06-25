@@ -21,53 +21,49 @@ public abstract class CompositeView : View
 
     public override void HandleEvent(ISurfaceEvent e, in Matrix4x4 transform)
     {
-        var withPadding = transform.Translate(new Vector2(Padding.Left, Padding.Top));
-        var slots = ComputeHitTestableSlotsForEvent(e, withPadding);
-        if (slots.NotEmpty())
         {
-            if (e is IHandleableEvent asHandleable)
-                foreach (var (slot, slotTransform) in slots)
+            if (e is IPositionalEvent asPositionalEvent)
+            {
+                var withPadding = transform.Translate(new Vector2(Padding.Left, Padding.Top));
+                var testContent = true;
+                if (Padding != default)
                 {
-                    slot.Child.HandleEvent(e, slotTransform);
-                    if (asHandleable.Handled) return;
+                    testContent = Views.Rect.PointWithin(GetContentSize(), withPadding, asPositionalEvent.Position);
                 }
-            else
-                foreach (var (slot, slotTransform) in slots)
-                    slot.Child.HandleEvent(e, slotTransform);
-        }
 
+                if (testContent)
+                {
+                    var slots = ComputeHitTestableSlotsForEvent(asPositionalEvent, withPadding);
+                    if (slots.NotEmpty())
+                    {
+                        if (e is IHandleableEvent asHandleable)
+                            foreach (var (slot, slotTransform) in slots)
+                            {
+                                slot.Child.HandleEvent(e, slotTransform);
+                                if (asHandleable.Handled) return;
+                            }
+                        else
+                            foreach (var (slot, slotTransform) in slots)
+                                slot.Child.HandleEvent(e, slotTransform);
+                    }
+                }
+            }
+        }
         base.HandleEvent(e, transform);
     }
 
-    protected virtual Pair<ISlot, Matrix4x4>[] ComputeHitTestableSlotsForEvent(ISurfaceEvent e, Matrix4x4 transform)
+    protected virtual Pair<ISlot, Matrix4x4>[] ComputeHitTestableSlotsForEvent(IPositionalEvent e, Matrix4x4 transform)
     {
-        switch (e)
+        if (!IsChildrenHitTestable) return [];
+        var enumerator = GetHitTestableSlots()
+            .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c, transform)))
+            .Where(c => c.First.Child.PointWithin(c.Second, e.Position));
+        if (e.ReverseTestOrder)
         {
-            case CursorDownSurfaceEvent ev:
-                if (IsChildrenHitTestable)
-                    return GetHitTestableSlots()
-                        .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c, transform)))
-                        .Where(c => c.First.Child.PointWithin(c.Second, ev.Position))
-                        .AsReversed()
-                        .ToArray();
-                break;
-            case CursorMoveSurfaceEvent ev:
-                if (IsChildrenHitTestable)
-                    return GetHitTestableSlots()
-                        .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c, transform)))
-                        .Where(c => c.First.Child.PointWithin(c.Second, ev.Position))
-                        .ToArray();
-                break;
-            case ScrollSurfaceEvent ev:
-                if (IsChildrenHitTestable)
-                    return GetHitTestableSlots()
-                        .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c, transform)))
-                        .Where(c => c.First.Child.PointWithin(c.Second, ev.Position))
-                        .ToArray();
-                break;
+            enumerator = enumerator.AsReversed();
         }
-
-        return [];
+        
+        return enumerator.ToArray();
     }
 
     public override void SetSurface(Surface? surface)
@@ -110,12 +106,14 @@ public abstract class CompositeView : View
         commands.IncrDepth();
         var clipRect = clip;
 
-        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transform, GetContentSize());
+        
+        var transformWithPadding = Padding.Left > 0f || Padding.Top > 0f ? transform.Translate(new Vector2(Padding.Left, Padding.Top)) : transform;
 
-        if (Clip == Clip.Bounds) clipRect = ComputeAABB(transform).Clamp(clipRect);
+        
+        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transformWithPadding, GetContentSize());
 
-        var transformWithPadding = transform.Translate(new Vector2(Padding.Left, Padding.Top));
-
+        if (Clip == Clip.Bounds) clipRect = ComputeAABB(transformWithPadding).Clamp(clipRect);
+        
         List<Pair<View, Matrix4x4>> toCollect = [];
 
         foreach (var slot in GetCollectableSlots())

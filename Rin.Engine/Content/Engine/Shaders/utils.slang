@@ -176,7 +176,7 @@ float2 normalizePoint(float4 viewport, float2 point)
     return float2(mapRangeUnClamped(point.x, 0.0, viewport.z, -1.0, 1.0), mapRangeUnClamped(point.y, 0.0, viewport.w, -1.0, 1.0));
 }
 
-const static float2 vertices[] = { float2(-0.5), float2(0.5, -0.5), float2(0.5), float2(-0.5), float2(0.5), float2(-0.5, 0.5) };
+const static float2 _utils_internal_vertices[] = { float2(-0.5), float2(0.5, -0.5), float2(0.5), float2(-0.5), float2(0.5), float2(-0.5, 0.5) };
 
 void generateVertex(float4 viewport, float4 extent, int index, out float4 location, out float2 uv)
 {
@@ -188,11 +188,11 @@ void generateVertex(float4 viewport, float4 extent, int index, out float4 locati
 
     // float2 vertex[] = { float2(-0.5), float2(0.5, -0.5), float2(0.5), float2(-0.5), float2(0.5), float2(-0.5, 0.5) };
 
-    float4 vLoc = float4(midpoint + (size * vertices[index]), 0, 0);
+    float4 vLoc = float4(midpoint + (size * _utils_internal_vertices[index]), 0, 0);
 
     location = float4(vLoc.xy, 0, 1);
 
-    uv = vertices[index] + 0.5;
+    uv = _utils_internal_vertices[index] + 0.5;
 }
 
 float2 doProjectionAndTransformation(float2 pos, float4x4 projection, float3x3 transform)

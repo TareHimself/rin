@@ -147,42 +147,47 @@ public abstract class Surface : IDisposable, IUpdatable
         List<IPass> passes = [new CreateImagesPass(context)];
         {
             var uniqueClipStacks = rawDrawCommands.UniqueClipStacks;
-            Dictionary<string, uint> computedClipStacks = [];
+            Dictionary<string, uint> computedClipMasks = [];
             List<ICommand> pendingCommands = [];
-            uint currentMask = 0x01;
+            uint shifted = 1;
+            uint currentMask = 0x2;
             foreach (var rawCommand in rawCommands)
             {
-                if (currentMask == 128)
+                if (shifted == 31)
                 {
                     ProcessPendingCommands(pendingCommands, context, passes);
                     pendingCommands.Clear();
-                    computedClipStacks.Clear();
-                    currentMask = 0x01;
+                    computedClipMasks.Clear();
+                    currentMask = 0x02;
+                    shifted = 1;
                     passes.Add(new StencilClearPass(context));
                     Stats.StencilClearCount++;
                 }
 
-                if (rawCommand.ClipId.Length <= 0)
+                
+                if (rawCommand.ClipId.Length <= 0) // No clipping
                 {
                     rawCommand.Cmd.StencilMask = 0x01;
                     pendingCommands.Add(rawCommand.Cmd);
                 }
-                else if (computedClipStacks.TryGetValue(rawCommand.ClipId, out var stack))
+                else if (computedClipMasks.TryGetValue(rawCommand.ClipId, out var clipMask))
                 {
-                    rawCommand.Cmd.StencilMask = stack;
+                    rawCommand.Cmd.StencilMask = clipMask;
                     pendingCommands.Add(rawCommand.Cmd);
                 }
                 else
                 {
-                    currentMask <<= 1;
+                    
                     passes.Add(new StencilWritePass(context, currentMask,
                         uniqueClipStacks[rawCommand.ClipId]
                             .Select(c => new StencilClip(clips[(int)c].Transform, clips[(int)c].Size)).ToArray()));
                     Stats.StencilWriteCount++;
                     //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
-                    computedClipStacks.Add(rawCommand.ClipId, currentMask);
+                    computedClipMasks.Add(rawCommand.ClipId, currentMask);
                     rawCommand.Cmd.StencilMask = currentMask;
                     pendingCommands.Add(rawCommand.Cmd);
+                    currentMask <<= 1;
+                    shifted++;
                 }
             }
 

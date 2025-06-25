@@ -7,7 +7,7 @@ using SourceReadCallback = void(RIN_CALLBACK_CONVENTION *)(unsigned long pos,uns
 using SourceAvailableCallback = unsigned long(RIN_CALLBACK_CONVENTION *)();
 using SourceLengthCallback = unsigned long(RIN_CALLBACK_CONVENTION *)();
 EXPORT_DECL void * videoContextCreate();
-EXPORT_DECL void * videoContextFromFile(char * filename);
+EXPORT_DECL void * videoContextFromFile(const char * filename);
 EXPORT_DECL void * videoContextFromSource(void * source);
 EXPORT_DECL int videoContextHasVideo(void *context);
 EXPORT_DECL Extent2D videoContextGetVideoExtent(void *context);

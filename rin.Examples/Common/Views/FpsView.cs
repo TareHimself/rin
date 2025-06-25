@@ -13,6 +13,7 @@ public class FpsView : TextBox
     private readonly Averaged<double> _averageFps = new(0, NumAveragedSamples);
     private readonly AveragedStatCategory _collectTime = new("Engine.Collect");
     private readonly Dispatcher _dispatcher = new();
+    private readonly AveragedStatCategory _updateTime = new("Engine.Update");
     private readonly AveragedStatCategory _graphCompileTime = new("Engine.Rendering.Graph.Compile");
     private readonly AveragedStatCategory _graphExecuteTime = new("Engine.Rendering.Graph.Execute");
     private readonly AveragedStatCategory _renderTime = new("Engine.Rendering");
@@ -33,14 +34,15 @@ public class FpsView : TextBox
     {
         base.Update(deltaTime);
         var position = Surface?.GetCursorPosition() ?? Vector2.Zero;
-        _averageFps.Add(1.0 / SEngine.Get().GetLastDeltaSeconds());
+        //_averageFps.Add(1.0 / SEngine.Get().GetLastDeltaSeconds());
+        _updateTime.Update();
         _collectTime.Update();
         _renderTime.Update();
         _graphCompileTime.Update();
         _graphExecuteTime.Update();
         Content = $"""
                    [Main Thread]
-                   {float.Round(1 / (float)_averageFps * 1000.0f, 2)}ms Tick
+                   {_updateTime.GetMilliseconds()}ms Update
                    {_collectTime.GetMilliseconds()}ms Collect
                    
                    [Render Thread]

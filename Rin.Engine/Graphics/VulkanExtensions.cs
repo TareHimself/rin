@@ -721,16 +721,20 @@ public static class VulkanExtensions
         {
             var attachmentFormatsArray = attachmentFormats.ToArray();
             var pAttachmentFormats = stackalloc VkFormat[attachmentFormatsArray.Length];
-            Debug.Assert(blendMode == BlendMode.None
-                ? attachmentFormatsArray.Empty()
-                : attachmentFormatsArray.NotEmpty());
+            // Debug.Assert(blendMode == BlendMode.None
+            //     ? attachmentFormatsArray.Empty() || attachmentFormatsArray.Length == 1
+            //     : attachmentFormatsArray.NotEmpty());
             for (var i = 0; i < attachmentFormatsArray.Length; i++)
                 pAttachmentFormats[i] = attachmentFormatsArray[i].ToVk();
             var attachments = Enumerable.Range(0, attachmentFormatsArray.Length).Select(idx =>
             {
                 return blendMode switch
                 {
-                    BlendMode.None => throw new Exception("Invalid blend mode"),
+                    BlendMode.None => new VkPipelineColorBlendAttachmentState
+                    {
+                        blendEnable = 0,
+                        colorWriteMask = 0
+                    },
                     BlendMode.UI => new VkPipelineColorBlendAttachmentState
                     {
                         blendEnable = 1,
@@ -1105,6 +1109,25 @@ public static class VulkanExtensions
     {
         Debug.Assert(view.IsValid,"View is not valid");
         var opts = options;
+        // var barrier = new VkMemoryBarrier2
+        // {
+        //     sType = VkStructureType.VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+        //     srcStageMask = opts.WaitForStages,
+        //     dstStageMask = opts.NextStages,
+        //     srcAccessMask = opts.SrcAccessFlags,
+        //     dstAccessMask = opts.DstAccessFlags,
+        // };
+        // unsafe
+        // {
+        //     var depInfo = new VkDependencyInfo
+        //     {
+        //         sType = VkStructureType.VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        //         memoryBarrierCount = 1,
+        //         pMemoryBarriers = &barrier
+        //     };
+        //
+        //     vkCmdPipelineBarrier2(cmd, &depInfo);
+        // }
         var barrier = new VkBufferMemoryBarrier2
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
@@ -1116,7 +1139,7 @@ public static class VulkanExtensions
             offset = view.Offset,
             size = view.Size
         };
-
+        
         unsafe
         {
             var depInfo = new VkDependencyInfo
@@ -1125,7 +1148,7 @@ public static class VulkanExtensions
                 bufferMemoryBarrierCount = 1,
                 pBufferMemoryBarriers = &barrier
             };
-
+        
             vkCmdPipelineBarrier2(cmd, &depInfo);
         }
 

@@ -81,8 +81,9 @@ public static class QuadExtensions
         return commandList.AddQuads(Quad.Mtsdf(imageHandle, transform, size, color, uv));
     }
 
-    public static CommandList AddText(this CommandList commandList, IFont font, ReadOnlySpan<char> text,
-        in Matrix4x4 transform, float fontSize = 24f, in Color? color = null)
+    public static CommandList AddText(this CommandList commandList,
+        in Matrix4x4 transform, IFont font, ReadOnlySpan<char> text,
+        float fontSize = 24f, in Color? color = null)
     {
         var fontManager = font.FontManager;
         var textureFactory = SGraphicsModule.Get().GetImageFactory();
@@ -117,11 +118,12 @@ public static class QuadExtensions
         return commandList;
     }
 
-    public static CommandList AddText(this CommandList commandList, string fontName, ReadOnlySpan<char> text,
-        in Matrix4x4 transform, float fontSize = 24f, in Color? color = null)
+    public static CommandList AddText(this CommandList commandList,
+        in Matrix4x4 transform, string fontName, ReadOnlySpan<char> text,
+        float fontSize = 24f, in Color? color = null)
     {
         if (SViewsModule.Get().GetFontManager().GetFont(fontName) is { } font)
-            commandList.AddText(font, text, in transform, fontSize, in color);
+            commandList.AddText(in transform, font, text, fontSize, in color);
 
         return commandList;
     }

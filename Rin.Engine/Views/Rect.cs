@@ -3,13 +3,19 @@ using Rin.Engine.Math;
 
 namespace Rin.Engine.Views;
 
-public struct Rect(Vector2 inOffset, Vector2 inSize)
+public record struct Rect
 {
-    public Vector2 Offset = inOffset;
-    public Vector2 Size = inSize;
+    public Vector2 Offset;
+    public Vector2 Size;
 
-    public Rect() : this(new Vector2(0, 0), new Vector2())
+    public Rect()
     {
+    }
+
+    public Rect( in Vector2 offset, in  Vector2 size)
+    {
+        Offset = offset;
+        Size = size;
     }
 
     public static implicit operator Vector4(Rect rect)
@@ -180,4 +186,9 @@ public struct Rect(Vector2 inOffset, Vector2 inSize)
     // {
     //     return point.Within(this);
     // }
+    public readonly void Deconstruct(out Vector2 offset, out Vector2 size)
+    {
+        offset = Offset;
+        size = Size;
+    }
 }

@@ -238,6 +238,12 @@ public class WindowRenderer : IWindowRenderer
             case VkResult.VK_ERROR_OUT_OF_DATE_KHR:
             case VkResult.VK_SUBOPTIMAL_KHR:
                 throw new OutOfDateException();
+            case VkResult.VK_ERROR_DEVICE_LOST:
+            {
+                Console.WriteLine("GPU Device Lost");
+                Environment.Exit(1);
+            }
+                break;
             default:
                 throw new Exception(result.ToString());
         }
