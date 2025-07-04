@@ -5,11 +5,11 @@ namespace Rin.Engine.Graphics.Shaders;
 public class Resource
 {
     public uint Binding;
-    public VkDescriptorBindingFlags BindingFlags;
+    public DescriptorBindingFlags BindingFlags;
     public uint Count;
     public string Name = "";
     public uint Set;
     public uint Size = 0;
-    public VkShaderStageFlags Stages;
-    public VkDescriptorType Type;
+    public ShaderStage Stages;
+    public DescriptorType Type;
 }

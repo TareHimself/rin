@@ -9,11 +9,11 @@ namespace Rin.Engine.Views;
 [Module(typeof(SGraphicsModule))]
 public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
 {
-    public static readonly string
-        ShadersDirectory = Path.Join(SGraphicsModule.ShadersDirectory, "views");
+    // public static readonly string
+    //     ShadersDirectory = Path.Join(SGraphicsModule.ShadersDirectory, "views");
 
     private readonly Dictionary<Type, IBatcher> _batchRenderers = [];
-    private readonly IFontManager _fontManager = new DefaultFontManager(new TestExternalFontCache());
+    private readonly IFontManager _fontManager = SEngine.Provider.AddSingle<IFontManager>(new DefaultFontManager(new TestExternalFontCache()));
     private readonly Dictionary<IWindowRenderer, WindowSurface> _windowSurfaces = new();
     private SGraphicsModule? _graphicsSubsystem;
 

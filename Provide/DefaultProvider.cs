@@ -4,50 +4,73 @@ namespace Provide;
 
 public class DefaultProvider : IProvider
 {
-    
-    private readonly Dictionary<Type,Func<IProvider,object>> _singles = [];
-    private readonly Dictionary<Type,Func<IProvider,object>> _multiples = [];
-    private readonly Dictionary<Type,object> _singletons = [];
-    
-    public IProvider AddSingle<TInterface>(Func<IProvider,TInterface> constructor) where TInterface : class
+    private readonly Dictionary<Type, Func<IProvider, object>> _singleFactories = [];
+    private readonly Dictionary<Type, Func<IProvider, object>> _factories = [];
+    private readonly Dictionary<Type, object> _instances = [];
+
+    public IProvider AddSingle<TInterface>(Func<IProvider, TInterface> factory) where TInterface : class
     {
-        _singles.Add(typeof(TInterface), constructor);
+        var type = typeof(TInterface);
+        Debug.Assert(!_singleFactories.ContainsKey(type), "Cannot replace singleton when an instance exists");
+        _singleFactories[type] = factory;
         return this;
     }
 
-    public IProvider AddMulti<TInterface>(Func<IProvider,TInterface> constructor) where TInterface : class
+    public TInterface AddSingle<TInterface>(TInterface instance) where TInterface : class
     {
-        _multiples.Add(typeof(TInterface), constructor);
+        _instances[typeof(TInterface)] = instance;
+        return instance;
+    }
+
+    public IProvider Add<TInterface>(Func<IProvider, TInterface> factory) where TInterface : class
+    {
+        _factories[typeof(TInterface)] = factory;
         return this;
     }
 
+    public IProvider ClearSingle<TInterface>() where TInterface : class
+    {
+        _instances.Remove(typeof(TInterface));
+        return this;
+    }
 
+    public IProvider RemoveSingle<TInterface>() where TInterface : class
+    {
+        _singleFactories.Remove(typeof(TInterface));
+        _instances.Remove(typeof(TInterface));
+        return this;
+    }
+
+    public IProvider Remove<TInterface>() where TInterface : class
+    {
+        _factories.Remove(typeof(TInterface));
+        return this;
+    }
+    
     public TInterface Get<TInterface>() where TInterface : class
     {
         var type = typeof(TInterface);
-        
-        Debug.Assert(_singles.ContainsKey(type) || _multiples.ContainsKey(type),$"No factory found for type {type}");
 
+        Debug.Assert(_factories.ContainsKey(type) || _singleFactories.ContainsKey(type) || _instances.ContainsKey(type), $"No factory found for type {type}");
+        
         {
-            if (_singles.TryGetValue(type, out var ctor))
+            if (_instances.TryGetValue(type, out var instance))
             {
-                {
-                    if (_singletons.TryGetValue(type, out var obj))
-                    {
-                        return (TInterface)obj;
-                    }
-                    
-                    var instance = ctor.Invoke(this);
-                    _singletons[type] = instance;
-                    return (TInterface)instance;
-                }
+                return (TInterface)instance;
             }
         }
 
         {
-            if (_multiples.TryGetValue(typeof(TInterface), out var ctor))
+            if (_singleFactories.TryGetValue(type, out var factory))
             {
-                return (TInterface)ctor.Invoke(this);
+                return (TInterface)(_instances[type] = factory(this));
+            }
+        }
+        
+        {
+            if (_factories.TryGetValue(type, out var factory))
+            {
+                return (TInterface)factory(this);
             }
         }
 

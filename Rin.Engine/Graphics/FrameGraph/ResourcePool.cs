@@ -266,7 +266,7 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
             }
         }
     
-        public void Write(IntPtr src,ulong size, ulong offset = 0)
+        public void Write(in IntPtr src, ulong size, ulong offset = 0)
         {
             unsafe
             {

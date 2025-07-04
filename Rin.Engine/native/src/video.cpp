@@ -57,7 +57,7 @@ struct VideoSource final : public wdx::ISource {
 struct VideoSourceWrapper {
     std::shared_ptr<VideoSource> source{};
 };
-EXPORT_IMPL void * videoContextCreate() {
+void * videoContextCreate() {
     const auto ctx = new VideoDecodeContext{};
     ctx->decoder = std::make_shared<wdx::SourceDecoder>();
     ctx->decoder->SetVideoCallback([ctx](const double time,const std::shared_ptr<wdx::IDecodedVideoFrame>& data) {
@@ -83,7 +83,7 @@ EXPORT_IMPL void * videoContextCreate() {
     return ctx;
 }
 
-EXPORT_IMPL void * videoContextFromFile(const char *filename) {
+void * videoContextFromFile(const char *filename) {
     const auto ctx = new VideoDecodeContext{};
     ctx->decoder = std::make_shared<wdx::SourceDecoder>();
     ctx->decoder->SetSource(std::make_shared<wdx::FileSource>(filename));
@@ -110,7 +110,7 @@ EXPORT_IMPL void * videoContextFromFile(const char *filename) {
     return ctx;
 }
 
-EXPORT_IMPL void * videoContextFromSource(void *source) {
+void * videoContextFromSource(void *source) {
     const auto videoSource = static_cast<VideoSourceWrapper *>(source);
     const auto ctx = new VideoDecodeContext{};
     ctx->decoder = std::make_shared<wdx::SourceDecoder>();
@@ -138,12 +138,12 @@ EXPORT_IMPL void * videoContextFromSource(void *source) {
     return ctx;
 }
 
-EXPORT_IMPL int videoContextHasVideo(void *context) {
+int videoContextHasVideo(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     return videoContext->decoder->HasVideo();
 }
 
-EXPORT_IMPL Extent2D videoContextGetVideoExtent(void *context) {
+Extent2D videoContextGetVideoExtent(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     if (!videoContext->decoder->HasVideo()) {
         return {};
@@ -152,7 +152,7 @@ EXPORT_IMPL Extent2D videoContextGetVideoExtent(void *context) {
     return Extent2D{static_cast<uint32_t>(videoTrack.width),static_cast<uint32_t>(videoTrack.height)};
 }
 
-EXPORT_IMPL void videoContextSeek(void *context, double time) {
+void videoContextSeek(void *context, double time) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     videoContext->packetCount = 0;
     videoContext->firstPacket = {};
@@ -160,18 +160,18 @@ EXPORT_IMPL void videoContextSeek(void *context, double time) {
     videoContext->decoder->Seek(time);
 }
 
-EXPORT_IMPL int videoContextHasAudio(void *context) {
+int videoContextHasAudio(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     return videoContext->decoder->GetAudioTrackCount() > 0;
 }
 
-EXPORT_IMPL void videoContextSetAudioCallback(void *context, AudioCallback audioCallback) {
+void videoContextSetAudioCallback(void *context, AudioCallback audioCallback) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     videoContext->audioCallback = audioCallback;
 }
 
 
-EXPORT_IMPL int videoContextGetAudioSampleRate(void *context) {
+int videoContextGetAudioSampleRate(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     if (!videoContext->decoder->HasAudio()) {
         return 0;
@@ -180,7 +180,7 @@ EXPORT_IMPL int videoContextGetAudioSampleRate(void *context) {
     return track.sampleRate;
 }
 
-EXPORT_IMPL int videoContextGetAudioChannels(void *context) {
+int videoContextGetAudioChannels(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     if (!videoContext->decoder->HasAudio()) {
         return 0;
@@ -188,7 +188,7 @@ EXPORT_IMPL int videoContextGetAudioChannels(void *context) {
     auto track = videoContext->decoder->GetAudioTrack(0);
     return track.channels;
 }
-EXPORT_IMPL int videoContextGetAudioTrackCount(void *context) {
+int videoContextGetAudioTrackCount(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     if (!videoContext->decoder->HasAudio()) {
         return 0;
@@ -196,7 +196,7 @@ EXPORT_IMPL int videoContextGetAudioTrackCount(void *context) {
     return videoContext->decoder->GetAudioTrackCount();
 }
 
-EXPORT_IMPL void videoContextSetAudioTrack(void *context, int track) {
+void videoContextSetAudioTrack(void *context, int track) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     if (!videoContext->decoder->HasAudio()) {
         return;
@@ -204,27 +204,27 @@ EXPORT_IMPL void videoContextSetAudioTrack(void *context, int track) {
 
 }
 
-EXPORT_IMPL double videoContextGetDuration(void *context) {
+double videoContextGetDuration(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     return videoContext->decoder->GetDuration();
 }
 
-EXPORT_IMPL double videoContextGetPosition(void *context) {
+double videoContextGetPosition(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     return videoContext->decoder->GetPosition();
 }
 
-EXPORT_IMPL void videoContextDecode(void *context, double delta) {
+void videoContextDecode(void *context, double delta) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     const auto result = videoContext->decoder->Decode(delta);
 }
 
-EXPORT_IMPL int videoContextEnded(void *context) {
+int videoContextEnded(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     return videoContext->decoder->GetPosition() >= videoContext->decoder->GetDuration();
 }
 
-EXPORT_IMPL void * videoContextCopyRecentFrame(void *context, double timestamp) {
+void * videoContextCopyRecentFrame(void *context, double timestamp) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     const auto track = videoContext->decoder->GetVideoTrack();
     const auto byteSize = track.width * track.height * 4;
@@ -250,7 +250,7 @@ EXPORT_IMPL void * videoContextCopyRecentFrame(void *context, double timestamp) 
     return data;
 }
 
-EXPORT_IMPL void videoContextSetSource(void *context, void *source) {
+void videoContextSetSource(void *context, void *source) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     const auto videoSource = static_cast<VideoSourceWrapper *>(source);
     videoContext->packetCount = 0;
@@ -259,17 +259,17 @@ EXPORT_IMPL void videoContextSetSource(void *context, void *source) {
     videoContext->decoder->SetSource(videoSource->source);
 }
 
-EXPORT_IMPL void videoContextFree(void *context) {
+void videoContextFree(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     delete videoContext;
 }
 
-EXPORT_IMPL void * videoSourceCreate(SourceReadCallback readCallback, SourceAvailableCallback availableCallback,
+void * videoSourceCreate(SourceReadCallback readCallback, SourceAvailableCallback availableCallback,
     SourceLengthCallback lengthCallback) {
     return new VideoSourceWrapper{std::make_shared<VideoSource>(readCallback,availableCallback,lengthCallback)};
 }
 
-EXPORT_IMPL void videoSourceFree(void *source) {
+void videoSourceFree(void *source) {
     const auto videoSource = static_cast<VideoSourceWrapper *>(source);
     delete videoSource;
 }

@@ -69,7 +69,7 @@ public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRender
                 countBuffer.WriteStruct<uint>(0);
                 var set = ctx.AllocateDescriptorSet(_shader, param.Set);
                 ctx.BindDescriptorSets(_shader, param.Set, set);
-                set.WriteBuffers(param.Binding, new BufferWrite(countBuffer, BufferType.Storage));
+                set.WriteStorageBuffer(param.Binding, countBuffer);
                 meshBuffer.WriteArray(group.Select((m, idx) => new Mesh
                 {
                     IndicesCount = m.IndicesCount,
@@ -98,7 +98,7 @@ public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRender
                 countBuffer.WriteStruct<uint>(0);
                 var set = ctx.AllocateDescriptorSet(_shader, param.Set);
                 ctx.BindDescriptorSets(_shader, param.Set, set);
-                set.WriteBuffers(param.Binding, new BufferWrite(countBuffer, BufferType.Storage));
+                set.WriteStorageBuffer(param.Binding,countBuffer);
                 meshBuffer.WriteArray(group.Select((m, idx) => new Mesh
                 {
                     IndicesCount = m.IndicesCount,

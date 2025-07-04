@@ -23,7 +23,7 @@ public static class Extensions
         };
     }
 
-    public static nuint PixelByteSize(this ImageFormat format)
+    public static ulong PixelByteSize(this ImageFormat format)
     {
         return format.ComponentCount() * (nuint)(format switch
         {

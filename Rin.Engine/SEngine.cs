@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using JetBrains.Annotations;
+using Provide;
 using Rin.Engine.Extensions;
 using Rin.Sources;
 
@@ -9,17 +10,12 @@ namespace Rin.Engine;
 
 public sealed class SEngine
 {
-    public static readonly string
-        Directory = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "";
-
-    public static readonly string
-        AssetsDirectory = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "", "assets");
-
-    public static readonly string
-        FrameworkAssetsDirectory = Path.Join(AssetsDirectory, "rin");
+    public static readonly string Directory = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? "") ?? "";
 
     private static SEngine? _instance;
-
+    
+    public static IProvider Provider {  get; } = new DefaultProvider();
+    
     private readonly Dispatcher _mainDispatcher = new();
     private readonly AutoResetEvent _mainUpdateEvent = new(false);
     private readonly AutoResetEvent _renderFinishedEvent = new(true);

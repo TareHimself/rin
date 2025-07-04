@@ -214,7 +214,7 @@ Session::Session(const SessionBuilder* builder)
 Session::~Session()
 = default;
 
-EXPORT_IMPL SessionBuilder* slangSessionBuilderNew(LoadFileFunction loadFileFunction)
+SessionBuilder* slangSessionBuilderNew(LoadFileFunction loadFileFunction)
 {
     if(!GLOBAL_SESSION)
     {
@@ -223,7 +223,7 @@ EXPORT_IMPL SessionBuilder* slangSessionBuilderNew(LoadFileFunction loadFileFunc
     return new SessionBuilder(loadFileFunction);
 }
 
-EXPORT_IMPL void slangSessionBuilderFree(const SessionBuilder* builder)
+void slangSessionBuilderFree(const SessionBuilder* builder)
 {
     delete builder;
 }
@@ -231,7 +231,7 @@ void slangSessionClearCache(const Session* session)
 {
     
 }
-EXPORT_IMPL Module* slangSessionLoadModuleFromSourceString(const Session* session, char* moduleName, char* path, char* string, Blob* outDiagnostics)
+Module* slangSessionLoadModuleFromSourceString(const Session* session, char* moduleName, char* path, char* string, Blob* outDiagnostics)
 {
     try
     {
@@ -255,7 +255,7 @@ EXPORT_IMPL Module* slangSessionLoadModuleFromSourceString(const Session* sessio
     return nullptr;
 }
 
-EXPORT_IMPL Component* slangSessionCreateComposedProgram(const Session* session, Module* module, EntryPoint** entryPoints, int entryPointsCount, Blob* outDiagnostics)
+Component* slangSessionCreateComposedProgram(const Session* session, Module* module, EntryPoint** entryPoints, int entryPointsCount, Blob* outDiagnostics)
 {
     std::vector<slang::IComponentType*> componentTypes{};
     componentTypes.reserve(entryPointsCount + 1);
@@ -285,7 +285,7 @@ EXPORT_IMPL Component* slangSessionCreateComposedProgram(const Session* session,
 
     return new Component{composedProgram};
 }
-EXPORT_IMPL Blob* slangSessionCompile(const Session* session, const char* compileId, const char* content, const char* entryPointName, int stage,Blob * outDiagnostics)
+Blob* slangSessionCompile(const Session* session, const char* compileId, const char* content, const char* entryPointName, int stage,Blob * outDiagnostics)
 {
     auto shaderStage = static_cast<ShaderStage>(stage);
     Slang::ComPtr<slang::IBlob> diagnostics;
@@ -367,12 +367,12 @@ EXPORT_IMPL Blob* slangSessionCompile(const Session* session, const char* compil
     
     return new Blob{code};
 }
-EXPORT_IMPL void slangSessionFree(const Session* session)
+void slangSessionFree(const Session* session)
 {
     delete session;
 }
 
-EXPORT_IMPL void slangSessionBuilderAddTargetSpirv(SessionBuilder* builder)
+void slangSessionBuilderAddTargetSpirv(SessionBuilder* builder)
 {
     slang::TargetDesc desc{};
     desc.format = SLANG_SPIRV;
@@ -391,7 +391,7 @@ EXPORT_IMPL void slangSessionBuilderAddTargetSpirv(SessionBuilder* builder)
     builder->targets.push_back(desc);
 }
 
-EXPORT_IMPL void slangSessionBuilderAddTargetGlsl(SessionBuilder* builder)
+void slangSessionBuilderAddTargetGlsl(SessionBuilder* builder)
 {
     slang::TargetDesc desc{};
     desc.format = SLANG_GLSL;
@@ -399,22 +399,22 @@ EXPORT_IMPL void slangSessionBuilderAddTargetGlsl(SessionBuilder* builder)
     builder->targets.push_back(desc);
 }
 
-EXPORT_IMPL void slangSessionBuilderAddPreprocessorDefinition(SessionBuilder* builder, const char* name, const char* value)
+void slangSessionBuilderAddPreprocessorDefinition(SessionBuilder* builder, const char* name, const char* value)
 {
     builder->preprocessorMacros.emplace_back(std::make_pair<std::string,std::string>(name,value));
 }
 
-EXPORT_IMPL void slangSessionBuilderAddSearchPath(SessionBuilder* builder, const char* path)
+void slangSessionBuilderAddSearchPath(SessionBuilder* builder, const char* path)
 {
     builder->searchPaths.emplace_back(path);
 }
 
-EXPORT_IMPL Session* slangSessionBuilderBuild(const SessionBuilder* builder)
+Session* slangSessionBuilderBuild(const SessionBuilder* builder)
 {
     return new Session(builder);
 }
 
-EXPORT_IMPL EntryPoint* slangModuleFindEntryPointByName(const Module* module, const char* entryPointName)
+EntryPoint* slangModuleFindEntryPointByName(const Module* module, const char* entryPointName)
 {
     Slang::ComPtr<slang::IEntryPoint> entryPoint;
     module->module->findEntryPointByName(entryPointName,entryPoint.writeRef());
@@ -426,16 +426,16 @@ EXPORT_IMPL EntryPoint* slangModuleFindEntryPointByName(const Module* module, co
 
     return nullptr;
 }
-EXPORT_IMPL void slangEntryPointFree(const EntryPoint* entryPoint)
+void slangEntryPointFree(const EntryPoint* entryPoint)
 {
     delete entryPoint;
 }
-EXPORT_IMPL void slangModuleFree(const Module* module)
+void slangModuleFree(const Module* module)
 {
     delete module;
 }
 
-EXPORT_IMPL Blob* slangComponentGetEntryPointCode(const Component* component, int entryPointIndex, int targetIndex, Blob* outDiagnostics)
+Blob* slangComponentGetEntryPointCode(const Component* component, int entryPointIndex, int targetIndex, Blob* outDiagnostics)
 {
     Slang::ComPtr<slang::IBlob> code;
 
@@ -463,7 +463,7 @@ EXPORT_IMPL Blob* slangComponentGetEntryPointCode(const Component* component, in
 
     return new Blob{code};
 }
-EXPORT_IMPL Component* slangComponentLink(const Component* component, Blob* outDiagnostics)
+Component* slangComponentLink(const Component* component, Blob* outDiagnostics)
 {
     Slang::ComPtr<slang::IComponentType> outComponent;
 
@@ -479,7 +479,7 @@ EXPORT_IMPL Component* slangComponentLink(const Component* component, Blob* outD
     return new Component{outComponent};
 }
 
-EXPORT_IMPL Blob* slangComponentToLayoutJson(const Component* component)
+Blob* slangComponentToLayoutJson(const Component* component)
 {
     Slang::ComPtr<slang::IBlob> code;
 
@@ -488,26 +488,26 @@ EXPORT_IMPL Blob* slangComponentToLayoutJson(const Component* component)
     return new Blob{code};
 }
 
-EXPORT_IMPL void slangComponentFree(const Component* component)
+void slangComponentFree(const Component* component)
 {
     delete component;
 }
-EXPORT_IMPL Blob* slangBlobNew()
+Blob* slangBlobNew()
 {
     return new Blob{};
 }
 
-EXPORT_IMPL int slangBlobGetSize(const Blob* blob)
+int slangBlobGetSize(const Blob* blob)
 {
     return static_cast<int>(blob->blob->getBufferSize());
 }
 
-EXPORT_IMPL void* slangBlobGetPointer(const Blob* blob)
+void* slangBlobGetPointer(const Blob* blob)
 {
     return const_cast<void*>(blob->blob->getBufferPointer());
 }
 
-EXPORT_IMPL void slangBlobFree(const Blob* blob)
+void slangBlobFree(const Blob* blob)
 {
     delete blob;
 }

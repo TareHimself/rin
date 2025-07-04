@@ -1,4 +1,5 @@
-﻿using TerraFX.Interop.Vulkan;
+﻿using Rin.Engine.Graphics.Shaders;
+using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkStructureType;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -6,10 +7,10 @@ namespace Rin.Engine.Graphics.Descriptors;
 
 public struct PoolSizeRatio
 {
-    public VkDescriptorType type;
+    public DescriptorType type;
     public float ratio;
 
-    public PoolSizeRatio(VkDescriptorType inType, float inRatio)
+    public PoolSizeRatio(DescriptorType inType, float inRatio)
     {
         type = inType;
         ratio = inRatio;
@@ -31,7 +32,6 @@ public class DescriptorPool : Disposable
 
     protected override void OnDispose(bool isManual)
     {
-        foreach (var set in _sets) set.Dispose();
         _sets.Clear();
         unsafe
         {
@@ -75,7 +75,6 @@ public class DescriptorPool : Disposable
 
     public void Reset()
     {
-        foreach (var set in _sets) set.Dispose();
         _sets.Clear();
         vkResetDescriptorPool(_device, _descriptorPool, 0);
     }

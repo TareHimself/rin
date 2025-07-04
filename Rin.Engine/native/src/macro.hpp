@@ -1,36 +1,35 @@
 #ifndef RIN_MACROS
 #define RIN_MACROS
 
-    #if defined(_MSC_VER)
-        //  Microsoft 
-        #define EXPORT extern "C" __declspec(dllexport)
-        #define EXPORT_DECL extern "C" __declspec(dllexport)
-        #define EXPORT_IMPL extern "C" __declspec(dllexport)
-    #elif defined(__GNUC__)
-        //  GCC
-        #define EXPORT extern "C" __attribute__((visibility("default")))
-        #define EXPORT_DECL extern "C" __attribute__((visibility("default")))
-        #define EXPORT_IMPL
+#if defined(_MSC_VER)
+    //  Microsoft
+    #ifdef RIN_NATIVE_PRODUCER
+        #define RIN_NATIVE_API extern "C" __declspec(dllexport)
     #else
-        //  do nothing and hope for the best?
-        #define EXPORT
-        #define EXPORT_IMPL
-        #pragma warning Unknown dynamic link export semantics.
+        #define RIN_NATIVE_API extern "C" __declspec(dllimport)
     #endif
+#elif defined(__GNUC__)
+        //  GCC
+        #define RIN_NATIVE_API extern "C" __attribute__((visibility("default")))
+#else
+        //  do nothing and hope for the best?
+        #define RIN_NATIVE_API
+        #pragma warning Unknown dynamic link RIN_NATIVE_API semantics.
+#endif
 
-    #ifdef _WIN32
+#ifdef _WIN32
     #define RIN_PLATFORM_WIN
     #define RIN_CALLBACK_CONVENTION __stdcall
-    #endif
+#endif
 
-    #ifdef __APPLE__
+#ifdef __APPLE__
     #define RIN_PLATFORM_MAC
     #define RIN_CALLBACK_CONVENTION
-    #endif
+#endif
 
-    #ifdef __linux__
+#ifdef __linux__
     #define RIN_PLATFORM_LINUX
     #define RIN_CALLBACK_CONVENTION
-    #endif
+#endif
 
 #endif

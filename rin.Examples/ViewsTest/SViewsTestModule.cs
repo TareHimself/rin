@@ -170,7 +170,7 @@ public class SViewsTestModule : IModule
                         Child = new Fitter
                         {
                             Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
-                            FittingMode = FitMode.Cover,
+                            FittingMode = FitMode.Contain,
                             Padding = 50.0f,
                             Clip = Clip.Bounds
                         },
@@ -184,28 +184,28 @@ public class SViewsTestModule : IModule
                         MinAnchor = Vector2.Zero,
                         MaxAnchor = Vector2.One,
                     },
-                    // new PanelSlot
-                    // {
-                    //     Child = list,
-                    //     MinAnchor = new Vector2(0.5f),
-                    //     MaxAnchor = new Vector2(0.5f),
-                    //     Alignment = new Vector2(0.5f),
-                    //     SizeToContent = true
-                    // },
-                    // new PanelSlot
-                    // {
-                    //     Child = new Rect
-                    //     {
-                    //         Child = new FpsView(),
-                    //         Padding = new Padding(20.0f),
-                    //         BorderRadius = new Vector4(10.0f),
-                    //         Color = Color.Black with { A = 0.7f }
-                    //     },
-                    //     SizeToContent = true,
-                    //     MinAnchor = new Vector2(1.0f, 0.0f),
-                    //     MaxAnchor = new Vector2(1.0f, 0.0f),
-                    //     Alignment = new Vector2(1.0f, 0.0f)
-                    // },
+                    new PanelSlot
+                    {
+                        Child = list,
+                        MinAnchor = new Vector2(0.5f),
+                        MaxAnchor = new Vector2(0.5f),
+                        Alignment = new Vector2(0.5f),
+                        SizeToContent = true
+                    },
+                    new PanelSlot
+                    {
+                        Child = new Rect
+                        {
+                            Child = new FpsView(),
+                            Padding = new Padding(20.0f),
+                            BorderRadius = new Vector4(10.0f),
+                            Color = Color.Black with { A = 0.7f }
+                        },
+                        SizeToContent = true,
+                        MinAnchor = new Vector2(1.0f, 0.0f),
+                        MaxAnchor = new Vector2(1.0f, 0.0f),
+                        Alignment = new Vector2(1.0f, 0.0f)
+                    },
                 ]
             });
 

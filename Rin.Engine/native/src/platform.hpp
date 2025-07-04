@@ -11,19 +11,19 @@ enum class EPlatform
     Mac
 };
 
-EXPORT int platformGet();
+RIN_NATIVE_API int platformGet();
 
-EXPORT void platformInit();
+RIN_NATIVE_API void platformInit();
 
-EXPORT void platformShutdown();
+RIN_NATIVE_API void platformShutdown();
 
 using PathReceivedCallback = void(RIN_CALLBACK_CONVENTION *)(const char* text);
 
-EXPORT void platformSelectFile(const char * title,bool multiple, const char * filter,PathReceivedCallback callback);
+RIN_NATIVE_API void platformSelectFile(const char * title,bool multiple, const char * filter,PathReceivedCallback callback);
 
-EXPORT void platformSelectPath(const char * title,bool multiple,PathReceivedCallback callback);
+RIN_NATIVE_API void platformSelectPath(const char * title,bool multiple,PathReceivedCallback callback);
 
-EXPORT void platformWindowPump();
+RIN_NATIVE_API void platformWindowPump();
 
 enum class WindowFlags : uint32_t
 {
@@ -36,28 +36,28 @@ enum class WindowFlags : uint32_t
     Focused =  1 << 5,
 };
 
-EXPORT void* platformWindowCreate(const char * title,int width,int height,Flags<WindowFlags> flags);
+RIN_NATIVE_API void* platformWindowCreate(const char * title,int width,int height,Flags<WindowFlags> flags);
 
-EXPORT void platformWindowDestroy(void * handle);
+RIN_NATIVE_API void platformWindowDestroy(void * handle);
 
-EXPORT void platformWindowShow(void * handle);
+RIN_NATIVE_API void platformWindowShow(void * handle);
 
-EXPORT void platformWindowHide(void * handle);
+RIN_NATIVE_API void platformWindowHide(void * handle);
 
-EXPORT Vector2 platformWindowGetCursorPosition(void * handle);
+RIN_NATIVE_API Vector2 platformWindowGetCursorPosition(void * handle);
 
-EXPORT void platformWindowSetCursorPosition(void * handle,Vector2 position);
+RIN_NATIVE_API void platformWindowSetCursorPosition(void * handle,Vector2 position);
 
-EXPORT Extent2D platformWindowGetSize(void *handle);
+RIN_NATIVE_API Extent2D platformWindowGetSize(void *handle);
 
-EXPORT VkSurfaceKHR platformWindowCreateSurface(VkInstance instance,void * handle);
+RIN_NATIVE_API VkSurfaceKHR platformWindowCreateSurface(VkInstance instance,void * handle);
 
-EXPORT int platformWindowGetEvents(WindowEvent * output,int size);
+RIN_NATIVE_API int platformWindowGetEvents(WindowEvent * output,int size);
 
-EXPORT void platformWindowStartTyping(void* handle);
+RIN_NATIVE_API void platformWindowStartTyping(void* handle);
 
-EXPORT void platformWindowStopTyping(void* handle);
+RIN_NATIVE_API void platformWindowStopTyping(void* handle);
 
-EXPORT void platformWindowSetSize(void* handle,Extent2D size);
+RIN_NATIVE_API void platformWindowSetSize(void* handle,Extent2D size);
 
-EXPORT void platformWindowSetPosition(void* handle,Point2D position);
+RIN_NATIVE_API void platformWindowSetPosition(void* handle,Point2D position);

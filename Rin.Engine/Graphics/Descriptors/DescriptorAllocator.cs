@@ -95,7 +95,7 @@ public class DescriptorAllocator : Disposable
         var poolSizes = poolRatios.Select(r =>
         {
             VkDescriptorPoolSize size = default;
-            size.type = r.type;
+            size.type = r.type.ToVk();
             size.descriptorCount = (uint)(r.ratio * setCount);
             return size;
         }).ToArray();

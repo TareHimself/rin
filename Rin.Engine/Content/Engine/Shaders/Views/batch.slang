@@ -184,7 +184,7 @@ float4 fragment(FSIn input)
         var uv = mapRangeUnClamped(input.uv, float2(0.0), float2(1.0), uvMapping.xy, uvMapping.zw);
         var textureHandle = asTexture.textureHandle;
 
-        float4 color = sampleTexture(textureHandle, uv) * asTexture.tint;
+        float4 color = textureHandle.SampleTexture(uv) * asTexture.tint;
 
         return applyBorderRadius(input.coordinate, color, asTexture.borderRadius, size, transform);
     }
@@ -196,7 +196,7 @@ float4 fragment(FSIn input)
         var uv = mapRangeUnClamped(input.uv, float2(0.0), float2(1.0), uvMapping.xy, uvMapping.zw);
         var textureHandle = asMtsdf.textureHandle;
 
-        float3 msd = sampleTexture(textureHandle, uv,ImageTiling.ClampEdge).rgb;
+        float3 msd = textureHandle.SampleTexture(uv,ImageTiling.ClampEdge).rgb;
         float2 texSize = getTextureSize(textureHandle);
         float2 actualTexSize = texSize * (uvMapping.zw - uvMapping.xy);
         

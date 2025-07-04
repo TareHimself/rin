@@ -6,72 +6,72 @@
 #include <cstddef>
 using CreateSurfaceCallback = VkSurfaceKHR(RIN_CALLBACK_CONVENTION *)(VkInstance instance);
 
-EXPORT_DECL void createVulkanInstance(void * windowHandle, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,VkSurfaceKHR * outSurface,VkDebugUtilsMessengerEXT * outMessenger);
+RIN_NATIVE_API void createVulkanInstance(void * windowHandle, VkInstance* outInstance,VkDevice* outDevice,VkPhysicalDevice* outPhysicalDevice,VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily,VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,VkSurfaceKHR * outSurface,VkDebugUtilsMessengerEXT * outMessenger);
 
-EXPORT_DECL void destroyVulkanMessenger(VkInstance instance,VkDebugUtilsMessengerEXT messenger);
+RIN_NATIVE_API void destroyVulkanMessenger(VkInstance instance,VkDebugUtilsMessengerEXT messenger);
 
 using CreateSwapchainCallback = void(RIN_CALLBACK_CONVENTION *)(uintptr_t swapchain,void * swapchainImages,uint32_t numSwapchainImages,void * swapchainImageViews,uint32_t numSwapchainImageViews);
-EXPORT_DECL void createSwapchain(VkDevice device,VkPhysicalDevice physicalDevice,VkSurfaceKHR surface,int swapchainFormat,int colorSpace,int presentMode,uint32_t width,uint32_t height,CreateSwapchainCallback callback);
+RIN_NATIVE_API void createSwapchain(VkDevice device,VkPhysicalDevice physicalDevice,VkSurfaceKHR surface,int swapchainFormat,int colorSpace,int presentMode,uint32_t width,uint32_t height,CreateSwapchainCallback callback);
 
 
 void createBuffer(VmaAllocator allocator,VkBuffer * buffer,VmaAllocation * allocation,const size_t allocSize, const vk::BufferUsageFlags usage, const VmaMemoryUsage memoryUsage,
                   const vk::MemoryPropertyFlags requiredFlags, const VmaAllocationCreateFlags flags, const char * name);
 
-EXPORT_DECL void * allocatorCreate(VkInstance instance,VkDevice device,VkPhysicalDevice physicalDevice);
+RIN_NATIVE_API void * allocatorCreate(VkInstance instance,VkDevice device,VkPhysicalDevice physicalDevice);
 
-EXPORT_DECL void allocatorDestroy(void * allocator);
+RIN_NATIVE_API void allocatorDestroy(void * allocator);
 
-EXPORT_DECL void allocatorNewBuffer(VkBuffer * buffer, void** allocation, size_t size, void* allocator,
+RIN_NATIVE_API void allocatorNewBuffer(VkBuffer * buffer, void** allocation, size_t size, void* allocator,
                                 int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
                                 int mapped, const char* debugName);
 
-EXPORT_DECL void allocatorNewImage(VkImage* image,void ** allocation,VkImageCreateInfo * createInfo,void * allocator, const char * debugName);
+RIN_NATIVE_API void allocatorNewImage(VkImage* image,void ** allocation,VkImageCreateInfo * createInfo,void * allocator, const char * debugName);
 
-EXPORT_DECL void allocatorFreeBuffer(VkBuffer buffer,void * allocation,void * allocator);
+RIN_NATIVE_API void allocatorFreeBuffer(VkBuffer buffer,void * allocation,void * allocator);
 
-EXPORT_DECL void allocatorFreeImage(VkImage image,void * allocation,void * allocator);
+RIN_NATIVE_API void allocatorFreeImage(VkImage image,void * allocation,void * allocator);
 
-EXPORT_DECL void allocatorCopyToBuffer(void * allocator,void * allocation,void * data,size_t size,size_t offset);
+RIN_NATIVE_API void allocatorCopyToBuffer(void * allocator,void * allocation,void * data,size_t size,size_t offset);
 
-EXPORT_DECL void dVkCmdBindShadersEXT(VkCommandBuffer commandBuffer, 
+RIN_NATIVE_API void dVkCmdBindShadersEXT(VkCommandBuffer commandBuffer,
    uint32_t stageCount, 
    VkShaderStageFlagBits* pStages, 
    VkShaderEXT* pShaders);
 
-EXPORT_DECL void dVkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, 
+RIN_NATIVE_API void dVkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer,
     VkRenderingInfo* pRenderingInfo);
 
-EXPORT_DECL void dVkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode);
+RIN_NATIVE_API void dVkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode);
 
-EXPORT_DECL void dVkCmdSetLogicOpEXT(VkCommandBuffer commandBuffer, VkLogicOp logicOp);
+RIN_NATIVE_API void dVkCmdSetLogicOpEXT(VkCommandBuffer commandBuffer, VkLogicOp logicOp);
 
-EXPORT_DECL void dVkCmdSetVertexInputEXT( VkCommandBuffer commandBuffer, 
+RIN_NATIVE_API void dVkCmdSetVertexInputEXT( VkCommandBuffer commandBuffer,
         uint32_t vertexBindingDescriptionCount, 
     VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, 
         uint32_t vertexAttributeDescriptionCount, 
     VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions);
 
-EXPORT_DECL void dVkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, uint32_t logicOpEnable);
+RIN_NATIVE_API void dVkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, uint32_t logicOpEnable);
 
-EXPORT_DECL void dVkCmdSetColorBlendEnableEXT(
+RIN_NATIVE_API void dVkCmdSetColorBlendEnableEXT(
     VkCommandBuffer commandBuffer, 
     uint32_t firstAttachment, 
     uint32_t attachmentCount, 
     uint32_t* pColorBlendEnables);
 
-EXPORT_DECL void dVkCmdSetColorBlendEquationEXT(
+RIN_NATIVE_API void dVkCmdSetColorBlendEquationEXT(
     VkCommandBuffer commandBuffer, 
     uint32_t firstAttachment, 
     uint32_t attachmentCount, 
     VkColorBlendEquationEXT* pColorBlendEquations);
 
-EXPORT_DECL void dVkCmdSetColorWriteMaskEXT(
+RIN_NATIVE_API void dVkCmdSetColorWriteMaskEXT(
     VkCommandBuffer commandBuffer, 
     uint32_t firstAttachment, 
     uint32_t attachmentCount,
     VkColorComponentFlags* pColorWriteMasks);
 
-EXPORT_DECL VkResult dVkCreateShadersEXT(
+RIN_NATIVE_API VkResult dVkCreateShadersEXT(
         VkDevice device,
         uint32_t createInfoCount,
         VkShaderCreateInfoEXT* pCreateInfos,
@@ -79,19 +79,19 @@ EXPORT_DECL VkResult dVkCreateShadersEXT(
         VkShaderEXT* pShaders);
 
 
-EXPORT_DECL void dVkDestroyShaderEXT(
+RIN_NATIVE_API void dVkDestroyShaderEXT(
         VkDevice device,
         VkShaderEXT shader,
         VkAllocationCallbacks* pAllocator);
 
-EXPORT_DECL void dVkCmdSetRasterizationSamplesEXT( VkCommandBuffer commandBuffer, 
+RIN_NATIVE_API void dVkCmdSetRasterizationSamplesEXT( VkCommandBuffer commandBuffer,
     VkSampleCountFlagBits rasterizationSamples);
 
-EXPORT_DECL void dVkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToCoverageEnable);
+RIN_NATIVE_API void dVkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToCoverageEnable);
 
-EXPORT_DECL void dVkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToOneEnable);
+RIN_NATIVE_API void dVkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToOneEnable);
 
-EXPORT_DECL void dVkCmdSetSampleMaskEXT(
+RIN_NATIVE_API void dVkCmdSetSampleMaskEXT(
     VkCommandBuffer commandBuffer, 
     VkSampleCountFlagBits samples, 
     uint32_t* pSampleMask);

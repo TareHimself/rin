@@ -15,17 +15,17 @@ Vec2::operator msdfgen::Vector2()
     return msdfgen::Vector2(x,y);
 }
 
-EXPORT_IMPL GlyphContext * sdfContextNew()
+GlyphContext * sdfContextNew()
 {
     return new GlyphContext();
 }
 
-EXPORT_IMPL void sdfContextFree(GlyphContext * context)
+void sdfContextFree(GlyphContext * context)
 {
     delete context;
 }
 
-EXPORT_IMPL void sdfContextMoveTo(GlyphContext * context, Vec2* to)
+void sdfContextMoveTo(GlyphContext * context, Vec2* to)
 {
     context->hasContent = true;
     if(!(context->contour && context->contour->edges.empty()))
@@ -36,7 +36,7 @@ EXPORT_IMPL void sdfContextMoveTo(GlyphContext * context, Vec2* to)
     context->position = *to;
 }
 
-EXPORT_IMPL void sdfContextLineTo(GlyphContext * context, Vec2* to)
+void sdfContextLineTo(GlyphContext * context, Vec2* to)
 {
     context->hasContent = true;
     msdfgen::Point2 endpoint = *to;
@@ -47,7 +47,7 @@ EXPORT_IMPL void sdfContextLineTo(GlyphContext * context, Vec2* to)
     }
 }
 
-EXPORT_IMPL void sdfContextQuadraticBezierTo(GlyphContext * context, Vec2* control, Vec2* to)
+void sdfContextQuadraticBezierTo(GlyphContext * context, Vec2* control, Vec2* to)
 {
     context->hasContent = true;
     msdfgen::Point2 endpoint = *to;
@@ -58,7 +58,7 @@ EXPORT_IMPL void sdfContextQuadraticBezierTo(GlyphContext * context, Vec2* contr
     }
 }
 
-EXPORT_IMPL void sdfContextCubicBezierTo(GlyphContext * context, Vec2* control1, Vec2* control2, Vec2* to)
+void sdfContextCubicBezierTo(GlyphContext * context, Vec2* control1, Vec2* control2, Vec2* to)
 {
     context->hasContent = true;
     msdfgen::Point2 endpoint = *to;
@@ -72,7 +72,7 @@ EXPORT_IMPL void sdfContextCubicBezierTo(GlyphContext * context, Vec2* control1,
     }
 }
 
-EXPORT_IMPL void sdfContextEnd(GlyphContext * context)
+void sdfContextEnd(GlyphContext * context)
 {
     
     if (!context->shape.contours.empty() && context->shape.contours.back().edges.empty())
@@ -81,7 +81,7 @@ EXPORT_IMPL void sdfContextEnd(GlyphContext * context)
     context->shape.normalize();
 }
 
-EXPORT_IMPL void sdfContextGenerateMSDF(GlyphContext* context,float angleThreshold,float pixelRange, GenerateCallback callback)
+void sdfContextGenerateMSDF(GlyphContext* context,float angleThreshold,float pixelRange, GenerateCallback callback)
 {
 
     if(!context->hasContent) {    
@@ -123,7 +123,7 @@ EXPORT_IMPL void sdfContextGenerateMSDF(GlyphContext* context,float angleThresho
     callback(data.data(),bmpWidth,bmpHeight,data.size(),width,height);
 }
 
-EXPORT_IMPL void sdfContextGenerateMTSDF(GlyphContext* context,float angleThreshold,float pixelRange, GenerateCallback callback)
+void sdfContextGenerateMTSDF(GlyphContext* context,float angleThreshold,float pixelRange, GenerateCallback callback)
 {
     if(!context->hasContent) {    
         return;

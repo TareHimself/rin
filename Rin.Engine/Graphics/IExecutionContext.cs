@@ -55,7 +55,7 @@ public interface IExecutionContext
 
     public IExecutionContext BeginRendering(in Extent2D extent,
         IEnumerable<IDeviceImage> attachments, IDeviceImage? depthAttachment = null,
-        IDeviceImage? stencilAttachment = null);
+        IDeviceImage? stencilAttachment = null,Vector4? clearColor = null);
 
     public IExecutionContext EndRendering();
 

@@ -1,4 +1,5 @@
 ﻿using Rin.Engine.Graphics.Descriptors;
+using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.Graphics;
@@ -20,10 +21,10 @@ public class Frame : IDisposable
     public Frame(WindowRenderer renderer)
     {
         _descriptorAllocator = new DescriptorAllocator(1000, [
-            new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3),
-            new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3),
-            new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),
-            new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4)
+            new PoolSizeRatio(DescriptorType.StorageImage, 3),
+            new PoolSizeRatio(DescriptorType.StorageBuffer, 3),
+            new PoolSizeRatio(DescriptorType.UniformBuffer, 3),
+            new PoolSizeRatio(DescriptorType.CombinedSamplerImage, 4)
         ]);
 
         Renderer = renderer;

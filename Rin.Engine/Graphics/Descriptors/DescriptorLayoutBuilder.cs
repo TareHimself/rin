@@ -1,4 +1,5 @@
-﻿using TerraFX.Interop.Vulkan;
+﻿using Rin.Engine.Graphics.Shaders;
+using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkStructureType;
 
 namespace Rin.Engine.Graphics.Descriptors;
@@ -8,27 +9,27 @@ public class DescriptorLayoutBuilder
     private readonly Dictionary<uint, VkDescriptorSetLayoutBinding> _bindings = [];
     private readonly Dictionary<uint, VkDescriptorBindingFlags> _flags = [];
 
-    public DescriptorLayoutBuilder AddBinding(uint binding, VkDescriptorType type, VkShaderStageFlags stages,
-        uint count = 1, VkDescriptorBindingFlags bindingFlags = 0)
+    public DescriptorLayoutBuilder AddBinding(uint binding, DescriptorType type, ShaderStage stages,
+        uint count = 1, DescriptorBindingFlags bindingFlags = 0)
     {
         if (_bindings.TryGetValue(binding, out var existing))
         {
-            existing.stageFlags |= stages;
-            _flags[binding] |= bindingFlags;
+            existing.stageFlags |= stages.ToVk();
+            _flags[binding] |= bindingFlags.ToVk();
             return this;
         }
 
 
         var newBinding = new VkDescriptorSetLayoutBinding
         {
-            stageFlags = stages,
-            descriptorType = type,
+            stageFlags = stages.ToVk(),
+            descriptorType = type.ToVk(),
             descriptorCount = count,
             binding = binding
         };
 
         _bindings.Add(binding, newBinding);
-        _flags.Add(binding, bindingFlags);
+        _flags.Add(binding, bindingFlags.ToVk());
         return this;
     }
 

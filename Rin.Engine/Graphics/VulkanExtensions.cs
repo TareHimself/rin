@@ -3,6 +3,7 @@ using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Engine.Extensions;
 using Rin.Engine.Graphics.Descriptors;
+using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Math;
 using TerraFX.Interop.Vulkan;
 
@@ -63,6 +64,53 @@ public static class VulkanExtensions
     //     DepthAttachment = 1 << 5,
     //     StencilAttachment = 1 << 6,
     // }
+    [PublicAPI]
+    public static VkShaderStageFlags ToVk(this ShaderStage stages)
+    {
+        VkShaderStageFlags flags = 0;
+
+        if (stages.HasFlag(ShaderStage.Vertex)) flags |= VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT;
+
+        if (stages.HasFlag(ShaderStage.Fragment)) flags |= VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        if (stages.HasFlag(ShaderStage.Compute)) flags |= VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT;
+        
+        if (stages.HasFlag(ShaderStage.AllGraphics)) flags |= VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS;
+        
+        if (stages.HasFlag(ShaderStage.All)) flags |= VkShaderStageFlags.VK_SHADER_STAGE_ALL;
+        
+        return flags;
+    }
+    
+    [PublicAPI]
+    public static VkDescriptorBindingFlags ToVk(this DescriptorBindingFlags bindingFlags)
+    {
+        VkDescriptorBindingFlags flags = 0;
+
+        if (bindingFlags.HasFlag(DescriptorBindingFlags.PartiallyBound)) flags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+
+        if (bindingFlags.HasFlag(DescriptorBindingFlags.UpdateAfterBind)) flags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+
+        if (bindingFlags.HasFlag(DescriptorBindingFlags.Variable)) flags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+
+        return flags;
+    }
+    
+    [PublicAPI]
+    public static VkDescriptorType ToVk(this DescriptorType descriptorType)
+    {
+        return descriptorType switch
+        {
+            DescriptorType.Sampler => VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER,
+            DescriptorType.CombinedSamplerImage => VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            DescriptorType.StorageImage => VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            DescriptorType.StorageBuffer => VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            DescriptorType.SampledImage => VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            DescriptorType.UniformBuffer => VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            _ => throw new ArgumentOutOfRangeException(nameof(descriptorType), descriptorType, null)
+        };
+    }
+    
     [PublicAPI]
     public static VkImageUsageFlags ToVk(this ImageUsage usage)
     {
@@ -715,7 +763,7 @@ public static class VulkanExtensions
 
     public static VkPipeline CreateGraphicsPipeline(in this VkDevice device, in VkPipelineLayout layout,
         IEnumerable<ImageFormat> attachmentFormats, BlendMode blendMode,
-        IEnumerable<Pair<VkShaderModule, VkShaderStageFlags>> stages, bool useDepth, bool useStencil)
+        IEnumerable<Pair<VkShaderModule, ShaderStage>> stages, bool useDepth, bool useStencil)
     {
         unsafe
         {
@@ -778,7 +826,7 @@ public static class VulkanExtensions
                     dest->sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
                     dest->module = first;
                     dest->pName = (sbyte*)pName;
-                    dest->stage = second;
+                    dest->stage = second.ToVk();
                 }
 
                 var vertexInputState = new VkPipelineVertexInputStateCreateInfo
@@ -1138,6 +1186,15 @@ public static class VulkanExtensions
             buffer = view.Buffer.NativeBuffer,
             offset = view.Offset,
             size = view.Size
+        };
+        
+        var z = new VkBufferMemoryBarrier2
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+            srcStageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            dstStageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+            srcAccessMask = VkAccessFlags2.VK_ACCESS_2_SHADER_WRITE_BIT,
+            dstAccessMask = VkAccessFlags2.VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
         };
         
         unsafe

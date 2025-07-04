@@ -35,9 +35,6 @@ public class WindowRenderer : IWindowRenderer
     private VkImage[] _swapchainImages = [];
 
     private VkImageView[] _swapchainViews = [];
-    public double LastCollectElapsedTime;
-    public double LastExecuteElapsedTime;
-
 
     public WindowRenderer(SGraphicsModule module, IWindow window)
     {
@@ -62,6 +59,20 @@ public class WindowRenderer : IWindowRenderer
         return _window;
     }
 
+    public Extent2D GetRenderExtent()
+    {
+        unsafe
+        {
+            var surfaceCapabilities = new VkSurfaceCapabilitiesKHR();
+            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities);
+            return new Extent2D
+            {
+                Width = surfaceCapabilities.currentExtent.width,
+                Height = surfaceCapabilities.currentExtent.height
+            };
+        }
+    }
+
     public void Dispose()
     {
         lock (_drawLock)
@@ -79,35 +90,25 @@ public class WindowRenderer : IWindowRenderer
         }
     }
 
-    public IRenderData? Collect()
-    {
-        var start = SEngine.Get().GetTimeSeconds();
-        var c = DoCollect();
-        LastCollectElapsedTime = SEngine.Get().GetTimeSeconds() - start;
-        return c;
-    }
+    public IRenderData? Collect() => DoCollect();
 
     public void Execute(IRenderData context)
     {
         if (_disposed) return;
 
-        if (context is RenderData ctx)
+        if (context is not RenderData ctx) return;
+        
+        if (ctx.RenderExtent.Width == 0 || ctx.RenderExtent.Height == 0) return;
+
+        if (ctx.RenderExtent != _window.GetSize()) return;
+
+        if (_swapchainExtent != ctx.RenderExtent)
         {
-            if (ctx.RenderExtent.Width == 0 || ctx.RenderExtent.Height == 0) return;
-
-            if (ctx.RenderExtent != _window.GetSize()) return;
-
-            if (_swapchainExtent != ctx.RenderExtent)
-            {
-                DestroySwapchain();
-                if (!CreateSwapchain(ctx.RenderExtent)) return;
-            }
-
-            var start = SEngine.Get().GetTimeSeconds();
-            DoExecute(ctx);
-            var now = SEngine.Get().GetTimeSeconds();
-            LastExecuteElapsedTime = now - start;
+            DestroySwapchain();
+            if (!CreateSwapchain(ctx.RenderExtent)) return;
         }
+
+        DoExecute(ctx);
     }
 
     public event Action<IGraphBuilder>? OnCollect;
@@ -128,17 +129,12 @@ public class WindowRenderer : IWindowRenderer
 
     public void Init()
     {
-        var windowSize = _window.GetSize();
-        // CreateSwapchain(new Extent2D
-        // {
-        //     Width = windowSize.X,
-        //     Height = windowSize.Y
-        // });
         InitFrames();
     }
 
     private unsafe bool CreateSwapchain(Extent2D extent)
     {
+        var actSize = GetRenderExtent();
         var surfaceCapabilities = new VkSurfaceCapabilitiesKHR();
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities);
 
@@ -199,20 +195,19 @@ public class WindowRenderer : IWindowRenderer
         SGraphicsModule.Get().WaitDeviceIdle();
         foreach (var frame in _frames) frame.WaitForLastDraw();
 
-        if (_swapchainExtent != new Extent2D())
-        {
-            var device = _module.GetDevice();
+        if (_swapchainExtent == default) return;
+        
+        var device = _module.GetDevice();
 
-            foreach (var renderSemaphore in _renderSemaphores) device.DestroySemaphore(renderSemaphore);
-            foreach (var view in _swapchainViews) vkDestroyImageView(device, view, null);
-            _swapchainViews = [];
-            _swapchainImages = [];
+        foreach (var renderSemaphore in _renderSemaphores) device.DestroySemaphore(renderSemaphore);
+        foreach (var view in _swapchainViews) vkDestroyImageView(device, view, null);
+        _swapchainViews = [];
+        _swapchainImages = [];
 
 
-            if (_swapchain.Value != 0) vkDestroySwapchainKHR(device, _swapchain, null);
-            _swapchain = new VkSwapchainKHR();
-            _swapchainExtent = new Extent2D();
-        }
+        if (_swapchain.Value != 0) vkDestroySwapchainKHR(device, _swapchain, null);
+        _swapchain = new VkSwapchainKHR();
+        _swapchainExtent = new Extent2D();
     }
 
     private void InitFrames()
@@ -410,7 +405,6 @@ public class WindowRenderer : IWindowRenderer
     {
         public required Frame TargetFrame { get; init; }
         public required IGraphBuilder GraphBuilder { get; init; }
-
         public Extent2D RenderExtent { get; init; }
         public uint SwapchainImageId { get; set; }
         public required IRenderer Renderer { get; init; }

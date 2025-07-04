@@ -6,5 +6,5 @@ public class PushConstant
 {
     public string Name = "";
     public uint Size;
-    public VkShaderStageFlags Stages;
+    public ShaderStage Stages;
 }

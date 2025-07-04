@@ -17,9 +17,6 @@ namespace Rin.Engine.Graphics;
 [Module]
 public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGetter<SGraphicsModule>
 {
-    public static readonly string
-        ShadersDirectory = Path.Join(SEngine.FrameworkAssetsDirectory, "shaders", "rin");
-
     private readonly BackgroundTaskQueue _backgroundTaskQueue = new();
     private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
     private readonly int _maxEventsPerPeep = 64;
@@ -293,10 +290,10 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         _surfaceFormat = formats.FirstOrDefault(_surfaceFormat);
 
         _descriptorAllocator = new DescriptorAllocator(10000, [
-            new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3),
-            new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3),
-            new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3),
-            new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4)
+            new PoolSizeRatio(DescriptorType.StorageImage, 3),
+            new PoolSizeRatio(DescriptorType.StorageBuffer, 3),
+            new PoolSizeRatio(DescriptorType.UniformBuffer, 3),
+            new PoolSizeRatio(DescriptorType.CombinedSamplerImage, 4)
         ]);
         _transferFence = _device.CreateFence();
         _transferCommandPool = _device.CreateCommandPool(GetTransferQueueFamily());
@@ -668,7 +665,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     /// <param name="signalSemaphores"></param>
     /// <param name="waitSemaphores"></param>
     /// <returns></returns>
-    public void SubmitToQueue(VkQueue queue, VkFence fence, VkCommandBufferSubmitInfo[] commandBuffers,
+    public void SubmitToQueue(in VkQueue queue, in VkFence fence, VkCommandBufferSubmitInfo[] commandBuffers,
         VkSemaphoreSubmitInfo[]? signalSemaphores = null, VkSemaphoreSubmitInfo[]? waitSemaphores = null)
     {
         unsafe
@@ -715,7 +712,6 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
                             MakeCommandBufferBeginInfo(
                                 VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
                         vkBeginCommandBuffer(cmd, &beginInfo);
-                        
                         
                         action.Invoke(new VulkanExecutionContext(_transferCommandBuffer,GetDescriptorAllocator()));
 

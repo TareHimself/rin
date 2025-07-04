@@ -143,32 +143,32 @@ enum class ShaderStage : int
     Compute,
 };
 
-EXPORT_DECL SessionBuilder * slangSessionBuilderNew(LoadFileFunction loadFileFunction);
-EXPORT_DECL void slangSessionBuilderAddTargetSpirv(SessionBuilder * builder);
-EXPORT_DECL void slangSessionBuilderAddTargetGlsl(SessionBuilder * builder);
-EXPORT_DECL void slangSessionBuilderAddPreprocessorDefinition(SessionBuilder * builder, const char * name, const char * value);
-EXPORT_DECL void slangSessionBuilderAddSearchPath(SessionBuilder * builder, const char * path);
-EXPORT_DECL Session * slangSessionBuilderBuild(const SessionBuilder * builder);
-EXPORT_DECL void slangSessionBuilderFree(const SessionBuilder * builder);
+RIN_NATIVE_API SessionBuilder * slangSessionBuilderNew(LoadFileFunction loadFileFunction);
+RIN_NATIVE_API void slangSessionBuilderAddTargetSpirv(SessionBuilder * builder);
+RIN_NATIVE_API void slangSessionBuilderAddTargetGlsl(SessionBuilder * builder);
+RIN_NATIVE_API void slangSessionBuilderAddPreprocessorDefinition(SessionBuilder * builder, const char * name, const char * value);
+RIN_NATIVE_API void slangSessionBuilderAddSearchPath(SessionBuilder * builder, const char * path);
+RIN_NATIVE_API Session * slangSessionBuilderBuild(const SessionBuilder * builder);
+RIN_NATIVE_API void slangSessionBuilderFree(const SessionBuilder * builder);
 
-EXPORT_DECL void slangSessionClearCache(const Session * session);
-EXPORT_DECL Module * slangSessionLoadModuleFromSourceString(const Session * session, char * moduleName,char * path,char * string,Blob * outDiagnostics);
-EXPORT_DECL Component * slangSessionCreateComposedProgram(const Session * session, Module * module, EntryPoint** entryPoints, int entryPointsCount, Blob * outDiagnostics);
-EXPORT_DECL Blob * slangSessionCompile(const Session * session,const char* compileId,const char* content, const char * entryPointName,int stage,Blob * outDiagnostics);
-EXPORT_DECL void slangSessionFree(const Session * session);
+RIN_NATIVE_API void slangSessionClearCache(const Session * session);
+RIN_NATIVE_API Module * slangSessionLoadModuleFromSourceString(const Session * session, char * moduleName,char * path,char * string,Blob * outDiagnostics);
+RIN_NATIVE_API Component * slangSessionCreateComposedProgram(const Session * session, Module * module, EntryPoint** entryPoints, int entryPointsCount, Blob * outDiagnostics);
+RIN_NATIVE_API Blob * slangSessionCompile(const Session * session,const char* compileId,const char* content, const char * entryPointName,int stage,Blob * outDiagnostics);
+RIN_NATIVE_API void slangSessionFree(const Session * session);
 
 
 
-EXPORT_DECL EntryPoint * slangModuleFindEntryPointByName(const Module * module, const char * entryPointName);
-EXPORT_DECL void slangEntryPointFree(const EntryPoint * entryPoint);
-EXPORT_DECL void slangModuleFree(const Module * module);
+RIN_NATIVE_API EntryPoint * slangModuleFindEntryPointByName(const Module * module, const char * entryPointName);
+RIN_NATIVE_API void slangEntryPointFree(const EntryPoint * entryPoint);
+RIN_NATIVE_API void slangModuleFree(const Module * module);
 
-EXPORT_DECL Blob * slangComponentGetEntryPointCode(const Component * component,int entryPointIndex,int targetIndex,Blob * outDiagnostics);
-EXPORT_DECL Component * slangComponentLink(const Component * component,Blob * outDiagnostics);
-EXPORT_DECL Blob * slangComponentToLayoutJson(const Component * component);
-EXPORT_DECL void slangComponentFree(const Component * component);
+RIN_NATIVE_API Blob * slangComponentGetEntryPointCode(const Component * component,int entryPointIndex,int targetIndex,Blob * outDiagnostics);
+RIN_NATIVE_API Component * slangComponentLink(const Component * component,Blob * outDiagnostics);
+RIN_NATIVE_API Blob * slangComponentToLayoutJson(const Component * component);
+RIN_NATIVE_API void slangComponentFree(const Component * component);
 
-EXPORT_DECL Blob * slangBlobNew();
-EXPORT_DECL int slangBlobGetSize(const Blob * blob);
-EXPORT_DECL void * slangBlobGetPointer(const Blob * blob);
-EXPORT_DECL void slangBlobFree(const Blob * blob);
+RIN_NATIVE_API Blob * slangBlobNew();
+RIN_NATIVE_API int slangBlobGetSize(const Blob * blob);
+RIN_NATIVE_API void * slangBlobGetPointer(const Blob * blob);
+RIN_NATIVE_API void slangBlobFree(const Blob * blob);

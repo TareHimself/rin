@@ -8,4 +8,6 @@ public interface IWindowRenderer : IRenderer
     public event Action<IGraphBuilder>? OnCollect;
 
     public IWindow GetWindow();
+    
+    public Extent2D GetRenderExtent();
 }

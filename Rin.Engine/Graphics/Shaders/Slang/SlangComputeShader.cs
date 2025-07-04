@@ -109,7 +109,7 @@ public class SlangComputeShader : IComputeShader, IVulkanShader
             GroupSizeX = groupSize[0];
             GroupSizeY = groupSize[1];
             GroupSizeZ = groupSize[2];
-            const VkShaderStageFlags entryPointStage = VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT;
+            const ShaderStage entryPointStage = ShaderStage.Compute;
 
             SlangShaderManager.ReflectShader(reflectionData, Resources, PushConstants, entryPointStage);
 

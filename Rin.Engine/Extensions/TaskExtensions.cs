@@ -8,49 +8,24 @@ public static class TaskExtensions
     {
         return tasks.Select(c => c.WaitForResult());
     }
-
-    public static async Task<TV> Then<T, TV>(this Task<T> task, Func<T, TV> then)
+    public static Task<TV> Then<T, TV>(this Task<T> task, Func<T, TV> then) => task.ContinueWith(a => then(a.Result));
+    public static Task<TV> Then<TV>(this Task task, Func<TV> then) => task.ContinueWith(_ => then());
+    public static Task Then<T>(this Task<T> task, Action<T> then)  => task.ContinueWith(a => then(a.Result));
+    public static Task Then(this Task task, Action then) => task.ContinueWith(_ => then());
+    public static ConfiguredTaskAwaitable After<T>(this Task<T> task, Action<T> then) => task.Then(then).ConfigureAwait(false);
+    public static ConfiguredTaskAwaitable After(this Task task, Action then) => task.Then(then).ConfigureAwait(false);
+    public static ConfiguredTaskAwaitable Dispatch<T>(this Task<T> task, Dispatcher dispatcher, Action<T> then) => task.ContinueWith(c =>
     {
-        var result = await task;
-        return then(result);
-    }
-
-    public static async Task<TV> Then<TV>(this Task task, Func<TV> then)
+        dispatcher.Enqueue(() => then(c.Result));
+    }).ConfigureAwait(false);
+    public static ConfiguredTaskAwaitable Dispatch(this Task task, Dispatcher dispatcher, Action then) => task.ContinueWith(_ =>
     {
-        await task;
-        return then();
-    }
-
-    public static async Task Then<T>(this Task<T> task, Action<T> then)
-    {
-        then.Invoke(await task);
-    }
-
-    public static async Task Then(this Task task, Action then)
-    {
-        await task;
-        then();
-    }
-
-    public static ConfiguredTaskAwaitable After<T>(this Task<T> task, Action<T> then)
-    {
-        return task.Then(then).ConfigureAwait(false);
-    }
-
-    public static ConfiguredTaskAwaitable After(this Task task, Action then)
-    {
-        return task.Then(then).ConfigureAwait(false);
-    }
-
-    public static ConfiguredTaskAwaitable DispatchAfter<T>(this Task<T> task, Dispatcher dispatcher, Action<T> then)
-    {
-        return task.After(c => dispatcher.Enqueue(() => then(c)));
-    }
-
-    public static ConfiguredTaskAwaitable DispatchAfter(this Task task, Dispatcher dispatcher, Action then)
-    {
-        return task.After(() => dispatcher.Enqueue(then));
-    }
+        dispatcher.Enqueue(then);
+    }).ConfigureAwait(false);
+    public static ConfiguredTaskAwaitable DispatchMain<T>(this Task<T> task, Action<T> then) => task.Dispatch(SEngine.Get().GetMainDispatcher(), then);
+    public static ConfiguredTaskAwaitable DispatchMain(this Task task, Action then) => task.Dispatch(SEngine.Get().GetMainDispatcher(), then);
+    public static ConfiguredTaskAwaitable DispatchRender<T>(this Task<T> task, Action<T> then) => task.Dispatch(SEngine.Get().GetRenderDispatcher(), then);
+    public static ConfiguredTaskAwaitable DispatchRender(this Task task, Action then) => task.Dispatch(SEngine.Get().GetRenderDispatcher(), then);
 
     public static T WaitForResult<T>(this Task<T> task)
     {

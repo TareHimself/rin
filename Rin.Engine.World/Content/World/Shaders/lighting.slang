@@ -20,26 +20,16 @@ struct PushConstants
 
 [[vk::push_constant]]
 uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
-
+const static float2 _lighting_internal_vertices[] = { float2(-1.0), float2(1.0, -1.0), float2(1.0), float2(-1.0), float2(1.0), float2(-1.0, 1.0) };
 [shader("vertex")]
 float4 vertex(int vertexId: SV_VertexID, out float2 oUV: UV)
     : SV_Position
 {
-    // Define a fullscreen triangle in clip space
-    const float2 positions[3] = float2[](
-        float2(-1.0, -1.0), // bottom left
-        float2(3.0, -1.0),  // bottom right (past screen)
-        float2(-1.0, 3.0)   // top left (past screen)
-    );
 
-    const float2 uvs[3] = float2[](
-        float2(0.0, 0.0), // uv for bottom left
-        float2(2.0, 0.0), // uv for bottom right
-        float2(0.0, 2.0)  // uv for top left
-    );
-
-    oUV = uvs[vertexId];
-    return float4(positions[vertexId], 0.0, 1.0);
+    var coord = _lighting_internal_vertices[vertexId];
+    var uv = (coord + 1.0) / 2.0;
+    oUV = uv;
+    return float4(coord, 0.0, 1.0);
 }
 
 struct ModelSurface : IDisneySurface, ILambertSurface {
@@ -85,6 +75,7 @@ float4 fragment(in float2 iUV: UV,float2 coordinate: SV_Position)
         color += model.eval(surface, eye, lights[i]);
     }
 
+    //return float4(float2(iUV),0.0,1.0f);
     //color /= numLights;
     //return float4(push.data->gBuffer.G_BUFFER_0.SampleTexture(iUV).rgb,1.0);
     return float4(color,1.0f);

@@ -65,6 +65,7 @@
     </Target>
 
     <ItemGroup>
+        <ProjectReference Include="..\Provide\Provide.csproj" />
         <ProjectReference Include="..\Rin.Sources\Rin.Sources.csproj"/>
     </ItemGroup>
 

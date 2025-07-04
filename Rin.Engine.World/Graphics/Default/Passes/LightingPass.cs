@@ -51,7 +51,7 @@ public class LightingPass(DefaultWorldRenderContext context) : IPass
                 });
 
             ctx
-                .BeginRendering(context.Extent, [outputImage])
+                .BeginRendering(context.Extent, [outputImage],clearColor: Vector4.Zero)
                 .DisableFaceCulling();
             _shader.Push(ctx, buffer.GetAddress());
             ctx.Draw(6)

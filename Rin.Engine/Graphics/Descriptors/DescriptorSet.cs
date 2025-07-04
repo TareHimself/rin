@@ -1,10 +1,12 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Rin.Engine.Graphics.Descriptors;
 
-public class DescriptorSet : Disposable
+public class DescriptorSet
 {
     private readonly VkDescriptorSet _descriptorSet;
     private readonly VkDevice _device;
@@ -15,190 +17,200 @@ public class DescriptorSet : Disposable
         _descriptorSet = descriptorSet;
     }
 
-    public static VkDescriptorType BufferTypeToDescriptorType(BufferType type)
+    private readonly List<VkDescriptorImageInfo> _pendingImages = [];
+    private readonly List<VkDescriptorBufferInfo> _pendingBuffers = [];
+    private readonly List<int> _infoIndex = [];
+    private readonly List<VkWriteDescriptorSet> _pendingWrite = [];
+    public DescriptorSet WriteSampler(uint binding,in SamplerSpec spec, uint arrayOffset = 0)
     {
-        return type switch
+        var info = new VkDescriptorImageInfo
         {
-            BufferType.Uniform => VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            BufferType.Storage => VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            sampler = SGraphicsModule.Get().GetSampler(spec),
         };
-    }
-
-    public static VkDescriptorType ImageTypeToDescriptorType(DescriptorImageType type, SamplerSpec? samplerSpec = null)
-    {
-        return type switch
+        
+        var write = new VkWriteDescriptorSet
         {
-            DescriptorImageType.Sampled => samplerSpec.HasValue
-                ? VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                : VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            DescriptorImageType.Storage => VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER,
+            dstBinding = binding,
+            pImageInfo = null,
+            descriptorCount = 1,
+            dstSet = _descriptorSet,
+            dstArrayElement = arrayOffset
         };
+        _infoIndex.Add(_pendingImages.Count);
+        _pendingImages.Add(info);
+        _pendingWrite.Add(write);
+        return this;
     }
-
-    // private bool SetResource(uint binding, IEnumerable<IReservable> items)
-    // {
-    //     if (_resources.TryGetValue(binding, out var resource))
-    //     {
-    //         resource.Dispose();
-    //         _resources.Remove(binding);
-    //     }
-    //
-    //
-    //     _resources.Add(binding, new Resource(items.Select(item =>
-    //     {
-    //         item.Reserve();
-    //
-    //         return item;
-    //     })));
-    //
-    //     return true;
-    // }
-
-    // private bool SetResource(uint binding, IEnumerable<Pair<IReservable,string>> items)
-    // {
-    //     if (_resources.TryGetValue(binding, out var resource))
-    //     {
-    //         resource.Dispose();
-    //         _resources.Remove(binding);
-    //     }
-    //
-    //
-    //     _resources.Add(binding, new Resource(items.Select(item =>
-    //     {
-    //         item.First.Reserve();
-    //         
-    //         return new Pair<IDisposable,string>(item.First,item.Second);
-    //     })));
-    //
-    //     return true;
-    // }
-
-    public bool WriteImages(uint binding, params ImageWrite[] writes)
+    public DescriptorSet WriteSampledImage(uint binding, IDeviceImage image, ImageLayout layout, uint arrayOffset = 0)
     {
+        var info = new VkDescriptorImageInfo
+        { 
+            imageView = image.NativeView,
+            imageLayout = layout.ToVk()
+        };
+        
+        var write = new VkWriteDescriptorSet
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            dstBinding = binding,
+            pImageInfo = null,
+            descriptorCount = 1,
+            dstSet = _descriptorSet,
+            dstArrayElement = arrayOffset
+        };
+        _infoIndex.Add(_pendingImages.Count);
+        _pendingImages.Add(info);
+        _pendingWrite.Add(write);
+        return this;
+    }
+    
+    public DescriptorSet WriteSampledImageCombined(uint binding, IDeviceImage image, ImageLayout layout,in SamplerSpec samplerSpec, uint arrayOffset = 0)
+    {
+        var info = new VkDescriptorImageInfo
+        { 
+            imageView = image.NativeView,
+            imageLayout = layout.ToVk(),
+            sampler = SGraphicsModule.Get().GetSampler(samplerSpec),
+        };
+        
+        var write = new VkWriteDescriptorSet
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            dstBinding = binding,
+            pImageInfo = null,
+            descriptorCount = 1,
+            dstSet = _descriptorSet,
+            dstArrayElement = arrayOffset
+        };
+        _infoIndex.Add(_pendingImages.Count);
+        _pendingImages.Add(info);
+        _pendingWrite.Add(write);
+        return this;
+    }
+    public DescriptorSet WriteStorageImage(uint binding, IDeviceImage image, ImageLayout layout, uint arrayOffset = 0)
+    {
+        var info = new VkDescriptorImageInfo
+        { 
+            imageView = image.NativeView,
+            imageLayout = layout.ToVk()
+        };
+        
+        var write = new VkWriteDescriptorSet
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            dstBinding = binding,
+            pImageInfo = null,
+            descriptorCount = 1,
+            dstSet = _descriptorSet,
+            dstArrayElement = arrayOffset
+        };
+        _infoIndex.Add(_pendingImages.Count);
+        _pendingImages.Add(info);
+        _pendingWrite.Add(write);
+        return this;
+    }
+    public DescriptorSet WriteStorageBuffer(uint binding, in DeviceBufferView buffer,uint arrayOffset = 0)
+    {
+        Debug.Assert(buffer.IsValid);
+        
+        var info = new VkDescriptorBufferInfo()
+        { 
+            buffer = buffer.Buffer.NativeBuffer,
+            offset = buffer.Offset,
+            range = buffer.Size
+        };
+        
+        var write = new VkWriteDescriptorSet
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            dstBinding = binding,
+            pImageInfo = null,
+            descriptorCount = 1,
+            dstSet = _descriptorSet,
+            dstArrayElement = arrayOffset
+        };
+        _infoIndex.Add(_pendingImages.Count);
+        _pendingBuffers.Add(info);
+        _pendingWrite.Add(write);
+        return this;
+    }
+    public DescriptorSet WriteUniformBuffer(uint binding, in DeviceBufferView buffer,uint arrayOffset = 0)
+    {
+        Debug.Assert(buffer.IsValid);
+        
+        var info = new VkDescriptorBufferInfo()
+        { 
+            buffer = buffer.Buffer.NativeBuffer,
+            offset = buffer.Offset,
+            range = buffer.Size
+        };
+        
+        var write = new VkWriteDescriptorSet
+        {
+            sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            dstBinding = binding,
+            pImageInfo = null,
+            descriptorCount = 1,
+            dstSet = _descriptorSet,
+            dstArrayElement = arrayOffset
+        };
+        _infoIndex.Add(_pendingImages.Count);
+        _pendingBuffers.Add(info);
+        _pendingWrite.Add(write);
+        return this;
+    }
+   
+    public DescriptorSet Update()
+    {
+        if(_pendingWrite.Count == 0) return this;
         unsafe
         {
-            var infos = stackalloc VkDescriptorImageInfo[writes.Length];
-            var writeSets = stackalloc VkWriteDescriptorSet[writes.Length];
-            for (var i = 0; i < writes.Length; i++)
+            fixed (VkDescriptorBufferInfo* pBuffers = CollectionsMarshal.AsSpan(_pendingBuffers))
+            fixed (VkDescriptorImageInfo* pImages = CollectionsMarshal.AsSpan(_pendingImages))
+            fixed (VkWriteDescriptorSet* pWrites = CollectionsMarshal.AsSpan(_pendingWrite))
             {
-                var write = writes[i];
-                var imageInfo = infos + i;
-                if (write.Sampler.HasValue) imageInfo->sampler = SGraphicsModule.Get().GetSampler(write.Sampler.Value);
-                imageInfo->imageView = write.Image.NativeView;
-                imageInfo->imageLayout = write.Layout.ToVk();
-                var writeSet = writeSets + i;
-                writeSet->sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                writeSet->descriptorType = ImageTypeToDescriptorType(write.Type, write.Sampler);
-                writeSet->dstBinding = binding;
-                writeSet->pImageInfo = imageInfo;
-                writeSet->descriptorCount = 1;
-                writeSet->dstSet = _descriptorSet;
-                writeSet->dstArrayElement = write.Index;
-            }
-
-            vkUpdateDescriptorSets(_device, (uint)writes.Length, writeSets, 0, null);
-        }
-
-        return true;
-    }
-
-    public bool WriteSamplers(uint binding, params SamplerWrite[] writes)
-    {
-        unsafe
-        {
-            var infos = stackalloc VkDescriptorImageInfo[writes.Length];
-            var writeSets = stackalloc VkWriteDescriptorSet[writes.Length];
-            for (var i = 0; i < writes.Length; i++)
-            {
-                var write = writes[i];
-                var imageInfo = infos + i;
-                imageInfo->sampler = SGraphicsModule.Get().GetSampler(write.Sampler);
-                var writeSet = writeSets + i;
-                writeSet->sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                writeSet->descriptorType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER;
-                writeSet->dstBinding = binding;
-                writeSet->pImageInfo = imageInfo;
-                writeSet->descriptorCount = 1;
-                writeSet->dstSet = _descriptorSet;
-                writeSet->dstArrayElement = write.Index;
-            }
-
-            vkUpdateDescriptorSets(_device, (uint)writes.Length, writeSets, 0, null);
-        }
-
-        return true;
-    }
-
-
-    public bool WriteBuffers(uint binding, params BufferWrite[] writes)
-    {
-        // if (!SetResource(binding, writes.Select(c => c.View))) return false;
-        //
-        var infos = writes.Select(write =>
-        {
-            Debug.Assert(write.Buffer.IsValid,"Buffer is not valid");
-            return new VkDescriptorBufferInfo
-            {
-                buffer = write.Buffer.Buffer.NativeBuffer,
-                offset = write.Buffer.Offset,
-                range = write.Buffer.Size,
-            };
-        }).ToArray();
-
-        unsafe
-        {
-            fixed (VkDescriptorBufferInfo* pInfos = infos)
-            {
-                var write = new VkWriteDescriptorSet
+                for (var i = 0; i < _pendingWrite.Count; i++)
                 {
-                    sType = VkStructureType.VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    descriptorType = BufferTypeToDescriptorType(writes.First().Type),
-                    dstBinding = binding,
-                    pBufferInfo = pInfos,
-                    descriptorCount = (uint)infos.Length,
-                    dstSet = _descriptorSet
-                };
-
-                vkUpdateDescriptorSets(_device, 1, &write, 0, null);
+                    var write = pWrites + i;
+                    var infoIdx = _infoIndex[i];
+                    switch (write->descriptorType)
+                    {
+                        case VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER:
+                        case VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+                        case VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                        case VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                            write->pImageInfo = pImages + infoIdx;
+                            break;
+                        case VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                        case VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                        case VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+                        case VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+                            write->pBufferInfo = pBuffers + infoIdx;
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                }
+                vkUpdateDescriptorSets(_device,(uint)_pendingWrite.Count,pWrites,0,null);
             }
+            _pendingBuffers.Clear();
+            _pendingImages.Clear();
+            _infoIndex.Clear();
+            _pendingWrite.Clear();
         }
 
-        return true;
+        return this;
     }
 
     public static explicit operator VkDescriptorSet(DescriptorSet set)
     {
         return set._descriptorSet;
-    }
-
-    protected override void OnDispose(bool isManual)
-    {
-    }
-
-    private class Resource : Disposable
-    {
-        private readonly IDisposable[] _resources;
-
-        public Resource(IEnumerable<IDisposable> resources)
-        {
-            _resources = resources.ToArray();
-            ResourceId = _resources.Aggregate("", (t, c) => t + c.GetHashCode());
-        }
-
-        public Resource(IEnumerable<Pair<IDisposable, string>> resources)
-        {
-            var resourcesArray = resources.ToArray();
-            _resources = resourcesArray.Select(c => c.First).ToArray();
-            ResourceId = resourcesArray.Aggregate("", (t, c) => t + c.First.GetHashCode() + c.Second);
-        }
-
-        public string ResourceId { get; private set; }
-
-        protected override void OnDispose(bool isManual)
-        {
-            foreach (var resource in _resources) resource.Dispose();
-        }
     }
 }

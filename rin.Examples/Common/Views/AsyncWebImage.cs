@@ -26,7 +26,7 @@ public class AsyncWebImage : CoverImage
             var stream = await client.GetStreamAsync(uri);
             using var img = await Task.Run(() => HostImage.Create(stream));
             var (texId, task) = img.CreateTexture();
-            task.DispatchAfter(SEngine.Get().GetMainDispatcher(), () =>
+            task.Dispatch(SEngine.Get().GetMainDispatcher(), () =>
             {
                 ImageId = texId;
                 OnLoaded?.Invoke(true);

@@ -13,7 +13,7 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
     private readonly IGraphicsShader
         _prettyShader =
             SGraphicsModule.Get()
-                .MakeGraphics($"fs/{Path.Join(SEngine.AssetsDirectory, "test", "pretty.slang").Replace('\\', '/')}");
+                .MakeGraphics($"fs/{Path.Join(SEngine.Directory,"assets", "test", "pretty.slang").Replace('\\', '/')}");
 
     private CustomShaderCommand[] _customCommands = [];
     public uint MainImageId => info.Context.MainImageId;

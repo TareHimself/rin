@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using System.Text.Json.Nodes;
-using Rin.Engine.Math;
+using Rin.Engine.Extensions;
 
 namespace Rin.Engine.Views.Sdf;
 

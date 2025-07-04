@@ -40,12 +40,12 @@ static std::string wstringToString(const std::wstring& wstr)
     return strTo;
 }
 
-EXPORT_IMPL int platformGet()
+int platformGet()
 {
     return static_cast<int>(EPlatform::Windows);
 }
 
-EXPORT_IMPL void platformInit()
+void platformInit()
 {
     INSTANCE = GetModuleHandle(nullptr);
     CoInitializeEx(nullptr,COINIT::COINIT_MULTITHREADED);
@@ -66,7 +66,7 @@ void platformShutdown()
 
 }
 
-EXPORT_IMPL void platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback)
+void platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback)
 {
     IFileOpenDialog* fd;
     if(SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog,NULL,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&fd))))
@@ -167,7 +167,7 @@ EXPORT_IMPL void platformSelectFile(const char* title, bool multiple, const char
     }
 }
 
-EXPORT_IMPL void platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback)
+void platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback)
 {
     IFileOpenDialog* fd;
     if(SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog,NULL,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&fd))))
@@ -251,7 +251,7 @@ EXPORT_IMPL void platformSelectPath(const char* title, bool multiple, PathReceiv
     }
 }
 
-EXPORT_IMPL void platformWindowPump()
+void platformWindowPump()
 {
     MSG msg;
     while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) > 0)
@@ -598,7 +598,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd,uMsg,wParam,lParam);
 }
 
-EXPORT_IMPL void* platformWindowCreate(const char* title, int width, int height, Flags<WindowFlags> flags)
+void* platformWindowCreate(const char* title, int width, int height, Flags<WindowFlags> flags)
 {
     auto windowFlags = WS_SYSMENU;
 
@@ -650,24 +650,24 @@ EXPORT_IMPL void* platformWindowCreate(const char* title, int width, int height,
     HWND_TO_WINDOW_INFO.emplace(hwnd,ptr);
     return ptr;
 }
-EXPORT_IMPL void platformWindowDestroy(void* handle)
+void platformWindowDestroy(void* handle)
 {
     const auto asWindowInfo = static_cast<WindowInfo*>(handle);
     HWND_TO_WINDOW_INFO.erase(asWindowInfo->hwnd);
     DestroyWindow(asWindowInfo->hwnd);
     delete asWindowInfo;
 }
-EXPORT_IMPL void platformWindowShow(void* handle)
+void platformWindowShow(void* handle)
 {
     const auto asWindowInfo = static_cast<WindowInfo*>(handle);
     ShowWindow(asWindowInfo->hwnd, SW_SHOW);
 }
-EXPORT_IMPL void platformWindowHide(void* handle)
+void platformWindowHide(void* handle)
 {
     const auto asWindowInfo = static_cast<WindowInfo*>(handle);
     ShowWindow(asWindowInfo->hwnd, SW_HIDE);
 }
-EXPORT_IMPL Vector2 platformWindowGetCursorPosition(void* handle)
+Vector2 platformWindowGetCursorPosition(void* handle)
 {
     const auto hwnd = static_cast<WindowInfo*>(handle);
 
@@ -687,7 +687,7 @@ EXPORT_IMPL Vector2 platformWindowGetCursorPosition(void* handle)
         .y = 0
     };
 }
-EXPORT_IMPL void platformWindowSetCursorPosition(void* handle, Vector2 position)
+void platformWindowSetCursorPosition(void* handle, Vector2 position)
 {
     // RECT rect;
     //
@@ -708,7 +708,7 @@ EXPORT_IMPL void platformWindowSetCursorPosition(void* handle, Vector2 position)
     // SetCursorPos(static_cast<int>(offset.x) + static_cast<int>(position.x),static_cast<int>(offset.y) + static_cast<int>(position.y));
 }
 
-EXPORT_IMPL Extent2D platformWindowGetSize(void* handle)
+Extent2D platformWindowGetSize(void* handle)
 {
     RECT rect;
 
@@ -728,7 +728,7 @@ EXPORT_IMPL Extent2D platformWindowGetSize(void* handle)
     return {};
 }
 
-// EXPORT_IMPL WindowRect platformWindowGetRect(void* handle)
+// WindowRect platformWindowGetRect(void* handle)
 // {
 //     RECT rect;
 //
@@ -752,7 +752,7 @@ EXPORT_IMPL Extent2D platformWindowGetSize(void* handle)
 //
 //     return {};
 // }
-// EXPORT_IMPL WindowRect platformWindowGetDrawRect(void* handle)
+// WindowRect platformWindowGetDrawRect(void* handle)
 // {
 //     RECT rect;
 //
@@ -777,7 +777,7 @@ EXPORT_IMPL Extent2D platformWindowGetSize(void* handle)
 //     return {};
 // }
 
-EXPORT_IMPL VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, void* handle)
+VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, void* handle)
 {
     const auto asWindowInfo = static_cast<WindowInfo*>(handle);
 
@@ -793,7 +793,7 @@ EXPORT_IMPL VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, void* 
     return surface;
 }
 
-EXPORT_IMPL int platformWindowGetEvents(WindowEvent* output, int size)
+int platformWindowGetEvents(WindowEvent* output, int size)
 {
     int events = 0;
     for(auto i = 0; i < size; i++)
@@ -810,16 +810,16 @@ EXPORT_IMPL int platformWindowGetEvents(WindowEvent* output, int size)
     }
     return events;
 }
-EXPORT_IMPL void platformWindowStartTyping(void* handle)
+void platformWindowStartTyping(void* handle)
 {
     // Not needed on windows
 }
-EXPORT_IMPL void platformWindowStopTyping(void* handle)
+void platformWindowStopTyping(void* handle)
 {
     // Not needed on windows
 }
 
-EXPORT_IMPL void platformWindowSetSize(void* handle,Extent2D size)
+void platformWindowSetSize(void* handle,Extent2D size)
 {
 /*
     auto hwnd = static_cast<WindowInfo*>(handle);
@@ -829,7 +829,7 @@ EXPORT_IMPL void platformWindowSetSize(void* handle,Extent2D size)
     SetWindowPos(hwnd,HWND_NOTOPMOST,0,0,)*/
 }
 
-EXPORT_IMPL void platformWindowSetPosition(void* handle,Point2D position)
+void platformWindowSetPosition(void* handle,Point2D position)
 {
     /*auto hwnd = static_cast<WindowInfo*>(handle);
     SetWindowPos(hwnd,HWND_NOTOPMOST,position.x,position.y,0,0,SWP_NOREPOSITION);*/
@@ -1391,7 +1391,7 @@ static struct libdecor_interface decorInterface = {
     }
 };
 
-EXPORT_IMPL void platformInit() {
+void platformInit() {
     XKB_CONTEXT = xkb_context_new(static_cast<xkb_context_flags>(0));
     DISPLAY = wl_display_connect(nullptr);
     //wl_display_add_listener(DISPLAY,&displayListener,nullptr); // errors out with display already has a listener ?
@@ -1401,7 +1401,7 @@ EXPORT_IMPL void platformInit() {
     DECOR_CONTEXT = libdecor_new(DISPLAY, &decorInterface);
 }
 
-EXPORT_IMPL void platformShutdown() {
+void platformShutdown() {
     if (KEYBOARD) wl_keyboard_destroy(KEYBOARD);
     if (POINTER) wl_pointer_destroy(POINTER);
     if (SEAT) wl_seat_destroy(SEAT);
@@ -1416,7 +1416,7 @@ EXPORT_IMPL void platformShutdown() {
     if (XKB_CONTEXT) xkb_context_unref(XKB_CONTEXT);
 }
 
-EXPORT_IMPL int platformGet() {
+int platformGet() {
     return static_cast<int>(EPlatform::Linux);
 }
 
@@ -1468,7 +1468,7 @@ static void runZenityCommand(std::ostringstream& command, bool multiple,const ch
     }
 }
 
-EXPORT_IMPL void platformSelectFile(const char *title, bool multiple, const char *filter,
+void platformSelectFile(const char *title, bool multiple, const char *filter,
                                     PathReceivedCallback callback) {
     std::ostringstream cmd;
     cmd << "zenity --file-selection";
@@ -1480,7 +1480,7 @@ EXPORT_IMPL void platformSelectFile(const char *title, bool multiple, const char
     runZenityCommand(cmd, multiple,filter, callback);
 }
 
-EXPORT_IMPL void platformSelectPath(const char *title, bool multiple, PathReceivedCallback callback) {
+void platformSelectPath(const char *title, bool multiple, PathReceivedCallback callback) {
     std::ostringstream cmd;
     cmd << "zenity --file-selection --directory";
     if (multiple)
@@ -1491,11 +1491,11 @@ EXPORT_IMPL void platformSelectPath(const char *title, bool multiple, PathReceiv
     runZenityCommand(cmd, multiple,nullptr, callback);
 }
 
-EXPORT_IMPL void platformWindowPump() {
+void platformWindowPump() {
     wl_display_roundtrip(DISPLAY);
 }
 
-EXPORT_IMPL void *platformWindowCreate(const char *title, int width, int height, Flags<WindowFlags> flags) {
+void *platformWindowCreate(const char *title, int width, int height, Flags<WindowFlags> flags) {
     auto windowHandle = new WindowHandle{};
     auto surface = wl_compositor_create_surface(COMPOSITOR);
     auto frame = libdecor_decorate(DECOR_CONTEXT, surface, &frameInterface, windowHandle);
@@ -1512,7 +1512,7 @@ EXPORT_IMPL void *platformWindowCreate(const char *title, int width, int height,
     return windowHandle;
 }
 
-EXPORT_IMPL void platformWindowDestroy(void *handle) {
+void platformWindowDestroy(void *handle) {
     if (handle == CURSOR_FOCUSED_HANDLE) {
         CURSOR_FOCUSED_HANDLE = nullptr;
     }
@@ -1526,26 +1526,26 @@ EXPORT_IMPL void platformWindowDestroy(void *handle) {
     delete windowHandle;
 }
 
-EXPORT_IMPL void platformWindowShow(void *handle) {
+void platformWindowShow(void *handle) {
 }
 
-EXPORT_IMPL void platformWindowHide(void *handle) {
+void platformWindowHide(void *handle) {
 }
 
-EXPORT_IMPL Vector2 platformWindowGetCursorPosition(void *handle) {
+Vector2 platformWindowGetCursorPosition(void *handle) {
     auto windowHandle = static_cast<WindowHandle *>(handle);
     return windowHandle->cursorPosition;
 }
 
-EXPORT_IMPL void platformWindowSetCursorPosition(void *handle, Vector2 position) {
+void platformWindowSetCursorPosition(void *handle, Vector2 position) {
 }
 
-EXPORT_IMPL Extent2D platformWindowGetSize(void *handle) {
+Extent2D platformWindowGetSize(void *handle) {
     auto windowHandle = static_cast<WindowHandle *>(handle);
     return windowHandle->size;
 }
 
-EXPORT_IMPL VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, void *handle) {
+VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, void *handle) {
     auto windowHandle = static_cast<WindowHandle *>(handle);
 
     const VkWaylandSurfaceCreateInfoKHR createInfo{
@@ -1559,7 +1559,7 @@ EXPORT_IMPL VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, void *
     return surface;
 }
 
-EXPORT_IMPL int platformWindowGetEvents(WindowEvent *output, int size) {
+int platformWindowGetEvents(WindowEvent *output, int size) {
     int events = 0;
     for (auto i = 0; i < size; i++) {
         if (PENDING_EVENTS.empty()) {
@@ -1574,13 +1574,13 @@ EXPORT_IMPL int platformWindowGetEvents(WindowEvent *output, int size) {
     return events;
 }
 
-EXPORT_IMPL void platformWindowStartTyping(void *handle) {
+void platformWindowStartTyping(void *handle) {
 }
 
-EXPORT_IMPL void platformWindowStopTyping(void *handle) {
+void platformWindowStopTyping(void *handle) {
 }
 
-EXPORT_IMPL void platformWindowSetSize(void *handle, Extent2D size) {
+void platformWindowSetSize(void *handle, Extent2D size) {
 
 }
 #endif
@@ -1588,28 +1588,28 @@ EXPORT_IMPL void platformWindowSetSize(void *handle, Extent2D size) {
 
 #ifdef RIN_PLATFORM_MAC
 
-EXPORT_IMPL void platformInit()
+void platformInit()
 {
 
 }
-EXPORT_IMPL int platformGet()
+int platformGet()
 {
     return static_cast<int>(EPlatform::Mac);
 }
 
-EXPORT_IMPL void platformInit()
+void platformInit()
 {
 
 }
-EXPORT_IMPL int platformGet()
+int platformGet()
 {
     return static_cast<int>(EPlatform::Linux);
 }
-EXPORT_IMPL void platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback)
+void platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback)
 {
 
 }
-EXPORT_IMPL void platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback)
+void platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback)
 {
     
 }

@@ -25,7 +25,7 @@ public class WindowSurface : Surface
     public WindowSurface(IWindowRenderer renderer)
     {
         _renderer = renderer;
-        _size = Window.GetSize();
+        _size = _renderer.GetRenderExtent();
     }
 
     public IWindow Window => _renderer.GetWindow();
@@ -57,7 +57,7 @@ public class WindowSurface : Surface
 
     protected void OnWindowResized(Graphics_Windows_Events_ResizeEvent e)
     {
-        _size = e.Size;
+        _size = _renderer.GetRenderExtent();
         _minimized = _size.Width == 0 || _size.Height == 0;
         if (!_minimized) ReceiveResize(new ResizeSurfaceEvent(this, _size));
     }

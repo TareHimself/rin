@@ -23,17 +23,15 @@ public class AsyncFileImage : CoverImage
 
     public AsyncFileImage(string filePath, Action<AsyncFileImage> loadCallback)
     {
-        Task.Run(() => LoadFile(filePath), _token.Token).Then(() => loadCallback.Invoke(this)).ConfigureAwait(false);
+        Task.Run(() => LoadFile(filePath), _token.Token).DispatchMain(() => loadCallback.Invoke(this));
     }
 
     private async Task LoadFile(string filePath)
     {
         using var image = HostImage.Create(File.OpenRead(filePath)); //await Image.LoadAsync<Rgba32>(filePath);
-        image.CreateTexture();
-        var (texId, task) = SGraphicsModule.Get().GetImageFactory().CreateTexture(image.ToBuffer(),
-            new Extent3D(image.Extent),
-            ImageFormat.RGBA8);
-        task.DispatchAfter(SEngine.Get().GetMainDispatcher(), () => ImageId = texId);
+        var (handle,task) = image.CreateTexture();
+        await task;
+        await SEngine.Get().GetMainDispatcher().Enqueue(() => ImageId = handle);
     }
 
     // public override void Draw(ViewFrame frame, DrawInfo info)

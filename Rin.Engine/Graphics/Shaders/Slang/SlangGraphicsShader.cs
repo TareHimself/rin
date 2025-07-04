@@ -13,7 +13,7 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
 
     private readonly string _filePath;
-    private readonly List<Pair<VkShaderModule, VkShaderStageFlags>> _shaders = [];
+    private readonly List<Pair<VkShaderModule, ShaderStage>> _shaders = [];
     private bool _hasFragment;
     private bool _hasVertex;
     private DescriptorLayoutBuilder _layoutBuilder;
@@ -90,7 +90,7 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
                 }
             }
 
-            List<Pair<VkShaderStageFlags, SlangBlob>> code = [];
+            List<Pair<ShaderStage, SlangBlob>> code = [];
             // We could link them together, but we need min shader params
             foreach (var entryPoint in entryPoints)
             {
@@ -125,10 +125,10 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
                 if (reflectionData == null) throw new ShaderCompileException("Failed to parse reflection data.");
 
                 var entryPointStage = reflectionData.EntryPoints.FirstOrDefault()?.Stage == "vertex"
-                    ? VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT
-                    : VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT;
+                    ? ShaderStage.Vertex
+                    : ShaderStage.Fragment;
 
-                code.Add(new Pair<VkShaderStageFlags, SlangBlob>(entryPointStage, generatedCode));
+                code.Add(new Pair<ShaderStage, SlangBlob>(entryPointStage, generatedCode));
 
                 if (reflectionData.EntryPoints.FirstOrDefault() is { } reflectionEntryPoint)
                 {
@@ -210,9 +210,9 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
                 foreach (var (stage, blob) in code)
                 {
                     var shaderModule = device.CreateShaderModule(blob.AsReadOnlySpan());
-                    _shaders.Add(new Pair<VkShaderModule, VkShaderStageFlags>(shaderModule,
+                    _shaders.Add(new Pair<VkShaderModule, ShaderStage>(shaderModule,
                         stage));
-                    _shaderStageFlags |= stage;
+                    _shaderStageFlags |= stage.ToVk();
                     blob.Dispose();
                 }
 

@@ -23,7 +23,7 @@ if(VULKAN_HPP_DEFAULT_DISPATCHER.FUNCTION == nullptr) \
 } \
 return VULKAN_HPP_DEFAULT_DISPATCHER.FUNCTION(__VA_ARGS__);
 
-EXPORT_IMPL void createVulkanInstance(void * windowHandle, VkInstance* outInstance, VkDevice* outDevice,
+void createVulkanInstance(void * windowHandle, VkInstance* outInstance, VkDevice* outDevice,
     VkPhysicalDevice* outPhysicalDevice, VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily, VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,
     VkSurfaceKHR* outSurface,
     VkDebugUtilsMessengerEXT* outMessenger)
@@ -172,7 +172,7 @@ EXPORT_IMPL void createVulkanInstance(void * windowHandle, VkInstance* outInstan
     *outSurface = surf;
 }
 
-EXPORT_IMPL void destroyVulkanMessenger(VkInstance instance, VkDebugUtilsMessengerEXT messenger)
+void destroyVulkanMessenger(VkInstance instance, VkDebugUtilsMessengerEXT messenger)
 {
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
     vkb::destroy_debug_utils_messenger(instance,messenger);
@@ -180,7 +180,7 @@ EXPORT_IMPL void destroyVulkanMessenger(VkInstance instance, VkDebugUtilsMesseng
 #endif
 }
 
-EXPORT_IMPL void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, int swapchainFormat, int colorSpace,
+void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, int swapchainFormat, int colorSpace,
     int presentMode, uint32_t width, uint32_t height,
     CreateSwapchainCallback callback)
 {
@@ -189,7 +189,8 @@ EXPORT_IMPL void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevic
     const auto sPresentMode = static_cast<VkPresentModeKHR>(presentMode);
 
     vkb::SwapchainBuilder swapchainBuilder{
-        physicalDevice, device,
+        physicalDevice,
+        device,
         surface
     };
     vkb::Swapchain vkbSwapchain = swapchainBuilder
@@ -232,7 +233,7 @@ void createBuffer(VmaAllocator allocator, VkBuffer* buffer, VmaAllocation* alloc
     vmaSetAllocationName(allocator,*allocation,name);
 }
 
-EXPORT_IMPL void* allocatorCreate(VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice)
+void* allocatorCreate(VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice)
 {
     auto allocatorCreateInfo = VmaAllocatorCreateInfo{};
     allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
@@ -245,12 +246,12 @@ EXPORT_IMPL void* allocatorCreate(VkInstance instance, VkDevice device, VkPhysic
     return allocator;
 }
 
-EXPORT_IMPL void allocatorDestroy(void* allocator)
+void allocatorDestroy(void* allocator)
 {
     vmaDestroyAllocator(static_cast<VmaAllocator>(allocator));
 }
 
-EXPORT_IMPL void allocatorNewBuffer(VkBuffer* buffer, void** allocation, size_t size, void* allocator,
+void allocatorNewBuffer(VkBuffer* buffer, void** allocation, size_t size, void* allocator,
     int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
     int mapped, const char* debugName)
 {
@@ -271,7 +272,7 @@ EXPORT_IMPL void allocatorNewBuffer(VkBuffer* buffer, void** allocation, size_t 
     *allocation = static_cast<void*>(alloc);
 }
 
-EXPORT_IMPL void allocatorNewImage(VkImage* image, void** allocation, VkImageCreateInfo* createInfo, void* allocator,
+void allocatorNewImage(VkImage* image, void** allocation, VkImageCreateInfo* createInfo, void* allocator,
     const char* debugName)
 {
     VmaAllocationCreateInfo imageAllocInfo = {};
@@ -293,19 +294,19 @@ EXPORT_IMPL void allocatorNewImage(VkImage* image, void** allocation, VkImageCre
     *allocation = static_cast<void*>(alloc);
 }
 
-EXPORT_IMPL void allocatorFreeBuffer(VkBuffer buffer, void* allocation, void* allocator)
+void allocatorFreeBuffer(VkBuffer buffer, void* allocation, void* allocator)
 {
     vmaDestroyBuffer(static_cast<VmaAllocator>(allocator),buffer,
                      static_cast<VmaAllocation>(allocation));
 }
 
-EXPORT_IMPL void allocatorFreeImage(VkImage image, void* allocation, void* allocator)
+void allocatorFreeImage(VkImage image, void* allocation, void* allocator)
 {
     vmaDestroyImage(static_cast<VmaAllocator>(allocator),image,
                     static_cast<VmaAllocation>(allocation));
 }
 
-EXPORT_IMPL void allocatorCopyToBuffer(void* allocator, void* allocation, void* data, const size_t size,
+void allocatorCopyToBuffer(void* allocator, void* allocation, void* data, const size_t size,
     size_t offset)
 {
     // auto dataCasted = static_cast<TestStruct*>(data);
@@ -314,29 +315,29 @@ EXPORT_IMPL void allocatorCopyToBuffer(void* allocator, void* allocation, void* 
                               offset,size);
 }
 
-EXPORT_IMPL void dVkCmdBindShadersEXT(VkCommandBuffer commandBuffer, uint32_t stageCount, VkShaderStageFlagBits* pStages,
+void dVkCmdBindShadersEXT(VkCommandBuffer commandBuffer, uint32_t stageCount, VkShaderStageFlagBits* pStages,
     VkShaderEXT* pShaders)
 {
     VK_DISPATCH_CHECKED(vkCmdBindShadersEXT,commandBuffer,stageCount,pStages,pShaders)
 }
 
-EXPORT_IMPL void dVkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, VkRenderingInfo* pRenderingInfo)
+void dVkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, VkRenderingInfo* pRenderingInfo)
 {
     //VULKAN_HPP_DEFAULT_DISPATCHER.vkCmdBeginRenderingKHR(commandBuffer,pRenderingInfo);
     VK_DISPATCH_CHECKED(vkCmdBeginRenderingKHR,commandBuffer,pRenderingInfo)
 }
 
-EXPORT_IMPL void dVkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
+void dVkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
 {
     VK_DISPATCH_CHECKED(vkCmdSetPolygonModeEXT,commandBuffer,polygonMode)
 }
 
-EXPORT_IMPL void dVkCmdSetLogicOpEXT(VkCommandBuffer commandBuffer, VkLogicOp logicOp)
+void dVkCmdSetLogicOpEXT(VkCommandBuffer commandBuffer, VkLogicOp logicOp)
 {
     VK_DISPATCH_CHECKED(vkCmdSetLogicOpEXT,commandBuffer,logicOp)
 }
 
-EXPORT_IMPL void dVkCmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount,
+void dVkCmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount,
     VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, uint32_t vertexAttributeDescriptionCount,
     VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions)
 {
@@ -345,56 +346,56 @@ EXPORT_IMPL void dVkCmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t
                                                          pVertexAttributeDescriptions)
 }
 
-EXPORT_IMPL void dVkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, uint32_t logicOpEnable)
+void dVkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, uint32_t logicOpEnable)
 {
     VK_DISPATCH_CHECKED(vkCmdSetLogicOpEnableEXT,commandBuffer,logicOpEnable)
 }
 
-EXPORT_IMPL void dVkCmdSetColorBlendEnableEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
+void dVkCmdSetColorBlendEnableEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
     uint32_t attachmentCount, uint32_t* pColorBlendEnables)
 {
     VK_DISPATCH_CHECKED(vkCmdSetColorBlendEnableEXT,commandBuffer,firstAttachment,attachmentCount,pColorBlendEnables)
 }
 
-EXPORT_IMPL void dVkCmdSetColorBlendEquationEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
+void dVkCmdSetColorBlendEquationEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
     uint32_t attachmentCount, VkColorBlendEquationEXT* pColorBlendEquations)
 {
     VK_DISPATCH_CHECKED(vkCmdSetColorBlendEquationEXT,commandBuffer,firstAttachment,attachmentCount,pColorBlendEquations)
 }
 
-EXPORT_IMPL void dVkCmdSetColorWriteMaskEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
+void dVkCmdSetColorWriteMaskEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment,
     uint32_t attachmentCount, VkColorComponentFlags* pColorWriteMasks)
 {
     VK_DISPATCH_CHECKED(vkCmdSetColorWriteMaskEXT,commandBuffer,firstAttachment,attachmentCount,pColorWriteMasks)
 }
 
-EXPORT_IMPL VkResult dVkCreateShadersEXT(VkDevice device, uint32_t createInfoCount, VkShaderCreateInfoEXT* pCreateInfos,
+VkResult dVkCreateShadersEXT(VkDevice device, uint32_t createInfoCount, VkShaderCreateInfoEXT* pCreateInfos,
     VkAllocationCallbacks* pAllocator, VkShaderEXT* pShaders)
 {
     VK_DISPATCH_CHECKED(vkCreateShadersEXT,device,createInfoCount,pCreateInfos,pAllocator,pShaders)
 }
 
-EXPORT_IMPL void dVkDestroyShaderEXT(VkDevice device, VkShaderEXT shader, VkAllocationCallbacks* pAllocator)
+void dVkDestroyShaderEXT(VkDevice device, VkShaderEXT shader, VkAllocationCallbacks* pAllocator)
 {
     VK_DISPATCH_CHECKED(vkDestroyShaderEXT,device,shader,pAllocator)
 }
 
-EXPORT_IMPL void dVkCmdSetRasterizationSamplesEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
+void dVkCmdSetRasterizationSamplesEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
 {
     VK_DISPATCH_CHECKED(vkCmdSetRasterizationSamplesEXT,commandBuffer,rasterizationSamples)
 }
 
-EXPORT_IMPL void dVkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToCoverageEnable)
+void dVkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToCoverageEnable)
 {
     VK_DISPATCH_CHECKED(vkCmdSetAlphaToCoverageEnableEXT,commandBuffer,alphaToCoverageEnable)
 }
 
-EXPORT_IMPL void dVkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToOneEnable)
+void dVkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, uint32_t alphaToOneEnable)
 {
     VK_DISPATCH_CHECKED(vkCmdSetAlphaToOneEnableEXT,commandBuffer,alphaToOneEnable)
 }
 
-EXPORT_IMPL void dVkCmdSetSampleMaskEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, uint32_t* pSampleMask)
+void dVkCmdSetSampleMaskEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, uint32_t* pSampleMask)
 {
     VK_DISPATCH_CHECKED(vkCmdSetSampleMaskEXT,commandBuffer,samples,pSampleMask)
 }

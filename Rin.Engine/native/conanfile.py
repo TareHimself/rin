@@ -9,6 +9,8 @@ class RinEngineNative(ConanFile):
     license = "MIT"
     requires = [
         "webmdx/1.0.0",
+        "harfbuzz/11.2.1",
+        "vk-bootstrap/1.3.296"
     ]
     git_tag = "main"
     settings = "os", "compiler", "build_type", "arch"

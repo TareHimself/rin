@@ -1,4 +1,5 @@
 ﻿using Rin.Engine.Graphics.Descriptors;
+using Rin.Engine.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -13,8 +14,8 @@ public class BindlessImageFactory : IBindlessImageFactory
     private const uint DescriptorTotal = MaxTextures + SamplerCount;
 
     private readonly DescriptorAllocator _allocator = new(DescriptorTotal, [
-        new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DescriptorTotal / (float)MaxTextures),
-        new PoolSizeRatio(VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER, DescriptorTotal / (float)SamplerCount)
+        new PoolSizeRatio(DescriptorType.SampledImage, (float)MaxTextures / DescriptorTotal),
+        new PoolSizeRatio(DescriptorType.Sampler, (float)SamplerCount / DescriptorTotal)
     ], VkDescriptorPoolCreateFlags.VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
     private readonly DescriptorSet _descriptorSet;
@@ -57,24 +58,23 @@ public class BindlessImageFactory : IBindlessImageFactory
     {
         _device = device;
         {
-            const VkDescriptorBindingFlags flags = VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-                                                   VkDescriptorBindingFlags
-                                                       .VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+            const DescriptorBindingFlags flags = DescriptorBindingFlags.PartiallyBound |
+                                                   DescriptorBindingFlags.UpdateAfterBind;
             _descriptorSetLayout = new DescriptorLayoutBuilder()
                 .AddBinding(
                     SamplersBinding,
-                    VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER,
-                    VkShaderStageFlags.VK_SHADER_STAGE_ALL,
+                    DescriptorType.Sampler,
+                    ShaderStage.All,
                     SamplerCount,
                     flags
                 )
                 .AddBinding(
                     TexturesBinding,
-                    VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                    VkShaderStageFlags.VK_SHADER_STAGE_ALL,
+                    DescriptorType.SampledImage,
+                    ShaderStage.All,
                     MaxTextures,
                     flags |
-                    VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
+                   DescriptorBindingFlags.Variable
                 )
                 .Build();
 
@@ -82,17 +82,13 @@ public class BindlessImageFactory : IBindlessImageFactory
 
             for (var filter = 0; filter < 2; filter++)
             for (var tiling = 0; tiling < 3; tiling++)
-                _descriptorSet.WriteSamplers(0, new SamplerWrite(new SamplerSpec
-                    {
-                        Filter = (ImageFilter)filter,
-                        Tiling = (ImageTiling)tiling
-                    })
-                    {
-                        Index = (uint)(filter * 2 + tiling)
-                    }
-                );
+                _descriptorSet.WriteSampler(SamplersBinding,new SamplerSpec
+                {
+                    Filter = (ImageFilter)filter,
+                    Tiling = (ImageTiling)tiling
+                },(uint)(filter * 3 + tiling));
 
-            var setLayout = _descriptorSetLayout;
+            _descriptorSet.Update();
 
             // var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
             // {
@@ -185,7 +181,7 @@ public class BindlessImageFactory : IBindlessImageFactory
             _pendingTextures.Add(imageHandle, completionSource);
             boundText.Handle = imageHandle;
         }
-
+        
         Task.Run(() =>
                 AsyncCreateTexture(boundText, completionSource, data, size, format, mips, usage, debugName))
             .ConfigureAwait(false);
@@ -215,8 +211,6 @@ public class BindlessImageFactory : IBindlessImageFactory
     {
         lock (_sync)
         {
-            List<ImageWrite> writes = [];
-
             var defaultTexture = _textures[0].Image;
 
             foreach (var textureId in textureIds)
@@ -240,13 +234,10 @@ public class BindlessImageFactory : IBindlessImageFactory
                 _imageIdFactory.FreeId(textureId.Id);
 
                 if (defaultTexture != null)
-                    writes.Add(new ImageWrite(defaultTexture, ImageLayout.ShaderReadOnly, DescriptorImageType.Sampled)
-                    {
-                        Index = (uint)textureId.Id
-                    });
+                    _descriptorSet.WriteSampledImage(TexturesBinding,defaultTexture,ImageLayout.ShaderReadOnly,(uint)textureId.Id);
             }
 
-            if (writes.Count != 0) _descriptorSet.WriteImages(TexturesBinding, writes.ToArray());
+            _descriptorSet.Update();
         }
     }
 
@@ -356,15 +347,10 @@ public class BindlessImageFactory : IBindlessImageFactory
             var info = i < _textures.Count ? _textures[i] : null;
 
             if (info?.Uploaded == true && i != 0) continue;
-
-            writes.Add(new ImageWrite(tex.Image, ImageLayout.ShaderReadOnly, DescriptorImageType.Sampled)
-            {
-                Index = (uint)i
-            });
+            _descriptorSet.WriteSampledImage(TexturesBinding,tex.Image,ImageLayout.ShaderReadOnly,(uint)i);
         }
 
-        if (writes.Count != 0) _descriptorSet.WriteImages(TexturesBinding, writes.ToArray());
-
+        _descriptorSet.Update();
         tex.Uploaded = true;
     }
 
@@ -376,16 +362,12 @@ public class BindlessImageFactory : IBindlessImageFactory
         {
             var info = _textures[textureId.Id];
             if (info.Uploaded || info.Image is null) continue;
-
-            writes.Add(new ImageWrite(info.Image, ImageLayout.ShaderReadOnly, DescriptorImageType.Sampled)
-            {
-                Index = (uint)textureId.Id
-            });
-
+            
+            _descriptorSet.WriteSampledImage(TexturesBinding,info.Image,ImageLayout.ShaderReadOnly,(uint)textureId.Id);
             infos.Add(info);
         }
 
-        if (writes.Count != 0) _descriptorSet.WriteImages(TexturesBinding, writes.ToArray());
+        _descriptorSet.Update();
         foreach (var texture in infos)
         {
             texture.Uploaded = true;

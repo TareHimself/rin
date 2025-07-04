@@ -59,7 +59,7 @@ public readonly record struct DeviceBufferView : IDeviceBufferWriteOps
         Buffer.WriteArray(data,Offset + offset);
     }
 
-    public void Write(IntPtr src, ulong size, ulong offset = 0)
+    public void Write(in IntPtr src, ulong size, ulong offset = 0)
     {
         Debug.Assert(IsValid,"Buffer is not valid");
         Debug.Assert(src != IntPtr.Zero);

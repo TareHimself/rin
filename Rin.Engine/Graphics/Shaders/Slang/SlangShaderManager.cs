@@ -5,9 +5,9 @@ namespace Rin.Engine.Graphics.Shaders.Slang;
 public class SlangShaderManager : IShaderManager
 {
     private readonly BackgroundTaskQueue _compileTasks = new();
-    private readonly object _computeLock = new();
+    private readonly Lock _computeLock = new();
     private readonly Dictionary<string, SlangComputeShader> _computeShaders = [];
-    private readonly object _graphicsLock = new();
+    private readonly Lock _graphicsLock = new();
     private readonly Dictionary<string, SlangGraphicsShader> _graphicsShaders = [];
     private readonly SlangSession _session;
 
@@ -16,8 +16,8 @@ public class SlangShaderManager : IShaderManager
     {
         using var builder = new SlangSessionBuilder();
         _session = builder
-            .AddSearchPath(Path.GetDirectoryName(SGraphicsModule.ShadersDirectory) ?? "")
-            .AddTargetSpirv().Build();
+            .AddTargetSpirv()
+            .Build();
     }
 
     public void Dispose()
@@ -74,7 +74,7 @@ public class SlangShaderManager : IShaderManager
 
 
     public static void ReflectShader(ReflectionData reflectionData, Dictionary<string, Resource> resources,
-        Dictionary<string, PushConstant> pushConstants, VkShaderStageFlags entryPointStage)
+        Dictionary<string, PushConstant> pushConstants, ShaderStage entryPointStage)
     {
         var parameters = reflectionData.Parameters.ToList();
 
@@ -90,39 +90,38 @@ public class SlangShaderManager : IShaderManager
                 var index = binding.Binding ?? 0;
                 var count = parameter.Type.ElementCount ?? 1;
                 var stages = entryPointStage;
-                VkDescriptorBindingFlags bindingFlags = 0;
-                var bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                DescriptorBindingFlags bindingFlags = 0;
+                var bindingType = DescriptorType.CombinedSamplerImage;
                 foreach (var parameterAttribute in parameter.UserAttributes)
                     switch (parameterAttribute.Name)
                     {
                         case "AllStages":
-                            stages = VkShaderStageFlags.VK_SHADER_STAGE_ALL;
+                            stages = ShaderStage.All;
                             break;
                         case "UpdateAfterBind":
-                            bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+                            bindingFlags |= DescriptorBindingFlags.UpdateAfterBind;
                             break;
                         case "Partial":
-                            bindingFlags |= VkDescriptorBindingFlags.VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+                            bindingFlags |= DescriptorBindingFlags.PartiallyBound;
                             break;
                         case "Variable":
-                            bindingFlags |= VkDescriptorBindingFlags
-                                .VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+                            bindingFlags |= DescriptorBindingFlags.Variable;
                             parameterAttribute.Arguments.FirstOrDefault()?.TryGetValue(out count);
                             break;
                         case "TextureBinding":
-                            bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                            bindingType = DescriptorType.CombinedSamplerImage;
                             break;
                         case "StorageImageBinding":
-                            bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                            bindingType = DescriptorType.StorageImage;
                             break;
                         case "SamplerBinding":
-                            bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER;
+                            bindingType = DescriptorType.Sampler;
                             break;
                         case "UniformBufferBinding":
-                            bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                            bindingType = DescriptorType.UniformBuffer;
                             break;
                         case "StorageBufferBinding":
-                            bindingType = VkDescriptorType.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                            bindingType = DescriptorType.StorageBuffer;
                             break;
                     }
 
@@ -154,8 +153,8 @@ public class SlangShaderManager : IShaderManager
                     {
                         Name = name,
                         Size = (uint)(parameter.Type.ElementVarLayout?.Binding?.Size ?? 0),
-                        Stages = VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS |
-                                 VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT
+                        Stages = ShaderStage.AllGraphics |
+                                 ShaderStage.Compute
                     });
             }
         }

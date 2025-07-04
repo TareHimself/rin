@@ -2,13 +2,8 @@ cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
-
+set(BUILD_SHARED_LIBS ON)
 include(${CMAKE_CURRENT_SOURCE_DIR}/utils.cmake)
-
-# include(ExternalProject)
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-endif()
 
 include(FetchContent)
 
@@ -81,6 +76,9 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 #    COMMAND conda activate && python ${CMAKE_CURRENT_SOURCE_DIR}/../../copy_s.py "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>" ${TARGET_DIR}
 #)
 
+if(BUILD_SHARED_LIBS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RIN_NATIVE_PRODUCER)
+endif()
 
 if(RIN_BUILD_TEST_MAIN)
     set(STB_IMAGE_WRITE_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/stb)

@@ -156,7 +156,7 @@ public class VulkanExecutionContext(in VkCommandBuffer commandBuffer, Descriptor
 
     public IExecutionContext BeginRendering(in Extent2D extent, IEnumerable<IDeviceImage> attachments,
         IDeviceImage? depthAttachment = null,
-        IDeviceImage? stencilAttachment = null)
+        IDeviceImage? stencilAttachment = null,Vector4? clearColor = null)
     {
         Debug.Assert(depthAttachment == null || depthAttachment.Format == ImageFormat.Depth,
             $"Depth attachment format must be {ImageFormat.Depth}");
@@ -164,7 +164,7 @@ public class VulkanExecutionContext(in VkCommandBuffer commandBuffer, Descriptor
             $"Depth attachment format must be {ImageFormat.Stencil}");
 
         CommandBuffer
-            .BeginRendering(extent, attachments.Select(c => c.MakeColorAttachmentInfo()),
+            .BeginRendering(extent, attachments.Select(c => c.MakeColorAttachmentInfo(clearColor)),
                 depthAttachment?.MakeDepthAttachmentInfo(), stencilAttachment?.MakeStencilAttachmentInfo())
             .SetViewports([
                 new VkViewport

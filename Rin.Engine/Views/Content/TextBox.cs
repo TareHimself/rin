@@ -22,7 +22,7 @@ public class TextBox : ContentView
 
     private string _content = string.Empty;
     private string _fontFamily = "Noto Sans";
-    private IFontManager _fontManager = SViewsModule.Get().GetFontManager();
+    private IFontManager _fontManager = SEngine.Provider.Get<IFontManager>();
     private float _fontSize = 100.0f;
     private bool _wrapContent;
     protected float? Wrap;
