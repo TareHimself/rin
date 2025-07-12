@@ -14,7 +14,7 @@ public record struct Extent3D : IFormattable
     {
     }
 
-    public Extent3D(Extent2D extent, uint dimensions = 1)
+    public Extent3D(in Extent2D extent, uint dimensions = 1)
     {
         Width = extent.Width;
         Height = extent.Height;

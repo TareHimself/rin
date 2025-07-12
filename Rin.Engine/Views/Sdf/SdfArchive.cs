@@ -1,119 +1,168 @@
-﻿using System.Text;
-using System.Text.Json.Nodes;
+﻿using System.Collections.Concurrent;
+using System.Text;
+using System.Text.Json;
 using Rin.Engine.Archives;
-using Rin.Engine.Extensions;
+using Rin.Engine.Graphics;
+using SharpCompress.Writers;
 
 namespace Rin.Engine.Views.Sdf;
 
-public class SdfArchive(Stream data) : IReadArchive, ISdfContainer
+public class SdfArchive : IDisposable, ISdfContainer
 {
-    private readonly ZipArchive _archive = new(data);
-    private readonly Dictionary<string, SdfVector> _vectors = [];
-    private bool _vectorsLoaded;
-
-    public void Dispose()
+    
+    private readonly SqliteArchive _archive;
+    private readonly ConcurrentDictionary<string, SdfImage> _images = [];
+    private readonly ConcurrentDictionary<string, SdfVector> _vectors = [];
+    public SdfArchive(string filename)
     {
-        _archive.Dispose();
+        _archive = new SqliteArchive(filename);
+        LoadFromArchive();
     }
 
-    public IEnumerable<string> Keys => _archive.Keys;
-
-    public int Count => _archive.Count;
-
-    public Stream CreateReadStream(string key)
+    public SdfArchive()
     {
-        return _archive.CreateReadStream(key);
+        _archive = new SqliteArchive();
     }
 
+    public string[] GetImages()
+    {
+        return _images.Keys.ToArray();
+    }
+
+    public string[] GetVectors()
+    {
+        return _vectors.Keys.ToArray();
+    }
+
+    public IHostImage? LoadImage(string id)
+    {
+        if (_archive.CreateReadStream($"{id}.png") is { } stream)
+        {
+            return HostImage.Create(stream);
+        }
+
+        return null;
+    }
+
+    public SdfImage? GetImage(string id)
+    {
+        return _images.GetValueOrDefault(id);
+    }
 
     public SdfVector? GetVector(string id)
     {
-        return GetVectorsDict().GetValueOrDefault(id);
+        return _vectors.GetValueOrDefault(id);
     }
 
-    public SdfResult? GetResult(int id)
+    public bool HasImage(string id)
     {
-        var result = new SdfResult();
-        using var memoryStream = new MemoryStream();
-        GetAtlasStream(id).CopyTo(memoryStream);
-        result.BinaryDeserialize(memoryStream);
-        return result;
+        return _images.ContainsKey(id);
     }
 
-    IEnumerable<SdfVector> ISdfContainer.GetVectors()
+    public bool HasVector(string id)
     {
-        return GetVectorsDict().Values;
+        return _vectors.ContainsKey(id);
     }
 
-    private Dictionary<string, SdfVector> GetVectorsDict()
+    public string AddImage(IHostImage image)
     {
-        if (_vectorsLoaded) return _vectors;
-
-        var data = JsonNode.Parse(_archive.CreateReadStream("vectors.json"))?.AsObject() ??
-                   throw new InvalidOperationException();
-        var arr = data["vectors"]?.AsArray() ?? throw new InvalidOperationException();
-
-        foreach (var jsonNode in arr)
+        var id = Guid.NewGuid().ToString();
+        var sdfImage = new SdfImage
         {
-            var vector = new SdfVector();
-            vector.JsonDeserialize(jsonNode?.AsObject() ?? throw new InvalidOperationException());
-
-            _vectors.Add(vector.Id, vector);
-        }
-
-        _vectorsLoaded = true;
-
-        return _vectors;
+            Id = id,
+            Extent = image.Extent
+        };
+        _images.AddOrUpdate(id, sdfImage, (_, _) => sdfImage);
+        var stream = new MemoryStream();
+        image.Save(stream);
+        WriteImage(id, stream);
+        WriteInfo();
+        return id;
     }
-
-    public Stream GetAtlasStream(int id)
+    
+    public string[] AddImages(IEnumerable<HostImage> images)
     {
-        return _archive.CreateReadStream(id.ToString());
-    }
 
-    public class Writer
-    {
-        private readonly Dictionary<int, SdfResult> _results = [];
-        private readonly Dictionary<string, SdfVector> _vectors = [];
-
-        public Writer()
+        var ids = images.Select(image =>
         {
-        }
-
-        public Writer(Dictionary<string, SdfVector> vectors, IEnumerable<SdfResult> results)
-        {
-            _vectors = vectors;
-            foreach (var (key, value) in _results) AddAtlas(key, value);
-        }
-
-        public void AddAtlas(int id, SdfResult data)
-        {
-            _results.Add(id, data);
-        }
-
-        public void AddVector(SdfVector vector)
-        {
-            _vectors.Add(vector.Id, vector);
-        }
-
-        public void SaveTo(string path)
-        {
-            using var archive = new ZipArchive();
-            foreach (var (id, result) in _results)
+            var id = Guid.NewGuid().ToString();
+            var sdfImage = new SdfImage
             {
-                var stream = new MemoryStream();
-                result.BinarySerialize(stream);
-                archive.Write($"{id}", stream);
+                Id = id,
+                Extent = image.Extent
+            };
+            _images.AddOrUpdate(id, sdfImage, (_, _) => sdfImage);
+            var stream = new MemoryStream();
+            image.Save(stream);
+            WriteImage(id, stream);
+            return id;
+        }).ToArray();
+        
+        WriteInfo();
+        
+        return ids;
+    }
+
+    public void AddVector(SdfVector vector)
+    {
+        _vectors.AddOrUpdate(vector.Id, vector,(_, _) => vector);
+        WriteInfo();
+    }
+    
+    public void AddVectors(IEnumerable<SdfVector> vectors)
+    {
+        foreach (var vector in vectors)
+        {
+            _vectors.AddOrUpdate(vector.Id, vector,(_, _) => vector);
+        }
+        WriteInfo();
+    }
+    
+    public void Dispose()
+    {
+        WriteInfo();
+        _archive.Dispose();
+    }
+    
+    private void LoadFromArchive()
+    {
+        // var data = new MemoryStream();
+        // _archive.CreateReadStream("info.json").CopyTo(data);
+        // var text = Encoding.UTF8.GetString(data.ToArray());
+        if (_archive.Keys.Contains("info.json") && _archive.CreateReadStream("info.json") is { } stream && JsonSerializer.Deserialize<Info>(stream) is { } info)
+        {
+            foreach (var image in info.Images)
+            {
+                _images.AddOrUpdate(image.Id, image, (_, _) => image);
             }
 
-            var obj = new JsonObject();
-            var vectorsJsonArray = new JsonArray();
-            foreach (var (id, vector) in _vectors) vectorsJsonArray.Add(vector.ToJsonObject());
-            obj["vectors"] = vectorsJsonArray;
-            using var textStream = new MemoryStream(Encoding.UTF8.GetBytes(obj.ToString()));
-            archive.Write("info.json", textStream);
-            using var writeStream = SEngine.Get().Sources.Write(path);
-            archive.SaveTo(writeStream);
+            foreach (var vector in info.Vectors)
+            {
+                _vectors.AddOrUpdate(vector.Id, vector, (_, _) => vector);
+            }
         }
+    }
+
+    private void WriteImage(string id, Stream image)
+    {
+        _archive.Write($"{id}.png",image);
+    }
+    
+    private void WriteInfo()
+    {
+        var infoObject = new Info
+        {
+            Images = _images.Select(c => c.Value).ToArray(),
+            Vectors = _vectors.Select(c => c.Value).ToArray(),
+        };
+        var stream = new MemoryStream();
+        JsonSerializer.Serialize(stream, infoObject);
+        _archive.Write("info.json", stream);
+    }
+    
+    class Info
+    {
+        public SdfImage[] Images { get; set; } = [];
+        public SdfVector[] Vectors { get; set; } = [];
     }
 }

@@ -107,7 +107,7 @@ public class MainModule : IModule
 
     public async Task<World> LoadSponza(string filename)
     {
-        var z = ModelRoot.Load(@"C:\Users\Taree\Downloads\soldier_anby.glb");
+       
         var model = ModelRoot.Load(filename, ReadContext.Create(f => SEngine.Get().Sources.Read(filename).ReadAll()));
         var mesh = model?.LogicalMeshes?.FirstOrDefault() ?? throw new NullReferenceException();
         IMeshMaterial?[] materials = new SponzaMeshMaterial?[mesh.Primitives.Count];

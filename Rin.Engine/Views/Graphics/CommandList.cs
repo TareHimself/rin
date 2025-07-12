@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Engine.Views.Graphics.Commands;
 
 namespace Rin.Engine.Views.Graphics;
@@ -10,13 +11,6 @@ public class ClipInfo(uint id, Matrix4x4 transform, Vector2 size)
     public Matrix4x4 Transform = transform;
 }
 
-public struct RawCommand(ICommand cmd, string clipId)
-{
-    public ICommand Cmd = cmd;
-    public readonly string ClipId = clipId;
-    public int AbsoluteDepth = 0;
-}
-
 public struct PendingCommand(ICommand cmd, uint clipId)
 {
     public ICommand Cmd = cmd;
@@ -26,36 +20,22 @@ public struct PendingCommand(ICommand cmd, uint clipId)
 public class CommandList
 {
     private readonly Stack<uint> _clipStack = [];
-
     //private readonly SortedDictionary<int, List<RawCommand>> _commands = new SortedDictionary<int, List<RawCommand>>(Comparer<int>.Create((a,b) => b.CompareTo(a)));
-    private readonly List<RawCommand> _commands = [];
+    [PublicAPI]
+    public readonly List<ICommand> Commands = [];
+    [PublicAPI]
+    public readonly List<string> ClipIds = [];
     private string _clipId = "";
     private int _depth;
-
-    //public IEnumerable<RawCommand> Commands => _commands.Keys.SelectMany(commandsKey => _commands[commandsKey].AsReversed());
-    public IEnumerable<RawCommand> Commands => _commands;
     public List<ClipInfo> Clips { get; } = [];
 
     public Dictionary<string, uint[]> UniqueClipStacks { get; } = [];
 
     public CommandList Add(ICommand command)
     {
-        var info = new RawCommand(command, _clipId)
-        {
-            AbsoluteDepth = _depth
-        };
-
-        // if (!_commands.TryGetValue(_depth, out var value))
-        // {
-        //     _commands.Add(_depth,[info]);
-        // }
-        // else
-        // {
-        //     value.Add(info);
-        // }
-        _commands.Add(info);
-
-        UniqueClipStacks.TryAdd(info.ClipId, _clipStack.ToArray());
+        Commands.Add(command);
+        ClipIds.Add(_clipId);
+        UniqueClipStacks.TryAdd(_clipId, _clipStack.ToArray());
 
         return this;
     }

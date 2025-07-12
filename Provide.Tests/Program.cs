@@ -11,3 +11,7 @@ var provider = new DefaultProvider();
 
 provider.Get<IEmailService>();
 Console.WriteLine("Hello, World!");
+while (true)
+{
+    Thread.Sleep(100);
+}

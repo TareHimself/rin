@@ -52,19 +52,6 @@ void createVulkanInstance(void * windowHandle, VkInstance* outInstance, VkDevice
 #endif
         .enable_extension("VK_KHR_surface");
 
-
-    //builder.enable_extension(vk::EXTShaderObjectExtensionName);
-    // if (systemInfo.is_extension_available(vk::EXTShaderObjectExtensionName))
-    // {
-    //     builder.enable_extension(vk::EXTShaderObjectExtensionName);
-    // }
-    // else
-    // {
-    //     std::cout << "Enabling shader object layer since device does not support it" << "\n";
-    //     builder.enable_layer("VK_LAYER_KHRONOS_shader_object");
-    // }
-
-
     auto instanceResult = builder.build();
 
     if(!instanceResult)

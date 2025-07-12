@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Text.Json.Nodes;
+using Rin.Engine.Graphics;
 
 namespace Rin.Engine.Extensions;
 
@@ -79,6 +80,24 @@ public static class JsonExtensions
             Y = self["Y"]?.GetValue<float>() ?? 0,
             Z = self["Z"]?.GetValue<float>() ?? 0,
             W = self["W"]?.GetValue<float>() ?? 0
+        };
+    }
+    
+    public static JsonObject ToJson(this in Extent2D self)
+    {
+        return new JsonObject
+        {
+            ["Width"] = self.Width,
+            ["Height"] = self.Height
+        };
+    }
+
+    public static Extent2D ToExtent2D(this JsonObject self)
+    {
+        return new Extent2D
+        {
+           Width = self["Width"]?.GetValue<uint>() ?? 0,
+           Height = self["Height"]?.GetValue<uint>() ?? 0
         };
     }
 }

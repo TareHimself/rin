@@ -10,8 +10,18 @@ public class HostImage : IHostImage
 {
     private VipsImage _image;
 
+
+    private static bool ChangeCache()
+    {
+        NetVips.Cache.Max = 0;
+        NetVips.Cache.MaxMem = 0;
+        return true;
+    }
+    
+    private static bool _CACHE_CHANGED = ChangeCache();
     private HostImage(VipsImage image)
     {
+        
         _image = image.Bands == 3 ? image.Bandjoin(255) : image;
     }
 

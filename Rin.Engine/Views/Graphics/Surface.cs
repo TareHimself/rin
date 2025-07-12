@@ -6,6 +6,7 @@ using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Math;
 using Rin.Engine.Views.Composite;
 using Rin.Engine.Views.Events;
+using Rin.Engine.Views.Graphics.CommandHandlers;
 using Rin.Engine.Views.Graphics.Commands;
 using Rin.Engine.Views.Graphics.Passes;
 
@@ -81,63 +82,76 @@ public abstract class Surface : IDisposable, IUpdatable
         SurfacePassContext context, List<IPass> passes)
     {
         List<ICommand> currentCommands = [];
-        Type? currentPassType = null;
+        List<ICommandHandler> currentHandlers = [];
+        Type? currentPassConfigType = null;
+        Type? currentHandlerType = null;
 
-        foreach (var pendingCommand in drawCommands)
+        foreach (var cmd in drawCommands)
         {
-            if (pendingCommand is NoOpCommand && currentCommands.NotEmpty())
+            // NoOpCommand's are like breaks so we break any batching that can happen here
+            if (cmd is NoOpCommand && currentCommands.NotEmpty())
             {
-                passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context, currentCommands.ToArray())));
+                if (currentCommands.Count > 0)
+                {
+                    currentHandlers.Add(currentCommands.First().CreateHandler(currentCommands.ToArray()));
+                }
+
+                passes.Add(new ViewsDrawPass(currentCommands.First().CreateConfig(context), currentHandlers.ToArray()));
+                
+                //passes.Add(new ViewsDrawPass(currentCommands.First().CreateConfig(context),currentHandlers.ToArray()));
+                //passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context, currentCommands.ToArray())));
                 continue;
             }
 
-            if (currentCommands.Empty())
+            if (currentCommands.Count > 0)
             {
-                currentCommands.Add(pendingCommand);
-                currentPassType = pendingCommand.PassType;
-            }
-            else
-            {
-                var passType = pendingCommand.PassType;
-                if (currentPassType == passType)
+                if (currentHandlerType != cmd.HandlerType)
                 {
-                    currentCommands.Add(pendingCommand);
+                    currentHandlers.Add(currentCommands.First().CreateHandler(currentCommands.ToArray()));
+                    currentCommands.Clear();
                 }
-                else
+
+                if (currentPassConfigType != cmd.PassConfigType)
                 {
-                    passes.Add(currentCommands.First()
-                        .CreatePass(new PassCreateInfo(context, currentCommands.ToArray())));
-                    currentCommands = [pendingCommand];
-                    currentPassType = passType;
+                    passes.Add(new ViewsDrawPass(currentCommands.First().CreateConfig(context), currentHandlers.ToArray()));
+                    currentHandlers.Clear();
                 }
             }
+            
+            currentCommands.Add(cmd);
+            currentHandlerType = cmd.HandlerType;
+            currentPassConfigType = cmd.PassConfigType;
         }
 
         if (currentCommands.NotEmpty())
-            passes.Add(currentCommands.First().CreatePass(new PassCreateInfo(context, currentCommands.ToArray())));
+        {
+            currentHandlers.Add(currentCommands.First().CreateHandler(currentCommands.ToArray()));
+            passes.Add(new ViewsDrawPass(currentCommands.First().CreateConfig(context), currentHandlers.ToArray()));
+        }
         Stats.BatchedDrawCommandCount++;
     }
     
     [PublicAPI]
     protected SurfacePassContext? BuildPasses(IGraphBuilder builder)
     {
-        var rawDrawCommands = new CommandList();
+        var drawList = new CommandList();
         _rootView.Collect(Matrix4x4.Identity, new Rect
         {
             Size = GetSize()
-        }, rawDrawCommands);
+        }, drawList);
 
-        var rawCommands = rawDrawCommands.Commands.OrderBy(c => c, new RawCommandComparer()).ToArray();
+        var rawCommands = drawList.Commands;
 
-        if (rawCommands.Length == 0) return null;
+        if (rawCommands.Count == 0) return null;
 
-        Stats.InitialCommandCount = rawCommands.Length;
+        Stats.InitialCommandCount = rawCommands.Count;
 
-        var clips = rawDrawCommands.Clips;
+        var clips = drawList.Clips;
 
         // var result = new PassInfo();
 
         var size = GetSize();
+        
         var context = new SurfacePassContext(new Extent2D
         {
             Width = (uint)float.Ceiling(size.X),
@@ -146,12 +160,12 @@ public abstract class Surface : IDisposable, IUpdatable
 
         List<IPass> passes = [new CreateImagesPass(context)];
         {
-            var uniqueClipStacks = rawDrawCommands.UniqueClipStacks;
+            var uniqueClipStacks = drawList.UniqueClipStacks;
             Dictionary<string, uint> computedClipMasks = [];
             List<ICommand> pendingCommands = [];
             uint shifted = 1;
             uint currentMask = 0x2;
-            foreach (var rawCommand in rawCommands)
+            foreach (var (command,clipId) in drawList.Commands.Zip(drawList.ClipIds))
             {
                 if (shifted == 31)
                 {
@@ -165,27 +179,27 @@ public abstract class Surface : IDisposable, IUpdatable
                 }
 
                 
-                if (rawCommand.ClipId.Length <= 0) // No clipping
+                if (clipId.Length <= 0) // No clipping
                 {
-                    rawCommand.Cmd.StencilMask = 0x01;
-                    pendingCommands.Add(rawCommand.Cmd);
+                    command.StencilMask = 0x01;
+                    pendingCommands.Add(command);
                 }
-                else if (computedClipMasks.TryGetValue(rawCommand.ClipId, out var clipMask))
+                else if (computedClipMasks.TryGetValue(clipId, out var clipMask))
                 {
-                    rawCommand.Cmd.StencilMask = clipMask;
-                    pendingCommands.Add(rawCommand.Cmd);
+                    command.StencilMask = clipMask;
+                    pendingCommands.Add(command);
                 }
                 else
                 {
                     
                     passes.Add(new StencilWritePass(context, currentMask,
-                        uniqueClipStacks[rawCommand.ClipId]
+                        uniqueClipStacks[clipId]
                             .Select(c => new StencilClip(clips[(int)c].Transform, clips[(int)c].Size)).ToArray()));
                     Stats.StencilWriteCount++;
                     //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
-                    computedClipMasks.Add(rawCommand.ClipId, currentMask);
-                    rawCommand.Cmd.StencilMask = currentMask;
-                    pendingCommands.Add(rawCommand.Cmd);
+                    computedClipMasks.Add(clipId, currentMask);
+                    command.StencilMask = currentMask;
+                    pendingCommands.Add(command);
                     currentMask <<= 1;
                     shifted++;
                 }

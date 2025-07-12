@@ -1,9 +1,14 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using Rin.Engine.Math;
 
 namespace Rin.Engine.Graphics;
 
+[JsonConverter(typeof(Offset2D.JsonConverter))]
 public struct Offset2D : IEquatable<Offset2D>, IFormattable
 {
     public bool Equals(Offset2D other)
@@ -54,5 +59,26 @@ public struct Offset2D : IEquatable<Offset2D>, IFormattable
     {
         x = X;
         y = Y;
+    }
+
+    public class JsonConverter : JsonConverter<Extent2D>
+    {
+        public override Extent2D Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var obj = JsonNode.Parse(ref reader)?.AsObject();
+            Debug.Assert(obj is not null);
+            return new Extent2D(
+                obj[nameof(Extent2D.Width)]?.GetValue<uint>() ?? 0,
+                obj[nameof(Extent2D.Height)]?.GetValue<uint>() ?? 0
+            );
+        }
+
+        public override void Write(Utf8JsonWriter writer, Extent2D value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("Width", value.Width);
+            writer.WriteNumber("Height", value.Height);
+            writer.WriteEndObject();
+        }
     }
 }

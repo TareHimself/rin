@@ -70,5 +70,5 @@ float3 getLightDirectionToLocation(ILight light, float3 location) {
 }
 
 int computeLightTileIndex(float2 screenPosition) {
-
+    return 0;
 }

@@ -1,8 +1,13 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 
 namespace Rin.Engine.Graphics;
 
+[JsonConverter(typeof(Point2D.JsonConverter))]
 public record struct Point2D : IFormattable
 {
     [PublicAPI] public int X = 0;
@@ -32,5 +37,26 @@ public record struct Point2D : IFormattable
     {
         x = X;
         y = Y;
+    }
+    
+    public class JsonConverter : JsonConverter<Point2D>
+    {
+
+        public override void Write(Utf8JsonWriter writer, Point2D value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("X", value.X);
+            writer.WriteNumber("Y", value.Y);
+            writer.WriteEndObject();
+        }
+        public override Point2D Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var obj = JsonNode.Parse(ref reader)?.AsObject();
+            Debug.Assert(obj is not null);
+            return new Point2D(
+                obj[nameof(Point2D.X)]?.GetValue<int>() ?? 0,
+                obj[nameof(Point2D.Y)]?.GetValue<int>() ?? 0
+            );
+        }
     }
 }

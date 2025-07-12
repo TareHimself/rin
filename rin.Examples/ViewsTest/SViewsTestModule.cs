@@ -165,25 +165,25 @@ public class SViewsTestModule : IModule
             {
                 Slots =
                 [
-                    new PanelSlot()
-                    {
-                        Child = new Fitter
-                        {
-                            Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
-                            FittingMode = FitMode.Contain,
-                            Padding = 50.0f,
-                            Clip = Clip.Bounds
-                        },
-                        // Child = new Fitter
-                        // {
-                        //     Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
-                        //     FittingMode = FitMode.Contain,
-                        //     Padding = new Padding(10.0f),
-                        //     Clip = Clip.None,
-                        // },
-                        MinAnchor = Vector2.Zero,
-                        MaxAnchor = Vector2.One,
-                    },
+                    // new PanelSlot()
+                    // {
+                    //     Child = new Fitter
+                    //     {
+                    //         Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
+                    //         FittingMode = FitMode.Contain,
+                    //         Padding = 50.0f,
+                    //         Clip = Clip.Bounds
+                    //     },
+                    //     // Child = new Fitter
+                    //     // {
+                    //     //     Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
+                    //     //     FittingMode = FitMode.Contain,
+                    //     //     Padding = new Padding(10.0f),
+                    //     //     Clip = Clip.None,
+                    //     // },
+                    //     MinAnchor = Vector2.Zero,
+                    //     MaxAnchor = Vector2.One,
+                    // },
                     new PanelSlot
                     {
                         Child = list,
@@ -191,21 +191,22 @@ public class SViewsTestModule : IModule
                         MaxAnchor = new Vector2(0.5f),
                         Alignment = new Vector2(0.5f),
                         SizeToContent = true
-                    },
-                    new PanelSlot
-                    {
-                        Child = new Rect
-                        {
-                            Child = new FpsView(),
-                            Padding = new Padding(20.0f),
-                            BorderRadius = new Vector4(10.0f),
-                            Color = Color.Black with { A = 0.7f }
-                        },
-                        SizeToContent = true,
-                        MinAnchor = new Vector2(1.0f, 0.0f),
-                        MaxAnchor = new Vector2(1.0f, 0.0f),
-                        Alignment = new Vector2(1.0f, 0.0f)
-                    },
+                    }
+                     ,
+                     new PanelSlot
+                     {
+                         Child = new Rect
+                         {
+                             Child = new FpsView(),
+                             Padding = new Padding(20.0f),
+                             BorderRadius = new Vector4(10.0f),
+                             Color = Color.Black with { A = 0.7f }
+                         },
+                         SizeToContent = true,
+                         MinAnchor = new Vector2(1.0f, 0.0f),
+                         MaxAnchor = new Vector2(1.0f, 0.0f),
+                         Alignment = new Vector2(1.0f, 0.0f)
+                     },
                 ]
             });
 

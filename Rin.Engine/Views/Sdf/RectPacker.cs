@@ -1,4 +1,5 @@
-﻿using StbRectPackSharp;
+﻿using Rin.Engine.Graphics;
+using StbRectPackSharp;
 
 namespace Rin.Engine.Views.Sdf;
 
@@ -30,6 +31,11 @@ public class RectPacker<T>(int packerWidth, int packerHeight, int packerPadding 
     public bool Pack(int width, int height, T data)
     {
         return _packer.PackRect(width + _padding2X, height + _padding2X, data) != null;
+    }
+    
+    public bool Pack(in Extent2D extent, T data)
+    {
+        return Pack((int)extent.Width,(int)extent.Height,data);
     }
 
     private void ReleaseUnmanagedResources()

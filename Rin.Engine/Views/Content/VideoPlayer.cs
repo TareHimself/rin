@@ -10,12 +10,14 @@ using Rin.Engine.Math;
 using Rin.Engine.Video;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.CommandHandlers;
 using Rin.Engine.Views.Graphics.Commands;
+using Rin.Engine.Views.Graphics.PassConfigs;
 using Rin.Engine.Views.Graphics.Quads;
 
 namespace Rin.Engine.Views.Content;
 
-internal class VideoCommand(in Matrix4x4 transform,in Vector2 size,Buffer<byte> frameData,in Extent2D extent) : TCommand<VideoPass>
+internal class VideoCommand(in Matrix4x4 transform,in Vector2 size,Buffer<byte> frameData,in Extent2D extent) : TCommand<MainPassConfig,VideoCommandHandler>
 {
     public Matrix4x4 Transform = transform;
     public Vector2 Size = size;
@@ -55,16 +57,26 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass
     }
 }
 
-internal class VideoPass(SurfacePassContext passContext,VideoCommand[] commands) : IViewsPass, IWithPreAdd
+internal class VideoCommandHandler : ICommandHandlerWithPreAdd
 {
-    public uint Id { get; set; }
-    public bool IsTerminal => false;
-    
     private readonly IGraphicsShader _shader = SGraphicsModule.Get()
         .MakeGraphics("Engine/Shaders/Views/video.slang");
-    private readonly CreateVideoResourcesPass _resourcesPass = new CreateVideoResourcesPass(commands);
+
+    private CreateVideoResourcesPass _resourcesPass = null!;
     private uint _itemBufferId = 0;
-    public void Configure(IGraphConfig config)
+
+    private VideoCommand[] _commands = [];
+    public void PreAdd(IGraphBuilder builder)
+    {
+        builder.AddPass(_resourcesPass);
+    }
+    public void Init(ICommand[] commands)
+    {
+        _commands = commands.Cast<VideoCommand>().ToArray();
+        _resourcesPass = new CreateVideoResourcesPass(_commands);
+    }
+
+    public void Configure(IGraphConfig config, IPassConfig passConfig)
     {
         _itemBufferId = config.CreateBuffer<VideoItem>(_resourcesPass.VideoImageFrameIds.Length,
             GraphBufferUsage.HostThenGraphics);
@@ -72,37 +84,29 @@ internal class VideoPass(SurfacePassContext passContext,VideoCommand[] commands)
         {
             config.ReadImage(id, ImageLayout.ShaderReadOnly);
         }
-        config.WriteImage(passContext.MainImageId, ImageLayout.ColorAttachment);
-        config.ReadImage(passContext.StencilImageId, ImageLayout.StencilAttachment);
     }
 
-    public void Execute(ICompiledGraph graph, IExecutionContext ctx)
+    public void Execute(ICompiledGraph graph, IExecutionContext ctx, IPassConfig passConfig)
     {
         if (_shader.Bind(ctx))
         {
-            var mainImage = graph.GetImageOrException(passContext.MainImageId);
-            var stencilImage = graph.GetImageOrException(passContext.StencilImageId);
             var frameImages = _resourcesPass.VideoImageFrameIds.Select(graph.GetImageOrException).ToArray();
             var buffer = graph.GetBufferOrException(_itemBufferId);
         
-            buffer.WriteArray(commands.Select((c,idx) => new VideoItem
+            buffer.WriteArray(_commands.Select((c,idx) => new VideoItem
             {
                 Transform = c.Transform,
                 Size = c.Size,
                 FrameHandle = frameImages[idx].BindlessHandle
             }));
         
-            ctx.BeginRendering(passContext.Extent, [mainImage], stencilAttachment: stencilImage)
-                .DisableFaceCulling()
-                .StencilCompareOnly();
-
             var compareMask = uint.MaxValue;
 
             ulong offset = 0;
             var itemSize = Utils.ByteSizeOf<VideoItem>();
-            for (var i = 0; i < commands.Length; i++)
+            for (var i = 0; i < _commands.Length; i++)
             {
-                var command = commands[i];
+                var command = _commands[i];
                 var currentCompareMask = command.StencilMask;
                 if (currentCompareMask != compareMask)
                 {
@@ -111,28 +115,15 @@ internal class VideoPass(SurfacePassContext passContext,VideoCommand[] commands)
                 }
                 _shader.Push(ctx,new Push
                 {
-                    Projection = passContext.ProjectionMatrix,
+                    Projection = passConfig.PassContext.ProjectionMatrix,
                     ItemBufferAddress = buffer.GetAddress() + offset
                 });
                 ctx.Draw(6, 1);
                 offset += itemSize;
             }
-
-            ctx.EndRendering();
         }
     }
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-        builder.AddPass(_resourcesPass);
-    }
-
-    public static IViewsPass Create(PassCreateInfo info)
-    {
-        var asVideoCommands = info.Commands.Cast<VideoCommand>().ToArray();
-        return new VideoPass(info.Context, asVideoCommands);
-    }
-
+    
     struct Push
     {
         public required Matrix4x4 Projection;
@@ -145,6 +136,7 @@ internal class VideoPass(SurfacePassContext passContext,VideoCommand[] commands)
         public required Vector2 Size;
         public required ImageHandle FrameHandle;
     }
+
 }
 public class VideoPlayer : ContentView
 {

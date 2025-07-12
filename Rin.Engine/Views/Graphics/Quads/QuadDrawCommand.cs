@@ -1,9 +1,11 @@
-﻿using Rin.Engine.Views.Graphics.Commands;
+﻿using Rin.Engine.Views.Graphics.CommandHandlers;
+using Rin.Engine.Views.Graphics.Commands;
+using Rin.Engine.Views.Graphics.PassConfigs;
 using Rin.Engine.Views.Graphics.Passes;
 
 namespace Rin.Engine.Views.Graphics.Quads;
 
-public class QuadDrawCommand : TCommand<BatchDrawPass>, IBatchedCommand
+public class QuadDrawCommand : TCommand<MainPassConfig,BatchCommandHandler>, IBatchedCommand
 {
     private readonly List<Quad> _quads = [];
 

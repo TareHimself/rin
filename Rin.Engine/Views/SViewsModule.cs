@@ -13,7 +13,7 @@ public class SViewsModule : IModule, ISingletonGetter<SViewsModule>, IUpdatable
     //     ShadersDirectory = Path.Join(SGraphicsModule.ShadersDirectory, "views");
 
     private readonly Dictionary<Type, IBatcher> _batchRenderers = [];
-    private readonly IFontManager _fontManager = SEngine.Provider.AddSingle<IFontManager>(new DefaultFontManager(new TestExternalFontCache()));
+    private readonly IFontManager _fontManager = SEngine.Provider.AddSingle<IFontManager>(new DefaultFontManager());
     private readonly Dictionary<IWindowRenderer, WindowSurface> _windowSurfaces = new();
     private SGraphicsModule? _graphicsSubsystem;
 

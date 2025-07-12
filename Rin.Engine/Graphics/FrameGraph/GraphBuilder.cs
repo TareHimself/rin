@@ -14,7 +14,7 @@ public class GraphBuilder : IGraphBuilder
     public uint AddPass(IPass pass)
     {
         {
-            if (pass is IWithPreAdd p) p.PreAdd(this);
+            if (pass is IPassWithPreAdd p) p.PreAdd(this);
         }
 
         var passId = MakeId();
@@ -22,7 +22,7 @@ public class GraphBuilder : IGraphBuilder
         _passes.Add(passId, pass);
 
         {
-            if (pass is IWithPostAdd p) p.PostAdd(this);
+            if (pass is IPassWithPostAdd p) p.PostAdd(this);
         }
         return passId;
     }

@@ -9,12 +9,15 @@ using Rin.Engine.Math;
 using Rin.Engine.Views;
 using Rin.Engine.Views.Events;
 using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.CommandHandlers;
 using Rin.Engine.Views.Graphics.Commands;
+using Rin.Engine.Views.Graphics.PassConfigs;
 using Rin.Engine.Views.Graphics.Quads;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Graphics.Default;
 using CommandList = Rin.Engine.Views.Graphics.CommandList;
+using ICommand = Rin.Engine.Views.Graphics.Commands.ICommand;
 
 namespace Rin.Engine.World.Views;
 
@@ -28,68 +31,67 @@ public enum ViewportChannel
     Emissive
 }
 
-internal class ViewPortPass(SurfacePassContext info, DrawViewportCommand command) : IViewsPass, IWithPreAdd
+internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
 {
-    private readonly Extent2D _renderExtent = command.Size.ToExtent();
-
     private readonly IShader _shader = SGraphicsModule.Get()
         .MakeGraphics("World/Shaders/viewport.slang");
 
-    private uint _outputImageId;
-    private uint _pushBufferId;
-    private IWorldRenderContext? _renderContext;
+    private uint[] _outputImageIds = [];
+    private uint[] _pushBufferIds = [];
+    private IWorldRenderContext[] _renderContexts = [];
+    private DrawViewportCommand[] _commands = [];
+    
     public uint Id { get; set; }
     public bool IsTerminal => false;
-
-    public void Configure(IGraphConfig config)
+    
+    public void PreAdd(IGraphBuilder builder)
     {
-        Debug.Assert(_renderContext != null);
-
-        config.WriteImage(info.MainImageId, ImageLayout.ColorAttachment);
-        config.ReadImage(info.StencilImageId, ImageLayout.StencilAttachment);
-        _pushBufferId = config.CreateBuffer<PushData>(GraphBufferUsage.HostThenGraphics);
-        _outputImageId = config.ReadImage(_renderContext.GetOutputImageId(), ImageLayout.ShaderReadOnly);
+        _renderContexts = _commands.Select(c => c.Render.Collect(builder, c.Camera, c.Size.ToExtent())).ToArray();
     }
 
-    public void Execute(ICompiledGraph graph, IExecutionContext ctx)
+    
+    public void Init(ICommand[] commands)
+    {
+        _commands = commands.Cast<DrawViewportCommand>().ToArray();
+    }
+
+    public void Configure(IGraphConfig config, IPassConfig passConfig)
+    {
+        _pushBufferIds = _commands
+            .Select(c => config.CreateBuffer<PushData>(GraphBufferUsage.HostThenGraphics))
+            .ToArray();
+        _outputImageIds = _renderContexts
+            .Select(c => config.ReadImage(c.GetOutputImageId(), ImageLayout.ShaderReadOnly))
+            .ToArray();
+    }
+
+    public void Execute(ICompiledGraph graph, IExecutionContext ctx, IPassConfig passConfig)
     {
         if (_shader.Bind(ctx))
         {
-            var outputImage = graph.GetImage(_outputImageId);
-            var mainImage = graph.GetImageOrException(info.MainImageId);
-            var stencilImage = graph.GetImageOrException(info.StencilImageId);
-            var pushBuffer = graph.GetBufferOrException(_pushBufferId);
-            pushBuffer.WriteStruct(
-                new PushData
-                {
-                    Projection = info.ProjectionMatrix,
-                    Transform = command.Transform,
-                    Size = command.Size,
-                    OutputImage = outputImage.BindlessHandle
-                });
-
-            ctx
-                .BeginRendering(_renderExtent, [mainImage], stencilAttachment: stencilImage)
-                .DisableFaceCulling()
-                .StencilCompareOnly()
-                .SetStencilCompareMask(command.StencilMask);
-            _shader.Push(ctx, pushBuffer.GetAddress());
-            ctx.Draw(6)
-                .EndRendering();
+            var outputImages = _outputImageIds.Select(graph.GetImageOrException);
+            var pushBuffers = _pushBufferIds.Select(graph.GetBufferOrException);
+            
+            foreach (var (cmd,outputImage,pushBuffer) in _commands.Zip(outputImages, pushBuffers))
+            {
+                ctx.SetStencilCompareMask(cmd.StencilMask);
+                pushBuffer.WriteStruct(
+                    new PushData
+                    {
+                        Projection = passConfig.PassContext.ProjectionMatrix,
+                        Transform = cmd.Transform,
+                        Size = cmd.Size,
+                        OutputImage = outputImage.BindlessHandle
+                    });
+                
+                _shader.Push(ctx, pushBuffer.GetAddress());
+                
+                ctx
+                    .Draw(6);
+            }
         }
     }
-
-    public static IViewsPass Create(PassCreateInfo info)
-    {
-        var cmd = info.Commands.First() as DrawViewportCommand ?? throw new NullReferenceException();
-        return new ViewPortPass(info.Context, cmd);
-    }
-
-    public void PreAdd(IGraphBuilder builder)
-    {
-        _renderContext = command.Render.Collect(builder, command.Camera, _renderExtent);
-    }
-
+    
     private struct PushData
     {
         public required Matrix4x4 Projection;
@@ -104,7 +106,7 @@ internal class DrawViewportCommand(
     in Vector2 extent,
     in Matrix4x4 transform,
     IWorldRenderer renderer)
-    : TCommand<ViewPortPass>
+    : TCommand<MainPassConfig,ViewportCommandHandler>
 {
     public Vector2 Size { get; } = extent;
     public CameraComponent Camera { get; } = camera;

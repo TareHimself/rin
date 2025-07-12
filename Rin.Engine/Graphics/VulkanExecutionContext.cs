@@ -164,7 +164,7 @@ public class VulkanExecutionContext(in VkCommandBuffer commandBuffer, Descriptor
             $"Depth attachment format must be {ImageFormat.Stencil}");
 
         CommandBuffer
-            .BeginRendering(extent, attachments.Select(c => c.MakeColorAttachmentInfo(clearColor)),
+            .BeginRendering(extent, attachments.Select(c => c.MakeColorAttachmentInfo(clearColor)).ToArray(),
                 depthAttachment?.MakeDepthAttachmentInfo(), stencilAttachment?.MakeStencilAttachmentInfo())
             .SetViewports([
                 new VkViewport

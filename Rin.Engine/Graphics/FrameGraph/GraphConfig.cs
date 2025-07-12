@@ -50,6 +50,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint CreateImage(in Extent3D extent, ImageFormat format, ImageLayout layout)
     {
+        Debug.Assert(extent is { Width: > 0, Height: > 0, Dimensions: > 0 },"all image dimensions must be greater than zero");
         var flags = format switch
         {
             ImageFormat.Depth => ImageUsage.DepthAttachment,
@@ -71,6 +72,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint CreateBuffer(ulong size, GraphBufferUsage usage)
     {
+        Debug.Assert(size > 0,"buffer size must be positive");
         var resourceId = builder.MakeId();
         // _memory.Add(resourceId, descriptor);
         _buffers.Add(resourceId, new GraphConfigBuffer

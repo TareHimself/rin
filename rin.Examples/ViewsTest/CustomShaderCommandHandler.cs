@@ -5,52 +5,44 @@ using Rin.Engine.Graphics;
 using Rin.Engine.Graphics.FrameGraph;
 using Rin.Engine.Graphics.Shaders;
 using Rin.Engine.Views.Graphics;
+using Rin.Engine.Views.Graphics.CommandHandlers;
+using Rin.Engine.Views.Graphics.Commands;
 
 namespace rin.Examples.ViewsTest;
 
-public class CustomShaderPass(PassCreateInfo info) : IViewsPass
+public class CustomShaderCommandHandler : ICommandHandler
 {
     private readonly IGraphicsShader
         _prettyShader =
             SGraphicsModule.Get()
                 .MakeGraphics($"fs/{Path.Join(SEngine.Directory,"assets", "test", "pretty.slang").Replace('\\', '/')}");
-
-    private CustomShaderCommand[] _customCommands = [];
-    public uint MainImageId => info.Context.MainImageId;
-    public uint CopyImageId => info.Context.CopyImageId;
-    public uint StencilImageId => info.Context.StencilImageId;
+    
+    private CustomShaderCommand[] _commands = [];
     private uint BufferId { get; set; }
-    public uint Id { get; set; }
-    public bool IsTerminal => false;
-
-    public void Configure(IGraphConfig config)
+    public void Init(ICommand[] commands)
     {
-        config.WriteImage(MainImageId, ImageLayout.ColorAttachment);
-        config.ReadImage(StencilImageId, ImageLayout.StencilAttachment);
-        _customCommands = info.Commands.Cast<CustomShaderCommand>().ToArray();
-        BufferId = config.CreateBuffer<Data>(_customCommands.Length, GraphBufferUsage.HostThenGraphics);
+        _commands = commands.Cast<CustomShaderCommand>().ToArray();
     }
 
-    public void Execute(ICompiledGraph graph, IExecutionContext ctx)
+    public void Configure(IGraphConfig config, IPassConfig passConfig)
+    {
+        BufferId = config.CreateBuffer<Data>(_commands.Length, GraphBufferUsage.HostThenGraphics);
+    }
+
+    public void Execute(ICompiledGraph graph, IExecutionContext ctx, IPassConfig passConfig)
     {
         if (_prettyShader.Bind(ctx))
         {
-            var drawImage = graph.GetImage(MainImageId);
-            var stencilImage = graph.GetImage(StencilImageId);
             var view = graph.GetBufferOrException(BufferId);
-
-            ctx.BeginRendering(info.Context.Extent, [drawImage], stencilAttachment: stencilImage)
-                .DisableFaceCulling()
-                .StencilCompareOnly();
-            foreach (var customShaderCommand in _customCommands)
+            foreach (var customShaderCommand in _commands)
             {
                 ctx.SetStencilCompareMask(customShaderCommand.StencilMask);
                 var pushResource = _prettyShader.PushConstants.First().Value;
-                var extent = info.Context.Extent;
+                var extent = passConfig.PassContext.Extent;
                 var screenSize = new Vector2(extent.Width, extent.Height);
                 var data = new Data
                 {
-                    Projection = info.Context.ProjectionMatrix,
+                    Projection = passConfig.PassContext.ProjectionMatrix,
                     ScreenSize = screenSize,
                     Transform = customShaderCommand.Transform,
                     Size = customShaderCommand.Size,
@@ -62,16 +54,9 @@ public class CustomShaderPass(PassCreateInfo info) : IViewsPass
                 ctx
                     .Draw(6);
             }
-
-            ctx.EndRendering();
         }
     }
-
-    public static IViewsPass Create(PassCreateInfo info)
-    {
-        return new CustomShaderPass(info);
-    }
-
+    
     [StructLayout(LayoutKind.Sequential)]
     private struct Data
     {

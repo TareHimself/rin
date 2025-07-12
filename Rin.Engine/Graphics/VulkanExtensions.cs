@@ -630,18 +630,17 @@ public static class VulkanExtensions
     }
 
 
-    public static VkCommandBuffer BeginRendering(in this VkCommandBuffer cmd, VkRect2D rect,
-        IEnumerable<VkRenderingAttachmentInfo> attachments, VkRenderingAttachmentInfo? depthAttachment = null,
+    public static VkCommandBuffer BeginRendering(this in VkCommandBuffer cmd, VkRect2D rect,
+        VkRenderingAttachmentInfo[] attachments, VkRenderingAttachmentInfo? depthAttachment = null,
         VkRenderingAttachmentInfo? stencilAttachment = null)
     {
         unsafe
         {
-            var attachmentsArray = attachments.ToArray();
-            fixed (VkRenderingAttachmentInfo* pAttachments = attachmentsArray)
+            fixed (VkRenderingAttachmentInfo* pAttachments = attachments)
             {
                 var renderingInfo = SGraphicsModule.MakeRenderingInfo(rect);
                 renderingInfo.pColorAttachments = pAttachments;
-                renderingInfo.colorAttachmentCount = (uint)attachmentsArray.Length;
+                renderingInfo.colorAttachmentCount = (uint)attachments.Length;
 
                 if (depthAttachment.HasValue)
                 {
@@ -663,7 +662,7 @@ public static class VulkanExtensions
     }
 
     public static VkCommandBuffer BeginRendering(in this VkCommandBuffer cmd, in Extent2D extent,
-        IEnumerable<VkRenderingAttachmentInfo> attachments, VkRenderingAttachmentInfo? depthAttachment = null,
+        VkRenderingAttachmentInfo[] attachments, VkRenderingAttachmentInfo? depthAttachment = null,
         VkRenderingAttachmentInfo? stencilAttachment = null)
     {
         return BeginRendering(cmd, new VkRect2D
@@ -674,7 +673,7 @@ public static class VulkanExtensions
                 y = 0
             },
             extent = extent.ToVk()
-        }, attachments, depthAttachment, stencilAttachment);
+        },attachments, depthAttachment, stencilAttachment);
     }
 
 

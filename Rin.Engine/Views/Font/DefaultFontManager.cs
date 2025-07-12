@@ -26,12 +26,12 @@ public class DefaultFontManager : IFontManager
         Coordinate = Vector4.Zero
     };
 
-    private readonly IExternalFontCache? _externalCache;
+    private readonly ISdfCache? _cache;
     private readonly ConcurrentDictionary<FontFamily, IFont> _fonts = [];
 
-    public DefaultFontManager(IExternalFontCache? externalCache = null)
+    public DefaultFontManager(ISdfCache? cache = null)
     {
-        _externalCache = externalCache;
+        _cache = SEngine.Provider.AddSingle<ISdfCache>(new DiskSdfCache(Path.Combine(SEngine.Directory, "sdfs.bin")));
     }
 
     public Task Prepare(IFont font, IEnumerable<char> characters)
@@ -39,7 +39,9 @@ public class DefaultFontManager : IFontManager
         if (font is SixLaborsFont asFont)
         {
             var actualFont = asFont.Family.CreateFont(RenderSize, FontStyle.Regular);
+            
             List<Pair<char, CacheKey>> toGenerate = [];
+            
             foreach (var character in characters)
             {
                 var key = new CacheKey(character, asFont.Name);
@@ -70,19 +72,18 @@ public class DefaultFontManager : IFontManager
                     {
                         var (result, index) = c;
                         Debug.Assert(result != null, nameof(result) + " != null");
-                        using var data = result.Data;
+                        using var data = result.Image;
                         var size = new Vector2((float)result.Width, (float)result.Height);
                         var glyph = new LiveGlyphInfo
                         {
                             AtlasHandle = ImageHandle.InvalidImage,
                             State = LiveGlyphState.Ready,
                             Size = size,
-                            Coordinate = new Vector4(0.0f, 0.0f, size.X / result.PixelWidth,
-                                size.Y / result.PixelHeight)
+                            Coordinate = new Vector4(0.0f, 0.0f, size.X / result.Image.Extent.Width,
+                                size.Y / result.Image.Extent.Height)
                         };
-
-                        glyph.AtlasHandle = SGraphicsModule.Get().GetImageFactory().CreateTexture(result.Data.Copy(),
-                            new Extent3D((uint)result.PixelWidth, (uint)result.PixelHeight), ImageFormat.RGBA8).handle;
+                        
+                        glyph.AtlasHandle = result.Image.CreateTexture().handle;
                         return new Pair<int, LiveGlyphInfo>(index, glyph);
                     });
 
@@ -151,7 +152,7 @@ public class DefaultFontManager : IFontManager
 
                         var targetPacker = packers.Last();
 
-                        if (targetPacker.Pack(mtsdf.First.PixelWidth, mtsdf.First.PixelHeight, mtsdf)) continue;
+                        if (targetPacker.Pack(mtsdf.First.Image.Extent, mtsdf)) continue;
 
                         packers.Add(new RectPacker<Pair<SdfResult, int>>(atlasSize, atlasSize, padding));
 
@@ -173,12 +174,7 @@ public class DefaultFontManager : IFontManager
                             o.Fill(255, 255, 255, 0);
                             foreach (var rect in packer.Rects)
                             {
-                                var generated = rect.Data;
-                                using var img = HostImage.Create(generated.First.Data, (uint)generated.First.PixelWidth,
-                                    (uint)generated.First.PixelHeight, 4);
-                                generated.First.Data.Dispose();
-                                o.DrawImage(img, new Offset2D(rect.X, rect.Y));
-                                //o.DrawImage(img, new Point(rect.X, rect.Y), 1F);
+                                o.DrawImage(rect.Data.First.Image, new Offset2D(rect.X, rect.Y));
                             }
                         });
 
@@ -196,8 +192,9 @@ public class DefaultFontManager : IFontManager
                         foreach (var rect in packer.Rects)
                         {
                             var generated = rect.Data;
+                            var size = generated.First.Image.Extent;
                             var pt1 = new Vector2(rect.X, rect.Y);
-                            var pixelSize = new Vector2(generated.First.PixelWidth, generated.First.PixelHeight);
+                            var pixelSize = new Vector2(size.Width,size.Height);
                             var pt2 = pt1 + pixelSize;
                             var pt1Coord = pt1 / atlasSize;
                             var pt2Coord = pt2 / atlasSize;
@@ -209,6 +206,7 @@ public class DefaultFontManager : IFontManager
                                 Coordinate = new Vector4(pt1Coord, pt2Coord.X, pt2Coord.Y)
                             };
                             _atlases.AddOrUpdate(toGenerate[generated.Second].Second, glyph, (_, _) => glyph);
+                            rect.Data.First.Image.Dispose();
                         }
                     }
 
@@ -311,27 +309,59 @@ public class DefaultFontManager : IFontManager
 
     private SdfResult? GenerateGlyph(char character, SixLabors.Fonts.Font font, CacheKey cacheKey)
     {
-        if (_externalCache?.Get(cacheKey.GetHashCode()) is { } data)
-        {
-            var result = new SdfResult();
-            data.Read(result);
-            data.Dispose();
-            return result;
-        }
+        var sdfCacheKey =  $"Font/{cacheKey.FontName}/{cacheKey.Character}";
 
+        if (_cache is not null && _cache.HasVector(sdfCacheKey))
+        {
+            var vector = _cache.GetVector(sdfCacheKey)!;
+            var image = _cache.LoadImage(vector.ImageId)!;
+                return new SdfResult(image,vector.Size.X,vector.Size.Y);
+        }
+        // {
+        //     if (_cache?.GetVector($"{cacheKey.GetHashCode()}") is { } data&& _cache.LoadImage(data.AtlasIdx))
+        //     {
+        //         var result = new SdfResult()
+        //         {
+        //         
+        //         }
+        //         data.Read(result);
+        //         data.Dispose();
+        //         return result;
+        //     }
+        // }
+        //
         {
             var options = new TextOptions(font);
             using var renderer = new MtsdfTextRenderer();
             TextRenderer.RenderTextTo(renderer, [character], options);
             var result = renderer.Generate(3f, GetPixelRange());
 
-            if (_externalCache is { SupportsSet: true } && result != null)
+            if (result is not null && _cache is not null)
             {
-                var stream = new MemoryStream();
-                stream.Write(result);
-                _externalCache.Set(cacheKey.GetHashCode(), stream);
+                
+                if (!_cache.HasVector(sdfCacheKey))
+                {
+                    var imageId = _cache.AddImage(result.Image);
+                    var actualSize = result.Image.Extent;
+                    
+                    _cache.AddVector(new SdfVector
+                    {
+                        Id = sdfCacheKey,
+                        ImageId = imageId,
+                        Offset = Vector2.Zero,
+                        Size = new Vector2((float)result.Width, (float)result.Height),
+                        Coordinates = new Vector4(0f,0f,actualSize.Width / (float)result.Image.Extent.Width,actualSize.Height / (float)result.Image.Extent.Height),
+                        PixelRange = PixelRange
+                    });
+                }
             }
-
+            // if (_cache is { SupportsSet: true } && result != null)
+            // {
+            //     var stream = new MemoryStream();
+            //     stream.Write(result);
+            //     _cache.Set(cacheKey.GetHashCode(), stream);
+            // }
+            //
             return result;
         }
     }
@@ -344,13 +374,13 @@ public class DefaultFontManager : IFontManager
     private readonly struct CacheKey(char character, string fontName)
         : IEquatable<CacheKey>
     {
-        private readonly char _character = character;
-        private readonly string _fontName = fontName;
+        public readonly char Character = character;
+        public readonly string FontName = fontName;
 
         public bool Equals(CacheKey other)
         {
-            return _character == other._character &&
-                   _fontName == other._fontName;
+            return Character == other.Character &&
+                   FontName == other.FontName;
         }
 
         public override bool Equals(object? obj)
@@ -360,7 +390,7 @@ public class DefaultFontManager : IFontManager
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(_character, _fontName);
+            return HashCode.Combine(Character, FontName);
         }
     }
 }

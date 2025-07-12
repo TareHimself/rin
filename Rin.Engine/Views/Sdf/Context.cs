@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Rin.Engine.Graphics;
 
 namespace Rin.Engine.Views.Sdf;
 
@@ -59,9 +60,7 @@ public class Context : IDisposable
         Native.Sdf.ContextGenerateMsdf(_context, angleThreshold, pixelRange,
             (data, pixelWidth, pixelHeight, count, width, height) =>
             {
-                var buffer = new Buffer<byte>((int)count);
-                buffer.Write(data, count);
-                result = new SdfResult(buffer, 3, width, height, (int)pixelWidth, (int)pixelHeight);
+                result = new SdfResult(HostImage.Create(data,pixelWidth,pixelHeight,3), width, height);
             });
 
         return result;
@@ -74,12 +73,7 @@ public class Context : IDisposable
         Native.Sdf.ContextGenerateMtsdf(_context, angleThreshold, pixelRange,
             (data, pixelWidth, pixelHeight, count, width, height) =>
             {
-                var buffer = new Buffer<byte>((int)count);
-                buffer.Write(data, count);
-                result = new SdfResult(buffer, 4, width, height, (int)pixelWidth, (int)pixelHeight);
-                var expected = (ulong)(result.PixelHeight * result.PixelWidth * result.Channels);
-                var actual = buffer.GetByteSize();
-                if (count == 2304) Console.Write("FUK");
+                result = new SdfResult(HostImage.Create(data,pixelWidth,pixelHeight,4), width, height);
             });
 
 

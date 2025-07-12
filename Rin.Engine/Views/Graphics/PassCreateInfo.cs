@@ -1,9 +1,10 @@
-﻿using Rin.Engine.Views.Graphics.Commands;
+﻿using Rin.Engine.Views.Graphics.CommandHandlers;
+using Rin.Engine.Views.Graphics.Commands;
 
 namespace Rin.Engine.Views.Graphics;
 
-public class PassCreateInfo(SurfacePassContext context, ICommand[] commands)
+public class PassCreateInfo(SurfacePassContext context, ICommandHandler[] handlers)
 {
     public SurfacePassContext Context { get; } = context;
-    public ICommand[] Commands { get; } = commands;
+    public ICommandHandler[] Handlers { get; } = handlers;
 }

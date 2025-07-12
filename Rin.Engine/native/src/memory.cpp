@@ -17,6 +17,5 @@ void * memoryReAllocate(void *ptr, size_t size) {
 
 void memoryFree(void* ptr)
 {
-    
     delete static_cast<char*>(ptr);
 }

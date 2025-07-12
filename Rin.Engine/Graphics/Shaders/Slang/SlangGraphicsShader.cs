@@ -64,7 +64,7 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
                 string.Join('\n', SlangShaderManager.ImportFile(_filePath, includesProcessed)); //reader.ReadToEnd();
             var diag = new SlangBlob();
             var id = $"graphics-{Guid.NewGuid().ToString()}.slang";
-            using var module = session.LoadModuleFromSourceString(id, id, fileData, diag);
+            using var module = session.LoadModuleFromSourceString(_filePath, _filePath, fileData, diag);
             if (module == null)
             {
                 var str = Marshal.PtrToStringAnsi(diag.GetDataPointer()) ?? string.Empty;

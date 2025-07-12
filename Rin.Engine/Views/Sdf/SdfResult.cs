@@ -1,54 +1,37 @@
 ﻿using Rin.Engine.Extensions;
+using Rin.Engine.Graphics;
 
 namespace Rin.Engine.Views.Sdf;
 
-public class SdfResult : IBinarySerializable, IDisposable
+public class SdfResult(IHostImage image, double width, double height) : IDisposable
 {
-    public readonly Buffer<byte> Data;
-    public int Channels;
-    public double Height;
-    public int PixelHeight;
-    public int PixelWidth;
-    public double Width;
+    public readonly IHostImage Image = image;
+    public readonly double Height = height;
+    public readonly double Width = width;
 
-    public SdfResult(Buffer<byte> data, int channels, double width, double height, int pixelWidth, int pixelHeight)
-    {
-        Data = data;
-        Channels = channels;
-        Width = width;
-        Height = height;
-        PixelWidth = pixelWidth;
-        PixelHeight = pixelHeight;
-    }
-
-    public SdfResult()
-    {
-        Data = new Buffer<byte>();
-    }
-
-    public void BinarySerialize(Stream output)
-    {
-        output.Write(Channels);
-        output.Write(Width);
-        output.Write(Height);
-        output.Write(PixelWidth);
-        output.Write(PixelHeight);
-        output.Write((IBinarySerializable)Data);
-    }
-
-    public void BinaryDeserialize(Stream input)
-    {
-        Channels = input.ReadInt32();
-        Width = input.ReadDouble();
-        Height = input.ReadDouble();
-        PixelWidth = input.ReadInt32();
-        PixelHeight = input.ReadInt32();
-        input.Read((IBinarySerializable)Data);
-    }
+    // public void BinarySerialize(Stream output)
+    // {
+    //     output.Write(Channels);
+    //     output.Write(Width);
+    //     output.Write(Height);
+    //     output.Write(PixelWidth);
+    //     output.Write(PixelHeight);
+    //     output.Write((IBinarySerializable)Data);
+    // }
+    //
+    // public void BinaryDeserialize(Stream input)
+    // {
+    //     Channels = input.ReadInt32();
+    //     Width = input.ReadDouble();
+    //     Height = input.ReadDouble();
+    //     PixelWidth = input.ReadInt32();
+    //     PixelHeight = input.ReadInt32();
+    //     input.Read((IBinarySerializable)Data);
+    // }
 
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        Data.Dispose();
+        Image?.Dispose();
     }
 }
