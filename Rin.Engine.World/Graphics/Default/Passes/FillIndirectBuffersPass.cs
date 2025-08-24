@@ -1,12 +1,12 @@
-﻿using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Descriptors;
-using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Graphics.Shaders;
+﻿using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.Descriptors;
+using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Shaders;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
-public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRenderContext renderContext) : IComputePass
+public class  FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRenderContext renderContext) : IComputePass
 {
     private readonly IComputeShader _shader = SGraphicsModule
         .Get()
@@ -56,21 +56,19 @@ public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRender
         var meshBuffers = _meshBuffers.Select(graph.GetBufferOrException).ToArray();
         var depthMeshBuffers = _depthMeshBuffers.Select(graph.GetBufferOrException).ToArray();
 
-        if (_shader.Bind(ctx))
+        if (_shader.Bind(ctx) is {} bindContext)
         {
-            var param = _shader.Resources["drawCount"];
             for (var i = 0; i < renderContext.IndirectGroups.Length; i++)
             {
+                bindContext.Reset(); // We have to reset because we write shader data
                 var group = renderContext.IndirectGroups[i];
                 var invokeCount = (uint)group.Length;
                 var commandBuffer = indirectCommandBuffers[i];
                 var meshBuffer = meshBuffers[i];
                 var countBuffer = indirectCommandCountBuffers[i];
-                countBuffer.WriteStruct<uint>(0);
-                var set = ctx.AllocateDescriptorSet(_shader, param.Set);
-                ctx.BindDescriptorSets(_shader, param.Set, set);
-                set.WriteStorageBuffer(param.Binding, countBuffer);
-                meshBuffer.WriteArray(group.Select((m, idx) => new Mesh
+                countBuffer.Write<uint>(0);
+                bindContext.WriteBuffer("drawCount", countBuffer);
+                meshBuffer.Write(group.Select((m, idx) => new Mesh
                 {
                     IndicesCount = m.IndicesCount,
                     IndicesStart = m.IndicesStart,
@@ -78,28 +76,28 @@ public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRender
                     Instance = (uint)idx,
                     MeshIndex = m.Id
                 }));
-                _shader.Push(ctx, new PushData
-                {
-                    CullingBufferAddress = cullingBufferAddress,
-                    Meshes = meshBuffer.GetAddress(),
-                    InvocationCount = invokeCount,
-                    Output = commandBuffer.GetAddress()
-                });
-                ctx.Invoke(_shader, invokeCount);
+                bindContext
+                    .Push(new PushData
+                    {
+                        CullingBufferAddress = cullingBufferAddress,
+                        Meshes = meshBuffer.GetAddress(),
+                        InvocationCount = invokeCount,
+                        Output = commandBuffer.GetAddress()
+                    })
+                    .Invoke(invokeCount);
             }
 
             for (var i = 0; i < renderContext.DepthIndirectGroups.Length; i++)
             {
+                bindContext.Reset(); // We have to reset because we write shader data
                 var group = renderContext.DepthIndirectGroups[i];
                 var invokeCount = (uint)group.Length;
                 var commandBuffer = depthIndirectCommandBuffers[i];
                 var meshBuffer = depthMeshBuffers[i];
                 var countBuffer = depthIndirectCommandCountBuffers[i];
-                countBuffer.WriteStruct<uint>(0);
-                var set = ctx.AllocateDescriptorSet(_shader, param.Set);
-                ctx.BindDescriptorSets(_shader, param.Set, set);
-                set.WriteStorageBuffer(param.Binding,countBuffer);
-                meshBuffer.WriteArray(group.Select((m, idx) => new Mesh
+                countBuffer.Write<uint>(0);
+                bindContext.WriteBuffer("drawCount", countBuffer);
+                meshBuffer.Write(group.Select((m, idx) => new Mesh
                 {
                     IndicesCount = m.IndicesCount,
                     IndicesStart = m.IndicesStart,
@@ -107,14 +105,15 @@ public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRender
                     Instance = (uint)idx,
                     MeshIndex = m.Id
                 }));
-                _shader.Push(ctx, new PushData
-                {
-                    CullingBufferAddress = cullingBufferAddress,
-                    Meshes = meshBuffer.GetAddress(),
-                    InvocationCount = invokeCount,
-                    Output = commandBuffer.GetAddress()
-                });
-                ctx.Invoke(_shader, invokeCount);
+                bindContext
+                    .Push(new PushData
+                    {
+                        CullingBufferAddress = cullingBufferAddress,
+                        Meshes = meshBuffer.GetAddress(),
+                        InvocationCount = invokeCount,
+                        Output = commandBuffer.GetAddress()
+                    })
+                    .Invoke(invokeCount);
             }
         }
     }

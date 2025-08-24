@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
-using Rin.Engine.Extensions;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Meshes;
-using Rin.Engine.Math;
+using Rin.Framework.Extensions;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.Meshes;
+using Rin.Framework.Math;
 using Rin.Engine.World;
 using Rin.Engine.World.Actors;
 using Rin.Engine.World.Components;

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
-using Rin.Engine.Graphics;
+using Rin.Framework.Graphics;
 
 namespace Rin.Engine.World.Graphics.Default;
 

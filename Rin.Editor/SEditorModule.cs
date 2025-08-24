@@ -1,16 +1,16 @@
-﻿using Rin.Engine;
+﻿using Rin.Framework;
 
 namespace Rin.Editor;
 
 [Module]
 public class SEditorModule : IModule, ISingletonGetter<SEditorModule>
 {
-    public void Start(SEngine engine)
+    public void Start(SApplication application)
     {
         // throw new NotImplementedException();
     }
 
-    public void Stop(SEngine engine)
+    public void Stop(SApplication application)
     {
         // throw new NotImplementedException();
     }
@@ -18,6 +18,6 @@ public class SEditorModule : IModule, ISingletonGetter<SEditorModule>
 
     public static SEditorModule Get()
     {
-        return SEngine.Get().GetModule<SEditorModule>();
+        return SApplication.Get().GetModule<SEditorModule>();
     }
 }

@@ -1,7 +1,7 @@
 using JetBrains.Annotations;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Graphics.Shaders;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Shaders;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
@@ -32,17 +32,15 @@ public class CullingPass(DefaultWorldRenderContext renderContext) : IComputePass
         var boundsBuffer = graph.GetBufferOrException(renderContext.BoundsBufferId);
         var outputBuffer = graph.GetBufferOrException(OutputBufferId);
 
-        if (!_shader.Bind(ctx)) return;
-
-        _shader.Push(ctx,
-            new Push
+        if (_shader.Bind(ctx) is not {} bindContext) return;
+        bindContext
+            .Push(new Push
             {
                 BoundsBufferAddress = boundsBuffer.GetAddress(),
                 TotalInvocations = renderContext.TotalMeshCount,
                 OutputBufferAddress = outputBuffer.GetAddress()
-            });
-
-        ctx.Invoke(_shader, (uint)renderContext.TotalMeshCount);
+            })
+            .Invoke((uint)renderContext.TotalMeshCount);
     }
 
 

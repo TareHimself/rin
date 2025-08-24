@@ -1,5 +1,5 @@
 ﻿using JetBrains.Annotations;
-using Rin.Engine.Graphics.FrameGraph;
+using Rin.Framework.Graphics.FrameGraph;
 
 namespace Rin.Engine.World.Graphics;
 

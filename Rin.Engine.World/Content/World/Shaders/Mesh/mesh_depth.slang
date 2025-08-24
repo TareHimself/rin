@@ -1,7 +1,7 @@
-#include "Engine/Shaders/operators.slang"
+#include "Framework/Shaders/operators.slang"
 #include "World/Shaders/Mesh/vertex.slang"
 #include "World/Shaders/depth_scene_info.slang"
-#include "Engine/Shaders/Attributes/blending.slang"
+#include "Framework/Shaders/Attributes/blending.slang"
 
 struct PerMeshData {
     float4x4 transform;

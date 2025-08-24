@@ -1,4 +1,4 @@
-﻿using Rin.Engine.Views.Composite;
+﻿using Rin.Framework.Views.Composite;
 
 namespace rin.Examples.ViewsTest.Panels;
 

@@ -1,12 +1,12 @@
 ﻿using System.Numerics;
-using Rin.Engine;
-using Rin.Engine.Extensions;
-using Rin.Engine.Graphics;
-using Rin.Engine.Views;
-using Rin.Engine.Views.Content;
-using Rin.Engine.Views.Events;
-using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Graphics.Quads;
+using Rin.Framework;
+using Rin.Framework.Extensions;
+using Rin.Framework.Graphics;
+using Rin.Framework.Views;
+using Rin.Framework.Views.Content;
+using Rin.Framework.Views.Events;
+using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Quads;
 
 namespace rin.Examples.Common.Views;
 
@@ -31,7 +31,7 @@ public class AsyncFileImage : CoverImage
         using var image = HostImage.Create(File.OpenRead(filePath)); //await Image.LoadAsync<Rgba32>(filePath);
         var (handle,task) = image.CreateTexture();
         await task;
-        await SEngine.Get().GetMainDispatcher().Enqueue(() => ImageId = handle);
+        await SApplication.Get().GetMainDispatcher().Enqueue(() => ImageId = handle);
     }
 
     // public override void Draw(ViewFrame frame, DrawInfo info)
@@ -55,7 +55,7 @@ public class AsyncFileImage : CoverImage
     {
         if (!ImageId.IsValid())
         {
-            var opacity = (float)Math.Abs(Math.Sin(SEngine.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
+            var opacity = (float)Math.Abs(Math.Sin(SApplication.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
             commands.AddRect(transform, GetContentSize(), new Color(0.8f, opacity), BorderRadius);
         }
         else

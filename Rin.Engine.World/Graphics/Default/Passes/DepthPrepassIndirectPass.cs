@@ -1,11 +1,11 @@
 ﻿using JetBrains.Annotations;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.FrameGraph;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
 /// <summary>
-///     Collects the <see cref="Rin.Engine.World.World" />, performs skinning and does a depth pre-pass
+///     Collects the <see cref="Rin.Framework.World.World" />, performs skinning and does a depth pre-pass
 /// </summary>
 public class DepthPrepassIndirectPass : IPass
 {
@@ -65,7 +65,7 @@ public class DepthPrepassIndirectPass : IPass
 
         var worldFrame = new WorldFrame(_renderContext.View, _renderContext.Projection, worldDataBuffer, ctx);
 
-        worldDataBuffer.WriteStruct(new DepthSceneInfo
+        worldDataBuffer.Write(new DepthSceneInfo
         {
             View = worldFrame.View,
             Projection = worldFrame.Projection,
@@ -93,8 +93,8 @@ public class DepthPrepassIndirectPass : IPass
             }
 
             ctx.BindIndexBuffer(first.IndexBuffer);
-            firstPass.BindAndPush(worldFrame, materialDataBuffer);
-            ctx.DrawIndexedIndirectCount(commandBuffer, countBuffer, (uint)group.Length, 0);
+            if(firstPass.BindGroup(worldFrame, materialDataBuffer) is {} bindContext)
+                bindContext.DrawIndexedIndirectCount(commandBuffer, countBuffer, (uint)group.Length, 0);
         }
 
         ctx.EndRendering();

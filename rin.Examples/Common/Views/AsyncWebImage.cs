@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
-using Rin.Engine;
-using Rin.Engine.Extensions;
-using Rin.Engine.Graphics;
-using Rin.Engine.Views;
-using Rin.Engine.Views.Content;
-using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Graphics.Quads;
+using Rin.Framework;
+using Rin.Framework.Extensions;
+using Rin.Framework.Graphics;
+using Rin.Framework.Views;
+using Rin.Framework.Views.Content;
+using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Quads;
 
 namespace rin.Examples.Common.Views;
 
@@ -26,7 +26,7 @@ public class AsyncWebImage : CoverImage
             var stream = await client.GetStreamAsync(uri);
             using var img = await Task.Run(() => HostImage.Create(stream));
             var (texId, task) = img.CreateTexture();
-            task.Dispatch(SEngine.Get().GetMainDispatcher(), () =>
+            task.Dispatch(SApplication.Get().GetMainDispatcher(), () =>
             {
                 ImageId = texId;
                 OnLoaded?.Invoke(true);

@@ -1,6 +1,6 @@
 // Source https://youtu.be/gya7x9H3mV0?si=rHCphRwYF75nS4kt
 #include "Editor/Shaders/Lights/light.slang"
-#include "Engine/Shaders/utils.slang"
+#include "Framework/Shaders/utils.slang"
 
 #define RECIPROCAL_PI 0.3183098861837907
 #define RECIPROCAL_2PI 0.15915494309189535

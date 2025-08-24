@@ -1,9 +1,9 @@
 using System.Numerics;
-using Rin.Engine.Graphics;
-using Rin.Engine.Views;
+using Rin.Framework.Graphics;
+using Rin.Framework.Views;
 
 namespace Rin.Engine.World.Components;
-using Rin.Engine.Views.Graphics;
+using Framework.Views.Graphics;
 /// <summary>
 /// Renders a 3d <see cref="Surface"/>
 /// </summary>

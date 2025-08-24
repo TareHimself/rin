@@ -1,5 +1,5 @@
-﻿#include "Engine/Shaders/Attributes/blending.slang"
-#include "Engine/Shaders/utils.slang"
+﻿#include "Framework/Shaders/Attributes/blending.slang"
+#include "Framework/Shaders/utils.slang"
 
 struct Data {
     float4x4 projection;

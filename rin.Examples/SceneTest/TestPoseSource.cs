@@ -1,7 +1,7 @@
 ﻿using System.Collections.Frozen;
 using System.Numerics;
-using Rin.Engine;
-using Rin.Engine.Math;
+using Rin.Framework;
+using Rin.Framework.Math;
 using Rin.Engine.World.Mesh.Skinning;
 
 namespace rin.Examples.SceneTest;
@@ -12,7 +12,7 @@ public class TestPoseSource : IPoseSource
 
     public Pose GetPose()
     {
-        var rot = Quaternion.Identity.AddYaw(SEngine.Get().GetTimeSeconds() * 20f);
+        var rot = Quaternion.Identity.AddYaw(SApplication.Get().GetTimeSeconds() * 20f);
         return new Pose(new Dictionary<string, Transform>
         {
             {

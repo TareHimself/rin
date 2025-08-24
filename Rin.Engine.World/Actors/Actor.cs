@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Math;
+using Rin.Framework.Math;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
 

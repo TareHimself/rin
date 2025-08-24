@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
-using Rin.Engine;
-using Rin.Engine.Animation;
-using Rin.Engine.Extensions;
-using Rin.Engine.Views;
-using Rin.Engine.Views.Composite;
-using Rin.Engine.Views.Content;
-using Rin.Engine.Views.Events;
+using Rin.Framework;
+using Rin.Framework.Animation;
+using Rin.Framework.Extensions;
+using Rin.Framework.Views;
+using Rin.Framework.Views.Composite;
+using Rin.Framework.Views.Content;
+using Rin.Framework.Views.Events;
 
 namespace rin.Examples.AudioPlayer.Views;
 

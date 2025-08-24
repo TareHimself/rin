@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
-using Rin.Engine;
-using Rin.Engine.Graphics;
-using Rin.Engine.Math;
-using Rin.Engine.Views.Content;
-using Rin.Engine.Views.Graphics;
+using Rin.Framework;
+using Rin.Framework.Graphics;
+using Rin.Framework.Math;
+using Rin.Framework.Views.Content;
+using Rin.Framework.Views.Graphics;
 
 namespace rin.Examples.Common.Views;
 

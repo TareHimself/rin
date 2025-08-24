@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Rin.Engine.World\Rin.Engine.World.csproj"/>
-        <ProjectReference Include="..\..\Rin.Engine\Rin.Engine.csproj"/>
+        <ProjectReference Include="..\..\Rin.Framework\Rin.Framework.csproj" />
         <ProjectReference Include="..\Common\rin.Examples.Common.csproj"/>
     </ItemGroup>
 

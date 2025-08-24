@@ -1,3 +1,3 @@
-﻿using Rin.Engine;
+﻿using Rin.Framework;
 
-SEngine.Get().Run();
+SApplication.Get().Run();

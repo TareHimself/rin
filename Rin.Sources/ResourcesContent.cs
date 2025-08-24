@@ -1,45 +1,31 @@
 ﻿using System.Reflection;
+using System.Text;
 using Rin.Sources.Exceptions;
 
 namespace Rin.Sources;
 
-public class ResourcesSource(Assembly assembly, string basePath, string? assemblySuffix = null) : ISource
+public class AssemblyResource : ISource
 {
-    private readonly string _assemblyName = assembly.GetName().Name ?? string.Empty;
+    private readonly string _assemblyPath;
+    private readonly Assembly _assembly;
 
-    private readonly string _assemblySuffix = assemblySuffix ?? ".";
-    // public string Target { get; } = 
-    //
-    // private string MakeResourceName(FileUri uri)
-    // {
-    //     if (uri.Target != Target) throw new UnsupportedFileUriException(this,uri);
-    //     return uri.Path.Aggregate(Target, (t, c) => t + '.' + c);
-    // }
-    //
-    // public bool Exists(FileUri uri)
-    // {
-    //     return assembly.GetManifestResourceInfo(MakeResourceName(uri)) != null;
-    // }
-    //
-    // public Stream OpenRead(FileUri uri)
-    // {
-    //     var stream = assembly.GetManifestResourceStream(MakeResourceName(uri));
-    //     if(stream == null) throw new Exception("Resource not found");
-    //     return stream;
-    // }
-    //
-    // public Stream OpenWrite(FileUri uri)
-    // {
-    //     throw new WriteNotSupportedException(this, uri);
-    // }
+    public AssemblyResource(Assembly assembly, string alias, string? rootAssemblyPath = null)
+    {
+        _assembly = assembly;
+        
+        var assemblyName = assembly.GetName().Name ?? string.Empty;
+        var rootPathStr = (rootAssemblyPath ?? string.Empty).TrimEnd();
+        var suffix = rootPathStr.Length == 0 ? string.Empty : ".";
+        _assemblyPath = new StringBuilder().Append(assemblyName).Append('.').Append(string.Join('.',rootPathStr.Split('/', StringSplitOptions.RemoveEmptyEntries))).Append(suffix).ToString();
+        BasePath = alias;
+    }
 
-    // public Stream OpenRead(params string[] name) => OpenRead(new FileUri(Target,name));
-    // public Stream OpenWrite(params string[] name) => OpenWrite(new FileUri(Target,name));
-    public string BasePath { get; } = basePath;
+    public string BasePath { get; }
 
     public Stream Read(string path)
     {
-        var stream = assembly.GetManifestResourceStream(ToResourceName(path));
+        var resourceName = ToResourceName(path);
+        var stream = _assembly.GetManifestResourceStream(resourceName);
         if (stream == null) throw new DoesNotExistException();
         return stream;
     }
@@ -51,17 +37,23 @@ public class ResourcesSource(Assembly assembly, string basePath, string? assembl
 
     private string ToResourceName(string path)
     {
-        return _assemblyName + _assemblySuffix + string.Join('.', path[(BasePath.Length + 1)..].Split('/'));
+        return _assemblyPath + string.Join('.', path[(BasePath.Length + 1)..].Split('/'));
     }
 
     private string FromResourceName(string resourceName)
     {
-        var name = resourceName[(_assemblyName.Length + _assemblySuffix.Length)..].Split('.');
-        return BasePath + "/" + string.Join('/', name[..^1]) + '.' + name[^1];
+        var name = resourceName[_assemblyPath.Length..].Split('.',StringSplitOptions.RemoveEmptyEntries);//; resourceName[(_assemblyName.Length + _assemblySuffix.Length)..].Split('.');
+        return new StringBuilder().Append(BasePath).Append('/').Append(string.Join('/', name[..^1])).Append('.')
+            .Append(name[^1]).ToString();
     }
 
     public IEnumerable<string> GetAllResources()
     {
-        return assembly.GetManifestResourceNames().Select(FromResourceName);
+        return _assembly.GetManifestResourceNames().Select(FromResourceName);
+    }
+    
+    public static AssemblyResource New<TAssemblyType>(string basePath,string? rootAssemblyPath = null)
+    {
+        return new AssemblyResource(typeof(TAssemblyType).Assembly, basePath,rootAssemblyPath);
     }
 }

@@ -1,22 +1,22 @@
 ﻿using System.Numerics;
-using Rin.Engine;
-using Rin.Engine.Animation;
-using Rin.Engine.Audio;
-using Rin.Engine.Extensions;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Windows;
-using Rin.Engine.Math;
-using Rin.Engine.Views;
-using Rin.Engine.Views.Animation;
-using Rin.Engine.Views.Composite;
-using Rin.Engine.Views.Content;
-using Rin.Engine.Views.Events;
-using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Graphics.Quads;
-using Rin.Engine.Views.Layouts;
+using Rin.Framework;
+using Rin.Framework.Animation;
+using Rin.Framework.Audio;
+using Rin.Framework.Extensions;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Math;
+using Rin.Framework.Views;
+using Rin.Framework.Views.Animation;
+using Rin.Framework.Views.Composite;
+using Rin.Framework.Views.Content;
+using Rin.Framework.Views.Events;
+using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Quads;
+using Rin.Framework.Views.Layouts;
 using rin.Examples.Common.Views;
 using rin.Examples.ViewsTest.Panels;
-using Rect = Rin.Engine.Views.Composite.Rect;
+using Rect = Rin.Framework.Views.Composite.Rect;
 
 namespace rin.Examples.ViewsTest;
 
@@ -26,7 +26,7 @@ public class SViewsTestModule : IModule
 {
     private static readonly int _tileSize = 400;
 
-    public void Start(SEngine engine)
+    public void Start(SApplication application)
     {
         {
             var manager = SViewsModule.Get().GetFontManager();
@@ -37,13 +37,13 @@ public class SViewsTestModule : IModule
         }
         SGraphicsModule.Get().OnRendererCreated += TestAnimation;
         SGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
-        SGraphicsModule.Get().CreateWindow(500, 500, "Views Test", WindowFlags.Visible | WindowFlags.Resizable);
+        SGraphicsModule.Get().CreateWindow("Views Test", new Extent2D(500), WindowFlags.Visible | WindowFlags.Resizable);
 
 
         //TestText();
     }
 
-    public void Stop(SEngine engine)
+    public void Stop(SApplication application)
     {
     }
 
@@ -99,7 +99,7 @@ public class SViewsTestModule : IModule
                 Task.Run(() =>
                 {
                     foreach (var objPath in e.Paths)
-                        SEngine.Get().DispatchMain(() => list.Add(new ListSlot
+                        SApplication.Get().DispatchMain(() => list.Add(new ListSlot
                         {
                             Child = new WrapContainer(new AsyncFileImage(objPath)
                             {
@@ -117,7 +117,7 @@ public class SViewsTestModule : IModule
                     Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
                         .After(p =>
                         {
-                            SEngine.Get().DispatchMain(() =>
+                            SApplication.Get().DispatchMain(() =>
                             {
                                 foreach (var path in p)
                                     list.Add(new WrapContainer(new AsyncFileImage(path)
@@ -165,25 +165,25 @@ public class SViewsTestModule : IModule
             {
                 Slots =
                 [
-                    // new PanelSlot()
-                    // {
-                    //     Child = new Fitter
-                    //     {
-                    //         Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
-                    //         FittingMode = FitMode.Contain,
-                    //         Padding = 50.0f,
-                    //         Clip = Clip.Bounds
-                    //     },
-                    //     // Child = new Fitter
-                    //     // {
-                    //     //     Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
-                    //     //     FittingMode = FitMode.Contain,
-                    //     //     Padding = new Padding(10.0f),
-                    //     //     Clip = Clip.None,
-                    //     // },
-                    //     MinAnchor = Vector2.Zero,
-                    //     MaxAnchor = Vector2.One,
-                    // },
+                    new PanelSlot()
+                    {
+                        Child = new Fitter
+                        {
+                            Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
+                            FittingMode = FitMode.Contain,
+                            Padding = 50.0f,
+                            Clip = Clip.Bounds
+                        },
+                        // Child = new Fitter
+                        // {
+                        //     Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
+                        //     FittingMode = FitMode.Contain,
+                        //     Padding = new Padding(10.0f),
+                        //     Clip = Clip.None,
+                        // },
+                        MinAnchor = Vector2.Zero,
+                        MaxAnchor = Vector2.One,
+                    },
                     new PanelSlot
                     {
                         Child = list,
@@ -366,7 +366,7 @@ public class SViewsTestModule : IModule
                 Paint = (self, transform, cmds) =>
                 {
                     var topLeft = Vector2.Zero.Transform(transform);
-                    var angle = (float.Sin(SEngine.Get().GetTimeSeconds()) + 1.0f) / 2.0f * 180.0f;
+                    var angle = (float.Sin(SApplication.Get().GetTimeSeconds()) + 1.0f) / 2.0f * 180.0f;
                     cmds.AddRect(Matrix4x4.Identity.Translate(self.GetContentSize() / 2.0f).Rotate2dDegrees(angle),
                         self.GetContentSize() - new Vector2(100.0f), Color.White);
                 }
@@ -380,13 +380,13 @@ public class SViewsTestModule : IModule
             if (window.Parent != null)
                 window.Dispose();
             else
-                SEngine.Get().RequestExit();
+                SApplication.Get().RequestExit();
         };
 
         window.OnKey += e =>
         {
             if (e is { Key: InputKey.Up, State: InputState.Pressed })
-                window.CreateChild(500, 500, "test child");
+                window.CreateChild("test child", new Extent2D(500));
 
             if (e is { Key: InputKey.Enter, State: InputState.Pressed, IsAltDown: true })
                 window.SetFullscreen(!window.IsFullscreen);
@@ -436,7 +436,7 @@ public class SViewsTestModule : IModule
             base.CollectSelf(transform, cmds);
         }
 
-        public override void Collect(in Matrix4x4 transform, in Rin.Engine.Views.Rect clip, CommandList commands)
+        public override void Collect(in Matrix4x4 transform, in Rin.Framework.Graphics.Rect clip, CommandList commands)
         {
             base.Collect(transform, clip, commands);
         }

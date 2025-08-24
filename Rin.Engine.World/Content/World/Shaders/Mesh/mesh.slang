@@ -1,9 +1,9 @@
-#include "Engine/Shaders/images.slang"
-#include "Engine/Shaders/utils.slang"
+#include "Framework/Shaders/images.slang"
+#include "Framework/Shaders/utils.slang"
 #include "World/Shaders/Mesh/vertex.slang"
 #include "World/Shaders/scene_info.slang"
 #include "World/Shaders/gbuffer_out.slang"
-#include "Engine/Shaders/Attributes/blending.slang"
+#include "Framework/Shaders/Attributes/blending.slang"
 // public Mat4 Transform = Mat4.Identity;
 // public ulong VertexAddress = 0;
 // private Vector4 _color_textureId = 0.0f;
@@ -137,7 +137,7 @@ GBuffer fragment(FragmentIn input)
 
     var location = input.sceneLocation.xyz;
     var normal = normalize(input.sceneNormal.xyz);
-    var color = ImageHandle(ImageType.Image, 0).SampleTexture(input.uv).rgb ;//instanceData.getColor(input.uv);
+    var color = instanceData.getColor(input.uv);
     var roughnes = instanceData.getRoughness(input.uv);
     var metallic = instanceData.getMetallic(input.uv);
     var specular = instanceData.getSpecular(input.uv);

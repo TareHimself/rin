@@ -1,4 +1,4 @@
-using Rin.Engine.Graphics.Meshes;
+using Rin.Framework.Graphics.Meshes;
 
 namespace Rin.Engine.World.Graphics;
 

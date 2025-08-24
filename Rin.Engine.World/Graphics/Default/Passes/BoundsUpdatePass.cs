@@ -1,6 +1,6 @@
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Graphics.Shaders;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Shaders;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
@@ -33,24 +33,23 @@ public class BoundsUpdatePass(DefaultWorldRenderContext renderContext) : IComput
     {
         var boundsBuffer = graph.GetBufferOrException(renderContext.BoundsBufferId);
         var skinnedMeshBuffer = graph.GetBufferOrException(SkinnedMeshBufferId);
-        skinnedMeshBuffer.WriteArray(renderContext.ProcessedSkinnedMeshes.Select(c => new SkinnedMesh
+        skinnedMeshBuffer.Write(renderContext.ProcessedSkinnedMeshes.Select(c => new SkinnedMesh
         {
             MeshId = c.Id,
             VertexBuffer = c.VertexBuffer.GetAddress(),
             VertexCount = c.VertexCount
         }));
 
-        if (!_shader.Bind(ctx)) return;
+        if (_shader.Bind(ctx) is not {} bindContext) return;
 
-        _shader.Push(ctx,
-            new Push
+        bindContext
+            .Push(new Push
             {
                 SkinnedMeshesAddress = skinnedMeshBuffer.GetAddress(),
                 TotalInvocations = _skinnedMeshCount,
                 BoundsBufferAddress = boundsBuffer.GetAddress()
-            });
-
-        ctx.Invoke(_shader, (uint)_skinnedMeshCount);
+            })
+            .Invoke((uint)_skinnedMeshCount);
     }
 
 

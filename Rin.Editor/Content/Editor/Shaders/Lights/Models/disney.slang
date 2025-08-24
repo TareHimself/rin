@@ -1,6 +1,6 @@
 // Source https://schuttejoe.github.io/post/disneybsdf/
 #include "Editor/Shaders/Lights/light.slang"
-#include "Engine/Shaders/utils.slang"
+#include "Framework/Shaders/utils.slang"
 
 interface IDisneySurface : ILightSurface {
     float3 getColor();

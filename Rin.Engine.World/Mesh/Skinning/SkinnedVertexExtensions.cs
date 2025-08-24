@@ -1,3 +1,5 @@
+using Rin.Framework;
+
 namespace Rin.Engine.World.Mesh.Skinning;
 
 public static class SkinnedVertexExtensions

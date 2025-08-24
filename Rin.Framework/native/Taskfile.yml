@@ -1,0 +1,10 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  conan:
+      - conan install . --build=missing -s build_type=Release
+  conand:
+      - conan install . --build=missing -s build_type=Debug
+      - conan install . --build=missing -s build_type=Release

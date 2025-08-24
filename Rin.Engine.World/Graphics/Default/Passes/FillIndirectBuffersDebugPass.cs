@@ -1,5 +1,5 @@
-﻿using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
+﻿using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.FrameGraph;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
@@ -41,8 +41,8 @@ public class FillIndirectBuffersDebugPass(DefaultWorldRenderContext renderContex
             var invokeCount = (uint)group.Length;
             var commandBuffer = indirectCommandBuffers[i];
             var countBuffer = indirectCommandCountBuffers[i];
-            countBuffer.WriteStruct(invokeCount);
-            commandBuffer.WriteArray(group.Select((m, idx) => new VkDrawIndexedIndirectCommand
+            countBuffer.Write(invokeCount);
+            commandBuffer.Write(group.Select((m, idx) => new VkDrawIndexedIndirectCommand
             {
                 instanceCount = 1,
                 indexCount = m.IndicesCount,
@@ -58,8 +58,8 @@ public class FillIndirectBuffersDebugPass(DefaultWorldRenderContext renderContex
             var invokeCount = (uint)group.Length;
             var commandBuffer = depthIndirectCommandBuffers[i];
             var countBuffer = depthIndirectCommandCountBuffers[i];
-            countBuffer.WriteStruct(invokeCount);
-            commandBuffer.WriteArray(group.Select((m, idx) => new VkDrawIndexedIndirectCommand
+            countBuffer.Write(invokeCount);
+            commandBuffer.Write(group.Select((m, idx) => new VkDrawIndexedIndirectCommand
             {
                 instanceCount = 1,
                 indexCount = m.IndicesCount,

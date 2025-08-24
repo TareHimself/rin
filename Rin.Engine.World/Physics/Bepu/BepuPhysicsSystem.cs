@@ -6,7 +6,7 @@ using BepuPhysics.Constraints;
 using BepuUtilities;
 using BepuUtilities.Memory;
 using JetBrains.Annotations;
-using Rin.Engine.Math;
+using Rin.Framework.Math;
 
 namespace Rin.Engine.World.Physics.Bepu;
 

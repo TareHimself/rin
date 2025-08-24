@@ -1,9 +1,9 @@
 using System.Collections.Frozen;
 using System.Numerics;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Graphics.Meshes;
-using Rin.Engine.Graphics.Shaders;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Meshes;
+using Rin.Framework.Graphics.Shaders;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
@@ -75,26 +75,26 @@ public class SkinningPass(DefaultWorldRenderContext renderContext) : IComputePas
         var posesArray = graph.GetBuffer(SkinningPoseIdArrayBufferId);
         var executionInfos = graph.GetBuffer(SkinningExecutionInfoBufferId);
 
-        meshArray.WriteArray(_skinnedMeshes.Select(c => c.GetVertices().GetAddress()));
-        posesArray.WriteArray(SkinnedPoses.Select((pose, idx) =>
+        meshArray.Write(_skinnedMeshes.Select(c => c.GetVertices().GetAddress()));
+        posesArray.Write(SkinnedPoses.Select((pose, idx) =>
         {
-            poseBuffers[idx].WriteArray(pose);
+            poseBuffers[idx].Write(pose);
             return poseBuffers[idx].GetAddress();
         }));
-        executionInfos.WriteArray(ExecutionInfos);
+        executionInfos.Write(ExecutionInfos);
 
-        if (_skinningShader.Bind(ctx))
+        if (_skinningShader.Bind(ctx) is {} bindContext)
         {
-            _skinningShader.Push(ctx,
-                new SkinningPushConstants
+            bindContext
+                .Push(new SkinningPushConstants
                 {
                     TotalInvocations = (int)TotalVerticesToSkin,
                     MeshesBuffer = meshArray.GetAddress(),
                     PosesBuffer = posesArray.GetAddress(),
                     ExecutionInfoBuffer = executionInfos.GetAddress(),
                     OutputBuffer = output.GetAddress()
-                });
-            ctx.Invoke(_skinningShader, TotalVerticesToSkin);
+                })
+                .Invoke(TotalVerticesToSkin);
             //cmd.BufferBarrier(output, MemoryBarrierOptions.ComputeToGraphics());
             ulong offset = 0;
             var skinnedMeshes = renderContext.ProcessedSkinnedMeshes;

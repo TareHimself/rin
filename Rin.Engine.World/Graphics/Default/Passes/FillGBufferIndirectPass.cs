@@ -1,5 +1,5 @@
-﻿using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
+﻿using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.FrameGraph;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
@@ -66,7 +66,7 @@ public class FillGBufferIndirectPass : IPass
 
         var worldFrame = new WorldFrame(_renderContext.View, _renderContext.Projection, worldBuffer, ctx);
 
-        worldBuffer.WriteStruct(new WorldInfo
+        worldBuffer.Write(new WorldInfo
         {
             View = worldFrame.View,
             Projection = worldFrame.Projection,
@@ -95,8 +95,8 @@ public class FillGBufferIndirectPass : IPass
             }
 
             ctx.BindIndexBuffer(first.IndexBuffer);
-            if (firstPass.BindAndPush(worldFrame, materialDataBuffer))
-                ctx.DrawIndexedIndirectCount(commandBuffer, countBuffer, (uint)group.Length, 0);
+            if (firstPass.BindGroup(worldFrame, materialDataBuffer) is {} bindContext)
+                bindContext.DrawIndexedIndirectCount(commandBuffer, countBuffer, (uint)group.Length, 0);
         }
 
         ctx.EndRendering();

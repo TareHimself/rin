@@ -79,11 +79,14 @@ public class TestViewport(CameraActor camera) : Viewport(camera.GetCameraCompone
             })
         {
             if (e is { Key: InputKey.W })
+            {
                 _forwardAxis += e.State switch
                 {
                     InputState.Pressed => +moveSpeed,
                     InputState.Released => -moveSpeed
                 };
+                Console.WriteLine("Forward {0}",e.State);
+            }
 
             if (e is { Key: InputKey.S })
                 _forwardAxis += e.State switch

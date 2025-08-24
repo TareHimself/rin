@@ -30,8 +30,7 @@ public class MainModule : IModule
 
     public void Start(SEngine engine)
     {
-        SEngine.Get().Sources.AddSource(
-            new ResourcesSource(typeof(MainModule).Assembly, "Sponza", ".Content."));
+        SEngine.Get().Sources.AddSource(AssemblyResource.New<MainModule>("Sponza","Content"));
         SViewsModule.Get().OnSurfaceCreated += surf =>
         {
             Task.Run(() =>
@@ -62,7 +61,7 @@ public class MainModule : IModule
             });
         };
 
-        var window = SGraphicsModule.Get().CreateWindow(500, 500, "Sponza");
+        var window = SGraphicsModule.Get().CreateWindow("Sponza", new Extent2D(500));
 
         window.OnClose += _ =>
         {

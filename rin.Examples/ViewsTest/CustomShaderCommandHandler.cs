@@ -1,12 +1,12 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using Rin.Engine;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Graphics.Shaders;
-using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Graphics.CommandHandlers;
-using Rin.Engine.Views.Graphics.Commands;
+using Rin.Framework;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Shaders;
+using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.CommandHandlers;
+using Rin.Framework.Views.Graphics.Commands;
 
 namespace rin.Examples.ViewsTest;
 
@@ -15,7 +15,7 @@ public class CustomShaderCommandHandler : ICommandHandler
     private readonly IGraphicsShader
         _prettyShader =
             SGraphicsModule.Get()
-                .MakeGraphics($"fs/{Path.Join(SEngine.Directory,"assets", "test", "pretty.slang").Replace('\\', '/')}");
+                .MakeGraphics($"fs/{Path.Join(SApplication.Directory,"assets", "test", "pretty.slang").Replace('\\', '/')}");
     
     private CustomShaderCommand[] _commands = [];
     private uint BufferId { get; set; }
@@ -24,34 +24,34 @@ public class CustomShaderCommandHandler : ICommandHandler
         _commands = commands.Cast<CustomShaderCommand>().ToArray();
     }
 
-    public void Configure(IGraphConfig config, IPassConfig passConfig)
+    public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
     {
         BufferId = config.CreateBuffer<Data>(_commands.Length, GraphBufferUsage.HostThenGraphics);
     }
 
-    public void Execute(ICompiledGraph graph, IExecutionContext ctx, IPassConfig passConfig)
+    public void Execute(IPassConfig passConfig,
+        SurfaceContext surfaceContext, ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_prettyShader.Bind(ctx))
+        if (_prettyShader.Bind(ctx) is {} bindContext)
         {
             var view = graph.GetBufferOrException(BufferId);
             foreach (var customShaderCommand in _commands)
             {
                 ctx.SetStencilCompareMask(customShaderCommand.StencilMask);
-                var pushResource = _prettyShader.PushConstants.First().Value;
-                var extent = passConfig.PassContext.Extent;
+                var extent = surfaceContext.Extent;
                 var screenSize = new Vector2(extent.Width, extent.Height);
                 var data = new Data
                 {
-                    Projection = passConfig.PassContext.ProjectionMatrix,
+                    Projection = surfaceContext.ProjectionMatrix,
                     ScreenSize = screenSize,
                     Transform = customShaderCommand.Transform,
                     Size = customShaderCommand.Size,
-                    Time = SEngine.Get().GetTimeSeconds(),
+                    Time = SApplication.Get().GetTimeSeconds(),
                     Center = customShaderCommand.Hovered ? customShaderCommand.CursorPosition : screenSize / 2.0f
                 };
-                view.WriteStruct(data);
-                _prettyShader.Push(ctx, view.GetAddress());
-                ctx
+                view.Write(data);
+                bindContext
+                    .Push(view.GetAddress())
                     .Draw(6);
             }
         }

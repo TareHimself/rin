@@ -1,16 +1,16 @@
 ﻿using System.Numerics;
-using Rin.Engine;
-using Rin.Engine.Audio;
-using Rin.Engine.Math;
-using Rin.Engine.Views;
-using Rin.Engine.Views.Animation;
-using Rin.Engine.Views.Composite;
-using Rin.Engine.Views.Content;
-using Rin.Engine.Views.Events;
-using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Layouts;
+using Rin.Framework;
+using Rin.Framework.Audio;
+using Rin.Framework.Math;
+using Rin.Framework.Views;
+using Rin.Framework.Views.Animation;
+using Rin.Framework.Views.Composite;
+using Rin.Framework.Views.Content;
+using Rin.Framework.Views.Events;
+using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Layouts;
 using YoutubeExplode.Common;
-using Rect = Rin.Engine.Views.Rect;
+using Rect = Rin.Framework.Graphics.Rect;
 
 
 namespace rin.Examples.AudioPlayer.Views;
@@ -57,7 +57,7 @@ public class TrackPlayer : Overlay
     };
 
     private readonly IChannel _stream;
-    private double _lastTime = SEngine.Get().GetTimeSeconds();
+    private double _lastTime = SApplication.Get().GetTimeSeconds();
 
     public TrackPlayer(string name, IChannel stream)
     {
@@ -103,7 +103,11 @@ public class TrackPlayer : Overlay
                                     {
                                         Child = new Sizer
                                         {
-                                            Child = new ProgressBar(() => (float)(_stream.Position / _stream.Length))
+                                            Child = new ProgressBar(() => (float)(_stream.Position / _stream.Duration),onClick:
+                                                (progress) =>
+                                                {
+                                                    _stream.SetPosition(progress * _stream.Duration);
+                                                })
                                             {
                                                 BackgroundColor = Color.Black,
                                                 BorderRadius = new Vector4(6.0f)
@@ -130,7 +134,7 @@ public class TrackPlayer : Overlay
         ];
 
 
-        _endTimeText.Content = FormatTime(stream.Length);
+        _endTimeText.Content = FormatTime(stream.Duration);
         Padding = 10.0f;
         FetchCover().ConfigureAwait(false);
         Pivot = new Vector2(1.0f, 0.0f);

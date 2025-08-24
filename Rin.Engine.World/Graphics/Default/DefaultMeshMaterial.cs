@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Shaders;
-using Rin.Engine.Graphics.Textures;
-using Rin.Engine.Math;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.Shaders;
+using Rin.Framework.Graphics.Textures;
+using Rin.Framework.Math;
 
 namespace Rin.Engine.World.Graphics.Default;
 
@@ -47,7 +47,7 @@ public class DefaultMeshMaterial : IMeshMaterial
 
     private class DefaultColorPass(DefaultMeshMaterial meshMaterial) : SimpleMaterialPass
     {
-        public override IShader Shader { get; } = SGraphicsModule.Get()
+        public override IGraphicsShader Shader { get; } = SGraphicsModule.Get()
             .MakeGraphics("World/Shaders/Mesh/mesh.slang");
 
         public override ulong GetRequiredMemory()
@@ -55,60 +55,27 @@ public class DefaultMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DefaultMaterialProperties>();
         }
 
-        public override bool BindAndPush(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
+        public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
-            if (Shader.Bind(ctx))
+            if (Shader.Bind(ctx) is {} bindContext)
             {
-                var pushData = new PushConstant
-                {
-                    SceneAddress = frame.SceneInfo.GetAddress(),
-                    DataAddress = groupMaterialBuffer!.GetAddress()
-                };
-
-                Shader.Push(frame.ExecutionContext, pushData);
-                return true;
+                return bindContext
+                    .Push(new PushConstant
+                    {
+                        SceneAddress = frame.SceneInfo.GetAddress(),
+                        DataAddress = groupMaterialBuffer!.GetAddress()
+                    });
             }
 
-            return false;
+            return null;
         }
 
         protected override IMaterialPass GetPass(ProcessedMesh mesh)
         {
             return mesh.Material.ColorPass;
         }
-
-        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, in DeviceBufferView data,
-            ProcessedMesh[] meshes)
-        {
-            var ctx = frame.ExecutionContext;
-            //var push = Shader.PushConstants.Values.First();
-            // var set = SGraphicsModule.Get().GetImageFactory().GetDescriptorSet();
-            // cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, Shader.GetPipelineLayout(),
-            //     [set]);
-
-            ulong memoryUsed = 0;
-            foreach (var item in meshes)
-            {
-                var pass = GetPass(item);
-                var materialData = data.GetView(memoryUsed, pass.GetRequiredMemory());
-                pass.Write(materialData, item);
-                memoryUsed += materialData.Size;
-            }
-
-            var first = meshes.First();
-
-            var pushData = new PushConstant
-            {
-                SceneAddress = frame.SceneInfo.GetAddress(),
-                DataAddress = data!.GetAddress()
-            };
-            Shader.Push(ctx, pushData);
-            ctx
-                .DrawIndexed(first.IndicesCount, (uint)meshes.Length, first.IndicesCount, first.VertexStart);
-            return memoryUsed;
-        }
-
+        
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
             var data = new DefaultMaterialProperties
@@ -127,7 +94,7 @@ public class DefaultMeshMaterial : IMeshMaterial
                 Emissive = meshMaterial.Emissive,
                 EmissiveTextureId = (int)meshMaterial.EmissiveImageId
             };
-            view.WriteStruct(data);
+            view.Write(data);
         }
 
         private struct DefaultMaterialProperties()
@@ -209,7 +176,7 @@ public class DefaultMeshMaterial : IMeshMaterial
 
     private class DefaultDepthPass : SimpleMaterialPass
     {
-        public override IShader Shader { get; } = SGraphicsModule.Get()
+        public override IGraphicsShader Shader { get; } = SGraphicsModule.Get()
             .MakeGraphics("World/Shaders/Mesh/mesh_depth.slang");
 
         public override ulong GetRequiredMemory()
@@ -217,62 +184,30 @@ public class DefaultMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DepthMaterialData>();
         }
 
-        public override bool BindAndPush(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
+        public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
-            if (Shader.Bind(ctx))
+            if (Shader.Bind(ctx) is {} bindContext)
             {
-                var pushData = new PushConstant
-                {
-                    SceneAddress = frame.SceneInfo.GetAddress(),
-                    DataAddress = groupMaterialBuffer!.GetAddress()
-                };
-
-                Shader.Push(frame.ExecutionContext, pushData);
-                return true;
+                return bindContext
+                    .Push(new PushConstant
+                    {
+                        SceneAddress = frame.SceneInfo.GetAddress(),
+                        DataAddress = groupMaterialBuffer!.GetAddress()
+                    });
             }
 
-            return false;
+            return null;
         }
 
         protected override IMaterialPass GetPass(ProcessedMesh mesh)
         {
             return mesh.Material.DepthPass;
         }
-
-        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, in DeviceBufferView data,
-            ProcessedMesh[] meshes)
-        {
-            var ctx = frame.ExecutionContext;
-
-            //var push = Shader.PushConstants.Values.First();
-
-            ulong memoryUsed = 0;
-            foreach (var item in meshes)
-            {
-                var pass = GetPass(item);
-                var materialData = data!.GetView(memoryUsed, pass.GetRequiredMemory());
-                pass.Write(materialData, item);
-                memoryUsed += materialData.Size;
-            }
-
-            var first = meshes.First();
-
-            var pushData = new PushConstant
-            {
-                SceneAddress = frame.SceneInfo.GetAddress(),
-                DataAddress = data!.GetAddress()
-            };
-
-            Shader.Push(ctx, pushData);
-            ctx
-                .DrawIndexed(first.IndicesCount, (uint)meshes.Length, first.IndicesCount, first.VertexStart);
-            return memoryUsed;
-        }
-
+        
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
-            view.WriteStruct(new DepthMaterialData
+            view.Write(new DepthMaterialData
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress()

@@ -6,6 +6,7 @@ using Rin.Engine.World.Components;
 using Rin.Engine.World.Physics;
 using Rin.Engine.World.Physics.Bepu;
 using Rin.Engine.World.Systems;
+using Rin.Framework;
 
 namespace Rin.Engine.World;
 

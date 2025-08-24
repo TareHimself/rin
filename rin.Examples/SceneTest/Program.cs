@@ -1,5 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using Rin.Engine;
+using Rin.Framework;
 
-SEngine.Get().Run();
+SApplication.Get().Run();

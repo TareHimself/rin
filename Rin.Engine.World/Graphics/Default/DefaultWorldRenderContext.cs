@@ -1,12 +1,13 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.Extensions;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Meshes;
-using Rin.Engine.Math;
+using Rin.Framework.Extensions;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.Meshes;
+using Rin.Framework.Math;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
 using Rin.Engine.World.Mesh.Skinning;
+using Rin.Framework;
 
 namespace Rin.Engine.World.Graphics.Default;
 

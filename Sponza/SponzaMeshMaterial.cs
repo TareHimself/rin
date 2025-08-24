@@ -29,7 +29,7 @@ public class SponzaMeshMaterial : IMeshMaterial
 
     private class ColorMeshPass : SimpleMaterialPass
     {
-        public override IShader Shader { get; } = SGraphicsModule.Get()
+        public override IGraphicsShader Shader { get; } = SGraphicsModule.Get()
             .MakeGraphics(@"Sponza/mesh.slang");
 
         public override ulong GetRequiredMemory()
@@ -37,57 +37,27 @@ public class SponzaMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DefaultMaterialProperties>();
         }
 
-        public override bool BindAndPush(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
+        public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
-            if (Shader.Bind(ctx))
+            if (Shader.Bind(ctx) is {} bindContext)
             {
-                var pushData = new PushConstant
-                {
-                    SceneAddress = frame.SceneInfo.GetAddress(),
-                    DataAddress = groupMaterialBuffer!.GetAddress()
-                };
-
-                Shader.Push(frame.ExecutionContext, pushData);
-                return true;
+                return bindContext
+                    .Push(new PushConstant
+                    {
+                        SceneAddress = frame.SceneInfo.GetAddress(),
+                        DataAddress = groupMaterialBuffer!.GetAddress()
+                    });
             }
 
-            return false;
+            return null;
         }
 
         protected override IMaterialPass GetPass(ProcessedMesh mesh)
         {
             return mesh.Material.ColorPass;
         }
-
-        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, in DeviceBufferView data,
-            ProcessedMesh[] meshes)
-        {
-            ulong memoryUsed = 0;
-            foreach (var item in meshes)
-            {
-                var pass = GetPass(item);
-                var materialData = data!.GetView(memoryUsed, pass.GetRequiredMemory());
-                pass.Write(materialData, item);
-                memoryUsed += materialData.Size;
-            }
-
-            var first = meshes.First();
-
-            var pushData = new PushConstant
-            {
-                SceneAddress = frame.SceneInfo.GetAddress(),
-                DataAddress = data!.GetAddress()
-            };
-
-            var ctx = frame.ExecutionContext;
-            Shader.Push(ctx, pushData);
-            ctx
-                .DrawIndexed(first.IndicesCount, (uint)meshes.Length,
-                    first.IndicesStart, first.VertexStart);
-            return memoryUsed;
-        }
-
+        
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
             Debug.Assert(mesh.Material is SponzaMeshMaterial);
@@ -113,7 +83,7 @@ public class SponzaMeshMaterial : IMeshMaterial
                 // Emissive = meshMaterial.Emissive,
                 // EmissiveTextureId = (int)meshMaterial.EmissiveTextureId
             };
-            view.WriteStruct(data);
+            view.Write(data);
         }
 
         private struct DefaultMaterialProperties()
@@ -129,7 +99,7 @@ public class SponzaMeshMaterial : IMeshMaterial
 
     private class DepthMeshPass : SimpleMaterialPass
     {
-        public override IShader Shader { get; } = SGraphicsModule.Get()
+        public override IGraphicsShader Shader { get; } = SGraphicsModule.Get()
             .MakeGraphics("World/Shaders/Mesh/mesh_depth.slang");
 
         public override ulong GetRequiredMemory()
@@ -137,22 +107,20 @@ public class SponzaMeshMaterial : IMeshMaterial
             return Utils.ByteSizeOf<DepthMaterialData>();
         }
 
-        public override bool BindAndPush(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
+        public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
-            if (Shader.Bind(ctx))
+            if (Shader.Bind(ctx) is {} bindContext)
             {
-                var pushData = new PushConstant
-                {
-                    SceneAddress = frame.SceneInfo.GetAddress(),
-                    DataAddress = groupMaterialBuffer!.GetAddress()
-                };
-
-                Shader.Push(frame.ExecutionContext, pushData);
-                return true;
+                return bindContext
+                    .Push(new PushConstant
+                    {
+                        SceneAddress = frame.SceneInfo.GetAddress(),
+                        DataAddress = groupMaterialBuffer!.GetAddress()
+                    });
             }
 
-            return false;
+            return null;
         }
 
         protected override IMaterialPass GetPass(ProcessedMesh mesh)
@@ -160,36 +128,9 @@ public class SponzaMeshMaterial : IMeshMaterial
             return mesh.Material.DepthPass;
         }
 
-        protected override ulong ExecuteBatch(IShader shader, WorldFrame frame, in DeviceBufferView data,
-            ProcessedMesh[] meshes)
-        {
-            ulong memoryUsed = 0;
-            foreach (var item in meshes)
-            {
-                var pass = GetPass(item);
-                var materialData = data!.GetView(memoryUsed, pass.GetRequiredMemory());
-                pass.Write(materialData, item);
-                memoryUsed += materialData.Size;
-            }
-
-            var first = meshes.First();
-
-            var pushData = new PushConstant
-            {
-                SceneAddress = frame.SceneInfo.GetAddress(),
-                DataAddress = data!.GetAddress()
-            };
-            var ctx = frame.ExecutionContext;
-            Shader.Push(ctx, pushData);
-            ctx
-                .DrawIndexed(first.IndicesCount, (uint)meshes.Length,
-                    first.IndicesStart, first.VertexStart);
-            return memoryUsed;
-        }
-
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
-            view.WriteStruct(new DepthMaterialData
+            view.Write(new DepthMaterialData
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress()

@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Graphics.Quads;
+using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Quads;
 using SixLabors.Fonts;
 
 namespace misc.VectorRendering;

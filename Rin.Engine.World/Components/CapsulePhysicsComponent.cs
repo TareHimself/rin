@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using Rin.Engine.Math;
+using Rin.Framework.Math;
 using Rin.Engine.World.Physics;
 
 namespace Rin.Engine.World.Components;

@@ -1,10 +1,10 @@
 ﻿using System.Numerics;
-using Rin.Engine.Views;
-using Rin.Engine.Views.Composite;
-using Rin.Engine.Views.Content;
-using Rin.Engine.Views.Graphics.Quads;
-using Rin.Engine.Views.Layouts;
-using Rect = Rin.Engine.Views.Composite.Rect;
+using Rin.Framework.Views;
+using Rin.Framework.Views.Composite;
+using Rin.Framework.Views.Content;
+using Rin.Framework.Views.Graphics.Quads;
+using Rin.Framework.Views.Layouts;
+using Rect = Rin.Framework.Views.Composite.Rect;
 
 namespace ChatApp.Views;
 

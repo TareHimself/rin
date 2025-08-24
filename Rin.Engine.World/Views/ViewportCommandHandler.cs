@@ -1,23 +1,23 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Graphics.Shaders;
-using Rin.Engine.Graphics.Textures;
-using Rin.Engine.Graphics.Windows;
-using Rin.Engine.Math;
-using Rin.Engine.Views;
-using Rin.Engine.Views.Events;
-using Rin.Engine.Views.Graphics;
-using Rin.Engine.Views.Graphics.CommandHandlers;
-using Rin.Engine.Views.Graphics.Commands;
-using Rin.Engine.Views.Graphics.PassConfigs;
-using Rin.Engine.Views.Graphics.Quads;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Shaders;
+using Rin.Framework.Graphics.Textures;
+using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Math;
+using Rin.Framework.Views;
+using Rin.Framework.Views.Events;
+using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.CommandHandlers;
+using Rin.Framework.Views.Graphics.Commands;
+using Rin.Framework.Views.Graphics.PassConfigs;
+using Rin.Framework.Views.Graphics.Quads;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Graphics.Default;
-using CommandList = Rin.Engine.Views.Graphics.CommandList;
-using ICommand = Rin.Engine.Views.Graphics.Commands.ICommand;
+using CommandList = Rin.Framework.Views.Graphics.CommandList;
+using ICommand = Rin.Framework.Views.Graphics.Commands.ICommand;
 
 namespace Rin.Engine.World.Views;
 
@@ -33,7 +33,7 @@ public enum ViewportChannel
 
 internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
 {
-    private readonly IShader _shader = SGraphicsModule.Get()
+    private readonly IGraphicsShader _shader = SGraphicsModule.Get()
         .MakeGraphics("World/Shaders/viewport.slang");
 
     private uint[] _outputImageIds = [];
@@ -55,7 +55,7 @@ internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
         _commands = commands.Cast<DrawViewportCommand>().ToArray();
     }
 
-    public void Configure(IGraphConfig config, IPassConfig passConfig)
+    public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
     {
         _pushBufferIds = _commands
             .Select(c => config.CreateBuffer<PushData>(GraphBufferUsage.HostThenGraphics))
@@ -65,9 +65,10 @@ internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
             .ToArray();
     }
 
-    public void Execute(ICompiledGraph graph, IExecutionContext ctx, IPassConfig passConfig)
+    public void Execute(IPassConfig passConfig,
+        SurfaceContext surfaceContext, ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_shader.Bind(ctx))
+        if (_shader.Bind(ctx) is {} bindContext)
         {
             var outputImages = _outputImageIds.Select(graph.GetImageOrException);
             var pushBuffers = _pushBufferIds.Select(graph.GetBufferOrException);
@@ -75,18 +76,16 @@ internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
             foreach (var (cmd,outputImage,pushBuffer) in _commands.Zip(outputImages, pushBuffers))
             {
                 ctx.SetStencilCompareMask(cmd.StencilMask);
-                pushBuffer.WriteStruct(
+                pushBuffer.Write(
                     new PushData
                     {
-                        Projection = passConfig.PassContext.ProjectionMatrix,
+                        Projection = surfaceContext.ProjectionMatrix,
                         Transform = cmd.Transform,
                         Size = cmd.Size,
                         OutputImage = outputImage.BindlessHandle
                     });
-                
-                _shader.Push(ctx, pushBuffer.GetAddress());
-                
-                ctx
+                bindContext
+                    .Push(pushBuffer.GetAddress())
                     .Draw(6);
             }
         }
@@ -134,7 +133,7 @@ public class Viewport : ContentView
 
     protected Vector2 GetAbsoluteCenter()
     {
-        return (GetContentSize() / 2.0f).Transform(ComputeAbsoluteTransform());
+        return (GetContentSize() / 2.0f).Transform(ComputeAbsoluteContentTransform());
     }
 
     private string GetModeText()

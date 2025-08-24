@@ -1,4 +1,4 @@
-using Rin.Engine.Math;
+using Rin.Framework.Math;
 
 namespace Rin.Engine.World.Mesh.Skinning;
 

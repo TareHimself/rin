@@ -1,5 +1,5 @@
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.FrameGraph;
 using Rin.Engine.World.Components;
 
 namespace Rin.Engine.World.Graphics;

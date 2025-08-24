@@ -1,4 +1,4 @@
-﻿using Rin.Engine;
+﻿using Rin.Framework;
 
 namespace rin.Examples.Common;
 
@@ -11,7 +11,7 @@ public static class Utils
         var renders = 0;
         Task.Factory.StartNew(() =>
         {
-            while (SEngine.Get().IsRunning)
+            while (SApplication.Get().IsRunning)
             {
                 mainMutex.WaitOne();
                 try
@@ -26,7 +26,7 @@ public static class Utils
             }
         }, TaskCreationOptions.LongRunning);
 
-        SEngine.Get().OnUpdate += dt =>
+        SApplication.Get().OnUpdate += dt =>
         {
             main(dt);
             mains++;
@@ -36,7 +36,7 @@ public static class Utils
 
     public static void RunSingleThreaded(Action<float> main, Action render)
     {
-        SEngine.Get().OnUpdate += dt =>
+        SApplication.Get().OnUpdate += dt =>
         {
             main(dt);
             render();

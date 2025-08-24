@@ -1,4 +1,4 @@
-﻿using Rin.Engine.Views;
+﻿using Rin.Framework.Views;
 using Rin.Sources;
 
 namespace Rin.Engine.World;
@@ -8,8 +8,7 @@ public class SWorldModule : IModule, ISingletonGetter<SWorldModule>
 {
     public void Start(SEngine engine)
     {
-        SEngine.Get().Sources.AddSource(
-            new ResourcesSource(typeof(SWorldModule).Assembly, "World", ".Content.World."));
+        SEngine.Get().Sources.AddSource(AssemblyContentResource.New<SWorldModule>("World"));
     }
 
     public void Stop(SEngine engine)

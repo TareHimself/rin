@@ -102,5 +102,5 @@
         "semaphore": "cpp"
     },
     "cmake.sourceDirectory": "D:/Github/rin/standalone",
-    "editor.multiCursorModifier": "ctrlCmd"
+    "editor.multiCursorModifier": "alt"
 }

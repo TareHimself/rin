@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Engine.Graphics.Meshes;
+using Rin.Framework.Graphics.Meshes;
 using Rin.Engine.World.Mesh.Skinning;
 
 namespace Rin.Engine.World.Graphics;

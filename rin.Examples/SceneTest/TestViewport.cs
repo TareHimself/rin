@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
-using Rin.Engine.Graphics.Windows;
-using Rin.Engine.Math;
-using Rin.Engine.Views.Events;
+using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Math;
+using Rin.Framework.Views.Events;
 using Rin.Engine.World.Actors;
 using Rin.Engine.World.Math;
 using Rin.Engine.World.Views;

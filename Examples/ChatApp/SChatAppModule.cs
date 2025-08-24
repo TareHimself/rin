@@ -1,8 +1,8 @@
 ﻿using ChatApp.Views;
-using Rin.Engine;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Windows;
-using Rin.Engine.Views;
+using Rin.Framework;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Views;
 
 namespace ChatApp;
 
@@ -12,19 +12,19 @@ public class SChatAppModule : IModule, ISingletonGetter<SChatAppModule>
 {
     private IWindow? _window;
 
-    public void Start(SEngine engine)
+    public void Start(SApplication application)
     {
-        _window = SGraphicsModule.Get().CreateWindow(500, 500, "Chat");
+        _window = SGraphicsModule.Get().CreateWindow("Chat", new Extent2D(500));
         _window.OnClose += _ => { _window.Dispose(); };
         _window.GetViewSurface()?.Add(new MainView());
     }
 
-    public void Stop(SEngine engine)
+    public void Stop(SApplication application)
     {
     }
 
     public static SChatAppModule Get()
     {
-        return SEngine.Get().GetModule<SChatAppModule>();
+        return SApplication.Get().GetModule<SChatAppModule>();
     }
 }

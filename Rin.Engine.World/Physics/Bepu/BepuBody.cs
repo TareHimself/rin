@@ -2,7 +2,7 @@
 using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
-using Rin.Engine.Math;
+using Rin.Framework.Math;
 
 namespace Rin.Engine.World.Physics.Bepu;
 

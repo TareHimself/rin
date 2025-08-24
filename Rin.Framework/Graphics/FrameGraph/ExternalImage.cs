@@ -1,0 +1,24 @@
+﻿using Rin.Framework.Graphics.Textures;
+using TerraFX.Interop.Vulkan;
+
+namespace Rin.Framework.Graphics.FrameGraph;
+
+/// <summary>
+///     Basic implementation of <see cref="IGraphImage" /> that is meant for external images,
+///     <see cref="IGraphImage.Dispose" /> does not do anything
+/// </summary>
+public class ExternalImage(IDeviceImage image, Action? onDispose = null) : IGraphImage
+{
+    public bool CreatedByGraph => false;
+
+    public void Dispose()
+    {
+        onDispose?.Invoke();
+    }
+
+    public ImageFormat Format => image.Format;
+    public Extent3D Extent => image.Extent;
+    public VkImage NativeImage => image.NativeImage;
+    public VkImageView NativeView => image.NativeView;
+    public ImageHandle BindlessHandle => ImageHandle.InvalidImage;
+}

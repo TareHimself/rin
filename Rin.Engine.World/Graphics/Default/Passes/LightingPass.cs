@@ -1,14 +1,14 @@
 using System.Numerics;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.FrameGraph;
-using Rin.Engine.Graphics.Shaders;
-using Rin.Engine.Graphics.Textures;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Shaders;
+using Rin.Framework.Graphics.Textures;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
 public class LightingPass(DefaultWorldRenderContext context) : IPass
 {
-    private readonly IShader _shader = SGraphicsModule.Get()
+    private readonly IGraphicsShader _shader = SGraphicsModule.Get()
         .MakeGraphics("World/Shaders/lighting.slang");
 
     private uint _lightBufferId;
@@ -29,7 +29,7 @@ public class LightingPass(DefaultWorldRenderContext context) : IPass
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_shader.Bind(ctx))
+        if (_shader.Bind(ctx) is {} bindContext)
         {
             var gBuffer0 = graph.GetImageOrException(context.GBufferImage0);
             var gBuffer1 = graph.GetImageOrException(context.GBufferImage1);
@@ -37,9 +37,9 @@ public class LightingPass(DefaultWorldRenderContext context) : IPass
             var outputImage = graph.GetImageOrException(context.OutputImageId);
             var buffer = graph.GetBufferOrException(_worldBufferId);
             var lightsBuffer = graph.GetBufferOrException(_lightBufferId);
-            lightsBuffer.WriteArray(context.Lights);
+            lightsBuffer.Write(context.Lights);
 
-            buffer.WriteStruct(
+            buffer.Write(
                 new LightingInfo
                 {
                     GBuffer0 = gBuffer0.BindlessHandle,
@@ -53,9 +53,11 @@ public class LightingPass(DefaultWorldRenderContext context) : IPass
             ctx
                 .BeginRendering(context.Extent, [outputImage],clearColor: Vector4.Zero)
                 .DisableFaceCulling();
-            _shader.Push(ctx, buffer.GetAddress());
-            ctx.Draw(6)
-                .EndRendering();
+            bindContext
+                .Push(buffer.GetAddress())
+                .Draw(6);
+            
+            ctx.EndRendering();
         }
     }
 

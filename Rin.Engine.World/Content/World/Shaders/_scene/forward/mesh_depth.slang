@@ -1,5 +1,5 @@
 #include "Editor/Shaders/World/depth_scene_info.slang"
-#include "Engine/Shaders/operators.slang"
+#include "Framework/Shaders/operators.slang"
 
 #include "Editor/Shaders/World/depth_scene_info.slang"
 import rin.scene.mesh.vertex;

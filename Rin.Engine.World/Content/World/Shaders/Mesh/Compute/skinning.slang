@@ -1,5 +1,5 @@
-#include "Engine/Shaders/operators.slang"
-#include "Engine/Shaders/utils.slang"
+#include "Framework/Shaders/operators.slang"
+#include "Framework/Shaders/utils.slang"
 #include "World/Shaders/Mesh/skinned_vertex.slang"
 #include "World/Shaders/Mesh/vertex.slang"
 

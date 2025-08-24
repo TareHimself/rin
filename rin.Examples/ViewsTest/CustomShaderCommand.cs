@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Engine.Views.Graphics.Commands;
-using Rin.Engine.Views.Graphics.PassConfigs;
+using Rin.Framework.Views.Graphics.Commands;
+using Rin.Framework.Views.Graphics.PassConfigs;
 
 namespace rin.Examples.ViewsTest;
 

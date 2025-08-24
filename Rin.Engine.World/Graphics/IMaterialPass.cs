@@ -1,5 +1,5 @@
-﻿using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Shaders;
+﻿using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.Shaders;
 using Rin.Engine.World.Graphics.Default;
 
 namespace Rin.Engine.World.Graphics;
@@ -9,26 +9,14 @@ namespace Rin.Engine.World.Graphics;
 /// </summary>
 public interface IMaterialPass
 {
-    public IShader Shader { get; }
+    public IGraphicsShader Shader { get; }
 
     /// <summary>
     ///     The memory required for a single draw using this pass
     /// </summary>
     /// <returns></returns>
     public ulong GetRequiredMemory();
-
-    /// <summary>
-    ///     Execute this pass for all <see cref="meshes" />. All <see cref="meshes" /> use the same index buffer, and the same
-    ///     material
-    /// </summary>
-    /// <param name="frame"></param>
-    /// <param name="data">
-    ///     A buffer containing the data written by all instances of this pass will be size of
-    ///     <see cref="GetRequiredMemory" /> * <see cref="meshes" />
-    /// </param>
-    /// <param name="meshes">The meshes to draw</param>
-    public void Execute(WorldFrame frame, in DeviceBufferView data, ProcessedMesh[] meshes);
-
+    
     /// <summary>
     ///     Write to the <see cref="IDeviceBuffer" /> that will be the size returned from <see cref="GetRequiredMemory" />
     /// </summary>
@@ -36,5 +24,5 @@ public interface IMaterialPass
     /// <param name="mesh">The mesh this write is for</param>
     public void Write(in DeviceBufferView view, ProcessedMesh mesh);
 
-    public bool BindAndPush(WorldFrame frame, in DeviceBufferView groupMaterialBuffer);
+    public IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer);
 }

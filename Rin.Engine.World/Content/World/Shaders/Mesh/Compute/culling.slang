@@ -1,4 +1,4 @@
-#include "Engine/Shaders/attributes.slang"
+#include "Framework/Shaders/Attributes.slang"
 #include "Engine/Shaders/defs.slang"
 #include "World/Shaders/Mesh/bounds.slang"
 
