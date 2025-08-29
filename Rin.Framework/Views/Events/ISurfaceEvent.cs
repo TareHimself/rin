@@ -4,5 +4,5 @@ namespace Rin.Framework.Views.Events;
 
 public interface ISurfaceEvent
 {
-    public Surface Surface { get; }
+    public ISurface Surface { get; }
 }

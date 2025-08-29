@@ -3,7 +3,7 @@ using TerraFX.Interop.Vulkan;
 
 namespace Rin.Framework.Graphics;
 
-public interface IDeviceImage : IGraphResource
+public interface IDeviceImageArray : IGraphResource
 {
     public ImageFormat Format { get; }
     public Extent3D Extent { get; }

@@ -7,7 +7,7 @@ public class BindlessImage : IBindlessImage
         DebugName = "";
     }
 
-    public BindlessImage(in ImageHandle handle, IDeviceImage image, bool mipMapped,
+    public BindlessImage(in ImageHandle handle, IImage2D image, bool mipMapped,
         string debugName)
     {
         Handle = handle;
@@ -25,7 +25,7 @@ public class BindlessImage : IBindlessImage
 
     public bool Uploading { get; set; } = false;
 
-    public IDeviceImage? Image { get; set; }
+    public IImage2D? Image { get; set; }
     public ImageHandle Handle { get; set; }
     public bool MipMapped { get; set; }
     public string DebugName { get; set; }

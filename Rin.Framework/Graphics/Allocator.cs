@@ -48,16 +48,16 @@ public class Allocator(SGraphicsModule module) : Disposable
 
 
     /// <summary>
-    ///     Allocates a <see cref="DeviceImage" />
+    ///     Allocates a <see cref="VulkanDeviceImage" />
     /// </summary>
-    public IDeviceImage NewDeviceImage(VkImageCreateInfo imageCreateInfo, string debugName = "Image")
+    public IImage2D NewDeviceImage(VkImageCreateInfo imageCreateInfo, string debugName = "Image")
     {
         unsafe
         {
             VkImage image = new();
             void* allocation;
             Native.Vulkan.AllocateImage(&image, &allocation, &imageCreateInfo, _allocator, debugName);
-            var result = new DeviceImage(image, new VkImageView(), new Extent3D
+            var result = new VulkanDeviceImage(image, new VkImageView(), new Extent3D
                 {
                     Width = imageCreateInfo.extent.width,
                     Height = imageCreateInfo.extent.height,
@@ -68,7 +68,7 @@ public class Allocator(SGraphicsModule module) : Disposable
 #if DEBUG
             lock (_images)
             {
-                _images.Add(new WeakReference<IDeviceImage>(result));
+                _images.Add(new WeakReference<IImage2D>(result));
             }
 #endif
             return result;
@@ -94,9 +94,9 @@ public class Allocator(SGraphicsModule module) : Disposable
     }
 
     /// <summary>
-    ///     Free's a <see cref="DeviceImage" />
+    ///     Free's a <see cref="VulkanDeviceImage" />
     /// </summary>
-    public void FreeImage(DeviceImage image)
+    public void FreeImage(VulkanDeviceImage image)
     {
         unsafe
         {
@@ -119,7 +119,7 @@ public class Allocator(SGraphicsModule module) : Disposable
     private readonly HashSet<WeakReference<IDeviceBuffer>> _buffers =
         new(new WeakReferenceEqualityComparer<IDeviceBuffer>());
 
-    private readonly HashSet<WeakReference<IDeviceImage>> _images =
-        new(new WeakReferenceEqualityComparer<IDeviceImage>());
+    private readonly HashSet<WeakReference<IImage2D>> _images =
+        new(new WeakReferenceEqualityComparer<IImage2D>());
 #endif
 }

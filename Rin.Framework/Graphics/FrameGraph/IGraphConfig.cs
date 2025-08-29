@@ -4,7 +4,7 @@ public interface IGraphConfig
 {
     public uint SwapchainImageId { get; }
 
-    public uint AddExternalImage(IDeviceImage image, Action? onDispose = null);
+    public uint AddExternalImage(IImage2D image, Action? onDispose = null);
 
     public uint CreateImage(uint width, uint height, ImageFormat format,
         ImageLayout layout);

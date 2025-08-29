@@ -3,7 +3,7 @@ using Rin.Framework.Views.Graphics;
 
 namespace Rin.Framework.Views.Events;
 
-public class CursorMoveSurfaceEvent(Surface surface,in Vector2 position)
+public class CursorMoveSurfaceEvent(ISurface surface,in Vector2 position)
     : CursorSurfaceEvent(surface), IPositionalEvent
 {
     public readonly List<View> Over = [];

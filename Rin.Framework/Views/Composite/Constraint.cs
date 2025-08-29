@@ -62,7 +62,7 @@ public class Constraint : SingleSlotCompositeView
         return size.Clamp(min, max);
     }
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {

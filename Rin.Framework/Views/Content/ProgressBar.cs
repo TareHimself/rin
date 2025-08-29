@@ -20,12 +20,7 @@ public class ProgressBar(Func<float> getProgress,Action<float>? onClick = null) 
     {
         return availableSpace;
     }
-
-    protected override Vector2 ComputeDesiredContentSize()
-    {
-        return new Vector2();
-    }
-
+    
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         var a = ComputeAbsoluteContentTransform();

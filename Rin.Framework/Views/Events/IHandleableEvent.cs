@@ -1,7 +1,7 @@
 ﻿namespace Rin.Framework.Views.Events;
 
 /// <summary>
-///     Interfaces for events that will stop propagating once handled
+/// Interfaces for events that will stop propagating once handled
 /// </summary>
 public interface IHandleableEvent : ISurfaceEvent
 {

@@ -7,7 +7,7 @@ namespace Rin.Framework.Views.Composite;
 
 public class SimpleSlot : ISlot
 {
-    public required View Child { get; set; }
+    public required IView Child { get; set; }
 
     public void OnAddedToLayout(ILayout layout)
     {
@@ -18,20 +18,20 @@ public class SimpleSlot : ISlot
     }
 }
 
-public abstract class SingleSlotCompositeView : CompositeView
+public abstract class SingleSlotCompositeView : CompositeView, ISingleSlotCompositeView
 {
     private SimpleSlot? _slot;
 
     /// <summary>
     ///     Adds the View to this container
     /// </summary>
-    public View? Child
+    public IView? Child
     {
         init => SetChild(value);
     }
 
     [PublicAPI]
-    public void SetChild(View? child)
+    public void SetChild(IView? child)
     {
         _slot?.Child.SetParent(null);
 
@@ -56,13 +56,13 @@ public abstract class SingleSlotCompositeView : CompositeView
     }
 
     [PublicAPI]
-    public View? GetChild()
+    public IView? GetChild()
     {
         return _slot?.Child;
     }
 
     [PublicAPI]
-    protected ISlot? GetSlot()
+    public ISlot? GetSlot()
     {
         return _slot;
     }
@@ -74,14 +74,14 @@ public abstract class SingleSlotCompositeView : CompositeView
         return [];
     }
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot) return slot.Child.GetDesiredSize();
 
         return new Vector2();
     }
 
-    public override void OnChildInvalidated(View child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
     {
         Invalidate(invalidation);
     }

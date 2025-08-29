@@ -282,14 +282,14 @@ public class GraphBuilder : IGraphBuilder
             finalExecutionGroups);
     }
 
-    public uint AddExternalImage(IDeviceImage image, Action? onDispose)
+    public uint AddExternalImage(IImage2D image, Action? onDispose)
     {
         var id = MakeId();
         _externalImages.Add(id, new ExternalImageResourceDescriptor(image, onDispose));
         return id;
     }
 
-    public uint AddSwapchainImage(IDeviceImage image, Action? onDispose)
+    public uint AddSwapchainImage(IImage2D image, Action? onDispose)
     {
         return _swapchainImageId = AddExternalImage(image, onDispose);
     }

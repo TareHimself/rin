@@ -16,6 +16,7 @@ using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Views.Layouts;
 using rin.Examples.Common.Views;
 using rin.Examples.ViewsTest.Panels;
+using Rin.Framework.Video;
 using Rect = Rin.Framework.Views.Composite.Rect;
 
 namespace rin.Examples.ViewsTest;
@@ -160,7 +161,8 @@ public class SViewsTestModule : IModule
             {
                 Axis = Axis.Row 
             };
-
+            //https://samplelib.com/lib/preview/webm/sample-30s.webm
+            var source = new FileVideoSource(Platform.SelectFile("Select a webm video", filter: "*.webm").First());//new HttpVideoSource(new Uri("https://samplelib.com/lib/preview/webm/sample-30s.webm"));// Platform.SelectFile("Select a webm video", filter: "*.webm").First();
             surf.Add(new Panel
             {
                 Slots =
@@ -169,7 +171,7 @@ public class SViewsTestModule : IModule
                     {
                         Child = new Fitter
                         {
-                            Child = VideoPlayer.FromFile(Platform.SelectFile("Select a webm video",filter: "*.webm").First()),
+                            Child = VideoPlayer.FromSource(source),
                             FittingMode = FitMode.Contain,
                             Padding = 50.0f,
                             Clip = Clip.Bounds
@@ -195,12 +197,13 @@ public class SViewsTestModule : IModule
                      ,
                      new PanelSlot
                      {
-                         Child = new Rect
+                         Child = new BackgroundBlur
                          {
                              Child = new FpsView(),
                              Padding = new Padding(20.0f),
-                             BorderRadius = new Vector4(10.0f),
-                             Color = Color.Black with { A = 0.7f }
+                             Tint = Color.Black with { A = 0.7f },
+                             Strength = 5,
+                             Radius = 20
                          },
                          SizeToContent = true,
                          MinAnchor = new Vector2(1.0f, 0.0f),
@@ -436,7 +439,7 @@ public class SViewsTestModule : IModule
             base.CollectSelf(transform, cmds);
         }
 
-        public override void Collect(in Matrix4x4 transform, in Rin.Framework.Graphics.Rect clip, CommandList commands)
+        public override void Collect(in Matrix4x4 transform, in Rin.Framework.Graphics.Rect2D clip, CommandList commands)
         {
             base.Collect(transform, clip, commands);
         }
@@ -451,7 +454,7 @@ public class SViewsTestModule : IModule
             _width = WidthOverride.GetValueOrDefault(0);
         }
 
-        protected override void OnAddedToSurface(Surface surface)
+        protected override void OnAddedToSurface(ISurface surface)
         {
             base.OnAddedToSurface(surface);
             _width = WidthOverride.GetValueOrDefault(0);

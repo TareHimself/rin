@@ -25,12 +25,12 @@ public class Panel : MultiSlotCompositeView<PanelSlot>
         return _layout.Apply(availableSpace);
     }
 
-    public override void OnChildInvalidated(View child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
     {
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }
 
-    public override void OnChildAdded(View child)
+    public override void OnChildAdded(IView child)
     {
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }
@@ -40,12 +40,12 @@ public class Panel : MultiSlotCompositeView<PanelSlot>
         return _layout.GetSlots();
     }
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         return _layout.ComputeDesiredContentSize();
     }
 
-    public override bool Add(View child)
+    public override bool Add(IView child)
     {
         return _layout.Add(child);
     }
@@ -55,7 +55,7 @@ public class Panel : MultiSlotCompositeView<PanelSlot>
         return _layout.Add(slot);
     }
 
-    public override bool Remove(View child)
+    public override bool Remove(IView child)
     {
         return _layout.Remove(child);
     }

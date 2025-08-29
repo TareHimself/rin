@@ -22,13 +22,13 @@ public class Switcher : MultiSlotCompositeView<Slot>
         set => _layout.SelectedIndex = value;
     }
 
-    public View? SelectedView => _layout.SelectedSlot?.Child;
+    public IView? SelectedView => _layout.SelectedSlot?.Child;
 
     public override int SlotCount => _layout.SlotCount;
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
-        return SelectedView?.GetDesiredSize() ?? new Vector2();
+        return SelectedView?.GetDesiredSize() ?? Vector2.Zero;
     }
 
 
@@ -47,7 +47,7 @@ public class Switcher : MultiSlotCompositeView<Slot>
         return availableSpace;
     }
 
-    public override void OnChildInvalidated(View child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
     {
         _layout.Apply(GetContentSize());
     }
@@ -67,7 +67,7 @@ public class Switcher : MultiSlotCompositeView<Slot>
         return _layout.SelectedSlot is { } slot ? [slot] : [];
     }
 
-    public override bool Add(View child)
+    public override bool Add(IView child)
     {
         return _layout.Add(child);
     }
@@ -77,7 +77,7 @@ public class Switcher : MultiSlotCompositeView<Slot>
         return _layout.Add(slot);
     }
 
-    public override bool Remove(View child)
+    public override bool Remove(IView child)
     {
         return _layout.Remove(child);
     }

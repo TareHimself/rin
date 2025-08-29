@@ -129,7 +129,7 @@ public class ImageFactory : IImageFactory
         return _pipelineLayout;
     }
 
-    public (ImageHandle handle, IDeviceImage image) CreateTexture(in Extent3D size, ImageFormat format,
+    public (ImageHandle handle, IImage2D image) CreateTexture(in Extent3D size, ImageFormat format,
         bool mips = false,
         ImageUsage usage = ImageUsage.None,
         string? debugName = null)
@@ -247,7 +247,7 @@ public class ImageFactory : IImageFactory
         return IsHandleValid(imageHandle) ? _textures[imageHandle.Id] : null;
     }
 
-    public IDeviceImage? GetTextureImage(ImageHandle imageHandle)
+    public IImage2D? GetTextureImage(ImageHandle imageHandle)
     {
         return GetTexture(imageHandle)?.Image;
     }

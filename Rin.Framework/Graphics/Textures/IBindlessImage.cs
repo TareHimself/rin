@@ -2,7 +2,7 @@ namespace Rin.Framework.Graphics.Textures;
 
 public interface IBindlessImage
 {
-    public IDeviceImage? Image { get; }
+    public IImage2D? Image { get; }
 
     public ImageHandle Handle { get; }
 

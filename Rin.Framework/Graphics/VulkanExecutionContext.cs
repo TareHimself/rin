@@ -31,7 +31,7 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext Barrier(IDeviceImage image, ImageLayout from, ImageLayout to)
+    public IExecutionContext Barrier(IImage2D image, ImageLayout from, ImageLayout to)
     {
         CommandBuffer.ImageBarrier(image, from, to);
         return this;
@@ -62,7 +62,7 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext CopyToImage(in DeviceBufferView src, IDeviceImage dest)
+    public IExecutionContext CopyToImage(in DeviceBufferView src, IImage2D dest)
     {
         var copyRegion = new VkBufferImageCopy
         {
@@ -83,9 +83,11 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext CopyToImage(IDeviceImage src, in Offset2D srcOffset, in Extent2D srcSize, IDeviceImage dest,
+    public IExecutionContext CopyToImage(IImage2D src, in Offset2D srcOffset, in Extent2D srcSize, IImage2D dest,
         in Offset2D destOffset, in Extent2D destSize, ImageFilter filter = ImageFilter.Linear)
     {
+        var vkSrc = (IVulkanImage2D)src;
+        var vkDst = (IVulkanImage2D)dest;
          var blitRegion = new VkImageBlit2
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
@@ -120,14 +122,14 @@ public class VulkanExecutionContext(
 
         blitRegion.srcOffsets[1] = new VkOffset3D
         {
-            x = (int)(srcSize.Width - srcOffset.X),
-            y = (int)(srcSize.Height - srcOffset.Y),
+            x = (int)(srcOffset.X + srcSize.Width),
+            y = (int)(srcOffset.Y + srcSize.Height),
             z = (int)src.Extent.Dimensions
         };
         blitRegion.dstOffsets[1] = new VkOffset3D
         {
-            x = (int)(destSize.Width - destOffset.X),
-            y = (int)(destSize.Height - destOffset.Y),
+            x = (int)(destOffset.X + destSize.Width),
+            y = (int)(destOffset.Y + destSize.Height),
             z = (int)dest.Extent.Dimensions
         };
         unsafe
@@ -135,8 +137,8 @@ public class VulkanExecutionContext(
             var blitInfo = new VkBlitImageInfo2
             {
                 sType = VkStructureType.VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
-                srcImage = src.NativeImage,
-                dstImage = dest.NativeImage,
+                srcImage = vkSrc.NativeImage,
+                dstImage = vkDst.NativeImage,
                 srcImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 dstImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 filter = filter.ToVk(),
@@ -149,12 +151,12 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext CopyToImage(IDeviceImage src, in Offset2D srcOffset,
-        IDeviceImage dest,
-        in Offset2D destOffset,
-        ImageFilter filter = ImageFilter.Linear) => CopyToImage(src, srcOffset,src.Extent, dest, destOffset,dest.Extent,filter);
+    // public IExecutionContext CopyToImage(IDeviceImage src, in Offset2D srcOffset,
+    //     IDeviceImage dest,
+    //     in Offset2D destOffset,
+    //     ImageFilter filter = ImageFilter.Linear) => CopyToImage(src, srcOffset,src.Extent, dest, destOffset,dest.Extent,filter);
     
-    public IExecutionContext CopyToImage(IDeviceImage src, IDeviceImage dest, ImageFilter filter = ImageFilter.Linear)
+    public IExecutionContext CopyToImage(IImage2D src, IImage2D dest, ImageFilter filter = ImageFilter.Linear)
     {
         CommandBuffer.CopyImageToImage(src, dest, filter);
         return this;
@@ -178,9 +180,9 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext BeginRendering(in Extent2D extent, IEnumerable<IDeviceImage> attachments,
-        IDeviceImage? depthAttachment = null,
-        IDeviceImage? stencilAttachment = null, Vector4? clearColor = null)
+    public IExecutionContext BeginRendering(in Extent2D extent, IEnumerable<IImage2D> attachments,
+        IImage2D? depthAttachment = null,
+        IImage2D? stencilAttachment = null, Vector4? clearColor = null)
     {
         Debug.Assert(depthAttachment == null || depthAttachment.Format == ImageFormat.Depth,
             $"Depth attachment format must be {ImageFormat.Depth}");
@@ -307,19 +309,19 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext ClearColorImages(in Vector4 clearColor, ImageLayout layout, params IDeviceImage[] images)
+    public IExecutionContext ClearColorImages(in Vector4 clearColor, ImageLayout layout, params IImage2D[] images)
     {
         CommandBuffer.ClearColorImages(clearColor, layout, images);
         return this;
     }
 
-    public IExecutionContext ClearStencilImages(uint clearValue, ImageLayout layout, params IDeviceImage[] images)
+    public IExecutionContext ClearStencilImages(uint clearValue, ImageLayout layout, params IImage2D[] images)
     {
         CommandBuffer.ClearStencilImages(clearValue, layout, images);
         return this;
     }
 
-    public IExecutionContext ClearDepthImages(float clearValue, ImageLayout layout, params IDeviceImage[] images)
+    public IExecutionContext ClearDepthImages(float clearValue, ImageLayout layout, params IImage2D[] images)
     {
         CommandBuffer.ClearDepthImages(clearValue, layout, images);
         return this;

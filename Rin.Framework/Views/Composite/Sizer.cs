@@ -32,7 +32,7 @@ public class Sizer : SingleSlotCompositeView
         }
     }
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot)
         {
@@ -56,7 +56,7 @@ public class Sizer : SingleSlotCompositeView
         return new Vector2(WidthOverride.GetValueOrDefault(size.X), HeightOverride.GetValueOrDefault(size.Y));
     }
 
-    public override void OnChildInvalidated(View child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
     {
         if (GetSlot() is { } slot)
         {

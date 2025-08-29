@@ -24,7 +24,7 @@ public class HitTestHandler
         foreach (var item in _items)
         {
             var finalTransform = item.GetLocalTransform() * transform;
-            if (Rect.PointWithin(item.GetRelativeSize(), finalTransform, position)) itemsHit.Add(item);
+            if (Rect2D.PointWithin(item.GetRelativeSize(), finalTransform, position)) itemsHit.Add(item);
         }
 
         foreach (var item in itemsHit) item.OnHit();

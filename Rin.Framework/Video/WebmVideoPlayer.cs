@@ -141,7 +141,7 @@ public class WebmVideoPlayer : IVideoPlayer
 
     public void Dispose()
     {
-        ReleaseUnmanagedResources();
+        ReleaseResources();
         GC.SuppressFinalize(this);
     }
 
@@ -157,15 +157,17 @@ public class WebmVideoPlayer : IVideoPlayer
         _audioStream.Push(new ReadOnlySpan<byte>(data, sizeof(float) * count));
     }
 
-    private void ReleaseUnmanagedResources()
+    private void ReleaseResources()
     {
         _stopDecode = true;
         _decodeEvent.Set();
+        _audioStream?.Dispose();
+        _audioStream = null;
     }
 
     ~WebmVideoPlayer()
     {
-        ReleaseUnmanagedResources();
+        ReleaseResources();
     }
 
     private class InternalSource : IDisposable

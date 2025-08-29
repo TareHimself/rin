@@ -1,9 +1,10 @@
-﻿using Rin.Framework.Graphics;
+﻿using System.Numerics;
+using Rin.Framework.Graphics;
 using Rin.Framework.Views.Graphics;
 
 namespace Rin.Framework.Views.Events;
 
-public class ResizeSurfaceEvent(Surface surface, in Extent2D newSize) : SurfaceEvent(surface)
+public class ResizeSurfaceEvent(ISurface surface, in Vector2 newSize) : SurfaceEvent(surface)
 {
-    public Extent2D Size = newSize;
+    public Vector2 Size = newSize;
 }

@@ -10,4 +10,6 @@ public interface IWindowRenderer : IRenderer
     public IWindow GetWindow();
 
     public Extent2D GetRenderExtent();
+    public bool VsyncEnabled { get; }
+    public void SetVsyncEnabled(bool enabled);
 }

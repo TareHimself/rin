@@ -3,7 +3,7 @@
 public class Slot(ILayout? owner = null) : ISlot
 {
     private ILayout? _owner = owner;
-    public required View Child { get; set; }
+    public required IView Child { get; set; }
 
     public void OnAddedToLayout(ILayout layout)
     {

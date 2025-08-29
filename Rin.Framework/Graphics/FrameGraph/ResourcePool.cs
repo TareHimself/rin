@@ -145,8 +145,8 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         }
     }
 
-    private sealed class ProxiedImage(ResourceContainer<IDeviceImage> container, ImageHandle handle, Frame frame)
-        : IGraphImage
+    private sealed class ProxiedImage(ResourceContainer<IImage2D> container, ImageHandle handle, Frame frame)
+        : IGraphImage, IVulkanImage2D
     {
         public ImageLayout Layout { get; set; } = ImageLayout.Undefined;
         public bool CreatedByGraph => true;
@@ -158,12 +158,12 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
 
         public ImageFormat Format => container.Resource.Format;
         public Extent3D Extent => container.Resource.Extent;
-        public VkImage NativeImage => container.Resource.NativeImage;
-        public VkImageView NativeView { get; } = container.Resource.NativeView;
+        public VkImage NativeImage => ((IVulkanImage2D)container.Resource).NativeImage;
+        public VkImageView NativeView { get; } = ((IVulkanImage2D)container.Resource).NativeView;
         public ImageHandle BindlessHandle => handle;
     }
 
-    private class BindlessImage(ImageHandle handle, IDeviceImage image) : IDeviceImage
+    private class BindlessImage(ImageHandle handle, IImage2D image) : IVulkanImage2D
     {
         public ImageHandle BindlessHandle { get; } = handle;
 
@@ -174,16 +174,16 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
 
         public ImageFormat Format => image.Format;
         public Extent3D Extent => image.Extent;
-        public VkImage NativeImage => image.NativeImage;
-        public VkImageView NativeView => image.NativeView;
+        public VkImage NativeImage => ((IVulkanImage2D)image).NativeImage;
+        public VkImageView NativeView => ((IVulkanImage2D)image).NativeView;
     }
 
-    private sealed class ImagePool : Pool<ProxiedImage, IDeviceImage, ImageResourceDescriptor, int>
+    private sealed class ImagePool : Pool<ProxiedImage, IImage2D, ImageResourceDescriptor, int>
     {
-        protected override ResourceContainer<IDeviceImage> CreateNew(ImageResourceDescriptor input, Frame frame,
+        protected override ResourceContainer<IImage2D> CreateNew(ImageResourceDescriptor input, Frame frame,
             int key, ulong frameId)
         {
-            IDeviceImage image;
+            IImage2D image;
             if (input.Usage.HasFlag(ImageUsage.Sampled))
             {
                 var (handle, img) = SGraphicsModule.Get().GetImageFactory().CreateTexture(input.Extent, input.Format,
@@ -196,10 +196,10 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
                     debugName: "Frame Graph Image");
             }
 
-            return new ResourceContainer<IDeviceImage>(image);
+            return new ResourceContainer<IImage2D>(image);
         }
 
-        protected override ProxiedImage ResultFromContainer(ResourceContainer<IDeviceImage> container, Frame frame,
+        protected override ProxiedImage ResultFromContainer(ResourceContainer<IImage2D> container, Frame frame,
             int key, ImageResourceDescriptor input, ulong frameId)
         {
             var imageHandle = container.Resource is BindlessImage asBindless

@@ -3,24 +3,24 @@ using Rin.Framework.Math;
 
 namespace Rin.Framework.Graphics;
 
-public record struct Rect
+public record struct Rect2D
 {
     public Vector2 Offset;
     public Vector2 Size;
 
-    public Rect()
+    public Rect2D()
     {
     }
 
-    public Rect(in Vector2 offset, in Vector2 size)
+    public Rect2D(in Vector2 offset, in Vector2 size)
     {
         Offset = offset;
         Size = size;
     }
     
-    public Rect(in Vector2 offset, in Vector2 size,in Matrix4x4 transform)
+    public Rect2D(in Vector2 offset, in Vector2 size,in Matrix4x4 transform)
     {
-        var tl = Vector2.Zero;
+        var tl = offset;
         var br = tl + size;
         var tr = new Vector2(br.X, tl.Y);
         var bl = new Vector2(tl.X, br.Y);
@@ -55,13 +55,13 @@ public record struct Rect
         Size = p2 - p1;
     }
 
-    public static implicit operator Vector4(Rect rect)
+    public static implicit operator Vector4(Rect2D rect)
     {
         return new Vector4(rect.Offset.X, rect.Offset.Y, rect.Size.X,
             rect.Size.X);
     }
 
-    public bool IntersectsWith(Rect rect)
+    public bool IntersectsWith(Rect2D rect)
     {
         var a1 = Offset;
         var a2 = a1 + Size;
@@ -85,7 +85,7 @@ public record struct Rect
     /// </summary>
     /// <param name="area"></param>
     /// <returns></returns>
-    public Rect Clamp(Rect area)
+    public Rect2D Clamp(Rect2D area)
     {
         if (!IntersectsWith(area))
         {
@@ -108,7 +108,7 @@ public record struct Rect
         return this;
     }
 
-    public static implicit operator Pair<Vector2, Vector2>(Rect rect)
+    public static implicit operator Pair<Vector2, Vector2>(Rect2D rect)
     {
         return new Pair<Vector2, Vector2>(rect.Offset, rect.Offset + rect.Size);
     }

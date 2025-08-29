@@ -3,7 +3,7 @@
 namespace Rin.Framework.Views.Events;
 
 /// <summary>
-///     Interface for <see cref="ISurfaceEvent" />'s that require hit testing
+/// Interface for <see cref="ISurfaceEvent" />'s that require hit testing
 /// </summary>
 public interface IPositionalEvent : ISurfaceEvent
 {

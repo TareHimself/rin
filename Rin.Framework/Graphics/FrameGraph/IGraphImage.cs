@@ -2,7 +2,7 @@
 
 namespace Rin.Framework.Graphics.FrameGraph;
 
-public interface IGraphImage : IDeviceImage
+public interface IGraphImage : IImage2D
 {
     // /// <summary>
     // ///     The current layout of this graph image

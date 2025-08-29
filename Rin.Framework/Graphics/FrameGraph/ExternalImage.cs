@@ -4,10 +4,8 @@ using TerraFX.Interop.Vulkan;
 namespace Rin.Framework.Graphics.FrameGraph;
 
 /// <summary>
-///     Basic implementation of <see cref="IGraphImage" /> that is meant for external images,
-///     <see cref="IGraphImage.Dispose" /> does not do anything
 /// </summary>
-public class ExternalImage(IDeviceImage image, Action? onDispose = null) : IGraphImage
+public class ExternalImage(IImage2D image, Action? onDispose = null) : IGraphImage, IVulkanImage2D
 {
     public bool CreatedByGraph => false;
 
@@ -18,7 +16,7 @@ public class ExternalImage(IDeviceImage image, Action? onDispose = null) : IGrap
 
     public ImageFormat Format => image.Format;
     public Extent3D Extent => image.Extent;
-    public VkImage NativeImage => image.NativeImage;
-    public VkImageView NativeView => image.NativeView;
+    public VkImage NativeImage => ((IVulkanImage2D)image).NativeImage;
+    public VkImageView NativeView => ((IVulkanImage2D)image).NativeView;
     public ImageHandle BindlessHandle => ImageHandle.InvalidImage;
 }

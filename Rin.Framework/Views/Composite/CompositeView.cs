@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 using Rin.Framework.Extensions;
 using Rin.Framework.Math;
 using Rin.Framework.Animation;
+using Rin.Framework.Graphics;
 using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
@@ -10,9 +11,9 @@ using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
 
-public abstract class CompositeView : View
+public abstract class CompositeView : View, ICompositeView
 {
-    public Clip Clip = Clip.None;
+    public Clip Clip { get; set; } = Clip.None;
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
@@ -27,7 +28,7 @@ public abstract class CompositeView : View
                 var withPadding = transform.Translate(new Vector2(Padding.Left, Padding.Top));
                 var testContent = true;
                 if (Padding != default)
-                    testContent = Framework.Graphics.Rect.PointWithin(GetContentSize(), withPadding, asPositionalEvent.Position);
+                    testContent = Framework.Graphics.Rect2D.PointWithin(GetContentSize(), withPadding, asPositionalEvent.Position);
 
                 if (testContent)
                 {
@@ -61,7 +62,7 @@ public abstract class CompositeView : View
         return enumerator.ToArray();
     }
 
-    public override void SetSurface(Surface? surface)
+    public override void SetSurface(ISurface? surface)
     {
         base.SetSurface(surface);
         foreach (var layoutSlot in GetSlots()) layoutSlot.Child.SetSurface(surface);
@@ -84,7 +85,7 @@ public abstract class CompositeView : View
     /// </summary>
     /// <param name="child"></param>
     /// <returns></returns>
-    public virtual Matrix4x4 ComputeChildOffsets(View child)
+    public virtual Matrix4x4 ComputeChildOffsets(IView child)
     {
         return GetLocalTransformWithPadding();
     }
@@ -104,7 +105,7 @@ public abstract class CompositeView : View
         return GetSlots().Where(c => c.Child.IsHitTestable);
     }
 
-    public override void Collect(in Matrix4x4 transform, in Framework.Graphics.Rect clip, CommandList commands)
+    public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
         if (Visibility is Visibility.Hidden or Visibility.Collapsed) return;
 
@@ -121,7 +122,7 @@ public abstract class CompositeView : View
 
         if (Clip == Clip.Bounds) clipRect = ComputeAABB(transformWithPadding).Clamp(clipRect);
 
-        List<Pair<View, Matrix4x4>> toCollect = [];
+        List<Pair<IView, Matrix4x4>> toCollect = [];
 
         foreach (var slot in GetCollectableSlots())
         {
@@ -131,7 +132,7 @@ public abstract class CompositeView : View
 
             if (!clipRect.IntersectsWith(aabb)) continue;
 
-            toCollect.Add(new Pair<View, Matrix4x4>(slot.Child, slotTransform));
+            toCollect.Add(new Pair<IView, Matrix4x4>(slot.Child, slotTransform));
         }
 
         foreach (var (view, mat) in toCollect) view.Collect(mat, clipRect, commands);
@@ -147,16 +148,16 @@ public abstract class CompositeView : View
     protected abstract Vector2 ArrangeContent(in Vector2 availableSpace);
 
     [PublicAPI]
-    public abstract void OnChildInvalidated(View child, InvalidationType invalidation);
+    public abstract void OnChildInvalidated(IView child, InvalidationType invalidation);
 
     [PublicAPI]
-    public virtual void OnChildAdded(View child)
+    public virtual void OnChildAdded(IView child)
     {
         Invalidate(InvalidationType.Layout);
     }
 
     [PublicAPI]
-    public virtual void OnChildRemoved(View child)
+    public virtual void OnChildRemoved(IView child)
     {
         Invalidate(InvalidationType.Layout);
     }

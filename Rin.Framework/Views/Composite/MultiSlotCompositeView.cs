@@ -2,22 +2,17 @@
 
 namespace Rin.Framework.Views.Composite;
 
-public abstract class MultiSlotCompositeView<TSlotType> : CompositeView where TSlotType : ISlot
+public abstract class MultiSlotCompositeView<TSlotType> : CompositeView ,IMultiSlotCompositeView<TSlotType>  where TSlotType : ISlot
 {
-    /// <summary>
-    ///     Adds the views to this container
-    /// </summary>
-    public View[] Children
+
+    public IView[] Children
     {
         init
         {
             foreach (var child in value) Add(child);
         }
     }
-
-    /// <summary>
-    ///     Adds the slots to this container
-    /// </summary>
+    
     public TSlotType[] Slots
     {
         init
@@ -27,7 +22,7 @@ public abstract class MultiSlotCompositeView<TSlotType> : CompositeView where TS
     }
 
     public abstract int SlotCount { get; }
-    public abstract bool Add(View child);
+    public abstract bool Add(IView child);
     public abstract bool Add(TSlotType slot);
-    public abstract bool Remove(View child);
+    public abstract bool Remove(IView child);
 }

@@ -4,9 +4,9 @@ using Rin.Framework.Views.Graphics;
 
 namespace Rin.Framework.Views.Window;
 
-public class WindowHitTestEvent(Surface surface) : IHandleableEvent
+public class WindowHitTestEvent(ISurface surface) : IHandleableEvent
 {
     public WindowHitTestResult HitResult { get; set; }
-    public Surface Surface { get; } = surface;
+    public ISurface Surface { get; } = surface;
     public bool Handled => HitResult != WindowHitTestResult.None;
 }

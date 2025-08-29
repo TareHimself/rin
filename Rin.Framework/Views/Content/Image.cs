@@ -31,7 +31,7 @@ public class Image : ContentView
 
     [PublicAPI] public Vector4 BorderRadius { get; set; } = new(0.0f);
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         if (SGraphicsModule.Get().GetImageFactory()
                 .GetTextureImage(ImageId) is { } texture)

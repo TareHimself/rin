@@ -9,7 +9,7 @@ public interface IImageFactory : IDisposable
     public DescriptorSet GetDescriptorSet();
     public VkPipelineLayout GetPipelineLayout();
 
-    public (ImageHandle handle, IDeviceImage image) CreateTexture(in Extent3D size, ImageFormat format,
+    public (ImageHandle handle, IImage2D image) CreateTexture(in Extent3D size, ImageFormat format,
         bool mips = false, ImageUsage usage = ImageUsage.None,
         string? debugName = null);
 
@@ -30,7 +30,7 @@ public interface IImageFactory : IDisposable
 
     public IBindlessImage? GetTexture(ImageHandle imageHandle);
 
-    public IDeviceImage? GetTextureImage(ImageHandle imageHandle);
+    public IImage2D? GetTextureImage(ImageHandle imageHandle);
 
     public bool IsHandleValid(in ImageHandle imageHandle);
 

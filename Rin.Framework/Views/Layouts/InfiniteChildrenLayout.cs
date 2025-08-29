@@ -5,14 +5,14 @@ namespace Rin.Framework.Views.Layouts;
 
 public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 {
-    private readonly Dictionary<View, ISlot> _slotMap = [];
+    private readonly Dictionary<IView, ISlot> _slotMap = [];
     private readonly List<ISlot> _slots = [];
 
     public virtual int MaxSlotCount => int.MaxValue;
     public int SlotCount => _slots.Count;
-    public abstract CompositeView Container { get; }
+    public abstract ICompositeView Container { get; }
 
-    public bool Add(View child)
+    public bool Add(IView child)
     {
         return Add(MakeSlot(child));
     }
@@ -42,7 +42,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
         return added;
     }
 
-    public bool Remove(View view)
+    public bool Remove(IView view)
     {
         var removed = false;
 
@@ -69,7 +69,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
         return removed;
     }
 
-    public abstract ISlot MakeSlot(View view);
+    public abstract ISlot MakeSlot(IView view);
 
     public ISlot? GetSlot(int idx)
     {
@@ -89,10 +89,11 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 
     public abstract void OnSlotUpdated(ISlot slot);
 
-    public abstract Vector2 Apply(Vector2 availableSpace);
+    public abstract Vector2 Apply(in Vector2 availableSpace);
+    
     public abstract Vector2 ComputeDesiredContentSize();
 
-    public ISlot? FindSlot(View view)
+    public ISlot? FindSlot(IView view)
     {
         return _slotMap.GetValueOrDefault(view);
     }

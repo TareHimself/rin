@@ -8,9 +8,9 @@ public static class Extensions
         return builder.AddPass(new ActionPass(configure, run, terminal, name));
     }
 
-    public static IDeviceImage AsImage(this IGraphResource resource)
+    public static IImage2D AsImage(this IGraphResource resource)
     {
-        return resource is IDeviceImage asImage
+        return resource is IImage2D asImage
             ? asImage
             : throw new Exception("Resource is not image");
     }

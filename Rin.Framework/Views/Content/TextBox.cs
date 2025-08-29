@@ -144,7 +144,7 @@ public class TextBox : ContentView
         return bounds;
     }
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         if (Content.Empty() || CurrentFont == null) return new Vector2(0.0f, LineHeight);
         var bounds = GetCharacterBounds(cache: false);

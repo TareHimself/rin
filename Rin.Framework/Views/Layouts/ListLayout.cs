@@ -15,12 +15,12 @@ public class ListSlot(ListLayout? layout = null) : Slot(layout)
     public CrossFit Fit = CrossFit.Desired;
 }
 
-public class ListLayout(Axis axis, CompositeView container) : InfiniteChildrenLayout
+public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenLayout
 {
     private Axis _axis = axis;
-    public override CompositeView Container { get; } = container;
+    public override ICompositeView Container { get; } = container;
 
-    public override ISlot MakeSlot(View view)
+    public override ISlot MakeSlot(IView view)
     {
         return new ListSlot(this)
         {
@@ -166,7 +166,7 @@ public class ListLayout(Axis axis, CompositeView container) : InfiniteChildrenLa
     }
 
 
-    public override Vector2 Apply(Vector2 availableSpace)
+    public override Vector2 Apply(in Vector2 availableSpace)
     {
         return _axis switch
         {

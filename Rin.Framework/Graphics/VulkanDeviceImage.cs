@@ -5,12 +5,12 @@ namespace Rin.Framework.Graphics;
 /// <summary>
 ///     GPU Image
 /// </summary>
-public class DeviceImage : DeviceMemory, IDeviceImage
+public class VulkanDeviceImage : DeviceMemory,  IVulkanImage2D
 {
     /// <summary>
     ///     GPU Image
     /// </summary>
-    public DeviceImage(VkImage inImage,
+    public VulkanDeviceImage(VkImage inImage,
         VkImageView inView,
         Extent3D inExtent,
         ImageFormat inFormat,

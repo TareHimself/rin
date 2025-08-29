@@ -4,12 +4,12 @@ using Rin.Framework.Views.Graphics;
 
 namespace Rin.Framework.Views.Events;
 
-public class CursorDownSurfaceEvent(Surface surface, CursorButton button, Vector2 position, View? target = null)
-    : CursorSurfaceEvent(surface), IHandleableEvent, IPositionalEvent
+public class CursorDownSurfaceEvent(ISurface surface, CursorButton button, Vector2 position, View? target = null)
+    : CursorSurfaceEvent(surface), IHandleableEvent, IPositionalEvent, ITargetedEvent
 {
     public readonly CursorButton Button = button;
-    public View? Target = target;
     public bool Handled => Target != null;
     public Vector2 Position { get; set; } = position;
     public bool ReverseTestOrder => true;
+    public IView? Target { get; set; }
 }

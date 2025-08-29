@@ -46,11 +46,12 @@ public class DescriptorSet
         return this;
     }
 
-    public DescriptorSet WriteSampledImage(uint binding, IDeviceImage image, ImageLayout layout, uint arrayOffset = 0)
+    public DescriptorSet WriteSampledImage(uint binding, IImage2D image, ImageLayout layout, uint arrayOffset = 0)
     {
+        Debug.Assert(image is IVulkanImage2D);
         var info = new VkDescriptorImageInfo
         {
-            imageView = image.NativeView,
+            imageView = ((IVulkanImage2D)image).NativeView,
             imageLayout = layout.ToVk()
         };
 
@@ -70,12 +71,12 @@ public class DescriptorSet
         return this;
     }
 
-    public DescriptorSet WriteSampledImageCombined(uint binding, IDeviceImage image, ImageLayout layout,
+    public DescriptorSet WriteSampledImageCombined(uint binding, IImage2D image, ImageLayout layout,
         in SamplerSpec samplerSpec, uint arrayOffset = 0)
     {
         var info = new VkDescriptorImageInfo
         {
-            imageView = image.NativeView,
+            imageView = ((IVulkanImage2D)image).NativeView,
             imageLayout = layout.ToVk(),
             sampler = SGraphicsModule.Get().GetSampler(samplerSpec)
         };
@@ -96,11 +97,11 @@ public class DescriptorSet
         return this;
     }
 
-    public DescriptorSet WriteStorageImage(uint binding, IDeviceImage image, ImageLayout layout, uint arrayOffset = 0)
+    public DescriptorSet WriteStorageImage(uint binding, IImage2D image, ImageLayout layout, uint arrayOffset = 0)
     {
         var info = new VkDescriptorImageInfo
         {
-            imageView = image.NativeView,
+            imageView = ((IVulkanImage2D)image).NativeView,
             imageLayout = layout.ToVk()
         };
 

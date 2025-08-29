@@ -11,11 +11,11 @@ public class FlexBoxSlot(FlexLayout? layout = null) : ListSlot(layout)
 
 public class FlexLayout : ListLayout
 {
-    public FlexLayout(Axis axis, CompositeView container) : base(axis, container)
+    public FlexLayout(Axis axis, ICompositeView container) : base(axis, container)
     {
     }
 
-    public override ISlot MakeSlot(View view)
+    public override ISlot MakeSlot(IView view)
     {
         return new FlexBoxSlot(this)
         {
@@ -23,7 +23,7 @@ public class FlexLayout : ListLayout
         };
     }
 
-    public override Vector2 Apply(Vector2 availableSpace)
+    public override Vector2 Apply(in Vector2 availableSpace)
     {
         var axis = GetAxis();
         float mainAxisAvailableSpace;

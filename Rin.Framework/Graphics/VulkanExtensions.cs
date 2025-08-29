@@ -210,8 +210,9 @@ public static class VulkanExtensions
 
     public static VkCommandBuffer ClearColorImages(in this VkCommandBuffer cmd, in Vector4 clearColor,
         ImageLayout layout,
-        params IDeviceImage[] images)
+        params IImage2D[] images)
     {
+        Debug.Assert(images.All(a => a is IVulkanImage2D));
         unsafe
         {
             var vkLayout = layout.ToVk();
@@ -221,7 +222,7 @@ public static class VulkanExtensions
             pRanges[0] = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
 
             foreach (var deviceImage in images)
-                vkCmdClearColorImage(cmd, deviceImage.NativeImage, vkLayout, pColor, 1,
+                vkCmdClearColorImage(cmd, ((IVulkanImage2D)deviceImage).NativeImage, vkLayout, pColor, 1,
                     pRanges);
         }
 
@@ -229,7 +230,7 @@ public static class VulkanExtensions
     }
 
     public static VkCommandBuffer ClearStencilImages(in this VkCommandBuffer cmd, uint clearValue, ImageLayout layout,
-        params IDeviceImage[] images)
+        params IImage2D[] images)
     {
         unsafe
         {
@@ -241,7 +242,7 @@ public static class VulkanExtensions
                                                                    VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
 
             foreach (var deviceImage in images)
-                vkCmdClearDepthStencilImage(cmd, deviceImage.NativeImage, vkLayout,
+                vkCmdClearDepthStencilImage(cmd, ((IVulkanImage2D)deviceImage).NativeImage, vkLayout,
                     pColor, 1, pRanges);
         }
 
@@ -249,7 +250,7 @@ public static class VulkanExtensions
     }
 
     public static VkCommandBuffer ClearDepthImages(in this VkCommandBuffer cmd, float clearValue, ImageLayout layout,
-        params IDeviceImage[] images)
+        params IImage2D[] images)
     {
         unsafe
         {
@@ -260,7 +261,7 @@ public static class VulkanExtensions
             pRanges[0] = SGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
 
             foreach (var deviceImage in images)
-                vkCmdClearDepthStencilImage(cmd, deviceImage.NativeImage, vkLayout,
+                vkCmdClearDepthStencilImage(cmd, ((IVulkanImage2D)deviceImage).NativeImage, vkLayout,
                     pColor, 1, pRanges);
         }
 
@@ -1219,10 +1220,11 @@ public static class VulkanExtensions
     /// <param name="from"></param>
     /// <param name="to"></param>
     /// <param name="options"></param>
-    public static VkCommandBuffer ImageBarrier(in this VkCommandBuffer cmd, IDeviceImage image, ImageLayout from,
+    public static VkCommandBuffer ImageBarrier(in this VkCommandBuffer cmd, IImage2D image, ImageLayout from,
         ImageLayout to, ImageBarrierOptions? options = null)
     {
-        return ImageBarrier(cmd, image.NativeImage, from, to,
+        Debug.Assert(image is IVulkanImage2D);
+        return ImageBarrier(cmd, ((IVulkanImage2D)image).NativeImage, from, to,
             options ?? new ImageBarrierOptions(image.Format, from, to));
     }
 
@@ -1267,7 +1269,7 @@ public static class VulkanExtensions
     }
 
     public static VkCommandBuffer CopyBufferToImage(this in VkCommandBuffer cmd, in DeviceBufferView buffer,
-        IDeviceImage image,
+        IImage2D image,
         VkBufferImageCopy[] regions, ImageLayout layout = ImageLayout.TransferDst)
     {
         Debug.Assert(buffer.IsValid, "Buffer buffer is not valid");
@@ -1275,7 +1277,7 @@ public static class VulkanExtensions
         {
             fixed (VkBufferImageCopy* pRegion = regions)
             {
-                vkCmdCopyBufferToImage(cmd, buffer.Buffer.NativeBuffer, image.NativeImage,
+                vkCmdCopyBufferToImage(cmd, buffer.Buffer.NativeBuffer, ((IVulkanImage2D)image).NativeImage,
                     layout.ToVk(), (uint)regions.Length, pRegion);
             }
         }
@@ -1283,26 +1285,26 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer CopyImageToImage(in this VkCommandBuffer cmd, IDeviceImage src, IDeviceImage dst,
+    public static VkCommandBuffer CopyImageToImage(in this VkCommandBuffer cmd, IImage2D src, IImage2D dst,
         ImageFilter filter = ImageFilter.Linear)
     {
-        CopyImageToImage(cmd, src.NativeImage, dst.NativeImage, src.Extent, dst.Extent, filter);
+        CopyImageToImage(cmd, ((IVulkanImage2D)src).NativeImage, ((IVulkanImage2D)dst).NativeImage, src.Extent, dst.Extent, filter);
         return cmd;
     }
 
-    public static VkCommandBuffer CopyImageToImage(in this VkCommandBuffer cmd, IDeviceImage src, VkImage dst,
+    public static VkCommandBuffer CopyImageToImage(in this VkCommandBuffer cmd, IImage2D src, VkImage dst,
         Extent3D dstExtent,
         ImageFilter filter = ImageFilter.Linear)
     {
-        CopyImageToImage(cmd, src.NativeImage, dst, src.Extent, dstExtent, filter);
+        CopyImageToImage(cmd, ((IVulkanImage2D)src).NativeImage, dst, src.Extent, dstExtent, filter);
         return cmd;
     }
 
-    public static VkCommandBuffer CopyImageToImage(in this VkCommandBuffer cmd, IDeviceImage src, IDeviceImage dst,
+    public static VkCommandBuffer CopyImageToImage(in this VkCommandBuffer cmd, IImage2D src, IImage2D dst,
         Extent3D srcExtent,
         Extent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
     {
-        CopyImageToImage(cmd, src.NativeImage, dst.NativeImage, srcExtent, dstExtent, filter);
+        CopyImageToImage(cmd, ((IVulkanImage2D)src).NativeImage, ((IVulkanImage2D)dst).NativeImage, srcExtent, dstExtent, filter);
         return cmd;
     }
     
@@ -1364,13 +1366,13 @@ public static class VulkanExtensions
         }
     }
 
-    public static VkRenderingAttachmentInfo MakeAttachmentInfo(this IDeviceImage image, ImageLayout newLayout,
+    public static VkRenderingAttachmentInfo MakeAttachmentInfo(this IImage2D image, ImageLayout newLayout,
         VkClearValue? clearValue = null)
     {
         var attachment = new VkRenderingAttachmentInfo
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            imageView = image.NativeView,
+            imageView = ((IVulkanImage2D)image).NativeView,
             imageLayout = newLayout.ToVk(),
             loadOp = clearValue == null
                 ? VkAttachmentLoadOp.VK_ATTACHMENT_LOAD_OP_LOAD
@@ -1383,7 +1385,7 @@ public static class VulkanExtensions
         return attachment;
     }
 
-    public static VkRenderingAttachmentInfo MakeColorAttachmentInfo(this IDeviceImage image,
+    public static VkRenderingAttachmentInfo MakeColorAttachmentInfo(this IImage2D image,
         Vector4? clearValue = null)
     {
         return MakeAttachmentInfo(image, ImageLayout.ColorAttachment, clearValue.HasValue
@@ -1394,7 +1396,7 @@ public static class VulkanExtensions
             : null);
     }
 
-    public static VkRenderingAttachmentInfo MakeDepthAttachmentInfo(this IDeviceImage image,
+    public static VkRenderingAttachmentInfo MakeDepthAttachmentInfo(this IImage2D image,
         float? clearValue = null)
     {
         return MakeAttachmentInfo(image, ImageLayout.DepthAttachment, clearValue.HasValue
@@ -1405,7 +1407,7 @@ public static class VulkanExtensions
             : null);
     }
 
-    public static VkRenderingAttachmentInfo MakeStencilAttachmentInfo(this IDeviceImage image,
+    public static VkRenderingAttachmentInfo MakeStencilAttachmentInfo(this IImage2D image,
         uint? clearValue = null)
     {
         return MakeAttachmentInfo(image, ImageLayout.StencilAttachment, clearValue.HasValue
@@ -1581,7 +1583,7 @@ public static class VulkanExtensions
         };
     }
 
-    public static VkImageViewCreateInfo MakeImageViewCreateInfo(DeviceImage image, VkImageAspectFlags aspect)
+    public static VkImageViewCreateInfo MakeImageViewCreateInfo(VulkanDeviceImage image, VkImageAspectFlags aspect)
     {
         return MakeImageViewCreateInfo(image.Format, image.NativeImage, aspect);
     }

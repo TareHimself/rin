@@ -49,7 +49,6 @@ public class WindowSurface : Surface
 
     private void Collect(IGraphBuilder builder)
     {
-        if (Stats.InitialCommandCount != 0) Stats = new FrameStats();
         if (BuildPasses(builder) is { } context) builder.AddPass(new CopySurfaceToSwapchain(context));
     }
 
@@ -57,7 +56,7 @@ public class WindowSurface : Surface
     {
         _size = _renderer.GetRenderExtent();
         _minimized = _size.Width == 0 || _size.Height == 0;
-        if (!_minimized) ReceiveResize(new ResizeSurfaceEvent(this, _size));
+        if (!_minimized) ReceiveResize(new ResizeSurfaceEvent(this, new Vector2(_size.Width,_size.Height)));
     }
 
     protected void OnKeyboard(KeyEvent e)

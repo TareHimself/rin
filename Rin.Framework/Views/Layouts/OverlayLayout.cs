@@ -4,12 +4,12 @@ using Rin.Framework.Views.Composite;
 
 namespace Rin.Framework.Views.Layouts;
 
-public class OverlayLayout(CompositeView container) : InfiniteChildrenLayout
+public class OverlayLayout(ICompositeView container) : InfiniteChildrenLayout
 {
-    public override CompositeView Container { get; } = container;
+    public override ICompositeView Container { get; } = container;
     public override int MaxSlotCount => int.MaxValue;
 
-    public override ISlot MakeSlot(View view)
+    public override ISlot MakeSlot(IView view)
     {
         return new Slot(this)
         {
@@ -22,7 +22,7 @@ public class OverlayLayout(CompositeView container) : InfiniteChildrenLayout
         if (Container.Surface != null) Apply(Container.GetContentSize());
     }
 
-    public override Vector2 Apply(Vector2 availableSpace)
+    public override Vector2 Apply(in Vector2 availableSpace)
     {
         var dims = new Vector2(0.0f);
 

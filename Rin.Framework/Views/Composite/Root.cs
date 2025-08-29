@@ -18,7 +18,7 @@ public class Root : MultiSlotCompositeView<Slot>
 
     public override int SlotCount => _layout.SlotCount;
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         return _layout.ComputeDesiredContentSize();
     }
@@ -30,12 +30,12 @@ public class Root : MultiSlotCompositeView<Slot>
     }
 
 
-    public override void OnChildInvalidated(View child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
     {
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }
 
-    public override void OnChildAdded(View child)
+    public override void OnChildAdded(IView child)
     {
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }
@@ -45,7 +45,7 @@ public class Root : MultiSlotCompositeView<Slot>
         return _layout.GetSlots();
     }
 
-    public override bool Add(View view)
+    public override bool Add(IView view)
     {
         return _layout.Add(view);
     }
@@ -55,7 +55,7 @@ public class Root : MultiSlotCompositeView<Slot>
         return _layout.Add(slot);
     }
 
-    public override bool Remove(View view)
+    public override bool Remove(IView view)
     {
         return _layout.Remove(view);
     }

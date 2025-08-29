@@ -40,7 +40,7 @@ public class FlexBox : MultiSlotCompositeView<FlexBoxSlot>
         Invalidate(InvalidationType.Layout);
     }
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         return _layout.ComputeDesiredContentSize();
     }
@@ -50,7 +50,7 @@ public class FlexBox : MultiSlotCompositeView<FlexBoxSlot>
         return _layout.Apply(availableSpace);
     }
 
-    public override void OnChildInvalidated(View child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
     {
         Invalidate(invalidation);
     }
@@ -60,7 +60,7 @@ public class FlexBox : MultiSlotCompositeView<FlexBoxSlot>
         return _layout.GetSlots();
     }
 
-    public override bool Add(View child)
+    public override bool Add(IView child)
     {
         return _layout.Add(child);
     }
@@ -70,7 +70,7 @@ public class FlexBox : MultiSlotCompositeView<FlexBoxSlot>
         return _layout.Add(slot);
     }
 
-    public override bool Remove(View child)
+    public override bool Remove(IView child)
     {
         return _layout.Remove(child);
     }

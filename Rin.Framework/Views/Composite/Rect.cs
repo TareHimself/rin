@@ -13,7 +13,7 @@ public class Rect : SingleSlotCompositeView
     public Vector4 BorderRadius;
     public Color Color = Color.Black;
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot) return slot.Child.GetDesiredSize();
 
@@ -44,7 +44,7 @@ public class Rect : SingleSlotCompositeView
         return [];
     }
 
-    public override void Collect(in Matrix4x4 transform, in Framework.Graphics.Rect clip, CommandList commands)
+    public override void Collect(in Matrix4x4 transform, in Framework.Graphics.Rect2D clip, CommandList commands)
     {
         if (IsVisible) CollectSelf(transform, commands);
         base.Collect(transform, clip, commands);

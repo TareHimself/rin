@@ -10,11 +10,6 @@ public class Canvas : ContentView
 {
     public required Action<Canvas, Matrix4x4, CommandList> Paint { get; init; }
 
-    protected override Vector2 ComputeDesiredContentSize()
-    {
-        return new Vector2();
-    }
-
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         return availableSpace;

@@ -18,9 +18,7 @@ public class WindowRenderer : IWindowRenderer
     private readonly Lock _drawLock = new();
     private readonly SGraphicsModule _module;
     private readonly IResourcePool _resourcePool;
-    private readonly HashSet<VkPresentModeKHR> _supportedPresentModes;
     private readonly VkSurfaceKHR _surface;
-    private readonly TaskPool _taskPool = new();
     private readonly IWindow _window;
     private bool _disposed;
     private Frame[] _frames = [];
@@ -28,6 +26,19 @@ public class WindowRenderer : IWindowRenderer
     private FrozenDictionary<uint, DescriptorSet> _globalDescriptors = FrozenDictionary<uint, DescriptorSet>.Empty;
     private VkSemaphore[] _renderSemaphores = [];
     private VkSwapchainKHR _swapchain;
+    private VkPresentModeKHR _vsyncPresentMode;
+    private VkPresentModeKHR _nonVSyncPresentMode;
+    private VkPresentModeKHR PresentMode => VsyncEnabled ? _vsyncPresentMode : _nonVSyncPresentMode;
+    private bool _dirty = false;
+
+
+    /// <summary>
+    /// Marks this renderer as dirty and will cause the swapchain to be re-created next frame
+    /// </summary>
+    private void MarkDirty()
+    {
+        _dirty = true;
+    }
 
     private Extent2D _swapchainExtent = new()
     {
@@ -39,24 +50,41 @@ public class WindowRenderer : IWindowRenderer
 
     private VkImageView[] _swapchainViews = [];
 
-    public WindowRenderer(SGraphicsModule module, IWindow window)
+    public WindowRenderer(SGraphicsModule module, IWindow window, in VkSurfaceKHR? surface = null)
     {
         _module = module;
         _window = window;
-        _surface = CreateSurface();
-        _supportedPresentModes = module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
+        _surface = surface ?? CreateSurface();
+        var supportedPresentModes = module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
         _resourcePool = new ResourcePool(this);
         SetupGlobalDescriptors();
-    }
+        var presentModesSet = supportedPresentModes.ToHashSet();
 
-    public WindowRenderer(SGraphicsModule module, IWindow window, VkSurfaceKHR surface)
-    {
-        _module = module;
-        _window = window;
-        _surface = surface;
-        _supportedPresentModes = module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
-        _resourcePool = new ResourcePool(this);
-        SetupGlobalDescriptors();
+        if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR))
+        {
+            _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR;
+        }
+        else if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_FIFO_RELAXED_KHR))
+        {
+            _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+        }
+        else if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR))
+        {
+            _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR;
+        }
+        else
+        {
+            _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
+        }
+
+        if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR))
+        {
+            _vsyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR;
+        }
+        else
+        {
+            _vsyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
+        }
     }
 
     public IWindow GetWindow()
@@ -75,6 +103,17 @@ public class WindowRenderer : IWindowRenderer
                 Width = surfaceCapabilities.currentExtent.width,
                 Height = surfaceCapabilities.currentExtent.height
             };
+        }
+    }
+
+    public bool VsyncEnabled { get; set; }
+
+    public void SetVsyncEnabled(bool enabled)
+    {
+        if (VsyncEnabled != enabled)
+        {
+            VsyncEnabled = enabled;
+            MarkDirty();
         }
     }
 
@@ -112,8 +151,14 @@ public class WindowRenderer : IWindowRenderer
 
         if (_swapchainExtent != ctx.RenderExtent)
         {
+            MarkDirty();
+        }
+
+        if (_dirty)
+        {
             DestroySwapchain();
             if (!CreateSwapchain(ctx.RenderExtent)) return;
+            _dirty = false;
         }
 
         DoExecute(ctx);
@@ -161,12 +206,11 @@ public class WindowRenderer : IWindowRenderer
 
         var device = _module.GetDevice();
         var format = _module.GetSurfaceFormat();
-        var presentMode = _supportedPresentModes.First();
         var createInfo = new VkSwapchainCreateInfoKHR
         {
             sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             surface = _surface,
-            presentMode = presentMode,
+            presentMode = PresentMode,
             imageFormat = format.format,
             compositeAlpha = VkCompositeAlphaFlagsKHR.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             imageColorSpace = format.colorSpace,
@@ -400,7 +444,7 @@ public class WindowRenderer : IWindowRenderer
         }
     }
 
-    private class SwapchainImage : IDeviceImage
+    private class SwapchainImage : IVulkanImage2D
     {
         public void Dispose()
         {

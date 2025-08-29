@@ -4,7 +4,7 @@ using Rin.Framework.Views.Graphics;
 
 namespace Rin.Framework.Views.Events;
 
-public class CursorUpSurfaceEvent(Surface surface, CursorButton button, Vector2 position)
+public class CursorUpSurfaceEvent(ISurface surface, CursorButton button, Vector2 position)
     : CursorSurfaceEvent(surface)
 {
     public CursorButton Button = button;

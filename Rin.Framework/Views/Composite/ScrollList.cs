@@ -118,7 +118,7 @@ public class ScrollList : List
         }
     }
 
-    public override void Collect(in Matrix4x4 transform, in Framework.Graphics.Rect clip, CommandList commands)
+    public override void Collect(in Matrix4x4 transform, in Framework.Graphics.Rect2D clip, CommandList commands)
     {
         base.Collect(transform, clip, commands);
         if (IsVisible && IsScrollable())
@@ -149,7 +149,7 @@ public class ScrollList : List
         });
     }
 
-    public override Matrix4x4 ComputeChildOffsets(View child)
+    public override Matrix4x4 ComputeChildOffsets(IView child)
     {
         
         return Matrix4x4.Identity.Translate(Axis switch

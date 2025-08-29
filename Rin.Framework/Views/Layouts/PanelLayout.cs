@@ -49,11 +49,11 @@ public class PanelSlot : Slot
     }
 }
 
-public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
+public class PanelLayout(ICompositeView container) : InfiniteChildrenLayout
 {
-    public override CompositeView Container { get; } = container;
+    public override ICompositeView Container { get; } = container;
 
-    public override ISlot MakeSlot(View view)
+    public override ISlot MakeSlot(IView view)
     {
         throw new NotImplementedException();
     }
@@ -63,17 +63,15 @@ public class PanelLayout(CompositeView container) : InfiniteChildrenLayout
         if (Container.Surface != null) LayoutSlot(slot, Container.GetContentSize());
     }
 
-    public override Vector2 Apply(Vector2 availableSpace)
+    public override Vector2 Apply(in Vector2 availableSpace)
     {
         foreach (var slot in GetSlots()) LayoutSlot(slot, availableSpace);
 
         return availableSpace;
     }
 
-    public override Vector2 ComputeDesiredContentSize()
-    {
-        return new Vector2();
-    }
+    public override Vector2 ComputeDesiredContentSize() => Vector2.Zero;
+
 
     private void LayoutSlot(ISlot slot, Vector2 panelSize)
     {

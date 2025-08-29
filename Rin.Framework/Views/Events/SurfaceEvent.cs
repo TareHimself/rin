@@ -2,7 +2,7 @@
 
 namespace Rin.Framework.Views.Events;
 
-public class SurfaceEvent(Surface surface) : ISurfaceEvent
+public class SurfaceEvent(ISurface surface) : ISurfaceEvent
 {
-    public Surface Surface { get; } = surface;
+    public ISurface Surface { get; } = surface;
 }

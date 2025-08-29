@@ -16,7 +16,7 @@ public abstract class ContentView : View
     /// <param name="commands"></param>
     public abstract void CollectContent(in Matrix4x4 transform, CommandList commands);
 
-    public override void Collect(in Matrix4x4 transform, in Rect clip, CommandList commands)
+    public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
         if (!IsVisible) return;
 

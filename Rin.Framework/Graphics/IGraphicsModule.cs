@@ -38,19 +38,14 @@ public interface IGraphicsModule : IModule, IUpdatable
     public IDeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true);
 
     public IDeviceBuffer NewUniformBuffer(ulong size, bool sequentialWrite = true);
-
-    // public IDeviceBuffer NewUniformBuffer<T>(bool sequentialWrite = true, string debugName = "uniformBuffer")
-    //     where T : unmanaged
-    // {
-    //     return NewUniformBuffer(Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
-    // }
-    public IDeviceImage CreateDeviceImage(Extent3D size, ImageFormat format, ImageUsage usage, bool mips = false,
+    
+    public IImage2D CreateDeviceImage(Extent3D size, ImageFormat format, ImageUsage usage, bool mips = false,
         string? debugName = null);
 
-    public Task<IDeviceImage> CreateDeviceImage(IHostImage image, ImageUsage usage, bool mips = false,
+    public Task<IImage2D> CreateDeviceImage(IHostImage image, ImageUsage usage, bool mips = false,
         ImageFilter mipMapFilter = ImageFilter.Linear);
 
-    public Task<IDeviceImage> CreateDeviceImage(Buffer<byte> content, Extent3D size, ImageFormat format,
+    public Task<IImage2D> CreateDeviceImage(Buffer<byte> content, Extent3D size, ImageFormat format,
         ImageUsage usage,
         bool mips = false, ImageFilter mipsGenerateFilter = ImageFilter.Linear);
 

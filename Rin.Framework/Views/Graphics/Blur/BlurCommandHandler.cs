@@ -26,7 +26,7 @@ internal class BlurInitCommandHandler : ICommandHandler
         {
 
             var blurArea = command.BoundingBoxP2 - command.BoundingBoxP1;
-            var reductionFactor = _scaleFactor / command.Radius.X;
+            var reductionFactor = float.Min(1,_scaleFactor / command.Radius.X);
             var newSize = blurArea * reductionFactor;
             newSize = newSize.Clamp(blurArea * 0.05f, new Vector2(surfaceContext.Extent.Width, surfaceContext.Extent.Height));
             
@@ -52,13 +52,16 @@ internal class BlurInitCommandHandler : ICommandHandler
         var srcImage = graph.GetImageOrException(surfaceContext.MainImageId);
         foreach (var command in _commands)
         {
-            var offset = new Offset2D(
+            var srcOffset = new Offset2D(
                 (int)command.BoundingBoxP1.X,
                 (int)command.BoundingBoxP1.Y);
+            var srcSize = command.BoundingBoxP2 - command.BoundingBoxP1;
             
             var destImage = graph.GetImageOrException(command.FirstPassImageId);
             ctx.CopyToImage(srcImage,
-                offset, destImage, new Offset2D());
+                srcOffset,new Extent2D(
+                    (int)srcSize.X,
+                    (int)srcSize.Y), destImage, new Offset2D(),destImage.Extent);
         }
     }
 }
@@ -115,7 +118,7 @@ internal class BlurFirstPassCommandHandler : ICommandHandler
             var srcImage = graph.GetImageOrException(command.InitCommand.FirstPassImageId);
             var dstImage = graph.GetImageOrException(command.InitCommand.SecondPassImageId);
             var buffer = graph.GetBufferOrException(bufferId);
-            ctx.BeginRendering(dstImage.Extent, [dstImage]);
+            ctx.BeginRendering(dstImage.Extent, [dstImage],clearColor: Vector4.Zero);
             if (_shader.Bind(ctx) is { } bindContext)
             {
                 buffer.Write(new BlurData

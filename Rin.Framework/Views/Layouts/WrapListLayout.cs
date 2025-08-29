@@ -3,16 +3,16 @@ using Rin.Framework.Views.Composite;
 
 namespace Rin.Framework.Views.Layouts;
 
-public class WrapListLayout(Axis axis, CompositeView container) : ListLayout(axis, container)
+public class WrapListLayout(Axis axis, ICompositeView container) : ListLayout(axis, container)
 {
-    public override CompositeView Container { get; } = container;
+    public override ICompositeView Container { get; } = container;
 
     public override void OnSlotUpdated(ISlot slot)
     {
         if (Container.Surface != null) Apply(Container.GetContentSize());
     }
 
-    public override Vector2 Apply(Vector2 availableSpace)
+    public override Vector2 Apply(in Vector2 availableSpace)
     {
         var axis = GetAxis();
         var availableMain = axis switch

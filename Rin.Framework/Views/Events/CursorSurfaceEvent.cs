@@ -2,6 +2,6 @@
 
 namespace Rin.Framework.Views.Events;
 
-public class CursorSurfaceEvent(Surface surface) : SurfaceEvent(surface)
+public class CursorSurfaceEvent(ISurface surface) : SurfaceEvent(surface)
 {
 }

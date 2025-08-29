@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Rin.Framework;
 using Rin.Framework.Audio;
+using Rin.Framework.Graphics;
 using Rin.Framework.Math;
 using Rin.Framework.Views;
 using Rin.Framework.Views.Animation;
@@ -10,7 +11,6 @@ using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Layouts;
 using YoutubeExplode.Common;
-using Rect = Rin.Framework.Graphics.Rect;
 
 
 namespace rin.Examples.AudioPlayer.Views;
@@ -200,7 +200,7 @@ public class TrackPlayer : Overlay
             $"{((int)Math.Floor(secs / 60)).ToString().PadLeft(2, '0')}:{((int)(secs % 60)).ToString().PadLeft(2, '0')}";
     }
 
-    public override void Collect(in Matrix4x4 transform, in Rect clip, CommandList commands)
+    public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
         _currentTimeText.Content = FormatTime(_stream.Position);
         base.Collect(transform, clip, commands);

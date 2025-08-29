@@ -3,11 +3,11 @@ using Rin.Framework.Views.Composite;
 
 namespace Rin.Framework.Views.Layouts;
 
-public class RootLayout(CompositeView container) : InfiniteChildrenLayout
+public class RootLayout(ICompositeView container) : InfiniteChildrenLayout
 {
-    public override CompositeView Container { get; } = container;
+    public override ICompositeView Container { get; } = container;
 
-    public override ISlot MakeSlot(View view)
+    public override ISlot MakeSlot(IView view)
     {
         return new Slot(this)
         {
@@ -24,7 +24,7 @@ public class RootLayout(CompositeView container) : InfiniteChildrenLayout
         }
     }
 
-    public override Vector2 Apply(Vector2 availableSpace)
+    public override Vector2 Apply(in Vector2 availableSpace)
     {
         foreach (var slot in GetSlots())
         {
@@ -37,8 +37,5 @@ public class RootLayout(CompositeView container) : InfiniteChildrenLayout
         return availableSpace;
     }
 
-    public override Vector2 ComputeDesiredContentSize()
-    {
-        return new Vector2();
-    }
+    public override Vector2 ComputeDesiredContentSize() => Vector2.Zero;
 }

@@ -2,16 +2,15 @@
 using JetBrains.Annotations;
 using Rin.Framework.Math;
 using Rin.Framework.Animation;
+using Rin.Framework.Graphics;
 using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
-using Graphics_Rect = Rin.Framework.Graphics.Rect;
-using Rect = Rin.Framework.Graphics.Rect;
 
 namespace Rin.Framework.Views;
 
-public abstract class View : IDisposable, IAnimatable, IUpdatable
+public abstract class View : IView
 {
     private float _angle;
     private Vector2? _cachedDesiredSize;
@@ -156,12 +155,12 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     /// <summary>
     ///     The surface this view is currently on
     /// </summary>
-    public Surface? Surface { get; private set; }
+    public ISurface? Surface { get; private set; }
 
     /// <summary>
     ///     The parent of this view
     /// </summary>
-    public CompositeView? Parent { get; private set; }
+    public ICompositeView? Parent { get; private set; }
 
 
     /// <summary>
@@ -237,39 +236,40 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
             parentTransform = parentTransform.ChildOf(parent.ComputeChildOffsets(this));
             parent = parent.Parent;
         }
+
         return GetLocalTransformWithPadding().ChildOf(parentTransform);
     }
 
-    public void SetParent(CompositeView? view)
+    public void SetParent(ICompositeView? view)
     {
         Parent = view;
         SetSurface(Parent?.Surface);
     }
 
-    public virtual void SetSurface(Surface? surface)
+    public virtual void SetSurface(ISurface? surface)
     {
         if (surface != Surface && Surface != null)
             NotifyRemovedFromSurface(Surface);
         else if (surface != null) NotifyAddedToSurface(surface);
     }
 
-    public virtual void NotifyAddedToSurface(Surface surface)
+    public virtual void NotifyAddedToSurface(ISurface surface)
     {
         Surface = surface;
         OnAddedToSurface(surface);
     }
 
-    public virtual void NotifyRemovedFromSurface(Surface surface)
+    public virtual void NotifyRemovedFromSurface(ISurface surface)
     {
         if (Surface == surface) Surface = null;
         OnRemovedFromSurface(surface);
     }
 
-    protected virtual void OnAddedToSurface(Surface surface)
+    protected virtual void OnAddedToSurface(ISurface surface)
     {
     }
 
-    protected virtual void OnRemovedFromSurface(Surface surface)
+    protected virtual void OnRemovedFromSurface(ISurface surface)
     {
     }
 
@@ -400,9 +400,9 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
         return GetDesiredSize() - new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
 
-    protected abstract Vector2 ComputeDesiredContentSize();
+    public virtual Vector2 ComputeDesiredContentSize() => Vector2.Zero;
 
-    private Vector2 ComputeDesiredSize()
+    public Vector2 ComputeDesiredSize()
     {
         return ComputeDesiredContentSize() + new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
     }
@@ -413,7 +413,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     /// <param name="transform"></param>
     /// <param name="clip"></param>
     /// <param name="commands"></param>
-    public abstract void Collect(in Matrix4x4 transform, in Graphics_Rect clip, CommandList commands);
+    public abstract void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands);
 
 
     public virtual bool TryUpdateDesiredSize()
@@ -466,7 +466,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
     }
 
     // ReSharper disable once InconsistentNaming
-    public Graphics_Rect ComputeAABB(in Matrix4x4 transform)
+    public Rect2D ComputeAABB(in Matrix4x4 transform)
     {
         var tl = new Vector2(0.0f);
         var br = tl + Size;
@@ -499,7 +499,7 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
             )
         );
 
-        return new Graphics_Rect
+        return new Rect2D
         {
             Offset = p1AABB,
             Size = p2AABB - p1AABB
@@ -508,6 +508,6 @@ public abstract class View : IDisposable, IAnimatable, IUpdatable
 
     public bool PointWithin(in Matrix4x4 transform, in Vector2 point, bool useInverse = false)
     {
-        return Graphics_Rect.PointWithin(Size, transform, point, useInverse);
+        return Rect2D.PointWithin(Size, transform, point, useInverse);
     }
 }

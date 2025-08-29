@@ -9,23 +9,19 @@ using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics.CommandHandlers;
 using Rin.Framework.Views.Graphics.Commands;
 using Rin.Framework.Views.Graphics.Passes;
-using Graphics_Rect = Rin.Framework.Graphics.Rect;
-using Rect = Rin.Framework.Graphics.Rect;
 
 namespace Rin.Framework.Views.Graphics;
 
 /// <summary>
-///     Base class for a surface that can display views
+/// Base class for a surface that can display views
 /// </summary>
-public abstract class Surface : IDisposable, IUpdatable
+public abstract class Surface : ISurface
 {
-    public static readonly string MainPassId = Guid.NewGuid().ToString();
-    private readonly List<View> _lastHovered = [];
+    private readonly List<IView> _lastHovered = [];
     private readonly Root _rootView = new();
     private readonly SGraphicsModule _sGraphicsModule;
     private bool _isCursorIn;
     private CursorDownSurfaceEvent? _lastCursorDownEvent;
-    public FrameStats Stats;
 
     protected Surface()
     {
@@ -33,7 +29,7 @@ public abstract class Surface : IDisposable, IUpdatable
         _rootView.NotifyAddedToSurface(this);
     }
 
-    public View? FocusedView { get; private set; }
+    public IView? FocusedView { get; private set; }
 
     public virtual void Dispose()
     {
@@ -69,7 +65,7 @@ public abstract class Surface : IDisposable, IUpdatable
         FocusedView = null;
     }
 
-    public virtual bool RequestFocus(View requester)
+    public virtual bool RequestFocus(IView requester)
     {
         if (FocusedView == requester) return true;
         if (!requester.IsFocusable || !requester.IsHitTestable) return false;
@@ -132,12 +128,10 @@ public abstract class Surface : IDisposable, IUpdatable
             currentHandlers.Add(currentCommands.First().CreateHandler(currentCommands.ToArray()));
             passes.Add(new ViewsDrawPass(context,currentCommands.First().CreateConfig(context), currentHandlers.ToArray()));
         }
-
-        Stats.BatchedDrawCommandCount++;
     }
 
     [PublicAPI]
-    protected SurfaceContext? BuildPasses(IGraphBuilder builder)
+    public SurfaceContext? BuildPasses(IGraphBuilder builder)
     {
         var size = GetSize();
         
@@ -145,7 +139,7 @@ public abstract class Surface : IDisposable, IUpdatable
         {
             SurfaceSize = size
         };
-        _rootView.Collect(Matrix4x4.Identity, new Graphics_Rect
+        _rootView.Collect(Matrix4x4.Identity, new Rect2D
         {
             Size = size
         }, drawList);
@@ -153,9 +147,7 @@ public abstract class Surface : IDisposable, IUpdatable
         var rawCommands = drawList.Commands;
 
         if (rawCommands.Count == 0) return null;
-
-        Stats.InitialCommandCount = rawCommands.Count;
-
+        
         var clips = drawList.Clips;
 
         var context = new SurfaceContext(new Extent2D
@@ -181,7 +173,6 @@ public abstract class Surface : IDisposable, IUpdatable
                     currentMask = 0x02;
                     shifted = 1;
                     passes.Add(new StencilClearPass(context));
-                    Stats.StencilClearCount++;
                 }
 
 
@@ -200,8 +191,6 @@ public abstract class Surface : IDisposable, IUpdatable
                     passes.Add(new StencilWritePass(context, currentMask,
                         uniqueClipStacks[clipId]
                             .Select(c => new StencilClip(clips[(int)c].Transform, clips[(int)c].Size)).ToArray()));
-                    Stats.StencilWriteCount++;
-                    //finalDrawCommands.AddRange(uniqueClipStacks[rawCommand.ClipId].Select(clipId => clips[(int)clipId]).Select(clip => new FinalDrawCommand() { Type = CommandType.ClipDraw, ClipInfo = clip, Mask = currentMask }));
                     computedClipMasks.Add(clipId, currentMask);
                     command.StencilMask = currentMask;
                     pendingCommands.Add(command);
@@ -222,12 +211,12 @@ public abstract class Surface : IDisposable, IUpdatable
         // return result;
     }
 
-    protected virtual void ReceiveCursorEnter(CursorMoveSurfaceEvent e)
+    public virtual void ReceiveCursorEnter(CursorMoveSurfaceEvent e)
     {
         _isCursorIn = true;
     }
 
-    protected virtual void ReceiveCursorLeave()
+    public virtual void ReceiveCursorLeave()
     {
         _isCursorIn = false;
         foreach (var view in _lastHovered) view.NotifyCursorLeave();
@@ -235,12 +224,12 @@ public abstract class Surface : IDisposable, IUpdatable
         _lastHovered.Clear();
     }
 
-    protected virtual void ReceiveResize(ResizeSurfaceEvent e)
+    public virtual void ReceiveResize(ResizeSurfaceEvent e)
     {
-        _rootView.ComputeSize(new Vector2(e.Size.Width, e.Size.Height));
+        _rootView.ComputeSize(e.Size);
     }
 
-    protected virtual void ReceiveCursorDown(CursorDownSurfaceEvent e)
+    public virtual void ReceiveCursorDown(CursorDownSurfaceEvent e)
     {
         _rootView.HandleEvent(e, Matrix4x4.Identity);
         if (e.Target is not null)
@@ -254,7 +243,7 @@ public abstract class Surface : IDisposable, IUpdatable
         }
     }
 
-    protected virtual void ReceiveCursorUp(CursorUpSurfaceEvent e)
+    public virtual void ReceiveCursorUp(CursorUpSurfaceEvent e)
     {
         OnCursorUp?.Invoke(e);
         if (_lastCursorDownEvent is { } lastEvent)
@@ -264,7 +253,7 @@ public abstract class Surface : IDisposable, IUpdatable
         }
     }
 
-    protected virtual void ReceiveCursorMove(CursorMoveSurfaceEvent e)
+    public virtual void ReceiveCursorMove(CursorMoveSurfaceEvent e)
     {
         _rootView.HandleEvent(e, Matrix4x4.Identity);
         _lastHovered.AddRange(e.Over);
@@ -296,17 +285,17 @@ public abstract class Surface : IDisposable, IUpdatable
         }
     }
 
-    protected virtual void ReceiveScroll(ScrollSurfaceEvent e)
+    public virtual void ReceiveScroll(ScrollSurfaceEvent e)
     {
         _rootView.HandleEvent(e, Matrix4x4.Identity);
     }
 
-    protected virtual void ReceiveCharacter(CharacterSurfaceEvent e)
+    public virtual void ReceiveCharacter(CharacterSurfaceEvent e)
     {
         FocusedView?.OnCharacter(e);
     }
 
-    protected virtual void ReceiveKeyboard(KeyboardSurfaceEvent e)
+    public virtual void ReceiveKeyboard(KeyboardSurfaceEvent e)
     {
         FocusedView?.OnKeyboard(e);
     }

@@ -11,7 +11,7 @@ public class ExternalImageResourceDescriptor : IResourceDescriptor
         Image = image;
     }
 
-    public ExternalImageResourceDescriptor(IDeviceImage image, Action? onDispose = null)
+    public ExternalImageResourceDescriptor(IImage2D image, Action? onDispose = null)
     {
         Image = new ExternalImage(image, onDispose);
     }

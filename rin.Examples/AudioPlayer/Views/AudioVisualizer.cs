@@ -11,7 +11,7 @@ public class AudioVisualizer : ContentView
         return availableSpace;
     }
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         throw new NotImplementedException();
     }

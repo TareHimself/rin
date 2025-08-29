@@ -2,7 +2,7 @@
 
 public interface ISlot
 {
-    public View Child { get; }
+    public IView Child { get; }
     public void OnAddedToLayout(ILayout layout);
     public void OnRemovedFromLayout(ILayout layout);
 }

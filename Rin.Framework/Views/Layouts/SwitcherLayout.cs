@@ -4,10 +4,10 @@ using Rin.Framework.Views.Enums;
 
 namespace Rin.Framework.Views.Layouts;
 
-public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
+public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
 {
     private int _selected;
-    public override CompositeView Container { get; } = container;
+    public override ICompositeView Container { get; } = container;
 
     public int SelectedIndex
     {
@@ -31,7 +31,7 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
         }
     }
 
-    public override ISlot MakeSlot(View view)
+    public override ISlot MakeSlot(IView view)
     {
         return new Slot(this)
         {
@@ -49,7 +49,7 @@ public class SwitcherLayout(CompositeView container) : InfiniteChildrenLayout
             }
     }
 
-    public override Vector2 Apply(Vector2 availableSpace)
+    public override Vector2 Apply(in Vector2 availableSpace)
     {
         if (SelectedSlot is { } slot)
         {

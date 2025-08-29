@@ -1,6 +1,6 @@
 namespace Rin.Framework.Video;
 
-public class FileSource(string fileName) : IVideoSource
+public class FileVideoSource(string fileName) : IVideoSource
 {
     private readonly FileStream _fileStream = new(fileName, FileMode.Open, FileAccess.Read);
 

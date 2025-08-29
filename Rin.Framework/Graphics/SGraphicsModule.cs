@@ -501,7 +501,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         };
     }
 
-    public static VkImageViewCreateInfo MakeImageViewCreateInfo(DeviceImage image, VkImageAspectFlags aspect)
+    public static VkImageViewCreateInfo MakeImageViewCreateInfo(VulkanDeviceImage image, VkImageAspectFlags aspect)
     {
         return MakeImageViewCreateInfo(image.Format, image.NativeImage, aspect);
     }
@@ -618,15 +618,16 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         return NewUniformBuffer(Utils.ByteSizeOf<T>(), sequentialWrite, debugName);
     }
 
-    public IDeviceImage CreateDeviceImage(Extent3D size, ImageFormat format, ImageUsage usage, bool mips = false,
+    public IImage2D CreateDeviceImage(Extent3D size, ImageFormat format, ImageUsage usage, bool mips = false,
         string debugName = "Image")
     {
+        
         var imageCreateInfo = MakeImageCreateInfo(format, size, usage);
 
         if (mips)
             imageCreateInfo.mipLevels = DeriveMipLevels(size);
 
-        var newImage = GetAllocator().NewDeviceImage(imageCreateInfo, debugName);
+        var newImage = (VulkanDeviceImage)GetAllocator().NewDeviceImage(imageCreateInfo, debugName);
 
         var aspectFlags = format switch
         {
@@ -640,7 +641,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
 
         viewCreateInfo.subresourceRange.levelCount = imageCreateInfo.mipLevels;
 
-        ((DeviceImage)newImage).NativeView = CreateImageView(viewCreateInfo);
+        newImage.NativeView = CreateImageView(viewCreateInfo);
 
         return newImage;
     }
@@ -759,7 +760,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         }
     }
 
-    private static void GenerateMipMaps(IExecutionContext ctx, IDeviceImage image, Extent2D size, ImageFilter filter,
+    private static void GenerateMipMaps(IExecutionContext ctx, IVulkanImage2D image, Extent2D size, ImageFilter filter,
         ImageLayout srcLayout, ImageLayout dstLayout)
     {
         Debug.Assert(ctx is VulkanExecutionContext);
@@ -845,7 +846,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     }
 
 
-    public async Task<IDeviceImage> CreateDeviceImage(IHostImage image, ImageUsage usage, bool mips = false,
+    public async Task<IImage2D> CreateDeviceImage(IHostImage image, ImageUsage usage, bool mips = false,
         ImageFilter mipMapFilter = ImageFilter.Linear, string debugName = "Image")
     {
         Debug.Assert(_allocator != null, "Allocator cannot be null");
@@ -872,7 +873,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
         await GraphicsSubmit(cmd =>
         {
             if (mips)
-                GenerateMipMaps(cmd, newImage, extent, mipMapFilter, ImageLayout.TransferDst,
+                GenerateMipMaps(cmd, (IVulkanImage2D)newImage, extent, mipMapFilter, ImageLayout.TransferDst,
                     ImageLayout.ShaderReadOnly);
             else
                 cmd.Barrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
@@ -895,7 +896,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
     /// <param name="debugName"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<IDeviceImage> CreateDeviceImage(Buffer<byte> content, Extent3D size, ImageFormat format,
+    public async Task<IImage2D> CreateDeviceImage(Buffer<byte> content, Extent3D size, ImageFormat format,
         ImageUsage usage,
         bool mips = false, ImageFilter mipsGenerateFilter = ImageFilter.Linear,
         string debugName = "Image")
@@ -927,7 +928,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
             await GraphicsSubmit(cmd =>
             {
                 if (mips)
-                    GenerateMipMaps(cmd, newImage, size, mipsGenerateFilter, ImageLayout.TransferDst,
+                    GenerateMipMaps(cmd, (IVulkanImage2D)newImage, size, mipsGenerateFilter, ImageLayout.TransferDst,
                         ImageLayout.ShaderReadOnly);
                 else
                     cmd.Barrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
@@ -942,7 +943,7 @@ public sealed partial class SGraphicsModule : IModule, IUpdatable, ISingletonGet
                     .CopyToImage(uploadBuffer.GetView(), newImage);
 
                 if (mips)
-                    GenerateMipMaps(cmd, newImage, size, mipsGenerateFilter, ImageLayout.TransferDst,
+                    GenerateMipMaps(cmd, (IVulkanImage2D)newImage, size, mipsGenerateFilter, ImageLayout.TransferDst,
                         ImageLayout.ShaderReadOnly);
                 else
                     cmd.Barrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);

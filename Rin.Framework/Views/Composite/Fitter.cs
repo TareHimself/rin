@@ -38,7 +38,7 @@ public class Fitter : SingleSlotCompositeView
     }
 
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         if (GetSlot() is { } slot) return slot.Child.GetDesiredSize();
 
@@ -107,7 +107,7 @@ public class Fitter : SingleSlotCompositeView
             float.IsFinite(availableSpace.Y) ? availableSpace.Y : desired.Y));
     }
 
-    public override void OnChildInvalidated(View child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
     {
         FitContent(GetContentSize());
     }

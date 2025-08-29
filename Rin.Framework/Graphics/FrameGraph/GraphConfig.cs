@@ -31,7 +31,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint SwapchainImageId { get; set; }
 
-    public uint AddExternalImage(IDeviceImage image, Action? onDispose = null)
+    public uint AddExternalImage(IImage2D image, Action? onDispose = null)
     {
         var resourceId = builder.MakeId();
         Resources.Add(resourceId, new ExternalImageResourceDescriptor(new ExternalImage(image, onDispose)));

@@ -156,17 +156,23 @@ public class VideoPlayer : ContentView
 
     public static VideoPlayer FromFile(string fileName)
     {
+        return FromSource(new FileVideoSource(fileName));
+    }
+    
+    public static VideoPlayer FromSource(IVideoSource source)
+    {
         var player = new WebmVideoPlayer();
-        player.SetSource(new FileSource(fileName));
+        player.SetSource(source);
         return new VideoPlayer(player);
     }
+    
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         return availableSpace.FiniteOr(Vector2.Zero);
     }
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         if (_player.HasVideo)
         {

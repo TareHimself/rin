@@ -83,6 +83,10 @@
         <ProjectReference Include="..\Provide\Provide.csproj"/>
         <ProjectReference Include="..\Rin.Sources\Rin.Sources.csproj"/>
     </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="Graphics\Vulkan\" />
+    </ItemGroup>
 
     <PropertyGroup>
         <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*;assets\**\*.*</DefaultItemExcludes>

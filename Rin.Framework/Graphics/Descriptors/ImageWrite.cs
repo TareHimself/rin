@@ -4,12 +4,12 @@ namespace Rin.Framework.Graphics.Descriptors;
 
 public struct ImageWrite
 {
-    public readonly IDeviceImage Image;
+    public readonly IImage2D Image;
     public readonly ImageLayout Layout;
     public SamplerSpec? Sampler;
     public uint Index = 0;
 
-    public ImageWrite(IDeviceImage image, ImageLayout layout, SamplerSpec? spec = null)
+    public ImageWrite(IImage2D image, ImageLayout layout, SamplerSpec? spec = null)
     {
         Image = image;
         Layout = layout;
