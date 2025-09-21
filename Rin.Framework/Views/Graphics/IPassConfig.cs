@@ -1,6 +1,6 @@
 ﻿using Rin.Framework.Views.Graphics.Commands;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 
 namespace Rin.Framework.Views.Graphics;
 

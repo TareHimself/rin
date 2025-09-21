@@ -9,6 +9,7 @@ using Rin.Engine.World.Components;
 using Rin.Engine.World.Components.Lights;
 using Rin.Engine.World.Mesh;
 using Rin.Engine.World.Mesh.Skinning;
+using Rin.Framework.Graphics.Vulkan.Meshes;
 using SharpGLTF.Schema2;
 
 namespace rin.Examples.SceneTest;
@@ -65,7 +66,7 @@ public static class Extensions
             surfaces.Add(newSurface);
         }
 
-        var (id, task) = SGraphicsModule.Get().GetMeshFactory()
+        var (id, task) = IGraphicsModule.Get().GetMeshFactory()
             .CreateMesh(vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
         await task;
         return new StaticMesh
@@ -160,7 +161,7 @@ public static class Extensions
             surfaces.Add(newSurface);
         }
 
-        var (id, task) = SGraphicsModule.Get().GetMeshFactory()
+        var (id, task) = IGraphicsModule.Get().GetMeshFactory()
             .CreateMesh(vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
         await task;
         return new SkinnedMesh

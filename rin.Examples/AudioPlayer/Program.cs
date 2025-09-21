@@ -1,3 +1,5 @@
-﻿using Rin.Framework;
+﻿using rin.Examples.AudioPlayer;
+using Rin.Framework;
 
-SApplication.Get().Run();
+using var app = new AudioPlayerApp();
+app.Run();

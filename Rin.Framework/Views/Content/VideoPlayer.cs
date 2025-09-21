@@ -4,9 +4,10 @@ using Rin.Framework.Math;
 using Rin.Framework.Views.Graphics.Blur;
 using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
+using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Shaders;
-using Rin.Framework.Graphics.Textures;
+using Rin.Framework.Graphics.Vulkan.Graph;
 using Rin.Framework.Graphics.Windows;
 using Rin.Framework.Video;
 using Rin.Framework.Views.Events;
@@ -38,13 +39,13 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass
         VideoStagingBufferIds = commands
             .Select(c => config.CreateBuffer(c.FrameData.GetByteSize(), GraphBufferUsage.HostThenTransfer)).ToArray();
         VideoImageFrameIds = commands
-            .Select(c => config.CreateImage(c.Extent, ImageFormat.RGBA8, ImageLayout.TransferDst)).ToArray();
+            .Select(c => config.CreateTexture(c.Extent, ImageFormat.RGBA8, ImageLayout.TransferDst)).ToArray();
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var stagingBuffers = VideoStagingBufferIds.Select(graph.GetBufferOrException);
-        var images = VideoImageFrameIds.Select(graph.GetImageOrException);
+        var images = VideoImageFrameIds.Select(graph.GetTexture);
 
         foreach (var (stagingBuffer, image, cmd) in stagingBuffers.Zip(images, commands))
         {
@@ -58,7 +59,7 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass
 
 internal class VideoCommandHandler : ICommandHandlerWithPreAdd
 {
-    private readonly IGraphicsShader _shader = SGraphicsModule.Get()
+    private readonly IGraphicsShader _shader = IGraphicsModule.Get()
         .MakeGraphics("Framework/Shaders/Views/video.slang");
 
     private VideoCommand[] _commands = [];
@@ -81,7 +82,7 @@ internal class VideoCommandHandler : ICommandHandlerWithPreAdd
     {
         _itemBufferId = config.CreateBuffer<VideoItem>(_resourcesPass.VideoImageFrameIds.Length,
             GraphBufferUsage.HostThenGraphics);
-        foreach (var id in _resourcesPass.VideoImageFrameIds) config.ReadImage(id, ImageLayout.ShaderReadOnly);
+        foreach (var id in _resourcesPass.VideoImageFrameIds) config.ReadTexture(id, ImageLayout.ShaderReadOnly);
     }
 
     public void Execute(IPassConfig passConfig,
@@ -89,14 +90,14 @@ internal class VideoCommandHandler : ICommandHandlerWithPreAdd
     {
         if (_shader.Bind(ctx) is { } bindContext)
         {
-            var frameImages = _resourcesPass.VideoImageFrameIds.Select(graph.GetImageOrException).ToArray();
+            var frameImages = _resourcesPass.VideoImageFrameIds.Select(graph.GetTexture).ToArray();
             var buffer = graph.GetBufferOrException(_itemBufferId);
 
             buffer.Write(_commands.Select((c, idx) => new VideoItem
             {
                 Transform = c.Transform,
                 Size = c.Size,
-                FrameHandle = frameImages[idx].BindlessHandle
+                FrameHandle = frameImages[idx].Handle
             }));
             var compareMask = uint.MaxValue;
 
@@ -182,10 +183,7 @@ public class VideoPlayer : ContentView
 
         return Vector2.Zero;
     }
-
-    private float blurRadius = 0.0f;
-
-
+    
     // protected override void OnCursorEnter(CursorMoveSurfaceEvent e)
     // {
     //     base.OnCursorEnter(e);
@@ -218,7 +216,19 @@ public class VideoPlayer : ContentView
         commands.AddRect(barTransform,
             new Vector2(contentSize.X * (float)(_player.DecodedPosition / _player.Duration), barSize),
             Color.White with { A = 0.5f });
-        
+
+        if (_player.HasVideo && IsHovered)
+        {
+            var size = new Vector2(200);
+            commands.AddBlur(Matrix4x4.Identity.Translate(_cursorPosition - (size / 2)), size,radius: 15);
+        }
+    }
+    
+    private Vector2 _cursorPosition = Vector2.Zero;
+    protected override bool OnCursorMove(CursorMoveSurfaceEvent e)
+    {
+        _cursorPosition = e.Position;
+        return base.OnCursorMove(e);
     }
 
     public override void Update(float deltaTime)

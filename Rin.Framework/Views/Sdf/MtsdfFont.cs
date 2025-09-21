@@ -1,5 +1,5 @@
 ﻿using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Textures;
+using Rin.Framework.Graphics.Images;
 using SixLabors.Fonts;
 
 namespace Rin.Framework.Views.Sdf;
@@ -25,7 +25,7 @@ public class MtsdfFont : Reservable
 
     protected override void OnDispose(bool isManual)
     {
-        SGraphicsModule.Get().GetImageFactory().FreeHandles(_atlases);
+        IGraphicsModule.Get().FreeImageHandles(_atlases);
     }
 
     public ImageHandle GetAtlasTextureId(int atlasId)

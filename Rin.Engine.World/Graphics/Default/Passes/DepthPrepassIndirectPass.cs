@@ -1,6 +1,7 @@
 ﻿using JetBrains.Annotations;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
+using Rin.Framework.Graphics.Vulkan.Graph;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
@@ -26,7 +27,7 @@ public class DepthPrepassIndirectPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        DepthImageId = config.WriteImage(_renderContext.DepthImageId, ImageLayout.DepthAttachment);
+        DepthImageId = config.WriteTexture(_renderContext.DepthImageId, ImageLayout.DepthAttachment);
         DepthSceneBufferId = config.CreateBuffer<DepthSceneInfo>(GraphBufferUsage.HostThenGraphics);
 
         var indirectGroups = _renderContext.DepthIndirectGroups;
@@ -57,7 +58,7 @@ public class DepthPrepassIndirectPass : IPass
             _renderContext.DepthIndirectCommandBuffers.Select(graph.GetBufferOrException).ToArray();
         var indirectCommandCountBuffers = _renderContext.DepthIndirectCommandCountBuffers
             .Select(graph.GetBufferOrException).ToArray();
-        DepthImage = graph.GetImage(DepthImageId);
+        DepthImage = graph.GetTexture(DepthImageId);
         var extent = _renderContext.Extent;
         ctx
             .BeginRendering(extent, [], DepthImage)

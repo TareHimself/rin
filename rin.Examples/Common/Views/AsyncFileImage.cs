@@ -29,9 +29,8 @@ public class AsyncFileImage : CoverImage
     private async Task LoadFile(string filePath)
     {
         using var image = HostImage.Create(File.OpenRead(filePath)); //await Image.LoadAsync<Rgba32>(filePath);
-        var (handle,task) = image.CreateTexture();
-        await task;
-        await SApplication.Get().GetMainDispatcher().Enqueue(() => ImageId = handle);
+        await image.CreateTexture(out var handle);
+        await IApplication.Get().MainDispatcher.Enqueue(() => ImageId = handle);
     }
 
     // public override void Draw(ViewFrame frame, DrawInfo info)
@@ -55,7 +54,7 @@ public class AsyncFileImage : CoverImage
     {
         if (!ImageId.IsValid())
         {
-            var opacity = (float)Math.Abs(Math.Sin(SApplication.Get().GetTimeSeconds() * 4.0f)) * 0.7f;
+            var opacity = (float)Math.Abs(Math.Sin(IApplication.Get().TimeSeconds * 4.0f)) * 0.7f;
             commands.AddRect(transform, GetContentSize(), new Color(0.8f, opacity), BorderRadius);
         }
         else

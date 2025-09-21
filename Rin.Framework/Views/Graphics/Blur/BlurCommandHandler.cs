@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
+using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Shaders;
-using Rin.Framework.Graphics.Textures;
+using Rin.Framework.Graphics.Vulkan.Graph;
 using Rin.Framework.Math;
 using Rin.Framework.Views.Graphics.CommandHandlers;
 using Rin.Framework.Views.Graphics.Commands;
@@ -39,8 +40,8 @@ internal class BlurInitCommandHandler : ICommandHandler
             var min = float.Min(command.BlurRadius.X, command.BlurRadius.Y);
             command.BlurRadius = new Vector2(min);
             var extent = new Extent2D((uint)float.Ceiling(newSize.X),(uint)float.Ceiling(newSize.Y));
-            command.FirstPassImageId = config.CreateImage(extent, ImageFormat.RGBA8, ImageLayout.TransferDst);
-            command.SecondPassImageId = config.CreateImage(extent, ImageFormat.RGBA32, ImageLayout.ColorAttachment);
+            command.FirstPassImageId = config.CreateTexture(extent, ImageFormat.RGBA8, ImageLayout.TransferDst);
+            command.SecondPassImageId = config.CreateTexture(extent, ImageFormat.RGBA32, ImageLayout.ColorAttachment);
             command.LocalProjection = MathR.ViewportProjection(newSize.X, newSize.Y, 0, 1f);
         }
     }
@@ -49,7 +50,7 @@ internal class BlurInitCommandHandler : ICommandHandler
     {
         Debug.Assert(passConfig is BlurInitPassConfig);
 
-        var srcImage = graph.GetImageOrException(surfaceContext.MainImageId);
+        var srcImage = graph.GetTexture(surfaceContext.MainImageId);
         foreach (var command in _commands)
         {
             var srcOffset = new Offset2D(
@@ -57,7 +58,7 @@ internal class BlurInitCommandHandler : ICommandHandler
                 (int)command.BoundingBoxP1.Y);
             var srcSize = command.BoundingBoxP2 - command.BoundingBoxP1;
             
-            var destImage = graph.GetImageOrException(command.FirstPassImageId);
+            var destImage = graph.GetTexture(command.FirstPassImageId);
             ctx.CopyToImage(srcImage,
                 srcOffset,new Extent2D(
                     (int)srcSize.X,
@@ -88,7 +89,7 @@ internal struct Push
 
 internal class BlurFirstPassCommandHandler : ICommandHandler
 {
-    private readonly IGraphicsShader _shader = SGraphicsModule.Get()
+    private readonly IGraphicsShader _shader = IGraphicsModule.Get()
         .MakeGraphics("Framework/Shaders/Views/blur.slang");
     private BlurFirstPassCommand[] _commands = [];
     
@@ -102,8 +103,8 @@ internal class BlurFirstPassCommandHandler : ICommandHandler
     {
         foreach (var command in _commands)
         {
-            config.ReadImage(command.InitCommand.FirstPassImageId, ImageLayout.ShaderReadOnly);
-            config.WriteImage(command.InitCommand.SecondPassImageId, ImageLayout.ColorAttachment);
+            config.ReadTexture(command.InitCommand.FirstPassImageId, ImageLayout.ShaderReadOnly);
+            config.WriteTexture(command.InitCommand.SecondPassImageId, ImageLayout.ColorAttachment);
         }
         _bufferIds = Enumerable.Range(0, _commands.Length)
             .Select(_ => config.CreateBuffer<BlurData>(GraphBufferUsage.HostThenGraphics)).ToArray();
@@ -115,15 +116,15 @@ internal class BlurFirstPassCommandHandler : ICommandHandler
         
         foreach (var (command,bufferId) in _commands.Zip(_bufferIds))
         {
-            var srcImage = graph.GetImageOrException(command.InitCommand.FirstPassImageId);
-            var dstImage = graph.GetImageOrException(command.InitCommand.SecondPassImageId);
+            var srcImage = graph.GetTexture(command.InitCommand.FirstPassImageId);
+            var dstImage = graph.GetTexture(command.InitCommand.SecondPassImageId);
             var buffer = graph.GetBufferOrException(bufferId);
             ctx.BeginRendering(dstImage.Extent, [dstImage],clearColor: Vector4.Zero);
             if (_shader.Bind(ctx) is { } bindContext)
             {
                 buffer.Write(new BlurData
                 {
-                    SourceT = srcImage.BindlessHandle,
+                    SourceT = srcImage.Handle,
                     Projection = command.InitCommand.LocalProjection,
                     Size = new Vector2(srcImage.Extent.Width,srcImage.Extent.Height),
                     Strength = command.InitCommand.Strength,
@@ -146,7 +147,7 @@ internal class BlurFirstPassCommandHandler : ICommandHandler
 }
 internal class BlurSecondPassCommandHandler : ICommandHandler
 {
-        private readonly IGraphicsShader _shader = SGraphicsModule.Get()
+        private readonly IGraphicsShader _shader = IGraphicsModule.Get()
         .MakeGraphics("Framework/Shaders/Views/blur.slang");
     private BlurSecondPassCommand[] _commands = [];
     
@@ -160,7 +161,7 @@ internal class BlurSecondPassCommandHandler : ICommandHandler
     {
         foreach (var command in _commands)
         {
-            config.ReadImage(command.InitCommand.SecondPassImageId, ImageLayout.ShaderReadOnly);
+            config.ReadTexture(command.InitCommand.SecondPassImageId, ImageLayout.ShaderReadOnly);
         }
         _bufferIds = Enumerable.Range(0, _commands.Length)
             .Select(_ => config.CreateBuffer<BlurData>(GraphBufferUsage.HostThenGraphics)).ToArray();
@@ -172,13 +173,13 @@ internal class BlurSecondPassCommandHandler : ICommandHandler
         
         foreach (var (command,bufferId) in _commands.Zip(_bufferIds))
         {
-            var srcImage = graph.GetImageOrException(command.InitCommand.SecondPassImageId);
+            var srcImage = graph.GetTexture(command.InitCommand.SecondPassImageId);
             var buffer = graph.GetBufferOrException(bufferId);
             if (_shader.Bind(ctx) is { } bindContext)
             {
                 buffer.Write(new BlurData
                 {
-                    SourceT = srcImage.BindlessHandle,
+                    SourceT = srcImage.Handle,
                     Projection = surfaceContext.ProjectionMatrix,
                     Size = command.InitCommand.Size,
                     Strength = command.InitCommand.Strength,

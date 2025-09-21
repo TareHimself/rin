@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 using Rin.Framework.Views.Graphics.Blur;
 using Rin.Framework.Views.Graphics.Commands;
 using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Vector;
 
 namespace Rin.Framework.Views.Composite;
 
@@ -26,6 +27,7 @@ public class BackgroundBlur : SingleSlotCompositeView
         {
             //commands.AddBlur(transform, GetContentSize(), Strength, Radius, Tint);
             // commandList.Add(new ReadBack());
+            commands.AddPath(Matrix4x4.Identity).LineTo(new Vector2(100, 0)).Stroke();
             commands.AddBlur(transform, Size, Strength, Radius, Tint);
         }
 

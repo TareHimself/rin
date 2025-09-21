@@ -13,7 +13,7 @@ public class QuadBatch : IBatch
 
     public IBatcher GetBatcher()
     {
-        return SViewsModule.Get().GetBatcher<DefaultQuadBatcher>();
+        return IViewsModule.Get().GetBatcher<DefaultQuadBatcher>();
     }
 
     public void AddFromCommand(ICommand command)

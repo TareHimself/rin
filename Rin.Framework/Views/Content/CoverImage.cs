@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
+using Rin.Framework.Graphics.Images;
 using Rin.Framework.Views.Graphics.Quads;
-using Rin.Framework.Graphics.Textures;
 using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Graphics;
 

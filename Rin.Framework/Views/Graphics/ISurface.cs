@@ -2,7 +2,7 @@
 using JetBrains.Annotations;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Math;
 using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Events;
@@ -53,9 +53,9 @@ public interface ISurface : IDisposable, IUpdatable
 
     public void ReceiveKeyboard(KeyboardSurfaceEvent e);
 
-    public T Add<T>() where T : View, new();
+    public T Add<T>() where T : IView, new();
 
-    public T Add<T>(T view) where T : View;
+    public T Add<T>(T view) where T : IView;
 
-    public bool Remove(View view);
+    public bool Remove(IView view);
 }

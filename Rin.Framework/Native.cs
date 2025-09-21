@@ -15,9 +15,9 @@ namespace Rin.Framework;
 internal static partial class Native
 {
 #if OS_WINDOWS
-    private const string DllName = "Rin.Engine.Native";
+    private const string DllName = "Rin.Framework.Native";
 #elif OS_LINUX
-    private const string DllName = "libRin.Engine.Native";
+    private const string DllName = "libRin.Framework.Native";
 #elif OS_FREEBSD
 #elif OS_MAC
 #endif
@@ -40,9 +40,6 @@ internal static partial class Native
 
     public static partial class Slang
     {
-        // [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        // public unsafe delegate int LoadFileDelegate(byte** data);
-        //
         [LibraryImport(DllName, EntryPoint = "slangSessionBuilderNew")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         public static unsafe partial void* SessionBuilderNew(delegate*<byte*, byte**, int> loadFileDelegate);
@@ -180,14 +177,14 @@ internal static partial class Native
 
         [LibraryImport(DllName, EntryPoint = "allocatorNewBuffer")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        public static unsafe partial void AllocateBuffer(VkBuffer* buffer, void** allocation, ulong size,
+        public static unsafe partial void AllocateBuffer(VkBuffer* buffer, ref IntPtr allocation, ulong size,
             IntPtr allocator,
             int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
             int mapped, [MarshalUsing(typeof(Utf8StringMarshaller))] string debugName);
 
         [LibraryImport(DllName, EntryPoint = "allocatorNewImage")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-        public static unsafe partial void AllocateImage(VkImage* image, void** allocation,
+        public static unsafe partial void AllocateImage(ref VkImage image, ref IntPtr allocation,
             VkImageCreateInfo* createInfo, IntPtr allocator,
             [MarshalUsing(typeof(Utf8StringMarshaller))]
             string debugName);

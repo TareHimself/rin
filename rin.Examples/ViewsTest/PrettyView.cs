@@ -11,7 +11,7 @@ public class PrettyView : ContentView
 
     public PrettyView()
     {
-        _createdAt = SApplication.Get().GetTimeSeconds();
+        _createdAt = IApplication.Get().TimeSeconds;
     }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)

@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Shaders;
-using Rin.Framework.Graphics.Textures;
 using Rin.Framework.Math;
 
 namespace Rin.Engine.World.Graphics.Default;
@@ -20,17 +20,17 @@ public class DefaultMeshMaterial : IMeshMaterial
 
     [PublicAPI] public ImageHandle ColorImageId { get; set; }
 
-    [PublicAPI] public ImageHandle NormalImageId { get; set; } = ImageHandle.InvalidImage;
+    [PublicAPI] public ImageHandle NormalImageId { get; set; } = ImageHandle.InvalidTexture;
     [PublicAPI] public float Metallic { get; set; }
-    [PublicAPI] public ImageHandle MetallicImageId { get; set; } = ImageHandle.InvalidImage;
+    [PublicAPI] public ImageHandle MetallicImageId { get; set; } = ImageHandle.InvalidTexture;
 
     [PublicAPI] public float Specular { get; set; }
 
-    [PublicAPI] public ImageHandle SpecularImageId { get; set; } = ImageHandle.InvalidImage;
+    [PublicAPI] public ImageHandle SpecularImageId { get; set; } = ImageHandle.InvalidTexture;
     [PublicAPI] public float Roughness { get; set; }
-    [PublicAPI] public ImageHandle RoughnessImageId { get; set; } = ImageHandle.InvalidImage;
+    [PublicAPI] public ImageHandle RoughnessImageId { get; set; } = ImageHandle.InvalidTexture;
     [PublicAPI] public float Emissive { get; set; }
-    [PublicAPI] public ImageHandle EmissiveImageId { get; set; } = ImageHandle.InvalidImage;
+    [PublicAPI] public ImageHandle EmissiveImageId { get; set; } = ImageHandle.InvalidTexture;
 
     public static DefaultMeshMaterial DefaultMesh => _defaultInstance ??= new DefaultMeshMaterial();
 

@@ -1,13 +1,12 @@
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Framework.Graphics;
 
-public interface IDeviceBuffer :  IGraphResource
+public interface IDeviceBuffer : IDisposable
 {
     public ulong Offset { get; }
     public ulong Size { get; }
-    public VkBuffer NativeBuffer { get; }
 
     public DeviceBufferView GetView()
     {

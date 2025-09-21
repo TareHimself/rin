@@ -3,5 +3,5 @@
 using misc.StrokeExpansion;
 using Rin.Framework;
 
-SApplication.Get().Sources.AddSource(AssemblyContentResource.New<MainModule>("StrokeExpansion",string.Empty));
-SApplication.Get().Run();
+SFramework.Get().Sources.AddSource(AssemblyContentResource.New<MainModule>("StrokeExpansion",string.Empty));
+SFramework.Get().Run();

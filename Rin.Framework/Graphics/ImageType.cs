@@ -5,15 +5,15 @@ public enum ImageType : sbyte
     /// <summary>
     ///     2D Texture
     /// </summary>
-    Image,
+    Texture,
 
     /// <summary>
     ///     Cube map
     /// </summary>
-    Cube,
+    Cubemap,
 
     /// <summary>
     ///     3D Texture
     /// </summary>
-    Volume
+    TextureArray
 }

@@ -1,4 +1,4 @@
-﻿using Rin.Framework.Graphics.FrameGraph;
+﻿using Rin.Framework.Graphics.Graph;
 
 namespace Rin.Framework.Graphics;
 
@@ -12,7 +12,7 @@ public class PrepareForPresentPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteImage(config.SwapchainImageId, ImageLayout.PresentSrc);
+        config.WriteTexture(config.SwapchainImageId, ImageLayout.PresentSrc);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)

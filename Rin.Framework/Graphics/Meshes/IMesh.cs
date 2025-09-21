@@ -1,4 +1,6 @@
-﻿namespace Rin.Framework.Graphics.Meshes;
+﻿using Rin.Framework.Graphics.Vulkan.Meshes;
+
+namespace Rin.Framework.Graphics.Meshes;
 
 public interface IMesh
 {

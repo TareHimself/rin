@@ -2,8 +2,9 @@
 using Rin.Framework.Extensions;
 using Rin.Framework.Math;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Textures;
+using Rin.Framework.Graphics.Images;
 using Rin.Framework.Views.Font;
+using Rin.Framework.Views.Graphics.Vector;
 
 namespace Rin.Framework.Views.Graphics.Quads;
 
@@ -30,6 +31,7 @@ public static class QuadExtensions
         float thickness = 2.0f,
         in Color? color = null)
     {
+        
         return commandList.AddQuads(Quad.Line(begin, end, thickness, color));
     }
 
@@ -86,7 +88,6 @@ public static class QuadExtensions
         float fontSize = 24f, in Color? color = null)
     {
         var fontManager = font.FontManager;
-        var textureFactory = SGraphicsModule.Get().GetImageFactory();
         foreach (var bound in font.MeasureText(text, fontSize))
         {
             var range = fontManager.GetPixelRange();
@@ -95,7 +96,7 @@ public static class QuadExtensions
             if (glyph.State == LiveGlyphState.Invalid && bound.Character.IsPrintable())
                 fontManager.Prepare(font, [bound.Character]);
 
-            if (glyph.State != LiveGlyphState.Ready || !textureFactory.IsTextureReady(glyph.AtlasHandle)) continue;
+            if (glyph.State != LiveGlyphState.Ready) continue;
 
             var charOffset = bound.Position;
 
@@ -122,7 +123,7 @@ public static class QuadExtensions
         in Matrix4x4 transform, string fontName, ReadOnlySpan<char> text,
         float fontSize = 24f, in Color? color = null)
     {
-        if (SViewsModule.Get().GetFontManager().GetFont(fontName) is { } font)
+        if (IViewsModule.Get().FontManager.GetFont(fontName) is { } font)
             commandList.AddText(in transform, font, text, fontSize, in color);
 
         return commandList;

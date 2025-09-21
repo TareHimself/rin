@@ -2,8 +2,9 @@
 using System.Runtime.InteropServices;
 using Rin.Framework;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Shaders;
+using Rin.Framework.Graphics.Vulkan.Graph;
 using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Graphics.CommandHandlers;
 using Rin.Framework.Views.Graphics.Commands;
@@ -14,8 +15,8 @@ public class CustomShaderCommandHandler : ICommandHandler
 {
     private readonly IGraphicsShader
         _prettyShader =
-            SGraphicsModule.Get()
-                .MakeGraphics($"fs/{Path.Join(SApplication.Directory,"assets", "test", "pretty.slang").Replace('\\', '/')}");
+            IGraphicsModule.Get()
+                .MakeGraphics($"fs/{Path.Join(SFramework.Directory,"assets", "test", "pretty.slang").Replace('\\', '/')}");
     
     private CustomShaderCommand[] _commands = [];
     private uint BufferId { get; set; }
@@ -46,7 +47,7 @@ public class CustomShaderCommandHandler : ICommandHandler
                     ScreenSize = screenSize,
                     Transform = customShaderCommand.Transform,
                     Size = customShaderCommand.Size,
-                    Time = SApplication.Get().GetTimeSeconds(),
+                    Time = IApplication.Get().TimeSeconds,
                     Center = customShaderCommand.Hovered ? customShaderCommand.CursorPosition : screenSize / 2.0f
                 };
                 view.Write(data);

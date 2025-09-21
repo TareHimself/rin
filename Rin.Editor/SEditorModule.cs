@@ -5,12 +5,12 @@ namespace Rin.Editor;
 [Module]
 public class SEditorModule : IModule, ISingletonGetter<SEditorModule>
 {
-    public void Start(SApplication application)
+    public void Start(IApplication app)
     {
         // throw new NotImplementedException();
     }
 
-    public void Stop(SApplication application)
+    public void Stop(IApplication app)
     {
         // throw new NotImplementedException();
     }
@@ -18,6 +18,6 @@ public class SEditorModule : IModule, ISingletonGetter<SEditorModule>
 
     public static SEditorModule Get()
     {
-        return SApplication.Get().GetModule<SEditorModule>();
+        return SFramework.Get().GetModule<SEditorModule>();
     }
 }

@@ -43,11 +43,14 @@ public static class EnumerableExtensions
     {
         {
             if (target is List<T> asList)
+            {
                 for (var i = asList.Count - 1; i > -1; i--)
                 {
                     if (asList.Count <= i) continue;
                     yield return asList[i];
                 }
+                yield break;
+            }
         }
 
         {
@@ -59,6 +62,7 @@ public static class EnumerableExtensions
                     yield return el.Value;
                     el = el.Previous;
                 }
+                yield break;
             }
         }
         {

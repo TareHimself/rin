@@ -2,7 +2,6 @@
 using Rin.Framework;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Textures;
 using Rin.Framework.Math;
 using Rin.Framework.Views;
 using Rin.Framework.Views.Composite;
@@ -15,6 +14,7 @@ using Rin.Engine.World.Graphics.Default;
 using Rin.Engine.World.Physics;
 using rin.Examples.Common.Views;
 using rin.Examples.SceneTest.entities;
+using Rin.Framework.Graphics.Images;
 
 namespace rin.Examples.SceneTest;
 
@@ -22,7 +22,7 @@ namespace rin.Examples.SceneTest;
 [AlwaysLoad]
 public class SSceneTestModule : IModule
 {
-    public void Start(SApplication application)
+    public void Start(IApplication app)
     {
         //var compShader = SGraphicsModule.Get().MakeCompute("World/Shaders/Mesh/compute_skinning.slang");
         SViewsModule.Get().OnSurfaceCreated += surf =>
@@ -60,7 +60,7 @@ public class SSceneTestModule : IModule
             var location = new Vector3(0.0f, 0, 0);
             comp.SetLocation(location);
 
-            Extensions.LoadStaticMesh(Path.Join(SApplication.Directory,"assets", "models", "cube.glb")
+            Extensions.LoadStaticMesh(Path.Join(SFramework.Directory,"assets", "models", "cube.glb")
             ).After(mesh =>
             {
                 scene.AddPointLight(new Vector3(0.0f, 20.0f, 0.0f));
@@ -114,7 +114,7 @@ public class SSceneTestModule : IModule
                 {
                     if (e1.FindComponentByType<StaticMeshComponent>() is { } sm) sm.Materials = [material];
                 });
-                application.OnUpdate += delta =>
+                app.OnUpdate += delta =>
                 {
                     scene.Update(delta);
                     // var weight = (float.Sin(SEngine.Get().GetTimeSeconds()) + 1) / 2.0f;
@@ -130,7 +130,7 @@ public class SSceneTestModule : IModule
                     // e1.SetRotation(e1.GetRotation().AddLocalYaw(-50.0f * delta * 2F).AddLocalPitch(-20.0f * delta * 2F));
                 };
 
-                Extensions.LoadSkinnedMesh(Path.Join(SApplication.Directory,"assets", "models", "fox.glb")).After(skinned =>
+                Extensions.LoadSkinnedMesh(Path.Join(SFramework.Directory,"assets", "models", "fox.glb")).After(skinned =>
                 {
                     if (skinned is not null)
                         LoadGoldMaterial().After(material =>
@@ -188,7 +188,7 @@ public class SSceneTestModule : IModule
                 if (window.Parent != null)
                     window.Dispose();
                 else
-                    SApplication.Get().RequestExit();
+                    SFramework.Get().RequestExit();
             };
 
 
@@ -213,10 +213,10 @@ public class SSceneTestModule : IModule
                 ]
             });
         };
-        SGraphicsModule.Get().CreateWindow("Rin Scene Test", new Extent2D(500));
+        IGraphicsModule.Get().CreateWindow("Rin Scene Test", new Extent2D(500));
     }
 
-    public void Stop(SApplication application)
+    public void Stop(IApplication app)
     {
     }
 
@@ -230,10 +230,10 @@ public class SSceneTestModule : IModule
 
     public static async Task<DefaultMeshMaterial> LoadGoldMaterial()
     {
-        var albedo = LoadTexture(Path.Join(SApplication.Directory,"assets", "textures", "au_albedo.png"));
-        var roughness = LoadTexture(Path.Join(SApplication.Directory,"assets", "textures", "au_roughness.png"));
-        var metallic = LoadTexture(Path.Join(SApplication.Directory,"assets", "textures", "au_metallic.png"));
-        var normal = LoadTexture(Path.Join(SApplication.Directory,"assets", "textures", "au_normal.png"));
+        var albedo = LoadTexture(Path.Join(SFramework.Directory,"assets", "textures", "au_albedo.png"));
+        var roughness = LoadTexture(Path.Join(SFramework.Directory,"assets", "textures", "au_roughness.png"));
+        var metallic = LoadTexture(Path.Join(SFramework.Directory,"assets", "textures", "au_metallic.png"));
+        var normal = LoadTexture(Path.Join(SFramework.Directory,"assets", "textures", "au_normal.png"));
 
 
         await Task.WhenAll(albedo, roughness, metallic, normal);

@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using Rin.Framework;
 using Rin.Framework.Audio;
 using Rin.Framework.Graphics;
@@ -57,7 +58,7 @@ public class TrackPlayer : Overlay
     };
 
     private readonly IChannel _stream;
-    private double _lastTime = SApplication.Get().GetTimeSeconds();
+    private double _lastTime = IApplication.Get().TimeSeconds;
 
     public TrackPlayer(string name, IChannel stream)
     {
@@ -152,7 +153,7 @@ public class TrackPlayer : Overlay
     {
         try
         {
-            var data = (await SAudioPlayer.Get().YtClient.Search.GetVideosAsync($"{_nameText.Content} official track"))
+            var data = (await Unsafe.As<AudioPlayerApp>(IApplication.Get()).YtClient.Search.GetVideosAsync($"{_nameText.Content} official track"))
                 .FirstOrDefault();
             if (data == null)
             {

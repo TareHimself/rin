@@ -15,7 +15,7 @@ public class QuadDrawCommand : TCommand<MainPassConfig, BatchCommandHandler>, IB
 
     public IBatcher GetBatcher()
     {
-        return SViewsModule.Get().GetBatcher<DefaultQuadBatcher>();
+        return IViewsModule.Get().GetBatcher<DefaultQuadBatcher>();
     }
 
     public IEnumerable<Quad> GetQuads()

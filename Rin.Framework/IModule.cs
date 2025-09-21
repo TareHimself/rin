@@ -2,7 +2,6 @@ namespace Rin.Framework;
 
 public interface IModule
 {
-    public void Start(SApplication application);
-
-    public void Stop(SApplication application);
+    public void Start(IApplication app);
+    public void Stop(IApplication app);
 }

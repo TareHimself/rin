@@ -37,6 +37,16 @@ struct TextureBindingAttribute
 };
 
 [__AttributeUsage(_AttributeTargets.Var)]
+struct TextureArrayBindingAttribute
+{
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct CubemapBindingAttribute
+{
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
 struct StorageImageBindingAttribute
 {
 };

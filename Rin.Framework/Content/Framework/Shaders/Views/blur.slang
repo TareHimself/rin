@@ -81,13 +81,13 @@ float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
 
     var thisColor = handle.SampleTexture(imageUV, ImageTiling.ClampEdge);
 
-    float3 color = float3(0.0);
+    float4 color = float4(0.0);
 
     float weightSum = 0;
     
     switch (push.isHorizontal)
     {
-    case 0: // Vertical
+    case 0: // Vertical Second pass
     {
         float radius = push.data->radius.y;
 
@@ -101,12 +101,17 @@ float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
             var dist = distanceFromZero(x, y);
             var uv = float2(x * uvRadius.x, y * uvRadius.y);
             float weight = normpdf(dist, sigma);
-            color += handle.SampleTexture(imageUV + uv, ImageTiling.ClampEdge).rgb * weight;
+            var sample = handle.SampleTexture(imageUV + uv, ImageTiling.ClampEdge);
+            color += float4(sample.rgb * sample.a,sample.a) * weight;
             weightSum += weight;
         }
+
+        color = color / max(weightSum, 1e-5);
+
+        color = float4(color.rgb / max(color.a,1e-5),color.a);
     }
     break;
-    case 1: // Horizontal
+    case 1: // Horizontal First pass
     {
         float radius = push.data->radius.x;
 
@@ -121,12 +126,17 @@ float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
             var dist = distanceFromZero(x, y);
             var uv = float2(x * uvRadius.x, y * uvRadius.y);
             float weight = normpdf(dist, sigma);
-            color += handle.SampleTexture(imageUV + uv, ImageTiling.ClampEdge).rgb * weight;
+            var sample = handle.SampleTexture(imageUV + uv, ImageTiling.ClampEdge);
+            color += float4(sample.rgb * sample.a,sample.a) * weight;
             weightSum += weight;
         }
+
+        color = color / max(weightSum, 1e-5);
+
+        color = float4(color.rgb / max(color.a,1e-5),color.a);
     }
     break;
     }
 
-    return float4(color / max(weightSum, 1e-5), thisColor.a);
+    return color;
 }

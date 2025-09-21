@@ -1,5 +1,6 @@
 ﻿using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
+using Rin.Framework.Graphics.Vulkan.Graph;
 
 namespace Rin.Framework.Views.Graphics;
 
@@ -9,14 +10,14 @@ public class CopySurfaceToSwapchain(SurfaceContext context) : IPass
 
     public void Configure(IGraphConfig config)
     {
-        config.ReadImage(context.MainImageId, ImageLayout.TransferSrc);
-        _swapchainImageId = config.WriteImage(config.SwapchainImageId, ImageLayout.TransferDst);
+        config.ReadTexture(context.MainImageId, ImageLayout.TransferSrc);
+        _swapchainImageId = config.WriteTexture(config.SwapchainImageId, ImageLayout.TransferDst);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var mainImage = graph.GetImageOrException(context.MainImageId);
-        var swapchainImage = graph.GetImageOrException(_swapchainImageId);
+        var mainImage = graph.GetTexture(context.MainImageId);
+        var swapchainImage = graph.GetTexture(_swapchainImageId);
         ctx.CopyToImage(mainImage, swapchainImage);
     }
 

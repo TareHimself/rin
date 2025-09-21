@@ -4,4 +4,4 @@ using Rin.Framework;
 
 // Console.WriteLine("Hello, World!");
 
-SApplication.Get().Run();
+SFramework.Get().Run();

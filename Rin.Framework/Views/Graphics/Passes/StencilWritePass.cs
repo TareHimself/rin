@@ -1,7 +1,8 @@
 ﻿using System.Numerics;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Shaders;
+using Rin.Framework.Graphics.Vulkan.Graph;
 
 namespace Rin.Framework.Views.Graphics.Passes;
 
@@ -10,7 +11,7 @@ public class StencilWritePass : IPass
     private readonly StencilClip[] _clips;
     private readonly uint _mask;
 
-    private readonly IGraphicsShader _stencilShader = SGraphicsModule.Get()
+    private readonly IGraphicsShader _stencilShader = IGraphicsModule.Get()
         .MakeGraphics("Framework/Shaders/Views/stencil_batch.slang");
 
     private readonly SurfaceContext _surfaceContext;
@@ -30,7 +31,7 @@ public class StencilWritePass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteImage(StencilImageId, ImageLayout.StencilAttachment);
+        config.WriteTexture(StencilImageId, ImageLayout.StencilAttachment);
         _clipsBufferId = config.CreateBuffer<StencilClip>(_clips.Length, GraphBufferUsage.HostThenGraphics);
     }
 
@@ -38,7 +39,7 @@ public class StencilWritePass : IPass
     {
         if (_stencilShader.Bind(ctx) is { } bindContext)
         {
-            var stencilImage = graph.GetImageOrException(StencilImageId);
+            var stencilImage = graph.GetTextureOrException(StencilImageId);
             var clipsBuffer = graph.GetBufferOrException(_clipsBufferId);
             clipsBuffer.Write(_clips);
             ctx

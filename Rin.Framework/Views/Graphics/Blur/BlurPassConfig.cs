@@ -1,6 +1,6 @@
 ﻿using JetBrains.Annotations;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 
 namespace Rin.Framework.Views.Graphics.Blur;
 
@@ -14,7 +14,7 @@ internal class BlurInitPassConfig : IPassConfig
 
     public void Configure(IGraphConfig config)
     {
-        config.ReadImage(_context.MainImageId, ImageLayout.TransferSrc);
+        config.ReadTexture(_context.MainImageId, ImageLayout.TransferSrc);
     }
 
     public void Begin(ICompiledGraph graph, IExecutionContext ctx)

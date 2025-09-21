@@ -1,5 +1,6 @@
-﻿using Rin.Framework.Graphics.Descriptors;
-using Rin.Framework.Graphics.Shaders;
+﻿using Rin.Framework.Graphics.Shaders;
+using Rin.Framework.Graphics.Vulkan;
+using Rin.Framework.Graphics.Vulkan.Descriptors;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Framework.Graphics;
@@ -28,7 +29,7 @@ public class Frame : IDisposable
         ]);
 
         Renderer = renderer;
-        var subsystem = SGraphicsModule.Get();
+        var subsystem = VulkanGraphicsModule.Get();
         var device = subsystem.GetDevice();
         var queueFamily = subsystem.GetGraphicsQueueFamily();
 

@@ -1,5 +1,6 @@
 ﻿using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
+using Rin.Framework.Graphics.Vulkan.Graph;
 
 namespace Rin.Framework.Views.Graphics.Passes;
 
@@ -18,12 +19,12 @@ public class StencilClearPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteImage(StencilImageId, ImageLayout.General);
+        config.WriteTexture(StencilImageId, ImageLayout.General);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var image = graph.GetImageOrException(StencilImageId);
-        ctx.ClearStencilImages(0, ImageLayout.General, image);
+        var image = graph.GetTextureOrException(StencilImageId);
+        ctx.ClearStencilImages(0,  image);
     }
 }

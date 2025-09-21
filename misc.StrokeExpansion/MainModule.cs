@@ -11,15 +11,15 @@ namespace misc.StrokeExpansion;
 [AlwaysLoad,Module(typeof(SViewsModule),typeof(SAudioModule))]
 public class MainModule : IModule, ISingletonGetter<MainModule>
 {
-    public void Start(SApplication application)
+    public void Start(IApplication app)
     {
 
-        SGraphicsModule.Get().OnWindowCreated += window =>
+        IGraphicsModule.Get().OnWindowCreated += window =>
         {
             window.OnClose += _ =>
             {
                 window.Dispose();
-                SApplication.Get().RequestExit();
+                SFramework.Get().RequestExit();
             };
         };
         SViewsModule.Get().OnSurfaceCreated += surface =>
@@ -32,18 +32,18 @@ public class MainModule : IModule, ISingletonGetter<MainModule>
                 }
             });
         };
-        SGraphicsModule.Get().CreateWindow("Stroke Expansion", new Extent2D(500),
+        IGraphicsModule.Get().CreateWindow("Stroke Expansion", new Extent2D(500),
             WindowFlags.Focused | WindowFlags.Resizable | WindowFlags.Visible);
         
     }
 
-    public void Stop(SApplication application)
+    public void Stop(IApplication app)
     {
         
     }
 
     public static MainModule Get()
     {
-        return SApplication.Get().GetModule<MainModule>();
+        return SFramework.Get().GetModule<MainModule>();
     }
 }

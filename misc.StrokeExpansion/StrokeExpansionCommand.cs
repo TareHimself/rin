@@ -1,5 +1,5 @@
 ﻿using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Shaders;
 using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Graphics.CommandHandlers;
@@ -10,7 +10,7 @@ namespace misc.StrokeExpansion;
 
 public class StrokeExpansionHandler : ICommandHandler {
     private StrokeExpansionCommand[] _commands = [];
-    private IComputeShader _shader = SGraphicsModule.Get().MakeCompute("StrokeExpansion/stroke_expansion.slang");
+    private IComputeShader _shader = IGraphicsModule.Get().MakeCompute("StrokeExpansion/stroke_expansion.slang");
     public void Init(ICommand[] commands)
     {
         _commands = commands.Cast<StrokeExpansionCommand>().ToArray();

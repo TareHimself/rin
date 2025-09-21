@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 using Rin.Framework.Math;
 using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Textures;
+using Rin.Framework.Graphics.Images;
 using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Graphics;
 
@@ -14,7 +14,7 @@ namespace Rin.Framework.Views.Content;
 /// </summary>
 public class Image : ContentView
 {
-    private ImageHandle _imageId = ImageHandle.InvalidImage;
+    private ImageHandle _imageId = ImageHandle.InvalidTexture;
 
     [PublicAPI]
     public ImageHandle ImageId
@@ -33,8 +33,7 @@ public class Image : ContentView
 
     public override Vector2 ComputeDesiredContentSize()
     {
-        if (SGraphicsModule.Get().GetImageFactory()
-                .GetTextureImage(ImageId) is { } texture)
+        if (IGraphicsModule.Get().GetTexture(ImageId) is { } texture)
             return new Vector2
             {
                 X = texture.Extent.Width,

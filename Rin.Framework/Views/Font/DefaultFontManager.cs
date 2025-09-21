@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Numerics;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Textures;
+using Rin.Framework.Graphics.Images;
 using Rin.Framework.Views.Sdf;
 using SixLabors.Fonts;
 
@@ -22,7 +22,7 @@ public class DefaultFontManager : IFontManager
 
     private readonly LiveGlyphInfo _defaultLiveGlyph = new()
     {
-        AtlasHandle = ImageHandle.InvalidImage,
+        AtlasHandle = ImageHandle.InvalidTexture,
         State = LiveGlyphState.Invalid,
         Size = Vector2.Zero,
         Coordinate = Vector4.Zero
@@ -32,7 +32,7 @@ public class DefaultFontManager : IFontManager
 
     public DefaultFontManager(ISdfCache? cache = null)
     {
-        _cache = SApplication.Provider.AddSingle<ISdfCache>(new DiskSdfCache(Path.Combine(SApplication.Directory, "sdfs.bin")));
+        _cache = SFramework.Provider.AddSingle<ISdfCache>(new DiskSdfCache(Path.Combine(SFramework.Directory, "sdfs.bin")));
     }
 
     public Task Prepare(IFont font, IEnumerable<char> characters)
@@ -77,24 +77,30 @@ public class DefaultFontManager : IFontManager
                         var size = new Vector2((float)result.Width, (float)result.Height);
                         var glyph = new LiveGlyphInfo
                         {
-                            AtlasHandle = ImageHandle.InvalidImage,
-                            State = LiveGlyphState.Ready,
+                            AtlasHandle = ImageHandle.InvalidTexture,
+                            State = LiveGlyphState.Pending,
                             Size = size,
                             Coordinate = new Vector4(0.0f, 0.0f, size.X / result.Image.Extent.Width,
                                 size.Y / result.Image.Extent.Height)
                         };
 
-                        glyph.AtlasHandle = result.Image.CreateTexture().handle;
+                        result.Image.CreateTexture(out glyph.AtlasHandle).Then(() =>
+                        {
+                            var id = toGenerate[index].Second;
+                            if(!_atlases.TryGetValue(id, out var val)) return;
+                            val = val with { State = LiveGlyphState.Ready };
+                            _atlases.AddOrUpdate(id, val, (_, _) => val);
+                        });
+                        
                         return new Pair<int, LiveGlyphInfo>(index, glyph);
                     });
 
                     foreach (var (index, glyph) in generated)
                         _atlases.AddOrUpdate(toGenerate[index].Second, glyph, (_, _) => glyph);
                 }
-                catch (Exception e)
+                catch
                 {
                     foreach (var (_, key) in toGenerate) _atlases.Remove(key, out _);
-                    Console.WriteLine(e);
                     throw;
                 }
             }, _cancellationSource.Token);
@@ -168,58 +174,60 @@ public class DefaultFontManager : IFontManager
                     var atlases = packers
                         .Select(p => HostImage.Create(new Extent2D(p.Width, p.Height), ImageFormat.RGBA8))
                         .ToArray();
-
+                    
                     // Write glyphs to images
+                    // Update Live glyphs
+                    // Upload textures to gpu
                     for (var i = 0; i < packers.Count; i++)
                     {
                         var packer = packers[i];
-
                         using var atlas = atlases[i];
-                        atlases[i] = atlas.Mutate(o =>
+                        var glyphsInAtlas = new List<CacheKey>();
+                        var packedAtlas = atlas.Mutate(o =>
                         {
                             o.Fill(255, 255, 255, 0);
                             foreach (var rect in packer.Rects)
-                                o.DrawImage(rect.Data.First.Image, new Offset2D(rect.X, rect.Y));
-                        });
-
-                        //atlas.Save(File.OpenWrite($"./atlas{i}.png"));
-                    }
-
-                    // Upload textures to gpu
-                    var atlasIds = atlases.Select(c => c.CreateTexture(tiling: ImageTiling.ClampEdge).handle).ToArray();
-
-                    // Update Live glyphs
-                    for (var i = 0; i < packers.Count; i++)
-                    {
-                        var packer = packers[i];
-
-                        foreach (var rect in packer.Rects)
-                        {
-                            var generated = rect.Data;
-                            var size = generated.First.Image.Extent;
-                            var pt1 = new Vector2(rect.X, rect.Y);
-                            var pixelSize = new Vector2(size.Width, size.Height);
-                            var pt2 = pt1 + pixelSize;
-                            var pt1Coord = pt1 / atlasSize;
-                            var pt2Coord = pt2 / atlasSize;
-                            var glyph = new LiveGlyphInfo
                             {
-                                AtlasHandle = atlasIds[i],
-                                State = LiveGlyphState.Ready,
-                                Size = pixelSize,
-                                Coordinate = new Vector4(pt1Coord, pt2Coord.X, pt2Coord.Y)
-                            };
-                            _atlases.AddOrUpdate(toGenerate[generated.Second].Second, glyph, (_, _) => glyph);
-                            rect.Data.First.Image.Dispose();
-                        }
+                                o.DrawImage(rect.Data.First.Image, new Offset2D(rect.X, rect.Y));
+                                
+                                var generated = rect.Data;
+                                var size = generated.First.Image.Extent;
+                                var pt1 = new Vector2(rect.X, rect.Y);
+                                var pixelSize = new Vector2(size.Width, size.Height);
+                                var pt2 = pt1 + pixelSize;
+                                var pt1Coord = pt1 / atlasSize;
+                                var pt2Coord = pt2 / atlasSize;
+                                var glyph = new LiveGlyphInfo
+                                {
+                                    AtlasHandle = ImageHandle.InvalidTexture,
+                                    State = LiveGlyphState.Pending,
+                                    Size = pixelSize,
+                                    Coordinate = new Vector4(pt1Coord, pt2Coord.X, pt2Coord.Y)
+                                };
+                                var key = toGenerate[generated.Second].Second;
+                                glyphsInAtlas.Add(key);
+                                _atlases.AddOrUpdate(key, glyph, (_, _) => glyph);
+                                rect.Data.First.Image.Dispose();
+                            }
+                        });
+                        
+                        packedAtlas.CreateTexture(out var handle, tiling: ImageTiling.ClampEdge).Then(() =>
+                        {
+                            foreach (var key in glyphsInAtlas.Where(_atlases.ContainsKey))
+                            {
+                                var glyph = _atlases[key] with { State = LiveGlyphState.Ready,AtlasHandle = handle };
+                                _atlases.AddOrUpdate(key, glyph, (_, _) => glyph);
+                            }
+                            
+                            packedAtlas.Dispose();
+                        });
                     }
 
                     foreach (var atlas in atlases) atlas.Dispose();
                 }
-                catch (Exception e)
+                catch
                 {
                     foreach (var (_, key) in toGenerate) _atlases.Remove(key, out _);
-                    Console.WriteLine(e);
                     throw;
                 }
             }, _cancellationSource.Token);
@@ -276,8 +284,7 @@ public class DefaultFontManager : IFontManager
     {
         _cancellationSource.Cancel();
         _backgroundTaskQueue.Dispose();
-        SGraphicsModule.Get().GetImageFactory()
-            .FreeHandles(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
+        IGraphicsModule.Get().FreeImageHandles(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
         _atlases.Clear();
     }
 

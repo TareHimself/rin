@@ -38,7 +38,7 @@ set(MSDFGEN_USE_VCPKG OFF)
 FetchContent_MakeAvailable(fetch_vkma fetch_vkb fetch_msdfgen)
 
 
-project(Rin.Engine.Native LANGUAGES C CXX VERSION 1.0.0 DESCRIPTION "Native abstractions for the Rin.Engine")
+project(Rin.Framework.Native LANGUAGES C CXX VERSION 1.0.0 DESCRIPTION "Native abstractions for the Rin.Framework")
 set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 file(GLOB_RECURSE SOURCE_FILES "${SRC_DIR}/*.cpp" "${SRC_DIR}/*.hpp")
 

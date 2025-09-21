@@ -1,4 +1,4 @@
-﻿using Rin.Framework.Graphics.FrameGraph;
+﻿using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Windows;
 
 namespace Rin.Framework.Graphics;

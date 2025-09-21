@@ -4,10 +4,10 @@ public class AnimationRunner
 {
     private readonly HashSet<AnimationState> _animations = [];
     private float _currentEndTime;
-
+    private readonly IApplication _application = IApplication.Get();
     public void Update()
     {
-        var elapsed = SApplication.Get().GetTimeSeconds();
+        var elapsed = _application.TimeSeconds;
 
         _animations.RemoveWhere(c => !(c.StartTime > elapsed) && c.Update(elapsed));
     }
@@ -24,7 +24,7 @@ public class AnimationRunner
         return Add(new AnimationState
         {
             Animation = animation,
-            StartTime = SApplication.Get().GetTimeSeconds()
+            StartTime = _application.TimeSeconds
         });
     }
 
@@ -34,7 +34,7 @@ public class AnimationRunner
         Add(new AnimationState
         {
             Animation = sequence,
-            StartTime = SApplication.Get().GetTimeSeconds()
+            StartTime = _application.TimeSeconds
         });
         return sequence;
     }

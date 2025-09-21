@@ -2,10 +2,6 @@
 #include "Framework/Shaders/defs.slang"
 #include "Framework/Shaders/attributes.slang"
 
-#ifndef RIN_GLOBAL_TEXTURES_COUNT
-#define RIN_GLOBAL_TEXTURES_COUNT 2048
-#endif
-
 enum ImageType {
     Image,
     Cube,
@@ -53,11 +49,19 @@ struct ImageHandle {
 
 [[_RIN_INTERNAL_BINDING(0, 0)]]
 [SamplerBinding,AllStages, UpdateAfterBind, Partial]
-uniform SamplerState SAMPLERS[6];
+uniform SamplerState SAMPLERS[RIN_GLOBAL_SAMPLER_COUNT];
 
 [[_RIN_INTERNAL_BINDING(0, 1)]]
-[TextureBinding,AllStages, UpdateAfterBind, Partial, Variable(RIN_GLOBAL_TEXTURES_COUNT)]
-uniform Texture2D READ_TEXTURES[];
+[TextureBinding,AllStages, UpdateAfterBind, Partial]
+uniform Texture2D READ_TEXTURES[RIN_GLOBAL_TEXTURE_COUNT];
+
+[[_RIN_INTERNAL_BINDING(0, 2)]]
+[TextureArrayBinding,AllStages, UpdateAfterBind, Partial]
+uniform Texture2DArray READ_TEXTURE_ARRAYS[RIN_GLOBAL_TEXTURE_ARRAY_COUNT];
+
+[[_RIN_INTERNAL_BINDING(0, 3)]]
+[CubemapBinding,AllStages, UpdateAfterBind, Partial]
+uniform TextureCube READ_CUBEMAPS[RIN_GLOBAL_CUBEMAP_COUNT];
 
 SamplerState getSampler(ImageTiling tiling = ImageTiling.Repeat,ImageFilter filter = ImageFilter.Linear) {
     return SAMPLERS[((int)filter * 2) + (int)tiling];

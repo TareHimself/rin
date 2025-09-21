@@ -2,4 +2,4 @@
 
 using Rin.Framework;
 
-SApplication.Get().Run();
+SFramework.Get().Run();

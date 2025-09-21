@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using Rin.Framework.Graphics.Textures;
+using Rin.Framework.Graphics.Images;
 using Rin.Framework.Math;
 
 namespace Rin.Framework.Views.Graphics.Quads;

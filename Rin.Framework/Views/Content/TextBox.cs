@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Framework.Extensions;
+using Rin.Framework.Graphics.Images;
 using Rin.Framework.Math;
-using Rin.Framework.Graphics.Textures;
 using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Font;
 using Rin.Framework.Views.Graphics;
@@ -12,8 +12,7 @@ using Rin.Framework.Views.Sdf;
 namespace Rin.Framework.Views.Content;
 
 /// <summary>
-///     Draw's text using an <see cref="MtsdfFont" />. Currently, hardcoded to
-///     <a href="https://fonts.google.com/specimen/Roboto">Roboto</a>.
+///     Draw's text using a loaded font family.
 /// </summary>
 public class TextBox : ContentView
 {
@@ -22,7 +21,7 @@ public class TextBox : ContentView
 
     private string _content = string.Empty;
     private string _fontFamily = "Noto Sans";
-    private IFontManager _fontManager = SApplication.Provider.Get<IFontManager>();
+    private IFontManager _fontManager = IViewsModule.Get().FontManager;
     private float _fontSize = 100.0f;
     private bool _wrapContent;
     protected float? Wrap;

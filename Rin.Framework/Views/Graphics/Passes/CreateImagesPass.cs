@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 
 namespace Rin.Framework.Views.Graphics.Passes;
 
@@ -18,19 +18,19 @@ public class CreateImagesPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        Context.MainImageId = config.CreateImage(Context.Extent, ImageFormat.RGBA32, ImageLayout.General);
-        Context.CopyImageId = config.CreateImage(Context.Extent, ImageFormat.RGBA32, ImageLayout.General);
-        Context.StencilImageId = config.CreateImage(Context.Extent, ImageFormat.Stencil, ImageLayout.General);
+        Context.MainImageId = config.CreateTexture(Context.Extent, ImageFormat.RGBA32, ImageLayout.General);
+        Context.CopyImageId = config.CreateTexture(Context.Extent, ImageFormat.RGBA32, ImageLayout.General);
+        Context.StencilImageId = config.CreateTexture(Context.Extent, ImageFormat.Stencil, ImageLayout.General);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var drawImage = graph.GetImage(Context.MainImageId);
-        var copyImage = graph.GetImage(Context.CopyImageId);
-        var stencilImage = graph.GetImage(Context.StencilImageId);
+        var drawImage = graph.GetTexture(Context.MainImageId);
+        var copyImage = graph.GetTexture(Context.CopyImageId);
+        var stencilImage = graph.GetTexture(Context.StencilImageId);
 
         ctx
-            .ClearColorImages(new Vector4(0.0f), ImageLayout.General, drawImage, copyImage)
-            .ClearStencilImages(0, ImageLayout.General, stencilImage);
+            .ClearColorImages(new Vector4(0.0f), drawImage, copyImage)
+            .ClearStencilImages(0, stencilImage);
     }
 }

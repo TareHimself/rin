@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Net;
+using System.Net.Http.Headers;
 using Rin.Framework.Views;
 
 namespace Rin.Framework.Video;
@@ -55,7 +56,7 @@ public class HttpVideoSource : IVideoSource
         get
         {
             FetchHeaders();
-            return (ulong)_stream.Length;
+            return _length; //(ulong)_stream.Length;
         }
     }
 
@@ -66,14 +67,19 @@ public class HttpVideoSource : IVideoSource
         var networkStart = _stream.Length;
         if (end > networkStart)
         {
+            var preloadAmmount = 1024 * 10;
+            if (end - networkStart < preloadAmmount)
+            {
+                end = (long)offset + preloadAmmount;
+            }
             var result = _client.Send(new HttpRequestMessage(HttpMethod.Get, _uri)
             {
                 Headers =
                 {
-                    Range = new RangeHeaderValue(_stream.Length,(long)end)
+                    Range = new RangeHeaderValue(_stream.Length,end - 1)
                 }
             });
-            if (result.Content.Headers.Contains("Content-Range"))
+            if (result.StatusCode == HttpStatusCode.PartialContent)
             {
                 var val = result.Content.Headers
                     .GetValues("Content-Range")

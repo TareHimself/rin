@@ -1,7 +1,8 @@
 ﻿using JetBrains.Annotations;
 using Rin.Framework.Views.Graphics.Commands;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
+using Rin.Framework.Graphics.Vulkan.Graph;
 
 namespace Rin.Framework.Views.Graphics.PassConfigs;
 
@@ -20,14 +21,14 @@ public class MainPassConfig : IPassConfig
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteImage(MainImageId, ImageLayout.ColorAttachment);
-        config.ReadImage(StencilImageId, ImageLayout.StencilAttachment);
+        config.WriteTexture(MainImageId, ImageLayout.ColorAttachment);
+        config.ReadTexture(StencilImageId, ImageLayout.StencilAttachment);
     }
 
     public void Begin(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var drawImage = graph.GetImageOrException(MainImageId);
-        var stencilImage = graph.GetImageOrException(StencilImageId);
+        var drawImage = graph.GetTexture(MainImageId);
+        var stencilImage = graph.GetTexture(StencilImageId);
 
         ctx.BeginRendering(_context.Extent, [drawImage], stencilAttachment: stencilImage)
             .DisableFaceCulling()

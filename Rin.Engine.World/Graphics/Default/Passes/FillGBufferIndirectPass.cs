@@ -1,5 +1,6 @@
 ﻿using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
+using Rin.Framework.Graphics.Vulkan.Graph;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
@@ -20,10 +21,10 @@ public class FillGBufferIndirectPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        config.ReadImage(_renderContext.DepthImageId, ImageLayout.DepthAttachment);
-        config.WriteImage(_renderContext.GBufferImage0, ImageLayout.ColorAttachment);
-        config.WriteImage(_renderContext.GBufferImage1, ImageLayout.ColorAttachment);
-        config.WriteImage(_renderContext.GBufferImage2, ImageLayout.ColorAttachment);
+        config.ReadTexture(_renderContext.DepthImageId, ImageLayout.DepthAttachment);
+        config.WriteTexture(_renderContext.GBufferImage0, ImageLayout.ColorAttachment);
+        config.WriteTexture(_renderContext.GBufferImage1, ImageLayout.ColorAttachment);
+        config.WriteTexture(_renderContext.GBufferImage2, ImageLayout.ColorAttachment);
         if (_renderContext.SkinningOutputBufferId > 0)
             config.ReadBuffer(_renderContext.SkinningOutputBufferId, GraphBufferUsage.Graphics);
 

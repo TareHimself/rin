@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 using Rin.Framework.Extensions;
 using Rin.Framework.Math;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics.CommandHandlers;
@@ -19,13 +19,13 @@ public abstract class Surface : ISurface
 {
     private readonly List<IView> _lastHovered = [];
     private readonly Root _rootView = new();
-    private readonly SGraphicsModule _sGraphicsModule;
+    private readonly IGraphicsModule _sGraphicsModule;
     private bool _isCursorIn;
     private CursorDownSurfaceEvent? _lastCursorDownEvent;
 
     protected Surface()
     {
-        _sGraphicsModule = SApplication.Get().GetModule<SGraphicsModule>();
+        _sGraphicsModule = IGraphicsModule.Get();
         _rootView.NotifyAddedToSurface(this);
     }
 
@@ -33,7 +33,7 @@ public abstract class Surface : ISurface
 
     public virtual void Dispose()
     {
-        _sGraphicsModule.WaitDeviceIdle();
+        _sGraphicsModule.WaitIdle();
         _rootView.Dispose();
     }
 
@@ -323,18 +323,18 @@ public abstract class Surface : ISurface
                 view.NotifyCursorLeave();
     }
 
-    public virtual T Add<T>() where T : View, new()
+    public virtual T Add<T>() where T : IView, new()
     {
         return Add(Activator.CreateInstance<T>());
     }
 
-    public virtual T Add<T>(T view) where T : View
+    public virtual T Add<T>(T view) where T : IView
     {
         _rootView.Add(view);
         return view;
     }
 
-    public virtual bool Remove(View view)
+    public virtual bool Remove(IView view)
     {
         return _rootView.Remove(view);
     }

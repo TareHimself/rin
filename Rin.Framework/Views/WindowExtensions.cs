@@ -5,8 +5,8 @@ namespace Rin.Framework.Views;
 
 public static class WindowExtensions
 {
-    public static WindowSurface? GetViewSurface(this IWindow window)
+    public static IWindowSurface? GetViewSurface(this IWindow window)
     {
-        return SViewsModule.Get().GetWindowSurface(window);
+        return IViewsModule.Get().GetWindowSurface(window);
     }
 }

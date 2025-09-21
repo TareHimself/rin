@@ -8,6 +8,7 @@ public static class TaskExtensions
     {
         return tasks.Select(c => c.WaitForResult());
     }
+    
 
     public static Task<TV> Then<T, TV>(this Task<T> task, Func<T, TV> then)
     {
@@ -51,22 +52,22 @@ public static class TaskExtensions
 
     public static ConfiguredTaskAwaitable DispatchMain<T>(this Task<T> task, Action<T> then)
     {
-        return task.Dispatch(SApplication.Get().GetMainDispatcher(), then);
+        return task.Dispatch(IApplication.Get().MainDispatcher, then);
     }
 
     public static ConfiguredTaskAwaitable DispatchMain(this Task task, Action then)
     {
-        return task.Dispatch(SApplication.Get().GetMainDispatcher(), then);
+        return task.Dispatch(IApplication.Get().MainDispatcher, then);
     }
 
     public static ConfiguredTaskAwaitable DispatchRender<T>(this Task<T> task, Action<T> then)
     {
-        return task.Dispatch(SApplication.Get().GetRenderDispatcher(), then);
+        return task.Dispatch(IApplication.Get().RenderDispatcher, then);
     }
 
     public static ConfiguredTaskAwaitable DispatchRender(this Task task, Action then)
     {
-        return task.Dispatch(SApplication.Get().GetRenderDispatcher(), then);
+        return task.Dispatch(IApplication.Get().RenderDispatcher, then);
     }
 
     public static T WaitForResult<T>(this Task<T> task)

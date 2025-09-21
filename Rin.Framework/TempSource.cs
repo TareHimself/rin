@@ -4,10 +4,10 @@ using Rin.Sources.Exceptions;
 
 namespace Rin.Framework;
 
-public class TempSource : ISource
+public class TemporarySource : ISource
 {
     private readonly ConcurrentDictionary<string, Func<Stream>> _streams = [];
-    public string BasePath { get; } = "temp";
+    public string BasePath { get; } = "Temporary";
 
     public Stream Read(string path)
     {
@@ -21,7 +21,7 @@ public class TempSource : ISource
         throw new WriteNotSupportedException();
     }
 
-    public string AddStream(Func<Stream> stream)
+    public string CreateReadable(Func<Stream> stream)
     {
         var streamName = $"{BasePath}/{Guid.NewGuid().ToString().Replace("-", "")}";
         _streams.AddOrUpdate(streamName, stream, (_, _) => stream);

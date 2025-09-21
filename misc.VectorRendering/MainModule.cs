@@ -20,7 +20,7 @@ public class MainModule : IModule
 
     private Font _font;
 
-    public void Start(SApplication application)
+    public void Start(IApplication app)
     {
         // _fontManager.LoadSystemFonts();
         // if (!_fontManager.TryGetFont("Noto Sans JP", out var family)) return;
@@ -87,13 +87,13 @@ public class MainModule : IModule
         // });
     }
 
-    public void Stop(SApplication application)
+    public void Stop(IApplication app)
     {
     }
 
     public static MainModule Get()
     {
-        return SApplication.Get().GetModule<MainModule>();
+        return SFramework.Get().GetModule<MainModule>();
     }
 
     // public void PaintCanvas(Canvas target, Mat3 transform, CommandList cmds)

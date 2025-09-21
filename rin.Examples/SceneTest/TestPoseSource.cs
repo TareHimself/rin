@@ -12,7 +12,7 @@ public class TestPoseSource : IPoseSource
 
     public Pose GetPose()
     {
-        var rot = Quaternion.Identity.AddYaw(SApplication.Get().GetTimeSeconds() * 20f);
+        var rot = Quaternion.Identity.AddYaw(IApplication.Get().TimeSeconds * 20f);
         return new Pose(new Dictionary<string, Transform>
         {
             {

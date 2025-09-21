@@ -1,9 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
 using Rin.Framework.Graphics.Shaders;
-using Rin.Framework.Graphics.Textures;
 using Rin.Framework.Graphics.Windows;
 using Rin.Framework.Math;
 using Rin.Framework.Views;
@@ -16,6 +14,9 @@ using Rin.Framework.Views.Graphics.Quads;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Graphics.Default;
+using Rin.Framework.Graphics.Graph;
+using Rin.Framework.Graphics.Images;
+using Rin.Framework.Graphics.Vulkan.Graph;
 using CommandList = Rin.Framework.Views.Graphics.CommandList;
 using ICommand = Rin.Framework.Views.Graphics.Commands.ICommand;
 
@@ -61,7 +62,7 @@ internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
             .Select(c => config.CreateBuffer<PushData>(GraphBufferUsage.HostThenGraphics))
             .ToArray();
         _outputImageIds = _renderContexts
-            .Select(c => config.ReadImage(c.GetOutputImageId(), ImageLayout.ShaderReadOnly))
+            .Select(c => config.ReadTexture(c.GetOutputImageId(), ImageLayout.ShaderReadOnly))
             .ToArray();
     }
 

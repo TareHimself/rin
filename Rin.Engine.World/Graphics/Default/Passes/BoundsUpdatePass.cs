@@ -1,6 +1,7 @@
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Shaders;
+using Rin.Framework.Graphics.Vulkan.Graph;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 

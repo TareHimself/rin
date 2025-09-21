@@ -1,3 +1,5 @@
+using Rin.Framework.Graphics.Vulkan.Meshes;
+
 namespace Rin.Framework.Graphics.Meshes;
 
 public interface IMeshFactory : IDisposable

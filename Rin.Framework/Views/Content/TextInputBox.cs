@@ -132,7 +132,7 @@ public class TextInputBox : TextBox
 
         var height = LineHeight;
         var color = ForegroundColor;
-        var sin = (float.Sin(SApplication.Get().GetTimeSeconds() * 5) + 1.0f) / 2.0f;
+        var sin = (float.Sin(IApplication.Get().TimeSeconds * 5) + 1.0f) / 2.0f;
         color.A *= IsTyping ? 1.0f : sin > 0.35 ? 1.0f : 0.0f;
         commands.AddRect(transform.Translate(offset), new Vector2(2.0f, height), color);
     }

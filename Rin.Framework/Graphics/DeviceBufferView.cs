@@ -35,7 +35,6 @@ public readonly record struct DeviceBufferView
     {
         Debug.Assert(src != IntPtr.Zero);
         Debug.Assert(IsValid, "Buffer is not valid");
-        Debug.Assert(Buffer.NativeBuffer.Value != 0);
         Buffer.WriteRaw(src, size, Offset + offset);
     }
 
@@ -76,12 +75,12 @@ public readonly record struct DeviceBufferView
             WriteRaw(new IntPtr(&src), Utils.ByteSizeOf<T>(),offset);
         }
     }
-
-    public void Write<T>(Buffer<T> src, ulong offset = 0) where T : unmanaged
+    
+    public void Write<T>(IReadOnlyBuffer<T> src, ulong offset = 0) where T : unmanaged
     {
         Debug.Assert(src.GetPtr() != IntPtr.Zero, "src buffer is null");
-        Debug.Assert(src.GetElementsCount() > 0, "src buffer is empty");
-        WriteRaw(src.GetPtr(),src.GetByteSize(),offset);
+        Debug.Assert(src.ElementCount > 0, "src buffer is empty");
+        WriteRaw(src.GetPtr(),src.ByteSize,offset);
     }
 
     public DeviceBufferView GetView(ulong offset, ulong size)

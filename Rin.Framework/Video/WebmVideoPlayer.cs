@@ -150,7 +150,7 @@ public class WebmVideoPlayer : IVideoPlayer
         if (_audioStream == null)
         {
             _audioPacketsStartAt = time;
-            _audioStream = _createStream?.Invoke(AudioSampleRate,AudioChannels) ?? SAudioModule.Get().CreatePushStream(AudioSampleRate, AudioChannels);
+            _audioStream = _createStream?.Invoke(AudioSampleRate,AudioChannels) ?? IAudioModule.Get().CreatePushStream(AudioSampleRate, AudioChannels);
             if (IsPlaying) _audioStream.Play();
         }
 

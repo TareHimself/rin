@@ -5,7 +5,7 @@ using Rin.Framework.Extensions;
 
 namespace Rin.Framework;
 
-public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> //, IEnumerable<T>
+public class Buffer<T> : IBuffer<T>, IBinarySerializable, ICopyable<Buffer<T>> //, IEnumerable<T>
     where T : unmanaged
 {
     private int _elements;
@@ -121,6 +121,9 @@ public class Buffer<T> : IDisposable, IBinarySerializable, ICopyable<Buffer<T>> 
         Native.Memory.Set(_ptr, 0, GetByteSize());
     }
 
+
+    public int ElementCount => _elements;
+    public ulong ByteSize => GetByteSize();
 
     public T GetElement(int index)
     {

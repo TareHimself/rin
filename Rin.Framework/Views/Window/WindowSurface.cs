@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.FrameGraph;
+using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Windows;
 using Rin.Framework.Graphics.Windows.Events;
 using Rin.Framework.Views.Events;
@@ -15,24 +15,20 @@ namespace Rin.Framework.Views.Window;
 /// <summary>
 ///     A surface that displays views on a window
 /// </summary>
-public class WindowSurface : Surface
+public class WindowSurface : Surface, IWindowSurface
 {
-    private readonly IWindowRenderer _renderer;
     private bool _minimized;
     private Extent2D _size;
 
     public WindowSurface(IWindowRenderer renderer)
     {
-        _renderer = renderer;
-        _size = _renderer.GetRenderExtent();
+        Renderer = renderer;
+        _size = Renderer.GetRenderExtent();
     }
 
-    public IWindow Window => _renderer.GetWindow();
+    public IWindow Window => Renderer.GetWindow();
 
-    public IWindowRenderer GetRenderer()
-    {
-        return _renderer;
-    }
+    public IWindowRenderer Renderer { get; }
 
     public override void Init()
     {
@@ -42,7 +38,7 @@ public class WindowSurface : Surface
         Window.OnScroll += OnScroll;
         Window.OnKey += OnKeyboard;
         Window.OnCharacter += OnCharacter;
-        _renderer.OnCollect += Collect;
+        Renderer.OnCollect += Collect;
         Window.OnResize += OnWindowResized;
         Window.OnCursorFocus += OnCursorFocus;
     }
@@ -54,7 +50,7 @@ public class WindowSurface : Surface
 
     protected void OnWindowResized(ResizeEvent e)
     {
-        _size = _renderer.GetRenderExtent();
+        _size = Renderer.GetRenderExtent();
         _minimized = _size.Width == 0 || _size.Height == 0;
         if (!_minimized) ReceiveResize(new ResizeSurfaceEvent(this, new Vector2(_size.Width,_size.Height)));
     }
@@ -108,7 +104,7 @@ public class WindowSurface : Surface
     {
         base.Dispose();
         Window.OnResize -= OnWindowResized;
-        _renderer.OnCollect -= Collect;
+        Renderer.OnCollect -= Collect;
         Window.OnCursorButton -= OnMouseButton;
         Window.OnCursorMoved -= OnMouseMove;
         Window.OnScroll -= OnScroll;

@@ -1,4 +1,4 @@
-﻿using Rin.Framework.Graphics.Textures;
+﻿using Rin.Framework.Graphics.Images;
 
 namespace Rin.Framework.Graphics;
 
@@ -9,7 +9,7 @@ public interface IHostImage : IDisposable
 
     public HostImageFormat Format { get; }
 
-    public (ImageHandle handle, Task task) CreateTexture(ImageFilter filter = ImageFilter.Linear,
+    public Task CreateTexture(out ImageHandle handle,ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat,
         bool mips = false, string? debugName = null);
 
@@ -26,5 +26,5 @@ public interface IHostImage : IDisposable
         return Mutate(m => { mutator(m); });
     }
 
-    public Buffer<byte> ToBuffer();
+    public IBuffer<byte> ToBuffer();
 }

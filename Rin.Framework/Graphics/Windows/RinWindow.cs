@@ -67,7 +67,7 @@ public class RinWindow(in ulong handle, IWindow? parent) : IWindow
 
     public IWindow CreateChild(string name, in Extent2D extent, WindowFlags flags = WindowFlags.Visible)
     {
-        var child = SGraphicsModule.Get().CreateWindow(name, extent, flags, this);
+        var child = IGraphicsModule.Get().CreateWindow(name, extent, flags, this);
         _children.Add(child);
         child.OnDispose += () => _children.Remove(child);
         return child;

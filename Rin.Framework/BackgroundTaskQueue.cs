@@ -2,7 +2,7 @@
 
 namespace Rin.Framework;
 
-public class BackgroundTaskQueue : Disposable
+public class BackgroundTaskQueue : IDisposable
 {
     private readonly BlockingCollection<PendingTask> _pendingTasks = [];
 
@@ -62,21 +62,21 @@ public class BackgroundTaskQueue : Disposable
 
         return newPending.Pending.Task;
     }
-
-    protected override void OnDispose(bool isManual)
-    {
-        _pendingTasks.CompleteAdding();
-    }
-
+    
     private class PendingTask(Action fn, TaskCompletionSource pending, CancellationToken? token = null)
     {
         public readonly Action Fn = fn;
         public readonly TaskCompletionSource Pending = pending;
         public readonly CancellationToken? Token = token;
     }
+
+    public void Dispose()
+    {
+        _pendingTasks.CompleteAdding();
+    }
 }
 
-public class BackgroundTaskQueue<T> : Disposable
+public class BackgroundTaskQueue<T> : IDisposable
 {
     private readonly BlockingCollection<PendingTask> _pendingTasks = [];
 
@@ -131,16 +131,16 @@ public class BackgroundTaskQueue<T> : Disposable
 
         return newPending.Pending.Task;
     }
-
-    protected override void OnDispose(bool isManual)
-    {
-        _pendingTasks.CompleteAdding();
-    }
-
+    
     public class PendingTask(Func<T> fn, TaskCompletionSource<T> pending, CancellationToken? token = null)
     {
         public readonly CancellationToken? Token = token;
         public Func<T> Fn = fn;
         public TaskCompletionSource<T> Pending = pending;
+    }
+
+    public void Dispose()
+    {
+        _pendingTasks.CompleteAdding();
     }
 }
