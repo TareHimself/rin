@@ -34,12 +34,7 @@ public class AudioPlayerApp : Application
         return new BassAudioModule();
     }
 
-    public AudioPlayerApp()
-    {
-        OnStartup += _ => Start();
-    }
-
-    private void Start()
+    protected override void OnStartup()
     {
         IAudioModule.Get().SetVolume(0.1f);
         var window = IGraphicsModule.Get().CreateWindow("Rin Audio Player", new Extent2D(500));
@@ -47,6 +42,11 @@ public class AudioPlayerApp : Application
         Backgrounds(window);
         var surf = IViewsModule.Get().GetWindowSurface(window);
         surf?.Add(new MainPanel());
+    }
+
+    protected override void OnShutdown()
+    {
+        
     }
     
     public void Backgrounds(IWindow window)

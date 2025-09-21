@@ -33,12 +33,7 @@ public class ViewsTestApplication : Application
         return new BassAudioModule();
     }
 
-    public ViewsTestApplication()
-    {
-        OnStartup += HandleStartup;
-    }
-
-    void HandleStartup(IApplication app)
+    protected override void OnStartup()
     {
         {
             var manager = IViewsModule.Get().FontManager;
@@ -50,7 +45,11 @@ public class ViewsTestApplication : Application
         IGraphicsModule.Get().OnWindowRendererCreated += TestAnimation;
         IGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         IGraphicsModule.Get().CreateWindow("Views Test", new Extent2D(500), WindowFlags.Visible | WindowFlags.Resizable);
+    }
 
+    protected override void OnShutdown()
+    {
+        
     }
     
     private void OnWindowCreated(IWindow window)

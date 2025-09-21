@@ -20,8 +20,7 @@ public abstract class Application : IApplication
     public event Action? OnPreRender;
     public event Action? OnRender;
     public event Action? OnPostRender;
-    public event Action<IApplication>? OnStartup;
-    public event Action<IApplication>? OnShutdown;
+
     public float TimeSeconds => (float)(DateTime.UtcNow - _startTime).TotalSeconds;
     public float LastDeltaSeconds { get; private set; }
 
@@ -49,6 +48,9 @@ public abstract class Application : IApplication
         SFramework.Provider.AddSingle<IApplication>(this);
     }
     
+    protected abstract void OnStartup();
+    protected abstract void OnShutdown();
+    
     private void Start()
     {
         Native.Platform.Init();
@@ -69,7 +71,7 @@ public abstract class Application : IApplication
             module.Start(this);
         }
         
-        OnStartup?.Invoke(this);
+        OnStartup();
     }
     
     private void Render()
@@ -124,7 +126,7 @@ public abstract class Application : IApplication
 
     public void Dispose()
     {
-        OnShutdown?.Invoke(this);
+        OnShutdown();
         foreach (var module in _modules.AsReversed())
         {
             module.Stop(this);

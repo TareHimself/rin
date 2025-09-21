@@ -14,8 +14,6 @@ public interface IApplication : IDisposable
     public event Action? OnPreRender;
     public event Action? OnRender;
     public event Action? OnPostRender;
-    public event Action<IApplication>? OnStartup;
-    public event Action<IApplication>? OnShutdown;
     
     public float TimeSeconds { get; }
     public float LastDeltaSeconds { get; }
