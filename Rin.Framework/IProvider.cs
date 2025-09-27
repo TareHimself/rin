@@ -1,4 +1,4 @@
-namespace Provide;
+namespace Rin.Framework;
 
 public interface IProvider
 {

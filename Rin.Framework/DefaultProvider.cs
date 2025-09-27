@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Provide;
+namespace Rin.Framework;
 
 public class DefaultProvider : IProvider
 {

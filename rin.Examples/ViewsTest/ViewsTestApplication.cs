@@ -35,13 +35,13 @@ public class ViewsTestApplication : Application
 
     protected override void OnStartup()
     {
-        {
-            var manager = IViewsModule.Get().FontManager;
-            if (manager.GetFont("Noto Sans") is { } font)
-                manager
-                    .PrepareAtlas(font, Enumerable.Range(32, 127).Select(c => (char)c).Where(c => c.IsPrintable()))
-                    .Wait();
-        }
+        // {
+        //     var manager = IViewsModule.Get().FontManager;
+        //     if (manager.GetFont("Noto Sans") is { } font)
+        //         manager
+        //             .PrepareAtlas(font, Enumerable.Range(32, 127).Select(c => (char)c).Where(c => c.IsPrintable()))
+        //             .Wait();
+        // }
         IGraphicsModule.Get().OnWindowRendererCreated += TestAnimation;
         IGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         IGraphicsModule.Get().CreateWindow("Views Test", new Extent2D(500), WindowFlags.Visible | WindowFlags.Resizable);
@@ -81,8 +81,8 @@ public class ViewsTestApplication : Application
                 Axis = Axis.Row 
             };
             //https://samplelib.com/lib/preview/webm/sample-30s.webm
-            //var source = new FileVideoSource(Platform.SelectFile("Select a webm video", filter: "*.webm").First());//new HttpVideoSource(new Uri("https://samplelib.com/lib/preview/webm/sample-30s.webm"));// Platform.SelectFile("Select a webm video", filter: "*.webm").First();
-            var source = new HttpVideoSource(new Uri("https://b.catgirlsare.sexy/yTpGNCU13fu_.webm"));
+            var source = new FileVideoSource(Platform.SelectFile("Select a webm video", filter: "*.webm").First());//new HttpVideoSource(new Uri("https://samplelib.com/lib/preview/webm/sample-30s.webm"));// Platform.SelectFile("Select a webm video", filter: "*.webm").First();
+            //var source = new HttpVideoSource(new Uri("https://b.catgirlsare.sexy/yTpGNCU13fu_.webm"));
             surf.Add(new Panel
             {
                 Slots =
