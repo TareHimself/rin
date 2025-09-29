@@ -7,8 +7,9 @@ using Rin.Framework.Graphics.Vulkan.Images;
 
 namespace Rin.Framework.Graphics.Vulkan.Graph;
 
-public class GraphBuilder(IResourcePool resourcePool) : IGraphBuilder
+public class GraphBuilder(IResourcePool resourcePool,Frame frame) : IGraphBuilder
 {
+    
     private readonly Dictionary<uint, ExternalVulkanTextureResourceDescriptor> _externalTextures = [];
     private readonly Dictionary<uint, ExternalVulkanTextureArrayResourceDescriptor> _externalTextureArrays = [];
     private readonly Dictionary<uint, ExternalVulkanCubemapResourceDescriptor> _externalCubemaps = [];
@@ -18,6 +19,7 @@ public class GraphBuilder(IResourcePool resourcePool) : IGraphBuilder
     private uint _latestId;
     private uint _swapchainImageId;
 
+    
     public uint AddPass(IPass pass)
     {
         {
@@ -34,7 +36,7 @@ public class GraphBuilder(IResourcePool resourcePool) : IGraphBuilder
         return passId;
     }
 
-    public ICompiledGraph? Compile(Frame frame)
+    public ICompiledGraph? Compile()
     {
         var config = Configure();
 
@@ -133,6 +135,14 @@ public class GraphBuilder(IResourcePool resourcePool) : IGraphBuilder
                     }
         }
 
+        foreach (var passId in _passes.Keys)
+        {
+            if (!nodes.ContainsKey(passId))
+            {
+                _passes[passId].OnPrune?.Invoke();
+            }
+        }
+
         //var finalPassIds = nodes.Keys.ToHashSet();
         var finalResourceActions = config.ResourceActions.ToDictionary(c => c.Key, c =>
         {
@@ -162,7 +172,7 @@ public class GraphBuilder(IResourcePool resourcePool) : IGraphBuilder
                                 ResourceId = resourceId,
                                 PassId = action.PassId
                             };
-
+                            
                             if (!syncGroups.ContainsKey(action.PassId)) syncGroups[action.PassId] = [];
                             syncGroups[action.PassId].Add(sync);
                         }

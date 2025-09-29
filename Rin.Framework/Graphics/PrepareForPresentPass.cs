@@ -9,6 +9,7 @@ public class PrepareForPresentPass : IPass
 {
     public uint Id { get; set; }
     public bool IsTerminal => true;
+    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {

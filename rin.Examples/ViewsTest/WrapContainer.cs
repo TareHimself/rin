@@ -31,6 +31,7 @@ public class WrapContainer : Button
             var transitionDuration = 0.8f;
             var method = EasingFunctions.EaseInOutCubic;
             sizer
+                .StopAll()
                 .WidthTo(ViewsTestApplication.TileSize * 4f + 60.0f, transitionDuration, easingFunction: method)
                 .HeightTo(ViewsTestApplication.TileSize * 2f + 10.0f, transitionDuration, easingFunction: method)
                 .Delay(4)

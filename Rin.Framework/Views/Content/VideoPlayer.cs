@@ -34,6 +34,14 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass
     public uint Id { get; set; }
     public bool IsTerminal => false;
 
+    public Action? OnPrune { get; } = () =>
+    {
+        foreach (var command in commands)
+        {
+            command.FrameData.Dispose();
+        }
+    };
+
     public void Configure(IGraphConfig config)
     {
         VideoStagingBufferIds = commands

@@ -9,10 +9,11 @@ namespace rin.Examples.Common.Views;
 
 public class FpsView : TextBox
 {
-    private static readonly uint NumAveragedSamples = 30;
+    private static readonly uint NumAveragedSamples = 3000;
     private readonly Averaged<double> _averageFps = new(0, NumAveragedSamples);
     private readonly AveragedStatCategory _collectTime = new("Engine.Collect");
     private readonly AveragedStatCategory _updateTime = new("Engine.Update");
+    private readonly AveragedStatCategory _graphBuildTime = new("Engine.Rendering.Graph.Build");
     private readonly AveragedStatCategory _graphCompileTime = new("Engine.Rendering.Graph.Compile");
     private readonly AveragedStatCategory _graphExecuteTime = new("Engine.Rendering.Graph.Execute");
     private readonly AveragedStatCategory _renderTime = new("Engine.Rendering");
@@ -37,6 +38,7 @@ public class FpsView : TextBox
         _updateTime.Update();
         _collectTime.Update();
         _renderTime.Update();
+        _graphBuildTime.Update();
         _graphCompileTime.Update();
         _graphExecuteTime.Update();
         Content = $"""
@@ -45,6 +47,7 @@ public class FpsView : TextBox
                    {_collectTime.GetMilliseconds()}ms Collect
                    
                    [Render Thread]
+                   {_graphBuildTime.GetMilliseconds()}ms Graph Build
                    {_graphCompileTime.GetMilliseconds()}ms Graph Compile
                    {_graphExecuteTime.GetMilliseconds()}ms Graph Execute
                    {_renderTime.GetMilliseconds()}ms Total
