@@ -3,6 +3,7 @@ using rin.Examples.AudioPlayer.Views;
 using rin.Examples.Common.Views;
 using Rin.Framework;
 using Rin.Framework.Audio;
+using Rin.Framework.Audio.BassAudio;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Vulkan;
 using Rin.Framework.Graphics.Windows;
@@ -41,7 +42,7 @@ public class AudioPlayerApp : Application
         window.OnClose += _ => { RequestExit(); };
         Backgrounds(window);
         var surf = IViewsModule.Get().GetWindowSurface(window);
-        surf?.Add(new MainPanel());
+        surf?.Add(new MainPanelView());
     }
 
     protected override void OnShutdown()
@@ -55,9 +56,9 @@ public class AudioPlayerApp : Application
 
         if (surf == null) return;
 
-        var panel = surf.Add(new Panel());
+        var panel = surf.Add(new PanelView());
 
-        var switcher = new Switcher();
+        var switcher = new SwitcherView();
         panel.Add(
             new PanelSlot
             {
@@ -86,9 +87,9 @@ public class AudioPlayerApp : Application
             {
                 var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
-                    switcher.Add(new Fitter
+                    switcher.Add(new FitterView
                     {
-                        Child = new AsyncFileImage(path),
+                        Child = new AsyncFileImageView(path),
                         FittingMode = FitMode.Cover
                     });
             }

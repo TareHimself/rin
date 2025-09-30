@@ -18,7 +18,7 @@ namespace Rin.Framework.Views.Graphics;
 public abstract class Surface : ISurface
 {
     private readonly List<IView> _lastHovered = [];
-    private readonly Root _rootView = new();
+    private readonly RootView _rootView = new();
     private readonly IGraphicsModule _sGraphicsModule;
     private bool _isCursorIn;
     private CursorDownSurfaceEvent? _lastCursorDownEvent;

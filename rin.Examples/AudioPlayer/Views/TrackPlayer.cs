@@ -16,11 +16,11 @@ using YoutubeExplode.Common;
 
 namespace rin.Examples.AudioPlayer.Views;
 
-public class TrackPlayer : Overlay
+public class TrackPlayer : OverlayView
 {
-    private readonly Panel _backgroundContainer = new();
+    private readonly PanelView _backgroundContainer = new();
 
-    private readonly TextBox _currentTimeText = new()
+    private readonly TextBoxView _currentTimeText = new()
     {
         Content = "00:00",
         FontSize = 30,
@@ -32,7 +32,7 @@ public class TrackPlayer : Overlay
         }
     };
 
-    private readonly TextBox _endTimeText = new()
+    private readonly TextBoxView _endTimeText = new()
     {
         Content = "00:00",
         FontSize = 30,
@@ -44,7 +44,7 @@ public class TrackPlayer : Overlay
         }
     };
 
-    private readonly TextBox _nameText = new()
+    private readonly TextBoxView _nameText = new()
     {
         Content = "NAME",
         FontSize = 40,
@@ -70,7 +70,7 @@ public class TrackPlayer : Overlay
         Children =
         [
             _backgroundContainer,
-            new List
+            new ListView
             {
                 Axis = Axis.Column,
                 Padding = new Padding(5.0f, 10.0f),
@@ -84,17 +84,17 @@ public class TrackPlayer : Overlay
                     new ListSlot
                     {
                         Fit = CrossFit.Fill,
-                        Child = new Constraint
+                        Child = new ConstraintView
                         {
                             MinWidth = 500.0f,
-                            Child = new FlexBox
+                            Child = new FlexBoxView
                             {
                                 Axis = Axis.Row,
                                 Slots =
                                 [
                                     new FlexBoxSlot
                                     {
-                                        Child = new Sizer
+                                        Child = new SizerView
                                         {
                                             Child = _currentTimeText,
                                             WidthOverride = 100
@@ -102,9 +102,9 @@ public class TrackPlayer : Overlay
                                     },
                                     new FlexBoxSlot
                                     {
-                                        Child = new Sizer
+                                        Child = new SizerView
                                         {
-                                            Child = new ProgressBar(() => (float)(_stream.Position / _stream.Duration),onClick:
+                                            Child = new ProgressBarView(() => (float)(_stream.Position / _stream.Duration),onClick:
                                                 (progress) =>
                                                 {
                                                     _stream.SetPosition(progress * _stream.Duration);
@@ -120,7 +120,7 @@ public class TrackPlayer : Overlay
                                     },
                                     new FlexBoxSlot
                                     {
-                                        Child = new Sizer
+                                        Child = new SizerView
                                         {
                                             Child = _endTimeText,
                                             WidthOverride = 100
@@ -167,7 +167,7 @@ public class TrackPlayer : Overlay
             Console.WriteLine($"Using thumb {thumb} for {_nameText.Content}");
             _backgroundContainer.Add(new PanelSlot
             {
-                Child = new TrackImage(thumb)
+                Child = new TrackImageView(thumb)
                 {
                     BorderRadius = new Vector4(20.0f)
                 },
@@ -180,7 +180,7 @@ public class TrackPlayer : Overlay
             Console.WriteLine(e);
             _backgroundContainer.Add(new PanelSlot
             {
-                Child = new TrackImage("https://i.imgur.com/5fQUPDl.jpg")
+                Child = new TrackImageView("https://i.imgur.com/5fQUPDl.jpg")
                 {
                     BorderRadius = new Vector4(20.0f)
                 },

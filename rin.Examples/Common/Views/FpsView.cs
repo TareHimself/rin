@@ -7,7 +7,7 @@ using Rin.Framework.Views.Graphics;
 
 namespace rin.Examples.Common.Views;
 
-public class FpsView : TextBox
+public class FpsView : TextBoxView
 {
     private static readonly uint NumAveragedSamples = 3000;
     private readonly Averaged<double> _averageFps = new(0, NumAveragedSamples);

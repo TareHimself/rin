@@ -2,6 +2,7 @@
 using rin.Examples.Common.Views;
 using Rin.Framework;
 using Rin.Framework.Audio;
+using Rin.Framework.Audio.BassAudio;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Vulkan;
@@ -76,22 +77,22 @@ public class ViewsTestApplication : Application
     {
         if (IViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
-            var list = new List
+            var list = new ListView
             {
                 Axis = Axis.Row 
             };
             //https://samplelib.com/lib/preview/webm/sample-30s.webm
             var source = new FileVideoSource(Platform.SelectFile("Select a webm video", filter: "*.webm").First());//new HttpVideoSource(new Uri("https://samplelib.com/lib/preview/webm/sample-30s.webm"));// Platform.SelectFile("Select a webm video", filter: "*.webm").First();
             //var source = new HttpVideoSource(new Uri("https://b.catgirlsare.sexy/yTpGNCU13fu_.webm"));
-            surf.Add(new Panel
+            surf.Add(new PanelView
             {
                 Slots =
                 [
                     new PanelSlot()
                     {
-                        Child = new Fitter
+                        Child = new FitterView
                         {
-                            Child = VideoPlayer.FromSource(source),
+                            Child = VideoPlayerView.FromSource(source),
                             FittingMode = FitMode.Contain,
                             Padding = 50.0f,
                             Clip = Clip.Bounds
@@ -117,7 +118,7 @@ public class ViewsTestApplication : Application
                      ,
                      new PanelSlot
                      {
-                         Child = new BackgroundBlur
+                         Child = new BackgroundBlurView
                          {
                              Child = new FpsView(),
                              Padding = new Padding(20.0f),
@@ -138,11 +139,11 @@ public class ViewsTestApplication : Application
                 Task.Run(() =>
                 {
                     foreach (var objPath in e.Paths)
-                        list.Add(new TestAnimationSizer
+                        list.Add(new TestAnimationSizerView
                         {
                             WidthOverride = 200,
                             HeightOverride = 800,
-                            Child = new AsyncFileImage(objPath)
+                            Child = new AsyncFileImageView(objPath)
                             {
                                 BorderRadius = new Vector4(30.0f)
                             },
@@ -158,11 +159,11 @@ public class ViewsTestApplication : Application
                         .After(p =>
                         {
                             foreach (var path in p)
-                                list.Add(new TestAnimationSizer
+                                list.Add(new TestAnimationSizerView
                                 {
                                     WidthOverride = 200,
                                     HeightOverride = 800,
-                                    Child = new AsyncFileImage(path)
+                                    Child = new AsyncFileImageView(path)
                                     {
                                         BorderRadius = new Vector4(30.0f)
                                     },
@@ -171,7 +172,7 @@ public class ViewsTestApplication : Application
                         });
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Minus })
-                    list.Add(new TestAnimationSizer
+                    list.Add(new TestAnimationSizerView
                     {
                         WidthOverride = 200,
                         HeightOverride = 800,
@@ -183,11 +184,11 @@ public class ViewsTestApplication : Application
                     });
 
                 if (e is { State: InputState.Pressed, Key: InputKey.Zero })
-                    list.Add(new Sizer
+                    list.Add(new SizerView
                     {
                         WidthOverride = 200,
                         HeightOverride = 900,
-                        Child = new Canvas
+                        Child = new CanvasView
                         {
                             Paint = (canvas, transform, cmds) =>
                             {
@@ -206,18 +207,18 @@ public class ViewsTestApplication : Application
      {
          if (IViewsModule.Get().GetWindowSurface(renderer) is { } surf)
          {
-             var list = new WrapList
+             var list = new WrapListView
              {
                  Axis = Axis.Row
              };
 
-             surf.Add(new Panel
+             surf.Add(new PanelView
              {
                  Slots =
                  [
                      new PanelSlot
                      {
-                         Child = new ScrollList
+                         Child = new ScrollListView
                          {
                              Slots =
                              [
@@ -235,7 +236,7 @@ public class ViewsTestApplication : Application
                      },
                      new PanelSlot
                      {
-                         Child = new Rect
+                         Child = new RectView
                          {
                              Child = new FpsView(),
                              Padding = new Padding(20.0f),
@@ -256,7 +257,7 @@ public class ViewsTestApplication : Application
                      foreach (var objPath in e.Paths)
                          IApplication.Get().MainDispatcher.Enqueue(() => list.Add(new ListSlot
                          {
-                             Child = new WrapContainer(new AsyncFileImage(objPath)
+                             Child = new WrapContainer(new AsyncFileImageView(objPath)
                              {
                                  BorderRadius = new Vector4(30.0f)
                              }),
@@ -275,7 +276,7 @@ public class ViewsTestApplication : Application
                              IApplication.Get().MainDispatcher.Enqueue(() =>
                              {
                                  foreach (var path in p)
-                                     list.Add(new WrapContainer(new AsyncFileImage(path)
+                                     list.Add(new WrapContainer(new AsyncFileImageView(path)
                                      {
                                          BorderRadius = new Vector4(30.0f)
                                      }));
@@ -289,7 +290,7 @@ public class ViewsTestApplication : Application
                      }));
 
                  if (e is { State: InputState.Pressed, Key: InputKey.Zero })
-                     list.Add(new WrapContainer(new Canvas
+                     list.Add(new WrapContainer(new CanvasView
                      {
                          Paint = (canvas, transform, cmds) =>
                          {

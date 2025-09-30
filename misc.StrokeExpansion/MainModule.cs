@@ -24,7 +24,7 @@ public class MainModule : IModule, ISingletonGetter<MainModule>
         };
         SViewsModule.Get().OnSurfaceCreated += surface =>
         {
-            surface.Add(new Canvas
+            surface.Add(new CanvasView
             {
                 Paint = (@self, transform, cmds) =>
                 {

@@ -9,11 +9,11 @@ using Rin.Framework.Views.Events;
 
 namespace rin.Examples.AudioPlayer.Views;
 
-public class FilePicker : Button
+public class FilePicker : ButtonView
 {
     private readonly float _animDuration = 0.1f;
 
-    private readonly TextBox _statusText = new()
+    private readonly TextBoxView _statusText = new()
     {
         Content = "Select File's",
         FontSize = 24.0f

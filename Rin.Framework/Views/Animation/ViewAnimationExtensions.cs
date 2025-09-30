@@ -68,28 +68,28 @@ public static class ViewAnimationExtensions
     }
 
     public static AnimationSequence<T> HeightTo<T>(this T target, float to, float duration = 0.2f, float? from = null,
-        Func<float, float>? easingFunction = null) where T : Sizer
+        Func<float, float>? easingFunction = null) where T : SizerView
     {
         return target.Transition(() => from.GetValueOrDefault(target.HeightOverride.GetValueOrDefault(0)),
             a => target.HeightOverride = a, to, duration, easingFunction);
     }
 
     public static AnimationSequence<T> HeightTo<T>(this AnimationSequence<T> target, float to, float duration = 0.2f,
-        float? from = null, Func<float, float>? easingFunction = null) where T : Sizer
+        float? from = null, Func<float, float>? easingFunction = null) where T : SizerView
     {
         return target.Transition(() => from.GetValueOrDefault(target.Target.HeightOverride.GetValueOrDefault(0)),
             a => target.Target.HeightOverride = a, to, duration, easingFunction);
     }
 
     public static AnimationSequence<T> WidthTo<T>(this T target, float to, float duration = 0.2f, float? from = null,
-        Func<float, float>? easingFunction = null) where T : Sizer
+        Func<float, float>? easingFunction = null) where T : SizerView
     {
         return target.Transition(() => from.GetValueOrDefault(target.WidthOverride.GetValueOrDefault(0)),
             a => target.WidthOverride = a, to, duration, easingFunction);
     }
 
     public static AnimationSequence<T> WidthTo<T>(this AnimationSequence<T> target, float to, float duration = 0.2f,
-        float? from = null, Func<float, float>? easingFunction = null) where T : Sizer
+        float? from = null, Func<float, float>? easingFunction = null) where T : SizerView
     {
         return target.Transition(() => from.GetValueOrDefault(target.Target.WidthOverride.GetValueOrDefault(0)),
             a => target.Target.WidthOverride = a, to, duration, easingFunction);

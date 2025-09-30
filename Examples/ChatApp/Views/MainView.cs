@@ -3,7 +3,7 @@ using Rin.Framework.Views.Layouts;
 
 namespace ChatApp.Views;
 
-public class MainView : FlexBox
+public class MainView : FlexBoxView
 {
     public MainView()
     {
@@ -17,7 +17,7 @@ public class MainView : FlexBox
             },
             new FlexBoxSlot
             {
-                Child = new Rect
+                Child = new RectView
                 {
                     Child = new ChatView()
                 },

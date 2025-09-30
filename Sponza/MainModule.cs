@@ -16,7 +16,7 @@ using Rin.Engine.World.Components.Lights;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Mesh;
 using rin.Examples.Common.Views;
-using Rin.Sources;
+using Rin.Framework.Sources;
 using SharpGLTF.Schema2;
 using Texture = SharpGLTF.Schema2.Texture;
 

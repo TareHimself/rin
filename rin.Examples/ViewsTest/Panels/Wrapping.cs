@@ -2,6 +2,6 @@
 
 namespace rin.Examples.ViewsTest.Panels;
 
-public class Wrapping : Panel
+public class Wrapping : PanelView
 {
 }

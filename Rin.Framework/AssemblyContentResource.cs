@@ -1,5 +1,5 @@
 ﻿using System.Reflection;
-using Rin.Sources;
+using Rin.Framework.Sources;
 
 namespace Rin.Framework;
 

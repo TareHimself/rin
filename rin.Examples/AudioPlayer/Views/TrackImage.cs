@@ -7,9 +7,9 @@ using rin.Examples.Common.Views;
 
 namespace rin.Examples.AudioPlayer.Views;
 
-public class TrackImage : AsyncWebImage
+public class TrackImageView : AsyncWebImageView
 {
-    public TrackImage(string uri) : base(uri)
+    public TrackImageView(string uri) : base(uri)
     {
         OnLoaded += _ =>
         {

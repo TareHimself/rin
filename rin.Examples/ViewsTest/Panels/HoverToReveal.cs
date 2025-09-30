@@ -8,9 +8,9 @@ using Rin.Framework.Views.Layouts;
 
 namespace rin.Examples.ViewsTest.Panels;
 
-public class HoverToReveal : Panel
+public class HoverToReveal : PanelView
 {
-    private readonly List _items = new()
+    private readonly ListView _items = new()
     {
         Axis = Axis.Row
     };
@@ -31,18 +31,18 @@ public class HoverToReveal : Panel
         ];
     }
 
-    public void AddImage(Image image)
+    public void AddImage(ImageView image)
     {
         _items.Add(new ImageItem(image));
     }
 
-    private class ImageItem : Sizer
+    private class ImageItem : SizerView
     {
-        private readonly BackgroundBlur _blur = new();
+        private readonly BackgroundBlurView _blur = new();
 
-        public ImageItem(Image image)
+        public ImageItem(ImageView image)
         {
-            Child = new Overlay
+            Child = new OverlayView
             {
                 Children =
                 [
