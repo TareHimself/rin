@@ -8,7 +8,7 @@ using Rin.Framework.Views.Graphics;
 
 namespace rin.Examples.ViewsTest;
 
-public class WrapContainer : Button
+public class WrapContainer : ButtonView
 {
     private readonly View _content;
 
@@ -16,7 +16,7 @@ public class WrapContainer : Button
     {
         Color = Color.Transparent;
         _content = content;
-        var sizer = new Sizer
+        var sizer = new SizerView
         {
             WidthOverride = ViewsTestApplication.TileSize,
             HeightOverride = ViewsTestApplication.TileSize,
@@ -31,6 +31,7 @@ public class WrapContainer : Button
             var transitionDuration = 0.8f;
             var method = EasingFunctions.EaseInOutCubic;
             sizer
+                .StopAll()
                 .WidthTo(ViewsTestApplication.TileSize * 4f + 60.0f, transitionDuration, easingFunction: method)
                 .HeightTo(ViewsTestApplication.TileSize * 2f + 10.0f, transitionDuration, easingFunction: method)
                 .Delay(4)

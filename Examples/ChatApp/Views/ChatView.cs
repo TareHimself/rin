@@ -4,24 +4,23 @@ using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Content;
 using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Views.Layouts;
-using Rect = Rin.Framework.Views.Composite.Rect;
 
 namespace ChatApp.Views;
 
-public class ChatView : FlexBox
+public class ChatView : FlexBoxView
 {
-    private readonly List _chatItems = new();
+    private readonly ListView _chatItems = new();
 
-    private TextInputBox _inputText = new()
+    private TextInputBoxView _inputText = new()
     {
         FontSize = 20.0f
     };
 
-    private Button _sendButton = new()
+    private ButtonView _sendButton = new()
     {
         Padding = 5.0f,
         BorderRadius = new Vector4(2.0f),
-        Child = new TextBox
+        Child = new TextBoxView
         {
             Content = "Send",
             FontSize = 20.0f
@@ -37,7 +36,7 @@ public class ChatView : FlexBox
         [
             new FlexBoxSlot
             {
-                Child = new Canvas
+                Child = new CanvasView
                 {
                     Paint = (self, transform, cmds) => { cmds.AddText(transform, "Noto Sans", "Hello World", 60.0f); }
                 }, //_chatItems,
@@ -46,26 +45,26 @@ public class ChatView : FlexBox
             },
             new FlexBoxSlot
             {
-                Child = new Sizer
+                Child = new SizerView
                 {
                     HeightOverride = 50,
-                    Child = new FlexBox
+                    Child = new FlexBoxView
                     {
                         Axis = Axis.Row,
                         Slots =
                         [
                             new FlexBoxSlot
                             {
-                                Child = new Rect
+                                Child = new RectView
                                 {
                                     Color = Color.Green,
-                                    Child = new Panel
+                                    Child = new PanelView
                                     {
                                         Slots =
                                         [
                                             new PanelSlot
                                             {
-                                                Child = new TextInputBox
+                                                Child = new TextInputBoxView
                                                 {
                                                     FontSize = 20.0f
                                                 },
@@ -79,9 +78,9 @@ public class ChatView : FlexBox
                             },
                             new FlexBoxSlot
                             {
-                                Child = new Sizer
+                                Child = new SizerView
                                 {
-                                    Child = new Rect
+                                    Child = new RectView
                                     {
                                         Color = Color.Red
                                     },

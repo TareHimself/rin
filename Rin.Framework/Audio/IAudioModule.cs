@@ -2,6 +2,7 @@
 
 public interface IAudioModule : IModule, IUpdatable
 {
+    public float GetVolume();
     public void SetVolume(float volume);
     public IStream CreateStream(Stream source);
     public IPushStream CreatePushStream(int frequency, int channels);

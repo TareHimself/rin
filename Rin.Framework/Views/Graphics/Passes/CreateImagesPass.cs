@@ -15,6 +15,7 @@ public class CreateImagesPass : IPass
 
     public uint Id { get; set; }
     public bool IsTerminal => false;
+    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {

@@ -5,7 +5,7 @@ using Rin.Framework.Views.Composite;
 namespace Rin.Framework.Views.Layouts;
 
 /// <summary>
-///     Describes how a <see cref="View" /> will be sized and positioned in a <see cref="Panel" />. Supports Anchors
+///     Describes how a <see cref="View" /> will be sized and positioned in a <see cref="PanelView" />. Supports Anchors
 ///     Slot = <see cref="PanelSlot" />
 /// </summary>
 public class PanelSlot : Slot

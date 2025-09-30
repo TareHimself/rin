@@ -33,7 +33,7 @@ public interface ISurface : IDisposable, IUpdatable
     public bool RequestFocus(IView requester);
 
     [PublicAPI]
-    public SurfaceContext? BuildPasses(IGraphBuilder builder);
+    public CommandList? CollectCommands();
 
     public void ReceiveCursorEnter(CursorMoveSurfaceEvent e);
 

@@ -8,6 +8,8 @@ public class CopySurfaceToSwapchain(SurfaceContext context) : IPass
 {
     private uint _swapchainImageId;
 
+    public Action? OnPrune => null;
+
     public void Configure(IGraphConfig config)
     {
         config.ReadTexture(context.MainImageId, ImageLayout.TransferSrc);

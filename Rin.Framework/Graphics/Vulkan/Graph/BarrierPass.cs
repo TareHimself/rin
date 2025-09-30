@@ -28,6 +28,7 @@ internal class BarrierPass(IEnumerable<BufferResourceSync> buffers, IEnumerable<
 {
     public uint Id { get; set; }
     public bool IsTerminal => false;
+    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {

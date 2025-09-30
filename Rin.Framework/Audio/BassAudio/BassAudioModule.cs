@@ -1,7 +1,6 @@
 ﻿using ManagedBass;
-using Rin.Framework.Audio.BassAudio;
 
-namespace Rin.Framework.Audio;
+namespace Rin.Framework.Audio.BassAudio;
 
 public class BassAudioModule : IAudioModule
 {

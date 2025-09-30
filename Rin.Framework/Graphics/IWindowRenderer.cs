@@ -5,7 +5,7 @@ namespace Rin.Framework.Graphics;
 
 public interface IWindowRenderer : IRenderer
 {
-    public event Action<IGraphBuilder>? OnCollect;
+    public event Action<IGraphCollector>? OnCollect;
 
     public IWindow GetWindow();
 

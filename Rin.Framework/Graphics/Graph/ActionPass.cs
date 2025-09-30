@@ -15,6 +15,8 @@ public class ActionPass(
 {
     public string Name { get; } = name ?? $"unknown-pass-{Guid.NewGuid().ToString()}";
 
+    public Action? OnPrune { get; } = null;
+
     public void Configure(IGraphConfig config)
     {
         configure(this, config);

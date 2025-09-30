@@ -10,6 +10,7 @@
         <Title>Rin.Framework</Title>
         <Authors>TareHimself</Authors>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Version>2.0.1</Version>
     </PropertyGroup>
 
     <ItemGroup>
@@ -77,15 +78,7 @@
         <None Include=".\native\build\$(Configuration)\$(Configuration)\*.*"
                  Pack="true"
                  PackagePath="runtimes\$(PlatformRID)\native\%(Filename)%(Extension)" />
-    </ItemGroup>
-    
-    <ItemGroup>
-        <ProjectReference Include="..\Rin.Sources\Rin.Sources.csproj"/>
-    </ItemGroup>
-    
-    <ItemGroup>
-      <Folder Include="Graphics\Descriptors\" />
-      <Folder Include="Graphics\Vulkan\Window\" />
+        <None Include=".\ReadMe.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
     <PropertyGroup>

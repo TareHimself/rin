@@ -1,14 +1,13 @@
 ﻿using Rin.Framework.Views;
 using Rin.Framework.Views.Composite;
-using Rect = Rin.Framework.Views.Composite.Rect;
 
 namespace ChatApp.Views;
 
-public class SidePanel : Sizer
+public class SidePanel : SizerView
 {
     public SidePanel()
     {
-        Child = new Rect
+        Child = new RectView
         {
             Color = Color.Red
         };

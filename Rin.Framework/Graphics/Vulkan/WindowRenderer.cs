@@ -170,7 +170,7 @@ public class WindowRenderer : IWindowRenderer
         DoExecute(ctx);
     }
 
-    public event Action<IGraphBuilder>? OnCollect;
+    public event Action<IGraphCollector>? OnCollect;
 
     private void SetupGlobalDescriptors()
     {
@@ -315,21 +315,21 @@ public class WindowRenderer : IWindowRenderer
 
         var frame = GetCurrentFrame();
 
-        var builder = new GraphBuilder(_resourcePool);
+        
 
         if (OnCollect == null || OnCollect.GetInvocationList().Length == 0) return null;
 
         var extent = _window.GetSize();
 
-        OnCollect?.Invoke(builder);
-
-        builder.AddPass(new PrepareForPresentPass()); // Always terminal
+        var collector = new GraphCollector();
+        
+        OnCollect?.Invoke(collector);
 
         return new RenderData
         {
             Renderer = this,
             TargetFrame = frame,
-            GraphBuilder = builder,
+            Collector = collector,
             RenderExtent = extent
         };
     }
@@ -342,9 +342,14 @@ public class WindowRenderer : IWindowRenderer
             try
             {
                 var frame = ctx.TargetFrame;
+                
+                
+                var builder = new GraphBuilder(_resourcePool,frame);
+                Profiling.Begin("Engine.Rendering.Graph.Build");
+                ctx.Collector.Write(builder); // Build the passes from the collector
+                builder.AddPass(new PrepareForPresentPass()); // Always terminal
+                Profiling.End("Engine.Rendering.Graph.Build");
                 var device = _module.GetDevice();
-
-
                 CheckResult(frame.WaitForLastDraw());
 
                 _resourcePool.OnFrameStart(_framesRendered);
@@ -367,10 +372,10 @@ public class WindowRenderer : IWindowRenderer
                     VulkanView = _swapchainViews[swapchainImageIndex]
                 };
 
-                ctx.SwapchainImageId = ctx.GraphBuilder.AddDestinationTexture(swapchainImage);
+                ctx.SwapchainImageId = builder.AddDestinationTexture(swapchainImage);
 
                 Profiling.Begin("Engine.Rendering.Graph.Compile");
-                var graph = ctx.GraphBuilder.Compile(frame);
+                var graph = builder.Compile();
                 Profiling.End("Engine.Rendering.Graph.Compile");
 
                 Debug.Assert(graph != null,
@@ -469,7 +474,7 @@ public class WindowRenderer : IWindowRenderer
     private class RenderData : IRenderData
     {
         public required Frame TargetFrame { get; init; }
-        public required IGraphBuilder GraphBuilder { get; init; }
+        public required IGraphCollector Collector { get; init; }
         public Extent2D RenderExtent { get; init; }
         public uint SwapchainImageId { get; set; }
         public required IRenderer Renderer { get; init; }

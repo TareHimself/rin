@@ -43,9 +43,12 @@ public class WindowSurface : Surface, IWindowSurface
         Window.OnCursorFocus += OnCursorFocus;
     }
 
-    private void Collect(IGraphBuilder builder)
+    private void Collect(IGraphCollector collector)
     {
-        if (BuildPasses(builder) is { } context) builder.AddPass(new CopySurfaceToSwapchain(context));
+        if (CollectCommands() is { } cmds)
+        {
+            collector.Add(new WindowSurfaceCollectedData(cmds));
+        }
     }
 
     protected void OnWindowResized(ResizeEvent e)
