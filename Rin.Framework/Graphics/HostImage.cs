@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using NetVips;
+using Rin.Framework.Buffers;
 using Rin.Framework.Graphics.Images;
 using VipsImage = NetVips.Image;
 using VipsMutableImage = NetVips.MutableImage;

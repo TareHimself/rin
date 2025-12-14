@@ -1,6 +1,6 @@
 using System.Numerics;
 using Rin.Framework.Graphics.Meshes;
-using Rin.Framework.Math;
+using Rin.Framework.Shared.Math;
 
 namespace Rin.Engine.World.Mesh.Skinning;
 

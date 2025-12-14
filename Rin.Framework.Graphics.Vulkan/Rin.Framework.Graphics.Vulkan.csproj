@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Authors>TareHimself</Authors>
+        <PackageId>TareHimself.Rin.Framework.Graphics.Vulkan</PackageId>
+        <Title>Rin.Framework.Graphics.Vulkan</Title>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <PlatformRID Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</PlatformRID>
+        <PlatformRID Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</PlatformRID>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Windows'))">OS_WINDOWS</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Linux'))">OS_LINUX</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('OSX'))">OS_MAC</DefineConstants>
+        <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*;assets\**\*.*</DefaultItemExcludes>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <DepMode Condition="'$(DepMode)' == ''">local_file</DepMode>
+    </PropertyGroup>
+    <!--    Local refs i.e. project refs-->
+    <ItemGroup Condition="'$(DepMode)' == 'local_file'">
+        <ProjectReference Include="..\Rin.Framework\Rin.Framework.csproj"/>
+    </ItemGroup>
+    <!--    References from online feeds-->
+    <ItemGroup Condition="'$(DepMode)' == 'online'">
+        <PackageReference Include="TareHimself.Rin.Framework" Version="2.0.1" />
+    </ItemGroup>
+    <!--    References from local feeds-->
+    <ItemGroup Condition="'$(DepMode)' == 'local_feed'">
+        <PackageReference Include="TareHimself.Rin.Framework" Version="1.0.0-local" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="TareHimself.Rin.Framework.Graphics.Vulkan.NativeLibs" Version="1.0.0-win" />
+      <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.3.268" />
+    </ItemGroup>
+</Project>

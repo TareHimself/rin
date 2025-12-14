@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using JetBrains.Annotations;
+using Rin.Framework.Shared.Providers;
 using Rin.Framework.Sources;
 
 namespace Rin.Framework;

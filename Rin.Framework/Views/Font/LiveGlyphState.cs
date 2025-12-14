@@ -1,7 +1,7 @@
 ﻿namespace Rin.Framework.Views.Font;
 
 /// <summary>
-///     The current state of a glypj
+///     The current state of a glyph
 /// </summary>
 public enum LiveGlyphState
 {

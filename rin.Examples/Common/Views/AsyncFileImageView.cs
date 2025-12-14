@@ -30,7 +30,7 @@ public class AsyncFileImageView : CoverImageView
     {
         using var image = HostImage.Create(File.OpenRead(filePath)); //await Image.LoadAsync<Rgba32>(filePath);
         await image.CreateTexture(out var handle);
-        await IApplication.Get().MainDispatcher.Enqueue(() => ImageId = handle);
+        await IApplication.Get().MainDispatcher.Enqueue(() => ImageHandle = handle);
     }
 
     // public override void Draw(ViewFrame frame, DrawInfo info)
@@ -45,14 +45,14 @@ public class AsyncFileImageView : CoverImageView
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
-        if (!ImageId.IsValid()) return availableSpace;
+        if (!ImageHandle.IsValid()) return availableSpace;
 
         return base.LayoutContent(availableSpace);
     }
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        if (!ImageId.IsValid())
+        if (!ImageHandle.IsValid())
         {
             var opacity = (float)Math.Abs(Math.Sin(IApplication.Get().TimeSeconds * 4.0f)) * 0.7f;
             commands.AddRect(transform, GetContentSize(), new Color(0.8f, opacity), BorderRadius);

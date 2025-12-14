@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
-using Rin.Framework.Math;
 using Rin.Framework.Views.Graphics.CommandHandlers;
 using Rin.Framework.Graphics;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Graphics.Commands;
 using Rin.Framework.Views.Graphics.PassConfigs;
 

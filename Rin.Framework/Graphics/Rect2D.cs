@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Framework.Math;
+using Rin.Framework.Shared.Math;
 
 namespace Rin.Framework.Graphics;
 
@@ -18,6 +18,12 @@ public record struct Rect2D
         Size = size;
     }
     
+    /// <summary>
+    /// Creates a rect that is the AABB of the transformed rect
+    /// </summary>
+    /// <param name="offset"></param>
+    /// <param name="size"></param>
+    /// <param name="transform"></param>
     public Rect2D(in Vector2 offset, in Vector2 size,in Matrix4x4 transform)
     {
         var tl = offset;
@@ -79,6 +85,7 @@ public record struct Rect2D
             return a1.X <= b2.X && b1.Y <= a2.Y; // A top right B bottom left
         return a1.X <= b2.X && a1.Y <= b2.Y; // A bottom right B top left
     }
+    
 
     /// <summary>
     ///     Clamps this rect to the specified area
@@ -113,7 +120,7 @@ public record struct Rect2D
         return new Pair<Vector2, Vector2>(rect.Offset, rect.Offset + rect.Size);
     }
 
-    public static bool PointWithin(Vector2 size, Matrix4x4 transform, Vector2 point, bool useInverse = false)
+    public static bool PointWithin(in Vector2 size, in Matrix4x4 transform, in Vector2 point, bool useInverse = false)
     {
         var tl = Vector2.Zero;
         var br = tl + size;

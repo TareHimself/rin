@@ -28,7 +28,7 @@ public class BackgroundBlurView : SingleSlotCompositeView
             //commands.AddBlur(transform, GetContentSize(), Strength, Radius, Tint);
             // commandList.Add(new ReadBack());
             commands.AddPath(Matrix4x4.Identity).LineTo(new Vector2(100, 0)).Stroke();
-            commands.AddBlur(transform, Size, Strength, Radius, Tint);
+            commands.AddBlur(transform, GetSize(), Strength, Radius, Tint);
         }
 
         base.Collect(transform, clip, commands);

@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
-using Rin.Framework.Audio.BassAudio;
 using Rin.Framework.Views;
 using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Layouts;
 using rin.Examples.Common.Views;
+using Rin.Framework.Audio;
 using Clip = Rin.Framework.Views.Clip;
 
 namespace rin.Examples.AudioPlayer.Views;
@@ -67,7 +67,7 @@ public class MainPanelView : PanelView
     {
         foreach (var file in files)
         {
-            var player = new TrackPlayer(Path.GetFileNameWithoutExtension(file), BassStreamChannel.FromFile(file));
+            var player = new TrackPlayer(Path.GetFileNameWithoutExtension(file),IAudioModule.Get().CreateStream(file));
             _trackPlayers.Add(player);
         }
     }

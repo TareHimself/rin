@@ -38,7 +38,7 @@ public class SwitcherView : MultiSlotCompositeView<Slot>
         {
             var view = slot.Child;
 
-            if (view.Size.Equals(availableSpace)) return view.Size;
+            if (view.GetSize().Equals(availableSpace)) return view.GetSize();
 
             view.Offset = default;
             return view.ComputeSize(availableSpace);

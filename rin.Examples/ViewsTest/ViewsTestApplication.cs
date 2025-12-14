@@ -1,11 +1,9 @@
 ﻿using System.Numerics;
+using rin.Examples.Common;
 using rin.Examples.Common.Views;
 using Rin.Framework;
-using Rin.Framework.Audio;
-using Rin.Framework.Audio.BassAudio;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Vulkan;
 using Rin.Framework.Graphics.Windows;
 using Rin.Framework.Video;
 using Rin.Framework.Views;
@@ -16,34 +14,21 @@ using Rin.Framework.Views.Layouts;
 
 namespace rin.Examples.ViewsTest;
 
-public class ViewsTestApplication : Application
+public class ViewsTestApplication : ExampleApplication
 {
     public static readonly int TileSize = 400;
-    public override IGraphicsModule CreateGraphicsModule()
-    {
-        return new VulkanGraphicsModule();
-    }
-
-    public override IViewsModule CreateViewsModule()
-    {
-        return new ViewsModule();
-    }
-
-    public override IAudioModule CreateAudioModule()
-    {
-        return new BassAudioModule();
-    }
 
     protected override void OnStartup()
     {
-        {
-            var manager = IViewsModule.Get().FontManager;
-            if (manager.GetFont("Noto Sans") is { } font)
-                manager
-                    .PrepareAtlas(font, Enumerable.Range(32, 127).Select(c => (char)c).Where(c => c.IsPrintable()))
-                    .Wait();
-        }
-        IGraphicsModule.Get().OnWindowRendererCreated += TestWrapping;
+        SFramework.Provider.AddSingle(new ImageLoader());
+        // {
+        //     var manager = IViewsModule.Get().FontManager;
+        //     if (manager.GetFont("Noto Sans") is { } font)
+        //         manager
+        //             .PrepareAtlas(font, Enumerable.Range(32, 127).Select(c => (char)c).Where(c => c.IsPrintable()))
+        //             .Wait();
+        // }
+        IGraphicsModule.Get().OnWindowRendererCreated += TestAnimation;
         IGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         IGraphicsModule.Get().CreateWindow("Views Test", new Extent2D(500), WindowFlags.Visible | WindowFlags.Resizable);
     }
@@ -205,14 +190,30 @@ public class ViewsTestApplication : Application
     
          public void TestWrapping(IWindowRenderer renderer)
      {
-         if (IViewsModule.Get().GetWindowSurface(renderer) is { } surf)
+         if (IViewsModule.Get().GetWindowSurface(renderer) is { } surface)
          {
+             // surface.Add(new ScrollListView
+             // {
+             //     Children =
+             //     [
+             //         new NetworkImageView("https://b.catgirlsare.sexy/Yi9G5BhZeGWL.png"),
+             //         new NetworkImageView("https://b.catgirlsare.sexy/Yi9G5BhZeGWL.png"),
+             //     ],
+             //     Axis = Axis.Row,
+             //     FloatingBar = true,
+             //     BarPadding = 2
+             // });
+             // // surface.Add(new BackgroundBlurView
+             // // {
+             // //     
+             // // });
+             // return;
              var list = new WrapListView
              {
                  Axis = Axis.Row
              };
 
-             surf.Add(new PanelView
+             surface.Add(new PanelView
              {
                  Slots =
                  [
@@ -220,6 +221,7 @@ public class ViewsTestApplication : Application
                      {
                          Child = new ScrollListView
                          {
+                             Axis = Axis.Row,
                              Slots =
                              [
                                  new ListSlot
@@ -250,7 +252,7 @@ public class ViewsTestApplication : Application
                      }
                  ]
              });
-             surf.Window.OnDrop += e =>
+             surface.Window.OnDrop += e =>
              {
                  Task.Run(() =>
                  {
@@ -267,7 +269,7 @@ public class ViewsTestApplication : Application
              };
 
              var rand = new Random();
-             surf.Window.OnKey += e =>
+             surface.Window.OnKey += e =>
              {
                  if (e is { State: InputState.Pressed, Key: InputKey.Equal })
                      Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))

@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Framework.Extensions;
-using Rin.Framework.Math;
 using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
 using Timer = System.Timers.Timer;
@@ -37,9 +37,9 @@ public class TextInputBoxView : TextBoxView
         _typingTimer.Start();
     }
 
-    public override bool OnCursorDown(CursorDownSurfaceEvent e)
+    public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
     {
-        return true;
+        e.Target = this;
     }
 
     public override void OnCharacter(CharacterSurfaceEvent e)

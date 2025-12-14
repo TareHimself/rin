@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Framework.Extensions;
-using Rin.Framework.Math;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics.CommandHandlers;
@@ -122,10 +122,6 @@ public abstract class Surface : ISurface
             _lastCursorDownEvent = e;
             if (e.Target is { IsFocusable: true } target && FocusedView != target) RequestFocus(target);
         }
-        else
-        {
-            _lastCursorDownEvent = null;
-        }
     }
 
     public virtual void ReceiveCursorUp(CursorUpSurfaceEvent e)
@@ -142,32 +138,38 @@ public abstract class Surface : ISurface
     {
         _rootView.HandleEvent(e, Matrix4x4.Identity);
         _lastHovered.AddRange(e.Over);
+        _lastCursorDownEvent?.Target?.OnCursorMove(e,_lastCursorDownEvent.Target.ComputeAbsoluteContentTransform());
+        // if (_lastCursorDownEvent?.Target is { } target && !e.Over.Contains(target))
+        // {
+        //     
+        // }
+
         // Maybe leave this to the event handler in the future
-        if (_lastCursorDownEvent is { } lastEvent)
-        {
-            if(_lastCursorDownEvent.Target == e.Target) return;
-            
-            var dist = lastEvent.Position.DistanceTo(e.Position);
-            if (dist > 5.0)
-            {
-                var newEvent = new CursorDownSurfaceEvent(this, lastEvent.Button, e.Position);
-                var parent = lastEvent.Target?.Parent;
-                while (parent != null)
-                {
-                    newEvent.Target = parent;
-                    if (parent.OnCursorDown(newEvent))
-                    {
-                        lastEvent.Target = parent;
-                        lastEvent.Position = newEvent.Position;
-                        break;
-                    }
-
-                    parent = parent.Parent;
-                }
-
-                _lastCursorDownEvent.Position = e.Position;
-            }
-        }
+        // if (_lastCursorDownEvent is { } lastEvent)
+        // {
+        //     if(_lastCursorDownEvent.Target == e.Target) return;
+        //     
+        //     var dist = lastEvent.Position.DistanceTo(e.Position);
+        //     if (dist > 5.0)
+        //     {
+        //         var newEvent = new CursorDownSurfaceEvent(this, lastEvent.Button, e.Position);
+        //         var parent = lastEvent.Target?.Parent;
+        //         while (parent != null)
+        //         {
+        //             newEvent.Target = parent;
+        //             if (parent.OnCursorDown(newEvent))
+        //             {
+        //                 lastEvent.Target = parent;
+        //                 lastEvent.Position = newEvent.Position;
+        //                 break;
+        //             }
+        //
+        //             parent = parent.Parent;
+        //         }
+        //
+        //         _lastCursorDownEvent.Position = e.Position;
+        //     }
+        // }
     }
 
     public virtual void ReceiveScroll(ScrollSurfaceEvent e)

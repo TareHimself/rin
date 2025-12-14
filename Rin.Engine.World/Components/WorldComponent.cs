@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Math;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Math;
+using Rin.Framework.Shared.Math;
 
 namespace Rin.Engine.World.Components;
 

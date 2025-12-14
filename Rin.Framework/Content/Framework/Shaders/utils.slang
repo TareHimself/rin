@@ -1,5 +1,6 @@
 #pragma once
 #include "Framework/Shaders/operators.slang"
+#include "Framework/Shaders/sd.slang"
 
 // Transform normal without inverse https://lxjk.github.io/2017/10/01/Stop-Using-Normal-Matrix.html
 float3 transformNormal(float3 normal, float4x4 transformation)
@@ -281,15 +282,7 @@ float sdfConvex4(float2 point, float2[4] points)
     return d * sign(r1.side + r2.side + r3.side + r4.side + 4.0 - 0.5);
 }
 
-// https://www.shadertoy.com/view/fsdyzB
-float roundedBoxSDF(float2 center, float2 size, float4 radius)
-{
-    radius.xy = (center.x > 0.0) ? radius.xy : radius.zw;
-    radius.x = (center.y > 0.0) ? radius.x : radius.y;
 
-    float2 q = abs(center) - size + radius.x;
-    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius.x;
-}
 
 // https://www.shadertoy.com/view/WtdSDs
 float4 applyBorderRadius(float2 fragPosition, float4 color, float4 radius, float2 size, float3x3 transform)
@@ -302,7 +295,7 @@ float4 applyBorderRadius(float2 fragPosition, float4 color, float4 radius, float
 
     float2 halfSize = size / 2.0f;
     // Calculate distance to edge.
-    float distance = roundedBoxSDF(transformedFrag - halfSize, halfSize, radius);
+    float distance = sdRoundedBox(transformedFrag - halfSize, halfSize, radius);
 
     // Smooth the result (free antialiasing).
     float smoothedAlpha = smoothstep(0.0f, edgeSoftness, distance);
@@ -310,7 +303,24 @@ float4 applyBorderRadius(float2 fragPosition, float4 color, float4 radius, float
     return lerp(color, float4(color.xyz, 0.0), smoothedAlpha);
 }
 
-float4 applyBorderRadius(float2 fragPosition, float4 color, float4 radius, float2 size, float4x4 transform)
+// float4 applyBorderRadius(float2 fragPosition, float4 color, float4 radius, float2 size, float4x4 transform)
+// {
+
+//     float2 transformedFrag = inverse(transform) * fragPosition;
+
+//     // How soft the edges should be (in pixels). Higher values could be used to simulate a drop shadow.
+//     float edgeSoftness = 1.0f;
+
+//     float2 halfSize = size / 2.0f;
+//     // Calculate distance to edge.
+//     float distance = roundedBoxSDF(transformedFrag - halfSize, halfSize, radius);
+
+//     // Smooth the result (free antialiasing).
+//     float smoothedAlpha = smoothstep(0.0f, edgeSoftness, distance);
+
+//     return lerp(color, float4(color.xyz, 0.0), smoothedAlpha);
+// }
+float4 applyBorderRadius(float2 fragPosition,float4 color, float4 radius, float2 size, float4x4 transform,float transition = 1.0f)
 {
 
     float2 transformedFrag = inverse(transform) * fragPosition;
@@ -320,10 +330,10 @@ float4 applyBorderRadius(float2 fragPosition, float4 color, float4 radius, float
 
     float2 halfSize = size / 2.0f;
     // Calculate distance to edge.
-    float distance = roundedBoxSDF(transformedFrag - halfSize, halfSize, radius);
+    float distance = sdRoundedBox(transformedFrag - halfSize, halfSize, radius);
 
     // Smooth the result (free antialiasing).
-    float smoothedAlpha = smoothstep(0.0f, edgeSoftness, distance);
+    float smoothedAlpha = smoothstep(0.0f, transition, distance);
 
     return lerp(color, float4(color.xyz, 0.0), smoothedAlpha);
 }

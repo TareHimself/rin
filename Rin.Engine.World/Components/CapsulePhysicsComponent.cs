@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
-using Rin.Framework.Math;
 using Rin.Engine.World.Physics;
+using Rin.Framework.Shared.Math;
 
 namespace Rin.Engine.World.Components;
 

@@ -102,5 +102,8 @@
         "semaphore": "cpp"
     },
     "cmake.sourceDirectory": "D:/Github/rin/standalone",
-    "editor.multiCursorModifier": "alt"
+    "editor.multiCursorModifier": "alt",
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    "python-envs.pythonProjects": []
 }

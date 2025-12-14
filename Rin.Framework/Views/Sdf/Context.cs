@@ -4,9 +4,9 @@ using Rin.Framework.Graphics;
 namespace Rin.Framework.Views.Sdf;
 
 /// <summary>
-///     Generates a MSDF/MTSDF using <a href="https://github.com/Chlumsky/msdfgen">msdfgen</a>
+/// Generates a MSDF/MTSDF using <a href="https://github.com/Chlumsky/msdfgen">msdfgen</a>
 /// </summary>
-public class Context : IDisposable
+public class SdfBuilder : IDisposable
 {
     private IntPtr _context = Native.Sdf.ContextNew();
 
@@ -15,21 +15,38 @@ public class Context : IDisposable
         OnDispose();
         GC.SuppressFinalize(this);
     }
+    
+    public SdfBuilder BeginContour()
+    {
+        Native.Sdf.ContextBeginContour(_context);
+        return this;
+    }
+    
+    public SdfBuilder EndContour()
+    {
+        Native.Sdf.ContextEndContour(_context);
+        return this;
+    }
 
-    public Context MoveTo(Vector2 point)
+    /// <summary>
+    /// Ends the current contour, starts a new contour and moves the position of the cursor
+    /// </summary>
+    /// <param name="point"></param>
+    /// <returns></returns>
+    public SdfBuilder MoveTo(Vector2 point)
     {
         Native.Sdf.ContextMoveTo(_context, ref point);
         return this;
     }
 
-    public Context QuadraticBezierTo(Vector2 control, Vector2 point)
+    public SdfBuilder QuadraticBezierTo(Vector2 control, Vector2 point)
     {
         Native.Sdf.ContextQuadraticBezierTo(_context, ref control, ref point);
         return this;
     }
 
 
-    public Context CubicBezierTo(Vector2 control1,
+    public SdfBuilder CubicBezierTo(Vector2 control1,
         Vector2 control2,
         Vector2 point)
     {
@@ -37,23 +54,23 @@ public class Context : IDisposable
         return this;
     }
 
-    public Context LineTo(Vector2 point)
+    public SdfBuilder LineTo(Vector2 point)
     {
         Native.Sdf.ContextLineTo(_context, ref point);
         return this;
     }
 
     /// <summary>
-    ///     Stop drawing the vector
+    /// Stop drawing the vector
     /// </summary>
     /// <returns></returns>
-    public Context End()
+    public SdfBuilder Finish()
     {
-        Native.Sdf.ContextEnd(_context);
+        Native.Sdf.ContextFinish(_context);
         return this;
     }
-
-    public SdfResult? GenerateMsdf(float angleThreshold, float pixelRange)
+    
+    public SdfResult? GenerateMSDF(float angleThreshold, float pixelRange)
     {
         SdfResult? result = null;
 
@@ -66,7 +83,7 @@ public class Context : IDisposable
         return result;
     }
 
-    public SdfResult? GenerateMtsdf(float angleThreshold, float pixelRange)
+    public SdfResult? GenerateMTSDF(float angleThreshold, float pixelRange)
     {
         SdfResult? result = null;
 
@@ -86,7 +103,7 @@ public class Context : IDisposable
         _context = IntPtr.Zero;
     }
 
-    ~Context()
+    ~SdfBuilder()
     {
         OnDispose();
     }

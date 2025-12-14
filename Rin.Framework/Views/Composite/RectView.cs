@@ -34,7 +34,7 @@ public class RectView : SingleSlotCompositeView
 
     protected virtual void CollectSelf(Matrix4x4 transform, CommandList cmds)
     {
-        if (Color.A > 0.0f) cmds.AddRect(transform, Size, Color, BorderRadius);
+        if (Color.A > 0.0f) cmds.AddRect(transform, GetSize(), Color, BorderRadius);
     }
 
     public override IEnumerable<ISlot> GetSlots()

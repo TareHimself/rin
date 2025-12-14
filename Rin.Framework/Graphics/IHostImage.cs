@@ -1,4 +1,5 @@
-﻿using Rin.Framework.Graphics.Images;
+﻿using Rin.Framework.Buffers;
+using Rin.Framework.Graphics.Images;
 
 namespace Rin.Framework.Graphics;
 

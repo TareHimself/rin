@@ -40,6 +40,16 @@ public class PanelSlot : Slot
         get => Size;
         set => Size = value;
     }
+    
+    [PublicAPI]
+    public Vector2 Anchor
+    {
+        set
+        {
+            MinAnchor = value;
+            MaxAnchor = value;
+        }
+    }
 
     public bool SizeToContent { get; set; } = false;
 

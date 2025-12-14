@@ -1,4 +1,5 @@
 ﻿using System.Buffers.Binary;
+using Rin.Framework.Shared;
 
 namespace Rin.Framework.Extensions;
 

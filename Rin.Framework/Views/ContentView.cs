@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using Rin.Framework.Math;
 using Rin.Framework.Animation;
 using Rin.Framework.Graphics;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Graphics;
 
 namespace Rin.Framework.Views;

@@ -1,10 +1,15 @@
 #include "Framework/Shaders/utils.slang"
 #include "Framework/Shaders/sd.slang"
 #include "Framework/Shaders/images.slang"
+#include "Framework/Shaders/type_alias.slang"
 #include "Framework/Shaders/Attributes/blending.slang"
 enum QuadMode
 {
-    Primitive,
+    Line,
+    Circle,
+    Rectangle,
+    QuadraticCurve,
+    CubicCurve,
     Texture,
     Mtsdf,
     ColorWheel
@@ -12,11 +17,7 @@ enum QuadMode
 
 enum PrimitiveType
 {
-    Line,
-    Circle,
-    Rectangle,
-    QuadraticCurve,
-    CubicCurve
+    
 }
 
 struct Quad
@@ -25,7 +26,7 @@ struct Quad
     int4 opts;
     float2 size;
     float4x4 transform;
-};
+}
 
 struct CompleteQuad {
     Quad super;
@@ -33,12 +34,82 @@ struct CompleteQuad {
     float4 data[8];
 }
 
+struct Primitive {
+    Quad super;
+    PrimitiveType type;
+    float4 data[4];
+    float4 data2;
+    float4 data3;
+    float4 data4;
+}
+
+struct Texture {
+    Quad super;
+    ImageHandle textureHandle;
+    float4 tint;
+    float4 uv;
+    float4 borderRadius;
+}
+
+struct Mtsdf {
+    Quad super;
+    ImageHandle textureHandle;
+    float4 color;
+    float4 uv;
+}
+
+struct LineData
+{
+    Quad super;
+    Color color;
+    Vector2 begin;
+    Vector2 end;
+    float thickness;
+}
+
+struct CircleData
+{
+    Quad super;
+    float4x4 inverseTransform;
+    Color color;
+    float radius;
+}
+
+struct RectangleData
+{
+    Quad super;
+    float4x4 inverseTransform;
+    Color color;
+    Vector4 borderRadius;
+}
+
+struct QuadraticCurveData
+{
+    Quad super;
+    Color color;
+    Vector2 begin;
+    Vector2 end;
+    Vector2 control;
+    float thickness;
+}
+
+struct CubicCurveData
+{
+    Quad super;
+    Color color;
+    Vector2 begin;
+    Vector2 end;
+    Vector2 controlA;
+    Vector2 controlB;
+    float thickness;
+}
+
 struct PushConstants
 {
     float4x4 projection;
     float4 viewport;
     CompleteQuad *quads;
-};
+}
 
 [[vk::push_constant]]
 uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
@@ -87,31 +158,7 @@ float screenPxRange(float2 uv, float2 size)
     return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
 
-struct Primitive {
-    Quad super;
-    PrimitiveType type;
-    float4 data1;
-    float4 data2;
-    float4 data3;
-    float4 data4;
-}
-
-struct Texture {
-    Quad super;
-    ImageHandle textureHandle;
-    float4 tint;
-    float4 uv;
-    float4 borderRadius;
-}
-
-struct Mtsdf {
-    Quad super;
-    ImageHandle textureHandle;
-    float4 color;
-    float4 uv;
-}
-
-#define SDF_HALF_STEP 0.5
+#define SDF_HALF_STEP 1.0
 
 [shader("fragment"),Attachment(AttachmentFormat.RGBA32), BlendUI,Stencil]
 float4 fragment(FSIn input)
@@ -123,60 +170,176 @@ float4 fragment(FSIn input)
     var size = quad.super.size;
     switch (mode)
     {
-    case QuadMode.Primitive: // Primitive Shape
+    case QuadMode.Line:
     {
-        var asPrimitive = reinterpret<Primitive>(quad);
-        switch (asPrimitive.type) {
-        case PrimitiveType.Line:
-        {
-            var a = asPrimitive.data2.xy;
-            var b = asPrimitive.data2.zw;
+        var data = reinterpret<LineData>(quad);
 
-            var d = sdSegment(input.coordinate, a, b);
+        var d = sdSegment(input.coordinate, data.begin, data.end) - (data.thickness * 0.5);
 
-            float thickness = asPrimitive.data3.x; // Assuming thickness is stored in data3.z
-            float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness + SDF_HALF_STEP, d);
-            // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
-            // return float4(float3(abs(d),0.0f,0.0f),1.0f);
-            return float4(asPrimitive.data1.rgb, 1 - smoothedAlpha);
-        }
-        case PrimitiveType.Circle:
-        {
-            var d = sdCircle(input.coordinate, asPrimitive.data2.x);
-            float smoothedAlpha = smoothstep(-0.5, 0.5, d);
-            return float4(asPrimitive.data1.rgb, 1 - smoothedAlpha);
-        }
-        case PrimitiveType.Rectangle:
-            return applyBorderRadius(input.coordinate, asPrimitive.data1, asPrimitive.data2, size, transform);
-        case PrimitiveType.QuadraticCurve:
-        {
-            var a = asPrimitive.data2.xy;
-            var b = asPrimitive.data2.zw;
-            var C = asPrimitive.data3.xy;
+        // var w = fwidth(input.uv);
+        float w = max(fwidth(d), 1e-6);
 
-            var d = sdBezier(input.coordinate, a, b, C);
-            float thickness = asPrimitive.data3.z; // Assuming thickness is stored in data3.z
-            float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness + SDF_HALF_STEP, d);
-            // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
-            // return float4(float3(abs(d),0.0f,0.0f),1.0f);
-            return float4(asPrimitive.data1.rgb, 1 - smoothedAlpha);
-        }
-        case PrimitiveType.CubicCurve:
-        {
-            var a = asPrimitive.data2.xy;
-            var b = asPrimitive.data2.zw;
-            var aC = asPrimitive.data3.xy;
-            var bC = asPrimitive.data3.zw;
+        var wLength = length(w);
 
-            var d = sdBezierCubic(input.coordinate, a, b, aC, bC);
-            float thickness = asPrimitive.data3.z; // Assuming thickness is stored in data3.z
-            float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness + SDF_HALF_STEP, d);
-            // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
-            // return float4(float3(abs(d),0.0f,0.0f),1.0f);
-            return lerp(asPrimitive.data1, float4(asPrimitive.data1.rgb, 0.0), smoothedAlpha);
+        var aaWidth = 0.5 * wLength;
+
+        if (d > aaWidth) {
+            discard;
         }
-        }
+
+        float alpha = smoothstep(-aaWidth, aaWidth, d);
+
+        var color = data.color;
+
+        return lerp(color, float4(color.rgb, 0.0), alpha);
     }
+    case QuadMode.Circle:
+    {
+
+        var data = reinterpret<CircleData>(quad);
+
+        var d = sdCircle((data.inverseTransform * input.coordinate), float2(data.radius), data.radius);
+
+        // var w = fwidth(input.uv);
+        float w = max(fwidth(d), 1e-6);
+        
+        var wLength = length(w);
+
+        var aaWidth = 0.5 * wLength;
+
+        if (d > aaWidth) {
+            discard;
+        }
+
+        float alpha = smoothstep(-aaWidth,aaWidth, d);
+
+        var color = data.color;
+
+        return lerp(color, float4(color.rgb, 0.0), alpha);
+    }
+    case QuadMode.Rectangle:
+    {
+
+        var data = reinterpret<RectangleData>(quad);
+
+        var d = sdRoundedBox((data.inverseTransform * input.coordinate),quad.super.size / 2.0, quad.super.size / 2.0, data.borderRadius);
+
+        var w = max(fwidth(d), 1e-6);
+
+        var wLength = length(w);
+
+        var aaWidth = 0.5 * wLength;
+
+        if (d > aaWidth) {
+            discard;
+        }
+
+        float alpha = smoothstep(-aaWidth, aaWidth, d);
+
+        var color = data.color;
+
+        return lerp(color, float4(color.rgb, 0.0), alpha);
+    }
+    case QuadMode.QuadraticCurve:
+    {
+        var data = reinterpret<QuadraticCurveData>(quad);
+
+        var d = sdBezier(input.coordinate, data.begin, data.end, data.control) - (data.thickness * 0.5);
+
+        float w = max(fwidth(d), 1e-6);
+
+        var wLength = length(w);
+
+        var aaWidth = 0.5 * wLength;
+
+        if (d > aaWidth) {
+            discard;
+        }
+
+        float alpha = smoothstep(-aaWidth, aaWidth, d);
+
+        var color = data.color;
+
+        return lerp(color, float4(color.rgb, 0.0), alpha);
+    }
+    case QuadMode.CubicCurve:
+    {
+        var data = reinterpret<CubicCurveData>(quad);
+
+        var d = sdCubic(input.coordinate, data.begin, data.end, data.controlA, data.controlB) - (data.thickness * 0.5);
+
+        float w = max(fwidth(d), 1e-6);
+
+        var wLength = length(w);
+
+        var aaWidth = 0.5 * wLength;
+
+        if (d > aaWidth) {
+            discard;
+        }
+
+        float alpha = smoothstep(-aaWidth, aaWidth, d);
+
+        var color = data.color;
+
+        return lerp(color, float4(color.rgb, 0.0), alpha);
+    }
+    // case QuadMode.Primitive: // Primitive Shape
+    // {
+    //     var asPrimitive = reinterpret<Primitive>(quad);
+    //     switch (asPrimitive.type) {
+    //     case PrimitiveType.Line:
+    //     {
+    //         var a = asPrimitive.data2.xy;
+    //         var b = asPrimitive.data2.zw;
+
+    //         var d = sdSegment(input.coordinate, a, b);
+
+    //         float thickness = asPrimitive.data3.x; // Assuming thickness is stored in data3.z
+    //         float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness, d);
+    //         // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
+    //         // return float4(float3(abs(d),0.0f,0.0f),1.0f);
+    //         return float4(asPrimitive.data1.rgb, 1 - smoothedAlpha);
+    //     }
+    //     case PrimitiveType.Circle:
+    //     {
+    //         var center = size / 2.0f;
+    //         center = transform * center;
+    //         var d = sdCircle(input.coordinate, center, asPrimitive.data2.x);
+    //         float smoothedAlpha = smoothstep(-SDF_HALF_STEP, 0.0f, d);
+    //         return lerp(float4(asPrimitive.data1.rgb,1.0),float4(asPrimitive.data1.rgb,0.0),smoothedAlpha);
+    //     }
+    //     case PrimitiveType.Rectangle:
+    //         return applyBorderRadius(input.coordinate, asPrimitive.data1, asPrimitive.data2, size, transform,SDF_HALF_STEP);
+    //     case PrimitiveType.QuadraticCurve:
+    //     {
+    //         var a = asPrimitive.data2.xy;
+    //         var b = asPrimitive.data2.zw;
+    //         var C = asPrimitive.data3.xy;
+
+    //         var d = sdBezier(input.coordinate, a, b, C);
+    //         float thickness = asPrimitive.data3.z; // Assuming thickness is stored in data3.z
+    //         float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness, d);
+    //         // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
+    //         // return float4(float3(abs(d),0.0f,0.0f),1.0f);
+    //         return float4(asPrimitive.data1.rgb, 1 - smoothedAlpha);
+    //     }
+    //     case PrimitiveType.CubicCurve:
+    //     {
+    //         var a = asPrimitive.data2.xy;
+    //         var b = asPrimitive.data2.zw;
+    //         var aC = asPrimitive.data3.xy;
+    //         var bC = asPrimitive.data3.zw;
+
+    //         var d = sdBezierCubic(input.coordinate, a, b, aC, bC);
+    //         float thickness = asPrimitive.data3.z; // Assuming thickness is stored in data3.z
+    //         float smoothedAlpha = smoothstep(thickness - SDF_HALF_STEP, thickness, d);
+    //         // float smoothedAlpha = smoothstep(0.0f, 1.0f, d);
+    //         // return float4(float3(abs(d),0.0f,0.0f),1.0f);
+    //         return lerp(asPrimitive.data1, float4(asPrimitive.data1.rgb, 0.0), smoothedAlpha);
+    //     }
+    //     }
+    // }
     case QuadMode.Texture: // Texture
     {
         var asTexture = reinterpret<Texture>(quad);
@@ -200,16 +363,21 @@ float4 fragment(FSIn input)
         float2 texSize = getTextureSize(textureHandle);
         float2 actualTexSize = texSize * (uvMapping.zw - uvMapping.xy);
         
-        // return float4(msd,1.0f);
         float sd = median(msd.r, msd.g, msd.b);
 
-        float distance = screenPxRange(input.uv, actualTexSize) * (sd - 0.5);
+        float distance = screenPxRange(uv, actualTexSize) * (sd - 0.5);
 
-        float opacity = clamp(distance + 0.5, 0.0, 1.0);
+        float w = max(fwidth(distance), 1e-6);
+
+        var wLength = length(w);
+
+        var aaWidth = 0.5 * wLength;
+
+        float opacity = 1.0 - clamp(distance + 0.5, 0.0, 1.0);
 
         float4 color = asMtsdf.color;
-        
-        return lerp(color, float4(color.rgb, 0.0), opacity);
+
+        return float4(color.rgb, color.a * opacity);
     }
     case QuadMode.ColorWheel: // Color wheel
     {

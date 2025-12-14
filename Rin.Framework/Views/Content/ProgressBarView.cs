@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Framework.Graphics.Windows;
-using Rin.Framework.Math;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Views.Graphics;
@@ -37,30 +37,30 @@ public class ProgressBarView(Func<float> getProgress,Action<float>? onClick = nu
         // mediaplayer.Play();
     }
 
-    public override bool OnCursorDown(CursorDownSurfaceEvent e)
+    public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform1)
     {
         if (e.Button is CursorButton.One && onClick is not null)
         {
             var transform = ComputeAbsoluteContentTransform();
             var localPosition = e.Position.Transform(transform.Inverse());
-            _pendingProgress = localPosition.X / Size.X;
+            _pendingProgress = localPosition.X / GetSize().X;
             
-            return true;
+            e.Target = this;
+            return;
         }
-        return base.OnCursorDown(e);
     }
 
     private float? _pendingProgress = null;
-    protected override bool OnCursorMove(CursorMoveSurfaceEvent e)
+    public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform1)
     {
         if (_pendingProgress is not null && onClick is not null)
         {
             var transform = ComputeAbsoluteContentTransform();
             var localPosition = e.Position.Transform(transform.Inverse());
-            _pendingProgress = localPosition.X / Size.X;
-            return true;
+            _pendingProgress = localPosition.X / GetSize().X;
+            e.Target = this;
+            return;
         }
-        return base.OnCursorMove(e);
     }
 
     public override void OnCursorUp(CursorUpSurfaceEvent e)
@@ -69,7 +69,7 @@ public class ProgressBarView(Func<float> getProgress,Action<float>? onClick = nu
         {
             var transform = ComputeAbsoluteContentTransform();
             var localPosition = e.Position.Transform(transform.Inverse());
-            _pendingProgress = localPosition.X / Size.X;
+            _pendingProgress = localPosition.X / GetSize().X;
             onClick(_pendingProgress.Value);
             _pendingProgress = null;
         }

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using Rin.Framework;
 using Rin.Framework.Audio;
 using Rin.Framework.Graphics;
-using Rin.Framework.Math;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views;
 using Rin.Framework.Views.Animation;
 using Rin.Framework.Views.Composite;
@@ -207,9 +207,9 @@ public class TrackPlayer : OverlayView
         base.Collect(transform, clip, commands);
     }
 
-    public override bool OnCursorDown(CursorDownSurfaceEvent e)
+    public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
     {
-        return true;
+        
     }
 
     public override void OnCursorUp(CursorUpSurfaceEvent e)

@@ -28,7 +28,7 @@ public class AsyncWebImageView : CoverImageView
 
             await img.CreateTexture(out var texId).Dispatch(IApplication.Get().MainDispatcher, () =>
             {
-                ImageId = texId;
+                ImageHandle = texId;
                 OnLoaded?.Invoke(true);
             });
         }

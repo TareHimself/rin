@@ -9,20 +9,19 @@
         <PackageId>TareHimself.Rin.Framework</PackageId>
         <Title>Rin.Framework</Title>
         <Authors>TareHimself</Authors>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Version>2.0.1</Version>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2025.2.0" />
-        <PackageReference Include="NetVips" Version="3.1.0" />
-        <PackageReference Include="NetVips.Native" Version="8.17.1" />
+        <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
+        <PackageReference Include="NetVips" Version="3.1.0"/>
+        <PackageReference Include="NetVips.Native" Version="8.17.2" />
+        <PackageReference Include="ppy.osu.Framework.NativeLibs" Version="2025.806.0-nativelibs" />
         <PackageReference Include="SharpCompress" Version="0.39.0"/>
         <PackageReference Include="StbRectPackSharp" Version="1.0.4"/>
         <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119"/>
-        <PackageReference Include="System.Text.Json" Version="9.0.8" />
-        <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.3.268"/>
-        <PackageReference Include="ManagedBass" Version="3.1.1"/>
+        <PackageReference Include="System.Text.Json" Version="9.0.8"/>
+        <PackageReference Include="TareHimself.Rin.Framework.NativeLibs" Version="1.0.0-win" />
         <PackageReference Include="SixLabors.Fonts" Version="2.1.3"/>
     </ItemGroup>
 
@@ -30,58 +29,17 @@
         <EmbeddedResource Include="Content\**\*.*"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="CurveBoundsInterpolation.cs" />
+    </ItemGroup>
+
     <PropertyGroup>
         <PlatformRID Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</PlatformRID>
         <PlatformRID Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</PlatformRID>
-    </PropertyGroup>
-    
-    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-        <DefineConstants>OS_WINDOWS</DefineConstants>
-    </PropertyGroup>
-    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-        <DefineConstants>OS_LINUX</DefineConstants>
-    </PropertyGroup>
-    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
-        <DefineConstants>OS_MAC</DefineConstants>
-    </PropertyGroup>
-
-    <Target Name="CleanNative" BeforeTargets="CoreClean">
-        <ItemGroup>
-            <_Dirs Include=".\native\build_rin\$(Configuration)"/>
-            <_Dirs Include=".\runtimes"/>
-        </ItemGroup>
-        <RemoveDir Directories="@(_Dirs)"/>
-        
-    </Target>
-    
-    <Target Name="BuildNative" BeforeTargets="Build">
-        <Exec Command="cmake --preset Rin-$(Configuration) --fresh" WorkingDirectory=".\native"/>
-        <Exec Command="cmake --build --preset Rin-$(Configuration)" WorkingDirectory=".\native"/>
-        
-        <ItemGroup>
-            <OutputFiles Include=".\native\build\$(Configuration)\$(Configuration)\*.*">
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-                <TargetPath>runtimes\$(PlatformRID)\native\%(Filename)%(Extension)</TargetPath>
-            </OutputFiles>
-        </ItemGroup>
-        <Message Text="DIR $(TargetDir)runtimes\$(PlatformRID)\native" Importance="high"/>
-    </Target>
-
-    <ItemGroup>
-        <None Include=".\native\build\$(Configuration)\$(Configuration)\*.*" Visible="false">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <TargetPath>runtimes\$(PlatformRID)\native\%(Filename)%(Extension)</TargetPath>
-        </None>
-    </ItemGroup>
-    <ItemGroup>
-        <!-- Use Content/None; either is fine for packing -->
-        <None Include=".\native\build\$(Configuration)\$(Configuration)\*.*"
-                 Pack="true"
-                 PackagePath="runtimes\$(PlatformRID)\native\%(Filename)%(Extension)" />
-        <None Include=".\ReadMe.md" Pack="true" PackagePath="\"/>
-    </ItemGroup>
-
-    <PropertyGroup>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Windows'))">OS_WINDOWS</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Linux'))">OS_LINUX</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('OSX'))">OS_MAC</DefineConstants>
         <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*;assets\**\*.*</DefaultItemExcludes>
     </PropertyGroup>
+
 </Project>

@@ -1,14 +1,14 @@
 using System.Numerics;
 using Rin.Framework.Animation;
-using Rin.Framework.Math;
+using Rin.Framework.Buffers;
 using Rin.Framework.Views.Graphics.Blur;
 using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Shaders;
-using Rin.Framework.Graphics.Vulkan.Graph;
 using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Video;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
@@ -233,10 +233,9 @@ public class VideoPlayerView : ContentView
     }
     
     private Vector2 _cursorPosition = Vector2.Zero;
-    protected override bool OnCursorMove(CursorMoveSurfaceEvent e)
+    public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform)
     {
         _cursorPosition = e.Position;
-        return base.OnCursorMove(e);
     }
 
     public override void Update(float deltaTime)
@@ -245,7 +244,7 @@ public class VideoPlayerView : ContentView
         _player.TryDecode();
     }
 
-    public override bool OnCursorDown(CursorDownSurfaceEvent e)
+    public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
     {
         if (e.Button is CursorButton.One)
         {
@@ -253,7 +252,8 @@ public class VideoPlayerView : ContentView
                 _player.Pause();
             else
                 _player.Play();
-            return true;
+            e.Target = this;
+            return;
         }
 
         if (e.Button is CursorButton.Two)
@@ -263,9 +263,8 @@ public class VideoPlayerView : ContentView
             var percent = localPosition.X / size.X;
             var time = _player.Duration * percent;
             _player.Seek(time);
-            return true;
+            e.Target = this;
+            return;
         }
-
-        return base.OnCursorDown(e);
     }
 }

@@ -2,7 +2,6 @@
 using JetBrains.Annotations;
 using Rin.Framework.Animation;
 using Rin.Framework.Graphics;
-using Rin.Framework.Math;
 using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Events;
@@ -16,12 +15,7 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     ///     The offset of this view in parent space
     /// </summary>
     public Vector2 Offset { get; set; }
-
-    /// <summary>
-    ///     The size of this view in parent space
-    /// </summary>
-    public Vector2 Size { get; set; }
-
+    
     /// <summary>
     ///     The pivot used to render this view. Affects <see cref="Angle" /> and <see cref="Scale" />.
     /// </summary>
@@ -33,7 +27,7 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     public Vector2 Translate { get; set; }
 
     /// <summary>
-    ///     The scale of this view in parent space
+    /// The scale of this view in parent space
     /// </summary>
     public Vector2 Scale { get; set; }
 
@@ -84,8 +78,10 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     ///     The parent of this view
     /// </summary>
     public ICompositeView? Parent { get; }
-
-
+    public Matrix4x4 GetLocalPaddingTransform();
+    
+    // Get the local transformation applied to content (i.e. padding, scroll, etc.)
+    public Matrix4x4 GetLocalContentTransform();
     /// <summary>
     ///     Check if this view is focused by its current surface
     /// </summary>
@@ -113,6 +109,8 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     public Matrix4x4 GetLocalTransformWithPadding();
 
     public Matrix4x4 ComputeAbsoluteContentTransform();
+    
+    public Matrix4x4 ComputeAbsoluteTransform();
 
     public void SetParent(ICompositeView? view);
 
@@ -122,10 +120,12 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
 
     public void NotifyRemovedFromSurface(ISurface surface);
 
-    public void HandleEvent(ISurfaceEvent e, in Matrix4x4 transform);
+    public void HandleEvent(ISurfaceEvent e, in Matrix4x4 absoluteTransform);
 
-    public bool OnCursorDown(CursorDownSurfaceEvent e);
+    public void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform);
     public void OnCursorUp(CursorUpSurfaceEvent e);
+
+    public void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform);
 
     public void NotifyCursorLeave();
 
@@ -136,6 +136,8 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     public void OnFocus();
 
     public void OnFocusLost();
+
+    public Vector2 GetSize();
 
     [PublicAPI]
     public Vector2 GetContentSize();

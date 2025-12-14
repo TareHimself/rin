@@ -16,7 +16,7 @@ namespace misc.VectorRendering;
 [AlwaysLoad]
 public class MainModule : IModule
 {
-    private readonly IFontManager _fontManager = new DefaultFontManager();
+    private readonly IFontManager _fontManager = new SixLaborsFontManager();
 
     private Font _font;
 

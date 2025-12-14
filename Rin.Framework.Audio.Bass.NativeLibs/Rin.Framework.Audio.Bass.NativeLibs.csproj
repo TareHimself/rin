@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>TareHimself.Rin.Framework.Audio.Bass.NativeLibs</PackageId>
+        <Authors>TareHimself</Authors>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Version>1.0.0-win</Version>
+        <Title>Rin.Framework.Audio.Bass.NativeLibs</Title>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PlatformRID Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</PlatformRID>
+        <PlatformRID Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</PlatformRID>
+        <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*</DefaultItemExcludes>
+    </PropertyGroup>
+    
+    <Target Name="CleanNative" BeforeTargets="CoreClean">
+        <ItemGroup>
+            <_Dirs Include=".\native\build\$(Configuration)"/>
+        </ItemGroup>
+        <RemoveDir Directories="@(_Dirs)"/>
+    </Target>
+
+    <Target Name="BuildNative" BeforeTargets="Build">
+        <Exec Command="cmake -DRIN_BUILD_TYPE=$(Configuration) -P GetBass.cmake" WorkingDirectory=".\native"/>
+        <ItemGroup>
+            <OutputFiles Include=".\native\build\$(Configuration)\bin\*.*"/>
+        </ItemGroup>
+
+        <Copy SourceFiles="@(OutputFiles)"
+              DestinationFolder="$(OutputPath)\runtimes\$(PlatformRID)\native"
+              SkipUnchangedFiles="true"/>
+    </Target>
+
+    <PropertyGroup>
+        <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);GetNativeFiles</TargetsForTfmSpecificBuildOutput>
+    </PropertyGroup>
+
+    <Target Name="GetNativeFiles">
+        <ItemGroup>
+            <TfmSpecificPackageFile Include=".\native\build\$(Configuration)\bin\*.*">
+                <PackagePath>runtimes\$(PlatformRID)\native\%(Filename)%(Extension)</PackagePath>
+            </TfmSpecificPackageFile>
+        </ItemGroup>
+    </Target>
+    <ItemGroup>
+        <None Include="_._">
+            <!-- Means this package doesn't provide any reference assembly to the target framework.
+                 nupkg is a zip file and doesn't has concept for folders,
+                 so there must be something under the path, otherwise client will consider this package broken.
+                 See https://docs.microsoft.com/en-us/nuget/reference/errors-and-warnings/nu5128#scenario-2 . -->
+            <Pack>true</Pack>
+            <PackagePath>lib\$(TargetFramework)</PackagePath>
+        </None>
+        <None Include=".\native\build\$(Configuration)\bin\*.*"
+              Pack="true"
+              PackagePath="runtimes\$(PlatformRID)\native\%(Filename)%(Extension)" />
+    </ItemGroup>
+</Project>

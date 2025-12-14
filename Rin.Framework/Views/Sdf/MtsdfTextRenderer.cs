@@ -5,7 +5,7 @@ namespace Rin.Framework.Views.Sdf;
 
 public class MtsdfTextRenderer : IDisposable, IGlyphRenderer
 {
-    private readonly Context _gen = new();
+    private readonly SdfBuilder _gen = new();
 
     public void Dispose()
     {
@@ -14,6 +14,7 @@ public class MtsdfTextRenderer : IDisposable, IGlyphRenderer
 
     public void BeginFigure()
     {
+        _gen.BeginContour();
     }
 
     public void MoveTo(Vector2 point)
@@ -38,20 +39,23 @@ public class MtsdfTextRenderer : IDisposable, IGlyphRenderer
 
     public void EndFigure()
     {
+        _gen.EndContour();
     }
 
     public void EndGlyph()
     {
+        _gen.EndContour();
     }
 
     public bool BeginGlyph(in FontRectangle bounds, in GlyphRendererParameters parameters)
     {
+        _gen.BeginContour();
         return true;
     }
 
     public void EndText()
     {
-        _gen.End();
+        _gen.Finish();
     }
 
     public void BeginText(in FontRectangle bounds)
@@ -71,6 +75,6 @@ public class MtsdfTextRenderer : IDisposable, IGlyphRenderer
     // Renders into a 4 channel image
     public SdfResult? Generate(float angleThreshold, float pixelRange)
     {
-        return _gen.GenerateMtsdf(angleThreshold, pixelRange);
+        return _gen.GenerateMTSDF(angleThreshold, pixelRange);
     }
 }

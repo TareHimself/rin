@@ -2,7 +2,6 @@
 using Rin.Framework;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
-using Rin.Framework.Math;
 using Rin.Framework.Views;
 using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Layouts;
@@ -15,6 +14,7 @@ using Rin.Engine.World.Physics;
 using rin.Examples.Common.Views;
 using rin.Examples.SceneTest.entities;
 using Rin.Framework.Graphics.Images;
+using Rin.Framework.Shared.Math;
 
 namespace rin.Examples.SceneTest;
 

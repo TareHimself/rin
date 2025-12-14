@@ -50,7 +50,7 @@ public class ViewsModule : IViewsModule
 
     public event Action<IWindowSurface>? OnSurfaceCreated;
     public event Action<IWindowSurface>? OnSurfaceDestroyed;
-    public IFontManager FontManager { get; } = new DefaultFontManager();
+    public IFontManager FontManager { get; } = new SixLaborsFontManager();
     public void AddFont(string fontPath)
     {
         FontManager.LoadFont(SFramework.Sources.Read(fontPath));

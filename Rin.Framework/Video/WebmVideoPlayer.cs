@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using Rin.Framework.Audio;
+using Rin.Framework.Buffers;
 using Rin.Framework.Graphics;
+using Rin.Framework.Shared.Time;
 
 namespace Rin.Framework.Video;
 
@@ -47,7 +49,7 @@ public class WebmVideoPlayer : IVideoPlayer
                 }
 
                 _decodeFinishedEvent.Reset();
-                Native.Video.ContextDecode(_context, 2.0);
+                Native.Video.ContextDecode(_context, 0.5);
                 _decodeFinishedEvent.Set();
             }
         });
@@ -83,7 +85,7 @@ public class WebmVideoPlayer : IVideoPlayer
     {
         if (_source == null) return;
         var decodeDelta = DecodedPosition - Position;
-        var thresh = 3;
+        var thresh = 1.5;
         if (decodeDelta <= thresh) _decodeEvent.Set();
     }
 

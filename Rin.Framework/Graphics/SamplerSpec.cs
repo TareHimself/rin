@@ -1,4 +1,4 @@
-﻿using TerraFX.Interop.Vulkan;
+﻿
 
 namespace Rin.Framework.Graphics;
 

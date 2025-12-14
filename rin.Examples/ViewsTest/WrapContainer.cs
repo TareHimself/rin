@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Framework.Animation;
-using Rin.Framework.Math;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views;
 using Rin.Framework.Views.Animation;
 using Rin.Framework.Views.Composite;
@@ -43,7 +43,7 @@ public class WrapContainer : ButtonView
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         var size = base.LayoutContent(availableSpace);
-        _content.Translate = _content.Size * .5f;
+        _content.Translate = _content.GetSize() * .5f;
         return size;
     }
 

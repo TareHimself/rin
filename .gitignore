@@ -24,3 +24,5 @@ build/
 out/
 cpp/
 *.vscode
+.artifacts/*
+.feed/*

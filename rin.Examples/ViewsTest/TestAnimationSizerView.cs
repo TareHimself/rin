@@ -1,5 +1,5 @@
 ﻿using Rin.Framework.Animation;
-using Rin.Framework.Math;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Animation;
 using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Events;

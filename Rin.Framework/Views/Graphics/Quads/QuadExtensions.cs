@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 using Rin.Framework.Extensions;
-using Rin.Framework.Math;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Images;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Font;
 using Rin.Framework.Views.Graphics.Vector;
 
@@ -26,48 +26,42 @@ public static class QuadExtensions
     {
         return commandList.AddQuads(Quad.Circle(Matrix4x4.Identity.Translate(center), radius, color));
     }
+    
+    public static CommandList AddCircle(this CommandList commandList,in Matrix4x4 transform, float radius,
+        in Color? color = null)
+    {
+        return commandList.AddQuads(Quad.Circle(transform, radius, color));
+    }
+    
+    public static CommandList AddCircle(this CommandList commandList,in Matrix4x4 transform, in Vector2 center, float radius,
+        in Color? color = null)
+    {
+        return commandList.AddQuads(Quad.Circle(Matrix4x4.Identity.Translate(-center + new Vector2(radius)).ChildOf(transform), radius, color));
+    }
 
-    public static CommandList AddLine(this CommandList commandList, in Vector2 begin, in Vector2 end,
+    public static CommandList AddLine(this CommandList commandList,in Matrix4x4 transform, in Vector2 begin, in Vector2 end,
         float thickness = 2.0f,
         in Color? color = null)
     {
         
-        return commandList.AddQuads(Quad.Line(begin, end, thickness, color));
+        return commandList.AddQuads(Quad.Line(transform,begin, end, thickness, color));
     }
 
-    public static CommandList AddQuadraticCurve(this CommandList commandList, in Vector2 begin, in Vector2 end,
+    public static CommandList AddQuadraticCurve(this CommandList commandList,in Matrix4x4 transform, in Vector2 begin, in Vector2 end,
         in Vector2 control,
         float thickness = 2.0f,
         in Color? color = null)
     {
-        return commandList.AddQuads(Quad.QuadraticCurve(begin, control, end, thickness, color));
+        return commandList.AddQuads(Quad.QuadraticCurve(transform,begin, control, end, thickness, color));
     }
 
-    public static CommandList AddCubicCurve(this CommandList commandList, in Vector2 begin, in Vector2 end,
+    public static CommandList AddCubicCurve(this CommandList commandList,in Matrix4x4 transform, in Vector2 begin, in Vector2 end,
         in Vector2 controlA,
         in Vector2 controlB, float thickness = 2.0f, in Color? color = null)
     {
-        return commandList.AddQuads(Quad.CubicCurve(begin, controlA, end, controlB, thickness, color));
+        return commandList.AddQuads(Quad.CubicCurve(transform,begin, controlA, end, controlB, thickness, color));
     }
-
-    public static CommandList AddQuadraticCurve(this CommandList commandList, in Matrix4x4 transform, in Vector2 begin,
-        in Vector2 end,
-        in Vector2 control, float thickness = 2.0f,
-        in Color? color = null)
-    {
-        return commandList.AddQuadraticCurve(begin.Transform(transform), end.Transform(transform),
-            control.Transform(transform), thickness, color);
-    }
-
-    public static CommandList AddCubicCurve(this CommandList commandList, in Matrix4x4 transform, in Vector2 begin,
-        in Vector2 end,
-        in Vector2 controlA,
-        in Vector2 controlB, float thickness = 2.0f, in Color? color = null)
-    {
-        return commandList.AddCubicCurve(begin.Transform(transform), end.Transform(transform),
-            controlA.Transform(transform), controlB.Transform(transform), thickness, color);
-    }
-
+    
     public static CommandList AddTexture(this CommandList commandList, in ImageHandle imageHandle,
         in Matrix4x4 transform,
         in Vector2 size, in Color? tint = null, in Vector4? uv = null,

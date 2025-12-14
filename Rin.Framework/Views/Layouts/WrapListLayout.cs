@@ -32,14 +32,14 @@ public class WrapListLayout(Axis axis, ICompositeView container) : ListLayout(ax
             slot.Child.ComputeSize(availableSpace with { X = float.PositiveInfinity });
             var slotSizeMain = axis switch
             {
-                Axis.Row => slot.Child.Size.X,
-                Axis.Column => slot.Child.Size.Y,
+                Axis.Row => slot.Child.GetSize().X,
+                Axis.Column => slot.Child.GetSize().Y,
                 _ => throw new ArgumentOutOfRangeException()
             };
             var slotSizeCross = axis switch
             {
-                Axis.Row => slot.Child.Size.Y,
-                Axis.Column => slot.Child.Size.X,
+                Axis.Row => slot.Child.GetSize().Y,
+                Axis.Column => slot.Child.GetSize().X,
                 _ => throw new ArgumentOutOfRangeException()
             };
             var projectedSlotEndMain = offsetMain + slotSizeMain;

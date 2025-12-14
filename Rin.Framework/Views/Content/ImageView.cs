@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Math;
 using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Images;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Graphics;
 
@@ -14,15 +14,15 @@ namespace Rin.Framework.Views.Content;
 /// </summary>
 public class ImageView : ContentView
 {
-    private ImageHandle _imageId = ImageHandle.InvalidTexture;
+    private ImageHandle _imageHandle = ImageHandle.InvalidTexture;
 
     [PublicAPI]
-    public ImageHandle ImageId
+    public ImageHandle ImageHandle
     {
-        get => _imageId;
+        get => _imageHandle;
         set
         {
-            _imageId = value;
+            _imageHandle = value;
             Invalidate(InvalidationType.DesiredSize);
         }
     }
@@ -33,7 +33,7 @@ public class ImageView : ContentView
 
     public override Vector2 ComputeDesiredContentSize()
     {
-        if (IGraphicsModule.Get().GetTexture(ImageId) is { } texture)
+        if (IGraphicsModule.Get().GetTexture(ImageHandle) is { } texture)
             return new Vector2
             {
                 X = texture.Extent.Width,
@@ -55,7 +55,7 @@ public class ImageView : ContentView
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        if (ImageId.IsValid()) DrawImage(ImageId, transform, commands);
+        if (ImageHandle.IsValid()) DrawImage(ImageHandle, transform, commands);
     }
 
     protected virtual void DrawImage(in ImageHandle imageId, Matrix4x4 transform, CommandList commands)

@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Framework.Graphics.Images;
-using Rin.Framework.Math;
+using Rin.Framework.Shared.Math;
 
 namespace Rin.Framework.Views.Graphics.Quads;
 
@@ -20,7 +20,11 @@ public struct Quad() // : ICloneable<Quad>
 {
     public enum RenderMode
     {
-        Primitive,
+        Line,
+        Circle,
+        Rectangle,
+        QuadraticCurve,
+        CubicCurve,
         Texture,
         Mtsdf,
         ColorWheel
@@ -38,20 +42,71 @@ public struct Quad() // : ICloneable<Quad>
     [PublicAPI] [FieldOffset(24)] public required Matrix4x4 Transform;
     [FieldOffset(88)] private unsafe fixed byte _data[16 * 8];
 
-    [FieldOffset(88)] public PrimitiveData PrimitiveInfo = default;
+    // [FieldOffset(88)] public PrimitiveData PrimitiveInfo = default;
+    
+    [FieldOffset(88)] public LineData LineInfo = default;
+    
+    [FieldOffset(88)] public CircleData CircleInfo = default;
+    
+    [FieldOffset(88)] public RectangleData RectangleInfo = default;
+    
+    [FieldOffset(88)] public QuadraticCurveData QuadraticCurveInfo = default;
+    
+    [FieldOffset(88)] public CubicCurveData CubicCurveInfo = default;
 
     [FieldOffset(88)] public TextureData TextureInfo = default;
 
     [FieldOffset(88)] public MtsdfData MtsdfInfo = default;
 
-    public struct PrimitiveData
+    public struct LineData
     {
-        public PrimitiveType Type { get; set; }
-        public Vector4 Data1 { get; set; }
-        public Vector4 Data2 { get; set; }
-        public Vector4 Data3 { get; set; }
-        public Vector4 Data4 { get; set; }
+        public Color Color;
+        public Vector2 Begin;
+        public Vector2 End;
+        public float Thickness;
     }
+    
+    public struct CircleData
+    {
+        public Matrix4x4 InverseTransform;
+        public Color Color;
+        public float Radius;
+    }
+    
+    public struct RectangleData
+    {
+        public Matrix4x4 InverseTransform;
+        public Color Color;
+        public Vector4 BorderRadius;
+    }
+    
+    public struct QuadraticCurveData
+    {
+        public Color Color;
+        public Vector2 Begin;
+        public Vector2 End;
+        public Vector2 Control;
+        public float Thickness;
+    }
+    
+    public struct CubicCurveData
+    {
+        public Color Color;
+        public Vector2 Begin;
+        public Vector2 End;
+        public Vector2 ControlA;
+        public Vector2 ControlB;
+        public float Thickness;
+    }
+    
+    // public struct PrimitiveData
+    // {
+    //     public PrimitiveType Type { get; set; }
+    //     public Vector4 Data1 { get; set; }
+    //     public Vector4 Data2 { get; set; }
+    //     public Vector4 Data3 { get; set; }
+    //     public Vector4 Data4 { get; set; }
+    // }
 
     public struct TextureData
     {
@@ -70,41 +125,51 @@ public struct Quad() // : ICloneable<Quad>
 
     public static Quad Circle(in Matrix4x4 transform, float radius, in Color? color = null)
     {
+        var size = new Vector2(radius * 2f);
         var quad = new Quad
         {
-            Mode = RenderMode.Primitive,
+            Mode = RenderMode.Circle,
             Transform = transform,
-            Size = new Vector2(radius),
-            PrimitiveInfo = new PrimitiveData
+            Size = size,
+            CircleInfo = new CircleData
             {
-                Type = PrimitiveType.Circle,
-                Data1 = color.GetValueOrDefault(Color.White),
-                Data2 = new Vector4(radius, 0.0f, 0.0f, 0.0f)
+                InverseTransform = transform.Inverse(),
+                Color = color ?? Color.White,
+                Radius = radius,
             }
         };
         return quad;
     }
 
-    public static Quad Line(in Vector2 begin, in Vector2 end, float thickness = 2.0f, in Color? color = null)
+    public static Quad Line(in Matrix4x4 transform,in Vector2 begin, in Vector2 end, float thickness = 2.0f, in Color? color = null)
     {
-        const float feather = 3.0f;
         var p1 = Vector2.Min(begin, end);
         var p2 = Vector2.Max(begin, end);
-        var size = p2 - p1;
-        var thicknessVector = new Vector2(thickness + feather);
+        
+        var thicknessVector = new Vector2(thickness);
         p1 -= thicknessVector;
-
+        p2 += thicknessVector;
+        
+        var size = p2 - p1;
+        var t = Matrix4x4.Identity.Translate(p1).ChildOf(transform);
         var quad = new Quad
         {
-            Mode = RenderMode.Primitive,
-            Transform = Matrix4x4.Identity.Translate(p1),
-            Size = size + thicknessVector * 2.0f,
-            PrimitiveInfo = new PrimitiveData
+            Mode = RenderMode.Line,
+            Transform = t,
+            Size = size,
+            // LineInfo = new LineData
+            // {
+            //     Begin = (begin - p1) / size,
+            //     End = (end - p1) / size,
+            //     Color = color ?? Color.White,
+            //     Thickness = thickness / float.Min(size.X,size.Y),
+            // }
+            LineInfo = new LineData
             {
-                Type = PrimitiveType.Line,
-                Data1 = color.GetValueOrDefault(Color.White),
-                Data2 = new Vector4(begin, end.X, end.Y),
-                Data3 = new Vector4(thickness)
+                Begin = begin.Transform(transform),
+                End = end.Transform(transform),
+                Color = color ?? Color.White,
+                Thickness = thickness,
             }
         };
 
@@ -116,69 +181,76 @@ public struct Quad() // : ICloneable<Quad>
     {
         var quad = new Quad
         {
-            Mode = RenderMode.Primitive,
+            Mode = RenderMode.Rectangle,
             Transform = transform,
             Size = size,
-            PrimitiveInfo = new PrimitiveData
+            RectangleInfo = new RectangleData
             {
-                Type = PrimitiveType.Rectangle,
-                Data1 = color.GetValueOrDefault(Color.White),
-                Data2 = borderRadius.GetValueOrDefault()
+                InverseTransform = transform.Inverse(),
+                Color = color ?? Color.White,
+                BorderRadius = borderRadius ?? Vector4.Zero,
             }
         };
 
         return quad;
     }
 
-    public static Quad QuadraticCurve(in Vector2 a, in Vector2 control, in Vector2 b, float thickness = 2.0f,
+    public static Quad QuadraticCurve(in Matrix4x4 transform,in Vector2 a, in Vector2 control, in Vector2 b, float thickness = 2.0f,
         in Color? color = null)
     {
-        const float feather = 3.0f;
         var p1 = Vector2.Min(control, Vector2.Min(a, b));
         var p2 = Vector2.Max(control, Vector2.Max(a, b));
-        var size = p2 - p1;
-        var thicknessVector = new Vector2(thickness + feather);
+        
+        var thicknessVector = new Vector2(thickness);
+        
         p1 -= thicknessVector;
+        p2 += thicknessVector;
+        
+        var size = p2 - p1;
         var quad = new Quad
         {
-            Mode = RenderMode.Primitive,
-            Transform = Matrix4x4.Identity.Translate(p1),
-            Size = size + thicknessVector * 2.0f,
-            PrimitiveInfo = new PrimitiveData
+            Mode = RenderMode.QuadraticCurve,
+            Transform = Matrix4x4.Identity.Translate(p1).ChildOf(transform),
+            Size = size,
+            QuadraticCurveInfo = new QuadraticCurveData
             {
-                Type = PrimitiveType.QuadraticCurve,
-                Data1 = color.GetValueOrDefault(Color.White),
-                Data2 = new Vector4(a, b.X, b.Y),
-                Data3 = new Vector4(control, thickness, 0)
+                Begin = a.Transform(transform),
+                End = b.Transform(transform),
+                Control = control.Transform(transform),
+                Color = color ?? Color.White,
+                Thickness = thickness,
             }
         };
 
         return quad;
     }
 
-    public static Quad CubicCurve(in Vector2 a, in Vector2 controlA, in Vector2 b, in Vector2 controlB,
+    public static Quad CubicCurve(in Matrix4x4 transform,in Vector2 a, in Vector2 controlA, in Vector2 b, in Vector2 controlB,
         float thickness = 2.0f,
         in Color? color = null)
     {
-        const float feather = 3.0f;
         var p1 = Vector2.Min(Vector2.Min(controlA, controlB), Vector2.Min(a, b));
         var p2 = Vector2.Max(Vector2.Max(controlA, controlB), Vector2.Max(a, b));
-        var size = p2 - p1;
-        var midpoint = p1 + size / 2.0f;
-        var thicknessVector = new Vector2(thickness + feather);
+        
+        var thicknessVector = new Vector2(thickness);
+        
         p1 -= thicknessVector;
+        p2 += thicknessVector;
+        
+        var size = p2 - p1;
         var quad = new Quad
         {
-            Mode = RenderMode.Primitive,
-            Transform = Matrix4x4.Identity.Translate(p1),
-            Size = size + thicknessVector * 2.0f,
-            PrimitiveInfo = new PrimitiveData
+            Mode = RenderMode.CubicCurve,
+            Transform = Matrix4x4.Identity.Translate(p1).ChildOf(transform),
+            Size = size,
+            CubicCurveInfo = new CubicCurveData
             {
-                Type = PrimitiveType.CubicCurve,
-                Data1 = color.GetValueOrDefault(Color.White),
-                Data2 = new Vector4(a, b.X, b.Y),
-                Data3 = new Vector4(controlA, controlB.X, controlB.Y),
-                Data4 = new Vector4(thickness, 0, 0, 0)
+                Begin = a.Transform(transform),
+                End = b.Transform(transform),
+                ControlA = controlA.Transform(transform),
+                ControlB = controlB.Transform(transform),
+                Color = color ?? Color.White,
+                Thickness = thickness,
             }
         };
 

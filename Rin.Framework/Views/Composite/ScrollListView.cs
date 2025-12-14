@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Math;
+using Rin.Framework.Graphics;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
@@ -22,9 +23,16 @@ public class ScrollListView : ListView
     [PublicAPI]
     public float BarMinimumSize { get; set; } = 40.0f;
     [PublicAPI]
-    public float BarWidth { get; set; } = 10.0f;
+    public float BarWidth { get; set; } = 8.0f;
+
+    [PublicAPI]
+    public float BarPadding { get; set; } = 2.0f;
+    
     [PublicAPI]
     public Color BarColor { get; set; } = Color.White;
+    
+    [PublicAPI]
+    public bool FloatingBar { get; set; } = true;
 
     public ScrollListView()
     {
@@ -53,8 +61,6 @@ public class ScrollListView : ListView
     protected override Vector2 ArrangeContent(in Vector2 spaceGiven)
     {
         var spaceTaken = base.ArrangeContent(spaceGiven);
-
-
         _maxOffset = Axis switch
         {
             Axis.Column => float.Max(spaceTaken.Y - spaceGiven.Y.FiniteOr(spaceTaken.Y), 0),
@@ -64,6 +70,8 @@ public class ScrollListView : ListView
         ScrollTo(_offset);
         return new Vector2(float.Min(spaceTaken.X, spaceGiven.X), float.Min(spaceTaken.Y, spaceGiven.Y));
     }
+    
+    protected float GetBarCrossAxisSpaceTaken() => BarWidth + (BarPadding * 2);
 
     public virtual float GetScroll()
     {
@@ -124,9 +132,13 @@ public class ScrollListView : ListView
         }
     }
 
-    public override void Collect(in Matrix4x4 transform, in Framework.Graphics.Rect2D clip, CommandList commands)
+    protected virtual void CollectBarContent(in Matrix4x4 barTransform, in Vector2 barSize, CommandList commands)
     {
-        base.Collect(transform, clip, commands);
+        commands.AddRect(barTransform,barSize,BarColor, new Vector4(7f));
+    }
+
+    protected virtual void CollectBar(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
+    {
         if (IsVisible && IsScrollable())
         {
             var scroll = GetScroll();
@@ -135,6 +147,7 @@ public class ScrollListView : ListView
             var desiredAxisSize = axisSize + maxScroll;
 
             var barSize = float.Max(BarMinimumSize, axisSize - (desiredAxisSize - axisSize));
+            var barCrossAxisOffset = GetBarCrossAxisSpaceTaken() - BarPadding;
             var availableDist = axisSize - barSize;
             var drawOffset = availableDist * (float.Max(scroll, 0.0001f) / maxScroll);
 
@@ -144,14 +157,14 @@ public class ScrollListView : ListView
             {
                 case Axis.Column:
                 {
-                    var barTransform = transform.Translate(new Vector2(size.X - 10.0f, drawOffset));
-                    commands.AddRect(barTransform, new Vector2(BarWidth, barSize),BarColor, new Vector4(7f));
+                    var barTransform = transform.Translate(new Vector2(size.X - barCrossAxisOffset, drawOffset));
+                    CollectBarContent(barTransform, new Vector2(BarWidth, barSize), commands);
                 }
                     break;
                 case Axis.Row:
                 {
-                    var barTransform = transform.Translate(new Vector2(drawOffset, size.Y - 10.0f));
-                    commands.AddRect(barTransform, new Vector2(barSize, BarWidth),BarColor, new Vector4(7f));
+                    var barTransform = transform.Translate(new Vector2(drawOffset, size.Y - barCrossAxisOffset));
+                    CollectBarContent(barTransform, new Vector2(barSize, BarWidth), commands);
                 }
                     break;
                 default:
@@ -160,50 +173,81 @@ public class ScrollListView : ListView
         }
     }
 
-    protected override Matrix4x4 ComputeSlotTransform(ISlot slot, in Matrix4x4 contentTransform)
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
-        return slot.Child.GetLocalTransform() * contentTransform.Translate(Axis switch
-        {
-            Axis.Row => new Vector2(-GetScroll(), 0.0f),
-            Axis.Column => new Vector2(0.0f, -GetScroll()),
-            _ => throw new ArgumentOutOfRangeException(nameof(Axis))
-        });
-    }
-
-    public override Matrix4x4 ComputeChildOffsets(IView child)
-    {
+        var computedSize = base.LayoutContent(in availableSpace);
         
-        return Matrix4x4.Identity.Translate(Axis switch
+        if (FloatingBar)
+        {
+            return computedSize;
+        }
+
+        var barCrossAxisSize = GetBarCrossAxisSpaceTaken();
+        
+        // We recompute the size if the available space is finite and the computed size plus the bar cross axis size is greater than the available space
+        switch (Axis)
+        {
+            case Axis.Column:
+            {
+                computedSize = float.IsFinite(availableSpace.X) && computedSize.X + barCrossAxisSize > availableSpace.X ? base.LayoutContent(availableSpace with{ X = availableSpace.X  - barCrossAxisSize }) : computedSize;
+
+                computedSize.X += barCrossAxisSize;
+                
+                return computedSize;
+            }
+            case Axis.Row:
+            {
+                computedSize = float.IsFinite(availableSpace.Y) && computedSize.Y + barCrossAxisSize > availableSpace.Y ? base.LayoutContent(availableSpace with{ Y = availableSpace.Y  - barCrossAxisSize }) : computedSize;
+
+                computedSize.Y += barCrossAxisSize;
+                
+                return computedSize;
+            }
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
+    {
+        base.Collect(transform, clip, commands);
+        CollectBar(transform, clip, commands);
+    }
+    
+    public override Matrix4x4 GetLocalContentTransform()
+    {
+        return base.GetLocalContentTransform().ApplyBefore(Matrix4x4.Identity.Translate(Axis switch
         {
             Axis.Row => new Vector2(-GetScroll(), 0.0f),
             Axis.Column => new Vector2(0.0f, -GetScroll()),
             _ => throw new ArgumentOutOfRangeException(nameof(Axis))
-        }).ChildOf(GetLocalTransformWithPadding());
+        }));
     }
 
-    public override bool OnCursorDown(CursorDownSurfaceEvent e)
+    public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
     {
         _mouseDownOffset = _offset;
         _mouseDownPos = e.Position;
         _lastDownEvent = e;
-        return true;
+        e.Target = this;
     }
 
-    protected override bool OnCursorMove(CursorMoveSurfaceEvent e)
+    public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform)
     {
         if (_lastDownEvent?.Target == this)
         {
             var pos = _mouseDownPos - e.Position;
 
-            return ScrollTo(Axis switch
+            if (ScrollTo(Axis switch
+                {
+                    Axis.Row => _mouseDownOffset + pos.X,
+                    Axis.Column => _mouseDownOffset + pos.Y,
+                    _ => throw new ArgumentOutOfRangeException()
+                }))
             {
-                Axis.Row => _mouseDownOffset + pos.X,
-                Axis.Column => _mouseDownOffset + pos.Y,
-                _ => throw new ArgumentOutOfRangeException()
-            });
+                e.Target = this;
+            }
         }
-
-        return false;
     }
 
     public override void OnCursorUp(CursorUpSurfaceEvent e)

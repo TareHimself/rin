@@ -9,8 +9,7 @@ public interface IFont
     public float GetLineHeight(float fontSize);
 
     public GlyphRect[] MeasureText(in ReadOnlySpan<char> text, float size,
-        float maxWidth = float.PositiveInfinity)
-    {
-        return FontManager.MeasureText(this, text, size, maxWidth);
-    }
+        float maxWidth = float.PositiveInfinity);
+    
+    public IEnumerable<CodePoint>  GetCodePoints();
 }

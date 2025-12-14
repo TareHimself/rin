@@ -1,4 +1,6 @@
-﻿namespace Rin.Framework.Extensions;
+﻿using Rin.Framework.Buffers;
+
+namespace Rin.Framework.Extensions;
 
 public static class BufferExtensions
 {

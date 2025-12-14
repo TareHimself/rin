@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
+using Rin.Framework.Buffers;
 
 namespace Rin.Framework.Graphics;
 

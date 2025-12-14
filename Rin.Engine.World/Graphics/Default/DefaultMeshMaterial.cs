@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Shaders;
-using Rin.Framework.Math;
+using Rin.Framework.Shared.Math;
 
 namespace Rin.Engine.World.Graphics.Default;
 

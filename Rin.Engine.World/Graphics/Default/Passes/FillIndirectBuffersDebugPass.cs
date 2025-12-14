@@ -1,6 +1,5 @@
 ﻿using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
-using Rin.Framework.Graphics.Vulkan.Graph;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;

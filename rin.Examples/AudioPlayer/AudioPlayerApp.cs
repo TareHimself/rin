@@ -1,11 +1,10 @@
 ﻿using System.Numerics;
 using rin.Examples.AudioPlayer.Views;
+using rin.Examples.Common;
 using rin.Examples.Common.Views;
 using Rin.Framework;
 using Rin.Framework.Audio;
-using Rin.Framework.Audio.BassAudio;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Vulkan;
 using Rin.Framework.Graphics.Windows;
 using Rin.Framework.Views;
 using Rin.Framework.Views.Composite;
@@ -15,25 +14,10 @@ using YoutubeExplode;
 
 namespace rin.Examples.AudioPlayer;
 
-public class AudioPlayerApp : Application
+public class AudioPlayerApp : ExampleApplication
 {
     public readonly SpotifyClient SpClient = new();
     public readonly YoutubeClient YtClient = new();
-    
-    public override IGraphicsModule CreateGraphicsModule()
-    {
-        return new VulkanGraphicsModule();
-    }
-
-    public override IViewsModule CreateViewsModule()
-    {
-        return new ViewsModule();
-    }
-
-    public override IAudioModule CreateAudioModule()
-    {
-        return new BassAudioModule();
-    }
 
     protected override void OnStartup()
     {

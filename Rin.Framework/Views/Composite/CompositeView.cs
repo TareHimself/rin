@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Framework.Extensions;
-using Rin.Framework.Math;
 using Rin.Framework.Animation;
 using Rin.Framework.Graphics;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
@@ -20,15 +20,15 @@ public abstract class CompositeView : View, ICompositeView
         return ArrangeContent(availableSpace);
     }
 
-    public override void HandleEvent(ISurfaceEvent e, in Matrix4x4 transform)
+    public override void HandleEvent(ISurfaceEvent e, in Matrix4x4 absoluteTransform)
     {
         {
             if (e is IPositionalEvent asPositionalEvent)
             {
-                var withPadding = transform.Translate(new Vector2(Padding.Left, Padding.Top));
+                var withPadding = absoluteTransform.Translate(new Vector2(Padding.Left, Padding.Top));
                 var testContent = true;
                 if (Padding != default)
-                    testContent = Framework.Graphics.Rect2D.PointWithin(GetContentSize(), withPadding, asPositionalEvent.Position);
+                    testContent = Rect2D.PointWithin(GetContentSize(), withPadding, asPositionalEvent.Position);
 
                 if (testContent)
                 {
@@ -48,7 +48,7 @@ public abstract class CompositeView : View, ICompositeView
                 }
             }
         }
-        base.HandleEvent(e, transform);
+        base.HandleEvent(e, absoluteTransform);
     }
 
     protected virtual Pair<ISlot, Matrix4x4>[] ComputeHitTestableSlotsForEvent(IPositionalEvent e, Matrix4x4 transform)
@@ -69,15 +69,14 @@ public abstract class CompositeView : View, ICompositeView
     }
 
     /// <summary>
-    ///     Compute extra offsets for this slot
+    /// Compute extra offsets for this slot
     /// </summary>
     /// <param name="slot"></param>
     /// <param name="contentTransform"></param>
     /// <returns></returns>
     protected virtual Matrix4x4 ComputeSlotTransform(ISlot slot, in Matrix4x4 contentTransform)
     {
-        var relativeTransform = slot.Child.GetLocalTransform();
-        return relativeTransform * contentTransform;
+        return slot.Child.GetLocalTransform().ChildOf(contentTransform);
     }
 
     /// <summary>
@@ -113,20 +112,19 @@ public abstract class CompositeView : View, ICompositeView
         var clipRect = clip;
 
 
-        var transformWithPadding = Padding.Left > 0f || Padding.Top > 0f
-            ? transform.Translate(new Vector2(Padding.Left, Padding.Top))
-            : transform;
+        var transformAfterPadding = transform.ApplyBefore(GetLocalPaddingTransform());
 
 
-        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transformWithPadding, GetContentSize());
+        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transformAfterPadding, GetContentSize());
 
-        if (Clip == Clip.Bounds) clipRect = ComputeAABB(transformWithPadding).Clamp(clipRect);
+        if (Clip == Clip.Bounds) clipRect = ComputeAABB(transformAfterPadding).Clamp(clipRect);
 
         List<Pair<IView, Matrix4x4>> toCollect = [];
 
+        var contentTransform = transform.ApplyBefore(GetLocalContentTransform());
         foreach (var slot in GetCollectableSlots())
         {
-            var slotTransform = ComputeSlotTransform(slot, transformWithPadding);
+            var slotTransform = ComputeSlotTransform(slot, transformAfterPadding);
 
             var aabb = slot.Child.ComputeAABB(slotTransform);
 

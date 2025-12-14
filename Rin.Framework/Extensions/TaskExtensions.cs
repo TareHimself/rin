@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using Rin.Framework.Shared;
 
 namespace Rin.Framework.Extensions;
 

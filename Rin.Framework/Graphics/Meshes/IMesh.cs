@@ -1,4 +1,5 @@
-﻿using Rin.Framework.Graphics.Vulkan.Meshes;
+﻿
+using Rin.Framework.Shared;
 
 namespace Rin.Framework.Graphics.Meshes;
 

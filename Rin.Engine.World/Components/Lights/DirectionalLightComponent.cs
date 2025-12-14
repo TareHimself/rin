@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Framework.Math;
 using Rin.Engine.World.Graphics;
+using Rin.Framework.Shared.Math;
 
 namespace Rin.Engine.World.Components.Lights;
 

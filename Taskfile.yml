@@ -1,0 +1,17 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  NET_VERSION: '9.0'
+  NUGET_LOCAL_BUILD_TYPE: "Release"
+  PACKAGES_LOCATION: "{{.USER_WORKING_DIR}}\\.feed"
+tasks:
+  nuget-local:
+    cmds:
+      - dotnet pack ./Rin.Framework -p:PackageVersion=1.0.0-local -p:DepMode=local_feed -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\0"
+      - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\0\*.nupkg" --source "{{.PACKAGES_LOCATION}}"
+      - dotnet pack ./Rin.Framework.Audio.Bass -p:PackageVersion=1.0.0-local -p:DepMode=local_feed  -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\1"
+      - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\1\*.nupkg" --source "{{.PACKAGES_LOCATION}}"
+      - dotnet pack ./Rin.Framework.Graphics.Vulkan -p:PackageVersion=1.0.0-local -p:DepMode=local_feed -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\2"
+      - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\2\*.nupkg" --source "{{.PACKAGES_LOCATION}}"

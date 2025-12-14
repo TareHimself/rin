@@ -57,39 +57,33 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
     protected virtual void HandleCrossAxisOffset(ListSlot slot, float crossAxisSize)
     {
         var view = slot.Child;
-        var size = view.Size;
+        var size = view.GetSize();
         switch (GetAxis())
         {
             case Axis.Column:
             {
-                if (slot.Fit != CrossFit.Fill)
+                var offset = view.Offset;
+                offset.X += slot.Align switch
                 {
-                    var offset = view.Offset;
-                    offset.X += slot.Align switch
-                    {
-                        CrossAlign.Start => 0.0f,
-                        CrossAlign.Center => crossAxisSize / 2.0f - size.X / 2.0f,
-                        CrossAlign.End => size.X - crossAxisSize,
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                    view.Offset = offset;
-                }
+                    CrossAlign.Start => 0.0f,
+                    CrossAlign.Center => crossAxisSize / 2.0f - size.X / 2.0f,
+                    CrossAlign.End => crossAxisSize - size.X,
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+                view.Offset = offset;
             }
                 break;
             case Axis.Row:
             {
-                if (slot.Fit != CrossFit.Fill)
+                var offset = view.Offset;
+                offset.Y += slot.Align switch
                 {
-                    var offset = view.Offset;
-                    offset.Y += slot.Align switch
-                    {
-                        CrossAlign.Start => 0.0f,
-                        CrossAlign.Center => crossAxisSize / 2.0f - size.Y / 2.0f,
-                        CrossAlign.End => size.Y - crossAxisSize,
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                    view.Offset = offset;
-                }
+                    CrossAlign.Start => 0.0f,
+                    CrossAlign.Center => crossAxisSize / 2.0f - size.Y / 2.0f,
+                    CrossAlign.End => crossAxisSize - size.Y,
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+                view.Offset = offset;
             }
                 break;
             default:

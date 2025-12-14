@@ -3,11 +3,11 @@ using JetBrains.Annotations;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Meshes;
-using Rin.Framework.Math;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
 using Rin.Engine.World.Mesh.Skinning;
 using Rin.Framework;
+using Rin.Framework.Shared.Math;
 
 namespace Rin.Engine.World.Graphics.Default;
 
