@@ -1,0 +1,57 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "F:\\rin\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{515D3A8F-AA58-4533-B73C-03CC30D42BBB}|rin.Examples\\ViewsTest\\rin.Examples.ViewsTest.csproj|f:\\rin\\rin.examples\\viewstest\\rin.examples.viewstest.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
+      "RelativeMoniker": "D:0:0:{515D3A8F-AA58-4533-B73C-03CC30D42BBB}|rin.Examples\\ViewsTest\\rin.Examples.ViewsTest.csproj|solutionrelative:rin.examples\\viewstest\\rin.examples.viewstest.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{515D3A8F-AA58-4533-B73C-03CC30D42BBB}|rin.Examples\\ViewsTest\\rin.Examples.ViewsTest.csproj|f:\\rin\\rin.examples\\viewstest\\sviewstestmodule.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{515D3A8F-AA58-4533-B73C-03CC30D42BBB}|rin.Examples\\ViewsTest\\rin.Examples.ViewsTest.csproj|solutionrelative:rin.examples\\viewstest\\sviewstestmodule.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "SViewsTestModule.cs",
+              "DocumentMoniker": "F:\\rin\\rin.Examples\\ViewsTest\\SViewsTestModule.cs",
+              "RelativeDocumentMoniker": "rin.Examples\\ViewsTest\\SViewsTestModule.cs",
+              "ToolTip": "F:\\rin\\rin.Examples\\ViewsTest\\SViewsTestModule.cs",
+              "RelativeToolTip": "rin.Examples\\ViewsTest\\SViewsTestModule.cs",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAAOkAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-22T23:05:36.976Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "rin.Examples.ViewsTest",
+              "DocumentMoniker": "F:\\rin\\rin.Examples\\ViewsTest\\rin.Examples.ViewsTest.csproj",
+              "RelativeDocumentMoniker": "rin.Examples\\ViewsTest\\rin.Examples.ViewsTest.csproj",
+              "ToolTip": "F:\\rin\\rin.Examples\\ViewsTest\\rin.Examples.ViewsTest.csproj",
+              "RelativeToolTip": "rin.Examples\\ViewsTest\\rin.Examples.ViewsTest.csproj",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-06-22T23:01:00.514Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
