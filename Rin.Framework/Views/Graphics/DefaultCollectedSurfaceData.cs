@@ -10,7 +10,7 @@ namespace Rin.Framework.Views.Graphics;
 
 public class DefaultCollectedSurfaceData : ICollectedSurfaceData
 {
-    private CommandList _commandList;
+    private readonly CommandList _commandList;
 
     public DefaultCollectedSurfaceData(CommandList commandList)
     {
@@ -26,7 +26,7 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
     public virtual void Write(IGraphBuilder builder)
     {
         var drawList = _commandList;
-        
+
         var clips = drawList.Clips;
 
         List<IPass> passes = [new CreateImagesPass(SurfaceContext)];
@@ -81,7 +81,9 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
 
         foreach (var pass in passes) builder.AddPass(pass);
     }
-    
+
+    public SurfaceContext SurfaceContext { get; }
+
     private void ProcessPendingCommands(IEnumerable<ICommand> drawCommands,
         SurfaceContext context, List<IPass> passes)
     {
@@ -98,8 +100,9 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
                 if (currentCommands.Count > 0)
                     currentHandlers.Add(currentCommands.First().CreateHandler(currentCommands.ToArray()));
 
-                passes.Add(new ViewsDrawPass(context,currentCommands.First().CreateConfig(context), currentHandlers.ToArray()));
-                
+                passes.Add(new ViewsDrawPass(context, currentCommands.First().CreateConfig(context),
+                    currentHandlers.ToArray()));
+
                 currentCommands.Clear();
                 currentHandlers.Clear();
                 //passes.Add(new ViewsDrawPass(currentCommands.First().CreateConfig(context),currentHandlers.ToArray()));
@@ -118,7 +121,7 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
 
                 if (currentPassConfigType != cmd.PassConfigType)
                 {
-                    passes.Add(new ViewsDrawPass(context,firstCmd.CreateConfig(context),
+                    passes.Add(new ViewsDrawPass(context, firstCmd.CreateConfig(context),
                         currentHandlers.ToArray()));
                     currentHandlers.Clear();
                 }
@@ -132,9 +135,8 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
         if (currentCommands.NotEmpty())
         {
             currentHandlers.Add(currentCommands.First().CreateHandler(currentCommands.ToArray()));
-            passes.Add(new ViewsDrawPass(context,currentCommands.First().CreateConfig(context), currentHandlers.ToArray()));
+            passes.Add(new ViewsDrawPass(context, currentCommands.First().CreateConfig(context),
+                currentHandlers.ToArray()));
         }
     }
-
-    public SurfaceContext SurfaceContext { get; }
 }

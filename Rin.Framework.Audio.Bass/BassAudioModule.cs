@@ -16,7 +16,6 @@ public class BassAudioModule : IAudioModule
 
     public void Update(float deltaTime)
     {
-        
     }
 
     public float GetVolume()
@@ -54,7 +53,7 @@ public class BassAudioModule : IAudioModule
         var bassStream = ManagedBass.Bass.CreateStream(frequency, channels, BassFlags.Float, StreamProcedureType.Push);
         return new BassPushStream(bassStream);
     }
-    
+
     public IAudioScene CreateScene()
     {
         throw new NotImplementedException();

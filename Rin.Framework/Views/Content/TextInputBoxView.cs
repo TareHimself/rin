@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Framework.Extensions;
-using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Graphics.Windows;
 using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Quads;
 using Timer = System.Timers.Timer;
 
 namespace Rin.Framework.Views.Content;

@@ -44,13 +44,13 @@ public class VulkanComputeBindContext : VulkanBindContext<IComputeBindContext>, 
     public IBindContext Dispatch(uint x, uint y = 1, uint z = 1)
     {
         Debug.Assert(x != 0 && y != 0 && z != 0);
-        
+
         UpdatePendingSets();
-        
+
         var cmd = ExecutionContext.CommandBuffer;
-        
+
         vkCmdDispatch(cmd, x, y, z);
-        
+
         return this;
     }
 

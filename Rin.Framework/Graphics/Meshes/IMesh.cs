@@ -1,5 +1,4 @@
-﻿
-using Rin.Framework.Shared;
+﻿using Rin.Framework.Shared;
 
 namespace Rin.Framework.Graphics.Meshes;
 

@@ -3,7 +3,7 @@
 namespace Rin.Framework.Shared;
 
 /// <summary>
-///  Used to schedule actions to be called on <see cref="DispatchPending" /> . usefull for threading
+///     Used to schedule actions to be called on <see cref="DispatchPending" /> . useful for threading
 /// </summary>
 public class Dispatcher
 {
@@ -41,7 +41,7 @@ public class Dispatcher
         {
             PendingAction = action
         };
-        
+
         _actions.Enqueue(pending);
 
         return pending.CompletionSource.Task;
@@ -60,7 +60,7 @@ public class Dispatcher
             PendingAction = action,
             CancellationToken = cancellationToken
         };
-        
+
         _actions.Enqueue(pending);
 
         return pending.CompletionSource.Task;

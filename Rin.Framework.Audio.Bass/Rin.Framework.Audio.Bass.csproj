@@ -23,20 +23,20 @@
     <PropertyGroup>
         <DepMode Condition="'$(DepMode)' == ''">local_file</DepMode>
     </PropertyGroup>
-<!--    Local refs i.e. project refs-->
+    <!--    Local refs i.e. project refs-->
     <ItemGroup Condition="'$(DepMode)' == 'local_file'">
         <ProjectReference Include="..\Rin.Framework\Rin.Framework.csproj"/>
     </ItemGroup>
-<!--    References from online feeds-->
+    <!--    References from online feeds-->
     <ItemGroup Condition="'$(DepMode)' == 'online'">
-        <PackageReference Include="TareHimself.Rin.Framework" Version="2.0.1" />
+        <PackageReference Include="TareHimself.Rin.Framework" Version="2.0.1"/>
     </ItemGroup>
-<!--    References from local feeds-->
+    <!--    References from local feeds-->
     <ItemGroup Condition="'$(DepMode)' == 'local_feed'">
-        <PackageReference Include="TareHimself.Rin.Framework" Version="1.0.0-local" />
+        <PackageReference Include="TareHimself.Rin.Framework" Version="1.0.0-local"/>
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="ManagedBass" Version="4.0.2" />
-        <PackageReference Include="TareHimself.Rin.Framework.Audio.Bass.NativeLibs" Version="1.0.0-win" />
+        <PackageReference Include="ManagedBass" Version="4.0.2"/>
+        <PackageReference Include="TareHimself.Rin.Framework.Audio.Bass.NativeLibs" Version="1.0.0-win"/>
     </ItemGroup>
 </Project>

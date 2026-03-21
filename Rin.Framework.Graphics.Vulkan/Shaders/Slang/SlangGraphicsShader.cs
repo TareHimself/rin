@@ -73,18 +73,12 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
             List<SlangEntryPoint> entryPoints = [];
             {
                 var entryPoint = module.FindEntryPointByName("vertex");
-                if (entryPoint != null)
-                {
-                    entryPoints.Add(entryPoint);
-                }
+                if (entryPoint != null) entryPoints.Add(entryPoint);
             }
 
             {
                 var entryPoint = module.FindEntryPointByName("fragment");
-                if (entryPoint != null)
-                {
-                    entryPoints.Add(entryPoint);
-                }
+                if (entryPoint != null) entryPoints.Add(entryPoint);
             }
             var resources = new Dictionary<string, Resource>();
             var pushConstants = new Dictionary<string, PushConstant>();
@@ -118,7 +112,8 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
 
                 if (jsonString == null) throw new ShaderCompileException("Failed to get reflection data.");
 
-                var reflectionData = JsonSerializer.Deserialize(jsonString,SlangReflectionDataJsonContext.Default.SlangReflectionData);
+                var reflectionData = JsonSerializer.Deserialize(jsonString,
+                    SlangReflectionDataJsonContext.Default.SlangReflectionData);
 
                 if (reflectionData == null) throw new ShaderCompileException("Failed to parse reflection data.");
 
@@ -190,7 +185,7 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
                 foreach (var (key, item) in Resources)
                 {
                     if (!builders.ContainsKey(item.Set))
-                        builders.Add(item.Set,new DescriptorLayoutBuilder());
+                        builders.Add(item.Set, new DescriptorLayoutBuilder());
 
                     builders[item.Set].AddBinding(item.Binding, item.Type, item.Stages, item.Count, item.BindingFlags);
                 }
@@ -229,7 +224,9 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
     public bool UsesDepth { get; set; }
 
     public FrozenDictionary<string, Resource> Resources { get; set; } = FrozenDictionary<string, Resource>.Empty;
-    public FrozenDictionary<string, PushConstant> PushConstants { get; set; } = FrozenDictionary<string, PushConstant>.Empty;
+
+    public FrozenDictionary<string, PushConstant> PushConstants { get; set; } =
+        FrozenDictionary<string, PushConstant>.Empty;
 
     public Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts()
     {

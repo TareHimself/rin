@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
+﻿using System.Numerics;
 using Rin.Framework.Animation;
 using Rin.Framework.Graphics;
 using Rin.Framework.Shared.Math;

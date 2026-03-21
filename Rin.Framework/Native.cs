@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Windows;
+
 // ReSharper disable InconsistentNaming
 #pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
 
@@ -36,7 +36,7 @@ internal static partial class Native
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         public static partial void Free(IntPtr ptr);
     }
-    
+
     public static partial class Sdf
     {
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -54,11 +54,11 @@ internal static partial class Native
         [LibraryImport(DllName, EntryPoint = "sdfContextBeginContour")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         public static partial void ContextBeginContour(IntPtr context);
-        
+
         [LibraryImport(DllName, EntryPoint = "sdfContextEndContour")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         public static partial void ContextEndContour(IntPtr context);
-        
+
         [LibraryImport(DllName, EntryPoint = "sdfContextMoveTo")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         public static partial void ContextMoveTo(IntPtr context, ref Vector2 to);
@@ -97,7 +97,7 @@ internal static partial class Native
     public static partial class Video
     {
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public unsafe delegate void AudioCallbackDelegate(float* data, int count, double time); 
+        public unsafe delegate void AudioCallbackDelegate(float* data, int count, double time);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate ulong SourceAvailableCallbackDelegate();

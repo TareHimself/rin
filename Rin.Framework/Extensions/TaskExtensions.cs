@@ -9,7 +9,7 @@ public static class TaskExtensions
     {
         return tasks.Select(c => c.WaitForResult());
     }
-    
+
 
     public static Task<TV> Then<T, TV>(this Task<T> task, Func<T, TV> then)
     {

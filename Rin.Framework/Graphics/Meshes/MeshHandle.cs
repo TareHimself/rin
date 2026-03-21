@@ -3,12 +3,12 @@ namespace Rin.Framework.Graphics.Meshes;
 public readonly record struct MeshHandle
 {
     private readonly int _data;
-    
+
     public MeshHandle(int data)
     {
         _data = data;
     }
-    
+
     public static MeshHandle InvalidMesh => new(-1);
 
     // public bool IsValid()

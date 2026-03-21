@@ -4,7 +4,7 @@ using Rin.Framework.Graphics;
 namespace Rin.Framework.Views.Sdf;
 
 /// <summary>
-/// Generates a MSDF/MTSDF using <a href="https://github.com/Chlumsky/msdfgen">msdfgen</a>
+///     Generates a MSDF/MTSDF using <a href="https://github.com/Chlumsky/msdfgen">msdfgen</a>
 /// </summary>
 public class SdfBuilder : IDisposable
 {
@@ -15,13 +15,13 @@ public class SdfBuilder : IDisposable
         OnDispose();
         GC.SuppressFinalize(this);
     }
-    
+
     public SdfBuilder BeginContour()
     {
         Native.Sdf.ContextBeginContour(_context);
         return this;
     }
-    
+
     public SdfBuilder EndContour()
     {
         Native.Sdf.ContextEndContour(_context);
@@ -29,7 +29,7 @@ public class SdfBuilder : IDisposable
     }
 
     /// <summary>
-    /// Ends the current contour, starts a new contour and moves the position of the cursor
+    ///     Ends the current contour, starts a new contour and moves the position of the cursor
     /// </summary>
     /// <param name="point"></param>
     /// <returns></returns>
@@ -61,7 +61,7 @@ public class SdfBuilder : IDisposable
     }
 
     /// <summary>
-    /// Stop drawing the vector
+    ///     Stop drawing the vector
     /// </summary>
     /// <returns></returns>
     public SdfBuilder Finish()
@@ -69,7 +69,7 @@ public class SdfBuilder : IDisposable
         Native.Sdf.ContextFinish(_context);
         return this;
     }
-    
+
     public SdfResult? GenerateMSDF(float angleThreshold, float pixelRange)
     {
         SdfResult? result = null;

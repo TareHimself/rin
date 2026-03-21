@@ -2,7 +2,6 @@
 
 namespace Rin.Framework.Graphics.Vulkan.Images;
 
-public interface IDisposableVulkanTexture  : IDisposableTexture, IVulkanTexture
+public interface IDisposableVulkanTexture : IDisposableTexture, IVulkanTexture
 {
-    
 }

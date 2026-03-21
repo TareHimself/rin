@@ -76,5 +76,8 @@ public class ListView : MultiSlotCompositeView<ListSlot>
         return _layout.Remove(child);
     }
 
-    public ISlot? FindSlot(View child) => _layout.FindSlot(child);
+    public ISlot? FindSlot(View child)
+    {
+        return _layout.FindSlot(child);
+    }
 }

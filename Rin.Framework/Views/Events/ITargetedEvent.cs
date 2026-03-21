@@ -1,7 +1,7 @@
 ﻿namespace Rin.Framework.Views.Events;
 
 /// <summary>
-/// For events that have some kind of target
+///     For events that have some kind of target
 /// </summary>
 public interface ITargetedEvent : ISurfaceEvent
 {

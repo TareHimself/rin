@@ -6,13 +6,13 @@ namespace Rin.Framework.Graphics.Vulkan.Graph;
 public sealed class CompiledGraph : ICompiledGraph
 {
     private readonly Dictionary<uint, IDeviceBuffer> _buffers = [];
+    private readonly Dictionary<uint, IDisposableCubemap> _cubemaps = [];
     private readonly Dictionary<uint, IResourceDescriptor> _descriptors;
     private readonly Frame _frame;
-    private readonly Dictionary<uint, IDisposableTexture> _textures = [];
-    private readonly Dictionary<uint, IDisposableTextureArray> _textureArrays = [];
-    private readonly Dictionary<uint, IDisposableCubemap> _cubemaps = [];
     private readonly IEnumerable<ExecutionGroup> _nodes;
     private readonly IResourcePool _resourcePool;
+    private readonly Dictionary<uint, IDisposableTextureArray> _textureArrays = [];
+    private readonly Dictionary<uint, IDisposableTexture> _textures = [];
 
 
     public CompiledGraph(IResourcePool resourcePool, Frame frame, Dictionary<uint, IResourceDescriptor> descriptors,
@@ -37,7 +37,7 @@ public sealed class CompiledGraph : ICompiledGraph
         _cubemaps.Clear();
         _buffers.Clear();
     }
-    
+
     public ITexture GetTexture(uint id)
     {
         {

@@ -4,10 +4,10 @@ namespace Rin.Framework.Graphics.Vulkan.Graph;
 
 public class TextureArrayResourceDescriptor : IResourceDescriptor
 {
+    public readonly uint Count;
     public readonly Extent2D Extent;
     public readonly ImageFormat Format;
     public readonly ImageUsage Usage;
-    public readonly uint Count;
 
     public TextureArrayResourceDescriptor(in Extent2D extent, ImageFormat format, ImageUsage usage)
     {
@@ -19,6 +19,6 @@ public class TextureArrayResourceDescriptor : IResourceDescriptor
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Extent, (int)Format, (int)Usage,Count);
+        return HashCode.Combine(Extent, (int)Format, (int)Usage, Count);
     }
 }

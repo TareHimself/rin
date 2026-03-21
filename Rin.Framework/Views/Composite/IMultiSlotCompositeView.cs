@@ -1,7 +1,4 @@
-﻿using System.Numerics;
-using JetBrains.Annotations;
-using Rin.Framework.Views.Enums;
-using Rin.Framework.Views.Layouts;
+﻿using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
 
@@ -10,18 +7,12 @@ public interface IMultiSlotCompositeView<in TSlotType> : ICompositeView where TS
     /// <summary>
     ///     Adds the views to this container
     /// </summary>
-    public IView[] Children
-    {
-        init;
-    }
+    public IView[] Children { init; }
 
     /// <summary>
     ///     Adds the slots to this container
     /// </summary>
-    public TSlotType[] Slots
-    {
-        init;
-    }
+    public TSlotType[] Slots { init; }
 
     public int SlotCount { get; }
     public bool Add(IView child);

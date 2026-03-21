@@ -90,7 +90,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
     public abstract void OnSlotUpdated(ISlot slot);
 
     public abstract Vector2 Apply(in Vector2 availableSpace);
-    
+
     public abstract Vector2 ComputeDesiredContentSize();
 
     public ISlot? FindSlot(IView view)

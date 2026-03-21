@@ -38,13 +38,13 @@ public class VulkanGraphicsBindContext(SlangGraphicsShader shader, VulkanExecuti
 
         return this;
     }
-        
+
     public IGraphicsShader Shader => shader;
 
     public IGraphicsBindContext Draw(uint vertices, uint instances = 1, uint firstVertex = 0, uint firstInstance = 0)
     {
         UpdatePendingSets();
-        
+
         vkCmdDraw(ExecutionContext.CommandBuffer, vertices, instances, firstVertex, firstInstance);
         return this;
     }
@@ -54,10 +54,10 @@ public class VulkanGraphicsBindContext(SlangGraphicsShader shader, VulkanExecuti
         uint firstInstance = 0)
     {
         UpdatePendingSets();
-        
+
         vkCmdDrawIndexed(ExecutionContext.CommandBuffer, indexCount, instanceCount, firstIndex, (int)firstVertex,
             firstInstance);
-        
+
         return this;
     }
 
@@ -67,10 +67,11 @@ public class VulkanGraphicsBindContext(SlangGraphicsShader shader, VulkanExecuti
         Debug.Assert(commands.IsValid, "Indirect command buffer is not valid");
         Debug.Assert(commands.Buffer is IVulkanDeviceBuffer);
         UpdatePendingSets();
-        
-        vkCmdDrawIndexedIndirect(ExecutionContext.CommandBuffer,Unsafe.As<IVulkanDeviceBuffer>(commands.Buffer).NativeBuffer, commands.Offset,
+
+        vkCmdDrawIndexedIndirect(ExecutionContext.CommandBuffer,
+            Unsafe.As<IVulkanDeviceBuffer>(commands.Buffer).NativeBuffer, commands.Offset,
             drawCount, stride);
-        
+
         return this;
     }
 
@@ -78,17 +79,18 @@ public class VulkanGraphicsBindContext(SlangGraphicsShader shader, VulkanExecuti
         uint maxDrawCount, uint stride, uint commandsOffset = 0, uint drawCountOffset = 0)
     {
         Debug.Assert(commands.IsValid, "Indirect command buffer is not valid");
-        
+
         Debug.Assert(drawCount.IsValid, "Draw count buffer is not valid");
-        
+
         Debug.Assert(commands.Buffer is IVulkanDeviceBuffer);
         Debug.Assert(drawCount.Buffer is IVulkanDeviceBuffer);
         UpdatePendingSets();
-        
-        vkCmdDrawIndexedIndirectCount(ExecutionContext.CommandBuffer,Unsafe.As<IVulkanDeviceBuffer>(commands.Buffer).NativeBuffer, commands.Offset,
+
+        vkCmdDrawIndexedIndirectCount(ExecutionContext.CommandBuffer,
+            Unsafe.As<IVulkanDeviceBuffer>(commands.Buffer).NativeBuffer, commands.Offset,
             Unsafe.As<IVulkanDeviceBuffer>(drawCount.Buffer).NativeBuffer,
             drawCount.Offset, maxDrawCount, (uint)Utils.ByteSizeOf<VkDrawIndexedIndirectCommand>());
-        
+
         return this;
     }
 

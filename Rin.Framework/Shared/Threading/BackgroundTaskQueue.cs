@@ -24,6 +24,11 @@ public class BackgroundTaskQueue : IDisposable
         }, TaskCreationOptions.LongRunning);
     }
 
+    public void Dispose()
+    {
+        _pendingTasks.CompleteAdding();
+    }
+
     private void RunTask(PendingTask task)
     {
         try
@@ -62,17 +67,12 @@ public class BackgroundTaskQueue : IDisposable
 
         return newPending.Pending.Task;
     }
-    
+
     private class PendingTask(Action fn, TaskCompletionSource pending, CancellationToken? token = null)
     {
         public readonly Action Fn = fn;
         public readonly TaskCompletionSource Pending = pending;
         public readonly CancellationToken? Token = token;
-    }
-
-    public void Dispose()
-    {
-        _pendingTasks.CompleteAdding();
     }
 }
 
@@ -92,6 +92,11 @@ public class BackgroundTaskQueue<T> : IDisposable
             foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable())
                 pendingTask.Pending.SetResult(pendingTask.Fn());
         }, TaskCreationOptions.LongRunning);
+    }
+
+    public void Dispose()
+    {
+        _pendingTasks.CompleteAdding();
     }
 
     private void RunTask(PendingTask task)
@@ -131,16 +136,11 @@ public class BackgroundTaskQueue<T> : IDisposable
 
         return newPending.Pending.Task;
     }
-    
+
     public class PendingTask(Func<T> fn, TaskCompletionSource<T> pending, CancellationToken? token = null)
     {
         public readonly CancellationToken? Token = token;
         public Func<T> Fn = fn;
         public TaskCompletionSource<T> Pending = pending;
-    }
-
-    public void Dispose()
-    {
-        _pendingTasks.CompleteAdding();
     }
 }

@@ -97,9 +97,10 @@ public class SlangComputeShader : IComputeShader, IVulkanShader
             var jsonString = Marshal.PtrToStringUTF8(reflectionBlob.GetDataPointer());
 
             if (jsonString == null) throw new ShaderCompileException("Failed to get reflection data.");
-            
-            
-            var reflectionData = JsonSerializer.Deserialize(jsonString,SlangReflectionDataJsonContext.Default.SlangReflectionData);
+
+
+            var reflectionData =
+                JsonSerializer.Deserialize(jsonString, SlangReflectionDataJsonContext.Default.SlangReflectionData);
 
             if (reflectionData == null) throw new ShaderCompileException("Failed to parse reflection data.");
 
@@ -156,7 +157,9 @@ public class SlangComputeShader : IComputeShader, IVulkanShader
     public uint GroupSizeZ { get; private set; }
 
     public FrozenDictionary<string, Resource> Resources { get; set; } = FrozenDictionary<string, Resource>.Empty;
-    public FrozenDictionary<string, PushConstant> PushConstants { get; set; } = FrozenDictionary<string, PushConstant>.Empty;
+
+    public FrozenDictionary<string, PushConstant> PushConstants { get; set; } =
+        FrozenDictionary<string, PushConstant>.Empty;
 
     public Dictionary<uint, VkDescriptorSetLayout> GetDescriptorSetLayouts()
     {

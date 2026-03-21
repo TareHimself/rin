@@ -18,6 +18,6 @@ public class VulkanTextureArray : IDisposableVulkanTextureArray
     public required ImageFormat Format { get; set; }
     public ImageHandle Handle { get; } = ImageHandle.InvalidTextureArray;
     public required uint Count { get; set; }
-    
+
     public required IntPtr Allocation { get; set; }
 }

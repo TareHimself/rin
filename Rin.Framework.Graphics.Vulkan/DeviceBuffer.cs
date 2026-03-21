@@ -8,20 +8,20 @@ namespace Rin.Framework.Graphics.Vulkan;
 /// </summary>
 public class VulkanDeviceBuffer : IVulkanDeviceBuffer
 {
+    private readonly IntPtr _allocator;
     private nuint? _address;
 
-    private IntPtr _allocator;
     /// <summary>
     ///     GPU Buffer
     /// </summary>
-    public VulkanDeviceBuffer(VkBuffer inBuffer, ulong inSize,  IntPtr allocation,IntPtr allocator)
+    public VulkanDeviceBuffer(VkBuffer inBuffer, ulong inSize, IntPtr allocation, IntPtr allocator)
     {
         NativeBuffer = inBuffer;
         Size = inSize;
         Allocation = allocation;
         _allocator = allocator;
     }
-    
+
     public IDeviceBuffer Buffer => this;
     public ulong Offset => 0;
     public ulong Size { get; }
@@ -50,7 +50,7 @@ public class VulkanDeviceBuffer : IVulkanDeviceBuffer
     {
         return new DeviceBufferView(this, offset, size);
     }
-    
+
     public void Dispose()
     {
         VulkanGraphicsModule.Get().FreeBuffer(this);
@@ -59,7 +59,7 @@ public class VulkanDeviceBuffer : IVulkanDeviceBuffer
 
     public void WriteRaw(in IntPtr src, ulong size, ulong offset = 0)
     {
-        Native.Vulkan.CopyToBuffer(_allocator,Allocation, src, size, offset);
+        Native.Vulkan.CopyToBuffer(_allocator, Allocation, src, size, offset);
     }
 
     public static implicit operator VkBuffer(VulkanDeviceBuffer from)

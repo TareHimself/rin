@@ -1,9 +1,8 @@
 ﻿using Rin.Framework.Graphics.Shaders;
-using Rin.Framework.Graphics.Vulkan;
 using Rin.Framework.Graphics.Vulkan.Descriptors;
 using TerraFX.Interop.Vulkan;
 
-namespace Rin.Framework.Graphics;
+namespace Rin.Framework.Graphics.Vulkan;
 
 /// <summary>
 ///     Represents a <see cref="WindowRenderer" /> frame

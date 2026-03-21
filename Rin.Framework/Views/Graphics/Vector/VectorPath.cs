@@ -9,16 +9,10 @@ public class VectorPath : IPath
         Line,
         Bezier
     }
-    public struct Segment
-    {
-        public SegmentType Type;
-        public Vector2 Begin;
-        public Vector2 End;
-        public Vector2 ControlA;
-        public Vector2 ControlB;
-    }
-    
-    
+
+    private readonly CommandList _list;
+
+
     public VectorPath(CommandList list, in Matrix4x4 transform, in Color? color = null)
     {
         _list = list;
@@ -29,13 +23,11 @@ public class VectorPath : IPath
     public List<Segment> Segments { get; } = [];
     public bool IsClosed { get; private set; }
     public bool IsFilled { get; private set; }
-    public float StrokeWidth  { get; private set; }
+    public float StrokeWidth { get; private set; }
     public Matrix4x4 Transform { get; private set; }
-
-    public Vector2 Position { get; private set; }
     public Color Color { get; private set; }
 
-    private readonly CommandList _list;
+    public Vector2 Position { get; private set; }
 
     public IPath Close()
     {
@@ -57,7 +49,8 @@ public class VectorPath : IPath
 
     public IPath BezierTo(in Vector2 controlA, in Vector2 controlB, in Vector2 end)
     {
-        Segments.Add(new Segment { Type = SegmentType.Line, Begin = end, End = end,ControlA = controlA, ControlB = controlB });
+        Segments.Add(new Segment
+            { Type = SegmentType.Line, Begin = end, End = end, ControlA = controlA, ControlB = controlB });
         return this;
     }
 
@@ -73,5 +66,14 @@ public class VectorPath : IPath
         IsFilled = true;
         IsClosed = true;
         return _list;
+    }
+
+    public struct Segment
+    {
+        public SegmentType Type;
+        public Vector2 Begin;
+        public Vector2 End;
+        public Vector2 ControlA;
+        public Vector2 ControlB;
     }
 }

@@ -2,7 +2,6 @@
 
 namespace Rin.Framework.Graphics.Vulkan.Images;
 
-public interface IVulkanTexture  : IVulkanImage, ITexture
+public interface IVulkanTexture : IVulkanImage, ITexture
 {
-    
 }

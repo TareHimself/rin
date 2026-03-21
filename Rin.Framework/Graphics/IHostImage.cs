@@ -10,7 +10,7 @@ public interface IHostImage : IDisposable
 
     public HostImageFormat Format { get; }
 
-    public Task CreateTexture(out ImageHandle handle,ImageFilter filter = ImageFilter.Linear,
+    public Task CreateTexture(out ImageHandle handle, ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat,
         bool mips = false, string? debugName = null);
 

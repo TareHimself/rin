@@ -1,7 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Text;
-
-namespace Rin.Framework.Graphics.Vulkan.Shaders.Slang;
+﻿namespace Rin.Framework.Graphics.Vulkan.Shaders.Slang;
 
 public class SlangSessionBuilder : IDisposable
 {
@@ -22,7 +19,7 @@ public class SlangSessionBuilder : IDisposable
     }
 
     /// <summary>
-    /// Not implemented
+    ///     Not implemented
     /// </summary>
     /// <param name="path"></param>
     /// <param name="data"></param>

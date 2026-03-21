@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using Rin.Framework;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
@@ -57,7 +58,7 @@ public class CustomShaderCommandHandler : ICommandHandler
         }
     }
     
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential),NoReorder]
     private struct Data
     {
         public required Matrix4x4 Projection;

@@ -7,17 +7,17 @@ using Rin.Framework.Graphics.Vulkan.Images;
 
 namespace Rin.Framework.Graphics.Vulkan.Graph;
 
-public class GraphBuilder(IResourcePool resourcePool,Frame frame) : IGraphBuilder
+public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuilder
 {
-    
-    private readonly Dictionary<uint, ExternalVulkanTextureResourceDescriptor> _externalTextures = [];
-    private readonly Dictionary<uint, ExternalVulkanTextureArrayResourceDescriptor> _externalTextureArrays = [];
     private readonly Dictionary<uint, ExternalVulkanCubemapResourceDescriptor> _externalCubemaps = [];
+    private readonly Dictionary<uint, ExternalVulkanTextureArrayResourceDescriptor> _externalTextureArrays = [];
+
+    private readonly Dictionary<uint, ExternalVulkanTextureResourceDescriptor> _externalTextures = [];
     private readonly Dictionary<uint, IPass> _passes = [];
     private uint _latestId;
     private uint _swapchainImageId;
 
-    
+
     public uint AddPass(IPass pass)
     {
         {
@@ -134,12 +134,8 @@ public class GraphBuilder(IResourcePool resourcePool,Frame frame) : IGraphBuilde
         }
 
         foreach (var passId in _passes.Keys)
-        {
             if (!nodes.ContainsKey(passId))
-            {
                 _passes[passId].OnPrune?.Invoke();
-            }
-        }
 
         //var finalPassIds = nodes.Keys.ToHashSet();
         var finalResourceActions = config.ResourceActions.ToDictionary(c => c.Key, c =>
@@ -170,7 +166,7 @@ public class GraphBuilder(IResourcePool resourcePool,Frame frame) : IGraphBuilde
                                 ResourceId = resourceId,
                                 PassId = action.PassId
                             };
-                            
+
                             if (!syncGroups.ContainsKey(action.PassId)) syncGroups[action.PassId] = [];
                             syncGroups[action.PassId].Add(sync);
                         }
@@ -301,7 +297,8 @@ public class GraphBuilder(IResourcePool resourcePool,Frame frame) : IGraphBuilde
     {
         Debug.Assert(texture is IVulkanTexture);
         var id = MakeId();
-        _externalTextures.Add(id,new ExternalVulkanTextureResourceDescriptor(Unsafe.As<IVulkanTexture>(texture), onDispose));
+        _externalTextures.Add(id,
+            new ExternalVulkanTextureResourceDescriptor(Unsafe.As<IVulkanTexture>(texture), onDispose));
         return id;
     }
 

@@ -7,7 +7,7 @@ namespace Rin.Framework.Graphics.Vulkan.Graph;
 public class ExternalVulkanCubemapResourceDescriptor : IResourceDescriptor
 {
     [PublicAPI] public readonly IDisposableVulkanCubemap Resource;
-    
+
     public ExternalVulkanCubemapResourceDescriptor(IVulkanCubemap image, Action? onDispose = null)
     {
         Resource = new ExternalVulkanCubemap(image, onDispose);

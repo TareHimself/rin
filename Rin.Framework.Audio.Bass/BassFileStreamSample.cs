@@ -1,10 +1,9 @@
-﻿using ManagedBass;
-
-namespace Rin.Framework.Audio.Bass;
+﻿namespace Rin.Framework.Audio.Bass;
 
 public class BassFileStreamSample : IAudioSample
 {
-    private string _filePath;
+    private readonly string _filePath;
+
     public BassFileStreamSample(string filePath)
     {
         _filePath = filePath;

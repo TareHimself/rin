@@ -3,8 +3,9 @@
 public class AnimationRunner
 {
     private readonly HashSet<AnimationState> _animations = [];
-    private float _currentEndTime;
     private readonly IApplication _application = IApplication.Get();
+    private float _currentEndTime;
+
     public void Update()
     {
         var elapsed = _application.TimeSeconds;

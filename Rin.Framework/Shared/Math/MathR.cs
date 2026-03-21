@@ -233,14 +233,14 @@ public static class MathR
     {
         return Vector2.Abs(self);
     }
-    
+
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2 Floor(this in Vector2 self)
     {
         return new Vector2(float.Floor(self.X), float.Floor(self.Y));
     }
-    
+
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2 Ceiling(this in Vector2 self)
@@ -420,17 +420,17 @@ public static class MathR
     {
         return matrix.Rotate2d(float.DegreesToRadians(angle));
     }
-    
+
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 ChildOf(in this Matrix4x4 self,in Matrix4x4 parent)
+    public static Matrix4x4 ChildOf(in this Matrix4x4 self, in Matrix4x4 parent)
     {
         return self * parent;
     }
-    
+
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 ApplyBefore(in this Matrix4x4 self,in Matrix4x4 transformation)
+    public static Matrix4x4 ApplyBefore(in this Matrix4x4 self, in Matrix4x4 transformation)
     {
         return transformation * self;
     }

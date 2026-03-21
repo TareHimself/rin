@@ -3,17 +3,32 @@ using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
 using Rin.Framework.Shared;
 using Rin.Framework.Views;
-using Rin.Framework.Views.Window;
 
 namespace Rin.Framework;
 
 public abstract class Application : IApplication
 {
-    private IGraphicsModule? _graphicsModule;
-    private IViewsModule? _viewsModule;
+    private readonly AutoResetEvent _mainUpdateEvent = new(false);
+    private readonly AutoResetEvent _renderFinishedEvent = new(true);
+
+    private readonly DateTime _startTime = DateTime.UtcNow;
     private IAudioModule? _audioModule;
 
+    private bool _exitRequested;
+    private IGraphicsModule? _graphicsModule;
+
+    private DateTime _lastTickTime = DateTime.UtcNow;
+
     private List<IModule> _modules = [];
+
+    private Thread? _renderTask;
+    private IViewsModule? _viewsModule;
+
+    public Application()
+    {
+        SFramework.Provider.AddSingle<IApplication>(this);
+    }
+
     public event Action? OnPreUpdate;
     public event Action<float>? OnUpdate;
     public event Action? OnPostUpdate;
@@ -25,74 +40,18 @@ public abstract class Application : IApplication
     public float TimeSeconds => (float)(DateTime.UtcNow - _startTime).TotalSeconds;
     public float LastDeltaSeconds { get; private set; }
 
-    public Dispatcher MainDispatcher { get; } = new Dispatcher();
-    public Dispatcher RenderDispatcher { get; } = new Dispatcher();
-    
-    private readonly AutoResetEvent _mainUpdateEvent = new(false);
-    private readonly AutoResetEvent _renderFinishedEvent = new(true);
-
-    private readonly DateTime _startTime = DateTime.UtcNow;
-
-    private bool _exitRequested;
-
-    private DateTime _lastTickTime = DateTime.UtcNow;
-
-    private Thread? _renderTask;
+    public Dispatcher MainDispatcher { get; } = new();
+    public Dispatcher RenderDispatcher { get; } = new();
     public abstract IGraphicsModule CreateGraphicsModule();
 
     public abstract IViewsModule CreateViewsModule();
 
     public abstract IAudioModule CreateAudioModule();
 
-    public Application()
-    {
-        SFramework.Provider.AddSingle<IApplication>(this);
-    }
-    
-    protected abstract void OnStartup();
-    protected abstract void OnShutdown();
-    
-    private void Start()
-    {
-        Native.Platform.Init();
-        
-        _audioModule = CreateAudioModule();
-        _graphicsModule = CreateGraphicsModule();
-        _viewsModule = CreateViewsModule();
-        
-        SFramework.Provider.AddSingle(_audioModule);
-        SFramework.Provider.AddSingle(_graphicsModule);
-        SFramework.Provider.AddSingle(_viewsModule);
-        
-        _modules = [_audioModule,_graphicsModule,_viewsModule];
-        
-        
-        foreach (var module in _modules)
-        {
-            module.Start(this);
-        }
-        
-        OnStartup();
-    }
-    
-    private void Render()
-    {
-        while (!_exitRequested)
-        {
-            _mainUpdateEvent.WaitOne();
-            if (_exitRequested) return;
-            RenderDispatcher.DispatchPending();
-            Profiling.Measure("Engine.PreRender", OnPreRender);
-            Profiling.Measure("Engine.Rendering", OnRender);
-            Profiling.Measure("Engine.PostRender", OnPostRender);
-            _renderFinishedEvent.Set();
-        }
-    }
-    
     public void Run()
     {
         Start();
-        
+
         _renderTask = new Thread(Render) { IsBackground = true };
         _renderTask.Start();
         _lastTickTime = DateTime.UtcNow;
@@ -128,10 +87,44 @@ public abstract class Application : IApplication
     public void Dispose()
     {
         OnShutdown();
-        foreach (var module in _modules.AsReversed())
-        {
-            module.Stop(this);
-        }
+        foreach (var module in _modules.AsReversed()) module.Stop(this);
         Native.Platform.Shutdown();
+    }
+
+    protected abstract void OnStartup();
+    protected abstract void OnShutdown();
+
+    private void Start()
+    {
+        Native.Platform.Init();
+
+        _audioModule = CreateAudioModule();
+        _graphicsModule = CreateGraphicsModule();
+        _viewsModule = CreateViewsModule();
+
+        SFramework.Provider.AddSingle(_audioModule);
+        SFramework.Provider.AddSingle(_graphicsModule);
+        SFramework.Provider.AddSingle(_viewsModule);
+
+        _modules = [_audioModule, _graphicsModule, _viewsModule];
+
+
+        foreach (var module in _modules) module.Start(this);
+
+        OnStartup();
+    }
+
+    private void Render()
+    {
+        while (!_exitRequested)
+        {
+            _mainUpdateEvent.WaitOne();
+            if (_exitRequested) return;
+            RenderDispatcher.DispatchPending();
+            Profiling.Measure("Engine.PreRender", OnPreRender);
+            Profiling.Measure("Engine.Rendering", OnRender);
+            Profiling.Measure("Engine.PostRender", OnPostRender);
+            _renderFinishedEvent.Set();
+        }
     }
 }

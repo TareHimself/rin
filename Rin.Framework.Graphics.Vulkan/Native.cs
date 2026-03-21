@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
+using JetBrains.Annotations;
 using Rin.Framework.Graphics.Windows;
 using TerraFX.Interop.Vulkan;
 
@@ -21,7 +22,7 @@ internal static partial class Native
 #elif OS_FREEBSD
 #elif OS_MAC
 #endif
-    
+
     public static partial class Slang
     {
         [LibraryImport(DllName, EntryPoint = "slangSessionBuilderNew")]
@@ -364,12 +365,14 @@ internal static partial class Native
             [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
             public static partial void SetSize(ulong handle, Extent2D size);
 
+            [NoReorder]
             public struct EventInfo
             {
                 public EventType type;
                 public ulong windowId;
             }
 
+            [NoReorder]
             public struct KeyEvent
             {
                 public EventType type;
@@ -379,6 +382,7 @@ internal static partial class Native
                 public InputModifier modifier;
             }
 
+            [NoReorder]
             public struct ResizeEvent
             {
                 public EventType type;
@@ -386,18 +390,21 @@ internal static partial class Native
                 public Extent2D size;
             }
 
+            [NoReorder]
             public struct MinimizeEvent
             {
                 public EventType type;
                 public ulong windowId;
             }
 
+            [NoReorder]
             public struct MaximizeEvent
             {
                 public EventType type;
                 public ulong windowId;
             }
 
+            [NoReorder]
             public struct ScrollEvent
             {
                 public EventType type;
@@ -406,6 +413,7 @@ internal static partial class Native
                 public Vector2 delta;
             }
 
+            [NoReorder]
             public struct CursorMoveEvent
             {
                 public EventType type;
@@ -413,6 +421,7 @@ internal static partial class Native
                 public Vector2 position;
             }
 
+            [NoReorder]
             public struct CursorButtonEvent
             {
                 public EventType type;
@@ -422,6 +431,7 @@ internal static partial class Native
                 public InputModifier modifier;
             }
 
+            [NoReorder]
             public struct FocusEvent
             {
                 public EventType type;
@@ -429,12 +439,14 @@ internal static partial class Native
                 public int focused;
             }
 
+            [NoReorder]
             public struct CloseEvent
             {
                 public EventType type;
                 public ulong windowId;
             }
 
+            [NoReorder]
             public struct TextEvent
             {
                 public EventType type;
@@ -443,6 +455,7 @@ internal static partial class Native
             }
 
             [StructLayout(LayoutKind.Explicit)]
+            [NoReorder]
             public struct WindowEvent
             {
                 [FieldOffset(0)] public EventInfo info;

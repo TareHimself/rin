@@ -8,14 +8,13 @@ namespace Rin.Framework.Shared.Buffers;
 public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
     where T : unmanaged
 {
-    private int _elements;
     private IntPtr _ptr = IntPtr.Zero;
-    
+
     public Buffer(int elements)
     {
         if (elements <= 0) return;
 
-        _elements = elements;
+        ElementCount = elements;
         _ptr = Native.Memory.Allocate(Utils.ByteSizeOf<T>(elements));
     }
 
@@ -23,7 +22,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
     {
         if (byteSize <= 0) return;
 
-        _elements = (int)(byteSize / Utils.ByteSizeOf<T>());
+        ElementCount = (int)(byteSize / Utils.ByteSizeOf<T>());
         if (copy)
         {
             _ptr = Native.Memory.Allocate(byteSize);
@@ -39,7 +38,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
     {
         if (elements <= 0) return;
 
-        _elements = elements;
+        ElementCount = elements;
         _ptr = Native.Memory.Allocate(Utils.ByteSizeOf<T>(elements));
         Write(data, elements);
     }
@@ -50,7 +49,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
 
         if (elementCount <= 0) return;
 
-        _elements = elementCount;
+        ElementCount = elementCount;
         unsafe
         {
             _ptr = new IntPtr(Native.Memory.Allocate(Utils.ByteSizeOf<T>(elementCount)));
@@ -80,21 +79,14 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
             {
                 Marshal.FreeHGlobal(_ptr);
                 _ptr = IntPtr.Zero;
-                _elements = 0;
+                ElementCount = 0;
             }
 
             var byteSize = (nuint)input.ReadUInt64();
             _ptr = new IntPtr(Native.Memory.Allocate(byteSize));
-            _elements = (int)(byteSize / GetElementByteSize());
+            ElementCount = (int)(byteSize / GetElementByteSize());
             var _ = input.Read(new Span<byte>(_ptr.ToPointer(), (int)byteSize));
         }
-    }
-
-    public Buffer<T> Copy()
-    {
-        var buff = new Buffer<T>(_elements);
-        buff.Write(AsReadOnlySpan());
-        return buff;
     }
 
     // public IEnumerator<T> GetEnumerator()
@@ -119,7 +111,8 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
     }
 
 
-    public int ElementCount => _elements;
+    public int ElementCount { get; private set; }
+
     public ulong ByteSize => GetByteSize();
 
     public T GetElement(int index)
@@ -138,37 +131,6 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
     public IntPtr GetPtr()
     {
         return _ptr;
-    }
-
-    public int GetElementsCount()
-    {
-        return _elements;
-    }
-
-    public ulong GetElementByteSize()
-    {
-        return Utils.ByteSizeOf<T>();
-    }
-
-    public ulong GetByteSize()
-    {
-        return (ulong)_elements * GetElementByteSize();
-    }
-
-    public static implicit operator Span<T>(Buffer<T> buff)
-    {
-        return buff.AsSpan();
-    }
-
-    public static implicit operator ReadOnlySpan<T>(Buffer<T> buff)
-    {
-        return buff.AsReadOnlySpan();
-    }
-
-    private void ReleaseUnmanagedResources()
-    {
-        if (_ptr != IntPtr.Zero) Native.Memory.Free(_ptr);
-        _ptr = IntPtr.Zero;
     }
 
     public unsafe void Write(void* src, ulong size, ulong offset = 0)
@@ -206,6 +168,44 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         {
             return new ReadOnlySpan<T>(GetPtr().ToPointer(), GetElementsCount());
         }
+    }
+
+    public Buffer<T> Copy()
+    {
+        var buff = new Buffer<T>(ElementCount);
+        buff.Write(AsReadOnlySpan());
+        return buff;
+    }
+
+    public int GetElementsCount()
+    {
+        return ElementCount;
+    }
+
+    public ulong GetElementByteSize()
+    {
+        return Utils.ByteSizeOf<T>();
+    }
+
+    public ulong GetByteSize()
+    {
+        return (ulong)ElementCount * GetElementByteSize();
+    }
+
+    public static implicit operator Span<T>(Buffer<T> buff)
+    {
+        return buff.AsSpan();
+    }
+
+    public static implicit operator ReadOnlySpan<T>(Buffer<T> buff)
+    {
+        return buff.AsReadOnlySpan();
+    }
+
+    private void ReleaseUnmanagedResources()
+    {
+        if (_ptr != IntPtr.Zero) Native.Memory.Free(_ptr);
+        _ptr = IntPtr.Zero;
     }
 
     ~Buffer()

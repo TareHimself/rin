@@ -49,6 +49,7 @@ public static class EnumerableExtensions
                     if (asList.Count <= i) continue;
                     yield return asList[i];
                 }
+
                 yield break;
             }
         }
@@ -62,6 +63,7 @@ public static class EnumerableExtensions
                     yield return el.Value;
                     el = el.Previous;
                 }
+
                 yield break;
             }
         }

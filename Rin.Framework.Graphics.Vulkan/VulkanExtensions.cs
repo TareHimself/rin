@@ -91,7 +91,6 @@ public static class VulkanExtensions
     [PublicAPI]
     public static VkDescriptorType ToVk(this DescriptorType descriptorType)
     {
-        
         return descriptorType switch
         {
             DescriptorType.Sampler => VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLER,
@@ -144,7 +143,7 @@ public static class VulkanExtensions
             ImageFormat.RG8 => VkFormat.VK_FORMAT_R8G8_UNORM,
             ImageFormat.RG16 => VkFormat.VK_FORMAT_R16G16_SFLOAT,
             ImageFormat.RG32 => VkFormat.VK_FORMAT_R32G32_SFLOAT,
-            ImageFormat.Swapchain =>VulkanGraphicsModule.Get().GetSurfaceFormat().format,
+            ImageFormat.Swapchain => VulkanGraphicsModule.Get().GetSurfaceFormat().format,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -347,7 +346,7 @@ public static class VulkanExtensions
 
         return cmd;
     }
-    
+
     public static VkCommandBuffer SetRasterizerDiscard(in this VkCommandBuffer cmd, bool isEnabled)
     {
         vkCmdSetRasterizerDiscardEnable(cmd, (uint)(isEnabled ? 1 : 0));
@@ -358,7 +357,7 @@ public static class VulkanExtensions
     {
         return SetRasterizerDiscard(cmd, true);
     }
-    
+
     public static VkCommandBuffer SetCullMode(in this VkCommandBuffer cmd, VkCullModeFlags cullMode,
         VkFrontFace frontFace)
     {
@@ -738,12 +737,12 @@ public static class VulkanExtensions
             }
         }
     }
-    
-    public static void DestroyPipelineLayout(in this VkDevice device,in VkPipelineLayout layout)
+
+    public static void DestroyPipelineLayout(in this VkDevice device, in VkPipelineLayout layout)
     {
         unsafe
         {
-            vkDestroyPipelineLayout(device,layout,null);
+            vkDestroyPipelineLayout(device, layout, null);
         }
     }
 
@@ -815,7 +814,7 @@ public static class VulkanExtensions
             vkDestroySemaphore(self, semaphore, null);
         }
     }
-    
+
     public static void Destroy(in this VkDevice self)
     {
         unsafe
@@ -974,7 +973,7 @@ public static class VulkanExtensions
         {
             fixed (VkBufferImageCopy* pRegion = regions)
             {
-                vkCmdCopyBufferToImage(cmd, ((IVulkanDeviceBuffer)buffer.Buffer).NativeBuffer,image.VulkanImage,
+                vkCmdCopyBufferToImage(cmd, ((IVulkanDeviceBuffer)buffer.Buffer).NativeBuffer, image.VulkanImage,
                     layout.ToVk(), (uint)regions.Length, pRegion);
             }
         }
@@ -985,7 +984,8 @@ public static class VulkanExtensions
     public static VkCommandBuffer CopyImageToImage(in this VkCommandBuffer cmd, IVulkanTexture src, IVulkanTexture dst,
         ImageFilter filter = ImageFilter.Linear)
     {
-        CopyImageToImage(cmd, src.VulkanImage, dst.VulkanImage, new Extent3D(src.Extent), new Extent3D(dst.Extent), filter);
+        CopyImageToImage(cmd, src.VulkanImage, dst.VulkanImage, new Extent3D(src.Extent), new Extent3D(dst.Extent),
+            filter);
         return cmd;
     }
 
@@ -1162,6 +1162,7 @@ public static class VulkanExtensions
             vkDestroyCommandPool(self, pool, null);
         }
     }
+
     public static VkCommandBuffer[] AllocateCommandBuffers(in this VkDevice self, VkCommandPool pool, uint count = 1,
         VkCommandBufferLevel level = VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_PRIMARY)
     {

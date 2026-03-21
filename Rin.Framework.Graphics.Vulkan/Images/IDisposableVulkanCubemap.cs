@@ -2,7 +2,6 @@
 
 namespace Rin.Framework.Graphics.Vulkan.Images;
 
-public interface IDisposableVulkanCubemap  : IDisposableCubemap, IVulkanCubemap
+public interface IDisposableVulkanCubemap : IDisposableCubemap, IVulkanCubemap
 {
-    
 }

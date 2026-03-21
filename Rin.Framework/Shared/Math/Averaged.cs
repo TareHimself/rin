@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using System.Numerics;
+
 namespace Rin.Framework.Shared.Math;
 
 public class Averaged<T>

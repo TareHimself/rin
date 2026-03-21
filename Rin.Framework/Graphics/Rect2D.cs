@@ -17,20 +17,20 @@ public record struct Rect2D
         Offset = offset;
         Size = size;
     }
-    
+
     /// <summary>
-    /// Creates a rect that is the AABB of the transformed rect
+    ///     Creates a rect that is the AABB of the transformed rect
     /// </summary>
     /// <param name="offset"></param>
     /// <param name="size"></param>
     /// <param name="transform"></param>
-    public Rect2D(in Vector2 offset, in Vector2 size,in Matrix4x4 transform)
+    public Rect2D(in Vector2 offset, in Vector2 size, in Matrix4x4 transform)
     {
         var tl = offset;
         var br = tl + size;
         var tr = new Vector2(br.X, tl.Y);
         var bl = new Vector2(tl.X, br.Y);
-        
+
         tl = tl.Transform(transform);
         br = br.Transform(transform);
         tr = tr.Transform(transform);
@@ -85,7 +85,7 @@ public record struct Rect2D
             return a1.X <= b2.X && b1.Y <= a2.Y; // A top right B bottom left
         return a1.X <= b2.X && a1.Y <= b2.Y; // A bottom right B top left
     }
-    
+
 
     /// <summary>
     ///     Clamps this rect to the specified area

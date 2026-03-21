@@ -7,11 +7,12 @@ namespace Rin.Framework.Shared.Math;
 /// </summary>
 public record struct Int4
 {
-    
+    public int W;
+
     public int X;
     public int Y;
     public int Z;
-    public int W;
+
     public Int4()
     {
     }

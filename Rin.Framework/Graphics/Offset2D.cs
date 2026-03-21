@@ -10,14 +10,6 @@ namespace Rin.Framework.Graphics;
 [JsonConverter(typeof(JsonConverter))]
 public record struct Offset2D : IFormattable
 {
-    public string ToString(string? format, IFormatProvider? formatProvider)
-    {
-        var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;
-
-        return
-            $"<{X.ToString(format, formatProvider)}{separator} {Y.ToString(format, formatProvider)}>";
-    }
-
     [PublicAPI] public uint X = 0;
     [PublicAPI] public uint Y = 0;
 
@@ -38,6 +30,14 @@ public record struct Offset2D : IFormattable
     }
 
     public static Offset2D Zero => new(0, 0);
+
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        var separator = NumberFormatInfo.GetInstance(formatProvider).NumberGroupSeparator;
+
+        return
+            $"<{X.ToString(format, formatProvider)}{separator} {Y.ToString(format, formatProvider)}>";
+    }
 
     public void Deconstruct(out uint x, out uint y)
     {

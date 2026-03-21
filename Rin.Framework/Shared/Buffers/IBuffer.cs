@@ -1,8 +1,7 @@
 ﻿namespace Rin.Framework.Shared.Buffers;
 
-
 /// <summary>
-/// Represents a contiguous array of <see cref="T"/>
+///     Represents a contiguous array of <see cref="T" />
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public interface IBuffer<T> : IReadOnlyBuffer<T>, IDisposable

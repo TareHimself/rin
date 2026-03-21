@@ -5,10 +5,6 @@ using Rin.Framework.Graphics.Windows;
 using Rin.Framework.Graphics.Windows.Events;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
-using Graphics_Windows_Events_CharacterEvent = Rin.Framework.Graphics.Windows.Events.CharacterEvent;
-using Graphics_Windows_Events_CursorMoveEvent = Rin.Framework.Graphics.Windows.Events.CursorMoveEvent;
-using Graphics_Windows_Events_ResizeEvent = Rin.Framework.Graphics.Windows.Events.ResizeEvent;
-using Graphics_Windows_Events_ScrollEvent = Rin.Framework.Graphics.Windows.Events.ScrollEvent;
 
 namespace Rin.Framework.Views.Window;
 
@@ -43,19 +39,54 @@ public class WindowSurface : Surface, IWindowSurface
         Window.OnCursorFocus += OnCursorFocus;
     }
 
+    public override void Dispose()
+    {
+        base.Dispose();
+        Window.OnResize -= OnWindowResized;
+        Renderer.OnCollect -= Collect;
+        Window.OnCursorButton -= OnMouseButton;
+        Window.OnCursorMoved -= OnMouseMove;
+        Window.OnScroll -= OnScroll;
+        Window.OnKey -= OnKeyboard;
+        Window.OnCharacter -= OnCharacter;
+        Window.OnCursorFocus -= OnCursorFocus;
+    }
+
+    public override Vector2 GetCursorPosition()
+    {
+        return Window.GetCursorPosition();
+    }
+
+    public override void SetCursorPosition(Vector2 position)
+    {
+        Window.SetCursorPosition(position);
+    }
+
+    public override void StartTyping(View view)
+    {
+        Window.StartTyping();
+    }
+
+    public override void StopTyping(View view)
+    {
+        Window.StopTyping();
+    }
+
+    public override Vector2 GetSize()
+    {
+        return new Vector2(_size.Width, _size.Height);
+    }
+
     private void Collect(IGraphCollector collector)
     {
-        if (CollectCommands() is { } cmds)
-        {
-            collector.Add(new WindowSurfaceCollectedData(cmds));
-        }
+        if (CollectCommands() is { } cmds) collector.Add(new WindowSurfaceCollectedData(cmds));
     }
 
     protected void OnWindowResized(ResizeEvent e)
     {
         _size = Renderer.GetRenderExtent();
         _minimized = _size.Width == 0 || _size.Height == 0;
-        if (!_minimized) ReceiveResize(new ResizeSurfaceEvent(this, new Vector2(_size.Width,_size.Height)));
+        if (!_minimized) ReceiveResize(new ResizeSurfaceEvent(this, new Vector2(_size.Width, _size.Height)));
     }
 
     protected void OnKeyboard(KeyEvent e)
@@ -101,43 +132,5 @@ public class WindowSurface : Surface, IWindowSurface
             ReceiveCursorEnter(new CursorMoveSurfaceEvent(this, Window.GetCursorPosition()));
         else
             ReceiveCursorLeave();
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Window.OnResize -= OnWindowResized;
-        Renderer.OnCollect -= Collect;
-        Window.OnCursorButton -= OnMouseButton;
-        Window.OnCursorMoved -= OnMouseMove;
-        Window.OnScroll -= OnScroll;
-        Window.OnKey -= OnKeyboard;
-        Window.OnCharacter -= OnCharacter;
-        Window.OnCursorFocus -= OnCursorFocus;
-    }
-
-    public override Vector2 GetCursorPosition()
-    {
-        return Window.GetCursorPosition();
-    }
-
-    public override void SetCursorPosition(Vector2 position)
-    {
-        Window.SetCursorPosition(position);
-    }
-
-    public override void StartTyping(View view)
-    {
-        Window.StartTyping();
-    }
-
-    public override void StopTyping(View view)
-    {
-        Window.StopTyping();
-    }
-
-    public override Vector2 GetSize()
-    {
-        return new Vector2(_size.Width, _size.Height);
     }
 }

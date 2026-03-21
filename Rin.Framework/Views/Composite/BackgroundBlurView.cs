@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Views.Graphics.Blur;
-using Rin.Framework.Views.Graphics.Commands;
+using Rin.Framework.Graphics;
 using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Blur;
 using Rin.Framework.Views.Graphics.Vector;
 
 namespace Rin.Framework.Views.Composite;
@@ -21,7 +21,7 @@ public class BackgroundBlurView : SingleSlotCompositeView
         return new Vector2();
     }
 
-    public override void Collect(in Matrix4x4 transform, in Framework.Graphics.Rect2D clip, CommandList commands)
+    public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
         if (IsVisible && Strength > 0.0f && Radius > 0.0f)
         {

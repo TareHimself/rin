@@ -10,7 +10,7 @@ public interface ICompositeView : IView
     public Clip Clip { get; set; }
 
     /// <summary>
-    /// Compute all the offsets applied to a child of this <see cref="CompositeView"/>
+    ///     Compute all the offsets applied to a child of this <see cref="CompositeView" />
     /// </summary>
     /// <param name="child"></param>
     /// <returns></returns>
@@ -24,7 +24,7 @@ public interface ICompositeView : IView
 
     [PublicAPI]
     public IEnumerable<ISlot> GetHitTestableSlots();
-    
+
 
     [PublicAPI]
     public void OnChildInvalidated(IView child, InvalidationType invalidation);
@@ -34,5 +34,4 @@ public interface ICompositeView : IView
 
     [PublicAPI]
     public void OnChildRemoved(IView child);
-    
 }

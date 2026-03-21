@@ -20,9 +20,11 @@ public class BassChannel : IActiveAudio
     public bool IsPlaying => ManagedBass.Bass.ChannelIsActive(_handle) == PlaybackState.Playing;
     public bool IsPaused => ManagedBass.Bass.ChannelIsActive(_handle) == PlaybackState.Paused;
 
-    public double Position => ManagedBass.Bass.ChannelBytes2Seconds(_handle, ManagedBass.Bass.ChannelGetPosition(_handle));
+    public double Position =>
+        ManagedBass.Bass.ChannelBytes2Seconds(_handle, ManagedBass.Bass.ChannelGetPosition(_handle));
 
-    public double Duration => ManagedBass.Bass.ChannelBytes2Seconds(_handle, ManagedBass.Bass.ChannelGetLength(_handle));
+    public double Duration =>
+        ManagedBass.Bass.ChannelBytes2Seconds(_handle, ManagedBass.Bass.ChannelGetLength(_handle));
 
     public bool Play(bool restart = false)
     {

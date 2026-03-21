@@ -5,11 +5,11 @@ namespace Rin.Framework.Graphics;
 
 public interface IWindowRenderer : IRenderer
 {
+    public bool VsyncEnabled { get; }
     public event Action<IGraphCollector>? OnCollect;
 
     public IWindow GetWindow();
 
     public Extent2D GetRenderExtent();
-    public bool VsyncEnabled { get; }
     public void SetVsyncEnabled(bool enabled);
 }

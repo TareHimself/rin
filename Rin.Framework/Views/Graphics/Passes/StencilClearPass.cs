@@ -25,6 +25,6 @@ public class StencilClearPass : IPass
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var image = graph.GetTextureOrException(StencilImageId);
-        ctx.ClearStencilImages(0,  image);
+        ctx.ClearStencilImages(0, image);
     }
 }

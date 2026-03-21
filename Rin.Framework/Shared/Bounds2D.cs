@@ -4,8 +4,8 @@ namespace Rin.Framework.Shared;
 
 public record struct Bounds2D : IAdditionOperators<Bounds2D, Bounds2D, Bounds2D>
 {
-    public Vector2 Min;
     public Vector2 Max;
+    public Vector2 Min;
 
     /// <summary>
     ///     Combines two bounds together

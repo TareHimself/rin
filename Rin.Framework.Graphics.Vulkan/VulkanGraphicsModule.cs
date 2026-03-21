@@ -8,7 +8,6 @@ using Rin.Framework.Graphics.Meshes;
 using Rin.Framework.Graphics.Shaders;
 using Rin.Framework.Graphics.Vulkan.Descriptors;
 using Rin.Framework.Graphics.Vulkan.Images;
-using Rin.Framework.Graphics.Vulkan.Meshes;
 using Rin.Framework.Graphics.Vulkan.Shaders.Slang;
 using Rin.Framework.Graphics.Vulkan.Windows;
 using Rin.Framework.Graphics.Windows;
@@ -30,6 +29,12 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     private readonly Dictionary<ulong, RinWindow> _rinWindows = [];
     private readonly BackgroundTaskQueue _transferQueueThread = new();
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
+
+    private IntPtr _allocator;
+
+    private IBindlessImageFactory? _bindlessImageFactory;
+
+    private int _bufferCount;
     private IRenderData[] _collected = [];
     private VkDebugUtilsMessengerEXT _debugUtilsMessenger;
     private DescriptorAllocator? _descriptorAllocator;
@@ -52,14 +57,343 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         format = VkFormat.VK_FORMAT_R8G8B8A8_UNORM
     };
 
-    private IBindlessImageFactory? _bindlessImageFactory;
     private VkCommandBuffer _transferCommandBuffer;
     private VkCommandPool _transferCommandPool;
     private VkFence _transferFence;
     private VkQueue _transferQueue;
     private uint _transferQueueFamily;
 
-    private IntPtr _allocator;
+    public void Start(IApplication app)
+    {
+        app.OnUpdate += Update;
+        app.OnCollect += Collect;
+        app.OnRender += Execute;
+        InitVulkan();
+    }
+
+    public void Stop(IApplication app)
+    {
+        app.OnRender -= Execute;
+        app.OnCollect -= Collect;
+        app.OnUpdate -= Update;
+
+
+        lock (_renderers)
+        {
+            _renderers.Clear();
+        }
+
+        foreach (var (window, renderer) in _windows)
+        {
+            OnWindowClosed?.Invoke(window);
+            OnWindowRendererDestroyed?.Invoke(renderer);
+            window.Dispose();
+        }
+
+        _windows.Clear();
+        _backgroundTaskQueue.Dispose();
+        _transferQueueThread.Dispose();
+        _descriptorAllocator?.Dispose();
+        _shaderManager?.Dispose();
+        _bindlessImageFactory?.Dispose();
+        _meshFactory?.Dispose();
+        _descriptorLayoutFactory.Dispose();
+
+        _samplerFactory?.Dispose();
+        //OnFreeRemainingMemory?.Invoke();
+
+        //Debug.Assert(_bufferCount == 0);
+        //Debug.Assert(_images.Count == 0);
+        Native.Vulkan.DestroyAllocator(_allocator);
+        _device.DestroyCommandPool(_graphicsCommandPool);
+        _device.DestroyFence(_graphicsFence);
+        _device.DestroyCommandPool(_transferCommandPool);
+        _device.DestroyFence(_transferFence);
+        _device.Destroy();
+        if (_debugUtilsMessenger.Value != 0) Native.Vulkan.DestroyMessenger(_instance, _debugUtilsMessenger);
+        _instance.Destroy();
+    }
+
+    public void Update(float deltaTime)
+    {
+        Native.Platform.Window.PumpEvents();
+
+        unsafe
+        {
+            var events = stackalloc Native.Platform.Window.WindowEvent[_maxEventsPerPeep];
+            int eventsPumped;
+            do
+            {
+                eventsPumped = Native.Platform.Window.GetEvents(events, _maxEventsPerPeep);
+                for (var i = 0; i < eventsPumped; i++)
+                {
+                    var e = events + i;
+                    var window = _rinWindows[e->info.windowId];
+                    window.ProcessEvent(*e);
+                }
+            } while (eventsPumped > 0);
+        }
+    }
+
+    public event Action<IWindow>? OnWindowClosed;
+    public event Action<IWindow>? OnWindowCreated;
+    public event Action<IWindowRenderer>? OnWindowRendererCreated;
+    public event Action<IWindowRenderer>? OnWindowRendererDestroyed;
+
+    public void AddRenderer(IRenderer renderer)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void RemoveRenderer(IRenderer renderer)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IWindowRenderer? GetWindowRenderer(IWindow window)
+    {
+        _windows.TryGetValue(window, out var windowRenderer);
+        return windowRenderer;
+    }
+
+    public IRenderer[] GetRenderers()
+    {
+        lock (_renderers)
+        {
+            return _renderers.ToArray();
+        }
+    }
+
+    public IWindowRenderer[] GetWindowRenderers()
+    {
+        lock (_windows)
+        {
+            return _windows.Values.ToArray();
+        }
+    }
+
+    public IGraphicsShader MakeGraphics(string path)
+    {
+        return _shaderManager?.MakeGraphics(path) ?? throw new NullReferenceException();
+    }
+
+    public IComputeShader MakeCompute(string path)
+    {
+        return _shaderManager?.MakeCompute(path) ?? throw new NullReferenceException();
+    }
+
+    public IWindow CreateWindow(string name, in Extent2D extent, WindowFlags flags = WindowFlags.Visible,
+        IWindow? parent = null)
+    {
+        var window = Internal_CreateWindow(name, extent, flags, parent);
+        window.OnDispose += () =>
+        {
+            HandleWindowClosed(window);
+            //NativeMethods.Destroy(window.GetPtr());
+        };
+        HandleWindowCreated(window);
+        return window;
+    }
+
+    public void WaitIdle()
+    {
+        Sync(() => { vkDeviceWaitIdle(_device); }).Wait();
+    }
+
+    public IDeviceBuffer NewTransferBuffer(ulong size, bool sequentialWrite = true,
+        string debugName = "Transfer Buffer")
+    {
+        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            , sequentialWrite, true, true, debugName);
+    }
+
+    public IDeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true)
+    {
+        return NewBuffer(size,
+            VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+            VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true);
+    }
+
+    public IDeviceBuffer NewUniformBuffer(ulong size, bool sequentialWrite = true)
+    {
+        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true);
+    }
+
+    public IDisposableTexture CreateTexture(in Extent2D extent, ImageFormat format, bool mips = false,
+        ImageUsage usage = ImageUsage.None)
+    {
+        return CreateVulkanTexture(extent, format, mips, usage);
+    }
+
+    public IDisposableTextureArray CreateTextureArray(in Extent2D extent, ImageFormat format, uint count,
+        bool mips = false,
+        ImageUsage usage = ImageUsage.None)
+    {
+        return CreateVulkanTextureArray(extent, format, count, mips, usage);
+    }
+
+    public IDisposableCubemap CreateCubemap(in Extent2D extent, ImageFormat format, bool mips = false,
+        ImageUsage usage = ImageUsage.None)
+    {
+        return CreateVulkanCubemap(extent, format, mips, usage);
+    }
+
+    public Task<IDisposableTexture> CreateTexture(IReadOnlyBuffer<byte> data, in Extent2D extent, ImageFormat format,
+        bool mips = false,
+        ImageUsage usage = ImageUsage.None)
+    {
+        return CreateVulkanTexture(data, extent, format, mips, usage).Then(IDisposableTexture (a) => a);
+    }
+
+    public Task<IDisposableTextureArray> CreateTextureArray(IReadOnlyBuffer<byte> data, in Extent2D extent,
+        ImageFormat format, uint count, bool mips = false,
+        ImageUsage usage = ImageUsage.None)
+    {
+        return CreateVulkanTextureArray(data, extent, format, count, mips, usage)
+            .Then(IDisposableTextureArray (a) => a);
+    }
+
+    public Task<IDisposableCubemap> CreateCubemap(IReadOnlyBuffer<byte> data, in Extent2D extent, ImageFormat format,
+        bool mips = false,
+        ImageUsage usage = ImageUsage.None)
+    {
+        return CreateVulkanCubemap(data, extent, format, mips, usage).Then(IDisposableCubemap (a) => a);
+    }
+
+    public void CreateTexture(out ImageHandle handle, in Extent2D extent, ImageFormat format, bool mips = false,
+        ImageUsage usage = ImageUsage.None)
+    {
+        Debug.Assert(_bindlessImageFactory is not null);
+        handle = _bindlessImageFactory.CreateTexture(extent, format, mips, usage);
+    }
+
+    public void CreateTextureArray(out ImageHandle handle, in Extent2D extent, ImageFormat format, uint count,
+        bool mips = false,
+        ImageUsage usage = ImageUsage.None)
+    {
+        Debug.Assert(_bindlessImageFactory is not null);
+        handle = _bindlessImageFactory.CreateTextureArray(extent, format, count, mips, usage);
+    }
+
+    public void CreateCubemap(out ImageHandle handle, in Extent2D extent, ImageFormat format, bool mips = false,
+        ImageUsage usage = ImageUsage.None)
+    {
+        Debug.Assert(_bindlessImageFactory is not null);
+        handle = _bindlessImageFactory.CreateCubemap(extent, format, mips, usage);
+    }
+
+    public Task CreateTexture(out ImageHandle handle, IReadOnlyBuffer<byte> data, in Extent2D extent,
+        ImageFormat format,
+        bool mips = false, ImageUsage usage = ImageUsage.None)
+    {
+        Debug.Assert(_bindlessImageFactory is not null);
+        return _bindlessImageFactory.CreateTexture(out handle, data, extent, format, mips, usage);
+    }
+
+    public Task CreateTextureArray(out ImageHandle handle, IReadOnlyBuffer<byte> data, in Extent2D extent,
+        ImageFormat format,
+        uint count, bool mips = false, ImageUsage usage = ImageUsage.None)
+    {
+        Debug.Assert(_bindlessImageFactory is not null);
+        return _bindlessImageFactory.CreateTextureArray(out handle, data, extent, format, count, mips, usage);
+    }
+
+    public Task CreateCubemap(out ImageHandle handle, IReadOnlyBuffer<byte> data, in Extent2D extent,
+        ImageFormat format,
+        bool mips = false, ImageUsage usage = ImageUsage.None)
+    {
+        Debug.Assert(_bindlessImageFactory is not null);
+        return _bindlessImageFactory.CreateCubemap(out handle, data, extent, format, mips, usage);
+    }
+
+    public bool IsValidImageHandle(in ImageHandle handle)
+    {
+        return handle.Id > 0 && handle.Type switch
+        {
+            ImageType.Texture => GetTexture(handle) is not null,
+            ImageType.Cubemap => GetCubemap(handle) is not null,
+            ImageType.TextureArray => GetTextureArray(handle) is not null,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    public ITexture? GetTexture(in ImageHandle handle)
+    {
+        Debug.Assert(_bindlessImageFactory is not null);
+        return _bindlessImageFactory.GetTexture(handle);
+    }
+
+    public ITextureArray? GetTextureArray(in ImageHandle handle)
+    {
+        Debug.Assert(_bindlessImageFactory is not null);
+        return _bindlessImageFactory.GetTextureArray(handle);
+    }
+
+    public ICubemap? GetCubemap(in ImageHandle handle)
+    {
+        Debug.Assert(_bindlessImageFactory is not null);
+        return _bindlessImageFactory.GetCubemap(handle);
+    }
+
+    public void FreeImageHandles(params ImageHandle[] handles)
+    {
+        Debug.Assert(_bindlessImageFactory is not null);
+        _bindlessImageFactory.FreeHandles(handles);
+    }
+
+    public Task CreateMesh<TVertexFormat>(out MeshHandle handle, IReadOnlyBuffer<TVertexFormat> vertices,
+        IReadOnlyBuffer<uint> indices,
+        IEnumerable<MeshSurface> surfaces) where TVertexFormat : unmanaged
+    {
+        throw new NotImplementedException();
+    }
+
+    public bool IsValidMeshHandle(in ImageHandle handle)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IMesh? GetMesh(in MeshHandle handle)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void FreeMeshHandles(params MeshHandle[] handles)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Collect()
+    {
+        IRenderer[] renderers;
+
+        lock (_renderers)
+        {
+            renderers = _renderers.ToArray();
+        }
+
+        List<IRenderData> collected = [];
+        foreach (var renderer in renderers)
+            if (renderer.Collect() is { } context)
+                collected.Add(context);
+
+        _collected = collected.ToArray();
+    }
+
+    public void Execute()
+    {
+        if (!_hasDedicatedTransferQueue) HandlePendingTransferSubmits();
+
+        {
+            HandlePendingGraphicsSubmits();
+        }
+
+        foreach (var context in _collected) context.Renderer.Execute(context);
+    }
 
     private unsafe void InitVulkan()
     {
@@ -130,128 +464,9 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         _instance.DestroySurface(outSurface);
     }
 
-    public void Start(IApplication app)
-    {
-        app.OnUpdate += Update;
-        app.OnCollect += Collect;
-        app.OnRender += Execute;
-        InitVulkan();
-    }
-
-    public void Stop(IApplication app)
-    {
-        app.OnRender -= Execute;
-        app.OnCollect -= Collect;
-        app.OnUpdate -= Update;
-        
-        
-        lock (_renderers)
-        {
-            _renderers.Clear();
-        }
-
-        foreach (var (window, renderer) in _windows)
-        {
-            OnWindowClosed?.Invoke(window);
-            OnWindowRendererDestroyed?.Invoke(renderer);
-            window.Dispose();
-        }
-
-        _windows.Clear();
-        _backgroundTaskQueue.Dispose();
-        _transferQueueThread.Dispose();
-        _descriptorAllocator?.Dispose();
-        _shaderManager?.Dispose();
-        _bindlessImageFactory?.Dispose();
-        _meshFactory?.Dispose();
-        _descriptorLayoutFactory.Dispose();
-
-        _samplerFactory?.Dispose();
-        //OnFreeRemainingMemory?.Invoke();
-        
-       //Debug.Assert(_bufferCount == 0);
-        //Debug.Assert(_images.Count == 0);
-        Native.Vulkan.DestroyAllocator(_allocator);
-        _device.DestroyCommandPool(_graphicsCommandPool);
-        _device.DestroyFence(_graphicsFence);
-        _device.DestroyCommandPool(_transferCommandPool);
-        _device.DestroyFence(_transferFence);
-        _device.Destroy();
-        if (_debugUtilsMessenger.Value != 0) Native.Vulkan.DestroyMessenger(_instance, _debugUtilsMessenger);
-        _instance.Destroy();
-    }
-
-    public void Update(float deltaTime)
-    {
-        Native.Platform.Window.PumpEvents();
-
-        unsafe
-        {
-            var events = stackalloc Native.Platform.Window.WindowEvent[_maxEventsPerPeep];
-            int eventsPumped;
-            do
-            {
-                eventsPumped = Native.Platform.Window.GetEvents(events, _maxEventsPerPeep);
-                for (var i = 0; i < eventsPumped; i++)
-                {
-                    var e = events + i;
-                    var window = _rinWindows[e->info.windowId];
-                    window.ProcessEvent(*e);
-                }
-            } while (eventsPumped > 0);
-        }
-    }
-
-    public event Action<IWindow>? OnWindowClosed;
-    public event Action<IWindow>? OnWindowCreated;
-    public event Action<IWindowRenderer>? OnWindowRendererCreated;
-    public event Action<IWindowRenderer>? OnWindowRendererDestroyed;
-
-    public void AddRenderer(IRenderer renderer)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void RemoveRenderer(IRenderer renderer)
-    {
-        throw new NotImplementedException();
-    }
-
-    public IWindowRenderer? GetWindowRenderer(IWindow window)
-    {
-        _windows.TryGetValue(window, out var windowRenderer);
-        return windowRenderer;
-    }
-
-    public IRenderer[] GetRenderers()
-    {
-        lock (_renderers)
-        {
-            return _renderers.ToArray();
-        }
-    }
-
-    public IWindowRenderer[] GetWindowRenderers()
-    {
-        lock (_windows)
-        {
-            return _windows.Values.ToArray();
-        }
-    }
-
     public VkSurfaceFormatKHR GetSurfaceFormat()
     {
         return _surfaceFormat;
-    }
-
-    public IGraphicsShader MakeGraphics(string path)
-    {
-        return _shaderManager?.MakeGraphics(path) ?? throw new NullReferenceException();
-    }
-
-    public IComputeShader MakeCompute(string path)
-    {
-        return _shaderManager?.MakeCompute(path) ?? throw new NullReferenceException();
     }
 
     public IBindlessImageFactory GetBindlessImageFactory()
@@ -377,19 +592,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         return win;
     }
 
-    public IWindow CreateWindow(string name, in Extent2D extent, WindowFlags flags = WindowFlags.Visible,
-        IWindow? parent = null)
-    {
-        var window = Internal_CreateWindow(name, extent, flags, parent);
-        window.OnDispose += () =>
-        {
-            HandleWindowClosed(window);
-            //NativeMethods.Destroy(window.GetPtr());
-        };
-        HandleWindowCreated(window);
-        return window;
-    }
-
     /// <summary>
     ///     Runs an action on a background thread, useful for queue operations
     /// </summary>
@@ -399,14 +601,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     {
         return _backgroundTaskQueue.Enqueue(action);
     }
-
-    public void WaitIdle()
-    {
-        Sync(() => { vkDeviceWaitIdle(_device); }).Wait();
-    }
-    
-    private int _bufferCount;
-   //private HashSet<IVulkanImage> _images = [];
+    //private HashSet<IVulkanImage> _images = [];
 
     public IVulkanDeviceBuffer NewBuffer(ulong size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags propertyFlags,
         bool sequentialWrite = true, bool preferHost = false, bool mapped = false, string debugName = "Buffer")
@@ -435,7 +630,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         Native.Vulkan.FreeBuffer(buffer.NativeBuffer, buffer.Allocation, _allocator);
     }
 
-    
+
     public void FreeImage(IVulkanImage image)
     {
         unsafe
@@ -453,29 +648,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             mapped
                 ? VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                 : VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sequentialWrite, false, mapped, debugName);
-    }
-
-    public IDeviceBuffer NewTransferBuffer(ulong size, bool sequentialWrite = true,
-        string debugName = "Transfer Buffer")
-    {
-        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-            , sequentialWrite, true, true, debugName);
-    }
-
-    public IDeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true)
-    {
-        return NewBuffer(size,
-            VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-            VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true);
-    }
-
-    public IDeviceBuffer NewUniformBuffer(ulong size, bool sequentialWrite = true)
-    {
-        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true);
     }
 
     private static VkCommandBufferBeginInfo MakeCommandBufferBeginInfo(VkCommandBufferUsageFlags flags)
@@ -688,7 +860,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     {
         unsafe
         {
-            
             var extent3d = new Extent3D
             {
                 Width = extent.Width,
@@ -704,7 +875,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
 
             viewCreateInfo.subresourceRange.layerCount = imageCreateInfo.arrayLayers;
             viewCreateInfo.subresourceRange.levelCount = imageCreateInfo.mipLevels;
-            
+
             var vkImage = new VulkanTexture
             {
                 VulkanImage = image,
@@ -845,129 +1016,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         throw new NotImplementedException();
     }
 
-    public IDisposableTexture CreateTexture(in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None) => CreateVulkanTexture(extent, format, mips, usage);
-
-    public IDisposableTextureArray CreateTextureArray(in Extent2D extent, ImageFormat format, uint count,
-        bool mips = false,
-        ImageUsage usage = ImageUsage.None) => CreateVulkanTextureArray(extent, format, count, mips, usage);
-
-    public IDisposableCubemap CreateCubemap(in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None) => CreateVulkanCubemap(extent, format, mips, usage);
-
-    public Task<IDisposableTexture> CreateTexture(IReadOnlyBuffer<byte> data, in Extent2D extent, ImageFormat format,
-        bool mips = false,
-        ImageUsage usage = ImageUsage.None) =>
-        CreateVulkanTexture(data, extent, format, mips, usage).Then(IDisposableTexture (a) => a);
-
-    public Task<IDisposableTextureArray> CreateTextureArray(IReadOnlyBuffer<byte> data, in Extent2D extent,
-        ImageFormat format, uint count, bool mips = false,
-        ImageUsage usage = ImageUsage.None) => CreateVulkanTextureArray(data, extent, format, count, mips, usage)
-        .Then(IDisposableTextureArray (a) => a);
-
-    public Task<IDisposableCubemap> CreateCubemap(IReadOnlyBuffer<byte> data, in Extent2D extent, ImageFormat format,
-        bool mips = false,
-        ImageUsage usage = ImageUsage.None) =>
-        CreateVulkanCubemap(data, extent, format, mips, usage).Then(IDisposableCubemap (a) => a);
-
-    public void CreateTexture(out ImageHandle handle, in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        handle = _bindlessImageFactory.CreateTexture(extent, format, mips, usage);
-    }
-
-    public void CreateTextureArray(out ImageHandle handle, in Extent2D extent, ImageFormat format, uint count, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        handle = _bindlessImageFactory.CreateTextureArray(extent, format,count, mips, usage);
-    }
-
-    public void CreateCubemap(out ImageHandle handle, in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        handle = _bindlessImageFactory.CreateCubemap(extent, format, mips, usage);
-    }
-
-    public Task CreateTexture(out ImageHandle handle, IReadOnlyBuffer<byte> data, in Extent2D extent, ImageFormat format,
-        bool mips = false, ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.CreateTexture(out handle,data,extent, format, mips, usage);
-    }
-
-    public Task CreateTextureArray(out ImageHandle handle, IReadOnlyBuffer<byte> data, in Extent2D extent, ImageFormat format,
-        uint count, bool mips = false, ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.CreateTextureArray(out handle,data,extent, format, count, mips, usage);
-    }
-
-    public Task CreateCubemap(out ImageHandle handle, IReadOnlyBuffer<byte> data, in Extent2D extent, ImageFormat format,
-        bool mips = false, ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.CreateCubemap(out handle,data,extent, format, mips, usage);
-    }
-
-    public bool IsValidImageHandle(in ImageHandle handle)
-    {
-        return handle.Id > 0 && handle.Type switch
-        {
-            ImageType.Texture => GetTexture(handle) is not null,
-            ImageType.Cubemap => GetCubemap(handle) is not null,
-            ImageType.TextureArray => GetTextureArray(handle) is not null,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-    }
-
-    public ITexture? GetTexture(in ImageHandle handle)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.GetTexture(handle);
-    }
-
-    public ITextureArray? GetTextureArray(in ImageHandle handle)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.GetTextureArray(handle);
-    }
-
-    public ICubemap? GetCubemap(in ImageHandle handle)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.GetCubemap(handle);
-    }
-
-    public void FreeImageHandles(params ImageHandle[] handles)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        _bindlessImageFactory.FreeHandles(handles);
-    }
-
-    public Task CreateMesh<TVertexFormat>(out MeshHandle handle, IReadOnlyBuffer<TVertexFormat> vertices, IReadOnlyBuffer<uint> indices,
-        IEnumerable<MeshSurface> surfaces) where TVertexFormat : unmanaged
-    {
-        throw new NotImplementedException();
-    }
-
-    public bool IsValidMeshHandle(in ImageHandle handle)
-    {
-        throw new NotImplementedException();
-    }
-
-    public IMesh? GetMesh(in MeshHandle handle)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void FreeMeshHandles(params MeshHandle[] handles)
-    {
-        throw new NotImplementedException();
-    }
-
     private void HandlePendingTransferSubmits()
     {
         Pair<TaskCompletionSource, Action<IExecutionContext>>[] pending;
@@ -1059,34 +1107,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                     foreach (var (task, _) in pending) task.SetResult();
                 }
             }
-    }
-
-    public void Collect()
-    {
-        IRenderer[] renderers;
-
-        lock (_renderers)
-        {
-            renderers = _renderers.ToArray();
-        }
-
-        List<IRenderData> collected = [];
-        foreach (var renderer in renderers)
-            if (renderer.Collect() is { } context)
-                collected.Add(context);
-
-        _collected = collected.ToArray();
-    }
-
-    public void Execute()
-    {
-        if (!_hasDedicatedTransferQueue) HandlePendingTransferSubmits();
-
-        {
-            HandlePendingGraphicsSubmits();
-        }
-
-        foreach (var context in _collected) context.Renderer.Execute(context);
     }
 
     public static VkRenderingInfo MakeRenderingInfo(VkExtent2D extent)

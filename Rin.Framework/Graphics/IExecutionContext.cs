@@ -6,7 +6,7 @@ namespace Rin.Framework.Graphics;
 public interface IExecutionContext
 {
     public string Id { get; }
-    
+
     public IExecutionContext BindIndexBuffer(in DeviceBufferView view);
 
     public IExecutionContext Barrier(ITexture image, ImageLayout from, ImageLayout to);
@@ -20,11 +20,11 @@ public interface IExecutionContext
 
     public IExecutionContext CopyToImage(ITexture src, in Offset2D srcOffset, in Extent2D srcSize,
         ITexture dest, in Offset2D destOffset, in Extent2D destSize, ImageFilter filter = ImageFilter.Linear);
-    
+
     // public IExecutionContext CopyToImage(IDeviceImage src, in Offset2D srcOffset,
     //     IDeviceImage dest,
     //     in Offset2D destOffset, ImageFilter filter = ImageFilter.Linear);
-    
+
     public IExecutionContext CopyToImage(ITexture src, ITexture dest, ImageFilter filter = ImageFilter.Linear);
 
     public IExecutionContext EnableBackFaceCulling();

@@ -1,20 +1,13 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Extensions;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Graph;
-using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Events;
-using Rin.Framework.Views.Graphics.CommandHandlers;
-using Rin.Framework.Views.Graphics.Commands;
-using Rin.Framework.Views.Graphics.Passes;
 
 namespace Rin.Framework.Views.Graphics;
 
 public interface ISurface : IDisposable, IUpdatable
 {
     public IView? FocusedView { get; }
-    
+
     public Vector2 GetCursorPosition();
 
     public void SetCursorPosition(Vector2 position);

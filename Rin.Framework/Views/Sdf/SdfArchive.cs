@@ -122,7 +122,7 @@ public class SdfArchive : IDisposable, ISdfContainer
         // _archive.CreateReadStream("info.json").CopyTo(data);
         // var text = Encoding.UTF8.GetString(data.ToArray());
         if (_archive.Keys.Contains("info.json") && _archive.CreateReadStream("info.json") is { } stream &&
-            JsonSerializer.Deserialize(stream,InfoJsonContext.Default.Info) is { } info)
+            JsonSerializer.Deserialize(stream, InfoJsonContext.Default.Info) is { } info)
         {
             foreach (var image in info.Images) _images.AddOrUpdate(image.Id, image, (_, _) => image);
 
@@ -143,22 +143,19 @@ public class SdfArchive : IDisposable, ISdfContainer
             Vectors = _vectors.Select(c => c.Value).ToArray()
         };
         var stream = new MemoryStream();
-        JsonSerializer.Serialize(stream, infoObject,InfoJsonContext.Default.Info);
+        JsonSerializer.Serialize(stream, infoObject, InfoJsonContext.Default.Info);
         _archive.Write("info.json", stream);
     }
 
-    
+
     internal class Info
     {
         public SdfImage[] Images { get; set; } = [];
         public SdfVector[] Vectors { get; set; } = [];
     }
-    
-    
 }
 
 [JsonSerializable(typeof(SdfArchive.Info))]
 internal partial class InfoJsonContext : JsonSerializerContext
 {
-        
 }

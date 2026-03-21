@@ -10,10 +10,7 @@ public class DispatcherTests
         var count = 0;
 
         var dispatcher = new Dispatcher();
-        for (var i = 0; i < dispatchCount; i++)
-        {
-            dispatcher.Enqueue(() => { count++; });
-        }
+        for (var i = 0; i < dispatchCount; i++) dispatcher.Enqueue(() => { count++; });
 
         Assert.That(count, Is.EqualTo(0), "dispatch happened before DispatchPending was called");
         dispatcher.DispatchPending();
@@ -29,10 +26,7 @@ public class DispatcherTests
 
         Task.Run(() =>
         {
-            for (var i = 0; i < dispatchCount; i++)
-            {
-                dispatcher.Enqueue(() => { count++; });
-            }
+            for (var i = 0; i < dispatchCount; i++) dispatcher.Enqueue(() => { count++; });
         }).Wait();
 
         Assert.That(count, Is.EqualTo(0), "dispatch happened before DispatchPending was called");
@@ -46,10 +40,7 @@ public class DispatcherTests
         var count = 0;
 
         var dispatcher = new Dispatcher();
-        for (var i = 0; i < dispatchCount; i++)
-        {
-            dispatcher.Enqueue(() => { count++; });
-        }
+        for (var i = 0; i < dispatchCount; i++) dispatcher.Enqueue(() => { count++; });
 
         Assert.That(count, Is.EqualTo(0), "dispatch happened before DispatchPending was called");
         Task.Run(dispatcher.DispatchPending).Wait();
