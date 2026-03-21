@@ -5,7 +5,7 @@ namespace Rin.Framework.Tests.Shared;
 public class DispatcherTests
 {
     [Test]
-    public void EnqueueAndAndDispatchOnMain([Random(1, 500, 5)] int dispatchCount)
+    public void EnqueueAndDispatchOnMain([Random(1, 500, 5)] int dispatchCount)
     {
         var count = 0;
 
