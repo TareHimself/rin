@@ -77,7 +77,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         {
             if (_ptr != IntPtr.Zero)
             {
-                Marshal.FreeHGlobal(_ptr);
+                Native.Memory.Free(_ptr);
                 _ptr = IntPtr.Zero;
                 ElementCount = 0;
             }
