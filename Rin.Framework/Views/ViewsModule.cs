@@ -56,7 +56,7 @@ public class ViewsModule : IViewsModule
         FontManager.LoadFont(SFramework.Sources.Read(fontPath));
     }
 
-    public IBatcher GetBatcher<T>() where T : IBatcher
+    public IBatcher GetBatcher<T>() where T : IBatcher, new()
     {
         var type = typeof(T);
         if (_batchRenderers.TryGetValue(type, out var value)) return value;

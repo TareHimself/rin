@@ -15,7 +15,7 @@ public interface IViewsModule : IModule, IUpdatable
     
     public void AddFont(string fontPath);
 
-    public IBatcher GetBatcher<T>() where T : IBatcher;
+    public IBatcher GetBatcher<T>() where T : IBatcher, new();
     
     public IWindowSurface? GetWindowSurface(IWindowRenderer renderer);
 

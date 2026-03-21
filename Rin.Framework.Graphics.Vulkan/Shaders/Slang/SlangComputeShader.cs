@@ -97,8 +97,9 @@ public class SlangComputeShader : IComputeShader, IVulkanShader
             var jsonString = Marshal.PtrToStringUTF8(reflectionBlob.GetDataPointer());
 
             if (jsonString == null) throw new ShaderCompileException("Failed to get reflection data.");
-
-            var reflectionData = JsonSerializer.Deserialize<ReflectionData>(jsonString);
+            
+            
+            var reflectionData = JsonSerializer.Deserialize(jsonString,SlangReflectionDataJsonContext.Default.SlangReflectionData);
 
             if (reflectionData == null) throw new ShaderCompileException("Failed to parse reflection data.");
 

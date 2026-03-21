@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using Rin.Framework.Audio;
-using Rin.Framework.Buffers;
 using Rin.Framework.Graphics;
+using Rin.Framework.Shared.Buffers;
 using Rin.Framework.Shared.Time;
 
-namespace Rin.Framework.Video;
+namespace Rin.Framework.Shared.Video;
 
 /// <summary>
 ///     Decodes webm video on another thread.
@@ -119,10 +119,7 @@ public class WebmVideoPlayer : IVideoPlayer
     {
         Debug.Assert(HasVideo);
         // Gave up on syncing audio to video and instead sync video to audio
-        return new Buffer<byte>(Native.Video.ContextCopyRecentFrame(_context, Position), _bufferSize)
-        {
-            Track = true
-        };
+        return new Buffer<byte>(Native.Video.ContextCopyRecentFrame(_context, Position), _bufferSize);
     }
 
 
@@ -152,7 +149,7 @@ public class WebmVideoPlayer : IVideoPlayer
         if (_audioStream == null)
         {
             _audioPacketsStartAt = time;
-            _audioStream = _createStream?.Invoke(AudioSampleRate,AudioChannels) ?? IAudioModule.Get().CreatePushStream(AudioSampleRate, AudioChannels);
+            _audioStream = _createStream?.Invoke(AudioSampleRate,AudioChannels) ?? IAudioModule.Get().MakePushStream(AudioSampleRate, AudioChannels);
             if (IsPlaying) _audioStream.Play();
         }
 

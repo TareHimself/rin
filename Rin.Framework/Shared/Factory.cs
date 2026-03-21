@@ -1,4 +1,6 @@
-﻿namespace Rin.Framework.Shared;
+﻿using System.Collections.Frozen;
+
+namespace Rin.Framework.Shared;
 
 public abstract class Factory<TValue, TKey, TInternalKey> : IDisposable where TInternalKey : notnull
 {
@@ -7,11 +9,11 @@ public abstract class Factory<TValue, TKey, TInternalKey> : IDisposable where TI
     private readonly Lock _lock = new();
     public abstract void Dispose();
 
-    public IEnumerable<KeyValuePair<TInternalKey, TValue>> GetData()
+    public FrozenDictionary<TInternalKey, TValue> GetData()
     {
         lock (_lock)
         {
-            return _data.ToArray();
+            return _data.ToFrozenDictionary();
         }
     }
 

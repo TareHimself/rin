@@ -1,4 +1,4 @@
-namespace Rin.Framework.Video;
+namespace Rin.Framework.Shared.Video;
 
 public class FileVideoSource(string fileName) : IVideoSource
 {

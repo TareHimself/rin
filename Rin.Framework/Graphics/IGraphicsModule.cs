@@ -1,8 +1,8 @@
-﻿using Rin.Framework.Buffers;
-using Rin.Framework.Graphics.Images;
+﻿using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Meshes;
 using Rin.Framework.Graphics.Shaders;
 using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Shared.Buffers;
 
 namespace Rin.Framework.Graphics;
 

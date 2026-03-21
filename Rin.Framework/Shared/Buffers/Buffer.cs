@@ -2,19 +2,15 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Rin.Framework.Extensions;
-using Rin.Framework.Shared;
 
-namespace Rin.Framework.Buffers;
+namespace Rin.Framework.Shared.Buffers;
 
-public class Buffer<T> : IBuffer<T>, IBinarySerializable, ICopyable<Buffer<T>> //, IEnumerable<T>
+public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
     where T : unmanaged
 {
     private int _elements;
     private IntPtr _ptr = IntPtr.Zero;
-
-    public StackTrace? DisposedAt;
-    public bool Track = false;
-
+    
     public Buffer(int elements)
     {
         if (elements <= 0) return;
@@ -173,7 +169,6 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable, ICopyable<Buffer<T>> /
     {
         if (_ptr != IntPtr.Zero) Native.Memory.Free(_ptr);
         _ptr = IntPtr.Zero;
-        if (Track) DisposedAt = new StackTrace(true);
     }
 
     public unsafe void Write(void* src, ulong size, ulong offset = 0)

@@ -1,4 +1,4 @@
-namespace Rin.Framework.Curves;
+namespace Rin.Framework.Shared.Curves;
 
 /// <summary>
 ///     A curve class with custom interpolation methods

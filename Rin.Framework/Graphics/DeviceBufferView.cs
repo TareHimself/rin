@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using Rin.Framework.Buffers;
+using Rin.Framework.Shared.Buffers;
 
 namespace Rin.Framework.Graphics;
 
@@ -89,7 +89,7 @@ public readonly record struct DeviceBufferView
         var newOffset = Offset + offset;
         //Debug.Assert(IsValid,"Buffer is not valid");
         Debug.Assert(newOffset <= Offset + Size, "Offset out of range");
-        return new DeviceBufferView(Buffer, Offset + offset, size);
+        return new DeviceBufferView(Buffer, newOffset, size);
     }
 
     public ulong GetAddress()

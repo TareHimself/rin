@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
-using Rin.Framework.Buffers;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Shaders;
 using Rin.Framework.Graphics.Vulkan.Descriptors;
 using Rin.Framework.Shared;
+using Rin.Framework.Shared.Buffers;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Framework.Graphics.Vulkan.Images;

@@ -13,8 +13,6 @@ public class GraphBuilder(IResourcePool resourcePool,Frame frame) : IGraphBuilde
     private readonly Dictionary<uint, ExternalVulkanTextureResourceDescriptor> _externalTextures = [];
     private readonly Dictionary<uint, ExternalVulkanTextureArrayResourceDescriptor> _externalTextureArrays = [];
     private readonly Dictionary<uint, ExternalVulkanCubemapResourceDescriptor> _externalCubemaps = [];
-    
-    private readonly Lock _lock = new();
     private readonly Dictionary<uint, IPass> _passes = [];
     private uint _latestId;
     private uint _swapchainImageId;
@@ -317,10 +315,11 @@ public class GraphBuilder(IResourcePool resourcePool,Frame frame) : IGraphBuilde
         // _images.Clear();
         // _memory.Clear();
         _passes.Clear();
-        lock (_lock)
-        {
-            _latestId = 0;
-        }
+        _externalTextures.Clear();
+        _externalTextureArrays.Clear();
+        _externalCubemaps.Clear();
+        _swapchainImageId = 0;
+        _latestId = 0;
     }
 
     /// <summary>
@@ -329,10 +328,7 @@ public class GraphBuilder(IResourcePool resourcePool,Frame frame) : IGraphBuilde
     /// <returns></returns>
     public uint MakeId()
     {
-        lock (_lock)
-        {
-            return ++_latestId;
-        }
+        return ++_latestId;
     }
 
     private GraphConfig Configure()

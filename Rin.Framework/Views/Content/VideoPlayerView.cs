@@ -1,6 +1,5 @@
 using System.Numerics;
 using Rin.Framework.Animation;
-using Rin.Framework.Buffers;
 using Rin.Framework.Views.Graphics.Blur;
 using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Graphics;
@@ -8,13 +7,15 @@ using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Shaders;
 using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Shared.Buffers;
 using Rin.Framework.Shared.Math;
-using Rin.Framework.Video;
+using Rin.Framework.Shared.Video;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Graphics.CommandHandlers;
 using Rin.Framework.Views.Graphics.Commands;
 using Rin.Framework.Views.Graphics.PassConfigs;
+using Rin.Framework.Views.Window;
 
 namespace Rin.Framework.Views.Content;
 
@@ -217,7 +218,7 @@ public class VideoPlayerView : ContentView
         var contentSize = GetContentSize();
         var barOffset = contentSize with { X = 0 };
         barOffset.Y -= barSize;
-        var barTransform = transform.Translate(barOffset);
+        var barTransform = transform.ApplyBefore(Matrix4x4.Identity.Translate(barOffset));
         
         commands.AddRect(barTransform,
             new Vector2(contentSize.X * (float)(_player.Position / _player.Duration), barSize), Color.White);
@@ -225,10 +226,31 @@ public class VideoPlayerView : ContentView
             new Vector2(contentSize.X * (float)(_player.DecodedPosition / _player.Duration), barSize),
             Color.White with { A = 0.5f });
 
-        if (_player.HasVideo && IsHovered)
+        
+
+        if (Surface is IWindowSurface surf)
         {
-            var size = new Vector2(200);
-            commands.AddBlur(Matrix4x4.Identity.Translate(_cursorPosition - (size / 2)), size,radius: 15);
+            
+            var cursorPos = surf.GetCursorPosition();
+
+            var toScreen = transform;
+            var toLocal = toScreen.Inverse();
+            
+            var localPos = cursorPos.Transform(toLocal);
+            
+            Console.WriteLine(localPos);
+            
+            // if (_player.HasVideo && IsHovered)
+            // {
+            //     var size = new Vector2(200);
+            //     commands.AddBlur(Matrix4x4.Identity.Translate(localPos - (size / 2)), size,radius: 15);
+            // }
+            
+            //surf.GetCursorPosition().Transform(transform.Inverse());
+            var z = new Vector2(0, 0);
+            var x = z.Transform(transform);
+            //commands.AddText(transform.Translate(),"Noto Sans","Hello world",40,Color.Green);
+            commands.AddCircle(transform, localPos, 20, Color.Red);
         }
     }
     
@@ -258,8 +280,8 @@ public class VideoPlayerView : ContentView
 
         if (e.Button is CursorButton.Two)
         {
-            var localPosition = e.Position.Transform(_lastCollectAbsoluteTransform.Inverse());
-            var size = GetContentSize();
+            var localPosition = e.Position.Transform(transform.Inverse());
+            var size = GetSize();
             var percent = localPosition.X / size.X;
             var time = _player.Duration * percent;
             _player.Seek(time);

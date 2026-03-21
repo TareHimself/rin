@@ -20,7 +20,7 @@ public abstract class ContentView : View
     {
         if (!IsVisible) return;
 
-        CollectContent(transform.Translate(new Vector2(Padding.Left, Padding.Top)), commands);
+        CollectContent(transform.ApplyBefore(GetLocalContentTransform()), commands);
     }
 
     public override void Update(float deltaTime)

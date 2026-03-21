@@ -25,14 +25,15 @@ public abstract class CompositeView : View, ICompositeView
         {
             if (e is IPositionalEvent asPositionalEvent)
             {
-                var withPadding = absoluteTransform.Translate(new Vector2(Padding.Left, Padding.Top));
-                var testContent = true;
-                if (Padding != default)
-                    testContent = Rect2D.PointWithin(GetContentSize(), withPadding, asPositionalEvent.Position);
-
-                if (testContent)
+                var contentTransform = absoluteTransform.ApplyBefore(GetLocalContentTransform());
+                var d = new Vector2(0).Transform(contentTransform);
+                if (e is CursorDownSurfaceEvent)
                 {
-                    var slots = ComputeHitTestableSlotsForEvent(asPositionalEvent, withPadding);
+                    var c = "";
+                }
+                if (Rect2D.PointWithin(GetContentSize(), contentTransform, asPositionalEvent.Position))
+                {
+                    var slots = ComputeHitTestableSlotsForEvent(asPositionalEvent, contentTransform);
                     if (slots.NotEmpty())
                     {
                         if (e is IHandleableEvent asHandleable)
@@ -86,7 +87,7 @@ public abstract class CompositeView : View, ICompositeView
     /// <returns></returns>
     public virtual Matrix4x4 ComputeChildOffsets(IView child)
     {
-        return GetLocalTransformWithPadding();
+        return GetLocalContentTransform();
     }
 
     [PublicAPI]
@@ -112,19 +113,17 @@ public abstract class CompositeView : View, ICompositeView
         var clipRect = clip;
 
 
-        var transformAfterPadding = transform.ApplyBefore(GetLocalPaddingTransform());
+        var contentTransform = transform.ApplyBefore(GetLocalContentTransform());
+        
+        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(contentTransform, GetContentSize());
 
-
-        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transformAfterPadding, GetContentSize());
-
-        if (Clip == Clip.Bounds) clipRect = ComputeAABB(transformAfterPadding).Clamp(clipRect);
+        if (Clip == Clip.Bounds) clipRect = ComputeAABB(contentTransform).Clamp(clipRect);
 
         List<Pair<IView, Matrix4x4>> toCollect = [];
-
-        var contentTransform = transform.ApplyBefore(GetLocalContentTransform());
+        
         foreach (var slot in GetCollectableSlots())
         {
-            var slotTransform = ComputeSlotTransform(slot, transformAfterPadding);
+            var slotTransform = ComputeSlotTransform(slot, contentTransform);
 
             var aabb = slot.Child.ComputeAABB(slotTransform);
 

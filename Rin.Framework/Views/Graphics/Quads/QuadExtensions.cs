@@ -36,7 +36,7 @@ public static class QuadExtensions
     public static CommandList AddCircle(this CommandList commandList,in Matrix4x4 transform, in Vector2 center, float radius,
         in Color? color = null)
     {
-        return commandList.AddQuads(Quad.Circle(Matrix4x4.Identity.Translate(-center + new Vector2(radius)).ChildOf(transform), radius, color));
+        return commandList.AddQuads(Quad.Circle(transform.ApplyBefore(Matrix4x4.Identity.Translate(center - new Vector2(radius))), radius, color));
     }
 
     public static CommandList AddLine(this CommandList commandList,in Matrix4x4 transform, in Vector2 begin, in Vector2 end,

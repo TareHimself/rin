@@ -5,10 +5,21 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+<!--        <PublishAot>true</PublishAot>-->
     </PropertyGroup>
 
     <PropertyGroup>
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    </PropertyGroup>
+
+    <!-- Windows: no console -->
+    <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+        <OutputType>WinExe</OutputType>
+    </PropertyGroup>
+
+    <!-- Linux / macOS: normal executable -->
+    <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
+        <OutputType>Exe</OutputType>
     </PropertyGroup>
 
     <ItemGroup>

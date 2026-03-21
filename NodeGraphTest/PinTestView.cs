@@ -39,11 +39,11 @@ public class PinTestView : SingleSlotCompositeView, IGraphPinView
 
     public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
     {
-        var absMatrix = Matrix4x4.Identity.Translate(GetPinOffset()).ChildOf(ComputeAbsoluteContentTransform());
+        var localPosition = e.Position.Transform(transform.Inverse());
         var rectSize = new Vector2(NodeGraphConstants.PinDiameterWithPadding);
-        if (Rect2D.PointWithin(rectSize, absMatrix, e.Position))
+        if (Rect2D.PointWithin(rectSize,Matrix4x4.Identity.Translate(GetPinOffset()),localPosition))
         {
-            ParentNode?.StartPinDrag(e,this,new Vector2(NodeGraphConstants.PinRadius).Transform(absMatrix));
+            ParentNode?.StartPinDrag(e,this,new Vector2(NodeGraphConstants.PinRadius).Transform(transform));
         }
     }
     

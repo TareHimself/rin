@@ -1,4 +1,4 @@
-﻿namespace Rin.Framework.Buffers;
+﻿namespace Rin.Framework.Shared.Buffers;
 
 
 /// <summary>

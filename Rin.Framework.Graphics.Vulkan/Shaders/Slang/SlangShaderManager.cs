@@ -75,7 +75,7 @@ public class SlangShaderManager : IShaderManager
     }
 
 
-    public static void ReflectShader(ReflectionData reflectionData, Dictionary<string, Resource> resources,
+    public static void ReflectShader(SlangReflectionData reflectionData, Dictionary<string, Resource> resources,
         Dictionary<string, PushConstant> pushConstants, ShaderStage entryPointStage)
     {
         var parameters = reflectionData.Parameters.ToList();

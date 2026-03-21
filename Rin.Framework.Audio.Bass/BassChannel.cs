@@ -2,7 +2,7 @@
 
 namespace Rin.Framework.Audio.Bass;
 
-public class BassChannel : IChannel
+public class BassChannel : IActiveAudio
 {
     protected readonly int _handle;
 

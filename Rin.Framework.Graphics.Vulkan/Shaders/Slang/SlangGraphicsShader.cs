@@ -118,7 +118,7 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
 
                 if (jsonString == null) throw new ShaderCompileException("Failed to get reflection data.");
 
-                var reflectionData = JsonSerializer.Deserialize<ReflectionData>(jsonString);
+                var reflectionData = JsonSerializer.Deserialize(jsonString,SlangReflectionDataJsonContext.Default.SlangReflectionData);
 
                 if (reflectionData == null) throw new ShaderCompileException("Failed to parse reflection data.");
 
@@ -137,7 +137,7 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
                                 AttachmentFormats = reflectionEntryPoint.Result.Type.Fields
                                     .Where(c => c.SemanticName == "SV_TARGET").Select(c =>
                                     {
-                                        if (c.UserAttributes.FirstOrDefault(c => c.Name == "Attachment") is
+                                        if (c.UserAttributes.FirstOrDefault(field => field.Name == "Attachment") is
                                             { } targetAttribute)
                                             return (ImageFormat)targetAttribute.Arguments[0].GetValue<int>();
                                         throw new Exception("Output parameter missing Attachment Attribute");

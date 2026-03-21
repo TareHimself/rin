@@ -2,7 +2,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using Rin.Framework.Buffers;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Meshes;
@@ -13,6 +12,7 @@ using Rin.Framework.Graphics.Vulkan.Meshes;
 using Rin.Framework.Graphics.Vulkan.Shaders.Slang;
 using Rin.Framework.Graphics.Vulkan.Windows;
 using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Shared.Buffers;
 using Rin.Framework.Shared.Threading;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;

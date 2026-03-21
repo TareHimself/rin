@@ -23,7 +23,7 @@ public abstract class View : IView
     private Vector2 _translate = Vector2.Zero;
 
     /// <summary>
-    ///     The offset of this view in parent space
+    ///     The offset of this view in parent space, should be used for layout
     /// </summary>
     public Vector2 Offset
     {
@@ -65,7 +65,7 @@ public abstract class View : IView
     }
 
     /// <summary>
-    ///     The translation of this view in parent space
+    ///     The translation of this view in parent space, should be used for animation
     /// </summary>
     public Vector2 Translate
     {
@@ -161,13 +161,12 @@ public abstract class View : IView
     ///     The parent of this view
     /// </summary>
     public ICompositeView? Parent { get; private set; }
-
+    
     /// <summary>
-    /// The transformation applied due to padding
+    /// Transformation to apply to all content
     /// </summary>
     /// <returns></returns>
-    public virtual Matrix4x4 GetLocalPaddingTransform() => Matrix4x4.Identity.Translate(new Vector2(Padding.Left, Padding.Top));
-    public virtual Matrix4x4 GetLocalContentTransform() => GetLocalPaddingTransform();
+    public virtual Matrix4x4 GetLocalContentTransform() => Matrix4x4.Identity.Translate(new Vector2(Padding.Left, Padding.Top));
 
     /// <summary>
     ///     Check if this view is focused by its current surface
@@ -221,30 +220,23 @@ public abstract class View : IView
     public Matrix4x4 GetLocalTransform()
     {
         if (_cachedRelativeTransform is { } cached) return cached;
-
-        var rotation = Matrix4x4.Identity.Scale(Scale).Rotate2dDegrees(Angle).Translate(GetSize() * Pivot * -1.0f);
-        var transform = Matrix4x4.Identity.Translate(Offset + Translate) * rotation;
-
-        _cachedRelativeTransform = transform;
-        return transform;
+        
+        var t = Matrix4x4.Identity.Translate(Offset + Translate).ApplyBefore(Matrix4x4.Identity.Translate(-(GetSize() * Pivot)).Scale(Scale).Rotate2dDegrees(Angle));
+        _cachedRelativeTransform = t;
+        return t;
     }
-
-    public Matrix4x4 GetLocalTransformWithPadding()
+    
+    public Vector2 GetPaddingOffset()
     {
-        return GetLocalContentTransform().ChildOf(GetLocalTransform());
+        return new Vector2(Padding.Left, Padding.Top);
     }
+    
 
     public Matrix4x4 ComputeAbsoluteContentTransform()
     {
-        var parent = Parent;
-        var parentTransform = Matrix4x4.Identity;
-        while (parent is not null)
-        {
-            parentTransform = parentTransform.ChildOf(parent.ComputeChildOffsets(this));
-            parent = parent.Parent;
-        }
+        var absTransform = ComputeAbsoluteTransform();
 
-        return GetLocalTransformWithPadding().ChildOf(parentTransform);
+        return GetLocalContentTransform().ChildOf(absTransform);
     }
     
     public Matrix4x4 ComputeAbsoluteTransform()
@@ -534,7 +526,7 @@ public abstract class View : IView
         };
     }
 
-    public bool PointWithin(in Matrix4x4 transform, in Vector2 point, bool useInverse = false)
+    public bool PointWithin(in Matrix4x4 transform, in Vector2 point, bool useInverse)
     {
         return Rect2D.PointWithin(GetSize(), transform, point, useInverse);
     }

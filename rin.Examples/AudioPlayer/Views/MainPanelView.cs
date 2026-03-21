@@ -67,7 +67,7 @@ public class MainPanelView : PanelView
     {
         foreach (var file in files)
         {
-            var player = new TrackPlayer(Path.GetFileNameWithoutExtension(file),IAudioModule.Get().CreateStream(file));
+            var player = new TrackPlayer(Path.GetFileNameWithoutExtension(file),IAudioModule.Get().MakeSample(file));
             _trackPlayers.Add(player);
         }
     }

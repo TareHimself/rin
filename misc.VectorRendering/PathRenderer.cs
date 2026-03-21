@@ -11,7 +11,7 @@ public class PathRenderer : ContentView
         return availableSpace;
     }
 
-    protected override Vector2 ComputeDesiredContentSize()
+    public override Vector2 ComputeDesiredContentSize()
     {
         return Vector2.Zero;
     }

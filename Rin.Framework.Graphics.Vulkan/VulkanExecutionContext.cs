@@ -210,10 +210,13 @@ public class VulkanExecutionContext(
             $"Depth attachment format must be {ImageFormat.Stencil}");
         Debug.Assert(depthAttachment is IVulkanImage or null);
         Debug.Assert(stencilAttachment is IVulkanImage or null);
-        Debug.Assert(attachments.All(c => c is IVulkanTexture));
 
         CommandBuffer
-            .BeginRendering(extent, attachments.Select(c => ((IVulkanTexture)c).MakeColorAttachmentInfo(clearColor)).ToArray(),
+            .BeginRendering(extent, attachments.Select(c =>
+                {
+                    Debug.Assert(c is IVulkanTexture);
+                    return ((IVulkanTexture)c).MakeColorAttachmentInfo(clearColor);
+                }).ToArray(),
                 ((IVulkanTexture?)depthAttachment)?.MakeDepthAttachmentInfo(), ((IVulkanTexture?)stencilAttachment)?.MakeStencilAttachmentInfo())
             .SetViewports([
                 new VkViewport

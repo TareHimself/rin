@@ -120,7 +120,7 @@ public record struct Rect2D
         return new Pair<Vector2, Vector2>(rect.Offset, rect.Offset + rect.Size);
     }
 
-    public static bool PointWithin(in Vector2 size, in Matrix4x4 transform, in Vector2 point, bool useInverse = false)
+    public static bool PointWithin(in Vector2 size, in Matrix4x4 transform, in Vector2 point, bool useInverse = true)
     {
         var tl = Vector2.Zero;
         var br = tl + size;

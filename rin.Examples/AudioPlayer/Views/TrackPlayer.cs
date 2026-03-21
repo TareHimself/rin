@@ -57,15 +57,19 @@ public class TrackPlayer : OverlayView
         WrapContent = true
     };
 
-    private readonly IChannel _stream;
+    private readonly IAudioSample _sample;
+    private IActiveAudio _stream;
+    
     private double _lastTime = IApplication.Get().TimeSeconds;
 
-    public TrackPlayer(string name, IChannel stream)
+    public TrackPlayer(string name, IAudioSample sample)
     {
         Visibility = Visibility.Hidden;
         _nameText.Content = name;
 
-        _stream = stream;
+        _sample = sample;
+        
+        _stream = sample.MakeActive();
 
         Children =
         [
@@ -135,7 +139,7 @@ public class TrackPlayer : OverlayView
         ];
 
 
-        _endTimeText.Content = FormatTime(stream.Duration);
+        _endTimeText.Content = FormatTime(_stream.Duration);
         Padding = 10.0f;
         FetchCover().ConfigureAwait(false);
         Pivot = new Vector2(1.0f, 0.0f);

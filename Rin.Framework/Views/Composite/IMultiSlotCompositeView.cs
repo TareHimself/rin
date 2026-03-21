@@ -24,7 +24,7 @@ public interface IMultiSlotCompositeView<in TSlotType> : ICompositeView where TS
     }
 
     public int SlotCount { get; }
-    public abstract bool Add(IView child);
+    public bool Add(IView child);
     public bool Add(TSlotType slot);
     public bool Remove(IView child);
 }

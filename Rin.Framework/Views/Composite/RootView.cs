@@ -1,5 +1,8 @@
 ﻿using System.Numerics;
+using Rin.Framework.Graphics;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Enums;
+using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -59,4 +62,5 @@ public class RootView : MultiSlotCompositeView<Slot>
     {
         return _layout.Remove(view);
     }
+    
 }
