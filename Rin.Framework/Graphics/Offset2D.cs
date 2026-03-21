@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 
 namespace Rin.Framework.Graphics;
 
-[JsonConverter(typeof(JsonConverter))]
+[JsonConverter(typeof(JsonConverter)), NoReorder]
 public record struct Offset2D : IFormattable
 {
     [PublicAPI] public uint X = 0;

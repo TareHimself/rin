@@ -15,8 +15,7 @@ public enum PrimitiveType
     CubicCurve
 }
 
-[StructLayout(LayoutKind.Explicit)]
-[NoReorder]
+[StructLayout(LayoutKind.Explicit), NoReorder]
 public struct Quad() // : ICloneable<Quad>
 {
     public enum RenderMode
@@ -132,7 +131,6 @@ public struct Quad() // : ICloneable<Quad>
 
     public static Quad Circle(in Matrix4x4 transform, float radius, in Color? color = null)
     {
-        var x = new Vector2(0).Transform(transform);
         var size = new Vector2(radius * 2f);
         var quad = new Quad
         {

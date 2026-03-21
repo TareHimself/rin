@@ -1,17 +1,18 @@
 using System.Numerics;
+using JetBrains.Annotations;
 
 namespace Rin.Framework.Shared.Math;
 
 /// <summary>
 ///     Should only be used for storage of 4 int components
 /// </summary>
+[NoReorder]
 public record struct Int4
 {
-    public int W;
-
     public int X;
     public int Y;
     public int Z;
+    public int W;
 
     public Int4()
     {

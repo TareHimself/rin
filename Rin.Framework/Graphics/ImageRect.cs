@@ -2,10 +2,11 @@
 
 namespace Rin.Framework.Graphics;
 
+[NoReorder]
 public record struct ImageRect
 {
-    [PublicAPI] public Extent3D Extent = default;
     [PublicAPI] public Offset2D Offset = default;
+    [PublicAPI] public Extent3D Extent = default;
 
     public ImageRect()
     {

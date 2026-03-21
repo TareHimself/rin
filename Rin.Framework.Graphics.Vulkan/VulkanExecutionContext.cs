@@ -66,7 +66,7 @@ public class VulkanExecutionContext(
                 dstOffset = dest.Offset,
                 srcOffset = src.Offset
             };
-            vkCmdCopyBuffer(CommandBuffer, Unsafe.As<IVulkanDeviceBuffer>(dest.Buffer).NativeBuffer,
+            vkCmdCopyBuffer(CommandBuffer, Unsafe.As<IVulkanDeviceBuffer>(src.Buffer).NativeBuffer,
                 Unsafe.As<IVulkanDeviceBuffer>(dest.Buffer).NativeBuffer, 1, &copy);
         }
 

@@ -133,12 +133,12 @@ public abstract class View : IView
     /// <summary>
     ///     Should this view be hit tested
     /// </summary>
-    public bool IsSelfHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestSelf;
+    public bool IsSelfHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestChildren;
 
     /// <summary>
     ///     Should this view's children be hit tested
     /// </summary>
-    public bool IsChildrenHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestChildren;
+    public bool IsChildrenHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestSelf;
 
     /// <summary>
     ///     Should this view or its children be hit tested

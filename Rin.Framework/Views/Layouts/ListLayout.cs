@@ -38,8 +38,11 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
         if (slot is ListSlot asListContainerSlot)
             return asListContainerSlot.Fit switch
             {
-                CrossFit.Desired => float.Clamp(asListContainerSlot.Child.GetDesiredSize().X, 0.0f,
-                    crossAxisAvailableSize),
+                CrossFit.Desired => float.Clamp(
+                    GetAxis() == Axis.Row
+                        ? asListContainerSlot.Child.GetDesiredSize().Y
+                        : asListContainerSlot.Child.GetDesiredSize().X,
+                    0.0f, crossAxisAvailableSize),
                 CrossFit.Available => crossAxisAvailableSize,
                 CrossFit.Fill => crossAxisAvailableSize,
                 _ => throw new ArgumentOutOfRangeException()

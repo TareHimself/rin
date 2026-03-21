@@ -21,11 +21,6 @@ public abstract class CompositeView : View, ICompositeView
             if (e is IPositionalEvent asPositionalEvent)
             {
                 var contentTransform = absoluteTransform.ApplyBefore(GetLocalContentTransform());
-                var d = new Vector2(0).Transform(contentTransform);
-                if (e is CursorDownSurfaceEvent)
-                {
-                    var c = "";
-                }
 
                 if (Rect2D.PointWithin(GetContentSize(), contentTransform, asPositionalEvent.Position))
                 {
@@ -61,7 +56,7 @@ public abstract class CompositeView : View, ICompositeView
     /// <returns></returns>
     public virtual Matrix4x4 ComputeChildOffsets(IView child)
     {
-        return GetLocalContentTransform();
+        return GetLocalContentTransform().ChildOf(GetLocalTransform());
     }
 
     [PublicAPI]

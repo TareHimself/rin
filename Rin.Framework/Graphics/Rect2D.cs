@@ -1,8 +1,10 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Framework.Shared.Math;
 
 namespace Rin.Framework.Graphics;
 
+[NoReorder]
 public record struct Rect2D
 {
     public Vector2 Offset;

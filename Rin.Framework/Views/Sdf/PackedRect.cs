@@ -1,5 +1,8 @@
-﻿namespace Rin.Framework.Views.Sdf;
+﻿using JetBrains.Annotations;
 
+namespace Rin.Framework.Views.Sdf;
+
+[NoReorder]
 public struct PackedRect<T>
 {
     public int X;

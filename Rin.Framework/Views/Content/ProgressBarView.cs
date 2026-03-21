@@ -24,9 +24,6 @@ public class ProgressBarView(Func<float> getProgress, Action<float>? onClick = n
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        var a = ComputeAbsoluteContentTransform();
-        var b = transform;
-        var z = a == b;
         var size = GetContentSize();
         commands.AddRect(transform, size, BackgroundColor, BorderRadius);
         commands.AddRect(transform,
