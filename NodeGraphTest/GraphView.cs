@@ -129,7 +129,7 @@ public class GraphView : MultiSlotCompositeView<GraphSlot>, IGraphView
         return computedContentSize;
     }
 
-    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, Invalidation invalidation)
     {
         if (_layout.FindSlot(child) is GraphSlot slot)
         {

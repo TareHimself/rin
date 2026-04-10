@@ -107,18 +107,18 @@ public abstract class CompositeView : View, ICompositeView
     }
 
     [PublicAPI]
-    public abstract void OnChildInvalidated(IView child, InvalidationType invalidation);
+    public abstract void OnChildInvalidated(IView child, Invalidation invalidation);
 
     [PublicAPI]
     public virtual void OnChildAdded(IView child)
     {
-        Invalidate(InvalidationType.Layout);
+        Invalidate(Invalidation.Layout);
     }
 
     [PublicAPI]
     public virtual void OnChildRemoved(IView child)
     {
-        Invalidate(InvalidationType.Layout);
+        Invalidate(Invalidation.Layout);
     }
 
     public override void Update(float deltaTime)

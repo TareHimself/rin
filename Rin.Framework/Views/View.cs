@@ -107,7 +107,7 @@ public abstract class View : IView
         set
         {
             _padding = value;
-            Invalidate(InvalidationType.DesiredSize);
+            Invalidate(Invalidation.DesiredSize);
         }
     }
 
@@ -418,13 +418,13 @@ public abstract class View : IView
         return true;
     }
 
-    public virtual void Invalidate(InvalidationType type)
+    public virtual void Invalidate(Invalidation type)
     {
         if (Surface == null) return;
 
         switch (type)
         {
-            case InvalidationType.DesiredSize:
+            case Invalidation.DesiredSize:
             {
                 if (_cachedDesiredSize is { } asCachedSize)
                 {
@@ -441,7 +441,7 @@ public abstract class View : IView
                 Parent?.OnChildInvalidated(this, type);
             }
                 break;
-            case InvalidationType.Layout:
+            case Invalidation.Layout:
                 Parent?.OnChildInvalidated(this, type);
                 break;
             default:

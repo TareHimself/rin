@@ -18,7 +18,7 @@ public class SizerView : SingleSlotCompositeView
         set
         {
             _widthOverride = value;
-            Invalidate(InvalidationType.DesiredSize);
+            Invalidate(Invalidation.DesiredSize);
         }
     }
 
@@ -28,7 +28,7 @@ public class SizerView : SingleSlotCompositeView
         set
         {
             _heightOverride = value;
-            Invalidate(InvalidationType.DesiredSize);
+            Invalidate(Invalidation.DesiredSize);
         }
     }
 
@@ -56,7 +56,7 @@ public class SizerView : SingleSlotCompositeView
         return new Vector2(WidthOverride.GetValueOrDefault(size.X), HeightOverride.GetValueOrDefault(size.Y));
     }
 
-    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, Invalidation invalidation)
     {
         if (GetSlot() is { } slot)
         {

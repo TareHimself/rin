@@ -88,15 +88,25 @@ public abstract class Application : IApplication
     {
         OnShutdown();
         foreach (var module in _modules.AsReversed()) module.Stop(this);
-        Native.Platform.Shutdown();
+        ShutdownPlatform();
     }
 
     protected abstract void OnStartup();
     protected abstract void OnShutdown();
 
-    private void Start()
+    protected virtual void InitializePlatform()
     {
         Native.Platform.Init();
+    }
+
+    protected virtual void ShutdownPlatform()
+    {
+        Native.Platform.Shutdown();
+    }
+
+    private void Start()
+    {
+        InitializePlatform();
 
         _audioModule = CreateAudioModule();
         _graphicsModule = CreateGraphicsModule();

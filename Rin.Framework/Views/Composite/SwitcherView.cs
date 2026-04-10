@@ -47,7 +47,7 @@ public class SwitcherView : MultiSlotCompositeView<Slot>
         return availableSpace;
     }
 
-    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, Invalidation invalidation)
     {
         _layout.Apply(GetContentSize());
     }

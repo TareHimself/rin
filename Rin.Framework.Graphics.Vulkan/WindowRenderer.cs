@@ -55,7 +55,7 @@ public class WindowRenderer : IWindowRenderer
         _window = window;
         _surface = surface ?? CreateSurface();
         var supportedPresentModes = module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
-        _resourcePool = new ResourcePool(this);
+        _resourcePool = new ResourcePool();
         SetupGlobalDescriptors();
         var presentModesSet = supportedPresentModes.ToHashSet();
 
@@ -305,7 +305,7 @@ public class WindowRenderer : IWindowRenderer
         var frame = GetCurrentFrame();
 
 
-        if (OnCollect == null || OnCollect.GetInvocationList().Length == 0) return null;
+        if (OnCollect == null) return null;
 
         var extent = _window.GetSize();
 
@@ -339,9 +339,7 @@ public class WindowRenderer : IWindowRenderer
                 Profiling.End("Engine.Rendering.Graph.Build");
                 var device = _module.GetDevice();
                 CheckResult(frame.WaitForLastDraw());
-
-                _resourcePool.OnFrameStart(_framesRendered);
-
+                
                 frame.Reset();
 
                 uint swapchainImageIndex = 0;
@@ -433,6 +431,8 @@ public class WindowRenderer : IWindowRenderer
                 }
 
                 frame.Finish();
+                
+                _resourcePool.OnFrameEnd(_framesRendered);
 
                 _framesRendered++;
             }

@@ -27,7 +27,7 @@ public interface ICompositeView : IView
 
 
     [PublicAPI]
-    public void OnChildInvalidated(IView child, InvalidationType invalidation);
+    public void OnChildInvalidated(IView child, Invalidation invalidation);
 
     [PublicAPI]
     public void OnChildAdded(IView child);

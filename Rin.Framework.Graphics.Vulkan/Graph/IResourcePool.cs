@@ -10,5 +10,5 @@ public interface IResourcePool : IDisposable
 
     public IVulkanDeviceBuffer CreateBuffer(BufferResourceDescriptor descriptor, Frame frame);
 
-    public void OnFrameStart(ulong newFrame);
+    public void OnFrameEnd(ulong newFrame);
 }

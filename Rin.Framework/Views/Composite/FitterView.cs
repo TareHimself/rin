@@ -107,7 +107,7 @@ public class FitterView : SingleSlotCompositeView
             float.IsFinite(availableSpace.Y) ? availableSpace.Y : desired.Y));
     }
 
-    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, Invalidation invalidation)
     {
         FitContent(GetContentSize());
     }

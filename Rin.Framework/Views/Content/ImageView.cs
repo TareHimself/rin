@@ -23,7 +23,7 @@ public class ImageView : ContentView
         set
         {
             _imageHandle = value;
-            Invalidate(InvalidationType.DesiredSize);
+            Invalidate(Invalidation.DesiredSize);
         }
     }
 

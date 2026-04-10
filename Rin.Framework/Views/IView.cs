@@ -45,8 +45,7 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     ///     The visibility of this view
     /// </summary>
     public Visibility Visibility { get; set; }
-
-
+    
     /// <summary>
     ///     Should this view be hit tested
     /// </summary>
@@ -166,7 +165,7 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
 
     public bool TryUpdateDesiredSize();
 
-    public void Invalidate(InvalidationType type);
+    public void Invalidate(Invalidation type);
 
     // ReSharper disable once InconsistentNaming
     public Rect2D ComputeAABB(in Matrix4x4 transform);

@@ -47,7 +47,7 @@ public class TextBoxView : ContentView
         set
         {
             _wrapContent = value;
-            Invalidate(InvalidationType.Layout);
+            Invalidate(Invalidation.Layout);
         }
     }
 
@@ -105,7 +105,7 @@ public class TextBoxView : ContentView
         _cachedBounds = null;
         _content = newText;
         // TextRenderer.RenderTextTo();
-        Invalidate(InvalidationType.DesiredSize);
+        Invalidate(Invalidation.DesiredSize);
     }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
@@ -125,7 +125,7 @@ public class TextBoxView : ContentView
         _cachedBounds = null;
         _cachedLayouts = ComputeLayout(out var pending);
         if (pending) _cachedLayouts = null;
-        Invalidate(InvalidationType.DesiredSize);
+        Invalidate(Invalidation.DesiredSize);
     }
 
 

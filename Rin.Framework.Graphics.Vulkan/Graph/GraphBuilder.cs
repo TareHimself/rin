@@ -38,13 +38,21 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
     {
         var config = Configure();
 
-        var terminals = _passes.Values.Where(p => p.IsTerminal).ToArray();
-
-        if (terminals.Empty()) return null;
+        var terminals = _passes.Values.Where(p => p.IsTerminal);
 
         // Nodes and their dependencies
         Dictionary<uint, HashSet<uint>> nodes = [];
         var toCheck = terminals.Select(c => c.Id).ToQueue();
+
+        if (toCheck.Empty())
+        {
+            foreach (var pass in _passes.Values)
+            {
+                pass.OnPrune?.Invoke();
+            }
+            return null;
+        }
+        
         var visited = toCheck.ToHashSet();
 
         // number of passes that depend on the key
