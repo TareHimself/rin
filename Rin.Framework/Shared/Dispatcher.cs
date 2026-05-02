@@ -1,27 +1,20 @@
-﻿namespace Rin.Framework.Shared;
+﻿using System.Collections.Concurrent;
+
+namespace Rin.Framework.Shared;
 
 /// <summary>
-///     Used to schedule actions to be called on <see cref="DispatchPending" /> . usefull for threading
+///     Used to schedule actions to be called on <see cref="DispatchPending" /> . useful for threading
 /// </summary>
 public class Dispatcher
 {
-    private readonly Queue<Scheduled> _actions = [];
-
-    private readonly object _lock = new();
+    private readonly ConcurrentQueue<Scheduled> _actions = new();
 
     /// <summary>
     ///     Resolve scheduled tasks
     /// </summary>
     public void DispatchPending()
     {
-        Queue<Scheduled> actions;
-        lock (_lock)
-        {
-            actions = new Queue<Scheduled>(_actions);
-            _actions.Clear();
-        }
-
-        foreach (var action in actions)
+        while (_actions.TryDequeue(out var action))
         {
             if (action.CancellationToken is { IsCancellationRequested: true }) continue;
 
@@ -48,10 +41,8 @@ public class Dispatcher
         {
             PendingAction = action
         };
-        lock (_lock)
-        {
-            _actions.Enqueue(pending);
-        }
+
+        _actions.Enqueue(pending);
 
         return pending.CompletionSource.Task;
     }
@@ -69,10 +60,8 @@ public class Dispatcher
             PendingAction = action,
             CancellationToken = cancellationToken
         };
-        lock (_lock)
-        {
-            _actions.Enqueue(pending);
-        }
+
+        _actions.Enqueue(pending);
 
         return pending.CompletionSource.Task;
     }

@@ -26,7 +26,6 @@ public class ProcessedMesh
     {
         public bool Equals(ProcessedMesh? x, ProcessedMesh? y)
         {
-           
             if (x == null && y == null) return true;
             if (x == null || y == null) return false;
             Debug.Assert(x.IndexBuffer.IsValid);
@@ -40,7 +39,7 @@ public class ProcessedMesh
 
         public int GetHashCode(ProcessedMesh obj)
         {
-            Debug.Assert(obj.IndexBuffer.IsValid,"IndexBuffer is not valid");
+            Debug.Assert(obj.IndexBuffer.IsValid, "IndexBuffer is not valid");
             return HashCode.Combine(obj.Material.GetType(), obj.IndexBuffer.Size, obj.IndexBuffer.Offset,
                 obj.IndexBuffer.Buffer.NativeBuffer);
         }
@@ -126,7 +125,7 @@ public class ProcessedMesh
             if (x == null || y == null) return false;
             Debug.Assert(x.IndexBuffer.IsValid);
             Debug.Assert(y.IndexBuffer.IsValid);
-            return x.IndexBuffer == y.IndexBuffer && x.Material.IsBatchable(false,y.Material);
+            return x.IndexBuffer == y.IndexBuffer && x.Material.IsBatchable(false, y.Material);
         }
 
         public int GetHashCode(ProcessedMesh obj)
@@ -145,7 +144,7 @@ public class ProcessedMesh
             if (x == null || y == null) return false;
             Debug.Assert(x.IndexBuffer.IsValid);
             Debug.Assert(y.IndexBuffer.IsValid);
-            return x.IndexBuffer == y.IndexBuffer && x.Material.IsBatchable(true,y.Material);
+            return x.IndexBuffer == y.IndexBuffer && x.Material.IsBatchable(true, y.Material);
         }
 
         public int GetHashCode(ProcessedMesh obj)

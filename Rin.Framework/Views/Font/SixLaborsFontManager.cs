@@ -33,7 +33,8 @@ public class SixLaborsFontManager : IFontManager
 
     public SixLaborsFontManager(ISdfCache? cache = null)
     {
-        _cache = SFramework.Provider.AddSingle<ISdfCache>(new DiskSdfCache(Path.Combine(SFramework.Directory, "sdfs.bin")));
+        _cache = SFramework.Provider.AddSingle<ISdfCache>(
+            new DiskSdfCache(Path.Combine(SFramework.Directory, "sdfs.bin")));
     }
 
     public Task Prepare(IFont font, IEnumerable<char> characters)
@@ -88,11 +89,11 @@ public class SixLaborsFontManager : IFontManager
                         result.Image.CreateTexture(out glyph.AtlasHandle).Then(() =>
                         {
                             var id = toGenerate[index].Second;
-                            if(!_atlases.TryGetValue(id, out var val)) return;
+                            if (!_atlases.TryGetValue(id, out var val)) return;
                             val = val with { State = LiveGlyphState.Ready };
                             _atlases.AddOrUpdate(id, val, (_, _) => val);
                         });
-                        
+
                         return new Pair<int, LiveGlyphInfo>(index, glyph);
                     });
 
@@ -111,7 +112,7 @@ public class SixLaborsFontManager : IFontManager
     }
 
     /// <summary>
-    /// BUGGED, DO NOT USE, NEEDS FIX
+    ///     BUGGED, DO NOT USE, NEEDS FIX
     /// </summary>
     /// <param name="font"></param>
     /// <param name="characters"></param>
@@ -157,7 +158,7 @@ public class SixLaborsFontManager : IFontManager
                     for (var i = 0; i < toGenerate.Count; i++)
                     {
                         var initialResult = initialResults[i];
-                        if(initialResult is null) continue;
+                        if (initialResult is null) continue;
                         results.Add(new Pair<SdfResult, int>(initialResult, i));
                     }
 
@@ -181,7 +182,7 @@ public class SixLaborsFontManager : IFontManager
                     var atlases = packers
                         .Select(p => HostImage.Create(new Extent2D(p.Width, p.Height), ImageFormat.RGBA8))
                         .ToArray();
-                    
+
                     // Write glyphs to images
                     // Update Live glyphs
                     // Upload textures to gpu
@@ -196,12 +197,13 @@ public class SixLaborsFontManager : IFontManager
                             foreach (var rect in packer.Rects)
                             {
                                 o.DrawImage(rect.Data.First.Image, new Offset2D(rect.X, rect.Y));
-                                
+
                                 var generated = rect.Data;
                                 var size = generated.First.Image.Extent;
                                 var pt1 = new Vector2(rect.X, rect.Y);
                                 var pixelSize = new Vector2(size.Width, size.Height);
-                                var pt2 = pt1 + new Vector2((float)rect.Data.First.Width, (float)rect.Data.First.Height);
+                                var pt2 = pt1 + new Vector2((float)rect.Data.First.Width,
+                                    (float)rect.Data.First.Height);
                                 var pt1Coord = pt1 / atlasSize;
                                 var pt2Coord = pt2 / atlasSize;
                                 var glyph = new LiveGlyphInfo
@@ -222,10 +224,10 @@ public class SixLaborsFontManager : IFontManager
                         {
                             foreach (var key in glyphsInAtlas.Where(_atlases.ContainsKey))
                             {
-                                var glyph = _atlases[key] with { State = LiveGlyphState.Ready,AtlasHandle = handle };
+                                var glyph = _atlases[key] with { State = LiveGlyphState.Ready, AtlasHandle = handle };
                                 _atlases.AddOrUpdate(key, glyph, (_, _) => glyph);
                             }
-                            
+
                             packedAtlas.Dispose();
                         });
                     }
@@ -241,11 +243,6 @@ public class SixLaborsFontManager : IFontManager
         }
 
         return Task.FromException(new Exception("Unknown font class"));
-    }
-
-    public void LoadSystemFonts()
-    {
-        _collection.AddSystemFonts();
     }
 
     public void LoadFont(Stream fileStream)
@@ -291,7 +288,8 @@ public class SixLaborsFontManager : IFontManager
     {
         _cancellationSource.Cancel();
         _backgroundTaskQueue.Dispose();
-        IGraphicsModule.Get().FreeImageHandles(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
+        IGraphicsModule.Get()
+            .FreeImageHandles(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
         _atlases.Clear();
     }
 
@@ -304,15 +302,17 @@ public class SixLaborsFontManager : IFontManager
     {
         return _collection.Families.Select(c =>
         {
-            if (_fonts.TryGetValue(c, out var font))
-            {
-                return font;
-            }
-            
+            if (_fonts.TryGetValue(c, out var font)) return font;
+
             font = new SixLaborsFont(c, this);
-            _fonts.AddOrUpdate(c,(_) => font,(_,__) => font);
+            _fonts.AddOrUpdate(c, _ => font, (_, __) => font);
             return font;
         });
+    }
+
+    public void LoadSystemFonts()
+    {
+        _collection.AddSystemFonts();
     }
 
     private GlyphBounds[] GetCharacterBounds(SixLaborsFont font, in ReadOnlySpan<char> text, float size,

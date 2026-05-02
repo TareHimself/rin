@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Quads;
 
 namespace Rin.Framework.Views.Content;
 
@@ -23,7 +23,7 @@ public class ImageView : ContentView
         set
         {
             _imageHandle = value;
-            Invalidate(InvalidationType.DesiredSize);
+            Invalidate(Invalidation.DesiredSize);
         }
     }
 

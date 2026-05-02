@@ -3,7 +3,8 @@
 namespace Rin.Framework.Shared.Math;
 
 public class Averaged<T>
-    where T : IDivisionOperators<T, T, T>, IAdditionOperators<T, T, T>, ISubtractionOperators<T, T, T>
+    // where T : IDivisionOperators<T, T, T>, IAdditionOperators<T, T, T>, ISubtractionOperators<T, T, T>
+    where T : INumber<T>
 {
     private readonly LinkedList<T> _items = [];
     private readonly uint _maxCount;
@@ -37,8 +38,7 @@ public class Averaged<T>
 
     public T Get()
     {
-        dynamic c = _count;
-        return _total / (T)c;
+        return _total / T.CreateChecked(_count);
     }
 
     public static implicit operator T(Averaged<T> avg)

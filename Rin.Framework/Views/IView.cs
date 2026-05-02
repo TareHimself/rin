@@ -15,7 +15,7 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     ///     The offset of this view in parent space
     /// </summary>
     public Vector2 Offset { get; set; }
-    
+
     /// <summary>
     ///     The pivot used to render this view. Affects <see cref="Angle" /> and <see cref="Scale" />.
     /// </summary>
@@ -27,7 +27,7 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     public Vector2 Translate { get; set; }
 
     /// <summary>
-    /// The scale of this view in parent space
+    ///     The scale of this view in parent space
     /// </summary>
     public Vector2 Scale { get; set; }
 
@@ -46,19 +46,18 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     /// </summary>
     public Visibility Visibility { get; set; }
 
-
     /// <summary>
     ///     Should this view be hit tested
     /// </summary>
-    public bool IsSelfHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestSelf;
+    public bool IsSelfHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestChildren;
 
     /// <summary>
     ///     Should this view's children be hit tested
     /// </summary>
-    public bool IsChildrenHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestChildren;
+    public bool IsChildrenHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestSelf;
 
     /// <summary>
-    /// Should this view or its children be hit tested
+    ///     Should this view or its children be hit tested
     /// </summary>
     public bool IsHitTestable => IsSelfHitTestable || IsChildrenHitTestable;
 
@@ -78,16 +77,17 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     ///     The parent of this view
     /// </summary>
     public ICompositeView? Parent { get; }
-    public Matrix4x4 GetLocalPaddingTransform();
-    
-    // Get the local transformation applied to content (i.e. padding, scroll, etc.)
-    public Matrix4x4 GetLocalContentTransform();
+
     /// <summary>
     ///     Check if this view is focused by its current surface
     /// </summary>
     public bool IsFocused => Surface?.FocusedView == this;
 
     public bool IsFocusable { get; }
+    // public Matrix4x4 GetLocalPaddingTransform();
+
+    // Get the local transformation applied to content (i.e. padding, scroll, etc.)
+    public Matrix4x4 GetLocalContentTransform();
 
     /// <summary>
     ///     Compute and set this views size based on the space available
@@ -101,15 +101,13 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     public Vector2 ComputeSize(in Vector2 availableSpace, bool fill = false);
 
     /// <summary>
-    ///     Computes the relative/local transformation matrix for this view
+    ///     Computes the local transformation matrix for this view
     /// </summary>
     /// <returns></returns>
     public Matrix4x4 GetLocalTransform();
 
-    public Matrix4x4 GetLocalTransformWithPadding();
-
     public Matrix4x4 ComputeAbsoluteContentTransform();
-    
+
     public Matrix4x4 ComputeAbsoluteTransform();
 
     public void SetParent(ICompositeView? view);
@@ -120,6 +118,11 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
 
     public void NotifyRemovedFromSurface(ISurface surface);
 
+    /// <summary>
+    ///     Allows views to handle events
+    /// </summary>
+    /// <param name="e">The event</param>
+    /// <param name="absoluteTransform">The absolute transform of this view</param>
     public void HandleEvent(ISurfaceEvent e, in Matrix4x4 absoluteTransform);
 
     public void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform);
@@ -149,7 +152,7 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     public Vector2 GetDesiredContentSize();
 
     public Vector2 ComputeDesiredSize();
-    
+
     public Vector2 ComputeDesiredContentSize();
 
     /// <summary>
@@ -162,9 +165,9 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
 
     public bool TryUpdateDesiredSize();
 
-    public void Invalidate(InvalidationType type);
+    public void Invalidate(Invalidation type);
 
     // ReSharper disable once InconsistentNaming
     public Rect2D ComputeAABB(in Matrix4x4 transform);
-    public bool PointWithin(in Matrix4x4 transform, in Vector2 point, bool useInverse = false);
+    public bool PointWithin(in Matrix4x4 transform, in Vector2 point, bool useInverse = true);
 }

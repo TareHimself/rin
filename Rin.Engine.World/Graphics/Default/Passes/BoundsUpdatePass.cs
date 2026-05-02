@@ -40,7 +40,7 @@ public class BoundsUpdatePass(DefaultWorldRenderContext renderContext) : IComput
             VertexCount = c.VertexCount
         }));
 
-        if (_shader.Bind(ctx) is not {} bindContext) return;
+        if (_shader.Bind(ctx) is not { } bindContext) return;
 
         bindContext
             .Push(new Push

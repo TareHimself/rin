@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 
 namespace Rin.Framework.Shared.Math;
 
+[NoReorder]
 public struct Frustum
 {
     [PublicAPI] public Vector4 Left;

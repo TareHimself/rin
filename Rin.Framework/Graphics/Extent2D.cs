@@ -3,10 +3,11 @@ using JetBrains.Annotations;
 
 namespace Rin.Framework.Graphics;
 
+[NoReorder]
 public record struct Extent2D : IFormattable
 {
-    
     [PublicAPI] public uint Width = 0;
+
     [PublicAPI] public uint Height = 0;
 
     public Extent2D()

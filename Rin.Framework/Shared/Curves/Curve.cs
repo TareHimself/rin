@@ -1,4 +1,4 @@
-﻿namespace Rin.Framework.Curves;
+﻿namespace Rin.Framework.Shared.Curves;
 
 public abstract class Curve<TValue, TInterpolatedValue> : ICurve<TInterpolatedValue>
     where TValue : struct where TInterpolatedValue : struct

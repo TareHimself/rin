@@ -37,5 +37,8 @@ public class RootLayout(ICompositeView container) : InfiniteChildrenLayout
         return availableSpace;
     }
 
-    public override Vector2 ComputeDesiredContentSize() => Vector2.Zero;
+    public override Vector2 ComputeDesiredContentSize()
+    {
+        return Vector2.Zero;
+    }
 }

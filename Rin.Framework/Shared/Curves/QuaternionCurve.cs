@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Rin.Framework.Curves;
+namespace Rin.Framework.Shared.Curves;
 
 public class QuaternionCurve : AdvancedCurve<Quaternion>
 {

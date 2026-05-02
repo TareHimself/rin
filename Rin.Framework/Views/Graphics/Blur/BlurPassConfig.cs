@@ -1,5 +1,4 @@
-﻿using JetBrains.Annotations;
-using Rin.Framework.Graphics;
+﻿using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
 
 namespace Rin.Framework.Views.Graphics.Blur;
@@ -7,6 +6,7 @@ namespace Rin.Framework.Views.Graphics.Blur;
 internal class BlurInitPassConfig : IPassConfig
 {
     private SurfaceContext _context = null!;
+
     public void Init(SurfaceContext surfaceContext)
     {
         _context = surfaceContext;
@@ -19,17 +19,15 @@ internal class BlurInitPassConfig : IPassConfig
 
     public void Begin(ICompiledGraph graph, IExecutionContext ctx)
     {
-        
     }
 
     public void End(ICompiledGraph graph, IExecutionContext ctx)
     {
-        
     }
 }
+
 public class BlurPassConfig : IPassConfig
 {
-
     public void Init(SurfaceContext surfaceContext)
     {
     }

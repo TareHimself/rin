@@ -30,7 +30,7 @@ public class RootView : MultiSlotCompositeView<Slot>
     }
 
 
-    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, Invalidation invalidation)
     {
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }

@@ -8,6 +8,9 @@ public record struct Padding
     public float Left;
     public float Right;
     public float Top;
+    
+    public float Horizontal => Left + Right;
+    public float Vertical => Top + Bottom;
 
     public Padding()
     {

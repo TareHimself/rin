@@ -19,19 +19,6 @@ public abstract class VulkanBindContext<TInterface> : IBindContext<TInterface> w
     protected abstract FrozenDictionary<string, Resource> Resources { get; }
     protected abstract FrozenDictionary<string, PushConstant> PushConstants { get; }
 
-    /// <summary>
-    /// Must be called every set dependent operation to ensure we update the sets before draws
-    /// </summary>
-    protected void UpdatePendingSets()
-    {
-        if(_setsPendingUpdate.Count == 0) return;
-        
-        foreach (var set in _setsPendingUpdate)
-        {
-            set.Update();
-        }
-        _setsPendingUpdate.Clear();
-    }
     public TInterface Reset()
     {
         _descriptorSets.Clear();
@@ -67,7 +54,18 @@ public abstract class VulkanBindContext<TInterface> : IBindContext<TInterface> w
 
         return GetInterface();
     }
-    
+
+    /// <summary>
+    ///     Must be called every set dependent operation to ensure we update the sets before draws
+    /// </summary>
+    protected void UpdatePendingSets()
+    {
+        if (_setsPendingUpdate.Count == 0) return;
+
+        foreach (var set in _setsPendingUpdate) set.Update();
+        _setsPendingUpdate.Clear();
+    }
+
     protected abstract IShader GetShader();
     protected abstract TInterface GetInterface();
 

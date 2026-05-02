@@ -19,7 +19,7 @@ public class ConstraintView : SingleSlotCompositeView
         set
         {
             _minWidth = value;
-            Invalidate(InvalidationType.DesiredSize);
+            Invalidate(Invalidation.DesiredSize);
         }
     }
 
@@ -29,7 +29,7 @@ public class ConstraintView : SingleSlotCompositeView
         set
         {
             _maxWidth = value;
-            Invalidate(InvalidationType.DesiredSize);
+            Invalidate(Invalidation.DesiredSize);
         }
     }
 
@@ -39,7 +39,7 @@ public class ConstraintView : SingleSlotCompositeView
         set
         {
             _minHeight = value;
-            Invalidate(InvalidationType.DesiredSize);
+            Invalidate(Invalidation.DesiredSize);
         }
     }
 
@@ -49,7 +49,7 @@ public class ConstraintView : SingleSlotCompositeView
         set
         {
             _maxHeight = value;
-            Invalidate(InvalidationType.DesiredSize);
+            Invalidate(Invalidation.DesiredSize);
         }
     }
 

@@ -32,7 +32,8 @@ public class VulkanExecutionContext(
     {
         Debug.Assert(view.Buffer is IVulkanDeviceBuffer);
         Debug.Assert(view.IsValid, "Index buffer is not valid");
-        vkCmdBindIndexBuffer(CommandBuffer, ((IVulkanDeviceBuffer)view.Buffer).NativeBuffer, 0, VkIndexType.VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(CommandBuffer, ((IVulkanDeviceBuffer)view.Buffer).NativeBuffer, 0,
+            VkIndexType.VK_INDEX_TYPE_UINT32);
         return this;
     }
 
@@ -40,7 +41,7 @@ public class VulkanExecutionContext(
     {
         Debug.Assert(image is IVulkanImage);
         CommandBuffer.ImageBarrier(Unsafe.As<IVulkanTexture>(image), from, to);
-        
+
         return this;
     }
 
@@ -65,7 +66,8 @@ public class VulkanExecutionContext(
                 dstOffset = dest.Offset,
                 srcOffset = src.Offset
             };
-            vkCmdCopyBuffer(CommandBuffer,Unsafe.As<IVulkanDeviceBuffer>(dest.Buffer).NativeBuffer, Unsafe.As<IVulkanDeviceBuffer>(dest.Buffer).NativeBuffer, 1, &copy);
+            vkCmdCopyBuffer(CommandBuffer, Unsafe.As<IVulkanDeviceBuffer>(src.Buffer).NativeBuffer,
+                Unsafe.As<IVulkanDeviceBuffer>(dest.Buffer).NativeBuffer, 1, &copy);
         }
 
         return this;
@@ -87,11 +89,11 @@ public class VulkanExecutionContext(
                 baseArrayLayer = 0,
                 layerCount = 1
             },
-            imageExtent = new  VkExtent3D
+            imageExtent = new VkExtent3D
             {
                 width = dest.Extent.Width,
                 height = dest.Extent.Height,
-                depth = 1,
+                depth = 1
             }
         };
 
@@ -104,10 +106,10 @@ public class VulkanExecutionContext(
     {
         Debug.Assert(src is IVulkanTexture);
         Debug.Assert(dest is IVulkanTexture);
-        
+
         var vkSrc = (IVulkanTexture)src;
         var vkDst = (IVulkanTexture)dest;
-         var blitRegion = new VkImageBlit2
+        var blitRegion = new VkImageBlit2
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
             srcSubresource = new VkImageSubresourceLayers
@@ -125,7 +127,7 @@ public class VulkanExecutionContext(
                 mipLevel = 0
             }
         };
-        
+
         blitRegion.srcOffsets[0] = new VkOffset3D
         {
             x = (int)srcOffset.X,
@@ -143,13 +145,13 @@ public class VulkanExecutionContext(
         {
             x = (int)(srcOffset.X + srcSize.Width),
             y = (int)(srcOffset.Y + srcSize.Height),
-            z = (int)1
+            z = 1
         };
         blitRegion.dstOffsets[1] = new VkOffset3D
         {
             x = (int)(destOffset.X + destSize.Width),
             y = (int)(destOffset.Y + destSize.Height),
-            z = (int)1
+            z = 1
         };
         unsafe
         {
@@ -167,6 +169,7 @@ public class VulkanExecutionContext(
 
             vkCmdBlitImage2(CommandBuffer, &blitInfo);
         }
+
         return this;
     }
 
@@ -174,7 +177,7 @@ public class VulkanExecutionContext(
     //     IDeviceImage dest,
     //     in Offset2D destOffset,
     //     ImageFilter filter = ImageFilter.Linear) => CopyToImage(src, srcOffset,src.Extent, dest, destOffset,dest.Extent,filter);
-    
+
     public IExecutionContext CopyToImage(ITexture src, ITexture dest, ImageFilter filter = ImageFilter.Linear)
     {
         Debug.Assert(src is IVulkanTexture);
@@ -201,7 +204,8 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext BeginRendering(in Extent2D extent, IEnumerable<ITexture> attachments, ITexture? depthAttachment = null,
+    public IExecutionContext BeginRendering(in Extent2D extent, IEnumerable<ITexture> attachments,
+        ITexture? depthAttachment = null,
         ITexture? stencilAttachment = null, Vector4? clearColor = null)
     {
         Debug.Assert(depthAttachment == null || depthAttachment.Format == ImageFormat.Depth,
@@ -210,11 +214,15 @@ public class VulkanExecutionContext(
             $"Depth attachment format must be {ImageFormat.Stencil}");
         Debug.Assert(depthAttachment is IVulkanImage or null);
         Debug.Assert(stencilAttachment is IVulkanImage or null);
-        Debug.Assert(attachments.All(c => c is IVulkanTexture));
 
         CommandBuffer
-            .BeginRendering(extent, attachments.Select(c => ((IVulkanTexture)c).MakeColorAttachmentInfo(clearColor)).ToArray(),
-                ((IVulkanTexture?)depthAttachment)?.MakeDepthAttachmentInfo(), ((IVulkanTexture?)stencilAttachment)?.MakeStencilAttachmentInfo())
+            .BeginRendering(extent, attachments.Select(c =>
+                {
+                    Debug.Assert(c is IVulkanTexture);
+                    return ((IVulkanTexture)c).MakeColorAttachmentInfo(clearColor);
+                }).ToArray(),
+                ((IVulkanTexture?)depthAttachment)?.MakeDepthAttachmentInfo(),
+                ((IVulkanTexture?)stencilAttachment)?.MakeStencilAttachmentInfo())
             .SetViewports([
                 new VkViewport
                 {
@@ -265,7 +273,7 @@ public class VulkanExecutionContext(
 
         return this;
     }
-    
+
     public IExecutionContext EndRendering()
     {
         CommandBuffer.EndRendering();
@@ -334,7 +342,7 @@ public class VulkanExecutionContext(
     public IExecutionContext ClearColorImages(in Vector4 clearColor, params ITexture[] images)
     {
         Debug.Assert(images.All(c => c is IVulkanTexture));
-        CommandBuffer.ClearColorImages(clearColor,ImageLayout.General,Unsafe.As<IVulkanTexture[]>(images));
+        CommandBuffer.ClearColorImages(clearColor, ImageLayout.General, Unsafe.As<IVulkanTexture[]>(images));
         return this;
     }
 
@@ -342,7 +350,7 @@ public class VulkanExecutionContext(
     {
         Debug.Assert(images.All(c => c.Format == ImageFormat.Stencil));
         Debug.Assert(images.All(c => c is IVulkanTexture));
-        CommandBuffer.ClearStencilImages(clearValue, ImageLayout.General,Unsafe.As<IVulkanTexture[]>(images));
+        CommandBuffer.ClearStencilImages(clearValue, ImageLayout.General, Unsafe.As<IVulkanTexture[]>(images));
         return this;
     }
 

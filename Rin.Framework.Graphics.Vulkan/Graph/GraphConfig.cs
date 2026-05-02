@@ -34,11 +34,13 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
 
     public uint SwapchainImageId { get; set; }
+
     public uint AddExternalTexture(ITexture texture, Action? onDispose = null)
     {
         Debug.Assert(texture is IVulkanTexture);
         var resourceId = builder.MakeId();
-        Resources.Add(resourceId, new ExternalVulkanTextureResourceDescriptor(Unsafe.As<IVulkanTexture>(texture), onDispose));
+        Resources.Add(resourceId,
+            new ExternalVulkanTextureResourceDescriptor(Unsafe.As<IVulkanTexture>(texture), onDispose));
         return resourceId;
     }
 
@@ -46,7 +48,8 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     {
         Debug.Assert(textureArray is IVulkanTextureArray);
         var resourceId = builder.MakeId();
-        Resources.Add(resourceId, new ExternalVulkanTextureArrayResourceDescriptor(Unsafe.As<IVulkanTextureArray>(textureArray), onDispose));
+        Resources.Add(resourceId,
+            new ExternalVulkanTextureArrayResourceDescriptor(Unsafe.As<IVulkanTextureArray>(textureArray), onDispose));
         return resourceId;
     }
 
@@ -54,52 +57,26 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     {
         Debug.Assert(cubemap is IVulkanCubemap);
         var resourceId = builder.MakeId();
-        Resources.Add(resourceId, new ExternalVulkanCubemapResourceDescriptor(Unsafe.As<IVulkanCubemap>(cubemap), onDispose));
+        Resources.Add(resourceId,
+            new ExternalVulkanCubemapResourceDescriptor(Unsafe.As<IVulkanCubemap>(cubemap), onDispose));
         return resourceId;
     }
 
-
-    private uint CreateImage(in Extent2D extent,ImageFormat format, ImageLayout layout, uint count, ImageType type)
-    {
-        Debug.Assert(extent is { Width: > 0, Height: > 0 },
-            "all image dimensions must be greater than zero");
-        var flags = format switch
-        {
-            ImageFormat.Depth => ImageUsage.DepthAttachment,
-            ImageFormat.Stencil => ImageUsage.StencilAttachment,
-            _ => ImageUsage.None
-        };
-        var resourceId = builder.MakeId();
-        _images.Add(resourceId, new GraphConfigImage
-        {
-            Extent = extent,
-            Usage = DeriveImageUsage(layout) | flags,
-            Format = format,
-            Type = type,
-            Count = count,
-        });
-        //Resources.Add(resourceId, descriptor); // We do this at the end for images
-        // This is always a write because the image was created here
-        // Always use texture for now (no difference)
-        UseTexture(resourceId, layout, ResourceOperation.Write);
-        return resourceId;
-    }
     public uint CreateTexture(in Extent2D extent, ImageFormat format, ImageLayout layout)
     {
-        return CreateImage(extent,format, layout, 0,ImageType.Texture);
+        return CreateImage(extent, format, layout, 0, ImageType.Texture);
     }
 
-    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, int count, ImageLayout layout)
+    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout)
     {
-        throw new NotImplementedException();
-        return CreateImage(extent,format, layout, 0,ImageType.TextureArray);
+        return CreateImage(extent, format, layout, count, ImageType.TextureArray);
     }
 
     public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout)
     {
-        return CreateImage(extent, format, layout, 0,ImageType.Cubemap);
+        return CreateImage(extent, format, layout, 0, ImageType.Cubemap);
     }
-    
+
 
     public uint CreateBuffer(ulong size, GraphBufferUsage usage)
     {
@@ -159,9 +136,15 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return id;
     }
 
-    public uint UseTextureArray(uint id, ImageLayout layout, ResourceOperation operation) => UseTexture(id, layout, operation);
+    public uint UseTextureArray(uint id, ImageLayout layout, ResourceOperation operation)
+    {
+        return UseTexture(id, layout, operation);
+    }
 
-    public uint UseCubemap(uint id, ImageLayout layout, ResourceOperation operation) => UseTexture(id, layout, operation);
+    public uint UseCubemap(uint id, ImageLayout layout, ResourceOperation operation)
+    {
+        return UseTexture(id, layout, operation);
+    }
 
     public uint UseBuffer(uint id, GraphBufferUsage usage, ResourceOperation operation)
     {
@@ -221,6 +204,33 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
                 PassDependencies.Add(CurrentPassId, [dep]);
         }
         return passId;
+    }
+
+
+    private uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout layout, uint count, ImageType type)
+    {
+        Debug.Assert(extent is { Width: > 0, Height: > 0 },
+            "all image dimensions must be greater than zero");
+        var flags = format switch
+        {
+            ImageFormat.Depth => ImageUsage.DepthAttachment,
+            ImageFormat.Stencil => ImageUsage.StencilAttachment,
+            _ => ImageUsage.None
+        };
+        var resourceId = builder.MakeId();
+        _images.Add(resourceId, new GraphConfigImage
+        {
+            Extent = extent,
+            Usage = DeriveImageUsage(layout) | flags,
+            Format = format,
+            Type = type,
+            Count = count
+        });
+        //Resources.Add(resourceId, descriptor); // We do this at the end for images
+        // This is always a write because the image was created here
+        // Always use texture for now (no difference)
+        UseTexture(resourceId, layout, ResourceOperation.Write);
+        return resourceId;
     }
 
     private BufferUsage GraphBufferUsageToBufferUsage(GraphBufferUsage usage)

@@ -8,6 +8,7 @@ using JetBrains.Annotations;
 namespace Rin.Framework.Graphics;
 
 [JsonConverter(typeof(JsonConverter))]
+[NoReorder]
 public record struct Point2D : IFormattable
 {
     [PublicAPI] public int X = 0;

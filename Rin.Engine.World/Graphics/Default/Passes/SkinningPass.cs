@@ -83,7 +83,7 @@ public class SkinningPass(DefaultWorldRenderContext renderContext) : IComputePas
         }));
         executionInfos.Write(ExecutionInfos);
 
-        if (_skinningShader.Bind(ctx) is {} bindContext)
+        if (_skinningShader.Bind(ctx) is { } bindContext)
         {
             bindContext
                 .Push(new SkinningPushConstants

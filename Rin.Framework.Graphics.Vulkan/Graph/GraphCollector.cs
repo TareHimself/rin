@@ -4,8 +4,8 @@ namespace Rin.Framework.Graphics.Vulkan.Graph;
 
 public class GraphCollector : IGraphCollector
 {
-    private List<ICollectedData> _data = [];
-    
+    private readonly List<ICollectedData> _data = [];
+
     public void Add(ICollectedData data)
     {
         _data.Add(data);
@@ -13,9 +13,6 @@ public class GraphCollector : IGraphCollector
 
     public void Write(IGraphBuilder builder)
     {
-        foreach (var data in _data)
-        {
-            data.Write(builder);
-        }
+        foreach (var data in _data) data.Write(builder);
     }
 }

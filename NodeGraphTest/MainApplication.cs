@@ -1,26 +1,30 @@
-﻿using System.Numerics;
-using Rin.Framework;
+﻿using Rin.Framework;
 using Rin.Framework.Audio;
 using Rin.Framework.Audio.Bass;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Vulkan;
 using Rin.Framework.Graphics.Windows;
 using Rin.Framework.Views;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Content;
-using Rin.Framework.Views.Graphics.Quads;
-using Rin.Framework.Views.Layouts;
 using Rin.Framework.Views.Window;
 
 namespace NodeGraphTest;
 
 public class MainApplication : Application
 {
-    public override IGraphicsModule CreateGraphicsModule() => new VulkanGraphicsModule();
+    public override IGraphicsModule CreateGraphicsModule()
+    {
+        return new VulkanGraphicsModule();
+    }
 
-    public override IViewsModule CreateViewsModule() => new ViewsModule();
+    public override IViewsModule CreateViewsModule()
+    {
+        return new ViewsModule();
+    }
 
-    public override IAudioModule CreateAudioModule() => new BassAudioModule();
+    public override IAudioModule CreateAudioModule()
+    {
+        return new BassAudioModule();
+    }
 
     protected override void OnStartup()
     {
@@ -37,10 +41,7 @@ public class MainApplication : Application
     {
         window.OnClose += _ =>
         {
-            if (window.Parent is null)
-            {
-                RequestExit();
-            }
+            if (window.Parent is null) RequestExit();
         };
     }
 

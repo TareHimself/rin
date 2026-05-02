@@ -4,6 +4,7 @@ using JetBrains.Annotations;
 
 namespace Rin.Framework.Views;
 
+[NoReorder]
 public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOperators<Color, Color, Color>,
     IMultiplyOperators<Color, float, Color>, IAdditionOperators<Color, Color, Color>
 {

@@ -25,7 +25,7 @@ public class PanelView : MultiSlotCompositeView<PanelSlot>
         return _layout.Apply(availableSpace);
     }
 
-    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, Invalidation invalidation)
     {
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }

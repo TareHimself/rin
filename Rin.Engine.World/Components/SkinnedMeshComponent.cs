@@ -1,9 +1,8 @@
 ﻿using System.Numerics;
-using Rin.Framework.Extensions;
-using Rin.Framework.Graphics;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Graphics.Default;
 using Rin.Engine.World.Mesh.Skinning;
+using Rin.Framework.Extensions;
 
 namespace Rin.Engine.World.Components;
 

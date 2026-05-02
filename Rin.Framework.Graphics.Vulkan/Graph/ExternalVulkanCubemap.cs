@@ -1,5 +1,4 @@
-﻿using Rin.Framework.Graphics.Graph;
-using Rin.Framework.Graphics.Images;
+﻿using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Vulkan.Images;
 using TerraFX.Interop.Vulkan;
 
@@ -20,6 +19,12 @@ public class ExternalVulkanCubemap(IVulkanCubemap source, Action? onDispose = nu
     public ImageHandle Handle => source.Handle;
     public VkImage VulkanImage => source.VulkanImage;
     public VkImageView VulkanView => source.VulkanView;
-    public ImageLayout Layout { get => source.Layout; set  => source.Layout = value; }
+
+    public ImageLayout Layout
+    {
+        get => source.Layout;
+        set => source.Layout = value;
+    }
+
     public IntPtr Allocation => source.Allocation;
 }

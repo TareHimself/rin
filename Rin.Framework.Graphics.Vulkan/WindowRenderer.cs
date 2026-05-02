@@ -21,30 +21,22 @@ namespace Rin.Framework.Graphics.Vulkan;
 public class WindowRenderer : IWindowRenderer
 {
     private const uint FramesInFlight = 1;
+
+    private readonly VulkanBindlessImageFactory _bindlessImageFactory;
     private readonly Lock _drawLock = new();
     private readonly VulkanGraphicsModule _module;
+    private readonly VkPresentModeKHR _nonVSyncPresentMode;
     private readonly IResourcePool _resourcePool;
     private readonly VkSurfaceKHR _surface;
+    private readonly VkPresentModeKHR _vsyncPresentMode;
     private readonly IWindow _window;
+    private bool _dirty;
     private bool _disposed;
     private Frame[] _frames = [];
     private ulong _framesRendered;
     private FrozenDictionary<uint, DescriptorSet> _globalDescriptors = FrozenDictionary<uint, DescriptorSet>.Empty;
     private VkSemaphore[] _renderSemaphores = [];
     private VkSwapchainKHR _swapchain;
-    private VkPresentModeKHR _vsyncPresentMode;
-    private VkPresentModeKHR _nonVSyncPresentMode;
-    private VkPresentModeKHR PresentMode => VsyncEnabled ? _vsyncPresentMode : _nonVSyncPresentMode;
-    private bool _dirty = false;
-
-
-    /// <summary>
-    /// Marks this renderer as dirty and will cause the swapchain to be re-created next frame
-    /// </summary>
-    private void MarkDirty()
-    {
-        _dirty = true;
-    }
 
     private Extent2D _swapchainExtent = new()
     {
@@ -56,7 +48,6 @@ public class WindowRenderer : IWindowRenderer
 
     private VkImageView[] _swapchainViews = [];
 
-    private VulkanBindlessImageFactory _bindlessImageFactory;
     public WindowRenderer(VulkanGraphicsModule module, IWindow window, in VkSurfaceKHR? surface = null)
     {
         _module = module;
@@ -64,36 +55,26 @@ public class WindowRenderer : IWindowRenderer
         _window = window;
         _surface = surface ?? CreateSurface();
         var supportedPresentModes = module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
-        _resourcePool = new ResourcePool(this);
+        _resourcePool = new ResourcePool();
         SetupGlobalDescriptors();
         var presentModesSet = supportedPresentModes.ToHashSet();
 
         if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR))
-        {
             _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR;
-        }
         else if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_FIFO_RELAXED_KHR))
-        {
             _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-        }
         else if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR))
-        {
             _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR;
-        }
         else
-        {
             _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
-        }
 
         if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR))
-        {
             _vsyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR;
-        }
         else
-        {
             _vsyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
-        }
     }
+
+    private VkPresentModeKHR PresentMode => VsyncEnabled ? _vsyncPresentMode : _nonVSyncPresentMode;
 
     public IWindow GetWindow()
     {
@@ -157,10 +138,7 @@ public class WindowRenderer : IWindowRenderer
 
         if (ctx.RenderExtent != _window.GetSize()) return;
 
-        if (_swapchainExtent != ctx.RenderExtent)
-        {
-            MarkDirty();
-        }
+        if (_swapchainExtent != ctx.RenderExtent) MarkDirty();
 
         if (_dirty)
         {
@@ -173,6 +151,15 @@ public class WindowRenderer : IWindowRenderer
     }
 
     public event Action<IGraphCollector>? OnCollect;
+
+
+    /// <summary>
+    ///     Marks this renderer as dirty and will cause the swapchain to be re-created next frame
+    /// </summary>
+    private void MarkDirty()
+    {
+        _dirty = true;
+    }
 
     private void SetupGlobalDescriptors()
     {
@@ -317,14 +304,13 @@ public class WindowRenderer : IWindowRenderer
 
         var frame = GetCurrentFrame();
 
-        
 
-        if (OnCollect == null || OnCollect.GetInvocationList().Length == 0) return null;
+        if (OnCollect == null) return null;
 
         var extent = _window.GetSize();
 
         var collector = new GraphCollector();
-        
+
         OnCollect?.Invoke(collector);
 
         return new RenderData
@@ -344,17 +330,15 @@ public class WindowRenderer : IWindowRenderer
             try
             {
                 var frame = ctx.TargetFrame;
-                
-                
-                var builder = new GraphBuilder(_resourcePool,frame);
+
+
+                var builder = new GraphBuilder(_resourcePool, frame);
                 Profiling.Begin("Engine.Rendering.Graph.Build");
                 ctx.Collector.Write(builder); // Build the passes from the collector
                 builder.AddPass(new PrepareForPresentPass()); // Always terminal
                 Profiling.End("Engine.Rendering.Graph.Build");
                 var device = _module.GetDevice();
                 CheckResult(frame.WaitForLastDraw());
-
-                _resourcePool.OnFrameStart(_framesRendered);
 
                 frame.Reset();
 
@@ -448,6 +432,8 @@ public class WindowRenderer : IWindowRenderer
 
                 frame.Finish();
 
+                _resourcePool.OnFrameEnd(_framesRendered);
+
                 _framesRendered++;
             }
             catch (OutOfDateException)
@@ -462,7 +448,7 @@ public class WindowRenderer : IWindowRenderer
         public VkImage VulkanImage { get; set; }
         public VkImageView VulkanView { get; set; }
         public ImageLayout Layout { get; set; }
-        public IntPtr Allocation { get; } =  IntPtr.Zero;
+        public IntPtr Allocation { get; } = IntPtr.Zero;
         public Extent2D Extent { get; set; }
         public bool Mips { get; } = false;
         public ImageFormat Format { get; set; }

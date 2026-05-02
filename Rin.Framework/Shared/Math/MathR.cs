@@ -233,14 +233,14 @@ public static class MathR
     {
         return Vector2.Abs(self);
     }
-    
+
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2 Floor(this in Vector2 self)
     {
         return new Vector2(float.Floor(self.X), float.Floor(self.Y));
     }
-    
+
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2 Ceiling(this in Vector2 self)
@@ -420,17 +420,17 @@ public static class MathR
     {
         return matrix.Rotate2d(float.DegreesToRadians(angle));
     }
-    
+
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 ChildOf(in this Matrix4x4 self,in Matrix4x4 parent)
+    public static Matrix4x4 ChildOf(in this Matrix4x4 self, in Matrix4x4 parent)
     {
         return self * parent;
     }
-    
+
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 ApplyBefore(in this Matrix4x4 self,in Matrix4x4 transformation)
+    public static Matrix4x4 ApplyBefore(in this Matrix4x4 self, in Matrix4x4 transformation)
     {
         return transformation * self;
     }
@@ -481,21 +481,21 @@ public static class MathR
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Quaternion AddYaw(this in Quaternion self, in float delta)
     {
-        return Add(self, Up, delta);
+        return self.Add(Up, delta);
     }
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Quaternion AddPitch(this in Quaternion self, in float delta)
     {
-        return Add(self, Right, delta);
+        return self.Add(Right, delta);
     }
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Quaternion AddRoll(this in Quaternion self, in float delta)
     {
-        return Add(self, Forward, delta);
+        return self.Add(Forward, delta);
     }
 
     [Pure]
@@ -509,21 +509,21 @@ public static class MathR
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Quaternion AddLocalYaw(this in Quaternion self, in float delta)
     {
-        return AddLocal(self, Up, delta);
+        return self.AddLocal(Up, delta);
     }
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Quaternion AddLocalPitch(this in Quaternion self, in float delta)
     {
-        return AddLocal(self, Right, delta);
+        return self.AddLocal(Right, delta);
     }
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Quaternion AddLocalRoll(this in Quaternion self, in float delta)
     {
-        return AddLocal(self, Forward, delta);
+        return self.AddLocal(Forward, delta);
     }
 
     [Pure]

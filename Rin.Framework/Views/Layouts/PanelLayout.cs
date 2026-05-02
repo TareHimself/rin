@@ -40,7 +40,7 @@ public class PanelSlot : Slot
         get => Size;
         set => Size = value;
     }
-    
+
     [PublicAPI]
     public Vector2 Anchor
     {
@@ -80,7 +80,10 @@ public class PanelLayout(ICompositeView container) : InfiniteChildrenLayout
         return availableSpace;
     }
 
-    public override Vector2 ComputeDesiredContentSize() => Vector2.Zero;
+    public override Vector2 ComputeDesiredContentSize()
+    {
+        return Vector2.Zero;
+    }
 
 
     private void LayoutSlot(ISlot slot, Vector2 panelSize)
@@ -93,7 +96,7 @@ public class PanelLayout(ICompositeView container) : InfiniteChildrenLayout
             var absoluteY = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.Y, asPanelSlot.MaxAnchor.Y);
 
             var desiredSize = view.GetDesiredSize();
-            var areBothRelative = absoluteX == absoluteY && absoluteX == false;
+            var areBothRelative = absoluteX == absoluteY && !absoluteX;
             // The size we assume the widget is for offset calculations
             var workingSize = asPanelSlot.SizeToContent && !areBothRelative
                 ? view.ComputeSize(new Vector2(float.PositiveInfinity))

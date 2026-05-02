@@ -7,7 +7,7 @@ namespace Rin.Framework.Graphics.Vulkan.Graph;
 public class ExternalVulkanTextureResourceDescriptor : IResourceDescriptor
 {
     [PublicAPI] public readonly IDisposableVulkanTexture Resource;
-    
+
     public ExternalVulkanTextureResourceDescriptor(IVulkanTexture image, Action? onDispose = null)
     {
         Resource = new ExternalVulkanTexture(image, onDispose);

@@ -1,15 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Authors>TareHimself</Authors>
         <PackageId>TareHimself.Rin.Framework.Graphics.Vulkan</PackageId>
         <Title>Rin.Framework.Graphics.Vulkan</Title>
+        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
-    
+
     <PropertyGroup>
         <PlatformRID Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</PlatformRID>
         <PlatformRID Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</PlatformRID>
@@ -28,14 +28,14 @@
     </ItemGroup>
     <!--    References from online feeds-->
     <ItemGroup Condition="'$(DepMode)' == 'online'">
-        <PackageReference Include="TareHimself.Rin.Framework" Version="2.0.1" />
+        <PackageReference Include="TareHimself.Rin.Framework" Version="2.0.1"/>
     </ItemGroup>
     <!--    References from local feeds-->
     <ItemGroup Condition="'$(DepMode)' == 'local_feed'">
-        <PackageReference Include="TareHimself.Rin.Framework" Version="1.0.0-local" />
+        <PackageReference Include="TareHimself.Rin.Framework" Version="1.0.0-local"/>
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="TareHimself.Rin.Framework.Graphics.Vulkan.NativeLibs" Version="1.0.0-win" />
-      <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.3.268" />
+        <PackageReference Include="TareHimself.Rin.Framework.Graphics.Vulkan.NativeLibs" Version="1.0.0-win"/>
+        <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.4.328.1"/>
     </ItemGroup>
 </Project>

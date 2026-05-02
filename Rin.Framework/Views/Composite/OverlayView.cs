@@ -30,7 +30,7 @@ public class OverlayView : MultiSlotCompositeView<Slot>
         return _layout.Apply(availableSpace);
     }
 
-    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, Invalidation invalidation)
     {
         Invalidate(invalidation);
     }

@@ -1,20 +1,18 @@
 using System.Numerics;
-using Rin.Framework.Animation;
-using Rin.Framework.Buffers;
-using Rin.Framework.Views.Graphics.Blur;
-using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Shaders;
 using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Shared.Buffers;
 using Rin.Framework.Shared.Math;
-using Rin.Framework.Video;
+using Rin.Framework.Shared.Video;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Graphics.CommandHandlers;
 using Rin.Framework.Views.Graphics.Commands;
 using Rin.Framework.Views.Graphics.PassConfigs;
+using Rin.Framework.Views.Graphics.Quads;
 
 namespace Rin.Framework.Views.Content;
 
@@ -36,10 +34,7 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass
 
     public Action? OnPrune { get; } = () =>
     {
-        foreach (var command in commands)
-        {
-            command.FrameData.Dispose();
-        }
+        foreach (var command in commands) command.FrameData.Dispose();
     };
 
     public void Configure(IGraphConfig config)
@@ -150,6 +145,8 @@ public class VideoPlayerView : ContentView
 {
     private readonly IVideoPlayer _player;
 
+    private Vector2 _cursorPosition = Vector2.Zero;
+
     private Matrix4x4 _lastCollectAbsoluteTransform = Matrix4x4.Identity;
 
     private VideoPlayerView(IVideoPlayer context)
@@ -167,14 +164,14 @@ public class VideoPlayerView : ContentView
     {
         return FromSource(new FileVideoSource(fileName));
     }
-    
+
     public static VideoPlayerView FromSource(IVideoSource source)
     {
         var player = new WebmVideoPlayer();
         player.SetSource(source);
         return new VideoPlayerView(player);
     }
-    
+
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
@@ -191,7 +188,7 @@ public class VideoPlayerView : ContentView
 
         return Vector2.Zero;
     }
-    
+
     // protected override void OnCursorEnter(CursorMoveSurfaceEvent e)
     // {
     //     base.OnCursorEnter(e);
@@ -217,22 +214,15 @@ public class VideoPlayerView : ContentView
         var contentSize = GetContentSize();
         var barOffset = contentSize with { X = 0 };
         barOffset.Y -= barSize;
-        var barTransform = transform.Translate(barOffset);
-        
+        var barTransform = transform.ApplyBefore(Matrix4x4.Identity.Translate(barOffset));
+
         commands.AddRect(barTransform,
             new Vector2(contentSize.X * (float)(_player.Position / _player.Duration), barSize), Color.White);
         commands.AddRect(barTransform,
             new Vector2(contentSize.X * (float)(_player.DecodedPosition / _player.Duration), barSize),
             Color.White with { A = 0.5f });
-
-        if (_player.HasVideo && IsHovered)
-        {
-            var size = new Vector2(200);
-            commands.AddBlur(Matrix4x4.Identity.Translate(_cursorPosition - (size / 2)), size,radius: 15);
-        }
     }
-    
-    private Vector2 _cursorPosition = Vector2.Zero;
+
     public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform)
     {
         _cursorPosition = e.Position;
@@ -258,13 +248,12 @@ public class VideoPlayerView : ContentView
 
         if (e.Button is CursorButton.Two)
         {
-            var localPosition = e.Position.Transform(_lastCollectAbsoluteTransform.Inverse());
-            var size = GetContentSize();
+            var localPosition = e.Position.Transform(transform.Inverse());
+            var size = GetSize();
             var percent = localPosition.X / size.X;
             var time = _player.Duration * percent;
             _player.Seek(time);
             e.Target = this;
-            return;
         }
     }
 }

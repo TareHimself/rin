@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using Rin.Framework.Buffers;
+using Rin.Framework.Shared.Buffers;
 
 namespace Rin.Framework.Graphics;
 
@@ -31,7 +31,7 @@ public readonly record struct DeviceBufferView
     [PublicAPI]
     [MemberNotNullWhen(true, nameof(Buffer))]
     public bool IsValid => Buffer != null;
-    
+
     public void WriteRaw(in IntPtr src, ulong size, ulong offset = 0)
     {
         Debug.Assert(src != IntPtr.Zero);
@@ -42,7 +42,7 @@ public readonly record struct DeviceBufferView
     public void Write<T>(IEnumerable<T> data, ulong offset = 0) where T : unmanaged
     {
         Debug.Assert(IsValid, "Buffer is not valid");
-        Write(data.ToArray(),offset);
+        Write(data.ToArray(), offset);
     }
 
     public void Write<T>(T[] data, ulong offset = 0) where T : unmanaged
@@ -51,7 +51,7 @@ public readonly record struct DeviceBufferView
         {
             fixed (T* pData = data)
             {
-                WriteRaw(new IntPtr(pData),Utils.ByteSizeOf<T>(data.Length), offset);
+                WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
             }
         }
     }
@@ -62,26 +62,25 @@ public readonly record struct DeviceBufferView
         {
             fixed (T* pData = CollectionsMarshal.AsSpan(data))
             {
-                WriteRaw(new IntPtr(pData),Utils.ByteSizeOf<T>(data.Count), offset);
+                WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Count), offset);
             }
         }
     }
 
-   
 
     public void Write<T>(T src, ulong offset = 0) where T : unmanaged
     {
         unsafe
         {
-            WriteRaw(new IntPtr(&src), Utils.ByteSizeOf<T>(),offset);
+            WriteRaw(new IntPtr(&src), Utils.ByteSizeOf<T>(), offset);
         }
     }
-    
+
     public void Write<T>(IReadOnlyBuffer<T> src, ulong offset = 0) where T : unmanaged
     {
         Debug.Assert(src.GetPtr() != IntPtr.Zero, "src buffer is null");
         Debug.Assert(src.ElementCount > 0, "src buffer is empty");
-        WriteRaw(src.GetPtr(),src.ByteSize,offset);
+        WriteRaw(src.GetPtr(), src.ByteSize, offset);
     }
 
     public DeviceBufferView GetView(ulong offset, ulong size)
@@ -89,7 +88,7 @@ public readonly record struct DeviceBufferView
         var newOffset = Offset + offset;
         //Debug.Assert(IsValid,"Buffer is not valid");
         Debug.Assert(newOffset <= Offset + Size, "Offset out of range");
-        return new DeviceBufferView(Buffer, Offset + offset, size);
+        return new DeviceBufferView(Buffer, newOffset, size);
     }
 
     public ulong GetAddress()

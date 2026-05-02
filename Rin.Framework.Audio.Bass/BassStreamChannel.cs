@@ -1,6 +1,6 @@
 ﻿namespace Rin.Framework.Audio.Bass;
 
-public class BassStreamChannel : BassChannel, IStream
+public class BassStreamChannel : BassChannel, IActiveAudio
 {
     public BassStreamChannel(int handle) : base(handle)
     {

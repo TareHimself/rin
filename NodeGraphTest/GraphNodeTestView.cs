@@ -13,7 +13,7 @@ namespace NodeGraphTest;
 
 public class GraphNodeTestView : ListView, IGraphNodeView
 {
-    private PinTestView[] _inputPins =
+    private readonly PinTestView[] _inputPins =
     [
         new TextPinView("Input A")
         {
@@ -29,7 +29,7 @@ public class GraphNodeTestView : ListView, IGraphNodeView
         }
     ];
 
-    private PinTestView[] _outputPins =
+    private readonly PinTestView[] _outputPins =
     [
         new TextPinView("Result")
         {
@@ -53,39 +53,33 @@ public class GraphNodeTestView : ListView, IGraphNodeView
                         {
                             Content = "Test Node",
                             FontSize = 20,
-                            Padding = new Padding(40, 5),
+                            Padding = new Padding(40, 5)
                         }
                     },
                     .._outputPins.Select(c => new ListSlot
                     {
                         Child = c,
-                        Align = CrossAlign.End,
+                        Align = CrossAlign.End
                     }),
                     .._inputPins.Select(c => new ListSlot
                     {
                         Child = c
-                    }),
+                    })
                 ],
-                Padding = new Padding(0,10)
+                Padding = new Padding(0, 10)
             }
         ];
         Padding = new Padding(0, 0);
-        foreach (var pin in InputPins)
-        {
-            pin.ParentNode = this;
-        }
+        foreach (var pin in InputPins) pin.ParentNode = this;
 
-        foreach (var pin in OutputPins)
-        {
-            pin.ParentNode = this;
-        }
+        foreach (var pin in OutputPins) pin.ParentNode = this;
     }
 
     public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
         var halfPinSpace = NodeGraphConstants.PinPadding + NodeGraphConstants.PinRadius;
         // commands.AddRect(Matrix4x4.Identity.Translate(new Vector2(halfPinSpace,0)).ChildOf(transform), GetContentSize() - new Vector2(halfPinSpace * 2,0),new Color(0.19f,1), new Vector4(20f));
-        commands.AddRect(transform, GetContentSize(),new Color(0.19f,1), new Vector4(20f));
+        commands.AddRect(transform, GetContentSize(), new Color(0.19f, 1), new Vector4(20f));
         //commands.AddRect(transform, GetContentSize(), Color.Blue, new Vector4(5f));
         base.Collect(in transform, in clip, commands);
     }
@@ -107,10 +101,7 @@ public class GraphNodeTestView : ListView, IGraphNodeView
 
     public void StartPinDrag(CursorDownSurfaceEvent e, IGraphPinView pin, in Vector2 pinCenter)
     {
-        if (Parent is IGraphView view)
-        {
-            view.StartPinDrag(e, pin, pinCenter);
-        }
+        if (Parent is IGraphView view) view.StartPinDrag(e, pin, pinCenter);
     }
 
     public void TryConnectPin(IPinConnectionRequest request)
@@ -120,10 +111,7 @@ public class GraphNodeTestView : ListView, IGraphNodeView
 
     public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
     {
-        if (Parent is IGraphView view)
-        {
-            view.StartNodeDragging(e,this);
-        }
-        base.OnCursorDown(e,transform);
+        if (Parent is IGraphView view) view.StartNodeDragging(e, this);
+        base.OnCursorDown(e, transform);
     }
 }

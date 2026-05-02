@@ -9,10 +9,10 @@ public interface IGraphConfig
     public uint AddExternalTexture(ITexture texture, Action? onDispose = null);
     public uint AddExternalTextureArray(ITextureArray textureArray, Action? onDispose = null);
     public uint AddExternalCubemap(ICubemap cubemap, Action? onDispose = null);
-    public uint CreateTexture(in Extent2D extent,ImageFormat format,ImageLayout layout);
-    public uint CreateTextureArray(in Extent2D extent,ImageFormat format,int count,ImageLayout layout);
-    public uint CreateCubemap(in Extent2D extent,ImageFormat format,ImageLayout layout);
-    
+    public uint CreateTexture(in Extent2D extent, ImageFormat format, ImageLayout layout);
+    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout);
+    public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout);
+
     public uint CreateBuffer(ulong size, GraphBufferUsage usage);
 
     public uint CreateBuffer<T>(GraphBufferUsage usage) where T : unmanaged
@@ -44,7 +44,7 @@ public interface IGraphConfig
     {
         return UseTexture(id, layout, ResourceOperation.Write);
     }
-    
+
     public uint ReadTextureArray(uint id, ImageLayout layout)
     {
         return UseTexture(id, layout, ResourceOperation.Read);
@@ -54,7 +54,7 @@ public interface IGraphConfig
     {
         return UseTexture(id, layout, ResourceOperation.Write);
     }
-    
+
     public uint ReadCubemap(uint id, ImageLayout layout)
     {
         return UseTexture(id, layout, ResourceOperation.Read);
@@ -64,7 +64,7 @@ public interface IGraphConfig
     {
         return UseTexture(id, layout, ResourceOperation.Write);
     }
-    
+
     public uint ReadBuffer(uint id, GraphBufferUsage usage)
     {
         return UseBuffer(id, usage, ResourceOperation.Read);

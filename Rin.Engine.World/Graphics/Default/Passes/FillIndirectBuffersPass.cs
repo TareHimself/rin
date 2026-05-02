@@ -1,11 +1,10 @@
 ﻿using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Shaders;
-using TerraFX.Interop.Vulkan;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
-public class  FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRenderContext renderContext) : IComputePass
+public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRenderContext renderContext) : IComputePass
 {
     private readonly IComputeShader _shader = SGraphicsModule
         .Get()
@@ -55,7 +54,7 @@ public class  FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRende
         var meshBuffers = _meshBuffers.Select(graph.GetBufferOrException).ToArray();
         var depthMeshBuffers = _depthMeshBuffers.Select(graph.GetBufferOrException).ToArray();
 
-        if (_shader.Bind(ctx) is {} bindContext)
+        if (_shader.Bind(ctx) is { } bindContext)
         {
             for (var i = 0; i < renderContext.IndirectGroups.Length; i++)
             {

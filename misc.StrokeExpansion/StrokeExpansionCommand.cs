@@ -8,9 +8,11 @@ using Rin.Framework.Views.Graphics.PassConfigs;
 
 namespace misc.StrokeExpansion;
 
-public class StrokeExpansionHandler : ICommandHandler {
+public class StrokeExpansionHandler : ICommandHandler
+{
     private StrokeExpansionCommand[] _commands = [];
     private IComputeShader _shader = IGraphicsModule.Get().MakeCompute("StrokeExpansion/stroke_expansion.slang");
+
     public void Init(ICommand[] commands)
     {
         _commands = commands.Cast<StrokeExpansionCommand>().ToArray();
@@ -18,7 +20,6 @@ public class StrokeExpansionHandler : ICommandHandler {
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
     {
-        
     }
 
     public void Execute(IPassConfig passConfig,
@@ -28,7 +29,6 @@ public class StrokeExpansionHandler : ICommandHandler {
     }
 }
 
-public class StrokeExpansionCommand : TCommand<MainPassConfig,StrokeExpansionHandler>
+public class StrokeExpansionCommand : TCommand<MainPassConfig, StrokeExpansionHandler>
 {
-    
 }

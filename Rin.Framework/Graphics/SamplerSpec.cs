@@ -1,6 +1,4 @@
-﻿
-
-namespace Rin.Framework.Graphics;
+﻿namespace Rin.Framework.Graphics;
 
 public record struct SamplerSpec
 {

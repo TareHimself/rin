@@ -11,6 +11,7 @@ public class ViewsModule : IViewsModule
     private readonly Dictionary<Type, IBatcher> _batchRenderers = [];
     private readonly Dictionary<IWindowRenderer, WindowSurface> _windowSurfaces = new();
     private IGraphicsModule? _graphicsSubsystem;
+
     public void Start(IApplication app)
     {
         app.OnUpdate += Update;
@@ -51,12 +52,13 @@ public class ViewsModule : IViewsModule
     public event Action<IWindowSurface>? OnSurfaceCreated;
     public event Action<IWindowSurface>? OnSurfaceDestroyed;
     public IFontManager FontManager { get; } = new SixLaborsFontManager();
+
     public void AddFont(string fontPath)
     {
         FontManager.LoadFont(SFramework.Sources.Read(fontPath));
     }
 
-    public IBatcher GetBatcher<T>() where T : IBatcher
+    public IBatcher GetBatcher<T>() where T : IBatcher, new()
     {
         var type = typeof(T);
         if (_batchRenderers.TryGetValue(type, out var value)) return value;
@@ -78,7 +80,7 @@ public class ViewsModule : IViewsModule
         var renderer = _graphicsSubsystem?.GetWindowRenderer(window);
         return renderer == null ? null : GetWindowSurface(renderer);
     }
-    
+
     private void OnRendererCreated(IWindowRenderer renderer)
     {
         var root = new WindowSurface(renderer);

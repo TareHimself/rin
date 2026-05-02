@@ -15,9 +15,7 @@ public class ButtonView : RectView
         OnPressed?.Invoke(e, this);
         if ((OnReleased?.GetInvocationList().NotEmpty() ?? false) ||
             (OnPressed?.GetInvocationList().NotEmpty() ?? false))
-        {
             e.Target = this;
-        }
     }
 
     public override void OnCursorUp(CursorUpSurfaceEvent e)

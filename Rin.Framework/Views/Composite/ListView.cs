@@ -38,7 +38,7 @@ public class ListView : MultiSlotCompositeView<ListSlot>
 
     protected virtual void OnDirectionChanged()
     {
-        Invalidate(InvalidationType.Layout);
+        Invalidate(Invalidation.Layout);
     }
 
     public override Vector2 ComputeDesiredContentSize()
@@ -51,7 +51,7 @@ public class ListView : MultiSlotCompositeView<ListSlot>
         return _layout.Apply(availableSpace);
     }
 
-    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, Invalidation invalidation)
     {
         Invalidate(invalidation);
     }
@@ -76,5 +76,8 @@ public class ListView : MultiSlotCompositeView<ListSlot>
         return _layout.Remove(child);
     }
 
-    public ISlot? FindSlot(View child) => _layout.FindSlot(child);
+    public ISlot? FindSlot(View child)
+    {
+        return _layout.FindSlot(child);
+    }
 }

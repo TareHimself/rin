@@ -1,12 +1,12 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Extensions;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Meshes;
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Math;
 using Rin.Engine.World.Mesh.Skinning;
 using Rin.Framework;
+using Rin.Framework.Extensions;
+using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.Meshes;
 using Rin.Framework.Shared.Math;
 
 namespace Rin.Engine.World.Graphics.Default;
@@ -148,7 +148,7 @@ public class DefaultWorldRenderContext : IWorldRenderContext
                 Id = TotalMeshCount++,
                 Transform = mesh.Transform,
                 IndexBuffer = mesh.Mesh.GetIndices(),
-                VertexBuffer = new DeviceBufferView(null,offset, size),
+                VertexBuffer = new DeviceBufferView(null, offset, size),
                 Material = mesh.Materials[surfaceIndex],
                 IndicesCount = surface.IndicesCount,
                 IndicesStart = surface.IndicesStart,

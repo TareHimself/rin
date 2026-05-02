@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Extensions;
 using Rin.Framework.Animation;
+using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
 using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Enums;
@@ -15,24 +15,16 @@ public abstract class CompositeView : View, ICompositeView
 {
     public Clip Clip { get; set; } = Clip.None;
 
-    protected override Vector2 LayoutContent(in Vector2 availableSpace)
-    {
-        return ArrangeContent(availableSpace);
-    }
-
     public override void HandleEvent(ISurfaceEvent e, in Matrix4x4 absoluteTransform)
     {
         {
             if (e is IPositionalEvent asPositionalEvent)
             {
-                var withPadding = absoluteTransform.Translate(new Vector2(Padding.Left, Padding.Top));
-                var testContent = true;
-                if (Padding != default)
-                    testContent = Rect2D.PointWithin(GetContentSize(), withPadding, asPositionalEvent.Position);
+                var contentTransform = absoluteTransform.ApplyBefore(GetLocalContentTransform());
 
-                if (testContent)
+                if (Rect2D.PointWithin(GetContentSize(), contentTransform, asPositionalEvent.Position))
                 {
-                    var slots = ComputeHitTestableSlotsForEvent(asPositionalEvent, withPadding);
+                    var slots = ComputeHitTestableSlotsForEvent(asPositionalEvent, contentTransform);
                     if (slots.NotEmpty())
                     {
                         if (e is IHandleableEvent asHandleable)
@@ -51,17 +43,6 @@ public abstract class CompositeView : View, ICompositeView
         base.HandleEvent(e, absoluteTransform);
     }
 
-    protected virtual Pair<ISlot, Matrix4x4>[] ComputeHitTestableSlotsForEvent(IPositionalEvent e, Matrix4x4 transform)
-    {
-        if (!IsChildrenHitTestable) return [];
-        var enumerator = GetHitTestableSlots()
-            .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c, transform)))
-            .Where(c => c.First.Child.PointWithin(c.Second, e.Position));
-        if (e.ReverseTestOrder) enumerator = enumerator.AsReversed();
-
-        return enumerator.ToArray();
-    }
-
     public override void SetSurface(ISurface? surface)
     {
         base.SetSurface(surface);
@@ -69,24 +50,13 @@ public abstract class CompositeView : View, ICompositeView
     }
 
     /// <summary>
-    /// Compute extra offsets for this slot
-    /// </summary>
-    /// <param name="slot"></param>
-    /// <param name="contentTransform"></param>
-    /// <returns></returns>
-    protected virtual Matrix4x4 ComputeSlotTransform(ISlot slot, in Matrix4x4 contentTransform)
-    {
-        return slot.Child.GetLocalTransform().ChildOf(contentTransform);
-    }
-
-    /// <summary>
-    /// Compute all the offsets applied to a child of this <see cref="CompositeView"/>
+    ///     Compute all the offsets applied to a child of this <see cref="CompositeView" />
     /// </summary>
     /// <param name="child"></param>
     /// <returns></returns>
     public virtual Matrix4x4 ComputeChildOffsets(IView child)
     {
-        return GetLocalTransformWithPadding();
+        return GetLocalContentTransform().ChildOf(GetLocalTransform());
     }
 
     [PublicAPI]
@@ -112,19 +82,17 @@ public abstract class CompositeView : View, ICompositeView
         var clipRect = clip;
 
 
-        var transformAfterPadding = transform.ApplyBefore(GetLocalPaddingTransform());
+        var contentTransform = transform.ApplyBefore(GetLocalContentTransform());
 
+        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(contentTransform, GetContentSize());
 
-        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transformAfterPadding, GetContentSize());
-
-        if (Clip == Clip.Bounds) clipRect = ComputeAABB(transformAfterPadding).Clamp(clipRect);
+        if (Clip == Clip.Bounds) clipRect = ComputeAABB(contentTransform).Clamp(clipRect);
 
         List<Pair<IView, Matrix4x4>> toCollect = [];
 
-        var contentTransform = transform.ApplyBefore(GetLocalContentTransform());
         foreach (var slot in GetCollectableSlots())
         {
-            var slotTransform = ComputeSlotTransform(slot, transformAfterPadding);
+            var slotTransform = ComputeSlotTransform(slot, contentTransform);
 
             var aabb = slot.Child.ComputeAABB(slotTransform);
 
@@ -138,26 +106,19 @@ public abstract class CompositeView : View, ICompositeView
         if (Parent != null && Clip == Clip.Bounds) commands.PopClip();
     }
 
-    /// <summary>
-    ///     Arranges content and returns their computed total size i.e. the combined length of all items in a list
-    /// </summary>
-    /// <param name="availableSpace"></param>
-    /// <returns></returns>
-    protected abstract Vector2 ArrangeContent(in Vector2 availableSpace);
-
     [PublicAPI]
-    public abstract void OnChildInvalidated(IView child, InvalidationType invalidation);
+    public abstract void OnChildInvalidated(IView child, Invalidation invalidation);
 
     [PublicAPI]
     public virtual void OnChildAdded(IView child)
     {
-        Invalidate(InvalidationType.Layout);
+        Invalidate(Invalidation.Layout);
     }
 
     [PublicAPI]
     public virtual void OnChildRemoved(IView child)
     {
-        Invalidate(InvalidationType.Layout);
+        Invalidate(Invalidation.Layout);
     }
 
     public override void Update(float deltaTime)
@@ -172,4 +133,38 @@ public abstract class CompositeView : View, ICompositeView
         foreach (var slot in GetSlots()) slot.Child.Dispose();
         base.Dispose();
     }
+
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
+    {
+        return ArrangeContent(availableSpace);
+    }
+
+    protected virtual Pair<ISlot, Matrix4x4>[] ComputeHitTestableSlotsForEvent(IPositionalEvent e, Matrix4x4 transform)
+    {
+        if (!IsChildrenHitTestable) return [];
+        var enumerator = GetHitTestableSlots()
+            .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c, transform)))
+            .Where(c => c.First.Child.PointWithin(c.Second, e.Position));
+        if (e.ReverseTestOrder) enumerator = enumerator.AsReversed();
+
+        return enumerator.ToArray();
+    }
+
+    /// <summary>
+    ///     Compute extra offsets for this slot
+    /// </summary>
+    /// <param name="slot"></param>
+    /// <param name="contentTransform"></param>
+    /// <returns></returns>
+    protected virtual Matrix4x4 ComputeSlotTransform(ISlot slot, in Matrix4x4 contentTransform)
+    {
+        return slot.Child.GetLocalTransform().ChildOf(contentTransform);
+    }
+
+    /// <summary>
+    ///     Arranges content and returns their computed total size i.e. the combined length of all items in a list
+    /// </summary>
+    /// <param name="availableSpace"></param>
+    /// <returns></returns>
+    protected abstract Vector2 ArrangeContent(in Vector2 availableSpace);
 }

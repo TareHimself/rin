@@ -10,12 +10,13 @@ namespace NodeGraphTest;
 
 public class GraphLayout : InfiniteChildrenLayout
 {
-    public override ICompositeView Container { get; }
-    
     public GraphLayout(ICompositeView view)
     {
         Container = view;
     }
+
+    public override ICompositeView Container { get; }
+
     public override ISlot MakeSlot(IView view)
     {
         return new GraphSlot
@@ -38,7 +39,7 @@ public class GraphLayout : InfiniteChildrenLayout
             Debug.Assert(slot is GraphSlot);
             LayoutSlot(Unsafe.As<GraphSlot>(slot));
         }
-        
+
         return availableSpace.FiniteOr();
     }
 

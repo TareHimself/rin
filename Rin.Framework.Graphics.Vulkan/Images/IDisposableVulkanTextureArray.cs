@@ -4,5 +4,4 @@ namespace Rin.Framework.Graphics.Vulkan.Images;
 
 public interface IDisposableVulkanTextureArray : IDisposableTextureArray, IVulkanTextureArray
 {
-    
 }

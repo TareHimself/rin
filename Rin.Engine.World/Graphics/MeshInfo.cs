@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Meshes;
-using Rin.Framework.Graphics.Vulkan.Meshes;
 
 namespace Rin.Engine.World.Graphics;
 

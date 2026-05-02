@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Vulkan.Images;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -16,13 +15,14 @@ public class DescriptorSet
     private readonly List<VkDescriptorBufferInfo> _pendingBuffers = [];
     private readonly List<VkDescriptorImageInfo> _pendingImages = [];
     private readonly List<VkWriteDescriptorSet> _pendingWrite = [];
-    public bool HasPendingWrites => _pendingWrite.Count > 0;
 
     public DescriptorSet(VkDevice device, VkDescriptorSet descriptorSet)
     {
         _device = device;
         _descriptorSet = descriptorSet;
     }
+
+    public bool HasPendingWrites => _pendingWrite.Count > 0;
 
     public DescriptorSet WriteSampler(uint binding, in SamplerSpec spec, uint arrayOffset = 0)
     {
@@ -47,7 +47,7 @@ public class DescriptorSet
         return this;
     }
 
-    public DescriptorSet WriteSampledImage(uint binding, IVulkanTexture image,ImageLayout layout,uint arrayOffset = 0)
+    public DescriptorSet WriteSampledImage(uint binding, IVulkanTexture image, ImageLayout layout, uint arrayOffset = 0)
     {
         var info = new VkDescriptorImageInfo
         {
@@ -70,8 +70,8 @@ public class DescriptorSet
         _pendingWrite.Add(write);
         return this;
     }
-    
-    public DescriptorSet ClearSampledImage(uint binding,uint arrayOffset = 0)
+
+    public DescriptorSet ClearSampledImage(uint binding, uint arrayOffset = 0)
     {
         var write = new VkWriteDescriptorSet
         {
@@ -88,8 +88,9 @@ public class DescriptorSet
         _pendingWrite.Add(write);
         return this;
     }
-    
-    public DescriptorSet WriteSampledCubemap(uint binding, IVulkanCubemap image,ImageLayout layout,uint arrayOffset = 0)
+
+    public DescriptorSet WriteSampledCubemap(uint binding, IVulkanCubemap image, ImageLayout layout,
+        uint arrayOffset = 0)
     {
         var info = new VkDescriptorImageInfo
         {
@@ -112,8 +113,8 @@ public class DescriptorSet
         _pendingWrite.Add(write);
         return this;
     }
-    
-    public DescriptorSet ClearSampledCubemap(uint binding,uint arrayOffset = 0)
+
+    public DescriptorSet ClearSampledCubemap(uint binding, uint arrayOffset = 0)
     {
         var write = new VkWriteDescriptorSet
         {
@@ -130,8 +131,9 @@ public class DescriptorSet
         _pendingWrite.Add(write);
         return this;
     }
-    
-    public DescriptorSet WriteSampledImageArray(uint binding, IVulkanTextureArray image,ImageLayout layout,uint arrayOffset = 0)
+
+    public DescriptorSet WriteSampledImageArray(uint binding, IVulkanTextureArray image, ImageLayout layout,
+        uint arrayOffset = 0)
     {
         var info = new VkDescriptorImageInfo
         {
@@ -154,8 +156,8 @@ public class DescriptorSet
         _pendingWrite.Add(write);
         return this;
     }
-    
-    public DescriptorSet ClearSampledImageArray(uint binding,uint arrayOffset = 0)
+
+    public DescriptorSet ClearSampledImageArray(uint binding, uint arrayOffset = 0)
     {
         var write = new VkWriteDescriptorSet
         {

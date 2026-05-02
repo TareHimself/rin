@@ -1,10 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Framework;
-using Rin.Framework.Extensions;
-using Rin.Framework.Graphics;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Layouts;
 using Rin.Engine.World;
 using Rin.Engine.World.Actors;
 using Rin.Engine.World.Components;
@@ -13,8 +7,13 @@ using Rin.Engine.World.Graphics.Default;
 using Rin.Engine.World.Physics;
 using rin.Examples.Common.Views;
 using rin.Examples.SceneTest.entities;
+using Rin.Framework;
+using Rin.Framework.Extensions;
+using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Shared.Math;
+using Rin.Framework.Views.Composite;
+using Rin.Framework.Views.Layouts;
 
 namespace rin.Examples.SceneTest;
 
@@ -60,7 +59,7 @@ public class SSceneTestModule : IModule
             var location = new Vector3(0.0f, 0, 0);
             comp.SetLocation(location);
 
-            Extensions.LoadStaticMesh(Path.Join(SFramework.Directory,"assets", "models", "cube.glb")
+            Extensions.LoadStaticMesh(Path.Join(SFramework.Directory, "assets", "models", "cube.glb")
             ).After(mesh =>
             {
                 scene.AddPointLight(new Vector3(0.0f, 20.0f, 0.0f));
@@ -130,54 +129,55 @@ public class SSceneTestModule : IModule
                     // e1.SetRotation(e1.GetRotation().AddLocalYaw(-50.0f * delta * 2F).AddLocalPitch(-20.0f * delta * 2F));
                 };
 
-                Extensions.LoadSkinnedMesh(Path.Join(SFramework.Directory,"assets", "models", "fox.glb")).After(skinned =>
-                {
-                    if (skinned is not null)
-                        LoadGoldMaterial().After(material =>
-                        {
-                            scene.AddActor(new Actor
+                Extensions.LoadSkinnedMesh(Path.Join(SFramework.Directory, "assets", "models", "fox.glb"))
+                    .After(skinned =>
+                    {
+                        if (skinned is not null)
+                            LoadGoldMaterial().After(material =>
                             {
-                                RootComponent = new SkinnedMeshComponent
+                                scene.AddActor(new Actor
                                 {
-                                    Mesh = skinned,
-                                    Materials = [material],
-                                    PoseSource = new TestPoseSource
+                                    RootComponent = new SkinnedMeshComponent
                                     {
-                                        Skeleton = skinned.Skeleton
-                                    },
-                                    Location = new Vector3(0, 0, 50)
-                                }
-                            });
+                                        Mesh = skinned,
+                                        Materials = [material],
+                                        PoseSource = new TestPoseSource
+                                        {
+                                            Skeleton = skinned.Skeleton
+                                        },
+                                        Location = new Vector3(0, 0, 50)
+                                    }
+                                });
 
-                            scene.AddActor(new Actor
-                            {
-                                RootComponent = new SkinnedMeshComponent
+                                scene.AddActor(new Actor
                                 {
-                                    Mesh = skinned,
-                                    Materials = [material],
-                                    PoseSource = new TestPoseSource
+                                    RootComponent = new SkinnedMeshComponent
                                     {
-                                        Skeleton = skinned.Skeleton
-                                    },
-                                    Location = new Vector3(-30, 0, 50)
-                                }
-                            });
+                                        Mesh = skinned,
+                                        Materials = [material],
+                                        PoseSource = new TestPoseSource
+                                        {
+                                            Skeleton = skinned.Skeleton
+                                        },
+                                        Location = new Vector3(-30, 0, 50)
+                                    }
+                                });
 
-                            scene.AddActor(new Actor
-                            {
-                                RootComponent = new SkinnedMeshComponent
+                                scene.AddActor(new Actor
                                 {
-                                    Mesh = skinned,
-                                    Materials = [material],
-                                    PoseSource = new TestPoseSource
+                                    RootComponent = new SkinnedMeshComponent
                                     {
-                                        Skeleton = skinned.Skeleton
-                                    },
-                                    Location = new Vector3(30, 0, 50)
-                                }
+                                        Mesh = skinned,
+                                        Materials = [material],
+                                        PoseSource = new TestPoseSource
+                                        {
+                                            Skeleton = skinned.Skeleton
+                                        },
+                                        Location = new Vector3(30, 0, 50)
+                                    }
+                                });
                             });
-                        });
-                });
+                    });
             });
 
 
@@ -230,10 +230,10 @@ public class SSceneTestModule : IModule
 
     public static async Task<DefaultMeshMaterial> LoadGoldMaterial()
     {
-        var albedo = LoadTexture(Path.Join(SFramework.Directory,"assets", "textures", "au_albedo.png"));
-        var roughness = LoadTexture(Path.Join(SFramework.Directory,"assets", "textures", "au_roughness.png"));
-        var metallic = LoadTexture(Path.Join(SFramework.Directory,"assets", "textures", "au_metallic.png"));
-        var normal = LoadTexture(Path.Join(SFramework.Directory,"assets", "textures", "au_normal.png"));
+        var albedo = LoadTexture(Path.Join(SFramework.Directory, "assets", "textures", "au_albedo.png"));
+        var roughness = LoadTexture(Path.Join(SFramework.Directory, "assets", "textures", "au_roughness.png"));
+        var metallic = LoadTexture(Path.Join(SFramework.Directory, "assets", "textures", "au_metallic.png"));
+        var normal = LoadTexture(Path.Join(SFramework.Directory, "assets", "textures", "au_normal.png"));
 
 
         await Task.WhenAll(albedo, roughness, metallic, normal);

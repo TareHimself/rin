@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Rin.Framework.Curves;
+namespace Rin.Framework.Shared.Curves;
 
 public class Vector2Curve : AdvancedCurve<Vector2>
 {

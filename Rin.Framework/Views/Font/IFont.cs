@@ -10,6 +10,6 @@ public interface IFont
 
     public GlyphRect[] MeasureText(in ReadOnlySpan<char> text, float size,
         float maxWidth = float.PositiveInfinity);
-    
-    public IEnumerable<CodePoint>  GetCodePoints();
+
+    public IEnumerable<CodePoint> GetCodePoints();
 }

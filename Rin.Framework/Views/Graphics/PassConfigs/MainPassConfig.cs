@@ -1,5 +1,4 @@
 ﻿using JetBrains.Annotations;
-using Rin.Framework.Views.Graphics.Commands;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
 
@@ -7,11 +6,10 @@ namespace Rin.Framework.Views.Graphics.PassConfigs;
 
 public class MainPassConfig : IPassConfig
 {
+    private SurfaceContext _context = null!;
     [PublicAPI] public uint MainImageId => _context.MainImageId;
 
     [PublicAPI] public uint StencilImageId => _context.StencilImageId;
-
-    private SurfaceContext _context = null!;
 
     public void Init(SurfaceContext surfaceContext)
     {

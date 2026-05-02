@@ -1,6 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Framework;
-using Rin.Framework.Graphics;
 using Rin.Framework.Shared;
 using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Content;
@@ -13,11 +11,11 @@ public class FpsView : TextBoxView
     private static readonly uint NumAveragedSamples = 3000;
     private readonly Averaged<double> _averageFps = new(0, NumAveragedSamples);
     private readonly AveragedStatCategory _collectTime = new("Engine.Collect");
-    private readonly AveragedStatCategory _updateTime = new("Engine.Update");
     private readonly AveragedStatCategory _graphBuildTime = new("Engine.Rendering.Graph.Build");
     private readonly AveragedStatCategory _graphCompileTime = new("Engine.Rendering.Graph.Compile");
     private readonly AveragedStatCategory _graphExecuteTime = new("Engine.Rendering.Graph.Execute");
     private readonly AveragedStatCategory _renderTime = new("Engine.Rendering");
+    private readonly AveragedStatCategory _updateTime = new("Engine.Update");
 
     public FpsView()
     {
@@ -46,7 +44,7 @@ public class FpsView : TextBoxView
                    [Main Thread]
                    {_updateTime.GetMilliseconds()}ms Update
                    {_collectTime.GetMilliseconds()}ms Collect
-                   
+
                    [Render Thread]
                    {_graphBuildTime.GetMilliseconds()}ms Graph Build
                    {_graphCompileTime.GetMilliseconds()}ms Graph Compile

@@ -13,7 +13,6 @@ using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Layouts;
 using YoutubeExplode.Common;
 
-
 namespace rin.Examples.AudioPlayer.Views;
 
 public class TrackPlayer : OverlayView
@@ -57,15 +56,19 @@ public class TrackPlayer : OverlayView
         WrapContent = true
     };
 
-    private readonly IChannel _stream;
+    private readonly IAudioSample _sample;
+    private readonly IActiveAudio _stream;
+
     private double _lastTime = IApplication.Get().TimeSeconds;
 
-    public TrackPlayer(string name, IChannel stream)
+    public TrackPlayer(string name, IAudioSample sample)
     {
         Visibility = Visibility.Hidden;
         _nameText.Content = name;
 
-        _stream = stream;
+        _sample = sample;
+
+        _stream = sample.MakeActive();
 
         Children =
         [
@@ -104,11 +107,9 @@ public class TrackPlayer : OverlayView
                                     {
                                         Child = new SizerView
                                         {
-                                            Child = new ProgressBarView(() => (float)(_stream.Position / _stream.Duration),onClick:
-                                                (progress) =>
-                                                {
-                                                    _stream.SetPosition(progress * _stream.Duration);
-                                                })
+                                            Child = new ProgressBarView(
+                                                () => (float)(_stream.Position / _stream.Duration),
+                                                progress => { _stream.SetPosition(progress * _stream.Duration); })
                                             {
                                                 BackgroundColor = Color.Black,
                                                 BorderRadius = new Vector4(6.0f)
@@ -135,7 +136,7 @@ public class TrackPlayer : OverlayView
         ];
 
 
-        _endTimeText.Content = FormatTime(stream.Duration);
+        _endTimeText.Content = FormatTime(_stream.Duration);
         Padding = 10.0f;
         FetchCover().ConfigureAwait(false);
         Pivot = new Vector2(1.0f, 0.0f);
@@ -153,7 +154,8 @@ public class TrackPlayer : OverlayView
     {
         try
         {
-            var data = (await Unsafe.As<AudioPlayerApp>(IApplication.Get()).YtClient.Search.GetVideosAsync($"{_nameText.Content} official track"))
+            var data = (await Unsafe.As<AudioPlayerApp>(IApplication.Get()).YtClient.Search
+                    .GetVideosAsync($"{_nameText.Content} official track"))
                 .FirstOrDefault();
             if (data == null)
             {
@@ -209,7 +211,6 @@ public class TrackPlayer : OverlayView
 
     public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
     {
-        
     }
 
     public override void OnCursorUp(CursorUpSurfaceEvent e)

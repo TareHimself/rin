@@ -6,13 +6,13 @@ namespace Rin.Framework.Views.Graphics.Passes;
 
 public class ViewsDrawPass : IPass, IPassWithPreAdd, IPassWithPostAdd
 {
-    private readonly SurfaceContext _surfaceContext;
     private readonly ICommandHandler[] _commandHandlers;
     private readonly IPassConfig _passConfig;
     private readonly List<ICommandHandlerWithPostAdd> _postHandlers = [];
     private readonly List<ICommandHandlerWithPreAdd> _preHandlers = [];
+    private readonly SurfaceContext _surfaceContext;
 
-    public ViewsDrawPass(SurfaceContext surfaceContext,IPassConfig passConfig, ICommandHandler[] commandHandlers)
+    public ViewsDrawPass(SurfaceContext surfaceContext, IPassConfig passConfig, ICommandHandler[] commandHandlers)
     {
         _surfaceContext = surfaceContext;
         _passConfig = passConfig;
@@ -37,14 +37,15 @@ public class ViewsDrawPass : IPass, IPassWithPreAdd, IPassWithPostAdd
     {
         _passConfig.Configure(config);
 
-        foreach (var commandHandler in _commandHandlers) commandHandler.Configure(_passConfig,_surfaceContext, config);
+        foreach (var commandHandler in _commandHandlers) commandHandler.Configure(_passConfig, _surfaceContext, config);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         _passConfig.Begin(graph, ctx);
 
-        foreach (var commandHandler in _commandHandlers) commandHandler.Execute(_passConfig,_surfaceContext, graph, ctx);
+        foreach (var commandHandler in _commandHandlers)
+            commandHandler.Execute(_passConfig, _surfaceContext, graph, ctx);
 
         _passConfig.End(graph, ctx);
     }

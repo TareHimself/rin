@@ -4,9 +4,9 @@ namespace Rin.Framework.Shared.Providers;
 
 public class DefaultProvider : IProvider
 {
-    private readonly Dictionary<Type, Func<IProvider, object>> _singleFactories = [];
     private readonly Dictionary<Type, Func<IProvider, object>> _factories = [];
     private readonly Dictionary<Type, object> _instances = [];
+    private readonly Dictionary<Type, Func<IProvider, object>> _singleFactories = [];
 
     public IProvider AddSingle<TInterface>(Func<IProvider, TInterface> factory) where TInterface : class
     {
@@ -46,32 +46,25 @@ public class DefaultProvider : IProvider
         _factories.Remove(typeof(TInterface));
         return this;
     }
-    
+
     public TInterface Get<TInterface>() where TInterface : class
     {
         var type = typeof(TInterface);
 
-        Debug.Assert(_factories.ContainsKey(type) || _singleFactories.ContainsKey(type) || _instances.ContainsKey(type), $"No factory found for type {type}");
-        
+        Debug.Assert(_factories.ContainsKey(type) || _singleFactories.ContainsKey(type) || _instances.ContainsKey(type),
+            $"No factory found for type {type}");
+
         {
-            if (_instances.TryGetValue(type, out var instance))
-            {
-                return (TInterface)instance;
-            }
+            if (_instances.TryGetValue(type, out var instance)) return (TInterface)instance;
         }
 
         {
             if (_singleFactories.TryGetValue(type, out var factory))
-            {
                 return (TInterface)(_instances[type] = factory(this));
-            }
         }
-        
+
         {
-            if (_factories.TryGetValue(type, out var factory))
-            {
-                return (TInterface)factory(this);
-            }
+            if (_factories.TryGetValue(type, out var factory)) return (TInterface)factory(this);
         }
 
         throw new NullReferenceException();

@@ -2,16 +2,17 @@
 using Rin.Framework.Graphics.Windows;
 using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Events;
-using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Quads;
 
 namespace Rin.Framework.Views.Content;
 
 /// <summary>
 ///     Simple progress bar implementation
 /// </summary>
-public class ProgressBarView(Func<float> getProgress,Action<float>? onClick = null) : ContentView
+public class ProgressBarView(Func<float> getProgress, Action<float>? onClick = null) : ContentView
 {
+    private float? _pendingProgress;
     public Color BackgroundColor { get; set; } = Color.Red;
     public Color ForegroundColor { get; set; } = Color.White;
     public Vector4 BorderRadius { get; set; }
@@ -20,15 +21,13 @@ public class ProgressBarView(Func<float> getProgress,Action<float>? onClick = nu
     {
         return availableSpace;
     }
-    
+
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        var a = ComputeAbsoluteContentTransform();
-        var b = transform;
-        var z = a == b;
         var size = GetContentSize();
         commands.AddRect(transform, size, BackgroundColor, BorderRadius);
-        commands.AddRect(transform, size * new Vector2(float.Clamp(_pendingProgress ?? getProgress(), 0.0f, 1.0f), 1.0f), ForegroundColor,
+        commands.AddRect(transform,
+            size * new Vector2(float.Clamp(_pendingProgress ?? getProgress(), 0.0f, 1.0f), 1.0f), ForegroundColor,
             BorderRadius);
         // using var libvlc = new LibVLC(enableDebugLogs: true);
         // using var media = new Media(libvlc, new Uri(@"C:\tmp\big_buck_bunny.mp4"));
@@ -44,13 +43,11 @@ public class ProgressBarView(Func<float> getProgress,Action<float>? onClick = nu
             var transform = ComputeAbsoluteContentTransform();
             var localPosition = e.Position.Transform(transform.Inverse());
             _pendingProgress = localPosition.X / GetSize().X;
-            
+
             e.Target = this;
-            return;
         }
     }
 
-    private float? _pendingProgress = null;
     public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform1)
     {
         if (_pendingProgress is not null && onClick is not null)
@@ -59,7 +56,6 @@ public class ProgressBarView(Func<float> getProgress,Action<float>? onClick = nu
             var localPosition = e.Position.Transform(transform.Inverse());
             _pendingProgress = localPosition.X / GetSize().X;
             e.Target = this;
-            return;
         }
     }
 
@@ -73,7 +69,7 @@ public class ProgressBarView(Func<float> getProgress,Action<float>? onClick = nu
             onClick(_pendingProgress.Value);
             _pendingProgress = null;
         }
-        
+
         base.OnCursorUp(e);
     }
 }

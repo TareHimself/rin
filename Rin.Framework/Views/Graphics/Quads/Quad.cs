@@ -16,6 +16,7 @@ public enum PrimitiveType
 }
 
 [StructLayout(LayoutKind.Explicit)]
+[NoReorder]
 public struct Quad() // : ICloneable<Quad>
 {
     public enum RenderMode
@@ -43,21 +44,22 @@ public struct Quad() // : ICloneable<Quad>
     [FieldOffset(88)] private unsafe fixed byte _data[16 * 8];
 
     // [FieldOffset(88)] public PrimitiveData PrimitiveInfo = default;
-    
+
     [FieldOffset(88)] public LineData LineInfo = default;
-    
+
     [FieldOffset(88)] public CircleData CircleInfo = default;
-    
+
     [FieldOffset(88)] public RectangleData RectangleInfo = default;
-    
+
     [FieldOffset(88)] public QuadraticCurveData QuadraticCurveInfo = default;
-    
+
     [FieldOffset(88)] public CubicCurveData CubicCurveInfo = default;
 
     [FieldOffset(88)] public TextureData TextureInfo = default;
 
     [FieldOffset(88)] public MtsdfData MtsdfInfo = default;
 
+    [NoReorder]
     public struct LineData
     {
         public Color Color;
@@ -65,21 +67,24 @@ public struct Quad() // : ICloneable<Quad>
         public Vector2 End;
         public float Thickness;
     }
-    
+
+    [NoReorder]
     public struct CircleData
     {
         public Matrix4x4 InverseTransform;
         public Color Color;
         public float Radius;
     }
-    
+
+    [NoReorder]
     public struct RectangleData
     {
         public Matrix4x4 InverseTransform;
         public Color Color;
         public Vector4 BorderRadius;
     }
-    
+
+    [NoReorder]
     public struct QuadraticCurveData
     {
         public Color Color;
@@ -88,7 +93,8 @@ public struct Quad() // : ICloneable<Quad>
         public Vector2 Control;
         public float Thickness;
     }
-    
+
+    [NoReorder]
     public struct CubicCurveData
     {
         public Color Color;
@@ -98,7 +104,7 @@ public struct Quad() // : ICloneable<Quad>
         public Vector2 ControlB;
         public float Thickness;
     }
-    
+
     // public struct PrimitiveData
     // {
     //     public PrimitiveType Type { get; set; }
@@ -107,7 +113,7 @@ public struct Quad() // : ICloneable<Quad>
     //     public Vector4 Data3 { get; set; }
     //     public Vector4 Data4 { get; set; }
     // }
-
+    [NoReorder]
     public struct TextureData
     {
         public ImageHandle ImageHandle { get; set; }
@@ -116,6 +122,7 @@ public struct Quad() // : ICloneable<Quad>
         public Vector4 BorderRadius { get; set; }
     }
 
+    [NoReorder]
     public struct MtsdfData
     {
         public ImageHandle ImageHandle { get; set; }
@@ -135,21 +142,22 @@ public struct Quad() // : ICloneable<Quad>
             {
                 InverseTransform = transform.Inverse(),
                 Color = color ?? Color.White,
-                Radius = radius,
+                Radius = radius
             }
         };
         return quad;
     }
 
-    public static Quad Line(in Matrix4x4 transform,in Vector2 begin, in Vector2 end, float thickness = 2.0f, in Color? color = null)
+    public static Quad Line(in Matrix4x4 transform, in Vector2 begin, in Vector2 end, float thickness = 2.0f,
+        in Color? color = null)
     {
         var p1 = Vector2.Min(begin, end);
         var p2 = Vector2.Max(begin, end);
-        
+
         var thicknessVector = new Vector2(thickness);
         p1 -= thicknessVector;
         p2 += thicknessVector;
-        
+
         var size = p2 - p1;
         var t = Matrix4x4.Identity.Translate(p1).ChildOf(transform);
         var quad = new Quad
@@ -169,7 +177,7 @@ public struct Quad() // : ICloneable<Quad>
                 Begin = begin.Transform(transform),
                 End = end.Transform(transform),
                 Color = color ?? Color.White,
-                Thickness = thickness,
+                Thickness = thickness
             }
         };
 
@@ -188,24 +196,25 @@ public struct Quad() // : ICloneable<Quad>
             {
                 InverseTransform = transform.Inverse(),
                 Color = color ?? Color.White,
-                BorderRadius = borderRadius ?? Vector4.Zero,
+                BorderRadius = borderRadius ?? Vector4.Zero
             }
         };
 
         return quad;
     }
 
-    public static Quad QuadraticCurve(in Matrix4x4 transform,in Vector2 a, in Vector2 control, in Vector2 b, float thickness = 2.0f,
+    public static Quad QuadraticCurve(in Matrix4x4 transform, in Vector2 a, in Vector2 control, in Vector2 b,
+        float thickness = 2.0f,
         in Color? color = null)
     {
         var p1 = Vector2.Min(control, Vector2.Min(a, b));
         var p2 = Vector2.Max(control, Vector2.Max(a, b));
-        
+
         var thicknessVector = new Vector2(thickness);
-        
+
         p1 -= thicknessVector;
         p2 += thicknessVector;
-        
+
         var size = p2 - p1;
         var quad = new Quad
         {
@@ -218,25 +227,26 @@ public struct Quad() // : ICloneable<Quad>
                 End = b.Transform(transform),
                 Control = control.Transform(transform),
                 Color = color ?? Color.White,
-                Thickness = thickness,
+                Thickness = thickness
             }
         };
 
         return quad;
     }
 
-    public static Quad CubicCurve(in Matrix4x4 transform,in Vector2 a, in Vector2 controlA, in Vector2 b, in Vector2 controlB,
+    public static Quad CubicCurve(in Matrix4x4 transform, in Vector2 a, in Vector2 controlA, in Vector2 b,
+        in Vector2 controlB,
         float thickness = 2.0f,
         in Color? color = null)
     {
         var p1 = Vector2.Min(Vector2.Min(controlA, controlB), Vector2.Min(a, b));
         var p2 = Vector2.Max(Vector2.Max(controlA, controlB), Vector2.Max(a, b));
-        
+
         var thicknessVector = new Vector2(thickness);
-        
+
         p1 -= thicknessVector;
         p2 += thicknessVector;
-        
+
         var size = p2 - p1;
         var quad = new Quad
         {
@@ -250,7 +260,7 @@ public struct Quad() // : ICloneable<Quad>
                 ControlA = controlA.Transform(transform),
                 ControlB = controlB.Transform(transform),
                 Color = color ?? Color.White,
-                Thickness = thickness,
+                Thickness = thickness
             }
         };
 

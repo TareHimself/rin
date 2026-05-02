@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Graphics.Quads;
+using Rin.Framework.Graphics;
 using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -44,7 +45,7 @@ public class RectView : SingleSlotCompositeView
         return [];
     }
 
-    public override void Collect(in Matrix4x4 transform, in Framework.Graphics.Rect2D clip, CommandList commands)
+    public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
         if (IsVisible) CollectSelf(transform, commands);
         base.Collect(transform, clip, commands);

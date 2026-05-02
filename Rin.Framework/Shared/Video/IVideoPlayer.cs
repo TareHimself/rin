@@ -1,7 +1,7 @@
-using Rin.Framework.Buffers;
 using Rin.Framework.Graphics;
+using Rin.Framework.Shared.Buffers;
 
-namespace Rin.Framework.Video;
+namespace Rin.Framework.Shared.Video;
 
 /// <summary>
 ///     Handles the generation of video frames and playing of audio

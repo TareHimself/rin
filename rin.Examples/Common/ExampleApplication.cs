@@ -9,9 +9,18 @@ namespace rin.Examples.Common;
 
 public abstract class ExampleApplication : Application
 {
-    public override IGraphicsModule CreateGraphicsModule() => new VulkanGraphicsModule();
+    public override IGraphicsModule CreateGraphicsModule()
+    {
+        return new VulkanGraphicsModule();
+    }
 
-    public override IViewsModule CreateViewsModule() => new ViewsModule();
+    public override IViewsModule CreateViewsModule()
+    {
+        return new ViewsModule();
+    }
 
-    public override IAudioModule CreateAudioModule() => new BassAudioModule();
+    public override IAudioModule CreateAudioModule()
+    {
+        return new BassAudioModule();
+    }
 }

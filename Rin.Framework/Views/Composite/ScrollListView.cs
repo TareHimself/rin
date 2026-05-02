@@ -2,9 +2,9 @@
 using JetBrains.Annotations;
 using Rin.Framework.Graphics;
 using Rin.Framework.Shared.Math;
-using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
+using Rin.Framework.Views.Graphics.Quads;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -20,24 +20,20 @@ public class ScrollListView : ListView
     private Vector2 _mouseDownPos;
     private float _offset;
 
-    [PublicAPI]
-    public float BarMinimumSize { get; set; } = 40.0f;
-    [PublicAPI]
-    public float BarWidth { get; set; } = 8.0f;
-
-    [PublicAPI]
-    public float BarPadding { get; set; } = 2.0f;
-    
-    [PublicAPI]
-    public Color BarColor { get; set; } = Color.White;
-    
-    [PublicAPI]
-    public bool FloatingBar { get; set; } = true;
-
     public ScrollListView()
     {
         Clip = Clip.Bounds;
     }
+
+    [PublicAPI] public float BarMinimumSize { get; set; } = 40.0f;
+
+    [PublicAPI] public float BarWidth { get; set; } = 8.0f;
+
+    [PublicAPI] public float BarPadding { get; set; } = 2.0f;
+
+    [PublicAPI] public Color BarColor { get; set; } = Color.White;
+
+    [PublicAPI] public bool FloatingBar { get; set; } = true;
 
     public float ScrollScale { get; set; } = 10.0f;
 
@@ -67,11 +63,14 @@ public class ScrollListView : ListView
             Axis.Row => float.Max(spaceTaken.X - spaceGiven.X.FiniteOr(spaceTaken.X), 0),
             _ => throw new ArgumentOutOfRangeException()
         };
-        ScrollTo(_offset);
+        //ScrollTo(_offset);
         return new Vector2(float.Min(spaceTaken.X, spaceGiven.X), float.Min(spaceTaken.Y, spaceGiven.Y));
     }
-    
-    protected float GetBarCrossAxisSpaceTaken() => BarWidth + (BarPadding * 2);
+
+    protected float GetBarCrossAxisSpaceTaken()
+    {
+        return BarWidth + BarPadding * 2;
+    }
 
     public virtual float GetScroll()
     {
@@ -80,11 +79,11 @@ public class ScrollListView : ListView
 
     public virtual float GetAxisSize()
     {
-        var size = GetContentSize();
+        var contentSize = GetContentSize();
         return Axis switch
         {
-            Axis.Row => size.X,
-            Axis.Column => size.Y,
+            Axis.Row => contentSize.X,
+            Axis.Column => contentSize.Y,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -134,7 +133,7 @@ public class ScrollListView : ListView
 
     protected virtual void CollectBarContent(in Matrix4x4 barTransform, in Vector2 barSize, CommandList commands)
     {
-        commands.AddRect(barTransform,barSize,BarColor, new Vector4(7f));
+        commands.AddRect(barTransform, barSize, BarColor, new Vector4(7f));
     }
 
     protected virtual void CollectBar(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
@@ -145,14 +144,15 @@ public class ScrollListView : ListView
             var maxScroll = GetMaxScroll();
             var axisSize = GetAxisSize();
             var desiredAxisSize = axisSize + maxScroll;
-
-            var barSize = float.Max(BarMinimumSize, axisSize - (desiredAxisSize - axisSize));
+            
+            var barSize = float.Max(BarMinimumSize, axisSize * (axisSize / desiredAxisSize));
+            barSize = float.Min(barSize, axisSize);
             var barCrossAxisOffset = GetBarCrossAxisSpaceTaken() - BarPadding;
             var availableDist = axisSize - barSize;
-            var drawOffset = availableDist * (float.Max(scroll, 0.0001f) / maxScroll);
+            var drawOffset = 0;//50 + float.Max(availableDist * float.Clamp(scroll / maxScroll, 0.0f, 1.0f),0);
 
             var size = GetContentSize();
-            
+
             switch (Axis)
             {
                 case Axis.Column:
@@ -176,31 +176,32 @@ public class ScrollListView : ListView
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         var computedSize = base.LayoutContent(in availableSpace);
-        
-        if (FloatingBar)
-        {
-            return computedSize;
-        }
+
+        if (FloatingBar) return computedSize;
 
         var barCrossAxisSize = GetBarCrossAxisSpaceTaken();
-        
+
         // We recompute the size if the available space is finite and the computed size plus the bar cross axis size is greater than the available space
         switch (Axis)
         {
             case Axis.Column:
             {
-                computedSize = float.IsFinite(availableSpace.X) && computedSize.X + barCrossAxisSize > availableSpace.X ? base.LayoutContent(availableSpace with{ X = availableSpace.X  - barCrossAxisSize }) : computedSize;
+                computedSize = float.IsFinite(availableSpace.X) && computedSize.X + barCrossAxisSize > availableSpace.X
+                    ? base.LayoutContent(availableSpace with { X = availableSpace.X - barCrossAxisSize })
+                    : computedSize;
 
                 computedSize.X += barCrossAxisSize;
-                
+
                 return computedSize;
             }
             case Axis.Row:
             {
-                computedSize = float.IsFinite(availableSpace.Y) && computedSize.Y + barCrossAxisSize > availableSpace.Y ? base.LayoutContent(availableSpace with{ Y = availableSpace.Y  - barCrossAxisSize }) : computedSize;
+                computedSize = float.IsFinite(availableSpace.Y) && computedSize.Y + barCrossAxisSize > availableSpace.Y
+                    ? base.LayoutContent(availableSpace with { Y = availableSpace.Y - barCrossAxisSize })
+                    : computedSize;
 
                 computedSize.Y += barCrossAxisSize;
-                
+
                 return computedSize;
             }
             default:
@@ -210,10 +211,11 @@ public class ScrollListView : ListView
 
     public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
+        
         base.Collect(transform, clip, commands);
         CollectBar(transform, clip, commands);
     }
-    
+
     public override Matrix4x4 GetLocalContentTransform()
     {
         return base.GetLocalContentTransform().ApplyBefore(Matrix4x4.Identity.Translate(Axis switch
@@ -244,9 +246,7 @@ public class ScrollListView : ListView
                     Axis.Column => _mouseDownOffset + pos.Y,
                     _ => throw new ArgumentOutOfRangeException()
                 }))
-            {
                 e.Target = this;
-            }
         }
     }
 

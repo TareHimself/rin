@@ -23,7 +23,7 @@ public abstract class View : IView
     private Vector2 _translate = Vector2.Zero;
 
     /// <summary>
-    ///     The offset of this view in parent space
+    ///     The offset of this view in parent space, should be used for layout
     /// </summary>
     public Vector2 Offset
     {
@@ -65,7 +65,7 @@ public abstract class View : IView
     }
 
     /// <summary>
-    ///     The translation of this view in parent space
+    ///     The translation of this view in parent space, should be used for animation
     /// </summary>
     public Vector2 Translate
     {
@@ -107,7 +107,7 @@ public abstract class View : IView
         set
         {
             _padding = value;
-            Invalidate(InvalidationType.DesiredSize);
+            Invalidate(Invalidation.DesiredSize);
         }
     }
 
@@ -133,12 +133,12 @@ public abstract class View : IView
     /// <summary>
     ///     Should this view be hit tested
     /// </summary>
-    public bool IsSelfHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestSelf;
+    public bool IsSelfHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestChildren;
 
     /// <summary>
     ///     Should this view's children be hit tested
     /// </summary>
-    public bool IsChildrenHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestChildren;
+    public bool IsChildrenHitTestable => Visibility is Visibility.Visible or Visibility.VisibleNoHitTestSelf;
 
     /// <summary>
     ///     Should this view or its children be hit tested
@@ -163,11 +163,13 @@ public abstract class View : IView
     public ICompositeView? Parent { get; private set; }
 
     /// <summary>
-    /// The transformation applied due to padding
+    ///     Transformation to apply to all content
     /// </summary>
     /// <returns></returns>
-    public virtual Matrix4x4 GetLocalPaddingTransform() => Matrix4x4.Identity.Translate(new Vector2(Padding.Left, Padding.Top));
-    public virtual Matrix4x4 GetLocalContentTransform() => GetLocalPaddingTransform();
+    public virtual Matrix4x4 GetLocalContentTransform()
+    {
+        return Matrix4x4.Identity.Translate(new Vector2(Padding.Left, Padding.Top));
+    }
 
     /// <summary>
     ///     Check if this view is focused by its current surface
@@ -208,13 +210,6 @@ public abstract class View : IView
     }
 
     /// <summary>
-    ///     Lay's out content in the available space and returns the size taken by the content
-    /// </summary>
-    /// <param name="availableSpace"></param>
-    /// <returns></returns>
-    protected abstract Vector2 LayoutContent(in Vector2 availableSpace);
-
-    /// <summary>
     ///     Computes the relative/local transformation matrix for this view
     /// </summary>
     /// <returns></returns>
@@ -222,31 +217,20 @@ public abstract class View : IView
     {
         if (_cachedRelativeTransform is { } cached) return cached;
 
-        var rotation = Matrix4x4.Identity.Scale(Scale).Rotate2dDegrees(Angle).Translate(GetSize() * Pivot * -1.0f);
-        var transform = Matrix4x4.Identity.Translate(Offset + Translate) * rotation;
-
-        _cachedRelativeTransform = transform;
-        return transform;
+        var t = Matrix4x4.Identity.Translate(Offset + Translate)
+            .ApplyBefore(Matrix4x4.Identity.Translate(-(GetSize() * Pivot)).Scale(Scale).Rotate2dDegrees(Angle));
+        _cachedRelativeTransform = t;
+        return t;
     }
 
-    public Matrix4x4 GetLocalTransformWithPadding()
-    {
-        return GetLocalContentTransform().ChildOf(GetLocalTransform());
-    }
 
     public Matrix4x4 ComputeAbsoluteContentTransform()
     {
-        var parent = Parent;
-        var parentTransform = Matrix4x4.Identity;
-        while (parent is not null)
-        {
-            parentTransform = parentTransform.ChildOf(parent.ComputeChildOffsets(this));
-            parent = parent.Parent;
-        }
+        var absTransform = ComputeAbsoluteTransform();
 
-        return GetLocalTransformWithPadding().ChildOf(parentTransform);
+        return GetLocalContentTransform().ChildOf(absTransform);
     }
-    
+
     public Matrix4x4 ComputeAbsoluteTransform()
     {
         var parent = Parent;
@@ -285,18 +269,6 @@ public abstract class View : IView
         OnRemovedFromSurface(surface);
     }
 
-    protected virtual void OnAddedToSurface(ISurface surface)
-    {
-    }
-
-    protected virtual void OnRemovedFromSurface(ISurface surface)
-    {
-    }
-
-    public virtual void HandleCustomEvent(ISurfaceEvent e, in Matrix4x4 transform)
-    {
-    }
-
     public virtual void HandleEvent(ISurfaceEvent e, in Matrix4x4 absoluteTransform)
     {
         switch (e)
@@ -314,10 +286,7 @@ public abstract class View : IView
 
                 break;
             case CursorDownSurfaceEvent ev:
-                if (IsSelfHitTestable)
-                {
-                    OnCursorDown(ev,absoluteTransform);
-                }
+                if (IsSelfHitTestable) OnCursorDown(ev, absoluteTransform);
                 break;
             case CursorUpSurfaceEvent ev:
                 OnCursorUp(ev);
@@ -333,10 +302,7 @@ public abstract class View : IView
                         OnCursorEnter(ev);
                     }
 
-                    if (!ev.Handled)
-                    {
-                        OnCursorMove(ev,absoluteTransform);
-                    }
+                    if (!ev.Handled) OnCursorMove(ev, absoluteTransform);
                 }
 
                 break;
@@ -361,25 +327,12 @@ public abstract class View : IView
     {
     }
 
-    protected virtual void OnCursorEnter(CursorMoveSurfaceEvent e)
-    {
-    }
-
     public virtual void NotifyCursorLeave()
     {
         if (!IsHovered) return;
 
         IsHovered = false;
         OnCursorLeave();
-    }
-
-    protected virtual void OnCursorLeave()
-    {
-    }
-
-    protected virtual bool OnScroll(ScrollSurfaceEvent e)
-    {
-        return false;
     }
 
     public virtual void OnCharacter(CharacterSurfaceEvent e)
@@ -397,7 +350,7 @@ public abstract class View : IView
     public virtual void OnFocusLost()
     {
     }
-    
+
     [PublicAPI]
     public Vector2 GetSize()
     {
@@ -425,10 +378,13 @@ public abstract class View : IView
     }
 
     /// <summary>
-    /// Compute the size this view would like to be displayed at, defaults to zero
+    ///     Compute the size this view would like to be displayed at, defaults to zero
     /// </summary>
     /// <returns></returns>
-    public virtual Vector2 ComputeDesiredContentSize() => Vector2.Zero;
+    public virtual Vector2 ComputeDesiredContentSize()
+    {
+        return Vector2.Zero;
+    }
 
     public Vector2 ComputeDesiredSize()
     {
@@ -462,13 +418,13 @@ public abstract class View : IView
         return true;
     }
 
-    public virtual void Invalidate(InvalidationType type)
+    public virtual void Invalidate(Invalidation type)
     {
         if (Surface == null) return;
 
         switch (type)
         {
-            case InvalidationType.DesiredSize:
+            case Invalidation.DesiredSize:
             {
                 if (_cachedDesiredSize is { } asCachedSize)
                 {
@@ -485,7 +441,7 @@ public abstract class View : IView
                 Parent?.OnChildInvalidated(this, type);
             }
                 break;
-            case InvalidationType.Layout:
+            case Invalidation.Layout:
                 Parent?.OnChildInvalidated(this, type);
                 break;
             default:
@@ -534,8 +490,45 @@ public abstract class View : IView
         };
     }
 
-    public bool PointWithin(in Matrix4x4 transform, in Vector2 point, bool useInverse = false)
+    public bool PointWithin(in Matrix4x4 transform, in Vector2 point, bool useInverse)
     {
         return Rect2D.PointWithin(GetSize(), transform, point, useInverse);
+    }
+
+    /// <summary>
+    ///     Lay's out content in the available space and returns the size taken by the content
+    /// </summary>
+    /// <param name="availableSpace"></param>
+    /// <returns></returns>
+    protected abstract Vector2 LayoutContent(in Vector2 availableSpace);
+
+    public Vector2 GetPaddingOffset()
+    {
+        return new Vector2(Padding.Left, Padding.Top);
+    }
+
+    protected virtual void OnAddedToSurface(ISurface surface)
+    {
+    }
+
+    protected virtual void OnRemovedFromSurface(ISurface surface)
+    {
+    }
+
+    public virtual void HandleCustomEvent(ISurfaceEvent e, in Matrix4x4 transform)
+    {
+    }
+
+    protected virtual void OnCursorEnter(CursorMoveSurfaceEvent e)
+    {
+    }
+
+    protected virtual void OnCursorLeave()
+    {
+    }
+
+    protected virtual bool OnScroll(ScrollSurfaceEvent e)
+    {
+        return false;
     }
 }

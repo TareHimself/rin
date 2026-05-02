@@ -1,4 +1,4 @@
-namespace Rin.Framework.Curves;
+namespace Rin.Framework.Shared.Curves;
 
 public interface ICurve<out TInterpolatedValue> where TInterpolatedValue : struct
 {

@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
+﻿using System.Numerics;
 using Rin.Framework.Animation;
 using Rin.Framework.Graphics;
 using Rin.Framework.Shared.Math;
@@ -20,7 +19,7 @@ public abstract class ContentView : View
     {
         if (!IsVisible) return;
 
-        CollectContent(transform.Translate(new Vector2(Padding.Left, Padding.Top)), commands);
+        CollectContent(transform.ApplyBefore(GetLocalContentTransform()), commands);
     }
 
     public override void Update(float deltaTime)

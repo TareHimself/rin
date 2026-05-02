@@ -7,7 +7,6 @@ using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Font;
 using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Graphics.Quads;
-using Rin.Framework.Views.Sdf;
 
 namespace Rin.Framework.Views.Content;
 
@@ -48,7 +47,7 @@ public class TextBoxView : ContentView
         set
         {
             _wrapContent = value;
-            Invalidate(InvalidationType.Layout);
+            Invalidate(Invalidation.Layout);
         }
     }
 
@@ -106,7 +105,7 @@ public class TextBoxView : ContentView
         _cachedBounds = null;
         _content = newText;
         // TextRenderer.RenderTextTo();
-        Invalidate(InvalidationType.DesiredSize);
+        Invalidate(Invalidation.DesiredSize);
     }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
@@ -126,7 +125,7 @@ public class TextBoxView : ContentView
         _cachedBounds = null;
         _cachedLayouts = ComputeLayout(out var pending);
         if (pending) _cachedLayouts = null;
-        Invalidate(InvalidationType.DesiredSize);
+        Invalidate(Invalidation.DesiredSize);
     }
 
 
@@ -151,7 +150,7 @@ public class TextBoxView : ContentView
         var lines = float.Max(1, Content.Split("\n").Length);
         var height = LineHeight * lines;
 
-        return new Vector2(width,  bounds.Empty() ? 0 :bounds.MaxBy(c => c.Bottom).Bottom);
+        return new Vector2(width, bounds.Empty() ? 0 : bounds.MaxBy(c => c.Bottom).Bottom);
     }
 
     protected CachedQuadLayout[] ComputeLayout(out bool anyPending)

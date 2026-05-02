@@ -1,24 +1,24 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
-using Rin.Framework.Extensions;
-using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Vulkan.Images;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Framework.Graphics.Vulkan.Graph;
 
-public class ResourcePool(WindowRenderer renderer) : IResourcePool
+public class ResourcePool : IResourcePool
 {
+    private const float ExpiredResourceTimeoutSeconds = 4.0f;
+
     private readonly BufferPool _bufferPool = new();
+    private readonly CubemapPool _cubemapPool = new();
+    private readonly TextureArrayPool _textureArrayPool = new();
 
 
     private readonly TexturePool _texturePool = new();
-    private readonly TextureArrayPool _textureArrayPool = new();
-    private readonly CubemapPool _cubemapPool = new();
 
-    private ulong _currentFrame;
 
     public void Dispose()
     {
@@ -27,240 +27,234 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
         _cubemapPool.Dispose();
         _bufferPool.Dispose();
     }
+
     public IDisposableVulkanTexture CreateTexture(TextureResourceDescriptor descriptor, Frame frame)
     {
-        return _texturePool.Create(descriptor, frame,_currentFrame);
+        return _texturePool.Create(descriptor);
     }
 
     public IDisposableVulkanTextureArray CreateTextureArray(TextureArrayResourceDescriptor descriptor, Frame frame)
     {
-        return _textureArrayPool.Create(descriptor, frame,_currentFrame);
+        return _textureArrayPool.Create(descriptor);
     }
 
     public IDisposableVulkanCubemap CreateCubemap(CubemapResourceDescriptor descriptor, Frame frame)
     {
-        return _cubemapPool.Create(descriptor, frame,_currentFrame);
+        return _cubemapPool.Create(descriptor);
     }
 
     IVulkanDeviceBuffer IResourcePool.CreateBuffer(BufferResourceDescriptor descriptor, Frame frame)
     {
-        return _bufferPool.Create(descriptor, frame, _currentFrame);
+        return _bufferPool.Create(descriptor);
     }
 
-    public void OnFrameStart(ulong newFrame)
+    public void OnFrameEnd(ulong newFrame)
     {
-        _currentFrame = newFrame;
-        var framesInFlight = renderer.GetNumFramesInFlight();
-        _texturePool.CheckExpiredProxies(newFrame, framesInFlight);
-        _textureArrayPool.CheckExpiredProxies(newFrame, framesInFlight);
-        _cubemapPool.CheckExpiredProxies(newFrame, framesInFlight);
-        _bufferPool.CheckExpiredProxies(newFrame, framesInFlight);
+        var time = IApplication.Get().TimeSeconds;
+        _texturePool.CheckExpiredProxies(time);
+        _textureArrayPool.CheckExpiredProxies(time);
+        _cubemapPool.CheckExpiredProxies(time);
+        _bufferPool.CheckExpiredProxies(time);
     }
 
-    /// <summary>
-    ///     Pooling is done using proxies, i.e. buffer proxies, image proxies. this also means they are not
-    /// </summary>
-    private interface IContainer : IDisposable
-    {
-        /// <summary>
-        ///     The last frame this proxy was used in
-        /// </summary>
-        public ulong LastUsed { get; set; }
-
-        /// <summary>
-        ///     The frames this proxy is currently used in
-        /// </summary>
-        public HashSet<Frame> Uses { get; }
-    }
-
-    private class ResourceContainer<TResource>(TResource resource) : IContainer where TResource : IDisposable
-    {
-        [PublicAPI] public TResource Resource => resource;
-
-        public void Dispose()
-        {
-            Resource.Dispose();
-        }
-
-        public ulong LastUsed { get; set; }
-        public HashSet<Frame> Uses { get; } = [];
-    }
 
     private abstract class Pool<TResult, TResource, TInput, TPoolKey> : IDisposable
-        where TResource : IDisposable
+        where TResource : class, IDisposable
         where TPoolKey : notnull
     {
-        [PublicAPI] protected readonly Dictionary<TPoolKey, HashSet<ResourceContainer<TResource>>> ContainerPool = [];
+        [PublicAPI]
+        protected readonly Dictionary<TPoolKey, LinkedList<KeyValuePair<float, TResource>>> ContainerPool = [];
 
         public void Dispose()
         {
-            foreach (var container in ContainerPool.Values.SelectMany(c => c)) container.Dispose();
+            foreach (var container in ContainerPool.Values.SelectMany(c => c)) container.Value.Dispose();
         }
 
-        protected abstract ResourceContainer<TResource> CreateNew(TInput input, Frame frame, TPoolKey key,
-            ulong frameId);
+        protected abstract TResource CreateNew(TInput input, TPoolKey key);
 
-        protected abstract TResult ResultFromContainer(ResourceContainer<TResource> container, Frame frame,
-            TPoolKey key, TInput input, ulong frameId);
+        protected abstract TResult MakeResult(LinkedList<KeyValuePair<float, TResource>> container, TResource resource,
+            TPoolKey key, TInput input);
 
         protected abstract TPoolKey MakeKeyFromInput(TInput input);
 
-        protected virtual ResourceContainer<TResource>? FindExistingResource(
-            Dictionary<TPoolKey, HashSet<ResourceContainer<TResource>>> items, Frame frame, TPoolKey key,
-            ulong frameId)
+        protected virtual bool FindExistingResource(TPoolKey key,
+            TInput input,
+            [NotNullWhen(true)] out TResource? resource,
+            [NotNullWhen(true)] out LinkedList<KeyValuePair<float, TResource>>? container)
         {
-            if (ContainerPool.TryGetValue(key, out var containers))
-                foreach (var container in containers)
-                    if (!container.Uses.Contains(frame))
-                        return container;
+            if (ContainerPool.TryGetValue(key, out var resources))
+                if (resources.First is not null)
+                {
+                    resource = resources.First.Value.Value;
+                    container = resources;
+                    resources.RemoveFirst();
+                    return true;
+                }
 
-            return null;
+            resource = null;
+            container = null;
+            return false;
         }
 
-        public TResult Create(TInput input, Frame frame, ulong frameId)
+        public TResult Create(TInput input)
         {
             var key = MakeKeyFromInput(input);
 
             {
-                if (FindExistingResource(ContainerPool, frame, key, frameId) is { } container)
-                {
-                    container.LastUsed = frameId;
-                    container.Uses.Add(frame);
-                    return ResultFromContainer(container, frame, key, input, frameId);
-                }
+                if (FindExistingResource(key, input, out var resource, out var container))
+                    return MakeResult(container, resource, key, input);
             }
 
             {
                 if (!ContainerPool.ContainsKey(key)) ContainerPool.Add(key, []);
 
-                var created = CreateNew(input, frame, key, frameId);
-                created.Uses.Add(frame);
-                created.LastUsed = frameId;
-                ContainerPool[key].Add(created);
+                var created = CreateNew(input, key);
+                var container = ContainerPool[key];
 
-                return ResultFromContainer(created, frame, key, input, frameId);
+                return MakeResult(container, created, key, input);
             }
         }
 
-        public virtual void CheckExpiredProxies(ulong frameId, ulong numFramesInFlight)
+        public virtual void CheckExpiredProxies(float time)
         {
-            ContainerPool.RemoveWhere((_, containers) =>
-            {
-                containers.RemoveWhere(container =>
+            foreach (var list in ContainerPool.Values)
+                while (list.Last is not null)
                 {
-                    if (container.Uses.NotEmpty()) return false;
-
-                    if (container.LastUsed + numFramesInFlight < frameId)
+                    var (timeAdded, resource) = list.Last.Value;
+                    var delta = time - timeAdded;
+                    if (delta > ExpiredResourceTimeoutSeconds)
                     {
-                        container.Dispose();
-                        return true;
+                        resource.Dispose();
+                        list.RemoveLast();
+                        Debug.WriteLine($"Removing resource from pool {GetType().Name}");
                     }
-
-                    return false;
-                });
-
-                return containers.Count == 0;
-            });
+                    else
+                    {
+                        break;
+                    }
+                }
         }
     }
 
-    private sealed class ProxiedTexture(ResourceContainer<IDisposableVulkanTexture> container, Frame frame) : IDisposableVulkanTexture
+    private sealed class ProxiedTexture(
+        LinkedList<KeyValuePair<float, IDisposableVulkanTexture>> container,
+        IDisposableVulkanTexture resource)
+        : IDisposableVulkanTexture
     {
-        public Extent2D Extent => container.Resource.Extent;
-        public bool Mips => container.Resource.Mips;
-        public ImageFormat Format => container.Resource.Format;
-        public ImageHandle Handle => container.Resource.Handle;
+        public Extent2D Extent => resource.Extent;
+        public bool Mips => resource.Mips;
+        public ImageFormat Format => resource.Format;
+        public ImageHandle Handle => resource.Handle;
+
         public void Dispose()
         {
-            container.Uses.Remove(frame);
+            container.AddFirst(
+                new KeyValuePair<float, IDisposableVulkanTexture>(IApplication.Get().TimeSeconds, resource));
         }
 
-        public VkImage VulkanImage => container.Resource.VulkanImage;
-        public VkImageView VulkanView => container.Resource.VulkanView;
+        public VkImage VulkanImage => resource.VulkanImage;
+        public VkImageView VulkanView => resource.VulkanView;
 
         public ImageLayout Layout
         {
-            get => container.Resource.Layout;
-            set => container.Resource.Layout = value;
-        }
-        
-        
-        public IntPtr Allocation => container.Resource.Allocation;
-    }
-    private sealed class ProxiedTextureArray(ResourceContainer<IDisposableVulkanTextureArray> container, Frame frame) : IDisposableVulkanTextureArray
-    {
-        public Extent2D Extent => container.Resource.Extent;
-        public bool Mips => container.Resource.Mips;
-        public ImageFormat Format => container.Resource.Format;
-        public ImageHandle Handle => container.Resource.Handle;
-        public void Dispose()
-        {
-            container.Uses.Remove(frame);
+            get => resource.Layout;
+            set => resource.Layout = value;
         }
 
-        public VkImage VulkanImage => container.Resource.VulkanImage;
-        public VkImageView VulkanView => container.Resource.VulkanView;
+
+        public IntPtr Allocation => resource.Allocation;
+    }
+
+    private sealed class ProxiedTextureArray(
+        LinkedList<KeyValuePair<float, IDisposableVulkanTextureArray>> container,
+        IDisposableVulkanTextureArray resource)
+        : IDisposableVulkanTextureArray
+    {
+        public Extent2D Extent => resource.Extent;
+        public bool Mips => resource.Mips;
+        public ImageFormat Format => resource.Format;
+        public ImageHandle Handle => resource.Handle;
+
+        public void Dispose()
+        {
+            container.AddFirst(
+                new KeyValuePair<float, IDisposableVulkanTextureArray>(IApplication.Get().TimeSeconds, resource));
+        }
+
+        public VkImage VulkanImage => resource.VulkanImage;
+        public VkImageView VulkanView => resource.VulkanView;
 
         public ImageLayout Layout
         {
-            get => container.Resource.Layout;
-            set => container.Resource.Layout = value;
-        }
-        
-        public uint Count =>  container.Resource.Count;
-        
-        public IntPtr Allocation => container.Resource.Allocation;
-    }
-    private sealed class ProxiedCubemap(ResourceContainer<IDisposableVulkanCubemap> container, Frame frame) : IDisposableVulkanCubemap
-    {
-        public Extent2D Extent => container.Resource.Extent;
-        public bool Mips => container.Resource.Mips;
-        public ImageFormat Format => container.Resource.Format;
-        public ImageHandle Handle => container.Resource.Handle;
-        public void Dispose()
-        {
-            container.Uses.Remove(frame);
+            get => resource.Layout;
+            set => resource.Layout = value;
         }
 
-        public VkImage VulkanImage => container.Resource.VulkanImage;
-        public VkImageView VulkanView => container.Resource.VulkanView;
+        public uint Count => resource.Count;
+
+        public IntPtr Allocation => resource.Allocation;
+    }
+
+    private sealed class ProxiedCubemap(
+        LinkedList<KeyValuePair<float, IDisposableVulkanCubemap>> container,
+        IDisposableVulkanCubemap resource)
+        : IDisposableVulkanCubemap
+    {
+        public Extent2D Extent => resource.Extent;
+        public bool Mips => resource.Mips;
+        public ImageFormat Format => resource.Format;
+        public ImageHandle Handle => resource.Handle;
+
+        public void Dispose()
+        {
+            container.AddFirst(
+                new KeyValuePair<float, IDisposableVulkanCubemap>(IApplication.Get().TimeSeconds, resource));
+        }
+
+        public VkImage VulkanImage => resource.VulkanImage;
+        public VkImageView VulkanView => resource.VulkanView;
 
         public ImageLayout Layout
         {
-            get => container.Resource.Layout;
-            set => container.Resource.Layout = value;
+            get => resource.Layout;
+            set => resource.Layout = value;
         }
-        public IntPtr Allocation => container.Resource.Allocation;
+
+        public IntPtr Allocation => resource.Allocation;
     }
 
-    private sealed class TexturePool : Pool<ProxiedTexture,IDisposableVulkanTexture, TextureResourceDescriptor, int>
+    private sealed class TexturePool : Pool<ProxiedTexture, IDisposableVulkanTexture, TextureResourceDescriptor, int>
     {
-        protected override ResourceContainer<IDisposableVulkanTexture> CreateNew(TextureResourceDescriptor input, Frame frame, int key, ulong frameId)
+        protected override IDisposableVulkanTexture CreateNew(TextureResourceDescriptor input,
+            int key)
         {
+            Debug.WriteLine($"Creating resource for pool {nameof(TexturePool)}");
             IDisposableVulkanTexture image;
             if (input.Usage.HasFlag(ImageUsage.Sampled))
             {
-                IGraphicsModule.Get().CreateTexture(out var handle, input.Extent, input.Format,false,
+                IGraphicsModule.Get().CreateTexture(out var handle, input.Extent, input.Format, false,
                     input.Usage);
-                
+
                 var initial = IGraphicsModule.Get().GetTexture(handle);
-                
+
                 Debug.Assert(initial is IDisposableVulkanTexture);
-                
+
                 image = Unsafe.As<IDisposableVulkanTexture>(initial);
             }
             else
             {
-                image  = VulkanGraphicsModule.Get().CreateVulkanTexture(input.Extent, input.Format, false, input.Usage);
+                image = VulkanGraphicsModule.Get().CreateVulkanTexture(input.Extent, input.Format, false, input.Usage);
             }
-            
-            return new ResourceContainer<IDisposableVulkanTexture>(image);
+
+            return image;
         }
 
-        protected override ProxiedTexture ResultFromContainer(ResourceContainer<IDisposableVulkanTexture> container, Frame frame, int key, TextureResourceDescriptor input,
-            ulong frameId)
+        protected override ProxiedTexture MakeResult(
+            LinkedList<KeyValuePair<float, IDisposableVulkanTexture>> container,
+            IDisposableVulkanTexture resource,
+            int key, TextureResourceDescriptor input)
         {
-            return new ProxiedTexture(container, frame);
+            return new ProxiedTexture(container, resource);
         }
 
         protected override int MakeKeyFromInput(TextureResourceDescriptor input)
@@ -268,35 +262,40 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
             return input.GetHashCode();
         }
     }
-    
-    private sealed class TextureArrayPool : Pool<ProxiedTextureArray,IDisposableVulkanTextureArray, TextureArrayResourceDescriptor, int>
+
+    private sealed class TextureArrayPool : Pool<ProxiedTextureArray, IDisposableVulkanTextureArray,
+        TextureArrayResourceDescriptor, int>
     {
-        protected override ResourceContainer<IDisposableVulkanTextureArray> CreateNew(TextureArrayResourceDescriptor input, Frame frame, int key, ulong frameId)
+        protected override IDisposableVulkanTextureArray CreateNew(TextureArrayResourceDescriptor input,
+            int key)
         {
             IDisposableVulkanTextureArray image;
             if (input.Usage.HasFlag(ImageUsage.Sampled))
             {
                 IGraphicsModule.Get().CreateTextureArray(out var handle, input.Extent, input.Format, input.Count, false,
                     input.Usage);
-                
+
                 var initial = IGraphicsModule.Get().GetTextureArray(handle);
-                
+
                 Debug.Assert(initial is IDisposableVulkanTextureArray);
-                
+
                 image = Unsafe.As<IDisposableVulkanTextureArray>(initial);
             }
             else
             {
-                image  = VulkanGraphicsModule.Get().CreateVulkanTextureArray(input.Extent, input.Format,input.Count, false, input.Usage);
+                image = VulkanGraphicsModule.Get()
+                    .CreateVulkanTextureArray(input.Extent, input.Format, input.Count, false, input.Usage);
             }
-            
-            return new ResourceContainer<IDisposableVulkanTextureArray>(image);
+
+            return image;
         }
 
-        protected override ProxiedTextureArray ResultFromContainer(ResourceContainer<IDisposableVulkanTextureArray> container, Frame frame, int key, TextureArrayResourceDescriptor input,
-            ulong frameId)
+        protected override ProxiedTextureArray MakeResult(
+            LinkedList<KeyValuePair<float, IDisposableVulkanTextureArray>> container,
+            IDisposableVulkanTextureArray resource, int key,
+            TextureArrayResourceDescriptor input)
         {
-            return new ProxiedTextureArray(container, frame);
+            return new ProxiedTextureArray(container, resource);
         }
 
         protected override int MakeKeyFromInput(TextureArrayResourceDescriptor input)
@@ -304,35 +303,38 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
             return input.GetHashCode();
         }
     }
-    
-    private sealed class CubemapPool : Pool<ProxiedCubemap,IDisposableVulkanCubemap, CubemapResourceDescriptor, int>
+
+    private sealed class CubemapPool : Pool<ProxiedCubemap, IDisposableVulkanCubemap, CubemapResourceDescriptor, int>
     {
-        protected override ResourceContainer<IDisposableVulkanCubemap> CreateNew(CubemapResourceDescriptor input, Frame frame, int key, ulong frameId)
+        protected override IDisposableVulkanCubemap CreateNew(CubemapResourceDescriptor input,
+            int key)
         {
             IDisposableVulkanCubemap image;
             if (input.Usage.HasFlag(ImageUsage.Sampled))
             {
-                IGraphicsModule.Get().CreateCubemap(out var handle, input.Extent, input.Format,false,
+                IGraphicsModule.Get().CreateCubemap(out var handle, input.Extent, input.Format, false,
                     input.Usage);
-                
+
                 var initial = IGraphicsModule.Get().GetCubemap(handle);
-                
+
                 Debug.Assert(initial is IDisposableVulkanCubemap);
-                
+
                 image = Unsafe.As<IDisposableVulkanCubemap>(initial);
             }
             else
             {
-                image  = VulkanGraphicsModule.Get().CreateVulkanCubemap(input.Extent, input.Format, false, input.Usage);
+                image = VulkanGraphicsModule.Get().CreateVulkanCubemap(input.Extent, input.Format, false, input.Usage);
             }
-            
-            return new ResourceContainer<IDisposableVulkanCubemap>(image);
+
+            return image;
         }
 
-        protected override ProxiedCubemap ResultFromContainer(ResourceContainer<IDisposableVulkanCubemap> container, Frame frame, int key, CubemapResourceDescriptor input,
-            ulong frameId)
+        protected override ProxiedCubemap MakeResult(
+            LinkedList<KeyValuePair<float, IDisposableVulkanCubemap>> container,
+            IDisposableVulkanCubemap resource,
+            int key, CubemapResourceDescriptor input)
         {
-            return new ProxiedCubemap(container, frame);
+            return new ProxiedCubemap(container, resource);
         }
 
         protected override int MakeKeyFromInput(CubemapResourceDescriptor input)
@@ -343,33 +345,32 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
 
     private sealed class ProxiedBuffer : IVulkanDeviceBuffer
     {
-        private readonly ResourceContainer<IVulkanDeviceBuffer> _container;
-        private readonly BufferResourceDescriptor _descriptor;
-        private readonly Frame _frame;
+        private readonly LinkedList<KeyValuePair<float, BufferContainer>> _container;
+        private readonly BufferContainer _resource;
 
-        public ProxiedBuffer(ResourceContainer<IVulkanDeviceBuffer> container, Frame frame,
-            BufferResourceDescriptor descriptor)
+        public ProxiedBuffer(LinkedList<KeyValuePair<float, BufferContainer>> container, BufferContainer resource,
+            ulong? size = null)
         {
             _container = container;
-            _frame = frame;
-            _descriptor = descriptor;
+            _resource = resource;
+            Size = size ?? _resource.Descriptor.Size;
         }
 
-        public IDeviceBuffer Buffer => _container.Resource;
+        [PublicAPI] public IDeviceBuffer Buffer => _resource.Buffer;
 
         public void Dispose()
         {
-            _container.Uses.Remove(_frame);
+            _container.AddFirst(new KeyValuePair<float, BufferContainer>(IApplication.Get().TimeSeconds, _resource));
         }
 
-        public ulong Offset => _container.Resource.Offset;
-        public ulong Size => _descriptor.Size;
-        public VkBuffer NativeBuffer => _container.Resource.NativeBuffer;
-        public IntPtr Allocation => _container.Resource.Allocation;
+        public ulong Offset => _resource.Buffer.Offset;
+        public ulong Size { get; }
+        public VkBuffer NativeBuffer => _resource.Buffer.NativeBuffer;
+        public IntPtr Allocation => _resource.Buffer.Allocation;
 
         public ulong GetAddress()
         {
-            return _container.Resource.GetAddress();
+            return _resource.Buffer.GetAddress();
         }
 
         public DeviceBufferView GetView(ulong offset, ulong size)
@@ -379,25 +380,38 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
 
         public void WriteRaw(in IntPtr src, ulong size, ulong offset = 0)
         {
-            _container.Resource.WriteRaw(src, size, offset);
+            _resource.Buffer.WriteRaw(src, size, offset);
         }
     }
 
-    private class BufferPool : Pool<ProxiedBuffer, IVulkanDeviceBuffer, BufferResourceDescriptor, int>
+    private class BufferContainer(IVulkanDeviceBuffer buffer, BufferResourceDescriptor descriptor) : IDisposable
+    {
+        public IVulkanDeviceBuffer Buffer => buffer;
+        public BufferResourceDescriptor Descriptor => descriptor;
+
+        public void Dispose()
+        {
+            buffer.Dispose();
+        }
+    }
+
+    private class BufferPool : Pool<ProxiedBuffer, BufferContainer, BufferResourceDescriptor, int>
     {
         [PublicAPI] public ulong MaxBufferReuseDelta = 1024;
 
-        protected override ResourceContainer<IVulkanDeviceBuffer> CreateNew(BufferResourceDescriptor input, Frame frame,
-            int key, ulong frameId)
+        protected override BufferContainer CreateNew(BufferResourceDescriptor input,
+            int key)
         {
+            Debug.WriteLine($"Creating resource for pool {GetType().Name}");
             var buffer = VulkanGraphicsModule.Get().NewBuffer(input.Size, input.Usage, false, input.Mapped);
-            return new ResourceContainer<IVulkanDeviceBuffer>(buffer);
+            return new BufferContainer(buffer, input);
         }
 
-        protected override ProxiedBuffer ResultFromContainer(ResourceContainer<IVulkanDeviceBuffer> container, Frame frame,
-            int key, BufferResourceDescriptor input, ulong frameId)
+        protected override ProxiedBuffer MakeResult(LinkedList<KeyValuePair<float, BufferContainer>> container,
+            BufferContainer resource,
+            int key, BufferResourceDescriptor input)
         {
-            return new ProxiedBuffer(container, frame, input);
+            return new ProxiedBuffer(container, resource, input.Size);
         }
 
         protected override int MakeKeyFromInput(BufferResourceDescriptor input)
@@ -405,13 +419,38 @@ public class ResourcePool(WindowRenderer renderer) : IResourcePool
             return input.GetHashCode();
         }
 
-        protected override ResourceContainer<IVulkanDeviceBuffer>? FindExistingResource(
-            Dictionary<int, HashSet<ResourceContainer<IVulkanDeviceBuffer>>> items, Frame frame, int key, ulong frameId)
+        protected override bool FindExistingResource(int key, BufferResourceDescriptor input,
+            [NotNullWhen(true)] out BufferContainer? resource,
+            [NotNullWhen(true)] out LinkedList<KeyValuePair<float, BufferContainer>>? container)
         {
-            return items
-                .Where(item => item.Key == key)
-                .SelectMany(c => c.Value)
-                .FirstOrDefault(c => c.Uses.Empty());
+            var result = ContainerPool
+                .Where(item => item.Value.First is not null)
+                .Select(c => c.Value)
+                .FirstOrDefault(item =>
+                {
+                    var buffContainer = item.First!.Value.Value;
+
+                    if (buffContainer.Buffer.Size >= input.Size && buffContainer.Descriptor.Usage == input.Usage &&
+                        buffContainer.Descriptor.Mapped == input.Mapped)
+                    {
+                        var delta = buffContainer.Buffer.Size - input.Size;
+                        return delta <= MaxBufferReuseDelta;
+                    }
+
+                    return false;
+                });
+
+            if (result?.First is not null)
+            {
+                container = result;
+                resource = container.First.Value.Value;
+                result.RemoveFirst();
+                return true;
+            }
+
+            resource = null;
+            container = null;
+            return false;
         }
     }
 }

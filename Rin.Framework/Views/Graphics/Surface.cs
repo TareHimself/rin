@@ -1,19 +1,14 @@
 ﻿using System.Numerics;
-using JetBrains.Annotations;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Composite;
 using Rin.Framework.Views.Events;
-using Rin.Framework.Views.Graphics.CommandHandlers;
-using Rin.Framework.Views.Graphics.Commands;
-using Rin.Framework.Views.Graphics.Passes;
 
 namespace Rin.Framework.Views.Graphics;
 
 /// <summary>
-/// Base class for a surface that can display views
+///     Base class for a surface that can display views
 /// </summary>
 public abstract class Surface : ISurface
 {
@@ -75,16 +70,16 @@ public abstract class Surface : ISurface
         requester.OnFocus();
         return true;
     }
-    
+
     public CommandList? CollectCommands()
     {
         var size = GetSize();
-        
-        var drawList = new CommandList()
+
+        var drawList = new CommandList
         {
             SurfaceSize = size
         };
-        _rootView.Collect(Matrix4x4.Identity, new Rect2D
+        _rootView.Collect(_rootView.GetLocalTransform(), new Rect2D
         {
             Size = size
         }, drawList);
@@ -116,7 +111,7 @@ public abstract class Surface : ISurface
 
     public virtual void ReceiveCursorDown(CursorDownSurfaceEvent e)
     {
-        _rootView.HandleEvent(e, Matrix4x4.Identity);
+        _rootView.HandleEvent(e, _rootView.GetLocalTransform());
         if (e.Target is not null)
         {
             _lastCursorDownEvent = e;
@@ -136,9 +131,9 @@ public abstract class Surface : ISurface
 
     public virtual void ReceiveCursorMove(CursorMoveSurfaceEvent e)
     {
-        _rootView.HandleEvent(e, Matrix4x4.Identity);
+        _rootView.HandleEvent(e, _rootView.GetLocalTransform());
         _lastHovered.AddRange(e.Over);
-        _lastCursorDownEvent?.Target?.OnCursorMove(e,_lastCursorDownEvent.Target.ComputeAbsoluteContentTransform());
+        _lastCursorDownEvent?.Target?.OnCursorMove(e, _lastCursorDownEvent.Target.ComputeAbsoluteContentTransform());
         // if (_lastCursorDownEvent?.Target is { } target && !e.Over.Contains(target))
         // {
         //     
@@ -174,7 +169,7 @@ public abstract class Surface : ISurface
 
     public virtual void ReceiveScroll(ScrollSurfaceEvent e)
     {
-        _rootView.HandleEvent(e, Matrix4x4.Identity);
+        _rootView.HandleEvent(e, _rootView.GetLocalTransform());
     }
 
     public virtual void ReceiveCharacter(CharacterSurfaceEvent e)
@@ -185,29 +180,6 @@ public abstract class Surface : ISurface
     public virtual void ReceiveKeyboard(KeyboardSurfaceEvent e)
     {
         FocusedView?.OnKeyboard(e);
-    }
-
-    private void DoHover()
-    {
-        var mousePosition = GetCursorPosition();
-        var e = new CursorMoveSurfaceEvent(this, mousePosition);
-        var oldHoverList = _lastHovered.ToArray();
-        _lastHovered.Clear();
-
-        {
-            if (e.Position.Within(new Vector2(), GetSize()))
-            {
-                _rootView.HandleEvent(e, Matrix4x4.Identity);
-                _lastHovered.AddRange(e.Over);
-            }
-        }
-
-        var hoveredSet = _lastHovered.ToHashSet();
-
-
-        foreach (var view in oldHoverList.AsReversed())
-            if (!hoveredSet.Contains(view))
-                view.NotifyCursorLeave();
     }
 
     public virtual T Add<T>() where T : IView, new()
@@ -224,5 +196,28 @@ public abstract class Surface : ISurface
     public virtual bool Remove(IView view)
     {
         return _rootView.Remove(view);
+    }
+
+    private void DoHover()
+    {
+        var mousePosition = GetCursorPosition();
+        var e = new CursorMoveSurfaceEvent(this, mousePosition);
+        var oldHoverList = _lastHovered.ToArray();
+        _lastHovered.Clear();
+
+        {
+            if (e.Position.Within(new Vector2(), GetSize()))
+            {
+                _rootView.HandleEvent(e, _rootView.GetLocalTransform());
+                _lastHovered.AddRange(e.Over);
+            }
+        }
+
+        var hoveredSet = _lastHovered.ToHashSet();
+
+
+        foreach (var view in oldHoverList.AsReversed())
+            if (!hoveredSet.Contains(view))
+                view.NotifyCursorLeave();
     }
 }

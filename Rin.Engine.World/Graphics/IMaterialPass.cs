@@ -1,6 +1,6 @@
-﻿using Rin.Framework.Graphics;
+﻿using Rin.Engine.World.Graphics.Default;
+using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Shaders;
-using Rin.Engine.World.Graphics.Default;
 
 namespace Rin.Engine.World.Graphics;
 
@@ -16,7 +16,7 @@ public interface IMaterialPass
     /// </summary>
     /// <returns></returns>
     public ulong GetRequiredMemory();
-    
+
     /// <summary>
     ///     Write to the <see cref="IDeviceBuffer" /> that will be the size returned from <see cref="GetRequiredMemory" />
     /// </summary>

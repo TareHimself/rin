@@ -1,5 +1,5 @@
 using System.Numerics;
-using Rin.Framework.Curves;
+using Rin.Framework.Shared.Curves;
 using Rin.Framework.Shared.Math;
 
 namespace Rin.Engine.World.Mesh.Skinning;

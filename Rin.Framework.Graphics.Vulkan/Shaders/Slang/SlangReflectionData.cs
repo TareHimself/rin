@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace Rin.Framework.Graphics.Vulkan.Shaders.Slang;
 
-public class ReflectionData
+public class SlangReflectionData
 {
     [JsonPropertyName("parameters")] public Parameter[] Parameters { get; set; } = [];
 

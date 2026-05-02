@@ -47,7 +47,7 @@ public abstract class SingleSlotCompositeView : CompositeView, ISingleSlotCompos
 
             _slot.Child.SetParent(this);
 
-            Invalidate(InvalidationType.Layout);
+            Invalidate(Invalidation.Layout);
         }
         else
         {
@@ -81,7 +81,7 @@ public abstract class SingleSlotCompositeView : CompositeView, ISingleSlotCompos
         return new Vector2();
     }
 
-    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, Invalidation invalidation)
     {
         Invalidate(invalidation);
     }

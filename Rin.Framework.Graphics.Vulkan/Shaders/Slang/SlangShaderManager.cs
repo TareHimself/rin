@@ -1,6 +1,5 @@
 ﻿using Rin.Framework.Graphics.Shaders;
 using Rin.Framework.Shared.Threading;
-using TerraFX.Interop.Vulkan;
 
 namespace Rin.Framework.Graphics.Vulkan.Shaders.Slang;
 
@@ -75,7 +74,7 @@ public class SlangShaderManager : IShaderManager
     }
 
 
-    public static void ReflectShader(ReflectionData reflectionData, Dictionary<string, Resource> resources,
+    public static void ReflectShader(SlangReflectionData reflectionData, Dictionary<string, Resource> resources,
         Dictionary<string, PushConstant> pushConstants, ShaderStage entryPointStage)
     {
         var parameters = reflectionData.Parameters.ToList();
@@ -131,9 +130,7 @@ public class SlangShaderManager : IShaderManager
                         default:
                         {
                             if (parameterAttribute.Name.EndsWith("Binding"))
-                            {
                                 throw new ShaderCompileException($"Unknown Shader Binding :{parameterAttribute.Name}");
-                            }
                         }
                             break;
                     }

@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 
 namespace Rin.Framework.Graphics.Meshes;
 
+[NoReorder]
 public struct Vertex : IVertex
 {
     /// <summary>

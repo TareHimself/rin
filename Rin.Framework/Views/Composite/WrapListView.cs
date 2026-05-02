@@ -39,7 +39,7 @@ public class WrapListView : MultiSlotCompositeView<ListSlot>
 
     protected void OnDirectionChanged()
     {
-        Invalidate(InvalidationType.Layout);
+        Invalidate(Invalidation.Layout);
     }
 
     public override Vector2 ComputeDesiredContentSize()
@@ -52,7 +52,7 @@ public class WrapListView : MultiSlotCompositeView<ListSlot>
         return _layout.Apply(availableSpace);
     }
 
-    public override void OnChildInvalidated(IView child, InvalidationType invalidation)
+    public override void OnChildInvalidated(IView child, Invalidation invalidation)
     {
         Invalidate(invalidation);
     }

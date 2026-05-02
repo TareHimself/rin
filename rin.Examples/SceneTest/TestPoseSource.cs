@@ -1,7 +1,7 @@
 ﻿using System.Collections.Frozen;
 using System.Numerics;
-using Rin.Framework;
 using Rin.Engine.World.Mesh.Skinning;
+using Rin.Framework;
 using Rin.Framework.Shared.Math;
 
 namespace rin.Examples.SceneTest;

@@ -16,7 +16,6 @@ public class BassAudioModule : IAudioModule
 
     public void Update(float deltaTime)
     {
-        
     }
 
     public float GetVolume()
@@ -29,19 +28,34 @@ public class BassAudioModule : IAudioModule
         ManagedBass.Bass.Configure(Configuration.GlobalStreamVolume, (int)(volume * 10000));
     }
 
-    public ISample CreateSample(string filePath)
+    public IAudioSample MakeSample(string filePath)
     {
-        return BassSample.FromFile(filePath);
+        throw new NotImplementedException();
     }
 
-    public IStream CreateStream(string filePath)
+    public IAudioSample MakeSample(Stream fileStream)
     {
-        return BassStreamChannel.FromFile(filePath);
+        throw new NotImplementedException();
     }
-    
-    public IPushStream CreatePushStream(int frequency, int channels)
+
+    public IAudioSample MakeStream(string filePath)
+    {
+        return new BassFileStreamSample(filePath);
+    }
+
+    public IAudioSample MakeStream(Stream fileStream)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IPushStream MakePushStream(int frequency, int channels)
     {
         var bassStream = ManagedBass.Bass.CreateStream(frequency, channels, BassFlags.Float, StreamProcedureType.Push);
         return new BassPushStream(bassStream);
+    }
+
+    public IAudioScene CreateScene()
+    {
+        throw new NotImplementedException();
     }
 }
