@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Authors>TareHimself</Authors>
         <PackageId>TareHimself.Rin.Framework.Graphics.Vulkan</PackageId>
         <Title>Rin.Framework.Graphics.Vulkan</Title>
+        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -36,6 +36,6 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="TareHimself.Rin.Framework.Graphics.Vulkan.NativeLibs" Version="1.0.0-win"/>
-        <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.3.268"/>
+        <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.4.328.1"/>
     </ItemGroup>
 </Project>

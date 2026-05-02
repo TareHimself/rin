@@ -31,9 +31,8 @@ public class AudioPlayerApp : ExampleApplication
 
     protected override void OnShutdown()
     {
-        
     }
-    
+
     public void Backgrounds(IWindow window)
     {
         var surf = IViewsModule.Get().GetWindowSurface(window);

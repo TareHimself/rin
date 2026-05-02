@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Rin.Framework.Animation;
+using Rin.Framework.Graphics;
 using Rin.Framework.Shared.Math;
 using Rin.Framework.Views;
 using Rin.Framework.Views.Animation;
@@ -41,7 +42,8 @@ public class WrapContainer : ButtonView
             //     .Delay(4)
             //     .WidthTo(ViewsTestApplication.TileSize, transitionDuration, easingFunction: method)
             //     .HeightTo(ViewsTestApplication.TileSize, transitionDuration, easingFunction: method);
-            content.StopAll().RotateTo(45,2).ScaleTo(new Vector2(2),2).After().RotateTo(0,2).ScaleTo(new Vector2(1),2);
+            content.StopAll().RotateTo(45, 2).ScaleTo(new Vector2(2), 2).After().RotateTo(0, 2)
+                .ScaleTo(new Vector2(1), 2);
         };
     }
 
@@ -58,7 +60,7 @@ public class WrapContainer : ButtonView
         base.CollectSelf(transform, cmds);
     }
 
-    public override void Collect(in Matrix4x4 transform, in Rin.Framework.Graphics.Rect2D clip, CommandList commands)
+    public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
         base.Collect(transform, clip, commands);
     }

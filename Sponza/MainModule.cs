@@ -1,14 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using Rin.Engine;
-using Rin.Engine.Extensions;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Meshes;
-using Rin.Engine.Graphics.Textures;
-using Rin.Engine.Math;
-using Rin.Engine.Views;
-using Rin.Engine.Views.Composite;
-using Rin.Engine.Views.Layouts;
 using Rin.Engine.World;
 using Rin.Engine.World.Actors;
 using Rin.Engine.World.Components;
@@ -30,7 +21,7 @@ public class MainModule : IModule
 
     public void Start(SEngine engine)
     {
-        SEngine.Get().Sources.AddSource(AssemblyResource.New<MainModule>("Sponza","Content"));
+        SEngine.Get().Sources.AddSource(AssemblyResource.New<MainModule>("Sponza", "Content"));
         SViewsModule.Get().OnSurfaceCreated += surf =>
         {
             Task.Run(() =>
@@ -106,7 +97,6 @@ public class MainModule : IModule
 
     public async Task<World> LoadSponza(string filename)
     {
-       
         var model = ModelRoot.Load(filename, ReadContext.Create(f => SEngine.Get().Sources.Read(filename).ReadAll()));
         var mesh = model?.LogicalMeshes?.FirstOrDefault() ?? throw new NullReferenceException();
         IMeshMaterial?[] materials = new SponzaMeshMaterial?[mesh.Primitives.Count];

@@ -17,7 +17,7 @@
 - Prefer provider singletons over globals: `IApplication.Get()`, `IGraphicsModule.Get()`, `IViewsModule.Get()`, `IAudioModule.Get()`.
 - Resource paths go through `SFramework.Sources`; default sources include `FileSystemSource` (`fs/...`) and embedded `Framework/...` content (`Rin.Framework/SFramework.cs`).
 - Embedded assets are loaded via `AssemblyContentResource.New<T>(alias)`; example font load: `ViewsModule` reads `Framework/Fonts/NotoSans-Regular.ttf`.
-- Runtime targets are `net9.0` across projects; `global.json` pins SDK `8.0.0` with `rollForward: latestMajor`.
+- Runtime targets are `net10.0` across projects; `global.json` pins SDK `8.0.0` with `rollForward: latestMajor`.
 - Several projects still reference removed APIs like `SFramework.Get()` / `SEngine`; do not copy these patterns into new code.
 
 ## Build, test, and local packaging workflow

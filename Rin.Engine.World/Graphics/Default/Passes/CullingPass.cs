@@ -32,7 +32,7 @@ public class CullingPass(DefaultWorldRenderContext renderContext) : IComputePass
         var boundsBuffer = graph.GetBufferOrException(renderContext.BoundsBufferId);
         var outputBuffer = graph.GetBufferOrException(OutputBufferId);
 
-        if (_shader.Bind(ctx) is not {} bindContext) return;
+        if (_shader.Bind(ctx) is not { } bindContext) return;
         bindContext
             .Push(new Push
             {

@@ -4,7 +4,7 @@
 public enum Invalidation
 {
     DesiredSize = 1 << 0,
-    Layout =  1 << 1 | DesiredSize
+    Layout = (1 << 1) | DesiredSize
 }
 
 // [Flags]

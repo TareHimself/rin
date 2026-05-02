@@ -45,7 +45,7 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     ///     The visibility of this view
     /// </summary>
     public Visibility Visibility { get; set; }
-    
+
     /// <summary>
     ///     Should this view be hit tested
     /// </summary>

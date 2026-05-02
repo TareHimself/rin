@@ -19,7 +19,7 @@ public class PrettyView : ContentView
         //Translate = availableSpace / 2.0f;
         return availableSpace;
     }
-    
+
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         //Angle = (float)(((SRuntime.Get().GetTimeSeconds() * 100.0) - _createdAt) % 360.0);

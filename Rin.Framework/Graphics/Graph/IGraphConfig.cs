@@ -10,7 +10,7 @@ public interface IGraphConfig
     public uint AddExternalTextureArray(ITextureArray textureArray, Action? onDispose = null);
     public uint AddExternalCubemap(ICubemap cubemap, Action? onDispose = null);
     public uint CreateTexture(in Extent2D extent, ImageFormat format, ImageLayout layout);
-    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, int count, ImageLayout layout);
+    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout);
     public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout);
 
     public uint CreateBuffer(ulong size, GraphBufferUsage usage);

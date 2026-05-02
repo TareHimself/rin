@@ -1,8 +1,13 @@
-﻿using System.Diagnostics;
-using System.Numerics;
+﻿using System.Numerics;
+using Rin.Engine.World.Components;
+using Rin.Engine.World.Graphics;
+using Rin.Engine.World.Graphics.Default;
 using Rin.Framework.Graphics;
+using Rin.Framework.Graphics.Graph;
+using Rin.Framework.Graphics.Images;
 using Rin.Framework.Graphics.Shaders;
 using Rin.Framework.Graphics.Windows;
+using Rin.Framework.Shared.Math;
 using Rin.Framework.Views;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
@@ -10,12 +15,6 @@ using Rin.Framework.Views.Graphics.CommandHandlers;
 using Rin.Framework.Views.Graphics.Commands;
 using Rin.Framework.Views.Graphics.PassConfigs;
 using Rin.Framework.Views.Graphics.Quads;
-using Rin.Engine.World.Components;
-using Rin.Engine.World.Graphics;
-using Rin.Engine.World.Graphics.Default;
-using Rin.Framework.Graphics.Graph;
-using Rin.Framework.Graphics.Images;
-using Rin.Framework.Shared.Math;
 using CommandList = Rin.Framework.Views.Graphics.CommandList;
 using ICommand = Rin.Framework.Views.Graphics.Commands.ICommand;
 
@@ -36,20 +35,21 @@ internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
     private readonly IGraphicsShader _shader = SGraphicsModule.Get()
         .MakeGraphics("World/Shaders/viewport.slang");
 
+    private DrawViewportCommand[] _commands = [];
+
     private uint[] _outputImageIds = [];
     private uint[] _pushBufferIds = [];
     private IWorldRenderContext[] _renderContexts = [];
-    private DrawViewportCommand[] _commands = [];
-    
+
     public uint Id { get; set; }
     public bool IsTerminal => false;
-    
+
     public void PreAdd(IGraphBuilder builder)
     {
         _renderContexts = _commands.Select(c => c.Render.Collect(builder, c.Camera, c.Size.ToExtent())).ToArray();
     }
 
-    
+
     public void Init(ICommand[] commands)
     {
         _commands = commands.Cast<DrawViewportCommand>().ToArray();
@@ -68,12 +68,12 @@ internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
     public void Execute(IPassConfig passConfig,
         SurfaceContext surfaceContext, ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_shader.Bind(ctx) is {} bindContext)
+        if (_shader.Bind(ctx) is { } bindContext)
         {
             var outputImages = _outputImageIds.Select(graph.GetImageOrException);
             var pushBuffers = _pushBufferIds.Select(graph.GetBufferOrException);
-            
-            foreach (var (cmd,outputImage,pushBuffer) in _commands.Zip(outputImages, pushBuffers))
+
+            foreach (var (cmd, outputImage, pushBuffer) in _commands.Zip(outputImages, pushBuffers))
             {
                 ctx.SetStencilCompareMask(cmd.StencilMask);
                 pushBuffer.Write(
@@ -90,7 +90,7 @@ internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
             }
         }
     }
-    
+
     private struct PushData
     {
         public required Matrix4x4 Projection;
@@ -105,7 +105,7 @@ internal class DrawViewportCommand(
     in Vector2 extent,
     in Matrix4x4 transform,
     IWorldRenderer renderer)
-    : TCommand<MainPassConfig,ViewportCommandHandler>
+    : TCommand<MainPassConfig, ViewportCommandHandler>
 {
     public Vector2 Size { get; } = extent;
     public CameraComponent Camera { get; } = camera;

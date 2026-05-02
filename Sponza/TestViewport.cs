@@ -1,7 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Engine.Graphics.Windows;
-using Rin.Engine.Math;
-using Rin.Engine.Views.Events;
 using Rin.Engine.World.Actors;
 using Rin.Engine.World.Math;
 using Rin.Engine.World.Views;
@@ -85,7 +82,7 @@ public class TestViewport(CameraActor camera) : Viewport(camera.GetCameraCompone
                     InputState.Pressed => +moveSpeed,
                     InputState.Released => -moveSpeed
                 };
-                Console.WriteLine("Forward {0}",e.State);
+                Console.WriteLine("Forward {0}", e.State);
             }
 
             if (e is { Key: InputKey.S })

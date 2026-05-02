@@ -339,7 +339,7 @@ public class WindowRenderer : IWindowRenderer
                 Profiling.End("Engine.Rendering.Graph.Build");
                 var device = _module.GetDevice();
                 CheckResult(frame.WaitForLastDraw());
-                
+
                 frame.Reset();
 
                 uint swapchainImageIndex = 0;
@@ -431,7 +431,7 @@ public class WindowRenderer : IWindowRenderer
                 }
 
                 frame.Finish();
-                
+
                 _resourcePool.OnFrameEnd(_framesRendered);
 
                 _framesRendered++;

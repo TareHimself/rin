@@ -1,10 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine;
-using Rin.Engine.Graphics;
-using Rin.Engine.Graphics.Shaders;
-using Rin.Engine.Graphics.Textures;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Graphics.Default;
 
@@ -40,15 +36,13 @@ public class SponzaMeshMaterial : IMeshMaterial
         public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
-            if (Shader.Bind(ctx) is {} bindContext)
-            {
+            if (Shader.Bind(ctx) is { } bindContext)
                 return bindContext
                     .Push(new PushConstant
                     {
                         SceneAddress = frame.SceneInfo.GetAddress(),
                         DataAddress = groupMaterialBuffer!.GetAddress()
                     });
-            }
 
             return null;
         }
@@ -57,7 +51,7 @@ public class SponzaMeshMaterial : IMeshMaterial
         {
             return mesh.Material.ColorPass;
         }
-        
+
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
             Debug.Assert(mesh.Material is SponzaMeshMaterial);
@@ -110,15 +104,13 @@ public class SponzaMeshMaterial : IMeshMaterial
         public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
-            if (Shader.Bind(ctx) is {} bindContext)
-            {
+            if (Shader.Bind(ctx) is { } bindContext)
                 return bindContext
                     .Push(new PushConstant
                     {
                         SceneAddress = frame.SceneInfo.GetAddress(),
                         DataAddress = groupMaterialBuffer!.GetAddress()
                     });
-            }
 
             return null;
         }

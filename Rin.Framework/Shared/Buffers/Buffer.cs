@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Rin.Framework.Extensions;
 
 namespace Rin.Framework.Shared.Buffers;

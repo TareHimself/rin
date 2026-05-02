@@ -93,7 +93,7 @@ public class DepthPrepassIndirectPass : IPass
             }
 
             ctx.BindIndexBuffer(first.IndexBuffer);
-            if(firstPass.BindGroup(worldFrame, materialDataBuffer) is {} bindContext)
+            if (firstPass.BindGroup(worldFrame, materialDataBuffer) is { } bindContext)
                 bindContext.DrawIndexedIndirectCount(commandBuffer, countBuffer, (uint)group.Length, 0);
         }
 

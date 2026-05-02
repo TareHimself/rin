@@ -75,7 +75,7 @@ public class ViewsTestApplication : ExampleApplication
             {
                 Slots =
                 [
-                    new PanelSlot()
+                    new PanelSlot
                     {
                         Child = new FitterView
                         {
@@ -85,7 +85,7 @@ public class ViewsTestApplication : ExampleApplication
                             Clip = Clip.Bounds
                         },
                         MinAnchor = Vector2.Zero,
-                        MaxAnchor = Vector2.One,
+                        MaxAnchor = Vector2.One
                     },
                     new PanelSlot
                     {
@@ -109,7 +109,7 @@ public class ViewsTestApplication : ExampleApplication
                         MinAnchor = new Vector2(1.0f, 0.0f),
                         MaxAnchor = new Vector2(1.0f, 0.0f),
                         Alignment = new Vector2(1.0f, 0.0f)
-                    },
+                    }
                 ]
             });
 

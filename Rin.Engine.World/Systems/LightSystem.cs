@@ -17,10 +17,6 @@ public class LightSystem : ISystem
     {
     }
 
-    public void Update(float deltaSeconds)
-    {
-    }
-
     public void OnComponentCreated(IComponent component)
     {
         if (component is LightComponent asLightComponent)
@@ -37,6 +33,10 @@ public class LightSystem : ISystem
             {
                 _lights.Remove(asLightComponent);
             }
+    }
+
+    public void Update(float deltaSeconds)
+    {
     }
 
     public LightComponent[] GetLights()

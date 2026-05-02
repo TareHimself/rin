@@ -296,7 +296,7 @@ public static class VulkanExtensions
 
     public static VkCommandBuffer BindShader(in this VkCommandBuffer cmd, VkShaderEXT shader, VkShaderStageFlags flags)
     {
-        return BindShaders(cmd, [new Pair<VkShaderEXT, VkShaderStageFlags>(shader, flags)]);
+        return cmd.BindShaders([new Pair<VkShaderEXT, VkShaderStageFlags>(shader, flags)]);
     }
 
     public static VkCommandBuffer UnBindShaders(in this VkCommandBuffer cmd, IEnumerable<VkShaderStageFlags> flags)
@@ -315,7 +315,7 @@ public static class VulkanExtensions
 
     public static VkCommandBuffer UnBindShader(in this VkCommandBuffer cmd, VkShaderStageFlags flag)
     {
-        return UnBindShaders(cmd, [flag]);
+        return cmd.UnBindShaders([flag]);
     }
 
 
@@ -355,7 +355,7 @@ public static class VulkanExtensions
 
     public static VkCommandBuffer EnableRasterizerDiscard(in this VkCommandBuffer cmd)
     {
-        return SetRasterizerDiscard(cmd, true);
+        return cmd.SetRasterizerDiscard(true);
     }
 
     public static VkCommandBuffer SetCullMode(in this VkCommandBuffer cmd, VkCullModeFlags cullMode,
@@ -384,8 +384,7 @@ public static class VulkanExtensions
 
     public static VkCommandBuffer DisableCulling(in this VkCommandBuffer cmd)
     {
-        return SetCullMode(cmd,
-            VkCullModeFlags.VK_CULL_MODE_NONE, VkFrontFace.VK_FRONT_FACE_CLOCKWISE);
+        return cmd.SetCullMode(VkCullModeFlags.VK_CULL_MODE_NONE, VkFrontFace.VK_FRONT_FACE_CLOCKWISE);
     }
 
     public static VkCommandBuffer Begin(in this VkCommandBuffer cmd)
@@ -444,7 +443,7 @@ public static class VulkanExtensions
         VkRenderingAttachmentInfo[] attachments, VkRenderingAttachmentInfo? depthAttachment = null,
         VkRenderingAttachmentInfo? stencilAttachment = null)
     {
-        return BeginRendering(cmd, new VkRect2D
+        return cmd.BeginRendering(new VkRect2D
         {
             offset = new VkOffset2D
             {
@@ -917,7 +916,7 @@ public static class VulkanExtensions
     public static VkCommandBuffer ImageBarrier(in this VkCommandBuffer cmd, IVulkanImage image, ImageLayout from,
         ImageLayout to, ImageBarrierOptions? options = null)
     {
-        var cmd2 = ImageBarrier(cmd, image.VulkanImage, from, to,
+        var cmd2 = cmd.ImageBarrier(image.VulkanImage, from, to,
             options ?? new ImageBarrierOptions(image.Format, from, to));
         image.Layout = to;
         return cmd2;
@@ -984,7 +983,7 @@ public static class VulkanExtensions
     public static VkCommandBuffer CopyImageToImage(in this VkCommandBuffer cmd, IVulkanTexture src, IVulkanTexture dst,
         ImageFilter filter = ImageFilter.Linear)
     {
-        CopyImageToImage(cmd, src.VulkanImage, dst.VulkanImage, new Extent3D(src.Extent), new Extent3D(dst.Extent),
+        cmd.CopyImageToImage(src.VulkanImage, dst.VulkanImage, new Extent3D(src.Extent), new Extent3D(dst.Extent),
             filter);
         return cmd;
     }
@@ -1064,7 +1063,7 @@ public static class VulkanExtensions
     public static VkRenderingAttachmentInfo MakeColorAttachmentInfo(this IVulkanTexture image,
         Vector4? clearValue = null)
     {
-        return MakeAttachmentInfo(image, ImageLayout.ColorAttachment, clearValue.HasValue
+        return image.MakeAttachmentInfo(ImageLayout.ColorAttachment, clearValue.HasValue
             ? new VkClearValue
             {
                 color = VulkanGraphicsModule.MakeClearColorValue(clearValue.Value)
@@ -1075,7 +1074,7 @@ public static class VulkanExtensions
     public static VkRenderingAttachmentInfo MakeDepthAttachmentInfo(this IVulkanTexture image,
         float? clearValue = null)
     {
-        return MakeAttachmentInfo(image, ImageLayout.DepthAttachment, clearValue.HasValue
+        return image.MakeAttachmentInfo(ImageLayout.DepthAttachment, clearValue.HasValue
             ? new VkClearValue
             {
                 depthStencil = VulkanGraphicsModule.MakeClearDepthStencilValue(clearValue.Value)
@@ -1086,7 +1085,7 @@ public static class VulkanExtensions
     public static VkRenderingAttachmentInfo MakeStencilAttachmentInfo(this IVulkanTexture image,
         uint? clearValue = null)
     {
-        return MakeAttachmentInfo(image, ImageLayout.StencilAttachment, clearValue.HasValue
+        return image.MakeAttachmentInfo(ImageLayout.StencilAttachment, clearValue.HasValue
             ? new VkClearValue
             {
                 depthStencil = VulkanGraphicsModule.MakeClearDepthStencilValue(stencil: clearValue.Value)

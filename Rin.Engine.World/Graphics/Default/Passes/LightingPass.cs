@@ -29,7 +29,7 @@ public class LightingPass(DefaultWorldRenderContext context) : IPass
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_shader.Bind(ctx) is {} bindContext)
+        if (_shader.Bind(ctx) is { } bindContext)
         {
             var gBuffer0 = graph.GetImageOrException(context.GBufferImage0);
             var gBuffer1 = graph.GetImageOrException(context.GBufferImage1);
@@ -51,12 +51,12 @@ public class LightingPass(DefaultWorldRenderContext context) : IPass
                 });
 
             ctx
-                .BeginRendering(context.Extent, [outputImage],clearColor: Vector4.Zero)
+                .BeginRendering(context.Extent, [outputImage], clearColor: Vector4.Zero)
                 .DisableFaceCulling();
             bindContext
                 .Push(buffer.GetAddress())
                 .Draw(6);
-            
+
             ctx.EndRendering();
         }
     }

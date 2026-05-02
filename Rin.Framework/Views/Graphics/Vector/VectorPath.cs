@@ -51,7 +51,7 @@ public class VectorPath : IPath
     public IPath BezierTo(in Vector2 controlA, in Vector2 controlB, in Vector2 end)
     {
         Segments.Add(new Segment
-            { Type = SegmentType.Line, Begin = Position, End = end, ControlA = controlA, ControlB = controlB });
+            { Type = SegmentType.Bezier, Begin = Position, End = end, ControlA = controlA, ControlB = controlB });
         Position = end;
         return this;
     }

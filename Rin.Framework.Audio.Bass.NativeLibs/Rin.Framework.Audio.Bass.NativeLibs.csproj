@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>TareHimself.Rin.Framework.Audio.Bass.NativeLibs</PackageId>
@@ -18,7 +18,7 @@
         <PlatformRID Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</PlatformRID>
         <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*</DefaultItemExcludes>
     </PropertyGroup>
-    
+
     <Target Name="CleanNative" BeforeTargets="CoreClean">
         <ItemGroup>
             <_Dirs Include=".\native\build\$(Configuration)"/>
@@ -59,6 +59,6 @@
         </None>
         <None Include=".\native\build\$(Configuration)\bin\*.*"
               Pack="true"
-              PackagePath="runtimes\$(PlatformRID)\native\%(Filename)%(Extension)" />
+              PackagePath="runtimes\$(PlatformRID)\native\%(Filename)%(Extension)"/>
     </ItemGroup>
 </Project>

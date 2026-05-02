@@ -1,13 +1,5 @@
-﻿using System.Numerics;
-using Rin.Framework;
-using Rin.Framework.Graphics;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Content;
+﻿using Rin.Framework;
 using Rin.Framework.Views.Font;
-using Rin.Framework.Views.Graphics;
-using Rin.Framework.Views.Layouts;
-using rin.Examples.Common.Views;
 using SixLabors.Fonts;
 
 namespace misc.VectorRendering;

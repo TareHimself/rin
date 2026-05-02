@@ -62,7 +62,8 @@ public class ResourcePool : IResourcePool
         where TResource : class, IDisposable
         where TPoolKey : notnull
     {
-        [PublicAPI] protected readonly Dictionary<TPoolKey, LinkedList<KeyValuePair<float,TResource>>> ContainerPool = [];
+        [PublicAPI]
+        protected readonly Dictionary<TPoolKey, LinkedList<KeyValuePair<float, TResource>>> ContainerPool = [];
 
         public void Dispose()
         {
@@ -101,9 +102,7 @@ public class ResourcePool : IResourcePool
 
             {
                 if (FindExistingResource(key, input, out var resource, out var container))
-                {
                     return MakeResult(container, resource, key, input);
-                }
             }
 
             {
@@ -112,19 +111,18 @@ public class ResourcePool : IResourcePool
                 var created = CreateNew(input, key);
                 var container = ContainerPool[key];
 
-                return MakeResult(container,created, key, input);
+                return MakeResult(container, created, key, input);
             }
         }
 
         public virtual void CheckExpiredProxies(float time)
         {
             foreach (var list in ContainerPool.Values)
-            {
                 while (list.Last is not null)
                 {
-                    var (timeAdded,resource) = list.Last.Value;
+                    var (timeAdded, resource) = list.Last.Value;
                     var delta = time - timeAdded;
-                    if(delta > ExpiredResourceTimeoutSeconds)
+                    if (delta > ExpiredResourceTimeoutSeconds)
                     {
                         resource.Dispose();
                         list.RemoveLast();
@@ -135,11 +133,12 @@ public class ResourcePool : IResourcePool
                         break;
                     }
                 }
-            }
         }
     }
 
-    private sealed class ProxiedTexture(LinkedList<KeyValuePair<float,IDisposableVulkanTexture>> container,IDisposableVulkanTexture resource)
+    private sealed class ProxiedTexture(
+        LinkedList<KeyValuePair<float, IDisposableVulkanTexture>> container,
+        IDisposableVulkanTexture resource)
         : IDisposableVulkanTexture
     {
         public Extent2D Extent => resource.Extent;
@@ -149,7 +148,8 @@ public class ResourcePool : IResourcePool
 
         public void Dispose()
         {
-            container.AddFirst(new KeyValuePair<float, IDisposableVulkanTexture>(IApplication.Get().TimeSeconds,resource));
+            container.AddFirst(
+                new KeyValuePair<float, IDisposableVulkanTexture>(IApplication.Get().TimeSeconds, resource));
         }
 
         public VkImage VulkanImage => resource.VulkanImage;
@@ -165,7 +165,9 @@ public class ResourcePool : IResourcePool
         public IntPtr Allocation => resource.Allocation;
     }
 
-    private sealed class ProxiedTextureArray(LinkedList<KeyValuePair<float,IDisposableVulkanTextureArray>> container,IDisposableVulkanTextureArray resource)
+    private sealed class ProxiedTextureArray(
+        LinkedList<KeyValuePair<float, IDisposableVulkanTextureArray>> container,
+        IDisposableVulkanTextureArray resource)
         : IDisposableVulkanTextureArray
     {
         public Extent2D Extent => resource.Extent;
@@ -175,7 +177,8 @@ public class ResourcePool : IResourcePool
 
         public void Dispose()
         {
-            container.AddFirst(new KeyValuePair<float, IDisposableVulkanTextureArray> (IApplication.Get().TimeSeconds, resource));
+            container.AddFirst(
+                new KeyValuePair<float, IDisposableVulkanTextureArray>(IApplication.Get().TimeSeconds, resource));
         }
 
         public VkImage VulkanImage => resource.VulkanImage;
@@ -192,7 +195,9 @@ public class ResourcePool : IResourcePool
         public IntPtr Allocation => resource.Allocation;
     }
 
-    private sealed class ProxiedCubemap(LinkedList<KeyValuePair<float,IDisposableVulkanCubemap>> container,IDisposableVulkanCubemap resource)
+    private sealed class ProxiedCubemap(
+        LinkedList<KeyValuePair<float, IDisposableVulkanCubemap>> container,
+        IDisposableVulkanCubemap resource)
         : IDisposableVulkanCubemap
     {
         public Extent2D Extent => resource.Extent;
@@ -202,7 +207,8 @@ public class ResourcePool : IResourcePool
 
         public void Dispose()
         {
-            container.AddFirst(new KeyValuePair<float, IDisposableVulkanCubemap>(IApplication.Get().TimeSeconds, resource));
+            container.AddFirst(
+                new KeyValuePair<float, IDisposableVulkanCubemap>(IApplication.Get().TimeSeconds, resource));
         }
 
         public VkImage VulkanImage => resource.VulkanImage;
@@ -222,7 +228,7 @@ public class ResourcePool : IResourcePool
         protected override IDisposableVulkanTexture CreateNew(TextureResourceDescriptor input,
             int key)
         {
-            Debug.WriteLine($"Creating resource for pool {GetType().Name}");
+            Debug.WriteLine($"Creating resource for pool {nameof(TexturePool)}");
             IDisposableVulkanTexture image;
             if (input.Usage.HasFlag(ImageUsage.Sampled))
             {
@@ -243,7 +249,8 @@ public class ResourcePool : IResourcePool
             return image;
         }
 
-        protected override ProxiedTexture MakeResult(LinkedList<KeyValuePair<float, IDisposableVulkanTexture>> container,
+        protected override ProxiedTexture MakeResult(
+            LinkedList<KeyValuePair<float, IDisposableVulkanTexture>> container,
             IDisposableVulkanTexture resource,
             int key, TextureResourceDescriptor input)
         {
@@ -322,7 +329,8 @@ public class ResourcePool : IResourcePool
             return image;
         }
 
-        protected override ProxiedCubemap MakeResult(LinkedList<KeyValuePair<float, IDisposableVulkanCubemap>> container,
+        protected override ProxiedCubemap MakeResult(
+            LinkedList<KeyValuePair<float, IDisposableVulkanCubemap>> container,
             IDisposableVulkanCubemap resource,
             int key, CubemapResourceDescriptor input)
         {
@@ -337,10 +345,11 @@ public class ResourcePool : IResourcePool
 
     private sealed class ProxiedBuffer : IVulkanDeviceBuffer
     {
-        private readonly LinkedList<KeyValuePair<float,BufferContainer>> _container;
+        private readonly LinkedList<KeyValuePair<float, BufferContainer>> _container;
         private readonly BufferContainer _resource;
 
-        public ProxiedBuffer(LinkedList<KeyValuePair<float,BufferContainer>> container, BufferContainer resource,ulong? size = null)
+        public ProxiedBuffer(LinkedList<KeyValuePair<float, BufferContainer>> container, BufferContainer resource,
+            ulong? size = null)
         {
             _container = container;
             _resource = resource;
@@ -351,11 +360,11 @@ public class ResourcePool : IResourcePool
 
         public void Dispose()
         {
-            _container.AddFirst(new KeyValuePair<float, BufferContainer>(IApplication.Get().TimeSeconds,_resource));
+            _container.AddFirst(new KeyValuePair<float, BufferContainer>(IApplication.Get().TimeSeconds, _resource));
         }
 
         public ulong Offset => _resource.Buffer.Offset;
-        public ulong Size { get; set; }
+        public ulong Size { get; }
         public VkBuffer NativeBuffer => _resource.Buffer.NativeBuffer;
         public IntPtr Allocation => _resource.Buffer.Allocation;
 
@@ -402,7 +411,7 @@ public class ResourcePool : IResourcePool
             BufferContainer resource,
             int key, BufferResourceDescriptor input)
         {
-            return new ProxiedBuffer(container, resource,input.Size);
+            return new ProxiedBuffer(container, resource, input.Size);
         }
 
         protected override int MakeKeyFromInput(BufferResourceDescriptor input)
@@ -421,7 +430,8 @@ public class ResourcePool : IResourcePool
                 {
                     var buffContainer = item.First!.Value.Value;
 
-                    if(buffContainer.Buffer.Size >= input.Size && buffContainer.Descriptor.Usage == input.Usage && buffContainer.Descriptor.Mapped == input.Mapped)
+                    if (buffContainer.Buffer.Size >= input.Size && buffContainer.Descriptor.Usage == input.Usage &&
+                        buffContainer.Descriptor.Mapped == input.Mapped)
                     {
                         var delta = buffContainer.Buffer.Size - input.Size;
                         return delta <= MaxBufferReuseDelta;

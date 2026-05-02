@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using Rin.Framework.Views.Graphics;
-using Rin.Framework.Views.Graphics.Quads;
 using SixLabors.Fonts;
 
 namespace misc.VectorRendering;

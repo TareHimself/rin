@@ -6,8 +6,8 @@ using JetBrains.Annotations;
 using Rin.Framework.Graphics.Windows;
 using TerraFX.Interop.Vulkan;
 
-// // ReSharper disable InconsistentNaming
-// #pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
+// ReSharper disable InconsistentNaming
+#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
 
 [assembly: DisableRuntimeMarshalling]
 

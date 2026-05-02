@@ -1,6 +1,4 @@
-﻿using Rin.Framework.Views;
-
-namespace Rin.Engine.World;
+﻿namespace Rin.Engine.World;
 
 [Module(typeof(SViewsModule))]
 public class SWorldModule : IModule, ISingletonGetter<SWorldModule>

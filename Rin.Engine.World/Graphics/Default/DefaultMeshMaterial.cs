@@ -58,15 +58,13 @@ public class DefaultMeshMaterial : IMeshMaterial
         public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
-            if (Shader.Bind(ctx) is {} bindContext)
-            {
+            if (Shader.Bind(ctx) is { } bindContext)
                 return bindContext
                     .Push(new PushConstant
                     {
                         SceneAddress = frame.SceneInfo.GetAddress(),
                         DataAddress = groupMaterialBuffer!.GetAddress()
                     });
-            }
 
             return null;
         }
@@ -75,7 +73,7 @@ public class DefaultMeshMaterial : IMeshMaterial
         {
             return mesh.Material.ColorPass;
         }
-        
+
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
             var data = new DefaultMaterialProperties
@@ -187,15 +185,13 @@ public class DefaultMeshMaterial : IMeshMaterial
         public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
         {
             var ctx = frame.ExecutionContext;
-            if (Shader.Bind(ctx) is {} bindContext)
-            {
+            if (Shader.Bind(ctx) is { } bindContext)
                 return bindContext
                     .Push(new PushConstant
                     {
                         SceneAddress = frame.SceneInfo.GetAddress(),
                         DataAddress = groupMaterialBuffer!.GetAddress()
                     });
-            }
 
             return null;
         }
@@ -204,7 +200,7 @@ public class DefaultMeshMaterial : IMeshMaterial
         {
             return mesh.Material.DepthPass;
         }
-        
+
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
             view.Write(new DepthMaterialData

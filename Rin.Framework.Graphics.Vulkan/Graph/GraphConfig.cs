@@ -67,10 +67,9 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return CreateImage(extent, format, layout, 0, ImageType.Texture);
     }
 
-    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, int count, ImageLayout layout)
+    public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout)
     {
-        throw new NotImplementedException();
-        return CreateImage(extent, format, layout, 0, ImageType.TextureArray);
+        return CreateImage(extent, format, layout, count, ImageType.TextureArray);
     }
 
     public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout)

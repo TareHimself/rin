@@ -15,7 +15,8 @@ public enum PrimitiveType
     CubicCurve
 }
 
-[StructLayout(LayoutKind.Explicit), NoReorder]
+[StructLayout(LayoutKind.Explicit)]
+[NoReorder]
 public struct Quad() // : ICloneable<Quad>
 {
     public enum RenderMode

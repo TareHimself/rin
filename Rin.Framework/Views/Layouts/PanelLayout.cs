@@ -96,7 +96,7 @@ public class PanelLayout(ICompositeView container) : InfiniteChildrenLayout
             var absoluteY = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.Y, asPanelSlot.MaxAnchor.Y);
 
             var desiredSize = view.GetDesiredSize();
-            var areBothRelative = absoluteX == absoluteY && absoluteX == false;
+            var areBothRelative = absoluteX == absoluteY && !absoluteX;
             // The size we assume the widget is for offset calculations
             var workingSize = asPanelSlot.SizeToContent && !areBothRelative
                 ? view.ComputeSize(new Vector2(float.PositiveInfinity))

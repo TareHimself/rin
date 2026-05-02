@@ -63,7 +63,7 @@ public class ScrollListView : ListView
             Axis.Row => float.Max(spaceTaken.X - spaceGiven.X.FiniteOr(spaceTaken.X), 0),
             _ => throw new ArgumentOutOfRangeException()
         };
-        ScrollTo(_offset);
+        //ScrollTo(_offset);
         return new Vector2(float.Min(spaceTaken.X, spaceGiven.X), float.Min(spaceTaken.Y, spaceGiven.Y));
     }
 
@@ -79,11 +79,11 @@ public class ScrollListView : ListView
 
     public virtual float GetAxisSize()
     {
-        var size = GetContentSize();
+        var contentSize = GetContentSize();
         return Axis switch
         {
-            Axis.Row => size.X,
-            Axis.Column => size.Y,
+            Axis.Row => contentSize.X,
+            Axis.Column => contentSize.Y,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
@@ -144,11 +144,12 @@ public class ScrollListView : ListView
             var maxScroll = GetMaxScroll();
             var axisSize = GetAxisSize();
             var desiredAxisSize = axisSize + maxScroll;
-
-            var barSize = float.Max(BarMinimumSize, axisSize - (desiredAxisSize - axisSize));
+            
+            var barSize = float.Max(BarMinimumSize, axisSize * (axisSize / desiredAxisSize));
+            barSize = float.Min(barSize, axisSize);
             var barCrossAxisOffset = GetBarCrossAxisSpaceTaken() - BarPadding;
             var availableDist = axisSize - barSize;
-            var drawOffset = availableDist * (float.Max(scroll, 0.0001f) / maxScroll);
+            var drawOffset = 0;//50 + float.Max(availableDist * float.Clamp(scroll / maxScroll, 0.0f, 1.0f),0);
 
             var size = GetContentSize();
 
@@ -210,6 +211,7 @@ public class ScrollListView : ListView
 
     public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
+        
         base.Collect(transform, clip, commands);
         CollectBar(transform, clip, commands);
     }

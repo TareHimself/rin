@@ -46,13 +46,10 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
 
         if (toCheck.Empty())
         {
-            foreach (var pass in _passes.Values)
-            {
-                pass.OnPrune?.Invoke();
-            }
+            foreach (var pass in _passes.Values) pass.OnPrune?.Invoke();
             return null;
         }
-        
+
         var visited = toCheck.ToHashSet();
 
         // number of passes that depend on the key

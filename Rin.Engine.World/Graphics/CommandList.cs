@@ -2,14 +2,14 @@
 
 namespace Rin.Engine.World.Graphics;
 
-public class CommandList()
+public class CommandList
 {
+    [PublicAPI] public readonly List<uint> ExplicitPasses = [];
     [PublicAPI] public readonly List<LightInfo> Lights = [];
     [PublicAPI] public readonly List<SkinnedMeshInfo> SkinnedMeshes = [];
     [PublicAPI] public readonly List<StaticMeshInfo> StaticMeshes = [];
-    [PublicAPI] public readonly List<uint> ExplicitPasses = [];
 
-    
+
     public CommandList AddLight(LightInfo lightInfo)
     {
         Lights.Add(lightInfo);

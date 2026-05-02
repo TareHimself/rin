@@ -16,10 +16,12 @@ public class CustomShaderCommandHandler : ICommandHandler
     private readonly IGraphicsShader
         _prettyShader =
             IGraphicsModule.Get()
-                .MakeGraphics($"fs/{Path.Join(SFramework.Directory,"assets", "test", "pretty.slang").Replace('\\', '/')}");
-    
+                .MakeGraphics(
+                    $"fs/{Path.Join(SFramework.Directory, "assets", "test", "pretty.slang").Replace('\\', '/')}");
+
     private CustomShaderCommand[] _commands = [];
     private uint BufferId { get; set; }
+
     public void Init(ICommand[] commands)
     {
         _commands = commands.Cast<CustomShaderCommand>().ToArray();
@@ -33,7 +35,7 @@ public class CustomShaderCommandHandler : ICommandHandler
     public void Execute(IPassConfig passConfig,
         SurfaceContext surfaceContext, ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_prettyShader.Bind(ctx) is {} bindContext)
+        if (_prettyShader.Bind(ctx) is { } bindContext)
         {
             var view = graph.GetBufferOrException(BufferId);
             foreach (var customShaderCommand in _commands)
@@ -57,8 +59,9 @@ public class CustomShaderCommandHandler : ICommandHandler
             }
         }
     }
-    
-    [StructLayout(LayoutKind.Sequential),NoReorder]
+
+    [StructLayout(LayoutKind.Sequential)]
+    [NoReorder]
     private struct Data
     {
         public required Matrix4x4 Projection;
