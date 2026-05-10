@@ -95,11 +95,10 @@ public class PanelLayout(ICompositeView container) : InfiniteChildrenLayout
             var absoluteX = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.X, asPanelSlot.MaxAnchor.X);
             var absoluteY = PanelSlot.NearlyEqual(asPanelSlot.MinAnchor.Y, asPanelSlot.MaxAnchor.Y);
 
-            var desiredSize = view.GetDesiredSize();
             var areBothRelative = absoluteX == absoluteY && !absoluteX;
             // The size we assume the widget is for offset calculations
             var workingSize = asPanelSlot.SizeToContent && !areBothRelative
-                ? view.ComputeSize(new Vector2(float.PositiveInfinity))
+                ? view.Layout(new Vector2(float.PositiveInfinity))
                 : asPanelSlot.Size;
             // new Vector2
             // {
@@ -141,7 +140,7 @@ public class PanelLayout(ICompositeView container) : InfiniteChildrenLayout
             var sizeFinal = p2Final - p1Final;
 
             view.Offset = p1Final;
-            if (workingSize != sizeFinal) view.ComputeSize(sizeFinal);
+            if (workingSize != sizeFinal) view.Layout(sizeFinal);
         }
     }
 }

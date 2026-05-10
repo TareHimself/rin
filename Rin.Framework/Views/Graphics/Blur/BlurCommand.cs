@@ -67,6 +67,7 @@ public static class BlurPassExtensions
         float strength = 5.0f,
         float radius = 5.0f, Vector4? tint = null)
     {
+        if (size.X == 0 || size.Y == 0 || strength <= 0 || radius <= 0) return self;
         var initCommand = new BlurInitCommand(transform, strength, radius, size, self.SurfaceSize,
             tint.GetValueOrDefault(Vector4.One));
         self.Add(initCommand);

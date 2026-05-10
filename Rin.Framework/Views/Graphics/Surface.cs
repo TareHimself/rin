@@ -13,8 +13,15 @@ namespace Rin.Framework.Views.Graphics;
 public abstract class Surface : ISurface
 {
     private readonly List<IView> _lastHovered = [];
-    private readonly RootView _rootView = new();
+
+    private readonly RootView _rootView = new()
+    {
+        Offset = default
+    };
+
     private readonly IGraphicsModule _sGraphicsModule;
+    private readonly HashSet<IView> _viewsPendingLayout = [];
+    private bool _isCalculatingLayout;
     private bool _isCursorIn;
     private CursorDownSurfaceEvent? _lastCursorDownEvent;
 
@@ -22,6 +29,7 @@ public abstract class Surface : ISurface
     {
         _sGraphicsModule = IGraphicsModule.Get();
         _rootView.NotifyAddedToSurface(this);
+        _rootView.InvalidateLayout();
     }
 
     public IView? FocusedView { get; private set; }
@@ -36,6 +44,7 @@ public abstract class Surface : ISurface
     {
         if (_isCursorIn) DoHover();
         _rootView.Update(deltaTime);
+        ForceLayout(); // We can do this here or let it happen reactively in collect
     }
 
     public abstract Vector2 GetCursorPosition();
@@ -48,8 +57,6 @@ public abstract class Surface : ISurface
 
     public virtual void Init()
     {
-        _rootView.Offset = default;
-        _rootView.ComputeSize(GetSize());
     }
 
     public abstract Vector2 GetSize();
@@ -106,7 +113,7 @@ public abstract class Surface : ISurface
 
     public virtual void ReceiveResize(ResizeSurfaceEvent e)
     {
-        _rootView.ComputeSize(e.Size);
+        _rootView.Layout(e.Size);
     }
 
     public virtual void ReceiveCursorDown(CursorDownSurfaceEvent e)
@@ -196,6 +203,29 @@ public abstract class Surface : ISurface
     public virtual bool Remove(IView view)
     {
         return _rootView.Remove(view);
+    }
+
+    public void OnViewLayoutInvalidated(IView view)
+    {
+        _viewsPendingLayout.Add(view);
+    }
+
+    public void ForceLayout()
+    {
+        if (_isCalculatingLayout) return;
+        _isCalculatingLayout = true;
+        var toLayout = _viewsPendingLayout.Where(c => c.Surface == this).OrderBy(c => c.Depth).ToArray();
+        _viewsPendingLayout.Clear();
+        foreach (var view in toLayout)
+            if (!view.IsLayoutValid)
+            {
+                if (view.Parent is not null)
+                    view.Parent.LayoutChild(view);
+                else
+                    view.Layout(GetSize());
+            }
+
+        _isCalculatingLayout = false;
     }
 
     private void DoHover()

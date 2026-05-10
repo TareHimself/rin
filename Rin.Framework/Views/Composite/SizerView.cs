@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -18,7 +17,8 @@ public class SizerView : SingleSlotCompositeView
         set
         {
             _widthOverride = value;
-            Invalidate(Invalidation.DesiredSize);
+            InvalidateDesiredSize();
+            InvalidateLayout();
         }
     }
 
@@ -28,7 +28,8 @@ public class SizerView : SingleSlotCompositeView
         set
         {
             _heightOverride = value;
-            Invalidate(Invalidation.DesiredSize);
+            InvalidateDesiredSize();
+            InvalidateLayout();
         }
     }
 
@@ -50,18 +51,18 @@ public class SizerView : SingleSlotCompositeView
         if (GetSlot() is { } slot)
         {
             slot.Child.Offset = default;
-            size = slot.Child.ComputeSize(size);
+            size = slot.Child.Layout(size);
         }
 
         return new Vector2(WidthOverride.GetValueOrDefault(size.X), HeightOverride.GetValueOrDefault(size.Y));
     }
 
-    public override void OnChildInvalidated(IView child, Invalidation invalidation)
+    public override void LayoutChild(IView child)
     {
         if (GetSlot() is { } slot)
         {
             slot.Child.Offset = default;
-            slot.Child.ComputeSize(GetContentSize());
+            slot.Child.Layout(GetContentSize());
         }
     }
 

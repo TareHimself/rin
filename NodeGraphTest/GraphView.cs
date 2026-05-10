@@ -4,7 +4,6 @@ using Rin.Framework.Graphics.Windows;
 using Rin.Framework.Shared.Math;
 using Rin.Framework.Views;
 using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Graphics.Quads;
@@ -112,7 +111,12 @@ public class GraphView : MultiSlotCompositeView<GraphSlot>, IGraphView
         return computedContentSize;
     }
 
-    public override void OnChildInvalidated(IView child, Invalidation invalidation)
+    public override void OnChildLayoutInvalidated(IView child)
+    {
+        // NOOP
+    }
+
+    public override void LayoutChild(IView child)
     {
         if (_layout.FindSlot(child) is GraphSlot slot) _layout.OnSlotUpdated(slot);
     }
@@ -125,7 +129,6 @@ public class GraphView : MultiSlotCompositeView<GraphSlot>, IGraphView
         {
             var localSpace = e.Position.Transform(transform.Inverse());
             dragInfo.Slot.Position = dragInfo.Offset + localSpace;
-            dragInfo.Slot.Apply();
         }
     }
 

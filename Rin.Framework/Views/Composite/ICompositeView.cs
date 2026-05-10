@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -26,12 +25,23 @@ public interface ICompositeView : IView
     public IEnumerable<ISlot> GetHitTestableSlots();
 
 
+    // [PublicAPI]
+    // public void OnChildInvalidated(IView child, Invalidation invalidation);
+
     [PublicAPI]
-    public void OnChildInvalidated(IView child, Invalidation invalidation);
+    public void OnChildLayoutInvalidated(IView child);
 
     [PublicAPI]
     public void OnChildAdded(IView child);
 
     [PublicAPI]
     public void OnChildRemoved(IView child);
+
+
+    /// <summary>
+    ///     Used to lay out an individual child, should be implemented on views that do not propagate invalid layouts
+    /// </summary>
+    /// <param name="child"></param>
+    [PublicAPI]
+    public void LayoutChild(IView child);
 }

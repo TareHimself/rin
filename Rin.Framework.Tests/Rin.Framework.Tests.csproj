@@ -24,4 +24,8 @@
         <ProjectReference Include="..\Rin.Framework\Rin.Framework.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Folder Include="Graphics\"/>
+    </ItemGroup>
+
 </Project>

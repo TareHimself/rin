@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Shaders;
@@ -60,6 +61,7 @@ public class StencilWritePass : IPass
         }
     }
 
+    [NoReorder]
     private struct PushConstants
     {
         public required Matrix4x4 Projection;

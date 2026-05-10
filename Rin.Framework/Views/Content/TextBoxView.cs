@@ -3,7 +3,6 @@ using JetBrains.Annotations;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Shared.Math;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Font;
 using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Graphics.Quads;
@@ -47,7 +46,7 @@ public class TextBoxView : ContentView
         set
         {
             _wrapContent = value;
-            Invalidate(Invalidation.Layout);
+            InvalidateLayout();
         }
     }
 
@@ -105,7 +104,8 @@ public class TextBoxView : ContentView
         _cachedBounds = null;
         _content = newText;
         // TextRenderer.RenderTextTo();
-        Invalidate(Invalidation.DesiredSize);
+        InvalidateDesiredSize();
+        InvalidateLayout();
     }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
@@ -125,7 +125,8 @@ public class TextBoxView : ContentView
         _cachedBounds = null;
         _cachedLayouts = ComputeLayout(out var pending);
         if (pending) _cachedLayouts = null;
-        Invalidate(Invalidation.DesiredSize);
+        InvalidateDesiredSize();
+        InvalidateLayout();
     }
 
 

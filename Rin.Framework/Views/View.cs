@@ -1,10 +1,10 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Framework.Animation;
 using Rin.Framework.Graphics;
 using Rin.Framework.Shared.Math;
 using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
 
@@ -12,26 +12,26 @@ namespace Rin.Framework.Views;
 
 public abstract class View : IView
 {
-    private float _angle;
     private Vector2? _cachedDesiredSize;
-    private Matrix4x4? _cachedRelativeTransform = Matrix4x4.Identity;
-    private Vector2 _offset;
-    private Padding _padding;
-    private Vector2 _pivot;
-    private Vector2 _scale = Vector2.One;
+    private Matrix4x4? _cachedRelativeTransform;
     private Vector2 _size;
-    private Vector2 _translate = Vector2.Zero;
+
+    public int Depth { get; set; }
 
     /// <summary>
     ///     The offset of this view in parent space, should be used for layout
     /// </summary>
     public Vector2 Offset
     {
-        get => new(_offset.X, _offset.Y);
+        get
+        {
+            MaybeForceLayout();
+            return new Vector2(field.X, field.Y);
+        }
         set
         {
-            _offset.X = value.X;
-            _offset.Y = value.Y;
+            field.X = value.X;
+            field.Y = value.Y;
             _cachedRelativeTransform = null;
         }
     }
@@ -55,11 +55,11 @@ public abstract class View : IView
     /// </summary>
     public Vector2 Pivot
     {
-        get => new(_pivot.X, _pivot.Y);
+        get => new(field.X, field.Y);
         set
         {
-            _pivot.X = value.X;
-            _pivot.Y = value.Y;
+            field.X = value.X;
+            field.Y = value.Y;
             _cachedRelativeTransform = null;
         }
     }
@@ -69,28 +69,28 @@ public abstract class View : IView
     /// </summary>
     public Vector2 Translate
     {
-        get => new(_translate.X, _translate.Y);
+        get => new(field.X, field.Y);
         set
         {
-            _translate.X = value.X;
-            _translate.Y = value.Y;
+            field.X = value.X;
+            field.Y = value.Y;
             _cachedRelativeTransform = null;
         }
-    }
+    } = Vector2.Zero;
 
     /// <summary>
     ///     The scale of this view in parent space
     /// </summary>
     public Vector2 Scale
     {
-        get => new(_scale.X, _scale.Y);
+        get => new(field.X, field.Y);
         set
         {
-            _scale.X = value.X;
-            _scale.Y = value.Y;
+            field.X = value.X;
+            field.Y = value.Y;
             _cachedRelativeTransform = null;
         }
-    }
+    } = Vector2.One;
 
     /// <summary>
     ///     The Padding For This View (Left, Top, Right, Bottom)
@@ -99,15 +99,15 @@ public abstract class View : IView
     {
         get => new()
         {
-            Top = _padding.Top,
-            Bottom = _padding.Bottom,
-            Left = _padding.Left,
-            Right = _padding.Right
+            Top = field.Top,
+            Bottom = field.Bottom,
+            Left = field.Left,
+            Right = field.Right
         };
         set
         {
-            _padding = value;
-            Invalidate(Invalidation.DesiredSize);
+            field = value;
+            InvalidateLayout();
         }
     }
 
@@ -116,10 +116,10 @@ public abstract class View : IView
     /// </summary>
     public float Angle
     {
-        get => _angle;
+        get;
         set
         {
-            _angle = value;
+            field = value;
             _cachedRelativeTransform = null;
         }
     }
@@ -151,6 +151,7 @@ public abstract class View : IView
     public bool IsHovered { get; private set; }
 
     public bool IsVisible => Visibility is not (Visibility.Hidden or Visibility.Collapsed);
+    public bool IsLayoutValid { get; private set; } = true;
 
     /// <summary>
     ///     The surface this view is currently on
@@ -181,7 +182,6 @@ public abstract class View : IView
 
     public AnimationRunner AnimationRunner { get; init; } = new();
 
-
     public virtual void Dispose()
     {
     }
@@ -196,17 +196,19 @@ public abstract class View : IView
     /// </summary>
     /// <param name="availableSpace"></param>
     /// <param name="fill">
-    ///     If true will set <see cref="Size" /> to <see cref="availableSpace" /> irrespective of the space
+    ///     If true will set size to <see cref="availableSpace" /> irrespective of the space
     ///     taken by content
     /// </param>
     /// <returns></returns>
-    public virtual Vector2 ComputeSize(in Vector2 availableSpace, bool fill = false)
+    public virtual Vector2 Layout(in Vector2 availableSpace, bool fill = false)
     {
         var padding = new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
         var contentSize = LayoutContent(availableSpace - padding) + padding;
         var sizeResult = (fill ? availableSpace : contentSize).FiniteOr();
         _cachedRelativeTransform = null;
-        return _size = sizeResult;
+        _size = sizeResult;
+        PostLayout();
+        return _size;
     }
 
     /// <summary>
@@ -252,6 +254,7 @@ public abstract class View : IView
 
     public virtual void SetSurface(ISurface? surface)
     {
+        Depth = Parent is not null ? Parent.Depth + 1 : -1;
         if (surface != Surface && Surface != null)
             NotifyRemovedFromSurface(Surface);
         else if (surface != null) NotifyAddedToSurface(surface);
@@ -260,6 +263,8 @@ public abstract class View : IView
     public virtual void NotifyAddedToSurface(ISurface surface)
     {
         Surface = surface;
+        if (!IsLayoutValid) Surface.OnViewLayoutInvalidated(this);
+
         OnAddedToSurface(surface);
     }
 
@@ -354,6 +359,7 @@ public abstract class View : IView
     [PublicAPI]
     public Vector2 GetSize()
     {
+        MaybeForceLayout();
         return _size;
     }
 
@@ -400,53 +406,79 @@ public abstract class View : IView
     public abstract void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands);
 
 
-    public virtual bool TryUpdateDesiredSize()
+    // public virtual bool TryUpdateDesiredSize()
+    // {
+    //     if (_cachedDesiredSize is { } asCachedSize)
+    //     {
+    //         var newSize = ComputeDesiredSize();
+    //
+    //         if (newSize == asCachedSize) return false;
+    //
+    //         _cachedDesiredSize = newSize;
+    //     }
+    //     else
+    //     {
+    //         _cachedDesiredSize = ComputeDesiredSize();
+    //     }
+    //
+    //     return true;
+    // }
+
+    // public virtual void Invalidate(Invalidation type)
+    // {
+    //     if (Invalidation == Invalidation.None)
+    //     {
+    //         Invalidation = Invalidation.None;
+    //     }
+    //     else
+    //     {
+    //         Invalidation |= type;
+    //     }
+    //     
+    //     //
+    //     // switch (type)
+    //     // {
+    //     //     case Invalidation.DesiredSize:
+    //     //     {
+    //     //         if (_cachedDesiredSize is { } asCachedSize)
+    //     //         {
+    //     //             var newSize = ComputeDesiredSize();
+    //     //
+    //     //             if (newSize == asCachedSize) return;
+    //     //             _cachedDesiredSize = newSize;
+    //     //         }
+    //     //         else
+    //     //         {
+    //     //             _cachedDesiredSize = ComputeDesiredSize();
+    //     //         }
+    //     //
+    //     //         Parent?.OnChildInvalidated(this, type);
+    //     //     }
+    //     //         break;
+    //     //     case Invalidation.Layout:
+    //     //         Parent?.OnChildInvalidated(this, type);
+    //     //         break;
+    //     //     default:
+    //     //         throw new ArgumentOutOfRangeException(nameof(type), type, null);
+    //     // }
+    // }
+
+    public void PostLayout()
     {
-        if (_cachedDesiredSize is { } asCachedSize)
-        {
-            var newSize = ComputeDesiredSize();
-
-            if (newSize == asCachedSize) return false;
-
-            _cachedDesiredSize = newSize;
-        }
-        else
-        {
-            _cachedDesiredSize = ComputeDesiredSize();
-        }
-
-        return true;
+        IsLayoutValid = true;
+        Debug.WriteLine($"{GetType().Name}::PostLayout");
     }
 
-    public virtual void Invalidate(Invalidation type)
+    public virtual void InvalidateLayout()
     {
-        if (Surface == null) return;
+        IsLayoutValid = false;
+        Parent?.OnChildLayoutInvalidated(this);
+        Surface?.OnViewLayoutInvalidated(this);
+    }
 
-        switch (type)
-        {
-            case Invalidation.DesiredSize:
-            {
-                if (_cachedDesiredSize is { } asCachedSize)
-                {
-                    var newSize = ComputeDesiredSize();
-
-                    if (newSize == asCachedSize) return;
-                    _cachedDesiredSize = newSize;
-                }
-                else
-                {
-                    _cachedDesiredSize = ComputeDesiredSize();
-                }
-
-                Parent?.OnChildInvalidated(this, type);
-            }
-                break;
-            case Invalidation.Layout:
-                Parent?.OnChildInvalidated(this, type);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
+    public void InvalidateDesiredSize()
+    {
+        _cachedDesiredSize = null;
     }
 
     // ReSharper disable once InconsistentNaming
@@ -493,6 +525,13 @@ public abstract class View : IView
     public bool PointWithin(in Matrix4x4 transform, in Vector2 point, bool useInverse)
     {
         return Rect2D.PointWithin(GetSize(), transform, point, useInverse);
+    }
+
+
+    protected void MaybeForceLayout()
+    {
+        if (IsLayoutValid) return;
+        Surface?.ForceLayout();
     }
 
     /// <summary>

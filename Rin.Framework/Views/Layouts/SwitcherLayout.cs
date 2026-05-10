@@ -1,23 +1,21 @@
 ﻿using System.Numerics;
 using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Enums;
 
 namespace Rin.Framework.Views.Layouts;
 
 public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
 {
-    private int _selected;
     public override ICompositeView Container { get; } = container;
 
     public int SelectedIndex
     {
-        get => _selected;
+        get;
         set
         {
-            var lastSelected = _selected;
+            var lastSelected = field;
             var numSlots = SlotCount;
-            _selected = int.Clamp(value, 0, numSlots == 0 ? 0 : numSlots - 1);
-            if (lastSelected != _selected) Container.Invalidate(Invalidation.Layout);
+            field = int.Clamp(value, 0, numSlots == 0 ? 0 : numSlots - 1);
+            if (lastSelected != field) Container.InvalidateLayout();
         }
     }
 
@@ -45,7 +43,7 @@ public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
             if (SelectedSlot == slot)
             {
                 slot.Child.Offset = default;
-                slot.Child.ComputeSize(Container.GetContentSize());
+                slot.Child.Layout(Container.GetContentSize());
             }
     }
 
@@ -55,7 +53,7 @@ public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
         {
             OnSlotUpdated(slot);
             slot.Child.Offset = default;
-            return slot.Child.ComputeSize(availableSpace);
+            return slot.Child.Layout(availableSpace);
         }
 
         return availableSpace;

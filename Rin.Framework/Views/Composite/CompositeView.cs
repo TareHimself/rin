@@ -4,7 +4,6 @@ using Rin.Framework.Animation;
 using Rin.Framework.Extensions;
 using Rin.Framework.Graphics;
 using Rin.Framework.Shared.Math;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Layouts;
@@ -74,6 +73,12 @@ public abstract class CompositeView : View, ICompositeView
         return GetSlots().Where(c => c.Child.IsHitTestable);
     }
 
+    public virtual void OnChildLayoutInvalidated(IView child)
+    {
+        InvalidateDesiredSize();
+        InvalidateLayout();
+    }
+
     public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
         if (Visibility is Visibility.Hidden or Visibility.Collapsed) return;
@@ -107,18 +112,16 @@ public abstract class CompositeView : View, ICompositeView
     }
 
     [PublicAPI]
-    public abstract void OnChildInvalidated(IView child, Invalidation invalidation);
-
-    [PublicAPI]
     public virtual void OnChildAdded(IView child)
     {
-        Invalidate(Invalidation.Layout);
+        child.InvalidateLayout();
     }
 
     [PublicAPI]
     public virtual void OnChildRemoved(IView child)
     {
-        Invalidate(Invalidation.Layout);
+        InvalidateDesiredSize();
+        InvalidateLayout();
     }
 
     public override void Update(float deltaTime)
@@ -132,6 +135,19 @@ public abstract class CompositeView : View, ICompositeView
     {
         foreach (var slot in GetSlots()) slot.Child.Dispose();
         base.Dispose();
+    }
+
+    public virtual void LayoutChild(IView child)
+    {
+        Layout(GetSize());
+    }
+
+    public override void InvalidateLayout()
+    {
+        base.InvalidateLayout();
+        foreach (var slot in GetSlots())
+            if (slot.Child.IsLayoutValid)
+                slot.Child.InvalidateLayout();
     }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)

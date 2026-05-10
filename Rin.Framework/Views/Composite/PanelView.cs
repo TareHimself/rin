@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -25,12 +24,17 @@ public class PanelView : MultiSlotCompositeView<PanelSlot>
         return _layout.Apply(availableSpace);
     }
 
-    public override void OnChildInvalidated(IView child, Invalidation invalidation)
+    public override void OnChildLayoutInvalidated(IView child)
     {
-        if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
+        // We do nothing because our size is decided by parents
     }
 
-    public override void OnChildAdded(IView child)
+    public override void OnChildRemoved(IView child)
+    {
+        // We do nothing because our size is decided by parents
+    }
+
+    public override void LayoutChild(IView child)
     {
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }

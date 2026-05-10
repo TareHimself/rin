@@ -1,11 +1,14 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 
 namespace Rin.Framework.Shared;
 
+[NoReorder]
 public record struct Bounds2D : IAdditionOperators<Bounds2D, Bounds2D, Bounds2D>
 {
-    public Vector2 Max;
     public Vector2 Min;
+    public Vector2 Max;
+
 
     /// <summary>
     ///     Combines two bounds together

@@ -39,7 +39,7 @@ public class GraphNodeLayout : ILayout
         foreach (var slot in GetSlots())
         {
             slot.Child.Offset = slot.Child.Offset with { Y = size.Y };
-            var slotSize = slot.Child.ComputeSize(availableSpace);
+            var slotSize = slot.Child.Layout(availableSpace);
             size = size with { X = float.Max(slotSize.X, size.X), Y = size.Y + slotSize.Y };
         }
 

@@ -1,5 +1,8 @@
-﻿namespace Rin.Framework.Graphics;
+﻿using JetBrains.Annotations;
 
+namespace Rin.Framework.Graphics;
+
+[NoReorder]
 public record struct SamplerSpec
 {
     public required ImageFilter Filter;

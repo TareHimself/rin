@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 
 namespace Rin.Framework.Graphics;
 
+[NoReorder]
 public struct Version : IFormattable
 {
     [PublicAPI] public uint Major = 0;

@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -29,15 +28,19 @@ public class RootView : MultiSlotCompositeView<Slot>
         return _layout.Apply(availableSpace);
     }
 
-
-    public override void OnChildInvalidated(IView child, Invalidation invalidation)
+    public override void LayoutChild(IView child)
     {
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }
 
-    public override void OnChildAdded(IView child)
+    public override void OnChildLayoutInvalidated(IView child)
     {
-        if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
+        // We do nothing since this view is supposed to be at the top of the tree
+    }
+
+    public override void OnChildRemoved(IView child)
+    {
+        // We do nothing since this view is supposed to be at the top of the tree
     }
 
     public override IEnumerable<ISlot> GetSlots()

@@ -1,7 +1,9 @@
-﻿using Rin.Framework.Shared;
+﻿using JetBrains.Annotations;
+using Rin.Framework.Shared;
 
 namespace Rin.Framework.Graphics.Meshes;
 
+[NoReorder]
 public record struct MeshSurface
 {
     public Bounds3D Bounds;

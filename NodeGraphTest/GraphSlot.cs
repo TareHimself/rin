@@ -5,5 +5,9 @@ namespace NodeGraphTest;
 
 public class GraphSlot : Slot
 {
-    public Vector2 Position;
+    public Vector2 Position
+    {
+        get => Child.Offset;
+        set => Child.Offset = value;
+    }
 }

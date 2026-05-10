@@ -50,4 +50,7 @@ public interface ISurface : IDisposable, IUpdatable
     public T Add<T>(T view) where T : IView;
 
     public bool Remove(IView view);
+
+    public void OnViewLayoutInvalidated(IView view);
+    public void ForceLayout();
 }

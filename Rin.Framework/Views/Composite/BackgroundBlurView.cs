@@ -39,7 +39,7 @@ public class BackgroundBlurView : SingleSlotCompositeView
         if (GetSlot() is { } slot)
         {
             slot.Child.Offset = default;
-            return slot.Child.ComputeSize(availableSpace);
+            return slot.Child.Layout(availableSpace);
         }
 
         return availableSpace;

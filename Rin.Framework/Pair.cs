@@ -1,5 +1,8 @@
-﻿namespace Rin.Framework;
+﻿using JetBrains.Annotations;
 
+namespace Rin.Framework;
+
+[NoReorder]
 public struct Pair<T, TU>(T inFirst, TU inSecond)
 {
     public T First = inFirst;

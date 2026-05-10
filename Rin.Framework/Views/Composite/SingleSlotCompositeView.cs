@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -46,8 +45,7 @@ public abstract class SingleSlotCompositeView : CompositeView, ISingleSlotCompos
                 _slot.Child = child;
 
             _slot.Child.SetParent(this);
-
-            Invalidate(Invalidation.Layout);
+            InvalidateLayout();
         }
         else
         {
@@ -79,11 +77,6 @@ public abstract class SingleSlotCompositeView : CompositeView, ISingleSlotCompos
         if (GetSlot() is { } slot) return slot.Child.GetDesiredSize();
 
         return new Vector2();
-    }
-
-    public override void OnChildInvalidated(IView child, Invalidation invalidation)
-    {
-        Invalidate(invalidation);
     }
 
     // public override void OnChildInvalidated(View child, InvalidationType invalidation)

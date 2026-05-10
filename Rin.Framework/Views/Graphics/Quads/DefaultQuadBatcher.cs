@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Shaders;
 
@@ -37,6 +38,7 @@ public sealed class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         return (uint)quads.Length;
     }
 
+    [NoReorder]
     private struct Push
     {
         public Matrix4x4 Projection;

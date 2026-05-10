@@ -65,7 +65,7 @@ public class PinTestView : SingleSlotCompositeView, IGraphPinView
         var pinHalfSize = pinSize / 2f;
         if (GetSlot()?.Child is { } view)
         {
-            var contentSize = view.ComputeSize(availableSpace with
+            var contentSize = view.Layout(availableSpace with
             {
                 X = float.IsFinite(availableSpace.X) ? availableSpace.X - pinSize : availableSpace.X
             });

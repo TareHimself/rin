@@ -2,6 +2,7 @@
 
 namespace Rin.Framework.Graphics;
 
+[NoReorder]
 public record struct RectUint
 {
     [PublicAPI] public Extent2D Extent = default;

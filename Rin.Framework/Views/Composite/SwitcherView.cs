@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -41,16 +40,16 @@ public class SwitcherView : MultiSlotCompositeView<Slot>
             if (view.GetSize().Equals(availableSpace)) return view.GetSize();
 
             view.Offset = default;
-            return view.ComputeSize(availableSpace);
+            return view.Layout(availableSpace);
         }
 
         return availableSpace;
     }
 
-    public override void OnChildInvalidated(IView child, Invalidation invalidation)
-    {
-        _layout.Apply(GetContentSize());
-    }
+    // public override void OnChildInvalidated(IView child, Invalidation invalidation)
+    // {
+    //     _layout.Apply(GetContentSize());
+    // }
 
     public override IEnumerable<ISlot> GetSlots()
     {

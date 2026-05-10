@@ -1,14 +1,16 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 
 namespace Rin.Framework.Views;
 
+[NoReorder]
 public record struct Padding
 {
     public float Bottom;
     public float Left;
     public float Right;
     public float Top;
-    
+
     public float Horizontal => Left + Right;
     public float Vertical => Top + Bottom;
 

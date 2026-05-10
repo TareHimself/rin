@@ -3,7 +3,6 @@ using JetBrains.Annotations;
 using Rin.Framework.Animation;
 using Rin.Framework.Graphics;
 using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Events;
 using Rin.Framework.Views.Graphics;
 
@@ -11,6 +10,8 @@ namespace Rin.Framework.Views;
 
 public interface IView : IDisposable, IAnimatable, IUpdatable
 {
+    public int Depth { get; }
+
     /// <summary>
     ///     The offset of this view in parent space
     /// </summary>
@@ -68,6 +69,8 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
 
     public bool IsVisible => Visibility is not (Visibility.Hidden or Visibility.Collapsed);
 
+    public bool IsLayoutValid { get; }
+
     /// <summary>
     ///     The surface this view is currently on
     /// </summary>
@@ -94,11 +97,11 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     /// </summary>
     /// <param name="availableSpace"></param>
     /// <param name="fill">
-    ///     If true will set <see cref="Size" /> to <see cref="availableSpace" /> irrespective of the space
+    ///     If true will set size to <see cref="availableSpace" /> irrespective of the space
     ///     taken by content
     /// </param>
     /// <returns></returns>
-    public Vector2 ComputeSize(in Vector2 availableSpace, bool fill = false);
+    public Vector2 Layout(in Vector2 availableSpace, bool fill = false);
 
     /// <summary>
     ///     Computes the local transformation matrix for this view
@@ -163,9 +166,9 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     /// <param name="commands"></param>
     public void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands);
 
-    public bool TryUpdateDesiredSize();
-
-    public void Invalidate(Invalidation type);
+    public void PostLayout();
+    public void InvalidateLayout();
+    public void InvalidateDesiredSize();
 
     // ReSharper disable once InconsistentNaming
     public Rect2D ComputeAABB(in Matrix4x4 transform);

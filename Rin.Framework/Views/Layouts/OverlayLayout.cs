@@ -31,7 +31,7 @@ public class OverlayLayout(ICompositeView container) : InfiniteChildrenLayout
         {
             var desiredSize = slot.Child.GetDesiredSize();
             if (desiredSize.X <= 0.0f || desiredSize.Y <= 0.0f) continue;
-            var viewSize = slot.Child.ComputeSize(availableSpace);
+            var viewSize = slot.Child.Layout(availableSpace);
 
             dims.X = float.Max(dims.X, viewSize.X.FiniteOr());
             dims.Y = float.Max(dims.Y, viewSize.Y.FiniteOr());
@@ -41,7 +41,7 @@ public class OverlayLayout(ICompositeView container) : InfiniteChildrenLayout
         foreach (var slot in GetSlots())
         {
             slot.Child.Offset = default;
-            slot.Child.ComputeSize(dims);
+            slot.Child.Layout(dims);
         }
 
         return new Vector2(float.Min(dims.X, availableSpace.X), float.Min(dims.Y, availableSpace.Y));

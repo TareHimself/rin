@@ -79,7 +79,7 @@ public class GraphNodeTestView : ListView, IGraphNodeView
     {
         var halfPinSpace = NodeGraphConstants.PinPadding + NodeGraphConstants.PinRadius;
         // commands.AddRect(Matrix4x4.Identity.Translate(new Vector2(halfPinSpace,0)).ChildOf(transform), GetContentSize() - new Vector2(halfPinSpace * 2,0),new Color(0.19f,1), new Vector4(20f));
-        commands.AddRect(transform, GetContentSize(), new Color(0.19f, 1), new Vector4(20f));
+        commands.AddRect(transform, GetContentSize(), new Color(0.19f, 1), new Vector4(10f));
         //commands.AddRect(transform, GetContentSize(), Color.Blue, new Vector4(5f));
         base.Collect(in transform, in clip, commands);
     }
