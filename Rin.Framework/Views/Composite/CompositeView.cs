@@ -137,7 +137,7 @@ public abstract class CompositeView : View, ICompositeView
         base.Dispose();
     }
 
-    public virtual void LayoutChild(IView child)
+    public virtual void OnChildNeedsLayout(IView child)
     {
         Layout(GetSize());
     }
@@ -145,6 +145,9 @@ public abstract class CompositeView : View, ICompositeView
     public override void InvalidateLayout()
     {
         base.InvalidateLayout();
+        // Only cascade to currently-valid children — invalid ones are already in the pending queue.
+        // When ForceLayout processes this parent first (lower depth), Layout() covers all children,
+        // marking them valid; their pending entries are then skipped.
         foreach (var slot in GetSlots())
             if (slot.Child.IsLayoutValid)
                 slot.Child.InvalidateLayout();

@@ -32,7 +32,11 @@ public class FitterView : SingleSlotCompositeView
         {
             var old = _fitFittingMode;
             _fitFittingMode = value;
-            if (_fitFittingMode != old) InvalidateLayout();
+            if (_fitFittingMode != old)
+            {
+                InvalidateDesiredSize();
+                InvalidateLayout();
+            }
         }
     }
 
@@ -105,11 +109,6 @@ public class FitterView : SingleSlotCompositeView
         return FitContent(new Vector2(float.IsFinite(availableSpace.X) ? availableSpace.X : desired.X,
             float.IsFinite(availableSpace.Y) ? availableSpace.Y : desired.Y));
     }
-
-    // public override void OnChildInvalidated(IView child, Invalidation invalidation)
-    // {
-    //     FitContent(GetContentSize());
-    // }
 
     public override IEnumerable<ISlot> GetSlots()
     {

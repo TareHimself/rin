@@ -57,7 +57,7 @@ public class SizerView : SingleSlotCompositeView
         return new Vector2(WidthOverride.GetValueOrDefault(size.X), HeightOverride.GetValueOrDefault(size.Y));
     }
 
-    public override void LayoutChild(IView child)
+    public override void OnChildNeedsLayout(IView child)
     {
         if (GetSlot() is { } slot)
         {

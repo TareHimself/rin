@@ -25,9 +25,6 @@ public interface ICompositeView : IView
     public IEnumerable<ISlot> GetHitTestableSlots();
 
 
-    // [PublicAPI]
-    // public void OnChildInvalidated(IView child, Invalidation invalidation);
-
     [PublicAPI]
     public void OnChildLayoutInvalidated(IView child);
 
@@ -37,11 +34,11 @@ public interface ICompositeView : IView
     [PublicAPI]
     public void OnChildRemoved(IView child);
 
-
     /// <summary>
-    ///     Used to lay out an individual child, should be implemented on views that do not propagate invalid layouts
+    ///     Called during the layout pass when a child needs layout but this view does not.
+    ///     Flowing containers (lists, flex) should not need to override this — bubbling via
+    ///     <see cref="OnChildLayoutInvalidated" /> queues the parent, whose pass covers the child.
     /// </summary>
-    /// <param name="child"></param>
     [PublicAPI]
-    public void LayoutChild(IView child);
+    public void OnChildNeedsLayout(IView child);
 }

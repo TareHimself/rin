@@ -26,15 +26,15 @@ public class PanelView : MultiSlotCompositeView<PanelSlot>
 
     public override void OnChildLayoutInvalidated(IView child)
     {
-        // We do nothing because our size is decided by parents
+        // Size is decided by the parent — don't bubble up. ForceLayout will call OnChildNeedsLayout instead.
     }
 
     public override void OnChildRemoved(IView child)
     {
-        // We do nothing because our size is decided by parents
+        // Size is decided by the parent — parent controls when we re-layout.
     }
 
-    public override void LayoutChild(IView child)
+    public override void OnChildNeedsLayout(IView child)
     {
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }

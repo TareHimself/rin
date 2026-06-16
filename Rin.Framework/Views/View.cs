@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Numerics;
+﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Framework.Animation;
 using Rin.Framework.Graphics;
@@ -35,20 +34,6 @@ public abstract class View : IView
             _cachedRelativeTransform = null;
         }
     }
-
-    // /// <summary>
-    // ///     The size of this view in parent space
-    // /// </summary>
-    // public Vector2 Size
-    // {
-    //     get => new(_size.X, _size.Y);
-    //     set
-    //     {
-    //         _size.X = value.X;
-    //         _size.Y = value.Y;
-    //         _cachedRelativeTransform = null;
-    //     }
-    // }
 
     /// <summary>
     ///     The pivot used to render this view. Affects <see cref="Angle" /> and <see cref="Scale" />.
@@ -107,6 +92,7 @@ public abstract class View : IView
         set
         {
             field = value;
+            InvalidateDesiredSize();
             InvalidateLayout();
         }
     }
@@ -406,67 +392,9 @@ public abstract class View : IView
     public abstract void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands);
 
 
-    // public virtual bool TryUpdateDesiredSize()
-    // {
-    //     if (_cachedDesiredSize is { } asCachedSize)
-    //     {
-    //         var newSize = ComputeDesiredSize();
-    //
-    //         if (newSize == asCachedSize) return false;
-    //
-    //         _cachedDesiredSize = newSize;
-    //     }
-    //     else
-    //     {
-    //         _cachedDesiredSize = ComputeDesiredSize();
-    //     }
-    //
-    //     return true;
-    // }
-
-    // public virtual void Invalidate(Invalidation type)
-    // {
-    //     if (Invalidation == Invalidation.None)
-    //     {
-    //         Invalidation = Invalidation.None;
-    //     }
-    //     else
-    //     {
-    //         Invalidation |= type;
-    //     }
-    //     
-    //     //
-    //     // switch (type)
-    //     // {
-    //     //     case Invalidation.DesiredSize:
-    //     //     {
-    //     //         if (_cachedDesiredSize is { } asCachedSize)
-    //     //         {
-    //     //             var newSize = ComputeDesiredSize();
-    //     //
-    //     //             if (newSize == asCachedSize) return;
-    //     //             _cachedDesiredSize = newSize;
-    //     //         }
-    //     //         else
-    //     //         {
-    //     //             _cachedDesiredSize = ComputeDesiredSize();
-    //     //         }
-    //     //
-    //     //         Parent?.OnChildInvalidated(this, type);
-    //     //     }
-    //     //         break;
-    //     //     case Invalidation.Layout:
-    //     //         Parent?.OnChildInvalidated(this, type);
-    //     //         break;
-    //     //     default:
-    //     //         throw new ArgumentOutOfRangeException(nameof(type), type, null);
-    //     // }
-    // }
-
     public void PostLayout()
     {
         IsLayoutValid = true;
-        Debug.WriteLine($"{GetType().Name}::PostLayout");
     }
 
     public virtual void InvalidateLayout()

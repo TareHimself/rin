@@ -38,6 +38,7 @@ public class WrapListView : MultiSlotCompositeView<ListSlot>
 
     protected void OnDirectionChanged()
     {
+        InvalidateDesiredSize();
         InvalidateLayout();
     }
 
@@ -50,11 +51,6 @@ public class WrapListView : MultiSlotCompositeView<ListSlot>
     {
         return _layout.Apply(availableSpace);
     }
-
-    // public override void OnChildInvalidated(IView child, Invalidation invalidation)
-    // {
-    //     Invalidate(invalidation);
-    // }
 
     public override IEnumerable<ISlot> GetSlots()
     {

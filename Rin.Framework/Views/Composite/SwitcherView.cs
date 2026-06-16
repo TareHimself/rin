@@ -37,7 +37,9 @@ public class SwitcherView : MultiSlotCompositeView<Slot>
         {
             var view = slot.Child;
 
-            if (view.GetSize().Equals(availableSpace)) return view.GetSize();
+            // Must check IsLayoutValid: an invalid child at the right size would skip Layout(),
+            // leaving IsLayoutValid false and causing MaybeForceLayout to re-trigger every read.
+            if (view.IsLayoutValid && view.GetSize().Equals(availableSpace)) return view.GetSize();
 
             view.Offset = default;
             return view.Layout(availableSpace);
@@ -45,11 +47,6 @@ public class SwitcherView : MultiSlotCompositeView<Slot>
 
         return availableSpace;
     }
-
-    // public override void OnChildInvalidated(IView child, Invalidation invalidation)
-    // {
-    //     _layout.Apply(GetContentSize());
-    // }
 
     public override IEnumerable<ISlot> GetSlots()
     {

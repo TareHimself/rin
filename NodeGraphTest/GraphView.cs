@@ -116,7 +116,7 @@ public class GraphView : MultiSlotCompositeView<GraphSlot>, IGraphView
         // NOOP
     }
 
-    public override void LayoutChild(IView child)
+    public override void OnChildNeedsLayout(IView child)
     {
         if (_layout.FindSlot(child) is GraphSlot slot) _layout.OnSlotUpdated(slot);
     }

@@ -28,7 +28,7 @@ public class RootView : MultiSlotCompositeView<Slot>
         return _layout.Apply(availableSpace);
     }
 
-    public override void LayoutChild(IView child)
+    public override void OnChildNeedsLayout(IView child)
     {
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }

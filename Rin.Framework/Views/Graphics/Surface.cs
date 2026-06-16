@@ -44,7 +44,7 @@ public abstract class Surface : ISurface
     {
         if (_isCursorIn) DoHover();
         _rootView.Update(deltaTime);
-        ForceLayout(); // We can do this here or let it happen reactively in collect
+        ForceLayout(); // Settle layout before Collect so the render path never triggers lazy computation.
     }
 
     public abstract Vector2 GetCursorPosition();
@@ -214,13 +214,16 @@ public abstract class Surface : ISurface
     {
         if (_isCalculatingLayout) return;
         _isCalculatingLayout = true;
+        // Filter by surface: a view keeps its pending entry if moved to another surface mid-frame.
+        // Order by depth: parents are processed first, so their Layout() pass covers children —
+        // those children arrive at the loop below already valid and are skipped.
         var toLayout = _viewsPendingLayout.Where(c => c.Surface == this).OrderBy(c => c.Depth).ToArray();
         _viewsPendingLayout.Clear();
         foreach (var view in toLayout)
-            if (!view.IsLayoutValid)
+            if (!view.IsLayoutValid) // may already be valid if an ancestor's pass covered it
             {
                 if (view.Parent is not null)
-                    view.Parent.LayoutChild(view);
+                    view.Parent.OnChildNeedsLayout(view);
                 else
                     view.Layout(GetSize());
             }

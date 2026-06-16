@@ -15,7 +15,11 @@ public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
             var lastSelected = field;
             var numSlots = SlotCount;
             field = int.Clamp(value, 0, numSlots == 0 ? 0 : numSlots - 1);
-            if (lastSelected != field) Container.InvalidateLayout();
+            if (lastSelected != field)
+            {
+                Container.InvalidateDesiredSize();
+                Container.InvalidateLayout();
+            }
         }
     }
 
