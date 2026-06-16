@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -37,7 +36,8 @@ public class FlexBoxView : MultiSlotCompositeView<FlexBoxSlot>
 
     protected void OnDirectionChanged()
     {
-        Invalidate(Invalidation.Layout);
+        InvalidateDesiredSize();
+        InvalidateLayout();
     }
 
     public override Vector2 ComputeDesiredContentSize()
@@ -48,11 +48,6 @@ public class FlexBoxView : MultiSlotCompositeView<FlexBoxSlot>
     protected override Vector2 ArrangeContent(in Vector2 availableSpace)
     {
         return _layout.Apply(availableSpace);
-    }
-
-    public override void OnChildInvalidated(IView child, Invalidation invalidation)
-    {
-        Invalidate(invalidation);
     }
 
     public override IEnumerable<ISlot> GetSlots()

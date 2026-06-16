@@ -1,4 +1,5 @@
 using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Images;
@@ -127,12 +128,14 @@ internal class VideoCommandHandler : ICommandHandlerWithPreAdd
         }
     }
 
+    [NoReorder]
     private struct Push
     {
         public required Matrix4x4 Projection;
         public required ulong ItemBufferAddress;
     }
 
+    [NoReorder]
     private struct VideoItem
     {
         public required Matrix4x4 Transform;
@@ -144,10 +147,6 @@ internal class VideoCommandHandler : ICommandHandlerWithPreAdd
 public class VideoPlayerView : ContentView
 {
     private readonly IVideoPlayer _player;
-
-    private Vector2 _cursorPosition = Vector2.Zero;
-
-    private Matrix4x4 _lastCollectAbsoluteTransform = Matrix4x4.Identity;
 
     private VideoPlayerView(IVideoPlayer context)
     {
@@ -203,7 +202,6 @@ public class VideoPlayerView : ContentView
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        _lastCollectAbsoluteTransform = transform;
         if (_player.HasVideo)
         {
             var buff = _player.CopyRecentFrame();
@@ -225,7 +223,6 @@ public class VideoPlayerView : ContentView
 
     public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform)
     {
-        _cursorPosition = e.Position;
     }
 
     public override void Update(float deltaTime)

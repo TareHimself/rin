@@ -3,29 +3,27 @@ using JetBrains.Annotations;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Images;
 using Rin.Framework.Shared.Math;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Graphics;
 using Rin.Framework.Views.Graphics.Quads;
 
 namespace Rin.Framework.Views.Content;
 
 /// <summary>
-///     Draw's a <see cref="BindlessImage" /> if provided or a colored rectangle. Supports tint.
+///     Draw's a 2D <see cref="ImageHandle" /> if provided or a colored rectangle. Supports tint.
 /// </summary>
 public class ImageView : ContentView
 {
-    private ImageHandle _imageHandle = ImageHandle.InvalidTexture;
-
     [PublicAPI]
     public ImageHandle ImageHandle
     {
-        get => _imageHandle;
+        get;
         set
         {
-            _imageHandle = value;
-            Invalidate(Invalidation.DesiredSize);
+            field = value;
+            InvalidateDesiredSize();
+            InvalidateLayout();
         }
-    }
+    } = ImageHandle.InvalidTexture;
 
     [PublicAPI] public Color Tint { get; set; } = new(1.0f);
 

@@ -20,7 +20,7 @@ public class RootLayout(ICompositeView container) : InfiniteChildrenLayout
         if (Container.Surface != null)
         {
             slot.Child.Offset = default;
-            slot.Child.ComputeSize(Container.GetContentSize());
+            slot.Child.Layout(Container.GetContentSize());
         }
     }
 
@@ -29,10 +29,8 @@ public class RootLayout(ICompositeView container) : InfiniteChildrenLayout
         foreach (var slot in GetSlots())
         {
             slot.Child.Offset = default;
-            slot.Child.ComputeSize(availableSpace);
+            slot.Child.Layout(availableSpace);
         }
-
-        ;
 
         return availableSpace;
     }

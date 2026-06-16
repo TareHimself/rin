@@ -4,7 +4,7 @@ using Rin.Framework.Views.Graphics.CommandHandlers;
 
 namespace Rin.Framework.Views.Graphics.Passes;
 
-public class ViewsDrawPass : IPass, IPassWithPreAdd, IPassWithPostAdd
+public class ViewsDrawPass : IPassWithPreAdd, IPassWithPostAdd
 {
     private readonly ICommandHandler[] _commandHandlers;
     private readonly IPassConfig _passConfig;
@@ -28,6 +28,11 @@ public class ViewsDrawPass : IPass, IPassWithPreAdd, IPassWithPostAdd
         }
     }
 
+    public void PostAdd(IGraphBuilder builder)
+    {
+        foreach (var handler in _postHandlers) handler.PostAdd(builder);
+    }
+
     public uint Id { get; set; }
     public bool IsTerminal => false;
     public Action? OnPrune => null;
@@ -48,11 +53,6 @@ public class ViewsDrawPass : IPass, IPassWithPreAdd, IPassWithPostAdd
             commandHandler.Execute(_passConfig, _surfaceContext, graph, ctx);
 
         _passConfig.End(graph, ctx);
-    }
-
-    public void PostAdd(IGraphBuilder builder)
-    {
-        foreach (var handler in _postHandlers) handler.PostAdd(builder);
     }
 
     public void PreAdd(IGraphBuilder builder)

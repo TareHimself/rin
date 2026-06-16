@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -33,7 +32,11 @@ public class FitterView : SingleSlotCompositeView
         {
             var old = _fitFittingMode;
             _fitFittingMode = value;
-            if (_fitFittingMode != old) FitContent(GetContentSize());
+            if (_fitFittingMode != old)
+            {
+                InvalidateDesiredSize();
+                InvalidateLayout();
+            }
         }
     }
 
@@ -85,7 +88,7 @@ public class FitterView : SingleSlotCompositeView
                 _ => throw new ArgumentOutOfRangeException()
             };
 
-            view.ComputeSize(newDrawSize);
+            view.Layout(newDrawSize);
 
             var halfSelfDrawSize = drawSize;
             halfSelfDrawSize /= 2.0f;
@@ -105,11 +108,6 @@ public class FitterView : SingleSlotCompositeView
         var desired = GetDesiredContentSize();
         return FitContent(new Vector2(float.IsFinite(availableSpace.X) ? availableSpace.X : desired.X,
             float.IsFinite(availableSpace.Y) ? availableSpace.Y : desired.Y));
-    }
-
-    public override void OnChildInvalidated(IView child, Invalidation invalidation)
-    {
-        FitContent(GetContentSize());
     }
 
     public override IEnumerable<ISlot> GetSlots()

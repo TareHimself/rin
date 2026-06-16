@@ -51,6 +51,6 @@ public class GraphLayout : InfiniteChildrenLayout
     public void LayoutSlot(GraphSlot slot)
     {
         slot.Child.Offset = slot.Position;
-        slot.Child.ComputeSize(Vector2.PositiveInfinity);
+        slot.Child.Layout(Vector2.PositiveInfinity);
     }
 }

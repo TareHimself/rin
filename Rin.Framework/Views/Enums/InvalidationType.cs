@@ -3,6 +3,7 @@
 [Flags]
 public enum Invalidation
 {
+    None = 0,
     DesiredSize = 1 << 0,
     Layout = (1 << 1) | DesiredSize
 }

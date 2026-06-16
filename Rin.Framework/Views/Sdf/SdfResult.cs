@@ -40,6 +40,6 @@ public class SdfResult(IHostImage image, double width, double height) : IDisposa
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        Image?.Dispose();
+        Image.Dispose();
     }
 }

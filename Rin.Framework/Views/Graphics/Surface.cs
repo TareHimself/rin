@@ -13,8 +13,15 @@ namespace Rin.Framework.Views.Graphics;
 public abstract class Surface : ISurface
 {
     private readonly List<IView> _lastHovered = [];
-    private readonly RootView _rootView = new();
+
+    private readonly RootView _rootView = new()
+    {
+        Offset = default
+    };
+
     private readonly IGraphicsModule _sGraphicsModule;
+    private readonly HashSet<IView> _viewsPendingLayout = [];
+    private bool _isCalculatingLayout;
     private bool _isCursorIn;
     private CursorDownSurfaceEvent? _lastCursorDownEvent;
 
@@ -22,6 +29,7 @@ public abstract class Surface : ISurface
     {
         _sGraphicsModule = IGraphicsModule.Get();
         _rootView.NotifyAddedToSurface(this);
+        _rootView.InvalidateLayout();
     }
 
     public IView? FocusedView { get; private set; }
@@ -36,6 +44,7 @@ public abstract class Surface : ISurface
     {
         if (_isCursorIn) DoHover();
         _rootView.Update(deltaTime);
+        ForceLayout(); // Settle layout before Collect so the render path never triggers lazy computation.
     }
 
     public abstract Vector2 GetCursorPosition();
@@ -48,8 +57,6 @@ public abstract class Surface : ISurface
 
     public virtual void Init()
     {
-        _rootView.Offset = default;
-        _rootView.ComputeSize(GetSize());
     }
 
     public abstract Vector2 GetSize();
@@ -106,7 +113,7 @@ public abstract class Surface : ISurface
 
     public virtual void ReceiveResize(ResizeSurfaceEvent e)
     {
-        _rootView.ComputeSize(e.Size);
+        _rootView.Layout(e.Size);
     }
 
     public virtual void ReceiveCursorDown(CursorDownSurfaceEvent e)
@@ -196,6 +203,32 @@ public abstract class Surface : ISurface
     public virtual bool Remove(IView view)
     {
         return _rootView.Remove(view);
+    }
+
+    public void OnViewLayoutInvalidated(IView view)
+    {
+        _viewsPendingLayout.Add(view);
+    }
+
+    public void ForceLayout()
+    {
+        if (_isCalculatingLayout) return;
+        _isCalculatingLayout = true;
+        // Filter by surface: a view keeps its pending entry if moved to another surface mid-frame.
+        // Order by depth: parents are processed first, so their Layout() pass covers children —
+        // those children arrive at the loop below already valid and are skipped.
+        var toLayout = _viewsPendingLayout.Where(c => c.Surface == this).OrderBy(c => c.Depth).ToArray();
+        _viewsPendingLayout.Clear();
+        foreach (var view in toLayout)
+            if (!view.IsLayoutValid) // may already be valid if an ancestor's pass covered it
+            {
+                if (view.Parent is not null)
+                    view.Parent.OnChildNeedsLayout(view);
+                else
+                    view.Layout(GetSize());
+            }
+
+        _isCalculatingLayout = false;
     }
 
     private void DoHover()

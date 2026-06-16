@@ -2,6 +2,7 @@
 
 namespace Rin.Framework.Graphics;
 
+[NoReorder]
 public record struct WindowRect
 {
     [PublicAPI] public Extent2D Extent;

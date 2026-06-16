@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -27,11 +26,19 @@ public interface ICompositeView : IView
 
 
     [PublicAPI]
-    public void OnChildInvalidated(IView child, Invalidation invalidation);
+    public void OnChildLayoutInvalidated(IView child);
 
     [PublicAPI]
     public void OnChildAdded(IView child);
 
     [PublicAPI]
     public void OnChildRemoved(IView child);
+
+    /// <summary>
+    ///     Called during the layout pass when a child needs layout but this view does not.
+    ///     Flowing containers (lists, flex) should not need to override this — bubbling via
+    ///     <see cref="OnChildLayoutInvalidated" /> queues the parent, whose pass covers the child.
+    /// </summary>
+    [PublicAPI]
+    public void OnChildNeedsLayout(IView child);
 }

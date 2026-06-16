@@ -108,7 +108,7 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
             var view = slot.Child;
             view.Offset = offset;
 
-            var viewSize = view.ComputeSize(new Vector2(space.X, GetSlotCrossAxisSize(slot, space.Y)));
+            var viewSize = view.Layout(new Vector2(space.X, GetSlotCrossAxisSize(slot, space.Y)));
 
             offset.X += viewSize.X;
             mainAxisSize += viewSize.X;
@@ -143,7 +143,7 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
             var view = slot.Child;
             view.Offset = offset;
 
-            var viewSize = view.ComputeSize(new Vector2(GetSlotCrossAxisSize(slot, space.X), space.Y));
+            var viewSize = view.Layout(new Vector2(GetSlotCrossAxisSize(slot, space.X), space.Y));
 
             offset.Y += viewSize.Y;
             mainAxisSize += viewSize.Y;

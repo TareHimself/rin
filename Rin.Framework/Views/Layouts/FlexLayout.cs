@@ -60,7 +60,7 @@ public class FlexLayout : ListLayout
                 }
                 else
                 {
-                    var viewSize = slot.Child.ComputeSize(axis switch
+                    var viewSize = slot.Child.Layout(axis switch
                     {
                         Axis.Column => space with { X = GetSlotCrossAxisSize(slot, space.X) },
                         Axis.Row => space with { Y = GetSlotCrossAxisSize(slot, space.Y) },
@@ -97,8 +97,8 @@ public class FlexLayout : ListLayout
                 }
 
 
-                var slotMainAxisSize = 0.0f;
-                var slotCrossAxisSize = 0.0f;
+                float slotMainAxisSize;
+                float slotCrossAxisSize;
                 if (slot is FlexBoxSlot { Flex: not null } asFlexSlot)
                 {
                     var assignedMainAxisSpace =
@@ -126,7 +126,7 @@ public class FlexLayout : ListLayout
                             throw new ArgumentOutOfRangeException();
                     }
 
-                    view.ComputeSize(flexSize);
+                    view.Layout(flexSize);
                 }
                 else
                 {
@@ -134,14 +134,14 @@ public class FlexLayout : ListLayout
                     {
                         case Axis.Column:
                         {
-                            var viewSize = view.ComputeSize(space with { X = GetSlotCrossAxisSize(slot, space.X) });
+                            var viewSize = view.Layout(space with { X = GetSlotCrossAxisSize(slot, space.X) });
                             slotMainAxisSize = viewSize.Y;
                             slotCrossAxisSize = viewSize.X;
                         }
                             break;
                         case Axis.Row:
                         {
-                            var viewSize = view.ComputeSize(space with { Y = GetSlotCrossAxisSize(slot, space.Y) });
+                            var viewSize = view.Layout(space with { Y = GetSlotCrossAxisSize(slot, space.Y) });
                             slotMainAxisSize = viewSize.X;
                             slotCrossAxisSize = viewSize.Y;
                         }
@@ -192,7 +192,7 @@ public class FlexLayout : ListLayout
                 }
                 else
                 {
-                    var viewSize = slot.Child.ComputeSize(new Vector2(space.X, GetSlotCrossAxisSize(slot, space.Y)));
+                    var viewSize = slot.Child.Layout(new Vector2(space.X, GetSlotCrossAxisSize(slot, space.Y)));
                     mainAxisAvailableSpace -= viewSize.X;
                 }
 
@@ -208,8 +208,8 @@ public class FlexLayout : ListLayout
                 var view = slot.Child;
                 view.Offset = offset;
 
-                var slotMainAxisSize = 0.0f;
-                var slotCrossAxisSize = 0.0f;
+                float slotMainAxisSize;
+                float slotCrossAxisSize;
                 if (slot is FlexBoxSlot { Flex: not null } asFlexSlot)
                 {
                     var assignedMainAxisSpace =
@@ -217,14 +217,14 @@ public class FlexLayout : ListLayout
 
                     var flexSize = new Vector2(assignedMainAxisSpace, GetSlotCrossAxisSize(slot, space.Y));
 
-                    view.ComputeSize(flexSize);
+                    view.Layout(flexSize);
 
                     slotMainAxisSize = flexSize.X;
                     slotCrossAxisSize = flexSize.Y;
                 }
                 else
                 {
-                    var viewSize = view.ComputeSize(new Vector2(space.X, GetSlotCrossAxisSize(slot, space.Y)));
+                    var viewSize = view.Layout(new Vector2(space.X, GetSlotCrossAxisSize(slot, space.Y)));
                     slotMainAxisSize = viewSize.X;
                     slotCrossAxisSize = viewSize.Y;
                 }
@@ -266,7 +266,7 @@ public class FlexLayout : ListLayout
                 }
                 else
                 {
-                    var viewSize = slot.Child.ComputeSize(new Vector2(space.X, GetSlotCrossAxisSize(slot, space.Y)));
+                    var viewSize = slot.Child.Layout(new Vector2(space.X, GetSlotCrossAxisSize(slot, space.Y)));
                     mainAxisAvailableSpace -= viewSize.X;
                 }
 
@@ -282,8 +282,8 @@ public class FlexLayout : ListLayout
                 var view = slot.Child;
                 view.Offset = offset;
 
-                var slotMainAxisSize = 0.0f;
-                var slotCrossAxisSize = 0.0f;
+                float slotMainAxisSize;
+                float slotCrossAxisSize;
                 if (slot is FlexBoxSlot { Flex: not null } asFlexSlot)
                 {
                     var assignedMainAxisSpace =
@@ -291,14 +291,14 @@ public class FlexLayout : ListLayout
 
                     var flexSize = new Vector2(GetSlotCrossAxisSize(slot, space.Y), assignedMainAxisSpace);
 
-                    view.ComputeSize(flexSize);
+                    view.Layout(flexSize);
 
                     slotMainAxisSize = flexSize.Y;
                     slotCrossAxisSize = flexSize.X;
                 }
                 else
                 {
-                    var viewSize = view.ComputeSize(new Vector2(GetSlotCrossAxisSize(slot, space.Y), space.X));
+                    var viewSize = view.Layout(new Vector2(GetSlotCrossAxisSize(slot, space.Y), space.X));
                     slotMainAxisSize = viewSize.Y;
                     slotCrossAxisSize = viewSize.X;
                 }

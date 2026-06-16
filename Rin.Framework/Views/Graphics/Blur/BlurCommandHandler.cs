@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Framework.Graphics;
 using Rin.Framework.Graphics.Graph;
 using Rin.Framework.Graphics.Images;
@@ -13,7 +14,7 @@ namespace Rin.Framework.Views.Graphics.Blur;
 
 internal class BlurInitCommandHandler : ICommandHandler
 {
-    private const float _scaleFactor = 7f;
+    private const float ScaleFactor = 7f;
     private BlurInitCommand[] _commands = [];
 
     public void Init(ICommand[] commands)
@@ -26,7 +27,7 @@ internal class BlurInitCommandHandler : ICommandHandler
         foreach (var command in _commands)
         {
             var blurArea = command.BoundingBoxP2 - command.BoundingBoxP1;
-            var reductionFactor = float.Min(1, _scaleFactor / command.Radius.X);
+            var reductionFactor = float.Min(1, ScaleFactor / command.Radius.X);
             var newSize = blurArea * reductionFactor;
             newSize = newSize.Clamp(blurArea * 0.05f,
                 new Vector2(surfaceContext.Extent.Width, surfaceContext.Extent.Height));
@@ -68,6 +69,7 @@ internal class BlurInitCommandHandler : ICommandHandler
     }
 }
 
+[NoReorder]
 internal struct BlurData()
 {
     public required Matrix4x4 Transform = Matrix4x4.Identity;
@@ -81,6 +83,7 @@ internal struct BlurData()
     public required Vector4 DestRect;
 }
 
+[NoReorder]
 internal struct Push
 {
     public required ulong BufferAddress;

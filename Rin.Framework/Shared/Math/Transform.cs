@@ -1,8 +1,9 @@
-﻿using System.Diagnostics.Contracts;
-using System.Numerics;
+﻿using System.Numerics;
+using JetBrains.Annotations;
 
 namespace Rin.Framework.Shared.Math;
 
+[NoReorder]
 public struct Transform()
 {
     public Vector3 Position = Vector3.Zero;
@@ -17,7 +18,7 @@ public struct Transform()
         return result;
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public Matrix4x4 ToMatrix()
     {
         var rotation = Matrix4x4.CreateFromQuaternion(Orientation);

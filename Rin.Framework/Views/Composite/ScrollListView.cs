@@ -144,12 +144,12 @@ public class ScrollListView : ListView
             var maxScroll = GetMaxScroll();
             var axisSize = GetAxisSize();
             var desiredAxisSize = axisSize + maxScroll;
-            
+
             var barSize = float.Max(BarMinimumSize, axisSize * (axisSize / desiredAxisSize));
             barSize = float.Min(barSize, axisSize);
             var barCrossAxisOffset = GetBarCrossAxisSpaceTaken() - BarPadding;
             var availableDist = axisSize - barSize;
-            var drawOffset = 0;//50 + float.Max(availableDist * float.Clamp(scroll / maxScroll, 0.0f, 1.0f),0);
+            var drawOffset = 0; //50 + float.Max(availableDist * float.Clamp(scroll / maxScroll, 0.0f, 1.0f),0);
 
             var size = GetContentSize();
 
@@ -211,7 +211,6 @@ public class ScrollListView : ListView
 
     public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
-        
         base.Collect(transform, clip, commands);
         CollectBar(transform, clip, commands);
     }

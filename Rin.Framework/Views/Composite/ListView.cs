@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -38,7 +37,8 @@ public class ListView : MultiSlotCompositeView<ListSlot>
 
     protected virtual void OnDirectionChanged()
     {
-        Invalidate(Invalidation.Layout);
+        InvalidateDesiredSize();
+        InvalidateLayout();
     }
 
     public override Vector2 ComputeDesiredContentSize()
@@ -51,10 +51,6 @@ public class ListView : MultiSlotCompositeView<ListSlot>
         return _layout.Apply(availableSpace);
     }
 
-    public override void OnChildInvalidated(IView child, Invalidation invalidation)
-    {
-        Invalidate(invalidation);
-    }
 
     public override IEnumerable<ISlot> GetSlots()
     {

@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using Rin.Framework.Extensions;
-using Rin.Framework.Views.Enums;
 using Rin.Framework.Views.Layouts;
 
 namespace Rin.Framework.Views.Composite;
@@ -28,11 +27,6 @@ public class OverlayView : MultiSlotCompositeView<Slot>
     protected override Vector2 ArrangeContent(in Vector2 availableSpace)
     {
         return _layout.Apply(availableSpace);
-    }
-
-    public override void OnChildInvalidated(IView child, Invalidation invalidation)
-    {
-        Invalidate(invalidation);
     }
 
     public override IEnumerable<ISlot> GetSlots()

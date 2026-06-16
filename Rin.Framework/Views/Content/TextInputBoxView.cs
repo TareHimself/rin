@@ -93,12 +93,6 @@ public class TextInputBoxView : TextBoxView
         }
     }
 
-    protected override void TextChanged(string newText)
-    {
-        base.TextChanged(newText);
-        //CursorPosition = float.Clamp(CursorPosition, -1, Content.Length - 1);
-    }
-
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
         base.LayoutContent(availableSpace);

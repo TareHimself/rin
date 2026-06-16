@@ -4,10 +4,12 @@ using Rin.Framework.Shared.Math;
 
 namespace Rin.Framework.Shared;
 
+[NoReorder]
 public record struct Bounds3D : IAdditionOperators<Bounds3D, Bounds3D, Bounds3D>
 {
-    public Vector3 Max;
     public Vector3 Min;
+    public Vector3 Max;
+
 
     /// <summary>
     ///     Combines two bounds together

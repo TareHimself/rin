@@ -29,7 +29,7 @@ public class WrapListLayout(Axis axis, ICompositeView container) : ListLayout(ax
         List<ListSlot> currentLine = [];
         foreach (var slot in GetSlots())
         {
-            slot.Child.ComputeSize(availableSpace with { X = float.PositiveInfinity });
+            slot.Child.Layout(availableSpace with { X = float.PositiveInfinity });
             var slotSizeMain = axis switch
             {
                 Axis.Row => slot.Child.GetSize().X,

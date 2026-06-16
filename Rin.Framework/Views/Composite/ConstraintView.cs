@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using Rin.Framework.Shared.Math;
-using Rin.Framework.Views.Enums;
 
 namespace Rin.Framework.Views.Composite;
 
@@ -8,48 +7,47 @@ namespace Rin.Framework.Views.Composite;
 /// </summary>
 public class ConstraintView : SingleSlotCompositeView
 {
-    private float? _maxHeight;
-    private float? _maxWidth;
-    private float? _minHeight;
-    private float? _minWidth;
-
     public float? MinWidth
     {
-        get => _minWidth;
+        get;
         set
         {
-            _minWidth = value;
-            Invalidate(Invalidation.DesiredSize);
+            field = value;
+            InvalidateDesiredSize();
+            InvalidateLayout();
         }
     }
 
     public float? MaxWidth
     {
-        get => _maxWidth;
+        get;
         set
         {
-            _maxWidth = value;
-            Invalidate(Invalidation.DesiredSize);
+            field = value;
+            InvalidateDesiredSize();
+            InvalidateLayout();
         }
     }
 
     public float? MinHeight
     {
-        get => _minHeight;
+        get;
         set
         {
-            _minHeight = value;
-            Invalidate(Invalidation.DesiredSize);
+            field = value;
+            InvalidateDesiredSize();
+            InvalidateLayout();
         }
     }
 
     public float? MaxHeight
     {
-        get => _maxHeight;
+        get;
         set
         {
-            _maxHeight = value;
-            Invalidate(Invalidation.DesiredSize);
+            field = value;
+            InvalidateDesiredSize();
+            InvalidateLayout();
         }
     }
 
@@ -79,7 +77,7 @@ public class ConstraintView : SingleSlotCompositeView
         if (GetSlot() is { } slot)
         {
             slot.Child.Offset = default;
-            return Constrain(slot.Child.ComputeSize(size));
+            return Constrain(slot.Child.Layout(size));
         }
 
         return size;
