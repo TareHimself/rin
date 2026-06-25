@@ -1,16 +1,19 @@
 ﻿using System.Numerics;
+using Rin.Core;
+using Rin.Core.Audio;
+using Rin.Core.Audio.Effects;
+using Rin.Core.Extensions;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Windows;
+using Rin.Core.Shared.Video;
+using Rin.Core.Views;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Content;
+using Rin.Core.Views.Graphics.Quads;
+using Rin.Core.Views.Layouts;
 using rin.Examples.Common;
 using rin.Examples.Common.Views;
-using Rin.Framework;
-using Rin.Framework.Extensions;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Windows;
-using Rin.Framework.Shared.Video;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Content;
-using Rin.Framework.Views.Graphics.Quads;
-using Rin.Framework.Views.Layouts;
+
 
 namespace rin.Examples.ViewsTest;
 
@@ -28,10 +31,13 @@ public class ViewsTestApplication : ExampleApplication
         //             .PrepareAtlas(font, Enumerable.Range(32, 127).Select(c => (char)c).Where(c => c.IsPrintable()))
         //             .Wait();
         // }
+        IAudioModule.Get().MasterAudioGroup.Volume = 0.5f;
         IGraphicsModule.Get().OnWindowRendererCreated += TestAnimation;
         IGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         IGraphicsModule.Get()
             .CreateWindow("Views Test", new Extent2D(500), WindowFlags.Visible | WindowFlags.Resizable);
+
+        //IAudioModule.Get().MasterAudioGroup.AddEffect(OrbitEffect.Descriptor);
     }
 
     protected override void OnShutdown()
@@ -60,6 +66,7 @@ public class ViewsTestApplication : ExampleApplication
 
     private void TestAnimation(IWindowRenderer renderer)
     {
+        
         if (IViewsModule.Get().GetWindowSurface(renderer) is { } surf)
         {
             var list = new ListView
@@ -131,6 +138,7 @@ public class ViewsTestApplication : ExampleApplication
                 });
             };
             var rand = new Random();
+            IEffectController<EqParameters>? effectAdded = null;
             surf.Window.OnKey += e =>
             {
                 if (e is { State: InputState.Pressed, Key: InputKey.Equal })
@@ -178,6 +186,34 @@ public class ViewsTestApplication : ExampleApplication
                         },
                         Padding = 10.0f
                     });
+
+                if (effectAdded is not null)
+                {
+                    if (e is { State: InputState.Pressed, Key: InputKey.M })
+                    {
+                        effectAdded.Parameters = EqParameters.VocalBooster;
+                        Console.WriteLine($"Set bass boost to M");
+                    }
+                    
+                    if (e is { State: InputState.Pressed, Key: InputKey.N })
+                    {
+                        effectAdded.Parameters = EqParameters.BassBooster;
+                        Console.WriteLine($"Set bass boost to N");
+                    }
+                }
+                
+                if (e is { State: InputState.Pressed, Key: InputKey.K })
+                {
+                    if (effectAdded is null)
+                    {
+                        effectAdded = IAudioModule.Get().MasterAudioGroup.AddEffect(ParametricEq.Descriptor);
+                    }
+                    else
+                    {
+                        effectAdded?.Dispose();
+                        effectAdded = null;
+                    }
+                }
             };
         }
     }

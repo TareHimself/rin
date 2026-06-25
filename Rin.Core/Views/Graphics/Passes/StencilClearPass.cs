@@ -1,0 +1,30 @@
+﻿using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
+
+namespace Rin.Core.Views.Graphics.Passes;
+
+public class StencilClearPass : IPass
+{
+    private readonly SurfaceContext _surfaceContext;
+
+    public StencilClearPass(SurfaceContext surfaceContext)
+    {
+        _surfaceContext = surfaceContext;
+    }
+
+    private uint StencilImageId => _surfaceContext.StencilImageId;
+    public uint Id { get; set; }
+    public bool IsTerminal => false;
+    public Action? OnPrune => null;
+
+    public void Configure(IGraphConfig config)
+    {
+        config.WriteTexture(StencilImageId, ImageLayout.General);
+    }
+
+    public void Execute(ICompiledGraph graph, IExecutionContext ctx)
+    {
+        var image = graph.GetTextureOrException(StencilImageId);
+        ctx.ClearStencilImages(0, [image]);
+    }
+}

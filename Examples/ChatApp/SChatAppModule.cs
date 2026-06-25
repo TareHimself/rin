@@ -1,8 +1,8 @@
 ﻿// using ChatApp.Views;
-// using Rin.Framework;
-// using Rin.Framework.Graphics;
-// using Rin.Framework.Graphics.Windows;
-// using Rin.Framework.Views;
+// using Rin.Core;
+// using Rin.Core.Graphics;
+// using Rin.Core.Graphics.Windows;
+// using Rin.Core.Views;
 //
 // namespace ChatApp;
 //

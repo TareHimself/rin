@@ -7,14 +7,12 @@ using Rin.Engine.World.Components.Lights;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Mesh;
 using rin.Examples.Common.Views;
-using Rin.Framework.Sources;
+using Rin.Core.Sources;
 using SharpGLTF.Schema2;
 using Texture = SharpGLTF.Schema2.Texture;
 
 namespace Sponza;
 
-[Module(typeof(SWorldModule))]
-[AlwaysLoad]
 public class MainModule : IModule
 {
     private readonly Lock _lock = new();

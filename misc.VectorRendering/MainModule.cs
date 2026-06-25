@@ -1,11 +1,9 @@
-﻿using Rin.Framework;
-using Rin.Framework.Views.Font;
+﻿using Rin.Core;
+using Rin.Core.Views.Font;
 using SixLabors.Fonts;
 
 namespace misc.VectorRendering;
 
-[Module(typeof(SViewsModule))]
-[AlwaysLoad]
 public class MainModule : IModule
 {
     private readonly IFontManager _fontManager = new SixLaborsFontManager();
@@ -83,10 +81,6 @@ public class MainModule : IModule
     {
     }
 
-    public static MainModule Get()
-    {
-        return SFramework.Get().GetModule<MainModule>();
-    }
 
     // public void PaintCanvas(Canvas target, Mat3 transform, CommandList cmds)
     // {

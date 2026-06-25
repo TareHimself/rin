@@ -1,0 +1,47 @@
+﻿using System.Numerics;
+using JetBrains.Annotations;
+using Rin.Core.Graphics;
+using Rin.Core.Views.Graphics;
+using Rin.Core.Views.Graphics.Blur;
+using Rin.Core.Views.Graphics.Vector;
+
+namespace Rin.Core.Views.Composite;
+
+public class BackgroundBlurView : SingleSlotCompositeView
+{
+    [PublicAPI] public Color Tint = Color.White;
+
+    [PublicAPI] public float Strength { get; set; } = 5.0f;
+
+    [PublicAPI] public float Radius { get; set; } = 3.0f;
+
+    public override Vector2 ComputeDesiredContentSize()
+    {
+        if (GetSlot() is { } slot) return slot.Child.GetDesiredSize();
+        return new Vector2();
+    }
+
+    public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
+    {
+        if (IsVisible && Strength > 0.0f && Radius > 0.0f)
+        {
+            //commands.AddBlur(transform, GetContentSize(), Strength, Radius, Tint);
+            // commandList.Add(new ReadBack());
+            commands.AddPath(Matrix4x4.Identity).LineTo(new Vector2(100, 0)).Stroke();
+            commands.AddBlur(transform, GetSize(), Strength, Radius, Tint);
+        }
+
+        base.Collect(transform, clip, commands);
+    }
+
+    protected override Vector2 ArrangeContent(in Vector2 availableSpace)
+    {
+        if (GetSlot() is { } slot)
+        {
+            slot.Child.Offset = default;
+            return slot.Child.Layout(availableSpace);
+        }
+
+        return availableSpace;
+    }
+}

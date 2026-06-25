@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Graph;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
+using Rin.Core.Graphics.Images;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
@@ -41,8 +42,8 @@ public class InitWorldPass : IPass
         var boundsBuffer = graph.GetBufferOrException(_renderContext.BoundsBufferId);
         boundsBuffer.Write(_renderContext.ProcessedMeshes.Select(c => c.Bounds));
         ctx
-            .ClearColorImages(Vector4.Zero, ImageLayout.General, gBuffer0, gBuffer1, gBuffer2)
-            .ClearDepthImages(0, ImageLayout.General, depthImage);
+            .ClearColorImages(Vector4.Zero, new ITexture[]{ImageLayout.General, gBuffer0, gBuffer1, gBuffer2})
+            .ClearDepthImages(0, new ITexture[]{ImageLayout.General, depthImage});
     }
 
     public uint Id { get; set; }

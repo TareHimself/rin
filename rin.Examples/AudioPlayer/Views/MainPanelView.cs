@@ -1,10 +1,10 @@
 ﻿using System.Numerics;
 using rin.Examples.Common.Views;
-using Rin.Framework.Audio;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Layouts;
-using Clip = Rin.Framework.Views.Clip;
+using Rin.Core.Audio;
+using Rin.Core.Views;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Layouts;
+using Clip = Rin.Core.Views.Clip;
 
 namespace rin.Examples.AudioPlayer.Views;
 

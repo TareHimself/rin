@@ -1,0 +1,71 @@
+﻿using System.Numerics;
+using JetBrains.Annotations;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Images;
+using Rin.Core.Views.Graphics;
+using Rin.Core.Shared.Math;
+using Rin.Core.Views.Graphics.Quads;
+
+namespace Rin.Core.Views.Content;
+
+/// <summary>
+///     Draw's a 2D <see cref="ImageHandle" /> if provided or a colored rectangle. Supports tint.
+/// </summary>
+public class ImageView : ContentView
+{
+    [PublicAPI]
+    public ImageHandle ImageHandle
+    {
+        get;
+        set
+        {
+            field = value;
+            InvalidateDesiredSize();
+            InvalidateLayout();
+        }
+    } = ImageHandle.InvalidTexture;
+
+    [PublicAPI] public Color Tint { get; set; } = new(1.0f);
+
+    [PublicAPI] public Vector4 BorderRadius { get; set; } = new(0.0f);
+
+    public override Vector2 ComputeDesiredContentSize()
+    {
+        if (IGraphicsModule.Get().GetTexture(ImageHandle) is { } texture)
+            return new Vector2
+            {
+                X = texture.Extent.Width,
+                Y = texture.Extent.Height
+            };
+
+        return new Vector2();
+    }
+
+    // public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
+    // {
+    //     //throw new NotImplementedException();
+    //     if (TextureId != -1)
+    //     {
+    //         drawCommands.AddTexture(TextureId, info.Transform, GetContentSize(), Tint, null,
+    //             BorderRadius);
+    //     }
+    // }
+
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
+    {
+        if (ImageHandle.IsValid()) DrawImage(ImageHandle, transform, commands);
+    }
+
+    protected virtual void DrawImage(in ImageHandle imageId, Matrix4x4 transform, CommandList commands)
+    {
+        commands.AddTexture(imageId, transform, GetContentSize(), Tint, null,
+            BorderRadius);
+    }
+
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
+    {
+        var size = GetDesiredContentSize();
+        size = availableSpace.FiniteOr(size);
+        return size.Clamp(new Vector2(0.0f), availableSpace);
+    }
+}

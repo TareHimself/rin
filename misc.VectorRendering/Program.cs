@@ -1,7 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
+using misc.VectorRendering;
 
-using Rin.Framework;
-
-// Console.WriteLine("Hello, World!");
-
-SFramework.Get().Run();
+using var app = new VectorRenderingApplication();
+app.Run();

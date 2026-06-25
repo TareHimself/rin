@@ -1,4 +1,4 @@
-using Rin.Framework.Shared;
+using Rin.Core.Shared;
 
 namespace Rin.Engine.World.Mesh.Skinning;
 

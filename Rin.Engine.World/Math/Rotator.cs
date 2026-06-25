@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Shared.Math;
+using Rin.Core.Shared.Math;
 
 namespace Rin.Engine.World.Math;
 

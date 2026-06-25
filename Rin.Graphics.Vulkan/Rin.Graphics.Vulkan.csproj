@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Authors>TareHimself</Authors>
+        <PackageId>TareHimself.Rin.Graphics.Vulkan</PackageId>
+        <Title>Rin.Graphics.Vulkan</Title>
+        <TargetFramework>net10.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PlatformRID Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</PlatformRID>
+        <PlatformRID Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</PlatformRID>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Windows'))">OS_WINDOWS</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Linux'))">OS_LINUX</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('OSX'))">OS_MAC</DefineConstants>
+        <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*;assets\**\*.*</DefaultItemExcludes>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <DepMode Condition="'$(DepMode)' == ''">local_file</DepMode>
+    </PropertyGroup>
+    <!--    Local refs i.e. project refs-->
+    <ItemGroup Condition="'$(DepMode)' == 'local_file'">
+        <ProjectReference Include="..\Rin.Core\Rin.Core.csproj" />
+    </ItemGroup>
+    <!--    References from online feeds-->
+    <ItemGroup Condition="'$(DepMode)' == 'online'">
+        <PackageReference Include="TareHimself.Rin.Core" Version="2.0.1"/>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" PrivateAssets="All" />
+        <PackageReference Include="TareHimself.Rin.Graphics.Vulkan.Native" Version="1.*"/>
+        <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.4.328.1"/>
+    </ItemGroup>
+</Project>

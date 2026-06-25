@@ -5,10 +5,10 @@ using Rin.Engine.World.Components;
 using Rin.Engine.World.Components.Lights;
 using Rin.Engine.World.Mesh;
 using Rin.Engine.World.Mesh.Skinning;
-using Rin.Framework.Extensions;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Meshes;
-using Rin.Framework.Shared.Math;
+using Rin.Core.Extensions;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Meshes;
+using Rin.Core.Shared.Math;
 using SharpGLTF.Schema2;
 
 namespace rin.Examples.SceneTest;

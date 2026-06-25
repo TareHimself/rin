@@ -1,5 +1,5 @@
-﻿using Rin.Framework.Views;
-using Rin.Framework.Views.Composite;
+﻿using Rin.Core.Views;
+using Rin.Core.Views.Composite;
 
 namespace ChatApp.Views;
 

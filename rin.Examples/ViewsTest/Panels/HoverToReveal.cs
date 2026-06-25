@@ -1,10 +1,10 @@
 ﻿using System.Numerics;
-using Rin.Framework.Animation;
-using Rin.Framework.Views.Animation;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Content;
-using Rin.Framework.Views.Events;
-using Rin.Framework.Views.Layouts;
+using Rin.Core.Animation;
+using Rin.Core.Views.Animation;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Content;
+using Rin.Core.Views.Events;
+using Rin.Core.Views.Layouts;
 
 namespace rin.Examples.ViewsTest.Panels;
 

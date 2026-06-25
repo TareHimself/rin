@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
-using Rin.Framework.Shared;
-using Rin.Framework.Shared.Math;
-using Rin.Framework.Views.Content;
-using Rin.Framework.Views.Graphics;
+using Rin.Core.Shared;
+using Rin.Core.Shared.Math;
+using Rin.Core.Views.Content;
+using Rin.Core.Views.Graphics;
 
 namespace rin.Examples.Common.Views;
 

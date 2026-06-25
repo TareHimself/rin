@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Content;
-using Rin.Framework.Views.Graphics.Quads;
-using Rin.Framework.Views.Layouts;
+using Rin.Core.Views;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Content;
+using Rin.Core.Views.Graphics.Quads;
+using Rin.Core.Views.Layouts;
 
 namespace ChatApp.Views;
 

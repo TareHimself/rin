@@ -1,13 +1,13 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using Rin.Framework;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Graph;
-using Rin.Framework.Graphics.Shaders;
-using Rin.Framework.Views.Graphics;
-using Rin.Framework.Views.Graphics.CommandHandlers;
-using Rin.Framework.Views.Graphics.Commands;
+using Rin.Core;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
+using Rin.Core.Graphics.Shaders;
+using Rin.Core.Views.Graphics;
+using Rin.Core.Views.Graphics.CommandHandlers;
+using Rin.Core.Views.Graphics.Commands;
 
 namespace rin.Examples.ViewsTest;
 

@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using Rin.Framework.Shared.Math;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Layouts;
+using Rin.Core.Shared.Math;
+using Rin.Core.Views;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Layouts;
 
 namespace NodeGraphTest;
 

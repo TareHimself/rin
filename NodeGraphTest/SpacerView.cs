@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Graphics;
+using Rin.Core.Views;
+using Rin.Core.Views.Graphics;
 
 namespace NodeGraphTest;
 

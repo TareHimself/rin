@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Layouts;
+using Rin.Core.Views.Layouts;
 
 namespace NodeGraphTest;
 

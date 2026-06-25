@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PackageId>TareHimself.Rin.Audio.Miniaudio</PackageId>
+        <Authors>TareHimself</Authors>
+        <Title>Rin.Audio.Miniaudio</Title>
+        <TargetFramework>net10.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    
+
+    <PropertyGroup>
+        <PlatformRID Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</PlatformRID>
+        <PlatformRID Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</PlatformRID>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Windows'))">OS_WINDOWS</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Linux'))">OS_LINUX</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('OSX'))">OS_MAC</DefineConstants>
+        <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*</DefaultItemExcludes>
+        <DepMode Condition="'$(DepMode)' == ''">local_file</DepMode>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" PrivateAssets="All"/>
+        <PackageReference Include="TareHimself.Rin.Audio.Miniaudio.Native" Version="1.*" />
+    </ItemGroup>
+    
+    <ItemGroup Condition="'$(DepMode)' == 'local_file'">
+        <ProjectReference Include="..\Rin.Core\Rin.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(DepMode)' == 'online'">
+        <PackageReference Include="TareHimself.Rin.Core" Version="2.0.1"/>
+    </ItemGroup>
+</Project>

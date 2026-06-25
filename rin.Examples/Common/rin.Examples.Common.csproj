@@ -13,9 +13,9 @@
 
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Rin.Framework.Audio.Bass\Rin.Framework.Audio.Bass.csproj"/>
-        <ProjectReference Include="..\..\Rin.Framework.Graphics.Vulkan\Rin.Framework.Graphics.Vulkan.csproj"/>
-        <ProjectReference Include="..\..\Rin.Framework\Rin.Framework.csproj"/>
+        <ProjectReference Include="..\..\Rin.Audio.Miniaudio\Rin.Audio.Miniaudio.csproj" />
+        <ProjectReference Include="..\..\Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj" />
+        <ProjectReference Include="..\..\Rin.Core\Rin.Core.csproj" />
     </ItemGroup>
 
 </Project>

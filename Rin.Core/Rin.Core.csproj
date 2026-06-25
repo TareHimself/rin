@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <IsAotCompatible>true</IsAotCompatible>
+        <PackageId>TareHimself.Rin.Core</PackageId>
+        <Title>Rin.Core</Title>
+        <Authors>TareHimself</Authors>
+        <Version>2.0.1</Version>
+        <TargetFramework>net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" PrivateAssets="All" />
+        <PackageReference Include="NetVips" Version="3.2.0"/>
+        <PackageReference Include="NetVips.Native" Version="8.18.3" />
+        <PackageReference Include="StbRectPackSharp" Version="1.0.4"/>
+        <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119"/>
+        <PackageReference Include="TareHimself.Rin.Native" Version="1.*"/>
+        <PackageReference Include="SixLabors.Fonts" Version="2.1.3" />
+    </ItemGroup>
+
+    <ItemGroup Label="Content">
+        <EmbeddedResource Include="Content\**\*.*"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="CurveBoundsInterpolation.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Rin.SourceGenerators\Rin.Core.Generators\Rin.Core.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <PlatformRID Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</PlatformRID>
+        <PlatformRID Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</PlatformRID>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Windows'))">OS_WINDOWS</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Linux'))">OS_LINUX</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('OSX'))">OS_MAC</DefineConstants>
+        <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*;assets\**\*.*</DefaultItemExcludes>
+    </PropertyGroup>
+
+</Project>

@@ -2,13 +2,13 @@
 using rin.Examples.AudioPlayer.Views;
 using rin.Examples.Common;
 using rin.Examples.Common.Views;
-using Rin.Framework;
-using Rin.Framework.Audio;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Windows;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Layouts;
+using Rin.Core;
+using Rin.Core.Audio;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Windows;
+using Rin.Core.Views;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Layouts;
 using SpotifyExplode;
 using YoutubeExplode;
 

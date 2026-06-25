@@ -3,9 +3,9 @@ using Rin.Engine.World.Actors;
 using Rin.Engine.World.Math;
 using Rin.Engine.World.Views;
 using rin.Examples.SceneTest.entities;
-using Rin.Framework.Graphics.Windows;
-using Rin.Framework.Shared.Math;
-using Rin.Framework.Views.Events;
+using Rin.Core.Graphics.Windows;
+using Rin.Core.Shared.Math;
+using Rin.Core.Views.Events;
 
 namespace rin.Examples.SceneTest;
 

@@ -1,13 +1,13 @@
 ﻿using System.Numerics;
 using System.Text.Json.Nodes;
-using Rin.Framework.Graphics;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Content;
-using Rin.Framework.Views.Events;
-using Rin.Framework.Views.Graphics;
-using Rin.Framework.Views.Graphics.Quads;
-using Rin.Framework.Views.Layouts;
+using Rin.Core.Graphics;
+using Rin.Core.Views;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Content;
+using Rin.Core.Views.Events;
+using Rin.Core.Views.Graphics;
+using Rin.Core.Views.Graphics.Quads;
+using Rin.Core.Views.Layouts;
 
 namespace NodeGraphTest;
 

@@ -1,9 +1,9 @@
-﻿using Rin.Framework;
-using Rin.Framework.Audio;
-using Rin.Framework.Audio.Bass;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Vulkan;
-using Rin.Framework.Views;
+﻿using Rin.Audio.Miniaudio;
+using Rin.Core;
+using Rin.Core.Audio;
+using Rin.Core.Graphics;
+using Rin.Graphics.Vulkan;
+using Rin.Core.Views;
 
 namespace rin.Examples.Common;
 
@@ -21,6 +21,6 @@ public abstract class ExampleApplication : Application
 
     public override IAudioModule CreateAudioModule()
     {
-        return new BassAudioModule();
+        return new MiniaudioAudioModule();
     }
 }

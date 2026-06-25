@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Rin.Core": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    },
+    "DebugRoslynSourceGenerator": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "../Rin.SourceGenerators/Rin.Core.Generators/Rin.Core.Generators.csproj"
+    }
+  }
+}

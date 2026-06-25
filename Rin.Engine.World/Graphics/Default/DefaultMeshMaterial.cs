@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Images;
-using Rin.Framework.Graphics.Shaders;
-using Rin.Framework.Shared.Math;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Images;
+using Rin.Core.Graphics.Shaders;
+using Rin.Core.Shared.Math;
 
 namespace Rin.Engine.World.Graphics.Default;
 

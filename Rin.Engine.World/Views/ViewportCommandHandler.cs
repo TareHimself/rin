@@ -2,21 +2,21 @@
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics;
 using Rin.Engine.World.Graphics.Default;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Graph;
-using Rin.Framework.Graphics.Images;
-using Rin.Framework.Graphics.Shaders;
-using Rin.Framework.Graphics.Windows;
-using Rin.Framework.Shared.Math;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Events;
-using Rin.Framework.Views.Graphics;
-using Rin.Framework.Views.Graphics.CommandHandlers;
-using Rin.Framework.Views.Graphics.Commands;
-using Rin.Framework.Views.Graphics.PassConfigs;
-using Rin.Framework.Views.Graphics.Quads;
-using CommandList = Rin.Framework.Views.Graphics.CommandList;
-using ICommand = Rin.Framework.Views.Graphics.Commands.ICommand;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
+using Rin.Core.Graphics.Images;
+using Rin.Core.Graphics.Shaders;
+using Rin.Core.Graphics.Windows;
+using Rin.Core.Shared.Math;
+using Rin.Core.Views;
+using Rin.Core.Views.Events;
+using Rin.Core.Views.Graphics;
+using Rin.Core.Views.Graphics.CommandHandlers;
+using Rin.Core.Views.Graphics.Commands;
+using Rin.Core.Views.Graphics.PassConfigs;
+using Rin.Core.Views.Graphics.Quads;
+using CommandList = Rin.Core.Views.Graphics.CommandList;
+using ICommand = Rin.Core.Views.Graphics.Commands.ICommand;
 
 namespace Rin.Engine.World.Views;
 

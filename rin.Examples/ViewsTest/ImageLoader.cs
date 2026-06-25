@@ -1,12 +1,13 @@
-﻿using Rin.Framework;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Images;
-using Rin.Framework.Shared.Threading;
+﻿using Rin.Core;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Images;
+using Rin.Core.Shared.Threading;
 
 namespace rin.Examples.ViewsTest;
 
 public class ImageLoader
 {
+    private static readonly HttpClient Client = new();
     private readonly BackgroundTaskQueue _taskQueue = new();
 
     public void Load(string source, Action<ImageHandle> onLoad)
@@ -15,8 +16,7 @@ public class ImageLoader
         {
             if (source.StartsWith("http"))
             {
-                using var client = new HttpClient();
-                using var resp = client.Send(new HttpRequestMessage(HttpMethod.Get, source));
+                using var resp = Client.Send(new HttpRequestMessage(HttpMethod.Get, source));
                 resp.EnsureSuccessStatusCode();
                 using var image = HostImage.Create(resp.Content.ReadAsStream());
                 image.CreateTexture(out var imageHandle).Wait();
@@ -24,8 +24,7 @@ public class ImageLoader
             }
             else
             {
-                using var client = new HttpClient();
-                using var resp = client.Send(new HttpRequestMessage(HttpMethod.Get, source));
+                using var resp = Client.Send(new HttpRequestMessage(HttpMethod.Get, source));
                 resp.EnsureSuccessStatusCode();
                 using var data = File.OpenRead(source);
                 using var image = HostImage.Create(data);

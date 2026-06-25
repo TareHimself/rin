@@ -1,7 +1,7 @@
 using Rin.Engine.World.Components;
 using Rin.Engine.World.Graphics.Default.Passes;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Graph;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
 
 namespace Rin.Engine.World.Graphics.Default;
 

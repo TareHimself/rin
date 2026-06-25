@@ -1,0 +1,26 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+    conan:
+        - conan install . --build=missing -s build_type=Release
+    
+    build:
+        deps:
+            - conan
+        cmds:
+            - cmake --preset Rin-Release --fresh
+            - cmake --build --preset Rin-Release
+
+    conand:
+        - conan install . --build=missing -s build_type=Debug
+
+    buildd:
+        deps:
+            - conand
+        cmds:
+            - cmake --preset Rin-Debug --fresh
+            - cmake --build --preset Rin-Debug
+
+        

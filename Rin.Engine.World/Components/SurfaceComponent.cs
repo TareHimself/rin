@@ -1,7 +1,7 @@
 using System.Numerics;
-using Rin.Framework.Graphics;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Graphics;
+using Rin.Core.Graphics;
+using Rin.Core.Views;
+using Rin.Core.Views.Graphics;
 using CommandList = Rin.Engine.World.Graphics.CommandList;
 
 namespace Rin.Engine.World.Components;
