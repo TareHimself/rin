@@ -1,13 +1,11 @@
-﻿using Rin.Framework;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Windows;
-using Rin.Framework.Views.Content;
-using Rin.Framework.Views.Graphics.Quads;
+﻿using Rin.Core;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Windows;
+using Rin.Core.Views.Content;
+using Rin.Core.Views.Graphics.Quads;
 
 namespace misc.StrokeExpansion;
 
-[AlwaysLoad]
-[Module(typeof(SViewsModule), typeof(SAudioModule))]
 public class MainModule : IModule, ISingletonGetter<MainModule>
 {
     public void Start(IApplication app)

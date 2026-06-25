@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Framework.Graphics;
+using Rin.Core.Graphics;
 
 namespace Rin.Engine.World.Graphics;
 

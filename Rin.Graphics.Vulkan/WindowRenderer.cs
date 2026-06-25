@@ -1,0 +1,470 @@
+﻿using System.Collections.Frozen;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
+using Rin.Core.Graphics.Images;
+using Rin.Graphics.Vulkan.Descriptors;
+using Rin.Graphics.Vulkan.Graph;
+using Rin.Graphics.Vulkan.Images;
+using Rin.Graphics.Vulkan.Windows;
+using Rin.Core.Graphics.Windows;
+using Rin.Core.Shared;
+using TerraFX.Interop.Vulkan;
+using static TerraFX.Interop.Vulkan.VkStructureType;
+using static TerraFX.Interop.Vulkan.Vulkan;
+
+namespace Rin.Graphics.Vulkan;
+
+/// <summary>
+///     Handle's rendering on a <see cref="Windows" />
+/// </summary>
+public class WindowRenderer : IWindowRenderer
+{
+    private const uint FramesInFlight = 1;
+
+    private readonly VulkanBindlessImageFactory _bindlessImageFactory;
+    private readonly Lock _drawLock = new();
+    private readonly VulkanGraphicsModule _module;
+    private readonly VkPresentModeKHR _nonVSyncPresentMode;
+    public readonly IResourcePool ResourcePool;
+    private readonly VkSurfaceKHR _surface;
+    private readonly VkPresentModeKHR _vsyncPresentMode;
+    private readonly IWindow _window;
+    private bool _dirty;
+    private bool _disposed;
+    private Frame[] _frames = [];
+    private ulong _framesRendered;
+    public FrozenDictionary<uint, DescriptorSet> GlobalDescriptors = FrozenDictionary<uint, DescriptorSet>.Empty;
+    private VkSemaphore[] _renderSemaphores = [];
+    private VkSwapchainKHR _swapchain;
+    private readonly PrepareForPresentPass _prepareForPresentPass = new PrepareForPresentPass();
+
+    private Extent2D _swapchainExtent = new()
+    {
+        Width = 0,
+        Height = 0
+    };
+
+    private VkImage[] _swapchainImages = [];
+
+    private VkImageView[] _swapchainViews = [];
+
+    public WindowRenderer(VulkanGraphicsModule module, IWindow window, in VkSurfaceKHR? surface = null)
+    {
+        _module = module;
+        _bindlessImageFactory = Unsafe.As<VulkanBindlessImageFactory>(_module.GetBindlessImageFactory());
+        _window = window;
+        _surface = surface ?? CreateSurface();
+        var supportedPresentModes = module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
+        ResourcePool = new ResourcePool();
+        SetupGlobalDescriptors();
+        var presentModesSet = supportedPresentModes.ToHashSet();
+
+        if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR))
+            _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR;
+        else if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_FIFO_RELAXED_KHR))
+            _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+        else if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR))
+            _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR;
+        else
+            _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
+
+        if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR))
+            _vsyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR;
+        else
+            _vsyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
+    }
+
+    private VkPresentModeKHR PresentMode => VsyncEnabled ? _vsyncPresentMode : _nonVSyncPresentMode;
+
+    public IWindow GetWindow()
+    {
+        return _window;
+    }
+
+    public Extent2D GetRenderExtent()
+    {
+        unsafe
+        {
+            var surfaceCapabilities = new VkSurfaceCapabilitiesKHR();
+            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities);
+            return new Extent2D
+            {
+                Width = surfaceCapabilities.currentExtent.width,
+                Height = surfaceCapabilities.currentExtent.height
+            };
+        }
+    }
+
+    public bool VsyncEnabled { get; set; }
+
+    public void SetVsyncEnabled(bool enabled)
+    {
+        if (VsyncEnabled != enabled)
+        {
+            VsyncEnabled = enabled;
+            MarkDirty();
+        }
+    }
+
+    public void Dispose()
+    {
+        lock (_drawLock)
+        {
+            _disposed = true;
+            _module.WaitIdle();
+            ResourcePool.Dispose();
+            foreach (var frame in _frames) frame.Dispose();
+            _frames = [];
+            DestroySwapchain();
+            unsafe
+            {
+                vkDestroySurfaceKHR(_module.GetInstance(), _surface, null);
+            }
+        }
+    }
+
+    public IRenderData? Collect()
+    {
+        return DoCollect();
+    }
+
+    public void Execute(IRenderData context)
+    {
+        if (_disposed) return;
+
+        if (context is not RenderData ctx) return;
+
+        if (ctx.RenderExtent.Width == 0 || ctx.RenderExtent.Height == 0) return;
+
+        if (ctx.RenderExtent != _window.GetSize()) return;
+
+        if (_swapchainExtent != ctx.RenderExtent) MarkDirty();
+
+        if (_dirty)
+        {
+            DestroySwapchain();
+            if (!CreateSwapchain(ctx.RenderExtent)) return;
+            _dirty = false;
+        }
+
+        DoExecute(ctx);
+    }
+
+    public event Action<IGraphCollector>? OnCollect;
+
+
+    /// <summary>
+    ///     Marks this renderer as dirty and will cause the swapchain to be re-created next frame
+    /// </summary>
+    private void MarkDirty()
+    {
+        _dirty = true;
+    }
+
+    private void SetupGlobalDescriptors()
+    {
+        var globalDescriptor = ((VulkanBindlessImageFactory)_module.GetBindlessImageFactory()).GetDescriptorSet();
+        DescriptorSet[] sets = [globalDescriptor];
+        GlobalDescriptors = sets.ToFrozenDictionary(_ => (uint)0, d => d);
+    }
+
+    private VkSurfaceKHR CreateSurface()
+    {
+        var instance = _module.GetInstance();
+        var rinWindow = _window as RinWindow ?? throw new NullReferenceException();
+        // ReSharper disable once AccessToDisposedClosure
+        var surface = Native.platformWindowCreateSurface(instance, rinWindow.GetHandle());
+        return surface;
+    }
+
+    public uint GetNumFramesInFlight()
+    {
+        return FramesInFlight;
+    }
+
+    public void Init()
+    {
+        InitFrames();
+    }
+
+    private unsafe bool CreateSwapchain(Extent2D extent)
+    {
+        var actSize = GetRenderExtent();
+        var surfaceCapabilities = new VkSurfaceCapabilitiesKHR();
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities);
+
+        if (surfaceCapabilities.minImageExtent.width > extent.Width ||
+            surfaceCapabilities.minImageExtent.height > extent.Height ||
+            surfaceCapabilities.maxImageExtent.width < extent.Width ||
+            surfaceCapabilities.maxImageExtent.height < extent.Height)
+            return false;
+
+        var device = _module.GetDevice();
+        var format = _module.GetSurfaceFormat();
+        var createInfo = new VkSwapchainCreateInfoKHR
+        {
+            sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            surface = _surface,
+            presentMode = PresentMode,
+            imageFormat = format.format,
+            compositeAlpha = VkCompositeAlphaFlagsKHR.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            imageColorSpace = format.colorSpace,
+            imageExtent = extent.ToVk(),
+            imageUsage = VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                         VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            imageArrayLayers = 1,
+            minImageCount = surfaceCapabilities.minImageCount + 1,
+            preTransform = VkSurfaceTransformFlagsKHR.VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
+        };
+
+        var swapchain = new VkSwapchainKHR();
+        vkCreateSwapchainKHR(device, &createInfo, null, &swapchain);
+
+        uint imagesCount = 0;
+        vkGetSwapchainImagesKHR(device, swapchain, &imagesCount, null);
+
+        _swapchainImages = new VkImage[(int)imagesCount];
+        _renderSemaphores = Enumerable.Range(0, (int)imagesCount).Select(_ => device.CreateSemaphore()).ToArray();
+
+        fixed (VkImage* imagesPtr = _swapchainImages)
+        {
+            vkGetSwapchainImagesKHR(device, swapchain, &imagesCount, imagesPtr);
+        }
+
+        _swapchainViews = _swapchainImages.Select(c =>
+        {
+            var viewCreateInfo = VulkanGraphicsModule.MakeImageViewCreateInfo(ImageFormat.Swapchain, c,
+                VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
+            var view = new VkImageView();
+            vkCreateImageView(device, &viewCreateInfo, null, &view);
+            return view;
+        }).ToArray();
+        _swapchain = swapchain;
+        _swapchainExtent = extent;
+        return true;
+    }
+
+    private unsafe void DestroySwapchain()
+    {
+        _module.WaitIdle();
+        foreach (var frame in _frames) frame.WaitForLastDraw();
+
+        if (_swapchainExtent == default) return;
+
+        var device = _module.GetDevice();
+
+        foreach (var renderSemaphore in _renderSemaphores) device.DestroySemaphore(renderSemaphore);
+        foreach (var view in _swapchainViews) vkDestroyImageView(device, view, null);
+        _swapchainViews = [];
+        _swapchainImages = [];
+
+
+        if (_swapchain.Value != 0) vkDestroySwapchainKHR(device, _swapchain, null);
+        _swapchain = new VkSwapchainKHR();
+        _swapchainExtent = new Extent2D();
+    }
+
+    private void InitFrames()
+    {
+        var frames = new List<Frame>();
+
+        for (var i = 0; i < FramesInFlight; i++) frames.Add(new Frame(this));
+
+        _frames = frames.ToArray();
+    }
+
+    private Frame GetCurrentFrame()
+    {
+        return _frames[_framesRendered % FramesInFlight];
+    }
+
+    private static void CheckResult(VkResult result)
+    {
+        switch (result)
+        {
+            case VkResult.VK_SUCCESS:
+                return;
+            case VkResult.VK_ERROR_OUT_OF_DATE_KHR:
+            case VkResult.VK_SUBOPTIMAL_KHR:
+                throw new OutOfDateException();
+            case VkResult.VK_ERROR_DEVICE_LOST:
+            {
+                Console.WriteLine("GPU Device Lost");
+                Environment.Exit(1);
+            }
+                break;
+            default:
+                throw new Exception(result.ToString());
+        }
+    }
+
+    public IRenderData? DoCollect()
+    {
+        if (_disposed) return null;
+
+        var frame = GetCurrentFrame();
+
+
+        if (OnCollect == null) return null;
+
+        var extent = _window.GetSize();
+
+        var collector = new GraphCollector();
+
+        OnCollect?.Invoke(collector);
+
+        return new RenderData
+        {
+            Renderer = this,
+            TargetFrame = frame,
+            Collector = collector,
+            RenderExtent = extent
+        };
+    }
+
+    
+    private void DoExecute(RenderData ctx)
+    {
+        lock (_drawLock)
+        {
+            try
+            {
+                unsafe
+                {
+                    var frame = ctx.TargetFrame;
+                    var builder = frame.GraphBuilder;
+                    builder.Reset();
+                    Profiling.Begin("Engine.Rendering.Graph.Build");
+                    ctx.Collector.Write(builder); // Build the passes from the collector
+                    builder.AddPass(_prepareForPresentPass); // Always terminal
+                    Profiling.End("Engine.Rendering.Graph.Build");
+                    var device = _module.GetDevice();
+                    CheckResult(frame.WaitForLastDraw());
+
+                    frame.Reset();
+
+                    uint swapchainImageIndex = 0;
+                    CheckResult(vkAcquireNextImageKHR(device, _swapchain, ulong.MaxValue,
+                        frame.GetSwapchainSemaphore(),
+                        new VkFence(),
+                        &swapchainImageIndex));
+
+                    var swapchainImage = new SwapchainImage
+                    {
+                        Format = ImageFormat.Swapchain,
+                        Extent = ctx.RenderExtent,
+                        VulkanImage = _swapchainImages[swapchainImageIndex],
+                        VulkanView = _swapchainViews[swapchainImageIndex]
+                    };
+
+                    ctx.SwapchainImageId = builder.AddDestinationTexture(swapchainImage);
+
+                    Profiling.Begin("Engine.Rendering.Graph.Compile");
+                    var graph = builder.Compile();
+                    Profiling.End("Engine.Rendering.Graph.Compile");
+
+                    Debug.Assert(graph != null,
+                        "Frame Graph is empty"); // Since we always prepare for present the graph can never be empty
+
+                    // var cmd = frame.GetPrimaryCommandBuffer();
+                    //
+                    var cmd = frame.GetPrimaryCommandBuffer();
+                    cmd
+                        .Begin();
+
+                    _bindlessImageFactory.Bind(cmd);
+
+                    frame.OnReset += _ => graph.Dispose();
+
+
+                    Profiling.Begin("Engine.Rendering.Graph.Execute");
+                    graph.Execute(frame.ExecutionContext);
+                    Profiling.End("Engine.Rendering.Graph.Execute");
+
+                    vkEndCommandBuffer(cmd);
+
+                    var queue = _module.GetGraphicsQueue();
+
+                    var renderSemaphore = _renderSemaphores[swapchainImageIndex];
+
+                    var bufferSubmitInfo = new VkCommandBufferSubmitInfo
+                    {
+                        sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                        deviceMask = 0,
+                        commandBuffer = frame.GetPrimaryCommandBuffer()
+                    };
+                    var signalSemaphoreSubmitInfo = new VkSemaphoreSubmitInfo
+                    {
+                        sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                        semaphore = renderSemaphore,
+                        value = 1,
+                        stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
+                    };
+                    var waitSemaphoreSubmitInfo = new VkSemaphoreSubmitInfo
+                    {
+                        sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                        semaphore = frame.GetSwapchainSemaphore(),
+                        value = 1,
+                        stageMask = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+                    };
+
+                    _module.SubmitToQueue(queue, frame.GetRenderFence(),
+                        new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo, 1),
+                        new ReadOnlySpan<VkSemaphoreSubmitInfo>(&signalSemaphoreSubmitInfo, 1),
+                        new ReadOnlySpan<VkSemaphoreSubmitInfo>(&waitSemaphoreSubmitInfo, 1));
+
+                    var swapchain = _swapchain;
+                    var imIdx = swapchainImageIndex + 0;
+                    var presentInfo = new VkPresentInfoKHR
+                    {
+                        sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                        pWaitSemaphores = &renderSemaphore,
+                        waitSemaphoreCount = 1,
+                        pSwapchains = &swapchain,
+                        swapchainCount = 1,
+                        pImageIndices = &imIdx
+                    };
+
+                    vkQueuePresentKHR(queue, &presentInfo);
+
+                    frame.Finish();
+
+                    ResourcePool.OnFrameEnd(_framesRendered);
+
+                    _framesRendered++;
+                }
+            }
+            catch (OutOfDateException)
+            {
+                DestroySwapchain();
+            }
+        }
+    }
+
+    private class SwapchainImage : IVulkanTexture
+    {
+        public VkImage VulkanImage { get; set; }
+        public VkImageView VulkanView { get; set; }
+        public ImageLayout Layout { get; set; }
+        public IntPtr Allocation { get; } = IntPtr.Zero;
+        public Extent2D Extent { get; set; }
+        public bool Mips { get; } = false;
+        public ImageFormat Format { get; set; }
+        public ImageHandle Handle { get; } = ImageHandle.InvalidTexture;
+    }
+
+    private class OutOfDateException : Exception
+    {
+    }
+
+    private class RenderData : IRenderData
+    {
+        public required Frame TargetFrame { get; init; }
+        public required IGraphCollector Collector { get; init; }
+        public Extent2D RenderExtent { get; init; }
+        public uint SwapchainImageId { get; set; }
+        public required IRenderer Renderer { get; init; }
+    }
+}

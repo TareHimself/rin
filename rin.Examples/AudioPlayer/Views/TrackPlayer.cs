@@ -1,16 +1,16 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
-using Rin.Framework;
-using Rin.Framework.Audio;
-using Rin.Framework.Graphics;
-using Rin.Framework.Shared.Math;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Animation;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Content;
-using Rin.Framework.Views.Events;
-using Rin.Framework.Views.Graphics;
-using Rin.Framework.Views.Layouts;
+using Rin.Core;
+using Rin.Core.Audio;
+using Rin.Core.Graphics;
+using Rin.Core.Shared.Math;
+using Rin.Core.Views;
+using Rin.Core.Views.Animation;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Content;
+using Rin.Core.Views.Events;
+using Rin.Core.Views.Graphics;
+using Rin.Core.Views.Layouts;
 using YoutubeExplode.Common;
 
 namespace rin.Examples.AudioPlayer.Views;

@@ -1,0 +1,42 @@
+﻿using System.Numerics;
+using Rin.Core.Views.Composite;
+
+namespace Rin.Core.Views.Layouts;
+
+public class RootLayout(ICompositeView container) : InfiniteChildrenLayout
+{
+    public override ICompositeView Container { get; } = container;
+
+    public override ISlot MakeSlot(IView view)
+    {
+        return new Slot(this)
+        {
+            Child = view
+        };
+    }
+
+    public override void OnSlotUpdated(ISlot slot)
+    {
+        if (Container.Surface != null)
+        {
+            slot.Child.Offset = default;
+            slot.Child.Layout(Container.GetContentSize());
+        }
+    }
+
+    public override Vector2 Apply(in Vector2 availableSpace)
+    {
+        foreach (var slot in GetSlots())
+        {
+            slot.Child.Offset = default;
+            slot.Child.Layout(availableSpace);
+        }
+
+        return availableSpace;
+    }
+
+    public override Vector2 ComputeDesiredContentSize()
+    {
+        return Vector2.Zero;
+    }
+}

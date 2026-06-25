@@ -1,8 +1,7 @@
-﻿using Rin.Framework;
+﻿using Rin.Core;
 
 namespace Rin.Editor;
 
-[Module]
 public class SEditorModule : IModule, ISingletonGetter<SEditorModule>
 {
     public void Start(IApplication app)

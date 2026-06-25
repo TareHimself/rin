@@ -1,11 +1,11 @@
-﻿using Rin.Framework;
-using Rin.Framework.Audio;
-using Rin.Framework.Audio.Bass;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Vulkan;
-using Rin.Framework.Graphics.Windows;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Window;
+﻿using Rin.Audio.Miniaudio;
+using Rin.Core;
+using Rin.Core.Audio;
+using Rin.Core.Graphics;
+using Rin.Graphics.Vulkan;
+using Rin.Core.Graphics.Windows;
+using Rin.Core.Views;
+using Rin.Core.Views.Window;
 
 namespace NodeGraphTest;
 
@@ -23,7 +23,7 @@ public class MainApplication : Application
 
     public override IAudioModule CreateAudioModule()
     {
-        return new BassAudioModule();
+        return new MiniaudioAudioModule();
     }
 
     protected override void OnStartup()

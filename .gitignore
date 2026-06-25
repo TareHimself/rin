@@ -26,3 +26,5 @@ cpp/
 *.vscode
 .artifacts/*
 .feed/*
+build-*
+specs/

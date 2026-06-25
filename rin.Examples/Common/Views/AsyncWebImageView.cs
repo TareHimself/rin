@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
-using Rin.Framework;
-using Rin.Framework.Extensions;
-using Rin.Framework.Graphics;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Content;
-using Rin.Framework.Views.Graphics;
-using Rin.Framework.Views.Graphics.Quads;
+using Rin.Core;
+using Rin.Core.Extensions;
+using Rin.Core.Graphics;
+using Rin.Core.Views;
+using Rin.Core.Views.Content;
+using Rin.Core.Views.Graphics;
+using Rin.Core.Views.Graphics.Quads;
 
 namespace rin.Examples.Common.Views;
 

@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
-using Rin.Framework.Animation;
-using Rin.Framework.Graphics;
-using Rin.Framework.Shared.Math;
-using Rin.Framework.Views;
-using Rin.Framework.Views.Animation;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Graphics;
+using Rin.Core.Animation;
+using Rin.Core.Graphics;
+using Rin.Core.Shared.Math;
+using Rin.Core.Views;
+using Rin.Core.Views.Animation;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Graphics;
 
 namespace rin.Examples.ViewsTest;
 

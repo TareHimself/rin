@@ -1,6 +1,6 @@
 ﻿using Rin.Engine.World.Graphics.Default;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Shaders;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Shaders;
 
 namespace Rin.Engine.World.Graphics;
 

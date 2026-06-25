@@ -1,11 +1,11 @@
 ﻿using JetBrains.Annotations;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Graph;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
 
 namespace Rin.Engine.World.Graphics.Default.Passes;
 
 /// <summary>
-///     Collects the <see cref="Rin.Framework.World.World" />, performs skinning and does a depth pre-pass
+///     Collects the <see cref="Rin.Core.World.World" />, performs skinning and does a depth pre-pass
 /// </summary>
 public class DepthPrepassIndirectPass : IPass
 {

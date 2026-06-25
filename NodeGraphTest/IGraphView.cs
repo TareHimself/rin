@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Events;
+using Rin.Core.Views.Events;
 
 namespace NodeGraphTest;
 

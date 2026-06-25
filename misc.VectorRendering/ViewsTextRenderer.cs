@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Framework.Views.Graphics;
+using Rin.Core.Views.Graphics;
 using SixLabors.Fonts;
 
 namespace misc.VectorRendering;
@@ -20,7 +20,7 @@ public class ViewsTextRenderer(CommandList cmds) : IGlyphRenderer
 
     public void QuadraticBezierTo(Vector2 secondControlPoint, Vector2 point)
     {
-        cmds.AddQuadraticCurve(_point, point, secondControlPoint);
+        // Legacy placeholder — use SlugGlyphRenderer for actual bezier capture.
         _point = point;
     }
 
@@ -47,7 +47,7 @@ public class ViewsTextRenderer(CommandList cmds) : IGlyphRenderer
 
     public void LineTo(Vector2 point)
     {
-        cmds.AddLine(_point, point);
+        // Legacy placeholder — use SlugGlyphRenderer for actual line capture.
         _point = point;
     }
 

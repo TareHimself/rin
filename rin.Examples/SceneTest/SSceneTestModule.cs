@@ -7,18 +7,16 @@ using Rin.Engine.World.Graphics.Default;
 using Rin.Engine.World.Physics;
 using rin.Examples.Common.Views;
 using rin.Examples.SceneTest.entities;
-using Rin.Framework;
-using Rin.Framework.Extensions;
-using Rin.Framework.Graphics;
-using Rin.Framework.Graphics.Images;
-using Rin.Framework.Shared.Math;
-using Rin.Framework.Views.Composite;
-using Rin.Framework.Views.Layouts;
+using Rin.Core;
+using Rin.Core.Extensions;
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Images;
+using Rin.Core.Shared.Math;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Layouts;
 
 namespace rin.Examples.SceneTest;
 
-[Module(typeof(SWorldModule), typeof(SViewsModule))]
-[AlwaysLoad]
 public class SSceneTestModule : IModule
 {
     public void Start(IApplication app)

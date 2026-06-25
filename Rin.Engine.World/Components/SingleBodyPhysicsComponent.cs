@@ -2,7 +2,7 @@
 using System.Numerics;
 using Rin.Engine.World.Math;
 using Rin.Engine.World.Physics;
-using Rin.Framework.Shared.Math;
+using Rin.Core.Shared.Math;
 
 namespace Rin.Engine.World.Components;
 

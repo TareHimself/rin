@@ -1,0 +1,22 @@
+﻿using Rin.Core.Graphics.Graph;
+
+namespace Rin.Core.Graphics;
+
+/// <summary>
+///     Transitions the swapchain into present mode
+/// </summary>
+public class PrepareForPresentPass : IPass
+{
+    public uint Id { get; set; }
+    public bool IsTerminal => true;
+    public Action? OnPrune => null;
+
+    public void Configure(IGraphConfig config)
+    {
+        config.WriteTexture(config.SwapchainImageId, ImageLayout.PresentSrc);
+    }
+
+    public void Execute(ICompiledGraph graph, IExecutionContext ctx)
+    {
+    }
+}

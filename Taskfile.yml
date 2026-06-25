@@ -5,13 +5,62 @@ version: '3'
 vars:
   NET_VERSION: '9.0'
   NUGET_LOCAL_BUILD_TYPE: "Release"
-  PACKAGES_LOCATION: "{{.USER_WORKING_DIR}}\\.feed"
+  LOCAL_FEED_DIR: "{{.USER_WORKING_DIR}}\\.feed"
 tasks:
-  nuget-local:
+  # nuget-local:
+  #   cmds:
+  #     - dotnet pack ./Rin.Framework -p:PackageVersion=1.0.0-local -p:DepMode=local_feed -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\0"
+  #     - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\0\*.nupkg" --source "{{.LOCAL_FEED_DIR}}"
+  #     - dotnet pack ./Rin.Framework.Audio.Bass -p:PackageVersion=1.0.0-local -p:DepMode=local_feed  -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\1"
+  #     - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\1\*.nupkg" --source "{{.LOCAL_FEED_DIR}}"
+  #     - dotnet pack ./Rin.Framework.Graphics.Vulkan -p:PackageVersion=1.0.0-local -p:DepMode=local_feed -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\2"
+  #     - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\2\*.nupkg" --source "{{.LOCAL_FEED_DIR}}"
+  
+  ensure-feed-dir:
     cmds:
-      - dotnet pack ./Rin.Framework -p:PackageVersion=1.0.0-local -p:DepMode=local_feed -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\0"
-      - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\0\*.nupkg" --source "{{.PACKAGES_LOCATION}}"
-      - dotnet pack ./Rin.Framework.Audio.Bass -p:PackageVersion=1.0.0-local -p:DepMode=local_feed  -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\1"
-      - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\1\*.nupkg" --source "{{.PACKAGES_LOCATION}}"
-      - dotnet pack ./Rin.Framework.Graphics.Vulkan -p:PackageVersion=1.0.0-local -p:DepMode=local_feed -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\2"
-      - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\2\*.nupkg" --source "{{.PACKAGES_LOCATION}}"
+      - python3 "{{.USER_WORKING_DIR}}/scripts/mkdir.py" "{{.LOCAL_FEED_DIR}}"
+
+  pack-native:
+    dir: ./native/Rin.Native
+    deps:
+      - ensure-feed-dir
+    cmds:
+      - task build
+      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' --output "{{.LOCAL_FEED_DIR}}"
+  
+  pack-audio-miniaudio-native:
+    dir: ./native/Rin.Audio.Miniaudio.Native
+    deps:
+      - ensure-feed-dir
+    cmds:
+      - task build
+      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' --output "{{.LOCAL_FEED_DIR}}"
+
+  pack-graphics-vulkan-native:
+    dir: ./native/Rin.Graphics.Vulkan.Native
+    deps:
+      - ensure-feed-dir
+    cmds:
+      - task build
+      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' --output "{{.LOCAL_FEED_DIR}}"
+
+  update-local-feed:
+    deps:
+      - pack-native
+      - pack-audio-miniaudio-native
+      - pack-graphics-vulkan-native
+    cmds:
+      - echo "Finished packing all native packages"
+      # Optional push steps:
+      # - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\0\*.nupkg" --source "{{.LOCAL_FEED_DIR}}"
+      # - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\1\*.nupkg" --source "{{.LOCAL_FEED_DIR}}"
+      # - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\2\*.nupkg" --source "{{.LOCAL_FEED_DIR}}"
+      # - dotnet pack ./Rin.Framework.Audio.Bass -p:PackageVersion=1.0.0-local -p:DepMode=local_feed  -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\1"
+      # - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\1\*.nupkg" --source "{{.LOCAL_FEED_DIR}}"
+      # - dotnet pack ./Rin.Framework.Graphics.Vulkan -p:PackageVersion=1.0.0-local -p:DepMode=local_feed -c {{.NUGET_LOCAL_BUILD_TYPE}} -o "{{.USER_WORKING_DIR}}\.artifacts\2"
+      # - dotnet nuget push "{{.USER_WORKING_DIR}}\.artifacts\2\*.nupkg" --source "{{.LOCAL_FEED_DIR}
+
+  force-restore:
+    cmds:
+      - dotnet nuget locals global-packages --clear
+      - dotnet restore

@@ -1,0 +1,75 @@
+﻿using System.Numerics;
+using Rin.Core.Graphics.Windows;
+using Rin.Core.Views.Events;
+using Rin.Core.Views.Graphics;
+using Rin.Core.Shared.Math;
+using Rin.Core.Views.Graphics.Quads;
+
+namespace Rin.Core.Views.Content;
+
+/// <summary>
+///     Simple progress bar implementation
+/// </summary>
+public class ProgressBarView(Func<float> getProgress, Action<float>? onClick = null) : ContentView
+{
+    private float? _pendingProgress;
+    public Color BackgroundColor { get; set; } = Color.Red;
+    public Color ForegroundColor { get; set; } = Color.White;
+    public Vector4 BorderRadius { get; set; }
+
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
+    {
+        return availableSpace;
+    }
+
+    public override void CollectContent(in Matrix4x4 transform, CommandList commands)
+    {
+        var size = GetContentSize();
+        commands.AddRect(transform, size, BackgroundColor, BorderRadius);
+        commands.AddRect(transform,
+            size * new Vector2(float.Clamp(_pendingProgress ?? getProgress(), 0.0f, 1.0f), 1.0f), ForegroundColor,
+            BorderRadius);
+        // using var libvlc = new LibVLC(enableDebugLogs: true);
+        // using var media = new Media(libvlc, new Uri(@"C:\tmp\big_buck_bunny.mp4"));
+        // using var mediaplayer = new MediaPlayer(media);
+        //
+        // mediaplayer.Play();
+    }
+
+    public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform1)
+    {
+        if (e.Button is CursorButton.One && onClick is not null)
+        {
+            var transform = ComputeAbsoluteContentTransform();
+            var localPosition = e.Position.Transform(transform.Inverse());
+            _pendingProgress = localPosition.X / GetSize().X;
+
+            e.Target = this;
+        }
+    }
+
+    public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform1)
+    {
+        if (_pendingProgress is not null && onClick is not null)
+        {
+            var transform = ComputeAbsoluteContentTransform();
+            var localPosition = e.Position.Transform(transform.Inverse());
+            _pendingProgress = localPosition.X / GetSize().X;
+            e.Target = this;
+        }
+    }
+
+    public override void OnCursorUp(CursorUpSurfaceEvent e)
+    {
+        if (_pendingProgress is not null && onClick is not null)
+        {
+            var transform = ComputeAbsoluteContentTransform();
+            var localPosition = e.Position.Transform(transform.Inverse());
+            _pendingProgress = localPosition.X / GetSize().X;
+            onClick(_pendingProgress.Value);
+            _pendingProgress = null;
+        }
+
+        base.OnCursorUp(e);
+    }
+}

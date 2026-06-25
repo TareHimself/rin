@@ -1,5 +1,5 @@
-﻿using Rin.Framework;
-using Rin.Framework.Views.Content;
+﻿using Rin.Core;
+using Rin.Core.Views.Content;
 
 namespace rin.Examples.ViewsTest;
 

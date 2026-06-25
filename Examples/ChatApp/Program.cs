@@ -1,12 +1,12 @@
 ﻿// // See https://aka.ms/new-console-template for more information
 //
-// using Rin.Framework;
+// using Rin.Core;
 //
 // SFramework.Get().Run();
 
 
 using System.Numerics;
-using Rin.Framework.Shared.Math;
+using Rin.Core.Shared.Math;
 
 var a = new Vector2(0.0f);
 
