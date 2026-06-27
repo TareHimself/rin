@@ -33,8 +33,8 @@ public class SixLaborsFontManager : IFontManager
 
     public SixLaborsFontManager(ISdfCache? cache = null)
     {
-        _cache = SFramework.Provider.AddSingle<ISdfCache>(
-            new DiskSdfCache(Path.Combine(SFramework.Directory, "sdfs.bin")));
+        // _cache = SFramework.Provider.AddSingle<ISdfCache>(
+        //     new DiskSdfCache(Path.Combine(SFramework.Directory, "sdfs.bin")));
     }
 
     public Task Prepare(IFont font, IEnumerable<char> characters)

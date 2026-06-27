@@ -406,7 +406,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         var outDebugMessenger = _debugUtilsMessenger;
 
         // We create a window just for surface information
-        using var window = Internal_CreateWindow("Graphics Init Window", new Extent2D()) as RinWindow ??
+        using var window = Internal_CreateWindow("Graphics Init Window", new Extent2D(1)) as RinWindow ??
                            throw new NullReferenceException();
 
         Update(0);
@@ -416,7 +416,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             &outDevice,
             &outPhysicalDevice,
             &outGraphicsQueue,
-            &outTransferQueueFamily,
+            &outGraphicsQueueFamily,
             &outTransferQueue,
             &outTransferQueueFamily,
             &outSurface,

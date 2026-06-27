@@ -72,3 +72,6 @@ class BaseRecipe(ConanFile):
 
     def package_info(self):
         pass
+
+    def build_requirements(self):
+        self.tool_requires("cmake/4.3.2")

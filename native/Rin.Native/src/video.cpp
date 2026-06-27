@@ -34,21 +34,19 @@ struct VideoSource final : public wdx::ISource {
     SourceLengthCallback lengthCallback{};
     void*userData{};
     VideoSource(SourceReadCallback read,SourceAvailableCallback available,SourceLengthCallback length,void* inUserData) : readCallback(read), availableCallback(available), lengthCallback(length), userData(inUserData) {}
-    void Read(const std::size_t pos, const std::size_t size, unsigned char *data) override {
-        readCallback(pos, size, data,userData);
+    void Read(const std::int64_t& pos, std::span<std::uint8_t> data) override {
+        readCallback(static_cast<unsigned long>(pos), static_cast<unsigned long>(data.size()), data.data(), userData);
     }
 
-    [[nodiscard]] std::size_t GetLength() const override {
-        return lengthCallback(userData);
+    [[nodiscard]] std::int64_t GetLength() const override {
+        return static_cast<std::int64_t>(lengthCallback(userData));
     }
 
-    [[nodiscard]] std::size_t GetAvailable() const override {
-        return availableCallback(userData);
+    [[nodiscard]] std::int64_t GetAvailable() const override {
+        return static_cast<std::int64_t>(availableCallback(userData));
     }
 
-    [[nodiscard]] bool IsWriting() const override {
-        return false;
-    }
+    void MakeAvailable(const std::uint64_t&) override {}
 
     ~VideoSource() override = default;
 };
@@ -59,23 +57,28 @@ struct VideoSourceWrapper {
 void * videoContextCreate() {
     const auto ctx = new VideoDecodeContext{};
     ctx->decoder = std::make_shared<wdx::SourceDecoder>();
-    ctx->decoder->SetVideoCallback([ctx](const double time,const std::shared_ptr<wdx::IDecodedVideoFrame>& data) {
+    ctx->decoder->SetVideoPacketCallback([ctx](const std::shared_ptr<wdx::Packet>& packet, wdx::IVideoDecoder* decoder) {
+        decoder->Decode(packet);
+        const auto frame = decoder->GetFrame();
+        const double time = packet->GetTime();
         if (ctx->packetCount == 0) {
-            auto packet = std::make_shared<VideoPacket>(time, data);
-            ctx->firstPacket = packet;
-            ctx->lastPacket = packet;
+            auto vpacket = std::make_shared<VideoPacket>(time, frame);
+            ctx->firstPacket = vpacket;
+            ctx->lastPacket = vpacket;
             ++ctx->packetCount;
         }
         else {
-            const auto p = std::make_shared<VideoPacket>(time, data);
+            const auto p = std::make_shared<VideoPacket>(time, frame);
             ctx->lastPacket->next = p;
             ctx->lastPacket = p;
             ++ctx->packetCount;
         }
     });
-    ctx->decoder->SetAudioCallback([ctx](const double time,const std::span<float>& data) {
+    ctx->decoder->SetAudioPacketCallback([ctx](const std::shared_ptr<wdx::Packet>& packet, wdx::IAudioDecoder* decoder) {
         if (ctx->audioCallback != nullptr) {
-            ctx->audioCallback(data.data(),data.size(),time,ctx->audioCallbackUserData);
+            std::vector<float> pcm;
+            decoder->Decode(packet, pcm);
+            ctx->audioCallback(pcm.data(), static_cast<int>(pcm.size()), packet->GetTime(), ctx->audioCallbackUserData);
         }
     });
 
@@ -161,7 +164,7 @@ double videoContextGetPosition(void *context) {
 
 void videoContextDecode(void *context, double delta) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    const auto result = videoContext->decoder->Decode(delta);
+    videoContext->decoder->Demux(delta);
 }
 
 int videoContextEnded(void *context) {

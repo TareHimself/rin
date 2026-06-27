@@ -13,4 +13,10 @@ from native.base_recipe import BaseRecipe  # noqa: E402
 class RinFrameworkGraphicsNative(BaseRecipe):
     name = "Rin.Graphics.Native"
     version = "1.0.0"
-    requires = ["rwin/1.0.1", "vk-bootstrap/1.3.296", "msdfgen/1.12"]
+    requires = ["vk-bootstrap/1.3.296", "msdfgen/1.12"]
+
+    def requirements(self):
+        if self.settings.os == "Macos":
+            self.requires("rwin/1.0.1",options={ "compat" : True})
+        else:
+            self.requires("rwin/1.0.1")
