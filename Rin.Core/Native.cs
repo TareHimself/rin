@@ -15,10 +15,8 @@ internal static partial class Native
 {
 #if OS_WINDOWS
     private const string DllName = "Rin.Native";
-#elif OS_LINUX
+#else
     private const string DllName = "libRin.Native";
-#elif OS_FREEBSD
-#elif OS_MAC
 #endif
 
     

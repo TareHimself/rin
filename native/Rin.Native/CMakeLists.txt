@@ -20,10 +20,12 @@ find_package(webmdx REQUIRED)
 find_package(msdfgen REQUIRED)
 target_link_libraries(${PROJECT_NAME} webmdx::webmdx msdfgen::msdfgen)
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>;$<TARGET_FILE:${PROJECT_NAME}>" $<TARGET_FILE_DIR:${PROJECT_NAME}>
-        COMMAND_EXPAND_LISTS
-)
+if(WIN32)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>;$<TARGET_FILE:${PROJECT_NAME}>" $<TARGET_FILE_DIR:${PROJECT_NAME}>
+            COMMAND_EXPAND_LISTS
+    )
+endif()
 
 if(BUILD_SHARED_LIBS)
     target_compile_definitions(${PROJECT_NAME} PRIVATE RIN_NATIVE_PRODUCER)

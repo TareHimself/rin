@@ -307,17 +307,12 @@ void platformInit()
 {
 
 }
-
-void platformInit()
-{
-
-}
 void platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback)
 {
 
 }
 void platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback)
 {
-
+    
 }
 #endif

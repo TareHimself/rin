@@ -44,7 +44,7 @@ tasks:
       - task build
       - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' --output "{{.LOCAL_FEED_DIR}}"
 
-  update-local-feed:
+  pack-all:
     deps:
       - pack-native
       - pack-audio-miniaudio-native

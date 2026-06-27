@@ -28,3 +28,5 @@ cpp/
 .feed/*
 build-*
 specs/
+.DS_Store
+*.sln.DotSettings.user

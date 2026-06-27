@@ -82,28 +82,21 @@ void createVulkanInstance(std::uint64_t windowHandle, VkInstance* outInstance, V
         .setDescriptorBindingStorageImageUpdateAfterBind(true)
         .setDescriptorBindingStorageBufferUpdateAfterBind(true)
         .setDescriptorBindingVariableDescriptorCount(true)
-        .setScalarBlockLayout(true)
-        .setDrawIndirectCount(true)
-        .setBufferDeviceAddress(true);
+        .setScalarBlockLayout(true);
+        //.setDrawIndirectCount(true);
+
+#ifndef RIN_PLATFORM_MAC // Indirect drawing is not supported on macOS
+    features12.setDrawIndirectCount(true);
+#endif
 
     VkSurfaceKHR surf = rwin::createSurface(windowHandle,instance);
     vkb::PhysicalDeviceSelector selector{vkbInstance};
-
-    //selector.add_required_extension(vk::EXTShaderObjectExtensionName);
-
     selector.set_minimum_version(1,3)
             .set_required_features_13(features)
             .set_required_features_12(features12)
             .set_surface(surf);
     selector
-    // .add_required_extension_features(
-    //     static_cast<VkPhysicalDeviceShaderObjectFeaturesEXT>(shaderObjectFeatures))
     .add_required_extension_features(static_cast<VkPhysicalDeviceShaderDrawParametersFeatures>(drawParametersFeatures));
-    // if (systemInfo.is_extension_available(vk::EXTShaderObjectExtensionName))
-    // {
-    //     selector.add_required_extension_features(
-    //                 static_cast<VkPhysicalDeviceShaderObjectFeaturesEXT>(shaderObjectFeatures));
-    // }
 
     auto physicalDeviceResult = selector.select();
 
@@ -114,8 +107,6 @@ void createVulkanInstance(std::uint64_t windowHandle, VkInstance* outInstance, V
     }
 
     const vkb::PhysicalDevice& physicalDevice = physicalDeviceResult.value();
-
-    //physicalDevice.enable_extension_if_present(vk::EXTShaderObjectExtensionName);
     vkb::DeviceBuilder deviceBuilder{physicalDevice};
 
     auto deviceResult = deviceBuilder.build();
