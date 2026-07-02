@@ -22,14 +22,21 @@ namespace Rin.Graphics.Vulkan;
 
 public partial class VulkanGraphicsModule : IGraphicsModule
 {
-    private readonly BackgroundTaskQueue _backgroundTaskQueue = new();
+    private readonly BackgroundTaskQueue _backgroundTaskQueue = new()
+    {
+        Name = "VulkanGraphicsModule Task Queue"
+    };
     private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
     private readonly int _maxEventsPerPeep = 64;
     private readonly List<Pair<TaskCompletionSource, Action<IExecutionContext>>> _pendingGraphicsSubmits = [];
     private readonly List<Pair<TaskCompletionSource, Action<IExecutionContext>>> _pendingTransferSubmits = [];
     private readonly List<IRenderer> _renderers = [];
     private readonly Dictionary<ulong, RinWindow> _rinWindows = [];
-    private readonly BackgroundTaskQueue _transferQueueThread = new();
+
+    private readonly BackgroundTaskQueue _transferQueueThread = new()
+    {
+        Name = "Transfer Queue"
+    };
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
 
     private IntPtr _allocator;
@@ -1195,7 +1202,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
 
     public static VulkanGraphicsModule Get()
     {
-        var inst = SFramework.Provider.Get<IGraphicsModule>();
+        var inst = Global.Provider.Get<IGraphicsModule>();
         Debug.Assert(inst is VulkanGraphicsModule);
         return Unsafe.As<VulkanGraphicsModule>(inst);
     }

@@ -68,7 +68,7 @@ public class AudioPlayerApp : ExampleApplication
 
             if (e is { State: InputState.Pressed, Key: InputKey.Enter })
             {
-                var p = Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
+                var p = IApplication.Get().SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true);
                 foreach (var path in p)
                     switcher.Add(new FitterView
                     {

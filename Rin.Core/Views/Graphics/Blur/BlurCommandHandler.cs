@@ -93,7 +93,7 @@ internal struct Push
 internal class BlurFirstPassCommandHandler : ICommandHandler
 {
     private readonly IGraphicsShader _shader = IGraphicsModule.Get()
-        .MakeGraphics("Framework/Shaders/Views/blur.slang");
+        .MakeGraphics("Core/Shaders/Views/blur.slang");
 
     private uint[] _bufferIds = [];
     private BlurFirstPassCommand[] _commands = [];
@@ -157,7 +157,7 @@ internal class BlurFirstPassCommandHandler : ICommandHandler
 internal class BlurSecondPassCommandHandler : ICommandHandler
 {
     private readonly IGraphicsShader _shader = IGraphicsModule.Get()
-        .MakeGraphics("Framework/Shaders/Views/blur.slang");
+        .MakeGraphics("Core/Shaders/Views/blur.slang");
 
     private uint[] _bufferIds = [];
     private BlurSecondPassCommand[] _commands = [];

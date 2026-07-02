@@ -1,6 +1,6 @@
 #pragma once
-#include "Framework/Shaders/defs.slang"
-#include "Framework/Shaders/attributes.slang"
+#include "Core/Shaders/defs.slang"
+#include "Core/Shaders/attributes.slang"
 
 enum ImageType {
     Image,

@@ -5,7 +5,7 @@ namespace rin.Examples.ViewsTest;
 
 public class NetworkImageView : ImageView
 {
-    private readonly ImageLoader _loader = SFramework.Provider.Get<ImageLoader>();
+    private readonly ImageLoader _loader = Global.Provider.Get<ImageLoader>();
     private readonly string _url;
 
     public NetworkImageView(string url)

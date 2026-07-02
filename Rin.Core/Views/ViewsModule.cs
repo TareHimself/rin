@@ -15,7 +15,7 @@ public class ViewsModule : IViewsModule
     public void Start(IApplication app)
     {
         app.OnUpdate += Update;
-        FontManager.LoadFont(SFramework.Sources.Read("Framework/Fonts/NotoSans-Regular.ttf"));
+        FontManager.LoadFont(Global.Sources.Read("Core/Fonts/NotoSans-Regular.ttf"));
         _graphicsSubsystem = IGraphicsModule.Get();
         if (_graphicsSubsystem == null) return;
         _graphicsSubsystem.OnWindowRendererCreated += OnRendererCreated;
@@ -55,7 +55,7 @@ public class ViewsModule : IViewsModule
 
     public void AddFont(string fontPath)
     {
-        FontManager.LoadFont(SFramework.Sources.Read(fontPath));
+        FontManager.LoadFont(Global.Sources.Read(fontPath));
     }
 
     public IBatcher GetBatcher<T>() where T : IBatcher, new()

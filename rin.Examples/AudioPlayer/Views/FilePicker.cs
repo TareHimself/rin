@@ -27,7 +27,7 @@ public class FilePicker : ButtonView
         OnReleased += (_, __) =>
         {
             _statusText.Content = "Selecting...";
-            Platform.SelectFileAsync("Select File's To Play", true, "*.wav;*.ogg;*.flac;*.mp3")
+            Task.Run(() => IApplication.Get().SelectFile("Select File's To Play", true, "*.wav;*.ogg;*.flac;*.mp3"))
                 .After(FileSelected);
         };
         Child = _statusText;

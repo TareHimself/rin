@@ -1,7 +1,7 @@
-#include "Framework/Shaders/utils.slang"
-#include "Framework/Shaders/sd.slang"
-#include "Framework/Shaders/images.slang"
-#include "Framework/Shaders/Attributes/blending.slang"
+#include "Core/Shaders/utils.slang"
+#include "Core/Shaders/sd.slang"
+#include "Core/Shaders/images.slang"
+#include "Core/Shaders/Attributes/blending.slang"
 
 struct VideoItem {
     float4x4 transform;

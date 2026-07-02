@@ -933,7 +933,7 @@ public static class VulkanExtensions
 
     public static VkCommandBuffer CopyBufferToImage(this in VkCommandBuffer cmd, in DeviceBufferView buffer,
         IVulkanTexture image,
-        VkBufferImageCopy[] regions, ImageLayout layout = ImageLayout.TransferDst)
+        Span<VkBufferImageCopy> regions, ImageLayout layout = ImageLayout.TransferDst)
     {
         Debug.Assert(buffer.IsValid, "Buffer buffer is not valid");
         Debug.Assert(buffer.Buffer is IVulkanDeviceBuffer);

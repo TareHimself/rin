@@ -1,32 +1,48 @@
 ﻿using System.Collections.Concurrent;
+using JetBrains.Annotations;
 
 namespace Rin.Core.Shared.Threading;
 
 public class BackgroundTaskQueue : IDisposable
 {
     private readonly BlockingCollection<PendingTask> _pendingTasks = [];
+    private readonly Thread _taskThread;
 
-    private Task _longTask;
-    private Thread _taskThread;
+    [PublicAPI]
+    public string Name
+    {
+        get;
+        init
+        {
+            field = value;
+            _taskThread.Name = field;
+        }
+    } = "Background Task Queue";
 
     public BackgroundTaskQueue()
     {
-        _taskThread = Thread.CurrentThread;
-        _longTask = Task.Factory.StartNew(() =>
+        _taskThread = new Thread(ProcessTasks)
         {
-            _taskThread = Thread.CurrentThread;
+            IsBackground = true,
+            Priority = ThreadPriority.BelowNormal,
+        };
+        _taskThread.Start();
+    }
 
-            foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable())
-            {
-                pendingTask.Fn();
-                pendingTask.Pending.SetResult();
-            }
-        }, TaskCreationOptions.LongRunning);
+
+    private void ProcessTasks()
+    {
+        foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable())
+        {
+            pendingTask.Fn();
+            pendingTask.Pending.SetResult();
+        }
     }
 
     public void Dispose()
     {
         _pendingTasks.CompleteAdding();
+        _taskThread.Join();
     }
 
     private void RunTask(PendingTask task)
@@ -50,7 +66,7 @@ public class BackgroundTaskQueue : IDisposable
         if (_taskThread == Thread.CurrentThread)
             RunTask(newPending);
         else
-            _pendingTasks.Add(newPending);
+            _pendingTasks.Add(newPending); 
 
         return newPending.Pending.Task;
     }
@@ -79,24 +95,32 @@ public class BackgroundTaskQueue : IDisposable
 public class BackgroundTaskQueue<T> : IDisposable
 {
     private readonly BlockingCollection<PendingTask> _pendingTasks = [];
+    private readonly Thread _taskThread;
 
-    private Task _longTask;
-    private Thread? _taskThread;
+    [PublicAPI] public string Name { get; set; } = "Background Task Queue";
 
     public BackgroundTaskQueue()
     {
-        _longTask = Task.Factory.StartNew(() =>
+        _taskThread = new Thread(ProcessTasks)
         {
-            _taskThread = Thread.CurrentThread;
+            IsBackground = true,
+            Name = Name,
+            Priority = ThreadPriority.BelowNormal,
+        };
+        _taskThread.Start();
+    }
 
-            foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable())
-                pendingTask.Pending.SetResult(pendingTask.Fn());
-        }, TaskCreationOptions.LongRunning);
+
+    private void ProcessTasks()
+    {
+        foreach (var pendingTask in _pendingTasks.GetConsumingEnumerable())
+            pendingTask.Pending.SetResult(pendingTask.Fn());
     }
 
     public void Dispose()
     {
         _pendingTasks.CompleteAdding();
+        _taskThread.Join();
     }
 
     private void RunTask(PendingTask task)
@@ -137,10 +161,10 @@ public class BackgroundTaskQueue<T> : IDisposable
         return newPending.Pending.Task;
     }
 
-    public class PendingTask(Func<T> fn, TaskCompletionSource<T> pending, CancellationToken? token = null)
+    private class PendingTask(Func<T> fn, TaskCompletionSource<T> pending, CancellationToken? token = null)
     {
         public readonly CancellationToken? Token = token;
         public Func<T> Fn = fn;
-        public TaskCompletionSource<T> Pending = pending;
+        public readonly TaskCompletionSource<T> Pending = pending;
     }
 }

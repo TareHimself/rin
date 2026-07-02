@@ -260,7 +260,10 @@ public class VulkanExecutionContext(
             }
         };
 
-        CommandBuffer.CopyBufferToImage(src, (IVulkanTexture)dest, [copyRegion]);
+        unsafe
+        {
+            CommandBuffer.CopyBufferToImage(src, (IVulkanTexture)dest, new Span<VkBufferImageCopy>(&copyRegion,1));
+        }
         return this;
     }
 

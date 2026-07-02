@@ -1,4 +1,5 @@
-﻿using Rin.Core.Audio;
+﻿using System.Runtime.InteropServices;
+using Rin.Core.Audio;
 using Rin.Core.Graphics;
 using Rin.Core.Shared;
 using Rin.Core.Views;
@@ -26,7 +27,7 @@ public abstract class Application : IApplication
 
     public Application()
     {
-        SFramework.Provider.AddSingle<IApplication>(this);
+        Global.Provider.AddSingle<IApplication>(this);
     }
 
     public event Action? OnPreUpdate;
@@ -52,7 +53,7 @@ public abstract class Application : IApplication
     {
         Start();
 
-        _renderTask = new Thread(Render) { IsBackground = true };
+        _renderTask = new Thread(Render) { IsBackground = true, Name = "Render Thread" };
         _renderTask.Start();
         _lastTickTime = DateTime.UtcNow;
 
@@ -81,6 +82,57 @@ public abstract class Application : IApplication
     public void RequestExit()
     {
         _exitRequested = true;
+    }
+    
+    private class SelectPathCallbackContainer
+    {
+        public readonly List<string> Paths = [];
+    }
+
+    [UnmanagedCallersOnly]
+    private static unsafe void PlatformSelectCallback(char* path, IntPtr context)
+    {
+        var handle = GCHandle.FromIntPtr(context);
+        if (handle.Target is SelectPathCallbackContainer resultContainer)
+        {
+            resultContainer.Paths.Add(Marshal.PtrToStringUTF8((nint)path) ?? "");
+        }
+    }
+
+    public string[] SelectFile(string title = "Select File\'s", bool multiple = false, string filter = "")
+    {
+        unsafe
+        {
+            var resultContainer = new SelectPathCallbackContainer();
+            var handle = GCHandle.Alloc(resultContainer, GCHandleType.Normal);
+            try
+            {
+                Native.platformSelectFile(title, multiple, filter,&PlatformSelectCallback,GCHandle.ToIntPtr(handle));
+            }
+            finally
+            {
+                handle.Free();
+            }
+            return resultContainer.Paths.ToArray();
+        }
+    }
+
+    public string[] SelectPath(string title = "Select Path\'s", bool multiple = false)
+    {
+        unsafe
+        {
+            var resultContainer = new SelectPathCallbackContainer();
+            var handle = GCHandle.Alloc(resultContainer, GCHandleType.Normal);
+            try
+            {
+                Native.platformSelectPath(title, multiple,&PlatformSelectCallback,GCHandle.ToIntPtr(handle));
+            }
+            finally
+            {
+                handle.Free();
+            }
+            return resultContainer.Paths.ToArray();
+        }
     }
 
 
@@ -112,9 +164,9 @@ public abstract class Application : IApplication
         _graphicsModule = CreateGraphicsModule();
         _viewsModule = CreateViewsModule();
 
-        SFramework.Provider.AddSingle(_audioModule);
-        SFramework.Provider.AddSingle(_graphicsModule);
-        SFramework.Provider.AddSingle(_viewsModule);
+        Global.Provider.AddSingle(_audioModule);
+        Global.Provider.AddSingle(_graphicsModule);
+        Global.Provider.AddSingle(_viewsModule);
 
         _modules = [_audioModule, _graphicsModule, _viewsModule];
 

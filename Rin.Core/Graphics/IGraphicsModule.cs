@@ -96,6 +96,6 @@ public interface IGraphicsModule : IModule, IUpdatable
 
     public static IGraphicsModule Get()
     {
-        return SFramework.Provider.Get<IGraphicsModule>();
+        return Global.Provider.Get<IGraphicsModule>();
     }
 }

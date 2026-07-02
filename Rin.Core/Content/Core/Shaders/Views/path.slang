@@ -1,5 +1,5 @@
-#include "Framework/Shaders/utils.slang"
-#include "Framework/Shaders/sd.slang"
+#include "Core/Shaders/utils.slang"
+#include "Core/Shaders/sd.slang"
 
 float dist_to_line(float2 a, float2 b, float2 p)
 {

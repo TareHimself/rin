@@ -16,6 +16,6 @@ public interface IAudioModule : IModule, IUpdatable
 
     public static IAudioModule Get()
     {
-        return SFramework.Provider.Get<IAudioModule>();
+        return Global.Provider.Get<IAudioModule>();
     }
 }

@@ -1,4 +1,4 @@
-#include "Framework/Shaders/Attributes/blending.slang"
+#include "Core/Shaders/Attributes/blending.slang"
 struct GBuffer {
     [Attachment(AttachmentFormat.RGBA32)]
     float4 G_BUFFER_0 : SV_Target1;

@@ -15,7 +15,7 @@ public class MainModule : IModule, ISingletonGetter<MainModule>
             window.OnClose += _ =>
             {
                 window.Dispose();
-                SFramework.Get().RequestExit();
+                Global.Get().RequestExit();
             };
         };
         SViewsModule.Get().OnSurfaceCreated += surface =>
@@ -35,6 +35,6 @@ public class MainModule : IModule, ISingletonGetter<MainModule>
 
     public static MainModule Get()
     {
-        return SFramework.Get().GetModule<MainModule>();
+        return Global.Get().GetModule<MainModule>();
     }
 }

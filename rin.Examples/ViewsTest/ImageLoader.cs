@@ -8,7 +8,11 @@ namespace rin.Examples.ViewsTest;
 public class ImageLoader
 {
     private static readonly HttpClient Client = new();
-    private readonly BackgroundTaskQueue _taskQueue = new();
+
+    private readonly BackgroundTaskQueue _taskQueue = new()
+    {
+        Name = "Image Loader Queue"
+    };
 
     public void Load(string source, Action<ImageHandle> onLoad)
     {

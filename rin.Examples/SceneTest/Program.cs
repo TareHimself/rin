@@ -2,4 +2,4 @@
 
 using Rin.Core;
 
-SFramework.Get().Run();
+Global.Get().Run();

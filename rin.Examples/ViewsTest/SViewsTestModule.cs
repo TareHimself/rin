@@ -232,7 +232,7 @@
 //                 Paint = (self, transform, cmds) =>
 //                 {
 //                     var topLeft = Vector2.Zero.Transform(transform);
-//                     var angle = (float.Sin(SFramework.Get().GetTimeSeconds()) + 1.0f) / 2.0f * 180.0f;
+//                     var angle = (float.Sin(Global.Get().GetTimeSeconds()) + 1.0f) / 2.0f * 180.0f;
 //                     cmds.AddRect(Matrix4x4.Identity.Translate(self.GetContentSize() / 2.0f).Rotate2dDegrees(angle),
 //                         self.GetContentSize() - new Vector2(100.0f), Color.White);
 //                 }

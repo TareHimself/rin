@@ -18,7 +18,7 @@ namespace misc.VectorRendering;
 //
 // On startup:
 //   1. Register embedded Content/VectorRendering/** resources so the shader at
-//      "VectorRendering/Slug/slug.slang" is resolvable from SFramework.Sources.
+//      "VectorRendering/Slug/slug.slang" is resolvable from Global.Sources.
 //   2. Create a window and listen for the surface ready event.
 //   3. Build a SlugAtlas, upload it, and drive a CanvasView to emit SlugCommands.
 public class VectorRenderingApplication : ExampleApplication
@@ -28,7 +28,7 @@ public class VectorRenderingApplication : ExampleApplication
         // Register the embedded resources from this assembly under the "VectorRendering" alias.
         // Files at Content/VectorRendering/** are served as "VectorRendering/**" to the resolver.
         // This lets IGraphicsModule.MakeGraphics("VectorRendering/Slug/slug.slang") find the shader.
-        SFramework.Sources.AddSource(
+        Global.Sources.AddSource(
             AssemblyContentResource.New<VectorRenderingApplication>("VectorRendering"));
 
         IGraphicsModule.Get().OnWindowCreated += window =>

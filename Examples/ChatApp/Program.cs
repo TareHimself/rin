@@ -2,7 +2,7 @@
 //
 // using Rin.Core;
 //
-// SFramework.Get().Run();
+// Global.Get().Run();
 
 
 using System.Numerics;

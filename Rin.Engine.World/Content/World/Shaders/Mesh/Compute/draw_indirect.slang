@@ -1,5 +1,5 @@
-#include "Framework/Shaders/Attributes.slang"
-#include "Framework/Shaders/defs.slang"
+#include "Core/Shaders/Attributes.slang"
+#include "Core/Shaders/defs.slang"
 #include "World/Shaders/Mesh/bounds.slang"
 
 struct IndirectCommand {

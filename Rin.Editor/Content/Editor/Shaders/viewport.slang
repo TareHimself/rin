@@ -1,5 +1,5 @@
-#include "Framework/Shaders/utils.slang"
-#include "Framework/Shaders/operators.slang"
+#include "Core/Shaders/utils.slang"
+#include "Core/Shaders/operators.slang"
 [[vk::binding(0, 0)]]
 uniform Sampler2D SceneImage;
 

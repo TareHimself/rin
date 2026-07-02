@@ -1,9 +1,9 @@
-#include "Framework/Shaders/images.slang"
-#include "Framework/Shaders/utils.slang"
+#include "Core/Shaders/images.slang"
+#include "Core/Shaders/utils.slang"
 #include "World/Shaders/Mesh/vertex.slang"
 #include "World/Shaders/scene_info.slang"
 #include "World/Shaders/gbuffer_out.slang"
-#include "Framework/Shaders/Attributes/blending.slang"
+#include "Core/Shaders/Attributes/blending.slang"
 // public Mat4 Transform = Mat4.Identity;
 // public ulong VertexAddress = 0;
 // private Vector4 _color_textureId = 0.0f;

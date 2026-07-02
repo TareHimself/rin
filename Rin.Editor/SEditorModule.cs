@@ -17,6 +17,6 @@ public class SEditorModule : IModule, ISingletonGetter<SEditorModule>
 
     public static SEditorModule Get()
     {
-        return SFramework.Get().GetModule<SEditorModule>();
+        return Global.Get().GetModule<SEditorModule>();
     }
 }

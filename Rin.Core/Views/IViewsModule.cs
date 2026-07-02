@@ -22,6 +22,6 @@ public interface IViewsModule : IModule, IUpdatable
 
     public static IViewsModule Get()
     {
-        return SFramework.Provider.Get<IViewsModule>();
+        return Global.Provider.Get<IViewsModule>();
     }
 }
