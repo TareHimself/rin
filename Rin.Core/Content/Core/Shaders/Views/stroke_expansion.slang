@@ -1,5 +1,5 @@
-#include "Framework/Shaders/operators.slang"
-#include "Framework/Shaders/utils.slang"
+#include "Core/Shaders/operators.slang"
+#include "Core/Shaders/utils.slang"
 
 struct Cubic {
     float2 p0;

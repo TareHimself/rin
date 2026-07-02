@@ -1,4 +1,4 @@
-#include "Framework/Shaders/Views/Paths/common.slang"
+#include "Core/Shaders/Views/Paths/common.slang"
 
 struct PushConstants
 {

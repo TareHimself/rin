@@ -4,7 +4,7 @@ using Rin.Core.Sources;
 
 namespace Rin.Core;
 
-public sealed class SFramework
+public sealed class Global
 {
     public static readonly string Directory = AppContext.BaseDirectory;
 
@@ -13,7 +13,7 @@ public sealed class SFramework
         Sources =
         [
             new FileSystemSource(),
-            AssemblyContentResource.New<SFramework>("Framework")
+            AssemblyContentResource.New<Global>("Core")
         ]
     };
 

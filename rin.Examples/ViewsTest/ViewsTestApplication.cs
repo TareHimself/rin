@@ -23,7 +23,7 @@ public class ViewsTestApplication : ExampleApplication
 
     protected override void OnStartup()
     {
-        SFramework.Provider.AddSingle(new ImageLoader());
+        Global.Provider.AddSingle(new ImageLoader());
         // {
         //     var manager = IViewsModule.Get().FontManager;
         //     if (manager.GetFont("Noto Sans") is { } font)
@@ -75,7 +75,7 @@ public class ViewsTestApplication : ExampleApplication
             };
             //https://samplelib.com/lib/preview/webm/sample-30s.webm
             var source =
-                new FileVideoSource(Platform.SelectFile("Select a webm video", filter: "*.webm")
+                new FileVideoSource(IApplication.Get().SelectFile("Select a webm video", filter: "*.webm")
                     .First()); //new HttpVideoSource(new Uri("https://samplelib.com/lib/preview/webm/sample-30s.webm"));// Platform.SelectFile("Select a webm video", filter: "*.webm").First();
             //var source = new HttpVideoSource(new Uri("https://b.catgirlsare.sexy/yTpGNCU13fu_.webm"));
             surf.Add(new PanelView
@@ -142,7 +142,7 @@ public class ViewsTestApplication : ExampleApplication
             surf.Window.OnKey += e =>
             {
                 if (e is { State: InputState.Pressed, Key: InputKey.Equal })
-                    Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
+                    Task.Run(() => IApplication.Get().SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
                         .After(p =>
                         {
                             foreach (var path in p)
@@ -302,7 +302,7 @@ public class ViewsTestApplication : ExampleApplication
             surface.Window.OnKey += e =>
             {
                 if (e is { State: InputState.Pressed, Key: InputKey.Equal })
-                    Task.Run(() => Platform.SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
+                    Task.Run(() => IApplication.Get().SelectFile("Select Images", filter: "*.png;*.jpg;*.jpeg", multiple: true))
                         .After(p =>
                         {
                             IApplication.Get().MainDispatcher.Enqueue(() =>

@@ -1,6 +1,6 @@
 #pragma once
-#include "Framework/Shaders/operators.slang"
-#include "Framework/Shaders/sd.slang"
+#include "Core/Shaders/operators.slang"
+#include "Core/Shaders/sd.slang"
 
 // Transform normal without inverse https://lxjk.github.io/2017/10/01/Stop-Using-Normal-Matrix.html
 float3 transformNormal(float3 normal, float4x4 transformation)

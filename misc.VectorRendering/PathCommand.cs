@@ -14,7 +14,7 @@
 //     private readonly Font _font;
 //
 //     private readonly IShader _shader = SGraphicsModule.Get()
-//         .MakeGraphics("Framework/Shaders/Views/path.slang");
+//         .MakeGraphics("Core/Shaders/Views/path.slang");
 //
 //     private readonly Mat3 _transform;
 //

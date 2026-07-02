@@ -25,7 +25,7 @@
 //
 //     public static SChatAppModule Get()
 //     {
-//         return SFramework.Get().GetModule<SChatAppModule>();
+//         return Global.Get().GetModule<SChatAppModule>();
 //     }
 // }
 

@@ -1,5 +1,5 @@
-#include "Framework/Shaders/utils.slang"
-#include "Framework/Shaders/images.slang"
+#include "Core/Shaders/utils.slang"
+#include "Core/Shaders/images.slang"
 #include "Editor/Shaders/Mesh/vertex.slang"
 #include "Editor/Shaders/scene_info.slang"
 #include "Editor/Shaders/Lights/light.slang"

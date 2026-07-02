@@ -6,7 +6,10 @@ namespace Rin.Graphics.Vulkan.Shaders.Slang;
 
 public class SlangShaderManager : IShaderManager
 {
-    private readonly BackgroundTaskQueue _compileTasks = new();
+    private readonly BackgroundTaskQueue _compileTasks = new()
+    {
+        Name = "Slang Shader Compile Queue"
+    };
     private readonly Lock _computeLock = new();
     private readonly Dictionary<string, SlangComputeShader> _computeShaders = [];
     private readonly Lock _graphicsLock = new();
@@ -174,7 +177,7 @@ public class SlangShaderManager : IShaderManager
 
     public static IEnumerable<string> ImportFile(string filePath, HashSet<string> included)
     {
-        using var dataStream = SFramework.Sources.Read(filePath);
+        using var dataStream = Global.Sources.Read(filePath);
         using var reader = new StreamReader(dataStream);
         while (reader.ReadLine() is { } line)
             if (line.StartsWith("#include"))

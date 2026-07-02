@@ -1,5 +1,5 @@
 #pragma once
-#include "Framework/Shaders/images.slang"
+#include "Core/Shaders/images.slang"
 
 struct GBufferSample {
     float3 color;

@@ -10,7 +10,7 @@ namespace Rin.Core.Views.Graphics.Quads;
 public sealed class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
 {
     private readonly IGraphicsShader _batchShader = IGraphicsModule.Get()
-        .MakeGraphics("Framework/Shaders/Views/batch.slang");
+        .MakeGraphics("Core/Shaders/Views/batch.slang");
 
     protected override IGraphicsShader GetShader()
     {

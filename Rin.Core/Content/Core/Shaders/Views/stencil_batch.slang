@@ -1,5 +1,5 @@
-#include "Framework/Shaders/Attributes/blending.slang"
-#include "Framework/Shaders/utils.slang"
+#include "Core/Shaders/Attributes/blending.slang"
+#include "Core/Shaders/utils.slang"
 
 struct StencilInfo
 {

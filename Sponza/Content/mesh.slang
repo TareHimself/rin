@@ -1,5 +1,5 @@
-#include "Framework/Shaders/images.slang"
-#include "Framework/Shaders/utils.slang"
+#include "Core/Shaders/images.slang"
+#include "Core/Shaders/utils.slang"
 #include "World/Shaders/Lights/Models/lambert.slang"
 #include "World/Shaders/Lights/Models/pbr_new.slang"
 #include "World/Shaders/Lights/light.slang"

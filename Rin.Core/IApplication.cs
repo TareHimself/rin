@@ -44,6 +44,10 @@ public interface IApplication : IDisposable
 
     public static IApplication Get()
     {
-        return SFramework.Provider.Get<IApplication>();
+        return Global.Provider.Get<IApplication>();
     }
+
+    public string[] SelectFile(string title = "Select File's", bool multiple = false, string filter = "");
+
+    public string[] SelectPath(string title = "Select Path's", bool multiple = false);
 }

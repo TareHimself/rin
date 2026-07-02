@@ -15,7 +15,10 @@ public class SixLaborsFontManager : IFontManager
     private const float RenderSize = 32.0f;
     private const float PixelRange = 12.0f;
     private readonly ConcurrentDictionary<CacheKey, LiveGlyphInfo> _atlases = [];
-    private readonly BackgroundTaskQueue _backgroundTaskQueue = new();
+    private readonly BackgroundTaskQueue _backgroundTaskQueue = new()
+    {
+        Name = "SixLaborsFontManager Task Queue"
+    };
 
     private readonly ISdfCache? _cache;
     private readonly CancellationTokenSource _cancellationSource = new();
@@ -33,8 +36,8 @@ public class SixLaborsFontManager : IFontManager
 
     public SixLaborsFontManager(ISdfCache? cache = null)
     {
-        // _cache = SFramework.Provider.AddSingle<ISdfCache>(
-        //     new DiskSdfCache(Path.Combine(SFramework.Directory, "sdfs.bin")));
+        // _cache = Global.Provider.AddSingle<ISdfCache>(
+        //     new DiskSdfCache(Path.Combine(Global.Directory, "sdfs.bin")));
     }
 
     public Task Prepare(IFont font, IEnumerable<char> characters)

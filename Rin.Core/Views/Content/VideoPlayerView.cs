@@ -64,7 +64,7 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass
 internal class VideoCommandHandler : ICommandHandlerWithPreAdd
 {
     private readonly IGraphicsShader _shader = IGraphicsModule.Get()
-        .MakeGraphics("Framework/Shaders/Views/video.slang");
+        .MakeGraphics("Core/Shaders/Views/video.slang");
 
     private VideoCommand[] _commands = [];
     private uint _itemBufferId;

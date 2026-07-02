@@ -57,7 +57,7 @@ public class SSceneTestModule : IModule
             var location = new Vector3(0.0f, 0, 0);
             comp.SetLocation(location);
 
-            Extensions.LoadStaticMesh(Path.Join(SFramework.Directory, "assets", "models", "cube.glb")
+            Extensions.LoadStaticMesh(Path.Join(Global.Directory, "assets", "models", "cube.glb")
             ).After(mesh =>
             {
                 scene.AddPointLight(new Vector3(0.0f, 20.0f, 0.0f));
@@ -127,7 +127,7 @@ public class SSceneTestModule : IModule
                     // e1.SetRotation(e1.GetRotation().AddLocalYaw(-50.0f * delta * 2F).AddLocalPitch(-20.0f * delta * 2F));
                 };
 
-                Extensions.LoadSkinnedMesh(Path.Join(SFramework.Directory, "assets", "models", "fox.glb"))
+                Extensions.LoadSkinnedMesh(Path.Join(Global.Directory, "assets", "models", "fox.glb"))
                     .After(skinned =>
                     {
                         if (skinned is not null)
@@ -186,7 +186,7 @@ public class SSceneTestModule : IModule
                 if (window.Parent != null)
                     window.Dispose();
                 else
-                    SFramework.Get().RequestExit();
+                    Global.Get().RequestExit();
             };
 
 
@@ -228,10 +228,10 @@ public class SSceneTestModule : IModule
 
     public static async Task<DefaultMeshMaterial> LoadGoldMaterial()
     {
-        var albedo = LoadTexture(Path.Join(SFramework.Directory, "assets", "textures", "au_albedo.png"));
-        var roughness = LoadTexture(Path.Join(SFramework.Directory, "assets", "textures", "au_roughness.png"));
-        var metallic = LoadTexture(Path.Join(SFramework.Directory, "assets", "textures", "au_metallic.png"));
-        var normal = LoadTexture(Path.Join(SFramework.Directory, "assets", "textures", "au_normal.png"));
+        var albedo = LoadTexture(Path.Join(Global.Directory, "assets", "textures", "au_albedo.png"));
+        var roughness = LoadTexture(Path.Join(Global.Directory, "assets", "textures", "au_roughness.png"));
+        var metallic = LoadTexture(Path.Join(Global.Directory, "assets", "textures", "au_metallic.png"));
+        var normal = LoadTexture(Path.Join(Global.Directory, "assets", "textures", "au_normal.png"));
 
 
         await Task.WhenAll(albedo, roughness, metallic, normal);

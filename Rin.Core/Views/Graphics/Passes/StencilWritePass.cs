@@ -12,7 +12,7 @@ public class StencilWritePass : IPass
     private readonly uint _mask;
 
     private readonly IGraphicsShader _stencilShader = IGraphicsModule.Get()
-        .MakeGraphics("Framework/Shaders/Views/stencil_batch.slang");
+        .MakeGraphics("Core/Shaders/Views/stencil_batch.slang");
 
     private readonly SurfaceContext _surfaceContext;
 

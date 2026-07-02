@@ -17,7 +17,7 @@ public class CustomShaderCommandHandler : ICommandHandler
         _prettyShader =
             IGraphicsModule.Get()
                 .MakeGraphics(
-                    $"fs/{Path.Join(SFramework.Directory, "assets", "test", "pretty.slang").Replace('\\', '/')}");
+                    $"fs/{Path.Join(Global.Directory, "assets", "test", "pretty.slang").Replace('\\', '/')}");
 
     private CustomShaderCommand[] _commands = [];
     private uint BufferId { get; set; }
