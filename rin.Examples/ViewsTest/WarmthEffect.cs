@@ -1,13 +1,13 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using Rin.Core;
+using Rin.Core.Audio.Effects;
 
 namespace rin.Examples.ViewsTest;
 
 [AudioEffect]
 public partial struct WarmthEffect
 {
-    private const float Drive = 1.5f; // gentle push, try 1.0–3.0
+    private const float Drive = 1.5f; // gentle push, try 1.0-3.0
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Process(ReadOnlySpan<float> input, Span<float> output)
@@ -22,7 +22,7 @@ public partial struct WarmthEffect
         for (; i <= length - vSize; i += vSize)
         {
             var v = new Vector<float>(input.Slice(i, vSize)) * vDrive;
-            // algebraic sigmoid: x / (1 + |x|)  →  always in (-1, 1)
+            // algebraic sigmoid: x / (1 + |x|) -> always in (-1, 1)
             v = v / (vOne + Vector.Abs(v));
             v.CopyTo(output.Slice(i, vSize));
         }

@@ -45,6 +45,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.SourceGenerators.Sample
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.SourceGenerators.Tests", "Rin.SourceGenerators\Rin.SourceGenerators.Tests\Rin.SourceGenerators.Tests.csproj", "{7CECC3B1-A8A1-4FDE-AC44-2D2128A1876A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "rin.Examples", "rin.Examples", "{84B5B24B-1A2A-7CFC-028F-1473D8396F1D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Rin.SourceGenerators", "Rin.SourceGenerators", "{7C63A152-AF90-E0F6-7F88-4C5955A1739C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{205E6779-3320-FCAA-FE86-55A94D881F2E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -298,6 +304,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{205E6779-3320-FCAA-FE86-55A94D881F2E} = {84B5B24B-1A2A-7CFC-028F-1473D8396F1D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E4D6A0B7-2D2C-4F30-B19A-983986D93B5D}

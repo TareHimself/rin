@@ -13,7 +13,7 @@ namespace Rin.Engine.World.Graphics.Default.Passes;
 /// <param name="renderContext"></param>
 public class SkinningPass(DefaultWorldRenderContext renderContext) : IComputePass
 {
-    private readonly IComputeShader _skinningShader = SGraphicsModule
+    private readonly IComputeShader _skinningShader = IGraphicsModule
         .Get()
         .MakeCompute("World/Shaders/Mesh/Compute/skinning.slang");
 
@@ -33,6 +33,7 @@ public class SkinningPass(DefaultWorldRenderContext renderContext) : IComputePas
     public uint SkinningOutputBufferId { get; set; }
     public uint Id { get; set; }
     public bool IsTerminal => false;
+    public Action? OnPrune { get; } = null;
 
     public void Configure(IGraphConfig config)
     {

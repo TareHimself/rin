@@ -88,10 +88,10 @@ public abstract class CompositeView : View, ICompositeView
 
 
         var contentTransform = transform.ApplyBefore(GetLocalContentTransform());
+        
+        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transform.ApplyBefore(Matrix4x4.Identity.Translate(GetPaddingOffset())), GetContentSize());
 
-        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(contentTransform, GetContentSize());
-
-        if (Clip == Clip.Bounds) clipRect = ComputeAABB(contentTransform).Clamp(clipRect);
+        if (Clip == Clip.Bounds) clipRect = Rect2D.Clamp(ComputeAABB(contentTransform), clipRect);
 
         List<Pair<IView, Matrix4x4>> toCollect = [];
 
@@ -101,7 +101,7 @@ public abstract class CompositeView : View, ICompositeView
 
             var aabb = slot.Child.ComputeAABB(slotTransform);
 
-            if (!clipRect.IntersectsWith(aabb)) continue;
+            if (!Rect2D.IntersectsWith(clipRect, aabb)) continue;
 
             toCollect.Add(new Pair<IView, Matrix4x4>(slot.Child, slotTransform));
         }
@@ -145,7 +145,7 @@ public abstract class CompositeView : View, ICompositeView
     public override void InvalidateLayout()
     {
         base.InvalidateLayout();
-        // Only cascade to currently-valid children — invalid ones are already in the pending queue.
+        // Only cascade to currently-valid children - invalid ones are already in the pending queue.
         // When ForceLayout processes this parent first (lower depth), Layout() covers all children,
         // marking them valid; their pending entries are then skipped.
         foreach (var slot in GetSlots())

@@ -139,6 +139,8 @@ public class ViewsTestApplication : ExampleApplication
             };
             var rand = new Random();
             IEffectController<EqParameters>? effectAdded = null;
+            IEffectController<StressTestEffect.Parameters>? stressEffectAdded = null;
+            IEffectController<BloomEffect.Parameters>? bloomEffectAdded = null;
             surf.Window.OnKey += e =>
             {
                 if (e is { State: InputState.Pressed, Key: InputKey.Equal })
@@ -214,6 +216,78 @@ public class ViewsTestApplication : ExampleApplication
                         effectAdded = null;
                     }
                 }
+
+                if (e is { State: InputState.Pressed, Key: InputKey.J })
+                {
+                    if (stressEffectAdded is null)
+                    {
+                        stressEffectAdded = IAudioModule.Get().MasterAudioGroup.AddEffect(StressTestEffect.Descriptor);
+                        Console.WriteLine("StressTestEffect added");
+                    }
+                    else
+                    {
+                        stressEffectAdded.Dispose();
+                        stressEffectAdded = null;
+                        Console.WriteLine("StressTestEffect removed");
+                    }
+                }
+
+                if (stressEffectAdded is not null)
+                {
+                    if (e is { State: InputState.Pressed, Key: InputKey.H })
+                    {
+                        stressEffectAdded.Parameters = stressEffectAdded.Parameters with
+                        {
+                            Feedback = Math.Clamp(stressEffectAdded.Parameters.Feedback - 0.1f, 0f, 0.97f)
+                        };
+                        Console.WriteLine($"StressTestEffect feedback: {stressEffectAdded.Parameters.Feedback:0.00}");
+                    }
+
+                    if (e is { State: InputState.Pressed, Key: InputKey.Y })
+                    {
+                        stressEffectAdded.Parameters = stressEffectAdded.Parameters with
+                        {
+                            Feedback = Math.Clamp(stressEffectAdded.Parameters.Feedback + 0.1f, 0f, 0.97f)
+                        };
+                        Console.WriteLine($"StressTestEffect feedback: {stressEffectAdded.Parameters.Feedback:0.00}");
+                    }
+                }
+
+                if (e is { State: InputState.Pressed, Key: InputKey.L })
+                {
+                    if (bloomEffectAdded is null)
+                    {
+                        bloomEffectAdded = IAudioModule.Get().MasterAudioGroup.AddEffect(BloomEffect.Descriptor);
+                        Console.WriteLine("BloomEffect added");
+                    }
+                    else
+                    {
+                        bloomEffectAdded.Dispose();
+                        bloomEffectAdded = null;
+                        Console.WriteLine("BloomEffect removed");
+                    }
+                }
+
+                if (bloomEffectAdded is not null)
+                {
+                    if (e is { State: InputState.Pressed, Key: InputKey.U })
+                    {
+                        bloomEffectAdded.Parameters = bloomEffectAdded.Parameters with
+                        {
+                            RootHz = Math.Clamp(bloomEffectAdded.Parameters.RootHz * MathF.Pow(2f, -2f / 12f), 40f, 1000f)
+                        };
+                        Console.WriteLine($"BloomEffect root: {bloomEffectAdded.Parameters.RootHz:0.0} Hz");
+                    }
+
+                    if (e is { State: InputState.Pressed, Key: InputKey.I })
+                    {
+                        bloomEffectAdded.Parameters = bloomEffectAdded.Parameters with
+                        {
+                            RootHz = Math.Clamp(bloomEffectAdded.Parameters.RootHz * MathF.Pow(2f, 2f / 12f), 40f, 1000f)
+                        };
+                        Console.WriteLine($"BloomEffect root: {bloomEffectAdded.Parameters.RootHz:0.0} Hz");
+                    }
+                }
             };
         }
     }
@@ -222,22 +296,6 @@ public class ViewsTestApplication : ExampleApplication
     {
         if (IViewsModule.Get().GetWindowSurface(renderer) is { } surface)
         {
-            // surface.Add(new ScrollListView
-            // {
-            //     Children =
-            //     [
-            //         new NetworkImageView("https://b.catgirlsare.sexy/Yi9G5BhZeGWL.png"),
-            //         new NetworkImageView("https://b.catgirlsare.sexy/Yi9G5BhZeGWL.png"),
-            //     ],
-            //     Axis = Axis.Row,
-            //     FloatingBar = true,
-            //     BarPadding = 2
-            // });
-            // // surface.Add(new BackgroundBlurView
-            // // {
-            // //     
-            // // });
-            // return;
             var list = new WrapListView
             {
                 Axis = Axis.Row

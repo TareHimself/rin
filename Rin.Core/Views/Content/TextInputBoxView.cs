@@ -95,8 +95,16 @@ public class TextInputBoxView : TextBoxView
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {
-        base.LayoutContent(availableSpace);
-        return availableSpace;
+        // Fill available space like an input field should, but never collapse: an unbounded
+        // axis (e.g. the main axis of a Column-oriented ListView, which is always handed down
+        // as +Infinity) must fall back to the measured content size instead of propagating
+        // Infinity, since View.Layout() zeroes out non-finite components via FiniteOr(). Height
+        // additionally never drops below LineHeight, so an empty box still shows a caret-sized
+        // line - the same default an HTML <input> has.
+        var measured = base.LayoutContent(availableSpace);
+        var width = float.IsFinite(availableSpace.X) ? availableSpace.X : measured.X;
+        var height = float.Max(LineHeight, float.IsFinite(availableSpace.Y) ? availableSpace.Y : measured.Y);
+        return new Vector2(width, height);
     }
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
