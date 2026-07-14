@@ -14,22 +14,10 @@ namespace Rin.Core.Generators;
 [Generator]
 public class AudioEffectGenerator : IIncrementalGenerator
 {
-    private const string AttributeFullName = "Rin.Core.AudioEffectAttribute";
+    private const string AttributeFullName = "Rin.Core.Audio.Effects.AudioEffectAttribute";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Add the attribute definition to the compilation
-        context.RegisterPostInitializationOutput(i =>
-        {
-            i.AddSource("AudioEffectAttribute.g.cs", """
-                                                     namespace Rin.Core
-                                                     {
-                                                         [global::System.AttributeUsage(global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct)]
-                                                         internal class AudioEffectAttribute : global::System.Attribute {} 
-                                                     }
-                                                     """);
-        });
-
         // Filter for classes or structs that might have the [AudioEffect] attribute
         var types = context.SyntaxProvider
             .CreateSyntaxProvider(

@@ -103,30 +103,25 @@ public class FlexLayout : ListLayout
                 {
                     var assignedMainAxisSpace =
                         flexTotal > 0.0f ? mainAxisAvailableSpace * (asFlexSlot.Flex.Value / flexTotal) : 0.0f;
-                    Vector2 flexSize;
                     switch (axis)
                     {
                         case Axis.Column:
                         {
-                            flexSize = new Vector2(GetSlotCrossAxisSize(slot, space.X), assignedMainAxisSpace);
-
-                            slotMainAxisSize = flexSize.Y;
-                            slotCrossAxisSize = flexSize.X;
+                            var viewSize = view.Layout(new Vector2(GetSlotCrossAxisSize(slot, space.X), assignedMainAxisSpace));
+                            slotMainAxisSize = assignedMainAxisSpace;
+                            slotCrossAxisSize = viewSize.X;
                         }
                             break;
                         case Axis.Row:
                         {
-                            flexSize = new Vector2(assignedMainAxisSpace, GetSlotCrossAxisSize(slot, space.Y));
-
-                            slotMainAxisSize = flexSize.X;
-                            slotCrossAxisSize = flexSize.Y;
+                            var viewSize = view.Layout(new Vector2(assignedMainAxisSpace, GetSlotCrossAxisSize(slot, space.Y)));
+                            slotMainAxisSize = assignedMainAxisSpace;
+                            slotCrossAxisSize = viewSize.Y;
                         }
                             break;
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
-
-                    view.Layout(flexSize);
                 }
                 else
                 {

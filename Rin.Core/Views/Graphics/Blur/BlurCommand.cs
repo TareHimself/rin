@@ -38,7 +38,7 @@ internal class BlurInitCommand : TCommand<BlurInitPassConfig, BlurInitCommandHan
         Strength = strength;
         Size = size;
         Tint = tint;
-        var boundingBox = new Rect2D(Vector2.Zero, size, transform).Clamp(new Rect2D(Vector2.Zero, surfaceSize));
+        var boundingBox = Rect2D.Clamp(new Rect2D(Vector2.Zero, size, transform), new Rect2D(Vector2.Zero, surfaceSize));
 
         // Need to do pixel rounding for regular bounding box
         BoundingBoxP1 = boundingBox.Offset;

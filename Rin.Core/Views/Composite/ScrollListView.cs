@@ -149,7 +149,7 @@ public class ScrollListView : ListView
             barSize = float.Min(barSize, axisSize);
             var barCrossAxisOffset = GetBarCrossAxisSpaceTaken() - BarPadding;
             var availableDist = axisSize - barSize;
-            var drawOffset = 0; //50 + float.Max(availableDist * float.Clamp(scroll / maxScroll, 0.0f, 1.0f),0);
+            var drawOffset = float.Max(availableDist * float.Clamp(scroll / maxScroll, 0.0f, 1.0f), 0f);
 
             var size = GetContentSize();
 

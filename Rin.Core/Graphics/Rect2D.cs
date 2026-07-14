@@ -69,12 +69,12 @@ public record struct Rect2D
             rect.Size.X);
     }
 
-    public bool IntersectsWith(Rect2D rect)
+    public static bool IntersectsWith(Rect2D a, Rect2D b)
     {
-        var a1 = Offset;
-        var a2 = a1 + Size;
-        var b1 = rect.Offset;
-        var b2 = b1 + rect.Size;
+        var a1 = a.Offset;
+        var a2 = a1 + a.Size;
+        var b1 = b.Offset;
+        var b2 = b1 + b.Size;
 
         if (a1.X <= b1.X)
         {
@@ -90,31 +90,25 @@ public record struct Rect2D
 
 
     /// <summary>
-    ///     Clamps this rect to the specified area
+    ///     Clamps a rect to the specified area
     /// </summary>
+    /// <param name="rect"></param>
     /// <param name="area"></param>
     /// <returns></returns>
-    public Rect2D Clamp(Rect2D area)
+    public static Rect2D Clamp(Rect2D rect, Rect2D area)
     {
-        if (!IntersectsWith(area))
-        {
-            Offset = area.Offset;
-            Size = new Vector2();
-            return this;
-        }
+        if (!IntersectsWith(rect, area)) return new Rect2D(area.Offset, new Vector2());
 
-        var a1 = Offset;
-        var a2 = a1 + Size;
+        var a1 = rect.Offset;
+        var a2 = a1 + rect.Size;
         var b1 = area.Offset;
         var b2 = b1 + area.Size;
 
-        Offset = new Vector2(float.Max(a1.X, b1.X), float.Max(a1.Y, b1.Y));
+        var offset = new Vector2(float.Max(a1.X, b1.X), float.Max(a1.Y, b1.Y));
 
         var p2 = new Vector2(float.Min(a2.X, b2.X), float.Min(a2.Y, b2.Y));
 
-        Size = p2 - Offset;
-
-        return this;
+        return new Rect2D(offset, p2 - offset);
     }
 
     public static implicit operator Pair<Vector2, Vector2>(Rect2D rect)
@@ -185,53 +179,7 @@ public record struct Rect2D
             return b >= 0 && c >= 0 && d >= 0;
         return b < 0 && c < 0 && d < 0;
     }
-
-    //
-    // // ReSharper disable once InconsistentNaming
-    // public static Rect MakeAABB(Vector2 size,Mat3 transform,Vector2? offset)
-    // {
-    //     var tl = offset.GetValueOrDefault(new Vector2(0.0f));
-    //     var br = tl + size;
-    //     var tr = new Vector2(br.X, tl.Y);
-    //     var bl = new Vector2(tl.X, br.Y);
-    //
-    //     tl = tl.ApplyTransformation(transform);
-    //     br = br.ApplyTransformation(transform);
-    //     tr = tr.ApplyTransformation(transform);
-    //     bl = bl.ApplyTransformation(transform);
-    //
-    //     var p1AABB = new Vector2(
-    //         System.float.Min(
-    //             System.float.Min(tl.X, tr.X),
-    //             System.float.Min(bl.X, br.X)
-    //         ),
-    //         System.float.Min(
-    //             System.float.Min(tl.Y, tr.Y),
-    //             System.float.Min(bl.Y, br.Y)
-    //         )
-    //     );
-    //     var p2AABB = new Vector2(
-    //         System.float.Max(
-    //             System.float.Max(tl.X, tr.X),
-    //             System.float.Max(bl.X, br.X)
-    //         ),
-    //         System.float.Max(
-    //             System.float.Max(tl.Y, tr.Y),
-    //             System.float.Max(bl.Y, br.Y)
-    //         )
-    //     );
-    //
-    //     return new Rect
-    //     {
-    //         Offset = p1AABB,
-    //         Size = p2AABB - p1AABB
-    //     };
-    // }
-
-    // public bool PointWithin(Vector2 point)
-    // {
-    //     return point.Within(this);
-    // }
+    
     public readonly void Deconstruct(out Vector2 offset, out Vector2 size)
     {
         offset = Offset;

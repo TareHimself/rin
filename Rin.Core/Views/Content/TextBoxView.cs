@@ -45,6 +45,11 @@ public class TextBoxView : ContentView
         get => _wrapContent;
         set
         {
+            if (value != _wrapContent)
+            {
+                _cachedLayouts = null;
+                _cachedBounds = null;
+            }
             _wrapContent = value;
             InvalidateLayout();
         }
@@ -113,7 +118,7 @@ public class TextBoxView : ContentView
         _cachedLayouts = null;
         Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X + 2f : null : null;
         var bounds = GetCharacterBounds(Wrap).ToArray();
-        if (bounds.Empty()) return Vector2.Zero;
+        if (bounds.Empty()) return new Vector2(0.0f, LineHeight);
         var width = bounds.MaxBy(c => c.Right).Right;
         var height = bounds.MaxBy(c => c.Bottom).Bottom;
         return new Vector2(width, height);

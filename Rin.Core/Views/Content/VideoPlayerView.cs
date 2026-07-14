@@ -153,6 +153,21 @@ public class VideoPlayerView : ContentView
         _player = context;
     }
 
+    public bool HasVideo => _player.HasVideo;
+    public bool IsPlaying => _player.IsPlaying;
+    public double Position => _player.Position;
+    public double Duration => _player.Duration;
+
+    public void Play()
+    {
+        _player.Play();
+    }
+
+    public void Pause()
+    {
+        _player.Pause();
+    }
+
     public override void Dispose()
     {
         base.Dispose();
