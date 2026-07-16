@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using Rin.Core.Graphics.Images;
+using Rin.Core.Graphics;
 using Rin.Core.Shared.Math;
 
 namespace Rin.Core.Views.Graphics.Quads;
@@ -116,7 +116,7 @@ public struct Quad() // : ICloneable<Quad>
     [NoReorder]
     public struct TextureData
     {
-        public ImageHandle ImageHandle { get; set; }
+        public ResourceHandle ImageHandle { get; set; }
         public Vector4 Tint { get; set; }
         public Vector4 UV { get; set; }
         public Vector4 BorderRadius { get; set; }
@@ -125,7 +125,7 @@ public struct Quad() // : ICloneable<Quad>
     [NoReorder]
     public struct MtsdfData
     {
-        public ImageHandle ImageHandle { get; set; }
+        public ResourceHandle ImageHandle { get; set; }
         public Vector4 Color { get; set; }
         public Vector4 UV { get; set; }
     }
@@ -267,7 +267,7 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Texture(ImageHandle imageHandle, in Matrix4x4 transform, in Vector2 size, Color? tint = null,
+    public static Quad Texture(ResourceHandle imageHandle, in Matrix4x4 transform, in Vector2 size, Color? tint = null,
         in Vector4? borderRadius = null, in Vector4? uv = null)
     {
         var quad = new Quad
@@ -287,7 +287,7 @@ public struct Quad() // : ICloneable<Quad>
         return quad;
     }
 
-    public static Quad Mtsdf(ImageHandle imageHandle, in Matrix4x4 transform, in Vector2 size, in Color? color = null,
+    public static Quad Mtsdf(ResourceHandle imageHandle, in Matrix4x4 transform, in Vector2 size, in Color? color = null,
         in Vector4? uv = null)
     {
         var quad = new Quad

@@ -10,13 +10,13 @@ public class DeviceMesh : IMesh, IDisposable
     private readonly ulong _formatSize;
     [PublicAPI] public Bounds3D Bounds;
 
-    [PublicAPI] public IDeviceBuffer IndexBuffer;
+    [PublicAPI] public IVulkanDeviceBuffer IndexBuffer;
 
     [PublicAPI] public MeshSurface[] Surfaces;
 
-    [PublicAPI] public IDeviceBuffer VertexBuffer;
+    [PublicAPI] public IVulkanDeviceBuffer VertexBuffer;
 
-    public DeviceMesh(IDeviceBuffer vertexBuffer, IDeviceBuffer indexBuffer, MeshSurface[] surfaces,
+    public DeviceMesh(IVulkanDeviceBuffer vertexBuffer, IVulkanDeviceBuffer indexBuffer, MeshSurface[] surfaces,
         ulong vertexFormatSize)
     {
         VertexBuffer = vertexBuffer;

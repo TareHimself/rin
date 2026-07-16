@@ -1,5 +1,4 @@
 ﻿using Rin.Core.Graphics;
-using Rin.Core.Graphics.Images;
 using Rin.Graphics.Vulkan.Images;
 using TerraFX.Interop.Vulkan;
 
@@ -18,7 +17,7 @@ public class ExternalVulkanTextureArray(IVulkanTextureArray source, Action? onDi
     public Extent2D Extent => source.Extent;
     public bool Mips => source.Mips;
     public ImageFormat Format => source.Format;
-    public ImageHandle Handle => source.Handle;
+    public ResourceHandle Handle => source.Handle;
     public VkImage VulkanImage => source.VulkanImage;
     public VkImageView VulkanView => source.VulkanView;
 

@@ -1,6 +1,5 @@
 ﻿using Rin.Core;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Shared.Threading;
 
 namespace rin.Examples.ViewsTest;
@@ -14,7 +13,7 @@ public class ImageLoader
         Name = "Image Loader Queue"
     };
 
-    public void Load(string source, Action<ImageHandle> onLoad)
+    public void Load(string source, Action<ResourceHandle> onLoad)
     {
         _taskQueue.Enqueue(() =>
         {

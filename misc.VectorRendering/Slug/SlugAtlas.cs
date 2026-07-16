@@ -1,7 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Shared.Buffers;
 using SixLabors.Fonts;
 
@@ -66,8 +65,8 @@ public class SlugAtlas : IDisposable
     private bool _dirty = false;
 
     // Current GPU texture handles — valid after EnsureUploaded().
-    public ImageHandle CurveHandle { get; private set; }
-    public ImageHandle BandHandle  { get; private set; }
+    public ResourceHandle CurveHandle { get; private set; }
+    public ResourceHandle BandHandle  { get; private set; }
 
     // Add an arbitrary vector shape to the atlas.
     // Returns a stable uint ID that can be passed to GlyphDrawData for rendering.
@@ -225,13 +224,13 @@ public class SlugAtlas : IDisposable
 
     public void Dispose()
     {
-        if (CurveHandle.IsValid()) IGraphicsModule.Get().FreeImageHandles(CurveHandle);
-        if (BandHandle.IsValid())  IGraphicsModule.Get().FreeImageHandles(BandHandle);
+        if (CurveHandle.IsValid()) IGraphicsModule.Get().FreeResourceHandles(CurveHandle);
+        if (BandHandle.IsValid())  IGraphicsModule.Get().FreeResourceHandles(BandHandle);
     }
 
     // Convert a List<float> into a GPU RGBA32F texture.
     // The texture is always TextureWidth wide; rows wrap automatically.
-    private static void UploadTexture(List<float> data, int usedTexels, out ImageHandle handle)
+    private static void UploadTexture(List<float> data, int usedTexels, out ResourceHandle handle)
     {
         // Compute minimum height needed to hold all used texels.
         int height = Math.Max(1, (int)Math.Ceiling(usedTexels / (double)TextureWidth));

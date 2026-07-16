@@ -1,20 +1,18 @@
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Shared.Time;
+using Rin.Graphics.Vulkan.Images;
 
 namespace Rin.Graphics.Vulkan.Graph;
 
 public sealed class CompiledGraph : ICompiledGraph
 {
-    private readonly Dictionary<uint, IDeviceBuffer> _buffers = [];
-    private readonly Dictionary<uint, IDisposableCubemap> _cubemaps = [];
+    private readonly Dictionary<uint, IVulkanDeviceBuffer> _buffers = [];
     private readonly Dictionary<uint, IResourceDescriptor> _descriptors;
     private readonly Frame _frame;
+    private readonly Dictionary<uint, IVulkanImage> _images = [];
     private readonly IEnumerable<ExecutionGroup> _nodes;
     private readonly IResourcePool _resourcePool;
-    private readonly Dictionary<uint, IDisposableTextureArray> _textureArrays = [];
-    private readonly Dictionary<uint, IDisposableTexture> _textures = [];
 
 
     public CompiledGraph(IResourcePool resourcePool, Frame frame, Dictionary<uint, IResourceDescriptor> descriptors,
@@ -29,107 +27,37 @@ public sealed class CompiledGraph : ICompiledGraph
 
     public void Dispose()
     {
-        foreach (var image in _textures.Values) image.Dispose();
-        foreach (var image in _textureArrays.Values) image.Dispose();
-        foreach (var image in _cubemaps.Values) image.Dispose();
-        foreach (var buffers in _buffers.Values) buffers.Dispose();
+        foreach (var image in _images.Values) (image as IDisposable)?.Dispose();
+        foreach (var buffer in _buffers.Values) buffer.Dispose();
 
-        _textures.Clear();
-        _textureArrays.Clear();
-        _cubemaps.Clear();
+        _images.Clear();
         _buffers.Clear();
     }
 
-    public ITexture GetTexture(uint id)
+    public ResourceHandle GetImage(uint id)
     {
-        {
-            if (_textures.TryGetValue(id, out var resource)) return resource;
-        }
+        if (_images.TryGetValue(id, out var resource)) return resource.Handle;
 
+        if (_descriptors.TryGetValue(id, out var descriptor))
         {
-            if (_descriptors.TryGetValue(id, out var descriptor))
+            IVulkanImage? created = descriptor switch
             {
-                {
-                    if (descriptor is TextureResourceDescriptor asResourceDescriptor)
-                    {
-                        var resource = _resourcePool.CreateTexture(asResourceDescriptor, _frame);
-                        _textures.Add(id, resource);
-                        return resource;
-                    }
-                }
+                TextureResourceDescriptor asResourceDescriptor => _resourcePool.CreateTexture(asResourceDescriptor,
+                    _frame),
+                CubemapResourceDescriptor asResourceDescriptor => _resourcePool.CreateCubemap(asResourceDescriptor,
+                    _frame),
+                TextureArrayResourceDescriptor asResourceDescriptor => _resourcePool.CreateTextureArray(
+                    asResourceDescriptor, _frame),
+                ExternalVulkanTextureResourceDescriptor asExternalDescriptor => asExternalDescriptor.Resource,
+                ExternalVulkanCubemapResourceDescriptor asExternalDescriptor => asExternalDescriptor.Resource,
+                ExternalVulkanTextureArrayResourceDescriptor asExternalDescriptor => asExternalDescriptor.Resource,
+                _ => null
+            };
 
-                {
-                    if (descriptor is ExternalVulkanTextureResourceDescriptor asExternalDescriptor)
-                    {
-                        var resource = asExternalDescriptor.Resource;
-                        _textures.Add(id, resource);
-                        return resource;
-                    }
-                }
-            }
-        }
-
-        throw new ResourceAllocationException(id);
-    }
-
-    public ITextureArray GetTextureArray(uint id)
-    {
-        {
-            if (_textureArrays.TryGetValue(id, out var resource)) return resource;
-        }
-
-        {
-            if (_descriptors.TryGetValue(id, out var descriptor))
+            if (created is not null)
             {
-                {
-                    if (descriptor is TextureArrayResourceDescriptor asResourceDescriptor)
-                    {
-                        var resource = _resourcePool.CreateTextureArray(asResourceDescriptor, _frame);
-                        _textureArrays.Add(id, resource);
-                        return resource;
-                    }
-                }
-
-                {
-                    if (descriptor is ExternalVulkanTextureArrayResourceDescriptor asExternalDescriptor)
-                    {
-                        var resource = asExternalDescriptor.Resource;
-                        _textureArrays.Add(id, resource);
-                        return resource;
-                    }
-                }
-            }
-        }
-
-        throw new ResourceAllocationException(id);
-    }
-
-    public ICubemap GetCubemap(uint id)
-    {
-        {
-            if (_cubemaps.TryGetValue(id, out var resource)) return resource;
-        }
-
-        {
-            if (_descriptors.TryGetValue(id, out var descriptor))
-            {
-                {
-                    if (descriptor is CubemapResourceDescriptor asResourceDescriptor)
-                    {
-                        var resource = _resourcePool.CreateCubemap(asResourceDescriptor, _frame);
-                        _cubemaps.Add(id, resource);
-                        return resource;
-                    }
-                }
-
-                {
-                    if (descriptor is ExternalVulkanCubemapResourceDescriptor asExternalDescriptor)
-                    {
-                        var resource = asExternalDescriptor.Resource;
-                        _cubemaps.Add(id, resource);
-                        return resource;
-                    }
-                }
+                _images.Add(id, created);
+                return created.Handle;
             }
         }
 

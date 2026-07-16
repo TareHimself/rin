@@ -1,5 +1,4 @@
 ﻿using Rin.Core.Graphics;
-using Rin.Core.Graphics.Images;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan.Images;
@@ -18,5 +17,5 @@ public class VulkanCubemap : IDisposableVulkanCubemap
     public required Extent2D Extent { get; set; }
     public bool Mips { get; set; }
     public required ImageFormat Format { get; set; }
-    public ImageHandle Handle { get; } = ImageHandle.InvalidCubemap;
+    public ResourceHandle Handle { get; } = ResourceHandle.InvalidCubemap;
 }

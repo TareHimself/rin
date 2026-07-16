@@ -1,9 +1,6 @@
 ﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
-using Rin.Core.Graphics.Images;
-using Rin.Graphics.Vulkan.Images;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan.Graph;
@@ -36,46 +33,26 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint SwapchainImageId { get; set; }
 
-    public uint AddExternalTexture(ITexture texture, Action? onDispose = null)
+    public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null)
     {
-        Debug.Assert(texture is IVulkanTexture);
         var resourceId = builder.MakeId();
-        Resources.Add(resourceId,
-            new ExternalVulkanTextureResourceDescriptor(Unsafe.As<IVulkanTexture>(texture), onDispose));
-        return resourceId;
-    }
-
-    public uint AddExternalTextureArray(ITextureArray textureArray, Action? onDispose = null)
-    {
-        Debug.Assert(textureArray is IVulkanTextureArray);
-        var resourceId = builder.MakeId();
-        Resources.Add(resourceId,
-            new ExternalVulkanTextureArrayResourceDescriptor(Unsafe.As<IVulkanTextureArray>(textureArray), onDispose));
-        return resourceId;
-    }
-
-    public uint AddExternalCubemap(ICubemap cubemap, Action? onDispose = null)
-    {
-        Debug.Assert(cubemap is IVulkanCubemap);
-        var resourceId = builder.MakeId();
-        Resources.Add(resourceId,
-            new ExternalVulkanCubemapResourceDescriptor(Unsafe.As<IVulkanCubemap>(cubemap), onDispose));
+        Resources.Add(resourceId, ExternalResourceDescriptors.Make(handle, onDispose));
         return resourceId;
     }
 
     public uint CreateTexture(in Extent2D extent, ImageFormat format, ImageLayout layout)
     {
-        return CreateImage(extent, format, layout, 0, ImageType.Texture);
+        return CreateImage(extent, format, layout, 0, ResourceType.Texture);
     }
 
     public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout)
     {
-        return CreateImage(extent, format, layout, count, ImageType.TextureArray);
+        return CreateImage(extent, format, layout, count, ResourceType.TextureArray);
     }
 
     public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout)
     {
-        return CreateImage(extent, format, layout, 0, ImageType.Cubemap);
+        return CreateImage(extent, format, layout, 0, ResourceType.Cubemap);
     }
 
 
@@ -120,7 +97,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
             {
                 Operation = operation,
                 PassId = CurrentPassId,
-                Type = ResourceType.Image,
+                Type = GraphResourceKind.Image,
                 ImageLayout = layout
             };
 
@@ -172,7 +149,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
             {
                 Operation = operation,
                 PassId = CurrentPassId,
-                Type = ResourceType.Buffer,
+                Type = GraphResourceKind.Buffer,
                 BufferUsage = GraphBufferUsageToBufferUsage(usage)
             };
 
@@ -208,7 +185,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     }
 
 
-    private uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout layout, uint count, ImageType type)
+    private uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout layout, uint count, ResourceType type)
     {
         Debug.Assert(extent is { Width: > 0, Height: > 0 },
             "all image dimensions must be greater than zero");
@@ -295,7 +272,16 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
                 !image.Usage.HasFlag(ImageUsage.Storage))
                 // We add this because vulkan images require one of the above at minimum
                 image.Usage |= ImageUsage.Sampled;
-            Resources.Add(key, new TextureResourceDescriptor(image.Extent, image.Format, image.Usage));
+
+            IResourceDescriptor descriptor = image.Type switch
+            {
+                ResourceType.Texture => new TextureResourceDescriptor(image.Extent, image.Format, image.Usage),
+                ResourceType.Cubemap => new CubemapResourceDescriptor(image.Extent, image.Format, image.Usage),
+                ResourceType.TextureArray => new TextureArrayResourceDescriptor(image.Extent, image.Format,
+                    image.Usage, image.Count),
+                _ => throw new ArgumentOutOfRangeException(nameof(image.Type), image.Type, null)
+            };
+            Resources.Add(key, descriptor);
         }
 
         foreach (var (key, buffer) in _buffers)
@@ -312,7 +298,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     {
         public required ResourceOperation Operation { get; set; }
         public required uint PassId { get; set; }
-        public required ResourceType Type { get; set; }
+        public required GraphResourceKind Type { get; set; }
         public ImageLayout ImageLayout { get; set; }
         public BufferUsage BufferUsage { get; set; }
     }

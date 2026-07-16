@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
 using Rin.Graphics.Vulkan.Images;
@@ -229,11 +228,12 @@ public class DescriptorSet
     public DescriptorSet WriteStorageBuffer(uint binding, in DeviceBufferView buffer, uint arrayOffset = 0)
     {
         Debug.Assert(buffer.IsValid);
-        Debug.Assert(buffer.Buffer is IVulkanDeviceBuffer);
+        var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(buffer.Buffer);
+        Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
 
         var info = new VkDescriptorBufferInfo
         {
-            buffer = Unsafe.As<IVulkanDeviceBuffer>(buffer.Buffer).NativeBuffer,
+            buffer = vulkanBuffer!.NativeBuffer,
             offset = buffer.Offset,
             range = buffer.Size
         };
@@ -257,10 +257,11 @@ public class DescriptorSet
     public DescriptorSet WriteUniformBuffer(uint binding, in DeviceBufferView buffer, uint arrayOffset = 0)
     {
         Debug.Assert(buffer.IsValid);
-        Debug.Assert(buffer.Buffer is IVulkanDeviceBuffer);
+        var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(buffer.Buffer);
+        Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
         var info = new VkDescriptorBufferInfo
         {
-            buffer = Unsafe.As<IVulkanDeviceBuffer>(buffer.Buffer).NativeBuffer,
+            buffer = vulkanBuffer!.NativeBuffer,
             offset = buffer.Offset,
             range = buffer.Size
         };

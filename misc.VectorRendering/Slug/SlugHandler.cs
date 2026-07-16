@@ -2,7 +2,6 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Views.Graphics;
 using Rin.Core.Views.Graphics.CommandHandlers;
@@ -13,7 +12,7 @@ namespace misc.VectorRendering.Slug;
 
 // Push constants sent to slug.slang for each draw call.
 // Must match struct SlugPush in slug.slang exactly.
-// Layout: pointer (8) + ImageHandle (4) + ImageHandle (4) + Matrix4x4 (64) = 80 bytes.
+// Layout: pointer (8) + ResourceHandle (4) + ResourceHandle (4) + Matrix4x4 (64) = 80 bytes.
 [StructLayout(LayoutKind.Sequential)]
 internal struct SlugPush
 {
@@ -21,8 +20,8 @@ internal struct SlugPush
     public required ulong BufferAddress;
 
     // Bindless texture handles — used via TexelLoad() in the shader.
-    public required ImageHandle CurveTexture;
-    public required ImageHandle BandTexture;
+    public required ResourceHandle CurveTexture;
+    public required ResourceHandle BandTexture;
 
     // Orthographic projection matrix mapping screen pixels to clip space.
     public required Matrix4x4 Projection;

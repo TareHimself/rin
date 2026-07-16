@@ -1,26 +1,22 @@
-﻿using Rin.Core.Graphics.Images;
-
-namespace Rin.Core.Graphics.Graph;
+﻿namespace Rin.Core.Graphics.Graph;
 
 public static class CompiledGraphExtensions
 {
-    public static ITexture? GetTextureOrNull(this ICompiledGraph graph, uint imageId)
+    extension(ICompiledGraph graph)
     {
-        return imageId <= 0 ? null : graph.GetTexture(imageId);
-    }
+        public ResourceHandle GetImageOrException(uint imageId)
+        {
+            return imageId <= 0 ? throw new NullReferenceException() : graph.GetImage(imageId);
+        }
 
-    public static ITexture GetTextureOrException(this ICompiledGraph graph, uint imageId)
-    {
-        return imageId <= 0 ? throw new NullReferenceException() : graph.GetTexture(imageId);
-    }
+        public DeviceBufferView GetBufferOrNull(uint bufferId)
+        {
+            return bufferId <= 0 ? new DeviceBufferView() : graph.GetBuffer(bufferId);
+        }
 
-    public static DeviceBufferView GetBufferOrNull(this ICompiledGraph graph, uint bufferId)
-    {
-        return bufferId <= 0 ? new DeviceBufferView() : graph.GetBuffer(bufferId);
-    }
-
-    public static DeviceBufferView GetBufferOrException(this ICompiledGraph graph, uint bufferId)
-    {
-        return bufferId <= 0 ? throw new NullReferenceException() : graph.GetBuffer(bufferId);
+        public DeviceBufferView GetBufferOrException(uint bufferId)
+        {
+            return bufferId <= 0 ? throw new NullReferenceException() : graph.GetBuffer(bufferId);
+        }
     }
 }

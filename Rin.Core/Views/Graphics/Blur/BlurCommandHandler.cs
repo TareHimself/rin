@@ -3,7 +3,6 @@ using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Shared.Math;
 using Rin.Core.Views.Graphics.CommandHandlers;
@@ -52,7 +51,7 @@ internal class BlurInitCommandHandler : ICommandHandler
     {
         Debug.Assert(passConfig is BlurInitPassConfig);
 
-        var srcImage = graph.GetTexture(surfaceContext.MainImageId);
+        var srcImage = graph.GetImage(surfaceContext.MainImageId);
         foreach (var command in _commands)
         {
             var srcOffset = new Offset2D(
@@ -60,11 +59,11 @@ internal class BlurInitCommandHandler : ICommandHandler
                 (int)command.BoundingBoxP1.Y);
             var srcSize = command.BoundingBoxP2 - command.BoundingBoxP1;
 
-            var destImage = graph.GetTexture(command.FirstPassImageId);
+            var destImage = graph.GetImage(command.FirstPassImageId);
             ctx.CopyToImage(srcImage,
                 srcOffset, new Extent2D(
                     (int)srcSize.X,
-                    (int)srcSize.Y), destImage, new Offset2D(), destImage.Extent);
+                    (int)srcSize.Y), destImage, new Offset2D(), IGraphicsModule.Get().GetExtent(destImage));
         }
     }
 }
@@ -75,7 +74,7 @@ internal struct BlurData()
     public required Matrix4x4 Transform = Matrix4x4.Identity;
 
     public required Matrix4x4 Projection = Matrix4x4.Identity;
-    public required ImageHandle SourceT;
+    public required ResourceHandle SourceT;
     public required Vector2 Size;
     public required float Strength;
     public required Vector2 Radius;
@@ -111,8 +110,9 @@ internal class BlurFirstPassCommandHandler : ICommandHandler
             config.WriteTexture(command.InitCommand.SecondPassImageId, ImageLayout.ColorAttachment);
         }
 
-        _bufferIds = Enumerable.Range(0, _commands.Length)
-            .Select(_ => config.CreateBuffer<BlurData>(GraphBufferUsage.HostThenGraphics)).ToArray();
+        _bufferIds = new uint[_commands.Length];
+        for (var i = 0; i < _bufferIds.Length; i++)
+            _bufferIds[i] = config.CreateBuffer<BlurData>(GraphBufferUsage.HostThenGraphics);
     }
 
     public void Execute(IPassConfig passConfig, SurfaceContext surfaceContext, ICompiledGraph graph,
@@ -120,19 +120,22 @@ internal class BlurFirstPassCommandHandler : ICommandHandler
     {
         Debug.Assert(passConfig is BlurPassConfig);
 
-        foreach (var (command, bufferId) in _commands.Zip(_bufferIds))
+        for (var i = 0; i < _commands.Length; i++)
         {
-            var srcImage = graph.GetTexture(command.InitCommand.FirstPassImageId);
-            var dstImage = graph.GetTexture(command.InitCommand.SecondPassImageId);
+            var command = _commands[i];
+            var bufferId = _bufferIds[i];
+            var srcImage = graph.GetImage(command.InitCommand.FirstPassImageId);
+            var dstImage = graph.GetImage(command.InitCommand.SecondPassImageId);
             var buffer = graph.GetBufferOrException(bufferId);
-            ctx.BeginRendering(dstImage.Extent, [dstImage], clearColor: Vector4.Zero);
+            ctx.BeginRendering(IGraphicsModule.Get().GetExtent(dstImage), [dstImage], clearColor: Vector4.Zero);
             if (_shader.Bind(ctx) is { } bindContext)
             {
+                var srcExtent = IGraphicsModule.Get().GetExtent(srcImage);
                 buffer.Write(new BlurData
                 {
-                    SourceT = srcImage.Handle,
+                    SourceT = srcImage,
                     Projection = command.InitCommand.LocalProjection,
-                    Size = new Vector2(srcImage.Extent.Width, srcImage.Extent.Height),
+                    Size = new Vector2(srcExtent.Width, srcExtent.Height),
                     Strength = command.InitCommand.Strength,
                     Radius = command.InitCommand.BlurRadius,
                     Tint = command.InitCommand.Tint,
@@ -171,8 +174,9 @@ internal class BlurSecondPassCommandHandler : ICommandHandler
     {
         foreach (var command in _commands)
             config.ReadTexture(command.InitCommand.SecondPassImageId, ImageLayout.ShaderReadOnly);
-        _bufferIds = Enumerable.Range(0, _commands.Length)
-            .Select(_ => config.CreateBuffer<BlurData>(GraphBufferUsage.HostThenGraphics)).ToArray();
+        _bufferIds = new uint[_commands.Length];
+        for (var i = 0; i < _bufferIds.Length; i++)
+            _bufferIds[i] = config.CreateBuffer<BlurData>(GraphBufferUsage.HostThenGraphics);
     }
 
     public void Execute(IPassConfig passConfig, SurfaceContext surfaceContext, ICompiledGraph graph,
@@ -180,15 +184,17 @@ internal class BlurSecondPassCommandHandler : ICommandHandler
     {
         Debug.Assert(passConfig is MainPassConfig);
 
-        foreach (var (command, bufferId) in _commands.Zip(_bufferIds))
+        for (var i = 0; i < _commands.Length; i++)
         {
-            var srcImage = graph.GetTexture(command.InitCommand.SecondPassImageId);
+            var command = _commands[i];
+            var bufferId = _bufferIds[i];
+            var srcImage = graph.GetImage(command.InitCommand.SecondPassImageId);
             var buffer = graph.GetBufferOrException(bufferId);
             if (_shader.Bind(ctx) is { } bindContext)
             {
                 buffer.Write(new BlurData
                 {
-                    SourceT = srcImage.Handle,
+                    SourceT = srcImage,
                     Projection = surfaceContext.ProjectionMatrix,
                     Size = command.InitCommand.Size,
                     Strength = command.InitCommand.Strength,

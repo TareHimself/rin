@@ -1,4 +1,5 @@
-﻿using Rin.Core.Graphics;
+﻿using System.Buffers;
+using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 
 namespace Rin.Graphics.Vulkan.Graph;
@@ -36,39 +37,47 @@ internal class BarrierPass(BufferResourceSync[] buffers, ImageResourceSync[] ima
         throw new Exception("HOW HAVE YOU DONE THIS?");
     }
 
+    private const int MaxStackBarriers = 6;
+
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var bufferBarriers = new BufferBarrier[buffers.Length];
-        var imageBarriers = new TextureBarrier[images.Length];
-        
-        for (var i = 0; i < buffers.Length; i++)
+        var rentedBuffers = buffers.Length > MaxStackBarriers
+            ? ArrayPool<BufferBarrier>.Shared.Rent(buffers.Length)
+            : null;
+        var rentedImages = images.Length > MaxStackBarriers
+            ? ArrayPool<TextureBarrier>.Shared.Rent(images.Length)
+            : null;
+        try
         {
-            bufferBarriers[i].View = graph.GetBufferOrException(images[i].ResourceId);
-            bufferBarriers[i].From = buffers[i].PreviousUsage;
-            bufferBarriers[i].To = buffers[i].NextUsage;
-            bufferBarriers[i].FromOperation = buffers[i].PreviousOperation;
-            bufferBarriers[i].ToOperation = buffers[i].NextOperation;
-        }
-        for (var i = 0; i < images.Length; i++)
-        {
-            imageBarriers[i].Texture = graph.GetTextureOrException(images[i].ResourceId);
-            imageBarriers[i].From = images[i].PreviousLayout;
-            imageBarriers[i].To = images[i].NextLayout;
-        }
+            Span<BufferBarrier> bufferBarriers = rentedBuffers is not null
+                ? rentedBuffers.AsSpan(0, buffers.Length)
+                : stackalloc BufferBarrier[buffers.Length];
+            Span<TextureBarrier> imageBarriers = rentedImages is not null
+                ? rentedImages.AsSpan(0, images.Length)
+                : stackalloc TextureBarrier[images.Length];
 
-        ctx.Barrier(bufferBarriers);
-        ctx.Barrier(imageBarriers);
-        foreach (var bufferResourceSync in buffers)
-        {
-            var buffer = graph.GetBufferOrException(bufferResourceSync.ResourceId);
-            ctx.Barrier(buffer, bufferResourceSync.PreviousUsage, bufferResourceSync.NextUsage,
-                bufferResourceSync.PreviousOperation, bufferResourceSync.NextOperation);
-        }
+            for (var i = 0; i < buffers.Length; i++)
+            {
+                bufferBarriers[i].View = graph.GetBufferOrException(buffers[i].ResourceId);
+                bufferBarriers[i].From = buffers[i].PreviousUsage;
+                bufferBarriers[i].To = buffers[i].NextUsage;
+                bufferBarriers[i].FromOperation = buffers[i].PreviousOperation;
+                bufferBarriers[i].ToOperation = buffers[i].NextOperation;
+            }
+            for (var i = 0; i < images.Length; i++)
+            {
+                imageBarriers[i].Texture = graph.GetImageOrException(images[i].ResourceId);
+                imageBarriers[i].From = images[i].PreviousLayout;
+                imageBarriers[i].To = images[i].NextLayout;
+            }
 
-        foreach (var imageResourceSync in images)
+            ctx.Barrier(bufferBarriers);
+            ctx.Barrier(imageBarriers);
+        }
+        finally
         {
-            var image = graph.GetTexture(imageResourceSync.ResourceId);
-            ctx.Barrier(image, imageResourceSync.PreviousLayout, imageResourceSync.NextLayout);
+            if (rentedBuffers is not null) ArrayPool<BufferBarrier>.Shared.Return(rentedBuffers);
+            if (rentedImages is not null) ArrayPool<TextureBarrier>.Shared.Return(rentedImages);
         }
     }
 }

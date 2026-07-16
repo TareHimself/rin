@@ -1,7 +1,5 @@
-﻿using Rin.Core.Graphics.Images;
+﻿namespace Rin.Graphics.Vulkan.Images;
 
-namespace Rin.Graphics.Vulkan.Images;
-
-public interface IVulkanTexture : IVulkanImage, ITexture
+public interface IVulkanTexture : IVulkanImage
 {
 }

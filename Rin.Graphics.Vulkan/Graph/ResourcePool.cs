@@ -1,10 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using Rin.Core;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Images;
 using Rin.Graphics.Vulkan.Images;
 using TerraFX.Interop.Vulkan;
 
@@ -146,7 +144,7 @@ public class ResourcePool : IResourcePool
         public Extent2D Extent => resource.Extent;
         public bool Mips => resource.Mips;
         public ImageFormat Format => resource.Format;
-        public ImageHandle Handle => resource.Handle;
+        public ResourceHandle Handle => resource.Handle;
 
         public void Dispose()
         {
@@ -175,7 +173,7 @@ public class ResourcePool : IResourcePool
         public Extent2D Extent => resource.Extent;
         public bool Mips => resource.Mips;
         public ImageFormat Format => resource.Format;
-        public ImageHandle Handle => resource.Handle;
+        public ResourceHandle Handle => resource.Handle;
 
         public void Dispose()
         {
@@ -205,7 +203,7 @@ public class ResourcePool : IResourcePool
         public Extent2D Extent => resource.Extent;
         public bool Mips => resource.Mips;
         public ImageFormat Format => resource.Format;
-        public ImageHandle Handle => resource.Handle;
+        public ResourceHandle Handle => resource.Handle;
 
         public void Dispose()
         {
@@ -231,24 +229,10 @@ public class ResourcePool : IResourcePool
             int key)
         {
             Debug.WriteLine($"Creating resource for pool {nameof(TexturePool)}");
-            IDisposableVulkanTexture image;
-            if (input.Usage.HasFlag(ImageUsage.Sampled))
-            {
-                IGraphicsModule.Get().CreateTexture(out var handle, input.Extent, input.Format, false,
-                    input.Usage);
-
-                var initial = IGraphicsModule.Get().GetTexture(handle);
-
-                Debug.Assert(initial is IDisposableVulkanTexture);
-
-                image = Unsafe.As<IDisposableVulkanTexture>(initial);
-            }
-            else
-            {
-                image = VulkanGraphicsModule.Get().CreateVulkanTexture(input.Extent, input.Format, false, input.Usage);
-            }
-
-            return image;
+            var handle = IGraphicsModule.Get().CreateTexture(input.Extent, input.Format, false, input.Usage);
+            var image = VulkanGraphicsModule.Get().GetTexture(handle);
+            Debug.Assert(image is not null);
+            return image!;
         }
 
         protected override ProxiedTexture MakeResult(
@@ -271,25 +255,11 @@ public class ResourcePool : IResourcePool
         protected override IDisposableVulkanTextureArray CreateNew(TextureArrayResourceDescriptor input,
             int key)
         {
-            IDisposableVulkanTextureArray image;
-            if (input.Usage.HasFlag(ImageUsage.Sampled))
-            {
-                IGraphicsModule.Get().CreateTextureArray(out var handle, input.Extent, input.Format, input.Count, false,
-                    input.Usage);
-
-                var initial = IGraphicsModule.Get().GetTextureArray(handle);
-
-                Debug.Assert(initial is IDisposableVulkanTextureArray);
-
-                image = Unsafe.As<IDisposableVulkanTextureArray>(initial);
-            }
-            else
-            {
-                image = VulkanGraphicsModule.Get()
-                    .CreateVulkanTextureArray(input.Extent, input.Format, input.Count, false, input.Usage);
-            }
-
-            return image;
+            var handle = IGraphicsModule.Get()
+                .CreateTextureArray(input.Extent, input.Format, input.Count, false, input.Usage);
+            var image = VulkanGraphicsModule.Get().GetTextureArray(handle);
+            Debug.Assert(image is not null);
+            return image!;
         }
 
         protected override ProxiedTextureArray MakeResult(
@@ -311,24 +281,10 @@ public class ResourcePool : IResourcePool
         protected override IDisposableVulkanCubemap CreateNew(CubemapResourceDescriptor input,
             int key)
         {
-            IDisposableVulkanCubemap image;
-            if (input.Usage.HasFlag(ImageUsage.Sampled))
-            {
-                IGraphicsModule.Get().CreateCubemap(out var handle, input.Extent, input.Format, false,
-                    input.Usage);
-
-                var initial = IGraphicsModule.Get().GetCubemap(handle);
-
-                Debug.Assert(initial is IDisposableVulkanCubemap);
-
-                image = Unsafe.As<IDisposableVulkanCubemap>(initial);
-            }
-            else
-            {
-                image = VulkanGraphicsModule.Get().CreateVulkanCubemap(input.Extent, input.Format, false, input.Usage);
-            }
-
-            return image;
+            var handle = IGraphicsModule.Get().CreateCubemap(input.Extent, input.Format, false, input.Usage);
+            var image = VulkanGraphicsModule.Get().GetCubemap(handle);
+            Debug.Assert(image is not null);
+            return image!;
         }
 
         protected override ProxiedCubemap MakeResult(
@@ -358,7 +314,7 @@ public class ResourcePool : IResourcePool
             Size = size ?? _resource.Descriptor.Size;
         }
 
-        [PublicAPI] public IDeviceBuffer Buffer => _resource.Buffer;
+        [PublicAPI] public IVulkanDeviceBuffer Buffer => _resource.Buffer;
 
         public void Dispose()
         {
@@ -367,6 +323,7 @@ public class ResourcePool : IResourcePool
 
         public ulong Offset => _resource.Buffer.Offset;
         public ulong Size { get; }
+        public ResourceHandle Handle => _resource.Buffer.Handle;
         public VkBuffer NativeBuffer => _resource.Buffer.NativeBuffer;
         public IntPtr Allocation => _resource.Buffer.Allocation;
 
@@ -377,7 +334,7 @@ public class ResourcePool : IResourcePool
 
         public DeviceBufferView GetView(ulong offset, ulong size)
         {
-            return new DeviceBufferView(this, Offset + offset, size);
+            return new DeviceBufferView(Handle, Offset + offset, size);
         }
 
         public void WriteRaw(in IntPtr src, ulong size, ulong offset = 0)

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Rin.Core.Graphics.Images;
 
 namespace Rin.Core.Graphics;
 
@@ -9,7 +8,7 @@ public interface IExecutionContext
 
     public IExecutionContext BindIndexBuffer(in DeviceBufferView view);
 
-    public IExecutionContext Barrier(ITexture image, ImageLayout from, ImageLayout to);
+    public IExecutionContext Barrier(ResourceHandle image, ImageLayout from, ImageLayout to);
 
     public IExecutionContext Barrier(ReadOnlySpan<TextureBarrier> barriers);
 
@@ -20,20 +19,20 @@ public interface IExecutionContext
 
     public IExecutionContext CopyToBuffer(in DeviceBufferView src, in DeviceBufferView dest);
 
-    public IExecutionContext CopyToImage(in DeviceBufferView src, ITexture dest);
+    public IExecutionContext CopyToImage(in DeviceBufferView src, ResourceHandle dest);
 
-    public IExecutionContext CopyToImage(ITexture src, in Offset2D srcOffset, in Extent2D srcSize,
-        ITexture dest, in Offset2D destOffset, in Extent2D destSize, ImageFilter filter = ImageFilter.Linear);
+    public IExecutionContext CopyToImage(ResourceHandle src, in Offset2D srcOffset, in Extent2D srcSize,
+        ResourceHandle dest, in Offset2D destOffset, in Extent2D destSize, ImageFilter filter = ImageFilter.Linear);
 
-    public IExecutionContext CopyToImage(ITexture src, ITexture dest, ImageFilter filter = ImageFilter.Linear);
+    public IExecutionContext CopyToImage(ResourceHandle src, ResourceHandle dest, ImageFilter filter = ImageFilter.Linear);
 
     public IExecutionContext EnableBackFaceCulling();
     public IExecutionContext EnableFrontFaceCulling();
     public IExecutionContext DisableFaceCulling();
 
     public IExecutionContext BeginRendering(in Extent2D extent,
-        ReadOnlySpan<ITexture> attachments, ITexture? depthAttachment = null,
-        ITexture? stencilAttachment = null, Vector4? clearColor = null);
+        ReadOnlySpan<ResourceHandle> attachments, ResourceHandle depthAttachment = default,
+        ResourceHandle stencilAttachment = default, Vector4? clearColor = null);
 
     public IExecutionContext EndRendering();
 
@@ -51,11 +50,13 @@ public interface IExecutionContext
     //public IExecutionContext
 
     public IExecutionContext ClearColorImages(in Vector4 clearColor,
-        ReadOnlySpan<ITexture> images);
+        ReadOnlySpan<ResourceHandle> images);
 
     public IExecutionContext ClearStencilImages(uint clearValue,
-        ReadOnlySpan<ITexture> images);
+        ReadOnlySpan<ResourceHandle> images);
 
     public IExecutionContext ClearDepthImages(float clearValue,
-        ReadOnlySpan<ITexture> images);
+        ReadOnlySpan<ResourceHandle> images);
+
+    public IExecutionContext WriteBuffer(in ResourceHandle handle, ReadOnlySpan<byte> data, ulong offset = 0);
 }

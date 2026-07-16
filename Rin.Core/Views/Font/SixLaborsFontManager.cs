@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Numerics;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Shared.Threading;
 using Rin.Core.Views.Sdf;
 using Rin.Core.Extensions;
@@ -26,7 +25,7 @@ public class SixLaborsFontManager : IFontManager
 
     private readonly LiveGlyphInfo _defaultLiveGlyph = new()
     {
-        AtlasHandle = ImageHandle.InvalidTexture,
+        AtlasHandle = ResourceHandle.InvalidTexture,
         State = LiveGlyphState.Invalid,
         Size = Vector2.Zero,
         Coordinate = Vector4.Zero
@@ -82,7 +81,7 @@ public class SixLaborsFontManager : IFontManager
                         var size = new Vector2((float)result.Width, (float)result.Height);
                         var glyph = new LiveGlyphInfo
                         {
-                            AtlasHandle = ImageHandle.InvalidTexture,
+                            AtlasHandle = ResourceHandle.InvalidTexture,
                             State = LiveGlyphState.Pending,
                             Size = size,
                             Coordinate = new Vector4(0.0f, 0.0f, size.X / result.Image.Extent.Width,
@@ -211,7 +210,7 @@ public class SixLaborsFontManager : IFontManager
                                 var pt2Coord = pt2 / atlasSize;
                                 var glyph = new LiveGlyphInfo
                                 {
-                                    AtlasHandle = ImageHandle.InvalidTexture,
+                                    AtlasHandle = ResourceHandle.InvalidTexture,
                                     State = LiveGlyphState.Pending,
                                     Size = pixelSize,
                                     Coordinate = new Vector4(pt1Coord, pt2Coord.X, pt2Coord.Y)
@@ -292,7 +291,7 @@ public class SixLaborsFontManager : IFontManager
         _cancellationSource.Cancel();
         _backgroundTaskQueue.Dispose();
         IGraphicsModule.Get()
-            .FreeImageHandles(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
+            .FreeResourceHandles(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
         _atlases.Clear();
     }
 

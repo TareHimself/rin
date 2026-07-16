@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using NetVips;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Shared.Buffers;
 using VipsImage = NetVips.Image;
 using VipsMutableImage = NetVips.MutableImage;
@@ -28,7 +27,7 @@ public class HostImage : IHostImage
         return new Buffer<byte>(_image.RawsaveBuffer());
     }
 
-    public Task CreateTexture(out ImageHandle handle, ImageFilter filter = ImageFilter.Linear,
+    public Task CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string? debugName = null)
     {
         return IGraphicsModule.Get().CreateTexture(out handle, ToBuffer(), Extent, Format.ToDeviceFormat(), mips);

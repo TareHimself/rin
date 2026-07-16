@@ -1,9 +1,7 @@
 ﻿using System.Collections.Frozen;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
-using Rin.Core.Graphics.Images;
 using Rin.Graphics.Vulkan.Descriptors;
 using Rin.Graphics.Vulkan.Graph;
 using Rin.Graphics.Vulkan.Images;
@@ -23,7 +21,6 @@ public class WindowRenderer : IWindowRenderer
 {
     private const uint FramesInFlight = 1;
 
-    private readonly VulkanBindlessImageFactory _bindlessImageFactory;
     private readonly Lock _drawLock = new();
     private readonly VulkanGraphicsModule _module;
     private readonly VkPresentModeKHR _nonVSyncPresentMode;
@@ -50,10 +47,13 @@ public class WindowRenderer : IWindowRenderer
 
     private VkImageView[] _swapchainViews = [];
 
+    // One handle-registered wrapper per swapchain image, created once alongside the swapchain and reused every
+    // frame -- avoids allocating a new BindlessTexture + ResourceHandle registration on every single draw.
+    private SwapchainImage[] _swapchainImageWrappers = [];
+
     public WindowRenderer(VulkanGraphicsModule module, IWindow window, in VkSurfaceKHR? surface = null)
     {
         _module = module;
-        _bindlessImageFactory = Unsafe.As<VulkanBindlessImageFactory>(_module.GetBindlessImageFactory());
         _window = window;
         _surface = surface ?? CreateSurface();
         var supportedPresentModes = module.GetPhysicalDevice().GetSurfacePresentModes(_surface).ToHashSet();
@@ -165,7 +165,7 @@ public class WindowRenderer : IWindowRenderer
 
     private void SetupGlobalDescriptors()
     {
-        var globalDescriptor = ((VulkanBindlessImageFactory)_module.GetBindlessImageFactory()).GetDescriptorSet();
+        var globalDescriptor = _module.GetResourceDescriptorSet();
         DescriptorSet[] sets = [globalDescriptor];
         GlobalDescriptors = sets.ToFrozenDictionary(_ => (uint)0, d => d);
     }
@@ -243,6 +243,21 @@ public class WindowRenderer : IWindowRenderer
         }).ToArray();
         _swapchain = swapchain;
         _swapchainExtent = extent;
+
+        _swapchainImageWrappers = new SwapchainImage[_swapchainImages.Length];
+        for (var i = 0; i < _swapchainImages.Length; i++)
+        {
+            var wrapper = new SwapchainImage
+            {
+                Format = ImageFormat.Swapchain,
+                Extent = extent,
+                VulkanImage = _swapchainImages[i],
+                VulkanView = _swapchainViews[i]
+            };
+            wrapper.Handle = _module.RegisterExternalTexture(wrapper);
+            _swapchainImageWrappers[i] = wrapper;
+        }
+
         return true;
     }
 
@@ -259,6 +274,12 @@ public class WindowRenderer : IWindowRenderer
         foreach (var view in _swapchainViews) vkDestroyImageView(device, view, null);
         _swapchainViews = [];
         _swapchainImages = [];
+
+        if (_swapchainImageWrappers.Length > 0)
+        {
+            foreach (var wrapper in _swapchainImageWrappers) _module.FreeResourceHandles(wrapper.Handle);
+            _swapchainImageWrappers = [];
+        }
 
 
         if (_swapchain.Value != 0) vkDestroySwapchainKHR(device, _swapchain, null);
@@ -351,15 +372,9 @@ public class WindowRenderer : IWindowRenderer
                         new VkFence(),
                         &swapchainImageIndex));
 
-                    var swapchainImage = new SwapchainImage
-                    {
-                        Format = ImageFormat.Swapchain,
-                        Extent = ctx.RenderExtent,
-                        VulkanImage = _swapchainImages[swapchainImageIndex],
-                        VulkanView = _swapchainViews[swapchainImageIndex]
-                    };
+                    var swapchainImageHandle = _swapchainImageWrappers[swapchainImageIndex].Handle;
 
-                    ctx.SwapchainImageId = builder.AddDestinationTexture(swapchainImage);
+                    ctx.SwapchainImageId = builder.AddDestinationImage(swapchainImageHandle);
 
                     Profiling.Begin("Engine.Rendering.Graph.Compile");
                     var graph = builder.Compile();
@@ -374,7 +389,7 @@ public class WindowRenderer : IWindowRenderer
                     cmd
                         .Begin();
 
-                    _bindlessImageFactory.Bind(cmd);
+                    _module.BindBindlessDescriptors(cmd);
 
                     frame.OnReset += _ => graph.Dispose();
 
@@ -443,7 +458,7 @@ public class WindowRenderer : IWindowRenderer
         }
     }
 
-    private class SwapchainImage : IVulkanTexture
+    private class SwapchainImage : IDisposableVulkanTexture
     {
         public VkImage VulkanImage { get; set; }
         public VkImageView VulkanView { get; set; }
@@ -452,7 +467,12 @@ public class WindowRenderer : IWindowRenderer
         public Extent2D Extent { get; set; }
         public bool Mips { get; } = false;
         public ImageFormat Format { get; set; }
-        public ImageHandle Handle { get; } = ImageHandle.InvalidTexture;
+        public ResourceHandle Handle { get; set; } = ResourceHandle.InvalidTexture;
+
+        // Owned by the swapchain, not us -- nothing to release here.
+        public void Dispose()
+        {
+        }
     }
 
     private class OutOfDateException : Exception

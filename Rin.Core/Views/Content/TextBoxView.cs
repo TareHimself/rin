@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Core.Graphics.Images;
+using Rin.Core.Graphics;
 using Rin.Core.Views.Font;
 using Rin.Core.Views.Graphics;
 using Rin.Core.Views.Graphics.Quads;
@@ -231,9 +231,9 @@ public class TextBoxView : ContentView
         }
     }
 
-    protected struct CachedQuadLayout(in ImageHandle atlas, Matrix4x4 transform, Vector2 size, Vector4 uv)
+    protected struct CachedQuadLayout(in ResourceHandle atlas, Matrix4x4 transform, Vector2 size, Vector4 uv)
     {
-        public readonly ImageHandle Atlas = atlas;
+        public readonly ResourceHandle Atlas = atlas;
         public Matrix4x4 Transform = transform;
         public Vector2 Size = size;
         public Vector4 Uv = uv;

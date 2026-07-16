@@ -1,6 +1,6 @@
 namespace Rin.Core.Graphics.Graph;
 
-public enum ResourceType
+public enum GraphResourceKind
 {
     Image,
     Buffer

@@ -2,7 +2,6 @@ using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Buffers;
@@ -49,7 +48,7 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
         var stagingBuffers = _videoStagingBufferIds.Select(graph.GetBufferOrException);
-        var images = VideoImageFrameIds.Select(graph.GetTexture);
+        var images = VideoImageFrameIds.Select(graph.GetImage);
 
         foreach (var (stagingBuffer, image, cmd) in stagingBuffers.Zip(images, commands))
         {
@@ -94,14 +93,14 @@ internal class VideoCommandHandler : ICommandHandlerWithPreAdd
     {
         if (_shader.Bind(ctx) is { } bindContext)
         {
-            var frameImages = _resourcesPass.VideoImageFrameIds.Select(graph.GetTexture).ToArray();
+            var frameImages = _resourcesPass.VideoImageFrameIds.Select(graph.GetImage).ToArray();
             var buffer = graph.GetBufferOrException(_itemBufferId);
 
             buffer.Write(_commands.Select((c, idx) => new VideoItem
             {
                 Transform = c.Transform,
                 Size = c.Size,
-                FrameHandle = frameImages[idx].Handle
+                FrameHandle = frameImages[idx]
             }));
             var compareMask = uint.MaxValue;
 
@@ -140,7 +139,7 @@ internal class VideoCommandHandler : ICommandHandlerWithPreAdd
     {
         public required Matrix4x4 Transform;
         public required Vector2 Size;
-        public required ImageHandle FrameHandle;
+        public required ResourceHandle FrameHandle;
     }
 }
 
