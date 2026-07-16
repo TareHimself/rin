@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Core.Graphics.Images;
+using Rin.Core.Graphics;
 using Rin.Core.Views.Font;
 using Rin.Core.Extensions;
 using Rin.Core.Shared.Math;
@@ -64,7 +64,7 @@ public static class QuadExtensions
         return commandList.AddQuads(Quad.CubicCurve(transform, begin, controlA, end, controlB, thickness, color));
     }
 
-    public static CommandList AddTexture(this CommandList commandList, in ImageHandle imageHandle,
+    public static CommandList AddTexture(this CommandList commandList, in ResourceHandle imageHandle,
         in Matrix4x4 transform,
         in Vector2 size, in Color? tint = null, in Vector4? uv = null,
         in Vector4? borderRadius = null)
@@ -73,7 +73,7 @@ public static class QuadExtensions
     }
 
 
-    public static CommandList AddMtsdf(this CommandList commandList, in ImageHandle imageHandle, in Matrix4x4 transform,
+    public static CommandList AddMtsdf(this CommandList commandList, in ResourceHandle imageHandle, in Matrix4x4 transform,
         in Vector2 size, in Color? color = null, in Vector4? uv = null)
     {
         return commandList.AddQuads(Quad.Mtsdf(imageHandle, transform, size, color, uv));

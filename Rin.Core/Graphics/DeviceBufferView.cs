@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Core.Shared.Buffers;
@@ -10,33 +9,32 @@ public readonly record struct DeviceBufferView
 {
     public DeviceBufferView()
     {
-        Buffer = null;
+        Buffer = ResourceHandle.InvalidBuffer;
         Offset = 0;
         Size = 0;
     }
 
-    public DeviceBufferView(IDeviceBuffer? buffer, ulong inOffset, ulong inSize)
+    public DeviceBufferView(ResourceHandle buffer, ulong inOffset, ulong inSize)
     {
         Buffer = buffer;
         Offset = inOffset;
         Size = inSize;
     }
 
-    public IDeviceBuffer? Buffer { get; }
+    public ResourceHandle Buffer { get; }
 
     [PublicAPI] public ulong Offset { get; }
 
     [PublicAPI] public ulong Size { get; }
 
     [PublicAPI]
-    [MemberNotNullWhen(true, nameof(Buffer))]
-    public bool IsValid => Buffer != null;
+    public bool IsValid => Buffer.Id != 0;
 
-    public void WriteRaw(in IntPtr src, ulong size, ulong offset = 0)
+    public unsafe void WriteRaw(in IntPtr src, ulong size, ulong offset = 0)
     {
         Debug.Assert(src != IntPtr.Zero);
         Debug.Assert(IsValid, "Buffer is not valid");
-        Buffer.WriteRaw(src, size, Offset + offset);
+        IGraphicsModule.Get().WriteBuffer(Buffer, new ReadOnlySpan<byte>((void*)src, (int)size), Offset + offset);
     }
 
     public void Write<T>(IEnumerable<T> data, ulong offset = 0) where T : unmanaged
@@ -94,6 +92,6 @@ public readonly record struct DeviceBufferView
     public ulong GetAddress()
     {
         Debug.Assert(IsValid, "Buffer is not valid");
-        return Buffer.GetAddress() + Offset;
+        return IGraphicsModule.Get().GetBufferAddress(Buffer) + Offset;
     }
 }

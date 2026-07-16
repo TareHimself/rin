@@ -1,14 +1,10 @@
-using Rin.Core.Graphics.Images;
-
 namespace Rin.Core.Graphics.Graph;
 
 public interface IGraphConfig
 {
     public uint SwapchainImageId { get; }
 
-    public uint AddExternalTexture(ITexture texture, Action? onDispose = null);
-    public uint AddExternalTextureArray(ITextureArray textureArray, Action? onDispose = null);
-    public uint AddExternalCubemap(ICubemap cubemap, Action? onDispose = null);
+    public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null);
     public uint CreateTexture(in Extent2D extent, ImageFormat format, ImageLayout layout);
     public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout);
     public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout);

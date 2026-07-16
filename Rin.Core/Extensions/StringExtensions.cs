@@ -2,21 +2,24 @@
 
 public static class StringExtensions
 {
-    public static bool ContainsAll(this string source, params char[] data)
+    extension(string source)
     {
-        foreach (var c in data)
-            if (!source.Contains(c))
-                return false;
+        public bool ContainsAll(params char[] data)
+        {
+            foreach (var c in data)
+                if (!source.Contains(c))
+                    return false;
 
-        return true;
-    }
+            return true;
+        }
 
-    public static bool ContainsAll(this string source, params string[] data)
-    {
-        foreach (var c in data)
-            if (!source.Contains(c))
-                return false;
+        public bool ContainsAll(params string[] data)
+        {
+            foreach (var c in data)
+                if (!source.Contains(c))
+                    return false;
 
-        return true;
+            return true;
+        }
     }
 }

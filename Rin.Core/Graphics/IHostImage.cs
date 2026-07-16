@@ -1,5 +1,4 @@
-﻿using Rin.Core.Graphics.Images;
-using Rin.Core.Shared.Buffers;
+﻿using Rin.Core.Shared.Buffers;
 
 namespace Rin.Core.Graphics;
 
@@ -10,7 +9,7 @@ public interface IHostImage : IDisposable
 
     public HostImageFormat Format { get; }
 
-    public Task CreateTexture(out ImageHandle handle, ImageFilter filter = ImageFilter.Linear,
+    public Task CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat,
         bool mips = false, string? debugName = null);
 

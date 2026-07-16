@@ -17,8 +17,8 @@ public class CopySurfaceToSwapchain(SurfaceContext context) : IPass
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var mainImage = graph.GetTexture(context.MainImageId);
-        var swapchainImage = graph.GetTexture(_swapchainImageId);
+        var mainImage = graph.GetImage(context.MainImageId);
+        var swapchainImage = graph.GetImage(_swapchainImageId);
         ctx.CopyToImage(mainImage, swapchainImage);
     }
 

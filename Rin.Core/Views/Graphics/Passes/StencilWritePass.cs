@@ -40,7 +40,7 @@ public class StencilWritePass : IPass
     {
         if (_stencilShader.Bind(ctx) is { } bindContext)
         {
-            var stencilImage = graph.GetTextureOrException(StencilImageId);
+            var stencilImage = graph.GetImageOrException(StencilImageId);
             var clipsBuffer = graph.GetBufferOrException(_clipsBufferId);
             clipsBuffer.Write(_clips);
             ctx

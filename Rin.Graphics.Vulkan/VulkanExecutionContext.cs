@@ -2,13 +2,10 @@ using System.Buffers;
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Graphics.Shaders;
 using Rin.Graphics.Vulkan.Descriptors;
-using Rin.Graphics.Vulkan.Images;
 using Rin.Graphics.Vulkan.Shaders;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -33,20 +30,21 @@ public class VulkanExecutionContext(
 
     public IExecutionContext BindIndexBuffer(in DeviceBufferView view)
     {
-        Debug.Assert(view.Buffer is IVulkanDeviceBuffer);
         Debug.Assert(view.IsValid, "Index buffer is not valid");
-        vkCmdBindIndexBuffer(CommandBuffer, ((IVulkanDeviceBuffer)view.Buffer).NativeBuffer, 0,
+        var buffer = VulkanGraphicsModule.Get().ResolveBuffer(view.Buffer);
+        Debug.Assert(buffer is not null, "Index buffer handle is not resolvable");
+        vkCmdBindIndexBuffer(CommandBuffer, buffer!.NativeBuffer, 0,
             VkIndexType.VK_INDEX_TYPE_UINT32);
         return this;
     }
 
-    public IExecutionContext Barrier(ITexture image, ImageLayout from, ImageLayout to)
+    public IExecutionContext Barrier(ResourceHandle image, ImageLayout from, ImageLayout to)
     {
         unsafe
         {
-            Debug.Assert(image is IVulkanImage);
-            var asVulkanImage = Unsafe.As<IVulkanImage>(image);
-            var ops = new ImageBarrierOptions(image.Format,from, to);
+            var asVulkanImage = VulkanGraphicsModule.Get().GetImage(image);
+            Debug.Assert(asVulkanImage is not null, "Invalid image resource handle");
+            var ops = new ImageBarrierOptions(asVulkanImage!.Format, from, to);
             var barrier = new VkImageMemoryBarrier2
             {
                 sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
@@ -81,16 +79,20 @@ public class VulkanExecutionContext(
         {
             const int maxStackBarriers = 6;
 
-            var rented = barriers.Length >= maxStackBarriers ? ArrayPool<VkImageMemoryBarrier2>.Shared.Rent(barriers.Length) : null; 
+            var rented = barriers.Length >= maxStackBarriers ? ArrayPool<VkImageMemoryBarrier2>.Shared.Rent(barriers.Length) : null;
             try
             {
-                var vkBarriers = rented ?? stackalloc VkImageMemoryBarrier2[barriers.Length];
+                // ArrayPool.Rent may return an array larger than requested -- slice to the exact length,
+                // otherwise imageMemoryBarrierCount below would overcount and submit uninitialized barriers.
+                Span<VkImageMemoryBarrier2> vkBarriers = rented is not null
+                    ? rented.AsSpan(0, barriers.Length)
+                    : stackalloc VkImageMemoryBarrier2[barriers.Length];
                 for (var i = 0; i < barriers.Length; i++)
                 {
                     var barrier = barriers[i];
-                    var ops = new ImageBarrierOptions(barrier.Texture.Format,barrier.From , barrier.To);
-                    Debug.Assert(barrier.Texture is IVulkanImage);
-                    var image = (IVulkanImage)barrier.Texture;
+                    var image = VulkanGraphicsModule.Get().GetImage(barrier.Texture);
+                    Debug.Assert(image is not null, "Invalid image resource handle");
+                    var ops = new ImageBarrierOptions(image!.Format, barrier.From, barrier.To);
                     image.Layout = barrier.To;
                     vkBarriers[i].sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
                     vkBarriers[i].srcStageMask = ops.WaitCompleteStages;
@@ -134,8 +136,9 @@ public class VulkanExecutionContext(
         {
             var ops = new MemoryBarrierOptions(from, to, fromOperation, toOperation);
 
-            Debug.Assert(view.Buffer is IVulkanDeviceBuffer);
             Debug.Assert(view.IsValid, "Buffer view is not valid");
+            var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(view.Buffer);
+            Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
 
             var vkBarrier = new VkBufferMemoryBarrier2
             {
@@ -144,7 +147,7 @@ public class VulkanExecutionContext(
                 dstStageMask = ops.NextStages,
                 srcAccessMask = ops.SrcAccessFlags,
                 dstAccessMask = ops.DstAccessFlags,
-                buffer = ((IVulkanDeviceBuffer)view.Buffer).NativeBuffer,
+                buffer = vulkanBuffer!.NativeBuffer,
                 offset = view.Offset,
                 size = view.Size
             };
@@ -169,24 +172,29 @@ public class VulkanExecutionContext(
         {
             const int maxStackBarriers = 6;
 
-            var rented = barriers.Length >= maxStackBarriers ? ArrayPool<VkBufferMemoryBarrier2>.Shared.Rent(barriers.Length) : null; 
+            var rented = barriers.Length >= maxStackBarriers ? ArrayPool<VkBufferMemoryBarrier2>.Shared.Rent(barriers.Length) : null;
             try
             {
-                var vkBarriers = rented ?? stackalloc VkBufferMemoryBarrier2[barriers.Length];
+                // ArrayPool.Rent may return an array larger than requested -- slice to the exact length,
+                // otherwise bufferMemoryBarrierCount below would overcount and submit uninitialized barriers.
+                Span<VkBufferMemoryBarrier2> vkBarriers = rented is not null
+                    ? rented.AsSpan(0, barriers.Length)
+                    : stackalloc VkBufferMemoryBarrier2[barriers.Length];
                 for (var i = 0; i < barriers.Length; i++)
                 {
                     var barrier = barriers[i];
                     var ops = new MemoryBarrierOptions(barrier.From, barrier.To, barrier.FromOperation,
                         barrier.ToOperation);
                     var view = barrier.View;
-                    Debug.Assert(view.Buffer is IVulkanDeviceBuffer);
                     Debug.Assert(view.IsValid, "Buffer view is not valid");
+                    var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(view.Buffer);
+                    Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
                     vkBarriers[i].sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
                     vkBarriers[i].srcStageMask = ops.WaitForStages;
                     vkBarriers[i].dstStageMask = ops.NextStages;
                     vkBarriers[i].srcAccessMask = ops.SrcAccessFlags;
                     vkBarriers[i].dstAccessMask = ops.DstAccessFlags;
-                    vkBarriers[i].buffer = ((IVulkanDeviceBuffer)view.Buffer).NativeBuffer;
+                    vkBarriers[i].buffer = vulkanBuffer!.NativeBuffer;
                     vkBarriers[i].offset = barrier.View.Offset;
                     vkBarriers[i].size = barrier.View.Size;
                 }
@@ -219,8 +227,9 @@ public class VulkanExecutionContext(
     {
         Debug.Assert(src.IsValid, "src buffer is not valid");
         Debug.Assert(dest.IsValid, "dest buffer is not valid");
-        Debug.Assert(src.Buffer is IVulkanDeviceBuffer);
-        Debug.Assert(dest.Buffer is IVulkanDeviceBuffer);
+        var vulkanSrc = VulkanGraphicsModule.Get().ResolveBuffer(src.Buffer);
+        var vulkanDest = VulkanGraphicsModule.Get().ResolveBuffer(dest.Buffer);
+        Debug.Assert(vulkanSrc is not null && vulkanDest is not null, "Buffer handle is not resolvable");
         unsafe
         {
             var copy = new VkBufferCopy
@@ -229,17 +238,18 @@ public class VulkanExecutionContext(
                 dstOffset = dest.Offset,
                 srcOffset = src.Offset
             };
-            vkCmdCopyBuffer(CommandBuffer, Unsafe.As<IVulkanDeviceBuffer>(src.Buffer).NativeBuffer,
-                Unsafe.As<IVulkanDeviceBuffer>(dest.Buffer).NativeBuffer, 1, &copy);
+            vkCmdCopyBuffer(CommandBuffer, vulkanSrc!.NativeBuffer,
+                vulkanDest!.NativeBuffer, 1, &copy);
         }
 
         return this;
     }
 
-    public IExecutionContext CopyToImage(in DeviceBufferView src, ITexture dest)
+    public IExecutionContext CopyToImage(in DeviceBufferView src, ResourceHandle dest)
     {
         Debug.Assert(src.IsValid);
-        Debug.Assert(dest is IVulkanTexture);
+        var vkDest = VulkanGraphicsModule.Get().GetTexture(dest);
+        Debug.Assert(vkDest is not null, "Invalid texture resource handle");
         var copyRegion = new VkBufferImageCopy
         {
             bufferOffset = 0,
@@ -247,34 +257,32 @@ public class VulkanExecutionContext(
             bufferImageHeight = 0,
             imageSubresource = new VkImageSubresourceLayers
             {
-                aspectMask = dest.Format.ToAspectFlags(),
+                aspectMask = vkDest!.Format.ToAspectFlags(),
                 mipLevel = 0,
                 baseArrayLayer = 0,
                 layerCount = 1
             },
             imageExtent = new VkExtent3D
             {
-                width = dest.Extent.Width,
-                height = dest.Extent.Height,
+                width = vkDest.Extent.Width,
+                height = vkDest.Extent.Height,
                 depth = 1
             }
         };
 
         unsafe
         {
-            CommandBuffer.CopyBufferToImage(src, (IVulkanTexture)dest, new Span<VkBufferImageCopy>(&copyRegion,1));
+            CommandBuffer.CopyBufferToImage(src, vkDest, new Span<VkBufferImageCopy>(&copyRegion,1));
         }
         return this;
     }
 
-    public IExecutionContext CopyToImage(ITexture src, in Offset2D srcOffset, in Extent2D srcSize, ITexture dest,
+    public IExecutionContext CopyToImage(ResourceHandle src, in Offset2D srcOffset, in Extent2D srcSize, ResourceHandle dest,
         in Offset2D destOffset, in Extent2D destSize, ImageFilter filter = ImageFilter.Linear)
     {
-        Debug.Assert(src is IVulkanTexture);
-        Debug.Assert(dest is IVulkanTexture);
-
-        var vkSrc = (IVulkanTexture)src;
-        var vkDst = (IVulkanTexture)dest;
+        var vkSrc = VulkanGraphicsModule.Get().GetTexture(src);
+        var vkDst = VulkanGraphicsModule.Get().GetTexture(dest);
+        Debug.Assert(vkSrc is not null && vkDst is not null, "Invalid texture resource handle");
         var blitRegion = new VkImageBlit2
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
@@ -324,8 +332,8 @@ public class VulkanExecutionContext(
             var blitInfo = new VkBlitImageInfo2
             {
                 sType = VkStructureType.VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
-                srcImage = vkSrc.VulkanImage,
-                dstImage = vkDst.VulkanImage,
+                srcImage = vkSrc!.VulkanImage,
+                dstImage = vkDst!.VulkanImage,
                 srcImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 dstImageLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 filter = filter.ToVk(),
@@ -344,11 +352,12 @@ public class VulkanExecutionContext(
     //     in Offset2D destOffset,
     //     ImageFilter filter = ImageFilter.Linear) => CopyToImage(src, srcOffset,src.Extent, dest, destOffset,dest.Extent,filter);
 
-    public IExecutionContext CopyToImage(ITexture src, ITexture dest, ImageFilter filter = ImageFilter.Linear)
+    public IExecutionContext CopyToImage(ResourceHandle src, ResourceHandle dest, ImageFilter filter = ImageFilter.Linear)
     {
-        Debug.Assert(src is IVulkanTexture);
-        Debug.Assert(dest is IVulkanTexture);
-        CommandBuffer.CopyImageToImage((IVulkanTexture)src, (IVulkanTexture)dest, filter);
+        var vkSrc = VulkanGraphicsModule.Get().GetTexture(src);
+        var vkDst = VulkanGraphicsModule.Get().GetTexture(dest);
+        Debug.Assert(vkSrc is not null && vkDst is not null, "Invalid texture resource handle");
+        CommandBuffer.CopyImageToImage(vkSrc!, vkDst!, filter);
         return this;
     }
 
@@ -370,33 +379,45 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext BeginRendering(in Extent2D extent, ReadOnlySpan<ITexture> attachments,
-        ITexture? depthAttachment = null,
-        ITexture? stencilAttachment = null, Vector4? clearColor = null)
+    public IExecutionContext BeginRendering(in Extent2D extent, ReadOnlySpan<ResourceHandle> attachments,
+        ResourceHandle depthAttachment = default,
+        ResourceHandle stencilAttachment = default, Vector4? clearColor = null)
     {
-        Debug.Assert(depthAttachment == null || depthAttachment.Format == ImageFormat.Depth,
+        var vkDepthAttachment = depthAttachment.Id != 0
+            ? VulkanGraphicsModule.Get().GetTexture(depthAttachment)
+            : null;
+        var vkStencilAttachment = stencilAttachment.Id != 0
+            ? VulkanGraphicsModule.Get().GetTexture(stencilAttachment)
+            : null;
+
+        Debug.Assert(vkDepthAttachment == null || vkDepthAttachment.Format == ImageFormat.Depth,
             $"Depth attachment format must be {ImageFormat.Depth}");
-        Debug.Assert(stencilAttachment == null || stencilAttachment.Format == ImageFormat.Stencil,
+        Debug.Assert(vkStencilAttachment == null || vkStencilAttachment.Format == ImageFormat.Stencil,
             $"Depth attachment format must be {ImageFormat.Stencil}");
-        Debug.Assert(depthAttachment is IVulkanImage or null);
-        Debug.Assert(stencilAttachment is IVulkanImage or null);
-        
-        
-        const int maxStackBarriers = 6;
-        var rentedAttachments = attachments.Length > maxStackBarriers ? ArrayPool<VkRenderingAttachmentInfo>.Shared.Rent(maxStackBarriers) : null;
+
+
+        const int maxStackAttachments = 6;
+        var rentedAttachments = attachments.Length > maxStackAttachments
+            ? ArrayPool<VkRenderingAttachmentInfo>.Shared.Rent(attachments.Length)
+            : null;
         try
         {
-            var attachmentsSpan = rentedAttachments ?? stackalloc VkRenderingAttachmentInfo[maxStackBarriers];
+            // Must be sized to attachments.Length exactly: a fixed-size buffer here would either send
+            // uninitialized trailing attachments (few attachments) or write out of bounds (many attachments).
+            Span<VkRenderingAttachmentInfo> attachmentsSpan = rentedAttachments is not null
+                ? rentedAttachments.AsSpan(0, attachments.Length)
+                : stackalloc VkRenderingAttachmentInfo[attachments.Length];
             for (var i = 0; i < attachments.Length; i++)
             {
-                Debug.Assert(attachments[i] is IVulkanTexture);
-                attachmentsSpan[i] = ((IVulkanTexture)attachments[i]).MakeColorAttachmentInfo(clearColor);
+                var vkAttachment = VulkanGraphicsModule.Get().GetTexture(attachments[i]);
+                Debug.Assert(vkAttachment is not null, "Invalid texture resource handle");
+                attachmentsSpan[i] = vkAttachment!.MakeColorAttachmentInfo(clearColor);
             }
 
             CommandBuffer
                 .BeginRendering(extent, attachmentsSpan,
-                    ((IVulkanTexture?)depthAttachment)?.MakeDepthAttachmentInfo(),
-                    ((IVulkanTexture?)stencilAttachment)?.MakeStencilAttachmentInfo())
+                    vkDepthAttachment?.MakeDepthAttachmentInfo(),
+                    vkStencilAttachment?.MakeStencilAttachmentInfo())
                 .SetViewports([
                     new VkViewport
                     {
@@ -428,7 +449,7 @@ public class VulkanExecutionContext(
             }
         }
 
-        if (depthAttachment != null)
+        if (vkDepthAttachment != null)
         {
             vkCmdSetDepthTestEnable(CommandBuffer, 1);
             vkCmdSetDepthWriteEnable(CommandBuffer, 1);
@@ -438,7 +459,7 @@ public class VulkanExecutionContext(
             vkCmdSetDepthTestEnable(CommandBuffer, 0);
         }
 
-        if (stencilAttachment != null)
+        if (vkStencilAttachment != null)
         {
             vkCmdSetStencilTestEnable(CommandBuffer, 1);
             vkCmdSetStencilReference(CommandBuffer, StencilFaceFlags, 255);
@@ -521,20 +542,20 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext ClearColorImages(in Vector4 clearColor, ReadOnlySpan<ITexture> images)
+    public IExecutionContext ClearColorImages(in Vector4 clearColor, ReadOnlySpan<ResourceHandle> images)
     {
-        Debug.Assert(images.ToArray().All(c => c is IVulkanTexture));
         unsafe
         {
             var pColor = stackalloc VkClearColorValue[1];
             var pRanges = stackalloc VkImageSubresourceRange[1];
             pColor[0] = VulkanGraphicsModule.MakeClearColorValue(clearColor);
             pRanges[0] = VulkanGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
-            
-            foreach (var image in images)
+
+            foreach (var handle in images)
             {
-                var asVulkanImage = Unsafe.As<IVulkanTexture>(image);
-                var vkLayout = asVulkanImage.Layout.ToVk();
+                var asVulkanImage = VulkanGraphicsModule.Get().GetTexture(handle);
+                Debug.Assert(asVulkanImage is not null, "Invalid texture resource handle");
+                var vkLayout = asVulkanImage!.Layout.ToVk();
                 vkCmdClearColorImage(CommandBuffer, asVulkanImage.VulkanImage, vkLayout, pColor, 1,
                     pRanges);
             }
@@ -543,10 +564,8 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext ClearStencilImages(uint clearValue, ReadOnlySpan<ITexture> images)
+    public IExecutionContext ClearStencilImages(uint clearValue, ReadOnlySpan<ResourceHandle> images)
     {
-        Debug.Assert(images.ToArray().All(c => c.Format == ImageFormat.Stencil));
-        Debug.Assert(images.ToArray().All(c => c is IVulkanTexture));
         unsafe
         {
             var pColor = stackalloc VkClearDepthStencilValue[1];
@@ -554,11 +573,13 @@ public class VulkanExecutionContext(
             pColor[0] = VulkanGraphicsModule.MakeClearDepthStencilValue(stencil: clearValue);
             pRanges[0] = VulkanGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT |
                                                                         VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
-            
-            foreach (var image in images)
+
+            foreach (var handle in images)
             {
-                var asVulkanImage = Unsafe.As<IVulkanTexture>(image);
-                var vkLayout = asVulkanImage.Layout.ToVk();
+                var asVulkanImage = VulkanGraphicsModule.Get().GetTexture(handle);
+                Debug.Assert(asVulkanImage is not null && asVulkanImage.Format == ImageFormat.Stencil,
+                    "Invalid texture resource handle");
+                var vkLayout = asVulkanImage!.Layout.ToVk();
                 vkCmdClearDepthStencilImage(CommandBuffer, asVulkanImage.VulkanImage, vkLayout,
                     pColor, 1, pRanges);
             }
@@ -566,23 +587,23 @@ public class VulkanExecutionContext(
 
         return this;
     }
-    
 
-    public IExecutionContext ClearDepthImages(float clearValue, ReadOnlySpan<ITexture> images)
+
+    public IExecutionContext ClearDepthImages(float clearValue, ReadOnlySpan<ResourceHandle> images)
     {
-        Debug.Assert(images.ToArray().All(c => c.Format == ImageFormat.Depth));
-        Debug.Assert(images.ToArray().All(c => c is IVulkanTexture));
         unsafe
         {
             var pColor = stackalloc VkClearDepthStencilValue[1];
             var pRanges = stackalloc VkImageSubresourceRange[1];
             pColor[0] = VulkanGraphicsModule.MakeClearDepthStencilValue(clearValue);
             pRanges[0] = VulkanGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
-            
-            foreach (var image in images)
+
+            foreach (var handle in images)
             {
-                var asVulkanImage = Unsafe.As<IVulkanTexture>(image);
-                var vkLayout = asVulkanImage.Layout.ToVk();
+                var asVulkanImage = VulkanGraphicsModule.Get().GetTexture(handle);
+                Debug.Assert(asVulkanImage is not null && asVulkanImage.Format == ImageFormat.Depth,
+                    "Invalid texture resource handle");
+                var vkLayout = asVulkanImage!.Layout.ToVk();
                 vkCmdClearDepthStencilImage(CommandBuffer, asVulkanImage.VulkanImage, vkLayout,
                     pColor, 1, pRanges);
             }
@@ -609,6 +630,12 @@ public class VulkanExecutionContext(
         Debug.Assert(shader is IVulkanShader);
         var asVk = (IVulkanShader)shader;
         CommandBuffer.BindDescriptorSets(asVk.GetBindPoint(), asVk.GetPipelineLayout(), sets, offset);
+        return this;
+    }
+
+    public IExecutionContext WriteBuffer(in ResourceHandle handle, ReadOnlySpan<byte> data, ulong offset = 0)
+    {
+        VulkanGraphicsModule.Get().WriteBuffer(handle, data, offset);
         return this;
     }
 }

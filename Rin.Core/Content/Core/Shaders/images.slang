@@ -35,7 +35,7 @@ struct ImageHandle {
     }
 
     ImageType GetType() {
-        return (ImageType)(_data & 0xFF);
+        return (ImageType)(_data & 0x7F);
     }
 
     bool IsValid() {

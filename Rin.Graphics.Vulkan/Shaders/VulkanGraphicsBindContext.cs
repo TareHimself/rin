@@ -1,6 +1,5 @@
 ﻿using System.Collections.Frozen;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
@@ -67,11 +66,12 @@ public class VulkanGraphicsBindContext(SlangGraphicsShader shader, VulkanExecuti
         uint commandsOffset = 0)
     {
         Debug.Assert(commands.IsValid, "Indirect command buffer is not valid");
-        Debug.Assert(commands.Buffer is IVulkanDeviceBuffer);
+        var vulkanCommands = VulkanGraphicsModule.Get().ResolveBuffer(commands.Buffer);
+        Debug.Assert(vulkanCommands is not null, "Buffer handle is not resolvable");
         UpdatePendingSets();
 
         vkCmdDrawIndexedIndirect(ExecutionContext.CommandBuffer,
-            Unsafe.As<IVulkanDeviceBuffer>(commands.Buffer).NativeBuffer, commands.Offset,
+            vulkanCommands!.NativeBuffer, commands.Offset,
             drawCount, stride);
 
         return this;
@@ -84,13 +84,14 @@ public class VulkanGraphicsBindContext(SlangGraphicsShader shader, VulkanExecuti
 
         Debug.Assert(drawCount.IsValid, "Draw count buffer is not valid");
 
-        Debug.Assert(commands.Buffer is IVulkanDeviceBuffer);
-        Debug.Assert(drawCount.Buffer is IVulkanDeviceBuffer);
+        var vulkanCommands = VulkanGraphicsModule.Get().ResolveBuffer(commands.Buffer);
+        var vulkanDrawCount = VulkanGraphicsModule.Get().ResolveBuffer(drawCount.Buffer);
+        Debug.Assert(vulkanCommands is not null && vulkanDrawCount is not null, "Buffer handle is not resolvable");
         UpdatePendingSets();
 
         vkCmdDrawIndexedIndirectCount(ExecutionContext.CommandBuffer,
-            Unsafe.As<IVulkanDeviceBuffer>(commands.Buffer).NativeBuffer, commands.Offset,
-            Unsafe.As<IVulkanDeviceBuffer>(drawCount.Buffer).NativeBuffer,
+            vulkanCommands!.NativeBuffer, commands.Offset,
+            vulkanDrawCount!.NativeBuffer,
             drawCount.Offset, maxDrawCount, (uint)Utils.ByteSizeOf<VkDrawIndexedIndirectCommand>());
 
         return this;

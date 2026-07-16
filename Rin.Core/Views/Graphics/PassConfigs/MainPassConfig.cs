@@ -24,8 +24,8 @@ public class MainPassConfig : IPassConfig
 
     public void Begin(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var drawImage = graph.GetTexture(MainImageId);
-        var stencilImage = graph.GetTexture(StencilImageId);
+        var drawImage = graph.GetImage(MainImageId);
+        var stencilImage = graph.GetImage(StencilImageId);
 
         ctx.BeginRendering(_context.Extent, [drawImage], stencilAttachment: stencilImage)
             .DisableFaceCulling()

@@ -26,9 +26,9 @@ public class CreateImagesPass : IPass
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var drawImage = graph.GetTexture(Context.MainImageId);
-        var copyImage = graph.GetTexture(Context.CopyImageId);
-        var stencilImage = graph.GetTexture(Context.StencilImageId);
+        var drawImage = graph.GetImage(Context.MainImageId);
+        var copyImage = graph.GetImage(Context.CopyImageId);
+        var stencilImage = graph.GetImage(Context.StencilImageId);
 
         ctx
             .ClearColorImages(new Vector4(0.0f), [drawImage, copyImage])

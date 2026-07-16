@@ -837,6 +837,8 @@ public static class VulkanExtensions
         in MemoryBarrierOptions options)
     {
         Debug.Assert(view.IsValid, "View is not valid");
+        var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(view.Buffer);
+        Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
         var opts = options;
         var barrier = new VkBufferMemoryBarrier2
         {
@@ -845,7 +847,7 @@ public static class VulkanExtensions
             dstStageMask = opts.NextStages,
             srcAccessMask = opts.SrcAccessFlags,
             dstAccessMask = opts.DstAccessFlags,
-            buffer = ((IVulkanDeviceBuffer)view.Buffer).NativeBuffer,
+            buffer = vulkanBuffer!.NativeBuffer,
             offset = view.Offset,
             size = view.Size
         };
@@ -936,12 +938,13 @@ public static class VulkanExtensions
         Span<VkBufferImageCopy> regions, ImageLayout layout = ImageLayout.TransferDst)
     {
         Debug.Assert(buffer.IsValid, "Buffer buffer is not valid");
-        Debug.Assert(buffer.Buffer is IVulkanDeviceBuffer);
+        var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(buffer.Buffer);
+        Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
         unsafe
         {
             fixed (VkBufferImageCopy* pRegion = regions)
             {
-                vkCmdCopyBufferToImage(cmd, ((IVulkanDeviceBuffer)buffer.Buffer).NativeBuffer, image.VulkanImage,
+                vkCmdCopyBufferToImage(cmd, vulkanBuffer!.NativeBuffer, image.VulkanImage,
                     layout.ToVk(), (uint)regions.Length, pRegion);
             }
         }

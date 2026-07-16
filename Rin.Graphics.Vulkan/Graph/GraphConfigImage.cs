@@ -8,7 +8,7 @@ public class GraphConfigImage
     public required ImageUsage Usage { get; set; }
     public required ImageFormat Format { get; set; }
 
-    public required ImageType Type { get; set; }
+    public required ResourceType Type { get; set; }
 
     public uint Count { get; set; }
 }

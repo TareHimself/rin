@@ -1,19 +1,14 @@
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Rin.Core.Extensions;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
-using Rin.Core.Graphics.Images;
-using Rin.Graphics.Vulkan.Images;
 
 namespace Rin.Graphics.Vulkan.Graph;
 
 public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuilder
 {
-    private readonly Dictionary<uint, ExternalVulkanCubemapResourceDescriptor> _externalCubemaps = [];
-    private readonly Dictionary<uint, ExternalVulkanTextureArrayResourceDescriptor> _externalTextureArrays = [];
+    private readonly Dictionary<uint, IResourceDescriptor> _externalResources = [];
 
-    private readonly Dictionary<uint, ExternalVulkanTextureResourceDescriptor> _externalTextures = [];
     private readonly Dictionary<uint, IPass> _passes = [];
     private uint _latestId;
     private uint _swapchainImageId;
@@ -158,7 +153,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
             GraphConfig.ResourceAction? lastAction = null;
             foreach (var action in actions)
             {
-                if (action.Type == ResourceType.Buffer)
+                if (action.Type == GraphResourceKind.Buffer)
                 {
                     if (lastAction != null)
                         if (action.Operation != lastAction.Operation || action.Operation == ResourceOperation.Write)
@@ -299,18 +294,16 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
             finalExecutionGroups);
     }
 
-    public uint AddExternalTexture(ITexture texture, Action? onDispose = null)
+    public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null)
     {
-        Debug.Assert(texture is IVulkanTexture);
         var id = MakeId();
-        _externalTextures.Add(id,
-            new ExternalVulkanTextureResourceDescriptor(Unsafe.As<IVulkanTexture>(texture), onDispose));
+        _externalResources.Add(id, ExternalResourceDescriptors.Make(handle, onDispose));
         return id;
     }
 
-    public uint AddDestinationTexture(ITexture texture, Action? onDispose = null)
+    public uint AddDestinationImage(ResourceHandle handle, Action? onDispose = null)
     {
-        return _swapchainImageId = AddExternalTexture(texture, onDispose);
+        return _swapchainImageId = AddExternalImage(handle, onDispose);
     }
 
     public void Reset()
@@ -318,9 +311,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         // _images.Clear();
         // _memory.Clear();
         _passes.Clear();
-        _externalTextures.Clear();
-        _externalTextureArrays.Clear();
-        _externalCubemaps.Clear();
+        _externalResources.Clear();
         _swapchainImageId = 0;
         _latestId = 0;
     }
@@ -343,11 +334,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
             SwapchainImageId = _swapchainImageId
         };
 
-        foreach (var (id, externalImageResourceDescriptor) in _externalTextures)
-            config.Resources.Add(id, externalImageResourceDescriptor);
-        foreach (var (id, externalImageResourceDescriptor) in _externalTextureArrays)
-            config.Resources.Add(id, externalImageResourceDescriptor);
-        foreach (var (id, externalImageResourceDescriptor) in _externalCubemaps)
+        foreach (var (id, externalImageResourceDescriptor) in _externalResources)
             config.Resources.Add(id, externalImageResourceDescriptor);
 
         foreach (var (id, pass) in _passes)

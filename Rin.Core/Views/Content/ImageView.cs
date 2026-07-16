@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Views.Graphics;
 using Rin.Core.Shared.Math;
 using Rin.Core.Views.Graphics.Quads;
@@ -9,12 +8,12 @@ using Rin.Core.Views.Graphics.Quads;
 namespace Rin.Core.Views.Content;
 
 /// <summary>
-///     Draw's a 2D <see cref="ImageHandle" /> if provided or a colored rectangle. Supports tint.
+///     Draw's a 2D <see cref="ResourceHandle" /> if provided or a colored rectangle. Supports tint.
 /// </summary>
 public class ImageView : ContentView
 {
     [PublicAPI]
-    public ImageHandle ImageHandle
+    public ResourceHandle ImageHandle
     {
         get;
         set
@@ -23,7 +22,7 @@ public class ImageView : ContentView
             InvalidateDesiredSize();
             InvalidateLayout();
         }
-    } = ImageHandle.InvalidTexture;
+    } = ResourceHandle.InvalidTexture;
 
     [PublicAPI] public Color Tint { get; set; } = new(1.0f);
 
@@ -31,14 +30,14 @@ public class ImageView : ContentView
 
     public override Vector2 ComputeDesiredContentSize()
     {
-        if (IGraphicsModule.Get().GetTexture(ImageHandle) is { } texture)
-            return new Vector2
-            {
-                X = texture.Extent.Width,
-                Y = texture.Extent.Height
-            };
+        if (!ImageHandle.IsValid()) return new Vector2();
 
-        return new Vector2();
+        var extent = IGraphicsModule.Get().GetExtent(ImageHandle);
+        return new Vector2
+        {
+            X = extent.Width,
+            Y = extent.Height
+        };
     }
 
     // public override void CollectContent(TransformInfo info, DrawCommands drawCommands)
@@ -56,7 +55,7 @@ public class ImageView : ContentView
         if (ImageHandle.IsValid()) DrawImage(ImageHandle, transform, commands);
     }
 
-    protected virtual void DrawImage(in ImageHandle imageId, Matrix4x4 transform, CommandList commands)
+    protected virtual void DrawImage(in ResourceHandle imageId, Matrix4x4 transform, CommandList commands)
     {
         commands.AddTexture(imageId, transform, GetContentSize(), Tint, null,
             BorderRadius);

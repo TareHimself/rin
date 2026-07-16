@@ -26,7 +26,7 @@ public class BindlessTexture : BindlessResource, IDisposableVulkanTexture
 
     public void Dispose()
     {
-        VulkanGraphicsModule.Get().GetBindlessImageFactory().FreeHandles(Handle);
+        VulkanGraphicsModule.Get().FreeResourceHandles(Handle);
     }
 
     public IntPtr Allocation => Source?.Allocation ?? throw new NullReferenceException();

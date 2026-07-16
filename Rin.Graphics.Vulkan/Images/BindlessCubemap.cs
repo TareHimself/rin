@@ -28,6 +28,6 @@ public class BindlessCubemap : BindlessResource, IDisposableVulkanCubemap
 
     public void Dispose()
     {
-        VulkanGraphicsModule.Get().GetBindlessImageFactory().FreeHandles(Handle);
+        VulkanGraphicsModule.Get().FreeResourceHandles(Handle);
     }
 }

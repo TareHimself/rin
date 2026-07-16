@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Rin.Core.Graphics.Images;
+using Rin.Core.Graphics;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Graphics;
 using Rin.Core.Views.Graphics.Quads;
@@ -7,7 +7,7 @@ using Rin.Core.Views.Graphics.Quads;
 namespace Rin.Core.Views.Content;
 
 /// <summary>
-///     Draw's a <see cref="ImageHandle" /> if provided or a colored rectangle. Supports tint.
+///     Draw's a <see cref="ResourceHandle" /> if provided or a colored rectangle. Supports tint.
 /// </summary>
 public class CoverImageView : ImageView
 {
@@ -16,7 +16,7 @@ public class CoverImageView : ImageView
         return base.LayoutContent(availableSpace);
     }
 
-    protected override void DrawImage(in ImageHandle imageId, Matrix4x4 transform, CommandList commands)
+    protected override void DrawImage(in ResourceHandle imageId, Matrix4x4 transform, CommandList commands)
     {
         var contentSize = GetContentSize();
         var fitSize = FitterView.ComputeCoverSize(contentSize, GetDesiredContentSize());

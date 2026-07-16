@@ -10,12 +10,12 @@ public class TextureArrayResourceDescriptor : IResourceDescriptor
     public readonly ImageFormat Format;
     public readonly ImageUsage Usage;
 
-    public TextureArrayResourceDescriptor(in Extent2D extent, ImageFormat format, ImageUsage usage)
+    public TextureArrayResourceDescriptor(in Extent2D extent, ImageFormat format, ImageUsage usage, uint count = 1)
     {
         Extent = extent;
         Format = format;
         Usage = usage;
-        Count = 1;
+        Count = count;
     }
 
     public override int GetHashCode()

@@ -23,9 +23,9 @@ public class VulkanDeviceBuffer : IVulkanDeviceBuffer
         _allocator = allocator;
     }
 
-    public IDeviceBuffer Buffer => this;
     public ulong Offset => 0;
     public ulong Size { get; }
+    public ResourceHandle Handle { get; set; } = ResourceHandle.InvalidBuffer;
 
     public VkBuffer NativeBuffer { get; set; }
     public IntPtr Allocation { get; }
@@ -49,7 +49,7 @@ public class VulkanDeviceBuffer : IVulkanDeviceBuffer
 
     public DeviceBufferView GetView(ulong offset, ulong size)
     {
-        return new DeviceBufferView(this, offset, size);
+        return new DeviceBufferView(Handle, offset, size);
     }
 
     public void Dispose()

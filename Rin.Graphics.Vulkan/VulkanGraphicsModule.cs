@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using Rin.Core;
 using Rin.Core.Extensions;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Images;
 using Rin.Core.Graphics.Meshes;
 using Rin.Core.Graphics.Shaders;
 using Rin.Graphics.Vulkan.Descriptors;
@@ -40,8 +39,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
 
     private IntPtr _allocator;
-
-    private IBindlessImageFactory? _bindlessImageFactory;
 
     private int _bufferCount;
     private IRenderData[] _collected = [];
@@ -104,7 +101,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         _transferQueueThread.Dispose();
         _descriptorAllocator?.Dispose();
         _shaderManager?.Dispose();
-        _bindlessImageFactory?.Dispose();
+        DisposeBindlessResources();
         _meshFactory?.Dispose();
         _descriptorLayoutFactory.Dispose();
 
@@ -205,149 +202,27 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         Sync(() => { vkDeviceWaitIdle(_device); }).Wait();
     }
 
-    public IDeviceBuffer NewTransferBuffer(ulong size, bool sequentialWrite = true,
+    public DeviceBufferView NewTransferBuffer(ulong size, bool sequentialWrite = true,
         string debugName = "Transfer Buffer")
     {
         return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-            , sequentialWrite, true, true, debugName);
+            , sequentialWrite, true, true, debugName).GetView();
     }
 
-    public IDeviceBuffer NewStorageBuffer(ulong size, bool sequentialWrite = true)
+    public DeviceBufferView NewStorageBuffer(ulong size, bool sequentialWrite = true)
     {
         return NewBuffer(size,
             VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
             VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true);
+            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true).GetView();
     }
 
-    public IDeviceBuffer NewUniformBuffer(ulong size, bool sequentialWrite = true)
+    public DeviceBufferView NewUniformBuffer(ulong size, bool sequentialWrite = true)
     {
         return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true);
-    }
-
-    public IDisposableTexture CreateTexture(in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        return CreateVulkanTexture(extent, format, mips, usage);
-    }
-
-    public IDisposableTextureArray CreateTextureArray(in Extent2D extent, ImageFormat format, uint count,
-        bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        return CreateVulkanTextureArray(extent, format, count, mips, usage);
-    }
-
-    public IDisposableCubemap CreateCubemap(in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        return CreateVulkanCubemap(extent, format, mips, usage);
-    }
-
-    public Task<IDisposableTexture> CreateTexture(IReadOnlyBuffer<byte> data, in Extent2D extent, ImageFormat format,
-        bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        return CreateVulkanTexture(data, extent, format, mips, usage).Then(IDisposableTexture (a) => a);
-    }
-
-    public Task<IDisposableTextureArray> CreateTextureArray(IReadOnlyBuffer<byte> data, in Extent2D extent,
-        ImageFormat format, uint count, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        return CreateVulkanTextureArray(data, extent, format, count, mips, usage)
-            .Then(IDisposableTextureArray (a) => a);
-    }
-
-    public Task<IDisposableCubemap> CreateCubemap(IReadOnlyBuffer<byte> data, in Extent2D extent, ImageFormat format,
-        bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        return CreateVulkanCubemap(data, extent, format, mips, usage).Then(IDisposableCubemap (a) => a);
-    }
-
-    public void CreateTexture(out ImageHandle handle, in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        handle = _bindlessImageFactory.CreateTexture(extent, format, mips, usage);
-    }
-
-    public void CreateTextureArray(out ImageHandle handle, in Extent2D extent, ImageFormat format, uint count,
-        bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        handle = _bindlessImageFactory.CreateTextureArray(extent, format, count, mips, usage);
-    }
-
-    public void CreateCubemap(out ImageHandle handle, in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        handle = _bindlessImageFactory.CreateCubemap(extent, format, mips, usage);
-    }
-
-    public Task CreateTexture(out ImageHandle handle, IReadOnlyBuffer<byte> data, in Extent2D extent,
-        ImageFormat format,
-        bool mips = false, ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.CreateTexture(out handle, data, extent, format, mips, usage);
-    }
-
-    public Task CreateTextureArray(out ImageHandle handle, IReadOnlyBuffer<byte> data, in Extent2D extent,
-        ImageFormat format,
-        uint count, bool mips = false, ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.CreateTextureArray(out handle, data, extent, format, count, mips, usage);
-    }
-
-    public Task CreateCubemap(out ImageHandle handle, IReadOnlyBuffer<byte> data, in Extent2D extent,
-        ImageFormat format,
-        bool mips = false, ImageUsage usage = ImageUsage.None)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.CreateCubemap(out handle, data, extent, format, mips, usage);
-    }
-
-    public bool IsValidImageHandle(in ImageHandle handle)
-    {
-        return handle.Id > 0 && handle.Type switch
-        {
-            ImageType.Texture => GetTexture(handle) is not null,
-            ImageType.Cubemap => GetCubemap(handle) is not null,
-            ImageType.TextureArray => GetTextureArray(handle) is not null,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-    }
-
-    public ITexture? GetTexture(in ImageHandle handle)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.GetTexture(handle);
-    }
-
-    public ITextureArray? GetTextureArray(in ImageHandle handle)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.GetTextureArray(handle);
-    }
-
-    public ICubemap? GetCubemap(in ImageHandle handle)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        return _bindlessImageFactory.GetCubemap(handle);
-    }
-
-    public void FreeImageHandles(params ImageHandle[] handles)
-    {
-        Debug.Assert(_bindlessImageFactory is not null);
-        _bindlessImageFactory.FreeHandles(handles);
+            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true).GetView();
     }
 
     public Task CreateMesh<TVertexFormat>(out MeshHandle handle, IReadOnlyBuffer<TVertexFormat> vertices,
@@ -357,7 +232,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         throw new NotImplementedException();
     }
 
-    public bool IsValidMeshHandle(in ImageHandle handle)
+    public bool IsValidMeshHandle(in MeshHandle handle)
     {
         throw new NotImplementedException();
     }
@@ -463,18 +338,13 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         _allocator = Native.allocatorCreate(_instance, _device,
             _physicalDevice);
         _shaderManager = new SlangShaderManager();
-        _bindlessImageFactory = new VulkanBindlessImageFactory(this, _device);
+        InitBindlessResources();
         _instance.DestroySurface(outSurface);
     }
 
     public VkSurfaceFormatKHR GetSurfaceFormat()
     {
         return _surfaceFormat;
-    }
-
-    public IBindlessImageFactory GetBindlessImageFactory()
-    {
-        return _bindlessImageFactory ?? throw new NullReferenceException();
     }
 
     public IMeshFactory GetMeshFactory()
@@ -618,7 +488,9 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                 preferHost ? 1 : 0,
                 (int)usageFlags, (int)propertyFlags, mapped ? 1 : 0, debugName);
 
-            return new VulkanDeviceBuffer(buffer, size, allocation, _allocator);
+            var deviceBuffer = new VulkanDeviceBuffer(buffer, size, allocation, _allocator);
+            deviceBuffer.Handle = RegisterBuffer(deviceBuffer);
+            return deviceBuffer;
         }
     }
 
@@ -629,6 +501,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     public void FreeBuffer(VulkanDeviceBuffer buffer)
     {
         _bufferCount--;
+        ReleaseBufferHandle(buffer.Handle);
         Native.allocatorFreeBuffer(buffer.NativeBuffer, buffer.Allocation, _allocator);
     }
 
@@ -973,16 +846,43 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         Debug.Assert(dataSize == data.ByteSize, "Unexpected image buffer size");
 
         var uploadBuffer = NewTransferBuffer(dataSize);
-        uploadBuffer.GetView().Write(data);
+        uploadBuffer.Write(data);
 
         return TransferSubmit(cmd =>
         {
-            cmd
-                .Barrier(image, ImageLayout.Undefined, ImageLayout.TransferDst)
-                .CopyToImage(uploadBuffer.GetView(), image);
+            // `image` isn't handle-registered yet (that happens once the caller wraps it), so this
+            // works directly against the concrete object rather than through IExecutionContext's
+            // handle-based Barrier/CopyToImage.
+            Debug.Assert(cmd is VulkanExecutionContext);
+            var vkCmd = ((VulkanExecutionContext)cmd).CommandBuffer;
+            vkCmd.ImageBarrier(image, ImageLayout.Undefined, ImageLayout.TransferDst);
+
+            var copyRegion = new VkBufferImageCopy
+            {
+                bufferOffset = 0,
+                bufferRowLength = 0,
+                bufferImageHeight = 0,
+                imageSubresource = new VkImageSubresourceLayers
+                {
+                    aspectMask = image.Format.ToAspectFlags(),
+                    mipLevel = 0,
+                    baseArrayLayer = 0,
+                    layerCount = 1
+                },
+                imageExtent = new VkExtent3D
+                {
+                    width = image.Extent.Width,
+                    height = image.Extent.Height,
+                    depth = 1
+                }
+            };
+            unsafe
+            {
+                vkCmd.CopyBufferToImage(uploadBuffer, image, new Span<VkBufferImageCopy>(&copyRegion, 1));
+            }
         }).Then(() =>
         {
-            uploadBuffer.Dispose();
+            FreeResourceHandles(uploadBuffer.Buffer);
             return image;
         });
 

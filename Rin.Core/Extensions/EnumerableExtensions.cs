@@ -2,33 +2,41 @@
 
 public static class EnumerableExtensions
 {
-    public static IEnumerable<(TFirst First, TSecond Second, TThird Third, TFourth Fourth)>
-        Zip<TFirst, TSecond, TThird, TFourth>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second,
-            IEnumerable<TThird> third, IEnumerable<TFourth> fourth)
+    extension<TFirst>(IEnumerable<TFirst> first)
     {
-        using var e1 = first.GetEnumerator();
-        using var e2 = second.GetEnumerator();
-        using var e3 = third.GetEnumerator();
-        using var e4 = fourth.GetEnumerator();
+        public IEnumerable<(TFirst First, TSecond Second, TThird Third, TFourth Fourth)>
+            Zip<TSecond, TThird, TFourth>(IEnumerable<TSecond> second,
+                IEnumerable<TThird> third, IEnumerable<TFourth> fourth)
+        {
+            using var e1 = first.GetEnumerator();
+            using var e2 = second.GetEnumerator();
+            using var e3 = third.GetEnumerator();
+            using var e4 = fourth.GetEnumerator();
 
-        while (e1.MoveNext() && e2.MoveNext() && e3.MoveNext() && e4.MoveNext())
-            yield return (e1.Current, e2.Current, e3.Current, e4.Current);
+            while (e1.MoveNext() && e2.MoveNext() && e3.MoveNext() && e4.MoveNext())
+                yield return (e1.Current, e2.Current, e3.Current, e4.Current);
+        }
+
+        public IEnumerable<(TFirst First, TSecond Second, TThird Third, TFourth Fourth, TFifth Fifth)>
+            Zip<TSecond, TThird, TFourth, TFifth>(IEnumerable<TSecond> second,
+                IEnumerable<TThird> third, IEnumerable<TFourth> fourth, IEnumerable<TFifth> fifth)
+        {
+            using var e1 = first.GetEnumerator();
+            using var e2 = second.GetEnumerator();
+            using var e3 = third.GetEnumerator();
+            using var e4 = fourth.GetEnumerator();
+            using var e5 = fifth.GetEnumerator();
+
+            while (e1.MoveNext() && e2.MoveNext() && e3.MoveNext() && e4.MoveNext() && e5.MoveNext())
+                yield return (e1.Current, e2.Current, e3.Current, e4.Current, e5.Current);
+        }
+
+        public Queue<TFirst> ToQueue()
+        {
+            return new Queue<TFirst>(first);
+        }
     }
 
-
-    public static IEnumerable<(TFirst First, TSecond Second, TThird Third, TFourth Fourth, TFifth Fifth)>
-        Zip<TFirst, TSecond, TThird, TFourth, TFifth>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second,
-            IEnumerable<TThird> third, IEnumerable<TFourth> fourth, IEnumerable<TFifth> fifth)
-    {
-        using var e1 = first.GetEnumerator();
-        using var e2 = second.GetEnumerator();
-        using var e3 = third.GetEnumerator();
-        using var e4 = fourth.GetEnumerator();
-        using var e5 = fifth.GetEnumerator();
-
-        while (e1.MoveNext() && e2.MoveNext() && e3.MoveNext() && e4.MoveNext() && e5.MoveNext())
-            yield return (e1.Current, e2.Current, e3.Current, e4.Current, e5.Current);
-    }
 
     public static IEnumerable<T> AsReversed<T>(this T[] target)
     {
@@ -144,10 +152,5 @@ public static class EnumerableExtensions
     public static bool NotEmpty(this string target)
     {
         return target.Length > 0;
-    }
-
-    public static Queue<T> ToQueue<T>(this IEnumerable<T> enumerable)
-    {
-        return new Queue<T>(enumerable);
     }
 }
