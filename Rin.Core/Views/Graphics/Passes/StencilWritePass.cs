@@ -6,14 +6,15 @@ using Rin.Core.Graphics.Shaders;
 
 namespace Rin.Core.Views.Graphics.Passes;
 
-public class StencilWritePass : IPass
+public partial class StencilWritePass : IPass
 {
     private readonly StencilClip[] _clips;
     private readonly uint _mask;
-
-    private readonly IGraphicsShader _stencilShader = IGraphicsModule.Get()
-        .MakeGraphics("Core/Shaders/Views/stencil_batch.slang");
-
+    
+    [GraphicsShader("Core/Shaders/Views/stencil_batch.slang")]
+    private partial IGraphicsShader StencilShader {
+        get;
+    }
     private readonly SurfaceContext _surfaceContext;
 
     private uint _clipsBufferId;
@@ -38,7 +39,7 @@ public class StencilWritePass : IPass
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_stencilShader.Bind(ctx) is { } bindContext)
+        if (StencilShader.Bind(ctx) is { } bindContext)
         {
             var stencilImage = graph.GetImageOrException(StencilImageId);
             var clipsBuffer = graph.GetBufferOrException(_clipsBufferId);

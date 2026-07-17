@@ -60,10 +60,13 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass
     }
 }
 
-internal class VideoCommandHandler : ICommandHandlerWithPreAdd
+internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
 {
-    private readonly IGraphicsShader _shader = IGraphicsModule.Get()
-        .MakeGraphics("Core/Shaders/Views/video.slang");
+    [GraphicsShader("Core/Shaders/Views/video.slang")]
+    private partial IGraphicsShader VideoShader
+    {
+        get;
+    }
 
     private VideoCommand[] _commands = [];
     private uint _itemBufferId;
@@ -91,7 +94,7 @@ internal class VideoCommandHandler : ICommandHandlerWithPreAdd
     public void Execute(IPassConfig passConfig,
         SurfaceContext surfaceContext, ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_shader.Bind(ctx) is { } bindContext)
+        if (VideoShader.Bind(ctx) is { } bindContext)
         {
             var frameImages = _resourcesPass.VideoImageFrameIds.Select(graph.GetImage).ToArray();
             var buffer = graph.GetBufferOrException(_itemBufferId);

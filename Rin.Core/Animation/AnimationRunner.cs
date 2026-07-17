@@ -1,9 +1,9 @@
 ﻿namespace Rin.Core.Animation;
 
-public class AnimationRunner
+public class AnimationRunner(IApplication? application = null)
 {
     private readonly HashSet<AnimationState> _animations = [];
-    private readonly IApplication _application = IApplication.Get();
+    private readonly IApplication _application = application ?? IApplication.Get();
     private float _currentEndTime;
 
     public void Update()

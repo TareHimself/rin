@@ -7,14 +7,14 @@ using Rin.Core.Graphics.Shaders;
 namespace Rin.Core.Views.Graphics.Quads;
 
 [ViewsBatcher]
-public sealed class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
+public sealed partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
 {
-    private readonly IGraphicsShader _batchShader = IGraphicsModule.Get()
-        .MakeGraphics("Core/Shaders/Views/batch.slang");
+    [GraphicsShader("Core/Shaders/Views/batch.slang")]
+    private partial IGraphicsShader BatchShader { get; }
 
     protected override IGraphicsShader GetShader()
     {
-        return _batchShader;
+        return BatchShader;
     }
 
     protected override QuadBatch MakeNewBatch()

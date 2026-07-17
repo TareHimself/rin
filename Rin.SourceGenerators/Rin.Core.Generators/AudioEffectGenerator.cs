@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -84,44 +83,13 @@ public class AudioEffectGenerator : IIncrementalGenerator
         }
     }
 
-    static bool IsPartial(INamedTypeSymbol type)
-    {
-        foreach (var syntaxRef in type.DeclaringSyntaxReferences)
-        {
-            if (syntaxRef.GetSyntax() is TypeDeclarationSyntax typeDecl)
-            {
-                if (typeDecl.Modifiers.Any(SyntaxKind.PartialKeyword))
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Builds a filesystem-safe, collision-resistant hint name for a generated source file
-    /// from a type's fully-qualified name (handles generics, nested types, and namespace clashes).
-    /// </summary>
-    private static string GetSafeHintName(INamedTypeSymbol typeSymbol)
-    {
-        var fullyQualified = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
-        var sb = new StringBuilder(fullyQualified.Length);
-        foreach (var c in fullyQualified)
-        {
-            sb.Append(char.IsLetterOrDigit(c) || c == '_' ? c : '_');
-        }
-
-        return sb.ToString();
-    }
-
     /// <summary>
     /// Generates the boilerplate for a specific audio effect.
     /// </summary>
     private static void GenerateEffect(SourceProductionContext context, INamedTypeSymbol typeSymbol,
         Compilation compilation)
     {
-        if (!IsPartial(typeSymbol))
+        if (!GeneratorUtils.IsPartial(typeSymbol))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.Audio.EffectMustBePartial,
@@ -490,6 +458,6 @@ public class AudioEffectGenerator : IIncrementalGenerator
         output
             .CloseBrace();
 
-        context.AddSource($"AudioEffect_{GetSafeHintName(typeSymbol)}.g.cs", output.ToSourceText());
+        context.AddSource($"AudioEffect_{GeneratorUtils.GetSafeHintName(typeSymbol)}.g.cs", output.ToSourceText());
     }
 }

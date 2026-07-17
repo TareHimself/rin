@@ -28,9 +28,11 @@ public class HostImage : IHostImage
     }
 
     public Task CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
-        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string? debugName = null)
+        ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string? debugName = null,
+        IGraphicsModule? graphicsModule = null)
     {
-        return IGraphicsModule.Get().CreateTexture(out handle, ToBuffer(), Extent, Format.ToDeviceFormat(), mips);
+        return (graphicsModule ?? IGraphicsModule.Get()).CreateTexture(out handle, ToBuffer(), Extent,
+            Format.ToDeviceFormat(), mips);
     }
 
     public Extent2D Extent => new()

@@ -11,7 +11,7 @@ public interface IHostImage : IDisposable
 
     public Task CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat,
-        bool mips = false, string? debugName = null);
+        bool mips = false, string? debugName = null, IGraphicsModule? graphicsModule = null);
 
     /// <summary>
     ///     Saves the image as png

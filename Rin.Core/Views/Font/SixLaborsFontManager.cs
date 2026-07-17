@@ -22,6 +22,7 @@ public class SixLaborsFontManager : IFontManager
     private readonly ISdfCache? _cache;
     private readonly CancellationTokenSource _cancellationSource = new();
     private readonly FontCollection _collection = new();
+    private readonly IGraphicsModule _graphicsModule;
 
     private readonly LiveGlyphInfo _defaultLiveGlyph = new()
     {
@@ -33,8 +34,9 @@ public class SixLaborsFontManager : IFontManager
 
     private readonly ConcurrentDictionary<FontFamily, IFont> _fonts = [];
 
-    public SixLaborsFontManager(ISdfCache? cache = null)
+    public SixLaborsFontManager(ISdfCache? cache = null, IGraphicsModule? graphicsModule = null)
     {
+        _graphicsModule = graphicsModule ?? IGraphicsModule.Get();
         // _cache = Global.Provider.AddSingle<ISdfCache>(
         //     new DiskSdfCache(Path.Combine(Global.Directory, "sdfs.bin")));
     }
@@ -88,7 +90,7 @@ public class SixLaborsFontManager : IFontManager
                                 size.Y / result.Image.Extent.Height)
                         };
 
-                        result.Image.CreateTexture(out glyph.AtlasHandle).Then(() =>
+                        result.Image.CreateTexture(out glyph.AtlasHandle, graphicsModule: _graphicsModule).Then(() =>
                         {
                             var id = toGenerate[index].Second;
                             if (!_atlases.TryGetValue(id, out var val)) return;
@@ -222,7 +224,7 @@ public class SixLaborsFontManager : IFontManager
                             }
                         });
                         // , tiling: ImageTiling.ClampEdge
-                        packedAtlas.CreateTexture(out var handle).Then(() =>
+                        packedAtlas.CreateTexture(out var handle, graphicsModule: _graphicsModule).Then(() =>
                         {
                             foreach (var key in glyphsInAtlas.Where(_atlases.ContainsKey))
                             {
@@ -290,7 +292,7 @@ public class SixLaborsFontManager : IFontManager
     {
         _cancellationSource.Cancel();
         _backgroundTaskQueue.Dispose();
-        IGraphicsModule.Get()
+        _graphicsModule
             .FreeResourceHandles(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
         _atlases.Clear();
     }
