@@ -12,13 +12,16 @@ namespace Rin.Core.Views.Content;
 
 public class TextInputBoxView : TextBoxView
 {
+    private readonly IApplication _application;
+
     private readonly Timer _typingTimer = new(200)
     {
         AutoReset = false
     };
 
-    public TextInputBoxView()
+    public TextInputBoxView(IApplication? application = null)
     {
+        _application = application ?? IApplication.Get();
         CursorPosition = Content.Length - 1;
         _typingTimer.Elapsed += (_, _) => IsTyping = false;
     }
@@ -134,7 +137,7 @@ public class TextInputBoxView : TextBoxView
 
         var height = LineHeight;
         var color = ForegroundColor;
-        var sin = (float.Sin(IApplication.Get().TimeSeconds * 5) + 1.0f) / 2.0f;
+        var sin = (float.Sin(_application.TimeSeconds * 5) + 1.0f) / 2.0f;
         color.A *= IsTyping ? 1.0f : sin > 0.35 ? 1.0f : 0.0f;
         commands.AddRect(transform.Translate(offset), new Vector2(2.0f, height), color);
     }

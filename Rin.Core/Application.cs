@@ -160,14 +160,9 @@ public abstract class Application : IApplication
     {
         InitializePlatform();
 
-        _audioModule = CreateAudioModule();
-        _graphicsModule = CreateGraphicsModule();
-        _viewsModule = CreateViewsModule();
-
-        Global.Provider.AddSingle(_audioModule);
-        Global.Provider.AddSingle(_graphicsModule);
-        Global.Provider.AddSingle(_viewsModule);
-
+        _audioModule = Global.Provider.AddSingle(CreateAudioModule());
+        _graphicsModule = Global.Provider.AddSingle(CreateGraphicsModule());
+        _viewsModule = Global.Provider.AddSingle(CreateViewsModule());
         _modules = [_audioModule, _graphicsModule, _viewsModule];
 
 

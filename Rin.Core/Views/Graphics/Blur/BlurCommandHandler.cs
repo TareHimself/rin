@@ -89,10 +89,12 @@ internal struct Push
     public required int IsHorizontal;
 }
 
-internal class BlurFirstPassCommandHandler : ICommandHandler
+internal partial class BlurFirstPassCommandHandler : ICommandHandler
 {
-    private readonly IGraphicsShader _shader = IGraphicsModule.Get()
-        .MakeGraphics("Core/Shaders/Views/blur.slang");
+    [GraphicsShader("Core/Shaders/Views/blur.slang")]
+    private partial IGraphicsShader _shader {
+        get;
+    }
 
     private uint[] _bufferIds = [];
     private BlurFirstPassCommand[] _commands = [];
@@ -157,10 +159,12 @@ internal class BlurFirstPassCommandHandler : ICommandHandler
     }
 }
 
-internal class BlurSecondPassCommandHandler : ICommandHandler
+internal partial class BlurSecondPassCommandHandler : ICommandHandler
 {
-    private readonly IGraphicsShader _shader = IGraphicsModule.Get()
-        .MakeGraphics("Core/Shaders/Views/blur.slang");
+    [GraphicsShader("Core/Shaders/Views/blur.slang")]
+    private partial IGraphicsShader _shader {
+        get;
+    }
 
     private uint[] _bufferIds = [];
     private BlurSecondPassCommand[] _commands = [];

@@ -15,6 +15,7 @@ public class WebmVideoPlayer : IVideoPlayer
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly IntPtr _context;
 
+    private readonly IAudioModule _audioModule;
     private readonly Func<int, int, IPushStream>? _createStream;
     private readonly AutoResetEvent _decodeEvent = new(false);
     private readonly ManualResetEvent _decodeFinishedEvent = new(true);
@@ -44,8 +45,9 @@ public class WebmVideoPlayer : IVideoPlayer
         }
     }
 
-    public WebmVideoPlayer()
+    public WebmVideoPlayer(IAudioModule? audioModule = null)
     {
+        _audioModule = audioModule ?? IAudioModule.Get();
         _context = Native.videoContextCreate();
         unsafe
         {
@@ -82,7 +84,7 @@ public class WebmVideoPlayer : IVideoPlayer
         });
     }
 
-    public WebmVideoPlayer(Func<int, int, IPushStream> createAudioStream) : this()
+    public WebmVideoPlayer(Func<int, int, IPushStream> createAudioStream, IAudioModule? audioModule = null) : this(audioModule)
     {
         _createStream = createAudioStream;
     }
@@ -177,7 +179,7 @@ public class WebmVideoPlayer : IVideoPlayer
         {
             _audioPacketsStartAt = time;
             _audioStream = _createStream?.Invoke(AudioSampleRate, AudioChannels) ??
-                           IAudioModule.Get().MasterAudioGroup.CreatePushStream(AudioSampleRate, AudioChannels);
+                           _audioModule.MasterAudioGroup.CreatePushStream(AudioSampleRate, AudioChannels);
             if (IsPlaying) _audioStream.Play();
         }
 

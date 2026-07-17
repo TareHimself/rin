@@ -95,4 +95,55 @@ internal static class Diagnostics
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
     }
+
+    internal static class Shader
+    {
+        public static readonly DiagnosticDescriptor AmbiguousShaderAttribute = new(
+            id: "RIN00012",
+            title: "Ambiguous shader attribute",
+            messageFormat: "Property '{0}' declares multiple ShaderAttribute-derived attributes; only one is allowed",
+            category: "Rin.Graphics",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor ContainingTypeMustBePartial = new(
+            id: "RIN00013",
+            title: "Containing type must be partial",
+            messageFormat: "Type '{0}' containing shader property '{1}' must be declared partial so generated code can extend it",
+            category: "Rin.Graphics",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor PropertyMustBePartial = new(
+            id: "RIN00014",
+            title: "Shader property must be partial",
+            messageFormat: "Property '{0}' must be declared partial so the generator can provide its implementation",
+            category: "Rin.Graphics",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor PropertyMustBeGetOnly = new(
+            id: "RIN00015",
+            title: "Shader property must be get-only",
+            messageFormat: "Property '{0}' must declare a getter only (no setter/init) - the generator produces a computed value",
+            category: "Rin.Graphics",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor InvalidPropertyType = new(
+            id: "RIN00016",
+            title: "Invalid shader property type",
+            messageFormat: "Property '{0}' annotated with [{1}] must be of type {2}",
+            category: "Rin.Graphics",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor PropertyMustNotBeStatic = new(
+            id: "RIN00017",
+            title: "Shader property must not be static",
+            messageFormat: "Property '{0}' must be an instance property - static shader properties are not supported",
+            category: "Rin.Graphics",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+    }
 }

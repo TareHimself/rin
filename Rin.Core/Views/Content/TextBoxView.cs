@@ -19,13 +19,14 @@ public class TextBoxView : ContentView
 
     private string _content = string.Empty;
     private string _fontFamily = "Noto Sans";
-    private IFontManager _fontManager = IViewsModule.Get().FontManager;
+    private IFontManager _fontManager;
     private float _fontSize = 100.0f;
     private bool _wrapContent;
     protected float? Wrap;
 
-    public TextBoxView()
+    public TextBoxView(IViewsModule? viewsModule = null)
     {
+        _fontManager = (viewsModule ?? IViewsModule.Get()).FontManager;
         _cachedLayouts = null;
         _cachedBounds = null;
         MakeNewFont();

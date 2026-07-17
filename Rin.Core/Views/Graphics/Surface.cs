@@ -25,9 +25,9 @@ public abstract class Surface : ISurface
     private bool _isCursorIn;
     private CursorDownSurfaceEvent? _lastCursorDownEvent;
 
-    protected Surface()
+    protected Surface(IGraphicsModule? graphicsModule = null)
     {
-        _sGraphicsModule = IGraphicsModule.Get();
+        _sGraphicsModule = graphicsModule ?? IGraphicsModule.Get();
         _rootView.NotifyAddedToSurface(this);
         _rootView.InvalidateLayout();
     }
