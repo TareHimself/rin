@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
@@ -91,6 +92,7 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
         foreach (var id in _resourcesPass.VideoImageFrameIds) config.ReadTexture(id, ImageLayout.ShaderReadOnly);
     }
 
+    private int MaxStackVideoItems = 5;
     public void Execute(IPassConfig passConfig,
         SurfaceContext surfaceContext, ICompiledGraph graph, IExecutionContext ctx)
     {
@@ -99,12 +101,30 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
             var frameImages = _resourcesPass.VideoImageFrameIds.Select(graph.GetImage).ToArray();
             var buffer = graph.GetBufferOrException(_itemBufferId);
 
-            buffer.Write(_commands.Select((c, idx) => new VideoItem
             {
-                Transform = c.Transform,
-                Size = c.Size,
-                FrameHandle = frameImages[idx]
-            }));
+                var rented = _commands.Length > MaxStackVideoItems
+                    ? ArrayPool<VideoItem>.Shared.Rent(_commands.Length)
+                    : null;
+                try
+                {
+                    var videoItems = rented is not null
+                        ? rented.AsSpan(0, _commands.Length)
+                        : stackalloc VideoItem[_commands.Length];
+                    for(var i = 0; i < _commands.Length; i++)
+                    {
+                        var command = _commands[i];
+                        videoItems[i].Transform = command.Transform;
+                        videoItems[i].Size = command.Size;
+                        videoItems[i].FrameHandle = frameImages[i];
+                    }
+                    buffer.Write(videoItems);
+                }
+                finally
+                {
+                    if(rented is not null) ArrayPool<VideoItem>.Shared.Return(rented);
+                }
+            }
+            
             var compareMask = uint.MaxValue;
 
             ulong offset = 0;

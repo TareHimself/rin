@@ -118,9 +118,10 @@ public class TextBoxView : ContentView
     {
         _cachedLayouts = null;
         Wrap = _wrapContent ? float.IsFinite(availableSpace.X) ? availableSpace.X + 2f : null : null;
-        var bounds = GetCharacterBounds(Wrap).ToArray();
+        var bounds = GetCharacterBounds(Wrap);
         if (bounds.Empty()) return new Vector2(0.0f, LineHeight);
-        var width = bounds.MaxBy(c => c.Right).Right;
+        // PenX + Advance (not the ink-based Right) so trailing whitespace still reserves its layout space.
+        var width = bounds.Max(c => c.PenX + c.Advance);
         var height = bounds.MaxBy(c => c.Bottom).Bottom;
         return new Vector2(width, height);
     }
@@ -153,7 +154,7 @@ public class TextBoxView : ContentView
     {
         if (Content.Empty() || CurrentFont == null) return new Vector2(0.0f, LineHeight);
         var bounds = GetCharacterBounds(cache: false);
-        var width = bounds.Empty() ? 0 : bounds.Max(c => c.Right);
+        var width = bounds.Empty() ? 0 : bounds.Max(c => c.PenX + c.Advance);
         var lines = float.Max(1, Content.Split("\n").Length);
         var height = LineHeight * lines;
 

@@ -7,12 +7,12 @@ public interface IMultiSlotCompositeView<in TSlotType> : ICompositeView where TS
     /// <summary>
     ///     Adds the views to this container
     /// </summary>
-    public IView[] Children { init; }
+    public IView[] InitChildren { init; }
 
     /// <summary>
     ///     Adds the slots to this container
     /// </summary>
-    public TSlotType[] Slots { init; }
+    public TSlotType[] InitSlots { init; }
 
     public int SlotCount { get; }
     public bool Add(IView child);

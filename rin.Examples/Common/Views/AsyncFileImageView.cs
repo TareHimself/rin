@@ -28,20 +28,10 @@ public class AsyncFileImageView : CoverImageView
 
     private async Task LoadFile(string filePath)
     {
-        using var image = HostImage.Create(File.OpenRead(filePath)); //await Image.LoadAsync<Rgba32>(filePath);
+        using var image = HostImage.Create(File.OpenRead(filePath));
         await image.CreateTexture(out var handle);
         await IApplication.Get().MainDispatcher.Enqueue(() => ImageHandle = handle);
     }
-
-    // public override void Draw(ViewFrame frame, DrawInfo info)
-    // {
-    //     // _alpha = MathUtils.InterpolateTo(_alpha, _alphaTarget, (float)Runtime.Instance.GetLastDeltaSeconds(), 0.8f);
-    //     //
-    //     // var sin = (float)Math.Sin(Runtime.Instance.GetTimeSinceCreation() * 1.3f);
-    //     // var borderRadius = float.Abs(sin) * 100.0f;
-    //     // BorderRadius = 100.0f * _alpha;
-    //     base.Draw(frame, info);
-    // }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {

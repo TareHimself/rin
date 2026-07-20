@@ -10,7 +10,7 @@ public class ColorPickerPinView : PinTestView
     public ColorPickerPinView(string name)
     {
         Name = name;
-        Child = new TextBoxView
+        InitChild = new TextBoxView
         {
             Content = name,
             FontSize = 15.0f

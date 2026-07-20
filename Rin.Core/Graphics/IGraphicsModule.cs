@@ -64,13 +64,13 @@ public interface IGraphicsModule : IModule, IUpdatable
     public void WriteBuffer(in ResourceHandle handle, ReadOnlySpan<byte> data, ulong offset = 0);
     public ulong GetBufferAddress(in ResourceHandle handle);
 
-    public Task CreateMesh<TVertexFormat>(out MeshHandle handle, IReadOnlyBuffer<TVertexFormat> vertices,
-        IReadOnlyBuffer<uint> indices,
-        IEnumerable<MeshSurface> surfaces) where TVertexFormat : unmanaged;
-
-    public bool IsValidMeshHandle(in MeshHandle handle);
-    public IMesh? GetMesh(in MeshHandle handle);
-    public void FreeMeshHandles(params MeshHandle[] handles);
+    // public Task CreateMesh<TVertexFormat>(out MeshHandle handle, IReadOnlyBuffer<TVertexFormat> vertices,
+    //     IReadOnlyBuffer<uint> indices,
+    //     IEnumerable<MeshSurface> surfaces) where TVertexFormat : unmanaged;
+    //
+    // public bool IsValidMeshHandle(in MeshHandle handle);
+    // public IMesh? GetMesh(in MeshHandle handle);
+    // public void FreeMeshHandles(params MeshHandle[] handles);
     public void Collect();
     public void Execute();
 

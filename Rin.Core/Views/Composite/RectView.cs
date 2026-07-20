@@ -38,7 +38,7 @@ public class RectView : SingleSlotCompositeView
         if (Color.A > 0.0f) cmds.AddRect(transform, GetSize(), Color, BorderRadius);
     }
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
         if (GetSlot() is { } slot) return [slot];
 

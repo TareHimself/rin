@@ -1,4 +1,3 @@
-using Rin.Core.Graphics.Graph;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan.Graph;

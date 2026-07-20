@@ -14,7 +14,7 @@ public class MainPanelView : PanelView
     public MainPanelView()
     {
         _cameraActor = _world.AddActor<CameraActor>();
-        Slots =
+        InitSlots =
         [
             new PanelSlot
             {

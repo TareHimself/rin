@@ -72,7 +72,7 @@ public class AudioPlayerApp : ExampleApplication
                 foreach (var path in p)
                     switcher.Add(new FitterView
                     {
-                        Child = new AsyncFileImageView(path),
+                        InitChild = new AsyncFileImageView(path),
                         FittingMode = FitMode.Cover
                     });
             }

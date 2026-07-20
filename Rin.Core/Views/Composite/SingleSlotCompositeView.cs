@@ -24,7 +24,7 @@ public abstract class SingleSlotCompositeView : CompositeView, ISingleSlotCompos
     /// <summary>
     ///     Adds the View to this container
     /// </summary>
-    public IView? Child
+    public IView? InitChild
     {
         init => SetChild(value);
     }
@@ -65,7 +65,7 @@ public abstract class SingleSlotCompositeView : CompositeView, ISingleSlotCompos
         return _slot;
     }
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
         if (GetSlot() is { } slot) return [slot];
 

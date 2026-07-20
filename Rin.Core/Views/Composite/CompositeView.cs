@@ -19,10 +19,11 @@ public abstract class CompositeView : View, ICompositeView
         {
             if (e is IPositionalEvent asPositionalEvent)
             {
-                var contentTransform = absoluteTransform.ApplyBefore(GetLocalContentTransform());
+                var paddingTransform = absoluteTransform.ApplyBefore(GetPaddingOffsetTransform());
 
-                if (Rect2D.PointWithin(GetContentSize(), contentTransform, asPositionalEvent.Position))
+                if (Rect2D.PointWithin(GetContentSize(), paddingTransform, asPositionalEvent.Position))
                 {
+                    var contentTransform = absoluteTransform.ApplyBefore(GetLocalContentTransform());
                     var slots = ComputeHitTestableSlotsForEvent(asPositionalEvent, contentTransform);
                     if (slots.NotEmpty())
                     {
@@ -59,19 +60,8 @@ public abstract class CompositeView : View, ICompositeView
     }
 
     [PublicAPI]
-    public abstract IEnumerable<ISlot> GetSlots();
-
-    [PublicAPI]
-    public virtual IEnumerable<ISlot> GetCollectableSlots()
-    {
-        return GetSlots().Where(c => c.Child.Visibility is not Visibility.Collapsed);
-    }
-
-    [PublicAPI]
-    public virtual IEnumerable<ISlot> GetHitTestableSlots()
-    {
-        return GetSlots().Where(c => c.Child.IsHitTestable);
-    }
+    public abstract ISlot[] GetSlots();
+    
 
     public virtual void OnChildLayoutInvalidated(IView child)
     {
@@ -79,6 +69,7 @@ public abstract class CompositeView : View, ICompositeView
         InvalidateLayout();
     }
 
+    private readonly List<Pair<IView, Matrix4x4>> _toCollect = [];
     public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
         if (Visibility is Visibility.Hidden or Visibility.Collapsed) return;
@@ -89,24 +80,28 @@ public abstract class CompositeView : View, ICompositeView
 
         var contentTransform = transform.ApplyBefore(GetLocalContentTransform());
         
-        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transform.ApplyBefore(Matrix4x4.Identity.Translate(GetPaddingOffset())), GetContentSize());
+        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transform.ApplyBefore(GetPaddingOffsetTransform()), GetContentSize());
 
         if (Clip == Clip.Bounds) clipRect = Rect2D.Clamp(ComputeAABB(contentTransform), clipRect);
 
-        List<Pair<IView, Matrix4x4>> toCollect = [];
+        
 
-        foreach (var slot in GetCollectableSlots())
+        foreach (var slot in GetSlots())
         {
+            if(!slot.Child.IsVisible) continue;
+            
             var slotTransform = ComputeSlotTransform(slot, contentTransform);
 
             var aabb = slot.Child.ComputeAABB(slotTransform);
 
             if (!Rect2D.IntersectsWith(clipRect, aabb)) continue;
 
-            toCollect.Add(new Pair<IView, Matrix4x4>(slot.Child, slotTransform));
+            _toCollect.Add(new Pair<IView, Matrix4x4>(slot.Child, slotTransform));
         }
 
-        foreach (var (view, mat) in toCollect) view.Collect(mat, clipRect, commands);
+        foreach (var (view, mat) in _toCollect) view.Collect(mat, clipRect, commands);
+        
+        _toCollect.Clear();
 
         if (Parent != null && Clip == Clip.Bounds) commands.PopClip();
     }
@@ -142,6 +137,18 @@ public abstract class CompositeView : View, ICompositeView
         Layout(GetSize());
     }
 
+    public virtual IView[] GetChildren()
+    {
+        var slots = GetSlots();
+        var children = new IView[slots.Length];
+        for (var i = 0; i < slots.Length; i++)
+        {
+            children[i] = slots[i].Child;
+        }
+
+        return children;
+    }
+
     public override void InvalidateLayout()
     {
         base.InvalidateLayout();
@@ -158,15 +165,42 @@ public abstract class CompositeView : View, ICompositeView
         return ArrangeContent(availableSpace);
     }
 
+
+    private readonly List<Pair<ISlot, Matrix4x4>> _computeHitTestableSlotsForEventScratch = [];
     protected virtual Pair<ISlot, Matrix4x4>[] ComputeHitTestableSlotsForEvent(IPositionalEvent e, Matrix4x4 transform)
     {
         if (!IsChildrenHitTestable) return [];
-        var enumerator = GetHitTestableSlots()
-            .Select(c => new Pair<ISlot, Matrix4x4>(c, ComputeSlotTransform(c, transform)))
-            .Where(c => c.First.Child.PointWithin(c.Second, e.Position));
-        if (e.ReverseTestOrder) enumerator = enumerator.AsReversed();
+        var slots = GetSlots();
+        if (e.ReverseTestOrder)
+        {
+            for (var i = slots.Length - 1; i > -1; i--)
+            {
+                var slot = slots[i];
+                if(!slot.Child.IsHitTestable) continue;
+                var slotTransform = ComputeSlotTransform(slot, transform);
+                if (slot.Child.PointWithin(slotTransform, e.Position))
+                {
+                    _computeHitTestableSlotsForEventScratch.Add(new(slot, slotTransform));
+                }
+            }
+        }
+        else
+        {
+            for (var i = 0; i < slots.Length; i++)
+            {
+                var slot = slots[i];
+                if(!slot.Child.IsHitTestable) continue;
+                var slotTransform = ComputeSlotTransform(slot, transform);
+                if (slot.Child.PointWithin(slotTransform, e.Position))
+                {
+                    _computeHitTestableSlotsForEventScratch.Add(new(slot, slotTransform));
+                }
+            }
+        }
 
-        return enumerator.ToArray();
+        var result = _computeHitTestableSlotsForEventScratch.ToArray();
+        _computeHitTestableSlotsForEventScratch.Clear();
+        return result;
     }
 
     /// <summary>

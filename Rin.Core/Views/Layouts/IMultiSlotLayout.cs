@@ -8,7 +8,7 @@ public interface IMultiSlotLayout : ILayout
     public bool Add(ISlot slot);
     public bool Remove(IView view);
     public ISlot? GetSlot(int idx);
-    public IEnumerable<ISlot> GetSlots();
+    public ISlot[] GetSlots();
 
     public ISlot? FindSlot(IView view);
 }

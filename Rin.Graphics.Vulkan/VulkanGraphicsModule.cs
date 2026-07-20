@@ -225,27 +225,27 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true).GetView();
     }
 
-    public Task CreateMesh<TVertexFormat>(out MeshHandle handle, IReadOnlyBuffer<TVertexFormat> vertices,
-        IReadOnlyBuffer<uint> indices,
-        IEnumerable<MeshSurface> surfaces) where TVertexFormat : unmanaged
-    {
-        throw new NotImplementedException();
-    }
-
-    public bool IsValidMeshHandle(in MeshHandle handle)
-    {
-        throw new NotImplementedException();
-    }
-
-    public IMesh? GetMesh(in MeshHandle handle)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void FreeMeshHandles(params MeshHandle[] handles)
-    {
-        throw new NotImplementedException();
-    }
+    // public Task CreateMesh<TVertexFormat>(out MeshHandle handle, IReadOnlyBuffer<TVertexFormat> vertices,
+    //     IReadOnlyBuffer<uint> indices,
+    //     IEnumerable<MeshSurface> surfaces) where TVertexFormat : unmanaged
+    // {
+    //     throw new NotImplementedException();
+    // }
+    //
+    // public bool IsValidMeshHandle(in MeshHandle handle)
+    // {
+    //     throw new NotImplementedException();
+    // }
+    //
+    // public IMesh? GetMesh(in MeshHandle handle)
+    // {
+    //     throw new NotImplementedException();
+    // }
+    //
+    // public void FreeMeshHandles(params MeshHandle[] handles)
+    // {
+    //     throw new NotImplementedException();
+    // }
 
     public void Collect()
     {

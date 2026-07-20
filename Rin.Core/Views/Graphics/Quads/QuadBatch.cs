@@ -6,9 +6,9 @@ public class QuadBatch : IBatch
 {
     private readonly List<Quad> _quads = [];
 
-    public IEnumerable<ulong> GetMemoryNeeded()
+    public ulong GetMemoryNeeded()
     {
-        return [Utils.ByteSizeOf<Quad>(_quads.Count)];
+        return Utils.ByteSizeOf<Quad>(_quads.Count);
     }
 
     public IBatcher GetBatcher()
@@ -21,7 +21,7 @@ public class QuadBatch : IBatch
         if (command is QuadDrawCommand asQuadDraw) _quads.AddRange(asQuadDraw.GetQuads());
     }
 
-    public IEnumerable<Quad> GetQuads()
+    public List<Quad> GetQuads()
     {
         return _quads;
     }

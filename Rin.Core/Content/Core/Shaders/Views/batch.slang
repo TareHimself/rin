@@ -365,13 +365,9 @@ float4 fragment(FSIn input)
         
         float sd = median(msd.r, msd.g, msd.b);
 
-        float distance = screenPxRange(uv, actualTexSize) * (sd - 0.5);
-
-        float w = max(fwidth(distance), 1e-6);
-
-        var wLength = length(w);
-
-        var aaWidth = 0.5 * wLength;
+        // input.uv, not the atlas-remapped uv above: actualTexSize is already scaled to this glyph's own
+        // sub-rect, so fwidth() must be taken in that same local [0,1] space to match.
+        float distance = screenPxRange(input.uv, actualTexSize) * (sd - 0.5);
 
         float opacity = 1.0 - clamp(distance + 0.5, 0.0, 1.0);
 

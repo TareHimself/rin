@@ -50,7 +50,7 @@ public class FlexBoxView : MultiSlotCompositeView<FlexBoxSlot>
         return _layout.Apply(availableSpace);
     }
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
         return _layout.GetSlots();
     }

@@ -39,7 +39,7 @@ public class PanelView : MultiSlotCompositeView<PanelSlot>
         if (_layout.FindSlot(child) is { } slot) _layout.OnSlotUpdated(slot);
     }
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
         return _layout.GetSlots();
     }

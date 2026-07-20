@@ -51,7 +51,7 @@ public class ViewsModule : IViewsModule
 
     public event Action<IWindowSurface>? OnSurfaceCreated;
     public event Action<IWindowSurface>? OnSurfaceDestroyed;
-    public IFontManager FontManager { get; } = new SixLaborsFontManager();
+    public IFontManager FontManager { get; } = new HarfBuzzFontManager();
 
     public void AddFont(string fontPath)
     {

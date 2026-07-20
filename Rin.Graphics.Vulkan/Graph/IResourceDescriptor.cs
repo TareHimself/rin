@@ -1,4 +1,4 @@
-namespace Rin.Core.Graphics.Graph;
+namespace Rin.Graphics.Vulkan.Graph;
 
 public interface IResourceDescriptor
 {

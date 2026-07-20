@@ -16,15 +16,8 @@ public interface ICompositeView : IView
     public Matrix4x4 ComputeChildOffsets(IView child);
 
     [PublicAPI]
-    public IEnumerable<ISlot> GetSlots();
-
-    [PublicAPI]
-    public IEnumerable<ISlot> GetCollectableSlots();
-
-    [PublicAPI]
-    public IEnumerable<ISlot> GetHitTestableSlots();
-
-
+    public ISlot[] GetSlots();
+    
     [PublicAPI]
     public void OnChildLayoutInvalidated(IView child);
 
@@ -41,4 +34,6 @@ public interface ICompositeView : IView
     /// </summary>
     [PublicAPI]
     public void OnChildNeedsLayout(IView child);
+
+    public IView[] GetChildren();
 }

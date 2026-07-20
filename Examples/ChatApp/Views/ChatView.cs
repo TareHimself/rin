@@ -20,7 +20,7 @@ public class ChatView : FlexBoxView
     {
         Padding = 5.0f,
         BorderRadius = new Vector4(2.0f),
-        Child = new TextBoxView
+        InitChild = new TextBoxView
         {
             Content = "Send",
             FontSize = 20.0f
@@ -32,7 +32,7 @@ public class ChatView : FlexBoxView
     {
         Padding = new Padding(20.0f);
         Axis = Axis.Column;
-        Slots =
+        InitSlots =
         [
             new FlexBoxSlot
             {
@@ -48,19 +48,19 @@ public class ChatView : FlexBoxView
                 Child = new SizerView
                 {
                     HeightOverride = 50,
-                    Child = new FlexBoxView
+                    InitChild = new FlexBoxView
                     {
                         Axis = Axis.Row,
-                        Slots =
+                        InitSlots =
                         [
                             new FlexBoxSlot
                             {
                                 Child = new RectView
                                 {
                                     Color = Color.Green,
-                                    Child = new PanelView
+                                    InitChild = new PanelView
                                     {
-                                        Slots =
+                                        InitSlots =
                                         [
                                             new PanelSlot
                                             {
@@ -80,7 +80,7 @@ public class ChatView : FlexBoxView
                             {
                                 Child = new SizerView
                                 {
-                                    Child = new RectView
+                                    InitChild = new RectView
                                     {
                                         Color = Color.Red
                                     },

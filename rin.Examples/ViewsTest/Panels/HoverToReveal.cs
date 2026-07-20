@@ -18,7 +18,7 @@ public class HoverToReveal : PanelView
 
     public HoverToReveal()
     {
-        Slots =
+        InitSlots =
         [
             new PanelSlot
             {
@@ -42,9 +42,9 @@ public class HoverToReveal : PanelView
 
         public ImageItem(ImageView image)
         {
-            Child = new OverlayView
+            InitChild = new OverlayView
             {
-                Children =
+                InitChildren =
                 [
                     image,
                     _blur

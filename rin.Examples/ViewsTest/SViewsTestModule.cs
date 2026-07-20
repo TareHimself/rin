@@ -49,17 +49,17 @@
 //
 //             surf.Add(new Panel
 //             {
-//                 Slots =
+//                 InitSlots =
 //                 [
 //                     new PanelSlot
 //                     {
-//                         Child = new ScrollList
+//                         InitChild = new ScrollList
 //                         {
-//                             Slots =
+//                             InitSlots =
 //                             [
 //                                 new ListSlot
 //                                 {
-//                                     Child = list,
+//                                     InitChild = list,
 //                                     Fit = CrossFit.Available,
 //                                     Align = CrossAlign.Center
 //                                 }
@@ -71,9 +71,9 @@
 //                     },
 //                     new PanelSlot
 //                     {
-//                         Child = new Rect
+//                         InitChild = new Rect
 //                         {
-//                             Child = new FpsView(),
+//                             InitChild = new FpsView(),
 //                             Padding = new Padding(20.0f),
 //                             BorderRadius = new Vector4(10.0f),
 //                             Color = Color.Black with { A = 0.7f }
@@ -92,7 +92,7 @@
 //                     foreach (var objPath in e.Paths)
 //                         IApplication.Get().MainDispatcher.Enqueue(() => list.Add(new ListSlot
 //                         {
-//                             Child = new WrapContainer(new AsyncFileImage(objPath)
+//                             InitChild = new WrapContainer(new AsyncFileImage(objPath)
 //                             {
 //                                 BorderRadius = new Vector4(30.0f)
 //                             }),
@@ -184,11 +184,11 @@
 //             surface.Add(new Sizer
 //             {
 //                 Padding = 20.0f,
-//                 Child = new Rect
+//                 InitChild = new Rect
 //                 {
-//                     Child = new Fitter
+//                     InitChild = new Fitter
 //                     {
-//                         Child = new AsyncFileImage(
+//                         InitChild = new AsyncFileImage(
 //                             @"C:\Users\Taree\Downloads\Wallpapers-20241117T001814Z-001\Wallpapers\wallpaperflare.com_wallpaper (49).jpg"),
 //                         FittingMode = FitMode.Cover,
 //                         Clip = Clip.Bounds
@@ -206,11 +206,11 @@
 //
 //         var panel = surf.Add(new Panel
 //         {
-//             Slots =
+//             InitSlots =
 //             [
 //                 new PanelSlot
 //                 {
-//                     Child = new TextBox
+//                     InitChild = new TextBox
 //                     {
 //                         Content = "Test Text",
 //                         FontSize = 40

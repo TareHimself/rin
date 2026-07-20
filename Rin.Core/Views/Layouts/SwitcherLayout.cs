@@ -3,6 +3,7 @@ using Rin.Core.Views.Composite;
 
 namespace Rin.Core.Views.Layouts;
 
+
 public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
 {
     public override ICompositeView Container { get; } = container;
@@ -27,7 +28,7 @@ public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
     {
         get
         {
-            var slots = GetSlots().ToArray();
+            var slots = GetSlots();
             if (slots.Length <= SelectedIndex) return null;
             return slots[SelectedIndex];
         }
@@ -41,22 +42,26 @@ public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
         };
     }
 
+    
     public override void OnSlotUpdated(ISlot slot)
     {
         if (Container.Surface != null)
+        {
             if (SelectedSlot == slot)
             {
                 slot.Child.Offset = default;
                 slot.Child.Layout(Container.GetContentSize());
             }
+        }
+            
     }
 
     public override Vector2 Apply(in Vector2 availableSpace)
     {
         if (SelectedSlot is { } slot)
         {
-            OnSlotUpdated(slot);
             slot.Child.Offset = default;
+            slot.Child.Layout(Container.GetContentSize());
             return slot.Child.Layout(availableSpace);
         }
 
@@ -67,4 +72,5 @@ public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
     {
         return SelectedSlot?.Child.GetDesiredSize() ?? new Vector2(0, 0);
     }
+    
 }

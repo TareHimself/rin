@@ -43,7 +43,7 @@ public partial class StencilWritePass : IPass
         {
             var stencilImage = graph.GetImageOrException(StencilImageId);
             var clipsBuffer = graph.GetBufferOrException(_clipsBufferId);
-            clipsBuffer.Write(_clips);
+            clipsBuffer.Write(_clips.AsSpan());
             ctx
                 .BeginRendering(_surfaceContext.Extent, [], stencilAttachment: stencilImage)
                 .DisableFaceCulling()
