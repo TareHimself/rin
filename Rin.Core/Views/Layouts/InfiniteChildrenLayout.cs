@@ -5,11 +5,11 @@ namespace Rin.Core.Views.Layouts;
 
 public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 {
-    private readonly Dictionary<IView, ISlot> _slotMap = [];
-    private readonly List<ISlot> _slots = [];
+    protected readonly Dictionary<IView, ISlot> SlotMap = [];
+    protected readonly List<ISlot> Slots = [];
 
     public virtual int MaxSlotCount => int.MaxValue;
-    public int SlotCount => _slots.Count;
+    public int SlotCount => Slots.Count;
     public abstract ICompositeView Container { get; }
 
     public bool Add(IView child)
@@ -17,20 +17,17 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
         return Add(MakeSlot(child));
     }
 
-    public bool Add(ISlot slot)
+    public virtual bool Add(ISlot slot)
     {
         var added = false;
 
-        // lock (_slots)
-        // {
-        if (_slots.Count != MaxSlotCount)
+        if (Slots.Count != MaxSlotCount)
         {
             var view = slot.Child;
-            _slots.Add(slot);
-            _slotMap.TryAdd(view, slot);
+            Slots.Add(slot);
+            SlotMap.TryAdd(view, slot);
             added = true;
         }
-        // }
 
         if (added)
         {
@@ -42,23 +39,19 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
         return added;
     }
 
-    public bool Remove(IView view)
+    public virtual bool Remove(IView view)
     {
         var removed = false;
 
-        // lock (_slots)
-        // {
-        for (var i = 0; i < _slots.Count; i++)
+        for (var i = 0; i < Slots.Count; i++)
         {
-            if (_slots[i].Child != view) continue;
-            _slots[i].OnRemovedFromLayout(this);
-            _slots.RemoveAt(i);
-            _slotMap.Remove(view);
-            //_slotMap.TryRemove(view, out var _);
+            if (Slots[i].Child != view) continue;
+            Slots[i].OnRemovedFromLayout(this);
+            Slots.RemoveAt(i);
+            SlotMap.Remove(view);
             removed = true;
             break;
         }
-        // }
 
         if (removed)
         {
@@ -71,20 +64,14 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 
     public abstract ISlot MakeSlot(IView view);
 
-    public ISlot? GetSlot(int idx)
+    public virtual ISlot? GetSlot(int idx)
     {
-        // lock (_slots)
-        // {
-        return _slots[idx];
-        // }
+        return Slots[idx];
     }
 
-    public IEnumerable<ISlot> GetSlots()
+    public virtual ISlot[] GetSlots()
     {
-        // lock (_slots)
-        // {
-        return _slots.ToArray();
-        //}
+        return Slots.ToArray();
     }
 
     public abstract void OnSlotUpdated(ISlot slot);
@@ -95,6 +82,8 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 
     public ISlot? FindSlot(IView view)
     {
-        return _slotMap.GetValueOrDefault(view);
+        return SlotMap.GetValueOrDefault(view);
     }
+    
+    
 }

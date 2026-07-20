@@ -89,6 +89,11 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
     public bool IsFocusable { get; }
     // public Matrix4x4 GetLocalPaddingTransform();
 
+    /// <summary>
+    /// The offset of this view due to padding represented as a transformation
+    /// </summary>
+    /// <returns></returns>
+    public Matrix4x4 GetPaddingOffsetTransform();
     // Get the local transformation applied to content (i.e. padding, scroll, etc.)
     public Matrix4x4 GetLocalContentTransform();
 

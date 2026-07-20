@@ -19,7 +19,7 @@ public class MainPanelView : PanelView
     public MainPanelView()
     {
         var filePicker = new FilePicker();
-        Slots =
+        InitSlots =
         [
             new PanelSlot
             {
@@ -32,7 +32,7 @@ public class MainPanelView : PanelView
             {
                 Child = new RectView
                 {
-                    Child = new FpsView
+                    InitChild = new FpsView
                     {
                         FontSize = 30
                     },

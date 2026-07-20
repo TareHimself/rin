@@ -110,7 +110,7 @@ public class FitterView : SingleSlotCompositeView
             float.IsFinite(availableSpace.Y) ? availableSpace.Y : desired.Y));
     }
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
         if (GetSlot() is { } slot) return [slot];
 

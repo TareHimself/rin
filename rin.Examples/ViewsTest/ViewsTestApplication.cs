@@ -80,13 +80,13 @@ public class ViewsTestApplication : ExampleApplication
             //var source = new HttpVideoSource(new Uri("https://b.catgirlsare.sexy/yTpGNCU13fu_.webm"));
             surf.Add(new PanelView
             {
-                Slots =
+                InitSlots =
                 [
                     new PanelSlot
                     {
                         Child = new FitterView
                         {
-                            Child = VideoPlayerView.FromSource(source),
+                            InitChild = VideoPlayerView.FromSource(source),
                             FittingMode = FitMode.Contain,
                             Padding = 50.0f,
                             Clip = Clip.Bounds
@@ -106,7 +106,7 @@ public class ViewsTestApplication : ExampleApplication
                     {
                         Child = new BackgroundBlurView
                         {
-                            Child = new FpsView(),
+                            InitChild = new FpsView(),
                             Padding = new Padding(20.0f),
                             Tint = Color.Black with { A = 0.7f },
                             Strength = 5,
@@ -129,7 +129,7 @@ public class ViewsTestApplication : ExampleApplication
                         {
                             WidthOverride = 200,
                             HeightOverride = 800,
-                            Child = new AsyncFileImageView(objPath)
+                            InitChild = new AsyncFileImageView(objPath)
                             {
                                 BorderRadius = new Vector4(30.0f)
                             },
@@ -152,7 +152,7 @@ public class ViewsTestApplication : ExampleApplication
                                 {
                                     WidthOverride = 200,
                                     HeightOverride = 800,
-                                    Child = new AsyncFileImageView(path)
+                                    InitChild = new AsyncFileImageView(path)
                                     {
                                         BorderRadius = new Vector4(30.0f)
                                     },
@@ -165,7 +165,7 @@ public class ViewsTestApplication : ExampleApplication
                     {
                         WidthOverride = 200,
                         HeightOverride = 800,
-                        Child = new PrettyView
+                        InitChild = new PrettyView
                         {
                             Pivot = new Vector2(0.5f)
                         },
@@ -177,7 +177,7 @@ public class ViewsTestApplication : ExampleApplication
                     {
                         WidthOverride = 200,
                         HeightOverride = 900,
-                        Child = new CanvasView
+                        InitChild = new CanvasView
                         {
                             Paint = (canvas, transform, cmds) =>
                             {
@@ -303,14 +303,14 @@ public class ViewsTestApplication : ExampleApplication
 
             surface.Add(new PanelView
             {
-                Slots =
+                InitSlots =
                 [
                     new PanelSlot
                     {
                         Child = new ScrollListView
                         {
                             Axis = Axis.Row,
-                            Slots =
+                            InitSlots =
                             [
                                 new ListSlot
                                 {
@@ -328,7 +328,7 @@ public class ViewsTestApplication : ExampleApplication
                     {
                         Child = new RectView
                         {
-                            Child = new FpsView(),
+                            InitChild = new FpsView(),
                             Padding = new Padding(20.0f),
                             BorderRadius = new Vector4(10.0f),
                             Color = Color.Black with { A = 0.7f }

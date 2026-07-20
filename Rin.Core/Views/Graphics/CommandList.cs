@@ -17,26 +17,53 @@ public struct PendingCommand(ICommand cmd, uint clipId)
     public readonly uint ClipId = clipId;
 }
 
+public readonly struct ClipStackKey(uint[] ids) : IEquatable<ClipStackKey>
+{
+    public static readonly ClipStackKey Empty = new([]);
+
+    public readonly uint[] Ids = ids;
+
+    public bool Equals(ClipStackKey other) => Ids.AsSpan().SequenceEqual(other.Ids);
+    public override bool Equals(object? obj) => obj is ClipStackKey other && Equals(other);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        foreach (var id in Ids) hash.Add(id);
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(ClipStackKey left, ClipStackKey right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ClipStackKey left, ClipStackKey right)
+    {
+        return !(left == right);
+    }
+}
+
 public class CommandList
 {
     private readonly Stack<uint> _clipStack = [];
 
-    [PublicAPI] public readonly List<string> ClipIds = [];
+    [PublicAPI] public readonly List<ClipStackKey> ClipIds = [];
 
     //private readonly SortedDictionary<int, List<RawCommand>> _commands = new SortedDictionary<int, List<RawCommand>>(Comparer<int>.Create((a,b) => b.CompareTo(a)));
     [PublicAPI] public readonly List<ICommand> Commands = [];
 
-    private string _clipId = "";
+    private ClipStackKey _clipKey = ClipStackKey.Empty;
     private int _depth;
     public List<ClipInfo> Clips { get; } = [];
     public required Vector2 SurfaceSize { get; set; }
-    public Dictionary<string, uint[]> UniqueClipStacks { get; } = [];
+    public Dictionary<ClipStackKey, uint[]> UniqueClipStacks { get; } = [];
 
     public CommandList Add(ICommand command)
     {
         Commands.Add(command);
-        ClipIds.Add(_clipId);
-        UniqueClipStacks.TryAdd(_clipId, _clipStack.ToArray());
+        ClipIds.Add(_clipKey);
+        UniqueClipStacks.TryAdd(_clipKey, _clipKey.Ids);
 
         return this;
     }
@@ -48,15 +75,14 @@ public class CommandList
         var clipInfo = new ClipInfo(id, transform, size);
         Clips.Add(clipInfo);
         _clipStack.Push(clipInfo.Id);
-        _clipId += id.ToString();
+        _clipKey = new ClipStackKey(_clipStack.ToArray());
         return this;
     }
 
     public CommandList PopClip()
     {
-        var asStr = _clipStack.Peek().ToString();
         _clipStack.Pop();
-        _clipId = _clipId[..^asStr.Length];
+        _clipKey = new ClipStackKey(_clipStack.ToArray());
         return this;
     }
 

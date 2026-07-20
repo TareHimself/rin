@@ -7,7 +7,7 @@ public class SidePanel : SizerView
 {
     public SidePanel()
     {
-        Child = new RectView
+        InitChild = new RectView
         {
             Color = Color.Red
         };

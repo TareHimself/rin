@@ -3,12 +3,12 @@
 namespace Rin.Core;
 
 [NoReorder]
-public struct Pair<T, TU>(T inFirst, TU inSecond)
+public readonly struct  Pair<T, Tu>(T inFirst, Tu inSecond)
 {
-    public T First = inFirst;
-    public TU Second = inSecond;
+    public readonly T First = inFirst;
+    public readonly Tu Second = inSecond;
 
-    public void Deconstruct(out T first, out TU second)
+    public void Deconstruct(out T first, out Tu second)
     {
         first = First;
         second = Second;

@@ -51,17 +51,17 @@ public class MainApplication : Application
         // surface.Add(new FlexBoxView
         // {
         //     Axis = Axis.Row,
-        //     Slots =
+        //     InitSlots =
         //     [
         //         new FlexBoxSlot
         //         {
-        //             Child = new GraphView(),
+        //             InitChild = new GraphView(),
         //             Flex = 1,
         //             Fit = CrossFit.Fill
         //         },
         //         new FlexBoxSlot
         //         {
-        //             Child = new GraphView(),
+        //             InitChild = new GraphView(),
         //             Flex = 1,
         //             Fit = CrossFit.Fill
         //         }

@@ -43,7 +43,7 @@ public class RootView : MultiSlotCompositeView<Slot>
         // We do nothing since this view is supposed to be at the top of the tree
     }
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
         return _layout.GetSlots();
     }

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
@@ -26,16 +27,23 @@ public sealed partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
         IGraphicsBindContext bindContext)
     {
         Debug.Assert(view.IsValid);
-        var quads = batch.GetQuads().ToArray();
-        if (quads.Length == 0) return 0;
-        view.Write(quads);
+        var quads = batch.GetQuads();
+        if (quads.Count == 0) return 0;
+        unsafe
+        {
+            fixed (Quad* data = CollectionsMarshal.AsSpan(quads))
+            {
+                view.Write(new ReadOnlySpan<Quad>(data, quads.Count));
+            }
+        }
+        
         bindContext.Push(new Push
         {
             Projection = frame.ProjectionMatrix,
             Viewport = new Vector4(0, 0, frame.Extent.Width, frame.Extent.Height),
             Buffer = view.GetAddress()
         });
-        return (uint)quads.Length;
+        return (uint)quads.Count;
     }
 
     [NoReorder]

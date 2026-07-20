@@ -32,13 +32,13 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
         List<IPass> passes = [new CreateImagesPass(SurfaceContext)];
         {
             var uniqueClipStacks = drawList.UniqueClipStacks;
-            Dictionary<string, uint> computedClipMasks = [];
+            Dictionary<ClipStackKey, uint> computedClipMasks = [];
             List<ICommand> pendingCommands = [];
             uint shifted = 1;
             uint currentMask = 0x2;
             foreach (var (command, clipId) in drawList.Commands.Zip(drawList.ClipIds))
             {
-                if (shifted == 31)
+                if (shifted == 8)
                 {
                     ProcessPendingCommands(pendingCommands, SurfaceContext, passes);
                     pendingCommands.Clear();
@@ -49,7 +49,7 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
                 }
 
 
-                if (clipId.Length <= 0) // No clipping
+                if (clipId.Ids.Length == 0) // No clipping
                 {
                     command.StencilMask = 0x01;
                     pendingCommands.Add(command);

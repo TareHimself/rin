@@ -52,7 +52,7 @@ public class ListView : MultiSlotCompositeView<ListSlot>
     }
 
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
         return _layout.GetSlots();
     }

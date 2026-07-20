@@ -21,14 +21,10 @@ public class WrapContainer : ButtonView
         {
             WidthOverride = ViewsTestApplication.TileSize,
             HeightOverride = ViewsTestApplication.TileSize,
-            Child = new RectView
-            {
-                Child = content,
-                Color = Color.Red
-            },
+            InitChild = content,
             Padding = 10.0f
         };
-        Child = sizer;
+        InitChild = sizer;
         content.Pivot = new Vector2(0.5f);
         OnReleased += (@event, button) =>
         {

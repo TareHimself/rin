@@ -70,14 +70,14 @@ public class TrackPlayer : OverlayView
 
         _stream = sample.MakeActive();
 
-        Children =
+        InitChildren =
         [
             _backgroundContainer,
             new ListView
             {
                 Axis = Axis.Column,
                 Padding = new Padding(5.0f, 10.0f),
-                Slots =
+                InitSlots =
                 [
                     new ListSlot
                     {
@@ -90,16 +90,16 @@ public class TrackPlayer : OverlayView
                         Child = new ConstraintView
                         {
                             MinWidth = 500.0f,
-                            Child = new FlexBoxView
+                            InitChild = new FlexBoxView
                             {
                                 Axis = Axis.Row,
-                                Slots =
+                                InitSlots =
                                 [
                                     new FlexBoxSlot
                                     {
                                         Child = new SizerView
                                         {
-                                            Child = _currentTimeText,
+                                            InitChild = _currentTimeText,
                                             WidthOverride = 100
                                         }
                                     },
@@ -107,7 +107,7 @@ public class TrackPlayer : OverlayView
                                     {
                                         Child = new SizerView
                                         {
-                                            Child = new ProgressBarView(
+                                            InitChild = new ProgressBarView(
                                                 () => (float)(_stream.Position / _stream.Duration),
                                                 progress => { _stream.SetPosition(progress * _stream.Duration); })
                                             {
@@ -123,7 +123,7 @@ public class TrackPlayer : OverlayView
                                     {
                                         Child = new SizerView
                                         {
-                                            Child = _endTimeText,
+                                            InitChild = _endTimeText,
                                             WidthOverride = 100
                                         }
                                     }

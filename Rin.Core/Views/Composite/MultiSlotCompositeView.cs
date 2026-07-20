@@ -5,7 +5,7 @@ namespace Rin.Core.Views.Composite;
 public abstract class MultiSlotCompositeView<TSlotType> : CompositeView, IMultiSlotCompositeView<TSlotType>
     where TSlotType : ISlot
 {
-    public IView[] Children
+    public IView[] InitChildren
     {
         init
         {
@@ -13,7 +13,7 @@ public abstract class MultiSlotCompositeView<TSlotType> : CompositeView, IMultiS
         }
     }
 
-    public TSlotType[] Slots
+    public TSlotType[] InitSlots
     {
         init
         {
@@ -25,4 +25,5 @@ public abstract class MultiSlotCompositeView<TSlotType> : CompositeView, IMultiS
     public abstract bool Add(IView child);
     public abstract bool Add(TSlotType slot);
     public abstract bool Remove(IView child);
+    
 }

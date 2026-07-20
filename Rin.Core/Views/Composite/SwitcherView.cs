@@ -48,19 +48,9 @@ public class SwitcherView : MultiSlotCompositeView<Slot>
         return availableSpace;
     }
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
-        return _layout.GetSlots();
-    }
-
-    public override IEnumerable<ISlot> GetCollectableSlots()
-    {
-        return _layout.SelectedSlot is { } slot ? [slot] : [];
-    }
-
-    public override IEnumerable<ISlot> GetHitTestableSlots()
-    {
-        return _layout.SelectedSlot is { } slot ? [slot] : [];
+        return _layout.SelectedSlot is null ? [] : [_layout.SelectedSlot];
     }
 
     public override bool Add(IView child)
@@ -76,5 +66,17 @@ public class SwitcherView : MultiSlotCompositeView<Slot>
     public override bool Remove(IView child)
     {
         return _layout.Remove(child);
+    }
+
+    public override IView[] GetChildren()
+    {
+        var slots = GetSlots();
+        var children = new IView[slots.Length];
+        for (var i = 0; i < slots.Length; i++)
+        {
+            children[i] = slots[i].Child;
+        }
+
+        return children;
     }
 }

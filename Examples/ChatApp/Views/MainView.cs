@@ -8,7 +8,7 @@ public class MainView : FlexBoxView
     public MainView()
     {
         Axis = Axis.Row;
-        Slots =
+        InitSlots =
         [
             new FlexBoxSlot
             {
@@ -19,7 +19,7 @@ public class MainView : FlexBoxView
             {
                 Child = new RectView
                 {
-                    Child = new ChatView()
+                    InitChild = new ChatView()
                 },
                 Flex = 1,
                 Fit = CrossFit.Fill

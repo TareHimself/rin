@@ -37,12 +37,6 @@ public readonly record struct DeviceBufferView
         IGraphicsModule.Get().WriteBuffer(Buffer, new ReadOnlySpan<byte>((void*)src, (int)size), Offset + offset);
     }
 
-    public void Write<T>(IEnumerable<T> data, ulong offset = 0) where T : unmanaged
-    {
-        Debug.Assert(IsValid, "Buffer is not valid");
-        Write(data.ToArray(), offset);
-    }
-
     public void Write<T>(T[] data, ulong offset = 0) where T : unmanaged
     {
         unsafe
@@ -54,18 +48,17 @@ public readonly record struct DeviceBufferView
         }
     }
 
-    public void Write<T>(List<T> data, ulong offset = 0) where T : unmanaged
+    public void Write<T>(ReadOnlySpan<T> data, ulong offset = 0) where T : unmanaged
     {
         unsafe
         {
-            fixed (T* pData = CollectionsMarshal.AsSpan(data))
+            fixed (T* pData = data)
             {
-                WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Count), offset);
+                WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
             }
         }
     }
-
-
+    
     public void Write<T>(T src, ulong offset = 0) where T : unmanaged
     {
         unsafe
@@ -86,7 +79,13 @@ public readonly record struct DeviceBufferView
         var newOffset = Offset + offset;
         //Debug.Assert(IsValid,"Buffer is not valid");
         Debug.Assert(newOffset <= Offset + Size, "Offset out of range");
+        Debug.Assert((newOffset + size) <= (Offset + Size), "Offset out of range");
         return new DeviceBufferView(Buffer, newOffset, size);
+    }
+    
+    public DeviceBufferView GetView<T>(ulong offset) where T : unmanaged
+    {
+        return GetView(offset, Utils.ByteSizeOf<T>());
     }
 
     public ulong GetAddress()

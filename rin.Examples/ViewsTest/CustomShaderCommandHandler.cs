@@ -38,23 +38,27 @@ public class CustomShaderCommandHandler : ICommandHandler
         if (_prettyShader.Bind(ctx) is { } bindContext)
         {
             var view = graph.GetBufferOrException(BufferId);
-            foreach (var customShaderCommand in _commands)
+            for (var i = 0; i < _commands.Length; i++)
             {
-                ctx.SetStencilCompareMask(customShaderCommand.StencilMask);
+                var offset = Utils.ByteSizeOf<Data>(i);
+                var myView = view.GetView<Data>(offset);
+                var command = _commands[i];
+                ctx.SetStencilCompareMask(command.StencilMask);
                 var extent = surfaceContext.Extent;
                 var screenSize = new Vector2(extent.Width, extent.Height);
                 var data = new Data
                 {
                     Projection = surfaceContext.ProjectionMatrix,
                     ScreenSize = screenSize,
-                    Transform = customShaderCommand.Transform,
-                    Size = customShaderCommand.Size,
+                    Transform = command.Transform,
+                    Size = command.Size,
                     Time = IApplication.Get().TimeSeconds,
-                    Center = customShaderCommand.Hovered ? customShaderCommand.CursorPosition : screenSize / 2.0f
+                    Center = command.Hovered ? command.CursorPosition : screenSize / 2.0f
                 };
-                view.Write(data);
+                
+                myView.Write(data);
                 bindContext
-                    .Push(view.GetAddress())
+                    .Push(myView.GetAddress())
                     .Draw(6);
             }
         }

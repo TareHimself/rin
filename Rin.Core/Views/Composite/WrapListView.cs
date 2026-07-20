@@ -52,7 +52,7 @@ public class WrapListView : MultiSlotCompositeView<ListSlot>
         return _layout.Apply(availableSpace);
     }
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
         return _layout.GetSlots();
     }

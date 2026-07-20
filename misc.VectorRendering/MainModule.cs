@@ -31,34 +31,34 @@ public class MainModule : IModule
         // var surface = window.GetViewSurface();
         // surface?.Add(new Panel
         // {
-        //     Slots =
+        //     InitSlots =
         //     [
         //         new PanelSlot
         //         {
-        //             Child = new AsyncWebImage(
+        //             InitChild = new AsyncWebImage(
         //                 "https://applescoop.org/image/wallpapers/mac/samurai-in-a-field-of-flowers-with-mountains-landscape-hdr-anime-style-best-most-popular-free-download-wallpapers-for-macbook-pro-and-macbook-air-and-microsoft-windows-desktop-pcs-4k-07-12-2024-1733638427-hd-wallpaper.png"),
         //             MinAnchor = Vector2.Zero,
         //             MaxAnchor = new Vector2(1.0f)
         //         },
         //         new PanelSlot
         //         {
-        //             Child = new BackgroundBlur
+        //             InitChild = new BackgroundBlur
         //             {
         //                 Radius = 10,
         //                 Strength = 5,
-        //                 Child = new Panel
+        //                 InitChild = new Panel
         //                 {
-        //                     Slots =
+        //                     InitSlots =
         //                     [
         //                         new PanelSlot
         //                         {
-        //                             // Child = new TextBox
+        //                             // InitChild = new TextBox
         //                             // {
         //                             //     Content = "A",
         //                             //     FontSize = 700
         //                             //     //FontFamily = "Noto Sans JP"
         //                             // },
-        //                             Child = new Canvas
+        //                             InitChild = new Canvas
         //                             {
         //                                 Paint = PaintCanvas
         //                             },

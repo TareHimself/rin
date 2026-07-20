@@ -57,4 +57,19 @@ public class OverlayLayout(ICompositeView container) : InfiniteChildrenLayout
             return size;
         });
     }
+
+    public override ISlot? GetSlot(int idx)
+    {
+        return base.GetSlot(SlotCount - (idx + 1));
+    }
+
+    public override ISlot[] GetSlots()
+    {
+        var result = new ISlot[SlotCount];
+        for (var i = SlotCount - 1; i > -1; i--)
+        {
+            result[i] = Slots[i];
+        }
+        return result;
+    }
 }

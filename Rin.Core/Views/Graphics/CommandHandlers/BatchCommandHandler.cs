@@ -33,7 +33,7 @@ public class BatchCommandHandler : ICommandHandler
             }
         }
 
-        _batchSizes = _batches.Select(c => c.GetMemoryNeeded().Aggregate((a, b) => a + b)).ToArray();
+        _batchSizes = _batches.Select(c => c.GetMemoryNeeded()).ToArray();
     }
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)

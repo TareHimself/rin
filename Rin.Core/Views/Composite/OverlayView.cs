@@ -29,14 +29,9 @@ public class OverlayView : MultiSlotCompositeView<Slot>
         return _layout.Apply(availableSpace);
     }
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
         return _layout.GetSlots();
-    }
-
-    public override IEnumerable<ISlot> GetHitTestableSlots()
-    {
-        return _layout.GetSlots().AsReversed();
     }
 
     public override bool Add(IView child)

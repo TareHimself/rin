@@ -192,7 +192,7 @@ public class SSceneTestModule : IModule
 
             surf.Add(new PanelView
             {
-                Slots =
+                InitSlots =
                 [
                     new PanelSlot
                     {

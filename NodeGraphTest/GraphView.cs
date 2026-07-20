@@ -25,7 +25,7 @@ public class GraphView : MultiSlotCompositeView<GraphSlot>, IGraphView
     {
         _layout = new GraphLayout(this);
 
-        Slots =
+        InitSlots =
         [
             new GraphSlot
             {
@@ -66,7 +66,7 @@ public class GraphView : MultiSlotCompositeView<GraphSlot>, IGraphView
         };
     }
 
-    public override IEnumerable<ISlot> GetSlots()
+    public override ISlot[] GetSlots()
     {
         return _layout.GetSlots();
     }

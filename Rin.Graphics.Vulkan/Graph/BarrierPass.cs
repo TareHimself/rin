@@ -49,10 +49,10 @@ internal class BarrierPass(BufferResourceSync[] buffers, ImageResourceSync[] ima
             : null;
         try
         {
-            Span<BufferBarrier> bufferBarriers = rentedBuffers is not null
+            var bufferBarriers = rentedBuffers is not null
                 ? rentedBuffers.AsSpan(0, buffers.Length)
                 : stackalloc BufferBarrier[buffers.Length];
-            Span<TextureBarrier> imageBarriers = rentedImages is not null
+            var imageBarriers = rentedImages is not null
                 ? rentedImages.AsSpan(0, images.Length)
                 : stackalloc TextureBarrier[images.Length];
 

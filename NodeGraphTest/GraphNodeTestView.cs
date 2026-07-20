@@ -40,12 +40,12 @@ public class GraphNodeTestView : ListView, IGraphNodeView
     public GraphNodeTestView()
     {
         Axis = Axis.Row;
-        Children =
+        InitChildren =
         [
             new ListView
             {
                 Axis = Axis.Column,
-                Slots =
+                InitSlots =
                 [
                     new ListSlot
                     {

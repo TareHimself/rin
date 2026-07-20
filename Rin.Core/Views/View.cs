@@ -113,7 +113,18 @@ public abstract class View : IView
     /// <summary>
     ///     The visibility of this view
     /// </summary>
-    public Visibility Visibility { get; set; } = Visibility.Visible;
+    public Visibility Visibility { get;
+        set
+        {
+            var previous = field;
+            field = value;
+            if((previous == Visibility.Collapsed && value != Visibility.Collapsed) || (field == Visibility.Collapsed && previous != Visibility.Collapsed))
+            {
+                InvalidateDesiredSize();
+                InvalidateLayout();
+            }
+        } 
+    } = Visibility.Visible;
 
 
     /// <summary>
@@ -148,6 +159,11 @@ public abstract class View : IView
     ///     The parent of this view
     /// </summary>
     public ICompositeView? Parent { get; private set; }
+
+    public Matrix4x4 GetPaddingOffsetTransform()
+    {
+        return Matrix4x4.Identity.Translate(GetPaddingOffset());
+    }
 
     /// <summary>
     ///     Transformation to apply to all content
@@ -358,15 +374,15 @@ public abstract class View : IView
     [PublicAPI]
     public Vector2 GetDesiredSize()
     {
+        if(Visibility == Visibility.Collapsed) return Vector2.Zero;
         if (Surface == null) return ComputeDesiredSize();
-
         return _cachedDesiredSize ??= ComputeDesiredSize();
     }
 
     [PublicAPI]
     public Vector2 GetDesiredContentSize()
     {
-        return GetDesiredSize() - new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+        return Vector2.Clamp(GetDesiredSize() - new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom),Vector2.Zero, Vector2.PositiveInfinity);
     }
 
     /// <summary>

@@ -8,7 +8,7 @@ public interface ISingleSlotCompositeView : ICompositeView
     /// <summary>
     ///     Adds the View to this container
     /// </summary>
-    public IView? Child { init; }
+    public IView? InitChild { init; }
 
     [PublicAPI]
     public void SetChild(IView? child);

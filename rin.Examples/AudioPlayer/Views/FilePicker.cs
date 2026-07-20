@@ -30,7 +30,7 @@ public class FilePicker : ButtonView
             Task.Run(() => IApplication.Get().SelectFile("Select File's To Play", true, "*.wav;*.ogg;*.flac;*.mp3"))
                 .After(FileSelected);
         };
-        Child = _statusText;
+        InitChild = _statusText;
     }
 
     public event Action<string[]>? OnFileSelected;
