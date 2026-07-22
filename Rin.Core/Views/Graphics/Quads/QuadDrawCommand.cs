@@ -8,7 +8,7 @@ public class QuadDrawCommand : TCommand<MainPassConfig, BatchCommandHandler>, IB
 {
     private readonly List<Quad> _quads = [];
 
-    public QuadDrawCommand(IEnumerable<Quad> quads)
+    public QuadDrawCommand(ReadOnlySpan<Quad> quads)
     {
         _quads.AddRange(quads);
     }
@@ -18,7 +18,7 @@ public class QuadDrawCommand : TCommand<MainPassConfig, BatchCommandHandler>, IB
         return IViewsModule.Get().GetBatcher<DefaultQuadBatcher>();
     }
 
-    public IEnumerable<Quad> GetQuads()
+    public IReadOnlyCollection<Quad> GetQuads()
     {
         return _quads;
     }

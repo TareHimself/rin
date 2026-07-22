@@ -1,4 +1,6 @@
+using System.Buffers;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Shared;
@@ -39,7 +41,7 @@ public partial class VulkanGraphicsModule
     private readonly List<BindlessCubemap> _cubemaps = [];
     private readonly List<IVulkanDeviceBuffer?> _buffers = [];
 
-    private readonly Dictionary<ResourceHandle, TaskCompletionSource> _pendingResourceTasks = [];
+    private readonly Dictionary<ResourceHandle, TaskCompletionSource<ResourceHandle>> _pendingResourceTasks = [];
 
     private DescriptorAllocator? _resourceDescriptorAllocator;
     private DescriptorSet _resourceDescriptorSet;
@@ -53,7 +55,7 @@ public partial class VulkanGraphicsModule
     private void InitBindlessResources()
     {
         const DescriptorBindingFlags flags = DescriptorBindingFlags.PartiallyBound |
-                                              DescriptorBindingFlags.UpdateAfterBind;
+                                             DescriptorBindingFlags.UpdateAfterBind;
 
         _resourceDescriptorAllocator = new DescriptorAllocator(ResourceDescriptorTotal, [
             new PoolSizeRatio(DescriptorType.SampledImage,
@@ -219,31 +221,62 @@ public partial class VulkanGraphicsModule
         }
     }
 
-    public Task CreateTexture(out ResourceHandle handle, IReadOnlyBuffer<byte> data, in Extent2D size,
+    public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D size,
         ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None)
     {
-        var localSize = size;
-        return HandleAsyncBindless(out handle, _textures,
-            (resource, source) =>
-                AsyncCreateTexture(resource, source, data, localSize, format, mips, usage));
+        // Ownership of `rented` transfers to AsyncCreateTexture, which returns it to the pool once the
+        // data has actually been consumed (background upload runs asynchronously after this call returns).
+        var rented = ArrayPool<byte>.Shared.Rent(data.Length);
+        data.CopyTo(rented);
+        var state = (rented, length: data.Length, size, format, mips, usage, method: (Func<BindlessTexture,
+            TaskCompletionSource<ResourceHandle>,
+            byte[],
+            int,
+            Extent2D,
+            ImageFormat,
+            bool,
+            ImageUsage, Task>)AsyncCreateTexture);
+        return HandleAsyncBindless(out handle, _textures, state,
+            static (resource, source, s) =>
+                s.method(resource, source, s.rented, s.length, s.size, s.format, s.mips, s.usage));
     }
 
-    public Task CreateTextureArray(out ResourceHandle handle, IReadOnlyBuffer<byte> data, in Extent2D size,
+    public Task<ResourceHandle> CreateTextureArray(out ResourceHandle handle, ReadOnlySpan<byte> data,
+        in Extent2D size,
         ImageFormat format, uint count, bool mips = false, ImageUsage usage = ImageUsage.None)
     {
-        var localSize = size;
-        return HandleAsyncBindless(out handle, _textureArrays,
-            (resource, source) =>
-                AsyncCreateTextureArray(resource, source, data, localSize, format, count, mips, usage));
+        var rented = ArrayPool<byte>.Shared.Rent(data.Length);
+        data.CopyTo(rented);
+        var state = (rented, length: data.Length, size, format, count, mips, usage, method: (Func<BindlessTextureArray,
+            TaskCompletionSource<ResourceHandle>,
+            byte[],
+            int,
+            Extent2D,
+            ImageFormat,
+            uint,
+            bool,
+            ImageUsage, Task>)AsyncCreateTextureArray);
+        return HandleAsyncBindless(out handle, _textureArrays, state,
+            static (resource, source, s) =>
+                s.method(resource, source, s.rented, s.length, s.size, s.format, s.count, s.mips, s.usage));
     }
 
-    public Task CreateCubemap(out ResourceHandle handle, IReadOnlyBuffer<byte> data, in Extent2D size,
+    public Task<ResourceHandle> CreateCubemap(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D size,
         ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None)
     {
-        var localSize = size;
-        return HandleAsyncBindless(out handle, _cubemaps,
-            (resource, source) =>
-                AsyncCreateCubemap(resource, source, data, localSize, format, mips, usage));
+        var rented = ArrayPool<byte>.Shared.Rent(data.Length);
+        data.CopyTo(rented);
+        var state = (rented, length: data.Length, size, format, mips, usage, method: (Func<BindlessCubemap,
+            TaskCompletionSource<ResourceHandle>,
+            byte[],
+            int,
+            Extent2D,
+            ImageFormat,
+            bool,
+            ImageUsage, Task>)AsyncCreateCubemap);
+        return HandleAsyncBindless(out handle, _cubemaps, state,
+            static (resource, source, s) =>
+                s.method(resource, source, s.rented, s.length, s.size, s.format, s.mips, s.usage));
     }
 
     /// <summary>
@@ -447,7 +480,7 @@ public partial class VulkanGraphicsModule
         }
     }
 
-    private void UpdateHandles(params ResourceHandle[] handles)
+    private void UpdateHandles(params ReadOnlySpan<ResourceHandle> handles)
     {
         List<BindlessResource> pendingToClear = [];
         var touchedDescriptors = false;
@@ -512,7 +545,7 @@ public partial class VulkanGraphicsModule
         {
             if (resource.State == BindlessResourceState.Uploading)
             {
-                _pendingResourceTasks[resource.Handle].SetResult();
+                _pendingResourceTasks[resource.Handle].SetResult(resource.Handle);
                 _pendingResourceTasks.Remove(resource.Handle);
             }
 
@@ -538,28 +571,10 @@ public partial class VulkanGraphicsModule
         return _resourcePipelineLayout;
     }
 
-    private void DoAsync(BindlessResource resource, TaskCompletionSource completionSource, Func<Task> action)
-    {
-        Task.Run(() =>
-        {
-            try
-            {
-                action();
-            }
-            catch (Exception e)
-            {
-                lock (_resourceSync)
-                {
-                    Console.WriteLine(e);
-                    completionSource.SetException(e);
-                    _pendingResourceTasks.Remove(resource.Handle);
-                }
-            }
-        }).ConfigureAwait(false);
-    }
 
-    private Task HandleAsyncBindless<TBindlessResource>(out ResourceHandle handle, List<TBindlessResource> list,
-        Func<TBindlessResource, TaskCompletionSource, Task> createAsyncTask)
+    private Task<ResourceHandle> HandleAsyncBindless<TBindlessResource, TState>(out ResourceHandle handle,
+        List<TBindlessResource> list, TState state,
+        Func<TBindlessResource, TaskCompletionSource<ResourceHandle>, TState, Task> createAsyncTask)
         where TBindlessResource : BindlessResource, new()
     {
         var resource = new TBindlessResource
@@ -567,7 +582,7 @@ public partial class VulkanGraphicsModule
             State = BindlessResourceState.Uploading
         };
 
-        var completionSource = new TaskCompletionSource();
+        var completionSource = new TaskCompletionSource<ResourceHandle>();
 
         var idFactory = resource switch
         {
@@ -596,17 +611,47 @@ public partial class VulkanGraphicsModule
             resource.Handle = handle;
         }
 
-        DoAsync(resource, completionSource, () => createAsyncTask(resource, completionSource));
+        var taskState = (resource, completionSource, self: this, state, createAsyncTask);
+
+        ThreadPool.QueueUserWorkItem(static (workData) =>
+        {
+            try
+            {
+                workData.createAsyncTask(workData.resource, workData.completionSource, workData.state);
+            }
+            catch (Exception e)
+            {
+                lock (workData.self._resourceSync)
+                {
+                    Console.WriteLine(e);
+                    workData.completionSource.SetException(e);
+                    workData.self._pendingResourceTasks.Remove(workData.resource.Handle);
+                }
+            }
+        }, taskState, false);
 
         return completionSource.Task;
     }
 
-    private async Task AsyncCreateTexture(BindlessTexture resource, TaskCompletionSource completionSource,
-        IReadOnlyBuffer<byte> data,
+    private async Task AsyncCreateTexture(BindlessTexture resource,
+        TaskCompletionSource<ResourceHandle> completionSource,
+        byte[] rented, int dataLength,
         Extent2D size, ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None)
     {
-        var image = await CreateVulkanTexture(data, size, format,
-            mips, usage | ImageUsage.Sampled);
+        Task<IDisposableVulkanTexture> task;
+        try
+        {
+            // The upload buffer copy inside CreateVulkanTexture happens synchronously before it
+            // returns, so it's safe to release `rented` back to the pool as soon as the call returns.
+            task = CreateVulkanTexture(new ReadOnlyMemory<byte>(rented, 0, dataLength), size, format,
+                mips, usage | ImageUsage.Sampled);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rented);
+        }
+
+        var image = await task;
         resource.Source = image;
         lock (_resourceSync)
         {
@@ -624,12 +669,23 @@ public partial class VulkanGraphicsModule
     }
 
 
-    private async Task AsyncCreateTextureArray(BindlessTextureArray resource, TaskCompletionSource completionSource,
-        IReadOnlyBuffer<byte> data,
+    private async Task AsyncCreateTextureArray(BindlessTextureArray resource,
+        TaskCompletionSource<ResourceHandle> completionSource,
+        byte[] rented, int dataLength,
         Extent2D size, ImageFormat format, uint count, bool mips = false, ImageUsage usage = ImageUsage.None)
     {
-        var image = await CreateVulkanTextureArray(data, size, format,
-            count, mips, usage | ImageUsage.Sampled);
+        Task<IDisposableVulkanTextureArray> task;
+        try
+        {
+            task = CreateVulkanTextureArray(new ReadOnlyMemory<byte>(rented, 0, dataLength), size, format,
+                count, mips, usage | ImageUsage.Sampled);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rented);
+        }
+
+        var image = await task;
         resource.Source = image;
         lock (_resourceSync)
         {
@@ -646,12 +702,23 @@ public partial class VulkanGraphicsModule
         }
     }
 
-    private async Task AsyncCreateCubemap(BindlessCubemap resource, TaskCompletionSource completionSource,
-        IReadOnlyBuffer<byte> data,
+    private async Task AsyncCreateCubemap(BindlessCubemap resource,
+        TaskCompletionSource<ResourceHandle> completionSource,
+        byte[] rented, int dataLength,
         Extent2D size, ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None)
     {
-        var image = await CreateVulkanCubemap(data, size, format,
-            mips, usage | ImageUsage.Sampled);
+        Task<IDisposableVulkanCubemap> task;
+        try
+        {
+            task = CreateVulkanCubemap(new ReadOnlyMemory<byte>(rented, 0, dataLength), size, format,
+                mips, usage | ImageUsage.Sampled);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rented);
+        }
+
+        var image = await task;
         resource.Source = image;
         lock (_resourceSync)
         {

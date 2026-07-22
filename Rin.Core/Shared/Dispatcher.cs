@@ -7,7 +7,7 @@ namespace Rin.Core.Shared;
 /// </summary>
 public class Dispatcher
 {
-    private readonly ConcurrentQueue<Scheduled> _actions = new();
+    private readonly ConcurrentQueue<IScheduledItem> _actions = new();
 
     /// <summary>
     ///     Resolve scheduled tasks
@@ -16,17 +16,7 @@ public class Dispatcher
     {
         while (_actions.TryDequeue(out var action))
         {
-            if (action.CancellationToken is { IsCancellationRequested: true }) continue;
-
-            try
-            {
-                action.PendingAction.Invoke();
-                action.CompletionSource.SetResult();
-            }
-            catch (Exception e)
-            {
-                action.CompletionSource.SetException(e);
-            }
+            action.Execute();
         }
     }
 
@@ -37,14 +27,7 @@ public class Dispatcher
     /// <returns></returns>
     public Task Enqueue(Action action)
     {
-        var pending = new Scheduled
-        {
-            PendingAction = action
-        };
-
-        _actions.Enqueue(pending);
-
-        return pending.CompletionSource.Task;
+        return Enqueue(action, CancellationToken.None);
     }
 
     /// <summary>
@@ -55,21 +38,59 @@ public class Dispatcher
     /// <returns></returns>
     public Task Enqueue(Action action, CancellationToken cancellationToken)
     {
-        var pending = new Scheduled
-        {
-            PendingAction = action,
-            CancellationToken = cancellationToken
-        };
-
-        _actions.Enqueue(pending);
-
-        return pending.CompletionSource.Task;
+        return Enqueue(static cb => cb(), action, cancellationToken);
     }
 
-    private class Scheduled
+    public Task Enqueue<TState>(Action<TState> action, TState state)
     {
-        public readonly TaskCompletionSource CompletionSource = new();
-        public CancellationToken? CancellationToken;
-        public required Action PendingAction;
+        return Enqueue(action, state, CancellationToken.None);
+    }
+
+    public Task Enqueue<TState>(Action<TState> action, TState state, CancellationToken cancellationToken)
+    {
+        var completionSource = new TaskCompletionSource();
+        _actions.Enqueue(new Scheduled<TState>(action, state, cancellationToken, completionSource));
+        return completionSource.Task;
+    }
+
+    interface IScheduledItem
+    {
+        void Execute();
+    }
+
+    private class Scheduled<TState> : IScheduledItem
+    {
+        private readonly Action<TState> _pendingAction;
+        private readonly TState _state;
+        private readonly CancellationToken _cancellationToken;
+        private readonly TaskCompletionSource _completionSource;
+
+        public Scheduled(Action<TState> pendingAction, TState state, CancellationToken cancellationToken,
+            TaskCompletionSource completionSource)
+        {
+            _pendingAction = pendingAction;
+            _state = state;
+            _cancellationToken = cancellationToken;
+            _completionSource = completionSource;
+        }
+
+        public void Execute()
+        {
+            if (_cancellationToken.IsCancellationRequested)
+            {
+                _completionSource.TrySetCanceled(_cancellationToken);
+                return;
+            }
+
+            try
+            {
+                _pendingAction(_state);
+                _completionSource.TrySetResult();
+            }
+            catch (Exception e)
+            {
+                _completionSource.TrySetException(e);
+            }
+        }
     }
 }

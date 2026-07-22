@@ -30,7 +30,7 @@ public class DescriptorPool : IDisposable
         _descriptorPool = descriptorPool;
     }
 
-    public unsafe DescriptorSet Allocate(VkDescriptorSetLayout layout, params uint[] variableCount)
+    public unsafe DescriptorSet Allocate(VkDescriptorSetLayout layout, params ReadOnlySpan<uint> variableCount)
     {
         VkDescriptorSetAllocateInfo info = default;
         info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;

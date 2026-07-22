@@ -5,6 +5,7 @@ namespace Rin.Core.Extensions;
 
 public static class TaskExtensions
 {
+
     public static IEnumerable<T> WaitAll<T>(this IEnumerable<Task<T>> tasks)
     {
         return tasks.Select(c => c.WaitForResult());
@@ -50,7 +51,7 @@ public static class TaskExtensions
     {
         return task.ContinueWith(_ => { dispatcher.Enqueue(then); }).ConfigureAwait(false);
     }
-
+    
     public static ConfiguredTaskAwaitable DispatchMain<T>(this Task<T> task, Action<T> then)
     {
         return task.Dispatch(IApplication.Get().MainDispatcher, then);

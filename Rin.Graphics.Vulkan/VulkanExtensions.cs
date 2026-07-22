@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System.Diagnostics;
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core;
@@ -44,17 +45,6 @@ public static class VulkanExtensions
         };
     }
 
-    // public enum ImageUsage
-    // {
-    //     None   = 0,
-    //     TransferSrc  = 1 << 0,
-    //     TransferDst = 1 << 1,
-    //     Sampled  = 1 << 2,
-    //     Storage = 1 << 3,
-    //     ColorAttachment = 1 << 4,
-    //     DepthAttachment = 1 << 5,
-    //     StencilAttachment = 1 << 6,
-    // }
     [PublicAPI]
     public static VkShaderStageFlags ToVk(this ShaderStage stages)
     {
@@ -210,134 +200,26 @@ public static class VulkanExtensions
         };
     }
 
-
-    public static VkCommandBuffer ClearColorImages(in this VkCommandBuffer cmd, in Vector4 clearColor,
-        ImageLayout layout,
-        params IVulkanTexture[] images)
+    public static VkCommandBuffer SetViewports(this in VkCommandBuffer cmd, ReadOnlySpan<VkViewport> viewports)
     {
         unsafe
         {
-            var vkLayout = layout.ToVk();
-            var pColor = stackalloc VkClearColorValue[1];
-            var pRanges = stackalloc VkImageSubresourceRange[1];
-            pColor[0] = VulkanGraphicsModule.MakeClearColorValue(clearColor);
-            pRanges[0] = VulkanGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
-
-            foreach (var deviceImage in images)
-                vkCmdClearColorImage(cmd, deviceImage.VulkanImage, vkLayout, pColor, 1,
-                    pRanges);
-        }
-
-        return cmd;
-    }
-
-    public static VkCommandBuffer ClearStencilImages(in this VkCommandBuffer cmd, uint clearValue, ImageLayout layout,
-        ReadOnlySpan<IVulkanTexture> images)
-    {
-        unsafe
-        {
-            var vkLayout = layout.ToVk();
-            var pColor = stackalloc VkClearDepthStencilValue[1];
-            var pRanges = stackalloc VkImageSubresourceRange[1];
-            pColor[0] = VulkanGraphicsModule.MakeClearDepthStencilValue(stencil: clearValue);
-            pRanges[0] = VulkanGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT |
-                                                                        VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
-
-            foreach (var deviceImage in images)
-                vkCmdClearDepthStencilImage(cmd, deviceImage.VulkanImage, vkLayout,
-                    pColor, 1, pRanges);
-        }
-
-        return cmd;
-    }
-
-    public static VkCommandBuffer ClearDepthImages(in this VkCommandBuffer cmd, float clearValue, ImageLayout layout,
-        ReadOnlySpan<IVulkanTexture> images)
-    {
-        unsafe
-        {
-            var vkLayout = layout.ToVk();
-            var pColor = stackalloc VkClearDepthStencilValue[1];
-            var pRanges = stackalloc VkImageSubresourceRange[1];
-            pColor[0] = VulkanGraphicsModule.MakeClearDepthStencilValue(clearValue);
-            pRanges[0] = VulkanGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT);
-
-            foreach (var deviceImage in images)
-                vkCmdClearDepthStencilImage(cmd, deviceImage.VulkanImage, vkLayout,
-                    pColor, 1, pRanges);
-        }
-
-        return cmd;
-    }
-
-    public static VkCommandBuffer BindShaders(in this VkCommandBuffer cmd,
-        IEnumerable<Pair<VkShaderEXT, VkShaderStageFlags>> shaders)
-    {
-        List<VkShaderStageFlags> flagsList = [];
-        List<VkShaderEXT> shaderObjects = [];
-
-        foreach (var shader in shaders)
-        {
-            shaderObjects.Add(shader.First);
-            flagsList.Add(shader.Second);
-        }
-
-        unsafe
-        {
-            fixed (VkShaderStageFlags* pFlags = flagsList.ToArray())
+            fixed (VkViewport* pItems = viewports)
             {
-                fixed (VkShaderEXT* pShaders = shaderObjects.ToArray())
-                {
-                    Native.dVkCmdBindShadersEXT(cmd, (uint)flagsList.Count, pFlags, pShaders);
-                }
+                vkCmdSetViewportWithCount(cmd, (uint)viewports.Length, pItems);
             }
         }
 
         return cmd;
     }
 
-    public static VkCommandBuffer UnBindShaders(in this VkCommandBuffer cmd, IEnumerable<VkShaderStageFlags> flags)
-    {
-        var flagsArr = flags.ToArray();
-        unsafe
-        {
-            fixed (VkShaderStageFlags* pFlags = flagsArr)
-            {
-                Native.dVkCmdBindShadersEXT(cmd, (uint)flagsArr.Length, pFlags, null);
-            }
-        }
-
-        return cmd;
-    }
-
-    public static VkCommandBuffer UnBindShader(in this VkCommandBuffer cmd, VkShaderStageFlags flag)
-    {
-        return cmd.UnBindShaders([flag]);
-    }
-
-
-    public static VkCommandBuffer SetViewports(in this VkCommandBuffer cmd, IEnumerable<VkViewport> viewports)
+    public static VkCommandBuffer SetScissors(this in VkCommandBuffer cmd, ReadOnlySpan<VkRect2D> scissors)
     {
         unsafe
         {
-            var items = viewports.ToArray();
-            fixed (VkViewport* pItems = items)
+            fixed (VkRect2D* pItems = scissors)
             {
-                vkCmdSetViewportWithCount(cmd, (uint)items.Length, pItems);
-            }
-        }
-
-        return cmd;
-    }
-
-    public static VkCommandBuffer SetScissors(in this VkCommandBuffer cmd, IEnumerable<VkRect2D> scissors)
-    {
-        unsafe
-        {
-            var items = scissors.ToArray();
-            fixed (VkRect2D* pItems = items)
-            {
-                vkCmdSetScissorWithCount(cmd, (uint)items.Length, pItems);
+                vkCmdSetScissorWithCount(cmd, (uint)scissors.Length, pItems);
             }
         }
 
@@ -458,33 +340,49 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer BindDescriptorSets(in this VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
-        VkPipelineLayout pipelineLayout, IEnumerable<VkDescriptorSet> sets, uint firstSet = 0)
+    public static VkCommandBuffer BindDescriptorSets(this in VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
+        VkPipelineLayout pipelineLayout, ReadOnlySpan<VkDescriptorSet> sets, uint firstSet = 0)
     {
         unsafe
         {
-            var allSets = sets.ToArray();
-            fixed (VkDescriptorSet* pSets = allSets)
+            fixed (VkDescriptorSet* pSets = sets)
             {
                 vkCmdBindDescriptorSets(cmd, bindPoint,
-                    pipelineLayout, firstSet, (uint)allSets.Length, pSets, 0, null);
+                    pipelineLayout, firstSet, (uint)sets.Length, pSets, 0, null);
             }
         }
 
         return cmd;
     }
 
-    public static VkCommandBuffer BindDescriptorSets(in this VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
-        VkPipelineLayout pipelineLayout, IEnumerable<DescriptorSet> sets, uint firstSet = 0)
+    private const int MaxStackSets = 4;
+
+    public static VkCommandBuffer BindDescriptorSets(this in VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
+        VkPipelineLayout pipelineLayout, ReadOnlySpan<DescriptorSet> sets, uint firstSet = 0)
     {
         unsafe
         {
-            var allSets = sets.Select(c => (VkDescriptorSet)c).ToArray();
-            fixed (VkDescriptorSet* pSets = allSets)
+            var rented = sets.Length <= MaxStackSets ? ArrayPool<VkDescriptorSet>.Shared.Rent(sets.Length) : null;
+            try
             {
-                var numSets = (uint)allSets.Length;
-                vkCmdBindDescriptorSets(cmd, bindPoint,
-                    pipelineLayout, firstSet, numSets, pSets, 0, null);
+                var vkSets = rented is not null
+                    ? new Span<VkDescriptorSet>(rented, 0, sets.Length)
+                    : new VkDescriptorSet[sets.Length];
+                for (var i = 0; i < sets.Length; i++)
+                {
+                    vkSets[i] = (VkDescriptorSet)sets[i];
+                }
+
+                fixed (VkDescriptorSet* pSets = vkSets)
+                {
+                    var numSets = (uint)sets.Length;
+                    vkCmdBindDescriptorSets(cmd, bindPoint,
+                        pipelineLayout, firstSet, numSets, pSets, 0, null);
+                }
+            }
+            finally
+            {
+                if (rented is not null) ArrayPool<VkDescriptorSet>.Shared.Return(rented);
             }
         }
 
@@ -517,20 +415,19 @@ public static class VulkanExtensions
         }
     }
 
-    public static VkPipeline CreateGraphicsPipeline(in this VkDevice device, in VkPipelineLayout layout,
-        IEnumerable<ImageFormat> attachmentFormats, BlendMode blendMode,
-        IEnumerable<Pair<VkShaderModule, ShaderStage>> stages, bool useDepth, bool useStencil)
+    public static VkPipeline CreateGraphicsPipeline(this in VkDevice device, in VkPipelineLayout layout,
+        ReadOnlySpan<ImageFormat> attachmentFormats, BlendMode blendMode,
+        ReadOnlySpan<Pair<VkShaderModule, ShaderStage>> stages, bool useDepth, bool useStencil)
     {
         unsafe
         {
-            var attachmentFormatsArray = attachmentFormats.ToArray();
-            var pAttachmentFormats = stackalloc VkFormat[attachmentFormatsArray.Length];
+            var pAttachmentFormats = stackalloc VkFormat[attachmentFormats.Length];
             // Debug.Assert(blendMode == BlendMode.None
             //     ? attachmentFormatsArray.Empty() || attachmentFormatsArray.Length == 1
             //     : attachmentFormatsArray.NotEmpty());
-            for (var i = 0; i < attachmentFormatsArray.Length; i++)
-                pAttachmentFormats[i] = attachmentFormatsArray[i].ToVk();
-            var attachments = Enumerable.Range(0, attachmentFormatsArray.Length).Select(idx =>
+            for (var i = 0; i < attachmentFormats.Length; i++)
+                pAttachmentFormats[i] = attachmentFormats[i].ToVk();
+            var attachments = Enumerable.Range(0, attachmentFormats.Length).Select(idx =>
             {
                 return blendMode switch
                 {
@@ -573,11 +470,10 @@ public static class VulkanExtensions
             fixed (VkPipelineColorBlendAttachmentState* pAttachments = attachments)
             fixed (byte* pName = "main"u8)
             {
-                var stagesArr = stages.ToArray();
-                var shaderStages = stackalloc VkPipelineShaderStageCreateInfo[stagesArr.Length];
-                for (var i = 0; i < stagesArr.Length; i++)
+                var shaderStages = stackalloc VkPipelineShaderStageCreateInfo[stages.Length];
+                for (var i = 0; i < stages.Length; i++)
                 {
-                    var (first, second) = stagesArr[i];
+                    var (first, second) = stages[i];
                     var dest = shaderStages + i;
                     dest->sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
                     dest->module = first;
@@ -624,7 +520,7 @@ public static class VulkanExtensions
                     sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
                     logicOpEnable = 0,
                     pAttachments = pAttachments,
-                    attachmentCount = (uint)attachmentFormatsArray.Length
+                    attachmentCount = (uint)attachmentFormats.Length
                 };
                 var viewportState = new VkPipelineViewportStateCreateInfo
                 {
@@ -657,14 +553,14 @@ public static class VulkanExtensions
                         useDepth ? ImageFormat.Depth.ToVk() : VkFormat.VK_FORMAT_UNDEFINED,
                     stencilAttachmentFormat = useStencil ? ImageFormat.Stencil.ToVk() : VkFormat.VK_FORMAT_UNDEFINED,
                     pColorAttachmentFormats = pAttachmentFormats,
-                    colorAttachmentCount = (uint)attachmentFormatsArray.Length
+                    colorAttachmentCount = (uint)attachmentFormats.Length
                 };
                 var createInfo = new VkGraphicsPipelineCreateInfo
                 {
                     sType = VkStructureType.VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                     layout = layout,
                     pStages = shaderStages,
-                    stageCount = (uint)stagesArr.Length,
+                    stageCount = (uint)stages.Length,
                     pDynamicState = &dynamicStateCreateInfo,
                     pVertexInputState = &vertexInputState,
                     pInputAssemblyState = &inputAssemblyState,
@@ -702,21 +598,20 @@ public static class VulkanExtensions
         }
     }
 
-    public static VkPipelineLayout CreatePipelineLayout(in this VkDevice device,
-        IEnumerable<VkDescriptorSetLayout> layouts)
+    public static VkPipelineLayout CreatePipelineLayout(this in VkDevice device,
+        ReadOnlySpan<VkDescriptorSetLayout> layouts)
     {
         unsafe
         {
-            var layoutsArray = layouts.ToArray();
             var range = new VkPushConstantRange
             {
                 size = 128, // Minimum required by vulkan
                 stageFlags = VkShaderStageFlags.VK_SHADER_STAGE_ALL_GRAPHICS |
                              VkShaderStageFlags.VK_SHADER_STAGE_COMPUTE_BIT
             };
-            fixed (VkDescriptorSetLayout* pSetLayouts = layoutsArray)
+            fixed (VkDescriptorSetLayout* pSetLayouts = layouts)
             {
-                var setLayoutCount = (uint)layoutsArray.Length;
+                var setLayoutCount = (uint)layouts.Length;
                 var pushConstantRangeCount = (uint)1;
                 var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
                 {
@@ -766,7 +661,7 @@ public static class VulkanExtensions
         }
     }
 
-    public static VkResult ResetFences(in this VkDevice self, params VkFence[] fences)
+    public static VkResult ResetFences(this in VkDevice self, params ReadOnlySpan<VkFence> fences)
     {
         unsafe
         {
@@ -777,7 +672,8 @@ public static class VulkanExtensions
         }
     }
 
-    public static VkResult WaitForFences(in this VkDevice self, ulong timeout, bool waitAll, params VkFence[] fences)
+    public static VkResult WaitForFences(this in VkDevice self, ulong timeout, bool waitAll,
+        params ReadOnlySpan<VkFence> fences)
     {
         unsafe
         {
@@ -851,7 +747,7 @@ public static class VulkanExtensions
             offset = view.Offset,
             size = view.Size
         };
-        
+
         unsafe
         {
             var depInfo = new VkDependencyInfo
@@ -866,15 +762,6 @@ public static class VulkanExtensions
 
         return cmd;
     }
-
-    // public static VkCommandBuffer ImageBarrier(in this VkCommandBuffer cmd, IGraphImage image,
-    //     ImageLayout to, ImageBarrierOptions? options = null)
-    // {
-    //     var from = image.Layout;
-    //     image.Layout = to;
-    //     return ImageBarrier(cmd, image.NativeImage, from, to,
-    //         options ?? new ImageBarrierOptions(image.Format, from, to));
-    // }
 
     /// <summary>
     ///     The KING of synchronization

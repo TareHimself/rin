@@ -204,7 +204,7 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
                 }
 
                 var device = VulkanGraphicsModule.Get().GetDevice();
-                _pipelineLayout = device.CreatePipelineLayout(layouts);
+                _pipelineLayout = device.CreatePipelineLayout(CollectionsMarshal.AsSpan(layouts));
                 foreach (var (stage, blob) in code)
                 {
                     var shaderModule = device.CreateShaderModule(blob.AsReadOnlySpan());
@@ -214,7 +214,7 @@ public class SlangGraphicsShader : IGraphicsShader, IVulkanShader
                     blob.Dispose();
                 }
 
-                _pipeline = device.CreateGraphicsPipeline(_pipelineLayout, AttachmentFormats, BlendMode, _shaders,
+                _pipeline = device.CreateGraphicsPipeline(_pipelineLayout, AttachmentFormats, BlendMode, CollectionsMarshal.AsSpan(_shaders),
                     UsesDepth, UsesStencil);
             }
         }

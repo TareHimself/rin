@@ -22,16 +22,11 @@ public class HostImage : IHostImage
         _image.Dispose();
     }
 
-    public IBuffer<byte> ToBuffer()
-    {
-        return new Buffer<byte>(_image.RawsaveBuffer());
-    }
-
-    public Task CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
+    public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat, bool mips = false, string? debugName = null,
         IGraphicsModule? graphicsModule = null)
     {
-        return (graphicsModule ?? IGraphicsModule.Get()).CreateTexture(out handle, ToBuffer(), Extent,
+        return (graphicsModule ?? IGraphicsModule.Get()).CreateTexture(out handle, _image.RawsaveBuffer(), Extent,
             Format.ToDeviceFormat(), mips);
     }
 
@@ -196,13 +191,14 @@ public class HostImage : IHostImage
             return this;
         }
 
-        public IMutationContext DrawRect(in Offset2D offset, in Extent2D extent, params double[] values)
+        public IMutationContext DrawRect(in Offset2D offset, in Extent2D extent, params ReadOnlySpan<double> values)
         {
-            mutableImage.DrawRect(values, (int)offset.X, (int)offset.Y, (int)extent.Width, (int)extent.Height, true);
+            mutableImage.DrawRect(values.ToArray(), (int)offset.X, (int)offset.Y, (int)extent.Width, (int)extent.Height, true);
             return this;
         }
 
-        public IMutationContext Fill(params double[] values)
+        public IMutationContext Fill(
+            params ReadOnlySpan<double> values)
         {
             return DrawRect(Offset2D.Zero,
                 new Extent2D((uint)mutableImage.Width, (uint)mutableImage.Height), values);

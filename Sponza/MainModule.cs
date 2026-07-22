@@ -1,11 +1,11 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using Rin.Engine.World;
-using Rin.Engine.World.Actors;
-using Rin.Engine.World.Components;
-using Rin.Engine.World.Components.Lights;
-using Rin.Engine.World.Graphics;
-using Rin.Engine.World.Mesh;
+using Rin.World;
+using Rin.World.Actors;
+using Rin.World.Components;
+using Rin.World.Components.Lights;
+using Rin.World.Graphics;
+using Rin.World.Mesh;
 using rin.Examples.Common.Views;
 using Rin.Core.Sources;
 using SharpGLTF.Schema2;

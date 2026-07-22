@@ -47,12 +47,45 @@ public readonly record struct DeviceBufferView
             }
         }
     }
+    
+    public void Write<T>(Span<T> data, ulong offset = 0) where T : unmanaged
+    {
+        unsafe
+        {
+            fixed (T* pData = data)
+            {
+                WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
+            }
+        }
+    }
+    
+    public void Write<T>(Memory<T> data, ulong offset = 0) where T : unmanaged
+    {
+        unsafe
+        {
+            fixed (T* pData = data.Span)
+            {
+                WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
+            }
+        }
+    }
 
     public void Write<T>(ReadOnlySpan<T> data, ulong offset = 0) where T : unmanaged
     {
         unsafe
         {
             fixed (T* pData = data)
+            {
+                WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
+            }
+        }
+    }
+    
+    public void Write<T>(ReadOnlyMemory<T> data, ulong offset = 0) where T : unmanaged
+    {
+        unsafe
+        {
+            fixed (T* pData = data.Span)
             {
                 WriteRaw(new IntPtr(pData), Utils.ByteSizeOf<T>(data.Length), offset);
             }

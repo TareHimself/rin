@@ -9,7 +9,7 @@ public interface IHostImage : IDisposable
 
     public HostImageFormat Format { get; }
 
-    public Task CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
+    public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ImageFilter filter = ImageFilter.Linear,
         ImageTiling tiling = ImageTiling.Repeat,
         bool mips = false, string? debugName = null, IGraphicsModule? graphicsModule = null);
 
@@ -25,6 +25,4 @@ public interface IHostImage : IDisposable
     {
         return Mutate(m => { mutator(m); });
     }
-
-    public IBuffer<byte> ToBuffer();
 }

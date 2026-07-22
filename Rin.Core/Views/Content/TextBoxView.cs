@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Views.Font;
@@ -209,27 +210,33 @@ public class TextBoxView : ContentView
 
         return results.ToArray();
     }
-
+    
+    private readonly List<Quad> _collectCacheQuads = [];
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
+        _collectCacheQuads.Clear();
         if (CurrentFont == null) return;
         if (Content.NotEmpty() && _cachedLayouts == null)
         {
-            List<Quad> quads = [];
-
             var layout = ComputeLayout(out var hadAnyPending);
             var x4 = transform;
-            quads.AddRange(layout.Select(c => Quad.Mtsdf(c.Atlas, c.Transform * x4, c.Size, Color.White,
+            _collectCacheQuads.AddRange(layout.Select(c => Quad.Mtsdf(c.Atlas, c.Transform * x4, c.Size, Color.White,
                 c.Uv)));
-            if (quads.Count == 0) return;
-            commands.Add(new QuadDrawCommand(quads));
+            if (_collectCacheQuads.Count == 0) return;
             if (!hadAnyPending) _cachedLayouts = layout;
         }
         else if (_cachedLayouts != null)
         {
             var x4 = transform;
-            commands.Add(new QuadDrawCommand(_cachedLayouts.Select(c =>
-                Quad.Mtsdf(c.Atlas, c.Transform * x4, c.Size, Color.White, c.Uv))));
+            foreach (var quad in _cachedLayouts)
+            {
+                _collectCacheQuads.Add(Quad.Mtsdf(quad.Atlas, quad.Transform * x4, quad.Size, Color.White, quad.Uv));
+            }
+        }
+
+        if (_collectCacheQuads.Count > 0)
+        {
+            commands.Add(new QuadDrawCommand(CollectionsMarshal.AsSpan(_collectCacheQuads)));
         }
     }
 

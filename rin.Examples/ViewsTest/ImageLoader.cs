@@ -17,13 +17,14 @@ public class ImageLoader
     {
         _taskQueue.Enqueue(() =>
         {
+            ResourceHandle imageHandle;
             if (source.StartsWith("http"))
             {
                 using var resp = Client.Send(new HttpRequestMessage(HttpMethod.Get, source));
                 resp.EnsureSuccessStatusCode();
                 using var image = HostImage.Create(resp.Content.ReadAsStream());
-                image.CreateTexture(out var imageHandle).Wait();
-                IApplication.Get().MainDispatcher.Enqueue(() => { onLoad(imageHandle); });
+                image.CreateTexture(out imageHandle).Wait();
+                
             }
             else
             {
@@ -31,9 +32,9 @@ public class ImageLoader
                 resp.EnsureSuccessStatusCode();
                 using var data = File.OpenRead(source);
                 using var image = HostImage.Create(data);
-                image.CreateTexture(out var imageHandle).Wait();
-                IApplication.Get().MainDispatcher.Enqueue(() => { onLoad(imageHandle); });
+                image.CreateTexture(out imageHandle).Wait();
             }
+            IApplication.Get().MainDispatcher.Enqueue(static state => state.onLoad(state.imageHandle),(onLoad,imageHandle));
         });
     }
 }

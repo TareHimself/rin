@@ -11,6 +11,8 @@ namespace rin.Examples.Common.Views;
 
 public class AsyncWebImageView : CoverImageView
 {
+    private static readonly HttpClient Client = new();
+
     public AsyncWebImageView(string uri)
     {
         LoadFile(uri).ConfigureAwait(false);
@@ -22,8 +24,7 @@ public class AsyncWebImageView : CoverImageView
     {
         try
         {
-            using var client = new HttpClient();
-            var stream = await client.GetStreamAsync(uri);
+            var stream = await Client.GetStreamAsync(uri);
             using var img = await Task.Run(() => HostImage.Create(stream));
 
             await img.CreateTexture(out var texId).Dispatch(IApplication.Get().MainDispatcher, () =>

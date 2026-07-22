@@ -37,6 +37,10 @@
       <ProjectReference Include="..\Rin.SourceGenerators\Rin.Core.Generators\Rin.Core.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Graphics\Meshes\" />
+    </ItemGroup>
+
     <PropertyGroup>
         <PlatformRID Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</PlatformRID>
         <PlatformRID Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</PlatformRID>
