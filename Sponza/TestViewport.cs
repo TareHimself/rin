@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
-using Rin.Engine.World.Actors;
-using Rin.Engine.World.Math;
-using Rin.Engine.World.Views;
+using Rin.World.Actors;
+using Rin.World.Math;
+using Rin.World.Views;
 
 namespace Sponza;
 

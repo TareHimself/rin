@@ -76,8 +76,8 @@ public class SlugHandler : ICommandHandler
             var buffer = graph.GetBufferOrException(bufferId);
 
             // Write all GlyphDrawData instances for this command into the per-frame buffer.
-            // DeviceBufferView.Write(List<T>) uses the list's internal span directly — no copy.
-            buffer.Write(cmd.Draws);
+            // CollectionsMarshal.AsSpan exposes the list's internal storage directly — no copy.
+            buffer.Write(CollectionsMarshal.AsSpan(cmd.Draws));
 
             if (_shader.Bind(ctx) is not { } bind) continue;
 

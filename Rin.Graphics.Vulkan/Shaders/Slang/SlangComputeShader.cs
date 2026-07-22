@@ -145,7 +145,7 @@ public class SlangComputeShader : IComputeShader, IVulkanShader
 
                 var device = VulkanGraphicsModule.Get().GetDevice();
 
-                _pipelineLayout = device.CreatePipelineLayout(layouts);
+                _pipelineLayout = device.CreatePipelineLayout(CollectionsMarshal.AsSpan(layouts));
                 _shaderModule = device.CreateShaderModule(codeBlob.AsReadOnlySpan());
                 _pipeline = device.CreateComputePipeline(_pipelineLayout, _shaderModule);
                 codeBlob.Dispose();

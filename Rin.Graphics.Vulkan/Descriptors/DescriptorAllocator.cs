@@ -22,7 +22,7 @@ public class DescriptorAllocator : IDisposable
         _poolCreateFlags = poolCreateFlags;
     }
 
-    public DescriptorSet Allocate(VkDescriptorSetLayout layout, params uint[] variableCount)
+    public DescriptorSet Allocate(VkDescriptorSetLayout layout, params ReadOnlySpan<uint> variableCount)
     {
         var targetPool = GetPool();
         DescriptorSet set;

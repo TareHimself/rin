@@ -106,7 +106,7 @@ public class GlyphBezierRenderer : IGlyphRenderer
         //throw new NotImplementedException();
     }
 
-    public IEnumerable<CurvePath> GetPaths()
+    public IReadOnlyCollection<CurvePath> GetPaths()
     {
         return _paths;
     }

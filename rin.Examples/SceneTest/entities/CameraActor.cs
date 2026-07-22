@@ -1,6 +1,6 @@
-﻿using Rin.Engine.World.Actors;
-using Rin.Engine.World.Components;
-using Rin.Engine.World.Components.Lights;
+﻿using Rin.World.Actors;
+using Rin.World.Components;
+using Rin.World.Components.Lights;
 
 namespace rin.Examples.SceneTest.entities;
 

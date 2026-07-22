@@ -625,7 +625,7 @@ public class VulkanExecutionContext(
     }
 
     
-    public IExecutionContext BindDescriptorSets(IShader shader, uint offset, params DescriptorSet[] sets)
+    public IExecutionContext BindDescriptorSets(IShader shader, uint offset, params ReadOnlySpan<DescriptorSet> sets)
     {
         Debug.Assert(shader is IVulkanShader);
         var asVk = (IVulkanShader)shader;

@@ -36,4 +36,7 @@
         <PackageReference Include="TareHimself.Rin.Graphics.Vulkan.Native" Version="1.*"/>
         <PackageReference Include="TerraFX.Interop.Vulkan" Version="1.4.328.1"/>
     </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Meshes\" />
+    </ItemGroup>
 </Project>

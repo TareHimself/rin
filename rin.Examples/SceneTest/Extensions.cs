@@ -1,14 +1,14 @@
 ﻿using System.Numerics;
-using Rin.Engine.World;
-using Rin.Engine.World.Actors;
-using Rin.Engine.World.Components;
-using Rin.Engine.World.Components.Lights;
-using Rin.Engine.World.Mesh;
-using Rin.Engine.World.Mesh.Skinning;
+using Rin.World;
+using Rin.World.Actors;
+using Rin.World.Components;
+using Rin.World.Components.Lights;
+using Rin.World.Mesh;
+using Rin.World.Mesh.Skinning;
 using Rin.Core.Extensions;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Meshes;
 using Rin.Core.Shared.Math;
+using Rin.World.Graphics.Mesh;
 using SharpGLTF.Schema2;
 
 namespace rin.Examples.SceneTest;
@@ -60,12 +60,12 @@ public static class Extensions
                     });
             }
 
-            newSurface.Bounds = surfaceVertices.ComputeBounds();
+            newSurface.Bounds = SkinnedVertexExtensions.ComputeBounds(surfaceVertices);
             vertices.AddRange(surfaceVertices);
             surfaces.Add(newSurface);
         }
 
-        var (id, task) = IGraphicsModule.Get().GetMeshFactory()
+        var (id, task) = IMeshFactory.Get()
             .CreateMesh(vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
         await task;
         return new StaticMesh
@@ -155,12 +155,12 @@ public static class Extensions
                     });
             }
 
-            newSurface.Bounds = surfaceVertices.ComputeBounds();
+            newSurface.Bounds = SkinnedVertexExtensions.ComputeBounds(surfaceVertices);
             vertices.AddRange(surfaceVertices);
             surfaces.Add(newSurface);
         }
 
-        var (id, task) = IGraphicsModule.Get().GetMeshFactory()
+        var (id, task) = IMeshFactory.Get()
             .CreateMesh(vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
         await task;
         return new SkinnedMesh

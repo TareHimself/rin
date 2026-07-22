@@ -1,6 +1,6 @@
 ﻿using System.Collections.Frozen;
 using System.Numerics;
-using Rin.Engine.World.Mesh.Skinning;
+using Rin.World.Mesh.Skinning;
 using Rin.Core;
 using Rin.Core.Shared.Math;
 

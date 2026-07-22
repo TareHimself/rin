@@ -110,7 +110,7 @@ public class HarfBuzzFontManager : IFontManager
                         };
                         _atlases.AddOrUpdate(key, glyph, (_, _) => glyph);
 
-                        result.Image.CreateTexture(out var handle, graphicsModule: _graphicsModule).Then(() =>
+                        result.Image.CreateTexture(out _, graphicsModule: _graphicsModule).Then(handle =>
                         {
                             if (!_atlases.TryGetValue(key, out var val)) return;
                             val = val with { State = LiveGlyphState.Ready, AtlasHandle = handle };
@@ -218,7 +218,7 @@ public class HarfBuzzFontManager : IFontManager
                             }
                         });
 
-                        packedAtlas.CreateTexture(out var handle, graphicsModule: _graphicsModule).Then(() =>
+                        packedAtlas.CreateTexture(out _, graphicsModule: _graphicsModule).Then(handle =>
                         {
                             foreach (var key in glyphsInAtlas.Where(_atlases.ContainsKey))
                             {

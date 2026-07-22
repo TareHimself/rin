@@ -1,5 +1,6 @@
-﻿// See https://aka.ms/new-console-template for more information
+// See https://aka.ms/new-console-template for more information
 
-using Rin.Core;
+using rin.Examples.SceneTest;
 
-Global.Get().Run();
+using var app = new SceneTestApplication();
+app.Run();

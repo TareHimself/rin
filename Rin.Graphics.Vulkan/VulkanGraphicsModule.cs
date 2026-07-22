@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using Rin.Core;
 using Rin.Core.Extensions;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Meshes;
 using Rin.Core.Graphics.Shaders;
 using Rin.Graphics.Vulkan.Descriptors;
 using Rin.Graphics.Vulkan.Images;
@@ -25,6 +24,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     {
         Name = "VulkanGraphicsModule Task Queue"
     };
+
     private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
     private readonly int _maxEventsPerPeep = 64;
     private readonly List<Pair<TaskCompletionSource, Action<IExecutionContext>>> _pendingGraphicsSubmits = [];
@@ -36,6 +36,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     {
         Name = "Transfer Queue"
     };
+
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
 
     private IntPtr _allocator;
@@ -52,7 +53,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     private uint _graphicsQueueFamily;
     private bool _hasDedicatedTransferQueue;
     private VkInstance _instance;
-    private IMeshFactory? _meshFactory;
     private VkPhysicalDevice _physicalDevice;
     private SamplerFactory? _samplerFactory;
     private IShaderManager? _shaderManager;
@@ -102,7 +102,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         _descriptorAllocator?.Dispose();
         _shaderManager?.Dispose();
         DisposeBindlessResources();
-        _meshFactory?.Dispose();
         _descriptorLayoutFactory.Dispose();
 
         _samplerFactory?.Dispose();
@@ -325,11 +324,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         return _surfaceFormat;
     }
 
-    public IMeshFactory GetMeshFactory()
-    {
-        return _meshFactory ?? throw new NullReferenceException();
-    }
-
     private void HandleWindowCreated(IWindow window)
     {
         var r = new WindowRenderer(this, window);
@@ -453,7 +447,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         return _backgroundTaskQueue.Enqueue(action);
     }
 
-    private IVulkanDeviceBuffer NewBuffer(ulong size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags propertyFlags,
+    private IVulkanDeviceBuffer NewBuffer(ulong size, VkBufferUsageFlags usageFlags,
+        VkMemoryPropertyFlags propertyFlags,
         bool sequentialWrite = true, bool preferHost = false, bool mapped = false, string debugName = "Buffer")
     {
         unsafe
@@ -520,7 +515,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     /// <param name="signalSemaphores"></param>
     /// <param name="waitSemaphores"></param>
     /// <returns></returns>
-    public void SubmitToQueue(in VkQueue queue, in VkFence fence, ReadOnlySpan<VkCommandBufferSubmitInfo> commandBuffers,
+    public void SubmitToQueue(in VkQueue queue, in VkFence fence,
+        ReadOnlySpan<VkCommandBufferSubmitInfo> commandBuffers,
         ReadOnlySpan<VkSemaphoreSubmitInfo> signalSemaphores, ReadOnlySpan<VkSemaphoreSubmitInfo> waitSemaphores)
     {
         unsafe
@@ -555,7 +551,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         return _descriptorAllocator;
     }
 
-    private Task TransferSubmit(Action<IExecutionContext> action)
+    public Task TransferSubmit(Action<IExecutionContext> action)
     {
         if (_hasDedicatedTransferQueue)
             return _transferQueueThread.Enqueue(() =>
@@ -581,7 +577,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                             deviceMask = 0
                         };
                         var semaphores = new ReadOnlySpan<VkSemaphoreSubmitInfo>();
-                        SubmitToQueue(_transferQueue, _transferFence, new ReadOnlySpan<VkCommandBufferSubmitInfo>(&submitInfo,1),semaphores,semaphores);
+                        SubmitToQueue(_transferQueue, _transferFence,
+                            new ReadOnlySpan<VkCommandBufferSubmitInfo>(&submitInfo, 1), semaphores, semaphores);
 
                         vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
                         var r = vkResetFences(_device, 1, pFences);
@@ -812,7 +809,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         }
     }
 
-    public Task<IDisposableVulkanTexture> CreateVulkanTexture(IReadOnlyBuffer<byte> data, in Extent2D extent,
+    public Task<IDisposableVulkanTexture> CreateVulkanTexture(ReadOnlyMemory<byte> data, in Extent2D extent,
         ImageFormat format,
         bool mips = false,
         ImageUsage usage = ImageUsage.None)
@@ -821,7 +818,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                                                               ImageUsage.TransferSrc);
 
         var dataSize = extent.Width * extent.Height * format.PixelByteSize();
-        Debug.Assert(dataSize == data.ByteSize, "Unexpected image buffer size");
+        Debug.Assert(dataSize == (ulong)data.Length, "Unexpected image buffer size");
 
         var uploadBuffer = NewTransferBuffer(dataSize);
         uploadBuffer.Write(data);
@@ -876,14 +873,14 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         //return image;
     }
 
-    public Task<IDisposableVulkanTextureArray> CreateVulkanTextureArray(IReadOnlyBuffer<byte> data, in Extent2D extent,
+    public Task<IDisposableVulkanTextureArray> CreateVulkanTextureArray(ReadOnlyMemory<byte> data, in Extent2D extent,
         ImageFormat format, uint count, bool mips = false,
         ImageUsage usage = ImageUsage.None)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IDisposableVulkanCubemap> CreateVulkanCubemap(IReadOnlyBuffer<byte> data, in Extent2D extent,
+    public Task<IDisposableVulkanCubemap> CreateVulkanCubemap(ReadOnlyMemory<byte> data, in Extent2D extent,
         ImageFormat format,
         bool mips = false,
         ImageUsage usage = ImageUsage.None)
@@ -925,7 +922,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                         deviceMask = 0
                     };
                     var semaphores = new ReadOnlySpan<VkSemaphoreSubmitInfo>();
-                    SubmitToQueue(_transferQueue, _transferFence, new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo,1),semaphores,semaphores);
+                    SubmitToQueue(_transferQueue, _transferFence,
+                        new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo, 1), semaphores, semaphores);
 
                     vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
                     var r = vkResetFences(_device, 1, pFences);
@@ -963,7 +961,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                     foreach (var (_, action) in pending) action.Invoke(ctx);
 
                     vkEndCommandBuffer(cmd);
-                    
+
                     var bufferSubmitInfo = new VkCommandBufferSubmitInfo
                     {
                         sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
@@ -971,7 +969,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                         deviceMask = 0
                     };
                     var semaphores = new ReadOnlySpan<VkSemaphoreSubmitInfo>();
-                    SubmitToQueue(_graphicsQueue, _graphicsFence, new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo,1),semaphores,semaphores);
+                    SubmitToQueue(_graphicsQueue, _graphicsFence,
+                        new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo, 1), semaphores, semaphores);
 
                     vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
                     var r = vkResetFences(_device, 1, pFences);

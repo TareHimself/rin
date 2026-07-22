@@ -6,7 +6,7 @@ namespace misc.VectorRendering;
 
 public class MainModule : IModule
 {
-    private readonly IFontManager _fontManager = new SixLaborsFontManager();
+    private readonly IFontManager _fontManager = new HarfBuzzFontManager();
 
     private Font _font;
 

@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using JetBrains.Annotations;
-using Rin.Engine.World.Graphics;
-using Rin.Engine.World.Graphics.Default;
+using Rin.World.Graphics;
+using Rin.World.Graphics.Default;
 
 namespace Sponza;
 

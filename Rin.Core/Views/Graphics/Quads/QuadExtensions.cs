@@ -8,7 +8,7 @@ namespace Rin.Core.Views.Graphics.Quads;
 
 public static class QuadExtensions
 {
-    public static CommandList AddQuads(this CommandList commandList, params Quad[] quads)
+    public static CommandList AddQuads(this CommandList commandList, params ReadOnlySpan<Quad> quads)
     {
         return commandList.Add(new QuadDrawCommand(quads));
     }
