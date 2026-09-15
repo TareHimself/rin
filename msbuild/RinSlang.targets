@@ -1,0 +1,75 @@
+<Project>
+
+    <!--
+        Shared build-time Slang shader compilation step, backed by the CompileRinSlangShaders MSBuild
+        Task (Rin.Slang.MSBuild) - a real C# implementation, not hand-rolled Exec/item-batching XML.
+        Two modes, chosen per importing project:
+
+        1. Library mode (Rin.Core, Rin.World) - set RinSlangDiscoverPrefix (e.g. "Shaders/Core/") before
+           importing. The task scans every .cs file in the repo for `[GraphicsShader("...")]`/
+           `[ComputeShader("...")]` attributes and direct `MakeGraphics("...")`/`MakeCompute("...")` calls,
+           and compiles+embeds only the shaders under that prefix that are actually referenced somewhere -
+           unused/broken/WIP files under the shared Shaders/ tree are never compiled and never block the
+           build. (A Roslyn generator can't do this scan itself: it only ever sees its own project's
+           compilation, so it would miss cross-project references, e.g. Sponza referencing a shader that
+           Rin.World owns.)
+
+        2. Leaf mode (Sponza, misc.VectorRendering, misc.StrokeExpansion, ViewsTest) - declare the file(s)
+           to compile explicitly instead:
+             <ItemGroup>
+               <RinSlangSource Include="..." />
+             </ItemGroup>
+           No scanning - these projects own a small, fixed set of shaders, so there's nothing to discover.
+
+        Both modes set, before importing this file:
+          <PropertyGroup>
+            <RinSlangOutputSubpath>...</RinSlangOutputSubpath>   relative to $(IntermediateOutputPath); compiled .crsh files land here (and get embedded from there)
+          </PropertyGroup>
+
+        Every compile is run with the repo root as an include search path, so `#include "Shaders/Core/..."`-
+        style references always resolve against the shared root, regardless of where the importing
+        project's own source lives.
+    -->
+
+    <PropertyGroup>
+        <RinSlangRepoRoot Condition="'$(RinSlangRepoRoot)' == ''">$(MSBuildThisFileDirectory)..</RinSlangRepoRoot>
+        <RinSlangMSBuildProject Condition="'$(RinSlangMSBuildProject)' == ''">$(MSBuildThisFileDirectory)..\Slang\Rin.Slang.MSBuild\Rin.Slang.MSBuild.csproj</RinSlangMSBuildProject>
+        <RinSlangMSBuildAssembly Condition="'$(RinSlangMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\Slang\Rin.Slang.MSBuild\bin\Release\net10.0\Rin.Slang.MSBuild.dll</RinSlangMSBuildAssembly>
+    </PropertyGroup>
+
+    <UsingTask TaskName="Rin.Slang.MSBuild.CompileRinSlangShaders" AssemblyFile="$(RinSlangMSBuildAssembly)" />
+
+    <!--
+        Only builds if the DLL doesn't already exist. MSBuild node reuse keeps a live process holding the
+        task assembly loaded (and locked) across separate `dotnet build` invocations that each import this
+        file - trying to rebuild it every time a consuming project builds fails with a file-in-use error
+        the moment more than one project has loaded it in the same session. Same tradeoff the native
+        libraries in this repo already make: built once, explicitly, not auto-rebuilt on every solution
+        build. If you change Rin.Slang.MSBuild's source, delete its bin/ (or run
+        `dotnet build-server shutdown` first) to pick the change up.
+    -->
+    <Target Name="BuildRinSlangMSBuildTask" Condition="!Exists('$(RinSlangMSBuildAssembly)')">
+        <MSBuild Projects="$(RinSlangMSBuildProject)" Targets="Build" Properties="Configuration=Release" />
+    </Target>
+
+    <Target Name="CompileSlangShaders"
+            BeforeTargets="BeforeCompile;AssignTargetPaths"
+            DependsOnTargets="BuildRinSlangMSBuildTask">
+
+        <PropertyGroup>
+            <RinSlangOutputRoot>$(IntermediateOutputPath)$(RinSlangOutputSubpath)</RinSlangOutputRoot>
+        </PropertyGroup>
+
+        <CompileRinSlangShaders
+                RepoRoot="$(RinSlangRepoRoot)"
+                DiscoverPrefix="$(RinSlangDiscoverPrefix)"
+                Sources="@(RinSlangSource)"
+                OutputRoot="$(RinSlangOutputRoot)"
+                OutputSubpath="$(RinSlangOutputSubpath)"
+                AssemblyName="$(AssemblyName)">
+            <Output TaskParameter="CompiledFiles" ItemName="EmbeddedResource" />
+        </CompileRinSlangShaders>
+
+    </Target>
+
+</Project>

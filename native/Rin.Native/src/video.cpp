@@ -3,6 +3,7 @@
 #include <atomic>
 #include <iostream>
 #include <memory.hpp>
+#include <mutex>
 #include <vector>
 #include <span>
 #include <webmdx/SourceDecoder.h>
@@ -25,6 +26,15 @@ struct VideoDecodeContext {
     std::shared_ptr<VideoPacket> lastPacket{};
     AudioCallback audioCallback{nullptr};
     void*audioCallbackUserData{};
+    // Tracks the last packet handed to the caller so repeat queries for the same
+    // display timestamp (e.g. UI redrawing faster than the video's frame rate)
+    // can skip re-running ToRgba and the accompanying allocation.
+    std::shared_ptr<VideoPacket> lastReturnedPacket{};
+    // Guards decoder + the packet list above: Demux (called from the decode thread) mutates both via the
+    // packet callback, while Seek/CopyRecentFrame/SetSource (called from whichever thread owns playback)
+    // read and mutate them too. None of this was synchronized, so a seek or frame copy landing mid-Demux
+    // could read/reassign a shared_ptr the decode thread was writing at the same time.
+    std::mutex mutex;
 };
 
 
@@ -101,9 +111,11 @@ Extent2D videoContextGetVideoExtent(void *context) {
 
 void videoContextSeek(void *context, double time) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
+    std::lock_guard lock(videoContext->mutex);
     videoContext->packetCount = 0;
     videoContext->firstPacket = {};
     videoContext->lastPacket = {};
+    videoContext->lastReturnedPacket = {};
     videoContext->decoder->Seek(time);
 }
 
@@ -164,6 +176,7 @@ double videoContextGetPosition(void *context) {
 
 void videoContextDecode(void *context, double delta) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
+    std::lock_guard lock(videoContext->mutex);
     videoContext->decoder->Demux(delta);
 }
 
@@ -172,28 +185,40 @@ int videoContextEnded(void *context) {
     return videoContext->decoder->GetPosition() >= videoContext->decoder->GetDuration();
 }
 
+int videoContextGetBufferedFrameCount(void *context) {
+    const auto videoContext = static_cast<VideoDecodeContext *>(context);
+    return static_cast<int>(videoContext->packetCount.load());
+}
+
+// Returns a freshly allocated RGBA buffer for the frame that should be displayed at
+// `timestamp`, or nullptr if that frame is the same one already returned by the previous
+// call (nothing new to convert/upload).
 void * videoContextCopyRecentFrame(void *context, double timestamp) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    const auto track = videoContext->decoder->GetVideoTrack();
-    const auto byteSize = track.width * track.height * 4;
-    const auto data = new uint8_t[byteSize];
+    std::lock_guard lock(videoContext->mutex);
 
     if (videoContext->packetCount == 0) {
-        return data;
+        return nullptr;
     }
 
     auto packet = videoContext->firstPacket;
 
-    auto skipped = 0;
     while (packet->timestamp <= timestamp && packet->next) {
         const auto next = packet->next;
         if (next->timestamp > timestamp) break;
         videoContext->firstPacket = next;
         --videoContext->packetCount;
         packet = next;
-        skipped += 1;
     }
 
+    if (packet == videoContext->lastReturnedPacket) {
+        return nullptr;
+    }
+    videoContext->lastReturnedPacket = packet;
+
+    const auto track = videoContext->decoder->GetVideoTrack();
+    const auto byteSize = track.width * track.height * 4;
+    const auto data = new uint8_t[byteSize];
     packet->data->ToRgba(std::span(data,byteSize));
     return data;
 }
@@ -201,9 +226,11 @@ void * videoContextCopyRecentFrame(void *context, double timestamp) {
 void videoContextSetSource(void *context, void *source) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     const auto videoSource = static_cast<VideoSourceWrapper *>(source);
+    std::lock_guard lock(videoContext->mutex);
     videoContext->packetCount = 0;
     videoContext->firstPacket = {};
     videoContext->lastPacket = {};
+    videoContext->lastReturnedPacket = {};
     videoContext->decoder->SetSource(videoSource->source);
 }
 
