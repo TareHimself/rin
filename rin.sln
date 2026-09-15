@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34714.143
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Rin.Core", "Rin.Core\Rin.Core.csproj", "{5D8EAE44-56A0-4744-B71A-A9CCB45C8C4A}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{CC1B5E42-D829-4042-9263-7B2EBB6B49AB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Rin.Core", "Engine\Rin.Core\Rin.Core.csproj", "{5D8EAE44-56A0-4744-B71A-A9CCB45C8C4A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Examples.ViewsTest", "rin.Examples\ViewsTest\rin.Examples.ViewsTest.csproj", "{515D3A8F-AA58-4533-B73C-03CC30D42BBB}"
 EndProject
@@ -19,7 +21,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Editor", "Tools\Rin.Edi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "misc.VectorRendering", "misc.VectorRendering\misc.VectorRendering.csproj", "{0ABED806-8139-4A4C-B9DB-C9C2DA187996}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.World", "Rin.World\Rin.World.csproj", "{44F876E5-9EDC-4734-A74B-AEEE8DE885FE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.World", "Engine\Rin.World\Rin.World.csproj", "{44F876E5-9EDC-4734-A74B-AEEE8DE885FE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatApp", "Examples\ChatApp\ChatApp.csproj", "{6546ED52-12B2-4CC3-A410-038CCB279FCA}"
 EndProject
@@ -31,25 +33,21 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "misc.StrokeExpansion", "mis
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RinLauncher", "Tools\RinLauncher\RinLauncher.csproj", "{8987571F-0B1E-4DB6-8EDC-2AC61252B87D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Graphics.Vulkan", "Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj", "{8021D914-48F5-4BF4-BC9B-27D528D8681B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Graphics.Vulkan", "Engine\Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj", "{8021D914-48F5-4BF4-BC9B-27D528D8681B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeGraphTest", "NodeGraphTest\NodeGraphTest.csproj", "{6BD6783E-1624-4E38-B196-3D066187A05E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Core.Tests", "Rin.Core.Tests\Rin.Core.Tests.csproj", "{8CB70C3F-6FC5-4520-B5C8-D351611E82DC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Core.Tests", "Engine\Rin.Core.Tests\Rin.Core.Tests.csproj", "{8CB70C3F-6FC5-4520-B5C8-D351611E82DC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "native", "native", "{2F2BA0B1-8447-348E-8DA4-622F0257D38B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Audio.Miniaudio", "Rin.Audio.Miniaudio\Rin.Audio.Miniaudio.csproj", "{EF5D07C1-F0BC-448A-96D7-26FD610E69B2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Audio.Miniaudio", "Engine\Rin.Audio.Miniaudio\Rin.Audio.Miniaudio.csproj", "{EF5D07C1-F0BC-448A-96D7-26FD610E69B2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Core.Generators", "Rin.SourceGenerators\Rin.Core.Generators\Rin.Core.Generators.csproj", "{199162C7-CE0A-44C5-924B-FEC4120BCD6E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.SourceGenerators", "Engine\Rin.SourceGenerators\Rin.SourceGenerators.csproj", "{199162C7-CE0A-44C5-924B-FEC4120BCD6E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.SourceGenerators.Sample", "Rin.SourceGenerators\Rin.SourceGenerators.Sample\Rin.SourceGenerators.Sample.csproj", "{234C483A-504A-4ED7-B262-2B6FDF0A0716}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.SourceGenerators.Tests", "Rin.SourceGenerators\Rin.SourceGenerators.Tests\Rin.SourceGenerators.Tests.csproj", "{7CECC3B1-A8A1-4FDE-AC44-2D2128A1876A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.SourceGenerators.Tests", "Engine\Rin.SourceGenerators.Tests\Rin.SourceGenerators.Tests.csproj", "{7CECC3B1-A8A1-4FDE-AC44-2D2128A1876A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "rin.Examples", "rin.Examples", "{84B5B24B-1A2A-7CFC-028F-1473D8396F1D}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Rin.SourceGenerators", "Rin.SourceGenerators", "{7C63A152-AF90-E0F6-7F88-4C5955A1739C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{205E6779-3320-FCAA-FE86-55A94D881F2E}"
 EndProject
@@ -279,18 +277,6 @@ Global
 		{199162C7-CE0A-44C5-924B-FEC4120BCD6E}.Release|x64.Build.0 = Release|Any CPU
 		{199162C7-CE0A-44C5-924B-FEC4120BCD6E}.Release|x86.ActiveCfg = Release|Any CPU
 		{199162C7-CE0A-44C5-924B-FEC4120BCD6E}.Release|x86.Build.0 = Release|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Debug|x64.Build.0 = Debug|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Debug|x86.Build.0 = Debug|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Release|Any CPU.Build.0 = Release|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Release|x64.ActiveCfg = Release|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Release|x64.Build.0 = Release|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Release|x86.ActiveCfg = Release|Any CPU
-		{234C483A-504A-4ED7-B262-2B6FDF0A0716}.Release|x86.Build.0 = Release|Any CPU
 		{7CECC3B1-A8A1-4FDE-AC44-2D2128A1876A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7CECC3B1-A8A1-4FDE-AC44-2D2128A1876A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7CECC3B1-A8A1-4FDE-AC44-2D2128A1876A}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -310,6 +296,13 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{58FA237F-22F4-4454-8C3D-6BCDF39F170A} = {DA74088E-AE63-40C1-AC5C-468CFB8AB6B2}
 		{8987571F-0B1E-4DB6-8EDC-2AC61252B87D} = {DA74088E-AE63-40C1-AC5C-468CFB8AB6B2}
+		{5D8EAE44-56A0-4744-B71A-A9CCB45C8C4A} = {CC1B5E42-D829-4042-9263-7B2EBB6B49AB}
+		{44F876E5-9EDC-4734-A74B-AEEE8DE885FE} = {CC1B5E42-D829-4042-9263-7B2EBB6B49AB}
+		{8021D914-48F5-4BF4-BC9B-27D528D8681B} = {CC1B5E42-D829-4042-9263-7B2EBB6B49AB}
+		{EF5D07C1-F0BC-448A-96D7-26FD610E69B2} = {CC1B5E42-D829-4042-9263-7B2EBB6B49AB}
+		{8CB70C3F-6FC5-4520-B5C8-D351611E82DC} = {CC1B5E42-D829-4042-9263-7B2EBB6B49AB}
+		{199162C7-CE0A-44C5-924B-FEC4120BCD6E} = {CC1B5E42-D829-4042-9263-7B2EBB6B49AB}
+		{7CECC3B1-A8A1-4FDE-AC44-2D2128A1876A} = {CC1B5E42-D829-4042-9263-7B2EBB6B49AB}
 		{205E6779-3320-FCAA-FE86-55A94D881F2E} = {84B5B24B-1A2A-7CFC-028F-1473D8396F1D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
