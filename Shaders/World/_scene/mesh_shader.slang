@@ -1,0 +1,8 @@
+
+interface IVertexInput {
+
+}
+
+interface IMeshShader {
+ 
+}
