@@ -1,19 +1,11 @@
-// Source https://schuttejoe.github.io/post/disneybsdf/
+// Source https://youtu.be/gya7x9H3mV0?si=rHCphRwYF75nS4kt
 #include "Editor/Shaders/Lights/light.slang"
-#include "Core/Shaders/utils.slang"
-
-interface IDisneySurface : ILightSurface {
-    float3 getColor();
-    float3 getLocation();
-    float3 getNormal();
-    float getSheen();
-}
-
+#include "Shaders/Core/utils.slang"
 
 #define RECIPROCAL_PI 0.3183098861837907
 #define RECIPROCAL_2PI 0.15915494309189535
 #define PI 3.142
-struct DisneySurface : ILightSurface {
+struct PBRSurface : ILightSurface {
     float3 color;
     float3 location;
     float3 normal;
@@ -23,9 +15,9 @@ struct DisneySurface : ILightSurface {
     float emissive;
 };
 
-struct DisneyModel : ILightModel {
+struct PBRModel : ILightModel {
 
-    typedef DisneySurface Surface;
+    typedef PBRSurface Surface;
 
     float3 fresnelSchlick(float cosTheta, float3 F0) {
         return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
@@ -62,8 +54,8 @@ struct DisneyModel : ILightModel {
     }
 
     float3 eval(Surface surface, float3 eye, ILight light) {
-        float3 L = -getLightDirectionToLocation(light,surface.location);
-    
+        float3 L = -getLightDirectionToLocation(light, surface.location);
+
         float3 N = surface.normal;
 
         float3 radiance = rgb2lin(float3(surface.emissive));

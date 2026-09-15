@@ -13,7 +13,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Examples.AudioPlayer", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rin.Examples.Common", "rin.Examples\Common\rin.Examples.Common.csproj", "{0CF7CD4B-44CA-4CB0-87DE-599DBCD66F71}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Editor", "Rin.Editor\Rin.Editor.csproj", "{58FA237F-22F4-4454-8C3D-6BCDF39F170A}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{DA74088E-AE63-40C1-AC5C-468CFB8AB6B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Editor", "Tools\Rin.Editor\Rin.Editor.csproj", "{58FA237F-22F4-4454-8C3D-6BCDF39F170A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "misc.VectorRendering", "misc.VectorRendering\misc.VectorRendering.csproj", "{0ABED806-8139-4A4C-B9DB-C9C2DA187996}"
 EndProject
@@ -27,7 +29,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sponza", "Sponza\Sponza.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "misc.StrokeExpansion", "misc.StrokeExpansion\misc.StrokeExpansion.csproj", "{4065D9B2-D5C7-4744-82C8-9EEA313B3C84}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RinLauncher", "RinLauncher\RinLauncher.csproj", "{8987571F-0B1E-4DB6-8EDC-2AC61252B87D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RinLauncher", "Tools\RinLauncher\RinLauncher.csproj", "{8987571F-0B1E-4DB6-8EDC-2AC61252B87D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rin.Graphics.Vulkan", "Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj", "{8021D914-48F5-4BF4-BC9B-27D528D8681B}"
 EndProject
@@ -306,6 +308,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{58FA237F-22F4-4454-8C3D-6BCDF39F170A} = {DA74088E-AE63-40C1-AC5C-468CFB8AB6B2}
+		{8987571F-0B1E-4DB6-8EDC-2AC61252B87D} = {DA74088E-AE63-40C1-AC5C-468CFB8AB6B2}
 		{205E6779-3320-FCAA-FE86-55A94D881F2E} = {84B5B24B-1A2A-7CFC-028F-1473D8396F1D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
