@@ -1,5 +1,5 @@
 #include "Editor/Shaders/World/depth_scene_info.slang"
-#include "Core/Shaders/operators.slang"
+#include "Shaders/Core/operators.slang"
 #include "Editor/Shaders/Mesh/vertex.slang"
 
 struct PerMeshData {
