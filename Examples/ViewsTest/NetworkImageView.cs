@@ -1,0 +1,16 @@
+﻿using Rin.Core;
+using Rin.Core.Views.Content;
+
+namespace ViewsTest;
+
+public class NetworkImageView : ImageView
+{
+    private readonly ImageLoader _loader = Global.Provider.Get<ImageLoader>();
+    private readonly string _url;
+
+    public NetworkImageView(string url)
+    {
+        _url = url;
+        _loader.Load(_url, imageHandle => { Image = imageHandle; });
+    }
+}

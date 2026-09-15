@@ -1,0 +1,10 @@
+﻿// See https://aka.ms/new-console-template for more information
+
+using Rin.Core.Graphics;
+
+using var image = HostImage.Create(File.OpenRead(@"C:\Users\Taree\Downloads\channels4_profile.jpg"));
+using var test = HostImage.Create(new Extent2D(1000, 1000), ImageFormat.RGBA8);
+using var mutated = test.Mutate(ctx => { ctx.DrawImage(image, Offset2D.Zero); });
+//image.SavePng(File.OpenWrite("./out.png"));
+mutated.SavePng(File.OpenWrite("./out4.png"));
+Console.WriteLine("Hello, World!");

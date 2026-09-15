@@ -1,0 +1,246 @@
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
+using Rin.Core;
+using Rin.Core.Audio;
+using Rin.Core.Graphics;
+using Rin.Core.Shared.Math;
+using Rin.Core.Views;
+using Rin.Core.Views.Animation;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Content;
+using Rin.Core.Views.Events;
+using Rin.Core.Views.Graphics;
+using Rin.Core.Views.Layouts;
+using YoutubeExplode.Common;
+
+namespace AudioPlayer.Views;
+
+public class TrackPlayer : OverlayView
+{
+    private readonly PanelView _backgroundContainer = new();
+
+    private readonly TextBoxView _currentTimeText = new()
+    {
+        Content = "00:00",
+        FontSize = 30,
+        Padding = new Padding
+        {
+            Top = 5.0f,
+            Bottom = 5.0f,
+            Right = 5.0f
+        }
+    };
+
+    private readonly TextBoxView _endTimeText = new()
+    {
+        Content = "00:00",
+        FontSize = 30,
+        Padding = new Padding
+        {
+            Top = 5.0f,
+            Bottom = 5.0f,
+            Left = 5.0f
+        }
+    };
+
+    private readonly TextBoxView _nameText = new()
+    {
+        Content = "NAME",
+        FontSize = 40,
+        FontFamily = "Noto Sans JP",
+        Padding = new Padding
+        {
+            Top = 0.0f,
+            Bottom = 5.0f
+        },
+        WrapContent = true
+    };
+
+    private readonly IAudioSample _sample;
+    private readonly IActiveAudio _stream;
+
+    private double _lastTime = IApplication.Get().TimeSeconds;
+
+    public TrackPlayer(string name, IAudioSample sample)
+    {
+        Visibility = Visibility.Hidden;
+        _nameText.Content = name;
+
+        _sample = sample;
+
+        _stream = sample.MakeActive();
+
+        InitChildren =
+        [
+            _backgroundContainer,
+            new ListView
+            {
+                Axis = Axis.Column,
+                Padding = new Padding(5.0f, 10.0f),
+                InitSlots =
+                [
+                    new ListSlot
+                    {
+                        Child = _nameText,
+                        Fit = CrossFit.Fill
+                    },
+                    new ListSlot
+                    {
+                        Fit = CrossFit.Fill,
+                        Child = new ConstraintView
+                        {
+                            MinWidth = 500.0f,
+                            InitChild = new FlexBoxView
+                            {
+                                Axis = Axis.Row,
+                                InitSlots =
+                                [
+                                    new FlexBoxSlot
+                                    {
+                                        Child = new SizerView
+                                        {
+                                            InitChild = _currentTimeText,
+                                            WidthOverride = 100
+                                        }
+                                    },
+                                    new FlexBoxSlot
+                                    {
+                                        Child = new SizerView
+                                        {
+                                            InitChild = new ProgressBarView(
+                                                () => (float)(_stream.Position / _stream.Duration),
+                                                progress => { _stream.SetPosition(progress * _stream.Duration); })
+                                            {
+                                                BackgroundColor = Color.Black,
+                                                BorderRadius = new Vector4(6.0f)
+                                            },
+                                            HeightOverride = 8
+                                        },
+                                        Flex = 1,
+                                        Align = CrossAlign.Center
+                                    },
+                                    new FlexBoxSlot
+                                    {
+                                        Child = new SizerView
+                                        {
+                                            InitChild = _endTimeText,
+                                            WidthOverride = 100
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        ];
+
+
+        _endTimeText.Content = FormatTime(_stream.Duration);
+        Padding = 10.0f;
+        FetchCover().ConfigureAwait(false);
+        Pivot = new Vector2(1.0f, 0.0f);
+    }
+
+    private bool Loaded => Pivot.X <= 0.0f;
+
+    public string Name
+    {
+        get => _nameText.Content;
+        set => _nameText.Content = value;
+    }
+
+    private async Task FetchCover()
+    {
+        try
+        {
+            var data = (await Unsafe.As<AudioPlayerApp>(IApplication.Get()).YtClient.Search
+                    .GetVideosAsync($"{_nameText.Content} official track"))
+                .FirstOrDefault();
+            if (data == null)
+            {
+                Console.WriteLine($"Failed to find art for {_nameText.Content}");
+                return;
+            }
+
+
+            var thumb = data.Thumbnails.MaxBy(c => c.Resolution.Width * c.Resolution.Height)!.Url;
+
+            Console.WriteLine($"Using thumb {thumb} for {_nameText.Content}");
+            _backgroundContainer.Add(new PanelSlot
+            {
+                Child = new TrackImageView(thumb)
+                {
+                    BorderRadius = new Vector4(20.0f)
+                },
+                MinAnchor = new Vector2(0.0f),
+                MaxAnchor = new Vector2(1.0f)
+            });
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            _backgroundContainer.Add(new PanelSlot
+            {
+                Child = new TrackImageView("https://i.imgur.com/5fQUPDl.jpg")
+                {
+                    BorderRadius = new Vector4(20.0f)
+                },
+                MinAnchor = new Vector2(0.0f),
+                MaxAnchor = new Vector2(1.0f)
+            });
+        }
+        // this.ScaleTo(new Vector2<float>(1.0f, 1.0f), 1.0f, 0.2f,easingFunction: EasingFunctions.EaseInExpo).After().Do(
+        //     () =>
+        //     {
+        //         _loaded = true;
+        //     });
+    }
+
+    private static string FormatTime(double secs)
+    {
+        return
+            $"{((int)Math.Floor(secs / 60)).ToString().PadLeft(2, '0')}:{((int)(secs % 60)).ToString().PadLeft(2, '0')}";
+    }
+
+    public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
+    {
+        _currentTimeText.Content = FormatTime(_stream.Position);
+        base.Collect(transform, clip, commands);
+    }
+
+    public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
+    {
+    }
+
+    public override void OnCursorUp(CursorUpSurfaceEvent e)
+    {
+        if (_stream.IsPlaying)
+            _stream.Pause();
+        else
+            _stream.Play();
+
+        base.OnCursorUp(e);
+    }
+
+    protected override void OnCursorEnter(CursorMoveSurfaceEvent e)
+    {
+        base.OnCursorEnter(e);
+        if (Loaded)
+            this.TranslateTo(new Vector2(40.0f, 0.0f),
+                easingFunction: EasingFunctions.EaseInOutCubic);
+    }
+
+    protected override void OnCursorLeave()
+    {
+        base.OnCursorLeave();
+        if (Loaded)
+            this.TranslateTo(new Vector2(0.0f, 0.0f),
+                easingFunction: EasingFunctions.EaseInOutCubic);
+    }
+
+    protected override Vector2 LayoutContent(in Vector2 availableSpace)
+    {
+        return base.LayoutContent(availableSpace);
+    }
+}

@@ -1,0 +1,26 @@
+﻿using System.Collections.Frozen;
+using System.Numerics;
+using Rin.World.Mesh.Skinning;
+using Rin.Core;
+using Rin.Core.Shared.Math;
+
+namespace SceneTest;
+
+public class TestPoseSource : IPoseSource
+{
+    public required Skeleton Skeleton { get; init; }
+
+    public Pose GetPose()
+    {
+        var rot = Quaternion.Identity.AddYaw(IApplication.Get().TimeSeconds * 20f);
+        return new Pose(new Dictionary<string, Transform>
+        {
+            {
+                "root", new Transform
+                {
+                    Orientation = rot
+                }
+            }
+        }.ToFrozenDictionary());
+    }
+}
