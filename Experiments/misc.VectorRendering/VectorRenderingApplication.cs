@@ -7,7 +7,7 @@ using Rin.Core.Views.Window;
 using Rin.Core.Views.Graphics;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Views.Font;
-using rin.Examples.Common;
+using Examples.Common;
 using misc.VectorRendering.Slug;
 using SixLabors.Fonts;
 

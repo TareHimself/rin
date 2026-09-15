@@ -1,8 +1,8 @@
-#include "Core/Shaders/operators.slang"
-#include "Core/Shaders/utils.slang"
-#include "World/Shaders/Mesh/bounds.slang"
-#include "World/Shaders/Mesh/skinned_vertex.slang"
-#include "World/Shaders/Mesh/vertex.slang"
+#include "Shaders/Core/operators.slang"
+#include "Shaders/Core/utils.slang"
+#include "Shaders/World/Mesh/bounds.slang"
+#include "Shaders/World/Mesh/skinned_vertex.slang"
+#include "Shaders/World/Mesh/vertex.slang"
 
 enum PathSegmentType : uint {
     Line,

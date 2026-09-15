@@ -29,8 +29,8 @@
 //   [bandsY .. bandsY+bandsX-1]  V band headers: same
 //   [listOffset for band b]      Curve index entries: (curveTexX, curveTexY, 0, 0)
 
-#include "Core/Shaders/Attributes/blending.slang"
-#include "Core/Shaders/images.slang"
+#include "Shaders/Core/Attributes/blending.slang"
+#include "Shaders/Core/images.slang"
 
 // Band texture row width — must match SlugAtlas.TextureWidth in C#.
 static const int kLogBandWidth = 12;       // 2^12 = 4096
