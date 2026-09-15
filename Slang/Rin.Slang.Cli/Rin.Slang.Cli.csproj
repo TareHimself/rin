@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>Rin.Slang.Cli</RootNamespace>
+        <AssemblyName>rin-slang</AssemblyName>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <TargetFramework>net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Rin.Slang.Compiler\Rin.Slang.Compiler.csproj" />
+        <ProjectReference Include="..\Rin.Slang.Discovery\Rin.Slang.Discovery.csproj" />
+    </ItemGroup>
+
+</Project>

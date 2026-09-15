@@ -95,48 +95,6 @@ void sdfContextFinish(GlyphContext * context)
     context->shape.normalize();
 }
 
-void sdfContextGenerateMSDF(GlyphContext* context,float angleThreshold,float pixelRange, GenerateCallback callback,void*userData)
-{
-
-    if(!context->hasContent) {    
-        return;
-    }
-    
-    msdfgen::edgeColoringByDistance(context->shape,angleThreshold);
-
-    auto shape = context->shape;
-    
-    const auto bounds = shape.getBounds();
-
-    auto width = bounds.r - bounds.l;
-    auto height = bounds.t - bounds.b;
-    auto offsetX = bounds.l;
-    auto offsetY = height - bounds.t;
-    
-    auto bmpWidth = static_cast<int>(std::ceil(width));
-    auto bmpHeight = static_cast<int>(std::ceil(height));
-
-    msdfgen::Bitmap<float, 3> bmp(bmpWidth,bmpHeight);
-
-    auto transform = msdfgen::SDFTransformation{{{1.0,1.0},{(offsetX),offsetY}},{}};
-    msdfgen::generateMSDF(bmp,shape,transform,pixelRange);
-    
-
-    std::vector<unsigned char> data;
-    data.reserve(3 * bmpWidth * bmpHeight);
-
-    for(auto y = 0; y < bmpHeight; y++) {
-        for(auto x = 0; x < bmpWidth; x++) {
-            const auto pixel = bmp(x,bmpHeight - (y + 1));
-            data.push_back(msdfgen::pixelFloatToByte(pixel[0]));
-            data.push_back(msdfgen::pixelFloatToByte(pixel[1]));
-            data.push_back(msdfgen::pixelFloatToByte(pixel[2]));
-        }
-    }
-
-    callback(data.data(),bmpWidth,bmpHeight,data.size(),width,height,userData);
-}
-
 void sdfContextGenerateMTSDF(GlyphContext* context,float angleThreshold,float pixelRange, GenerateCallback callback,void*userData)
 {
     if(!context->hasContent) {    

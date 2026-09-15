@@ -40,7 +40,6 @@ RIN_NATIVE_API void sdfContextCubicBezierTo(GlyphContext * context, Vec2* contro
 RIN_NATIVE_API void sdfContextFinish(GlyphContext * context);
 
 using GenerateCallback = void(RIN_CALLBACK_CONVENTION *)(void * data,uint32_t pixelWidth,uint32_t pixelHeight,uint32_t count,double width,double height,void*userData);
-RIN_NATIVE_API void sdfContextGenerateMSDF(GlyphContext * context,float angleThreshold,float pixelRange,GenerateCallback callback,void*userData);
 
 RIN_NATIVE_API void sdfContextGenerateMTSDF(GlyphContext * context,float angleThreshold,float pixelRange,GenerateCallback callback,void*userData);
 

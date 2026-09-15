@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Engine\Rin.Core\Rin.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Label="Content">
+        <EmbeddedResource Include="Content\**\*.*"/>
+    </ItemGroup>
+
+</Project>

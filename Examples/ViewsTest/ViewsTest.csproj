@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <TargetFramework>net10.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PublishAot>true</PublishAot>
+        <!--        <PublishAot>true</PublishAot>-->
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    </PropertyGroup>
+
+    <!-- Windows: no console -->
+    <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+        <OutputType>WinExe</OutputType>
+    </PropertyGroup>
+
+    <!-- Linux / macOS: normal executable -->
+    <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <assets Include=".\assets\**"/>
+        <Content Include="@(assets)">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup Label="Slang shaders">
+        <RinSlangSource Include="Shaders\**\*.slang" />
+    </ItemGroup>
+    <PropertyGroup Label="Slang shaders">
+        <RinSlangOutputSubpath>Content\ViewsTest\</RinSlangOutputSubpath>
+    </PropertyGroup>
+    <Import Project="..\..\msbuild\RinSlang.targets" />
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Engine\Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="..\Common\Examples.Common.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Dashboard\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" PrivateAssets="All" />
+    </ItemGroup>
+</Project>

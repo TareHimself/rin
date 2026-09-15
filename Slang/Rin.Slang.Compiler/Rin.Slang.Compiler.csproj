@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <IsAotCompatible>true</IsAotCompatible>
+        <PackageId>TareHimself.Rin.Slang.Compiler</PackageId>
+        <Title>Rin.Slang.Compiler</Title>
+        <Authors>TareHimself</Authors>
+        <Version>1.0.0</Version>
+        <TargetFramework>net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <DepMode Condition="'$(DepMode)' == ''">local_file</DepMode>
+    </PropertyGroup>
+    <!--    Local refs i.e. project refs-->
+    <ItemGroup Condition="'$(DepMode)' == 'local_file'">
+        <ProjectReference Include="..\Rin.Slang\Rin.Slang.csproj" />
+    </ItemGroup>
+    <!--    References from online feeds-->
+    <ItemGroup Condition="'$(DepMode)' == 'online'">
+        <PackageReference Include="TareHimself.Rin.Slang" Version="1.*"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="TareHimself.Rin.Slang.Native" Version="1.*"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Windows'))">OS_WINDOWS</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('Linux'))">OS_LINUX</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::IsOSPlatform('OSX'))">OS_MAC</DefineConstants>
+    </PropertyGroup>
+
+</Project>

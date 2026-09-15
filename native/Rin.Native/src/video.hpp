@@ -27,6 +27,7 @@ RIN_NATIVE_API double videoContextGetDuration(void *context);
 RIN_NATIVE_API double videoContextGetPosition(void *context);
 RIN_NATIVE_API void videoContextDecode(void *context, double delta);
 RIN_NATIVE_API int videoContextEnded(void *context);
+RIN_NATIVE_API int videoContextGetBufferedFrameCount(void *context);
 RIN_NATIVE_API void * videoContextCopyRecentFrame(void *context, double timestamp);
 RIN_NATIVE_API void videoContextSetSource(void *context,void * source);
 RIN_NATIVE_API void videoContextFree(void* context);

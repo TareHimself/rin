@@ -44,11 +44,20 @@ tasks:
       - task build
       - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' --output "{{.LOCAL_FEED_DIR}}"
 
+  pack-slang-native:
+    dir: ./native/Rin.Slang.Native
+    deps:
+      - ensure-feed-dir
+    cmds:
+      - task build
+      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' --output "{{.LOCAL_FEED_DIR}}"
+
   pack-all:
     deps:
       - pack-native
       - pack-audio-miniaudio-native
       - pack-graphics-vulkan-native
+      - pack-slang-native
     cmds:
       - echo "Finished packing all native packages"
       # Optional push steps:

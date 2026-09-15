@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- Loaded standalone as an MSBuild plugin (UsingTask), not referenced by another .NET project,
+             so nothing else copies its transitive dependencies - including the native Slang DLLs -
+             into its own output. A plain class library wouldn't get runtimes/{rid}/native/* resolved or
+             copied by default (only executables do, and even then only once a RID is known); force both. -->
+        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
+        <SelfContained>false</SelfContained>
+        <!-- Keep the output at bin\Release\net10.0\, not bin\Release\net10.0\{rid}\, so RinSlang.targets
+             can reference a fixed, RID-independent path to the built task assembly. -->
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <PackageId>TareHimself.Rin.Slang.MSBuild</PackageId>
+        <Title>Rin.Slang.MSBuild</Title>
+        <Authors>TareHimself</Authors>
+        <Version>1.0.0</Version>
+        <TargetFramework>net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Rin.Slang.Compiler\Rin.Slang.Compiler.csproj" />
+        <ProjectReference Include="..\Rin.Slang.Discovery\Rin.Slang.Discovery.csproj" />
+        <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.14.8" />
+    </ItemGroup>
+
+</Project>
