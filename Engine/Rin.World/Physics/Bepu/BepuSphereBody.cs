@@ -4,7 +4,7 @@ using Rin.Core.Shared.Math;
 
 namespace Rin.World.Physics.Bepu;
 
-public class BepuSphereBody : BepuBody, IPhysicsSphere
+internal class BepuSphereBody : BepuBody
 {
     private readonly TypedIndex _shapeIndex;
     private float _radius;

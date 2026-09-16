@@ -1,11 +1,11 @@
-﻿using System.Diagnostics;
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core;
+using Rin.Core.Shared.Math;
 using Rin.World.Actors;
 using Rin.World.Components;
+using Rin.World.Graphics;
 using Rin.World.Physics;
-using Rin.World.Physics.Bepu;
 using Rin.World.Systems;
 
 namespace Rin.World;
@@ -13,12 +13,19 @@ namespace Rin.World;
 public class World : IUpdatable
 {
     private readonly Dictionary<string, Actor> _actors = [];
-    private readonly HashSet<IPhysicsComponent> _physicsComponents = [];
     private readonly List<ISystem> _tickableSystems = [];
-    private IPhysicsSystem? _physicsSystem;
+    private readonly Dictionary<PhysicsBodyHandle, IWorldComponent> _physicsOwners = [];
 
     private float _remainingPhysicsTime;
-    //private System.Timers.Timer? _physicsTimer;
+
+    public World(IRenderSystem renderSystem, IPhysicsSystem physicsSystem)
+    {
+        RenderSystem = renderSystem;
+        PhysicsSystem = physicsSystem;
+    }
+
+    [PublicAPI] public IRenderSystem RenderSystem { get; }
+    [PublicAPI] public IPhysicsSystem PhysicsSystem { get; }
 
     public Matrix4x4 WorldTransform { get; set; } = Matrix4x4.Identity;
 
@@ -32,8 +39,12 @@ public class World : IUpdatable
     public void Update(float deltaSeconds)
     {
         if (!Active) return;
-        Debug.Assert(_physicsSystem != null);
-        foreach (var physicsComponent in _physicsComponents) physicsComponent.PrePhysicsUpdate();
+
+        foreach (var actor in GetActors())
+        {
+            if (!actor.Active) continue;
+            actor.PrePhysicsUpdate();
+        }
 
         // Clamp the frame delta so a hitch doesn't schedule a huge catch-up, then run a bounded
         // number of fixed steps. If we still can't keep up, drop the remainder instead of
@@ -42,7 +53,7 @@ public class World : IUpdatable
         var steps = 0;
         while (_remainingPhysicsTime >= PhysicsUpdateInterval && steps < MaxPhysicsStepsPerFrame)
         {
-            _physicsSystem.Update(PhysicsUpdateInterval);
+            PhysicsSystem.Update(PhysicsUpdateInterval);
             _remainingPhysicsTime -= PhysicsUpdateInterval;
             steps++;
         }
@@ -54,34 +65,18 @@ public class World : IUpdatable
             if (!actor.Active) continue;
             actor.Update(deltaSeconds);
         }
-    }
 
-    public void AddPhysicsComponent(IPhysicsComponent component)
-    {
-        _physicsComponents.Add(component);
-    }
-
-    public void RemovePhysicsComponent(IPhysicsComponent component)
-    {
-        _physicsComponents.Remove(component);
-    }
-
-    protected virtual IPhysicsSystem CreatePhysicsSystem()
-    {
-        return new BepuPhysicsSystem();
-    }
-
-    public IPhysicsSystem GetPhysicsSystem()
-    {
-        if (_physicsSystem == null) throw new InvalidOperationException();
-        return _physicsSystem;
+        foreach (var actor in GetActors())
+        {
+            if (!actor.Active) continue;
+            actor.LateUpdate(deltaSeconds);
+        }
     }
 
     public void Start()
     {
         if (Active) return;
         Active = true;
-        _physicsSystem = CreatePhysicsSystem();
         foreach (var actor in GetActors()) actor.Start();
     }
 
@@ -90,7 +85,8 @@ public class World : IUpdatable
         if (!Active) return;
         Active = false;
         foreach (var actor in GetActors()) actor.Stop();
-        _physicsSystem?.Destroy();
+        PhysicsSystem.Destroy();
+        RenderSystem.Dispose();
     }
 
     [PublicAPI]
@@ -128,4 +124,11 @@ public class World : IUpdatable
     {
         return GetRoots().Where(root => root.TransformParent is null).ToArray();
     }
+
+    [PublicAPI] public void RegisterPhysicsBody(PhysicsBodyHandle handle, IWorldComponent owner) => _physicsOwners[handle] = owner;
+    [PublicAPI] public void UnregisterPhysicsBody(PhysicsBodyHandle handle) => _physicsOwners.Remove(handle);
+    [PublicAPI] public IWorldComponent? FindPhysicsOwner(PhysicsBodyHandle handle) => _physicsOwners.GetValueOrDefault(handle);
+
+    [PublicAPI] public Vector3 GetGravity() => PhysicsSystem.GetGravity();
+    [PublicAPI] public void SetGravity(in Vector3 gravity) => PhysicsSystem.SetGravity(gravity);
 }

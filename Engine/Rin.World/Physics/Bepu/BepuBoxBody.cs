@@ -5,7 +5,7 @@ using Rin.Core.Shared.Math;
 
 namespace Rin.World.Physics.Bepu;
 
-public class BepuBoxBody : BepuBody, IPhysicsBox
+internal class BepuBoxBody : BepuBody
 {
     private readonly TypedIndex _shapeIndex;
     private Box _shape;

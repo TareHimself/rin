@@ -14,6 +14,15 @@ public class WorldComponent : Component, IWorldComponent
     private Matrix4x4 _localMatrix = Matrix4x4.Identity;
     private bool _localMatrixValid;
 
+    private Transform _cachedWorldTransform;
+    private bool _worldTransformDirty = true;
+
+    /// <summary>
+    ///     Bumped on every real recompute, regardless of who triggered it — safe for change detection.
+    /// </summary>
+    [PublicAPI]
+    public uint TransformVersion { get; private set; }
+
     [PublicAPI]
     public Vector3 Location
     {
@@ -22,6 +31,7 @@ public class WorldComponent : Component, IWorldComponent
         {
             field = value;
             _localMatrixValid = false;
+            MarkWorldTransformDirty();
         }
     } = Vector3.Zero;
 
@@ -33,6 +43,7 @@ public class WorldComponent : Component, IWorldComponent
         {
             field = value;
             _localMatrixValid = false;
+            MarkWorldTransformDirty();
         }
     } = Quaternion.Identity;
 
@@ -44,6 +55,7 @@ public class WorldComponent : Component, IWorldComponent
         {
             field = value;
             _localMatrixValid = false;
+            MarkWorldTransformDirty();
         }
     } = Vector3.One;
 
@@ -78,6 +90,7 @@ public class WorldComponent : Component, IWorldComponent
         if (component.TryHandleAttachment(this))
         {
             TransformParent = component;
+            MarkWorldTransformDirty();
             return true;
         }
 
@@ -91,6 +104,7 @@ public class WorldComponent : Component, IWorldComponent
             if (parent.TryHandleDetachment(this))
             {
                 TransformParent = null;
+                MarkWorldTransformDirty();
                 return true;
             }
 
@@ -98,6 +112,15 @@ public class WorldComponent : Component, IWorldComponent
         }
 
         return true;
+    }
+
+    private void MarkWorldTransformDirty()
+    {
+        if (_worldTransformDirty) return;
+        _worldTransformDirty = true;
+        foreach (var child in GetAttachedComponents())
+            if (child is WorldComponent worldChild)
+                worldChild.MarkWorldTransformDirty();
     }
 
     public void SetLocation(in Vector3 location, Space space = Space.Local)
@@ -269,17 +292,19 @@ public class WorldComponent : Component, IWorldComponent
                 };
             case Space.World:
             {
-                if (TransformParent == null)
-                    return new Transform
+                if (!_worldTransformDirty) return _cachedWorldTransform;
+
+                _cachedWorldTransform = TransformParent == null
+                    ? new Transform
                     {
                         Position = Location,
                         Orientation = Rotation,
                         Scale = Scale
-                    };
-
-                var parentTransform = TransformParent.GetTransform(space);
-
-                return GetTransform().InParentSpace(parentTransform);
+                    }
+                    : GetTransform().InParentSpace(TransformParent.GetTransform(space));
+                _worldTransformDirty = false;
+                TransformVersion++;
+                return _cachedWorldTransform;
             }
             default:
                 throw new ArgumentOutOfRangeException(nameof(space), space, null);

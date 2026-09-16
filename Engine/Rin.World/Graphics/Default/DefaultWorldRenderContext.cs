@@ -43,9 +43,12 @@ public class DefaultWorldRenderContext : IWorldRenderContext
 
     [PublicAPI] public Transform ViewTransform;
 
-    public DefaultWorldRenderContext(CameraComponent viewer, in Extent2D extent)
+    /// <summary>
+    ///     Takes proxy data already resolved by <see cref="DefaultRenderSystem" /> — no tree walk here.
+    /// </summary>
+    public DefaultWorldRenderContext(CameraComponent viewer, in Extent2D extent, StaticMeshInfo[] staticGeometry,
+        SkinnedMeshInfo[] skinnedGeometry, LightInfo[] lights)
     {
-        var world = viewer.Owner?.World ?? throw new Exception("Camera is not in a scene");
         ViewTransform = viewer.GetTransform(Space.World) with { Scale = Vector3.One };
         View = ViewTransform.ToMatrix().Inverse();
         FieldOfView = viewer.FieldOfView;
@@ -55,11 +58,9 @@ public class DefaultWorldRenderContext : IWorldRenderContext
         Projection = MathR.PerspectiveProjection(FieldOfView, extent,
             NearClip, FarClip);
         ViewProjection = View * Projection;
-        var drawCommands = new CommandList();
-        foreach (var root in world.GetPureRoots()) root.Collect(drawCommands, world.WorldTransform);
-        StaticGeometry = drawCommands.StaticMeshes.ToArray();
-        SkinnedGeometry = drawCommands.SkinnedMeshes.ToArray();
-        Lights = drawCommands.Lights.ToArray();
+        StaticGeometry = staticGeometry;
+        SkinnedGeometry = skinnedGeometry;
+        Lights = lights;
         ViewFrustum = MathR.ExtractWorldSpaceFrustum(View, Projection, ViewProjection);
     }
 

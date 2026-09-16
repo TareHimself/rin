@@ -1,5 +1,7 @@
 ﻿using System.Numerics;
 using Rin.World;
+using Rin.World.Graphics.Default;
+using Rin.World.Physics.Bepu;
 using SceneTest.entities;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Layouts;
@@ -9,7 +11,7 @@ namespace SceneTest.Views;
 public class MainPanelView : PanelView
 {
     private readonly CameraActor _cameraActor;
-    private readonly World _world = new();
+    private readonly World _world = new(new DefaultRenderSystem(), new BepuPhysicsSystem());
 
     public MainPanelView()
     {

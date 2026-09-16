@@ -47,6 +47,20 @@ public class Actor : IUpdatable
         foreach (var component in GetComponents().ToArray()) component.Update(deltaSeconds);
     }
 
+    public void LateUpdate(float deltaSeconds)
+    {
+        if (!Active) return;
+
+        foreach (var component in GetComponents().ToArray()) component.LateUpdate(deltaSeconds);
+    }
+
+    public void PrePhysicsUpdate()
+    {
+        if (!Active) return;
+
+        foreach (var component in GetComponents().ToArray()) component.PrePhysicsUpdate();
+    }
+
     [PublicAPI]
     public T AddComponent<T>(T component) where T : IComponent
     {
@@ -61,7 +75,6 @@ public class Actor : IUpdatable
             Debug.Assert(RootComponent != null);
             if (!ReferenceEquals(RootComponent, component) && component is IWorldComponent asSceneComponent)
                 asSceneComponent.AttachTo(RootComponent);
-            if (component is IPhysicsComponent asPhysicsComponent) World.AddPhysicsComponent(asPhysicsComponent);
             component.Start();
         }
 
@@ -100,7 +113,6 @@ public class Actor : IUpdatable
             {
                 Debug.Assert(World != null);
                 component.Stop();
-                if (component is IPhysicsComponent asPhysicsComponent) World.RemovePhysicsComponent(asPhysicsComponent);
             }
         }
     }
@@ -149,7 +161,6 @@ public class Actor : IUpdatable
         {
             if (component != RootComponent && component is IWorldComponent asSceneComponent)
                 asSceneComponent.AttachTo(RootComponent);
-            if (component is IPhysicsComponent asPhysicsComponent) World.AddPhysicsComponent(asPhysicsComponent);
             component.Start();
         }
     }
@@ -160,11 +171,7 @@ public class Actor : IUpdatable
         if (!Active) return;
         Active = false;
         Debug.Assert(World != null);
-        foreach (var component in GetComponents().ToArray())
-        {
-            if (component is IPhysicsComponent asPhysicsComponent) World.AddPhysicsComponent(asPhysicsComponent);
-            component.Stop();
-        }
+        foreach (var component in GetComponents().ToArray()) component.Stop();
 
         _components.Clear();
     }

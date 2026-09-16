@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Rin.Core.Shared.Math;
 using Rin.World.Physics;
 
@@ -6,27 +6,25 @@ namespace Rin.World.Components;
 
 public class SpherePhysicsComponent : SingleBodyPhysicsComponent
 {
-    private IPhysicsSphere? _physicsSphere;
     private float _radius = 5f;
 
     public float Radius
     {
-        get { return _radius = _physicsSphere?.GetRadius() ?? _radius; }
+        get { return _radius = PhysicsBody.IsValid ? Owner!.World!.PhysicsSystem.GetSphereRadius(PhysicsBody) : _radius; }
         set
         {
             _radius = value;
-            _physicsSphere?.SetRadius(_radius);
+            if (PhysicsBody.IsValid) Owner!.World!.PhysicsSystem.SetSphereRadius(PhysicsBody, _radius);
         }
     }
 
-    protected override IPhysicsBody CreateBody(in Transform transform, in PhysicsState state)
+    protected override PhysicsBodyHandle CreateBody(in Transform transform, in PhysicsState state)
     {
         Debug.Assert(Owner?.World != null);
-        _physicsSphere = Owner.World.GetPhysicsSystem().CreateSphere(_radius, transform, state);
-        return _physicsSphere;
+        return Owner.World.PhysicsSystem.CreateSphere(_radius, transform, state);
     }
 
-    public override void ProcessHit(IPhysicsBody body, RayCastResult result)
+    public override void ProcessHit(RayCastResult result)
     {
         throw new NotImplementedException();
     }

@@ -6,6 +6,7 @@ using Rin.World.Components.Lights;
 using Rin.World.Graphics.Default;
 using Rin.World.Mesh;
 using Rin.World.Physics;
+using Rin.World.Physics.Bepu;
 using Examples.Common;
 using Examples.Common.Views;
 using SceneTest.entities;
@@ -33,7 +34,7 @@ public class SceneTestApplication : ExampleApplication
     {
         IViewsModule.Get().OnSurfaceCreated += surf =>
         {
-            var scene = _scene = new World();
+            var scene = _scene = new World(new DefaultRenderSystem(), new BepuPhysicsSystem());
             scene.Start();
 
             // A perspective camera looking down +Z at the play area, and a top-down camera.

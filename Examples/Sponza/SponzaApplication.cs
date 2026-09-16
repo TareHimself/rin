@@ -16,8 +16,10 @@ using Rin.World.Actors;
 using Rin.World.Components;
 using Rin.World.Components.Lights;
 using Rin.World.Graphics;
+using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Mesh;
+using Rin.World.Physics.Bepu;
 using SharpGLTF.Schema2;
 using Texture = SharpGLTF.Schema2.Texture;
 
@@ -182,7 +184,7 @@ public class SponzaApplication : ExampleApplication
             .CreateMesh(vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
         await task;
 
-        var world = new World();
+        var world = new World(new DefaultRenderSystem(), new BepuPhysicsSystem());
         world.Start();
 
         world.AddActor(new Actor

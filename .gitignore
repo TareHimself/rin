@@ -30,3 +30,4 @@ build-*
 specs/
 .DS_Store
 *.sln.DotSettings.user
+[Tt]estResults/
