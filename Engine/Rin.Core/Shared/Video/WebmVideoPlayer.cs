@@ -281,6 +281,7 @@ public class WebmVideoPlayer : IVideoPlayer
         _lastFrame?.Dispose();
         _lastFrame = null;
         _audioCallbackHandlerGcHandle.Free();
+        Native.videoContextFree(_context);
     }
 
     ~WebmVideoPlayer()
