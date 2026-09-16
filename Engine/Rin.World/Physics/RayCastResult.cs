@@ -1,12 +1,11 @@
-﻿using System.Numerics;
-using Rin.World.Components;
+using System.Numerics;
 
 namespace Rin.World.Physics;
 
-public class RayCastResult
+public readonly record struct RayCastResult
 {
-    public required Vector3 Location { get; set; }
-    public required Vector3 Normal { get; set; }
-    public required float Distance { get; set; }
-    public required IPhysicsComponent Component { get; set; }
+    public required PhysicsBodyHandle Body { get; init; }
+    public required Vector3 Location { get; init; }
+    public required Vector3 Normal { get; init; }
+    public required float Distance { get; init; }
 }

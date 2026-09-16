@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Numerics;
 using Rin.Core.Shared.Math;
 using Rin.World.Physics;
@@ -7,28 +7,26 @@ namespace Rin.World.Components;
 
 public class BoxPhysicsComponent : SingleBodyPhysicsComponent
 {
-    private IPhysicsBox? _physicsBox;
     private Vector3 _size;
 
     public Vector3 Size
     {
-        get { return _size = _physicsBox?.GetSize() ?? _size; }
+        get { return _size = PhysicsBody.IsValid ? Owner!.World!.PhysicsSystem.GetBoxSize(PhysicsBody) : _size; }
 
         set
         {
             _size = value;
-            _physicsBox?.SetSize(_size);
+            if (PhysicsBody.IsValid) Owner!.World!.PhysicsSystem.SetBoxSize(PhysicsBody, _size);
         }
     }
 
-    protected override IPhysicsBody CreateBody(in Transform transform, in PhysicsState state)
+    protected override PhysicsBodyHandle CreateBody(in Transform transform, in PhysicsState state)
     {
         Debug.Assert(Owner?.World != null);
-        _physicsBox = Owner.World.GetPhysicsSystem().CreateBox(Size, transform, state);
-        return _physicsBox;
+        return Owner.World.PhysicsSystem.CreateBox(Size, transform, state);
     }
 
-    public override void ProcessHit(IPhysicsBody body, RayCastResult result)
+    public override void ProcessHit(RayCastResult result)
     {
         throw new NotImplementedException();
     }

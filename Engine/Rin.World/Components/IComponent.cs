@@ -1,4 +1,4 @@
-﻿using Rin.Core;
+using Rin.Core;
 using Rin.World.Actors;
 
 namespace Rin.World.Components;
@@ -10,4 +10,8 @@ public interface IComponent : IUpdatable
     public void Start();
 
     public void Stop();
+
+    public void LateUpdate(float deltaSeconds);
+
+    public void PrePhysicsUpdate();
 }

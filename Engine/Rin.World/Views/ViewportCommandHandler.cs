@@ -13,7 +13,6 @@ using Rin.Core.Views.Graphics.PassConfigs;
 using Rin.Core.Views.Graphics.Quads;
 using Rin.World.Components;
 using Rin.World.Graphics;
-using Rin.World.Graphics.Default;
 using CommandList = Rin.Core.Views.Graphics.CommandList;
 using ICommand = Rin.Core.Views.Graphics.Commands.ICommand;
 
@@ -146,7 +145,7 @@ internal class DrawViewportCommand(
     IWorldRenderContext context,
     in Vector2 displaySize,
     in Matrix4x4 transform,
-    IWorldRenderer renderer,
+    IRenderSystem renderer,
     ViewportChannel channel)
     : TCommand<MainPassConfig, ViewportCommandHandler>
 {
@@ -158,7 +157,7 @@ internal class DrawViewportCommand(
 
     public Matrix4x4 Transform { get; } = transform;
 
-    public IWorldRenderer Render { get; } = renderer;
+    public IRenderSystem Render { get; } = renderer;
     public ViewportChannel Channel { get; } = channel;
 }
 
@@ -168,7 +167,6 @@ public class Viewport : ContentView
     public static int SettleFrames = 5;
 
     private readonly CameraComponent _targetCamera;
-    private readonly DefaultWorldRenderer _worldRenderer = new();
     private bool _captureMouse;
     private ViewportChannel _channel = ViewportChannel.Scene;
     private bool _ignoreNextMove;
@@ -318,8 +316,9 @@ public class Viewport : ContentView
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         // Runs on the collect (main) thread, inside the render barrier — safe to walk the World.
-        var context = _worldRenderer.Snapshot(_targetCamera, GetRenderSize().ToExtent());
-        commands.Add(new DrawViewportCommand(context, GetContentSize(), transform, _worldRenderer, _channel));
+        var renderSystem = _targetCamera.Owner!.World!.RenderSystem;
+        var context = renderSystem.Snapshot(_targetCamera, GetRenderSize().ToExtent());
+        commands.Add(new DrawViewportCommand(context, GetContentSize(), transform, renderSystem, _channel));
         commands.AddText(transform, "Noto Sans", GetModeText());
     }
 
@@ -335,6 +334,5 @@ public class Viewport : ContentView
     public override void Dispose()
     {
         base.Dispose();
-        _worldRenderer.Dispose();
     }
 }

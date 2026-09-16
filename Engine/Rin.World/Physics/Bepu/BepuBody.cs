@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
@@ -6,13 +6,14 @@ using Rin.Core.Shared.Math;
 
 namespace Rin.World.Physics.Bepu;
 
-public abstract class BepuBody : IPhysicsBody
+internal abstract class BepuBody
 {
     protected readonly BepuPhysicsSystem System;
     private float _mass = 1.0f;
     private PhysicsState _state;
     public BodyHandle? BodyHandle;
     public StaticHandle? StaticHandle;
+    public PhysicsBodyHandle Handle;
 
     public BepuBody(PhysicsState state, Transform transform, BepuPhysicsSystem system)
     {
@@ -48,11 +49,6 @@ public abstract class BepuBody : IPhysicsBody
 
     /// <summary>Opt in to swept (continuous) collision — costly; only for small fast movers.</summary>
     public bool ContinuousCollision { get; set; }
-
-    public void ProcessHit(RayCastResult result)
-    {
-        throw new NotImplementedException();
-    }
 
     public Vector3 GetLinearVelocity()
     {
