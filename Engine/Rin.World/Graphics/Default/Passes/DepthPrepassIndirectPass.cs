@@ -104,6 +104,7 @@ public class DepthPrepassIndirectPass : IPass
     public bool IsTerminal { get; set; } = true;
     public Action? OnPrune => null;
 
+    [NoReorder]
     private struct SkinningExecutionInfo
     {
         public required int PoseId;
@@ -111,6 +112,7 @@ public class DepthPrepassIndirectPass : IPass
         public required int MeshId;
     }
 
+    [NoReorder]
     public record struct SkinningPushConstants
     {
         public required ulong ExecutionInfoBuffer;

@@ -10,11 +10,10 @@ namespace Rin.World.Graphics.Default.Passes;
 ///     writes results to <see cref="CullingPass.OutputBufferId" />
 /// </summary>
 /// <param name="renderContext"></param>
-public class CullingPass(DefaultWorldRenderContext renderContext) : IComputePass
+public partial class CullingPass(DefaultWorldRenderContext renderContext) : IComputePass
 {
-    private readonly IComputeShader _shader = IGraphicsModule
-        .Get()
-        .MakeCompute("Shaders/World/Mesh/Compute/culling.slang");
+    [ComputeShader("Shaders/World/Mesh/Compute/culling.slang")]
+    private partial IComputeShader Shader { get; }
 
     [PublicAPI] public uint OutputBufferId { get; set; }
 
@@ -33,7 +32,7 @@ public class CullingPass(DefaultWorldRenderContext renderContext) : IComputePass
         var boundsBuffer = graph.GetBufferOrException(renderContext.BoundsBufferId);
         var outputBuffer = graph.GetBufferOrException(OutputBufferId);
 
-        if (_shader.Bind(ctx) is not { } bindContext) return;
+        if (Shader.Bind(ctx) is not { } bindContext) return;
         bindContext
             .Push(new Push
             {
@@ -44,7 +43,7 @@ public class CullingPass(DefaultWorldRenderContext renderContext) : IComputePass
             .Invoke((uint)renderContext.TotalMeshCount);
     }
 
-
+    [NoReorder]
     private struct Push
     {
         public required ulong BoundsBufferAddress;

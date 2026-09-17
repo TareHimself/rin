@@ -20,6 +20,7 @@ public class SponzaMeshMaterial : IMeshMaterial
     public IMaterialPass ColorPass { get; } = new ColorMeshPass();
     public IMaterialPass DepthPass { get; } = new DepthMeshPass();
 
+    [NoReorder]
     private struct PushConstant
     {
         public ulong SceneAddress;
@@ -83,6 +84,7 @@ public class SponzaMeshMaterial : IMeshMaterial
             view.Write(data);
         }
 
+        [NoReorder]
         private struct DefaultMaterialProperties()
         {
             [PublicAPI] public ulong VertexAddress = 0;
@@ -132,6 +134,7 @@ public class SponzaMeshMaterial : IMeshMaterial
             });
         }
 
+        [NoReorder]
         private struct DepthMaterialData
         {
             public Matrix4x4 Transform;

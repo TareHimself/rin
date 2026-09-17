@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <ProjectReference Include="$(EngineDir)Rin.Core\Rin.Core.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup Label="Slang shaders">

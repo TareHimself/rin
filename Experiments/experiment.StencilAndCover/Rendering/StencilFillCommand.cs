@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
@@ -10,6 +11,7 @@ using Rin.Core.Views.Graphics.Commands;
 namespace experiment.StencilAndCover.Rendering;
 
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 internal struct StencilFillPush
 {
     public required Matrix4x4 Projection;
@@ -42,10 +44,10 @@ public class StencilFillPassConfig : IPassConfig
     public void End(ICompiledGraph graph, IExecutionContext ctx) { }
 }
 
-public class StencilFillCommandHandler : ICommandHandler
+public partial class StencilFillCommandHandler : ICommandHandler
 {
-    private readonly IGraphicsShader _shader =
-        IGraphicsModule.Get().MakeGraphics("StencilAndCover/stencil_fill.slang");
+    [GraphicsShader("StencilAndCover/stencil_fill.slang")]
+    private partial IGraphicsShader Shader { get; }
 
     private StencilFillCommand[] _commands = [];
 
@@ -81,7 +83,7 @@ public class StencilFillCommandHandler : ICommandHandler
                 .DisableFaceCulling()
                 .StencilFillOp();
 
-            if (_shader.Bind(ctx) is { } bind)
+            if (Shader.Bind(ctx) is { } bind)
                 bind.Push(new StencilFillPush
                     {
                         Projection = surfaceContext.ProjectionMatrix,

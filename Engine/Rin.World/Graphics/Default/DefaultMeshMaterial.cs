@@ -39,6 +39,7 @@ public class DefaultMeshMaterial : IMeshMaterial
     public IMaterialPass ColorPass { get; }
     public IMaterialPass DepthPass { get; } = new DefaultDepthPass();
 
+    [NoReorder]
     private struct PushConstant
     {
         public ulong SceneAddress;
@@ -95,6 +96,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             view.Write(data);
         }
 
+        [NoReorder]
         private struct DefaultMaterialProperties()
         {
             [PublicAPI] public ulong VertexAddress = 0;
@@ -209,7 +211,8 @@ public class DefaultMeshMaterial : IMeshMaterial
                 VertexAddress = mesh.VertexBuffer.GetAddress()
             });
         }
-
+        
+        [NoReorder]
         private struct DepthMaterialData
         {
             public Matrix4x4 Transform;

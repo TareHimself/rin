@@ -1,7 +1,9 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 
 namespace Rin.World.Graphics;
 
+[NoReorder]
 public struct WorldInfo
 {
     public Matrix4x4 View;

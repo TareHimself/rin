@@ -1,10 +1,12 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 
 namespace Rin.World.Graphics;
 
 /// <summary>
 ///     Packed info about a light in the scene
 /// </summary>
+[NoReorder]
 public struct LightInfo
 {
     // float4 locationRadius;

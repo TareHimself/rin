@@ -22,10 +22,12 @@
         <ProjectReference Include="$(EngineDir)Rin.Core\Rin.Core.csproj" />
         <ProjectReference Include="$(EngineDir)Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj" />
         <ProjectReference Include="$(EngineDir)Rin.Audio.Miniaudio\Rin.Audio.Miniaudio.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="SixLabors.Fonts"/>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
     </ItemGroup>
 
 </Project>

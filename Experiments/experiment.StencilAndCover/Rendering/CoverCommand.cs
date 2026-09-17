@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
@@ -10,6 +11,7 @@ using Rin.Core.Views.Graphics.Commands;
 namespace experiment.StencilAndCover.Rendering;
 
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 internal struct CoverPush
 {
     public required Matrix4x4 Projection;
@@ -23,6 +25,7 @@ internal struct CoverPush
 // The quad hugs the curve's chord (not an axis-aligned box around it), so a long diagonal edge
 // doesn't cover a huge swath of the shape's interior and overlap unrelated neighboring edges.
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 public struct EdgeInstance
 {
     public required Vector2 P0;
@@ -36,6 +39,7 @@ public struct EdgeInstance
 }
 
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 internal struct BoundaryPush
 {
     public required Matrix4x4 Projection;
@@ -69,13 +73,13 @@ public class CoverPassConfig : IPassConfig
     public void End(ICompiledGraph graph, IExecutionContext ctx) { }
 }
 
-public class CoverCommandHandler : ICommandHandler
+public partial class CoverCommandHandler : ICommandHandler
 {
-    private readonly IGraphicsShader _coverShader =
-        IGraphicsModule.Get().MakeGraphics("StencilAndCover/cover_fill.slang");
+    [GraphicsShader("StencilAndCover/cover_fill.slang")]
+    private partial IGraphicsShader CoverShader { get; }
 
-    private readonly IGraphicsShader _boundaryShader =
-        IGraphicsModule.Get().MakeGraphics("StencilAndCover/boundary_aa.slang");
+    [GraphicsShader("StencilAndCover/boundary_aa.slang")]
+    private partial IGraphicsShader BoundaryShader { get; }
 
     private CoverCommand[] _commands = [];
 
@@ -108,7 +112,7 @@ public class CoverCommandHandler : ICommandHandler
                 .DisableFaceCulling();
 
             ctx.StencilCoverOp();
-            if (_coverShader.Bind(ctx) is { } coverBind)
+            if (CoverShader.Bind(ctx) is { } coverBind)
                 coverBind.Push(new CoverPush
                     {
                         Projection = surfaceContext.ProjectionMatrix,
@@ -124,7 +128,7 @@ public class CoverCommandHandler : ICommandHandler
                 edgeBuffer.Write(CollectionsMarshal.AsSpan(command.Edges));
 
                 ctx.StencilPassThrough();
-                if (_boundaryShader.Bind(ctx) is { } boundaryBind)
+                if (BoundaryShader.Bind(ctx) is { } boundaryBind)
                     boundaryBind.Push(new BoundaryPush
                         {
                             Projection = surfaceContext.ProjectionMatrix,
