@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <IsAotCompatible>true</IsAotCompatible>
@@ -10,19 +8,18 @@
         <Title>Rin.Core</Title>
         <Authors>TareHimself</Authors>
         <Version>2.0.1</Version>
-        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" PrivateAssets="All" />
-        <PackageReference Include="NetVips" Version="3.2.0"/>
-        <PackageReference Include="NetVips.Native" Version="8.18.3" />
-        <PackageReference Include="StbRectPackSharp" Version="1.0.4"/>
-        <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119"/>
-        <PackageReference Include="TareHimself.Rin.Native" Version="1.*"/>
-        <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" Version="14.2.1.1" />
-        <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.1.1" />
-        <PackageReference Include="HarfBuzzSharp.NativeAssets.macOS" Version="14.2.1.1" />
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="NetVips"/>
+        <PackageReference Include="NetVips.Native" />
+        <PackageReference Include="StbRectPackSharp"/>
+        <PackageReference Include="System.Data.SQLite.Core"/>
+        <PackageReference Include="TareHimself.Rin.Native"/>
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" />
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.macOS" />
     </ItemGroup>
 
     <ItemGroup Label="Content">
@@ -33,10 +30,10 @@
         <RinSlangDiscoverPrefix>Shaders/Core/</RinSlangDiscoverPrefix>
         <RinSlangOutputSubpath>Content\Shaders\Core\</RinSlangOutputSubpath>
     </PropertyGroup>
-    <Import Project="..\..\msbuild\RinSlang.targets" />
+    <Import Project="$(RinMSBuildDir)RinSlang.targets" />
 
     <ItemGroup>
-      <ProjectReference Include="..\Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+      <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <PropertyGroup>

@@ -1,16 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-
-
     <ItemGroup>
-        <ProjectReference Include="..\..\Engine\Rin.Audio.Miniaudio\Rin.Audio.Miniaudio.csproj" />
-        <ProjectReference Include="..\..\Engine\Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj" />
-        <ProjectReference Include="..\..\Engine\Rin.Core\Rin.Core.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.Audio.Miniaudio\Rin.Audio.Miniaudio.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.Core\Rin.Core.csproj" />
     </ItemGroup>
 
 </Project>
