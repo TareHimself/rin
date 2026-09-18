@@ -1,14 +1,14 @@
-﻿using Rin.Core.Graphics;
+﻿using JetBrains.Annotations;
+using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
 
 namespace Rin.World.Graphics.Default.Passes;
 
-public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRenderContext renderContext) : IComputePass
+public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRenderContext renderContext) : IComputePass
 {
-    private readonly IComputeShader _shader = IGraphicsModule
-        .Get()
-        .MakeCompute("Shaders/World/Mesh/Compute/draw_indirect.slang");
+    [ComputeShader("Shaders/World/Mesh/Compute/draw_indirect.slang")]
+    private partial IComputeShader Shader { get; }
 
     private uint[] _bufferIds = [];
     private uint[] _depthMeshBuffers = [];
@@ -55,7 +55,7 @@ public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRender
         var meshBuffers = _meshBuffers.Select(graph.GetBufferOrException).ToArray();
         var depthMeshBuffers = _depthMeshBuffers.Select(graph.GetBufferOrException).ToArray();
 
-        if (_shader.Bind(ctx) is { } bindContext)
+        if (Shader.Bind(ctx) is { } bindContext)
         {
             for (var i = 0; i < renderContext.IndirectGroups.Length; i++)
             {
@@ -116,7 +116,7 @@ public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRender
             }
         }
     }
-
+    [NoReorder]
     private struct Mesh
     {
         public required uint IndicesCount;
@@ -126,7 +126,7 @@ public class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRender
         public required int MeshIndex;
     }
 
-
+    [NoReorder]
     private struct PushData
     {
         public required ulong CullingBufferAddress;

@@ -11,10 +11,10 @@ using Rin.Core.Views.Graphics.Commands;
 
 namespace ViewsTest;
 
-public class CustomShaderCommandHandler : ICommandHandler
+public partial class CustomShaderCommandHandler : ICommandHandler
 {
-    private readonly IGraphicsShader
-        _prettyShader = IGraphicsModule.Get().MakeGraphics("ViewsTest/pretty.slang");
+    [GraphicsShader("ViewsTest/pretty.slang")]
+    private partial IGraphicsShader Shader { get; }
 
     private CustomShaderCommand[] _commands = [];
     private uint BufferId { get; set; }
@@ -32,7 +32,7 @@ public class CustomShaderCommandHandler : ICommandHandler
     public void Execute(IPassConfig passConfig,
         SurfaceContext surfaceContext, ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_prettyShader.Bind(ctx) is { } bindContext)
+        if (Shader.Bind(ctx) is { } bindContext)
         {
             var view = graph.GetBufferOrException(BufferId);
             for (var i = 0; i < _commands.Length; i++)

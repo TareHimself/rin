@@ -2,9 +2,6 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
@@ -18,17 +15,19 @@
     <PropertyGroup Label="Slang shaders">
         <RinSlangOutputSubpath>Content\VectorRendering\</RinSlangOutputSubpath>
     </PropertyGroup>
-    <Import Project="..\..\msbuild\RinSlang.targets" />
+    <Import Project="$(RinMSBuildDir)RinSlang.targets" />
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Examples\Common\Examples.Common.csproj"/>
-        <ProjectReference Include="..\..\Engine\Rin.Core\Rin.Core.csproj" />
-        <ProjectReference Include="..\..\Engine\Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj" />
-        <ProjectReference Include="..\..\Engine\Rin.Audio.Miniaudio\Rin.Audio.Miniaudio.csproj" />
+        <ProjectReference Include="$(ExamplesDir)Common\Examples.Common.csproj"/>
+        <ProjectReference Include="$(EngineDir)Rin.Core\Rin.Core.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.Audio.Miniaudio\Rin.Audio.Miniaudio.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="SixLabors.Fonts" Version="2.1.3"/>
+        <PackageReference Include="SixLabors.Fonts"/>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
     </ItemGroup>
 
 </Project>

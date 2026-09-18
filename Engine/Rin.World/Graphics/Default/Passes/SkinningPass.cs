@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
@@ -11,11 +12,10 @@ namespace Rin.World.Graphics.Default.Passes;
 ///     Create this pass if we are going to do skinning
 /// </summary>
 /// <param name="renderContext"></param>
-public class SkinningPass(DefaultWorldRenderContext renderContext) : IComputePass
+public partial class SkinningPass(DefaultWorldRenderContext renderContext) : IComputePass
 {
-    private readonly IComputeShader _skinningShader = IGraphicsModule
-        .Get()
-        .MakeCompute("Shaders/World/Mesh/Compute/skinning.slang");
+    [ComputeShader("Shaders/World/Mesh/Compute/skinning.slang")]
+    private partial IComputeShader SkinningShader { get; }
 
     private IMesh[] _skinnedMeshes = [];
 
@@ -84,7 +84,7 @@ public class SkinningPass(DefaultWorldRenderContext renderContext) : IComputePas
         }).ToArray());
         executionInfos.Write(ExecutionInfos);
 
-        if (_skinningShader.Bind(ctx) is { } bindContext)
+        if (SkinningShader.Bind(ctx) is { } bindContext)
         {
             bindContext
                 .Push(new SkinningPushConstants
@@ -108,14 +108,14 @@ public class SkinningPass(DefaultWorldRenderContext renderContext) : IComputePas
             }
         }
     }
-
+    [NoReorder]
     private struct SkinningExecutionInfo
     {
         public required int PoseId;
         public required int VertexId;
         public required int MeshId;
     }
-
+    [NoReorder]
     public record struct SkinningPushConstants
     {
         public required int TotalInvocations;

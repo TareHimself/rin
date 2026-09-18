@@ -1,11 +1,13 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 
 namespace experiment.Slug.Rendering;
 
 // Per-instance draw data for one vector shape/glyph, uploaded verbatim to the GPU.
 // Must match struct SlugInstanceData in slug.slang field-for-field.
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 public struct SlugInstanceData
 {
     // Screen-space quad the vertex shader spans (6 vertices, 2 triangles).

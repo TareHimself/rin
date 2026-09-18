@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
@@ -13,6 +14,7 @@ namespace experiment.Slug.Rendering;
 
 // Push constants sent to slug.slang for each draw call — must match struct SlugPush exactly.
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 internal struct SlugPush
 {
     public required ulong BufferAddress;
@@ -28,9 +30,10 @@ public class SlugDrawCommand : TCommand<MainPassConfig, SlugDrawHandler>
     public required List<SlugInstanceData> Instances;
 }
 
-public class SlugDrawHandler : ICommandHandler
+public partial class SlugDrawHandler : ICommandHandler
 {
-    private readonly IGraphicsShader _shader = IGraphicsModule.Get().MakeGraphics("Slug/slug.slang");
+    [GraphicsShader("Slug/slug.slang")]
+    private partial IGraphicsShader Shader { get; }
 
     private SlugDrawCommand[] _commands = [];
     private uint[] _bufferIds = [];
@@ -60,7 +63,7 @@ public class SlugDrawHandler : ICommandHandler
             var buffer = graph.GetBufferOrException(bufferId);
             buffer.Write(CollectionsMarshal.AsSpan(command.Instances));
 
-            if (_shader.Bind(ctx) is not { } bind) continue;
+            if (Shader.Bind(ctx) is not { } bind) continue;
 
             bind.Push(new SlugPush
                 {

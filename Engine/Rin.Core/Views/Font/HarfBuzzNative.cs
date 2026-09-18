@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 
 namespace Rin.Core.Views.Font;
 
@@ -36,6 +37,7 @@ internal static partial class HarfBuzzNative
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    [NoReorder]
     internal struct GlyphInfo
     {
         public uint Codepoint;
@@ -46,6 +48,7 @@ internal static partial class HarfBuzzNative
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    [NoReorder]
     internal struct GlyphPosition
     {
         public int XAdvance;
@@ -56,6 +59,7 @@ internal static partial class HarfBuzzNative
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    [NoReorder]
     internal struct FontExtents
     {
         public int Ascender;
@@ -65,6 +69,7 @@ internal static partial class HarfBuzzNative
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    [NoReorder]
     internal struct GlyphExtents
     {
         public int XBearing;
@@ -74,6 +79,7 @@ internal static partial class HarfBuzzNative
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    [NoReorder]
     internal struct Feature
     {
         public uint Tag;

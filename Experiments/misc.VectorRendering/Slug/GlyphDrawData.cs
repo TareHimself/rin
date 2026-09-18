@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 
 namespace misc.VectorRendering.Slug;
 
@@ -7,6 +8,7 @@ namespace misc.VectorRendering.Slug;
 // This struct is uploaded verbatim to the GPU and must match GlyphDrawData in slug.slang exactly.
 // Fields are laid out sequentially without padding (all naturally aligned).
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 public struct GlyphDrawData
 {
     // Screen-space axis-aligned bounding box for this glyph's quad.

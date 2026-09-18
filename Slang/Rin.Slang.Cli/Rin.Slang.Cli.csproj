@@ -4,9 +4,6 @@
         <OutputType>Exe</OutputType>
         <RootNamespace>Rin.Slang.Cli</RootNamespace>
         <AssemblyName>rin-slang</AssemblyName>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>

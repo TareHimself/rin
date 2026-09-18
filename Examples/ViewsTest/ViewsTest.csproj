@@ -2,9 +2,6 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <TargetFramework>net10.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <PublishAot>true</PublishAot>
         <!--        <PublishAot>true</PublishAot>-->
@@ -37,10 +34,10 @@
     <PropertyGroup Label="Slang shaders">
         <RinSlangOutputSubpath>Content\ViewsTest\</RinSlangOutputSubpath>
     </PropertyGroup>
-    <Import Project="..\..\msbuild\RinSlang.targets" />
+    <Import Project="$(RinMSBuildDir)RinSlang.targets" />
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Engine\Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
         <ProjectReference Include="..\Common\Examples.Common.csproj"/>
     </ItemGroup>
 
@@ -49,6 +46,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" PrivateAssets="All" />
+      <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
     </ItemGroup>
 </Project>

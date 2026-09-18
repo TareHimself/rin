@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
@@ -8,11 +9,10 @@ namespace Rin.World.Graphics.Default.Passes;
 ///     Updates the bounds of skinned meshes
 /// </summary>
 /// <param name="renderContext"></param>
-public class BoundsUpdatePass(DefaultWorldRenderContext renderContext) : IComputePass
+public partial class BoundsUpdatePass(DefaultWorldRenderContext renderContext) : IComputePass
 {
-    private readonly IComputeShader _shader = IGraphicsModule
-        .Get()
-        .MakeCompute("Shaders/World/Mesh/Compute/bounds_update.slang");
+    [ComputeShader("Shaders/World/Mesh/Compute/bounds_update.slang")]
+    private partial IComputeShader Shader { get; }
 
     private int _skinnedMeshCount;
 
@@ -41,7 +41,7 @@ public class BoundsUpdatePass(DefaultWorldRenderContext renderContext) : IComput
             VertexCount = c.VertexCount
         }).ToArray());
 
-        if (_shader.Bind(ctx) is not { } bindContext) return;
+        if (Shader.Bind(ctx) is not { } bindContext) return;
 
         bindContext
             .Push(new Push
@@ -53,7 +53,7 @@ public class BoundsUpdatePass(DefaultWorldRenderContext renderContext) : IComput
             .Invoke((uint)_skinnedMeshCount);
     }
 
-
+    [NoReorder]
     private struct Push
     {
         public required ulong SkinnedMeshesAddress;
@@ -61,6 +61,7 @@ public class BoundsUpdatePass(DefaultWorldRenderContext renderContext) : IComput
         public required ulong BoundsBufferAddress;
     }
 
+    [NoReorder]
     private struct SkinnedMesh
     {
         public required int MeshId;

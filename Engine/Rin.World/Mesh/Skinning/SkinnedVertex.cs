@@ -1,4 +1,5 @@
 using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Core.Shared.Math;
 using Rin.World.Graphics.Mesh;
 
@@ -7,6 +8,7 @@ namespace Rin.World.Mesh.Skinning;
 /// <summary>
 ///     4 bones per vertex
 /// </summary>
+[NoReorder]
 public struct SkinnedVertex : IVertex
 {
     public Vertex Vertex;

@@ -4,6 +4,7 @@ using Rin.Core.Shared.Math;
 
 namespace Rin.World.Math;
 
+[NoReorder]
 public struct Rotator(float inYaw, float inPitch, float inRoll)
 {
     public float Pitch = inPitch % 360.0f;

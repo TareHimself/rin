@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
@@ -29,10 +30,10 @@ public enum ViewportChannel
     Radiance
 }
 
-internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
+internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
 {
-    private readonly IGraphicsShader _shader = IGraphicsModule.Get()
-        .MakeGraphics("Shaders/World/viewport.slang");
+    [GraphicsShader("Shaders/World/viewport.slang")]
+    private partial IGraphicsShader Shader { get; }
 
     private DrawViewportCommand[] _commands = [];
 
@@ -86,7 +87,7 @@ internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
     public void Execute(IPassConfig passConfig,
         SurfaceContext surfaceContext, ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_shader.Bind(ctx) is { } bindContext)
+        if (Shader.Bind(ctx) is { } bindContext)
         {
             var outputImages = _outputImageIds.Select(graph.GetImageOrException).ToArray();
             var pushBuffers = _pushBufferIds.Select(graph.GetBufferOrException).ToArray();
@@ -125,6 +126,7 @@ internal class ViewportCommandHandler : ICommandHandlerWithPreAdd
         }
     }
 
+    [NoReorder]
     private struct PushData
     {
         public required Matrix4x4 Projection;

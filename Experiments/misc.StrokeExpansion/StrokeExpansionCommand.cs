@@ -8,10 +8,12 @@ using Rin.Core.Views.Graphics.PassConfigs;
 
 namespace misc.StrokeExpansion;
 
-public class StrokeExpansionHandler : ICommandHandler
+public partial class StrokeExpansionHandler : ICommandHandler
 {
     private StrokeExpansionCommand[] _commands = [];
-    private IComputeShader _shader = IGraphicsModule.Get().MakeCompute("StrokeExpansion/stroke_expansion.slang");
+
+    [ComputeShader("StrokeExpansion/stroke_expansion.slang")]
+    private partial IComputeShader Shader { get; }
 
     public void Init(ICommand[] commands)
     {

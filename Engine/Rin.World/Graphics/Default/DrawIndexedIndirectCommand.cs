@@ -1,3 +1,5 @@
+using JetBrains.Annotations;
+
 namespace Rin.World.Graphics.Default;
 
 /// <summary>
@@ -5,6 +7,7 @@ namespace Rin.World.Graphics.Default;
 ///     vertexOffset, firstInstance as u32/u32/u32/i32/u32) so buffers written with this struct can be consumed
 ///     directly by vkCmdDrawIndexedIndirectCount.
 /// </summary>
+[NoReorder]
 public struct DrawIndexedIndirectCommand
 {
     public required uint IndexCount;

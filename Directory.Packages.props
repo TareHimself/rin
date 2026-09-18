@@ -1,0 +1,52 @@
+<Project>
+
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+    </PropertyGroup>
+
+    <ItemGroup Label="Rin packages">
+        <PackageVersion Include="TareHimself.Rin.Native" Version="1.*" />
+        <PackageVersion Include="TareHimself.Rin.Core" Version="2.0.1" />
+        <PackageVersion Include="TareHimself.Rin.Slang" Version="1.*" />
+        <PackageVersion Include="TareHimself.Rin.Slang.Native" Version="1.*" />
+        <PackageVersion Include="TareHimself.Rin.Audio.Miniaudio.Native" Version="1.*" />
+        <PackageVersion Include="TareHimself.Rin.Graphics.Vulkan.Native" Version="1.*" />
+    </ItemGroup>
+
+    <ItemGroup Label="Third-party">
+        <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />
+        <PackageVersion Include="NetVips" Version="3.2.0" />
+        <PackageVersion Include="NetVips.Native" Version="8.18.3" />
+        <PackageVersion Include="StbRectPackSharp" Version="1.0.4" />
+        <PackageVersion Include="System.Data.SQLite.Core" Version="1.0.119" />
+        <PackageVersion Include="HarfBuzzSharp.NativeAssets.Win32" Version="14.2.1.1" />
+        <PackageVersion Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.1.1" />
+        <PackageVersion Include="HarfBuzzSharp.NativeAssets.macOS" Version="14.2.1.1" />
+        <PackageVersion Include="TerraFX.Interop.Vulkan" Version="1.4.328.1" />
+        <PackageVersion Include="BepuPhysics" Version="2.5.0-beta.25" />
+        <PackageVersion Include="SharpGLTF.Core" Version="1.0.4" />
+        <PackageVersion Include="SpotifyExplode" Version="1.1.2" />
+        <PackageVersion Include="YoutubeExplode" Version="6.6.0" />
+        <PackageVersion Include="SixLabors.Fonts" Version="2.1.3" />
+    </ItemGroup>
+
+    <ItemGroup Label="Test infra">
+        <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+        <PackageVersion Include="NUnit" Version="4.2.2" />
+        <PackageVersion Include="NUnit.Analyzers" Version="4.4.0" />
+        <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageVersion Include="xunit" Version="2.4.2" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="2.4.5" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" Version="1.1.1" />
+    </ItemGroup>
+
+    <ItemGroup Label="Roslyn / MSBuild">
+        <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.3.0" />
+        <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="17.14.8" />
+    </ItemGroup>
+
+</Project>

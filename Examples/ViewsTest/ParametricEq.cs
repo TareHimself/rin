@@ -1,10 +1,12 @@
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using Rin.Core;
 using Rin.Core.Audio.Effects;
 
 namespace ViewsTest;
 
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 public struct BiquadState
 {
     public float X1, X2;
@@ -12,6 +14,7 @@ public struct BiquadState
 }
 
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 public struct EqParameters
 {
     // Just dB gains per band — no sample rate needed
@@ -42,6 +45,7 @@ public struct EqParameters
 }
 
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 public struct EqState
 {
     // Cached biquad coefficients (recomputed when SR or gains change)
@@ -56,6 +60,7 @@ public struct EqState
 }
 
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 public struct EqCoeffCache
 {
     public float B0_0, B1_0, B2_0, A1_0, A2_0;

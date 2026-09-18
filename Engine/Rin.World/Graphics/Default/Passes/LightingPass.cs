@@ -1,14 +1,15 @@
 using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
 
 namespace Rin.World.Graphics.Default.Passes;
 
-public class LightingPass(DefaultWorldRenderContext context) : IPass
+public partial class LightingPass(DefaultWorldRenderContext context) : IPass
 {
-    private readonly IGraphicsShader _shader = IGraphicsModule.Get()
-        .MakeGraphics("Shaders/World/lighting.slang");
+    [GraphicsShader("Shaders/World/lighting.slang")]
+    private partial IGraphicsShader Shader { get; }
 
     private uint _lightBufferId;
     private uint _worldBufferId;
@@ -30,7 +31,7 @@ public class LightingPass(DefaultWorldRenderContext context) : IPass
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (_shader.Bind(ctx) is { } bindContext)
+        if (Shader.Bind(ctx) is { } bindContext)
         {
             var gBuffer0 = graph.GetImageOrException(context.GBufferImage0);
             var gBuffer1 = graph.GetImageOrException(context.GBufferImage1);
@@ -63,7 +64,7 @@ public class LightingPass(DefaultWorldRenderContext context) : IPass
             ctx.EndRendering();
         }
     }
-
+    [NoReorder]
     private struct LightingInfo
     {
         public required ResourceHandle GBuffer0;

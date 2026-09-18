@@ -1,0 +1,22 @@
+<Project>
+
+    <!-- Root-relative path properties so ProjectReference/Import paths survive projects moving between folders. -->
+    <PropertyGroup>
+        <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+        <EngineDir>$(RepoRoot)Engine\</EngineDir>
+        <ExamplesDir>$(RepoRoot)Examples\</ExamplesDir>
+        <ExperimentsDir>$(RepoRoot)Experiments\</ExperimentsDir>
+        <SlangDir>$(RepoRoot)Slang\</SlangDir>
+        <ToolsDir>$(RepoRoot)Tools\</ToolsDir>
+        <RinMSBuildDir>$(RepoRoot)msbuild\</RinMSBuildDir>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- local_file: build against in-repo ProjectReferences. online: consume the published NuGet packages instead. -->
+        <DepMode Condition="'$(DepMode)' == ''">local_file</DepMode>
+    </PropertyGroup>
+
+</Project>

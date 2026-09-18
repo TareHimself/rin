@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
@@ -14,6 +15,7 @@ namespace misc.VectorRendering.Slug;
 // Must match struct SlugPush in slug.slang exactly.
 // Layout: pointer (8) + ResourceHandle (4) + ResourceHandle (4) + Matrix4x4 (64) = 80 bytes.
 [StructLayout(LayoutKind.Sequential)]
+[NoReorder]
 internal struct SlugPush
 {
     // GPU virtual address of the GlyphDrawData[] instance buffer for this command.
@@ -32,12 +34,10 @@ internal struct SlugPush
 //   Init()      — cast commands to concrete type
 //   Configure() — declare buffer resources for the frame graph
 //   Execute()   — write instance data, bind shader, draw
-public class SlugHandler : ICommandHandler
+public partial class SlugHandler : ICommandHandler
 {
-    // The shader is loaded once at construction time.
-    // MakeGraphics() caches compiled shaders internally, so this is cheap.
-    private readonly IGraphicsShader _shader =
-        IGraphicsModule.Get().MakeGraphics("VectorRendering/Slug/slug.slang");
+    [GraphicsShader("VectorRendering/Slug/slug.slang")]
+    private partial IGraphicsShader Shader { get; }
 
     // One buffer ID per SlugCommand — allocated fresh every frame by the graph.
     private uint[] _bufferIds = [];
@@ -79,7 +79,7 @@ public class SlugHandler : ICommandHandler
             // CollectionsMarshal.AsSpan exposes the list's internal storage directly — no copy.
             buffer.Write(CollectionsMarshal.AsSpan(cmd.Draws));
 
-            if (_shader.Bind(ctx) is not { } bind) continue;
+            if (Shader.Bind(ctx) is not { } bind) continue;
 
             bind.Push(new SlugPush
             {
