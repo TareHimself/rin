@@ -18,6 +18,7 @@ using Rin.Core.Shared.Math;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Content;
+using Rin.Core.Views.Layouts;
 using experiments.Docking.Model;
 using experiments.Docking.Views;
 
@@ -131,7 +132,7 @@ public class SceneTestApplication : ExampleApplication
                 if (e is { Key: InputKey.P, State: InputState.Pressed }) DropBoxes(15);
             };
 
-            surf.Add(BuildDockLayout(perspectiveCam, topCam));
+            surf.Add(BuildDockLayout(perspectiveCam, topCam, scene));
         };
 
         IGraphicsModule.Get()
@@ -182,7 +183,7 @@ public class SceneTestApplication : ExampleApplication
         }
     }
 
-    private static DockSpaceView BuildDockLayout(CameraActor perspectiveCam, CameraActor topCam)
+    private static DockSpaceView BuildDockLayout(CameraActor perspectiveCam, CameraActor topCam, World scene)
     {
         DockPanel Panel(string id, string title, IView content, Color? bg = null)
         {
@@ -201,11 +202,21 @@ public class SceneTestApplication : ExampleApplication
         var stats = new DockTabGroupNode(Panel("stats", "Stats", new FpsView(),
             new Color(0.10f, 0.10f, 0.12f, 1f)));
         var controls = new DockTabGroupNode(Panel("controls", "Controls",
-            new TextBoxView
+            new FlexBoxView(Axis.Column)
             {
-                Content = "RMB drag  — look\nWASD      — move\nLMB       — cycle view channel\nP         — drop boxes",
-                FontSize = 14f,
-                WrapContent = true
+                InitSlots =
+                [
+                    new FlexBoxSlot
+                    {
+                        Child = new TextBoxView
+                        {
+                            Content = "RMB drag  — look\nWASD      — move\nLMB       — cycle view channel\nP         — drop boxes",
+                            FontSize = 14f,
+                            WrapContent = true
+                        }
+                    },
+                    new FlexBoxSlot { Child = BuildTimeScaleControl(scene), Flex = 1, Fit = CrossFit.Fill }
+                ]
             }));
         var side = new DockSplitNode(DockOrientation.Vertical, stats, controls);
         side.Weights[0] = 0.42f;
@@ -218,6 +229,38 @@ public class SceneTestApplication : ExampleApplication
         root.NormalizeWeights();
 
         return new DockSpaceView(new DockTree(root));
+    }
+
+    private const float MaxTimeScale = 3f;
+
+    private static IView BuildTimeScaleControl(World scene)
+    {
+        var label = new LiveLabelView(() => $"TimeScale: {scene.TimeScale:F2}x") { FontSize = 14f };
+        var slider = new ProgressBarView(
+            () => scene.TimeScale / MaxTimeScale,
+            frac => scene.TimeScale = frac * MaxTimeScale)
+        {
+            BackgroundColor = new Color(0.2f, 0.2f, 0.22f, 1f),
+            ForegroundColor = new Color(0.3f, 0.6f, 1f, 1f)
+        };
+
+        return new FlexBoxView(Axis.Column)
+        {
+            InitSlots =
+            [
+                new FlexBoxSlot { Child = label },
+                new FlexBoxSlot { Child = slider, Flex = 1, Fit = CrossFit.Fill }
+            ]
+        };
+    }
+
+    private sealed class LiveLabelView(Func<string> getText) : TextBoxView
+    {
+        public override void Update(float deltaTime)
+        {
+            base.Update(deltaTime);
+            Content = getText();
+        }
     }
 
     public static async Task<ResourceHandle> LoadTexture(string path)
