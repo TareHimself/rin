@@ -45,7 +45,17 @@ public partial class SkinningPass(DefaultWorldRenderContext renderContext) : ICo
         TotalVerticesToSkin =
             renderContext.SkinnedGeometry.Aggregate<SkinnedMeshInfo, uint>(0,
                 (t, c) => t + c.Mesh.GetVertexCount());
-        SkinnedPoses = renderContext.SkinnedGeometry.Select(c => c.Skeleton.ResolvePose(c.Pose)).ToArray();
+        // ResolvePose gives each bone's current transform in model space; the shader needs the full skin
+        // matrix (bind-space -> current model space), so fold in the per-bone inverse bind matrix here
+        // rather than in ResolvePose itself, which other consumers (e.g. attach points) need unmodified.
+        SkinnedPoses = renderContext.SkinnedGeometry.Select(c =>
+        {
+            var global = c.Skeleton.ResolvePose(c.Pose);
+            var bones = c.Skeleton.Bones;
+            var skin = new Matrix4x4[global.Length];
+            for (var i = 0; i < global.Length; i++) skin[i] = global[i] * bones[i].Bind;
+            return skin;
+        }).ToArray();
         ExecutionInfos = renderContext.SkinnedGeometry.SelectMany((c, poseIdx) =>
         {
             return Enumerable.Range(0, (int)c.Mesh.GetVertexCount()).Select(idx => new SkinningExecutionInfo

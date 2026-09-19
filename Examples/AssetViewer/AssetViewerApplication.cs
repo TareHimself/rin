@@ -98,7 +98,7 @@ public class AssetViewerApplication : ExampleApplication
             var radius = (bounds.Max - bounds.Min).Length() / 2f;
             var distance = float.Max(radius * 2.5f, 1f);
 
-            var cameraPos = center + new Vector3(0f, radius * 0.5f, -distance);
+            var cameraPos = center + new Vector3(-distance, radius * 0.5f, 0f);
             camera.SetLocation(cameraPos, Space.World);
             camera.SetRotation(MathR.LookTowards(center - cameraPos), Space.World);
         });

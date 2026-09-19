@@ -87,11 +87,12 @@ public static class GltfMeshImporter
         // scene-graph node - so an "Armature" container never leaks in as a fake root bone.
         var bones = Enumerable.Range(0, skin.JointsCount).Select(idx =>
         {
-            var (joint, _) = skin.GetJoint(idx);
+            var (joint, inverseBindMatrix) = skin.GetJoint(idx);
             return new Bone
             {
                 Name = joint.Name,
-                LocalTransform = Transform.From(joint.LocalMatrix)
+                LocalTransform = Transform.From(joint.LocalMatrix),
+                Bind = inverseBindMatrix
             };
         }).ToArray();
 
