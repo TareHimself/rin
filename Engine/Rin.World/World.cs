@@ -34,11 +34,16 @@ public class World : IUpdatable
     /// <summary>Ceiling on fixed physics steps per frame — when hit, the backlog is dropped rather than spiralling.</summary>
     [PublicAPI] public int MaxPhysicsStepsPerFrame { get; set; } = 4;
 
+    /// <summary>Scales simulated time for the whole world; per-body <see cref="IPhysicsSystem.SetTimeScale"/> is relative to this.</summary>
+    [PublicAPI] public float TimeScale { get; set; } = 1.0f;
+
     [PublicAPI] public bool Active { get; protected set; }
 
     public void Update(float deltaSeconds)
     {
         if (!Active) return;
+
+        var scaledDeltaSeconds = deltaSeconds * TimeScale;
 
         foreach (var actor in GetActors())
         {
@@ -49,7 +54,7 @@ public class World : IUpdatable
         // Clamp the frame delta so a hitch doesn't schedule a huge catch-up, then run a bounded
         // number of fixed steps. If we still can't keep up, drop the remainder instead of
         // accumulating an ever-growing backlog (spiral of death).
-        _remainingPhysicsTime += float.Min(deltaSeconds, 0.25f);
+        _remainingPhysicsTime += float.Min(scaledDeltaSeconds, 0.25f);
         var steps = 0;
         while (_remainingPhysicsTime >= PhysicsUpdateInterval && steps < MaxPhysicsStepsPerFrame)
         {
@@ -63,13 +68,13 @@ public class World : IUpdatable
         foreach (var actor in GetActors())
         {
             if (!actor.Active) continue;
-            actor.Update(deltaSeconds);
+            actor.Update(scaledDeltaSeconds);
         }
 
         foreach (var actor in GetActors())
         {
             if (!actor.Active) continue;
-            actor.LateUpdate(deltaSeconds);
+            actor.LateUpdate(scaledDeltaSeconds);
         }
     }
 

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsAotCompatible>true</IsAotCompatible>
+        <PackageId>TareHimself.Rin.Audio.Null</PackageId>
+        <Title>Rin.Audio.Null</Title>
+        <Authors>TareHimself</Authors>
+        <Version>1.0.0</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="$(EngineDir)Rin.Core\Rin.Core.csproj" />
+    </ItemGroup>
+
+</Project>

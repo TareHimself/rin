@@ -18,6 +18,8 @@ using Rin.Core.Shared.Math;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Content;
+using Rin.Core.Views.Events;
+using Rin.Core.Views.Layouts;
 using experiments.Docking.Model;
 using experiments.Docking.Views;
 
@@ -131,7 +133,7 @@ public class SceneTestApplication : ExampleApplication
                 if (e is { Key: InputKey.P, State: InputState.Pressed }) DropBoxes(15);
             };
 
-            surf.Add(BuildDockLayout(perspectiveCam, topCam));
+            surf.Add(BuildDockLayout(perspectiveCam, topCam, scene));
         };
 
         IGraphicsModule.Get()
@@ -182,7 +184,7 @@ public class SceneTestApplication : ExampleApplication
         }
     }
 
-    private static DockSpaceView BuildDockLayout(CameraActor perspectiveCam, CameraActor topCam)
+    private static DockSpaceView BuildDockLayout(CameraActor perspectiveCam, CameraActor topCam, World scene)
     {
         DockPanel Panel(string id, string title, IView content, Color? bg = null)
         {
@@ -201,11 +203,21 @@ public class SceneTestApplication : ExampleApplication
         var stats = new DockTabGroupNode(Panel("stats", "Stats", new FpsView(),
             new Color(0.10f, 0.10f, 0.12f, 1f)));
         var controls = new DockTabGroupNode(Panel("controls", "Controls",
-            new TextBoxView
+            new FlexBoxView(Axis.Column)
             {
-                Content = "RMB drag  — look\nWASD      — move\nLMB       — cycle view channel\nP         — drop boxes",
-                FontSize = 14f,
-                WrapContent = true
+                InitSlots =
+                [
+                    new FlexBoxSlot
+                    {
+                        Child = new TextBoxView
+                        {
+                            Content = "RMB drag  — look\nWASD      — move\nLMB       — cycle view channel\nP         — drop boxes",
+                            FontSize = 14f,
+                            WrapContent = true
+                        }
+                    },
+                    new FlexBoxSlot { Child = BuildTimeScaleControl(scene), Flex = 1, Fit = CrossFit.Fill }
+                ]
             }));
         var side = new DockSplitNode(DockOrientation.Vertical, stats, controls);
         side.Weights[0] = 0.42f;
@@ -218,6 +230,78 @@ public class SceneTestApplication : ExampleApplication
         root.NormalizeWeights();
 
         return new DockSpaceView(new DockTree(root));
+    }
+
+    private const float MaxTimeScale = 3f;
+
+    private static IView BuildTimeScaleControl(World scene)
+    {
+        var label = new LiveLabelView(() => $"TimeScale: {scene.TimeScale:F2}x") { FontSize = 14f };
+        var slider = new SliderView(
+            () => scene.TimeScale / MaxTimeScale,
+            frac => scene.TimeScale = frac * MaxTimeScale)
+        {
+            BackgroundColor = new Color(0.2f, 0.2f, 0.22f, 1f),
+            ForegroundColor = new Color(0.3f, 0.6f, 1f, 1f),
+            Padding = new Padding { Top = 8f }
+        };
+
+        return new FlexBoxView(Axis.Column)
+        {
+            InitSlots =
+            [
+                new FlexBoxSlot { Child = label },
+                new FlexBoxSlot { Child = slider, Fit = CrossFit.Fill }
+            ]
+        };
+    }
+
+    private sealed class LiveLabelView(Func<string> getText) : TextBoxView
+    {
+        public override void Update(float deltaTime)
+        {
+            base.Update(deltaTime);
+            Content = getText();
+        }
+    }
+
+    private sealed class SliderView(Func<float> getProgress, Action<float> onClick) : ProgressBarView(getProgress, onClick)
+    {
+        private const float Height = 28f;
+        private bool _dragging;
+
+        protected override Vector2 LayoutContent(in Vector2 availableSpace)
+        {
+            return base.LayoutContent(availableSpace with { Y = Height });
+        }
+
+        // Base ProgressBarView only invokes onClick on release; the slider needs it live while dragging too.
+        public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
+        {
+            base.OnCursorDown(e, transform);
+            if (e.Button is not CursorButton.One) return;
+            _dragging = true;
+            onClick(ComputeFraction(e.Position));
+        }
+
+        // OnCursorMove fires on hover too, not just while dragging - _dragging gates it like SplitterHandleView does.
+        public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform)
+        {
+            base.OnCursorMove(e, transform);
+            if (_dragging) onClick(ComputeFraction(e.Position));
+        }
+
+        public override void OnCursorUp(CursorUpSurfaceEvent e)
+        {
+            _dragging = false;
+            base.OnCursorUp(e);
+        }
+
+        private float ComputeFraction(Vector2 cursorPosition)
+        {
+            var localPosition = cursorPosition.Transform(ComputeAbsoluteContentTransform().Inverse());
+            return localPosition.X / GetSize().X;
+        }
     }
 
     public static async Task<ResourceHandle> LoadTexture(string path)
