@@ -27,7 +27,7 @@ public class SkinnedProxyPoseTests
     }
 
     [Test]
-    public void UpdateSkinnedProxyPoseReplacesTheStalePoseFromStart()
+    public void ReplacesTheStalePoseFromStart()
     {
         var render = new DefaultRenderSystem();
         var (skeleton, handle) = CreateProxy(render);

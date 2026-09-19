@@ -1,5 +1,6 @@
 using System.Numerics;
 using Rin.Core.Extensions;
+using Rin.Core.Shared.Math;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
@@ -17,6 +18,7 @@ public class SkinnedMeshComponent : WorldComponent
 
     private RenderProxyHandle _proxy = RenderProxyHandle.Invalid;
     private uint _lastPushedVersion;
+    private Matrix4x4[]? _resolvedBoneMatrices;
 
     public override void Start()
     {
@@ -59,6 +61,29 @@ public class SkinnedMeshComponent : WorldComponent
             foreach (var state in graph.BegunNotifyStates) state.NotifyBegin(this, graph);
             foreach (var state in graph.EndedNotifyStates) state.NotifyEnd(this, graph);
         }
+
+        ResolveBoneMatrices();
+    }
+
+    private void ResolveBoneMatrices()
+    {
+        if (Mesh is null)
+        {
+            _resolvedBoneMatrices = null;
+            return;
+        }
+
+        _resolvedBoneMatrices = Mesh.Skeleton.ResolvePose(PoseSource?.GetPose() ?? Mesh.Skeleton.BasePose);
+        MarkWorldTransformDirty();
+    }
+
+    public override Transform GetAttachPointTransform(string? name)
+    {
+        if (name is not null && Mesh is not null && _resolvedBoneMatrices is not null &&
+            Mesh.Skeleton.BoneNameToIndex.TryGetValue(name, out var boneIndex))
+            return Transform.From(_resolvedBoneMatrices[boneIndex] * GetTransform(Space.World).ToMatrix());
+
+        return base.GetAttachPointTransform(name);
     }
 
     public override void LateUpdate(float deltaSeconds)

@@ -176,14 +176,14 @@ public class Actor : IUpdatable
         _components.Clear();
     }
 
-    public bool AttachTo(WorldComponent target)
+    public bool AttachTo(WorldComponent target, string? name = null)
     {
-        return _root?.AttachTo(target) ?? false;
+        return _root?.AttachTo(target, name) ?? false;
     }
 
-    public bool AttachTo(Actor target)
+    public bool AttachTo(Actor target, string? name = null)
     {
-        if (target.RootComponent is { } component) return _root?.AttachTo(component) ?? false;
+        if (target.RootComponent is { } component) return _root?.AttachTo(component, name) ?? false;
 
         return false;
     }

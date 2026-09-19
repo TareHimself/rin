@@ -55,7 +55,7 @@ public class AnimationGraphTests
     }
 
     [Test]
-    public void FiresEndWhenAStateRangeStopsBeingReportedActive()
+    public void FiresEndWhenTheStateRangeStopsBeingActive()
     {
         var (range, handler, factory) = TestNotify.StateAt(0f, 10f, "Invulnerable");
         var skeleton = new Skeleton([new Bone { Name = "root" }]);
@@ -72,7 +72,7 @@ public class AnimationGraphTests
     }
 
     [Test]
-    public void FiresEndOnInterruptionEvenWithoutTheRangeNaturallyEnding()
+    public void FiresEndOnInterruption()
     {
         // Simulates a state-machine transition swapping branches mid-window - the graph doesn't
         // know or care why a key stopped being active, so this still fires End exactly once.

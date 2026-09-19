@@ -50,7 +50,7 @@ public class PooledSkeletalPoseTests
     }
 
     [Test]
-    public void ToSkeletalPoseCopiesDataIntoAPlainNonPooledPose()
+    public void CopiesDataIntoAPlainPose()
     {
         using var pooled = new PooledSkeletalPose(1);
         pooled.Set(0, new Transform { Position = new Vector3(7, 0, 0) });

@@ -37,7 +37,7 @@ public class SkeletonPoseTests
     }
 
     [Test]
-    public void ResolvePoseOverrideStillComposesWithParentAndChildren()
+    public void OverrideStillComposesWithParentAndChildren()
     {
         var skeleton = BuildChain();
         var midIndex = skeleton.BoneNameToIndex["mid"];

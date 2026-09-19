@@ -15,7 +15,7 @@ public class AnimationClipTests
     }
 
     [Test]
-    public void BoundClipEvaluatesOnlyBonesItAnimatesByIndex()
+    public void EvaluatesOnlyBonesItAnimates()
     {
         var skeleton = BuildTwoBoneSkeleton();
 
