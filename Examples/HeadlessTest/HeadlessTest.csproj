@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="$(EngineDir)Rin.Core\Rin.Core.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.World\Rin.World.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.Graphics.Null\Rin.Graphics.Null.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.Audio.Null\Rin.Audio.Null.csproj" />
+    </ItemGroup>
+
+</Project>
