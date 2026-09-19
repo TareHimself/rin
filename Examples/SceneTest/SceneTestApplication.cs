@@ -268,6 +268,7 @@ public class SceneTestApplication : ExampleApplication
     private sealed class SliderView(Func<float> getProgress, Action<float> onClick) : ProgressBarView(getProgress, onClick)
     {
         private const float Height = 28f;
+        private bool _dragging;
 
         protected override Vector2 LayoutContent(in Vector2 availableSpace)
         {
@@ -278,13 +279,22 @@ public class SceneTestApplication : ExampleApplication
         public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
         {
             base.OnCursorDown(e, transform);
-            if (e.Button is CursorButton.One) onClick(ComputeFraction(e.Position));
+            if (e.Button is not CursorButton.One) return;
+            _dragging = true;
+            onClick(ComputeFraction(e.Position));
         }
 
+        // OnCursorMove fires on hover too, not just while dragging - _dragging gates it like SplitterHandleView does.
         public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform)
         {
             base.OnCursorMove(e, transform);
-            onClick(ComputeFraction(e.Position));
+            if (_dragging) onClick(ComputeFraction(e.Position));
+        }
+
+        public override void OnCursorUp(CursorUpSurfaceEvent e)
+        {
+            _dragging = false;
+            base.OnCursorUp(e);
         }
 
         private float ComputeFraction(Vector2 cursorPosition)
