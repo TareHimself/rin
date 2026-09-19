@@ -22,6 +22,7 @@ public class DefaultRenderSystem : IRenderSystem
 
     private record struct ProxyRow(ProxyKind Kind, Matrix4x4 Transform)
     {
+        public Matrix4x4 PreviousTransform = Transform;
         public StaticMeshProxyDesc StaticDesc;
         public SkinnedMeshProxyDesc SkinnedDesc;
         public LightInfo Light;
@@ -31,6 +32,7 @@ public class DefaultRenderSystem : IRenderSystem
     private readonly List<uint> _versions = [];
     private readonly Stack<uint> _freeIndices = new();
     private readonly ConcurrentQueue<Action> _commands = new();
+    private float _interpolationAlpha = 1f;
 
     public RenderProxyHandle CreateStaticMeshProxy(in StaticMeshProxyDesc desc)
     {
@@ -63,11 +65,18 @@ public class DefaultRenderSystem : IRenderSystem
         var captured = worldTransform;
         _commands.Enqueue(() => Mutate(handle, row =>
         {
+            // Owners re-push every frame even when unchanged; only roll Previous forward on a real change.
+            if (row.Transform != captured) row.PreviousTransform = row.Transform;
             row.Transform = captured;
             if (row.Kind == ProxyKind.StaticMesh) row.StaticDesc = row.StaticDesc with { Transform = captured };
             if (row.Kind == ProxyKind.SkinnedMesh) row.SkinnedDesc = row.SkinnedDesc with { Transform = captured };
             return row;
         }));
+    }
+
+    public void SetInterpolationAlpha(float alpha)
+    {
+        _interpolationAlpha = float.Clamp(alpha, 0f, 1f);
     }
 
     public void UpdateStaticMeshProxy(RenderProxyHandle handle, in StaticMeshProxyDesc desc)
@@ -112,7 +121,7 @@ public class DefaultRenderSystem : IRenderSystem
                     staticMeshes.Add(new StaticMeshInfo
                     {
                         Mesh = row.StaticDesc.Mesh,
-                        Transform = row.Transform,
+                        Transform = InterpolateTransform(row.PreviousTransform, row.Transform, _interpolationAlpha),
                         SurfaceIndices = row.StaticDesc.SurfaceIndices,
                         Materials = row.StaticDesc.Materials
                     });
@@ -123,7 +132,7 @@ public class DefaultRenderSystem : IRenderSystem
                         Pose = row.SkinnedDesc.Pose,
                         Skeleton = row.SkinnedDesc.Skeleton,
                         Mesh = row.SkinnedDesc.Mesh,
-                        Transform = row.Transform,
+                        Transform = InterpolateTransform(row.PreviousTransform, row.Transform, _interpolationAlpha),
                         SurfaceIndices = row.SkinnedDesc.SurfaceIndices,
                         Materials = row.SkinnedDesc.Materials
                     });
@@ -207,5 +216,17 @@ public class DefaultRenderSystem : IRenderSystem
 
         _slots[(int)index] = null;
         _freeIndices.Push(index);
+    }
+
+    /// <summary>Fixed-timestep render smoothing: blends the last two committed physics poses by how far into the current step interval we are.</summary>
+    private static Matrix4x4 InterpolateTransform(in Matrix4x4 previous, in Matrix4x4 current, float alpha)
+    {
+        if (previous == current) return current;
+        if (!Matrix4x4.Decompose(previous, out var prevScale, out var prevRotation, out var prevPosition)) return current;
+        if (!Matrix4x4.Decompose(current, out var curScale, out var curRotation, out var curPosition)) return current;
+
+        return Matrix4x4.CreateScale(Vector3.Lerp(prevScale, curScale, alpha))
+               * Matrix4x4.CreateFromQuaternion(Quaternion.Slerp(prevRotation, curRotation, alpha))
+               * Matrix4x4.CreateTranslation(Vector3.Lerp(prevPosition, curPosition, alpha));
     }
 }

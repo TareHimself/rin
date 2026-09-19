@@ -35,7 +35,13 @@ public class World : IUpdatable
     [PublicAPI] public int MaxPhysicsStepsPerFrame { get; set; } = 4;
 
     /// <summary>Scales simulated time for the whole world; per-body <see cref="IPhysicsSystem.SetTimeScale"/> is relative to this.</summary>
-    [PublicAPI] public float TimeScale { get; set; } = 1.0f;
+    [PublicAPI]
+    public float TimeScale
+    {
+        get;
+        // Negative would drive the physics accumulator steadily negative instead of reversing time.
+        set => field = float.Max(0f, value);
+    } = 1.0f;
 
     [PublicAPI] public bool Active { get; protected set; }
 
@@ -64,6 +70,8 @@ public class World : IUpdatable
         }
 
         if (steps == MaxPhysicsStepsPerFrame) _remainingPhysicsTime = 0f;
+
+        RenderSystem.SetInterpolationAlpha(PhysicsUpdateInterval > 0f ? _remainingPhysicsTime / PhysicsUpdateInterval : 1f);
 
         foreach (var actor in GetActors())
         {
