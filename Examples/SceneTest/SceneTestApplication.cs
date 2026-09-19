@@ -18,6 +18,7 @@ using Rin.Core.Shared.Math;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Content;
+using Rin.Core.Views.Events;
 using Rin.Core.Views.Layouts;
 using experiments.Docking.Model;
 using experiments.Docking.Views;
@@ -241,7 +242,8 @@ public class SceneTestApplication : ExampleApplication
             frac => scene.TimeScale = frac * MaxTimeScale)
         {
             BackgroundColor = new Color(0.2f, 0.2f, 0.22f, 1f),
-            ForegroundColor = new Color(0.3f, 0.6f, 1f, 1f)
+            ForegroundColor = new Color(0.3f, 0.6f, 1f, 1f),
+            Padding = new Padding { Top = 8f }
         };
 
         return new FlexBoxView(Axis.Column)
@@ -270,6 +272,25 @@ public class SceneTestApplication : ExampleApplication
         protected override Vector2 LayoutContent(in Vector2 availableSpace)
         {
             return base.LayoutContent(availableSpace with { Y = Height });
+        }
+
+        // Base ProgressBarView only invokes onClick on release; the slider needs it live while dragging too.
+        public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)
+        {
+            base.OnCursorDown(e, transform);
+            if (e.Button is CursorButton.One) onClick(ComputeFraction(e.Position));
+        }
+
+        public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform)
+        {
+            base.OnCursorMove(e, transform);
+            onClick(ComputeFraction(e.Position));
+        }
+
+        private float ComputeFraction(Vector2 cursorPosition)
+        {
+            var localPosition = cursorPosition.Transform(ComputeAbsoluteContentTransform().Inverse());
+            return localPosition.X / GetSize().X;
         }
     }
 
