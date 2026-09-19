@@ -4,6 +4,7 @@ using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.World.Components;
 using Rin.World.Graphics.Default.Passes;
+using Rin.World.Mesh.Skinning;
 
 namespace Rin.World.Graphics.Default;
 
@@ -70,6 +71,16 @@ public class DefaultRenderSystem : IRenderSystem
             row.Transform = captured;
             if (row.Kind == ProxyKind.StaticMesh) row.StaticDesc = row.StaticDesc with { Transform = captured };
             if (row.Kind == ProxyKind.SkinnedMesh) row.SkinnedDesc = row.SkinnedDesc with { Transform = captured };
+            return row;
+        }));
+    }
+
+    public void UpdateSkinnedProxyPose(RenderProxyHandle handle, in SkeletalPose pose)
+    {
+        var captured = pose;
+        _commands.Enqueue(() => Mutate(handle, row =>
+        {
+            row.SkinnedDesc = row.SkinnedDesc with { Pose = captured };
             return row;
         }));
     }

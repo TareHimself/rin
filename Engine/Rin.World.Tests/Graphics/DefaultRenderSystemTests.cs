@@ -4,7 +4,7 @@ using Rin.World.Components;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default;
 
-namespace Rin.World.Tests;
+namespace Rin.World.Tests.Graphics;
 
 /// <summary>Exercises the real <see cref="DefaultRenderSystem" />'s fixed-timestep render interpolation.</summary>
 public class DefaultRenderSystemTests

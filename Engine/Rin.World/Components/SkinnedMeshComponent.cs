@@ -5,6 +5,7 @@ using Rin.World.Graphics.Default;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Math;
 using Rin.World.Mesh.Skinning;
+using Rin.World.Mesh.Skinning.Animation;
 
 namespace Rin.World.Components;
 
@@ -47,6 +48,19 @@ public class SkinnedMeshComponent : WorldComponent
         base.Stop();
     }
 
+    public override void Update(float deltaSeconds)
+    {
+        base.Update(deltaSeconds);
+        PoseSource?.Tick(deltaSeconds);
+
+        if (PoseSource is AnimationGraph graph)
+        {
+            foreach (var notify in graph.FiredNotifies) notify.Notify(this, graph);
+            foreach (var state in graph.BegunNotifyStates) state.NotifyBegin(this, graph);
+            foreach (var state in graph.EndedNotifyStates) state.NotifyEnd(this, graph);
+        }
+    }
+
     public override void LateUpdate(float deltaSeconds)
     {
         base.LateUpdate(deltaSeconds);
@@ -57,6 +71,8 @@ public class SkinnedMeshComponent : WorldComponent
             Owner!.World!.RenderSystem.UpdateProxyTransform(_proxy, worldTransform.ToMatrix());
             _lastPushedVersion = TransformVersion;
         }
+
+        if (PoseSource is { } poseSource) Owner!.World!.RenderSystem.UpdateSkinnedProxyPose(_proxy, poseSource.GetPose());
     }
 
     protected override void CollectSelf(CommandList commandList, Matrix4x4 transform)

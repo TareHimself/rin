@@ -1,5 +1,4 @@
-﻿using System.Collections.Frozen;
-using System.Numerics;
+﻿using System.Numerics;
 using Rin.World.Mesh.Skinning;
 using Rin.Core;
 using Rin.Core.Shared.Math;
@@ -10,17 +9,12 @@ public class TestPoseSource : IPoseSource
 {
     public required Skeleton Skeleton { get; init; }
 
-    public Pose GetPose()
+    public SkeletalPose GetPose()
     {
         var rot = Quaternion.Identity.AddYaw(IApplication.Get().TimeSeconds * 20f);
-        return new Pose(new Dictionary<string, Transform>
-        {
-            {
-                "root", new Transform
-                {
-                    Orientation = rot
-                }
-            }
-        }.ToFrozenDictionary());
+        var pose = new SkeletalPose(Skeleton.Bones.Length);
+        if (Skeleton.BoneNameToIndex.TryGetValue("root", out var rootIndex))
+            pose.Set(rootIndex, new Transform { Orientation = rot });
+        return pose;
     }
 }

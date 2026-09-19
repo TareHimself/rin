@@ -46,8 +46,7 @@ public partial class SkinningPass(DefaultWorldRenderContext renderContext) : ICo
         TotalVerticesToSkin =
             renderContext.SkinnedGeometry.Aggregate<SkinnedMeshInfo, uint>(0,
                 (t, c) => t + c.Mesh.GetVertexCount());
-        SkinnedPoses = renderContext.SkinnedGeometry.Select(c => c.Skeleton.ResolvePose(c.Pose).ToArray())
-            .ToArray();
+        SkinnedPoses = renderContext.SkinnedGeometry.Select(c => c.Skeleton.ResolvePose(c.Pose)).ToArray();
         ExecutionInfos = renderContext.SkinnedGeometry.SelectMany((c, poseIdx) =>
         {
             return Enumerable.Range(0, (int)c.Mesh.GetVertexCount()).Select(idx => new SkinningExecutionInfo

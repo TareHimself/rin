@@ -3,7 +3,7 @@ using Rin.World.Actors;
 using Rin.World.Components;
 using Rin.World.Physics;
 
-namespace Rin.World.Tests;
+namespace Rin.World.Tests.Components;
 
 public class TransformPushTests
 {

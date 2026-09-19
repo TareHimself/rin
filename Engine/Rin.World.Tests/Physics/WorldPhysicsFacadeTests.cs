@@ -3,7 +3,7 @@ using Rin.Core.Shared.Math;
 using Rin.World.Actors;
 using Rin.World.Physics;
 
-namespace Rin.World.Tests;
+namespace Rin.World.Tests.Physics;
 
 public class WorldPhysicsFacadeTests
 {

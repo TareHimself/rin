@@ -1,9 +1,8 @@
 using Rin.World.Graphics;
-using Rin.World.Physics;
 
-namespace Rin.World.Tests;
+namespace Rin.World.Tests.Graphics;
 
-public class HandleTests
+public class RenderProxyHandleTests
 {
     [Test]
     public void DefaultRenderProxyHandleIsInvalid()
@@ -26,20 +25,5 @@ public class HandleTests
 
         Assert.That(first, Is.Not.EqualTo(second),
             "a stale handle from before a slot was reused must not be mistaken for the new occupant");
-    }
-
-    [Test]
-    public void DefaultPhysicsBodyHandleIsInvalid()
-    {
-        Assert.That(PhysicsBodyHandle.Invalid.IsValid, Is.False);
-    }
-
-    [Test]
-    public void PhysicsBodyHandlesWithDifferentVersionsAreNotEqual()
-    {
-        var first = new PhysicsBodyHandle(3, 1);
-        var second = new PhysicsBodyHandle(3, 2);
-
-        Assert.That(first, Is.Not.EqualTo(second));
     }
 }

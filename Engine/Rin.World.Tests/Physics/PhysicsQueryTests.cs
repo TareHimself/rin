@@ -3,7 +3,7 @@ using Rin.Core.Shared.Math;
 using Rin.World.Physics;
 using Rin.World.Physics.Bepu;
 
-namespace Rin.World.Tests;
+namespace Rin.World.Tests.Physics;
 
 /// <summary>
 ///     Exercises the real <see cref="BepuPhysicsSystem" /> query API against the actual installed

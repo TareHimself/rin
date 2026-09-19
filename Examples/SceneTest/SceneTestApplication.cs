@@ -1,4 +1,5 @@
 using System.Numerics;
+using Rin.GLTF;
 using Rin.World;
 using Rin.World.Actors;
 using Rin.World.Components;
@@ -59,7 +60,7 @@ public class SceneTestApplication : ExampleApplication
                 }
             });
 
-            Extensions.LoadStaticMesh(Path.Join(Global.Directory, "assets", "models", "cube.glb")).After(mesh =>
+            GltfMeshImporter.LoadStaticMesh(Path.Join(Global.Directory, "assets", "models", "cube.glb")).After(mesh =>
             {
                 _cubeMesh = mesh;
 
@@ -98,7 +99,7 @@ public class SceneTestApplication : ExampleApplication
                     DropBoxes(30);
                 });
 
-                Extensions.LoadSkinnedMesh(Path.Join(Global.Directory, "assets", "models", "fox.glb"))
+                GltfMeshImporter.LoadSkinnedMesh(Path.Join(Global.Directory, "assets", "models", "fox.glb"))
                     .After(skinned =>
                     {
                         if (skinned is null) return;

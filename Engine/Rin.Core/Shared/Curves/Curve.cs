@@ -83,7 +83,7 @@ public abstract class Curve<TValue, TInterpolatedValue> : ICurve<TInterpolatedVa
                 minIdx = currentIdx;
             }
 
-            currentIdx = maxIdx + (maxIdx - minIdx) / 2;
+            currentIdx = minIdx + (maxIdx - minIdx) / 2;
             totalRange = maxIdx - minIdx + 1;
         }
     }
