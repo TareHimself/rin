@@ -80,6 +80,7 @@ internal sealed class FakeRenderSystem : IRenderSystem
 
     public List<(RenderProxyHandle Handle, Matrix4x4 Transform)> PushedTransforms { get; } = [];
     public int DestroyCount { get; private set; }
+    public float LastInterpolationAlpha { get; private set; } = 1f;
 
     public RenderProxyHandle CreateStaticMeshProxy(in StaticMeshProxyDesc desc) => Create();
     public RenderProxyHandle CreateSkinnedMeshProxy(in SkinnedMeshProxyDesc desc) => Create();
@@ -111,6 +112,8 @@ internal sealed class FakeRenderSystem : IRenderSystem
         _live.Remove(handle);
         DestroyCount++;
     }
+
+    public void SetInterpolationAlpha(float alpha) => LastInterpolationAlpha = alpha;
 
     public IWorldRenderContext Snapshot(CameraComponent view, in Extent2D extent) => throw new NotSupportedException();
     public void Build(IGraphBuilder builder, IWorldRenderContext context) => throw new NotSupportedException();

@@ -300,7 +300,7 @@ public class SceneTestApplication : ExampleApplication
         private float ComputeFraction(Vector2 cursorPosition)
         {
             var localPosition = cursorPosition.Transform(ComputeAbsoluteContentTransform().Inverse());
-            return localPosition.X / GetSize().X;
+            return float.Clamp(localPosition.X / GetSize().X, 0f, 1f);
         }
     }
 
