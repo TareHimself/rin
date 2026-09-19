@@ -236,7 +236,7 @@ public class SceneTestApplication : ExampleApplication
     private static IView BuildTimeScaleControl(World scene)
     {
         var label = new LiveLabelView(() => $"TimeScale: {scene.TimeScale:F2}x") { FontSize = 14f };
-        var slider = new ProgressBarView(
+        var slider = new SliderView(
             () => scene.TimeScale / MaxTimeScale,
             frac => scene.TimeScale = frac * MaxTimeScale)
         {
@@ -249,7 +249,7 @@ public class SceneTestApplication : ExampleApplication
             InitSlots =
             [
                 new FlexBoxSlot { Child = label },
-                new FlexBoxSlot { Child = slider, Flex = 1, Fit = CrossFit.Fill }
+                new FlexBoxSlot { Child = slider, Fit = CrossFit.Fill }
             ]
         };
     }
@@ -260,6 +260,16 @@ public class SceneTestApplication : ExampleApplication
         {
             base.Update(deltaTime);
             Content = getText();
+        }
+    }
+
+    private sealed class SliderView(Func<float> getProgress, Action<float> onClick) : ProgressBarView(getProgress, onClick)
+    {
+        private const float Height = 28f;
+
+        protected override Vector2 LayoutContent(in Vector2 availableSpace)
+        {
+            return base.LayoutContent(availableSpace with { Y = Height });
         }
     }
 
