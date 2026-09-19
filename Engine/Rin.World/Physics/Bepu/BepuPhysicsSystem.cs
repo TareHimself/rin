@@ -20,6 +20,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
     private readonly List<uint> _versions = [];
     private readonly Stack<uint> _freeIndices = new();
     private readonly Dictionary<int, TimeDilation> _timeDilation = [];
+    private readonly HashSet<int> _dilatedBodiesSeenThisStep = [];
     private readonly Dictionary<int, BepuBody> _bodyHandleLookup = [];
     private readonly Dictionary<int, BepuBody> _staticHandleLookup = [];
     private Vector3 _gravity = new(0, -9.81f, 0);
@@ -224,7 +225,13 @@ public class BepuPhysicsSystem : IPhysicsSystem
 
         if (MathF.Abs(scale - 1f) < 1e-4f)
         {
-            _timeDilation.Remove(bodyHandle.Value);
+            // Bepu's stored velocity was overwritten to the scaled value each step; restore the true one first.
+            if (_timeDilation.Remove(bodyHandle.Value, out var restored))
+            {
+                body.SetLinearVelocity(restored.TrueLinearVelocity);
+                body.SetAngularVelocity(restored.TrueAngularVelocity);
+            }
+
             return;
         }
 
@@ -247,6 +254,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
 
     public void Update(float deltaTime)
     {
+        _dilatedBodiesSeenThisStep.Clear();
         Simulation.Timestep(deltaTime, _threadDispatcher);
     }
 
@@ -568,8 +576,8 @@ public class BepuPhysicsSystem : IPhysicsSystem
             if (physicsSystem._timeDilation.Count > 0) ApplyTimeDilation(bodyIndices, integrationMask, dt, ref velocity);
         }
 
-        // KNOWN ISSUE: IntegrateVelocity fires multiple passes per step with different indexing; this
-        // lookup only matches on some of them, letting a small amount of undilated velocity leak through.
+        // IntegrateVelocity fires twice per body per step (PredictBoundingBoxes's result is discardable
+        // per Bepu's own source, only Solve's is real); skip the first sighting or gravity double-counts.
         private void ApplyTimeDilation(Vector<int> bodyIndices, Vector<int> integrationMask, Vector<float> dt,
             ref BodyVelocityWide velocity)
         {
@@ -582,6 +590,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
 
                 var bodyHandle = activeSet.IndexToHandle[bodyIndex].Value;
                 if (!physicsSystem._timeDilation.TryGetValue(bodyHandle, out var dilation)) continue;
+                if (physicsSystem._dilatedBodiesSeenThisStep.Add(bodyHandle)) continue;
 
                 var laneDt = GatherScatter.Get(ref dt, lane);
                 dilation.TrueLinearVelocity += physicsSystem._gravity * laneDt;

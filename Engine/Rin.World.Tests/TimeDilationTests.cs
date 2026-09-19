@@ -17,7 +17,8 @@ public class TimeDilationTests
     {
         var physics = new BepuPhysicsSystem();
         var frozen = physics.CreateSphere(0.5f, StartTransform, PhysicsState.Simulated);
-        var normal = physics.CreateSphere(0.5f, StartTransform, PhysicsState.Simulated);
+        // Offset so the spheres don't overlap - contact response would move "frozen" too (not a position lock).
+        var normal = physics.CreateSphere(0.5f, StartTransform with { Position = StartTransform.Position + new Vector3(5, 0, 0) }, PhysicsState.Simulated);
         physics.SetTimeScale(frozen, 0f);
 
         for (var i = 0; i < 30; i++) physics.Update(1f / 60f);
@@ -34,7 +35,7 @@ public class TimeDilationTests
         var physics = new BepuPhysicsSystem();
         const float scale = 0.25f;
         var slow = physics.CreateSphere(0.5f, StartTransform, PhysicsState.Simulated);
-        var normal = physics.CreateSphere(0.5f, StartTransform, PhysicsState.Simulated);
+        var normal = physics.CreateSphere(0.5f, StartTransform with { Position = StartTransform.Position + new Vector3(5, 0, 0) }, PhysicsState.Simulated);
         physics.SetTimeScale(slow, scale);
 
         for (var i = 0; i < 40; i++) physics.Update(1f / 60f);
