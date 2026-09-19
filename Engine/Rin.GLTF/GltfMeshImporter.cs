@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Rin.Core.Extensions;
 using Rin.Core.Graphics;
@@ -26,26 +27,29 @@ public static class GltfMeshImporter
         foreach (var primitive in mesh.Primitives)
         {
             if (primitive == null) continue;
+            var positions = primitive.GetVertices("POSITION").AsVector3Array();
+            var localIndices = ReadOrSynthesizeIndices(primitive, positions.Count);
+            var normals = ReadOrComputeNormals(primitive, positions, localIndices);
+
             List<Vertex> surfaceVertices = [];
             var newSurface = new MeshSurface
             {
                 VertexStart = (uint)vertices.Count,
-                VertexCount = (uint)primitive.VertexAccessors.First().Value.Count,
+                VertexCount = (uint)positions.Count,
                 IndicesStart = (uint)indices.Count,
-                IndicesCount = (uint)primitive.IndexAccessor.Count
+                IndicesCount = (uint)localIndices.Length
             };
 
             var initialVertex = vertices.Count;
 
             {
-                foreach (var idx in primitive.GetIndices()) indices.Add(idx - (uint)initialVertex);
+                foreach (var idx in localIndices) indices.Add(idx - (uint)initialVertex);
             }
 
             {
-                foreach (var (position, normal, uv) in primitive.GetVertices("POSITION")
-                             .AsVector3Array()
+                foreach (var (position, normal, uv) in positions
                              .Zip(
-                                 primitive.GetVertices("NORMAL").AsVector3Array(),
+                                 normals,
                                  primitive.GetVertices("TEXCOORD_0").AsVector2Array()
                              ))
                     surfaceVertices.Add(new Vertex
@@ -115,28 +119,34 @@ public static class GltfMeshImporter
         foreach (var primitive in mesh.Primitives)
         {
             if (primitive == null) continue;
+            var positions = primitive.GetVertices("POSITION").AsVector3Array();
+            var localIndices = ReadOrSynthesizeIndices(primitive, positions.Count);
+            var normals = ReadOrComputeNormals(primitive, positions, localIndices);
+
             List<SkinnedVertex> surfaceVertices = [];
             var newSurface = new MeshSurface
             {
                 VertexStart = (uint)vertices.Count,
-                VertexCount = (uint)primitive.VertexAccessors.First().Value.Count,
+                VertexCount = (uint)positions.Count,
                 IndicesStart = (uint)indices.Count,
-                IndicesCount = (uint)primitive.IndexAccessor.Count
+                IndicesCount = (uint)localIndices.Length
             };
 
             var initialVertex = vertices.Count;
 
             {
-                foreach (var idx in primitive.GetIndices()) indices.Add((uint)(idx + initialVertex));
+                foreach (var idx in localIndices) indices.Add((uint)(idx + initialVertex));
             }
 
             {
-                foreach (var (position, normal, uv, jointIndices, weights) in primitive.GetVertices("POSITION")
-                             .AsVector3Array()
+                foreach (var (position, normal, uv, jointIndices, weights) in positions
                              .Zip(
-                                 primitive.GetVertices("NORMAL").AsVector3Array(),
+                                 normals,
                                  primitive.GetVertices("TEXCOORD_0").AsVector2Array(),
-                                 primitive.GetVertices("JOINTS_0").GetItemsAsRawBytes(),
+                                 // JOINTS_0 is UNSIGNED_BYTE or UNSIGNED_SHORT depending on the exporter (this
+                                 // asset uses SHORT) - AsVector4Array() decodes either correctly, unlike reading
+                                 // GetItemsAsRawBytes() directly, which silently misreads SHORT-encoded joints.
+                                 primitive.GetVertices("JOINTS_0").AsVector4Array(),
                                  primitive.GetVertices("WEIGHTS_0").AsVector4Array()
                              ))
                     surfaceVertices.Add(new SkinnedVertex
@@ -147,8 +157,8 @@ public static class GltfMeshImporter
                             Normal = normal,
                             UV = uv
                         },
-                        BoneIndices = new Int4(jointIndices[0], jointIndices[1], jointIndices[2],
-                            jointIndices[3]),
+                        BoneIndices = new Int4((int)jointIndices.X, (int)jointIndices.Y, (int)jointIndices.Z,
+                            (int)jointIndices.W),
                         BoneWeights = weights
                     });
             }
@@ -166,5 +176,37 @@ public static class GltfMeshImporter
             Skeleton = skeleton,
             MeshId = id
         };
+    }
+
+    private static uint[] ReadOrSynthesizeIndices(MeshPrimitive primitive, int vertexCount)
+    {
+        if (primitive.IndexAccessor is null) return Enumerable.Range(0, vertexCount).Select(i => (uint)i).ToArray();
+
+        return primitive.GetIndices().ToArray();
+    }
+
+    // Flat per-triangle normals, averaged per vertex - a reasonable default for content that omits
+    // NORMAL entirely (valid per the glTF spec), not a substitute for authored smoothing groups.
+    private static Vector3[] ReadOrComputeNormals(MeshPrimitive primitive, IReadOnlyList<Vector3> positions,
+        IReadOnlyList<uint> indices)
+    {
+        if (primitive.GetVertexAccessor("NORMAL") is not null) return primitive.GetVertices("NORMAL").AsVector3Array().ToArray();
+
+        var normals = new Vector3[positions.Count];
+        for (var i = 0; i + 2 < indices.Count; i += 3)
+        {
+            var a = (int)indices[i];
+            var b = (int)indices[i + 1];
+            var c = (int)indices[i + 2];
+            var faceNormal = Vector3.Cross(positions[b] - positions[a], positions[c] - positions[a]);
+            normals[a] += faceNormal;
+            normals[b] += faceNormal;
+            normals[c] += faceNormal;
+        }
+
+        for (var i = 0; i < normals.Length; i++)
+            normals[i] = normals[i] == Vector3.Zero ? Vector3.UnitY : Vector3.Normalize(normals[i]);
+
+        return normals;
     }
 }

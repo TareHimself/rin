@@ -30,6 +30,6 @@ public class AnimationClip
             if (skeleton.BoneNameToIndex.TryGetValue(name, out var index))
                 curvesByIndex[index] = curve;
 
-        return new BoundAnimationClip(curvesByIndex, Duration, Notifies, NotifyStates);
+        return new BoundAnimationClip(curvesByIndex, Duration, Notifies, NotifyStates, skeleton);
     }
 }

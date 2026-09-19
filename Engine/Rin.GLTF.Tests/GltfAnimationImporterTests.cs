@@ -2,7 +2,7 @@ using Rin.World.Mesh.Skinning;
 
 namespace Rin.GLTF.Tests;
 
-// The Fox asset only has STEP/LINEAR channels; the CUBICSPLINE lossy-fallback path isn't exercised here.
+// The Fox asset has no CUBICSPLINE channels; that lossy-fallback path isn't exercised here.
 public class GltfAnimationImporterTests
 {
     private static string FoxPath => Path.Combine(AppContext.BaseDirectory, "Assets", "fox.glb");
@@ -16,13 +16,21 @@ public class GltfAnimationImporterTests
     }
 
     [Test]
-    public void EachClipAnimatesEveryJointOnAllThreeChannels()
+    public void ImportsBothFullyAndSparselyAnimatedBones()
     {
         var clips = GltfAnimationImporter.LoadAnimationClips(FoxPath);
 
         var run = clips["Run"];
-        Assert.That(run["b_Hip_01"], Is.Not.Null, "a channel with LINEAR translation/rotation should import");
-        Assert.That(run["b_Root_00"], Is.Not.Null, "a channel with STEP translation/rotation should import too");
+        var hip = run["b_Hip_01"];
+        Assert.That(hip, Is.Not.Null, "the hip drives both translation and rotation");
+        Assert.That(hip!.PositionCurve.PointCount, Is.GreaterThan(0));
+        Assert.That(hip.RotationCurve.PointCount, Is.GreaterThan(0));
+
+        var head = run["b_Head_05"];
+        Assert.That(head, Is.Not.Null, "most bones in this asset only drive rotation");
+        Assert.That(head!.RotationCurve.PointCount, Is.GreaterThan(0));
+        Assert.That(head.PositionCurve.PointCount, Is.EqualTo(0),
+            "no position channel should be fabricated for a bone that never authored one");
     }
 
     [Test]

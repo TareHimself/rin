@@ -29,6 +29,8 @@ public partial class CullingPass(DefaultWorldRenderContext renderContext) : ICom
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
+        if (renderContext.TotalMeshCount == 0) return; // nothing to cull; a zero-sized dispatch isn't valid
+
         var boundsBuffer = graph.GetBufferOrException(renderContext.BoundsBufferId);
         var outputBuffer = graph.GetBufferOrException(OutputBufferId);
 

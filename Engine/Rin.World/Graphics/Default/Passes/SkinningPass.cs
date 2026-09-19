@@ -30,7 +30,6 @@ public partial class SkinningPass(DefaultWorldRenderContext renderContext) : ICo
     private uint SkinningExecutionInfoBufferId { get; set; }
     private uint[] SkinningPosesBufferId { get; set; } = [];
     private uint SkinningPoseIdArrayBufferId { get; set; }
-    public uint SkinningOutputBufferId { get; set; }
     public uint Id { get; set; }
     public bool IsTerminal => false;
     public Action? OnPrune { get; } = null;
@@ -69,7 +68,7 @@ public partial class SkinningPass(DefaultWorldRenderContext renderContext) : ICo
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var output = graph.GetBuffer(SkinningOutputBufferId);
+        var output = graph.GetBuffer(renderContext.SkinningOutputBufferId);
         var meshArray = graph.GetBufferOrException(SkinnedMeshArrayBufferId);
         var poseBuffers = SkinningPosesBufferId.Select(graph.GetBufferOrException).ToArray();
         var posesArray = graph.GetBuffer(SkinningPoseIdArrayBufferId);

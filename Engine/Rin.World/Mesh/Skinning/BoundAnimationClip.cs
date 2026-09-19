@@ -1,7 +1,7 @@
 namespace Rin.World.Mesh.Skinning;
 
 public class BoundAnimationClip(BoneCurve?[] curvesByIndex, float duration, IReadOnlyList<AnimationNotify> notifies,
-    IReadOnlyList<AnimationNotifyStateRange> notifyStates)
+    IReadOnlyList<AnimationNotifyStateRange> notifyStates, Skeleton skeleton)
 {
     public float Duration => duration;
     public IReadOnlyList<AnimationNotify> Notifies => notifies;
@@ -12,7 +12,7 @@ public class BoundAnimationClip(BoneCurve?[] curvesByIndex, float duration, IRea
         var pose = new PooledSkeletalPose(curvesByIndex.Length);
         for (var i = 0; i < curvesByIndex.Length; i++)
             if (curvesByIndex[i] is { } curve)
-                pose.Set(i, curve.Sample(time));
+                pose.Set(i, curve.Sample(skeleton.Bones[i].LocalTransform, time));
 
         return pose;
     }

@@ -32,6 +32,7 @@ public readonly record struct DeviceBufferView
 
     public unsafe void WriteRaw(in IntPtr src, ulong size, ulong offset = 0)
     {
+        if (size == 0) return; // pinning an empty array yields a null pointer - writing 0 bytes is a no-op either way
         Debug.Assert(src != IntPtr.Zero);
         Debug.Assert(IsValid, "Buffer is not valid");
         IGraphicsModule.Get().WriteBuffer(Buffer, new ReadOnlySpan<byte>((void*)src, (int)size), Offset + offset);

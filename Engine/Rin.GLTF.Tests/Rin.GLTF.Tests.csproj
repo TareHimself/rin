@@ -20,11 +20,16 @@
 
     <ItemGroup>
         <ProjectReference Include="$(EngineDir)Rin.GLTF\Rin.GLTF.csproj" />
+        <ProjectReference Include="$(EngineDir)Rin.Graphics.Null\Rin.Graphics.Null.csproj" />
     </ItemGroup>
 
     <ItemGroup Label="Test assets">
         <Content Include="$(ExamplesDir)SceneTest\assets\models\fox.glb">
             <Link>Assets\fox.glb</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="$(ExamplesDir)SceneTest\assets\models\cube.glb">
+            <Link>Assets\cube.glb</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

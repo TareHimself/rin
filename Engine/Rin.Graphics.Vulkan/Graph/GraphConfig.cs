@@ -58,12 +58,13 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint CreateBuffer(ulong size, GraphBufferUsage usage)
     {
-        Debug.Assert(size > 0, "buffer size must be positive");
         var resourceId = builder.MakeId();
-        // _memory.Add(resourceId, descriptor);
+        // A pass may legitimately have nothing to put in a buffer this frame (e.g. zero meshes on
+        // a loading screen) - clamp instead of rejecting, rather than forcing every call site to
+        // special-case "empty this frame".
         _buffers.Add(resourceId, new GraphConfigBuffer
         {
-            Size = size,
+            Size = ulong.Max(size, 1),
             Usage = GraphBufferUsageToVkUsage(usage),
             Mapped = WillUsageRequireMapping(usage)
         });
