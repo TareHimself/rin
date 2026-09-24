@@ -33,14 +33,11 @@ struct PushConstants {
     Mesh *meshes;
     uint invocationCount;
     IndirectCommand *output;
+    uint *drawCount;
 };
 
 [[vk::push_constant]]
 uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
-
-[[RIN_BINDING(0,0)]]
-[StorageBufferBinding]
-uniform RWByteAddressBuffer drawCount;
 
 struct ComputeIn {
     uint3 threadId : SV_DispatchThreadID;
@@ -83,14 +80,15 @@ void compute(ComputeIn input)
     if (index >= push.invocationCount) return;
 
     var mesh = push.meshes[index];
-    
+
     // Do culling etc here
     var wasCulled = push.cullingResults[mesh.meshIndex] == 0;
 
     if (wasCulled) return;
 
     uint drawIndex = 0;
-    drawCount.InterlockedAdd(0, 1, drawIndex);
+    InterlockedAdd(push.drawCount[0], 1, drawIndex);
 
-    push.output[drawIndex] = mesh.toIndirectCommand();
+    var cmd = mesh.toIndirectCommand();
+    push.output[drawIndex] = cmd;
 }

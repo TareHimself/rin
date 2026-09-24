@@ -7,16 +7,7 @@ public interface IExecutionContext
     public string Id { get; }
 
     public IExecutionContext BindIndexBuffer(in DeviceBufferView view);
-
-    public IExecutionContext Barrier(ResourceHandle image, ImageLayout from, ImageLayout to);
-
-    public IExecutionContext Barrier(ReadOnlySpan<TextureBarrier> barriers);
-
-    public IExecutionContext Barrier(in DeviceBufferView view, BufferUsage from, BufferUsage to,
-        ResourceOperation fromOperation, ResourceOperation toOperation);
-
-    public IExecutionContext Barrier(ReadOnlySpan<BufferBarrier> barriers);
-
+    
     public IExecutionContext CopyToBuffer(in DeviceBufferView src, in DeviceBufferView dest);
 
     public IExecutionContext CopyToImage(in DeviceBufferView src, ResourceHandle dest);

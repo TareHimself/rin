@@ -19,7 +19,7 @@ namespace Rin.Graphics.Vulkan;
 /// </summary>
 public class WindowRenderer : IWindowRenderer
 {
-    private const uint FramesInFlight = 3;
+    private const uint FramesInFlight = 1;
 
     private readonly Lock _drawLock = new();
     private readonly VulkanGraphicsModule _module;
@@ -114,8 +114,8 @@ public class WindowRenderer : IWindowRenderer
         {
             _disposed = true;
             _module.WaitIdle();
-            ResourcePool.Dispose();
             foreach (var frame in _frames) frame.Dispose();
+            ResourcePool.Dispose();
             _frames = [];
             DestroySwapchain();
             unsafe
@@ -359,13 +359,14 @@ public class WindowRenderer : IWindowRenderer
                     builder.Reset();
                     Profiling.Begin("Engine.Rendering.Graph.Build");
                     ctx.Collector.Write(builder); // Build the passes from the collector
-                    builder.AddPass(_prepareForPresentPass); // Always terminal
+                    builder.AddPass(_prepareForPresentPass);
                     Profiling.End("Engine.Rendering.Graph.Build");
                     var device = _module.GetDevice();
                     CheckResult(frame.WaitForLastDraw());
 
                     frame.Reset();
-
+                    ResourcePool.OnFrameEnd(_framesRendered);
+                    
                     uint swapchainImageIndex = 0;
                     CheckResult(vkAcquireNextImageKHR(device, _swapchain, ulong.MaxValue,
                         frame.GetSwapchainSemaphore(),
@@ -429,6 +430,7 @@ public class WindowRenderer : IWindowRenderer
                         new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo, 1),
                         new ReadOnlySpan<VkSemaphoreSubmitInfo>(&signalSemaphoreSubmitInfo, 1),
                         new ReadOnlySpan<VkSemaphoreSubmitInfo>(&waitSemaphoreSubmitInfo, 1));
+                    ((CompiledGraph)graph).OnSubmitted();
 
                     var swapchain = _swapchain;
                     var imIdx = swapchainImageIndex + 0;
@@ -446,7 +448,7 @@ public class WindowRenderer : IWindowRenderer
 
                     frame.Finish();
 
-                    ResourcePool.OnFrameEnd(_framesRendered);
+                    
 
                     _framesRendered++;
                 }

@@ -104,7 +104,7 @@ public class SlugAtlas : IDisposable
             _bandData.AddRange([0f, 0f, 0f, 0f]);
         _bandCursor += totalHeaders;
 
-        // Write H band index lists, recording the offset for each header.
+        // WriteSingle H band index lists, recording the offset for each header.
         var hOffsets = new int[packed.BandCountY];
         for (var b = 0; b < packed.BandCountY; b++)
         {
@@ -121,7 +121,7 @@ public class SlugAtlas : IDisposable
             }
         }
 
-        // Write V band index lists.
+        // WriteSingle V band index lists.
         var vOffsets = new int[packed.BandCountX];
         for (var b = 0; b < packed.BandCountX; b++)
         {

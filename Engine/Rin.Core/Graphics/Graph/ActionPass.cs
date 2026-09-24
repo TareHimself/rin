@@ -5,17 +5,13 @@ namespace Rin.Core.Graphics.Graph;
 /// </summary>
 /// <param name="configure"></param>
 /// <param name="execute"></param>
-/// <param name="terminal"></param>
 /// <param name="name"></param>
 public class ActionPass(
     Action<IPass, IGraphConfig> configure,
     Action<IPass, ICompiledGraph, IExecutionContext> execute,
-    bool terminal = false,
     string? name = null) : IPass
 {
     public string Name { get; } = name ?? $"unknown-pass-{Guid.NewGuid().ToString()}";
-
-    public Action? OnPrune { get; } = null;
 
     public void Configure(IGraphConfig config)
     {
@@ -28,6 +24,9 @@ public class ActionPass(
     }
 
     public uint Id { get; set; }
-
-    public bool IsTerminal => terminal;
 }
+
+public class TerminalActionPass(
+    Action<IPass, IGraphConfig> configure,
+    Action<IPass, ICompiledGraph, IExecutionContext> execute,
+    string? name = null) : ActionPass(configure, execute, name), ITerminalPass;

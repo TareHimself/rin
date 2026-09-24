@@ -1,4 +1,5 @@
 ﻿using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan;
@@ -20,73 +21,56 @@ public struct MemoryBarrierOptions
     {
     }
 
-    public MemoryBarrierOptions(BufferUsage fromUsage, BufferUsage toUsage, ResourceOperation fromOperation,
-        ResourceOperation toOperation)
+    /// <summary>
+    ///     Derives barrier stage/access masks from <see cref="GraphBufferUsage" /> - the render graph's own
+    ///     buffer-transition intent, already tracked per resource action - rather than
+    ///     <see cref="BufferCreateFlags" /> (creation-time usage, a different concern: what the buffer can
+    ///     ever be used for, not what's happening to it at this point in the graph). Mirrors how images keep
+    ///     <see cref="ImageLayout" /> separate from <see cref="ImageCreateFlags" /> for the same reason.
+    /// </summary>
+    public MemoryBarrierOptions(GraphBufferUsage from, GraphBufferUsage to,
+        ResourceOperation fromOperation, ResourceOperation toOperation)
     {
-        WaitForStages = fromUsage switch
-        {
-            BufferUsage.Undefined => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_NONE,
-            BufferUsage.Host => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_HOST_BIT,
-            BufferUsage.Transfer => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-            BufferUsage.Graphics => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-            BufferUsage.Compute => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            BufferUsage.Indirect => VkPipelineStageFlags2
-                .VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, // Graphics pipelines execute after a drawIndirect call
-            _ => throw new ArgumentOutOfRangeException(nameof(fromUsage), fromUsage, null)
-        };
-        NextStages = toUsage switch
-        {
-            BufferUsage.Undefined => throw new Exception("Buffer cannot transition to undefined stage"),
-            BufferUsage.Host => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_HOST_BIT,
-            BufferUsage.Transfer => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-            BufferUsage.Graphics => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-            BufferUsage.Compute => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            BufferUsage.Indirect => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
-            _ => throw new ArgumentOutOfRangeException(nameof(fromUsage), fromUsage, null)
-        };
+        WaitForStages = StagesFor(from);
+        NextStages = StagesFor(to);
+        SrcAccessFlags = AccessFor(from, fromOperation);
+        DstAccessFlags = AccessFor(to, toOperation);
+    }
 
-        SrcAccessFlags = fromOperation switch
+    private static VkPipelineStageFlags2 StagesFor(GraphBufferUsage usage)
+    {
+        return usage switch
         {
-            ResourceOperation.Read => fromUsage switch
-            {
-                BufferUsage.Undefined => VkAccessFlags2.VK_ACCESS_2_NONE,
-                BufferUsage.Host => VkAccessFlags2.VK_ACCESS_2_HOST_READ_BIT,
-                BufferUsage.Transfer => VkAccessFlags2.VK_ACCESS_2_TRANSFER_READ_BIT,
-                BufferUsage.Graphics or BufferUsage.Compute => VkAccessFlags2.VK_ACCESS_2_SHADER_READ_BIT,
-                BufferUsage.Indirect => VkAccessFlags2.VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
-                _ => throw new ArgumentOutOfRangeException(nameof(fromUsage), fromUsage, null)
-            },
-            ResourceOperation.Write => fromUsage switch
-            {
-                BufferUsage.Undefined => VkAccessFlags2.VK_ACCESS_2_NONE,
-                BufferUsage.Host => VkAccessFlags2.VK_ACCESS_2_HOST_WRITE_BIT,
-                BufferUsage.Transfer => VkAccessFlags2.VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                BufferUsage.Graphics or BufferUsage.Compute => VkAccessFlags2.VK_ACCESS_2_SHADER_WRITE_BIT,
-                BufferUsage.Indirect => VkAccessFlags2.VK_ACCESS_2_SHADER_WRITE_BIT,
-                _ => throw new ArgumentOutOfRangeException(nameof(fromUsage), fromUsage, null)
-            },
-            _ => throw new ArgumentOutOfRangeException(nameof(fromOperation), fromOperation, null)
+            GraphBufferUsage.Host or GraphBufferUsage.HostThenTransfer or GraphBufferUsage.HostThenGraphics
+                or GraphBufferUsage.HostThenCompute or GraphBufferUsage.HostThenIndirect =>
+                VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_HOST_BIT,
+            GraphBufferUsage.Transfer => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+            GraphBufferUsage.Graphics => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+            GraphBufferUsage.Compute => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            GraphBufferUsage.Indirect => VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+            _ => throw new ArgumentOutOfRangeException(nameof(usage), usage, null)
         };
+    }
 
-        DstAccessFlags = toOperation switch
+    private static VkAccessFlags2 AccessFor(GraphBufferUsage usage, ResourceOperation operation)
+    {
+        return (usage, operation) switch
         {
-            ResourceOperation.Read => toUsage switch
-            {
-                BufferUsage.Host => VkAccessFlags2.VK_ACCESS_2_HOST_READ_BIT,
-                BufferUsage.Transfer => VkAccessFlags2.VK_ACCESS_2_TRANSFER_READ_BIT,
-                BufferUsage.Graphics or BufferUsage.Compute => VkAccessFlags2.VK_ACCESS_2_SHADER_READ_BIT,
-                BufferUsage.Indirect => VkAccessFlags2.VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
-                _ => throw new ArgumentOutOfRangeException(nameof(toUsage), toUsage, null)
-            },
-            ResourceOperation.Write => toUsage switch
-            {
-                BufferUsage.Host => VkAccessFlags2.VK_ACCESS_2_HOST_WRITE_BIT,
-                BufferUsage.Transfer => VkAccessFlags2.VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                BufferUsage.Graphics or BufferUsage.Compute => VkAccessFlags2.VK_ACCESS_2_SHADER_WRITE_BIT,
-                BufferUsage.Indirect => VkAccessFlags2.VK_ACCESS_2_SHADER_WRITE_BIT,
-                _ => throw new ArgumentOutOfRangeException(nameof(toUsage), toUsage, null)
-            },
-            _ => throw new ArgumentOutOfRangeException(nameof(toOperation), toOperation, null)
+            (GraphBufferUsage.Host or GraphBufferUsage.HostThenTransfer or GraphBufferUsage.HostThenGraphics
+                or GraphBufferUsage.HostThenCompute or GraphBufferUsage.HostThenIndirect, ResourceOperation.Read) =>
+                VkAccessFlags2.VK_ACCESS_2_HOST_READ_BIT,
+            (GraphBufferUsage.Host or GraphBufferUsage.HostThenTransfer or GraphBufferUsage.HostThenGraphics
+                or GraphBufferUsage.HostThenCompute or GraphBufferUsage.HostThenIndirect, ResourceOperation.Write) =>
+                VkAccessFlags2.VK_ACCESS_2_HOST_WRITE_BIT,
+            (GraphBufferUsage.Transfer, ResourceOperation.Read) => VkAccessFlags2.VK_ACCESS_2_TRANSFER_READ_BIT,
+            (GraphBufferUsage.Transfer, ResourceOperation.Write) => VkAccessFlags2.VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            (GraphBufferUsage.Graphics or GraphBufferUsage.Compute, ResourceOperation.Read) =>
+                VkAccessFlags2.VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+            (GraphBufferUsage.Graphics or GraphBufferUsage.Compute, ResourceOperation.Write) =>
+                VkAccessFlags2.VK_ACCESS_2_SHADER_WRITE_BIT,
+            (GraphBufferUsage.Indirect, ResourceOperation.Read) => VkAccessFlags2.VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
+            (GraphBufferUsage.Indirect, ResourceOperation.Write) => VkAccessFlags2.VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            _ => throw new ArgumentOutOfRangeException(nameof(usage), usage, null)
         };
     }
 }

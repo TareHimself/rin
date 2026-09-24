@@ -8,8 +8,8 @@ struct SkinnedMesh {
 }
 struct ExecutionInfo {
     int poseId;
-    int vertexId;
     int meshId;
+    int vertexId;
 }
 struct Pose {
     float4x4 *transforms;

@@ -1,6 +1,8 @@
+using Rin.Core.Graphics.Graph;
+
 namespace Rin.World.Graphics;
 
-public interface IWorldRenderContext
+public interface IWorldCollectedData : ICollectedData
 {
     public uint GetOutputImageId();
 

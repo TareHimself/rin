@@ -6,7 +6,6 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #include <vulkan/vulkan.hpp>
 #include <VkBootstrap.h>
 #include <iostream>
-#include <slang.h>
 #include "platform.hpp"
 #ifdef RIN_PLATFORM_WINDOWS
 #endif
@@ -23,10 +22,7 @@ if(VULKAN_HPP_DEFAULT_DISPATCHER.FUNCTION == nullptr) \
 } \
 return VULKAN_HPP_DEFAULT_DISPATCHER.FUNCTION(__VA_ARGS__);
 
-void createVulkanInstance(std::uint64_t windowHandle, VkInstance* outInstance, VkDevice* outDevice,
-                          VkPhysicalDevice* outPhysicalDevice, VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily, VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily,
-                          VkSurfaceKHR* outSurface,
-                          VkDebugUtilsMessengerEXT* outMessenger)
+void createVulkanInstance(std::uint64_t windowHandle, VulkanInitResult* outResult)
 {
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init();
@@ -42,7 +38,6 @@ void createVulkanInstance(std::uint64_t windowHandle, VkInstance* outInstance, V
     builder
         .set_app_name("Rin Engine")
         .require_api_version(1,3,0)
-        //.request_validation_layers(true)
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
         .use_default_debug_messenger()
 #endif
@@ -62,7 +57,7 @@ void createVulkanInstance(std::uint64_t windowHandle, VkInstance* outInstance, V
     auto instance = vkbInstance.instance;
 
 #ifndef VULKAN_HPP_DISABLE_ENHANCED_MODE
-    *outMessenger = vkbInstance.debug_messenger;
+    outResult->messenger = vkbInstance.debug_messenger;
 #endif
 
     vk::PhysicalDeviceVulkan13Features features{};
@@ -78,16 +73,12 @@ void createVulkanInstance(std::uint64_t windowHandle, VkInstance* outInstance, V
         .setDescriptorIndexing(true)
         .setDescriptorBindingPartiallyBound(true)
         .setRuntimeDescriptorArray(true)
+        .setShaderSampledImageArrayNonUniformIndexing(true)
         .setDescriptorBindingSampledImageUpdateAfterBind(true)
         .setDescriptorBindingStorageImageUpdateAfterBind(true)
         .setDescriptorBindingStorageBufferUpdateAfterBind(true)
         .setDescriptorBindingVariableDescriptorCount(true)
         .setScalarBlockLayout(true);
-        //.setDrawIndirectCount(true);
-
-#ifndef RIN_PLATFORM_MAC // Indirect drawing is not supported on macOS
-    features12.setDrawIndirectCount(true);
-#endif
 
     VkSurfaceKHR surf = rwin::createSurface(windowHandle,instance);
     vkb::PhysicalDeviceSelector selector{vkbInstance};
@@ -98,15 +89,32 @@ void createVulkanInstance(std::uint64_t windowHandle, VkInstance* outInstance, V
     selector
     .add_required_extension_features(static_cast<VkPhysicalDeviceShaderDrawParametersFeatures>(drawParametersFeatures));
 
-    auto physicalDeviceResult = selector.select();
+    auto physicalDevicesResult = selector.select_devices();
 
-    if(!physicalDeviceResult)
+    if(!physicalDevicesResult)
     {
-        std::cerr << "Failed to select vulkan physical device: " << physicalDeviceResult.error().message() << "\n";
+        std::cerr << "Failed to select vulkan physical device: " << physicalDevicesResult.error().message() << "\n";
         throw std::runtime_error("");
     }
 
-    const vkb::PhysicalDevice& physicalDevice = physicalDeviceResult.value();
+    VkPhysicalDeviceFeatures indirectFeatures{};
+    indirectFeatures.multiDrawIndirect = VK_TRUE;
+    VkPhysicalDeviceVulkan12Features indirectFeatures12{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+    indirectFeatures12.drawIndirectCount = VK_TRUE;
+
+    // Candidates are copies so a device with only some of the features isn't left half-enabled.
+    auto physicalDevice = physicalDevicesResult.value().front();
+    outResult->supportsIndirectRendering = false;
+    for(auto candidate : physicalDevicesResult.value())
+    {
+        if(candidate.enable_features_if_present(indirectFeatures) &&
+           candidate.enable_extension_features_if_present(indirectFeatures12))
+        {
+            physicalDevice = candidate;
+            outResult->supportsIndirectRendering = true;
+            break;
+        }
+    }
     vkb::DeviceBuilder deviceBuilder{physicalDevice};
 
     auto deviceResult = deviceBuilder.build();
@@ -123,12 +131,12 @@ void createVulkanInstance(std::uint64_t windowHandle, VkInstance* outInstance, V
 
     auto gpu = physicalDevice.physical_device;
 
-    *outGraphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
+    outResult->graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
     auto transfer = vkbDevice.get_queue(vkb::QueueType::transfer);
     auto hasTransferQueue = transfer.has_value();
-    *outTransferQueue = hasTransferQueue ? transfer.value() : vkbDevice.get_queue(vkb::QueueType::graphics).value();
-    *outGraphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
-    *outTransferQueueFamily = hasTransferQueue ? vkbDevice.get_queue_index(vkb::QueueType::transfer).value() : vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+    outResult->transferQueue = hasTransferQueue ? transfer.value() : vkbDevice.get_queue(vkb::QueueType::graphics).value();
+    outResult->graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+    outResult->transferQueueFamily = hasTransferQueue ? vkbDevice.get_queue_index(vkb::QueueType::transfer).value() : vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
     try
     {
@@ -141,10 +149,10 @@ void createVulkanInstance(std::uint64_t windowHandle, VkInstance* outInstance, V
         throw e;
     }
 
-    *outInstance = instance;
-    *outDevice = device;
-    *outPhysicalDevice = gpu;
-    *outSurface = surf;
+    outResult->instance = instance;
+    outResult->device = device;
+    outResult->physicalDevice = gpu;
+    outResult->surface = surf;
 }
 
 void destroyVulkanMessenger(VkInstance instance, VkDebugUtilsMessengerEXT messenger)
@@ -234,6 +242,11 @@ void allocatorNewImage(VkImage* image, void** allocation, VkImageCreateInfo* cre
 
     vmaSetAllocationName(actualAllocator,alloc,debugName);
     *allocation = static_cast<void*>(alloc);
+}
+
+void allocatorSetAllocationName(void* allocator, void* allocation, const char* name)
+{
+    vmaSetAllocationName(static_cast<VmaAllocator>(allocator), static_cast<VmaAllocation>(allocation), name);
 }
 
 void allocatorFreeBuffer(VkBuffer buffer, void* allocation, void* allocator)

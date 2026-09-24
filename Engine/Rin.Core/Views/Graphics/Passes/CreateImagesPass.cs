@@ -14,8 +14,6 @@ public class CreateImagesPass : IPass
     public SurfaceContext Context { get; set; }
 
     public uint Id { get; set; }
-    public bool IsTerminal => false;
-    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {

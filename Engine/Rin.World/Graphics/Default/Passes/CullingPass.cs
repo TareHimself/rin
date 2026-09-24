@@ -9,8 +9,8 @@ namespace Rin.World.Graphics.Default.Passes;
 ///     Culls all meshes based on the main view (Will be updated to support a view index in the future)
 ///     writes results to <see cref="CullingPass.OutputBufferId" />
 /// </summary>
-/// <param name="renderContext"></param>
-public partial class CullingPass(DefaultWorldRenderContext renderContext) : IComputePass
+/// <param name="collectedData"></param>
+public partial class CullingPass(DefaultWorldCollectedData collectedData) : IComputePass
 {
     [ComputeShader("Shaders/World/Mesh/Compute/culling.slang")]
     private partial IComputeShader Shader { get; }
@@ -18,20 +18,20 @@ public partial class CullingPass(DefaultWorldRenderContext renderContext) : ICom
     [PublicAPI] public uint OutputBufferId { get; set; }
 
     public uint Id { get; set; }
-    public bool IsTerminal => false;
-    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {
-        config.ReadBuffer(renderContext.BoundsBufferId, GraphBufferUsage.Compute);
-        OutputBufferId = config.CreateBuffer<uint>(renderContext.TotalMeshCount, GraphBufferUsage.Compute);
+        // Always create OutputBufferId (GraphConfig.CreateBuffer clamps zero size to 1) - downstream
+        // passes like FillIndirectBuffersPass unconditionally read it regardless of mesh count.
+        config.ReadBuffer(collectedData.BoundsBufferId, GraphBufferUsage.Compute);
+        OutputBufferId = config.CreateBuffer<uint>(collectedData.TotalMeshCount, GraphBufferUsage.Compute);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (renderContext.TotalMeshCount == 0) return; // nothing to cull; a zero-sized dispatch isn't valid
+        if (collectedData.TotalMeshCount == 0) return; // nothing to cull; a zero-sized dispatch isn't valid
 
-        var boundsBuffer = graph.GetBufferOrException(renderContext.BoundsBufferId);
+        var boundsBuffer = graph.GetBufferOrException(collectedData.BoundsBufferId);
         var outputBuffer = graph.GetBufferOrException(OutputBufferId);
 
         if (Shader.Bind(ctx) is not { } bindContext) return;
@@ -39,10 +39,10 @@ public partial class CullingPass(DefaultWorldRenderContext renderContext) : ICom
             .Push(new Push
             {
                 BoundsBufferAddress = boundsBuffer.GetAddress(),
-                TotalInvocations = renderContext.TotalMeshCount,
+                TotalInvocations = collectedData.TotalMeshCount,
                 OutputBufferAddress = outputBuffer.GetAddress()
             })
-            .Invoke((uint)renderContext.TotalMeshCount);
+            .Invoke((uint)collectedData.TotalMeshCount);
     }
 
     [NoReorder]

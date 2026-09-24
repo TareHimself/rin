@@ -6,9 +6,9 @@ public class TextureResourceDescriptor : IResourceDescriptor
 {
     public readonly Extent2D Extent;
     public readonly ImageFormat Format;
-    public readonly ImageUsage Usage;
+    public readonly ImageCreateFlags Usage;
 
-    public TextureResourceDescriptor(in Extent2D extent, ImageFormat format, ImageUsage usage)
+    public TextureResourceDescriptor(in Extent2D extent, ImageFormat format, ImageCreateFlags usage)
     {
         Extent = extent;
         Format = format;

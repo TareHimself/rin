@@ -87,8 +87,8 @@ public class ConstraintView : SingleSlotCompositeView
     // protected override void CollectSelf(TransformInfo info, DrawCommands drawCommands)
     // {
     //     base.CollectSelf(info, drawCommands);
-    //     drawCommands.AddRect(info.Transform, info.Size, color: Color.Green);
-    //     drawCommands.AddRect(info.Transform *Matrix3.Identity.Translate(1.5f), info.Size - 3f, color: Color.Red);
+    //     drawCommands.AddRect(info.Transform, info.Count, color: Color.Green);
+    //     drawCommands.AddRect(info.Transform *Matrix3.Identity.Translate(1.5f), info.Count - 3f, color: Color.Red);
     //     
     // }
 }

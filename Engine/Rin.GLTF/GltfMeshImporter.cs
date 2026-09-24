@@ -65,8 +65,8 @@ public static class GltfMeshImporter
             surfaces.Add(newSurface);
         }
 
-        var (id, task) = IMeshFactory.Get()
-            .CreateMesh(vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
+        var task = IMeshFactory.Get()
+            .CreateMesh(out var id, vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
         await task;
         return new StaticMesh
         {
@@ -169,8 +169,8 @@ public static class GltfMeshImporter
             surfaces.Add(newSurface);
         }
 
-        var (id, task) = IMeshFactory.Get()
-            .CreateMesh(vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
+        var task = IMeshFactory.Get()
+            .CreateMesh(out var id, vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
         await task;
         return new SkinnedMesh
         {

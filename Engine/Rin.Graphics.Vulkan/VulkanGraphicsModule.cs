@@ -28,14 +28,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
     private readonly int _maxEventsPerPeep = 64;
     private readonly List<Pair<TaskCompletionSource, Action<IExecutionContext>>> _pendingGraphicsSubmits = [];
-    private readonly List<Pair<TaskCompletionSource, Action<IExecutionContext>>> _pendingTransferSubmits = [];
     private readonly List<IRenderer> _renderers = [];
     private readonly Dictionary<ulong, RinWindow> _rinWindows = [];
-
-    private readonly BackgroundTaskQueue _transferQueueThread = new()
-    {
-        Name = "Transfer Queue"
-    };
 
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
 
@@ -51,9 +45,9 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     private VkFence _graphicsFence;
     private VkQueue _graphicsQueue;
     private uint _graphicsQueueFamily;
-    private bool _hasDedicatedTransferQueue;
     private VkInstance _instance;
     private VkPhysicalDevice _physicalDevice;
+    private VulkanDevice? _currentDevice;
     private SamplerFactory? _samplerFactory;
     private IShaderManager? _shaderManager;
 
@@ -63,9 +57,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         format = VkFormat.VK_FORMAT_R8G8B8A8_UNORM
     };
 
-    private VkCommandBuffer _transferCommandBuffer;
-    private VkCommandPool _transferCommandPool;
-    private VkFence _transferFence;
     private VkQueue _transferQueue;
     private uint _transferQueueFamily;
 
@@ -98,7 +89,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
 
         _windows.Clear();
         _backgroundTaskQueue.Dispose();
-        _transferQueueThread.Dispose();
         _descriptorAllocator?.Dispose();
         _shaderManager?.Dispose();
         DisposeBindlessResources();
@@ -108,8 +98,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         Native.allocatorDestroy(_allocator);
         _device.DestroyCommandPool(_graphicsCommandPool);
         _device.DestroyFence(_graphicsFence);
-        _device.DestroyCommandPool(_transferCommandPool);
-        _device.DestroyFence(_transferFence);
         _device.Destroy();
         if (_debugUtilsMessenger.Value != 0) Native.destroyVulkanMessenger(_instance, _debugUtilsMessenger);
         _instance.Destroy();
@@ -140,6 +128,9 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     public event Action<IWindow>? OnWindowCreated;
     public event Action<IWindowRenderer>? OnWindowRendererCreated;
     public event Action<IWindowRenderer>? OnWindowRendererDestroyed;
+
+    public IDevice CurrentDevice =>
+        _currentDevice ?? throw new InvalidOperationException("The graphics module has not been started");
 
     public void AddRenderer(IRenderer renderer)
     {
@@ -201,29 +192,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         Sync(() => { vkDeviceWaitIdle(_device); }).Wait();
     }
 
-    public DeviceBufferView NewTransferBuffer(ulong size, bool sequentialWrite = true,
-        string debugName = "Transfer Buffer")
-    {
-        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-            , sequentialWrite, true, true, debugName).GetView();
-    }
-
-    public DeviceBufferView NewStorageBuffer(ulong size, bool sequentialWrite = true)
-    {
-        return NewBuffer(size,
-            VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-            VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true).GetView();
-    }
-
-    public DeviceBufferView NewUniformBuffer(ulong size, bool sequentialWrite = true)
-    {
-        return NewBuffer(size, VkBufferUsageFlags.VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, sequentialWrite, false, true).GetView();
-    }
-
     public void Collect()
     {
         IRenderer[] renderers;
@@ -243,54 +211,36 @@ public partial class VulkanGraphicsModule : IGraphicsModule
 
     public void Execute()
     {
-        if (!_hasDedicatedTransferQueue) HandlePendingTransferSubmits();
-
         {
             HandlePendingGraphicsSubmits();
         }
 
         foreach (var context in _collected) context.Renderer.Execute(context);
+
+        FlushPendingWrites();
     }
 
     private unsafe void InitVulkan()
     {
-        var outInstance = _instance;
-        var outDevice = _device;
-        var outPhysicalDevice = _physicalDevice;
-        var outGraphicsQueue = _graphicsQueue;
-        uint outGraphicsQueueFamily = 0;
-        var outTransferQueue = _graphicsQueue;
-        uint outTransferQueueFamily = 0;
-        var outSurface = new VkSurfaceKHR();
-        var outDebugMessenger = _debugUtilsMessenger;
-
         // We create a window just for surface information
         using var window = Internal_CreateWindow("Graphics Init Window", new Extent2D(1)) as RinWindow ??
                            throw new NullReferenceException();
 
         Update(0);
 
-        Native.createVulkanInstance(window.GetHandle(),
-            &outInstance,
-            &outDevice,
-            &outPhysicalDevice,
-            &outGraphicsQueue,
-            &outGraphicsQueueFamily,
-            &outTransferQueue,
-            &outTransferQueueFamily,
-            &outSurface,
-            &outDebugMessenger);
-        _instance = outInstance;
-        _device = outDevice;
-        _physicalDevice = outPhysicalDevice;
-        _graphicsQueue = outGraphicsQueue;
-        _graphicsQueueFamily = outGraphicsQueueFamily;
-        _transferQueue = outTransferQueue;
-        _transferQueueFamily = outTransferQueueFamily;
-        _debugUtilsMessenger = outDebugMessenger;
-        _hasDedicatedTransferQueue = _graphicsQueue != _transferQueue;
+        var result = new Native.VulkanInitResult();
+        Native.createVulkanInstance(window.GetHandle(), &result);
+        _instance = result.instance;
+        _device = result.device;
+        _physicalDevice = result.physicalDevice;
+        _currentDevice = new VulkanDevice { SupportsIndirectRendering = result.supportsIndirectRendering };
+        _graphicsQueue = result.graphicsQueue;
+        _graphicsQueueFamily = result.graphicsQueueFamily;
+        _transferQueue = result.transferQueue;
+        _transferQueueFamily = result.transferQueueFamily;
+        _debugUtilsMessenger = result.messenger;
 
-        var formats = _physicalDevice.GetSurfaceFormats(outSurface).Where(c =>
+        var formats = _physicalDevice.GetSurfaceFormats(result.surface).Where(c =>
         {
             var asString = c.format.ToString();
             return SurfaceFormatRegex().IsMatch(asString);
@@ -304,9 +254,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             new PoolSizeRatio(DescriptorType.UniformBuffer, 3),
             new PoolSizeRatio(DescriptorType.CombinedSamplerImage, 4)
         ]);
-        _transferFence = _device.CreateFence();
-        _transferCommandPool = _device.CreateCommandPool(GetTransferQueueFamily());
-        _transferCommandBuffer = _device.AllocateCommandBuffers(_transferCommandPool).First();
         _graphicsFence = _device.CreateFence();
         _graphicsCommandPool = _device.CreateCommandPool(GetGraphicsQueueFamily());
         _graphicsCommandBuffer = _device.AllocateCommandBuffers(_graphicsCommandPool).First();
@@ -316,7 +263,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             _physicalDevice);
         _shaderManager = new CompiledShaderManager();
         InitBindlessResources();
-        _instance.DestroySurface(outSurface);
+        _instance.DestroySurface(result.surface);
     }
 
     public VkSurfaceFormatKHR GetSurfaceFormat()
@@ -378,10 +325,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         return _transferQueue;
     }
 
-    private uint GetTransferQueueFamily()
-    {
-        return _transferQueueFamily;
-    }
 
     public VkPhysicalDevice GetPhysicalDevice()
     {
@@ -447,6 +390,11 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         return _backgroundTaskQueue.Enqueue(action);
     }
 
+    /// <summary>
+    ///     Allocates a raw Vulkan buffer - registry-agnostic, doesn't assign a <see cref="ResourceHandle" />.
+    ///     Registration is the caller's job (see <see cref="CreateBuffer" />), so this is only meant to be
+    ///     called from within the resource registry itself.
+    /// </summary>
     private IVulkanDeviceBuffer NewBuffer(ulong size, VkBufferUsageFlags usageFlags,
         VkMemoryPropertyFlags propertyFlags,
         bool sequentialWrite = true, bool preferHost = false, bool mapped = false, string debugName = "Buffer")
@@ -461,20 +409,19 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                 preferHost ? 1 : 0,
                 (int)usageFlags, (int)propertyFlags, mapped ? 1 : 0, debugName);
 
-            var deviceBuffer = new VulkanDeviceBuffer(buffer, size, allocation, _allocator);
-            deviceBuffer.Handle = RegisterBuffer(deviceBuffer);
-            return deviceBuffer;
+            return new VulkanDeviceBuffer(buffer, size, allocation, _allocator);
         }
     }
 
 
     /// <summary>
-    ///     Free's a <see cref="VulkanDeviceBuffer" />
+    ///     Free's a <see cref="VulkanDeviceBuffer" />. Registry cleanup (freeing the id, bumping the slot's
+    ///     generation) already happened in <see cref="FreeResourceHandles" /> before this runs - this only
+    ///     does the native deallocation.
     /// </summary>
     public void FreeBuffer(VulkanDeviceBuffer buffer)
     {
         _bufferCount--;
-        ReleaseBufferHandle(buffer.Handle);
         Native.allocatorFreeBuffer(buffer.NativeBuffer, buffer.Allocation, _allocator);
     }
 
@@ -486,15 +433,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             vkDestroyImageView(_device, image.VulkanView, null);
             Native.allocatorFreeImage(image.VulkanImage, image.Allocation, _allocator);
         }
-    }
-
-    public IVulkanDeviceBuffer NewBuffer(ulong size, VkBufferUsageFlags usage, bool sequentialWrite = true,
-        bool mapped = true, string debugName = "Buffer")
-    {
-        return NewBuffer(size, usage,
-            mapped
-                ? VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-                : VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sequentialWrite, false, mapped, debugName);
     }
 
     private static VkCommandBufferBeginInfo MakeCommandBufferBeginInfo(VkCommandBufferUsageFlags flags)
@@ -549,50 +487,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     {
         if (_descriptorAllocator == null) throw new Exception("How have you done this");
         return _descriptorAllocator;
-    }
-
-    public Task TransferSubmit(Action<IExecutionContext> action)
-    {
-        if (_hasDedicatedTransferQueue)
-            return _transferQueueThread.Enqueue(() =>
-            {
-                unsafe
-                {
-                    fixed (VkFence* pFences = &_transferFence)
-                    {
-                        vkResetCommandBuffer(_transferCommandBuffer, 0);
-                        var cmd = _transferCommandBuffer;
-                        var beginInfo =
-                            MakeCommandBufferBeginInfo(
-                                VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-                        vkBeginCommandBuffer(cmd, &beginInfo);
-
-                        action.Invoke(new VulkanExecutionContext(_transferCommandBuffer, GetDescriptorAllocator()));
-
-                        vkEndCommandBuffer(cmd);
-                        var submitInfo = new VkCommandBufferSubmitInfo
-                        {
-                            sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                            commandBuffer = cmd,
-                            deviceMask = 0
-                        };
-                        var semaphores = new ReadOnlySpan<VkSemaphoreSubmitInfo>();
-                        SubmitToQueue(_transferQueue, _transferFence,
-                            new ReadOnlySpan<VkCommandBufferSubmitInfo>(&submitInfo, 1), semaphores, semaphores);
-
-                        vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
-                        var r = vkResetFences(_device, 1, pFences);
-
-                        if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");
-                    }
-                }
-            });
-        lock (_pendingTransferSubmits)
-        {
-            var pending = new TaskCompletionSource();
-            _pendingTransferSubmits.Add(new Pair<TaskCompletionSource, Action<IExecutionContext>>(pending, action));
-            return pending.Task;
-        }
     }
 
     public Task GraphicsSubmit(Action<IExecutionContext> action)
@@ -701,7 +595,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     }
 
     public IDisposableVulkanTexture CreateVulkanTexture(in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
+        ImageCreateFlags usage = ImageCreateFlags.None)
     {
         unsafe
         {
@@ -737,7 +631,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
 
     public IDisposableVulkanTextureArray CreateVulkanTextureArray(in Extent2D extent, ImageFormat format, uint count,
         bool mips = false,
-        ImageUsage usage = ImageUsage.None)
+        ImageCreateFlags usage = ImageCreateFlags.None)
     {
         unsafe
         {
@@ -774,7 +668,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     }
 
     public IDisposableVulkanCubemap CreateVulkanCubemap(in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
+        ImageCreateFlags usage = ImageCreateFlags.None)
     {
         unsafe
         {
@@ -809,132 +703,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         }
     }
 
-    public Task<IDisposableVulkanTexture> CreateVulkanTexture(ReadOnlyMemory<byte> data, in Extent2D extent,
-        ImageFormat format,
-        bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        var image = CreateVulkanTexture(extent, format, mips, usage | ImageUsage.TransferDst |
-                                                              ImageUsage.TransferSrc);
-
-        var dataSize = extent.Width * extent.Height * format.PixelByteSize();
-        Debug.Assert(dataSize == (ulong)data.Length, "Unexpected image buffer size");
-
-        var uploadBuffer = NewTransferBuffer(dataSize);
-        uploadBuffer.Write(data);
-
-        return TransferSubmit(cmd =>
-        {
-            // `image` isn't handle-registered yet (that happens once the caller wraps it), so this
-            // works directly against the concrete object rather than through IExecutionContext's
-            // handle-based Barrier/CopyToImage.
-            Debug.Assert(cmd is VulkanExecutionContext);
-            var vkCmd = ((VulkanExecutionContext)cmd).CommandBuffer;
-            vkCmd.ImageBarrier(image, ImageLayout.Undefined, ImageLayout.TransferDst);
-
-            var copyRegion = new VkBufferImageCopy
-            {
-                bufferOffset = 0,
-                bufferRowLength = 0,
-                bufferImageHeight = 0,
-                imageSubresource = new VkImageSubresourceLayers
-                {
-                    aspectMask = image.Format.ToAspectFlags(),
-                    mipLevel = 0,
-                    baseArrayLayer = 0,
-                    layerCount = 1
-                },
-                imageExtent = new VkExtent3D
-                {
-                    width = image.Extent.Width,
-                    height = image.Extent.Height,
-                    depth = 1
-                }
-            };
-            unsafe
-            {
-                vkCmd.CopyBufferToImage(uploadBuffer, image, new Span<VkBufferImageCopy>(&copyRegion, 1));
-            }
-        }).Then(() =>
-        {
-            FreeResourceHandles(uploadBuffer.Buffer);
-            return image;
-        });
-
-        // await GraphicsSubmit(cmd =>
-        // {
-        //     if (mips)
-        //         GenerateMipMaps(cmd, (IVulkanImage2D)newImage, extent, mipMapFilter, ImageLayout.TransferDst,
-        //             ImageLayout.ShaderReadOnly);
-        //     else
-        //         cmd.Barrier(newImage, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
-        // });
-
-        //return image;
-    }
-
-    public Task<IDisposableVulkanTextureArray> CreateVulkanTextureArray(ReadOnlyMemory<byte> data, in Extent2D extent,
-        ImageFormat format, uint count, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<IDisposableVulkanCubemap> CreateVulkanCubemap(ReadOnlyMemory<byte> data, in Extent2D extent,
-        ImageFormat format,
-        bool mips = false,
-        ImageUsage usage = ImageUsage.None)
-    {
-        throw new NotImplementedException();
-    }
-
-    private void HandlePendingTransferSubmits()
-    {
-        Pair<TaskCompletionSource, Action<IExecutionContext>>[] pending;
-
-        lock (_pendingTransferSubmits)
-        {
-            pending = _pendingTransferSubmits.ToArray();
-            _pendingTransferSubmits.Clear();
-        }
-
-        if (pending.NotEmpty())
-            unsafe
-            {
-                var cmd = _transferCommandBuffer;
-                var ctx = new VulkanExecutionContext(cmd, GetDescriptorAllocator());
-                fixed (VkFence* pFences = &_transferFence)
-                {
-                    vkResetCommandBuffer(cmd, 0);
-
-                    var beginInfo =
-                        MakeCommandBufferBeginInfo(
-                            VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-                    vkBeginCommandBuffer(cmd, &beginInfo);
-
-                    foreach (var (_, action) in pending) action.Invoke(ctx);
-
-                    vkEndCommandBuffer(cmd);
-                    var bufferSubmitInfo = new VkCommandBufferSubmitInfo
-                    {
-                        sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                        commandBuffer = cmd,
-                        deviceMask = 0
-                    };
-                    var semaphores = new ReadOnlySpan<VkSemaphoreSubmitInfo>();
-                    SubmitToQueue(_transferQueue, _transferFence,
-                        new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo, 1), semaphores, semaphores);
-
-                    vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
-                    var r = vkResetFences(_device, 1, pFences);
-
-                    if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");
-
-                    foreach (var (task, _) in pending) task.SetResult();
-                }
-            }
-    }
-
     private void HandlePendingGraphicsSubmits()
     {
         Pair<TaskCompletionSource, Action<IExecutionContext>>[] pending;
@@ -945,41 +713,50 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             _pendingGraphicsSubmits.Clear();
         }
 
-        if (pending.NotEmpty())
-            unsafe
+        if (pending.Length == 0) return;
+
+        SubmitGraphicsAndWait(cmd =>
+        {
+            var ctx = new VulkanExecutionContext(cmd, GetDescriptorAllocator());
+            foreach (var (_, action) in pending) action.Invoke(ctx);
+        });
+
+        foreach (var (task, _) in pending) task.SetResult();
+    }
+
+    private void SubmitGraphicsAndWait(Action<VkCommandBuffer> record)
+    {
+        unsafe
+        {
+            fixed (VkFence* pFences = &_graphicsFence)
             {
-                var ctx = new VulkanExecutionContext(_graphicsCommandBuffer, GetDescriptorAllocator());
-                fixed (VkFence* pFences = &_graphicsFence)
+                var cmd = _graphicsCommandBuffer;
+                vkResetCommandBuffer(cmd, 0);
+                var beginInfo =
+                    MakeCommandBufferBeginInfo(VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+                vkBeginCommandBuffer(cmd, &beginInfo);
+
+                record(cmd);
+
+                vkEndCommandBuffer(cmd);
+
+                var bufferSubmitInfo = new VkCommandBufferSubmitInfo
                 {
-                    vkResetCommandBuffer(_graphicsCommandBuffer, 0);
-                    var cmd = _graphicsCommandBuffer;
-                    var beginInfo =
-                        MakeCommandBufferBeginInfo(
-                            VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-                    vkBeginCommandBuffer(cmd, &beginInfo);
+                    sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                    commandBuffer = cmd,
+                    deviceMask = 0
+                };
+                var semaphores = new ReadOnlySpan<VkSemaphoreSubmitInfo>();
+                SubmitToQueue(_graphicsQueue, _graphicsFence,
+                    new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo, 1), semaphores, semaphores);
 
-                    foreach (var (_, action) in pending) action.Invoke(ctx);
+                vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
 
-                    vkEndCommandBuffer(cmd);
+                var r = vkResetFences(_device, 1, pFences);
 
-                    var bufferSubmitInfo = new VkCommandBufferSubmitInfo
-                    {
-                        sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                        commandBuffer = cmd,
-                        deviceMask = 0
-                    };
-                    var semaphores = new ReadOnlySpan<VkSemaphoreSubmitInfo>();
-                    SubmitToQueue(_graphicsQueue, _graphicsFence,
-                        new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo, 1), semaphores, semaphores);
-
-                    vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
-                    var r = vkResetFences(_device, 1, pFences);
-
-                    if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");
-
-                    foreach (var (task, _) in pending) task.SetResult();
-                }
+                if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");
             }
+        }
     }
 
     public static VkRenderingInfo MakeRenderingInfo(VkExtent2D extent)
@@ -1005,7 +782,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         };
     }
 
-    private static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, Extent3D size, ImageUsage usage)
+    private static VkImageCreateInfo MakeImageCreateInfo(ImageFormat format, Extent3D size, ImageCreateFlags usage)
     {
         return new VkImageCreateInfo
         {

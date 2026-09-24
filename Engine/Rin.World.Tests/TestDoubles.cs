@@ -1,6 +1,5 @@
 using System.Numerics;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Graph;
 using Rin.Core.Shared;
 using Rin.Core.Shared.Math;
 using Rin.World.Components;
@@ -186,8 +185,7 @@ internal sealed class FakeRenderSystem : IRenderSystem
 
     public void SetInterpolationAlpha(float alpha) => LastInterpolationAlpha = alpha;
 
-    public IWorldRenderContext Snapshot(CameraComponent view, in Extent2D extent) => throw new NotSupportedException();
-    public void Build(IGraphBuilder builder, IWorldRenderContext context) => throw new NotSupportedException();
+    public IWorldCollectedData Snapshot(CameraComponent view, in Extent2D extent) => throw new NotSupportedException();
     public void Dispose()
     {
     }

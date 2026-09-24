@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Rin.Core.Extensions;
@@ -40,9 +39,10 @@ public partial class VulkanGraphicsModule
     private readonly List<BindlessTexture> _textures = [];
     private readonly List<BindlessTextureArray> _textureArrays = [];
     private readonly List<BindlessCubemap> _cubemaps = [];
-    private readonly List<IVulkanDeviceBuffer?> _buffers = [];
+    private readonly List<BindlessBuffer> _buffers = [];
 
-    private readonly Dictionary<ResourceHandle, TaskCompletionSource<ResourceHandle>> _pendingResourceTasks = [];
+    private readonly TextureWriteLanes _textureWrites = new();
+    private readonly BufferWriteLanes _bufferWrites = new();
 
     private DescriptorAllocator? _resourceDescriptorAllocator;
     private DescriptorSet _resourceDescriptorSet;
@@ -115,44 +115,169 @@ public partial class VulkanGraphicsModule
         _textures.Add(new BindlessTexture());
         _textureArrays.Add(new BindlessTextureArray());
         _cubemaps.Add(new BindlessCubemap());
-        _buffers.Add(null);
+        _buffers.Add(new BindlessBuffer());
 
         var extent = new Extent2D(1, 1);
         var format = ImageFormat.RGBA8;
-        _defaultTexture = CreateVulkanTexture(extent, format, usage: ImageUsage.Sampled);
-        _defaultTextureArray = CreateVulkanTextureArray(extent, format, 1, usage: ImageUsage.Sampled);
-        _defaultCubemap = CreateVulkanCubemap(extent, format, usage: ImageUsage.Sampled);
+        _defaultTexture = CreateVulkanTexture(new Extent2D(DefaultTextureSize, DefaultTextureSize), format,
+            usage: ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
+        _defaultTextureArray = CreateVulkanTextureArray(extent, format, 1, usage: ImageCreateFlags.Sampled);
+        _defaultCubemap = CreateVulkanCubemap(extent, format, usage: ImageCreateFlags.Sampled);
+
+        UploadDefaultCheckerboard();
+
+        // Every slot that isn't backed by a live resource yet must still hold a valid descriptor -
+        // GPU-Assisted Validation's descriptor-indexing shader instrumentation traps on reads of
+        // never-written descriptors even when PartiallyBound would otherwise make them legal.
+        for (uint i = 0; i < MaxTextures; i++)
+            _resourceDescriptorSet.WriteSampledImage(TexturesBinding, _defaultTexture, ImageLayout.ShaderReadOnly, i);
+        for (uint i = 0; i < MaxTextureArrays; i++)
+            _resourceDescriptorSet.WriteSampledImageArray(TextureArraysBinding, _defaultTextureArray,
+                ImageLayout.ShaderReadOnly, i);
+        for (uint i = 0; i < MaxCubemaps; i++)
+            _resourceDescriptorSet.WriteSampledCubemap(CubemapsBinding, _defaultCubemap, ImageLayout.ShaderReadOnly,
+                i);
+        _resourceDescriptorSet.Update();
+    }
+
+    private const uint DefaultTextureSize = 8;
+
+    // Black/yellow checkerboard instead of whatever the freshly allocated image memory contains, so a
+    // shader that ends up sampling an unbound bindless slot shows an obvious "missing texture" pattern.
+    private void UploadDefaultCheckerboard()
+    {
+        const byte black = 0;
+        const byte yellow = 255;
+        var pixels = new byte[DefaultTextureSize * DefaultTextureSize * 4];
+        for (uint y = 0; y < DefaultTextureSize; y++)
+        for (uint x = 0; x < DefaultTextureSize; x++)
+        {
+            var isYellow = (x + y) % 2 == 0;
+            var offset = (y * DefaultTextureSize + x) * 4;
+            pixels[offset + 0] = isYellow ? yellow : black;
+            pixels[offset + 1] = isYellow ? yellow : black;
+            pixels[offset + 2] = black;
+            pixels[offset + 3] = 255;
+        }
+
+        var dataSize = (ulong)pixels.Length;
+        var stagingHandle = CreateBuffer(dataSize, BufferCreateFlags.TransferSrc | BufferCreateFlags.HostDst);
+        var uploadBuffer = new DeviceBufferView(stagingHandle, 0, dataSize);
+        uploadBuffer.Write(pixels);
+
+        var texture = _defaultTexture;
+        var textureArray = _defaultTextureArray;
+        var cubemap = _defaultCubemap;
+        GraphicsSubmit(ctx =>
+        {
+            var cmd = ((VulkanExecutionContext)ctx).CommandBuffer;
+            cmd.ImageBarrier(texture, ImageLayout.Undefined, ImageLayout.TransferDst);
+
+            var copyRegion = new VkBufferImageCopy
+            {
+                imageSubresource = new VkImageSubresourceLayers
+                {
+                    aspectMask = texture.Format.ToAspectFlags(),
+                    mipLevel = 0,
+                    baseArrayLayer = 0,
+                    layerCount = 1
+                },
+                imageExtent = new VkExtent3D
+                {
+                    width = texture.Extent.Width,
+                    height = texture.Extent.Height,
+                    depth = 1
+                }
+            };
+            unsafe
+            {
+                cmd.CopyBufferToImage(uploadBuffer, texture, new Span<VkBufferImageCopy>(&copyRegion, 1));
+            }
+
+            cmd.ImageBarrier(texture, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+            cmd.ImageBarrier(textureArray, ImageLayout.Undefined, ImageLayout.ShaderReadOnly);
+            cmd.ImageBarrier(cubemap, ImageLayout.Undefined, ImageLayout.ShaderReadOnly);
+        }).Then(() => { FreeResourceHandles(uploadBuffer.Buffer); });
     }
 
     private void DisposeBindlessResources()
     {
         if (_resourceDescriptorAllocator is null) return;
 
+        List<(ResourceHandle Handle, PendingTextureWrite Write)> pendingTextureWrites = [];
+        _textureWrites.TakeAll(pendingTextureWrites);
+        foreach (var (_, write) in pendingTextureWrites) write.Dispose();
+        List<(ResourceHandle Handle, PendingBufferWrite Write)> pendingBufferWrites = [];
+        _bufferWrites.TakeAll(pendingBufferWrites);
+        foreach (var (_, write) in pendingBufferWrites) write.Dispose();
+
         _resourceDescriptorAllocator.Dispose();
-        foreach (var resource in _textures) resource.Source?.Dispose();
-        foreach (var resource in _textureArrays) resource.Source?.Dispose();
-        foreach (var resource in _cubemaps) resource.Source?.Dispose();
+
+        // Anything still holding a Source here was never freed via FreeResourceHandles - that's a real
+        // leak at the call-site level, so it's worth flagging even though we clean it up here to avoid
+        // validation errors on vkDestroyDevice.
+        for (var i = 0; i < _textures.Count; i++)
+            if (_textures[i].Source is { } texture)
+            {
+                Console.WriteLine($"[Rin.Graphics.Vulkan] Texture at slot {i} was never freed (missing FreeResourceHandles call) - disposing at shutdown.");
+                texture.Dispose();
+            }
+
+        for (var i = 0; i < _textureArrays.Count; i++)
+            if (_textureArrays[i].Source is { } textureArray)
+            {
+                Console.WriteLine($"[Rin.Graphics.Vulkan] TextureArray at slot {i} was never freed (missing FreeResourceHandles call) - disposing at shutdown.");
+                textureArray.Dispose();
+            }
+
+        for (var i = 0; i < _cubemaps.Count; i++)
+            if (_cubemaps[i].Source is { } cubemap)
+            {
+                Console.WriteLine($"[Rin.Graphics.Vulkan] Cubemap at slot {i} was never freed (missing FreeResourceHandles call) - disposing at shutdown.");
+                cubemap.Dispose();
+            }
+
+        for (var i = 0; i < _buffers.Count; i++)
+            if (_buffers[i].Source is { } buffer)
+            {
+                Console.WriteLine($"[Rin.Graphics.Vulkan] Buffer at slot {i} was never freed (missing FreeResourceHandles call) - disposing at shutdown.");
+                buffer.Dispose();
+            }
+
         _defaultTexture.Dispose();
         _defaultCubemap.Dispose();
         _defaultTextureArray.Dispose();
         _device.DestroyPipelineLayout(_resourcePipelineLayout);
     }
 
+    /// <summary>
+    ///     The generation the next occupant of slot <paramref name="id" /> should be stamped with - one past
+    ///     whatever the slot's previous occupant (if any) last held. Must be read before the slot is
+    ///     overwritten.
+    /// </summary>
+    private static uint NextGeneration<T>(List<T> list, uint id, bool isNewSlot) where T : BindlessResource
+    {
+        return isNewSlot ? 0u : unchecked(list[(int)id].Generation + 1);
+    }
+
     public ResourceHandle CreateTexture(in Extent2D size, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
+        ImageCreateFlags usage = ImageCreateFlags.None)
     {
         var image = CreateVulkanTexture(size, format, mips, usage);
-        var isBindless = usage.HasFlag(ImageUsage.Sampled);
+        var isBindless = usage.HasFlag(ImageCreateFlags.Sampled);
 
         lock (_resourceSync)
         {
             var id = _textureIdFactory.NewId(out var addToArray);
-            var handle = new ResourceHandle(ResourceType.Texture, id, isBindless);
+            var generation = NextGeneration(_textures, id, addToArray);
+            var handle = new ResourceHandle(ResourceType.Texture, id, isBindless, generation);
+            if (image is VulkanTexture concreteImage) concreteImage.Handle = handle;
             var resource = new BindlessTexture
             {
                 Handle = handle,
                 Source = image,
-                State = BindlessResourceState.PendingBind
+                State = BindlessResourceState.PendingBind,
+                Generation = generation
             };
 
             if (addToArray)
@@ -167,20 +292,23 @@ public partial class VulkanGraphicsModule
     }
 
     public ResourceHandle CreateTextureArray(in Extent2D size, ImageFormat format, uint count, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
+        ImageCreateFlags usage = ImageCreateFlags.None)
     {
         var image = CreateVulkanTextureArray(size, format, count, mips, usage);
-        var isBindless = usage.HasFlag(ImageUsage.Sampled);
+        var isBindless = usage.HasFlag(ImageCreateFlags.Sampled);
 
         lock (_resourceSync)
         {
             var id = _textureArrayIdFactory.NewId(out var addToArray);
-            var handle = new ResourceHandle(ResourceType.TextureArray, id, isBindless);
+            var generation = NextGeneration(_textureArrays, id, addToArray);
+            var handle = new ResourceHandle(ResourceType.TextureArray, id, isBindless, generation);
+            if (image is VulkanTextureArray concreteImage) concreteImage.Handle = handle;
             var resource = new BindlessTextureArray
             {
                 Handle = handle,
                 Source = image,
-                State = BindlessResourceState.PendingBind
+                State = BindlessResourceState.PendingBind,
+                Generation = generation
             };
 
             if (addToArray)
@@ -195,20 +323,23 @@ public partial class VulkanGraphicsModule
     }
 
     public ResourceHandle CreateCubemap(in Extent2D size, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
+        ImageCreateFlags usage = ImageCreateFlags.None)
     {
         var image = CreateVulkanCubemap(size, format, mips, usage);
-        var isBindless = usage.HasFlag(ImageUsage.Sampled);
+        var isBindless = usage.HasFlag(ImageCreateFlags.Sampled);
 
         lock (_resourceSync)
         {
             var id = _cubemapIdFactory.NewId(out var addToArray);
-            var handle = new ResourceHandle(ResourceType.Cubemap, id, isBindless);
+            var generation = NextGeneration(_cubemaps, id, addToArray);
+            var handle = new ResourceHandle(ResourceType.Cubemap, id, isBindless, generation);
+            if (image is VulkanCubemap concreteImage) concreteImage.Handle = handle;
             var resource = new BindlessCubemap
             {
                 Handle = handle,
                 Source = image,
-                State = BindlessResourceState.PendingBind
+                State = BindlessResourceState.PendingBind,
+                Generation = generation
             };
 
             if (addToArray)
@@ -223,117 +354,182 @@ public partial class VulkanGraphicsModule
     }
 
     public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D size,
-        ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None)
+        ImageFormat format, bool mips = false, ImageCreateFlags usage = ImageCreateFlags.None)
     {
-        // Ownership of `rented` transfers to AsyncCreateTexture, which returns it to the pool once the
-        // data has actually been consumed (background upload runs asynchronously after this call returns).
-        var rented = ArrayPool<byte>.Shared.Rent(data.Length);
-        data.CopyTo(rented);
-        var state = (rented, length: data.Length, size, format, mips, usage, method: (Func<BindlessTexture,
-            TaskCompletionSource<ResourceHandle>,
-            byte[],
-            int,
-            Extent2D,
-            ImageFormat,
-            bool,
-            ImageUsage, Task>)AsyncCreateTexture);
-        return HandleAsyncBindless(out handle, _textures, state,
-            static (resource, source, s) =>
-                s.method(resource, source, s.rented, s.length, s.size, s.format, s.mips, s.usage));
+        Debug.Assert(size.Width * size.Height * format.PixelByteSize() == (ulong)data.Length,
+            "Unexpected image buffer size");
+        var image = CreateVulkanTexture(size, format, mips,
+            usage | ImageCreateFlags.Sampled | ImageCreateFlags.TransferDst);
+
+        lock (_resourceSync)
+        {
+            var id = _textureIdFactory.NewId(out var addToArray);
+            var generation = NextGeneration(_textures, id, addToArray);
+            handle = new ResourceHandle(ResourceType.Texture, id, true, generation);
+            if (image is VulkanTexture concreteImage) concreteImage.Handle = handle;
+            var resource = new BindlessTexture
+            {
+                Handle = handle,
+                Source = image,
+                State = BindlessResourceState.Ready,
+                Generation = generation,
+                DescriptorPending = true
+            };
+
+            if (addToArray)
+                _textures.Add(resource);
+            else
+                _textures[(int)id] = resource;
+        }
+
+        _textureWrites.Enqueue(handle,
+            new PendingTextureWrite(PooledMemory<byte>.CopyFrom(data), default, size, size));
+        return Task.FromResult(handle);
     }
 
     public Task<ResourceHandle> CreateTextureArray(out ResourceHandle handle, ReadOnlySpan<byte> data,
         in Extent2D size,
-        ImageFormat format, uint count, bool mips = false, ImageUsage usage = ImageUsage.None)
+        ImageFormat format, uint count, bool mips = false, ImageCreateFlags usage = ImageCreateFlags.None)
     {
-        var rented = ArrayPool<byte>.Shared.Rent(data.Length);
-        data.CopyTo(rented);
-        var state = (rented, length: data.Length, size, format, count, mips, usage, method: (Func<BindlessTextureArray,
-            TaskCompletionSource<ResourceHandle>,
-            byte[],
-            int,
-            Extent2D,
-            ImageFormat,
-            uint,
-            bool,
-            ImageUsage, Task>)AsyncCreateTextureArray);
-        return HandleAsyncBindless(out handle, _textureArrays, state,
-            static (resource, source, s) =>
-                s.method(resource, source, s.rented, s.length, s.size, s.format, s.count, s.mips, s.usage));
+        throw new NotImplementedException();
     }
 
     public Task<ResourceHandle> CreateCubemap(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D size,
-        ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None)
+        ImageFormat format, bool mips = false, ImageCreateFlags usage = ImageCreateFlags.None)
     {
-        var rented = ArrayPool<byte>.Shared.Rent(data.Length);
-        data.CopyTo(rented);
-        var state = (rented, length: data.Length, size, format, mips, usage, method: (Func<BindlessCubemap,
-            TaskCompletionSource<ResourceHandle>,
-            byte[],
-            int,
-            Extent2D,
-            ImageFormat,
-            bool,
-            ImageUsage, Task>)AsyncCreateCubemap);
-        return HandleAsyncBindless(out handle, _cubemaps, state,
-            static (resource, source, s) =>
-                s.method(resource, source, s.rented, s.length, s.size, s.format, s.mips, s.usage));
+        throw new NotImplementedException();
     }
 
-    public Task UploadToTexture(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
+    public Task QueueTextureUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
         Offset2D offset = default)
     {
-        Debug.Assert(handle.IsValid(),"Handle is invalid");
-        var texture = GetTexture(handle);
-        if(texture is null) throw new ArgumentNullException(nameof(handle));
-        var dataSize = extent.Width * extent.Height * texture.Format.PixelByteSize();
-        Debug.Assert(dataSize == (ulong)data.Length, "Unexpected image buffer size");
-        
-        var uploadBuffer = NewTransferBuffer(dataSize);
-        uploadBuffer.Write(data);
+        Debug.Assert(handle.IsValid(), "Handle is invalid");
+        var texture = GetTexture(handle) ?? throw new ArgumentException("Invalid or unresolvable texture handle",
+            nameof(handle));
+        Debug.Assert(extent.Width * extent.Height * texture.Format.PixelByteSize() == (ulong)data.Length,
+            "Unexpected image buffer size");
 
-        return TransferSubmit(cmd =>
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var write = new PendingTextureWrite(PooledMemory<byte>.CopyFrom(data.Span), offset, extent,
+            texture.Extent);
+        write.Tasks.Add(completion);
+        _textureWrites.Enqueue(handle, write);
+        return completion.Task;
+    }
+
+    internal int PeekTextureWrites(in ResourceHandle handle, out bool firstCoversWholeImage)
+    {
+        var count = _textureWrites.Peek(handle, out var first);
+        firstCoversWholeImage = first?.CoversWholeImage ?? false;
+        return count;
+    }
+
+    internal void TakeTextureWrites(in ResourceHandle handle, int max, List<PendingTextureWrite> into)
+    {
+        _textureWrites.TryTake(handle, max, into);
+    }
+
+    internal void BindPendingTexture(in ResourceHandle handle)
+    {
+        lock (_resourceSync)
         {
-            // `image` isn't handle-registered yet (that happens once the caller wraps it), so this
-            // works directly against the concrete object rather than through IExecutionContext's
-            // handle-based Barrier/CopyToImage.
-            Debug.Assert(cmd is VulkanExecutionContext);
-            var vkCmd = ((VulkanExecutionContext)cmd).CommandBuffer;
-            vkCmd.ImageBarrier(texture, ImageLayout.Undefined, ImageLayout.TransferDst);
+            if (FindResource(handle) is not BindlessTexture { DescriptorPending: true } resource) return;
+            resource.DescriptorPending = false;
+            _resourceDescriptorSet.WriteSampledImage(TexturesBinding, resource.Source!, ImageLayout.ShaderReadOnly,
+                handle.Id);
+            _resourceDescriptorSet.Update();
+        }
+    }
 
-            var copyRegion = new VkBufferImageCopy
+    // Per lane kind, so a burst of one can't starve the other; the rest waits for later frames.
+    private const int MaxFlushedWritesPerKind = 64;
+
+    private void FlushPendingWrites()
+    {
+        List<(ResourceHandle Handle, PendingTextureWrite Write)> pendingTextures = [];
+        List<(ResourceHandle Handle, PendingBufferWrite Write)> pendingBuffers = [];
+        _textureWrites.TakeUpTo(MaxFlushedWritesPerKind, pendingTextures);
+        _bufferWrites.TakeUpTo(MaxFlushedWritesPerKind, pendingBuffers);
+        if (pendingTextures.Count == 0 && pendingBuffers.Count == 0) return;
+
+        HashSet<ResourceHandle> acquired = [];
+        HashSet<ResourceHandle> refused = [];
+
+        bool Acquire(ResourceHandle handle, PendingWrite write)
+        {
+            if (acquired.Contains(handle)) return true;
+            if (!refused.Contains(handle) && TryAcquireResource(handle))
             {
-                bufferOffset = 0,
-                bufferRowLength = 0,
-                bufferImageHeight = 0,
-                imageSubresource = new VkImageSubresourceLayers
-                {
-                    aspectMask = texture.Format.ToAspectFlags(),
-                    mipLevel = 0,
-                    baseArrayLayer = 0,
-                    layerCount = 1
-                },
-                imageOffset =
-                {
-                    x =  (int)offset.X,
-                    y = (int)offset.Y
-                },
-                imageExtent = new VkExtent3D
-                {
-                    width = extent.Width,
-                    height = extent.Height,
-                    depth = 1
-                }
-            };
-            unsafe
-            {
-                vkCmd.CopyBufferToImage(uploadBuffer, texture, new Span<VkBufferImageCopy>(&copyRegion, 1));
+                acquired.Add(handle);
+                return true;
             }
-        }).Then(() =>
+
+            refused.Add(handle);
+            write.Dispose();
+            return false;
+        }
+
+        List<(ResourceHandle Handle, PendingTextureWrite Write)> textureWrites = [];
+        Dictionary<ResourceHandle, List<PendingBufferWrite>> bufferWrites = [];
+        ulong stagingSize = 0;
+        foreach (var (handle, write) in pendingTextures)
         {
-            FreeResourceHandles(uploadBuffer.Buffer);
-            return texture;
+            if (!Acquire(handle, write)) continue;
+            textureWrites.Add((handle, write));
+            stagingSize += write.StagingSize;
+        }
+
+        foreach (var (handle, write) in pendingBuffers)
+        {
+            if (!Acquire(handle, write)) continue;
+            if (!bufferWrites.TryGetValue(handle, out var writes)) bufferWrites[handle] = writes = [];
+            writes.Add(write);
+            stagingSize += write.StagingSize;
+        }
+
+        if (stagingSize == 0) return;
+
+        var staging = WriteRecorder.CreateStaging(this, stagingSize);
+        SubmitGraphicsAndWait(cmd =>
+        {
+            ulong offset = 0;
+            foreach (var (handle, write) in textureWrites)
+            {
+                var image = GetTexture(handle)!;
+                cmd.ImageBarrier(image, write.CoversWholeImage ? ImageLayout.Undefined : image.Layout,
+                    ImageLayout.TransferDst);
+                WriteRecorder.RecordTextureCopy(cmd, image, new DeviceBufferView(staging, offset, write.StagingSize),
+                    write);
+                offset += write.StagingSize;
+                BindPendingTexture(handle);
+            }
+
+            foreach (var (handle, _) in textureWrites)
+                if (GetTexture(handle) is { Layout: ImageLayout.TransferDst } image)
+                    cmd.ImageBarrier(image, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+
+            foreach (var (handle, writes) in bufferWrites)
+            {
+                var size = WriteRecorder.StagingSize(writes);
+                WriteRecorder.RecordBufferWrites(cmd, handle, new DeviceBufferView(staging, offset, size), writes);
+                offset += size;
+            }
         });
+
+        foreach (var (_, write) in textureWrites)
+        {
+            write.Complete();
+            write.Dispose();
+        }
+
+        foreach (var write in bufferWrites.Values.SelectMany(w => w))
+        {
+            write.Complete();
+            write.Dispose();
+        }
+
+        FreeResourceHandles(staging);
+        foreach (var handle in acquired) ReleaseResource(handle);
     }
 
     /// <summary>
@@ -346,12 +542,14 @@ public partial class VulkanGraphicsModule
         lock (_resourceSync)
         {
             var id = _textureIdFactory.NewId(out var addToArray);
-            var handle = new ResourceHandle(ResourceType.Texture, id, isBindless);
+            var generation = NextGeneration(_textures, id, addToArray);
+            var handle = new ResourceHandle(ResourceType.Texture, id, isBindless, generation);
             var resource = new BindlessTexture
             {
                 Handle = handle,
                 Source = image,
-                State = BindlessResourceState.Ready
+                State = BindlessResourceState.Ready,
+                Generation = generation
             };
 
             if (addToArray)
@@ -371,6 +569,7 @@ public partial class VulkanGraphicsModule
         lock (_resourceSync)
         {
             var resource = _textures[(int)handle.Id];
+            if (resource.Generation != handle.Generation) return null;
             return resource.State != BindlessResourceState.Ready ? null : resource;
         }
     }
@@ -382,6 +581,7 @@ public partial class VulkanGraphicsModule
         lock (_resourceSync)
         {
             var resource = _textureArrays[(int)handle.Id];
+            if (resource.Generation != handle.Generation) return null;
             return resource.State != BindlessResourceState.Ready ? null : resource;
         }
     }
@@ -392,6 +592,7 @@ public partial class VulkanGraphicsModule
         lock (_resourceSync)
         {
             var resource = _cubemaps[(int)handle.Id];
+            if (resource.Generation != handle.Generation) return null;
             return resource.State != BindlessResourceState.Ready ? null : resource;
         }
     }
@@ -439,6 +640,55 @@ public partial class VulkanGraphicsModule
     {
         lock (_resourceSync)
         {
+            List<ResourceHandle>? toDestroy = null;
+            foreach (var handle in handles)
+            {
+                if (FindResource(handle) is not { Retired: false } resource) continue;
+                resource.Retired = true;
+                if (--resource.References == 0) (toDestroy ??= []).Add(handle);
+            }
+
+            if (toDestroy is not null) DestroyResources(CollectionsMarshal.AsSpan(toDestroy));
+        }
+    }
+
+    public bool TryAcquireResource(in ResourceHandle handle)
+    {
+        lock (_resourceSync)
+        {
+            if (FindResource(handle) is not { Retired: false, State: BindlessResourceState.Ready } resource)
+                return false;
+            resource.References++;
+            return true;
+        }
+    }
+
+    public void ReleaseResource(in ResourceHandle handle)
+    {
+        lock (_resourceSync)
+        {
+            if (FindResource(handle) is not { } resource) return;
+            if (--resource.References == 0) DestroyResources([handle]);
+        }
+    }
+
+    private BindlessResource? FindResource(in ResourceHandle handle)
+    {
+        BindlessResource? resource = handle.Type switch
+        {
+            ResourceType.Texture when handle.Id < _textures.Count => _textures[(int)handle.Id],
+            ResourceType.Cubemap when handle.Id < _cubemaps.Count => _cubemaps[(int)handle.Id],
+            ResourceType.TextureArray when handle.Id < _textureArrays.Count => _textureArrays[(int)handle.Id],
+            ResourceType.Buffer when handle.Id < _buffers.Count => _buffers[(int)handle.Id],
+            _ => null
+        };
+        return handle.Id != 0 && resource?.Generation == handle.Generation ? resource : null;
+    }
+
+    private void DestroyResources(ReadOnlySpan<ResourceHandle> handles)
+    {
+        lock (_resourceSync)
+        {
             List<Action> disposes = [];
             var touchedDescriptors = false;
             foreach (var handle in handles)
@@ -457,80 +707,59 @@ public partial class VulkanGraphicsModule
                         }
 
                         var resource = _textures[(int)handle.Id];
-                        var wasUploading = resource.State == BindlessResourceState.Uploading;
-                        if (!wasUploading)
-                        {
-                            Debug.Assert(resource.Source is not null);
-                            disposes.Add(resource.Source.Dispose);
-                        }
+                        Debug.Assert(resource.Source is not null);
+                        disposes.Add(resource.Source.Dispose);
 
-                        _textures[(int)handle.Id] = new BindlessTexture();
+                        _textures[(int)handle.Id] = new BindlessTexture { Generation = unchecked(resource.Generation + 1) };
                         _textureIdFactory.FreeId(handle.Id);
-
-                        if (wasUploading)
-                        {
-                            _pendingResourceTasks[handle].SetCanceled();
-                            _pendingResourceTasks.Remove(handle);
-                        }
+                        _textureWrites.Drop(handle);
                     }
                         break;
                     case ResourceType.Cubemap:
                     {
                         if (handle.IsBindless)
                         {
-                            _resourceDescriptorSet.WriteSampledCubemap(TexturesBinding, _defaultCubemap,
+                            _resourceDescriptorSet.WriteSampledCubemap(CubemapsBinding, _defaultCubemap,
                                 ImageLayout.ShaderReadOnly, handle.Id);
                             touchedDescriptors = true;
                         }
 
                         var resource = _cubemaps[(int)handle.Id];
-                        var wasUploading = resource.State == BindlessResourceState.Uploading;
-                        if (!wasUploading)
-                        {
-                            Debug.Assert(resource.Source is not null);
-                            disposes.Add(resource.Source.Dispose);
-                        }
+                        Debug.Assert(resource.Source is not null);
+                        disposes.Add(resource.Source.Dispose);
 
-                        _cubemaps[(int)handle.Id] = new BindlessCubemap();
+                        _cubemaps[(int)handle.Id] = new BindlessCubemap { Generation = unchecked(resource.Generation + 1) };
                         _cubemapIdFactory.FreeId(handle.Id);
-
-                        if (wasUploading)
-                        {
-                            _pendingResourceTasks[handle].SetCanceled();
-                            _pendingResourceTasks.Remove(handle);
-                        }
                     }
                         break;
                     case ResourceType.TextureArray:
                     {
                         if (handle.IsBindless)
                         {
-                            _resourceDescriptorSet.WriteSampledImageArray(TexturesBinding, _defaultTextureArray,
+                            _resourceDescriptorSet.WriteSampledImageArray(TextureArraysBinding, _defaultTextureArray,
                                 ImageLayout.ShaderReadOnly, handle.Id);
                             touchedDescriptors = true;
                         }
 
                         var resource = _textureArrays[(int)handle.Id];
-                        var wasUploading = resource.State == BindlessResourceState.Uploading;
-                        if (!wasUploading)
-                        {
-                            Debug.Assert(resource.Source is not null);
-                            disposes.Add(resource.Source.Dispose);
-                        }
+                        Debug.Assert(resource.Source is not null);
+                        disposes.Add(resource.Source.Dispose);
 
-                        _textureArrays[(int)handle.Id] = new BindlessTextureArray();
+                        _textureArrays[(int)handle.Id] = new BindlessTextureArray { Generation = unchecked(resource.Generation + 1) };
                         _textureArrayIdFactory.FreeId(handle.Id);
-
-                        if (wasUploading)
-                        {
-                            _pendingResourceTasks[handle].SetCanceled();
-                            _pendingResourceTasks.Remove(handle);
-                        }
                     }
                         break;
                     case ResourceType.Buffer:
                     {
-                        if (ResolveBuffer(handle) is { } buffer) disposes.Add(buffer.Dispose);
+                        if (handle.Id >= _buffers.Count) break;
+                        var resource = _buffers[(int)handle.Id];
+                        if (resource.Generation != handle.Generation) break;
+
+                        if (resource.Source is { } buffer) disposes.Add(buffer.Dispose);
+
+                        _buffers[(int)handle.Id] = new BindlessBuffer { Generation = unchecked(resource.Generation + 1) };
+                        _bufferIdFactory.FreeId(handle.Id);
+                        _bufferWrites.Drop(handle);
                     }
                         break;
                     default:
@@ -590,7 +819,7 @@ public partial class VulkanGraphicsModule
 
                     if (handle.IsBindless)
                     {
-                        _resourceDescriptorSet.WriteSampledImageArray(TexturesBinding, resource.Source,
+                        _resourceDescriptorSet.WriteSampledImageArray(TextureArraysBinding, resource.Source,
                             ImageLayout.ShaderReadOnly, handle.Id);
                         touchedDescriptors = true;
                     }
@@ -604,26 +833,23 @@ public partial class VulkanGraphicsModule
 
         if (touchedDescriptors) _resourceDescriptorSet.Update();
 
-        foreach (var resource in pendingToClear)
-        {
-            // Bookkeeping (the state flip) must land before we complete the task - a continuation attached to
-            // it can run inline on this thread as part of SetResult and would otherwise observe the resource
-            // still Uploading.
-            var wasUploading = resource.State == BindlessResourceState.Uploading;
-            resource.State = BindlessResourceState.Ready;
-
-            if (wasUploading)
-            {
-                _pendingResourceTasks[resource.Handle].SetResult(resource.Handle);
-                _pendingResourceTasks.Remove(resource.Handle);
-            }
-        }
+        foreach (var resource in pendingToClear) resource.State = BindlessResourceState.Ready;
     }
 
+    // Bound once per frame - every material/mesh shader needs it.
     public void BindBindlessDescriptors(in VkCommandBuffer cmd)
     {
         cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS, _resourcePipelineLayout,
             [_resourceDescriptorSet]);
+    }
+
+    // Not bound at frame start (unlike the graphics bind point) because most compute passes never
+    // touch bindless resources, and binding this descriptor set to VK_PIPELINE_BIND_POINT_COMPUTE
+    // unconditionally reproduced a GPU-AV descriptor-indexing device-lost on every compute dispatch,
+    // regardless of what the dispatched shader actually did. A compute shader that genuinely needs
+    // bindless textures should call this itself, right before its own dispatch.
+    public void BindBindlessComputeDescriptors(in VkCommandBuffer cmd)
+    {
         cmd.BindDescriptorSets(VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_COMPUTE, _resourcePipelineLayout,
             [_resourceDescriptorSet]);
     }
@@ -638,184 +864,62 @@ public partial class VulkanGraphicsModule
         return _resourcePipelineLayout;
     }
 
-
-    private Task<ResourceHandle> HandleAsyncBindless<TBindlessResource, TState>(out ResourceHandle handle,
-        List<TBindlessResource> list, TState state,
-        Func<TBindlessResource, TaskCompletionSource<ResourceHandle>, TState, Task> createAsyncTask)
-        where TBindlessResource : BindlessResource, new()
-    {
-        var resource = new TBindlessResource
-        {
-            State = BindlessResourceState.Uploading
-        };
-
-        var completionSource = new TaskCompletionSource<ResourceHandle>();
-
-        var idFactory = resource switch
-        {
-            BindlessTexture => _textureIdFactory,
-            BindlessTextureArray => _textureArrayIdFactory,
-            BindlessCubemap => _cubemapIdFactory,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-
-        lock (_resourceSync)
-        {
-            var id = idFactory.NewId(out var addToArray);
-            handle = new ResourceHandle(resource switch
-            {
-                BindlessTexture => ResourceType.Texture,
-                BindlessTextureArray => ResourceType.TextureArray,
-                BindlessCubemap => ResourceType.Cubemap,
-                _ => throw new ArgumentOutOfRangeException(nameof(list), list, null)
-            }, id, true);
-            if (addToArray)
-                list.Add(resource);
-            else
-                list[(int)id] = resource;
-
-            _pendingResourceTasks.Add(handle, completionSource);
-            resource.Handle = handle;
-        }
-
-        var taskState = (resource, completionSource, self: this, state, createAsyncTask);
-
-        ThreadPool.QueueUserWorkItem(static (workData) =>
-        {
-            try
-            {
-                workData.createAsyncTask(workData.resource, workData.completionSource, workData.state);
-            }
-            catch (Exception e)
-            {
-                lock (workData.self._resourceSync)
-                {
-                    Console.WriteLine(e);
-                    workData.self._pendingResourceTasks.Remove(workData.resource.Handle);
-                    workData.completionSource.SetException(e);
-                }
-            }
-        }, taskState, false);
-
-        return completionSource.Task;
-    }
-
-    private async Task AsyncCreateTexture(BindlessTexture resource,
-        TaskCompletionSource<ResourceHandle> completionSource,
-        byte[] rented, int dataLength,
-        Extent2D size, ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None)
-    {
-        Task<IDisposableVulkanTexture> task;
-        try
-        {
-            // The upload buffer copy inside CreateVulkanTexture happens synchronously before it
-            // returns, so it's safe to release `rented` back to the pool as soon as the call returns.
-            task = CreateVulkanTexture(new ReadOnlyMemory<byte>(rented, 0, dataLength), size, format,
-                mips, usage | ImageUsage.Sampled);
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(rented);
-        }
-
-        var image = await task;
-        resource.Source = image;
-        lock (_resourceSync)
-        {
-            // In-case the texture was disposed before we finished creating the image
-            if (_textures[(int)resource.Handle.Id] != resource)
-            {
-                image.Dispose();
-                if (!completionSource.Task.IsCanceled) completionSource.SetCanceled();
-                return;
-            }
-
-            resource.Source = image;
-            UpdateHandles(resource.Handle);
-        }
-    }
-
-
-    private async Task AsyncCreateTextureArray(BindlessTextureArray resource,
-        TaskCompletionSource<ResourceHandle> completionSource,
-        byte[] rented, int dataLength,
-        Extent2D size, ImageFormat format, uint count, bool mips = false, ImageUsage usage = ImageUsage.None)
-    {
-        Task<IDisposableVulkanTextureArray> task;
-        try
-        {
-            task = CreateVulkanTextureArray(new ReadOnlyMemory<byte>(rented, 0, dataLength), size, format,
-                count, mips, usage | ImageUsage.Sampled);
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(rented);
-        }
-
-        var image = await task;
-        resource.Source = image;
-        lock (_resourceSync)
-        {
-            // In-case the texture was disposed before we finished creating the image
-            if (_textureArrays[(int)resource.Handle.Id] != resource)
-            {
-                image.Dispose();
-                if (!completionSource.Task.IsCanceled) completionSource.SetCanceled();
-                return;
-            }
-
-            resource.Source = image;
-            UpdateHandles(resource.Handle);
-        }
-    }
-
-    private async Task AsyncCreateCubemap(BindlessCubemap resource,
-        TaskCompletionSource<ResourceHandle> completionSource,
-        byte[] rented, int dataLength,
-        Extent2D size, ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None)
-    {
-        Task<IDisposableVulkanCubemap> task;
-        try
-        {
-            task = CreateVulkanCubemap(new ReadOnlyMemory<byte>(rented, 0, dataLength), size, format,
-                mips, usage | ImageUsage.Sampled);
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(rented);
-        }
-
-        var image = await task;
-        resource.Source = image;
-        lock (_resourceSync)
-        {
-            // In-case the texture was disposed before we finished creating the image
-            if (_cubemaps[(int)resource.Handle.Id] != resource)
-            {
-                image.Dispose();
-                if (!completionSource.Task.IsCanceled) completionSource.SetCanceled();
-                return;
-            }
-
-            resource.Source = image;
-            UpdateHandles(resource.Handle);
-        }
-    }
-
     // --- Buffer registry ---
 
-    private ResourceHandle RegisterBuffer(IVulkanDeviceBuffer buffer)
+    public ResourceHandle CreateBuffer(ulong size, BufferCreateFlags flags, bool sequentialWrite = true)
     {
+        var hostVisible = flags.IsHostVisible();
+        var buffer = NewBuffer(size, flags.ToVkUsage(), flags.ToVkMemoryProperty(), sequentialWrite,
+            false, hostVisible, "Buffer");
+
         lock (_resourceSync)
         {
             var id = _bufferIdFactory.NewId(out var addToArray);
-            if (addToArray)
-                _buffers.Add(buffer);
-            else
-                _buffers[(int)id] = buffer;
+            var generation = NextGeneration(_buffers, id, addToArray);
+            var handle = new ResourceHandle(ResourceType.Buffer, id, false, generation);
+            if (buffer is VulkanDeviceBuffer concreteBuffer) concreteBuffer.Handle = handle;
 
-            return new ResourceHandle(ResourceType.Buffer, id);
+            var resource = new BindlessBuffer
+            {
+                Handle = handle,
+                Source = buffer,
+                HostVisible = hostVisible,
+                State = BindlessResourceState.Ready,
+                Generation = generation
+            };
+
+            if (addToArray)
+                _buffers.Add(resource);
+            else
+                _buffers[(int)id] = resource;
+
+            return handle;
         }
+    }
+
+    public Task QueueBufferUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, ulong offset = 0)
+    {
+        Debug.Assert(handle.IsValid(), "Handle is invalid");
+        var buffer = ResolveBuffer(handle) ?? throw new ArgumentException("Invalid or unresolvable buffer handle",
+            nameof(handle));
+        Debug.Assert(offset + (ulong)data.Length <= buffer.Size, "Upload runs past the end of the buffer");
+        if (data.IsEmpty) return Task.CompletedTask;
+
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var write = new PendingBufferWrite(PooledMemory<byte>.CopyFrom(data.Span), offset);
+        write.Tasks.Add(completion);
+        _bufferWrites.Enqueue(handle, write);
+        return completion.Task;
+    }
+
+    internal bool HasBufferWrites(in ResourceHandle handle)
+    {
+        return _bufferWrites.Peek(handle, out _) > 0;
+    }
+
+    internal void TakeBufferWrites(in ResourceHandle handle, List<PendingBufferWrite> into)
+    {
+        _bufferWrites.TryTake(handle, int.MaxValue, into);
     }
 
     public IVulkanDeviceBuffer? ResolveBuffer(in ResourceHandle handle)
@@ -823,23 +927,29 @@ public partial class VulkanGraphicsModule
         if (handle.Type != ResourceType.Buffer || handle.Id == 0 || handle.Id >= _buffers.Count) return null;
         lock (_resourceSync)
         {
-            return _buffers[(int)handle.Id];
-        }
-    }
-
-    private void ReleaseBufferHandle(in ResourceHandle handle)
-    {
-        if (handle.Type != ResourceType.Buffer || handle.Id == 0) return;
-        lock (_resourceSync)
-        {
-            if (handle.Id < _buffers.Count) _buffers[(int)handle.Id] = null;
-            _bufferIdFactory.FreeId(handle.Id);
+            var resource = _buffers[(int)handle.Id];
+            if (resource.Generation != handle.Generation) return null;
+            return resource.State != BindlessResourceState.Ready ? null : resource.Source;
         }
     }
 
     public void WriteBuffer(in ResourceHandle handle, ReadOnlySpan<byte> data, ulong offset = 0)
     {
-        var buffer = ResolveBuffer(handle) ?? throw new ArgumentException("Invalid buffer handle", nameof(handle));
+        BindlessBuffer resource;
+        lock (_resourceSync)
+        {
+            if (handle.Type != ResourceType.Buffer || handle.Id == 0 || handle.Id >= _buffers.Count)
+                throw new ArgumentException("Invalid buffer handle", nameof(handle));
+            resource = _buffers[(int)handle.Id];
+            if (resource.Generation != handle.Generation)
+                throw new ArgumentException("Stale buffer handle - resource has been freed", nameof(handle));
+        }
+
+        if (!resource.HostVisible)
+            throw new InvalidOperationException(
+                "Cannot WriteBuffer a buffer that wasn't created with BufferCreateFlags.HostSrc/HostDst - use QueueBufferUpload instead");
+
+        var buffer = resource.Source ?? throw new ArgumentException("Invalid buffer handle", nameof(handle));
         unsafe
         {
             fixed (byte* pData = data)
@@ -853,5 +963,17 @@ public partial class VulkanGraphicsModule
     {
         var buffer = ResolveBuffer(handle) ?? throw new ArgumentException("Invalid buffer handle", nameof(handle));
         return buffer.GetAddress();
+    }
+
+    public void SetDebugName(in ResourceHandle handle, string name)
+    {
+        var allocation = handle.Type == ResourceType.Buffer
+            ? ResolveBuffer(handle)?.Allocation
+            : GetImage(handle)?.Allocation;
+
+        if (allocation is not { } value)
+            throw new ArgumentException("Invalid or unresolvable resource handle", nameof(handle));
+
+        Native.allocatorSetAllocationName(_allocator, value, name);
     }
 }

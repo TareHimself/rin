@@ -32,7 +32,7 @@ public class DefaultRenderSystemTests
 
         render.UpdateProxyTransform(handle, moved);
         render.SetInterpolationAlpha(1f);
-        var context = (DefaultWorldRenderContext)render.Snapshot(new CameraComponent(), new Extent2D(1, 1));
+        var context = (DefaultWorldCollectedData)render.Snapshot(new CameraComponent(), new Extent2D(1, 1));
 
         Assert.That(context.StaticGeometry[0].Transform, Is.EqualTo(moved));
     }
@@ -47,7 +47,7 @@ public class DefaultRenderSystemTests
 
         render.UpdateProxyTransform(handle, target);
         render.SetInterpolationAlpha(0.5f);
-        var context = (DefaultWorldRenderContext)render.Snapshot(new CameraComponent(), new Extent2D(1, 1));
+        var context = (DefaultWorldCollectedData)render.Snapshot(new CameraComponent(), new Extent2D(1, 1));
 
         Assert.That(context.StaticGeometry[0].Transform.Translation.X, Is.EqualTo(5f).Within(1e-4f),
             "at alpha 0.5 the rendered position should sit halfway between the last two committed positions");
@@ -66,7 +66,7 @@ public class DefaultRenderSystemTests
         var target = Matrix4x4.CreateTranslation(10, 0, 0);
         render.UpdateProxyTransform(handle, target);
         render.SetInterpolationAlpha(0.5f);
-        var context = (DefaultWorldRenderContext)render.Snapshot(new CameraComponent(), new Extent2D(1, 1));
+        var context = (DefaultWorldCollectedData)render.Snapshot(new CameraComponent(), new Extent2D(1, 1));
 
         Assert.That(context.StaticGeometry[0].Transform.Translation.X, Is.EqualTo(5f).Within(1e-4f),
             "re-pushing the same pose several times should not have shifted Previous forward each time");
@@ -82,7 +82,7 @@ public class DefaultRenderSystemTests
 
         render.UpdateProxyTransform(handle, target);
         render.SetInterpolationAlpha(0.5f);
-        var context = (DefaultWorldRenderContext)render.Snapshot(new CameraComponent(), new Extent2D(1, 1));
+        var context = (DefaultWorldCollectedData)render.Snapshot(new CameraComponent(), new Extent2D(1, 1));
 
         var ok = Matrix4x4.Decompose(context.StaticGeometry[0].Transform, out var scale, out var rotation, out _);
         Assert.That(ok, Is.True, "a naive per-element matrix lerp would decompose into a skewed, non-rotation matrix here");

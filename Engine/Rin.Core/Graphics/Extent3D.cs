@@ -22,6 +22,7 @@ public record struct Extent3D : IFormattable
         Width = extent.Width;
         Height = extent.Height;
         Dimensions = dimensions;
+        
     }
 
     public Extent3D(uint width, uint height, uint dimensions = 1)

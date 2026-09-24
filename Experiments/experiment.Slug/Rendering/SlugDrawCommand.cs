@@ -18,8 +18,8 @@ namespace experiment.Slug.Rendering;
 internal struct SlugPush
 {
     public required ulong BufferAddress;
-    public required ResourceHandle CurveTexture;
-    public required ResourceHandle BandTexture;
+    public required DeviceHandle CurveTexture;
+    public required DeviceHandle BandTexture;
     public required Matrix4x4 Projection;
 }
 

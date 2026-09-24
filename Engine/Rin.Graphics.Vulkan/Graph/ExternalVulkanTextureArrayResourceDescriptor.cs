@@ -3,9 +3,11 @@ using Rin.Graphics.Vulkan.Images;
 
 namespace Rin.Graphics.Vulkan.Graph;
 
-public class ExternalVulkanTextureArrayResourceDescriptor : IResourceDescriptor
+public class ExternalVulkanTextureArrayResourceDescriptor : IExternalResourceDescriptor
 {
     [PublicAPI] public readonly IDisposableVulkanTextureArray Resource;
+
+    IDisposable IExternalResourceDescriptor.Resource => Resource;
 
     public ExternalVulkanTextureArrayResourceDescriptor(IVulkanTextureArray image, Action? onDispose = null)
     {

@@ -17,5 +17,5 @@ public class VulkanCubemap : IDisposableVulkanCubemap
     public required Extent2D Extent { get; set; }
     public bool Mips { get; set; }
     public required ImageFormat Format { get; set; }
-    public ResourceHandle Handle { get; } = ResourceHandle.InvalidCubemap;
+    public ResourceHandle Handle { get; internal set; } = ResourceHandle.InvalidCubemap;
 }

@@ -39,18 +39,17 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
 
     private uint[] _outputImageIds = [];
     private uint[] _pushBufferIds = [];
-    private IWorldRenderContext[] _renderContexts = [];
+    private IWorldCollectedData[] _renderContexts = [];
 
     public uint Id { get; set; }
-    public bool IsTerminal => false;
 
     public void PreAdd(IGraphBuilder builder)
     {
-        // c.Context was snapshotted on the collect thread in Viewport.CollectContent; Build only
+        // c.Context was snapshotted on the collect thread in Viewport.CollectContent; WriteSingle only
         // wires that snapshot into the graph — no live world access here on the render thread.
         _renderContexts = _commands.Select(c =>
         {
-            c.Render.Build(builder, c.Context);
+            c.Context.Write(builder);
             return c.Context;
         }).ToArray();
     }
@@ -104,7 +103,7 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
                 if (lights.Length > 0) lightsBuffer.Write(lights);
 
                 ctx.SetStencilCompareMask(cmd.StencilMask);
-                pushBuffer.Write(
+                pushBuffer.WriteSingle(
                     new PushData
                     {
                         Projection = surfaceContext.ProjectionMatrix,
@@ -132,11 +131,11 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
         public required Matrix4x4 Projection;
         public required Matrix4x4 Transform;
         public required Vector2 Size;
-        public required ResourceHandle OutputImage;
-        public required ResourceHandle GBuffer0;
-        public required ResourceHandle GBuffer1;
-        public required ResourceHandle GBuffer2;
-        public required ResourceHandle GBuffer3;
+        public required DeviceHandle OutputImage;
+        public required DeviceHandle GBuffer0;
+        public required DeviceHandle GBuffer1;
+        public required DeviceHandle GBuffer2;
+        public required DeviceHandle GBuffer3;
         public required ulong LightsBuffer;
         public required int LightCount;
         public required int Channel;
@@ -144,22 +143,20 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
 }
 
 internal class DrawViewportCommand(
-    IWorldRenderContext context,
+    IWorldCollectedData context,
     in Vector2 displaySize,
     in Matrix4x4 transform,
-    IRenderSystem renderer,
     ViewportChannel channel)
     : TCommand<MainPassConfig, ViewportCommandHandler>
 {
     /// <summary>Immutable world snapshot taken on the collect thread; render size is baked in.</summary>
-    public IWorldRenderContext Context { get; } = context;
+    public IWorldCollectedData Context { get; } = context;
 
-    /// <summary>Size the composited quad is drawn at on the surface (the live pane size).</summary>
+    /// <summary>Count the composited quad is drawn at on the surface (the live pane size).</summary>
     public Vector2 DisplaySize { get; } = displaySize;
 
     public Matrix4x4 Transform { get; } = transform;
 
-    public IRenderSystem Render { get; } = renderer;
     public ViewportChannel Channel { get; } = channel;
 }
 
@@ -320,7 +317,7 @@ public class Viewport : ContentView
         // Runs on the collect (main) thread, inside the render barrier — safe to walk the World.
         var renderSystem = _targetCamera.Owner!.World!.RenderSystem;
         var context = renderSystem.Snapshot(_targetCamera, GetRenderSize().ToExtent());
-        commands.Add(new DrawViewportCommand(context, GetContentSize(), transform, renderSystem, _channel));
+        commands.Add(new DrawViewportCommand(context, GetContentSize(), transform, _channel));
         commands.AddText(transform, "Noto Sans", GetModeText());
     }
 

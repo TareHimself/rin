@@ -1,15 +1,14 @@
-﻿using Rin.Core.Graphics.Graph;
+﻿using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
 
-namespace Rin.Core.Graphics;
+namespace Rin.Graphics.Vulkan.Graph;
 
 /// <summary>
 ///     Transitions the swapchain into present mode
 /// </summary>
-public class PrepareForPresentPass : IPass
+internal class PrepareForPresentPass : ITerminalPass
 {
     public uint Id { get; set; }
-    public bool IsTerminal => true;
-    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {

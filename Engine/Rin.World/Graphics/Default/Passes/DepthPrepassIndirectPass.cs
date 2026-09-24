@@ -9,14 +9,14 @@ namespace Rin.World.Graphics.Default.Passes;
 /// </summary>
 public class DepthPrepassIndirectPass : IPass
 {
-    private readonly DefaultWorldRenderContext _renderContext;
+    private readonly DefaultWorldCollectedData _collectedData;
 
 
     private uint[] _materialBufferIds = [];
 
-    public DepthPrepassIndirectPass(DefaultWorldRenderContext renderContext)
+    public DepthPrepassIndirectPass(DefaultWorldCollectedData collectedData)
     {
-        _renderContext = renderContext;
+        _collectedData = collectedData;
     }
 
     [PublicAPI] public uint DepthImageId { get; private set; }
@@ -26,24 +26,34 @@ public class DepthPrepassIndirectPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        DepthImageId = config.WriteTexture(_renderContext.DepthImageId, ImageLayout.DepthAttachment);
+        DepthImageId = config.WriteTexture(_collectedData.DepthImageId, ImageLayout.DepthAttachment);
         DepthSceneBufferId = config.CreateBuffer<DepthSceneInfo>(GraphBufferUsage.HostThenGraphics);
 
-        var indirectGroups = _renderContext.DepthIndirectGroups;
+        // Skinned meshes' vertex buffers are views into SkinningOutputBufferId (reassigned in
+        // SkinningPass.Execute) - without declaring the read here, the graph has no dependency edge
+        // on SkinningPass's write, so this pass's GPU commands can race ahead of the compute shader
+        // that produces the data, corrupting depth for skinned geometry (and anything depth-tested
+        // against it) on frames where a skinned mesh exists. FillGBufferIndirectPass already does this.
+        if (_collectedData.SkinningOutputBufferId > 0)
+            config.ReadBuffer(_collectedData.SkinningOutputBufferId, GraphBufferUsage.Graphics);
 
-        _materialBufferIds = new uint[indirectGroups.Length];
+        var indirectGroups = _collectedData.DepthIndirectGroups;
+        _collectedData.DeclareDrawResources(config, indirectGroups, material => material.DepthPass);
 
-        for (var i = 0; i < _materialBufferIds.Length; i++)
+        _materialBufferIds = new uint[indirectGroups.Count];
+
         {
-            var group = indirectGroups[i];
-            var size = group.First().Material.DepthPass.GetRequiredMemory() * (ulong)group.Length;
-            if (size > 0)
-                _materialBufferIds[i] = config.CreateBuffer(size,
-                    GraphBufferUsage.HostThenGraphics);
+            foreach (var (group,i) in indirectGroups.Values.Zip(Enumerable.Range(0,_materialBufferIds.Length)))
+            {
+                var size = group.First().Material.DepthPass.GetRequiredMemory() * (ulong)group.Count;
+                if (size > 0)
+                    _materialBufferIds[i] = config.CreateBuffer(size,
+                        GraphBufferUsage.HostThenGraphics);
+            }
         }
 
-        foreach (var id in _renderContext.DepthIndirectCommandBuffers) config.ReadBuffer(id, GraphBufferUsage.Indirect);
-        foreach (var id in _renderContext.DepthIndirectCommandCountBuffers)
+        foreach (var id in _collectedData.DepthIndirectCommandBuffers) config.ReadBuffer(id, GraphBufferUsage.Indirect);
+        foreach (var id in _collectedData.DepthIndirectCommandCountBuffers)
             config.ReadBuffer(id, GraphBufferUsage.Indirect);
     }
 
@@ -54,28 +64,27 @@ public class DepthPrepassIndirectPass : IPass
         var worldDataBuffer = graph.GetBufferOrException(DepthSceneBufferId);
         var materialDataBuffers = _materialBufferIds.Select(graph.GetBufferOrNull).ToArray();
         var indirectCommandBuffers =
-            _renderContext.DepthIndirectCommandBuffers.Select(graph.GetBufferOrException).ToArray();
-        var indirectCommandCountBuffers = _renderContext.DepthIndirectCommandCountBuffers
+            _collectedData.DepthIndirectCommandBuffers.Select(graph.GetBufferOrException).ToArray();
+        var indirectCommandCountBuffers = _collectedData.DepthIndirectCommandCountBuffers
             .Select(graph.GetBufferOrException).ToArray();
         DepthImage = graph.GetImageOrException(DepthImageId);
-        var extent = _renderContext.Extent;
+        var extent = _collectedData.Extent;
         ctx
             .BeginRendering(extent, [], DepthImage.Value)
             .EnableBackFaceCulling();
 
-        var worldFrame = new WorldFrame(_renderContext.View, _renderContext.Projection, worldDataBuffer, ctx);
+        var worldFrame = new WorldFrame(_collectedData.View, _collectedData.Projection, worldDataBuffer, ctx);
 
-        worldDataBuffer.Write(new DepthSceneInfo
+        worldDataBuffer.WriteSingle(new DepthSceneInfo
         {
             View = worldFrame.View,
             Projection = worldFrame.Projection,
             ViewProjection = worldFrame.ViewProjection
         });
 
-        var indirectGroups = _renderContext.DepthIndirectGroups;
-        for (var i = 0; i < indirectGroups.Length; i++)
+        var indirectGroups = _collectedData.DepthIndirectGroups;
+        foreach (var (group,i) in indirectGroups.Values.Zip(Enumerable.Range(0,indirectGroups.Count)))
         {
-            var group = indirectGroups[i];
             var materialDataBuffer = materialDataBuffers[i];
             var commandBuffer = indirectCommandBuffers[i];
             var countBuffer = indirectCommandCountBuffers[i];
@@ -94,31 +103,11 @@ public class DepthPrepassIndirectPass : IPass
 
             ctx.BindIndexBuffer(first.IndexBuffer);
             if (firstPass.BindGroup(worldFrame, materialDataBuffer) is { } bindContext)
-                bindContext.DrawIndexedIndirectCount(commandBuffer, countBuffer, (uint)group.Length, 0);
+                bindContext.DrawIndexedIndirectCount(commandBuffer, countBuffer, (uint)group.Count, 0);
         }
 
         ctx.EndRendering();
     }
 
     public uint Id { get; set; }
-    public bool IsTerminal { get; set; } = true;
-    public Action? OnPrune => null;
-
-    [NoReorder]
-    private struct SkinningExecutionInfo
-    {
-        public required int PoseId;
-        public required int VertexId;
-        public required int MeshId;
-    }
-
-    [NoReorder]
-    public record struct SkinningPushConstants
-    {
-        public required ulong ExecutionInfoBuffer;
-        public required ulong MeshesBuffer;
-        public required ulong OutputBuffer;
-        public required ulong PosesBuffer;
-        public required int TotalInvocations;
-    }
 }

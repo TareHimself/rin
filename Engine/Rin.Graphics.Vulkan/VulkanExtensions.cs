@@ -96,27 +96,52 @@ public static class VulkanExtensions
     }
 
     [PublicAPI]
-    public static VkImageUsageFlags ToVk(this ImageUsage usage)
+    public static VkImageUsageFlags ToVk(this ImageCreateFlags flags)
     {
-        VkImageUsageFlags flags = 0;
+        VkImageUsageFlags result = 0;
 
-        if (usage.HasFlag(ImageUsage.TransferSrc)) flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        if (flags.HasFlag(ImageCreateFlags.TransferSrc)) result |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        if (flags.HasFlag(ImageCreateFlags.TransferDst)) result |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        if (flags.HasFlag(ImageCreateFlags.Sampled)) result |= VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT;
+        if (flags.HasFlag(ImageCreateFlags.Storage)) result |= VkImageUsageFlags.VK_IMAGE_USAGE_STORAGE_BIT;
+        if (flags.HasFlag(ImageCreateFlags.ColorAttachment))
+            result |= VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        if (flags.HasFlag(ImageCreateFlags.DepthAttachment) || flags.HasFlag(ImageCreateFlags.StencilAttachment))
+            result |= VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-        if (usage.HasFlag(ImageUsage.TransferDst)) flags |= VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        return result;
+    }
 
-        if (usage.HasFlag(ImageUsage.Sampled)) flags |= VkImageUsageFlags.VK_IMAGE_USAGE_SAMPLED_BIT;
+    [PublicAPI]
+    public static VkBufferUsageFlags ToVkUsage(this BufferCreateFlags flags)
+    {
+        VkBufferUsageFlags result = 0;
 
-        if (usage.HasFlag(ImageUsage.Storage)) flags |= VkImageUsageFlags.VK_IMAGE_USAGE_STORAGE_BIT;
+        if (flags.HasFlag(BufferCreateFlags.TransferSrc)) result |= VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        if (flags.HasFlag(BufferCreateFlags.TransferDst)) result |= VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        if (flags.HasFlag(BufferCreateFlags.Storage)) result |= VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        if (flags.HasFlag(BufferCreateFlags.Uniform)) result |= VkBufferUsageFlags.VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        if (flags.HasFlag(BufferCreateFlags.Index)) result |= VkBufferUsageFlags.VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        if (flags.HasFlag(BufferCreateFlags.Indirect)) result |= VkBufferUsageFlags.VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+        if (flags.HasFlag(BufferCreateFlags.DeviceAddress))
+            result |= VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-        if (usage.HasFlag(ImageUsage.ColorAttachment)) flags |= VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        return result;
+    }
 
-        if (usage.HasFlag(ImageUsage.DepthAttachment))
-            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    [PublicAPI]
+    public static VkMemoryPropertyFlags ToVkMemoryProperty(this BufferCreateFlags flags)
+    {
+        return flags.HasFlag(BufferCreateFlags.HostSrc) || flags.HasFlag(BufferCreateFlags.HostDst)
+            ? VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+              VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            : VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    }
 
-        if (usage.HasFlag(ImageUsage.StencilAttachment))
-            flags |= VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-        return flags;
+    [PublicAPI]
+    public static bool IsHostVisible(this BufferCreateFlags flags)
+    {
+        return flags.HasFlag(BufferCreateFlags.HostSrc) || flags.HasFlag(BufferCreateFlags.HostDst);
     }
 
     [PublicAPI]
@@ -721,46 +746,6 @@ public static class VulkanExtensions
         {
             vkDestroyInstance(self, null);
         }
-    }
-
-    public static VkCommandBuffer BufferBarrier(this in VkCommandBuffer cmd, in DeviceBufferView view,
-        BufferUsage fromUsage, BufferUsage toUsage, ResourceOperation fromOperation, ResourceOperation toOperation)
-    {
-        return cmd.BufferBarrier(view, new MemoryBarrierOptions(fromUsage, toUsage, fromOperation, toOperation));
-    }
-
-    public static VkCommandBuffer BufferBarrier(this in VkCommandBuffer cmd, in DeviceBufferView view,
-        in MemoryBarrierOptions options)
-    {
-        Debug.Assert(view.IsValid, "View is not valid");
-        var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(view.Buffer);
-        Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
-        var opts = options;
-        var barrier = new VkBufferMemoryBarrier2
-        {
-            sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-            srcStageMask = opts.WaitForStages,
-            dstStageMask = opts.NextStages,
-            srcAccessMask = opts.SrcAccessFlags,
-            dstAccessMask = opts.DstAccessFlags,
-            buffer = vulkanBuffer!.NativeBuffer,
-            offset = view.Offset,
-            size = view.Size
-        };
-
-        unsafe
-        {
-            var depInfo = new VkDependencyInfo
-            {
-                sType = VkStructureType.VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                bufferMemoryBarrierCount = 1,
-                pBufferMemoryBarriers = &barrier
-            };
-
-            vkCmdPipelineBarrier2(cmd, &depInfo);
-        }
-
-        return cmd;
     }
 
     /// <summary>

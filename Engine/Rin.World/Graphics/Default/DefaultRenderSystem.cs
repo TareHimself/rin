@@ -1,9 +1,7 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Graph;
 using Rin.World.Components;
-using Rin.World.Graphics.Default.Passes;
 using Rin.World.Mesh.Skinning;
 
 namespace Rin.World.Graphics.Default;
@@ -115,14 +113,13 @@ public class DefaultRenderSystem : IRenderSystem
         _commands.Enqueue(() => Free(handle));
     }
 
-    public IWorldRenderContext Snapshot(CameraComponent view, in Extent2D extent)
+    public IWorldCollectedData Snapshot(CameraComponent view, in Extent2D extent)
     {
         while (_commands.TryDequeue(out var command)) command();
 
         List<StaticMeshInfo> staticMeshes = [];
         List<SkinnedMeshInfo> skinnedMeshes = [];
         List<LightInfo> lights = [];
-
         foreach (var slot in _slots)
         {
             if (slot is not { } row) continue;
@@ -154,33 +151,8 @@ public class DefaultRenderSystem : IRenderSystem
             }
         }
 
-        return new DefaultWorldRenderContext(view, extent, staticMeshes.ToArray(), skinnedMeshes.ToArray(),
+        return new DefaultWorldCollectedData(view, extent, staticMeshes.ToArray(), skinnedMeshes.ToArray(),
             lights.ToArray());
-    }
-
-    public void Build(IGraphBuilder builder, IWorldRenderContext context)
-    {
-        if (context is not DefaultWorldRenderContext ctx)
-            throw new ArgumentException($"Expected {nameof(DefaultWorldRenderContext)}", nameof(context));
-
-        builder.AddPass(new InitWorldPass(ctx));
-
-        if (ctx.WillDoSkinning)
-        {
-            builder.AddPass(new SkinningPass(ctx));
-            builder.AddPass(new BoundsUpdatePass(ctx));
-        }
-
-        {
-            var cullingPass = new CullingPass(ctx);
-            builder.AddPass(cullingPass);
-            builder.AddPass(new FillIndirectBuffersPass(cullingPass, ctx));
-        }
-
-        builder.AddPass(new DepthPrepassIndirectPass(ctx));
-        builder.AddPass(new FillGBufferIndirectPass(ctx));
-
-        builder.AddPass(new LightingPass(ctx));
     }
 
     public void Dispose()

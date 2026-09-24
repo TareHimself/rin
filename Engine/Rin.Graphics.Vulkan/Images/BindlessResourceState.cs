@@ -3,7 +3,6 @@
 public enum BindlessResourceState
 {
     Invalid,
-    Uploading,
     PendingBind,
     Ready
 }

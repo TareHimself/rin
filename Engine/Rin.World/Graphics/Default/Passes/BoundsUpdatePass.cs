@@ -6,51 +6,51 @@ using Rin.Core.Graphics.Shaders;
 namespace Rin.World.Graphics.Default.Passes;
 
 /// <summary>
-///     Updates the bounds of skinned meshes
+///  Updates the bounds of skinned meshes
 /// </summary>
-/// <param name="renderContext"></param>
-public partial class BoundsUpdatePass(DefaultWorldRenderContext renderContext) : IComputePass
+/// <param name="collectedData"></param>
+public partial class BoundsUpdatePass(DefaultWorldCollectedData collectedData) : IComputePass
 {
     [ComputeShader("Shaders/World/Mesh/Compute/bounds_update.slang")]
     private partial IComputeShader Shader { get; }
 
-    private int _skinnedMeshCount;
+    /// <summary>
+    /// Buffer for holding <see cref="SkinnedMesh"/>
+    /// </summary>
+    private uint SkinnedMeshBuffers { get; set; }
 
-    private uint SkinnedMeshBufferId { get; set; }
     public uint Id { get; set; }
-    public bool IsTerminal => false;
-    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {
-        _skinnedMeshCount = renderContext.ProcessedSkinnedMeshes.Length;
-        config.ReadBuffer(renderContext.SkinningOutputBufferId,
-            GraphBufferUsage.Compute); // All skinned meshes use one output buffer
-        config.ReadBuffer(renderContext.BoundsBufferId, GraphBufferUsage.Compute);
-        SkinnedMeshBufferId = config.CreateBuffer<SkinnedMesh>(_skinnedMeshCount, GraphBufferUsage.HostThenCompute);
+        // config.ReadBuffer(collectedData.SkinningOutputBufferId,
+        //     GraphBufferUsage.Compute); // All skinned meshes use one output buffer
+        // config.WriteBuffer(collectedData.BoundsBufferId, GraphBufferUsage.Compute);
+        // SkinnedMeshBuffers =
+        //     config.CreateBuffer<SkinnedMesh>(collectedData.SkinnedSurfaceCount, GraphBufferUsage.HostThenCompute);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var boundsBuffer = graph.GetBufferOrException(renderContext.BoundsBufferId);
-        var skinnedMeshBuffer = graph.GetBufferOrException(SkinnedMeshBufferId);
-        skinnedMeshBuffer.Write(renderContext.ProcessedSkinnedMeshes.Select(c => new SkinnedMesh
-        {
-            MeshId = c.Id,
-            VertexBuffer = c.VertexBuffer.GetAddress(),
-            VertexCount = c.VertexCount
-        }).ToArray());
-
-        if (Shader.Bind(ctx) is not { } bindContext) return;
-
-        bindContext
-            .Push(new Push
-            {
-                SkinnedMeshesAddress = skinnedMeshBuffer.GetAddress(),
-                TotalInvocations = _skinnedMeshCount,
-                BoundsBufferAddress = boundsBuffer.GetAddress()
-            })
-            .Invoke((uint)_skinnedMeshCount);
+        // var boundsBuffer = graph.GetBufferOrException(collectedData.BoundsBufferId);
+        // var skinnedMeshBuffer = graph.GetBufferOrException(SkinnedMeshBuffers);
+        // ulong offset = 0;
+        // for (var i = 0; i < collectedData.SkinnedSurfaceCount; i++)
+        // {
+        //     var mesh = collectedData.ProcessedMeshes[collectedData.SkinnedMeshStartIndex + i];
+        //     offset += skinnedMeshBuffer.WriteSingle(mesh.VertexBuffer.GetAddress(), offset);
+        // }
+        //
+        // if (Shader.Bind(ctx) is not { } bindContext) return;
+        //
+        // bindContext
+        //     .Push(new Push
+        //     {
+        //         SkinnedMeshesAddress = skinnedMeshBuffer.GetAddress(),
+        //         TotalInvocations = collectedData.SkinnedSurfaceCount,
+        //         BoundsBufferAddress = boundsBuffer.GetAddress()
+        //     })
+        //     .Invoke((uint)collectedData.SkinnedSurfaceCount);
     }
 
     [NoReorder]
@@ -64,7 +64,7 @@ public partial class BoundsUpdatePass(DefaultWorldRenderContext renderContext) :
     [NoReorder]
     private struct SkinnedMesh
     {
-        public required int MeshId;
+        public required int BoundsIndex;
         public required ulong VertexBuffer;
         public required uint VertexCount;
     }

@@ -27,43 +27,36 @@ public class MtsdfPageManager : IDisposable
     {
         public Task<ResourceHandle> TextureHandleTask { get; set; }
         public Packer Packer { get; set; }
+        private readonly ResourceHandle _textureHandle;
+        private readonly IGraphicsModule _graphicsModule;
 
         public MtsdfPage(Extent2D extent,IGraphicsModule graphicsModule)
         {
+            _graphicsModule = graphicsModule;
             using var hostImage = HostImage.Create(extent, ImageFormat.RGBA8);
             // Background must read as "outside" to the MTSDF shader (median >= 0.5), matching the fill used
             // when baking static atlases - clearing to 0 reads as "inside" and produces opaque seams wherever
             // sampling touches unwritten padding.
             using var clear = hostImage.Mutate(c => c.Fill(255,255,255,0));
-            TextureHandleTask = clear.CreateTexture(out _,graphicsModule: graphicsModule);
+            TextureHandleTask = clear.CreateTexture(out _textureHandle,graphicsModule: graphicsModule);
             Packer = new Packer(initialWidth: (int)extent.Width, initialHeight: (int)extent.Height);
         }
 
         private void ReleaseUnmanagedResources()
         {
-            TextureHandleTask.Then(static c => IGraphicsModule.Get().FreeResourceHandles(c));
+            _graphicsModule.FreeResourceHandles(_textureHandle);
             Packer.Dispose();
-        }
-
-        private void Dispose(bool disposing)
-        {
-            ReleaseUnmanagedResources();
-            if (disposing)
-            {
-                TextureHandleTask.Dispose();
-                Packer.Dispose();
-            }
         }
 
         public void Dispose()
         {
-            Dispose(true);
+            ReleaseUnmanagedResources();
             GC.SuppressFinalize(this);
         }
 
         ~MtsdfPage()
         {
-            Dispose(false);
+            ReleaseUnmanagedResources();
         }
     }
 
@@ -147,7 +140,7 @@ public class MtsdfPageManager : IDisposable
         page.TextureHandleTask.Then(static (handle, upload) =>
         {
             if (upload.Owner._disposed) return;
-            upload.Owner._graphicsModule.UploadToTexture(handle, upload.Data, upload.Info.Rect.Extent, upload.Info.Rect.Offset)
+            upload.Owner._graphicsModule.QueueTextureUpload(handle, upload.Data, upload.Info.Rect.Extent, upload.Info.Rect.Offset)
                 .Then(static state =>
                 {
                     var (upload, handle) = state;

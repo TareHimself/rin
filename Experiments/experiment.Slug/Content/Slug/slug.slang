@@ -112,8 +112,8 @@ float SlugRender(
     float4      banding,
     int2        shapeLoc,
     int2        bandMax,
-    ImageHandle curveTexture,
-    ImageHandle bandTexture)
+    DeviceHandle curveTexture,
+    DeviceHandle bandTexture)
 {
     float2 pixelsPerEm = 1.0 / max(fwidth(emCoord), float2(1e-6));
     int2 bandIndex = clamp(int2(emCoord * banding.xy + banding.zw), int2(0, 0), bandMax);
@@ -217,8 +217,8 @@ struct SlugInstanceData
 struct SlugPush
 {
     SlugInstanceData* instances;
-    ImageHandle curveTexture;
-    ImageHandle bandTexture;
+    DeviceHandle curveTexture;
+    DeviceHandle bandTexture;
     float4x4    projection;
 };
 

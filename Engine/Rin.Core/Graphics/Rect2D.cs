@@ -131,7 +131,7 @@ public record struct Rect2D
         }
         // var transformedPoint = point.ApplyTransformation(transform.Inverse());
         //
-        // return transformedPoint.Within(Vector2.Zero, Size);
+        // return transformedPoint.Within(Vector2.Zero, Count);
 
         tl = tl.Transform(transform);
         br = br.Transform(transform);

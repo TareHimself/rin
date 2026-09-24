@@ -222,7 +222,7 @@ public abstract class View : IView
         if (_cachedRelativeTransform is { } cached) return cached;
 
         var t = Matrix4x4.Identity.Translate(Offset + Translate)
-            .ApplyBefore(Matrix4x4.Identity.Translate(-(GetSize() * Pivot)).Scale(Scale).Rotate2dDegrees(Angle));
+            .ApplyBefore(Matrix4x4.Identity.Translate(-(GetSize() * Pivot)).Scale(Scale).Rotate2DDegrees(Angle));
         _cachedRelativeTransform = t;
         return t;
     }

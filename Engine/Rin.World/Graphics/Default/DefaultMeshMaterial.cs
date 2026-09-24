@@ -2,6 +2,7 @@
 using JetBrains.Annotations;
 using Rin.Core;
 using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Shared.Math;
 
@@ -75,25 +76,31 @@ public class DefaultMeshMaterial : IMeshMaterial
             return mesh.Material.ColorPass;
         }
 
+        public override void DeclareResources(IGraphConfig config, ProcessedMesh mesh)
+        {
+            ReadTextures(config, meshMaterial.ColorImageId, meshMaterial.NormalImageId, meshMaterial.MetallicImageId,
+                meshMaterial.SpecularImageId, meshMaterial.RoughnessImageId, meshMaterial.EmissiveImageId);
+        }
+
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
             var data = new DefaultMaterialProperties
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress(),
-                BaseColorTextureId = (int)(uint)meshMaterial.ColorImageId,
+                BaseColorTextureId = meshMaterial.ColorImageId,
                 BaseColor = meshMaterial.Color,
-                NormalTextureId = (int)(uint)meshMaterial.NormalImageId,
+                NormalTextureId = meshMaterial.NormalImageId,
                 Metallic = meshMaterial.Metallic,
-                MetallicTextureId = (int)(uint)meshMaterial.MetallicImageId,
+                MetallicTextureId = meshMaterial.MetallicImageId,
                 Specular = meshMaterial.Specular,
-                SpecularTextureId = (int)(uint)meshMaterial.SpecularImageId,
+                SpecularTextureId = meshMaterial.SpecularImageId,
                 Roughness = meshMaterial.Roughness,
-                RoughnessTextureId = (int)(uint)meshMaterial.RoughnessImageId,
+                RoughnessTextureId = meshMaterial.RoughnessImageId,
                 Emissive = meshMaterial.Emissive,
-                EmissiveTextureId = (int)(uint)meshMaterial.EmissiveImageId
+                EmissiveTextureId = meshMaterial.EmissiveImageId
             };
-            view.Write(data);
+            view.WriteSingle(data);
         }
 
         [NoReorder]
@@ -102,7 +109,7 @@ public class DefaultMeshMaterial : IMeshMaterial
             [PublicAPI] public ulong VertexAddress = 0;
             [PublicAPI] public Matrix4x4 Transform = Matrix4x4.Identity;
             private Vector4 _color_textureId;
-            [PublicAPI] public int NormalTextureId = 0;
+            [PublicAPI] public DeviceHandle NormalTextureId = default;
             private Vector4 _msre;
             private Int4 _msreTextureId;
 
@@ -117,10 +124,12 @@ public class DefaultMeshMaterial : IMeshMaterial
                 }
             }
 
-            public int BaseColorTextureId
+            // Packed into the color vec4's alpha lane rather than a dedicated int slot (mirrors
+            // mesh.slang's PerMeshData.color_textureId) - stored as a numeric float, not bit-reinterpreted.
+            public DeviceHandle BaseColorTextureId
             {
-                get => (int)_color_textureId.W;
-                set => _color_textureId.W = value;
+                get => (DeviceHandle)(uint)_color_textureId.W;
+                set => _color_textureId.W = (uint)value;
             }
 
             public float Metallic
@@ -129,10 +138,10 @@ public class DefaultMeshMaterial : IMeshMaterial
                 set => _msre.X = value;
             }
 
-            public int MetallicTextureId
+            public DeviceHandle MetallicTextureId
             {
-                get => _msreTextureId.X;
-                set => _msreTextureId.X = value;
+                get => (DeviceHandle)(uint)_msreTextureId.X;
+                set => _msreTextureId.X = (int)(uint)value;
             }
 
             public float Specular
@@ -141,10 +150,10 @@ public class DefaultMeshMaterial : IMeshMaterial
                 set => _msre.Y = value;
             }
 
-            public int SpecularTextureId
+            public DeviceHandle SpecularTextureId
             {
-                get => _msreTextureId.Y;
-                set => _msreTextureId.Y = value;
+                get => (DeviceHandle)(uint)_msreTextureId.Y;
+                set => _msreTextureId.Y = (int)(uint)value;
             }
 
             public float Roughness
@@ -153,10 +162,10 @@ public class DefaultMeshMaterial : IMeshMaterial
                 set => _msre.Z = value;
             }
 
-            public int RoughnessTextureId
+            public DeviceHandle RoughnessTextureId
             {
-                get => _msreTextureId.Z;
-                set => _msreTextureId.Z = value;
+                get => (DeviceHandle)(uint)_msreTextureId.Z;
+                set => _msreTextureId.Z = (int)(uint)value;
             }
 
             public float Emissive
@@ -165,10 +174,10 @@ public class DefaultMeshMaterial : IMeshMaterial
                 set => _msre.W = value;
             }
 
-            public int EmissiveTextureId
+            public DeviceHandle EmissiveTextureId
             {
-                get => _msreTextureId.W;
-                set => _msreTextureId.W = value;
+                get => (DeviceHandle)(uint)_msreTextureId.W;
+                set => _msreTextureId.W = (int)(uint)value;
             }
         }
     }
@@ -205,7 +214,7 @@ public class DefaultMeshMaterial : IMeshMaterial
 
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
-            view.Write(new DepthMaterialData
+            view.WriteSingle(new DepthMaterialData
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress()

@@ -1,6 +1,7 @@
 using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Graphics.Null;
+using Rin.World.Graphics.Mesh;
 
 namespace Rin.GLTF.Tests;
 
@@ -13,6 +14,7 @@ public class GltfMeshImporterTests
     public void RegisterNullGraphicsModule()
     {
         Global.Provider.AddSingle<IGraphicsModule>(new NullGraphicsModule());
+        Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
     }
 
     [Test]

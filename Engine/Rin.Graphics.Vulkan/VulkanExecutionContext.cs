@@ -94,7 +94,7 @@ public class VulkanExecutionContext(
                     Debug.Assert(image is not null, "Invalid image resource handle");
                     var ops = new ImageBarrierOptions(image!.Format, barrier.From, barrier.To);
                     image.Layout = barrier.To;
-                    vkBarriers[i].sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+                    vkBarriers[i].sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
                     vkBarriers[i].srcStageMask = ops.WaitCompleteStages;
                     vkBarriers[i].dstStageMask = ops.StartAfterStages;
                     vkBarriers[i].srcAccessMask = ops.SrcAccessFlags;
@@ -129,42 +129,6 @@ public class VulkanExecutionContext(
         return this;
     }
 
-    public IExecutionContext Barrier(in DeviceBufferView view, BufferUsage from, BufferUsage to,
-        ResourceOperation fromOperation, ResourceOperation toOperation)
-    {
-        unsafe
-        {
-            var ops = new MemoryBarrierOptions(from, to, fromOperation, toOperation);
-
-            Debug.Assert(view.IsValid, "Buffer view is not valid");
-            var vulkanBuffer = VulkanGraphicsModule.Get().ResolveBuffer(view.Buffer);
-            Debug.Assert(vulkanBuffer is not null, "Buffer handle is not resolvable");
-
-            var vkBarrier = new VkBufferMemoryBarrier2
-            {
-                sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-                srcStageMask = ops.WaitForStages,
-                dstStageMask = ops.NextStages,
-                srcAccessMask = ops.SrcAccessFlags,
-                dstAccessMask = ops.DstAccessFlags,
-                buffer = vulkanBuffer!.NativeBuffer,
-                offset = view.Offset,
-                size = view.Size
-            };
-
-            var depInfo = new VkDependencyInfo
-            {
-                sType = VkStructureType.VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                bufferMemoryBarrierCount = 1,
-                pBufferMemoryBarriers = &vkBarrier
-            };
-
-            vkCmdPipelineBarrier2(CommandBuffer, &depInfo);
-        }
-
-        return this;
-    }
-    
     public IExecutionContext Barrier(ReadOnlySpan<BufferBarrier> barriers)
     {
         

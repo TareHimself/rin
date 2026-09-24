@@ -9,11 +9,21 @@ namespace Rin.Graphics.Vulkan.Graph;
 
 public class ResourcePool : IResourcePool
 {
+    // Effectively disabled: destroying a pooled image and reusing its descriptor slot for a new one -
+    // even correctly, through FreeResourceHandles, well past any frames-in-flight margin - reliably
+    // trips a Khronos Validation Layer GPU-AV false positive ("Descriptor index N references a
+    // resource that was destroyed") on the very next draw against that slot. Confirmed by disabling
+    // eviction entirely: zero validation errors over the same run that otherwise produces thousands.
+    // Matches known validation-layer bugs with UPDATE_AFTER_BIND + PARTIALLY_BOUND descriptor reuse:
+    // https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/3835
+    // https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/3729
+    // Trade-off: pooled images now live for the app's lifetime instead of being freed when idle.
+
     /// <summary>Free a pooled resource once it has gone unused for this many rendered frames.</summary>
-    [PublicAPI] public static ulong MaxIdleFrames = 8;
+    [PublicAPI] public static ulong MaxIdleFrames = ulong.MaxValue;
 
     /// <summary>Cap on idle resources kept per pool key; extras are freed immediately on return.</summary>
-    [PublicAPI] public static int MaxIdlePerKey = 3;
+    [PublicAPI] public static int MaxIdlePerKey = int.MaxValue;
 
     private readonly BufferPool _bufferPool = new();
     private readonly CubemapPool _cubemapPool = new();
@@ -165,108 +175,141 @@ public class ResourcePool : IResourcePool
         }
     }
 
+    // Wraps the raw bindless image so pool eviction disposes it through FreeResourceHandles (which
+    // resets the descriptor slot to the default image and frees the id) instead of destroying the
+    // native VkImage/VkImageView directly while the bindless descriptor set still points at it.
+    private sealed class TextureContainer(IDisposableVulkanTexture image) : IDisposable
+    {
+        public IDisposableVulkanTexture Image => image;
+
+        public void Dispose()
+        {
+            VulkanGraphicsModule.Get().FreeResourceHandles(image.Handle);
+        }
+    }
+
+    private sealed class TextureArrayContainer(IDisposableVulkanTextureArray image) : IDisposable
+    {
+        public IDisposableVulkanTextureArray Image => image;
+
+        public void Dispose()
+        {
+            VulkanGraphicsModule.Get().FreeResourceHandles(image.Handle);
+        }
+    }
+
+    private sealed class CubemapContainer(IDisposableVulkanCubemap image) : IDisposable
+    {
+        public IDisposableVulkanCubemap Image => image;
+
+        public void Dispose()
+        {
+            VulkanGraphicsModule.Get().FreeResourceHandles(image.Handle);
+        }
+    }
+
     private sealed class ProxiedTexture(
-        IReturnTarget<IDisposableVulkanTexture> target,
-        LinkedList<KeyValuePair<ulong, IDisposableVulkanTexture>> container,
-        IDisposableVulkanTexture resource)
+        IReturnTarget<TextureContainer> target,
+        LinkedList<KeyValuePair<ulong, TextureContainer>> container,
+        TextureContainer resource)
         : IDisposableVulkanTexture
     {
-        public Extent2D Extent => resource.Extent;
-        public bool Mips => resource.Mips;
-        public ImageFormat Format => resource.Format;
-        public ResourceHandle Handle => resource.Handle;
+        public Extent2D Extent => resource.Image.Extent;
+        public bool Mips => resource.Image.Mips;
+        public ImageFormat Format => resource.Image.Format;
+        public ResourceHandle Handle => resource.Image.Handle;
 
         public void Dispose()
         {
             target.Return(container, resource);
         }
 
-        public VkImage VulkanImage => resource.VulkanImage;
-        public VkImageView VulkanView => resource.VulkanView;
+        public VkImage VulkanImage => resource.Image.VulkanImage;
+        public VkImageView VulkanView => resource.Image.VulkanView;
 
         public ImageLayout Layout
         {
-            get => resource.Layout;
-            set => resource.Layout = value;
+            get => resource.Image.Layout;
+            set => resource.Image.Layout = value;
         }
 
 
-        public IntPtr Allocation => resource.Allocation;
+        public IntPtr Allocation => resource.Image.Allocation;
     }
 
     private sealed class ProxiedTextureArray(
-        IReturnTarget<IDisposableVulkanTextureArray> target,
-        LinkedList<KeyValuePair<ulong, IDisposableVulkanTextureArray>> container,
-        IDisposableVulkanTextureArray resource)
+        IReturnTarget<TextureArrayContainer> target,
+        LinkedList<KeyValuePair<ulong, TextureArrayContainer>> container,
+        TextureArrayContainer resource)
         : IDisposableVulkanTextureArray
     {
-        public Extent2D Extent => resource.Extent;
-        public bool Mips => resource.Mips;
-        public ImageFormat Format => resource.Format;
-        public ResourceHandle Handle => resource.Handle;
+        public Extent2D Extent => resource.Image.Extent;
+        public bool Mips => resource.Image.Mips;
+        public ImageFormat Format => resource.Image.Format;
+        public ResourceHandle Handle => resource.Image.Handle;
 
         public void Dispose()
         {
             target.Return(container, resource);
         }
 
-        public VkImage VulkanImage => resource.VulkanImage;
-        public VkImageView VulkanView => resource.VulkanView;
+        public VkImage VulkanImage => resource.Image.VulkanImage;
+        public VkImageView VulkanView => resource.Image.VulkanView;
 
         public ImageLayout Layout
         {
-            get => resource.Layout;
-            set => resource.Layout = value;
+            get => resource.Image.Layout;
+            set => resource.Image.Layout = value;
         }
 
-        public uint Count => resource.Count;
+        public uint Count => resource.Image.Count;
 
-        public IntPtr Allocation => resource.Allocation;
+        public IntPtr Allocation => resource.Image.Allocation;
     }
 
     private sealed class ProxiedCubemap(
-        IReturnTarget<IDisposableVulkanCubemap> target,
-        LinkedList<KeyValuePair<ulong, IDisposableVulkanCubemap>> container,
-        IDisposableVulkanCubemap resource)
+        IReturnTarget<CubemapContainer> target,
+        LinkedList<KeyValuePair<ulong, CubemapContainer>> container,
+        CubemapContainer resource)
         : IDisposableVulkanCubemap
     {
-        public Extent2D Extent => resource.Extent;
-        public bool Mips => resource.Mips;
-        public ImageFormat Format => resource.Format;
-        public ResourceHandle Handle => resource.Handle;
+        public Extent2D Extent => resource.Image.Extent;
+        public bool Mips => resource.Image.Mips;
+        public ImageFormat Format => resource.Image.Format;
+        public ResourceHandle Handle => resource.Image.Handle;
 
         public void Dispose()
         {
             target.Return(container, resource);
         }
 
-        public VkImage VulkanImage => resource.VulkanImage;
-        public VkImageView VulkanView => resource.VulkanView;
+        public VkImage VulkanImage => resource.Image.VulkanImage;
+        public VkImageView VulkanView => resource.Image.VulkanView;
 
         public ImageLayout Layout
         {
-            get => resource.Layout;
-            set => resource.Layout = value;
+            get => resource.Image.Layout;
+            set => resource.Image.Layout = value;
         }
 
-        public IntPtr Allocation => resource.Allocation;
+        public IntPtr Allocation => resource.Image.Allocation;
     }
 
-    private sealed class TexturePool : Pool<ProxiedTexture, IDisposableVulkanTexture, TextureResourceDescriptor, int>
+    private sealed class TexturePool : Pool<ProxiedTexture, TextureContainer, TextureResourceDescriptor, int>
     {
-        protected override IDisposableVulkanTexture CreateNew(TextureResourceDescriptor input,
+        protected override TextureContainer CreateNew(TextureResourceDescriptor input,
             int key)
         {
             Debug.WriteLine($"Creating resource for pool {nameof(TexturePool)}");
             var handle = IGraphicsModule.Get().CreateTexture(input.Extent, input.Format, false, input.Usage);
             var image = VulkanGraphicsModule.Get().GetTexture(handle);
             Debug.Assert(image is not null);
-            return image!;
+            return new TextureContainer(image!);
         }
 
         protected override ProxiedTexture MakeResult(
-            LinkedList<KeyValuePair<ulong, IDisposableVulkanTexture>> container,
-            IDisposableVulkanTexture resource,
+            LinkedList<KeyValuePair<ulong, TextureContainer>> container,
+            TextureContainer resource,
             int key, TextureResourceDescriptor input)
         {
             return new ProxiedTexture(this, container, resource);
@@ -278,22 +321,22 @@ public class ResourcePool : IResourcePool
         }
     }
 
-    private sealed class TextureArrayPool : Pool<ProxiedTextureArray, IDisposableVulkanTextureArray,
+    private sealed class TextureArrayPool : Pool<ProxiedTextureArray, TextureArrayContainer,
         TextureArrayResourceDescriptor, int>
     {
-        protected override IDisposableVulkanTextureArray CreateNew(TextureArrayResourceDescriptor input,
+        protected override TextureArrayContainer CreateNew(TextureArrayResourceDescriptor input,
             int key)
         {
             var handle = IGraphicsModule.Get()
                 .CreateTextureArray(input.Extent, input.Format, input.Count, false, input.Usage);
             var image = VulkanGraphicsModule.Get().GetTextureArray(handle);
             Debug.Assert(image is not null);
-            return image!;
+            return new TextureArrayContainer(image!);
         }
 
         protected override ProxiedTextureArray MakeResult(
-            LinkedList<KeyValuePair<ulong, IDisposableVulkanTextureArray>> container,
-            IDisposableVulkanTextureArray resource, int key,
+            LinkedList<KeyValuePair<ulong, TextureArrayContainer>> container,
+            TextureArrayContainer resource, int key,
             TextureArrayResourceDescriptor input)
         {
             return new ProxiedTextureArray(this, container, resource);
@@ -305,20 +348,20 @@ public class ResourcePool : IResourcePool
         }
     }
 
-    private sealed class CubemapPool : Pool<ProxiedCubemap, IDisposableVulkanCubemap, CubemapResourceDescriptor, int>
+    private sealed class CubemapPool : Pool<ProxiedCubemap, CubemapContainer, CubemapResourceDescriptor, int>
     {
-        protected override IDisposableVulkanCubemap CreateNew(CubemapResourceDescriptor input,
+        protected override CubemapContainer CreateNew(CubemapResourceDescriptor input,
             int key)
         {
             var handle = IGraphicsModule.Get().CreateCubemap(input.Extent, input.Format, false, input.Usage);
             var image = VulkanGraphicsModule.Get().GetCubemap(handle);
             Debug.Assert(image is not null);
-            return image!;
+            return new CubemapContainer(image!);
         }
 
         protected override ProxiedCubemap MakeResult(
-            LinkedList<KeyValuePair<ulong, IDisposableVulkanCubemap>> container,
-            IDisposableVulkanCubemap resource,
+            LinkedList<KeyValuePair<ulong, CubemapContainer>> container,
+            CubemapContainer resource,
             int key, CubemapResourceDescriptor input)
         {
             return new ProxiedCubemap(this, container, resource);
@@ -382,7 +425,7 @@ public class ResourcePool : IResourcePool
 
         public void Dispose()
         {
-            buffer.Dispose();
+            VulkanGraphicsModule.Get().FreeResourceHandles(buffer.Handle);
         }
     }
 
@@ -394,7 +437,10 @@ public class ResourcePool : IResourcePool
             int key)
         {
             Debug.WriteLine($"Creating resource for pool {GetType().Name}");
-            var buffer = VulkanGraphicsModule.Get().NewBuffer(input.Size, input.Usage, false, input.Mapped);
+            var graphics = VulkanGraphicsModule.Get();
+            var handle = graphics.CreateBuffer(input.Size, input.Usage, false);
+            var buffer = graphics.ResolveBuffer(handle) ?? throw new InvalidOperationException(
+                "CreateBuffer did not register a resolvable buffer");
             return new BufferContainer(buffer, input);
         }
 
@@ -423,8 +469,7 @@ public class ResourcePool : IResourcePool
                 var candidate = head.Value.Value;
 
                 if (candidate.Buffer.Size < input.Size ||
-                    candidate.Descriptor.Usage != input.Usage ||
-                    candidate.Descriptor.Mapped != input.Mapped)
+                    candidate.Descriptor.Usage != input.Usage)
                     continue;
 
                 if (candidate.Buffer.Size - input.Size > MaxBufferReuseDelta) continue;

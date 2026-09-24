@@ -18,6 +18,8 @@ public sealed class NullGraphicsModule : IGraphicsModule
     public event Action<IWindowRenderer>? OnWindowRendererCreated;
     public event Action<IWindowRenderer>? OnWindowRendererDestroyed;
 
+    public IDevice CurrentDevice { get; init; } = new NullDevice();
+
     public void Start(IApplication app)
     {
     }
@@ -77,69 +79,58 @@ public sealed class NullGraphicsModule : IGraphicsModule
     {
     }
 
-    public DeviceBufferView NewTransferBuffer(ulong size, bool sequentialWrite = true,
-        string debugName = "Transfer Buffer")
-    {
-        return NewBuffer(size);
-    }
-
-    public DeviceBufferView NewStorageBuffer(ulong size, bool sequentialWrite = true)
-    {
-        return NewBuffer(size);
-    }
-
-    public DeviceBufferView NewUniformBuffer(ulong size, bool sequentialWrite = true)
-    {
-        return NewBuffer(size);
-    }
-
-    private DeviceBufferView NewBuffer(ulong size)
+    public ResourceHandle CreateBuffer(ulong size, BufferCreateFlags flags, bool sequentialWrite = true)
     {
         var handle = new ResourceHandle(ResourceType.Buffer, _nextId++);
         _buffers.Add(handle);
-        return new DeviceBufferView(handle, 0, size);
+        return handle;
+    }
+
+    public Task QueueBufferUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, ulong offset = 0)
+    {
+        return Task.CompletedTask;
     }
 
     public ResourceHandle CreateTexture(in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
+        ImageCreateFlags flags = ImageCreateFlags.None)
     {
         return TrackTexture(ResourceType.Texture, extent, format);
     }
 
     public ResourceHandle CreateTextureArray(in Extent2D extent, ImageFormat format, uint count,
-        bool mips = false, ImageUsage usage = ImageUsage.None)
+        bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None)
     {
         return TrackTexture(ResourceType.TextureArray, extent, format);
     }
 
     public ResourceHandle CreateCubemap(in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None)
+        ImageCreateFlags flags = ImageCreateFlags.None)
     {
         return TrackTexture(ResourceType.Cubemap, extent, format);
     }
 
     public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D extent,
-        ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None)
+        ImageFormat format, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None)
     {
         handle = TrackTexture(ResourceType.Texture, extent, format);
         return Task.FromResult(handle);
     }
 
     public Task<ResourceHandle> CreateTextureArray(out ResourceHandle handle, ReadOnlySpan<byte> data,
-        in Extent2D extent, ImageFormat format, uint count, bool mips = false, ImageUsage usage = ImageUsage.None)
+        in Extent2D extent, ImageFormat format, uint count, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None)
     {
         handle = TrackTexture(ResourceType.TextureArray, extent, format);
         return Task.FromResult(handle);
     }
 
     public Task<ResourceHandle> CreateCubemap(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D extent,
-        ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None)
+        ImageFormat format, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None)
     {
         handle = TrackTexture(ResourceType.Cubemap, extent, format);
         return Task.FromResult(handle);
     }
 
-    public Task UploadToTexture(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
+    public Task QueueTextureUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
         Offset2D offset = default)
     {
         return Task.CompletedTask;
@@ -174,6 +165,10 @@ public sealed class NullGraphicsModule : IGraphicsModule
             _textures.Remove(handle);
             _buffers.Remove(handle);
         }
+    }
+
+    public void SetDebugName(in ResourceHandle handle, string name)
+    {
     }
 
     public void WriteBuffer(in ResourceHandle handle, ReadOnlySpan<byte> data, ulong offset = 0)

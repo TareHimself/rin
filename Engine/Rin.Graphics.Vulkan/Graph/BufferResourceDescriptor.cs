@@ -1,17 +1,16 @@
-using TerraFX.Interop.Vulkan;
+using Rin.Core.Graphics;
 
 namespace Rin.Graphics.Vulkan.Graph;
 
-public class BufferResourceDescriptor(ulong size, in VkBufferUsageFlags usage, bool mapped) : IResourceDescriptor
+public class BufferResourceDescriptor(ulong size, BufferCreateFlags usage) : IResourceDescriptor
 {
-    public readonly bool Mapped = mapped;
     public readonly ulong Size = size;
 
-    public readonly VkBufferUsageFlags Usage = VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                               VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | usage;
+    public readonly BufferCreateFlags Usage =
+        BufferCreateFlags.Storage | BufferCreateFlags.DeviceAddress | usage;
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Size, Usage, Mapped);
+        return HashCode.Combine(Size, Usage);
     }
 }

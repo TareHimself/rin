@@ -4,7 +4,11 @@ public interface IGraphConfig
 {
     public uint SwapchainImageId { get; }
 
+    /// <inheritdoc cref="IGraphBuilder.AddExternalImage" />
     public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null);
+
+    /// <inheritdoc cref="IGraphBuilder.AddExternalImage" />
+    public uint AddExternalBuffer(in DeviceBufferView view, Action? onDispose = null);
     public uint CreateTexture(in Extent2D extent, ImageFormat format, ImageLayout layout);
     public uint CreateTextureArray(in Extent2D extent, ImageFormat format, uint count, ImageLayout layout);
     public uint CreateCubemap(in Extent2D extent, ImageFormat format, ImageLayout layout);

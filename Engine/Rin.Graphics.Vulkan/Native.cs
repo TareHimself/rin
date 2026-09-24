@@ -22,11 +22,24 @@ internal static partial class Native
     private const string DllName = "libRin.Graphics.Vulkan.Native";
 #endif
     
+    [NoReorder]
+    [StructLayout(LayoutKind.Sequential)]
+    public struct VulkanInitResult
+    {
+        public VkInstance instance;
+        public VkPhysicalDevice physicalDevice;
+        public VkDevice device;
+        public VkQueue graphicsQueue;
+        public VkQueue transferQueue;
+        public uint graphicsQueueFamily;
+        public uint transferQueueFamily;
+        public VkSurfaceKHR surface;
+        public VkDebugUtilsMessengerEXT messenger;
+        public bool supportsIndirectRendering;
+    }
+
     [LibraryImport(DllName)]
-    public static unsafe partial void createVulkanInstance(ulong windowHandle, VkInstance* outInstance,
-        VkDevice* outDevice, VkPhysicalDevice* outPhysicalDevice, VkQueue* outGraphicsQueue,
-        uint* outGraphicsQueueFamily, VkQueue* outTransferQueue, uint* outTransferQueueFamily,
-        VkSurfaceKHR* outSurface, VkDebugUtilsMessengerEXT* debugMessenger);
+    public static unsafe partial void createVulkanInstance(ulong windowHandle, VulkanInitResult* outResult);
 
     [LibraryImport(DllName)]
     public static unsafe partial void destroyVulkanMessenger(VkInstance instance,
@@ -53,6 +66,10 @@ internal static partial class Native
         VkImageCreateInfo* createInfo, IntPtr allocator,
         [MarshalUsing(typeof(Utf8StringMarshaller))]
         string debugName);
+
+    [LibraryImport(DllName)]
+    public static unsafe partial void allocatorSetAllocationName(IntPtr allocator, IntPtr allocation,
+        [MarshalUsing(typeof(Utf8StringMarshaller))] string name);
 
     [LibraryImport(DllName)]
     public static unsafe partial void allocatorFreeBuffer(VkBuffer buffer, IntPtr allocation, IntPtr allocator);

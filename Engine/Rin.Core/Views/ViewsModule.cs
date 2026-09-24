@@ -35,6 +35,7 @@ public class ViewsModule : IViewsModule
         }
 
         _windowSurfaces.Clear();
+        FontManager.Dispose();
 
         _graphicsSubsystem = IGraphicsModule.Get();
         if (_graphicsSubsystem != null)

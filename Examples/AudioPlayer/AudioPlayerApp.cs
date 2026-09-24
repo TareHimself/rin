@@ -29,10 +29,6 @@ public class AudioPlayerApp : ExampleApplication
         surf?.Add(new MainPanelView());
     }
 
-    protected override void OnShutdown()
-    {
-    }
-
     public void Backgrounds(IWindow window)
     {
         var surf = IViewsModule.Get().GetWindowSurface(window);

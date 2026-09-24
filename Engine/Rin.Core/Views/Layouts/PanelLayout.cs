@@ -102,8 +102,8 @@ public class PanelLayout(ICompositeView container) : InfiniteChildrenLayout
                 : asPanelSlot.Size;
             // new Vector2
             // {
-            //     X = asPanelSlot.SizeToContent && noOffsetX ? desiredSize.X : asPanelSlot.Size.X,
-            //     Y = asPanelSlot.SizeToContent && noOffsetY ? desiredSize.Y: asPanelSlot.Size.Y
+            //     X = asPanelSlot.SizeToContent && noOffsetX ? desiredSize.X : asPanelSlot.Count.X,
+            //     Y = asPanelSlot.SizeToContent && noOffsetY ? desiredSize.Y: asPanelSlot.Count.Y
             // };
 
             var p1 = asPanelSlot.Offset;

@@ -33,9 +33,12 @@ public class AssetViewerApplication : ExampleApplication
 
     private World? _scene;
     private CameraComponent? _camera;
+    private IMeshFactory? _meshFactory;
 
     protected override void OnStartup()
     {
+        _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
+
         IViewsModule.Get().OnSurfaceCreated += surf =>
         {
             var scene = _scene = new World(new DefaultRenderSystem(), new BepuPhysicsSystem());
@@ -73,6 +76,8 @@ public class AssetViewerApplication : ExampleApplication
 
     protected override void OnShutdown()
     {
+        _meshFactory?.Dispose();
+        base.OnShutdown();
     }
 
     private static async void LoadAndSpawnModel(World scene, CameraComponent camera)
