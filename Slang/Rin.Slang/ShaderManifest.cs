@@ -7,6 +7,9 @@ public sealed class ShaderManifest
     public uint[]? ThreadGroupSize { get; init; }
 
     public required ShaderManifestStage[] Stages { get; init; }
+
+    /// <summary>See <see cref="ShaderSourceHash" />.</summary>
+    public required string SourceHash { get; init; }
 }
 
 public sealed class ShaderManifestStage

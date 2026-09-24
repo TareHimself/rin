@@ -37,6 +37,21 @@
         <RinSlangMSBuildAssembly Condition="'$(RinSlangMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\Slang\Rin.Slang.MSBuild\bin\Release\net10.0\Rin.Slang.MSBuild.dll</RinSlangMSBuildAssembly>
     </PropertyGroup>
 
+    <!--
+        dotnet build's (and Visual Studio/Rider's Fast Up-to-date Check's) own "has anything changed"
+        pass only looks at items the project already knows about (Compile, None, etc). .slang sources
+        are discovered dynamically by CompileRinSlangShaders via attribute-scanning, not declared as
+        project items anywhere, so editing a shader was invisible to that check and the whole build
+        (including this target) got skipped, reusing the stale embedded .crsh from the last real build.
+        Declaring every shader in the shared tree here - not just this project's discovered subset,
+        since #include can and does cross prefix boundaries (e.g. World shaders including Core ones) -
+        makes shader edits a "something changed" signal again. The actual skip-or-recompile decision
+        once this target does run is a content hash, not a timestamp - see CompileRinSlangShaders.
+    -->
+    <ItemGroup>
+        <UpToDateCheckInput Include="$(RinSlangRepoRoot)\Shaders\**\*.slang" />
+    </ItemGroup>
+
     <UsingTask TaskName="Rin.Slang.MSBuild.CompileRinSlangShaders" AssemblyFile="$(RinSlangMSBuildAssembly)" />
 
     <!--
