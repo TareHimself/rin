@@ -1,4 +1,6 @@
-﻿namespace Rin.World.Graphics;
+﻿using Rin.Core.Graphics.Shaders;
+
+namespace Rin.World.Graphics;
 
 /// <summary>
 ///     Interface for all Materials
@@ -20,9 +22,17 @@ public interface IMeshMaterial
     /// </summary>
     public IMaterialPass DepthPass { get; }
 
-    public bool IsBatchable(bool depth, IMeshMaterial other)
+    public MaterialIdentity GetColorIdentity()
     {
-        return GetType() == other.GetType() &&
-               (depth ? DepthPass.Shader == other.DepthPass.Shader : ColorPass.Shader == other.ColorPass.Shader);
+        return new MaterialIdentity(GetType(), ColorPass.Shader);
+    }
+
+    public MaterialIdentity GetDepthIdentity()
+    {
+        return new MaterialIdentity(GetType(), DepthPass.Shader);
     }
 }
+
+// A record struct so two identities compare by actual type/shader equality - a plain combined
+// hash code can collide between unrelated materials and silently merge them into one draw batch.
+public readonly record struct MaterialIdentity(Type MaterialType, IGraphicsShader Shader);

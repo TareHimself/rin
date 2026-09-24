@@ -10,11 +10,11 @@ struct PushData {
     float4x4 projection;
     float4x4 transform;
     float2 size;
-    ImageHandle outputImage;
-    ImageHandle gBuffer0;
-    ImageHandle gBuffer1;
-    ImageHandle gBuffer2;
-    ImageHandle gBuffer3;
+    DeviceHandle outputImage;
+    DeviceHandle gBuffer0;
+    DeviceHandle gBuffer1;
+    DeviceHandle gBuffer2;
+    DeviceHandle gBuffer3;
     PackedLight *lights;
     int lightCount;
     int channel;

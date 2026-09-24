@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Rin.Core.Audio;
 using Rin.Core.Graphics;
 using Rin.Core.Shared;
@@ -138,6 +138,7 @@ public abstract class Application : IApplication
 
     public void Dispose()
     {
+        _graphicsModule?.WaitIdle();
         OnShutdown();
         foreach (var module in _modules.AsReversed()) module.Stop(this);
         ShutdownPlatform();

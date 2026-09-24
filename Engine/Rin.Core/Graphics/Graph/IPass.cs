@@ -8,14 +8,6 @@ public interface IPass
     public uint Id { get; set; }
 
     /// <summary>
-    ///     A terminal pass is one that represents a valid endpoint of the frame graph, used for pruning, if a
-    ///     <see cref="IGraphBuilder" /> has no terminal passes, nothing will be drawn
-    /// </summary>
-    public bool IsTerminal { get; }
-
-    public Action? OnPrune { get; }
-
-    /// <summary>
     ///     Called when all passes have been added and the graph is being compiled. Perform the least amount of work required
     ///     to figure out pass requirements
     /// </summary>

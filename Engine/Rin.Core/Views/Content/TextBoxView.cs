@@ -199,9 +199,11 @@ public class TextBoxView : ContentView
     }
     
     private readonly List<Quad> _collectCacheQuads = [];
+    private readonly List<ResourceHandle> _collectCacheAtlases = [];
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         _collectCacheQuads.Clear();
+        _collectCacheAtlases.Clear();
         if (CurrentFont == null) return;
         if (Content.NotEmpty() && _cachedLayouts == null)
         {
@@ -209,6 +211,7 @@ public class TextBoxView : ContentView
             var x4 = transform;
             _collectCacheQuads.AddRange(layout.Select(c => Quad.Mtsdf(c.Atlas, c.Transform * x4, c.Size,
                 c.PixelRange, ForegroundColor, c.Uv)));
+            _collectCacheAtlases.AddRange(layout.Select(c => c.Atlas).Distinct());
             if (_collectCacheQuads.Count == 0) return;
             if (!hadAnyPending) _cachedLayouts = layout;
         }
@@ -220,11 +223,14 @@ public class TextBoxView : ContentView
                 _collectCacheQuads.Add(Quad.Mtsdf(quad.Atlas, quad.Transform * x4, quad.Size, quad.PixelRange,
                     ForegroundColor, quad.Uv));
             }
+
+            _collectCacheAtlases.AddRange(_cachedLayouts.Select(c => c.Atlas).Distinct());
         }
 
         if (_collectCacheQuads.Count > 0)
         {
-            commands.Add(new QuadDrawCommand(CollectionsMarshal.AsSpan(_collectCacheQuads)));
+            commands.Add(new QuadDrawCommand(CollectionsMarshal.AsSpan(_collectCacheQuads),
+                CollectionsMarshal.AsSpan(_collectCacheAtlases)));
         }
     }
 

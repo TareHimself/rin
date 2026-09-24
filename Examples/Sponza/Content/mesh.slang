@@ -18,9 +18,9 @@ struct PerMeshData {
     Vertex *vertices;
     float4x4 transform;
     float4 color;
-    ImageHandle colorHandle;
-    ImageHandle normalHandle;
-    ImageHandle metallicRoughnessHandle;
+    DeviceHandle colorHandle;
+    DeviceHandle normalHandle;
+    DeviceHandle metallicRoughnessHandle;
 };
 
 struct PushConstants {

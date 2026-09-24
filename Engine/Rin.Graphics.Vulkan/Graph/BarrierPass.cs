@@ -18,19 +18,18 @@ internal class ImageResourceSync : PassResourceSync
 {
     public required ImageLayout PreviousLayout { get; set; }
     public required ImageLayout NextLayout { get; set; }
+    public bool FromCurrentLayout { get; init; }
 }
 
 internal class BufferResourceSync : PassResourceSync
 {
-    public required BufferUsage PreviousUsage { get; set; }
-    public required BufferUsage NextUsage { get; set; }
+    public required GraphBufferUsage PreviousUsage { get; set; }
+    public required GraphBufferUsage NextUsage { get; set; }
 }
 
 internal class BarrierPass(BufferResourceSync[] buffers, ImageResourceSync[] images) : IPass
 {
     public uint Id { get; set; }
-    public bool IsTerminal => false;
-    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {
@@ -41,43 +40,56 @@ internal class BarrierPass(BufferResourceSync[] buffers, ImageResourceSync[] ima
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var rentedBuffers = buffers.Length > MaxStackBarriers
-            ? ArrayPool<BufferBarrier>.Shared.Rent(buffers.Length)
-            : null;
-        var rentedImages = images.Length > MaxStackBarriers
-            ? ArrayPool<TextureBarrier>.Shared.Rent(images.Length)
-            : null;
-        try
+        if (ctx is VulkanExecutionContext vkCtx)
         {
-            var bufferBarriers = rentedBuffers is not null
-                ? rentedBuffers.AsSpan(0, buffers.Length)
-                : stackalloc BufferBarrier[buffers.Length];
-            var imageBarriers = rentedImages is not null
-                ? rentedImages.AsSpan(0, images.Length)
-                : stackalloc TextureBarrier[images.Length];
-
-            for (var i = 0; i < buffers.Length; i++)
+            var rentedBuffers = buffers.Length > MaxStackBarriers
+                ? ArrayPool<BufferBarrier>.Shared.Rent(buffers.Length)
+                : null;
+            var rentedImages = images.Length > MaxStackBarriers
+                ? ArrayPool<TextureBarrier>.Shared.Rent(images.Length)
+                : null;
+            try
             {
-                bufferBarriers[i].View = graph.GetBufferOrException(buffers[i].ResourceId);
-                bufferBarriers[i].From = buffers[i].PreviousUsage;
-                bufferBarriers[i].To = buffers[i].NextUsage;
-                bufferBarriers[i].FromOperation = buffers[i].PreviousOperation;
-                bufferBarriers[i].ToOperation = buffers[i].NextOperation;
-            }
-            for (var i = 0; i < images.Length; i++)
-            {
-                imageBarriers[i].Texture = graph.GetImageOrException(images[i].ResourceId);
-                imageBarriers[i].From = images[i].PreviousLayout;
-                imageBarriers[i].To = images[i].NextLayout;
-            }
+                var bufferBarriers = rentedBuffers is not null
+                    ? rentedBuffers.AsSpan(0, buffers.Length)
+                    : stackalloc BufferBarrier[buffers.Length];
+                var imageBarriers = rentedImages is not null
+                    ? rentedImages.AsSpan(0, images.Length)
+                    : stackalloc TextureBarrier[images.Length];
 
-            ctx.Barrier(bufferBarriers);
-            ctx.Barrier(imageBarriers);
-        }
-        finally
-        {
-            if (rentedBuffers is not null) ArrayPool<BufferBarrier>.Shared.Return(rentedBuffers);
-            if (rentedImages is not null) ArrayPool<TextureBarrier>.Shared.Return(rentedImages);
+                for (var i = 0; i < buffers.Length; i++)
+                {
+                    bufferBarriers[i].View = graph.GetBufferOrException(buffers[i].ResourceId);
+                    bufferBarriers[i].From = buffers[i].PreviousUsage;
+                    bufferBarriers[i].To = buffers[i].NextUsage;
+                    bufferBarriers[i].FromOperation = buffers[i].PreviousOperation;
+                    bufferBarriers[i].ToOperation = buffers[i].NextOperation;
+                }
+                var imageCount = 0;
+                foreach (var sync in images)
+                {
+                    var texture = graph.GetImageOrException(sync.ResourceId);
+                    var from = sync.PreviousLayout;
+                    if (sync.FromCurrentLayout)
+                    {
+                        from = VulkanGraphicsModule.Get().GetImage(texture)!.Layout;
+                        if (from == sync.NextLayout && sync.NextOperation == ResourceOperation.Read) continue;
+                    }
+
+                    imageBarriers[imageCount].Texture = texture;
+                    imageBarriers[imageCount].From = from;
+                    imageBarriers[imageCount].To = sync.NextLayout;
+                    imageCount++;
+                }
+
+                vkCtx.Barrier(bufferBarriers);
+                vkCtx.Barrier(imageBarriers[..imageCount]);
+            }
+            finally
+            {
+                if (rentedBuffers is not null) ArrayPool<BufferBarrier>.Shared.Return(rentedBuffers);
+                if (rentedImages is not null) ArrayPool<TextureBarrier>.Shared.Return(rentedImages);
+            }
         }
     }
 }

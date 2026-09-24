@@ -56,4 +56,29 @@ public static class ShaderPackageReader
         using var stream = File.OpenRead(path);
         return Read(stream);
     }
+
+    /// <summary>
+    ///     Just the manifest (including <see cref="ShaderManifest.SourceHash" />) - skips decompressing
+    ///     SPIR-V/reflection data entirely. For a caller that only wants to know "is this .crsh still
+    ///     fresh relative to its source", e.g. an editor deciding whether to invoke a real recompile.
+    /// </summary>
+    public static ShaderManifest? ReadManifest(Stream input)
+    {
+        using var tar = new TarReader(input, leaveOpen: true);
+
+        TarEntry? entry;
+        while ((entry = tar.GetNextEntry()) != null)
+        {
+            if (entry.Name != "manifest.json" || entry.DataStream is null) continue;
+            return JsonSerializer.Deserialize(entry.DataStream, ShaderManifestJsonContext.Default.ShaderManifest);
+        }
+
+        return null;
+    }
+
+    public static ShaderManifest? ReadManifestFromFile(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return ReadManifest(stream);
+    }
 }

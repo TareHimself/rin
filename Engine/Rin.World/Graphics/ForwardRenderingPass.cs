@@ -125,7 +125,6 @@ public class ForwardRenderingPass(CameraComponent camera, Extent2D size, Collect
     }
 
     public uint Id { get; set; }
-    public bool IsTerminal { get; set; } = false;
     public bool HandlesPreAdd => true;
     public bool HandlesPostAdd => false;
 

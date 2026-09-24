@@ -5,7 +5,7 @@ using Rin.Core.Graphics.Shaders;
 
 namespace Rin.World.Graphics.Default.Passes;
 
-public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldRenderContext renderContext) : IComputePass
+public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldCollectedData collectedData) : IComputePass
 {
     [ComputeShader("Shaders/World/Mesh/Compute/draw_indirect.slang")]
     private partial IComputeShader Shader { get; }
@@ -18,26 +18,23 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
     private uint[] _meshBuffers = [];
 
     public uint Id { get; set; }
-    public bool IsTerminal => true;
-    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {
-        config.DependOn(renderContext.InitPassId);
-        config.ReadBuffer(renderContext.BoundsBufferId, GraphBufferUsage.Compute);
+        config.ReadBuffer(collectedData.BoundsBufferId, GraphBufferUsage.Compute);
         config.ReadBuffer(cullingPass.OutputBufferId, GraphBufferUsage.Compute);
 
-        _meshBuffers = renderContext.IndirectGroups
-            .Select(group => config.CreateBuffer<Mesh>(group.Length, GraphBufferUsage.HostThenCompute)).ToArray();
-        _depthMeshBuffers = renderContext.DepthIndirectGroups
-            .Select(group => config.CreateBuffer<Mesh>(group.Length, GraphBufferUsage.HostThenCompute)).ToArray();
-        renderContext.IndirectCommandBuffers = renderContext.IndirectGroups.Select(group =>
-            config.CreateBuffer<DrawIndexedIndirectCommand>(group.Length, GraphBufferUsage.Compute)).ToArray();
-        renderContext.DepthIndirectCommandBuffers = renderContext.DepthIndirectGroups.Select(group =>
-            config.CreateBuffer<DrawIndexedIndirectCommand>(group.Length, GraphBufferUsage.Compute)).ToArray();
-        renderContext.IndirectCommandCountBuffers = renderContext.IndirectGroups
+        _meshBuffers = collectedData.IndirectGroups.Values
+            .Select(group => config.CreateBuffer<Mesh>(group.Count, GraphBufferUsage.HostThenCompute)).ToArray();
+        _depthMeshBuffers = collectedData.DepthIndirectGroups
+            .Values.Select(group => config.CreateBuffer<Mesh>(group.Count, GraphBufferUsage.HostThenCompute)).ToArray();
+        collectedData.IndirectCommandBuffers = collectedData.IndirectGroups.Values.Select(group =>
+            config.CreateBuffer<DrawIndexedIndirectCommand>(group.Count, GraphBufferUsage.Compute)).ToArray();
+        collectedData.DepthIndirectCommandBuffers = collectedData.DepthIndirectGroups.Values.Select(group =>
+            config.CreateBuffer<DrawIndexedIndirectCommand>(group.Count, GraphBufferUsage.Compute)).ToArray();
+        collectedData.IndirectCommandCountBuffers = collectedData.IndirectGroups
             .Select(_ => config.CreateBuffer<uint>(GraphBufferUsage.HostThenCompute)).ToArray();
-        renderContext.DepthIndirectCommandCountBuffers = renderContext.DepthIndirectGroups
+        collectedData.DepthIndirectCommandCountBuffers = collectedData.DepthIndirectGroups
             .Select(_ => config.CreateBuffer<uint>(GraphBufferUsage.HostThenCompute)).ToArray();
     }
 
@@ -45,35 +42,36 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
     {
         var cullingBuffer = graph.GetBufferOrException(cullingPass.OutputBufferId);
         var cullingBufferAddress = cullingBuffer.GetAddress();
-        var indirectCommandBuffers = renderContext.IndirectCommandBuffers.Select(graph.GetBufferOrException).ToArray();
+        var indirectCommandBuffers = collectedData.IndirectCommandBuffers.Select(graph.GetBufferOrException).ToArray();
         var indirectCommandCountBuffers =
-            renderContext.IndirectCommandCountBuffers.Select(graph.GetBufferOrException).ToArray();
+            collectedData.IndirectCommandCountBuffers.Select(graph.GetBufferOrException).ToArray();
         var depthIndirectCommandBuffers =
-            renderContext.DepthIndirectCommandBuffers.Select(graph.GetBufferOrException).ToArray();
-        var depthIndirectCommandCountBuffers = renderContext.DepthIndirectCommandCountBuffers
+            collectedData.DepthIndirectCommandBuffers.Select(graph.GetBufferOrException).ToArray();
+        var depthIndirectCommandCountBuffers = collectedData.DepthIndirectCommandCountBuffers
             .Select(graph.GetBufferOrException).ToArray();
         var meshBuffers = _meshBuffers.Select(graph.GetBufferOrException).ToArray();
         var depthMeshBuffers = _depthMeshBuffers.Select(graph.GetBufferOrException).ToArray();
-
+        
+        
         if (Shader.Bind(ctx) is { } bindContext)
         {
-            for (var i = 0; i < renderContext.IndirectGroups.Length; i++)
+            
+            var i = 0;
+            foreach (var group in collectedData.IndirectGroups.Values)
             {
                 bindContext.Reset(); // We have to reset because we write shader data
-                var group = renderContext.IndirectGroups[i];
-                var invokeCount = (uint)group.Length;
+                var invokeCount = (uint)group.Count;
                 var commandBuffer = indirectCommandBuffers[i];
                 var meshBuffer = meshBuffers[i];
                 var countBuffer = indirectCommandCountBuffers[i];
-                countBuffer.Write<uint>(0);
-                bindContext.WriteBuffer("drawCount", countBuffer);
+                countBuffer.WriteSingle<uint>(0);
                 meshBuffer.Write(group.Select((m, idx) => new Mesh
                 {
-                    IndicesCount = m.IndicesCount,
-                    IndicesStart = m.IndicesStart,
-                    VertexStart = m.VertexStart,
+                    IndicesCount = m.Surface.IndicesCount,
+                    IndicesStart = m.Surface.IndicesStart,
+                    VertexStart = m.Surface.VertexStart,
                     Instance = (uint)idx,
-                    MeshIndex = m.Id
+                    MeshIndex = m.AbsoluteMeshIndex
                 }).ToArray());
                 bindContext
                     .Push(new PushData
@@ -81,28 +79,30 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
                         CullingBufferAddress = cullingBufferAddress,
                         Meshes = meshBuffer.GetAddress(),
                         InvocationCount = invokeCount,
-                        Output = commandBuffer.GetAddress()
+                        Output = commandBuffer.GetAddress(),
+                        DrawCount = countBuffer.GetAddress()
                     })
                     .Invoke(invokeCount);
+                i++;
             }
 
-            for (var i = 0; i < renderContext.DepthIndirectGroups.Length; i++)
+
+            i = 0;
+            foreach (var group in collectedData.DepthIndirectGroups.Values)
             {
                 bindContext.Reset(); // We have to reset because we write shader data
-                var group = renderContext.DepthIndirectGroups[i];
-                var invokeCount = (uint)group.Length;
+                var invokeCount = (uint)group.Count;
                 var commandBuffer = depthIndirectCommandBuffers[i];
                 var meshBuffer = depthMeshBuffers[i];
                 var countBuffer = depthIndirectCommandCountBuffers[i];
-                countBuffer.Write<uint>(0);
-                bindContext.WriteBuffer("drawCount", countBuffer);
+                countBuffer.WriteSingle<uint>(0);
                 meshBuffer.Write(group.Select((m, idx) => new Mesh
                 {
-                    IndicesCount = m.IndicesCount,
-                    IndicesStart = m.IndicesStart,
-                    VertexStart = m.VertexStart,
+                    IndicesCount = m.Surface.IndicesCount,
+                    IndicesStart = m.Surface.IndicesStart,
+                    VertexStart = m.Surface.VertexStart,
                     Instance = (uint)idx,
-                    MeshIndex = m.Id
+                    MeshIndex = m.AbsoluteMeshIndex
                 }).ToArray());
                 bindContext
                     .Push(new PushData
@@ -110,9 +110,11 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
                         CullingBufferAddress = cullingBufferAddress,
                         Meshes = meshBuffer.GetAddress(),
                         InvocationCount = invokeCount,
-                        Output = commandBuffer.GetAddress()
+                        Output = commandBuffer.GetAddress(),
+                        DrawCount = countBuffer.GetAddress()
                     })
                     .Invoke(invokeCount);
+                i++;
             }
         }
     }
@@ -133,5 +135,6 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
         public required ulong Meshes;
         public required uint InvocationCount;
         public required ulong Output;
+        public required ulong DrawCount;
     }
 }

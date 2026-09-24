@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Shared;
@@ -27,10 +28,11 @@ public class MeshFactory : IMeshFactory
         }
     }
 
-    public Pair<int, Task> CreateMesh<TVertexFormat>(Buffer<TVertexFormat> vertices, Buffer<uint> indices,
+    public Task CreateMesh<TVertexFormat>(out int meshId, Buffer<TVertexFormat> vertices, Buffer<uint> indices,
         MeshSurface[] surfaces) where TVertexFormat : unmanaged, IVertex
     {
         var id = _factory.NewId();
+        meshId = id;
         var nVertices = vertices.Copy();
         var nIndices = indices.Copy();
 
@@ -43,12 +45,12 @@ public class MeshFactory : IMeshFactory
 
         Task.Run(() => CreateMeshInternal(id, nVertices, nIndices, surfaces));
 
-        return new Pair<int, Task>(id, task);
+        return task;
     }
 
-    public Pair<int, Task> CreateMesh(Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces)
+    public Task CreateMesh(out int meshId, Buffer<Vertex> vertices, Buffer<uint> indices, MeshSurface[] surfaces)
     {
-        return CreateMesh<Vertex>(vertices, indices, surfaces);
+        return CreateMesh<Vertex>(out meshId, vertices, indices, surfaces);
     }
 
     public bool IsMeshReady(int meshId)
@@ -92,9 +94,11 @@ public class MeshFactory : IMeshFactory
         }
     }
 
-    private void CreateMeshInternal<TVertexFormat>(int id, Buffer<TVertexFormat> vertices, Buffer<uint> indices,
+    private async Task CreateMeshInternal<TVertexFormat>(int id, Buffer<TVertexFormat> vertices, Buffer<uint> indices,
         MeshSurface[] surfaces) where TVertexFormat : unmanaged, IVertex
     {
+        Task vertexUpload, indexUpload;
+        DeviceBufferView vertexBuffer, indexBuffer;
         using (vertices)
         using (indices)
         {
@@ -104,23 +108,41 @@ public class MeshFactory : IMeshFactory
             var verticesByteSize = vertices.GetByteSize();
             var indicesByteSize = indices.GetByteSize();
 
-            var vertexBuffer = graphics.NewStorageBuffer(verticesByteSize, false);
-            var indexBuffer = graphics.NewStorageBuffer(indicesByteSize, false);
+            var vertexHandle = graphics.CreateBuffer(verticesByteSize,
+                BufferCreateFlags.Storage | BufferCreateFlags.TransferDst | BufferCreateFlags.DeviceAddress);
+            var indexHandle = graphics.CreateBuffer(indicesByteSize,
+                BufferCreateFlags.Storage | BufferCreateFlags.TransferDst | BufferCreateFlags.Index);
+            vertexBuffer = new DeviceBufferView(vertexHandle, 0, verticesByteSize);
+            indexBuffer = new DeviceBufferView(indexHandle, 0, indicesByteSize);
 
-            vertexBuffer.Write(vertices);
-            indexBuffer.Write(indices);
-
-            var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces, Utils.ByteSizeOf<TVertexFormat>());
-
-            TaskCompletionSource? toComplete;
-            lock (_sync)
-            {
-                _meshes[id] = mesh;
-                _pendingMeshes.TryGetValue(id, out toComplete);
-                _pendingMeshes.Remove(id);
-            }
-
-            toComplete?.SetResult();
+            // QueueBufferUpload copies its source into a staging buffer synchronously before returning
+            // (the GPU-side copy is deferred), so it's safe to do this inside the `using` scope and
+            // let `vertices`/`indices` be disposed once these calls return.
+            vertexUpload = UploadUnmanagedBuffer(graphics, vertexHandle, vertices.AsReadOnlySpan());
+            indexUpload = UploadUnmanagedBuffer(graphics, indexHandle, indices.AsReadOnlySpan());
         }
+
+        await Task.WhenAll(vertexUpload, indexUpload);
+
+        if (_disposed) return;
+
+        var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces, Utils.ByteSizeOf<TVertexFormat>());
+
+        TaskCompletionSource? toComplete;
+        lock (_sync)
+        {
+            _meshes[id] = mesh;
+            _pendingMeshes.TryGetValue(id, out toComplete);
+            _pendingMeshes.Remove(id);
+        }
+
+        toComplete?.SetResult();
+    }
+
+    private static Task UploadUnmanagedBuffer<T>(IGraphicsModule graphics, ResourceHandle handle,
+        ReadOnlySpan<T> source) where T : unmanaged
+    {
+        using var pooled = PooledMemory<byte>.CopyFrom(MemoryMarshal.AsBytes(source));
+        return graphics.QueueBufferUpload(handle, pooled.AsMemory());
     }
 }

@@ -43,6 +43,7 @@ public class BatchCommandHandler : ICommandHandler
         var memoryNeeded = _batchSizes.Aggregate<ulong, ulong>(0, (t, c) => t + c);
 
         if (memoryNeeded > 0) _bufferId = config.CreateBuffer(memoryNeeded, GraphBufferUsage.HostThenGraphics);
+        foreach (var batch in _batches) batch.DeclareResources(config);
     }
 
     public void Execute(IPassConfig passConfig,

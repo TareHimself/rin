@@ -35,6 +35,10 @@ public struct Transform()
         scale = Scale;
     }
 
+    /// <summary>
+    ///     Treats this as local to <paramref name="parent" /> and returns the combined transform - the
+    ///     <see cref="Transform" /> equivalent of <see cref="MathR.ChildOf" />.
+    /// </summary>
     public Transform InParentSpace(Transform parent)
     {
         return From(ToMatrix() * parent.ToMatrix());

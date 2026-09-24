@@ -6,7 +6,7 @@ using Rin.Core.Graphics.Shaders;
 
 namespace Rin.World.Graphics.Default.Passes;
 
-public partial class LightingPass(DefaultWorldRenderContext context) : IPass
+public partial class LightingPass(DefaultWorldCollectedData context) : IPass
 {
     [GraphicsShader("Shaders/World/lighting.slang")]
     private partial IGraphicsShader Shader { get; }
@@ -15,8 +15,6 @@ public partial class LightingPass(DefaultWorldRenderContext context) : IPass
     private uint _worldBufferId;
 
     public uint Id { get; set; }
-    public bool IsTerminal => false;
-    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {
@@ -42,7 +40,7 @@ public partial class LightingPass(DefaultWorldRenderContext context) : IPass
             var lightsBuffer = graph.GetBufferOrException(_lightBufferId);
             lightsBuffer.Write(context.Lights);
 
-            buffer.Write(
+            buffer.WriteSingle(
                 new LightingInfo
                 {
                     GBuffer0 = gBuffer0,
@@ -67,10 +65,10 @@ public partial class LightingPass(DefaultWorldRenderContext context) : IPass
     [NoReorder]
     private struct LightingInfo
     {
-        public required ResourceHandle GBuffer0;
-        public required ResourceHandle GBuffer1;
-        public required ResourceHandle GBuffer2;
-        public required ResourceHandle GBuffer3;
+        public required DeviceHandle GBuffer0;
+        public required DeviceHandle GBuffer1;
+        public required DeviceHandle GBuffer2;
+        public required DeviceHandle GBuffer3;
         public required Vector3 EyeLocation;
         public required ulong LightsBuffer;
         public required int NumLights;

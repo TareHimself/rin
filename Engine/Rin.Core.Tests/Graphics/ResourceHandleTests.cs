@@ -34,17 +34,28 @@ public class ResourceHandleTests
     }
 
     [Test]
-    public void UintConversionRoundTrips()
+    public void DeviceHandleUintConversionRoundTrips()
     {
-        var handle = new ResourceHandle(ResourceType.Cubemap, 12345, isBindless: true);
+        var device = new DeviceHandle(ResourceType.Cubemap, 12345);
 
-        var raw = (uint)handle;
-        var restored = (ResourceHandle)raw;
+        var raw = (uint)device;
+        var restored = (DeviceHandle)raw;
 
-        Assert.That(restored, Is.EqualTo(handle));
+        Assert.That(restored, Is.EqualTo(device));
         Assert.That(restored.Type, Is.EqualTo(ResourceType.Cubemap));
         Assert.That(restored.Id, Is.EqualTo(12345u));
-        Assert.That(restored.IsBindless, Is.True);
+    }
+
+    [Test]
+    public void ResourceHandleCarriesBindlessAndGenerationAlongsideItsDeviceHandle()
+    {
+        var handle = new ResourceHandle(ResourceType.Cubemap, 12345, isBindless: true, generation: 7);
+
+        Assert.That(handle.Type, Is.EqualTo(ResourceType.Cubemap));
+        Assert.That(handle.Id, Is.EqualTo(12345u));
+        Assert.That(handle.IsBindless, Is.True);
+        Assert.That(handle.Generation, Is.EqualTo(7u));
+        Assert.That(handle.Device, Is.EqualTo(new DeviceHandle(ResourceType.Cubemap, 12345)));
     }
 
     [Test]

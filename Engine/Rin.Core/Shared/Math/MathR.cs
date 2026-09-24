@@ -205,182 +205,199 @@ public static class MathR
         return float.IsFinite(val) ? val : other;
     }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 FiniteOr(this in Vector2 val, in float x = 0.0f, in float y = 0.0f)
+    extension(in Vector2 val)
     {
-        return new Vector2(float.IsFinite(val.X) ? val.X : x, float.IsFinite(val.Y) ? val.Y : y);
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector2 FiniteOr(in float x = 0.0f, in float y = 0.0f)
+        {
+            return new Vector2(float.IsFinite(val.X) ? val.X : x, float.IsFinite(val.Y) ? val.Y : y);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector2 FiniteOr(in Vector2 other)
+        {
+            return new Vector2(float.IsFinite(val.X) ? val.X : other.X, float.IsFinite(val.Y) ? val.Y : other.Y);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector2 Abs()
+        {
+            return Vector2.Abs(val);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector2 Floor()
+        {
+            return new Vector2(float.Floor(val.X), float.Floor(val.Y));
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector2 Ceiling()
+        {
+            return new Vector2(float.Ceiling(val.X), float.Ceiling(val.Y));
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Distance(in Vector2 b)
+        {
+            return Vector2.Distance(val, b);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Within(in Vector2 p1, in Vector2 p2)
+        {
+            return p1.X <= val.X && val.X <= p2.X && p1.Y <= val.Y && val.Y <= p2.Y;
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Within(Pair<Vector2, Vector2> bounds)
+        {
+            var (p1, p2) = bounds;
+            return p1.X <= val.X && val.X <= p2.X && p1.Y <= val.Y && val.Y <= p2.Y;
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Dot(in Vector2 other)
+        {
+            return Vector2.Dot(val, other);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Length()
+        {
+            return float.Sqrt(val.X * val.X + val.Y * val.Y);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Acos(in Vector2 other)
+        {
+            var dot = val.Dot(other);
+
+            var mul = val.Length() * other.Length();
+            // Calculate the cosine of the angle between the vectors
+            var cosine = mul == 0 ? 0 : dot / mul;
+
+            // Calculate the angle in radians using arccosine
+            return float.Acos(cosine);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Acosd(in Vector2 other)
+        {
+            return val.Acos(other) * float.Pi / 180.0f;
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Cross(in Vector2 other)
+        {
+            float ux = val.X, uy = val.Y, vx = other.X, vy = other.Y;
+            return ux * vy - uy * vx;
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector2 Clamp(in Vector2 min, in Vector2 max)
+        {
+            return Vector2.Clamp(val, min, max);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float DistanceTo(in Vector2 other)
+        {
+            return Vector2.Distance(val, other);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Extent2D ToExtent()
+        {
+            return new Extent2D
+            {
+                Width = (uint)float.Ceiling(val.X),
+                Height = (uint)float.Ceiling(val.Y)
+            };
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector2 Transform(in Matrix4x4 matrix)
+        {
+            var vec = new Vector4(val, 0.0f, 1.0f);
+            vec = Vector4.Transform(vec, matrix);
+            return new Vector2(vec.X, vec.Y);
+        }
     }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 FiniteOr(this in Vector2 val, in Vector2 other)
+    extension(in Matrix4x4 matrix)
     {
-        return new Vector2(float.IsFinite(val.X) ? val.X : other.X, float.IsFinite(val.Y) ? val.Y : other.Y);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 Inverse()
+        {
+            Matrix4x4.Invert(matrix, out var result);
+            return result;
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 Abs(this in Vector2 self)
-    {
-        return Vector2.Abs(self);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 Translate(in Vector2 translation)
+        {
+            return matrix * new Vector3(translation, 0.0f).ToTranslationMatrix();
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 Floor(this in Vector2 self)
-    {
-        return new Vector2(float.Floor(self.X), float.Floor(self.Y));
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 Scale(in Vector2 scale)
+        {
+            return matrix * new Vector3(scale, 1.0f).ToScaleMatrix();
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 Ceiling(this in Vector2 self)
-    {
-        return new Vector2(float.Ceiling(self.X), float.Ceiling(self.Y));
-    }
+        /// <summary>
+        ///     Appends this operation after everything <paramref name="matrix" /> already does, i.e. applied in
+        ///     <paramref name="matrix" />'s parent space, not its local space (<c>matrix * op</c>).
+        /// </summary>
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 Translate(in Vector3 translation)
+        {
+            return matrix * translation.ToTranslationMatrix();
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Distance(this in Vector2 a, in Vector2 b)
-    {
-        return Vector2.Distance(a, b);
-    }
+        /// <summary>
+        ///     Appends this operation after everything <paramref name="matrix" /> already does, i.e. applied in
+        ///     <paramref name="matrix" />'s parent space, not its local space (<c>matrix * op</c>).
+        /// </summary>
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 Scale(in Vector3 scale)
+        {
+            return matrix * scale.ToScaleMatrix();
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Within(this in Vector2 self, in Vector2 p1, in Vector2 p2)
-    {
-        return p1.X <= self.X && self.X <= p2.X && p1.Y <= self.Y && self.Y <= p2.Y;
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Within(this in Vector2 self, Pair<Vector2, Vector2> bounds)
-    {
-        var (p1, p2) = bounds;
-        return p1.X <= self.X && self.X <= p2.X && p1.Y <= self.Y && self.Y <= p2.Y;
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Dot(this in Vector2 self, in Vector2 other)
-    {
-        return Vector2.Dot(self, other);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Length(this in Vector2 self)
-    {
-        return float.Sqrt(self.X * self.X + self.Y * self.Y);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Acos(this in Vector2 self, in Vector2 other)
-    {
-        var dot = self.Dot(other);
-
-        var mul = self.Length() * other.Length();
-        // Calculate the cosine of the angle between the vectors
-        var cosine = mul == 0 ? 0 : dot / mul;
-
-        // Calculate the angle in radians using arccosine
-        return float.Acos(cosine);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Acosd(this in Vector2 self, in Vector2 other)
-    {
-        return self.Acos(other) * float.Pi / 180.0f;
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Cross(this in Vector2 self, in Vector2 other)
-    {
-        float ux = self.X, uy = self.Y, vx = other.X, vy = other.Y;
-        return ux * vy - uy * vx;
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 Clamp(this in Vector2 self, in Vector2 min, in Vector2 max)
-    {
-        return Vector2.Clamp(self, min, max);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float DistanceTo(this in Vector2 self, in Vector2 other)
-    {
-        return Vector2.Distance(self, other);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 ToTranslationMatrix(this in Vector3 self)
-    {
-        return Matrix4x4.CreateTranslation(self);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 ToRotationMatrix(this in Quaternion self)
-    {
-        return Matrix4x4.CreateFromQuaternion(self);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 ToScaleMatrix(this in Vector3 self)
-    {
-        return Matrix4x4.CreateScale(self);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 Inverse(this in Matrix4x4 matrix)
-    {
-        Matrix4x4.Invert(matrix, out var result);
-        return result;
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 Translate(this in Matrix4x4 matrix, in Vector2 translation)
-    {
-        return matrix * new Vector3(translation, 1.0f).ToTranslationMatrix();
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 Scale(this in Matrix4x4 matrix, in Vector2 scale)
-    {
-        return matrix * new Vector3(scale, 1.0f).ToScaleMatrix();
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 Translate(this in Matrix4x4 matrix, in Vector3 translation)
-    {
-        return matrix * translation.ToTranslationMatrix();
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 Scale(this in Matrix4x4 matrix, in Vector3 scale)
-    {
-        return matrix * scale.ToScaleMatrix();
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 Rotate(this in Matrix4x4 matrix, in Quaternion rotation)
-    {
-        return matrix * rotation.ToRotationMatrix();
+        /// <summary>
+        ///     Appends this operation after everything <paramref name="matrix" /> already does, i.e. applied in
+        ///     <paramref name="matrix" />'s parent space, not its local space (<c>matrix * op</c>).
+        /// </summary>
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 Rotate(in Quaternion rotation)
+        {
+            return matrix * rotation.ToRotationMatrix();
+        }
     }
 
     [Pure]
@@ -390,69 +407,97 @@ public static class MathR
         return matrix.Rotate(Quaternion.CreateFromAxisAngle(axis, angle));
     }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 RotateDegrees(this in Matrix4x4 matrix, in float angle, in Vector3 axis)
+    extension(in Matrix4x4 matrix)
     {
-        return matrix.Rotate(Quaternion.CreateFromAxisAngle(axis, float.DegreesToRadians(angle)));
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 RotateDegrees(in float angle, in Vector3 axis)
+        {
+            return matrix.Rotate(Quaternion.CreateFromAxisAngle(axis, float.DegreesToRadians(angle)));
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 Rotate2D(in float angle)
+        {
+            if (matrix.IsIdentity) return Matrix4x4.CreateRotationZ(angle);
+
+            return matrix * Matrix4x4.CreateRotationZ(angle);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 Rotate2DDegrees(in float angle)
+        {
+            return matrix.Rotate2D(float.DegreesToRadians(angle));
+        }
+
+        /// <summary>
+        ///     Places <paramref name="matrix" /> inside <paramref name="parent" />'s space: a point goes through
+        ///     <paramref name="matrix" /> first, then <paramref name="parent" /> (<c>matrix * parent</c>). Use it to turn a
+        ///     local transform into a world one, e.g. <c>local.ChildOf(parentWorld)</c>.
+        /// </summary>
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 ChildOf(in Matrix4x4 parent)
+        {
+            return matrix * parent;
+        }
+
+        /// <summary>
+        ///     Runs <paramref name="transformation" /> before <paramref name="matrix" /> (<c>transformation * matrix</c>) -
+        ///     the reverse of <see cref="ChildOf" />. Skinning is the canonical case:
+        ///     <c>jointWorld.ApplyBefore(inverseBind)</c> moves a vertex into joint space, then poses it.
+        /// </summary>
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 ApplyBefore(in Matrix4x4 transformation)
+        {
+            return transformation * matrix;
+        }
     }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 Rotate2d(this in Matrix4x4 matrix, in float angle)
+    extension(in Vector3 src)
     {
-        if (matrix.IsIdentity) return Matrix4x4.CreateRotationZ(angle);
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 Transform(in Matrix4x4 matrix)
+        {
+            var vec = new Vector4(src, 1.0f);
+            vec = Vector4.Transform(vec, matrix);
+            return new Vector3(vec.X, vec.Y, vec.Z);
+        }
 
-        return matrix * Matrix4x4.CreateRotationZ(angle);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 Project(in Matrix4x4 matrix)
+        {
+            var vec = new Vector4(src, 1.0f);
+            vec = Vector4.Transform(vec, matrix);
+            vec /= vec.W;
+            return new Vector3(vec.X, vec.Y, vec.Z);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 Rotate2dDegrees(this in Matrix4x4 matrix, in float angle)
-    {
-        return matrix.Rotate2d(float.DegreesToRadians(angle));
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion ToQuaternion()
+        {
+            return LookTowards(src);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 ChildOf(in this Matrix4x4 self, in Matrix4x4 parent)
-    {
-        return self * parent;
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 ToTranslationMatrix()
+        {
+            return Matrix4x4.CreateTranslation(src);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix4x4 ApplyBefore(in this Matrix4x4 self, in Matrix4x4 transformation)
-    {
-        return transformation * self;
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 Transform(this in Vector2 src, in Matrix4x4 matrix)
-    {
-        var vec = new Vector4(src, 0.0f, 1.0f);
-        vec = Vector4.Transform(vec, matrix);
-        return new Vector2(vec.X, vec.Y);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 Transform(this in Vector3 src, in Matrix4x4 matrix)
-    {
-        var vec = new Vector4(src, 1.0f);
-        vec = Vector4.Transform(vec, matrix);
-        return new Vector3(vec.X, vec.Y, vec.Z);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 Project(this in Vector3 src, in Matrix4x4 matrix)
-    {
-        var vec = new Vector4(src, 1.0f);
-        vec = Vector4.Transform(vec, matrix);
-        vec /= vec.W;
-        return new Vector3(vec.X, vec.Y, vec.Z);
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 ToScaleMatrix()
+        {
+            return Matrix4x4.CreateScale(src);
+        }
     }
 
     [Pure]
@@ -462,81 +507,91 @@ public static class MathR
         return Vector4.Transform(src, matrix);
     }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion Add(this in Quaternion self, in Vector3 axis, in float delta)
+    extension(in Quaternion self)
     {
-        return Quaternion.CreateFromAxisAngle(axis, float.DegreesToRadians(delta)) * self;
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion Add(in Vector3 axis, in float delta)
+        {
+            return Quaternion.CreateFromAxisAngle(axis, float.DegreesToRadians(delta)) * self;
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion AddYaw(this in Quaternion self, in float delta)
-    {
-        return self.Add(Up, delta);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion AddYaw(in float delta)
+        {
+            return self.Add(Up, delta);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion AddPitch(this in Quaternion self, in float delta)
-    {
-        return self.Add(Right, delta);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion AddPitch(in float delta)
+        {
+            return self.Add(Right, delta);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion AddRoll(this in Quaternion self, in float delta)
-    {
-        return self.Add(Forward, delta);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion AddRoll(in float delta)
+        {
+            return self.Add(Forward, delta);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion AddLocal(this in Quaternion self, in Vector3 axis, in float delta)
-    {
-        return self * Quaternion.CreateFromAxisAngle(axis, float.DegreesToRadians(delta));
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion AddLocal(in Vector3 axis, in float delta)
+        {
+            return self * Quaternion.CreateFromAxisAngle(axis, float.DegreesToRadians(delta));
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion AddLocalYaw(this in Quaternion self, in float delta)
-    {
-        return self.AddLocal(Up, delta);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion AddLocalYaw(in float delta)
+        {
+            return self.AddLocal(Up, delta);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion AddLocalPitch(this in Quaternion self, in float delta)
-    {
-        return self.AddLocal(Right, delta);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion AddLocalPitch(in float delta)
+        {
+            return self.AddLocal(Right, delta);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion AddLocalRoll(this in Quaternion self, in float delta)
-    {
-        return self.AddLocal(Forward, delta);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion AddLocalRoll(in float delta)
+        {
+            return self.AddLocal(Forward, delta);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 GetForward(in this Quaternion self)
-    {
-        return Vector3.Transform(Forward, self);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 GetForward()
+        {
+            return Vector3.Transform(Forward, self);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 GetRight(in this Quaternion self)
-    {
-        return Vector3.Transform(Right, self);
-    }
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 GetRight()
+        {
+            return Vector3.Transform(Right, self);
+        }
 
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 GetUp(in this Quaternion self)
-    {
-        return Vector3.Transform(Up, self);
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 GetUp()
+        {
+            return Vector3.Transform(Up, self);
+        }
+
+        [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Matrix4x4 ToRotationMatrix()
+        {
+            return Matrix4x4.CreateFromQuaternion(self);
+        }
     }
 
     [Pure]
@@ -544,23 +599,5 @@ public static class MathR
     public static Quaternion ToQuaternion(in this Matrix4x4 self)
     {
         return Quaternion.CreateFromRotationMatrix(self);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Quaternion ToQuaternion(in this Vector3 self)
-    {
-        return LookTowards(self);
-    }
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Extent2D ToExtent(in this Vector2 self)
-    {
-        return new Extent2D
-        {
-            Width = (uint)float.Ceiling(self.X),
-            Height = (uint)float.Ceiling(self.Y)
-        };
     }
 }

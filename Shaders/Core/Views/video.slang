@@ -6,7 +6,7 @@
 struct VideoItem {
     float4x4 transform;
     float2 size;
-    ImageHandle frame;
+    DeviceHandle frame;
 }
 
 struct PushConstants

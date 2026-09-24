@@ -28,7 +28,7 @@ public class SdfVector //: IJsonSerializable
     //     output[nameof(Coordinates)] = Coordinates.ToJson();
     //     output[nameof(PixelRange)] = PixelRange;
     //     output[nameof(Offset)] = Offset.ToJson();
-    //     output[nameof(Size)] = Size.ToJson();
+    //     output[nameof(Count)] = Count.ToJson();
     // }
     //
     // public void JsonDeserialize(JsonObject input)
@@ -38,7 +38,7 @@ public class SdfVector //: IJsonSerializable
     //     Coordinates = input[nameof(Coordinates)]?.AsObject().ToVector4() ?? Coordinates;
     //     PixelRange = input[nameof(PixelRange)]?.GetValue<float>() ?? PixelRange;
     //     Offset = input[nameof(Offset)]?.AsObject().ToVector2() ?? Offset;
-    //     Size = input[nameof(Size)]?.AsObject().ToVector2() ?? Size;
+    //     Count = input[nameof(Count)]?.AsObject().ToVector2() ?? Count;
     // }
     //
     // class JsonConverter : JsonConverter<SdfVector>
@@ -56,11 +56,11 @@ public class SdfVector //: IJsonSerializable
     //         result.Coordinates = input[nameof(Coordinates)]?.AsObject().ToVector4() ?? result.Coordinates;
     //         result.PixelRange = input[nameof(PixelRange)]?.GetValue<float>() ?? result.PixelRange;
     //         result.Offset = input[nameof(Offset)]?.AsObject().ToVector2() ?? result.Offset;
-    //         result.Size = input[nameof(Size)]?.AsObject().ToVector2() ?? result.Size;
+    //         result.Count = input[nameof(Count)]?.AsObject().ToVector2() ?? result.Count;
     //         return result;
     //     }
     //
-    //     public override void Write(Utf8JsonWriter writer, SdfVector value, JsonSerializerOptions options)
+    //     public override void WriteSingle(Utf8JsonWriter writer, SdfVector value, JsonSerializerOptions options)
     //     {
     //         writer.WriteStartObject();
     //         writer.WriteString(nameof(Id), value.Id);

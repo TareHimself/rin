@@ -5,7 +5,7 @@ namespace Rin.Graphics.Vulkan.Graph;
 public class GraphConfigImage
 {
     public required Extent2D Extent { get; set; }
-    public required ImageUsage Usage { get; set; }
+    public required ImageCreateFlags Usage { get; set; }
     public required ImageFormat Format { get; set; }
 
     public required ResourceType Type { get; set; }

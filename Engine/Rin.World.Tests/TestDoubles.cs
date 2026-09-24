@@ -1,12 +1,12 @@
 using System.Numerics;
 using Rin.Core.Graphics;
-using Rin.Core.Graphics.Graph;
 using Rin.Core.Shared;
 using Rin.Core.Shared.Math;
 using Rin.World.Components;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Mesh;
 using Rin.World.Math;
+using Rin.World.Mesh.Skinning;
 using Rin.World.Physics;
 
 namespace Rin.World.Tests;
@@ -73,12 +73,76 @@ internal sealed class TestMeshComponent : WorldComponent
     }
 }
 
+internal sealed class FakePoseSource : IPoseSource
+{
+    public required Skeleton Skeleton { get; init; }
+    public SkeletalPose Pose;
+
+    public SkeletalPose GetPose() => Pose;
+}
+
+/// <summary>
+///     Mirrors <c>SkinnedMeshComponent</c>'s proxy push idiom without the <c>IMeshFactory</c> singleton.
+/// </summary>
+internal sealed class TestSkinnedMeshComponent : WorldComponent
+{
+    private static readonly IMesh Mesh = new FakeMesh();
+    private static readonly Skeleton Skeleton = new([new Bone { Name = "root" }]);
+
+    private RenderProxyHandle _proxy = RenderProxyHandle.Invalid;
+    private uint _lastPushedVersion;
+
+    public IPoseSource? PoseSource { get; set; }
+    public RenderProxyHandle Proxy => _proxy;
+
+    public override void Start()
+    {
+        base.Start();
+        _proxy = Owner!.World!.RenderSystem.CreateSkinnedMeshProxy(new SkinnedMeshProxyDesc
+        {
+            Skeleton = Skeleton,
+            Pose = PoseSource?.GetPose() ?? Skeleton.BasePose,
+            Mesh = Mesh,
+            Transform = GetTransform(Space.World).ToMatrix(),
+            SurfaceIndices = [],
+            Materials = []
+        });
+        _lastPushedVersion = TransformVersion;
+    }
+
+    public override void Stop()
+    {
+        if (_proxy.IsValid)
+        {
+            Owner!.World!.RenderSystem.DestroyProxy(_proxy);
+            _proxy = RenderProxyHandle.Invalid;
+        }
+
+        base.Stop();
+    }
+
+    public override void LateUpdate(float deltaSeconds)
+    {
+        base.LateUpdate(deltaSeconds);
+        if (!_proxy.IsValid) return;
+        var worldTransform = GetTransform(Space.World);
+        if (TransformVersion != _lastPushedVersion)
+        {
+            Owner!.World!.RenderSystem.UpdateProxyTransform(_proxy, worldTransform.ToMatrix());
+            _lastPushedVersion = TransformVersion;
+        }
+
+        if (PoseSource is { } poseSource) Owner!.World!.RenderSystem.UpdateSkinnedProxyPose(_proxy, poseSource.GetPose());
+    }
+}
+
 internal sealed class FakeRenderSystem : IRenderSystem
 {
     private uint _nextIndex;
     private readonly HashSet<RenderProxyHandle> _live = [];
 
     public List<(RenderProxyHandle Handle, Matrix4x4 Transform)> PushedTransforms { get; } = [];
+    public List<(RenderProxyHandle Handle, SkeletalPose Pose)> PushedPoses { get; } = [];
     public int DestroyCount { get; private set; }
     public float LastInterpolationAlpha { get; private set; } = 1f;
 
@@ -99,6 +163,12 @@ internal sealed class FakeRenderSystem : IRenderSystem
         PushedTransforms.Add((handle, worldTransform));
     }
 
+    public void UpdateSkinnedProxyPose(RenderProxyHandle handle, in SkeletalPose pose)
+    {
+        if (!_live.Contains(handle)) throw new InvalidOperationException("Stale or unknown proxy handle");
+        PushedPoses.Add((handle, pose));
+    }
+
     public void UpdateStaticMeshProxy(RenderProxyHandle handle, in StaticMeshProxyDesc desc)
     {
     }
@@ -115,8 +185,7 @@ internal sealed class FakeRenderSystem : IRenderSystem
 
     public void SetInterpolationAlpha(float alpha) => LastInterpolationAlpha = alpha;
 
-    public IWorldRenderContext Snapshot(CameraComponent view, in Extent2D extent) => throw new NotSupportedException();
-    public void Build(IGraphBuilder builder, IWorldRenderContext context) => throw new NotSupportedException();
+    public IWorldCollectedData Snapshot(CameraComponent view, in Extent2D extent) => throw new NotSupportedException();
     public void Dispose()
     {
     }

@@ -24,7 +24,7 @@ public struct GlyphRect
 
     /// <summary>
     ///     This character's horizontal advance - unlike <see cref="Size" />.X, this is defined even for glyphs
-    ///     with no ink (space, NBSP, ...), so it's what caret/cursor and hit-test math should use, not Size.X.
+    ///     with no ink (space, NBSP, ...), so it's what caret/cursor and hit-test math should use, not Count.X.
     /// </summary>
     public float Advance;
 

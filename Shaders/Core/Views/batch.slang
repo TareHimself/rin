@@ -45,7 +45,7 @@ struct Primitive {
 
 struct Texture {
     Quad super;
-    ImageHandle textureHandle;
+    DeviceHandle textureHandle;
     float4 tint;
     float4 uv;
     float4 borderRadius;
@@ -53,7 +53,7 @@ struct Texture {
 
 struct Mtsdf {
     Quad super;
-    ImageHandle textureHandle;
+    DeviceHandle textureHandle;
     float4 color;
     float4 uv;
     float pixelRange;

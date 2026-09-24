@@ -56,7 +56,7 @@ public class DirectionalLightComponent : LightComponent
 
     public override void Collect(CommandList commandList, Matrix4x4 parentTransform)
     {
-        var sceneTransform = Transform.From(GetTransform().ToMatrix() * parentTransform);
+        var sceneTransform = Transform.From(GetTransform().ToMatrix().ChildOf(parentTransform));
         commandList.AddLight(new LightInfo
         {
             Color = Color,

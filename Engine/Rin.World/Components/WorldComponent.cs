@@ -62,6 +62,7 @@ public class WorldComponent : Component, IWorldComponent
     [PublicAPI] public bool Visible { get; set; } = true;
 
     [PublicAPI] public IWorldComponent? TransformParent { get; private set; }
+    private string? _attachPointName;
 
 
     public override void Stop()
@@ -84,12 +85,13 @@ public class WorldComponent : Component, IWorldComponent
         return true;
     }
 
-    public bool AttachTo(IWorldComponent component)
+    public bool AttachTo(IWorldComponent component, string? name = null)
     {
         Debug.Assert(this != component, "Cannot attach component to self");
         if (component.TryHandleAttachment(this))
         {
             TransformParent = component;
+            _attachPointName = name;
             MarkWorldTransformDirty();
             return true;
         }
@@ -104,6 +106,7 @@ public class WorldComponent : Component, IWorldComponent
             if (parent.TryHandleDetachment(this))
             {
                 TransformParent = null;
+                _attachPointName = null;
                 MarkWorldTransformDirty();
                 return true;
             }
@@ -114,7 +117,12 @@ public class WorldComponent : Component, IWorldComponent
         return true;
     }
 
-    private void MarkWorldTransformDirty()
+    public virtual Transform GetAttachPointTransform(string? name)
+    {
+        return GetTransform(Space.World);
+    }
+
+    protected void MarkWorldTransformDirty()
     {
         if (_worldTransformDirty) return;
         _worldTransformDirty = true;
@@ -301,7 +309,7 @@ public class WorldComponent : Component, IWorldComponent
                         Orientation = Rotation,
                         Scale = Scale
                     }
-                    : GetTransform().InParentSpace(TransformParent.GetTransform(space));
+                    : GetTransform().InParentSpace(TransformParent.GetAttachPointTransform(_attachPointName));
                 _worldTransformDirty = false;
                 TransformVersion++;
                 return _cachedWorldTransform;

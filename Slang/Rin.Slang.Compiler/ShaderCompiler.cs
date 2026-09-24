@@ -1,11 +1,13 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using Rin.Slang;
 
 namespace Rin.Slang.Compiler;
 
 public sealed class ShaderCompiler : IDisposable
 {
     private readonly Dictionary<string, string> _pathAliases;
+    private readonly string? _portableRoot;
     private readonly IReadOnlyList<string> _searchPaths;
     private readonly SlangSession _session;
 
@@ -13,12 +15,27 @@ public sealed class ShaderCompiler : IDisposable
     {
         _searchPaths = options.SearchPaths.ToArray();
         _pathAliases = new Dictionary<string, string>(options.PathAliases);
+        _portableRoot = options.PortableRoot;
 
         using var builder = new SlangSessionBuilder();
         builder.AddTargetSpirv();
         foreach (var searchPath in options.SearchPaths) builder.AddSearchPath(searchPath);
         foreach (var (name, value) in options.Defines) builder.AddPreprocessorDefinition(name, value);
         _session = builder.Build();
+    }
+
+    /// <summary>
+    ///     <paramref name="absolutePath" /> relative to <see cref="ShaderCompilerOptions.PortableRoot" />,
+    ///     forward-slash-normalized - or the absolute path unchanged if no portable root was configured.
+    ///     Used anywhere a machine/checkout-independent identifier is needed instead of a real filesystem
+    ///     path: hashing, and the module identity handed to Slang (which can embed it in debug/reflection
+    ///     output).
+    /// </summary>
+    private string ToPortableId(string absolutePath)
+    {
+        if (_portableRoot is null) return absolutePath;
+        return Path.GetRelativePath(_portableRoot, absolutePath).Replace(Path.DirectorySeparatorChar, '/')
+            .Replace(Path.AltDirectorySeparatorChar, '/');
     }
 
     public void Dispose()
@@ -32,16 +49,21 @@ public sealed class ShaderCompiler : IDisposable
         sourcePath = Path.GetFullPath(sourcePath);
 
         var included = new HashSet<string>();
-        var joinedSource = string.Join('\n', ImportFile(sourcePath, included, _searchPaths, _pathAliases));
+        var resolvedPaths = new List<string> { sourcePath };
+        var joinedSource = string.Join('\n',
+            ImportFile(sourcePath, included, _searchPaths, _pathAliases, resolvedPaths));
+        var dependencies = resolvedPaths.Distinct(StringComparer.Ordinal).OrderBy(p => p, StringComparer.Ordinal)
+            .Select(p => (PortableId: ToPortableId(p), AbsolutePath: p)).ToArray();
 
+        var portableSourceId = ToPortableId(sourcePath);
         using var loadDiagnostics = new SlangBlob();
-        using var module = _session.LoadModuleFromSourceString(sourcePath, sourcePath, joinedSource,
+        using var module = _session.LoadModuleFromSourceString(portableSourceId, portableSourceId, joinedSource,
             loadDiagnostics);
         if (module == null)
             throw new SlangCompileException("Failed to load slang shader module:\n" + loadDiagnostics.GetString());
 
         using var computeEntryPoint = module.FindEntryPointByName("compute");
-        if (computeEntryPoint != null) return CompileCompute(module, computeEntryPoint);
+        if (computeEntryPoint != null) return CompileCompute(module, computeEntryPoint, dependencies);
 
         using var vertexEntryPoint = module.FindEntryPointByName("vertex");
         using var fragmentEntryPoint = module.FindEntryPointByName("fragment");
@@ -49,7 +71,55 @@ public sealed class ShaderCompiler : IDisposable
             throw new NotAShaderException(
                 "Shader has no 'compute' entry point, and no 'vertex'/'fragment' entry points");
 
-        return CompileGraphics(module, vertexEntryPoint, fragmentEntryPoint);
+        return CompileGraphics(module, vertexEntryPoint, fragmentEntryPoint, dependencies);
+    }
+
+    /// <summary>
+    ///     <paramref name="sourcePath" /> and every file it transitively #includes, without actually
+    ///     invoking the Slang compiler - cheap enough for a caller (an editor's live-reload check, or a
+    ///     build's up-to-date check) to hash and compare against a previous compile's
+    ///     <see cref="CompiledShader.Dependencies" /> before deciding whether a real recompile is needed.
+    /// </summary>
+    public (string PortableId, string AbsolutePath)[] ResolveDependencies(string sourcePath)
+    {
+        sourcePath = Path.GetFullPath(sourcePath);
+        var included = new HashSet<string>();
+        var resolvedPaths = new List<string> { sourcePath };
+        foreach (var _ in ImportFile(sourcePath, included, _searchPaths, _pathAliases, resolvedPaths))
+        {
+            // Only draining the enumerable for its resolvedPaths side effect - the joined source itself
+            // isn't needed here.
+        }
+
+        return resolvedPaths.Distinct(StringComparer.Ordinal).OrderBy(p => p, StringComparer.Ordinal)
+            .Select(p => (PortableId: ToPortableId(p), AbsolutePath: p)).ToArray();
+    }
+
+    /// <summary>
+    ///     True if <paramref name="sourcePath" /> and everything it transitively #includes still hash to
+    ///     what's embedded in the .crsh at <paramref name="packagePath" /> - i.e. a real recompile can be
+    ///     skipped. False (never throws for a missing/corrupt package) if it can't tell, so callers can
+    ///     treat that the same as "stale, recompile".
+    /// </summary>
+    public bool IsUpToDate(string packagePath, string sourcePath)
+    {
+        if (!File.Exists(packagePath)) return false;
+
+        ShaderManifest? manifest;
+        try
+        {
+            manifest = ShaderPackageReader.ReadManifestFromFile(packagePath);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+
+        if (manifest is null) return false;
+
+        var dependencies = ResolveDependencies(sourcePath);
+        return dependencies.All(d => File.Exists(d.AbsolutePath)) &&
+               ShaderSourceHash.Compute(dependencies) == manifest.SourceHash;
     }
 
     /// <summary>
@@ -71,7 +141,8 @@ public sealed class ShaderCompiler : IDisposable
         }
     }
 
-    private CompiledShader CompileCompute(SlangModule module, SlangEntryPoint entryPoint)
+    private CompiledShader CompileCompute(SlangModule module, SlangEntryPoint entryPoint,
+        (string PortableId, string AbsolutePath)[] dependencies)
     {
         var stage = CompileStage(module, entryPoint, "compute");
         var entryPointReflection = stage.Reflection.EntryPoints.FirstOrDefault() ??
@@ -81,12 +152,13 @@ public sealed class ShaderCompiler : IDisposable
         {
             Kind = ShaderKind.Compute,
             Stages = [stage],
-            ThreadGroupSize = entryPointReflection.ThreadGroupSize
+            ThreadGroupSize = entryPointReflection.ThreadGroupSize,
+            Dependencies = dependencies
         };
     }
 
     private CompiledShader CompileGraphics(SlangModule module, SlangEntryPoint? vertexEntryPoint,
-        SlangEntryPoint? fragmentEntryPoint)
+        SlangEntryPoint? fragmentEntryPoint, (string PortableId, string AbsolutePath)[] dependencies)
     {
         List<CompiledStage> stages = [];
         if (vertexEntryPoint != null) stages.Add(CompileStage(module, vertexEntryPoint, "vertex"));
@@ -95,7 +167,8 @@ public sealed class ShaderCompiler : IDisposable
         return new CompiledShader
         {
             Kind = ShaderKind.Graphics,
-            Stages = stages.ToArray()
+            Stages = stages.ToArray(),
+            Dependencies = dependencies
         };
     }
 
@@ -175,7 +248,8 @@ public sealed class ShaderCompiler : IDisposable
     }
 
     private static IEnumerable<string> ImportFile(string filePath, HashSet<string> included,
-        IReadOnlyList<string> searchPaths, IReadOnlyDictionary<string, string> pathAliases)
+        IReadOnlyList<string> searchPaths, IReadOnlyDictionary<string, string> pathAliases,
+        List<string>? resolvedPaths = null)
     {
         var directory = Path.GetDirectoryName(filePath) ?? string.Empty;
         foreach (var line in File.ReadLines(filePath))
@@ -185,7 +259,9 @@ public sealed class ShaderCompiler : IDisposable
                 if (included.Add(includeKey))
                 {
                     var resolvedPath = ResolveInclude(includeKey, directory, searchPaths, pathAliases);
-                    foreach (var importedLine in ImportFile(resolvedPath, included, searchPaths, pathAliases))
+                    resolvedPaths?.Add(resolvedPath);
+                    foreach (var importedLine in ImportFile(resolvedPath, included, searchPaths, pathAliases,
+                                 resolvedPaths))
                         yield return importedLine;
                 }
             }

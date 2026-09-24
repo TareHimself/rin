@@ -24,8 +24,7 @@ public class HarfBuzzFontManager : IFontManager
 
     private readonly ISdfCache? _cache;
     private readonly CancellationTokenSource _cancellationSource = new();
-    private readonly IGraphicsModule _graphicsModule;
-    private MtsdfPageManager _pageManager = new MtsdfPageManager(new Extent2D(AtlasSize));
+    private readonly MtsdfPageManager _pageManager;
 
     private readonly LiveGlyphInfo _defaultLiveGlyph = new()
     {
@@ -51,7 +50,7 @@ public class HarfBuzzFontManager : IFontManager
 
     public HarfBuzzFontManager(ISdfCache? cache = null, IGraphicsModule? graphicsModule = null)
     {
-        _graphicsModule = graphicsModule ?? IGraphicsModule.Get();
+        _pageManager = new MtsdfPageManager(new Extent2D(AtlasSize), graphicsModule);
         // _cache = Global.Provider.AddSingle<ISdfCache>(
         //     new DiskSdfCache(Path.Combine(Global.Directory, "sdfs.bin")));
     }
@@ -200,9 +199,8 @@ public class HarfBuzzFontManager : IFontManager
     {
         _cancellationSource.Cancel();
         _backgroundTaskQueue.Dispose();
-        _graphicsModule
-            .FreeResourceHandles(_atlases.Select(c => c.Value.AtlasHandle).Where(c => c.Id >= 0).ToArray());
         _atlases.Clear();
+        _pageManager.Dispose();
         foreach (var font in _fonts.Values) font.Dispose();
         _fonts.Clear();
     }

@@ -12,10 +12,10 @@ struct GBufferSample {
 };
 
 struct GBuffer {
-    ImageHandle G_BUFFER_0;
-    ImageHandle G_BUFFER_1;
-    ImageHandle G_BUFFER_2;
-    ImageHandle G_BUFFER_3;
+    DeviceHandle G_BUFFER_0;
+    DeviceHandle G_BUFFER_1;
+    DeviceHandle G_BUFFER_2;
+    DeviceHandle G_BUFFER_3;
 
     GBufferSample sample(in float2 uv, ImageTiling tiling = ImageTiling.ClampEdge, ImageFilter filter = ImageFilter.Linear) {
         var sample0 = G_BUFFER_0.SampleTexture(uv, tiling, filter);

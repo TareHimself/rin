@@ -23,6 +23,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     private readonly Dictionary<uint, GraphConfigBuffer> _buffers = [];
 
     private readonly Dictionary<uint, GraphConfigImage> _images = [];
+    private readonly Dictionary<uint, int> _prependedWrites = [];
 
     public readonly Dictionary<uint, List<Dependency>> PassDependencies = [];
     public readonly Dictionary<uint, List<ResourceAction>> ResourceActions = [];
@@ -35,8 +36,20 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null)
     {
+        if (builder.TryReuseExternalImage(handle, onDispose, out var existingId)) return existingId;
+        if (ExternalResourceDescriptors.Make(handle, onDispose) is not { } descriptor) return 0;
         var resourceId = builder.MakeId();
-        Resources.Add(resourceId, ExternalResourceDescriptors.Make(handle, onDispose));
+        Resources.Add(resourceId, descriptor);
+        builder.RememberExternalImage(handle, resourceId);
+        return resourceId;
+    }
+
+    public uint AddExternalBuffer(in DeviceBufferView view, Action? onDispose = null)
+    {
+        if (ExternalResourceDescriptors.MakeBuffer(view, onDispose) is not { } descriptor) return 0;
+        var resourceId = builder.MakeId();
+        Resources.Add(resourceId, descriptor);
+        builder.RememberExternalBuffer(view.Buffer, resourceId);
         return resourceId;
     }
 
@@ -58,17 +71,17 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     public uint CreateBuffer(ulong size, GraphBufferUsage usage)
     {
-        Debug.Assert(size > 0, "buffer size must be positive");
         var resourceId = builder.MakeId();
-        // _memory.Add(resourceId, descriptor);
+        // A pass may legitimately have nothing to put in a buffer this frame (e.g. zero meshes on
+        // a loading screen) - clamp instead of rejecting, rather than forcing every call site to
+        // special-case "empty this frame".
         _buffers.Add(resourceId, new GraphConfigBuffer
         {
-            Size = size,
-            Usage = GraphBufferUsageToVkUsage(usage),
-            Mapped = WillUsageRequireMapping(usage)
+            Size = ulong.Max(size, 1),
+            Usage = GraphBufferUsageToDeviceUsageFlags(usage)
         });
         UseBuffer(resourceId, usage, ResourceOperation.Write);
-        //Write(resourceId);
+        //WriteSingle(resourceId);
         return resourceId;
     }
 
@@ -150,7 +163,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
                 Operation = operation,
                 PassId = CurrentPassId,
                 Type = GraphResourceKind.Buffer,
-                BufferUsage = GraphBufferUsageToBufferUsage(usage)
+                BufferUsage = usage
             };
 
             if (ResourceActions.TryGetValue(id, out var passes))
@@ -159,9 +172,8 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
                 ResourceActions.Add(id, [action]);
         }
 
-        var configBuffer = _buffers[id];
-        configBuffer.Usage |= GraphBufferUsageToVkUsage(usage);
-        configBuffer.Mapped = configBuffer.Mapped || WillUsageRequireMapping(usage);
+        if (_buffers.TryGetValue(id, out var configBuffer))
+            configBuffer.Usage |= GraphBufferUsageToDeviceUsageFlags(usage);
         return id;
     }
 
@@ -185,15 +197,38 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     }
 
 
+    internal void PrependTextureWrite(uint id, bool discard)
+    {
+        UseTexture(id, ImageLayout.TransferDst, ResourceOperation.Write);
+        MoveLastActionToPrepended(id).Discard = discard;
+    }
+
+    internal void PrependBufferWrite(uint id)
+    {
+        UseBuffer(id, GraphBufferUsage.Transfer, ResourceOperation.Write);
+        MoveLastActionToPrepended(id);
+    }
+
+    private ResourceAction MoveLastActionToPrepended(uint id)
+    {
+        var actions = ResourceActions[id];
+        var action = actions[^1];
+        actions.RemoveAt(actions.Count - 1);
+        var index = _prependedWrites.GetValueOrDefault(id);
+        actions.Insert(index, action);
+        _prependedWrites[id] = index + 1;
+        return action;
+    }
+
     private uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout layout, uint count, ResourceType type)
     {
         Debug.Assert(extent is { Width: > 0, Height: > 0 },
             "all image dimensions must be greater than zero");
         var flags = format switch
         {
-            ImageFormat.Depth => ImageUsage.DepthAttachment,
-            ImageFormat.Stencil => ImageUsage.StencilAttachment,
-            _ => ImageUsage.None
+            ImageFormat.Depth => ImageCreateFlags.DepthAttachment,
+            ImageFormat.Stencil => ImageCreateFlags.StencilAttachment,
+            _ => ImageCreateFlags.None
         };
         var resourceId = builder.MakeId();
         _images.Add(resourceId, new GraphConfigImage
@@ -211,55 +246,44 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         return resourceId;
     }
 
-    private BufferUsage GraphBufferUsageToBufferUsage(GraphBufferUsage usage)
+    /// <summary>
+    ///     The Vulkan backend's own translation of graph-level buffer intent into creation flags - a Metal
+    ///     (or other) backend would derive whatever it needs from the same <see cref="GraphBufferUsage" />
+    ///     instead. Buffers pooled by <see cref="ResourcePool" /> always also get
+    ///     <see cref="BufferCreateFlags.Storage" />/<see cref="BufferCreateFlags.DeviceAddress" /> from
+    ///     <see cref="BufferResourceDescriptor" />, so cases that are read/written purely by shaders (via a
+    ///     device address, not a dedicated Vulkan buffer-usage bit) don't need to add anything here.
+    /// </summary>
+    private BufferCreateFlags GraphBufferUsageToDeviceUsageFlags(GraphBufferUsage usage)
     {
         return usage switch
         {
-            GraphBufferUsage.Undefined => BufferUsage.Undefined,
-            GraphBufferUsage.Host => BufferUsage.Host,
-            GraphBufferUsage.Transfer or GraphBufferUsage.HostThenTransfer => BufferUsage.Transfer,
-            GraphBufferUsage.Graphics or GraphBufferUsage.HostThenGraphics => BufferUsage.Graphics,
-            GraphBufferUsage.Compute or GraphBufferUsage.HostThenCompute => BufferUsage.Compute,
-            GraphBufferUsage.Indirect or GraphBufferUsage.HostThenIndirect => BufferUsage.Indirect,
+            GraphBufferUsage.Host => BufferCreateFlags.HostDst,
+            GraphBufferUsage.HostThenTransfer => BufferCreateFlags.HostDst | BufferCreateFlags.TransferSrc,
+            GraphBufferUsage.HostThenGraphics => BufferCreateFlags.HostDst,
+            GraphBufferUsage.HostThenCompute => BufferCreateFlags.HostDst,
+            GraphBufferUsage.HostThenIndirect => BufferCreateFlags.HostDst | BufferCreateFlags.Indirect,
+            GraphBufferUsage.Transfer => BufferCreateFlags.TransferSrc | BufferCreateFlags.TransferDst,
+            GraphBufferUsage.Graphics => BufferCreateFlags.None,
+            GraphBufferUsage.Compute => BufferCreateFlags.None,
+            GraphBufferUsage.Indirect => BufferCreateFlags.Indirect,
             _ => throw new ArgumentOutOfRangeException(nameof(usage), usage, null)
         };
     }
 
-    private VkBufferUsageFlags GraphBufferUsageToVkUsage(GraphBufferUsage usage)
-    {
-        return usage switch
-        {
-            GraphBufferUsage.Transfer or GraphBufferUsage.HostThenTransfer => VkBufferUsageFlags
-                .VK_BUFFER_USAGE_TRANSFER_DST_BIT | VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            GraphBufferUsage.Indirect or GraphBufferUsage.HostThenIndirect => VkBufferUsageFlags
-                .VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
-            _ => 0
-        };
-    }
-
-    private bool WillUsageRequireMapping(GraphBufferUsage usage)
-    {
-        return usage switch
-        {
-            GraphBufferUsage.Host or GraphBufferUsage.HostThenCompute or GraphBufferUsage.HostThenGraphics
-                or GraphBufferUsage.HostThenIndirect or GraphBufferUsage.HostThenTransfer => true,
-            _ => false
-        };
-    }
-
-    private ImageUsage DeriveImageUsage(ImageLayout layout)
+    private ImageCreateFlags DeriveImageUsage(ImageLayout layout)
     {
         return layout switch
         {
-            ImageLayout.Undefined => ImageUsage.None,
-            ImageLayout.TransferDst or ImageLayout.Present => ImageUsage.TransferDst,
-            ImageLayout.TransferSrc => ImageUsage.TransferSrc,
+            ImageLayout.Undefined => ImageCreateFlags.None,
+            ImageLayout.TransferDst or ImageLayout.Present => ImageCreateFlags.TransferDst,
+            ImageLayout.TransferSrc => ImageCreateFlags.TransferSrc,
             ImageLayout.ShaderAccess =>
-                ImageUsage.TransferSrc | ImageUsage.TransferDst,
-            ImageLayout.ColorAttachment => ImageUsage.ColorAttachment,
-            ImageLayout.StencilAttachment => ImageUsage.StencilAttachment,
-            ImageLayout.DepthAttachment => ImageUsage.DepthAttachment,
-            ImageLayout.ShaderReadOnly => ImageUsage.Sampled,
+                ImageCreateFlags.TransferSrc | ImageCreateFlags.TransferDst,
+            ImageLayout.ColorAttachment => ImageCreateFlags.ColorAttachment,
+            ImageLayout.StencilAttachment => ImageCreateFlags.StencilAttachment,
+            ImageLayout.DepthAttachment => ImageCreateFlags.DepthAttachment,
+            ImageLayout.ShaderReadOnly => ImageCreateFlags.Sampled,
             _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, null)
         };
     }
@@ -268,12 +292,12 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     {
         foreach (var (key, image) in _images)
         {
-            if (!image.Usage.HasFlag(ImageUsage.ColorAttachment) &&
-                !image.Usage.HasFlag(ImageUsage.StencilAttachment) &&
-                !image.Usage.HasFlag(ImageUsage.DepthAttachment) && !image.Usage.HasFlag(ImageUsage.Sampled) &&
-                !image.Usage.HasFlag(ImageUsage.Storage))
+            if (!image.Usage.HasFlag(ImageCreateFlags.ColorAttachment) &&
+                !image.Usage.HasFlag(ImageCreateFlags.StencilAttachment) &&
+                !image.Usage.HasFlag(ImageCreateFlags.DepthAttachment) && !image.Usage.HasFlag(ImageCreateFlags.Sampled) &&
+                !image.Usage.HasFlag(ImageCreateFlags.Storage))
                 // We add this because vulkan images require one of the above at minimum
-                image.Usage |= ImageUsage.Sampled;
+                image.Usage |= ImageCreateFlags.Sampled;
 
             IResourceDescriptor descriptor = image.Type switch
             {
@@ -287,7 +311,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         }
 
         foreach (var (key, buffer) in _buffers)
-            Resources.Add(key, new BufferResourceDescriptor(buffer.Size, buffer.Usage, buffer.Mapped));
+            Resources.Add(key, new BufferResourceDescriptor(buffer.Size, buffer.Usage));
     }
 
     public class Dependency
@@ -302,6 +326,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
         public required uint PassId { get; set; }
         public required GraphResourceKind Type { get; set; }
         public ImageLayout ImageLayout { get; set; }
-        public BufferUsage BufferUsage { get; set; }
+        public GraphBufferUsage BufferUsage { get; set; }
+        public bool Discard { get; set; }
     }
 }

@@ -36,5 +36,6 @@ VertexOut vertex(VertexIn input) {
     var sceneLocation = instanceData.transform * float4(vertex.getLocation(), 1.0);
     var viewLocation = push.scene->view * sceneLocation;
     output.position = push.scene->projection * viewLocation;
+
     return output;
 }

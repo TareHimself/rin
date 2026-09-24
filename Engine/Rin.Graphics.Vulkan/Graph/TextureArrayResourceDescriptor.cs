@@ -8,9 +8,9 @@ public class TextureArrayResourceDescriptor : IResourceDescriptor
     public readonly Extent2D Extent;
     public readonly ImageFormat Format;
     public readonly 
-        ImageUsage Usage;
+        ImageCreateFlags Usage;
 
-    public TextureArrayResourceDescriptor(in Extent2D extent, ImageFormat format, ImageUsage usage, uint count = 1)
+    public TextureArrayResourceDescriptor(in Extent2D extent, ImageFormat format, ImageCreateFlags usage, uint count = 1)
     {
         Extent = extent;
         Format = format;

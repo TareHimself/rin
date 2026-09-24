@@ -1,10 +1,13 @@
 using System.Numerics;
+using Rin.GLTF;
 using Rin.World;
 using Rin.World.Actors;
 using Rin.World.Components;
 using Rin.World.Components.Lights;
 using Rin.World.Graphics.Default;
+using Rin.World.Graphics.Mesh;
 using Rin.World.Mesh;
+using Rin.World.Mesh.Skinning.Animation;
 using Rin.World.Physics;
 using Rin.World.Physics.Bepu;
 using Examples.Common;
@@ -31,9 +34,12 @@ public class SceneTestApplication : ExampleApplication
     private StaticMesh? _cubeMesh;
     private DefaultMeshMaterial? _material;
     private World? _scene;
+    private IMeshFactory? _meshFactory;
 
     protected override void OnStartup()
     {
+        _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
+
         IViewsModule.Get().OnSurfaceCreated += surf =>
         {
             var scene = _scene = new World(new DefaultRenderSystem(), new BepuPhysicsSystem());
@@ -59,7 +65,7 @@ public class SceneTestApplication : ExampleApplication
                 }
             });
 
-            Extensions.LoadStaticMesh(Path.Join(Global.Directory, "assets", "models", "cube.glb")).After(mesh =>
+            GltfMeshImporter.LoadStaticMesh(Path.Join(Global.Directory, "assets", "models", "cube.glb")).After(mesh =>
             {
                 _cubeMesh = mesh;
 
@@ -98,24 +104,35 @@ public class SceneTestApplication : ExampleApplication
                     DropBoxes(30);
                 });
 
-                Extensions.LoadSkinnedMesh(Path.Join(Global.Directory, "assets", "models", "fox.glb"))
+                var foxPath = Path.Join(Global.Directory, "assets", "models", "fox.glb");
+                GltfMeshImporter.LoadSkinnedMesh(foxPath)
                     .After(skinned =>
                     {
                         if (skinned is null) return;
+                        // The Khronos Fox sample is authored ~79 units tall - scale it down to match
+                        // the rest of the scene (boxes are 5-10 units).
+                        var clips = GltfAnimationImporter.LoadAnimationClips(foxPath);
                         LoadGoldMaterial().After(material =>
                             IApplication.Get().MainDispatcher.Enqueue(() =>
                             {
-                                foreach (var x in new[] { -30f, 0f, 30f })
+                                foreach (var (x, clipName) in new[] { (-30f, "Survey"), (0f, "Walk"), (30f, "Run") })
+                                {
+                                    var graph = new AnimationGraph(skinned.Skeleton);
+                                    if (clips.TryGetValue(clipName, out var clip))
+                                        graph.Root = new ClipPlayerNode(clip.Bind(skinned.Skeleton)) { Loop = true };
+
                                     scene.AddActor(new Actor
                                     {
                                         RootComponent = new SkinnedMeshComponent
                                         {
                                             Mesh = skinned,
                                             Materials = [material],
-                                            PoseSource = new TestPoseSource { Skeleton = skinned.Skeleton },
-                                            Location = new Vector3(x, -5f, 55f)
+                                            PoseSource = graph,
+                                            Location = new Vector3(x, -5f, 55f),
+                                            Scale = new Vector3(0.05f)
                                         }
                                     });
+                                }
                             }));
                     });
             });
@@ -142,6 +159,8 @@ public class SceneTestApplication : ExampleApplication
 
     protected override void OnShutdown()
     {
+        _meshFactory?.Dispose();
+        base.OnShutdown();
     }
 
     /// <summary>Spawn <paramref name="count" /> dynamic cubes above the play area to fall and collide.</summary>
@@ -304,20 +323,12 @@ public class SceneTestApplication : ExampleApplication
         }
     }
 
-    public static async Task<ResourceHandle> LoadTexture(string path)
+    private async Task<DefaultMeshMaterial> LoadGoldMaterial()
     {
-        using var imgData = await Task.Run(() => HostImage.Create(File.OpenRead(path)));
-        var task = imgData.CreateTexture(out var handle);
-        await task;
-        return handle;
-    }
-
-    public static async Task<DefaultMeshMaterial> LoadGoldMaterial()
-    {
-        var albedo = LoadTexture(Path.Join(Global.Directory, "assets", "textures", "au_albedo.png"));
-        var roughness = LoadTexture(Path.Join(Global.Directory, "assets", "textures", "au_roughness.png"));
-        var metallic = LoadTexture(Path.Join(Global.Directory, "assets", "textures", "au_metallic.png"));
-        var normal = LoadTexture(Path.Join(Global.Directory, "assets", "textures", "au_normal.png"));
+        var albedo = Textures.Load(Path.Join(Global.Directory, "assets", "textures", "au_albedo.png"));
+        var roughness = Textures.Load(Path.Join(Global.Directory, "assets", "textures", "au_roughness.png"));
+        var metallic = Textures.Load(Path.Join(Global.Directory, "assets", "textures", "au_metallic.png"));
+        var normal = Textures.Load(Path.Join(Global.Directory, "assets", "textures", "au_normal.png"));
 
         await Task.WhenAll(albedo, roughness, metallic, normal);
         return new DefaultMeshMaterial

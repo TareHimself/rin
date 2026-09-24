@@ -13,7 +13,7 @@ namespace misc.VectorRendering.Slug;
 
 // Push constants sent to slug.slang for each draw call.
 // Must match struct SlugPush in slug.slang exactly.
-// Layout: pointer (8) + ResourceHandle (4) + ResourceHandle (4) + Matrix4x4 (64) = 80 bytes.
+// Layout: pointer (8) + DeviceHandle (4) + DeviceHandle (4) + Matrix4x4 (64) = 80 bytes.
 [StructLayout(LayoutKind.Sequential)]
 [NoReorder]
 internal struct SlugPush
@@ -22,8 +22,8 @@ internal struct SlugPush
     public required ulong BufferAddress;
 
     // Bindless texture handles — used via TexelLoad() in the shader.
-    public required ResourceHandle CurveTexture;
-    public required ResourceHandle BandTexture;
+    public required DeviceHandle CurveTexture;
+    public required DeviceHandle BandTexture;
 
     // Orthographic projection matrix mapping screen pixels to clip space.
     public required Matrix4x4 Projection;
@@ -75,7 +75,7 @@ public partial class SlugHandler : ICommandHandler
 
             var buffer = graph.GetBufferOrException(bufferId);
 
-            // Write all GlyphDrawData instances for this command into the per-frame buffer.
+            // WriteSingle all GlyphDrawData instances for this command into the per-frame buffer.
             // CollectionsMarshal.AsSpan exposes the list's internal storage directly — no copy.
             buffer.Write(CollectionsMarshal.AsSpan(cmd.Draws));
 

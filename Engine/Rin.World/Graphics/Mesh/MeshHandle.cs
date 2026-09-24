@@ -13,7 +13,7 @@ public readonly record struct MeshHandle
 
     // public bool IsValid()
     // {
-    //     return Id > 0 && IGraphicsModule.Get().GetBindlessImageFactory().IsValid(this);
+    //     return GeometryId > 0 && IGraphicsModule.Get().GetBindlessImageFactory().IsValid(this);
     // }
 
     public static explicit operator int(MeshHandle handle)

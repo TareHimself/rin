@@ -83,7 +83,7 @@
 //                 }
 //
 //                 min = new Vector2(0.0f);
-//                 section?.Write(beziers);
+//                 section?.WriteSingle(beziers);
 //
 //                 cmd.PushConstant(_shader.GetPipelineLayout(),
 //                     VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT | VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -91,7 +91,7 @@
 //                     {
 //                         Projection = frame.ProjectionMatrix,
 //                         Transform = _transform,
-//                         Size = max - min,
+//                         Count = max - min,
 //                         BezierCount = beziers.Length,
 //                         BeziersAddress = section?.GetAddress() ?? 0
 //                     });
@@ -115,7 +115,7 @@
 //     {
 //         public required Mat4 Projection;
 //         public required Mat3 Transform;
-//         public required Vector2 Size;
+//         public required Vector2 Count;
 //         public required int BezierCount;
 //         public required ulong BeziersAddress;
 //     }

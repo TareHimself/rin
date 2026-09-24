@@ -3,6 +3,7 @@ using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core;
 using Rin.Core.Graphics;
+using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default;
@@ -56,6 +57,13 @@ public class SponzaMeshMaterial : IMeshMaterial
             return mesh.Material.ColorPass;
         }
 
+        public override void DeclareResources(IGraphConfig config, ProcessedMesh mesh)
+        {
+            var meshMaterial = (SponzaMeshMaterial)mesh.Material;
+            ReadTextures(config, meshMaterial.ColorImageId, meshMaterial.NormalImageId,
+                meshMaterial.MetallicRoughnessImageId);
+        }
+
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
             Debug.Assert(mesh.Material is SponzaMeshMaterial);
@@ -65,34 +73,23 @@ public class SponzaMeshMaterial : IMeshMaterial
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress(),
                 Color = meshMaterial.Color,
-                ColorImageId = meshMaterial.ColorImageId,
-                NormalImageId = meshMaterial.NormalImageId,
-                MetallicRoughnessImageId = meshMaterial.MetallicRoughnessImageId
-
-                // BaseColorTextureId = (int)meshMaterial.ColorTextureId,
-                // BaseColor = meshMaterial.Color,
-                // NormalTextureId = (int)meshMaterial.NormalTextureId,
-                // Metallic = meshMaterial.Metallic,
-                // MetallicTextureId = (int)meshMaterial.MetallicTextureId,
-                // Specular = meshMaterial.Specular,
-                // SpecularTextureId = (int)meshMaterial.SpecularTextureId,
-                // Roughness = meshMaterial.Roughness,
-                // RoughnessTextureId = (int)meshMaterial.RoughnessTextureId,
-                // Emissive = meshMaterial.Emissive,
-                // EmissiveTextureId = (int)meshMaterial.EmissiveTextureId
+                ColorHandle = meshMaterial.ColorImageId,
+                NormalHandle = meshMaterial.NormalImageId,
+                MetallicRoughnessHandle = meshMaterial.MetallicRoughnessImageId
             };
-            view.Write(data);
+            view.WriteSingle(data);
         }
 
+        // Field order/types mirror Examples/Sponza/Content/mesh.slang's PerMeshData exactly.
         [NoReorder]
         private struct DefaultMaterialProperties()
         {
             [PublicAPI] public ulong VertexAddress = 0;
             [PublicAPI] public Matrix4x4 Transform = Matrix4x4.Identity;
             public Vector4 Color;
-            public ResourceHandle ColorImageId;
-            public ResourceHandle NormalImageId;
-            public ResourceHandle MetallicRoughnessImageId;
+            public DeviceHandle ColorHandle;
+            public DeviceHandle NormalHandle;
+            public DeviceHandle MetallicRoughnessHandle;
         }
     }
 
@@ -127,7 +124,7 @@ public class SponzaMeshMaterial : IMeshMaterial
 
         public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
         {
-            view.Write(new DepthMaterialData
+            view.WriteSingle(new DepthMaterialData
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress()

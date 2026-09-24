@@ -10,8 +10,9 @@ public interface IWorldComponent : IComponent
     public IWorldComponent? TransformParent { get; }
     public bool TryHandleDetachment(IWorldComponent target);
     public bool TryHandleAttachment(IWorldComponent target);
-    public bool AttachTo(IWorldComponent component);
+    public bool AttachTo(IWorldComponent component, string? name = null);
     public bool Detach();
+    public Transform GetAttachPointTransform(string? name) => GetTransform(Space.World);
     public void SetLocation(in Vector3 location, Space space = Space.Local);
     public void Translate(in Vector3 translation, Space space = Space.Local);
     public void SetRotation(in Quaternion rotation, Space space = Space.Local);

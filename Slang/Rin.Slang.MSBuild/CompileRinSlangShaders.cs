@@ -70,6 +70,7 @@ public sealed class CompileRinSlangShaders : Microsoft.Build.Utilities.Task
 
         var options = new ShaderCompilerOptions();
         options.AddSearchPath(RepoRoot);
+        options.SetPortableRoot(RepoRoot);
 
         var outputs = new List<ITaskItem>();
 
@@ -80,24 +81,31 @@ public sealed class CompileRinSlangShaders : Microsoft.Build.Utilities.Task
             foreach (var (relativeOutput, sourcePath) in toCompile)
                 try
                 {
+                    var outputRelative = Path.ChangeExtension(relativeOutput, ".crsh");
+                    var outputPath = Path.Combine(OutputRoot, outputRelative);
+
+                    if (compiler.IsUpToDate(outputPath, sourcePath))
+                    {
+                        Log.LogMessage(MessageImportance.Low, $"'{sourcePath}' unchanged, reusing '{outputPath}'");
+                        var reusedItem = new TaskItem(outputPath);
+                        reusedItem.SetMetadata("LogicalName", MakeLogicalName(relativeOutput));
+                        outputs.Add(reusedItem);
+                        continue;
+                    }
+
                     if (!compiler.TryCompile(sourcePath, out var compiledShader))
                     {
                         Log.LogMessage(MessageImportance.Low, $"Skipping '{sourcePath}', no entry point found");
                         continue;
                     }
 
-                    var outputRelative = Path.ChangeExtension(relativeOutput, ".crsh");
-                    var outputPath = Path.Combine(OutputRoot, outputRelative);
                     ShaderPackageWriter.WriteToFile(compiledShader!, outputPath);
 
-                    var logicalName = AssemblyName + "." +
-                                       (OutputSubpath + outputRelative).Replace('\\', '.').Replace('/', '.');
-
                     var outputItem = new TaskItem(outputPath);
-                    outputItem.SetMetadata("LogicalName", logicalName);
+                    outputItem.SetMetadata("LogicalName", MakeLogicalName(relativeOutput));
                     outputs.Add(outputItem);
 
-                    Log.LogMessage(MessageImportance.Normal, $"Compiled '{sourcePath}' -> '{outputPath}'");
+                    Log.LogMessage(MessageImportance.High, $"Compiled '{sourcePath}' -> '{outputPath}'");
                 }
                 catch (SlangCompileException ex)
                 {
@@ -112,5 +120,11 @@ public sealed class CompileRinSlangShaders : Microsoft.Build.Utilities.Task
 
         CompiledFiles = [.. outputs];
         return !Log.HasLoggedErrors;
+    }
+
+    private string MakeLogicalName(string relativeOutput)
+    {
+        var outputRelative = Path.ChangeExtension(relativeOutput, ".crsh");
+        return AssemblyName + "." + (OutputSubpath + outputRelative).Replace('\\', '.').Replace('/', '.');
     }
 }

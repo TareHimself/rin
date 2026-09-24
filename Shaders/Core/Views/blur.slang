@@ -12,7 +12,7 @@ struct BlurData
 {
     float4x4 transform;
     float4x4 projection;
-    ImageHandle SourceImageHandle;
+    DeviceHandle SourceImageHandle;
     float2 size;
     float strength;
     float2 radius;

@@ -28,9 +28,12 @@ namespace Sponza;
 public class SponzaApplication : ExampleApplication
 {
     private readonly Lock _lock = new();
+    private IMeshFactory? _meshFactory;
 
     protected override void OnStartup()
     {
+        _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
+
         Global.Sources.AddSource(AssemblyResource.New<SponzaApplication>("Sponza", "Content"));
         IViewsModule.Get().OnSurfaceCreated += surf =>
         {
@@ -76,6 +79,8 @@ public class SponzaApplication : ExampleApplication
 
     protected override void OnShutdown()
     {
+        _meshFactory?.Dispose();
+        base.OnShutdown();
     }
 
     private ResourceHandle LoadImage(Texture? texture, Dictionary<int, ResourceHandle> cache)
@@ -180,8 +185,8 @@ public class SponzaApplication : ExampleApplication
 
         var sceneBounds = CollectionsMarshal.AsSpan(vertices).ComputeBounds();
 
-        var (id, task) = IMeshFactory.Get()
-            .CreateMesh(vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
+        var task = IMeshFactory.Get()
+            .CreateMesh(out var id, vertices.ToBuffer(), indices.ToBuffer(), surfaces.ToArray());
         await task;
 
         var world = new World(new DefaultRenderSystem(), new BepuPhysicsSystem());

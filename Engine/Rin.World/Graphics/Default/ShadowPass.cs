@@ -3,11 +3,9 @@ using Rin.Core.Graphics.Graph;
 
 namespace Rin.World.Graphics.Default;
 
-public class ShadowPass(DefaultWorldRenderContext renderContext) : IPass
+public class ShadowPass(DefaultWorldCollectedData collectedData) : IPass
 {
     public uint Id { get; set; }
-    public bool IsTerminal => false;
-    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {

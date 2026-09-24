@@ -216,8 +216,8 @@ float SlugRender(
     float4      banding,
     int2        shapeLoc,
     int2        bandMax,
-    ImageHandle curveTexture,
-    ImageHandle bandTexture)
+    DeviceHandle curveTexture,
+    DeviceHandle bandTexture)
 {
     // Map this pixel's em-coordinate to horizontal and vertical band indices.
     int2 bandIdx = clamp(
@@ -305,8 +305,8 @@ struct GlyphDrawData
 struct SlugPush
 {
     GlyphDrawData* draws;    // GPU pointer to instance buffer
-    ImageHandle curveTexture;
-    ImageHandle bandTexture;
+    DeviceHandle curveTexture;
+    DeviceHandle bandTexture;
     float4x4    projection;
 };
 

@@ -2,5 +2,7 @@
 
 using SceneTest;
 
+if (LogFileRedirector.GetLogFilePath(args) is { } logFilePath) LogFileRedirector.RedirectTo(logFilePath);
+
 using var app = new SceneTestApplication();
 app.Run();

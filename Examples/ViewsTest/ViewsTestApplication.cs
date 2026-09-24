@@ -40,10 +40,6 @@ public class ViewsTestApplication : ExampleApplication
         //IAudioModule.Get().MasterAudioGroup.AddEffect(OrbitEffect.Descriptor);
     }
 
-    protected override void OnShutdown()
-    {
-    }
-
     private void OnWindowCreated(IWindow window)
     {
         window.OnClose += _ =>
@@ -73,27 +69,12 @@ public class ViewsTestApplication : ExampleApplication
             {
                 Axis = Axis.Row
             };
-            //https://samplelib.com/lib/preview/webm/sample-30s.webm
-            var source =
-                new FileVideoSource(IApplication.Get().SelectFile("Select a webm video", filter: "*.webm")
-                    .First()); //new HttpVideoSource(new Uri("https://samplelib.com/lib/preview/webm/sample-30s.webm"));// Platform.SelectFile("Select a webm video", filter: "*.webm").First();
-            //var source = new HttpVideoSource(new Uri("https://b.catgirlsare.sexy/yTpGNCU13fu_.webm"));
+            // Video panel slot disabled temporarily to allow unattended runs (SelectFile blocks on a
+            // native file picker) - restore the FileVideoSource + FitterView PanelSlot to bring it back.
             surf.Add(new PanelView
             {
                 InitSlots =
                 [
-                    new PanelSlot
-                    {
-                        Child = new FitterView
-                        {
-                            InitChild = VideoPlayerView.FromSource(source),
-                            FittingMode = FitMode.Contain,
-                            Padding = 50.0f,
-                            Clip = Clip.Bounds
-                        },
-                        MinAnchor = Vector2.Zero,
-                        MaxAnchor = Vector2.One
-                    },
                     new PanelSlot
                     {
                         Child = list,

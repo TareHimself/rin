@@ -116,7 +116,7 @@ public struct Quad() // : ICloneable<Quad>
     [NoReorder]
     public struct TextureData
     {
-        public ResourceHandle ImageHandle { get; set; }
+        public DeviceHandle ImageHandle { get; set; }
         public Vector4 Tint { get; set; }
         public Vector4 UV { get; set; }
         public Vector4 BorderRadius { get; set; }
@@ -125,7 +125,7 @@ public struct Quad() // : ICloneable<Quad>
     [NoReorder]
     public struct MtsdfData
     {
-        public ResourceHandle ImageHandle { get; set; }
+        public DeviceHandle ImageHandle { get; set; }
         public Vector4 Color { get; set; }
         public Vector4 UV { get; set; }
 

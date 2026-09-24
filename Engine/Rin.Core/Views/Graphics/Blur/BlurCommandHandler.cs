@@ -74,7 +74,7 @@ internal struct BlurData()
     public required Matrix4x4 Transform = Matrix4x4.Identity;
 
     public required Matrix4x4 Projection = Matrix4x4.Identity;
-    public required ResourceHandle SourceT;
+    public required DeviceHandle SourceT;
     public required Vector2 Size;
     public required float Strength;
     public required Vector2 Radius;
@@ -133,7 +133,7 @@ internal partial class BlurFirstPassCommandHandler : ICommandHandler
             if (_shader.Bind(ctx) is { } bindContext)
             {
                 var srcExtent = IGraphicsModule.Get().GetExtent(srcImage);
-                buffer.Write(new BlurData
+                buffer.WriteSingle(new BlurData
                 {
                     SourceT = srcImage,
                     Projection = command.InitCommand.LocalProjection,
@@ -196,7 +196,7 @@ internal partial class BlurSecondPassCommandHandler : ICommandHandler
             var buffer = graph.GetBufferOrException(bufferId);
             if (_shader.Bind(ctx) is { } bindContext)
             {
-                buffer.Write(new BlurData
+                buffer.WriteSingle(new BlurData
                 {
                     SourceT = srcImage,
                     Projection = surfaceContext.ProjectionMatrix,
@@ -208,11 +208,11 @@ internal partial class BlurSecondPassCommandHandler : ICommandHandler
                     DestRect = new Vector4(command.InitCommand.BoundingBoxP1, command.InitCommand.BoundingBoxP2.X,
                         command.InitCommand.BoundingBoxP2.Y)
                 });
-                // buffer.Write(new BlurData
+                // buffer.WriteSingle(new BlurData
                 // {
                 //     SourceT = srcImage.BindlessHandle,
                 //     Projection = surfaceContext.ProjectionMatrix,
-                //     Size = command.InitCommand.Size,
+                //     Count = command.InitCommand.Count,
                 //     Strength = 1f,
                 //     Radius = Vector2.One,
                 //     Tint = command.InitCommand.Tint,

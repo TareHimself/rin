@@ -30,7 +30,7 @@
 //         frame.AddMaterialRect(_materialInstance, new ViewPushConstants()
 //         {
 //             Transform = this.ComputeRelativeTransform(),
-//             Size = this.GetContentSize(),
+//             Count = this.GetContentSize(),
 //         });
 //     }
 //

@@ -4,7 +4,21 @@
 #include <vulkan/vulkan.hpp>
 #include <vk_mem_alloc.h>
 
-RIN_NATIVE_API void createVulkanInstance(std::uint64_t windowHandle, VkInstance* outInstance, VkDevice* outDevice, VkPhysicalDevice* outPhysicalDevice, VkQueue* outGraphicsQueue, uint32_t* outGraphicsQueueFamily, VkQueue* outTransferQueue, uint32_t* outTransferQueueFamily, VkSurfaceKHR * outSurface, VkDebugUtilsMessengerEXT * outMessenger);
+struct VulkanInitResult
+{
+    VkInstance instance;
+    VkPhysicalDevice physicalDevice;
+    VkDevice device;
+    VkQueue graphicsQueue;
+    VkQueue transferQueue;
+    uint32_t graphicsQueueFamily;
+    uint32_t transferQueueFamily;
+    VkSurfaceKHR surface;
+    VkDebugUtilsMessengerEXT messenger;
+    bool supportsIndirectRendering;
+};
+
+RIN_NATIVE_API void createVulkanInstance(std::uint64_t windowHandle, VulkanInitResult* outResult);
 
 RIN_NATIVE_API void destroyVulkanMessenger(VkInstance instance,VkDebugUtilsMessengerEXT messenger);
 
@@ -20,6 +34,8 @@ RIN_NATIVE_API void allocatorNewBuffer(VkBuffer * buffer, void** allocation, siz
                                 int mapped, const char* debugName);
 
 RIN_NATIVE_API void allocatorNewImage(VkImage* image,void ** allocation,VkImageCreateInfo * createInfo,void * allocator, const char * debugName);
+
+RIN_NATIVE_API void allocatorSetAllocationName(void * allocator, void * allocation, const char * name);
 
 RIN_NATIVE_API void allocatorFreeBuffer(VkBuffer buffer,void * allocation,void * allocator);
 

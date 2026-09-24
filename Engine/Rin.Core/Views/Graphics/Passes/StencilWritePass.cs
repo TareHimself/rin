@@ -28,8 +28,6 @@ public partial class StencilWritePass : IPass
 
     private uint StencilImageId => _surfaceContext.StencilImageId;
     public uint Id { get; set; }
-    public bool IsTerminal => false;
-    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {

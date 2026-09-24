@@ -69,14 +69,16 @@ public static class QuadExtensions
         in Vector2 size, in Color? tint = null, in Vector4? uv = null,
         in Vector4? borderRadius = null)
     {
-        return commandList.AddQuads(Quad.Texture(imageHandle, transform, size, tint, borderRadius, uv));
+        return commandList.Add(new QuadDrawCommand([Quad.Texture(imageHandle, transform, size, tint, borderRadius, uv)],
+            [imageHandle]));
     }
 
 
     public static CommandList AddMtsdf(this CommandList commandList, in ResourceHandle imageHandle, in Matrix4x4 transform,
         in Vector2 size, float pixelRange, in Color? color = null, in Vector4? uv = null)
     {
-        return commandList.AddQuads(Quad.Mtsdf(imageHandle, transform, size, pixelRange, color, uv));
+        return commandList.Add(new QuadDrawCommand([Quad.Mtsdf(imageHandle, transform, size, pixelRange, color, uv)],
+            [imageHandle]));
     }
 
     public static CommandList AddText(this CommandList commandList,

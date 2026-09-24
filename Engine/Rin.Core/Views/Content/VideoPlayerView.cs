@@ -26,17 +26,18 @@ internal class VideoCommand(in Matrix4x4 transform, in Vector2 size, Buffer<byte
     public Matrix4x4 Transform = transform;
 }
 
-internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass
+internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass, IDisposable
 {
     public uint[] VideoImageFrameIds = [];
     private uint[] _videoStagingBufferIds = [];
     public uint Id { get; set; }
-    public bool IsTerminal => false;
 
-    public Action? OnPrune { get; } = () =>
+    // Whether this pass ran or got pruned, the decoded frame data behind it is owned here and
+    // released exactly once - the graph calls Dispose in either case.
+    public void Dispose()
     {
         foreach (var command in commands) command.FrameData.Dispose();
-    };
+    }
 
     public void Configure(IGraphConfig config)
     {
@@ -56,8 +57,6 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass
             stagingBuffer.Write(cmd.FrameData);
             ctx.CopyToImage(stagingBuffer, image);
         }
-
-        foreach (var cmd in commands) cmd.FrameData.Dispose();
     }
 }
 
@@ -162,7 +161,7 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
     {
         public required Matrix4x4 Transform;
         public required Vector2 Size;
-        public required ResourceHandle FrameHandle;
+        public required DeviceHandle FrameHandle;
     }
 }
 

@@ -4,20 +4,22 @@ using Rin.Core.Shared.Math;
 
 namespace Rin.World.Mesh.Skinning;
 
-public class BoneCurve : ICurve<Transform>
+public class BoneCurve
 {
     public readonly Vector3Curve PositionCurve = new();
     public readonly QuaternionCurve RotationCurve = new();
     public readonly Vector3Curve ScaleCurve = new();
     public string BoneName = string.Empty;
 
-    public Transform Sample(float time)
+    // An un-animated channel falls back to bindLocal, not zero/identity - real content routinely only
+    // animates rotation, and a position/scale channel snapping to zero/identity would collapse the bone.
+    public Transform Sample(in Transform bindLocal, float time)
     {
         return new Transform
         {
-            Position = PositionCurve.Sample(time),
-            Orientation = RotationCurve.Sample(time),
-            Scale = ScaleCurve.Sample(time)
+            Position = PositionCurve.PointCount > 0 ? PositionCurve.Sample(time) : bindLocal.Position,
+            Orientation = RotationCurve.PointCount > 0 ? RotationCurve.Sample(time) : bindLocal.Orientation,
+            Scale = ScaleCurve.PointCount > 0 ? ScaleCurve.Sample(time) : bindLocal.Scale
         };
     }
 

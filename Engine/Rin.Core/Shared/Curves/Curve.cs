@@ -5,6 +5,8 @@ public abstract class Curve<TValue, TInterpolatedValue> : ICurve<TInterpolatedVa
 {
     private readonly SortedList<float, TValue> _points = [];
 
+    public int PointCount => _points.Count;
+
     public TInterpolatedValue Sample(float time)
     {
         if (_points.Count < 1) throw new IndexOutOfRangeException();
@@ -83,7 +85,7 @@ public abstract class Curve<TValue, TInterpolatedValue> : ICurve<TInterpolatedVa
                 minIdx = currentIdx;
             }
 
-            currentIdx = maxIdx + (maxIdx - minIdx) / 2;
+            currentIdx = minIdx + (maxIdx - minIdx) / 2;
             totalRange = maxIdx - minIdx + 1;
         }
     }

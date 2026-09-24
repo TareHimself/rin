@@ -53,7 +53,7 @@ public partial class CustomShaderCommandHandler : ICommandHandler
                     Center = command.Hovered ? command.CursorPosition : screenSize / 2.0f
                 };
                 
-                myView.Write(data);
+                myView.WriteSingle(data);
                 bindContext
                     .Push(myView.GetAddress())
                     .Draw(6);

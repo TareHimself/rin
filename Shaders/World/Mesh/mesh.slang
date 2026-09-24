@@ -14,17 +14,18 @@ struct PerMeshData {
     Vertex *vertices;
     float4x4 transform;
     float4 color_textureId;
-    int normalTextureId;
+    DeviceHandle normalTextureId;
     // Metallic Specular Roughness Emissive
     float4 MSRE;
-    // Metallic Specular Roughness Emissive Texture Ids
-    int4 msreTextureId;
-    
+    // Metallic Specular Roughness Emissive Texture Handles
+    DeviceHandle msreTextureId[4];
+
     float3 getColor(float2 uv) {
-        int id = (int)color_textureId.a;
+        // Packed into the color vec4's alpha lane rather than a dedicated field - numeric float,
+        // not bit-reinterpreted, mirrors DefaultMeshMaterial.BaseColorTextureId's C# side.
+        var handle = DeviceHandle((int)color_textureId.a);
         float3 value = color_textureId.rgb;
 
-        var handle = ImageHandle(id);
         if (handle.IsValid()) {
             value = sampleTexture(handle, uv).rgb;
         }
@@ -33,10 +34,9 @@ struct PerMeshData {
     }
 
     float getMetallic(float2 uv) {
-        int id = msreTextureId.x;
+        var handle = msreTextureId[0];
         float value = MSRE.x;
 
-        var handle = ImageHandle(id);
         if (handle.IsValid()) {
             value = sampleTexture(handle, uv).r;
         }
@@ -45,10 +45,9 @@ struct PerMeshData {
     }
 
     float getSpecular(float2 uv) {
-        int id = msreTextureId.y;
+        var handle = msreTextureId[1];
         float value = MSRE.y;
 
-        var handle = ImageHandle(id);
         if (handle.IsValid()) {
             value = sampleTexture(handle, uv).r;
         }
@@ -57,10 +56,9 @@ struct PerMeshData {
     }
 
     float getRoughness(float2 uv) {
-        int id = msreTextureId.z;
+        var handle = msreTextureId[2];
         float value = MSRE.z;
 
-        var handle = ImageHandle(id);
         if (handle.IsValid()) {
             value = sampleTexture(handle, uv).r;
         }
@@ -69,10 +67,9 @@ struct PerMeshData {
     }
 
     float getEmissive(float2 uv) {
-        int id = msreTextureId.w;
+        var handle = msreTextureId[3];
         float value = MSRE.w;
 
-        var handle = ImageHandle(id);
         if (handle.IsValid()) {
             value = sampleTexture(handle, uv).r;
         }
@@ -91,6 +88,7 @@ uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
 
 struct VertexIn {
     int vertexId : SV_VulkanVertexID;
+    //uint vertexId : SV_VertexID; This returns negative numbers for some unknown reason
     int instanceId : SV_VulkanInstanceID;
 };
 
@@ -120,7 +118,7 @@ VertexOut vertex(VertexIn input) {
     var sceneLocation = instanceData.transform * location4;
     output.uv = vertex.getUV();
     output.sceneNormal = transformNormal(vertex.getNormal(), instanceData.transform); // transpose(inverse(instanceData.transform)) * float4(vertex.getNormal(), 1.0);
-    output.sceneLocation = sceneLocation.xyz;   
+    output.sceneLocation = sceneLocation.xyz;
     // We do this separately because of depth precision https://developer.nvidia.com/blog/visualizing-depth-precision/
     var viewLocation = push.scene->view * float4(sceneLocation.xyz, 1.0);
     output.position = push.scene->projection * viewLocation;

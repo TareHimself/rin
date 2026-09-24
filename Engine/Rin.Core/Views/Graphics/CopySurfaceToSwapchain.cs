@@ -7,7 +7,6 @@ public class CopySurfaceToSwapchain(SurfaceContext context) : IPass
 {
     private uint _swapchainImageId;
 
-    public Action? OnPrune => null;
 
     public void Configure(IGraphConfig config)
     {
@@ -23,5 +22,4 @@ public class CopySurfaceToSwapchain(SurfaceContext context) : IPass
     }
 
     public uint Id { get; set; }
-    public bool IsTerminal => false;
 }

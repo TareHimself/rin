@@ -12,9 +12,23 @@ public sealed class ShaderCompilerOptions
 
     public IReadOnlyDictionary<string, string> PathAliases => _pathAliases;
 
+    /// <summary>
+    ///     If set, dependency paths get hashed and named (as far as Slang is concerned) relative to this
+    ///     root instead of by their absolute path - so the resulting hash, and the module identity Slang
+    ///     embeds in the compiled output, don't depend on where the repo happens to be checked out on a
+    ///     given machine. Left unset, both fall back to the raw absolute path (today's behavior).
+    /// </summary>
+    public string? PortableRoot { get; private set; }
+
     public ShaderCompilerOptions AddSearchPath(string path)
     {
         _searchPaths.Add(path);
+        return this;
+    }
+
+    public ShaderCompilerOptions SetPortableRoot(string path)
+    {
+        PortableRoot = Path.GetFullPath(path);
         return this;
     }
 

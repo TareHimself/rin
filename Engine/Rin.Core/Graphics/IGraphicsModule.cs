@@ -12,6 +12,7 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
     public event Action<IWindowRenderer>? OnWindowRendererCreated;
     public event Action<IWindowRenderer>? OnWindowRendererDestroyed;
 
+    public IDevice CurrentDevice { get; }
 
     public void AddRenderer(IRenderer renderer);
     public void RemoveRenderer(IRenderer renderer);
@@ -26,38 +27,46 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
 
     public void WaitIdle();
 
-    public DeviceBufferView NewTransferBuffer(ulong size, bool sequentialWrite = true,
-        string debugName = "Transfer Buffer");
+    /// <summary>
+    ///     Registers a resource without allocating GPU memory for it - buffer creation itself is CPU-only,
+    ///     so unlike texture creation there's no async variant of this.
+    /// </summary>
+    public ResourceHandle CreateBuffer(ulong size, BufferCreateFlags flags, bool sequentialWrite = true);
 
-    public DeviceBufferView NewStorageBuffer<T>(bool sequentialWrite = true)
-        where T : unmanaged
-    {
-        return NewStorageBuffer(Utils.ByteSizeOf<T>(), sequentialWrite);
-    }
-
-    public DeviceBufferView NewStorageBuffer(ulong size, bool sequentialWrite = true);
-    public DeviceBufferView NewUniformBuffer(ulong size, bool sequentialWrite = true);
+    /// <summary>
+    ///     Uploads into a buffer via the transfer queue (staging buffer + copy), for buffers not created with
+    ///     <see cref="BufferCreateFlags.HostSrc" />/<see cref="BufferCreateFlags.HostDst" />. Mirrors
+    ///     <see cref="QueueTextureUpload" />.
+    /// </summary>
+    public Task QueueBufferUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, ulong offset = 0);
 
     public ResourceHandle CreateTexture(in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None);
+        ImageCreateFlags flags = ImageCreateFlags.None);
 
     public ResourceHandle CreateTextureArray(in Extent2D extent, ImageFormat format, uint count,
-        bool mips = false, ImageUsage usage = ImageUsage.None);
+        bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None);
 
     public ResourceHandle CreateCubemap(in Extent2D extent, ImageFormat format, bool mips = false,
-        ImageUsage usage = ImageUsage.None);
-    
+        ImageCreateFlags flags = ImageCreateFlags.None);
+
+    /// <summary>
+    ///     The handle is usable as soon as this returns; its contents arrive the first time a graph uses it or at the
+    ///     end of the frame, and until then it samples as the default texture.
+    /// </summary>
     public Task<ResourceHandle> CreateTexture(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D extent,
-        ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None);
+        ImageFormat format, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None);
 
     public Task<ResourceHandle> CreateTextureArray(out ResourceHandle handle, ReadOnlySpan<byte> data,
         in Extent2D extent,
-        ImageFormat format, uint count, bool mips = false, ImageUsage usage = ImageUsage.None);
+        ImageFormat format, uint count, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None);
 
     public Task<ResourceHandle> CreateCubemap(out ResourceHandle handle, ReadOnlySpan<byte> data, in Extent2D extent,
-        ImageFormat format, bool mips = false, ImageUsage usage = ImageUsage.None);
-    
-    public Task UploadToTexture(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
+        ImageFormat format, bool mips = false, ImageCreateFlags flags = ImageCreateFlags.None);
+
+    /// <summary>
+    ///     Completes once the write has been submitted by the render thread, so never block the update thread on it.
+    /// </summary>
+    public Task QueueTextureUpload(ResourceHandle handle, ReadOnlyMemory<byte> data, Extent2D extent,
         Offset2D offset = default);
 
     public bool IsValidResourceHandle(in ResourceHandle handle);
@@ -65,104 +74,15 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
     public ImageFormat GetFormat(in ResourceHandle handle);
     public void FreeResourceHandles(params ReadOnlySpan<ResourceHandle> handles);
 
+    /// <summary>
+    ///     Sets the allocation's debug name, independent of creation - safe to call any time after the handle
+    ///     is valid.
+    /// </summary>
+    public void SetDebugName(in ResourceHandle handle, string name);
+
     public void WriteBuffer(in ResourceHandle handle, ReadOnlySpan<byte> data, ulong offset = 0);
     public ulong GetBufferAddress(in ResourceHandle handle);
 
-    
-    // public async Task AsyncCreateVertexBuffer<TVertexFormat>(ReadOnlySpan<TVertexFormat> vertices, ReadOnlySpan<uint> indices) where TVertexFormat : unmanaged
-    // {
-    //     using (vertices)
-    //     using (indices)
-    //     {
-    //         if (_disposed) return;
-    //
-    //         var verticesByteSize = vertices.GetByteSize();
-    //         var indicesByteSize = indices.GetByteSize();
-    //         var vertexBuffer = SGraphicsModule.Get().GetAllocator().NewBuffer(verticesByteSize,
-    //             VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-    //             VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-    //             VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-    //             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, debugName: "Vertex Buffer");
-    //
-    //         var indexBuffer = SGraphicsModule.Get().GetAllocator().NewBuffer(indicesByteSize,
-    //             VkBufferUsageFlags.VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-    //             VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-    //             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, debugName: "Vertex Index Buffer");
-    //
-    //         using var stagingBuffer = SGraphicsModule.Get().NewTransferBuffer(verticesByteSize + indicesByteSize);
-    //             
-    //         var stagingView = stagingBuffer.GetView();
-    //         stagingView.Write(vertices);
-    //         stagingView.Write(indices, verticesByteSize);
-    //
-    //         await SGraphicsModule.Get().TransferSubmit(cmd =>
-    //         {
-    //             cmd
-    //                 .CopyToBuffer(stagingBuffer.GetView(0, verticesByteSize), vertexBuffer.GetView())
-    //                 .CopyToBuffer(stagingBuffer.GetView(verticesByteSize, indicesByteSize), indexBuffer.GetView());
-    //         });
-    //
-    //         var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces, Utils.ByteSizeOf<TVertexFormat>());
-    //
-    //         TaskCompletionSource? toComplete;
-    //         lock (_sync)
-    //         {
-    //             _meshes[id] = mesh;
-    //             _pendingMeshes.TryGetValue(id, out toComplete);
-    //             _pendingMeshes.Remove(id);
-    //         }
-    //
-    //         toComplete?.SetResult();
-    //     }
-    // }
-    //
-    // public async Task AsyncCreateVertexBuffer<TVertexFormat>(ReadOnlySpan<TVertexFormat> vertices, ReadOnlySpan<uint> indices) where TVertexFormat : unmanaged
-    // {
-    //     using (vertices)
-    //     using (indices)
-    //     {
-    //         if (_disposed) return;
-    //
-    //         var verticesByteSize = vertices.GetByteSize();
-    //         var indicesByteSize = indices.GetByteSize();
-    //         var vertexBuffer = SGraphicsModule.Get().GetAllocator().NewBuffer(verticesByteSize,
-    //             VkBufferUsageFlags.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-    //             VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-    //             VkBufferUsageFlags.VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-    //             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, debugName: "Vertex Buffer");
-    //
-    //         var indexBuffer = SGraphicsModule.Get().GetAllocator().NewBuffer(indicesByteSize,
-    //             VkBufferUsageFlags.VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-    //             VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-    //             VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, debugName: "Vertex Index Buffer");
-    //
-    //         using var stagingBuffer = SGraphicsModule.Get().NewTransferBuffer(verticesByteSize + indicesByteSize);
-    //             
-    //         var stagingView = stagingBuffer.GetView();
-    //         stagingView.Write(vertices);
-    //         stagingView.Write(indices, verticesByteSize);
-    //
-    //         await SGraphicsModule.Get().TransferSubmit(cmd =>
-    //         {
-    //             cmd
-    //                 .CopyToBuffer(stagingBuffer.GetView(0, verticesByteSize), vertexBuffer.GetView())
-    //                 .CopyToBuffer(stagingBuffer.GetView(verticesByteSize, indicesByteSize), indexBuffer.GetView());
-    //         });
-    //
-    //         var mesh = new DeviceMesh(vertexBuffer, indexBuffer, surfaces, Utils.ByteSizeOf<TVertexFormat>());
-    //
-    //         TaskCompletionSource? toComplete;
-    //         lock (_sync)
-    //         {
-    //             _meshes[id] = mesh;
-    //             _pendingMeshes.TryGetValue(id, out toComplete);
-    //             _pendingMeshes.Remove(id);
-    //         }
-    //
-    //         toComplete?.SetResult();
-    //     }
-    // }
-    
     public void Collect();
     public void Execute();
 }

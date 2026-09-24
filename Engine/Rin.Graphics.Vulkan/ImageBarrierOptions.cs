@@ -19,6 +19,10 @@ public struct ImageBarrierOptions
     public VkImageSubresourceRange SubresourceRange =
         VulkanGraphicsModule.MakeImageSubresourceRange(VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
 
+    private const VkPipelineStageFlags2 ShaderStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT |
+                                                       VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                                       VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+
     public ImageBarrierOptions()
     {
     }
@@ -66,7 +70,7 @@ public struct ImageBarrierOptions
                 WaitCompleteStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
                 break;
             case ImageLayout.ShaderReadOnly:
-                WaitCompleteStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+                WaitCompleteStages = ShaderStages;
                 break;
             case ImageLayout.ShaderAccess:
                 WaitCompleteStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_TRANSFER_BIT;
@@ -96,7 +100,7 @@ public struct ImageBarrierOptions
                 StartAfterStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
                 break;
             case ImageLayout.ShaderReadOnly:
-                StartAfterStages = VkPipelineStageFlags2.VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+                StartAfterStages = ShaderStages;
                 break;
             case ImageLayout.ShaderAccess:
             case ImageLayout.TransferSrc:

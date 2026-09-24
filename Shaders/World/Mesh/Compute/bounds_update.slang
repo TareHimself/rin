@@ -5,7 +5,7 @@
 #include "Shaders/World/Mesh/vertex.slang"
 
 struct SkinnedMesh {
-    int id;
+    int index;
     Vertex *vertices;
     uint count;
 }
@@ -39,5 +39,5 @@ void compute(ComputeIn input)
         bounds.Update(vertex.getLocation());
     }
 
-    push.output[mesh.id] = bounds;
+    push.output[mesh.index] = bounds;
 }
