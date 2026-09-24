@@ -8,6 +8,7 @@ public class ClipPlayerNode(BoundAnimationClip clip) : IPoseNode
 
     public PooledSkeletalPose Evaluate(in AnimationEvalContext ctx)
     {
+        ctx.Notifies?.ReportSource(this, ctx.Weight);
         var previousTime = Time;
         var rawTime = Time + ctx.DeltaSeconds * Rate;
 
@@ -29,11 +30,11 @@ public class ClipPlayerNode(BoundAnimationClip clip) : IPoseNode
 
     private void ReportPointsInRange(in AnimationEvalContext ctx, float start, float end)
     {
-        if (ctx.FiredNotifies is not { } sink) return;
+        if (ctx.Notifies is not { } sink) return;
 
         foreach (var notify in clip.Notifies)
             if (notify.Time >= start && notify.Time < end)
-                sink.Add(notify.Factory.Create());
+                sink.ReportCrossed(notify, this);
     }
 
     private void ReportActiveStates(in AnimationEvalContext ctx, float time)

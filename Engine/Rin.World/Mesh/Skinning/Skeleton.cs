@@ -1,6 +1,9 @@
+using System.Buffers;
 using System.Collections.Frozen;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using JetBrains.Annotations;
+using Rin.Core.Shared;
 using Rin.Core.Shared.Math;
 
 namespace Rin.World.Mesh.Skinning;
@@ -41,11 +44,32 @@ public class Skeleton
     {
         var result = new Matrix4x4[Bones.Length];
         var resolved = new bool[Bones.Length];
-        for (var i = 0; i < Bones.Length; i++) ResolveBone(i, pose, result, resolved);
+        for (var i = 0; i < Bones.Length; i++) ResolveBone(i, pose, result, resolved.AsSpan());
         return result;
     }
+    
+    public PooledMemory<Matrix4x4> ResolvePosePooled(in SkeletalPose pose)
+    {
+        var result = new PooledMemory<Matrix4x4>(Bones.Length);
+        var resolved = new bool[Bones.Length];
+        try
+        {
+            for (var i = 0; i < Bones.Length; i++) ResolveBone(i, pose, result.AsSpan(), resolved.AsSpan());
+            return result;
+        }
+        catch
+        {
+            result.Dispose();
+            throw;
+        }
+    }
 
-    private void ResolveBone(int index, in SkeletalPose pose, Matrix4x4[] result, bool[] resolved)
+    public void ComputeSkinningMatrices(ReadOnlySpan<Matrix4x4> globalPose, Span<Matrix4x4> into)
+    {
+        for (var i = 0; i < Bones.Length; i++) into[i] = globalPose[i].ApplyBefore(Bones[i].Bind);
+    }
+
+    private void ResolveBone(int index, in SkeletalPose pose, Span<Matrix4x4> result, Span<bool> resolved)
     {
         if (resolved[index]) return;
 
@@ -59,7 +83,7 @@ public class Skeleton
         else
         {
             ResolveBone(parentIndex, pose, result, resolved);
-            result[index] = local * result[parentIndex];
+            result[index] = local.ChildOf(result[parentIndex]);
         }
 
         resolved[index] = true;

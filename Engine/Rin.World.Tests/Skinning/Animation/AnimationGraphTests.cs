@@ -68,7 +68,48 @@ public class AnimationGraphTests
         graph.Tick(1f / 60f);
 
         Assert.That(graph.EndedNotifyStates, Is.EqualTo(new IAnimationNotifyState[] { handler }));
+        Assert.That(factory.ReleaseCount, Is.Zero, "must stay alive until NotifyEnd has been dispatched");
+
+        graph.ReleaseNotifies();
+
         Assert.That(factory.ReleaseCount, Is.EqualTo(1));
+        Assert.That(graph.EndedNotifyStates, Is.Empty);
+    }
+
+    [Test]
+    public void FiredNotifiesAreReleasedOnlyByReleaseNotifies()
+    {
+        var (notify, handler) = TestNotify.At(0.5f, "Footstep");
+        var factory = (SingleInstanceNotifyFactory)notify.Factory;
+        var skeleton = new Skeleton([new Bone { Name = "root" }]);
+        var node = new FakePoseNode(1);
+        node.CrossedNotifies.Add(notify);
+        var graph = new AnimationGraph(skeleton) { Root = node };
+
+        graph.Tick(1f / 60f);
+
+        Assert.That(graph.FiredNotifies, Is.EqualTo(new IAnimationNotify[] { handler }));
+        Assert.That(factory.ReleaseCount, Is.Zero);
+
+        graph.ReleaseNotifies();
+
+        Assert.That(factory.ReleaseCount, Is.EqualTo(1));
+        Assert.That(graph.FiredNotifies, Is.Empty);
+    }
+
+    [Test]
+    public void ActiveStatesAreNotReleasedByReleaseNotifies()
+    {
+        var (range, _, factory) = TestNotify.StateAt(0f, 10f, "Invulnerable");
+        var skeleton = new Skeleton([new Bone { Name = "root" }]);
+        var node = new FakePoseNode(1);
+        node.ActiveStates.Add(range);
+        var graph = new AnimationGraph(skeleton) { Root = node };
+
+        graph.Tick(1f / 60f);
+        graph.ReleaseNotifies();
+
+        Assert.That(factory.ReleaseCount, Is.Zero);
     }
 
     [Test]
@@ -90,6 +131,9 @@ public class AnimationGraphTests
         graph.Tick(1f / 60f);
 
         Assert.That(graph.EndedNotifyStates, Is.EqualTo(new IAnimationNotifyState[] { handler }));
+
+        graph.ReleaseNotifies();
+
         Assert.That(factory.ReleaseCount, Is.EqualTo(1));
     }
 }

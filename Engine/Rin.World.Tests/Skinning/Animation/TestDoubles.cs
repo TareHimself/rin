@@ -9,10 +9,16 @@ internal sealed class FakePoseNode(int boneCount, params (int Index, Transform V
 {
     public int EvaluateCount { get; private set; }
     public List<AnimationNotifyStateRange> ActiveStates { get; } = [];
+    public List<AnimationNotify> CrossedNotifies { get; } = [];
 
     public PooledSkeletalPose Evaluate(in AnimationEvalContext ctx)
     {
         EvaluateCount++;
+        if (ctx.Notifies is { } sink)
+        {
+            sink.ReportSource(this, ctx.Weight);
+            foreach (var notify in CrossedNotifies) sink.ReportCrossed(notify, this);
+        }
         if (ctx.ActiveNotifyStates is { } active)
             foreach (var range in ActiveStates)
                 active.Add(range);
@@ -42,13 +48,18 @@ internal sealed class RecordingNotify(string name) : IAnimationNotify
 
 internal sealed class SingleInstanceNotifyFactory(IAnimationNotify instance) : IAnimationNotifyFactory
 {
+    public int CreateCount { get; private set; }
+    public int ReleaseCount { get; private set; }
+
     public IAnimationNotify Create()
     {
+        CreateCount++;
         return instance;
     }
 
     public void Release(IAnimationNotify released)
     {
+        ReleaseCount++;
     }
 }
 
@@ -94,10 +105,11 @@ internal sealed class SingleInstanceNotifyStateFactory(IAnimationNotifyState ins
 
 internal static class TestNotify
 {
-    public static (AnimationNotify Notify, RecordingNotify Handler) At(float time, string name)
+    public static (AnimationNotify Notify, RecordingNotify Handler) At(float time, string name,
+        bool dominantClipOnly = false)
     {
         var handler = new RecordingNotify(name);
-        return (new AnimationNotify(time, new SingleInstanceNotifyFactory(handler)), handler);
+        return (new AnimationNotify(time, new SingleInstanceNotifyFactory(handler), dominantClipOnly), handler);
     }
 
     public static (AnimationNotifyStateRange Range, RecordingNotifyState Handler, SingleInstanceNotifyStateFactory Factory) StateAt(

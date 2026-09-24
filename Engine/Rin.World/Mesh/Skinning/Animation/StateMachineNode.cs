@@ -34,8 +34,8 @@ public class StateMachineNode : IPoseNode
             ? 1f
             : float.Min(_transitionElapsed / _activeTransition.BlendDuration, 1f);
 
-        using var fromPose = _current.Node.Evaluate(ctx);
-        using var toPose = target.Node.Evaluate(ctx);
+        using var fromPose = _current.Node.Evaluate(ctx.Scaled(1f - alpha));
+        using var toPose = target.Node.Evaluate(ctx.Scaled(alpha));
         var blended = PooledSkeletalPose.Blend(fromPose, toPose, alpha);
 
         if (alpha >= 1f)

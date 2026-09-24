@@ -54,15 +54,15 @@ public class SkinnedMeshComponent : WorldComponent
     {
         base.Update(deltaSeconds);
         PoseSource?.Tick(deltaSeconds);
+        ResolveBoneMatrices();
 
         if (PoseSource is AnimationGraph graph)
         {
             foreach (var notify in graph.FiredNotifies) notify.Notify(this, graph);
             foreach (var state in graph.BegunNotifyStates) state.NotifyBegin(this, graph);
             foreach (var state in graph.EndedNotifyStates) state.NotifyEnd(this, graph);
+            graph.ReleaseNotifies();
         }
-
-        ResolveBoneMatrices();
     }
 
     private void ResolveBoneMatrices()
@@ -81,7 +81,7 @@ public class SkinnedMeshComponent : WorldComponent
     {
         if (name is not null && Mesh is not null && _resolvedBoneMatrices is not null &&
             Mesh.Skeleton.BoneNameToIndex.TryGetValue(name, out var boneIndex))
-            return Transform.From(_resolvedBoneMatrices[boneIndex] * GetTransform(Space.World).ToMatrix());
+            return Transform.From(_resolvedBoneMatrices[boneIndex].ChildOf(GetTransform(Space.World).ToMatrix()));
 
         return base.GetAttachPointTransform(name);
     }

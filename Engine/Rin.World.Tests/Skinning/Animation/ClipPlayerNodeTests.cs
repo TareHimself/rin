@@ -47,13 +47,15 @@ public class ClipPlayerNodeTests
     [Test]
     public void FiresANotifyCrossedDuringTheTick()
     {
-        var (notify, handler) = TestNotify.At(0.75f, "Footstep");
+        var (notify, _) = TestNotify.At(0.75f, "Footstep");
         var node = new ClipPlayerNode(BuildOneBoneClip(2f, notify)) { Rate = 1f, Loop = false, Time = 0.5f };
-        var fired = new List<IAnimationNotify>();
+        var sink = new NotifySink();
 
-        using var pose = node.Evaluate(new AnimationEvalContext(0.5f, fired));
+        using var pose = node.Evaluate(new AnimationEvalContext(0.5f, sink));
+        var fired = new List<AnimationNotify>();
+        sink.CollectFired(fired);
 
-        Assert.That(fired, Is.EqualTo(new IAnimationNotify[] { handler }));
+        Assert.That(fired, Is.EqualTo(new[] { notify }));
     }
 
     [Test]
@@ -61,9 +63,11 @@ public class ClipPlayerNodeTests
     {
         var (notify, _) = TestNotify.At(1.5f, "Footstep");
         var node = new ClipPlayerNode(BuildOneBoneClip(2f, notify)) { Rate = 1f, Loop = false, Time = 0.5f };
-        var fired = new List<IAnimationNotify>();
+        var sink = new NotifySink();
 
-        using var pose = node.Evaluate(new AnimationEvalContext(0.5f, fired));
+        using var pose = node.Evaluate(new AnimationEvalContext(0.5f, sink));
+        var fired = new List<AnimationNotify>();
+        sink.CollectFired(fired);
 
         Assert.That(fired, Is.Empty);
     }
@@ -83,14 +87,16 @@ public class ClipPlayerNodeTests
     [Test]
     public void FiresNotifiesOnBothSidesOfALoopWrap()
     {
-        var (nearEnd, nearEndHandler) = TestNotify.At(1.9f, "NearEnd");
-        var (nearStart, nearStartHandler) = TestNotify.At(0.1f, "NearStart");
+        var (nearEnd, _) = TestNotify.At(1.9f, "NearEnd");
+        var (nearStart, _) = TestNotify.At(0.1f, "NearStart");
         var node = new ClipPlayerNode(BuildOneBoneClip(2f, nearEnd, nearStart)) { Rate = 1f, Loop = true, Time = 1.8f };
-        var fired = new List<IAnimationNotify>();
+        var sink = new NotifySink();
 
-        using var pose = node.Evaluate(new AnimationEvalContext(0.5f, fired));
+        using var pose = node.Evaluate(new AnimationEvalContext(0.5f, sink));
+        var fired = new List<AnimationNotify>();
+        sink.CollectFired(fired);
 
-        Assert.That(fired, Is.EqualTo(new IAnimationNotify[] { nearEndHandler, nearStartHandler }),
+        Assert.That(fired, Is.EqualTo(new[] { nearEnd, nearStart }),
             "1.8 + 0.5 = 2.3, which wraps once for a 2-second clip - both notifies should fire in order");
     }
 }
