@@ -65,7 +65,6 @@ public class ShaderCompilerTests
     {
         WriteSource("common.slang", "static const int Value = 1;");
         var source = WriteSource("main.slang", ComputeShader);
-
         Assert.That(_compiler.IsUpToDate(CompileToPackage(source), source), Is.True);
     }
 

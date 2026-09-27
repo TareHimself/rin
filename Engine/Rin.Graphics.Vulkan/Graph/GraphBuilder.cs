@@ -12,6 +12,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
     private readonly Dictionary<uint, IResourceDescriptor> _externalResources = [];
 
     private readonly Dictionary<uint, IPass> _passes = [];
+    private readonly Dictionary<object, object> _shared = [];
     private List<IDisposable> _disposables = [];
     private uint _latestId;
     private uint _swapchainImageId;
@@ -348,6 +349,15 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         _disposables.Add(disposable);
     }
 
+    public T GetOrAddShared<T>(object key, Func<IGraphBuilder, T> create) where T : class
+    {
+        if (_shared.TryGetValue(key, out var existing)) return (T)existing;
+        var created = create(this);
+        _shared[key] = created;
+        if (created is IDisposable disposable) AddDisposable(disposable);
+        return created;
+    }
+
     public uint AddDestinationImage(ResourceHandle handle, Action? onDispose = null)
     {
         return _swapchainImageId = AddExternalImage(handle, onDispose);
@@ -366,6 +376,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
         _externalResources.Clear();
         _externalImageIds.Clear();
         _externalBufferIds.Clear();
+        _shared.Clear();
         _swapchainImageId = 0;
         _latestId = 0;
     }
@@ -487,7 +498,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
 
         var config = new GraphConfig(this)
         {
-            SwapchainImageId = _swapchainImageId
+            DestinationImageId = _swapchainImageId
         };
 
         foreach (var (id, externalImageResourceDescriptor) in _externalResources)
