@@ -63,13 +63,20 @@
         build. If you change Rin.Slang.MSBuild's source, delete its bin/ (or run
         `dotnet build-server shutdown` first) to pick the change up.
     -->
-    <Target Name="BuildRinSlangMSBuildTask" Condition="!Exists('$(RinSlangMSBuildAssembly)')">
+    <Target Name="BuildRinSlangMSBuildTask" Condition="'$(RinSlangSkipCompile)' != 'true' AND !Exists('$(RinSlangMSBuildAssembly)')">
         <MSBuild Projects="$(RinSlangMSBuildProject)" Targets="Build" Properties="Configuration=Release" />
     </Target>
 
+    <!--
+        RinSlangSkipCompile opts out of real shader compilation entirely (no build of
+        Rin.Slang.MSBuild, no call into the real native Slang compiler) for contexts that
+        never load a real shader - e.g. CI running unit tests against fake natives, which
+        can't satisfy a genuine compile. Unset (the default), behavior is unchanged.
+    -->
     <Target Name="CompileSlangShaders"
             BeforeTargets="BeforeCompile;AssignTargetPaths"
-            DependsOnTargets="BuildRinSlangMSBuildTask">
+            DependsOnTargets="BuildRinSlangMSBuildTask"
+            Condition="'$(RinSlangSkipCompile)' != 'true'">
 
         <PropertyGroup>
             <RinSlangOutputRoot>$(IntermediateOutputPath)$(RinSlangOutputSubpath)</RinSlangOutputRoot>
