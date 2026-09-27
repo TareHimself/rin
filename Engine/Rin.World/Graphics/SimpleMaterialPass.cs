@@ -14,7 +14,7 @@ public abstract class SimpleMaterialPass : IMaterialPass
     public abstract IGraphicsShader Shader { get; }
     public abstract ulong GetRequiredMemory();
 
-    public abstract void Write(in DeviceBufferView view, ProcessedMesh mesh);
+    public abstract void Write(Span<byte> destination, ProcessedMesh mesh);
 
     /// <summary>
     ///     Bind the shader for this material, push any constants, bind any descriptors

@@ -13,8 +13,8 @@ namespace Rin.World.Graphics.Default.Passes;
 /// <summary>
 ///     Create this pass if we are going to do skinning
 /// </summary>
-/// <param name="collectedData"></param>
-public partial class SkinningPass(DefaultWorldCollectedData collectedData) : IComputePass
+/// <param name="sceneFrame"></param>
+public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
 {
     [ComputeShader("Shaders/World/Mesh/Compute/skinning.slang")]
     private partial IComputeShader SkinningShader { get; }
@@ -26,35 +26,35 @@ public partial class SkinningPass(DefaultWorldCollectedData collectedData) : ICo
     //private SkinningExecutionInfo[] ExecutionInfos { get; set; }
     private uint SkinnedMeshArrayBufferId { get; set; }
     private uint SkinningExecutionInfoBufferId { get; set; }
-    private List<uint> SkinningPoseBufferIds { get; set; } = new(collectedData.SkinnedPoses.Count);
+    private List<uint> SkinningPoseBufferIds { get; set; } = new(sceneFrame.SkinnedGeometry.Length);
     private uint PosePointerArrayBufferId { get; set; }
     private List<IMesh> UniqueSkinnedMeshes { get; set; } = [];
     public uint Id { get; set; }
 
     public void Configure(IGraphConfig config)
     {
-        TotalVerticesToSkin = (uint)collectedData.SkinnedVertexCount;
-        collectedData.SkinningOutputBufferId = config.CreateBuffer<Vertex>(TotalVerticesToSkin, GraphBufferUsage.Compute);
+        TotalVerticesToSkin = (uint)sceneFrame.SkinnedVertexCount;
+        sceneFrame.SkinningOutputBufferId = config.CreateBuffer<Vertex>(TotalVerticesToSkin, GraphBufferUsage.Compute);
         
         HashSet<uint> sourceVertexReads = [];
         Dictionary<IMesh,int> uniqueMeshesDictionary = [];
-        UniqueSkinnedMeshes.EnsureCapacity(collectedData.ProcessedSkinnedMeshCount);
-        ExecutionInfos.EnsureCapacity(collectedData.SkinnedSurfaceCount);
+        UniqueSkinnedMeshes.EnsureCapacity(sceneFrame.ProcessedSkinnedMeshCount);
+        ExecutionInfos.EnsureCapacity(sceneFrame.SkinnedSurfaceCount);
         
         // Buffers for skinning poses
-        foreach (var skinnedPose in collectedData.SkinnedPoses)
+        foreach (var skinnedPose in sceneFrame.SkinningMatrices)
         {
             SkinningPoseBufferIds.Add(config.CreateBuffer<Matrix4x4>(skinnedPose.Count, GraphBufferUsage.HostThenCompute));
         }
         
         // Execution infos and distinct meshes
-        for (var i = collectedData.SkinnedMeshStartIndex; i < collectedData.ProcessedMeshes.Count; i++)
+        for (var i = sceneFrame.SkinnedMeshStartIndex; i < sceneFrame.ProcessedMeshes.Count; i++)
         {
 
-            var processedMesh = collectedData.ProcessedMeshes[i];
+            var processedMesh = sceneFrame.ProcessedMeshes[i];
             if (sourceVertexReads.Add(processedMesh.SourceVertexBufferId))
                 config.ReadBuffer(processedMesh.SourceVertexBufferId, GraphBufferUsage.Compute);
-            var geometry = collectedData.SkinnedGeometry[processedMesh.GeometryId];
+            var geometry = sceneFrame.SkinnedGeometry[processedMesh.GeometryId];
             var mesh = geometry.Mesh;
             
             if (!uniqueMeshesDictionary.TryGetValue(mesh, out var uniqueMeshIndex))
@@ -85,7 +85,7 @@ public partial class SkinningPass(DefaultWorldCollectedData collectedData) : ICo
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var output = graph.GetBuffer(collectedData.SkinningOutputBufferId);
+        var output = graph.GetBuffer(sceneFrame.SkinningOutputBufferId);
         var meshPointersArray = graph.GetBufferOrException(SkinnedMeshArrayBufferId);
         var posePointerArray = graph.GetBuffer(PosePointerArrayBufferId);
         {
@@ -93,7 +93,7 @@ public partial class SkinningPass(DefaultWorldCollectedData collectedData) : ICo
             for (var i = 0; i < SkinningPoseBufferIds.Count; i++)
             {
                 var bufferId = SkinningPoseBufferIds[i];
-                var pose = collectedData.SkinnedPoses[i];
+                var pose = sceneFrame.SkinningMatrices[i];
                 var buffer = graph.GetBufferOrException(bufferId);
                 buffer.Write(pose);
                 var ptr = buffer.GetAddress();
@@ -102,7 +102,9 @@ public partial class SkinningPass(DefaultWorldCollectedData collectedData) : ICo
         }
         var executionInfos = graph.GetBuffer(SkinningExecutionInfoBufferId);
         executionInfos.Write(ExecutionInfos);
-        meshPointersArray.Write(UniqueSkinnedMeshes.Select(c => c.GetVertices().GetAddress()).ToArray());
+        using var meshPointers = new PooledMemory<ulong>(UniqueSkinnedMeshes.Count);
+        for (var i = 0; i < UniqueSkinnedMeshes.Count; i++) meshPointers[i] = UniqueSkinnedMeshes[i].GetVertices().GetAddress();
+        meshPointersArray.Write(meshPointers);
 
         if (SkinningShader.Bind(ctx) is { } bindContext)
         {
@@ -117,9 +119,9 @@ public partial class SkinningPass(DefaultWorldCollectedData collectedData) : ICo
                 })
                 .Invoke(TotalVerticesToSkin);
             //cmd.BufferBarrier(output, MemoryBarrierOptions.ComputeToGraphics());
-            for (var i = collectedData.SkinnedMeshStartIndex; i < collectedData.ProcessedMeshes.Count; i++)
+            for (var i = sceneFrame.SkinnedMeshStartIndex; i < sceneFrame.ProcessedMeshes.Count; i++)
             {
-                var mesh = collectedData.ProcessedMeshes[i];
+                var mesh = sceneFrame.ProcessedMeshes[i];
                 mesh.VertexBuffer = output.GetView(mesh.VertexBuffer.Offset, mesh.VertexBuffer.Size);
             }
         }

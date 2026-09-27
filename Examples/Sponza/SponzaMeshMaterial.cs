@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Core;
 using Rin.Core.Graphics;
@@ -64,7 +65,7 @@ public class SponzaMeshMaterial : IMeshMaterial
                 meshMaterial.MetallicRoughnessImageId);
         }
 
-        public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
+        public override void Write(Span<byte> destination, ProcessedMesh mesh)
         {
             Debug.Assert(mesh.Material is SponzaMeshMaterial);
             var meshMaterial = (SponzaMeshMaterial)mesh.Material;
@@ -77,7 +78,7 @@ public class SponzaMeshMaterial : IMeshMaterial
                 NormalHandle = meshMaterial.NormalImageId,
                 MetallicRoughnessHandle = meshMaterial.MetallicRoughnessImageId
             };
-            view.WriteSingle(data);
+            MemoryMarshal.Write(destination, in data);
         }
 
         // Field order/types mirror Examples/Sponza/Content/mesh.slang's PerMeshData exactly.
@@ -122,9 +123,9 @@ public class SponzaMeshMaterial : IMeshMaterial
             return mesh.Material.DepthPass;
         }
 
-        public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
+        public override void Write(Span<byte> destination, ProcessedMesh mesh)
         {
-            view.WriteSingle(new DepthMaterialData
+            MemoryMarshal.Write(destination, new DepthMaterialData
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress()

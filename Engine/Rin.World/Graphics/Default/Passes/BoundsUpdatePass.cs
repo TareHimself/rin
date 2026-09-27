@@ -8,8 +8,8 @@ namespace Rin.World.Graphics.Default.Passes;
 /// <summary>
 ///  Updates the bounds of skinned meshes
 /// </summary>
-/// <param name="collectedData"></param>
-public partial class BoundsUpdatePass(DefaultWorldCollectedData collectedData) : IComputePass
+/// <param name="sceneFrame"></param>
+public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePass
 {
     [ComputeShader("Shaders/World/Mesh/Compute/bounds_update.slang")]
     private partial IComputeShader Shader { get; }
@@ -23,21 +23,21 @@ public partial class BoundsUpdatePass(DefaultWorldCollectedData collectedData) :
 
     public void Configure(IGraphConfig config)
     {
-        // config.ReadBuffer(collectedData.SkinningOutputBufferId,
+        // config.ReadBuffer(sceneFrame.SkinningOutputBufferId,
         //     GraphBufferUsage.Compute); // All skinned meshes use one output buffer
-        // config.WriteBuffer(collectedData.BoundsBufferId, GraphBufferUsage.Compute);
+        // config.WriteBuffer(sceneFrame.BoundsBufferId, GraphBufferUsage.Compute);
         // SkinnedMeshBuffers =
-        //     config.CreateBuffer<SkinnedMesh>(collectedData.SkinnedSurfaceCount, GraphBufferUsage.HostThenCompute);
+        //     config.CreateBuffer<SkinnedMesh>(sceneFrame.SkinnedSurfaceCount, GraphBufferUsage.HostThenCompute);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        // var boundsBuffer = graph.GetBufferOrException(collectedData.BoundsBufferId);
+        // var boundsBuffer = graph.GetBufferOrException(sceneFrame.BoundsBufferId);
         // var skinnedMeshBuffer = graph.GetBufferOrException(SkinnedMeshBuffers);
         // ulong offset = 0;
-        // for (var i = 0; i < collectedData.SkinnedSurfaceCount; i++)
+        // for (var i = 0; i < sceneFrame.SkinnedSurfaceCount; i++)
         // {
-        //     var mesh = collectedData.ProcessedMeshes[collectedData.SkinnedMeshStartIndex + i];
+        //     var mesh = sceneFrame.ProcessedMeshes[sceneFrame.SkinnedMeshStartIndex + i];
         //     offset += skinnedMeshBuffer.WriteSingle(mesh.VertexBuffer.GetAddress(), offset);
         // }
         //
@@ -47,10 +47,10 @@ public partial class BoundsUpdatePass(DefaultWorldCollectedData collectedData) :
         //     .Push(new Push
         //     {
         //         SkinnedMeshesAddress = skinnedMeshBuffer.GetAddress(),
-        //         TotalInvocations = collectedData.SkinnedSurfaceCount,
+        //         TotalInvocations = sceneFrame.SkinnedSurfaceCount,
         //         BoundsBufferAddress = boundsBuffer.GetAddress()
         //     })
-        //     .Invoke((uint)collectedData.SkinnedSurfaceCount);
+        //     .Invoke((uint)sceneFrame.SkinnedSurfaceCount);
     }
 
     [NoReorder]

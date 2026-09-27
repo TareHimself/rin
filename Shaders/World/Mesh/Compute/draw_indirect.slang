@@ -73,7 +73,7 @@ bool isInView(Bounds3D bounds, Frustum frustum) {
 }
 
 [shader("compute")]
-[numthreads(1, 1, 1)]
+[numthreads(64, 1, 1)]
 void compute(ComputeIn input)
 {
     var index = input.threadId.x;

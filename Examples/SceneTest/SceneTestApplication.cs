@@ -147,7 +147,7 @@ public class SceneTestApplication : ExampleApplication
             };
             window.OnKey += e =>
             {
-                if (e is { Key: InputKey.P, State: InputState.Pressed }) DropBoxes(15);
+                if (e is { Key: InputKey.P, State: InputState.Pressed }) DropBoxGrid(BenchBoxCount);
             };
 
             surf.Add(BuildDockLayout(perspectiveCam, topCam, scene));
@@ -169,6 +169,51 @@ public class SceneTestApplication : ExampleApplication
         // Actors must be added on the main thread — AddActor runs Start() (creates the physics body)
         // and scene.Update walks the actors concurrently. This may be called from a task continuation.
         IApplication.Get().MainDispatcher.Enqueue(() => SpawnBoxes(count));
+    }
+
+    private const int BenchBoxCount = 2000;
+    private const int BenchGridSide = 25;
+    private const float BenchGridSpacing = 5f;
+
+    private void DropBoxGrid(int count)
+    {
+        IApplication.Get().MainDispatcher.Enqueue(() => SpawnBoxGrid(count));
+    }
+
+    // Fixed layout so every bench run starts from the same scene.
+    private void SpawnBoxGrid(int count)
+    {
+        if (_scene is not { } scene || _cubeMesh is not { } mesh) return;
+
+        const float halfExtent = (BenchGridSide - 1) * BenchGridSpacing * 0.5f;
+        for (var i = 0; i < count; i++)
+        {
+            var layer = i / (BenchGridSide * BenchGridSide);
+            var cell = i % (BenchGridSide * BenchGridSide);
+            var pos = new Vector3(
+                cell % BenchGridSide * BenchGridSpacing - halfExtent,
+                26f + layer * BenchGridSpacing,
+                22f + cell / BenchGridSide * BenchGridSpacing - halfExtent);
+
+            scene.AddActor(new Actor
+            {
+                RootComponent = new BoxPhysicsComponent
+                {
+                    Size = new Vector3(2f),
+                    Location = pos,
+                    Scale = new Vector3(2f),
+                    PhysicsState = PhysicsState.Simulated
+                },
+                InitialComponents =
+                [
+                    new StaticMeshComponent
+                    {
+                        Mesh = mesh,
+                        Materials = _material is { } m ? [m] : []
+                    }
+                ]
+            });
+        }
     }
 
     private void SpawnBoxes(int count)
@@ -230,7 +275,7 @@ public class SceneTestApplication : ExampleApplication
                     {
                         Child = new TextBoxView
                         {
-                            Content = "RMB drag  — look\nWASD      — move\nLMB       — cycle view channel\nP         — drop boxes",
+                            Content = "RMB drag  — look\nWASD      — move\nLMB       — cycle view channel\nP         — drop 2000 boxes",
                             FontSize = 14f,
                             WrapContent = true
                         }

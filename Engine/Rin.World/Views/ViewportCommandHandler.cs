@@ -47,17 +47,19 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
     {
         // c.Context was snapshotted on the collect thread in Viewport.CollectContent; WriteSingle only
         // wires that snapshot into the graph — no live world access here on the render thread.
-        _renderContexts = _commands.Select(c =>
+        _renderContexts = new IWorldCollectedData[_commands.Length];
+        for (var i = 0; i < _commands.Length; i++)
         {
-            c.Context.Write(builder);
-            return c.Context;
-        }).ToArray();
+            _commands[i].Context.Write(builder);
+            _renderContexts[i] = _commands[i].Context;
+        }
     }
 
 
     public void Init(ICommand[] commands)
     {
-        _commands = commands.Cast<DrawViewportCommand>().ToArray();
+        _commands = new DrawViewportCommand[commands.Length];
+        for (var i = 0; i < commands.Length; i++) _commands[i] = (DrawViewportCommand)commands[i];
     }
 
     private uint[][] _gBufferImageIds = [];
@@ -65,22 +67,29 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
     {
-        _pushBufferIds = _commands
-            .Select(c => config.CreateBuffer<PushData>(GraphBufferUsage.HostThenGraphics))
-            .ToArray();
-        _outputImageIds = _renderContexts
-            .Select(c => config.ReadTexture(c.GetOutputImageId(), ImageLayout.ShaderReadOnly))
-            .ToArray();
-        _gBufferImageIds = _renderContexts
-            .Select(c => Enumerable.Range(0, 4)
-                .Select(i => c.GetGBufferImageId(i))
-                .Select(id => id > 0 ? config.ReadTexture(id, ImageLayout.ShaderReadOnly) : 0)
-                .ToArray())
-            .ToArray();
-        _lightsBufferIds = _renderContexts
-            .Select(c => config.CreateBuffer<LightInfo>(System.Math.Max(c.GetLights().Length, 1),
-                GraphBufferUsage.HostThenGraphics))
-            .ToArray();
+        _pushBufferIds = new uint[_commands.Length];
+        for (var i = 0; i < _commands.Length; i++)
+            _pushBufferIds[i] = config.CreateBuffer<PushData>(GraphBufferUsage.HostThenGraphics);
+
+        _outputImageIds = new uint[_renderContexts.Length];
+        _gBufferImageIds = new uint[_renderContexts.Length][];
+        _lightsBufferIds = new uint[_renderContexts.Length];
+        for (var i = 0; i < _renderContexts.Length; i++)
+        {
+            var context = _renderContexts[i];
+            _outputImageIds[i] = config.ReadTexture(context.GetOutputImageId(), ImageLayout.ShaderReadOnly);
+
+            var gBufferIds = new uint[4];
+            for (var j = 0; j < gBufferIds.Length; j++)
+            {
+                var id = context.GetGBufferImageId(j);
+                gBufferIds[j] = id > 0 ? config.ReadTexture(id, ImageLayout.ShaderReadOnly) : 0;
+            }
+
+            _gBufferImageIds[i] = gBufferIds;
+            _lightsBufferIds[i] = config.CreateBuffer<LightInfo>(System.Math.Max(context.GetLights().Length, 1),
+                GraphBufferUsage.HostThenGraphics);
+        }
     }
 
     public void Execute(IPassConfig passConfig,
@@ -88,18 +97,14 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
     {
         if (Shader.Bind(ctx) is { } bindContext)
         {
-            var outputImages = _outputImageIds.Select(graph.GetImageOrException).ToArray();
-            var pushBuffers = _pushBufferIds.Select(graph.GetBufferOrException).ToArray();
-            var lightsBuffers = _lightsBufferIds.Select(graph.GetBufferOrException).ToArray();
-
             for (var i = 0; i < _commands.Length; i++)
             {
                 var cmd = _commands[i];
-                var outputImage = outputImages[i];
-                var pushBuffer = pushBuffers[i];
+                var outputImage = graph.GetImageOrException(_outputImageIds[i]);
+                var pushBuffer = graph.GetBufferOrException(_pushBufferIds[i]);
                 var gBufferIds = _gBufferImageIds[i];
                 var lights = _renderContexts[i].GetLights();
-                var lightsBuffer = lightsBuffers[i];
+                var lightsBuffer = graph.GetBufferOrException(_lightsBufferIds[i]);
                 if (lights.Length > 0) lightsBuffer.Write(lights);
 
                 ctx.SetStencilCompareMask(cmd.StencilMask);

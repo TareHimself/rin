@@ -10,7 +10,7 @@ namespace Rin.World.Graphics.Default.Passes;
 ///     writes results to <see cref="CullingPass.OutputBufferId" />
 /// </summary>
 /// <param name="collectedData"></param>
-public partial class CullingPass(DefaultWorldCollectedData collectedData) : IComputePass
+public partial class CullingPass(DefaultWorldViewData collectedData) : IComputePass
 {
     [ComputeShader("Shaders/World/Mesh/Compute/culling.slang")]
     private partial IComputeShader Shader { get; }
@@ -23,15 +23,15 @@ public partial class CullingPass(DefaultWorldCollectedData collectedData) : ICom
     {
         // Always create OutputBufferId (GraphConfig.CreateBuffer clamps zero size to 1) - downstream
         // passes like FillIndirectBuffersPass unconditionally read it regardless of mesh count.
-        config.ReadBuffer(collectedData.BoundsBufferId, GraphBufferUsage.Compute);
-        OutputBufferId = config.CreateBuffer<uint>(collectedData.TotalMeshCount, GraphBufferUsage.Compute);
+        config.ReadBuffer(collectedData.SceneFrame.BoundsBufferId, GraphBufferUsage.Compute);
+        OutputBufferId = config.CreateBuffer<uint>(collectedData.SceneFrame.TotalMeshCount, GraphBufferUsage.Compute);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        if (collectedData.TotalMeshCount == 0) return; // nothing to cull; a zero-sized dispatch isn't valid
+        if (collectedData.SceneFrame.TotalMeshCount == 0) return; // nothing to cull; a zero-sized dispatch isn't valid
 
-        var boundsBuffer = graph.GetBufferOrException(collectedData.BoundsBufferId);
+        var boundsBuffer = graph.GetBufferOrException(collectedData.SceneFrame.BoundsBufferId);
         var outputBuffer = graph.GetBufferOrException(OutputBufferId);
 
         if (Shader.Bind(ctx) is not { } bindContext) return;
@@ -39,10 +39,10 @@ public partial class CullingPass(DefaultWorldCollectedData collectedData) : ICom
             .Push(new Push
             {
                 BoundsBufferAddress = boundsBuffer.GetAddress(),
-                TotalInvocations = collectedData.TotalMeshCount,
+                TotalInvocations = collectedData.SceneFrame.TotalMeshCount,
                 OutputBufferAddress = outputBuffer.GetAddress()
             })
-            .Invoke((uint)collectedData.TotalMeshCount);
+            .Invoke((uint)collectedData.SceneFrame.TotalMeshCount);
     }
 
     [NoReorder]

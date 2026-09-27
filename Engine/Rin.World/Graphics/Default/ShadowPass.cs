@@ -3,7 +3,7 @@ using Rin.Core.Graphics.Graph;
 
 namespace Rin.World.Graphics.Default;
 
-public class ShadowPass(DefaultWorldCollectedData collectedData) : IPass
+public class ShadowPass(DefaultWorldViewData collectedData) : IPass
 {
     public uint Id { get; set; }
 
