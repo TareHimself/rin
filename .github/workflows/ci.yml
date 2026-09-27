@@ -18,14 +18,30 @@ jobs:
       - name: Pack native stub packages
         run: python scripts/pack_native_stubs.py .feed
 
+      # RinSlang.targets builds Rin.Slang.MSBuild on demand if it isn't already built, but
+      # never restores it first - fine on a dev machine with stale obj/ lying around, fails
+      # with NETSDK1004 on a genuinely clean checkout. Restoring the whole solution once
+      # up front (cheap, already-restored projects are a no-op) avoids that entirely.
+      - name: Restore
+        run: dotnet restore rin.sln
+
       - name: Publish native fakes
         run: python scripts/publish_native_fakes.py win-x64
 
-      - name: Test
-        run: |
-          dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj --nologo --logger "console;verbosity=normal"
-          dotnet test Engine/Rin.World.Tests/Rin.World.Tests.csproj --nologo --logger "console;verbosity=normal"
-          dotnet test Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj --nologo --logger "console;verbosity=normal"
-          dotnet test Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj --nologo --logger "console;verbosity=normal"
-          dotnet test Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj --nologo --logger "console;verbosity=normal"
-          dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj --nologo --logger "console;verbosity=normal"
+      - name: Test Rin.Core.Tests
+        run: dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj --no-restore --nologo --logger "console;verbosity=normal"
+
+      - name: Test Rin.World.Tests
+        run: dotnet test Engine/Rin.World.Tests/Rin.World.Tests.csproj --no-restore --nologo --logger "console;verbosity=normal"
+
+      - name: Test Rin.SourceGenerators.Tests
+        run: dotnet test Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj --no-restore --nologo --logger "console;verbosity=normal"
+
+      - name: Test Rin.Slang.Tests
+        run: dotnet test Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj --no-restore --nologo --logger "console;verbosity=normal"
+
+      - name: Test Rin.GLTF.Tests
+        run: dotnet test Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj --no-restore --nologo --logger "console;verbosity=normal"
+
+      - name: Test Rin.Slang.Compiler.Tests
+        run: dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj --no-restore --nologo --logger "console;verbosity=normal"
