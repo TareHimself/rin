@@ -23,9 +23,9 @@ jobs:
 
       - name: Test
         run: |
-          dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj --nologo
-          dotnet test Engine/Rin.World.Tests/Rin.World.Tests.csproj --nologo
-          dotnet test Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj --nologo
-          dotnet test Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj --nologo
-          dotnet test Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj --nologo
-          dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj --nologo
+          dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj --nologo --logger "console;verbosity=normal"
+          dotnet test Engine/Rin.World.Tests/Rin.World.Tests.csproj --nologo --logger "console;verbosity=normal"
+          dotnet test Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj --nologo --logger "console;verbosity=normal"
+          dotnet test Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj --nologo --logger "console;verbosity=normal"
+          dotnet test Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj --nologo --logger "console;verbosity=normal"
+          dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj --nologo --logger "console;verbosity=normal"
