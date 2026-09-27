@@ -42,7 +42,7 @@ float3 palette(float t) {
 }
 
 // https://www.shadertoy.com/view/mtyGWy
-[shader("fragment"),BlendUI,Stencil,Attachment(AttachmentFormat.RGBA32)]
+[shader("fragment"),BlendUI,Stencil,Attachment(AttachmentFormat.RGBA16)]
 float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
     : SV_Target
 {

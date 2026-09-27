@@ -36,10 +36,13 @@ public partial class VulkanGraphicsModule
     private readonly IdFactory<uint> _cubemapIdFactory = new();
     private readonly IdFactory<uint> _bufferIdFactory = new();
 
-    private readonly List<BindlessTexture> _textures = [];
-    private readonly List<BindlessTextureArray> _textureArrays = [];
-    private readonly List<BindlessCubemap> _cubemaps = [];
-    private readonly List<BindlessBuffer> _buffers = [];
+    private const int BufferSlotChunkSize = 1024;
+    private const int MaxBufferSlotChunks = 1024;
+
+    private readonly ResourceSlots<BindlessTexture> _textures = new((int)MaxTextures);
+    private readonly ResourceSlots<BindlessTextureArray> _textureArrays = new((int)MaxTextureArrays);
+    private readonly ResourceSlots<BindlessCubemap> _cubemaps = new((int)MaxCubemaps);
+    private readonly ResourceSlots<BindlessBuffer> _buffers = new(BufferSlotChunkSize, MaxBufferSlotChunks);
 
     private readonly TextureWriteLanes _textureWrites = new();
     private readonly BufferWriteLanes _bufferWrites = new();
@@ -112,10 +115,10 @@ public partial class VulkanGraphicsModule
         _textureArrayIdFactory.NewId();
         _cubemapIdFactory.NewId();
         _bufferIdFactory.NewId();
-        _textures.Add(new BindlessTexture());
-        _textureArrays.Add(new BindlessTextureArray());
-        _cubemaps.Add(new BindlessCubemap());
-        _buffers.Add(new BindlessBuffer());
+        _textures.Set(0, new BindlessTexture());
+        _textureArrays.Set(0, new BindlessTextureArray());
+        _cubemaps.Set(0, new BindlessCubemap());
+        _buffers.Set(0, new BindlessBuffer());
 
         var extent = new Extent2D(1, 1);
         var format = ImageFormat.RGBA8;
@@ -217,28 +220,28 @@ public partial class VulkanGraphicsModule
         // leak at the call-site level, so it's worth flagging even though we clean it up here to avoid
         // validation errors on vkDestroyDevice.
         for (var i = 0; i < _textures.Count; i++)
-            if (_textures[i].Source is { } texture)
+            if (_textures.Get((uint)i)?.Source is { } texture)
             {
                 Console.WriteLine($"[Rin.Graphics.Vulkan] Texture at slot {i} was never freed (missing FreeResourceHandles call) - disposing at shutdown.");
                 texture.Dispose();
             }
 
         for (var i = 0; i < _textureArrays.Count; i++)
-            if (_textureArrays[i].Source is { } textureArray)
+            if (_textureArrays.Get((uint)i)?.Source is { } textureArray)
             {
                 Console.WriteLine($"[Rin.Graphics.Vulkan] TextureArray at slot {i} was never freed (missing FreeResourceHandles call) - disposing at shutdown.");
                 textureArray.Dispose();
             }
 
         for (var i = 0; i < _cubemaps.Count; i++)
-            if (_cubemaps[i].Source is { } cubemap)
+            if (_cubemaps.Get((uint)i)?.Source is { } cubemap)
             {
                 Console.WriteLine($"[Rin.Graphics.Vulkan] Cubemap at slot {i} was never freed (missing FreeResourceHandles call) - disposing at shutdown.");
                 cubemap.Dispose();
             }
 
         for (var i = 0; i < _buffers.Count; i++)
-            if (_buffers[i].Source is { } buffer)
+            if (_buffers.Get((uint)i)?.Source is { } buffer)
             {
                 Console.WriteLine($"[Rin.Graphics.Vulkan] Buffer at slot {i} was never freed (missing FreeResourceHandles call) - disposing at shutdown.");
                 buffer.Dispose();
@@ -255,9 +258,9 @@ public partial class VulkanGraphicsModule
     ///     whatever the slot's previous occupant (if any) last held. Must be read before the slot is
     ///     overwritten.
     /// </summary>
-    private static uint NextGeneration<T>(List<T> list, uint id, bool isNewSlot) where T : BindlessResource
+    private static uint NextGeneration<T>(ResourceSlots<T> slots, uint id, bool isNewSlot) where T : BindlessResource
     {
-        return isNewSlot ? 0u : unchecked(list[(int)id].Generation + 1);
+        return isNewSlot ? 0u : unchecked(slots.Get(id)!.Generation + 1);
     }
 
     public ResourceHandle CreateTexture(in Extent2D size, ImageFormat format, bool mips = false,
@@ -280,10 +283,7 @@ public partial class VulkanGraphicsModule
                 Generation = generation
             };
 
-            if (addToArray)
-                _textures.Add(resource);
-            else
-                _textures[(int)id] = resource;
+            _textures.Set(id, resource);
 
             UpdateHandles(resource.Handle);
 
@@ -311,10 +311,7 @@ public partial class VulkanGraphicsModule
                 Generation = generation
             };
 
-            if (addToArray)
-                _textureArrays.Add(resource);
-            else
-                _textureArrays[(int)id] = resource;
+            _textureArrays.Set(id, resource);
 
             UpdateHandles(resource.Handle);
 
@@ -342,10 +339,7 @@ public partial class VulkanGraphicsModule
                 Generation = generation
             };
 
-            if (addToArray)
-                _cubemaps.Add(resource);
-            else
-                _cubemaps[(int)id] = resource;
+            _cubemaps.Set(id, resource);
 
             UpdateHandles(resource.Handle);
 
@@ -376,10 +370,7 @@ public partial class VulkanGraphicsModule
                 DescriptorPending = true
             };
 
-            if (addToArray)
-                _textures.Add(resource);
-            else
-                _textures[(int)id] = resource;
+            _textures.Set(id, resource);
         }
 
         _textureWrites.Enqueue(handle,
@@ -552,10 +543,7 @@ public partial class VulkanGraphicsModule
                 Generation = generation
             };
 
-            if (addToArray)
-                _textures.Add(resource);
-            else
-                _textures[(int)id] = resource;
+            _textures.Set(id, resource);
 
             if (isBindless) UpdateHandles(handle);
 
@@ -565,36 +553,29 @@ public partial class VulkanGraphicsModule
 
     public IDisposableVulkanTexture? GetTexture(in ResourceHandle handle)
     {
-        if (handle.Type != ResourceType.Texture || handle.Id == 0 || handle.Id >= _textures.Count) return null;
-        lock (_resourceSync)
-        {
-            var resource = _textures[(int)handle.Id];
-            if (resource.Generation != handle.Generation) return null;
-            return resource.State != BindlessResourceState.Ready ? null : resource;
-        }
+        if (handle.Type != ResourceType.Texture || handle.Id == 0) return null;
+        return _textures.Get(handle.Id) is { State: BindlessResourceState.Ready } resource &&
+               resource.Generation == handle.Generation
+            ? resource
+            : null;
     }
 
     public IDisposableVulkanTextureArray? GetTextureArray(in ResourceHandle handle)
     {
-        if (handle.Type != ResourceType.TextureArray || handle.Id == 0 || handle.Id >= _textureArrays.Count)
-            return null;
-        lock (_resourceSync)
-        {
-            var resource = _textureArrays[(int)handle.Id];
-            if (resource.Generation != handle.Generation) return null;
-            return resource.State != BindlessResourceState.Ready ? null : resource;
-        }
+        if (handle.Type != ResourceType.TextureArray || handle.Id == 0) return null;
+        return _textureArrays.Get(handle.Id) is { State: BindlessResourceState.Ready } resource &&
+               resource.Generation == handle.Generation
+            ? resource
+            : null;
     }
 
     public IDisposableVulkanCubemap? GetCubemap(in ResourceHandle handle)
     {
-        if (handle.Type != ResourceType.Cubemap || handle.Id == 0 || handle.Id >= _cubemaps.Count) return null;
-        lock (_resourceSync)
-        {
-            var resource = _cubemaps[(int)handle.Id];
-            if (resource.Generation != handle.Generation) return null;
-            return resource.State != BindlessResourceState.Ready ? null : resource;
-        }
+        if (handle.Type != ResourceType.Cubemap || handle.Id == 0) return null;
+        return _cubemaps.Get(handle.Id) is { State: BindlessResourceState.Ready } resource &&
+               resource.Generation == handle.Generation
+            ? resource
+            : null;
     }
 
     /// <summary>
@@ -676,10 +657,10 @@ public partial class VulkanGraphicsModule
     {
         BindlessResource? resource = handle.Type switch
         {
-            ResourceType.Texture when handle.Id < _textures.Count => _textures[(int)handle.Id],
-            ResourceType.Cubemap when handle.Id < _cubemaps.Count => _cubemaps[(int)handle.Id],
-            ResourceType.TextureArray when handle.Id < _textureArrays.Count => _textureArrays[(int)handle.Id],
-            ResourceType.Buffer when handle.Id < _buffers.Count => _buffers[(int)handle.Id],
+            ResourceType.Texture => _textures.Get(handle.Id),
+            ResourceType.Cubemap => _cubemaps.Get(handle.Id),
+            ResourceType.TextureArray => _textureArrays.Get(handle.Id),
+            ResourceType.Buffer => _buffers.Get(handle.Id),
             _ => null
         };
         return handle.Id != 0 && resource?.Generation == handle.Generation ? resource : null;
@@ -706,11 +687,11 @@ public partial class VulkanGraphicsModule
                             touchedDescriptors = true;
                         }
 
-                        var resource = _textures[(int)handle.Id];
+                        var resource = _textures.Get(handle.Id)!;
                         Debug.Assert(resource.Source is not null);
                         disposes.Add(resource.Source.Dispose);
 
-                        _textures[(int)handle.Id] = new BindlessTexture { Generation = unchecked(resource.Generation + 1) };
+                        _textures.Set(handle.Id, new BindlessTexture { Generation = unchecked(resource.Generation + 1) });
                         _textureIdFactory.FreeId(handle.Id);
                         _textureWrites.Drop(handle);
                     }
@@ -724,11 +705,11 @@ public partial class VulkanGraphicsModule
                             touchedDescriptors = true;
                         }
 
-                        var resource = _cubemaps[(int)handle.Id];
+                        var resource = _cubemaps.Get(handle.Id)!;
                         Debug.Assert(resource.Source is not null);
                         disposes.Add(resource.Source.Dispose);
 
-                        _cubemaps[(int)handle.Id] = new BindlessCubemap { Generation = unchecked(resource.Generation + 1) };
+                        _cubemaps.Set(handle.Id, new BindlessCubemap { Generation = unchecked(resource.Generation + 1) });
                         _cubemapIdFactory.FreeId(handle.Id);
                     }
                         break;
@@ -741,23 +722,22 @@ public partial class VulkanGraphicsModule
                             touchedDescriptors = true;
                         }
 
-                        var resource = _textureArrays[(int)handle.Id];
+                        var resource = _textureArrays.Get(handle.Id)!;
                         Debug.Assert(resource.Source is not null);
                         disposes.Add(resource.Source.Dispose);
 
-                        _textureArrays[(int)handle.Id] = new BindlessTextureArray { Generation = unchecked(resource.Generation + 1) };
+                        _textureArrays.Set(handle.Id, new BindlessTextureArray { Generation = unchecked(resource.Generation + 1) });
                         _textureArrayIdFactory.FreeId(handle.Id);
                     }
                         break;
                     case ResourceType.Buffer:
                     {
-                        if (handle.Id >= _buffers.Count) break;
-                        var resource = _buffers[(int)handle.Id];
-                        if (resource.Generation != handle.Generation) break;
+                        if (_buffers.Get(handle.Id) is not { } resource || resource.Generation != handle.Generation)
+                            break;
 
                         if (resource.Source is { } buffer) disposes.Add(buffer.Dispose);
 
-                        _buffers[(int)handle.Id] = new BindlessBuffer { Generation = unchecked(resource.Generation + 1) };
+                        _buffers.Set(handle.Id, new BindlessBuffer { Generation = unchecked(resource.Generation + 1) });
                         _bufferIdFactory.FreeId(handle.Id);
                         _bufferWrites.Drop(handle);
                     }
@@ -781,7 +761,7 @@ public partial class VulkanGraphicsModule
             {
                 case ResourceType.Texture:
                 {
-                    var resource = _textures[(int)handle.Id];
+                    var resource = _textures.Get(handle.Id)!;
 
                     Debug.Assert(resource.Source is not null);
 
@@ -797,7 +777,7 @@ public partial class VulkanGraphicsModule
                     break;
                 case ResourceType.Cubemap:
                 {
-                    var resource = _cubemaps[(int)handle.Id];
+                    var resource = _cubemaps.Get(handle.Id)!;
 
                     Debug.Assert(resource.Source is not null);
 
@@ -813,7 +793,7 @@ public partial class VulkanGraphicsModule
                     break;
                 case ResourceType.TextureArray:
                 {
-                    var resource = _textureArrays[(int)handle.Id];
+                    var resource = _textureArrays.Get(handle.Id)!;
 
                     Debug.Assert(resource.Source is not null);
 
@@ -888,10 +868,7 @@ public partial class VulkanGraphicsModule
                 Generation = generation
             };
 
-            if (addToArray)
-                _buffers.Add(resource);
-            else
-                _buffers[(int)id] = resource;
+            _buffers.Set(id, resource);
 
             return handle;
         }
@@ -924,26 +901,19 @@ public partial class VulkanGraphicsModule
 
     public IVulkanDeviceBuffer? ResolveBuffer(in ResourceHandle handle)
     {
-        if (handle.Type != ResourceType.Buffer || handle.Id == 0 || handle.Id >= _buffers.Count) return null;
-        lock (_resourceSync)
-        {
-            var resource = _buffers[(int)handle.Id];
-            if (resource.Generation != handle.Generation) return null;
-            return resource.State != BindlessResourceState.Ready ? null : resource.Source;
-        }
+        if (handle.Type != ResourceType.Buffer || handle.Id == 0) return null;
+        return _buffers.Get(handle.Id) is { State: BindlessResourceState.Ready } resource &&
+               resource.Generation == handle.Generation
+            ? resource.Source
+            : null;
     }
 
     public void WriteBuffer(in ResourceHandle handle, ReadOnlySpan<byte> data, ulong offset = 0)
     {
-        BindlessBuffer resource;
-        lock (_resourceSync)
-        {
-            if (handle.Type != ResourceType.Buffer || handle.Id == 0 || handle.Id >= _buffers.Count)
-                throw new ArgumentException("Invalid buffer handle", nameof(handle));
-            resource = _buffers[(int)handle.Id];
-            if (resource.Generation != handle.Generation)
-                throw new ArgumentException("Stale buffer handle - resource has been freed", nameof(handle));
-        }
+        if (handle.Type != ResourceType.Buffer || handle.Id == 0 || _buffers.Get(handle.Id) is not { } resource)
+            throw new ArgumentException("Invalid buffer handle", nameof(handle));
+        if (resource.Generation != handle.Generation)
+            throw new ArgumentException("Stale buffer handle - resource has been freed", nameof(handle));
 
         if (!resource.HostVisible)
             throw new InvalidOperationException(

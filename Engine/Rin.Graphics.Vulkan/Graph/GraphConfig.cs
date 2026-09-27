@@ -32,7 +32,7 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
     public uint CurrentPassId { get; set; }
 
 
-    public uint SwapchainImageId { get; set; }
+    public uint DestinationImageId { get; set; }
 
     public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null)
     {

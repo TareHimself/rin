@@ -45,7 +45,7 @@ float4 vertex(int vertexId: SV_VertexID, out float2 oUV: UV)
 #define VIEWPORT_CHANNEL_EMISSIVE 5
 #define VIEWPORT_CHANNEL_RADIANCE 6
 
-[shader("fragment"), Attachment(AttachmentFormat.RGBA32),BlendUI,Stencil]
+[shader("fragment"), Attachment(AttachmentFormat.RGBA16),BlendUI,Stencil]
 float4 fragment(in float2 iUV: UV,float2 coordinate: SV_Position)
     : SV_Target
 {

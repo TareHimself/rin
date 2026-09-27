@@ -8,6 +8,6 @@ public class WindowSurfaceCollectedData(CommandList commandList) : DefaultCollec
     public override void Write(IGraphBuilder builder)
     {
         base.Write(builder);
-        builder.AddPass(new CopySurfaceToSwapchain(SurfaceContext));
+        builder.AddPass(new CopyToDestination(SurfaceContext));
     }
 }

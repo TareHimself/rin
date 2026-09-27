@@ -6,7 +6,7 @@ using Rin.Core.Graphics.Shaders;
 
 namespace Rin.World.Graphics.Default.Passes;
 
-public partial class LightingPass(DefaultWorldCollectedData context) : IPass
+public partial class LightingPass(DefaultWorldViewData context) : IPass
 {
     [GraphicsShader("Shaders/World/lighting.slang")]
     private partial IGraphicsShader Shader { get; }
@@ -22,7 +22,7 @@ public partial class LightingPass(DefaultWorldCollectedData context) : IPass
         config.ReadTexture(context.GBufferImage1, ImageLayout.ShaderReadOnly);
         config.ReadTexture(context.GBufferImage2, ImageLayout.ShaderReadOnly);
         config.ReadTexture(context.GBufferImage3, ImageLayout.ShaderReadOnly);
-        context.OutputImageId = config.CreateTexture(context.Extent, ImageFormat.RGBA32, ImageLayout.ColorAttachment);
+        context.OutputImageId = config.CreateTexture(context.Extent, ImageFormat.RGBA16, ImageLayout.ColorAttachment);
         _worldBufferId = config.CreateBuffer<LightingInfo>(GraphBufferUsage.HostThenGraphics);
         _lightBufferId = config.CreateBuffer<LightInfo>(context.Lights.Length, GraphBufferUsage.HostThenGraphics);
     }

@@ -32,6 +32,8 @@ public class DefaultRenderSystem : IRenderSystem
     private readonly Stack<uint> _freeIndices = new();
     private readonly ConcurrentQueue<Action> _commands = new();
     private float _interpolationAlpha = 1f;
+    private DefaultWorldSnapshot? _scene;
+    private float _sceneAlpha;
 
     public RenderProxyHandle CreateStaticMeshProxy(in StaticMeshProxyDesc desc)
     {
@@ -115,7 +117,24 @@ public class DefaultRenderSystem : IRenderSystem
 
     public IWorldCollectedData Snapshot(CameraComponent view, in Extent2D extent)
     {
-        while (_commands.TryDequeue(out var command)) command();
+        var changed = false;
+        while (_commands.TryDequeue(out var command))
+        {
+            command();
+            changed = true;
+        }
+
+        if (changed || _scene is null || _sceneAlpha != _interpolationAlpha)
+        {
+            _scene = BuildScene();
+            _sceneAlpha = _interpolationAlpha;
+        }
+
+        return new DefaultWorldViewData(view, extent, _scene);
+    }
+
+    private DefaultWorldSnapshot BuildScene()
+    {
 
         List<StaticMeshInfo> staticMeshes = [];
         List<SkinnedMeshInfo> skinnedMeshes = [];
@@ -151,12 +170,12 @@ public class DefaultRenderSystem : IRenderSystem
             }
         }
 
-        return new DefaultWorldCollectedData(view, extent, staticMeshes.ToArray(), skinnedMeshes.ToArray(),
-            lights.ToArray());
+        return new DefaultWorldSnapshot(staticMeshes.ToArray(), skinnedMeshes.ToArray(), lights.ToArray());
     }
 
     public void Dispose()
     {
+        _scene = null;
     }
 
     private RenderProxyHandle Reserve()

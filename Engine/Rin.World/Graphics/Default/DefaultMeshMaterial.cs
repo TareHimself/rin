@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Core;
 using Rin.Core.Graphics;
@@ -82,7 +83,7 @@ public class DefaultMeshMaterial : IMeshMaterial
                 meshMaterial.SpecularImageId, meshMaterial.RoughnessImageId, meshMaterial.EmissiveImageId);
         }
 
-        public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
+        public override void Write(Span<byte> destination, ProcessedMesh mesh)
         {
             var data = new DefaultMaterialProperties
             {
@@ -100,7 +101,7 @@ public class DefaultMeshMaterial : IMeshMaterial
                 Emissive = meshMaterial.Emissive,
                 EmissiveTextureId = meshMaterial.EmissiveImageId
             };
-            view.WriteSingle(data);
+            MemoryMarshal.Write(destination, in data);
         }
 
         [NoReorder]
@@ -212,9 +213,9 @@ public class DefaultMeshMaterial : IMeshMaterial
             return mesh.Material.DepthPass;
         }
 
-        public override void Write(in DeviceBufferView view, ProcessedMesh mesh)
+        public override void Write(Span<byte> destination, ProcessedMesh mesh)
         {
-            view.WriteSingle(new DepthMaterialData
+            MemoryMarshal.Write(destination, new DepthMaterialData
             {
                 Transform = mesh.Transform,
                 VertexAddress = mesh.VertexBuffer.GetAddress()

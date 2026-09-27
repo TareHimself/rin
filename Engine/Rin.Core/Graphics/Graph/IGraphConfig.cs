@@ -2,7 +2,7 @@ namespace Rin.Core.Graphics.Graph;
 
 public interface IGraphConfig
 {
-    public uint SwapchainImageId { get; }
+    public uint DestinationImageId { get; }
 
     /// <inheritdoc cref="IGraphBuilder.AddExternalImage" />
     public uint AddExternalImage(ResourceHandle handle, Action? onDispose = null);

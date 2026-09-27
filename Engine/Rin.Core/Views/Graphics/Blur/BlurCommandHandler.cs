@@ -40,8 +40,8 @@ internal class BlurInitCommandHandler : ICommandHandler
             var min = float.Min(command.BlurRadius.X, command.BlurRadius.Y);
             command.BlurRadius = new Vector2(min);
             var extent = new Extent2D((uint)float.Ceiling(newSize.X), (uint)float.Ceiling(newSize.Y));
-            command.FirstPassImageId = config.CreateTexture(extent, ImageFormat.RGBA8, ImageLayout.TransferDst);
-            command.SecondPassImageId = config.CreateTexture(extent, ImageFormat.RGBA32, ImageLayout.ColorAttachment);
+            command.FirstPassImageId = config.CreateTexture(extent, ImageFormat.RGBA16, ImageLayout.TransferDst);
+            command.SecondPassImageId = config.CreateTexture(extent, ImageFormat.RGBA16, ImageLayout.ColorAttachment);
             command.LocalProjection = MathR.ViewportProjection(newSize.X, newSize.Y, 0, 1f);
         }
     }

@@ -19,11 +19,9 @@ public interface IMaterialPass
     public ulong GetRequiredMemory();
 
     /// <summary>
-    ///     WriteSingle to the <see cref="IDeviceBuffer" /> that will be the size returned from <see cref="GetRequiredMemory" />
+    ///     Writes this mesh's data into <paramref name="destination" />, which is <see cref="GetRequiredMemory" /> bytes.
     /// </summary>
-    /// <param name="view"></param>
-    /// <param name="mesh">The mesh this write is for</param>
-    public void Write(in DeviceBufferView view, ProcessedMesh mesh);
+    public void Write(Span<byte> destination, ProcessedMesh mesh);
 
     public IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer);
 

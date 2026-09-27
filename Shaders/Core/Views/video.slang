@@ -50,7 +50,7 @@ VSOut vertex(VSIn input)
 }
 
 
-[shader("fragment"),Attachment(AttachmentFormat.RGBA32), BlendUI,Stencil]
+[shader("fragment"),Attachment(AttachmentFormat.RGBA16), BlendUI,Stencil]
 float4 fragment(FSIn input)
     : SV_Target
 {

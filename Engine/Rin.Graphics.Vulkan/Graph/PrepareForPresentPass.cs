@@ -12,7 +12,7 @@ internal class PrepareForPresentPass : ITerminalPass
 
     public void Configure(IGraphConfig config)
     {
-        config.WriteTexture(config.SwapchainImageId, ImageLayout.Present);
+        config.WriteTexture(config.DestinationImageId, ImageLayout.Present);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
