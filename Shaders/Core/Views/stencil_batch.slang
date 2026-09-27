@@ -26,18 +26,7 @@ float4 vertex(int instanceId: SV_InstanceID, int vertexId: SV_VertexID,out int o
     return float4(_stencil_internal_vertices[vertexId], 0.0, 1.0);
 }
 
-// // Seems like we have to output something so BlendNone combined with an attachment will set write mask to none
-// [shader("fragment"), Attachment(AttachmentFormat.RGBA32),BlendNone, Stencil]
-// float4 fragment(in int iQuadIndex: QUAD_INDEX, float2 coordinate: SV_Position) : SV_Target
-// {
-//     StencilInfo clip = push.clips[iQuadIndex];
-//     float4 result = applyBorderRadius(coordinate, float4(float3(0.0), 1.0), float4(0.0), clip.size, clip.transform);
-//     if (result.w > 0.01) {
-//         discard;
-//     }
 
-//     return float4(1.0);
-// }
 // Seems like we have to output something so BlendNone combined with an attachment will set write mask to none
 [shader("fragment"), BlendNone, Stencil]
 void fragment(in int iQuadIndex: QUAD_INDEX, float2 coordinate: SV_Position)

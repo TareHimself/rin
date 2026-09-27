@@ -17,8 +17,8 @@ public class CreateImagesPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        Context.MainImageId = config.CreateTexture(Context.Extent, ImageFormat.RGBA32, ImageLayout.TransferDst);
-        Context.CopyImageId = config.CreateTexture(Context.Extent, ImageFormat.RGBA32, ImageLayout.TransferDst);
+        Context.MainImageId = config.CreateTexture(Context.Extent, ImageFormat.RGBA16, ImageLayout.TransferDst);
+        Context.CopyImageId = config.CreateTexture(Context.Extent, ImageFormat.RGBA16, ImageLayout.TransferDst);
         Context.StencilImageId = config.CreateTexture(Context.Extent, ImageFormat.Stencil, ImageLayout.TransferDst);
     }
 

@@ -67,14 +67,45 @@ public class ViewsTestApplication : ExampleApplication
         {
             var list = new ListView
             {
-                Axis = Axis.Row
+                Axis = Axis.Row,
             };
-            // Video panel slot disabled temporarily to allow unattended runs (SelectFile blocks on a
-            // native file picker) - restore the FileVideoSource + FitterView PanelSlot to bring it back.
+
+            var videoFitter = new FitterView
+            {
+                FittingMode = FitMode.Contain,
+                Padding = 50.0f,
+                Clip = Clip.Bounds
+            };
+            var selectVideoButton = new ButtonView
+            {
+                Color = Color.Red,
+                BorderRadius = new Vector4(10.0f),
+                Padding = 20.0f,
+                InitChild = new TextBoxView
+                {
+                    Content = "Select Video",
+                    FontSize = 24.0f
+                }
+            };
+            selectVideoButton.OnReleased += (_, _) =>
+                Task.Run(() => IApplication.Get().SelectFile("Select a webm video", filter: "*.webm"))
+                    .Dispatch(IApplication.Get().MainDispatcher, files =>
+                    {
+                        if (files.FirstOrDefault() is { } file)
+                            videoFitter.SetChild(VideoPlayerView.FromSource(new FileVideoSource(file)));
+                    });
+            videoFitter.SetChild(selectVideoButton);
+
             surf.Add(new PanelView
             {
                 InitSlots =
                 [
+                    new PanelSlot
+                    {
+                        Child = videoFitter,
+                        MinAnchor = Vector2.Zero,
+                        MaxAnchor = Vector2.One
+                    },
                     new PanelSlot
                     {
                         Child = list,

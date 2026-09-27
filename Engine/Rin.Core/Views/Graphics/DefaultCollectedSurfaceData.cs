@@ -84,7 +84,7 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
 
     public SurfaceContext SurfaceContext { get; }
 
-    private void ProcessPendingCommands(IEnumerable<ICommand> drawCommands,
+    private static void ProcessPendingCommands(IEnumerable<ICommand> drawCommands,
         SurfaceContext context, List<IPass> passes)
     {
         List<ICommand> currentCommands = [];

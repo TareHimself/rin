@@ -54,10 +54,7 @@ float distanceFromZero(float x, float y)
     return sqrt((x * x) + (y * y));
 }
 
-// float2 getUv(float2 uv,float4 uvRect){
-//     var result = mapRangeUnClamped(uv,uvRect.xy,uvRect.zw)
-// }
-[shader("fragment"), Attachment(AttachmentFormat.RGBA32), BlendUI, Stencil]
+[shader("fragment"), Attachment(AttachmentFormat.RGBA16), BlendUI, Stencil]
 float4 fragment(in float2 iUV: UV, float2 coordinate: SV_Position)
     : SV_Target
 {

@@ -160,7 +160,7 @@ float screenPxRange(float2 uv, float2 size, float pixelRange)
 
 #define SDF_HALF_STEP 1.0
 
-[shader("fragment"),Attachment(AttachmentFormat.RGBA32), BlendUI,Stencil]
+[shader("fragment"),Attachment(AttachmentFormat.RGBA16), BlendUI,Stencil]
 float4 fragment(FSIn input)
     : SV_Target
     {
