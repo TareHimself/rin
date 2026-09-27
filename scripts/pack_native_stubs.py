@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""Pack placeholder nupkgs for native/*/specs/Release.nuspec into a local feed.
+"""Pack placeholder nupkgs for the native/*.Native packages into a local feed.
 
 Every native package here only ships runtimes/**/native/*.dll files (no managed
 assembly), so restore/build never inspects their contents. This lets CI (or any
 workflow that never calls into the native code, e.g. unit tests built on fakes)
-satisfy those PackageReferences without running the C++ build pipeline.
+satisfy those PackageReferences without running the C++ build pipeline (Conan/
+CMake/Vulkan SDK) or even the real nuspec generator, which needs already-built
+binaries to scan and so can't run on a clean checkout either.
+
+Package ids/versions come from the repo's own Directory.Packages.props (the
+single source of truth other projects already reference), not duplicated here.
 """
 
+import re
 import subprocess
 import sys
 import tempfile
@@ -16,15 +22,41 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def make_stub_nuspec(real_nuspec: Path, placeholder: Path, out_path: Path) -> None:
-    tree = ET.parse(real_nuspec)
-    root = tree.getroot()
-    files = root.find("files")
-    if files is None:
-        raise ValueError(f"{real_nuspec} has no <files> section")
-    for file_elem in files.findall("file"):
-        file_elem.set("src", str(placeholder))
-    tree.write(out_path, xml_declaration=True, encoding="utf-8")
+def resolve_version(pattern: str) -> str:
+    parts = [p if p != "*" else "0" for p in pattern.split(".")]
+    while len(parts) < 3:
+        parts.append("0")
+    return ".".join(parts)
+
+
+def native_packages() -> list[tuple[str, str]]:
+    tree = ET.parse(REPO_ROOT / "Directory.Packages.props")
+    result = []
+    for elem in tree.getroot().iter("PackageVersion"):
+        package_id = elem.get("Include", "")
+        if package_id.endswith(".Native"):
+            result.append((package_id, resolve_version(elem.get("Version", "1.0.0"))))
+    return result
+
+
+def make_stub_nuspec(package_id: str, version: str, placeholder: Path, out_path: Path) -> None:
+    nuspec = f"""<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>{package_id}</id>
+    <version>{version}</version>
+    <authors>TareHimself</authors>
+    <description>Stub native package (no real binaries) for CI/tests that never call into it.</description>
+    <packageTypes>
+      <packageType name="Dependency" />
+    </packageTypes>
+  </metadata>
+  <files>
+    <file src="{placeholder}" target="runtimes/win-x64/native/stub.dll" />
+  </files>
+</package>
+"""
+    out_path.write_text(nuspec, encoding="utf-8")
 
 
 def main() -> int:
@@ -35,9 +67,9 @@ def main() -> int:
     feed_dir = Path(sys.argv[1])
     feed_dir.mkdir(parents=True, exist_ok=True)
 
-    nuspecs = sorted(REPO_ROOT.glob("native/*/specs/Release.nuspec"))
-    if not nuspecs:
-        print("No native/*/specs/Release.nuspec files found", file=sys.stderr)
+    packages = native_packages()
+    if not packages:
+        print("No *.Native packages found in Directory.Packages.props", file=sys.stderr)
         return 1
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -45,13 +77,18 @@ def main() -> int:
         placeholder = tmp_dir / "placeholder.dll"
         placeholder.write_bytes(b"stub")
 
-        for nuspec in nuspecs:
-            project_dir = nuspec.parents[1]
-            project_csproj = project_dir / "project.csproj"
-            stub_nuspec = tmp_dir / f"{project_dir.name}.nuspec"
-            make_stub_nuspec(nuspec, placeholder, stub_nuspec)
+        # project dir name = package id with the "TareHimself." prefix stripped
+        for package_id, version in packages:
+            project_name = re.sub(r"^TareHimself\.", "", package_id)
+            project_csproj = REPO_ROOT / "native" / project_name / "project.csproj"
+            if not project_csproj.exists():
+                print(f"Skipping {package_id}: no {project_csproj}", file=sys.stderr)
+                continue
 
-            print(f"Packing stub for {project_dir.name}...")
+            stub_nuspec = tmp_dir / f"{project_name}.nuspec"
+            make_stub_nuspec(package_id, version, placeholder, stub_nuspec)
+
+            print(f"Packing stub for {package_id} {version}...")
             subprocess.run(
                 [
                     "dotnet", "pack", str(project_csproj),
