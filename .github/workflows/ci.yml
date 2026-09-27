@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Pack native stub packages
+        run: python scripts/pack_native_stubs.py .feed
+
+      - name: Publish native fakes
+        run: python scripts/publish_native_fakes.py win-x64
+
+      - name: Test
+        run: |
+          dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj --nologo
+          dotnet test Engine/Rin.World.Tests/Rin.World.Tests.csproj --nologo
+          dotnet test Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj --nologo
+          dotnet test Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj --nologo
+          dotnet test Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj --nologo
+          dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj --nologo

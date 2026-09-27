@@ -10,11 +10,7 @@ namespace Rin.Slang.Compiler;
 
 internal static partial class Native
 {
-#if OS_WINDOWS
     private const string DllName = "Rin.Slang.Native";
-#else
-    private const string DllName = "libRin.Slang.Native";
-#endif
 
     [LibraryImport(DllName)]
     public static unsafe partial void* slangSessionBuilderNew();

@@ -13,11 +13,7 @@ namespace Rin.Core;
 
 internal static partial class Native
 {
-#if OS_WINDOWS
     private const string DllName = "Rin.Native";
-#else
-    private const string DllName = "libRin.Native";
-#endif
 
     
 
