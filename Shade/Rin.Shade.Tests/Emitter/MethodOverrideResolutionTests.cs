@@ -3,12 +3,8 @@ using Rin.Shade.Transpiler;
 
 namespace Rin.Shade.Tests.Emitter;
 
-// A call to an abstract/virtual method through implicit `this`, made from code physically
-// declared in a shared base class, resolves in Roslyn's own operation tree to the base's own
-// declaration - not the override that actually runs. Since a shader has no runtime polymorphism
-// (each [Shader] class is its own independent, monomorphic output), the most-derived override is
-// always statically resolvable - OverrideResolution does that resolution so the transpiler walks
-// the real body instead of failing on a bodyless abstract stub.
+// A call to an abstract/virtual method from a shared base class resolves, in Roslyn's operation
+// tree, to the base's own declaration - not the override that runs. OverrideResolution fixes that.
 public class MethodOverrideResolutionTests
 {
     [Test]

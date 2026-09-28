@@ -2,11 +2,9 @@ using Rin.Shade.Transpiler;
 
 namespace Rin.Shade.Tests.Emitter;
 
-// A shader class deriving from a CLOSED generic base ("class Consumer : Base<ConsumerData>") is a
-// cheap, interface-free way to share an algorithm across data structs. Roslyn substitutes TData
-// throughout the base's members for free (chain's GetMembers() already returns it as
-// ConsumerData), and OverrideResolution.cs resolves a call to an abstract/virtual helper - made
-// from code physically declared in the base - to the concrete override.
+// A closed generic base ("class Consumer : Base<ConsumerData>") is a cheap, interface-free way to
+// share an algorithm across data structs - TData gets substituted for free, and OverrideResolution
+// resolves the abstract helper call to Consumer's override.
 public class GenericBaseShaderTests
 {
     [Test]
