@@ -16,7 +16,8 @@ namespace Rin.Shade.Transpiler;
 /// wherever it's actually called. Anything else is a diagnostic, not a crash.
 /// </summary>
 internal sealed class BodyLowering(
-    List<Diagnostic> diagnostics, SlangWriter writer, IReadOnlySet<string>? shadowableFieldNames = null)
+    List<Diagnostic> diagnostics, SlangWriter writer, IReadOnlySet<string>? shadowableFieldNames = null,
+    IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null)
 {
     private int _loopDepth;
 
@@ -226,6 +227,8 @@ internal sealed class BodyLowering(
                 return LowerInvocation(invocation);
             case IObjectCreationOperation creation:
                 return LowerObjectCreation(creation);
+            case IWithOperation withOperation:
+                return LowerWith(withOperation);
             default:
                 diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
                     op.Syntax.GetLocation(), op.Kind.ToString()));
@@ -336,6 +339,46 @@ internal sealed class BodyLowering(
 
         var arguments = creation.Arguments.Select(a => LowerExpr(a.Value)).ToArray();
         return $"{TypeMapping.MapType(type)}({string.Join(", ", arguments)})";
+    }
+
+    // Lowered to a call to a synthesized helper (WithLowering), collected up front from the exact
+    // same set of bodies this class ends up rendering - so a spec should always be found here; the
+    // diagnostic fallback exists only in case that invariant is ever broken, not as a real path.
+    private string LowerWith(IWithOperation withOperation)
+    {
+        if (withOperation.Type is null || withOperation.Initializer is null)
+        {
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                withOperation.Syntax.GetLocation(), "with expression"));
+            return "/* unsupported */";
+        }
+
+        var overrides = new List<(string SlangName, string ValueExpr)>();
+        foreach (var initializer in withOperation.Initializer.Initializers)
+        {
+            if (initializer is not ISimpleAssignmentOperation { Target: IFieldReferenceOperation fieldRef } assignment)
+            {
+                diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                    initializer.Syntax.GetLocation(), "non-field member in a 'with' initializer"));
+                return "/* unsupported */";
+            }
+
+            overrides.Add((Naming.ToSlangIdentifier(fieldRef.Field.Name), LowerExpr(assignment.Value)));
+        }
+
+        overrides.Sort((a, b) => string.CompareOrdinal(a.SlangName, b.SlangName));
+
+        var key = WithLowering.ComputeKey(withOperation.Type, overrides.Select(o => o.SlangName));
+        if (withHelpers is null || !withHelpers.TryGetValue(key, out var spec))
+        {
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                withOperation.Syntax.GetLocation(), "with expression (no matching helper collected)"));
+            return "/* unsupported */";
+        }
+
+        var operand = LowerExpr(withOperation.Operand);
+        var arguments = string.Join(", ", overrides.Select(o => o.ValueExpr));
+        return $"{spec.FunctionName}({operand}, {arguments})";
     }
 
     private string SubstituteTemplate(string template, IInvocationOperation invocation)

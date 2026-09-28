@@ -43,6 +43,16 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             .Where(m => !SymbolEqualityComparer.Default.Equals(m, entryMethod))
             .ToList();
 
+        // Walks the exact same bodies FunctionLowering/BodyLowering go on to render below, so every
+        // `with` expression that ends up emitted has already had its helper collected here first -
+        // helpers are leaf functions (no calls of their own), so emitting them ahead of functionOrder
+        // always satisfies Slang's define-before-use requirement regardless of which function uses one.
+        var withHelperSpecs = new Dictionary<string, WithHelperSpec>();
+        var withHelperOrder = new List<WithHelperSpec>();
+        WithLowering.Collect(entryMethod, compilation, diagnostics, withHelperSpecs, withHelperOrder);
+        foreach (var function in functionOrder)
+            WithLowering.Collect(function, compilation, diagnostics, withHelperSpecs, withHelperOrder);
+
         var writer = new SlangWriter();
 
         foreach (var type in typeOrder)
@@ -61,9 +71,15 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             writer.Line();
         }
 
+        foreach (var helper in withHelperOrder)
+        {
+            writer.Append(WithLowering.Emit(helper));
+            writer.Line();
+        }
+
         foreach (var function in functionOrder)
         {
-            writer.Append(FunctionLowering.Lower(compilation, function, diagnostics));
+            writer.Append(FunctionLowering.Lower(compilation, function, diagnostics, withHelperSpecs));
             writer.Line();
         }
 
@@ -79,7 +95,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         writer.Line($"[numthreads({x}, {y}, {z})]");
 
         FunctionLowering.WriteSignatureAndBody(compilation, entryMethod, diagnostics, writer,
-            $"void {Naming.ToSlangIdentifier(entryMethod.Name)}");
+            $"void {Naming.ToSlangIdentifier(entryMethod.Name)}", withHelpers: withHelperSpecs);
 
         return writer.ToString();
     }

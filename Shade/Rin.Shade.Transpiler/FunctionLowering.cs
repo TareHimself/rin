@@ -7,7 +7,8 @@ namespace Rin.Shade.Transpiler;
 
 internal static class FunctionLowering
 {
-    public static string Lower(Compilation compilation, IMethodSymbol method, List<Diagnostic> diagnostics)
+    public static string Lower(Compilation compilation, IMethodSymbol method, List<Diagnostic> diagnostics,
+        IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null)
     {
         if (method.RefKind != RefKind.None)
         {
@@ -54,25 +55,26 @@ internal static class FunctionLowering
 
             writer.OpenBrace($"extension {method.ContainingType.Name}");
             if (!isConstructor && WritesToImplicitThis(compilation, method)) writer.Line("[mutating]");
-            WriteSignatureAndBody(compilation, method, diagnostics, writer, signature, fieldNames);
+            WriteSignatureAndBody(compilation, method, diagnostics, writer, signature, fieldNames, withHelpers);
             writer.CloseBrace();
             return writer.ToString();
         }
 
-        WriteSignatureAndBody(compilation, method, diagnostics, writer, signature);
+        WriteSignatureAndBody(compilation, method, diagnostics, writer, signature, withHelpers: withHelpers);
         return writer.ToString();
     }
 
     public static void WriteSignatureAndBody(Compilation compilation, IMethodSymbol method,
         List<Diagnostic> diagnostics, SlangWriter writer, string signaturePrefix,
-        IReadOnlySet<string>? shadowableFieldNames = null)
+        IReadOnlySet<string>? shadowableFieldNames = null,
+        IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null)
     {
         var parameterList = string.Join(", ", method.Parameters.Select(p =>
             $"{RefModifier(p.RefKind)}{TypeMapping.MapType(p.Type)} {Naming.ToSlangIdentifier(p.Name)}"));
 
         writer.OpenBrace($"{signaturePrefix}({parameterList})");
 
-        var body = new BodyLowering(diagnostics, writer, shadowableFieldNames);
+        var body = new BodyLowering(diagnostics, writer, shadowableFieldNames, withHelpers);
         foreach (var bodyOperation in MethodSource.GetBodies(method, compilation))
             body.LowerStatement(bodyOperation);
 
