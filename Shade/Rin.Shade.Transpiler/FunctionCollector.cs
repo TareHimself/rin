@@ -1,0 +1,62 @@
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Operations;
+
+namespace Rin.Shade.Transpiler;
+
+/// <summary>
+/// Walks a method's body for calls to other plain (non-[SlangCall]-bound) methods with source,
+/// post-order, so a callee is always collected before its caller - mirrors TypeCollector's
+/// dependency ordering, but for the call graph instead of the field graph. A method never reached
+/// this way is never added to Order, which is the dead-code-elimination guarantee. Local functions
+/// go through the exact same walk as any other method - MethodSource treats both declaration
+/// shapes uniformly.
+/// </summary>
+internal sealed class FunctionCollector(Compilation compilation, List<Diagnostic> diagnostics)
+{
+    private readonly HashSet<IMethodSymbol> _visited = new(SymbolEqualityComparer.Default);
+    private readonly HashSet<IMethodSymbol> _visiting = new(SymbolEqualityComparer.Default);
+
+    public List<IMethodSymbol> Order { get; } = [];
+
+    public void Collect(IMethodSymbol method)
+    {
+        if (!_visiting.Add(method))
+        {
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.RecursionNotSupported,
+                method.Locations.FirstOrDefault() ?? Location.None, method.Name));
+            return;
+        }
+
+        foreach (var body in MethodSource.GetBodies(method, compilation))
+            foreach (var invocation in FindDirectInvocations(body))
+                VisitCallee(invocation.TargetMethod);
+
+        _visiting.Remove(method);
+        if (_visited.Add(method)) Order.Add(method);
+    }
+
+    private void VisitCallee(IMethodSymbol method)
+    {
+        if (IntrinsicBindings.HasBinding(method)) return;
+        if (!MethodSource.HasBody(method)) return;
+        if (_visited.Contains(method)) return;
+
+        Collect(method);
+    }
+
+    // A plain descendants walk would also find calls inside a nested, never-invoked local
+    // function's body, since it's lexically nested in the enclosing method's tree - that would
+    // defeat dead-code elimination for local functions. A local function's own body is only ever
+    // walked (via Collect, above) once something actually calls it, so descent stops here.
+    private static IEnumerable<IInvocationOperation> FindDirectInvocations(IOperation root)
+    {
+        if (root is IInvocationOperation invocation) yield return invocation;
+        if (root is ILocalFunctionOperation) yield break;
+
+        foreach (var child in root.ChildOperations)
+        foreach (var found in FindDirectInvocations(child))
+            yield return found;
+    }
+}

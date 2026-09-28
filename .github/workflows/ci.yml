@@ -52,3 +52,6 @@ jobs:
 
       - name: Test Rin.Slang.Compiler.Tests
         run: dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj -p:RinSlangSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
+
+      - name: Test Rin.Shade.Tests
+        run: dotnet test Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj --no-restore --nologo --logger "console;verbosity=normal"

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>Rin.Shade.Cli</RootNamespace>
+        <AssemblyName>rin-shade</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Rin.Shade\Rin.Shade.csproj"/>
+        <ProjectReference Include="..\Rin.Shade.Transpiler\Rin.Shade.Transpiler.csproj"/>
+    </ItemGroup>
+
+</Project>
