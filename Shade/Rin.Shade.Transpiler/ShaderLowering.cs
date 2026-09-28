@@ -43,7 +43,9 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         foreach (var parameter in entryMethod.Parameters)
             TypeCollector.Collect(parameter.Type, typeOrder, visited);
 
-        var functionCollector = new FunctionCollector(compilation, diagnostics);
+        var overrides = OverrideResolution.Build(chain);
+
+        var functionCollector = new FunctionCollector(compilation, diagnostics, overrides);
         functionCollector.Collect(entryMethod);
         var functionOrder = functionCollector.Order
             .Where(m => !SymbolEqualityComparer.Default.Equals(m, entryMethod))
@@ -94,7 +96,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
 
         foreach (var function in functionOrder)
         {
-            writer.Append(FunctionLowering.Lower(compilation, function, diagnostics, withHelperSpecs));
+            writer.Append(FunctionLowering.Lower(compilation, function, diagnostics, withHelperSpecs, overrides));
             writer.Line();
         }
 
@@ -110,7 +112,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         writer.Line($"[numthreads({x}, {y}, {z})]");
 
         FunctionLowering.WriteSignatureAndBody(compilation, entryMethod, diagnostics, writer,
-            $"void {Naming.ToSlangIdentifier(entryMethod.Name)}", withHelpers: withHelperSpecs);
+            $"void {Naming.ToSlangIdentifier(entryMethod.Name)}", withHelpers: withHelperSpecs, overrides: overrides);
 
         return writer.ToString();
     }

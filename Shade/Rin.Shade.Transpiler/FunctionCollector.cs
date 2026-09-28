@@ -14,7 +14,9 @@ namespace Rin.Shade.Transpiler;
 /// shapes uniformly. Constructors reached via `new T(...)` are collected the same way as ordinary
 /// calls, so a struct's __init gets emitted whenever something actually constructs it.
 /// </summary>
-internal sealed class FunctionCollector(Compilation compilation, List<Diagnostic> diagnostics)
+internal sealed class FunctionCollector(
+    Compilation compilation, List<Diagnostic> diagnostics,
+    IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides = null)
 {
     private readonly HashSet<IMethodSymbol> _visited = new(SymbolEqualityComparer.Default);
     private readonly HashSet<IMethodSymbol> _visiting = new(SymbolEqualityComparer.Default);
@@ -39,7 +41,8 @@ internal sealed class FunctionCollector(Compilation compilation, List<Diagnostic
                     IObjectCreationOperation { Constructor: { } ctor } => ctor,
                     _ => null
                 };
-                if (target is not null) VisitCallee(target);
+                if (target is not null)
+                    VisitCallee(overrides is null ? target : OverrideResolution.Resolve(target, overrides));
             }
 
         _visiting.Remove(method);

@@ -16,7 +16,8 @@ namespace Rin.Shade.Transpiler;
 /// </summary>
 internal sealed class BodyLowering(
     List<Diagnostic> diagnostics, SlangWriter writer, IReadOnlySet<string>? shadowableFieldNames = null,
-    IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null)
+    IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null,
+    IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides = null)
 {
     private int _loopDepth;
 
@@ -279,7 +280,9 @@ internal sealed class BodyLowering(
 
     private string LowerInvocation(IInvocationOperation invocation)
     {
-        var method = invocation.TargetMethod;
+        var method = overrides is null
+            ? invocation.TargetMethod
+            : OverrideResolution.Resolve(invocation.TargetMethod, overrides);
 
         if (IsVectorMatrixTransform(method))
         {
