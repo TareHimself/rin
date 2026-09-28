@@ -93,5 +93,13 @@ internal static class Diagnostics
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor FieldShadowsCalledFunction = new(
+            id: "SHADE0012",
+            title: "Unqualified call resolves to a same-named field instead",
+            messageFormat: "'{0}' is both a field on this struct and the target of this unqualified call - Slang resolves the call to the field instead (even for its own builtins, e.g. a field named 'min' shadows min(...)), which fails to compile; rename the field or the called function",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }

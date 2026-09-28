@@ -11,7 +11,8 @@ namespace Rin.Shade.Transpiler;
 /// dependency ordering, but for the call graph instead of the field graph. A method never reached
 /// this way is never added to Order, which is the dead-code-elimination guarantee. Local functions
 /// go through the exact same walk as any other method - MethodSource treats both declaration
-/// shapes uniformly.
+/// shapes uniformly. Constructors reached via `new T(...)` are collected the same way as ordinary
+/// calls, so a struct's __init gets emitted whenever something actually constructs it.
 /// </summary>
 internal sealed class FunctionCollector(Compilation compilation, List<Diagnostic> diagnostics)
 {
@@ -30,8 +31,16 @@ internal sealed class FunctionCollector(Compilation compilation, List<Diagnostic
         }
 
         foreach (var body in MethodSource.GetBodies(method, compilation))
-            foreach (var invocation in FindDirectInvocations(body))
-                VisitCallee(invocation.TargetMethod);
+            foreach (var callSite in FindReachableCallSites(body))
+            {
+                var target = callSite switch
+                {
+                    IInvocationOperation invocation => invocation.TargetMethod,
+                    IObjectCreationOperation { Constructor: { } ctor } => ctor,
+                    _ => null
+                };
+                if (target is not null) VisitCallee(target);
+            }
 
         _visiting.Remove(method);
         if (_visited.Add(method)) Order.Add(method);
@@ -50,13 +59,13 @@ internal sealed class FunctionCollector(Compilation compilation, List<Diagnostic
     // function's body, since it's lexically nested in the enclosing method's tree - that would
     // defeat dead-code elimination for local functions. A local function's own body is only ever
     // walked (via Collect, above) once something actually calls it, so descent stops here.
-    private static IEnumerable<IInvocationOperation> FindDirectInvocations(IOperation root)
+    private static IEnumerable<IOperation> FindReachableCallSites(IOperation root)
     {
-        if (root is IInvocationOperation invocation) yield return invocation;
+        if (root is IInvocationOperation or IObjectCreationOperation) yield return root;
         if (root is ILocalFunctionOperation) yield break;
 
         foreach (var child in root.ChildOperations)
-        foreach (var found in FindDirectInvocations(child))
+        foreach (var found in FindReachableCallSites(child))
             yield return found;
     }
 }

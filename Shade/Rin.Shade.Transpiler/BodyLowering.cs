@@ -15,7 +15,8 @@ namespace Rin.Shade.Transpiler;
 /// emits nothing at its declaration site, and is walked/emitted like any other plain function
 /// wherever it's actually called. Anything else is a diagnostic, not a crash.
 /// </summary>
-internal sealed class BodyLowering(List<Diagnostic> diagnostics, SlangWriter writer)
+internal sealed class BodyLowering(
+    List<Diagnostic> diagnostics, SlangWriter writer, IReadOnlySet<string>? shadowableFieldNames = null)
 {
     private int _loopDepth;
 
@@ -223,6 +224,8 @@ internal sealed class BodyLowering(List<Diagnostic> diagnostics, SlangWriter wri
                 return $"{LowerExpr(assignment.Target)} = {LowerExpr(assignment.Value)}";
             case IInvocationOperation invocation:
                 return LowerInvocation(invocation);
+            case IObjectCreationOperation creation:
+                return LowerObjectCreation(creation);
             default:
                 diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
                     op.Syntax.GetLocation(), op.Kind.ToString()));
@@ -262,7 +265,11 @@ internal sealed class BodyLowering(List<Diagnostic> diagnostics, SlangWriter wri
         }
 
         var template = IntrinsicBindings.GetSlangCallTemplate(method);
-        if (template is not null) return SubstituteTemplate(template, invocation);
+        if (template is not null)
+        {
+            CheckFieldShadowing(TemplateCalleeIdentifier(template), invocation.Syntax.GetLocation());
+            return SubstituteTemplate(template, invocation);
+        }
 
         // this-instance is implicit (a shader class calling one of its own instance methods) -
         // emitted as a plain function call, same as a static helper; a real receiver value (e.g. a
@@ -276,13 +283,59 @@ internal sealed class BodyLowering(List<Diagnostic> diagnostics, SlangWriter wri
 
         if (MethodSource.HasBody(method))
         {
-            var call = $"{Naming.ToSlangIdentifier(method.Name)}({string.Join(", ", arguments)})";
+            var calleeName = Naming.ToSlangIdentifier(method.Name);
+            if (instance is null) CheckFieldShadowing(calleeName, invocation.Syntax.GetLocation());
+            var call = $"{calleeName}({string.Join(", ", arguments)})";
             return instance is not null ? $"{instance}.{call}" : call;
         }
 
         diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.NoSourceForMethod,
             invocation.Syntax.GetLocation(), method.Name));
         return "/* unresolved call */";
+    }
+
+    // An unqualified call inside a struct's own instance method is ambiguous with a same-named
+    // field on that struct - Slang's member scope shadows the outer scope, so the call resolves to
+    // the field and fails to compile (confirmed against the real Slang compiler; this applies even
+    // to the language's own builtins, e.g. a field called "min" shadows min(...)). shadowableFieldNames
+    // is only non-null when lowering a struct instance method's body, so this is a no-op everywhere
+    // else (free functions, the shader entry point, etc.) where there's no implicit-this scope to
+    // collide with.
+    private void CheckFieldShadowing(string calleeIdentifier, Location location)
+    {
+        if (shadowableFieldNames?.Contains(calleeIdentifier) == true)
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.FieldShadowsCalledFunction,
+                location, calleeIdentifier));
+    }
+
+    private static string TemplateCalleeIdentifier(string template)
+    {
+        var end = 0;
+        while (end < template.Length && (char.IsLetterOrDigit(template[end]) || template[end] == '_')) end++;
+        return template[..end];
+    }
+
+    // Slang constructs a value with the type name as a call, not `new` - `Bounds3D(loc)`, not
+    // `new Bounds3D(loc)`. The constructor itself (a struct's __init) is discovered and emitted
+    // like any other reachable method - see FunctionCollector's IObjectCreationOperation handling.
+    private string LowerObjectCreation(IObjectCreationOperation creation)
+    {
+        if (creation.Constructor is not { } ctor || creation.Type is not { } type)
+        {
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                creation.Syntax.GetLocation(), "object creation with no explicit constructor"));
+            return "/* unsupported */";
+        }
+
+        if (!MethodSource.HasBody(ctor) && !IntrinsicBindings.HasBinding(ctor))
+        {
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.NoSourceForMethod,
+                creation.Syntax.GetLocation(), $"{type.Name} constructor"));
+            return "/* unresolved constructor */";
+        }
+
+        var arguments = creation.Arguments.Select(a => LowerExpr(a.Value)).ToArray();
+        return $"{TypeMapping.MapType(type)}({string.Join(", ", arguments)})";
     }
 
     private string SubstituteTemplate(string template, IInvocationOperation invocation)

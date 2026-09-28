@@ -23,6 +23,8 @@ internal static class MethodSource
         MethodDeclarationSyntax { ExpressionBody: not null } => true,
         LocalFunctionStatementSyntax { Body: not null } => true,
         LocalFunctionStatementSyntax { ExpressionBody: not null } => true,
+        ConstructorDeclarationSyntax { Body: not null } => true,
+        ConstructorDeclarationSyntax { ExpressionBody: not null } => true,
         _ => false
     };
 
@@ -45,6 +47,13 @@ internal static class MethodSource
                 case LocalFunctionStatementSyntax localFunctionSyntax:
                     if (model.GetOperation(localFunctionSyntax) is ILocalFunctionOperation { Body: { } localBody })
                         yield return localBody;
+                    break;
+                case ConstructorDeclarationSyntax constructorSyntax:
+                    if (model.GetOperation(constructorSyntax) is IConstructorBodyOperation constructorBody)
+                    {
+                        var body = constructorBody.BlockBody ?? constructorBody.ExpressionBody;
+                        if (body is not null) yield return body;
+                    }
                     break;
             }
         }

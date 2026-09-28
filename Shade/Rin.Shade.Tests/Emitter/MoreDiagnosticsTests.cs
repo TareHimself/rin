@@ -185,4 +185,60 @@ public class MoreDiagnosticsTests
 
         Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0011"), Is.True);
     }
+
+    // Found while porting a real shader (bounds_update.slang): a field named "Min" lowers to the
+    // Slang identifier "min" - when one of the struct's own instance methods then calls the builtin
+    // min(...), the unqualified call resolves to the field instead (confirmed against the real Slang
+    // compiler), and fails to compile. A struct merely having a field named "min" is fine on its own -
+    // the collision only exists once something inside the struct's own scope actually calls it.
+    [Test]
+    public void FieldNameCollidingWithCalledFunctionIsRejected()
+    {
+        const string source = """
+                               using System.Numerics;
+                               using Rin.Shade;
+
+                               namespace BuiltinShadowCheck;
+
+                               public static class VectorIntrinsics
+                               {
+                                   [SlangCall("min($0, $1)")] public static extern Vector3 Min(Vector3 a, Vector3 b);
+                               }
+
+                               [ShaderStruct]
+                               public struct ShadowingBounds
+                               {
+                                   public Vector3 Min;
+
+                                   public void Grow(Vector3 v)
+                                   {
+                                       Min = VectorIntrinsics.Min(Min, v);
+                                   }
+                               }
+
+                               public struct BuiltinShadowPush
+                               {
+                                   public ShadowingBounds Bounds;
+                                   public BufferRef<float> Output;
+                               }
+
+                               [Shader("Fixtures/builtin_shadow.slang")]
+                               public class BuiltinShadowShader : Shader
+                               {
+                                   [Push] protected BuiltinShadowPush Push;
+
+                                   [Compute(1, 1, 1)]
+                                   public void Compute()
+                                   {
+                                       var bounds = Push.Bounds;
+                                       bounds.Grow(new Vector3(1f, 1f, 1f));
+                                       Push.Output[0] = 1f;
+                                   }
+                               }
+                               """;
+
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0012"), Is.True);
+    }
 }
