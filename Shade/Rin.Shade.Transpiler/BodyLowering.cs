@@ -200,6 +200,8 @@ internal sealed class BodyLowering(
                 return LowerFieldReference(field);
             case IPropertyReferenceOperation property when IsBufferRefIndexer(property.Property):
                 return $"{LowerExpr(property.Instance!)}[{LowerExpr(property.Arguments[0].Value)}]";
+            case IArrayElementReferenceOperation { Indices: [var index] } element:
+                return $"{LowerExpr(element.ArrayReference)}[{LowerExpr(index)}]";
             case IPropertyReferenceOperation property when IsSwizzle(property.Property):
                 return $"{LowerExpr(property.Instance!)}.{Naming.ToSlangIdentifier(property.Property.Name)}";
             case ILiteralOperation { ConstantValue: { HasValue: true, Value: var value } }:
@@ -259,8 +261,12 @@ internal sealed class BodyLowering(
 
         if (field.Instance is null)
         {
-            // Static reference - in practice always an enum member. Slang enum members keep their
-            // C# casing (real repo convention: `enum ResourceType { Texture, ... }`), unlike struct
+            // A [ShaderBinding] field lowers to a module-scope declaration (BindingLowering), not a
+            // struct member - referenced by its bare name, same as any other global.
+            if (BindingLowering.HasShaderBindingAttribute(field.Field)) return name;
+
+            // Otherwise a static reference is, in practice, always an enum member. Slang enum
+            // members keep their C# casing (`enum ResourceType { Texture, ... }`), unlike struct
             // fields, which get lowerCamelCased - so only qualify with the type name here.
             var typeName = TypeMapping.MapType(field.Field.ContainingType);
             return field.Field.ContainingType.TypeKind == TypeKind.Enum

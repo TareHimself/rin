@@ -101,5 +101,21 @@ internal static class Diagnostics
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor UnsupportedBindingField = new(
+            id: "SHADE0013",
+            title: "Unsupported [ShaderBinding] field",
+            messageFormat: "'{0}': {1}",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor DuplicateBinding = new(
+            id: "SHADE0014",
+            title: "Duplicate (Set, Binding)",
+            messageFormat: "field '{0}' claims (Set = {1}, Binding = {2}), already claimed by another [ShaderBinding] field in this shader's chain",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }

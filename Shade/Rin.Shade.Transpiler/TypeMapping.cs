@@ -61,8 +61,17 @@ internal static class TypeMapping
                 return true;
         }
 
+        if (IsResourceType(type)) return true;
+
         return type is INamedTypeSymbol { Name: "BufferRef" };
     }
+
+    // Slang builtin opaque resource types - never walked/emitted as a user struct, unlike an
+    // ordinary [ShaderStruct] type, even though they're plain C# structs on the Rin.Shade side.
+    public static bool IsResourceType(ITypeSymbol type) =>
+        type.OriginalDefinition.ToDisplayString() is
+            "Rin.Shade.Texture2D" or "Rin.Shade.Texture2DArray" or
+            "Rin.Shade.TextureCube" or "Rin.Shade.SamplerState";
 
     /// <summary>
     /// Whether a type is legal anywhere in a shader at all - a stricter check than IsBuiltIn, which

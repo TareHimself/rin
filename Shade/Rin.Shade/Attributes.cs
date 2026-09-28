@@ -57,6 +57,19 @@ public sealed class FixedSizeAttribute(int size) : Attribute
     public int Size { get; } = size;
 }
 
+/// <summary>
+/// Marks a static field as a Vulkan-bound resource - a single resource type, or an array of one
+/// for a bindless slot. Set/Binding are declared and owned here, never compiler-assigned.
+/// </summary>
+[AttributeUsage(AttributeTargets.Field)]
+public sealed class ShaderBindingAttribute : Attribute
+{
+    public int Set { get; init; }
+    public int Binding { get; init; }
+    public bool UpdateAfterBind { get; init; }
+    public bool Partial { get; init; }
+}
+
 [AttributeUsage(AttributeTargets.Field)]
 public sealed class SemanticAttribute(string name) : Attribute
 {

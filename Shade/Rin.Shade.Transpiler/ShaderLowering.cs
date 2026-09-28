@@ -21,6 +21,12 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         var pushField = chain.SelectMany(t => t.GetMembers().OfType<IFieldSymbol>())
             .FirstOrDefault(f => HasAttribute(f, "Rin.Shade.PushAttribute"));
 
+        var bindingFields = chain.SelectMany(t => t.GetMembers().OfType<IFieldSymbol>())
+            .Where(BindingLowering.HasShaderBindingAttribute)
+            .GroupBy(f => f.Name)
+            .Select(g => g.First())
+            .ToList();
+
         var (entryMethod, computeAttribute) = ResolveEntryMethod(chain);
 
         if (entryMethod is null || computeAttribute is null)
@@ -66,6 +72,17 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
                 ? EnumLowering.Lower(type, diagnostics)
                 : StructLowering.Lower(type, diagnostics);
             writer.Append(text);
+            writer.Line();
+        }
+
+        if (bindingFields.Count > 0)
+        {
+            var seenBindings = new HashSet<(int, int)>();
+            foreach (var field in bindingFields)
+            {
+                var declaration = BindingLowering.Lower(compilation, field, diagnostics, seenBindings);
+                if (declaration is not null) writer.Line(declaration);
+            }
             writer.Line();
         }
 
