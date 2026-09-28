@@ -43,10 +43,8 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             .Where(m => !SymbolEqualityComparer.Default.Equals(m, entryMethod))
             .ToList();
 
-        // Walks the exact same bodies FunctionLowering/BodyLowering go on to render below, so every
-        // `with` expression that ends up emitted has already had its helper collected here first -
-        // helpers are leaf functions (no calls of their own), so emitting them ahead of functionOrder
-        // always satisfies Slang's define-before-use requirement regardless of which function uses one.
+        // Helpers call nothing else, so emitting them ahead of functionOrder always satisfies
+        // Slang's define-before-use requirement.
         var withHelperSpecs = new Dictionary<string, WithHelperSpec>();
         var withHelperOrder = new List<WithHelperSpec>();
         WithLowering.Collect(entryMethod, compilation, diagnostics, withHelperSpecs, withHelperOrder);

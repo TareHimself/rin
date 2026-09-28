@@ -9,11 +9,10 @@ namespace Rin.Shade.Transpiler;
 
 /// <summary>
 /// v1 statement/expression set: block, if/for/while/switch, fixed-size-array foreach, return,
-/// local declaration ('var' only), assignment, field/parameter/local reference, BufferRef&lt;T&gt;
-/// indexer access, swizzles, implicit binary operators, matrix mul() lowering, literals, explicit
-/// casts, and [SlangCall]/[SlangStatement]-bound invocations. A local function is inlined - it
-/// emits nothing at its declaration site, and is walked/emitted like any other plain function
-/// wherever it's actually called. Anything else is a diagnostic, not a crash.
+/// local declaration ('var' only), assignment/compound-assignment, field/parameter/local
+/// reference, BufferRef&lt;T&gt; indexer, swizzles, binary/unary/ternary operators, matrix mul(),
+/// literals, casts, `with` (WithLowering), and [SlangCall]/[SlangStatement] invocations. A local
+/// function is inlined. Anything else is a diagnostic, not a crash.
 /// </summary>
 internal sealed class BodyLowering(
     List<Diagnostic> diagnostics, SlangWriter writer, IReadOnlySet<string>? shadowableFieldNames = null,
@@ -221,8 +220,24 @@ internal sealed class BodyLowering(
                 return "/* unsupported */";
             case IBinaryOperation binary when TryMapOperator(binary.OperatorKind, out var operatorText):
                 return $"{LowerExpr(binary.LeftOperand)} {operatorText} {LowerExpr(binary.RightOperand)}";
+            case IUnaryOperation { OperatorMethod.DeclaringSyntaxReferences.Length: > 0 } unary:
+                diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                    unary.Syntax.GetLocation(), $"user-defined operator overload '{unary.OperatorMethod!.Name}'"));
+                return "/* unsupported */";
+            case IUnaryOperation unary when TryMapUnaryOperator(unary.OperatorKind, out var operatorText):
+                return $"{operatorText}{LowerExpr(unary.Operand)}";
+            case ICompoundAssignmentOperation { OperatorMethod.DeclaringSyntaxReferences.Length: > 0 } compound:
+                diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                    compound.Syntax.GetLocation(),
+                    $"user-defined operator overload '{compound.OperatorMethod!.Name}'"));
+                return "/* unsupported */";
+            case ICompoundAssignmentOperation compound when TryMapOperator(compound.OperatorKind, out var operatorText):
+                return $"{LowerExpr(compound.Target)} {operatorText}= {LowerExpr(compound.Value)}";
             case ISimpleAssignmentOperation assignment:
                 return $"{LowerExpr(assignment.Target)} = {LowerExpr(assignment.Value)}";
+            // Ternary and `if` share IConditionalOperation; LowerStatement handles the if-shape first.
+            case IConditionalOperation { WhenFalse: not null } conditional:
+                return $"{LowerExpr(conditional.Condition)} ? {LowerExpr(conditional.WhenTrue)} : {LowerExpr(conditional.WhenFalse)}";
             case IInvocationOperation invocation:
                 return LowerInvocation(invocation);
             case IObjectCreationOperation creation:
@@ -297,13 +312,9 @@ internal sealed class BodyLowering(
         return "/* unresolved call */";
     }
 
-    // An unqualified call inside a struct's own instance method is ambiguous with a same-named
-    // field on that struct - Slang's member scope shadows the outer scope, so the call resolves to
-    // the field and fails to compile (confirmed against the real Slang compiler; this applies even
-    // to the language's own builtins, e.g. a field called "min" shadows min(...)). shadowableFieldNames
-    // is only non-null when lowering a struct instance method's body, so this is a no-op everywhere
-    // else (free functions, the shader entry point, etc.) where there's no implicit-this scope to
-    // collide with.
+    // An unqualified call whose name matches a field on the struct it's declared in resolves to
+    // the field instead in Slang (confirmed against the real compiler) - only checked when
+    // shadowableFieldNames is set, i.e. while lowering that struct's own instance method.
     private void CheckFieldShadowing(string calleeIdentifier, Location location)
     {
         if (shadowableFieldNames?.Contains(calleeIdentifier) == true)
@@ -342,9 +353,7 @@ internal sealed class BodyLowering(
         return $"{TypeMapping.MapType(type)}({string.Join(", ", arguments)})";
     }
 
-    // Lowered to a call to a synthesized helper (WithLowering), collected up front from the exact
-    // same set of bodies this class ends up rendering - so a spec should always be found here; the
-    // diagnostic fallback exists only in case that invariant is ever broken, not as a real path.
+    // The matching helper was collected up front by WithLowering; diagnostic fallback is defensive.
     private string LowerWith(IWithOperation withOperation)
     {
         if (withOperation.Type is null || withOperation.Initializer is null)
@@ -417,6 +426,19 @@ internal sealed class BodyLowering(
             BinaryOperatorKind.GreaterThanOrEqual => ">=",
             BinaryOperatorKind.ConditionalAnd => "&&",
             BinaryOperatorKind.ConditionalOr => "||",
+            _ => ""
+        };
+        return text.Length > 0;
+    }
+
+    private static bool TryMapUnaryOperator(UnaryOperatorKind kind, out string text)
+    {
+        text = kind switch
+        {
+            UnaryOperatorKind.Minus => "-",
+            UnaryOperatorKind.Plus => "+",
+            UnaryOperatorKind.Not => "!",
+            UnaryOperatorKind.BitwiseNegation => "~",
             _ => ""
         };
         return text.Length > 0;

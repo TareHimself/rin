@@ -8,17 +8,10 @@ namespace Rin.Shade.Transpiler;
 
 internal sealed record WithHelperField(IFieldSymbol Field, string SlangName);
 
-/// <summary>
-/// A synthesized helper for one (type, overridden-field-set) shape of `with` expression, e.g.
-/// `bounds with { Lower = x }` - "updatableBounds3DWithLower(UpdatableBounds3D self, float3 lower)".
-/// Slang already copies a struct on parameter pass (the same value semantics [mutating] exists to
-/// work around for instance methods), so `self` is a free, independent copy - the helper just
-/// overwrites the named fields on it and returns it. Emitted as a plain top-level function, not a
-/// struct extension member: mutating `self` (an ordinary by-value parameter, not an implicit `this`)
-/// needs no [mutating], and a plain function composes into any expression position, unlike the
-/// inline-hoisted-statement alternative that would only be safe where the expression is evaluated
-/// exactly once.
-/// </summary>
+// A synthesized helper for one (type, overridden-field-set) `with` shape, e.g. `bounds with
+// { Lower = x }` -> `bounds3DWithLower(Bounds3D self, float3 lower)`. A plain top-level function
+// composes into any expression position; `self` is a free copy (Slang's usual struct-by-value
+// semantics), so no [mutating] is needed either.
 internal sealed record WithHelperSpec(ITypeSymbol Type, string FunctionName, List<WithHelperField> Fields);
 
 internal static class WithLowering

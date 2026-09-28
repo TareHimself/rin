@@ -31,14 +31,8 @@ internal static class TypeMapping
         return type.Name;
     }
 
-    /// <summary>
-    /// Vector2/3/4 and Matrix4x4 are BCL types - their constructors have no source in this
-    /// compilation and can't carry a [SlangCall] binding (we don't own the type), so they'd
-    /// otherwise fail the generic "has source or binding" check every other constructor goes
-    /// through. Slang's own float2/3/4/float4x4 constructors accept the same positional-argument
-    /// shapes (component lists, or a smaller vector plus scalars), so the arguments are trusted to
-    /// forward as-is - same trust boundary as the BCL operator-method passthrough for these types.
-    /// </summary>
+    // BCL constructors, no source and no owned type to attach [SlangCall] to - trusted to forward
+    // args as-is, same trust boundary as their BCL operator methods.
     public static bool IsIntrinsicVectorOrMatrixConstructor(ITypeSymbol type) =>
         type.OriginalDefinition.ToDisplayString() is
             "System.Numerics.Vector2" or "System.Numerics.Vector3" or
