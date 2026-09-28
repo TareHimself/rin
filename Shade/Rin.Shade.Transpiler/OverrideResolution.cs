@@ -23,7 +23,18 @@ internal static class OverrideResolution
         var map = new Dictionary<IMethodSymbol, IMethodSymbol>(SymbolEqualityComparer.Default);
         foreach (var effective in allMethods.Where(m => !shadowed.Contains(m)))
         for (var current = effective; current is not null; current = current.OverriddenMethod)
+        {
             map[current] = effective;
+
+            // A method body physically declared in an open generic base is analyzed once, against
+            // the unbound type parameter - a call site there references the base method's
+            // OriginalDefinition (TData, not ConsumerPush), a different symbol than what chain's
+            // GetMembers() (substituted through the closed base) produced above. ConstructedFrom
+            // only unwraps a method's OWN type parameters, not its containing type's substitution -
+            // verified empirically, it left this case unresolved.
+            if (!SymbolEqualityComparer.Default.Equals(current, current.OriginalDefinition))
+                map[current.OriginalDefinition] = effective;
+        }
 
         return map;
     }
