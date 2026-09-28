@@ -330,7 +330,8 @@ internal sealed class BodyLowering(
             return "/* unsupported */";
         }
 
-        if (!MethodSource.HasBody(ctor) && !IntrinsicBindings.HasBinding(ctor))
+        if (!MethodSource.HasBody(ctor) && !IntrinsicBindings.HasBinding(ctor) &&
+            !TypeMapping.IsIntrinsicVectorOrMatrixConstructor(type))
         {
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.NoSourceForMethod,
                 creation.Syntax.GetLocation(), $"{type.Name} constructor"));
