@@ -13,15 +13,21 @@ namespace Rin.Shade.Transpiler;
 // most-derived implementation, so a call site can be resolved to the body that's actually reachable.
 internal static class OverrideResolution
 {
-    public static Dictionary<IMethodSymbol, IMethodSymbol> Build(List<INamedTypeSymbol> chain)
+    // Every method declared anywhere in the chain that isn't itself pointed to by some other
+    // method's OverriddenMethod - i.e. the most-derived implementation for each override slot.
+    public static IEnumerable<IMethodSymbol> EffectiveMethods(List<INamedTypeSymbol> chain)
     {
         var allMethods = chain.SelectMany(t => t.GetMembers().OfType<IMethodSymbol>()).ToList();
         var shadowed = new HashSet<IMethodSymbol>(
             allMethods.Select(m => m.OverriddenMethod).Where(m => m is not null)!,
             SymbolEqualityComparer.Default);
+        return allMethods.Where(m => !shadowed.Contains(m));
+    }
 
+    public static Dictionary<IMethodSymbol, IMethodSymbol> Build(List<INamedTypeSymbol> chain)
+    {
         var map = new Dictionary<IMethodSymbol, IMethodSymbol>(SymbolEqualityComparer.Default);
-        foreach (var effective in allMethods.Where(m => !shadowed.Contains(m)))
+        foreach (var effective in EffectiveMethods(chain))
         for (var current = effective; current is not null; current = current.OverriddenMethod)
         {
             map[current] = effective;

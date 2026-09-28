@@ -152,12 +152,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
     private static (IMethodSymbol? Method, AttributeData? ComputeAttribute) ResolveEntryMethod(
         List<INamedTypeSymbol> chain)
     {
-        var allMethods = chain.SelectMany(t => t.GetMembers().OfType<IMethodSymbol>()).ToList();
-        var shadowed = new HashSet<IMethodSymbol>(
-            allMethods.Select(m => m.OverriddenMethod).Where(m => m is not null)!,
-            SymbolEqualityComparer.Default);
-
-        foreach (var method in allMethods.Where(m => !shadowed.Contains(m)))
+        foreach (var method in OverrideResolution.EffectiveMethods(chain))
         {
             var computeAttribute = FindComputeAttribute(method);
             if (computeAttribute is not null) return (method, computeAttribute);
