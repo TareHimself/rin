@@ -41,7 +41,7 @@ public class RejectionCoverageTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0006"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedType.Id), Is.True);
     }
 
     [Test]
@@ -66,7 +66,7 @@ public class RejectionCoverageTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0003"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedConstruct.Id), Is.True);
     }
 
     [Test]
@@ -125,7 +125,7 @@ public class RejectionCoverageTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0003"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedConstruct.Id), Is.True);
     }
 
     [Test]
@@ -148,7 +148,7 @@ public class RejectionCoverageTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0003"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedConstruct.Id), Is.True);
     }
 
     [Test]

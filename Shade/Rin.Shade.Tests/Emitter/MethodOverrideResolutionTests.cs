@@ -97,6 +97,6 @@ public class MethodOverrideResolutionTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0004"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.NoSourceForMethod.Id), Is.True);
     }
 }

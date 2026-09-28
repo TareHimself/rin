@@ -80,7 +80,7 @@ public class ShaderEmitterTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0003"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedConstruct.Id), Is.True);
     }
 
     [Test]

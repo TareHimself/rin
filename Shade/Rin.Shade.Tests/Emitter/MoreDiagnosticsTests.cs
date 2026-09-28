@@ -43,7 +43,7 @@ public class MoreDiagnosticsTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0007"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.ExtensionMethodNotSupported.Id), Is.True);
     }
 
     [Test]
@@ -80,7 +80,7 @@ public class MoreDiagnosticsTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0008"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.GenericNotSupported.Id), Is.True);
     }
 
     [Test]
@@ -118,7 +118,7 @@ public class MoreDiagnosticsTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0009"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedEnumUnderlyingType.Id), Is.True);
     }
 
     [Test]
@@ -150,7 +150,7 @@ public class MoreDiagnosticsTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0010"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.MultiDimensionalArrayNotSupported.Id), Is.True);
     }
 
     [Test]
@@ -183,7 +183,7 @@ public class MoreDiagnosticsTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0011"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedSwitchClause.Id), Is.True);
     }
 
     // Found while porting a real shader (bounds_update.slang): a field named "Min" lowers to the
@@ -239,6 +239,6 @@ public class MoreDiagnosticsTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0012"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.FieldShadowsCalledFunction.Id), Is.True);
     }
 }

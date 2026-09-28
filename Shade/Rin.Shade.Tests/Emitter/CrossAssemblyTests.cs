@@ -118,6 +118,6 @@ public class CrossAssemblyTests
         // emitted - only the call to the non-embedded MathHelpers.Square fails, cleanly.
         var slang = result.Shaders["ProbeShader"];
         Assert.That(slang, Does.Contain("float sdCircleSquared("));
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0004"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.NoSourceForMethod.Id), Is.True);
     }
 }

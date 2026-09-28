@@ -95,7 +95,7 @@ public class ShaderBindingTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0014"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.DuplicateBinding.Id), Is.True);
     }
 
     [Test]
@@ -121,6 +121,6 @@ public class ShaderBindingTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0013"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedBindingField.Id), Is.True);
     }
 }

@@ -56,7 +56,7 @@ public class FunctionLoweringTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == "SHADE0005"), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.RecursionNotSupported.Id), Is.True);
     }
 
     [Test]
