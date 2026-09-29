@@ -17,6 +17,12 @@ public class GraphicsShaderGenerator : IIncrementalGenerator
     private const string ComputeShaderInterfaceFullName = "Rin.Core.Graphics.Shaders.IComputeShader";
     private const string GraphicsModuleFullName = "Rin.Core.Graphics.IGraphicsModule";
 
+    // Not a project reference - Rin.SourceGenerators doesn't (and shouldn't) depend on Rin.Shade,
+    // this is just the well-known attribute name a [ComputeShader(typeof(X))]/[GraphicsShader(typeof(X))]
+    // argument's type is expected to carry, read purely by name/shape like every other attribute
+    // check in this file.
+    private const string ShadeShaderAttributeFullName = "Rin.Shade.ShaderAttribute";
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // Filter for properties that might carry a [GraphicsShader]/[ComputeShader] attribute.
@@ -200,7 +206,24 @@ public class GraphicsShaderGenerator : IIncrementalGenerator
         {
             var attributeData = property.GetAttributes()
                 .First(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, attributeClass));
-            var path = (string)attributeData.ConstructorArguments[0].Value!;
+
+            var argument = attributeData.ConstructorArguments[0];
+            var path = argument.Value switch
+            {
+                string literalPath => literalPath,
+                ITypeSymbol shaderTypeSymbol => ResolveShaderTypePath(shaderTypeSymbol),
+                _ => null
+            };
+
+            if (path is null)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.Shader.ShaderTypeMissingShaderAttribute,
+                    property.Locations.FirstOrDefault() ?? Location.None,
+                    property.Name, (argument.Value as ITypeSymbol)?.ToDisplayString() ?? "?"));
+                continue;
+            }
+
             var factoryMethod = attributeClass.ToDisplayString() == GraphicsShaderAttributeFullName
                 ? "MakeGraphics"
                 : "MakeCompute";
@@ -215,6 +238,17 @@ public class GraphicsShaderGenerator : IIncrementalGenerator
         output.CloseBrace();
 
         context.AddSource($"Shader_{GeneratorUtils.GetSafeHintName(containingType)}.g.cs", output.ToSourceText());
+    }
+
+    // Reads the path straight off shaderTypeSymbol's own [Rin.Shade.Shader("...")] attribute via
+    // semantic analysis of the original source - not from any generated const. Two source
+    // generators never see each other's output within the same compilation pass, so resolving a
+    // generated Path member here wouldn't work; going straight to the attribute does.
+    private static string? ResolveShaderTypePath(ITypeSymbol shaderTypeSymbol)
+    {
+        var attribute = shaderTypeSymbol.GetAttributes()
+            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == ShadeShaderAttributeFullName);
+        return attribute?.ConstructorArguments.FirstOrDefault().Value as string;
     }
 
     private static string GetAccessibilityModifier(Accessibility accessibility) => accessibility switch

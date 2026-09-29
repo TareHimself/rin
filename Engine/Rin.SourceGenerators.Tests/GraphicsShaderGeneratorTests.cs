@@ -158,6 +158,72 @@ public partial class ShaderUser
     }
 
     [Fact]
+    public void ResolvesPathFromTypeofArgument()
+    {
+        // A local stand-in for Rin.Shade.ShaderAttribute - the generator matches by fully-qualified
+        // attribute name only, not by an actual reference to the real Rin.Shade assembly.
+        const string source = @"
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Shaders;
+
+namespace Rin.Shade
+{
+    [System.AttributeUsage(System.AttributeTargets.Class)]
+    public sealed class ShaderAttribute : System.Attribute
+    {
+        public ShaderAttribute(string path) { }
+    }
+}
+
+namespace TestNamespace;
+
+[Rin.Shade.Shader(""Shaders/Rin/World/blur.slang"")]
+public class BlurShaderDefinition
+{
+}
+
+public partial class ShaderUser
+{
+    [ComputeShader(typeof(BlurShaderDefinition))]
+    private partial IComputeShader BlurShader { get; }
+}
+";
+        var runResult = Run(source);
+
+        Assert.Empty(runResult.Diagnostics);
+
+        var generatedFileSyntax = runResult.GeneratedTrees.Single(t => t.FilePath.Contains("ShaderUser"));
+        var generatedText = generatedFileSyntax.GetText().ToString();
+
+        Assert.Contains(
+            "private partial global::Rin.Core.Graphics.Shaders.IComputeShader BlurShader => field ??= global::Rin.Core.Graphics.IGraphicsModule.Get().MakeCompute(\"Shaders/Rin/World/blur.slang\");",
+            generatedText);
+    }
+
+    [Fact]
+    public void TypeofArgumentMissingShaderAttributeIsRejected()
+    {
+        const string source = @"
+using Rin.Core.Graphics.Shaders;
+
+namespace TestNamespace;
+
+public class NotAShaderClass
+{
+}
+
+public partial class ShaderUser
+{
+    [ComputeShader(typeof(NotAShaderClass))]
+    private partial IComputeShader BlurShader { get; }
+}
+";
+        var runResult = Run(source);
+
+        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00023");
+    }
+
+    [Fact]
     public void AmbiguousShaderAttributeIsRejected()
     {
         const string source = @"

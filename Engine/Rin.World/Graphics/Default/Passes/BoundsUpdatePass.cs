@@ -11,7 +11,7 @@ namespace Rin.World.Graphics.Default.Passes;
 /// <param name="sceneFrame"></param>
 public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePass
 {
-    [ComputeShader("Shaders/World/Mesh/Compute/bounds_update.slang")]
+    [ComputeShader(typeof(BoundsUpdateShader))]
     private partial IComputeShader Shader { get; }
 
     /// <summary>

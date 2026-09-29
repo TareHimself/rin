@@ -10,5 +10,19 @@ namespace Rin.Core.Graphics.Shaders;
 /// [GraphicsShader("fs/assets/test/pretty.slang")]
 /// public partial IGraphicsShader PrettyShader { get; }
 /// </code>
+/// Or, referencing a shader-authoring class directly instead of retyping its own declared path:
+/// <code>
+/// [GraphicsShader(typeof(PrettyShader))]
+/// public partial IGraphicsShader PrettyShader { get; }
+/// </code>
 /// </example>
-public sealed class GraphicsShaderAttribute(string path) : ShaderAttribute(path);
+public sealed class GraphicsShaderAttribute : ShaderAttribute
+{
+    public GraphicsShaderAttribute(string path) : base(path)
+    {
+    }
+
+    public GraphicsShaderAttribute(Type shaderType) : base(shaderType)
+    {
+    }
+}

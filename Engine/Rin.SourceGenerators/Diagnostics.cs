@@ -145,6 +145,14 @@ internal static class Diagnostics
             category: "Rin.Graphics",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor ShaderTypeMissingShaderAttribute = new(
+            id: "RIN00023",
+            title: "Referenced type has no [Shader(\"...\")] attribute",
+            messageFormat: "Property '{0}' references type '{1}' via typeof(...), but that type has no [Rin.Shade.Shader(\"...\")] attribute to resolve a path from",
+            category: "Rin.Graphics",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 
     internal static class Providers
