@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- Loaded standalone as an MSBuild plugin (UsingTask), not referenced by another .NET project,
+             so nothing else copies its transitive dependencies (Roslyn) into its own output. -->
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <PackageId>TareHimself.Rin.Shade.MSBuild</PackageId>
+        <Title>Rin.Shade.MSBuild</Title>
+        <Authors>TareHimself</Authors>
+        <Version>1.0.0</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Rin.Shade.Transpiler\Rin.Shade.Transpiler.csproj" />
+        <PackageReference Include="Microsoft.Build.Utilities.Core" />
+    </ItemGroup>
+
+</Project>

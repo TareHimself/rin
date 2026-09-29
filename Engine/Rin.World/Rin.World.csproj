@@ -16,6 +16,11 @@
         <EmbeddedResource Include="Content\**\*.*"/>
     </ItemGroup>
 
+    <ItemGroup Label="Rin.Shade">
+        <ProjectReference Include="$(ShadeDir)Rin.Shade\Rin.Shade.csproj" />
+    </ItemGroup>
+    <Import Project="$(RinMSBuildDir)RinShade.targets" />
+
     <PropertyGroup Label="Slang shaders">
         <RinSlangDiscoverPrefix>Shaders/World/</RinSlangDiscoverPrefix>
         <RinSlangOutputSubpath>Content\Shaders\World\</RinSlangOutputSubpath>

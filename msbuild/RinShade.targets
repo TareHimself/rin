@@ -1,0 +1,55 @@
+<Project>
+
+    <!--
+        Runs before Rin.Slang's own discovery/compile step (CompileSlangShaders, RinSlang.targets) so
+        a Rin.Shade-authored C# shader class produces a real .slang file in time for that unmodified,
+        existing pipeline to find and compile it exactly as if a human had hand-written it. Backed by
+        the CompileRinShadeShaders MSBuild Task (Rin.Shade.MSBuild), which builds its own throwaway
+        Roslyn compilation from the importing project's own @(Compile)/@(ReferencePath) - it can't use
+        that project's real compiler output, since this has to finish before that project's own
+        compile step even starts.
+
+        Import this before RinSlang.targets in any project authoring shaders via Rin.Shade.
+    -->
+
+    <PropertyGroup>
+        <RinShadeRepoRoot Condition="'$(RinShadeRepoRoot)' == ''">$(MSBuildThisFileDirectory)..</RinShadeRepoRoot>
+        <RinShadeMSBuildProject Condition="'$(RinShadeMSBuildProject)' == ''">$(MSBuildThisFileDirectory)..\Shade\Rin.Shade.MSBuild\Rin.Shade.MSBuild.csproj</RinShadeMSBuildProject>
+        <RinShadeMSBuildAssembly Condition="'$(RinShadeMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\Shade\Rin.Shade.MSBuild\bin\Release\net10.0\Rin.Shade.MSBuild.dll</RinShadeMSBuildAssembly>
+    </PropertyGroup>
+
+    <UsingTask TaskName="Rin.Shade.MSBuild.CompileRinShadeShaders" AssemblyFile="$(RinShadeMSBuildAssembly)" />
+
+    <!--
+        Same node-reuse file-lock rationale as RinSlang.targets' BuildRinSlangMSBuildTask: built once,
+        explicitly, not auto-rebuilt on every solution build. Delete its bin/ (or
+        `dotnet build-server shutdown` first) to pick up a source change.
+    -->
+    <Target Name="BuildRinShadeMSBuildTask" Condition="'$(RinShadeSkipCompile)' != 'true' AND !Exists('$(RinShadeMSBuildAssembly)')">
+        <MSBuild Projects="$(RinShadeMSBuildProject)" Targets="Build" Properties="Configuration=Release" />
+    </Target>
+
+    <!--
+        RinShadeSkipCompile mirrors RinSlangSkipCompile - opts out entirely for contexts that never
+        need a real transpile (e.g. CI running unit tests against fake natives).
+
+        BeforeTargets names CompileSlangShaders explicitly (not just BeforeCompile) since
+        BeforeTargets/AfterTargets resolve by name across all imports regardless of <Import> order -
+        this is what actually guarantees we run before Rin.Slang's own discovery scan, not import
+        sequencing in the consuming .csproj. DependsOnTargets="ResolveReferences" is belt-and-suspenders
+        (ordering already guarantees @(ReferencePath) is populated by the time BeforeCompile-hooked
+        targets run), kept for self-documentation.
+    -->
+    <Target Name="CompileShadeShaders"
+            BeforeTargets="BeforeCompile;CompileSlangShaders"
+            DependsOnTargets="ResolveReferences;BuildRinShadeMSBuildTask"
+            Condition="'$(RinShadeSkipCompile)' != 'true'">
+
+        <CompileRinShadeShaders
+                RepoRoot="$(RinShadeRepoRoot)"
+                Sources="@(Compile)"
+                References="@(ReferencePath)" />
+
+    </Target>
+
+</Project>
