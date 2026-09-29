@@ -1,7 +1,7 @@
 using System.Numerics;
 using Rin.Shade;
 
-namespace Rin.World.Graphics.Default.Passes;
+namespace Rin.World.Graphics.Default.Shaders;
 
 // Rin.Shade-authored port of Shaders/World/Mesh/Compute/bounds_update.slang - the first real shader
 // to run through the Rin.Shade.MSBuild pipeline rather than a test fixture. The [Shader] path lives
