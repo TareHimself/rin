@@ -1,28 +1,44 @@
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Rin.Slang;
+using Rin.Slang.Compiler;
 using Rin.Shade.Transpiler;
 
 namespace Rin.Shade.MSBuild;
 
 /// <summary>
-///     Transpiles every [Shader("...")]-attributed class reachable from Sources to real Slang source
-///     text, written directly into the repo's tracked source tree at the path each attribute names -
-///     not to an intermediate/obj directory, since Rin.Slang.Discovery resolves a shader's path
-///     against RepoRoot, the same as a hand-written .slang file. Deliberately has no MSBuild [Output]
-///     items: the only contract with Rin.Slang.MSBuild is "a real file exists on disk in time", not a
-///     shared item list - this task runs, then Rin.Slang.MSBuild's own discovery/compile step runs
-///     completely unaware Rin.Shade was ever involved.
+///     Transpiles every [Shader("...")]-attributed class reachable from Sources, compiles the result
+///     with the real Slang compiler, and reports EmbeddedResource-ready items back - all in one
+///     in-process step, mirroring Rin.Slang.MSBuild's CompileRinSlangShaders but for C#-authored
+///     shaders. No .slang file is ever written to the repo's tracked source tree: ShaderCompiler
+///     still needs a real file to read (it resolves #include by reading lines off disk), but that
+///     file only ever needs to exist under OutputRoot (an obj-relative scratch location) for as long
+///     as the compile takes. DiscoverPrefix/OutputRoot/OutputSubpath/AssemblyName mirror
+///     CompileRinSlangShaders' own parameters and LogicalName convention exactly, so the embedded
+///     result resolves through Global.Sources/AssemblyContentResource the same way a hand-written
+///     shader's compiled output does - just under whatever alias the consuming project registers for
+///     its own Rin.Shade-owned prefix (a sibling of, not the same as, its Rin.Slang one - that's what
+///     keeps the two pipelines from ever fighting over the same embedded resource name).
 /// </summary>
 public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
 {
     [Required] public string RepoRoot { get; set; } = "";
 
+    [Required] public string DiscoverPrefix { get; set; } = "";
+
     [Required] public ITaskItem[] Sources { get; set; } = [];
 
     [Required] public ITaskItem[] References { get; set; } = [];
+
+    [Required] public string OutputRoot { get; set; } = "";
+
+    [Required] public string OutputSubpath { get; set; } = "";
+
+    [Required] public string AssemblyName { get; set; } = "";
+
+    [Output] public ITaskItem[] CompiledFiles { get; set; } = [];
 
     public override bool Execute()
     {
@@ -45,23 +61,68 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
 
         if (Log.HasLoggedErrors) return false;
 
-        foreach (var (className, shaderPath) in CollectShaderPaths(scratch.LocalTrees))
+        var options = new ShaderCompilerOptions();
+        options.AddSearchPath(RepoRoot);
+        options.SetPortableRoot(RepoRoot);
+
+        var outputs = new List<ITaskItem>();
+
+        try
         {
-            if (!result.Shaders.TryGetValue(className, out var slang)) continue;
+            using var compiler = new ShaderCompiler(options);
 
-            var outputPath = Path.Combine(RepoRoot, shaderPath.Replace('/', Path.DirectorySeparatorChar));
+            foreach (var (className, shaderPath) in CollectShaderPaths(scratch.LocalTrees))
+            {
+                if (!shaderPath.StartsWith(DiscoverPrefix, StringComparison.Ordinal)) continue;
+                if (!result.Shaders.TryGetValue(className, out var slang)) continue;
 
-            // A repo-tracked/generated file that already matches skips the write - avoids marking it
-            // dirty (touching mtime, tripping incremental-build/git-status noise) on every build when
-            // nothing actually changed.
-            if (File.Exists(outputPath) && File.ReadAllText(outputPath) == slang) continue;
+                var relativeOutput = shaderPath[DiscoverPrefix.Length..].TrimStart('/');
 
-            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-            File.WriteAllText(outputPath, slang);
-            Log.LogMessage(MessageImportance.High, $"Transpiled '{className}' -> '{outputPath}'");
+                // Scratch-only: ShaderCompiler resolves #include by reading lines off a real file, so
+                // one has to exist somewhere - never the tracked Shaders/ tree, since nothing else
+                // ever needs to see this file, unlike a hand-written .slang source.
+                var scratchSlangPath = Path.Combine(OutputRoot, relativeOutput);
+                Directory.CreateDirectory(Path.GetDirectoryName(scratchSlangPath)!);
+                File.WriteAllText(scratchSlangPath, slang);
+
+                var outputPath = Path.Combine(OutputRoot, Path.ChangeExtension(relativeOutput, ".crsh"));
+
+                try
+                {
+                    if (!compiler.TryCompile(scratchSlangPath, out var compiledShader))
+                    {
+                        Log.LogError($"Shader '{className}' ('{shaderPath}') has no entry point");
+                        continue;
+                    }
+
+                    ShaderPackageWriter.WriteToFile(compiledShader!, outputPath);
+
+                    var outputItem = new TaskItem(outputPath);
+                    outputItem.SetMetadata("LogicalName", MakeLogicalName(relativeOutput));
+                    outputs.Add(outputItem);
+
+                    Log.LogMessage(MessageImportance.High, $"Transpiled+compiled '{className}' -> '{outputPath}'");
+                }
+                catch (SlangCompileException ex)
+                {
+                    Log.LogError($"Failed to compile Rin.Shade shader '{className}' ('{shaderPath}'): {ex.Message}");
+                }
+            }
+        }
+        catch (SlangCompileException ex)
+        {
+            Log.LogError(ex.Message);
+            return false;
         }
 
+        CompiledFiles = [.. outputs];
         return !Log.HasLoggedErrors;
+    }
+
+    private string MakeLogicalName(string relativeOutput)
+    {
+        var outputRelative = Path.ChangeExtension(relativeOutput, ".crsh");
+        return AssemblyName + "." + (OutputSubpath + outputRelative).Replace('\\', '.').Replace('/', '.');
     }
 
     // ShadeEmitResult keys by class name only; [Shader("...")]'s path argument is only ever read

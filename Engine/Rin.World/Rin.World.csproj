@@ -19,6 +19,10 @@
     <ItemGroup Label="Rin.Shade">
         <ProjectReference Include="$(ShadeDir)Rin.Shade\Rin.Shade.csproj" />
     </ItemGroup>
+    <PropertyGroup Label="Rin.Shade">
+        <RinShadeDiscoverPrefix>Shaders/Rin/World/</RinShadeDiscoverPrefix>
+        <RinShadeOutputSubpath>Content\Shaders\Rin\World\</RinShadeOutputSubpath>
+    </PropertyGroup>
     <Import Project="$(RinMSBuildDir)RinShade.targets" />
 
     <PropertyGroup Label="Slang shaders">

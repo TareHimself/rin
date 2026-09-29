@@ -4,10 +4,10 @@ using Rin.Shade;
 namespace Rin.World.Graphics.Default.Passes;
 
 // Rin.Shade-authored port of Shaders/World/Mesh/Compute/bounds_update.slang - the first real shader
-// to run through the Rin.Shade.MSBuild pipeline rather than a test fixture. Step A of the rollout:
-// the [Shader] path below targets a gitignored generated/ subfolder rather than the canonical path
-// bounds_update.slang currently occupies, so BoundsUpdatePass.cs's real reference and the currently
-// hand-written .slang file stay untouched until the pipeline itself is verified end to end.
+// to run through the Rin.Shade.MSBuild pipeline rather than a test fixture. The [Shader] path lives
+// under Shaders/Rin/World/, a scheme no hand-written shader's RinSlangDiscoverPrefix claims - never
+// written to disk, compiled and embedded directly by Rin.Shade.MSBuild, so there's no collision with
+// the still-untouched hand-written bounds_update.slang or BoundsUpdatePass.cs's real reference to it.
 
 public static class VectorIntrinsics
 {
@@ -68,7 +68,7 @@ public struct ComputeIn
     [Semantic("SV_DispatchThreadID")] public uint ThreadId;
 }
 
-[Shader("Shaders/World/Mesh/Compute/generated/bounds_update.slang")]
+[Shader("Shaders/Rin/World/Mesh/Compute/bounds_update.slang")]
 public class BoundsUpdateShader : Shader
 {
     [Push] protected BoundsUpdatePushConstants Push;

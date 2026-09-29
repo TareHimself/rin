@@ -1,15 +1,25 @@
 <Project>
 
     <!--
-        Runs before Rin.Slang's own discovery/compile step (CompileSlangShaders, RinSlang.targets) so
-        a Rin.Shade-authored C# shader class produces a real .slang file in time for that unmodified,
-        existing pipeline to find and compile it exactly as if a human had hand-written it. Backed by
-        the CompileRinShadeShaders MSBuild Task (Rin.Shade.MSBuild), which builds its own throwaway
-        Roslyn compilation from the importing project's own @(Compile)/@(ReferencePath) - it can't use
-        that project's real compiler output, since this has to finish before that project's own
-        compile step even starts.
+        Shared build-time step for C#-authored (Rin.Shade) shaders, backed by the CompileRinShadeShaders
+        MSBuild Task (Rin.Shade.MSBuild) - transpiles + compiles + embeds in one in-process step. Mirrors
+        RinSlang.targets' shape, but is otherwise fully independent of it: [Shader("...")]-attributed
+        classes are found via ShadeEmitter walking the importing project's own compilation (no repo-wide
+        scan needed, unlike RinSlang's reference-gated discovery), and no .slang file is ever written to
+        the tracked Shaders/ tree - the compiled result is embedded directly under a LogicalName computed
+        the same way Rin.Slang's own compiled output is.
 
-        Import this before RinSlang.targets in any project authoring shaders via Rin.Shade.
+        A consuming project sets, before importing this file:
+          <PropertyGroup>
+            <RinShadeDiscoverPrefix>...</RinShadeDiscoverPrefix>   the Shaders/-relative prefix its own
+                                                                    [Shader("...")] classes use
+            <RinShadeOutputSubpath>...</RinShadeOutputSubpath>     relative to $(IntermediateOutputPath);
+                                                                    also the LogicalName's own prefix
+          </PropertyGroup>
+
+        RinShadeDiscoverPrefix should be a path segment no project's RinSlangDiscoverPrefix also claims
+        (e.g. "Shaders/Rin/World/" alongside Rin.World's own "Shaders/World/") - that's what keeps this
+        pipeline and Rin.Slang's from ever both trying to embed the same LogicalName.
     -->
 
     <PropertyGroup>
@@ -31,24 +41,27 @@
 
     <!--
         RinShadeSkipCompile mirrors RinSlangSkipCompile - opts out entirely for contexts that never
-        need a real transpile (e.g. CI running unit tests against fake natives).
-
-        BeforeTargets names CompileSlangShaders explicitly (not just BeforeCompile) since
-        BeforeTargets/AfterTargets resolve by name across all imports regardless of <Import> order -
-        this is what actually guarantees we run before Rin.Slang's own discovery scan, not import
-        sequencing in the consuming .csproj. DependsOnTargets="ResolveReferences" is belt-and-suspenders
-        (ordering already guarantees @(ReferencePath) is populated by the time BeforeCompile-hooked
-        targets run), kept for self-documentation.
+        need a real transpile+compile (e.g. CI running unit tests against fake natives).
     -->
     <Target Name="CompileShadeShaders"
-            BeforeTargets="BeforeCompile;CompileSlangShaders"
+            BeforeTargets="BeforeCompile;AssignTargetPaths"
             DependsOnTargets="ResolveReferences;BuildRinShadeMSBuildTask"
             Condition="'$(RinShadeSkipCompile)' != 'true'">
 
+        <PropertyGroup>
+            <RinShadeOutputRoot>$(IntermediateOutputPath)$(RinShadeOutputSubpath)</RinShadeOutputRoot>
+        </PropertyGroup>
+
         <CompileRinShadeShaders
                 RepoRoot="$(RinShadeRepoRoot)"
+                DiscoverPrefix="$(RinShadeDiscoverPrefix)"
                 Sources="@(Compile)"
-                References="@(ReferencePath)" />
+                References="@(ReferencePath)"
+                OutputRoot="$(RinShadeOutputRoot)"
+                OutputSubpath="$(RinShadeOutputSubpath)"
+                AssemblyName="$(AssemblyName)">
+            <Output TaskParameter="CompiledFiles" ItemName="EmbeddedResource" />
+        </CompileRinShadeShaders>
 
     </Target>
 
