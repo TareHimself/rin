@@ -69,7 +69,7 @@ public struct ComputeIn
 }
 
 [Shader("Shaders/Rin/World/Mesh/Compute/bounds_update.slang")]
-public class BoundsUpdateShader : Shader
+public partial class BoundsUpdateShader : Shader
 {
     [Push] protected BoundsUpdatePushConstants Push;
 
