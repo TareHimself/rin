@@ -10,8 +10,8 @@ namespace Rin.Shade.Tests.Fixtures;
 
 public static class VectorIntrinsics
 {
-    [SlangCall("min($0, $1)")] public static extern Vector3 Min(Vector3 a, Vector3 b);
-    [SlangCall("max($0, $1)")] public static extern Vector3 Max(Vector3 a, Vector3 b);
+    [SlangExpression("min(@0, @1)")] public static extern Vector3 Min(Vector3 a, Vector3 b);
+    [SlangExpression("max(@0, @1)")] public static extern Vector3 Max(Vector3 a, Vector3 b);
 }
 
 // Fields are named Lower/Upper rather than Min/Max: lowered to Slang identifiers they'd collide

@@ -88,16 +88,16 @@ public class ShaderEmitterTests
     }
 
     [Test]
-    public void SlangCallStubIsSubstitutedIntoTheCallSite()
+    public void SlangExpressionStubIsSubstitutedIntoTheCallSite()
     {
         const string source = """
                                using Rin.Shade;
 
-                               namespace SlangCallMechanism;
+                               namespace SlangExpressionMechanism;
 
                                public static class TestIntrinsics
                                {
-                                   [SlangCall("max($0, $1)")]
+                                   [SlangExpression("max(@0, @1)")]
                                    public static extern float Max(float a, float b);
                                }
 

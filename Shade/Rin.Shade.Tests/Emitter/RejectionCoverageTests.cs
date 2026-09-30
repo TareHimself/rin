@@ -91,7 +91,7 @@ public class RejectionCoverageTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        // Not pinned to one diagnostic ID: Enumerable.Range/.Count() have no [SlangCall] binding and
+        // Not pinned to one diagnostic ID: Enumerable.Range/.Count() have no [SlangExpression] binding and
         // no source, so this can surface as either "unsupported construct" or "no source for
         // method" depending on which operation the walk reaches first - what matters is that LINQ
         // is never silently accepted, and emission finishes rather than crashing.

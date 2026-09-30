@@ -235,7 +235,7 @@ public class MoreDiagnosticsTests
 
                                public static class VectorIntrinsics
                                {
-                                   [SlangCall("min($0, $1)")] public static extern Vector3 Min(Vector3 a, Vector3 b);
+                                   [SlangExpression("min(@0, @1)")] public static extern Vector3 Min(Vector3 a, Vector3 b);
                                }
 
                                [ShaderStruct]

@@ -2,7 +2,7 @@ using Rin.Shade.Transpiler;
 
 namespace Rin.Shade.Tests.Emitter;
 
-// Vector2/3/4 and Matrix4x4 are BCL types with no source and no [SlangCall] binding - their
+// Vector2/3/4 and Matrix4x4 are BCL types with no source and no [SlangExpression] binding - their
 // constructors need their own intrinsic-passthrough carve-out (TypeMapping.IsIntrinsicVectorOrMatrixConstructor).
 public class VectorConstructorTests
 {

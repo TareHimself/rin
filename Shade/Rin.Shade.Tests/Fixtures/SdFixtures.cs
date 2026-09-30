@@ -5,9 +5,9 @@ namespace Rin.Shade.Tests.Fixtures;
 
 public static class Intrinsics
 {
-    [SlangCall("dot($0, $1)")] public static extern float Dot(Vector2 a, Vector2 b);
-    [SlangCall("length($0)")] public static extern float Length(Vector2 v);
-    [SlangCall("clamp($0, $1, $2)")] public static extern float Clamp(float x, float min, float max);
+    [SlangExpression("dot(@0, @1)")] public static extern float Dot(Vector2 a, Vector2 b);
+    [SlangExpression("length(@0)")] public static extern float Length(Vector2 v);
+    [SlangExpression("clamp(@0, @1, @2)")] public static extern float Clamp(float x, float min, float max);
 }
 
 public static class Sd

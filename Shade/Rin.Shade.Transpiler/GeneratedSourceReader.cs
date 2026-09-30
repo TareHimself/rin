@@ -7,7 +7,7 @@ namespace Rin.Shade.Transpiler;
 /// <summary>
 /// Reads the source text a [ShaderSources]-marked assembly's Rin.Shade.SourceGenerator produced -
 /// plain Roslyn constant-value reading (IFieldSymbol.ConstantValue), the exact same mechanism
-/// already used everywhere else in this project to read [SlangCall] template strings off attribute
+/// already used everywhere else in this project to read [SlangExpression] template strings off attribute
 /// constructor arguments. No raw PE/metadata parsing, no Assembly.LoadFrom - the source generator
 /// already did the work of turning file text into an ordinary compile-time constant.
 /// </summary>

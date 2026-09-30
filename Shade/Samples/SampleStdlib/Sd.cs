@@ -5,8 +5,8 @@ namespace SampleStdlib;
 
 public static class Intrinsics
 {
-    [SlangCall("dot($0, $1)")] public static extern float Dot(Vector2 a, Vector2 b);
-    [SlangCall("length($0)")] public static extern float Length(Vector2 v);
+    [SlangExpression("dot(@0, @1)")] public static extern float Dot(Vector2 a, Vector2 b);
+    [SlangExpression("length(@0)")] public static extern float Length(Vector2 v);
 }
 
 [ShadeExport]

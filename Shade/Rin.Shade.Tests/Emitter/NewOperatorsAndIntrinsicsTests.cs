@@ -2,8 +2,8 @@ using Rin.Shade.Transpiler;
 
 namespace Rin.Shade.Tests.Emitter;
 
-// Unary operators, compound assignment, ternary expressions, and MathIntrinsics (the shipped
-// [SlangCall] math library replacing per-fixture hand-rolled externs).
+// Unary operators, compound assignment, ternary expressions, and Shader.Math (the shipped
+// [SlangExpression] math library replacing per-fixture hand-rolled externs).
 public class NewOperatorsAndIntrinsicsTests
 {
     [Test]
@@ -84,7 +84,7 @@ public class NewOperatorsAndIntrinsicsTests
     }
 
     [Test]
-    public void MathIntrinsicsLowerToSlangBuiltins()
+    public void ShaderMathLowersToSlangBuiltins()
     {
         const string source = """
                                using System.Numerics;
@@ -107,9 +107,9 @@ public class NewOperatorsAndIntrinsicsTests
                                    [Compute(1, 1, 1)]
                                    public void Compute()
                                    {
-                                       var n = MathIntrinsics.Normalize(Push.A);
-                                       var d = MathIntrinsics.Dot(n, Push.B);
-                                       var c = MathIntrinsics.Clamp(d, 0f, 1f);
+                                       var n = Shader.Math.Normalize(Push.A);
+                                       var d = Shader.Math.Dot(n, Push.B);
+                                       var c = Shader.Math.Clamp(d, 0f, 1f);
                                        Push.Output[0] = c;
                                    }
                                }

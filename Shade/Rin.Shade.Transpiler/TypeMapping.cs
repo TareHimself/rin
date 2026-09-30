@@ -36,7 +36,7 @@ internal static class TypeMapping
         return Naming.Qualify(type, type.Name);
     }
 
-    // BCL constructors, no source and no owned type to attach [SlangCall] to - trusted to forward
+    // BCL constructors, no source and no owned type to attach [SlangExpression] to - trusted to forward
     // args as-is, same trust boundary as their BCL operator methods.
     public static bool IsIntrinsicVectorOrMatrixConstructor(ITypeSymbol type) =>
         type.OriginalDefinition.ToDisplayString() is

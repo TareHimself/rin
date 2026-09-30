@@ -1,6 +1,6 @@
 namespace Rin.Shade;
 
-public abstract class Shader
+public abstract partial class Shader
 {
     protected virtual BlendState BlendState => BlendState.None;
 }

@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.Operations;
 namespace Rin.Shade.Transpiler;
 
 /// <summary>
-/// Walks a method's body for calls to other plain (non-[SlangCall]-bound) methods with source,
+/// Walks a method's body for calls to other plain (non-[SlangExpression]-bound) methods with source,
 /// post-order, so a callee is always collected before its caller - mirrors TypeCollector's
 /// dependency ordering, but for the call graph instead of the field graph. A method never reached
 /// this way is never added to Order, which is the dead-code-elimination guarantee. Local functions

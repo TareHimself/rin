@@ -5,8 +5,8 @@ namespace Rin.Shade.Transpiler;
 
 internal static class IntrinsicBindings
 {
-    public static string? GetSlangCallTemplate(IMethodSymbol method) =>
-        GetTemplate(method, "Rin.Shade.SlangCallAttribute");
+    public static string? GetSlangExpressionTemplate(IMethodSymbol method) =>
+        GetTemplate(method, "Rin.Shade.SlangExpressionAttribute");
 
     public static string? GetSlangStatementTemplate(IMethodSymbol method) =>
         GetTemplate(method, "Rin.Shade.SlangStatementAttribute");
@@ -18,5 +18,5 @@ internal static class IntrinsicBindings
 
     public static bool HasBinding(IMethodSymbol method) =>
         method.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() is
-            "Rin.Shade.SlangCallAttribute" or "Rin.Shade.SlangStatementAttribute" or "Rin.Shade.SlangBodyAttribute");
+            "Rin.Shade.SlangExpressionAttribute" or "Rin.Shade.SlangStatementAttribute" or "Rin.Shade.SlangBodyAttribute");
 }

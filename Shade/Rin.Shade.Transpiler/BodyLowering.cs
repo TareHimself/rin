@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
@@ -11,7 +12,7 @@ namespace Rin.Shade.Transpiler;
 /// v1 statement/expression set: block, if/for/while/switch, fixed-size-array foreach, return,
 /// local declaration ('var' only), assignment/compound-assignment, field/parameter/local
 /// reference, BufferRef&lt;T&gt; indexer, swizzles, binary/unary/ternary operators, matrix mul(),
-/// literals, casts, `with` (WithLowering), and [SlangCall]/[SlangStatement] invocations. A local
+/// literals, casts, `with` (WithLowering), and [SlangExpression]/[SlangStatement] invocations. A local
 /// function is inlined. Anything else is a diagnostic, not a crash.
 /// </summary>
 internal sealed class BodyLowering(
@@ -312,7 +313,7 @@ internal sealed class BodyLowering(
             case IBinaryOperation { OperatorMethod.DeclaringSyntaxReferences.Length: > 0 } binary:
                 // A BCL operator (Vector2.op_Subtraction etc.) has no declaring syntax in this
                 // compilation and is trusted to mean the same thing in Slang - an operator declared
-                // in source here is user-authored and needs its own [SlangCall] binding rather than
+                // in source here is user-authored and needs its own [SlangExpression] binding rather than
                 // being silently treated as a passthrough.
                 diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
                     binary.Syntax.GetLocation(), $"user-defined operator overload '{binary.OperatorMethod!.Name}'"));
@@ -502,7 +503,7 @@ internal sealed class BodyLowering(
             return $"mul({v}, {m})";
         }
 
-        var template = IntrinsicBindings.GetSlangCallTemplate(method);
+        var template = IntrinsicBindings.GetSlangExpressionTemplate(method);
         if (template is not null)
         {
             CheckFieldShadowing(TemplateCalleeIdentifier(template), invocation.Syntax.GetLocation());
@@ -661,20 +662,53 @@ internal sealed class BodyLowering(
 
     private string SubstituteTemplate(string template, IInvocationOperation invocation)
     {
-        var result = template;
-
-        var arguments = invocation.Arguments.Select(a => LowerExpr(a.Value)).ToArray();
-        for (var i = 0; i < arguments.Length; i++)
-            result = result.Replace($"${i}", arguments[i]);
-
+        var arguments = invocation.Arguments.Select(a => a.Value).ToArray();
         var typeArguments = invocation.TargetMethod.TypeArguments;
-        for (var i = 0; i < typeArguments.Length; i++)
-            result = result.Replace($"$T{i}", TypeMapping.MapType(typeArguments[i]));
 
-        if (invocation.Instance is not null and not IInstanceReferenceOperation)
-            result = result.Replace("$this", LowerExpr(invocation.Instance));
+        // One pass over the placeholders: replacing `@1` with a plain string replace would also hit the
+        // start of `@10`, and a substituted argument must never be re-scanned for placeholders.
+        return Regex.Replace(template, @"@(this|T\d+|\d+|[A-Za-z_]\w*)", match =>
+        {
+            var name = match.Groups[1].Value;
 
-        return result;
+            if (name == "this")
+                return invocation.Instance is not null and not IInstanceReferenceOperation
+                    ? LowerTemplateOperand(invocation.Instance, template, match)
+                    : match.Value;
+
+            if (name[0] == 'T' && name.Length > 1 && char.IsDigit(name[1]))
+                return int.Parse(name[1..]) < typeArguments.Length
+                    ? TypeMapping.MapType(typeArguments[int.Parse(name[1..])])
+                    : match.Value;
+
+            if (char.IsDigit(name[0]))
+            {
+                var index = int.Parse(name);
+                return index < arguments.Length ? LowerTemplateOperand(arguments[index], template, match) : match.Value;
+            }
+
+            var named = invocation.Arguments.FirstOrDefault(a => a.Parameter?.Name == name);
+            if (named is not null) return LowerTemplateOperand(named.Value, template, match);
+
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnknownTemplateParameter,
+                invocation.Syntax.GetLocation(), match.Value, invocation.TargetMethod.Name));
+            return match.Value;
+        });
+    }
+
+    // An operand sitting between delimiters (`abs(@0)`, `clamp(@0, @1, @2)`) needs no grouping; one that
+    // touches an operator or a postfix (`@0[@1]`, `@0.x`) does if it binds looser than a postfix operation.
+    private string LowerTemplateOperand(IOperation operand, string template, Match placeholder)
+    {
+        var text = LowerExpr(operand);
+
+        var before = placeholder.Index == 0 ? '(' : template[placeholder.Index - 1];
+        var afterIndex = placeholder.Index + placeholder.Length;
+        var after = afterIndex >= template.Length ? ')' : template[afterIndex];
+        var delimitedBefore = before is '(' or ',' or ' ' && (before != ' ' || placeholder.Index < 2 || template[placeholder.Index - 2] == ',');
+        var delimitedAfter = after is ')' or ',';
+
+        return delimitedBefore && delimitedAfter || Precedence(operand) >= PostfixPrecedence ? text : $"({text})";
     }
 
     // C#'s operation tree carries no parentheses - `-(a + b)` and `-a + b` are both just a unary over a

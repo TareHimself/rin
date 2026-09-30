@@ -75,7 +75,7 @@ public class CrossAssemblyTests
         // SampleStdlib's Sd.SdCircleSquared calls MathHelpers.Square, which lives in
         // NotEmbedded.cs - deliberately never added to SampleStdlib.csproj's <EmbeddedResource>
         // items, even though it compiles into SampleStdlib.dll normally. Proves the walk doesn't
-        // silently drop the call or crash - "no source available, add a [SlangCall] binding, or
+        // silently drop the call or crash - "no source available, add a [SlangExpression] binding, or
         // mark its file ShaderCompile" is exactly the failure mode the design doc describes.
         const string localSource = """
                                     using System.Numerics;

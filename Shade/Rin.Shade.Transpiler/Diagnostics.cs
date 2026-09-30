@@ -33,7 +33,7 @@ internal static class Diagnostics
         public static readonly DiagnosticDescriptor NoSourceForMethod = new(
             id: "SHADE0004",
             title: "No source available for method",
-            messageFormat: "No source available for '{0}': add a [SlangCall] binding, or mark its file ShaderCompile",
+            messageFormat: "No source available for '{0}': add a [SlangExpression] binding, or mark its file ShaderCompile",
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
@@ -130,6 +130,14 @@ internal static class Diagnostics
             id: "SHADE0019",
             title: "Writing through a union variant is not supported",
             messageFormat: "'{0}' is a union variant - a shader can read it but not assign through it",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor UnknownTemplateParameter = new(
+            id: "SHADE0020",
+            title: "Unknown placeholder in a Slang expression template",
+            messageFormat: "'{0}' in the template of '{1}' is not 'this', a '@n' index, a '@Tn' type argument or a parameter name",
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);

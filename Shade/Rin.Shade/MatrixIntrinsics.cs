@@ -5,11 +5,11 @@ namespace Rin.Shade;
 /// <summary>
 /// Row and column access for Matrix4x4. The storage is row-major on both sides, so Row(i) is the
 /// i-th row as it sits in memory and Column(i) gathers the i-th element of every row. Each has a real
-/// C# body so code written with it also runs on the CPU; the [SlangCall] binding is what a shader uses.
+/// C# body so code written with it also runs on the CPU; the [SlangExpression] binding is what a shader uses.
 /// </summary>
 public static class MatrixIntrinsics
 {
-    [SlangCall("$0[$1]")]
+    [SlangExpression("@0[@1]")]
     public static Vector4 Row(this Matrix4x4 matrix, int index) => index switch
     {
         0 => new Vector4(matrix.M11, matrix.M12, matrix.M13, matrix.M14),
@@ -18,7 +18,7 @@ public static class MatrixIntrinsics
         _ => new Vector4(matrix.M41, matrix.M42, matrix.M43, matrix.M44)
     };
 
-    [SlangCall("transpose($0)[$1]")]
+    [SlangExpression("transpose(@0)[@1]")]
     public static Vector4 Column(this Matrix4x4 matrix, int index) => index switch
     {
         0 => new Vector4(matrix.M11, matrix.M21, matrix.M31, matrix.M41),

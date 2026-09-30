@@ -110,7 +110,7 @@ public sealed class SemanticAttribute(string name) : Attribute
 }
 
 [AttributeUsage(AttributeTargets.Method)]
-public sealed class SlangCallAttribute(string template) : Attribute
+public sealed class SlangExpressionAttribute(string template) : Attribute
 {
     public string Template { get; } = template;
     public int Precedence { get; init; }
