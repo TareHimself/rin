@@ -60,6 +60,6 @@ public partial class StencilBatchShader : Shader
         var result = ViewShaderMath.ApplyBorderRadius(input.Coordinate, new Vector4(0f, 0f, 0f, 1f),
             new Vector4(0f, 0f, 0f, 0f), clip.Size, clip.InverseTransform, 1f);
 
-        if (result.W > 0.01f) Shader.Discard();
+        if (result.W > 0.01f) Discard();
     }
 }

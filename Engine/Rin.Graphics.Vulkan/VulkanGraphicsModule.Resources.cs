@@ -18,10 +18,10 @@ namespace Rin.Graphics.Vulkan;
 /// </summary>
 public partial class VulkanGraphicsModule
 {
-    private const uint MaxTextures = 2048;
-    private const uint MaxCubemaps = 512;
-    private const uint MaxTextureArrays = 512;
-    private const uint SamplerCount = 6;
+    private const uint MaxTextures = BindlessData.TextureCount;
+    private const uint MaxCubemaps = BindlessData.CubemapCount;
+    private const uint MaxTextureArrays = BindlessData.TextureArrayCount;
+    private const uint SamplerCount = BindlessData.SamplerCount;
     private const uint SamplersBinding = 0;
     private const uint TexturesBinding = 1;
     private const uint TextureArraysBinding = 2;
@@ -834,7 +834,7 @@ public partial class VulkanGraphicsModule
             [_resourceDescriptorSet]);
     }
 
-    public const string GlobalBindlessBlockName = "rin.global";
+    public const string GlobalBindlessBlockName = BindlessData.Name;
 
     /// <summary>
     ///     The engine-owned descriptor set layout a shader's <c>[BindlessBlock(name)]</c> resolves to, or

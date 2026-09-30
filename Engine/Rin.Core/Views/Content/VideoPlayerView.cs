@@ -14,6 +14,8 @@ using Rin.Core.Views.Graphics.Commands;
 using Rin.Core.Views.Graphics.PassConfigs;
 using Rin.Core.Shared.Math;
 using Rin.Core.Views.Graphics.Quads;
+using Rin.Core.Views.Graphics.Shaders;
+using Rin.Shade;
 
 namespace Rin.Core.Views.Content;
 
@@ -62,7 +64,7 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass, IDispo
 
 internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
 {
-    [GraphicsShader("Shaders/Core/Views/video.slang")]
+    [GraphicsShader<VideoBatchShader>]
     private partial IGraphicsShader VideoShader
     {
         get;
@@ -138,30 +140,15 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
                     ctx.SetStencilCompareMask(compareMask);
                 }
 
-                bindContext.Push(new Push
+                bindContext.Push(new VideoBatchShader.PushConstants
                 {
                     Projection = surfaceContext.ProjectionMatrix,
-                    ItemBufferAddress = buffer.GetAddress() + offset
+                    Items = new BufferRef<VideoItem>(buffer.GetAddress() + offset)
                 });
                 bindContext.Draw(6);
                 offset += itemSize;
             }
         }
-    }
-
-    [NoReorder]
-    private struct Push
-    {
-        public required Matrix4x4 Projection;
-        public required ulong ItemBufferAddress;
-    }
-
-    [NoReorder]
-    private struct VideoItem
-    {
-        public required Matrix4x4 Transform;
-        public required Vector2 Size;
-        public required DeviceHandle FrameHandle;
     }
 }
 
