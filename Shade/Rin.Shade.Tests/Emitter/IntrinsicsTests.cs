@@ -28,7 +28,7 @@ public class IntrinsicsTests
                                    {
                                        if (Push.Value < 0f)
                                        {
-                                           Shader.Discard();
+                                           Discard();
                                        }
 
                                        Push.Output[0] = Push.Value;

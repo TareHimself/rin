@@ -63,8 +63,8 @@ public class OperatorPrecedenceTests
 
     [TestCase("Push.Output[0] = (Push.M1 + Push.M2).Row(0).X;", "= (push.m1 + push.m2)[0].x;")]
     [TestCase("Push.Output[0] = Push.M1.Row(1).X;", "= push.m1[1].x;")]
-    [TestCase("Push.Output[0] = Shader.Math.Abs(Push.A + Push.B);", "= abs(push.a + push.b);")]
-    [TestCase("Push.Output[0] = Shader.Math.Clamp(Push.A + 1f, Push.B, Push.C * Push.D);",
+    [TestCase("Push.Output[0] = Math.Abs(Push.A + Push.B);", "= abs(push.a + push.b);")]
+    [TestCase("Push.Output[0] = Math.Clamp(Push.A + 1f, Push.B, Push.C * Push.D);",
         "= clamp(push.a + 1, push.b, push.c * push.d);")]
     public void TemplateArgumentsAreGroupedOnlyWhereTheTemplateNeedsIt(string body, string expected)
     {

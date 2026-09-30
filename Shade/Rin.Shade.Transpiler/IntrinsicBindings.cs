@@ -18,5 +18,5 @@ internal static class IntrinsicBindings
 
     public static bool HasBinding(IMethodSymbol method) =>
         method.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() is
-            "Rin.Shade.SlangExpressionAttribute" or "Rin.Shade.SlangStatementAttribute" or "Rin.Shade.SlangBodyAttribute");
+            "Rin.Shade.SlangExpressionAttribute" or "Rin.Shade.SlangStatementAttribute");
 }

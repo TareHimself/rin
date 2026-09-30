@@ -69,6 +69,44 @@ public class BindlessBlockTests
     }
 
     [Test]
+    public void ResourceMethodsMirrorTheSlangApiAndTakeANonUniformIndex()
+    {
+        var source = Types + """
+
+
+            [Shader("Fixtures/bindless_sample.slang")]
+            public class SampleShader : Shader
+            {
+                [Push] protected BindlessPush Push;
+                protected static BindlessData Bindless;
+
+                [Compute(1, 1, 1)]
+                public void Compute()
+                {
+                    var uv = new System.Numerics.Vector2(0.5f, 0.25f);
+                    var texture = Bindless.Textures[(int)NonUniformResourceIndex(3u)];
+                    Push.Output[0] = texture.Sample(Bindless.Samplers[1], uv).X;
+                    Push.Output[1] = texture.Load(2, 3, 0).Y;
+                    uint width;
+                    uint height;
+                    uint levels;
+                    texture.GetDimensions(0u, out width, out height, out levels);
+                    Push.Output[2] = width + height + levels;
+                }
+            }
+            """;
+
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
+
+        Assert.That(result.Diagnostics, Is.Empty);
+        var slang = result.Shaders["SampleShader"].Replace("\r\n", "\n");
+        Assert.That(slang, Does.Contain("Sample(bindless.samplers[1], uv).x"));
+        Assert.That(slang, Does.Contain(".Load(int3(2, 3, 0)).y"));
+        Assert.That(slang, Does.Contain("NonUniformResourceIndex(3)"));
+        Assert.That(slang, Does.Contain(".GetDimensions(0, width, height, levels);"));
+    }
+
+    [Test]
     public void ShaderWithoutABindlessBlockDeclaresNoAttribute()
     {
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(Shader("")));

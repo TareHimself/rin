@@ -121,9 +121,3 @@ public sealed class SlangStatementAttribute(string template) : Attribute
 {
     public string Template { get; } = template;
 }
-
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class SlangBodyAttribute(string body) : Attribute
-{
-    public string Body { get; } = body;
-}

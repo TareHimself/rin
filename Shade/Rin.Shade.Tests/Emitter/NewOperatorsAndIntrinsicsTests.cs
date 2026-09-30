@@ -107,9 +107,9 @@ public class NewOperatorsAndIntrinsicsTests
                                    [Compute(1, 1, 1)]
                                    public void Compute()
                                    {
-                                       var n = Shader.Math.Normalize(Push.A);
-                                       var d = Shader.Math.Dot(n, Push.B);
-                                       var c = Shader.Math.Clamp(d, 0f, 1f);
+                                       var n = Math.Normalize(Push.A);
+                                       var d = Math.Dot(n, Push.B);
+                                       var c = Math.Clamp(d, 0f, 1f);
                                        Push.Output[0] = c;
                                    }
                                }
