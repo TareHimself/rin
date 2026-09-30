@@ -32,6 +32,12 @@
     </PropertyGroup>
     <Import Project="$(RinMSBuildDir)RinSlang.targets" />
 
+    <PropertyGroup Label="Rin.Shade">
+        <RinShadeDiscoverPrefix>Shaders/Rin/Core/</RinShadeDiscoverPrefix>
+        <RinShadeOutputSubpath>Content\Shaders\Rin\Core\</RinShadeOutputSubpath>
+    </PropertyGroup>
+    <Import Project="$(RinMSBuildDir)RinShade.targets" />
+
     <ItemGroup>
       <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
       <ProjectReference Include="$(ShadeDir)Rin.Shade\Rin.Shade.csproj" />

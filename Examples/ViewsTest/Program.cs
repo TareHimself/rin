@@ -6,5 +6,5 @@ using ViewsTest;
 
 Global.Sources.AddSource(AssemblyContentResource.New<ViewsTestApplication>("ViewsTest"));
 
-using var app = new ViewsTestApplication();
+using var app = new ViewsTestApplication { StencilTest = args.Contains("--stencil") };
 app.Run();

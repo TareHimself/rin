@@ -3,6 +3,8 @@ using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
+using Rin.Core.Views.Graphics.Shaders;
+using Rin.Shade;
 
 namespace Rin.Core.Views.Graphics.Passes;
 
@@ -11,7 +13,7 @@ public partial class StencilWritePass : IPass
     private readonly StencilClip[] _clips;
     private readonly uint _mask;
     
-    [GraphicsShader("Shaders/Core/Views/stencil_batch.slang")]
+    [GraphicsShader<StencilBatchShader>]
     private partial IGraphicsShader StencilShader {
         get;
     }
@@ -48,22 +50,15 @@ public partial class StencilWritePass : IPass
                 .StencilWriteOnly()
                 .SetStencilWriteMask(_mask);
 
-            bindContext.Push(new PushConstants
+            bindContext.Push(new StencilBatchShader.PushConstants
                 {
                     Projection = _surfaceContext.ProjectionMatrix,
-                    ClipsBufferAddress = clipsBuffer.GetAddress()
+                    Clips = new BufferRef<StencilClip>(clipsBuffer.GetAddress())
                 })
                 .Draw(6, (uint)_clips.Length);
 
 
             ctx.EndRendering();
         }
-    }
-
-    [NoReorder]
-    private struct PushConstants
-    {
-        public required Matrix4x4 Projection;
-        public required ulong ClipsBufferAddress;
     }
 }
