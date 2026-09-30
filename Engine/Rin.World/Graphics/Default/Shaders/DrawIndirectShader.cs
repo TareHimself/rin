@@ -28,7 +28,7 @@ public partial class DrawIndirectShader : Shader
         if (wasCulled) return;
 
         uint drawIndex = 0u;
-        Intrinsics.InterlockedAdd(ref Push.DrawCount[0], 1u, out drawIndex);
+        Shader.InterlockedAdd(ref Push.DrawCount[0], 1u, out drawIndex);
         Push.Output[drawIndex] = ToCommand(mesh);
     }
 

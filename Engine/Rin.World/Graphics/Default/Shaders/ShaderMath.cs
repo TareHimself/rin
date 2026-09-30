@@ -15,10 +15,10 @@ public static class ShaderMath
         var y = transformation.Row(1).xyz;
         var z = transformation.Row(2).xyz;
 
-        var scaleSquared = new Vector3(MathIntrinsics.Dot(x, x), MathIntrinsics.Dot(y, y), MathIntrinsics.Dot(z, z));
-        var scaledNormal = normal / MathIntrinsics.Sqrt(scaleSquared);
+        var scaleSquared = new Vector3(Shader.Math.Dot(x, x), Shader.Math.Dot(y, y), Shader.Math.Dot(z, z));
+        var scaledNormal = normal / Shader.Math.Sqrt(scaleSquared);
         var transformed = x * scaledNormal.X + y * scaledNormal.Y + z * scaledNormal.Z;
 
-        return MathIntrinsics.Normalize(transformed);
+        return Shader.Math.Normalize(transformed);
     }
 }
