@@ -4,4 +4,8 @@
         <RootNamespace>Rin.Shade</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="..\Rin.Shade.SourceGenerator\Rin.Shade.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
 </Project>

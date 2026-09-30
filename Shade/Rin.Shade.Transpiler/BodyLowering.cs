@@ -286,18 +286,18 @@ internal sealed class BodyLowering(
             case IFieldReferenceOperation field:
                 return LowerFieldReference(field);
             case IPropertyReferenceOperation property when IsBufferRefIndexer(property.Property):
-                return $"{LowerExpr(property.Instance!)}[{LowerExpr(property.Arguments[0].Value)}]";
+                return $"{LowerAtLeast(property.Instance!, PostfixPrecedence)}[{LowerExpr(property.Arguments[0].Value)}]";
             case IArrayElementReferenceOperation { Indices: [var arrayIndex] } arrayElement:
-                return $"{LowerExpr(arrayElement.ArrayReference)}[{LowerExpr(arrayIndex)}]";
+                return $"{LowerAtLeast(arrayElement.ArrayReference, PostfixPrecedence)}[{LowerExpr(arrayIndex)}]";
             case IInlineArrayAccessOperation inlineAccess:
-                return $"{LowerExpr(inlineAccess.Instance)}[{LowerExpr(inlineAccess.Argument)}]";
+                return $"{LowerAtLeast(inlineAccess.Instance, PostfixPrecedence)}[{LowerExpr(inlineAccess.Argument)}]";
             case IPropertyReferenceOperation { Instance: not null } autoProperty
                 when StructMembers.IsAutoProperty(autoProperty.Property):
                 return autoProperty.Instance is IInstanceReferenceOperation
                     ? Naming.ToSlangIdentifier(autoProperty.Property.Name)
-                    : $"{LowerExpr(autoProperty.Instance)}.{Naming.ToSlangIdentifier(autoProperty.Property.Name)}";
+                    : $"{LowerAtLeast(autoProperty.Instance, PostfixPrecedence)}.{Naming.ToSlangIdentifier(autoProperty.Property.Name)}";
             case IPropertyReferenceOperation property when IsSwizzle(property.Property):
-                return $"{LowerExpr(property.Instance!)}.{Naming.ToSlangIdentifier(property.Property.Name)}";
+                return $"{LowerAtLeast(property.Instance!, PostfixPrecedence)}.{Naming.ToSlangIdentifier(property.Property.Name)}";
             case IPropertyReferenceOperation { Property.GetMethod: { } getMethod } property
                 when MethodSource.HasBody(getMethod):
                 return LowerPropertyGet(property, getMethod);
@@ -306,7 +306,7 @@ internal sealed class BodyLowering(
             case IConversionOperation conversion:
                 return conversion.IsImplicit
                     ? LowerExpr(conversion.Operand)
-                    : $"({TypeMapping.MapType(conversion.Type!)}){LowerExpr(conversion.Operand)}";
+                    : $"({TypeMapping.MapType(conversion.Type!)}){LowerAtLeast(conversion.Operand, UnaryPrecedence)}";
             case IBinaryOperation binary when IsMatrixMultiply(binary):
                 return $"mul({LowerExpr(binary.LeftOperand)}, {LowerExpr(binary.RightOperand)})";
             case IBinaryOperation { OperatorMethod.DeclaringSyntaxReferences.Length: > 0 } binary:
@@ -318,13 +318,13 @@ internal sealed class BodyLowering(
                     binary.Syntax.GetLocation(), $"user-defined operator overload '{binary.OperatorMethod!.Name}'"));
                 return "/* unsupported */";
             case IBinaryOperation binary when TryMapOperator(binary.OperatorKind, out var operatorText):
-                return $"{LowerExpr(binary.LeftOperand)} {operatorText} {LowerExpr(binary.RightOperand)}";
+                return $"{LowerBinaryOperand(binary.LeftOperand, binary.OperatorKind, false)} {operatorText} {LowerBinaryOperand(binary.RightOperand, binary.OperatorKind, true)}";
             case IUnaryOperation { OperatorMethod.DeclaringSyntaxReferences.Length: > 0 } unary:
                 diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
                     unary.Syntax.GetLocation(), $"user-defined operator overload '{unary.OperatorMethod!.Name}'"));
                 return "/* unsupported */";
             case IUnaryOperation unary when TryMapUnaryOperator(unary.OperatorKind, out var operatorText):
-                return $"{operatorText}{LowerExpr(unary.Operand)}";
+                return $"{operatorText}{LowerAtLeast(unary.Operand, UnaryPrecedence)}";
             case ICompoundAssignmentOperation { OperatorMethod.DeclaringSyntaxReferences.Length: > 0 } compound:
                 diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
                     compound.Syntax.GetLocation(),
@@ -339,7 +339,7 @@ internal sealed class BodyLowering(
                 return $"{LowerExpr(assignment.Target)} = {LowerExpr(assignment.Value)}";
             // Ternary and `if` share IConditionalOperation; LowerStatement handles the if-shape first.
             case IConditionalOperation { WhenFalse: not null } conditional:
-                return $"{LowerExpr(conditional.Condition)} ? {LowerExpr(conditional.WhenTrue)} : {LowerExpr(conditional.WhenFalse)}";
+                return $"{LowerAtLeast(conditional.Condition, TernaryPrecedence + 1)} ? {LowerExpr(conditional.WhenTrue)} : {LowerExpr(conditional.WhenFalse)}";
             case IInvocationOperation invocation:
                 return LowerInvocation(invocation);
             case IObjectCreationOperation creation:
@@ -486,7 +486,7 @@ internal sealed class BodyLowering(
             return $"{LowerExpr(field.Instance)}{header}.{name}";
         }
 
-        return $"{LowerExpr(field.Instance)}.{name}";
+        return $"{LowerAtLeast(field.Instance, PostfixPrecedence)}.{name}";
     }
 
     private string LowerInvocation(IInvocationOperation invocation)
@@ -515,7 +515,7 @@ internal sealed class BodyLowering(
         var instance = invocation.Instance switch
         {
             null or IInstanceReferenceOperation => null,
-            var expr => LowerExpr(expr)
+            var expr => LowerAtLeast(expr, PostfixPrecedence)
         };
         var arguments = invocation.Arguments.Select(a => LowerExpr(a.Value)).ToArray();
 
@@ -543,7 +543,7 @@ internal sealed class BodyLowering(
         var instance = property.Instance switch
         {
             null or IInstanceReferenceOperation => null,
-            var expr => LowerExpr(expr)
+            var expr => LowerAtLeast(expr, PostfixPrecedence)
         };
 
         if (StructMembers.IsAutoProperty(property.Property))
@@ -572,7 +572,7 @@ internal sealed class BodyLowering(
         var instance = property.Instance switch
         {
             null or IInstanceReferenceOperation => null,
-            var expr => LowerExpr(expr)
+            var expr => LowerAtLeast(expr, PostfixPrecedence)
         };
         var calleeName = Naming.ToSlangMethodName(getMethod);
         if (instance is null) CheckFieldShadowing(calleeName, property.Syntax.GetLocation());
@@ -675,6 +675,61 @@ internal sealed class BodyLowering(
             result = result.Replace("$this", LowerExpr(invocation.Instance));
 
         return result;
+    }
+
+    // C#'s operation tree carries no parentheses - `-(a + b)` and `-a + b` are both just a unary over a
+    // binary - so a lowered operand is wrapped whenever it binds looser than the operator it sits under.
+    // A right operand of the same precedence is wrapped too (`a - (b - c)`), which also keeps the
+    // evaluation order of `a + (b + c)`.
+    private const int TernaryPrecedence = 1;
+    private const int UnaryPrecedence = 12;
+    private const int PostfixPrecedence = 100;
+
+    private static int BinaryPrecedence(BinaryOperatorKind kind) => kind switch
+    {
+        BinaryOperatorKind.Multiply or BinaryOperatorKind.Divide or BinaryOperatorKind.Remainder => 11,
+        BinaryOperatorKind.Add or BinaryOperatorKind.Subtract => 10,
+        BinaryOperatorKind.LeftShift or BinaryOperatorKind.RightShift => 9,
+        BinaryOperatorKind.LessThan or BinaryOperatorKind.LessThanOrEqual or BinaryOperatorKind.GreaterThan
+            or BinaryOperatorKind.GreaterThanOrEqual => 8,
+        BinaryOperatorKind.Equals or BinaryOperatorKind.NotEquals => 7,
+        BinaryOperatorKind.And => 6,
+        BinaryOperatorKind.ExclusiveOr => 5,
+        BinaryOperatorKind.Or => 4,
+        BinaryOperatorKind.ConditionalAnd => 3,
+        BinaryOperatorKind.ConditionalOr => 2,
+        _ => 2
+    };
+
+    private static int Precedence(IOperation operation)
+    {
+        while (operation is IConversionOperation { IsImplicit: true } implicitConversion)
+            operation = implicitConversion.Operand;
+
+        return operation switch
+        {
+            IBinaryOperation binary when IsMatrixMultiply(binary) => PostfixPrecedence,
+            IBinaryOperation binary => BinaryPrecedence(binary.OperatorKind),
+            IUnaryOperation or IConversionOperation => UnaryPrecedence,
+            IConditionalOperation { WhenFalse: not null } => TernaryPrecedence,
+            ISimpleAssignmentOperation or ICompoundAssignmentOperation => 0,
+            _ => PostfixPrecedence
+        };
+    }
+
+    private string LowerAtLeast(IOperation operand, int minimumPrecedence)
+    {
+        var text = LowerExpr(operand);
+        return Precedence(operand) < minimumPrecedence ? $"({text})" : text;
+    }
+
+    private string LowerBinaryOperand(IOperation operand, BinaryOperatorKind parent, bool isRight)
+    {
+        var text = LowerExpr(operand);
+        var parentPrecedence = BinaryPrecedence(parent);
+        var operandPrecedence = Precedence(operand);
+        return isRight ? operandPrecedence <= parentPrecedence ? $"({text})" : text
+            : operandPrecedence < parentPrecedence ? $"({text})" : text;
     }
 
     private static bool TryMapOperator(BinaryOperatorKind kind, out string text)
