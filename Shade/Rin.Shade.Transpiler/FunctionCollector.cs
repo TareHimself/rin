@@ -39,6 +39,8 @@ internal sealed class FunctionCollector(
                 {
                     IInvocationOperation invocation => invocation.TargetMethod,
                     IObjectCreationOperation { Constructor: { } ctor } => ctor,
+                    IPropertyReferenceOperation { Property.SetMethod: { } setMethod } property
+                        when IsAssignmentTarget(property) => setMethod,
                     IPropertyReferenceOperation { Property.GetMethod: { } getMethod } => getMethod,
                     _ => null
                 };
@@ -73,8 +75,7 @@ internal sealed class FunctionCollector(
         // dead-code elimination for it.
         if (root is IPropertyReferenceOperation property &&
             !BodyLowering.IsBufferRefIndexer(property.Property) &&
-            !BodyLowering.IsSwizzle(property.Property) &&
-            !IsAssignmentTarget(property))
+            !BodyLowering.IsSwizzle(property.Property))
             yield return root;
 
         if (root is ILocalFunctionOperation) yield break;

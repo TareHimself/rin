@@ -332,6 +332,9 @@ internal sealed class BodyLowering(
                 return "/* unsupported */";
             case ICompoundAssignmentOperation compound when TryMapOperator(compound.OperatorKind, out var operatorText):
                 return $"{LowerExpr(compound.Target)} {operatorText}= {LowerExpr(compound.Value)}";
+            case ISimpleAssignmentOperation { Target: IPropertyReferenceOperation property } assignment
+                when !IsBufferRefIndexer(property.Property) && !IsSwizzle(property.Property):
+                return LowerPropertySet(property, assignment.Value);
             case ISimpleAssignmentOperation assignment:
                 return $"{LowerExpr(assignment.Target)} = {LowerExpr(assignment.Value)}";
             // Ternary and `if` share IConditionalOperation; LowerStatement handles the if-shape first.
@@ -533,6 +536,37 @@ internal sealed class BodyLowering(
     // both handled above) has no Slang equivalent syntax, so it's read by calling its getter as an
     // ordinary zero-arg method - the getter itself is discovered and emitted the same way any other
     // reachable method is (FunctionCollector's IPropertyReferenceOperation handling).
+    // An auto property is its backing field, written directly. A property with a setter body is a
+    // call of that setter, emitted as a mutating method like any other struct method.
+    private string LowerPropertySet(IPropertyReferenceOperation property, IOperation value)
+    {
+        var instance = property.Instance switch
+        {
+            null or IInstanceReferenceOperation => null,
+            var expr => LowerExpr(expr)
+        };
+
+        if (StructMembers.IsAutoProperty(property.Property))
+        {
+            var fieldName = Naming.ToSlangIdentifier(property.Property.Name);
+            var target = instance is not null ? $"{instance}.{fieldName}"
+                : property.Property.ContainingType.TypeKind == TypeKind.Struct ? $"this.{fieldName}" : fieldName;
+            return $"{target} = {LowerExpr(value)}";
+        }
+
+        if (property.Property.SetMethod is not { } setMethod || !MethodSource.HasBody(setMethod))
+        {
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                property.Syntax.GetLocation(), $"assignment to property '{property.Property.Name}' with no setter body"));
+            return "/* unsupported */";
+        }
+
+        var calleeName = Naming.ToSlangMethodName(setMethod);
+        if (instance is null) CheckFieldShadowing(calleeName, property.Syntax.GetLocation());
+        var call = $"{calleeName}({LowerExpr(value)})";
+        return instance is not null ? $"{instance}.{call}" : call;
+    }
+
     private string LowerPropertyGet(IPropertyReferenceOperation property, IMethodSymbol getMethod)
     {
         var instance = property.Instance switch

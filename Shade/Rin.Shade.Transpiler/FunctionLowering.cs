@@ -95,13 +95,20 @@ internal static class FunctionLowering
     {
         foreach (var body in MethodSource.GetBodies(method, compilation))
         foreach (var op in body.DescendantsAndSelf())
-            if (op is ISimpleAssignmentOperation
-                {
-                    Target: IFieldReferenceOperation { Instance: IInstanceReferenceOperation }
-                })
+            if (op is ISimpleAssignmentOperation { Target: var target } && RootedAtImplicitThis(target))
                 return true;
         return false;
     }
+
+    // `_locationU.X = v` writes a field of a field, and `Location = v` calls a setter - both mutate
+    // the struct just as much as a direct `Field = v` does.
+    private static bool RootedAtImplicitThis(IOperation target) => target switch
+    {
+        IFieldReferenceOperation { Instance: IInstanceReferenceOperation } => true,
+        IFieldReferenceOperation { Instance: { } instance } => RootedAtImplicitThis(instance),
+        IPropertyReferenceOperation { Instance: IInstanceReferenceOperation } => true,
+        _ => false
+    };
 
     private static string RefModifier(RefKind refKind) => refKind switch
     {

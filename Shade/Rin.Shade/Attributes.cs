@@ -113,7 +113,6 @@ public sealed class SemanticAttribute(string name) : Attribute
 public sealed class SlangCallAttribute(string template) : Attribute
 {
     public string Template { get; } = template;
-    public string? Header { get; init; }
     public int Precedence { get; init; }
 }
 
@@ -121,12 +120,10 @@ public sealed class SlangCallAttribute(string template) : Attribute
 public sealed class SlangStatementAttribute(string template) : Attribute
 {
     public string Template { get; } = template;
-    public string? Header { get; init; }
 }
 
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class SlangBodyAttribute(string body) : Attribute
 {
     public string Body { get; } = body;
-    public string? Header { get; init; }
 }
