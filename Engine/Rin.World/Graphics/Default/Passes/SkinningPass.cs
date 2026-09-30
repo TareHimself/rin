@@ -6,6 +6,9 @@ using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Shared;
+using Rin.Shade;
+using Rin.World.Graphics.Default.Shaders;
+using Rin.World.Mesh.Skinning;
 using Rin.World.Graphics.Mesh;
 
 namespace Rin.World.Graphics.Default.Passes;
@@ -16,8 +19,8 @@ namespace Rin.World.Graphics.Default.Passes;
 /// <param name="sceneFrame"></param>
 public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
 {
-    [ComputeShader("Shaders/World/Mesh/Compute/skinning.slang")]
-    private partial IComputeShader SkinningShader { get; }
+    [ComputeShader<SkinningShader>]
+    private partial IComputeShader Shader { get; }
     
     private List<SkinningExecutionInfo> ExecutionInfos { get; set; } = [];
 
@@ -106,16 +109,16 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
         for (var i = 0; i < UniqueSkinnedMeshes.Count; i++) meshPointers[i] = UniqueSkinnedMeshes[i].GetVertices().GetAddress();
         meshPointersArray.Write(meshPointers);
 
-        if (SkinningShader.Bind(ctx) is { } bindContext)
+        if (Shader.Bind(ctx) is { } bindContext)
         {
             bindContext
-                .Push(new SkinningPushConstants
+                .Push(new SkinningShader.PushConstants
                 {
                     TotalInvocations = (int)TotalVerticesToSkin,
-                    MeshesBuffer = meshPointersArray.GetAddress(),
-                    PosesBuffer = posePointerArray.GetAddress(),
-                    ExecutionInfoBuffer = executionInfos.GetAddress(),
-                    OutputBuffer = output.GetAddress()
+                    Meshes = new BufferRef<BufferRef<SkinnedVertex>>(meshPointersArray.GetAddress()),
+                    Poses = new BufferRef<BufferRef<Matrix4x4>>(posePointerArray.GetAddress()),
+                    ExecutionInfo = new BufferRef<SkinningExecutionInfo>(executionInfos.GetAddress()),
+                    Output = new BufferRef<Vertex>(output.GetAddress())
                 })
                 .Invoke(TotalVerticesToSkin);
             //cmd.BufferBarrier(output, MemoryBarrierOptions.ComputeToGraphics());
@@ -125,23 +128,5 @@ public partial class SkinningPass(DefaultSceneFrame sceneFrame) : IComputePass
                 mesh.VertexBuffer = output.GetView(mesh.VertexBuffer.Offset, mesh.VertexBuffer.Size);
             }
         }
-    }
-    
-    [NoReorder]
-    private struct SkinningExecutionInfo
-    {
-        public required int PoseIndex;
-        public required int MeshIndex;
-        public required int VertexIndex;
-        
-    }
-    [NoReorder]
-    public record struct SkinningPushConstants
-    {
-        public required int TotalInvocations;
-        public required ulong MeshesBuffer;
-        public required ulong PosesBuffer;
-        public required ulong ExecutionInfoBuffer;
-        public required ulong OutputBuffer;
     }
 }
