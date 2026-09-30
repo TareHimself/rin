@@ -38,6 +38,16 @@ public class SlangSessionBuilder : IDisposable
         return this;
     }
 
+    public SlangSessionBuilder AddTargetHostCallable()
+    {
+        unsafe
+        {
+            Native.slangSessionBuilderAddTargetHostCallable(_ptr);
+        }
+
+        return this;
+    }
+
     public SlangSessionBuilder AddPreprocessorDefinition(string name, string value)
     {
         unsafe

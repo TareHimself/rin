@@ -22,6 +22,9 @@ internal static partial class Native
     public static unsafe partial void slangSessionBuilderAddTargetGlsl(void* builder);
 
     [LibraryImport(DllName)]
+    public static unsafe partial void slangSessionBuilderAddTargetHostCallable(void* builder);
+
+    [LibraryImport(DllName)]
     public static unsafe partial void slangSessionBuilderAddPreprocessorDefinition(void* builder,
         [MarshalUsing(typeof(Utf8StringMarshaller))]
         string name,
@@ -69,6 +72,18 @@ internal static partial class Native
     [LibraryImport(DllName)]
     public static unsafe partial void* slangComponentGetEntryPointCode(void* component, int entryPointIndex,
         int targetIndex, void* outDiagnostics);
+
+    [LibraryImport(DllName)]
+    public static unsafe partial void* slangComponentGetEntryPointHostCallable(void* component, int entryPointIndex,
+        int targetIndex, void* outDiagnostics);
+
+    [LibraryImport(DllName)]
+    public static unsafe partial void* slangSharedLibraryFindFunc(void* library,
+        [MarshalUsing(typeof(Utf8StringMarshaller))]
+        string name);
+
+    [LibraryImport(DllName)]
+    public static unsafe partial void slangSharedLibraryFree(void* library);
 
     [LibraryImport(DllName)]
     public static unsafe partial void* slangComponentLink(void* component, void* outDiagnostics);
