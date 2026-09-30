@@ -28,7 +28,7 @@ float4 vertex(int vid : SV_VertexID) : SV_Position
 {
     float2 corner = float2(kCorners[vid]);
     float2 pos = lerp(push.minPos, push.maxPos, corner);
-    return mul(push.projection, float4(pos, 0.0, 1.0));
+    return mul(float4(pos, 0.0, 1.0), push.projection);
 }
 
 [shader("fragment"), Attachment(AttachmentFormat.RGBA32), BlendUI]

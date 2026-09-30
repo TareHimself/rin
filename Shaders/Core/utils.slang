@@ -5,10 +5,10 @@
 // Transform normal without inverse https://lxjk.github.io/2017/10/01/Stop-Using-Normal-Matrix.html
 float3 transformNormal(float3 normal, float4x4 transformation)
 {
-    // Extract the 3x3 rotation+scale part (column-major: columns are basis vectors)
-    float3 X = float3(transformation[0].x, transformation[1].x, transformation[2].x); // X axis
-    float3 Y = float3(transformation[0].y, transformation[1].y, transformation[2].y); // Y axis
-    float3 Z = float3(transformation[0].z, transformation[1].z, transformation[2].z); // Z axis
+    // Extract the 3x3 rotation+scale part (row-vector matrices: the rows are the basis vectors)
+    float3 X = transformation[0].xyz; // X axis
+    float3 Y = transformation[1].xyz; // Y axis
+    float3 Z = transformation[2].xyz; // Z axis
 
     // Get squared scale on each axis (length^2 of basis vectors)
     float3 scaleSq = float3(dot(X, X), dot(Y, Y), dot(Z, Z));

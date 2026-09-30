@@ -41,10 +41,10 @@ public partial class SkinningShader : Shader
         var location4 = new Vector4(inVertex.Vertex.Location, 1f);
         var normal = inVertex.Vertex.Normal;
 
-        var location = ShaderMath.MulColumn(t1, location4) * weights.X +
-                       ShaderMath.MulColumn(t2, location4) * weights.Y +
-                       ShaderMath.MulColumn(t3, location4) * weights.Z +
-                       ShaderMath.MulColumn(t4, location4) * weights.W;
+        var location = Vector4.Transform(location4, t1) * weights.X +
+                       Vector4.Transform(location4, t2) * weights.Y +
+                       Vector4.Transform(location4, t3) * weights.Z +
+                       Vector4.Transform(location4, t4) * weights.W;
 
         normal = ShaderMath.TransformNormal(normal, t1) * weights.X +
                  ShaderMath.TransformNormal(normal, t2) * weights.Y +

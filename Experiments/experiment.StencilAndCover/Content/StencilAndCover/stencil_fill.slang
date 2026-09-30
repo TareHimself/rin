@@ -20,7 +20,7 @@ uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
 float4 vertex(int vid : SV_VertexID) : SV_Position
 {
     float2 local = push.vertices[vid];
-    return mul(push.projection, mul(push.transform, float4(local, 0.0, 1.0)));
+    return mul(mul(float4(local, 0.0, 1.0), push.transform), push.projection);
 }
 
 [shader("fragment"), BlendNone, Stencil]

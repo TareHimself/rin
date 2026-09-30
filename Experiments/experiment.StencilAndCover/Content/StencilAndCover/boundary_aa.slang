@@ -82,7 +82,7 @@ VSOut vertex(int vid : SV_VertexID, int iid : SV_InstanceID)
     float2 screenPos = corners[kCornerIndex[vid]];
 
     VSOut o;
-    o.position = mul(push.projection, float4(screenPos, 0.0, 1.0));
+    o.position = mul(float4(screenPos, 0.0, 1.0), push.projection);
     o.screenPos = screenPos;
     o.instanceId = iid;
     return o;

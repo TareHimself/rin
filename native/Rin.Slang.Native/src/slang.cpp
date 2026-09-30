@@ -184,7 +184,8 @@ Session::Session(const SessionBuilder* builder)
     auto compilerOptions = builder->options;
     sessionDesc.preprocessorMacros = preprocessorMacros.data();
     sessionDesc.preprocessorMacroCount = static_cast<SlangInt>(preprocessorMacros.size());
-    sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;//SLANG_MATRIX_LAYOUT_ROW_MAJOR;
+    // Row-major to match System.Numerics Matrix4x4, so a raw upload is bit-identical.
+    sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_ROW_MAJOR;
     sessionDesc.compilerOptionEntries = compilerOptions.data();
     sessionDesc.compilerOptionEntryCount = static_cast<uint32_t>(compilerOptions.size());
     

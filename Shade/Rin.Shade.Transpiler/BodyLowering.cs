@@ -308,7 +308,7 @@ internal sealed class BodyLowering(
                     ? LowerExpr(conversion.Operand)
                     : $"({TypeMapping.MapType(conversion.Type!)}){LowerExpr(conversion.Operand)}";
             case IBinaryOperation binary when IsMatrixMultiply(binary):
-                return $"mul({LowerExpr(binary.RightOperand)}, {LowerExpr(binary.LeftOperand)})";
+                return $"mul({LowerExpr(binary.LeftOperand)}, {LowerExpr(binary.RightOperand)})";
             case IBinaryOperation { OperatorMethod.DeclaringSyntaxReferences.Length: > 0 } binary:
                 // A BCL operator (Vector2.op_Subtraction etc.) has no declaring syntax in this
                 // compilation and is trusted to mean the same thing in Slang - an operator declared

@@ -251,7 +251,7 @@ VSOut vertex(int vid : SV_VertexID, int iid : SV_InstanceID)
     float2 corner = float2(kCorners[vid]);
 
     VSOut o;
-    o.position   = mul(push.projection, float4(lerp(d.minPos, d.maxPos, corner), 0.0, 1.0));
+    o.position   = mul(float4(lerp(d.minPos, d.maxPos, corner), 0.0, 1.0), push.projection);
     o.emCoord    = lerp(d.minEm, d.maxEm, corner);
     o.instanceId = iid;
     return o;

@@ -1,12 +1,18 @@
 #pragma once
+
+// Matrices are row-major and row-vector, exactly like System.Numerics: a raw Matrix4x4 upload is
+// bit-identical, and a point transforms as `v * M`. Code here is still written `matrix * vector`
+// (apply the matrix to the vector, then the next one outward), so the operators keep that reading
+// while computing the row-vector form, which is what lets the same C# matrix work unchanged.
+// `a * b` (apply b, then a) is therefore the C# product `b * a`.
 float4 operator *(float4x4 matrix, float4 vec)
 {
-    return mul(matrix, vec);
+    return mul(vec, matrix);
 }
 
 float4x4 operator *(float4x4 matrixLeft, float4x4 matrixRight)
 {
-    return mul(matrixLeft, matrixRight);
+    return mul(matrixRight, matrixLeft);
 }
 
 // float4x4 operator *(float4x4 matrixLeft, float right)
@@ -21,11 +27,11 @@ float4x4 operator *(float4x4 matrixLeft, float4x4 matrixRight)
 
 float3 operator *(float3x3 matrix, float3 vec)
 {
-    return mul(matrix, vec);
+    return mul(vec, matrix);
 }
 float3x3 operator *(float3x3 matrixLeft, float3x3 matrixRight)
 {
-    return mul(matrixLeft, matrixRight);
+    return mul(matrixRight, matrixLeft);
 }
 
 float2 operator *(float4x4 matrix,float2 vec)
