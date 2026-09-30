@@ -1,5 +1,6 @@
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
+using Rin.Shade;
 
 namespace Rin.Graphics.Null;
 
@@ -8,7 +9,7 @@ internal sealed class NullGraphicsShader : IGraphicsShader
 {
     public bool Ready => true;
     public ImageFormat[] AttachmentFormats => [];
-    public BlendMode BlendMode => BlendMode.None;
+    public BlendState BlendState => BlendState.None;
     public bool UsesStencil => false;
     public bool UsesDepth => false;
 

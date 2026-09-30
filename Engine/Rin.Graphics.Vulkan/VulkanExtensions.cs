@@ -7,6 +7,7 @@ using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
 using Rin.Graphics.Vulkan.Descriptors;
 using Rin.Graphics.Vulkan.Images;
+using Rin.Shade;
 using TerraFX.Interop.Vulkan;
 
 namespace Rin.Graphics.Vulkan;
@@ -92,6 +93,39 @@ public static class VulkanExtensions
             DescriptorType.SampledImage => VkDescriptorType.VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
             DescriptorType.UniformBuffer => VkDescriptorType.VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             _ => throw new ArgumentOutOfRangeException(nameof(descriptorType), descriptorType, null)
+        };
+    }
+
+    [PublicAPI]
+    public static VkBlendFactor ToVk(this BlendFactor factor)
+    {
+        return factor switch
+        {
+            BlendFactor.Zero => VkBlendFactor.VK_BLEND_FACTOR_ZERO,
+            BlendFactor.One => VkBlendFactor.VK_BLEND_FACTOR_ONE,
+            BlendFactor.SrcColor => VkBlendFactor.VK_BLEND_FACTOR_SRC_COLOR,
+            BlendFactor.OneMinusSrcColor => VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
+            BlendFactor.DstColor => VkBlendFactor.VK_BLEND_FACTOR_DST_COLOR,
+            BlendFactor.OneMinusDstColor => VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR,
+            BlendFactor.SrcAlpha => VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
+            BlendFactor.OneMinusSrcAlpha => VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            BlendFactor.DstAlpha => VkBlendFactor.VK_BLEND_FACTOR_DST_ALPHA,
+            BlendFactor.OneMinusDstAlpha => VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
+            _ => throw new ArgumentOutOfRangeException(nameof(factor), factor, null)
+        };
+    }
+
+    [PublicAPI]
+    public static VkBlendOp ToVk(this BlendOp op)
+    {
+        return op switch
+        {
+            BlendOp.Add => VkBlendOp.VK_BLEND_OP_ADD,
+            BlendOp.Subtract => VkBlendOp.VK_BLEND_OP_SUBTRACT,
+            BlendOp.ReverseSubtract => VkBlendOp.VK_BLEND_OP_REVERSE_SUBTRACT,
+            BlendOp.Min => VkBlendOp.VK_BLEND_OP_MIN,
+            BlendOp.Max => VkBlendOp.VK_BLEND_OP_MAX,
+            _ => throw new ArgumentOutOfRangeException(nameof(op), op, null)
         };
     }
 
@@ -441,57 +475,35 @@ public static class VulkanExtensions
     }
 
     public static VkPipeline CreateGraphicsPipeline(this in VkDevice device, in VkPipelineLayout layout,
-        ReadOnlySpan<ImageFormat> attachmentFormats, BlendMode blendMode,
+        ReadOnlySpan<ImageFormat> attachmentFormats, BlendState blendState,
         ReadOnlySpan<Pair<VkShaderModule, ShaderStage>> stages, bool useDepth, bool useStencil)
     {
         unsafe
         {
             var pAttachmentFormats = stackalloc VkFormat[attachmentFormats.Length];
-            // Debug.Assert(blendMode == BlendMode.None
-            //     ? attachmentFormatsArray.Empty() || attachmentFormatsArray.Length == 1
-            //     : attachmentFormatsArray.NotEmpty());
             for (var i = 0; i < attachmentFormats.Length; i++)
                 pAttachmentFormats[i] = attachmentFormats[i].ToVk();
-            var attachments = Enumerable.Range(0, attachmentFormats.Length).Select(idx =>
-            {
-                return blendMode switch
+
+            var isNoOpEquation = blendState.SrcColor == BlendFactor.One && blendState.DstColor == BlendFactor.Zero &&
+                                  blendState.ColorOp == BlendOp.Add && blendState.SrcAlpha == BlendFactor.One &&
+                                  blendState.DstAlpha == BlendFactor.Zero && blendState.AlphaOp == BlendOp.Add;
+            var attachments = Enumerable.Range(0, attachmentFormats.Length).Select(_ =>
+                new VkPipelineColorBlendAttachmentState
                 {
-                    BlendMode.None => new VkPipelineColorBlendAttachmentState
-                    {
-                        blendEnable = 0,
-                        colorWriteMask = 0
-                    },
-                    BlendMode.UI => new VkPipelineColorBlendAttachmentState
-                    {
-                        blendEnable = 1,
-                        srcColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_SRC_ALPHA,
-                        dstColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-                        colorBlendOp = VkBlendOp.VK_BLEND_OP_ADD,
-                        srcAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE,
-                        dstAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-                        colorWriteMask = VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
-                                         VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
-                                         VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
-                                         VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT
-                    },
-                    BlendMode.Opaque => new VkPipelineColorBlendAttachmentState
-                    {
-                        blendEnable = 0,
-                        srcColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE,
-                        dstColorBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ZERO,
-                        colorBlendOp = VkBlendOp.VK_BLEND_OP_ADD,
-                        srcAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ONE,
-                        dstAlphaBlendFactor = VkBlendFactor.VK_BLEND_FACTOR_ZERO,
-                        alphaBlendOp = VkBlendOp.VK_BLEND_OP_ADD,
-                        colorWriteMask = VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
-                                         VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
-                                         VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
-                                         VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT
-                    },
-                    BlendMode.Translucent => throw new NotImplementedException(),
-                    _ => throw new ArgumentOutOfRangeException(nameof(blendMode), blendMode, null)
-                };
-            }).ToArray();
+                    blendEnable = (uint)(isNoOpEquation ? 0 : 1),
+                    srcColorBlendFactor = blendState.SrcColor.ToVk(),
+                    dstColorBlendFactor = blendState.DstColor.ToVk(),
+                    colorBlendOp = blendState.ColorOp.ToVk(),
+                    srcAlphaBlendFactor = blendState.SrcAlpha.ToVk(),
+                    dstAlphaBlendFactor = blendState.DstAlpha.ToVk(),
+                    alphaBlendOp = blendState.AlphaOp.ToVk(),
+                    colorWriteMask = blendState.WritesColor
+                        ? VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
+                          VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
+                          VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
+                          VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT
+                        : 0
+                }).ToArray();
             fixed (VkPipelineColorBlendAttachmentState* pAttachments = attachments)
             fixed (byte* pName = "main"u8)
             {

@@ -2,13 +2,15 @@
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
+using Rin.Shade;
+using Rin.World.Graphics.Default.Shaders;
 
 namespace Rin.World.Graphics.Default.Passes;
 
 public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWorldViewData view)
     : IComputePass
 {
-    [ComputeShader("Shaders/World/Mesh/Compute/draw_indirect.slang")]
+    [ComputeShader<DrawIndirectShader>]
     private partial IComputeShader Shader { get; }
 
     public uint Id { get; set; }
@@ -73,25 +75,15 @@ public partial class FillIndirectBuffersPass(CullingPass cullingPass, DefaultWor
             var invokeCount = (uint)group.Count;
             bindContext
                 .Reset() // We have to reset because we write shader data
-                .Push(new PushData
+                .Push(new DrawIndirectShader.PushConstants
                 {
-                    CullingBufferAddress = cullingBufferAddress,
-                    Meshes = meshRecords.GetAddress(),
+                    CullingResults = new BufferRef<uint>(cullingBufferAddress),
+                    Meshes = new BufferRef<IndirectMeshRecord>(meshRecords.GetAddress()),
                     InvocationCount = invokeCount,
-                    Output = commandBuffer.GetAddress(),
-                    DrawCount = countBuffer.GetAddress()
+                    Output = new BufferRef<DrawIndexedIndirectCommand>(commandBuffer.GetAddress()),
+                    DrawCount = new BufferRef<uint>(countBuffer.GetAddress())
                 })
                 .Invoke(invokeCount);
         }
-    }
-
-    [NoReorder]
-    private struct PushData
-    {
-        public required ulong CullingBufferAddress;
-        public required ulong Meshes;
-        public required uint InvocationCount;
-        public required ulong Output;
-        public required ulong DrawCount;
     }
 }

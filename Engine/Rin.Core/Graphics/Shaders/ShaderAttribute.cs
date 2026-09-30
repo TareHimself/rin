@@ -18,17 +18,12 @@ namespace Rin.Core.Graphics.Shaders;
 [AttributeUsage(AttributeTargets.Property)]
 public abstract class ShaderAttribute : Attribute
 {
-    /// <summary>The shader's path, when declared directly.</summary>
+    /// <summary>The shader's path, when declared directly (never set on the generic forms).</summary>
     public string? Path { get; }
-
-    /// <summary>
-    /// A shader-authoring class (e.g. a Rin.Shade [Shader] class) to resolve the path from instead,
-    /// when declared by type. The generator reads that type's own attribute at compile time to
-    /// resolve the actual path - this is never populated for anything to read via reflection.
-    /// </summary>
-    public Type? ShaderType { get; }
 
     protected ShaderAttribute(string path) => Path = path;
 
-    protected ShaderAttribute(Type shaderType) => ShaderType = shaderType;
+    protected ShaderAttribute()
+    {
+    }
 }

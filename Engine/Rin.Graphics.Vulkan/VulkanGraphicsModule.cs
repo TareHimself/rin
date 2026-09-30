@@ -13,6 +13,7 @@ using Rin.Graphics.Vulkan.Windows;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Buffers;
 using Rin.Core.Shared.Threading;
+using Rin.Shade;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 
@@ -167,6 +168,16 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     public IGraphicsShader MakeGraphics(string path)
     {
         return _shaderManager?.MakeGraphics(path) ?? throw new NullReferenceException();
+    }
+
+    public IGraphicsShader MakeGraphics(IGraphicsDescriptor descriptor)
+    {
+        return _shaderManager?.MakeGraphics(descriptor) ?? throw new NullReferenceException();
+    }
+
+    public IComputeShader MakeCompute(IComputeDescriptor descriptor)
+    {
+        return _shaderManager?.MakeCompute(descriptor) ?? throw new NullReferenceException();
     }
 
     public IComputeShader MakeCompute(string path)

@@ -5,6 +5,7 @@ using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
 using Rin.Graphics.Vulkan.Descriptors;
+using Rin.Shade;
 using Rin.Slang;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -16,16 +17,19 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
     private readonly Task _compileTask;
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
 
+    private readonly IGraphicsDescriptor? _descriptor;
     private readonly string _filePath;
     private readonly List<Pair<VkShaderModule, ShaderStage>> _shaders = [];
     private VkPipeline _pipeline;
     private VkPipelineLayout _pipelineLayout;
     private VkShaderStageFlags _shaderStageFlags = 0;
 
-    public CompiledGraphicsShader(CompiledShaderManager manager, string filePath)
+    public CompiledGraphicsShader(CompiledShaderManager manager, string filePath,
+        IGraphicsDescriptor? descriptor = null)
     {
-        _compileTask = manager.Compile(this);
         _filePath = filePath;
+        _descriptor = descriptor;
+        _compileTask = manager.Compile(this);
     }
 
     public void Dispose()
@@ -66,14 +70,23 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
 
         var resources = new Dictionary<string, Resource>();
         var pushConstants = new Dictionary<string, PushConstant>();
+        var bindlessBlocks = new Dictionary<string, uint>();
         List<Pair<ShaderStage, byte[]>> code = [];
+
+        if (_descriptor is { } descriptor)
+        {
+            AttachmentFormats = descriptor.AttachmentFormats.Select(format => (ImageFormat)(int)format).ToArray();
+            BlendState = descriptor.BlendState;
+            UsesDepth = descriptor.UsesDepth;
+            UsesStencil = descriptor.UsesStencil;
+        }
 
         foreach (var stage in compiledShader.Stages)
         {
             var entryPointStage = stage.Stage == "vertex" ? ShaderStage.Vertex : ShaderStage.Fragment;
             code.Add(new Pair<ShaderStage, byte[]>(entryPointStage, stage.Spirv));
 
-            if (stage.Reflection.EntryPoints.FirstOrDefault() is { } reflectionEntryPoint)
+            if (_descriptor is null && stage.Reflection.EntryPoints.FirstOrDefault() is { } reflectionEntryPoint)
             {
                 if (reflectionEntryPoint is { Name: "fragment", Result: not null })
                     switch (reflectionEntryPoint.Result.Type.Kind)
@@ -110,46 +123,29 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
                             UsesStencil = true;
                             break;
                         case "BlendNone":
-                            BlendMode = BlendMode.None;
+                            BlendState = BlendState.None;
                             break;
                         case "BlendUI":
-                            BlendMode = BlendMode.UI;
+                            BlendState = BlendState.Alpha;
                             break;
                         case "BlendOpaque":
-                            BlendMode = BlendMode.Opaque;
+                            BlendState = BlendState.Opaque;
                             break;
                         case "BlendTranslucent":
-                            BlendMode = BlendMode.Translucent;
-                            break;
+                            throw new NotImplementedException();
                     }
             }
 
-            CompiledShaderManager.ReflectShader(stage.Reflection, resources, pushConstants, entryPointStage);
+            CompiledShaderManager.ReflectShader(stage.Reflection, resources, pushConstants, entryPointStage,
+                bindlessBlocks);
         }
 
         Resources = resources.ToFrozenDictionary();
         PushConstants = pushConstants.ToFrozenDictionary();
 
         {
-            SortedDictionary<uint, DescriptorLayoutBuilder> builders = [];
-            foreach (var (key, item) in Resources)
-            {
-                if (!builders.ContainsKey(item.Set))
-                    builders.Add(item.Set, new DescriptorLayoutBuilder());
-
-                builders[item.Set].AddBinding(item.Binding, item.Type, item.Stages, item.Count, item.BindingFlags);
-            }
-
-            var max = builders.Count == 0 ? 0 : builders.Keys.Max();
-            List<VkDescriptorSetLayout> layouts = [];
-            for (uint i = 0; i < max + 1; i++)
-            {
-                var newLayout = builders.TryGetValue(i, out var value)
-                    ? value.Build()
-                    : new DescriptorLayoutBuilder().Build();
-                _descriptorLayouts.Add(i, newLayout);
-                layouts.Add(newLayout);
-            }
+            var layouts = CompiledShaderManager.BuildDescriptorLayouts(Resources.Values, bindlessBlocks);
+            for (var i = 0; i < layouts.Count; i++) _descriptorLayouts.Add((uint)i, layouts[i]);
 
             var device = VulkanGraphicsModule.Get().GetDevice();
             _pipelineLayout = device.CreatePipelineLayout(CollectionsMarshal.AsSpan(layouts));
@@ -161,14 +157,14 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
                 _shaderStageFlags |= stage.ToVk();
             }
 
-            _pipeline = device.CreateGraphicsPipeline(_pipelineLayout, AttachmentFormats, BlendMode,
+            _pipeline = device.CreateGraphicsPipeline(_pipelineLayout, AttachmentFormats, BlendState,
                 CollectionsMarshal.AsSpan(_shaders),
                 UsesDepth, UsesStencil);
         }
     }
 
     public ImageFormat[] AttachmentFormats { get; set; } = [];
-    public BlendMode BlendMode { get; set; } = BlendMode.None;
+    public BlendState BlendState { get; set; } = BlendState.None;
     public bool UsesStencil { get; set; }
     public bool UsesDepth { get; set; }
 

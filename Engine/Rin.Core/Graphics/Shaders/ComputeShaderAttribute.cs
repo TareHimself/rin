@@ -10,9 +10,9 @@ namespace Rin.Core.Graphics.Shaders;
 /// [ComputeShader("cs/assets/test/blur.slang")]
 /// public partial IComputeShader BlurShader { get; }
 /// </code>
-/// Or, referencing a shader-authoring class directly instead of retyping its own declared path:
+/// Or, referencing a shader-authoring class directly, which passes its generated descriptor instead:
 /// <code>
-/// [ComputeShader(typeof(BlurShader))]
+/// [ComputeShader&lt;BlurShader&gt;]
 /// public partial IComputeShader BlurShader { get; }
 /// </code>
 /// </example>
@@ -22,7 +22,7 @@ public sealed class ComputeShaderAttribute : ShaderAttribute
     {
     }
 
-    public ComputeShaderAttribute(Type shaderType) : base(shaderType)
-    {
-    }
 }
+
+/// <inheritdoc cref="ComputeShaderAttribute"/>
+public sealed class ComputeShaderAttribute<T> : ShaderAttribute where T : global::Rin.Shade.Shader;

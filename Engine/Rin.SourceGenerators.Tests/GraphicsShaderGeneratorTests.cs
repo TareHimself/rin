@@ -18,6 +18,7 @@ public class GraphicsShaderGeneratorTests
         .Split(Path.PathSeparator)
         .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
         .Append(MetadataReference.CreateFromFile(typeof(IGraphicsModule).Assembly.Location))
+        .Append(MetadataReference.CreateFromFile(typeof(Rin.Shade.Shader).Assembly.Location))
         .ToArray();
 
     private static GeneratorDriverRunResult Run(string source)
@@ -158,33 +159,22 @@ public partial class ShaderUser
     }
 
     [Fact]
-    public void ResolvesPathFromTypeofArgument()
+    public void GenericArgumentResolvesToGeneratedDescriptor()
     {
-        // A local stand-in for Rin.Shade.ShaderAttribute - the generator matches by fully-qualified
-        // attribute name only, not by an actual reference to the real Rin.Shade assembly.
         const string source = @"
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
 
-namespace Rin.Shade
-{
-    [System.AttributeUsage(System.AttributeTargets.Class)]
-    public sealed class ShaderAttribute : System.Attribute
-    {
-        public ShaderAttribute(string path) { }
-    }
-}
-
 namespace TestNamespace;
 
 [Rin.Shade.Shader(""Shaders/Rin/World/blur.slang"")]
-public class BlurShaderDefinition
+public class BlurShaderDefinition : Rin.Shade.Shader
 {
 }
 
 public partial class ShaderUser
 {
-    [ComputeShader(typeof(BlurShaderDefinition))]
+    [ComputeShader<BlurShaderDefinition>]
     private partial IComputeShader BlurShader { get; }
 }
 ";
@@ -196,25 +186,25 @@ public partial class ShaderUser
         var generatedText = generatedFileSyntax.GetText().ToString();
 
         Assert.Contains(
-            "private partial global::Rin.Core.Graphics.Shaders.IComputeShader BlurShader => field ??= global::Rin.Core.Graphics.IGraphicsModule.Get().MakeCompute(\"Shaders/Rin/World/blur.slang\");",
+            "private partial global::Rin.Core.Graphics.Shaders.IComputeShader BlurShader => field ??= global::Rin.Core.Graphics.IGraphicsModule.Get().MakeCompute(global::TestNamespace.BlurShaderDefinition.Descriptor);",
             generatedText);
     }
 
     [Fact]
-    public void TypeofArgumentMissingShaderAttributeIsRejected()
+    public void GenericArgumentMissingShaderAttributeIsRejected()
     {
         const string source = @"
 using Rin.Core.Graphics.Shaders;
 
 namespace TestNamespace;
 
-public class NotAShaderClass
+public class NotAShaderClass : Rin.Shade.Shader
 {
 }
 
 public partial class ShaderUser
 {
-    [ComputeShader(typeof(NotAShaderClass))]
+    [ComputeShader<NotAShaderClass>]
     private partial IComputeShader BlurShader { get; }
 }
 ";

@@ -834,6 +834,19 @@ public partial class VulkanGraphicsModule
             [_resourceDescriptorSet]);
     }
 
+    public const string GlobalBindlessBlockName = "rin.global";
+
+    /// <summary>
+    ///     The engine-owned descriptor set layout a shader's <c>[BindlessBlock(name)]</c> resolves to, or
+    ///     null if no block is registered under that name. The shader's own layout for that set is
+    ///     replaced by this one rather than built from reflection, so the block's declaration in the
+    ///     shader and the engine's table can't drift apart silently.
+    /// </summary>
+    public VkDescriptorSetLayout? FindBindlessBlockLayout(string name)
+    {
+        return name == GlobalBindlessBlockName ? _resourceDescriptorSetLayout : null;
+    }
+
     public DescriptorSet GetResourceDescriptorSet()
     {
         return _resourceDescriptorSet;

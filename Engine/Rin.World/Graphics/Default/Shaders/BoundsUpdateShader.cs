@@ -1,4 +1,5 @@
 using System.Numerics;
+using JetBrains.Annotations;
 using Rin.Shade;
 
 namespace Rin.World.Graphics.Default.Shaders;
@@ -71,7 +72,7 @@ public struct ComputeIn
 [Shader("Shaders/Rin/World/Mesh/Compute/bounds_update.slang")]
 public partial class BoundsUpdateShader : Shader
 {
-    [Push] protected BoundsUpdatePushConstants Push;
+    [Push] [UsedImplicitly] protected BoundsUpdatePushConstants Push;
 
     [Compute(64, 1, 1)]
     public void Compute(ComputeIn input)
