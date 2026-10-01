@@ -361,7 +361,20 @@ internal sealed class BodyLowering(
                     binary.Syntax.GetLocation(), $"user-defined operator overload '{binary.OperatorMethod!.Name}'"));
                 return "/* unsupported */";
             case IBinaryOperation binary when TryMapOperator(binary.OperatorKind, out var operatorText):
-                return $"{LowerBinaryOperand(binary.LeftOperand, binary.OperatorKind, false)} {operatorText} {LowerBinaryOperand(binary.RightOperand, binary.OperatorKind, true)}";
+            {
+                var left = LowerBinaryOperand(binary.LeftOperand, binary.OperatorKind, false);
+                var right = LowerBinaryOperand(binary.RightOperand, binary.OperatorKind, true);
+
+                // The emitted literal for 2f is `2`, so `2f / 3f` would divide integers in Slang and give 0.
+                if (binary.OperatorKind is BinaryOperatorKind.Divide or BinaryOperatorKind.Remainder &&
+                    binary.Type is { SpecialType: SpecialType.System_Single or SpecialType.System_Double })
+                {
+                    left = AsFloatLiteral(left);
+                    right = AsFloatLiteral(right);
+                }
+
+                return $"{left} {operatorText} {right}";
+            }
             case IUnaryOperation { OperatorMethod.DeclaringSyntaxReferences.Length: > 0 } unary:
                 diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
                     unary.Syntax.GetLocation(), $"user-defined operator overload '{unary.OperatorMethod!.Name}'"));
@@ -802,6 +815,9 @@ internal sealed class BodyLowering(
         var text = LowerExpr(operand);
         return Precedence(operand) < minimumPrecedence ? $"({text})" : text;
     }
+
+    private static string AsFloatLiteral(string text) =>
+        text.Length > 0 && text.TrimStart('-').All(char.IsDigit) ? text + ".0" : text;
 
     private string LowerBinaryOperand(IOperation operand, BinaryOperatorKind parent, bool isRight)
     {

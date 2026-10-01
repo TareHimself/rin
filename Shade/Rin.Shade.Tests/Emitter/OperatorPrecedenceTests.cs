@@ -50,7 +50,9 @@ public class OperatorPrecedenceTests
     [TestCase("Push.Output[0] = -(Push.A + Push.B);", "= -(push.a + push.b);")]
     [TestCase("Push.Output[0] = Push.A - (Push.B - Push.C);", "= push.a - (push.b - push.c);")]
     [TestCase("Push.Output[0] = (Push.A + Push.B) * Push.C;", "= (push.a + push.b) * push.c;")]
-    [TestCase("Push.Output[0] = 1f / (Push.A * Push.B + Push.C);", "= 1 / (push.a * push.b + push.c);")]
+    [TestCase("Push.Output[0] = 1f / (Push.A * Push.B + Push.C);", "= 1.0 / (push.a * push.b + push.c);")]
+    [TestCase("Push.Output[0] = 1f / 3f;", "= 1.0 / 3.0;")]
+    [TestCase("Push.Output[0] = 2f / 65536f * Push.A;", "= 2.0 / 65536.0 * push.a;")]
     [TestCase("Push.Output[0] = Push.A / (Push.B * Push.C);", "= push.a / (push.b * push.c);")]
     [TestCase("Push.Output[0] = (Push.A > Push.B ? Push.A : Push.B) + Push.C;",
         "= (push.a > push.b ? push.a : push.b) + push.c;")]
