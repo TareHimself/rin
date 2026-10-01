@@ -1,6 +1,7 @@
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Shade;
+using Rin.World.Graphics.Mesh;
 
 namespace Rin.World.Graphics.Default.Shaders;
 
@@ -31,33 +32,6 @@ public struct UpdatableBounds3D
     }
 }
 
-// "Shade"-prefixed: these are GPU-side mirror types for transpilation only, distinct from
-// Rin.World's real CPU-side Vertex (Rin.World.Graphics.Mesh)/SkinnedMesh (Rin.World.Mesh.Skinning)
-// domain types, which happen to share these names in other namespaces in this same project.
-[ShaderStruct]
-public struct ShadeVertex
-{
-    public Vector4 LocationU;
-    public Vector4 NormalV;
-    public Vector4 Tangent;
-
-    public Vector3 GetLocation() => LocationU.xyz;
-}
-
-public struct ShadeSkinnedMesh
-{
-    public int Index;
-    public BufferRef<ShadeVertex> Vertices;
-    public uint Count;
-}
-
-public struct BoundsUpdatePushConstants
-{
-    public BufferRef<ShadeSkinnedMesh> SkinnedMeshes;
-    public int TotalInvocations;
-    public BufferRef<UpdatableBounds3D> Output;
-}
-
 public struct ComputeIn
 {
     [DispatchThreadId] public uint ThreadId;
@@ -66,7 +40,21 @@ public struct ComputeIn
 [Shader("Shaders/Rin/World/Mesh/Compute/bounds_update.slang")]
 public partial class BoundsUpdateShader : Shader
 {
-    [Push] [UsedImplicitly] protected BoundsUpdatePushConstants Push;
+    public struct SkinnedMesh
+    {
+        public int Index;
+        public BufferRef<Vertex> Vertices;
+        public uint Count;
+    }
+
+    public struct PushConstants
+    {
+        public BufferRef<SkinnedMesh> SkinnedMeshes;
+        public int TotalInvocations;
+        public BufferRef<UpdatableBounds3D> Output;
+    }
+
+    [Push] [UsedImplicitly] protected PushConstants Push;
 
     [Compute(64, 1, 1)]
     public void Compute(ComputeIn input)
@@ -75,15 +63,10 @@ public partial class BoundsUpdateShader : Shader
         if (index >= (uint)Push.TotalInvocations) return;
 
         var mesh = Push.SkinnedMeshes[index];
-        var vertex = mesh.Vertices[0];
-        var vertexCount = mesh.Count;
-        var bounds = new UpdatableBounds3D(vertex.GetLocation());
+        var bounds = new UpdatableBounds3D(mesh.Vertices[0].Location);
 
-        for (var i = 1u; i < vertexCount; i++)
-        {
-            vertex = mesh.Vertices[i];
-            bounds.Update(vertex.GetLocation());
-        }
+        for (var i = 1u; i < mesh.Count; i++)
+            bounds.Update(mesh.Vertices[i].Location);
 
         Push.Output[mesh.Index] = bounds;
     }

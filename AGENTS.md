@@ -62,3 +62,20 @@ Prefer zero-allocation or low-allocation code, and use pooling where it fits.
 - Reuse and clear a collection instead of creating a new one each call.
 - Build-time tooling (the Rin.Shade transpiler, source generators, MSBuild tasks) may favour clarity
   over allocation.
+
+## Documentation
+
+Keep the docs true. A change is not done until the docs it affects are updated in the same change.
+
+- Update the `ReadMe.md` of every project whose behavior, public surface, build or test commands, references or
+  key files changed. Fix claims that became wrong, not only the ones you added.
+- Update `ARCHITECTURE.md` when a change alters the layers, the per-frame flow, or how the major subsystems
+  connect, and the diagrams and `Shade/ReadMe.md` pipeline description when the shader pipeline changes.
+- When you add or remove a project, add or remove its `ReadMe.md` and its entry in the "All READMEs" list in the
+  root `ReadMe.md`. Folders do not get a `ReadMe.md` of their own, except `Shade/` and `native/`, which document a
+  subsystem.
+- Only state what you verified in the code. Do not describe behavior from file names.
+- Examples in docs must be real: run them (for example `rin-shade compile` for a shader) and paste the actual output.
+- Follow the same style as the existing docs: plain language, no em dashes, commands that work from the repo root.
+- Design plans and handoff notes are not repo docs. Do not commit them.
+
