@@ -6,20 +6,20 @@ using Rin.Shade;
 namespace Rin.Core.Views.Graphics.Shaders;
 
 [NoReorder]
-public struct VideoItem
+public struct ImageItem
 {
     public Matrix4x4 Transform;
     public Vector2 Size;
-    public DeviceHandle FrameHandle;
+    public DeviceHandle Image;
 }
 
-[Shader("Shaders/Rin/Core/Views/video.slang")]
-public partial class VideoBatchShader : Shader
+[Shader("Shaders/Rin/Core/Views/image_batch.slang")]
+public partial class ImageBatchShader : Shader
 {
     public struct PushConstants
     {
         public Matrix4x4 Projection;
-        public BufferRef<VideoItem> Items;
+        public BufferRef<ImageItem> Images;
     }
 
     public struct VertexIn
@@ -49,7 +49,7 @@ public partial class VideoBatchShader : Shader
     [Vertex]
     public VertexOut Vertex(VertexIn input)
     {
-        var item = Push.Items[input.InstanceId];
+        var item = Push.Images[input.InstanceId];
         var corners = new[]
         {
             new Vector2(0f, 0f), new Vector2(item.Size.X, 0f), new Vector2(item.Size.X, item.Size.Y),
@@ -69,7 +69,7 @@ public partial class VideoBatchShader : Shader
     [Fragment, Attachment(AttachmentFormat.RGBA16), Stencil]
     public Vector4 Fragment(FragmentIn input)
     {
-        var item = Push.Items[input.Index];
-        return Bindless.SampleTexture(item.FrameHandle, input.Uv, ImageTiling.ClampEdge, ImageFilter.Linear);
+        var item = Push.Images[input.Index];
+        return Bindless.SampleTexture(item.Image, input.Uv, ImageTiling.ClampEdge, ImageFilter.Linear);
     }
 }
