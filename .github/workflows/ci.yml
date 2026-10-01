@@ -40,11 +40,12 @@ jobs:
           cmake --preset Rin-Release --fresh
           cmake --build --preset Rin-Release
 
-      # Overwrites the placeholder Rin.Slang.Native package from the stub step (same id and version).
+      # The real package gets a higher version than the stub (1.0.0) so the floating 1.* reference resolves to
+      # it. The same version would be treated as already installed by the shared NuGet package cache.
       - name: Pack the real Rin.Slang.Native into the feed
         working-directory: native/Rin.Slang.Native
         run: |
-          python ../make_nuspec_cli.py --name Rin.Slang.Native --version 1.0.0 --author TareHimself --source build-release/Release --output specs/Release.nuspec
+          python ../make_nuspec_cli.py --name Rin.Slang.Native --version 1.0.1 --author TareHimself --source build-release/Release --output specs/Release.nuspec
           dotnet pack project.csproj -p:NuspecFile=specs/Release.nuspec -p:NuspecBasePath=specs --output ../../.feed
 
       - uses: actions/upload-artifact@v4
