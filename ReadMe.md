@@ -56,7 +56,7 @@ Each project has its own `ReadMe.md`, and `Shade/` and `native/` have one for th
 - `msbuild/`: MSBuild targets shared by the shader projects (`RinShade.targets`)
 - `scripts/`: CI helpers (native stub packages, native fakes)
 
-How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventions for contributors and coding agents are in [`AGENTS.md`](AGENTS.md).
+How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventions for contributors and coding agents are in [`AGENTS.md`](AGENTS.md), with extra rules for [`Shade/`](Shade/AGENTS.md) and [`native/`](native/AGENTS.md).
 
 ## All READMEs
 
