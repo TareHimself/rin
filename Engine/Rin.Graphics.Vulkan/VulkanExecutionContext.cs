@@ -47,7 +47,7 @@ public class VulkanExecutionContext(
             var ops = new ImageBarrierOptions(asVulkanImage!.Format, from, to);
             var barrier = new VkImageMemoryBarrier2
             {
-                sType = VkStructureType.VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                 srcStageMask = ops.WaitCompleteStages,
                 dstStageMask = ops.StartAfterStages,
                 srcAccessMask = ops.SrcAccessFlags,
