@@ -99,6 +99,8 @@ void createVulkanInstance(std::uint64_t windowHandle, VulkanInitResult* outResul
 
     VkPhysicalDeviceFeatures indirectFeatures{};
     indirectFeatures.multiDrawIndirect = VK_TRUE;
+    // The engine writes indirect commands with a non-zero firstInstance, which needs this feature.
+    indirectFeatures.drawIndirectFirstInstance = VK_TRUE;
     VkPhysicalDeviceVulkan12Features indirectFeatures12{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
     indirectFeatures12.drawIndirectCount = VK_TRUE;
 

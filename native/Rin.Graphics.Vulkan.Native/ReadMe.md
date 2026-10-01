@@ -14,6 +14,10 @@ Native layer for the Vulkan backend. Builds `Rin.Graphics.Vulkan.Native` as a sh
 - `src/`: `graphics.*`, `platform.*`, `flags.hpp`, `macro.hpp`.
 - `project.csproj`: shell project used only by `dotnet pack`.
 
+## Device selection
+
+`createVulkanInstance` (in `src/graphics.cpp`) requires Vulkan 1.3 with dynamic rendering, synchronization2, buffer device address, descriptor indexing and scalar block layout. It prefers a GPU that also has the indirect-draw features the engine uses (`multiDrawIndirect`, `drawIndirectCount` and `drawIndirectFirstInstance`), enables them, and reports `supportsIndirectRendering`. If no GPU has all three, it still creates the device without them and the flag is false, and `Rin.World` falls back to direct draws.
+
 ## Build and pack
 
 From the repo root:
