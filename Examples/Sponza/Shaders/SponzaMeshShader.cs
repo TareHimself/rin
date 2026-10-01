@@ -52,7 +52,7 @@ public partial class SponzaMeshShader : Shader
     }
 
     [Fragment, Depth]
-    public MeshShader.GBufferOut Fragment(MeshShader.FragmentIn input)
+    public GBufferOutput Fragment(MeshShader.FragmentIn input)
     {
         var instance = Push.Data[input.InstanceId];
         var normal = Math.Normalize(input.SceneNormal);
@@ -72,7 +72,7 @@ public partial class SponzaMeshShader : Shader
             metallic = metallicRoughness.Z;
         }
 
-        MeshShader.GBufferOut output;
+        GBufferOutput output;
         output.GBuffer0 = new Vector4(color, roughness);
         output.GBuffer1 = new Vector4(input.SceneLocation, metallic);
         output.GBuffer2 = new Vector4(normal, 0f);

@@ -1,5 +1,6 @@
 using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Core.Graphics;
 using Rin.Shade;
 
 namespace Rin.World.Graphics.Default.Shaders;
@@ -14,7 +15,7 @@ public struct LightingInfo
 }
 
 [Shader("Shaders/Rin/World/lighting.slang")]
-public partial class LightingShader : GBufferShader
+public partial class LightingShader : Shader
 {
     public struct PushConstants
     {
@@ -38,6 +39,7 @@ public partial class LightingShader : GBufferShader
     }
 
     [Push] protected PushConstants Push;
+    protected static BindlessData Bindless;
 
     protected override BlendState BlendState => BlendState.Alpha;
 
@@ -61,7 +63,7 @@ public partial class LightingShader : GBufferShader
     public Vector4 Fragment(FragmentIn input)
     {
         var data = Push.Data[0];
-        var surface = SampleGBuffer(data.GBuffer, input.Uv);
+        var surface = Bindless.SampleGBuffer(data.GBuffer, input.Uv);
 
         var color = LightMath.Rgb2Lin(new Vector3(surface.Emissive));
         for (var i = 0; i < data.LightCount; i++) color += DisneyModel.Eval(surface, data.Eye, data.Lights[i]);

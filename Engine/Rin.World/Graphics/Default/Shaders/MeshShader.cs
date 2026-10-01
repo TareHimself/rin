@@ -56,14 +56,6 @@ public partial class MeshShader : Shader
         [Semantic("INSTANCE_ID")] public int InstanceId;
     }
 
-    public struct GBufferOut
-    {
-        [Target(1)] [Attachment(AttachmentFormat.RGBA32)] public Vector4 GBuffer0;
-        [Target(2)] [Attachment(AttachmentFormat.RGBA32)] public Vector4 GBuffer1;
-        [Target(3)] [Attachment(AttachmentFormat.RGBA32)] public Vector4 GBuffer2;
-        [Target(4)] [Attachment(AttachmentFormat.RGBA32)] public Vector4 GBuffer3;
-    }
-
     [Push] protected PushConstants Push;
     protected static BindlessData Bindless;
 
@@ -102,7 +94,7 @@ public partial class MeshShader : Shader
     }
 
     [Fragment, Depth]
-    public GBufferOut Fragment(FragmentIn input)
+    public GBufferOutput Fragment(FragmentIn input)
     {
         var instance = Push.Data[input.InstanceId];
         var normal = Math.Normalize(input.SceneNormal);
@@ -112,7 +104,7 @@ public partial class MeshShader : Shader
         var specular = ValueOrTexture(instance.SpecularTexture, input.Uv, instance.Specular);
         var emissive = ValueOrTexture(instance.EmissiveTexture, input.Uv, instance.Emissive);
 
-        GBufferOut output;
+        GBufferOutput output;
         output.GBuffer0 = new Vector4(color, roughness);
         output.GBuffer1 = new Vector4(input.SceneLocation, metallic);
         output.GBuffer2 = new Vector4(normal, specular);

@@ -1,6 +1,7 @@
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
+using Rin.Core.Views.Graphics.Shaders;
 using Rin.Shade;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default.Shaders;
@@ -21,7 +22,7 @@ public struct ViewportPushData
 }
 
 [Shader("Shaders/Rin/World/viewport.slang")]
-public partial class ViewportShader : GBufferShader
+public partial class ViewportShader : ViewShader<ViewportShader.FragmentIn>
 {
     public struct PushConstants
     {
@@ -45,8 +46,7 @@ public partial class ViewportShader : GBufferShader
     }
 
     [Push] protected PushConstants Push;
-
-    protected override BlendState BlendState => BlendState.Alpha;
+    protected static BindlessData Bindless;
 
     [Vertex]
     public VertexOut Vertex(VertexIn input)
@@ -72,8 +72,7 @@ public partial class ViewportShader : GBufferShader
         return Bindless.SampleTexture(handle, uv, ImageTiling.Repeat, ImageFilter.Linear);
     }
 
-    [Fragment, Attachment(AttachmentFormat.RGBA16), Stencil]
-    public Vector4 Fragment(FragmentIn input)
+    protected override Vector4 Color(FragmentIn input)
     {
         var data = Push.Data[0];
         var uv = input.Uv;
