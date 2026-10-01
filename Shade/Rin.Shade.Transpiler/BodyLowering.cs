@@ -282,7 +282,8 @@ internal sealed class BodyLowering(
     };
 
     // Roslyn lists a call's arguments in the order they were written, so `F(b: 1, a: 2)` is [b, a]; Slang
-    // takes them by position, so they go out in parameter order.
+    // takes them by position, so they go out in parameter order. Known quirk: C# evaluates arguments in written
+    // order, so a call with side-effecting named arguments evaluates them in parameter order here instead.
     private static IArgumentOperation[] InParameterOrder(IEnumerable<IArgumentOperation> arguments) =>
         arguments.OrderBy(argument => argument.Parameter?.Ordinal ?? int.MaxValue).ToArray();
 
