@@ -5,13 +5,6 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
     </ItemGroup>
 
-    <ItemGroup>
-        <!-- Scaffold for the future clustered forward renderer; depends on a pass-graph shape (PreAdd/PostAdd,
-             IGraphImage, CollectPass) that predates the current IPass/IGraphConfig API and isn't referenced by
-             anything (DefaultWorldRenderer's Default/* pipeline supersedes it). Kept for reference, not compiled. -->
-        <Compile Remove="Graphics\ForwardRenderingPass.cs" />
-    </ItemGroup>
-
     <ItemGroup Label="Content">
         <EmbeddedResource Include="Content\**\*.*"/>
     </ItemGroup>
