@@ -4,6 +4,7 @@ using Rin.Core.Graphics.Shaders;
 using Rin.Core.Shared;
 using Rin.Shade;
 using Rin.World.Graphics.Default.Shaders;
+using Rin.World.Graphics.Mesh;
 
 namespace Rin.World.Graphics.Default.Passes;
 
@@ -26,7 +27,7 @@ public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePa
         config.ReadBuffer(sceneFrame.SkinningOutputBufferId, GraphBufferUsage.Compute);
         config.WriteBuffer(sceneFrame.BoundsBufferId, GraphBufferUsage.Compute);
         SkinnedMeshBufferId =
-            config.CreateBuffer<ShadeSkinnedMesh>(sceneFrame.ProcessedSkinnedMeshCount, GraphBufferUsage.HostThenCompute);
+            config.CreateBuffer<BoundsUpdateShader.SkinnedMesh>(sceneFrame.ProcessedSkinnedMeshCount, GraphBufferUsage.HostThenCompute);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
@@ -37,15 +38,15 @@ public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePa
         var boundsBuffer = graph.GetBufferOrException(sceneFrame.BoundsBufferId);
         var skinnedMeshBuffer = graph.GetBufferOrException(SkinnedMeshBufferId);
 
-        using (var skinnedMeshes = new PooledMemory<ShadeSkinnedMesh>(skinnedCount))
+        using (var skinnedMeshes = new PooledMemory<BoundsUpdateShader.SkinnedMesh>(skinnedCount))
         {
             for (var i = 0; i < skinnedCount; i++)
             {
                 var mesh = sceneFrame.ProcessedMeshes[sceneFrame.SkinnedMeshStartIndex + i];
-                skinnedMeshes[i] = new ShadeSkinnedMesh
+                skinnedMeshes[i] = new BoundsUpdateShader.SkinnedMesh
                 {
                     Index = mesh.AbsoluteMeshIndex,
-                    Vertices = new BufferRef<ShadeVertex>(mesh.VertexBuffer.GetAddress()),
+                    Vertices = new BufferRef<Vertex>(mesh.VertexBuffer.GetAddress()),
                     Count = (uint)mesh.Surface.VertexCount
                 };
             }
@@ -56,9 +57,9 @@ public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePa
         if (Shader.Bind(ctx) is not { } bindContext) return;
 
         bindContext
-            .Push(new BoundsUpdatePushConstants
+            .Push(new BoundsUpdateShader.PushConstants
             {
-                SkinnedMeshes = new BufferRef<ShadeSkinnedMesh>(skinnedMeshBuffer.GetAddress()),
+                SkinnedMeshes = new BufferRef<BoundsUpdateShader.SkinnedMesh>(skinnedMeshBuffer.GetAddress()),
                 TotalInvocations = skinnedCount,
                 Output = new BufferRef<UpdatableBounds3D>(boundsBuffer.GetAddress())
             })
