@@ -90,7 +90,7 @@ jobs:
         if: steps.slang-native-cache.outputs.cache-hit != 'true'
         working-directory: native/Rin.Slang.Native
         run: |
-          conan install . --build=missing -s build_type=Release
+          conan install . --build=missing -s build_type=Release -s compiler.cppstd=20
           cmake --preset Rin-Release --fresh
           cmake --build --preset Rin-Release
 
