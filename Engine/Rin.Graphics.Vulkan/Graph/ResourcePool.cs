@@ -402,6 +402,12 @@ public class ResourcePool : IResourcePool
         public VkBuffer NativeBuffer => _resource.Buffer.NativeBuffer;
         public IntPtr Allocation => _resource.Buffer.Allocation;
 
+        public BufferGraphState? GraphState
+        {
+            get => _resource.Buffer.GraphState;
+            set => _resource.Buffer.GraphState = value;
+        }
+
         public ulong GetAddress()
         {
             return _resource.Buffer.GetAddress();

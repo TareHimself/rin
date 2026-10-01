@@ -12,6 +12,12 @@ public class ExternalVulkanBuffer(IVulkanDeviceBuffer source, in DeviceBufferVie
     public VkBuffer NativeBuffer => source.NativeBuffer;
     public IntPtr Allocation => source.Allocation;
 
+    public BufferGraphState? GraphState
+    {
+        get => source.GraphState;
+        set => source.GraphState = value;
+    }
+
     public ulong GetAddress()
     {
         return source.GetAddress();
