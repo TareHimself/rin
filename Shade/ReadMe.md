@@ -74,52 +74,110 @@ Solid arrows are project references. Dotted arrows are an analyzer reference (a 
 
 ## What a shader looks like
 
-A shader is a class that derives from `Rin.Shade.Shader`. This one, from `Engine/Rin.Core/Views/Graphics/Shaders/ImageBatchShader.cs`, draws batches of textured quads:
+A shader is a class that derives from `Rin.Shade.Shader`. This invented one draws a full-screen gradient and blends a tint over it:
 
 ```csharp
-[Shader("Shaders/Rin/Core/Views/image_batch.slang")]
-public partial class ImageBatchShader : ViewShader<ImageBatchShader.FragmentIn>
+using System.Numerics;
+using Rin.Shade;
+
+namespace Demo;
+
+[Shader("Shaders/Demo/tint.slang")]
+public partial class TintShader : Shader
 {
     public struct PushConstants
     {
-        public Matrix4x4 Projection;
-        public BufferRef<ImageItem> Images;
+        public Vector4 Tint;
+        public float Strength;
+    }
+
+    public struct VertexIn
+    {
+        [VertexId] public int VertexId;
+    }
+
+    public struct VertexOut
+    {
+        [Position] public Vector4 Position;
+        [Semantic("UV")] public Vector2 Uv;
     }
 
     [Push] protected PushConstants Push;
-    protected static BindlessData Bindless;
+
+    protected override BlendState BlendState => BlendState.Alpha;
 
     [Vertex]
-    public VertexOut Vertex(VertexIn input) { /* ... */ }
-
-    protected override Vector4 Color(FragmentIn input)
+    public VertexOut Vertex(VertexIn input)
     {
-        var item = Push.Images[input.Index];
-        return Bindless.SampleTexture(item.Image, input.Uv, ImageTiling.ClampEdge, ImageFilter.Linear);
+        var uv = new Vector2((input.VertexId << 1) & 2, input.VertexId & 2);
+
+        VertexOut output;
+        output.Uv = uv;
+        output.Position = new Vector4(uv * 2f - new Vector2(1f), 0f, 1f);
+        return output;
+    }
+
+    [Fragment, Attachment(AttachmentFormat.RGBA16)]
+    public Vector4 Fragment(VertexOut input)
+    {
+        var gradient = new Vector4(input.Uv, 0f, 1f);
+        return Shader.Math.Lerp(gradient, Push.Tint, Push.Strength);
     }
 }
 ```
 
-`ViewShader<T>` is a base class that owns the alpha blend state and the fragment entry point, and forwards to the abstract `Color` method. The transpiler flattens that inheritance, so the emitted Slang has a `color` function and a fragment entry point that calls it. The C# `Color` method becomes:
+Running it through the transpiler (`rin-shade compile`) gives this Slang (trimmed to the parts that matter):
 
 ```slang
-float4 color(FragmentIn input)
+namespace Demo::TintShader
 {
-    var item = push.images[input.index];
-    return bindless.sampleTexture(item.image, input.uv, Rin::Core::Graphics::ImageTiling.ClampEdge, Rin::Core::Graphics::ImageFilter.Linear);
+    struct PushConstants { float4 tint; float strength; }
+    struct VertexIn      { int vertexId : SV_VertexID; }
+    struct VertexOut     { float4 position : SV_Position; float2 uv : UV; }
+}
+
+using namespace Demo::TintShader;
+using namespace Demo;
+
+[[vk::push_constant]] uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
+
+[shader("vertex")]
+VertexOut vertex(VertexIn input)
+{
+    var uv = float2(input.vertexId << 1 & 2, input.vertexId & 2);
+    VertexOut output;
+    output.uv = uv;
+    output.position = float4(uv * 2 - float2(1), 0, 1);
+    return output;
+}
+
+[shader("fragment")]
+float4 fragment(VertexOut input)
+{
+    var gradient = float4(input.uv, 0, 1);
+    return lerp(gradient, push.tint, push.strength);
 }
 ```
 
-Names are lowerCamelCase in Slang, C# namespaces become Slang namespaces, and `Push` becomes the `push` push-constant uniform.
+What to notice:
+
+- Names become lowerCamelCase, and C# namespaces become Slang namespaces. Nested types live in a namespace named after their shader class.
+- `[Push]` becomes the `push` push-constant uniform, and `[VertexId]`, `[Position]` and `[Semantic("UV")]` become Slang semantics on the struct fields. Semantics only go on struct fields, so entry points take a struct.
+- `Shader.Math.Lerp` is an intrinsic that maps to Slang's `lerp`. Plain C# (`var`, `new Vector4(...)`, operators, shifts) is translated as written.
+- C# the transpiler does not support is reported as a diagnostic in your build output. Not every misuse is caught: a semantic attribute on a method parameter, for example, is dropped without a diagnostic, which is why entry points take a struct.
 
 From the same class the source generator adds a typed descriptor, which the engine passes to `MakeGraphics`:
 
 ```csharp
-ImageBatchShader.Descriptor                // GeneratedDescriptor
-ImageBatchShader.Descriptor.Output.Format  // the color attachment format
+TintShader.Descriptor                // GeneratedDescriptor
+TintShader.Descriptor.Output.Format  // the color attachment format (RGBA16 here)
 ```
 
-A shader that returns a struct with several attachments gets one property per attached field (`Output.GBuffer0Format` and so on).
+The descriptor also carries the blend state, which the generator copies from the `BlendState` override above, so the class is never instantiated. A shader that returns a struct with several attachments gets one property per attached field (`Output.GBuffer0Format` and so on).
+
+### Sharing code with base classes
+
+Shaders can derive from other shader classes. A base class can own the blend state, an entry point, helper methods and abstract hooks, and a derived class overrides the hooks. The transpiler flattens the inheritance chain, so the emitted Slang is one file with the base class's helpers and the derived class's overrides together. Base classes can also be generic, which is how one fragment entry point can be shared across several shaders that differ only in their input struct. The Rin.Core view shaders use this pattern.
 
 ## The attributes
 
