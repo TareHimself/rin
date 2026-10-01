@@ -165,6 +165,7 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
 
         foreach (var (resourceId, actions) in config.ResourceActions)
         {
+            var externalBuffer = (config.Resources[resourceId] as ExternalVulkanBufferResourceDescriptor)?.Resource;
             GraphConfig.ResourceAction? lastAction = null;
             foreach (var action in actions)
             {
@@ -177,6 +178,18 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
                             PreviousUsage = lastAction.BufferUsage,
                             NextUsage = action.BufferUsage,
                             PreviousOperation = lastAction.Operation,
+                            NextOperation = action.Operation,
+                            ResourceId = resourceId,
+                            PassId = action.PassId
+                        });
+                    else if (lastAction == null && externalBuffer is { GraphState: { } previous } &&
+                             (action.Operation == ResourceOperation.Write || previous.Operation == ResourceOperation.Write))
+                        // External buffers carry their last usage over from earlier graphs.
+                        Add(new BufferResourceSync
+                        {
+                            PreviousUsage = previous.Usage,
+                            NextUsage = action.BufferUsage,
+                            PreviousOperation = previous.Operation,
                             NextOperation = action.Operation,
                             ResourceId = resourceId,
                             PassId = action.PassId
@@ -214,6 +227,9 @@ public class GraphBuilder(IResourcePool resourcePool, Frame frame) : IGraphBuild
 
                 lastAction = action;
             }
+
+            if (externalBuffer != null && lastAction is { Type: GraphResourceKind.Buffer })
+                externalBuffer.GraphState = new BufferGraphState(lastAction.BufferUsage, lastAction.Operation);
         }
 
         return syncGroups;

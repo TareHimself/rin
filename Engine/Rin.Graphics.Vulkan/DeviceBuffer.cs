@@ -29,6 +29,7 @@ public class VulkanDeviceBuffer : IVulkanDeviceBuffer
 
     public VkBuffer NativeBuffer { get; set; }
     public IntPtr Allocation { get; }
+    public BufferGraphState? GraphState { get; set; }
 
     public ulong GetAddress()
     {

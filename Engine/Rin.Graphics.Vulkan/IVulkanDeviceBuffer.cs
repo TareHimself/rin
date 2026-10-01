@@ -11,6 +11,12 @@ public interface IVulkanDeviceBuffer : IDisposable
     public VkBuffer NativeBuffer { get; }
     public IntPtr Allocation { get; }
 
+    /// <summary>
+    ///     The last render graph action on this buffer, carried between graphs so the next graph can synchronize
+    ///     with it. Null until a graph has used the buffer.
+    /// </summary>
+    public BufferGraphState? GraphState { get; set; }
+
     public DeviceBufferView GetView()
     {
         return GetView(0, Size);
