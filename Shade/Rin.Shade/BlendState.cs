@@ -1,5 +1,8 @@
 namespace Rin.Shade;
 
+/// <summary>
+/// Multiplier applied to the source or destination term of a blend equation.
+/// </summary>
 public enum BlendFactor
 {
     Zero,
@@ -14,6 +17,9 @@ public enum BlendFactor
     OneMinusDstAlpha
 }
 
+/// <summary>
+/// How the weighted source and destination terms are combined.
+/// </summary>
 public enum BlendOp
 {
     Add,
@@ -24,37 +30,40 @@ public enum BlendOp
 }
 
 /// <summary>
-///     Replaces the old closed <c>BlendMode</c> enum - blend mode is really a pair of blend
-///     equations (color, alpha), and a fixed set of named cases can't express a mode that isn't
-///     already one of them. <see cref="None" /> and <see cref="Opaque" /> share the same (no-op)
-///     equation - the only difference between them is <see cref="WritesColor" />, a real field
-///     rather than something inferred by comparing against a named preset: this is a record
-///     struct, so distinguishing them by value equality would never work - they're equal by value
-///     on purpose.
+/// A pair of blend equations (color and alpha) plus a color write toggle.
 /// </summary>
+/// <remarks>
+/// <see cref="None" /> and <see cref="Opaque" /> have the same equation and differ only in
+/// <see cref="WritesColor" />, which is why it is an explicit field and not inferred from a preset.
+/// </remarks>
 public readonly record struct BlendState(
     BlendFactor SrcColor, BlendFactor DstColor, BlendOp ColorOp,
     BlendFactor SrcAlpha, BlendFactor DstAlpha, BlendOp AlphaOp,
     bool WritesColor = true)
 {
     /// <summary>
-    ///     No color attachment write at all (used by e.g. a stencil-only pass that still needs a
-    ///     fragment output declared). The equation itself is the same no-op as <see cref="Opaque" />.
+    /// Writes no color at all, for passes such as stencil-only that still declare a fragment output.
     /// </summary>
     public static readonly BlendState None =
         new(BlendFactor.One, BlendFactor.Zero, BlendOp.Add, BlendFactor.One, BlendFactor.Zero, BlendOp.Add,
             WritesColor: false);
 
-    /// <summary>result = src*srcAlpha + dst*(1-srcAlpha) - attenuates the destination, can occlude.</summary>
+    /// <summary>
+    /// Standard alpha blending: <c>src * srcAlpha + dst * (1 - srcAlpha)</c>.
+    /// </summary>
     public static readonly BlendState Alpha =
         new(BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha, BlendOp.Add,
             BlendFactor.One, BlendFactor.OneMinusSrcAlpha, BlendOp.Add);
 
-    /// <summary>result = src + dst - never attenuates the destination, only brightens.</summary>
+    /// <summary>
+    /// Adds source to destination, so it only ever brightens.
+    /// </summary>
     public static readonly BlendState Additive =
         new(BlendFactor.One, BlendFactor.One, BlendOp.Add, BlendFactor.One, BlendFactor.One, BlendOp.Add);
 
-    /// <summary>Straight overwrite, full write mask - blending disabled.</summary>
+    /// <summary>
+    /// Overwrites the destination with the source, with blending disabled.
+    /// </summary>
     public static readonly BlendState Opaque =
         new(BlendFactor.One, BlendFactor.Zero, BlendOp.Add, BlendFactor.One, BlendFactor.Zero, BlendOp.Add);
 }

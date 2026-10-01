@@ -2,8 +2,14 @@ using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// Descriptors for every diagnostic the transpiler reports.
+/// </summary>
 internal static class Diagnostics
 {
+    /// <summary>
+    /// The SHADExxxx errors raised while lowering shader C# to Slang.
+    /// </summary>
     internal static class Emitter
     {
         public static readonly DiagnosticDescriptor MissingShaderBaseType = new(

@@ -10,6 +10,9 @@ namespace Rin.Shade.Transpiler;
 /// </summary>
 internal static class InlineArrays
 {
+    /// <summary>
+    /// Whether the type is an [InlineArray] struct, and if so its element type and declared length.
+    /// </summary>
     public static bool TryGet(ITypeSymbol type, out ITypeSymbol element, out int length)
     {
         element = null!;

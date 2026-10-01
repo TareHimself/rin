@@ -7,12 +7,9 @@ namespace Rin.Shade.Transpiler;
 
 /// <summary>
 /// Walks a method's body for calls to other plain (non-[SlangExpression]-bound) methods with source,
-/// post-order, so a callee is always collected before its caller - mirrors TypeCollector's
-/// dependency ordering, but for the call graph instead of the field graph. A method never reached
-/// this way is never added to Order, which is the dead-code-elimination guarantee. Local functions
-/// go through the exact same walk as any other method - MethodSource treats both declaration
-/// shapes uniformly. Constructors reached via `new T(...)` are collected the same way as ordinary
-/// calls, so a struct's __init gets emitted whenever something actually constructs it.
+/// post-order, so a callee is always collected before its caller. A method never reached this way is
+/// never added to Order, which is what eliminates dead code. Local functions, property accessors and
+/// constructors reached via `new T(...)` are collected like ordinary calls.
 /// </summary>
 internal sealed class FunctionCollector(
     Compilation compilation, List<Diagnostic> diagnostics,
@@ -21,11 +18,19 @@ internal sealed class FunctionCollector(
     private readonly HashSet<IMethodSymbol> _visited = new(SymbolEqualityComparer.Default);
     private readonly HashSet<IMethodSymbol> _visiting = new(SymbolEqualityComparer.Default);
 
+    /// <summary>
+    /// The reachable methods, each after everything it calls.
+    /// </summary>
     public List<IMethodSymbol> Order { get; } = [];
 
-    /// <summary>The collected methods each method calls, so the emitter can reorder without breaking define-before-use.</summary>
+    /// <summary>
+    /// The collected methods each method calls, so the emitter can reorder without breaking define-before-use.
+    /// </summary>
     public Dictionary<IMethodSymbol, HashSet<IMethodSymbol>> Dependencies { get; } = new(SymbolEqualityComparer.Default);
 
+    /// <summary>
+    /// Adds the method and, first, every method it reaches. Reports a diagnostic if the call graph is recursive.
+    /// </summary>
     public void Collect(IMethodSymbol method)
     {
         if (!_visiting.Add(method))
@@ -72,18 +77,14 @@ internal sealed class FunctionCollector(
         Collect(method);
     }
 
-    // A plain descendants walk would also find calls inside a nested, never-invoked local
-    // function's body, since it's lexically nested in the enclosing method's tree - that would
-    // defeat dead-code elimination for local functions. A local function's own body is only ever
-    // walked (via Collect, above) once something actually calls it, so descent stops here.
+    // Stops at a local function: its body is lexically nested here but is only walked (via Collect)
+    // once something calls it, otherwise dead local functions would keep their callees alive.
     private static IEnumerable<IOperation> FindReachableCallSites(IOperation root)
     {
         if (root is IInvocationOperation or IObjectCreationOperation) yield return root;
 
-        // A property *read* needs its getter collected like any other call; a property used as an
-        // assignment target does not (property writes aren't lowered generically - see BodyLowering),
-        // and yielding it here too would collect a getter that's never actually invoked, defeating
-        // dead-code elimination for it.
+        // A property read needs its getter collected. An assignment target is excluded here (its setter
+        // is picked up in Collect), so a getter that is never invoked is not kept alive.
         if (root is IPropertyReferenceOperation property &&
             !BodyLowering.IsBufferRefIndexer(property.Property) &&
             !BodyLowering.IsSwizzle(property.Property))

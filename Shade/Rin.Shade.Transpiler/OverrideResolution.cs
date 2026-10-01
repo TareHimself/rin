@@ -4,12 +4,16 @@ using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
 
-// A shader has no runtime polymorphism, so the most-derived override is always statically
-// knowable - but a call made from code declared in a base class still resolves, in Roslyn's own
-// operation tree, to the base's own (possibly bodyless) declaration. This maps every declaration
-// along an override chain to its real most-derived implementation.
+/// <summary>
+/// Maps every declaration along an override chain to its most-derived implementation. A shader has no
+/// runtime polymorphism, but a call written in a base class still binds to the base declaration, which
+/// may have no body.
+/// </summary>
 internal static class OverrideResolution
 {
+    /// <summary>
+    /// The methods of the type chain that no other method in the chain overrides.
+    /// </summary>
     public static IEnumerable<IMethodSymbol> EffectiveMethods(List<INamedTypeSymbol> chain)
     {
         var allMethods = chain.SelectMany(t => t.GetMembers().OfType<IMethodSymbol>()).ToList();
@@ -19,6 +23,9 @@ internal static class OverrideResolution
         return allMethods.Where(m => !shadowed.Contains(m));
     }
 
+    /// <summary>
+    /// A map from each overridden declaration to the method that finally overrides it.
+    /// </summary>
     public static Dictionary<IMethodSymbol, IMethodSymbol> Build(List<INamedTypeSymbol> chain)
     {
         var map = new Dictionary<IMethodSymbol, IMethodSymbol>(SymbolEqualityComparer.Default);
@@ -27,8 +34,7 @@ internal static class OverrideResolution
         {
             map[current] = effective;
 
-            // A body declared in an open generic base references OriginalDefinition (TData), not
-            // the substituted form above (ConstructedFrom doesn't unwrap containing-type generics).
+            // A body in an open generic base references OriginalDefinition, not the substituted form.
             if (!SymbolEqualityComparer.Default.Equals(current, current.OriginalDefinition))
                 map[current.OriginalDefinition] = effective;
         }
@@ -36,6 +42,9 @@ internal static class OverrideResolution
         return map;
     }
 
+    /// <summary>
+    /// The effective implementation of the method, or the method itself if it is not overridden.
+    /// </summary>
     public static IMethodSymbol Resolve(IMethodSymbol method, IReadOnlyDictionary<IMethodSymbol, IMethodSymbol> map) =>
         map.TryGetValue(method, out var effective) ? effective : method;
 }

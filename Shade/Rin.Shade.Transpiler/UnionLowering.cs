@@ -4,14 +4,27 @@ using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// Lowers an explicit-layout union to a header struct, one padded struct per variant path, and a
+/// full-size "complete" struct.
+/// </summary>
 internal static class UnionLowering
 {
+    /// <summary>
+    /// The generated struct name for a variant path below the root union.
+    /// </summary>
     public static string PathName(ITypeSymbol root, IEnumerable<UnionVariant> path) =>
         $"{Naming.GeneratedPrefix}{root.Name}_{string.Join("_", path.Select(v => v.Member.Name))}";
 
+    /// <summary>
+    /// <see cref="PathName"/> qualified relative to the current scope.
+    /// </summary>
     public static string QualifiedPathName(ITypeSymbol root, IEnumerable<UnionVariant> path) =>
         Naming.Qualify(root, PathName(root, path));
 
+    /// <summary>
+    /// The Slang text for the union, or an empty string after a diagnostic if its layout is invalid.
+    /// </summary>
     public static string Lower(INamedTypeSymbol type, List<Diagnostic> diagnostics,
         IReadOnlyList<string>? nested = null)
     {
@@ -24,8 +37,7 @@ internal static class UnionLowering
         foreach (var path in UnionLayout.AllPaths(info))
         {
             var first = path[0];
-            // A nested union's own payload is its header-only struct: the variant struct already
-            // names the rest of it by path, and a Complete struct here would add padding twice.
+            // A nested union's payload is its header-only struct; its Complete struct would add padding twice.
             var payloadType = path.Count > 1
                 ? QualifiedPathName(first.Member.Type, path.Skip(1))
                 : UnionLayout.IsUnion(first.Member.Type)

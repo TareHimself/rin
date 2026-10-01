@@ -6,14 +6,19 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// Entry point of the transpiler: finds the [Shader] classes in a compilation and lowers each to Slang.
+/// </summary>
 public static class ShadeEmitter
 {
+    /// <summary>
+    /// Emits every [Shader] class in the compilation.
+    /// </summary>
     public static ShadeEmitResult Emit(Compilation compilation) => Emit(compilation, compilation.SyntaxTrees);
 
     /// <summary>
-    /// localTrees restricts which trees are searched for [Shader]-attributed entry-point classes -
-    /// per the design doc, embedded trees pulled in by ScratchCompilationBuilder exist purely to
-    /// make bodies walkable, never as entry points of their own.
+    /// Emits the [Shader] classes declared in localTrees. Embedded trees from ScratchCompilationBuilder
+    /// only make bodies walkable and are never entry points.
     /// </summary>
     public static ShadeEmitResult Emit(Compilation compilation, IEnumerable<SyntaxTree> localTrees)
     {
@@ -34,9 +39,7 @@ public static class ShadeEmitter
             {
                 if (model.GetDeclaredSymbol(classDeclaration) is not INamedTypeSymbol classSymbol) continue;
                 if (!InheritsFrom(classSymbol, shaderBaseType)) continue;
-                // [Shader(...)] marks an emission target with its own output path - an intermediate
-                // base class meant only to be derived from (walkable via the base-chain flattening
-                // in ShaderLowering) isn't one on its own, even though it also derives from Shader.
+                // An intermediate base class derives from Shader too but is not an emission target without [Shader].
                 if (!HasShaderAttribute(classSymbol)) continue;
 
                 var lowering = new ShaderLowering(compilation, diagnostics);
@@ -60,6 +63,9 @@ public static class ShadeEmitter
         type.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "Rin.Shade.ShaderAttribute");
 }
 
+/// <summary>
+/// The emitted Slang source keyed by shader class name, plus the diagnostics raised while emitting.
+/// </summary>
 public sealed record ShadeEmitResult(
     IReadOnlyDictionary<string, string> Shaders,
     ImmutableArray<Diagnostic> Diagnostics);

@@ -6,8 +6,15 @@ using StageEntry = (Microsoft.CodeAnalysis.IMethodSymbol EffectiveMethod, Micros
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// Lowers one shader class (and its base chain) to a complete Slang module: types, bindings, helper
+/// functions and the compute or vertex/fragment entry points.
+/// </summary>
 internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> diagnostics)
 {
+    /// <summary>
+    /// Returns the Slang source for the shader class, or null (after adding a diagnostic) if its entry points are invalid.
+    /// </summary>
     public string? Lower(INamedTypeSymbol shaderClass)
     {
         if (shaderClass.IsGenericType)
@@ -28,7 +35,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             .GroupBy(f => f.Name)
             .Select(g => g.First())
             // Slang numbers parameter blocks in declaration order, and the engine binds the global
-            // bindless set once per frame at set 0 - so bindless blocks are declared first.
+            // bindless set at set 0, so bindless blocks must be declared first.
             .OrderBy(f => BindingLowering.BindlessBlockName(f) is null ? 1 : 0)
             .ToList();
 
@@ -101,10 +108,8 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             .Where(m => !entryMethodSet.Contains(m))
             .ToList();
 
-        // A helper's own signature, or a type introduced only as a local variable somewhere in a
-        // reachable body, is otherwise invisible to the type graph - only the push field and entry-point
-        // signatures were seeded above. Must run after functionOrder exists, but before the graph is
-        // emitted below.
+        // Types seen only in a helper's signature or as a local in a reachable body are not yet in the
+        // graph. Must run after functionOrder exists and before the graph is emitted.
         foreach (var function in functionOrder)
         {
             foreach (var parameter in function.Parameters)
@@ -120,8 +125,8 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             foreach (var body in MethodSource.GetBodies(function, compilation))
                 types.AddFromBody(body);
 
-        // Helpers call nothing else, so emitting them ahead of functionOrder always satisfies
-        // Slang's define-before-use requirement.
+        // With helpers call nothing else, so emitting them before functionOrder satisfies Slang's
+        // define-before-use rule.
         var withHelperSpecs = new Dictionary<string, WithHelperSpec>();
         var withHelperOrder = new List<WithHelperSpec>();
         foreach (var entryMethod in entryMethods)
@@ -140,8 +145,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         var declared = TypeEmitter.Declared(types);
         TypeEmitter.Emit(types, diagnostics, writer, declared);
 
-        // The shader's own namespace (and the one holding its class) is where most of what the rest of the
-        // file names lives, so open it up and let the signatures read like the C#.
+        // Most types the shader names live in its own namespace, so open it to keep signatures short.
         var shaderNamespace = Naming.NamespacePath(shaderClass);
         var usings = new List<string>();
         if (declared.Contains(shaderNamespace.Length == 0 ? shaderClass.Name : $"{shaderNamespace}::{shaderClass.Name}"))
@@ -262,7 +266,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == fullName);
 
     /// <summary>
-    /// shaderClass and every base class up to (not including) Rin.Shade.Shader, most-derived first.
+    /// Yields shaderClass and every base class up to (not including) Rin.Shade.Shader, most-derived first.
     /// </summary>
     private IEnumerable<INamedTypeSymbol> WalkBaseChain(INamedTypeSymbol shaderClass)
     {
@@ -274,16 +278,14 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
     }
 
     /// <summary>
-    /// Resolves every effective (most-derived) method in the chain whose root declaration carries
-    /// the given marker attribute, plus that attribute instance itself and the exact declaration
-    /// where it was found (which is what carries any state the attribute holds, e.g. [Compute]'s
-    /// thread-group size - not necessarily anything on the effective method's own declaration).
-    /// GetAttributes() on an override does NOT include the base declaration's attributes, so both
-    /// have to be found by walking OverriddenMethod, not by re-checking the effective method
-    /// directly - an override that doesn't repeat the marker still inherits the base's attribute
-    /// correctly this way, instead of silently losing it. Returning every match (rather than just
-    /// the first) lets callers detect two unrelated methods both claiming the same stage.
+    /// Finds every effective (most-derived) method in the chain whose root declaration carries the marker
+    /// attribute, with the attribute and the declaration that holds it. Returns all matches so callers can
+    /// detect two methods claiming the same stage.
     /// </summary>
+    /// <remarks>
+    /// GetAttributes() on an override omits the base declaration's attributes, so the attribute is found by
+    /// walking OverriddenMethod. An override that does not repeat the marker still inherits it.
+    /// </remarks>
     private static List<StageEntry> FindStageEntries(List<INamedTypeSymbol> chain, string markerAttributeFullName)
     {
         var results = new List<StageEntry>();

@@ -3,6 +3,9 @@ using System.Text;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// An indentation-aware text builder for Slang source.
+/// </summary>
 internal sealed class SlangWriter
 {
     private readonly StringBuilder _builder = new();
@@ -41,7 +44,9 @@ internal sealed class SlangWriter
         return this;
     }
 
-    /// <summary>Appends already-formatted lines, each re-indented to the current depth.</summary>
+    /// <summary>
+    /// Appends already-formatted lines, each re-indented to the current depth.
+    /// </summary>
     public SlangWriter AppendBlock(string text)
     {
         var indent = string.Concat(Enumerable.Repeat("    ", _indent));

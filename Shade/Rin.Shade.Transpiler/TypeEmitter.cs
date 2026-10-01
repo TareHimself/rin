@@ -12,7 +12,9 @@ namespace Rin.Shade.Transpiler;
 /// </summary>
 internal static class TypeEmitter
 {
-    /// <summary>Every type and namespace the graph declares, by full path, so a short name can be checked against them.</summary>
+    /// <summary>
+    /// Every type and namespace the graph declares, by full path, so a short name can be checked against them.
+    /// </summary>
     public static HashSet<string> Declared(TypeGraph graph)
     {
         var declared = new HashSet<string>();
@@ -39,6 +41,9 @@ internal static class TypeEmitter
         return declared;
     }
 
+    /// <summary>
+    /// Writes every type of the graph, in dependency order, grouped into namespace blocks.
+    /// </summary>
     public static void Emit(TypeGraph graph, List<Diagnostic> diagnostics, SlangWriter writer, HashSet<string> declared)
     {
         var declarations = new List<(string[] Path, string Text)>();

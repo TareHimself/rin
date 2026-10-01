@@ -10,12 +10,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Rin.Shade.SourceGenerator;
 
 /// <summary>
-/// Finds every [ShadeExport]-marked class/struct and generates one const string per containing
-/// file, holding that file's exact source text - the raw material ScratchCompilationBuilder (in
-/// Rin.Shade.Transpiler) re-parses downstream. Nothing is interpreted or transformed here, just
-/// copied verbatim, so there's no version-coupling between this generator's output and whatever
-/// BodyLowering/etc. can handle later - unlike embedding a resolved AST, that interpretation only
-/// ever happens at the consumer's own build, with whatever transpiler is current then.
+/// Generates one const string per file that contains a <c>[ShadeExport]</c> type, holding the
+/// file's exact source text for the transpiler to re-parse in a consuming project. The text is
+/// copied verbatim, so it is interpreted only by whichever transpiler version the consumer builds with.
 /// </summary>
 [Generator]
 public class ShadeExportSourceGenerator : IIncrementalGenerator
@@ -26,8 +23,7 @@ public class ShadeExportSourceGenerator : IIncrementalGenerator
     {
         var exportedTrees = context.SyntaxProvider
             .CreateSyntaxProvider(
-                // TypeDeclarationSyntax, not just Class/StructDeclarationSyntax - a `record struct`
-                // (e.g. DeviceHandle) is its own RecordDeclarationSyntax node, matched by neither.
+                // A `record struct` is a RecordDeclarationSyntax, which neither Class nor Struct declaration matches.
                 predicate: static (node, _) => node is TypeDeclarationSyntax { AttributeLists.Count: > 0 },
                 transform: static (ctx, _) => GetTreeIfExported(ctx))
             .Where(static tree => tree is not null)

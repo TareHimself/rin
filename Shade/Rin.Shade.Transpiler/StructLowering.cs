@@ -4,8 +4,15 @@ using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// Lowers a C# struct to a Slang struct, including semantics and nested type declarations.
+/// </summary>
 internal static class StructLowering
 {
+    /// <summary>
+    /// The Slang struct declaration. Takes the given members (default: the struct's instance members) and
+    /// the already-lowered text of nested types to print inside its body. Unsupported fields are reported and skipped.
+    /// </summary>
     public static string Lower(INamedTypeSymbol type, List<Diagnostic> diagnostics,
         IEnumerable<StructMember>? members = null, IReadOnlyList<string>? nested = null)
     {
@@ -47,6 +54,9 @@ internal static class StructLowering
         return writer.ToString();
     }
 
+    /// <summary>
+    /// The Slang semantic from [Semantic] or an attribute deriving from it (its SemanticName plus an optional index).
+    /// </summary>
     private static string? GetSemantic(IFieldSymbol field)
     {
         foreach (var attribute in field.GetAttributes())

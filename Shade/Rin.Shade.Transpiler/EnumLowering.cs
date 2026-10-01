@@ -4,13 +4,14 @@ using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// Lowers a C# enum to a Slang enum with explicit values.
+/// </summary>
 internal static class EnumLowering
 {
     public static string Lower(INamedTypeSymbol type, List<Diagnostic> diagnostics)
     {
-        // A non-default underlying type (byte, long, ...) changes the enum's real size - silently
-        // ignoring it would let the emitted Slang enum (always int-sized) disagree with what C#
-        // actually lays out, the exact silent-corruption shape this whole project exists to prevent.
+        // Slang enums are always int-sized, so a different underlying type would silently disagree with the C# layout.
         if (type.EnumUnderlyingType?.SpecialType != SpecialType.System_Int32)
         {
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedEnumUnderlyingType,
@@ -22,8 +23,7 @@ internal static class EnumLowering
         var writer = new SlangWriter();
         writer.OpenBrace($"enum {type.Name}");
 
-        // Explicit values always, rather than relying on declaration-order auto-increment matching
-        // between C# and Slang - the two only ever agree by accident otherwise.
+        // Explicit values, so the result does not depend on C# and Slang auto-incrementing the same way.
         var members = type.GetMembers().OfType<IFieldSymbol>().Where(f => f.IsConst).ToArray();
         for (var i = 0; i < members.Length; i++)
         {

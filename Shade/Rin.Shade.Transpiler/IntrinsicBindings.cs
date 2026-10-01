@@ -3,6 +3,9 @@ using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// Reads the [SlangExpression] and [SlangStatement] attributes that bind a C# method directly to Slang text.
+/// </summary>
 internal static class IntrinsicBindings
 {
     public static string? GetSlangExpressionTemplate(IMethodSymbol method) =>

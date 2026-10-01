@@ -5,14 +5,14 @@ using Microsoft.CodeAnalysis;
 namespace Rin.Shade.Transpiler;
 
 /// <summary>
-/// Reads the source text a [ShaderSources]-marked assembly's Rin.Shade.SourceGenerator produced -
-/// plain Roslyn constant-value reading (IFieldSymbol.ConstantValue), the exact same mechanism
-/// already used everywhere else in this project to read [SlangExpression] template strings off attribute
-/// constructor arguments. No raw PE/metadata parsing, no Assembly.LoadFrom - the source generator
-/// already did the work of turning file text into an ordinary compile-time constant.
+/// Reads the shader source text that Rin.Shade.SourceGenerator embedded in a [ShaderSources]-marked
+/// assembly as compile-time string constants, so no metadata parsing or assembly loading is needed.
 /// </summary>
 internal static class GeneratedSourceReader
 {
+    /// <summary>
+    /// The embedded source texts of the referenced assembly, or nothing if it is not [ShaderSources]-marked.
+    /// </summary>
     public static IEnumerable<string> ReadShaderSources(Compilation compilation, MetadataReference reference)
     {
         if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol assembly) yield break;

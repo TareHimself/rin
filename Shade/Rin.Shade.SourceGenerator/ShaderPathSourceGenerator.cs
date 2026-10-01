@@ -7,11 +7,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Rin.Shade.SourceGenerator;
 
 /// <summary>
-/// Emits a `public const string Path` member on every [Shader("...")]-marked class, holding the
-/// attribute's own path argument - so a consumer (e.g. [ComputeShader(BoundsUpdateShader.Path)])
-/// references the declared path once instead of retyping the same string literal. const, not
-/// static readonly: an attribute argument needs a real compile-time constant. Requires the class
-/// be declared partial.
+/// Emits a <c>public const string Path</c> on every <c>[Shader("...")]</c> class, holding the
+/// attribute's path argument so consumers can reference it instead of retyping the literal. It is a
+/// const because attribute arguments need compile-time constants. The class must be partial.
 /// </summary>
 [Generator]
 public class ShaderPathSourceGenerator : IIncrementalGenerator
@@ -58,7 +56,7 @@ public class ShaderPathSourceGenerator : IIncrementalGenerator
         return attribute.ConstructorArguments.FirstOrDefault().Value is string path ? (symbol, path) : null;
     }
 
-    // A base shader also gets a generated Path, which the derived one's hides, so it says `new`.
+    // A derived shader's Path hides the generated Path of a partial [Shader] base, so it needs `new`.
     private static bool HasShaderBase(INamedTypeSymbol symbol)
     {
         for (var current = symbol.BaseType; current is not null; current = current.BaseType)
