@@ -120,6 +120,8 @@ flowchart TD
     Scene --> View
 ```
 
+That is the indirect path. On a device without indirect rendering (or with `DefaultRenderSystem.DrawMode` set to `MeshDrawMode.Direct`) the view uses the direct path instead: `InitViewResourcesPass`, `DepthPrepassDirectPass`, `FillGBufferDirectPass`, `LightingPass`. `DefaultWorldViewData.Write` is the only place that chooses. The direct passes use the same shaders and material data and draw each mesh with one `DrawIndexed` call from the CPU, so they have no culling or command passes.
+
 | Pass | Reads | Writes |
 | --- | --- | --- |
 | `InitSceneResourcesPass` | each processed surface's `Bounds` | bounds buffer (one `Bounds3D` per surface) |
@@ -131,6 +133,8 @@ flowchart TD
 | `FillIndirectBuffersPass` | culling results, mesh records | per batch `DrawIndexedIndirectCommand` buffer and a draw count (`DrawIndirectShader`), for color and depth batches |
 | `DepthPrepassIndirectPass` | indirect commands, depth material data, skinned output | depth image (`MeshDepthShader`) |
 | `FillGBufferIndirectPass` | depth image, indirect commands, color material data, textures, skinned output | GBuffer0..3 (`MeshShader`, depth write disabled) |
+| `DepthPrepassDirectPass` | depth material data, skinned output | depth image, same as the indirect pass but one `DrawIndexed` per mesh (direct path only) |
+| `FillGBufferDirectPass` | depth image, color material data, textures, skinned output | GBuffer0..3, same as the indirect pass but one `DrawIndexed` per mesh (direct path only) |
 | `LightingPass` | GBuffer0..3, the light array | the output image, `RGBA16` (`LightingShader`, full screen triangle pair) |
 
 How meshes are batched: `DefaultSceneFrame` turns every surface of every static, then skinned, mesh into a `ProcessedMesh`, and groups them by `BatchKey` (index buffer plus material identity) separately for color and depth. Each group becomes one indirect draw, so `FillGBufferIndirectPass` and `DepthPrepassIndirectPass` issue one `DrawIndexedIndirectCount` per group.
@@ -170,6 +174,7 @@ The tests mirror the folders here (components, render system, physics, skinning,
 
 ## Gotchas
 
+- The direct path never culls: its draws are issued from the CPU, which cannot see the GPU culling results without waiting for the GPU. It draws every mesh, which matches the indirect path today.
 - `Culling` does not cull. `CullingShader` writes `1` for every surface, and `DefaultWorldViewData.ViewFrustum` is computed but not read by any pass.
 - `BoundsUpdatePass` recomputes the bounds of skinned surfaces from the skinned vertices after `SkinningPass`. It had been commented out and was re-enabled against the current scene frame. That version builds and the unit tests pass, but it has not been run on a GPU. `CullingShader` still marks every surface visible and never reads the bounds, so the updated bounds are not used for anything yet.
 - `ShadowPass` exists but its `Execute` throws `NotImplementedException` and nothing adds it to the graph. There is no shadowing.

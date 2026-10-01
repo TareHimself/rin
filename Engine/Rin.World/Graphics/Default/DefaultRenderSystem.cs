@@ -27,6 +27,11 @@ public class DefaultRenderSystem : IRenderSystem
         public LightInfo Light;
     }
 
+    /// <summary>
+    ///     How views taken from this system issue mesh draws. Defaults to the device's capability.
+    /// </summary>
+    public MeshDrawMode DrawMode { get; set; } = MeshDrawMode.Auto;
+
     private readonly List<ProxyRow?> _slots = [];
     private readonly List<uint> _versions = [];
     private readonly Stack<uint> _freeIndices = new();
@@ -130,7 +135,7 @@ public class DefaultRenderSystem : IRenderSystem
             _sceneAlpha = _interpolationAlpha;
         }
 
-        return new DefaultWorldViewData(view, extent, _scene);
+        return new DefaultWorldViewData(view, extent, _scene) { DrawMode = DrawMode };
     }
 
     private DefaultWorldSnapshot BuildScene()
