@@ -8,7 +8,8 @@ on:
 jobs:
   # Builds the real Rin.Slang.Native (a prebuilt Slang release plus a small C++ wrapper, nothing from
   # Slang's own source) and publishes a NuGet feed with it, for the jobs that need real Slang.
-  native:
+  build-native-slang:
+    name: Build native Slang
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -56,9 +57,9 @@ jobs:
           retention-days: 1
 
   # One job per test project, on stub native packages (and NativeAOT fakes where a test calls into
-  # native code). Real shader compilation is skipped: it needs the real Slang, see test-real.
+  # native code). Real shader compilation is skipped: it needs the real Slang, see test-real-slang.
   test:
-    name: test (${{ matrix.name }})
+    name: Test ${{ matrix.name }}
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -91,18 +92,18 @@ jobs:
       - name: Test
         run: dotnet test ${{ matrix.project }} ${{ matrix.args }} --no-restore --nologo --logger "console;verbosity=normal"
 
-  # What the stub-based jobs cannot do: needs the real Slang from the native job.
-  test-real:
-    name: test-real (${{ matrix.name }})
-    needs: native
+  # What the stub-based jobs cannot do: needs the real Slang from the build-native-slang job.
+  test-real-slang:
+    name: ${{ matrix.name }} (real Slang)
+    needs: build-native-slang
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: Rin.Shade.CpuTests
+          - name: Test Rin.Shade.CpuTests
             command: dotnet test Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj --no-restore --nologo --logger "console;verbosity=normal"
-          - name: Rin.World shader compile
+          - name: Compile all shaders
             command: dotnet build Engine/Rin.World/Rin.World.csproj -c Release --no-restore --nologo
     steps:
       - uses: actions/checkout@v7
