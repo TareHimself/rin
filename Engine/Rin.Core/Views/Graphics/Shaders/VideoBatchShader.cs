@@ -24,15 +24,15 @@ public partial class VideoBatchShader : Shader
 
     public struct VertexIn
     {
-        [Semantic("SV_InstanceID")] public int InstanceId;
-        [Semantic("SV_VertexID")] public int VertexId;
+        [InstanceId] public int InstanceId;
+        [VertexId] public int VertexId;
     }
 
     public struct VertexOut
     {
         [Semantic("UV")] public Vector2 Uv;
         [Semantic("INDEX")] public int Index;
-        [Semantic("SV_Position")] public Vector4 Position;
+        [Position] public Vector4 Position;
     }
 
     public struct FragmentIn

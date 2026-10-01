@@ -18,20 +18,20 @@ public partial class StencilBatchShader : Shader
 
     public struct VertexIn
     {
-        [Semantic("SV_InstanceID")] public int InstanceId;
-        [Semantic("SV_VertexID")] public int VertexId;
+        [InstanceId] public int InstanceId;
+        [VertexId] public int VertexId;
     }
 
     public struct VertexOut
     {
         [Semantic("QUAD_INDEX")] public int QuadIndex;
-        [Semantic("SV_Position")] public Vector4 Position;
+        [Position] public Vector4 Position;
     }
 
     public struct FragmentIn
     {
         [Semantic("QUAD_INDEX")] public int QuadIndex;
-        [Semantic("SV_Position")] public Vector2 Coordinate;
+        [Position] public Vector2 Coordinate;
     }
 
     [Push] protected PushConstants Push;

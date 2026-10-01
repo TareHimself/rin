@@ -47,8 +47,33 @@ internal static class StructLowering
         return writer.ToString();
     }
 
-    private static string? GetSemantic(IFieldSymbol field) =>
-        field.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Rin.Shade.SemanticAttribute")
-            ?.ConstructorArguments.FirstOrDefault().Value as string;
+    private static string? GetSemantic(IFieldSymbol field)
+    {
+        foreach (var attribute in field.GetAttributes())
+        {
+            if (attribute.AttributeClass is not { } type) continue;
+
+            if (type.ToDisplayString() == "Rin.Shade.SemanticAttribute")
+                return attribute.ConstructorArguments.FirstOrDefault().Value as string;
+
+            if (!DerivesFromSemantic(type)) continue;
+
+            var name = type.GetMembers("SemanticName").OfType<IFieldSymbol>()
+                .FirstOrDefault(f => f.IsConst)?.ConstantValue as string;
+            if (name is null) continue;
+
+            return attribute.ConstructorArguments.FirstOrDefault().Value is int index ? name + index : name;
+        }
+
+        return null;
+    }
+
+    private static bool DerivesFromSemantic(INamedTypeSymbol type)
+    {
+        for (var current = type.BaseType; current is not null; current = current.BaseType)
+            if (current.ToDisplayString() == "Rin.Shade.SemanticAttribute")
+                return true;
+
+        return false;
+    }
 }

@@ -104,9 +104,46 @@ public sealed class BindlessBlockAttribute(string name) : Attribute
 }
 
 [AttributeUsage(AttributeTargets.Field)]
-public sealed class SemanticAttribute(string name) : Attribute
+public class SemanticAttribute(string name) : Attribute
 {
     public string Name { get; } = name;
+}
+
+// A semantic attribute derived from SemanticAttribute names its semantic through a const SemanticName,
+// which the transpiler reads from metadata. An int constructor argument is appended (Target(1) is SV_Target1).
+public sealed class PositionAttribute() : SemanticAttribute(SemanticName)
+{
+    public const string SemanticName = "SV_Position";
+}
+
+public sealed class VertexIdAttribute() : SemanticAttribute(SemanticName)
+{
+    public const string SemanticName = "SV_VertexID";
+}
+
+public sealed class InstanceIdAttribute() : SemanticAttribute(SemanticName)
+{
+    public const string SemanticName = "SV_InstanceID";
+}
+
+public sealed class DispatchThreadIdAttribute() : SemanticAttribute(SemanticName)
+{
+    public const string SemanticName = "SV_DispatchThreadID";
+}
+
+public sealed class GroupIdAttribute() : SemanticAttribute(SemanticName)
+{
+    public const string SemanticName = "SV_GroupID";
+}
+
+public sealed class GroupThreadIdAttribute() : SemanticAttribute(SemanticName)
+{
+    public const string SemanticName = "SV_GroupThreadID";
+}
+
+public sealed class TargetAttribute(int index) : SemanticAttribute(SemanticName + index)
+{
+    public const string SemanticName = "SV_Target";
 }
 
 [AttributeUsage(AttributeTargets.Method)]

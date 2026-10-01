@@ -66,7 +66,7 @@ public struct BoundsUpdatePushConstants
 
 public struct ComputeIn
 {
-    [Semantic("SV_DispatchThreadID")] public uint ThreadId;
+    [DispatchThreadId] public uint ThreadId;
 }
 
 [Shader("Shaders/Rin/World/Mesh/Compute/bounds_update.slang")]
