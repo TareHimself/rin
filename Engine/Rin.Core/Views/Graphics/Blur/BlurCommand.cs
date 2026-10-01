@@ -46,7 +46,7 @@ internal class BlurInitCommand : TCommand<BlurInitPassConfig, BlurInitCommandHan
         BoundingBoxP1 = BlurP1 = BoundingBoxP1.Floor();
         BoundingBoxP2 = BlurP2 = BoundingBoxP2.Ceiling();
         Transform = transform;
-        LocalTransform = Matrix4x4.Identity.Translate(boundingBox.Offset).Inverse() * transform;
+        LocalTransform = transform.ChildOf(Matrix4x4.Identity.Translate(-boundingBox.Offset));
     }
 }
 
