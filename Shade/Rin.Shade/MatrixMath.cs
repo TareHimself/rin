@@ -3,15 +3,15 @@ using System.Numerics;
 namespace Rin.Shade;
 
 /// <summary>
-///     Matrix functions a shader can call: plain C# that is both the CPU implementation and, through
-///     Rin.Shade, the GPU one, so the two can't drift.
+/// Matrix functions a shader can call. The same C# is the CPU implementation and, once
+/// transpiled, the GPU one.
 /// </summary>
 [ShadeExport]
 public static class MatrixMath
 {
     /// <summary>
-    ///     The inverse of a general 4x4 matrix, by cofactor expansion (the same algorithm as
-    ///     <see cref="Matrix4x4.Invert(Matrix4x4, out Matrix4x4)" />, without its singular-matrix check).
+    /// The inverse of a general 4x4 matrix by cofactor expansion, like
+    /// <see cref="Matrix4x4.Invert(Matrix4x4, out Matrix4x4)" /> but without its singular-matrix check.
     /// </summary>
     public static Matrix4x4 Inverse(Matrix4x4 matrix)
     {

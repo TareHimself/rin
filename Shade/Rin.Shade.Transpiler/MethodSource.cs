@@ -7,17 +7,16 @@ using Microsoft.CodeAnalysis.Operations;
 namespace Rin.Shade.Transpiler;
 
 /// <summary>
-/// Resolves a method symbol's body, whichever declaration shape it came from. A local function
-/// ("inlined" per the v1 subset) declares via LocalFunctionStatementSyntax/ILocalFunctionOperation
-/// instead of MethodDeclarationSyntax/IMethodBodyOperation, but is otherwise walked and emitted
-/// exactly like any other plain function - this is the one place both shapes get normalized.
-/// A property/indexer accessor's own DeclaringSyntaxReferences point at an AccessorDeclarationSyntax
-/// for a block/expression-bodied accessor (`get { ... }` / `get => ...;`), but at the bare
-/// ArrowExpressionClauseSyntax for an expression-bodied property with no accessor list at all
-/// (`public int Id => ...;`) - confirmed empirically, not documented behavior worth assuming.
+/// Resolves a method symbol's body operations, whichever declaration shape it came from (method,
+/// constructor, local function or property accessor), so callers treat them all alike. An accessor's
+/// syntax reference is an AccessorDeclarationSyntax, except for an expression-bodied property with no
+/// accessor list (`public int Id => ...;`), where it is the bare ArrowExpressionClauseSyntax.
 /// </summary>
 internal static class MethodSource
 {
+    /// <summary>
+    /// Whether the method has source with a body, as opposed to being abstract, extern or declared in metadata.
+    /// </summary>
     public static bool HasBody(IMethodSymbol method) =>
         method.DeclaringSyntaxReferences.Any(r => HasBody(r.GetSyntax()));
 
@@ -35,6 +34,9 @@ internal static class MethodSource
         _ => false
     };
 
+    /// <summary>
+    /// The body operation of each declaration of the method, in a normalized block or expression form.
+    /// </summary>
     public static IEnumerable<IOperation> GetBodies(IMethodSymbol method, Compilation compilation)
     {
         foreach (var reference in method.DeclaringSyntaxReferences)
@@ -69,9 +71,7 @@ internal static class MethodSource
                         if (body is not null) yield return body;
                     }
                     break;
-                // `public int Id => ...;` - GetOperation on the arrow clause itself already returns
-                // a normalized IBlockOperation (an implicit return wrapping the expression), the same
-                // shape IMethodBodyOperation.ExpressionBody gives for every other member kind.
+                // GetOperation on the arrow clause already yields an implicit-return IBlockOperation.
                 case ArrowExpressionClauseSyntax arrowSyntax:
                     if (model.GetOperation(arrowSyntax) is IBlockOperation arrowBody)
                         yield return arrowBody;

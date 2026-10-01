@@ -9,11 +9,8 @@ using Microsoft.CodeAnalysis.Operations;
 namespace Rin.Shade.Transpiler;
 
 /// <summary>
-/// v1 statement/expression set: block, if/for/while/switch, fixed-size-array foreach, return,
-/// local declaration ('var' only), assignment/compound-assignment, field/parameter/local
-/// reference, BufferRef&lt;T&gt; indexer, swizzles, binary/unary/ternary operators, matrix mul(),
-/// literals, casts, `with` (WithLowering), and [SlangExpression]/[SlangStatement] invocations. A local
-/// function is inlined. Anything else is a diagnostic, not a crash.
+/// Lowers C# method bodies (statements and expressions, via Roslyn operations) to Slang text.
+/// Unsupported constructs produce a diagnostic and a placeholder rather than throwing.
 /// </summary>
 internal sealed class BodyLowering(
     List<Diagnostic> diagnostics, SlangWriter writer, IReadOnlySet<string>? shadowableFieldNames = null,
@@ -22,6 +19,9 @@ internal sealed class BodyLowering(
 {
     private int _loopDepth;
 
+    /// <summary>
+    /// Writes the Slang for one statement. Out-variable declarations found inside it are written first.
+    /// </summary>
     public void LowerStatement(IOperation? op)
     {
         if (op is not null) DeclareOutVariables(op);
@@ -41,8 +41,7 @@ internal sealed class BodyLowering(
                 foreach (var statement in block.Operations) LowerStatement(statement);
                 return;
             case ILocalFunctionOperation:
-                // Inlined: nothing to emit here. FunctionCollector/FunctionLowering walk and emit
-                // its body separately, wherever it's actually called.
+                // Emitted as its own function by FunctionCollector/FunctionLowering, not at the declaration.
                 return;
             case IConditionalOperation conditional:
                 writer.OpenBrace($"if ({LowerExpr(conditional.Condition)})");
@@ -94,10 +93,8 @@ internal sealed class BodyLowering(
                         }
                         else
                         {
-                            // A pattern-matching clause (case SomeType t:, case > 5:, etc.) - not
-                            // emitting a label here but still emitting the case's body would produce
-                            // statements floating with no case/default before them, silently
-                            // corrupting the switch rather than failing loudly.
+                            // Pattern clauses have no Slang label. The body is skipped too (wroteLabel), since
+                            // statements with no label would silently corrupt the switch.
                             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedSwitchClause,
                                 clause.Syntax.GetLocation(), clause.Kind.ToString()));
                         }
@@ -148,11 +145,9 @@ internal sealed class BodyLowering(
                         continue;
                     }
 
-                    // 'var' needs a right-hand side to infer from - an uninitialized declaration
-                    // (e.g. a pre-declared 'out' argument) has to spell out its real type instead.
-                    //
-                    // Likewise a constant whose C# type isn't int: Slang literals are emitted bare (`0`,
-                    // not `0u` or `0.0`), so `var` would infer int and silently change the local's type.
+                    // 'var' needs an initializer to infer from, so an uninitialized local spells out its type.
+                    // So does a non-int constant: Slang literals are emitted bare (`0`, not `0u` or `0.0`),
+                    // so `var` would infer int and silently change the local's type.
                     var needsExplicitType = initializer is null ||
                                             (initializer.ConstantValue.HasValue &&
                                              declarator.Symbol.Type.SpecialType != SpecialType.System_Int32 &&
@@ -176,8 +171,7 @@ internal sealed class BodyLowering(
 
     private void LowerExpressionStatement(IOperation operation)
     {
-        // [SlangStatement] (e.g. "discard;") substitutes the whole line, not an expression embedded
-        // in one - the template already includes its own trailing ';'.
+        // A [SlangStatement] template (e.g. "discard;") is the whole line and already ends in ';'.
         if (operation is IInvocationOperation invocation)
         {
             var statementTemplate = IntrinsicBindings.GetSlangStatementTemplate(invocation.TargetMethod);
@@ -191,8 +185,7 @@ internal sealed class BodyLowering(
         writer.Line($"{LowerExpr(operation)};");
     }
 
-    // Only `T[] x = new T[N]` / `new T[] { ... }` with a compile-time N is a legal array in a shader
-    // body: Slang has no unsized or heap arrays, so anything else is diagnosed rather than lowered.
+    // Slang has no unsized or heap arrays, so only `new T[N]` / `new T[] { ... }` with a compile-time N is lowered.
     private void LowerArrayLocal(IVariableDeclaratorOperation declarator, IArrayTypeSymbol arrayType,
         IOperation? initializer, string name)
     {
@@ -222,9 +215,8 @@ internal sealed class BodyLowering(
         writer.Line($"{TypeMapping.MapType(arrayType.ElementType)} {name}[{length}] = {initializerText};");
     }
 
-    // `ref var q = ref buffer[i]` becomes a pointer local. A pointer into function-local storage
-    // isn't something the emitted SPIR-V can be trusted with, so only a buffer element (or another
-    // ref local) may be aliased.
+    // `ref var q = ref buffer[i]` becomes a pointer local. Pointers into function-local storage are not
+    // trusted in the emitted SPIR-V, so only a buffer element (or another ref local) may be aliased.
     private void LowerRefLocal(IVariableDeclaratorOperation declarator, IOperation? initializer, string name)
     {
         while (initializer is IConversionOperation { IsImplicit: true } conversion) initializer = conversion.Operand;
@@ -281,14 +273,12 @@ internal sealed class BodyLowering(
         _ => LowerExpr(op)
     };
 
-    // Roslyn lists a call's arguments in the order they were written, so `F(b: 1, a: 2)` is [b, a]; Slang
-    // takes them by position, so they go out in parameter order. Known quirk: C# evaluates arguments in written
-    // order, so a call with side-effecting named arguments evaluates them in parameter order here instead.
+    // Roslyn lists arguments in written order (`F(b: 1, a: 2)` is [b, a]) but Slang is positional. Known quirk:
+    // side-effecting named arguments therefore evaluate in parameter order instead of written order.
     private static IArgumentOperation[] InParameterOrder(IEnumerable<IArgumentOperation> arguments) =>
         arguments.OrderBy(argument => argument.Parameter?.Ordinal ?? int.MaxValue).ToArray();
 
-    // `out var x` declares x inside the call, which Slang can't do, so the declaration is written on the line
-    // before the statement that contains it and the call passes the bare name.
+    // Slang cannot declare `out var x` inside a call, so it is declared on the line before the statement.
     private void DeclareOutVariables(IOperation statement)
     {
         foreach (var declaration in FindOutDeclarations(statement))
@@ -353,10 +343,8 @@ internal sealed class BodyLowering(
             case IBinaryOperation binary when IsMatrixMultiply(binary):
                 return $"mul({LowerExpr(binary.LeftOperand)}, {LowerExpr(binary.RightOperand)})";
             case IBinaryOperation { OperatorMethod.DeclaringSyntaxReferences.Length: > 0 } binary:
-                // A BCL operator (Vector2.op_Subtraction etc.) has no declaring syntax in this
-                // compilation and is trusted to mean the same thing in Slang - an operator declared
-                // in source here is user-authored and needs its own [SlangExpression] binding rather than
-                // being silently treated as a passthrough.
+                // Operators declared in source are user-authored and need a [SlangExpression] binding. BCL
+                // operators (Vector2.op_Subtraction etc.) have no syntax here and pass through as the same symbol.
                 diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
                     binary.Syntax.GetLocation(), $"user-defined operator overload '{binary.OperatorMethod!.Name}'"));
                 return "/* unsupported */";
@@ -409,10 +397,9 @@ internal sealed class BodyLowering(
         }
     }
 
-    // A variant field has no storage of its own in Slang - it is the same bytes as the union's
-    // header-plus-payload struct for that path, so reading it reinterprets the root instance as that
-    // struct and takes the payload. A chain of variants (foo.Bar.Car) collapses into one
-    // reinterpret of the root as Foo_Bar_Car, with one .payload per level.
+    // A variant field has no storage of its own in Slang: it is the union's header-plus-payload struct for
+    // that path, so reading it reinterprets the root instance as that struct and takes the payload. A chain
+    // (foo.Bar.Car) collapses into one reinterpret of the root as Foo_Bar_Car, with one .payload per level.
     private string LowerVariantAccess(IFieldReferenceOperation field)
     {
 
@@ -439,9 +426,8 @@ internal sealed class BodyLowering(
         var rootType = current.Field.ContainingType;
         var structName = UnionLowering.QualifiedPathName(rootType, chain);
 
-        // An element of a BufferRef is an addressable place, so the variant is read and written in
-        // place through a pointer cast. Anything else is a value, where reinterpret<> yields a copy
-        // that can be read but not assigned through.
+        // An addressable place is read and written in place through a pointer cast. For a value,
+        // reinterpret<> yields a copy that cannot be assigned through.
         if (TryGetAddress(current.Instance, out var address))
         {
             var payloads = string.Concat(Enumerable.Repeat(".payload", chain.Count - 1));
@@ -456,8 +442,7 @@ internal sealed class BodyLowering(
         return $"reinterpret<{structName}>({root}){string.Concat(Enumerable.Repeat(".payload", chain.Count))}";
     }
 
-    // The addressable places: an element of a BufferRef (its ref indexer) and a ref local, which
-    // is itself a pointer to one. Nothing else has an address a shader can take.
+    // Addressable places are a BufferRef element (its ref indexer) and a ref local, which is a pointer to one.
     private bool TryGetAddress(IOperation? operation, out string address)
     {
         switch (operation)
@@ -500,10 +485,9 @@ internal sealed class BodyLowering(
 
         var name = Naming.ToSlangIdentifier(field.Field.Name);
 
-        // Inside a struct's own constructor or method the field is reached through implicit this. C#
-        // tells `IndexCount` and a parameter `indexCount` apart by case, but both lower to `indexCount`
-        // in Slang, where the parameter would win and `indexCount = indexCount` would assign it to
-        // itself. A shader class's fields are module-scope globals, not members, so they stay bare.
+        // Struct fields get an explicit `this.`: C# tells field `IndexCount` and parameter `indexCount` apart
+        // by case, but both lower to `indexCount` and the parameter would win. A shader class's fields are
+        // module-scope globals, not members, so they stay bare.
         if (field.Instance is IInstanceReferenceOperation)
         {
             if (UnionLayout.IsUnion(field.Field.ContainingType)) return $"this.header.{name}";
@@ -512,19 +496,15 @@ internal sealed class BodyLowering(
 
         if (field.Instance is null)
         {
-            // A [ShaderBinding] field lowers to a module-scope declaration (BindingLowering), not a
-            // struct member - referenced by its bare name, same as any other global.
+            // A [ShaderBinding] field is a module-scope declaration (BindingLowering), referenced by bare name.
             if (BindingLowering.HasBindingGroupAttribute(field.Field)) return name;
 
-            // An enum member is declared in the emitted Slang enum, so it's referenced the same way
-            // C# does - qualified with the type name. Slang enum members keep their C# casing
-            // (`enum ResourceType { Texture, ... }`), unlike struct fields, which get lowerCamelCased.
+            // Slang enum members keep their C# casing, unlike struct fields, which are lowerCamelCased.
             if (field.Field.ContainingType.TypeKind == TypeKind.Enum)
                 return $"{TypeMapping.MapType(field.Field.ContainingType)}.{field.Field.Name}";
 
-            // A plain static/const field (e.g. a private bit-mask/shift constant) has no Slang
-            // declaration of its own - StructLowering only emits instance fields - so a qualified
-            // reference to it would point at nothing. Inline its compile-time value instead.
+            // StructLowering only emits instance fields, so a static/const field has no Slang declaration
+            // to reference. Inline its value instead.
             if (field.Field.HasConstantValue)
                 return Convert.ToString(field.Field.ConstantValue, CultureInfo.InvariantCulture) ?? "0";
 
@@ -569,9 +549,8 @@ internal sealed class BodyLowering(
             return SubstituteTemplate(template, invocation);
         }
 
-        // this-instance is implicit (a shader class calling one of its own instance methods) -
-        // emitted as a plain function call, same as a static helper; a real receiver value (e.g. a
-        // struct instance method) is prefixed with its lowered expression.
+        // An implicit this (a shader class calling its own instance method) is a plain function call, like a
+        // static helper. An explicit receiver (a struct instance method) prefixes the call.
         var instance = invocation.Instance switch
         {
             null or IInstanceReferenceOperation => null,
@@ -592,12 +571,8 @@ internal sealed class BodyLowering(
         return "/* unresolved call */";
     }
 
-    // A computed property (backed by a real getter body, not BufferRef's indexer or a swizzle -
-    // both handled above) has no Slang equivalent syntax, so it's read by calling its getter as an
-    // ordinary zero-arg method - the getter itself is discovered and emitted the same way any other
-    // reachable method is (FunctionCollector's IPropertyReferenceOperation handling).
-    // An auto property is its backing field, written directly. A property with a setter body is a
-    // call of that setter, emitted as a mutating method like any other struct method.
+    // An auto property is its backing field, written directly. A property with a setter body becomes a call
+    // of that setter, emitted as a mutating method like any other struct method.
     private string LowerPropertySet(IPropertyReferenceOperation property, IOperation value)
     {
         var instance = property.Instance switch
@@ -627,6 +602,8 @@ internal sealed class BodyLowering(
         return instance is not null ? $"{instance}.{call}" : call;
     }
 
+    // A computed property has no Slang equivalent, so it is read by calling its getter as a zero-argument
+    // method. FunctionCollector discovers and emits the getter like any other reachable method.
     private string LowerPropertyGet(IPropertyReferenceOperation property, IMethodSymbol getMethod)
     {
         var instance = property.Instance switch
@@ -640,9 +617,8 @@ internal sealed class BodyLowering(
         return instance is not null ? $"{instance}.{call}" : call;
     }
 
-    // An unqualified call whose name matches a field on the struct it's declared in resolves to
-    // the field instead in Slang (confirmed against the real compiler) - only checked when
-    // shadowableFieldNames is set, i.e. while lowering that struct's own instance method.
+    // In Slang an unqualified call whose name matches a field of the enclosing struct resolves to the field.
+    // Only checked while lowering that struct's own instance method (shadowableFieldNames is set).
     private void CheckFieldShadowing(string calleeIdentifier, Location location)
     {
         if (shadowableFieldNames?.Contains(calleeIdentifier) == true)
@@ -657,9 +633,8 @@ internal sealed class BodyLowering(
         return template[..end];
     }
 
-    // Slang constructs a value with the type name as a call, not `new` - `Bounds3D(loc)`, not
-    // `new Bounds3D(loc)`. The constructor itself (a struct's __init) is discovered and emitted
-    // like any other reachable method - see FunctionCollector's IObjectCreationOperation handling.
+    // Slang constructs a value by calling the type name (`Bounds3D(loc)`), not with `new`. FunctionCollector
+    // discovers and emits the constructor (a struct's __init) like any other reachable method.
     private string LowerObjectCreation(IObjectCreationOperation creation)
     {
         if (creation.Constructor is not { } ctor || creation.Type is not { } type)
@@ -681,7 +656,7 @@ internal sealed class BodyLowering(
         return $"{TypeMapping.MapType(type)}({string.Join(", ", arguments)})";
     }
 
-    // The matching helper was collected up front by WithLowering; diagnostic fallback is defensive.
+    // Calls the per-shape helper function that WithLowering collected up front and emits separately.
     private string LowerWith(IWithOperation withOperation)
     {
         if (withOperation.Type is null || withOperation.Initializer is null)
@@ -724,8 +699,8 @@ internal sealed class BodyLowering(
         var arguments = InParameterOrder(invocation.Arguments).Select(a => a.Value).ToArray();
         var typeArguments = invocation.TargetMethod.TypeArguments;
 
-        // One pass over the placeholders: replacing `@1` with a plain string replace would also hit the
-        // start of `@10`, and a substituted argument must never be re-scanned for placeholders.
+        // One regex pass: a plain replace of `@1` would also hit the start of `@10`, and a substituted
+        // argument must never be re-scanned for placeholders.
         return Regex.Replace(template, @"@(this|T\d+|\d+|[A-Za-z_]\w*)", match =>
         {
             var name = match.Groups[1].Value;
@@ -770,10 +745,9 @@ internal sealed class BodyLowering(
         return delimitedBefore && delimitedAfter || Precedence(operand) >= PostfixPrecedence ? text : $"({text})";
     }
 
-    // C#'s operation tree carries no parentheses - `-(a + b)` and `-a + b` are both just a unary over a
-    // binary - so a lowered operand is wrapped whenever it binds looser than the operator it sits under.
-    // A right operand of the same precedence is wrapped too (`a - (b - c)`), which also keeps the
-    // evaluation order of `a + (b + c)`.
+    // C#'s operation tree carries no parentheses (`-(a + b)` and `-a + b` are both a unary over a binary), so
+    // an operand is wrapped when it binds looser than its parent operator. A right operand of equal
+    // precedence is wrapped too (`a - (b - c)`), which also preserves the evaluation order of `a + (b + c)`.
     private const int TernaryPrecedence = 1;
     private const int UnaryPrecedence = 12;
     private const int PostfixPrecedence = 100;
@@ -876,9 +850,8 @@ internal sealed class BodyLowering(
         property.Name.Length is >= 1 and <= 4 &&
         property.Name.All(c => "xyzwrgba".Contains(char.ToLowerInvariant(c)));
 
-    // C# has no `*` operator between a vector and Matrix4x4 (System.Numerics uses a static
-    // Transform(v, m) method instead) - so unlike matrix*matrix, this is an invocation, not a
-    // binary operator, and needs its own recognition.
+    // System.Numerics has no vector * Matrix4x4 operator (it uses static Transform(v, m)), so unlike
+    // matrix * matrix this arrives as an invocation rather than a binary operation.
     private static bool IsVectorMatrixTransform(IMethodSymbol method) =>
         method.Name == "Transform" &&
         method.ContainingType.OriginalDefinition.ToDisplayString() is

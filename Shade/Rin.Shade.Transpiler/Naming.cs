@@ -3,6 +3,9 @@ using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// Maps C# names and namespaces to their Slang spellings.
+/// </summary>
 internal static class Naming
 {
     /// <summary>
@@ -23,9 +26,8 @@ internal static class Naming
         if (type.ContainingNamespace is { IsGlobalNamespace: false } ns)
             segments.AddRange(ns.ToDisplayString().Split('.'));
 
-        // A type's containing types are part of its path too: a struct nested in a struct is
-        // declared inside it (Rin::Views::Quad::LineData), and one nested in a class - which Slang
-        // has no equivalent of - reads as a namespace of the class's name.
+        // Containing types are part of the path: a struct nested in a struct is declared inside it
+        // (Rin::Views::Quad::LineData), and one nested in a class reads as a namespace named after the class.
         var containers = new List<string>();
         for (var container = type.ContainingType; container is not null; container = container.ContainingType)
             containers.Insert(0, container.Name);
@@ -41,14 +43,14 @@ internal static class Naming
     /// </summary>
     public const string GeneratedPrefix = "__Shade__";
 
-    /// <summary>The Slang name of a type declared (or generated) under its namespace, relative to the scope being written.</summary>
+    /// <summary>
+    /// The Slang name of a type declared (or generated) under its namespace, relative to the scope being written.
+    /// </summary>
     public static string Qualify(ISymbol type, string name) => NameScope.Name(NamespacePath(type), name);
 
     /// <summary>
-    /// Like <see cref="ToSlangIdentifier"/>, but for a method that may be a property accessor - its
-    /// raw symbol name is the compiler-generated "get_Foo"/"set_Foo", which would emit as literally
-    /// that. Lowered to "getFoo"/"setFoo" instead, both at the declaration site (FunctionLowering)
-    /// and every call site (BodyLowering's property-read lowering), so both agree.
+    /// Like <see cref="ToSlangIdentifier"/>, but a property accessor becomes "getFoo"/"setFoo" instead of
+    /// its compiler-generated "get_Foo"/"set_Foo". Declaration and call sites both use this so they agree.
     /// </summary>
     public static string ToSlangMethodName(IMethodSymbol method) => method.MethodKind switch
     {

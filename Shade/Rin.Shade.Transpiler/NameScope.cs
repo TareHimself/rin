@@ -15,6 +15,9 @@ internal static class NameScope
     [ThreadStatic] private static List<string>? _visible;
     [ThreadStatic] private static HashSet<string>? _declared;
 
+    /// <summary>
+    /// Starts naming relative to the given namespace path; dispose to restore the previous scope.
+    /// </summary>
     public static IDisposable InNamespace(string path, HashSet<string> declared)
     {
         var visible = new List<string>();
@@ -24,6 +27,9 @@ internal static class NameScope
         return Enter(visible, declared);
     }
 
+    /// <summary>
+    /// Starts naming relative to global scope with the given `using namespace` paths visible.
+    /// </summary>
     public static IDisposable WithUsings(IReadOnlyList<string> usings, HashSet<string> declared)
     {
         var visible = new List<string>(usings) { "" };
@@ -41,6 +47,9 @@ internal static class NameScope
         return new Restore(previous);
     }
 
+    /// <summary>
+    /// The shortest name for the type that still resolves to it from the current scope, or the full path if none is open.
+    /// </summary>
     public static string Name(string namespacePath, string name)
     {
         var full = namespacePath.Length == 0 ? name : $"{namespacePath}::{name}";

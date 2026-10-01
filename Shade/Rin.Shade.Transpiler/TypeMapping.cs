@@ -2,8 +2,14 @@ using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// Maps C# types to their Slang spellings and classifies which types a shader may use.
+/// </summary>
 internal static class TypeMapping
 {
+    /// <summary>
+    /// The Slang spelling of the type, qualified relative to the current <see cref="NameScope"/>.
+    /// </summary>
     public static string MapType(ITypeSymbol type)
     {
         if (InlineArrays.TryGet(type, out var inlineElement, out _)) return MapType(inlineElement);
@@ -29,20 +35,23 @@ internal static class TypeMapping
         if (type is INamedTypeSymbol { Name: "BufferRef", TypeArguments.Length: 1 } named)
             return $"{MapType(named.TypeArguments[0])}*";
 
-        // A Slang builtin resource type (Texture2D, SamplerState, ...) is global - qualifying it
-        // with the C# marker type's Rin::Shade namespace would name something that doesn't exist.
+        // Slang's builtin resource types are global, so the C# marker type's Rin::Shade namespace must not be applied.
         if (IsResourceType(type)) return type.Name;
 
         return Naming.Qualify(type, type.Name);
     }
 
-    // BCL constructors, no source and no owned type to attach [SlangExpression] to - trusted to forward
-    // args as-is, same trust boundary as their BCL operator methods.
+    /// <summary>
+    /// Whether the type is a BCL vector or matrix, whose constructors have no source to lower and are forwarded as is.
+    /// </summary>
     public static bool IsIntrinsicVectorOrMatrixConstructor(ITypeSymbol type) =>
         type.OriginalDefinition.ToDisplayString() is
             "System.Numerics.Vector2" or "System.Numerics.Vector3" or
             "System.Numerics.Vector4" or "System.Numerics.Matrix4x4";
 
+    /// <summary>
+    /// Whether the type is known to Slang already, so it is never declared or walked as a user struct.
+    /// </summary>
     public static bool IsBuiltIn(ITypeSymbol type)
     {
         if (InlineArrays.TryGet(type, out _, out _)) return true;
@@ -71,18 +80,17 @@ internal static class TypeMapping
         return type is INamedTypeSymbol { Name: "BufferRef" };
     }
 
-    // Slang builtin opaque resource types - never walked/emitted as a user struct, unlike an
-    // ordinary [ShaderStruct] type, even though they're plain C# structs on the Rin.Shade side.
+    /// <summary>
+    /// Whether the type is a Slang builtin opaque resource (texture or sampler), a plain C# struct on the Rin.Shade side.
+    /// </summary>
     public static bool IsResourceType(ITypeSymbol type) =>
         type.OriginalDefinition.ToDisplayString() is
             "Rin.Shade.Texture2D" or "Rin.Shade.Texture2DArray" or
             "Rin.Shade.TextureCube" or "Rin.Shade.SamplerState";
 
     /// <summary>
-    /// Whether a type is legal anywhere in a shader at all - a stricter check than IsBuiltIn, which
-    /// only tells the walk "don't recurse into this, it's already known". Used at struct-field
-    /// declaration sites to catch nonsense (string, delegates, arbitrary reference types) instead of
-    /// silently falling through to `type.Name`.
+    /// Whether the type is legal in a shader at all. Stricter than IsBuiltIn: it rejects strings, delegates
+    /// and other reference types that MapType would otherwise emit by bare name.
     /// </summary>
     public static bool IsLegalShaderType(ITypeSymbol type)
     {

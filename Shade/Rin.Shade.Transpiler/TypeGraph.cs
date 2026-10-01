@@ -5,6 +5,9 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// A struct or enum in a <see cref="TypeGraph"/>, with the types it depends on and the types nested in it.
+/// </summary>
 internal sealed class TypeNode(INamedTypeSymbol symbol)
 {
     public INamedTypeSymbol Symbol { get; } = symbol;
@@ -18,8 +21,14 @@ internal sealed class TypeNode(INamedTypeSymbol symbol)
     /// </summary>
     public List<TypeNode> Nested { get; } = [];
 
+    /// <summary>
+    /// The struct this type is nested in, or null for a top-level type.
+    /// </summary>
     public TypeNode? Parent { get; set; }
 
+    /// <summary>
+    /// The outermost enclosing node, or this node if it is not nested.
+    /// </summary>
     public TypeNode TopLevel => Parent?.TopLevel ?? this;
 }
 
@@ -44,10 +53,8 @@ internal sealed class TypeGraph
     }
 
     /// <summary>
-    /// A type introduced only as a local variable inside a method body is invisible to the field
-    /// walk - FunctionCollector still finds and emits methods that operate on it (a constructor, a
-    /// property getter), but nothing declares the type itself unless every body is walked too.
-    /// Mirrors FunctionCollector.FindReachableCallSites's local-function boundary.
+    /// Adds the types of local variables declared in a method body, which the field walk never sees.
+    /// Stops at local functions, like FunctionCollector.FindReachableCallSites.
     /// </summary>
     public void AddFromBody(IOperation? body)
     {

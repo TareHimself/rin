@@ -6,16 +6,26 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// A field assigned by a `with` expression and its Slang parameter name.
+/// </summary>
 internal sealed record WithHelperField(IFieldSymbol Field, string SlangName);
 
-// A synthesized helper for one (type, overridden-field-set) `with` shape, e.g. `bounds with
-// { Lower = x }` -> `bounds3DWithLower(Bounds3D self, float3 lower)`. A plain top-level function
-// composes into any expression position; `self` is a free copy (Slang's usual struct-by-value
-// semantics), so no [mutating] is needed either.
+/// <summary>
+/// A synthesized helper for one (type, assigned-field-set) `with` shape, e.g. `bounds with { Lower = x }`
+/// becomes `bounds3DWithLower(Bounds3D self, float3 lower)`. A top-level function works in any expression
+/// position, and `self` is a by-value copy, so it needs no [mutating].
+/// </summary>
 internal sealed record WithHelperSpec(ITypeSymbol Type, string FunctionName, List<WithHelperField> Fields);
 
+/// <summary>
+/// Finds the `with` expressions in method bodies and emits one helper function per distinct shape.
+/// </summary>
 internal static class WithLowering
 {
+    /// <summary>
+    /// Records a helper spec, once per shape, for each `with` expression in the method's bodies.
+    /// </summary>
     public static void Collect(IMethodSymbol method, Compilation compilation, List<Diagnostic> diagnostics,
         Dictionary<string, WithHelperSpec> specs, List<WithHelperSpec> order)
     {
@@ -67,9 +77,15 @@ internal static class WithLowering
         return fields;
     }
 
+    /// <summary>
+    /// A key identifying the (type, field set) shape, independent of field order.
+    /// </summary>
     public static string ComputeKey(ITypeSymbol type, IEnumerable<string> slangFieldNames) =>
         $"{type.ToDisplayString()}|{string.Join(",", slangFieldNames.OrderBy(n => n, StringComparer.Ordinal))}";
 
+    /// <summary>
+    /// The Slang helper function that copies <c>self</c>, overwrites the fields and returns it.
+    /// </summary>
     public static string Emit(WithHelperSpec spec)
     {
         var typeName = TypeMapping.MapType(spec.Type);
@@ -87,8 +103,7 @@ internal static class WithLowering
 
     private static string Capitalize(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
-    // Mirrors FunctionCollector.FindReachableCallSites - stop at a local function boundary, since
-    // its body is only ever walked (via its own entry in functionOrder) once something calls it.
+    // Stops at a local function, like FunctionCollector.FindReachableCallSites.
     private static IEnumerable<IWithOperation> FindWithOperations(IOperation root)
     {
         if (root is IWithOperation withOperation) yield return withOperation;

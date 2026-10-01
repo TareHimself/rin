@@ -4,8 +4,14 @@ using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// An instance data member of a struct: its name, type and the field that stores it.
+/// </summary>
 internal readonly record struct StructMember(string Name, ITypeSymbol Type, IFieldSymbol Field);
 
+/// <summary>
+/// Enumerates the data members of a struct.
+/// </summary>
 internal static class StructMembers
 {
     /// <summary>
@@ -23,6 +29,9 @@ internal static class StructMembers
         }
     }
 
+    /// <summary>
+    /// Whether the property is backed by a compiler-generated field.
+    /// </summary>
     public static bool IsAutoProperty(IPropertySymbol property) =>
         property.ContainingType.GetMembers().OfType<IFieldSymbol>()
             .Any(f => SymbolEqualityComparer.Default.Equals(f.AssociatedSymbol, property));

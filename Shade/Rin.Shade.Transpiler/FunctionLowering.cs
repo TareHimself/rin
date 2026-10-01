@@ -12,8 +12,15 @@ namespace Rin.Shade.Transpiler;
 /// </summary>
 internal readonly record struct LoweredFunction(INamedTypeSymbol? ExtensionOf, string Text);
 
+/// <summary>
+/// Lowers a C# method, constructor or local function to a Slang function.
+/// </summary>
 internal static class FunctionLowering
 {
+    /// <summary>
+    /// Lowers the method, or reports a diagnostic and returns a default value if it uses a construct that
+    /// cannot be emitted (ref return, extension method, generic method).
+    /// </summary>
     public static LoweredFunction Lower(Compilation compilation, IMethodSymbol method, List<Diagnostic> diagnostics,
         IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null,
         IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides = null)
@@ -48,14 +55,9 @@ internal static class FunctionLowering
 
         if (!method.IsStatic && method.ContainingType.TypeKind == TypeKind.Struct)
         {
-            // A Slang extension adds a member to an existing struct without touching its own
-            // declaration - implicit `this` and bare field access work exactly like a member
-            // declared inside the struct, and the call site (instance.method(args) / T(args) for a
-            // constructor) is identical either way, so invocation-lowering never needs to know about
-            // this distinction. Constructors don't need [mutating] (initializing fields is their
-            // whole job); an ordinary method needs it exactly when its body actually writes a field
-            // through the implicit `this` - checked precisely rather than always adding it, since
-            // over-marking a genuinely read-only method wasn't verified to be harmless.
+            // An extension member behaves like one declared in the struct, and call sites look the same
+            // either way. Constructors never need [mutating]; other methods get it only when the body
+            // writes through the implicit `this`, since over-marking a read-only method is unverified.
             var fieldNames = method.ContainingType.GetMembers().OfType<IFieldSymbol>()
                 .Where(f => !f.IsStatic && !f.IsImplicitlyDeclared)
                 .Select(f => Naming.ToSlangIdentifier(f.Name))
@@ -72,6 +74,9 @@ internal static class FunctionLowering
         return new LoweredFunction(null, writer.ToString());
     }
 
+    /// <summary>
+    /// Writes <c>signaturePrefix(parameters)</c> followed by the braced lowered body.
+    /// </summary>
     public static void WriteSignatureAndBody(Compilation compilation, IMethodSymbol method,
         List<Diagnostic> diagnostics, SlangWriter writer, string signaturePrefix,
         IReadOnlySet<string>? shadowableFieldNames = null,
@@ -105,8 +110,7 @@ internal static class FunctionLowering
         return false;
     }
 
-    // `_locationU.X = v` writes a field of a field, and `Location = v` calls a setter - both mutate
-    // the struct just as much as a direct `Field = v` does.
+    // `_locationU.X = v` (field of a field) and `Location = v` (setter) mutate the struct just like `Field = v`.
     private static bool RootedAtImplicitThis(IOperation target) => target switch
     {
         IFieldReferenceOperation { Instance: IInstanceReferenceOperation } => true,

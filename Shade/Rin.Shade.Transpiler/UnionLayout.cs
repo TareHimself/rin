@@ -4,8 +4,15 @@ using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// One overlapping member of a union, with its byte offset and size.
+/// </summary>
 internal sealed record UnionVariant(StructMember Member, int Offset, int Size);
 
+/// <summary>
+/// The analyzed layout of a union: the shared header members, the overlapping variants, and the header
+/// size, total size and alignment in bytes.
+/// </summary>
 internal sealed record UnionInfo(
     INamedTypeSymbol Type,
     List<StructMember> Header,
@@ -20,9 +27,8 @@ internal sealed record UnionInfo(
 
 /// <summary>
 /// Reads an explicit-layout struct's [FieldOffset] layout: members whose byte ranges overlap are the
-/// variants, everything else is the shared header. Explicit layout is what marks a struct as a union -
-/// there is no separate attribute. Each union has a single overlap region at its
-/// tail; a variant's payload may itself be a union, which is how divergence nests.
+/// variants, everything else is the shared header. Explicit layout is what marks a struct as a union.
+/// Each union has a single overlap region at its tail; a variant's payload may itself be a union.
 /// </summary>
 internal static class UnionLayout
 {
@@ -30,12 +36,18 @@ internal static class UnionLayout
 
     private const int ExplicitLayoutKind = 2;
 
+    /// <summary>
+    /// Whether the type is a struct with explicit layout.
+    /// </summary>
     public static bool IsUnion(ITypeSymbol type) =>
         type.TypeKind == TypeKind.Struct &&
         type.GetAttributes().Any(a =>
             a.AttributeClass?.ToDisplayString() == "System.Runtime.InteropServices.StructLayoutAttribute" &&
             a.ConstructorArguments.FirstOrDefault().Value is ExplicitLayoutKind);
 
+    /// <summary>
+    /// Whether the field is one of its union's overlapping variants, as opposed to a header member.
+    /// </summary>
     public static bool IsVariant(IFieldSymbol field)
     {
         if (!IsUnion(field.ContainingType)) return false;
@@ -43,6 +55,9 @@ internal static class UnionLayout
         return info is not null && info.Variants.Any(v => SymbolEqualityComparer.Default.Equals(v.Member.Field, field));
     }
 
+    /// <summary>
+    /// Splits the union into header and variants and validates the layout. Reports a diagnostic and returns null if invalid.
+    /// </summary>
     public static UnionInfo? Analyze(INamedTypeSymbol type, List<Diagnostic> diagnostics)
     {
         var location = type.Locations.FirstOrDefault() ?? Location.None;

@@ -9,37 +9,56 @@ using Rin.Shade.Transpiler;
 namespace Rin.Shade.MSBuild;
 
 /// <summary>
-///     Transpiles every [Shader("...")]-attributed class reachable from Sources, compiles the result
-///     with the real Slang compiler, and reports EmbeddedResource-ready items back - all in one
-///     in-process step. No .slang file is ever written to the repo's tracked source tree:
-///     ShaderCompiler still needs a real file to read, but that file only ever exists under OutputRoot
-///     (an obj-relative scratch location) for as long as the compile takes. The embedded result resolves
-///     through Global.Sources/AssemblyContentResource under whatever alias the consuming project
-///     registers for its DiscoverPrefix.
+/// Transpiles every <c>[Shader("...")]</c> class in <see cref="Sources" />, compiles the Slang with
+/// the real Slang compiler, and returns the results as embedded-resource items. The intermediate
+/// .slang file is written only under <see cref="OutputRoot" />, never into the tracked source tree.
 /// </summary>
 public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
 {
+    /// <summary>
+    /// Repository root, used as the Slang search path and portable root.
+    /// </summary>
     [Required] public string RepoRoot { get; set; } = "";
 
+    /// <summary>
+    /// Only shaders whose <c>[Shader]</c> path starts with this prefix are compiled.
+    /// </summary>
     [Required] public string DiscoverPrefix { get; set; } = "";
 
+    /// <summary>
+    /// C# source files to scan for shaders.
+    /// </summary>
     [Required] public ITaskItem[] Sources { get; set; } = [];
 
+    /// <summary>
+    /// Assemblies the sources compile against.
+    /// </summary>
     [Required] public ITaskItem[] References { get; set; } = [];
 
+    /// <summary>
+    /// Directory for the scratch .slang and compiled .crsh files.
+    /// </summary>
     [Required] public string OutputRoot { get; set; } = "";
 
+    /// <summary>
+    /// Path segment inserted into each embedded resource logical name.
+    /// </summary>
     [Required] public string OutputSubpath { get; set; } = "";
 
+    /// <summary>
+    /// Name of the consuming assembly, the prefix of each logical name.
+    /// </summary>
     [Required] public string AssemblyName { get; set; } = "";
 
     /// <summary>
-    ///     When set, every transpiled shader's Slang is also written here (same relative path as its
-    ///     [Shader] path), so the exact text that was compiled can be read and diffed. Debugging aid only,
-    ///     nothing reads it back.
+    /// When set, the transpiled Slang of every shader is also written here, at its <c>[Shader]</c>
+    /// path relative to <see cref="DiscoverPrefix" />, for inspection. Nothing reads it back.
     /// </summary>
     public string? GeneratedDirectory { get; set; }
 
+    /// <summary>
+    /// The compiled shaders as embedded-resource items.
+    /// </summary>
     [Output] public ITaskItem[] CompiledFiles { get; set; } = [];
 
     public override bool Execute()
@@ -80,9 +99,7 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
 
                 var relativeOutput = shaderPath[DiscoverPrefix.Length..].TrimStart('/');
 
-                // Scratch-only: ShaderCompiler resolves #include by reading lines off a real file, so
-                // one has to exist somewhere - never the tracked Shaders/ tree, since nothing else
-                // ever needs to see this file, unlike a hand-written .slang source.
+                // ShaderCompiler resolves #include from a real file, so one must exist, but only as scratch under OutputRoot.
                 var scratchSlangPath = Path.Combine(OutputRoot, relativeOutput);
                 Directory.CreateDirectory(Path.GetDirectoryName(scratchSlangPath)!);
                 File.WriteAllText(scratchSlangPath, slang);
@@ -134,9 +151,7 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
         return AssemblyName + "." + (OutputSubpath + outputRelative).Replace('\\', '.').Replace('/', '.');
     }
 
-    // ShadeEmitResult keys by class name only; [Shader("...")]'s path argument is only ever read
-    // here, task-local - a pure syntax walk (mirrors ShaderReferenceScanner's own attribute
-    // matching), since the class's simple name is all ShadeEmitter's own dictionary key needs.
+    // ShadeEmitResult is keyed by class name only, so the [Shader] path is read here with a syntax walk.
     private static IEnumerable<(string ClassName, string Path)> CollectShaderPaths(IEnumerable<SyntaxTree> trees)
     {
         foreach (var tree in trees)

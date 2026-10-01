@@ -8,13 +8,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Rin.Shade.SourceGenerator;
 
 /// <summary>
-/// Emits a `public static IGraphicsDescriptor/IComputeDescriptor Descriptor` on every [Shader]
-/// class: the pipeline state a backend needs (attachment formats, blend state, depth/stencil,
-/// thread-group size), read straight off the class's own attributes and overrides so no backend
-/// has to recover it from compiled reflection. The shader class is never instantiated: the expression of
-/// the most-derived BlendState override is copied into the generated descriptor together with the
-/// using directives of the file it was written in. Silently skips classes SHADEGEN0001/0002
-/// already reject, and classes with no compute or vertex entry point.
+/// Emits a static <c>Descriptor</c> on every partial <c>[Shader]</c> class, holding the pipeline
+/// state a backend needs (attachment formats, blend state, depth and stencil use, thread-group
+/// size), read from the class's attributes and overrides. The shader is never instantiated: the
+/// expression of the most-derived <c>BlendState</c> override is copied into the descriptor along
+/// with the using directives of its file. Classes that SHADEGEN0001 or SHADEGEN0002 reject, and
+/// classes with no compute or vertex entry point, are skipped.
 /// </summary>
 [Generator]
 public class ShaderDescriptorSourceGenerator : IIncrementalGenerator

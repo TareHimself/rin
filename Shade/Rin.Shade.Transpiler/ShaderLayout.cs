@@ -10,6 +10,9 @@ namespace Rin.Shade.Transpiler;
 /// </summary>
 internal static class ShaderLayout
 {
+    /// <summary>
+    /// The size and alignment in bytes, or false if the type has no known layout. Alignment defaults to 4.
+    /// </summary>
     public static bool TrySizeAndAlign(ITypeSymbol type, out int size, out int align)
     {
         size = 0;
@@ -75,5 +78,8 @@ internal static class ShaderLayout
         return true;
     }
 
+    /// <summary>
+    /// Rounds the value up to a multiple of the alignment.
+    /// </summary>
     public static int AlignUp(int value, int alignment) => (value + alignment - 1) / alignment * alignment;
 }
