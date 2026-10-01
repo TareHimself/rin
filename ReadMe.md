@@ -57,3 +57,64 @@ Each folder and project has its own `ReadMe.md`.
 - `scripts/`: CI helpers (native stub packages, native fakes)
 
 Conventions for contributors and coding agents are in [`AGENTS.md`](AGENTS.md).
+
+## All READMEs
+
+**[Engine](Engine/ReadMe.md)**
+- [Rin.Audio.Miniaudio](Engine/Rin.Audio.Miniaudio/ReadMe.md)
+- [Rin.Audio.Null](Engine/Rin.Audio.Null/ReadMe.md)
+- [Rin.Core.Tests](Engine/Rin.Core.Tests/ReadMe.md)
+- [Rin.Core](Engine/Rin.Core/ReadMe.md)
+- [Rin.GLTF.Tests](Engine/Rin.GLTF.Tests/ReadMe.md)
+- [Rin.GLTF](Engine/Rin.GLTF/ReadMe.md)
+- [Rin.Graphics.Null](Engine/Rin.Graphics.Null/ReadMe.md)
+- [Rin.Graphics.Vulkan](Engine/Rin.Graphics.Vulkan/ReadMe.md)
+- [Rin.SourceGenerators.Tests](Engine/Rin.SourceGenerators.Tests/ReadMe.md)
+- [Rin.SourceGenerators](Engine/Rin.SourceGenerators/ReadMe.md)
+- [Rin.World.Tests](Engine/Rin.World.Tests/ReadMe.md)
+- [Rin.World](Engine/Rin.World/ReadMe.md)
+
+**[Shade](Shade/ReadMe.md)**
+- [Rin.Shade.Cli](Shade/Rin.Shade.Cli/ReadMe.md)
+- [Rin.Shade.CpuTests](Shade/Rin.Shade.CpuTests/ReadMe.md)
+- [Rin.Shade.MSBuild](Shade/Rin.Shade.MSBuild/ReadMe.md)
+- [Rin.Shade.SourceGenerator](Shade/Rin.Shade.SourceGenerator/ReadMe.md)
+- [Rin.Shade.Tests](Shade/Rin.Shade.Tests/ReadMe.md)
+- [Rin.Shade.Transpiler](Shade/Rin.Shade.Transpiler/ReadMe.md)
+- [Rin.Shade](Shade/Rin.Shade/ReadMe.md)
+- [Samples](Shade/Samples/ReadMe.md)
+
+**[Slang](Slang/ReadMe.md)**
+- [Rin.Slang.Cli](Slang/Rin.Slang.Cli/ReadMe.md)
+- [Rin.Slang.Compiler.Tests](Slang/Rin.Slang.Compiler.Tests/ReadMe.md)
+- [Rin.Slang.Compiler](Slang/Rin.Slang.Compiler/ReadMe.md)
+- [Rin.Slang.Discovery](Slang/Rin.Slang.Discovery/ReadMe.md)
+- [Rin.Slang.Tests](Slang/Rin.Slang.Tests/ReadMe.md)
+- [Rin.Slang](Slang/Rin.Slang/ReadMe.md)
+
+**[native](native/ReadMe.md)**
+- [Fakes](native/Fakes/ReadMe.md)
+- [Rin.Audio.Miniaudio.Native](native/Rin.Audio.Miniaudio.Native/ReadMe.md)
+- [Rin.Graphics.Vulkan.Native](native/Rin.Graphics.Vulkan.Native/ReadMe.md)
+- [Rin.Native](native/Rin.Native/ReadMe.md)
+- [Rin.Slang.Native](native/Rin.Slang.Native/ReadMe.md)
+
+**[Examples](Examples/ReadMe.md)**
+- [AssetViewer](Examples/AssetViewer/ReadMe.md)
+- [AudioPlayer](Examples/AudioPlayer/ReadMe.md)
+- [ChatApp](Examples/ChatApp/ReadMe.md)
+- [Common](Examples/Common/ReadMe.md)
+- [HeadlessTest](Examples/HeadlessTest/ReadMe.md)
+- [NodeGraphTest](Examples/NodeGraphTest/ReadMe.md)
+- [RLTest](Examples/RLTest/ReadMe.md)
+- [SceneTest](Examples/SceneTest/ReadMe.md)
+- [Sponza](Examples/Sponza/ReadMe.md)
+- [UiGallery](Examples/UiGallery/ReadMe.md)
+- [ViewsTest](Examples/ViewsTest/ReadMe.md)
+
+**[Experiments](Experiments/ReadMe.md)**
+- [experiment.FontIcon](Experiments/experiment.FontIcon/ReadMe.md)
+- [experiment.Slug](Experiments/experiment.Slug/ReadMe.md)
+- [experiment.StencilAndCover](Experiments/experiment.StencilAndCover/ReadMe.md)
+- [experiments.Docking](Experiments/experiments.Docking/ReadMe.md)
+
