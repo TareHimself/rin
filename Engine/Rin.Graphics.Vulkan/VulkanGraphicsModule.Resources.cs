@@ -266,6 +266,7 @@ public partial class VulkanGraphicsModule
     public ResourceHandle CreateTexture(in Extent2D size, ImageFormat format, bool mips = false,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
+        ThrowIfEmpty(size);
         var image = CreateVulkanTexture(size, format, mips, usage);
         var isBindless = usage.HasFlag(ImageCreateFlags.Sampled);
 
@@ -294,6 +295,7 @@ public partial class VulkanGraphicsModule
     public ResourceHandle CreateTextureArray(in Extent2D size, ImageFormat format, uint count, bool mips = false,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
+        ThrowIfEmpty(size);
         var image = CreateVulkanTextureArray(size, format, count, mips, usage);
         var isBindless = usage.HasFlag(ImageCreateFlags.Sampled);
 
@@ -322,6 +324,7 @@ public partial class VulkanGraphicsModule
     public ResourceHandle CreateCubemap(in Extent2D size, ImageFormat format, bool mips = false,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
+        ThrowIfEmpty(size);
         var image = CreateVulkanCubemap(size, format, mips, usage);
         var isBindless = usage.HasFlag(ImageCreateFlags.Sampled);
 
@@ -857,10 +860,17 @@ public partial class VulkanGraphicsModule
         return _resourcePipelineLayout;
     }
 
+    private static void ThrowIfEmpty(in Extent2D size)
+    {
+        if (size.Width == 0 || size.Height == 0)
+            throw new ArgumentOutOfRangeException(nameof(size), size, "Image dimensions must be greater than zero");
+    }
+
     // --- Buffer registry ---
 
     public ResourceHandle CreateBuffer(ulong size, BufferCreateFlags flags, bool sequentialWrite = true)
     {
+        ArgumentOutOfRangeException.ThrowIfZero(size);
         var hostVisible = flags.IsHostVisible();
         var buffer = NewBuffer(size, flags.ToVkUsage(), flags.ToVkMemoryProperty(), sequentialWrite,
             false, hostVisible, "Buffer");
