@@ -31,6 +31,11 @@ public class DefaultWorldViewData : IWorldCollectedData
 
     [PublicAPI] public DefaultWorldSnapshot Snapshot { get; }
 
+    /// <summary>
+    ///     How this view issues mesh draws. Resolved against the device when the view is written to a graph.
+    /// </summary>
+    public MeshDrawMode DrawMode { get; init; } = MeshDrawMode.Auto;
+
     /// <summary>The scene's shared half inside the graph currently being written; set by <see cref="Write" />.</summary>
     public DefaultSceneFrame SceneFrame { get; private set; } = null!;
 
@@ -85,11 +90,39 @@ public class DefaultWorldViewData : IWorldCollectedData
         SceneFrame = Snapshot.Write(builder);
 
         builder.AddPass(new InitViewResourcesPass(this));
-        var cullingPass = new CullingPass(this);
-        builder.AddPass(cullingPass);
-        builder.AddPass(new FillIndirectBuffersPass(cullingPass, this));
-        builder.AddPass(new DepthPrepassIndirectPass(this));
-        builder.AddPass(new FillGBufferIndirectPass(this));
+        var useIndirect = UseIndirectDrawing(DrawMode, IGraphicsModule.Get().CurrentDevice.SupportsIndirectRendering);
+        foreach (var pass in CreateGeometryPasses(useIndirect)) builder.AddPass(pass);
         builder.AddPass(new LightingPass(this));
+    }
+
+    /// <summary>
+    ///     Whether a view in <paramref name="mode" /> uses indirect draws on a device with the given support.
+    /// </summary>
+    public static bool UseIndirectDrawing(MeshDrawMode mode, bool deviceSupportsIndirect)
+    {
+        return mode switch
+        {
+            MeshDrawMode.Indirect => true,
+            MeshDrawMode.Direct => false,
+            _ => deviceSupportsIndirect
+        };
+    }
+
+    /// <summary>
+    ///     The passes that cull, build draw commands and draw the scene's meshes into the depth and G-buffer images.
+    ///     The direct set has no culling or command passes.
+    /// </summary>
+    public IReadOnlyList<IPass> CreateGeometryPasses(bool useIndirect)
+    {
+        if (!useIndirect) return [new DepthPrepassDirectPass(this), new FillGBufferDirectPass(this)];
+
+        var cullingPass = new CullingPass(this);
+        return
+        [
+            cullingPass,
+            new FillIndirectBuffersPass(cullingPass, this),
+            new DepthPrepassIndirectPass(this),
+            new FillGBufferIndirectPass(this)
+        ];
     }
 }

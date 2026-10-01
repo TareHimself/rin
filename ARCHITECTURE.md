@@ -89,7 +89,7 @@ A **pass** declares the images and buffers it reads and writes in `Configure`, a
 
 ## Worlds on a surface
 
-`Rin.World` models a world as actors with components, with a fixed-step physics system (Bepu). The world does not draw directly. Components push changes into a command queue, the renderer takes a **snapshot** of them, and the default pipeline turns the snapshot into passes: skinning, culling, indirect draw preparation, a G-buffer fill, and a lighting pass. A `Viewport` view and its command handler put the world's output on a surface. See [Engine/Rin.World/ReadMe.md](Engine/Rin.World/ReadMe.md).
+`Rin.World` models a world as actors with components, with a fixed-step physics system (Bepu). The world does not draw directly. Components push changes into a command queue, the renderer takes a **snapshot** of them, and the default pipeline turns the snapshot into passes: skinning, culling, indirect draw preparation (or plain per-mesh draws on devices without indirect rendering), a G-buffer fill, and a lighting pass. A `Viewport` view and its command handler put the world's output on a surface. See [Engine/Rin.World/ReadMe.md](Engine/Rin.World/ReadMe.md).
 
 ## Shaders
 
