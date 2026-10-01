@@ -33,7 +33,9 @@ public struct BindlessCubemaps
 public struct BindlessData
 {
     public const string Name = "rin.global";
-    public const int SamplerCount = 6;
+    public const int FilterCount = 2;
+    public const int TilingCount = 3;
+    public const int SamplerCount = FilterCount * TilingCount;
     public const int TextureCount = 2048;
     public const int TextureArrayCount = 512;
     public const int CubemapCount = 512;
@@ -45,7 +47,7 @@ public struct BindlessData
 
     public SamplerState GetSampler(ImageTiling tiling, ImageFilter filter)
     {
-        return Samplers[(int)filter * 2 + (int)tiling];
+        return Samplers[(int)filter * TilingCount + (int)tiling];
     }
 
     public Vector2 GetTextureSize(DeviceHandle handle)
