@@ -11,16 +11,11 @@ namespace Rin.Shade.MSBuild;
 /// <summary>
 ///     Transpiles every [Shader("...")]-attributed class reachable from Sources, compiles the result
 ///     with the real Slang compiler, and reports EmbeddedResource-ready items back - all in one
-///     in-process step, mirroring Rin.Slang.MSBuild's CompileRinSlangShaders but for C#-authored
-///     shaders. No .slang file is ever written to the repo's tracked source tree: ShaderCompiler
-///     still needs a real file to read (it resolves #include by reading lines off disk), but that
-///     file only ever needs to exist under OutputRoot (an obj-relative scratch location) for as long
-///     as the compile takes. DiscoverPrefix/OutputRoot/OutputSubpath/AssemblyName mirror
-///     CompileRinSlangShaders' own parameters and LogicalName convention exactly, so the embedded
-///     result resolves through Global.Sources/AssemblyContentResource the same way a hand-written
-///     shader's compiled output does - just under whatever alias the consuming project registers for
-///     its own Rin.Shade-owned prefix (a sibling of, not the same as, its Rin.Slang one - that's what
-///     keeps the two pipelines from ever fighting over the same embedded resource name).
+///     in-process step. No .slang file is ever written to the repo's tracked source tree:
+///     ShaderCompiler still needs a real file to read, but that file only ever exists under OutputRoot
+///     (an obj-relative scratch location) for as long as the compile takes. The embedded result resolves
+///     through Global.Sources/AssemblyContentResource under whatever alias the consuming project
+///     registers for its DiscoverPrefix.
 /// </summary>
 public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
 {

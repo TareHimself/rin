@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "misc.VectorRendering": {
-      "commandName": "Project",
-      "nativeDebugging": true
-    }
-  }
-}

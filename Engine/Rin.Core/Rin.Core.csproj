@@ -26,12 +26,6 @@
         <EmbeddedResource Include="Content\**\*.*"/>
     </ItemGroup>
 
-    <PropertyGroup Label="Slang shaders">
-        <RinSlangDiscoverPrefix>Shaders/Core/</RinSlangDiscoverPrefix>
-        <RinSlangOutputSubpath>Content\Shaders\Core\</RinSlangOutputSubpath>
-    </PropertyGroup>
-    <Import Project="$(RinMSBuildDir)RinSlang.targets" />
-
     <PropertyGroup Label="Rin.Shade">
         <RinShadeDiscoverPrefix>Shaders/Rin/Core/</RinShadeDiscoverPrefix>
         <RinShadeOutputSubpath>Content\Shaders\Rin\Core\</RinShadeOutputSubpath>

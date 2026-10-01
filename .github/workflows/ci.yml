@@ -18,40 +18,40 @@ jobs:
       - name: Pack native stub packages
         run: python scripts/pack_native_stubs.py .feed
 
-      # RinSlang.targets builds Rin.Slang.MSBuild on demand if it isn't already built, but
+      # RinShade.targets builds Rin.Shade.MSBuild on demand if it isn't already built, but
       # never restores it first - fine on a dev machine with stale obj/ lying around, fails
       # with NETSDK1004 on a genuinely clean checkout. Restoring the whole solution once
       # up front (cheap, already-restored projects are a no-op) avoids that entirely.
       - name: Restore
-        run: dotnet restore rin.sln -p:RinSlangSkipCompile=true
+        run: dotnet restore rin.sln -p:RinShadeSkipCompile=true
 
       # Rin.GLTF.Tests and Rin.Slang.Compiler.Tests genuinely call into native code at test
       # runtime, so their fakes need to exist before any test step runs.
       - name: Publish native fakes
         run: python scripts/publish_native_fakes.py win-x64
 
-      # Rin.Core/Rin.World compile real shaders at build time via RinSlang.targets, which
+      # Rin.Core/Rin.World compile real shaders at build time via RinShade.targets, which
       # calls the real native Slang compiler - unrelated to which tests run afterward, and
       # something the fake natives above can't satisfy (they only cover test-time calls,
       # not calls made from inside an MSBuild task). None of these tests load real shader
       # content, so skip real compilation entirely instead of building real Slang native.
       - name: Test Rin.Core.Tests
-        run: dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinSlangSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
+        run: dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
 
       - name: Test Rin.World.Tests
-        run: dotnet test Engine/Rin.World.Tests/Rin.World.Tests.csproj -p:RinSlangSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
+        run: dotnet test Engine/Rin.World.Tests/Rin.World.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
 
       - name: Test Rin.SourceGenerators.Tests
-        run: dotnet test Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj -p:RinSlangSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
+        run: dotnet test Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
 
       - name: Test Rin.Slang.Tests
-        run: dotnet test Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj -p:RinSlangSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
+        run: dotnet test Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
 
       - name: Test Rin.GLTF.Tests
-        run: dotnet test Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj -p:RinSlangSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
+        run: dotnet test Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
 
       - name: Test Rin.Slang.Compiler.Tests
-        run: dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj -p:RinSlangSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
+        run: dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
 
       - name: Test Rin.Shade.Tests
         run: dotnet test Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj --no-restore --nologo --logger "console;verbosity=normal"

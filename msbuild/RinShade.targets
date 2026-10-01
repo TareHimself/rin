@@ -2,24 +2,19 @@
 
     <!--
         Shared build-time step for C#-authored (Rin.Shade) shaders, backed by the CompileRinShadeShaders
-        MSBuild Task (Rin.Shade.MSBuild) - transpiles + compiles + embeds in one in-process step. Mirrors
-        RinSlang.targets' shape, but is otherwise fully independent of it: [Shader("...")]-attributed
-        classes are found via ShadeEmitter walking the importing project's own compilation (no repo-wide
-        scan needed, unlike RinSlang's reference-gated discovery), and no .slang file is ever written to
-        the tracked Shaders/ tree - the compiled result is embedded directly under a LogicalName computed
-        the same way Rin.Slang's own compiled output is.
+        MSBuild Task (Rin.Shade.MSBuild) - transpiles + compiles + embeds in one in-process step.
+        [Shader("...")]-attributed classes are found via ShadeEmitter walking the importing project's own
+        compilation, and no .slang file is ever written to the tracked tree - the emitted Slang is dumped
+        under debugGeneratedShaders/ for inspection and the compiled result is embedded directly.
 
         A consuming project sets, before importing this file:
           <PropertyGroup>
-            <RinShadeDiscoverPrefix>...</RinShadeDiscoverPrefix>   the Shaders/-relative prefix its own
-                                                                    [Shader("...")] classes use
+            <RinShadeDiscoverPrefix>...</RinShadeDiscoverPrefix>   the prefix its own [Shader("...")]
+                                                                    classes use (Shaders/Rin/Core/,
+                                                                    Shaders/Sponza/, ...)
             <RinShadeOutputSubpath>...</RinShadeOutputSubpath>     relative to $(IntermediateOutputPath);
                                                                     also the LogicalName's own prefix
           </PropertyGroup>
-
-        RinShadeDiscoverPrefix should be a path segment no project's RinSlangDiscoverPrefix also claims
-        (e.g. "Shaders/Rin/World/" alongside Rin.World's own "Shaders/World/") - that's what keeps this
-        pipeline and Rin.Slang's from ever both trying to embed the same LogicalName.
     -->
 
     <PropertyGroup>
@@ -32,16 +27,16 @@
     <UsingTask TaskName="Rin.Shade.MSBuild.CompileRinShadeShaders" AssemblyFile="$(RinShadeMSBuildAssembly)" />
 
     <!--
-        Same node-reuse file-lock rationale as RinSlang.targets' BuildRinSlangMSBuildTask: built once,
-        explicitly, not auto-rebuilt on every solution build. Delete its bin/ (or
-        `dotnet build-server shutdown` first) to pick up a source change.
+        Only builds if the DLL doesn't already exist: MSBuild node reuse keeps a process holding the task
+        assembly loaded, so rebuilding it on every consuming build fails with a file-in-use error. Build it
+        explicitly after a transpiler change (stop the build servers first if the DLLs are locked).
     -->
     <Target Name="BuildRinShadeMSBuildTask" Condition="'$(RinShadeSkipCompile)' != 'true' AND !Exists('$(RinShadeMSBuildAssembly)')">
         <MSBuild Projects="$(RinShadeMSBuildProject)" Targets="Build" Properties="Configuration=Release" />
     </Target>
 
     <!--
-        RinShadeSkipCompile mirrors RinSlangSkipCompile - opts out entirely for contexts that never
+        RinShadeSkipCompile opts out entirely for contexts that never
         need a real transpile+compile (e.g. CI running unit tests against fake natives).
     -->
     <Target Name="CompileShadeShaders"

@@ -26,8 +26,7 @@ public enum ResourceType : sbyte
 }
 
 /// <summary>
-///     Compact 32-bit resource reference safe to hand to shaders / GPU-visible data (mirrors
-///     <c>ImageHandle</c> in Shaders/Core/images.slang bit-for-bit). Carries only what a shader needs to
+///     Compact 32-bit resource reference safe to hand to shaders / GPU-visible data. Carries only what a shader needs to
 ///     look a resource up - its type and its slot id - and nothing CPU-only (bindless bookkeeping,
 ///     generation). [ShadeExport]: referenced directly from Rin.Shade-authored shader code (a
 ///     different assembly), so its source must be embedded for a downstream scratch compilation to

@@ -4,12 +4,6 @@ using Rin.Shade;
 
 namespace Rin.World.Graphics.Default.Shaders;
 
-// Rin.Shade-authored port of Shaders/World/Mesh/Compute/bounds_update.slang - the first real shader
-// to run through the Rin.Shade.MSBuild pipeline rather than a test fixture. The [Shader] path lives
-// under Shaders/Rin/World/, a scheme no hand-written shader's RinSlangDiscoverPrefix claims - never
-// written to disk, compiled and embedded directly by Rin.Shade.MSBuild, so there's no collision with
-// the still-untouched hand-written bounds_update.slang or BoundsUpdatePass.cs's real reference to it.
-
 public static class VectorIntrinsics
 {
     [SlangExpression("min(@0, @1)")] public static extern Vector3 Min(Vector3 a, Vector3 b);
