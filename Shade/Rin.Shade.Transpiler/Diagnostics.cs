@@ -17,7 +17,7 @@ internal static class Diagnostics
         public static readonly DiagnosticDescriptor NoEntryPoint = new(
             id: "SHADE0002",
             title: "Missing entry point",
-            messageFormat: "Shader class '{0}' has no [Compute] entry point method",
+            messageFormat: "Shader class '{0}' has no [Compute] or [Vertex] entry point method",
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
@@ -78,14 +78,6 @@ internal static class Diagnostics
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
-        public static readonly DiagnosticDescriptor MultiDimensionalArrayNotSupported = new(
-            id: "SHADE0010",
-            title: "Multi-dimensional/jagged arrays are not supported",
-            messageFormat: "'{0}' has more than one array dimension - only a single [FixedSize(N)] dimension is supported",
-            category: "Rin.Shade",
-            defaultSeverity: DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
-
         public static readonly DiagnosticDescriptor UnsupportedSwitchClause = new(
             id: "SHADE0011",
             title: "Unsupported switch case clause",
@@ -104,16 +96,48 @@ internal static class Diagnostics
 
         public static readonly DiagnosticDescriptor UnsupportedBindingField = new(
             id: "SHADE0013",
-            title: "Unsupported [ShaderBinding] field",
+            title: "Unsupported [BindingGroup] field",
             messageFormat: "'{0}': {1}",
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
-        public static readonly DiagnosticDescriptor DuplicateBinding = new(
-            id: "SHADE0014",
-            title: "Duplicate (Set, Binding)",
-            messageFormat: "field '{0}' claims (Set = {1}, Binding = {2}), already claimed by another [ShaderBinding] field in this shader's chain",
+        public static readonly DiagnosticDescriptor ConflictingEntryPoints = new(
+            id: "SHADE0015",
+            title: "Conflicting entry points",
+            messageFormat: "Shader class '{0}' has both a [Compute] entry point and a [Vertex]/[Fragment] entry point - a shader is either compute or graphics, not both",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor FragmentWithoutVertex = new(
+            id: "SHADE0016",
+            title: "Fragment entry point without a vertex entry point",
+            messageFormat: "Shader class '{0}' has a [Fragment] entry point but no [Vertex] entry point",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor InvalidUnionLayout = new(
+            id: "SHADE0018",
+            title: "Invalid explicit-layout union",
+            messageFormat: "explicit-layout struct '{0}' can't be lowered as a union: {1}",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor UnionVariantWrite = new(
+            id: "SHADE0019",
+            title: "Writing through a union variant is not supported",
+            messageFormat: "'{0}' is a union variant - a shader can read it but not assign through it",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor DuplicateStageEntryPoint = new(
+            id: "SHADE0017",
+            title: "Duplicate stage entry point",
+            messageFormat: "Shader class '{0}' has more than one unrelated [{1}] entry point method",
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);

@@ -72,7 +72,7 @@ internal static class WithLowering
 
     public static string Emit(WithHelperSpec spec)
     {
-        var typeName = spec.Type.Name;
+        var typeName = TypeMapping.MapType(spec.Type);
         var parameters = new List<string> { $"{typeName} self" };
         parameters.AddRange(spec.Fields.Select(f => $"{TypeMapping.MapType(f.Field.Type)} {f.SlangName}"));
 

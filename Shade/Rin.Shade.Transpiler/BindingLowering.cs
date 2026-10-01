@@ -1,101 +1,60 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Rin.Shade.Transpiler;
 
-// [ShaderBinding] fields lower to module-scope Slang declarations (`[[vk::binding(b, s)]] uniform
-// ...;`), the same class of emission as [Push] - not struct members, unlike [ShaderStruct] fields.
+// [BindingGroup] fields lower to a Slang ParameterBlock<T> - module-scope, like [Push], but with no
+// explicit binding: Slang assigns the whole block's set/binding on its own, and the engine reads
+// back wherever it landed via reflection, the same way an ordinary shader parameter already works.
+// The group's own struct type needs no special marker - it's walked structurally by
+// TypeGraph/StructLowering exactly like a [Push] field's struct type already is.
 internal static class BindingLowering
 {
-    public static bool HasShaderBindingAttribute(IFieldSymbol field) =>
-        field.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "Rin.Shade.ShaderBindingAttribute");
+    /// <summary>A field is a parameter block if it says so, or if its type is a named bindless block.</summary>
+    public static bool HasBindingGroupAttribute(IFieldSymbol field) =>
+        field.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "Rin.Shade.BindingGroupAttribute") ||
+        BindlessBlockName(field) is not null;
 
-    public static string? Lower(Compilation compilation, IFieldSymbol field, List<Diagnostic> diagnostics,
-        HashSet<(int Set, int Binding)> seenBindings)
+    public static string? BindlessBlockName(IFieldSymbol field) =>
+        field.Type.GetAttributes()
+            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Rin.Shade.BindlessBlockAttribute")
+            ?.ConstructorArguments.FirstOrDefault().Value as string;
+
+    public const string BindlessAttributeDeclaration = """
+        [__AttributeUsage(_AttributeTargets.Var)]
+        struct BindlessBlockAttribute { string name; };
+
+        """;
+
+    public static string? Lower(IFieldSymbol field, List<Diagnostic> diagnostics)
     {
         var location = field.Locations.FirstOrDefault() ?? Location.None;
 
         if (!field.IsStatic)
         {
-            Diagnose(diagnostics, field, location, "[ShaderBinding] fields must be static");
+            Diagnose(diagnostics, field, location, "[BindingGroup] fields must be static");
             return null;
         }
 
-        var attribute = field.GetAttributes()
-            .First(a => a.AttributeClass?.ToDisplayString() == "Rin.Shade.ShaderBindingAttribute");
-        var set = GetNamedInt(attribute, "Set");
-        var binding = GetNamedInt(attribute, "Binding");
-
-        if (!seenBindings.Add((set, binding)))
-        {
-            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.DuplicateBinding, location,
-                field.Name, set, binding));
-            return null;
-        }
-
-        var (resourceType, count) = ResolveShape(compilation, field, diagnostics, location);
-        if (resourceType is null) return null;
-
-        var slangType = TypeMapping.MapType(resourceType);
-        var name = Naming.ToSlangIdentifier(field.Name);
-        var arraySuffix = count is { } n ? $"[{n}]" : "";
-        return $"[[vk::binding({binding}, {set})]] uniform {slangType} {name}{arraySuffix};";
-    }
-
-    private static (ITypeSymbol? ResourceType, int? Count) ResolveShape(Compilation compilation,
-        IFieldSymbol field, List<Diagnostic> diagnostics, Location location)
-    {
-        if (field.Type is IArrayTypeSymbol arrayType)
-        {
-            if (!TypeMapping.IsResourceType(arrayType.ElementType))
-            {
-                Diagnose(diagnostics, field, location,
-                    $"array element type '{arrayType.ElementType.ToDisplayString()}' is not a known resource type");
-                return (null, null);
-            }
-
-            var count = GetConstantArraySize(compilation, field);
-            if (count is null)
-            {
-                Diagnose(diagnostics, field, location,
-                    "array size must be a compile-time constant (e.g. `new Texture2D[8]`)");
-                return (null, null);
-            }
-
-            return (arrayType.ElementType, count);
-        }
-
-        if (!TypeMapping.IsResourceType(field.Type))
+        // TypeKind.Struct alone isn't enough - float/int/Vector2/Texture2D etc. are all structs too
+        // (every C# value type is), so IsBuiltIn excludes those, leaving only plain user structs.
+        if (field.Type is not INamedTypeSymbol { TypeKind: TypeKind.Struct } groupType ||
+            TypeMapping.IsBuiltIn(groupType))
         {
             Diagnose(diagnostics, field, location,
-                $"'{field.Type.ToDisplayString()}' is not a known resource type or an array of one");
-            return (null, null);
+                $"'{field.Type.ToDisplayString()}' is not a struct - a binding group's fields must be " +
+                "declared on a dedicated struct type, the same way a [Push] field's type works");
+            return null;
         }
 
-        return (field.Type, null);
+        var name = Naming.ToSlangIdentifier(field.Name);
+        var declaration = $"ParameterBlock<{TypeMapping.MapType(groupType)}> {name};";
+        return BindlessBlockName(field) is { } blockName
+            ? $"[BindlessBlock({SymbolDisplay.FormatLiteral(blockName, quote: true)})] {declaration}"
+            : declaration;
     }
-
-    private static int? GetConstantArraySize(Compilation compilation, IFieldSymbol field)
-    {
-        foreach (var reference in field.DeclaringSyntaxReferences)
-        {
-            if (reference.GetSyntax() is not VariableDeclaratorSyntax { Initializer.Value: var valueSyntax })
-                continue;
-
-            var model = compilation.GetSemanticModel(valueSyntax.SyntaxTree);
-            if (model.GetOperation(valueSyntax) is IArrayCreationOperation { DimensionSizes: [var sizeOperation] } &&
-                sizeOperation.ConstantValue is { HasValue: true, Value: int size })
-                return size;
-        }
-
-        return null;
-    }
-
-    private static int GetNamedInt(AttributeData attribute, string name) =>
-        attribute.NamedArguments.FirstOrDefault(a => a.Key == name).Value.Value is int value ? value : 0;
 
     private static void Diagnose(List<Diagnostic> diagnostics, IFieldSymbol field, Location location, string reason) =>
         diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedBindingField, location, field.Name, reason));

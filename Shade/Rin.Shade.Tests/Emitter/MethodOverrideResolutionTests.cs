@@ -46,10 +46,14 @@ public class MethodOverrideResolutionTests
         Assert.That(result.Diagnostics, Is.Empty);
 
         const string expected = """
-                                 struct ConsumerPush
+                                 namespace OverrideResolutionCheck
                                  {
-                                     float value;
-                                     float* output;
+                                     struct ConsumerPush
+                                     {
+                                         float value;
+                                         float* output;
+                                     }
+
                                  }
 
                                  float getValue(float raw)
@@ -57,7 +61,7 @@ public class MethodOverrideResolutionTests
                                      return raw * 2;
                                  }
 
-                                 [[vk::push_constant]] uniform ConstantBuffer<ConsumerPush, ScalarDataLayout> push;
+                                 [[vk::push_constant]] uniform ConstantBuffer<OverrideResolutionCheck::ConsumerPush, ScalarDataLayout> push;
 
                                  [shader("compute")]
                                  [numthreads(1, 1, 1)]

@@ -39,6 +39,7 @@ internal sealed class FunctionCollector(
                 {
                     IInvocationOperation invocation => invocation.TargetMethod,
                     IObjectCreationOperation { Constructor: { } ctor } => ctor,
+                    IPropertyReferenceOperation { Property.GetMethod: { } getMethod } => getMethod,
                     _ => null
                 };
                 if (target is not null)
@@ -65,10 +66,29 @@ internal sealed class FunctionCollector(
     private static IEnumerable<IOperation> FindReachableCallSites(IOperation root)
     {
         if (root is IInvocationOperation or IObjectCreationOperation) yield return root;
+
+        // A property *read* needs its getter collected like any other call; a property used as an
+        // assignment target does not (property writes aren't lowered generically - see BodyLowering),
+        // and yielding it here too would collect a getter that's never actually invoked, defeating
+        // dead-code elimination for it.
+        if (root is IPropertyReferenceOperation property &&
+            !BodyLowering.IsBufferRefIndexer(property.Property) &&
+            !BodyLowering.IsSwizzle(property.Property) &&
+            !IsAssignmentTarget(property))
+            yield return root;
+
         if (root is ILocalFunctionOperation) yield break;
 
         foreach (var child in root.ChildOperations)
         foreach (var found in FindReachableCallSites(child))
             yield return found;
     }
+
+    private static bool IsAssignmentTarget(IOperation operation) => operation.Parent switch
+    {
+        ISimpleAssignmentOperation assignment => assignment.Target == operation,
+        ICompoundAssignmentOperation compound => compound.Target == operation,
+        IIncrementOrDecrementOperation incDec => incDec.Target == operation,
+        _ => false
+    };
 }

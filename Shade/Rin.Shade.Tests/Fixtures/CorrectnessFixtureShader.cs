@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Rin.Shade;
 
 namespace Rin.Shade.Tests.Fixtures;
@@ -15,9 +16,15 @@ public struct MeshData
     public Vector4 ColorAndTextureId;
 }
 
+[InlineArray(6)]
+public struct SixVector4s
+{
+    private Vector4 _element;
+}
+
 public struct Frustum
 {
-    [FixedSize(6)] public Vector4[] Planes;
+    public SixVector4s Planes;
 }
 
 public struct CorrectnessPushConstants

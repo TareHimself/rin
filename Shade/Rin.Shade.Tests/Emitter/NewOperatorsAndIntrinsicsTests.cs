@@ -50,15 +50,19 @@ public class NewOperatorsAndIntrinsicsTests
         Assert.That(result.Diagnostics, Is.Empty);
 
         const string expected = """
-                                 struct OperatorPush
+                                 namespace OperatorCheck
                                  {
-                                     float3 normal;
-                                     int count;
-                                     bool flag;
-                                     float* output;
+                                     struct OperatorPush
+                                     {
+                                         float3 normal;
+                                         int count;
+                                         bool flag;
+                                         float* output;
+                                     }
+
                                  }
 
-                                 [[vk::push_constant]] uniform ConstantBuffer<OperatorPush, ScalarDataLayout> push;
+                                 [[vk::push_constant]] uniform ConstantBuffer<OperatorCheck::OperatorPush, ScalarDataLayout> push;
 
                                  [shader("compute")]
                                  [numthreads(1, 1, 1)]
@@ -116,14 +120,18 @@ public class NewOperatorsAndIntrinsicsTests
         Assert.That(result.Diagnostics, Is.Empty);
 
         const string expected = """
-                                 struct MathPush
+                                 namespace MathIntrinsicsCheck
                                  {
-                                     float3 a;
-                                     float3 b;
-                                     float* output;
+                                     struct MathPush
+                                     {
+                                         float3 a;
+                                         float3 b;
+                                         float* output;
+                                     }
+
                                  }
 
-                                 [[vk::push_constant]] uniform ConstantBuffer<MathPush, ScalarDataLayout> push;
+                                 [[vk::push_constant]] uniform ConstantBuffer<MathIntrinsicsCheck::MathPush, ScalarDataLayout> push;
 
                                  [shader("compute")]
                                  [numthreads(1, 1, 1)]

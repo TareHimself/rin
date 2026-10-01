@@ -22,6 +22,37 @@ public sealed class ComputeAttribute(int x, int y, int z) : Attribute
     public int Z { get; } = z;
 }
 
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class VertexAttribute : Attribute;
+
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class FragmentAttribute : Attribute;
+
+public enum AttachmentFormat
+{
+    R8,
+    R16,
+    R32,
+    RG8,
+    RG16,
+    RG32,
+    RGBA8,
+    RGBA16,
+    RGBA32
+}
+
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Field)]
+public sealed class AttachmentAttribute(AttachmentFormat format) : Attribute
+{
+    public AttachmentFormat Format { get; } = format;
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class DepthAttribute : Attribute;
+
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class StencilAttribute : Attribute;
+
 [AttributeUsage(AttributeTargets.Field)]
 public sealed class PushAttribute : Attribute;
 
@@ -51,23 +82,25 @@ public sealed class ShadeExportAttribute : Attribute;
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
 public sealed class ShaderSourcesAttribute : Attribute;
 
-[AttributeUsage(AttributeTargets.Field)]
-public sealed class FixedSizeAttribute(int size) : Attribute
-{
-    public int Size { get; } = size;
-}
-
 /// <summary>
-/// Marks a static field as a Vulkan-bound resource - a single resource type, or an array of one
-/// for a bindless slot. Set/Binding are declared and owned here, never compiler-assigned.
+/// Marks a static field of a [ShaderStruct] type as a group of resources that must land in one
+/// descriptor set together - lowers to a Slang ParameterBlock&lt;T&gt;, whose set/binding Slang
+/// assigns on its own. No explicit numbers: unlike the old ShaderBindingAttribute this replaces,
+/// there is nothing here for shader-side and engine-side code to disagree about by convention.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field)]
-public sealed class ShaderBindingAttribute : Attribute
+public sealed class BindingGroupAttribute : Attribute;
+
+/// <summary>
+/// Marks a struct as the shape of a named, engine-owned resource table (the global bindless pool).
+/// A static field of this type is lowered to its own parameter block, like a [BindingGroup], and the
+/// name travels into reflection so the backend can bind its own registered descriptor set there
+/// instead of building one from the shader.
+/// </summary>
+[AttributeUsage(AttributeTargets.Struct)]
+public sealed class BindlessBlockAttribute(string name) : Attribute
 {
-    public int Set { get; init; }
-    public int Binding { get; init; }
-    public bool UpdateAfterBind { get; init; }
-    public bool Partial { get; init; }
+    public string Name { get; } = name;
 }
 
 [AttributeUsage(AttributeTargets.Field)]

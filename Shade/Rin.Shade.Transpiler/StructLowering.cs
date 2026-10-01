@@ -6,28 +6,20 @@ namespace Rin.Shade.Transpiler;
 
 internal static class StructLowering
 {
-    public static string Lower(INamedTypeSymbol type, List<Diagnostic> diagnostics)
+    public static string Lower(INamedTypeSymbol type, List<Diagnostic> diagnostics,
+        IEnumerable<StructMember>? members = null, IReadOnlyList<string>? nested = null)
     {
         var writer = new SlangWriter();
         writer.OpenBrace($"struct {type.Name}");
 
-        foreach (var field in type.GetMembers().OfType<IFieldSymbol>()
-                     .Where(f => !f.IsStatic && !f.IsImplicitlyDeclared))
+        foreach (var member in members ?? StructMembers.Instance(type))
         {
-            var fixedSize = FixedSizeAttributeReader.GetSize(field);
-
-            if (field.Type is IArrayTypeSymbol { Rank: > 1 } or IArrayTypeSymbol { ElementType: IArrayTypeSymbol })
-            {
-                diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.MultiDimensionalArrayNotSupported,
-                    field.Locations.FirstOrDefault() ?? Location.None, field.Name));
-                continue;
-            }
-
-            if (field.Type is IArrayTypeSymbol && fixedSize is null)
+            var field = member.Field;
+            if (field.Type is IArrayTypeSymbol)
             {
                 diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedType,
                     field.Locations.FirstOrDefault() ?? Location.None,
-                    $"{field.Name} (array field without [FixedSize])"));
+                    $"{field.Name} (array field, declare an [InlineArray] struct instead)"));
                 continue;
             }
 
@@ -39,10 +31,16 @@ internal static class StructLowering
             }
 
             var semantic = GetSemantic(field);
-            var identifier = Naming.ToSlangIdentifier(field.Name) + (fixedSize is { } size ? $"[{size}]" : "");
+            var identifier = Naming.ToSlangIdentifier(member.Name) + (InlineArrays.TryGet(field.Type, out _, out var length) ? $"[{length}]" : "");
             var line = $"{TypeMapping.MapType(field.Type)} {identifier}";
             if (semantic is not null) line += $" : {semantic}";
             writer.Line(line + ";");
+        }
+
+        foreach (var nestedText in nested ?? [])
+        {
+            writer.Line();
+            writer.AppendBlock(nestedText);
         }
 
         writer.CloseBrace();

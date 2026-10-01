@@ -38,6 +38,13 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
 
     [Required] public string AssemblyName { get; set; } = "";
 
+    /// <summary>
+    ///     When set, every transpiled shader's Slang is also written here (same relative path as its
+    ///     [Shader] path), so the exact text that was compiled can be read and diffed. Debugging aid only,
+    ///     nothing reads it back.
+    /// </summary>
+    public string? GeneratedDirectory { get; set; }
+
     [Output] public ITaskItem[] CompiledFiles { get; set; } = [];
 
     public override bool Execute()
@@ -84,6 +91,13 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
                 var scratchSlangPath = Path.Combine(OutputRoot, relativeOutput);
                 Directory.CreateDirectory(Path.GetDirectoryName(scratchSlangPath)!);
                 File.WriteAllText(scratchSlangPath, slang);
+
+                if (!string.IsNullOrEmpty(GeneratedDirectory))
+                {
+                    var generatedPath = Path.Combine(GeneratedDirectory, relativeOutput);
+                    Directory.CreateDirectory(Path.GetDirectoryName(generatedPath)!);
+                    File.WriteAllText(generatedPath, slang);
+                }
 
                 var outputPath = Path.Combine(OutputRoot, Path.ChangeExtension(relativeOutput, ".crsh"));
 

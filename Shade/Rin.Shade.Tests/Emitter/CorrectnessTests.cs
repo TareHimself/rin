@@ -28,7 +28,7 @@ public class CorrectnessTests
         Assert.That(slang, Does.Contain("Translucent = 1"));
 
         // Static/enum member reference - previously threw a NullReferenceException.
-        Assert.That(slang, Does.Contain("push.mode == BlendMode.Opaque"));
+        Assert.That(slang, Does.Contain("push.mode == Rin::Shade::Tests::Fixtures::BlendMode.Opaque"));
 
         // Matrix4x4 -> float4x4, and matrix*matrix -> mul(b, a) (the doc's transpose-avoidance rule).
         Assert.That(slang, Does.Contain("float4x4 view;"));

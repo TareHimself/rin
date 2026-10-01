@@ -39,12 +39,16 @@ public class VectorConstructorTests
         Assert.That(result.Diagnostics, Is.Empty);
 
         const string expected = """
-                                 struct VectorConstructorPush
+                                 namespace VectorConstructorCheck
                                  {
-                                     float3* output;
+                                     struct VectorConstructorPush
+                                     {
+                                         float3* output;
+                                     }
+
                                  }
 
-                                 [[vk::push_constant]] uniform ConstantBuffer<VectorConstructorPush, ScalarDataLayout> push;
+                                 [[vk::push_constant]] uniform ConstantBuffer<VectorConstructorCheck::VectorConstructorPush, ScalarDataLayout> push;
 
                                  [shader("compute")]
                                  [numthreads(1, 1, 1)]

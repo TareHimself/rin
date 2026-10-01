@@ -1,10 +1,17 @@
+using System.Runtime.CompilerServices;
 using Rin.Shade;
 
 namespace Rin.Shade.Tests.Fixtures;
 
+[InlineArray(4)]
+public struct FourFloats
+{
+    private float _element;
+}
+
 public struct Weights
 {
-    [FixedSize(4)] public float[] Values;
+    public FourFloats Values;
 }
 
 public struct ControlFlowPushConstants

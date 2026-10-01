@@ -117,11 +117,41 @@ internal sealed class BodyLowering(
                 {
                     var initializer = declarator.Initializer?.Value;
                     var name = Naming.ToSlangIdentifier(declarator.Symbol.Name);
+                    if (InlineArrays.TryGet(declarator.Symbol.Type, out var arrayElement, out var arrayLength))
+                    {
+                        var arrayInitializer = initializer is null || IsZeroInitializer(initializer)
+                            ? "{}"
+                            : LowerExpr(initializer);
+                        writer.Line($"{TypeMapping.MapType(arrayElement)} {name}[{arrayLength}] = {arrayInitializer};");
+                        continue;
+                    }
+
+                    if (declarator.Symbol.RefKind == RefKind.Ref)
+                    {
+                        LowerRefLocal(declarator, initializer, name);
+                        continue;
+                    }
+
+                    if (declarator.Symbol.Type is IArrayTypeSymbol arrayType)
+                    {
+                        LowerArrayLocal(declarator, arrayType, initializer, name);
+                        continue;
+                    }
+
                     // 'var' needs a right-hand side to infer from - an uninitialized declaration
                     // (e.g. a pre-declared 'out' argument) has to spell out its real type instead.
+                    //
+                    // Likewise a constant whose C# type isn't int: Slang literals are emitted bare (`0`,
+                    // not `0u` or `0.0`), so `var` would infer int and silently change the local's type.
+                    var needsExplicitType = initializer is null ||
+                                            (initializer.ConstantValue.HasValue &&
+                                             declarator.Symbol.Type.SpecialType != SpecialType.System_Int32 &&
+                                             TypeMapping.IsBuiltIn(declarator.Symbol.Type));
                     writer.Line(initializer is null
                         ? $"{TypeMapping.MapType(declarator.Symbol.Type)} {name};"
-                        : $"var {name} = {LowerExpr(initializer)};");
+                        : needsExplicitType
+                            ? $"{TypeMapping.MapType(declarator.Symbol.Type)} {name} = {LowerExpr(initializer)};"
+                            : $"var {name} = {LowerExpr(initializer)};");
                 }
                 return;
             case IExpressionStatementOperation expressionStatement:
@@ -151,14 +181,68 @@ internal sealed class BodyLowering(
         writer.Line($"{LowerExpr(operation)};");
     }
 
+    // Only `T[] x = new T[N]` / `new T[] { ... }` with a compile-time N is a legal array in a shader
+    // body: Slang has no unsized or heap arrays, so anything else is diagnosed rather than lowered.
+    private void LowerArrayLocal(IVariableDeclaratorOperation declarator, IArrayTypeSymbol arrayType,
+        IOperation? initializer, string name)
+    {
+        while (initializer is IConversionOperation { IsImplicit: true } conversion) initializer = conversion.Operand;
+
+        if (arrayType is not { Rank: 1, ElementType: not IArrayTypeSymbol } ||
+            !TypeMapping.IsLegalShaderType(arrayType.ElementType) ||
+            initializer is not IArrayCreationOperation creation)
+        {
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedType,
+                declarator.Syntax.GetLocation(),
+                $"{arrayType.ToDisplayString()} local (only 'new T[N]' or 'new T[] {{ ... }}' of a single dimension is supported)"));
+            return;
+        }
+
+        var elements = creation.Initializer?.ElementValues ?? [];
+        if (creation.DimensionSizes[0].ConstantValue is not { HasValue: true, Value: int length })
+        {
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedType,
+                creation.Syntax.GetLocation(), "array with a non-constant length (Slang arrays are fixed-size)"));
+            return;
+        }
+
+        var initializerText = elements.IsEmpty
+            ? "{}"
+            : $"{{ {string.Join(", ", elements.Select(LowerExpr))} }}";
+        writer.Line($"{TypeMapping.MapType(arrayType.ElementType)} {name}[{length}] = {initializerText};");
+    }
+
+    // `ref var q = ref buffer[i]` becomes a pointer local. A pointer into function-local storage
+    // isn't something the emitted SPIR-V can be trusted with, so only a buffer element (or another
+    // ref local) may be aliased.
+    private void LowerRefLocal(IVariableDeclaratorOperation declarator, IOperation? initializer, string name)
+    {
+        while (initializer is IConversionOperation { IsImplicit: true } conversion) initializer = conversion.Operand;
+
+        if (initializer is null || !TryGetAddress(initializer, out var address))
+        {
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                declarator.Syntax.GetLocation(), "ref local (only a BufferRef element can be aliased)"));
+            return;
+        }
+
+        writer.Line($"var {name} = {address};");
+    }
+
+    private static bool IsZeroInitializer(IOperation initializer)
+    {
+        while (initializer is IConversionOperation { IsImplicit: true } conversion) initializer = conversion.Operand;
+        return initializer is IDefaultValueOperation or IObjectCreationOperation { Arguments.Length: 0, Initializer: null };
+    }
+
     private void LowerFixedArrayForEach(IForEachLoopOperation forEach)
     {
         var collection = forEach.Collection is IConversionOperation { IsImplicit: true } conversion
             ? conversion.Operand
             : forEach.Collection;
 
-        if (collection is IFieldReferenceOperation { Field: var field } fieldRef &&
-            FixedSizeAttributeReader.GetSize(field) is { } size)
+        if (collection is IFieldReferenceOperation fieldRef &&
+            InlineArrays.TryGet(fieldRef.Field.Type, out _, out var size))
         {
             var index = $"i{_loopDepth}";
             var elementName = forEach.LoopControlVariable is IVariableDeclaratorOperation declarator
@@ -175,7 +259,7 @@ internal sealed class BodyLowering(
         }
 
         diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
-            forEach.Syntax.GetLocation(), "foreach (only fixed-size array fields are supported)"));
+            forEach.Syntax.GetLocation(), "foreach (only [InlineArray] fields are supported)"));
     }
 
     private string LowerLoopClause(IOperation op) => op switch
@@ -193,6 +277,8 @@ internal sealed class BodyLowering(
         {
             case IParameterReferenceOperation parameter:
                 return Naming.ToSlangIdentifier(parameter.Parameter.Name);
+            case ILocalReferenceOperation { Local.RefKind: RefKind.Ref } refLocal:
+                return $"(*{Naming.ToSlangIdentifier(refLocal.Local.Name)})";
             case ILocalReferenceOperation local:
                 return Naming.ToSlangIdentifier(local.Local.Name);
             case IIncrementOrDecrementOperation inc:
@@ -201,10 +287,20 @@ internal sealed class BodyLowering(
                 return LowerFieldReference(field);
             case IPropertyReferenceOperation property when IsBufferRefIndexer(property.Property):
                 return $"{LowerExpr(property.Instance!)}[{LowerExpr(property.Arguments[0].Value)}]";
-            case IArrayElementReferenceOperation { Indices: [var index] } element:
-                return $"{LowerExpr(element.ArrayReference)}[{LowerExpr(index)}]";
+            case IArrayElementReferenceOperation { Indices: [var arrayIndex] } arrayElement:
+                return $"{LowerExpr(arrayElement.ArrayReference)}[{LowerExpr(arrayIndex)}]";
+            case IInlineArrayAccessOperation inlineAccess:
+                return $"{LowerExpr(inlineAccess.Instance)}[{LowerExpr(inlineAccess.Argument)}]";
+            case IPropertyReferenceOperation { Instance: not null } autoProperty
+                when StructMembers.IsAutoProperty(autoProperty.Property):
+                return autoProperty.Instance is IInstanceReferenceOperation
+                    ? Naming.ToSlangIdentifier(autoProperty.Property.Name)
+                    : $"{LowerExpr(autoProperty.Instance)}.{Naming.ToSlangIdentifier(autoProperty.Property.Name)}";
             case IPropertyReferenceOperation property when IsSwizzle(property.Property):
                 return $"{LowerExpr(property.Instance!)}.{Naming.ToSlangIdentifier(property.Property.Name)}";
+            case IPropertyReferenceOperation { Property.GetMethod: { } getMethod } property
+                when MethodSource.HasBody(getMethod):
+                return LowerPropertyGet(property, getMethod);
             case ILiteralOperation { ConstantValue: { HasValue: true, Value: var value } }:
                 return Convert.ToString(value, CultureInfo.InvariantCulture) ?? "0";
             case IConversionOperation conversion:
@@ -254,25 +350,137 @@ internal sealed class BodyLowering(
         }
     }
 
+    // A variant field has no storage of its own in Slang - it is the same bytes as the union's
+    // header-plus-payload struct for that path, so reading it reinterprets the root instance as that
+    // struct and takes the payload. A chain of variants (foo.Bar.Car) collapses into one
+    // reinterpret of the root as Foo_Bar_Car, with one .payload per level.
+    private string LowerVariantAccess(IFieldReferenceOperation field)
+    {
+
+        if (field.Field.Type is INamedTypeSymbol nestedUnion && UnionLayout.IsUnion(nestedUnion) &&
+            field.Parent is not IFieldReferenceOperation)
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                field.Syntax.GetLocation(),
+                $"copying nested union variant '{field.Field.Name}' (access one of its members directly)"));
+
+        var chain = new List<UnionVariant>();
+        var current = field;
+        while (true)
+        {
+            var info = UnionLayout.Analyze(current.Field.ContainingType, []);
+            chain.Insert(0, info!.Variants.First(v =>
+                SymbolEqualityComparer.Default.Equals(v.Member.Field, current.Field)));
+
+            if (current.Instance is IFieldReferenceOperation parent && UnionLayout.IsVariant(parent.Field))
+                current = parent;
+            else
+                break;
+        }
+
+        var rootType = current.Field.ContainingType;
+        var structName = UnionLowering.QualifiedPathName(rootType, chain);
+
+        // An element of a BufferRef is an addressable place, so the variant is read and written in
+        // place through a pointer cast. Anything else is a value, where reinterpret<> yields a copy
+        // that can be read but not assigned through.
+        if (TryGetAddress(current.Instance, out var address))
+        {
+            var payloads = string.Concat(Enumerable.Repeat(".payload", chain.Count - 1));
+            return $"(({structName}*)({address}))->payload{payloads}";
+        }
+
+        if (IsWrittenThrough(field))
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnionVariantWrite, field.Syntax.GetLocation(),
+                field.Field.Name));
+
+        var root = current.Instance is IInstanceReferenceOperation or null ? "this" : LowerExpr(current.Instance);
+        return $"reinterpret<{structName}>({root}){string.Concat(Enumerable.Repeat(".payload", chain.Count))}";
+    }
+
+    // The addressable places: an element of a BufferRef (its ref indexer) and a ref local, which
+    // is itself a pointer to one. Nothing else has an address a shader can take.
+    private bool TryGetAddress(IOperation? operation, out string address)
+    {
+        switch (operation)
+        {
+            case IPropertyReferenceOperation { Instance: { } buffer } indexer when IsBufferRefIndexer(indexer.Property):
+                address = $"{LowerExpr(buffer)} + {LowerExpr(indexer.Arguments[0].Value)}";
+                return true;
+            case ILocalReferenceOperation { Local.RefKind: RefKind.Ref } refLocal:
+                address = Naming.ToSlangIdentifier(refLocal.Local.Name);
+                return true;
+            default:
+                address = "";
+                return false;
+        }
+    }
+
+    private static bool IsWrittenThrough(IOperation operation)
+    {
+        for (var current = operation; current is not null; current = current.Parent)
+        {
+            switch (current.Parent)
+            {
+                case ISimpleAssignmentOperation assignment when assignment.Target == current:
+                case ICompoundAssignmentOperation compound when compound.Target == current:
+                case IIncrementOrDecrementOperation incDec when incDec.Target == current:
+                    return true;
+                case IFieldReferenceOperation parentField when parentField.Instance == current:
+                    continue;
+                default:
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
     private string LowerFieldReference(IFieldReferenceOperation field)
     {
+        if (UnionLayout.IsVariant(field.Field)) return LowerVariantAccess(field);
+
         var name = Naming.ToSlangIdentifier(field.Field.Name);
 
-        if (field.Instance is IInstanceReferenceOperation) return name;
+        // Inside a struct's own constructor or method the field is reached through implicit this. C#
+        // tells `IndexCount` and a parameter `indexCount` apart by case, but both lower to `indexCount`
+        // in Slang, where the parameter would win and `indexCount = indexCount` would assign it to
+        // itself. A shader class's fields are module-scope globals, not members, so they stay bare.
+        if (field.Instance is IInstanceReferenceOperation)
+            return field.Field.ContainingType.TypeKind == TypeKind.Struct ? $"this.{name}" : name;
 
         if (field.Instance is null)
         {
             // A [ShaderBinding] field lowers to a module-scope declaration (BindingLowering), not a
             // struct member - referenced by its bare name, same as any other global.
-            if (BindingLowering.HasShaderBindingAttribute(field.Field)) return name;
+            if (BindingLowering.HasBindingGroupAttribute(field.Field)) return name;
 
-            // Otherwise a static reference is, in practice, always an enum member. Slang enum
-            // members keep their C# casing (`enum ResourceType { Texture, ... }`), unlike struct
-            // fields, which get lowerCamelCased - so only qualify with the type name here.
-            var typeName = TypeMapping.MapType(field.Field.ContainingType);
-            return field.Field.ContainingType.TypeKind == TypeKind.Enum
-                ? $"{typeName}.{field.Field.Name}"
-                : $"{typeName}.{name}";
+            // An enum member is declared in the emitted Slang enum, so it's referenced the same way
+            // C# does - qualified with the type name. Slang enum members keep their C# casing
+            // (`enum ResourceType { Texture, ... }`), unlike struct fields, which get lowerCamelCased.
+            if (field.Field.ContainingType.TypeKind == TypeKind.Enum)
+                return $"{TypeMapping.MapType(field.Field.ContainingType)}.{field.Field.Name}";
+
+            // A plain static/const field (e.g. a private bit-mask/shift constant) has no Slang
+            // declaration of its own - StructLowering only emits instance fields - so a qualified
+            // reference to it would point at nothing. Inline its compile-time value instead.
+            if (field.Field.HasConstantValue)
+                return Convert.ToString(field.Field.ConstantValue, CultureInfo.InvariantCulture) ?? "0";
+
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                field.Syntax.GetLocation(),
+                $"static field '{field.Field.Name}' has no compile-time constant value and no [ShaderBinding]"));
+            return "/* unsupported */";
+        }
+
+        if (UnionLayout.IsUnion(field.Field.ContainingType))
+        {
+            // A union value is its Complete struct, whose header is a member; a variant-chain result
+            // (foo.Bar.Tag) is already the nested union's header-only struct.
+            var header = field.Instance is IFieldReferenceOperation { Field: var parentField } &&
+                         UnionLayout.IsVariant(parentField)
+                ? ""
+                : ".header";
+            return $"{LowerExpr(field.Instance)}{header}.{name}";
         }
 
         return $"{LowerExpr(field.Instance)}.{name}";
@@ -310,7 +518,7 @@ internal sealed class BodyLowering(
 
         if (MethodSource.HasBody(method))
         {
-            var calleeName = Naming.ToSlangIdentifier(method.Name);
+            var calleeName = Naming.ToSlangMethodName(method);
             if (instance is null) CheckFieldShadowing(calleeName, invocation.Syntax.GetLocation());
             var call = $"{calleeName}({string.Join(", ", arguments)})";
             return instance is not null ? $"{instance}.{call}" : call;
@@ -319,6 +527,23 @@ internal sealed class BodyLowering(
         diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.NoSourceForMethod,
             invocation.Syntax.GetLocation(), method.Name));
         return "/* unresolved call */";
+    }
+
+    // A computed property (backed by a real getter body, not BufferRef's indexer or a swizzle -
+    // both handled above) has no Slang equivalent syntax, so it's read by calling its getter as an
+    // ordinary zero-arg method - the getter itself is discovered and emitted the same way any other
+    // reachable method is (FunctionCollector's IPropertyReferenceOperation handling).
+    private string LowerPropertyGet(IPropertyReferenceOperation property, IMethodSymbol getMethod)
+    {
+        var instance = property.Instance switch
+        {
+            null or IInstanceReferenceOperation => null,
+            var expr => LowerExpr(expr)
+        };
+        var calleeName = Naming.ToSlangMethodName(getMethod);
+        if (instance is null) CheckFieldShadowing(calleeName, property.Syntax.GetLocation());
+        var call = $"{calleeName}()";
+        return instance is not null ? $"{instance}.{call}" : call;
     }
 
     // An unqualified call whose name matches a field on the struct it's declared in resolves to
@@ -435,6 +660,11 @@ internal sealed class BodyLowering(
             BinaryOperatorKind.GreaterThanOrEqual => ">=",
             BinaryOperatorKind.ConditionalAnd => "&&",
             BinaryOperatorKind.ConditionalOr => "||",
+            BinaryOperatorKind.And => "&",
+            BinaryOperatorKind.Or => "|",
+            BinaryOperatorKind.ExclusiveOr => "^",
+            BinaryOperatorKind.LeftShift => "<<",
+            BinaryOperatorKind.RightShift => ">>",
             _ => ""
         };
         return text.Length > 0;
@@ -453,10 +683,10 @@ internal sealed class BodyLowering(
         return text.Length > 0;
     }
 
-    private static bool IsBufferRefIndexer(IPropertySymbol property) =>
+    internal static bool IsBufferRefIndexer(IPropertySymbol property) =>
         property.IsIndexer && property.ContainingType is { Name: "BufferRef" };
 
-    private static bool IsSwizzle(IPropertySymbol property) =>
+    internal static bool IsSwizzle(IPropertySymbol property) =>
         property.ContainingType.TypeKind == TypeKind.Extension &&
         property.Name.Length is >= 1 and <= 4 &&
         property.Name.All(c => "xyzwrgba".Contains(char.ToLowerInvariant(c)));

@@ -19,70 +19,74 @@ public class BoundsUpdateEmitterTests
         Assert.That(result.Shaders.Keys, Is.EquivalentTo(new[] { "BoundsUpdateFixtureShader" }));
 
         const string expected = """
-                                 struct Vertex
+                                 namespace Rin::Shade::Tests::Fixtures
                                  {
-                                     float4 locationU;
-                                     float4 normalV;
-                                     float4 tangent;
+                                     struct Vertex
+                                     {
+                                         float4 locationU;
+                                         float4 normalV;
+                                         float4 tangent;
+                                     }
+
+                                     struct SkinnedMesh
+                                     {
+                                         int index;
+                                         Rin::Shade::Tests::Fixtures::Vertex* vertices;
+                                         uint count;
+                                     }
+
+                                     struct UpdatableBounds3D
+                                     {
+                                         float3 lower;
+                                         float3 upper;
+                                     }
+
+                                     struct BoundsUpdatePushConstants
+                                     {
+                                         Rin::Shade::Tests::Fixtures::SkinnedMesh* skinnedMeshes;
+                                         int totalInvocations;
+                                         Rin::Shade::Tests::Fixtures::UpdatableBounds3D* output;
+                                     }
+
+                                     struct ComputeIn
+                                     {
+                                         uint threadId : SV_DispatchThreadID;
+                                     }
+
                                  }
 
-                                 struct SkinnedMesh
-                                 {
-                                     int index;
-                                     Vertex* vertices;
-                                     uint count;
-                                 }
-
-                                 struct UpdatableBounds3D
-                                 {
-                                     float3 lower;
-                                     float3 upper;
-                                 }
-
-                                 struct BoundsUpdatePushConstants
-                                 {
-                                     SkinnedMesh* skinnedMeshes;
-                                     int totalInvocations;
-                                     UpdatableBounds3D* output;
-                                 }
-
-                                 struct ComputeIn
-                                 {
-                                     uint threadId : SV_DispatchThreadID;
-                                 }
-
-                                 extension UpdatableBounds3D
+                                 extension Rin::Shade::Tests::Fixtures::UpdatableBounds3D
                                  {
                                      __init(float3 location)
                                      {
-                                         lower = location;
-                                         upper = location;
+                                         this.lower = location;
+                                         this.upper = location;
                                      }
                                  }
 
-                                 extension Vertex
+                                 extension Rin::Shade::Tests::Fixtures::Vertex
                                  {
                                      float3 getLocation()
                                      {
-                                         return locationU.xyz;
+                                         return this.locationU.xyz;
                                      }
                                  }
 
-                                 extension UpdatableBounds3D
+                                 extension Rin::Shade::Tests::Fixtures::UpdatableBounds3D
                                  {
                                      [mutating]
                                      void update(float3 location)
                                      {
-                                         lower = min(lower, location);
-                                         upper = max(upper, location);
+                                         this.lower = min(this.lower, location);
+                                         this.upper = max(this.upper, location);
                                      }
                                  }
 
-                                 [[vk::push_constant]] uniform ConstantBuffer<BoundsUpdatePushConstants, ScalarDataLayout> push;
+                                 [[vk::push_constant]] uniform ConstantBuffer<Rin::Shade::Tests::Fixtures::BoundsUpdatePushConstants, ScalarDataLayout> push;
 
                                  [shader("compute")]
                                  [numthreads(64, 1, 1)]
-                                 void compute(ComputeIn input)
+                                 void compute(Rin::Shade::Tests::Fixtures::ComputeIn input)
                                  {
                                      var index = input.threadId;
                                      if (index >= (uint)push.totalInvocations)
@@ -92,7 +96,7 @@ public class BoundsUpdateEmitterTests
                                      var mesh = push.skinnedMeshes[index];
                                      var vertex = mesh.vertices[0];
                                      var vertexCount = mesh.count;
-                                     var bounds = UpdatableBounds3D(vertex.getLocation());
+                                     var bounds = Rin::Shade::Tests::Fixtures::UpdatableBounds3D(vertex.getLocation());
                                      for (var i = 1; i < vertexCount; i++)
                                      {
                                          vertex = mesh.vertices[i];

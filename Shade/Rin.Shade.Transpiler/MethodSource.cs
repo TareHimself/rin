@@ -11,6 +11,10 @@ namespace Rin.Shade.Transpiler;
 /// ("inlined" per the v1 subset) declares via LocalFunctionStatementSyntax/ILocalFunctionOperation
 /// instead of MethodDeclarationSyntax/IMethodBodyOperation, but is otherwise walked and emitted
 /// exactly like any other plain function - this is the one place both shapes get normalized.
+/// A property/indexer accessor's own DeclaringSyntaxReferences point at an AccessorDeclarationSyntax
+/// for a block/expression-bodied accessor (`get { ... }` / `get => ...;`), but at the bare
+/// ArrowExpressionClauseSyntax for an expression-bodied property with no accessor list at all
+/// (`public int Id => ...;`) - confirmed empirically, not documented behavior worth assuming.
 /// </summary>
 internal static class MethodSource
 {
@@ -25,6 +29,9 @@ internal static class MethodSource
         LocalFunctionStatementSyntax { ExpressionBody: not null } => true,
         ConstructorDeclarationSyntax { Body: not null } => true,
         ConstructorDeclarationSyntax { ExpressionBody: not null } => true,
+        AccessorDeclarationSyntax { Body: not null } => true,
+        AccessorDeclarationSyntax { ExpressionBody: not null } => true,
+        ArrowExpressionClauseSyntax => true,
         _ => false
     };
 
@@ -54,6 +61,20 @@ internal static class MethodSource
                         var body = constructorBody.BlockBody ?? constructorBody.ExpressionBody;
                         if (body is not null) yield return body;
                     }
+                    break;
+                case AccessorDeclarationSyntax accessorSyntax:
+                    if (model.GetOperation(accessorSyntax) is IMethodBodyOperation accessorBody)
+                    {
+                        var body = accessorBody.BlockBody ?? accessorBody.ExpressionBody;
+                        if (body is not null) yield return body;
+                    }
+                    break;
+                // `public int Id => ...;` - GetOperation on the arrow clause itself already returns
+                // a normalized IBlockOperation (an implicit return wrapping the expression), the same
+                // shape IMethodBodyOperation.ExpressionBody gives for every other member kind.
+                case ArrowExpressionClauseSyntax arrowSyntax:
+                    if (model.GetOperation(arrowSyntax) is IBlockOperation arrowBody)
+                        yield return arrowBody;
                     break;
             }
         }

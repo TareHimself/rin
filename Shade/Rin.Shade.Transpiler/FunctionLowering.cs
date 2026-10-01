@@ -35,7 +35,7 @@ internal static class FunctionLowering
         var isConstructor = method.MethodKind == MethodKind.Constructor;
         var signature = isConstructor
             ? "__init"
-            : $"{TypeMapping.MapType(method.ReturnType)} {Naming.ToSlangIdentifier(method.Name)}";
+            : $"{TypeMapping.MapType(method.ReturnType)} {Naming.ToSlangMethodName(method)}";
 
         var writer = new SlangWriter();
 
@@ -54,7 +54,7 @@ internal static class FunctionLowering
                 .Select(f => Naming.ToSlangIdentifier(f.Name))
                 .ToHashSet();
 
-            writer.OpenBrace($"extension {method.ContainingType.Name}");
+            writer.OpenBrace($"extension {TypeMapping.MapType(method.ContainingType)}");
             if (!isConstructor && WritesToImplicitThis(compilation, method)) writer.Line("[mutating]");
             WriteSignatureAndBody(compilation, method, diagnostics, writer, signature, fieldNames, withHelpers,
                 overrides);
@@ -73,6 +73,12 @@ internal static class FunctionLowering
         IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null,
         IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides = null)
     {
+        foreach (var arrayType in method.Parameters.Select(p => p.Type).Append(method.ReturnType)
+                     .OfType<IArrayTypeSymbol>())
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedType,
+                method.Locations.FirstOrDefault() ?? Location.None,
+                $"{arrayType.ToDisplayString()} on '{method.Name}' (declare an [InlineArray] struct instead)"));
+
         var parameterList = string.Join(", ", method.Parameters.Select(p =>
             $"{RefModifier(p.RefKind)}{TypeMapping.MapType(p.Type)} {Naming.ToSlangIdentifier(p.Name)}"));
 

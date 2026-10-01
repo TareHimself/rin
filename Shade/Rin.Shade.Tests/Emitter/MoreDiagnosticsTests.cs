@@ -122,16 +122,49 @@ public class MoreDiagnosticsTests
     }
 
     [Test]
-    public void MultiDimensionalArrayIsRejected()
+    public void PlainArrayParameterIsRejected()
     {
         const string source = """
                                using Rin.Shade;
 
-                               namespace MultiDimArrayCheck;
+                               namespace ArrayParameterCheck;
+
+                               public struct ArrayParameterPush
+                               {
+                                   public BufferRef<float> Output;
+                               }
+
+                               [Shader("Fixtures/array_parameter.slang")]
+                               public class ArrayParameterShader : Shader
+                               {
+                                   [Push] protected ArrayParameterPush Push;
+
+                                   private float First(float[] values) => 0f;
+
+                                   [Compute(1, 1, 1)]
+                                   public void Compute()
+                                   {
+                                       Push.Output[0] = First(null);
+                                   }
+                               }
+                               """;
+
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
+
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedType.Id), Is.True);
+    }
+
+    [Test]
+    public void PlainArrayFieldIsRejected()
+    {
+        const string source = """
+                               using Rin.Shade;
+
+                               namespace PlainArrayCheck;
 
                                public struct GridPush
                                {
-                                   [FixedSize(4)] public float[,] Grid;
+                                   public float[] Grid;
                                    public BufferRef<float> Output;
                                }
 
@@ -150,7 +183,7 @@ public class MoreDiagnosticsTests
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.MultiDimensionalArrayNotSupported.Id), Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.UnsupportedType.Id), Is.True);
     }
 
     [Test]

@@ -26,8 +26,9 @@ public class ShadeExportSourceGenerator : IIncrementalGenerator
     {
         var exportedTrees = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => node is ClassDeclarationSyntax { AttributeLists.Count: > 0 }
-                    or StructDeclarationSyntax { AttributeLists.Count: > 0 },
+                // TypeDeclarationSyntax, not just Class/StructDeclarationSyntax - a `record struct`
+                // (e.g. DeviceHandle) is its own RecordDeclarationSyntax node, matched by neither.
+                predicate: static (node, _) => node is TypeDeclarationSyntax { AttributeLists.Count: > 0 },
                 transform: static (ctx, _) => GetTreeIfExported(ctx))
             .Where(static tree => tree is not null)
             .Collect();

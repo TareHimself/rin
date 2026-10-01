@@ -22,6 +22,10 @@
     <ItemGroup>
         <ProjectReference Include="..\Rin.Shade\Rin.Shade.csproj"/>
         <ProjectReference Include="..\Rin.Shade.Transpiler\Rin.Shade.Transpiler.csproj"/>
+        <!-- Plain reference, not OutputItemType="Analyzer" - tests drive the generator directly via
+             CSharpGeneratorDriver, entirely in-memory, rather than needing it to actually run as an
+             analyzer against this project's own compilation. -->
+        <ProjectReference Include="..\Rin.Shade.SourceGenerator\Rin.Shade.SourceGenerator.csproj"/>
         <ProjectReference Include="..\Samples\SampleStdlib\SampleStdlib.csproj" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\Samples\SampleWorld\SampleWorld.csproj" ReferenceOutputAssembly="false"/>
     </ItemGroup>

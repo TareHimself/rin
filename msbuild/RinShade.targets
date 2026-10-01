@@ -24,6 +24,7 @@
 
     <PropertyGroup>
         <RinShadeRepoRoot Condition="'$(RinShadeRepoRoot)' == ''">$(MSBuildThisFileDirectory)..</RinShadeRepoRoot>
+        <RinShadeGeneratedDirectory Condition="'$(RinShadeGeneratedDirectory)' == ''">$(RinShadeRepoRoot)\debugGeneratedShaders\$(MSBuildProjectName)</RinShadeGeneratedDirectory>
         <RinShadeMSBuildProject Condition="'$(RinShadeMSBuildProject)' == ''">$(MSBuildThisFileDirectory)..\Shade\Rin.Shade.MSBuild\Rin.Shade.MSBuild.csproj</RinShadeMSBuildProject>
         <RinShadeMSBuildAssembly Condition="'$(RinShadeMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\Shade\Rin.Shade.MSBuild\bin\Release\net10.0\Rin.Shade.MSBuild.dll</RinShadeMSBuildAssembly>
     </PropertyGroup>
@@ -59,6 +60,7 @@
                 References="@(ReferencePath)"
                 OutputRoot="$(RinShadeOutputRoot)"
                 OutputSubpath="$(RinShadeOutputSubpath)"
+                GeneratedDirectory="$(RinShadeGeneratedDirectory)"
                 AssemblyName="$(AssemblyName)">
             <Output TaskParameter="CompiledFiles" ItemName="EmbeddedResource" />
         </CompileRinShadeShaders>

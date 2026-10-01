@@ -41,5 +41,14 @@ internal sealed class SlangWriter
         return this;
     }
 
+    /// <summary>Appends already-formatted lines, each re-indented to the current depth.</summary>
+    public SlangWriter AppendBlock(string text)
+    {
+        var indent = string.Concat(Enumerable.Repeat("    ", _indent));
+        foreach (var line in text.TrimEnd('\n').Split('\n'))
+            _builder.Append(line.Length == 0 ? "" : indent + line).Append('\n');
+        return this;
+    }
+
     public override string ToString() => _builder.ToString();
 }

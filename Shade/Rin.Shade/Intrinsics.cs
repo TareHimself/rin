@@ -9,6 +9,9 @@ public static class Intrinsics
     [SlangStatement("discard;")]
     public static extern void Discard();
 
+    [SlangStatement("InterlockedAdd($0, $1, $2);")]
+    public static extern void InterlockedAdd(ref uint destination, uint value, out uint original);
+
     [SlangCall("reinterpret<$T0>($0)")]
     public static extern T Reinterpret<T>(this object value);
 }

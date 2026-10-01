@@ -6,7 +6,8 @@ internal static class TypeMapping
 {
     public static string MapType(ITypeSymbol type)
     {
-        if (type is IArrayTypeSymbol arrayType) return MapType(arrayType.ElementType);
+        if (InlineArrays.TryGet(type, out var inlineElement, out _)) return MapType(inlineElement);
+        if (UnionLayout.IsUnion(type)) return Naming.Qualify(type, $"{Naming.GeneratedPrefix}Complete{type.Name}");
 
         switch (type.SpecialType)
         {
@@ -28,7 +29,11 @@ internal static class TypeMapping
         if (type is INamedTypeSymbol { Name: "BufferRef", TypeArguments.Length: 1 } named)
             return $"{MapType(named.TypeArguments[0])}*";
 
-        return type.Name;
+        // A Slang builtin resource type (Texture2D, SamplerState, ...) is global - qualifying it
+        // with the C# marker type's Rin::Shade namespace would name something that doesn't exist.
+        if (IsResourceType(type)) return type.Name;
+
+        return Naming.Qualify(type, type.Name);
     }
 
     // BCL constructors, no source and no owned type to attach [SlangCall] to - trusted to forward
@@ -40,7 +45,7 @@ internal static class TypeMapping
 
     public static bool IsBuiltIn(ITypeSymbol type)
     {
-        if (type is IArrayTypeSymbol) return true;
+        if (InlineArrays.TryGet(type, out _, out _)) return true;
 
         switch (type.SpecialType)
         {
@@ -81,7 +86,7 @@ internal static class TypeMapping
     /// </summary>
     public static bool IsLegalShaderType(ITypeSymbol type)
     {
-        if (type is IArrayTypeSymbol arrayType) return IsLegalShaderType(arrayType.ElementType);
+        if (InlineArrays.TryGet(type, out var inlineElement, out _)) return IsLegalShaderType(inlineElement);
         if (IsBuiltIn(type)) return true;
         return type.TypeKind is TypeKind.Struct or TypeKind.Enum;
     }
