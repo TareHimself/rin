@@ -1,0 +1,17 @@
+[project]
+name = "rin"
+version = "0.0.0"
+description = "Tooling for building Rin's native modules. Rin itself is a .NET solution (rin.sln)."
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+native = [
+    "conan>=2.33,<3",
+    "cmake>=4.3",
+    "go-task-bin>=3.53",
+]
+
+[tool.uv]
+package = false
+default-groups = ["native"]

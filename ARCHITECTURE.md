@@ -106,7 +106,7 @@ Shaders are C# classes. `Rin.Shade` transpiles them to Slang during the build, `
 
 ## Native libraries and CI
 
-A native library reaches the managed code in one of three ways: a **real** package built from C++ (locally with `task pack-all`, in CI for Slang), a **stub** package that only satisfies restore, or a **fake** NativeAOT library that tests load instead. [native/ReadMe.md](native/ReadMe.md) explains each, and CI (`.github/workflows/ci.yml`) uses all three: stubs and fakes for the per-project test jobs, and the real Slang for the CPU shader tests and the full shader compile.
+A native library reaches the managed code in one of three ways: a **real** package built from C++ (locally with `uv run task pack-all`, in CI for Slang), a **stub** package that only satisfies restore, or a **fake** NativeAOT library that tests load instead. [native/ReadMe.md](native/ReadMe.md) explains each, and CI (`.github/workflows/ci.yml`) uses all three: stubs and fakes for the per-project test jobs, and the real Slang for the CPU shader tests and the full shader compile.
 
 ## Where to read next
 

@@ -17,10 +17,10 @@ Shared build files in this folder:
 
 ## Building and packing
 
-Run from the repo root with [Task](https://taskfile.dev/installation/) (needs Conan, CMake, Python and, for the Vulkan module, the Vulkan SDK):
+Run from the repo root through [uv](https://docs.astral.sh/uv/), which provides Python, Conan, CMake and Task from `pyproject.toml` (you also need a C++ toolchain and, for the Vulkan module, the Vulkan SDK):
 
 ```
-task pack-all
+uv run task pack-all
 ```
 
 This runs `pack-native`, `pack-audio-miniaudio-native`, `pack-graphics-vulkan-native` and `pack-slang-native` from the root `Taskfile.yml`. Each one runs the module's own `task build` (in its `Taskfile.yml`: `conan install . --build=missing -s build_type=Release`, then `cmake --preset Rin-Release --fresh` and `cmake --build --preset Rin-Release`), then:
@@ -35,7 +35,7 @@ How the nuspec is produced: a CMake post-build step in each module runs `make_nu
 
 ## The three ways a native library shows up
 
-1. **Real package.** Built locally by `task pack-all`, or in CI by the `build-native-slang` job (only `Rin.Slang.Native`, packed as version `1.0.1`). Contains the real binaries. Needed to actually compile shaders, run the Vulkan backend or play audio.
+1. **Real package.** Built locally by `uv run task pack-all`, or in CI by the `build-native-slang` job (only `Rin.Slang.Native`, packed as version `1.0.1`). Contains the real binaries. Needed to actually compile shaders, run the Vulkan backend or play audio.
 2. **Stub package.** `scripts/pack_native_stubs.py <feed_dir>` reads every `*.Native` package id from `Directory.Packages.props` and packs a nuspec containing one placeholder file, `runtimes/win-x64/native/stub.dll`. It satisfies restore and build so nothing needs Conan, CMake or the Vulkan SDK. Calling into the library would fail. The stubs use version `1.0.0` (the `*` parts of the floating `1.*` become `0`).
 3. **Fake.** The C# projects in `native/Fakes`, published with NativeAOT by `scripts/publish_native_fakes.py <rid>` into real native libraries that export the same entry points. Tests that do call native code (`Rin.GLTF.Tests` for `Rin.Native`, `Rin.Slang.Compiler.Tests` for `Rin.Slang.Native`) install a DllImport resolver that loads the fake instead of the package. Fakes are not packages and are not put in the feed.
 
@@ -47,5 +47,5 @@ In CI (`.github/workflows/ci.yml`):
 
 ## Gotchas
 
-- Restoring on a clean checkout fails until `.feed/` contains the native packages. Run `task pack-all` (real) or `python scripts/pack_native_stubs.py .feed` (stubs).
+- Restoring on a clean checkout fails until `.feed/` contains the native packages. Run `uv run task pack-all` (real) or `uv run python scripts/pack_native_stubs.py .feed` (stubs).
 - After changing a module's C++ source, re-run its `pack-*` task.

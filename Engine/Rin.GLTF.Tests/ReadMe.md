@@ -18,7 +18,7 @@ NUnit tests for [Rin.GLTF](../Rin.GLTF/ReadMe.md).
 Publish the native fake first, then test (this is the order CI uses):
 
 ```
-python scripts/publish_native_fakes.py win-x64
+uv run python scripts/publish_native_fakes.py win-x64
 dotnet test Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj -p:RinShadeSkipCompile=true
 ```
 

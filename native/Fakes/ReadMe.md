@@ -12,7 +12,7 @@ Both projects target `net10.0` with `PublishAot`, `AllowUnsafeBlocks` and `Invar
 ## Publish
 
 ```
-python scripts/publish_native_fakes.py win-x64
+uv run python scripts/publish_native_fakes.py win-x64
 ```
 
 The script runs `dotnet publish -c Release -r <rid> --self-contained` for every `native/Fakes/*/*.csproj`. The RID argument defaults to `win-x64`.

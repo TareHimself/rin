@@ -16,7 +16,7 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Pack native stub packages
-        run: python scripts/pack_native_stubs.py .feed
+        run: uv run python scripts/pack_native_stubs.py .feed
 
       - name: Restore cached Slang native build
         id: slang-native-cache
@@ -25,28 +25,27 @@ jobs:
           path: |
             native/Rin.Slang.Native/build-release
             ~/.conan2
-          key: slang-native-${{ runner.os }}-${{ hashFiles('native/Rin.Slang.Native/CMakeLists.txt', 'native/Rin.Slang.Native/conanfile.py', 'native/Rin.Slang.Native/src/**', 'native/base_recipe.py') }}
+          key: slang-native-${{ runner.os }}-${{ hashFiles('native/Rin.Slang.Native/CMakeLists.txt', 'native/Rin.Slang.Native/conanfile.py', 'native/Rin.Slang.Native/src/**', 'native/base_recipe.py', 'uv.lock') }}
 
       - name: Install Conan
         if: steps.slang-native-cache.outputs.cache-hit != 'true'
         run: |
-          pip install conan
-          conan profile detect --force
+          uv run conan profile detect --force
 
       - name: Build Rin.Slang.Native
         if: steps.slang-native-cache.outputs.cache-hit != 'true'
         working-directory: native/Rin.Slang.Native
         run: |
-          conan install . --build=missing -s build_type=Release -s compiler.cppstd=20
-          cmake --preset Rin-Release --fresh
-          cmake --build --preset Rin-Release
+          uv run conan install . --build=missing -s build_type=Release -s compiler.cppstd=20
+          uv run cmake --preset Rin-Release --fresh
+          uv run cmake --build --preset Rin-Release
 
       # The real package gets a higher version than the stub (1.0.0) so the floating 1.* reference resolves to
       # it. The same version would be treated as already installed by the shared NuGet package cache.
       - name: Pack the real Rin.Slang.Native into the feed
         working-directory: native/Rin.Slang.Native
         run: |
-          python ../make_nuspec_cli.py --name Rin.Slang.Native --version 1.0.1 --author TareHimself --source build-release/Release --output specs/Release.nuspec
+          uv run python ../make_nuspec_cli.py --name Rin.Slang.Native --version 1.0.1 --author TareHimself --source build-release/Release --output specs/Release.nuspec
           dotnet pack project.csproj -p:NuspecFile=specs/Release.nuspec -p:NuspecBasePath=specs --output ../../.feed
 
       - uses: actions/upload-artifact@v4
@@ -77,7 +76,7 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Pack native stub packages
-        run: python scripts/pack_native_stubs.py .feed
+        run: uv run python scripts/pack_native_stubs.py .feed
 
       # RinShade.targets builds Rin.Shade.MSBuild on demand if it isn't already built, but never restores
       # it first, which fails with NETSDK1004 on a clean checkout. Restoring the whole solution once up
@@ -87,7 +86,7 @@ jobs:
 
       - name: Publish native fakes
         if: matrix.fakes
-        run: python scripts/publish_native_fakes.py win-x64
+        run: uv run python scripts/publish_native_fakes.py win-x64
 
       - name: Test
         run: dotnet test ${{ matrix.project }} ${{ matrix.args }} --no-restore --nologo --logger "console;verbosity=normal"

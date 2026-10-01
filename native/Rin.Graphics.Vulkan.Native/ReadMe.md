@@ -19,10 +19,10 @@ Native layer for the Vulkan backend. Builds `Rin.Graphics.Vulkan.Native` as a sh
 From the repo root:
 
 ```
-task pack-graphics-vulkan-native
+uv run task pack-graphics-vulkan-native
 ```
 
-Or from this folder, `task build` (Release) or `task buildd` (Debug). See [../ReadMe.md](../ReadMe.md) for the packing flow.
+Or from this folder, `uv run task build` (Release) or `uv run task buildd` (Debug). See [../ReadMe.md](../ReadMe.md) for the packing flow.
 
 ## Gotchas
 

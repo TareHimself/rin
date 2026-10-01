@@ -13,7 +13,7 @@ NUnit tests for `ShaderCompiler`. Targets `net10.0`, not packable, references `R
 Publish the fake first, then test:
 
 ```
-python scripts/publish_native_fakes.py win-x64
+uv run python scripts/publish_native_fakes.py win-x64
 dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj
 ```
 
