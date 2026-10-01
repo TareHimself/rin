@@ -45,14 +45,14 @@ dotnet test Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj
 Shaders are written in C# with Rin.Shade, which transpiles them to Slang at build time (`Shade/ReadMe.md`). There are no hand-written `.slang` sources in the repo.
 
 ## Repository layout
-Each folder and project has its own `ReadMe.md`.
+Each project has its own `ReadMe.md`, and `Shade/` and `native/` have one for the subsystem as a whole.
 
-- [`Engine/`](Engine/ReadMe.md): core engine (`Rin.Core`, `Rin.World`, graphics and audio backends, glTF loading, source generators) and its tests
+- `Engine/`: core engine (`Rin.Core`, `Rin.World`, graphics and audio backends, glTF loading, source generators) and its tests
 - [`Shade/`](Shade/ReadMe.md): Rin.Shade, the C# to Slang shader transpiler, with its source generator, MSBuild task and tests
-- [`Slang/`](Slang/ReadMe.md): managed Slang compiler wrapper and command line tool
+- `Slang/`: managed Slang compiler wrapper and command line tool
 - [`native/`](native/ReadMe.md): native C++ modules, their packaging, and the fakes used in CI
-- [`Examples/`](Examples/ReadMe.md): sample and demo apps
-- [`Experiments/`](Experiments/ReadMe.md): prototype projects
+- `Examples/`: sample and demo apps
+- `Experiments/`: prototype projects
 - `msbuild/`: MSBuild targets shared by the shader projects (`RinShade.targets`)
 - `scripts/`: CI helpers (native stub packages, native fakes)
 
@@ -60,61 +60,66 @@ How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventi
 
 ## All READMEs
 
-**[Engine](Engine/ReadMe.md)**
-- [Rin.Audio.Miniaudio](Engine/Rin.Audio.Miniaudio/ReadMe.md)
-- [Rin.Audio.Null](Engine/Rin.Audio.Null/ReadMe.md)
-- [Rin.Core.Tests](Engine/Rin.Core.Tests/ReadMe.md)
-- [Rin.Core](Engine/Rin.Core/ReadMe.md)
-- [Rin.GLTF.Tests](Engine/Rin.GLTF.Tests/ReadMe.md)
-- [Rin.GLTF](Engine/Rin.GLTF/ReadMe.md)
-- [Rin.Graphics.Null](Engine/Rin.Graphics.Null/ReadMe.md)
-- [Rin.Graphics.Vulkan](Engine/Rin.Graphics.Vulkan/ReadMe.md)
-- [Rin.SourceGenerators.Tests](Engine/Rin.SourceGenerators.Tests/ReadMe.md)
-- [Rin.SourceGenerators](Engine/Rin.SourceGenerators/ReadMe.md)
-- [Rin.World.Tests](Engine/Rin.World.Tests/ReadMe.md)
-- [Rin.World](Engine/Rin.World/ReadMe.md)
+**Engine**
 
-**[Shade](Shade/ReadMe.md)**
-- [Rin.Shade.Cli](Shade/Rin.Shade.Cli/ReadMe.md)
-- [Rin.Shade.CpuTests](Shade/Rin.Shade.CpuTests/ReadMe.md)
-- [Rin.Shade.MSBuild](Shade/Rin.Shade.MSBuild/ReadMe.md)
-- [Rin.Shade.SourceGenerator](Shade/Rin.Shade.SourceGenerator/ReadMe.md)
-- [Rin.Shade.Tests](Shade/Rin.Shade.Tests/ReadMe.md)
-- [Rin.Shade.Transpiler](Shade/Rin.Shade.Transpiler/ReadMe.md)
-- [Rin.Shade](Shade/Rin.Shade/ReadMe.md)
-- [Samples](Shade/Samples/ReadMe.md)
+- [Rin.Audio.Miniaudio](Engine/Rin.Audio.Miniaudio/ReadMe.md): Audio backend built on miniaudio, implementing `IAudioModule` from Rin.Core.
+- [Rin.Audio.Null](Engine/Rin.Audio.Null/ReadMe.md): An audio backend that does nothing, for headless runs and tests.
+- [Rin.Core.Tests](Engine/Rin.Core.Tests/ReadMe.md): NUnit tests for Rin.Core.
+- [Rin.Core](Engine/Rin.Core/ReadMe.md): The base library: views, the graphics graph, audio interfaces and shared types.
+- [Rin.GLTF.Tests](Engine/Rin.GLTF.Tests/ReadMe.md): NUnit tests for Rin.GLTF.
+- [Rin.GLTF](Engine/Rin.GLTF/ReadMe.md): Imports glTF/glb files into Rin meshes and animations, using `SharpGLTF.Core`.
+- [Rin.Graphics.Null](Engine/Rin.Graphics.Null/ReadMe.md): A graphics backend that does nothing, for headless runs and tests.
+- [Rin.Graphics.Vulkan](Engine/Rin.Graphics.Vulkan/ReadMe.md): Vulkan backend for the `IGraphicsModule` interface from Rin.Core.
+- [Rin.SourceGenerators.Tests](Engine/Rin.SourceGenerators.Tests/ReadMe.md): xUnit tests for the generators in Rin.SourceGenerators.
+- [Rin.SourceGenerators](Engine/Rin.SourceGenerators/ReadMe.md): Roslyn incremental source generators, referenced as an analyzer by Rin.Core and Rin.World.
+- [Rin.World.Tests](Engine/Rin.World.Tests/ReadMe.md): NUnit tests for Rin.World.
+- [Rin.World](Engine/Rin.World/ReadMe.md): The scene layer: actors, components, physics and the default render pipeline.
 
-**[Slang](Slang/ReadMe.md)**
-- [Rin.Slang.Cli](Slang/Rin.Slang.Cli/ReadMe.md)
-- [Rin.Slang.Compiler.Tests](Slang/Rin.Slang.Compiler.Tests/ReadMe.md)
-- [Rin.Slang.Compiler](Slang/Rin.Slang.Compiler/ReadMe.md)
-- [Rin.Slang.Discovery](Slang/Rin.Slang.Discovery/ReadMe.md)
-- [Rin.Slang.Tests](Slang/Rin.Slang.Tests/ReadMe.md)
-- [Rin.Slang](Slang/Rin.Slang/ReadMe.md)
+**Shade** ([overview](Shade/ReadMe.md))
 
-**[native](native/ReadMe.md)**
-- [Fakes](native/Fakes/ReadMe.md)
-- [Rin.Audio.Miniaudio.Native](native/Rin.Audio.Miniaudio.Native/ReadMe.md)
-- [Rin.Graphics.Vulkan.Native](native/Rin.Graphics.Vulkan.Native/ReadMe.md)
-- [Rin.Native](native/Rin.Native/ReadMe.md)
-- [Rin.Slang.Native](native/Rin.Slang.Native/ReadMe.md)
+- [Rin.Shade.Cli](Shade/Rin.Shade.Cli/ReadMe.md): Command line wrapper over the transpiler.
+- [Rin.Shade.CpuTests](Shade/Rin.Shade.CpuTests/ReadMe.md): Transpiles a shader, runs it on the CPU through Slang and compares the result with System.Numerics.
+- [Rin.Shade.MSBuild](Shade/Rin.Shade.MSBuild/ReadMe.md): The MSBuild task `Rin.Shade.MSBuild.CompileRinShadeShaders`.
+- [Rin.Shade.SourceGenerator](Shade/Rin.Shade.SourceGenerator/ReadMe.md): Roslyn incremental source generators for Rin.Shade.
+- [Rin.Shade.Tests](Shade/Rin.Shade.Tests/ReadMe.md): NUnit tests for the transpiler and the source generators.
+- [Rin.Shade.Transpiler](Shade/Rin.Shade.Transpiler/ReadMe.md): Roslyn-based transpiler from C# shader classes to Slang source text.
+- [Rin.Shade](Shade/Rin.Shade/ReadMe.md): The C# authoring API for shaders.
+- [Samples](Shade/Samples/ReadMe.md): Three tiny assemblies that exist only to test cross-assembly shader transpilation.
 
-**[Examples](Examples/ReadMe.md)**
-- [AssetViewer](Examples/AssetViewer/ReadMe.md)
-- [AudioPlayer](Examples/AudioPlayer/ReadMe.md)
-- [ChatApp](Examples/ChatApp/ReadMe.md)
-- [Common](Examples/Common/ReadMe.md)
-- [HeadlessTest](Examples/HeadlessTest/ReadMe.md)
-- [NodeGraphTest](Examples/NodeGraphTest/ReadMe.md)
-- [RLTest](Examples/RLTest/ReadMe.md)
-- [SceneTest](Examples/SceneTest/ReadMe.md)
-- [Sponza](Examples/Sponza/ReadMe.md)
-- [UiGallery](Examples/UiGallery/ReadMe.md)
-- [ViewsTest](Examples/ViewsTest/ReadMe.md)
+**Slang**
 
-**[Experiments](Experiments/ReadMe.md)**
-- [experiment.FontIcon](Experiments/experiment.FontIcon/ReadMe.md)
-- [experiment.Slug](Experiments/experiment.Slug/ReadMe.md)
-- [experiment.StencilAndCover](Experiments/experiment.StencilAndCover/ReadMe.md)
-- [experiments.Docking](Experiments/experiments.Docking/ReadMe.md)
+- [Rin.Slang.Cli](Slang/Rin.Slang.Cli/ReadMe.md): Command line tool, built as the executable `rin-slang`.
+- [Rin.Slang.Compiler.Tests](Slang/Rin.Slang.Compiler.Tests/ReadMe.md): NUnit tests for `ShaderCompiler`.
+- [Rin.Slang.Compiler](Slang/Rin.Slang.Compiler/ReadMe.md): Compiles `.slang` source using the native Slang wrapper.
+- [Rin.Slang.Discovery](Slang/Rin.Slang.Discovery/ReadMe.md): Finds which shaders C# code references, without compiling the C# code.
+- [Rin.Slang.Tests](Slang/Rin.Slang.Tests/ReadMe.md): NUnit tests for `Rin.Slang` (the package format).
+- [Rin.Slang](Slang/Rin.Slang/ReadMe.md): The compiled shader package format, with no native dependency.
 
+**native** ([overview](native/ReadMe.md))
+
+- [Fakes](native/Fakes/ReadMe.md): C# projects that are published with NativeAOT into real native libraries, standing in for the C++ modules in tests.
+- [Rin.Audio.Miniaudio.Native](native/Rin.Audio.Miniaudio.Native/ReadMe.md): Native wrapper over miniaudio.
+- [Rin.Graphics.Vulkan.Native](native/Rin.Graphics.Vulkan.Native/ReadMe.md): Native layer for the Vulkan backend.
+- [Rin.Native](native/Rin.Native/ReadMe.md): Core native helpers for the engine.
+- [Rin.Slang.Native](native/Rin.Slang.Native/ReadMe.md): Small C++ wrapper that exposes the Slang compiler to C#.
+
+**Examples**
+
+- [AssetViewer](Examples/AssetViewer/ReadMe.md): Loads the fox model and loops its "Run" animation clip.
+- [AudioPlayer](Examples/AudioPlayer/ReadMe.md): Audio player UI (track player, visualizer, file picker) built on the views and Miniaudio modules.
+- [ChatApp](Examples/ChatApp/ReadMe.md): Chat UI views. Scratch code: the module that hosts them is commented out.
+- [Common](Examples/Common/ReadMe.md): Shared library for the example and experiment apps, not runnable on its own.
+- [HeadlessTest](Examples/HeadlessTest/ReadMe.md): Runs the engine with `NullGraphicsModule` and `NullAudioModule` (no window, no GPU).
+- [NodeGraphTest](Examples/NodeGraphTest/ReadMe.md): Node graph views with typed pins and connections.
+- [RLTest](Examples/RLTest/ReadMe.md): Scratch console program for HostImage that loads a JPEG and saves a PNG.
+- [SceneTest](Examples/SceneTest/ReadMe.md): 3D world with physics in a dockable layout with perspective and top cameras.
+- [Sponza](Examples/Sponza/ReadMe.md): Loads sponza.glb and shows it through a viewport with a custom Shade mesh material.
+- [UiGallery](Examples/UiGallery/ReadMe.md): Gallery of UI rendering features: every quad mode, blur and clipping, laid out in sections that wrap to the window width.
+- [ViewsTest](Examples/ViewsTest/ReadMe.md): Test bench for views, animation, images and audio effects (parametric EQ, stress-test delay, bloom).
+
+**Experiments**
+
+- [experiment.FontIcon](Experiments/experiment.FontIcon/ReadMe.md): Smoke test for FontIconView using the Font Awesome 6 Free solid icon font.
+- [experiment.Slug](Experiments/experiment.Slug/ReadMe.md): Demonstrates SLUG GPU vector rendering through a `CanvasView`.
+- [experiment.StencilAndCover](Experiments/experiment.StencilAndCover/ReadMe.md): GPU stencil-and-cover path filling demo through a CanvasView.
+- [experiments.Docking](Experiments/experiments.Docking/ReadMe.md): Docking system demo: one window with an initial docked layout.

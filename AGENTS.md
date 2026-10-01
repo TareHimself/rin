@@ -71,8 +71,9 @@ Keep the docs true. A change is not done until the docs it affects are updated i
   key files changed. Fix claims that became wrong, not only the ones you added.
 - Update `ARCHITECTURE.md` when a change alters the layers, the per-frame flow, or how the major subsystems
   connect, and the diagrams and `Shade/ReadMe.md` pipeline description when the shader pipeline changes.
-- When you add or remove a project, add or remove its `ReadMe.md` and its entry in the folder `ReadMe.md` and in
-  the "All READMEs" list in the root `ReadMe.md`.
+- When you add or remove a project, add or remove its `ReadMe.md` and its entry in the "All READMEs" list in the
+  root `ReadMe.md`. Folders do not get a `ReadMe.md` of their own, except `Shade/` and `native/`, which document a
+  subsystem.
 - Only state what you verified in the code. Do not describe behavior from file names.
 - Examples in docs must be real: run them (for example `rin-shade compile` for a shader) and paste the actual output.
 - Follow the same style as the existing docs: plain language, no em dashes, commands that work from the repo root.

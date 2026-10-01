@@ -112,4 +112,4 @@ A native library reaches the managed code in one of three ways: a **real** packa
 
 - [ReadMe.md](ReadMe.md): setup, build and test commands, and the index of every ReadMe
 - [Shade/ReadMe.md](Shade/ReadMe.md): the shader pipeline in depth
-- [Engine/ReadMe.md](Engine/ReadMe.md): the engine projects and how they depend on each other
+- [Engine/Rin.Core/ReadMe.md](Engine/Rin.Core/ReadMe.md): views and the graphics graph in depth
