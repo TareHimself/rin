@@ -6,67 +6,13 @@ on:
   pull_request:
 
 jobs:
-  test:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Pack native stub packages
-        run: python scripts/pack_native_stubs.py .feed
-
-      # RinShade.targets builds Rin.Shade.MSBuild on demand if it isn't already built, but
-      # never restores it first - fine on a dev machine with stale obj/ lying around, fails
-      # with NETSDK1004 on a genuinely clean checkout. Restoring the whole solution once
-      # up front (cheap, already-restored projects are a no-op) avoids that entirely.
-      - name: Restore
-        run: dotnet restore rin.sln -p:RinShadeSkipCompile=true
-
-      # Rin.GLTF.Tests and Rin.Slang.Compiler.Tests genuinely call into native code at test
-      # runtime, so their fakes need to exist before any test step runs.
-      - name: Publish native fakes
-        run: python scripts/publish_native_fakes.py win-x64
-
-      # Rin.Core/Rin.World compile real shaders at build time via RinShade.targets, which
-      # calls the real native Slang compiler - unrelated to which tests run afterward, and
-      # something the fake natives above can't satisfy (they only cover test-time calls,
-      # not calls made from inside an MSBuild task). None of these tests load real shader
-      # content, so skip real compilation entirely instead of building real Slang native.
-      - name: Test Rin.Core.Tests
-        run: dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
-
-      - name: Test Rin.World.Tests
-        run: dotnet test Engine/Rin.World.Tests/Rin.World.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
-
-      - name: Test Rin.SourceGenerators.Tests
-        run: dotnet test Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
-
-      - name: Test Rin.Slang.Tests
-        run: dotnet test Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
-
-      - name: Test Rin.GLTF.Tests
-        run: dotnet test Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
-
-      - name: Test Rin.Slang.Compiler.Tests
-        run: dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj -p:RinShadeSkipCompile=true --no-restore --nologo --logger "console;verbosity=normal"
-
-      - name: Test Rin.Shade.Tests
-        run: dotnet test Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj --no-restore --nologo --logger "console;verbosity=normal"
-
   # Builds the real Rin.Slang.Native (a prebuilt Slang release plus a small C++ wrapper, nothing from
-  # Slang's own source) and runs what the fake-native job above cannot: the transpiler's CPU tests
-  # and a full build that compiles every shader through real Slang.
-  native-slang:
+  # Slang's own source) and publishes a NuGet feed with it, for the jobs that need real Slang.
+  native:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '10.0.x'
+      - uses: ./.github/actions/setup
 
       - name: Pack native stub packages
         run: python scripts/pack_native_stubs.py .feed
@@ -101,11 +47,73 @@ jobs:
           python ../make_nuspec_cli.py --name Rin.Slang.Native --version 1.0.0 --author TareHimself --source build-release/Release --output specs/Release.nuspec
           dotnet pack project.csproj -p:NuspecFile=specs/Release.nuspec -p:NuspecBasePath=specs --output ../../.feed
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-feed
+          path: .feed
+          include-hidden-files: true
+          retention-days: 1
+
+  # One job per test project, on stub native packages (and NativeAOT fakes where a test calls into
+  # native code). Real shader compilation is skipped: it needs the real Slang, see test-real.
+  test:
+    name: test (${{ matrix.name }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Rin.Core.Tests, project: Engine/Rin.Core.Tests/Rin.Core.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.World.Tests, project: Engine/Rin.World.Tests/Rin.World.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.SourceGenerators.Tests, project: Engine/Rin.SourceGenerators.Tests/Rin.SourceGenerators.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Slang.Tests, project: Slang/Rin.Slang.Tests/Rin.Slang.Tests.csproj, fakes: false, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.GLTF.Tests, project: Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Slang.Compiler.Tests, project: Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj, fakes: true, args: '-p:RinShadeSkipCompile=true' }
+          - { name: Rin.Shade.Tests, project: Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj, fakes: false, args: '' }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Pack native stub packages
+        run: python scripts/pack_native_stubs.py .feed
+
+      # RinShade.targets builds Rin.Shade.MSBuild on demand if it isn't already built, but never restores
+      # it first, which fails with NETSDK1004 on a clean checkout. Restoring the whole solution once up
+      # front avoids that.
       - name: Restore
         run: dotnet restore rin.sln -p:RinShadeSkipCompile=true
 
-      - name: Test Rin.Shade.CpuTests
-        run: dotnet test Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj --no-restore --nologo --logger "console;verbosity=normal"
+      - name: Publish native fakes
+        if: matrix.fakes
+        run: python scripts/publish_native_fakes.py win-x64
 
-      - name: Build Rin.World with real shader compilation
-        run: dotnet build Engine/Rin.World/Rin.World.csproj -c Release --no-restore --nologo
+      - name: Test
+        run: dotnet test ${{ matrix.project }} ${{ matrix.args }} --no-restore --nologo --logger "console;verbosity=normal"
+
+  # What the stub-based jobs cannot do: needs the real Slang from the native job.
+  test-real:
+    name: test-real (${{ matrix.name }})
+    needs: native
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Rin.Shade.CpuTests
+            command: dotnet test Shade/Rin.Shade.CpuTests/Rin.Shade.CpuTests.csproj --no-restore --nologo --logger "console;verbosity=normal"
+          - name: Rin.World shader compile
+            command: dotnet build Engine/Rin.World/Rin.World.csproj -c Release --no-restore --nologo
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-feed
+          path: .feed
+
+      - name: Restore
+        run: dotnet restore rin.sln -p:RinShadeSkipCompile=true
+
+      - name: Run
+        run: ${{ matrix.command }}
