@@ -11,13 +11,22 @@ namespace Rin.Shade.SourceGenerator;
 /// Emits a `public static IGraphicsDescriptor/IComputeDescriptor Descriptor` on every [Shader]
 /// class: the pipeline state a backend needs (attachment formats, blend state, depth/stencil,
 /// thread-group size), read straight off the class's own attributes and overrides so no backend
-/// has to recover it from compiled reflection. BlendState is evaluated by calling the shader's own
-/// BlendState property, so any expression an override can write is supported. Silently skips
-/// classes SHADEGEN0001/0002 already reject, and classes with no compute or vertex entry point.
+/// has to recover it from compiled reflection. The shader class is never instantiated: the expression of
+/// the most-derived BlendState override is copied into the generated descriptor together with the
+/// using directives of the file it was written in. Silently skips classes SHADEGEN0001/0002
+/// already reject, and classes with no compute or vertex entry point.
 /// </summary>
 [Generator]
 public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
 {
+    private static readonly DiagnosticDescriptor UnsupportedBlendState = new(
+        id: "SHADEGEN0003",
+        title: "Unsupported BlendState override",
+        messageFormat: "The BlendState override of '{0}' must be an expression-bodied property, because the generated descriptor copies its expression instead of creating the shader",
+        category: "Rin.Shade",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     private const string ShaderAttributeFullName = "Rin.Shade.ShaderAttribute";
     private const string ShaderBaseFullName = "Rin.Shade.Shader";
     private const string ComputeAttributeFullName = "Rin.Shade.ComputeAttribute";
@@ -69,6 +78,7 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
         var fragment = FindMarker(entries, FragmentAttributeFullName);
 
         string descriptor;
+        var usings = "";
         if (compute is { } computeEntry && vertex is null)
         {
             var args = computeEntry.Attribute.ConstructorArguments;
@@ -83,11 +93,38 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
 
             var usesDepth = declSites.Any(m => HasAttribute(m, DepthAttributeFullName));
             var usesStencil = declSites.Any(m => HasAttribute(m, StencilAttributeFullName));
-            var formats = fragment is { } fragmentEntry ? GetAttachmentFormats(fragmentEntry) : [];
-            var formatsLiteral = string.Join(", ", formats.Select(f => $"global::Rin.Shade.AttachmentFormat.{f}"));
+            var attachments = fragment is { } fragmentEntry ? GetAttachments(fragmentEntry) : [];
+            var formatsLiteral = string.Join(", ", attachments.Select(a => $"global::Rin.Shade.AttachmentFormat.{a.Format}"));
+            var modifier = BaseHasGeneratedDescriptor(symbol) ? "new " : "";
+            var blendState = FindBlendState(chain, out var blendUsings);
+            if (blendState is null)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(UnsupportedBlendState, symbol.Locations.FirstOrDefault(),
+                    symbol.Name));
+                return;
+            }
+
+            usings = blendUsings;
+            var properties = string.Concat(attachments.Select((a, index) =>
+                $"            /// <summary>The format of the {(a.Name.Length == 0 ? "fragment" : a.Name)} color attachment.</summary>\n" +
+                $"            public global::Rin.Shade.AttachmentFormat {a.Name}Format => _formats[{index}];\n"));
 
             descriptor =
-                $"public {(BaseHasGeneratedDescriptor(symbol) ? "new " : "")}static global::Rin.Shade.IGraphicsDescriptor Descriptor {{ get; }} = new global::Rin.Shade.GraphicsDescriptor({pathLiteral}, new global::Rin.Shade.AttachmentFormat[] {{ {formatsLiteral} }}, new {symbol.Name}().BlendState, {(usesDepth ? "true" : "false")}, {(usesStencil ? "true" : "false")});";
+                $"/// <summary>The descriptor of {symbol.Name}, with the format of each color attachment under <c>Output</c>.</summary>\n" +
+                $"    public {modifier}sealed record GeneratedDescriptor() : global::Rin.Shade.GraphicsDescriptor({pathLiteral}, new global::Rin.Shade.AttachmentFormat[] {{ {formatsLiteral} }}, {blendState}, {(usesDepth ? "true" : "false")}, {(usesStencil ? "true" : "false")})\n" +
+                "    {\n" +
+                "        /// <summary>The formats of the color attachments the fragment stage writes.</summary>\n" +
+                "        public readonly struct OutputFormats(global::Rin.Shade.AttachmentFormat[] formats)\n" +
+                "        {\n" +
+                "            private readonly global::Rin.Shade.AttachmentFormat[] _formats = formats;\n" + properties +
+                "        }\n" +
+                "\n" +
+                "        /// <summary>The color attachment formats.</summary>\n" +
+                "        public OutputFormats Output => new(AttachmentFormats);\n" +
+                "    }\n" +
+                "\n" +
+                $"    /// <summary>The compiled-shader descriptor for {symbol.Name}.</summary>\n" +
+                $"    public {modifier}static GeneratedDescriptor Descriptor {{ get; }} = new();";
         }
         else
         {
@@ -96,6 +133,7 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
 
         var builder = new StringBuilder();
         builder.AppendLine("// <auto-generated/>");
+        if (usings.Length > 0) builder.AppendLine(usings);
         if (!symbol.ContainingNamespace.IsGlobalNamespace)
             builder.AppendLine($"namespace {symbol.ContainingNamespace.ToDisplayString()};");
         builder.AppendLine();
@@ -105,6 +143,42 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
         builder.AppendLine("}");
 
         context.AddSource($"{symbol.Name}.ShaderDescriptor.g.cs", builder.ToString());
+    }
+
+    private static string? FindBlendState(List<INamedTypeSymbol> chain, out string usings)
+    {
+        usings = "";
+        foreach (var type in chain)
+        {
+            var property = type.GetMembers().OfType<IPropertySymbol>().FirstOrDefault(p => p.Name == "BlendState");
+            if (property is null) continue;
+
+            var declaration = FindPropertySyntax(type, property);
+            if (declaration?.ExpressionBody is not { } body) return null;
+
+            usings = string.Join("\n", declaration.SyntaxTree.GetCompilationUnitRoot().Usings.Select(u => u.ToString()));
+            return body.Expression.ToString();
+        }
+
+        return "global::Rin.Shade.BlendState.None";
+    }
+
+    private static PropertyDeclarationSyntax? FindPropertySyntax(INamedTypeSymbol type, IPropertySymbol property)
+    {
+        if (property.OriginalDefinition.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is
+            PropertyDeclarationSyntax local)
+            return local;
+
+        return ReadExportedSource(type.OriginalDefinition)?.GetCompilationUnitRoot().DescendantNodes()
+            .OfType<ClassDeclarationSyntax>().FirstOrDefault(c => c.Identifier.Text == type.Name)?.Members
+            .OfType<PropertyDeclarationSyntax>().FirstOrDefault(p => p.Identifier.Text == "BlendState");
+    }
+
+    private static SyntaxTree? ReadExportedSource(INamedTypeSymbol type)
+    {
+        var container = type.ContainingAssembly.GetTypeByMetadataName("Rin.Shade.Generated.ShaderSourceContainer");
+        var field = container?.GetMembers(type.Name).OfType<IFieldSymbol>().FirstOrDefault();
+        return field is { HasConstantValue: true, ConstantValue: string text } ? CSharpSyntaxTree.ParseText(text) : null;
     }
 
     // A base shader that also gets a generated Descriptor is hidden by the derived one's, so it says `new`.
@@ -158,15 +232,15 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
     private static bool HasAttribute(ISymbol symbol, string fullName) =>
         symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == fullName);
 
-    private static List<string> GetAttachmentFormats((IMethodSymbol DeclSite, AttributeData Attribute) fragment)
+    private static List<(string Name, string Format)> GetAttachments((IMethodSymbol DeclSite, AttributeData Attribute) fragment)
     {
-        var formats = new List<string>();
+        var attachments = new List<(string Name, string Format)>();
 
         if (GetFormatName(fragment.DeclSite.GetAttributes()
                 .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == AttachmentAttributeFullName)) is { } single)
         {
-            formats.Add(single);
-            return formats;
+            attachments.Add(("", single));
+            return attachments;
         }
 
         if (fragment.DeclSite.ReturnType is INamedTypeSymbol { TypeKind: TypeKind.Struct } returnStruct)
@@ -174,9 +248,9 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
                 if (GetFormatName(field.GetAttributes()
                         .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == AttachmentAttributeFullName)) is
                     { } fieldFormat)
-                    formats.Add(fieldFormat);
+                    attachments.Add((field.Name, fieldFormat));
 
-        return formats;
+        return attachments;
     }
 
     private static string? GetFormatName(AttributeData? attribute)

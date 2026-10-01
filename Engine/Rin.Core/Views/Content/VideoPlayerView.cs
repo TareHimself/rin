@@ -1,3 +1,4 @@
+using Rin.Core.Extensions;
 using System.Buffers;
 using System.Numerics;
 using JetBrains.Annotations;
@@ -46,7 +47,7 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass, IDispo
         _videoStagingBufferIds = commands
             .Select(c => config.CreateBuffer(c.FrameData.GetByteSize(), GraphBufferUsage.HostThenTransfer)).ToArray();
         VideoImageFrameIds = commands
-            .Select(c => config.CreateTexture(c.Extent, ImageFormat.RGBA8, ImageLayout.TransferDst)).ToArray();
+            .Select(c => config.CreateTexture(c.Extent, ImageBatchShader.Descriptor.Output.Format.ToImageFormat(), ImageLayout.TransferDst)).ToArray();
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)

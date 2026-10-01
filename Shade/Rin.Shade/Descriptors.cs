@@ -21,7 +21,7 @@ public interface IGraphicsDescriptor : IShaderDescriptor
 
 public sealed record ComputeDescriptor(string Path, (uint X, uint Y, uint Z) ThreadGroupSize) : IComputeDescriptor;
 
-public sealed record GraphicsDescriptor(
+public record GraphicsDescriptor(
     string Path,
     AttachmentFormat[] AttachmentFormats,
     BlendState BlendState,

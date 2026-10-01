@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Rin.Core.Extensions;
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
@@ -42,8 +43,8 @@ internal class BlurInitCommandHandler : ICommandHandler
             var min = float.Min(command.BlurRadius.X, command.BlurRadius.Y);
             command.BlurRadius = new Vector2(min);
             var extent = new Extent2D((uint)float.Ceiling(newSize.X), (uint)float.Ceiling(newSize.Y));
-            command.FirstPassImageId = config.CreateTexture(extent, ImageFormat.RGBA16, ImageLayout.TransferDst);
-            command.SecondPassImageId = config.CreateTexture(extent, ImageFormat.RGBA16, ImageLayout.ColorAttachment);
+            command.FirstPassImageId = config.CreateTexture(extent, BlurShader.Descriptor.Output.Format.ToImageFormat(), ImageLayout.TransferDst);
+            command.SecondPassImageId = config.CreateTexture(extent, BlurShader.Descriptor.Output.Format.ToImageFormat(), ImageLayout.ColorAttachment);
             command.LocalProjection = MathR.ViewportProjection(newSize.X, newSize.Y, 0, 1f);
         }
     }
@@ -210,4 +211,4 @@ internal partial class BlurSecondPassCommandHandler : ICommandHandler
             }
         }
     }
-}
+}

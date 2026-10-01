@@ -1,3 +1,4 @@
+using Rin.Core.Extensions;
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
@@ -24,7 +25,7 @@ public partial class LightingPass(DefaultWorldViewData context) : IPass
         config.ReadTexture(context.GBufferImage1, ImageLayout.ShaderReadOnly);
         config.ReadTexture(context.GBufferImage2, ImageLayout.ShaderReadOnly);
         config.ReadTexture(context.GBufferImage3, ImageLayout.ShaderReadOnly);
-        context.OutputImageId = config.CreateTexture(context.Extent, ImageFormat.RGBA16, ImageLayout.ColorAttachment);
+        context.OutputImageId = config.CreateTexture(context.Extent, LightingShader.Descriptor.Output.Format.ToImageFormat(), ImageLayout.ColorAttachment);
         _worldBufferId = config.CreateBuffer<LightingInfo>(GraphBufferUsage.HostThenGraphics);
         _lightBufferId = config.CreateBuffer<LightInfo>(context.Lights.Length, GraphBufferUsage.HostThenGraphics);
     }
