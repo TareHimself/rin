@@ -1,3 +1,4 @@
+using Rin.Core.Extensions;
 using System.Buffers;
 using System.Numerics;
 using JetBrains.Annotations;
@@ -14,6 +15,8 @@ using Rin.Core.Views.Graphics.Commands;
 using Rin.Core.Views.Graphics.PassConfigs;
 using Rin.Core.Shared.Math;
 using Rin.Core.Views.Graphics.Quads;
+using Rin.Core.Views.Graphics.Shaders;
+using Rin.Shade;
 
 namespace Rin.Core.Views.Content;
 
@@ -44,7 +47,7 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass, IDispo
         _videoStagingBufferIds = commands
             .Select(c => config.CreateBuffer(c.FrameData.GetByteSize(), GraphBufferUsage.HostThenTransfer)).ToArray();
         VideoImageFrameIds = commands
-            .Select(c => config.CreateTexture(c.Extent, ImageFormat.RGBA8, ImageLayout.TransferDst)).ToArray();
+            .Select(c => config.CreateTexture(c.Extent, ImageBatchShader.Descriptor.Output.Format.ToImageFormat(), ImageLayout.TransferDst)).ToArray();
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
@@ -62,7 +65,7 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass, IDispo
 
 internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
 {
-    [GraphicsShader("Shaders/Core/Views/video.slang")]
+    [GraphicsShader<ImageBatchShader>]
     private partial IGraphicsShader VideoShader
     {
         get;
@@ -86,7 +89,7 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
     {
-        _itemBufferId = config.CreateBuffer<VideoItem>(_resourcesPass.VideoImageFrameIds.Length,
+        _itemBufferId = config.CreateBuffer<ImageItem>(_resourcesPass.VideoImageFrameIds.Length,
             GraphBufferUsage.HostThenGraphics);
         foreach (var id in _resourcesPass.VideoImageFrameIds) config.ReadTexture(id, ImageLayout.ShaderReadOnly);
     }
@@ -102,32 +105,32 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
 
             {
                 var rented = _commands.Length > MaxStackVideoItems
-                    ? ArrayPool<VideoItem>.Shared.Rent(_commands.Length)
+                    ? ArrayPool<ImageItem>.Shared.Rent(_commands.Length)
                     : null;
                 try
                 {
                     var videoItems = rented is not null
                         ? rented.AsSpan(0, _commands.Length)
-                        : stackalloc VideoItem[_commands.Length];
+                        : stackalloc ImageItem[_commands.Length];
                     for(var i = 0; i < _commands.Length; i++)
                     {
                         var command = _commands[i];
                         videoItems[i].Transform = command.Transform;
                         videoItems[i].Size = command.Size;
-                        videoItems[i].FrameHandle = frameImages[i];
+                        videoItems[i].Image = frameImages[i];
                     }
                     buffer.Write(videoItems);
                 }
                 finally
                 {
-                    if(rented is not null) ArrayPool<VideoItem>.Shared.Return(rented);
+                    if(rented is not null) ArrayPool<ImageItem>.Shared.Return(rented);
                 }
             }
             
             var compareMask = uint.MaxValue;
 
             ulong offset = 0;
-            var itemSize = Utils.ByteSizeOf<VideoItem>();
+            var itemSize = Utils.ByteSizeOf<ImageItem>();
             for (var i = 0; i < _commands.Length; i++)
             {
                 var command = _commands[i];
@@ -138,30 +141,15 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
                     ctx.SetStencilCompareMask(compareMask);
                 }
 
-                bindContext.Push(new Push
+                bindContext.Push(new ImageBatchShader.PushConstants
                 {
                     Projection = surfaceContext.ProjectionMatrix,
-                    ItemBufferAddress = buffer.GetAddress() + offset
+                    Images = new BufferRef<ImageItem>(buffer.GetAddress() + offset)
                 });
                 bindContext.Draw(6);
                 offset += itemSize;
             }
         }
-    }
-
-    [NoReorder]
-    private struct Push
-    {
-        public required Matrix4x4 Projection;
-        public required ulong ItemBufferAddress;
-    }
-
-    [NoReorder]
-    private struct VideoItem
-    {
-        public required Matrix4x4 Transform;
-        public required Vector2 Size;
-        public required DeviceHandle FrameHandle;
     }
 }
 

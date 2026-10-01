@@ -32,32 +32,27 @@ public struct Quad() // : ICloneable<Quad>
     }
 
 
-    public required RenderMode Mode
-    {
-        get => (RenderMode)Opts.X;
-        set => Opts.X = (int)value;
-    }
-
-    [PublicAPI] [FieldOffset(0)] public Int4 Opts = default;
-    [PublicAPI] [FieldOffset(16)] public required Vector2 Size;
-    [PublicAPI] [FieldOffset(24)] public required Matrix4x4 Transform;
-    [FieldOffset(88)] private unsafe fixed byte _data[16 * 8];
+    [PublicAPI] [FieldOffset(0)] public required RenderMode Mode;
+    [PublicAPI] [FieldOffset(4)] public required Vector2 Size;
+    [PublicAPI] [FieldOffset(12)] public required Matrix4x4 Transform;
 
     // [FieldOffset(88)] public PrimitiveData PrimitiveInfo = default;
 
-    [FieldOffset(88)] public LineData LineInfo = default;
+    [FieldOffset(76)] public LineData LineInfo = default;
 
-    [FieldOffset(88)] public CircleData CircleInfo = default;
+    [FieldOffset(76)] public CircleData CircleInfo = default;
 
-    [FieldOffset(88)] public RectangleData RectangleInfo = default;
+    [FieldOffset(76)] public RectangleData RectangleInfo = default;
 
-    [FieldOffset(88)] public QuadraticCurveData QuadraticCurveInfo = default;
+    [FieldOffset(76)] public QuadraticCurveData QuadraticCurveInfo = default;
 
-    [FieldOffset(88)] public CubicCurveData CubicCurveInfo = default;
+    [FieldOffset(76)] public CubicCurveData CubicCurveInfo = default;
 
-    [FieldOffset(88)] public TextureData TextureInfo = default;
+    [FieldOffset(76)] public TextureData TextureInfo = default;
 
-    [FieldOffset(88)] public MtsdfData MtsdfInfo = default;
+    [FieldOffset(76)] public MtsdfData MtsdfInfo = default;
+
+    [FieldOffset(76)] public ColorWheelData ColorWheelInfo = default;
 
     [NoReorder]
     public struct LineData
@@ -114,27 +109,34 @@ public struct Quad() // : ICloneable<Quad>
     //     public Vector4 Data4 { get; set; }
     // }
     [NoReorder]
+    public struct ColorWheelData
+    {
+        public Matrix4x4 InverseTransform;
+    }
+
+    [NoReorder]
     public struct TextureData
     {
-        public DeviceHandle ImageHandle { get; set; }
-        public Vector4 Tint { get; set; }
-        public Vector4 UV { get; set; }
-        public Vector4 BorderRadius { get; set; }
+        public Matrix4x4 InverseTransform;
+        public DeviceHandle ImageHandle;
+        public Vector4 Tint;
+        public Vector4 UV;
+        public Vector4 BorderRadius;
     }
 
     [NoReorder]
     public struct MtsdfData
     {
-        public DeviceHandle ImageHandle { get; set; }
-        public Vector4 Color { get; set; }
-        public Vector4 UV { get; set; }
+        public DeviceHandle ImageHandle;
+        public Vector4 Color;
+        public Vector4 UV;
 
         /// <summary>
         ///     The pixel range (padding baked into the SDF around each edge for anti-aliasing) the atlas image
         ///     was generated with - must match the shader's screen-pixel-range calculation exactly, so this
         ///     travels with the quad instead of being a hardcoded shader constant.
         /// </summary>
-        public float PixelRange { get; set; }
+        public float PixelRange;
     }
 
     public static Quad Circle(in Matrix4x4 transform, float radius, in Color? color = null)
@@ -284,6 +286,7 @@ public struct Quad() // : ICloneable<Quad>
             Size = size,
             TextureInfo = new TextureData
             {
+                InverseTransform = transform.Inverse(),
                 ImageHandle = imageHandle,
                 Tint = tint.GetValueOrDefault(Color.White),
                 BorderRadius = borderRadius.GetValueOrDefault(),
@@ -292,6 +295,20 @@ public struct Quad() // : ICloneable<Quad>
         };
 
         return quad;
+    }
+
+    public static Quad ColorWheel(in Matrix4x4 transform, in Vector2 size)
+    {
+        return new Quad
+        {
+            Mode = RenderMode.ColorWheel,
+            Transform = transform,
+            Size = size,
+            ColorWheelInfo = new ColorWheelData
+            {
+                InverseTransform = transform.Inverse()
+            }
+        };
     }
 
     public static Quad Mtsdf(ResourceHandle imageHandle, in Matrix4x4 transform, in Vector2 size, float pixelRange,

@@ -134,6 +134,11 @@ struct Component
     Slang::ComPtr<slang::IComponentType> component{};
 };
 
+struct SharedLibrary
+{
+    Slang::ComPtr<ISlangSharedLibrary> library{};
+};
+
 enum class ShaderStage : int
 {
     Vertex,
@@ -144,6 +149,7 @@ enum class ShaderStage : int
 RIN_NATIVE_API SessionBuilder * slangSessionBuilderNew();
 RIN_NATIVE_API void slangSessionBuilderAddTargetSpirv(SessionBuilder * builder);
 RIN_NATIVE_API void slangSessionBuilderAddTargetGlsl(SessionBuilder * builder);
+RIN_NATIVE_API void slangSessionBuilderAddTargetHostCallable(SessionBuilder * builder);
 RIN_NATIVE_API void slangSessionBuilderAddPreprocessorDefinition(SessionBuilder * builder, const char * name, const char * value);
 RIN_NATIVE_API void slangSessionBuilderAddSearchPath(SessionBuilder * builder, const char * path);
 RIN_NATIVE_API Session * slangSessionBuilderBuild(const SessionBuilder * builder);
@@ -160,6 +166,9 @@ RIN_NATIVE_API void slangEntryPointFree(const EntryPoint * entryPoint);
 RIN_NATIVE_API void slangModuleFree(const Module * module);
 
 RIN_NATIVE_API Blob * slangComponentGetEntryPointCode(const Component * component,int entryPointIndex,int targetIndex,Blob * outDiagnostics);
+RIN_NATIVE_API SharedLibrary * slangComponentGetEntryPointHostCallable(const Component * component,int entryPointIndex,int targetIndex,Blob * outDiagnostics);
+RIN_NATIVE_API void * slangSharedLibraryFindFunc(const SharedLibrary * library, const char * name);
+RIN_NATIVE_API void slangSharedLibraryFree(const SharedLibrary * library);
 RIN_NATIVE_API Component * slangComponentLink(const Component * component,Blob * outDiagnostics);
 RIN_NATIVE_API Blob * slangComponentToLayoutJson(const Component * component);
 RIN_NATIVE_API void slangComponentFree(const Component * component);

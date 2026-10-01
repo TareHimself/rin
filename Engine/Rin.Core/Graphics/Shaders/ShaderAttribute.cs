@@ -16,7 +16,14 @@ namespace Rin.Core.Graphics.Shaders;
 /// <see cref="ComputeShaderAttribute"/>.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property)]
-public abstract class ShaderAttribute(string path) : Attribute
+public abstract class ShaderAttribute : Attribute
 {
-    public string Path { get; } = path;
+    /// <summary>The shader's path, when declared directly (never set on the generic forms).</summary>
+    public string? Path { get; }
+
+    protected ShaderAttribute(string path) => Path = path;
+
+    protected ShaderAttribute()
+    {
+    }
 }

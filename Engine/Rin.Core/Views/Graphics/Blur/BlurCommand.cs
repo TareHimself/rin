@@ -21,8 +21,6 @@ internal class BlurInitCommand : TCommand<BlurInitPassConfig, BlurInitCommandHan
     // The projection in the AABB rect space
     public Matrix4x4 LocalProjection = Matrix4x4.Identity;
 
-    // The transform in the AABB Rect Space
-    public Matrix4x4 LocalTransform;
     public uint SecondPassImageId;
     public Vector2 Size;
 
@@ -46,7 +44,6 @@ internal class BlurInitCommand : TCommand<BlurInitPassConfig, BlurInitCommandHan
         BoundingBoxP1 = BlurP1 = BoundingBoxP1.Floor();
         BoundingBoxP2 = BlurP2 = BoundingBoxP2.Ceiling();
         Transform = transform;
-        LocalTransform = Matrix4x4.Identity.Translate(boundingBox.Offset).Inverse() * transform;
     }
 }
 
@@ -70,6 +67,11 @@ public static class BlurPassExtensions
         if (size.X == 0 || size.Y == 0 || strength <= 0 || radius <= 0) return self;
         var initCommand = new BlurInitCommand(transform, strength, radius, size, self.SurfaceSize,
             tint.GetValueOrDefault(Vector4.One));
+
+        var isOffSurface = initCommand.BoundingBoxP2.X <= initCommand.BoundingBoxP1.X ||
+                           initCommand.BoundingBoxP2.Y <= initCommand.BoundingBoxP1.Y;
+        if (isOffSurface) return self;
+
         self.Add(initCommand);
         self.Add(new BlurFirstPassCommand(initCommand));
         self.Add(new NoOpCommand());

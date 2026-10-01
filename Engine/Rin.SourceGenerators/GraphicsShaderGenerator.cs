@@ -11,11 +11,18 @@ namespace Rin.SourceGenerators;
 public class GraphicsShaderGenerator : IIncrementalGenerator
 {
     private const string ShaderAttributeFullName = "Rin.Core.Graphics.Shaders.ShaderAttribute";
-    private const string GraphicsShaderAttributeFullName = "Rin.Core.Graphics.Shaders.GraphicsShaderAttribute";
-    private const string ComputeShaderAttributeFullName = "Rin.Core.Graphics.Shaders.ComputeShaderAttribute";
+    private const string ShaderAttributesNamespace = "Rin.Core.Graphics.Shaders";
+    private const string GraphicsShaderAttributeName = "GraphicsShaderAttribute";
+    private const string ComputeShaderAttributeName = "ComputeShaderAttribute";
     private const string GraphicsShaderInterfaceFullName = "Rin.Core.Graphics.Shaders.IGraphicsShader";
     private const string ComputeShaderInterfaceFullName = "Rin.Core.Graphics.Shaders.IComputeShader";
     private const string GraphicsModuleFullName = "Rin.Core.Graphics.IGraphicsModule";
+
+    // Not a project reference - Rin.SourceGenerators doesn't (and shouldn't) depend on Rin.Shade,
+    // this is just the well-known attribute name a [ComputeShader<X>]/[GraphicsShader<X>] type
+    // argument is expected to carry, read purely by name/shape like every other attribute check
+    // in this file.
+    private const string ShadeShaderAttributeFullName = "Rin.Shade.ShaderAttribute";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -39,6 +46,12 @@ public class GraphicsShaderGenerator : IIncrementalGenerator
 
         return false;
     }
+
+    // The generic forms ([GraphicsShader<T>]) have a constructed display name, so compare the
+    // unconstructed namespace + name instead.
+    private static bool IsShaderAttribute(INamedTypeSymbol attributeClass, string name) =>
+        attributeClass.Name == name &&
+        attributeClass.ContainingNamespace.ToDisplayString() == ShaderAttributesNamespace;
 
     /// <summary>
     /// Checks whether a property declaration carries one or more attributes deriving from
@@ -147,8 +160,8 @@ public class GraphicsShaderGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var isGraphics = attributeClass.ToDisplayString() == GraphicsShaderAttributeFullName;
-            var isCompute = attributeClass.ToDisplayString() == ComputeShaderAttributeFullName;
+            var isGraphics = IsShaderAttribute(attributeClass, GraphicsShaderAttributeName);
+            var isCompute = IsShaderAttribute(attributeClass, ComputeShaderAttributeName);
             var expectedType = isGraphics ? graphicsShaderType : isCompute ? computeShaderType : null;
             if (expectedType == null) continue; // A ShaderAttribute-derived type we don't know how to emit for.
 
@@ -200,22 +213,46 @@ public class GraphicsShaderGenerator : IIncrementalGenerator
         {
             var attributeData = property.GetAttributes()
                 .First(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, attributeClass));
-            var path = (string)attributeData.ConstructorArguments[0].Value!;
-            var factoryMethod = attributeClass.ToDisplayString() == GraphicsShaderAttributeFullName
-                ? "MakeGraphics"
-                : "MakeCompute";
+
+            string argumentSource;
+            if (attributeClass.IsGenericType)
+            {
+                var shaderType = attributeClass.TypeArguments[0];
+                if (!HasShadeShaderAttribute(shaderType))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        Diagnostics.Shader.ShaderTypeMissingShaderAttribute,
+                        property.Locations.FirstOrDefault() ?? Location.None,
+                        property.Name, shaderType.ToDisplayString()));
+                    continue;
+                }
+
+                argumentSource = $"{shaderType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.Descriptor";
+            }
+            else
+            {
+                argumentSource = SymbolDisplay.FormatLiteral(
+                    (string)attributeData.ConstructorArguments[0].Value!, quote: true);
+            }
+
+            var factoryMethod = IsShaderAttribute(attributeClass, GraphicsShaderAttributeName) ? "MakeGraphics" : "MakeCompute";
             var propertyType = property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            var pathLiteral = SymbolDisplay.FormatLiteral(path, quote: true);
             var accessibility = GetAccessibilityModifier(property.DeclaredAccessibility);
 
             output.Line(
-                $"{accessibility} partial {propertyType} {property.Name} => field ??= {graphicsModuleDisplay}.Get().{factoryMethod}({pathLiteral});");
+                $"{accessibility} partial {propertyType} {property.Name} => field ??= {graphicsModuleDisplay}.Get().{factoryMethod}({argumentSource});");
         }
 
         output.CloseBrace();
 
         context.AddSource($"Shader_{GeneratorUtils.GetSafeHintName(containingType)}.g.cs", output.ToSourceText());
     }
+
+    // Checks the source attribute rather than the generated Descriptor member: two source
+    // generators never see each other's output within the same compilation pass.
+    private static bool HasShadeShaderAttribute(ITypeSymbol shaderTypeSymbol) =>
+        shaderTypeSymbol.GetAttributes()
+            .Any(a => a.AttributeClass?.ToDisplayString() == ShadeShaderAttributeFullName);
 
     private static string GetAccessibilityModifier(Accessibility accessibility) => accessibility switch
     {

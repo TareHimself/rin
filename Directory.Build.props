@@ -7,6 +7,7 @@
         <ExamplesDir>$(RepoRoot)Examples\</ExamplesDir>
         <ExperimentsDir>$(RepoRoot)Experiments\</ExperimentsDir>
         <SlangDir>$(RepoRoot)Slang\</SlangDir>
+        <ShadeDir>$(RepoRoot)Shade\</ShadeDir>
         <ToolsDir>$(RepoRoot)Tools\</ToolsDir>
         <RinMSBuildDir>$(RepoRoot)msbuild\</RinMSBuildDir>
     </PropertyGroup>

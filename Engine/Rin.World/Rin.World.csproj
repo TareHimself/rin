@@ -5,22 +5,19 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
     </ItemGroup>
 
-    <ItemGroup>
-        <!-- Scaffold for the future clustered forward renderer; depends on a pass-graph shape (PreAdd/PostAdd,
-             IGraphImage, CollectPass) that predates the current IPass/IGraphConfig API and isn't referenced by
-             anything (DefaultWorldRenderer's Default/* pipeline supersedes it). Kept for reference, not compiled. -->
-        <Compile Remove="Graphics\ForwardRenderingPass.cs" />
-    </ItemGroup>
-
     <ItemGroup Label="Content">
         <EmbeddedResource Include="Content\**\*.*"/>
     </ItemGroup>
 
-    <PropertyGroup Label="Slang shaders">
-        <RinSlangDiscoverPrefix>Shaders/World/</RinSlangDiscoverPrefix>
-        <RinSlangOutputSubpath>Content\Shaders\World\</RinSlangOutputSubpath>
+    <ItemGroup Label="Rin.Shade">
+        <ProjectReference Include="$(ShadeDir)Rin.Shade\Rin.Shade.csproj" />
+        <ProjectReference Include="$(ShadeDir)Rin.Shade.SourceGenerator\Rin.Shade.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+    <PropertyGroup Label="Rin.Shade">
+        <RinShadeDiscoverPrefix>Shaders/Rin/World/</RinShadeDiscoverPrefix>
+        <RinShadeOutputSubpath>Content\Shaders\Rin\World\</RinShadeOutputSubpath>
     </PropertyGroup>
-    <Import Project="$(RinMSBuildDir)RinSlang.targets" />
+    <Import Project="$(RinMSBuildDir)RinShade.targets" />
 
     <ItemGroup>
       <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

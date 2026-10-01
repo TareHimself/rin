@@ -1,0 +1,6 @@
+# Normalize line endings to LF for everything text-ish, so git enforces this regardless of which
+# editor/tool touches a file - IDEs and ad-hoc scripts have flipped files to CRLF on this repo more
+# than once. .sln is left alone: `dotnet sln` always rewrites it as CRLF+UTF-8-BOM anyway.
+* text=auto eol=lf
+
+*.sln text eol=crlf

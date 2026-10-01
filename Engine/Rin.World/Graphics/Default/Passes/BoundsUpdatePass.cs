@@ -2,6 +2,7 @@ using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
+using Rin.World.Graphics.Default.Shaders;
 
 namespace Rin.World.Graphics.Default.Passes;
 
@@ -11,7 +12,7 @@ namespace Rin.World.Graphics.Default.Passes;
 /// <param name="sceneFrame"></param>
 public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePass
 {
-    [ComputeShader("Shaders/World/Mesh/Compute/bounds_update.slang")]
+    [ComputeShader<BoundsUpdateShader>]
     private partial IComputeShader Shader { get; }
 
     /// <summary>

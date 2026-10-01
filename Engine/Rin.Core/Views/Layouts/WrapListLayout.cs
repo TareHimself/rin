@@ -1,108 +1,66 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Rin.Core.Views.Composite;
 
 namespace Rin.Core.Views.Layouts;
 
 public class WrapListLayout(Axis axis, ICompositeView container) : ListLayout(axis, container)
 {
-    public override ICompositeView Container { get; } = container;
-
-    public override void OnSlotUpdated(ISlot slot)
-    {
-        if (Container.Surface != null) Apply(Container.GetContentSize());
-    }
+    private readonly List<ListSlot> _line = [];
 
     public override Vector2 Apply(in Vector2 availableSpace)
     {
-        var axis = GetAxis();
-        var availableMain = axis switch
-        {
-            Axis.Row => availableSpace.X,
-            Axis.Column => availableSpace.Y,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-        var offsetMain = 0.0f;
-        var offsetCross = 0.0f;
-        var currentMaxSizeCross = 0.0f;
-        var totalSizeMain = 0.0f;
-        var totalSizeCross = 0.0f;
-        List<ListSlot> currentLine = [];
+        var mainLimit = Main(availableSpace);
+        var crossAvailable = Cross(availableSpace);
+        var offsetMain = 0f;
+        var offsetCross = 0f;
+        var lineCross = 0f;
+        var widestLine = 0f;
+
+        _line.Clear();
         foreach (var slot in GetSlots())
         {
-            slot.Child.Layout(availableSpace with { X = float.PositiveInfinity });
-            var slotSizeMain = axis switch
-            {
-                Axis.Row => slot.Child.GetSize().X,
-                Axis.Column => slot.Child.GetSize().Y,
-                _ => throw new ArgumentOutOfRangeException()
-            };
-            var slotSizeCross = axis switch
-            {
-                Axis.Row => slot.Child.GetSize().Y,
-                Axis.Column => slot.Child.GetSize().X,
-                _ => throw new ArgumentOutOfRangeException()
-            };
-            var projectedSlotEndMain = offsetMain + slotSizeMain;
-            float finalSlotOffsetMain;
-            if (projectedSlotEndMain > availableMain)
-            {
-                // If it does not fit on this line go to the next line
-                if (projectedSlotEndMain >= availableMain && offsetMain >= 0.0f)
-                {
-                    foreach (var listSlot in currentLine) HandleCrossAxisOffset(listSlot, currentMaxSizeCross);
-                    currentLine.Clear();
-                    offsetMain = 0.0f;
-                    offsetCross += currentMaxSizeCross;
-                    currentMaxSizeCross = 0.0f;
-                }
+            if (slot is not ListSlot listSlot) continue;
 
-                finalSlotOffsetMain = offsetMain;
-            }
-            else
+            var size = listSlot.Child.Layout(Compose(float.PositiveInfinity, crossAvailable));
+            var sizeMain = Main(size);
+
+            if (_line.Count > 0 && offsetMain + sizeMain > mainLimit)
             {
-                finalSlotOffsetMain = projectedSlotEndMain - slotSizeMain;
+                FinishLine(lineCross);
+                offsetCross += lineCross;
+                offsetMain = 0f;
+                lineCross = 0f;
             }
 
-            currentLine.Add(slot as ListSlot ?? throw new InvalidOperationException());
-            offsetMain += slotSizeMain;
-            var finalSlotOffsetCross = offsetCross;
-            currentMaxSizeCross = float.Max(currentMaxSizeCross, slotSizeCross);
-            var finalSlotEndMain = finalSlotOffsetMain + slotSizeMain;
-            var finalSlotEndCross = finalSlotOffsetCross + slotSizeCross;
-            totalSizeMain = float.Max(totalSizeMain, float.Min(availableMain, finalSlotEndMain));
-            totalSizeCross = float.Max(totalSizeCross, finalSlotEndCross);
-
-
-            slot.Child.Offset = axis switch
-            {
-                Axis.Row => new Vector2(finalSlotOffsetMain, finalSlotOffsetCross),
-                Axis.Column => new Vector2(finalSlotOffsetCross, finalSlotOffsetMain),
-                _ => throw new ArgumentOutOfRangeException()
-            };
+            listSlot.Child.Offset = Compose(offsetMain, offsetCross);
+            _line.Add(listSlot);
+            offsetMain += sizeMain;
+            lineCross = float.Max(lineCross, Cross(size));
+            widestLine = float.Max(widestLine, offsetMain);
         }
 
-        return new Vector2(totalSizeMain, totalSizeCross);
+        FinishLine(lineCross);
+        return Compose(float.Min(widestLine, mainLimit), offsetCross + lineCross);
     }
 
-    public override Vector2 ComputeDesiredContentSize()
+    private void FinishLine(float lineCross)
     {
-        return GetAxis() switch
-        {
-            Axis.Row => GetSlots().Aggregate(new Vector2(), (size, slot) =>
-            {
-                var slotSize = slot.Child.GetDesiredSize();
-                size.X += slotSize.X;
-                size.Y = float.Max(size.Y, slotSize.Y);
-                return size;
-            }),
-            Axis.Column => GetSlots().Aggregate(new Vector2(), (size, slot) =>
-            {
-                var slotSize = slot.Child.GetDesiredSize();
-                size.Y += slotSize.Y;
-                size.X = float.Max(size.X, slotSize.X);
-                return size;
-            }),
-            _ => throw new ArgumentOutOfRangeException()
-        };
+        foreach (var slot in _line) HandleCrossAxisOffset(slot, lineCross);
+        _line.Clear();
+    }
+
+    private float Main(in Vector2 size)
+    {
+        return GetAxis() == Axis.Row ? size.X : size.Y;
+    }
+
+    private float Cross(in Vector2 size)
+    {
+        return GetAxis() == Axis.Row ? size.Y : size.X;
+    }
+
+    private Vector2 Compose(float main, float cross)
+    {
+        return GetAxis() == Axis.Row ? new Vector2(main, cross) : new Vector2(cross, main);
     }
 }

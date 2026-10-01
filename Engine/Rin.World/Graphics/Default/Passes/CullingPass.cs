@@ -2,6 +2,8 @@ using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
+using Rin.Shade;
+using Rin.World.Graphics.Default.Shaders;
 
 namespace Rin.World.Graphics.Default.Passes;
 
@@ -12,7 +14,7 @@ namespace Rin.World.Graphics.Default.Passes;
 /// <param name="collectedData"></param>
 public partial class CullingPass(DefaultWorldViewData collectedData) : IComputePass
 {
-    [ComputeShader("Shaders/World/Mesh/Compute/culling.slang")]
+    [ComputeShader<CullingShader>]
     private partial IComputeShader Shader { get; }
 
     [PublicAPI] public uint OutputBufferId { get; set; }
@@ -36,20 +38,12 @@ public partial class CullingPass(DefaultWorldViewData collectedData) : IComputeP
 
         if (Shader.Bind(ctx) is not { } bindContext) return;
         bindContext
-            .Push(new Push
+            .Push(new CullingShader.PushConstants
             {
-                BoundsBufferAddress = boundsBuffer.GetAddress(),
-                TotalInvocations = collectedData.SceneFrame.TotalMeshCount,
-                OutputBufferAddress = outputBuffer.GetAddress()
+                Bounds = new BufferRef<UpdatableBounds3D>(boundsBuffer.GetAddress()),
+                InvocationCount = (uint)collectedData.SceneFrame.TotalMeshCount,
+                Output = new BufferRef<uint>(outputBuffer.GetAddress())
             })
             .Invoke((uint)collectedData.SceneFrame.TotalMeshCount);
-    }
-
-    [NoReorder]
-    private struct Push
-    {
-        public required ulong BoundsBufferAddress;
-        public required int TotalInvocations;
-        public required ulong OutputBufferAddress;
     }
 }

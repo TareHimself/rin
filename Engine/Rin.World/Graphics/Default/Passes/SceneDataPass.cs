@@ -102,14 +102,4 @@ public class SceneDataPass(DefaultSceneFrame sceneFrame) : IPass
             graph.GetBufferOrException(bufferIds[i++]).Write(records);
         }
     }
-
-    [NoReorder]
-    private struct IndirectMeshRecord
-    {
-        public required uint IndicesCount;
-        public required uint IndicesStart;
-        public required uint VertexStart;
-        public required uint Instance;
-        public required int MeshIndex;
-    }
 }

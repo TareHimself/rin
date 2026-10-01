@@ -1,11 +1,13 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
-using Rin.Core.Shared.Math;
+using Rin.Shade;
+using Rin.World.Graphics.Default.Shaders;
+using Rin.World.Graphics.Mesh;
 
 namespace Rin.World.Graphics.Default;
 
@@ -41,21 +43,13 @@ public class DefaultMeshMaterial : IMeshMaterial
     public IMaterialPass ColorPass { get; }
     public IMaterialPass DepthPass { get; } = new DefaultDepthPass();
 
-    [NoReorder]
-    private struct PushConstant
-    {
-        public ulong SceneAddress;
-        public ulong DataAddress;
-    }
-
     private class DefaultColorPass(DefaultMeshMaterial meshMaterial) : SimpleMaterialPass
     {
-        public override IGraphicsShader Shader { get; } = IGraphicsModule.Get()
-            .MakeGraphics("Shaders/World/Mesh/mesh.slang");
+        public override IGraphicsShader Shader { get; } = IGraphicsModule.Get().MakeGraphics(MeshShader.Descriptor);
 
         public override ulong GetRequiredMemory()
         {
-            return Utils.ByteSizeOf<DefaultMaterialProperties>();
+            return Utils.ByteSizeOf<MeshMaterialData>();
         }
 
         public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
@@ -63,10 +57,10 @@ public class DefaultMeshMaterial : IMeshMaterial
             var ctx = frame.ExecutionContext;
             if (Shader.Bind(ctx) is { } bindContext)
                 return bindContext
-                    .Push(new PushConstant
+                    .Push(new MeshShader.PushConstants
                     {
-                        SceneAddress = frame.SceneInfo.GetAddress(),
-                        DataAddress = groupMaterialBuffer!.GetAddress()
+                        Scene = new BufferRef<WorldInfo>(frame.SceneInfo.GetAddress()),
+                        Data = new BufferRef<MeshMaterialData>(groupMaterialBuffer!.GetAddress())
                     });
 
             return null;
@@ -85,109 +79,30 @@ public class DefaultMeshMaterial : IMeshMaterial
 
         public override void Write(Span<byte> destination, ProcessedMesh mesh)
         {
-            var data = new DefaultMaterialProperties
+            var data = new MeshMaterialData
             {
+                Vertices = new BufferRef<Vertex>(mesh.VertexBuffer.GetAddress()),
                 Transform = mesh.Transform,
-                VertexAddress = mesh.VertexBuffer.GetAddress(),
-                BaseColorTextureId = meshMaterial.ColorImageId,
                 BaseColor = meshMaterial.Color,
-                NormalTextureId = meshMaterial.NormalImageId,
+                BaseColorTexture = meshMaterial.ColorImageId,
+                NormalTexture = meshMaterial.NormalImageId,
                 Metallic = meshMaterial.Metallic,
-                MetallicTextureId = meshMaterial.MetallicImageId,
+                MetallicTexture = meshMaterial.MetallicImageId,
                 Specular = meshMaterial.Specular,
-                SpecularTextureId = meshMaterial.SpecularImageId,
+                SpecularTexture = meshMaterial.SpecularImageId,
                 Roughness = meshMaterial.Roughness,
-                RoughnessTextureId = meshMaterial.RoughnessImageId,
+                RoughnessTexture = meshMaterial.RoughnessImageId,
                 Emissive = meshMaterial.Emissive,
-                EmissiveTextureId = meshMaterial.EmissiveImageId
+                EmissiveTexture = meshMaterial.EmissiveImageId
             };
             MemoryMarshal.Write(destination, in data);
-        }
-
-        [NoReorder]
-        private struct DefaultMaterialProperties()
-        {
-            [PublicAPI] public ulong VertexAddress = 0;
-            [PublicAPI] public Matrix4x4 Transform = Matrix4x4.Identity;
-            private Vector4 _color_textureId;
-            [PublicAPI] public DeviceHandle NormalTextureId = default;
-            private Vector4 _msre;
-            private Int4 _msreTextureId;
-
-            public Vector3 BaseColor
-            {
-                get => new(_color_textureId.X, _color_textureId.Y, _color_textureId.Z);
-                set
-                {
-                    _color_textureId.X = value.X;
-                    _color_textureId.Y = value.Y;
-                    _color_textureId.Z = value.Z;
-                }
-            }
-
-            // Packed into the color vec4's alpha lane rather than a dedicated int slot (mirrors
-            // mesh.slang's PerMeshData.color_textureId) - stored as a numeric float, not bit-reinterpreted.
-            public DeviceHandle BaseColorTextureId
-            {
-                get => (DeviceHandle)(uint)_color_textureId.W;
-                set => _color_textureId.W = (uint)value;
-            }
-
-            public float Metallic
-            {
-                get => _msre.X;
-                set => _msre.X = value;
-            }
-
-            public DeviceHandle MetallicTextureId
-            {
-                get => (DeviceHandle)(uint)_msreTextureId.X;
-                set => _msreTextureId.X = (int)(uint)value;
-            }
-
-            public float Specular
-            {
-                get => _msre.Y;
-                set => _msre.Y = value;
-            }
-
-            public DeviceHandle SpecularTextureId
-            {
-                get => (DeviceHandle)(uint)_msreTextureId.Y;
-                set => _msreTextureId.Y = (int)(uint)value;
-            }
-
-            public float Roughness
-            {
-                get => _msre.Z;
-                set => _msre.Z = value;
-            }
-
-            public DeviceHandle RoughnessTextureId
-            {
-                get => (DeviceHandle)(uint)_msreTextureId.Z;
-                set => _msreTextureId.Z = (int)(uint)value;
-            }
-
-            public float Emissive
-            {
-                get => _msre.W;
-                set => _msre.W = value;
-            }
-
-            public DeviceHandle EmissiveTextureId
-            {
-                get => (DeviceHandle)(uint)_msreTextureId.W;
-                set => _msreTextureId.W = (int)(uint)value;
-            }
         }
     }
 
 
     private class DefaultDepthPass : SimpleMaterialPass
     {
-        public override IGraphicsShader Shader { get; } = IGraphicsModule.Get()
-            .MakeGraphics("Shaders/World/Mesh/mesh_depth.slang");
+        public override IGraphicsShader Shader { get; } = IGraphicsModule.Get().MakeGraphics(MeshDepthShader.Descriptor);
 
         public override ulong GetRequiredMemory()
         {
@@ -199,10 +114,10 @@ public class DefaultMeshMaterial : IMeshMaterial
             var ctx = frame.ExecutionContext;
             if (Shader.Bind(ctx) is { } bindContext)
                 return bindContext
-                    .Push(new PushConstant
+                    .Push(new MeshDepthShader.PushConstants
                     {
-                        SceneAddress = frame.SceneInfo.GetAddress(),
-                        DataAddress = groupMaterialBuffer!.GetAddress()
+                        Scene = new BufferRef<DepthSceneInfo>(frame.SceneInfo.GetAddress()),
+                        Data = new BufferRef<DepthMaterialData>(groupMaterialBuffer!.GetAddress())
                     });
 
             return null;
@@ -218,15 +133,8 @@ public class DefaultMeshMaterial : IMeshMaterial
             MemoryMarshal.Write(destination, new DepthMaterialData
             {
                 Transform = mesh.Transform,
-                VertexAddress = mesh.VertexBuffer.GetAddress()
+                Vertices = new BufferRef<Vertex>(mesh.VertexBuffer.GetAddress())
             });
-        }
-        
-        [NoReorder]
-        private struct DepthMaterialData
-        {
-            public Matrix4x4 Transform;
-            public ulong VertexAddress;
         }
     }
 }

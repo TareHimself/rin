@@ -1,14 +1,17 @@
+using Rin.Core.Extensions;
 using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
+using Rin.Shade;
+using Rin.World.Graphics.Default.Shaders;
 
 namespace Rin.World.Graphics.Default.Passes;
 
 public partial class LightingPass(DefaultWorldViewData context) : IPass
 {
-    [GraphicsShader("Shaders/World/lighting.slang")]
+    [GraphicsShader<LightingShader>]
     private partial IGraphicsShader Shader { get; }
 
     private uint _lightBufferId;
@@ -22,7 +25,7 @@ public partial class LightingPass(DefaultWorldViewData context) : IPass
         config.ReadTexture(context.GBufferImage1, ImageLayout.ShaderReadOnly);
         config.ReadTexture(context.GBufferImage2, ImageLayout.ShaderReadOnly);
         config.ReadTexture(context.GBufferImage3, ImageLayout.ShaderReadOnly);
-        context.OutputImageId = config.CreateTexture(context.Extent, ImageFormat.RGBA16, ImageLayout.ColorAttachment);
+        context.OutputImageId = config.CreateTexture(context.Extent, LightingShader.Descriptor.Output.Format.ToImageFormat(), ImageLayout.ColorAttachment);
         _worldBufferId = config.CreateBuffer<LightingInfo>(GraphBufferUsage.HostThenGraphics);
         _lightBufferId = config.CreateBuffer<LightInfo>(context.Lights.Length, GraphBufferUsage.HostThenGraphics);
     }
@@ -43,34 +46,26 @@ public partial class LightingPass(DefaultWorldViewData context) : IPass
             buffer.WriteSingle(
                 new LightingInfo
                 {
-                    GBuffer0 = gBuffer0,
-                    GBuffer1 = gBuffer1,
-                    GBuffer2 = gBuffer2,
-                    GBuffer3 = gBuffer3,
-                    EyeLocation = context.ViewTransform.Position,
-                    LightsBuffer = lightsBuffer.GetAddress(),
-                    NumLights = context.Lights.Length
+                    GBuffer = new GBufferHandles
+                    {
+                        GBuffer0 = gBuffer0,
+                        GBuffer1 = gBuffer1,
+                        GBuffer2 = gBuffer2,
+                        GBuffer3 = gBuffer3
+                    },
+                    Eye = context.ViewTransform.Position,
+                    Lights = new BufferRef<LightInfo>(lightsBuffer.GetAddress()),
+                    LightCount = context.Lights.Length
                 });
 
             ctx
                 .BeginRendering(context.Extent, [outputImage], clearColor: Vector4.Zero)
                 .DisableFaceCulling();
             bindContext
-                .Push(buffer.GetAddress())
+                .Push(new LightingShader.PushConstants { Data = new BufferRef<LightingInfo>(buffer.GetAddress()) })
                 .Draw(6);
 
             ctx.EndRendering();
         }
-    }
-    [NoReorder]
-    private struct LightingInfo
-    {
-        public required DeviceHandle GBuffer0;
-        public required DeviceHandle GBuffer1;
-        public required DeviceHandle GBuffer2;
-        public required DeviceHandle GBuffer3;
-        public required Vector3 EyeLocation;
-        public required ulong LightsBuffer;
-        public required int NumLights;
     }
 }

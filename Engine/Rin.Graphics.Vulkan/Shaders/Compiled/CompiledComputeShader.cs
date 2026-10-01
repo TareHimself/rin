@@ -5,6 +5,7 @@ using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
 using Rin.Graphics.Vulkan.Descriptors;
+using Rin.Shade;
 using Rin.Slang;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
@@ -15,15 +16,18 @@ public class CompiledComputeShader : IComputeShader, IVulkanShader
 {
     private readonly Task _compileTask;
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
+    private readonly IComputeDescriptor? _descriptor;
     private readonly string _filePath;
     private VkPipeline _pipeline;
     private VkPipelineLayout _pipelineLayout;
     private VkShaderModule _shaderModule;
 
-    public CompiledComputeShader(CompiledShaderManager manager, string filePath)
+    public CompiledComputeShader(CompiledShaderManager manager, string filePath,
+        IComputeDescriptor? descriptor = null)
     {
-        _compileTask = manager.Compile(this);
         _filePath = filePath;
+        _descriptor = descriptor;
+        _compileTask = manager.Compile(this);
     }
 
     public void Dispose()
@@ -68,38 +72,30 @@ public class CompiledComputeShader : IComputeShader, IVulkanShader
 
         Debug.Assert(stage.Stage == "compute");
 
-        var groupSize = compiledShader.ThreadGroupSize ??
-                         throw new ShaderCompileException("Missing thread group size");
-        GroupSizeX = groupSize[0];
-        GroupSizeY = groupSize[1];
-        GroupSizeZ = groupSize[2];
+        if (_descriptor is { } descriptor)
+        {
+            (GroupSizeX, GroupSizeY, GroupSizeZ) = descriptor.ThreadGroupSize;
+        }
+        else
+        {
+            var groupSize = compiledShader.ThreadGroupSize ??
+                            throw new ShaderCompileException("Missing thread group size");
+            GroupSizeX = groupSize[0];
+            GroupSizeY = groupSize[1];
+            GroupSizeZ = groupSize[2];
+        }
         const ShaderStage entryPointStage = ShaderStage.Compute;
 
         var resources = new Dictionary<string, Resource>();
         var pushConstants = new Dictionary<string, PushConstant>();
-        CompiledShaderManager.ReflectShader(stage.Reflection, resources, pushConstants, entryPointStage);
+        var bindlessBlocks = new Dictionary<string, uint>();
+        CompiledShaderManager.ReflectShader(stage.Reflection, resources, pushConstants, entryPointStage,
+            bindlessBlocks);
         Resources = resources.ToFrozenDictionary();
         PushConstants = pushConstants.ToFrozenDictionary();
         {
-            SortedDictionary<uint, DescriptorLayoutBuilder> builders = [];
-            foreach (var item in Resources.Values)
-            {
-                if (!builders.ContainsKey(item.Set)) builders.Add(item.Set, new DescriptorLayoutBuilder());
-
-                builders[item.Set].AddBinding(item.Binding, item.Type, item.Stages, item.Count, item.BindingFlags);
-            }
-
-            var max = builders.Count == 0 ? 0 : builders.Keys.Max();
-            List<VkDescriptorSetLayout> layouts = [];
-
-            for (uint i = 0; i < max + 1; i++)
-            {
-                var newLayout = builders.TryGetValue(i, out var value)
-                    ? value.Build()
-                    : new DescriptorLayoutBuilder().Build();
-                _descriptorLayouts.Add(i, newLayout);
-                layouts.Add(newLayout);
-            }
+            var layouts = CompiledShaderManager.BuildDescriptorLayouts(Resources.Values, bindlessBlocks);
+            for (var i = 0; i < layouts.Count; i++) _descriptorLayouts.Add((uint)i, layouts[i]);
 
             var device = VulkanGraphicsModule.Get().GetDevice();
 

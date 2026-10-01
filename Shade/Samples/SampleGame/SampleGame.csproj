@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>SampleGame</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Rin.Shade\Rin.Shade.csproj"/>
+        <ProjectReference Include="..\SampleWorld\SampleWorld.csproj"/>
+    </ItemGroup>
+
+</Project>

@@ -50,6 +50,17 @@ public class SlangComponent : IDisposable
         }
     }
 
+    public SlangSharedLibrary? GetEntryPointHostCallable(int entryPointIndex, int targetIndex,
+        SlangBlob outDiagnostics)
+    {
+        unsafe
+        {
+            var library = Native.slangComponentGetEntryPointHostCallable(_ptr, entryPointIndex, targetIndex,
+                outDiagnostics.ToPointer());
+            return library == null ? null : new SlangSharedLibrary(library);
+        }
+    }
+
     public SlangComponent? Link()
     {
         unsafe

@@ -1,5 +1,6 @@
 using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Shade;
 
 namespace Rin.Core.Shared.Math;
 
@@ -7,6 +8,7 @@ namespace Rin.Core.Shared.Math;
 ///     Should only be used for storage of 4 int components
 /// </summary>
 [NoReorder]
+[ShadeExport]
 public record struct Int4
 {
     public int X;

@@ -222,8 +222,8 @@ public class GraphConfig(GraphBuilder builder) : IGraphConfig
 
     private uint CreateImage(in Extent2D extent, ImageFormat format, ImageLayout layout, uint count, ResourceType type)
     {
-        Debug.Assert(extent is { Width: > 0, Height: > 0 },
-            "all image dimensions must be greater than zero");
+        if (extent.Width == 0 || extent.Height == 0)
+            throw new ArgumentOutOfRangeException(nameof(extent), extent, "Image dimensions must be greater than zero");
         var flags = format switch
         {
             ImageFormat.Depth => ImageCreateFlags.DepthAttachment,

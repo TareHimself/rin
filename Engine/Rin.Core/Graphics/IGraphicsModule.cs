@@ -2,6 +2,7 @@
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Buffers;
+using Rin.Shade;
 
 namespace Rin.Core.Graphics;
 
@@ -20,7 +21,9 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
     public IRenderer[] GetRenderers();
     public IWindowRenderer[] GetWindowRenderers();
     public IGraphicsShader MakeGraphics(string path);
+    public IGraphicsShader MakeGraphics(IGraphicsDescriptor descriptor);
     public IComputeShader MakeCompute(string path);
+    public IComputeShader MakeCompute(IComputeDescriptor descriptor);
 
     public IWindow CreateWindow(string name, in Extent2D extent, WindowFlags flags = WindowFlags.Visible,
         IWindow? parent = null);

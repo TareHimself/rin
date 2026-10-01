@@ -4,13 +4,15 @@ using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
+using Rin.Core.Views.Graphics.Shaders;
+using Rin.Shade;
 
 namespace Rin.Core.Views.Graphics.Quads;
 
 [ViewsBatcher]
 public sealed partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
 {
-    [GraphicsShader("Shaders/Core/Views/batch.slang")]
+    [GraphicsShader<QuadBatchShader>]
     private partial IGraphicsShader BatchShader { get; }
 
     protected override IGraphicsShader GetShader()
@@ -37,20 +39,12 @@ public sealed partial class DefaultQuadBatcher : SimpleQuadBatcher<QuadBatch>
             }
         }
         
-        bindContext.Push(new Push
+        bindContext.Push(new QuadBatchShader.PushConstants
         {
             Projection = frame.ProjectionMatrix,
             Viewport = new Vector4(0, 0, frame.Extent.Width, frame.Extent.Height),
-            Buffer = view.GetAddress()
+            Quads = new BufferRef<Quad>(view.GetAddress())
         });
         return (uint)quads.Count;
-    }
-
-    [NoReorder]
-    private struct Push
-    {
-        public Matrix4x4 Projection;
-        public Vector4 Viewport;
-        public ulong Buffer;
     }
 }

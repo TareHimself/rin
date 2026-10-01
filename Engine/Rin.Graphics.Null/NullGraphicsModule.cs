@@ -2,6 +2,7 @@ using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Graphics.Windows;
+using Rin.Shade;
 
 namespace Rin.Graphics.Null;
 
@@ -60,6 +61,16 @@ public sealed class NullGraphicsModule : IGraphicsModule
     public IGraphicsShader MakeGraphics(string path)
     {
         return new NullGraphicsShader();
+    }
+
+    public IGraphicsShader MakeGraphics(IGraphicsDescriptor descriptor)
+    {
+        return new NullGraphicsShader();
+    }
+
+    public IComputeShader MakeCompute(IComputeDescriptor descriptor)
+    {
+        return new NullComputeShader();
     }
 
     public IComputeShader MakeCompute(string path)

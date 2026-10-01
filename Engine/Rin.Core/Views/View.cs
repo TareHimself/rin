@@ -36,7 +36,9 @@ public abstract class View : IView
     }
 
     /// <summary>
-    ///     The pivot used to render this view. Affects <see cref="Angle" /> and <see cref="Scale" />.
+    ///     The point of this view, as a fraction of its size, that is placed at its offset and that
+    ///     <see cref="Angle" /> and <see cref="Scale" /> act around. (0, 0) is the top-left corner and (0.5, 0.5)
+    ///     the centre, so changing the pivot also moves the view by its size times the pivot.
     /// </summary>
     public Vector2 Pivot
     {

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Runs transpiled shaders in-process on the CPU (Slang's host-callable target), so it needs the real
+         native Slang library. Kept out of Rin.Shade.Tests so that project stays native-free for CI. -->
+    <PropertyGroup>
+        <LangVersion>latest</LangVersion>
+        <IsPackable>false</IsPackable>
+        <TargetFrameworks>net10.0</TargetFrameworks>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="NUnit"/>
+        <PackageReference Include="NUnit.Analyzers"/>
+        <PackageReference Include="NUnit3TestAdapter"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="NUnit.Framework"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Rin.Shade\Rin.Shade.csproj"/>
+        <ProjectReference Include="..\Rin.Shade.Transpiler\Rin.Shade.Transpiler.csproj"/>
+        <ProjectReference Include="..\..\Slang\Rin.Slang.Compiler\Rin.Slang.Compiler.csproj"/>
+        <Compile Include="..\Rin.Shade.Tests\TestDoubles.cs" Link="TestDoubles.cs"/>
+    </ItemGroup>
+
+</Project>

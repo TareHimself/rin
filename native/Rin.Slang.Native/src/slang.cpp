@@ -184,7 +184,8 @@ Session::Session(const SessionBuilder* builder)
     auto compilerOptions = builder->options;
     sessionDesc.preprocessorMacros = preprocessorMacros.data();
     sessionDesc.preprocessorMacroCount = static_cast<SlangInt>(preprocessorMacros.size());
-    sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;//SLANG_MATRIX_LAYOUT_ROW_MAJOR;
+    // Row-major to match System.Numerics Matrix4x4, so a raw upload is bit-identical.
+    sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_ROW_MAJOR;
     sessionDesc.compilerOptionEntries = compilerOptions.data();
     sessionDesc.compilerOptionEntryCount = static_cast<uint32_t>(compilerOptions.size());
     
@@ -306,6 +307,13 @@ void slangSessionBuilderAddTargetGlsl(SessionBuilder* builder)
     builder->targets.push_back(desc);
 }
 
+void slangSessionBuilderAddTargetHostCallable(SessionBuilder* builder)
+{
+    slang::TargetDesc desc{};
+    desc.format = SLANG_SHADER_HOST_CALLABLE;
+    builder->targets.push_back(desc);
+}
+
 void slangSessionBuilderAddPreprocessorDefinition(SessionBuilder* builder, const char* name, const char* value)
 {
     builder->preprocessorMacros.emplace_back(std::make_pair<std::string,std::string>(name,value));
@@ -369,6 +377,101 @@ Blob* slangComponentGetEntryPointCode(const Component* component, int entryPoint
 
     return new Blob{code};
 }
+#ifdef _MSC_VER
+#include <windows.h>
+#include <typeinfo>
+// MSVC lays a thrown C++ object's type information out as image-relative offsets; just enough of it is
+// declared here to read the name of the thrown type when an exception escapes from inside Slang.
+struct RinCatchableType { unsigned int properties; int pType; int thisDisplacement[3]; int sizeOrOffset; int copyFunction; };
+struct RinCatchableTypeArray { int nCatchableTypes; int arrayOfCatchableTypes[1]; };
+struct RinThrowInfo { unsigned int attributes; int pmfnUnwind; int pForwardCompat; int pCatchableTypeArray; };
+
+static int CaptureException(EXCEPTION_POINTERS* pointers, unsigned long* outCode, char* outTypeName, size_t outTypeNameSize)
+{
+    *outCode = pointers->ExceptionRecord->ExceptionCode;
+    if(*outCode == 0xE06D7363 && pointers->ExceptionRecord->NumberParameters >= 4)
+    {
+        const uintptr_t base = pointers->ExceptionRecord->ExceptionInformation[3];
+        const auto* throwInfo = reinterpret_cast<const RinThrowInfo*>(pointers->ExceptionRecord->ExceptionInformation[2]);
+        const auto* types = reinterpret_cast<const RinCatchableTypeArray*>(base + throwInfo->pCatchableTypeArray);
+        if(types->nCatchableTypes > 0)
+        {
+            const auto* type = reinterpret_cast<const RinCatchableType*>(base + types->arrayOfCatchableTypes[0]);
+            const auto* info = reinterpret_cast<const std::type_info*>(base + type->pType);
+            strncpy_s(outTypeName, outTypeNameSize, info->name(), _TRUNCATE);
+        }
+    }
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+static SlangResult CallGetEntryPointHostCallable(slang::IComponentType* component, int entryPointIndex, int targetIndex, ISlangSharedLibrary** outLibrary, slang::IBlob** outDiagnostics, unsigned long* outExceptionCode, char* outTypeName, size_t outTypeNameSize)
+{
+    __try
+    {
+        return component->getEntryPointHostCallable(entryPointIndex, targetIndex, outLibrary, outDiagnostics);
+    }
+    __except(CaptureException(GetExceptionInformation(), outExceptionCode, outTypeName, outTypeNameSize))
+    {
+        return SLANG_FAIL;
+    }
+}
+#else
+static SlangResult CallGetEntryPointHostCallable(slang::IComponentType* component, int entryPointIndex, int targetIndex, ISlangSharedLibrary** outLibrary, slang::IBlob** outDiagnostics, unsigned long*, char*, size_t)
+{
+    return component->getEntryPointHostCallable(entryPointIndex, targetIndex, outLibrary, outDiagnostics);
+}
+#endif
+
+SharedLibrary* slangComponentGetEntryPointHostCallable(const Component* component, int entryPointIndex, int targetIndex, Blob* outDiagnostics)
+{
+    Slang::ComPtr<ISlangSharedLibrary> library;
+    Slang::ComPtr<slang::IBlob> diagnostics;
+
+    unsigned long exceptionCode = 0;
+    char exceptionType[256] = {};
+    const SlangResult result = CallGetEntryPointHostCallable(component->component.get(), entryPointIndex, targetIndex, library.writeRef(), diagnostics.writeRef(), &exceptionCode, exceptionType, sizeof(exceptionType));
+
+    if(exceptionCode != 0)
+    {
+        // A fatal compile error has already been reported into the diagnostics and aborted with an
+        // exception; hand those over, falling back to the exception's own type if there are none.
+        if(outDiagnostics != nullptr)
+        {
+            if(diagnostics && diagnostics->getBufferSize() > 0)
+            {
+                outDiagnostics->blob = diagnostics;
+            }
+            else
+            {
+                outDiagnostics->blob = new CustomStringBlob("native exception code " + std::to_string(exceptionCode) + " type " + std::string(exceptionType));
+            }
+        }
+        return nullptr;
+    }
+
+    if(outDiagnostics != nullptr)
+    {
+        outDiagnostics->blob = diagnostics;
+    }
+
+    if(SLANG_FAILED(result) || !library)
+    {
+        return nullptr;
+    }
+
+    return new SharedLibrary{library};
+}
+
+void* slangSharedLibraryFindFunc(const SharedLibrary* library, const char* name)
+{
+    return library->library->findFuncByName(name);
+}
+
+void slangSharedLibraryFree(const SharedLibrary* library)
+{
+    delete library;
+}
+
 Component* slangComponentLink(const Component* component, Blob* outDiagnostics)
 {
     Slang::ComPtr<slang::IComponentType> outComponent;

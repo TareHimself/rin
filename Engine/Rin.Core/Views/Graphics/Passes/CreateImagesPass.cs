@@ -1,6 +1,8 @@
 ﻿using System.Numerics;
+using Rin.Core.Extensions;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
+using Rin.Core.Views.Graphics.Shaders;
 
 namespace Rin.Core.Views.Graphics.Passes;
 
@@ -17,8 +19,8 @@ public class CreateImagesPass : IPass
 
     public void Configure(IGraphConfig config)
     {
-        Context.MainImageId = config.CreateTexture(Context.Extent, ImageFormat.RGBA16, ImageLayout.TransferDst);
-        Context.CopyImageId = config.CreateTexture(Context.Extent, ImageFormat.RGBA16, ImageLayout.TransferDst);
+        Context.MainImageId = config.CreateTexture(Context.Extent, QuadBatchShader.Descriptor.Output.Format.ToImageFormat(), ImageLayout.TransferDst);
+        Context.CopyImageId = config.CreateTexture(Context.Extent, QuadBatchShader.Descriptor.Output.Format.ToImageFormat(), ImageLayout.TransferDst);
         Context.StencilImageId = config.CreateTexture(Context.Extent, ImageFormat.Stencil, ImageLayout.TransferDst);
     }
 
@@ -32,4 +34,4 @@ public class CreateImagesPass : IPass
             .ClearColorImages(new Vector4(0.0f), [drawImage, copyImage])
             .ClearStencilImages(0, [stencilImage]);
     }
-}
+}

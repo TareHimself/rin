@@ -18,6 +18,7 @@ public class GraphicsShaderGeneratorTests
         .Split(Path.PathSeparator)
         .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
         .Append(MetadataReference.CreateFromFile(typeof(IGraphicsModule).Assembly.Location))
+        .Append(MetadataReference.CreateFromFile(typeof(Rin.Shade.Shader).Assembly.Location))
         .ToArray();
 
     private static GeneratorDriverRunResult Run(string source)
@@ -155,6 +156,61 @@ public partial class ShaderUser
         var runResult = Run(source);
 
         Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00017");
+    }
+
+    [Fact]
+    public void GenericArgumentResolvesToGeneratedDescriptor()
+    {
+        const string source = @"
+using Rin.Core.Graphics;
+using Rin.Core.Graphics.Shaders;
+
+namespace TestNamespace;
+
+[Rin.Shade.Shader(""Shaders/Rin/World/blur.slang"")]
+public class BlurShaderDefinition : Rin.Shade.Shader
+{
+}
+
+public partial class ShaderUser
+{
+    [ComputeShader<BlurShaderDefinition>]
+    private partial IComputeShader BlurShader { get; }
+}
+";
+        var runResult = Run(source);
+
+        Assert.Empty(runResult.Diagnostics);
+
+        var generatedFileSyntax = runResult.GeneratedTrees.Single(t => t.FilePath.Contains("ShaderUser"));
+        var generatedText = generatedFileSyntax.GetText().ToString();
+
+        Assert.Contains(
+            "private partial global::Rin.Core.Graphics.Shaders.IComputeShader BlurShader => field ??= global::Rin.Core.Graphics.IGraphicsModule.Get().MakeCompute(global::TestNamespace.BlurShaderDefinition.Descriptor);",
+            generatedText);
+    }
+
+    [Fact]
+    public void GenericArgumentMissingShaderAttributeIsRejected()
+    {
+        const string source = @"
+using Rin.Core.Graphics.Shaders;
+
+namespace TestNamespace;
+
+public class NotAShaderClass : Rin.Shade.Shader
+{
+}
+
+public partial class ShaderUser
+{
+    [ComputeShader<NotAShaderClass>]
+    private partial IComputeShader BlurShader { get; }
+}
+";
+        var runResult = Run(source);
+
+        Assert.Contains(runResult.Diagnostics, d => d.Id == "RIN00023");
     }
 
     [Fact]

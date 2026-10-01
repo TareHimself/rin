@@ -11,13 +11,6 @@ public class SlangReflectionData
 
     [JsonPropertyName("entryPoints")] public EntryPoint[] EntryPoints { get; set; } = [];
 
-    public class ElementType
-    {
-        [JsonPropertyName("kind")] public string Kind { get; set; } = string.Empty;
-
-        [JsonPropertyName("baseShape")] public string BaseShape { get; set; } = string.Empty;
-    }
-
     public class ElementVarLayout
     {
         [JsonPropertyName("binding")] public ParameterBinding? Binding { get; set; }
@@ -25,23 +18,38 @@ public class SlangReflectionData
         [JsonPropertyName("type")] public ParameterType Type { get; set; }
     }
 
+    /// <summary>
+    ///     Recursive - covers a plain resource/scalar/array shape, a user struct's own shape (with
+    ///     <see cref="Fields" />), and a <c>ParameterBlock&lt;T&gt;</c> (kind "parameterBlock", whose
+    ///     own <see cref="ElementType" /> is that struct shape). One type, not a separate simpler type
+    ///     for "leaf" cases - a ParameterBlock's element can itself contain arbitrarily nested structs.
+    /// </summary>
     public class ParameterType
     {
         [JsonPropertyName("kind")] public string Kind { get; set; } = string.Empty;
 
+        [JsonPropertyName("name")] public string? Name { get; set; }
+
         [JsonPropertyName("elementCount")] public int? ElementCount { get; set; }
 
-        [JsonPropertyName("elementType")] public ElementType? ElementType { get; set; }
+        [JsonPropertyName("elementType")] public ParameterType? ElementType { get; set; }
 
         [JsonPropertyName("baseShape")] public string? BaseShape { get; set; }
 
         [JsonPropertyName("elementVarLayout")] public ElementVarLayout? ElementVarLayout { get; set; }
+
+        /// <summary>A struct's (or a ParameterBlock's element struct's) own members, each with its own binding.</summary>
+        [JsonPropertyName("fields")] public Field[]? Fields { get; set; }
     }
 
     public class ParameterBinding
     {
         [JsonPropertyName("kind")] public string Kind { get; set; } = string.Empty;
 
+        // "descriptorTableSlot": the binding index within its set. "subElementRegisterSpace" (a
+        // ParameterBlock's own binding): despite the name, this is the actual set/space index itself -
+        // confirmed empirically against real Slang -reflection-json output, there is no separate
+        // "space" key alongside it for that binding kind.
         [JsonPropertyName("index")] public int? Binding { get; set; } = 0;
 
         [JsonPropertyName("space")] public int? Set { get; set; } = 0;
@@ -56,6 +64,18 @@ public class SlangReflectionData
         [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
 
         [JsonPropertyName("arguments")] public JsonValue[] Arguments { get; set; } = [];
+    }
+
+    /// <summary>One member of a struct-shaped ParameterType.Fields - a resource, a nested struct, or a plain value.</summary>
+    public class Field
+    {
+        [JsonPropertyName("name")] public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("type")] public ParameterType Type { get; set; }
+
+        [JsonPropertyName("binding")] public ParameterBinding? Binding { get; set; }
+
+        [JsonPropertyName("userAttribs")] public UserAttributeField[] UserAttributes { get; set; } = [];
     }
 
     public class Parameter

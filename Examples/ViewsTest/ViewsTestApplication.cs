@@ -21,6 +21,8 @@ public class ViewsTestApplication : ExampleApplication
 {
     public static readonly int TileSize = 400;
 
+    public bool StencilTest { get; init; }
+
     protected override void OnStartup()
     {
         Global.Provider.AddSingle(new ImageLoader());
@@ -32,7 +34,7 @@ public class ViewsTestApplication : ExampleApplication
         //             .Wait();
         // }
         IAudioModule.Get().MasterAudioGroup.Volume = 0.5f;
-        IGraphicsModule.Get().OnWindowRendererCreated += TestAnimation;
+        IGraphicsModule.Get().OnWindowRendererCreated += StencilTest ? StencilScene.Create : TestAnimation;
         IGraphicsModule.Get().OnWindowCreated += OnWindowCreated;
         IGraphicsModule.Get()
             .CreateWindow("Views Test", new Extent2D(500), WindowFlags.Visible | WindowFlags.Resizable);

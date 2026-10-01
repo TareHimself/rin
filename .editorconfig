@@ -1,0 +1,11 @@
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+
+# dotnet sln always regenerates this as CRLF+UTF-8-BOM regardless of what's asked for here.
+[*.sln]
+end_of_line = unset
+charset = unset

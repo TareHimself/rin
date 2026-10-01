@@ -140,7 +140,7 @@ public class PanelLayout(ICompositeView container) : InfiniteChildrenLayout
             var sizeFinal = p2Final - p1Final;
 
             view.Offset = p1Final;
-            if (workingSize != sizeFinal) view.Layout(sizeFinal);
+            if (workingSize != sizeFinal || view.GetSize() != sizeFinal) view.Layout(sizeFinal);
         }
     }
 }

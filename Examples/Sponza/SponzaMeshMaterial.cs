@@ -1,13 +1,16 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using JetBrains.Annotations;
 using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
+using Rin.Shade;
 using Rin.World.Graphics;
 using Rin.World.Graphics.Default;
+using Rin.World.Graphics.Default.Shaders;
+using Rin.World.Graphics.Mesh;
+using Sponza.Shaders;
 
 namespace Sponza;
 
@@ -22,21 +25,13 @@ public class SponzaMeshMaterial : IMeshMaterial
     public IMaterialPass ColorPass { get; } = new ColorMeshPass();
     public IMaterialPass DepthPass { get; } = new DepthMeshPass();
 
-    [NoReorder]
-    private struct PushConstant
-    {
-        public ulong SceneAddress;
-        public ulong DataAddress;
-    }
-
     private class ColorMeshPass : SimpleMaterialPass
     {
-        public override IGraphicsShader Shader { get; } = IGraphicsModule.Get()
-            .MakeGraphics(@"Sponza/mesh.slang");
+        public override IGraphicsShader Shader { get; } = IGraphicsModule.Get().MakeGraphics(SponzaMeshShader.Descriptor);
 
         public override ulong GetRequiredMemory()
         {
-            return Utils.ByteSizeOf<DefaultMaterialProperties>();
+            return Utils.ByteSizeOf<SponzaMeshData>();
         }
 
         public override IGraphicsBindContext? BindGroup(WorldFrame frame, in DeviceBufferView groupMaterialBuffer)
@@ -44,10 +39,10 @@ public class SponzaMeshMaterial : IMeshMaterial
             var ctx = frame.ExecutionContext;
             if (Shader.Bind(ctx) is { } bindContext)
                 return bindContext
-                    .Push(new PushConstant
+                    .Push(new SponzaMeshShader.PushConstants
                     {
-                        SceneAddress = frame.SceneInfo.GetAddress(),
-                        DataAddress = groupMaterialBuffer!.GetAddress()
+                        Scene = new BufferRef<WorldInfo>(frame.SceneInfo.GetAddress()),
+                        Data = new BufferRef<SponzaMeshData>(groupMaterialBuffer!.GetAddress())
                     });
 
             return null;
@@ -69,35 +64,22 @@ public class SponzaMeshMaterial : IMeshMaterial
         {
             Debug.Assert(mesh.Material is SponzaMeshMaterial);
             var meshMaterial = (SponzaMeshMaterial)mesh.Material;
-            var data = new DefaultMaterialProperties
+            var data = new SponzaMeshData
             {
+                Vertices = new BufferRef<Vertex>(mesh.VertexBuffer.GetAddress()),
                 Transform = mesh.Transform,
-                VertexAddress = mesh.VertexBuffer.GetAddress(),
                 Color = meshMaterial.Color,
-                ColorHandle = meshMaterial.ColorImageId,
-                NormalHandle = meshMaterial.NormalImageId,
-                MetallicRoughnessHandle = meshMaterial.MetallicRoughnessImageId
+                ColorTexture = meshMaterial.ColorImageId,
+                NormalTexture = meshMaterial.NormalImageId,
+                MetallicRoughnessTexture = meshMaterial.MetallicRoughnessImageId
             };
             MemoryMarshal.Write(destination, in data);
-        }
-
-        // Field order/types mirror Examples/Sponza/Content/mesh.slang's PerMeshData exactly.
-        [NoReorder]
-        private struct DefaultMaterialProperties()
-        {
-            [PublicAPI] public ulong VertexAddress = 0;
-            [PublicAPI] public Matrix4x4 Transform = Matrix4x4.Identity;
-            public Vector4 Color;
-            public DeviceHandle ColorHandle;
-            public DeviceHandle NormalHandle;
-            public DeviceHandle MetallicRoughnessHandle;
         }
     }
 
     private class DepthMeshPass : SimpleMaterialPass
     {
-        public override IGraphicsShader Shader { get; } = IGraphicsModule.Get()
-            .MakeGraphics("Shaders/World/Mesh/mesh_depth.slang");
+        public override IGraphicsShader Shader { get; } = IGraphicsModule.Get().MakeGraphics(MeshDepthShader.Descriptor);
 
         public override ulong GetRequiredMemory()
         {
@@ -109,10 +91,10 @@ public class SponzaMeshMaterial : IMeshMaterial
             var ctx = frame.ExecutionContext;
             if (Shader.Bind(ctx) is { } bindContext)
                 return bindContext
-                    .Push(new PushConstant
+                    .Push(new MeshDepthShader.PushConstants
                     {
-                        SceneAddress = frame.SceneInfo.GetAddress(),
-                        DataAddress = groupMaterialBuffer!.GetAddress()
+                        Scene = new BufferRef<DepthSceneInfo>(frame.SceneInfo.GetAddress()),
+                        Data = new BufferRef<DepthMaterialData>(groupMaterialBuffer!.GetAddress())
                     });
 
             return null;
@@ -128,15 +110,8 @@ public class SponzaMeshMaterial : IMeshMaterial
             MemoryMarshal.Write(destination, new DepthMaterialData
             {
                 Transform = mesh.Transform,
-                VertexAddress = mesh.VertexBuffer.GetAddress()
+                Vertices = new BufferRef<Vertex>(mesh.VertexBuffer.GetAddress())
             });
-        }
-
-        [NoReorder]
-        private struct DepthMaterialData
-        {
-            public Matrix4x4 Transform;
-            public ulong VertexAddress;
         }
     }
 }

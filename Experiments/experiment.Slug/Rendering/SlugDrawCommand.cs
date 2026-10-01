@@ -8,20 +8,11 @@ using Rin.Core.Views.Graphics;
 using Rin.Core.Views.Graphics.CommandHandlers;
 using Rin.Core.Views.Graphics.Commands;
 using Rin.Core.Views.Graphics.PassConfigs;
+using experiment.Slug.Shaders;
+using Rin.Shade;
 using SixLabors.Fonts;
 
 namespace experiment.Slug.Rendering;
-
-// Push constants sent to slug.slang for each draw call — must match struct SlugPush exactly.
-[StructLayout(LayoutKind.Sequential)]
-[NoReorder]
-internal struct SlugPush
-{
-    public required ulong BufferAddress;
-    public required DeviceHandle CurveTexture;
-    public required DeviceHandle BandTexture;
-    public required Matrix4x4 Projection;
-}
 
 // Batches one or more SLUG draws that share the same atlas into a single instanced draw call.
 public class SlugDrawCommand : TCommand<MainPassConfig, SlugDrawHandler>
@@ -32,7 +23,7 @@ public class SlugDrawCommand : TCommand<MainPassConfig, SlugDrawHandler>
 
 public partial class SlugDrawHandler : ICommandHandler
 {
-    [GraphicsShader("Slug/slug.slang")]
+    [GraphicsShader<SlugShader>]
     private partial IGraphicsShader Shader { get; }
 
     private SlugDrawCommand[] _commands = [];
@@ -65,9 +56,9 @@ public partial class SlugDrawHandler : ICommandHandler
 
             if (Shader.Bind(ctx) is not { } bind) continue;
 
-            bind.Push(new SlugPush
+            bind.Push(new SlugShader.PushConstants
                 {
-                    BufferAddress = buffer.GetAddress(),
+                    Instances = new BufferRef<SlugInstanceData>(buffer.GetAddress()),
                     CurveTexture = command.Atlas.CurveHandle,
                     BandTexture = command.Atlas.BandHandle,
                     Projection = surfaceContext.ProjectionMatrix

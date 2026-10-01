@@ -1,0 +1,67 @@
+<Project>
+
+    <!--
+        Shared build-time step for C#-authored (Rin.Shade) shaders, backed by the CompileRinShadeShaders
+        MSBuild Task (Rin.Shade.MSBuild) - transpiles + compiles + embeds in one in-process step.
+        [Shader("...")]-attributed classes are found via ShadeEmitter walking the importing project's own
+        compilation, and no .slang file is ever written to the tracked tree. The compiled result is
+        embedded directly. To inspect the emitted Slang, build with -p:RinShadeDumpGenerated=true: it is
+        written under the project's output directory in GeneratedShaders/ (override with
+        RinShadeGeneratedDirectory).
+
+        A consuming project sets, before importing this file:
+          <PropertyGroup>
+            <RinShadeDiscoverPrefix>...</RinShadeDiscoverPrefix>   the prefix its own [Shader("...")]
+                                                                    classes use (Shaders/Rin/Core/,
+                                                                    Shaders/Sponza/, ...)
+            <RinShadeOutputSubpath>...</RinShadeOutputSubpath>     relative to $(IntermediateOutputPath);
+                                                                    also the LogicalName's own prefix
+          </PropertyGroup>
+    -->
+
+    <PropertyGroup>
+        <RinShadeRepoRoot Condition="'$(RinShadeRepoRoot)' == ''">$(MSBuildThisFileDirectory)..</RinShadeRepoRoot>
+        <RinShadeMSBuildProject Condition="'$(RinShadeMSBuildProject)' == ''">$(MSBuildThisFileDirectory)..\Shade\Rin.Shade.MSBuild\Rin.Shade.MSBuild.csproj</RinShadeMSBuildProject>
+        <RinShadeMSBuildAssembly Condition="'$(RinShadeMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\Shade\Rin.Shade.MSBuild\bin\Release\net10.0\Rin.Shade.MSBuild.dll</RinShadeMSBuildAssembly>
+    </PropertyGroup>
+
+    <UsingTask TaskName="Rin.Shade.MSBuild.CompileRinShadeShaders" AssemblyFile="$(RinShadeMSBuildAssembly)" />
+
+    <!--
+        Only builds if the DLL doesn't already exist: MSBuild node reuse keeps a process holding the task
+        assembly loaded, so rebuilding it on every consuming build fails with a file-in-use error. Build it
+        explicitly after a transpiler change (stop the build servers first if the DLLs are locked).
+    -->
+    <Target Name="BuildRinShadeMSBuildTask" Condition="'$(RinShadeSkipCompile)' != 'true' AND !Exists('$(RinShadeMSBuildAssembly)')">
+        <MSBuild Projects="$(RinShadeMSBuildProject)" Targets="Build" Properties="Configuration=Release" />
+    </Target>
+
+    <!--
+        RinShadeSkipCompile opts out entirely for contexts that never
+        need a real transpile+compile (e.g. CI running unit tests against fake natives).
+    -->
+    <Target Name="CompileShadeShaders"
+            BeforeTargets="BeforeCompile;AssignTargetPaths"
+            DependsOnTargets="ResolveReferences;BuildRinShadeMSBuildTask"
+            Condition="'$(RinShadeSkipCompile)' != 'true'">
+
+        <PropertyGroup>
+            <RinShadeOutputRoot>$(IntermediateOutputPath)$(RinShadeOutputSubpath)</RinShadeOutputRoot>
+            <RinShadeGeneratedDirectory Condition="'$(RinShadeDumpGenerated)' == 'true' AND '$(RinShadeGeneratedDirectory)' == ''">$(OutDir)GeneratedShaders</RinShadeGeneratedDirectory>
+        </PropertyGroup>
+
+        <CompileRinShadeShaders
+                RepoRoot="$(RinShadeRepoRoot)"
+                DiscoverPrefix="$(RinShadeDiscoverPrefix)"
+                Sources="@(Compile)"
+                References="@(ReferencePath)"
+                OutputRoot="$(RinShadeOutputRoot)"
+                OutputSubpath="$(RinShadeOutputSubpath)"
+                GeneratedDirectory="$(RinShadeGeneratedDirectory)"
+                AssemblyName="$(AssemblyName)">
+            <Output TaskParameter="CompiledFiles" ItemName="EmbeddedResource" />
+        </CompileRinShadeShaders>
+
+    </Target>
+
+</Project>

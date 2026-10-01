@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>SampleWorld</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Rin.Shade\Rin.Shade.csproj"/>
+        <ProjectReference Include="..\SampleStdlib\SampleStdlib.csproj"/>
+        <ProjectReference Include="..\..\Rin.Shade.SourceGenerator\Rin.Shade.SourceGenerator.csproj"
+                           OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+</Project>

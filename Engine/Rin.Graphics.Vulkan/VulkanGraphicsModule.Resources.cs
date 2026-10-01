@@ -18,10 +18,10 @@ namespace Rin.Graphics.Vulkan;
 /// </summary>
 public partial class VulkanGraphicsModule
 {
-    private const uint MaxTextures = 2048;
-    private const uint MaxCubemaps = 512;
-    private const uint MaxTextureArrays = 512;
-    private const uint SamplerCount = 6;
+    private const uint MaxTextures = BindlessData.TextureCount;
+    private const uint MaxCubemaps = BindlessData.CubemapCount;
+    private const uint MaxTextureArrays = BindlessData.TextureArrayCount;
+    private const uint SamplerCount = BindlessData.SamplerCount;
     private const uint SamplersBinding = 0;
     private const uint TexturesBinding = 1;
     private const uint TextureArraysBinding = 2;
@@ -266,6 +266,7 @@ public partial class VulkanGraphicsModule
     public ResourceHandle CreateTexture(in Extent2D size, ImageFormat format, bool mips = false,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
+        ThrowIfEmpty(size);
         var image = CreateVulkanTexture(size, format, mips, usage);
         var isBindless = usage.HasFlag(ImageCreateFlags.Sampled);
 
@@ -294,6 +295,7 @@ public partial class VulkanGraphicsModule
     public ResourceHandle CreateTextureArray(in Extent2D size, ImageFormat format, uint count, bool mips = false,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
+        ThrowIfEmpty(size);
         var image = CreateVulkanTextureArray(size, format, count, mips, usage);
         var isBindless = usage.HasFlag(ImageCreateFlags.Sampled);
 
@@ -322,6 +324,7 @@ public partial class VulkanGraphicsModule
     public ResourceHandle CreateCubemap(in Extent2D size, ImageFormat format, bool mips = false,
         ImageCreateFlags usage = ImageCreateFlags.None)
     {
+        ThrowIfEmpty(size);
         var image = CreateVulkanCubemap(size, format, mips, usage);
         var isBindless = usage.HasFlag(ImageCreateFlags.Sampled);
 
@@ -834,6 +837,19 @@ public partial class VulkanGraphicsModule
             [_resourceDescriptorSet]);
     }
 
+    public const string GlobalBindlessBlockName = BindlessData.Name;
+
+    /// <summary>
+    ///     The engine-owned descriptor set layout a shader's <c>[BindlessBlock(name)]</c> resolves to, or
+    ///     null if no block is registered under that name. The shader's own layout for that set is
+    ///     replaced by this one rather than built from reflection, so the block's declaration in the
+    ///     shader and the engine's table can't drift apart silently.
+    /// </summary>
+    public VkDescriptorSetLayout? FindBindlessBlockLayout(string name)
+    {
+        return name == GlobalBindlessBlockName ? _resourceDescriptorSetLayout : null;
+    }
+
     public DescriptorSet GetResourceDescriptorSet()
     {
         return _resourceDescriptorSet;
@@ -844,10 +860,17 @@ public partial class VulkanGraphicsModule
         return _resourcePipelineLayout;
     }
 
+    private static void ThrowIfEmpty(in Extent2D size)
+    {
+        if (size.Width == 0 || size.Height == 0)
+            throw new ArgumentOutOfRangeException(nameof(size), size, "Image dimensions must be greater than zero");
+    }
+
     // --- Buffer registry ---
 
     public ResourceHandle CreateBuffer(ulong size, BufferCreateFlags flags, bool sequentialWrite = true)
     {
+        ArgumentOutOfRangeException.ThrowIfZero(size);
         var hostVisible = flags.IsHostVisible();
         var buffer = NewBuffer(size, flags.ToVkUsage(), flags.ToVkMemoryProperty(), sequentialWrite,
             false, hostVisible, "Buffer");

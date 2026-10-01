@@ -14,7 +14,7 @@ public sealed class Global
         [
             new FileSystemSource(),
             AssemblyContentResource.New<Global>("Core"),
-            AssemblyContentResource.New<Global>("Shaders/Core")
+            AssemblyContentResource.New<Global>("Shaders/Rin/Core")
         ]
     };
 

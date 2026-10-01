@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- Loaded standalone as an MSBuild plugin (UsingTask), not referenced by another .NET project,
+             so nothing else copies its transitive dependencies - Roslyn, and (via Rin.Slang.Compiler)
+             the native Slang DLLs - into its own output. Same RID-forcing as Rin.Slang.MSBuild.csproj:
+             a plain class library wouldn't get runtimes/{rid}/native/* resolved/copied by default. -->
+        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
+        <SelfContained>false</SelfContained>
+        <!-- Keep the output at bin\Release\net10.0\, not bin\Release\net10.0\{rid}\, so RinShade.targets
+             can reference a fixed, RID-independent path to the built task assembly. -->
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <PackageId>TareHimself.Rin.Shade.MSBuild</PackageId>
+        <Title>Rin.Shade.MSBuild</Title>
+        <Authors>TareHimself</Authors>
+        <Version>1.0.0</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Rin.Shade.Transpiler\Rin.Shade.Transpiler.csproj" />
+        <ProjectReference Include="..\..\Slang\Rin.Slang.Compiler\Rin.Slang.Compiler.csproj" />
+        <PackageReference Include="Microsoft.Build.Utilities.Core" />
+    </ItemGroup>
+
+</Project>
