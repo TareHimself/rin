@@ -4,8 +4,10 @@
         Shared build-time step for C#-authored (Rin.Shade) shaders, backed by the CompileRinShadeShaders
         MSBuild Task (Rin.Shade.MSBuild) - transpiles + compiles + embeds in one in-process step.
         [Shader("...")]-attributed classes are found via ShadeEmitter walking the importing project's own
-        compilation, and no .slang file is ever written to the tracked tree - the emitted Slang is dumped
-        under debugGeneratedShaders/ for inspection and the compiled result is embedded directly.
+        compilation, and no .slang file is ever written to the tracked tree. The compiled result is
+        embedded directly. To inspect the emitted Slang, build with -p:RinShadeDumpGenerated=true: it is
+        written under the project's output directory in GeneratedShaders/ (override with
+        RinShadeGeneratedDirectory).
 
         A consuming project sets, before importing this file:
           <PropertyGroup>
@@ -19,7 +21,6 @@
 
     <PropertyGroup>
         <RinShadeRepoRoot Condition="'$(RinShadeRepoRoot)' == ''">$(MSBuildThisFileDirectory)..</RinShadeRepoRoot>
-        <RinShadeGeneratedDirectory Condition="'$(RinShadeGeneratedDirectory)' == ''">$(RinShadeRepoRoot)\debugGeneratedShaders\$(MSBuildProjectName)</RinShadeGeneratedDirectory>
         <RinShadeMSBuildProject Condition="'$(RinShadeMSBuildProject)' == ''">$(MSBuildThisFileDirectory)..\Shade\Rin.Shade.MSBuild\Rin.Shade.MSBuild.csproj</RinShadeMSBuildProject>
         <RinShadeMSBuildAssembly Condition="'$(RinShadeMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\Shade\Rin.Shade.MSBuild\bin\Release\net10.0\Rin.Shade.MSBuild.dll</RinShadeMSBuildAssembly>
     </PropertyGroup>
@@ -46,6 +47,7 @@
 
         <PropertyGroup>
             <RinShadeOutputRoot>$(IntermediateOutputPath)$(RinShadeOutputSubpath)</RinShadeOutputRoot>
+            <RinShadeGeneratedDirectory Condition="'$(RinShadeDumpGenerated)' == 'true' AND '$(RinShadeGeneratedDirectory)' == ''">$(OutDir)GeneratedShaders</RinShadeGeneratedDirectory>
         </PropertyGroup>
 
         <CompileRinShadeShaders
