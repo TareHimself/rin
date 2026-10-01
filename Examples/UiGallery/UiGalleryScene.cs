@@ -26,7 +26,7 @@ public static class UiGalleryScene
 
     private sealed class GalleryCanvas : ContentView
     {
-        private const float Padding = 16f;
+        private const float Margin = 16f;
         private const float Gap = 16f;
         private const float TitleHeight = 28f;
 
@@ -95,20 +95,20 @@ public static class UiGalleryScene
             foreach (var (section, position) in Flow(width))
                 bottom = MathF.Max(bottom, position.Y + TitleHeight + section.Size.Y);
 
-            return bottom + Padding;
+            return bottom + Margin;
         }
 
         private IEnumerable<(Section Section, Vector2 Position)> Flow(float width)
         {
-            var x = Padding;
-            var y = Padding;
+            var x = Margin;
+            var y = Margin;
             var rowHeight = 0f;
 
             foreach (var section in _sections)
             {
-                if (x > Padding && x + section.Size.X > width - Padding)
+                if (x > Margin && x + section.Size.X > width - Margin)
                 {
-                    x = Padding;
+                    x = Margin;
                     y += rowHeight + Gap;
                     rowHeight = 0f;
                 }

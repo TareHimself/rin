@@ -36,6 +36,42 @@ public class ShaderDescriptorSourceGeneratorTests
     }
 
     [Test]
+    public void DerivedShaderHidesTheBaseDescriptorAndPathExplicitly()
+    {
+        const string source = """
+                               using Rin.Shade;
+
+                               namespace HidingCheck;
+
+                               [Shader("Check/base.slang")]
+                               public partial class BaseShader : Shader
+                               {
+                                   [Compute(1, 1, 1)]
+                                   public virtual void Compute() { }
+                               }
+
+                               [Shader("Check/derived.slang")]
+                               public partial class DerivedShader : BaseShader
+                               {
+                                   public override void Compute() { }
+                               }
+                               """;
+
+        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
+            .Split(Path.PathSeparator)
+            .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path));
+        var compilation = CSharpCompilation.Create($"HidingProbe_{Guid.NewGuid():N}",
+            [CSharpSyntaxTree.ParseText(source)], references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        var driver = CSharpGeneratorDriver.Create(new ShaderDescriptorSourceGenerator(), new ShaderPathSourceGenerator());
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);
+
+        var hiding = output.GetDiagnostics().Where(d => d.Id is "CS0108" or "CS0109").ToList();
+        Assert.That(hiding, Is.Empty, string.Join(", ", hiding));
+    }
+
+    [Test]
     public void GraphicsShaderDescriptorCarriesPipelineState()
     {
         const string source = """

@@ -74,7 +74,7 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
             var args = computeEntry.Attribute.ConstructorArguments;
             if (args.Length != 3) return;
             descriptor =
-                $"public static global::Rin.Shade.IComputeDescriptor Descriptor {{ get; }} = new global::Rin.Shade.ComputeDescriptor({pathLiteral}, ({args[0].Value}u, {args[1].Value}u, {args[2].Value}u));";
+                $"public {(BaseHasGeneratedDescriptor(symbol) ? "new " : "")}static global::Rin.Shade.IComputeDescriptor Descriptor {{ get; }} = new global::Rin.Shade.ComputeDescriptor({pathLiteral}, ({args[0].Value}u, {args[1].Value}u, {args[2].Value}u));";
         }
         else if (vertex is { } vertexEntry && compute is null)
         {
@@ -87,7 +87,7 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
             var formatsLiteral = string.Join(", ", formats.Select(f => $"global::Rin.Shade.AttachmentFormat.{f}"));
 
             descriptor =
-                $"public static global::Rin.Shade.IGraphicsDescriptor Descriptor {{ get; }} = new global::Rin.Shade.GraphicsDescriptor({pathLiteral}, new global::Rin.Shade.AttachmentFormat[] {{ {formatsLiteral} }}, new {symbol.Name}().BlendState, {(usesDepth ? "true" : "false")}, {(usesStencil ? "true" : "false")});";
+                $"public {(BaseHasGeneratedDescriptor(symbol) ? "new " : "")}static global::Rin.Shade.IGraphicsDescriptor Descriptor {{ get; }} = new global::Rin.Shade.GraphicsDescriptor({pathLiteral}, new global::Rin.Shade.AttachmentFormat[] {{ {formatsLiteral} }}, new {symbol.Name}().BlendState, {(usesDepth ? "true" : "false")}, {(usesStencil ? "true" : "false")});";
         }
         else
         {
@@ -105,6 +105,19 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
         builder.AppendLine("}");
 
         context.AddSource($"{symbol.Name}.ShaderDescriptor.g.cs", builder.ToString());
+    }
+
+    // A base shader that also gets a generated Descriptor is hidden by the derived one's, so it says `new`.
+    private static bool BaseHasGeneratedDescriptor(INamedTypeSymbol symbol)
+    {
+        for (var current = symbol.BaseType; current is not null; current = current.BaseType)
+            if (HasAttribute(current, ShaderAttributeFullName) && current is
+                    { IsAbstract: false, IsGenericType: false, ContainingType: null } &&
+                current.DeclaringSyntaxReferences.Select(r => r.GetSyntax()).OfType<ClassDeclarationSyntax>()
+                    .Any(d => d.Modifiers.Any(SyntaxKind.PartialKeyword)))
+                return true;
+
+        return false;
     }
 
     private static List<INamedTypeSymbol> WalkBaseChain(INamedTypeSymbol shaderClass)
