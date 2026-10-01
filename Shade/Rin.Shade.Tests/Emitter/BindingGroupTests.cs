@@ -60,39 +60,7 @@ public class BindingGroupTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        const string expected = """
-                                 namespace BindingGroupCheck
-                                 {
-                                     struct BindingPush
-                                     {
-                                         int index;
-                                         float* output;
-                                     }
-
-                                     struct MaterialResources
-                                     {
-                                         SamplerState samplers[4];
-                                         Texture2D readTextures[8];
-                                     }
-
-                                 }
-
-                                 ParameterBlock<BindingGroupCheck::MaterialResources> material;
-
-                                 [[vk::push_constant]] uniform ConstantBuffer<BindingGroupCheck::BindingPush, ScalarDataLayout> push;
-
-                                 [shader("compute")]
-                                 [numthreads(1, 1, 1)]
-                                 void compute()
-                                 {
-                                     var t = material.readTextures[push.index];
-                                     push.output[0] = 1;
-                                 }
-
-                                 """;
-
-        Assert.That(result.Shaders["BindingShader"].Replace("\r\n", "\n"),
-            Is.EqualTo(expected.Replace("\r\n", "\n")));
+        Snapshot.Verify(result.Shaders["BindingShader"]);
     }
 
     [Test]

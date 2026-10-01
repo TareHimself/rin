@@ -16,52 +16,7 @@ public class GraphicsShaderEmitterTests
         Assert.That(result.Diagnostics, Is.Empty);
         Assert.That(result.Shaders.Keys, Is.EquivalentTo(new[] { "GraphicsTriangleFixtureShader" }));
 
-        const string expected = """
-                                 namespace Rin::Shade::Tests::Fixtures
-                                 {
-                                     struct GraphicsPushConstants
-                                     {
-                                         float4 color;
-                                     }
-
-                                     struct VsIn
-                                     {
-                                         int vertexId : SV_VertexID;
-                                     }
-
-                                     struct VsOut
-                                     {
-                                         float2 uv : UV;
-                                         float4 position : SV_Position;
-                                     }
-
-                                     struct FsIn
-                                     {
-                                         float2 uv : UV;
-                                     }
-
-                                 }
-
-                                 [[vk::push_constant]] uniform ConstantBuffer<Rin::Shade::Tests::Fixtures::GraphicsPushConstants, ScalarDataLayout> push;
-
-                                 [shader("vertex")]
-                                 Rin::Shade::Tests::Fixtures::VsOut vertex(Rin::Shade::Tests::Fixtures::VsIn input)
-                                 {
-                                     Rin::Shade::Tests::Fixtures::VsOut output;
-                                     output.uv = float2(0, 0);
-                                     output.position = float4(0, 0, 0, 1);
-                                     return output;
-                                 }
-
-                                 [shader("fragment")]
-                                 float4 fragment(Rin::Shade::Tests::Fixtures::FsIn input)
-                                 {
-                                     return push.color;
-                                 }
-
-                                 """;
-
-        Assert.That(result.Shaders["GraphicsTriangleFixtureShader"].Replace("\r\n", "\n"), Is.EqualTo(expected.Replace("\r\n", "\n")));
+        Snapshot.Verify(result.Shaders["GraphicsTriangleFixtureShader"]);
     }
 
     [Test]

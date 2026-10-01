@@ -63,7 +63,7 @@ public class BindlessBlockTests
 
         Assert.That(slang, Does.Contain("struct BindlessBlockAttribute { string name; };"));
         Assert.That(slang, Does.Contain(
-            "[BindlessBlock(\"rin.global\")] ParameterBlock<BindlessCheck::BindlessData> bindless;"));
+            "[BindlessBlock(\"rin.global\")] ParameterBlock<BindlessData> bindless;"));
         Assert.That(slang, Does.Contain("Texture2D textures[16];"));
         Assert.That(slang, Does.Contain("SamplerState samplers[4];"));
     }
@@ -155,7 +155,7 @@ public class BindlessBlockTests
 
         Assert.That(result.Diagnostics, Is.Empty);
         var slang = result.Shaders["OrderShader"];
-        Assert.That(slang.IndexOf("ParameterBlock<BindlessCheck::BindlessData> bindless", System.StringComparison.Ordinal),
-            Is.LessThan(slang.IndexOf("ParameterBlock<BindlessCheck::MaterialResources> material", System.StringComparison.Ordinal)));
+        Assert.That(slang.IndexOf("ParameterBlock<BindlessData> bindless", System.StringComparison.Ordinal),
+            Is.LessThan(slang.IndexOf("ParameterBlock<MaterialResources> material", System.StringComparison.Ordinal)));
     }
 }

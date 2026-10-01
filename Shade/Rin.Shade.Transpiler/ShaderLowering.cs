@@ -137,7 +137,21 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             writer.Line();
         }
 
-        TypeEmitter.Emit(types, diagnostics, writer);
+        var declared = TypeEmitter.Declared(types);
+        TypeEmitter.Emit(types, diagnostics, writer, declared);
+
+        // The shader's own namespace (and the one holding its class) is where most of what the rest of the
+        // file names lives, so open it up and let the signatures read like the C#.
+        var shaderNamespace = Naming.NamespacePath(shaderClass);
+        var usings = new List<string>();
+        if (declared.Contains(shaderNamespace.Length == 0 ? shaderClass.Name : $"{shaderNamespace}::{shaderClass.Name}"))
+            usings.Add(shaderNamespace.Length == 0 ? shaderClass.Name : $"{shaderNamespace}::{shaderClass.Name}");
+        if (shaderNamespace.Length > 0 && declared.Contains(shaderNamespace)) usings.Add(shaderNamespace);
+
+        foreach (var name in usings) writer.Line($"using namespace {name};");
+        if (usings.Count > 0) writer.Line();
+
+        using var globalScope = NameScope.WithUsings(usings, declared);
 
         if (bindingFields.Count > 0)
         {
@@ -155,11 +169,39 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             writer.Line();
         }
 
-        foreach (var function in functionOrder)
+        INamedTypeSymbol? openExtension = null;
+        foreach (var function in FunctionGrouping.Group(functionOrder, functionCollector.Dependencies))
         {
-            writer.Append(FunctionLowering.Lower(compilation, function, diagnostics, withHelperSpecs, overrides));
-            writer.Line();
+            var lowered = FunctionLowering.Lower(compilation, function, diagnostics, withHelperSpecs, overrides);
+            if (string.IsNullOrEmpty(lowered.Text)) continue;
+
+            if (!SymbolEqualityComparer.Default.Equals(lowered.ExtensionOf, openExtension))
+            {
+                if (openExtension is not null) writer.CloseBrace().Line();
+                openExtension = lowered.ExtensionOf;
+                if (openExtension is not null)
+                {
+                    using (NameScope.Qualified())
+                        writer.OpenBrace($"extension {TypeMapping.MapType(openExtension)}");
+                }
+            }
+            else if (openExtension is not null)
+            {
+                writer.Line();
+            }
+
+            if (openExtension is null)
+            {
+                writer.Append(lowered.Text);
+                writer.Line();
+            }
+            else
+            {
+                writer.AppendBlock(lowered.Text);
+            }
         }
+
+        if (openExtension is not null) writer.CloseBrace().Line();
 
         if (pushField is not null)
         {

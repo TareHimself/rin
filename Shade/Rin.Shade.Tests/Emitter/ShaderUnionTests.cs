@@ -74,10 +74,10 @@ public class ShaderUnionTests
         var slang = result.Shaders["UnionShader"].Replace("\r\n", "\n");
 
         Assert.That(slang, Does.Contain("    struct Quad\n    {\n        float4 opts;\n        float2 size;\n    }"));
-        Assert.That(slang, Does.Contain("    struct __Shade__Quad_Line\n    {\n        Quad header;\n        UnionCheck::LineData payload;\n    }"));
-        Assert.That(slang, Does.Contain("    struct __Shade__Quad_Circle\n    {\n        Quad header;\n        UnionCheck::CircleData payload;\n    }"));
-        Assert.That(slang, Does.Contain("    struct __Shade__Quad_Extra\n    {\n        Quad header;\n        UnionCheck::Extra payload;\n    }"));
-        Assert.That(slang, Does.Contain("    struct __Shade__Quad_Extra_A\n    {\n        Quad header;\n        UnionCheck::__Shade__Extra_A payload;\n    }"));
+        Assert.That(slang, Does.Contain("    struct __Shade__Quad_Line\n    {\n        Quad header;\n        LineData payload;\n    }"));
+        Assert.That(slang, Does.Contain("    struct __Shade__Quad_Circle\n    {\n        Quad header;\n        CircleData payload;\n    }"));
+        Assert.That(slang, Does.Contain("    struct __Shade__Quad_Extra\n    {\n        Quad header;\n        Extra payload;\n    }"));
+        Assert.That(slang, Does.Contain("    struct __Shade__Quad_Extra_A\n    {\n        Quad header;\n        __Shade__Extra_A payload;\n    }"));
         Assert.That(slang, Does.Contain("    struct __Shade__Extra_A\n    {\n        Extra header;\n        float2 payload;\n    }"));
         Assert.That(slang, Does.Contain("    struct __Shade__CompleteQuad\n    {\n        Quad header;\n        uint _padding[17];\n    }"));
     }
@@ -90,9 +90,9 @@ public class ShaderUnionTests
         Assert.That(result.Diagnostics, Is.Empty);
         var slang = result.Shaders["UnionShader"];
 
-        Assert.That(slang, Does.Contain("UnionCheck::__Shade__CompleteQuad quad;"));
+        Assert.That(slang, Does.Contain("__Shade__CompleteQuad quad;"));
         Assert.That(slang, Does.Contain("push.quad.header.size.x"));
-        Assert.That(slang, Does.Contain("reinterpret<UnionCheck::__Shade__Quad_Extra>(push.quad).payload.tag"));
+        Assert.That(slang, Does.Contain("reinterpret<__Shade__Quad_Extra>(push.quad).payload.tag"));
     }
 
     [Test]
@@ -104,8 +104,8 @@ public class ShaderUnionTests
         Assert.That(result.Diagnostics, Is.Empty);
         var slang = result.Shaders["UnionShader"];
 
-        Assert.That(slang, Does.Contain("reinterpret<UnionCheck::__Shade__Quad_Line>(push.quad).payload.thickness"));
-        Assert.That(slang, Does.Contain("reinterpret<UnionCheck::__Shade__Quad_Extra_B>(push.quad).payload.payload.x"));
+        Assert.That(slang, Does.Contain("reinterpret<__Shade__Quad_Line>(push.quad).payload.thickness"));
+        Assert.That(slang, Does.Contain("reinterpret<__Shade__Quad_Extra_B>(push.quad).payload.payload.x"));
     }
 
     private static string BufferShader(string body) => Shader(body).Replace(
@@ -124,10 +124,10 @@ public class ShaderUnionTests
         Assert.That(result.Diagnostics, Is.Empty);
         var slang = result.Shaders["UnionShader"];
 
-        Assert.That(slang, Does.Contain("((UnionCheck::__Shade__Quad_Line*)(push.quads + 0))->payload.thickness = 1;"));
+        Assert.That(slang, Does.Contain("((__Shade__Quad_Line*)(push.quads + 0))->payload.thickness = 1;"));
         Assert.That(slang, Does.Contain("var quad = push.quads + 1;"));
-        Assert.That(slang, Does.Contain("((UnionCheck::__Shade__Quad_Circle*)(quad))->payload.radius = 2;"));
-        Assert.That(slang, Does.Contain("((UnionCheck::__Shade__Quad_Extra_B*)(push.quads + 2))->payload.payload.x"));
+        Assert.That(slang, Does.Contain("((__Shade__Quad_Circle*)(quad))->payload.radius = 2;"));
+        Assert.That(slang, Does.Contain("((__Shade__Quad_Extra_B*)(push.quads + 2))->payload.payload.x"));
     }
 
     [Test]
@@ -139,7 +139,7 @@ public class ShaderUnionTests
             """)));
 
         Assert.That(result.Diagnostics, Is.Empty);
-        Assert.That(result.Shaders["UnionShader"], Does.Contain("reinterpret<UnionCheck::__Shade__Quad_Line>(copy).payload.thickness"));
+        Assert.That(result.Shaders["UnionShader"], Does.Contain("reinterpret<__Shade__Quad_Line>(copy).payload.thickness"));
     }
 
     [Test]

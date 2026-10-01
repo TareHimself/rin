@@ -38,29 +38,6 @@ public class VectorConstructorTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        const string expected = """
-                                 namespace VectorConstructorCheck
-                                 {
-                                     struct VectorConstructorPush
-                                     {
-                                         float3* output;
-                                     }
-
-                                 }
-
-                                 [[vk::push_constant]] uniform ConstantBuffer<VectorConstructorCheck::VectorConstructorPush, ScalarDataLayout> push;
-
-                                 [shader("compute")]
-                                 [numthreads(1, 1, 1)]
-                                 void compute()
-                                 {
-                                     var v = float3(1, 2, 3);
-                                     push.output[0] = v;
-                                 }
-
-                                 """;
-
-        Assert.That(result.Shaders["VectorConstructorShader"].Replace("\r\n", "\n"),
-            Is.EqualTo(expected.Replace("\r\n", "\n")));
+        Snapshot.Verify(result.Shaders["VectorConstructorShader"]);
     }
 }

@@ -45,34 +45,6 @@ public class GenericBaseShaderTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        const string expected = """
-                                 namespace GenericBaseCheck
-                                 {
-                                     struct ConsumerPush
-                                     {
-                                         float value;
-                                         float* output;
-                                     }
-
-                                 }
-
-                                 float getValue(GenericBaseCheck::ConsumerPush push)
-                                 {
-                                     return push.value;
-                                 }
-
-                                 [[vk::push_constant]] uniform ConstantBuffer<GenericBaseCheck::ConsumerPush, ScalarDataLayout> push;
-
-                                 [shader("compute")]
-                                 [numthreads(1, 1, 1)]
-                                 void compute()
-                                 {
-                                     var v = getValue(push);
-                                 }
-
-                                 """;
-
-        Assert.That(result.Shaders["ConsumerShader"].Replace("\r\n", "\n"),
-            Is.EqualTo(expected.Replace("\r\n", "\n")));
+        Snapshot.Verify(result.Shaders["ConsumerShader"]);
     }
 }

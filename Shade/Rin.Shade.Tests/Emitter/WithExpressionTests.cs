@@ -46,44 +46,7 @@ public class WithExpressionTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        const string expected = """
-                                 namespace WithExpressionCheck
-                                 {
-                                     struct Bounds3D
-                                     {
-                                         float3 lower;
-                                         float3 upper;
-                                     }
-
-                                     struct WithPush
-                                     {
-                                         WithExpressionCheck::Bounds3D bounds;
-                                         float3 newUpper;
-                                         WithExpressionCheck::Bounds3D* output;
-                                     }
-
-                                 }
-
-                                 WithExpressionCheck::Bounds3D bounds3DWithUpper(WithExpressionCheck::Bounds3D self, float3 upper)
-                                 {
-                                     self.upper = upper;
-                                     return self;
-                                 }
-
-                                 [[vk::push_constant]] uniform ConstantBuffer<WithExpressionCheck::WithPush, ScalarDataLayout> push;
-
-                                 [shader("compute")]
-                                 [numthreads(1, 1, 1)]
-                                 void compute()
-                                 {
-                                     var grown = bounds3DWithUpper(push.bounds, push.newUpper);
-                                     push.output[0] = grown;
-                                 }
-
-                                 """;
-
-        Assert.That(result.Shaders["WithExpressionShader"].Replace("\r\n", "\n"),
-            Is.EqualTo(expected.Replace("\r\n", "\n")));
+        Snapshot.Verify(result.Shaders["WithExpressionShader"]);
     }
 
     // Two `with`s with the same (type, overridden-field-set) shape share one synthesized helper.
@@ -130,7 +93,7 @@ public class WithExpressionTests
         Assert.That(result.Diagnostics, Is.Empty);
 
         var slang = result.Shaders["WithDedupeShader"];
-        Assert.That(slang.Split("bounds3DWithUpper(WithDedupeCheck::Bounds3D self", System.StringSplitOptions.None).Length - 1,
+        Assert.That(slang.Split("bounds3DWithUpper(Bounds3D self", System.StringSplitOptions.None).Length - 1,
             Is.EqualTo(1));
     }
 }

@@ -77,7 +77,36 @@ internal sealed class TypeGraph
         }
 
         foreach (var root in _roots) Place(root);
-        return ordered;
+        return GroupByNamespace(ordered);
+    }
+
+    /// <summary>
+    /// Reorders a valid dependency order so types of one namespace sit together where their dependencies
+    /// allow it: after each type, the next one is the earliest still-unplaced type of the same namespace
+    /// whose dependencies are already placed. A namespace is only reopened when a dependency forces it.
+    /// </summary>
+    private static IReadOnlyList<TypeNode> GroupByNamespace(List<TypeNode> ordered)
+    {
+        var dependencies = ordered.ToDictionary(node => node, node => ExternalDependencies(node, node).Distinct().ToList());
+        var remaining = ordered.ToList();
+        var placed = new HashSet<TypeNode>();
+        var result = new List<TypeNode>();
+        string? current = null;
+
+        bool IsReady(TypeNode node) => dependencies[node].All(placed.Contains);
+
+        while (remaining.Count > 0)
+        {
+            var next = remaining.FirstOrDefault(node => IsReady(node) && Naming.NamespacePath(node.Symbol) == current)
+                       ?? remaining.First(IsReady);
+
+            remaining.Remove(next);
+            placed.Add(next);
+            result.Add(next);
+            current = Naming.NamespacePath(next.Symbol);
+        }
+
+        return result;
     }
 
     private static IEnumerable<TypeNode> ExternalDependencies(TypeNode node, TypeNode top)

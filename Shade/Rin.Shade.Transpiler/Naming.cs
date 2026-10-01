@@ -41,12 +41,8 @@ internal static class Naming
     /// </summary>
     public const string GeneratedPrefix = "__Shade__";
 
-    /// <summary>The fully qualified Slang name of a type declared (or generated) under its namespace.</summary>
-    public static string Qualify(ISymbol type, string name)
-    {
-        var path = NamespacePath(type);
-        return path.Length == 0 ? name : $"{path}::{name}";
-    }
+    /// <summary>The Slang name of a type declared (or generated) under its namespace, relative to the scope being written.</summary>
+    public static string Qualify(ISymbol type, string name) => NameScope.Name(NamespacePath(type), name);
 
     /// <summary>
     /// Like <see cref="ToSlangIdentifier"/>, but for a method that may be a property accessor - its

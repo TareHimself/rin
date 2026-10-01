@@ -69,8 +69,8 @@ public class NestedTypeTests
         Assert.That(slang, Does.Contain("""
                 struct Outer
                 {
-                    NestCheck::Outer::Inner value;
-                    NestCheck::Outer::Mode mode;
+                    Inner value;
+                    Mode mode;
 
                     struct Inner
                     {
@@ -90,7 +90,7 @@ public class NestedTypeTests
     {
         var slang = Emit();
 
-        Assert.That(slang, Does.Contain("namespace NestCheck::Holder\n{\n    struct Packed"));
-        Assert.That(slang, Does.Contain("NestCheck::Holder::Packed packed;"));
+        Assert.That(slang, Does.Contain("    namespace Holder\n    {\n        struct Packed"));
+        Assert.That(slang, Does.Contain("Holder::Packed packed;"));
     }
 }

@@ -28,7 +28,7 @@ public class CorrectnessTests
         Assert.That(slang, Does.Contain("Translucent = 1"));
 
         // Static/enum member reference - previously threw a NullReferenceException.
-        Assert.That(slang, Does.Contain("push.mode == Rin::Shade::Tests::Fixtures::BlendMode.Opaque"));
+        Assert.That(slang, Does.Contain("push.mode == BlendMode.Opaque"));
 
         // Matrix4x4 -> float4x4, and matrix*matrix -> mul(a, b): both sides are row-major and row-vector.
         Assert.That(slang, Does.Contain("float4x4 view;"));

@@ -23,6 +23,9 @@ internal sealed class FunctionCollector(
 
     public List<IMethodSymbol> Order { get; } = [];
 
+    /// <summary>The collected methods each method calls, so the emitter can reorder without breaking define-before-use.</summary>
+    public Dictionary<IMethodSymbol, HashSet<IMethodSymbol>> Dependencies { get; } = new(SymbolEqualityComparer.Default);
+
     public void Collect(IMethodSymbol method)
     {
         if (!_visiting.Add(method))
@@ -44,8 +47,16 @@ internal sealed class FunctionCollector(
                     IPropertyReferenceOperation { Property.GetMethod: { } getMethod } => getMethod,
                     _ => null
                 };
-                if (target is not null)
-                    VisitCallee(overrides is null ? target : OverrideResolution.Resolve(target, overrides));
+                if (target is null) continue;
+
+                var callee = overrides is null ? target : OverrideResolution.Resolve(target, overrides);
+                VisitCallee(callee);
+                if (!IntrinsicBindings.HasBinding(callee) && MethodSource.HasBody(callee))
+                {
+                    if (!Dependencies.TryGetValue(method, out var callees))
+                        Dependencies[method] = callees = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+                    callees.Add(callee);
+                }
             }
 
         _visiting.Remove(method);

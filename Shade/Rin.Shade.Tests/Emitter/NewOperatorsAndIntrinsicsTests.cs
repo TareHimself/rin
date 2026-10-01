@@ -49,38 +49,7 @@ public class NewOperatorsAndIntrinsicsTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        const string expected = """
-                                 namespace OperatorCheck
-                                 {
-                                     struct OperatorPush
-                                     {
-                                         float3 normal;
-                                         int count;
-                                         bool flag;
-                                         float* output;
-                                     }
-
-                                 }
-
-                                 [[vk::push_constant]] uniform ConstantBuffer<OperatorCheck::OperatorPush, ScalarDataLayout> push;
-
-                                 [shader("compute")]
-                                 [numthreads(1, 1, 1)]
-                                 void compute()
-                                 {
-                                     var flipped = -push.normal;
-                                     var notFlag = !push.flag;
-                                     var total = 0;
-                                     total += push.count;
-                                     total -= 1;
-                                     var chosen = push.flag ? 1 : 0;
-                                     push.output[0] = chosen;
-                                 }
-
-                                 """;
-
-        Assert.That(result.Shaders["OperatorShader"].Replace("\r\n", "\n"),
-            Is.EqualTo(expected.Replace("\r\n", "\n")));
+        Snapshot.Verify(result.Shaders["OperatorShader"]);
     }
 
     [Test]
@@ -119,33 +88,6 @@ public class NewOperatorsAndIntrinsicsTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        const string expected = """
-                                 namespace MathIntrinsicsCheck
-                                 {
-                                     struct MathPush
-                                     {
-                                         float3 a;
-                                         float3 b;
-                                         float* output;
-                                     }
-
-                                 }
-
-                                 [[vk::push_constant]] uniform ConstantBuffer<MathIntrinsicsCheck::MathPush, ScalarDataLayout> push;
-
-                                 [shader("compute")]
-                                 [numthreads(1, 1, 1)]
-                                 void compute()
-                                 {
-                                     var n = normalize(push.a);
-                                     var d = dot(n, push.b);
-                                     var c = clamp(d, 0, 1);
-                                     push.output[0] = c;
-                                 }
-
-                                 """;
-
-        Assert.That(result.Shaders["MathIntrinsicsShader"].Replace("\r\n", "\n"),
-            Is.EqualTo(expected.Replace("\r\n", "\n")));
+        Snapshot.Verify(result.Shaders["MathIntrinsicsShader"]);
     }
 }

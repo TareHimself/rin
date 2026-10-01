@@ -5,9 +5,16 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Rin.Shade.Transpiler;
 
+/// <summary>
+/// A lowered function. An instance method of a struct is an `extension` member: <see cref="ExtensionOf"/>
+/// names the struct and <see cref="Text"/> is just the member, so neighbouring members of one struct can
+/// share a single extension block. Anything else is a free function, printed as is.
+/// </summary>
+internal readonly record struct LoweredFunction(INamedTypeSymbol? ExtensionOf, string Text);
+
 internal static class FunctionLowering
 {
-    public static string Lower(Compilation compilation, IMethodSymbol method, List<Diagnostic> diagnostics,
+    public static LoweredFunction Lower(Compilation compilation, IMethodSymbol method, List<Diagnostic> diagnostics,
         IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null,
         IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides = null)
     {
@@ -15,21 +22,21 @@ internal static class FunctionLowering
         {
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
                 method.Locations.FirstOrDefault() ?? Location.None, $"ref return on '{method.Name}'"));
-            return "";
+            return default;
         }
 
         if (method.ContainingType.TypeKind == TypeKind.Extension)
         {
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.ExtensionMethodNotSupported,
                 method.Locations.FirstOrDefault() ?? Location.None, method.Name));
-            return "";
+            return default;
         }
 
         if (method.IsGenericMethod)
         {
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.GenericNotSupported,
                 method.Locations.FirstOrDefault() ?? Location.None, method.Name));
-            return "";
+            return default;
         }
 
         var isConstructor = method.MethodKind == MethodKind.Constructor;
@@ -54,17 +61,15 @@ internal static class FunctionLowering
                 .Select(f => Naming.ToSlangIdentifier(f.Name))
                 .ToHashSet();
 
-            writer.OpenBrace($"extension {TypeMapping.MapType(method.ContainingType)}");
             if (!isConstructor && WritesToImplicitThis(compilation, method)) writer.Line("[mutating]");
             WriteSignatureAndBody(compilation, method, diagnostics, writer, signature, fieldNames, withHelpers,
                 overrides);
-            writer.CloseBrace();
-            return writer.ToString();
+            return new LoweredFunction(method.ContainingType, writer.ToString());
         }
 
         WriteSignatureAndBody(compilation, method, diagnostics, writer, signature, withHelpers: withHelpers,
             overrides: overrides);
-        return writer.ToString();
+        return new LoweredFunction(null, writer.ToString());
     }
 
     public static void WriteSignatureAndBody(Compilation compilation, IMethodSymbol method,

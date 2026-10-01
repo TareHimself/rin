@@ -16,46 +16,7 @@ public class ShaderEmitterTests
         Assert.That(result.Diagnostics, Is.Empty);
         Assert.That(result.Shaders.Keys, Is.EquivalentTo(new[] { "CullingFixtureShader" }));
 
-        const string expected = """
-                                 namespace Rin::Shade::Tests::Fixtures
-                                 {
-                                     struct Bounds3D
-                                     {
-                                         float3 min;
-                                         float3 max;
-                                     }
-
-                                     struct CullingPushConstants
-                                     {
-                                         Rin::Shade::Tests::Fixtures::Bounds3D* bounds;
-                                         uint invocationCount;
-                                         uint* output;
-                                     }
-
-                                     struct ComputeIn
-                                     {
-                                         uint threadId : SV_DispatchThreadID;
-                                     }
-
-                                 }
-
-                                 [[vk::push_constant]] uniform ConstantBuffer<Rin::Shade::Tests::Fixtures::CullingPushConstants, ScalarDataLayout> push;
-
-                                 [shader("compute")]
-                                 [numthreads(64, 1, 1)]
-                                 void compute(Rin::Shade::Tests::Fixtures::ComputeIn input)
-                                 {
-                                     if (input.threadId >= push.invocationCount)
-                                     {
-                                         return;
-                                     }
-                                     var bounds = push.bounds[(int)input.threadId];
-                                     push.output[(int)input.threadId] = 1;
-                                 }
-
-                                 """;
-
-        Assert.That(result.Shaders["CullingFixtureShader"].Replace("\r\n", "\n"), Is.EqualTo(expected.Replace("\r\n", "\n")));
+        Snapshot.Verify(result.Shaders["CullingFixtureShader"]);
     }
 
     [Test]

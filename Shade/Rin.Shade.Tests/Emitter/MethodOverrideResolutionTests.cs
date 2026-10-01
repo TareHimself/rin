@@ -45,35 +45,7 @@ public class MethodOverrideResolutionTests
 
         Assert.That(result.Diagnostics, Is.Empty);
 
-        const string expected = """
-                                 namespace OverrideResolutionCheck
-                                 {
-                                     struct ConsumerPush
-                                     {
-                                         float value;
-                                         float* output;
-                                     }
-
-                                 }
-
-                                 float getValue(float raw)
-                                 {
-                                     return raw * 2;
-                                 }
-
-                                 [[vk::push_constant]] uniform ConstantBuffer<OverrideResolutionCheck::ConsumerPush, ScalarDataLayout> push;
-
-                                 [shader("compute")]
-                                 [numthreads(1, 1, 1)]
-                                 void compute()
-                                 {
-                                     push.output[0] = getValue(push.value);
-                                 }
-
-                                 """;
-
-        Assert.That(result.Shaders["ConsumerShader"].Replace("\r\n", "\n"),
-            Is.EqualTo(expected.Replace("\r\n", "\n")));
+        Snapshot.Verify(result.Shaders["ConsumerShader"]);
     }
 
     // No override anywhere in the chain still means no body - stays a diagnostic, not silently
