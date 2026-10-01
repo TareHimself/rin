@@ -6,7 +6,7 @@ using Rin.Shade;
 namespace Rin.Core.Views.Graphics.Shaders;
 
 [Shader("Shaders/Rin/Core/Views/quad_batch.slang")]
-public partial class QuadBatchShader : Shader
+public partial class QuadBatchShader : ViewShader<QuadBatchShader.FragmentIn>
 {
     public struct PushConstants
     {
@@ -37,8 +37,6 @@ public partial class QuadBatchShader : Shader
 
     [Push] protected PushConstants Push;
     protected static BindlessData Bindless;
-
-    protected override BlendState BlendState => BlendState.Alpha;
 
     [Vertex]
     public VertexOut Vertex(VertexIn input)
@@ -79,8 +77,7 @@ public partial class QuadBatchShader : Shader
         return mapping.xy + (mapping.zw - mapping.xy) * uv;
     }
 
-    [Fragment, Attachment(AttachmentFormat.RGBA16), Stencil]
-    public Vector4 Fragment(FragmentIn input)
+    protected override Vector4 Color(FragmentIn input)
     {
         var quad = Push.Quads[input.QuadIndex];
         var mode = quad.Mode;

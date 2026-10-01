@@ -14,7 +14,7 @@ public struct ImageItem
 }
 
 [Shader("Shaders/Rin/Core/Views/image_batch.slang")]
-public partial class ImageBatchShader : Shader
+public partial class ImageBatchShader : ViewShader<ImageBatchShader.FragmentIn>
 {
     public struct PushConstants
     {
@@ -44,8 +44,6 @@ public partial class ImageBatchShader : Shader
     [Push] protected PushConstants Push;
     protected static BindlessData Bindless;
 
-    protected override BlendState BlendState => BlendState.Alpha;
-
     [Vertex]
     public VertexOut Vertex(VertexIn input)
     {
@@ -66,8 +64,7 @@ public partial class ImageBatchShader : Shader
         return output;
     }
 
-    [Fragment, Attachment(AttachmentFormat.RGBA16), Stencil]
-    public Vector4 Fragment(FragmentIn input)
+    protected override Vector4 Color(FragmentIn input)
     {
         var item = Push.Images[input.Index];
         return Bindless.SampleTexture(item.Image, input.Uv, ImageTiling.ClampEdge, ImageFilter.Linear);

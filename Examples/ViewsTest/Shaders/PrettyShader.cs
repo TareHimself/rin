@@ -1,5 +1,6 @@
 using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Core.Views.Graphics.Shaders;
 using Rin.Shade;
 
 namespace ViewsTest.Shaders;
@@ -16,7 +17,7 @@ public struct PrettyData
 }
 
 [Shader("Shaders/ViewsTest/pretty.slang")]
-public partial class PrettyShader : Shader
+public partial class PrettyShader : ViewShader<PrettyShader.FragmentIn>
 {
     public struct PushConstants
     {
@@ -41,8 +42,6 @@ public partial class PrettyShader : Shader
     }
 
     [Push] protected PushConstants Push;
-
-    protected override BlendState BlendState => BlendState.Alpha;
 
     [Vertex]
     public VertexOut Vertex(VertexIn input)
@@ -74,8 +73,7 @@ public partial class PrettyShader : Shader
     }
 
     // https://www.shadertoy.com/view/mtyGWy
-    [Fragment, Stencil, Attachment(AttachmentFormat.RGBA16)]
-    public Vector4 Fragment(FragmentIn input)
+    protected override Vector4 Color(FragmentIn input)
     {
         var data = Push.Data[0];
         var size = data.Size;

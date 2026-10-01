@@ -19,7 +19,7 @@ public struct BlurData
 }
 
 [Shader("Shaders/Rin/Core/Views/blur.slang")]
-public partial class BlurShader : Shader
+public partial class BlurShader : ViewShader<BlurShader.FragmentIn>
 {
     public struct PushConstants
     {
@@ -47,8 +47,6 @@ public partial class BlurShader : Shader
     [Push] protected PushConstants Push;
     protected static BindlessData Bindless;
 
-    protected override BlendState BlendState => BlendState.Alpha;
-
     [Vertex]
     public VertexOut Vertex(VertexIn input)
     {
@@ -73,8 +71,7 @@ public partial class BlurShader : Shader
         return 0.39894f * Math.Exp(-0.5f * x * x / (sigma * sigma)) / sigma;
     }
 
-    [Fragment, Attachment(AttachmentFormat.RGBA16), Stencil]
-    public Vector4 Fragment(FragmentIn input)
+    protected override Vector4 Color(FragmentIn input)
     {
         var data = Push.Data[0];
         var handle = data.SourceT;
