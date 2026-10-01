@@ -48,6 +48,15 @@ public struct BindlessData
         return Samplers[(int)filter * 2 + (int)tiling];
     }
 
+    public Vector2 GetTextureSize(DeviceHandle handle)
+    {
+        uint width;
+        uint height;
+        uint levels;
+        Textures[(int)Shader.NonUniformResourceIndex(handle.Id)].GetDimensions(0u, out width, out height, out levels);
+        return new Vector2(width, height);
+    }
+
     public Vector4 SampleTexture(DeviceHandle handle, Vector2 uv, ImageTiling tiling, ImageFilter filter)
     {
         var sampler = GetSampler(tiling, filter);

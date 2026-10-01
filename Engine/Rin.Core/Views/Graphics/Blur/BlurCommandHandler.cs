@@ -8,6 +8,8 @@ using Rin.Core.Shared.Math;
 using Rin.Core.Views.Graphics.CommandHandlers;
 using Rin.Core.Views.Graphics.Commands;
 using Rin.Core.Views.Graphics.PassConfigs;
+using Rin.Core.Views.Graphics.Shaders;
+using Rin.Shade;
 
 namespace Rin.Core.Views.Graphics.Blur;
 
@@ -68,30 +70,9 @@ internal class BlurInitCommandHandler : ICommandHandler
     }
 }
 
-[NoReorder]
-internal struct BlurData()
-{
-    public required Matrix4x4 Transform = Matrix4x4.Identity;
-
-    public required Matrix4x4 Projection = Matrix4x4.Identity;
-    public required DeviceHandle SourceT;
-    public required Vector2 Size;
-    public required float Strength;
-    public required Vector2 Radius;
-    public Vector4 Tint = Vector4.Zero;
-    public required Vector4 DestRect;
-}
-
-[NoReorder]
-internal struct Push
-{
-    public required ulong BufferAddress;
-    public required int IsHorizontal;
-}
-
 internal partial class BlurFirstPassCommandHandler : ICommandHandler
 {
-    [GraphicsShader("Shaders/Core/Views/blur.slang")]
+    [GraphicsShader<BlurShader>]
     private partial IGraphicsShader _shader {
         get;
     }
@@ -146,9 +127,9 @@ internal partial class BlurFirstPassCommandHandler : ICommandHandler
                         command.InitCommand.BlurP2.Y)
                 });
                 bindContext
-                    .Push(new Push
+                    .Push(new BlurShader.PushConstants
                     {
-                        BufferAddress = buffer.GetAddress(),
+                        Data = new BufferRef<BlurData>(buffer.GetAddress()),
                         IsHorizontal = 1
                     })
                     .Draw(6);
@@ -161,7 +142,7 @@ internal partial class BlurFirstPassCommandHandler : ICommandHandler
 
 internal partial class BlurSecondPassCommandHandler : ICommandHandler
 {
-    [GraphicsShader("Shaders/Core/Views/blur.slang")]
+    [GraphicsShader<BlurShader>]
     private partial IGraphicsShader _shader {
         get;
     }
@@ -220,9 +201,9 @@ internal partial class BlurSecondPassCommandHandler : ICommandHandler
                 //     DestRect = new Vector4(command.InitCommand.BoundingBoxP1,command.InitCommand.BoundingBoxP2.X,command.InitCommand.BoundingBoxP2.Y)
                 // });
                 bindContext
-                    .Push(new Push
+                    .Push(new BlurShader.PushConstants
                     {
-                        BufferAddress = buffer.GetAddress(),
+                        Data = new BufferRef<BlurData>(buffer.GetAddress()),
                         IsHorizontal = 0
                     })
                     .Draw(6);
