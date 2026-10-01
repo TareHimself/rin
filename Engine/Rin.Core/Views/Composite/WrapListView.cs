@@ -3,9 +3,6 @@ using Rin.Core.Views.Layouts;
 
 namespace Rin.Core.Views.Composite;
 
-/// <summary>
-///     Needs work, do not use
-/// </summary>
 public class WrapListView : MultiSlotCompositeView<ListSlot>
 {
     private readonly WrapListLayout _layout;
@@ -16,7 +13,7 @@ public class WrapListView : MultiSlotCompositeView<ListSlot>
     }
 
     /// <summary>
-    ///     A container that draws children left to right
+    ///     A container that flows children along its axis and wraps them onto new lines
     ///     Slot = <see cref="ListSlot" />
     /// </summary>
     public WrapListView(Axis axis)
