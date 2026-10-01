@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -26,6 +27,7 @@ def get_dotnet_rid() -> str:
 def make_nuspec(name: str,version: str,author: str,source_path: Path,output_file_path: Path):
     rid = get_dotnet_rid()
     source_path = source_path.resolve()
+    nuspec_dir = output_file_path.resolve().parent
 
     package = ET.Element("package")
 
@@ -51,7 +53,7 @@ def make_nuspec(name: str,version: str,author: str,source_path: Path,output_file
             files_node,
             "file",
             {
-                "src": str(file_path),
+                "src": os.path.relpath(file_path, nuspec_dir),
                 "target": f"runtimes/{rid}/native/{file_path.name}",
             },
         )
