@@ -1,7 +1,7 @@
 # Rin
 
 ## Prerequisites
-- [.NET SDK 10](https://dotnet.microsoft.com/en-us/download) — pinned in `global.json` (`rollForward: latestMajor`); projects target `net10.0` (the two source-generator projects target `net8.0` for compiler compatibility)
+- [.NET SDK 10](https://dotnet.microsoft.com/en-us/download) — pinned in `global.json` (`rollForward: latestMajor`); every project targets `net10.0` (set in `Directory.Build.props`)
 - [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/)
 - [CMake](https://cmake.org/)
 - [Python 3](https://www.python.org/)
@@ -31,11 +31,29 @@ dotnet run --project Examples/SceneTest/SceneTest.csproj
 
 Or open `rin.sln` in Visual Studio/Rider and run an Examples project directly.
 
+## Testing
+Each test project runs on its own, for example:
+
+```
+dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinShadeSkipCompile=true
+dotnet test Shade/Rin.Shade.Tests/Rin.Shade.Tests.csproj
+```
+
+`-p:RinShadeSkipCompile=true` skips compiling the shaders through the native Slang compiler, which tests that never load shader content do not need. `Shade/Rin.Shade.CpuTests` runs transpiled shaders on the CPU and needs the real native Slang package. CI (`.github/workflows/ci.yml`) runs one job per test project, plus a job that builds the real native Slang and runs the tests and the full shader compile that need it. See `native/ReadMe.md` for how real, stub and fake native libraries differ.
+
+## Shaders
+Shaders are written in C# with Rin.Shade, which transpiles them to Slang at build time (`Shade/ReadMe.md`). There are no hand-written `.slang` sources in the repo.
+
 ## Repository layout
-- `Engine/` — core engine: `Rin.Core`, `Rin.World`, `Rin.Graphics.Vulkan`, `Rin.Audio.Miniaudio`, `Rin.SourceGenerators`
-- `Slang/` — managed Slang shader compiler toolchain (`Rin.Slang`, `Rin.Slang.Compiler`, `Rin.Slang.Cli`, ...)
-- `native/` — native C++ modules (`Rin.Native`, `Rin.Audio.Miniaudio.Native`, `Rin.Graphics.Vulkan.Native`, `Rin.Slang.Native`)
-- `Shaders/` — shared `.slang` shader sources
-- `Tools/` — `Rin.Editor`, `RinLauncher`
-- `Examples/` — sample/demo apps
-- `Experiments/` — prototype/throwaway projects
+Each folder and project has its own `ReadMe.md`.
+
+- [`Engine/`](Engine/ReadMe.md): core engine (`Rin.Core`, `Rin.World`, graphics and audio backends, glTF loading, source generators) and its tests
+- [`Shade/`](Shade/ReadMe.md): Rin.Shade, the C# to Slang shader transpiler, with its source generator, MSBuild task and tests
+- [`Slang/`](Slang/ReadMe.md): managed Slang compiler wrapper and command line tool
+- [`native/`](native/ReadMe.md): native C++ modules, their packaging, and the fakes used in CI
+- [`Examples/`](Examples/ReadMe.md): sample and demo apps
+- [`Experiments/`](Experiments/ReadMe.md): prototype projects
+- `msbuild/`: MSBuild targets shared by the shader projects (`RinShade.targets`)
+- `scripts/`: CI helpers (native stub packages, native fakes)
+
+Conventions for contributors and coding agents are in [`AGENTS.md`](AGENTS.md).
