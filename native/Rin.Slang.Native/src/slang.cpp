@@ -464,7 +464,7 @@ SharedLibrary* slangComponentGetEntryPointHostCallable(const Component* componen
 
 void* slangSharedLibraryFindFunc(const SharedLibrary* library, const char* name)
 {
-    return library->library->findFuncByName(name);
+    return reinterpret_cast<void*>(library->library->findFuncByName(name));
 }
 
 void slangSharedLibraryFree(const SharedLibrary* library)
