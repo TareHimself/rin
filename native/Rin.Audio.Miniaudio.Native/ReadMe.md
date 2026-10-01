@@ -19,7 +19,7 @@ Native wrapper over miniaudio. Builds `Rin.Audio.Miniaudio.Native` as a shared l
 From the repo root:
 
 ```
-task pack-audio-miniaudio-native
+uv run task pack-audio-miniaudio-native
 ```
 
-Or from this folder, `task build` (Release) or `task buildd` (Debug). See [../ReadMe.md](../ReadMe.md) for the packing flow.
+Or from this folder, `uv run task build` (Release) or `uv run task buildd` (Debug). See [../ReadMe.md](../ReadMe.md) for the packing flow.

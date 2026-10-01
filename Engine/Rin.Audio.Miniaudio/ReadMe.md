@@ -20,7 +20,7 @@ Audio backend built on miniaudio, implementing `IAudioModule` from Rin.Core. Pac
 dotnet build Engine/Rin.Audio.Miniaudio/Rin.Audio.Miniaudio.csproj
 ```
 
-Run `task pack-audio-miniaudio-native` (or `task pack-all`) first so the native package is in `.feed/`. There is no test project for it.
+Run `uv run task pack-audio-miniaudio-native` (or `uv run task pack-all`) first so the native package is in `.feed/`. There is no test project for it.
 
 ## Notes
 

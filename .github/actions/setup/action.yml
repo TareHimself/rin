@@ -1,11 +1,16 @@
-name: Setup .NET and NuGet cache
-description: Installs the .NET SDK and restores the NuGet package cache.
+name: Setup .NET, uv and caches
+description: Installs the .NET SDK and uv (which provides Python, Conan, CMake and Task), and restores the NuGet package cache.
 runs:
   using: composite
   steps:
     - uses: actions/setup-dotnet@v6
       with:
         dotnet-version: '10.0.x'
+
+    - uses: astral-sh/setup-uv@v10.2.0
+      with:
+        enable-cache: true
+        cache-dependency-glob: uv.lock
 
     - uses: actions/cache@v4
       with:

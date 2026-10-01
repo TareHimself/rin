@@ -9,14 +9,15 @@ Rules for the C++ modules, their packaging and the fakes. They add to the root `
 
 ## Packages and versions
 
-- A native package is never committed. `specs/` and `build-*` are ignored, and no `.dll`, `.so` or `.nupkg` belongs in git. Build and pack through the `task pack-*` targets.
+- A native package is never committed. `specs/` and `build-*` are ignored, and no `.dll`, `.so` or `.nupkg` belongs in git. Build and pack through the `uv run task pack-*` targets.
 - Add a new `*.Native` package id to `Directory.Packages.props`. The stub packaging reads the ids from there, so nothing else lists them.
 - The stub packages are version `1.0.0`. CI builds the real `Rin.Slang.Native` as `1.0.1` so the floating `1.*` reference picks it. Do not give a real and a stub package the same version: the shared NuGet package cache would reuse the stub.
 - Nuspec `src` paths are generated relative to the nuspec, and the pack tasks pass `NuspecBasePath=specs`. Do not write absolute paths into a nuspec.
 
 ## Building
 
-- Release builds go through Conan and CMake (`task build`), Debug through `task buildd`. CI passes `-s compiler.cppstd=20` to Conan because a fresh runner's profile defaults to an older standard. The CMake files already set C++20.
+- Python tooling (Conan, CMake, Task) comes from `pyproject.toml` and `uv.lock`, run with `uv run`. Do not rely on a system Python or a global Conan, CMake or Task. Add or update a tool with `uv add --group native <package>` and commit `uv.lock`.
+- Release builds go through Conan and CMake (`uv run task build`), Debug through `uv run task buildd`. CI passes `-s compiler.cppstd=20` to Conan because a fresh runner's profile defaults to an older standard. The CMake files already set C++20.
 - Rin.Slang.Native downloads a prebuilt Slang release. Do not add Slang's own source to the build.
 
 ## Docs

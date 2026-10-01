@@ -16,10 +16,10 @@ Small C++ wrapper that exposes the Slang compiler to C#. Builds `Rin.Slang.Nativ
 From the repo root:
 
 ```
-task pack-slang-native
+uv run task pack-slang-native
 ```
 
-Or from this folder, `task build` (Release) or `task buildd` (Debug). CI runs `conan install . --build=missing -s build_type=Release -s compiler.cppstd=20` and then the `Rin-Release` CMake preset. See [../ReadMe.md](../ReadMe.md) for the packing flow.
+Or from this folder, `uv run task build` (Release) or `uv run task buildd` (Debug). CI runs `conan install . --build=missing -s build_type=Release -s compiler.cppstd=20` and then the `Rin-Release` CMake preset. See [../ReadMe.md](../ReadMe.md) for the packing flow.
 
 ## Gotchas
 

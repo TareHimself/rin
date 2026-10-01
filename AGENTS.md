@@ -63,6 +63,10 @@ Prefer zero-allocation or low-allocation code, and use pooling where it fits.
 - Build-time tooling (the Rin.Shade transpiler, source generators, MSBuild tasks) may favour clarity
   over allocation.
 
+## Tooling
+
+- Python tooling runs through uv (`uv run ...`), with versions pinned in `pyproject.toml` and `uv.lock`. Commit `uv.lock` when the dependencies change.
+
 ## Documentation
 
 Keep the docs true. A change is not done until the docs it affects are updated in the same change.

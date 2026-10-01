@@ -162,6 +162,6 @@ flowchart TD
 dotnet build Engine/Rin.Graphics.Vulkan/Rin.Graphics.Vulkan.csproj
 ```
 
-Restore needs `TareHimself.Rin.Graphics.Vulkan.Native` in the local `.feed/`. Build it with `task pack-all` (needs Conan, CMake, Python and the Vulkan SDK), or use the stub packages for build-only work. Both are described in [native/ReadMe.md](../../native/ReadMe.md), and the wrapper itself in [Rin.Graphics.Vulkan.Native](../../native/Rin.Graphics.Vulkan.Native/ReadMe.md). Stubs let the project build but any call into the native library would fail.
+Restore needs `TareHimself.Rin.Graphics.Vulkan.Native` in the local `.feed/`. Build it with `uv run task pack-all` (needs uv, a C++ toolchain and the Vulkan SDK), or use the stub packages for build-only work. Both are described in [native/ReadMe.md](../../native/ReadMe.md), and the wrapper itself in [Rin.Graphics.Vulkan.Native](../../native/Rin.Graphics.Vulkan.Native/ReadMe.md). Stubs let the project build but any call into the native library would fail.
 
 There is no test project for this backend. No `*.Tests` project references it and there is no test folder in this project.
