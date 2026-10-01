@@ -107,7 +107,7 @@ Everything is in `Graphics/Default`. `DefaultWorldViewData.Write` adds the passe
 flowchart TD
     subgraph Scene["DefaultSceneFrame (shared by every view of a snapshot)"]
         P1["InitSceneResourcesPass"] --> P2["SkinningPass (compute, only if skinned meshes exist)"]
-        P2 --> P3["BoundsUpdatePass (only if skinned, body is commented out)"]
+        P2 --> P3["BoundsUpdatePass (compute, only if skinned meshes exist)"]
         P3 --> P4["SceneDataPass"]
     end
     subgraph View["DefaultWorldViewData (one per camera)"]
@@ -124,6 +124,7 @@ flowchart TD
 | --- | --- | --- |
 | `InitSceneResourcesPass` | each processed surface's `Bounds` | bounds buffer (one `Bounds3D` per surface) |
 | `SkinningPass` | source vertex buffers, one pose matrix buffer per skinned mesh | one shared skinned output buffer of `Vertex` (`SkinningShader`) |
+| `BoundsUpdatePass` | skinned output buffer | the skinned surfaces' entries in the bounds buffer, recomputed from the skinned vertices (`BoundsUpdateShader`) |
 | `SceneDataPass` | processed meshes and their materials | per batch: material data buffers (color and depth) and `IndirectMeshRecord` buffers |
 | `InitViewResourcesPass` | nothing | creates GBuffer0..3 and the depth image, clears color to zero and depth to 0 |
 | `CullingPass` | bounds buffer | culling result buffer, one `uint` per surface (`CullingShader`) |
@@ -170,7 +171,7 @@ The tests mirror the folders here (components, render system, physics, skinning,
 ## Gotchas
 
 - `Culling` does not cull. `CullingShader` writes `1` for every surface, and `DefaultWorldViewData.ViewFrustum` is computed but not read by any pass.
-- `BoundsUpdatePass` is added for skinned scenes but its `Configure` and `Execute` bodies are fully commented out, so skinned surfaces keep the bounds of their bind pose.
+- `BoundsUpdatePass` recomputes the bounds of skinned surfaces from the skinned vertices after `SkinningPass`. It had been commented out and was re-enabled against the current scene frame. That version builds and the unit tests pass, but it has not been run on a GPU. `CullingShader` still marks every surface visible and never reads the bounds, so the updated bounds are not used for anything yet.
 - `ShadowPass` exists but its `Execute` throws `NotImplementedException` and nothing adds it to the graph. There is no shadowing.
 - Lights reach the renderer only through proxies. There is no light system or other world-level system layer.
 - `Component.Collect` and `CommandList` (the older collect path) are not called by anything outside the components themselves. The render system path is the live one.

@@ -1,13 +1,15 @@
-using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Shaders;
+using Rin.Core.Shared;
+using Rin.Shade;
 using Rin.World.Graphics.Default.Shaders;
 
 namespace Rin.World.Graphics.Default.Passes;
 
 /// <summary>
-///  Updates the bounds of skinned meshes
+///     Recomputes the bounds of skinned surfaces from their skinned vertices, replacing the rest-pose bounds that
+///     <see cref="InitSceneResourcesPass" /> wrote. Runs after <see cref="SkinningPass" />.
 /// </summary>
 /// <param name="sceneFrame"></param>
 public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePass
@@ -15,58 +17,51 @@ public partial class BoundsUpdatePass(DefaultSceneFrame sceneFrame) : IComputePa
     [ComputeShader<BoundsUpdateShader>]
     private partial IComputeShader Shader { get; }
 
-    /// <summary>
-    /// Buffer for holding <see cref="SkinnedMesh"/>
-    /// </summary>
-    private uint SkinnedMeshBuffers { get; set; }
+    private uint SkinnedMeshBufferId { get; set; }
 
     public uint Id { get; set; }
 
     public void Configure(IGraphConfig config)
     {
-        // config.ReadBuffer(sceneFrame.SkinningOutputBufferId,
-        //     GraphBufferUsage.Compute); // All skinned meshes use one output buffer
-        // config.WriteBuffer(sceneFrame.BoundsBufferId, GraphBufferUsage.Compute);
-        // SkinnedMeshBuffers =
-        //     config.CreateBuffer<SkinnedMesh>(sceneFrame.SkinnedSurfaceCount, GraphBufferUsage.HostThenCompute);
+        config.ReadBuffer(sceneFrame.SkinningOutputBufferId, GraphBufferUsage.Compute);
+        config.WriteBuffer(sceneFrame.BoundsBufferId, GraphBufferUsage.Compute);
+        SkinnedMeshBufferId =
+            config.CreateBuffer<ShadeSkinnedMesh>(sceneFrame.ProcessedSkinnedMeshCount, GraphBufferUsage.HostThenCompute);
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        // var boundsBuffer = graph.GetBufferOrException(sceneFrame.BoundsBufferId);
-        // var skinnedMeshBuffer = graph.GetBufferOrException(SkinnedMeshBuffers);
-        // ulong offset = 0;
-        // for (var i = 0; i < sceneFrame.SkinnedSurfaceCount; i++)
-        // {
-        //     var mesh = sceneFrame.ProcessedMeshes[sceneFrame.SkinnedMeshStartIndex + i];
-        //     offset += skinnedMeshBuffer.WriteSingle(mesh.VertexBuffer.GetAddress(), offset);
-        // }
-        //
-        // if (Shader.Bind(ctx) is not { } bindContext) return;
-        //
-        // bindContext
-        //     .Push(new Push
-        //     {
-        //         SkinnedMeshesAddress = skinnedMeshBuffer.GetAddress(),
-        //         TotalInvocations = sceneFrame.SkinnedSurfaceCount,
-        //         BoundsBufferAddress = boundsBuffer.GetAddress()
-        //     })
-        //     .Invoke((uint)sceneFrame.SkinnedSurfaceCount);
-    }
+        var skinnedCount = sceneFrame.ProcessedSkinnedMeshCount;
+        if (skinnedCount == 0) return;
 
-    [NoReorder]
-    private struct Push
-    {
-        public required ulong SkinnedMeshesAddress;
-        public required int TotalInvocations;
-        public required ulong BoundsBufferAddress;
-    }
+        var boundsBuffer = graph.GetBufferOrException(sceneFrame.BoundsBufferId);
+        var skinnedMeshBuffer = graph.GetBufferOrException(SkinnedMeshBufferId);
 
-    [NoReorder]
-    private struct SkinnedMesh
-    {
-        public required int BoundsIndex;
-        public required ulong VertexBuffer;
-        public required uint VertexCount;
+        using (var skinnedMeshes = new PooledMemory<ShadeSkinnedMesh>(skinnedCount))
+        {
+            for (var i = 0; i < skinnedCount; i++)
+            {
+                var mesh = sceneFrame.ProcessedMeshes[sceneFrame.SkinnedMeshStartIndex + i];
+                skinnedMeshes[i] = new ShadeSkinnedMesh
+                {
+                    Index = mesh.AbsoluteMeshIndex,
+                    Vertices = new BufferRef<ShadeVertex>(mesh.VertexBuffer.GetAddress()),
+                    Count = (uint)mesh.Surface.VertexCount
+                };
+            }
+
+            skinnedMeshBuffer.Write(skinnedMeshes);
+        }
+
+        if (Shader.Bind(ctx) is not { } bindContext) return;
+
+        bindContext
+            .Push(new BoundsUpdatePushConstants
+            {
+                SkinnedMeshes = new BufferRef<ShadeSkinnedMesh>(skinnedMeshBuffer.GetAddress()),
+                TotalInvocations = skinnedCount,
+                Output = new BufferRef<UpdatableBounds3D>(boundsBuffer.GetAddress())
+            })
+            .Invoke((uint)skinnedCount);
     }
 }
