@@ -164,7 +164,8 @@ What to notice:
 - Names become lowerCamelCase, and C# namespaces become Slang namespaces. Nested types live in a namespace named after their shader class.
 - `[Push]` becomes the `push` push-constant uniform, and `[VertexId]`, `[Position]` and `[Semantic("UV")]` become Slang semantics on the struct fields. Semantics only go on struct fields, so entry points take a struct.
 - `Shader.Math.Lerp` is an intrinsic that maps to Slang's `lerp`. Plain C# (`var`, `new Vector4(...)`, operators, shifts) is translated as written.
-- C# the transpiler does not support is reported as a diagnostic in your build output. Semantic attributes are valid only on struct fields (the C# compiler rejects them on parameters), which is why entry points take a struct.
+- Semantic attributes are valid only on struct fields, and the C# compiler rejects them on parameters. That is why entry points take a struct.
+- A construct the transpiler cannot translate is reported as a diagnostic in your build output.
 
 From the same class the source generator adds a typed descriptor, which the engine passes to `MakeGraphics`:
 
