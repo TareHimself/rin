@@ -6,14 +6,12 @@ using Rin.World.Actors;
 using Rin.World.Components;
 using Rin.World.Graphics;
 using Rin.World.Physics;
-using Rin.World.Systems;
 
 namespace Rin.World;
 
 public class World : IUpdatable
 {
     private readonly Dictionary<string, Actor> _actors = [];
-    private readonly List<ISystem> _tickableSystems = [];
     private readonly Dictionary<PhysicsBodyHandle, IWorldComponent> _physicsOwners = [];
 
     private float _remainingPhysicsTime;

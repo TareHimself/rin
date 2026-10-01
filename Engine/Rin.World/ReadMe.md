@@ -172,7 +172,7 @@ The tests mirror the folders here (components, render system, physics, skinning,
 - `Culling` does not cull. `CullingShader` writes `1` for every surface, and `DefaultWorldViewData.ViewFrustum` is computed but not read by any pass.
 - `BoundsUpdatePass` is added for skinned scenes but its `Configure` and `Execute` bodies are fully commented out, so skinned surfaces keep the bounds of their bind pose.
 - `ShadowPass` exists but its `Execute` throws `NotImplementedException` and nothing adds it to the graph. There is no shadowing.
-- `World` has a `_tickableSystems` list, and `ISystem` and `LightSystem` exist, but nothing registers or ticks systems. Lights reach the renderer only through proxies.
+- Lights reach the renderer only through proxies. There is no light system or other world-level system layer.
 - `Component.Collect` and `CommandList` (the older collect path) are not called by anything outside the components themselves. The render system path is the live one.
 - Physics components do not call `DestroyBody` or `UnregisterPhysicsBody` when they stop. Bodies are only released by `PhysicsSystem.Destroy()` when the world stops.
 - `Box`, `Sphere` and `Capsule` physics components throw `NotImplementedException` from `ProcessHit`.
