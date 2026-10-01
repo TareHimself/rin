@@ -1,3 +1,4 @@
+using Rin.Core.Extensions;
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -75,7 +76,7 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
 
         if (_descriptor is { } descriptor)
         {
-            AttachmentFormats = descriptor.AttachmentFormats.Select(format => (ImageFormat)(int)format).ToArray();
+            AttachmentFormats = descriptor.AttachmentFormats.Select(format => format.ToImageFormat()).ToArray();
             BlendState = descriptor.BlendState;
             UsesDepth = descriptor.UsesDepth;
             UsesStencil = descriptor.UsesStencil;
