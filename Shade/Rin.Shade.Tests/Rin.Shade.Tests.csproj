@@ -22,6 +22,8 @@
     <ItemGroup>
         <ProjectReference Include="..\Rin.Shade\Rin.Shade.csproj"/>
         <ProjectReference Include="..\Rin.Shade.Transpiler\Rin.Shade.Transpiler.csproj"/>
+        <ProjectReference Include="..\Samples\SampleStdlib\SampleStdlib.csproj" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\Samples\SampleWorld\SampleWorld.csproj" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
 </Project>

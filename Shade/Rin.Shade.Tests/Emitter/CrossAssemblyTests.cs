@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis;
 
@@ -23,7 +24,10 @@ public class CrossAssemblyTests
         Path.Combine(Path.GetDirectoryName(callerPath)!, "..", "..", "Samples");
 
     private static string SampleDll(string project, string dll) =>
-        Path.Combine(SamplesRoot(), project, "bin", "Debug", "net10.0", dll);
+        Path.Combine(SamplesRoot(), project, "bin", BuildConfiguration, "net10.0", dll);
+
+    private static string BuildConfiguration =>
+        typeof(CrossAssemblyTests).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration ?? "Debug";
 
     private static string SampleSource(string project, string fileName) =>
         Path.Combine(SamplesRoot(), project, fileName);
