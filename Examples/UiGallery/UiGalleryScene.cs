@@ -3,8 +3,9 @@ using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Shared.Math;
 using Rin.Core.Views;
+using Rin.Core.Views.Composite;
+using Rin.Core.Views.Layouts;
 using Rin.Core.Views.Content;
-using Rin.Core.Views.Events;
 using Rin.Core.Views.Graphics;
 using Rin.Core.Views.Graphics.Blur;
 using Rin.Core.Views.Graphics.Quads;
@@ -12,7 +13,7 @@ using Rin.Core.Views.Graphics.Quads;
 namespace UiGallery;
 
 /// <summary>
-/// Creates the gallery: one canvas that draws every quad mode, blur and clipping.
+/// Creates the gallery: every quad mode, blur and clipping in sections that wrap to the window width and scroll by dragging.
 /// </summary>
 public static class UiGalleryScene
 {
@@ -20,116 +21,80 @@ public static class UiGalleryScene
     {
         if (IViewsModule.Get().GetWindowSurface(renderer) is not { } surface) return;
 
-        surface.Add(new GalleryCanvas());
+        surface.Add(new RectView
+        {
+            Color = new Color(0.13f, 0.14f, 0.17f, 1f),
+            InitChild = new ScrollListView
+            {
+                Axis = Axis.Column,
+                InitSlots =
+                [
+                    new ListSlot
+                    {
+                        Child = new GallerySections(),
+                        Fit = CrossFit.Available
+                    }
+                ]
+            }
+        });
     }
 
     private delegate void DrawSection(CommandList commands, in Matrix4x4 origin, float time);
 
     private readonly record struct Section(string Title, Vector2 Size, DrawSection Draw);
 
-    /// <summary>
-    /// Draws fixed-size sections that wrap to the window width and scroll vertically with the mouse wheel.
-    /// The layout is cached and only recomputed when the width changes.
-    /// </summary>
-    private sealed class GalleryCanvas : ContentView
+    private const float Margin = 16f;
+    private const float Gap = 16f;
+    private const float TitleHeight = 28f;
+
+    private sealed class SectionView(Section section, string fontName) : ContentView
     {
-        private const float Margin = 16f;
-        private const float Gap = 16f;
-        private const float TitleHeight = 28f;
-        private const float ScrollStep = 48f;
-
-        private static readonly string[] TextLabels = ["Text 12", "Text 18", "Text 28", "Text 48"];
-        private static readonly float[] TextSizes = [12f, 18f, 28f, 48f];
-        private static readonly float[] Thickness = [1f, 2f, 4f, 8f];
-
-        private readonly ResourceHandle _checker = CreateChecker();
-        private readonly string _fontName = new TextBoxView().FontFamily;
-        private readonly Section[] _sections;
-        private readonly Vector2[] _positions;
-
-        private float _layoutWidth = -1f;
-        private float _contentHeight;
-        private float _scroll;
-
-        public GalleryCanvas()
-        {
-            _sections =
-            [
-                new Section("Rectangles", new Vector2(700, 150), DrawRectangles),
-                new Section("Circles", new Vector2(460, 150), DrawCircles),
-                new Section("Lines", new Vector2(270, 150), DrawLines),
-                new Section("Quadratic curves", new Vector2(330, 150), DrawQuadratics),
-                new Section("Cubic curves", new Vector2(400, 150), DrawCubics),
-                new Section("Textures", new Vector2(790, 170), DrawTextures),
-                new Section("Text (MTSDF)", new Vector2(360, 230), DrawText),
-                new Section("Color wheel", new Vector2(170, 190), DrawColorWheel),
-                new Section("Background blur", new Vector2(280, 170), DrawBlur),
-                new Section("Clipping", new Vector2(230, 230), DrawClip)
-            ];
-            _positions = new Vector2[_sections.Length];
-        }
-
         protected override Vector2 LayoutContent(in Vector2 availableSpace)
         {
-            return availableSpace;
-        }
-
-        protected override bool OnScroll(ScrollSurfaceEvent e)
-        {
-            var maxScroll = MathF.Max(0f, _contentHeight - GetContentSize().Y);
-            _scroll = Math.Clamp(_scroll - e.Delta.Y * ScrollStep, 0f, maxScroll);
-            return true;
+            return section.Size + new Vector2(Gap, TitleHeight + Gap);
         }
 
         public override void CollectContent(in Matrix4x4 transform, CommandList commands)
         {
-            var size = GetContentSize();
-            var time = (float)IApplication.Get().TimeSeconds;
-            Layout(size.X);
-            _scroll = Math.Clamp(_scroll, 0f, MathF.Max(0f, _contentHeight - size.Y));
+            commands.AddText(transform, fontName, section.Title, 16f, Color.White);
 
-            commands.AddRect(transform, size, new Color(0.13f, 0.14f, 0.17f, 1f));
-
-            for (var i = 0; i < _sections.Length; i++)
-            {
-                var section = _sections[i];
-                var top = _positions[i].Y - _scroll;
-                if (top + TitleHeight + section.Size.Y < 0f || top > size.Y) continue;
-
-                var sectionOrigin = Matrix4x4.Identity.Translate(new Vector2(_positions[i].X, top)).ChildOf(transform);
-                commands.AddText(sectionOrigin, _fontName, section.Title, 16f, Color.White);
-
-                var contentOrigin = Matrix4x4.Identity.Translate(new Vector2(0f, TitleHeight)).ChildOf(sectionOrigin);
-                section.Draw(commands, contentOrigin, time);
-            }
+            var contentOrigin = Matrix4x4.Identity.Translate(new Vector2(0f, TitleHeight)).ChildOf(transform);
+            section.Draw(commands, contentOrigin, (float)IApplication.Get().TimeSeconds);
         }
+    }
 
-        private void Layout(float width)
+    private sealed class GallerySections : WrapListView
+    {
+        public GallerySections() : base(Axis.Row)
         {
-            if (width == _layoutWidth) return;
-
-            _layoutWidth = width;
-            var x = Margin;
-            var y = Margin;
-            var rowHeight = 0f;
-
-            for (var i = 0; i < _sections.Length; i++)
-            {
-                var section = _sections[i];
-                if (x > Margin && x + section.Size.X > width - Margin)
-                {
-                    x = Margin;
-                    y += rowHeight + Gap;
-                    rowHeight = 0f;
-                }
-
-                _positions[i] = new Vector2(x, y);
-                x += section.Size.X + Gap;
-                rowHeight = MathF.Max(rowHeight, TitleHeight + section.Size.Y);
-            }
-
-            _contentHeight = y + rowHeight + Margin;
+            Padding = new Padding(Margin);
+            var fontName = new TextBoxView().FontFamily;
+            var drawing = new SectionDrawing(CreateChecker(), fontName);
+            foreach (var section in drawing.Sections) Add(new SectionView(section, fontName));
         }
+    }
+
+    private sealed class SectionDrawing(ResourceHandle checker, string fontName)
+    {
+        private static readonly string[] TextLabels = ["Text 12", "Text 18", "Text 28", "Text 48"];
+        private static readonly float[] TextSizes = [12f, 18f, 28f, 48f];
+        private static readonly float[] Thickness = [1f, 2f, 4f, 8f];
+
+        public Section[] Sections => _sections ??=
+        [
+            new Section("Rectangles", new Vector2(700, 150), DrawRectangles),
+            new Section("Circles", new Vector2(460, 150), DrawCircles),
+            new Section("Lines", new Vector2(270, 150), DrawLines),
+            new Section("Quadratic curves", new Vector2(330, 150), DrawQuadratics),
+            new Section("Cubic curves", new Vector2(400, 150), DrawCubics),
+            new Section("Textures", new Vector2(790, 170), DrawTextures),
+            new Section("Text (MTSDF)", new Vector2(360, 230), DrawText),
+            new Section("Color wheel", new Vector2(170, 190), DrawColorWheel),
+            new Section("Background blur", new Vector2(280, 170), DrawBlur),
+            new Section("Clipping", new Vector2(230, 230), DrawClip)
+        ];
+
+        private Section[]? _sections;
 
         private static Matrix4x4 At(in Matrix4x4 origin, float x, float y)
         {
@@ -200,12 +165,12 @@ public static class UiGalleryScene
         private void DrawTextures(CommandList commands, in Matrix4x4 origin, float time)
         {
             var size = new Vector2(110, 110);
-            commands.AddTexture(_checker, At(origin, 0, 0), size);
-            commands.AddTexture(_checker, At(origin, 130, 0), size, new Color(1f, 0.6f, 0.6f, 1f));
-            commands.AddTexture(_checker, At(origin, 260, 0), size, null, null, new Vector4(30f));
-            commands.AddTexture(_checker, At(origin, 390, 0), size, null, new Vector4(0f, 0f, 0.25f, 0.25f));
-            commands.AddTexture(_checker, At(origin, 520, 0), size, null, new Vector4(0f, 0f, 3f, 3f));
-            commands.AddTexture(_checker, Rotating(origin, new Vector2(715, 55), size, time * 30f), size, null, null,
+            commands.AddTexture(checker, At(origin, 0, 0), size);
+            commands.AddTexture(checker, At(origin, 130, 0), size, new Color(1f, 0.6f, 0.6f, 1f));
+            commands.AddTexture(checker, At(origin, 260, 0), size, null, null, new Vector4(30f));
+            commands.AddTexture(checker, At(origin, 390, 0), size, null, new Vector4(0f, 0f, 0.25f, 0.25f));
+            commands.AddTexture(checker, At(origin, 520, 0), size, null, new Vector4(0f, 0f, 3f, 3f));
+            commands.AddTexture(checker, Rotating(origin, new Vector2(715, 55), size, time * 30f), size, null, null,
                 new Vector4(55f));
         }
 
@@ -214,7 +179,7 @@ public static class UiGalleryScene
             var y = 0f;
             for (var i = 0; i < TextSizes.Length; i++)
             {
-                commands.AddText(At(origin, 0, y), _fontName, TextLabels[i], TextSizes[i], Color.White);
+                commands.AddText(At(origin, 0, y), fontName, TextLabels[i], TextSizes[i], Color.White);
                 y += TextSizes[i] + 8f;
             }
         }
@@ -235,7 +200,7 @@ public static class UiGalleryScene
             commands.AddCircle(At(origin, 40, 20), 22f, new Color(1f, 0.9f, 0.2f, 1f));
             commands.AddCircle(At(origin, 190, 80), 28f, new Color(0.2f, 0.9f, 0.5f, 1f));
             commands.AddBlur(At(origin, 60, 30), new Vector2(160, 80), 6f, 12f, new Color(1f, 1f, 1f, 0.15f));
-            commands.AddText(At(origin, 76, 56), _fontName, "Blurred backdrop", 16f, Color.White);
+            commands.AddText(At(origin, 76, 56), fontName, "Blurred backdrop", 16f, Color.White);
         }
 
         private static void DrawClip(CommandList commands, in Matrix4x4 origin, float time)
@@ -249,24 +214,24 @@ public static class UiGalleryScene
                 new Vector4(30f));
             commands.PopClip();
         }
+    }
 
-        private static ResourceHandle CreateChecker()
+    private static ResourceHandle CreateChecker()
+    {
+        const int size = 128;
+        var data = new byte[size * size * 4];
+        for (var y = 0; y < size; y++)
+        for (var x = 0; x < size; x++)
         {
-            const int size = 128;
-            var data = new byte[size * size * 4];
-            for (var y = 0; y < size; y++)
-            for (var x = 0; x < size; x++)
-            {
-                var dark = ((x / 16) + (y / 16)) % 2 == 0;
-                var index = (y * size + x) * 4;
-                data[index] = (byte)(dark ? 40 + x : 220 - y);
-                data[index + 1] = (byte)(dark ? 60 + y : 200);
-                data[index + 2] = (byte)(dark ? 200 : 60 + x);
-                data[index + 3] = 255;
-            }
-
-            IGraphicsModule.Get().CreateTexture(out var handle, data, new Extent2D(size), ImageFormat.RGBA8);
-            return handle;
+            var dark = ((x / 16) + (y / 16)) % 2 == 0;
+            var index = (y * size + x) * 4;
+            data[index] = (byte)(dark ? 40 + x : 220 - y);
+            data[index + 1] = (byte)(dark ? 60 + y : 200);
+            data[index + 2] = (byte)(dark ? 200 : 60 + x);
+            data[index + 3] = 255;
         }
+
+        IGraphicsModule.Get().CreateTexture(out var handle, data, new Extent2D(size), ImageFormat.RGBA8);
+        return handle;
     }
 }
