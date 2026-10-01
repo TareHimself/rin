@@ -18,6 +18,20 @@ When a single source type spans two subsystems' worth of behavior (e.g. a test f
 a `Graphics` handle type and a `Physics` handle type), split it into one test file per subsystem
 folder rather than picking one folder for the combined file.
 
+## Maintainability
+
+Code must be maintainable by humans and AI alike. Generated or quickly written code is not an exception:
+if a person cannot read it, follow it and change it safely, it is not done.
+
+- Write code a reviewer can understand without the author: clear names, small focused methods, one level of
+  abstraction at a time, and structure that matches the surrounding code.
+- Do not leave dense, clever or sprawling code in place of a straightforward version. Simplify it before
+  committing it.
+- Keep changes easy to modify: avoid hidden coupling and duplicated logic, and cover behaviour with tests so
+  the next change, by a person or an agent, can be made with confidence.
+- Prefer explicit, discoverable designs (named types and members) over conventions that only work if you
+  already know the trick.
+
 ## Comments
 
 Follow standard C# comment conventions.
