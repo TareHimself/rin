@@ -66,7 +66,7 @@ public record struct Rect2D
     public static implicit operator Vector4(Rect2D rect)
     {
         return new Vector4(rect.Offset.X, rect.Offset.Y, rect.Size.X,
-            rect.Size.X);
+            rect.Size.Y);
     }
 
     public static bool IntersectsWith(Rect2D a, Rect2D b)
