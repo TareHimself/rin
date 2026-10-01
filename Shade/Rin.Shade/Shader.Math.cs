@@ -152,6 +152,51 @@ public abstract partial class Shader
         [SlangExpression("tan(@0)")]
         public static extern Vector4 Tan(Vector4 x);
 
+        [SlangExpression("asin(@0)")]
+        public static extern float Asin(float x);
+        [SlangExpression("asin(@0)")]
+        public static extern Vector2 Asin(Vector2 x);
+        [SlangExpression("asin(@0)")]
+        public static extern Vector3 Asin(Vector3 x);
+        [SlangExpression("asin(@0)")]
+        public static extern Vector4 Asin(Vector4 x);
+
+        [SlangExpression("acos(@0)")]
+        public static extern float Acos(float x);
+        [SlangExpression("acos(@0)")]
+        public static extern Vector2 Acos(Vector2 x);
+        [SlangExpression("acos(@0)")]
+        public static extern Vector3 Acos(Vector3 x);
+        [SlangExpression("acos(@0)")]
+        public static extern Vector4 Acos(Vector4 x);
+
+        [SlangExpression("atan(@0)")]
+        public static extern float Atan(float x);
+        [SlangExpression("atan(@0)")]
+        public static extern Vector2 Atan(Vector2 x);
+        [SlangExpression("atan(@0)")]
+        public static extern Vector3 Atan(Vector3 x);
+        [SlangExpression("atan(@0)")]
+        public static extern Vector4 Atan(Vector4 x);
+
+        [SlangExpression("radians(@0)")]
+        public static extern float Radians(float x);
+        [SlangExpression("radians(@0)")]
+        public static extern Vector2 Radians(Vector2 x);
+        [SlangExpression("radians(@0)")]
+        public static extern Vector3 Radians(Vector3 x);
+        [SlangExpression("radians(@0)")]
+        public static extern Vector4 Radians(Vector4 x);
+
+        [SlangExpression("degrees(@0)")]
+        public static extern float Degrees(float x);
+        [SlangExpression("degrees(@0)")]
+        public static extern Vector2 Degrees(Vector2 x);
+        [SlangExpression("degrees(@0)")]
+        public static extern Vector3 Degrees(Vector3 x);
+        [SlangExpression("degrees(@0)")]
+        public static extern Vector4 Degrees(Vector4 x);
+
         [SlangExpression("min(@0, @1)")]
         public static extern float Min(float a, float b);
         [SlangExpression("min(@0, @1)")]
@@ -187,6 +232,15 @@ public abstract partial class Shader
         public static extern Vector3 Step(Vector3 a, Vector3 b);
         [SlangExpression("step(@0, @1)")]
         public static extern Vector4 Step(Vector4 a, Vector4 b);
+
+        [SlangExpression("atan2(@0, @1)")]
+        public static extern float Atan2(float a, float b);
+        [SlangExpression("atan2(@0, @1)")]
+        public static extern Vector2 Atan2(Vector2 a, Vector2 b);
+        [SlangExpression("atan2(@0, @1)")]
+        public static extern Vector3 Atan2(Vector3 a, Vector3 b);
+        [SlangExpression("atan2(@0, @1)")]
+        public static extern Vector4 Atan2(Vector4 a, Vector4 b);
 
         [SlangExpression("clamp(@0, @1, @2)")]
         public static extern float Clamp(float x, float lo, float hi);

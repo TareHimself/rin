@@ -28,6 +28,13 @@ internal sealed class BodyLowering(
         {
             case null:
                 return;
+            // A braced block of its own (a case body, or a bare { } inside another block) is a scope: two cases
+            // that each declare `data` would otherwise declare it twice in the one switch.
+            case IBlockOperation { Parent: ISwitchCaseOperation or IBlockOperation } scoped:
+                writer.OpenBrace();
+                foreach (var statement in scoped.Operations) LowerStatement(statement);
+                writer.CloseBrace();
+                return;
             case IBlockOperation block:
                 foreach (var statement in block.Operations) LowerStatement(statement);
                 return;
@@ -450,7 +457,10 @@ internal sealed class BodyLowering(
         // in Slang, where the parameter would win and `indexCount = indexCount` would assign it to
         // itself. A shader class's fields are module-scope globals, not members, so they stay bare.
         if (field.Instance is IInstanceReferenceOperation)
+        {
+            if (UnionLayout.IsUnion(field.Field.ContainingType)) return $"this.header.{name}";
             return field.Field.ContainingType.TypeKind == TypeKind.Struct ? $"this.{name}" : name;
+        }
 
         if (field.Instance is null)
         {

@@ -48,12 +48,13 @@ def main():
 
     # T f(x) - per-component, valid on a bare float too.
     for name in ["Abs", "Sign", "Floor", "Ceil", "Round", "Frac", "Sqrt", "Rsqrt",
-                 "Saturate", "Exp", "Exp2", "Log", "Log2", "Sin", "Cos", "Tan"]:
+                 "Saturate", "Exp", "Exp2", "Log", "Log2", "Sin", "Cos", "Tan", "Asin", "Acos", "Atan",
+                 "Radians", "Degrees"]:
         lines += declare(name, ALL_WIDTHS, [("x", "self")], "self")
         lines.append("")
 
     # T f(a, b) - per-component, valid on a bare float too.
-    for name in ["Min", "Max", "Pow", "Step"]:
+    for name in ["Min", "Max", "Pow", "Step", "Atan2"]:
         lines += declare(name, ALL_WIDTHS, [("a", "self"), ("b", "self")], "self")
         lines.append("")
 

@@ -89,7 +89,10 @@ internal static class TypeEmitter
             return "";
         }
 
-        using var scope = NameScope.InNamespace(FullPath(type, type.Name), declared);
+        // A union's variant structs are declared beside the root, not inside it, so what they name that is
+        // nested in the root (Quad::LineData) must keep its qualifier.
+        using var scope = NameScope.InNamespace(
+            UnionLayout.IsUnion(type) ? Naming.NamespacePath(type) : FullPath(type, type.Name), declared);
 
         var nested = node.Nested.Select(n => EmitNode(n, diagnostics, declared)).Where(text => text.Length > 0).ToList();
 

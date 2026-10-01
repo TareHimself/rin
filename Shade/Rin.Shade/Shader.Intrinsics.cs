@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Rin.Shade;
 
 public abstract partial class Shader
@@ -7,6 +9,12 @@ public abstract partial class Shader
 
     [SlangStatement("InterlockedAdd(@0, @1, @2);")]
     public static extern void InterlockedAdd(ref uint destination, uint value, out uint original);
+
+    [SlangExpression("fwidth(@0)")]
+    public static extern float Fwidth(float value);
+
+    [SlangExpression("fwidth(@0)")]
+    public static extern Vector2 Fwidth(Vector2 value);
 
     [SlangExpression("NonUniformResourceIndex(@0)")]
     public static extern uint NonUniformResourceIndex(uint index);
