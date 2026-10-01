@@ -16,6 +16,30 @@ public static class ViewShaderMath
                Shader.Math.Length(Shader.Math.Max(q, new Vector2(0f))) - cornerRadius;
     }
 
+    public static Vector2 TransformPoint(Vector2 point, Matrix4x4 matrix)
+    {
+        return Vector4.Transform(new Vector4(point, 0f, 1f), matrix).xy;
+    }
+
+    public static float Median(float r, float g, float b)
+    {
+        return Shader.Math.Max(Shader.Math.Min(r, g), Shader.Math.Min(Shader.Math.Max(r, g), b));
+    }
+
+    public static float ScreenPxRange(Vector2 uv, Vector2 size, float pixelRange)
+    {
+        var unitRange = new Vector2(pixelRange) / size;
+        var screenTexSize = new Vector2(1f) / Shader.Fwidth(uv);
+        return Shader.Math.Max(0.5f * Shader.Math.Dot(unitRange, screenTexSize), 1f);
+    }
+
+    public static Vector3 Hsv2Rgb(Vector3 color)
+    {
+        var k = new Vector4(1f, 2f / 3f, 1f / 3f, 3f);
+        var p = Shader.Math.Abs(Shader.Math.Frac(new Vector3(color.X) + k.xyz) * 6f - new Vector3(k.W));
+        return color.Z * Shader.Math.Lerp(new Vector3(k.X), Shader.Math.Clamp(p - new Vector3(k.X), new Vector3(0f), new Vector3(1f)), color.Y);
+    }
+
     /// <summary>
     ///     Fades <paramref name="color" /> to transparent outside a rounded rectangle of <paramref name="size" />
     ///     placed by the inverse of its transform.
