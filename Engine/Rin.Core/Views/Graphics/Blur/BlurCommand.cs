@@ -67,6 +67,11 @@ public static class BlurPassExtensions
         if (size.X == 0 || size.Y == 0 || strength <= 0 || radius <= 0) return self;
         var initCommand = new BlurInitCommand(transform, strength, radius, size, self.SurfaceSize,
             tint.GetValueOrDefault(Vector4.One));
+
+        var isOffSurface = initCommand.BoundingBoxP2.X <= initCommand.BoundingBoxP1.X ||
+                           initCommand.BoundingBoxP2.Y <= initCommand.BoundingBoxP1.Y;
+        if (isOffSurface) return self;
+
         self.Add(initCommand);
         self.Add(new BlurFirstPassCommand(initCommand));
         self.Add(new NoOpCommand());
