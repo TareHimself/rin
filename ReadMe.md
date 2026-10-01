@@ -1,12 +1,12 @@
 # Rin
 
 ## Prerequisites
-- [.NET SDK 10](https://dotnet.microsoft.com/en-us/download) — pinned in `global.json` (`rollForward: latestMajor`); every project targets `net10.0` (set in `Directory.Build.props`)
+- [.NET SDK 10](https://dotnet.microsoft.com/en-us/download) - pinned in `global.json` (`rollForward: latestMajor`); every project targets `net10.0` (set in `Directory.Build.props`)
 - [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/)
 - [CMake](https://cmake.org/)
 - [Python 3](https://www.python.org/)
-- [Conan](https://conan.io/) (`pip install conan`) — used to fetch/build the native C++ dependencies
-- [Task](https://taskfile.dev/installation/) — runs the native build/pack pipeline defined in `Taskfile.yml`
+- [Conan](https://conan.io/) (`pip install conan`) - used to fetch/build the native C++ dependencies
+- [Task](https://taskfile.dev/installation/) - runs the native build/pack pipeline defined in `Taskfile.yml`
 
 ## First-time setup
 The managed projects pull the native libraries (Vulkan graphics backend, Miniaudio, the Slang shader compiler, etc.) as NuGet packages from a local feed (`.feed/`, wired up in `NuGet.Config`). Build and pack them once before opening the solution:
