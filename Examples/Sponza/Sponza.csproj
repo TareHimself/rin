@@ -13,13 +13,15 @@
         <EmbeddedResource Include="Content\**\*.*" Exclude="Content\**\*.slang"/>
     </ItemGroup>
 
-    <ItemGroup Label="Slang shaders">
-        <RinSlangSource Include="Content\mesh.slang" />
+    <ItemGroup Label="Rin.Shade">
+        <ProjectReference Include="$(ShadeDir)Rin.Shade\Rin.Shade.csproj" />
+        <ProjectReference Include="$(ShadeDir)Rin.Shade.SourceGenerator\Rin.Shade.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
-    <PropertyGroup Label="Slang shaders">
-        <RinSlangOutputSubpath>Content\</RinSlangOutputSubpath>
+    <PropertyGroup Label="Rin.Shade">
+        <RinShadeDiscoverPrefix>Shaders/Sponza/</RinShadeDiscoverPrefix>
+        <RinShadeOutputSubpath>Content\Shaders\Sponza\</RinShadeOutputSubpath>
     </PropertyGroup>
-    <Import Project="$(RinMSBuildDir)RinSlang.targets" />
+    <Import Project="$(RinMSBuildDir)RinShade.targets" />
 
     <ItemGroup>
         <PackageReference Include="SharpGLTF.Core"/>

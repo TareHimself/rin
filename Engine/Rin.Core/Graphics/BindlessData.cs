@@ -57,6 +57,11 @@ public struct BindlessData
         return new Vector2(width, height);
     }
 
+    public Vector4 TexelLoad(DeviceHandle handle, int x, int y)
+    {
+        return Textures[(int)Shader.NonUniformResourceIndex(handle.Id)].Load(x, y, 0);
+    }
+
     public Vector4 SampleTexture(DeviceHandle handle, Vector2 uv, ImageTiling tiling, ImageFilter filter)
     {
         var sampler = GetSampler(tiling, filter);

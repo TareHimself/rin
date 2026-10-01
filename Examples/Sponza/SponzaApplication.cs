@@ -35,6 +35,7 @@ public class SponzaApplication : ExampleApplication
         _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
 
         Global.Sources.AddSource(AssemblyResource.New<SponzaApplication>("Sponza", "Content"));
+        Global.Sources.AddSource(AssemblyContentResource.New<SponzaApplication>("Shaders/Sponza"));
         IViewsModule.Get().OnSurfaceCreated += surf =>
         {
             Task.Run(() =>

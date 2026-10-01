@@ -1,9 +1,11 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Shade;
 
 namespace Rin.World.Graphics.Mesh;
 
 [NoReorder]
+[ShadeExport]
 public struct Vertex : IVertex
 {
     /// <summary>

@@ -8,12 +8,14 @@ using Rin.Core.Graphics.Shaders;
 using Rin.Core.Views.Graphics;
 using Rin.Core.Views.Graphics.CommandHandlers;
 using Rin.Core.Views.Graphics.Commands;
+using Rin.Shade;
+using ViewsTest.Shaders;
 
 namespace ViewsTest;
 
 public partial class CustomShaderCommandHandler : ICommandHandler
 {
-    [GraphicsShader("ViewsTest/pretty.slang")]
+    [GraphicsShader<PrettyShader>]
     private partial IGraphicsShader Shader { get; }
 
     private CustomShaderCommand[] _commands = [];
@@ -26,7 +28,7 @@ public partial class CustomShaderCommandHandler : ICommandHandler
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
     {
-        BufferId = config.CreateBuffer<Data>(_commands.Length, GraphBufferUsage.HostThenGraphics);
+        BufferId = config.CreateBuffer<PrettyData>(_commands.Length, GraphBufferUsage.HostThenGraphics);
     }
 
     public void Execute(IPassConfig passConfig,
@@ -37,39 +39,27 @@ public partial class CustomShaderCommandHandler : ICommandHandler
             var view = graph.GetBufferOrException(BufferId);
             for (var i = 0; i < _commands.Length; i++)
             {
-                var offset = Utils.ByteSizeOf<Data>(i);
-                var myView = view.GetView<Data>(offset);
+                var offset = Utils.ByteSizeOf<PrettyData>(i);
+                var myView = view.GetView<PrettyData>(offset);
                 var command = _commands[i];
                 ctx.SetStencilCompareMask(command.StencilMask);
                 var extent = surfaceContext.Extent;
                 var screenSize = new Vector2(extent.Width, extent.Height);
-                var data = new Data
+                var data = new PrettyData
                 {
                     Projection = surfaceContext.ProjectionMatrix,
                     ScreenSize = screenSize,
                     Transform = command.Transform,
                     Size = command.Size,
                     Time = IApplication.Get().TimeSeconds,
-                    Center = command.Hovered ? command.CursorPosition : screenSize / 2.0f
+                    Cursor = command.Hovered ? command.CursorPosition : screenSize / 2.0f
                 };
                 
                 myView.WriteSingle(data);
                 bindContext
-                    .Push(myView.GetAddress())
+                    .Push(new PrettyShader.PushConstants { Data = new BufferRef<PrettyData>(myView.GetAddress()) })
                     .Draw(6);
             }
         }
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    [NoReorder]
-    private struct Data
-    {
-        public required Matrix4x4 Projection;
-        public required Vector2 ScreenSize;
-        public required Matrix4x4 Transform;
-        public required Vector2 Size;
-        public required float Time;
-        public required Vector2 Center;
     }
 }

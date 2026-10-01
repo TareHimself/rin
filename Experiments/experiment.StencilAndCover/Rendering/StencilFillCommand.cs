@@ -7,17 +7,10 @@ using Rin.Core.Graphics.Shaders;
 using Rin.Core.Views.Graphics;
 using Rin.Core.Views.Graphics.CommandHandlers;
 using Rin.Core.Views.Graphics.Commands;
+using experiment.StencilAndCover.Shaders;
+using Rin.Shade;
 
 namespace experiment.StencilAndCover.Rendering;
-
-[StructLayout(LayoutKind.Sequential)]
-[NoReorder]
-internal struct StencilFillPush
-{
-    public required Matrix4x4 Projection;
-    public required Matrix4x4 Transform;
-    public required ulong VerticesAddress;
-}
 
 // Pass 1 of stencil-and-cover: accumulates a per-pixel winding count into a dedicated stencil
 // attachment (not the view-clip system's) by drawing each contour's triangle fan with
@@ -46,7 +39,7 @@ public class StencilFillPassConfig : IPassConfig
 
 public partial class StencilFillCommandHandler : ICommandHandler
 {
-    [GraphicsShader("StencilAndCover/stencil_fill.slang")]
+    [GraphicsShader<StencilFillShader>]
     private partial IGraphicsShader Shader { get; }
 
     private StencilFillCommand[] _commands = [];
@@ -84,11 +77,11 @@ public partial class StencilFillCommandHandler : ICommandHandler
                 .StencilFillOp();
 
             if (Shader.Bind(ctx) is { } bind)
-                bind.Push(new StencilFillPush
+                bind.Push(new StencilFillShader.PushConstants
                     {
                         Projection = surfaceContext.ProjectionMatrix,
                         Transform = command.Transform,
-                        VerticesAddress = vertexBuffer.GetAddress()
+                        Vertices = new BufferRef<Vector2>(vertexBuffer.GetAddress())
                     })
                     .Draw((uint)command.FanVertices.Count);
 

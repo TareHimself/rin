@@ -3,6 +3,7 @@ using Rin.Shade;
 
 namespace Rin.World.Graphics.Default.Shaders;
 
+[ShadeExport]
 public static class ShaderMath
 {
     /// <summary>
