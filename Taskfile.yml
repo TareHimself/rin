@@ -26,7 +26,7 @@ tasks:
       - ensure-feed-dir
     cmds:
       - task build
-      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' --output "{{.LOCAL_FEED_DIR}}"
+      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' /p:NuspecBasePath='specs' --output "{{.LOCAL_FEED_DIR}}"
   
   pack-audio-miniaudio-native:
     dir: ./native/Rin.Audio.Miniaudio.Native
@@ -34,7 +34,7 @@ tasks:
       - ensure-feed-dir
     cmds:
       - task build
-      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' --output "{{.LOCAL_FEED_DIR}}"
+      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' /p:NuspecBasePath='specs' --output "{{.LOCAL_FEED_DIR}}"
 
   pack-graphics-vulkan-native:
     dir: ./native/Rin.Graphics.Vulkan.Native
@@ -42,7 +42,7 @@ tasks:
       - ensure-feed-dir
     cmds:
       - task build
-      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' --output "{{.LOCAL_FEED_DIR}}"
+      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' /p:NuspecBasePath='specs' --output "{{.LOCAL_FEED_DIR}}"
 
   pack-slang-native:
     dir: ./native/Rin.Slang.Native
@@ -50,7 +50,7 @@ tasks:
       - ensure-feed-dir
     cmds:
       - task build
-      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' --output "{{.LOCAL_FEED_DIR}}"
+      - dotnet pack project.csproj /p:NuspecFile='specs/Release.nuspec' /p:NuspecBasePath='specs' --output "{{.LOCAL_FEED_DIR}}"
 
   pack-all:
     deps:
