@@ -13,7 +13,10 @@ using Rin.Core.Views.Graphics.Commands;
 using Rin.Core.Views.Graphics.PassConfigs;
 using Rin.Core.Views.Graphics.Quads;
 using Rin.World.Components;
+using Rin.Shade;
 using Rin.World.Graphics;
+using Rin.World.Graphics.Default.Shaders;
+using Rin.World.Views.Shaders;
 using CommandList = Rin.Core.Views.Graphics.CommandList;
 using ICommand = Rin.Core.Views.Graphics.Commands.ICommand;
 
@@ -32,7 +35,7 @@ public enum ViewportChannel
 
 internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
 {
-    [GraphicsShader("Shaders/World/viewport.slang")]
+    [GraphicsShader<ViewportShader>]
     private partial IGraphicsShader Shader { get; }
 
     private DrawViewportCommand[] _commands = [];
@@ -69,7 +72,7 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
     {
         _pushBufferIds = new uint[_commands.Length];
         for (var i = 0; i < _commands.Length; i++)
-            _pushBufferIds[i] = config.CreateBuffer<PushData>(GraphBufferUsage.HostThenGraphics);
+            _pushBufferIds[i] = config.CreateBuffer<ViewportPushData>(GraphBufferUsage.HostThenGraphics);
 
         _outputImageIds = new uint[_renderContexts.Length];
         _gBufferImageIds = new uint[_renderContexts.Length][];
@@ -109,41 +112,28 @@ internal partial class ViewportCommandHandler : ICommandHandlerWithPreAdd
 
                 ctx.SetStencilCompareMask(cmd.StencilMask);
                 pushBuffer.WriteSingle(
-                    new PushData
+                    new ViewportPushData
                     {
                         Projection = surfaceContext.ProjectionMatrix,
                         Transform = cmd.Transform,
                         Size = cmd.DisplaySize,
                         OutputImage = outputImage,
-                        GBuffer0 = gBufferIds[0] > 0 ? graph.GetImageOrException(gBufferIds[0]) : ResourceHandle.InvalidTexture,
-                        GBuffer1 = gBufferIds[1] > 0 ? graph.GetImageOrException(gBufferIds[1]) : ResourceHandle.InvalidTexture,
-                        GBuffer2 = gBufferIds[2] > 0 ? graph.GetImageOrException(gBufferIds[2]) : ResourceHandle.InvalidTexture,
-                        GBuffer3 = gBufferIds[3] > 0 ? graph.GetImageOrException(gBufferIds[3]) : ResourceHandle.InvalidTexture,
-                        LightsBuffer = lightsBuffer.GetAddress(),
+                        GBuffer = new GBufferHandles
+                        {
+                            GBuffer0 = gBufferIds[0] > 0 ? graph.GetImageOrException(gBufferIds[0]) : ResourceHandle.InvalidTexture,
+                            GBuffer1 = gBufferIds[1] > 0 ? graph.GetImageOrException(gBufferIds[1]) : ResourceHandle.InvalidTexture,
+                            GBuffer2 = gBufferIds[2] > 0 ? graph.GetImageOrException(gBufferIds[2]) : ResourceHandle.InvalidTexture,
+                            GBuffer3 = gBufferIds[3] > 0 ? graph.GetImageOrException(gBufferIds[3]) : ResourceHandle.InvalidTexture
+                        },
+                        Lights = new BufferRef<LightInfo>(lightsBuffer.GetAddress()),
                         LightCount = lights.Length,
-                        Channel = (int)cmd.Channel
+                        Channel = cmd.Channel
                     });
                 bindContext
-                    .Push(pushBuffer.GetAddress())
+                    .Push(new ViewportShader.PushConstants { Data = new BufferRef<ViewportPushData>(pushBuffer.GetAddress()) })
                     .Draw(6);
             }
         }
-    }
-
-    [NoReorder]
-    private struct PushData
-    {
-        public required Matrix4x4 Projection;
-        public required Matrix4x4 Transform;
-        public required Vector2 Size;
-        public required DeviceHandle OutputImage;
-        public required DeviceHandle GBuffer0;
-        public required DeviceHandle GBuffer1;
-        public required DeviceHandle GBuffer2;
-        public required DeviceHandle GBuffer3;
-        public required ulong LightsBuffer;
-        public required int LightCount;
-        public required int Channel;
     }
 }
 
