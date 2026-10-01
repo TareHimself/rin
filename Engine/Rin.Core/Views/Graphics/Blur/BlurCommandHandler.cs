@@ -122,7 +122,7 @@ internal partial class BlurFirstPassCommandHandler : ICommandHandler
                     Strength = command.InitCommand.Strength,
                     Radius = command.InitCommand.BlurRadius,
                     Tint = command.InitCommand.Tint,
-                    Transform = command.InitCommand.LocalTransform,
+                    Transform = Matrix4x4.Identity,
                     DestRect = new Vector4(command.InitCommand.BlurP1, command.InitCommand.BlurP2.X,
                         command.InitCommand.BlurP2.Y)
                 });
