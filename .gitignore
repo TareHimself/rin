@@ -32,3 +32,7 @@ specs/
 .DS_Store
 *.sln.DotSettings.user
 [Tt]estResults/
+
+# dotTrace performance snapshots
+*.dtp
+*.dtt
