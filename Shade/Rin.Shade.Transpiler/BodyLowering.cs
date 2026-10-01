@@ -24,6 +24,8 @@ internal sealed class BodyLowering(
 
     public void LowerStatement(IOperation? op)
     {
+        if (op is not null) DeclareOutVariables(op);
+
         switch (op)
         {
             case null:
@@ -279,10 +281,42 @@ internal sealed class BodyLowering(
         _ => LowerExpr(op)
     };
 
+    // Roslyn lists a call's arguments in the order they were written, so `F(b: 1, a: 2)` is [b, a]; Slang
+    // takes them by position, so they go out in parameter order.
+    private static IArgumentOperation[] InParameterOrder(IEnumerable<IArgumentOperation> arguments) =>
+        arguments.OrderBy(argument => argument.Parameter?.Ordinal ?? int.MaxValue).ToArray();
+
+    // `out var x` declares x inside the call, which Slang can't do, so the declaration is written on the line
+    // before the statement that contains it and the call passes the bare name.
+    private void DeclareOutVariables(IOperation statement)
+    {
+        foreach (var declaration in FindOutDeclarations(statement))
+            if (declaration.Expression is ILocalReferenceOperation local)
+                writer.Line($"{TypeMapping.MapType(local.Local.Type)} {Naming.ToSlangIdentifier(local.Local.Name)};");
+    }
+
+    private static IEnumerable<IDeclarationExpressionOperation> FindOutDeclarations(IOperation parent)
+    {
+        foreach (var child in parent.ChildOperations)
+        {
+            if (IsStatement(child)) continue;
+
+            if (child is IDeclarationExpressionOperation declaration) yield return declaration;
+            foreach (var nested in FindOutDeclarations(child)) yield return nested;
+        }
+    }
+
+    private static bool IsStatement(IOperation op) =>
+        op is IBlockOperation or ISwitchCaseOperation or ILocalFunctionOperation or IExpressionStatementOperation
+            or IReturnOperation or IVariableDeclarationGroupOperation or ILoopOperation or ISwitchOperation
+            or IBranchOperation or IConditionalOperation { Type: null };
+
     private string LowerExpr(IOperation op)
     {
         switch (op)
         {
+            case IDeclarationExpressionOperation declaration:
+                return LowerExpr(declaration.Expression);
             case IParameterReferenceOperation parameter:
                 return Naming.ToSlangIdentifier(parameter.Parameter.Name);
             case ILocalReferenceOperation { Local.RefKind: RefKind.Ref } refLocal:
@@ -508,8 +542,9 @@ internal sealed class BodyLowering(
 
         if (IsVectorMatrixTransform(method))
         {
-            var v = LowerExpr(invocation.Arguments[0].Value);
-            var m = LowerExpr(invocation.Arguments[1].Value);
+            var transformArguments = InParameterOrder(invocation.Arguments);
+            var v = LowerExpr(transformArguments[0].Value);
+            var m = LowerExpr(transformArguments[1].Value);
             return $"mul({v}, {m})";
         }
 
@@ -528,7 +563,7 @@ internal sealed class BodyLowering(
             null or IInstanceReferenceOperation => null,
             var expr => LowerAtLeast(expr, PostfixPrecedence)
         };
-        var arguments = invocation.Arguments.Select(a => LowerExpr(a.Value)).ToArray();
+        var arguments = InParameterOrder(invocation.Arguments).Select(a => LowerExpr(a.Value)).ToArray();
 
         if (MethodSource.HasBody(method))
         {
@@ -628,7 +663,7 @@ internal sealed class BodyLowering(
             return "/* unresolved constructor */";
         }
 
-        var arguments = creation.Arguments.Select(a => LowerExpr(a.Value)).ToArray();
+        var arguments = InParameterOrder(creation.Arguments).Select(a => LowerExpr(a.Value)).ToArray();
         return $"{TypeMapping.MapType(type)}({string.Join(", ", arguments)})";
     }
 
@@ -672,7 +707,7 @@ internal sealed class BodyLowering(
 
     private string SubstituteTemplate(string template, IInvocationOperation invocation)
     {
-        var arguments = invocation.Arguments.Select(a => a.Value).ToArray();
+        var arguments = InParameterOrder(invocation.Arguments).Select(a => a.Value).ToArray();
         var typeArguments = invocation.TargetMethod.TypeArguments;
 
         // One pass over the placeholders: replacing `@1` with a plain string replace would also hit the

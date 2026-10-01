@@ -50,10 +50,7 @@ public struct BindlessData
 
     public Vector2 GetTextureSize(DeviceHandle handle)
     {
-        uint width;
-        uint height;
-        uint levels;
-        Textures[(int)Shader.NonUniformResourceIndex(handle.Id)].GetDimensions(0u, out width, out height, out levels);
+        Textures[(int)Shader.NonUniformResourceIndex(handle.Id)].GetDimensions(0u, out var width, out var height, out var levels);
         return new Vector2(width, height);
     }
 
