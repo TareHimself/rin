@@ -100,13 +100,13 @@ public partial class VulkanGraphicsModule
 
         _resourceDescriptorSet = _resourceDescriptorAllocator.Allocate(_resourceDescriptorSetLayout);
 
-        for (var filter = 0; filter < 2; filter++)
-        for (var tiling = 0; tiling < 3; tiling++)
+        for (var filter = 0; filter < BindlessData.FilterCount; filter++)
+        for (var tiling = 0; tiling < BindlessData.TilingCount; tiling++)
             _resourceDescriptorSet.WriteSampler(SamplersBinding, new SamplerSpec
             {
                 Filter = (ImageFilter)filter,
                 Tiling = (ImageTiling)tiling
-            }, (uint)(filter * 3 + tiling));
+            }, (uint)(filter * BindlessData.TilingCount + tiling));
 
         _resourceDescriptorSet.Update();
         _resourcePipelineLayout = _device.CreatePipelineLayout([_resourceDescriptorSetLayout]);
