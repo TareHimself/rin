@@ -46,14 +46,14 @@ public readonly struct ClipStackKey(uint[] ids) : IEquatable<ClipStackKey>
 
 public class CommandList
 {
-    private readonly Stack<uint> _clipStack = [];
+    private readonly List<ClipStackKey> _clipKeyStack = [ClipStackKey.Empty];
 
     [PublicAPI] public readonly List<ClipStackKey> ClipIds = [];
 
     //private readonly SortedDictionary<int, List<RawCommand>> _commands = new SortedDictionary<int, List<RawCommand>>(Comparer<int>.Create((a,b) => b.CompareTo(a)));
     [PublicAPI] public readonly List<ICommand> Commands = [];
 
-    private ClipStackKey _clipKey = ClipStackKey.Empty;
+    private uint[]? _registeredClipIds;
     private int _depth;
     public List<ClipInfo> Clips { get; } = [];
     public required Vector2 SurfaceSize { get; set; }
@@ -61,9 +61,15 @@ public class CommandList
 
     public CommandList Add(ICommand command)
     {
+        var clipKey = _clipKeyStack[^1];
         Commands.Add(command);
-        ClipIds.Add(_clipKey);
-        UniqueClipStacks.TryAdd(_clipKey, _clipKey.Ids);
+        ClipIds.Add(clipKey);
+
+        if (!ReferenceEquals(_registeredClipIds, clipKey.Ids))
+        {
+            UniqueClipStacks.TryAdd(clipKey, clipKey.Ids);
+            _registeredClipIds = clipKey.Ids;
+        }
 
         return this;
     }
@@ -74,15 +80,18 @@ public class CommandList
         var id = (uint)Clips.Count;
         var clipInfo = new ClipInfo(id, transform, size);
         Clips.Add(clipInfo);
-        _clipStack.Push(clipInfo.Id);
-        _clipKey = new ClipStackKey(_clipStack.ToArray());
+
+        var parentIds = _clipKeyStack[^1].Ids;
+        var ids = new uint[parentIds.Length + 1];
+        parentIds.CopyTo(ids, 0);
+        ids[^1] = clipInfo.Id;
+        _clipKeyStack.Add(new ClipStackKey(ids));
         return this;
     }
 
     public CommandList PopClip()
     {
-        _clipStack.Pop();
-        _clipKey = new ClipStackKey(_clipStack.ToArray());
+        _clipKeyStack.RemoveAt(_clipKeyStack.Count - 1);
         return this;
     }
 

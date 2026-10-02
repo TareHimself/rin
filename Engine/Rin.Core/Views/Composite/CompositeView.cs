@@ -87,20 +87,21 @@ public abstract class CompositeView : View, ICompositeView
         commands.IncrDepth();
         var clipRect = clip;
 
+        var childSpaceTransform = transform.ApplyBefore(GetLocalContentTransform());
 
-        var contentTransform = transform.ApplyBefore(GetLocalContentTransform());
-        
-        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(transform.ApplyBefore(GetPaddingOffsetTransform()), GetContentSize());
+        var viewportTransform = transform.ApplyBefore(GetPaddingOffsetTransform());
+        var viewportSize = GetContentSize();
 
-        if (Clip == Clip.Bounds) clipRect = Rect2D.Clamp(ComputeAABB(contentTransform), clipRect);
+        if (Parent != null && Clip == Clip.Bounds) commands.PushClip(viewportTransform, viewportSize);
 
-        
+        if (Clip == Clip.Bounds) clipRect = Rect2D.Clamp(ComputeAABB(viewportSize, viewportTransform), clipRect);
+
 
         foreach (var slot in GetActiveSlots())
         {
             if(!slot.Child.IsVisible) continue;
 
-            var slotTransform = ComputeSlotTransform(slot, contentTransform);
+            var slotTransform = ComputeSlotTransform(slot, childSpaceTransform);
 
             var aabb = slot.Child.ComputeAABB(slotTransform);
 
