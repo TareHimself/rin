@@ -48,6 +48,27 @@ Follow standard C# comment conventions.
   ```
 
 - Comment the non-obvious "why", not what the code already says.
+- Keep the content short: one line of text beats a multi-sentence paragraph. If a member's behavior is
+  already obvious from its name or a one-line body, skip the doc or cut its content to a single line instead
+  of restating the implementation in prose. Save the longer explanation for the type-level summary/remarks
+  where a non-obvious mechanism genuinely needs it.
+- Keeping the content to one line never means collapsing the tags onto that same line. `<summary>` (and every
+  other XML doc tag) always keeps its three-line form - opening tag, content, closing tag, each on their own
+  line - exactly like the example above, even when the content is a single short sentence:
+
+  ```csharp
+  /// <summary>
+  ///     The value as of the last <see cref="TryConsume" />, or the initial value.
+  /// </summary>
+  public T Current => ...;
+  ```
+
+  not:
+
+  ```csharp
+  /// <summary>The value as of the last <see cref="TryConsume" />, or the initial value.</summary>
+  public T Current => ...;
+  ```
 
 ## Performance
 
