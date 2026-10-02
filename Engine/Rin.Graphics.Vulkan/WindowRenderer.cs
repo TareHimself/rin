@@ -19,7 +19,7 @@ namespace Rin.Graphics.Vulkan;
 /// </summary>
 public class WindowRenderer : IWindowRenderer
 {
-    private const uint FramesInFlight = 1;
+    private uint _framesInFlight = 1;
 
     private readonly Lock _drawLock = new();
     private readonly VulkanGraphicsModule _module;
@@ -181,7 +181,37 @@ public class WindowRenderer : IWindowRenderer
 
     public uint GetNumFramesInFlight()
     {
-        return FramesInFlight;
+        return _framesInFlight;
+    }
+
+    public void SetFramesInFlight(uint framesInFlight)
+    {
+        framesInFlight = Math.Max(1, framesInFlight);
+        if (_framesInFlight == framesInFlight) return;
+
+        _framesInFlight = framesInFlight;
+        if (_frames.Length > 0)
+        {
+            _module.WaitIdle();
+            foreach (var frame in _frames) frame.Dispose();
+            InitFrames();
+        }
+
+        MarkDirty();
+    }
+
+    public unsafe uint GetMaxTrueFramesInFlight()
+    {
+        var capabilities = GetSurfaceCapabilities();
+        // 0 means the surface imposes no upper bound (Vulkan spec).
+        return capabilities.maxImageCount == 0 ? uint.MaxValue : capabilities.maxImageCount;
+    }
+
+    private unsafe VkSurfaceCapabilitiesKHR GetSurfaceCapabilities()
+    {
+        var surfaceCapabilities = new VkSurfaceCapabilitiesKHR();
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities);
+        return surfaceCapabilities;
     }
 
     public void Init()
@@ -192,8 +222,7 @@ public class WindowRenderer : IWindowRenderer
     private unsafe bool CreateSwapchain(Extent2D extent)
     {
         var actSize = GetRenderExtent();
-        var surfaceCapabilities = new VkSurfaceCapabilitiesKHR();
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities);
+        var surfaceCapabilities = GetSurfaceCapabilities();
 
         if (surfaceCapabilities.minImageExtent.width > extent.Width ||
             surfaceCapabilities.minImageExtent.height > extent.Height ||
@@ -203,6 +232,13 @@ public class WindowRenderer : IWindowRenderer
 
         var device = _module.GetDevice();
         var format = _module.GetSurfaceFormat();
+
+        // Use frames-in-flight exactly when the surface allows it, otherwise clamp into its valid
+        // [minImageCount, maxImageCount] range (maxImageCount == 0 means no upper bound).
+        var minImages = Math.Max(1, surfaceCapabilities.minImageCount);
+        var maxImages = surfaceCapabilities.maxImageCount == 0 ? uint.MaxValue : surfaceCapabilities.maxImageCount;
+        var imageCount = Math.Clamp(Math.Max(1, _framesInFlight), minImages, maxImages);
+
         var createInfo = new VkSwapchainCreateInfoKHR
         {
             sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -215,7 +251,7 @@ public class WindowRenderer : IWindowRenderer
             imageUsage = VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                          VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             imageArrayLayers = 1,
-            minImageCount = surfaceCapabilities.minImageCount + 1,
+            minImageCount = imageCount,
             preTransform = VkSurfaceTransformFlagsKHR.VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
         };
 
@@ -289,8 +325,8 @@ public class WindowRenderer : IWindowRenderer
 
     private void InitFrames()
     {
-        _frames = new Frame[FramesInFlight];
-        for (var i = 0; i < FramesInFlight; i++)
+        _frames = new Frame[_framesInFlight];
+        for (var i = 0; i < _framesInFlight; i++)
         {
             _frames[i] = new Frame(this);
         }
@@ -298,7 +334,7 @@ public class WindowRenderer : IWindowRenderer
 
     private Frame GetCurrentFrame()
     {
-        return _frames[_framesRendered % FramesInFlight];
+        return _frames[_framesRendered % _framesInFlight];
     }
 
     private static void CheckResult(VkResult result)
