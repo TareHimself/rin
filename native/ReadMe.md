@@ -49,3 +49,4 @@ In CI (`.github/workflows/ci.yml`):
 
 - Restoring on a clean checkout fails until `.feed/` contains the native packages. Run `uv run task pack-all` (real) or `uv run python scripts/pack_native_stubs.py .feed` (stubs).
 - After changing a module's C++ source, re-run its `pack-*` task.
+- Rebuilding a package at the same version does not refresh the copy in the global NuGet cache, so restore keeps using the old one. Run `uv run task force-restore`, which clears the whole global cache (slow, every package is downloaded again) and then runs `dotnet restore` on `rin.sln`.
