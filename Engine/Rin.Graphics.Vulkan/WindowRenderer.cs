@@ -19,7 +19,7 @@ namespace Rin.Graphics.Vulkan;
 /// </summary>
 public class WindowRenderer : IWindowRenderer
 {
-    private uint _framesInFlight = 1;
+    private readonly CoalescingValue<uint> _framesInFlight = new(1);
 
     private readonly Lock _drawLock = new();
     private readonly VulkanGraphicsModule _module;
@@ -140,6 +140,8 @@ public class WindowRenderer : IWindowRenderer
 
         if (ctx.RenderExtent != _window.GetSize()) return;
 
+        ApplyPendingFramesInFlight();
+
         if (_swapchainExtent != ctx.RenderExtent) MarkDirty();
 
         if (_dirty)
@@ -181,15 +183,28 @@ public class WindowRenderer : IWindowRenderer
 
     public uint GetNumFramesInFlight()
     {
-        return _framesInFlight;
+        return _framesInFlight.Current;
     }
 
+    /// <summary>
+    ///     Publishes a new frames-in-flight request. Safe to call from any thread at any time - it
+    ///     never touches GPU resources itself. The render loop picks up the latest request and
+    ///     recreates frame resources and the swapchain at its next safe point (<see cref="Execute" />).
+    /// </summary>
     public void SetFramesInFlight(uint framesInFlight)
     {
-        framesInFlight = Math.Max(1, framesInFlight);
-        if (_framesInFlight == framesInFlight) return;
+        _framesInFlight.Set(Math.Max(1, framesInFlight));
+    }
 
-        _framesInFlight = framesInFlight;
+    /// <summary>
+    ///     Applies the latest published frames-in-flight request, if any, by recreating frame
+    ///     resources and marking the swapchain dirty. Only safe to call from the render loop, between
+    ///     frames.
+    /// </summary>
+    private void ApplyPendingFramesInFlight()
+    {
+        if (!_framesInFlight.TryConsume(out _)) return;
+
         if (_frames.Length > 0)
         {
             _module.WaitIdle();
@@ -237,7 +252,7 @@ public class WindowRenderer : IWindowRenderer
         // [minImageCount, maxImageCount] range (maxImageCount == 0 means no upper bound).
         var minImages = Math.Max(1, surfaceCapabilities.minImageCount);
         var maxImages = surfaceCapabilities.maxImageCount == 0 ? uint.MaxValue : surfaceCapabilities.maxImageCount;
-        var imageCount = Math.Clamp(Math.Max(1, _framesInFlight), minImages, maxImages);
+        var imageCount = Math.Clamp(Math.Max(1, _framesInFlight.Current), minImages, maxImages);
 
         var createInfo = new VkSwapchainCreateInfoKHR
         {
@@ -325,8 +340,9 @@ public class WindowRenderer : IWindowRenderer
 
     private void InitFrames()
     {
-        _frames = new Frame[_framesInFlight];
-        for (var i = 0; i < _framesInFlight; i++)
+        var framesInFlight = _framesInFlight.Current;
+        _frames = new Frame[framesInFlight];
+        for (var i = 0; i < framesInFlight; i++)
         {
             _frames[i] = new Frame(this);
         }
@@ -334,7 +350,7 @@ public class WindowRenderer : IWindowRenderer
 
     private Frame GetCurrentFrame()
     {
-        return _frames[_framesRendered % _framesInFlight];
+        return _frames[_framesRendered % _framesInFlight.Current];
     }
 
     private static void CheckResult(VkResult result)
@@ -420,8 +436,6 @@ public class WindowRenderer : IWindowRenderer
                     Debug.Assert(graph != null,
                         "Frame Graph is empty"); // Since we always prepare for present the graph can never be empty
 
-                    // var cmd = frame.GetPrimaryCommandBuffer();
-                    //
                     var cmd = frame.GetPrimaryCommandBuffer();
                     cmd
                         .Begin();
