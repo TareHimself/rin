@@ -8,7 +8,7 @@ namespace Examples.Common.Views;
 
 public class FpsView : TextBoxView
 {
-    private static readonly uint NumAveragedSamples = 3000;
+    private static readonly uint NumAveragedSamples = 100;
     private readonly Averaged<double> _averageFps = new(0, NumAveragedSamples);
     private readonly AveragedStatCategory _collectTime = new("Engine.Collect");
     private readonly AveragedStatCategory _graphBuildTime = new("Engine.Rendering.Graph.Build");
