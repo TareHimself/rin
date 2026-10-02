@@ -78,25 +78,6 @@ struct CustomStringBlob : CustomBlob
 
 using LoadFileFunction = int(RIN_CALLBACK_CONVENTION *)(char* path,char** data,void* userData);
 
-struct CustomFileSystem final : ISlangFileSystemExt
-{
-    uint32_t refs;
-    CustomFileSystem();
-    SLANG_NO_THROW SlangResult queryInterface(const SlangUUID& uuid, void** outObject) override;
-    SLANG_NO_THROW uint32_t addRef() override;
-    SLANG_NO_THROW uint32_t release() override;
-    SLANG_NO_THROW void* castAs(const SlangUUID& guid) override;
-    SLANG_NO_THROW SlangResult loadFile(const char* path, ISlangBlob** outBlob) override;
-    SLANG_NO_THROW SlangResult getFileUniqueIdentity(const char* path, ISlangBlob** outUniqueIdentity) override;
-    SLANG_NO_THROW SlangResult calcCombinedPath(SlangPathType fromPathType, const char* fromPath, const char* path, ISlangBlob** pathOut) override;
-    SLANG_NO_THROW SlangResult getPathType(const char* path, SlangPathType* pathTypeOut) override;
-    SLANG_NO_THROW SlangResult getPath(PathKind kind, const char* path, ISlangBlob** outPath) override;
-    SLANG_NO_THROW void clearCache() override;
-    SLANG_NO_THROW SlangResult enumeratePathContents(const char* path, FileSystemContentsCallBack callback, void* userData) override;
-    SLANG_NO_THROW OSPathKind getOSPathKind() override;
-};
-
-
 struct SessionBuilder
 {
     SessionBuilder();
@@ -109,7 +90,6 @@ struct SessionBuilder
 struct Session
 {
     Slang::ComPtr<slang::ISession> session{};
-    CustomFileSystem* fileSystem{nullptr};
     explicit Session(const SessionBuilder * builder);
     ~Session();
 };

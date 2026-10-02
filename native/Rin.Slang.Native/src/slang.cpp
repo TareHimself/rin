@@ -65,108 +65,11 @@ size_t CustomStringBlob::getBufferSize()
 {
     return data.size();
 }
-CustomFileSystem::CustomFileSystem()
-{
-}
-SlangResult CustomFileSystem::queryInterface(const SlangUUID& uuid, void** outObject)
-{
-    return 1;
-}
-uint32_t CustomFileSystem::addRef()
-{
-    return ++refs;
-}
-uint32_t CustomFileSystem::release()
-{
-    return --refs;
-}
-
-void* CustomFileSystem::castAs(const SlangUUID& guid)
-{
-    return this;
-}
-
-SlangResult CustomFileSystem::loadFile(const char* path, ISlangBlob** outBlob)
-{
-    return SLANG_FAIL;
-    // std::cout << "Loading file " << path << std::endl;
-    // char* data = nullptr;
-    // std::string str{path};
-    // const auto blob = new CustomStringBlob({data, data + size});
-    // memoryFree(data);
-    // *outBlob = blob;
-    // return SLANG_OK;
-}
-SlangResult CustomFileSystem::getFileUniqueIdentity(const char* path, ISlangBlob** outUniqueIdentity)
-{
-    *outUniqueIdentity = new CustomStringBlob(path);
-    return SLANG_OK;
-}
-SlangResult CustomFileSystem::calcCombinedPath(SlangPathType fromPathType, const char* fromPath, const char* path, ISlangBlob** pathOut)
-{
-    std::string asStr{path};
-    asStr = "/" + asStr;
-    *pathOut = new CustomStringBlob(asStr);
-    return SLANG_OK;
-}
-SlangResult CustomFileSystem::getPathType(const char* path, SlangPathType* pathTypeOut)
-{
-    std::string str{path};
-    if(str.ends_with(".slang"))
-    {
-        *pathTypeOut = SLANG_PATH_TYPE_FILE;
-    }
-    else
-    {
-        *pathTypeOut = SLANG_PATH_TYPE_DIRECTORY;
-    }
-    return SLANG_OK;
-}
-SlangResult CustomFileSystem::getPath(PathKind kind, const char* path, ISlangBlob** outPath)
-{
-    *outPath = new CustomStringBlob(path);
-    return SLANG_OK;
-}
-void CustomFileSystem::clearCache()
-{
-
-}
-SlangResult CustomFileSystem::enumeratePathContents(const char* path, FileSystemContentsCallBack callback, void* userData)
-{
-    return SLANG_OK;
-}
-OSPathKind CustomFileSystem::getOSPathKind()
-{
-    return OSPathKind::None;
-}
 SessionBuilder::SessionBuilder()
 {
 }
-// SlangResult CustomFileSystem::queryInterface(const SlangUUID& uuid, void** outObject)
-//// {
-////     return SLANG_OK;
-//// }
-//// uint32_t CustomFileSystem::addRef()
-//// {
-////     return ++refs;
-//// }
-//// uint32_t CustomFileSystem::release()
-//// {
-////     return --refs;
-//// }
-//// void* CustomFileSystem::castAs(const SlangUUID& guid)
-//// {
-////     return static_cast<void*>(this);
-//// }
-////
-//// SlangResult CustomFileSystem::loadFile(const char* path, ISlangBlob** outBlob)
-//// {
-////     std::cout << "Loading file: " << path << std::endl;
-////     std::ifstream data(path);
-//// }
 Session::Session(const SessionBuilder* builder)
 {
-    fileSystem = new CustomFileSystem();
     slang::SessionDesc sessionDesc{};
 
     sessionDesc.targets = builder->targets.data();
@@ -200,9 +103,6 @@ Session::Session(const SessionBuilder* builder)
 
     sessionDesc.searchPaths = searchPaths.data();
     sessionDesc.searchPathCount = static_cast<SlangInt>(searchPaths.size());
-    sessionDesc.fileSystem = fileSystem;
-    //sessionDesc.fileSystem = new FileS
-    //sessionDesc.fileSystem = new FileSystem()
     GLOBAL_SESSION->createSession(sessionDesc,session.writeRef());
 }
 Session::~Session()
@@ -464,7 +364,7 @@ SharedLibrary* slangComponentGetEntryPointHostCallable(const Component* componen
 
 void* slangSharedLibraryFindFunc(const SharedLibrary* library, const char* name)
 {
-    return library->library->findFuncByName(name);
+    return reinterpret_cast<void*>(library->library->findFuncByName(name));
 }
 
 void slangSharedLibraryFree(const SharedLibrary* library)
