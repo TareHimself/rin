@@ -35,8 +35,6 @@ public class ScrollListView : ListView
 
     [PublicAPI] public bool FloatingBar { get; set; } = true;
 
-    public float ScrollScale { get; set; } = 10.0f;
-
     public virtual bool ScrollBy(float delta)
     {
         var finalOffset = _offset + delta;
@@ -49,9 +47,10 @@ public class ScrollListView : ListView
 
         if (scrollSize < 0) return false;
 
+        var previousOffset = _offset;
         _offset = float.Clamp(offset, 0, scrollSize);
 
-        return float.Abs(offset - _offset) > 0.001;
+        return float.Abs(_offset - previousOffset) > 0.001;
     }
 
     protected override Vector2 ArrangeContent(in Vector2 spaceGiven)
@@ -63,7 +62,7 @@ public class ScrollListView : ListView
             Axis.Row => float.Max(spaceTaken.X - spaceGiven.X.FiniteOr(spaceTaken.X), 0),
             _ => throw new ArgumentOutOfRangeException()
         };
-        //ScrollTo(_offset);
+        ScrollTo(_offset);
         return new Vector2(float.Min(spaceTaken.X, spaceGiven.X), float.Min(spaceTaken.Y, spaceGiven.Y));
     }
 
@@ -119,12 +118,12 @@ public class ScrollListView : ListView
             case Axis.Column:
             {
                 var delta = e.Delta.Y * -1.0f;
-                return ScrollBy(delta * ScrollScale);
+                return ScrollBy(delta);
             }
             case Axis.Row:
             {
                 var delta = e.Delta.X;
-                return ScrollBy(delta * ScrollScale);
+                return ScrollBy(delta);
             }
             default:
                 return base.OnScroll(e);
@@ -231,6 +230,7 @@ public class ScrollListView : ListView
         _mouseDownPos = e.Position;
         _lastDownEvent = e;
         e.Target = this;
+        
     }
 
     public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform)

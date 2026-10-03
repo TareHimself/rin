@@ -168,7 +168,8 @@ public abstract class View : IView
     }
 
     /// <summary>
-    ///     Transformation to apply to all content
+    ///     Transformation to apply to all content. Includes anything subclasses shift content by (such as scroll),
+    ///     so it must not be used to locate the view's own bounds or clip.
     /// </summary>
     /// <returns></returns>
     public virtual Matrix4x4 GetLocalContentTransform()
@@ -430,8 +431,14 @@ public abstract class View : IView
     // ReSharper disable once InconsistentNaming
     public Rect2D ComputeAABB(in Matrix4x4 transform)
     {
+        return ComputeAABB(GetSize(), transform);
+    }
+
+    // ReSharper disable once InconsistentNaming
+    protected static Rect2D ComputeAABB(in Vector2 size, in Matrix4x4 transform)
+    {
         var tl = new Vector2(0.0f);
-        var br = tl + GetSize();
+        var br = tl + size;
         var tr = new Vector2(br.X, tl.Y);
         var bl = new Vector2(tl.X, br.Y);
 

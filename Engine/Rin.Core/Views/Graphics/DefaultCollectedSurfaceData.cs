@@ -36,8 +36,11 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
             List<ICommand> pendingCommands = [];
             uint shifted = 1;
             uint currentMask = 0x2;
-            foreach (var (command, clipId) in drawList.Commands.Zip(drawList.ClipIds))
+            for (var i = 0; i < drawList.Commands.Count; i++)
             {
+                var command = drawList.Commands[i];
+                var clipId = drawList.ClipIds[i];
+
                 if (shifted == 8)
                 {
                     ProcessPendingCommands(pendingCommands, SurfaceContext, passes);
@@ -62,8 +65,7 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
                 else
                 {
                     passes.Add(new StencilWritePass(SurfaceContext, currentMask,
-                        uniqueClipStacks[clipId]
-                            .Select(c => new StencilClip(clips[(int)c].Transform, clips[(int)c].Size)).ToArray()));
+                        BuildStencilClips(uniqueClipStacks[clipId], clips)));
                     computedClipMasks.Add(clipId, currentMask);
                     command.StencilMask = currentMask;
                     pendingCommands.Add(command);
@@ -83,6 +85,18 @@ public class DefaultCollectedSurfaceData : ICollectedSurfaceData
     }
 
     public SurfaceContext SurfaceContext { get; }
+
+    private static StencilClip[] BuildStencilClips(uint[] clipIds, List<ClipInfo> clips)
+    {
+        var stencilClips = new StencilClip[clipIds.Length];
+        for (var i = 0; i < clipIds.Length; i++)
+        {
+            var clip = clips[(int)clipIds[i]];
+            stencilClips[i] = new StencilClip(clip.Transform, clip.Size);
+        }
+
+        return stencilClips;
+    }
 
     private static void ProcessPendingCommands(IEnumerable<ICommand> drawCommands,
         SurfaceContext context, List<IPass> passes)
