@@ -48,6 +48,7 @@ classDiagram
     MultiSlotCompositeView <|-- SwitcherView
     MultiSlotCompositeView <|-- RootView
     ListView <|-- ScrollListView
+    ScrollListView <|-- VirtualListView
     RectView <|-- ButtonView
     ContentView <|-- TextBoxView
     ContentView <|-- ImageView
@@ -129,6 +130,7 @@ sequenceDiagram
 - `CompositeView.HandleEvent` handles positional events in two steps. If the point is inside its content rect, it hit tests its active slots (`ComputeHitTestableSlotsForEvent`) and calls `child.HandleEvent` on each hit slot. For `IHandleableEvent` it stops once `Handled` is true. Then it calls `View.HandleEvent` on itself.
 - `View.HandleEvent` dispatches by event type. Cursor down calls `OnCursorDown`. Cursor move adds the view to `Over`, calls `OnCursorEnter` the first time, and calls `OnCursorMove` unless the event is already handled. Scroll sets `Target` when `OnScroll` returns true.
 - Order: cursor down tests children from last to first (the topmost drawn view first, `ReverseTestOrder` is true). Cursor move and scroll test first to last.
+- `ScrollListView` scrolls by wheel, by dragging the content, or by dragging its bar (a cursor down within `BarHitPadding` of the bar drags the bar until release). `VirtualListView` is a `ScrollListView` of `ItemCount` fixed-size items that keeps views only for the visible window plus an overscan, rebinding recycled rows through a bind callback as it scrolls.
 - A view takes a cursor down by setting `e.Target` (as `ButtonView` does when it has `OnPressed` or `OnReleased` handlers, and `ScrollListView` and `TextInputBoxView` always do). `Handled` is `Target != null`.
 - Cursor up is not hit tested. `Surface.ReceiveCursorUp` raises `OnCursorUp` and then calls `OnCursorUp` on the target of the last cursor down. Cursor move also forwards to that target, so a drag keeps working outside its bounds.
 - `Surface.Update` runs `DoHover` while the cursor is in the window. It sends a cursor move event so `IsHovered` stays current, and calls `NotifyCursorLeave` on views no longer under the cursor.
