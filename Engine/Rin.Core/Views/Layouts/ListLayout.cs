@@ -101,7 +101,7 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
         var space = new Vector2(float.PositiveInfinity, availableSpace.Y);
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
-        var slots = GetSlots().ToArray();
+        var slots = GetSlots();
 
         foreach (var slot in slots)
         {
@@ -135,7 +135,7 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
 
-        var slots = GetSlots().ToArray();
+        var slots = GetSlots();
 
         // Compute slot sizes and initial offsets
         foreach (var slot in slots)
@@ -185,23 +185,25 @@ public class ListLayout(Axis axis, ICompositeView container) : InfiniteChildrenL
 
     public override Vector2 ComputeDesiredContentSize()
     {
-        return GetAxis() switch
+        var axis = GetAxis();
+        if (axis is not (Axis.Row or Axis.Column)) throw new ArgumentOutOfRangeException();
+
+        var size = new Vector2();
+        foreach (var slot in GetSlots())
         {
-            Axis.Row => GetSlots().Aggregate(new Vector2(), (size, slot) =>
+            var slotSize = slot.Child.GetDesiredSize();
+            if (axis == Axis.Row)
             {
-                var slotSize = slot.Child.GetDesiredSize();
                 size.X += slotSize.X;
                 size.Y = float.Max(size.Y, slotSize.Y);
-                return size;
-            }),
-            Axis.Column => GetSlots().Aggregate(new Vector2(), (size, slot) =>
+            }
+            else
             {
-                var slotSize = slot.Child.GetDesiredSize();
                 size.Y += slotSize.Y;
                 size.X = float.Max(size.X, slotSize.X);
-                return size;
-            }),
-            _ => throw new ArgumentOutOfRangeException()
-        };
+            }
+        }
+
+        return size;
     }
 }

@@ -38,12 +38,6 @@ public class RectView : SingleSlotCompositeView
         if (Color.A > 0.0f) cmds.AddRect(transform, GetSize(), Color, BorderRadius);
     }
 
-    public override ISlot[] GetSlots()
-    {
-        if (GetSlot() is { } slot) return [slot];
-
-        return [];
-    }
 
     public override void Collect(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {

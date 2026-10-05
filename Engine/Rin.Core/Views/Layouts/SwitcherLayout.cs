@@ -8,6 +8,10 @@ public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
 {
     public override ICompositeView Container { get; } = container;
 
+    private ISlot[] _selectedSlots = [];
+    private ISlot[]? _selectedSource;
+    private int _selectedIndex;
+
     public int SelectedIndex
     {
         get;
@@ -29,9 +33,21 @@ public class SwitcherLayout(ICompositeView container) : InfiniteChildrenLayout
         get
         {
             var slots = GetSlots();
-            if (slots.Length <= SelectedIndex) return null;
-            return slots[SelectedIndex];
+            return SelectedIndex < slots.Length ? slots[SelectedIndex] : null;
         }
+    }
+
+    public ISlot[] GetSelectedSlots()
+    {
+        var slots = GetSlots();
+        if (!ReferenceEquals(slots, _selectedSource) || SelectedIndex != _selectedIndex)
+        {
+            _selectedSource = slots;
+            _selectedIndex = SelectedIndex;
+            _selectedSlots = SelectedSlot is { } slot ? [slot] : [];
+        }
+
+        return _selectedSlots;
     }
 
     public override ISlot MakeSlot(IView view)

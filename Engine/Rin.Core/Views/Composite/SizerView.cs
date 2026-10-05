@@ -67,10 +67,4 @@ public class SizerView : SingleSlotCompositeView
     }
 
 
-    public override ISlot[] GetSlots()
-    {
-        if (GetSlot() is { } slot) return [slot];
-
-        return [];
-    }
 }

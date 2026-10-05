@@ -49,13 +49,15 @@ public class OverlayLayout(ICompositeView container) : InfiniteChildrenLayout
 
     public override Vector2 ComputeDesiredContentSize()
     {
-        return GetSlots().Aggregate(new Vector2(), (size, slot) =>
+        var size = new Vector2();
+        foreach (var slot in GetSlots())
         {
             var slotSize = slot.Child.GetDesiredSize();
             size.Y = float.Max(size.Y, slotSize.Y);
             size.X = float.Max(size.X, slotSize.X);
-            return size;
-        });
+        }
+
+        return size;
     }
 
     public override ISlot? GetSlot(int idx)
@@ -63,13 +65,4 @@ public class OverlayLayout(ICompositeView container) : InfiniteChildrenLayout
         return base.GetSlot(SlotCount - (idx + 1));
     }
 
-    public override ISlot[] GetSlots()
-    {
-        var result = new ISlot[SlotCount];
-        for (var i = SlotCount - 1; i > -1; i--)
-        {
-            result[i] = Slots[i];
-        }
-        return result;
-    }
 }
