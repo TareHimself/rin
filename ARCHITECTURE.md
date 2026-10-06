@@ -47,7 +47,7 @@ flowchart BT
     GLTF --> EX
 ```
 
-Arrows point from a dependency to the thing that uses it. The rule that holds the engine together: **`Rin.Core` defines the interfaces and the backends implement them.** `IGraphicsModule` and `IAudioModule` live in `Rin.Core`, `Rin.Graphics.Vulkan` and `Rin.Audio.Miniaudio` implement them, and the `Null` backends implement them with no-ops. An application picks its backends. `Examples/HeadlessTest` runs a physics world on the null backends, and most examples use Vulkan and Miniaudio through `Examples.Common`.
+Arrows point from a dependency to the thing that uses it. The rule that holds the engine together: **`Rin.Core` defines the interfaces and the backends implement them.** `IGraphicsModule` and `IAudioModule` live in `Rin.Core`, `Rin.Graphics.Vulkan` and `Rin.Audio.Miniaudio` implement them, and the `Null` backends implement them with no-ops. An application picks its backends. The `headless` example (`Examples/Examples/HeadlessTest`) runs a physics world on the null backends, and most examples use Vulkan and Miniaudio through `Examples.Common`.
 
 ## From input to pixels
 

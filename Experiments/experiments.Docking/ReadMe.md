@@ -1,6 +1,6 @@
 # experiments.Docking
 
-Docking system demo: one window with an initial docked layout. Tabs can be dragged to redock, splitters dragged to resize and tabs closed with the close button. The model (`DockTree`, `DockNode`, `DockPanel`) is in `Model/`, the views in `Views/`. `SceneTest` references this project for its dock layout.
+Docking system demo: one window with an initial docked layout. Tabs can be dragged to redock, splitters dragged to resize and tabs closed with the close button. The model (`DockTree`, `DockNode`, `DockPanel`) is in `Model/`, the views in `Views/`. The `scene-test` example in `Examples/Examples` uses it for its dock layout.
 
 ```
 dotnet run --project Experiments/experiments.Docking/experiments.Docking.csproj

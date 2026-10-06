@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-    <ItemGroup>
-        <ProjectReference Include="$(EngineDir)Rin.Core\Rin.Core.csproj"/>
-        <ProjectReference Include="$(EngineDir)Rin.Graphics.Vulkan\Rin.Graphics.Vulkan.csproj"/>
-    </ItemGroup>
-
-</Project>

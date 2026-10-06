@@ -5,7 +5,7 @@ NUnit tests for [Rin.GLTF](../Rin.GLTF/ReadMe.md).
 ## Where it fits
 
 - References: Rin.GLTF and Rin.Graphics.Null.
-- The test models `fox.glb` and `cube.glb` are linked from `Examples/SceneTest/assets/models/` and copied to `Assets/` in the output.
+- The test models `fox.glb` and `cube.glb` are linked from `Examples/Examples/assets/models/` and copied to `Assets/` in the output.
 
 ## Start here
 
