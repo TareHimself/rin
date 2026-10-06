@@ -7,6 +7,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
 {
     protected readonly Dictionary<IView, ISlot> SlotMap = [];
     protected readonly List<ISlot> Slots = [];
+    private ISlot[]? _slotSnapshot;
 
     public virtual int MaxSlotCount => int.MaxValue;
     public int SlotCount => Slots.Count;
@@ -25,6 +26,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
         {
             var view = slot.Child;
             Slots.Add(slot);
+            _slotSnapshot = null;
             SlotMap.TryAdd(view, slot);
             added = true;
         }
@@ -48,6 +50,7 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
             if (Slots[i].Child != view) continue;
             Slots[i].OnRemovedFromLayout(this);
             Slots.RemoveAt(i);
+            _slotSnapshot = null;
             SlotMap.Remove(view);
             removed = true;
             break;
@@ -69,9 +72,12 @@ public abstract class InfiniteChildrenLayout : IMultiSlotLayout
         return Slots[idx];
     }
 
+    /// <summary>
+    ///     Shared read-only snapshot, so don't write to it. Later Add or Remove calls leave it unchanged, so a loop over it can still see a removed slot.
+    /// </summary>
     public virtual ISlot[] GetSlots()
     {
-        return Slots.ToArray();
+        return _slotSnapshot ??= Slots.ToArray();
     }
 
     public abstract void OnSlotUpdated(ISlot slot);

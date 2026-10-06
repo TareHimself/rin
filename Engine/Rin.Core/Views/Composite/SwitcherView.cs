@@ -55,7 +55,7 @@ public class SwitcherView : MultiSlotCompositeView<Slot>
 
     public override ISlot[] GetActiveSlots()
     {
-        return _layout.SelectedSlot is { } slot ? [slot] : [];
+        return _layout.GetSelectedSlots();
     }
 
     public override bool Add(IView child)

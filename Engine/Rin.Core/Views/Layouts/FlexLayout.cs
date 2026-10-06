@@ -49,7 +49,7 @@ public class FlexLayout : ListLayout
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var flexTotal = 0.0f;
-        var slots = GetSlots().ToArray();
+        var slots = GetSlots();
 
         if (mainAxisAvailableSpace > 0.0f)
         {
@@ -176,7 +176,7 @@ public class FlexLayout : ListLayout
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var flexTotal = 0.0f;
-        var slots = GetSlots().ToArray();
+        var slots = GetSlots();
 
         if (mainAxisAvailableSpace > 0.0f)
         {
@@ -250,7 +250,7 @@ public class FlexLayout : ListLayout
         var mainAxisSize = 0.0f;
         var crossAxisSize = 0.0f;
         var flexTotal = 0.0f;
-        var slots = GetSlots().ToArray();
+        var slots = GetSlots();
 
         if (mainAxisAvailableSpace > 0.0f)
         {

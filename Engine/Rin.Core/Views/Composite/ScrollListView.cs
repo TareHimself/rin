@@ -15,6 +15,8 @@ namespace Rin.Core.Views.Composite;
 public class ScrollListView : ListView
 {
     private CursorDownSurfaceEvent? _lastDownEvent;
+    private bool _draggingBar;
+    private float _barDragTravel;
     private float _maxOffset;
     private float _mouseDownOffset;
     private Vector2 _mouseDownPos;
@@ -34,6 +36,8 @@ public class ScrollListView : ListView
     [PublicAPI] public Color BarColor { get; set; } = Color.White;
 
     [PublicAPI] public bool FloatingBar { get; set; } = true;
+
+    [PublicAPI] public float BarHitPadding { get; set; } = 4.0f;
 
     public virtual bool ScrollBy(float delta)
     {
@@ -137,39 +141,48 @@ public class ScrollListView : ListView
 
     protected virtual void CollectBar(in Matrix4x4 transform, in Rect2D clip, CommandList commands)
     {
-        if (IsVisible && IsScrollable())
+        if (!TryGetBarGeometry(out var offset, out var size, out _)) return;
+        CollectBarContent(transform.Translate(offset), size, commands);
+    }
+
+    private bool TryGetBarGeometry(out Vector2 offset, out Vector2 size, out float travel)
+    {
+        offset = default;
+        size = default;
+        travel = 0f;
+        if (!IsVisible || !IsScrollable()) return false;
+
+        var maxScroll = GetMaxScroll();
+        var axisSize = GetAxisSize();
+        var desiredAxisSize = axisSize + maxScroll;
+
+        var barSize = float.Min(float.Max(BarMinimumSize, axisSize * (axisSize / desiredAxisSize)), axisSize);
+        travel = float.Max(axisSize - barSize, 0f);
+        var drawOffset = travel * float.Clamp(GetScroll() / maxScroll, 0.0f, 1.0f);
+        var crossOffset = GetBarCrossAxisSpaceTaken() - BarPadding;
+        var contentSize = GetContentSize();
+
+        switch (Axis)
         {
-            var scroll = GetScroll();
-            var maxScroll = GetMaxScroll();
-            var axisSize = GetAxisSize();
-            var desiredAxisSize = axisSize + maxScroll;
-
-            var barSize = float.Max(BarMinimumSize, axisSize * (axisSize / desiredAxisSize));
-            barSize = float.Min(barSize, axisSize);
-            var barCrossAxisOffset = GetBarCrossAxisSpaceTaken() - BarPadding;
-            var availableDist = axisSize - barSize;
-            var drawOffset = float.Max(availableDist * float.Clamp(scroll / maxScroll, 0.0f, 1.0f), 0f);
-
-            var size = GetContentSize();
-
-            switch (Axis)
-            {
-                case Axis.Column:
-                {
-                    var barTransform = transform.Translate(new Vector2(size.X - barCrossAxisOffset, drawOffset));
-                    CollectBarContent(barTransform, new Vector2(BarWidth, barSize), commands);
-                }
-                    break;
-                case Axis.Row:
-                {
-                    var barTransform = transform.Translate(new Vector2(drawOffset, size.Y - barCrossAxisOffset));
-                    CollectBarContent(barTransform, new Vector2(barSize, BarWidth), commands);
-                }
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            case Axis.Column:
+                offset = new Vector2(contentSize.X - crossOffset, drawOffset);
+                size = new Vector2(BarWidth, barSize);
+                return true;
+            case Axis.Row:
+                offset = new Vector2(drawOffset, contentSize.Y - crossOffset);
+                size = new Vector2(barSize, BarWidth);
+                return true;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
+    }
+
+    private bool IsOverBar(in Matrix4x4 transform, Vector2 position, out float travel)
+    {
+        if (!TryGetBarGeometry(out var offset, out var size, out travel)) return false;
+
+        var padding = new Vector2(BarHitPadding);
+        return Rect2D.PointWithin(size + padding * 2f, transform.Translate(offset - padding), position);
     }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
@@ -229,13 +242,20 @@ public class ScrollListView : ListView
         _mouseDownOffset = _offset;
         _mouseDownPos = e.Position;
         _lastDownEvent = e;
+        _draggingBar = IsOverBar(transform, e.Position, out _barDragTravel);
         e.Target = this;
-        
     }
 
     public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform)
     {
-        if (_lastDownEvent?.Target == this)
+        if (_lastDownEvent?.Target == this && _draggingBar)
+        {
+            var moved = e.Position - _mouseDownPos;
+            var barMoved = Axis == Axis.Column ? moved.Y : moved.X;
+            if (_barDragTravel > 0f && ScrollTo(_mouseDownOffset + barMoved * GetMaxScroll() / _barDragTravel))
+                e.Target = this;
+        }
+        else if (_lastDownEvent?.Target == this)
         {
             var pos = _mouseDownPos - e.Position;
 
@@ -253,5 +273,6 @@ public class ScrollListView : ListView
     {
         base.OnCursorUp(e);
         _lastDownEvent = null;
+        _draggingBar = false;
     }
 }

@@ -20,6 +20,7 @@ public class SimpleSlot : ISlot
 public abstract class SingleSlotCompositeView : CompositeView, ISingleSlotCompositeView
 {
     private SimpleSlot? _slot;
+    private ISlot[] _slots = [];
 
     /// <summary>
     ///     Adds the View to this container
@@ -45,11 +46,13 @@ public abstract class SingleSlotCompositeView : CompositeView, ISingleSlotCompos
                 _slot.Child = child;
 
             _slot.Child.SetParent(this);
+            _slots = [_slot];
             InvalidateLayout();
         }
         else
         {
             _slot = null;
+            _slots = [];
         }
     }
 
@@ -67,9 +70,7 @@ public abstract class SingleSlotCompositeView : CompositeView, ISingleSlotCompos
 
     public override ISlot[] GetSlots()
     {
-        if (GetSlot() is { } slot) return [slot];
-
-        return [];
+        return _slots;
     }
 
     public override Vector2 ComputeDesiredContentSize()

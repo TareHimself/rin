@@ -207,6 +207,14 @@ public abstract class View : IView
     /// <returns></returns>
     public virtual Vector2 Layout(in Vector2 availableSpace, bool fill = false)
     {
+        if (Visibility == Visibility.Collapsed)
+        {
+            _size = Vector2.Zero;
+            _cachedRelativeTransform = null;
+            PostLayout();
+            return _size;
+        }
+
         var padding = new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
         var contentSize = LayoutContent(availableSpace - padding) + padding;
         var sizeResult = (fill ? availableSpace : contentSize).FiniteOr();
