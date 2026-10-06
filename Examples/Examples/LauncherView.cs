@@ -13,9 +13,13 @@ public sealed class LauncherView : PanelView
     public LauncherView(IReadOnlyList<Example> examples, Action<Example> onPicked)
     {
         var list = new ListView { Axis = Axis.Column };
-        list.Add(new TextBoxView { Content = "Rin examples", FontSize = 28f, Padding = new Padding(6f, 14f) });
+        list.Add(new ListSlot
+        {
+            Child = new TextBoxView { Content = "Rin examples", FontSize = 28f, Padding = new Padding(0f, 14f) },
+            Align = CrossAlign.Center
+        });
         foreach (var example in examples)
-            list.Add(new ListSlot { Child = MakeButton(example, onPicked), Fit = CrossFit.Fill });
+            list.Add(new ListSlot { Child = MakeButton(example, onPicked), Align = CrossAlign.Center });
 
         Add(new PanelSlot
         {
