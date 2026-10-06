@@ -9,6 +9,7 @@
         <ProjectReference Include="$(EngineDir)Rin.Core\Rin.Core.csproj" />
         <ProjectReference Include="$(EngineDir)Rin.GLTF\Rin.GLTF.csproj" />
         <ProjectReference Include="..\Common\Examples.Common.csproj"/>
+        <ProjectReference Include="..\RenderGraphOverlay\RenderGraphOverlay.csproj"/>
         <ProjectReference Include="$(ExperimentsDir)experiments.Docking\experiments.Docking.csproj"/>
     </ItemGroup>
 

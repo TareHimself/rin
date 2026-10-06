@@ -9,5 +9,6 @@ dotnet run --project Examples/SceneTest/SceneTest.csproj
 Options and controls (from the code):
 - `--log-file <path>` redirects stdout and stderr to a file.
 - W, A, S, D move the camera in the viewport. P drops a grid of 2000 boxes.
+- The "Render graph" button in the bottom-right corner opens the [RenderGraphOverlay](../RenderGraphOverlay/ReadMe.md) panel, which snapshots and draws the render graph.
 
-References: Rin.World, Rin.Core, Rin.GLTF, Examples.Common, experiments.Docking.
+References: Rin.World, Rin.Core, Rin.GLTF, Examples.Common, experiments.Docking, RenderGraphOverlay.

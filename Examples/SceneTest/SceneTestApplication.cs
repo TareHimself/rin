@@ -151,6 +151,7 @@ public class SceneTestApplication : ExampleApplication
             };
 
             surf.Add(BuildDockLayout(perspectiveCam, topCam, scene));
+            RenderGraphOverlay.GraphOverlay.Attach(surf);
         };
 
         IGraphicsModule.Get()

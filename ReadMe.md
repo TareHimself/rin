@@ -109,10 +109,15 @@ How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventi
 - [Common](Examples/Common/ReadMe.md): Shared library for the example and experiment apps, not runnable on its own.
 - [HeadlessTest](Examples/HeadlessTest/ReadMe.md): Runs the engine with `NullGraphicsModule` and `NullAudioModule` (no window, no GPU).
 - [NodeGraphTest](Examples/NodeGraphTest/ReadMe.md): Node graph views with typed pins and connections.
+- [P2PChat](Examples/P2PChat/ReadMe.md): Peer to peer text chat over TCP, one instance hosts and others connect.
+- [P2PChat.Tests](Examples/P2PChat.Tests/ReadMe.md): NUnit tests for P2PChat's framing, address parsing and loopback host and client sessions.
 - [RLTest](Examples/RLTest/ReadMe.md): Scratch console program for HostImage that loads a JPEG and saves a PNG.
 - [SceneTest](Examples/SceneTest/ReadMe.md): 3D world with physics in a dockable layout with perspective and top cameras.
 - [Sponza](Examples/Sponza/ReadMe.md): Loads sponza.glb and shows it through a viewport with a custom Shade mesh material.
 - [UiGallery](Examples/UiGallery/ReadMe.md): Gallery of UI rendering features: every quad mode, blur and clipping, laid out in sections that wrap to the window width.
+- [RenderGraphOverlay](Examples/RenderGraphOverlay/ReadMe.md): Library with a debug overlay that opens from a corner button and draws the render graph of a captured frame, using reflection and a probe pass, with no engine changes.
+- [RenderGraphOverlay.Tests](Examples/RenderGraphOverlay.Tests/ReadMe.md): NUnit tests for the overlay's graph layout.
+- [RenderGraphViewer](Examples/RenderGraphViewer/ReadMe.md): Sample app that opens the render graph overlay over a small scene.
 - [ViewsTest](Examples/ViewsTest/ReadMe.md): Test bench for views, animation, images and audio effects (parametric EQ, stress-test delay, bloom).
 
 **Experiments**
