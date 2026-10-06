@@ -10,7 +10,7 @@ namespace Examples;
 
 public sealed class ExampleHost(Example? example, IReadOnlyList<Example> examples, string[] args) : ExampleApplication
 {
-    private static readonly Extent2D LauncherSize = new(520, 760);
+    private static readonly Extent2D LauncherSize = new(1280, 800);
 
     private Example? _running;
     private bool _hasSurface;
@@ -58,7 +58,6 @@ public sealed class ExampleHost(Example? example, IReadOnlyList<Example> example
         launcher = surface.Add(new LauncherView(examples, picked => MainDispatcher.Enqueue(() =>
         {
             surface.Remove(launcher!);
-            surface.Window.SetSize(picked.WindowSize);
             Run(picked, surface);
         })));
     }

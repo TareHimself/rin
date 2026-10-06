@@ -7,7 +7,7 @@ dotnet run --project Examples/Examples/Examples.csproj
 dotnet run --project Examples/Examples/Examples.csproj -- sponza
 ```
 
-With no argument a launcher window lists the examples, and clicking one starts it in the same window. With a name as the first argument that example starts directly. An unknown name prints the list and exits with code 1. `--log-file <path>` redirects stdout and stderr to a file for any example.
+With no argument a launcher window lists the examples, and clicking one starts it in the same window, which stays at the launcher's 1280x800 because the Vulkan backend cannot resize a window yet. With a name as the first argument that example starts directly in a window of its own `WindowSize`. An unknown name prints the list and exits with code 1. `--log-file <path>` redirects stdout and stderr to a file for any example.
 
 | Name | Folder | What it shows |
 | --- | --- | --- |
