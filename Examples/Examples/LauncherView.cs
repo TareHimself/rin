@@ -9,7 +9,6 @@ namespace Examples;
 public sealed class LauncherView : PanelView
 {
     private static readonly Color Background = new(0.11f, 0.12f, 0.15f, 1f);
-    private static readonly Color ButtonColor = new(0.2f, 0.24f, 0.33f, 1f);
 
     public LauncherView(IReadOnlyList<Example> examples, Action<Example> onPicked)
     {
@@ -36,15 +35,10 @@ public sealed class LauncherView : PanelView
 
     private static IView MakeButton(Example example, Action<Example> onPicked)
     {
-        var button = new ButtonView
+        return new SizerView
         {
-            Color = ButtonColor,
-            BorderRadius = new Vector4(10f),
-            Padding = new Padding(20f, 12f),
-            InitChild = new TextBoxView { Content = example.Title, FontSize = 18f }
+            Padding = new Padding(0f, 5f),
+            InitChild = new LauncherButton(example.Title, () => onPicked(example))
         };
-        button.OnReleased += (_, _) => onPicked(example);
-
-        return new SizerView { Padding = new Padding(0f, 5f), InitChild = button };
     }
 }
