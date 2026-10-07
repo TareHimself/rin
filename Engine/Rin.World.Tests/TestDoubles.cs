@@ -246,6 +246,13 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
             body.CapsuleHalfHeight = halfHeight;
         });
 
+    public PhysicsBodyHandle CreateStaticMesh(ReadOnlySpan<Vector3> vertices, ReadOnlySpan<uint> indices,
+        in Transform transform) =>
+        Create(transform, PhysicsState.Static, _ => { });
+
+    public PhysicsBodyHandle CreateConvexHull(ReadOnlySpan<Vector3> points, in Transform transform, PhysicsState state) =>
+        Create(transform, state, _ => { });
+
     private PhysicsBodyHandle Create(in Transform transform, PhysicsState state, Action<Body> configure)
     {
         var handle = new PhysicsBodyHandle(++_nextIndex, 1);

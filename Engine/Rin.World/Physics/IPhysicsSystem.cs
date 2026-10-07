@@ -26,6 +26,18 @@ public interface IPhysicsSystem
     public PhysicsBodyHandle CreateBox(in Vector3 size, in Transform transform, PhysicsState state);
     public PhysicsBodyHandle CreateSphere(float radius, in Transform transform, PhysicsState state);
     public PhysicsBodyHandle CreateCapsule(float radius, float halfHeight, in Transform transform, PhysicsState state);
+    /// <summary>
+    ///     Triangle mesh collider. Static means it can never be physically simulated, so it cannot move or have its state changed.
+    ///     Triangles are one-sided: each only collides from the side opposite cross(b - a, c - a).
+    /// </summary>
+    public PhysicsBodyHandle CreateStaticMesh(ReadOnlySpan<Vector3> vertices, ReadOnlySpan<uint> indices,
+        in Transform transform);
+
+    /// <summary>
+    ///     Convex hull collider around <paramref name="points" />. The body origin is the hull's centre, so GetPosition reports the centre.
+    /// </summary>
+    public PhysicsBodyHandle CreateConvexHull(ReadOnlySpan<Vector3> points, in Transform transform, PhysicsState state);
+
     public void DestroyBody(PhysicsBodyHandle handle);
 
     public Vector3 GetLinearVelocity(PhysicsBodyHandle handle);

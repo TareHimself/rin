@@ -42,7 +42,7 @@ internal abstract class BepuBody
                 throw new ArgumentOutOfRangeException();
         }
 
-        System.Simulation.Shapes.Remove(GetShapeIndex());
+        System.Simulation.Shapes.RemoveAndDispose(GetShapeIndex(), System.Simulation.BufferPool);
     }
 
     public int CollisionChannel { get; set; }
