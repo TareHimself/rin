@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+        <DefaultItemExcludes>$(DefaultItemExcludes);assets\**\*.*</DefaultItemExcludes>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Common\Examples.Common.csproj"/>
+        <ProjectReference Include="$(EngineDir)Rin.Core\Rin.Core.csproj"/>
+        <ProjectReference Include="$(EngineDir)Rin.World\Rin.World.csproj"/>
+        <ProjectReference Include="$(EngineDir)Rin.GLTF\Rin.GLTF.csproj"/>
+        <ProjectReference Include="$(EngineDir)Rin.Graphics.Null\Rin.Graphics.Null.csproj"/>
+        <ProjectReference Include="$(EngineDir)Rin.Audio.Null\Rin.Audio.Null.csproj"/>
+        <ProjectReference Include="$(EngineDir)Rin.SourceGenerators\Rin.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="$(ExperimentsDir)experiments.Docking\experiments.Docking.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="assets\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup Label="Rin.Shade">
+        <ProjectReference Include="$(ShadeDir)Rin.Shade\Rin.Shade.csproj"/>
+        <ProjectReference Include="$(ShadeDir)Rin.Shade.SourceGenerator\Rin.Shade.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+    <PropertyGroup Label="Rin.Shade">
+        <RinShadeDiscoverPrefix>Shaders/Examples/</RinShadeDiscoverPrefix>
+        <RinShadeOutputSubpath>Content\Shaders\Examples\</RinShadeOutputSubpath>
+    </PropertyGroup>
+    <Import Project="$(RinMSBuildDir)RinShade.targets"/>
+
+    <ItemGroup>
+        <PackageReference Include="SpotifyExplode"/>
+        <PackageReference Include="YoutubeExplode"/>
+        <PackageReference Include="SharpGLTF.Core"/>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All"/>
+    </ItemGroup>
+
+</Project>

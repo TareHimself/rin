@@ -161,7 +161,7 @@ All are `Shader` subclasses in `Graphics/Default/Shaders` unless noted.
 4. A primary cursor click on a viewport cycles the channel. A secondary click captures the mouse and calls `OnMouseDelta`, which does nothing in the base class.
 5. The render target size follows the content size only after it has been stable for `Viewport.SettleFrames` frames (default 5), so resizing stretches the last render instead of reallocating the GBuffers each frame.
 
-The pipeline is selected by the `IRenderSystem` the world is created with. `Examples/SceneTest` builds `new World(new DefaultRenderSystem(), new BepuPhysicsSystem())`, calls `Start()`, and gives each camera actor a `Viewport` subclass.
+The pipeline is selected by the `IRenderSystem` the world is created with. `Examples/Examples/SceneTest` builds `new World(new DefaultRenderSystem(), new BepuPhysicsSystem())`, calls `Start()`, and gives each camera actor a `Viewport` subclass.
 
 ## Build and test
 

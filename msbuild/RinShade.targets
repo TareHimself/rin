@@ -13,7 +13,7 @@
           <PropertyGroup>
             <RinShadeDiscoverPrefix>...</RinShadeDiscoverPrefix>   the prefix its own [Shader("...")]
                                                                     classes use (Shaders/Rin/Core/,
-                                                                    Shaders/Sponza/, ...)
+                                                                    Shaders/Examples/, ...)
             <RinShadeOutputSubpath>...</RinShadeOutputSubpath>     relative to $(IntermediateOutputPath);
                                                                     also the LogicalName's own prefix
           </PropertyGroup>

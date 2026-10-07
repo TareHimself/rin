@@ -5,7 +5,7 @@ A graphics backend that does nothing, for headless runs and tests. Package id `T
 ## Where it fits
 
 - References: Rin.Core only.
-- Referenced by: Rin.GLTF.Tests, and several projects under `Examples/` and `Experiments/` (including `Examples/HeadlessTest`).
+- Referenced by: Rin.GLTF.Tests, and several projects under `Examples/` and `Experiments/` (including `Examples/Examples`, for its `headless` example).
 
 ## Start here
 

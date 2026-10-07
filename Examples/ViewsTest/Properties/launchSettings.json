@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "ViewTest": {
-      "commandName": "Project",
-      "nativeDebugging": true
-    }
-  }
-}

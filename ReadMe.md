@@ -21,13 +21,14 @@ dotnet build rin.sln
 ```
 
 ## Running an example
-Pick any project under `Examples/` (`SceneTest`, `Sponza`, `AudioPlayer`, `ViewsTest`, `NodeGraphTest`, `RLTest`, `ChatApp`):
+All examples live in one project. Run it with no argument for a launcher, or pass an example name (`scene-test`, `sponza`, `views-test`, `ui-gallery`, and the rest listed in its ReadMe):
 
 ```
-dotnet run --project Examples/SceneTest/SceneTest.csproj
+dotnet run --project Examples/Examples/Examples.csproj
+dotnet run --project Examples/Examples/Examples.csproj -- scene-test
 ```
 
-Or open `rin.sln` in Visual Studio/Rider and run an Examples project directly.
+Or open `rin.sln` in Visual Studio/Rider and run the Examples project directly.
 
 ## Testing
 Each test project runs on its own, for example:
@@ -103,17 +104,9 @@ How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventi
 
 **Examples**
 
-- [AssetViewer](Examples/AssetViewer/ReadMe.md): Loads the fox model and loops its "Run" animation clip.
-- [AudioPlayer](Examples/AudioPlayer/ReadMe.md): Audio player UI (track player, visualizer, file picker) built on the views and Miniaudio modules.
-- [ChatApp](Examples/ChatApp/ReadMe.md): Chat UI views. Scratch code: the module that hosts them is commented out.
 - [Common](Examples/Common/ReadMe.md): Shared library for the example and experiment apps, not runnable on its own.
-- [HeadlessTest](Examples/HeadlessTest/ReadMe.md): Runs the engine with `NullGraphicsModule` and `NullAudioModule` (no window, no GPU).
-- [NodeGraphTest](Examples/NodeGraphTest/ReadMe.md): Node graph views with typed pins and connections.
-- [RLTest](Examples/RLTest/ReadMe.md): Scratch console program for HostImage that loads a JPEG and saves a PNG.
-- [SceneTest](Examples/SceneTest/ReadMe.md): 3D world with physics in a dockable layout with perspective and top cameras.
-- [Sponza](Examples/Sponza/ReadMe.md): Loads sponza.glb and shows it through a viewport with a custom Shade mesh material.
-- [UiGallery](Examples/UiGallery/ReadMe.md): Gallery of UI rendering features: every quad mode, blur and clipping, laid out in sections that wrap to the window width.
-- [ViewsTest](Examples/ViewsTest/ReadMe.md): Test bench for views, animation, images and audio effects (parametric EQ, stress-test delay, bloom).
+- [Examples](Examples/Examples/ReadMe.md): Every example app in one executable, picked by name or from a launcher window.
+- [Examples.Tests](Examples/Examples.Tests/ReadMe.md): NUnit tests for the P2P chat networking and the render graph overlay's layout.
 
 **Experiments**
 

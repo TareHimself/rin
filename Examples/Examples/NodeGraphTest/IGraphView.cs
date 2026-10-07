@@ -1,0 +1,10 @@
+﻿using System.Numerics;
+using Rin.Core.Views.Events;
+
+namespace Examples.NodeGraphTest;
+
+public interface IGraphView
+{
+    public void StartPinDrag(CursorDownSurfaceEvent e, IGraphPinView pin, in Vector2 pinCenter);
+    public void StartNodeDragging(CursorDownSurfaceEvent e, IGraphNodeView node);
+}

@@ -6,7 +6,7 @@ Vulkan backend for the `IGraphicsModule` interface from Rin.Core. Package id `Ta
 
 - References (default `local_file` mode): [Rin.Core](../Rin.Core/ReadMe.md) and `Slang/Rin.Slang` ([ReadMe](../../Slang/Rin.Slang/ReadMe.md)). In `online` mode it uses the matching NuGet packages instead.
 - Also uses the `TareHimself.Rin.Graphics.Vulkan.Native` package ([source](../../native/Rin.Graphics.Vulkan.Native/ReadMe.md)) and `TerraFX.Interop.Vulkan`.
-- Referenced by `Examples/Common`, `Examples/NodeGraphTest` and several projects under `Experiments/`. No project under `Engine/` references it.
+- Referenced by `Examples/Common` and several projects under `Experiments/`. No project under `Engine/` references it.
 - Unsafe code is enabled and the project is marked AOT compatible. Native calls use `LibraryImport` with runtime marshalling disabled.
 
 ## Source map
