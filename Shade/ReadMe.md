@@ -284,6 +284,6 @@ The `Rin.Shade.MSBuild` task is built once, in Release, on demand. After you cha
 | Test project | What it proves | Needs native Slang |
 | --- | --- | --- |
 | `Rin.Shade.Tests` | The emitted Slang text is what we expect (snapshot files), diagnostics fire, generators emit the right source. Set `RIN_SHADE_SNAPSHOTS=update` to refresh snapshots. | No |
-| `Rin.Shade.CpuTests` | A transpiled shader, compiled to host code and run on the CPU, computes the same numbers as `System.Numerics`. This is what pins the matrix convention (row-major, row-vector). | Yes |
+| `Rin.Shade.CpuTests` | A transpiled shader, compiled to host code and run on the CPU, computes the same numbers as `System.Numerics`. This is what pins the matrix convention (row-major, row-vector). It also checks that pointer and `ParameterBlock` structs get scalar offsets in the compiled SPIR-V. | Yes |
 
 In CI the first runs on stub native packages in its own job. The second runs in a job that builds the real native Slang.

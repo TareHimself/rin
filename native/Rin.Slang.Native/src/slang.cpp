@@ -185,6 +185,8 @@ void slangSessionBuilderAddTargetSpirv(SessionBuilder* builder)
     slang::TargetDesc desc{};
     desc.format = SLANG_SPIRV;
     desc.profile = GLOBAL_SESSION->findProfile("spirv_1_5");
+    // Every block is scalar layout, matching C# sequential layout and the device's scalarBlockLayout.
+    desc.forceGLSLScalarBufferLayout = true;
     
     builder->options.push_back(
         {slang::CompilerOptionName::DebugInformation,

@@ -1,6 +1,6 @@
 # Rin.Shade.CpuTests
 
-NUnit tests that transpile a shader, compile it with Slang's host-callable (CPU) target and run it in-process, then compare the result with `System.Numerics`. The main check is that C# and Slang agree on matrix convention (row-major storage, row-vector math).
+NUnit tests that transpile a shader, compile it with Slang's host-callable (CPU) target and run it in-process, then compare the result with `System.Numerics`. The main check is that C# and Slang agree on matrix convention (row-major storage, row-vector math). `ScalarLayoutTests` is the exception: it compiles hand-written Slang to SPIR-V and reads the `Offset` decorations to check that every block is scalar layout.
 
 ## Where it fits
 
@@ -14,6 +14,7 @@ The real native Slang library, not the stub packages. In CI this runs in the `te
 
 - `MatrixConventionTests.cs`
 - `MatrixInverseTests.cs`
+- `ScalarLayoutTests.cs`
 
 ## Run
 
