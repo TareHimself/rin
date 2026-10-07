@@ -270,10 +270,10 @@
   &lt;Assembly Path="F:\rin\Rin.Framework.NativeLibs\bin\Release\net10.0\Rin.Framework.NativeLibs.dll" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=3d4b9c72_002Deca5_002D4244_002D969c_002D07cd527cc145/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;Rin.Framework.Tests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;Or&gt;&#xD;
-    &lt;Project Location="F:\rin\Rin.Framework.Tests" Presentation="&amp;lt;Rin.Framework.Tests&amp;gt;" /&gt;&#xD;
-    &lt;Project Location="F:\rin\Rin.SourceGenerators\Rin.SourceGenerators.Tests" Presentation="&amp;lt;Rin.SourceGenerators.Tests&amp;gt;" /&gt;&#xD;
-  &lt;/Or&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;NUnit3x::B7567D9E-8946-4239-8FCA-FF85A549DB88::net10.0::Rin.Shade.Tests.Emitter.BoundsUpdateEmitterTests.EmitsBoundsUpdateFixtureShader&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;NUnit3x::B7567D9E-8946-4239-8FCA-FF85A549DB88::net10.0::Rin.Shade.Tests.Emitter.PropertyLoweringTests.ComputedGetOnlyPropertyLowersToACallOfItsGetter&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
 	
 	
