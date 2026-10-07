@@ -13,6 +13,7 @@ namespace Rin.Core.Views.Content;
 public class TextInputBoxView : TextBoxView
 {
     private readonly IApplication _application;
+    private bool _editing;
 
     private readonly Timer _typingTimer = new(200)
     {
@@ -49,11 +50,8 @@ public class TextInputBoxView : TextBoxView
     {
         base.OnCharacter(e);
         ResetTypingDelay();
-        if (Content.Empty())
-            Content += e.Character;
-        else
-            Content = Content[..(CursorPosition + 1)] + e.Character + Content[(CursorPosition + 1)..];
-        CursorPosition++;
+        var insertAt = int.Clamp(CursorPosition + 1, 0, Content.Length);
+        Edit(Content.Insert(insertAt, e.Character.ToString()), insertAt);
     }
 
     public override void OnFocus()
@@ -73,12 +71,24 @@ public class TextInputBoxView : TextBoxView
         base.OnKeyboard(e);
         if (e is { Key: InputKey.Backspace, State: InputState.Pressed or InputState.Repeat })
         {
-            if (CursorPosition > -1)
+            if (CursorPosition > -1 && CursorPosition < Content.Length)
             {
                 ResetTypingDelay();
-                Content = Content.Remove(CursorPosition, 1);
-                CursorPosition--;
+                Edit(Content.Remove(CursorPosition, 1), CursorPosition - 1);
             }
+        }
+        else if (e is { Key: InputKey.Delete, State: InputState.Pressed or InputState.Repeat })
+        {
+            if (CursorPosition + 1 < Content.Length)
+            {
+                ResetTypingDelay();
+                Edit(Content.Remove(CursorPosition + 1, 1), CursorPosition);
+            }
+        }
+        else if (e is { Key: InputKey.Home or InputKey.End, State: InputState.Pressed or InputState.Repeat })
+        {
+            ResetTypingDelay();
+            CursorPosition = e.Key == InputKey.Home ? -1 : Content.Length - 1;
         }
         else if (e is { Key: InputKey.Left or InputKey.Right, State: InputState.Pressed or InputState.Repeat })
         {
@@ -97,14 +107,27 @@ public class TextInputBoxView : TextBoxView
     }
 
     /// <summary>
-    ///     Keeps CursorPosition valid if Content is ever reassigned by something other than this view's own
-    ///     typing/backspace handling (which already keep it in sync), so GetCaretOffset never indexes out of
-    ///     bounds.
+    ///     Content assigned from outside moves the caret to the end; this view's own edits set it themselves.
     /// </summary>
     protected override void TextChanged(string newText)
     {
         base.TextChanged(newText);
-        CursorPosition = int.Clamp(CursorPosition, -1, newText.Length - 1);
+        if (!_editing) CursorPosition = newText.Length - 1;
+    }
+
+    private void Edit(string newContent, int newCursorPosition)
+    {
+        _editing = true;
+        try
+        {
+            Content = newContent;
+        }
+        finally
+        {
+            _editing = false;
+        }
+
+        CursorPosition = int.Clamp(newCursorPosition, -1, newContent.Length - 1);
     }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
@@ -145,16 +168,19 @@ public class TextInputBoxView : TextBoxView
     /// </summary>
     private Vector2 GetCaretOffset()
     {
-        if (CursorPosition == -1) return Vector2.Zero;
+        var content = Content;
+        var cursor = CursorPosition;
+        if (cursor < 0 || cursor >= content.Length) return Vector2.Zero;
 
         var bounds = GetCharacterBounds(Wrap);
-        if (CursorPosition >= bounds.Length) return Vector2.Zero;
+        if (bounds.Length != content.Length) bounds = GetCharacterBounds(Wrap, false);
+        if (cursor >= bounds.Length) return Vector2.Zero;
 
-        var target = bounds[CursorPosition];
+        var target = bounds[cursor];
 
-        if (Content[CursorPosition] == '\n')
-            return CursorPosition + 1 < bounds.Length
-                ? new Vector2(bounds[CursorPosition + 1].PenX, bounds[CursorPosition + 1].LineTop)
+        if (content[cursor] == '\n')
+            return cursor + 1 < bounds.Length
+                ? new Vector2(bounds[cursor + 1].PenX, bounds[cursor + 1].LineTop)
                 : new Vector2(0f, target.LineTop + target.LineHeight);
 
         return new Vector2(target.PenX + target.Advance, target.LineTop);
