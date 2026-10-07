@@ -98,7 +98,7 @@ Shaders are C# classes. `Rin.Shade` transpiles them to Slang during the build, `
 ## Rules the code relies on
 
 - **Matrices are row-major with row-vector math** everywhere, matching `System.Numerics`. The CPU tests in `Shade/Rin.Shade.CpuTests` check that the Slang side agrees.
-- **Push constants and buffers use scalar layout.** Shaders reach buffers through `BufferRef<T>` addresses passed as push constants.
+- **Every block uses scalar layout.** Push constants, `BufferRef<T>` pointees and the data in a `ParameterBlock` all follow scalar layout, which is also what C# sequential layout gives the same struct. The native Slang session forces it for the SPIR-V target, so no declaration can opt out. Shaders reach buffers through `BufferRef<T>` addresses passed as push constants.
 - **Resources are bindless.** Shaders sample textures through the engine-owned `rin.global` block with a `DeviceHandle`. The engine binds that descriptor set once per frame.
 - **Handles are generational.** A `ResourceHandle` carries a generation so a freed and reused slot is detected.
 - **Zero-sized images and buffers are rejected** at the create calls, with an exception.

@@ -21,6 +21,10 @@ uv run task pack-slang-native
 
 Or from this folder, `uv run task build` (Release) or `uv run task buildd` (Debug). CI runs `conan install . --build=missing -s build_type=Release -s compiler.cppstd=20` and then the `Rin-Release` CMake preset. See [../ReadMe.md](../ReadMe.md) for the packing flow.
 
+## Session settings
+
+The SPIR-V target is created with `forceGLSLScalarBufferLayout`, so every block follows scalar layout, and the session uses row-major matrices. Both match what C# lays out for the same structs. `ScalarLayoutTests` in `Shade/Rin.Shade.CpuTests` checks the first against the compiled SPIR-V.
+
 ## Gotchas
 
 - The first build needs network access to download the Slang release.
