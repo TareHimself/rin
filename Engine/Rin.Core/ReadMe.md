@@ -223,7 +223,7 @@ sequenceDiagram
     WR->>WR: submit and present
 ```
 
-The main thread waits for the previous render to finish before it runs `OnCollect`, then lets the render thread run `OnRender` while it starts the next update. The Vulkan `WindowRenderer` builds the passes from the collected data at the start of its `Execute` (render thread), not in `Collect`.
+The main thread waits up to 3 ms for the previous render to finish. If it has, it runs `OnCollect`, and if not it skips the collect for that tick. Either way it then lets the render thread run `OnRender` while it starts the next update. The Vulkan `WindowRenderer` builds the passes from the collected data at the start of its `Execute` (render thread), not in `Collect`.
 
 ## Other top-level folders
 
