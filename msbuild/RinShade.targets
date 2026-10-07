@@ -25,7 +25,8 @@
         <RinShadeMSBuildAssembly Condition="'$(RinShadeMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\Shade\Rin.Shade.MSBuild\bin\Release\net10.0\Rin.Shade.MSBuild.dll</RinShadeMSBuildAssembly>
     </PropertyGroup>
 
-    <UsingTask TaskName="Rin.Shade.MSBuild.CompileRinShadeShaders" AssemblyFile="$(RinShadeMSBuildAssembly)" />
+    <!-- TaskHostFactory runs the task in a short-lived process, so no MSBuild node keeps the task assembly locked. -->
+    <UsingTask TaskName="Rin.Shade.MSBuild.CompileRinShadeShaders" AssemblyFile="$(RinShadeMSBuildAssembly)" TaskFactory="TaskHostFactory" />
 
     <!--
         Only builds if the DLL doesn't already exist: MSBuild node reuse keeps a process holding the task
