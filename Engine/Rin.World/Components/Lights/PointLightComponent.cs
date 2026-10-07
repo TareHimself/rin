@@ -33,7 +33,8 @@ public class PointLightComponent : LightComponent
         base.LateUpdate(deltaSeconds);
         if (!_proxy.IsValid) return;
         GetTransform(Space.World);
-        if (TransformVersion != _lastPushedVersion)
+        var propertiesDirty = ConsumePropertiesDirty();
+        if (propertiesDirty || TransformVersion != _lastPushedVersion)
         {
             Owner!.World!.RenderSystem.UpdateLightProxy(_proxy, BuildLightInfo());
             _lastPushedVersion = TransformVersion;

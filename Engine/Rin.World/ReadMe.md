@@ -71,7 +71,7 @@ flowchart TD
 
 ### Lights
 
-`LightInfo` is a packed struct (three `Vector4`s) with location, radius, direction, color, radiance and `LightType` (`Directional` or `Point`). Light components create a render proxy on `Start` and push a new `LightInfo` in `LateUpdate` when their transform version changed.
+`LightInfo` is a packed struct (three `Vector4`s) with location, radius, direction, color, radiance and `LightType` (`Directional` or `Point`). Light components create a render proxy on `Start` and push a new `LightInfo` in `LateUpdate` when their transform version changed or when `Color`, `Radiance` or `Radius` was set to a different value.
 
 ### Animation
 

@@ -143,6 +143,7 @@ internal sealed class FakeRenderSystem : IRenderSystem
 
     public List<(RenderProxyHandle Handle, Matrix4x4 Transform)> PushedTransforms { get; } = [];
     public List<(RenderProxyHandle Handle, SkeletalPose Pose)> PushedPoses { get; } = [];
+    public List<(RenderProxyHandle Handle, LightInfo Light)> PushedLights { get; } = [];
     public int DestroyCount { get; private set; }
     public float LastInterpolationAlpha { get; private set; } = 1f;
 
@@ -175,6 +176,7 @@ internal sealed class FakeRenderSystem : IRenderSystem
 
     public void UpdateLightProxy(RenderProxyHandle handle, in LightInfo desc)
     {
+        PushedLights.Add((handle, desc));
     }
 
     public void DestroyProxy(RenderProxyHandle handle)

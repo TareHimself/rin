@@ -103,7 +103,7 @@ public partial class ViewportShader : ViewShader<ViewportShader.FragmentIn>
                 for (var i = 0; i < data.LightCount; i++)
                 {
                     var light = data.Lights[i];
-                    var toSurface = -LightMath.DirectionToLocation(light, location);
+                    var toSurface = LightMath.DirectionToLight(light, location);
                     var noL = Math.Max(Math.Dot(normal, toSurface), 0f);
                     radiance += noL * light.Radiance * light.Color * LightMath.Attenuation(light, location);
                 }
