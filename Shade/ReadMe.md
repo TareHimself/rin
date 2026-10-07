@@ -277,7 +277,7 @@ Two flags you will use:
 - `-p:RinShadeSkipCompile=true` skips shader compilation entirely, for builds and tests that never load shaders (it is what CI uses for most test projects).
 - `-p:RinShadeDumpGenerated=true` writes the emitted Slang to a `GeneratedShaders` folder in the output directory.
 
-The `Rin.Shade.MSBuild` task is built once, in Release, on demand. After you change the transpiler, rebuild it by hand or the real build keeps using the old one.
+The `Rin.Shade.MSBuild` task is brought up to date, in Release, before each shader compile, so a transpiler change takes effect on the next build. It runs in a short-lived task host process, which costs about two seconds on a full solution build and keeps the task DLLs from being locked.
 
 ## Testing
 

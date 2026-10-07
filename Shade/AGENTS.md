@@ -4,7 +4,7 @@ Rules for changing the shader transpiler, its generators and the shaders written
 
 ## After changing the transpiler
 
-- `Rin.Shade.MSBuild` is built once, in Release, and only when its DLL does not exist (`BuildRinShadeMSBuildTask` in `msbuild/RinShade.targets`). After you change the transpiler or the MSBuild task, rebuild it by hand, or real builds keep using the old transpiler and nothing warns you.
+- `Rin.Shade.MSBuild` is brought up to date, in Release, before every shader compile (`BuildRinShadeMSBuildTask` in `msbuild/RinShade.targets`), so a change to the transpiler or the task takes effect on the next build. The task runs in a short-lived task host, so no build process keeps its DLLs locked.
 - The text snapshots do not prove a compiled shader is right. After changing lowering, build with `-p:RinShadeDumpGenerated=true` and read the emitted Slang in the output directory's `GeneratedShaders` folder.
 
 ## Tests

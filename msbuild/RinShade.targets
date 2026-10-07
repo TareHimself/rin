@@ -29,12 +29,12 @@
     <UsingTask TaskName="Rin.Shade.MSBuild.CompileRinShadeShaders" AssemblyFile="$(RinShadeMSBuildAssembly)" TaskFactory="TaskHostFactory" />
 
     <!--
-        Only builds if the DLL doesn't already exist: MSBuild node reuse keeps a process holding the task
-        assembly loaded, so rebuilding it on every consuming build fails with a file-in-use error. Build it
-        explicitly after a transpiler change (stop the build servers first if the DLLs are locked).
+        Brings the task up to date before every use, so a transpiler change takes effect on the next build.
+        The output properties are removed so a build with -o still puts the task where RinShadeMSBuildAssembly points.
     -->
-    <Target Name="BuildRinShadeMSBuildTask" Condition="'$(RinShadeSkipCompile)' != 'true' AND !Exists('$(RinShadeMSBuildAssembly)')">
-        <MSBuild Projects="$(RinShadeMSBuildProject)" Targets="Build" Properties="Configuration=Release" />
+    <Target Name="BuildRinShadeMSBuildTask" Condition="'$(RinShadeSkipCompile)' != 'true'">
+        <MSBuild Projects="$(RinShadeMSBuildProject)" Targets="Build" Properties="Configuration=Release"
+                 RemoveProperties="OutputPath;OutDir;_CommandLineDefinedOutputPath;TargetFramework;RuntimeIdentifier" />
     </Target>
 
     <!--

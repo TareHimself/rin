@@ -22,6 +22,6 @@ Optional properties, from the targets file:
 
 ## Gotchas
 
-- The task project is built in Release only when its DLL does not exist yet (target `BuildRinShadeMSBuildTask`). It is not rebuilt on later builds, because MSBuild node reuse keeps the DLL loaded and a rebuild would fail with a file-in-use error. After changing the transpiler, rebuild it by hand, for example `dotnet build Shade/Rin.Shade.MSBuild/Rin.Shade.MSBuild.csproj -c Release` (stop build servers first if the DLLs are locked).
+- The task project is built in Release before every use (target `BuildRinShadeMSBuildTask`), which is a quick no-op when nothing changed. `RinShade.targets` loads it with `TaskFactory="TaskHostFactory"`, so it runs in a process that exits when the task finishes and the DLLs are never left locked. An IDE that loaded the task before this was in place still holds the old lock until it is restarted.
 - The on-demand build does not restore. On a clean checkout restore the solution first, as the CI workflow does (`dotnet restore rin.sln`), or the build fails with NETSDK1004.
 - Compiling needs the real native Slang library.
