@@ -143,6 +143,7 @@ internal sealed class FakeRenderSystem : IRenderSystem
 
     public List<(RenderProxyHandle Handle, Matrix4x4 Transform)> PushedTransforms { get; } = [];
     public List<(RenderProxyHandle Handle, SkeletalPose Pose)> PushedPoses { get; } = [];
+    public List<(RenderProxyHandle Handle, LightInfo Light)> PushedLights { get; } = [];
     public int DestroyCount { get; private set; }
     public float LastInterpolationAlpha { get; private set; } = 1f;
 
@@ -175,6 +176,7 @@ internal sealed class FakeRenderSystem : IRenderSystem
 
     public void UpdateLightProxy(RenderProxyHandle handle, in LightInfo desc)
     {
+        PushedLights.Add((handle, desc));
     }
 
     public void DestroyProxy(RenderProxyHandle handle)
@@ -243,6 +245,13 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
             body.CapsuleRadius = radius;
             body.CapsuleHalfHeight = halfHeight;
         });
+
+    public PhysicsBodyHandle CreateStaticMesh(ReadOnlySpan<Vector3> vertices, ReadOnlySpan<uint> indices,
+        in Transform transform) =>
+        Create(transform, PhysicsState.Static, _ => { });
+
+    public PhysicsBodyHandle CreateConvexHull(ReadOnlySpan<Vector3> points, in Transform transform, PhysicsState state) =>
+        Create(transform, state, _ => { });
 
     private PhysicsBodyHandle Create(in Transform transform, PhysicsState state, Action<Body> configure)
     {

@@ -3,6 +3,7 @@
 public class AnimationSequence<T> : IAnimation where T : IAnimatable
 {
     private readonly HashSet<AnimationState> _animations;
+    private readonly List<AnimationState> _scratch = [];
     private float _startTime;
 
     public AnimationSequence(T target, params IAnimation[] animations)
@@ -26,7 +27,7 @@ public class AnimationSequence<T> : IAnimation where T : IAnimatable
 
     public void Update(float elapsed)
     {
-        _animations.RemoveWhere(c => !(c.StartTime > elapsed) && c.Update(elapsed));
+        AnimationState.UpdateAll(_animations, _scratch, elapsed);
     }
 
     /// <summary>

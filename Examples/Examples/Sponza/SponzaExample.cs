@@ -47,7 +47,8 @@ public sealed class SponzaExample : Example
                 {
                     var camera = world.AddActor<CameraActor>();
                     var light = camera.AddComponent<PointLightComponent>();
-                    light.Radiance = 1000;
+                    
+                    light.Radiance = 100000;
 
                     surf.Add(new TestViewport(camera));
                     surf.Add(new PanelView

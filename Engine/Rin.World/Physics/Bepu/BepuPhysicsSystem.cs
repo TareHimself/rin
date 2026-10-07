@@ -79,6 +79,21 @@ public class BepuPhysicsSystem : IPhysicsSystem
         return Register(body);
     }
 
+    public PhysicsBodyHandle CreateStaticMesh(ReadOnlySpan<Vector3> vertices, ReadOnlySpan<uint> indices,
+        in Transform transform)
+    {
+        var body = new BepuStaticMeshBody(transform, this, vertices, indices);
+        body.Init();
+        return Register(body);
+    }
+
+    public PhysicsBodyHandle CreateConvexHull(ReadOnlySpan<Vector3> points, in Transform transform, PhysicsState state)
+    {
+        var body = BepuConvexHullBody.Create(state, transform, this, points);
+        body.Init();
+        return Register(body);
+    }
+
     public void DestroyBody(PhysicsBodyHandle handle)
     {
         var index = handle.Index;

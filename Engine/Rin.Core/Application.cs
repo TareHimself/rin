@@ -70,8 +70,12 @@ public abstract class Application : IApplication
             Profiling.End("Engine.Update");
 
             Profiling.Measure("Engine.PostUpdate", OnPostUpdate);
-            _renderFinishedEvent.WaitOne();
-            Profiling.Measure("Engine.Collect", OnCollect);
+            
+            // 3ms here is arbitrary
+            if (_renderFinishedEvent.WaitOne(TimeSpan.FromMilliseconds(3)))
+            {
+                Profiling.Measure("Engine.Collect", OnCollect);
+            }
             _mainUpdateEvent.Set();
         }
 

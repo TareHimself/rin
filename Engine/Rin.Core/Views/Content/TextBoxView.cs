@@ -106,11 +106,9 @@ public class TextBoxView : ContentView
 
     protected virtual void TextChanged(string newText)
     {
-        _cachedLayouts = ComputeLayout(out var pending);
-        if (pending) _cachedLayouts = null;
-        _cachedBounds = null;
         _content = newText;
-        // TextRenderer.RenderTextTo();
+        _cachedLayouts = null;
+        _cachedBounds = null;
         InvalidateDesiredSize();
         InvalidateLayout();
     }

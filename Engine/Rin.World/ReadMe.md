@@ -52,13 +52,15 @@ flowchart TD
 
 ### Physics
 
-`IPhysicsSystem` is the abstraction (create box, sphere or capsule bodies, velocity, pose and mass accessors, per-body time scale, collision channels, ray, shape cast and overlap queries). `Physics/Bepu/BepuPhysicsSystem` implements it on BepuPhysics: it owns a Bepu `Simulation`, runs `Simulation.Timestep` in `Update`, and hands out `PhysicsBodyHandle` values (an index plus a version, so a stale handle is rejected).
+`IPhysicsSystem` is the abstraction (create box, sphere, capsule or convex hull bodies, plus static triangle meshes that can never be simulated, velocity, pose and mass accessors, per-body time scale, collision channels, ray, shape cast and overlap queries). `Physics/Bepu/BepuPhysicsSystem` implements it on BepuPhysics: it owns a Bepu `Simulation`, runs `Simulation.Timestep` in `Update`, and hands out `PhysicsBodyHandle` values (an index plus a version, so a stale handle is rejected).
 
 `PhysicsState` has three values, and `SingleBodyPhysicsComponent` treats them differently:
 
 - `Static`: placed once when the component starts, never moved by the component afterwards.
 - `Controlled`: in `PrePhysicsUpdate` the component pushes its world position and orientation into the body.
 - `Simulated`: in `Update` the component reads position, orientation and scale back from the body with `SetTransform(..., Space.World)`.
+
+`CreateStaticMesh` takes vertices and indices and is one-sided: a triangle only collides from the side opposite `cross(b - a, c - a)`. `CreateConvexHull` takes points and puts the body origin at the hull centre. Scale for both is fixed at creation (`SetScale` with a different value throws `NotSupportedException`). No component wraps these yet.
 
 `World.RegisterPhysicsBody` and `FindPhysicsOwner` map a body handle back to the component that owns it. `World.GetGravity` and `SetGravity` forward to the physics system (Bepu default gravity is `(0, -9.81, 0)`).
 
@@ -71,7 +73,7 @@ flowchart TD
 
 ### Lights
 
-`LightInfo` is a packed struct (three `Vector4`s) with location, radius, direction, color, radiance and `LightType` (`Directional` or `Point`). Light components create a render proxy on `Start` and push a new `LightInfo` in `LateUpdate` when their transform version changed.
+`LightInfo` is a packed struct (three `Vector4`s) with location, radius, direction, color, radiance and `LightType` (`Directional` or `Point`). Light components create a render proxy on `Start` and push a new `LightInfo` in `LateUpdate` when their transform version changed or when `Color`, `Radiance` or `Radius` was set to a different value.
 
 ### Animation
 

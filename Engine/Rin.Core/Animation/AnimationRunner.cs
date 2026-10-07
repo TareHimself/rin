@@ -4,13 +4,12 @@ public class AnimationRunner(IApplication? application = null)
 {
     private readonly HashSet<AnimationState> _animations = [];
     private readonly IApplication _application = application ?? IApplication.Get();
+    private readonly List<AnimationState> _scratch = [];
     private float _currentEndTime;
 
     public void Update()
     {
-        var elapsed = _application.TimeSeconds;
-
-        _animations.RemoveWhere(c => !(c.StartTime > elapsed) && c.Update(elapsed));
+        AnimationState.UpdateAll(_animations, _scratch, _application.TimeSeconds);
     }
 
     public IAnimation Add(AnimationState animation)

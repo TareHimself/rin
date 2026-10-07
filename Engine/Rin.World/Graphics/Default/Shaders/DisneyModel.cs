@@ -37,14 +37,15 @@ public static class DisneyModel
     public static Vector3 Eval(GBufferSample surface, Vector3 eye, LightInfo light)
     {
         var location = surface.Location;
-        var toSurface = -LightMath.DirectionToLocation(light, location);
+        var toSurface = LightMath.DirectionToLight(light, location);
         var normal = surface.Normal;
 
         var radiance = new Vector3(0f);
-        var irradiance = ShadeMath.Max(ShadeMath.Dot(toSurface, normal), 0f) * light.Radiance *
+        var irradiance = light.Radiance *
                          LightMath.Attenuation(light, location);
-
-        if (irradiance > 0f)
+        var noL = ShadeMath.Clamp(ShadeMath.Dot(normal, toSurface), 0f, 1f);
+        
+        if (ShadeMath.Min(noL,irradiance) > 0f)
         {
             var view = ShadeMath.Normalize(eye - location);
             var reflectance = surface.Specular;
@@ -54,7 +55,7 @@ public static class DisneyModel
             var halfway = ShadeMath.Normalize(view + toSurface);
 
             var noV = ShadeMath.Clamp(ShadeMath.Dot(normal, view), 0f, 1f);
-            var noL = ShadeMath.Clamp(ShadeMath.Dot(normal, toSurface), 0f, 1f);
+            
             var noH = ShadeMath.Clamp(ShadeMath.Dot(normal, halfway), 0f, 1f);
             var voH = ShadeMath.Clamp(ShadeMath.Dot(view, halfway), 0f, 1f);
 
@@ -72,7 +73,7 @@ public static class DisneyModel
             rhoD *= 1f - metallic;
 
             var diffuse = rhoD * ReciprocalPi;
-            radiance += (diffuse + specular) * irradiance * light.Color;
+            radiance += (diffuse + specular) * irradiance * light.Color * noL;
         }
 
         return radiance;
