@@ -1,5 +1,6 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Rin.Core.Graphics;
+using Rin.Core.Graphics.Windows;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Events;
 using Rin.Core.Extensions;
@@ -33,6 +34,7 @@ public abstract class Surface : ISurface
     }
 
     public IView? FocusedView { get; private set; }
+    public virtual IClipboard Clipboard => _sGraphicsModule.Clipboard;
 
     public virtual void Dispose()
     {

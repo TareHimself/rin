@@ -17,6 +17,7 @@ Vulkan backend for the `IGraphicsModule` interface from Rin.Core. Package id `Ta
 | `VulkanGraphicsModule.Resources.cs` | Resource registry, bindless descriptor set, buffer registry, pending-write flushing. |
 | `WindowRenderer.cs`, `Frame.cs` | Per-window swapchain and the per-frame draw. One `Frame` holds a command buffer, a fence, a swapchain semaphore, a descriptor allocator and a `GraphBuilder`. |
 | `Windows/RinWindow.cs` | `IWindow` implementation over a native window handle. |
+| `Windows/SystemClipboard.cs` | `IClipboard` over the native clipboard calls, exposed as `VulkanGraphicsModule.Clipboard`. |
 | `Graph/` | Render graph: `GraphBuilder`, `GraphConfig`, `CompiledGraph`, `ResourcePool`, barrier and upload passes. |
 | `Images/`, `Descriptors/` | Bindless slot tables and handle state, descriptor sets, pools and layouts. |
 | `Shaders/` | `CompiledGraphicsShader`, `CompiledComputeShader`, `CompiledShaderManager`, bind contexts. |
@@ -149,7 +150,7 @@ flowchart TD
 
 - Zero-size creation is rejected: `CreateTexture`, `CreateTextureArray` and `CreateCubemap` on the module throw `ArgumentOutOfRangeException` for a zero width or height (`ThrowIfEmpty`), `CreateBuffer` throws for size 0, and `GraphConfig.CreateImage` throws for a zero extent. The graph's own `GraphConfig.CreateBuffer` instead clamps the size to at least 1, so an empty frame does not fail.
 - `CreateTextureArray(out handle, data, ...)` and `CreateCubemap(out handle, data, ...)` throw `NotImplementedException`. `AddRenderer` and `RemoveRenderer` do too, as do `RinWindow.SetSize`, `SetFullscreen` and `SetPosition`.
-- `RinWindow.ProcessEvent` throws `ArgumentOutOfRangeException` for event types it does not handle. The native enum has `DndEnter`, `DndDrop` and `DndLeave`, which are not handled, and `OnDrop` is never raised. `Update` also looks up the window by id with an indexer, so an event for a disposed window throws.
+- `RinWindow.ProcessEvent` throws `ArgumentOutOfRangeException` for event types it does not handle. `OnDrop` is never raised: rwin reports drops through per-window callbacks, which the native module does not wire up yet. `Update` also looks up the window by id with an indexer, so an event for a disposed window throws.
 - `VulkanExecutionContext.Barrier(ResourceHandle, from, to)` (single image) does not update the image's tracked `Layout`, while the span overload does. Nothing in the repo calls the single-image overload. Prefer the span overload or the graph's own barriers.
 - `CompiledShaderManager` caches by path, so the first descriptor wins.
 - Unreleased resources are reported with `Console.WriteLine` at shutdown and then disposed (`DisposeBindlessResources`).

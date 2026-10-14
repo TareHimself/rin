@@ -30,6 +30,11 @@ public sealed class LineInputView : TextInputBoxView
         if (e.Character is not ('\n' or '\r')) base.OnCharacter(e);
     }
 
+    public override void InsertText(string text)
+    {
+        base.InsertText(text.Replace("\r", string.Empty).Replace("\n", " "));
+    }
+
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
         base.CollectContent(transform, commands);

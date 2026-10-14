@@ -10,7 +10,7 @@ A graphics backend that does nothing, for headless runs and tests. Package id `T
 ## Start here
 
 - `NullGraphicsModule.cs`: the `IGraphicsModule` implementation (sealed).
-- `NullDevice.cs`, `NullWindow.cs`, `NullGraphicsShader.cs`, `NullComputeShader.cs`: no-op device, window and shaders.
+- `NullDevice.cs`, `NullWindow.cs`, `NullGraphicsShader.cs`, `NullComputeShader.cs`: no-op device, window and shaders. The module's `Clipboard` is an `InMemoryClipboard`.
 
 ## Build
 

@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Windows;
@@ -126,7 +126,11 @@ public class TextInputBoxView : TextBoxView
     public override void OnKeyboard(KeyboardSurfaceEvent e)
     {
         base.OnKeyboard(e);
-        if (e is { Key: InputKey.Escape, State: InputState.Pressed })
+        if (e is { IsControlDown: true, State: InputState.Pressed or InputState.Repeat })
+        {
+            HandleShortcut(e);
+        }
+        else if (e is { Key: InputKey.Escape, State: InputState.Pressed })
         {
             // While composing, Escape belongs to the input method, which cancels the composition.
             if (UnfocusOnEscape && _preeditLength == 0) e.Surface.ClearFocus();
@@ -166,6 +170,38 @@ public class TextInputBoxView : TextBoxView
             ResetTypingDelay();
             OnCharacter(new CharacterSurfaceEvent(e.Surface, '\n', 0));
         }
+    }
+
+    // Without a selection, copy and cut take the whole text and paste goes in at the caret.
+    private void HandleShortcut(KeyboardSurfaceEvent e)
+    {
+        switch (e.Key)
+        {
+            case InputKey.V:
+                if (e.Surface.Clipboard.GetText() is { Length: > 0 } text) InsertText(text);
+                break;
+            case InputKey.C:
+                if (Content.Length > 0) e.Surface.Clipboard.SetText(Content);
+                break;
+            case InputKey.X:
+                if (Content.Length == 0) break;
+                e.Surface.Clipboard.SetText(Content);
+                ClearPreedit();
+                ResetTypingDelay();
+                Edit(string.Empty, -1);
+                break;
+        }
+    }
+
+    /// <summary>
+    ///     Inserts text at the caret as one edit and moves the caret past it.
+    /// </summary>
+    public virtual void InsertText(string text)
+    {
+        ClearPreedit();
+        ResetTypingDelay();
+        var insertAt = int.Clamp(CursorPosition + 1, 0, Content.Length);
+        Edit(Content.Insert(insertAt, text), insertAt + text.Length - 1);
     }
 
     /// <summary>

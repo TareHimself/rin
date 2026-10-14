@@ -133,6 +133,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     public IDevice CurrentDevice =>
         _currentDevice ?? throw new InvalidOperationException("The graphics module has not been started");
 
+    public IClipboard Clipboard { get; } = new SystemClipboard();
+
     public void AddRenderer(IRenderer renderer)
     {
         throw new NotImplementedException();

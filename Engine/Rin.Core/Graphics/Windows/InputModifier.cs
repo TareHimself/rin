@@ -1,8 +1,9 @@
-﻿namespace Rin.Core.Graphics.Windows;
+namespace Rin.Core.Graphics.Windows;
 
 [Flags]
 public enum InputModifier
 {
+    None = 0,
     Shift = 0x0001,
     Control = 0x0002,
     Alt = 0x0004,

@@ -1,4 +1,4 @@
-﻿#include "platform.hpp"
+#include "platform.hpp"
 #include "rwin/rwin.h"
 #include <iostream>
 
@@ -74,3 +74,24 @@ const char16_t* platformWindowGetEventText(rwin::TextRef text)
     return view.size() == text.length ? view.data() : nullptr;
 }
 
+int platformHasClipboardText()
+{
+    return rwin::hasClipboardText();
+}
+
+const char16_t* platformGetClipboardText()
+{
+    static std::u16string text;
+    text.clear();
+    return rwin::getClipboardText(text) ? text.c_str() : nullptr;
+}
+
+int platformSetClipboardText(const char16_t* text, const std::uint64_t length)
+{
+    return rwin::setClipboardText(std::u16string_view(text, length));
+}
+
+void platformClearClipboard()
+{
+    rwin::clearClipboard();
+}
