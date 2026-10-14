@@ -12,14 +12,21 @@ using Timer = System.Timers.Timer;
 
 namespace Rin.Core.Views.Content;
 
+/// <summary>
+///     An editable <see cref="TextBoxView" /> with a caret and a selection. Caret and selection indices are the
+///     character the caret sits after, -1 for the start, as in <see cref="TextCaretLayout" />.
+/// </summary>
 public class TextInputBoxView : TextBoxView
 {
     private const float CaretWidth = 2f;
 
     private readonly IApplication _application;
+    private readonly List<Rect2D> _selectionRects = [];
     private Vector2 _scroll;
     private Vector2 _shownCaret;
     private bool _editing;
+    private bool _dragging;
+    private int? _anchor;
     private int _preeditStart;
     private int _preeditLength;
     private Rect2D? _typingRect;
@@ -47,6 +54,50 @@ public class TextInputBoxView : TextBoxView
     /// </summary>
     [PublicAPI] public bool UnfocusOnEscape { get; set; } = true;
 
+    [PublicAPI] public Color SelectionColor { get; set; } = new(0.35f, 0.55f, 1f, 0.45f);
+
+    /// <summary>
+    ///     Whether the selection covers at least one character. The caret is always one end of it.
+    /// </summary>
+    [PublicAPI] public bool HasSelection => _anchor is { } anchor && anchor != CursorPosition;
+
+    [PublicAPI] public int SelectionStart => int.Min(_anchor ?? CursorPosition, CursorPosition);
+
+    [PublicAPI] public int SelectionEnd => int.Max(_anchor ?? CursorPosition, CursorPosition);
+
+    [PublicAPI]
+    public string SelectedText
+    {
+        get
+        {
+            if (!HasSelection) return string.Empty;
+            var first = int.Clamp(SelectionStart + 1, 0, Content.Length);
+            var last = int.Clamp(SelectionEnd + 1, first, Content.Length);
+            return Content[first..last];
+        }
+    }
+
+    /// <summary>
+    ///     Selects from one caret index to another and puts the caret at the second.
+    /// </summary>
+    [PublicAPI]
+    public void Select(int anchor, int caret)
+    {
+        _anchor = int.Clamp(anchor, -1, Content.Length - 1);
+        CursorPosition = int.Clamp(caret, -1, Content.Length - 1);
+    }
+
+    [PublicAPI]
+    public void SelectAll()
+    {
+        Select(-1, Content.Length - 1);
+    }
+
+    [PublicAPI]
+    public void ClearSelection()
+    {
+        _anchor = null;
+    }
 
     private void ResetTypingDelay()
     {
@@ -61,9 +112,36 @@ public class TextInputBoxView : TextBoxView
         CancelComposition();
         if (!FontReady) return;
 
-        var point = e.Position.Transform(ComputeAbsoluteContentTransform().Inverse()) + _scroll;
         ResetTypingDelay();
-        CursorPosition = TextCaretLayout.IndexAt(GetContentBounds(), point);
+        CursorPosition = IndexAt(e.Position);
+        _anchor = CursorPosition;
+        _dragging = true;
+    }
+
+    /// <summary>
+    ///     Extends the selection while the button that put the caret down is held, even outside the view.
+    /// </summary>
+    public override void OnCursorMove(CursorMoveSurfaceEvent e, in Matrix4x4 transform)
+    {
+        if (!_dragging || !FontReady) return;
+
+        var caret = IndexAt(e.Position);
+        if (caret == CursorPosition) return;
+
+        ResetTypingDelay();
+        CursorPosition = caret;
+    }
+
+    public override void OnCursorUp(CursorUpSurfaceEvent e)
+    {
+        _dragging = false;
+        if (!HasSelection) _anchor = null;
+    }
+
+    private int IndexAt(in Vector2 surfacePosition)
+    {
+        var point = surfacePosition.Transform(ComputeAbsoluteContentTransform().Inverse()) + _scroll;
+        return TextCaretLayout.IndexAt(GetContentBounds(), point);
     }
 
     public override void OnCharacter(CharacterSurfaceEvent e)
@@ -71,8 +149,7 @@ public class TextInputBoxView : TextBoxView
         base.OnCharacter(e);
         ClearPreedit();
         ResetTypingDelay();
-        var insertAt = int.Clamp(CursorPosition + 1, 0, Content.Length);
-        Edit(Content.Insert(insertAt, e.Character.ToString()), insertAt);
+        ReplaceSelection(e.Character.ToString());
     }
 
     /// <summary>
@@ -82,6 +159,7 @@ public class TextInputBoxView : TextBoxView
     {
         base.OnTextPreedit(e);
         ResetTypingDelay();
+        if (_preeditLength == 0 && HasSelection) DeleteSelection();
         var start = _preeditLength > 0 ? _preeditStart : int.Clamp(CursorPosition + 1, 0, Content.Length);
         var content = Content.Remove(start, _preeditLength).Insert(start, e.Text);
         _preeditStart = start;
@@ -137,7 +215,12 @@ public class TextInputBoxView : TextBoxView
         }
         else if (e is { Key: InputKey.Backspace, State: InputState.Pressed or InputState.Repeat })
         {
-            if (CursorPosition > -1 && CursorPosition < Content.Length)
+            if (HasSelection)
+            {
+                ResetTypingDelay();
+                DeleteSelection();
+            }
+            else if (CursorPosition > -1 && CursorPosition < Content.Length)
             {
                 ResetTypingDelay();
                 Edit(Content.Remove(CursorPosition, 1), CursorPosition - 1);
@@ -145,7 +228,12 @@ public class TextInputBoxView : TextBoxView
         }
         else if (e is { Key: InputKey.Delete, State: InputState.Pressed or InputState.Repeat })
         {
-            if (CursorPosition + 1 < Content.Length)
+            if (HasSelection)
+            {
+                ResetTypingDelay();
+                DeleteSelection();
+            }
+            else if (CursorPosition + 1 < Content.Length)
             {
                 ResetTypingDelay();
                 Edit(Content.Remove(CursorPosition + 1, 1), CursorPosition);
@@ -154,15 +242,19 @@ public class TextInputBoxView : TextBoxView
         else if (e is { Key: InputKey.Home or InputKey.End, State: InputState.Pressed or InputState.Repeat })
         {
             ResetTypingDelay();
-            CursorPosition = e.Key == InputKey.Home ? -1 : Content.Length - 1;
+            MoveCaret(e.Key == InputKey.Home ? -1 : Content.Length - 1, e.IsShiftDown);
         }
         else if (e is { Key: InputKey.Left or InputKey.Right, State: InputState.Pressed or InputState.Repeat })
         {
             if (Content.NotEmpty())
             {
                 ResetTypingDelay();
-                var delta = e.Key == InputKey.Left ? -1 : 1;
-                CursorPosition = int.Clamp(CursorPosition + delta, -1, Content.Length - 1);
+                var left = e.Key == InputKey.Left;
+                // Without Shift, an arrow collapses the selection to its near end, as other editors do.
+                if (HasSelection && !e.IsShiftDown)
+                    MoveCaret(left ? SelectionStart : SelectionEnd, false);
+                else
+                    MoveCaret(int.Clamp(CursorPosition + (left ? -1 : 1), -1, Content.Length - 1), e.IsShiftDown);
             }
         }
         else if (e is { Key: InputKey.Enter, State: InputState.Pressed or InputState.Repeat })
@@ -172,36 +264,58 @@ public class TextInputBoxView : TextBoxView
         }
     }
 
-    // Without a selection, copy and cut take the whole text and paste goes in at the caret.
+    private void MoveCaret(int caret, bool extendSelection)
+    {
+        if (extendSelection)
+            _anchor ??= CursorPosition;
+        else
+            _anchor = null;
+        CursorPosition = caret;
+    }
+
     private void HandleShortcut(KeyboardSurfaceEvent e)
     {
         switch (e.Key)
         {
+            case InputKey.A:
+                if (Content.Length > 0) SelectAll();
+                break;
             case InputKey.V:
                 if (e.Surface.Clipboard.GetText() is { Length: > 0 } text) InsertText(text);
                 break;
             case InputKey.C:
-                if (Content.Length > 0) e.Surface.Clipboard.SetText(Content);
+                if (HasSelection) e.Surface.Clipboard.SetText(SelectedText);
                 break;
             case InputKey.X:
-                if (Content.Length == 0) break;
-                e.Surface.Clipboard.SetText(Content);
+                if (!HasSelection) break;
+                e.Surface.Clipboard.SetText(SelectedText);
                 ClearPreedit();
                 ResetTypingDelay();
-                Edit(string.Empty, -1);
+                DeleteSelection();
                 break;
         }
     }
 
     /// <summary>
-    ///     Inserts text at the caret as one edit and moves the caret past it.
+    ///     Replaces the selection, or inserts at the caret, as one edit and moves the caret past the text.
     /// </summary>
     public virtual void InsertText(string text)
     {
         ClearPreedit();
         ResetTypingDelay();
-        var insertAt = int.Clamp(CursorPosition + 1, 0, Content.Length);
-        Edit(Content.Insert(insertAt, text), insertAt + text.Length - 1);
+        ReplaceSelection(text);
+    }
+
+    private void ReplaceSelection(string text)
+    {
+        var first = HasSelection ? SelectionStart + 1 : int.Clamp(CursorPosition + 1, 0, Content.Length);
+        var length = HasSelection ? SelectionEnd - SelectionStart : 0;
+        Edit(Content.Remove(first, length).Insert(first, text), first + text.Length - 1);
+    }
+
+    private void DeleteSelection()
+    {
+        ReplaceSelection(string.Empty);
     }
 
     /// <summary>
@@ -212,6 +326,7 @@ public class TextInputBoxView : TextBoxView
         base.TextChanged(newText);
         if (_editing) return;
         CursorPosition = newText.Length - 1;
+        _anchor = null;
         _preeditLength = 0;
     }
 
@@ -228,6 +343,7 @@ public class TextInputBoxView : TextBoxView
         }
 
         CursorPosition = int.Clamp(newCursorPosition, -1, newContent.Length - 1);
+        _anchor = null;
     }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
@@ -288,6 +404,7 @@ public class TextInputBoxView : TextBoxView
 
     private void CollectText(in Matrix4x4 transform, CommandList commands)
     {
+        if (FontReady && IsFocused) CollectSelection(transform, commands);
         base.CollectContent(transform, commands);
 
         if (!FontReady || !IsFocused) return;
@@ -302,6 +419,14 @@ public class TextInputBoxView : TextBoxView
         var sin = (float.Sin(_application.TimeSeconds * 5) + 1.0f) / 2.0f;
         color.A *= IsTyping ? 1.0f : sin > 0.35 ? 1.0f : 0.0f;
         commands.AddRect(transform.Translate(offset), new Vector2(CaretWidth, height), color);
+    }
+
+    private void CollectSelection(in Matrix4x4 transform, CommandList commands)
+    {
+        if (!HasSelection) return;
+        TextCaretLayout.SelectionRects(GetContentBounds(), SelectionStart, SelectionEnd, _selectionRects);
+        foreach (var rect in _selectionRects)
+            commands.AddRect(transform.Translate(rect.Offset), rect.Size, SelectionColor);
     }
 
     private void UpdateTypingRect(in Rect2D caret)
