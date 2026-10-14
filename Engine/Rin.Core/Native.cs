@@ -70,7 +70,13 @@ internal static partial class Native
     public static partial Extent2D videoContextGetVideoExtent(IntPtr context);
 
     [LibraryImport(DllName)]
-    public static partial void videoContextSeek(IntPtr context, double time);
+    public static partial int videoContextEnsureHeader(IntPtr context);
+
+    [LibraryImport(DllName)]
+    public static partial int videoContextIsReady(IntPtr context);
+
+    [LibraryImport(DllName)]
+    public static partial int videoContextSeek(IntPtr context, double time);
 
     [LibraryImport(DllName)]
     public static partial int videoContextHasAudio(IntPtr context);
@@ -100,6 +106,9 @@ internal static partial class Native
     public static partial int videoContextDecode(IntPtr context, double delta);
 
     [LibraryImport(DllName)]
+    public static partial VideoByteRange videoContextGetNeededRange(IntPtr context);
+
+    [LibraryImport(DllName)]
     public static partial int videoContextEnded(IntPtr context);
 
     [LibraryImport(DllName)]
@@ -119,8 +128,27 @@ internal static partial class Native
 
     
     
+    [StructLayout(LayoutKind.Sequential)]
+    public struct VideoByteRange
+    {
+        public long Start;
+        public long End;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct VideoSourceCallbacks
+    {
+        public delegate* unmanaged<long, ulong, IntPtr, IntPtr, void> Read;
+        public delegate* unmanaged<IntPtr, long> Available;
+        public delegate* unmanaged<IntPtr, long> Length;
+        public delegate* unmanaged<long, IntPtr, long> AvailableFrom;
+        public delegate* unmanaged<long, ulong, IntPtr, void> MakeRangeAvailable;
+        public delegate* unmanaged<long, IntPtr, void> ReleaseBefore;
+        public IntPtr UserData;
+    }
+
     [LibraryImport(DllName)]
-    public static unsafe partial IntPtr videoSourceCreate(delegate* unmanaged<ulong, ulong, IntPtr,IntPtr, void> readCallback,delegate* unmanaged<IntPtr, ulong> availableCallback,delegate* unmanaged<IntPtr, ulong> lengthCallback,IntPtr userData);
+    public static unsafe partial IntPtr videoSourceCreate(VideoSourceCallbacks* callbacks);
 
     [LibraryImport(DllName)]
     public static partial void videoSourceFree(IntPtr source);

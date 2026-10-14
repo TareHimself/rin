@@ -3,25 +3,71 @@ using System.Net.Http.Headers;
 
 namespace Rin.Core.Shared.Video;
 
-public class HttpVideoSource : IVideoSource
+/// <summary>
+///     Fetches a webm over HTTP as the decoder asks for it. With range requests a seek fetches only the part of the
+///     file it lands on, and bytes the decoder is done with are dropped. Without them the whole file is fetched once.
+/// </summary>
+public sealed class HttpVideoSource : IVideoSource
 {
+    private const long MinimumFetchBytes = 256 * 1024;
+    private const long UnknownLength = -1;
+    private readonly SparseByteBuffer _buffer = new();
     private readonly HttpClient _client;
+    private readonly List<ByteRange> _missing = [];
     private readonly Uri _uri;
-    private bool _hasFetchedHeaders;
-    private ulong _length;
-    private MemoryStream _stream;
+    private bool _hasWholeFile;
+    private long _length = UnknownLength;
+    private bool _probed;
 
     public HttpVideoSource(Uri url, HttpRequestHeaders? headers = null)
     {
         _uri = url;
-        _client = new HttpClient
-        {
-            BaseAddress = url
-        };
+        _client = new HttpClient();
+        if (headers is null) return;
+        foreach (var header in headers) _client.DefaultRequestHeaders.Add(header.Key, header.Value);
+    }
 
-        if (headers is not null)
-            foreach (var header in headers)
-                _client.DefaultRequestHeaders.Add(header.Key, header.Value);
+    public long Length
+    {
+        get
+        {
+            Probe();
+            return _length;
+        }
+    }
+
+    public long Available => _buffer.Available;
+
+    public void Read(long offset, Span<byte> destination)
+    {
+        _buffer.Read(offset, destination);
+    }
+
+    public long AvailableFrom(long offset)
+    {
+        return _buffer.AvailableFrom(offset);
+    }
+
+    public void MakeRangeAvailable(long offset, long size)
+    {
+        Probe();
+        if (_hasWholeFile) return;
+
+        var end = offset + System.Math.Max(size, MinimumFetchBytes);
+        if (_length != UnknownLength) end = System.Math.Min(end, _length);
+
+        _missing.Clear();
+        _buffer.CollectMissing(offset, end, _missing);
+        foreach (var range in _missing)
+        {
+            Fetch(range);
+            if (_hasWholeFile) return;
+        }
+    }
+
+    public void ReleaseBefore(long offset)
+    {
+        _buffer.ReleaseBefore(offset);
     }
 
     public void Dispose()
@@ -29,71 +75,37 @@ public class HttpVideoSource : IVideoSource
         _client.Dispose();
     }
 
-    public ulong Length
+    private void Probe()
     {
-        get
-        {
-            FetchHeaders();
-            return _length;
-        }
+        if (_probed) return;
+        _probed = true;
+        using var response = _client.Send(new HttpRequestMessage(HttpMethod.Head, _uri));
+        response.EnsureSuccessStatusCode();
+        _length = response.Content.Headers.ContentLength ?? UnknownLength;
     }
 
-    public ulong Available
+    private void Fetch(ByteRange range)
     {
-        get
+        var request = new HttpRequestMessage(HttpMethod.Get, _uri);
+        request.Headers.Range = new RangeHeaderValue(range.Start, range.End - 1);
+        using var response = _client.Send(request, HttpCompletionOption.ResponseHeadersRead);
+        if (response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
         {
-            FetchHeaders();
-            return _length; //(ulong)_stream.Length;
-        }
-    }
-
-    public void Read(ulong offset, Span<byte> destination)
-    {
-        FetchHeaders();
-        var end = (long)offset + destination.Length;
-        var networkStart = _stream.Length;
-        if (end > networkStart)
-        {
-            var preloadAmmount = 1024 * 10;
-            if (end - networkStart < preloadAmmount) end = (long)offset + preloadAmmount;
-            var result = _client.Send(new HttpRequestMessage(HttpMethod.Get, _uri)
-            {
-                Headers =
-                {
-                    Range = new RangeHeaderValue(_stream.Length, end - 1)
-                }
-            });
-            if (result.StatusCode == HttpStatusCode.PartialContent)
-            {
-                var val = result.Content.Headers
-                    .GetValues("Content-Range")
-                    .First()
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                    .Skip(1)
-                    .First()
-                    .Split('/', StringSplitOptions.RemoveEmptyEntries)
-                    .First()
-                    .Split('-', StringSplitOptions.RemoveEmptyEntries);
-                _stream.Position = long.Parse(val.First());
-            }
-            else
-            {
-                _stream.Position = 0;
-            }
-
-            result.Content.ReadAsStream().CopyTo(_stream);
+            _length = response.Content.Headers.ContentRange?.Length ?? _buffer.Available;
+            return;
         }
 
-        _stream.Position = (long)offset;
-        _stream.ReadExactly(destination);
-    }
+        response.EnsureSuccessStatusCode();
 
-    private void FetchHeaders()
-    {
-        if (_hasFetchedHeaders) return;
-        using var resp = _client.Send(new HttpRequestMessage(HttpMethod.Head, _uri));
-        _length = ulong.Parse(resp.Content.Headers.GetValues("Content-Length").First());
-        _stream = new MemoryStream();
-        _hasFetchedHeaders = true;
+        var isPartial = response.StatusCode == HttpStatusCode.PartialContent;
+        var start = isPartial ? response.Content.Headers.ContentRange?.From ?? range.Start : 0;
+        using var body = response.Content.ReadAsStream();
+        using var memory = new MemoryStream();
+        body.CopyTo(memory);
+        _buffer.Write(start, memory.GetBuffer().AsSpan(0, (int)memory.Length));
+
+        if (isPartial) return;
+        _hasWholeFile = true;
+        _length = memory.Length;
     }
 }

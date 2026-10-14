@@ -8,7 +8,9 @@ using Rin.Core.Shared.Time;
 namespace Rin.Core.Shared.Video;
 
 /// <summary>
-///     Decodes webm video on another thread.
+///     Decodes webm video on another thread. The source may still be arriving: header reads, seeks and decodes that
+///     run out of data are retried on every <see cref="TryDecode" />, so a view that calls it each frame keeps the
+///     player going as bytes come in.
 /// </summary>
 public class WebmVideoPlayer : IVideoPlayer
 {
@@ -18,14 +20,14 @@ public class WebmVideoPlayer : IVideoPlayer
     private const double DecodeAheadSeconds = 1.0;
     private const double DecodeStepSeconds = 0.1;
 
-    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly IntPtr _context;
-
     private readonly IAudioModule _audioModule;
     private readonly Func<int, int, IPushStream>? _createStream;
     private readonly AutoResetEvent _decodeEvent = new(false);
+    private readonly Task _decodeTask;
 
     private readonly IChronometer _videoPlaybackTime = new Chronometer();
+    private IntPtr _context;
+    private GCHandle _audioCallbackHandlerGcHandle;
     private double _audioPacketsStartAt;
     private IPushStream? _audioStream;
 
@@ -35,25 +37,13 @@ public class WebmVideoPlayer : IVideoPlayer
     // The frame on screen, which native overwrites in place when a newer one is due.
     private Buffer<byte>? _lastFrame;
 
+    // A seek the decode thread still has to make, kept until the decoder has the data to land it.
+    private SeekRequest? _pendingSeek;
+    private volatile bool _ready;
+    private volatile Exception? _error;
+
     private InternalSource? _source;
     private volatile bool _stopDecode;
-    private readonly Task _decodeTask;
-    private GCHandle _audioCallbackHandlerGcHandle;
-    
-    private class AudioCallbackHandler(Action<ReadOnlySpan<byte>, double> callback)
-    {
-        public readonly Action<ReadOnlySpan<byte>, double> Callback = callback;
-    }
-
-    [UnmanagedCallersOnly]
-    private static unsafe void OnAudioCallback(float* data, int count, double time, IntPtr context)
-    {
-        var handle = GCHandle.FromIntPtr(context);
-        if (handle.Target is AudioCallbackHandler audioCallbackHandler)
-        {
-            audioCallbackHandler.Callback(new ReadOnlySpan<byte>(data,count *  sizeof(float)), time);
-        }
-    }
 
     public WebmVideoPlayer(IAudioModule? audioModule = null)
     {
@@ -62,41 +52,11 @@ public class WebmVideoPlayer : IVideoPlayer
         unsafe
         {
             var handler = new AudioCallbackHandler(AudioCallback);
-            _audioCallbackHandlerGcHandle  = GCHandle.Alloc(handler, GCHandleType.Normal);
-            try
-            {
-                Native.videoContextSetAudioCallback(_context, &OnAudioCallback,GCHandle.ToIntPtr(_audioCallbackHandlerGcHandle));
-            }
-            catch (Exception e)
-            {
-                _audioCallbackHandlerGcHandle.Free();
-                Console.WriteLine(e);
-                throw;
-            }
+            _audioCallbackHandlerGcHandle = GCHandle.Alloc(handler, GCHandleType.Normal);
+            Native.videoContextSetAudioCallback(_context, &OnAudioCallback, GCHandle.ToIntPtr(_audioCallbackHandlerGcHandle));
         }
 
         _decodeTask = Task.Factory.StartNew(DecodeLoop, TaskCreationOptions.LongRunning);
-    }
-
-    private void DecodeLoop()
-    {
-        while (!_stopDecode)
-        {
-            if (!ShouldDecode() || Native.videoContextDecode(_context, DecodeStepSeconds) == 0)
-            {
-                _decodeEvent.WaitOne();
-            }
-        }
-    }
-
-    private bool ShouldDecode()
-    {
-        if (_source == null) return false;
-        var position = Position;
-        // Frames pile up when nothing is drawing them, so drop the ones playback has passed.
-        Native.videoContextDropFramesBefore(_context, position);
-        return DecodedPosition - position <= DecodeAheadSeconds &&
-               Native.videoContextGetBufferedFrameCount(_context) < _maxBufferedFrames;
     }
 
     public WebmVideoPlayer(Func<int, int, IPushStream> createAudioStream, IAudioModule? audioModule = null) : this(audioModule)
@@ -104,26 +64,39 @@ public class WebmVideoPlayer : IVideoPlayer
         _createStream = createAudioStream;
     }
 
+    public bool IsReady => _ready;
+    public bool HasFailed => _error is not null;
+    public Exception? Error => _error;
+
     public double DecodedPosition => Native.videoContextGetPosition(_context);
 
     public double Position => _audioStream is { } audio
         ? audio.Position + _audioPacketsStartAt
         : _videoPlaybackTime.TotalSeconds;
 
-    public double Duration { get; set; }
+    public double Duration { get; private set; }
+
+    public ByteRange NeededRange
+    {
+        get
+        {
+            var range = Native.videoContextGetNeededRange(_context);
+            return new ByteRange(range.Start, range.End);
+        }
+    }
 
     public bool IsPlaying { get; private set; }
-    public bool HasVideo => Native.videoContextHasVideo(_context) == 1;
-    public int VideoTracksCount { get; set; }
+    // Gated on _ready so a caller never sees a track before the frame buffer size that goes with it.
+    public bool HasVideo => _ready && Native.videoContextHasVideo(_context) == 1;
+    public int VideoTracksCount => HasVideo ? 1 : 0;
     public int SelectedVideoTrackIndex => 0;
     public Extent2D VideoExtent => Native.videoContextGetVideoExtent(_context);
-    public bool HasAudio => Native.videoContextHasAudio(_context) == 1;
+    public bool HasAudio => _ready && Native.videoContextHasAudio(_context) == 1;
 
     public int AudioTracksCount => Native.videoContextGetAudioTrackCount(_context);
     public int SelectedAudioTrackIndex => 0;
-    public int AudioSampleRate { get; set; }
-    public int AudioChannels { get; set; }
-
+    public int AudioSampleRate { get; private set; }
+    public int AudioChannels { get; private set; }
 
     public void TryDecode()
     {
@@ -153,9 +126,10 @@ public class WebmVideoPlayer : IVideoPlayer
         _videoPlaybackTime.SetTime(position);
         _audioStream?.Dispose();
         _audioStream = null;
-        Native.videoContextSeek(_context, position);
         _lastFrame?.Dispose();
         _lastFrame = null;
+        Volatile.Write(ref _pendingSeek, new SeekRequest(position));
+        _decodeEvent.Set();
     }
 
     public Buffer<byte> CopyRecentFrame()
@@ -172,34 +146,28 @@ public class WebmVideoPlayer : IVideoPlayer
         return _lastFrame.Copy();
     }
 
-
     public void SetSource(IVideoSource source)
     {
         // The decode thread may be reading the old source until native has switched to the new one.
         var previous = _source;
         var next = new InternalSource(source);
+        _ready = false;
+        _error = null;
+        Volatile.Write(ref _pendingSeek, null);
         Native.videoContextSetSource(_context, next.NativeSource);
         _source = next;
         previous?.Dispose();
-        _bufferSize = VideoExtent.Width * VideoExtent.Height * 4;
-        Duration = Native.videoContextGetDuration(_context);
 
+        _audioStream?.Dispose();
+        _audioStream = null;
         _lastFrame?.Dispose();
         _lastFrame = null;
+        _videoPlaybackTime.SetTime(0.0);
+        Duration = 0.0;
+        _bufferSize = 0;
 
-        if (HasVideo)
-        {
-            var extent = VideoExtent;
-            var estimatedBytesPerFrame = System.Math.Max(1.0, extent.Width * (double)extent.Height * 1.5);
-            _maxBufferedFrames = System.Math.Max(MinBufferedFrames,
-                (int)(DecodeBufferBudgetBytes / estimatedBytesPerFrame));
-        }
-
-        if (HasAudio)
-        {
-            AudioSampleRate = Native.videoContextGetAudioSampleRate(_context);
-            AudioChannels = Native.videoContextGetAudioChannels(_context);
-        }
+        // A file is ready at once. A stream may not be, and the decode thread keeps trying.
+        if (!TryBecomeReady()) _decodeEvent.Set();
     }
 
     public void Dispose()
@@ -208,7 +176,89 @@ public class WebmVideoPlayer : IVideoPlayer
         GC.SuppressFinalize(this);
     }
 
-    private unsafe void AudioCallback(ReadOnlySpan<byte> data, double time)
+    private void DecodeLoop()
+    {
+        while (!_stopDecode)
+        {
+            if (!Step()) _decodeEvent.WaitOne();
+        }
+    }
+
+    // One unit of work for the decode thread. True when there may be more to do right now.
+    private bool Step()
+    {
+        if (_source is not { } source || _error is not null) return false;
+        if (source.Error is { } sourceError)
+        {
+            _error = sourceError;
+            return false;
+        }
+
+        if (!_ready) return TryBecomeReady();
+        if (Volatile.Read(ref _pendingSeek) is { } seek) return PerformSeek(seek);
+        if (!ShouldDecode()) return false;
+        return Continue(Native.videoContextDecode(_context, DecodeStepSeconds));
+    }
+
+    private bool TryBecomeReady()
+    {
+        var result = Native.videoContextEnsureHeader(_context);
+        if (result != NativeResult.Success) return Continue(result);
+        if (_ready) return true;
+
+        Duration = Native.videoContextGetDuration(_context);
+        if (Native.videoContextHasVideo(_context) == 1)
+        {
+            var extent = VideoExtent;
+            _bufferSize = extent.Width * extent.Height * 4;
+            var estimatedBytesPerFrame = System.Math.Max(1.0, extent.Width * (double)extent.Height * 1.5);
+            _maxBufferedFrames = System.Math.Max(MinBufferedFrames, (int)(DecodeBufferBudgetBytes / estimatedBytesPerFrame));
+        }
+
+        if (Native.videoContextHasAudio(_context) == 1)
+        {
+            AudioSampleRate = Native.videoContextGetAudioSampleRate(_context);
+            AudioChannels = Native.videoContextGetAudioChannels(_context);
+        }
+
+        _ready = true;
+        return true;
+    }
+
+    private bool PerformSeek(SeekRequest seek)
+    {
+        var result = Native.videoContextSeek(_context, seek.Position);
+        if (result == NativeResult.Success) Interlocked.CompareExchange(ref _pendingSeek, null, seek);
+        return Continue(result);
+    }
+
+    // Whether the decode thread should go straight on after a native step, and records a rejected source.
+    private bool Continue(int result)
+    {
+        if (result == NativeResult.Error) _error = new VideoDecodeException("The decoder rejected the source");
+        return result == NativeResult.Success;
+    }
+
+    private bool ShouldDecode()
+    {
+        var position = Position;
+        // Frames pile up when nothing is drawing them, so drop the ones playback has passed.
+        Native.videoContextDropFramesBefore(_context, position);
+        return DecodedPosition - position <= DecodeAheadSeconds &&
+               Native.videoContextGetBufferedFrameCount(_context) < _maxBufferedFrames;
+    }
+
+    [UnmanagedCallersOnly]
+    private static unsafe void OnAudioCallback(float* data, int count, double time, IntPtr context)
+    {
+        var handle = GCHandle.FromIntPtr(context);
+        if (handle.Target is AudioCallbackHandler audioCallbackHandler)
+        {
+            audioCallbackHandler.Callback(new ReadOnlySpan<byte>(data, count * sizeof(float)), time);
+        }
+    }
+
+    private void AudioCallback(ReadOnlySpan<byte> data, double time)
     {
         if (_audioStream == null)
         {
@@ -223,6 +273,7 @@ public class WebmVideoPlayer : IVideoPlayer
 
     private void ReleaseResources()
     {
+        if (_context == IntPtr.Zero) return;
         _stopDecode = true;
         _decodeEvent.Set();
         _decodeTask.Wait();
@@ -232,6 +283,7 @@ public class WebmVideoPlayer : IVideoPlayer
         _lastFrame = null;
         _audioCallbackHandlerGcHandle.Free();
         Native.videoContextFree(_context);
+        _context = IntPtr.Zero;
         _source?.Dispose();
         _source = null;
     }
@@ -241,78 +293,155 @@ public class WebmVideoPlayer : IVideoPlayer
         ReleaseResources();
     }
 
-    private class InternalSource : IDisposable
+    private static class NativeResult
+    {
+        public const int Error = -1;
+        public const int IncompleteHeader = 0;
+        public const int IncompleteCluster = 1;
+        public const int Success = 2;
+        public const int Finished = 3;
+    }
+
+    private sealed record SeekRequest(double Position);
+
+    private sealed class AudioCallbackHandler(Action<ReadOnlySpan<byte>, double> callback)
+    {
+        public readonly Action<ReadOnlySpan<byte>, double> Callback = callback;
+    }
+
+    /// <summary>
+    ///     Pins a managed source and hands native its callbacks. A callback must not throw into native, so an
+    ///     exception is kept in <see cref="Error" /> for the decode thread to report instead.
+    /// </summary>
+    private sealed class InternalSource : IDisposable
     {
         public readonly IntPtr NativeSource;
         public readonly IVideoSource VideoSource;
         private GCHandle _handle;
+        private bool _disposed;
 
         public InternalSource(IVideoSource source)
         {
-            _handle = GCHandle.Alloc(source, GCHandleType.Normal);
+            VideoSource = source;
+            _handle = GCHandle.Alloc(this, GCHandleType.Normal);
             unsafe
             {
-                NativeSource = Native.videoSourceCreate(&Read, &Available, &Length,GCHandle.ToIntPtr(_handle));
+                var callbacks = new Native.VideoSourceCallbacks
+                {
+                    Read = &Read,
+                    Available = &Available,
+                    Length = &Length,
+                    AvailableFrom = &AvailableFrom,
+                    MakeRangeAvailable = &MakeRangeAvailable,
+                    ReleaseBefore = &ReleaseBefore,
+                    UserData = GCHandle.ToIntPtr(_handle)
+                };
+                NativeSource = Native.videoSourceCreate(&callbacks);
             }
-            VideoSource = source;
         }
+
+        public volatile Exception? Error;
 
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        [UnmanagedCallersOnly]
-        private static void Read(ulong offset, ulong size, IntPtr destination,IntPtr context)
-        {
-            
-            unsafe
-            {
-                var handle = GCHandle.FromIntPtr(context);
-                if (handle.Target is IVideoSource source)
-                {
-                    source.Read(offset, new Span<byte>(destination.ToPointer(), (int)size));
-                }
-            }
-        }
-
-        [UnmanagedCallersOnly]
-        private static ulong Available(IntPtr context)
-        {
-            var handle = GCHandle.FromIntPtr(context);
-            if (handle.Target is IVideoSource source)
-            {
-                return source.Available;
-            }
-            return 0;
-        }
-
-        [UnmanagedCallersOnly]
-        private static ulong Length(IntPtr context)
-        {
-            var handle = GCHandle.FromIntPtr(context);
-            if (handle.Target is IVideoSource source)
-            {
-                return source.Length;
-            }
-            return 0;
-        }
-
-        private void ReleaseUnmanagedResources()
-        {
+            if (_disposed) return;
+            _disposed = true;
             Native.videoSourceFree(NativeSource);
             _handle.Free();
+            VideoSource.Dispose();
         }
 
-        private void Dispose(bool disposing)
+        private static InternalSource? From(IntPtr context)
         {
-            ReleaseUnmanagedResources();
+            return GCHandle.FromIntPtr(context).Target as InternalSource;
         }
 
-        ~InternalSource()
+        private static void Fail(IntPtr context, Exception exception)
         {
-            Dispose(false);
+            if (From(context) is { } source) source.Error ??= exception;
+        }
+
+        [UnmanagedCallersOnly]
+        private static unsafe void Read(long offset, ulong size, IntPtr destination, IntPtr context)
+        {
+            var span = new Span<byte>(destination.ToPointer(), (int)size);
+            try
+            {
+                From(context)?.VideoSource.Read(offset, span);
+            }
+            catch (Exception e)
+            {
+                span.Clear();
+                Fail(context, e);
+            }
+        }
+
+        [UnmanagedCallersOnly]
+        private static long Available(IntPtr context)
+        {
+            try
+            {
+                return From(context)?.VideoSource.Available ?? 0;
+            }
+            catch (Exception e)
+            {
+                Fail(context, e);
+                return 0;
+            }
+        }
+
+        [UnmanagedCallersOnly]
+        private static long Length(IntPtr context)
+        {
+            try
+            {
+                return From(context)?.VideoSource.Length ?? 0;
+            }
+            catch (Exception e)
+            {
+                Fail(context, e);
+                return 0;
+            }
+        }
+
+        [UnmanagedCallersOnly]
+        private static long AvailableFrom(long offset, IntPtr context)
+        {
+            try
+            {
+                return From(context)?.VideoSource.AvailableFrom(offset) ?? offset;
+            }
+            catch (Exception e)
+            {
+                Fail(context, e);
+                return offset;
+            }
+        }
+
+        [UnmanagedCallersOnly]
+        private static void MakeRangeAvailable(long offset, ulong size, IntPtr context)
+        {
+            try
+            {
+                From(context)?.VideoSource.MakeRangeAvailable(offset, (long)size);
+            }
+            catch (Exception e)
+            {
+                Fail(context, e);
+            }
+        }
+
+        [UnmanagedCallersOnly]
+        private static void ReleaseBefore(long offset, IntPtr context)
+        {
+            try
+            {
+                From(context)?.VideoSource.ReleaseBefore(offset);
+            }
+            catch (Exception e)
+            {
+                Fail(context, e);
+            }
         }
     }
 }

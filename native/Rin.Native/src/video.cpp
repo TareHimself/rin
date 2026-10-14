@@ -1,15 +1,13 @@
 ﻿#include "video.hpp"
 
 #include <atomic>
-#include <iostream>
 #include <memory.hpp>
 #include <mutex>
 #include <optional>
 #include <vector>
 #include <span>
 #include <webmdx/SourceDecoder.h>
-#include <webmdx/FileSource.h>
-#include <list>
+#include <webmdx/errors.h>
 #include <memory>
 #include <webmdx/IDecodedVideoFrame.h>
 
@@ -18,6 +16,17 @@ struct VideoPacket {
     std::shared_ptr<wdx::IDecodedVideoFrame> data{};
     std::shared_ptr<VideoPacket> next{};
     VideoPacket(const double& _timestamp,const std::shared_ptr<wdx::IDecodedVideoFrame>& _data) : data(_data), timestamp(_timestamp) {}
+};
+
+// What the headers said, copied out once so other threads can read it while the decoder works.
+struct VideoTrackInfo {
+    bool hasVideo{};
+    Extent2D extent{};
+    std::size_t frameByteSize{};
+    int audioTrackCount{};
+    int audioSampleRate{};
+    int audioChannels{};
+    double duration{};
 };
 
 struct VideoDecodeContext {
@@ -29,7 +38,9 @@ struct VideoDecodeContext {
     void*audioCallbackUserData{};
     // Lets a repeat query for the same display time skip the conversion.
     std::optional<double> lastReturnedTimestamp{};
-    std::size_t frameByteSize{};
+    // Written under decoderMutex before ready is set, read freely once it is.
+    VideoTrackInfo info{};
+    std::atomic<bool> ready{};
     // Held for a whole demux, seek or source change. Taken before queueMutex, never after it.
     std::mutex decoderMutex;
     // Guards the packet list, which the decode thread appends to while the render thread reads it.
@@ -38,24 +49,39 @@ struct VideoDecodeContext {
 
 
 struct VideoSource final : public wdx::ISource {
-    SourceReadCallback readCallback{};
-    SourceAvailableCallback availableCallback{};
-    SourceLengthCallback lengthCallback{};
-    void*userData{};
-    VideoSource(SourceReadCallback read,SourceAvailableCallback available,SourceLengthCallback length,void* inUserData) : readCallback(read), availableCallback(available), lengthCallback(length), userData(inUserData) {}
+    VideoSourceCallbacks callbacks{};
+    explicit VideoSource(const VideoSourceCallbacks& inCallbacks) : callbacks(inCallbacks) {}
+
     void Read(const std::int64_t& pos, std::span<std::uint8_t> data) override {
-        readCallback(static_cast<std::uint64_t>(pos), data.size(), data.data(), userData);
+        callbacks.read(pos, data.size(), data.data(), callbacks.userData);
     }
 
     [[nodiscard]] std::int64_t GetLength() const override {
-        return static_cast<std::int64_t>(lengthCallback(userData));
+        return callbacks.length(callbacks.userData);
     }
 
     [[nodiscard]] std::int64_t GetAvailable() const override {
-        return static_cast<std::int64_t>(availableCallback(userData));
+        return callbacks.available(callbacks.userData);
     }
 
-    void MakeAvailable(const std::uint64_t&) override {}
+    [[nodiscard]] std::int64_t GetAvailableFrom(const std::int64_t& pos) const override {
+        return callbacks.availableFrom(pos, callbacks.userData);
+    }
+
+    void MakeAvailable(const std::uint64_t& size) override {
+        const auto available = GetAvailable();
+        if (static_cast<std::int64_t>(size) > available) {
+            MakeRangeAvailable(available, size - static_cast<std::uint64_t>(available));
+        }
+    }
+
+    void MakeRangeAvailable(const std::int64_t& pos, const std::uint64_t& size) override {
+        callbacks.makeRangeAvailable(pos, size, callbacks.userData);
+    }
+
+    void ReleaseBefore(const std::int64_t& pos) override {
+        callbacks.releaseBefore(pos, callbacks.userData);
+    }
 
     ~VideoSource() override = default;
 };
@@ -63,6 +89,28 @@ struct VideoSource final : public wdx::ISource {
 struct VideoSourceWrapper {
     std::shared_ptr<VideoSource> source{};
 };
+
+static int toResult(const wdx::DemuxResult result) {
+    switch (result) {
+        case wdx::DemuxResult::IncompleteHeader: return VIDEO_DEMUX_INCOMPLETE_HEADER;
+        case wdx::DemuxResult::IncompleteCluster: return VIDEO_DEMUX_INCOMPLETE_CLUSTER;
+        case wdx::DemuxResult::Success: return VIDEO_DEMUX_SUCCESS;
+        case wdx::DemuxResult::Finished: return VIDEO_DEMUX_FINISHED;
+    }
+    return VIDEO_DEMUX_ERROR;
+}
+
+// Runs a decoder step under decoderMutex. Bad data throws inside webmdx, which must not unwind into managed code.
+template <typename Step>
+static int guardedStep(VideoDecodeContext* ctx, Step&& step) {
+    std::lock_guard lock(ctx->decoderMutex);
+    try {
+        return toResult(step());
+    } catch (const std::exception&) {
+        return VIDEO_DEMUX_ERROR;
+    }
+}
+
 static void clearQueuedFrames(VideoDecodeContext* ctx) {
     std::lock_guard lock(ctx->queueMutex);
     ctx->packetCount = 0;
@@ -94,6 +142,34 @@ static void queueDecodedFrames(VideoDecodeContext* ctx, wdx::IVideoDecoder* deco
     }
 }
 
+// Called under decoderMutex once the decoder has read the headers.
+static void captureTrackInfo(VideoDecodeContext* ctx) {
+    if (ctx->ready.load(std::memory_order_acquire) || !ctx->decoder->IsReady()) {
+        return;
+    }
+    VideoTrackInfo info{};
+    info.hasVideo = ctx->decoder->HasVideo();
+    if (info.hasVideo) {
+        const auto track = ctx->decoder->GetVideoTrack();
+        info.extent = Extent2D{static_cast<std::uint32_t>(track.width), static_cast<std::uint32_t>(track.height)};
+        info.frameByteSize = static_cast<std::size_t>(track.width) * track.height * 4;
+    }
+    if (ctx->decoder->HasAudio()) {
+        const auto track = ctx->decoder->GetAudioTrack(0);
+        info.audioTrackCount = ctx->decoder->GetAudioTrackCount();
+        info.audioSampleRate = track.sampleRate;
+        info.audioChannels = track.channels;
+    }
+    info.duration = ctx->decoder->GetDuration();
+    ctx->info = info;
+    ctx->ready.store(true, std::memory_order_release);
+}
+
+static const VideoTrackInfo& trackInfo(VideoDecodeContext* ctx) {
+    static const VideoTrackInfo none{};
+    return ctx->ready.load(std::memory_order_acquire) ? ctx->info : none;
+}
+
 void * videoContextCreate() {
     const auto ctx = new VideoDecodeContext{};
     ctx->decoder = std::make_shared<wdx::SourceDecoder>();
@@ -112,30 +188,42 @@ void * videoContextCreate() {
     return ctx;
 }
 
-int videoContextHasVideo(void *context) {
+int videoContextEnsureHeader(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    return videoContext->decoder->HasVideo();
+    return guardedStep(videoContext, [videoContext] {
+        const auto result = videoContext->decoder->EnsureHeader();
+        captureTrackInfo(videoContext);
+        return result;
+    });
+}
+
+int videoContextIsReady(void *context) {
+    const auto videoContext = static_cast<VideoDecodeContext *>(context);
+    return videoContext->ready.load(std::memory_order_acquire);
+}
+
+int videoContextHasVideo(void *context) {
+    return trackInfo(static_cast<VideoDecodeContext *>(context)).hasVideo;
 }
 
 Extent2D videoContextGetVideoExtent(void *context) {
-    const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    if (!videoContext->decoder->HasVideo()) {
-        return {};
-    }
-    const auto videoTrack = videoContext->decoder->GetVideoTrack();
-    return Extent2D{static_cast<uint32_t>(videoTrack.width),static_cast<uint32_t>(videoTrack.height)};
+    return trackInfo(static_cast<VideoDecodeContext *>(context)).extent;
 }
 
-void videoContextSeek(void *context, double time) {
+int videoContextSeek(void *context, double time) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    std::lock_guard lock(videoContext->decoderMutex);
-    clearQueuedFrames(videoContext);
-    videoContext->decoder->Seek(time);
+    return guardedStep(videoContext, [videoContext, time] {
+        const auto result = videoContext->decoder->Seek(time);
+        captureTrackInfo(videoContext);
+        if (result == wdx::DemuxResult::Success) {
+            clearQueuedFrames(videoContext);
+        }
+        return result;
+    });
 }
 
 int videoContextHasAudio(void *context) {
-    const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    return videoContext->decoder->GetAudioTrackCount() > 0;
+    return trackInfo(static_cast<VideoDecodeContext *>(context)).audioTrackCount > 0;
 }
 
 void videoContextSetAudioCallback(void *context, AudioCallback audioCallback,void*userData) {
@@ -146,41 +234,22 @@ void videoContextSetAudioCallback(void *context, AudioCallback audioCallback,voi
 
 
 int videoContextGetAudioSampleRate(void *context) {
-    const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    if (!videoContext->decoder->HasAudio()) {
-        return 0;
-    }
-    auto track = videoContext->decoder->GetAudioTrack(0);
-    return track.sampleRate;
+    return trackInfo(static_cast<VideoDecodeContext *>(context)).audioSampleRate;
 }
 
 int videoContextGetAudioChannels(void *context) {
-    const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    if (!videoContext->decoder->HasAudio()) {
-        return 0;
-    }
-    auto track = videoContext->decoder->GetAudioTrack(0);
-    return track.channels;
+    return trackInfo(static_cast<VideoDecodeContext *>(context)).audioChannels;
 }
+
 int videoContextGetAudioTrackCount(void *context) {
-    const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    if (!videoContext->decoder->HasAudio()) {
-        return 0;
-    }
-    return videoContext->decoder->GetAudioTrackCount();
+    return trackInfo(static_cast<VideoDecodeContext *>(context)).audioTrackCount;
 }
 
 void videoContextSetAudioTrack(void *context, int track) {
-    const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    if (!videoContext->decoder->HasAudio()) {
-        return;
-    }
-
 }
 
 double videoContextGetDuration(void *context) {
-    const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    return videoContext->decoder->GetDuration();
+    return trackInfo(static_cast<VideoDecodeContext *>(context)).duration;
 }
 
 double videoContextGetPosition(void *context) {
@@ -190,18 +259,27 @@ double videoContextGetPosition(void *context) {
 
 int videoContextDecode(void *context, double delta) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
+    return guardedStep(videoContext, [videoContext, delta] {
+        const auto result = videoContext->decoder->Demux(delta);
+        captureTrackInfo(videoContext);
+        // The decoder is flushed at the end of the stream, which releases the frames it held back.
+        if (result == wdx::DemuxResult::Finished && videoContext->decoder->HasVideo()) {
+            queueDecodedFrames(videoContext, videoContext->decoder->GetVideoDecoder());
+        }
+        return result;
+    });
+}
+
+VideoByteRange videoContextGetNeededRange(void *context) {
+    const auto videoContext = static_cast<VideoDecodeContext *>(context);
     std::lock_guard lock(videoContext->decoderMutex);
-    const auto result = videoContext->decoder->Demux(delta);
-    // The decoder is flushed at the end of the stream, which releases the frames it held back.
-    if (result == wdx::DemuxResult::Finished && videoContext->decoder->HasVideo()) {
-        queueDecodedFrames(videoContext, videoContext->decoder->GetVideoDecoder());
-    }
-    return result == wdx::DemuxResult::Success;
+    const auto range = videoContext->decoder->GetNeededRange();
+    return VideoByteRange{range.start, range.end};
 }
 
 int videoContextEnded(void *context) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    return videoContext->decoder->GetPosition() >= videoContext->decoder->GetDuration();
+    return videoContext->decoder->GetPosition() >= trackInfo(videoContext).duration;
 }
 
 int videoContextGetBufferedFrameCount(void *context) {
@@ -217,12 +295,13 @@ void videoContextDropFramesBefore(void *context, double timestamp) {
 
 int videoContextCopyRecentFrame(void *context, double timestamp, std::uint8_t *destination, std::uint64_t size) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
+    const auto frameByteSize = trackInfo(videoContext).frameByteSize;
     std::shared_ptr<VideoPacket> packet;
     {
         std::lock_guard lock(videoContext->queueMutex);
         dropFramesBefore(videoContext, timestamp);
         packet = videoContext->firstPacket;
-        if (!packet || packet->timestamp == videoContext->lastReturnedTimestamp || size < videoContext->frameByteSize) {
+        if (!packet || packet->timestamp == videoContext->lastReturnedTimestamp || size < frameByteSize) {
             return 0;
         }
         videoContext->lastReturnedTimestamp = packet->timestamp;
@@ -236,15 +315,10 @@ void videoContextSetSource(void *context, void *source) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     const auto videoSource = static_cast<VideoSourceWrapper *>(source);
     std::lock_guard lock(videoContext->decoderMutex);
+    videoContext->ready.store(false, std::memory_order_release);
+    videoContext->info = {};
     clearQueuedFrames(videoContext);
     videoContext->decoder->SetSource(videoSource->source);
-    std::size_t frameByteSize = 0;
-    if (videoContext->decoder->HasVideo()) {
-        const auto track = videoContext->decoder->GetVideoTrack();
-        frameByteSize = static_cast<std::size_t>(track.width) * track.height * 4;
-    }
-    std::lock_guard queueLock(videoContext->queueMutex);
-    videoContext->frameByteSize = frameByteSize;
 }
 
 void videoContextFree(void *context) {
@@ -252,9 +326,8 @@ void videoContextFree(void *context) {
     delete videoContext;
 }
 
-void * videoSourceCreate(SourceReadCallback readCallback, SourceAvailableCallback availableCallback,
-    SourceLengthCallback lengthCallback,void*userData) {
-    return new VideoSourceWrapper{std::make_shared<VideoSource>(readCallback,availableCallback,lengthCallback,userData)};
+void * videoSourceCreate(const VideoSourceCallbacks* callbacks) {
+    return new VideoSourceWrapper{std::make_shared<VideoSource>(*callbacks)};
 }
 
 void videoSourceFree(void *source) {

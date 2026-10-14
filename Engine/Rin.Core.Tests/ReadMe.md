@@ -11,7 +11,7 @@ NUnit tests for [Rin.Core](../Rin.Core/ReadMe.md).
 Folders mirror Rin.Core:
 
 - `Audio/Effects/ParameterSlotsTests.cs`: the effect parameter triple buffer, including a concurrent writer and reader checking for torn reads.
-- `Shared/`: bounds, math, curves, dispatcher, id factory and providers tests.
+- `Shared/`: bounds, math, curves, dispatcher, id factory and providers tests, and `Shared/Video/` for the sparse byte buffer and the pushed stream source.
 - `Views/`: view tests (switcher, scroll events, colour and border radius value types, composite and graphics views) with test doubles in `Views/TestDoubles.cs`, whose `FakeSurface` has an `InMemoryClipboard` for the copy, cut and paste tests.
 - `Graphics/ResourceHandleTests.cs`.
 - `UnitTest1.cs`: a file at the project root outside the folder layout.

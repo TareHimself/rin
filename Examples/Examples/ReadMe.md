@@ -53,7 +53,7 @@ A canvas to draw on. Drag with the left button to paint and with the right butto
 
 ### video-player
 
-Open video picks a webm file and plays it fitted to the window. The bar shows the position and length, and its second button plays and pauses. `VideoPlayerView` itself also takes input: a left click on the video toggles play and a right click seeks to that point of its width.
+Open video picks a webm file and plays it fitted to the window. The bar shows the position and length, and its second button plays and pauses. `VideoPlayerView` itself also takes input: a left click on the video toggles play and a right click seeks to that point of its width. `VideoPlayerView.FromUrl` plays a webm over HTTP the same way, fetching it with range requests as it goes.
 
 ### audio-effects
 

@@ -162,6 +162,8 @@ public class VideoPlayerView : ContentView
         _player = context;
     }
 
+    public bool IsReady => _player.IsReady;
+    public bool HasFailed => _player.HasFailed;
     public bool HasVideo => _player.HasVideo;
     public bool IsPlaying => _player.IsPlaying;
     public double Position => _player.Position;
@@ -186,6 +188,11 @@ public class VideoPlayerView : ContentView
     public static VideoPlayerView FromFile(string fileName)
     {
         return FromSource(new FileVideoSource(fileName));
+    }
+
+    public static VideoPlayerView FromUrl(Uri url)
+    {
+        return FromSource(new HttpVideoSource(url));
     }
 
     public static VideoPlayerView FromSource(IVideoSource source)
@@ -232,6 +239,9 @@ public class VideoPlayerView : ContentView
             commands.Add(new VideoCommand(transform, GetContentSize(), buff, _player.VideoExtent));
         }
 
+        // A live stream has no duration, so there is no progress to show.
+        if (_player.Duration <= 0.0) return;
+
         const int barSize = 10;
         var contentSize = GetContentSize();
         var barOffset = contentSize with { X = 0 };
@@ -272,8 +282,8 @@ public class VideoPlayerView : ContentView
             var localPosition = e.Position.Transform(transform.Inverse());
             var size = GetSize();
             var percent = localPosition.X / size.X;
-            var time = _player.Duration * percent;
-            _player.Seek(time);
+            if (_player.Duration <= 0.0) return;
+            _player.Seek(_player.Duration * percent);
             e.Target = this;
         }
     }
