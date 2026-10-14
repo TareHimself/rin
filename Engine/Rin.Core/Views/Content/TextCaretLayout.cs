@@ -1,4 +1,5 @@
 using System.Numerics;
+using Rin.Core.Graphics;
 using Rin.Core.Views.Font;
 
 namespace Rin.Core.Views.Content;
@@ -58,6 +59,35 @@ public static class TextCaretLayout
         var last = bounds[^1];
         var lines = last.Character == '\n' ? 2f : 1f;
         return new Vector2(width, last.LineTop + last.LineHeight * lines);
+    }
+
+    /// <summary>
+    ///     One rect per line covering the characters after caret index <paramref name="start" /> up to and
+    ///     including the one at <paramref name="end" />. A selected line break shows as a quarter line of width.
+    /// </summary>
+    public static void SelectionRects(ReadOnlySpan<GlyphRect> bounds, int start, int end, List<Rect2D> output)
+    {
+        output.Clear();
+        var first = int.Max(start + 1, 0);
+        var last = int.Min(end, bounds.Length - 1);
+        if (first > last) return;
+
+        var lineStart = first;
+        for (var i = first; i <= last; i++)
+        {
+            var isLineEnd = i == last || bounds[i + 1].LineTop != bounds[i].LineTop;
+            if (!isLineEnd) continue;
+
+            var left = bounds[lineStart].PenX;
+            var right = bounds[i].PenX + SelectedWidth(bounds[i]);
+            output.Add(new Rect2D(new Vector2(left, bounds[i].LineTop), new Vector2(right - left, bounds[i].LineHeight)));
+            lineStart = i + 1;
+        }
+    }
+
+    private static float SelectedWidth(in GlyphRect bound)
+    {
+        return bound.Character == '\n' ? float.Max(bound.Advance, bound.LineHeight / 4f) : bound.Advance;
     }
 
     private static int FindLineStart(ReadOnlySpan<GlyphRect> bounds, float y)

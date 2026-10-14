@@ -1,4 +1,5 @@
 using System.Numerics;
+using Rin.Core.Graphics;
 using Rin.Core.Views.Content;
 using Rin.Core.Views.Font;
 
@@ -97,6 +98,40 @@ public class TextCaretLayoutTests
     public void SizeCountsTheEmptyLineAfterATrailingLineBreak()
     {
         Assert.That(TextCaretLayout.Size(Measure("ab\n")).Y, Is.EqualTo(2f * LineHeight));
+    }
+
+    [Test]
+    public void SelectionOnOneLineIsOneRectFromTheFirstToTheLastCharacter()
+    {
+        var rects = new List<Rect2D>();
+
+        TextCaretLayout.SelectionRects(Measure("abcd"), 0, 2, rects);
+
+        Assert.That(rects, Is.EqualTo(new[] { new Rect2D(new Vector2(Advance, 0f), new Vector2(2 * Advance, LineHeight)) }));
+    }
+
+    [Test]
+    public void SelectionAcrossLinesHasOneRectPerLineAndShowsTheLineBreak()
+    {
+        var rects = new List<Rect2D>();
+
+        TextCaretLayout.SelectionRects(Measure("ab\ncd"), 0, 3, rects);
+
+        Assert.That(rects, Is.EqualTo(new[]
+        {
+            new Rect2D(new Vector2(Advance, 0f), new Vector2(2 * Advance, LineHeight)),
+            new Rect2D(new Vector2(0f, LineHeight), new Vector2(Advance, LineHeight))
+        }));
+    }
+
+    [Test]
+    public void EmptySelectionHasNoRects()
+    {
+        var rects = new List<Rect2D> { new() };
+
+        TextCaretLayout.SelectionRects(Measure("abc"), 1, 1, rects);
+
+        Assert.That(rects, Is.Empty);
     }
 
     private static GlyphRect[] Measure(string text)
