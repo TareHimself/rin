@@ -28,10 +28,6 @@
         <ProjectReference Include="$(ShadeDir)Rin.Shade\Rin.Shade.csproj"/>
         <ProjectReference Include="$(ShadeDir)Rin.Shade.SourceGenerator\Rin.Shade.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
-    <PropertyGroup Label="Rin.Shade">
-        <RinShadeDiscoverPrefix>Shaders/Examples/</RinShadeDiscoverPrefix>
-        <RinShadeOutputSubpath>Content\Shaders\Examples\</RinShadeOutputSubpath>
-    </PropertyGroup>
     <Import Project="$(RinMSBuildDir)RinShade.targets"/>
 
     <ItemGroup>

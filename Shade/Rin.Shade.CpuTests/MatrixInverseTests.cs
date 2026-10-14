@@ -26,7 +26,7 @@ public class MatrixInverseTests
             public uint Count;
         }
 
-        [Shader("Cpu/inverse.slang")]
+        [Shader]
         public class InverseShader : Shader
         {
             [Push] protected InversePush Push;

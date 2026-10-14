@@ -10,10 +10,10 @@ using Rin.Shade.Transpiler;
 namespace Rin.Shade.MSBuild;
 
 /// <summary>
-/// Transpiles every <c>[Shader("...")]</c> class in <see cref="Sources" />, compiles the Slang of each shader
-/// on its own thread with the real Slang compiler, and returns the results as embedded-resource items.
-/// Slang errors are reported against the C# line they were lowered from. The intermediate .slang file is
-/// written only under <see cref="OutputRoot" />, never into the tracked source tree.
+/// Transpiles every <c>[Shader]</c> class in <see cref="Sources" />, compiles the Slang of each shader on its
+/// own thread with the real Slang compiler, and returns the results as embedded-resource items named after the
+/// class's full name plus <c>.crsh</c>. Slang errors are reported against the C# line they were lowered from.
+/// The intermediate .slang file is written only under <see cref="OutputRoot" />, never into the tracked source tree.
 /// </summary>
 public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
 {
@@ -21,11 +21,6 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
     /// Repository root, used as the Slang search path and portable root.
     /// </summary>
     [Required] public string RepoRoot { get; set; } = "";
-
-    /// <summary>
-    /// Only shaders whose <c>[Shader]</c> path starts with this prefix are compiled.
-    /// </summary>
-    [Required] public string DiscoverPrefix { get; set; } = "";
 
     /// <summary>
     /// C# source files to scan for shaders.
@@ -38,23 +33,13 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
     [Required] public ITaskItem[] References { get; set; } = [];
 
     /// <summary>
-    /// Directory for the scratch .slang and compiled .crsh files.
+    /// Directory for the scratch .slang and compiled .crsh files, one pair per shader named by its full class name.
     /// </summary>
     [Required] public string OutputRoot { get; set; } = "";
 
     /// <summary>
-    /// Path segment inserted into each embedded resource logical name.
-    /// </summary>
-    [Required] public string OutputSubpath { get; set; } = "";
-
-    /// <summary>
-    /// Name of the consuming assembly, the prefix of each logical name.
-    /// </summary>
-    [Required] public string AssemblyName { get; set; } = "";
-
-    /// <summary>
-    /// When set, the transpiled Slang of every shader is also written here, at its <c>[Shader]</c>
-    /// path relative to <see cref="DiscoverPrefix" />, for inspection. Nothing reads it back.
+    /// When set, the transpiled Slang of every shader is also written here as <c>&lt;full class name&gt;.slang</c>,
+    /// for inspection. Nothing reads it back.
     /// </summary>
     public string? GeneratedDirectory { get; set; }
 
@@ -104,7 +89,7 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
 
         if (Log.HasLoggedErrors) return false;
 
-        var jobs = CollectJobs(scratch.LocalTrees, result);
+        var jobs = CollectJobs(scratch.Compilation, scratch.LocalTrees, result);
         foreach (var job in jobs) WriteSlang(job);
 
         var outcomes = CompileAll(jobs);
@@ -127,27 +112,25 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
         return !Log.HasLoggedErrors;
     }
 
-    private sealed record ShaderJob(string ClassName, string ShaderPath, string RelativeOutput, string Slang,
-        SlangSourceMap SourceMap)
+    private sealed record ShaderJob(string ClassName, string FullName, string Slang, SlangSourceMap SourceMap)
     {
-        public string ScratchSlangPath(string outputRoot) => Path.Combine(outputRoot, RelativeOutput);
+        public string ResourceName => FullName + ".crsh";
 
-        public string PackagePath(string outputRoot) =>
-            Path.Combine(outputRoot, Path.ChangeExtension(RelativeOutput, ".crsh"));
+        public string ScratchSlangPath(string outputRoot) => Path.Combine(outputRoot, FullName + ".slang");
+
+        public string PackagePath(string outputRoot) => Path.Combine(outputRoot, ResourceName);
     }
 
     private sealed record CompileOutcome(ShaderJob Job, ITaskItem? Item, string? FailureText, bool Reused = false);
 
-    private List<ShaderJob> CollectJobs(IEnumerable<SyntaxTree> trees, ShadeEmitResult result)
+    private static List<ShaderJob> CollectJobs(Compilation compilation, IEnumerable<SyntaxTree> trees,
+        ShadeEmitResult result)
     {
         var jobs = new List<ShaderJob>();
-        foreach (var (className, shaderPath) in CollectShaderPaths(trees))
+        foreach (var (className, fullName) in CollectShaderNames(compilation, trees))
         {
-            if (!shaderPath.StartsWith(DiscoverPrefix, StringComparison.Ordinal)) continue;
             if (!result.Shaders.TryGetValue(className, out var slang)) continue;
-
-            var relativeOutput = shaderPath[DiscoverPrefix.Length..].TrimStart('/');
-            jobs.Add(new ShaderJob(className, shaderPath, relativeOutput, slang, result.SourceMaps[className]));
+            jobs.Add(new ShaderJob(className, fullName, slang, result.SourceMaps[className]));
         }
 
         return jobs;
@@ -156,15 +139,13 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
     // ShaderCompiler resolves #include from a real file, so one must exist, but only as scratch under OutputRoot.
     private void WriteSlang(ShaderJob job)
     {
-        var scratchSlangPath = job.ScratchSlangPath(OutputRoot);
-        Directory.CreateDirectory(Path.GetDirectoryName(scratchSlangPath)!);
-        File.WriteAllText(scratchSlangPath, job.Slang);
+        Directory.CreateDirectory(OutputRoot);
+        File.WriteAllText(job.ScratchSlangPath(OutputRoot), job.Slang);
 
         if (string.IsNullOrEmpty(GeneratedDirectory)) return;
 
-        var generatedPath = Path.Combine(GeneratedDirectory, job.RelativeOutput);
-        Directory.CreateDirectory(Path.GetDirectoryName(generatedPath)!);
-        File.WriteAllText(generatedPath, job.Slang);
+        Directory.CreateDirectory(GeneratedDirectory);
+        File.WriteAllText(Path.Combine(GeneratedDirectory, job.FullName + ".slang"), job.Slang);
     }
 
     /// <summary>
@@ -211,7 +192,7 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
     private ITaskItem OutputItem(ShaderJob job)
     {
         var outputItem = new TaskItem(job.PackagePath(OutputRoot));
-        outputItem.SetMetadata("LogicalName", MakeLogicalName(job.RelativeOutput));
+        outputItem.SetMetadata("LogicalName", job.ResourceName);
         return outputItem;
     }
 
@@ -240,7 +221,7 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
         var diagnostics = SlangDiagnostic.Parse(failureText);
         if (diagnostics.Count == 0)
         {
-            Log.LogError($"Failed to compile Rin.Shade shader '{job.ClassName}' ('{job.ShaderPath}'): {failureText}");
+            Log.LogError($"Failed to compile Rin.Shade shader '{job.FullName}': {failureText}");
             return;
         }
 
@@ -250,7 +231,7 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
             // Slang ends a failed compile with a line-less "compilation ceased", which adds nothing to the real errors.
             if (diagnostic.Line == 0 && diagnostics.Count > 1) continue;
 
-            var message = $"{diagnostic.Message} (Rin.Shade shader '{job.ClassName}', {job.ShaderPath}({diagnostic.Line}))";
+            var message = $"{diagnostic.Message} (Rin.Shade shader '{job.FullName}', line {diagnostic.Line} of its Slang)";
             var code = "SLANG" + diagnostic.Code;
             var (file, line, column) = Locate(job, diagnostic);
 
@@ -274,29 +255,21 @@ public sealed class CompileRinShadeShaders : Microsoft.Build.Utilities.Task
         return (job.ScratchSlangPath(OutputRoot), diagnostic.Line, diagnostic.Column);
     }
 
-    private string MakeLogicalName(string relativeOutput)
-    {
-        var outputRelative = Path.ChangeExtension(relativeOutput, ".crsh");
-        return AssemblyName + "." + (OutputSubpath + outputRelative).Replace('\\', '.').Replace('/', '.');
-    }
-
-    // ShadeEmitResult is keyed by class name only, so the [Shader] path is read here with a syntax walk.
-    private static IEnumerable<(string ClassName, string Path)> CollectShaderPaths(IEnumerable<SyntaxTree> trees)
+    // ShadeEmitResult is keyed by class name only, so the full name is looked up here.
+    private static IEnumerable<(string ClassName, string FullName)> CollectShaderNames(Compilation compilation,
+        IEnumerable<SyntaxTree> trees)
     {
         foreach (var tree in trees)
-        foreach (var classDeclaration in tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>())
-        foreach (var attributeList in classDeclaration.AttributeLists)
-        foreach (var attribute in attributeList.Attributes)
         {
-            var name = attribute.Name.ToString();
-            var simpleName = name[(name.LastIndexOf('.') + 1)..];
-            if (simpleName is not ("Shader" or "ShaderAttribute")) continue;
+            var model = compilation.GetSemanticModel(tree);
+            foreach (var classDeclaration in tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>())
+            {
+                if (model.GetDeclaredSymbol(classDeclaration) is not { } symbol) continue;
+                if (!symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "Rin.Shade.ShaderAttribute"))
+                    continue;
 
-            if (attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression is LiteralExpressionSyntax
-                {
-                    Token.Value: string path
-                })
-                yield return (classDeclaration.Identifier.Text, path);
+                yield return (symbol.Name, symbol.ToDisplayString());
+            }
         }
     }
 }

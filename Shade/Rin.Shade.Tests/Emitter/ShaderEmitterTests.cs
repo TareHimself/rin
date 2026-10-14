@@ -27,7 +27,7 @@ public class ShaderEmitterTests
 
                                namespace RejectedConstruct;
 
-                               [Shader("Fixtures/rejected.slang")]
+                               [Shader]
                                public class RejectedConstructShader : Shader
                                {
                                    [Compute(1, 1, 1)]
@@ -68,7 +68,7 @@ public class ShaderEmitterTests
                                    public float B;
                                }
 
-                               [Shader("Fixtures/max.slang")]
+                               [Shader]
                                public class MaxShader : Shader
                                {
                                    [Push] protected MaxPush Push;

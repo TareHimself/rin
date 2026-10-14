@@ -52,7 +52,7 @@ public class ShaderUnionTests
             public BufferRef<float> Output;
         }
 
-        [Shader("Fixtures/union.slang")]
+        [Shader]
         public class UnionShader : Shader
         {
             [Push] protected UnionPush Push;

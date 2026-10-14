@@ -21,7 +21,7 @@ public struct ControlFlowPushConstants
     public BufferRef<float> Output;
 }
 
-[Shader("Fixtures/control_flow.slang")]
+[Shader]
 public class ControlFlowFixtureShader : Shader
 {
     [Push] protected ControlFlowPushConstants Push;

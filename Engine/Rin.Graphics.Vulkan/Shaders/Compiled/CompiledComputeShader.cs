@@ -16,16 +16,13 @@ public class CompiledComputeShader : IComputeShader, IVulkanShader
 {
     private readonly Task _compileTask;
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
-    private readonly IComputeDescriptor? _descriptor;
-    private readonly string _filePath;
+    private readonly IComputeDescriptor _descriptor;
     private VkPipeline _pipeline;
     private VkPipelineLayout _pipelineLayout;
     private VkShaderModule _shaderModule;
 
-    public CompiledComputeShader(CompiledShaderManager manager, string filePath,
-        IComputeDescriptor? descriptor = null)
+    public CompiledComputeShader(CompiledShaderManager manager, IComputeDescriptor descriptor)
     {
-        _filePath = filePath;
         _descriptor = descriptor;
         _compileTask = manager.Compile(this);
     }
@@ -60,30 +57,18 @@ public class CompiledComputeShader : IComputeShader, IVulkanShader
 
     public void Compile(ICompilationContext context)
     {
-        var crshPath = Path.ChangeExtension(_filePath, ".crsh");
-        using var stream = Global.Sources.Read(crshPath);
+        using var stream = _descriptor.Open();
         var compiledShader = ShaderPackageReader.Read(stream);
 
         if (compiledShader.Kind != ShaderKind.Compute)
-            throw new ShaderCompileException($"'{_filePath}' is not a compute shader");
+            throw new ShaderCompileException($"'{_descriptor.Name}' is not a compute shader");
 
         var stage = compiledShader.Stages.FirstOrDefault() ??
                     throw new ShaderCompileException("Missing entry point");
 
         Debug.Assert(stage.Stage == "compute");
 
-        if (_descriptor is { } descriptor)
-        {
-            (GroupSizeX, GroupSizeY, GroupSizeZ) = descriptor.ThreadGroupSize;
-        }
-        else
-        {
-            var groupSize = compiledShader.ThreadGroupSize ??
-                            throw new ShaderCompileException("Missing thread group size");
-            GroupSizeX = groupSize[0];
-            GroupSizeY = groupSize[1];
-            GroupSizeZ = groupSize[2];
-        }
+        (GroupSizeX, GroupSizeY, GroupSizeZ) = _descriptor.ThreadGroupSize;
         const ShaderStage entryPointStage = ShaderStage.Compute;
 
         var resources = new Dictionary<string, Resource>();

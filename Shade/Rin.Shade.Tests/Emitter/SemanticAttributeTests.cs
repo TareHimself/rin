@@ -42,7 +42,7 @@ public class SemanticAttributeTests
             [Target(1)] public Vector4 Normal;
         }
 
-        [Shader("Fixtures/semantics.slang")]
+        [Shader]
         public class SemanticShader : Shader
         {
             [Push] protected Push Push;

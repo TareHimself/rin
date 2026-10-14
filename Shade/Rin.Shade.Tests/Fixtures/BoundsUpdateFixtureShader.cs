@@ -59,7 +59,7 @@ public struct BoundsUpdatePushConstants
     public BufferRef<UpdatableBounds3D> Output;
 }
 
-[Shader("Fixtures/bounds_update.slang")]
+[Shader]
 public class BoundsUpdateFixtureShader : Shader
 {
     [Push] protected BoundsUpdatePushConstants Push;

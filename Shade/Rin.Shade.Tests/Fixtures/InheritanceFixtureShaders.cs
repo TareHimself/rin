@@ -19,7 +19,7 @@ public abstract class BaseInheritanceShader : Shader
     }
 }
 
-[Shader("Fixtures/derived.slang")]
+[Shader]
 public class DerivedInheritanceShader : BaseInheritanceShader
 {
     public override void Compute()

@@ -16,7 +16,7 @@ public class SwitchScopeTests
             public BufferRef<float> Output;
         }
 
-        [Shader("Fixtures/switch_scope.slang")]
+        [Shader]
         public class SwitchShader : Shader
         {
             [Push] protected SwitchPush Push;

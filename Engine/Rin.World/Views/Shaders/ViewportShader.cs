@@ -21,7 +21,7 @@ public struct ViewportPushData
     public ViewportChannel Channel;
 }
 
-[Shader("Shaders/Rin/World/viewport.slang")]
+[Shader]
 public partial class ViewportShader : ViewShader<ViewportShader.FragmentIn>
 {
     public struct PushConstants

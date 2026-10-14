@@ -13,8 +13,7 @@ public sealed class Global
         Sources =
         [
             new FileSystemSource(),
-            AssemblyContentResource.New<Global>("Core"),
-            AssemblyContentResource.New<Global>("Shaders/Rin/Core")
+            AssemblyContentResource.New<Global>("Core")
         ]
     };
 

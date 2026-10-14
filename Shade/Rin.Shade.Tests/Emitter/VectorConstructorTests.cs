@@ -20,7 +20,7 @@ public class VectorConstructorTests
                                    public BufferRef<Vector3> Output;
                                }
 
-                               [Shader("Fixtures/vector_constructor.slang")]
+                               [Shader]
                                public class VectorConstructorShader : Shader
                                {
                                    [Push] protected VectorConstructorPush Push;

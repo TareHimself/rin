@@ -6,7 +6,7 @@ using Rin.World.Mesh.Skinning;
 
 namespace Rin.World.Graphics.Default.Shaders;
 
-[Shader("Shaders/Rin/World/Mesh/Compute/skinning.slang")]
+[Shader]
 public partial class SkinningShader : Shader
 {
     public struct PushConstants

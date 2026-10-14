@@ -39,12 +39,22 @@ using Rin.Core.Graphics.Shaders;
 
 namespace TestNamespace;
 
+[Rin.Shade.Shader]
+public class PrettyShaderDefinition : Rin.Shade.Shader
+{
+}
+
+[Rin.Shade.Shader]
+public class BlurShaderDefinition : Rin.Shade.Shader
+{
+}
+
 public partial class ShaderUser
 {
-    [GraphicsShader(""fs/pretty.slang"")]
+    [GraphicsShader<PrettyShaderDefinition>]
     public partial IGraphicsShader PrettyShader { get; }
 
-    [ComputeShader(""cs/blur.slang"")]
+    [ComputeShader<BlurShaderDefinition>]
     private partial IComputeShader BlurShader { get; }
 }
 ";
@@ -56,10 +66,10 @@ public partial class ShaderUser
         var generatedText = generatedFileSyntax.GetText().ToString();
 
         Assert.Contains(
-            "public partial global::Rin.Core.Graphics.Shaders.IGraphicsShader PrettyShader => field ??= global::Rin.Core.Graphics.IGraphicsModule.Get().MakeGraphics(\"fs/pretty.slang\");",
+            "public partial global::Rin.Core.Graphics.Shaders.IGraphicsShader PrettyShader => field ??= global::Rin.Core.Graphics.IGraphicsModule.Get().MakeGraphics(global::TestNamespace.PrettyShaderDefinition.Descriptor);",
             generatedText);
         Assert.Contains(
-            "private partial global::Rin.Core.Graphics.Shaders.IComputeShader BlurShader => field ??= global::Rin.Core.Graphics.IGraphicsModule.Get().MakeCompute(\"cs/blur.slang\");",
+            "private partial global::Rin.Core.Graphics.Shaders.IComputeShader BlurShader => field ??= global::Rin.Core.Graphics.IGraphicsModule.Get().MakeCompute(global::TestNamespace.BlurShaderDefinition.Descriptor);",
             generatedText);
     }
 
@@ -71,9 +81,19 @@ using Rin.Core.Graphics.Shaders;
 
 namespace TestNamespace;
 
+[Rin.Shade.Shader]
+public class PrettyShaderDefinition : Rin.Shade.Shader
+{
+}
+
+[Rin.Shade.Shader]
+public class BlurShaderDefinition : Rin.Shade.Shader
+{
+}
+
 public class ShaderUser
 {
-    [GraphicsShader(""fs/pretty.slang"")]
+    [GraphicsShader<PrettyShaderDefinition>]
     public partial IGraphicsShader PrettyShader { get; }
 }
 ";
@@ -90,9 +110,19 @@ using Rin.Core.Graphics.Shaders;
 
 namespace TestNamespace;
 
+[Rin.Shade.Shader]
+public class PrettyShaderDefinition : Rin.Shade.Shader
+{
+}
+
+[Rin.Shade.Shader]
+public class BlurShaderDefinition : Rin.Shade.Shader
+{
+}
+
 public partial class ShaderUser
 {
-    [GraphicsShader(""fs/pretty.slang"")]
+    [GraphicsShader<PrettyShaderDefinition>]
     public IGraphicsShader PrettyShader { get; }
 }
 ";
@@ -109,9 +139,19 @@ using Rin.Core.Graphics.Shaders;
 
 namespace TestNamespace;
 
+[Rin.Shade.Shader]
+public class PrettyShaderDefinition : Rin.Shade.Shader
+{
+}
+
+[Rin.Shade.Shader]
+public class BlurShaderDefinition : Rin.Shade.Shader
+{
+}
+
 public partial class ShaderUser
 {
-    [GraphicsShader(""fs/pretty.slang"")]
+    [GraphicsShader<PrettyShaderDefinition>]
     public partial IGraphicsShader PrettyShader { get; set; }
 }
 ";
@@ -128,9 +168,19 @@ using Rin.Core.Graphics.Shaders;
 
 namespace TestNamespace;
 
+[Rin.Shade.Shader]
+public class PrettyShaderDefinition : Rin.Shade.Shader
+{
+}
+
+[Rin.Shade.Shader]
+public class BlurShaderDefinition : Rin.Shade.Shader
+{
+}
+
 public partial class ShaderUser
 {
-    [GraphicsShader(""fs/pretty.slang"")]
+    [GraphicsShader<PrettyShaderDefinition>]
     public partial string PrettyShader { get; }
 }
 ";
@@ -147,9 +197,19 @@ using Rin.Core.Graphics.Shaders;
 
 namespace TestNamespace;
 
+[Rin.Shade.Shader]
+public class PrettyShaderDefinition : Rin.Shade.Shader
+{
+}
+
+[Rin.Shade.Shader]
+public class BlurShaderDefinition : Rin.Shade.Shader
+{
+}
+
 public partial class ShaderUser
 {
-    [GraphicsShader(""fs/pretty.slang"")]
+    [GraphicsShader<PrettyShaderDefinition>]
     public static partial IGraphicsShader PrettyShader { get; }
 }
 ";
@@ -167,7 +227,7 @@ using Rin.Core.Graphics.Shaders;
 
 namespace TestNamespace;
 
-[Rin.Shade.Shader(""Shaders/Rin/World/blur.slang"")]
+[Rin.Shade.Shader]
 public class BlurShaderDefinition : Rin.Shade.Shader
 {
 }
@@ -221,10 +281,20 @@ using Rin.Core.Graphics.Shaders;
 
 namespace TestNamespace;
 
+[Rin.Shade.Shader]
+public class PrettyShaderDefinition : Rin.Shade.Shader
+{
+}
+
+[Rin.Shade.Shader]
+public class BlurShaderDefinition : Rin.Shade.Shader
+{
+}
+
 public partial class ShaderUser
 {
-    [GraphicsShader(""fs/pretty.slang"")]
-    [ComputeShader(""cs/blur.slang"")]
+    [GraphicsShader<PrettyShaderDefinition>]
+    [ComputeShader<BlurShaderDefinition>]
     public partial IGraphicsShader PrettyShader { get; }
 }
 ";

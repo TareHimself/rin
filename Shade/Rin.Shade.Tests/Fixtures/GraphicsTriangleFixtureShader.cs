@@ -24,7 +24,7 @@ public struct FsIn
     [Semantic("UV")] public Vector2 Uv;
 }
 
-[Shader("Fixtures/graphics_triangle.slang")]
+[Shader]
 public class GraphicsTriangleFixtureShader : Shader
 {
     [Push] protected GraphicsPushConstants Push;

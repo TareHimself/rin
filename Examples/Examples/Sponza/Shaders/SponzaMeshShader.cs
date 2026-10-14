@@ -19,7 +19,7 @@ public struct SponzaMeshData
     public DeviceHandle MetallicRoughnessTexture;
 }
 
-[Shader("Shaders/Examples/Sponza/mesh.slang")]
+[Shader]
 public partial class SponzaMeshShader : Shader
 {
     public struct PushConstants

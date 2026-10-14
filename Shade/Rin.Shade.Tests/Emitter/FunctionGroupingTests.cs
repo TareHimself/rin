@@ -23,7 +23,7 @@ public class FunctionGroupingTests
             public BufferRef<float> Output;
         }
 
-        [Shader("Fixtures/function_grouping.slang")]
+        [Shader]
         public class CounterShader : Shader
         {
             [Push] protected CounterPush Push;

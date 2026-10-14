@@ -18,17 +18,14 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
     private readonly Task _compileTask;
     private readonly Dictionary<uint, VkDescriptorSetLayout> _descriptorLayouts = [];
 
-    private readonly IGraphicsDescriptor? _descriptor;
-    private readonly string _filePath;
+    private readonly IGraphicsDescriptor _descriptor;
     private readonly List<Pair<VkShaderModule, ShaderStage>> _shaders = [];
     private VkPipeline _pipeline;
     private VkPipelineLayout _pipelineLayout;
     private VkShaderStageFlags _shaderStageFlags = 0;
 
-    public CompiledGraphicsShader(CompiledShaderManager manager, string filePath,
-        IGraphicsDescriptor? descriptor = null)
+    public CompiledGraphicsShader(CompiledShaderManager manager, IGraphicsDescriptor descriptor)
     {
-        _filePath = filePath;
         _descriptor = descriptor;
         _compileTask = manager.Compile(this);
     }
@@ -62,25 +59,21 @@ public class CompiledGraphicsShader : IGraphicsShader, IVulkanShader
 
     public void Compile(ICompilationContext context)
     {
-        var crshPath = Path.ChangeExtension(_filePath, ".crsh");
-        using var stream = Global.Sources.Read(crshPath);
+        using var stream = _descriptor.Open();
         var compiledShader = ShaderPackageReader.Read(stream);
 
         if (compiledShader.Kind != ShaderKind.Graphics)
-            throw new ShaderCompileException($"'{_filePath}' is not a graphics shader");
+            throw new ShaderCompileException($"'{_descriptor.Name}' is not a graphics shader");
 
         var resources = new Dictionary<string, Resource>();
         var pushConstants = new Dictionary<string, PushConstant>();
         var bindlessBlocks = new Dictionary<string, uint>();
         List<Pair<ShaderStage, byte[]>> code = [];
 
-        if (_descriptor is { } descriptor)
-        {
-            AttachmentFormats = descriptor.AttachmentFormats.Select(format => format.ToImageFormat()).ToArray();
-            BlendState = descriptor.BlendState;
-            UsesDepth = descriptor.UsesDepth;
-            UsesStencil = descriptor.UsesStencil;
-        }
+        AttachmentFormats = _descriptor.AttachmentFormats.Select(format => format.ToImageFormat()).ToArray();
+        BlendState = _descriptor.BlendState;
+        UsesDepth = _descriptor.UsesDepth;
+        UsesStencil = _descriptor.UsesStencil;
 
         foreach (var stage in compiledShader.Stages)
         {

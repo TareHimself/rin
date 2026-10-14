@@ -22,7 +22,7 @@ public struct ComputeIn
     [Semantic("SV_DispatchThreadID")] public uint ThreadId;
 }
 
-[Shader("Fixtures/culling.slang")]
+[Shader]
 public class CullingFixtureShader : Shader
 {
     [Push] protected CullingPushConstants Push;

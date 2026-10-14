@@ -28,7 +28,7 @@ public class WithExpressionTests
                                    public BufferRef<Bounds3D> Output;
                                }
 
-                               [Shader("Fixtures/with_expression.slang")]
+                               [Shader]
                                public class WithExpressionShader : Shader
                                {
                                    [Push] protected WithPush Push;
@@ -73,7 +73,7 @@ public class WithExpressionTests
                                    public BufferRef<Bounds3D> Output;
                                }
 
-                               [Shader("Fixtures/with_dedupe.slang")]
+                               [Shader]
                                public class WithDedupeShader : Shader
                                {
                                    [Push] protected WithPush Push;

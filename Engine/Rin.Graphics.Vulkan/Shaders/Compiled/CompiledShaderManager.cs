@@ -34,59 +34,27 @@ public class CompiledShaderManager : IShaderManager
         return _compileTasks.Enqueue(() => shader.Compile(new CompiledShaderCompilationContext(this)));
     }
 
-    public IGraphicsShader MakeGraphics(string path)
-    {
-        return MakeGraphics(path, null);
-    }
-
     public IGraphicsShader MakeGraphics(IGraphicsDescriptor descriptor)
     {
-        return MakeGraphics(descriptor.Path, descriptor);
-    }
+        lock (_graphicsLock)
+        {
+            if (_graphicsShaders.TryGetValue(descriptor.Name, out var existing)) return existing;
 
-    public IComputeShader MakeCompute(string path)
-    {
-        return MakeCompute(path, null);
+            var shader = new CompiledGraphicsShader(this, descriptor);
+            _graphicsShaders.Add(descriptor.Name, shader);
+            return shader;
+        }
     }
 
     public IComputeShader MakeCompute(IComputeDescriptor descriptor)
     {
-        return MakeCompute(descriptor.Path, descriptor);
-    }
-
-    private IGraphicsShader MakeGraphics(string path, IGraphicsDescriptor? descriptor)
-    {
-        lock (_graphicsLock)
-        {
-            var absPath = Path.GetFullPath(path);
-
-            {
-                if (_graphicsShaders.TryGetValue(absPath, out var shader)) return shader;
-            }
-
-            {
-                var shader = new CompiledGraphicsShader(this, path, descriptor);
-                _graphicsShaders.Add(absPath, shader);
-                return shader;
-            }
-        }
-    }
-
-    private IComputeShader MakeCompute(string path, IComputeDescriptor? descriptor)
-    {
         lock (_computeLock)
         {
-            var absPath = Path.GetFullPath(path);
+            if (_computeShaders.TryGetValue(descriptor.Name, out var existing)) return existing;
 
-            {
-                if (_computeShaders.TryGetValue(absPath, out var shader)) return shader;
-            }
-
-            {
-                var shader = new CompiledComputeShader(this, path, descriptor);
-                _computeShaders.Add(absPath, shader);
-                return shader;
-            }
+            var shader = new CompiledComputeShader(this, descriptor);
+            _computeShaders.Add(descriptor.Name, shader);
+            return shader;
         }
     }
 

@@ -6,8 +6,8 @@ The scene layer on top of [Rin.Core](../Rin.Core/ReadMe.md). A `World` owns acto
 
 - References (from `Rin.World.csproj`): Rin.Core, `Shade/Rin.Shade`, `Shade/Rin.Shade.SourceGenerator` and Rin.SourceGenerators (both as analyzers), and the `BepuPhysics` package.
 - Referenced by: Rin.GLTF and Rin.World.Tests.
-- Shaders are C# classes that derive from `Shader` in Rin.Shade, see [Shade](../../Shade/ReadMe.md). The `[Shader("Shaders/Rin/World/...")]` attributes name the compiled output, which the Rin.Shade targets write to `Content\Shaders\Rin\World\` and embed in the assembly.
-- `WorldContent` is a module initializer that adds the embedded `World` and `Shaders/Rin/World` content to `Global.Sources`.
+- Shaders are C# classes that derive from `Shader` in Rin.Shade, see [Shade](../../Shade/ReadMe.md). Each is marked `[Shader]`, and the Rin.Shade targets embed its compiled package as the class's full name plus `.crsh`.
+- `WorldContent` is a module initializer that adds the embedded `World` content to `Global.Sources`.
 
 ## The model
 

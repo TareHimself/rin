@@ -93,7 +93,7 @@ A **pass** declares the images and buffers it reads and writes in `Configure`, a
 
 ## Shaders
 
-Shaders are C# classes. `Rin.Shade` transpiles them to Slang during the build, `Rin.Slang.Compiler` compiles that to a package with SPIR-V and reflection, and the package is embedded as a resource. At run time the backend loads it by the path on the shader class, and the pipeline state (attachment formats, blend, depth and stencil) comes from a generated `Descriptor` on the same class. There are no hand-written `.slang` files in the repo. See [Shade/ReadMe.md](Shade/ReadMe.md).
+Shaders are C# classes. `Rin.Shade` transpiles them to Slang during the build, `Rin.Slang.Compiler` compiles that to a package with SPIR-V and reflection, and the package is embedded as a resource named after the shader class's full name plus `.crsh`. At run time the backend opens it through the generated `Descriptor` on the class, which also carries the pipeline state (attachment formats, blend, depth and stencil). There are no hand-written `.slang` files in the repo. See [Shade/ReadMe.md](Shade/ReadMe.md).
 
 ## Rules the code relies on
 

@@ -1,15 +1,26 @@
+using System.IO;
+using System.Reflection;
 
 namespace Rin.Shade;
 
 /// <summary>
-/// Identifies a compiled shader.
+/// Identifies a compiled shader: the assembly it is embedded in and the full name of its class, which is
+/// also the name of the embedded resource, plus <c>.crsh</c>.
 /// </summary>
 public interface IShaderDescriptor
 {
+    Assembly Assembly { get; }
+
+    string Name { get; }
+
     /// <summary>
-    /// Path of the compiled shader binary.
+    /// Opens the embedded shader package.
     /// </summary>
-    string Path { get; }
+    Stream Open()
+    {
+        return Assembly.GetManifestResourceStream(Name + ".crsh") ??
+               throw new FileNotFoundException($"'{Assembly.GetName().Name}' has no compiled shader '{Name}'");
+    }
 }
 
 /// <summary>
@@ -37,13 +48,15 @@ public interface IGraphicsDescriptor : IShaderDescriptor
 /// <summary>
 /// Plain-data <see cref="IComputeDescriptor" />.
 /// </summary>
-public sealed record ComputeDescriptor(string Path, (uint X, uint Y, uint Z) ThreadGroupSize) : IComputeDescriptor;
+public sealed record ComputeDescriptor(Assembly Assembly, string Name, (uint X, uint Y, uint Z) ThreadGroupSize)
+    : IComputeDescriptor;
 
 /// <summary>
 /// Plain-data <see cref="IGraphicsDescriptor" />.
 /// </summary>
 public record GraphicsDescriptor(
-    string Path,
+    Assembly Assembly,
+    string Name,
     AttachmentFormat[] AttachmentFormats,
     BlendState BlendState,
     bool UsesDepth,

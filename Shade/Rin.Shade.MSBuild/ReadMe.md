@@ -1,6 +1,6 @@
 # Rin.Shade.MSBuild
 
-The MSBuild task `Rin.Shade.MSBuild.CompileRinShadeShaders`. In one in-process step it transpiles every `[Shader("...")]` class (via `ShadeEmitter`), compiles the Slang with `Rin.Slang.Compiler`'s `ShaderCompiler`, and returns the resulting `.crsh` files as `EmbeddedResource` items.
+The MSBuild task `Rin.Shade.MSBuild.CompileRinShadeShaders`. In one in-process step it transpiles every `[Shader]` class in the project's own sources (via `ShadeEmitter`), compiles the Slang with `Rin.Slang.Compiler`'s `ShaderCompiler`, and returns the resulting `.crsh` files as `EmbeddedResource` items whose logical name is the shader class's full name plus `.crsh`. The scratch `.slang` and `.crsh` live under `$(IntermediateOutputPath)Rin.Shade.Generated/` with the same names.
 
 A Slang compile error is logged against the C# file and line it was lowered from: the task parses Slang's `path(line): error code: message` output with `SlangDiagnostic` and looks the line up in the shader's `SlangSourceMap`. Lines without a C# origin (type declarations, bindings) are reported against the scratch `.slang` file instead. The error code is `SLANG` followed by Slang's own number.
 
@@ -16,15 +16,10 @@ The stale shaders are compiled on worker threads, each with its own `ShaderCompi
 
 ## Using it from a project
 
-Set these before importing `msbuild/RinShade.targets` (see `Engine/Rin.Core/Rin.Core.csproj`):
-
-- `RinShadeDiscoverPrefix`: only shaders whose `[Shader]` path starts with this prefix are compiled.
-- `RinShadeOutputSubpath`: output folder relative to `$(IntermediateOutputPath)`, also the prefix of the embedded resource's logical name.
-
-Optional properties, from the targets file:
+Import `msbuild/RinShade.targets` (see `Engine/Rin.Core/Rin.Core.csproj`). Optional properties, from the targets file:
 
 - `RinShadeSkipCompile=true`: skips the whole step. CI passes it for jobs that never need real shaders.
-- `RinShadeDumpGenerated=true`: also writes the emitted Slang to `GeneratedShaders/` under the output directory (override with `RinShadeGeneratedDirectory`).
+- `RinShadeDumpGenerated=true`: also writes the emitted Slang to `GeneratedShaders/<full class name>.slang` under the output directory (override with `RinShadeGeneratedDirectory`).
 - `RinShadeMaxParallelism=N`: compile up to N shaders at once. `1` is serial; unset or `0` picks the default described above.
 
 ## Gotchas

@@ -1,9 +1,9 @@
 namespace Rin.Core.Graphics.Shaders;
 
 /// <summary>
-/// Common base for <see cref="GraphicsShaderAttribute"/> and <see cref="ComputeShaderAttribute"/>. Marks a
+/// Common base for <see cref="GraphicsShaderAttribute{T}"/> and <see cref="ComputeShaderAttribute{T}"/>. Marks a
 /// <c>partial</c> property as generator-backed: the source generator emits the other half of the partial
-/// property, returning the shader loaded from <see cref="Path"/> via
+/// property, returning the shader loaded from the shader class's generated <c>Descriptor</c> via
 /// <see cref="global::Rin.Core.Graphics.IGraphicsModule.Get"/>.
 /// </summary>
 /// <remarks>
@@ -12,18 +12,8 @@ namespace Rin.Core.Graphics.Shaders;
 /// because that file is marked <c>&lt;auto-generated/&gt;</c> - so it can't see the <c>field ??= ...</c> body
 /// that actually uses instance state, and may incorrectly suggest "member can be made static". Suppress that
 /// with <c>// ReSharper disable once MemberCanBeMadeStatic.Global</c> (or <c>.Local</c> for a non-public
-/// property) above the declaration, as shown in the examples on <see cref="GraphicsShaderAttribute"/> and
-/// <see cref="ComputeShaderAttribute"/>.
+/// property) above the declaration, as shown in the examples on <see cref="GraphicsShaderAttribute{T}"/> and
+/// <see cref="ComputeShaderAttribute{T}"/>.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property)]
-public abstract class ShaderAttribute : Attribute
-{
-    /// <summary>The shader's path, when declared directly (never set on the generic forms).</summary>
-    public string? Path { get; }
-
-    protected ShaderAttribute(string path) => Path = path;
-
-    protected ShaderAttribute()
-    {
-    }
-}
+public abstract class ShaderAttribute : Attribute;

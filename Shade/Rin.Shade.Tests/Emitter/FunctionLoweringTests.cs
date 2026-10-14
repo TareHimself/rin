@@ -43,7 +43,7 @@ public class FunctionLoweringTests
                                    public static float Pong(float x) => Recursive.PingPong(x);
                                }
 
-                               [Shader("Fixtures/recursion.slang")]
+                               [Shader]
                                public class RecursionShader : Shader
                                {
                                    [Compute(1, 1, 1)]
@@ -74,7 +74,7 @@ public class FunctionLoweringTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/swizzle.slang")]
+                               [Shader]
                                public class SwizzleShader : Shader
                                {
                                    [Push] protected SwizzlePush Push;
@@ -109,7 +109,7 @@ public class FunctionLoweringTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/swizzle.slang")]
+                               [Shader]
                                public class RepeatedSwizzleShader : Shader
                                {
                                    [Push] protected SwizzlePush Push;

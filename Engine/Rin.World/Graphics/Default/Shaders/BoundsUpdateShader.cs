@@ -37,7 +37,7 @@ public struct ComputeIn
     [DispatchThreadId] public uint ThreadId;
 }
 
-[Shader("Shaders/Rin/World/Mesh/Compute/bounds_update.slang")]
+[Shader]
 public partial class BoundsUpdateShader : Shader
 {
     public struct SkinnedMesh

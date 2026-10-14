@@ -29,7 +29,7 @@ public class MoreDiagnosticsTests
                                    }
                                }
 
-                               [Shader("Fixtures/ext_method.slang")]
+                               [Shader]
                                public class ExtMethodShader : Shader
                                {
                                    [Compute(1, 1, 1)]
@@ -65,7 +65,7 @@ public class MoreDiagnosticsTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/generic_struct.slang")]
+                               [Shader]
                                public class GenericStructShader : Shader
                                {
                                    [Push] protected GenericPush Push;
@@ -103,7 +103,7 @@ public class MoreDiagnosticsTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/enum_underlying.slang")]
+                               [Shader]
                                public class EnumUnderlyingShader : Shader
                                {
                                    [Push] protected EnumPush Push;
@@ -134,7 +134,7 @@ public class MoreDiagnosticsTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/array_parameter.slang")]
+                               [Shader]
                                public class ArrayParameterShader : Shader
                                {
                                    [Push] protected ArrayParameterPush Push;
@@ -168,7 +168,7 @@ public class MoreDiagnosticsTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/multi_dim.slang")]
+                               [Shader]
                                public class MultiDimShader : Shader
                                {
                                    [Push] protected GridPush Push;
@@ -194,7 +194,7 @@ public class MoreDiagnosticsTests
 
                                namespace SwitchPatternCheck;
 
-                               [Shader("Fixtures/switch_pattern.slang")]
+                               [Shader]
                                public class SwitchPatternShader : Shader
                                {
                                    [Compute(1, 1, 1)]
@@ -255,7 +255,7 @@ public class MoreDiagnosticsTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/builtin_shadow.slang")]
+                               [Shader]
                                public class BuiltinShadowShader : Shader
                                {
                                    [Push] protected BuiltinShadowPush Push;

@@ -46,7 +46,7 @@ public static class CorrectnessHelpers
     }
 }
 
-[Shader("Fixtures/correctness.slang")]
+[Shader]
 public class CorrectnessFixtureShader : Shader
 {
     [Push] protected CorrectnessPushConstants Push;

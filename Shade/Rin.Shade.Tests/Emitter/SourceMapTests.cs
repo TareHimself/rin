@@ -15,7 +15,7 @@ public class SourceMapTests
             public BufferRef<float> Output;
         }
 
-        [Shader("Fixtures/source_map.slang")]
+        [Shader]
         public class MapShader : Shader
         {
             [Push] protected MapPush Push;

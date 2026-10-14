@@ -19,7 +19,7 @@ public class MatrixElementTests
                 public BufferRef<float> Output;
             }
 
-            [Shader("Fixtures/matrix_element.slang")]
+            [Shader]
             public class MatrixElementShader : Shader
             {
                 [Push] protected MatrixPush Push;

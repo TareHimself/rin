@@ -26,7 +26,6 @@ public sealed class ExampleHost(Example? example, IReadOnlyList<Example> example
 
     protected override void OnStartup()
     {
-        Global.Sources.AddSource(AssemblyContentResource.New<ExampleHost>("Shaders/Examples"));
         LoadTextFont();
 
         IViewsModule.Get().OnSurfaceCreated += OnSurfaceCreated;

@@ -3,7 +3,7 @@ using Rin.Shade;
 
 namespace Rin.World.Graphics.Default.Shaders;
 
-[Shader("Shaders/Rin/World/Mesh/Compute/culling.slang")]
+[Shader]
 public partial class CullingShader : Shader
 {
     public struct PushConstants

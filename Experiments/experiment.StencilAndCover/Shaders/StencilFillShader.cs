@@ -7,7 +7,7 @@ namespace experiment.StencilAndCover.Shaders;
 // by the caller with StencilFillOp (front-face increment and wrap, back-face decrement and wrap). No color is
 // written: a shape's interior, holes from oppositely wound contours and self-intersections all fall out of
 // the accumulated winding count on the GPU.
-[Shader("Shaders/StencilAndCover/stencil_fill.slang")]
+[Shader]
 public partial class StencilFillShader : Shader
 {
     public struct PushConstants

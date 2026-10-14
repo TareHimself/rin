@@ -22,7 +22,7 @@ public class DoubleDiagnosticTests
     public void A_double_literal_local_is_rejected()
     {
         var result = Emit("""
-            [Shader("Fixtures/double_local.slang")]
+            [Shader]
             public class DoubleLocalShader : Shader
             {
                 [Push] protected DoublePush Push;
@@ -44,7 +44,7 @@ public class DoubleDiagnosticTests
     public void A_double_parameter_is_rejected()
     {
         var result = Emit("""
-            [Shader("Fixtures/double_param.slang")]
+            [Shader]
             public class DoubleParamShader : Shader
             {
                 [Push] protected DoublePush Push;
@@ -75,7 +75,7 @@ public class DoubleDiagnosticTests
                 public BufferRef<float> Output;
             }
 
-            [Shader("Fixtures/double_field.slang")]
+            [Shader]
             public class DoubleFieldShader : Shader
             {
                 [Push] protected WidePush Push;
@@ -95,7 +95,7 @@ public class DoubleDiagnosticTests
     public void Float_code_raises_nothing()
     {
         var result = Emit("""
-            [Shader("Fixtures/float_only.slang")]
+            [Shader]
             public class FloatOnlyShader : Shader
             {
                 [Push] protected DoublePush Push;

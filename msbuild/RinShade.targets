@@ -3,20 +3,14 @@
     <!--
         Shared build-time step for C#-authored (Rin.Shade) shaders, backed by the CompileRinShadeShaders
         MSBuild Task (Rin.Shade.MSBuild) - transpiles + compiles + embeds in one in-process step.
-        [Shader("...")]-attributed classes are found via ShadeEmitter walking the importing project's own
-        compilation, and no .slang file is ever written to the tracked tree. The compiled result is
-        embedded directly. To inspect the emitted Slang, build with -p:RinShadeDumpGenerated=true: it is
-        written under the project's output directory in GeneratedShaders/ (override with
-        RinShadeGeneratedDirectory).
+        [Shader]-attributed classes are found via ShadeEmitter walking the importing project's own
+        compilation, and no .slang file is ever written to the tracked tree. Each compiled package is
+        embedded as <full class name>.crsh, which the class's generated Descriptor opens from its own
+        assembly, and the scratch files live under $(IntermediateOutputPath)Rin.Shade.Generated/ with the
+        same names. To inspect the emitted Slang, build with -p:RinShadeDumpGenerated=true: it is written
+        under the project's output directory in GeneratedShaders/ (override with RinShadeGeneratedDirectory).
 
-        A consuming project sets, before importing this file:
-          <PropertyGroup>
-            <RinShadeDiscoverPrefix>...</RinShadeDiscoverPrefix>   the prefix its own [Shader("...")]
-                                                                    classes use (Shaders/Rin/Core/,
-                                                                    Shaders/Examples/, ...)
-            <RinShadeOutputSubpath>...</RinShadeOutputSubpath>     relative to $(IntermediateOutputPath);
-                                                                    also the LogicalName's own prefix
-          </PropertyGroup>
+        A consuming project only imports this file.
     -->
 
     <PropertyGroup>
@@ -47,21 +41,18 @@
             Condition="'$(RinShadeSkipCompile)' != 'true'">
 
         <PropertyGroup>
-            <RinShadeOutputRoot>$(IntermediateOutputPath)$(RinShadeOutputSubpath)</RinShadeOutputRoot>
+            <RinShadeOutputRoot>$(IntermediateOutputPath)Rin.Shade.Generated\</RinShadeOutputRoot>
             <RinShadeGeneratedDirectory Condition="'$(RinShadeDumpGenerated)' == 'true' AND '$(RinShadeGeneratedDirectory)' == ''">$(OutDir)GeneratedShaders</RinShadeGeneratedDirectory>
             <RinShadeMaxParallelism Condition="'$(RinShadeMaxParallelism)' == ''">0</RinShadeMaxParallelism>
         </PropertyGroup>
 
         <CompileRinShadeShaders
                 RepoRoot="$(RinShadeRepoRoot)"
-                DiscoverPrefix="$(RinShadeDiscoverPrefix)"
                 Sources="@(Compile)"
                 References="@(ReferencePath)"
                 OutputRoot="$(RinShadeOutputRoot)"
-                OutputSubpath="$(RinShadeOutputSubpath)"
                 GeneratedDirectory="$(RinShadeGeneratedDirectory)"
-                MaxParallelism="$(RinShadeMaxParallelism)"
-                AssemblyName="$(AssemblyName)">
+                MaxParallelism="$(RinShadeMaxParallelism)">
             <Output TaskParameter="CompiledFiles" ItemName="EmbeddedResource" />
         </CompileRinShadeShaders>
 

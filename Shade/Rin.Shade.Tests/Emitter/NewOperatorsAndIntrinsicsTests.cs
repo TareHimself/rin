@@ -23,7 +23,7 @@ public class NewOperatorsAndIntrinsicsTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/operators.slang")]
+                               [Shader]
                                public class OperatorShader : Shader
                                {
                                    [Push] protected OperatorPush Push;
@@ -68,7 +68,7 @@ public class NewOperatorsAndIntrinsicsTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/math_intrinsics.slang")]
+                               [Shader]
                                public class MathIntrinsicsShader : Shader
                                {
                                    [Push] protected MathPush Push;

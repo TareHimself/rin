@@ -28,7 +28,7 @@ public class NamespaceGroupingTests
                 public BufferRef<float> Output;
             }
 
-            [Shader("Fixtures/grouping.slang")]
+            [Shader]
             public class GroupingShader : Shader
             {
                 [Push] protected GroupingPush Push;

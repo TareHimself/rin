@@ -30,7 +30,7 @@ public class MatrixConventionTests
             public uint Count;
         }
 
-        [Shader("Cpu/convention.slang")]
+        [Shader]
         public class ConventionShader : Shader
         {
             [Push] protected ConventionPush Push;
