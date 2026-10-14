@@ -9,6 +9,18 @@ namespace Rin.Core.Shared.Video;
 public interface IVideoPlayer : IDisposable
 {
     /// <summary>
+    ///     True once the headers are read, so the tracks, extent and duration are known.
+    /// </summary>
+    public bool IsReady { get; }
+
+    /// <summary>
+    ///     True once the source or decoder has failed. <see cref="Error" /> says why.
+    /// </summary>
+    public bool HasFailed { get; }
+
+    public Exception? Error { get; }
+
+    /// <summary>
     ///     The position the decoder is at
     /// </summary>
     public double DecodedPosition { get; }
@@ -18,7 +30,16 @@ public interface IVideoPlayer : IDisposable
     /// </summary>
     public double Position { get; }
 
+    /// <summary>
+    ///     Seconds, 0 while unknown as with a live stream.
+    /// </summary>
     public double Duration { get; }
+
+    /// <summary>
+    ///     After the decoder ran out of data, the bytes the source is missing for its next step. Empty otherwise.
+    /// </summary>
+    public ByteRange NeededRange { get; }
+
     public bool IsPlaying { get; }
     public bool HasVideo { get; }
     public int VideoTracksCount { get; }

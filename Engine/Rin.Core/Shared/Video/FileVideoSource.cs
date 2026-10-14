@@ -9,12 +9,12 @@ public class FileVideoSource(string fileName) : IVideoSource
         _fileStream.Dispose();
     }
 
-    public void Read(ulong offset, Span<byte> destination)
+    public void Read(long offset, Span<byte> destination)
     {
-        _fileStream.Position = (int)offset;
+        _fileStream.Position = offset;
         _fileStream.ReadExactly(destination);
     }
 
-    public ulong Length => (ulong)_fileStream.Length;
-    public ulong Available => Length;
+    public long Length => _fileStream.Length;
+    public long Available => Length;
 }

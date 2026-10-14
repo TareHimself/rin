@@ -238,10 +238,22 @@ The main thread waits up to 3 ms for the previous render to finish. If it has, i
 - `Graphics/`: the graphics abstraction: module, renderers, frame graph interfaces, handles, shader interfaces, windows and window events, input keys, images, rects and extents.
 - `Json/`: JSON converters for `Vector2`, `Vector3` and `Vector4`.
 - `Properties/`: `launchSettings.json`.
-- `Shared/`: math (`MathR`, easing, `Transform`, `Frustum`, `Int4`), curves, buffers, `Dispatcher`, id factory, logging (`ILogger` with `Info`, `Warn` and `Error`, a `DefaultLogger` that takes a formatter, and console and file transports that print an error's exception after its message), pooling, providers (`DefaultProvider`), threading helpers, time, profiling, and video sources and player.
+- `Shared/`: math (`MathR`, easing, `Transform`, `Frustum`, `Int4`), curves, buffers, `Dispatcher`, id factory, logging (`ILogger` with `Info`, `Warn` and `Error`, a `DefaultLogger` that takes a formatter, and console and file transports that print an error's exception after its message), pooling, providers (`DefaultProvider`), threading helpers, time, profiling, and video (below).
 - `Sources/`: `ISource`, `SourceResolver`, `FileSystemSource` and embedded resource sources. `Global.Sources` combines the file system and the embedded `Core` and `Shaders/Rin/Core` content.
 - `Views/`: the UI system described above, plus `Animation/` (view animation extensions), `Font/`, `Mtsdf/`, `Sdf/`, `Utilities/` (`HitTestHandler`) and `Window/`.
 - Root files: `Application` (main and render thread loop, module startup), `IApplication`, `IModule`, `Global` (service provider and sources), `Native` (P/Invoke into the native library), and small utilities.
+
+## Video
+
+`Shared/Video/` plays webm through the native webmdx decoder, which works on a source that may only be partly there.
+
+- `IVideoSource` is a file that may still be arriving. `Length` is -1 while unknown, `AvailableFrom(offset)` says how far the held bytes run from there, `MakeRangeAvailable` asks the source to fetch what the decoder is missing, and `ReleaseBefore` tells it what the decoder is done with. All calls come from the decode thread.
+  - `FileVideoSource`: a whole file on disk.
+  - `HttpVideoSource`: fetches with range requests as the decoder asks, at least 256 KiB at a time, so a seek pulls only the part of the file it lands on. Bytes the decoder is done with are dropped, and a seek back below them fetches only the cluster it lands on, with the ones after it fetched again as playback reaches them. A server without range support gets one full download instead.
+  - `StreamVideoSource`: fed from outside with `Append` and `End`, for a live stream or a file still downloading. `StreamVideoSource(true)` frees released bytes, at the cost of seeking back into them.
+  - `SparseByteBuffer` holds pieces from anywhere in a file for the two sources above and lists the gaps to fetch.
+- `WebmVideoPlayer` decodes on its own thread, and only that thread touches the source, so `SetSource` returns at once even for a network source. `IsReady` stays false until the headers are read there, and every `TryDecode` (which `VideoPlayerView` calls each frame) retries the header read, a pending `Seek` or the next decode step until the source has the data. `Duration` is 0 for a live stream, `NeededRange` says which bytes the decoder is waiting for, and a source the decoder rejects sets `HasFailed` with `Error`.
+- `VideoPlayerView.FromFile`, `FromUrl` and `FromSource` build a view over a player. It relayouts once the player is ready, and skips the progress bar and seeks while `Duration` is 0.
 
 ## Gotchas
 
