@@ -96,4 +96,98 @@ public class WithExpressionTests
         Assert.That(slang.Split("bounds3DWithUpper(Bounds3D self", System.StringSplitOptions.None).Length - 1,
             Is.EqualTo(1));
     }
+
+    // A positional record struct's members are auto properties, which lower to fields, so `with` writes them.
+    [Test]
+    public void WithOnARecordStructWritesTheAutoPropertyField()
+    {
+        const string source = """
+                               using System.Numerics;
+                               using Rin.Shade;
+
+                               namespace WithRecordCheck;
+
+                               [ShaderStruct]
+                               public readonly record struct Bounds3D(Vector3 Lower, Vector3 Upper);
+
+                               public struct WithPush
+                               {
+                                   public Bounds3D Bounds;
+                                   public Vector3 NewUpper;
+                                   public BufferRef<Bounds3D> Output;
+                               }
+
+                               [Shader]
+                               public class WithRecordShader : Shader
+                               {
+                                   [Push] protected WithPush Push;
+
+                                   [Compute(1, 1, 1)]
+                                   public void Compute()
+                                   {
+                                       Push.Output[0] = Push.Bounds with { Upper = Push.NewUpper };
+                                   }
+                               }
+                               """;
+
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
+
+        Assert.That(result.Diagnostics, Is.Empty);
+        var slang = result.Shaders["WithRecordShader"].Replace("\r\n", "\n");
+        Assert.That(slang, Does.Contain("Bounds3D bounds3DWithUpper(Bounds3D self, float3 upper)\n{\n    self.upper = upper;"));
+        Assert.That(slang, Does.Contain("bounds3DWithUpper(push.bounds, push.newUpper)"));
+    }
+
+    [Test]
+    public void WithOnAPropertyWithASetterBodyCallsTheSetter()
+    {
+        const string source = """
+                               using Rin.Shade;
+
+                               namespace WithSetterCheck;
+
+                               [ShaderStruct]
+                               public struct Sized
+                               {
+                                   public float Width;
+                                   public float Height;
+
+                                   public float Area
+                                   {
+                                       get => Width * Height;
+                                       set
+                                       {
+                                           Width = value;
+                                           Height = 1f;
+                                       }
+                                   }
+                               }
+
+                               public struct WithPush
+                               {
+                                   public Sized Sized;
+                                   public float NewArea;
+                                   public BufferRef<Sized> Output;
+                               }
+
+                               [Shader]
+                               public class WithSetterShader : Shader
+                               {
+                                   [Push] protected WithPush Push;
+
+                                   [Compute(1, 1, 1)]
+                                   public void Compute()
+                                   {
+                                       Push.Output[0] = Push.Sized with { Area = Push.NewArea };
+                                   }
+                               }
+                               """;
+
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
+
+        Assert.That(result.Diagnostics, Is.Empty);
+        var slang = result.Shaders["WithSetterShader"].Replace("\r\n", "\n");
+        Assert.That(slang, Does.Contain("[mutating]"));
+        Assert.That(slang, Does.Contain("Sized sizedWithArea(Sized self, float area)\n{\n    self.setArea(area);"));
+    }
 }

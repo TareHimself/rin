@@ -7,16 +7,17 @@ using Microsoft.CodeAnalysis.Operations;
 namespace Rin.Shade.Transpiler;
 
 /// <summary>
-/// A field assigned by a `with` expression and its Slang parameter name.
+/// A member assigned by a `with` expression: its type, its Slang parameter name, and the setter to call when it
+/// is a property with a setter body. A field or an auto property is written directly.
 /// </summary>
-internal sealed record WithHelperField(IFieldSymbol Field, string SlangName);
+internal sealed record WithHelperMember(ITypeSymbol Type, string SlangName, IMethodSymbol? Setter);
 
 /// <summary>
-/// A synthesized helper for one (type, assigned-field-set) `with` shape, e.g. `bounds with { Lower = x }`
+/// A synthesized helper for one (type, assigned-member-set) `with` shape, e.g. `bounds with { Lower = x }`
 /// becomes `bounds3DWithLower(Bounds3D self, float3 lower)`. A top-level function works in any expression
 /// position, and `self` is a by-value copy, so it needs no [mutating].
 /// </summary>
-internal sealed record WithHelperSpec(ITypeSymbol Type, string FunctionName, List<WithHelperField> Fields);
+internal sealed record WithHelperSpec(ITypeSymbol Type, string FunctionName, List<WithHelperMember> Members);
 
 /// <summary>
 /// Finds the `with` expressions in method bodies and emits one helper function per distinct shape.
@@ -37,21 +38,25 @@ internal static class WithLowering
     private static void CollectOne(IWithOperation withOperation, List<Diagnostic> diagnostics,
         Dictionary<string, WithHelperSpec> specs, List<WithHelperSpec> order)
     {
-        var fields = ExtractFields(withOperation, diagnostics);
-        if (fields is null) return;
+        var members = ExtractMembers(withOperation, diagnostics);
+        if (members is null) return;
 
         var type = withOperation.Type!;
-        var key = ComputeKey(type, fields.Select(f => f.SlangName));
+        var key = ComputeKey(type, members.Select(m => m.SlangName));
         if (specs.ContainsKey(key)) return;
 
         var functionName = $"{Naming.ToSlangIdentifier(type.Name)}With" +
-                            string.Join("", fields.Select(f => Capitalize(f.SlangName)));
-        var spec = new WithHelperSpec(type, functionName, fields);
+                           string.Join("", members.Select(m => Capitalize(m.SlangName)));
+        var spec = new WithHelperSpec(type, functionName, members);
         specs[key] = spec;
         order.Add(spec);
     }
 
-    private static List<WithHelperField>? ExtractFields(IWithOperation withOperation, List<Diagnostic> diagnostics)
+    /// <summary>
+    /// The members a `with` initializer assigns, sorted by Slang name, or null (with a diagnostic) when one is
+    /// not a field, an auto property or a property with a setter body.
+    /// </summary>
+    public static List<WithHelperMember>? ExtractMembers(IWithOperation withOperation, List<Diagnostic> diagnostics)
     {
         if (withOperation.Type is null || withOperation.Initializer is null)
         {
@@ -60,42 +65,57 @@ internal static class WithLowering
             return null;
         }
 
-        var fields = new List<WithHelperField>();
+        var members = new List<WithHelperMember>();
         foreach (var initializer in withOperation.Initializer.Initializers)
         {
-            if (initializer is not ISimpleAssignmentOperation { Target: IFieldReferenceOperation fieldRef })
+            if (initializer is not ISimpleAssignmentOperation assignment ||
+                ToMember(assignment.Target) is not { } member)
             {
                 diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
-                    initializer.Syntax.GetLocation(), "non-field member in a 'with' initializer"));
+                    initializer.Syntax.GetLocation(),
+                    "'with' initializer that is not a field, an auto property or a property with a setter body"));
                 return null;
             }
 
-            fields.Add(new WithHelperField(fieldRef.Field, Naming.ToSlangIdentifier(fieldRef.Field.Name)));
+            members.Add(member);
         }
 
-        fields.Sort((a, b) => string.CompareOrdinal(a.SlangName, b.SlangName));
-        return fields;
+        members.Sort((a, b) => string.CompareOrdinal(a.SlangName, b.SlangName));
+        return members;
     }
 
-    /// <summary>
-    /// A key identifying the (type, field set) shape, independent of field order.
-    /// </summary>
-    public static string ComputeKey(ITypeSymbol type, IEnumerable<string> slangFieldNames) =>
-        $"{type.ToDisplayString()}|{string.Join(",", slangFieldNames.OrderBy(n => n, StringComparer.Ordinal))}";
+    private static WithHelperMember? ToMember(IOperation target) => target switch
+    {
+        IFieldReferenceOperation fieldRef =>
+            new WithHelperMember(fieldRef.Field.Type, Naming.ToSlangIdentifier(fieldRef.Field.Name), null),
+        IPropertyReferenceOperation { Property: var property } when StructMembers.IsAutoProperty(property) =>
+            new WithHelperMember(property.Type, Naming.ToSlangIdentifier(property.Name), null),
+        IPropertyReferenceOperation { Property: { SetMethod: { } setter } property } when MethodSource.HasBody(setter) =>
+            new WithHelperMember(property.Type, Naming.ToSlangIdentifier(property.Name), setter),
+        _ => null
+    };
 
     /// <summary>
-    /// The Slang helper function that copies <c>self</c>, overwrites the fields and returns it.
+    /// A key identifying the (type, member set) shape, independent of member order.
+    /// </summary>
+    public static string ComputeKey(ITypeSymbol type, IEnumerable<string> slangMemberNames) =>
+        $"{type.ToDisplayString()}|{string.Join(",", slangMemberNames.OrderBy(n => n, StringComparer.Ordinal))}";
+
+    /// <summary>
+    /// The Slang helper function that copies <c>self</c>, overwrites the members and returns it.
     /// </summary>
     public static string Emit(WithHelperSpec spec)
     {
         var typeName = TypeMapping.MapType(spec.Type);
         var parameters = new List<string> { $"{typeName} self" };
-        parameters.AddRange(spec.Fields.Select(f => $"{TypeMapping.MapType(f.Field.Type)} {f.SlangName}"));
+        parameters.AddRange(spec.Members.Select(m => $"{TypeMapping.MapType(m.Type)} {m.SlangName}"));
 
         var writer = new SlangWriter();
         writer.OpenBrace($"{typeName} {spec.FunctionName}({string.Join(", ", parameters)})");
-        foreach (var field in spec.Fields)
-            writer.Line($"self.{field.SlangName} = {field.SlangName};");
+        foreach (var member in spec.Members)
+            writer.Line(member.Setter is { } setter
+                ? $"self.{Naming.ToSlangMethodName(setter)}({member.SlangName});"
+                : $"self.{member.SlangName} = {member.SlangName};");
         writer.Line("return self;");
         writer.CloseBrace();
         return writer.ToString();
