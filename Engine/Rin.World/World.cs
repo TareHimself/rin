@@ -112,9 +112,9 @@ public class World : IUpdatable
     }
 
     [PublicAPI]
-    public T AddActor<T>() where T : Actor
+    public T AddActor<T>() where T : Actor, new()
     {
-        var actor = Activator.CreateInstance<T>();
+        var actor = new T();
         AddActor(actor);
         return actor;
     }
