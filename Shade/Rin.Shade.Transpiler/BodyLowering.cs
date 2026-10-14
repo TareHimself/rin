@@ -685,29 +685,16 @@ internal sealed class BodyLowering(
     // Calls the per-shape helper function that WithLowering collected up front and emits separately.
     private string LowerWith(IWithOperation withOperation)
     {
-        if (withOperation.Type is null || withOperation.Initializer is null)
-        {
-            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
-                withOperation.Syntax.GetLocation(), "with expression"));
-            return "/* unsupported */";
-        }
+        if (WithLowering.ExtractMembers(withOperation, diagnostics) is not { } members) return "/* unsupported */";
 
-        var overrides = new List<(string SlangName, string ValueExpr)>();
-        foreach (var initializer in withOperation.Initializer.Initializers)
-        {
-            if (initializer is not ISimpleAssignmentOperation { Target: IFieldReferenceOperation fieldRef } assignment)
-            {
-                diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
-                    initializer.Syntax.GetLocation(), "non-field member in a 'with' initializer"));
-                return "/* unsupported */";
-            }
+        // The helper takes the members sorted by name, so the values are passed in that order too.
+        var overrides = withOperation.Initializer!.Initializers
+            .Cast<ISimpleAssignmentOperation>()
+            .Select(assignment => (SlangName: MemberName(assignment.Target), ValueExpr: LowerExpr(assignment.Value)))
+            .OrderBy(o => o.SlangName, StringComparer.Ordinal)
+            .ToList();
 
-            overrides.Add((Naming.ToSlangIdentifier(fieldRef.Field.Name), LowerExpr(assignment.Value)));
-        }
-
-        overrides.Sort((a, b) => string.CompareOrdinal(a.SlangName, b.SlangName));
-
-        var key = WithLowering.ComputeKey(withOperation.Type, overrides.Select(o => o.SlangName));
+        var key = WithLowering.ComputeKey(withOperation.Type!, members.Select(m => m.SlangName));
         if (withHelpers is null || !withHelpers.TryGetValue(key, out var spec))
         {
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
@@ -719,6 +706,13 @@ internal sealed class BodyLowering(
         var arguments = string.Join(", ", overrides.Select(o => o.ValueExpr));
         return $"{spec.FunctionName}({operand}, {arguments})";
     }
+
+    private static string MemberName(IOperation target) => target switch
+    {
+        IFieldReferenceOperation fieldRef => Naming.ToSlangIdentifier(fieldRef.Field.Name),
+        IPropertyReferenceOperation propertyRef => Naming.ToSlangIdentifier(propertyRef.Property.Name),
+        _ => throw new InvalidOperationException("ExtractMembers accepts only field and property targets")
+    };
 
     private string SubstituteTemplate(string template, IInvocationOperation invocation)
     {

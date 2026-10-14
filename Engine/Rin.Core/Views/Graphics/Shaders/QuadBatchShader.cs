@@ -5,7 +5,7 @@ using Rin.Shade;
 
 namespace Rin.Core.Views.Graphics.Shaders;
 
-[Shader("Shaders/Rin/Core/Views/quad_batch.slang")]
+[Shader]
 public partial class QuadBatchShader : ViewShader<QuadBatchShader.FragmentIn>
 {
     public struct PushConstants

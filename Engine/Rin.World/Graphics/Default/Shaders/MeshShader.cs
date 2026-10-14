@@ -24,7 +24,7 @@ public struct MeshMaterialData
     public DeviceHandle EmissiveTexture;
 }
 
-[Shader("Shaders/Rin/World/Mesh/mesh.slang")]
+[Shader]
 public partial class MeshShader : Shader
 {
     public struct PushConstants

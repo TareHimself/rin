@@ -19,8 +19,8 @@ dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinShadeSkipCompile=t
 
 ## Shaders
 
-- The shaders are C# classes written with Rin.Shade, under `Views/Graphics/Shaders/` (`QuadBatchShader`, `ImageBatchShader`, `StencilBatchShader`, `BlurShader`, plus the helpers `ViewShader`, `ViewShaderMath` and `Sd`). Each declares an output path such as `[Shader("Shaders/Rin/Core/Views/quad_batch.slang")]`. There are no hand-written `.slang` files in this project.
-- `Rin.Core.csproj` sets `RinShadeDiscoverPrefix` to `Shaders/Rin/Core/` and `RinShadeOutputSubpath` to `Content\Shaders\Rin\Core\`, and imports `msbuild/RinShade.targets`. The build transpiles and compiles the shaders into that folder, and `Content\**` is embedded as resources. `Global.Sources` reads them back through `AssemblyContentResource.New<Global>("Shaders/Rin/Core")`.
+- The shaders are C# classes written with Rin.Shade, under `Views/Graphics/Shaders/` (`QuadBatchShader`, `ImageBatchShader`, `VideoBatchShader`, `StencilBatchShader`, `BlurShader`, plus the helpers `ViewShader`, `ViewShaderMath` and `Sd`). Each is marked `[Shader]` and is embedded as its full class name plus `.crsh`, for example `Rin.Core.Views.Graphics.Shaders.QuadBatchShader.crsh`. There are no hand-written `.slang` files in this project.
+- `Rin.Core.csproj` imports `msbuild/RinShade.targets`. The build transpiles and compiles the shaders under `obj/.../Rin.Shade.Generated/` and embeds each `.crsh` directly. The Vulkan backend opens one through the shader class's generated `Descriptor`, so no `Global.Sources` mount is involved.
 - Rin.Core is a `[ShadeExport]` source for other assemblies: `ViewShader<T>`, `DeviceHandle`, `BindlessData` and `Int4` carry the attribute, so shaders in other projects can use them. `Rin.World` does this, for example `ViewportShader : ViewShader<...>` and `MeshShader` using `BindlessData`. The pipeline is described in [Shade](../../Shade/ReadMe.md).
 
 ## Views
@@ -240,7 +240,7 @@ The main thread waits up to 3 ms for the previous render to finish. If it has, i
 - `Json/`: JSON converters for `Vector2`, `Vector3` and `Vector4`.
 - `Properties/`: `launchSettings.json`.
 - `Shared/`: math (`MathR`, easing, `Transform`, `Frustum`, `Int4`), curves, buffers, `Dispatcher`, id factory, logging (`ILogger` with `Info`, `Warn` and `Error`, a `DefaultLogger` that takes a formatter, and console and file transports that print an error's exception after its message), pooling, providers (`DefaultProvider`), threading helpers, time, profiling, and video (below).
-- `Sources/`: `ISource`, `SourceResolver`, `FileSystemSource` and embedded resource sources. `Global.Sources` combines the file system and the embedded `Core` and `Shaders/Rin/Core` content.
+- `Sources/`: `ISource`, `SourceResolver`, `FileSystemSource` and embedded resource sources. `Global.Sources` combines the file system and the embedded `Core` content.
 - `Views/`: the UI system described above, plus `Animation/` (view animation extensions), `Font/`, `Mtsdf/`, `Sdf/`, `Utilities/` (`HitTestHandler`) and `Window/`.
 - Root files: `Application` (main and render thread loop, module startup), `IApplication`, `IModule`, `Global` (service provider and sources), `Native` (P/Invoke into the native library), and small utilities.
 
@@ -255,6 +255,7 @@ The main thread waits up to 3 ms for the previous render to finish. If it has, i
   - `SparseByteBuffer` holds pieces from anywhere in a file for the two sources above and lists the gaps to fetch.
 - `WebmVideoPlayer` decodes on its own thread, and only that thread touches the source, so `SetSource` returns at once even for a network source. `IsReady` stays false until the headers are read there, and every `TryDecode` (which `VideoPlayerView` calls each frame) retries the header read, a pending `Seek` or the next decode step until the source has the data. `Duration` is 0 for a live stream, `NeededRange` says which bytes the decoder is waiting for, and a source the decoder rejects sets `HasFailed` with `Error`.
 - `VideoPlayerView.FromFile`, `FromUrl` and `FromSource` build a view over a player. It relayouts once the player is ready, and skips the progress bar and seeks while `Duration` is 0.
+- A frame crosses to the GPU as NV12, not RGBA. `CopyRecentFrame` fills a buffer laid out as `IVideoPlayer.PlanesOf` describes (`VideoFramePlanes`: a luma plane of one byte per pixel, then a chroma plane of a Cb and a Cr byte per 2x2 pixels, rounded up for odd sizes), the view uploads the two planes from one staging buffer into an R8 and an RG8 texture, and `VideoBatchShader` converts to RGB when it samples, with BT.709 for frames 720 lines or taller and BT.601 below, since the container does not say. Measured at 2560x1080, 24 fps, this took the player's CPU use from half a core to a fifth and the per-frame copy from 12 ms to 2 ms.
 
 ## Gotchas
 

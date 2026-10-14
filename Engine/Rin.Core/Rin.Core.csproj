@@ -26,10 +26,6 @@
         <EmbeddedResource Include="Content\**\*.*"/>
     </ItemGroup>
 
-    <PropertyGroup Label="Rin.Shade">
-        <RinShadeDiscoverPrefix>Shaders/Rin/Core/</RinShadeDiscoverPrefix>
-        <RinShadeOutputSubpath>Content\Shaders\Rin\Core\</RinShadeOutputSubpath>
-    </PropertyGroup>
     <Import Project="$(RinMSBuildDir)RinShade.targets" />
 
     <ItemGroup>

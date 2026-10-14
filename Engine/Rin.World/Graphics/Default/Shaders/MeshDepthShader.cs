@@ -12,7 +12,7 @@ public struct DepthMaterialData
     public BufferRef<Vertex> Vertices;
 }
 
-[Shader("Shaders/Rin/World/Mesh/mesh_depth.slang")]
+[Shader]
 public partial class MeshDepthShader : Shader
 {
     public struct PushConstants

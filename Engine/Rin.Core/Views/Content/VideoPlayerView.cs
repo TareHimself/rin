@@ -24,14 +24,20 @@ internal class VideoCommand(in Matrix4x4 transform, in Vector2 size, Buffer<byte
     : TCommand<MainPassConfig, VideoCommandHandler>
 {
     public readonly Buffer<byte> FrameData = frameData;
-    public Extent2D Extent = extent;
+    public readonly VideoFramePlanes Planes = IVideoPlayer.PlanesOf(extent);
+    // The container does not carry the colour matrix, so HD is taken as BT.709 and SD as BT.601.
+    public readonly VideoColorimetry Colorimetry = extent.Height >= 720 ? VideoColorimetry.Bt709 : VideoColorimetry.Bt601;
     public Vector2 Size = size;
     public Matrix4x4 Transform = transform;
 }
 
+/// <summary>
+///     Uploads each command's NV12 frame into a luma (R8) and a chroma (RG8) texture from one staging buffer.
+/// </summary>
 internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass, IDisposable
 {
-    public uint[] VideoImageFrameIds = [];
+    public uint[] LumaImageIds = [];
+    public uint[] ChromaImageIds = [];
     private uint[] _videoStagingBufferIds = [];
     public uint Id { get; set; }
 
@@ -46,26 +52,30 @@ internal class CreateVideoResourcesPass(VideoCommand[] commands) : IPass, IDispo
     {
         _videoStagingBufferIds = commands
             .Select(c => config.CreateBuffer(c.FrameData.GetByteSize(), GraphBufferUsage.HostThenTransfer)).ToArray();
-        VideoImageFrameIds = commands
-            .Select(c => config.CreateTexture(c.Extent, ImageFormat.RGBA8, ImageLayout.TransferDst)).ToArray();
+        LumaImageIds = commands
+            .Select(c => config.CreateTexture(c.Planes.Extent, ImageFormat.R8, ImageLayout.TransferDst)).ToArray();
+        ChromaImageIds = commands
+            .Select(c => config.CreateTexture(c.Planes.ChromaExtent, ImageFormat.RG8, ImageLayout.TransferDst)).ToArray();
     }
 
     public void Execute(ICompiledGraph graph, IExecutionContext ctx)
     {
-        var stagingBuffers = _videoStagingBufferIds.Select(graph.GetBufferOrException);
-        var images = VideoImageFrameIds.Select(graph.GetImage);
-
-        foreach (var (stagingBuffer, image, cmd) in stagingBuffers.Zip(images, commands))
+        for (var i = 0; i < commands.Length; i++)
         {
-            stagingBuffer.Write(cmd.FrameData);
-            ctx.CopyToImage(stagingBuffer, image);
+            var command = commands[i];
+            var planes = command.Planes;
+            var stagingBuffer = graph.GetBufferOrException(_videoStagingBufferIds[i]);
+            stagingBuffer.Write(command.FrameData);
+            ctx.CopyToImage(stagingBuffer.GetView(0, planes.LumaByteSize), graph.GetImage(LumaImageIds[i]));
+            ctx.CopyToImage(stagingBuffer.GetView(planes.LumaByteSize, planes.ChromaByteSize),
+                graph.GetImage(ChromaImageIds[i]));
         }
     }
 }
 
 internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
 {
-    [GraphicsShader<ImageBatchShader>]
+    [GraphicsShader<VideoBatchShader>]
     private partial IGraphicsShader VideoShader
     {
         get;
@@ -89,9 +99,9 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
 
     public void Configure(IPassConfig passConfig, SurfaceContext surfaceContext, IGraphConfig config)
     {
-        _itemBufferId = config.CreateBuffer<ImageItem>(_resourcesPass.VideoImageFrameIds.Length,
-            GraphBufferUsage.HostThenGraphics);
-        foreach (var id in _resourcesPass.VideoImageFrameIds) config.ReadTexture(id, ImageLayout.ShaderReadOnly);
+        _itemBufferId = config.CreateBuffer<VideoItem>(_commands.Length, GraphBufferUsage.HostThenGraphics);
+        foreach (var id in _resourcesPass.LumaImageIds) config.ReadTexture(id, ImageLayout.ShaderReadOnly);
+        foreach (var id in _resourcesPass.ChromaImageIds) config.ReadTexture(id, ImageLayout.ShaderReadOnly);
     }
 
     private int MaxStackVideoItems = 5;
@@ -100,37 +110,38 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
     {
         if (VideoShader.Bind(ctx) is { } bindContext)
         {
-            var frameImages = _resourcesPass.VideoImageFrameIds.Select(graph.GetImage).ToArray();
             var buffer = graph.GetBufferOrException(_itemBufferId);
 
             {
                 var rented = _commands.Length > MaxStackVideoItems
-                    ? ArrayPool<ImageItem>.Shared.Rent(_commands.Length)
+                    ? ArrayPool<VideoItem>.Shared.Rent(_commands.Length)
                     : null;
                 try
                 {
                     var videoItems = rented is not null
                         ? rented.AsSpan(0, _commands.Length)
-                        : stackalloc ImageItem[_commands.Length];
+                        : stackalloc VideoItem[_commands.Length];
                     for(var i = 0; i < _commands.Length; i++)
                     {
                         var command = _commands[i];
                         videoItems[i].Transform = command.Transform;
                         videoItems[i].Size = command.Size;
-                        videoItems[i].Image = frameImages[i];
+                        videoItems[i].Luma = graph.GetImage(_resourcesPass.LumaImageIds[i]);
+                        videoItems[i].Chroma = graph.GetImage(_resourcesPass.ChromaImageIds[i]);
+                        videoItems[i].Colorimetry = command.Colorimetry;
                     }
                     buffer.Write(videoItems);
                 }
                 finally
                 {
-                    if(rented is not null) ArrayPool<ImageItem>.Shared.Return(rented);
+                    if(rented is not null) ArrayPool<VideoItem>.Shared.Return(rented);
                 }
             }
             
             var compareMask = uint.MaxValue;
 
             ulong offset = 0;
-            var itemSize = Utils.ByteSizeOf<ImageItem>();
+            var itemSize = Utils.ByteSizeOf<VideoItem>();
             for (var i = 0; i < _commands.Length; i++)
             {
                 var command = _commands[i];
@@ -141,10 +152,10 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
                     ctx.SetStencilCompareMask(compareMask);
                 }
 
-                bindContext.Push(new ImageBatchShader.PushConstants
+                bindContext.Push(new VideoBatchShader.PushConstants
                 {
                     Projection = surfaceContext.ProjectionMatrix,
-                    Images = new BufferRef<ImageItem>(buffer.GetAddress() + offset)
+                    Items = new BufferRef<VideoItem>(buffer.GetAddress() + offset)
                 });
                 bindContext.Draw(6);
                 offset += itemSize;

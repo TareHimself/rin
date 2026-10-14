@@ -3,16 +3,10 @@ using System;
 namespace Rin.Shade;
 
 /// <summary>
-/// Marks a class as a shader and gives the path its compiled result is registered under.
+/// Marks a class as a shader to compile. Its package is embedded under the class's full name plus <c>.crsh</c>.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class ShaderAttribute(string path) : Attribute
-{
-    /// <summary>
-    /// The shader's path, for example <c>Shaders/Rin/Core/Views/blur.slang</c>.
-    /// </summary>
-    public string Path { get; } = path;
-}
+public sealed class ShaderAttribute : Attribute;
 
 /// <summary>
 /// Marks the compute entry-point method and its thread-group size in one place. A compute shader has

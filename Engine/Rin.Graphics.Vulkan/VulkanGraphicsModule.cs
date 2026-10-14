@@ -169,11 +169,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         }
     }
 
-    public IGraphicsShader MakeGraphics(string path)
-    {
-        return _shaderManager?.MakeGraphics(path) ?? throw new NullReferenceException();
-    }
-
     public IGraphicsShader MakeGraphics(IGraphicsDescriptor descriptor)
     {
         return _shaderManager?.MakeGraphics(descriptor) ?? throw new NullReferenceException();
@@ -182,11 +177,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     public IComputeShader MakeCompute(IComputeDescriptor descriptor)
     {
         return _shaderManager?.MakeCompute(descriptor) ?? throw new NullReferenceException();
-    }
-
-    public IComputeShader MakeCompute(string path)
-    {
-        return _shaderManager?.MakeCompute(path) ?? throw new NullReferenceException();
     }
 
     public IWindow CreateWindow(string name, in Extent2D extent, WindowFlags flags = WindowFlags.Visible,

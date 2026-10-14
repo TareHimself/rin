@@ -9,11 +9,12 @@ Roslyn-based transpiler from C# shader classes to Slang source text. Build-time 
 
 ## Open first
 
-- `ShadeEmitter.cs`: entry point. `ShadeEmitter.Emit(compilation)` finds every class that derives from `Shader` and has `[Shader(...)]`, and returns Slang text and a `SlangSourceMap` per class name plus diagnostics.
+- `ShadeEmitter.cs`: entry point. `ShadeEmitter.Emit(compilation)` finds every class that derives from `Shader` and has `[Shader]`, and returns Slang text and a `SlangSourceMap` per class name plus diagnostics.
 - `SlangWriter.cs`, `SlangSourceMap.cs`: the text builder records the C# `Location` in force when each line was written (set per statement by `BodyLowering` and per signature by `FunctionLowering`), and the map answers which C# location a 1-based Slang line came from.
 - `SlangDiagnostic.cs`: parses the Slang compiler's `path(line): error code: message` output, for the MSBuild task to map through the source map.
 - `ScratchCompilationBuilder.cs`: builds one compilation from the project's own sources (as `LocalSource` path and text pairs, so locations name the file) plus the source text that `[ShaderSources]`-marked referenced assemblies embed (see `GeneratedSourceReader.cs`). This is how a shader can derive from a base class or call a helper defined in another assembly.
 - `ShaderLowering.cs`, `BodyLowering.cs`, `FunctionLowering.cs`, `StructLowering.cs`: lowering of a shader, method bodies, functions and structs.
+- `WithLowering.cs`: collects the `with` expressions reachable from the entry points and emits one helper function per (type, member set) shape, writing fields and auto properties and calling setters with bodies.
 - `Diagnostics.cs`: the diagnostics reported for unsupported C#.
 
 ## Build and test

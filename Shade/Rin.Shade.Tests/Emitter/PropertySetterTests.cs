@@ -34,7 +34,7 @@ public class PropertySetterTests
             public BufferRef<float> Output;
         }
 
-        [Shader("Fixtures/setter.slang")]
+        [Shader]
         public class SetterShader : Shader
         {
             [Push] protected SetterPush Push;

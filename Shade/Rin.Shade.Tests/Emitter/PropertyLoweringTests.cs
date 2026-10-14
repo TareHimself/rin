@@ -39,7 +39,7 @@ public class PropertyLoweringTests
                                    public uint Output;
                                }
 
-                               [Shader("Fixtures/property_lowering.slang")]
+                               [Shader]
                                public class PropertyLoweringShader : Shader
                                {
                                    [Push] protected PropertyLoweringPushConstants Push;

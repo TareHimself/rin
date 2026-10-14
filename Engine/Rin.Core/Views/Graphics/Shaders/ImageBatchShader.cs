@@ -13,7 +13,7 @@ public struct ImageItem
     public DeviceHandle Image;
 }
 
-[Shader("Shaders/Rin/Core/Views/image_batch.slang")]
+[Shader]
 public partial class ImageBatchShader : ViewShader<ImageBatchShader.FragmentIn>
 {
     public struct PushConstants

@@ -7,7 +7,7 @@ namespace Rin.Core.Views.Graphics.Shaders;
 ///     Writes the stencil mask for a batch of clip regions: one instance per clip, drawn as a quad, with the
 ///     fragments outside the clip's rounded rectangle discarded. No color attachment is written.
 /// </summary>
-[Shader("Shaders/Rin/Core/Views/stencil_batch.slang")]
+[Shader]
 public partial class StencilBatchShader : Shader
 {
     public struct PushConstants

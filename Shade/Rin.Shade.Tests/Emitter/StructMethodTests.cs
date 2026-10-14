@@ -27,7 +27,7 @@ public class StructMethodTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/struct_method.slang")]
+                               [Shader]
                                public class StructMethodShader : Shader
                                {
                                    [Push] protected StructMethodPush Push;
@@ -81,7 +81,7 @@ public class StructMethodTests
                                    public BufferRef<uint> Output;
                                }
 
-                               [Shader("Fixtures/shadow.slang")]
+                               [Shader]
                                public class ShadowShader : Shader
                                {
                                    [Push] protected RangePush Push;
@@ -131,7 +131,7 @@ public class StructMethodTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/static_struct.slang")]
+                               [Shader]
                                public class StaticStructShader : Shader
                                {
                                    [Push] protected StaticPush Push;

@@ -41,7 +41,7 @@ public class NestedTypeTests
             public BufferRef<float> Output;
         }
 
-        [Shader("Fixtures/nested.slang")]
+        [Shader]
         public class NestShader : Shader
         {
             [Push] protected NestPush Push;

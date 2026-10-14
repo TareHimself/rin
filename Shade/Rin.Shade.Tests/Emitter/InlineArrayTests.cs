@@ -25,7 +25,7 @@ public class InlineArrayTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/inline_array_local.slang")]
+                               [Shader]
                                public class InlineArrayLocalShader : Shader
                                {
                                    [Push] protected LocalPush Push;
@@ -64,7 +64,7 @@ public class InlineArrayTests
             public int Length;
         }
 
-        [Shader("Fixtures/array_creation.slang")]
+        [Shader]
         public class ArrayCreationShader : Shader
         {
             private const int Count = 3;

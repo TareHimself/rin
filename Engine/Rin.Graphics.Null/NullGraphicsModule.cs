@@ -59,22 +59,12 @@ public sealed class NullGraphicsModule : IGraphicsModule
         return [];
     }
 
-    public IGraphicsShader MakeGraphics(string path)
-    {
-        return new NullGraphicsShader();
-    }
-
     public IGraphicsShader MakeGraphics(IGraphicsDescriptor descriptor)
     {
         return new NullGraphicsShader();
     }
 
     public IComputeShader MakeCompute(IComputeDescriptor descriptor)
-    {
-        return new NullComputeShader();
-    }
-
-    public IComputeShader MakeCompute(string path)
     {
         return new NullComputeShader();
     }

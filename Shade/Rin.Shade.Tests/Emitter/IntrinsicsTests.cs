@@ -18,7 +18,7 @@ public class IntrinsicsTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/discard.slang")]
+                               [Shader]
                                public class DiscardShader : Shader
                                {
                                    [Push] protected DiscardPush Push;
@@ -58,7 +58,7 @@ public class IntrinsicsTests
                                    public BufferRef<int> Output;
                                }
 
-                               [Shader("Fixtures/reinterpret.slang")]
+                               [Shader]
                                public class ReinterpretShader : Shader
                                {
                                    [Push] protected ReinterpretPush Push;

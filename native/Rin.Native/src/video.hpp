@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <cstdint>
 
 struct Extent2D
@@ -70,7 +70,10 @@ RIN_NATIVE_API VideoByteRange videoContextGetNeededRange(void *context);
 RIN_NATIVE_API int videoContextEnded(void *context);
 RIN_NATIVE_API int videoContextGetBufferedFrameCount(void *context);
 RIN_NATIVE_API void videoContextDropFramesBefore(void *context, double timestamp);
-// Writes the RGBA frame for `timestamp` and returns 1, or returns 0 when it is the frame the last call wrote.
+// Bytes of one NV12 frame: a tightly packed Y plane of width * height, then an interleaved UV plane of
+// ceil(width / 2) * 2 bytes per row for ceil(height / 2) rows. 0 until the headers are read.
+RIN_NATIVE_API std::uint64_t videoContextGetFrameByteSize(void *context);
+// Writes the NV12 frame for `timestamp` and returns 1, or returns 0 when it is the frame the last call wrote.
 RIN_NATIVE_API int videoContextCopyRecentFrame(void *context, double timestamp, std::uint8_t *destination, std::uint64_t size);
 // Reads nothing, videoContextEnsureHeader and videoContextDecode do.
 RIN_NATIVE_API void videoContextSetSource(void *context,void * source);

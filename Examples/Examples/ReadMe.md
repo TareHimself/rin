@@ -31,13 +31,13 @@ With no argument a launcher window lists the examples, and clicking one starts i
 ## How it fits together
 
 - `Program.cs` reads the name, then runs `HeadlessApplication` for `headless` or an `ExampleHost` for everything else.
-- `ExampleHost` derives from `ExampleApplication` (in [Examples.Common](../Common/ReadMe.md)). It creates one window, registers the `Shaders/Examples` source, loads `assets/fonts/LINESeedJP-Regular.ttf` (LINE Seed JP, SIL OFL, Latin and Japanese) and makes it the views module's `DefaultFontFamily`, so every text view in the examples uses it unless it sets its own. It then starts the example on the first surface. `ExampleHost.AssetPath` resolves a file under `assets/` next to the executable. A child window is disposed when closed, and closing the main window exits.
+- `ExampleHost` derives from `ExampleApplication` (in [Examples.Common](../Common/ReadMe.md)). It creates one window, loads `assets/fonts/LINESeedJP-Regular.ttf` (LINE Seed JP, SIL OFL, Latin and Japanese) and makes it the views module's `DefaultFontFamily`, so every text view in the examples uses it unless it sets its own. It then starts the example on the first surface. `ExampleHost.AssetPath` resolves a file under `assets/` next to the executable. A child window is disposed when closed, and closing the main window exits.
 - `Example` has a `Name` (the argument), a `Title`, a `WindowSize`, `Start(ExampleContext)` and `Stop()`.
 - `ExampleContext` carries the host (for `Textures`), the window surface and the command line arguments. An example adds its views with `context.Add` and its handlers with `context.OnUpdate`, `context.OnKey` and `context.OnDrop`, and the host removes and disposes all of them when the example stops. `context.IsActive` turns false at that point, for work that finishes later, such as a model load.
 - Stopping removes the views and handlers first, then calls `Stop()`, on Back and on exit. A view frees what it owns in `Dispose` (audio, video, child windows), and `Stop()` frees the rest (worlds, the mesh factory, textures, network sessions). The host puts the audio volumes back to what they were before the example started.
 - `Common/Views/` holds what the UI examples share: `Ui` (the palette, and helpers for labels, gaps, rows, columns and buttons), `CardView` (rounded rect with a border and a shadow made of stacked translucent rects), `ActionButton` (hover and pressed colors, centered label), `InputCard` (the border around a text field, which passes clicks on its padding to the field), `LineInputView` (a `TextInputBoxView` with a placeholder that raises `Submitted` on Enter) and `SpacerView`.
 - `LauncherView` is the two columns of buttons shown when no name is given, and `BackButtonView` is the Back button.
-- `assets/` is copied to the output directory. Shade shaders use paths under `Shaders/Examples/`.
+- `assets/` is copied to the output directory. Shade shaders are embedded by class name, see [Shade](../../Shade/ReadMe.md).
 
 To add an example, add a folder with an `Example` subclass and add it to `ExampleRegistry.All`. Add views and handlers through the context, not the surface or the window, or Back will leave them behind.
 
@@ -53,7 +53,7 @@ A canvas to draw on. Drag with the left button to paint and with the right butto
 
 ### video-player
 
-Open video picks a webm file and plays it fitted to the window. The field next to it takes a URL, and Enter or Open URL plays that webm over HTTP through `VideoPlayerView.FromUrl`, which fetches it with range requests as it goes. The bar shows the position and length, or Loading until the headers are in and the failure if the decoder rejects the source, and its play button plays and pauses. `VideoPlayerView` itself also takes input: a left click on the video toggles play and a right click seeks to that point of its width.
+Open video picks a webm file and plays it fitted to the window, and a path or URL after the example name (`-- video-player clip.webm`) opens at start. The field next to it takes a URL, and Enter or Open URL plays that webm over HTTP through `VideoPlayerView.FromUrl`, which fetches it with range requests as it goes. The bar shows the position and length, or Loading until the headers are in and the failure if the decoder rejects the source, and its play button plays and pauses. `VideoPlayerView` itself also takes input: a left click on the video toggles play and a right click seeks to that point of its width.
 
 ### audio-effects
 

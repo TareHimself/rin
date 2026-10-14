@@ -6,7 +6,7 @@ using Rin.Shade;
 namespace experiment.Slug.Shaders;
 
 // Port of Eric Lengyel's SLUG reference implementation (https://github.com/EricLengyel/Slug, MIT/Apache-2.0).
-[Shader("Shaders/Slug/slug.slang")]
+[Shader]
 public partial class SlugShader : Shader
 {
     private const int LogBandWidth = 12;

@@ -8,16 +8,34 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Rin.Shade.SourceGenerator;
 
 /// <summary>
-/// Emits a static <c>Descriptor</c> on every partial <c>[Shader]</c> class, holding the pipeline
-/// state a backend needs (attachment formats, blend state, depth and stencil use, thread-group
-/// size), read from the class's attributes and overrides. The shader is never instantiated: the
-/// expression of the most-derived <c>BlendState</c> override is copied into the descriptor along
-/// with the using directives of its file. Classes that SHADEGEN0001 or SHADEGEN0002 reject, and
-/// classes with no compute or vertex entry point, are skipped.
+/// Emits a static <c>Descriptor</c> on every partial <c>[Shader]</c> class, naming the assembly and the
+/// class's full name (which is the embedded package's resource name) and holding the pipeline state a
+/// backend needs (attachment formats, blend state, depth and stencil use, thread-group size), read from
+/// the class's attributes and overrides. The shader is never instantiated: the expression of the
+/// most-derived <c>BlendState</c> override is copied into the descriptor along with the using directives
+/// of its file. A <c>[Shader]</c> class that is not partial or is nested is an error (SHADEGEN0001,
+/// SHADEGEN0002); abstract and generic classes, and classes with no compute or vertex entry point, are
+/// skipped.
 /// </summary>
 [Generator]
 public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
 {
+    private static readonly DiagnosticDescriptor MissingPartial = new(
+        id: "SHADEGEN0001",
+        title: "[Shader] class must be partial",
+        messageFormat: "'{0}' is marked [Shader] but isn't declared 'partial' - the generated Descriptor can't be added without it",
+        category: "Rin.Shade",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor NestedShaderClass = new(
+        id: "SHADEGEN0002",
+        title: "[Shader] class must not be nested",
+        messageFormat: "'{0}' is marked [Shader] but is a nested class - only top-level classes get a Descriptor",
+        category: "Rin.Shade",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     private static readonly DiagnosticDescriptor UnsupportedBlendState = new(
         id: "SHADEGEN0003",
         title: "Unsupported BlendState override",
@@ -43,32 +61,39 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
                 transform: static (ctx, _) => GetShaderInfo(ctx))
             .Where(static info => info is not null);
 
-        context.RegisterSourceOutput(shaderClasses, static (spc, info) => Execute(spc, info!.Value));
+        context.RegisterSourceOutput(shaderClasses, static (spc, info) => Execute(spc, info!));
     }
 
-    private static (INamedTypeSymbol Symbol, string Path)? GetShaderInfo(GeneratorSyntaxContext context)
+    private static INamedTypeSymbol? GetShaderInfo(GeneratorSyntaxContext context)
     {
         var declaration = (ClassDeclarationSyntax)context.Node;
         var symbol = context.SemanticModel.GetDeclaredSymbol(declaration);
-        if (symbol is null) return null;
-
-        var attribute = symbol.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == ShaderAttributeFullName);
-        return attribute?.ConstructorArguments.FirstOrDefault().Value is string path ? (symbol, path) : null;
+        return symbol is not null && HasAttribute(symbol, ShaderAttributeFullName) ? symbol : null;
     }
 
-    private static void Execute(SourceProductionContext context, (INamedTypeSymbol Symbol, string Path) info)
+    private static void Execute(SourceProductionContext context, INamedTypeSymbol symbol)
     {
-        var symbol = info.Symbol;
-        if (symbol.ContainingType is not null || symbol.IsAbstract || symbol.IsGenericType) return;
+        if (symbol.IsAbstract || symbol.IsGenericType) return;
+
+        if (symbol.ContainingType is not null)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(NestedShaderClass,
+                symbol.Locations.FirstOrDefault() ?? Location.None, symbol.Name));
+            return;
+        }
 
         var isPartial = symbol.DeclaringSyntaxReferences
             .Select(r => r.GetSyntax())
             .OfType<ClassDeclarationSyntax>()
             .Any(d => d.Modifiers.Any(SyntaxKind.PartialKeyword));
-        if (!isPartial) return;
+        if (!isPartial)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(MissingPartial,
+                symbol.Locations.FirstOrDefault() ?? Location.None, symbol.Name));
+            return;
+        }
 
-        var pathLiteral = SymbolDisplay.FormatLiteral(info.Path, quote: true);
+        var identity = $"typeof({symbol.Name}).Assembly, {SymbolDisplay.FormatLiteral(symbol.ToDisplayString(), quote: true)}";
         var chain = WalkBaseChain(symbol);
         var entries = EffectiveMethods(chain).ToList();
 
@@ -83,7 +108,7 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
             var args = computeEntry.Attribute.ConstructorArguments;
             if (args.Length != 3) return;
             descriptor =
-                $"public {(BaseHasGeneratedDescriptor(symbol) ? "new " : "")}static global::Rin.Shade.IComputeDescriptor Descriptor {{ get; }} = new global::Rin.Shade.ComputeDescriptor({pathLiteral}, ({args[0].Value}u, {args[1].Value}u, {args[2].Value}u));";
+                $"public {(BaseHasGeneratedDescriptor(symbol) ? "new " : "")}static global::Rin.Shade.IComputeDescriptor Descriptor {{ get; }} = new global::Rin.Shade.ComputeDescriptor({identity}, ({args[0].Value}u, {args[1].Value}u, {args[2].Value}u));";
         }
         else if (vertex is { } vertexEntry && compute is null)
         {
@@ -110,7 +135,7 @@ public class ShaderDescriptorSourceGenerator : IIncrementalGenerator
 
             descriptor =
                 $"/// <summary>The descriptor of {symbol.Name}, with the format of each color attachment under <c>Output</c>.</summary>\n" +
-                $"    public {modifier}sealed record GeneratedDescriptor() : global::Rin.Shade.GraphicsDescriptor({pathLiteral}, new global::Rin.Shade.AttachmentFormat[] {{ {formatsLiteral} }}, {blendState}, {(usesDepth ? "true" : "false")}, {(usesStencil ? "true" : "false")})\n" +
+                $"    public {modifier}sealed record GeneratedDescriptor() : global::Rin.Shade.GraphicsDescriptor({identity}, new global::Rin.Shade.AttachmentFormat[] {{ {formatsLiteral} }}, {blendState}, {(usesDepth ? "true" : "false")}, {(usesStencil ? "true" : "false")})\n" +
                 "    {\n" +
                 "        /// <summary>The formats of the color attachments the fragment stage writes.</summary>\n" +
                 "        public readonly struct OutputFormats(global::Rin.Shade.AttachmentFormat[] formats)\n" +

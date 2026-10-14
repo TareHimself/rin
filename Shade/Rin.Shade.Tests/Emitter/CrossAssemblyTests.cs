@@ -92,7 +92,7 @@ public class CrossAssemblyTests
                                         public BufferRef<float> Output;
                                     }
 
-                                    [Shader("Fixtures/probe.slang")]
+                                    [Shader]
                                     public class ProbeShader : Shader
                                     {
                                         [Push] protected ProbePush Push;

@@ -44,7 +44,7 @@ public class GraphicsShaderEmitterTests
                                    [Attachment(AttachmentFormat.RGBA32)] [Semantic("SV_Target2")] public Vector4 Normal;
                                }
 
-                               [Shader("Fixtures/gbuffer.slang")]
+                               [Shader]
                                public class GBufferShader : Shader
                                {
                                    [Vertex]
@@ -87,7 +87,7 @@ public class GraphicsShaderEmitterTests
                                    [Semantic("UV")] public Vector2 Uv;
                                }
 
-                               [Shader("Fixtures/fragment_only.slang")]
+                               [Shader]
                                public class FragmentOnlyShader : Shader
                                {
                                    [Fragment]
@@ -118,7 +118,7 @@ public class GraphicsShaderEmitterTests
                                    [Semantic("SV_VertexID")] public int VertexId;
                                }
 
-                               [Shader("Fixtures/conflicting.slang")]
+                               [Shader]
                                public class ConflictingEntryPointsShader : Shader
                                {
                                    [Compute(1, 1, 1)]
@@ -155,7 +155,7 @@ public class GraphicsShaderEmitterTests
                                    [Semantic("SV_Position")] public Vector4 Position;
                                }
 
-                               [Shader("Fixtures/duplicate_vertex.slang")]
+                               [Shader]
                                public class DuplicateVertexShader : Shader
                                {
                                    [Vertex]

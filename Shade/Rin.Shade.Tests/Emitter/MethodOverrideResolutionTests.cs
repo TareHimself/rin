@@ -34,7 +34,7 @@ public class MethodOverrideResolutionTests
                                    }
                                }
 
-                               [Shader("Fixtures/override_resolution.slang")]
+                               [Shader]
                                public class ConsumerShader : BaseShader
                                {
                                    protected override float GetValue(float raw) => raw * 2f;
@@ -58,7 +58,7 @@ public class MethodOverrideResolutionTests
 
                                namespace UnresolvedAbstractCheck;
 
-                               [Shader("Fixtures/unresolved_abstract.slang")]
+                               [Shader]
                                public abstract class BaseShader : Shader
                                {
                                    protected abstract float GetValue();

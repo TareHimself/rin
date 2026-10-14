@@ -1,6 +1,6 @@
 # Shade
 
-Rin.Shade lets you write shaders in C#. A Roslyn-based transpiler turns the C# shader classes into Slang source, the Slang toolchain (`Slang/`) compiles that to a shader package, and the package is embedded in the consuming assembly. The engine loads it by the path you gave the shader class.
+Rin.Shade lets you write shaders in C#. A Roslyn-based transpiler turns the C# shader classes into Slang source, the Slang toolchain (`Slang/`) compiles that to a shader package, and the package is embedded in the consuming assembly under the shader class's full name plus `.crsh`. The class's generated `Descriptor` names that resource and the assembly, and the engine opens it from there.
 
 ## The big picture
 
@@ -11,7 +11,7 @@ flowchart LR
     end
 
     subgraph build["At build time"]
-        GEN["Rin.Shade.SourceGenerator<br/>Path const and Descriptor"]
+        GEN["Rin.Shade.SourceGenerator<br/>Descriptor"]
         TRANS["Rin.Shade.Transpiler<br/>C# to Slang text"]
         SLANG["Rin.Slang.Compiler<br/>Slang to SPIR-V package (.crsh)"]
     end
@@ -37,7 +37,7 @@ Two things come out of one C# class. The transpiler and Slang compiler produce t
 | --- | --- |
 | [Rin.Shade](Rin.Shade/ReadMe.md) | The authoring API: `Shader` base class, attributes, intrinsics, `BufferRef<T>`, descriptors. |
 | [Rin.Shade.Transpiler](Rin.Shade.Transpiler/ReadMe.md) | The Roslyn transpiler from C# shader classes to Slang text (`ShadeEmitter`). |
-| [Rin.Shade.SourceGenerator](Rin.Shade.SourceGenerator/ReadMe.md) | Roslyn source generators: `Path` constant, `Descriptor`, and exported shader source. |
+| [Rin.Shade.SourceGenerator](Rin.Shade.SourceGenerator/ReadMe.md) | Roslyn source generators: `Descriptor` and exported shader source. |
 | [Rin.Shade.MSBuild](Rin.Shade.MSBuild/ReadMe.md) | The `CompileRinShadeShaders` MSBuild task used by `msbuild/RinShade.targets`. |
 | [Rin.Shade.Cli](Rin.Shade.Cli/ReadMe.md) | `rin-shade compile`, a command line wrapper over the transpiler. |
 | [Rin.Shade.Tests](Rin.Shade.Tests/ReadMe.md) | Snapshot and unit tests for the transpiler and generators (no native Slang needed). |
@@ -82,7 +82,7 @@ using Rin.Shade;
 
 namespace Demo;
 
-[Shader("Shaders/Demo/tint.slang")]
+[Shader]
 public partial class TintShader : Shader
 {
     public struct PushConstants
@@ -165,6 +165,7 @@ What to notice:
 - `[Push]` becomes the `push` push-constant uniform, and `[VertexId]`, `[Position]` and `[Semantic("UV")]` become Slang semantics on the struct fields. Semantics only go on struct fields, so entry points take a struct.
 - `Lerp` is a static member of `Shader`, an intrinsic that maps to Slang's `lerp`. Shaders call the math builtins unqualified; a helper class outside a shader calls them as `Shader.Lerp` or adds `using static Rin.Shade.Shader;`. Plain C# (`var`, `new Vector4(...)`, operators, shifts) is translated as written.
 - Semantic attributes are valid only on struct fields, and the C# compiler rejects them on parameters. That is why entry points take a struct.
+- A struct's auto properties become fields and a `record struct`, positional or not, becomes a plain struct. A property with a getter or setter body becomes a method. A `with` expression becomes a call to a helper function synthesized per (type, member set) shape that copies the value, writes each field or auto property and calls each setter, so it works on records and on properties with setter bodies alike.
 - A construct the transpiler cannot translate is reported as a diagnostic in your build output. That includes any `double`: a literal without an `f` suffix, a `double` local, parameter, return type or field is SHADE0021, because shaders compute in float and Slang would otherwise run that code in double or reject it later. An error from the Slang compiler is reported against the C# line it was lowered from, through the source map the emitter keeps for every Slang line.
 
 From the same class the source generator adds a typed descriptor, which the engine passes to `MakeGraphics`:
@@ -184,7 +185,7 @@ Shaders can derive from other shader classes. A base class can own the blend sta
 
 | Attribute | Goes on | Meaning |
 | --- | --- | --- |
-| `[Shader("path")]` | class | The path the compiled shader is registered under. |
+| `[Shader]` | class | A shader to compile. Its package is embedded as `<full class name>.crsh`. |
 | `[Compute(x, y, z)]` | method | Compute entry point and its thread-group size. |
 | `[Vertex]`, `[Fragment]` | method | Graphics entry points. |
 | `[Attachment(format)]` | fragment method or output field | Color attachment format. |
@@ -218,10 +219,10 @@ sequenceDiagram
 ```
 
 1. The `CompileShadeShaders` target in `msbuild/RinShade.targets` runs before the project's own C# compile (`BeforeTargets="BeforeCompile;AssignTargetPaths"`) and calls the `Rin.Shade.MSBuild` task. The task builds one compilation from the project's sources plus the exported source of the referenced assemblies, and calls `ShadeEmitter.Emit`.
-2. During the project's normal C# compile, `Rin.Shade.SourceGenerator` adds a `Path` constant and a `Descriptor` to each `partial` shader class, and embeds the source of `[ShadeExport]` types as constants for downstream projects.
+2. During the project's normal C# compile, `Rin.Shade.SourceGenerator` adds a `Descriptor` to each `partial` shader class, naming its assembly and full class name, and embeds the source of `[ShadeExport]` types as constants for downstream projects.
 3. The emitter lowers each `[Shader]` class to Slang text, and records for every Slang line the C# location it came from (`SlangSourceMap`). C# it cannot translate becomes a diagnostic (an error in your build output), not wrong shader code.
-4. The Slang goes to a scratch location under the project's `obj` folder and is compiled by `Rin.Slang.Compiler`, unless the `.crsh` already there was compiled from identical Slang (its manifest carries a source hash), in which case it is reused and, when that holds for every shader, no Slang session is created. A Slang error is parsed (`SlangDiagnostic`) and logged against the C# file and line from the source map, so it is clickable like any other build error. The resulting `.crsh` file is embedded as an `EmbeddedResource`. No `.slang` file is written into the tracked tree. To look at the Slang, build with `-p:RinShadeDumpGenerated=true` and read the output directory's `GeneratedShaders` folder.
-5. At run time the Vulkan backend reads the `.crsh` for the descriptor's `Path`, takes the SPIR-V for each stage, and takes the pipeline state from the descriptor.
+4. The Slang goes to `obj/.../Rin.Shade.Generated/<full class name>.slang` and is compiled by `Rin.Slang.Compiler` to `<full class name>.crsh` next to it, unless the `.crsh` already there was compiled from identical Slang (its manifest carries a source hash), in which case it is reused and, when that holds for every shader, no Slang session is created. A Slang error is parsed (`SlangDiagnostic`) and logged against the C# file and line from the source map, so it is clickable like any other build error. The resulting `.crsh` file is embedded as an `EmbeddedResource` named `<full class name>.crsh`. No `.slang` file is written into the tracked tree. To look at the Slang, build with `-p:RinShadeDumpGenerated=true` and read the output directory's `GeneratedShaders` folder.
+5. At run time the Vulkan backend opens the `.crsh` through the descriptor (`IShaderDescriptor.Open` reads the resource named by `Name` from `Assembly`), takes the SPIR-V for each stage, and takes the pipeline state from the descriptor.
 
 ## Inside the transpiler
 
@@ -270,7 +271,7 @@ flowchart LR
 
 ## Build integration
 
-A project that contains Shade shaders sets `RinShadeDiscoverPrefix` (the path prefix its `[Shader]` paths start with) and `RinShadeOutputSubpath`, then imports `msbuild/RinShade.targets`. `Engine/Rin.Core/Rin.Core.csproj` is an example. See [Rin.Shade.MSBuild](Rin.Shade.MSBuild/ReadMe.md) for the properties and gotchas.
+A project that contains Shade shaders imports `msbuild/RinShade.targets`, nothing else. `Engine/Rin.Core/Rin.Core.csproj` is an example. See [Rin.Shade.MSBuild](Rin.Shade.MSBuild/ReadMe.md) for the optional properties and gotchas.
 
 Two flags you will use:
 

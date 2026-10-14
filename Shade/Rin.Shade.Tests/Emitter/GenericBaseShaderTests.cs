@@ -34,7 +34,7 @@ public class GenericBaseShaderTests
                                    }
                                }
 
-                               [Shader("Fixtures/generic_base.slang")]
+                               [Shader]
                                public class ConsumerShader : GenericBaseShader<ConsumerPush>
                                {
                                    protected override float GetValue(ConsumerPush push) => push.Value;

@@ -36,21 +36,21 @@ public class ShaderDescriptorSourceGeneratorTests
     }
 
     [Test]
-    public void DerivedShaderHidesTheBaseDescriptorAndPathExplicitly()
+    public void DerivedShaderHidesTheBaseDescriptorExplicitly()
     {
         const string source = """
                                using Rin.Shade;
 
                                namespace HidingCheck;
 
-                               [Shader("Check/base.slang")]
+                               [Shader]
                                public partial class BaseShader : Shader
                                {
                                    [Compute(1, 1, 1)]
                                    public virtual void Compute() { }
                                }
 
-                               [Shader("Check/derived.slang")]
+                               [Shader]
                                public partial class DerivedShader : BaseShader
                                {
                                    public override void Compute() { }
@@ -64,7 +64,7 @@ public class ShaderDescriptorSourceGeneratorTests
             [CSharpSyntaxTree.ParseText(source)], references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-        var driver = CSharpGeneratorDriver.Create(new ShaderDescriptorSourceGenerator(), new ShaderPathSourceGenerator());
+        var driver = CSharpGeneratorDriver.Create(new ShaderDescriptorSourceGenerator());
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);
 
         var hiding = output.GetDiagnostics().Where(d => d.Id is "CS0108" or "CS0109").ToList();
@@ -85,7 +85,7 @@ public class ShaderDescriptorSourceGeneratorTests
                                    [Semantic("SV_Position")] public Vector4 Position;
                                }
 
-                               [Shader("Check/graphics.slang")]
+                               [Shader]
                                public partial class GraphicsCheckShader : Shader
                                {
                                    protected override BlendState BlendState => BlendState.Additive;
@@ -100,7 +100,8 @@ public class ShaderDescriptorSourceGeneratorTests
 
         var descriptor = (IGraphicsDescriptor)GetDescriptor(source, "DescriptorCheck.GraphicsCheckShader");
 
-        Assert.That(descriptor.Path, Is.EqualTo("Check/graphics.slang"));
+        Assert.That(descriptor.Name, Is.EqualTo("DescriptorCheck.GraphicsCheckShader"));
+        Assert.That(descriptor.Assembly.GetType(descriptor.Name), Is.Not.Null);
         Assert.That(descriptor.AttachmentFormats, Is.EqualTo(new[] { AttachmentFormat.RGBA16 }));
         Assert.That(descriptor.BlendState, Is.EqualTo(BlendState.Additive));
         Assert.That(descriptor.UsesDepth, Is.True);
@@ -132,7 +133,7 @@ public class ShaderDescriptorSourceGeneratorTests
                                    public virtual Vector4 Fragment() => default;
                                }
 
-                               [Shader("Check/glow.slang")]
+                               [Shader]
                                public partial class GlowShader : UiBase
                                {
                                    protected override BlendState BlendState => BlendState.Additive;
@@ -166,7 +167,7 @@ public class ShaderDescriptorSourceGeneratorTests
                                    [Attachment(AttachmentFormat.RGBA16)] [Semantic("SV_Target1")] public Vector4 Normal;
                                }
 
-                               [Shader("Check/gbuffer.slang")]
+                               [Shader]
                                public partial class GBufferCheckShader : Shader
                                {
                                    [Vertex]
@@ -192,7 +193,7 @@ public class ShaderDescriptorSourceGeneratorTests
 
                                namespace ComputeDescriptorCheck;
 
-                               [Shader("Check/compute.slang")]
+                               [Shader]
                                public partial class ComputeCheckShader : Shader
                                {
                                    [Compute(8, 4, 2)]
@@ -204,7 +205,8 @@ public class ShaderDescriptorSourceGeneratorTests
 
         var descriptor = (IComputeDescriptor)GetDescriptor(source, "ComputeDescriptorCheck.ComputeCheckShader");
 
-        Assert.That(descriptor.Path, Is.EqualTo("Check/compute.slang"));
+        Assert.That(descriptor.Name, Is.EqualTo("ComputeDescriptorCheck.ComputeCheckShader"));
+        Assert.That(descriptor.Assembly.GetType(descriptor.Name), Is.Not.Null);
         Assert.That(descriptor.ThreadGroupSize, Is.EqualTo((8u, 4u, 2u)));
     }
 }

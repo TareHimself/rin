@@ -8,7 +8,7 @@ namespace experiment.StencilAndCover.Shaders;
 // curve, so this draws one thin quad per original edge and blends an analytic antialiasing correction against
 // the true curve. The signed distance is fixed by the edge's own P0 to P2 direction, which is why every edge
 // must be fed in its contour's original winding order.
-[Shader("Shaders/StencilAndCover/boundary_aa.slang")]
+[Shader]
 public partial class BoundaryAaShader : Shader
 {
     public struct PushConstants

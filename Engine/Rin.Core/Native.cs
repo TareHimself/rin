@@ -121,6 +121,9 @@ internal static partial class Native
     public static partial int videoContextCopyRecentFrame(IntPtr context, double time, IntPtr destination, ulong size);
 
     [LibraryImport(DllName)]
+    public static partial ulong videoContextGetFrameByteSize(IntPtr context);
+
+    [LibraryImport(DllName)]
     public static partial void videoContextSetSource(IntPtr context, IntPtr source);
 
     [LibraryImport(DllName)]

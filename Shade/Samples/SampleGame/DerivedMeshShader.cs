@@ -4,7 +4,7 @@ using SampleWorld;
 
 namespace SampleGame;
 
-[Shader("Fixtures/derived_mesh.slang")]
+[Shader]
 public class DerivedMeshShader : BaseMeshShader
 {
     public override void Compute()

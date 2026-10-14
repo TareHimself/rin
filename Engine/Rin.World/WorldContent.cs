@@ -9,6 +9,5 @@ internal sealed class WorldContent
     internal static void Init()
     {
         Global.Sources.AddSource(AssemblyContentResource.New<WorldContent>("World"));
-        Global.Sources.AddSource(AssemblyContentResource.New<WorldContent>("Shaders/Rin/World"));
     }
 }

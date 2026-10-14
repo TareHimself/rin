@@ -26,7 +26,7 @@ public class RejectionCoverageTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/string_field.slang")]
+                               [Shader]
                                public class StringFieldShader : Shader
                                {
                                    [Push] protected StringPush Push;
@@ -53,7 +53,7 @@ public class RejectionCoverageTests
 
                                namespace LambdaCheck;
 
-                               [Shader("Fixtures/lambda.slang")]
+                               [Shader]
                                public class LambdaShader : Shader
                                {
                                    [Compute(1, 1, 1)]
@@ -78,7 +78,7 @@ public class RejectionCoverageTests
 
                                namespace LinqCheck;
 
-                               [Shader("Fixtures/linq.slang")]
+                               [Shader]
                                public class LinqShader : Shader
                                {
                                    [Compute(1, 1, 1)]
@@ -111,7 +111,7 @@ public class RejectionCoverageTests
                                    public static ref float Identity(ref float x) => ref x;
                                }
 
-                               [Shader("Fixtures/ref_return.slang")]
+                               [Shader]
                                public class RefReturnShader : Shader
                                {
                                    [Compute(1, 1, 1)]
@@ -136,7 +136,7 @@ public class RejectionCoverageTests
 
                                namespace GenericShaderCheck;
 
-                               [Shader("Fixtures/generic.slang")]
+                               [Shader]
                                public class GenericShader<T> : Shader
                                {
                                    [Compute(1, 1, 1)]
@@ -166,7 +166,7 @@ public class RejectionCoverageTests
                                    public static Fixed8 operator +(Fixed8 a, Fixed8 b) => new() { Raw = a.Raw + b.Raw };
                                }
 
-                               [Shader("Fixtures/operator_overload.slang")]
+                               [Shader]
                                public class OperatorOverloadShader : Shader
                                {
                                    [Compute(1, 1, 1)]

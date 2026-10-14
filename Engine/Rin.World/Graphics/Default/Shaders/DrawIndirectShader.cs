@@ -3,7 +3,7 @@ using Rin.Shade;
 
 namespace Rin.World.Graphics.Default.Shaders;
 
-[Shader("Shaders/Rin/World/Mesh/Compute/draw_indirect.slang")]
+[Shader]
 public partial class DrawIndirectShader : Shader
 {
     public struct PushConstants

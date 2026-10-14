@@ -39,7 +39,7 @@ public class BindingGroupTests
                                    public BufferRef<float> Output;
                                }
 
-                               [Shader("Fixtures/binding.slang")]
+                               [Shader]
                                public class BindingShader : Shader
                                {
                                    [BindingGroup]
@@ -71,7 +71,7 @@ public class BindingGroupTests
 
                                namespace BadBindingGroupCheck;
 
-                               [Shader("Fixtures/bad_binding.slang")]
+                               [Shader]
                                public class BadBindingShader : Shader
                                {
                                    [BindingGroup]
@@ -110,7 +110,7 @@ public class BindingGroupTests
                                    public OneTexture ReadTextures;
                                }
 
-                               [Shader("Fixtures/bad_instance_binding.slang")]
+                               [Shader]
                                public class BadInstanceBindingShader : Shader
                                {
                                    [BindingGroup]

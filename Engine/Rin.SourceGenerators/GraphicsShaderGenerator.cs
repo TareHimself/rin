@@ -214,26 +214,17 @@ public class GraphicsShaderGenerator : IIncrementalGenerator
             var attributeData = property.GetAttributes()
                 .First(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, attributeClass));
 
-            string argumentSource;
-            if (attributeClass.IsGenericType)
+            var shaderType = attributeClass.TypeArguments[0];
+            if (!HasShadeShaderAttribute(shaderType))
             {
-                var shaderType = attributeClass.TypeArguments[0];
-                if (!HasShadeShaderAttribute(shaderType))
-                {
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        Diagnostics.Shader.ShaderTypeMissingShaderAttribute,
-                        property.Locations.FirstOrDefault() ?? Location.None,
-                        property.Name, shaderType.ToDisplayString()));
-                    continue;
-                }
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.Shader.ShaderTypeMissingShaderAttribute,
+                    property.Locations.FirstOrDefault() ?? Location.None,
+                    property.Name, shaderType.ToDisplayString()));
+                continue;
+            }
 
-                argumentSource = $"{shaderType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.Descriptor";
-            }
-            else
-            {
-                argumentSource = SymbolDisplay.FormatLiteral(
-                    (string)attributeData.ConstructorArguments[0].Value!, quote: true);
-            }
+            var argumentSource = $"{shaderType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.Descriptor";
 
             var factoryMethod = IsShaderAttribute(attributeClass, GraphicsShaderAttributeName) ? "MakeGraphics" : "MakeCompute";
             var propertyType = property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);

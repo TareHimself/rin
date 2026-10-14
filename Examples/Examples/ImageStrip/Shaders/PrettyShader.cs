@@ -17,7 +17,7 @@ public struct PrettyData
     public float Time;
 }
 
-[Shader("Shaders/Examples/ImageStrip/pretty.slang")]
+[Shader]
 public partial class PrettyShader : ViewShader<PrettyShader.FragmentIn>
 {
     public struct PushConstants

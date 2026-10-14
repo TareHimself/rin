@@ -29,7 +29,7 @@ public class OperatorPrecedenceTests
                 public BufferRef<float> Output;
             }
 
-            [Shader("Fixtures/precedence.slang")]
+            [Shader]
             public class PrecedenceShader : Shader
             {
                 [Push] protected PrecedencePush Push;
@@ -96,7 +96,7 @@ public class OperatorPrecedenceTests
 
             public struct NamedPush { public Matrix4x4 M; public BufferRef<float> Output; }
 
-            [Shader("Fixtures/named.slang")]
+            [Shader]
             public class NamedShader : Shader
             {
                 [Push] protected NamedPush Push;

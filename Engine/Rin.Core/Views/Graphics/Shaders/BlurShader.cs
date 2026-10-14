@@ -18,7 +18,7 @@ public struct BlurData
     public Vector4 DestRect;
 }
 
-[Shader("Shaders/Rin/Core/Views/blur.slang")]
+[Shader]
 public partial class BlurShader : ViewShader<BlurShader.FragmentIn>
 {
     public struct PushConstants

@@ -11,7 +11,7 @@ public struct SdfPushConstants
     public BufferRef<float> Output;
 }
 
-[Shader("Fixtures/sdf.slang")]
+[Shader]
 public class SdfFixtureShader : Shader
 {
     [Push] protected SdfPushConstants Push;

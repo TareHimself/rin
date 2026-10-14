@@ -1,6 +1,7 @@
-﻿#include "video.hpp"
+#include "video.hpp"
 
 #include <atomic>
+#include <cstring>
 #include <memory.hpp>
 #include <mutex>
 #include <optional>
@@ -22,6 +23,9 @@ struct VideoPacket {
 struct VideoTrackInfo {
     bool hasVideo{};
     Extent2D extent{};
+    std::size_t lumaByteSize{};
+    std::size_t chromaRowBytes{};
+    std::size_t chromaRows{};
     std::size_t frameByteSize{};
     int audioTrackCount{};
     int audioSampleRate{};
@@ -152,7 +156,10 @@ static void captureTrackInfo(VideoDecodeContext* ctx) {
     if (info.hasVideo) {
         const auto track = ctx->decoder->GetVideoTrack();
         info.extent = Extent2D{static_cast<std::uint32_t>(track.width), static_cast<std::uint32_t>(track.height)};
-        info.frameByteSize = static_cast<std::size_t>(track.width) * track.height * 4;
+        info.lumaByteSize = static_cast<std::size_t>(track.width) * track.height;
+        info.chromaRowBytes = static_cast<std::size_t>((track.width + 1) / 2) * 2;
+        info.chromaRows = static_cast<std::size_t>((track.height + 1) / 2);
+        info.frameByteSize = info.lumaByteSize + info.chromaRowBytes * info.chromaRows;
     }
     if (ctx->decoder->HasAudio()) {
         const auto track = ctx->decoder->GetAudioTrack(0);
@@ -293,9 +300,33 @@ void videoContextDropFramesBefore(void *context, double timestamp) {
     dropFramesBefore(videoContext, timestamp);
 }
 
+std::uint64_t videoContextGetFrameByteSize(void *context) {
+    return trackInfo(static_cast<VideoDecodeContext *>(context)).frameByteSize;
+}
+
+// webmdx writes the UV plane with a row stride of `width` bytes, which is one byte short of a row of
+// chroma pairs when the width is odd, so those rows are spread out again after the fact.
+static void writeNv12(const VideoTrackInfo& info, wdx::IDecodedVideoFrame& frame, std::uint8_t* destination) {
+    const auto luma = std::span(destination, info.lumaByteSize);
+    const auto chroma = std::span(destination + info.lumaByteSize, info.chromaRowBytes * info.chromaRows);
+    const std::size_t writtenRowBytes = info.extent.width;
+    if (writtenRowBytes == info.chromaRowBytes) {
+        frame.ToNV12(luma, chroma);
+        return;
+    }
+
+    std::vector<std::uint8_t> packed(writtenRowBytes * info.chromaRows + 1);
+    frame.ToNV12(luma, packed);
+    for (std::size_t row = info.chromaRows; row-- > 0;) {
+        std::memcpy(chroma.data() + row * info.chromaRowBytes, packed.data() + row * writtenRowBytes, writtenRowBytes);
+        chroma[row * info.chromaRowBytes + writtenRowBytes] = chroma[row * info.chromaRowBytes + writtenRowBytes - 2];
+    }
+}
+
 int videoContextCopyRecentFrame(void *context, double timestamp, std::uint8_t *destination, std::uint64_t size) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    const auto frameByteSize = trackInfo(videoContext).frameByteSize;
+    const auto& info = trackInfo(videoContext);
+    const auto frameByteSize = info.frameByteSize;
     std::shared_ptr<VideoPacket> packet;
     {
         std::lock_guard lock(videoContext->queueMutex);
@@ -307,7 +338,7 @@ int videoContextCopyRecentFrame(void *context, double timestamp, std::uint8_t *d
         videoContext->lastReturnedTimestamp = packet->timestamp;
     }
 
-    packet->data->ToRgba(std::span(destination, size));
+    writeNv12(info, *packet->data, destination);
     return 1;
 }
 

@@ -15,7 +15,7 @@ public class OutVarAndNamedArgumentTests
             public BufferRef<float> Output;
         }
 
-        [Shader("Fixtures/out_var.slang")]
+        [Shader]
         public class OutVarShader : Shader
         {
             [Push] protected OutPush Push;

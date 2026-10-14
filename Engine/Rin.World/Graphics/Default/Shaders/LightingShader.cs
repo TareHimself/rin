@@ -14,7 +14,7 @@ public struct LightingInfo
     public int LightCount;
 }
 
-[Shader("Shaders/Rin/World/lighting.slang")]
+[Shader]
 public partial class LightingShader : Shader
 {
     public struct PushConstants

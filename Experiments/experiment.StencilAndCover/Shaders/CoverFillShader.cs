@@ -6,7 +6,7 @@ namespace experiment.StencilAndCover.Shaders;
 // Pass 2a of stencil-and-cover. Draws the shape's screen-space bounding quad in a solid color, gated by the
 // fixed-function stencil test (StencilCoverOp: passes where the winding count from the fill pass is nonzero
 // and resets that texel to 0 as it draws). The result is correctly filled but hard-edged.
-[Shader("Shaders/StencilAndCover/cover_fill.slang")]
+[Shader]
 public partial class CoverFillShader : Shader
 {
     public struct PushConstants

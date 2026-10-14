@@ -39,7 +39,7 @@ public class BindlessBlockTests
     private static string Shader(string field) => Types + $$"""
 
 
-        [Shader("Fixtures/bindless.slang")]
+        [Shader]
         public class BindlessShader : Shader
         {
             [Push] protected BindlessPush Push;
@@ -74,7 +74,7 @@ public class BindlessBlockTests
         var source = Types + """
 
 
-            [Shader("Fixtures/bindless_sample.slang")]
+            [Shader]
             public class SampleShader : Shader
             {
                 [Push] protected BindlessPush Push;
@@ -136,7 +136,7 @@ public class BindlessBlockTests
         var source = Types + "\n" + material + """
 
 
-            [Shader("Fixtures/bindless_order.slang")]
+            [Shader]
             public class OrderShader : Shader
             {
                 [Push] protected BindlessPush Push;
