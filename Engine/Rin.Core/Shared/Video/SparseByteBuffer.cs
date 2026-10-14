@@ -81,9 +81,10 @@ public sealed class SparseByteBuffer
         if (cursor < end) missing.Add(new ByteRange(cursor, end));
     }
 
+    // A lower offset than last time, after a seek back, is the new watermark and drops nothing.
     public void ReleaseBefore(long offset)
     {
-        if (offset <= Released) return;
+        if (offset == Released) return;
         Released = offset;
 
         while (_pieces.Count > 0 && _pieces[0].End <= offset) _pieces.RemoveAt(0);

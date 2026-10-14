@@ -142,16 +142,17 @@ public class SparseByteBufferTests
     }
 
     [Test]
-    public void AReleaseBehindTheLastOneIsIgnored()
+    public void ALowerReleaseAfterASeekBackBecomesTheWatermarkAndDropsNothing()
     {
         var buffer = new SparseByteBuffer();
         buffer.Write(0, Bytes(0, 10));
         buffer.ReleaseBefore(8);
+        buffer.Write(20, Bytes(20, 10));
 
         buffer.ReleaseBefore(2);
 
-        Assert.That(buffer.Released, Is.EqualTo(8));
-        Assert.That(buffer.Available, Is.EqualTo(10));
+        Assert.That(buffer.Released, Is.EqualTo(2));
+        Assert.That(buffer.AvailableFrom(20), Is.EqualTo(30));
     }
 
     [Test]
