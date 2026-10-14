@@ -82,21 +82,9 @@ public class Actor : IUpdatable
     }
 
     [PublicAPI]
-    public IComponent AddComponent(Type type)
+    public T AddComponent<T>() where T : IComponent, new()
     {
-        var component = (IComponent?)Activator.CreateInstance(type);
-        if (component == null) throw new Exception("Failed to create component");
-
-        AddComponent(component);
-        return component;
-    }
-
-    [PublicAPI]
-    public T AddComponent<T>() where T : IComponent
-    {
-        var component = Activator.CreateInstance<T>();
-        if (component == null) throw new Exception("Failed to create component");
-
+        var component = new T();
         AddComponent(component);
         return component;
     }
