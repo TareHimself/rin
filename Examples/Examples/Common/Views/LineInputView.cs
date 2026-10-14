@@ -1,4 +1,3 @@
-using Examples.Common.Views;
 using System.Numerics;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Views.Content;
@@ -6,7 +5,7 @@ using Rin.Core.Views.Events;
 using Rin.Core.Views.Graphics;
 using Rin.Core.Views.Graphics.Quads;
 
-namespace Examples.P2PChat.Views;
+namespace Examples.Common.Views;
 
 /// <summary>
 ///     A single line text input that raises <see cref="Submitted" /> on Enter instead of inserting a new line.

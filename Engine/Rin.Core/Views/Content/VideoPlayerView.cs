@@ -156,6 +156,7 @@ internal partial class VideoCommandHandler : ICommandHandlerWithPreAdd
 public class VideoPlayerView : ContentView
 {
     private readonly IVideoPlayer _player;
+    private bool _laidOutForVideo;
 
     private VideoPlayerView(IVideoPlayer context)
     {
@@ -164,6 +165,7 @@ public class VideoPlayerView : ContentView
 
     public bool IsReady => _player.IsReady;
     public bool HasFailed => _player.HasFailed;
+    public Exception? Error => _player.Error;
     public bool HasVideo => _player.HasVideo;
     public bool IsPlaying => _player.IsPlaying;
     public double Position => _player.Position;
@@ -263,6 +265,11 @@ public class VideoPlayerView : ContentView
     {
         base.Update(deltaTime);
         _player.TryDecode();
+        // The extent is unknown until the headers are read, which happens on the decode thread.
+        if (_laidOutForVideo || !_player.IsReady) return;
+        _laidOutForVideo = true;
+        InvalidateDesiredSize();
+        InvalidateLayout();
     }
 
     public override void OnCursorDown(CursorDownSurfaceEvent e, in Matrix4x4 transform)

@@ -252,8 +252,8 @@ The main thread waits up to 3 ms for the previous render to finish. If it has, i
   - `HttpVideoSource`: fetches with range requests as the decoder asks, at least 256 KiB at a time, so a seek pulls only the part of the file it lands on. Bytes the decoder is done with are dropped, so a seek back below them refetches the file from there up to the old position in one request, because webmdx asks for all of it. A server without range support gets one full download instead.
   - `StreamVideoSource`: fed from outside with `Append` and `End`, for a live stream or a file still downloading. `StreamVideoSource(true)` frees released bytes, at the cost of seeking back into them.
   - `SparseByteBuffer` holds pieces from anywhere in a file for the two sources above and lists the gaps to fetch.
-- `WebmVideoPlayer` decodes on its own thread. `SetSource` reads the headers if the source already holds them. Otherwise `IsReady` stays false and every `TryDecode` (which `VideoPlayerView` calls each frame) retries the header read, a pending `Seek` or the next decode step until the source has the data. `Duration` is 0 for a live stream, `NeededRange` says which bytes the decoder is waiting for, and a source the decoder rejects sets `HasFailed` with `Error`.
-- `VideoPlayerView.FromFile`, `FromUrl` and `FromSource` build a view over a player. It skips the progress bar and seeks while `Duration` is 0.
+- `WebmVideoPlayer` decodes on its own thread, and only that thread touches the source, so `SetSource` returns at once even for a network source. `IsReady` stays false until the headers are read there, and every `TryDecode` (which `VideoPlayerView` calls each frame) retries the header read, a pending `Seek` or the next decode step until the source has the data. `Duration` is 0 for a live stream, `NeededRange` says which bytes the decoder is waiting for, and a source the decoder rejects sets `HasFailed` with `Error`.
+- `VideoPlayerView.FromFile`, `FromUrl` and `FromSource` build a view over a player. It relayouts once the player is ready, and skips the progress bar and seeks while `Duration` is 0.
 
 ## Gotchas
 

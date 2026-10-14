@@ -188,8 +188,8 @@ public class WebmVideoPlayer : IVideoPlayer
         Duration = 0.0;
         _bufferSize = 0;
 
-        // A file is ready at once. A stream may not be, and the decode thread keeps trying.
-        if (!TryBecomeReady()) _decodeEvent.Set();
+        // Only the decode thread touches a source, so even a file becomes ready there a moment later.
+        _decodeEvent.Set();
     }
 
     public void Dispose()
