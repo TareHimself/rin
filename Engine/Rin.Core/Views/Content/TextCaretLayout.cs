@@ -63,7 +63,7 @@ public static class TextCaretLayout
 
     /// <summary>
     ///     One rect per line covering the characters after caret index <paramref name="start" /> up to and
-    ///     including the one at <paramref name="end" />. A selected line break shows as a quarter line of width.
+    ///     including the one at <paramref name="end" />. A selected line break adds no width.
     /// </summary>
     public static void SelectionRects(ReadOnlySpan<GlyphRect> bounds, int start, int end, List<Rect2D> output)
     {
@@ -79,15 +79,10 @@ public static class TextCaretLayout
             if (!isLineEnd) continue;
 
             var left = bounds[lineStart].PenX;
-            var right = bounds[i].PenX + SelectedWidth(bounds[i]);
+            var right = bounds[i].PenX + (bounds[i].Character == '\n' ? 0f : bounds[i].Advance);
             output.Add(new Rect2D(new Vector2(left, bounds[i].LineTop), new Vector2(right - left, bounds[i].LineHeight)));
             lineStart = i + 1;
         }
-    }
-
-    private static float SelectedWidth(in GlyphRect bound)
-    {
-        return bound.Character == '\n' ? float.Max(bound.Advance, bound.LineHeight / 4f) : bound.Advance;
     }
 
     private static int FindLineStart(ReadOnlySpan<GlyphRect> bounds, float y)

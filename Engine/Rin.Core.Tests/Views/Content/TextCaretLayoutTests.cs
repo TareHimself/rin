@@ -111,7 +111,7 @@ public class TextCaretLayoutTests
     }
 
     [Test]
-    public void SelectionAcrossLinesHasOneRectPerLineAndShowsTheLineBreak()
+    public void SelectionAcrossLinesHasOneRectPerLineAndNoWidthForTheLineBreak()
     {
         var rects = new List<Rect2D>();
 
@@ -119,7 +119,7 @@ public class TextCaretLayoutTests
 
         Assert.That(rects, Is.EqualTo(new[]
         {
-            new Rect2D(new Vector2(Advance, 0f), new Vector2(2 * Advance, LineHeight)),
+            new Rect2D(new Vector2(Advance, 0f), new Vector2(Advance, LineHeight)),
             new Rect2D(new Vector2(0f, LineHeight), new Vector2(Advance, LineHeight))
         }));
     }
