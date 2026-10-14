@@ -7,15 +7,21 @@ using StageEntry = (Microsoft.CodeAnalysis.IMethodSymbol EffectiveMethod, Micros
 namespace Rin.Shade.Transpiler;
 
 /// <summary>
+/// The Slang module for one shader class and the map from its lines back to the C# they came from.
+/// </summary>
+internal readonly record struct LoweredShader(string Text, SlangSourceMap SourceMap);
+
+/// <summary>
 /// Lowers one shader class (and its base chain) to a complete Slang module: types, bindings, helper
 /// functions and the compute or vertex/fragment entry points.
 /// </summary>
 internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> diagnostics)
 {
     /// <summary>
-    /// Returns the Slang source for the shader class, or null (after adding a diagnostic) if its entry points are invalid.
+    /// Returns the Slang source and its source map for the shader class, or null (after adding a diagnostic) if its
+    /// entry points are invalid.
     /// </summary>
-    public string? Lower(INamedTypeSymbol shaderClass)
+    public LoweredShader? Lower(INamedTypeSymbol shaderClass)
     {
         if (shaderClass.IsGenericType)
         {
@@ -177,7 +183,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         foreach (var function in FunctionGrouping.Group(functionOrder, functionCollector.Dependencies))
         {
             var lowered = FunctionLowering.Lower(compilation, function, diagnostics, withHelperSpecs, overrides);
-            if (string.IsNullOrEmpty(lowered.Text)) continue;
+            if (lowered.Writer is null || lowered.Writer.IsEmpty) continue;
 
             if (!SymbolEqualityComparer.Default.Equals(lowered.ExtensionOf, openExtension))
             {
@@ -196,12 +202,12 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
 
             if (openExtension is null)
             {
-                writer.Append(lowered.Text);
+                writer.Append(lowered.Writer);
                 writer.Line();
             }
             else
             {
-                writer.AppendBlock(lowered.Text);
+                writer.AppendBlock(lowered.Writer);
             }
         }
 
@@ -217,6 +223,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         if (computeEntry is { } compute)
         {
             var (x, y, z) = GetNumThreads(compute.Marker);
+            writer.Origin = compute.EffectiveMethod.Locations.FirstOrDefault();
             writer.Line("[shader(\"compute\")]");
             writer.Line($"[numthreads({x}, {y}, {z})]");
 
@@ -236,7 +243,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             }
         }
 
-        return writer.ToString();
+        return new LoweredShader(writer.ToString(), writer.ToSourceMap());
     }
 
     private static void EmitGraphicsStage(Compilation compilation, List<Diagnostic> diagnostics, SlangWriter writer,
@@ -244,6 +251,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         IReadOnlyDictionary<string, WithHelperSpec> withHelperSpecs,
         IReadOnlyDictionary<IMethodSymbol, IMethodSymbol> overrides)
     {
+        writer.Origin = entry.EffectiveMethod.Locations.FirstOrDefault();
         writer.Line($"[shader(\"{stageName}\")]");
 
         var signature = entry.EffectiveMethod.ReturnsVoid

@@ -58,7 +58,7 @@ public partial class StencilBatchShader : Shader
     {
         var clip = Push.Clips[input.QuadIndex];
         var result = ViewShaderMath.ApplyBorderRadius(input.Coordinate, new Vector4(0f, 0f, 0f, 1f),
-            new Vector4(0f, 0f, 0f, 0f), clip.Size, clip.InverseTransform, 1f);
+            BorderRadius.All(0f), clip.Size, clip.InverseTransform, 1f);
 
         if (result.W > 0.01f) Discard();
     }

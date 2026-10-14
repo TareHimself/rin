@@ -2,7 +2,7 @@ using Rin.Shade.Transpiler;
 
 namespace Rin.Shade.Tests.Emitter;
 
-// Unary operators, compound assignment, ternary expressions, and Shader.Math (the shipped
+// Unary operators, compound assignment, ternary expressions, and the Shader math builtins (the shipped
 // [SlangExpression] math library replacing per-fixture hand-rolled externs).
 public class NewOperatorsAndIntrinsicsTests
 {
@@ -76,9 +76,9 @@ public class NewOperatorsAndIntrinsicsTests
                                    [Compute(1, 1, 1)]
                                    public void Compute()
                                    {
-                                       var n = Math.Normalize(Push.A);
-                                       var d = Math.Dot(n, Push.B);
-                                       var c = Math.Clamp(d, 0f, 1f);
+                                       var n = Normalize(Push.A);
+                                       var d = Dot(n, Push.B);
+                                       var c = Clamp(d, 0f, 1f);
                                        Push.Output[0] = c;
                                    }
                                }

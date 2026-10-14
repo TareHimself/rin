@@ -81,6 +81,11 @@ internal static class TypeMapping
     }
 
     /// <summary>
+    /// Whether the type is System.Double, which shaders never compute in (see Diagnostics.Emitter.DoubleNotSupported).
+    /// </summary>
+    public static bool IsDouble(ITypeSymbol? type) => type?.SpecialType == SpecialType.System_Double;
+
+    /// <summary>
     /// Whether the type is a Slang builtin opaque resource (texture or sampler), a plain C# struct on the Rin.Shade side.
     /// </summary>
     public static bool IsResourceType(ITypeSymbol type) =>
@@ -95,6 +100,7 @@ internal static class TypeMapping
     public static bool IsLegalShaderType(ITypeSymbol type)
     {
         if (InlineArrays.TryGet(type, out var inlineElement, out _)) return IsLegalShaderType(inlineElement);
+        if (IsDouble(type)) return false;
         if (IsBuiltIn(type)) return true;
         return type.TypeKind is TypeKind.Struct or TypeKind.Enum;
     }

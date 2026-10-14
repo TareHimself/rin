@@ -26,8 +26,12 @@ namespace Examples.Sponza;
 
 public sealed class SponzaExample : Example
 {
+    private static readonly Log Log = Log.For<SponzaExample>();
+
     private readonly Lock _lock = new();
     private IMeshFactory? _meshFactory;
+    private World? _world;
+    private ResourceHandle[] _textures = [];
 
     public override string Name => "sponza";
 
@@ -38,20 +42,29 @@ public sealed class SponzaExample : Example
     public override void Start(ExampleContext context)
     {
         _meshFactory = Global.Provider.AddSingle<IMeshFactory>(new MeshFactory());
-        var surf = context.Surface;
 
         Task.Run(() =>
         {
             LoadSponza(Path.Join(Global.Directory, "assets", "models", "sponza.glb"))
-                .DispatchMain(world =>
+                .DispatchMain(loaded =>
                 {
+                    var world = loaded.World;
+                    if (!context.IsActive)
+                    {
+                        world.Stop();
+                        IGraphicsModule.Get().FreeResourceHandles(loaded.Textures);
+                        return;
+                    }
+
+                    _world = world;
+                    _textures = loaded.Textures;
                     var camera = world.AddActor<CameraActor>();
                     var light = camera.AddComponent<PointLightComponent>();
                     
                     light.Radiance = 100000;
 
-                    surf.Add(new TestViewport(camera));
-                    surf.Add(new PanelView
+                    context.Add(new TestViewport(camera));
+                    context.Add(new PanelView
                     {
                         InitSlots =
                         [
@@ -65,14 +78,19 @@ public sealed class SponzaExample : Example
                             }
                         ]
                     });
-                    context.Application.OnUpdate += world.Update;
+                    context.OnUpdate(world.Update);
                 });
         });
     }
 
     public override void Stop()
     {
+        _world?.Stop();
+        _world = null;
+        IGraphicsModule.Get().FreeResourceHandles(_textures);
+        _textures = [];
         _meshFactory?.Dispose();
+        _meshFactory = null;
     }
 
     private ResourceHandle LoadImage(Texture? texture, Dictionary<int, ResourceHandle> cache)
@@ -103,7 +121,9 @@ public sealed class SponzaExample : Example
         }
     }
 
-    public async Task<World> LoadSponza(string filename)
+    private sealed record LoadedScene(World World, ResourceHandle[] Textures);
+
+    private async Task<LoadedScene> LoadSponza(string filename)
     {
         var model = ModelRoot.Load(filename);
         var mesh = model?.LogicalMeshes?.FirstOrDefault() ?? throw new NullReferenceException();
@@ -114,7 +134,7 @@ public sealed class SponzaExample : Example
 
         var textures = new Dictionary<int, ResourceHandle>();
 
-        Console.WriteLine("Loading Textures...");
+        Log.Info("Loading textures");
         mesh.Primitives.Select((c, idx) => (c, idx)).AsParallel().ForAll(data =>
         {
             var (primitive, idx) = data;
@@ -132,8 +152,7 @@ public sealed class SponzaExample : Example
                 MetallicRoughnessImageId = pbrImage
             };
         });
-        Console.WriteLine("Done Loading Textures...");
-        Console.WriteLine("Loading Geometry...");
+        Log.Info("Loading geometry");
         foreach (var primitive in mesh.Primitives)
         {
             if (primitive == null) continue;
@@ -173,7 +192,7 @@ public sealed class SponzaExample : Example
             surfaces.Add(newSurface);
         }
 
-        Console.WriteLine("Done Loading Geometry...");
+        Log.Info("Geometry loaded");
 
         var sceneBounds = CollectionsMarshal.AsSpan(vertices).ComputeBounds();
 
@@ -225,6 +244,6 @@ public sealed class SponzaExample : Example
         //         }
         //     });
 
-        return world;
+        return new LoadedScene(world, textures.Values.ToArray());
     }
 }

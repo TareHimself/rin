@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using Examples.Common;
+using System.Numerics;
 using Rin.World.Actors;
 using Rin.World.Math;
 using Rin.World.Views;
@@ -10,6 +11,8 @@ namespace Examples.Sponza;
 
 public class TestViewport(CameraActor camera) : Viewport(camera.GetCameraComponent())
 {
+    private static readonly Log Log = Log.For<TestViewport>();
+
     private readonly Actor _testActor = camera;
     // private readonly Actor _testActor = camera.World?.AddActor(new Actor
     // {
@@ -85,7 +88,7 @@ public class TestViewport(CameraActor camera) : Viewport(camera.GetCameraCompone
                     InputState.Pressed => +moveSpeed,
                     InputState.Released => -moveSpeed
                 };
-                Console.WriteLine("Forward {0}", e.State);
+                Log.Info($"Forward {e.State}");
             }
 
             if (e is { Key: InputKey.S })

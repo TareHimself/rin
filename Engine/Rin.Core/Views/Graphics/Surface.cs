@@ -53,6 +53,7 @@ public abstract class Surface : ISurface
 
     public abstract void StartTyping(View view);
     public abstract void StopTyping(View view);
+    public abstract void SetTypingRect(View view, in Rect2D caret);
     public event Action<CursorUpSurfaceEvent>? OnCursorUp;
 
     public virtual void Init()
@@ -182,6 +183,11 @@ public abstract class Surface : ISurface
     public virtual void ReceiveCharacter(CharacterSurfaceEvent e)
     {
         FocusedView?.OnCharacter(e);
+    }
+
+    public virtual void ReceiveTextPreedit(TextPreeditSurfaceEvent e)
+    {
+        FocusedView?.OnTextPreedit(e);
     }
 
     public virtual void ReceiveKeyboard(KeyboardSurfaceEvent e)

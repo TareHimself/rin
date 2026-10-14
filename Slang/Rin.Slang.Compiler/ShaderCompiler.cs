@@ -31,10 +31,12 @@ public sealed class ShaderCompiler : IDisposable
     ///     path: hashing, and the module identity handed to Slang (which can embed it in debug/reflection
     ///     output).
     /// </summary>
-    private string ToPortableId(string absolutePath)
+    private string ToPortableId(string absolutePath) => ToPortableId(absolutePath, _portableRoot);
+
+    private static string ToPortableId(string absolutePath, string? portableRoot)
     {
-        if (_portableRoot is null) return absolutePath;
-        return Path.GetRelativePath(_portableRoot, absolutePath).Replace(Path.DirectorySeparatorChar, '/')
+        if (portableRoot is null) return absolutePath;
+        return Path.GetRelativePath(portableRoot, absolutePath).Replace(Path.DirectorySeparatorChar, '/')
             .Replace(Path.AltDirectorySeparatorChar, '/');
     }
 
@@ -80,19 +82,23 @@ public sealed class ShaderCompiler : IDisposable
     ///     build's up-to-date check) to hash and compare against a previous compile's
     ///     <see cref="CompiledShader.Dependencies" /> before deciding whether a real recompile is needed.
     /// </summary>
-    public (string PortableId, string AbsolutePath)[] ResolveDependencies(string sourcePath)
+    public (string PortableId, string AbsolutePath)[] ResolveDependencies(string sourcePath) =>
+        ResolveDependencies(sourcePath, _searchPaths, _pathAliases, _portableRoot);
+
+    private static (string PortableId, string AbsolutePath)[] ResolveDependencies(string sourcePath,
+        IReadOnlyList<string> searchPaths, IReadOnlyDictionary<string, string> pathAliases, string? portableRoot)
     {
         sourcePath = Path.GetFullPath(sourcePath);
         var included = new HashSet<string>();
         var resolvedPaths = new List<string> { sourcePath };
-        foreach (var _ in ImportFile(sourcePath, included, _searchPaths, _pathAliases, resolvedPaths))
+        foreach (var _ in ImportFile(sourcePath, included, searchPaths, pathAliases, resolvedPaths))
         {
             // Only draining the enumerable for its resolvedPaths side effect - the joined source itself
             // isn't needed here.
         }
 
         return resolvedPaths.Distinct(StringComparer.Ordinal).OrderBy(p => p, StringComparer.Ordinal)
-            .Select(p => (PortableId: ToPortableId(p), AbsolutePath: p)).ToArray();
+            .Select(p => (PortableId: ToPortableId(p, portableRoot), AbsolutePath: p)).ToArray();
     }
 
     /// <summary>
@@ -101,7 +107,18 @@ public sealed class ShaderCompiler : IDisposable
     ///     skipped. False (never throws for a missing/corrupt package) if it can't tell, so callers can
     ///     treat that the same as "stale, recompile".
     /// </summary>
-    public bool IsUpToDate(string packagePath, string sourcePath)
+    public bool IsUpToDate(string packagePath, string sourcePath) =>
+        IsUpToDate(packagePath, sourcePath, _searchPaths, _pathAliases, _portableRoot);
+
+    /// <summary>
+    ///     <see cref="IsUpToDate(string, string)" /> without a compiler, so a build can skip creating the Slang
+    ///     session (the expensive part) when nothing needs compiling.
+    /// </summary>
+    public static bool IsUpToDate(string packagePath, string sourcePath, ShaderCompilerOptions options) =>
+        IsUpToDate(packagePath, sourcePath, options.SearchPaths, options.PathAliases, options.PortableRoot);
+
+    private static bool IsUpToDate(string packagePath, string sourcePath, IReadOnlyList<string> searchPaths,
+        IReadOnlyDictionary<string, string> pathAliases, string? portableRoot)
     {
         if (!File.Exists(packagePath)) return false;
 
@@ -117,7 +134,7 @@ public sealed class ShaderCompiler : IDisposable
 
         if (manifest is null) return false;
 
-        var dependencies = ResolveDependencies(sourcePath);
+        var dependencies = ResolveDependencies(sourcePath, searchPaths, pathAliases, portableRoot);
         return dependencies.All(d => File.Exists(d.AbsolutePath)) &&
                ShaderSourceHash.Compute(dependencies) == manifest.SourceHash;
     }

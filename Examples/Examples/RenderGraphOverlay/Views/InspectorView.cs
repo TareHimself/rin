@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Content;
@@ -43,7 +43,7 @@ public sealed class InspectorView : PanelView
             {
                 Child = new RectView
                 {
-                    Color = new Color(0.1f, 0.11f, 0.14f, 1f),
+                    Color = Color.FromRgb(0.1f, 0.11f, 0.14f),
                     Clip = Clip.Bounds,
                     InitChild = _canvas
                 },
@@ -106,7 +106,7 @@ public sealed class InspectorView : PanelView
         return new RectView
         {
             Color = Color.Black with { A = 0.7f },
-            BorderRadius = new Vector4(12f),
+            BorderRadius = BorderRadius.All(12f),
             Padding = new Padding(10f),
             InitChild = new ListView(Axis.Row)
             {
@@ -133,8 +133,8 @@ public sealed class InspectorView : PanelView
     {
         var button = new ButtonView
         {
-            Color = new Color(0.22f, 0.42f, 0.82f, 1f),
-            BorderRadius = new Vector4(8f),
+            Color = Color.FromRgb(0.22f, 0.42f, 0.82f),
+            BorderRadius = BorderRadius.All(8f),
             Padding = new Padding(14f, 6f),
             InitChild = content
         };
@@ -164,7 +164,7 @@ public sealed class InspectorView : PanelView
             InitChild = new RectView
             {
                 Color = Color.Black with { A = 0.6f },
-                BorderRadius = new Vector4(12f),
+                BorderRadius = BorderRadius.All(12f),
                 Padding = new Padding(14f),
                 InitChild = new SizerView
                 {

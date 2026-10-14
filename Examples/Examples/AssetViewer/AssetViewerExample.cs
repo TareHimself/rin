@@ -64,14 +64,17 @@ public sealed class AssetViewerExample : Example
 
         LoadAndSpawnModel(scene, camera);
 
-        context.Surface.Add(new Viewport(camera));
+        context.Add(new Viewport(camera));
 
-        context.Application.OnUpdate += dt => _scene?.Update(dt);
+        context.OnUpdate(scene.Update);
     }
 
     public override void Stop()
     {
+        _scene?.Stop();
+        _scene = null;
         _meshFactory?.Dispose();
+        _meshFactory = null;
     }
 
     private static async void LoadAndSpawnModel(World scene, CameraComponent camera)
@@ -87,6 +90,7 @@ public sealed class AssetViewerExample : Example
 
         IApplication.Get().MainDispatcher.Enqueue(() =>
         {
+            if (!scene.Active) return;
             scene.AddActor(new Actor
             {
                 RootComponent = new SkinnedMeshComponent { Mesh = mesh, PoseSource = graph }

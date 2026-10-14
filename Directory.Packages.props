@@ -26,8 +26,7 @@
         <PackageVersion Include="TerraFX.Interop.Vulkan" Version="1.4.328.1" />
         <PackageVersion Include="BepuPhysics" Version="2.5.0-beta.25" />
         <PackageVersion Include="SharpGLTF.Core" Version="1.0.4" />
-        <PackageVersion Include="SpotifyExplode" Version="1.1.2" />
-        <PackageVersion Include="YoutubeExplode" Version="6.6.0" />
+        <PackageVersion Include="z440.atl.core" Version="7.18.0" />
         <PackageVersion Include="SixLabors.Fonts" Version="2.1.3" />
     </ItemGroup>
 

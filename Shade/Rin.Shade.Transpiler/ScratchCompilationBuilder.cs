@@ -17,10 +17,20 @@ public static class ScratchCompilationBuilder
     /// Parses the local sources, adds the embedded sources found in the references, and compiles them together.
     /// </summary>
     public static ScratchCompilationResult Build(IEnumerable<string> localSources,
+        IEnumerable<MetadataReference> references, string name = "RinShadeScratch") =>
+        Build(localSources.Select(source => new LocalSource("", source)), references, name);
+
+    /// <summary>
+    /// Like <see cref="Build(IEnumerable{string}, IEnumerable{MetadataReference}, string)" />, with each local
+    /// source parsed under its file path so diagnostics and source maps can name the file.
+    /// </summary>
+    public static ScratchCompilationResult Build(IEnumerable<LocalSource> localSources,
         IEnumerable<MetadataReference> references, string name = "RinShadeScratch")
     {
         var referenceList = references.ToList();
-        var localTrees = localSources.Select(source => (SyntaxTree)CSharpSyntaxTree.ParseText(source)).ToList();
+        var localTrees = localSources
+            .Select(source => (SyntaxTree)CSharpSyntaxTree.ParseText(source.Text, path: source.Path))
+            .ToList();
 
         // Only used to resolve each reference's assembly symbol, which needs a Compilation to ask through.
         var probe = CSharpCompilation.Create(name, localTrees, referenceList,
@@ -40,6 +50,11 @@ public static class ScratchCompilationBuilder
         return new ScratchCompilationResult(compilation, [..localTrees]);
     }
 }
+
+/// <summary>
+/// One of the consumer's own source files: its path, for locations, and its text.
+/// </summary>
+public sealed record LocalSource(string Path, string Text);
 
 /// <summary>
 /// The scratch compilation and its LocalTrees, the subset of syntax trees that came from the consumer's

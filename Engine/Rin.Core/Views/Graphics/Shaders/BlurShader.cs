@@ -68,7 +68,7 @@ public partial class BlurShader : ViewShader<BlurShader.FragmentIn>
 
     private static float NormPdf(float x, float sigma)
     {
-        return 0.39894f * Math.Exp(-0.5f * x * x / (sigma * sigma)) / sigma;
+        return 0.39894f * Exp(-0.5f * x * x / (sigma * sigma)) / sigma;
     }
 
     protected override Vector4 Color(FragmentIn input)
@@ -77,8 +77,8 @@ public partial class BlurShader : ViewShader<BlurShader.FragmentIn>
         var handle = data.SourceT;
         var imageSize = Bindless.GetTextureSize(handle);
 
-        var p1 = data.DestRect.xy;
-        var p2 = data.DestRect.zw;
+        var p1 = data.DestRect.XY;
+        var p2 = data.DestRect.ZW;
         var imageUv = (input.Coordinate - p1) / (p2 - p1);
         var texel = new Vector2(1f) / imageSize;
 
@@ -92,13 +92,15 @@ public partial class BlurShader : ViewShader<BlurShader.FragmentIn>
         for (var i = -kernelRadius; i <= kernelRadius; i++)
         {
             var offset = horizontal ? new Vector2(i * texel.X, 0f) : new Vector2(0f, i * texel.Y);
-            var weight = NormPdf(Math.Abs((float)i), sigma);
+            var weight = NormPdf(Abs((float)i), sigma);
             var sample = Bindless.SampleTexture(handle, imageUv + offset, ImageTiling.ClampEdge, ImageFilter.Linear);
-            color += new Vector4(sample.xyz * sample.W, sample.W) * weight;
+            color += new Vector4(sample.XYZ * sample.W, sample.W) * weight;
             weightSum += weight;
         }
 
-        color /= Math.Max(weightSum, 1e-5f);
-        return new Vector4(color.xyz / Math.Max(color.W, 1e-5f), color.W);
+        color /= Max(weightSum, 1e-5f);
+        var result = new Vector4(color.XYZ / Max(color.W, 1e-5f), color.W);
+        if (!horizontal) result *= data.Tint;
+        return result;
     }
 }

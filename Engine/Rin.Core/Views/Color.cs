@@ -38,10 +38,41 @@ public struct Color(float inR, float inG, float inB, float inA) : ISubtractionOp
         return new Vector3(color.R, color.G, color.B);
     }
 
+    public static Color FromRgb(float r, float g, float b)
+    {
+        return new Color(r, g, b, 1f);
+    }
+
+    public static Color FromBytes(byte r, byte g, byte b, byte a = 255)
+    {
+        return new Color(r / 255f, g / 255f, b / 255f, a / 255f);
+    }
+
+    /// <summary>
+    ///     Hue wraps, so 0 and 1 are both red and the whole range stays on the wheel.
+    /// </summary>
+    public static Color FromHsv(float hue, float saturation, float value, float alpha = 1f)
+    {
+        var sector = (hue - MathF.Floor(hue)) * 6f;
+        var chroma = value * saturation;
+        var secondary = chroma * (1f - MathF.Abs(sector % 2f - 1f));
+        var (r, g, b) = (int)sector switch
+        {
+            0 => (chroma, secondary, 0f),
+            1 => (secondary, chroma, 0f),
+            2 => (0f, chroma, secondary),
+            3 => (0f, secondary, chroma),
+            4 => (secondary, 0f, chroma),
+            _ => (chroma, 0f, secondary)
+        };
+        var lift = value - chroma;
+        return new Color(r + lift, g + lift, b + lift, alpha);
+    }
+
     public static Color FromHtml(string hexCode)
     {
         var c = ColorTranslator.FromHtml(hexCode);
-        return new Color(c.R / 255f, c.G / 255f, c.B / 255f, c.A / 255f);
+        return FromBytes(c.R, c.G, c.B, c.A);
     }
 
     public static Color operator -(Color left, Color right)

@@ -1,3 +1,4 @@
+using Examples.Common.Views;
 using System.Numerics;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
@@ -83,7 +84,7 @@ public sealed class ConnectView : RectView
             Color = Ui.Surface,
             BorderColor = Ui.Border,
             ShadowAlpha = 0.5f,
-            BorderRadius = new Vector4(22f),
+            BorderRadius = BorderRadius.All(22f),
             Padding = new Padding(36f),
             InitChild = new SizerView
             {
@@ -112,7 +113,7 @@ public sealed class ConnectView : RectView
         {
             Color = Ui.Background,
             BorderColor = Ui.Border,
-            BorderRadius = new Vector4(14f),
+            BorderRadius = BorderRadius.All(14f),
             Padding = new Padding(4f),
             InitChild = Ui.Row(
                 Ui.Slot(_hostTab, flex: 1),

@@ -112,6 +112,18 @@ internal static partial class Native
     [LibraryImport(DllName)]
     public static partial Vector2 platformWindowGetCursorPosition(ulong handle);
 
+    [LibraryImport(DllName)]
+    public static partial void platformWindowStartTextInput(ulong handle, Window.Rect2D caret);
+
+    [LibraryImport(DllName)]
+    public static partial void platformWindowStopTextInput(ulong handle);
+
+    [LibraryImport(DllName)]
+    public static partial void platformWindowSetTextInputRect(ulong handle, Window.Rect2D caret);
+
+    [LibraryImport(DllName)]
+    public static unsafe partial char* platformWindowGetEventText(Window.TextRef text);
+
     public static class Window
     {
         public enum EventType : uint
@@ -124,12 +136,30 @@ internal static partial class Native
             CursorMove,
             CursorButton,
             Close,
-            Text,
+            TextCommit,
             CursorFocus,
             KeyboardFocus,
             DndEnter,
             DndDrop,
-            DndLeave
+            DndLeave,
+            TextPreedit
+        }
+
+        [NoReorder]
+        public struct Rect2D
+        {
+            public int x;
+            public int y;
+            public uint width;
+            public uint height;
+        }
+
+        // Where an event's text lives, in UTF-16 units. Resolved by platformWindowGetEventText.
+        [NoReorder]
+        public struct TextRef
+        {
+            public uint offset;
+            public uint length;
         }
 
         [NoReorder]
@@ -214,11 +244,21 @@ internal static partial class Native
         }
 
         [NoReorder]
-        public struct TextEvent
+        public struct TextCommitEvent
         {
             public EventType type;
             public ulong windowId;
-            public char text;
+            public TextRef text;
+        }
+
+        [NoReorder]
+        public struct TextPreeditEvent
+        {
+            public EventType type;
+            public ulong windowId;
+            public TextRef text;
+            public uint caretStart;
+            public uint caretEnd;
         }
 
         [StructLayout(LayoutKind.Explicit)]
@@ -236,7 +276,8 @@ internal static partial class Native
             [FieldOffset(0)] public FocusEvent cursorFocus;
             [FieldOffset(0)] public FocusEvent keyboardFocus;
             [FieldOffset(0)] public CloseEvent close;
-            [FieldOffset(0)] public TextEvent text;
+            [FieldOffset(0)] public TextCommitEvent textCommit;
+            [FieldOffset(0)] public TextPreeditEvent textPreedit;
         }
     }
 }

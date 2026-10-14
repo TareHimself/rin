@@ -1,3 +1,4 @@
+using Examples.Common.Views;
 using System.Numerics;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Views.Content;

@@ -49,24 +49,43 @@ struct AudioSample
     std::vector<std::uint8_t> fileData{};
 };
 
+struct EffectList
+{
+    std::vector<std::shared_ptr<AudioEffectInstance>> effects{};
+    EffectList* next{nullptr};
+};
+
+// The game thread publishes a fresh list through `pending`; the audio thread swaps it into `active` and pushes the
+// old one onto the `retired` stack, which the game thread frees on its next publish. Instances are therefore only
+// ever destroyed on the game thread, so cleanupCallback never runs on the audio thread.
 struct EffectManager
 {
-    using AudioEffectVectorPtr = std::vector<std::shared_ptr<AudioEffectInstance>>*;
     std::vector<std::shared_ptr<AudioEffectInstance>> effects{};
-    std::atomic<AudioEffectVectorPtr> pendingEffects{};
-    std::atomic<AudioEffectVectorPtr> activeEffects{};
-    std::atomic<AudioEffectVectorPtr> staleEffects{};
+    std::atomic<EffectList*> pending{nullptr};
+    std::atomic<EffectList*> active{nullptr};
+    std::atomic<EffectList*> retired{nullptr};
 
-    void UpdatePending()
+    void Publish()
     {
-        delete staleEffects.exchange(nullptr);
-        delete pendingEffects.exchange(new std::vector(effects));
+        FreeRetired();
+        delete pending.exchange(new EffectList{effects});
+    }
+
+    void FreeRetired()
+    {
+        auto* list = retired.exchange(nullptr);
+        while (list)
+        {
+            auto* next = list->next;
+            delete list;
+            list = next;
+        }
     }
 
     void AddEffect(const std::shared_ptr<AudioEffectInstance>& effect)
     {
         effects.push_back(effect);
-        UpdatePending();
+        Publish();
     }
 
     void RemoveEffect(const std::uint64_t& effectId)
@@ -78,13 +97,14 @@ struct EffectManager
         {
             effects.erase(it);
         }
-        UpdatePending();
+        Publish();
     }
 
     ~EffectManager()
     {
-        delete pendingEffects.exchange(nullptr);
-        delete staleEffects.exchange(nullptr);
+        delete pending.exchange(nullptr);
+        delete active.exchange(nullptr);
+        FreeRetired();
     }
 };
 
@@ -96,43 +116,46 @@ struct EffectNode
     std::vector<float> scratch{};
 };
 
+static void effectNode_retire(EffectManager& manager, EffectList* list)
+{
+    list->next = manager.retired.load(std::memory_order_relaxed);
+    while (!manager.retired.compare_exchange_weak(list->next, list, std::memory_order_release,
+                                                  std::memory_order_relaxed))
+    {
+    }
+}
+
 static void effectNode_process(ma_node* pNode, const float** ppFramesIn, ma_uint32* /*pFrameCountIn*/,
                                // ReSharper disable once CppParameterMayBeConstPtrOrRef
                                float** ppFramesOut, ma_uint32* pFrameCountOut)
 {
     auto* node = static_cast<EffectNode*>(pNode);
+    auto& manager = *node->effectManager;
     const ma_uint32 frameCount = *pFrameCountOut;
     const ma_uint32 channels = ma_node_get_output_channels(pNode, 0);
-
     const int sr = static_cast<int>(ma_engine_get_sample_rate(&g_engine));
-    node->timeSeconds += static_cast<double>(frameCount) / sr;
 
-    if (auto* pending = node->effectManager->pendingEffects.exchange(nullptr))
+    if (auto* next = manager.pending.exchange(nullptr))
     {
-        auto* stale = node->effectManager->activeEffects.exchange(pending);
-        node->effectManager->staleEffects.exchange(stale);
+        if (auto* previous = manager.active.exchange(next)) effectNode_retire(manager, previous);
     }
     const ma_uint32 sampleCount = frameCount * channels;
     memcpy(ppFramesOut[0], ppFramesIn[0], sampleCount * sizeof(float));
 
-    if (const auto* active = node->effectManager->activeEffects.load(std::memory_order_acquire))
+    if (const auto* list = manager.active.load(std::memory_order_acquire))
     {
-
         memcpy(node->scratch.data(), ppFramesIn[0], sampleCount * sizeof(float));
-
-
         AudioEffectContext ctx{static_cast<float>(node->timeSeconds), sr, static_cast<int>(channels)};
-
-
-        for (const auto& inst : *active)
+        for (const auto& inst : list->effects)
         {
             inst->effect.processCallback(node->scratch.data(), ppFramesOut[0],
                                          static_cast<int>(sampleCount), &ctx,
                                          inst->effect.parameters, inst->effect.state);
-
             memcpy(node->scratch.data(), ppFramesOut[0], sampleCount * sizeof(float));
         }
     }
+
+    node->timeSeconds += static_cast<double>(frameCount) / sr;
 }
 
 static ma_node_vtable g_effectNodeVtable = {effectNode_process, nullptr, 1, 1, 0};
@@ -524,6 +547,26 @@ int audioActiveIsPlaying(const std::uint64_t id)
     return ma_sound_is_playing(&it->second->sound) ? 1 : 0;
 }
 
+static double soundLengthSeconds(ma_sound* sound)
+{
+    ma_uint64 lengthFrames = 0;
+    if (ma_sound_get_length_in_pcm_frames(sound, &lengthFrames) != MA_SUCCESS) return 0.0;
+
+    ma_uint32 sampleRate = 0;
+    ma_sound_get_data_format(sound, nullptr, nullptr, &sampleRate, nullptr, 0);
+    if (sampleRate == 0) return 0.0;
+
+    return static_cast<double>(lengthFrames) / sampleRate;
+}
+
+int audioActiveHasEnded(const std::uint64_t id)
+{
+    std::lock_guard<std::mutex> lock(g_mutex);
+    const auto it = g_activeAudio.find(id);
+    if (it == g_activeAudio.end()) return 0;
+    return ma_sound_at_end(&it->second->sound) ? 1 : 0;
+}
+
 double audioActiveGetPosition(const std::uint64_t id)
 {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -540,11 +583,15 @@ double audioActiveGetPosition(const std::uint64_t id)
         return static_cast<double>(adjusted) / sr;
     }
 
+    ma_sound* sound = &it->second->sound;
+    // miniaudio wraps the cursor back to 0 once a sound runs off its end; report the end instead.
+    if (ma_sound_at_end(sound)) return soundLengthSeconds(sound);
+
     ma_uint64 cursorFrames = 0;
-    if (ma_sound_get_cursor_in_pcm_frames(&it->second->sound, &cursorFrames) != MA_SUCCESS) return 0.0;
+    if (ma_sound_get_cursor_in_pcm_frames(sound, &cursorFrames) != MA_SUCCESS) return 0.0;
 
     ma_uint32 sampleRate = 0;
-    ma_sound_get_data_format(&it->second->sound, nullptr, nullptr, &sampleRate, nullptr, 0);
+    ma_sound_get_data_format(sound, nullptr, nullptr, &sampleRate, nullptr, 0);
     if (sampleRate == 0) return 0.0;
 
     return static_cast<double>(cursorFrames) / sampleRate;
@@ -555,9 +602,7 @@ double audioActiveGetDuration(const std::uint64_t id)
     std::lock_guard<std::mutex> lock(g_mutex);
     const auto it = g_activeAudio.find(id);
     if (it == g_activeAudio.end()) return 0.0;
-    float len = 0.0f;
-    ma_sound_get_length_in_seconds(&it->second->sound, &len);
-    return static_cast<double>(len);
+    return soundLengthSeconds(&it->second->sound);
 }
 
 int audioActivePlay(const std::uint64_t id, const int restart)

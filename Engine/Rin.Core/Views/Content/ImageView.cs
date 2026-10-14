@@ -29,7 +29,7 @@ public class ImageView : ContentView
 
     [PublicAPI] public Color Tint { get; set; } = new(1.0f);
 
-    [PublicAPI] public Vector4 BorderRadius { get; set; } = new(0.0f);
+    [PublicAPI] public BorderRadius BorderRadius { get; set; }
 
     public override Vector2 ComputeDesiredContentSize()
     {

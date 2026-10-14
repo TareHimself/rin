@@ -71,11 +71,11 @@ public partial class SlugShader : Shader
         var ra = 1f / a.Y;
         var rb = 0.5f / b.Y;
 
-        var d = Math.Sqrt(Math.Max(b.Y * b.Y - a.Y * p1.Y, 0f));
+        var d = Sqrt(Max(b.Y * b.Y - a.Y * p1.Y, 0f));
         var t1 = (b.Y - d) * ra;
         var t2 = (b.Y + d) * ra;
 
-        if (Math.Abs(a.Y) < 1f / 65536f)
+        if (Abs(a.Y) < 1f / 65536f)
         {
             t1 = p1.Y * rb;
             t2 = t1;
@@ -91,11 +91,11 @@ public partial class SlugShader : Shader
         var ra = 1f / a.X;
         var rb = 0.5f / b.X;
 
-        var d = Math.Sqrt(Math.Max(b.X * b.X - a.X * p1.X, 0f));
+        var d = Sqrt(Max(b.X * b.X - a.X * p1.X, 0f));
         var t1 = (b.X - d) * ra;
         var t2 = (b.X + d) * ra;
 
-        if (Math.Abs(a.X) < 1f / 65536f)
+        if (Abs(a.X) < 1f / 65536f)
         {
             t1 = p1.X * rb;
             t2 = t1;
@@ -106,25 +106,25 @@ public partial class SlugShader : Shader
 
     private static float CalcCoverage(float xcov, float ycov, float xwgt, float ywgt)
     {
-        var coverage = Math.Max(Math.Abs(xcov * xwgt + ycov * ywgt) / Math.Max(xwgt + ywgt, 1f / 65536f),
-            Math.Min(Math.Abs(xcov), Math.Abs(ycov)));
-        return Math.Saturate(coverage);
+        var coverage = Max(Abs(xcov * xwgt + ycov * ywgt) / Max(xwgt + ywgt, 1f / 65536f),
+            Min(Abs(xcov), Abs(ycov)));
+        return Saturate(coverage);
     }
 
     private float SlugRender(Vector2 emCoord, Vector4 banding, int shapeLocX, int shapeLocY, int bandMaxX,
         int bandMaxY, DeviceHandle curveTexture, DeviceHandle bandTexture)
     {
-        var pixelsPerEm = new Vector2(1f) / Math.Max(Fwidth(emCoord), new Vector2(1e-6f));
-        var bandPosition = emCoord * banding.xy + banding.zw;
-        var bandIndexX = (int)Math.Clamp(bandPosition.X, 0f, (float)bandMaxX);
-        var bandIndexY = (int)Math.Clamp(bandPosition.Y, 0f, (float)bandMaxY);
+        var pixelsPerEm = new Vector2(1f) / Max(Fwidth(emCoord), new Vector2(1e-6f));
+        var bandPosition = emCoord * banding.XY + banding.ZW;
+        var bandIndexX = (int)Clamp(bandPosition.X, 0f, (float)bandMaxX);
+        var bandIndexY = (int)Clamp(bandPosition.Y, 0f, (float)bandMaxY);
         var emCoord4 = new Vector4(emCoord.X, emCoord.Y, emCoord.X, emCoord.Y);
 
         var xcov = 0f;
         var xwgt = 0f;
 
         {
-            var header = Bindless.TexelLoad(bandTexture, shapeLocX + bandIndexY, shapeLocY).xy;
+            var header = Bindless.TexelLoad(bandTexture, shapeLocX + bandIndexY, shapeLocY).XY;
             var count = (int)header.X;
             var listOffset = (int)header.Y;
 
@@ -136,11 +136,11 @@ public partial class SlugShader : Shader
                 var curveY = (int)entry.Y;
 
                 var c01 = Bindless.TexelLoad(curveTexture, curveX, curveY) - emCoord4;
-                var p3 = Bindless.TexelLoad(curveTexture, curveX + 1, curveY).xy - emCoord;
-                var p1 = c01.xy;
-                var p2 = c01.zw;
+                var p3 = Bindless.TexelLoad(curveTexture, curveX + 1, curveY).XY - emCoord;
+                var p1 = c01.XY;
+                var p2 = c01.ZW;
 
-                if (Math.Max(Math.Max(p1.X, p2.X), p3.X) * pixelsPerEm.X < -0.5f) break;
+                if (Max(Max(p1.X, p2.X), p3.X) * pixelsPerEm.X < -0.5f) break;
 
                 var code = CalcRootCode(p1.Y, p2.Y, p3.Y);
                 if (code != 0u)
@@ -148,14 +148,14 @@ public partial class SlugShader : Shader
                     var r = SolveHorizPoly(p1, p2, p3) * pixelsPerEm.X;
                     if ((code & 1u) != 0u)
                     {
-                        xcov += Math.Saturate(r.X + 0.5f);
-                        xwgt = Math.Max(xwgt, Math.Saturate(1f - Math.Abs(r.X) * 2f));
+                        xcov += Saturate(r.X + 0.5f);
+                        xwgt = Max(xwgt, Saturate(1f - Abs(r.X) * 2f));
                     }
 
                     if (code > 1u)
                     {
-                        xcov -= Math.Saturate(r.Y + 0.5f);
-                        xwgt = Math.Max(xwgt, Math.Saturate(1f - Math.Abs(r.Y) * 2f));
+                        xcov -= Saturate(r.Y + 0.5f);
+                        xwgt = Max(xwgt, Saturate(1f - Abs(r.Y) * 2f));
                     }
                 }
             }
@@ -165,7 +165,7 @@ public partial class SlugShader : Shader
         var ywgt = 0f;
 
         {
-            var header = Bindless.TexelLoad(bandTexture, shapeLocX + bandMaxY + 1 + bandIndexX, shapeLocY).xy;
+            var header = Bindless.TexelLoad(bandTexture, shapeLocX + bandMaxY + 1 + bandIndexX, shapeLocY).XY;
             var count = (int)header.X;
             var listOffset = (int)header.Y;
 
@@ -177,11 +177,11 @@ public partial class SlugShader : Shader
                 var curveY = (int)entry.Y;
 
                 var c01 = Bindless.TexelLoad(curveTexture, curveX, curveY) - emCoord4;
-                var p3 = Bindless.TexelLoad(curveTexture, curveX + 1, curveY).xy - emCoord;
-                var p1 = c01.xy;
-                var p2 = c01.zw;
+                var p3 = Bindless.TexelLoad(curveTexture, curveX + 1, curveY).XY - emCoord;
+                var p1 = c01.XY;
+                var p2 = c01.ZW;
 
-                if (Math.Max(Math.Max(p1.Y, p2.Y), p3.Y) * pixelsPerEm.Y < -0.5f) break;
+                if (Max(Max(p1.Y, p2.Y), p3.Y) * pixelsPerEm.Y < -0.5f) break;
 
                 var code = CalcRootCode(p1.X, p2.X, p3.X);
                 if (code != 0u)
@@ -189,14 +189,14 @@ public partial class SlugShader : Shader
                     var r = SolveVertPoly(p1, p2, p3) * pixelsPerEm.Y;
                     if ((code & 1u) != 0u)
                     {
-                        ycov -= Math.Saturate(r.X + 0.5f);
-                        ywgt = Math.Max(ywgt, Math.Saturate(1f - Math.Abs(r.X) * 2f));
+                        ycov -= Saturate(r.X + 0.5f);
+                        ywgt = Max(ywgt, Saturate(1f - Abs(r.X) * 2f));
                     }
 
                     if (code > 1u)
                     {
-                        ycov += Math.Saturate(r.Y + 0.5f);
-                        ywgt = Math.Max(ywgt, Math.Saturate(1f - Math.Abs(r.Y) * 2f));
+                        ycov += Saturate(r.Y + 0.5f);
+                        ywgt = Max(ywgt, Saturate(1f - Abs(r.Y) * 2f));
                     }
                 }
             }

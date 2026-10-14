@@ -1,5 +1,5 @@
 name: Setup .NET, uv and caches
-description: Installs the .NET SDK and uv (which provides Python, Conan, CMake and Task), and restores the NuGet package cache.
+description: Installs the .NET SDK and uv (which provides Python and silo), and restores the NuGet package cache.
 runs:
   using: composite
   steps:

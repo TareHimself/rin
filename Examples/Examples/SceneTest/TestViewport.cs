@@ -36,7 +36,6 @@ public class TestViewport(CameraActor camera) : Viewport(camera.GetCameraCompone
         _pitch += delta.Y;
         _yaw += delta.X;
         _pitch = float.Clamp(_pitch, -90, 90);
-        Console.WriteLine("Pitch: {0}, Yaw: {1}", _pitch, _yaw);
         viewTarget.SetRotation(MathR.Forward.ToQuaternion().AddYaw(_yaw).AddLocalPitch(_pitch));
     }
 
@@ -50,7 +49,6 @@ public class TestViewport(CameraActor camera) : Viewport(camera.GetCameraCompone
             var transform = camera.GetTransform(Space.World);
             transform.Position += transform.Orientation.GetForward() * _forwardAxis * deltaTime * speed;
             transform.Position += transform.Orientation.GetRight() * _rightAxis * deltaTime * speed;
-            Console.WriteLine("AXIS {0}", _forwardAxis);
             camera.SetTransform(transform, Space.World);
         }
     }

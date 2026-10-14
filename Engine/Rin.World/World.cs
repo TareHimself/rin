@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using JetBrains.Annotations;
 using Rin.Core;
 using Rin.Core.Shared.Math;
@@ -63,6 +63,7 @@ public class World : IUpdatable
         while (_remainingPhysicsTime >= PhysicsUpdateInterval && steps < MaxPhysicsStepsPerFrame)
         {
             PhysicsSystem.Update(PhysicsUpdateInterval);
+            DispatchContactEvents();
             _remainingPhysicsTime -= PhysicsUpdateInterval;
             steps++;
         }
@@ -134,6 +135,17 @@ public class World : IUpdatable
     public WorldComponent[] GetPureRoots()
     {
         return GetRoots().Where(root => root.TransformParent is null).ToArray();
+    }
+
+    private void DispatchContactEvents()
+    {
+        foreach (var contact in PhysicsSystem.ContactEvents)
+        {
+            var ownerA = FindPhysicsOwner(contact.A);
+            var ownerB = FindPhysicsOwner(contact.B);
+            if (ownerA is IPhysicsContactReceiver receiverA) receiverA.OnPhysicsContact(contact, ownerB);
+            if (ownerB is IPhysicsContactReceiver receiverB) receiverB.OnPhysicsContact(contact, ownerA);
+        }
     }
 
     [PublicAPI] public void RegisterPhysicsBody(PhysicsBodyHandle handle, IWorldComponent owner) => _physicsOwners[handle] = owner;

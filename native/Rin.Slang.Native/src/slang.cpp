@@ -2,7 +2,6 @@
 #include <array>
 #include <fstream>
 #include <iostream>
-Slang::ComPtr<slang::IGlobalSession> GLOBAL_SESSION;
 
 
 CustomBlob::~CustomBlob() = default;
@@ -103,18 +102,17 @@ Session::Session(const SessionBuilder* builder)
 
     sessionDesc.searchPaths = searchPaths.data();
     sessionDesc.searchPathCount = static_cast<SlangInt>(searchPaths.size());
-    GLOBAL_SESSION->createSession(sessionDesc,session.writeRef());
+    globalSession = builder->globalSession;
+    globalSession->createSession(sessionDesc,session.writeRef());
 }
 Session::~Session()
 = default;
 
 SessionBuilder* slangSessionBuilderNew()
 {
-    if(!GLOBAL_SESSION)
-    {
-        slang::createGlobalSession(GLOBAL_SESSION.writeRef());
-    }
-    return new SessionBuilder();
+    auto* builder = new SessionBuilder();
+    slang::createGlobalSession(builder->globalSession.writeRef());
+    return builder;
 }
 
 void slangSessionBuilderFree(const SessionBuilder* builder)
@@ -184,7 +182,7 @@ void slangSessionBuilderAddTargetSpirv(SessionBuilder* builder)
 {
     slang::TargetDesc desc{};
     desc.format = SLANG_SPIRV;
-    desc.profile = GLOBAL_SESSION->findProfile("spirv_1_5");
+    desc.profile = builder->globalSession->findProfile("spirv_1_5");
     // Every block is scalar layout, matching C# sequential layout and the device's scalarBlockLayout.
     desc.forceGLSLScalarBufferLayout = true;
     
@@ -205,7 +203,7 @@ void slangSessionBuilderAddTargetGlsl(SessionBuilder* builder)
 {
     slang::TargetDesc desc{};
     desc.format = SLANG_GLSL;
-    desc.profile = GLOBAL_SESSION->findProfile("glsl_450");
+    desc.profile = builder->globalSession->findProfile("glsl_450");
     builder->targets.push_back(desc);
 }
 

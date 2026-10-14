@@ -13,6 +13,6 @@ public sealed class UiGalleryExample : Example
 
     public override void Start(ExampleContext context)
     {
-        UiGalleryScene.Create(context.Surface.Renderer);
+        context.Add(UiGalleryScene.Build());
     }
 }

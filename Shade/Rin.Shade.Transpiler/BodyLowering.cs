@@ -20,9 +20,18 @@ internal sealed class BodyLowering(
     private int _loopDepth;
 
     /// <summary>
-    /// Writes the Slang for one statement. Out-variable declarations found inside it are written first.
+    /// Writes the Slang for one statement, with every emitted line mapped back to the statement's C# location.
+    /// Out-variable declarations found inside it are written first.
     /// </summary>
     public void LowerStatement(IOperation? op)
+    {
+        var previousOrigin = writer.Origin;
+        if (op is not null) writer.Origin = op.Syntax.GetLocation();
+        LowerStatementCore(op);
+        writer.Origin = previousOrigin;
+    }
+
+    private void LowerStatementCore(IOperation? op)
     {
         if (op is not null) DeclareOutVariables(op);
 
@@ -142,6 +151,14 @@ internal sealed class BodyLowering(
                     if (declarator.Symbol.Type is IArrayTypeSymbol arrayType)
                     {
                         LowerArrayLocal(declarator, arrayType, initializer, name);
+                        continue;
+                    }
+
+                    // With an initializer the double is reported by LowerExpr on the initializer itself.
+                    if (initializer is null && TypeMapping.IsDouble(declarator.Symbol.Type))
+                    {
+                        diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.DoubleNotSupported,
+                            declarator.Syntax.GetLocation(), declarator.Symbol.Name));
                         continue;
                     }
 
@@ -304,6 +321,11 @@ internal sealed class BodyLowering(
 
     private string LowerExpr(IOperation op)
     {
+        // Reported at the outermost double-typed node, so `(float)(a * 2.0)` gets one diagnostic, not three.
+        if (TypeMapping.IsDouble(op.Type) && !TypeMapping.IsDouble(op.Parent?.Type))
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.DoubleNotSupported, op.Syntax.GetLocation(),
+                op.Syntax.ToString()));
+
         switch (op)
         {
             case IDeclarationExpressionOperation declaration:
@@ -330,7 +352,7 @@ internal sealed class BodyLowering(
                     ? Naming.ToSlangIdentifier(autoProperty.Property.Name)
                     : $"{LowerAtLeast(autoProperty.Instance, PostfixPrecedence)}.{Naming.ToSlangIdentifier(autoProperty.Property.Name)}";
             case IPropertyReferenceOperation property when IsSwizzle(property.Property):
-                return $"{LowerAtLeast(property.Instance!, PostfixPrecedence)}.{Naming.ToSlangIdentifier(property.Property.Name)}";
+                return $"{LowerAtLeast(property.Instance!, PostfixPrecedence)}.{property.Property.Name.ToLowerInvariant()}";
             case IPropertyReferenceOperation { Property.GetMethod: { } getMethod } property
                 when MethodSource.HasBody(getMethod):
                 return LowerPropertyGet(property, getMethod);
@@ -563,7 +585,11 @@ internal sealed class BodyLowering(
             var calleeName = Naming.ToSlangMethodName(method);
             if (instance is null) CheckFieldShadowing(calleeName, invocation.Syntax.GetLocation());
             var call = $"{calleeName}({string.Join(", ", arguments)})";
-            return instance is not null ? $"{instance}.{call}" : call;
+            if (instance is not null) return $"{instance}.{call}";
+            // A static struct method lives in the struct's extension, so it is called through the type.
+            if (method.IsStatic && method.ContainingType.TypeKind == TypeKind.Struct)
+                return $"{TypeMapping.MapType(method.ContainingType)}.{call}";
+            return call;
         }
 
         diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.NoSourceForMethod,

@@ -29,6 +29,7 @@ internal static partial class Native
     [LibraryImport(Lib)] internal static partial ulong audioSampleMakeActive(ulong sampleId);
 
     [LibraryImport(Lib)] internal static partial int    audioActiveIsPlaying(ulong id);
+    [LibraryImport(Lib)] internal static partial int    audioActiveHasEnded(ulong id);
     [LibraryImport(Lib)] internal static partial double audioActiveGetPosition(ulong id);
     [LibraryImport(Lib)] internal static partial double audioActiveGetDuration(ulong id);
     [LibraryImport(Lib)] internal static partial int    audioActivePlay(ulong id, int restart);

@@ -1,3 +1,4 @@
+using Examples.Common.Views;
 using System.Numerics;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
@@ -29,7 +30,7 @@ public sealed class MessageRowView : CompositeView
         _bubble = new CardView
         {
             Color = isOwn ? Ui.Accent : Ui.Raised,
-            BorderRadius = new Vector4(16f),
+            BorderRadius = BorderRadius.All(16f),
             Padding = new Padding(14f, 10f),
             InitChild = new TextBoxView
             {

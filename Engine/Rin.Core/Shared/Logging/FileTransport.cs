@@ -44,9 +44,10 @@ public class FileTransport : ITransport
 
     public void Error(string message, Exception? exception)
     {
+        var line = exception is null ? message : $"{message}\n{exception}";
         if (_async)
-            _fileStream.WriteLineAsync(message).ConfigureAwait(false);
+            _fileStream.WriteLineAsync(line).ConfigureAwait(false);
         else
-            _fileStream.WriteLine(message);
+            _fileStream.WriteLine(line);
     }
 }

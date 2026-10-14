@@ -35,8 +35,7 @@
     <Import Project="$(RinMSBuildDir)RinShade.targets"/>
 
     <ItemGroup>
-        <PackageReference Include="SpotifyExplode"/>
-        <PackageReference Include="YoutubeExplode"/>
+        <PackageReference Include="z440.atl.core"/>
         <PackageReference Include="SharpGLTF.Core"/>
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All"/>
     </ItemGroup>

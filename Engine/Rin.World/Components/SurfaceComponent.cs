@@ -47,6 +47,10 @@ public class SurfaceComponent : WorldComponent
         {
         }
 
+        public override void SetTypingRect(View view, in Rect2D caret)
+        {
+        }
+
         public override Vector2 GetSize()
         {
             return new Vector2(component.Extent.Width, component.Extent.Height);

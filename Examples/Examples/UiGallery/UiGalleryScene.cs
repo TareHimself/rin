@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Shared.Math;
@@ -17,13 +17,11 @@ namespace Examples.UiGallery;
 /// </summary>
 public static class UiGalleryScene
 {
-    public static void Create(IWindowRenderer renderer)
+    public static RectView Build()
     {
-        if (IViewsModule.Get().GetWindowSurface(renderer) is not { } surface) return;
-
-        surface.Add(new RectView
+        return new RectView
         {
-            Color = new Color(0.13f, 0.14f, 0.17f, 1f),
+            Color = Color.FromRgb(0.13f, 0.14f, 0.17f),
             InitChild = new ScrollListView
             {
                 Axis = Axis.Column,
@@ -36,7 +34,7 @@ public static class UiGalleryScene
                     }
                 ]
             }
-        });
+        };
     }
 
     private delegate void DrawSection(CommandList commands, in Matrix4x4 origin, float time);
@@ -109,16 +107,16 @@ public static class UiGalleryScene
         private static void DrawRectangles(CommandList commands, in Matrix4x4 origin, float time)
         {
             var size = new Vector2(120, 80);
-            commands.AddRect(At(origin, 0, 0), size, new Color(0.95f, 0.25f, 0.25f, 1f));
-            commands.AddRect(At(origin, 140, 0), size, new Color(0.3f, 0.85f, 0.4f, 1f), new Vector4(16f));
-            commands.AddRect(At(origin, 280, 0), size, new Color(0.35f, 0.5f, 0.95f, 1f),
-                new Vector4(40f, 0f, 0f, 40f));
-            commands.AddRect(At(origin, 420, 0), size, new Color(1f, 1f, 1f, 0.5f), new Vector4(8f));
-            commands.AddRect(At(origin, 450, 30), size, new Color(0.95f, 0.8f, 0.2f, 0.5f), new Vector4(8f));
+            commands.AddRect(At(origin, 0, 0), size, Color.FromRgb(0.95f, 0.25f, 0.25f));
+            commands.AddRect(At(origin, 140, 0), size, Color.FromRgb(0.3f, 0.85f, 0.4f), BorderRadius.All(16f));
+            commands.AddRect(At(origin, 280, 0), size, Color.FromRgb(0.35f, 0.5f, 0.95f),
+                new BorderRadius(40f, 0f, 40f, 0f));
+            commands.AddRect(At(origin, 420, 0), size, new Color(1f, 1f, 1f, 0.5f), BorderRadius.All(8f));
+            commands.AddRect(At(origin, 450, 30), size, new Color(0.95f, 0.8f, 0.2f, 0.5f), BorderRadius.All(8f));
             commands.AddRect(Rotating(origin, new Vector2(630, 60), size, time * 40f), size,
-                new Color(0.8f, 0.4f, 0.95f, 1f), new Vector4(20f));
+                Color.FromRgb(0.8f, 0.4f, 0.95f), BorderRadius.All(20f));
             commands.AddRect(Rotating(origin, new Vector2(630, 125), new Vector2(120, 10), time * -25f),
-                new Vector2(120, 10), Color.White, new Vector4(5f));
+                new Vector2(120, 10), Color.White, BorderRadius.All(5f));
         }
 
         private static void DrawCircles(CommandList commands, in Matrix4x4 origin, float time)
@@ -127,13 +125,13 @@ public static class UiGalleryScene
             for (var i = 0; i < 4; i++)
             {
                 var radius = 10f * (i + 1);
-                commands.AddCircle(At(origin, x, 60 - radius), radius, new Color(0.3f, 0.8f, 0.95f, 1f));
+                commands.AddCircleTopLeft(At(origin, x, 60 - radius), radius, Color.FromRgb(0.3f, 0.8f, 0.95f));
                 x += radius * 2f + 20f;
             }
 
-            commands.AddCircle(At(origin, 260, 0), 45f, new Color(1f, 0.3f, 0.3f, 0.6f));
-            commands.AddCircle(At(origin, 310, 0), 45f, new Color(0.3f, 1f, 0.3f, 0.6f));
-            commands.AddCircle(At(origin, 285, 40), 45f, new Color(0.3f, 0.3f, 1f, 0.6f));
+            commands.AddCircleTopLeft(At(origin, 260, 0), 45f, new Color(1f, 0.3f, 0.3f, 0.6f));
+            commands.AddCircleTopLeft(At(origin, 310, 0), 45f, new Color(0.3f, 1f, 0.3f, 0.6f));
+            commands.AddCircleTopLeft(At(origin, 285, 40), 45f, new Color(0.3f, 0.3f, 1f, 0.6f));
         }
 
         private static void DrawLines(CommandList commands, in Matrix4x4 origin, float time)
@@ -148,7 +146,7 @@ public static class UiGalleryScene
 
         private static void DrawQuadratics(CommandList commands, in Matrix4x4 origin, float time)
         {
-            var yellow = new Color(1f, 0.85f, 0.2f, 1f);
+            var yellow = Color.FromRgb(1f, 0.85f, 0.2f);
             for (var i = 0; i < Thickness.Length; i++)
                 commands.AddQuadraticCurve(origin, new Vector2(i * 80f, 100), new Vector2(i * 80f + 60f, 100),
                     new Vector2(i * 80f + 30f, 0), Thickness[i], yellow);
@@ -156,7 +154,7 @@ public static class UiGalleryScene
 
         private static void DrawCubics(CommandList commands, in Matrix4x4 origin, float time)
         {
-            var cyan = new Color(0.3f, 0.95f, 0.9f, 1f);
+            var cyan = Color.FromRgb(0.3f, 0.95f, 0.9f);
             for (var i = 0; i < Thickness.Length; i++)
                 commands.AddCubicCurve(origin, new Vector2(i * 95f, 100), new Vector2(i * 95f + 70f, 10),
                     new Vector2(i * 95f + 25f, -10), new Vector2(i * 95f + 45f, 120), Thickness[i], cyan);
@@ -166,12 +164,12 @@ public static class UiGalleryScene
         {
             var size = new Vector2(110, 110);
             commands.AddTexture(checker, At(origin, 0, 0), size);
-            commands.AddTexture(checker, At(origin, 130, 0), size, new Color(1f, 0.6f, 0.6f, 1f));
-            commands.AddTexture(checker, At(origin, 260, 0), size, null, null, new Vector4(30f));
+            commands.AddTexture(checker, At(origin, 130, 0), size, Color.FromRgb(1f, 0.6f, 0.6f));
+            commands.AddTexture(checker, At(origin, 260, 0), size, null, null, BorderRadius.All(30f));
             commands.AddTexture(checker, At(origin, 390, 0), size, null, new Vector4(0f, 0f, 0.25f, 0.25f));
             commands.AddTexture(checker, At(origin, 520, 0), size, null, new Vector4(0f, 0f, 3f, 3f));
             commands.AddTexture(checker, Rotating(origin, new Vector2(715, 55), size, time * 30f), size, null, null,
-                new Vector4(55f));
+                BorderRadius.All(55f));
         }
 
         private void DrawText(CommandList commands, in Matrix4x4 origin, float time)
@@ -193,12 +191,12 @@ public static class UiGalleryScene
         {
             for (var i = 0; i < 14; i++)
             {
-                var color = i % 2 == 0 ? new Color(0.9f, 0.3f, 0.4f, 1f) : new Color(0.2f, 0.5f, 0.95f, 1f);
+                var color = i % 2 == 0 ? Color.FromRgb(0.9f, 0.3f, 0.4f) : Color.FromRgb(0.2f, 0.5f, 0.95f);
                 commands.AddRect(At(origin, i * 20f, 0), new Vector2(20, 140), color);
             }
 
-            commands.AddCircle(At(origin, 40, 20), 22f, new Color(1f, 0.9f, 0.2f, 1f));
-            commands.AddCircle(At(origin, 190, 80), 28f, new Color(0.2f, 0.9f, 0.5f, 1f));
+            commands.AddCircleTopLeft(At(origin, 40, 20), 22f, Color.FromRgb(1f, 0.9f, 0.2f));
+            commands.AddCircleTopLeft(At(origin, 190, 80), 28f, Color.FromRgb(0.2f, 0.9f, 0.5f));
             commands.AddBlur(At(origin, 60, 30), new Vector2(160, 80), 6f, 12f, new Color(1f, 1f, 1f, 0.15f));
             commands.AddText(At(origin, 76, 56), fontName, "Blurred backdrop", 16f, Color.White);
         }
@@ -206,12 +204,12 @@ public static class UiGalleryScene
         private static void DrawClip(CommandList commands, in Matrix4x4 origin, float time)
         {
             var size = new Vector2(190, 190);
-            commands.AddRect(At(origin, 0, 0), size, new Color(0.2f, 0.2f, 0.26f, 1f));
+            commands.AddRect(At(origin, 0, 0), size, Color.FromRgb(0.2f, 0.2f, 0.26f));
             commands.PushClip(At(origin, 0, 0), size);
             commands.AddRect(Rotating(origin, new Vector2(150, 140), new Vector2(240, 240), 20f + time * 10f),
-                new Vector2(240, 240), new Color(1f, 0.55f, 0.1f, 1f));
-            commands.AddRect(At(origin, -30, -30), new Vector2(90, 90), new Color(0.2f, 0.8f, 0.9f, 1f),
-                new Vector4(30f));
+                new Vector2(240, 240), Color.FromRgb(1f, 0.55f, 0.1f));
+            commands.AddRect(At(origin, -30, -30), new Vector2(90, 90), Color.FromRgb(0.2f, 0.8f, 0.9f),
+                BorderRadius.All(30f));
             commands.PopClip();
         }
     }

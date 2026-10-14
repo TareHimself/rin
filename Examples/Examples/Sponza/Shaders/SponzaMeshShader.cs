@@ -44,8 +44,8 @@ public partial class SponzaMeshShader : Shader
         MeshShader.VertexOut output;
         output.Uv = vertex.UV;
         output.SceneNormal = ShaderMath.TransformNormal(vertex.Normal, instance.Transform);
-        output.SceneLocation = sceneLocation.xyz;
-        var viewLocation = Vector4.Transform(new Vector4(sceneLocation.xyz, 1f), scene.View);
+        output.SceneLocation = sceneLocation.XYZ;
+        var viewLocation = Vector4.Transform(new Vector4(sceneLocation.XYZ, 1f), scene.View);
         output.Position = Vector4.Transform(viewLocation, scene.Projection);
         output.InstanceId = input.InstanceId;
         return output;
@@ -55,11 +55,11 @@ public partial class SponzaMeshShader : Shader
     public GBufferOutput Fragment(MeshShader.FragmentIn input)
     {
         var instance = Push.Data[input.InstanceId];
-        var normal = Math.Normalize(input.SceneNormal);
+        var normal = Normalize(input.SceneNormal);
 
-        var color = instance.Color.xyz;
+        var color = instance.Color.XYZ;
         if (instance.ColorTexture.Id > 0u)
-            color = Bindless.SampleTexture(instance.ColorTexture, input.Uv, ImageTiling.Repeat, ImageFilter.Linear).xyz;
+            color = Bindless.SampleTexture(instance.ColorTexture, input.Uv, ImageTiling.Repeat, ImageFilter.Linear).XYZ;
 
         // glTF metallic-roughness convention: G is roughness, B is metallic.
         var roughness = 1f;
@@ -67,7 +67,7 @@ public partial class SponzaMeshShader : Shader
         if (instance.MetallicRoughnessTexture.Id > 0u)
         {
             var metallicRoughness = Bindless
-                .SampleTexture(instance.MetallicRoughnessTexture, input.Uv, ImageTiling.Repeat, ImageFilter.Linear).xyz;
+                .SampleTexture(instance.MetallicRoughnessTexture, input.Uv, ImageTiling.Repeat, ImageFilter.Linear).XYZ;
             roughness = metallicRoughness.Y;
             metallic = metallicRoughness.Z;
         }

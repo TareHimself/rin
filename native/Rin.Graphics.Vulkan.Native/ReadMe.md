@@ -9,8 +9,8 @@ Native layer for the Vulkan backend. Builds `Rin.Graphics.Vulkan.Native` as a sh
 
 ## Start here
 
-- `CMakeLists.txt`: links `rwin`, `Vulkan::Vulkan`, `vk-bootstrap` and `GPUOpen::VulkanMemoryAllocator` (fetched with `FetchContent`).
-- `conanfile.py`: requires `vk-bootstrap/1.3.296`, `msdfgen/1.12` and `rwin/1.0.1` (with the `compat` option on macOS).
+- `CMakeLists.txt`: links `rwin`, `Vulkan::Vulkan`, `vk-bootstrap` and `vulkan-memory-allocator`.
+- `silopkg.py`: the silo recipe. Depends on `rwin@1.0.0` and `vk-bootstrap@1.3.296` (both static, so the package holds one DLL), `vulkan-headers@1.3.296`, `vulkan-loader@1.3.296` and `vulkan-memory-allocator@3.1.0`, whose recipe is in `../recipes`. `Vulkan::Vulkan` is an alias for the loader silo builds.
 - `src/`: `graphics.*`, `platform.*`, `flags.hpp`, `macro.hpp`.
 - `project.csproj`: shell project used only by `dotnet pack`.
 
@@ -23,11 +23,11 @@ Native layer for the Vulkan backend. Builds `Rin.Graphics.Vulkan.Native` as a sh
 From the repo root:
 
 ```
-uv run task pack-graphics-vulkan-native
+uv run python scripts/pack_native.py Rin.Graphics.Vulkan.Native
 ```
 
-Or from this folder, `uv run task build` (Release) or `uv run task buildd` (Debug). See [../ReadMe.md](../ReadMe.md) for the packing flow.
+For a build to work on, `uv run silo sync native/Rin.Graphics.Vulkan.Native` builds the dependencies and writes the `Rin-Debug` and `Rin-Release` CMake presets, which an IDE can open or `uv run silo run -C native/Rin.Graphics.Vulkan.Native -- cmake --preset Rin-Debug` can configure from this folder. See [../ReadMe.md](../ReadMe.md) for the packing flow.
 
 ## Gotchas
 
-- Needs the Vulkan SDK installed (`find_package(Vulkan REQUIRED)`).
+- The build does not use the Vulkan SDK. It links the loader silo builds, and the package does not ship it: at run time the machine's own `vulkan-1.dll` is used.

@@ -54,6 +54,8 @@ public class ViewsModule : IViewsModule
     public event Action<IWindowSurface>? OnSurfaceDestroyed;
     public IFontManager FontManager { get; } = new HarfBuzzFontManager();
 
+    public string DefaultFontFamily { get; set; } = "Noto Sans";
+
     public void AddFont(string fontPath)
     {
         FontManager.LoadFont(Global.Sources.Read(fontPath));

@@ -12,27 +12,11 @@ namespace Rin.Core.Shared.Video;
 /// </summary>
 public class WebmVideoPlayer : IVideoPlayer
 {
-    // Byte budget (not a fixed lookahead) so buffered decoded video stays roughly constant across resolutions.
-    // Acts as a hard ceiling on top of the seconds-ahead target below, bounding memory if decode falls badly
-    // behind playback.
-    private const double DecodeBufferBudgetBytes = 32.0 * 1024 * 1024;
-    private const int MinBufferedFrames = 3;
-    private const int MaxBufferedFrames = 24;
-    // Floor/ceiling on how many seconds of video a single decode call is asked to produce - the actual amount
-    // requested each time is sized to close the (target ahead) - (already decoded ahead) gap, not fixed.
-    private const double MinDecodeAheadSeconds = 0.15;
-    private const double MaxDecodeAheadSeconds = 1.0;
-
-    // Decode (packet -> RGBA) is the actual bottleneck, not the frame-count buffer, so the real throttle is how
-    // far ahead of playback (in seconds) we let the decode thread get. Starts optimistic and adapts down as we
-    // measure how long decoding actually takes relative to the video time it produces - a video that decodes
-    // near-instantly doesn't need a big lookahead, one that barely keeps up with realtime does.
-    private const double InitialTargetSecondsAhead = 2.0;
-    private const double MinTargetSecondsAhead = 0.5;
-    private const double DecodeCostSmoothing = 0.2;
-    private double _decodeCostRatio = 1.0;
-    private double _targetSecondsAhead = InitialTargetSecondsAhead;
-    private double _pendingDecodeSeconds = MaxDecodeAheadSeconds;
+    // Decoded frames wait as I420, 1.5 bytes per pixel, so this bounds the video held ahead of playback.
+    private const double DecodeBufferBudgetBytes = 256.0 * 1024 * 1024;
+    private const int MinBufferedFrames = 8;
+    private const double DecodeAheadSeconds = 1.0;
+    private const double DecodeStepSeconds = 0.1;
 
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly IntPtr _context;
@@ -46,13 +30,14 @@ public class WebmVideoPlayer : IVideoPlayer
     private IPushStream? _audioStream;
 
     private ulong _bufferSize;
-    private int _targetBufferedFrames = MinBufferedFrames;
+    private int _maxBufferedFrames = MinBufferedFrames;
 
-    // Cached so CopyRecentFrame can return cheaply when called before a new frame decodes.
+    // The frame on screen, which native overwrites in place when a newer one is due.
     private Buffer<byte>? _lastFrame;
 
     private InternalSource? _source;
-    private bool _stopDecode;
+    private volatile bool _stopDecode;
+    private readonly Task _decodeTask;
     private GCHandle _audioCallbackHandlerGcHandle;
     
     private class AudioCallbackHandler(Action<ReadOnlySpan<byte>, double> callback)
@@ -90,43 +75,28 @@ public class WebmVideoPlayer : IVideoPlayer
             }
         }
 
-        Task.Factory.StartNew(() =>
+        _decodeTask = Task.Factory.StartNew(DecodeLoop, TaskCreationOptions.LongRunning);
+    }
+
+    private void DecodeLoop()
+    {
+        while (!_stopDecode)
         {
-            while (!_stopDecode)
+            if (!ShouldDecode() || Native.videoContextDecode(_context, DecodeStepSeconds) == 0)
             {
-                while (DecodedPosition - Position <= 1)
-                {
-                    Native.videoContextDecode(_context, 0.1f);
-                }
                 _decodeEvent.WaitOne();
-                // _decodeEvent.WaitOne();
-                // if (_stopDecode)
-                // {
-                //     _source?.Dispose();
-                //     Native.videoContextFree(_context);
-                //     return;
-                // }
-                //
-                // var newDecodePosition = DecodedPosition + _pendingDecodeSeconds;
-                // var skipDecodeThreshold = Position + (_pendingDecodeSeconds * 2);
-                // if (newDecodePosition > skipDecodeThreshold)
-                // {
-                //     continue;
-                // }
-                // var diff = DecodedPosition - Position;
-                // var secondsToDecode = _pendingDecodeSeconds;
-                // var stopwatch = Stopwatch.StartNew();
-                // Native.videoContextDecode(_context, 0.5f);
-                // var timeTaken = stopwatch.Elapsed.TotalSeconds;
-                //
-                // var ratio = timeTaken / secondsToDecode;
-                // _pendingDecodeSeconds = double.Clamp(timeTaken * 1.1, MinDecodeAheadSeconds,
-                //     MaxDecodeAheadSeconds);
-                // _decodeCostRatio += (ratio - _decodeCostRatio) * DecodeCostSmoothing;
-                // _targetSecondsAhead = System.Math.Clamp(InitialTargetSecondsAhead * _decodeCostRatio,
-                //     MinTargetSecondsAhead, InitialTargetSecondsAhead);
             }
-        });
+        }
+    }
+
+    private bool ShouldDecode()
+    {
+        if (_source == null) return false;
+        var position = Position;
+        // Frames pile up when nothing is drawing them, so drop the ones playback has passed.
+        Native.videoContextDropFramesBefore(_context, position);
+        return DecodedPosition - position <= DecodeAheadSeconds &&
+               Native.videoContextGetBufferedFrameCount(_context) < _maxBufferedFrames;
     }
 
     public WebmVideoPlayer(Func<int, int, IPushStream> createAudioStream, IAudioModule? audioModule = null) : this(audioModule)
@@ -159,24 +129,6 @@ public class WebmVideoPlayer : IVideoPlayer
     {
         if (_source == null) return;
         _decodeEvent.Set();
-        // var bufferedFrames = Native.videoContextGetBufferedFrameCount(_context);
-        // if (bufferedFrames >= _targetBufferedFrames) return;
-        // // Keep a frame-count floor regardless of the time-ahead target below - if decode is fast enough that
-        // // the adaptive target has shrunk close to MinTargetSecondsAhead, we'd otherwise stop after buffering
-        // // barely one frame, leaving no cushion against a stray slow decode or scheduling hiccup.
-        // if (bufferedFrames < MinBufferedFrames)
-        // {
-        //     _pendingDecodeSeconds = MinDecodeAheadSeconds;
-        //     _decodeEvent.Set();
-        //     return;
-        // }
-        //
-        // // How far ahead we already are vs. how far ahead we want to be - decode exactly that gap (clamped),
-        // // instead of nibbling in fixed-size chunks regardless of how far behind we've fallen.
-        // var secondsNeeded = _targetSecondsAhead - (DecodedPosition - Position);
-        // if (secondsNeeded <= 0) return;
-        // _pendingDecodeSeconds = System.Math.Clamp(secondsNeeded, MinDecodeAheadSeconds, MaxDecodeAheadSeconds);
-        // _decodeEvent.Set();
     }
 
     public void Play()
@@ -210,28 +162,25 @@ public class WebmVideoPlayer : IVideoPlayer
     {
         Debug.Assert(HasVideo);
         // Gave up on syncing audio to video and instead sync video to audio
-        var ptr = Native.videoContextCopyRecentFrame(_context, Position);
-        if (ptr != IntPtr.Zero)
+        if (_lastFrame == null)
         {
-            _lastFrame?.Dispose();
-            _lastFrame = new Buffer<byte>(ptr, _bufferSize);
+            _lastFrame = new Buffer<byte>((int)_bufferSize);
+            _lastFrame.Zero();
         }
 
-        if (_lastFrame != null) return _lastFrame.Copy();
-
-        var blank = new Buffer<byte>((int)_bufferSize);
-        blank.Zero();
-        return blank;
+        Native.videoContextCopyRecentFrame(_context, Position, _lastFrame.GetPtr(), _bufferSize);
+        return _lastFrame.Copy();
     }
 
 
     public void SetSource(IVideoSource source)
     {
-        _source?.Dispose();
-        _source = new InternalSource(source);
-        Native.videoContextSetSource(_context, _source.NativeSource);
-        _decodeCostRatio = 1.0;
-        _targetSecondsAhead = InitialTargetSecondsAhead;
+        // The decode thread may be reading the old source until native has switched to the new one.
+        var previous = _source;
+        var next = new InternalSource(source);
+        Native.videoContextSetSource(_context, next.NativeSource);
+        _source = next;
+        previous?.Dispose();
         _bufferSize = VideoExtent.Width * VideoExtent.Height * 4;
         Duration = Native.videoContextGetDuration(_context);
 
@@ -242,8 +191,8 @@ public class WebmVideoPlayer : IVideoPlayer
         {
             var extent = VideoExtent;
             var estimatedBytesPerFrame = System.Math.Max(1.0, extent.Width * (double)extent.Height * 1.5);
-            _targetBufferedFrames = System.Math.Clamp((int)(DecodeBufferBudgetBytes / estimatedBytesPerFrame),
-                MinBufferedFrames, MaxBufferedFrames);
+            _maxBufferedFrames = System.Math.Max(MinBufferedFrames,
+                (int)(DecodeBufferBudgetBytes / estimatedBytesPerFrame));
         }
 
         if (HasAudio)
@@ -276,12 +225,15 @@ public class WebmVideoPlayer : IVideoPlayer
     {
         _stopDecode = true;
         _decodeEvent.Set();
+        _decodeTask.Wait();
         _audioStream?.Dispose();
         _audioStream = null;
         _lastFrame?.Dispose();
         _lastFrame = null;
         _audioCallbackHandlerGcHandle.Free();
         Native.videoContextFree(_context);
+        _source?.Dispose();
+        _source = null;
     }
 
     ~WebmVideoPlayer()

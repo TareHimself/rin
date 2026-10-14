@@ -24,12 +24,13 @@ public static class ShadeEmitter
     {
         var diagnostics = new List<Diagnostic>();
         var shaders = new Dictionary<string, string>();
+        var sourceMaps = new Dictionary<string, SlangSourceMap>();
 
         var shaderBaseType = compilation.GetTypeByMetadataName("Rin.Shade.Shader");
         if (shaderBaseType is null)
         {
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.MissingShaderBaseType, Location.None));
-            return new ShadeEmitResult(shaders, [..diagnostics]);
+            return new ShadeEmitResult(shaders, [..diagnostics], sourceMaps);
         }
 
         foreach (var tree in localTrees)
@@ -43,12 +44,14 @@ public static class ShadeEmitter
                 if (!HasShaderAttribute(classSymbol)) continue;
 
                 var lowering = new ShaderLowering(compilation, diagnostics);
-                var slang = lowering.Lower(classSymbol);
-                if (slang is not null) shaders[classSymbol.Name] = slang;
+                if (lowering.Lower(classSymbol) is not { } lowered) continue;
+
+                shaders[classSymbol.Name] = lowered.Text;
+                sourceMaps[classSymbol.Name] = lowered.SourceMap;
             }
         }
 
-        return new ShadeEmitResult(shaders, [..diagnostics]);
+        return new ShadeEmitResult(shaders, [..diagnostics], sourceMaps);
     }
 
     private static bool InheritsFrom(INamedTypeSymbol type, INamedTypeSymbol baseType)
@@ -64,8 +67,10 @@ public static class ShadeEmitter
 }
 
 /// <summary>
-/// The emitted Slang source keyed by shader class name, plus the diagnostics raised while emitting.
+/// The emitted Slang source keyed by shader class name, the diagnostics raised while emitting, and per
+/// shader the map from Slang lines back to C# locations.
 /// </summary>
 public sealed record ShadeEmitResult(
     IReadOnlyDictionary<string, string> Shaders,
-    ImmutableArray<Diagnostic> Diagnostics);
+    ImmutableArray<Diagnostic> Diagnostics,
+    IReadOnlyDictionary<string, SlangSourceMap> SourceMaps);

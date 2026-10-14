@@ -399,7 +399,7 @@ public class HarfBuzzFontManager : IFontManager
             HarfBuzzNative.TryGetNominalGlyph(font.Font, character, out var glyphId);
 
             var scale = font.UnitsPerEm == 0 ? 0f : RenderSize / font.UnitsPerEm;
-            using var renderer = new MtsdfTextRenderer(scale, font.UsesPostScriptOutlines);
+            using var renderer = new MtsdfTextRenderer(scale);
             HarfBuzzNative.DrawGlyph(font.Font, glyphId, renderer);
             var result = renderer.Generate(3f, GetPixelRange());
 

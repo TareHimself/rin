@@ -10,6 +10,14 @@ namespace Examples.RenderGraphOverlay;
 
 public static class GraphOverlay
 {
+    /// <summary>
+    ///     Makes the overlay without adding it, for a caller that owns the view.
+    /// </summary>
+    public static OverlayView Create(IWindowSurface surface, bool startOpen = false)
+    {
+        return new OverlayView(new GraphSnapshotService(surface.Renderer), new Vector2(1f), startOpen);
+    }
+
     public static OverlayView? Attach(ISurface surface, bool startOpen = false)
     {
         return Attach(surface, new Vector2(1f), startOpen);

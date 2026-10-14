@@ -1,6 +1,6 @@
 # Fakes
 
-C# projects that are published with NativeAOT into real native libraries, standing in for the C++ modules in tests. They let tests that call into native code run without Conan, CMake or the Vulkan SDK.
+C# projects that are published with NativeAOT into real native libraries, standing in for the C++ modules in tests. They let tests that call into native code run without silo or a C++ toolchain.
 
 | Project | Replaces | Used by |
 | --- | --- | --- |

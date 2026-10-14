@@ -1,0 +1,18 @@
+# Where the native modules find the packages their silopkg.py depends on by name.
+# Each git entry stays on one commit, so a build never changes without an edit here.
+[[registry]]
+name = "rin"
+path = "."
+
+[[registry]]
+name = "silo-recipes"
+git = "https://github.com/TareHimself/silo-recipes"
+rev = "7134eaf79088c28ceb43751ec92f7e8a8883facf"
+
+[package.webmdx]
+git = "https://github.com/TareHimself/webmdx"
+rev = "49c05f6b5d095714a1ea5f7b986de225f7fd18ab"
+
+[package.rwin]
+git = "https://github.com/TareHimself/rwin"
+rev = "0370da763942727768881e081700b00da6163f24"

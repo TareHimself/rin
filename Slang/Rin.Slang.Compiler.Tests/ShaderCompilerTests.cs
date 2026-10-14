@@ -69,6 +69,22 @@ public class ShaderCompilerTests
     }
 
     [Test]
+    public void StaticUpToDateCheckAgreesWithTheCompilerWithoutASession()
+    {
+        WriteSource("common.slang", "static const int Value = 1;");
+        var source = WriteSource("main.slang", ComputeShader);
+        var package = CompileToPackage(source);
+        var options = new ShaderCompilerOptions();
+        options.AddSearchPath(_root);
+        options.SetPortableRoot(_root);
+
+        Assert.That(ShaderCompiler.IsUpToDate(package, source, options), Is.True);
+
+        WriteSource("common.slang", "static const int Value = 2;");
+        Assert.That(ShaderCompiler.IsUpToDate(package, source, options), Is.False);
+    }
+
+    [Test]
     public void EditingAnIncludeMakesThePackageStale()
     {
         var common = WriteSource("common.slang", "static const int Value = 1;");

@@ -75,8 +75,9 @@ public abstract class Application : IApplication
             if (_renderFinishedEvent.WaitOne(TimeSpan.FromMilliseconds(3)))
             {
                 Profiling.Measure("Engine.Collect", OnCollect);
+                // Only wake the render thread for newly collected data, it must never run the same data twice.
+                _mainUpdateEvent.Set();
             }
-            _mainUpdateEvent.Set();
         }
 
         _mainUpdateEvent.Set();

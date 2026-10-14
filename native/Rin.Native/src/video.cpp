@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory.hpp>
 #include <mutex>
+#include <optional>
 #include <vector>
 #include <span>
 #include <webmdx/SourceDecoder.h>
@@ -26,15 +27,13 @@ struct VideoDecodeContext {
     std::shared_ptr<VideoPacket> lastPacket{};
     AudioCallback audioCallback{nullptr};
     void*audioCallbackUserData{};
-    // Tracks the last packet handed to the caller so repeat queries for the same
-    // display timestamp (e.g. UI redrawing faster than the video's frame rate)
-    // can skip re-running ToRgba and the accompanying allocation.
-    std::shared_ptr<VideoPacket> lastReturnedPacket{};
-    // Guards decoder + the packet list above: Demux (called from the decode thread) mutates both via the
-    // packet callback, while Seek/CopyRecentFrame/SetSource (called from whichever thread owns playback)
-    // read and mutate them too. None of this was synchronized, so a seek or frame copy landing mid-Demux
-    // could read/reassign a shared_ptr the decode thread was writing at the same time.
-    std::mutex mutex;
+    // Lets a repeat query for the same display time skip the conversion.
+    std::optional<double> lastReturnedTimestamp{};
+    std::size_t frameByteSize{};
+    // Held for a whole demux, seek or source change. Taken before queueMutex, never after it.
+    std::mutex decoderMutex;
+    // Guards the packet list, which the decode thread appends to while the render thread reads it.
+    std::mutex queueMutex;
 };
 
 
@@ -45,7 +44,7 @@ struct VideoSource final : public wdx::ISource {
     void*userData{};
     VideoSource(SourceReadCallback read,SourceAvailableCallback available,SourceLengthCallback length,void* inUserData) : readCallback(read), availableCallback(available), lengthCallback(length), userData(inUserData) {}
     void Read(const std::int64_t& pos, std::span<std::uint8_t> data) override {
-        readCallback(static_cast<unsigned long>(pos), static_cast<unsigned long>(data.size()), data.data(), userData);
+        readCallback(static_cast<std::uint64_t>(pos), data.size(), data.data(), userData);
     }
 
     [[nodiscard]] std::int64_t GetLength() const override {
@@ -64,25 +63,43 @@ struct VideoSource final : public wdx::ISource {
 struct VideoSourceWrapper {
     std::shared_ptr<VideoSource> source{};
 };
+static void clearQueuedFrames(VideoDecodeContext* ctx) {
+    std::lock_guard lock(ctx->queueMutex);
+    ctx->packetCount = 0;
+    ctx->firstPacket = {};
+    ctx->lastPacket = {};
+    ctx->lastReturnedTimestamp = {};
+}
+
+// Leaves the frame that should be on screen at `timestamp` at the front of the queue.
+static void dropFramesBefore(VideoDecodeContext* ctx, double timestamp) {
+    while (ctx->firstPacket && ctx->firstPacket->next && ctx->firstPacket->next->timestamp <= timestamp) {
+        ctx->firstPacket = ctx->firstPacket->next;
+        --ctx->packetCount;
+    }
+}
+
+// A decoder can hold frames back, so one packet yields zero, one or several frames.
+static void queueDecodedFrames(VideoDecodeContext* ctx, wdx::IVideoDecoder* decoder) {
+    while (const auto frame = decoder->GetFrame()) {
+        const auto queued = std::make_shared<VideoPacket>(frame->GetTime(), frame);
+        std::lock_guard lock(ctx->queueMutex);
+        if (ctx->lastPacket) {
+            ctx->lastPacket->next = queued;
+        } else {
+            ctx->firstPacket = queued;
+        }
+        ctx->lastPacket = queued;
+        ++ctx->packetCount;
+    }
+}
+
 void * videoContextCreate() {
     const auto ctx = new VideoDecodeContext{};
     ctx->decoder = std::make_shared<wdx::SourceDecoder>();
     ctx->decoder->SetVideoPacketCallback([ctx](const std::shared_ptr<wdx::Packet>& packet, wdx::IVideoDecoder* decoder) {
         decoder->Decode(packet);
-        const auto frame = decoder->GetFrame();
-        const double time = packet->GetTime();
-        if (ctx->packetCount == 0) {
-            auto vpacket = std::make_shared<VideoPacket>(time, frame);
-            ctx->firstPacket = vpacket;
-            ctx->lastPacket = vpacket;
-            ++ctx->packetCount;
-        }
-        else {
-            const auto p = std::make_shared<VideoPacket>(time, frame);
-            ctx->lastPacket->next = p;
-            ctx->lastPacket = p;
-            ++ctx->packetCount;
-        }
+        queueDecodedFrames(ctx, decoder);
     });
     ctx->decoder->SetAudioPacketCallback([ctx](const std::shared_ptr<wdx::Packet>& packet, wdx::IAudioDecoder* decoder) {
         if (ctx->audioCallback != nullptr) {
@@ -111,11 +128,8 @@ Extent2D videoContextGetVideoExtent(void *context) {
 
 void videoContextSeek(void *context, double time) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    std::lock_guard lock(videoContext->mutex);
-    videoContext->packetCount = 0;
-    videoContext->firstPacket = {};
-    videoContext->lastPacket = {};
-    videoContext->lastReturnedPacket = {};
+    std::lock_guard lock(videoContext->decoderMutex);
+    clearQueuedFrames(videoContext);
     videoContext->decoder->Seek(time);
 }
 
@@ -174,10 +188,15 @@ double videoContextGetPosition(void *context) {
     return videoContext->decoder->GetPosition();
 }
 
-void videoContextDecode(void *context, double delta) {
+int videoContextDecode(void *context, double delta) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    std::lock_guard lock(videoContext->mutex);
-    videoContext->decoder->Demux(delta);
+    std::lock_guard lock(videoContext->decoderMutex);
+    const auto result = videoContext->decoder->Demux(delta);
+    // The decoder is flushed at the end of the stream, which releases the frames it held back.
+    if (result == wdx::DemuxResult::Finished && videoContext->decoder->HasVideo()) {
+        queueDecodedFrames(videoContext, videoContext->decoder->GetVideoDecoder());
+    }
+    return result == wdx::DemuxResult::Success;
 }
 
 int videoContextEnded(void *context) {
@@ -190,48 +209,42 @@ int videoContextGetBufferedFrameCount(void *context) {
     return static_cast<int>(videoContext->packetCount.load());
 }
 
-// Returns a freshly allocated RGBA buffer for the frame that should be displayed at
-// `timestamp`, or nullptr if that frame is the same one already returned by the previous
-// call (nothing new to convert/upload).
-void * videoContextCopyRecentFrame(void *context, double timestamp) {
+void videoContextDropFramesBefore(void *context, double timestamp) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
-    std::lock_guard lock(videoContext->mutex);
+    std::lock_guard lock(videoContext->queueMutex);
+    dropFramesBefore(videoContext, timestamp);
+}
 
-    if (videoContext->packetCount == 0) {
-        return nullptr;
+int videoContextCopyRecentFrame(void *context, double timestamp, std::uint8_t *destination, std::uint64_t size) {
+    const auto videoContext = static_cast<VideoDecodeContext *>(context);
+    std::shared_ptr<VideoPacket> packet;
+    {
+        std::lock_guard lock(videoContext->queueMutex);
+        dropFramesBefore(videoContext, timestamp);
+        packet = videoContext->firstPacket;
+        if (!packet || packet->timestamp == videoContext->lastReturnedTimestamp || size < videoContext->frameByteSize) {
+            return 0;
+        }
+        videoContext->lastReturnedTimestamp = packet->timestamp;
     }
 
-    auto packet = videoContext->firstPacket;
-
-    while (packet->timestamp <= timestamp && packet->next) {
-        const auto next = packet->next;
-        if (next->timestamp > timestamp) break;
-        videoContext->firstPacket = next;
-        --videoContext->packetCount;
-        packet = next;
-    }
-
-    if (packet == videoContext->lastReturnedPacket) {
-        return nullptr;
-    }
-    videoContext->lastReturnedPacket = packet;
-
-    const auto track = videoContext->decoder->GetVideoTrack();
-    const auto byteSize = track.width * track.height * 4;
-    const auto data = new uint8_t[byteSize];
-    packet->data->ToRgba(std::span(data,byteSize));
-    return data;
+    packet->data->ToRgba(std::span(destination, size));
+    return 1;
 }
 
 void videoContextSetSource(void *context, void *source) {
     const auto videoContext = static_cast<VideoDecodeContext *>(context);
     const auto videoSource = static_cast<VideoSourceWrapper *>(source);
-    std::lock_guard lock(videoContext->mutex);
-    videoContext->packetCount = 0;
-    videoContext->firstPacket = {};
-    videoContext->lastPacket = {};
-    videoContext->lastReturnedPacket = {};
+    std::lock_guard lock(videoContext->decoderMutex);
+    clearQueuedFrames(videoContext);
     videoContext->decoder->SetSource(videoSource->source);
+    std::size_t frameByteSize = 0;
+    if (videoContext->decoder->HasVideo()) {
+        const auto track = videoContext->decoder->GetVideoTrack();
+        frameByteSize = static_cast<std::size_t>(track.width) * track.height * 4;
+    }
+    std::lock_guard queueLock(videoContext->queueMutex);
+    videoContext->frameByteSize = frameByteSize;
 }
 
 void videoContextFree(void *context) {

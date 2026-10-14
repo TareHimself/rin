@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
 using BepuPhysics.CollisionDetection;
@@ -24,12 +24,16 @@ public class BepuPhysicsSystem : IPhysicsSystem
     private readonly Dictionary<int, BepuBody> _bodyHandleLookup = [];
     private readonly Dictionary<int, BepuBody> _staticHandleLookup = [];
     private Vector3 _gravity = new(0, -9.81f, 0);
+    private readonly ContactTracker _contacts;
 
     public BepuPhysicsSystem()
     {
+        _contacts = new ContactTracker(this, _threadDispatcher.ThreadCount);
         Simulation = Simulation.Create(_pool, new NarrowPhaseCallbacks(this), new PoseIntegratorCallbacks(this),
             new SolveDescription(VelocityIterationCount, SubstepCount));
     }
+
+    public ReadOnlySpan<PhysicsContactEvent> ContactEvents => _contacts.Events;
 
     public Simulation Simulation { get; set; }
 
@@ -233,6 +237,16 @@ public class BepuPhysicsSystem : IPhysicsSystem
         Resolve(handle).CollisionChannel = channel;
     }
 
+    public bool GetTrigger(PhysicsBodyHandle handle)
+    {
+        return Resolve(handle).IsTrigger;
+    }
+
+    public void SetTrigger(PhysicsBodyHandle handle, bool trigger)
+    {
+        Resolve(handle).IsTrigger = trigger;
+    }
+
     public void SetTimeScale(PhysicsBodyHandle handle, float scale)
     {
         var body = Resolve(handle);
@@ -270,7 +284,9 @@ public class BepuPhysicsSystem : IPhysicsSystem
     public void Update(float deltaTime)
     {
         _dilatedBodiesSeenThisStep.Clear();
+        _contacts.BeginStep();
         Simulation.Timestep(deltaTime, _threadDispatcher);
+        _contacts.EndStep();
     }
 
     public void Destroy()
@@ -287,12 +303,13 @@ public class BepuPhysicsSystem : IPhysicsSystem
         return handler.Hit ? handler.Result : null;
     }
 
-    public RayCastResult[] RayCastAll(in Vector3 begin, in Vector3 direction, float distance, int channel = -1)
+    public void RayCastAll<THandler>(in Vector3 begin, in Vector3 direction, float distance, ref THandler handler,
+        int channel = -1) where THandler : struct, IPhysicsHitHandler
     {
-        if (distance <= 0f) return [];
-        var handler = new AllRayHitHandler(this, channel) { Results = [] };
-        Simulation.RayCast(begin, direction, distance, ref handler);
-        return handler.Results.ToArray();
+        if (distance <= 0f) return;
+        var bepuHandler = new VisitingRayHitHandler<THandler>(this, channel) { Handler = handler };
+        Simulation.RayCast(begin, direction, distance, ref bepuHandler);
+        handler = bepuHandler.Handler;
     }
 
     public RayCastResult? SphereCast(float radius, in Vector3 begin, in Vector3 direction, float distance, int channel = -1)
@@ -300,9 +317,10 @@ public class BepuPhysicsSystem : IPhysicsSystem
         return Cast(new Sphere(radius), begin, Quaternion.Identity, direction, distance, channel);
     }
 
-    public RayCastResult[] SphereCastAll(float radius, in Vector3 begin, in Vector3 direction, float distance, int channel = -1)
+    public void SphereCastAll<THandler>(float radius, in Vector3 begin, in Vector3 direction, float distance,
+        ref THandler handler, int channel = -1) where THandler : struct, IPhysicsHitHandler
     {
-        return CastAll(new Sphere(radius), begin, Quaternion.Identity, direction, distance, channel);
+        CastAll(new Sphere(radius), begin, Quaternion.Identity, direction, distance, ref handler, channel);
     }
 
     public RayCastResult? BoxCast(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction,
@@ -311,10 +329,10 @@ public class BepuPhysicsSystem : IPhysicsSystem
         return Cast(new Box(size.X, size.Y, size.Z), begin, orientation, direction, distance, channel);
     }
 
-    public RayCastResult[] BoxCastAll(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction,
-        float distance, int channel = -1)
+    public void BoxCastAll<THandler>(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction,
+        float distance, ref THandler handler, int channel = -1) where THandler : struct, IPhysicsHitHandler
     {
-        return CastAll(new Box(size.X, size.Y, size.Z), begin, orientation, direction, distance, channel);
+        CastAll(new Box(size.X, size.Y, size.Z), begin, orientation, direction, distance, ref handler, channel);
     }
 
     public RayCastResult? CapsuleCast(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation,
@@ -323,26 +341,28 @@ public class BepuPhysicsSystem : IPhysicsSystem
         return Cast(new Capsule(radius, halfHeight * 2f), begin, orientation, direction, distance, channel);
     }
 
-    public RayCastResult[] CapsuleCastAll(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation,
-        in Vector3 direction, float distance, int channel = -1)
+    public void CapsuleCastAll<THandler>(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation,
+        in Vector3 direction, float distance, ref THandler handler, int channel = -1) where THandler : struct, IPhysicsHitHandler
     {
-        return CastAll(new Capsule(radius, halfHeight * 2f), begin, orientation, direction, distance, channel);
+        CastAll(new Capsule(radius, halfHeight * 2f), begin, orientation, direction, distance, ref handler, channel);
     }
 
-    public PhysicsBodyHandle[] OverlapSphere(float radius, in Vector3 center, int channel = -1)
+    public void OverlapSphere<THandler>(float radius, in Vector3 center, ref THandler handler, int channel = -1)
+        where THandler : struct, IPhysicsOverlapHandler
     {
-        return Overlap(new Sphere(radius), center, Quaternion.Identity, channel);
+        Overlap(new Sphere(radius), center, Quaternion.Identity, ref handler, channel);
     }
 
-    public PhysicsBodyHandle[] OverlapBox(in Vector3 size, in Vector3 center, in Quaternion orientation, int channel = -1)
+    public void OverlapBox<THandler>(in Vector3 size, in Vector3 center, in Quaternion orientation, ref THandler handler,
+        int channel = -1) where THandler : struct, IPhysicsOverlapHandler
     {
-        return Overlap(new Box(size.X, size.Y, size.Z), center, orientation, channel);
+        Overlap(new Box(size.X, size.Y, size.Z), center, orientation, ref handler, channel);
     }
 
-    public PhysicsBodyHandle[] OverlapCapsule(float radius, float halfHeight, in Vector3 center, in Quaternion orientation,
-        int channel = -1)
+    public void OverlapCapsule<THandler>(float radius, float halfHeight, in Vector3 center, in Quaternion orientation,
+        ref THandler handler, int channel = -1) where THandler : struct, IPhysicsOverlapHandler
     {
-        return Overlap(new Capsule(radius, halfHeight * 2f), center, orientation, channel);
+        Overlap(new Capsule(radius, halfHeight * 2f), center, orientation, ref handler, channel);
     }
 
     private RayCastResult? Cast<TShape>(in TShape shape, in Vector3 begin, in Quaternion orientation, in Vector3 direction,
@@ -356,15 +376,17 @@ public class BepuPhysicsSystem : IPhysicsSystem
         return handler.Hit ? handler.Result : null;
     }
 
-    private RayCastResult[] CastAll<TShape>(in TShape shape, in Vector3 begin, in Quaternion orientation, in Vector3 direction,
-        float distance, int channel) where TShape : unmanaged, IConvexShape
+    private void CastAll<TShape, THandler>(in TShape shape, in Vector3 begin, in Quaternion orientation, in Vector3 direction,
+        float distance, ref THandler handler, int channel)
+        where TShape : unmanaged, IConvexShape
+        where THandler : struct, IPhysicsHitHandler
     {
-        if (distance <= 0f || direction == Vector3.Zero) return [];
+        if (distance <= 0f || direction == Vector3.Zero) return;
         var pose = new RigidPose(begin, orientation);
         var velocity = new BodyVelocity(Vector3.Normalize(direction) * distance);
-        var handler = new AllSweepHitHandler(this, channel) { Results = [] };
-        Simulation.Sweep(shape, pose, velocity, 1f, _pool, ref handler);
-        return handler.Results.ToArray();
+        var bepuHandler = new VisitingSweepHitHandler<THandler>(this, channel) { Handler = handler };
+        Simulation.Sweep(shape, pose, velocity, 1f, _pool, ref bepuHandler);
+        handler = bepuHandler.Handler;
     }
 
     /// <summary>
@@ -373,13 +395,15 @@ public class BepuPhysicsSystem : IPhysicsSystem
     ///     of the convenience <c>Sweep</c> overload's velocity-derived tuning (which divides by velocity
     ///     magnitude and would be a divide-by-zero here).
     /// </summary>
-    private PhysicsBodyHandle[] Overlap<TShape>(in TShape shape, in Vector3 center, in Quaternion orientation, int channel)
+    private void Overlap<TShape, THandler>(in TShape shape, in Vector3 center, in Quaternion orientation, ref THandler handler,
+        int channel)
         where TShape : unmanaged, IConvexShape
+        where THandler : struct, IPhysicsOverlapHandler
     {
         var pose = new RigidPose(center, orientation);
-        var handler = new AllSweepHitHandler(this, channel) { Results = [] };
-        Simulation.Sweep(shape, pose, default, 0f, _pool, ref handler, 0f, 0f, 1);
-        return handler.Results.Select(r => r.Body).ToArray();
+        var bepuHandler = new VisitingOverlapHandler<THandler>(this, channel) { Handler = handler };
+        Simulation.Sweep(shape, pose, default, 0f, _pool, ref bepuHandler, 0f, 0f, 1);
+        handler = bepuHandler.Handler;
     }
 
     private struct ClosestRayHitHandler(BepuPhysicsSystem system, int channel) : IRayHitHandler
@@ -400,18 +424,27 @@ public class BepuPhysicsSystem : IPhysicsSystem
         }
     }
 
-    private struct AllRayHitHandler(BepuPhysicsSystem system, int channel) : IRayHitHandler
+    /// <summary>
+    ///     Wraps a caller's handler by value (Bepu's generics do not allow ref structs) and copies it back after the
+    ///     query. Once the caller stops, every further collidable fails AllowTest, which ends the traversal.
+    /// </summary>
+    private struct VisitingRayHitHandler<THandler>(BepuPhysicsSystem system, int channel) : IRayHitHandler
+        where THandler : struct, IPhysicsHitHandler
     {
-        public List<RayCastResult> Results;
+        public THandler Handler;
+        private bool _stopped;
 
-        public readonly bool AllowTest(CollidableReference collidable) => system.PassesChannelFilter(collidable, channel);
-        public readonly bool AllowTest(CollidableReference collidable, int childIndex) => true;
+        public readonly bool AllowTest(CollidableReference collidable) => !_stopped && system.PassesChannelFilter(collidable, channel);
+        public readonly bool AllowTest(CollidableReference collidable, int childIndex) => !_stopped;
 
-        public readonly void OnRayHit(in RayData ray, ref float maximumT, float t, Vector3 normal, CollidableReference collidable,
+        public void OnRayHit(in RayData ray, ref float maximumT, float t, Vector3 normal, CollidableReference collidable,
             int childIndex)
         {
-            if (system.ResolveCollidable(collidable) is not { } body) return;
-            Results.Add(new RayCastResult { Body = body.Handle, Location = ray.Origin + ray.Direction * t, Normal = normal, Distance = t });
+            if (_stopped || system.ResolveCollidable(collidable) is not { } body) return;
+            var hit = new RayCastResult { Body = body.Handle, Location = ray.Origin + ray.Direction * t, Normal = normal, Distance = t };
+            if (Handler.OnHit(hit)) return;
+            _stopped = true;
+            maximumT = 0f;
         }
     }
 
@@ -440,23 +473,61 @@ public class BepuPhysicsSystem : IPhysicsSystem
         }
     }
 
-    private struct AllSweepHitHandler(BepuPhysicsSystem system, int channel) : ISweepHitHandler
+    private struct VisitingSweepHitHandler<THandler>(BepuPhysicsSystem system, int channel) : ISweepHitHandler
+        where THandler : struct, IPhysicsHitHandler
     {
-        public List<RayCastResult> Results;
+        public THandler Handler;
+        private bool _stopped;
 
-        public readonly bool AllowTest(CollidableReference collidable) => system.PassesChannelFilter(collidable, channel);
-        public readonly bool AllowTest(CollidableReference collidable, int childIndex) => true;
+        public readonly bool AllowTest(CollidableReference collidable) => !_stopped && system.PassesChannelFilter(collidable, channel);
+        public readonly bool AllowTest(CollidableReference collidable, int childIndex) => !_stopped;
 
-        public readonly void OnHit(ref float maximumT, float t, Vector3 hitLocation, Vector3 hitNormal, CollidableReference collidable)
+        public void OnHit(ref float maximumT, float t, Vector3 hitLocation, Vector3 hitNormal, CollidableReference collidable)
         {
-            if (system.ResolveCollidable(collidable) is not { } body) return;
-            Results.Add(new RayCastResult { Body = body.Handle, Location = hitLocation, Normal = hitNormal, Distance = t });
+            if (_stopped || system.ResolveCollidable(collidable) is not { } body) return;
+            Report(new RayCastResult { Body = body.Handle, Location = hitLocation, Normal = hitNormal, Distance = t }, ref maximumT);
         }
 
-        public readonly void OnHitAtZeroT(ref float maximumT, CollidableReference collidable)
+        public void OnHitAtZeroT(ref float maximumT, CollidableReference collidable)
         {
-            if (system.ResolveCollidable(collidable) is not { } body) return;
-            Results.Add(new RayCastResult { Body = body.Handle, Location = default, Normal = default, Distance = 0f });
+            if (_stopped || system.ResolveCollidable(collidable) is not { } body) return;
+            Report(new RayCastResult { Body = body.Handle, Location = default, Normal = default, Distance = 0f }, ref maximumT);
+        }
+
+        private void Report(in RayCastResult hit, ref float maximumT)
+        {
+            if (Handler.OnHit(hit)) return;
+            _stopped = true;
+            maximumT = 0f;
+        }
+    }
+
+    /// <summary>
+    ///     Bepu reports a compound or mesh once per overlapping child, consecutively, so repeats of the body just
+    ///     reported are skipped.
+    /// </summary>
+    private struct VisitingOverlapHandler<THandler>(BepuPhysicsSystem system, int channel) : ISweepHitHandler
+        where THandler : struct, IPhysicsOverlapHandler
+    {
+        public THandler Handler;
+        private bool _stopped;
+        private PhysicsBodyHandle _last;
+
+        public readonly bool AllowTest(CollidableReference collidable) => !_stopped && system.PassesChannelFilter(collidable, channel);
+        public readonly bool AllowTest(CollidableReference collidable, int childIndex) => !_stopped;
+
+        public void OnHit(ref float maximumT, float t, Vector3 hitLocation, Vector3 hitNormal, CollidableReference collidable)
+        {
+            OnHitAtZeroT(ref maximumT, collidable);
+        }
+
+        public void OnHitAtZeroT(ref float maximumT, CollidableReference collidable)
+        {
+            if (_stopped || system.ResolveCollidable(collidable) is not { } body || body.Handle == _last) return;
+            _last = body.Handle;
+            if (Handler.OnOverlap(body.Handle)) return;
+            _stopped = true;
+            maximumT = 0f;
         }
     }
 
@@ -490,6 +561,24 @@ public class BepuPhysicsSystem : IPhysicsSystem
             : _bodyHandleLookup.GetValueOrDefault(collidable.BodyHandle.Value);
     }
 
+    private bool IsTriggerCollidable(CollidableReference collidable)
+    {
+        return ResolveCollidable(collidable) is { IsTrigger: true };
+    }
+
+    private bool IsDestroyed(PhysicsBodyHandle handle)
+    {
+        var index = handle.Index;
+        return index >= _slots.Count || _versions[(int)index] != handle.Version || _slots[(int)index] is null;
+    }
+
+    private bool IsResting(PhysicsBodyHandle handle)
+    {
+        var index = handle.Index;
+        if (index >= _slots.Count || _versions[(int)index] != handle.Version || _slots[(int)index] is not { } body) return true;
+        return body.BodyHandle is not { } bodyHandle || !Simulation.Bodies[bodyHandle].Awake;
+    }
+
     private bool PassesChannelFilter(CollidableReference collidable, int channel)
     {
         return channel == -1 || (ResolveCollidable(collidable) is { } body && body.CollisionChannel == channel);
@@ -521,16 +610,100 @@ public class BepuPhysicsSystem : IPhysicsSystem
         public Vector3 TrueAngularVelocity;
     }
 
+    /// <summary>
+    ///     Turns per-step manifolds into begin and end events. Workers append touching pairs to their own list during
+    ///     the step, and the diff against the previous step runs on the calling thread afterwards. A pair that
+    ///     disappears because every body in it fell asleep is carried over, since Bepu stops reporting sleeping pairs.
+    /// </summary>
+    private sealed class ContactTracker(BepuPhysicsSystem system, int workerCount)
+    {
+        private readonly List<TouchingPair>[] _perWorker = CreateLists(workerCount);
+        private readonly List<PhysicsContactEvent> _events = [];
+        private HashSet<TouchingPair> _current = [];
+        private HashSet<TouchingPair> _previous = [];
+
+        public ReadOnlySpan<PhysicsContactEvent> Events => System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_events);
+
+        public void BeginStep()
+        {
+            _events.Clear();
+            foreach (var list in _perWorker) list.Clear();
+        }
+
+        public bool Record<TManifold>(int workerIndex, CollidablePair pair, ref TManifold manifold)
+            where TManifold : unmanaged, IContactManifold<TManifold>
+        {
+            if (system.ResolveCollidable(pair.A) is not { } a || system.ResolveCollidable(pair.B) is not { } b) return true;
+            var trigger = a.IsTrigger || b.IsTrigger;
+            if (IsTouching(ref manifold)) _perWorker[workerIndex].Add(TouchingPair.Of(a.Handle, b.Handle, trigger));
+            return !trigger;
+        }
+
+        public void EndStep()
+        {
+            foreach (var list in _perWorker)
+            foreach (var pair in list)
+                _current.Add(pair);
+
+            foreach (var pair in _current)
+                if (!_previous.Contains(pair))
+                    _events.Add(new PhysicsContactEvent(pair.A, pair.B, PhysicsContactKind.Begin, pair.IsTrigger));
+
+            foreach (var pair in _previous)
+            {
+                if (_current.Contains(pair)) continue;
+                if (system.IsResting(pair.A) && system.IsResting(pair.B) && !system.IsDestroyed(pair.A) && !system.IsDestroyed(pair.B))
+                {
+                    _current.Add(pair);
+                    continue;
+                }
+
+                _events.Add(new PhysicsContactEvent(pair.A, pair.B, PhysicsContactKind.End, pair.IsTrigger));
+            }
+
+            (_previous, _current) = (_current, _previous);
+            _current.Clear();
+        }
+
+        private static bool IsTouching<TManifold>(ref TManifold manifold) where TManifold : unmanaged, IContactManifold<TManifold>
+        {
+            for (var i = 0; i < manifold.Count; i++)
+                if (manifold.GetDepth(i) >= 0f)
+                    return true;
+            return false;
+        }
+
+        private static List<TouchingPair>[] CreateLists(int count)
+        {
+            var lists = new List<TouchingPair>[count];
+            for (var i = 0; i < count; i++) lists[i] = [];
+            return lists;
+        }
+
+        private readonly record struct TouchingPair(PhysicsBodyHandle A, PhysicsBodyHandle B, bool IsTrigger)
+        {
+            public static TouchingPair Of(PhysicsBodyHandle a, PhysicsBodyHandle b, bool trigger)
+            {
+                return a.Index <= b.Index ? new TouchingPair(a, b, trigger) : new TouchingPair(b, a, trigger);
+            }
+        }
+    }
+
     private struct NarrowPhaseCallbacks(BepuPhysicsSystem physicsSystem) : INarrowPhaseCallbacks
     {
         public void Initialize(Simulation simulation)
         {
         }
 
+        /// <summary>
+        ///     Contacts between two bodies that cannot respond (kinematic or static) would be solver work for nothing,
+        ///     so they are only generated when one of them is a trigger that wants to report the pair.
+        /// </summary>
         public bool AllowContactGeneration(int workerIndex, CollidableReference a, CollidableReference b,
             ref float speculativeMargin)
         {
-            return true;
+            if (a.Mobility == CollidableMobility.Dynamic || b.Mobility == CollidableMobility.Dynamic) return true;
+            return physicsSystem.IsTriggerCollidable(a) || physicsSystem.IsTriggerCollidable(b);
         }
 
         public bool AllowContactGeneration(int workerIndex, CollidablePair pair, int childIndexA, int childIndexB)
@@ -543,7 +716,7 @@ public class BepuPhysicsSystem : IPhysicsSystem
         {
             pairMaterial = new PairMaterialProperties
                 { FrictionCoefficient = 1, MaximumRecoveryVelocity = 2, SpringSettings = new SpringSettings(35, 5) };
-            return true;
+            return physicsSystem._contacts.Record(workerIndex, pair, ref manifold);
         }
 
         public bool ConfigureContactManifold(int workerIndex, CollidablePair pair, int childIndexA, int childIndexB,

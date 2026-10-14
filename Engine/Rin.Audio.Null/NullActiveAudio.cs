@@ -5,6 +5,7 @@ namespace Rin.Audio.Null;
 internal class NullActiveAudio : IActiveAudio
 {
     public bool IsPlaying => false;
+    public bool HasEnded => false;
     public double Position => 0;
     public double Duration => 0;
 

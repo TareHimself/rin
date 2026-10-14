@@ -14,29 +14,60 @@ public static class QuadExtensions
     }
 
     public static CommandList AddRect(this CommandList commandList, Matrix4x4 transform, in Vector2 size,
-        in Color? color = null, in Vector4? borderRadius = null)
+        in Color? color = null, in BorderRadius? borderRadius = null)
     {
         return commandList.AddQuads(Quad.Rect(transform, size, color, borderRadius));
     }
 
+    /// <summary>
+    ///     A circle centred on <paramref name="center" /> in surface space.
+    /// </summary>
     public static CommandList AddCircle(this CommandList commandList, in Vector2 center, float radius,
         in Color? color = null)
     {
-        return commandList.AddQuads(Quad.Circle(Matrix4x4.Identity.Translate(center), radius, color));
+        return commandList.AddQuads(Quad.Circle(Matrix4x4.Identity.Translate(center - new Vector2(radius)), radius,
+            color));
     }
 
+    /// <summary>
+    ///     A circle centred on the origin of <paramref name="transform" />.
+    /// </summary>
     public static CommandList AddCircle(this CommandList commandList, in Matrix4x4 transform, float radius,
         in Color? color = null)
     {
-        return commandList.AddQuads(Quad.Circle(transform, radius, color));
+        return commandList.AddCircle(transform, Vector2.Zero, radius, color);
     }
 
+    /// <summary>
+    ///     A circle centred on <paramref name="center" /> in the space of <paramref name="transform" />.
+    /// </summary>
     public static CommandList AddCircle(this CommandList commandList, in Matrix4x4 transform, in Vector2 center,
         float radius,
         in Color? color = null)
     {
         return commandList.AddQuads(Quad.Circle(
             transform.ApplyBefore(Matrix4x4.Identity.Translate(center - new Vector2(radius))), radius, color));
+    }
+
+    /// <summary>
+    ///     A circle whose bounding box has its top left corner at the origin of <paramref name="transform" />,
+    ///     the way <see cref="AddRect" /> places a rect.
+    /// </summary>
+    public static CommandList AddCircleTopLeft(this CommandList commandList, in Matrix4x4 transform, float radius,
+        in Color? color = null)
+    {
+        return commandList.AddQuads(Quad.Circle(transform, radius, color));
+    }
+
+    /// <summary>
+    ///     A circle whose bounding box has its top left corner at <paramref name="topLeft" /> in the space of
+    ///     <paramref name="transform" />.
+    /// </summary>
+    public static CommandList AddCircleTopLeft(this CommandList commandList, in Matrix4x4 transform,
+        in Vector2 topLeft, float radius, in Color? color = null)
+    {
+        return commandList.AddQuads(Quad.Circle(transform.ApplyBefore(Matrix4x4.Identity.Translate(topLeft)),
+            radius, color));
     }
 
     public static CommandList AddLine(this CommandList commandList, in Matrix4x4 transform, in Vector2 begin,
@@ -67,7 +98,7 @@ public static class QuadExtensions
     public static CommandList AddTexture(this CommandList commandList, in ResourceHandle imageHandle,
         in Matrix4x4 transform,
         in Vector2 size, in Color? tint = null, in Vector4? uv = null,
-        in Vector4? borderRadius = null)
+        in BorderRadius? borderRadius = null)
     {
         return commandList.Add(new QuadDrawCommand([Quad.Texture(imageHandle, transform, size, tint, borderRadius, uv)],
             [imageHandle]));

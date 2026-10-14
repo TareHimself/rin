@@ -50,6 +50,6 @@ public partial class CoverFillShader : Shader
     [Fragment, Attachment(AttachmentFormat.RGBA32)]
     public Vector4 Fragment()
     {
-        return new Vector4(Push.Color.xyz * Push.Color.W, Push.Color.W);
+        return new Vector4(Push.Color.XYZ * Push.Color.W, Push.Color.W);
     }
 }

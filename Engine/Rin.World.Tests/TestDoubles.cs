@@ -1,3 +1,4 @@
+﻿using System.Runtime.InteropServices;
 using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Core.Shared;
@@ -209,6 +210,7 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
         public float CapsuleRadius;
         public float CapsuleHalfHeight;
         public int CollisionChannel;
+        public bool IsTrigger;
 
         public float ApproxRadius => float.Max(BoxSize.Length() / 2f, float.Max(SphereRadius, CapsuleRadius + CapsuleHalfHeight));
     }
@@ -298,22 +300,44 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
 
     public int GetCollisionChannel(PhysicsBodyHandle handle) => Get(handle).CollisionChannel;
     public void SetCollisionChannel(PhysicsBodyHandle handle, int channel) => Get(handle).CollisionChannel = channel;
+    public bool GetTrigger(PhysicsBodyHandle handle) => Get(handle).IsTrigger;
+    public void SetTrigger(PhysicsBodyHandle handle, bool trigger) => Get(handle).IsTrigger = trigger;
 
-    public void Update(float deltaTime) => OnUpdate?.Invoke(deltaTime);
+    private readonly List<PhysicsContactEvent> _contactEvents = [];
+
+    public ReadOnlySpan<PhysicsContactEvent> ContactEvents => CollectionsMarshal.AsSpan(_contactEvents);
+
+    /// <summary>
+    ///     Queues a contact event for the next <see cref="Update" /> to report, since the fake has no narrow phase.
+    /// </summary>
+    public void EmitContact(PhysicsBodyHandle a, PhysicsBodyHandle b, PhysicsContactKind kind, bool trigger) =>
+        _pendingContacts.Add(new PhysicsContactEvent(a, b, kind, trigger));
+
+    private readonly List<PhysicsContactEvent> _pendingContacts = [];
+
+    public void Update(float deltaTime)
+    {
+        _contactEvents.Clear();
+        _contactEvents.AddRange(_pendingContacts);
+        _pendingContacts.Clear();
+        OnUpdate?.Invoke(deltaTime);
+    }
+
     public void Destroy() => _bodies.Clear();
 
     // Approximate: every body is treated as a bounding sphere. Good enough for a fake; BepuPhysicsSystem
     // has the real implementation, exercised directly in PhysicsQueryTests.
     public RayCastResult? RayCast(in Vector3 begin, in Vector3 direction, float distance, int channel = -1)
     {
-        var all = RayCastAll(begin, direction, distance, channel);
-        return all.Length == 0 ? null : all.OrderBy(r => r.Distance).First();
+        var closest = new ClosestHit();
+        RayCastAll(begin, direction, distance, ref closest, channel);
+        return closest.Hit ? closest.Result : null;
     }
 
-    public RayCastResult[] RayCastAll(in Vector3 begin, in Vector3 direction, float distance, int channel = -1)
+    public void RayCastAll<THandler>(in Vector3 begin, in Vector3 direction, float distance, ref THandler handler, int channel = -1)
+        where THandler : struct, IPhysicsHitHandler
     {
         var dir = Vector3.Normalize(direction);
-        List<RayCastResult> results = [];
         foreach (var (handle, body) in _bodies)
         {
             if (channel != -1 && body.CollisionChannel != channel) continue;
@@ -322,40 +346,65 @@ internal sealed class FakePhysicsSystem : IPhysicsSystem
             if (t < 0 || t > distance) continue;
             var closest = begin + dir * t;
             if (Vector3.Distance(closest, body.Position) > body.ApproxRadius) continue;
-            results.Add(new RayCastResult { Body = handle, Location = closest, Normal = Vector3.Normalize(closest - body.Position), Distance = t });
+            var hit = new RayCastResult { Body = handle, Location = closest, Normal = Vector3.Normalize(closest - body.Position), Distance = t };
+            if (!handler.OnHit(hit)) return;
         }
+    }
 
-        return results.ToArray();
+    private struct ClosestHit : IPhysicsHitHandler
+    {
+        public bool Hit;
+        public RayCastResult Result;
+
+        public bool OnHit(in RayCastResult hit)
+        {
+            if (!Hit || hit.Distance < Result.Distance)
+            {
+                Hit = true;
+                Result = hit;
+            }
+
+            return true;
+        }
     }
 
     public RayCastResult? SphereCast(float radius, in Vector3 begin, in Vector3 direction, float distance, int channel = -1) =>
         RayCast(begin, direction, distance, channel);
 
-    public RayCastResult[] SphereCastAll(float radius, in Vector3 begin, in Vector3 direction, float distance, int channel = -1) =>
-        RayCastAll(begin, direction, distance, channel);
+    public void SphereCastAll<THandler>(float radius, in Vector3 begin, in Vector3 direction, float distance, ref THandler handler, int channel = -1)
+        where THandler : struct, IPhysicsHitHandler =>
+        RayCastAll(begin, direction, distance, ref handler, channel);
 
     public RayCastResult? BoxCast(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction, float distance, int channel = -1) =>
         RayCast(begin, direction, distance, channel);
 
-    public RayCastResult[] BoxCastAll(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction, float distance, int channel = -1) =>
-        RayCastAll(begin, direction, distance, channel);
+    public void BoxCastAll<THandler>(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction, float distance, ref THandler handler, int channel = -1)
+        where THandler : struct, IPhysicsHitHandler =>
+        RayCastAll(begin, direction, distance, ref handler, channel);
 
     public RayCastResult? CapsuleCast(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation, in Vector3 direction, float distance, int channel = -1) =>
         RayCast(begin, direction, distance, channel);
 
-    public RayCastResult[] CapsuleCastAll(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation, in Vector3 direction, float distance, int channel = -1) =>
-        RayCastAll(begin, direction, distance, channel);
+    public void CapsuleCastAll<THandler>(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation, in Vector3 direction, float distance, ref THandler handler, int channel = -1)
+        where THandler : struct, IPhysicsHitHandler =>
+        RayCastAll(begin, direction, distance, ref handler, channel);
 
-    public PhysicsBodyHandle[] OverlapSphere(float radius, in Vector3 center, int channel = -1)
+    public void OverlapSphere<THandler>(float radius, in Vector3 center, ref THandler handler, int channel = -1)
+        where THandler : struct, IPhysicsOverlapHandler
     {
-        var capturedCenter = center;
-        return _bodies.Where(kv => (channel == -1 || kv.Value.CollisionChannel == channel) && Vector3.Distance(capturedCenter, kv.Value.Position) <= radius + kv.Value.ApproxRadius)
-            .Select(kv => kv.Key).ToArray();
+        foreach (var (handle, body) in _bodies)
+        {
+            if (channel != -1 && body.CollisionChannel != channel) continue;
+            if (Vector3.Distance(center, body.Position) > radius + body.ApproxRadius) continue;
+            if (!handler.OnOverlap(handle)) return;
+        }
     }
 
-    public PhysicsBodyHandle[] OverlapBox(in Vector3 size, in Vector3 center, in Quaternion orientation, int channel = -1) =>
-        OverlapSphere(size.Length() / 2f, center, channel);
+    public void OverlapBox<THandler>(in Vector3 size, in Vector3 center, in Quaternion orientation, ref THandler handler, int channel = -1)
+        where THandler : struct, IPhysicsOverlapHandler =>
+        OverlapSphere(size.Length() / 2f, center, ref handler, channel);
 
-    public PhysicsBodyHandle[] OverlapCapsule(float radius, float halfHeight, in Vector3 center, in Quaternion orientation, int channel = -1) =>
-        OverlapSphere(radius + halfHeight, center, channel);
+    public void OverlapCapsule<THandler>(float radius, float halfHeight, in Vector3 center, in Quaternion orientation, ref THandler handler, int channel = -1)
+        where THandler : struct, IPhysicsOverlapHandler =>
+        OverlapSphere(radius + halfHeight, center, ref handler, channel);
 }

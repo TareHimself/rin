@@ -42,7 +42,7 @@ public struct Vertex
     public Vector4 NormalV;
     public Vector4 Tangent;
 
-    public Vector3 GetLocation() => LocationU.xyz;
+    public Vector3 GetLocation() => LocationU.XYZ;
 }
 
 public struct SkinnedMesh

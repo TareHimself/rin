@@ -82,7 +82,7 @@ public class FunctionLoweringTests
                                    [Compute(1, 1, 1)]
                                    public void Compute()
                                    {
-                                       var rgb = Push.Color.rgb;
+                                       var rgb = Push.Color.RGB;
                                        Push.Output[0] = rgb.X;
                                    }
                                }
@@ -117,8 +117,8 @@ public class FunctionLoweringTests
                                    [Compute(1, 1, 1)]
                                    public void Compute()
                                    {
-                                       var broadcast = Push.Color.xxxx;
-                                       var reversed = Push.Color.xyz.zyx;
+                                       var broadcast = Push.Color.XXXX;
+                                       var reversed = Push.Color.XYZ.ZYX;
                                        Push.Output[0] = broadcast.X + reversed.X;
                                    }
                                }

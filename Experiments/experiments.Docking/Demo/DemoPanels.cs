@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Content;
@@ -16,7 +16,7 @@ public static class DemoPanels
     {
         return new DockPanel(id, title, new RectView
         {
-            Color = new Color(0.13f, 0.13f, 0.15f, 1f),
+            Color = Color.FromRgb(0.13f, 0.13f, 0.15f),
             Padding = new Padding(14f),
             InitChild = new TextBoxView { Content = body, FontSize = 15f, WrapContent = true }
         });
@@ -45,7 +45,7 @@ public static class DemoPanels
     {
         return new DockPanel(id, title, new RectView
         {
-            Color = new Color(0.10f, 0.10f, 0.12f, 1f),
+            Color = Color.FromRgb(0.10f, 0.10f, 0.12f),
             Padding = new Padding(12f),
             InitChild = new FpsView()
         });

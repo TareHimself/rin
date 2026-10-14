@@ -44,7 +44,7 @@ sequenceDiagram
 
 - Queues and queue families come back from `createVulkanInstance`. The module keeps a graphics queue and a transfer queue, but the transfer queue is only stored and exposed through `GetTransferQueue`. All submits in this project use the graphics queue.
 - Surface format: the formats the init surface reports are filtered with a regex on the format name (`R` or `B` channel order, 8 or more bits per channel, with alpha, `UNORM`). The first match is used, otherwise `R8G8B8A8_UNORM` with `SRGB_NONLINEAR`.
-- `Update` calls `Native.platformWindowPump`, then reads native events in batches of up to 64 until a read returns zero. Each event is routed by `windowId` to a `RinWindow` through `ProcessEvent`, which raises the matching C# event (`OnKey`, `OnResize`, `OnClose`, and so on).
+- `Update` calls `Native.platformWindowPump`, then reads native events in batches of up to 64 until a read returns zero. Each event is routed by `windowId` to a `RinWindow` through `ProcessEvent`, which raises the matching C# event (`OnKey`, `OnResize`, `OnClose`, and so on). Text events carry a reference to their text, not the text itself, so `RinWindow` reads it with `platformWindowGetEventText` while it handles the event. A commit raises `OnCharacter` once per UTF-16 unit and a preedit raises `OnTextPreedit`.
 - `Collect` asks every renderer for an `IRenderData` and stores the result. `Execute` runs pending `GraphicsSubmit` actions, runs each collected renderer, then calls `FlushPendingWrites`.
 - `CreateWindow` makes a `RinWindow`, builds a `WindowRenderer` for it and registers it. Disposing the window removes the renderer.
 - `GraphicsSubmit(Action<IExecutionContext>)` queues an action. It runs at the start of the next `Execute` in one command buffer that is submitted and waited on with a fence. The returned task completes after that wait.
@@ -162,6 +162,6 @@ flowchart TD
 dotnet build Engine/Rin.Graphics.Vulkan/Rin.Graphics.Vulkan.csproj
 ```
 
-Restore needs `TareHimself.Rin.Graphics.Vulkan.Native` in the local `.feed/`. Build it with `uv run task pack-all` (needs uv, a C++ toolchain and the Vulkan SDK), or use the stub packages for build-only work. Both are described in [native/ReadMe.md](../../native/ReadMe.md), and the wrapper itself in [Rin.Graphics.Vulkan.Native](../../native/Rin.Graphics.Vulkan.Native/ReadMe.md). Stubs let the project build but any call into the native library would fail.
+Restore needs `TareHimself.Rin.Graphics.Vulkan.Native` in the local `.feed/`. Build it with `uv run python scripts/pack_native.py` (needs uv and a C++ toolchain), or use the stub packages for build-only work. Both are described in [native/ReadMe.md](../../native/ReadMe.md), and the wrapper itself in [Rin.Graphics.Vulkan.Native](../../native/Rin.Graphics.Vulkan.Native/ReadMe.md). Stubs let the project build but any call into the native library would fail.
 
 There is no test project for this backend. No `*.Tests` project references it and there is no test folder in this project.

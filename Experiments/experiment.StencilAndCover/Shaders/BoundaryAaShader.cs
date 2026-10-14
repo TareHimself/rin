@@ -44,21 +44,21 @@ public partial class BoundaryAaShader : Shader
     {
         var direction = b - a;
         var normal = new Vector2(-direction.Y, direction.X);
-        return Math.Dot(Math.Normalize(normal), a - p);
+        return Dot(Normalize(normal), a - p);
     }
 
     private static float CalcT(Vector2 a, Vector2 b, Vector2 p)
     {
         var direction = b - a;
-        var t = Math.Dot(p - a, direction) / Math.Dot(direction, direction);
-        return Math.Clamp(t, 0f, 1f);
+        var t = Dot(p - a, direction) / Dot(direction, direction);
+        return Clamp(t, 0f, 1f);
     }
 
     private static float DistToBezier2(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p)
     {
         var t = CalcT(p0, p2, p);
-        var q0 = Math.Lerp(p0, p1, t);
-        var q1 = Math.Lerp(p1, p2, t);
+        var q0 = Lerp(p0, p1, t);
+        var q1 = Lerp(p1, p2, t);
         return DistToLine(q0, q1, p);
     }
 
@@ -82,7 +82,7 @@ public partial class BoundaryAaShader : Shader
     {
         var edge = Push.Edges[input.InstanceId];
         var signedDistance = DistToBezier2(edge.P0, edge.Control, edge.P2, input.ScreenPos);
-        var coverage = Math.Saturate(0.5f - signedDistance);
-        return new Vector4(edge.Color.xyz * edge.Color.W * coverage, edge.Color.W * coverage);
+        var coverage = Saturate(0.5f - signedDistance);
+        return new Vector4(edge.Color.XYZ * edge.Color.W * coverage, edge.Color.W * coverage);
     }
 }

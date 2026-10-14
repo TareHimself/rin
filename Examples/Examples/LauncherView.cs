@@ -8,6 +8,7 @@ namespace Examples;
 
 public sealed class LauncherView : PanelView
 {
+    private const int Columns = 2;
     private static readonly Color Background = new(0.11f, 0.12f, 0.15f, 1f);
 
     public LauncherView(IReadOnlyList<Example> examples, Action<Example> onPicked)
@@ -18,8 +19,7 @@ public sealed class LauncherView : PanelView
             Child = new TextBoxView { Content = "Rin examples", FontSize = 28f, Padding = new Padding(0f, 14f) },
             Align = CrossAlign.Center
         });
-        foreach (var example in examples)
-            list.Add(new ListSlot { Child = MakeButton(example, onPicked), Align = CrossAlign.Center });
+        list.Add(new ListSlot { Child = MakeColumns(examples, onPicked), Align = CrossAlign.Center });
 
         Add(new PanelSlot
         {
@@ -35,6 +35,21 @@ public sealed class LauncherView : PanelView
             Alignment = new Vector2(0.5f),
             SizeToContent = true
         });
+    }
+
+    private static ListView MakeColumns(IReadOnlyList<Example> examples, Action<Example> onPicked)
+    {
+        var rows = (examples.Count + Columns - 1) / Columns;
+        var columns = new ListView { Axis = Axis.Row };
+        for (var first = 0; first < examples.Count; first += rows)
+        {
+            var column = new ListView { Axis = Axis.Column, Padding = new Padding(8f, 0f) };
+            for (var i = first; i < int.Min(first + rows, examples.Count); i++)
+                column.Add(MakeButton(examples[i], onPicked));
+            columns.Add(column);
+        }
+
+        return columns;
     }
 
     private static IView MakeButton(Example example, Action<Example> onPicked)

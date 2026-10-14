@@ -53,3 +53,24 @@ int platformWindowGetEvents(rwin::WindowEvent* output, int size)
     return static_cast<int>(rwin::getEvents({output,static_cast<std::uint64_t>(size)}));
 }
 
+void platformWindowStartTextInput(std::uint64_t handle, rwin::Rect2D caret)
+{
+    rwin::startTextInput(handle, caret);
+}
+
+void platformWindowStopTextInput(std::uint64_t handle)
+{
+    rwin::stopTextInput(handle);
+}
+
+void platformWindowSetTextInputRect(std::uint64_t handle, rwin::Rect2D caret)
+{
+    rwin::setTextInputRect(handle, caret);
+}
+
+const char16_t* platformWindowGetEventText(rwin::TextRef text)
+{
+    const auto view = rwin::getEventText(text);
+    return view.size() == text.length ? view.data() : nullptr;
+}
+

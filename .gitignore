@@ -28,6 +28,7 @@ cpp/
 .artifacts/*
 .feed/*
 build-*
+.silo/
 specs/
 .DS_Store
 *.sln.DotSettings.user

@@ -13,6 +13,6 @@ public sealed class NodeGraphExample : Example
 
     public override void Start(ExampleContext context)
     {
-        context.Surface.Add(new GraphView());
+        context.Add(new GraphView());
     }
 }

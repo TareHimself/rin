@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -352,7 +352,7 @@ public class AudioEffectGenerator : IIncrementalGenerator
         if (parametersIndex != -1)
         {
             output.Line(
-                $"ref readonly var inParameters = ref global::System.Runtime.CompilerServices.Unsafe.AsRef<{processMethod.Parameters[parametersIndex].Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(parameters);");
+                $"ref readonly var inParameters = ref {ParameterSlots(processMethod.Parameters[parametersIndex].Type)}.Read(parameters);");
         }
 
         output
@@ -424,8 +424,8 @@ public class AudioEffectGenerator : IIncrementalGenerator
                     .OpenBrace()
                     .OpenBrace("unsafe")
                     .Line(
-                        $"var ptr = {allocateMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{allocateMethod.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}((ulong)sizeof({paramsType}));")
-                    .Line($"global::System.Runtime.CompilerServices.Unsafe.Write(ptr.ToPointer(), new {paramsType}());")
+                        $"var ptr = {allocateMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{allocateMethod.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}((ulong)sizeof({ParameterSlots(processMethod.Parameters[parametersIndex].Type)}));")
+                    .Line($"global::System.Runtime.CompilerServices.Unsafe.Write(ptr.ToPointer(), new {ParameterSlots(processMethod.Parameters[parametersIndex].Type)}(new {paramsType}()));")
                     .Line("return ptr;")
                     .CloseBrace()
                     .CloseBrace()
@@ -460,4 +460,7 @@ public class AudioEffectGenerator : IIncrementalGenerator
 
         context.AddSource($"AudioEffect_{GeneratorUtils.GetSafeHintName(typeSymbol)}.g.cs", output.ToSourceText());
     }
+
+    private static string ParameterSlots(ITypeSymbol parametersType) =>
+        $"global::Rin.Core.Audio.Effects.ParameterSlots<{parametersType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>";
 }

@@ -78,9 +78,12 @@ struct CustomStringBlob : CustomBlob
 
 using LoadFileFunction = int(RIN_CALLBACK_CONVENTION *)(char* path,char** data,void* userData);
 
+// Slang's global session is not thread-safe, so every session gets its own and sessions can run on
+// separate threads.
 struct SessionBuilder
 {
     SessionBuilder();
+    Slang::ComPtr<slang::IGlobalSession> globalSession{};
     std::vector<slang::TargetDesc> targets{};
     std::vector<slang::CompilerOptionEntry> options;
     std::vector<std::pair<std::string,std::string>> preprocessorMacros{};
@@ -89,6 +92,7 @@ struct SessionBuilder
 
 struct Session
 {
+    Slang::ComPtr<slang::IGlobalSession> globalSession{};
     Slang::ComPtr<slang::ISession> session{};
     explicit Session(const SessionBuilder * builder);
     ~Session();

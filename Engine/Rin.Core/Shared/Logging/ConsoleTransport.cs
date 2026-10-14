@@ -6,7 +6,6 @@ public class ConsoleTransport : ITransport
 
     public void Dispose()
     {
-        // TODO release managed resources here
     }
 
     public void OnAdded(ILogger logger)
@@ -25,6 +24,6 @@ public class ConsoleTransport : ITransport
 
     public void Error(string message, Exception? exception)
     {
-        Console.Error.WriteLine(message);
+        Console.Error.WriteLine(exception is null ? message : $"{message}\n{exception}");
     }
 }
