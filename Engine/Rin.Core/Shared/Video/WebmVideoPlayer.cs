@@ -23,6 +23,8 @@ public class WebmVideoPlayer : IVideoPlayer
     private readonly IAudioModule _audioModule;
     private readonly Func<int, int, IPushStream>? _createStream;
     private readonly AutoResetEvent _decodeEvent = new(false);
+    // The audio stream is made on the decode thread and read on the main thread, and a seek replaces it.
+    private readonly Lock _audioLock = new();
     private readonly Task _decodeTask;
 
     private readonly IChronometer _videoPlaybackTime = new Chronometer();
@@ -70,9 +72,17 @@ public class WebmVideoPlayer : IVideoPlayer
 
     public double DecodedPosition => Native.videoContextGetPosition(_context);
 
-    public double Position => _audioStream is { } audio
-        ? audio.Position + _audioPacketsStartAt
-        : _videoPlaybackTime.TotalSeconds;
+    public double Position
+    {
+        get
+        {
+            if (Volatile.Read(ref _pendingSeek) is { } seek) return seek.Position;
+            lock (_audioLock)
+            {
+                return _audioStream is { } audio ? audio.Position + _audioPacketsStartAt : _videoPlaybackTime.TotalSeconds;
+            }
+        }
+    }
 
     public double Duration { get; private set; }
 
@@ -108,27 +118,36 @@ public class WebmVideoPlayer : IVideoPlayer
     {
         if (_source == null) return;
         IsPlaying = true;
-        _videoPlaybackTime.Start();
-        _audioStream?.Play();
+        lock (_audioLock)
+        {
+            _videoPlaybackTime.Start();
+            _audioStream?.Play();
+        }
     }
 
     public void Pause()
     {
         if (_source == null) return;
         IsPlaying = false;
-        _videoPlaybackTime.Stop();
-        _audioStream?.Pause();
+        lock (_audioLock)
+        {
+            _videoPlaybackTime.Stop();
+            _audioStream?.Pause();
+        }
     }
 
     public void Seek(double position)
     {
         if (_source == null) return;
-        _videoPlaybackTime.SetTime(position);
-        _audioStream?.Dispose();
-        _audioStream = null;
         _lastFrame?.Dispose();
         _lastFrame = null;
-        Volatile.Write(ref _pendingSeek, new SeekRequest(position));
+        lock (_audioLock)
+        {
+            _videoPlaybackTime.SetTime(position);
+            Volatile.Write(ref _pendingSeek, new SeekRequest(position));
+            DropAudioStream();
+        }
+
         _decodeEvent.Set();
     }
 
@@ -158,11 +177,14 @@ public class WebmVideoPlayer : IVideoPlayer
         _source = next;
         previous?.Dispose();
 
-        _audioStream?.Dispose();
-        _audioStream = null;
+        lock (_audioLock)
+        {
+            DropAudioStream();
+            _videoPlaybackTime.SetTime(0.0);
+        }
+
         _lastFrame?.Dispose();
         _lastFrame = null;
-        _videoPlaybackTime.SetTime(0.0);
         Duration = 0.0;
         _bufferSize = 0;
 
@@ -228,8 +250,24 @@ public class WebmVideoPlayer : IVideoPlayer
     private bool PerformSeek(SeekRequest seek)
     {
         var result = Native.videoContextSeek(_context, seek.Position);
-        if (result == NativeResult.Success) Interlocked.CompareExchange(ref _pendingSeek, null, seek);
+        if (result == NativeResult.Success)
+        {
+            lock (_audioLock)
+            {
+                // Audio from here on starts at the new position, so nothing pushed before the seek may linger.
+                DropAudioStream();
+                Interlocked.CompareExchange(ref _pendingSeek, null, seek);
+            }
+        }
+
         return Continue(result);
+    }
+
+    // Under _audioLock.
+    private void DropAudioStream()
+    {
+        _audioStream?.Dispose();
+        _audioStream = null;
     }
 
     // Whether the decode thread should go straight on after a native step, and records a rejected source.
@@ -260,15 +298,20 @@ public class WebmVideoPlayer : IVideoPlayer
 
     private void AudioCallback(ReadOnlySpan<byte> data, double time)
     {
-        if (_audioStream == null)
+        lock (_audioLock)
         {
-            _audioPacketsStartAt = time;
-            _audioStream = _createStream?.Invoke(AudioSampleRate, AudioChannels) ??
-                           _audioModule.MasterAudioGroup.CreatePushStream(AudioSampleRate, AudioChannels);
-            if (IsPlaying) _audioStream.Play();
-        }
+            // Packets still coming out of the old position while a seek waits are not worth hearing.
+            if (Volatile.Read(ref _pendingSeek) is not null) return;
+            if (_audioStream == null)
+            {
+                _audioPacketsStartAt = time;
+                _audioStream = _createStream?.Invoke(AudioSampleRate, AudioChannels) ??
+                               _audioModule.MasterAudioGroup.CreatePushStream(AudioSampleRate, AudioChannels);
+                if (IsPlaying) _audioStream.Play();
+            }
 
-        _audioStream.Push(data);
+            _audioStream.Push(data);
+        }
     }
 
     private void ReleaseResources()
@@ -277,8 +320,11 @@ public class WebmVideoPlayer : IVideoPlayer
         _stopDecode = true;
         _decodeEvent.Set();
         _decodeTask.Wait();
-        _audioStream?.Dispose();
-        _audioStream = null;
+        lock (_audioLock)
+        {
+            DropAudioStream();
+        }
+
         _lastFrame?.Dispose();
         _lastFrame = null;
         _audioCallbackHandlerGcHandle.Free();

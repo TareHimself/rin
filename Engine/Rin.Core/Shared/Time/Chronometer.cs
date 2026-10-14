@@ -12,6 +12,7 @@ public class Chronometer : IChronometer
 
     public void Start()
     {
+        if (IsRunning) return;
         _startedAt = DateTime.UtcNow;
         IsRunning = true;
     }
