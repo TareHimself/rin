@@ -25,7 +25,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.silo/store
-          key: silo-slang-${{ runner.os }}-${{ hashFiles('native/Rin.Slang.Native/CMakeLists.txt', 'native/Rin.Slang.Native/silopkg.py', 'native/Rin.Slang.Native/src/**', 'native/recipes/slang/**', 'native/silo.config.toml', 'uv.lock') }}
+          key: silo-store-${{ runner.os }}-${{ hashFiles('native/Rin.Slang.Native/CMakeLists.txt', 'native/Rin.Slang.Native/silopkg.py', 'native/Rin.Slang.Native/src/**', 'native/recipes/slang/**', 'native/silo.config.toml', 'uv.lock') }}
 
       - name: Detect the compiler
         run: uv run silo profile detect --force
