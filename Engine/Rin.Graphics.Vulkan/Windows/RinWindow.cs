@@ -1,17 +1,30 @@
 using System.Numerics;
+using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Graphics.Windows.Events;
 
 namespace Rin.Graphics.Vulkan.Windows;
 
-public class RinWindow(in ulong handle, IWindow? parent) : IWindow
+public class RinWindow : IWindow
 {
     private readonly HashSet<IWindow> _children = [];
-    private ulong _handle = handle;
+    private readonly GCHandle _self;
+    private ulong _handle;
     private bool _typing;
     private Native.Window.Rect2D _typingRect;
-    public IWindow? Parent { get; } = parent;
+    private ExceptionDispatchInfo? _dragHandlerError;
+
+    public RinWindow(in ulong handle, IWindow? parent)
+    {
+        _handle = handle;
+        Parent = parent;
+        _self = GCHandle.Alloc(this);
+        RegisterDropCallbacks();
+    }
+
+    public IWindow? Parent { get; }
 
     public void Dispose()
     {
@@ -20,8 +33,10 @@ public class RinWindow(in ulong handle, IWindow? parent) : IWindow
 
         OnDispose?.Invoke();
         if (_handle == 0) return;
+        Native.platformWindowClearDropCallbacks(_handle);
         Native.platformWindowDestroy(_handle);
         _handle = 0;
+        _self.Free();
     }
 
     public bool IsFullscreen { get; }
@@ -38,7 +53,148 @@ public class RinWindow(in ulong handle, IWindow? parent) : IWindow
     public event Action<MaximizeEvent>? OnMaximize;
     public event Action<MinimizeEvent>? OnMinimize;
     public event Action<RefreshEvent>? OnRefresh;
+    public event Action<DragEvent>? OnDragEnter;
+    public event Action<DragEvent>? OnDragOver;
+    public event Action? OnDragLeave;
     public event Action<DropEvent>? OnDrop;
+
+    private unsafe void RegisterDropCallbacks()
+    {
+        var callbacks = new Native.Window.DropCallbacks
+        {
+            enter = &OnNativeDragEnter,
+            over = &OnNativeDragOver,
+            drop = &OnNativeDrop,
+            leave = &OnNativeDragLeave,
+            userData = GCHandle.ToIntPtr(_self)
+        };
+        Native.platformWindowSetDropCallbacks(_handle, &callbacks);
+    }
+
+    private static RinWindow? WindowFrom(IntPtr userData)
+    {
+        return GCHandle.FromIntPtr(userData).Target as RinWindow;
+    }
+
+    [UnmanagedCallersOnly]
+    private static unsafe DropEffect OnNativeDragEnter(Native.Window.DropInfo* info, Native.Window.DropData* data,
+        IntPtr userData)
+    {
+        return WindowFrom(userData)?.RaiseDrag(info, data, DragStage.Enter) ?? DropEffect.None;
+    }
+
+    [UnmanagedCallersOnly]
+    private static unsafe DropEffect OnNativeDragOver(Native.Window.DropInfo* info, Native.Window.DropData* data,
+        IntPtr userData)
+    {
+        return WindowFrom(userData)?.RaiseDrag(info, data, DragStage.Over) ?? DropEffect.None;
+    }
+
+    [UnmanagedCallersOnly]
+    private static unsafe DropEffect OnNativeDrop(Native.Window.DropInfo* info, Native.Window.DropData* data,
+        IntPtr userData)
+    {
+        return WindowFrom(userData)?.RaiseDrag(info, data, DragStage.Drop) ?? DropEffect.None;
+    }
+
+    [UnmanagedCallersOnly]
+    private static void OnNativeDragLeave(IntPtr userData)
+    {
+        if (WindowFrom(userData) is not { } window || window.OnDrop is null) return;
+        try
+        {
+            window.OnDragLeave?.Invoke();
+        }
+        catch (Exception e)
+        {
+            window._dragHandlerError ??= ExceptionDispatchInfo.Capture(e);
+        }
+    }
+
+    private enum DragStage
+    {
+        Enter,
+        Over,
+        Drop
+    }
+
+    // Runs inside the native pump, where an exception cannot unwind, so handler errors are kept for the next update.
+    private unsafe DropEffect RaiseDrag(Native.Window.DropInfo* info, Native.Window.DropData* data, DragStage stage)
+    {
+        if (OnDrop is null) return DropEffect.None;
+
+        try
+        {
+            var e = ReadDrag(info, data, stage == DragStage.Drop);
+            switch (stage)
+            {
+                case DragStage.Enter:
+                    OnDragEnter?.Invoke(e);
+                    break;
+                case DragStage.Over:
+                    OnDragOver?.Invoke(e);
+                    break;
+                case DragStage.Drop:
+                    OnDrop?.Invoke((DropEvent)e);
+                    break;
+            }
+
+            return e.Effect;
+        }
+        catch (Exception exception)
+        {
+            _dragHandlerError ??= ExceptionDispatchInfo.Capture(exception);
+            return DropEffect.None;
+        }
+    }
+
+    private unsafe DragEvent ReadDrag(Native.Window.DropInfo* info, Native.Window.DropData* data, bool drop)
+    {
+        var paths = new string[data->fileCount];
+        for (var i = 0; i < paths.Length; i++) paths[i] = Marshal.PtrToStringUTF8((nint)data->files[i]) ?? string.Empty;
+        var text = data->text == null ? null : new string(data->text, 0, (int)data->textLength);
+
+        return drop
+            ? new DropEvent
+            {
+                Window = this,
+                Position = info->position,
+                Paths = paths,
+                Text = text,
+                Allowed = info->allowed,
+                Modifiers = info->modifiers,
+                Effect = DefaultEffect(info->allowed)
+            }
+            : new DragEvent
+            {
+                Window = this,
+                Position = info->position,
+                Paths = paths,
+                Text = text,
+                Allowed = info->allowed,
+                Modifiers = info->modifiers,
+                Effect = DefaultEffect(info->allowed)
+            };
+    }
+
+    private static DropEffect DefaultEffect(DropEffect allowed)
+    {
+        if (allowed.HasFlag(DropEffect.Copy)) return DropEffect.Copy;
+        if (allowed.HasFlag(DropEffect.Move)) return DropEffect.Move;
+        if (allowed.HasFlag(DropEffect.Link)) return DropEffect.Link;
+        return DropEffect.None;
+    }
+
+    /// <summary>
+    ///     Rethrows an exception a drag handler threw inside the native event pump.
+    /// </summary>
+    internal void ThrowPendingDragHandlerError()
+    {
+        if (_dragHandlerError is null) return;
+        var error = _dragHandlerError;
+        _dragHandlerError = null;
+        error.Throw();
+    }
 
     public void SetHitTestCallback(Func<WindowHitTestResult, IWindow>? callback)
     {

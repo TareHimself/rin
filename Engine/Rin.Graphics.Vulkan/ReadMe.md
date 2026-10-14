@@ -16,7 +16,7 @@ Vulkan backend for the `IGraphicsModule` interface from Rin.Core. Package id `Ta
 | `VulkanGraphicsModule.cs` | Module entry point: start, stop, update, collect, execute, windows, shader factory methods, image creation helpers. |
 | `VulkanGraphicsModule.Resources.cs` | Resource registry, bindless descriptor set, buffer registry, pending-write flushing. |
 | `WindowRenderer.cs`, `Frame.cs` | Per-window swapchain and the per-frame draw. One `Frame` holds a command buffer, a fence, a swapchain semaphore, a descriptor allocator and a `GraphBuilder`. |
-| `Windows/RinWindow.cs` | `IWindow` implementation over a native window handle. |
+| `Windows/RinWindow.cs` | `IWindow` implementation over a native window handle. Registers the window's drop callbacks with the native layer and raises the drag events from them. |
 | `Windows/SystemClipboard.cs` | `IClipboard` over the native clipboard calls, exposed as `VulkanGraphicsModule.Clipboard`. |
 | `Graph/` | Render graph: `GraphBuilder`, `GraphConfig`, `CompiledGraph`, `ResourcePool`, barrier and upload passes. |
 | `Images/`, `Descriptors/` | Bindless slot tables and handle state, descriptor sets, pools and layouts. |
@@ -46,6 +46,7 @@ sequenceDiagram
 - Queues and queue families come back from `createVulkanInstance`. The module keeps a graphics queue and a transfer queue, but the transfer queue is only stored and exposed through `GetTransferQueue`. All submits in this project use the graphics queue.
 - Surface format: the formats the init surface reports are filtered with a regex on the format name (`R` or `B` channel order, 8 or more bits per channel, with alpha, `UNORM`). The first match is used, otherwise `R8G8B8A8_UNORM` with `SRGB_NONLINEAR`.
 - `Update` calls `Native.platformWindowPump`, then reads native events in batches of up to 64 until a read returns zero. Each event is routed by `windowId` to a `RinWindow` through `ProcessEvent`, which raises the matching C# event (`OnKey`, `OnResize`, `OnClose`, and so on). Text events carry a reference to their text, not the text itself, so `RinWindow` reads it with `platformWindowGetEventText` while it handles the event. A commit raises `OnCharacter` once per UTF-16 unit and a preedit raises `OnTextPreedit`.
+- Drags do not arrive as events. `RinWindow` registers `platformWindowSetDropCallbacks` when it is created, and the native layer calls back into it from inside `platformWindowPump` for enter, over, drop and leave with the dragged paths and text. The callback answers `DropEffect.None` while `OnDrop` has no handler, and otherwise raises the matching event and returns its `Effect`. A handler exception cannot unwind through the native pump, so it is captured and rethrown from `Update` once the pump returns.
 - `Collect` asks every renderer for an `IRenderData` and stores the result. `Execute` runs pending `GraphicsSubmit` actions, runs each collected renderer, then calls `FlushPendingWrites`.
 - `CreateWindow` makes a `RinWindow`, builds a `WindowRenderer` for it and registers it. Disposing the window removes the renderer.
 - `GraphicsSubmit(Action<IExecutionContext>)` queues an action. It runs at the start of the next `Execute` in one command buffer that is submitted and waited on with a fence. The returned task completes after that wait.

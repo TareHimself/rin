@@ -1,7 +1,5 @@
-﻿namespace Rin.Core.Graphics.Windows.Events;
+namespace Rin.Core.Graphics.Windows.Events;
 
-public class DropEvent : WindowEvent
+public class DropEvent : DragEvent
 {
-    public required string[] Paths;
-    public required string[] Texts;
 }

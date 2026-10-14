@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Rin.Core.Graphics.Windows.Events;
 
 namespace Rin.Core.Graphics.Windows;
@@ -22,6 +22,14 @@ public interface IWindow : IDisposable
     public event Action<MaximizeEvent>? OnMaximize;
     public event Action<RefreshEvent>? OnRefresh;
     public event Action<MinimizeEvent>? OnMinimize;
+    /// <summary>
+    ///     A drag entered, moved over or left the window. Nothing is raised, and every drag is refused, until
+    ///     <see cref="OnDrop" /> has a handler.
+    /// </summary>
+    public event Action<DragEvent>? OnDragEnter;
+
+    public event Action<DragEvent>? OnDragOver;
+    public event Action? OnDragLeave;
     public event Action<DropEvent>? OnDrop;
 
     public void SetHitTestCallback(Func<WindowHitTestResult, IWindow>? callback);

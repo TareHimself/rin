@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -123,6 +123,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                 }
             } while (eventsPumped > 0);
         }
+
+        foreach (var window in _rinWindows.Values) window.ThrowPendingDragHandlerError();
     }
 
     public event Action<IWindow>? OnWindowClosed;

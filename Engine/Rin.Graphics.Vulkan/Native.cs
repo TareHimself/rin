@@ -125,6 +125,12 @@ internal static partial class Native
     public static unsafe partial char* platformWindowGetEventText(Window.TextRef text);
 
     [LibraryImport(DllName)]
+    public static unsafe partial void platformWindowSetDropCallbacks(ulong handle, Window.DropCallbacks* callbacks);
+
+    [LibraryImport(DllName)]
+    public static partial void platformWindowClearDropCallbacks(ulong handle);
+
+    [LibraryImport(DllName)]
     public static partial int platformHasClipboardText();
 
     [LibraryImport(DllName)]
@@ -268,6 +274,34 @@ internal static partial class Native
             public TextRef text;
             public uint caretStart;
             public uint caretEnd;
+        }
+
+        // Text is UTF-16 and files are UTF-8 paths, both only valid inside the callback.
+        [NoReorder]
+        public unsafe struct DropData
+        {
+            public char* text;
+            public ulong textLength;
+            public byte** files;
+            public ulong fileCount;
+        }
+
+        [NoReorder]
+        public struct DropInfo
+        {
+            public Vector2 position;
+            public DropEffect allowed;
+            public InputModifier modifiers;
+        }
+
+        [NoReorder]
+        public unsafe struct DropCallbacks
+        {
+            public delegate* unmanaged<DropInfo*, DropData*, IntPtr, DropEffect> enter;
+            public delegate* unmanaged<DropInfo*, DropData*, IntPtr, DropEffect> over;
+            public delegate* unmanaged<DropInfo*, DropData*, IntPtr, DropEffect> drop;
+            public delegate* unmanaged<IntPtr, void> leave;
+            public IntPtr userData;
         }
 
         [StructLayout(LayoutKind.Explicit)]

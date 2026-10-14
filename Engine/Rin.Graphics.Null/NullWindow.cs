@@ -26,6 +26,9 @@ internal sealed class NullWindow(string name, Extent2D extent, IWindow? parent) 
     public event Action<MaximizeEvent>? OnMaximize;
     public event Action<RefreshEvent>? OnRefresh;
     public event Action<MinimizeEvent>? OnMinimize;
+    public event Action<DragEvent>? OnDragEnter;
+    public event Action<DragEvent>? OnDragOver;
+    public event Action? OnDragLeave;
     public event Action<DropEvent>? OnDrop;
     public event Action? OnDispose;
 
