@@ -20,6 +20,7 @@ public sealed class NullGraphicsModule : IGraphicsModule
     public event Action<IWindowRenderer>? OnWindowRendererDestroyed;
 
     public IDevice CurrentDevice { get; init; } = new NullDevice();
+    public IClipboard Clipboard { get; } = new InMemoryClipboard();
 
     public void Start(IApplication app)
     {

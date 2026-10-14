@@ -18,13 +18,8 @@ jobs:
       - name: Pack native stub packages
         run: uv run python scripts/pack_native_stubs.py .feed
 
-      # silo's store, keyed by what decides its contents. A hit makes the build below a lookup.
-      - name: Restore cached silo store
-        uses: actions/cache@v4
-        with:
-          path: ~/.silo
-          key: silo-slang-${{ runner.os }}-${{ hashFiles('native/Rin.Slang.Native/CMakeLists.txt', 'native/Rin.Slang.Native/silopkg.py', 'native/Rin.Slang.Native/src/**', 'native/recipes/slang/**', 'native/silo.config.toml', 'uv.lock') }}
-
+      # No cache for silo's store yet: without a lock file nothing pins what it resolves, so a cached store
+      # could hide a changed dependency. Every run builds Slang from scratch for now.
       - name: Detect the compiler
         run: uv run silo profile detect --force
 

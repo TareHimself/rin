@@ -124,6 +124,18 @@ internal static partial class Native
     [LibraryImport(DllName)]
     public static unsafe partial char* platformWindowGetEventText(Window.TextRef text);
 
+    [LibraryImport(DllName)]
+    public static partial int platformHasClipboardText();
+
+    [LibraryImport(DllName)]
+    public static unsafe partial char* platformGetClipboardText();
+
+    [LibraryImport(DllName)]
+    public static unsafe partial int platformSetClipboardText(char* text, ulong length);
+
+    [LibraryImport(DllName)]
+    public static partial void platformClearClipboard();
+
     public static class Window
     {
         public enum EventType : uint
@@ -139,9 +151,6 @@ internal static partial class Native
             TextCommit,
             CursorFocus,
             KeyboardFocus,
-            DndEnter,
-            DndDrop,
-            DndLeave,
             TextPreedit
         }
 

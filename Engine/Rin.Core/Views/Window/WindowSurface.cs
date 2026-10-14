@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 using Rin.Core.Graphics.Windows;
@@ -98,7 +98,7 @@ public class WindowSurface : Surface, IWindowSurface
 
     protected void OnKeyboard(KeyEvent e)
     {
-        ReceiveKeyboard(new KeyboardSurfaceEvent(this, e.Key, e.State));
+        ReceiveKeyboard(new KeyboardSurfaceEvent(this, e.Key, e.State, e.Modifiers));
     }
 
     protected void OnCharacter(CharacterEvent e)

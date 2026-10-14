@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Graphics.Windows.Events;
@@ -205,10 +205,6 @@ public class RinWindow(in ulong handle, IWindow? parent) : IWindow
                     CaretStart = (int)e.textPreedit.caretStart,
                     CaretEnd = (int)e.textPreedit.caretEnd
                 });
-                break;
-            case Native.Window.EventType.DndEnter:
-            case Native.Window.EventType.DndDrop:
-            case Native.Window.EventType.DndLeave:
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

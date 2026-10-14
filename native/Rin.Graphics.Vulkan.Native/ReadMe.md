@@ -31,3 +31,5 @@ For a build to work on, `uv run silo sync native/Rin.Graphics.Vulkan.Native` bui
 ## Gotchas
 
 - The build does not use the Vulkan SDK. It links the loader silo builds, and the package does not ship it: at run time the machine's own `vulkan-1.dll` is used.
+
+The clipboard is text only: `platformHasClipboardText`, `platformGetClipboardText` (UTF-16, valid until the next clipboard call, null when the clipboard holds no text), `platformSetClipboardText` and `platformClearClipboard` wrap rwin's clipboard calls.

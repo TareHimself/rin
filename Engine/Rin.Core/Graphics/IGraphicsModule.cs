@@ -1,4 +1,4 @@
-﻿// using Rin.Core.Graphics.Meshes;
+// using Rin.Core.Graphics.Meshes;
 using Rin.Core.Graphics.Shaders;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared.Buffers;
@@ -14,6 +14,7 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
     public event Action<IWindowRenderer>? OnWindowRendererDestroyed;
 
     public IDevice CurrentDevice { get; }
+    public IClipboard Clipboard { get; }
 
     public void AddRenderer(IRenderer renderer);
     public void RemoveRenderer(IRenderer renderer);

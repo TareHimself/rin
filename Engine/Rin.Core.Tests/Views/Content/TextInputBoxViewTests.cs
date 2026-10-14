@@ -215,6 +215,77 @@ public class TextInputBoxViewTests
         Assert.That(input.Content, Is.EqualTo("ab"));
     }
 
+    [Test]
+    public void PasteInsertsTheClipboardAtTheCaret()
+    {
+        var input = new TextInputBoxView();
+        var surface = new FakeSurface();
+        surface.Clipboard.SetText("XY");
+        Type(input, "abcd");
+        Press(input, InputKey.Left);
+        Press(input, InputKey.Left);
+
+        Shortcut(input, surface, InputKey.V);
+
+        Assert.That(input.Content, Is.EqualTo("abXYcd"));
+        Assert.That(input.CursorPosition, Is.EqualTo(3));
+    }
+
+    [Test]
+    public void PasteWithAnEmptyClipboardChangesNothing()
+    {
+        var input = new TextInputBoxView();
+        Type(input, "ab");
+
+        Shortcut(input, new FakeSurface(), InputKey.V);
+
+        Assert.That(input.Content, Is.EqualTo("ab"));
+    }
+
+    [Test]
+    public void CopyPutsTheWholeTextOnTheClipboard()
+    {
+        var input = new TextInputBoxView();
+        var surface = new FakeSurface();
+        Type(input, "hello");
+
+        Shortcut(input, surface, InputKey.C);
+
+        Assert.That(surface.Clipboard.GetText(), Is.EqualTo("hello"));
+        Assert.That(input.Content, Is.EqualTo("hello"));
+    }
+
+    [Test]
+    public void CutMovesTheWholeTextToTheClipboard()
+    {
+        var input = new TextInputBoxView();
+        var surface = new FakeSurface();
+        Type(input, "hello");
+
+        Shortcut(input, surface, InputKey.X);
+
+        Assert.That(surface.Clipboard.GetText(), Is.EqualTo("hello"));
+        Assert.That(input.Content, Is.Empty);
+        Assert.That(input.CursorPosition, Is.EqualTo(-1));
+    }
+
+    [Test]
+    public void AControlKeyIsNotTypedAsAShortcutOrACharacter()
+    {
+        var input = new TextInputBoxView();
+        Type(input, "ab");
+
+        Shortcut(input, new FakeSurface(), InputKey.Left);
+
+        Assert.That(input.Content, Is.EqualTo("ab"));
+        Assert.That(input.CursorPosition, Is.EqualTo(1));
+    }
+
+    private static void Shortcut(TextInputBoxView input, FakeSurface surface, InputKey key)
+    {
+        input.OnKeyboard(new KeyboardSurfaceEvent(surface, key, InputState.Pressed, InputModifier.Control));
+    }
+
     private static int PressEscape(TextInputBoxView input)
     {
         var surface = new FakeSurface();

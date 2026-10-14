@@ -1,6 +1,7 @@
 using System.Numerics;
 using Rin.Core.Audio;
 using Rin.Core.Graphics;
+using Rin.Core.Graphics.Windows;
 using Rin.Core.Shared;
 using Rin.Core.Views;
 using Rin.Core.Views.Events;
@@ -55,6 +56,7 @@ internal sealed class FakeSurface : ISurface
     public void StartTyping(View view) { }
     public void StopTyping(View view) { }
     public void SetTypingRect(View view, in Rect2D caret) { }
+    public IClipboard Clipboard { get; } = new InMemoryClipboard();
     public void Init() { }
     public Vector2 GetSize() => new(1000f);
     public int FocusClears { get; private set; }

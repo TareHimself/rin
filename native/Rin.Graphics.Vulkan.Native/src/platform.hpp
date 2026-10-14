@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <rwin/types.h>
 #include <rwin/flags.h>
 #include <vulkan/vulkan_core.h>
@@ -34,3 +34,11 @@ RIN_NATIVE_API void platformWindowSetTextInputRect(std::uint64_t handle,rwin::Re
 // The UTF-16 text of a text event, valid until the next platformWindowPump, or nullptr if it is gone.
 RIN_NATIVE_API const char16_t * platformWindowGetEventText(rwin::TextRef text);
 
+RIN_NATIVE_API int platformHasClipboardText();
+
+// The clipboard's text as UTF-16, valid until the next clipboard call, or nullptr when it holds no text.
+RIN_NATIVE_API const char16_t * platformGetClipboardText();
+
+RIN_NATIVE_API int platformSetClipboardText(const char16_t * text,std::uint64_t length);
+
+RIN_NATIVE_API void platformClearClipboard();
