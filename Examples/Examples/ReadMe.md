@@ -53,7 +53,7 @@ A canvas to draw on. Drag with the left button to paint and with the right butto
 
 ### video-player
 
-Open video picks a webm file and plays it fitted to the window. The field next to it takes a URL, and Enter or Open URL plays that webm over HTTP through `VideoPlayerView.FromUrl`, which fetches it with range requests as it goes. The bar shows the position and length, or Loading until the headers are in and the failure if the decoder rejects the source, and its play button plays and pauses. `VideoPlayerView` itself also takes input: a left click on the video toggles play and a right click seeks to that point of its width.
+Open video picks a webm file and plays it fitted to the window, and a path or URL after the example name (`-- video-player clip.webm`) opens at start. The field next to it takes a URL, and Enter or Open URL plays that webm over HTTP through `VideoPlayerView.FromUrl`, which fetches it with range requests as it goes. The bar shows the position and length, or Loading until the headers are in and the failure if the decoder rejects the source, and its play button plays and pauses. `VideoPlayerView` itself also takes input: a left click on the video toggles play and a right click seeks to that point of its width.
 
 ### audio-effects
 

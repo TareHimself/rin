@@ -216,7 +216,7 @@ public class VulkanExecutionContext(
         Debug.Assert(vkDest is not null, "Invalid texture resource handle");
         var copyRegion = new VkBufferImageCopy
         {
-            bufferOffset = 0,
+            bufferOffset = src.Offset,
             bufferRowLength = 0,
             bufferImageHeight = 0,
             imageSubresource = new VkImageSubresourceLayers

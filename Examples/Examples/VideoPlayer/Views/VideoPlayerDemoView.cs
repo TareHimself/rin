@@ -122,6 +122,22 @@ public sealed class VideoPlayerDemoView : PanelView
         Open(VideoPlayerView.FromUrl(url));
     }
 
+    /// <summary>
+    ///     Opens an http or https URL, or otherwise a file path.
+    /// </summary>
+    public void Open(string pathOrUrl)
+    {
+        if (Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var url) && url.Scheme is "http" or "https")
+        {
+            _url.Content = pathOrUrl;
+            Open(VideoPlayerView.FromUrl(url));
+        }
+        else
+        {
+            Open(VideoPlayerView.FromFile(pathOrUrl));
+        }
+    }
+
     private void Open(VideoPlayerView video)
     {
         CloseVideo();

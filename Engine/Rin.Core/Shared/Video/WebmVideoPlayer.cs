@@ -231,10 +231,8 @@ public class WebmVideoPlayer : IVideoPlayer
         Duration = Native.videoContextGetDuration(_context);
         if (Native.videoContextHasVideo(_context) == 1)
         {
-            var extent = VideoExtent;
-            _bufferSize = extent.Width * extent.Height * 4;
-            var estimatedBytesPerFrame = System.Math.Max(1.0, extent.Width * (double)extent.Height * 1.5);
-            _maxBufferedFrames = System.Math.Max(MinBufferedFrames, (int)(DecodeBufferBudgetBytes / estimatedBytesPerFrame));
+            _bufferSize = Native.videoContextGetFrameByteSize(_context);
+            _maxBufferedFrames = System.Math.Max(MinBufferedFrames, (int)(DecodeBufferBudgetBytes / System.Math.Max(1.0, _bufferSize)));
         }
 
         if (Native.videoContextHasAudio(_context) == 1)

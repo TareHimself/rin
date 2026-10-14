@@ -56,5 +56,15 @@ public interface IVideoPlayer : IDisposable
     public void Seek(double position);
     public Buffer<byte> CopyRecentFrame();
 
+    /// <summary>
+    ///     The planes of one NV12 frame as <see cref="CopyRecentFrame" /> lays them out.
+    /// </summary>
+    public static VideoFramePlanes PlanesOf(in Extent2D extent)
+    {
+        var chroma = new Extent2D((extent.Width + 1) / 2, (extent.Height + 1) / 2);
+        var lumaBytes = (ulong)extent.Width * extent.Height;
+        return new VideoFramePlanes(extent, lumaBytes, chroma, (ulong)chroma.Width * 2 * chroma.Height);
+    }
+
     public void SetSource(IVideoSource source);
 }
