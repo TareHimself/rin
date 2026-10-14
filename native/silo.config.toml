@@ -11,7 +11,7 @@ rev = "7134eaf79088c28ceb43751ec92f7e8a8883facf"
 
 [package.webmdx]
 git = "https://github.com/TareHimself/webmdx"
-rev = "ef1919e9aea84d96cf661951fa76a6102d5fa8b6"
+rev = "fce75622556caa1aa604304d3121aaa79f46c4fc"
 
 [package.rwin]
 git = "https://github.com/TareHimself/rwin"
