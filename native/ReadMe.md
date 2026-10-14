@@ -46,7 +46,7 @@ For a Debug build or an IDE, `uv run silo sync native/<module>` builds the depen
 In CI (`.github/workflows/ci.yml`):
 
 - Every `test` matrix job packs stubs into `.feed`. Jobs with `fakes: true` also publish the fakes.
-- `build-native-slang` also packs stubs, builds and packs the real `Rin.Slang.Native` as `1.0.1` into the same feed with `pack_native.py`, keeping silo's store in a cache, and uploads the feed as the `native-feed` artifact. The comment in the workflow says the higher version is so the floating `1.*` reference resolves to it instead of the stub.
+- `build-native-slang` also packs stubs, builds and packs the real `Rin.Slang.Native` as `1.0.1` into the same feed with `pack_native.py` (building Slang from scratch each run, since without a lock file a cached store could hide a changed dependency), and uploads the feed as the `native-feed` artifact. The comment in the workflow says the higher version is so the floating `1.*` reference resolves to it instead of the stub.
 - `test-real-slang` downloads that artifact into `.feed` and runs the tests and shader compilation that need real Slang.
 
 ## Gotchas
