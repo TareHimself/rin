@@ -1,3 +1,4 @@
+using Examples.Common.Views;
 using System.Numerics;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;

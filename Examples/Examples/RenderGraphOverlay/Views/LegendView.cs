@@ -35,7 +35,7 @@ public class LegendView : ContentView
         foreach (var (label, color) in Entries)
         {
             var swatch = Matrix4x4.Identity.Translate(new Vector2(x, 3f)).ChildOf(transform);
-            commands.AddRect(swatch, new Vector2(SwatchSize), color, new Vector4(4f));
+            commands.AddRect(swatch, new Vector2(SwatchSize), color, BorderRadius.All(4f));
 
             var text = Matrix4x4.Identity.Translate(new Vector2(x + SwatchSize + 6f, 0f)).ChildOf(transform);
             commands.AddText(text, TextMeasure.FontName, label, FontSize, GraphPalette.Muted);

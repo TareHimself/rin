@@ -49,6 +49,7 @@
         <PropertyGroup>
             <RinShadeOutputRoot>$(IntermediateOutputPath)$(RinShadeOutputSubpath)</RinShadeOutputRoot>
             <RinShadeGeneratedDirectory Condition="'$(RinShadeDumpGenerated)' == 'true' AND '$(RinShadeGeneratedDirectory)' == ''">$(OutDir)GeneratedShaders</RinShadeGeneratedDirectory>
+            <RinShadeMaxParallelism Condition="'$(RinShadeMaxParallelism)' == ''">0</RinShadeMaxParallelism>
         </PropertyGroup>
 
         <CompileRinShadeShaders
@@ -59,6 +60,7 @@
                 OutputRoot="$(RinShadeOutputRoot)"
                 OutputSubpath="$(RinShadeOutputSubpath)"
                 GeneratedDirectory="$(RinShadeGeneratedDirectory)"
+                MaxParallelism="$(RinShadeMaxParallelism)"
                 AssemblyName="$(AssemblyName)">
             <Output TaskParameter="CompiledFiles" ItemName="EmbeddedResource" />
         </CompileRinShadeShaders>

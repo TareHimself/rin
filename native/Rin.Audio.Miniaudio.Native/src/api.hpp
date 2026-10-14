@@ -49,6 +49,7 @@ RIN_NATIVE_API std::uint64_t audioSampleMakeActive(std::uint64_t sampleId);
 
 // IActiveAudio / IChannel — same handle for both
 RIN_NATIVE_API int    audioActiveIsPlaying(std::uint64_t id);
+RIN_NATIVE_API int    audioActiveHasEnded(std::uint64_t id);
 RIN_NATIVE_API double audioActiveGetPosition(std::uint64_t id);
 RIN_NATIVE_API double audioActiveGetDuration(std::uint64_t id);
 RIN_NATIVE_API int    audioActivePlay(std::uint64_t id, int restart);

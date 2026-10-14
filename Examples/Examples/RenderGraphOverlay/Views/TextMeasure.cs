@@ -4,7 +4,7 @@ namespace Examples.RenderGraphOverlay.Views;
 
 public static class TextMeasure
 {
-    public const string FontName = "Noto Sans";
+    public static string FontName => IViewsModule.Get().DefaultFontFamily;
 
     public static float Width(string text, float fontSize)
     {

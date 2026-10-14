@@ -12,7 +12,7 @@ Roslyn incremental source generators, referenced by Rin.Core and Rin.World as an
 Implementations of the source generators.
 **You must build this project to see the result (generated code) in the IDE.**
 
-- [AudioEffectGenerator.cs](AudioEffectGenerator.cs): types marked with `Rin.Core.Audio.Effects.AudioEffectAttribute`.
+- [AudioEffectGenerator.cs](AudioEffectGenerator.cs): types marked with `Rin.Core.Audio.Effects.AudioEffectAttribute`. The generated descriptor allocates the `parameters` struct inside a `ParameterSlots<T>` and the generated shim reads it through `ParameterSlots<T>.Read`.
 - [GraphicsShaderGenerator.cs](GraphicsShaderGenerator.cs): properties marked with the shader attributes in `Rin.Core.Graphics.Shaders` (and the `Rin.Shade` shader attribute).
 - [ProviderResolvedGenerator.cs](ProviderResolvedGenerator.cs): properties marked with `Rin.Core.Shared.Providers.ResolvedAttribute`.
 - `Diagnostics.cs`, `GeneratorUtils.cs`, `SourceBuilder.cs`: shared diagnostics and helpers.

@@ -25,3 +25,12 @@ RIN_NATIVE_API VkSurfaceKHR platformWindowCreateSurface(VkInstance instance,std:
 
 RIN_NATIVE_API int platformWindowGetEvents(rwin::WindowEvent * output,int size);
 
+RIN_NATIVE_API void platformWindowStartTextInput(std::uint64_t handle,rwin::Rect2D caret);
+
+RIN_NATIVE_API void platformWindowStopTextInput(std::uint64_t handle);
+
+RIN_NATIVE_API void platformWindowSetTextInputRect(std::uint64_t handle,rwin::Rect2D caret);
+
+// The UTF-16 text of a text event, valid until the next platformWindowPump, or nullptr if it is gone.
+RIN_NATIVE_API const char16_t * platformWindowGetEventText(rwin::TextRef text);
+

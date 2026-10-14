@@ -1,4 +1,5 @@
 using Examples.P2PChat.Net;
+using Examples.Common.Views;
 using Examples.P2PChat.Views;
 
 namespace Examples.Tests.P2PChat;

@@ -18,6 +18,7 @@ public interface IWindow : IDisposable
     public event Action<ResizeEvent>? OnResize;
     public event Action<CloseEvent>? OnClose;
     public event Action<CharacterEvent>? OnCharacter;
+    public event Action<TextPreeditEvent>? OnTextPreedit;
     public event Action<MaximizeEvent>? OnMaximize;
     public event Action<RefreshEvent>? OnRefresh;
     public event Action<MinimizeEvent>? OnMinimize;
@@ -54,9 +55,18 @@ public interface IWindow : IDisposable
 
     public IWindow CreateChild(string name, in Extent2D extent, WindowFlags flags = WindowFlags.Visible);
 
+    /// <summary>
+    ///     Turns text input on. Until then the window reports no <see cref="OnCharacter" /> or
+    ///     <see cref="OnTextPreedit" /> events.
+    /// </summary>
     public void StartTyping();
 
     public void StopTyping();
+
+    /// <summary>
+    ///     Where the text caret is, in window pixels, so the input method can place its popup next to it.
+    /// </summary>
+    public void SetTypingRect(in Rect2D caret);
 
     public event Action? OnDispose;
 }

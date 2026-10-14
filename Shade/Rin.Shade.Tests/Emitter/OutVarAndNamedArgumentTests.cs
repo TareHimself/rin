@@ -22,7 +22,7 @@ public class OutVarAndNamedArgumentTests
 
             private static void Split(float value, out float whole, out float fraction)
             {
-                whole = Math.Floor(value);
+                whole = Floor(value);
                 fraction = value - whole;
             }
 

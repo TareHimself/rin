@@ -121,7 +121,7 @@ public partial class TintShader : Shader
     public Vector4 Fragment(VertexOut input)
     {
         var gradient = new Vector4(input.Uv, 0f, 1f);
-        return Shader.Math.Lerp(gradient, Push.Tint, Push.Strength);
+        return Lerp(gradient, Push.Tint, Push.Strength);
     }
 }
 ```
@@ -163,9 +163,9 @@ What to notice:
 
 - Names become lowerCamelCase, and C# namespaces become Slang namespaces. Nested types live in a namespace named after their shader class.
 - `[Push]` becomes the `push` push-constant uniform, and `[VertexId]`, `[Position]` and `[Semantic("UV")]` become Slang semantics on the struct fields. Semantics only go on struct fields, so entry points take a struct.
-- `Shader.Math.Lerp` is an intrinsic that maps to Slang's `lerp`. Plain C# (`var`, `new Vector4(...)`, operators, shifts) is translated as written.
+- `Lerp` is a static member of `Shader`, an intrinsic that maps to Slang's `lerp`. Shaders call the math builtins unqualified; a helper class outside a shader calls them as `Shader.Lerp` or adds `using static Rin.Shade.Shader;`. Plain C# (`var`, `new Vector4(...)`, operators, shifts) is translated as written.
 - Semantic attributes are valid only on struct fields, and the C# compiler rejects them on parameters. That is why entry points take a struct.
-- A construct the transpiler cannot translate is reported as a diagnostic in your build output.
+- A construct the transpiler cannot translate is reported as a diagnostic in your build output. That includes any `double`: a literal without an `f` suffix, a `double` local, parameter, return type or field is SHADE0021, because shaders compute in float and Slang would otherwise run that code in double or reject it later. An error from the Slang compiler is reported against the C# line it was lowered from, through the source map the emitter keeps for every Slang line.
 
 From the same class the source generator adds a typed descriptor, which the engine passes to `MakeGraphics`:
 
@@ -211,16 +211,16 @@ sequenceDiagram
     TASK->>SCR: project sources plus exported source from referenced assemblies (resolved references)
     SCR-->>TASK: one Roslyn compilation
     TASK->>EMIT: Emit(compilation)
-    EMIT-->>TASK: Slang text per [Shader] class, plus diagnostics
-    TASK->>SLC: compile each Slang file
-    SLC-->>TASK: .crsh shader package
+    EMIT-->>TASK: Slang text and source map per [Shader] class, plus diagnostics
+    TASK->>SLC: compile each Slang file (one ShaderCompiler per worker thread)
+    SLC-->>TASK: .crsh shader package, or errors mapped back to C# lines
     TASK-->>MSB: embed as EmbeddedResource
 ```
 
 1. The `CompileShadeShaders` target in `msbuild/RinShade.targets` runs before the project's own C# compile (`BeforeTargets="BeforeCompile;AssignTargetPaths"`) and calls the `Rin.Shade.MSBuild` task. The task builds one compilation from the project's sources plus the exported source of the referenced assemblies, and calls `ShadeEmitter.Emit`.
 2. During the project's normal C# compile, `Rin.Shade.SourceGenerator` adds a `Path` constant and a `Descriptor` to each `partial` shader class, and embeds the source of `[ShadeExport]` types as constants for downstream projects.
-3. The emitter lowers each `[Shader]` class to Slang text. C# it cannot translate becomes a diagnostic (an error in your build output), not wrong shader code.
-4. The Slang goes to a scratch location under the project's `obj` folder and is compiled by `Rin.Slang.Compiler`. The resulting `.crsh` file is embedded as an `EmbeddedResource`. No `.slang` file is written into the tracked tree. To look at the Slang, build with `-p:RinShadeDumpGenerated=true` and read the output directory's `GeneratedShaders` folder.
+3. The emitter lowers each `[Shader]` class to Slang text, and records for every Slang line the C# location it came from (`SlangSourceMap`). C# it cannot translate becomes a diagnostic (an error in your build output), not wrong shader code.
+4. The Slang goes to a scratch location under the project's `obj` folder and is compiled by `Rin.Slang.Compiler`, unless the `.crsh` already there was compiled from identical Slang (its manifest carries a source hash), in which case it is reused and, when that holds for every shader, no Slang session is created. A Slang error is parsed (`SlangDiagnostic`) and logged against the C# file and line from the source map, so it is clickable like any other build error. The resulting `.crsh` file is embedded as an `EmbeddedResource`. No `.slang` file is written into the tracked tree. To look at the Slang, build with `-p:RinShadeDumpGenerated=true` and read the output directory's `GeneratedShaders` folder.
 5. At run time the Vulkan backend reads the `.crsh` for the descriptor's `Path`, takes the SPIR-V for each stage, and takes the pipeline state from the descriptor.
 
 ## Inside the transpiler
@@ -241,7 +241,7 @@ flowchart TD
 - **Entry points first:** the class is checked for a valid combination (compute, or vertex with an optional fragment), with diagnostics for conflicts or duplicates.
 - **Inheritance is flattened:** the transpiler walks the base-class chain, so a base class's shared code and an override both end up in one Slang file.
 - **Types by reachability:** only types the shader actually reaches are emitted. They are grouped into Slang namespaces that mirror the C# ones, and names are written relative to the namespace they sit in.
-- **Functions in order:** Slang needs a function defined before use, so helpers come out dependency-first. Extension-style helpers are grouped into `extension` blocks.
+- **Functions in order:** Slang needs a function defined before use, so helpers come out dependency-first. A struct's methods are grouped into one `extension` block; its static methods stay `static` there and are called through the type (`BorderRadius.all(r)`), so they never collide with a Slang builtin such as `all`.
 
 ## Calling code in other assemblies
 
@@ -276,6 +276,7 @@ Two flags you will use:
 
 - `-p:RinShadeSkipCompile=true` skips shader compilation entirely, for builds and tests that never load shaders (it is what CI uses for most test projects).
 - `-p:RinShadeDumpGenerated=true` writes the emitted Slang to a `GeneratedShaders` folder in the output directory.
+- `-p:RinShadeMaxParallelism=N` compiles up to N shaders at once, each worker thread with its own Slang session. Left unset, the task uses one thread per 64 shaders (capped at the processor count), because a Slang session takes about 450 ms to create and a shader under 10 ms to compile, so extra threads only pay off for large shader counts.
 
 The `Rin.Shade.MSBuild` task is brought up to date, in Release, before each shader compile, so a transpiler change takes effect on the next build. It runs in a short-lived task host process, which costs about two seconds on a full solution build and keeps the task DLLs from being locked.
 

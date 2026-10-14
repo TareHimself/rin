@@ -38,7 +38,7 @@ public sealed class DockTabView : RectView
         _group = group;
         _panel = panel;
         _index = index;
-        BorderRadius = new Vector4(4f, 4f, 0f, 0f);
+        BorderRadius = BorderRadius.Top(4f);
         Padding = new Padding(10f, 6f);
 
         SetChild(new ListView(Axis.Row)

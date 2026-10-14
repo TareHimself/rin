@@ -41,7 +41,8 @@ flowchart TD
     A["scaled = delta x TimeScale"] --> B["every actor: PrePhysicsUpdate"]
     B --> C["accumulate min(scaled, 0.25s)"]
     C --> D["fixed physics steps of PhysicsUpdateInterval (1/60 s), at most MaxPhysicsStepsPerFrame (4)"]
-    D --> E["RenderSystem.SetInterpolationAlpha(remaining / interval)"]
+    D --> D2["after each step: contact events to their owning components"]
+    D2 --> E["RenderSystem.SetInterpolationAlpha(remaining / interval)"]
     E --> F["every actor: Update(scaled)"]
     F --> G["every actor: LateUpdate(scaled)"]
 ```
@@ -52,7 +53,7 @@ flowchart TD
 
 ### Physics
 
-`IPhysicsSystem` is the abstraction (create box, sphere, capsule or convex hull bodies, plus static triangle meshes that can never be simulated, velocity, pose and mass accessors, per-body time scale, collision channels, ray, shape cast and overlap queries). `Physics/Bepu/BepuPhysicsSystem` implements it on BepuPhysics: it owns a Bepu `Simulation`, runs `Simulation.Timestep` in `Update`, and hands out `PhysicsBodyHandle` values (an index plus a version, so a stale handle is rejected).
+`IPhysicsSystem` is the abstraction (create box, sphere, capsule or convex hull bodies, plus static triangle meshes that can never be simulated, velocity, pose and mass accessors, per-body time scale, collision channels, ray, shape cast and overlap queries). Closest-hit casts return a `RayCastResult?`. The "all" casts (`RayCastAll`, `SphereCastAll`, `BoxCastAll`, `CapsuleCastAll`) take a `ref` struct handler implementing `IPhysicsHitHandler`, whose `OnHit` returns false to stop early, so a query never allocates. `PhysicsQueryExtensions` adds the buffer form of each: pass a `Span<RayCastResult>` and get back how many hits were written, in traversal order, with a full buffer meaning the query stopped early rather than that there were exactly that many. `SortByDistance` orders a filled span. The overlaps (`OverlapSphere`, `OverlapBox`, `OverlapCapsule`) work the same way with `IPhysicsOverlapHandler` and `Span<PhysicsBodyHandle>`, reporting bodies only, since a shape already sitting inside another has no single hit point or distance. A mesh or compound is reported once, not once per child. `Physics/Bepu/BepuPhysicsSystem` implements it on BepuPhysics: it owns a Bepu `Simulation`, runs `Simulation.Timestep` in `Update`, and hands out `PhysicsBodyHandle` values (an index plus a version, so a stale handle is rejected).
 
 `PhysicsState` has three values, and `SingleBodyPhysicsComponent` treats them differently:
 
@@ -61,6 +62,14 @@ flowchart TD
 - `Simulated`: in `Update` the component reads position, orientation and scale back from the body with `SetTransform(..., Space.World)`.
 
 `CreateStaticMesh` takes vertices and indices and is one-sided: a triangle only collides from the side opposite `cross(b - a, c - a)`. `CreateConvexHull` takes points and puts the body origin at the hull centre. Scale for both is fixed at creation (`SetScale` with a different value throws `NotSupportedException`). No component wraps these yet.
+
+Moving a body with `SetPosition` or `SetOrientation` wakes it, because Bepu lets a kinematic body with zero velocity fall asleep and a sleeping body is not tested against anything. Moving a static refreshes its bounds.
+
+#### Triggers and contact events
+
+`SetTrigger(handle, true)` makes a body a trigger: pairs touching it produce no contact constraint, so other bodies pass through, but the pair is still reported. After every `Update`, `IPhysicsSystem.ContactEvents` holds the pairs that began or stopped touching in that step as `PhysicsContactEvent` values (both handles, `Begin` or `End`, and whether a trigger was involved). Touching means a manifold contact with non-negative depth. A pair whose bodies have all gone to sleep is kept rather than ended, since Bepu stops reporting sleeping pairs. Destroying a touching body ends its pairs on the next step. Pairs where neither body is dynamic are not generated at all unless one of them is a trigger, so two kinematic bodies never report a collision.
+
+`World` dispatches those events after each physics step to any registered owner that implements `IPhysicsContactReceiver`, passing the other body's owner (or null when it has none or was destroyed). `SingleBodyPhysicsComponent` implements it and exposes `IsTrigger` plus the events `OnCollisionBegin`, `OnCollisionEnd`, `OnOverlapBegin` and `OnOverlapEnd`, so any box, sphere or capsule component becomes a trigger volume by setting one flag, and the flag can change at runtime.
 
 `World.RegisterPhysicsBody` and `FindPhysicsOwner` map a body handle back to the component that owns it. `World.GetGravity` and `SetGravity` forward to the physics system (Bepu default gravity is `(0, -9.81, 0)`).
 

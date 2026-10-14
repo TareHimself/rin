@@ -50,10 +50,10 @@ public partial class SkinningShader : Shader
                  ShaderMath.TransformNormal(normal, t2) * weights.Y +
                  ShaderMath.TransformNormal(normal, t3) * weights.Z +
                  ShaderMath.TransformNormal(normal, t4) * weights.W;
-        normal = Math.Normalize(normal);
+        normal = Normalize(normal);
 
         var result = inVertex.Vertex;
-        result.Location = location.xyz;
+        result.Location = location.XYZ;
         result.Normal = normal;
         Push.Output[index] = result;
     }

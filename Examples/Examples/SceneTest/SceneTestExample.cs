@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Rin.GLTF;
 using Rin.World;
 using Rin.World.Actors;
@@ -72,6 +72,7 @@ public sealed class SceneTestExample : Example
 
         GltfMeshImporter.LoadStaticMesh(Path.Join(Global.Directory, "assets", "models", "cube.glb")).After(mesh =>
         {
+            if (!context.IsActive) return;
             _cubeMesh = mesh;
 
             scene.AddPointLight(new Vector3(0f, 35f, 20f));
@@ -101,7 +102,7 @@ public sealed class SceneTestExample : Example
                 InitialComponents = [new StaticMeshComponent { Mesh = mesh }]
             });
 
-            context.Application.OnUpdate += scene.Update;
+            context.OnUpdate(scene.Update);
 
             LoadGoldMaterial().After(material =>
             {
@@ -120,6 +121,7 @@ public sealed class SceneTestExample : Example
                     LoadGoldMaterial().After(material =>
                         IApplication.Get().MainDispatcher.Enqueue(() =>
                         {
+                            if (!context.IsActive) return;
                             foreach (var (x, clipName) in new[] { (-30f, "Survey"), (0f, "Walk"), (30f, "Run") })
                             {
                                 var graph = new AnimationGraph(skinned.Skeleton);
@@ -142,18 +144,23 @@ public sealed class SceneTestExample : Example
                 });
         });
 
-        context.Window.OnKey += e =>
+        context.OnKey(e =>
         {
             if (e is { Key: InputKey.P, State: InputState.Pressed }) DropBoxGrid(BenchBoxCount);
-        };
+        });
 
-        surf.Add(BuildDockLayout(perspectiveCam, topCam, scene));
-        RenderGraphOverlay.GraphOverlay.Attach(surf);
+        context.Add(BuildDockLayout(perspectiveCam, topCam, scene));
+        context.Add(RenderGraphOverlay.GraphOverlay.Create(surf));
     }
 
     public override void Stop()
     {
+        _scene?.Stop();
+        _scene = null;
+        _cubeMesh = null;
+        _material = null;
         _meshFactory?.Dispose();
+        _meshFactory = null;
     }
 
     /// <summary>Spawn <paramref name="count" /> dynamic cubes above the play area to fall and collide.</summary>
@@ -247,7 +254,7 @@ public sealed class SceneTestExample : Example
         {
             return new DockPanel(id, title, new RectView
             {
-                Color = bg ?? new Color(0.12f, 0.12f, 0.14f, 1f),
+                Color = bg ?? Color.FromRgb(0.12f, 0.12f, 0.14f),
                 Padding = new Padding(10f),
                 InitChild = content
             });
@@ -258,7 +265,7 @@ public sealed class SceneTestExample : Example
             new DockTabGroupNode(new DockPanel("top", "Top", new TestViewport(topCam))));
 
         var stats = new DockTabGroupNode(Panel("stats", "Stats", new FpsView(),
-            new Color(0.10f, 0.10f, 0.12f, 1f)));
+            Color.FromRgb(0.10f, 0.10f, 0.12f)));
         var controls = new DockTabGroupNode(Panel("controls", "Controls",
             new FlexBoxView(Axis.Column)
             {
@@ -298,8 +305,8 @@ public sealed class SceneTestExample : Example
             () => scene.TimeScale / MaxTimeScale,
             frac => scene.TimeScale = frac * MaxTimeScale)
         {
-            BackgroundColor = new Color(0.2f, 0.2f, 0.22f, 1f),
-            ForegroundColor = new Color(0.3f, 0.6f, 1f, 1f),
+            BackgroundColor = Color.FromRgb(0.2f, 0.2f, 0.22f),
+            ForegroundColor = Color.FromRgb(0.3f, 0.6f, 1f),
             Padding = new Padding { Top = 8f }
         };
 

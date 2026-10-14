@@ -54,9 +54,11 @@ internal sealed class FakeSurface : ISurface
     public void SetCursorPosition(Vector2 position) { }
     public void StartTyping(View view) { }
     public void StopTyping(View view) { }
+    public void SetTypingRect(View view, in Rect2D caret) { }
     public void Init() { }
     public Vector2 GetSize() => new(1000f);
-    public void ClearFocus() { }
+    public int FocusClears { get; private set; }
+    public void ClearFocus() => FocusClears++;
     public bool RequestFocus(IView requester) => false;
     public CommandList? CollectCommands() => null;
     public void ReceiveCursorEnter(CursorMoveSurfaceEvent e) { }
@@ -67,6 +69,7 @@ internal sealed class FakeSurface : ISurface
     public void ReceiveCursorMove(CursorMoveSurfaceEvent e) { }
     public void ReceiveScroll(ScrollSurfaceEvent e) { }
     public void ReceiveCharacter(CharacterSurfaceEvent e) { }
+    public void ReceiveTextPreedit(TextPreeditSurfaceEvent e) { }
     public void ReceiveKeyboard(KeyboardSurfaceEvent e) { }
     public T Add<T>() where T : IView, new() => throw new NotSupportedException();
     public T Add<T>(T view) where T : IView => throw new NotSupportedException();

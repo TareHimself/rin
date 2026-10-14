@@ -1,3 +1,4 @@
+using System.Numerics;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Windows;
 using Rin.Core.Views;
@@ -123,6 +124,109 @@ public class TextInputBoxViewTests
         Assert.That(input.CursorPosition, Is.EqualTo(-1));
     }
 
+    [Test]
+    public void PreeditShowsAtTheCaretAndEachOneReplacesTheLast()
+    {
+        var input = new TextInputBoxView();
+        Type(input, "ab");
+        Press(input, InputKey.Left);
+
+        Preedit(input, "k", 1);
+        Preedit(input, "ka", 2);
+
+        Assert.That(input.Content, Is.EqualTo("akab"));
+        Assert.That(input.CursorPosition, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void CommitReplacesThePreedit()
+    {
+        var input = new TextInputBoxView();
+        Type(input, "ab");
+        Preedit(input, "ka", 2);
+
+        Type(input, "か");
+
+        Assert.That(input.Content, Is.EqualTo("abか"));
+        Assert.That(input.CursorPosition, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void EmptyPreeditRemovesTheComposition()
+    {
+        var input = new TextInputBoxView();
+        Type(input, "ab");
+        Preedit(input, "ka", 2);
+
+        Preedit(input, string.Empty, 0);
+
+        Assert.That(input.Content, Is.EqualTo("ab"));
+        Assert.That(input.CursorPosition, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void LosingFocusDropsThePreedit()
+    {
+        var input = new TextInputBoxView();
+        Type(input, "ab");
+        Preedit(input, "ka", 2);
+
+        input.OnFocusLost();
+
+        Assert.That(input.Content, Is.EqualTo("ab"));
+    }
+
+    [Test]
+    public void EscapeClearsFocus()
+    {
+        var input = new TextInputBoxView();
+
+        Assert.That(PressEscape(input), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void EscapeKeepsFocusWhenTurnedOff()
+    {
+        var input = new TextInputBoxView { UnfocusOnEscape = false };
+
+        Assert.That(PressEscape(input), Is.Zero);
+    }
+
+    [Test]
+    public void EscapeKeepsFocusWhileComposing()
+    {
+        var input = new TextInputBoxView();
+        Preedit(input, "ka", 2);
+
+        Assert.That(PressEscape(input), Is.Zero);
+        Assert.That(input.Content, Is.EqualTo("ka"));
+    }
+
+    [Test]
+    public void ClickingWhileComposingDropsThePreedit()
+    {
+        var input = new TextInputBoxView();
+        Type(input, "ab");
+        Preedit(input, "ka", 2);
+
+        input.OnCursorDown(new CursorDownSurfaceEvent(new FakeSurface(), CursorButton.One, Vector2.Zero),
+            Matrix4x4.Identity);
+
+        Assert.That(input.Content, Is.EqualTo("ab"));
+    }
+
+    private static int PressEscape(TextInputBoxView input)
+    {
+        var surface = new FakeSurface();
+        input.OnKeyboard(new KeyboardSurfaceEvent(surface, InputKey.Escape, InputState.Pressed));
+        return surface.FocusClears;
+    }
+
+    private static void Preedit(TextInputBoxView input, string text, int caret)
+    {
+        input.OnTextPreedit(new TextPreeditSurfaceEvent(new FakeSurface(), text, caret, caret));
+    }
+
     private static void Type(TextInputBoxView input, string text)
     {
         foreach (var character in text) input.OnCharacter(new CharacterSurfaceEvent(new FakeSurface(), character, 0));
@@ -136,6 +240,7 @@ public class TextInputBoxViewTests
     private sealed class FakeViewsModule : IViewsModule
     {
         public IFontManager FontManager { get; } = new FakeFontManager();
+        public string DefaultFontFamily { get; set; } = "Noto Sans";
         public event Action<IWindowSurface>? OnSurfaceCreated;
         public event Action<IWindowSurface>? OnSurfaceDestroyed;
 

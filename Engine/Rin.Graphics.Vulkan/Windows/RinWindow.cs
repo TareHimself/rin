@@ -9,6 +9,8 @@ public class RinWindow(in ulong handle, IWindow? parent) : IWindow
 {
     private readonly HashSet<IWindow> _children = [];
     private ulong _handle = handle;
+    private bool _typing;
+    private Native.Window.Rect2D _typingRect;
     public IWindow? Parent { get; } = parent;
 
     public void Dispose()
@@ -32,6 +34,7 @@ public class RinWindow(in ulong handle, IWindow? parent) : IWindow
     public event Action<ResizeEvent>? OnResize;
     public event Action<CloseEvent>? OnClose;
     public event Action<CharacterEvent>? OnCharacter;
+    public event Action<TextPreeditEvent>? OnTextPreedit;
     public event Action<MaximizeEvent>? OnMaximize;
     public event Action<MinimizeEvent>? OnMinimize;
     public event Action<RefreshEvent>? OnRefresh;
@@ -77,12 +80,32 @@ public class RinWindow(in ulong handle, IWindow? parent) : IWindow
 
     public void StartTyping()
     {
-        //throw new NotImplementedException();
+        _typing = true;
+        Native.platformWindowStartTextInput(_handle, _typingRect);
     }
 
     public void StopTyping()
     {
-        //throw new NotImplementedException();
+        _typing = false;
+        Native.platformWindowStopTextInput(_handle);
+    }
+
+    public void SetTypingRect(in Rect2D caret)
+    {
+        _typingRect = new Native.Window.Rect2D
+        {
+            x = (int)float.Floor(caret.Offset.X),
+            y = (int)float.Floor(caret.Offset.Y),
+            width = (uint)float.Ceiling(float.Max(caret.Size.X, 0f)),
+            height = (uint)float.Ceiling(float.Max(caret.Size.Y, 0f))
+        };
+        if (_typing) Native.platformWindowSetTextInputRect(_handle, _typingRect);
+    }
+
+    private static unsafe ReadOnlySpan<char> GetEventText(in Native.Window.TextRef text)
+    {
+        var data = Native.platformWindowGetEventText(text);
+        return data == null ? [] : new ReadOnlySpan<char>(data, (int)text.length);
     }
 
     public event Action? OnDispose;
@@ -164,13 +187,28 @@ public class RinWindow(in ulong handle, IWindow? parent) : IWindow
                     Window = this
                 });
                 break;
-            case Native.Window.EventType.Text:
-                OnCharacter?.Invoke(new CharacterEvent
+            case Native.Window.EventType.TextCommit:
+                // UTF-16, so a character outside the basic plane arrives as its two surrogates in order.
+                foreach (var character in GetEventText(e.textCommit.text))
+                    OnCharacter?.Invoke(new CharacterEvent
+                    {
+                        Window = this,
+                        Data = character,
+                        Modifiers = 0
+                    });
+                break;
+            case Native.Window.EventType.TextPreedit:
+                OnTextPreedit?.Invoke(new TextPreeditEvent
                 {
                     Window = this,
-                    Data = e.text.text,
-                    Modifiers = 0
+                    Text = GetEventText(e.textPreedit.text).ToString(),
+                    CaretStart = (int)e.textPreedit.caretStart,
+                    CaretEnd = (int)e.textPreedit.caretEnd
                 });
+                break;
+            case Native.Window.EventType.DndEnter:
+            case Native.Window.EventType.DndDrop:
+            case Native.Window.EventType.DndLeave:
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

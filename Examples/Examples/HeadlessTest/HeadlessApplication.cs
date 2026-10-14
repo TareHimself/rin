@@ -1,3 +1,4 @@
+using Examples.Common;
 using System.Numerics;
 using Rin.Audio.Null;
 using Rin.Core;
@@ -15,6 +16,8 @@ namespace Examples.HeadlessTest;
 
 public sealed class HeadlessApplication : Application
 {
+    private static readonly Log Log = Log.For<HeadlessApplication>();
+
     public const string Name = "headless";
 
     private World? _world;
@@ -60,7 +63,7 @@ public sealed class HeadlessApplication : Application
         _elapsedSeconds += deltaSeconds;
         if (_elapsedSeconds >= _nextPrintAt)
         {
-            Console.WriteLine($"t={_elapsedSeconds:F1}s height={_world.PhysicsSystem.GetPosition(_sphere).Y:F2}");
+            Log.Info($"t={_elapsedSeconds:F1}s height={_world.PhysicsSystem.GetPosition(_sphere).Y:F2}");
             _nextPrintAt += 0.25f;
         }
 

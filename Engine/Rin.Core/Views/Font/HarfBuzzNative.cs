@@ -124,14 +124,6 @@ internal static partial class HarfBuzzNative
     [LibraryImport(Lib)]
     internal static partial IntPtr hb_face_reference_table(IntPtr face, uint tag);
 
-    internal static bool FaceHasTable(IntPtr face, string fourCharTag)
-    {
-        var blob = hb_face_reference_table(face, MakeTag(fourCharTag));
-        var hasTable = hb_blob_get_length(blob) > 0;
-        hb_blob_destroy(blob);
-        return hasTable;
-    }
-
     [LibraryImport(Lib)]
     internal static partial IntPtr hb_font_create(IntPtr face);
 

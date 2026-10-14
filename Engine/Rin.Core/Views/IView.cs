@@ -142,6 +142,8 @@ public interface IView : IDisposable, IAnimatable, IUpdatable
 
     public void OnCharacter(CharacterSurfaceEvent e);
 
+    public void OnTextPreedit(TextPreeditSurfaceEvent e);
+
     public void OnKeyboard(KeyboardSurfaceEvent e);
 
     public void OnFocus();

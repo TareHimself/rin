@@ -1,10 +1,10 @@
-using Rin.Core.Audio;
+﻿using Rin.Core.Audio;
 using Rin.Core.Audio.Effects;
 using Rin.Core.Shared;
 
 namespace Rin.Audio.Miniaudio;
 
-public class MiniaudioAudioGroup : IAudioGroup,IMiniaudioEffectsHolder
+public class MiniaudioAudioGroup : IAudioGroup
 {
     private readonly bool _isMaster;
     private bool _disposed;
@@ -54,6 +54,7 @@ public class MiniaudioAudioGroup : IAudioGroup,IMiniaudioEffectsHolder
         if (_disposed || _isMaster) return;
         _disposed = true;
         GC.SuppressFinalize(this);
+        foreach (var effectId in _effectControllers.Keys.ToArray()) RemoveEffect(effectId);
         Native.audioMixerDispose(Id);
     }
 
@@ -72,24 +73,20 @@ public class MiniaudioAudioGroup : IAudioGroup,IMiniaudioEffectsHolder
         var effectId = _idFactory.NewId();
         var effect = new NativeEffectManager.NativeAudioEffect(effectId, descriptor);
         Native.audioMixerAddEffect(Id, effect);
-        
-        var controller = new MiniaudioEffectController<TParams>(this,effectId, Id, effect.Parameters);
+
+        var controller = new MiniaudioEffectController<TParams>(this, effectId, effect.Parameters);
         _effectControllers.Add(effectId, controller);
         return controller;
     }
 
+    /// <summary>
+    ///     Removing through the group and disposing the controller both end here, so the dictionary entry is dropped
+    ///     first to stop the two from calling each other again.
+    /// </summary>
     public void RemoveEffect(ulong effectId)
     {
-        if (_effectControllers.TryGetValue(effectId, out var controller))
-        {
-            controller.Dispose();
-        }
-    }
-
-    public void OnEffectRemoved(ulong effectId)
-    {
-        _effectControllers.Remove(effectId);
+        if (!_effectControllers.Remove(effectId, out var controller)) return;
+        Native.audioMixerRemoveEffect(Id, effectId);
+        controller.Dispose();
     }
 }
-
-

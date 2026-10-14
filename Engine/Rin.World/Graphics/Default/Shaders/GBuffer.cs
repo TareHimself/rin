@@ -41,9 +41,9 @@ public static class GBufferExtensions
         var sample3 = bindless.SampleTexture(gBuffer.GBuffer3, uv, ImageTiling.ClampEdge, ImageFilter.Linear);
 
         GBufferSample result;
-        result.Color = sample0.xyz;
-        result.Location = sample1.xyz;
-        result.Normal = sample2.xyz;
+        result.Color = sample0.XYZ;
+        result.Location = sample1.XYZ;
+        result.Normal = sample2.XYZ;
         result.Roughness = sample0.W;
         result.Metallic = sample1.W;
         result.Specular = sample2.W;

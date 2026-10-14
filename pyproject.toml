@@ -2,16 +2,17 @@
 name = "rin"
 version = "0.0.0"
 description = "Tooling for building Rin's native modules. Rin itself is a .NET solution (rin.sln)."
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = []
 
 [dependency-groups]
 native = [
-    "conan>=2.33,<3",
-    "cmake>=4.3",
-    "go-task-bin>=3.53",
+    "silo",
 ]
 
 [tool.uv]
 package = false
 default-groups = ["native"]
+
+[tool.uv.sources]
+silo = { git = "https://github.com/TareHimself/silo", rev = "78b02a631cbeb706c8e34a8ae172bf7faa493bbb", subdirectory = "client" }

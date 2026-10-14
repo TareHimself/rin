@@ -13,6 +13,7 @@ References `Rin.Shade`, `Rin.Shade.Transpiler` and `Rin.Shade.SourceGenerator` (
 - `Fixtures/`: shader source used by the tests.
 - `TestDoubles.cs`: shared test helpers (also linked into `Rin.Shade.CpuTests`).
 - `Snapshot.cs`: golden-file helper.
+- `SlangDiagnosticTests.cs`: the Slang error line parser, at the root like the type it tests.
 
 ## Run
 

@@ -97,7 +97,7 @@ internal static partial class Native
     public static partial double videoContextGetPosition(IntPtr context);
 
     [LibraryImport(DllName)]
-    public static partial void videoContextDecode(IntPtr context, double delta);
+    public static partial int videoContextDecode(IntPtr context, double delta);
 
     [LibraryImport(DllName)]
     public static partial int videoContextEnded(IntPtr context);
@@ -106,7 +106,10 @@ internal static partial class Native
     public static partial int videoContextGetBufferedFrameCount(IntPtr context);
 
     [LibraryImport(DllName)]
-    public static partial IntPtr videoContextCopyRecentFrame(IntPtr context, double time);
+    public static partial void videoContextDropFramesBefore(IntPtr context, double time);
+
+    [LibraryImport(DllName)]
+    public static partial int videoContextCopyRecentFrame(IntPtr context, double time, IntPtr destination, ulong size);
 
     [LibraryImport(DllName)]
     public static partial void videoContextSetSource(IntPtr context, IntPtr source);

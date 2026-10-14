@@ -102,4 +102,57 @@ public class StructMethodTests
         Assert.That(slang, Does.Contain("this.start = start;"));
         Assert.That(slang, Does.Contain("this.count = count;"));
     }
+
+    [Test]
+    public void StaticStructMethodIsAStaticExtensionMemberCalledThroughTheType()
+    {
+        const string source = """
+                               using Rin.Shade;
+
+                               namespace StaticStructCheck;
+
+                               public struct Radii
+                               {
+                                   public float A;
+                                   public float B;
+
+                                   public static Radii All(float value)
+                                   {
+                                       Radii result;
+                                       result.A = value;
+                                       result.B = value;
+                                       return result;
+                                   }
+                               }
+
+                               public struct StaticPush
+                               {
+                                   public float Value;
+                                   public BufferRef<float> Output;
+                               }
+
+                               [Shader("Fixtures/static_struct.slang")]
+                               public class StaticStructShader : Shader
+                               {
+                                   [Push] protected StaticPush Push;
+
+                                   [Compute(1, 1, 1)]
+                                   public void Compute()
+                                   {
+                                       var radii = Radii.All(Push.Value);
+                                       Push.Output[0] = radii.A + radii.B;
+                                   }
+                               }
+                               """;
+
+        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
+
+        Assert.That(result.Diagnostics, Is.Empty);
+        var slang = result.Shaders["StaticStructShader"];
+
+        // A bare free function named `all` would collide with Slang's builtin all(bool).
+        Assert.That(slang, Does.Contain("extension StaticStructCheck::Radii"));
+        Assert.That(slang, Does.Contain("static Radii all(float value)"));
+        Assert.That(slang, Does.Contain("var radii = Radii.all(push.value);"));
+    }
 }

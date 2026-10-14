@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 using Rin.Core.Shared.Math;
 using Rin.World.Math;
@@ -6,12 +6,44 @@ using Rin.World.Physics;
 
 namespace Rin.World.Components;
 
-public abstract class SingleBodyPhysicsComponent : WorldComponent
+public abstract class SingleBodyPhysicsComponent : WorldComponent, IPhysicsContactReceiver
 {
     private Vector3 _angularVelocity;
     private Vector3 _linearVelocity;
     private float _mass = 1.0f;
     private PhysicsState _physicsState;
+    private bool _isTrigger;
+
+    /// <summary>
+    ///     Other bodies pass through a trigger and are reported through <see cref="OnOverlapBegin" /> and
+    ///     <see cref="OnOverlapEnd" /> instead of colliding. Can be flipped at any time.
+    /// </summary>
+    public bool IsTrigger
+    {
+        get { return _isTrigger = PhysicsBody.IsValid ? Owner!.World!.PhysicsSystem.GetTrigger(PhysicsBody) : _isTrigger; }
+        set
+        {
+            _isTrigger = value;
+            if (PhysicsBody.IsValid) Owner!.World!.PhysicsSystem.SetTrigger(PhysicsBody, value);
+        }
+    }
+
+    public event Action<SingleBodyPhysicsComponent, IWorldComponent?>? OnCollisionBegin;
+    public event Action<SingleBodyPhysicsComponent, IWorldComponent?>? OnCollisionEnd;
+    public event Action<SingleBodyPhysicsComponent, IWorldComponent?>? OnOverlapBegin;
+    public event Action<SingleBodyPhysicsComponent, IWorldComponent?>? OnOverlapEnd;
+
+    public void OnPhysicsContact(in PhysicsContactEvent contact, IWorldComponent? other)
+    {
+        var handler = (contact.IsTrigger, contact.Kind) switch
+        {
+            (true, PhysicsContactKind.Begin) => OnOverlapBegin,
+            (true, PhysicsContactKind.End) => OnOverlapEnd,
+            (false, PhysicsContactKind.Begin) => OnCollisionBegin,
+            _ => OnCollisionEnd
+        };
+        handler?.Invoke(this, other);
+    }
 
     public Vector3 LinearVelocity
     {
@@ -75,6 +107,7 @@ public abstract class SingleBodyPhysicsComponent : WorldComponent
         Owner!.World!.PhysicsSystem.SetLinearVelocity(PhysicsBody, _linearVelocity);
         Owner!.World!.PhysicsSystem.SetAngularVelocity(PhysicsBody, _angularVelocity);
         Owner!.World!.PhysicsSystem.SetMass(PhysicsBody, _mass);
+        Owner!.World!.PhysicsSystem.SetTrigger(PhysicsBody, _isTrigger);
         base.Start();
     }
 

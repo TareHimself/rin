@@ -80,13 +80,13 @@ public partial class ViewportShader : ViewShader<ViewportShader.FragmentIn>
         switch (data.Channel)
         {
             case ViewportChannel.Color:
-                return new Vector4(SampleImage(data.GBuffer.GBuffer0, uv).xyz, 1f);
+                return new Vector4(SampleImage(data.GBuffer.GBuffer0, uv).XYZ, 1f);
 
             case ViewportChannel.Location:
-                return new Vector4(SampleImage(data.GBuffer.GBuffer1, uv).xyz, 1f);
+                return new Vector4(SampleImage(data.GBuffer.GBuffer1, uv).XYZ, 1f);
 
             case ViewportChannel.Normal:
-                return new Vector4(SampleImage(data.GBuffer.GBuffer2, uv).xyz, 1f);
+                return new Vector4(SampleImage(data.GBuffer.GBuffer2, uv).XYZ, 1f);
 
             case ViewportChannel.RoughnessMetallicSpecular:
                 return new Vector4(SampleImage(data.GBuffer.GBuffer0, uv).W, SampleImage(data.GBuffer.GBuffer1, uv).W,
@@ -97,14 +97,14 @@ public partial class ViewportShader : ViewShader<ViewportShader.FragmentIn>
 
             case ViewportChannel.Radiance:
             {
-                var location = SampleImage(data.GBuffer.GBuffer1, uv).xyz;
-                var normal = SampleImage(data.GBuffer.GBuffer2, uv).xyz;
+                var location = SampleImage(data.GBuffer.GBuffer1, uv).XYZ;
+                var normal = SampleImage(data.GBuffer.GBuffer2, uv).XYZ;
                 var radiance = new Vector3(0f);
                 for (var i = 0; i < data.LightCount; i++)
                 {
                     var light = data.Lights[i];
                     var toSurface = LightMath.DirectionToLight(light, location);
-                    var noL = Math.Max(Math.Dot(normal, toSurface), 0f);
+                    var noL = Max(Dot(normal, toSurface), 0f);
                     radiance += noL * light.Radiance * light.Color * LightMath.Attenuation(light, location);
                 }
 

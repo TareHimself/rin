@@ -65,16 +65,16 @@ public partial class QuadBatchShader : ViewShader<QuadBatchShader.FragmentIn>
 
     private static Vector4 Coverage(Vector4 color, float distance)
     {
-        var aaWidth = 0.5f * Math.Max(Fwidth(distance), 1e-6f);
+        var aaWidth = 0.5f * Max(Fwidth(distance), 1e-6f);
         if (distance > aaWidth) Discard();
 
-        var alpha = Math.SmoothStep(-aaWidth, aaWidth, distance);
-        return Math.Lerp(color, new Vector4(color.xyz, 0f), alpha);
+        var alpha = SmoothStep(-aaWidth, aaWidth, distance);
+        return Lerp(color, new Vector4(color.XYZ, 0f), alpha);
     }
 
     private static Vector2 AtlasUv(Vector2 uv, Vector4 mapping)
     {
-        return mapping.xy + (mapping.zw - mapping.xy) * uv;
+        return mapping.XY + (mapping.ZW - mapping.XY) * uv;
     }
 
     protected override Vector4 Color(FragmentIn input)
@@ -136,25 +136,25 @@ public partial class QuadBatchShader : ViewShader<QuadBatchShader.FragmentIn>
             {
                 var data = quad.MtsdfInfo;
                 var uv = AtlasUv(input.Uv, data.UV);
-                var msd = Bindless.SampleTexture(data.ImageHandle, uv, ImageTiling.ClampEdge, ImageFilter.Linear).xyz;
+                var msd = Bindless.SampleTexture(data.ImageHandle, uv, ImageTiling.ClampEdge, ImageFilter.Linear).XYZ;
                 var textureSize = Bindless.GetTextureSize(data.ImageHandle);
-                var actualSize = textureSize * (data.UV.zw - data.UV.xy);
+                var actualSize = textureSize * (data.UV.ZW - data.UV.XY);
 
                 var sd = ViewShaderMath.Median(msd.X, msd.Y, msd.Z);
                 var distance = ViewShaderMath.ScreenPxRange(input.Uv, actualSize, data.PixelRange) * (sd - 0.5f);
-                var opacity = 1f - Math.Clamp(distance + 0.5f, 0f, 1f);
-                return new Vector4(data.Color.xyz, data.Color.W * opacity);
+                var opacity = 1f - Clamp(distance + 0.5f, 0f, 1f);
+                return new Vector4(data.Color.XYZ, data.Color.W * opacity);
             }
 
             case Quad.RenderMode.ColorWheel:
             {
                 var data = quad.ColorWheelInfo;
                 var centered = input.Uv * 2f - new Vector2(1f);
-                var radius = Math.Sqrt(centered.X * centered.X + centered.Y * centered.Y);
+                var radius = Sqrt(centered.X * centered.X + centered.Y * centered.Y);
                 const float pi = 3.14159265359f;
-                var hue = (Math.Atan2(centered.Y, centered.X) + pi) / (pi * 2f);
+                var hue = (Atan2(centered.Y, centered.X) + pi) / (pi * 2f);
                 var rgb = ViewShaderMath.Hsv2Rgb(new Vector3(hue, radius, 1f));
-                return ViewShaderMath.ApplyBorderRadius(input.Coordinate, new Vector4(rgb, 1f), new Vector4(quad.Size.X / 2f),
+                return ViewShaderMath.ApplyBorderRadius(input.Coordinate, new Vector4(rgb, 1f), BorderRadius.All(quad.Size.X / 2f),
                     quad.Size, data.InverseTransform, 1f);
             }
 

@@ -357,6 +357,10 @@ public abstract class View : IView
     {
     }
 
+    public virtual void OnTextPreedit(TextPreeditSurfaceEvent e)
+    {
+    }
+
     public virtual void OnKeyboard(KeyboardSurfaceEvent e)
     {
     }

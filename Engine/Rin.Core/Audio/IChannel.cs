@@ -4,6 +4,15 @@ public interface IChannel : IDisposable
 {
     public bool IsPlaying { get; }
 
+    /// <summary>
+    ///     True once playback has run off the end of the sound. Seeking to the end does not set it, and
+    ///     <see cref="Play" /> clears it and starts over.
+    /// </summary>
+    public bool HasEnded { get; }
+
+    /// <summary>
+    ///     The playback position in seconds, equal to <see cref="Duration" /> once <see cref="HasEnded" />.
+    /// </summary>
     public double Position { get; }
 
     public double Duration { get; }

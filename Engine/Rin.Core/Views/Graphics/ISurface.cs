@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using JetBrains.Annotations;
+using Rin.Core.Graphics;
 using Rin.Core.Views.Events;
 
 namespace Rin.Core.Views.Graphics;
@@ -14,6 +15,7 @@ public interface ISurface : IDisposable, IUpdatable
 
     public void StartTyping(View view);
     public void StopTyping(View view);
+    public void SetTypingRect(View view, in Rect2D caret);
     public event Action<CursorUpSurfaceEvent>? OnCursorUp;
 
     public void Init();
@@ -42,6 +44,8 @@ public interface ISurface : IDisposable, IUpdatable
     public void ReceiveScroll(ScrollSurfaceEvent e);
 
     public void ReceiveCharacter(CharacterSurfaceEvent e);
+
+    public void ReceiveTextPreedit(TextPreeditSurfaceEvent e);
 
     public void ReceiveKeyboard(KeyboardSurfaceEvent e);
 

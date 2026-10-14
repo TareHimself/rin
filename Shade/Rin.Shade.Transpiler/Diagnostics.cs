@@ -155,5 +155,13 @@ internal static class Diagnostics
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor DoubleNotSupported = new(
+            id: "SHADE0021",
+            title: "Double precision is not supported",
+            messageFormat: "'{0}' is a double; shaders compute in float, so use float and write literals with an f suffix",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }

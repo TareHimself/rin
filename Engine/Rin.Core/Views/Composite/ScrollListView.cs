@@ -136,7 +136,7 @@ public class ScrollListView : ListView
 
     protected virtual void CollectBarContent(in Matrix4x4 barTransform, in Vector2 barSize, CommandList commands)
     {
-        commands.AddRect(barTransform, barSize, BarColor, new Vector4(7f));
+        commands.AddRect(barTransform, barSize, BarColor, BorderRadius.All(7f));
     }
 
     protected virtual void CollectBar(in Matrix4x4 transform, in Rect2D clip, CommandList commands)

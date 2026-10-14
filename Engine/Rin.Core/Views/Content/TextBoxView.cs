@@ -19,7 +19,7 @@ public class TextBoxView : ContentView
     private CachedQuadLayout[]? _cachedLayouts;
 
     private string _content = string.Empty;
-    private string _fontFamily = "Noto Sans";
+    private string _fontFamily;
     private IFontManager _fontManager;
     private float _fontSize = 100.0f;
     private bool _wrapContent;
@@ -27,7 +27,9 @@ public class TextBoxView : ContentView
 
     public TextBoxView(IViewsModule? viewsModule = null)
     {
-        _fontManager = (viewsModule ?? IViewsModule.Get()).FontManager;
+        var module = viewsModule ?? IViewsModule.Get();
+        _fontManager = module.FontManager;
+        _fontFamily = module.DefaultFontFamily;
         _cachedLayouts = null;
         _cachedBounds = null;
         MakeNewFont();
@@ -121,7 +123,8 @@ public class TextBoxView : ContentView
         if (bounds.Empty()) return new Vector2(0.0f, LineHeight);
         // PenX + Advance (not the ink-based Right) so trailing whitespace still reserves its layout space.
         var width = bounds.Max(c => c.PenX + c.Advance);
-        var height = bounds.MaxBy(c => c.Bottom).Bottom;
+        // At least a full line, so text without descenders is as tall as text with them.
+        var height = float.Max(bounds.MaxBy(c => c.Bottom).Bottom, LineHeight);
         return new Vector2(width, height);
     }
 
@@ -157,7 +160,7 @@ public class TextBoxView : ContentView
         var lines = float.Max(1, Content.Split("\n").Length);
         var height = LineHeight * lines;
 
-        return new Vector2(width, bounds.Empty() ? 0 : bounds.MaxBy(c => c.Bottom).Bottom);
+        return new Vector2(width, bounds.Empty() ? 0 : float.Max(bounds.MaxBy(c => c.Bottom).Bottom, height));
     }
 
     protected CachedQuadLayout[] ComputeLayout(out bool anyPending)

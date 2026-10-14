@@ -1,6 +1,6 @@
 using System.Numerics;
 using Rin.Shade;
-using ShadeMath = Rin.Shade.Shader.Math;
+using static Rin.Shade.Shader;
 
 namespace Rin.Core.Views.Graphics.Shaders;
 
@@ -11,13 +11,13 @@ public static class Sd
     {
         var pa = p - a;
         var ba = b - a;
-        var h = ShadeMath.Clamp(ShadeMath.Dot(pa, ba) / ShadeMath.Dot(ba, ba), 0f, 1f);
-        return ShadeMath.Length(pa - ba * h);
+        var h = Clamp(Dot(pa, ba) / Dot(ba, ba), 0f, 1f);
+        return Length(pa - ba * h);
     }
 
     public static float Circle(Vector2 location, Vector2 center, float radius)
     {
-        return ShadeMath.Length(location - center) - radius;
+        return Length(location - center) - radius;
     }
 
     public static float Bezier(Vector2 pos, Vector2 begin, Vector2 end, Vector2 controlPoint)
@@ -26,10 +26,10 @@ public static class Sd
         var control = begin - 2f * controlPoint + end;
         var b = a * 2f;
         var d = begin - pos;
-        var kk = 1f / ShadeMath.Dot(control, control);
-        var kx = kk * ShadeMath.Dot(a, control);
-        var ky = kk * (2f * ShadeMath.Dot(a, a) + ShadeMath.Dot(d, control)) / 3f;
-        var kz = kk * ShadeMath.Dot(d, a);
+        var kk = 1f / Dot(control, control);
+        var kx = kk * Dot(a, control);
+        var ky = kk * (2f * Dot(a, a) + Dot(d, control)) / 3f;
+        var kz = kk * Dot(d, a);
         var res = 0f;
         var p = ky - kx * kx;
         var p3 = p * p * p;
@@ -37,32 +37,32 @@ public static class Sd
         var h = q * q + 4f * p3;
         if (h >= 0f)
         {
-            h = ShadeMath.Sqrt(h);
+            h = Sqrt(h);
             var x = (new Vector2(h, -h) - new Vector2(q)) / 2f;
-            var uv = ShadeMath.Sign(x) * ShadeMath.Pow(ShadeMath.Abs(x), new Vector2(1f / 3f));
-            var t = ShadeMath.Clamp(uv.X + uv.Y - kx, 0f, 1f);
+            var uv = Sign(x) * Pow(Abs(x), new Vector2(1f / 3f));
+            var t = Clamp(uv.X + uv.Y - kx, 0f, 1f);
             var offset = d + (b + control * t) * t;
-            res = ShadeMath.Dot(offset, offset);
+            res = Dot(offset, offset);
         }
         else
         {
-            var z = ShadeMath.Sqrt(-p);
-            var v = ShadeMath.Acos(q / (p * z * 2f)) / 3f;
-            var m = ShadeMath.Cos(v);
-            var n = ShadeMath.Sin(v) * 1.732050808f;
-            var t = ShadeMath.Clamp(new Vector3(m + m, -n - m, n - m) * z - new Vector3(kx), new Vector3(0f),
+            var z = Sqrt(-p);
+            var v = Acos(q / (p * z * 2f)) / 3f;
+            var m = Cos(v);
+            var n = Sin(v) * 1.732050808f;
+            var t = Clamp(new Vector3(m + m, -n - m, n - m) * z - new Vector3(kx), new Vector3(0f),
                 new Vector3(1f));
             var first = d + (b + control * t.X) * t.X;
             var second = d + (b + control * t.Y) * t.Y;
-            res = ShadeMath.Min(ShadeMath.Dot(first, first), ShadeMath.Dot(second, second));
+            res = Min(Dot(first, first), Dot(second, second));
         }
 
-        return ShadeMath.Sqrt(res);
+        return Sqrt(res);
     }
 
     public static float Cubic(Vector2 position, Vector2 begin, Vector2 end, Vector2 controlA, Vector2 controlB)
     {
-        return ShadeMath.Sqrt(CubicDistanceSquared(position, begin, controlA, controlB, end));
+        return Sqrt(CubicDistanceSquared(position, begin, controlA, controlB, end));
     }
 
     private static float CubicDistanceSquared(Vector2 uv, Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3)
@@ -79,9 +79,9 @@ public static class Sd
             var t = start;
             for (var j = 0; j < 3; j++) t = CubicNormalIteration(t, a0, a1, a2, a3);
 
-            t = ShadeMath.Clamp(t, 0f, 1f);
+            t = Clamp(t, 0f, 1f);
             var toPoint = ((a3 * t + a2) * t + a1) * t + a0;
-            best = ShadeMath.Min(best, ShadeMath.Dot(toPoint, toPoint));
+            best = Min(best, Dot(toPoint, toPoint));
             start += 0.5f;
         }
 
@@ -96,6 +96,6 @@ public static class Sd
 
         var toPoint = a0 + t * a1t;
         var tangent = a1t + t * b2;
-        return t - ShadeMath.Dot(tangent, toPoint) / ShadeMath.Dot(tangent, tangent);
+        return t - Dot(tangent, toPoint) / Dot(tangent, tangent);
     }
 }

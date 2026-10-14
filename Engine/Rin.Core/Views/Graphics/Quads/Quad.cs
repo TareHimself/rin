@@ -76,7 +76,7 @@ public struct Quad() // : ICloneable<Quad>
     {
         public Matrix4x4 InverseTransform;
         public Color Color;
-        public Vector4 BorderRadius;
+        public BorderRadius BorderRadius;
     }
 
     [NoReorder]
@@ -121,7 +121,7 @@ public struct Quad() // : ICloneable<Quad>
         public DeviceHandle ImageHandle;
         public Vector4 Tint;
         public Vector4 UV;
-        public Vector4 BorderRadius;
+        public BorderRadius BorderRadius;
     }
 
     [NoReorder]
@@ -194,7 +194,7 @@ public struct Quad() // : ICloneable<Quad>
     }
 
     public static Quad Rect(in Matrix4x4 transform, in Vector2 size, in Color? color = null,
-        in Vector4? borderRadius = null)
+        in BorderRadius? borderRadius = null)
     {
         var quad = new Quad
         {
@@ -205,7 +205,7 @@ public struct Quad() // : ICloneable<Quad>
             {
                 InverseTransform = transform.Inverse(),
                 Color = color ?? Color.White,
-                BorderRadius = borderRadius ?? Vector4.Zero
+                BorderRadius = borderRadius ?? BorderRadius.Zero
             }
         };
 
@@ -277,7 +277,7 @@ public struct Quad() // : ICloneable<Quad>
     }
 
     public static Quad Texture(ResourceHandle imageHandle, in Matrix4x4 transform, in Vector2 size, Color? tint = null,
-        in Vector4? borderRadius = null, in Vector4? uv = null)
+        in BorderRadius? borderRadius = null, in Vector4? uv = null)
     {
         var quad = new Quad
         {

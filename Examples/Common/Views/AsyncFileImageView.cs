@@ -15,6 +15,7 @@ public class AsyncFileImageView : CoverImageView
     private readonly CancellationTokenSource _token = new();
     private float _alpha = 0.0f;
     private float _alphaTarget;
+    private bool _disposed;
 
     public AsyncFileImageView(string filePath)
     {
@@ -30,12 +31,19 @@ public class AsyncFileImageView : CoverImageView
     {
         using var image = HostImage.Create(File.OpenRead(filePath));
         await image.CreateTexture(out var handle);
-        await IApplication.Get().MainDispatcher.Enqueue(() => Image = new ImageInfo(handle, image.Extent));
+        var extent = image.Extent;
+        await IApplication.Get().MainDispatcher.Enqueue(() =>
+        {
+            if (_disposed)
+                IGraphicsModule.Get().FreeResourceHandles(handle);
+            else
+                Image = new ImageInfo(handle, extent);
+        });
     }
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        if (Image.Handle != ResourceHandle.InvalidTexture)
+        if (Image.Handle == ResourceHandle.InvalidTexture)
         {
             var opacity = (float)Math.Abs(Math.Sin(IApplication.Get().TimeSeconds * 4.0f)) * 0.7f;
             commands.AddRect(transform, GetContentSize(), new Color(0.8f, opacity), BorderRadius);
@@ -61,6 +69,14 @@ public class AsyncFileImageView : CoverImageView
 
     public override void Dispose()
     {
+        base.Dispose();
+        if (_disposed) return;
+        _disposed = true;
         _token.Cancel();
+
+        var handle = Image.Handle;
+        if (handle == ResourceHandle.InvalidTexture) return;
+        Image = new ImageInfo(ResourceHandle.InvalidTexture, Extent2D.Zero);
+        IGraphicsModule.Get().FreeResourceHandles(handle);
     }
 }

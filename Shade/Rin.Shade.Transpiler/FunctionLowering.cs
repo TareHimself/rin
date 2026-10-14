@@ -6,11 +6,12 @@ using Microsoft.CodeAnalysis.Operations;
 namespace Rin.Shade.Transpiler;
 
 /// <summary>
-/// A lowered function. An instance method of a struct is an `extension` member: <see cref="ExtensionOf"/>
-/// names the struct and <see cref="Text"/> is just the member, so neighbouring members of one struct can
-/// share a single extension block. Anything else is a free function, printed as is.
+/// A lowered function. A method of a struct is an `extension` member (a static one stays static, so it never
+/// collides with a Slang builtin such as `all`): <see cref="ExtensionOf"/> names the struct and
+/// <see cref="Writer"/> holds just the member, so neighbouring members of one struct can share a single
+/// extension block. Anything else is a free function, printed as is.
 /// </summary>
-internal readonly record struct LoweredFunction(INamedTypeSymbol? ExtensionOf, string Text);
+internal readonly record struct LoweredFunction(INamedTypeSymbol? ExtensionOf, SlangWriter? Writer);
 
 /// <summary>
 /// Lowers a C# method, constructor or local function to a Slang function.
@@ -53,7 +54,14 @@ internal static class FunctionLowering
 
         var writer = new SlangWriter();
 
-        if (!method.IsStatic && method.ContainingType.TypeKind == TypeKind.Struct)
+        if (method.ContainingType.TypeKind == TypeKind.Struct && method.IsStatic)
+        {
+            WriteSignatureAndBody(compilation, method, diagnostics, writer, $"static {signature}",
+                withHelpers: withHelpers, overrides: overrides);
+            return new LoweredFunction(method.ContainingType, writer);
+        }
+
+        if (method.ContainingType.TypeKind == TypeKind.Struct)
         {
             // An extension member behaves like one declared in the struct, and call sites look the same
             // either way. Constructors never need [mutating]; other methods get it only when the body
@@ -63,15 +71,16 @@ internal static class FunctionLowering
                 .Select(f => Naming.ToSlangIdentifier(f.Name))
                 .ToHashSet();
 
+            writer.Origin = method.Locations.FirstOrDefault();
             if (!isConstructor && WritesToImplicitThis(compilation, method)) writer.Line("[mutating]");
             WriteSignatureAndBody(compilation, method, diagnostics, writer, signature, fieldNames, withHelpers,
                 overrides);
-            return new LoweredFunction(method.ContainingType, writer.ToString());
+            return new LoweredFunction(method.ContainingType, writer);
         }
 
         WriteSignatureAndBody(compilation, method, diagnostics, writer, signature, withHelpers: withHelpers,
             overrides: overrides);
-        return new LoweredFunction(null, writer.ToString());
+        return new LoweredFunction(null, writer);
     }
 
     /// <summary>
@@ -89,9 +98,17 @@ internal static class FunctionLowering
                 method.Locations.FirstOrDefault() ?? Location.None,
                 $"{arrayType.ToDisplayString()} on '{method.Name}' (declare an [InlineArray] struct instead)"));
 
+        foreach (var parameter in method.Parameters.Where(p => TypeMapping.IsDouble(p.Type)))
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.DoubleNotSupported,
+                parameter.Locations.FirstOrDefault() ?? Location.None, $"{method.Name}({parameter.Name})"));
+        if (TypeMapping.IsDouble(method.ReturnType))
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.DoubleNotSupported,
+                method.Locations.FirstOrDefault() ?? Location.None, $"{method.Name} return type"));
+
         var parameterList = string.Join(", ", method.Parameters.Select(p =>
             $"{RefModifier(p.RefKind)}{TypeMapping.MapType(p.Type)} {Naming.ToSlangIdentifier(p.Name)}"));
 
+        writer.Origin = method.Locations.FirstOrDefault();
         writer.OpenBrace($"{signaturePrefix}({parameterList})");
 
         var body = new BodyLowering(diagnostics, writer, shadowableFieldNames, withHelpers, overrides);
@@ -99,6 +116,7 @@ internal static class FunctionLowering
             body.LowerStatement(bodyOperation);
 
         writer.CloseBrace();
+        writer.Origin = null;
     }
 
     private static bool WritesToImplicitThis(Compilation compilation, IMethodSymbol method)

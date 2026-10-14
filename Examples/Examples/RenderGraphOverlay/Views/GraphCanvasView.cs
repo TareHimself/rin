@@ -120,9 +120,9 @@ public class GraphCanvasView : ContentView
 
         if (pass.Id == SelectedPass?.Id)
             commands.AddRect(At(node.Position - new Vector2(3f), world), node.Size + new Vector2(6f), Color.White,
-                new Vector4(11f));
+                BorderRadius.All(11f));
 
-        commands.AddRect(At(node.Position, world), node.Size, fill, new Vector4(8f));
+        commands.AddRect(At(node.Position, world), node.Size, fill, BorderRadius.All(8f));
 
         var titleY = pass.IsBarrier ? 3f : 5f;
         commands.AddText(At(node.Position + new Vector2(10f, titleY), world), TextMeasure.FontName, pass.Name,

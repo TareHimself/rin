@@ -34,6 +34,7 @@ public class WindowSurface : Surface, IWindowSurface
         Window.OnScroll += OnScroll;
         Window.OnKey += OnKeyboard;
         Window.OnCharacter += OnCharacter;
+        Window.OnTextPreedit += OnTextPreedit;
         Renderer.OnCollect += Collect;
         Window.OnResize += OnWindowResized;
         Window.OnCursorFocus += OnCursorFocus;
@@ -49,6 +50,7 @@ public class WindowSurface : Surface, IWindowSurface
         Window.OnScroll -= OnScroll;
         Window.OnKey -= OnKeyboard;
         Window.OnCharacter -= OnCharacter;
+        Window.OnTextPreedit -= OnTextPreedit;
         Window.OnCursorFocus -= OnCursorFocus;
     }
 
@@ -70,6 +72,11 @@ public class WindowSurface : Surface, IWindowSurface
     public override void StopTyping(View view)
     {
         Window.StopTyping();
+    }
+
+    public override void SetTypingRect(View view, in Rect2D caret)
+    {
+        Window.SetTypingRect(caret);
     }
 
     public override Vector2 GetSize()
@@ -97,6 +104,11 @@ public class WindowSurface : Surface, IWindowSurface
     protected void OnCharacter(CharacterEvent e)
     {
         ReceiveCharacter(new CharacterSurfaceEvent(this, e.Data, e.Modifiers));
+    }
+
+    protected void OnTextPreedit(TextPreeditEvent e)
+    {
+        ReceiveTextPreedit(new TextPreeditSurfaceEvent(this, e.Text, e.CaretStart, e.CaretEnd));
     }
 
     protected void OnMouseButton(CursorButtonEvent e)

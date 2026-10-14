@@ -37,8 +37,8 @@ public sealed class P2PChatExample : Example
 
         ShowPreview(context.Args);
 
-        context.Surface.Add(_screens);
-        context.Application.OnUpdate += _ => PumpEvents();
+        context.Add(_screens);
+        context.OnUpdate(_ => PumpEvents());
     }
 
     /// <summary>
@@ -69,6 +69,7 @@ public sealed class P2PChatExample : Example
     public override void Stop()
     {
         _session?.Dispose();
+        _session = null;
     }
 
     private void Host(string name, int port)

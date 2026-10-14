@@ -107,7 +107,7 @@ public class PinTestView : SingleSlotCompositeView, IGraphPinView
         // commands.AddRect(
         //     Matrix4x4.Identity.Translate(offset with { X = offset.X - NodeGraphConstants.PinPadding,Y = offset.Y - NodeGraphConstants.PinPadding })
         //         .ChildOf(transform), new Vector2(NodeGraphConstants.PinDiameterWithPadding), Color.Green);
-        commands.AddCircle(pinTransform, NodeGraphConstants.PinRadius, Color.Green);
+        commands.AddCircleTopLeft(pinTransform, NodeGraphConstants.PinRadius, Color.Green);
         //commands.AddRect(pinTransform,new Vector2(NodeGraphConstants.PinRadius * 2f),Color.Red);
     }
 

@@ -13,15 +13,23 @@ public sealed class OverlayView : PanelView
 
     private readonly TextBoxView _toggleLabel = new() { FontSize = 15f };
     private readonly ModalPanelView _window;
+    private readonly GraphSnapshotService _service;
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        _service.Dispose();
+    }
 
     public OverlayView(GraphSnapshotService service, Vector2 corner, bool startOpen)
     {
+        _service = service;
         Visibility = Visibility.VisibleNoHitTestSelf;
 
         _window = new ModalPanelView
         {
             Color = new Color(0.1f, 0.11f, 0.14f, 0.97f),
-            BorderRadius = new Vector4(14f),
+            BorderRadius = BorderRadius.All(14f),
             Clip = Clip.Bounds,
             InitChild = new InspectorView(service)
         };
@@ -62,7 +70,7 @@ public sealed class OverlayView : PanelView
         var button = new ButtonView
         {
             Color = new Color(0.22f, 0.42f, 0.82f, 0.95f),
-            BorderRadius = new Vector4(10f),
+            BorderRadius = BorderRadius.All(10f),
             Padding = new Padding(12f, 7f),
             InitChild = _toggleLabel
         };

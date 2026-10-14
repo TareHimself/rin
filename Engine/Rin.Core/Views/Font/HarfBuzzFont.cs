@@ -13,18 +13,11 @@ public class HarfBuzzFont : IFont, IDisposable
         Name = name;
         UnitsPerEm = unitsPerEm;
         FontManager = fontManager;
-        // TrueType (glyf) and PostScript-flavored OpenType (CFF/CFF2) fonts store contours with opposite
-        // winding conventions - glyf's outer contours are clockwise, CFF's are counter-clockwise (both in the
-        // font's shared Y-up coordinate space) - and HarfBuzz passes each through unmodified. MtsdfTextRenderer
-        // needs to know which convention it's dealing with to hand msdfgen (which expects CFF's convention)
-        // correctly-wound contours.
-        UsesPostScriptOutlines = HarfBuzzNative.FaceHasTable(face, "CFF ") || HarfBuzzNative.FaceHasTable(face, "CFF2");
     }
 
     internal IntPtr Face => _face;
     internal IntPtr Font => _font;
     internal uint UnitsPerEm { get; }
-    internal bool UsesPostScriptOutlines { get; }
 
     public string Name { get; }
 

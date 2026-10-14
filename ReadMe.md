@@ -3,17 +3,18 @@
 ## Prerequisites
 - [.NET SDK 10](https://dotnet.microsoft.com/en-us/download) - pinned in `global.json` (`rollForward: latestMajor`); every project targets `net10.0` (set in `Directory.Build.props`)
 - [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/)
-- [uv](https://docs.astral.sh/uv/) - installs Python and the native build tools (Conan, CMake and Task) from `pyproject.toml`, so you do not install those yourself
-- A C++ toolchain, only if you build the native modules: Visual Studio Build Tools with "Desktop development with C++" on Windows, or gcc or clang on Linux and macOS
+- [uv](https://docs.astral.sh/uv/) - installs Python and [silo](https://github.com/TareHimself/silo), the C++ package manager that builds the native modules, from `pyproject.toml`. silo fetches CMake and Ninja itself, so you do not install those
+- A C++ toolchain and git, only if you build the native modules: Visual Studio Build Tools with "Desktop development with C++" on Windows, or gcc or clang on Linux. silo does not build on macOS yet
 
 ## First-time setup
 The managed projects pull the native libraries (Vulkan graphics backend, Miniaudio, the Slang shader compiler, etc.) as NuGet packages from a local feed (`.feed/`, wired up in `NuGet.Config`). Build and pack them once before opening the solution:
 
 ```
-uv run task pack-all
+uv run silo profile detect
+uv run python scripts/pack_native.py
 ```
 
-This builds each native module (via Conan + CMake) and `dotnet pack`s it into `.feed/`. Re-run the relevant task (`pack-native`, `pack-audio-miniaudio-native`, `pack-graphics-vulkan-native`, `pack-slang-native`) whenever you change that module's C++ source.
+The first command records this machine's compiler for silo and is only needed once. The second builds each native module and its C++ dependencies from source with silo, and `dotnet pack`s it into `.feed/`. The first run takes a while, and later runs reuse silo's store. Re-run it with a module name (`uv run python scripts/pack_native.py Rin.Native`) whenever you change that module's C++ source.
 
 ## Building
 ```
@@ -21,7 +22,7 @@ dotnet build rin.sln
 ```
 
 ## Running an example
-All examples live in one project. Run it with no argument for a launcher, or pass an example name (`scene-test`, `sponza`, `views-test`, `ui-gallery`, and the rest listed in its ReadMe):
+All examples live in one project. Run it with no argument for a launcher, or pass an example name (`scene-test`, `sponza`, `video-player`, `ui-gallery`, and the rest listed in its ReadMe):
 
 ```
 dotnet run --project Examples/Examples/Examples.csproj

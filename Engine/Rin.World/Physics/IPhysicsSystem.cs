@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Rin.Core.Shared.Math;
 
 namespace Rin.World.Physics;
@@ -75,6 +75,20 @@ public interface IPhysicsSystem
     public int GetCollisionChannel(PhysicsBodyHandle handle);
     public void SetCollisionChannel(PhysicsBodyHandle handle, int channel);
 
+    /// <summary>
+    ///     A trigger body never produces contact constraints, so other bodies pass through it, but pairs touching it
+    ///     are still reported through <see cref="ContactEvents" />.
+    /// </summary>
+    public bool GetTrigger(PhysicsBodyHandle handle);
+
+    public void SetTrigger(PhysicsBodyHandle handle, bool trigger);
+
+    /// <summary>
+    ///     Pairs that began or stopped touching during the last <see cref="Update" />, valid until the next one. A pair
+    ///     whose bodies have all gone to sleep stays touching rather than ending.
+    /// </summary>
+    public ReadOnlySpan<PhysicsContactEvent> ContactEvents { get; }
+
     public void Update(float deltaTime);
 
     public void Destroy();
@@ -85,29 +99,39 @@ public interface IPhysicsSystem
     /// </summary>
     public RayCastResult? RayCast(in Vector3 begin, in Vector3 direction, float distance, int channel = -1);
 
-    public RayCastResult[] RayCastAll(in Vector3 begin, in Vector3 direction, float distance, int channel = -1);
+    /// <summary>
+    ///     Reports every hit along the ray to <paramref name="handler" />, in traversal order, until it returns false.
+    /// </summary>
+    public void RayCastAll<THandler>(in Vector3 begin, in Vector3 direction, float distance, ref THandler handler,
+        int channel = -1) where THandler : struct, IPhysicsHitHandler;
 
     public RayCastResult? SphereCast(float radius, in Vector3 begin, in Vector3 direction, float distance, int channel = -1);
 
-    public RayCastResult[] SphereCastAll(float radius, in Vector3 begin, in Vector3 direction, float distance, int channel = -1);
+    public void SphereCastAll<THandler>(float radius, in Vector3 begin, in Vector3 direction, float distance,
+        ref THandler handler, int channel = -1) where THandler : struct, IPhysicsHitHandler;
 
     public RayCastResult? BoxCast(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction,
         float distance, int channel = -1);
 
-    public RayCastResult[] BoxCastAll(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction,
-        float distance, int channel = -1);
+    public void BoxCastAll<THandler>(in Vector3 size, in Vector3 begin, in Quaternion orientation, in Vector3 direction,
+        float distance, ref THandler handler, int channel = -1) where THandler : struct, IPhysicsHitHandler;
 
     public RayCastResult? CapsuleCast(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation,
         in Vector3 direction, float distance, int channel = -1);
 
-    public RayCastResult[] CapsuleCastAll(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation,
-        in Vector3 direction, float distance, int channel = -1);
+    public void CapsuleCastAll<THandler>(float radius, float halfHeight, in Vector3 begin, in Quaternion orientation,
+        in Vector3 direction, float distance, ref THandler handler, int channel = -1) where THandler : struct, IPhysicsHitHandler;
 
-    /// <summary>Bodies currently overlapping the shape — zero motion, no <see cref="RayCastResult" /> location/normal to report.</summary>
-    public PhysicsBodyHandle[] OverlapSphere(float radius, in Vector3 center, int channel = -1);
+    /// <summary>
+    ///     Reports every body intersecting the shape right now. There is no motion, so there is no hit location, normal or
+    ///     distance to report.
+    /// </summary>
+    public void OverlapSphere<THandler>(float radius, in Vector3 center, ref THandler handler, int channel = -1)
+        where THandler : struct, IPhysicsOverlapHandler;
 
-    public PhysicsBodyHandle[] OverlapBox(in Vector3 size, in Vector3 center, in Quaternion orientation, int channel = -1);
+    public void OverlapBox<THandler>(in Vector3 size, in Vector3 center, in Quaternion orientation, ref THandler handler,
+        int channel = -1) where THandler : struct, IPhysicsOverlapHandler;
 
-    public PhysicsBodyHandle[] OverlapCapsule(float radius, float halfHeight, in Vector3 center, in Quaternion orientation,
-        int channel = -1);
+    public void OverlapCapsule<THandler>(float radius, float halfHeight, in Vector3 center, in Quaternion orientation,
+        ref THandler handler, int channel = -1) where THandler : struct, IPhysicsOverlapHandler;
 }

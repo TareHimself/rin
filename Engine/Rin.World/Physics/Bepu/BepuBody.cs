@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
@@ -46,6 +46,8 @@ internal abstract class BepuBody
     }
 
     public int CollisionChannel { get; set; }
+
+    public bool IsTrigger { get; set; }
 
     /// <summary>Opt in to swept (continuous) collision — costly; only for small fast movers.</summary>
     public bool ContinuousCollision { get; set; }
@@ -139,17 +141,29 @@ internal abstract class BepuBody
         }
     }
 
+    /// <summary>
+    ///     Moving a body wakes it, since Bepu lets a kinematic with zero velocity sleep and a sleeping body is not
+    ///     tested against anything. Moving a static refreshes its bounds for the same reason.
+    /// </summary>
     public void SetPosition(in Vector3 position)
     {
         _position = position;
         switch (GetState())
         {
             case PhysicsState.Static:
-                GetStaticReference().Pose.Position = position;
+            {
+                var reference = GetStaticReference();
+                reference.Pose.Position = position;
+                reference.UpdateBounds();
                 break;
+            }
             case PhysicsState.Controlled or PhysicsState.Simulated:
-                GetBodyReference().Pose.Position = position;
+            {
+                var reference = GetBodyReference();
+                reference.Pose.Position = position;
+                reference.Awake = true;
                 break;
+            }
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -161,11 +175,19 @@ internal abstract class BepuBody
         switch (GetState())
         {
             case PhysicsState.Static:
-                GetStaticReference().Pose.Orientation = orientation;
+            {
+                var reference = GetStaticReference();
+                reference.Pose.Orientation = orientation;
+                reference.UpdateBounds();
                 break;
+            }
             case PhysicsState.Controlled or PhysicsState.Simulated:
-                GetBodyReference().Pose.Orientation = orientation;
+            {
+                var reference = GetBodyReference();
+                reference.Pose.Orientation = orientation;
+                reference.Awake = true;
                 break;
+            }
             default:
                 throw new ArgumentOutOfRangeException();
         }

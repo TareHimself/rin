@@ -4,9 +4,8 @@
 Every native package here only ships runtimes/**/native/*.dll files (no managed
 assembly), so restore/build never inspects their contents. This lets CI (or any
 workflow that never calls into the native code, e.g. unit tests built on fakes)
-satisfy those PackageReferences without running the C++ build pipeline (Conan/
-CMake/Vulkan SDK) or even the real nuspec generator, which needs already-built
-binaries to scan and so can't run on a clean checkout either.
+satisfy those PackageReferences without running the C++ build (silo and a C++ toolchain) or scripts/pack_native.py,
+which packs the binaries that build produces.
 
 Package ids/versions come from the repo's own Directory.Packages.props (the
 single source of truth other projects already reference), not duplicated here.

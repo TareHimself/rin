@@ -1,4 +1,4 @@
-using Examples.Common;
+﻿using Examples.Common;
 using Examples.RenderGraphOverlay;
 using Rin.Core.Graphics;
 using Rin.Core.Views;
@@ -17,9 +17,9 @@ public sealed class RenderGraphViewerExample : Example
 
     public override void Start(ExampleContext context)
     {
-        context.Surface.Add(new RectView
+        context.Add(new RectView
         {
-            Color = new Color(0.16f, 0.2f, 0.3f, 1f),
+            Color = Color.FromRgb(0.16f, 0.2f, 0.3f),
             Padding = new Padding(40f),
             InitChild = new TextBoxView
             {
@@ -27,6 +27,6 @@ public sealed class RenderGraphViewerExample : Example
                 FontSize = 28f
             }
         });
-        GraphOverlay.Attach(context.Surface, startOpen: true);
+        context.Add(GraphOverlay.Create(context.Surface, true));
     }
 }

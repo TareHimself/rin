@@ -177,7 +177,7 @@ public sealed class DockSpaceView : SingleSlotCompositeView
 
         var chip = new Vector2(float.Max(80f, panel.Title.Length * 8f + 20f), 24f);
         var ghost = Matrix4x4.Identity.Translate(_dragCursor + new Vector2(12f, 10f));
-        commands.AddRect(ghost, chip, GhostFill, new Vector4(4f));
+        commands.AddRect(ghost, chip, GhostFill, BorderRadius.All(4f));
         commands.AddText(ghost.Translate(new Vector2(8f, 17f)), "Noto Sans", panel.Title, 13f, Color.White);
     }
 }

@@ -30,6 +30,13 @@ internal static class StructLowering
                 continue;
             }
 
+            if (TypeMapping.IsDouble(field.Type))
+            {
+                diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.DoubleNotSupported,
+                    field.Locations.FirstOrDefault() ?? Location.None, field.Name));
+                continue;
+            }
+
             if (!TypeMapping.IsLegalShaderType(field.Type))
             {
                 diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedType,

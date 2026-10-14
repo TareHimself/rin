@@ -15,14 +15,16 @@ namespace Rin.Core.Views.Content;
 public class FontIconView : ContentView
 {
     private GlyphRect? _cachedBound;
-    private string _fontFamily = "Noto Sans";
+    private string _fontFamily;
     private IFontManager _fontManager;
     private char _icon;
     private float _iconSize = 32.0f;
 
     public FontIconView(IViewsModule? viewsModule = null)
     {
-        _fontManager = (viewsModule ?? IViewsModule.Get()).FontManager;
+        var module = viewsModule ?? IViewsModule.Get();
+        _fontManager = module.FontManager;
+        _fontFamily = module.DefaultFontFamily;
         MakeNewFont();
     }
 

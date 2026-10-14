@@ -12,14 +12,14 @@ public static class ShaderMath
     /// </summary>
     public static Vector3 TransformNormal(Vector3 normal, Matrix4x4 transformation)
     {
-        var x = transformation.Row(0).xyz;
-        var y = transformation.Row(1).xyz;
-        var z = transformation.Row(2).xyz;
+        var x = transformation.Row(0).XYZ;
+        var y = transformation.Row(1).XYZ;
+        var z = transformation.Row(2).XYZ;
 
-        var scaleSquared = new Vector3(Shader.Math.Dot(x, x), Shader.Math.Dot(y, y), Shader.Math.Dot(z, z));
-        var scaledNormal = normal / Shader.Math.Sqrt(scaleSquared);
+        var scaleSquared = new Vector3(Shader.Dot(x, x), Shader.Dot(y, y), Shader.Dot(z, z));
+        var scaledNormal = normal / Shader.Sqrt(scaleSquared);
         var transformed = x * scaledNormal.X + y * scaledNormal.Y + z * scaledNormal.Z;
 
-        return Shader.Math.Normalize(transformed);
+        return Shader.Normalize(transformed);
     }
 }

@@ -30,7 +30,7 @@ public sealed class LauncherButton : ButtonView
     {
         _clicked = clicked;
         Color = Normal;
-        BorderRadius = new Vector4(10f);
+        BorderRadius = BorderRadius.All(10f);
         Padding = new Padding(20f, 12f);
         Pivot = new Vector2(0.5f);
         _label = new TextBoxView { Content = text, FontSize = 18f };

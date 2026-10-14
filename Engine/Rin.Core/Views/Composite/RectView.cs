@@ -11,7 +11,7 @@ namespace Rin.Core.Views.Composite;
 /// </summary>
 public class RectView : SingleSlotCompositeView
 {
-    public Vector4 BorderRadius;
+    public BorderRadius BorderRadius;
     public Color Color = Color.Black;
 
     public override Vector2 ComputeDesiredContentSize()

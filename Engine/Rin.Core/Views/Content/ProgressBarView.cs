@@ -15,7 +15,7 @@ public class ProgressBarView(Func<float> getProgress, Action<float>? onClick = n
     private float? _pendingProgress;
     public Color BackgroundColor { get; set; } = Color.Red;
     public Color ForegroundColor { get; set; } = Color.White;
-    public Vector4 BorderRadius { get; set; }
+    public BorderRadius BorderRadius { get; set; }
 
     protected override Vector2 LayoutContent(in Vector2 availableSpace)
     {

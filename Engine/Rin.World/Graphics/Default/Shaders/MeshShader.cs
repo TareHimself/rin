@@ -72,8 +72,8 @@ public partial class MeshShader : Shader
         VertexOut output;
         output.Uv = vertex.UV;
         output.SceneNormal = ShaderMath.TransformNormal(vertex.Normal, instance.Transform);
-        output.SceneLocation = sceneLocation.xyz;
-        var viewLocation = Vector4.Transform(new Vector4(sceneLocation.xyz, 1f), scene.View);
+        output.SceneLocation = sceneLocation.XYZ;
+        var viewLocation = Vector4.Transform(new Vector4(sceneLocation.XYZ, 1f), scene.View);
         output.Position = Vector4.Transform(viewLocation, scene.Projection);
         output.InstanceId = input.InstanceId;
         return output;
@@ -82,7 +82,7 @@ public partial class MeshShader : Shader
     private Vector3 ColorOrTexture(DeviceHandle handle, Vector2 uv, Vector3 fallback)
     {
         return handle.Id > 0u
-            ? Bindless.SampleTexture(handle, uv, ImageTiling.Repeat, ImageFilter.Linear).xyz
+            ? Bindless.SampleTexture(handle, uv, ImageTiling.Repeat, ImageFilter.Linear).XYZ
             : fallback;
     }
 
@@ -97,7 +97,7 @@ public partial class MeshShader : Shader
     public GBufferOutput Fragment(FragmentIn input)
     {
         var instance = Push.Data[input.InstanceId];
-        var normal = Math.Normalize(input.SceneNormal);
+        var normal = Normalize(input.SceneNormal);
         var color = ColorOrTexture(instance.BaseColorTexture, input.Uv, instance.BaseColor);
         var roughness = ValueOrTexture(instance.RoughnessTexture, input.Uv, instance.Roughness);
         var metallic = ValueOrTexture(instance.MetallicTexture, input.Uv, instance.Metallic);

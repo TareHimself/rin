@@ -9,6 +9,12 @@ namespace Rin.Core.Views;
 public interface IViewsModule : IModule, IUpdatable, IProviderResolvable<IViewsModule>
 {
     public IFontManager FontManager { get; }
+
+    /// <summary>
+    ///     The font family a text or icon view starts with when none is set on it.
+    /// </summary>
+    public string DefaultFontFamily { get; set; }
+
     public event Action<IWindowSurface>? OnSurfaceCreated;
     public event Action<IWindowSurface>? OnSurfaceDestroyed;
 

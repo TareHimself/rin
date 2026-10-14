@@ -130,7 +130,7 @@ public class FontIconApplication : ExampleApplication
         {
             InitChild = contents,
             Color = new Color(0.15f, 0.15f, 0.18f, 1.0f),
-            BorderRadius = new Vector4(8.0f),
+            BorderRadius = BorderRadius.All(8.0f),
             Padding = new Padding(12.0f)
         };
     }

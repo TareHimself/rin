@@ -3,31 +3,12 @@ using Rin.Core.Audio.Effects;
 
 namespace Rin.Audio.Miniaudio;
 
-internal class MiniaudioEffectController<TParams> : IEffectController<TParams> where TParams : unmanaged
+internal sealed class MiniaudioEffectController<TParams>(ISupportsAudioEffects owner, ulong effectId, IntPtr parametersPtr)
+    : IEffectController<TParams> where TParams : unmanaged
 {
-    private readonly ulong _mixerId;
-    private readonly IntPtr _parametersPtr;
     private bool _disposed;
-    private readonly ISupportsAudioEffects _owner;
-    
-    public ulong Id { get; }
 
-    internal MiniaudioEffectController(ISupportsAudioEffects owner,ulong effectId, ulong mixerId, IntPtr parametersPtr)
-    {
-        _owner = owner;
-        Id = effectId;
-        _mixerId = mixerId;
-        _parametersPtr = parametersPtr;
-        Parameters = new TParams();
-    }
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        _owner.RemoveEffect(Id);
-        Native.audioMixerRemoveEffect(_mixerId, Id);
-    }
+    public ulong Id { get; } = effectId;
 
     public TParams Parameters
     {
@@ -35,14 +16,18 @@ internal class MiniaudioEffectController<TParams> : IEffectController<TParams> w
         set
         {
             field = value;
+            if (_disposed || parametersPtr == IntPtr.Zero) return;
             unsafe
             {
-                if (_disposed) return;
-                if (_parametersPtr == IntPtr.Zero) return;
-
-                var paramsPtr = (TParams*)_parametersPtr;
-                *paramsPtr = value;
+                ParameterSlots<TParams>.Write(parametersPtr.ToPointer(), value);
             }
         }
+    } = new TParams();
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        owner.RemoveEffect(Id);
     }
 }

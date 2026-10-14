@@ -13,6 +13,8 @@ public class MiniaudioActiveAudio : IActiveAudio, IChannel
 
     public bool IsPlaying => Native.audioActiveIsPlaying(Id) != 0;
 
+    public bool HasEnded => Native.audioActiveHasEnded(Id) != 0;
+
     public double Position => Native.audioActiveGetPosition(Id);
     public double Duration => Native.audioActiveGetDuration(Id);
 

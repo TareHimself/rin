@@ -2,7 +2,11 @@ using Examples;
 using Examples.Common;
 using Examples.HeadlessTest;
 
-if (LogFileRedirector.GetLogFilePath(args) is { } logFilePath) LogFileRedirector.RedirectTo(logFilePath);
+if (LogFileRedirector.GetLogFilePath(args) is { } logFilePath)
+{
+    LogFileRedirector.RedirectTo(logFilePath);
+    Log.For("Program").Info($"Logging to '{logFilePath}'");
+}
 
 var name = args.Length > 0 && !args[0].StartsWith('-') ? args[0] : null;
 

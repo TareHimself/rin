@@ -1,3 +1,4 @@
+using Examples.Common.Views;
 using System.Numerics;
 using Rin.Core.Views;
 using Rin.Core.Views.Graphics;
@@ -23,6 +24,6 @@ public sealed class StatusDot : ContentView
 
     public override void CollectContent(in Matrix4x4 transform, CommandList commands)
     {
-        commands.AddCircle(transform, Radius, Color);
+        commands.AddCircleTopLeft(transform, Radius, Color);
     }
 }

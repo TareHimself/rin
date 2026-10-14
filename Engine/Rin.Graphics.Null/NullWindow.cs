@@ -22,6 +22,7 @@ internal sealed class NullWindow(string name, Extent2D extent, IWindow? parent) 
     public event Action<ResizeEvent>? OnResize;
     public event Action<CloseEvent>? OnClose;
     public event Action<CharacterEvent>? OnCharacter;
+    public event Action<TextPreeditEvent>? OnTextPreedit;
     public event Action<MaximizeEvent>? OnMaximize;
     public event Action<RefreshEvent>? OnRefresh;
     public event Action<MinimizeEvent>? OnMinimize;
@@ -66,6 +67,10 @@ internal sealed class NullWindow(string name, Extent2D extent, IWindow? parent) 
     }
 
     public void StopTyping()
+    {
+    }
+
+    public void SetTypingRect(in Rect2D caret)
     {
     }
 
