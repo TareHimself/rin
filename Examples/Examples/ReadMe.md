@@ -18,8 +18,6 @@ With no argument a launcher window lists the examples, and clicking one starts i
 | `image-strip` | `ImageStrip/` | Tiles that widen on hover: images, a custom shader, a color wheel. |
 | `stencil-clip` | `StencilClip/` | Rotating and nested clip regions. |
 | `windows` | `ChildWindows/` | Child windows and fullscreen. |
-| `node-graph` | `NodeGraphTest/` | Node graph views with typed pins and connections. |
-| `p2p-chat` | `P2PChat/` | Peer to peer text chat over TCP. |
 | `text-input` | `TextInput/` | Text fields with a readout of caret, composition and code units. |
 | `audio-player` | `AudioPlayer/` | A music player with a queue, cover art lookup and a spectrum. |
 | `scene-test` | `SceneTest/` | 3D world with physics in a dockable layout. |
@@ -74,20 +72,6 @@ Three panels with `Clip.Bounds` that spin, one of them nested inside another cli
 ### windows
 
 One button opens a child window and the other toggles fullscreen on the main window, as does Alt+Enter. A count shows how many child windows are open. Closing a child window disposes it.
-
-### node-graph
-
-Node graph views built from the engine's view system: `GraphView`, node and pin views (text and color picker pins), pin types and connection attempt events.
-
-### p2p-chat
-
-Peer to peer text chat over TCP. One instance hosts on a port, others connect to its address. Start two copies to try it (use `127.0.0.1` on one machine, or the host's LAN address).
-
-On the start screen enter a name, then pick Host a room (port field) or Join a room (address field, `host` or `host:port`, default port 7777). Enter or the Send button sends a message. Leave returns to the start screen. `--preview connect|join|chat` shows a screen with sample content and no networking, for checking the UI.
-
-- `Net/` holds the networking. `ChatHost` accepts any number of peers and relays every chat message to all of them, including the sender, so everyone sees the same order. `ChatClient` connects and sends a hello with its name. Frames are a 4 byte big-endian length followed by UTF-8 JSON (`FrameCodec`). Each session runs on background threads and queues `ChatEvent`s that the example drains on the main thread every frame.
-- `Views/` holds the UI: `ConnectView` (start screen with host and join tabs), `ChatRoomView` (status bar, messages in a `ScrollListView` that follows the tail, input row) and `MessageRowView` (name and time above a bubble, own messages on the right). `StatusDot` is the connection light. The card, buttons, line input, input border and palette come from `Common/Views`.
-- There is no NAT traversal, encryption or authentication, so it works on a LAN or loopback only. Names are not checked for duplicates.
 
 ### text-input
 

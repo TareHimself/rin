@@ -4,8 +4,6 @@ using Examples.AudioPlayer;
 using Examples.ChildWindows;
 using Examples.Common;
 using Examples.ImageStrip;
-using Examples.NodeGraphTest;
-using Examples.P2PChat;
 using Examples.Paint;
 using Examples.RenderGraphViewer;
 using Examples.SceneTest;
@@ -28,8 +26,6 @@ public static class ExampleRegistry
         new ImageStripExample(),
         new StencilClipExample(),
         new ChildWindowsExample(),
-        new NodeGraphExample(),
-        new P2PChatExample(),
         new TextInputExample(),
         new AudioPlayerExample(),
         new SceneTestExample(),
