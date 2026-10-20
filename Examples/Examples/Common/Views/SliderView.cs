@@ -8,7 +8,7 @@ using Rin.Core.Views.Graphics;
 using Rin.Core.Views.Graphics.Quads;
 using Rin.Core.Views.Layouts;
 
-namespace Examples.AudioPlayer.Views;
+namespace Examples.Common.Views;
 
 /// <summary>
 ///     A slider over a 0 to 1 value, left to right as a <see cref="Axis.Row" /> or bottom to top as a

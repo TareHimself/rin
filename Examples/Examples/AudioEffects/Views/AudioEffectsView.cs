@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Examples.AudioEffects.Effects;
 using Examples.Common.Views;
 using Rin.Core;

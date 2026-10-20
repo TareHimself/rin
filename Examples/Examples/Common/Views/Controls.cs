@@ -1,9 +1,8 @@
-using Examples.Common.Views;
-using Rin.Core.Views;
+﻿using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Layouts;
 
-namespace Examples.AudioEffects.Views;
+namespace Examples.Common.Views;
 
 internal static class Controls
 {
