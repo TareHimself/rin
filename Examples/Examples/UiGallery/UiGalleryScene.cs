@@ -88,6 +88,7 @@ public static class UiGalleryScene
             new Section("Textures", new Vector2(790, 170), DrawTextures),
             new Section("Text (MTSDF)", new Vector2(360, 230), DrawText),
             new Section("Color wheel", new Vector2(170, 190), DrawColorWheel),
+            new Section("Gradients", new Vector2(420, 150), DrawGradients),
             new Section("Background blur", new Vector2(280, 170), DrawBlur),
             new Section("Clipping", new Vector2(230, 230), DrawClip)
         ];
@@ -117,6 +118,16 @@ public static class UiGalleryScene
                 Color.FromRgb(0.8f, 0.4f, 0.95f), BorderRadius.All(20f));
             commands.AddRect(Rotating(origin, new Vector2(630, 125), new Vector2(120, 10), time * -25f),
                 new Vector2(120, 10), Color.White, BorderRadius.All(5f));
+        }
+
+        private static void DrawGradients(CommandList commands, in Matrix4x4 origin, float time)
+        {
+            var size = new Vector2(120, 100);
+            commands.AddGradient(At(origin, 0, 0), size, Color.FromRgb(0.95f, 0.3f, 0.3f), Color.FromRgb(0.3f, 0.3f, 0.95f));
+            commands.AddGradient(At(origin, 140, 0), size, Color.FromRgb(0.2f, 0.9f, 0.5f), Color.Transparent,
+                Vector2.Zero, Vector2.UnitX, BorderRadius.All(16f));
+            commands.AddGradient(At(origin, 280, 0), size, Color.White, Color.FromRgb(0.95f, 0.7f, 0.2f),
+                new Vector2(0.25f), new Vector2(0.75f), BorderRadius.All(50f));
         }
 
         private static void DrawCircles(CommandList commands, in Matrix4x4 origin, float time)

@@ -1,26 +1,19 @@
 # Rin.Shade.Cli
 
-Command line wrapper over the transpiler. Assembly name is `rin-shade`.
-
-## Where it fits
-
-References `Rin.Shade` and `Rin.Shade.Transpiler`. It only emits Slang text, it does not run the Slang compiler.
-
-## Usage
+`rin-shade compile` runs the transpiler on C# files and writes the Slang. It does not run the Slang compiler.
 
 ```
 dotnet run --project Shade/Rin.Shade.Cli -- compile <input.cs>... -o <output.slang> [-r <reference.dll>]...
 ```
 
-- Output defaults to the first input with a `.slang` extension.
-- If the inputs declare several shaders, each is written as `<output name>.<ClassName>.slang`.
-- The runtime's trusted platform assemblies and `Rin.Shade.dll` are always referenced. Add `-r` for any other assembly the shader uses.
-- Exits with 1 on usage errors, on error diagnostics, or when no `[Shader]`-derived class is found.
+| Option | Meaning |
+| --- | --- |
+| `<input.cs>...` | The files, compiled together as one compilation. |
+| `-o`, `--output` | The output path. Default: the first input with a `.slang` extension. Several shaders are written as `<output name>.<ClassName>.slang`. |
+| `-r`, `--reference` | An extra assembly. The runtime's assemblies and `Rin.Shade.dll` are always referenced. |
 
-## Open first
+Diagnostics go to stderr. The exit code is 1 on a usage error, an error diagnostic, or when no `[Shader]` class is found.
 
-`Program.cs` is the whole tool.
+Gotcha: only the files given are compiled, so it does not pull `[ShadeExport]` source out of referenced DLLs the way the MSBuild task does.
 
-## Gotchas
-
-- It builds a single compilation from the files given, so it does not do the cross-assembly source embedding that `Rin.Shade.MSBuild` does through `ScratchCompilationBuilder`.
+References: Rin.Shade, Rin.Shade.Transpiler. Packages: Microsoft.CodeAnalysis.CSharp.

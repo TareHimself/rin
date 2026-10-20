@@ -1,6 +1,6 @@
 # experiment.FontIcon
 
-Smoke test for `FontIconView`: loads Font Awesome 6 Free's solid icon font (icon glyphs at private-use codepoints) through the ordinary font manager and draws a grid of 15 icons through the MTSDF renderer, with white, orange and cyan tint options. No icon-specific rendering code is involved.
+Smoke test for `FontIconView`: loads the Font Awesome 6 Free solid font through the ordinary font manager and draws a grid of 15 icons in white, orange and cyan. Nothing icon-specific is involved, the icons go through the same MTSDF path as text.
 
 ```
 dotnet run --project Experiments/experiment.FontIcon/experiment.FontIcon.csproj

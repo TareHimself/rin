@@ -8,13 +8,22 @@ using Rin.Core.Views.Graphics.Quads;
 namespace Examples.Common.Views;
 
 /// <summary>
-///     A single line text input that raises <see cref="Submitted" /> on Enter instead of inserting a new line.
+///     A single line text input that raises <see cref="Submitted" /> on Enter instead of inserting a new line, and
+///     <see cref="Changed" /> after every edit.
 /// </summary>
 public sealed class LineInputView : TextInputBoxView
 {
     public event Action? Submitted;
 
+    public event Action? Changed;
+
     public string Placeholder { get; init; } = string.Empty;
+
+    protected override void TextChanged(string newText)
+    {
+        base.TextChanged(newText);
+        Changed?.Invoke();
+    }
 
     public override void OnKeyboard(KeyboardSurfaceEvent e)
     {

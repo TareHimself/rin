@@ -14,7 +14,8 @@ using Rin.Core.Views.Layouts;
 namespace Examples.AudioPlayer.Views;
 
 /// <summary>
-///     The whole player: the current cover blurred across the window, the now playing column and the queue.
+///     The whole player: the current cover blurred across the window, the now playing column, and on the right
+///     the queue or the albums above the equalizer.
 /// </summary>
 public sealed class PlayerView : PanelView
 {
@@ -32,10 +33,12 @@ public sealed class PlayerView : PanelView
     private static readonly Log Log = Log.For<PlayerView>();
 
     private readonly Player _player = new();
+    private readonly MusicLibrary _library = new();
     private readonly Equalizer _equalizer;
     private readonly SpectrumAnalyzer _analyzer;
     private readonly CoverImageView _backdrop = new() { Tint = BackdropTint, Visibility = Visibility.Hidden };
-    private QueueEntry? _backdropEntry;
+    private readonly NowPlayingView _nowPlaying;
+    private TrackCover? _backdropCover;
 
     public PlayerView()
     {
@@ -43,6 +46,13 @@ public sealed class PlayerView : PanelView
         var master = IAudioModule.Get().MasterAudioGroup;
         _equalizer = new Equalizer(master);
         _analyzer = new SpectrumAnalyzer(master);
+
+        var tabs = new PaneTabsView(["Queue", "Albums"]);
+        var panes = new SwitcherView();
+        panes.Add(new Slot { Child = new QueueView(_player, () => PickFiles()) });
+        panes.Add(new Slot { Child = new AlbumsView(_library, _player, () => PickFiles(false)) });
+        tabs.Changed += index => panes.SelectedIndex = index;
+        _nowPlaying = new NowPlayingView(_player, _analyzer);
 
         InitSlots =
         [
@@ -63,11 +73,13 @@ public sealed class PlayerView : PanelView
                         new SizerView
                         {
                             WidthOverride = NowPlayingView.Width,
-                            InitChild = new NowPlayingView(_player, _analyzer)
+                            InitChild = _nowPlaying
                         }, fit: CrossFit.Desired, align: CrossAlign.Center),
                     Ui.Slot(Ui.Gap(0f, ColumnGap)),
                     Ui.Slot(Ui.Column(
-                        Ui.Slot(new QueueView(_player, PickFiles), 1f),
+                        Ui.Slot(tabs, fit: CrossFit.Desired),
+                        Ui.Slot(Ui.Gap(10f)),
+                        Ui.Slot(panes, 1f),
                         Ui.Slot(Ui.Gap(RowGap)),
                         Ui.Slot(new EqualizerView(_equalizer))), 1f))
             })
@@ -91,10 +103,16 @@ public sealed class PlayerView : PanelView
         _player.Previous();
     }
 
+    public void NextVisualizer()
+    {
+        _nowPlaying.NextVisualizer();
+    }
+
     /// <summary>
-    ///     Reads the tags of every audio file among the paths on a worker and queues them in order.
+    ///     Reads the tags of every audio file among the paths on a worker and adds them to the library, and with
+    ///     <paramref name="queue" /> also queues them in order.
     /// </summary>
-    public void AddFiles(IEnumerable<string> paths)
+    public void AddFiles(IEnumerable<string> paths, bool queue = true)
     {
         var all = paths.ToArray();
         var files = all.Where(TrackInfo.IsAudioFile).ToArray();
@@ -102,39 +120,43 @@ public sealed class PlayerView : PanelView
         if (otherFiles > 0) Log.Info($"Ignored {otherFiles} files that are not audio");
         if (files.Length == 0) return;
 
-        Log.Info($"Queueing {files.Length} files");
-        Task.Run(() => files.Select(TrackInfo.Read).ToArray()).DispatchMain(_player.Add);
+        Log.Info(queue ? $"Queueing {files.Length} files" : $"Adding {files.Length} files to the library");
+        Task.Run(() => files.Select(TrackInfo.Read).ToArray()).DispatchMain(tracks =>
+        {
+            _library.Add(tracks);
+            if (queue) _player.Add(tracks);
+        });
     }
 
-    private void PickFiles()
+    private void PickFiles(bool queue = true)
     {
         Task.Run(() => IApplication.Get().SelectFile("Select audio files", true, "*.mp3;*.wav;*.flac;*.ogg"))
-            .DispatchMain(AddFiles);
+            .DispatchMain(paths => AddFiles(paths, queue));
     }
 
     private void ShowBackdrop()
     {
-        if (_backdropEntry is not null) _backdropEntry.CoverChanged -= ShowBackdropCover;
-        _backdropEntry = _player.Current;
+        if (_backdropCover is not null) _backdropCover.Changed -= ShowBackdropCover;
+        _backdropCover = _player.Current?.Cover;
         _backdrop.Visibility = Visibility.Hidden;
-        if (_backdropEntry is null) return;
+        if (_backdropCover is null) return;
 
-        _backdropEntry.CoverChanged += ShowBackdropCover;
-        if (_backdropEntry.HasCover) ShowBackdropCover();
+        _backdropCover.Changed += ShowBackdropCover;
+        if (_backdropCover.HasImage) ShowBackdropCover();
     }
 
     private void ShowBackdropCover()
     {
-        if (_backdropEntry is null) return;
+        if (_backdropCover is null) return;
 
-        _backdrop.Image = _backdropEntry.Cover;
+        _backdrop.Image = _backdropCover.Image;
         _backdrop.Visibility = Visibility.Visible;
     }
 
     public override void Dispose()
     {
         _player.TrackChanged -= ShowBackdrop;
-        if (_backdropEntry is not null) _backdropEntry.CoverChanged -= ShowBackdropCover;
+        if (_backdropCover is not null) _backdropCover.Changed -= ShowBackdropCover;
         base.Dispose();
         _analyzer.Dispose();
         _equalizer.Dispose();

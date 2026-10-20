@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Graph;
 
@@ -66,7 +67,8 @@ public class FillGBufferIndirectPass(DefaultWorldViewData view) : IPass
             var first = group[0];
             ctx.BindIndexBuffer(first.IndexBuffer);
             if (first.Material.ColorPass.BindGroup(worldFrame, materialDataBuffer) is { } bindContext)
-                bindContext.DrawIndexedIndirectCount(commandBuffer, countBuffer, (uint)group.Count, 0);
+                bindContext.DrawIndexedIndirectCount(commandBuffer, countBuffer, (uint)group.Count,
+                    (uint)Unsafe.SizeOf<DrawIndexedIndirectCommand>());
         }
 
         ctx.EndRendering();

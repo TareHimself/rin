@@ -1,291 +1,99 @@
 # Shade
 
-Rin.Shade lets you write shaders in C#. A Roslyn-based transpiler turns the C# shader classes into Slang source, the Slang toolchain (`Slang/`) compiles that to a shader package, and the package is embedded in the consuming assembly under the shader class's full name plus `.crsh`. The class's generated `Descriptor` names that resource and the assembly, and the engine opens it from there.
-
-## The big picture
+Shaders for Rin are C# classes. At build time a Roslyn transpiler turns each `[Shader]` class into Slang, the Slang toolchain (`Slang/`) compiles that to a `.crsh` package, and the package is embedded in the assembly under the class's full name. A source generator adds a typed `Descriptor` to the same class, so the engine reads the pipeline state (attachment formats, blend, depth, stencil, thread-group size) from the C# attributes instead of recovering it from the compiled shader.
 
 ```mermaid
 flowchart LR
     subgraph author["You write"]
         CS["C# shader class<br/>[Shader] [Vertex] [Fragment] [Compute]"]
     end
-
     subgraph build["At build time"]
         GEN["Rin.Shade.SourceGenerator<br/>Descriptor"]
         TRANS["Rin.Shade.Transpiler<br/>C# to Slang text"]
         SLANG["Rin.Slang.Compiler<br/>Slang to SPIR-V package (.crsh)"]
     end
-
     subgraph run["At run time"]
         DESC["Shader.Descriptor<br/>formats, blend, depth, stencil"]
         ENG["Engine<br/>MakeGraphics(Descriptor)"]
     end
-
-    CS --> GEN
-    CS --> TRANS
-    TRANS --> SLANG
-    SLANG -- "embedded resource" --> ENG
-    GEN --> DESC
-    DESC --> ENG
+    CS --> GEN --> DESC --> ENG
+    CS --> TRANS --> SLANG -- "embedded resource" --> ENG
 ```
-
-Two things come out of one C# class. The transpiler and Slang compiler produce the shader code. The source generator produces a typed `Descriptor` on the same class, so the pipeline state (attachment formats, blend state, depth and stencil use, thread-group size) is read from the C# attributes instead of being recovered from the compiled shader.
-
-## Projects
 
 | Project | What it is |
 | --- | --- |
 | [Rin.Shade](Rin.Shade/ReadMe.md) | The authoring API: `Shader` base class, attributes, intrinsics, `BufferRef<T>`, descriptors. |
-| [Rin.Shade.Transpiler](Rin.Shade.Transpiler/ReadMe.md) | The Roslyn transpiler from C# shader classes to Slang text (`ShadeEmitter`). |
-| [Rin.Shade.SourceGenerator](Rin.Shade.SourceGenerator/ReadMe.md) | Roslyn source generators: `Descriptor` and exported shader source. |
-| [Rin.Shade.MSBuild](Rin.Shade.MSBuild/ReadMe.md) | The `CompileRinShadeShaders` MSBuild task used by `msbuild/RinShade.targets`. |
-| [Rin.Shade.Cli](Rin.Shade.Cli/ReadMe.md) | `rin-shade compile`, a command line wrapper over the transpiler. |
-| [Rin.Shade.Tests](Rin.Shade.Tests/ReadMe.md) | Snapshot and unit tests for the transpiler and generators (no native Slang needed). |
+| [Rin.Shade.Transpiler](Rin.Shade.Transpiler/ReadMe.md) | The Roslyn transpiler from C# shader classes to Slang text. |
+| [Rin.Shade.SourceGenerator](Rin.Shade.SourceGenerator/ReadMe.md) | Source generators: the `Descriptor` and the exported shader source. |
+| [Rin.Shade.MSBuild](Rin.Shade.MSBuild/ReadMe.md) | The `CompileRinShadeShaders` task behind `msbuild/RinShade.targets`. |
+| [Rin.Shade.Cli](Rin.Shade.Cli/ReadMe.md) | `rin-shade compile`, the transpiler from the command line. |
+| [Rin.Shade.Tests](Rin.Shade.Tests/ReadMe.md) | Snapshot and unit tests for the transpiler and generators, no native Slang needed. |
 | [Rin.Shade.CpuTests](Rin.Shade.CpuTests/ReadMe.md) | Runs transpiled shaders on the CPU through the real Slang. |
-| [Samples](Samples/ReadMe.md) | SampleStdlib, SampleWorld and SampleGame, three chained assemblies used by cross-assembly tests. |
+| [Samples](Samples/ReadMe.md) | Three chained assemblies for the cross-assembly tests. |
 
 ```mermaid
 flowchart BT
-    SHADE["Rin.Shade<br/>authoring API"]
-    TRANS["Rin.Shade.Transpiler"]
-    CLI["Rin.Shade.Cli"]
-    MSB["Rin.Shade.MSBuild"]
-    GEN["Rin.Shade.SourceGenerator<br/>(analyzer reference)"]
-    COMP["Slang/Rin.Slang.Compiler"]
-    TESTS["Rin.Shade.Tests"]
-    CPU["Rin.Shade.CpuTests"]
-    SAMPLES["Samples<br/>Game, World, Stdlib"]
-
-    TRANS --> SHADE
-    CLI --> TRANS
-    MSB --> TRANS
-    MSB --> COMP
-    SHADE -.->|"analyzer"| GEN
-    TESTS --> TRANS
-    TESTS --> GEN
-    TESTS -.->|"builds"| SAMPLES
-    CPU --> TRANS
-    CPU --> COMP
+    SHADE["Rin.Shade"] -.->|"analyzer"| GEN["Rin.Shade.SourceGenerator"]
+    TRANS["Rin.Shade.Transpiler"] --> SHADE
+    CLI["Rin.Shade.Cli"] --> TRANS
+    MSB["Rin.Shade.MSBuild"] --> TRANS & COMP["Slang/Rin.Slang.Compiler"]
+    TESTS["Rin.Shade.Tests"] --> TRANS & GEN
+    TESTS -.->|"builds"| SAMPLES["Samples"]
+    CPU["Rin.Shade.CpuTests"] --> TRANS & COMP
     SAMPLES --> SHADE
     SAMPLES -.->|"analyzer"| GEN
 ```
 
-Solid arrows are project references. Dotted arrows are an analyzer reference (a project runs the source generator on its own compile; the generator references nothing) or a build-order-only reference (the tests build the sample projects so their DLLs exist, without referencing their output). Engine projects that contain shaders reference the generator as an analyzer too.
+Solid arrows are project references. Dotted arrows are an analyzer reference (the project runs the generator on its own compile) or a build-order-only reference. An engine project with shaders (`Rin.Core`, `Rin.World`, `Examples`) imports `msbuild/RinShade.targets` and references the generator as an analyzer.
 
-## What a shader looks like
+## Writing a shader
 
-A shader is a class that derives from `Rin.Shade.Shader`. This invented one draws a full-screen gradient and blends a tint over it:
+A shader derives from `Shader`, marks its entry points, and takes and returns structs whose fields carry the semantics. This is `Rin.Shade.Tests/Fixtures/GraphicsTriangleFixtureShader.cs`, and below it the Slang that `dotnet run --project Shade/Rin.Shade.Cli -- compile Shade/Rin.Shade.Tests/Fixtures/GraphicsTriangleFixtureShader.cs -o out/triangle.slang` wrote for its fragment stage. Names become lowerCamelCase and C# namespaces become Slang namespaces.
 
 ```csharp
-using System.Numerics;
-using Rin.Shade;
-
-namespace Demo;
-
 [Shader]
-public partial class TintShader : Shader
+public class GraphicsTriangleFixtureShader : Shader
 {
-    public struct PushConstants
-    {
-        public Vector4 Tint;
-        public float Strength;
-    }
-
-    public struct VertexIn
-    {
-        [VertexId] public int VertexId;
-    }
-
-    public struct VertexOut
-    {
-        [Position] public Vector4 Position;
-        [Semantic("UV")] public Vector2 Uv;
-    }
-
-    [Push] protected PushConstants Push;
-
-    protected override BlendState BlendState => BlendState.Alpha;
-
+    [Push] protected GraphicsPushConstants Push;
     [Vertex]
-    public VertexOut Vertex(VertexIn input)
-    {
-        var uv = new Vector2((input.VertexId << 1) & 2, input.VertexId & 2);
-
-        VertexOut output;
-        output.Uv = uv;
-        output.Position = new Vector4(uv * 2f - new Vector2(1f), 0f, 1f);
-        return output;
-    }
-
-    [Fragment, Attachment(AttachmentFormat.RGBA16)]
-    public Vector4 Fragment(VertexOut input)
-    {
-        var gradient = new Vector4(input.Uv, 0f, 1f);
-        return Lerp(gradient, Push.Tint, Push.Strength);
-    }
+    public virtual VsOut Vertex(VsIn input) { ... }
+    [Fragment, Attachment(AttachmentFormat.RGBA16), Stencil]
+    public virtual Vector4 Fragment(FsIn input) => Push.Color;
 }
 ```
-
-Running it through the transpiler (`rin-shade compile`) gives this Slang (trimmed to the parts that matter):
 
 ```slang
-namespace Demo::TintShader
-{
-    struct PushConstants { float4 tint; float strength; }
-    struct VertexIn      { int vertexId : SV_VertexID; }
-    struct VertexOut     { float4 position : SV_Position; float2 uv : UV; }
-}
-
-using namespace Demo::TintShader;
-using namespace Demo;
-
-[[vk::push_constant]] uniform ConstantBuffer<PushConstants, ScalarDataLayout> push;
-
-[shader("vertex")]
-VertexOut vertex(VertexIn input)
-{
-    var uv = float2(input.vertexId << 1 & 2, input.vertexId & 2);
-    VertexOut output;
-    output.uv = uv;
-    output.position = float4(uv * 2 - float2(1), 0, 1);
-    return output;
-}
-
+[[vk::push_constant]] uniform ConstantBuffer<GraphicsPushConstants, ScalarDataLayout> push;
 [shader("fragment")]
-float4 fragment(VertexOut input)
+float4 fragment(FsIn input)
 {
-    var gradient = float4(input.uv, 0, 1);
-    return lerp(gradient, push.tint, push.strength);
+    return push.color;
 }
 ```
 
-What to notice:
+The C# the transpiler accepts:
 
-- Names become lowerCamelCase, and C# namespaces become Slang namespaces. Nested types live in a namespace named after their shader class.
-- `[Push]` becomes the `push` push-constant uniform, and `[VertexId]`, `[Position]` and `[Semantic("UV")]` become Slang semantics on the struct fields. Semantics only go on struct fields, so entry points take a struct.
-- `Lerp` is a static member of `Shader`, an intrinsic that maps to Slang's `lerp`. Shaders call the math builtins unqualified; a helper class outside a shader calls them as `Shader.Lerp` or adds `using static Rin.Shade.Shader;`. Plain C# (`var`, `new Vector4(...)`, operators, shifts) is translated as written.
-- Semantic attributes are valid only on struct fields, and the C# compiler rejects them on parameters. That is why entry points take a struct.
-- A struct's auto properties become fields and a `record struct`, positional or not, becomes a plain struct. A property with a getter or setter body becomes a method. A `with` expression becomes a call to a helper function synthesized per (type, member set) shape that copies the value, writes each field or auto property and calls each setter, so it works on records and on properties with setter bodies alike.
-- A construct the transpiler cannot translate is reported as a diagnostic in your build output. That includes any `double`: a literal without an `f` suffix, a `double` local, parameter, return type or field is SHADE0021, because shaders compute in float and Slang would otherwise run that code in double or reject it later. An error from the Slang compiler is reported against the C# line it was lowered from, through the source map the emitter keeps for every Slang line.
-
-From the same class the source generator adds a typed descriptor, which the engine passes to `MakeGraphics`:
-
-```csharp
-TintShader.Descriptor                // GeneratedDescriptor
-TintShader.Descriptor.Output.Format  // the color attachment format (RGBA16 here)
-```
-
-The descriptor also carries the blend state, which the generator copies from the `BlendState` override above, so the class is never instantiated. A shader that returns a struct with several attachments gets one property per attached field (`Output.GBuffer0Format` and so on).
-
-### Sharing code with base classes
-
-Shaders can derive from other shader classes. A base class can own the blend state, an entry point, helper methods and abstract hooks, and a derived class overrides the hooks. The transpiler flattens the inheritance chain, so the emitted Slang is one file with the base class's helpers and the derived class's overrides together. Base classes can also be generic, which is how one fragment entry point can be shared across several shaders that differ only in their input struct. The Rin.Core view shaders use this pattern.
-
-## The attributes
-
-| Attribute | Goes on | Meaning |
+| Area | Supported | Rejected |
 | --- | --- | --- |
-| `[Shader]` | class | A shader to compile. Its package is embedded as `<full class name>.crsh`. |
-| `[Compute(x, y, z)]` | method | Compute entry point and its thread-group size. |
-| `[Vertex]`, `[Fragment]` | method | Graphics entry points. |
-| `[Attachment(format)]` | fragment method or output field | Color attachment format. |
-| `[Depth]`, `[Stencil]` | entry point | The stage uses the depth or stencil attachment. |
-| `[Push]` | field | The push-constant block, lowered to a uniform named `push`. |
-| `[BindingGroup]` | static field | A group of resources in one descriptor set (a Slang `ParameterBlock`). |
-| `[BindlessBlock("name")]` | struct | An engine-owned resource table, such as the global bindless pool. |
-| `[SlangExpression("...")]`, `[SlangStatement("...")]` | method without a body | Binds a call to a Slang expression or statement, with `@0`, `@name`, `@T0` and `@this` placeholders. |
-| `[ShadeExport]` | class or struct | Makes the type's source available to other assemblies' shaders. |
+| Types | `float`, `int`, `uint`, `Vector2` to `Vector4`, `Matrix4x4`, `BufferRef<T>` (a pointer), `Texture2D`, `Texture2DArray`, `TextureCube`, `SamplerState`, structs, nested types, enums, `[InlineArray]` structs as fixed arrays, explicit-layout structs as unions | `double` (SHADE0021), enums with a non-`int` base, writes through a union variant |
+| Control flow | `if`, ternary, `for`, `while`, `foreach` over an inline array, `switch` with constant cases, switch expressions with constant, relational, `and`, `or`, `not` and discard patterns, local functions | pattern `case` clauses, recursion |
+| Structs | fields, auto properties, properties with bodies, `record struct`, `with`, instance and static methods, generic structs (one Slang struct per instantiation) | open generic types |
+| Functions | helpers in any static class, `out` and named arguments, generic methods (one function per instantiation), extension members (C# 14 blocks and `this` methods), virtual and abstract overrides flattened through the base chain, generic base classes | |
+| Constants | `const` (inlined), `static readonly` with a constant initializer (a Slang `static const`) | |
+| Builtins | the static math on `Shader` (`Lerp`, `Max`, ...), swizzles (`v.XY`), `[SlangExpression]` and `[SlangStatement]` bindings, `Interlocked*` atomics and the `*MemoryBarrier*` intrinsics, `[GroupShared]` static fields | |
 
-Semantic helpers (`[Position]`, `[VertexId]`, `[InstanceId]`, `[Target(n)]`, and the compute thread ids) put Slang semantics on stage input and output fields. The full list, with the exact meaning of each, is in `Rin.Shade/Attributes.cs`.
+Anything else is a build error, and a Slang error is reported against the C# line it was lowered from. Rules that hold everywhere:
 
-## How a shader goes from C# to a compiled shader
+| Rule | Where it comes from |
+| --- | --- |
+| Every block is scalar layout, matching C# sequential layout. | `ScalarDataLayout` on push constants and `forceGLSLScalarBufferLayout` in `native/Rin.Slang.Native/src/slang.cpp`. |
+| Matrices are row-major with row-vector math (`v * M`), the same as `System.Numerics`. | `SLANG_MATRIX_LAYOUT_ROW_MAJOR` in the native session, pinned by `Rin.Shade.CpuTests`. |
+| Resources are bindless. | `[BindlessBlock(name)]` on a `[BindingGroup]` type resolves to an engine-owned descriptor set (`BindlessData` in Rin.Core). |
+| A shader is embedded as `<full class name>.crsh` and its `Descriptor` opens it from its own assembly. | `CompileRinShadeShaders` sets the resource name, `IShaderDescriptor.Open` reads it. |
+| A `[Shader]` class is `partial` and top-level. | SHADEGEN0001 and SHADEGEN0002 from the generator. |
 
-```mermaid
-sequenceDiagram
-    participant MSB as msbuild (RinShade.targets)
-    participant TASK as CompileRinShadeShaders
-    participant SCR as ScratchCompilationBuilder
-    participant EMIT as ShadeEmitter
-    participant SLC as Rin.Slang.Compiler
-
-    MSB->>TASK: CompileShadeShaders target, before the C# compile
-    TASK->>SCR: project sources plus exported source from referenced assemblies (resolved references)
-    SCR-->>TASK: one Roslyn compilation
-    TASK->>EMIT: Emit(compilation)
-    EMIT-->>TASK: Slang text and source map per [Shader] class, plus diagnostics
-    TASK->>SLC: compile each Slang file (one ShaderCompiler per worker thread)
-    SLC-->>TASK: .crsh shader package, or errors mapped back to C# lines
-    TASK-->>MSB: embed as EmbeddedResource
-```
-
-1. The `CompileShadeShaders` target in `msbuild/RinShade.targets` runs before the project's own C# compile (`BeforeTargets="BeforeCompile;AssignTargetPaths"`) and calls the `Rin.Shade.MSBuild` task. The task builds one compilation from the project's sources plus the exported source of the referenced assemblies, and calls `ShadeEmitter.Emit`.
-2. During the project's normal C# compile, `Rin.Shade.SourceGenerator` adds a `Descriptor` to each `partial` shader class, naming its assembly and full class name, and embeds the source of `[ShadeExport]` types as constants for downstream projects.
-3. The emitter lowers each `[Shader]` class to Slang text, and records for every Slang line the C# location it came from (`SlangSourceMap`). C# it cannot translate becomes a diagnostic (an error in your build output), not wrong shader code.
-4. The Slang goes to `obj/.../Rin.Shade.Generated/<full class name>.slang` and is compiled by `Rin.Slang.Compiler` to `<full class name>.crsh` next to it, unless the `.crsh` already there was compiled from identical Slang (its manifest carries a source hash), in which case it is reused and, when that holds for every shader, no Slang session is created. A Slang error is parsed (`SlangDiagnostic`) and logged against the C# file and line from the source map, so it is clickable like any other build error. The resulting `.crsh` file is embedded as an `EmbeddedResource` named `<full class name>.crsh`. No `.slang` file is written into the tracked tree. To look at the Slang, build with `-p:RinShadeDumpGenerated=true` and read the output directory's `GeneratedShaders` folder.
-5. At run time the Vulkan backend opens the `.crsh` through the descriptor (`IShaderDescriptor.Open` reads the resource named by `Name` from `Assembly`), takes the SPIR-V for each stage, and takes the pipeline state from the descriptor.
-
-## Inside the transpiler
-
-For one shader class, `ShaderLowering` runs these steps in order:
-
-```mermaid
-flowchart TD
-    A["Find entry points<br/>compute, or vertex and fragment"] --> B["Resolve virtual and abstract calls<br/>OverrideResolution"]
-    B --> C["Collect every reachable function<br/>FunctionCollector"]
-    C --> D["Build the type graph<br/>push block, bindings, signatures, locals"]
-    D --> E["Emit types<br/>TypeEmitter: structs, enums, unions, namespaces"]
-    E --> F["Emit bindings<br/>push constants, binding groups, bindless blocks"]
-    F --> G["Emit functions<br/>FunctionGrouping, FunctionLowering, BodyLowering"]
-    G --> H["Emit entry points"]
-```
-
-- **Entry points first:** the class is checked for a valid combination (compute, or vertex with an optional fragment), with diagnostics for conflicts or duplicates.
-- **Inheritance is flattened:** the transpiler walks the base-class chain, so a base class's shared code and an override both end up in one Slang file.
-- **Types by reachability:** only types the shader actually reaches are emitted. They are grouped into Slang namespaces that mirror the C# ones, and names are written relative to the namespace they sit in.
-- **Functions in order:** Slang needs a function defined before use, so helpers come out dependency-first. A struct's methods are grouped into one `extension` block; its static methods stay `static` there and are called through the type (`BorderRadius.all(r)`), so they never collide with a Slang builtin such as `all`.
-
-## Calling code in other assemblies
-
-A shader can derive from a base class, or call a helper, that lives in another project. The transpiler needs that code's source, not just its compiled form, so the pieces travel as source text:
-
-```mermaid
-flowchart LR
-    subgraph up["Upstream assembly"]
-        EXP["Type marked [ShadeExport]"]
-        SG["SourceGenerator"]
-        CONST["ShaderSourceContainer<br/>one const string per exported type"]
-        EXP --> SG --> CONST
-    end
-
-    subgraph down["Downstream project"]
-        READ["GeneratedSourceReader"]
-        SCR["ScratchCompilationBuilder"]
-        EMIT["ShadeEmitter"]
-        READ --> SCR --> EMIT
-    end
-
-    CONST -- "read from the compiled DLL" --> READ
-```
-
-`Rin.Core` marks types such as `BindlessData`, `ResourceHandle`, `Int4` and `ViewShader` with `[ShadeExport]`, and the shaders in `Rin.World` and the examples use them. `Samples/` exists to test this path with three chained assemblies.
-
-## Build integration
-
-A project that contains Shade shaders imports `msbuild/RinShade.targets`, nothing else. `Engine/Rin.Core/Rin.Core.csproj` is an example. See [Rin.Shade.MSBuild](Rin.Shade.MSBuild/ReadMe.md) for the optional properties and gotchas.
-
-Two flags you will use:
-
-- `-p:RinShadeSkipCompile=true` skips shader compilation entirely, for builds and tests that never load shaders (it is what CI uses for most test projects).
-- `-p:RinShadeDumpGenerated=true` writes the emitted Slang to a `GeneratedShaders` folder in the output directory.
-- `-p:RinShadeMaxParallelism=N` compiles up to N shaders at once, each worker thread with its own Slang session. Left unset, the task uses one thread per 64 shaders (capped at the processor count), because a Slang session takes about 450 ms to create and a shader under 10 ms to compile, so extra threads only pay off for large shader counts.
-
-The `Rin.Shade.MSBuild` task is brought up to date, in Release, before each shader compile, so a transpiler change takes effect on the next build. It runs in a short-lived task host process, which costs about two seconds on a full solution build and keeps the task DLLs from being locked.
-
-## Testing
-
-| Test project | What it proves | Needs native Slang |
-| --- | --- | --- |
-| `Rin.Shade.Tests` | The emitted Slang text is what we expect (snapshot files), diagnostics fire, generators emit the right source. Set `RIN_SHADE_SNAPSHOTS=update` to refresh snapshots. | No |
-| `Rin.Shade.CpuTests` | A transpiled shader, compiled to host code and run on the CPU, computes the same numbers as `System.Numerics`. This is what pins the matrix convention (row-major, row-vector). It also checks that pointer and `ParameterBlock` structs get scalar offsets in the compiled SPIR-V. | Yes |
-
-In CI the first runs on stub native packages in its own job. The second runs in a job that builds the real native Slang.
+| Build flag (a `-p:` property) | Effect |
+| --- | --- |
+| `RinShadeSkipCompile=true` | Skips shader compilation. CI passes it to every test job but `Rin.Shade.Tests`. |
+| `RinShadeDumpGenerated=true` | Also writes the emitted Slang to `GeneratedShaders/` under the output directory (`RinShadeGeneratedDirectory` overrides the folder). |
+| `RinShadeMaxParallelism=N` | Compiles up to N shaders at once. Unset, one worker thread per 64 stale shaders, capped at the processor count. |

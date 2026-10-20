@@ -62,16 +62,16 @@ internal static class Diagnostics
 
         public static readonly DiagnosticDescriptor ExtensionMethodNotSupported = new(
             id: "SHADE0007",
-            title: "C# 14 extension methods are not supported",
-            messageFormat: "'{0}' is a C# extension method - the receiver isn't in Parameters, so it can't be emitted correctly yet (extension properties, e.g. swizzles, are unaffected)",
+            title: "Unsupported extension receiver",
+            messageFormat: "'{0}' extends '{1}', which is not a struct, enum or built-in type, so it has no Slang extension target",
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
         public static readonly DiagnosticDescriptor GenericNotSupported = new(
             id: "SHADE0008",
-            title: "Generics are not supported",
-            messageFormat: "'{0}' is generic - different instantiations (e.g. Foo<int> and Foo<float>) would collide on the same emitted Slang name, since type arguments aren't part of it",
+            title: "Open generic types are not supported",
+            messageFormat: "'{0}' is an open generic type, which has no Slang declaration (a concrete instantiation such as Wrapper<float> becomes its own Slang struct)",
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
@@ -152,6 +152,14 @@ internal static class Diagnostics
             id: "SHADE0017",
             title: "Duplicate stage entry point",
             messageFormat: "Shader class '{0}' has more than one unrelated [{1}] entry point method",
+            category: "Rin.Shade",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor UnsupportedGroupSharedField = new(
+            id: "SHADE0022",
+            title: "Unsupported [GroupShared] field",
+            messageFormat: "'{0}': {1}",
             category: "Rin.Shade",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);

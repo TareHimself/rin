@@ -23,6 +23,6 @@ void compute()
     var total = 0;
     total += push.count;
     total -= 1;
-    var chosen = push.flag ? 1 : 0;
+    var chosen = push.flag ? 1.0 : 0.0;
     push.output[0] = chosen;
 }

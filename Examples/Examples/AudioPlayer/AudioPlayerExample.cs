@@ -38,6 +38,9 @@ public sealed class AudioPlayerExample : Example
                 case InputKey.Right:
                     player.Next();
                     break;
+                case InputKey.V:
+                    player.NextVisualizer();
+                    break;
             }
         });
     }

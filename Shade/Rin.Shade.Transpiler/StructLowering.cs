@@ -10,14 +10,16 @@ namespace Rin.Shade.Transpiler;
 internal static class StructLowering
 {
     /// <summary>
-    /// The Slang struct declaration. Takes the given members (default: the struct's instance members) and
-    /// the already-lowered text of nested types to print inside its body. Unsupported fields are reported and skipped.
+    /// The Slang struct declaration. Takes the given members (default: the struct's instance members), the
+    /// `static const` lines of the struct's constants and the already-lowered text of nested types to print
+    /// inside its body. Unsupported fields are reported and skipped.
     /// </summary>
     public static string Lower(INamedTypeSymbol type, List<Diagnostic> diagnostics,
-        IEnumerable<StructMember>? members = null, IReadOnlyList<string>? nested = null)
+        IEnumerable<StructMember>? members = null, IReadOnlyList<string>? nested = null,
+        IReadOnlyList<string>? statics = null)
     {
         var writer = new SlangWriter();
-        writer.OpenBrace($"struct {type.Name}");
+        writer.OpenBrace($"struct {Naming.TypeName(type)}");
 
         foreach (var member in members ?? StructMembers.Instance(type))
         {
@@ -49,6 +51,12 @@ internal static class StructLowering
             var line = $"{TypeMapping.MapType(field.Type)} {identifier}";
             if (semantic is not null) line += $" : {semantic}";
             writer.Line(line + ";");
+        }
+
+        if (statics is { Count: > 0 })
+        {
+            writer.Line();
+            foreach (var line in statics) writer.Line(line);
         }
 
         foreach (var nestedText in nested ?? [])

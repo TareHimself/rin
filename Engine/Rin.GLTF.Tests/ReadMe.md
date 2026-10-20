@@ -1,27 +1,14 @@
 # Rin.GLTF.Tests
 
-NUnit tests for [Rin.GLTF](../Rin.GLTF/ReadMe.md).
+NUnit tests for [Rin.GLTF](../Rin.GLTF/ReadMe.md), loading the `fox.glb` and `cube.glb` models linked from `Examples/Examples/assets/models/` and copied to `Assets/` in the output.
 
-## Where it fits
-
-- References: Rin.GLTF and Rin.Graphics.Null.
-- The test models `fox.glb` and `cube.glb` are linked from `Examples/Examples/assets/models/` and copied to `Assets/` in the output.
-
-## Start here
-
-- `GltfMeshImporterTests.cs`, `GltfAnimationImporterTests.cs`: the tests.
-- `NativeFakeSetup.cs`: a `[SetUpFixture]` that redirects the `Rin.Native` DllImport to a fake library.
-- `NativeFakeLocator.cs`: finds the published fake under `native/Fakes/Rin.Native.Fake`, searching upward for `rin.sln`.
-
-## Run
-
-Publish the native fake first, then test (this is the order CI uses):
+Publish the native fake first, then test (the order CI uses):
 
 ```
 uv run python scripts/publish_native_fakes.py win-x64
 dotnet test Engine/Rin.GLTF.Tests/Rin.GLTF.Tests.csproj -p:RinShadeSkipCompile=true
 ```
 
-## Gotcha
+- A setup fixture redirects Rin.Core's `Rin.Native` import to the fake published under `native/Fakes/Rin.Native.Fake`, found by searching upward for `rin.sln`. Without it the tests fail with "Rin.Native.Fake.dll not published".
 
-If the fake has not been published, the setup throws "Rin.Native.Fake.dll not published".
+References: Rin.GLTF, Rin.Graphics.Null.

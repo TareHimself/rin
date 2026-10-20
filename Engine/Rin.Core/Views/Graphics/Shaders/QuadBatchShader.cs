@@ -158,6 +158,17 @@ public partial class QuadBatchShader : ViewShader<QuadBatchShader.FragmentIn>
                     quad.Size, data.InverseTransform, 1f);
             }
 
+            case Quad.RenderMode.Gradient:
+            {
+                var data = quad.GradientInfo;
+                var axis = data.End - data.Begin;
+                var offset = input.Uv - data.Begin;
+                var along = Dot(offset, axis) / Max(Dot(axis, axis), 1e-6f);
+                var color = Lerp(ColorOf(data.From), ColorOf(data.To), Clamp(along, 0f, 1f));
+                return ViewShaderMath.ApplyBorderRadius(input.Coordinate, color, data.BorderRadius, quad.Size,
+                    data.InverseTransform, 1f);
+            }
+
             default:
                 return new Vector4(1f);
         }

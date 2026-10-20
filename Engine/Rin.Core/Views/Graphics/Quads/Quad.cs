@@ -28,7 +28,8 @@ public struct Quad() // : ICloneable<Quad>
         CubicCurve,
         Texture,
         Mtsdf,
-        ColorWheel
+        ColorWheel,
+        Gradient
     }
 
 
@@ -53,6 +54,8 @@ public struct Quad() // : ICloneable<Quad>
     [FieldOffset(76)] public MtsdfData MtsdfInfo = default;
 
     [FieldOffset(76)] public ColorWheelData ColorWheelInfo = default;
+
+    [FieldOffset(76)] public GradientData GradientInfo = default;
 
     [NoReorder]
     public struct LineData
@@ -112,6 +115,21 @@ public struct Quad() // : ICloneable<Quad>
     public struct ColorWheelData
     {
         public Matrix4x4 InverseTransform;
+    }
+
+    /// <summary>
+    ///     A linear blend from <see cref="From" /> at <see cref="Begin" /> to <see cref="To" /> at <see cref="End" />,
+    ///     both points in the quad's 0 to 1 UV space, clamped past either end.
+    /// </summary>
+    [NoReorder]
+    public struct GradientData
+    {
+        public Matrix4x4 InverseTransform;
+        public Color From;
+        public Color To;
+        public Vector2 Begin;
+        public Vector2 End;
+        public BorderRadius BorderRadius;
     }
 
     [NoReorder]
@@ -307,6 +325,26 @@ public struct Quad() // : ICloneable<Quad>
             ColorWheelInfo = new ColorWheelData
             {
                 InverseTransform = transform.Inverse()
+            }
+        };
+    }
+
+    public static Quad Gradient(in Matrix4x4 transform, in Vector2 size, in Color from, in Color to, in Vector2 begin,
+        in Vector2 end, in BorderRadius? borderRadius = null)
+    {
+        return new Quad
+        {
+            Mode = RenderMode.Gradient,
+            Transform = transform,
+            Size = size,
+            GradientInfo = new GradientData
+            {
+                InverseTransform = transform.Inverse(),
+                From = from,
+                To = to,
+                Begin = begin,
+                End = end,
+                BorderRadius = borderRadius ?? BorderRadius.Zero
             }
         };
     }

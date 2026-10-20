@@ -45,6 +45,12 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
             .OrderBy(f => BindingLowering.BindlessBlockName(f) is null ? 1 : 0)
             .ToList();
 
+        var groupSharedFields = chain.SelectMany(t => t.GetMembers().OfType<IFieldSymbol>())
+            .Where(GroupSharedLowering.HasGroupSharedAttribute)
+            .GroupBy(f => f.Name)
+            .Select(g => g.First())
+            .ToList();
+
         var computeEntries = FindStageEntries(chain, "Rin.Shade.ComputeAttribute");
         var vertexEntries = FindStageEntries(chain, "Rin.Shade.VertexAttribute");
         var fragmentEntries = FindStageEntries(chain, "Rin.Shade.FragmentAttribute");
@@ -97,6 +103,7 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
 
         if (pushField is not null) types.Add(pushField.Type);
         foreach (var bindingField in bindingFields) types.Add(bindingField.Type);
+        foreach (var groupSharedField in groupSharedFields) types.Add(groupSharedField.Type);
         foreach (var entryMethod in entryMethods)
         {
             foreach (var parameter in entryMethod.Parameters)
@@ -126,10 +133,10 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
 
         foreach (var entryMethod in entryMethods)
             foreach (var body in MethodSource.GetBodies(entryMethod, compilation))
-                types.AddFromBody(body);
+                types.AddFromBody(body, TypeSubstitution.For(entryMethod));
         foreach (var function in functionOrder)
             foreach (var body in MethodSource.GetBodies(function, compilation))
-                types.AddFromBody(body);
+                types.AddFromBody(body, TypeSubstitution.For(function));
 
         // With helpers call nothing else, so emitting them before functionOrder satisfies Slang's
         // define-before-use rule.
@@ -140,6 +147,16 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         foreach (var function in functionOrder)
             WithLowering.Collect(function, compilation, diagnostics, withHelperSpecs, withHelperOrder);
 
+        // Collected before the types are emitted: a struct's constants are printed inside the struct.
+        var staticConsts = StaticConstLowering.Collect(entryMethods.Concat(functionOrder), compilation, diagnostics, types);
+        var structConsts = staticConsts
+            .Where(spec => spec.Field.ContainingType.TypeKind == TypeKind.Struct)
+            .GroupBy(spec => spec.Field.ContainingType, SymbolEqualityComparer.Default)
+            .ToDictionary(group => (INamedTypeSymbol)group.Key!, group => group.ToList(), SymbolEqualityComparer.Default);
+        var namespaceConsts = staticConsts
+            .Where(spec => spec.Field.ContainingType.TypeKind != TypeKind.Struct)
+            .ToList();
+
         var writer = new SlangWriter();
 
         if (bindingFields.Any(f => BindingLowering.BindlessBlockName(f) is not null))
@@ -149,7 +166,11 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         }
 
         var declared = TypeEmitter.Declared(types);
-        TypeEmitter.Emit(types, diagnostics, writer, declared);
+        foreach (var spec in namespaceConsts) TypeEmitter.Declare(declared, Naming.NamespacePath(spec.Field));
+        TypeEmitter.Emit(types, diagnostics, writer, declared,
+            type => structConsts.TryGetValue(type, out var specs)
+                ? specs.Select(spec => StaticConstLowering.Declaration(spec, diagnostics)).ToList()
+                : null);
 
         // Most types the shader names live in its own namespace, so open it to keep signatures short.
         var shaderNamespace = Naming.NamespacePath(shaderClass);
@@ -163,11 +184,23 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
 
         using var globalScope = NameScope.WithUsings(usings, declared);
 
+        EmitNamespaceConsts(namespaceConsts, declared, writer);
+
         if (bindingFields.Count > 0)
         {
             foreach (var field in bindingFields)
             {
                 var declaration = BindingLowering.Lower(field, diagnostics);
+                if (declaration is not null) writer.Line(declaration);
+            }
+            writer.Line();
+        }
+
+        if (groupSharedFields.Count > 0)
+        {
+            foreach (var field in groupSharedFields)
+            {
+                var declaration = GroupSharedLowering.Lower(field, diagnostics);
                 if (declaration is not null) writer.Line(declaration);
             }
             writer.Line();
@@ -244,6 +277,45 @@ internal sealed class ShaderLowering(Compilation compilation, List<Diagnostic> d
         }
 
         return new LoweredShader(writer.ToString(), writer.ToSourceMap());
+    }
+
+    // Each run of constants from one class shares a namespace block, in the order they were collected, which
+    // puts a constant after the constants its initializer reads.
+    private void EmitNamespaceConsts(List<StaticConstSpec> specs, HashSet<string> declared, SlangWriter writer)
+    {
+        if (specs.Count == 0) return;
+
+        string? openPath = null;
+        System.IDisposable? scope = null;
+        foreach (var spec in specs)
+        {
+            var path = Naming.NamespacePath(spec.Field);
+            if (path != openPath)
+            {
+                CloseNamespace();
+                openPath = path;
+                if (path.Length > 0)
+                {
+                    writer.OpenBrace($"namespace {path}");
+                    scope = NameScope.InNamespace(path, declared);
+                }
+            }
+
+            writer.Origin = spec.Field.Locations.FirstOrDefault();
+            writer.Line(StaticConstLowering.Declaration(spec, diagnostics));
+            writer.Origin = null;
+        }
+
+        CloseNamespace();
+        writer.Line();
+
+        void CloseNamespace()
+        {
+            if (openPath is not { Length: > 0 }) return;
+            scope?.Dispose();
+            scope = null;
+            writer.CloseBrace();
+        }
     }
 
     private static void EmitGraphicsStage(Compilation compilation, List<Diagnostic> diagnostics, SlangWriter writer,

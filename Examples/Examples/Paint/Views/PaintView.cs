@@ -1,5 +1,4 @@
-﻿using Examples.AudioPlayer.Views;
-using Examples.Common.Views;
+﻿using Examples.Common.Views;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
 using Rin.Core.Views.Content;

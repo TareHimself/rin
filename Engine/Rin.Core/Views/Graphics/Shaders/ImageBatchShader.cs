@@ -50,8 +50,8 @@ public partial class ImageBatchShader : ViewShader<ImageBatchShader.FragmentIn>
         var item = Push.Images[input.InstanceId];
         var corners = new[]
         {
-            new Vector2(0f, 0f), new Vector2(item.Size.X, 0f), new Vector2(item.Size.X, item.Size.Y),
-            new Vector2(0f, 0f), new Vector2(item.Size.X, item.Size.Y), new Vector2(0f, item.Size.Y)
+            new Vector2(0f, 0f), item.Size with { Y = 0f }, new Vector2(item.Size.X, item.Size.Y),
+            new Vector2(0f, 0f), new Vector2(item.Size.X, item.Size.Y), item.Size with { X = 0f }
         };
 
         var corner = corners[input.VertexId];

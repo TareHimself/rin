@@ -15,7 +15,6 @@
         <PackageReference Include="NetVips"/>
         <PackageReference Include="NetVips.Native" />
         <PackageReference Include="StbRectPackSharp"/>
-        <PackageReference Include="System.Data.SQLite.Core"/>
         <PackageReference Include="TareHimself.Rin.Native"/>
         <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" />
         <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />

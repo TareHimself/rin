@@ -85,6 +85,8 @@ sequenceDiagram
     Note over M,R: the main thread starts the next update while the render thread runs
 ```
 
+The render thread runs `IGraphicsModule.Execute` once per collected frame. `SetMaxFramerate` caps how often, which an application that is mostly still can use to keep the GPU quiet.
+
 A **pass** declares the images and buffers it reads and writes in `Configure`, and records GPU work in `Execute`. The graph orders passes from those declarations, prunes passes nothing terminal depends on, adds upload passes and inserts the barriers. The interfaces are in `Rin.Core` (`IPass`, `IGraphConfig`, `IGraphBuilder`), and the implementation is in `Rin.Graphics.Vulkan`. See [Engine/Rin.Graphics.Vulkan/ReadMe.md](Engine/Rin.Graphics.Vulkan/ReadMe.md).
 
 ## Worlds on a surface

@@ -87,4 +87,11 @@ public interface  IGraphicsModule : IModule, IUpdatable, IProviderResolvable<IGr
 
     public void Collect();
     public void Execute();
+
+    /// <summary>
+    ///     The most frames per second <see cref="Execute" /> runs, or 0 for as many as the window allows.
+    /// </summary>
+    public int MaxFramerate { get; }
+
+    public void SetMaxFramerate(int framesPerSecond);
 }

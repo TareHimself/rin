@@ -22,7 +22,6 @@ public class HarfBuzzFontManager : IFontManager
         Name = "HarfBuzzFontManager Task Queue"
     };
 
-    private readonly ISdfCache? _cache;
     private readonly CancellationTokenSource _cancellationSource = new();
     private readonly MtsdfPageManager _pageManager;
 
@@ -48,11 +47,9 @@ public class HarfBuzzFontManager : IFontManager
 
     private readonly ConcurrentDictionary<string, HarfBuzzFont> _fonts = new(StringComparer.OrdinalIgnoreCase);
 
-    public HarfBuzzFontManager(ISdfCache? cache = null, IGraphicsModule? graphicsModule = null)
+    public HarfBuzzFontManager(IGraphicsModule? graphicsModule = null)
     {
         _pageManager = new MtsdfPageManager(new Extent2D(AtlasSize), graphicsModule);
-        // _cache = Global.Provider.AddSingle<ISdfCache>(
-        //     new DiskSdfCache(Path.Combine(Global.Directory, "sdfs.bin")));
     }
 
     public Task Prepare(IFont font, IEnumerable<char> characters)
@@ -84,7 +81,7 @@ public class HarfBuzzFontManager : IFontManager
                 {
                     var initialResults = new SdfResult?[toGenerate.Count];
                     Parallel.For(0, toGenerate.Count,
-                        i => initialResults[i] = GenerateGlyph(toGenerate[i].First, asFont, toGenerate[i].Second));
+                        i => initialResults[i] = GenerateGlyph(toGenerate[i].First, asFont));
 
                     for (var index = 0; index < toGenerate.Count; index++)
                     {
@@ -384,43 +381,14 @@ public class HarfBuzzFontManager : IFontManager
         return results;
     }
 
-    private SdfResult? GenerateGlyph(char character, HarfBuzzFont font, CacheKey cacheKey)
+    private SdfResult? GenerateGlyph(char character, HarfBuzzFont font)
     {
-        var sdfCacheKey = $"Font/{cacheKey.FontName}/{cacheKey.Character}";
+        HarfBuzzNative.TryGetNominalGlyph(font.Font, character, out var glyphId);
 
-        if (_cache is not null && _cache.HasVector(sdfCacheKey))
-        {
-            var vector = _cache.GetVector(sdfCacheKey)!;
-            var image = _cache.LoadImage(vector.ImageId)!;
-            return new SdfResult(image, vector.Size.X, vector.Size.Y);
-        }
-
-        {
-            HarfBuzzNative.TryGetNominalGlyph(font.Font, character, out var glyphId);
-
-            var scale = font.UnitsPerEm == 0 ? 0f : RenderSize / font.UnitsPerEm;
-            using var renderer = new MtsdfTextRenderer(scale);
-            HarfBuzzNative.DrawGlyph(font.Font, glyphId, renderer);
-            var result = renderer.Generate(3f, GetPixelRange());
-
-            if (result is null || _cache is null || _cache.HasVector(sdfCacheKey)) return result;
-
-            var imageId = _cache.AddImage(result.Image);
-            var actualSize = result.Image.Extent;
-
-            _cache.AddVector(new SdfVector
-            {
-                Id = sdfCacheKey,
-                ImageId = imageId,
-                Offset = Vector2.Zero,
-                Size = new Vector2((float)result.Width, (float)result.Height),
-                Coordinates = new Vector4(0f, 0f, actualSize.Width / (float)result.Image.Extent.Width,
-                    actualSize.Height / (float)result.Image.Extent.Height),
-                PixelRange = PixelRange
-            });
-
-            return result;
-        }
+        var scale = font.UnitsPerEm == 0 ? 0f : RenderSize / font.UnitsPerEm;
+        using var renderer = new MtsdfTextRenderer(scale);
+        HarfBuzzNative.DrawGlyph(font.Font, glyphId, renderer);
+        return renderer.Generate(3f, GetPixelRange());
     }
 
     private record struct CacheKey(char Character, string FontName)

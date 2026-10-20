@@ -1,6 +1,5 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Examples.AudioEffects.Effects;
-using Examples.AudioEffects.Views;
 using Examples.AudioPlayer.Playback;
 using Examples.Common.Views;
 using Rin.Core.Views;

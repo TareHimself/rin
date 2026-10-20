@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 
 namespace Rin.Shade.Transpiler;
@@ -30,7 +31,7 @@ internal static class Naming
         // (Rin::Views::Quad::LineData), and one nested in a class reads as a namespace named after the class.
         var containers = new List<string>();
         for (var container = type.ContainingType; container is not null; container = container.ContainingType)
-            containers.Insert(0, container.Name);
+            containers.Insert(0, TypeName(container));
         segments.AddRange(containers);
 
         return string.Join("::", segments);
@@ -52,10 +53,53 @@ internal static class Naming
     /// Like <see cref="ToSlangIdentifier"/>, but a property accessor becomes "getFoo"/"setFoo" instead of
     /// its compiler-generated "get_Foo"/"set_Foo". Declaration and call sites both use this so they agree.
     /// </summary>
-    public static string ToSlangMethodName(IMethodSymbol method) => method.MethodKind switch
+    public static string ToSlangMethodName(IMethodSymbol method)
     {
-        MethodKind.PropertyGet => ToSlangIdentifier($"Get{method.AssociatedSymbol!.Name}"),
-        MethodKind.PropertySet => ToSlangIdentifier($"Set{method.AssociatedSymbol!.Name}"),
-        _ => ToSlangIdentifier(method.Name)
+        var name = method.MethodKind switch
+        {
+            MethodKind.PropertyGet => ToSlangIdentifier($"Get{method.AssociatedSymbol!.Name}"),
+            MethodKind.PropertySet => ToSlangIdentifier($"Set{method.AssociatedSymbol!.Name}"),
+            _ => ToSlangIdentifier(method.Name)
+        };
+
+        // One Slang function per instantiation, told apart by their type arguments: Pick<float> and
+        // Pick<float3> become pick_float and pick_float3.
+        return method.IsGenericMethod
+            ? name + string.Concat(method.TypeArguments.Select(argument => "_" + TypeTag(argument)))
+            : name;
+    }
+
+    /// <summary>
+    /// A type's spelling inside an identifier, independent of the name scope so a declaration and its call
+    /// sites agree: builtins by their Slang name, a BufferRef by its element plus Ptr, anything else by its name.
+    /// </summary>
+    public static string TypeTag(ITypeSymbol type)
+    {
+        if (type is INamedTypeSymbol { Name: "BufferRef", TypeArguments.Length: 1 } buffer)
+            return TypeTag(buffer.TypeArguments[0]) + "Ptr";
+        if (type is INamedTypeSymbol { IsGenericType: true } generic) return TypeName(generic);
+        return TypeMapping.IsBuiltIn(type) ? TypeMapping.MapType(type) : type.Name;
+    }
+
+    /// <summary>
+    /// The unqualified Slang name of a declared type. A generic struct is lowered once per instantiation, told
+    /// apart by its type arguments: Wrapper&lt;float&gt; and Wrapper&lt;float3&gt; become Wrapper_float and Wrapper_float3.
+    /// </summary>
+    public static string TypeName(INamedTypeSymbol type) =>
+        type.IsGenericType
+            ? type.Name + string.Concat(type.TypeArguments.Select(argument => "_" + TypeTag(argument)))
+            : type.Name;
+
+    /// <summary>
+    /// Whether the type still mentions a type parameter anywhere in its arguments or containers, so it has no
+    /// concrete Slang declaration.
+    /// </summary>
+    public static bool IsOpenGeneric(ITypeSymbol type) => type switch
+    {
+        ITypeParameterSymbol => true,
+        INamedTypeSymbol named => named.TypeArguments.Any(IsOpenGeneric) ||
+                                  named.ContainingType is { } container && IsOpenGeneric(container),
+        IArrayTypeSymbol array => IsOpenGeneric(array.ElementType),
+        _ => false
     };
 }

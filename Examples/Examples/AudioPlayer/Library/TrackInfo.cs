@@ -11,7 +11,11 @@ public sealed record TrackInfo(
     string Artist,
     string Album,
     double Duration,
-    byte[]? EmbeddedCover)
+    byte[]? EmbeddedCover,
+    string AlbumArtist = "",
+    int DiscNumber = 0,
+    int TrackNumber = 0,
+    int Year = 0)
 {
     public static readonly string[] Extensions = [".mp3", ".wav", ".flac", ".ogg"];
     private static readonly Log Log = Log.For<TrackInfo>();
@@ -41,8 +45,10 @@ public sealed record TrackInfo(
         var artist = string.IsNullOrWhiteSpace(tags.Artist) ? fileArtist : tags.Artist.Trim();
         var album = string.IsNullOrWhiteSpace(tags.Album) ? string.Empty : tags.Album.Trim();
         var cover = tags.EmbeddedPictures.FirstOrDefault(p => p.PictureData is { Length: > 0 })?.PictureData;
+        var albumArtist = string.IsNullOrWhiteSpace(tags.AlbumArtist) ? string.Empty : tags.AlbumArtist.Trim();
 
-        return new TrackInfo(path, title, artist, album, tags.DurationMs / 1000.0, cover);
+        return new TrackInfo(path, title, artist, album, tags.DurationMs / 1000.0, cover, albumArtist,
+            tags.DiscNumber ?? 0, tags.TrackNumber ?? 0, tags.Year ?? 0);
     }
 
     private static (string Artist, string Title) SplitFileName(string fileName)

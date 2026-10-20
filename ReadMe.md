@@ -3,8 +3,8 @@
 ## Prerequisites
 - [.NET SDK 10](https://dotnet.microsoft.com/en-us/download) - pinned in `global.json` (`rollForward: latestMajor`); every project targets `net10.0` (set in `Directory.Build.props`)
 - [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/)
-- [uv](https://docs.astral.sh/uv/) - installs Python and [silo](https://github.com/TareHimself/silo), the C++ package manager that builds the native modules, from `pyproject.toml`. silo fetches CMake and Ninja itself, so you do not install those
-- A C++ toolchain and git, only if you build the native modules: Visual Studio Build Tools with "Desktop development with C++" on Windows, or gcc or clang on Linux. silo does not build on macOS yet
+- [uv](https://docs.astral.sh/uv/) - installs Python and [silo](https://github.com/TareHimself/silo), the C++ package manager that builds the native modules, from `pyproject.toml`.
+- A C++ toolchain and git, only if you build the native modules: Visual Studio Build Tools with "Desktop development with C++" on Windows, gcc or clang on Linux, or the Xcode command line tools on macOS
 
 ## First-time setup
 The managed projects pull the native libraries (Vulkan graphics backend, Miniaudio, the Slang shader compiler, etc.) as NuGet packages from a local feed (`.feed/`, wired up in `NuGet.Config`). Build and pack them once before opening the solution:
@@ -107,7 +107,7 @@ How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventi
 
 - [Common](Examples/Common/ReadMe.md): Shared library for the example and experiment apps, not runnable on its own.
 - [Examples](Examples/Examples/ReadMe.md): Every example app in one executable, picked by name or from a launcher window.
-- [Examples.Tests](Examples/Examples.Tests/ReadMe.md): NUnit tests for the P2P chat networking and the render graph overlay's layout.
+- [Examples.Tests](Examples/Examples.Tests/ReadMe.md): NUnit tests for the audio player library and the render graph overlay's layout.
 
 **Experiments**
 

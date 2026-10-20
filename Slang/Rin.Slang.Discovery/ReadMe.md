@@ -1,23 +1,11 @@
 # Rin.Slang.Discovery
 
-Finds which shaders C# code references, without compiling the C# code. Packed as `TareHimself.Rin.Slang.Discovery`. Its only dependency is `Microsoft.CodeAnalysis.CSharp`.
-
-## Where it fits
-
-- Used by `Rin.Slang.Cli` (the `discover` and `compile-referenced` commands).
-
-## Start here
-
-- `ShaderReferenceScanner.cs`: `ScanDirectory(root)` and `Scan(csFiles)` return the set of shader content keys found in `[GraphicsShader("...")]` and `[ComputeShader("...")]` attributes and in `MakeGraphics("...")` and `MakeCompute("...")` calls.
-
-## Notes
-
-- It parses source text only, so it works across project boundaries and does not depend on build order. A Roslyn generator only sees its own project, which would miss shaders referenced from another project.
-
-## Build
+Finds which shaders C# code references by parsing the source text with Roslyn: `[GraphicsShader("...")]` and `[ComputeShader("...")]` attributes and `MakeGraphics("...")` and `MakeCompute("...")` calls. Packed as `TareHimself.Rin.Slang.Discovery`.
 
 ```
 dotnet build Slang/Rin.Slang.Discovery/Rin.Slang.Discovery.csproj
 ```
 
-There is no test project for it under `Slang/`.
+Dependencies: `Microsoft.CodeAnalysis.CSharp` only. Used by the `discover` and `compile-referenced` commands of `Rin.Slang.Cli`. It has no test project.
+
+- It never compiles the C# code, so it works across project boundaries and does not depend on build order, which a source generator (scoped to its own project) could not do.

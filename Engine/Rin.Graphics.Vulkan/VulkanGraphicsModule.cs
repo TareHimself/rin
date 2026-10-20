@@ -21,6 +21,7 @@ namespace Rin.Graphics.Vulkan;
 
 public partial class VulkanGraphicsModule : IGraphicsModule
 {
+    private readonly FrameLimiter _frameLimiter = new();
     private readonly BackgroundTaskQueue _backgroundTaskQueue = new()
     {
         Name = "VulkanGraphicsModule Task Queue"
@@ -214,8 +215,16 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         _collected = collected.ToArray();
     }
 
+    public int MaxFramerate => _frameLimiter.MaxFramerate;
+
+    public void SetMaxFramerate(int framesPerSecond)
+    {
+        _frameLimiter.MaxFramerate = int.Max(framesPerSecond, 0);
+    }
+
     public void Execute()
     {
+        _frameLimiter.Wait();
         {
             HandlePendingGraphicsSubmits();
         }

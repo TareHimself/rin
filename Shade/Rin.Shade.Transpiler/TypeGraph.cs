@@ -53,16 +53,17 @@ internal sealed class TypeGraph
     }
 
     /// <summary>
-    /// Adds the types of local variables declared in a method body, which the field walk never sees.
-    /// Stops at local functions, like FunctionCollector.FindReachableCallSites.
+    /// Adds the types of local variables declared in a method body, which the field walk never sees, spelled
+    /// with the instantiation's type arguments. Stops at local functions, like FunctionCollector.FindReachableCallSites.
     /// </summary>
-    public void AddFromBody(IOperation? body)
+    public void AddFromBody(IOperation? body, TypeSubstitution? substitution = null)
     {
         if (body is null) return;
-        if (body is IVariableDeclaratorOperation declarator) Add(declarator.Symbol.Type);
+        if (body is IVariableDeclaratorOperation declarator)
+            Add(substitution?.Apply(declarator.Symbol.Type) ?? declarator.Symbol.Type);
         if (body is ILocalFunctionOperation) return;
 
-        foreach (var child in body.ChildOperations) AddFromBody(child);
+        foreach (var child in body.ChildOperations) AddFromBody(child, substitution);
     }
 
     /// <summary>

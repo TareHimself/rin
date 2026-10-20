@@ -20,7 +20,7 @@ internal static class FunctionLowering
 {
     /// <summary>
     /// Lowers the method, or reports a diagnostic and returns a default value if it uses a construct that
-    /// cannot be emitted (ref return, extension method, generic method).
+    /// cannot be emitted (a ref return, an open generic method, an extension of a type Slang cannot extend).
     /// </summary>
     public static LoweredFunction Lower(Compilation compilation, IMethodSymbol method, List<Diagnostic> diagnostics,
         IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null,
@@ -33,17 +33,10 @@ internal static class FunctionLowering
             return default;
         }
 
-        if (method.ContainingType.TypeKind == TypeKind.Extension)
+        if (method.TypeArguments.Any(argument => argument is ITypeParameterSymbol))
         {
-            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.ExtensionMethodNotSupported,
-                method.Locations.FirstOrDefault() ?? Location.None, method.Name));
-            return default;
-        }
-
-        if (method.IsGenericMethod)
-        {
-            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.GenericNotSupported,
-                method.Locations.FirstOrDefault() ?? Location.None, method.Name));
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                method.Locations.FirstOrDefault() ?? Location.None, $"open generic method '{method.Name}'"));
             return default;
         }
 
@@ -53,6 +46,10 @@ internal static class FunctionLowering
             : $"{TypeMapping.MapType(method.ReturnType)} {Naming.ToSlangMethodName(method)}";
 
         var writer = new SlangWriter();
+
+        if (ExtensionMembers.TryGetReceiver(method, out var receiver))
+            return LowerExtensionMember(compilation, method, receiver, diagnostics, writer, signature, withHelpers,
+                overrides);
 
         if (method.ContainingType.TypeKind == TypeKind.Struct && method.IsStatic)
         {
@@ -83,6 +80,46 @@ internal static class FunctionLowering
         return new LoweredFunction(null, writer);
     }
 
+    // An extension member joins the Slang `extension` block of its receiver type, where the receiver is `this`.
+    // A by-value receiver the body writes to is copied into a local first, since a Slang [mutating] member
+    // would write through to the caller's variable; a `ref` receiver is meant to, so it becomes [mutating].
+    private static LoweredFunction LowerExtensionMember(Compilation compilation, IMethodSymbol method,
+        ExtensionReceiver receiver, List<Diagnostic> diagnostics, SlangWriter writer, string signature,
+        IReadOnlyDictionary<string, WithHelperSpec>? withHelpers,
+        IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides)
+    {
+        if (receiver.Type is not INamedTypeSymbol receiverType || !TypeMapping.IsLegalShaderType(receiverType) ||
+            receiverType is { Name: "BufferRef" })
+        {
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.ExtensionMethodNotSupported,
+                method.Locations.FirstOrDefault() ?? Location.None, method.Name, receiver.Type.ToDisplayString()));
+            return default;
+        }
+
+        var parameters = receiver.IsClassic ? method.Parameters.Skip(1) : method.Parameters;
+        var fieldNames = receiverType.TypeKind == TypeKind.Struct
+            ? receiverType.GetMembers().OfType<IFieldSymbol>()
+                .Where(f => !f.IsStatic && !f.IsImplicitlyDeclared)
+                .Select(f => Naming.ToSlangIdentifier(f.Name))
+                .ToHashSet()
+            : null;
+
+        writer.Origin = method.Locations.FirstOrDefault();
+        if (receiver.Parameter is null)
+        {
+            WriteSignatureAndBody(compilation, method, diagnostics, writer, $"static {signature}", fieldNames,
+                withHelpers, overrides, parameters);
+            return new LoweredFunction(receiverType, writer);
+        }
+
+        var writes = ExtensionMembers.WritesToReceiver(compilation, method, receiver.Parameter);
+        var byReference = receiver.Parameter.RefKind == RefKind.Ref;
+        if (writes && byReference) writer.Line("[mutating]");
+        WriteSignatureAndBody(compilation, method, diagnostics, writer, signature, fieldNames, withHelpers, overrides,
+            parameters, new ReceiverLowering(receiver.Parameter, writes && !byReference));
+        return new LoweredFunction(receiverType, writer);
+    }
+
     /// <summary>
     /// Writes <c>signaturePrefix(parameters)</c> followed by the braced lowered body.
     /// </summary>
@@ -90,8 +127,10 @@ internal static class FunctionLowering
         List<Diagnostic> diagnostics, SlangWriter writer, string signaturePrefix,
         IReadOnlySet<string>? shadowableFieldNames = null,
         IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null,
-        IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides = null)
+        IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides = null,
+        IEnumerable<IParameterSymbol>? parameters = null, ReceiverLowering? receiver = null)
     {
+        parameters ??= method.Parameters;
         foreach (var arrayType in method.Parameters.Select(p => p.Type).Append(method.ReturnType)
                      .OfType<IArrayTypeSymbol>())
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedType,
@@ -105,13 +144,17 @@ internal static class FunctionLowering
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.DoubleNotSupported,
                 method.Locations.FirstOrDefault() ?? Location.None, $"{method.Name} return type"));
 
-        var parameterList = string.Join(", ", method.Parameters.Select(p =>
+        var parameterList = string.Join(", ", parameters.Select(p =>
             $"{RefModifier(p.RefKind)}{TypeMapping.MapType(p.Type)} {Naming.ToSlangIdentifier(p.Name)}"));
 
         writer.Origin = method.Locations.FirstOrDefault();
         writer.OpenBrace($"{signaturePrefix}({parameterList})");
 
-        var body = new BodyLowering(diagnostics, writer, shadowableFieldNames, withHelpers, overrides);
+        if (receiver is { AsLocal: true })
+            writer.Line($"{TypeMapping.MapType(receiver.Parameter.Type)} {Naming.ToSlangIdentifier(receiver.Parameter.Name)} = this;");
+
+        var body = new BodyLowering(diagnostics, writer, shadowableFieldNames, withHelpers, overrides,
+            TypeSubstitution.For(method), receiver);
         foreach (var bodyOperation in MethodSource.GetBodies(method, compilation))
             body.LowerStatement(bodyOperation);
 

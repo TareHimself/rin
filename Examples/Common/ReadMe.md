@@ -1,9 +1,9 @@
 # Examples.Common
 
-Shared library for [Examples](../Examples/ReadMe.md) and the experiment apps, not runnable on its own.
+Shared library for [Examples](../Examples/ReadMe.md) and the experiment apps under `Experiments/`, not runnable on its own. It holds the base `ExampleApplication` (Vulkan graphics, views and Miniaudio audio modules), the source-tagged `Log`, a `TextureCache` and a few shared views.
 
-- `ExampleApplication`: base `Application` that creates the Vulkan graphics module, `ViewsModule` and Miniaudio audio module, and disposes a `TextureCache`.
-- `Log`: the examples' logger. `Log.For<T>()` or `Log.For("name")` gives a source-tagged `Info`, `Warn` and `Error`; all of them write through one engine `DefaultLogger` to the console as `HH:mm:ss.fff level Source: message`, so `--log-file` captures them too.
-- `Views/FpsView`, `Views/AsyncFileImageView`, `Views/AsyncWebImageView`.
+```
+dotnet build Examples/Common/Examples.Common.csproj
+```
 
 References: Rin.Core, Rin.Graphics.Vulkan, Rin.Audio.Miniaudio.
