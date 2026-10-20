@@ -14,6 +14,7 @@ The real native Slang library, not the stub packages. In CI this runs in the `te
 
 - `MatrixConventionTests.cs`
 - `MatrixInverseTests.cs`
+- `LanguageFeatureTests.cs`: static readonly constants, switch expressions, extension members and generic methods against hand-computed values.
 - `ScalarLayoutTests.cs`
 
 ## Run

@@ -15,9 +15,20 @@ namespace Rin.Shade.Transpiler;
 internal sealed class BodyLowering(
     List<Diagnostic> diagnostics, SlangWriter writer, IReadOnlySet<string>? shadowableFieldNames = null,
     IReadOnlyDictionary<string, WithHelperSpec>? withHelpers = null,
-    IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides = null)
+    IReadOnlyDictionary<IMethodSymbol, IMethodSymbol>? overrides = null,
+    TypeSubstitution? substitution = null, ReceiverLowering? receiver = null)
 {
     private int _loopDepth;
+
+    // A type written in the body of a generic method is spelled with this instantiation's type arguments.
+    private string MapType(ITypeSymbol type)
+    {
+        var substituted = substitution?.Apply(type) ?? type;
+        if (substituted is ITypeParameterSymbol)
+            diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
+                type.Locations.FirstOrDefault() ?? Location.None, $"unresolved type parameter '{type.Name}'"));
+        return TypeMapping.MapType(substituted);
+    }
 
     /// <summary>
     /// Writes the Slang for one statement, with every emitted line mapped back to the statement's C# location.
@@ -33,7 +44,11 @@ internal sealed class BodyLowering(
 
     private void LowerStatementCore(IOperation? op)
     {
-        if (op is not null) DeclareOutVariables(op);
+        if (op is not null)
+        {
+            DeclareOutVariables(op);
+            DeclareSwitchSubjects(op);
+        }
 
         switch (op)
         {
@@ -138,7 +153,7 @@ internal sealed class BodyLowering(
                         var arrayInitializer = initializer is null || IsZeroInitializer(initializer)
                             ? "{}"
                             : LowerExpr(initializer);
-                        writer.Line($"{TypeMapping.MapType(arrayElement)} {name}[{arrayLength}] = {arrayInitializer};");
+                        writer.Line($"{MapType(arrayElement)} {name}[{arrayLength}] = {arrayInitializer};");
                         continue;
                     }
 
@@ -170,9 +185,9 @@ internal sealed class BodyLowering(
                                              declarator.Symbol.Type.SpecialType != SpecialType.System_Int32 &&
                                              TypeMapping.IsBuiltIn(declarator.Symbol.Type));
                     writer.Line(initializer is null
-                        ? $"{TypeMapping.MapType(declarator.Symbol.Type)} {name};"
+                        ? $"{MapType(declarator.Symbol.Type)} {name};"
                         : needsExplicitType
-                            ? $"{TypeMapping.MapType(declarator.Symbol.Type)} {name} = {LowerExpr(initializer)};"
+                            ? $"{MapType(declarator.Symbol.Type)} {name} = {LowerExpr(initializer)};"
                             : $"var {name} = {LowerExpr(initializer)};");
                 }
                 return;
@@ -229,7 +244,7 @@ internal sealed class BodyLowering(
         var initializerText = elements.IsEmpty
             ? "{}"
             : $"{{ {string.Join(", ", elements.Select(LowerExpr))} }}";
-        writer.Line($"{TypeMapping.MapType(arrayType.ElementType)} {name}[{length}] = {initializerText};");
+        writer.Line($"{MapType(arrayType.ElementType)} {name}[{length}] = {initializerText};");
     }
 
     // `ref var q = ref buffer[i]` becomes a pointer local. Pointers into function-local storage are not
@@ -300,7 +315,7 @@ internal sealed class BodyLowering(
     {
         foreach (var declaration in FindOutDeclarations(statement))
             if (declaration.Expression is ILocalReferenceOperation local)
-                writer.Line($"{TypeMapping.MapType(local.Local.Type)} {Naming.ToSlangIdentifier(local.Local.Name)};");
+                writer.Line($"{MapType(local.Local.Type)} {Naming.ToSlangIdentifier(local.Local.Name)};");
     }
 
     private static IEnumerable<IDeclarationExpressionOperation> FindOutDeclarations(IOperation parent)
@@ -319,6 +334,11 @@ internal sealed class BodyLowering(
             or IReturnOperation or IVariableDeclarationGroupOperation or ILoopOperation or ISwitchOperation
             or IBranchOperation or IConditionalOperation { Type: null };
 
+    /// <summary>
+    /// The Slang text of a standalone expression, such as a field initializer.
+    /// </summary>
+    public string LowerExpression(IOperation op) => LowerExpr(op);
+
     private string LowerExpr(IOperation op)
     {
         // Reported at the outermost double-typed node, so `(float)(a * 2.0)` gets one diagnostic, not three.
@@ -330,6 +350,9 @@ internal sealed class BodyLowering(
         {
             case IDeclarationExpressionOperation declaration:
                 return LowerExpr(declaration.Expression);
+            case IParameterReferenceOperation parameter
+                when receiver is { AsLocal: false } && ExtensionMembers.IsReceiver(parameter.Parameter, receiver.Parameter):
+                return "this";
             case IParameterReferenceOperation parameter:
                 return Naming.ToSlangIdentifier(parameter.Parameter.Name);
             case ILocalReferenceOperation { Local.RefKind: RefKind.Ref } refLocal:
@@ -353,15 +376,26 @@ internal sealed class BodyLowering(
                     : $"{LowerAtLeast(autoProperty.Instance, PostfixPrecedence)}.{Naming.ToSlangIdentifier(autoProperty.Property.Name)}";
             case IPropertyReferenceOperation property when IsSwizzle(property.Property):
                 return $"{LowerAtLeast(property.Instance!, PostfixPrecedence)}.{property.Property.Name.ToLowerInvariant()}";
+            case IPropertyReferenceOperation
+            {
+                Property.Name: "Length",
+                Instance: IFieldReferenceOperation { Instance: null, Field: { Type: IArrayTypeSymbol } arrayField }
+            } when StaticConstLowering.IsStaticConst(arrayField) &&
+                   StaticConstLowering.ArrayLength(arrayField) is { } arrayLength:
+                return arrayLength.ToString(CultureInfo.InvariantCulture);
+            case ISwitchExpressionOperation switchExpression:
+                return LowerSwitchExpression(switchExpression);
             case IPropertyReferenceOperation { Property.GetMethod: { } getMethod } property
                 when MethodSource.HasBody(getMethod):
                 return LowerPropertyGet(property, getMethod);
+            case ILiteralOperation { ConstantValue: { HasValue: true, Value: bool flag } }:
+                return flag ? "true" : "false";
             case ILiteralOperation { ConstantValue: { HasValue: true, Value: var value } }:
                 return Convert.ToString(value, CultureInfo.InvariantCulture) ?? "0";
             case IConversionOperation conversion:
                 return conversion.IsImplicit
                     ? LowerExpr(conversion.Operand)
-                    : $"({TypeMapping.MapType(conversion.Type!)}){LowerAtLeast(conversion.Operand, UnaryPrecedence)}";
+                    : $"({MapType(conversion.Type!)}){LowerAtLeast(conversion.Operand, UnaryPrecedence)}";
             case IBinaryOperation binary when IsMatrixMultiply(binary):
                 return $"mul({LowerExpr(binary.LeftOperand)}, {LowerExpr(binary.RightOperand)})";
             case IBinaryOperation { OperatorMethod.DeclaringSyntaxReferences.Length: > 0 } binary:
@@ -405,7 +439,7 @@ internal sealed class BodyLowering(
                 return $"{LowerExpr(assignment.Target)} = {LowerExpr(assignment.Value)}";
             // Ternary and `if` share IConditionalOperation; LowerStatement handles the if-shape first.
             case IConditionalOperation { WhenFalse: not null } conditional:
-                return $"{LowerAtLeast(conditional.Condition, TernaryPrecedence + 1)} ? {LowerExpr(conditional.WhenTrue)} : {LowerExpr(conditional.WhenFalse)}";
+                return $"{LowerAtLeast(conditional.Condition, TernaryPrecedence + 1)} ? {LowerBranch(conditional.WhenTrue, conditional.Type)} : {LowerBranch(conditional.WhenFalse, conditional.Type)}";
             case IInvocationOperation invocation:
                 return LowerInvocation(invocation);
             case IObjectCreationOperation creation:
@@ -518,21 +552,25 @@ internal sealed class BodyLowering(
 
         if (field.Instance is null)
         {
-            // A [ShaderBinding] field is a module-scope declaration (BindingLowering), referenced by bare name.
+            // A [BindingGroup] or [GroupShared] field is a module-scope declaration, referenced by bare name.
             if (BindingLowering.HasBindingGroupAttribute(field.Field)) return name;
+            if (GroupSharedLowering.HasGroupSharedAttribute(field.Field)) return name;
 
             // Slang enum members keep their C# casing, unlike struct fields, which are lowerCamelCased.
             if (field.Field.ContainingType.TypeKind == TypeKind.Enum)
-                return $"{TypeMapping.MapType(field.Field.ContainingType)}.{field.Field.Name}";
+                return $"{MapType(field.Field.ContainingType)}.{field.Field.Name}";
 
             // StructLowering only emits instance fields, so a static/const field has no Slang declaration
             // to reference. Inline its value instead.
             if (field.Field.HasConstantValue)
                 return Convert.ToString(field.Field.ConstantValue, CultureInfo.InvariantCulture) ?? "0";
 
+            // A static readonly with an initializer is a `static const` that StaticConstLowering declares.
+            if (StaticConstLowering.IsStaticConst(field.Field)) return StaticConstLowering.Reference(field.Field);
+
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedConstruct,
                 field.Syntax.GetLocation(),
-                $"static field '{field.Field.Name}' has no compile-time constant value and no [ShaderBinding]"));
+                $"static field '{field.Field.Name}' has no compile-time constant value, no static readonly initializer and no [BindingGroup] or [GroupShared]"));
             return "/* unsupported */";
         }
 
@@ -552,9 +590,9 @@ internal sealed class BodyLowering(
 
     private string LowerInvocation(IInvocationOperation invocation)
     {
-        var method = overrides is null
-            ? invocation.TargetMethod
-            : OverrideResolution.Resolve(invocation.TargetMethod, overrides);
+        var method = ExtensionMembers.Normalize(invocation.TargetMethod);
+        if (substitution is not null) method = substitution.Apply(method);
+        if (overrides is not null) method = OverrideResolution.Resolve(method, overrides);
 
         if (IsVectorMatrixTransform(method))
         {
@@ -570,6 +608,9 @@ internal sealed class BodyLowering(
             CheckFieldShadowing(TemplateCalleeIdentifier(template), invocation.Syntax.GetLocation());
             return SubstituteTemplate(template, invocation);
         }
+
+        if (ExtensionMembers.TryGetReceiver(method, out var extensionReceiver) && MethodSource.HasBody(method))
+            return LowerExtensionCall(invocation, method, extensionReceiver);
 
         // An implicit this (a shader class calling its own instance method) is a plain function call, like a
         // static helper. An explicit receiver (a struct instance method) prefixes the call.
@@ -588,13 +629,42 @@ internal sealed class BodyLowering(
             if (instance is not null) return $"{instance}.{call}";
             // A static struct method lives in the struct's extension, so it is called through the type.
             if (method.IsStatic && method.ContainingType.TypeKind == TypeKind.Struct)
-                return $"{TypeMapping.MapType(method.ContainingType)}.{call}";
+                return $"{MapType(method.ContainingType)}.{call}";
             return call;
         }
 
         diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.NoSourceForMethod,
             invocation.Syntax.GetLocation(), method.Name));
         return "/* unresolved call */";
+    }
+
+    // The receiver of an extension call is `x` in `x.Foo()` or, for a classic extension method called as
+    // `Extensions.Foo(x)`, the first argument. Either way the Slang member is called on it.
+    private string LowerExtensionCall(IInvocationOperation invocation, IMethodSymbol method,
+        ExtensionReceiver extensionReceiver)
+    {
+        var name = Naming.ToSlangMethodName(method);
+        var ordered = InParameterOrder(invocation.Arguments);
+        if (extensionReceiver.Parameter is null)
+            return $"{MapType(extensionReceiver.Type)}.{name}({string.Join(", ", ordered.Select(a => LowerExpr(a.Value)))})";
+
+        IOperation receiverOperation;
+        IEnumerable<IArgumentOperation> rest;
+        if (invocation.Instance is { } instance)
+        {
+            receiverOperation = instance;
+            rest = ordered;
+        }
+        else
+        {
+            receiverOperation = ordered[0].Value;
+            rest = ordered.Skip(1);
+        }
+
+        var receiverText = receiverOperation is IInstanceReferenceOperation
+            ? "this"
+            : LowerAtLeast(receiverOperation, PostfixPrecedence);
+        return $"{receiverText}.{name}({string.Join(", ", rest.Select(a => LowerExpr(a.Value)))})";
     }
 
     // An auto property is its backing field, written directly. A property with a setter body becomes a call
@@ -679,7 +749,107 @@ internal sealed class BodyLowering(
         }
 
         var arguments = InParameterOrder(creation.Arguments).Select(a => LowerExpr(a.Value)).ToArray();
-        return $"{TypeMapping.MapType(type)}({string.Join(", ", arguments)})";
+        return $"{MapType(type)}({string.Join(", ", arguments)})";
+    }
+
+    private int _switchSubjectCount;
+    private readonly Dictionary<ISwitchExpressionOperation, string> _switchSubjects = [];
+
+    // A switch expression becomes a ternary chain that tests its subject once per arm, so a subject with any
+    // work in it is evaluated into a local on the line before the statement. A loop header is left alone: a
+    // local declared before the loop would not be re-evaluated per iteration.
+    private void DeclareSwitchSubjects(IOperation statement)
+    {
+        if (statement is ILoopOperation) return;
+
+        foreach (var switchExpression in FindSwitchExpressions(statement))
+        {
+            if (IsSimpleOperand(switchExpression.Value)) continue;
+
+            var name = $"switchValue{_switchSubjectCount++}";
+            _switchSubjects[switchExpression] = name;
+            writer.Line($"{MapType(switchExpression.Value.Type!)} {name} = {LowerExpr(switchExpression.Value)};");
+        }
+    }
+
+    private static IEnumerable<ISwitchExpressionOperation> FindSwitchExpressions(IOperation parent)
+    {
+        foreach (var child in parent.ChildOperations)
+        {
+            if (IsStatement(child)) continue;
+
+            if (child is ISwitchExpressionOperation switchExpression) yield return switchExpression;
+            foreach (var nested in FindSwitchExpressions(child)) yield return nested;
+        }
+    }
+
+    // A name or a chain of field reads costs nothing to repeat, so it is not worth a local.
+    private static bool IsSimpleOperand(IOperation operation)
+    {
+        while (operation is IConversionOperation { IsImplicit: true } conversion) operation = conversion.Operand;
+
+        return operation switch
+        {
+            ILocalReferenceOperation or IParameterReferenceOperation or ILiteralOperation => true,
+            IFieldReferenceOperation { Instance: null or IInstanceReferenceOperation } => true,
+            IFieldReferenceOperation { Instance: { } instance } => IsSimpleOperand(instance),
+            _ => false
+        };
+    }
+
+    private string LowerSwitchExpression(ISwitchExpressionOperation switchExpression)
+    {
+        var subject = _switchSubjects.TryGetValue(switchExpression, out var local)
+            ? local
+            : LowerAtLeast(switchExpression.Value, BinaryPrecedence(BinaryOperatorKind.Equals) + 1);
+
+        var arms = new List<(string? Condition, string Value)>();
+        foreach (var arm in switchExpression.Arms)
+        {
+            var condition = LowerPattern(arm.Pattern, subject);
+            if (arm.Guard is { } guard)
+            {
+                var guardText = LowerAtLeast(guard, BinaryPrecedence(BinaryOperatorKind.ConditionalAnd) + 1);
+                condition = condition is null ? guardText : $"{condition} && {guardText}";
+            }
+
+            arms.Add((condition, LowerBranch(arm.Value, switchExpression.Type)));
+            if (condition is null) break;
+        }
+
+        if (arms.Count == 0) return "/* unsupported */";
+
+        // The last arm is the fallback. When no arm matches C# throws, which a shader cannot, so it is taken.
+        var text = arms[^1].Value;
+        for (var i = arms.Count - 2; i >= 0; i--) text = $"{arms[i].Condition} ? {arms[i].Value} : {text}";
+        return text;
+    }
+
+    // The condition that selects the arm, or null for a pattern that always matches.
+    private string? LowerPattern(IPatternOperation pattern, string subject)
+    {
+        switch (pattern)
+        {
+            case IDiscardPatternOperation:
+                return null;
+            case IConstantPatternOperation constant:
+                return $"{subject} == {LowerAtLeast(constant.Value, BinaryPrecedence(BinaryOperatorKind.Equals) + 1)}";
+            case IRelationalPatternOperation relational when TryMapOperator(relational.OperatorKind, out var operatorText):
+                return $"{subject} {operatorText} {LowerAtLeast(relational.Value, BinaryPrecedence(relational.OperatorKind) + 1)}";
+            case IBinaryPatternOperation binary:
+            {
+                var left = LowerPattern(binary.LeftPattern, subject);
+                var right = LowerPattern(binary.RightPattern, subject);
+                if (binary.OperatorKind == BinaryOperatorKind.Or) return left is null || right is null ? null : $"({left} || {right})";
+                return left is null ? right : right is null ? left : $"({left} && {right})";
+            }
+            case INegatedPatternOperation negated:
+                return LowerPattern(negated.Pattern, subject) is { } inner ? $"!({inner})" : "false";
+            default:
+                diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.UnsupportedSwitchClause,
+                    pattern.Syntax.GetLocation(), pattern.Kind.ToString()));
+                return "/* unsupported */";
+        }
     }
 
     // Calls the per-shape helper function that WithLowering collected up front and emits separately.
@@ -717,7 +887,7 @@ internal sealed class BodyLowering(
     private string SubstituteTemplate(string template, IInvocationOperation invocation)
     {
         var arguments = InParameterOrder(invocation.Arguments).Select(a => a.Value).ToArray();
-        var typeArguments = invocation.TargetMethod.TypeArguments;
+        var typeArguments = invocation.TargetMethod.TypeArguments.Select(t => substitution?.Apply(t) ?? t).ToList();
 
         // One regex pass: a plain replace of `@1` would also hit the start of `@10`, and a substituted
         // argument must never be re-scanned for placeholders.
@@ -731,8 +901,8 @@ internal sealed class BodyLowering(
                     : match.Value;
 
             if (name[0] == 'T' && name.Length > 1 && char.IsDigit(name[1]))
-                return int.Parse(name[1..]) < typeArguments.Length
-                    ? TypeMapping.MapType(typeArguments[int.Parse(name[1..])])
+                return int.Parse(name[1..]) < typeArguments.Count
+                    ? MapType(typeArguments[int.Parse(name[1..])])
                     : match.Value;
 
             if (char.IsDigit(name[0]))
@@ -798,7 +968,7 @@ internal sealed class BodyLowering(
             IBinaryOperation binary when IsMatrixMultiply(binary) => PostfixPrecedence,
             IBinaryOperation binary => BinaryPrecedence(binary.OperatorKind),
             IUnaryOperation or IConversionOperation => UnaryPrecedence,
-            IConditionalOperation { WhenFalse: not null } => TernaryPrecedence,
+            IConditionalOperation { WhenFalse: not null } or ISwitchExpressionOperation => TernaryPrecedence,
             ISimpleAssignmentOperation or ICompoundAssignmentOperation => 0,
             _ => PostfixPrecedence
         };
@@ -812,6 +982,14 @@ internal sealed class BodyLowering(
 
     private static string AsFloatLiteral(string text) =>
         text.Length > 0 && text.TrimStart('-').All(char.IsDigit) ? text + ".0" : text;
+
+    // A branch of a float-typed ternary or switch expression: `c ? 1f : 2f` emits `1` and `2`, which Slang would
+    // type as int, so integer literals in a float result get a `.0`.
+    private string LowerBranch(IOperation branch, ITypeSymbol? resultType)
+    {
+        var text = LowerExpr(branch);
+        return resultType is { SpecialType: SpecialType.System_Single } ? AsFloatLiteral(text) : text;
+    }
 
     private string LowerBinaryOperand(IOperation operand, BinaryOperatorKind parent, bool isRight)
     {

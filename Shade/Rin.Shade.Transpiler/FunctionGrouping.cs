@@ -40,7 +40,8 @@ internal static class FunctionGrouping
         return result;
     }
 
-    /// <summary>The struct whose extension the function is a member of, or null for a free function.</summary>
+    /// <summary>The type whose extension the function is a member of, or null for a free function.</summary>
     private static INamedTypeSymbol? Owner(IMethodSymbol method) =>
-        method.ContainingType.TypeKind == TypeKind.Struct ? method.ContainingType : null;
+        ExtensionMembers.TryGetReceiver(method, out var receiver) ? receiver.Type as INamedTypeSymbol
+        : method.ContainingType.TypeKind == TypeKind.Struct ? method.ContainingType : null;
 }

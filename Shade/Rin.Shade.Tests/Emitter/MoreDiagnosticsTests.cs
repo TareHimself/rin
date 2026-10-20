@@ -6,48 +6,14 @@ using Rin.Shade.Transpiler;
 
 /// <summary>
 /// Five more silent-wrong-output gaps found by re-reading the emitter against real C# 14 extension
-/// methods, generics, non-default enum underlying types, multi-dimensional/jagged arrays, and
+/// methods, non-default enum underlying types, multi-dimensional/jagged arrays, and
 /// pattern-matching switch clauses - none of these previously produced a diagnostic, they'd have
 /// silently emitted broken or colliding Slang instead.
 /// </summary>
 public class MoreDiagnosticsTests
 {
     [Test]
-    public void ExtensionMethodIsRejected()
-    {
-        const string source = """
-                               using System.Numerics;
-                               using Rin.Shade;
-
-                               namespace ExtensionMethodCheck;
-
-                               public static class VectorExtras
-                               {
-                                   extension(Vector4 v)
-                                   {
-                                       public float Foo() => v.X + v.Y;
-                                   }
-                               }
-
-                               [Shader]
-                               public class ExtMethodShader : Shader
-                               {
-                                   [Compute(1, 1, 1)]
-                                   public void Compute()
-                                   {
-                                       var v = new Vector4(1f, 2f, 3f, 4f);
-                                       var r = v.Foo();
-                                   }
-                               }
-                               """;
-
-        var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
-
-        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.ExtensionMethodNotSupported.Id), Is.True);
-    }
-
-    [Test]
-    public void GenericStructIsRejected()
+    public void ConcreteGenericStructIsLowered()
     {
         const string source = """
                                using Rin.Shade;
@@ -73,14 +39,15 @@ public class MoreDiagnosticsTests
                                    [Compute(1, 1, 1)]
                                    public void Compute()
                                    {
-                                       Push.Output[0] = 1f;
+                                       Push.Output[0] = Push.W.Value;
                                    }
                                }
                                """;
 
         var result = ShadeEmitter.Emit(CompilationBuilder.Build(source));
 
-        Assert.That(result.Diagnostics.Any(d => d.Id == Diagnostics.Emitter.GenericNotSupported.Id), Is.True);
+        Assert.That(result.Diagnostics, Is.Empty);
+        Assert.That(result.Shaders["GenericStructShader"], Does.Contain("struct Wrapper_int"));
     }
 
     [Test]

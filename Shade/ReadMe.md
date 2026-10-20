@@ -166,6 +166,7 @@ What to notice:
 - `Lerp` is a static member of `Shader`, an intrinsic that maps to Slang's `lerp`. Shaders call the math builtins unqualified; a helper class outside a shader calls them as `Shader.Lerp` or adds `using static Rin.Shade.Shader;`. Plain C# (`var`, `new Vector4(...)`, operators, shifts) is translated as written.
 - Semantic attributes are valid only on struct fields, and the C# compiler rejects them on parameters. That is why entry points take a struct.
 - A struct's auto properties become fields and a `record struct`, positional or not, becomes a plain struct. A property with a getter or setter body becomes a method. A `with` expression becomes a call to a helper function synthesized per (type, member set) shape that copies the value, writes each field or auto property and calls each setter, so it works on records and on properties with setter bodies alike.
+- Generic structs and generic methods are lowered once per concrete instantiation (`Pair<float>` becomes `Pair_float`), and only an open generic type is rejected (SHADE0008). C# 14 extension blocks and classic extension methods become members of a Slang `extension`, a `static readonly` field becomes a `static const`, and a switch expression becomes a ternary chain. The `Interlocked*` atomics and the `*MemoryBarrier*` group barriers are intrinsics on `Shader`, and a static `[GroupShared]` field becomes a `groupshared` declaration.
 - A construct the transpiler cannot translate is reported as a diagnostic in your build output. That includes any `double`: a literal without an `f` suffix, a `double` local, parameter, return type or field is SHADE0021, because shaders compute in float and Slang would otherwise run that code in double or reject it later. An error from the Slang compiler is reported against the C# line it was lowered from, through the source map the emitter keeps for every Slang line.
 
 From the same class the source generator adds a typed descriptor, which the engine passes to `MakeGraphics`:
@@ -192,11 +193,12 @@ Shaders can derive from other shader classes. A base class can own the blend sta
 | `[Depth]`, `[Stencil]` | entry point | The stage uses the depth or stencil attachment. |
 | `[Push]` | field | The push-constant block, lowered to a uniform named `push`. |
 | `[BindingGroup]` | static field | A group of resources in one descriptor set (a Slang `ParameterBlock`). |
+| `[GroupShared]` | static field | Thread-group shared memory of a compute shader (a Slang `groupshared` declaration). |
 | `[BindlessBlock("name")]` | struct | An engine-owned resource table, such as the global bindless pool. |
 | `[SlangExpression("...")]`, `[SlangStatement("...")]` | method without a body | Binds a call to a Slang expression or statement, with `@0`, `@name`, `@T0` and `@this` placeholders. |
 | `[ShadeExport]` | class or struct | Makes the type's source available to other assemblies' shaders. |
 
-Semantic helpers (`[Position]`, `[VertexId]`, `[InstanceId]`, `[Target(n)]`, and the compute thread ids) put Slang semantics on stage input and output fields. The full list, with the exact meaning of each, is in `Rin.Shade/Attributes.cs`.
+Semantic helpers (`[Position]`, `[VertexId]`, `[InstanceId]`, `[Target(n)]`, `[GroupIndex]` and the compute thread ids) put Slang semantics on stage input and output fields. The full list, with the exact meaning of each, is in `Rin.Shade/Attributes.cs`.
 
 ## How a shader goes from C# to a compiled shader
 

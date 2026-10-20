@@ -38,7 +38,7 @@ internal static class TypeMapping
         // Slang's builtin resource types are global, so the C# marker type's Rin::Shade namespace must not be applied.
         if (IsResourceType(type)) return type.Name;
 
-        return Naming.Qualify(type, type.Name);
+        return Naming.Qualify(type, type is INamedTypeSymbol namedType ? Naming.TypeName(namedType) : type.Name);
     }
 
     /// <summary>

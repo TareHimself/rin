@@ -40,12 +40,13 @@ internal sealed class FunctionCollector(
             return;
         }
 
+        var substitution = TypeSubstitution.For(method);
         foreach (var body in MethodSource.GetBodies(method, compilation))
             foreach (var callSite in FindReachableCallSites(body))
             {
                 var target = callSite switch
                 {
-                    IInvocationOperation invocation => invocation.TargetMethod,
+                    IInvocationOperation invocation => ExtensionMembers.Normalize(invocation.TargetMethod),
                     IObjectCreationOperation { Constructor: { } ctor } => ctor,
                     IPropertyReferenceOperation { Property.SetMethod: { } setMethod } property
                         when IsAssignmentTarget(property) => setMethod,
@@ -54,6 +55,7 @@ internal sealed class FunctionCollector(
                 };
                 if (target is null) continue;
 
+                if (substitution is not null) target = substitution.Apply(target);
                 var callee = overrides is null ? target : OverrideResolution.Resolve(target, overrides);
                 VisitCallee(callee);
                 if (!IntrinsicBindings.HasBinding(callee) && MethodSource.HasBody(callee))

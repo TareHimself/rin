@@ -130,6 +130,13 @@ public sealed class ShaderSourcesAttribute : Attribute;
 public sealed class BindingGroupAttribute : Attribute;
 
 /// <summary>
+/// Marks a static field of a compute shader as thread-group shared memory. It lowers to a module-scope Slang
+/// <c>groupshared</c> declaration; an <c>[InlineArray]</c> struct field becomes a sized array.
+/// </summary>
+[AttributeUsage(AttributeTargets.Field)]
+public sealed class GroupSharedAttribute : Attribute;
+
+/// <summary>
 /// Marks a struct as the shape of a named, engine-owned resource table such as the global bindless pool.
 /// A static field of this type lowers to its own parameter block, like a <see cref="BindingGroupAttribute"/>,
 /// and the name travels into reflection so the backend can bind its own registered descriptor set there
@@ -203,6 +210,14 @@ public sealed class GroupIdAttribute() : SemanticAttribute(SemanticName)
 public sealed class GroupThreadIdAttribute() : SemanticAttribute(SemanticName)
 {
     public const string SemanticName = "SV_GroupThreadID";
+}
+
+/// <summary>
+/// The <c>SV_GroupIndex</c> semantic of a compute shader: the thread's flattened index within its group.
+/// </summary>
+public sealed class GroupIndexAttribute() : SemanticAttribute(SemanticName)
+{
+    public const string SemanticName = "SV_GroupIndex";
 }
 
 /// <summary>

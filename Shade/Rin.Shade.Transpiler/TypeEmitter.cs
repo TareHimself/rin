@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -19,21 +20,11 @@ internal static class TypeEmitter
     {
         var declared = new HashSet<string>();
 
-        void Declare(string path)
-        {
-            for (var current = path; current.Length > 0;)
-            {
-                declared.Add(current);
-                var separator = current.LastIndexOf("::", System.StringComparison.Ordinal);
-                current = separator < 0 ? "" : current[..separator];
-            }
-        }
-
         void Visit(TypeNode node)
         {
             var type = node.Symbol;
-            Declare(FullPath(type, type.Name));
-            if (UnionLayout.IsUnion(type)) Declare(FullPath(type, $"{Naming.GeneratedPrefix}Complete{type.Name}"));
+            Declare(declared, FullPath(type, Naming.TypeName(type)));
+            if (UnionLayout.IsUnion(type)) Declare(declared, FullPath(type, $"{Naming.GeneratedPrefix}Complete{type.Name}"));
             foreach (var nested in node.Nested) Visit(nested);
         }
 
@@ -42,15 +33,30 @@ internal static class TypeEmitter
     }
 
     /// <summary>
-    /// Writes every type of the graph, in dependency order, grouped into namespace blocks.
+    /// Records a full path and every namespace enclosing it as declared.
     /// </summary>
-    public static void Emit(TypeGraph graph, List<Diagnostic> diagnostics, SlangWriter writer, HashSet<string> declared)
+    public static void Declare(HashSet<string> declared, string path)
+    {
+        for (var current = path; current.Length > 0;)
+        {
+            declared.Add(current);
+            var separator = current.LastIndexOf("::", System.StringComparison.Ordinal);
+            current = separator < 0 ? "" : current[..separator];
+        }
+    }
+
+    /// <summary>
+    /// Writes every type of the graph, in dependency order, grouped into namespace blocks. <paramref name="statics"/>
+    /// supplies the `static const` lines to print inside a struct, lowered while that struct's scope is open.
+    /// </summary>
+    public static void Emit(TypeGraph graph, List<Diagnostic> diagnostics, SlangWriter writer, HashSet<string> declared,
+        Func<INamedTypeSymbol, IReadOnlyList<string>?>? statics = null)
     {
         var declarations = new List<(string[] Path, string Text)>();
 
         foreach (var node in graph.Ordered())
         {
-            var text = EmitNode(node, diagnostics, declared);
+            var text = EmitNode(node, diagnostics, declared, statics);
             if (text.Length == 0) continue;
 
             var path = Naming.NamespacePath(node.Symbol);
@@ -84,10 +90,11 @@ internal static class TypeEmitter
         return path.Length == 0 ? name : $"{path}::{name}";
     }
 
-    private static string EmitNode(TypeNode node, List<Diagnostic> diagnostics, HashSet<string> declared)
+    private static string EmitNode(TypeNode node, List<Diagnostic> diagnostics, HashSet<string> declared,
+        Func<INamedTypeSymbol, IReadOnlyList<string>?>? statics)
     {
         var type = node.Symbol;
-        if (type.IsGenericType)
+        if (Naming.IsOpenGeneric(type))
         {
             diagnostics.Add(Diagnostic.Create(Diagnostics.Emitter.GenericNotSupported,
                 type.Locations.FirstOrDefault() ?? Location.None, type.Name));
@@ -97,14 +104,14 @@ internal static class TypeEmitter
         // A union's variant structs are declared beside the root, not inside it, so what they name that is
         // nested in the root (Quad::LineData) must keep its qualifier.
         using var scope = NameScope.InNamespace(
-            UnionLayout.IsUnion(type) ? Naming.NamespacePath(type) : FullPath(type, type.Name), declared);
+            UnionLayout.IsUnion(type) ? Naming.NamespacePath(type) : FullPath(type, Naming.TypeName(type)), declared);
 
-        var nested = node.Nested.Select(n => EmitNode(n, diagnostics, declared)).Where(text => text.Length > 0).ToList();
+        var nested = node.Nested.Select(n => EmitNode(n, diagnostics, declared, statics)).Where(text => text.Length > 0).ToList();
 
         return type.TypeKind == TypeKind.Enum
             ? EnumLowering.Lower(type, diagnostics)
             : UnionLayout.IsUnion(type)
                 ? UnionLowering.Lower(type, diagnostics, nested)
-                : StructLowering.Lower(type, diagnostics, nested: nested);
+                : StructLowering.Lower(type, diagnostics, nested: nested, statics: statics?.Invoke(type));
     }
 }
