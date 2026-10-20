@@ -4,7 +4,7 @@ The base library of the engine. It defines the application and module model, the
 
 ## Where it fits
 
-- References: `Rin.SourceGenerators` (as an analyzer), `Shade/Rin.Shade` and `Shade/Rin.Shade.SourceGenerator`, plus NuGet packages including NetVips, SQLite, HarfBuzzSharp and `TareHimself.Rin.Native`.
+- References: `Rin.SourceGenerators` (as an analyzer), `Shade/Rin.Shade` and `Shade/Rin.Shade.SourceGenerator`, plus NuGet packages including NetVips, HarfBuzzSharp and `TareHimself.Rin.Native`.
 - Referenced by: Rin.World, Rin.Graphics.Vulkan, Rin.Graphics.Null, Rin.Audio.Miniaudio, Rin.Audio.Null, Rin.Core.Tests and Rin.SourceGenerators.Tests.
 - Rin.Core only holds the graphics interfaces. The frame graph is implemented by the backend (see [Rin.Graphics.Vulkan](../Rin.Graphics.Vulkan/ReadMe.md)).
 
@@ -174,7 +174,7 @@ flowchart TD
 - Blur: `AddBlur` adds four commands: `BlurInitCommand`, `BlurFirstPassCommand`, a `NoOpCommand`, and `BlurSecondPassCommand`. The init handler copies the covered region of the main image into a smaller texture (reduced by `7 / radius`, clamped to at least 5 percent of the region), the first pass blurs it horizontally, and the second pass blurs it vertically, multiplies by the `Tint` and draws it over the region in the main pass, using `BlurShader`. A `NoOpCommand` ends the current group, so the blur breaks batching around it.
 - `Surface`, `SurfaceContext` and `FrameStats` expose the surface size, projection and image ids (`MainImageId`, `CopyImageId`, `StencilImageId`). `FrameStats` is declared but this README did not check where it is filled in.
 
-Text: `Views/Font/` (`IFontManager`, `HarfBuzzFontManager`) shapes text with HarfBuzz. `Views/Mtsdf/` and `Views/Sdf/` build and cache multi-channel signed distance field glyphs in atlas textures (including a disk cache, `DiskSdfCache`). `GlyphOutline` orients each glyph's contours from their geometry (the largest contour is the outer one and must wind counter-clockwise), so TrueType, CFF and SVG-built icon fonts all render right side out. `Content/Core/Fonts/NotoSans-Regular.ttf` is loaded in `ViewsModule.Start`, and `IViewsModule.DefaultFontFamily` (initially `Noto Sans`) is the family a new `TextBoxView` or `FontIconView` starts with. An application loads its own font with `AddFont` or `FontManager.LoadFont` and sets `DefaultFontFamily` to switch every view at once.
+Text: `Views/Font/` (`IFontManager`, `HarfBuzzFontManager`) shapes text with HarfBuzz. `Views/Mtsdf/` builds and caches multi-channel signed distance field glyphs in atlas textures. `GlyphOutline` orients each glyph's contours from their geometry (the largest contour is the outer one and must wind counter-clockwise), so TrueType, CFF and SVG-built icon fonts all render right side out. `Content/Core/Fonts/NotoSans-Regular.ttf` is loaded in `ViewsModule.Start`, and `IViewsModule.DefaultFontFamily` (initially `Noto Sans`) is the family a new `TextBoxView` or `FontIconView` starts with. An application loads its own font with `AddFont` or `FontManager.LoadFont` and sets `DefaultFontFamily` to switch every view at once.
 
 ## Graphics graph
 
@@ -232,7 +232,6 @@ The main thread waits up to 3 ms for the previous render to finish. If it has, i
 ## Other top-level folders
 
 - `Animation/`: `AnimationRunner`, `IAnimation`, transition animations for floats and vectors, delays and sequences. Views run an `AnimationRunner` in `Update`.
-- `Archives/`: `IArchive` interfaces and `SqliteArchive`, a SQLite backed read and write archive (`Views/Sdf/SdfArchive.cs` uses it).
 - `Audio/`: `IAudioModule`, samples, groups, channels, push streams, and the effect model under `Audio/Effects/`. An effect's parameters live in a `ParameterSlots<T>` triple buffer: the controller's `Parameters` setter writes one slot and hands it over with an atomic exchange, and the generated shim reads the newest handed-over slot once per block, so the audio thread never sees a half written struct and neither side blocks. `IActiveAudio` and `IChannel` expose `HasEnded`, set once playback runs off the end of the sound (seeking to the end does not set it), at which point `Position` equals `Duration`; `Play` clears it and starts over.
 - `Content/`: embedded resources: `Core/Fonts/NotoSans-Regular.ttf` and `Core/Textures/default.png`.
 - `Extensions/`: extension methods for strings, enumerables, dictionaries, streams, tasks, JSON, buffers, characters and `AttachmentFormat`.
@@ -241,7 +240,7 @@ The main thread waits up to 3 ms for the previous render to finish. If it has, i
 - `Properties/`: `launchSettings.json`.
 - `Shared/`: math (`MathR`, easing, `Transform`, `Frustum`, `Int4`), curves, buffers, `Dispatcher`, id factory, logging (`ILogger` with `Info`, `Warn` and `Error`, a `DefaultLogger` that takes a formatter, and console and file transports that print an error's exception after its message), pooling, providers (`DefaultProvider`), threading helpers, time, profiling, and video (below).
 - `Sources/`: `ISource`, `SourceResolver`, `FileSystemSource` and embedded resource sources. `Global.Sources` combines the file system and the embedded `Core` content.
-- `Views/`: the UI system described above, plus `Animation/` (view animation extensions), `Font/`, `Mtsdf/`, `Sdf/`, `Utilities/` (`HitTestHandler`) and `Window/`.
+- `Views/`: the UI system described above, plus `Animation/` (view animation extensions), `Font/`, `Mtsdf/`, `Utilities/` (`HitTestHandler`) and `Window/`.
 - Root files: `Application` (main and render thread loop, module startup), `IApplication`, `IModule`, `Global` (service provider and sources), `Native` (P/Invoke into the native library), and small utilities.
 
 ## Video
