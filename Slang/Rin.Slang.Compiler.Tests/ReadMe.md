@@ -1,14 +1,6 @@
 # Rin.Slang.Compiler.Tests
 
-NUnit tests for `ShaderCompiler`. Targets `net10.0`, not packable, references `Rin.Slang.Compiler`.
-
-## Start here
-
-- `ShaderCompilerTests.cs`: the tests.
-- `NativeFakeSetup.cs`: redirects the `Rin.Slang.Native` DllImport (via `NativeLibrary.SetDllImportResolver`) to the published fake library.
-- `NativeFakeLocator.cs`: walks up to `rin.sln`, then finds the published `Rin.Slang.Native.Fake.dll` under `native/Fakes/Rin.Slang.Native.Fake`.
-
-## Run
+NUnit tests for `ShaderCompiler`, run against the NativeAOT fake of `Rin.Slang.Native` instead of the real library. Targets `net10.0`, not packable.
 
 Publish the fake first, then test:
 
@@ -19,7 +11,6 @@ dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj
 
 CI does the same, with `-p:RinShadeSkipCompile=true` on the test command.
 
-## Gotchas
+References: `Rin.Slang.Compiler`.
 
-- Without the published fake, the locator throws "Rin.Slang.Native.Fake.dll not published".
-- The fake returns just enough for compute-only shaders to compile. It does not run real Slang, so it cannot check real compiler output. See [native/Fakes/ReadMe.md](../../native/Fakes/ReadMe.md).
+- The fake returns just enough for compute-only shaders to compile and does not run real Slang, so these tests cannot check real compiler output. Without the published fake the tests fail with "Rin.Slang.Native.Fake.dll not published". See [native/Fakes/ReadMe.md](../../native/Fakes/ReadMe.md).

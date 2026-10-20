@@ -1,269 +1,108 @@
 # Rin.Core
 
-The base library of the engine. It defines the application and module model, the graphics and audio interfaces that backends implement, the views (UI) system, and shared utilities. Package id `TareHimself.Rin.Core`.
-
-## Where it fits
-
-- References: `Rin.SourceGenerators` (as an analyzer), `Shade/Rin.Shade` and `Shade/Rin.Shade.SourceGenerator`, plus NuGet packages including NetVips, HarfBuzzSharp and `TareHimself.Rin.Native`.
-- Referenced by: Rin.World, Rin.Graphics.Vulkan, Rin.Graphics.Null, Rin.Audio.Miniaudio, Rin.Audio.Null, Rin.Core.Tests and Rin.SourceGenerators.Tests.
-- Rin.Core only holds the graphics interfaces. The frame graph is implemented by the backend (see [Rin.Graphics.Vulkan](../Rin.Graphics.Vulkan/ReadMe.md)).
-
-## Build and test
+The base library of the engine: the application and module model, the graphics and audio interfaces that backends implement, the views (UI) system and shared utilities. Package id `TareHimself.Rin.Core`.
 
 ```
 dotnet build Engine/Rin.Core/Rin.Core.csproj
 dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinShadeSkipCompile=true
 ```
 
-`-p:RinShadeSkipCompile=true` skips the shader compile step, which these tests do not need. The tests are described in [Rin.Core.Tests](../Rin.Core.Tests/ReadMe.md). Unsafe code is enabled and the project is marked AOT compatible.
+`-p:RinShadeSkipCompile=true` skips the Rin.Shade compile step, which the tests do not need. The tests are described in [Rin.Core.Tests](../Rin.Core.Tests/ReadMe.md).
 
-## Shaders
-
-- The shaders are C# classes written with Rin.Shade, under `Views/Graphics/Shaders/` (`QuadBatchShader`, `ImageBatchShader`, `VideoBatchShader`, `StencilBatchShader`, `BlurShader`, plus the helpers `ViewShader`, `ViewShaderMath` and `Sd`). Each is marked `[Shader]` and is embedded as its full class name plus `.crsh`, for example `Rin.Core.Views.Graphics.Shaders.QuadBatchShader.crsh`. There are no hand-written `.slang` files in this project.
-- `Rin.Core.csproj` imports `msbuild/RinShade.targets`. The build transpiles and compiles the shaders under `obj/.../Rin.Shade.Generated/` and embeds each `.crsh` directly. The Vulkan backend opens one through the shader class's generated `Descriptor`, so no `Global.Sources` mount is involved.
-- Rin.Core is a `[ShadeExport]` source for other assemblies: `ViewShader<T>`, `DeviceHandle`, `BindlessData`, `Int4` and `DrawIndirectCommand` carry the attribute, so shaders in other projects can use them. `Rin.World` does this, for example `ViewportShader : ViewShader<...>` and `MeshShader` using `BindlessData`. The pipeline is described in [Shade](../../Shade/ReadMe.md).
-
-## Views
-
-Source: `Views/`. A `View` is one node of a tree that lives on a `Surface`. Each frame the surface lays the tree out, routes input to it, and collects draw commands from it.
-
-### View tree
-
-```mermaid
-classDiagram
-    IView <|-- View
-    View <|-- ContentView
-    View <|-- CompositeView
-    ICompositeView <|.. CompositeView
-    CompositeView <|-- SingleSlotCompositeView
-    CompositeView <|-- MultiSlotCompositeView
-    SingleSlotCompositeView <|-- RectView
-    SingleSlotCompositeView <|-- SizerView
-    SingleSlotCompositeView <|-- BackgroundBlurView
-    MultiSlotCompositeView <|-- ListView
-    MultiSlotCompositeView <|-- WrapListView
-    MultiSlotCompositeView <|-- FlexBoxView
-    MultiSlotCompositeView <|-- PanelView
-    MultiSlotCompositeView <|-- OverlayView
-    MultiSlotCompositeView <|-- SwitcherView
-    MultiSlotCompositeView <|-- RootView
-    ListView <|-- ScrollListView
-    ScrollListView <|-- VirtualListView
-    RectView <|-- ButtonView
-    ContentView <|-- TextBoxView
-    ContentView <|-- ImageView
-    ContentView <|-- CanvasView
-```
-
-- `View` owns the transform (`Offset`, `Translate`, `Pivot`, `Scale`, `Angle`), `Padding`, `Visibility`, hover state, and the layout and event entry points. A subclass implements `LayoutContent` and `Collect`.
-- `BorderRadius` (`Views/BorderRadius.cs`) holds the four corner radii in CSS order (`TopLeft`, `TopRight`, `BottomRight`, `BottomLeft`) with `All`, `Top`, `Bottom`, `Left`, `Right`, an implicit conversion from a float and `+` and `*` by a float. `RectView`, `ImageView`, `ProgressBarView` and the `AddRect` and `AddTexture` helpers take it, the quad data carries it as is, and `ViewShaderMath.SdRoundedBox` reads it in the shader, so it is marked `[ShadeExport]`.
-- `Color` (`Views/Color.cs`) is four floats with `Red`, `Green`, `Blue`, `White`, `Black` and `Transparent`, and the factories `FromRgb(r, g, b)` (opaque), `FromBytes(r, g, b, a)` (0 to 255), `FromHsv(hue, saturation, value, alpha)` (hue in turns, wrapping) and `FromHtml("#rrggbb")`.
-- `ContentView` is a leaf. Subclasses implement `CollectContent`, and `Collect` applies the padding offset before calling it. Examples under `Views/Content/`: `TextBoxView`, `TextInputBoxView`, `ImageView`, `CanvasView` (a `Paint` callback), `ProgressBarView`, `FontIconView`, `VideoPlayerView`.
-- `CompositeView` holds children in slots (`ISlot`, each with a `Child`). It owns child collection, clipping, hit testing, and invalidation cascade. A subclass implements `ArrangeContent` and `GetSlots`.
-- `SingleSlotCompositeView` holds one child (`SetChild`, `InitChild`). `MultiSlotCompositeView<TSlot>` has `Add`, `Remove` and `SlotCount`, and the concrete views delegate to an `InfiniteChildrenLayout` object.
-- `Visibility` values: `Visible`, `VisibleNoHitTestSelf`, `VisibleNoHitTestChildren`, `VisibleNoHitTestAll`, `Hidden` (takes space, not drawn) and `Collapsed` (takes no space, desired size is zero).
-- `Surface` creates a private `RootView`. `Surface.Add(view)` adds to it. `ViewsModule` creates one `WindowSurface` per window renderer.
-
-### Layout
-
-Layout objects (`Views/Layouts/`) are plain classes that a composite view delegates to: `ListLayout` (row or column), `WrapListLayout`, `FlexLayout`, `PanelLayout`, `OverlayLayout`, `SwitcherLayout` and `RootLayout`. `Apply(availableSpace)` positions the children by setting `Offset` and calling `Layout` on them, and returns the space taken.
-
-| Layout | What it does |
+| Folder | What it is |
 | --- | --- |
-| `ListLayout` | Stacks children along the axis with infinite space on the main axis. Each `ListSlot` has `Align` (start, center, end) and `Fit` (`Desired`, `Available`, `Fill`) for the cross axis. |
-| `WrapListLayout` | Like `ListLayout`, but starts a new line when the next child would pass the main axis limit. |
-| `FlexLayout` | Lays out children without a `Flex` value first, then splits the remaining main axis space between `FlexBoxSlot`s by their `Flex` weights. On the cross axis it takes the available space when that is finite, otherwise the widest child. |
-| `PanelLayout` | Each `PanelSlot` has min and max anchors, an offset, a size, an alignment and `SizeToContent`. Matching anchors give an absolute placement, different anchors stretch. |
-| `OverlayLayout` | Lays out every child at offset zero. Children with a non-zero desired size are laid out first and set the size, then all children are laid out to that size. |
-| `SwitcherLayout` | Only the child at `SelectedIndex` is laid out. |
-| `RootLayout` | Lays out each child at zero offset in the full space. |
+| root | `Application` (main and render thread loop, module startup), `IModule`, `Global` (service provider and sources) and the P/Invoke surface of the native library. |
+| `Graphics/` | What a graphics backend implements: the module, renderers, the frame graph interfaces, resource handles and bindless data, shader interfaces, windows and input, and a `FrameLimiter` that paces the render thread to a max framerate. |
+| `Views/` | The UI system: the view tree, layouts, surface events, fonts and MTSDF text, the command list that becomes render graph passes, and the Rin.Shade shaders that draw it. |
+| `Audio/` | What an audio backend implements: the module, samples, groups, channels, push streams and the `[AudioEffect]` effect model. |
+| `Animation/` | Transition, delay and sequence animations and the runner views tick them with. |
+| `Shared/` | Math, curves, buffers, logging, pooling, providers, threading, time, profiling and webm video playback through the native library from a file, a URL or a pushed stream. |
+| `Sources/` | File system and embedded resource sources. `Global.Sources` combines the file system with the embedded `Core` content. |
+| `Content/` | Embedded resources: the default font (Noto Sans) and the default texture. |
+| `Extensions/`, `Json/` | Extension methods and JSON converters for the `System.Numerics` vectors. |
 
-`SwitcherView` overrides `GetActiveSlots` to return only the selected slot, so only that child is laid out, updated, drawn and hit tested. Surface and dispose handling use `GetSlots`, which returns all of them. `SizerView` and `ConstraintView` wrap one child and override or clamp its size.
-
-Desired size versus available space: `GetDesiredSize()` is what the view would like (`ComputeDesiredContentSize()` plus padding, cached once the view is on a surface, zero when `Collapsed`). The available space is what the parent passes into `Layout(availableSpace, fill)`. Containers use desired size to pick cross axis sizes and use available space to limit the main axis.
-
-```mermaid
-flowchart TD
-    UPD["Surface.Update(deltaTime)"] --> FL["Surface.ForceLayout()"]
-    INV["View.InvalidateLayout()"] --> PEND["Surface.OnViewLayoutInvalidated(view): add to pending set"]
-    INV --> UP["Parent.OnChildLayoutInvalidated(view): parent invalidates too"]
-    PEND --> FL
-    FL --> SORT["Pending views sorted by Depth, parents first"]
-    SORT --> CHK{"view.IsLayoutValid?"}
-    CHK -- "yes, a parent pass covered it" --> SKIP["skip"]
-    CHK -- "no, has a parent" --> PN["Parent.OnChildNeedsLayout(view)"]
-    CHK -- "no, no parent" --> LS["view.Layout(surface size)"]
-    PN --> LAY["View.Layout(available, fill)"]
-    LS --> LAY
-    LAY --> LC["LayoutContent(available minus padding)"]
-    LC --> AC["CompositeView.ArrangeContent"]
-    AC --> AP["layout.Apply(available): child.Offset = ..., child.Layout(...)"]
-    AP --> LAY
-    LAY --> SZ["_size = fill ? available : content size plus padding"]
-```
-
-Invalidation: `InvalidateLayout()` marks the view invalid, tells the parent, and registers the view with the surface. `CompositeView.InvalidateLayout()` also invalidates children that are still valid. `InvalidateDesiredSize()` clears the cached desired size only. Setting `Padding`, `Visibility` (to or from `Collapsed`) and most container properties call both. `Surface.Update` calls `ForceLayout()` after updating the tree so `Collect` never has to compute layout. `GetSize()` and `Offset` also call `ForceLayout()` when the view is invalid, guarded by an `_isCalculatingLayout` flag.
-
-### Events and hit testing
-
-`ISurfaceEvent` (carries its `Surface`) is the base. `IPositionalEvent` adds `Position` and `ReverseTestOrder`, `IHandleableEvent` adds `Handled`, `ITargetedEvent` adds `Target`. Concrete events: `CursorDownSurfaceEvent`, `CursorUpSurfaceEvent`, `CursorMoveSurfaceEvent` (collects `Over`), `ScrollSurfaceEvent`, `CharacterSurfaceEvent`, `KeyboardSurfaceEvent`, `ResizeSurfaceEvent`.
-
-```mermaid
-sequenceDiagram
-    participant W as IWindow
-    participant WS as WindowSurface
-    participant S as Surface
-    participant R as RootView
-    participant C as CompositeView
-    participant V as View
-    W->>WS: OnCursorButton(e)
-    WS->>S: ReceiveCursorDown(new CursorDownSurfaceEvent)
-    S->>R: HandleEvent(e, root transform)
-    R->>C: HandleEvent on each hit child
-    Note over C: point inside content rect, hit test slots, reverse order for cursor down
-    C->>V: child.HandleEvent(e, slotTransform)
-    V->>V: OnCursorDown(e, transform) sets e.Target
-    C-->>C: Handled, stop testing siblings
-    C->>C: base.HandleEvent runs OnCursorDown on itself
-    S->>S: remember e as last cursor down, RequestFocus(Target) if focusable
-```
-
-- `WindowSurface.Init` subscribes to the window events (`OnCursorButton`, `OnCursorMoved`, `OnScroll`, `OnKey`, `OnCharacter`, `OnTextPreedit`, `OnResize`, `OnCursorFocus`) and converts each into a surface event. Pressed becomes cursor down, released becomes cursor up, repeat is ignored.
-- Drag and drop stays at the window: `IWindow` raises `OnDragEnter`, `OnDragOver` and `OnDragLeave` while another app drags over it and `OnDrop` when it lets go. A `DragEvent` carries the position in window pixels, the dragged file `Paths`, the dragged `Text` (null when there is none), the effects the dragging app allows, the modifiers, and a settable `Effect` that starts as the first allowed of copy, move and link; a handler sets it to `DropEffect.None` to refuse. A window refuses every drag, and raises none of these, until `OnDrop` has a handler. Surfaces do not route drags to views.
-- A window reports no text until `IWindow.StartTyping` is called. `TextInputBoxView` calls it through the surface when it gains focus and `StopTyping` when it loses it, and reports its caret through `SetTypingRect` so an input method can place its popup. Committed text arrives one UTF-16 unit at a time through `OnCharacter`. Text still being composed arrives through `OnTextPreedit`, and the view shows it underlined at the caret until it is committed or cleared. A cursor down puts the caret at the nearest character edge, and dragging from there selects (the surface keeps forwarding moves to the view the button went down on, so the drag works past its edges). Shift with the arrows, Home or End extends the selection from the caret, an arrow without Shift collapses it to the near end, and Ctrl+A selects everything. Typing, a paste, a preedit, Backspace and Delete replace the selection. `SelectedText`, `SelectionStart`, `SelectionEnd`, `Select`, `SelectAll` and `ClearSelection` expose it, `TextCaretLayout.SelectionRects` gives one rect per selected line (a selected line break adds no width), drawn behind the text in `SelectionColor` while the view is focused. A cursor down while composing cancels the composition by restarting text input. Text is clipped to the view and scrolls to keep the caret visible when it moves, sideways when unwrapped and vertically when taller than the view, and the wheel scrolls it too (`TextCaretLayout` holds that math). Escape clears focus unless text is being composed or `UnfocusOnEscape` is false. Ctrl+V pastes the clipboard over the selection or at the caret through `InsertText`, Ctrl+C copies the selection and Ctrl+X cuts it; both do nothing without one. The clipboard is `ISurface.Clipboard`, which a window surface takes from `IGraphicsModule.Clipboard` (text only, see `Graphics/Windows/IClipboard`; `InMemoryClipboard` stands in where there is no system one). `KeyboardSurfaceEvent` carries the modifiers.
-- `CompositeView.HandleEvent` handles positional events in two steps. If the point is inside its content rect, it hit tests its active slots (`ComputeHitTestableSlotsForEvent`) and calls `child.HandleEvent` on each hit slot. For `IHandleableEvent` it stops once `Handled` is true. Then it calls `View.HandleEvent` on itself.
-- `View.HandleEvent` dispatches by event type. Cursor down calls `OnCursorDown`. Cursor move adds the view to `Over`, calls `OnCursorEnter` the first time, and calls `OnCursorMove` unless the event is already handled. Scroll sets `Target` when `OnScroll` returns true.
-- Order: cursor down tests children from last to first (the topmost drawn view first, `ReverseTestOrder` is true). Cursor move and scroll test first to last.
-- `ScrollListView` scrolls by wheel, by dragging the content, or by dragging its bar (a cursor down within `BarHitPadding` of the bar drags the bar until release). `VirtualListView` is a `ScrollListView` of `ItemCount` fixed-size items that keeps views only for the visible window plus an overscan, rebinding recycled rows through a bind callback as it scrolls.
-- A view takes a cursor down by setting `e.Target` (as `ButtonView`, `ScrollListView` and `TextInputBoxView` always do). `Handled` is `Target != null`.
-- Cursor up is not hit tested. `Surface.ReceiveCursorUp` raises `OnCursorUp` and then calls `OnCursorUp` on the target of the last cursor down. Cursor move also forwards to that target, so a drag keeps working outside its bounds.
-- `Surface.Update` runs `DoHover` while the cursor is in the window. It sends a cursor move event so `IsHovered` stays current, and calls `NotifyCursorLeave` on views no longer under the cursor.
-- Keyboard and character events go straight to `Surface.FocusedView`. `RequestFocus` needs `IsFocusable` and `IsHitTestable`.
-
-### Drawing
-
-`Collect(transform, clip, commands)` walks the tree and appends commands to a `CommandList`. `CompositeView.Collect` skips children outside the clip rect, collects the rest in slot order, and when `Clip == Clip.Bounds` and it has a parent it brackets them with `PushClip` and `PopClip`. Leaf views call helpers from `QuadExtensions`: `AddRect` (placed by its top left corner), `AddCircle` (placed by its centre, in surface space or in a transform's space) and `AddCircleTopLeft` (placed like a rect, by the corner of its bounding box), `AddLine`, `AddQuadraticCurve`, `AddCubicCurve`, `AddTexture`, `AddMtsdf` and `AddText` (one MTSDF quad per glyph from the font atlas). `AddBlur` (in `Views/Graphics/Blur/`) is used by `BackgroundBlurView`.
-
-Data path from window to GPU:
-
-1. `WindowSurface` handles `Renderer.OnCollect` and adds a `WindowSurfaceCollectedData` for the `CommandList` returned by `Surface.CollectCommands()` (nothing is added when it has no commands).
-2. `DefaultCollectedSurfaceData.Write(builder)` turns the list into passes and adds them to the graph. `WindowSurfaceCollectedData` appends a `CopyToDestination` pass that copies the main image to the window's destination image.
-
-```mermaid
-flowchart TD
-    CL["CommandList: Commands, ClipIds, Clips"] --> W["DefaultCollectedSurfaceData.Write"]
-    W --> P0["CreateImagesPass: main, copy and stencil images"]
-    W --> LOOP{"each command and its clip stack"}
-    LOOP -- "no clip" --> M1["StencilMask = 0x01"]
-    LOOP -- "clip stack seen" --> M2["reuse its mask"]
-    LOOP -- "new clip stack" --> SW["StencilWritePass with next mask 0x02, 0x04, ..."]
-    LOOP -- "7 stacks used" --> SC["flush, StencilClearPass"]
-    M1 --> PEND["pending commands"]
-    M2 --> PEND
-    SW --> PEND
-    PEND --> GRP["group runs by PassConfigType and HandlerType"]
-    GRP --> DP["ViewsDrawPass(passConfig, command handlers)"]
-    DP --> BH["BatchCommandHandler: merge consecutive commands with the same IBatcher and StencilMask into IBatch"]
-    BH --> BUF["one host buffer for all batches"]
-    BH --> DRAW["IBatcher.Draw: write quads, push constants, Draw(6, quadCount)"]
-```
-
-- `QuadDrawCommand` is a `TCommand<MainPassConfig, BatchCommandHandler>` and an `IBatchedCommand`. Its batcher is `DefaultQuadBatcher` (marked `[ViewsBatcher]`, a `SimpleQuadBatcher<QuadBatch>`), fetched through `IViewsModule.GetBatcher<T>()`.
-- A `Quad` holds a mode (`Line`, `Circle`, `Rectangle`, `QuadraticCurve`, `CubicCurve`, `Texture`, `Mtsdf`, `ColorWheel`, `Gradient`), a size, a transform and mode specific data. `QuadBatchShader` draws 6 vertices per quad instance, reads the quad from a buffer address in its push constants, and switches on the mode in the fragment function. Textures are sampled through `BindlessData` with a `DeviceHandle`. `QuadBatch.DeclareResources` registers each referenced texture with `config.AddExternalImage` and `ReadTexture` so it stays alive for the frame.
-- Clipping uses the stencil buffer. `StencilWritePass` draws the clip rectangles (`StencilBatchShader`, instanced, fragments outside the rounded rectangle discarded) with a write mask. Draws then compare against `StencilMask`, which `BatchCommandHandler` sets with `SetStencilCompareMask` when the mask changes. A new `StencilClearPass` is added after 7 distinct clip stacks.
-- Blur: `AddBlur` adds four commands: `BlurInitCommand`, `BlurFirstPassCommand`, a `NoOpCommand`, and `BlurSecondPassCommand`. The init handler copies the covered region of the main image into a smaller texture (reduced by `7 / radius`, clamped to at least 5 percent of the region), the first pass blurs it horizontally, and the second pass blurs it vertically, multiplies by the `Tint` and draws it over the region in the main pass, using `BlurShader`. A `NoOpCommand` ends the current group, so the blur breaks batching around it.
-- `Surface`, `SurfaceContext` and `FrameStats` expose the surface size, projection and image ids (`MainImageId`, `CopyImageId`, `StencilImageId`). `FrameStats` is declared but this README did not check where it is filled in.
-
-Text: `Views/Font/` (`IFontManager`, `HarfBuzzFontManager`) shapes text with HarfBuzz. `Views/Mtsdf/` builds and caches multi-channel signed distance field glyphs in atlas textures. `GlyphOutline` orients each glyph's contours from their geometry (the largest contour is the outer one and must wind counter-clockwise), so TrueType, CFF and SVG-built icon fonts all render right side out. `Content/Core/Fonts/NotoSans-Regular.ttf` is loaded in `ViewsModule.Start`, and `IViewsModule.DefaultFontFamily` (initially `Noto Sans`) is the family a new `TextBoxView` or `FontIconView` starts with. An application loads its own font with `AddFont` or `FontManager.LoadFont` and sets `DefaultFontFamily` to switch every view at once.
-
-## Graphics graph
-
-Source: `Graphics/Graph/` (interfaces) with `Graphics/IGraphicsModule.cs`. The implementation of the builder, compiler and executor is `Rin.Graphics.Vulkan/Graph/` (`GraphBuilder`, `GraphConfig`, `CompiledGraph`). `Rin.Graphics.Null` is the no-op backend.
-
-- `IPass`: `Id`, `Configure(IGraphConfig)` and `Execute(ICompiledGraph, IExecutionContext)`. `Configure` should do the least work needed to state what the pass uses. `Execute` records the GPU work.
-- `IGraphBuilder`: `AddPass`, `AddExternalImage`, `AddExternalBuffer`, `AddDisposable` (disposed after the frame finishes) and `GetOrAddShared` (lets several contributors share one pass or resource). External resources used in `Execute` must be registered.
-- `IPassWithPreAdd` and `IPassWithPostAdd` get callbacks just before and after `AddPass` (`ViewsDrawPass` uses them for its handlers). `ITerminalPass` marks a pass that must run. Passes that nothing terminal depends on are pruned, and a graph with no terminal pass runs nothing. `ActionPass` and `TerminalActionPass` are callback based passes, and `builder.AddPass(configure, run, terminal)` builds one.
-- `IGraphConfig` is how a pass declares resources, by `uint` id (0 is invalid): `CreateTexture`, `CreateTextureArray`, `CreateCubemap`, `CreateBuffer` (with a `GraphBufferUsage` such as `HostThenGraphics`), `AddExternalImage`, `AddExternalBuffer`, and `ReadTexture` or `WriteTexture` (with an `ImageLayout`) and `ReadBuffer` or `WriteBuffer` for existing ids. `DestinationImageId` is the window image. The Vulkan builder derives pass order from these reads and writes (a read depends on the last earlier write, a write depends on earlier reads and the previous write) and `DependOn(passId)` adds an explicit dependency.
-- `ICompiledGraph`: `GetImage(id)`, `GetBuffer(id)` and `Execute`. In the Vulkan backend the resources are created when first requested. Extensions: `GetImageOrException`, `GetBufferOrNull`, `GetBufferOrException`.
-- `IGraphCollector.Add(ICollectedData)`: subsystems hand collected data to the renderer. `ICollectedData.Write(IGraphBuilder)` turns it into passes later.
-- `IGraphicsModule` is the backend entry point: windows and renderers (`AddRenderer`, `GetWindowRenderers`), shader creation (`MakeGraphics`, `MakeCompute`, from a path or a descriptor), resource creation (`CreateBuffer`, `CreateTexture`, `CreateTextureArray`, `CreateCubemap`, uploads via `QueueTextureUpload` and `QueueBufferUpload`), `FreeResourceHandles`, `Collect()` and `Execute()`, and `SetMaxFramerate`, which caps how often `Execute()` runs through a `FrameLimiter` (0 for no cap).
-- `IRenderer.Collect()` runs on the main thread and returns `IRenderData` (or null). `Execute(IRenderData)` runs on the render thread. `IWindowRenderer` adds the `OnCollect` event that surfaces subscribe to.
-- Shaders: `[GraphicsShader<T>]` and `[ComputeShader<T>]` on a `partial` property make the source generator emit a property that creates the shader through `IGraphicsModule.Get()`. `IGraphicsShader.Bind(ctx)` returns an `IGraphicsBindContext` (`Push`, `WriteBuffer`, `Draw`, `DrawIndexed`, and the indirect variants `DrawIndirect`, `DrawIndirectCount`, `DrawIndexedIndirect` and `DrawIndexedIndirectCount`, which take the byte stride between commands and need `IDevice.SupportsIndirectRendering`) or null.
-
-Resource handles (`Graphics/ResourceHandle.cs`, `Graphics/BindlessData.cs`):
-
-- `ResourceHandle` is the CPU side handle: a `ResourceType` (`Texture`, `Cubemap`, `TextureArray`, `Buffer`), an id, `IsBindless` and a `Generation` that detects a freed and reused slot. `IsValid()` asks the graphics module.
-- `DeviceHandle` is the 32 bit GPU visible part (type in the low 7 bits, id in bits 8 to 31). `ResourceHandle` converts to it implicitly, never the other way. It is `[ShadeExport]`.
-- `BindlessData` is the shader side global block named `rin.global`: 6 samplers, 2048 textures, 512 texture arrays and 512 cubemaps, with `SampleTexture`, `TexelLoad` and `GetTextureSize` taking a `DeviceHandle`.
-- `DeviceBufferView` is a buffer handle with an offset and size, with `Write`, `GetAddress` and sub views. Shaders reach buffers through `BufferRef<T>` addresses pushed as constants.
-
-One frame (the Vulkan backend, checked in `Application.Run`, `VulkanGraphicsModule` and `WindowRenderer`):
+## One frame
 
 ```mermaid
 sequenceDiagram
     participant A as Application
     participant G as IGraphicsModule
-    participant WR as WindowRenderer
-    participant WS as WindowSurface
-    participant GB as GraphBuilder
-    participant P as IPass
+    participant R as IWindowRenderer
+    participant S as WindowSurface
+    participant B as IGraphBuilder
     Note over A: main thread
-    A->>A: OnUpdate (ViewsModule.Update lays out views)
+    A->>A: OnUpdate (Surface.Update lays out the view tree)
     A->>G: OnCollect, Collect()
-    G->>WR: Collect()
-    WR->>WS: OnCollect(collector)
-    WS-->>WR: collector.Add(WindowSurfaceCollectedData)
+    G->>R: Collect()
+    R->>S: OnCollect(collector)
+    S-->>R: collector.Add(ICollectedData)
     Note over A: render thread
     A->>G: OnRender, Execute()
-    G->>WR: Execute(renderData)
-    WR->>GB: Reset, collector.Write(builder)
-    GB->>P: AddPass (PreAdd, PostAdd)
-    WR->>GB: AddPass(PrepareForPresentPass), AddDestinationImage
-    WR->>GB: Compile()
-    GB->>P: Configure(config) for every pass
-    GB->>GB: add upload passes, prune from terminal passes, order, barriers
-    WR->>GB: graph.Execute(ctx)
-    GB->>P: Execute(graph, ctx) in dependency order
-    WR->>WR: submit and present
+    G->>R: Execute(renderData)
+    R->>B: ICollectedData.Write(builder) adds IPass objects
+    B->>B: Configure every pass, prune from the terminal passes, order, Execute each
 ```
 
-The main thread waits up to 3 ms for the previous render to finish. If it has, it runs `OnCollect`, and if not it skips the collect for that tick. Either way it then lets the render thread run `OnRender` while it starts the next update. The Vulkan `WindowRenderer` builds the passes from the collected data at the start of its `Execute` (render thread), not in `Collect`.
+The main thread waits up to 3 ms for the previous render to finish; if it has, it collects and wakes the render thread, otherwise it skips the collect for that tick. The frame graph builder, compiler and executor live in the backend ([Rin.Graphics.Vulkan](../Rin.Graphics.Vulkan/ReadMe.md)); Rin.Core only holds the interfaces.
 
-## Other top-level folders
+| Interface | Role |
+| --- | --- |
+| `IGraphicsModule` | Backend entry point: windows and renderers, shader and resource creation, uploads, `Collect` and `Execute`, max framerate. |
+| `IRenderer`, `IWindowRenderer` | `Collect` on the main thread returns the render data `Execute` consumes on the render thread. A window renderer raises `OnCollect` for surfaces. |
+| `IGraphCollector`, `ICollectedData` | Subsystems hand collected data to the renderer; `Write` turns it into passes later. |
+| `IGraphBuilder`, `IGraphConfig` | Adding passes and external resources; declaring the textures and buffers a pass creates, reads and writes, by `uint` id. |
+| `IPass`, `ITerminalPass`, `IPassWithPreAdd`, `IPassWithPostAdd` | `Configure` declares resources, `Execute` records GPU work. Passes nothing terminal depends on are pruned. |
+| `ICompiledGraph`, `IExecutionContext` | Resolve ids to resources and record commands during `Execute`. |
+| `IGraphicsShader`, `IComputeShader` | Created from a Rin.Shade descriptor; `Bind` returns a context for push constants, buffers and draws, including indirect draws. |
+| `IAudioModule`, `IAudioSample`, `IAudioGroup`, `IChannel`, `IPushStream` | Samples and streams play on groups (busses) as channels; a push stream takes PCM pushed from outside. |
+| `ISupportsAudioEffects`, `IEffectController<T>` | A group runs `[AudioEffect]` effects in insertion order; the controller's `Parameters` setter hands a new struct to the audio thread through a lock free triple buffer. |
 
-- `Animation/`: `AnimationRunner`, `IAnimation`, transition animations for floats and vectors, delays and sequences. Views run an `AnimationRunner` in `Update`.
-- `Audio/`: `IAudioModule`, samples, groups, channels, push streams, and the effect model under `Audio/Effects/`. An effect's parameters live in a `ParameterSlots<T>` triple buffer: the controller's `Parameters` setter writes one slot and hands it over with an atomic exchange, and the generated shim reads the newest handed-over slot once per block, so the audio thread never sees a half written struct and neither side blocks. `IActiveAudio` and `IChannel` expose `HasEnded`, set once playback runs off the end of the sound (seeking to the end does not set it), at which point `Position` equals `Duration`; `Play` clears it and starts over.
-- `Content/`: embedded resources: `Core/Fonts/NotoSans-Regular.ttf` and `Core/Textures/default.png`.
-- `Extensions/`: extension methods for strings, enumerables, dictionaries, streams, tasks, JSON, buffers, characters and `AttachmentFormat`.
-- `Graphics/`: the graphics abstraction: module, renderers, frame graph interfaces, handles, shader interfaces, windows and window events, input keys, images, rects and extents.
-- `Json/`: JSON converters for `Vector2`, `Vector3` and `Vector4`.
-- `Properties/`: `launchSettings.json`.
-- `Shared/`: math (`MathR`, easing, `Transform`, `Frustum`, `Int4`), curves, buffers, `Dispatcher`, id factory, logging (`ILogger` with `Info`, `Warn` and `Error`, a `DefaultLogger` that takes a formatter, and console and file transports that print an error's exception after its message), pooling, providers (`DefaultProvider`), threading helpers, time, profiling, and video (below).
-- `Sources/`: `ISource`, `SourceResolver`, `FileSystemSource` and embedded resource sources. `Global.Sources` combines the file system and the embedded `Core` content.
-- `Views/`: the UI system described above, plus `Animation/` (view animation extensions), `Font/`, `Mtsdf/`, `Utilities/` (`HitTestHandler`) and `Window/`.
-- Root files: `Application` (main and render thread loop, module startup), `IApplication`, `IModule`, `Global` (service provider and sources), `Native` (P/Invoke into the native library), and small utilities.
+## Views
 
-## Video
+A `View` is one node of a tree on a `Surface`. Each frame the surface lays the tree out, routes input to it and collects draw commands from it. `ViewsModule` creates one `WindowSurface` per window renderer and loads the default font.
 
-`Shared/Video/` plays webm through the native webmdx decoder, which works on a source that may only be partly there.
+```mermaid
+flowchart TD
+    INV["View.InvalidateLayout()"] --> PEND["Surface: pending set, parent invalidated too"]
+    UPD["Surface.Update(deltaTime)"] --> FL["Surface.ForceLayout()"]
+    PEND --> FL
+    FL --> SORT["pending views by depth, parents first, skip ones a parent pass covered"]
+    SORT --> LAY["View.Layout(available, fill)"]
+    LAY --> LC["LayoutContent(available minus padding)"]
+    LC --> AC["CompositeView.ArrangeContent: layout object sets child Offset, calls child.Layout"]
+    AC --> LAY
+    LAY --> SZ["size = fill ? available : content plus padding"]
+    FL --> COL["Surface.CollectCommands(): View.Collect appends to a CommandList"]
+```
 
-- `IVideoSource` is a file that may still be arriving. `Length` is -1 while unknown, `AvailableFrom(offset)` says how far the held bytes run from there, `MakeRangeAvailable` asks the source to fetch what the decoder is missing, and `ReleaseBefore` tells it what the decoder is done with. All calls come from the decode thread.
-  - `FileVideoSource`: a whole file on disk.
-  - `HttpVideoSource`: fetches with range requests as the decoder asks, at least 256 KiB at a time, so a seek pulls only the part of the file it lands on. Bytes the decoder is done with are dropped, and a seek back below them fetches only the cluster it lands on, with the ones after it fetched again as playback reaches them. A server without range support gets one full download instead.
-  - `StreamVideoSource`: fed from outside with `Append` and `End`, for a live stream or a file still downloading. `StreamVideoSource(true)` frees released bytes, at the cost of seeking back into them.
-  - `SparseByteBuffer` holds pieces from anywhere in a file for the two sources above and lists the gaps to fetch.
-- `WebmVideoPlayer` decodes on its own thread, and only that thread touches the source, so `SetSource` returns at once even for a network source. `IsReady` stays false until the headers are read there, and every `TryDecode` (which `VideoPlayerView` calls each frame) retries the header read, a pending `Seek` or the next decode step until the source has the data. `Duration` is 0 for a live stream, `NeededRange` says which bytes the decoder is waiting for, and a source the decoder rejects sets `HasFailed` with `Error`.
-- `VideoPlayerView.FromFile`, `FromUrl` and `FromSource` build a view over a player. It relayouts once the player is ready, and skips the progress bar and seeks while `Duration` is 0.
-- A frame crosses to the GPU as NV12, not RGBA. `CopyRecentFrame` fills a buffer laid out as `IVideoPlayer.PlanesOf` describes (`VideoFramePlanes`: a luma plane of one byte per pixel, then a chroma plane of a Cb and a Cr byte per 2x2 pixels, rounded up for odd sizes), the view uploads the two planes from one staging buffer into an R8 and an RG8 texture, and `VideoBatchShader` converts to RGB when it samples, with BT.709 for frames 720 lines or taller and BT.601 below, since the container does not say. Measured at 2560x1080, 24 fps, this took the player's CPU use from half a core to a fifth and the per-frame copy from 12 ms to 2 ms.
+Containers delegate to a layout object under `Views/Layouts/` (list, wrap list, flex, panel, overlay, switcher, root). Leaf views draw with the `QuadExtensions` helpers (rects, circles, lines, curves, gradients, textures, MTSDF text) and `AddBlur`. Text is shaped with HarfBuzz and rendered as MTSDF glyph atlases built on first use each run.
 
-## Gotchas
+```mermaid
+flowchart TD
+    CL["CommandList: commands and their clip stacks"] --> W["DefaultCollectedSurfaceData.Write"]
+    W --> P0["CreateImagesPass: main, copy and stencil images"]
+    W --> LOOP{"each command"}
+    LOOP -- "no clip" --> M1["stencil mask 0x01"]
+    LOOP -- "new clip stack" --> SW["StencilWritePass with the next mask bit"]
+    LOOP -- "eighth clip stack" --> SC["flush, StencilClearPass"]
+    M1 --> GRP["group runs by pass config and handler type"]
+    SW --> GRP
+    GRP --> DP["ViewsDrawPass with command handlers"]
+    DP --> BH["BatchCommandHandler: consecutive commands with the same batcher and mask become one batch"]
+    BH --> DRAW["IBatcher.Draw: quads from one host buffer, instanced"]
+    W --> CP["WindowSurfaceCollectedData adds CopyToDestination"]
+```
 
-- `View.Layout(available)` returns the content size plus padding, not the available space, unless `fill` is true. A view only fills its slot when the parent passes `fill` or the layout lays it out in a way that returns the space (for example `RootLayout` and `PanelLayout` return the available space).
-- Reading `GetSize()` or `Offset` on a view with invalid layout triggers `Surface.ForceLayout()`, so a getter can run a layout pass.
-- The desired size is cached only when the view is on a surface. After changing something that affects it, call `InvalidateDesiredSize()` and `InvalidateLayout()`.
-- `View.HandleEvent` calls `OnCursorDown` on a view even after a child already handled the event, because it does not check `Handled`. Check `e.Handled` in `OnCursorDown` if a view should defer to its children.
-- `CursorEnterSurfaceEvent` is handled in `View.HandleEvent` but nothing in Rin.Core creates it. Hover enter comes from the cursor move path.
-- `Clip.Bounds` only pushes a clip when the view has a parent. Each distinct clip stack costs a stencil write, and an eighth stack in a run forces a stencil clear.
-- A texture used in a `QuadDrawCommand` must still be alive when the frame is built. `QuadBatch.DeclareResources` asserts that the id is valid.
-- A graph with no `ITerminalPass` draws nothing. The Vulkan window renderer always adds `PrepareForPresentPass` for this reason.
-- After changing shader C# the Rin.Shade MSBuild task may need a rebuild. Tests that never load shader content can use `-p:RinShadeSkipCompile=true`.
+The shaders are C# classes written with Rin.Shade under `Views/Graphics/Shaders/`, marked `[Shader]` and embedded as `<full class name>.crsh` by `msbuild/RinShade.targets`; there are no hand written `.slang` files. Types that shaders in other assemblies need (`ViewShader<T>`, `DeviceHandle`, `BindlessData`, `BorderRadius`, `Int4`, `DrawIndirectCommand`) carry `[ShadeExport]`. The pipeline is described in [Shade](../../Shade/ReadMe.md).
+
+## Rules
+
+| Rule | Why |
+| --- | --- |
+| A graph with no `ITerminalPass` draws nothing. | Pruning starts from the terminal passes. |
+| Register every external image or buffer a pass uses in `Execute`. | The backend derives order and barriers from what was declared. |
+| `View.Layout` returns the content size plus padding unless `fill` is true. | A view fills its slot only when the parent asks. |
+| The desired size is cached only while the view is on a surface. | Call `InvalidateDesiredSize()` and `InvalidateLayout()` after changing what affects it. |
+| Each distinct clip stack costs a stencil write, and the eighth in a run forces a stencil clear. | Seven mask bits are available per run, one is reserved for "no clip". |
+
+References: Rin.SourceGenerators (analyzer), Rin.Shade and its source generator. Packages: NetVips, StbRectPackSharp, HarfBuzzSharp native assets, TareHimself.Rin.Native. Referenced by Rin.World, Rin.Graphics.Vulkan, Rin.Graphics.Null, Rin.Audio.Miniaudio, Rin.Audio.Null, the examples and the experiments.

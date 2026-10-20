@@ -102,5 +102,9 @@ Keep the docs true. A change is not done until the docs it affects are updated i
 - Only state what you verified in the code. Do not describe behavior from file names.
 - Examples in docs must be real: run them (for example `rin-shade compile` for a shader) and paste the actual output.
 - Follow the same style as the existing docs: plain language, no em dashes, commands that work from the repo root.
+- Keep docs short and visual. A `ReadMe.md` says what a project is and how to run it; the code is the technical
+  reference, so do not inventory files, members or parameters in prose. Prefer a table or a Mermaid diagram over
+  paragraphs wherever the content has structure (a list of things, a flow, a set of layers), and keep prose for
+  rationale and context.
 - Design plans and handoff notes are not repo docs. Do not commit them.
 
