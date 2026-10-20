@@ -49,6 +49,21 @@ public sealed class Player : IDisposable
         if (Current is null) Play(0);
     }
 
+    /// <summary>
+    ///     Throws the queue away, queues these tracks and plays the one at <paramref name="startIndex" />.
+    /// </summary>
+    public void Replace(IReadOnlyList<TrackInfo> tracks, int startIndex = 0)
+    {
+        CloseAudio();
+        foreach (var entry in _queue) entry.Dispose();
+        _queue.Clear();
+        CurrentIndex = -1;
+        foreach (var track in tracks) _queue.Add(new QueueEntry(track));
+        QueueChanged?.Invoke();
+        if (_queue.Count > 0) Play(int.Clamp(startIndex, 0, _queue.Count - 1));
+        else TrackChanged?.Invoke();
+    }
+
     public void Remove(int index)
     {
         if (index < 0 || index >= _queue.Count) return;

@@ -1,5 +1,7 @@
 ﻿using System.Numerics;
+using Examples.AudioPlayer.Library;
 using Examples.AudioPlayer.Playback;
+using Examples.AudioPlayer.Shaders;
 using Examples.Common.Views;
 using Rin.Core.Views;
 using Rin.Core.Views.Composite;
@@ -9,12 +11,17 @@ using Rin.Core.Views.Layouts;
 namespace Examples.AudioPlayer.Views;
 
 /// <summary>
-///     The current track: cover, names, spectrum, seek bar and transport controls.
+///     The current track: the cover as a disc that pulses with the beat inside the spectrum visualizer, the pills
+///     that pick its look, names, seek bar and transport controls.
 /// </summary>
 public sealed class NowPlayingView : FlexBoxView
 {
     public const float Width = 360f;
-    private const float CoverRadius = 18f;
+    private const float CoverSize = 256f;
+    private const float RingGap = 10f;
+    private const float PulseScale = 0.06f;
+    private const float ModePillPadding = 12f;
+    private const int ModeCount = 5;
     private const float SmallButton = 40f;
     private const float PlayButton = 62f;
     private const float VolumeWidth = 90f;
@@ -27,7 +34,9 @@ public sealed class NowPlayingView : FlexBoxView
 
     private readonly Player _player;
     private readonly SpectrumAnalyzer _analyzer;
-    private readonly CoverArtView _cover = new(Width, CoverRadius);
+    private readonly CoverArtView _cover = new(CoverSize, CoverSize / 2f);
+    private readonly RadialSpectrumView _spectrum;
+    private readonly PaneTabsView _modes = new(["Ring", "Bloom", "Rays", "Sparks", "Bars"], ModePillPadding);
     private readonly TextBoxView _title = Ui.Label("Nothing playing", 26f);
     private readonly TextBoxView _subtitle = Ui.Label("Add some tracks to the queue", 15f, Ui.Muted);
     private readonly TextBoxView _position = Ui.Label("0:00", 13f, Ui.Muted);
@@ -44,6 +53,12 @@ public sealed class NowPlayingView : FlexBoxView
     {
         _player = player;
         _analyzer = analyzer;
+        _spectrum = new RadialSpectrumView(analyzer, () => player.Current?.Cover?.Palette ?? CoverPalette.Default)
+        {
+            InnerRadius = CoverSize / 2f + RingGap,
+            OuterRadius = Width / 2f - 2f
+        };
+        _modes.Changed += index => _spectrum.Mode = (VisualizerMode)index;
         _seek = new SliderView(() => (float)(player.Duration > 0.0 ? player.Position / player.Duration : 0.0),
             fraction => player.Seek(fraction * player.Duration)) { TrackColor = Quiet };
         _play = new IconButton(Icons.Play, PlayButton, 24f, Color.White, Color.FromRgb(0.9f, 0.92f, 1f),
@@ -60,14 +75,14 @@ public sealed class NowPlayingView : FlexBoxView
         Axis = Axis.Column;
         InitSlots =
         [
-            Ui.Slot(new SizerView { WidthOverride = Width, HeightOverride = Width, InitChild = _cover }),
-            Ui.Slot(Ui.Gap(22f)),
+            Ui.Slot(new SizerView { WidthOverride = Width, HeightOverride = Width, InitChild = BuildCoverRing() }),
+            Ui.Slot(Ui.Gap(10f)),
+            Ui.Slot(_modes, fit: CrossFit.Desired, align: CrossAlign.Center),
+            Ui.Slot(Ui.Gap(16f)),
             Ui.Slot(_title),
             Ui.Slot(Ui.Gap(4f)),
             Ui.Slot(_subtitle),
             Ui.Slot(Ui.Gap(18f)),
-            Ui.Slot(new SpectrumView(analyzer) { Height = 56f }),
-            Ui.Slot(Ui.Gap(14f)),
             Ui.Slot(_seek),
             Ui.Slot(Ui.Gap(6f)),
             Ui.Slot(Ui.Row(
@@ -80,6 +95,30 @@ public sealed class NowPlayingView : FlexBoxView
         player.TrackChanged += ShowTrack;
         ShowTrack();
         ShowVolume();
+    }
+
+    public void NextVisualizer()
+    {
+        _modes.Select((_modes.Selected + 1) % ModeCount);
+    }
+
+    private PanelView BuildCoverRing()
+    {
+        return new PanelView
+        {
+            InitSlots =
+            [
+                new PanelSlot { Child = _spectrum, MinAnchor = Vector2.Zero, MaxAnchor = Vector2.One },
+                new PanelSlot
+                {
+                    Child = _cover,
+                    MinAnchor = new Vector2(0.5f),
+                    MaxAnchor = new Vector2(0.5f),
+                    Alignment = new Vector2(0.5f),
+                    Size = new Vector2(CoverSize)
+                }
+            ]
+        };
     }
 
     private FlexBoxView BuildTransport()
@@ -122,6 +161,7 @@ public sealed class NowPlayingView : FlexBoxView
         base.Update(deltaTime);
         _player.Update();
         _analyzer.Update(deltaTime);
+        PulseCover();
 
         var second = (int)_player.Position;
         if (second == _shownSecond && _player.IsPlaying == _shownPlaying) return;
@@ -132,10 +172,19 @@ public sealed class NowPlayingView : FlexBoxView
         _play.Icon = _shownPlaying ? Icons.Pause : Icons.Play;
     }
 
+    // Scaled about its centre: the scale is applied from the top left corner, so the view is shifted back by half
+    // of the growth.
+    private void PulseCover()
+    {
+        var scale = 1f + _analyzer.Pulse * PulseScale;
+        _cover.Scale = new Vector2(scale);
+        _cover.Translate = new Vector2(-(scale - 1f) * CoverSize / 2f);
+    }
+
     private void ShowTrack()
     {
         var entry = _player.Current;
-        _cover.Show(entry);
+        _cover.Show(entry?.Cover, entry?.Info.Title ?? string.Empty);
         _shownSecond = -1;
 
         if (entry is null)

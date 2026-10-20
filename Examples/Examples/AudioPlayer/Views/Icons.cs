@@ -18,6 +18,7 @@ public static class Icons
     public const char Plus = '';
     public const char Music = '';
     public const char Remove = '';
+    public const char Back = '\uf060';
 
     private const string FontPath = "fonts/fa-solid-900.ttf";
     private const string FamilyKeyword = "Awesome";

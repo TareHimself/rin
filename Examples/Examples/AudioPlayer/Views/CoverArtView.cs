@@ -9,7 +9,7 @@ using Rin.Core.Views.Layouts;
 namespace Examples.AudioPlayer.Views;
 
 /// <summary>
-///     A square that shows a track's cover, or a tinted placeholder with a note until the cover arrives.
+///     A square that shows a cover, or a placeholder tinted from a seed with a note until the cover arrives.
 /// </summary>
 public sealed class CoverArtView : PanelView
 {
@@ -18,7 +18,7 @@ public sealed class CoverArtView : PanelView
     private readonly RectView _placeholder;
     private readonly FontIconView _note;
     private readonly CoverImageView _image;
-    private QueueEntry? _entry;
+    private TrackCover? _cover;
 
     public CoverArtView(float size, float radius)
     {
@@ -47,30 +47,30 @@ public sealed class CoverArtView : PanelView
         ];
     }
 
-    public void Show(QueueEntry? entry)
+    public void Show(TrackCover? cover, string seed)
     {
-        if (_entry is not null) _entry.CoverChanged -= ShowCover;
-        _entry = entry;
-        _placeholder.Color = PlaceholderColor(entry?.Info.Title ?? string.Empty);
+        if (_cover is not null) _cover.Changed -= ShowImage;
+        _cover = cover;
+        _placeholder.Color = PlaceholderColor(seed);
         _image.Visibility = Visibility.Hidden;
-        if (entry is null) return;
+        if (cover is null) return;
 
-        entry.CoverChanged += ShowCover;
-        if (entry.HasCover) ShowCover();
+        cover.Changed += ShowImage;
+        if (cover.HasImage) ShowImage();
     }
 
-    private void ShowCover()
+    private void ShowImage()
     {
-        if (_entry is null) return;
+        if (_cover is null) return;
 
-        _image.Image = _entry.Cover;
+        _image.Image = _cover.Image;
         _image.Visibility = Visibility.Visible;
         this.StopAll().Transition(0f, 1f, alpha => _image.Tint = Color.White with { A = alpha }, FadeSeconds);
     }
 
     public override void Dispose()
     {
-        Show(null);
+        Show(null, string.Empty);
         base.Dispose();
     }
 
