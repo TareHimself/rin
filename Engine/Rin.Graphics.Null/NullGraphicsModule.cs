@@ -8,6 +8,7 @@ namespace Rin.Graphics.Null;
 
 public sealed class NullGraphicsModule : IGraphicsModule
 {
+    private readonly FrameLimiter _frameLimiter = new();
     private readonly List<IRenderer> _renderers = [];
     private readonly Dictionary<ResourceHandle, (Extent2D Extent, ImageFormat Format)> _textures = [];
     private readonly HashSet<ResourceHandle> _buffers = [];
@@ -186,7 +187,15 @@ public sealed class NullGraphicsModule : IGraphicsModule
     {
     }
 
+    public int MaxFramerate => _frameLimiter.MaxFramerate;
+
+    public void SetMaxFramerate(int framesPerSecond)
+    {
+        _frameLimiter.MaxFramerate = int.Max(framesPerSecond, 0);
+    }
+
     public void Execute()
     {
+        _frameLimiter.Wait();
     }
 }
