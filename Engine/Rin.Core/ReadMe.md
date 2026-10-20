@@ -21,7 +21,7 @@ dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinShadeSkipCompile=t
 
 - The shaders are C# classes written with Rin.Shade, under `Views/Graphics/Shaders/` (`QuadBatchShader`, `ImageBatchShader`, `VideoBatchShader`, `StencilBatchShader`, `BlurShader`, plus the helpers `ViewShader`, `ViewShaderMath` and `Sd`). Each is marked `[Shader]` and is embedded as its full class name plus `.crsh`, for example `Rin.Core.Views.Graphics.Shaders.QuadBatchShader.crsh`. There are no hand-written `.slang` files in this project.
 - `Rin.Core.csproj` imports `msbuild/RinShade.targets`. The build transpiles and compiles the shaders under `obj/.../Rin.Shade.Generated/` and embeds each `.crsh` directly. The Vulkan backend opens one through the shader class's generated `Descriptor`, so no `Global.Sources` mount is involved.
-- Rin.Core is a `[ShadeExport]` source for other assemblies: `ViewShader<T>`, `DeviceHandle`, `BindlessData` and `Int4` carry the attribute, so shaders in other projects can use them. `Rin.World` does this, for example `ViewportShader : ViewShader<...>` and `MeshShader` using `BindlessData`. The pipeline is described in [Shade](../../Shade/ReadMe.md).
+- Rin.Core is a `[ShadeExport]` source for other assemblies: `ViewShader<T>`, `DeviceHandle`, `BindlessData`, `Int4` and `DrawIndirectCommand` carry the attribute, so shaders in other projects can use them. `Rin.World` does this, for example `ViewportShader : ViewShader<...>` and `MeshShader` using `BindlessData`. The pipeline is described in [Shade](../../Shade/ReadMe.md).
 
 ## Views
 
@@ -188,7 +188,7 @@ Source: `Graphics/Graph/` (interfaces) with `Graphics/IGraphicsModule.cs`. The i
 - `IGraphCollector.Add(ICollectedData)`: subsystems hand collected data to the renderer. `ICollectedData.Write(IGraphBuilder)` turns it into passes later.
 - `IGraphicsModule` is the backend entry point: windows and renderers (`AddRenderer`, `GetWindowRenderers`), shader creation (`MakeGraphics`, `MakeCompute`, from a path or a descriptor), resource creation (`CreateBuffer`, `CreateTexture`, `CreateTextureArray`, `CreateCubemap`, uploads via `QueueTextureUpload` and `QueueBufferUpload`), `FreeResourceHandles`, `Collect()` and `Execute()`, and `SetMaxFramerate`, which caps how often `Execute()` runs through a `FrameLimiter` (0 for no cap).
 - `IRenderer.Collect()` runs on the main thread and returns `IRenderData` (or null). `Execute(IRenderData)` runs on the render thread. `IWindowRenderer` adds the `OnCollect` event that surfaces subscribe to.
-- Shaders: `[GraphicsShader<T>]` and `[ComputeShader<T>]` on a `partial` property make the source generator emit a property that creates the shader through `IGraphicsModule.Get()`. `IGraphicsShader.Bind(ctx)` returns an `IGraphicsBindContext` (`Push`, `WriteBuffer`, `Draw`, `DrawIndexed` and indirect variants) or null.
+- Shaders: `[GraphicsShader<T>]` and `[ComputeShader<T>]` on a `partial` property make the source generator emit a property that creates the shader through `IGraphicsModule.Get()`. `IGraphicsShader.Bind(ctx)` returns an `IGraphicsBindContext` (`Push`, `WriteBuffer`, `Draw`, `DrawIndexed`, and the indirect variants `DrawIndirect`, `DrawIndirectCount`, `DrawIndexedIndirect` and `DrawIndexedIndirectCount`, which take the byte stride between commands and need `IDevice.SupportsIndirectRendering`) or null.
 
 Resource handles (`Graphics/ResourceHandle.cs`, `Graphics/BindlessData.cs`):
 

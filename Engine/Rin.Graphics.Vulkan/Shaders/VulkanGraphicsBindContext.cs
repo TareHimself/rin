@@ -62,16 +62,42 @@ public class VulkanGraphicsBindContext(CompiledGraphicsShader shader, VulkanExec
         return this;
     }
 
+    public IGraphicsBindContext DrawIndirect(in DeviceBufferView commands, uint drawCount, uint stride,
+        uint commandsOffset = 0)
+    {
+        var vulkanCommands = ResolveIndirectBuffer(commands, "Indirect command buffer");
+        UpdatePendingSets();
+
+        vkCmdDrawIndirect(ExecutionContext.CommandBuffer,
+            vulkanCommands.NativeBuffer, commands.Offset + commandsOffset,
+            drawCount, stride);
+
+        return this;
+    }
+
+    public IGraphicsBindContext DrawIndirectCount(in DeviceBufferView commands, in DeviceBufferView drawCount,
+        uint maxDrawCount, uint stride, uint commandsOffset = 0, uint drawCountOffset = 0)
+    {
+        var vulkanCommands = ResolveIndirectBuffer(commands, "Indirect command buffer");
+        var vulkanDrawCount = ResolveIndirectBuffer(drawCount, "Draw count buffer");
+        UpdatePendingSets();
+
+        vkCmdDrawIndirectCount(ExecutionContext.CommandBuffer,
+            vulkanCommands.NativeBuffer, commands.Offset + commandsOffset,
+            vulkanDrawCount.NativeBuffer, drawCount.Offset + drawCountOffset,
+            maxDrawCount, stride);
+
+        return this;
+    }
+
     public IGraphicsBindContext DrawIndexedIndirect(in DeviceBufferView commands, uint drawCount, uint stride,
         uint commandsOffset = 0)
     {
-        Debug.Assert(commands.IsValid, "Indirect command buffer is not valid");
-        var vulkanCommands = VulkanGraphicsModule.Get().ResolveBuffer(commands.Buffer);
-        Debug.Assert(vulkanCommands is not null, "Buffer handle is not resolvable");
+        var vulkanCommands = ResolveIndirectBuffer(commands, "Indirect command buffer");
         UpdatePendingSets();
 
         vkCmdDrawIndexedIndirect(ExecutionContext.CommandBuffer,
-            vulkanCommands!.NativeBuffer, commands.Offset,
+            vulkanCommands.NativeBuffer, commands.Offset + commandsOffset,
             drawCount, stride);
 
         return this;
@@ -80,21 +106,26 @@ public class VulkanGraphicsBindContext(CompiledGraphicsShader shader, VulkanExec
     public IGraphicsBindContext DrawIndexedIndirectCount(in DeviceBufferView commands, in DeviceBufferView drawCount,
         uint maxDrawCount, uint stride, uint commandsOffset = 0, uint drawCountOffset = 0)
     {
-        Debug.Assert(commands.IsValid, "Indirect command buffer is not valid");
-
-        Debug.Assert(drawCount.IsValid, "Draw count buffer is not valid");
-
-        var vulkanCommands = VulkanGraphicsModule.Get().ResolveBuffer(commands.Buffer);
-        var vulkanDrawCount = VulkanGraphicsModule.Get().ResolveBuffer(drawCount.Buffer);
-        Debug.Assert(vulkanCommands is not null && vulkanDrawCount is not null, "Buffer handle is not resolvable");
+        var vulkanCommands = ResolveIndirectBuffer(commands, "Indirect command buffer");
+        var vulkanDrawCount = ResolveIndirectBuffer(drawCount, "Draw count buffer");
         UpdatePendingSets();
 
         vkCmdDrawIndexedIndirectCount(ExecutionContext.CommandBuffer,
-            vulkanCommands!.NativeBuffer, commands.Offset,
-            vulkanDrawCount!.NativeBuffer,
-            drawCount.Offset, maxDrawCount, (uint)Utils.ByteSizeOf<VkDrawIndexedIndirectCommand>());
+            vulkanCommands.NativeBuffer, commands.Offset + commandsOffset,
+            vulkanDrawCount.NativeBuffer, drawCount.Offset + drawCountOffset,
+            maxDrawCount, stride);
 
         return this;
+    }
+
+    private static IVulkanDeviceBuffer ResolveIndirectBuffer(in DeviceBufferView view, string role)
+    {
+        var module = VulkanGraphicsModule.Get();
+        Debug.Assert(module.CurrentDevice.SupportsIndirectRendering, "The device does not support indirect rendering");
+        Debug.Assert(view.IsValid, $"{role} is not valid");
+        var buffer = module.ResolveBuffer(view.Buffer);
+        Debug.Assert(buffer is not null, $"{role} handle is not resolvable");
+        return buffer!;
     }
 
     protected override IShader GetShader()
