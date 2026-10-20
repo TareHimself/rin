@@ -95,6 +95,18 @@ public static class QuadExtensions
         return commandList.AddQuads(Quad.CubicCurve(transform, begin, controlA, end, controlB, thickness, color));
     }
 
+    /// <summary>
+    ///     A rect blending from <paramref name="from" /> at <paramref name="begin" /> to <paramref name="to" /> at
+    ///     <paramref name="end" />, both in the rect's 0 to 1 UV space. The default runs top to bottom.
+    /// </summary>
+    public static CommandList AddGradient(this CommandList commandList, in Matrix4x4 transform, in Vector2 size,
+        in Color from, in Color to, in Vector2? begin = null, in Vector2? end = null,
+        in BorderRadius? borderRadius = null)
+    {
+        return commandList.AddQuads(Quad.Gradient(transform, size, from, to, begin ?? Vector2.Zero,
+            end ?? Vector2.UnitY, borderRadius));
+    }
+
     public static CommandList AddTexture(this CommandList commandList, in ResourceHandle imageHandle,
         in Matrix4x4 transform,
         in Vector2 size, in Color? tint = null, in Vector4? uv = null,
