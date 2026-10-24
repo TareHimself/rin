@@ -38,7 +38,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     private IntPtr _allocator;
 
     private int _bufferCount;
-    private IRenderData[] _collected = [];
+    private readonly TripleBuffer<IRenderData[]> _collected = new();
     private VkDebugUtilsMessengerEXT _debugUtilsMessenger;
     private DescriptorAllocator? _descriptorAllocator;
     private VkDevice _device;
@@ -90,6 +90,12 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         }
 
         _windows.Clear();
+        // Dispose is idempotent by .NET convention, so this may double-dispose whatever Execute already
+        // consumed and disposed on its last call -- harmless, and the only way to also catch a value that
+        // was written but never read before shutdown.
+        foreach (var pending in _collected.RemainingValues)
+            if (pending != null)
+                DisposeCollected(pending);
         _backgroundTaskQueue.Dispose();
         _descriptorAllocator?.Dispose();
         _shaderManager?.Dispose();
@@ -212,7 +218,18 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             if (renderer.Collect() is { } context)
                 collected.Add(context);
 
-        _collected = collected.ToArray();
+        // If render hasn't caught up to the last collection, it was skipped entirely -- dispose it.
+        var discarded = _collected.Write(collected.ToArray());
+        if (discarded != null) DisposeCollected(discarded);
+    }
+
+    // IRenderData isn't IDisposable today, but a renderer may return a disposable implementation later
+    // (e.g. one holding a staging allocation) -- dispose it if we're about to drop it on the floor.
+    private static void DisposeCollected(IRenderData[] batch)
+    {
+        foreach (var context in batch)
+            if (context is IDisposable disposable)
+                disposable.Dispose();
     }
 
     public int MaxFramerate => _frameLimiter.MaxFramerate;
@@ -229,7 +246,11 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             HandlePendingGraphicsSubmits();
         }
 
-        foreach (var context in _collected) context.Renderer.Execute(context);
+        if (_collected.TryRead(out var batch) && batch != null)
+        {
+            foreach (var context in batch) context.Renderer.Execute(context);
+            DisposeCollected(batch);
+        }
 
         FlushPendingWrites();
     }

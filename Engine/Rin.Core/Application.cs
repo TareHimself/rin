@@ -9,8 +9,9 @@ namespace Rin.Core;
 
 public abstract class Application : IApplication
 {
-    private readonly AutoResetEvent _mainUpdateEvent = new(false);
-    private readonly AutoResetEvent _renderFinishedEvent = new(true);
+    // Purely a wake signal for the render thread -- the actual frame data flows through a lock-free
+    // triple buffer, so this never gates or blocks the main thread.
+    private readonly AutoResetEvent _collectedEvent = new(false);
 
     private readonly DateTime _startTime = DateTime.UtcNow;
     private IAudioModule? _audioModule;
@@ -70,17 +71,11 @@ public abstract class Application : IApplication
             Profiling.End("Engine.Update");
 
             Profiling.Measure("Engine.PostUpdate", OnPostUpdate);
-            
-            // 3ms here is arbitrary
-            if (_renderFinishedEvent.WaitOne(TimeSpan.FromMilliseconds(3)))
-            {
-                Profiling.Measure("Engine.Collect", OnCollect);
-                // Only wake the render thread for newly collected data, it must never run the same data twice.
-                _mainUpdateEvent.Set();
-            }
+            Profiling.Measure("Engine.Collect", OnCollect);
+            _collectedEvent.Set();
         }
 
-        _mainUpdateEvent.Set();
+        _collectedEvent.Set();
         _renderTask.Join();
     }
 
@@ -181,13 +176,12 @@ public abstract class Application : IApplication
     {
         while (!_exitRequested)
         {
-            _mainUpdateEvent.WaitOne();
+            _collectedEvent.WaitOne();
             if (_exitRequested) return;
             RenderDispatcher.DispatchPending();
             Profiling.Measure("Engine.PreRender", OnPreRender);
             Profiling.Measure("Engine.Rendering", OnRender);
             Profiling.Measure("Engine.PostRender", OnPostRender);
-            _renderFinishedEvent.Set();
         }
     }
 }
