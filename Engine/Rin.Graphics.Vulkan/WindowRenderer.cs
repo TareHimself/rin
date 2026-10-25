@@ -31,6 +31,7 @@ public class WindowRenderer : IWindowRenderer
     private bool _dirty;
     private bool _disposed;
     private Frame[] _frames = [];
+    private ulong _framesCollected;
     private ulong _framesRendered;
     public FrozenDictionary<uint, DescriptorSet> GlobalDescriptors = FrozenDictionary<uint, DescriptorSet>.Empty;
     private VkSemaphore[] _renderSemaphores = [];
@@ -348,11 +349,6 @@ public class WindowRenderer : IWindowRenderer
         }
     }
 
-    private Frame GetCurrentFrame()
-    {
-        return _frames[_framesRendered % _framesInFlight.Current];
-    }
-
     private static void CheckResult(VkResult result)
     {
         switch (result)
@@ -376,11 +372,10 @@ public class WindowRenderer : IWindowRenderer
     public IRenderData? DoCollect()
     {
         if (_disposed) return null;
-
-        var frame = GetCurrentFrame();
-
-
         if (OnCollect == null) return null;
+
+        var frame = _frames[_framesCollected % _framesInFlight.Current];
+        _framesCollected++;
 
         var extent = _window.GetSize();
 
