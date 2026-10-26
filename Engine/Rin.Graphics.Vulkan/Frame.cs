@@ -108,7 +108,6 @@ public class Frame : IDisposable
         OnReset?.Invoke(this);
         OnReset = null;
         _descriptorAllocator.ClearPools();
-        var r = _device.ResetFences(_renderFence);
-        if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");
+        _device.ResetFences(_renderFence).ThrowIfFailed(nameof(VulkanExtensions.ResetFences));
     }
 }

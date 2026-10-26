@@ -8,7 +8,7 @@ public class SlangBlob : IDisposable
 
     public unsafe SlangBlob()
     {
-        _ptr = Native.slangBlobNew();
+        _ptr = Native.BlobNew();
     }
 
     public unsafe SlangBlob(void* ptr)

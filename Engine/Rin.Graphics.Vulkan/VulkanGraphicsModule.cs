@@ -61,6 +61,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
 
     private VkQueue _transferQueue;
     private uint _transferQueueFamily;
+    private VkQueue _computeQueue;
+    private uint _computeQueueFamily;
 
     public void Start(IApplication app)
     {
@@ -263,16 +265,21 @@ public partial class VulkanGraphicsModule : IGraphicsModule
 
         Update(0);
 
-        var result = new Native.VulkanInitResult();
-        Native.createVulkanInstance(window.GetHandle(), &result);
+        var result = Native.CreateVulkanInstance(window.GetHandle());
         _instance = result.instance;
         _device = result.device;
         _physicalDevice = result.physicalDevice;
-        _currentDevice = new VulkanDevice { SupportsIndirectRendering = result.supportsIndirectRendering };
+        _currentDevice = new VulkanDevice
+        {
+            SupportsIndirectRendering = result.supportsIndirectRendering,
+            SupportsDedicatedCompute = result.supportsDedicatedCompute
+        };
         _graphicsQueue = result.graphicsQueue;
         _graphicsQueueFamily = result.graphicsQueueFamily;
         _transferQueue = result.transferQueue;
         _transferQueueFamily = result.transferQueueFamily;
+        _computeQueue = result.computeQueue;
+        _computeQueueFamily = result.computeQueueFamily;
         _debugUtilsMessenger = result.messenger;
 
         var formats = _physicalDevice.GetSurfaceFormats(result.surface).Where(c =>
@@ -294,8 +301,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         _graphicsCommandBuffer = _device.AllocateCommandBuffers(_graphicsCommandPool).First();
 
         _samplerFactory = new SamplerFactory(_device);
-        _allocator = Native.allocatorCreate(_instance, _device,
-            _physicalDevice);
+        _allocator = Native.CreateAllocator(_instance, _device, _physicalDevice);
         _shaderManager = new CompiledShaderManager();
         InitBindlessResources();
         _instance.DestroySurface(result.surface);
@@ -360,6 +366,16 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         return _transferQueue;
     }
 
+    public VkQueue GetComputeQueue()
+    {
+        return _computeQueue;
+    }
+
+    public uint GetComputeQueueFamily()
+    {
+        return _computeQueueFamily;
+    }
+
 
     public VkPhysicalDevice GetPhysicalDevice()
     {
@@ -404,7 +420,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     private IWindow Internal_CreateWindow(string name, in Extent2D extent, WindowFlags flags = WindowFlags.None,
         IWindow? parent = null)
     {
-        var handle = Native.platformWindowCreate(name, extent, flags);
+        var handle = Native.CreateWindow(name, extent, flags);
 
         var win = new RinWindow(handle, parent);
 
@@ -440,9 +456,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             VkBuffer buffer = new();
             var allocation = IntPtr.Zero;
 
-            Native.allocatorNewBuffer(&buffer, ref allocation, size, _allocator, sequentialWrite ? 1 : 0,
-                preferHost ? 1 : 0,
-                (int)usageFlags, (int)propertyFlags, mapped ? 1 : 0, debugName);
+            Native.NewBuffer(&buffer, ref allocation, size, _allocator, sequentialWrite, preferHost, usageFlags,
+                propertyFlags, mapped, debugName);
 
             return new VulkanDeviceBuffer(buffer, size, allocation, _allocator);
         }
@@ -511,7 +526,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                             waitSemaphoreInfoCount = (uint)waitSemaphores.Length
                         };
 
-                        vkQueueSubmit2(queue, 1, &submit, fence);
+                        vkQueueSubmit2(queue, 1, &submit, fence).ThrowIfFailed(nameof(vkQueueSubmit2));
                     }
                 }
             }
@@ -539,7 +554,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         unsafe
         {
             VkImageView view;
-            vkCreateImageView(_device, &createInfo, null, &view);
+            vkCreateImageView(_device, &createInfo, null, &view).ThrowIfFailed(nameof(vkCreateImageView));
             return view;
         }
     }
@@ -644,7 +659,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             var imageCreateInfo = MakeImageCreateInfo(format, extent3D, usage);
             VkImage image = new();
             var allocation = IntPtr.Zero;
-            Native.allocatorNewImage(ref image, ref allocation, &imageCreateInfo, _allocator, "Texture");
+            Native.NewImage(ref image, ref allocation, &imageCreateInfo, _allocator, "Texture");
             var viewCreateInfo = MakeImageViewCreateInfo(format, image, format.ToAspectFlags());
 
             viewCreateInfo.subresourceRange.layerCount = imageCreateInfo.arrayLayers;
@@ -683,7 +698,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             imageCreateInfo.imageType = VkImageType.VK_IMAGE_TYPE_2D;
             VkImage image = new();
             var allocation = IntPtr.Zero;
-            Native.allocatorNewImage(ref image, ref allocation, &imageCreateInfo, _allocator, "Texture");
+            Native.NewImage(ref image, ref allocation, &imageCreateInfo, _allocator, "Texture");
             var viewCreateInfo = MakeImageViewCreateInfo(format, image, format.ToAspectFlags());
             viewCreateInfo.subresourceRange.layerCount = imageCreateInfo.arrayLayers;
             viewCreateInfo.subresourceRange.levelCount = imageCreateInfo.mipLevels;
@@ -720,7 +735,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             imageCreateInfo.imageType = VkImageType.VK_IMAGE_TYPE_2D;
             VkImage image = new();
             var allocation = IntPtr.Zero;
-            Native.allocatorNewImage(ref image, ref allocation, &imageCreateInfo, _allocator, "Texture");
+            Native.NewImage(ref image, ref allocation, &imageCreateInfo, _allocator, "Texture");
             var viewCreateInfo = MakeImageViewCreateInfo(format, image, format.ToAspectFlags());
 
             viewCreateInfo.subresourceRange.layerCount = imageCreateInfo.arrayLayers;
@@ -766,14 +781,14 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             fixed (VkFence* pFences = &_graphicsFence)
             {
                 var cmd = _graphicsCommandBuffer;
-                vkResetCommandBuffer(cmd, 0);
+                vkResetCommandBuffer(cmd, 0).ThrowIfFailed(nameof(vkResetCommandBuffer));
                 var beginInfo =
                     MakeCommandBufferBeginInfo(VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-                vkBeginCommandBuffer(cmd, &beginInfo);
+                vkBeginCommandBuffer(cmd, &beginInfo).ThrowIfFailed(nameof(vkBeginCommandBuffer));
 
                 record(cmd);
 
-                vkEndCommandBuffer(cmd);
+                vkEndCommandBuffer(cmd).ThrowIfFailed(nameof(vkEndCommandBuffer));
 
                 var bufferSubmitInfo = new VkCommandBufferSubmitInfo
                 {
@@ -785,11 +800,8 @@ public partial class VulkanGraphicsModule : IGraphicsModule
                 SubmitToQueue(_graphicsQueue, _graphicsFence,
                     new ReadOnlySpan<VkCommandBufferSubmitInfo>(&bufferSubmitInfo, 1), semaphores, semaphores);
 
-                vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue);
-
-                var r = vkResetFences(_device, 1, pFences);
-
-                if (r != VkResult.VK_SUCCESS) throw new Exception("Failed to reset fences");
+                vkWaitForFences(_device, 1, pFences, 1, ulong.MaxValue).ThrowIfFailed(nameof(vkWaitForFences));
+                vkResetFences(_device, 1, pFences).ThrowIfFailed(nameof(vkResetFences));
             }
         }
     }

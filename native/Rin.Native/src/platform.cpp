@@ -7,20 +7,22 @@
 #include <shlobj.h>
 #include <combaseapi.h>
 
-void platformInit()
+static void initPlatform()
 {
-    CoInitializeEx(nullptr,COINIT::COINIT_MULTITHREADED);
+    const auto hr = CoInitializeEx(nullptr,COINIT::COINIT_MULTITHREADED);
+    // RPC_E_CHANGED_MODE means the host already initialised COM in another mode, which still works for dialogs.
+    require(SUCCEEDED(hr) || hr == RPC_E_CHANGED_MODE, CoreResult::PlatformError);
 }
 
-void platformShutdown()
+static void shutdownPlatform()
 {
 
 }
 
-void platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback,void*userData)
+static void selectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback,void*userData)
 {
     IFileOpenDialog* fd;
-    if(SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&fd))))
+    require(SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&fd))), CoreResult::PlatformError);
     {
         DWORD options;
 
@@ -118,10 +120,10 @@ void platformSelectFile(const char* title, bool multiple, const char* filter, Pa
     }
 }
 
-void platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback,void*userData)
+static void selectPath(const char* title, bool multiple, PathReceivedCallback callback,void*userData)
 {
     IFileOpenDialog* fd;
-    if(SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog,NULL,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&fd))))
+    require(SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog,NULL,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&fd))), CoreResult::PlatformError);
     {
         DWORD options;
 
@@ -220,10 +222,10 @@ void platformSelectPath(const char* title, bool multiple, PathReceivedCallback c
 #include <linux/input-event-codes.h>
 #include <sys/mman.h>
 
-void platformInit() {
+static void initPlatform() {
 }
 
-void platformShutdown() {
+static void shutdownPlatform() {
 
 }
 
@@ -249,7 +251,7 @@ static void runZenityCommand(std::ostringstream& command, bool multiple,const ch
 
     auto cmd = command.str();
     FILE *pipe = popen(command.str().c_str(), "r");
-    if (!pipe) return;
+    require(pipe != nullptr, CoreResult::PlatformError);
 
     std::string result;
     char buffer[4096];
@@ -275,7 +277,7 @@ static void runZenityCommand(std::ostringstream& command, bool multiple,const ch
     }
 }
 
-void platformSelectFile(const char *title, bool multiple, const char *filter,
+static void selectFile(const char *title, bool multiple, const char *filter,
                                     PathReceivedCallback callback,void*userData) {
     std::ostringstream cmd;
     cmd << "zenity --file-selection";
@@ -287,7 +289,7 @@ void platformSelectFile(const char *title, bool multiple, const char *filter,
     runZenityCommand(cmd, multiple,filter, callback,userData);
 }
 
-void platformSelectPath(const char *title, bool multiple, PathReceivedCallback callback,void*userData) {
+static void selectPath(const char *title, bool multiple, PathReceivedCallback callback,void*userData) {
     std::ostringstream cmd;
     cmd << "zenity --file-selection --directory";
     if (multiple)
@@ -303,20 +305,48 @@ void platformSelectPath(const char *title, bool multiple, PathReceivedCallback c
 
 #ifdef RIN_PLATFORM_MAC
 
-void platformInit()
+static void initPlatform()
 {
 
 }
-void platformShutdown()
+static void shutdownPlatform()
 {
 
 }
-void platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback,void*userData)
+static void selectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback,void*userData)
 {
 
 }
-void platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback,void*userData)
+static void selectPath(const char* title, bool multiple, PathReceivedCallback callback,void*userData)
 {
 
 }
 #endif
+
+CoreResult platformInit()
+{
+    return guarded([&] { initPlatform(); });
+}
+
+void platformShutdown()
+{
+    shutdownPlatform();
+}
+
+CoreResult platformSelectFile(const char* title, bool multiple, const char* filter, PathReceivedCallback callback, void* userData)
+{
+    return guarded([&]
+    {
+        require(title != nullptr && callback != nullptr, CoreResult::InvalidArgument);
+        selectFile(title, multiple, filter, callback, userData);
+    });
+}
+
+CoreResult platformSelectPath(const char* title, bool multiple, PathReceivedCallback callback, void* userData)
+{
+    return guarded([&]
+    {
+        require(title != nullptr && callback != nullptr, CoreResult::InvalidArgument);
+        selectPath(title, multiple, callback, userData);
+    });
+}

@@ -110,7 +110,7 @@ public class DescriptorAllocator : IDisposable
         }
 
         VkDescriptorPool pool;
-        vkCreateDescriptorPool(_device, &poolInfo, null, &pool);
+        vkCreateDescriptorPool(_device, &poolInfo, null, &pool).ThrowIfFailed(nameof(vkCreateDescriptorPool));
         return new DescriptorPool(_device, pool);
     }
 

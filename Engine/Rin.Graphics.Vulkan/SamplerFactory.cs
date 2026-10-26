@@ -46,7 +46,7 @@ public class SamplerFactory : Factory<VkSampler, SamplerSpec, SamplerSpec>
 
         unsafe
         {
-            vkCreateSampler(_device, &samplerCreateInfo, null, &sampler);
+            vkCreateSampler(_device, &samplerCreateInfo, null, &sampler).ThrowIfFailed(nameof(vkCreateSampler));
         }
 
         return sampler;

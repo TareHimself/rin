@@ -4,7 +4,7 @@ public static class Memory
 {
     public static IntPtr Allocate(ulong size)
     {
-        return Native.memoryAllocate(size);
+        return Native.Allocate(size);
     }
 
     public static void Set(IntPtr ptr, int value, ulong size)

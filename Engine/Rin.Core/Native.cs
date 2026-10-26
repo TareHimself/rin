@@ -19,8 +19,75 @@ internal static partial class Native
 
     
 
+    // Mirrors CoreResult in native/Rin.Native/src/result.hpp. Keep the two in sync.
+    public enum CoreResult
+    {
+        Ok = 0,
+        InvalidArgument,
+        OutOfMemory,
+        PlatformError
+    }
+
+    private static void Check(CoreResult result, string function)
+    {
+        if (result != CoreResult.Ok) throw new NativeException(DllName, function, result);
+    }
+
+    public static IntPtr Allocate(ulong size)
+    {
+        var pointer = memoryAllocate(size);
+        if (pointer == IntPtr.Zero && size != 0)
+            throw new OutOfMemoryException($"{nameof(memoryAllocate)} of {size} bytes failed");
+        return pointer;
+    }
+
+    public static IntPtr NewSdfContext()
+    {
+        var context = IntPtr.Zero;
+        Check(sdfContextNew(ref context), nameof(sdfContextNew));
+        return context;
+    }
+
+    public static unsafe void GenerateMtsdf(IntPtr context, float angleThreshold, float pixelRange,
+        delegate* unmanaged<IntPtr, uint, uint, uint, double, double, IntPtr, void> callback, IntPtr userData)
+    {
+        Check(sdfContextGenerateMTSDF(context, angleThreshold, pixelRange, callback, userData),
+            nameof(sdfContextGenerateMTSDF));
+    }
+
+    public static IntPtr CreateVideoContext()
+    {
+        var context = IntPtr.Zero;
+        Check(videoContextCreate(ref context), nameof(videoContextCreate));
+        return context;
+    }
+
+    public static unsafe IntPtr CreateVideoSource(VideoSourceCallbacks* callbacks)
+    {
+        var source = IntPtr.Zero;
+        Check(videoSourceCreate(callbacks, ref source), nameof(videoSourceCreate));
+        return source;
+    }
+
+    public static void PlatformInit()
+    {
+        Check(platformInit(), nameof(platformInit));
+    }
+
+    public static unsafe void SelectFile(string title, bool multiple, string filter,
+        delegate* unmanaged<char*, IntPtr, void> pathCallback, IntPtr userData)
+    {
+        Check(platformSelectFile(title, multiple, filter, pathCallback, userData), nameof(platformSelectFile));
+    }
+
+    public static unsafe void SelectPath(string title, bool multiple,
+        delegate* unmanaged<char*, IntPtr, void> pathCallback, IntPtr userData)
+    {
+        Check(platformSelectPath(title, multiple, pathCallback, userData), nameof(platformSelectPath));
+    }
+
     [LibraryImport(DllName)]
-    public static partial IntPtr memoryAllocate(ulong size);
+    private static partial IntPtr memoryAllocate(ulong size);
 
     [LibraryImport(DllName)]
     public static partial void memorySet(IntPtr ptr, int value, ulong size);
@@ -29,7 +96,7 @@ internal static partial class Native
     public static partial void memoryFree(IntPtr ptr);
 
     [LibraryImport(DllName)]
-    public static partial IntPtr sdfContextNew();
+    private static partial CoreResult sdfContextNew(ref IntPtr outContext);
 
     [LibraryImport(DllName)]
     public static partial void sdfContextFree(IntPtr context);
@@ -57,11 +124,12 @@ internal static partial class Native
     public static partial void sdfContextFinish(IntPtr context);
     
     [LibraryImport(DllName)]
-    public static unsafe partial void sdfContextGenerateMTSDF(IntPtr context, float angleThreshold, float pixelRange,
-        delegate* unmanaged<IntPtr, uint, uint,uint,double,double,IntPtr, void> callback,IntPtr userData);
+    private static unsafe partial CoreResult sdfContextGenerateMTSDF(IntPtr context, float angleThreshold,
+        float pixelRange, delegate* unmanaged<IntPtr, uint, uint, uint, double, double, IntPtr, void> callback,
+        IntPtr userData);
 
     [LibraryImport(DllName)]
-    public static partial IntPtr videoContextCreate();
+    private static partial CoreResult videoContextCreate(ref IntPtr outContext);
 
     [LibraryImport(DllName)]
     public static partial int videoContextHasVideo(IntPtr context);
@@ -151,23 +219,24 @@ internal static partial class Native
     }
 
     [LibraryImport(DllName)]
-    public static unsafe partial IntPtr videoSourceCreate(VideoSourceCallbacks* callbacks);
+    private static unsafe partial CoreResult videoSourceCreate(VideoSourceCallbacks* callbacks, ref IntPtr outSource);
 
     [LibraryImport(DllName)]
     public static partial void videoSourceFree(IntPtr source);
 
     [LibraryImport(DllName)]
-    public static partial void platformInit();
+    private static partial CoreResult platformInit();
 
     [LibraryImport(DllName)]
     public static partial void platformShutdown();
     
-    [LibraryImport(DllName,StringMarshalling = StringMarshalling.Utf8)]
-    public static unsafe partial void platformSelectFile(string title,
-        [MarshalAs(UnmanagedType.I1)] bool multiple,string filter,
-        delegate* unmanaged<char*,IntPtr, void> pathCallback,IntPtr userData);
+    [LibraryImport(DllName, StringMarshalling = StringMarshalling.Utf8)]
+    private static unsafe partial CoreResult platformSelectFile(string title,
+        [MarshalAs(UnmanagedType.I1)] bool multiple, string filter,
+        delegate* unmanaged<char*, IntPtr, void> pathCallback, IntPtr userData);
 
     [LibraryImport(DllName, StringMarshalling = StringMarshalling.Utf8)]
-    public static unsafe partial void platformSelectPath(string title,
-        [MarshalAs(UnmanagedType.I1)] bool multiple,delegate* unmanaged<char*,IntPtr, void> pathCallback,IntPtr userData); 
+    private static unsafe partial CoreResult platformSelectPath(string title,
+        [MarshalAs(UnmanagedType.I1)] bool multiple, delegate* unmanaged<char*, IntPtr, void> pathCallback,
+        IntPtr userData);
 }

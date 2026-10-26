@@ -12,8 +12,15 @@ public static unsafe class NativeFake
 {
     private static readonly ConcurrentDictionary<nint, int> BlobSizes = new();
 
+    // 0 is Ok in SlangNativeResult; the fake never fails.
+    private const int Ok = 0;
+
     [UnmanagedCallersOnly(EntryPoint = "slangSessionBuilderNew")]
-    public static void* SlangSessionBuilderNew() => NativeMemory.Alloc(1);
+    public static int SlangSessionBuilderNew(void** outBuilder)
+    {
+        *outBuilder = NativeMemory.Alloc(1);
+        return Ok;
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "slangSessionBuilderAddTargetSpirv")]
     public static void SlangSessionBuilderAddTargetSpirv(void* builder)
@@ -36,24 +43,40 @@ public static unsafe class NativeFake
     }
 
     [UnmanagedCallersOnly(EntryPoint = "slangSessionBuilderBuild")]
-    public static void* SlangSessionBuilderBuild(void* builder) => NativeMemory.Alloc(1);
+    public static int SlangSessionBuilderBuild(void* builder, void** outSession)
+    {
+        *outSession = NativeMemory.Alloc(1);
+        return Ok;
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "slangSessionBuilderFree")]
     public static void SlangSessionBuilderFree(void* builder) => NativeMemory.Free(builder);
 
     [UnmanagedCallersOnly(EntryPoint = "slangSessionLoadModuleFromSourceString")]
-    public static void* SlangSessionLoadModuleFromSourceString(void* session, byte* moduleName, byte* path,
-        byte* content, void* outDiagnostics) => NativeMemory.Alloc(1);
+    public static int SlangSessionLoadModuleFromSourceString(void* session, byte* moduleName, byte* path,
+        byte* content, void* outDiagnostics, void** outModule)
+    {
+        *outModule = NativeMemory.Alloc(1);
+        return Ok;
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "slangSessionCreateComposedProgram")]
-    public static void* SlangSessionCreateComposedProgram(void* session, void* module, nuint* entryPoints,
-        int entryPointsCount, void* outDiagnostics) => NativeMemory.Alloc(1);
+    public static int SlangSessionCreateComposedProgram(void* session, void* module, nuint* entryPoints,
+        int entryPointsCount, void* outDiagnostics, void** outComponent)
+    {
+        *outComponent = NativeMemory.Alloc(1);
+        return Ok;
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "slangSessionFree")]
     public static void SlangSessionFree(void* session) => NativeMemory.Free(session);
 
     [UnmanagedCallersOnly(EntryPoint = "slangModuleFindEntryPointByName")]
-    public static void* SlangModuleFindEntryPointByName(void* module, byte* name) => NativeMemory.Alloc(1);
+    public static int SlangModuleFindEntryPointByName(void* module, byte* name, void** outEntryPoint)
+    {
+        *outEntryPoint = NativeMemory.Alloc(1);
+        return Ok;
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "slangEntryPointFree")]
     public static void SlangEntryPointFree(void* entryPoint) => NativeMemory.Free(entryPoint);
@@ -62,34 +85,44 @@ public static unsafe class NativeFake
     public static void SlangModuleFree(void* module) => NativeMemory.Free(module);
 
     [UnmanagedCallersOnly(EntryPoint = "slangComponentGetEntryPointCode")]
-    public static void* SlangComponentGetEntryPointCode(void* component, int entryPointIndex, int targetIndex,
-        void* outDiagnostics)
+    public static int SlangComponentGetEntryPointCode(void* component, int entryPointIndex, int targetIndex,
+        void* outDiagnostics, void** outCode)
     {
         var blob = NativeMemory.Alloc(4);
         new Span<byte>(blob, 4).Clear();
         BlobSizes[(nint)blob] = 4;
-        return blob;
+        *outCode = blob;
+        return Ok;
     }
 
     [UnmanagedCallersOnly(EntryPoint = "slangComponentLink")]
-    public static void* SlangComponentLink(void* component, void* outDiagnostics) => NativeMemory.Alloc(1);
+    public static int SlangComponentLink(void* component, void* outDiagnostics, void** outLinked)
+    {
+        *outLinked = NativeMemory.Alloc(1);
+        return Ok;
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "slangComponentToLayoutJson")]
-    public static void* SlangComponentToLayoutJson(void* component)
+    public static int SlangComponentToLayoutJson(void* component, void** outJson)
     {
         var json = "{\"entryPoints\":[{\"name\":\"compute\",\"threadGroupSize\":[1,1,1]}]}"u8;
         var blob = (byte*)NativeMemory.Alloc((nuint)(json.Length + 1));
         json.CopyTo(new Span<byte>(blob, json.Length));
         blob[json.Length] = 0;
         BlobSizes[(nint)blob] = json.Length;
-        return blob;
+        *outJson = blob;
+        return Ok;
     }
 
     [UnmanagedCallersOnly(EntryPoint = "slangComponentFree")]
     public static void SlangComponentFree(void* component) => NativeMemory.Free(component);
 
     [UnmanagedCallersOnly(EntryPoint = "slangBlobNew")]
-    public static void* SlangBlobNew() => NativeMemory.Alloc(1);
+    public static int SlangBlobNew(void** outBlob)
+    {
+        *outBlob = NativeMemory.Alloc(1);
+        return Ok;
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "slangBlobGetSize")]
     public static int SlangBlobGetSize(void* blob) => BlobSizes.TryGetValue((nint)blob, out var size) ? size : 0;

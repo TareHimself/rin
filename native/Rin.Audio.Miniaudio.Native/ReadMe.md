@@ -13,3 +13,5 @@ See [../ReadMe.md](../ReadMe.md) for the packing flow and the `silo sync` and `s
 | miniaudio | 0.11.22 | Linked privately. The package holds one DLL. |
 
 No fake exists for it. CI uses the stub package.
+
+- `audioInit`, every factory (`audioMake*`, `audioSampleMakeActive`, `audioMixerCreate`, `audioMixerPlay`, `audioMixerCreatePushStream`, `audioCreateScene`, `audioScenePlay*`) and `audioMixerAddEffect` return an `AudioResult` from `src/result.hpp` and hand the new handle back through an out parameter. `Native.AudioResult` in `Engine/Rin.Audio.Miniaudio/Native.cs` mirrors the enum. The `audioActive*` play, pause, volume and seek exports still return 1 or 0 for "applied".

@@ -177,7 +177,7 @@ static const VideoTrackInfo& trackInfo(VideoDecodeContext* ctx) {
     return ctx->ready.load(std::memory_order_acquire) ? ctx->info : none;
 }
 
-void * videoContextCreate() {
+static VideoDecodeContext* createVideoContext() {
     const auto ctx = new VideoDecodeContext{};
     ctx->decoder = std::make_shared<wdx::SourceDecoder>();
     ctx->decoder->SetVideoPacketCallback([ctx](const std::shared_ptr<wdx::Packet>& packet, wdx::IVideoDecoder* decoder) {
@@ -357,8 +357,18 @@ void videoContextFree(void *context) {
     delete videoContext;
 }
 
-void * videoSourceCreate(const VideoSourceCallbacks* callbacks) {
-    return new VideoSourceWrapper{std::make_shared<VideoSource>(*callbacks)};
+CoreResult videoContextCreate(void** outContext) {
+    return guarded([&] {
+        require(outContext != nullptr, CoreResult::InvalidArgument);
+        *outContext = createVideoContext();
+    });
+}
+
+CoreResult videoSourceCreate(const VideoSourceCallbacks* callbacks, void** outSource) {
+    return guarded([&] {
+        require(callbacks != nullptr && outSource != nullptr, CoreResult::InvalidArgument);
+        *outSource = new VideoSourceWrapper{std::make_shared<VideoSource>(*callbacks)};
+    });
 }
 
 void videoSourceFree(void *source) {

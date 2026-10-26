@@ -19,7 +19,7 @@ namespace Rin.Graphics.Vulkan;
 /// </summary>
 public class WindowRenderer : IWindowRenderer
 {
-    private readonly CoalescingValue<uint> _framesInFlight = new(1);
+    private readonly CoalescingValue<uint> _framesInFlight = new(2);
 
     private readonly Lock _drawLock = new();
     private readonly VulkanGraphicsModule _module;
@@ -71,10 +71,7 @@ public class WindowRenderer : IWindowRenderer
         else
             _nonVSyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
 
-        if (presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR))
-            _vsyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR;
-        else
-            _vsyncPresentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
+        _vsyncPresentMode = presentModesSet.Contains(VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR) ? VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR : VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
     }
 
     private VkPresentModeKHR PresentMode => VsyncEnabled ? _vsyncPresentMode : _nonVSyncPresentMode;
@@ -89,7 +86,8 @@ public class WindowRenderer : IWindowRenderer
         unsafe
         {
             var surfaceCapabilities = new VkSurfaceCapabilitiesKHR();
-            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities);
+            vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities)
+                .ThrowIfFailed(nameof(vkGetPhysicalDeviceSurfaceCapabilitiesKHR));
             return new Extent2D
             {
                 Width = surfaceCapabilities.currentExtent.width,
@@ -178,8 +176,7 @@ public class WindowRenderer : IWindowRenderer
         var instance = _module.GetInstance();
         var rinWindow = _window as RinWindow ?? throw new NullReferenceException();
         // ReSharper disable once AccessToDisposedClosure
-        var surface = Native.platformWindowCreateSurface(instance, rinWindow.GetHandle());
-        return surface;
+        return Native.CreateSurface(instance, rinWindow.GetHandle());
     }
 
     public uint GetNumFramesInFlight()
@@ -226,7 +223,8 @@ public class WindowRenderer : IWindowRenderer
     private unsafe VkSurfaceCapabilitiesKHR GetSurfaceCapabilities()
     {
         var surfaceCapabilities = new VkSurfaceCapabilitiesKHR();
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_module.GetPhysicalDevice(), _surface, &surfaceCapabilities)
+            .ThrowIfFailed(nameof(vkGetPhysicalDeviceSurfaceCapabilitiesKHR));
         return surfaceCapabilities;
     }
 
@@ -237,7 +235,6 @@ public class WindowRenderer : IWindowRenderer
 
     private unsafe bool CreateSwapchain(Extent2D extent)
     {
-        var actSize = GetRenderExtent();
         var surfaceCapabilities = GetSurfaceCapabilities();
 
         if (surfaceCapabilities.minImageExtent.width > extent.Width ||
@@ -272,17 +269,18 @@ public class WindowRenderer : IWindowRenderer
         };
 
         var swapchain = new VkSwapchainKHR();
-        vkCreateSwapchainKHR(device, &createInfo, null, &swapchain);
+        vkCreateSwapchainKHR(device, &createInfo, null, &swapchain).ThrowIfFailed(nameof(vkCreateSwapchainKHR));
 
         uint imagesCount = 0;
-        vkGetSwapchainImagesKHR(device, swapchain, &imagesCount, null);
+        vkGetSwapchainImagesKHR(device, swapchain, &imagesCount, null).ThrowIfFailed(nameof(vkGetSwapchainImagesKHR));
 
         _swapchainImages = new VkImage[(int)imagesCount];
         _renderSemaphores = Enumerable.Range(0, (int)imagesCount).Select(_ => device.CreateSemaphore()).ToArray();
 
         fixed (VkImage* imagesPtr = _swapchainImages)
         {
-            vkGetSwapchainImagesKHR(device, swapchain, &imagesCount, imagesPtr);
+            vkGetSwapchainImagesKHR(device, swapchain, &imagesCount, imagesPtr)
+                .ThrowIfFailed(nameof(vkGetSwapchainImagesKHR));
         }
 
         _swapchainViews = _swapchainImages.Select(c =>
@@ -290,7 +288,7 @@ public class WindowRenderer : IWindowRenderer
             var viewCreateInfo = VulkanGraphicsModule.MakeImageViewCreateInfo(ImageFormat.Swapchain, c,
                 VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT);
             var view = new VkImageView();
-            vkCreateImageView(device, &viewCreateInfo, null, &view);
+            vkCreateImageView(device, &viewCreateInfo, null, &view).ThrowIfFailed(nameof(vkCreateImageView));
             return view;
         }).ToArray();
         _swapchain = swapchain;
@@ -349,23 +347,16 @@ public class WindowRenderer : IWindowRenderer
         }
     }
 
-    private static void CheckResult(VkResult result)
+    private static void CheckSwapchainResult(VkResult result, string call)
     {
         switch (result)
         {
-            case VkResult.VK_SUCCESS:
-                return;
             case VkResult.VK_ERROR_OUT_OF_DATE_KHR:
             case VkResult.VK_SUBOPTIMAL_KHR:
                 throw new OutOfDateException();
-            case VkResult.VK_ERROR_DEVICE_LOST:
-            {
-                Console.WriteLine("GPU Device Lost");
-                Environment.Exit(1);
-            }
-                break;
             default:
-                throw new Exception(result.ToString());
+                result.ThrowIfFailed(call);
+                return;
         }
     }
 
@@ -409,16 +400,16 @@ public class WindowRenderer : IWindowRenderer
                     builder.AddPass(_prepareForPresentPass);
                     Profiling.End("Engine.Rendering.Graph.Build");
                     var device = _module.GetDevice();
-                    CheckResult(frame.WaitForLastDraw());
+                    frame.WaitForLastDraw().ThrowIfFailed(nameof(Frame.WaitForLastDraw));
 
                     frame.Reset();
                     ResourcePool.OnFrameEnd(_framesRendered);
                     
                     uint swapchainImageIndex = 0;
-                    CheckResult(vkAcquireNextImageKHR(device, _swapchain, ulong.MaxValue,
+                    CheckSwapchainResult(vkAcquireNextImageKHR(device, _swapchain, ulong.MaxValue,
                         frame.GetSwapchainSemaphore(),
                         new VkFence(),
-                        &swapchainImageIndex));
+                        &swapchainImageIndex), nameof(vkAcquireNextImageKHR));
 
                     var swapchainImageHandle = _swapchainImageWrappers[swapchainImageIndex].Handle;
 
@@ -444,7 +435,7 @@ public class WindowRenderer : IWindowRenderer
                     graph.Execute(frame.ExecutionContext);
                     Profiling.End("Engine.Rendering.Graph.Execute");
 
-                    vkEndCommandBuffer(cmd);
+                    vkEndCommandBuffer(cmd).ThrowIfFailed(nameof(vkEndCommandBuffer));
 
                     var queue = _module.GetGraphicsQueue();
 
@@ -489,13 +480,14 @@ public class WindowRenderer : IWindowRenderer
                         pImageIndices = &imIdx
                     };
 
-                    vkQueuePresentKHR(queue, &presentInfo);
+                    var presentResult = vkQueuePresentKHR(queue, &presentInfo);
 
+                    // The submit above owns the fence either way, so the frame is in flight before the result
+                    // decides whether the swapchain has to be rebuilt.
                     frame.Finish();
-
-                    
-
                     _framesRendered++;
+
+                    CheckSwapchainResult(presentResult, nameof(vkQueuePresentKHR));
                 }
             }
             catch (OutOfDateException)

@@ -50,7 +50,7 @@ public class WebmVideoPlayer : IVideoPlayer
     public WebmVideoPlayer(IAudioModule? audioModule = null)
     {
         _audioModule = audioModule ?? IAudioModule.Get();
-        _context = Native.videoContextCreate();
+        _context = Native.CreateVideoContext();
         unsafe
         {
             var handler = new AudioCallbackHandler(AudioCallback);
@@ -380,7 +380,7 @@ public class WebmVideoPlayer : IVideoPlayer
                     ReleaseBefore = &ReleaseBefore,
                     UserData = GCHandle.ToIntPtr(_handle)
                 };
-                NativeSource = Native.videoSourceCreate(&callbacks);
+                NativeSource = Native.CreateVideoSource(&callbacks);
             }
         }
 

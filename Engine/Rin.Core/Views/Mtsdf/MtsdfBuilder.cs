@@ -10,7 +10,7 @@ namespace Rin.Core.Views.Mtsdf;
 /// </summary>
 public class MtsdfBuilder : IDisposable
 {
-    private IntPtr _context = Native.sdfContextNew();
+    private IntPtr _context = Native.NewSdfContext();
 
     public void Dispose()
     {
@@ -100,7 +100,7 @@ public class MtsdfBuilder : IDisposable
             var handle = GCHandle.Alloc(resultContainer, GCHandleType.Normal);
             try
             {
-                Native.sdfContextGenerateMTSDF(_context, angleThreshold, pixelRange,&GenerateCallback,GCHandle.ToIntPtr(handle));
+                Native.GenerateMtsdf(_context, angleThreshold, pixelRange, &GenerateCallback, GCHandle.ToIntPtr(handle));
             }
             finally
             {

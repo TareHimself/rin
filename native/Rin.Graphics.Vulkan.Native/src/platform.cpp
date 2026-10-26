@@ -67,10 +67,15 @@ void platformWindowPump()
     rwin::pumpEvents();
 }
 
-std::uint64_t platformWindowCreate(const char* title, rwin::Extent2D extent, rwin::Flags<rwin::WindowFlags> flags)
+GraphicsResult platformWindowCreate(const char* title, rwin::Extent2D extent, rwin::Flags<rwin::WindowFlags> flags, std::uint64_t* outHandle)
 {
-    const std::string_view titleView{title};
-    return rwin::createWindow(titleView,extent,flags);
+    return guarded([&]
+    {
+        require(title != nullptr && outHandle != nullptr, GraphicsResult::InvalidArgument);
+        const auto handle = rwin::createWindow(std::string_view{title}, extent, flags);
+        require(handle != 0, GraphicsResult::WindowCreationFailed);
+        *outHandle = handle;
+    });
 }
 
 void platformWindowDestroy(std::uint64_t handle)
@@ -103,9 +108,15 @@ rwin::Extent2D platformWindowGetSize(std::uint64_t handle)
     return rwin::getWindowClientSize(handle);
 }
 
-VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, std::uint64_t handle)
+GraphicsResult platformWindowCreateSurface(VkInstance instance, std::uint64_t handle, VkSurfaceKHR* outSurface)
 {
-    return rwin::createSurface(handle,instance);
+    return guarded([&]
+    {
+        require(instance != VK_NULL_HANDLE && outSurface != nullptr, GraphicsResult::InvalidArgument);
+        const auto surface = rwin::createSurface(handle, instance);
+        require(surface != VK_NULL_HANDLE, GraphicsResult::SurfaceCreationFailed);
+        *outSurface = surface;
+    });
 }
 
 int platformWindowGetEvents(rwin::WindowEvent* output, int size)

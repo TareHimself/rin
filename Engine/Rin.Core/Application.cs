@@ -107,7 +107,7 @@ public abstract class Application : IApplication
             var handle = GCHandle.Alloc(resultContainer, GCHandleType.Normal);
             try
             {
-                Native.platformSelectFile(title, multiple, filter,&PlatformSelectCallback,GCHandle.ToIntPtr(handle));
+                Native.SelectFile(title, multiple, filter, &PlatformSelectCallback, GCHandle.ToIntPtr(handle));
             }
             finally
             {
@@ -125,7 +125,7 @@ public abstract class Application : IApplication
             var handle = GCHandle.Alloc(resultContainer, GCHandleType.Normal);
             try
             {
-                Native.platformSelectPath(title, multiple,&PlatformSelectCallback,GCHandle.ToIntPtr(handle));
+                Native.SelectPath(title, multiple, &PlatformSelectCallback, GCHandle.ToIntPtr(handle));
             }
             finally
             {
@@ -149,7 +149,7 @@ public abstract class Application : IApplication
 
     protected virtual void InitializePlatform()
     {
-        Native.platformInit();
+        Native.PlatformInit();
     }
 
     protected virtual void ShutdownPlatform()

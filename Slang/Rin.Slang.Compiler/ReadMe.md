@@ -10,3 +10,4 @@ dotnet test Slang/Rin.Slang.Compiler.Tests/Rin.Slang.Compiler.Tests.csproj
 References: `Rin.Slang` (project reference when `DepMode` is `local_file`, package when `online`) and the `TareHimself.Rin.Slang.Native` package. Used by `Rin.Slang.Cli`, `Shade/Rin.Shade.MSBuild` and `Shade/Rin.Shade.CpuTests`. Tested by [Rin.Slang.Compiler.Tests](../Rin.Slang.Compiler.Tests/ReadMe.md).
 
 - Restore needs a `TareHimself.Rin.Slang.Native` package in `.feed/`. A stub restores fine but contains no Slang, so real compilation needs the real package (or the fake, for tests). See [native/ReadMe.md](../../native/ReadMe.md).
+- The wrapper classes (`SlangSession`, `SlangModule`, `SlangComponent`) return null when the native call reports a shader problem (`CompileFailed`, `EntryPointNotFound`, `CompositionFailed`, `LinkFailed`), with the compiler output in the diagnostics blob. Every other `SlangNativeResult` throws `SlangNativeException`.

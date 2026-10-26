@@ -6,6 +6,7 @@
 #include <string>
 #include <cstddef>
 #include "macro.hpp"
+#include "result.hpp"
 
 
 // /** The size of this structure, in bytes.
@@ -130,34 +131,34 @@ enum class ShaderStage : int
     Compute,
 };
 
-RIN_NATIVE_API SessionBuilder * slangSessionBuilderNew();
+RIN_NATIVE_API SlangNativeResult slangSessionBuilderNew(SessionBuilder ** outBuilder);
 RIN_NATIVE_API void slangSessionBuilderAddTargetSpirv(SessionBuilder * builder);
 RIN_NATIVE_API void slangSessionBuilderAddTargetGlsl(SessionBuilder * builder);
 RIN_NATIVE_API void slangSessionBuilderAddTargetHostCallable(SessionBuilder * builder);
 RIN_NATIVE_API void slangSessionBuilderAddPreprocessorDefinition(SessionBuilder * builder, const char * name, const char * value);
 RIN_NATIVE_API void slangSessionBuilderAddSearchPath(SessionBuilder * builder, const char * path);
-RIN_NATIVE_API Session * slangSessionBuilderBuild(const SessionBuilder * builder);
+RIN_NATIVE_API SlangNativeResult slangSessionBuilderBuild(const SessionBuilder * builder, Session ** outSession);
 RIN_NATIVE_API void slangSessionBuilderFree(const SessionBuilder * builder);
 
-RIN_NATIVE_API Module * slangSessionLoadModuleFromSourceString(const Session * session, char * moduleName,char * path,char * string,Blob * outDiagnostics);
-RIN_NATIVE_API Component * slangSessionCreateComposedProgram(const Session * session, Module * module, EntryPoint** entryPoints, int entryPointsCount, Blob * outDiagnostics);
+RIN_NATIVE_API SlangNativeResult slangSessionLoadModuleFromSourceString(const Session * session, char * moduleName,char * path,char * string,Blob * outDiagnostics, Module ** outModule);
+RIN_NATIVE_API SlangNativeResult slangSessionCreateComposedProgram(const Session * session, Module * module, EntryPoint** entryPoints, int entryPointsCount, Blob * outDiagnostics, Component ** outComponent);
 RIN_NATIVE_API void slangSessionFree(const Session * session);
 
 
 
-RIN_NATIVE_API EntryPoint * slangModuleFindEntryPointByName(const Module * module, const char * entryPointName);
+RIN_NATIVE_API SlangNativeResult slangModuleFindEntryPointByName(const Module * module, const char * entryPointName, EntryPoint ** outEntryPoint);
 RIN_NATIVE_API void slangEntryPointFree(const EntryPoint * entryPoint);
 RIN_NATIVE_API void slangModuleFree(const Module * module);
 
-RIN_NATIVE_API Blob * slangComponentGetEntryPointCode(const Component * component,int entryPointIndex,int targetIndex,Blob * outDiagnostics);
-RIN_NATIVE_API SharedLibrary * slangComponentGetEntryPointHostCallable(const Component * component,int entryPointIndex,int targetIndex,Blob * outDiagnostics);
+RIN_NATIVE_API SlangNativeResult slangComponentGetEntryPointCode(const Component * component,int entryPointIndex,int targetIndex,Blob * outDiagnostics, Blob ** outCode);
+RIN_NATIVE_API SlangNativeResult slangComponentGetEntryPointHostCallable(const Component * component,int entryPointIndex,int targetIndex,Blob * outDiagnostics, SharedLibrary ** outLibrary);
 RIN_NATIVE_API void * slangSharedLibraryFindFunc(const SharedLibrary * library, const char * name);
 RIN_NATIVE_API void slangSharedLibraryFree(const SharedLibrary * library);
-RIN_NATIVE_API Component * slangComponentLink(const Component * component,Blob * outDiagnostics);
-RIN_NATIVE_API Blob * slangComponentToLayoutJson(const Component * component);
+RIN_NATIVE_API SlangNativeResult slangComponentLink(const Component * component,Blob * outDiagnostics, Component ** outLinked);
+RIN_NATIVE_API SlangNativeResult slangComponentToLayoutJson(const Component * component, Blob ** outJson);
 RIN_NATIVE_API void slangComponentFree(const Component * component);
 
-RIN_NATIVE_API Blob * slangBlobNew();
+RIN_NATIVE_API SlangNativeResult slangBlobNew(Blob ** outBlob);
 RIN_NATIVE_API int slangBlobGetSize(const Blob * blob);
 RIN_NATIVE_API void * slangBlobGetPointer(const Blob * blob);
 RIN_NATIVE_API void slangBlobFree(const Blob * blob);

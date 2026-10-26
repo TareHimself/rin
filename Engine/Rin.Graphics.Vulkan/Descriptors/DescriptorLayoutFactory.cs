@@ -38,7 +38,7 @@ public class DescriptorLayoutFactory : Factory<VkDescriptorSetLayout, VkDescript
         unsafe
         {
             var device = VulkanGraphicsModule.Get().GetDevice();
-            vkCreateDescriptorSetLayout(device, &key, null, &layout);
+            vkCreateDescriptorSetLayout(device, &key, null, &layout).ThrowIfFailed(nameof(vkCreateDescriptorSetLayout));
         }
 
         return layout;

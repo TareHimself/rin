@@ -35,6 +35,8 @@ Graph resources are created lazily from a `ResourcePool` keyed by descriptor has
 | C# over TerraFX | Swapchains, command buffers, pipelines, descriptor sets, barriers, submits, the render graph and the bindless tables. |
 | Native wrapper (`Native.cs`, `LibraryImport` with runtime marshalling disabled) | `createVulkanInstance` (instance, physical device, device, queues, messenger), the memory allocator (`allocator*`), windows and their event pump (`platformWindow*`), drop callbacks, text input and the clipboard. |
 
+No error crosses the boundary as an exception. A native export that can fail returns a `GraphicsResult` code, and the checked wrapper next to its import (`Native.CreateVulkanInstance`, `Native.NewBuffer`, `Native.CreateWindow` and so on) throws a `NativeException` naming the export and the code. The code list lives in `native/Rin.Graphics.Vulkan.Native/src/result.hpp` and is mirrored by `Native.GraphicsResult`.
+
 ## Rules you cannot see from one file
 
 | Rule | Why |
@@ -44,5 +46,6 @@ Graph resources are created lazily from a `ResourcePool` keyed by descriptor has
 | Handles are generational | A `ResourceHandle` carries type, id and generation, and freeing a slot bumps the generation. A stale handle resolves to null (`GetTexture`, `ResolveBuffer`) or throws (`WriteBuffer`). Id 0 is invalid. |
 | Uploads are queued, not immediate | `QueueTextureUpload` and `QueueBufferUpload` land in per-resource lanes. A graph that uses the resource consumes them as an upload pass ordered before the first user, the rest are flushed after `Execute` in batches, and the returned task completes after the GPU is done. |
 | Shaders are cached by descriptor name | `MakeGraphics` and `MakeCompute` compile the descriptor's shader package on a background queue, and the first descriptor for a name wins. |
+| Every `VkResult` is checked | A TerraFX call ends in `.ThrowIfFailed(nameof(...))`, which throws `VulkanException` for a negative result and lets success codes such as `VK_SUBOPTIMAL_KHR` through. `WindowRenderer` turns out-of-date and suboptimal results from acquire and present into a swapchain rebuild instead. |
 
 References: Rin.Core and Rin.Slang (project references in `local_file` mode, the matching NuGet packages in `online` mode). Packages: TareHimself.Rin.Graphics.Vulkan.Native, TerraFX.Interop.Vulkan. Referenced by Examples.Common and the Experiments projects; nothing under `Engine/` references it.
