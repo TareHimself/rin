@@ -6,7 +6,7 @@ The Vulkan backend for Rin.Core's `IGraphicsModule`. Package id `TareHimself.Rin
 dotnet build Engine/Rin.Graphics.Vulkan/Rin.Graphics.Vulkan.csproj
 ```
 
-Restore needs the native package in the local `.feed/`: build it with `uv run python scripts/pack_native.py`, or use the stub packages for build-only work. Both are described in [native/ReadMe.md](../../native/ReadMe.md). There is no test project for this backend.
+Restore needs the native package in the local `.feed/`: build it with `uv run python scripts/pack_native.py`, or use the stub packages for build-only work. Both are described in [native/ReadMe.md](../../native/ReadMe.md). Tests live in [Rin.Graphics.Vulkan.Tests](../Rin.Graphics.Vulkan.Tests/ReadMe.md) and run against a NativeAOT fake of the native wrapper, so they need no GPU.
 
 ## A frame
 

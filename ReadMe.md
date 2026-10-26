@@ -69,6 +69,7 @@ How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventi
 - [Rin.GLTF.Tests](Engine/Rin.GLTF.Tests/ReadMe.md): NUnit tests for Rin.GLTF.
 - [Rin.GLTF](Engine/Rin.GLTF/ReadMe.md): Imports glTF/glb files into Rin meshes and animations, using `SharpGLTF.Core`.
 - [Rin.Graphics.Null](Engine/Rin.Graphics.Null/ReadMe.md): A graphics backend that does nothing, for headless runs and tests.
+- [Rin.Graphics.Vulkan.Tests](Engine/Rin.Graphics.Vulkan.Tests/ReadMe.md): NUnit tests for the Vulkan backend's native boundary, against a fake of `Rin.Graphics.Vulkan.Native`.
 - [Rin.Graphics.Vulkan](Engine/Rin.Graphics.Vulkan/ReadMe.md): Vulkan backend for the `IGraphicsModule` interface from Rin.Core.
 - [Rin.SourceGenerators.Tests](Engine/Rin.SourceGenerators.Tests/ReadMe.md): xUnit tests for the generators in Rin.SourceGenerators.
 - [Rin.SourceGenerators](Engine/Rin.SourceGenerators/ReadMe.md): Roslyn incremental source generators, referenced as an analyzer by Rin.Core and Rin.World.

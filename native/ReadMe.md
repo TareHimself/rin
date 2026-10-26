@@ -8,7 +8,7 @@ C++ modules that reach managed code as NuGet packages, plus the C# fakes that st
 | [Rin.Audio.Miniaudio.Native](Rin.Audio.Miniaudio.Native/ReadMe.md) | miniaudio | `Rin.Audio.Miniaudio` |
 | [Rin.Graphics.Vulkan.Native](Rin.Graphics.Vulkan.Native/ReadMe.md) | Vulkan, windowing (rwin) and the Vulkan memory allocator | `Rin.Graphics.Vulkan` |
 | [Rin.Slang.Native](Rin.Slang.Native/ReadMe.md) | A prebuilt Slang release | `Rin.Slang.Compiler` |
-| [Fakes](Fakes/ReadMe.md) | NativeAOT C# stand-ins for `Rin.Native` and `Rin.Slang.Native` | Tests that call native code |
+| [Fakes](Fakes/ReadMe.md) | NativeAOT C# stand-ins for `Rin.Native`, `Rin.Slang.Native` and `Rin.Graphics.Vulkan.Native` | Tests that call native code |
 
 ## Building and packing
 
@@ -38,7 +38,7 @@ For a build to work on, `uv run silo sync native/<module>` builds the dependenci
 | --- | --- | --- |
 | Real package | `uv run python scripts/pack_native.py`, or CI's `build-native-slang` job (`Rin.Slang.Native` only, as version `1.0.1`) | Running the engine, compiling shaders, and the `test-real-slang` CI jobs |
 | Stub package | `uv run python scripts/pack_native_stubs.py .feed`: one placeholder `stub.dll` per `*.Native` id in `Directory.Packages.props`, version `1.0.0` | Restoring and building without silo or a C++ toolchain, which is every CI `test` job |
-| Fake | `uv run python scripts/publish_native_fakes.py win-x64`: NativeAOT builds of `Fakes/` exporting the same entry points | `Rin.GLTF.Tests` and `Rin.Slang.Compiler.Tests` load one through a DllImport resolver; never in the feed |
+| Fake | `uv run python scripts/publish_native_fakes.py win-x64`: NativeAOT builds of `Fakes/` exporting the same entry points | `Rin.GLTF.Tests`, `Rin.Slang.Compiler.Tests` and `Rin.Graphics.Vulkan.Tests` load one through a DllImport resolver; never in the feed |
 
 ## Error codes
 

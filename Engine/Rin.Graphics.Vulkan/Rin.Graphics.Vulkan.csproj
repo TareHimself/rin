@@ -35,4 +35,7 @@
     <ItemGroup>
       <Folder Include="Meshes\" />
     </ItemGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="Rin.Graphics.Vulkan.Tests" />
+    </ItemGroup>
 </Project>
