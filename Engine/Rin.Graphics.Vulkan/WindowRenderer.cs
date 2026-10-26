@@ -400,7 +400,7 @@ public class WindowRenderer : IWindowRenderer
                     builder.AddPass(_prepareForPresentPass);
                     Profiling.End("Engine.Rendering.Graph.Build");
                     var device = _module.GetDevice();
-                    frame.WaitForLastDraw().ThrowIfFailed(nameof(Frame.WaitForLastDraw));
+                    frame.WaitForLastDraw();
 
                     frame.Reset();
                     ResourcePool.OnFrameEnd(_framesRendered);

@@ -83,16 +83,11 @@ public class Frame : IDisposable
     /// <summary>
     ///     Wait's for the previous frame to complete
     /// </summary>
-    public VkResult WaitForLastDraw()
+    public void WaitForLastDraw()
     {
-        if (_rendering)
-        {
-            var r = _device.WaitForFences(ulong.MaxValue, true, _renderFence);
-            _rendering = false;
-            return r;
-        }
-
-        return VkResult.VK_SUCCESS;
+        if (!_rendering) return;
+        _device.WaitForFences(ulong.MaxValue, true, _renderFence);
+        _rendering = false;
     }
 
     public void Finish()
@@ -108,6 +103,6 @@ public class Frame : IDisposable
         OnReset?.Invoke(this);
         OnReset = null;
         _descriptorAllocator.ClearPools();
-        _device.ResetFences(_renderFence).ThrowIfFailed(nameof(VulkanExtensions.ResetFences));
+        _device.ResetFences(_renderFence);
     }
 }
