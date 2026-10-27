@@ -7,7 +7,7 @@ A bird's-eye map of Rin: what the layers are, how a frame moves through them, an
 ```mermaid
 flowchart BT
     subgraph native["native/ (C++, shipped as NuGet packages)"]
-        N1["Rin.Native<br/>memory, platform, SDF, video"]
+        N1["Rin.Native<br/>platform, SDF, video"]
         N2["Rin.Graphics.Vulkan.Native<br/>Vulkan, windowing, allocator"]
         N3["Rin.Audio.Miniaudio.Native"]
         N4["Rin.Slang.Native<br/>prebuilt Slang plus a small wrapper"]

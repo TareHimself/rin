@@ -8,7 +8,7 @@ C++ modules that reach managed code as NuGet packages, plus the C# fakes that st
 | [Rin.Audio.Miniaudio.Native](Rin.Audio.Miniaudio.Native/ReadMe.md) | miniaudio | `Rin.Audio.Miniaudio` |
 | [Rin.Graphics.Vulkan.Native](Rin.Graphics.Vulkan.Native/ReadMe.md) | Vulkan, windowing (rwin) and the Vulkan memory allocator | `Rin.Graphics.Vulkan` |
 | [Rin.Slang.Native](Rin.Slang.Native/ReadMe.md) | A prebuilt Slang release | `Rin.Slang.Compiler` |
-| [Fakes](Fakes/ReadMe.md) | NativeAOT C# stand-ins for `Rin.Native`, `Rin.Slang.Native` and `Rin.Graphics.Vulkan.Native` | Tests that call native code |
+| [Fakes](Fakes/ReadMe.md) | NativeAOT C# stand-ins for `Rin.Slang.Native` and `Rin.Graphics.Vulkan.Native` | Tests that call native code |
 
 ## Building and packing
 
@@ -38,7 +38,7 @@ For a build to work on, `uv run silo sync native/<module>` builds the dependenci
 | --- | --- | --- |
 | Real package | `uv run python scripts/pack_native.py`, or CI's `build-native-slang` job (`Rin.Slang.Native` only, as version `1.0.1`) | Running the engine, compiling shaders, and the `test-real-slang` CI jobs |
 | Stub package | `uv run python scripts/pack_native_stubs.py .feed`: one placeholder `stub.dll` per `*.Native` id in `Directory.Packages.props`, version `1.0.0` | Restoring and building without silo or a C++ toolchain, which is every CI `test` job |
-| Fake | `uv run python scripts/publish_native_fakes.py win-x64`: NativeAOT builds of `Fakes/` exporting the same entry points | `Rin.GLTF.Tests`, `Rin.Slang.Compiler.Tests` and `Rin.Graphics.Vulkan.Tests` load one through a DllImport resolver; never in the feed |
+| Fake | `uv run python scripts/publish_native_fakes.py win-x64`: NativeAOT builds of `Fakes/` exporting the same entry points | `Rin.Slang.Compiler.Tests` and `Rin.Graphics.Vulkan.Tests` load one through a DllImport resolver; never in the feed |
 
 ## Error codes
 
@@ -51,7 +51,7 @@ A native export that can fail reports it with a return code, never with an excep
 | `Rin.Graphics.Vulkan.Native` | `GraphicsResult` | `NativeException` (`Rin.Core`) |
 | `Rin.Slang.Native` | `SlangNativeResult` | `SlangNativeException` (`Rin.Slang.Compiler`, which does not reference `Rin.Core`) |
 
-Getters, free and dispose exports stay as they are. `memoryAllocate` returns null instead of a code, as allocators do, and `Rin.Core` turns that into `OutOfMemoryException`. Shader problems in `Rin.Slang.Native` (`CompileFailed`, `EntryPointNotFound`, `CompositionFailed`, `LinkFailed`) are not exceptions on the managed side: the wrapper returns null and the diagnostics blob holds the compiler output, exactly as before.
+Getters, free and dispose exports stay as they are. Managed code allocates its own unmanaged memory through `NativeMemory`, so no allocator crosses the boundary. Shader problems in `Rin.Slang.Native` (`CompileFailed`, `EntryPointNotFound`, `CompositionFailed`, `LinkFailed`) are not exceptions on the managed side: the wrapper returns null and the diagnostics blob holds the compiler output, exactly as before.
 
 ## Gotchas
 

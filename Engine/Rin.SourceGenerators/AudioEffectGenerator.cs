@@ -14,6 +14,7 @@ namespace Rin.SourceGenerators;
 public class AudioEffectGenerator : IIncrementalGenerator
 {
     private const string AttributeFullName = "Rin.Core.Audio.Effects.AudioEffectAttribute";
+    private const string NativeMemory = "global::System.Runtime.InteropServices.NativeMemory";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -151,17 +152,7 @@ public class AudioEffectGenerator : IIncrementalGenerator
             compilation.GetTypeByMetadataName("Rin.Core.Audio.Effects.NoAudioEffectParameters");
         var audioContextType = compilation.GetTypeByMetadataName("Rin.Core.Audio.Effects.AudioEffectContext");
         var effectDescriptorType = compilation.GetTypeByMetadataName("Rin.Core.Audio.Effects.IAudioEffectDescriptor");
-        var memoryType = compilation.GetTypeByMetadataName("Rin.Core.Memory");
-        var allocateMethod = memoryType?
-            .GetMembers("Allocate")
-            .OfType<IMethodSymbol>()
-            .FirstOrDefault(m => m.IsStatic);
-        var freeMethod = memoryType?
-            .GetMembers("Free")
-            .OfType<IMethodSymbol>()
-            .FirstOrDefault(m => m.IsStatic);
-        if (audioContextType == null || noAudioEffectParametersType == null || effectDescriptorType == null || allocateMethod == null ||
-            freeMethod == null) return;
+        if (audioContextType == null || noAudioEffectParametersType == null || effectDescriptorType == null) return;
 
         for (var i = 0; i < processMethod.Parameters.Length; i++)
         {
@@ -388,8 +379,7 @@ public class AudioEffectGenerator : IIncrementalGenerator
                     .Line("public IntPtr CreateState()")
                     .OpenBrace()
                     .OpenBrace("unsafe")
-                    .Line(
-                        $"var ptr = {allocateMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{allocateMethod.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}((ulong)sizeof({stateType}));")
+                    .Line($"var ptr = (IntPtr){NativeMemory}.Alloc((nuint)sizeof({stateType}));")
                     .Line($"global::System.Runtime.CompilerServices.Unsafe.Write(ptr.ToPointer(), new {stateType}());")
                     .Line("return ptr;")
                     .CloseBrace()
@@ -397,7 +387,9 @@ public class AudioEffectGenerator : IIncrementalGenerator
                     .Line()
                     .Line("public void ReleaseState(IntPtr state)")
                     .OpenBrace()
-                    .Line($"{freeMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{freeMethod.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}(state);")
+                    .OpenBrace("unsafe")
+                    .Line($"{NativeMemory}.Free(state.ToPointer());")
+                    .CloseBrace()
                     .CloseBrace();
             }
             else
@@ -423,8 +415,7 @@ public class AudioEffectGenerator : IIncrementalGenerator
                     .Line("public IntPtr CreateParameters()")
                     .OpenBrace()
                     .OpenBrace("unsafe")
-                    .Line(
-                        $"var ptr = {allocateMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{allocateMethod.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}((ulong)sizeof({ParameterSlots(processMethod.Parameters[parametersIndex].Type)}));")
+                    .Line($"var ptr = (IntPtr){NativeMemory}.Alloc((nuint)sizeof({ParameterSlots(processMethod.Parameters[parametersIndex].Type)}));")
                     .Line($"global::System.Runtime.CompilerServices.Unsafe.Write(ptr.ToPointer(), new {ParameterSlots(processMethod.Parameters[parametersIndex].Type)}(new {paramsType}()));")
                     .Line("return ptr;")
                     .CloseBrace()
@@ -432,7 +423,9 @@ public class AudioEffectGenerator : IIncrementalGenerator
                     .Line()
                     .Line("public void ReleaseParameters(IntPtr parameters)")
                     .OpenBrace()
-                    .Line($"{freeMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{freeMethod.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}(parameters);")
+                    .OpenBrace("unsafe")
+                    .Line($"{NativeMemory}.Free(parameters.ToPointer());")
+                    .CloseBrace()
                     .CloseBrace();
             }
             else
