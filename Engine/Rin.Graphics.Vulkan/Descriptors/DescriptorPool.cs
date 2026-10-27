@@ -48,7 +48,7 @@ public class DescriptorPool : IDisposable
                 variableInfo.pDescriptorCounts = pVariableCounts;
                 info.pNext = &variableInfo;
                 VkDescriptorSet set;
-                vkAllocateDescriptorSets(_device, &info, &set);
+                vkAllocateDescriptorSets(_device, &info, &set).ThrowIfFailed(nameof(vkAllocateDescriptorSets));
                 var mSet = new DescriptorSet(_device, set);
                 _sets.Add(mSet);
                 return mSet;
@@ -57,7 +57,7 @@ public class DescriptorPool : IDisposable
 
         {
             VkDescriptorSet set;
-            vkAllocateDescriptorSets(_device, &info, &set);
+            vkAllocateDescriptorSets(_device, &info, &set).ThrowIfFailed(nameof(vkAllocateDescriptorSets));
             var mSet = new DescriptorSet(_device, set);
             _sets.Add(mSet);
             return mSet;
@@ -67,7 +67,7 @@ public class DescriptorPool : IDisposable
     public void Reset()
     {
         _sets.Clear();
-        vkResetDescriptorPool(_device, _descriptorPool, 0);
+        vkResetDescriptorPool(_device, _descriptorPool, 0).ThrowIfFailed(nameof(vkResetDescriptorPool));
     }
 
     private void ReleaseUnmanagedResources()

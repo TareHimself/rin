@@ -24,7 +24,7 @@ public class SlangModule : IDisposable
     {
         unsafe
         {
-            var ptr = Native.slangModuleFindEntryPointByName(_ptr, name);
+            var ptr = Native.FindEntryPointByName(_ptr, name);
             return ptr != null ? new SlangEntryPoint(ptr) : null;
         }
     }

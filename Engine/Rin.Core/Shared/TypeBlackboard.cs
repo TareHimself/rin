@@ -15,7 +15,7 @@ public sealed class TypeBlackboard : IDisposable
         unsafe
         {
             var type = typeof(T);
-            if (!_data.ContainsKey(type)) _data.Add(type, Native.memoryAllocate((ulong)sizeof(T)));
+            if (!_data.ContainsKey(type)) _data.Add(type, Native.Allocate((ulong)sizeof(T)));
             var ptr = _data[type].ToPointer();
             return ref *(T*)ptr;
         }

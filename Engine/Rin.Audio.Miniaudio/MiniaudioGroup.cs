@@ -28,19 +28,19 @@ public class MiniaudioAudioGroup : IAudioGroup
     public IChannel Play(IAudioSample sample)
     {
         ThrowIfDisposed();
-        return new MiniaudioActiveAudio(Native.audioMixerPlay(Id, SampleId(sample)));
+        return new MiniaudioActiveAudio(Native.MixerPlay(Id, SampleId(sample)));
     }
 
     public IPushStream CreatePushStream(int frequency, int channels)
     {
         ThrowIfDisposed();
-        return new MiniaudioPushStream(Native.audioMixerCreatePushStream(Id, frequency, channels));
+        return new MiniaudioPushStream(Native.MixerCreatePushStream(Id, frequency, channels));
     }
 
     public IAudioGroup CreateSubGroup()
     {
         ThrowIfDisposed();
-        return new MiniaudioAudioGroup(Native.audioMixerCreate(Id));
+        return new MiniaudioAudioGroup(Native.MixerCreate(Id));
     }
 
     // public IDirectionalAudioGroup CreateChildDirectionalBus()
@@ -72,7 +72,7 @@ public class MiniaudioAudioGroup : IAudioGroup
         ThrowIfDisposed();
         var effectId = _idFactory.NewId();
         var effect = new NativeEffectManager.NativeAudioEffect(effectId, descriptor);
-        Native.audioMixerAddEffect(Id, effect);
+        Native.MixerAddEffect(Id, effect);
 
         var controller = new MiniaudioEffectController<TParams>(this, effectId, effect.Parameters);
         _effectControllers.Add(effectId, controller);

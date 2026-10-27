@@ -24,7 +24,7 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            var blob = Native.slangComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex, null);
+            var blob = Native.GetEntryPointCode(_ptr, entryPointIndex, targetIndex, null);
             if (blob == null) return null;
             return new SlangBlob(blob);
         }
@@ -34,19 +34,18 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            var blob = Native.slangComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex,
-                diagnostics.ToPointer());
+            var blob = Native.GetEntryPointCode(_ptr, entryPointIndex, targetIndex, diagnostics.ToPointer());
             if (blob == null) return null;
             return new SlangBlob(blob);
         }
     }
 
-    public SlangComponent? GetEntryPointCode(int entryPointIndex, int targetIndex, SlangBlob outDiagnostics)
+    public SlangBlob? GetEntryPointCode(int entryPointIndex, int targetIndex, SlangBlob outDiagnostics)
     {
         unsafe
         {
-            return new SlangComponent(Native.slangComponentGetEntryPointCode(_ptr, entryPointIndex, targetIndex,
-                outDiagnostics.ToPointer()));
+            var blob = Native.GetEntryPointCode(_ptr, entryPointIndex, targetIndex, outDiagnostics.ToPointer());
+            return blob == null ? null : new SlangBlob(blob);
         }
     }
 
@@ -55,7 +54,7 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            var library = Native.slangComponentGetEntryPointHostCallable(_ptr, entryPointIndex, targetIndex,
+            var library = Native.GetEntryPointHostCallable(_ptr, entryPointIndex, targetIndex,
                 outDiagnostics.ToPointer());
             return library == null ? null : new SlangSharedLibrary(library);
         }
@@ -65,7 +64,8 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            return new SlangComponent(Native.slangComponentLink(_ptr, null));
+            var linked = Native.Link(_ptr, null);
+            return linked == null ? null : new SlangComponent(linked);
         }
     }
 
@@ -73,7 +73,8 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            return new SlangComponent(Native.slangComponentLink(_ptr, outDiagnostics.ToPointer()));
+            var linked = Native.Link(_ptr, outDiagnostics.ToPointer());
+            return linked == null ? null : new SlangComponent(linked);
         }
     }
 
@@ -81,7 +82,7 @@ public class SlangComponent : IDisposable
     {
         unsafe
         {
-            return new SlangBlob(Native.slangComponentToLayoutJson(_ptr));
+            return new SlangBlob(Native.ToLayoutJson(_ptr));
         }
     }
 

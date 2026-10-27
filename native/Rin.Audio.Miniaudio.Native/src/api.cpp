@@ -292,44 +292,48 @@ static ma_sound_group* getGroupForId(std::uint64_t id, bool* outIsScene = nullpt
     return nullptr;
 }
 
-std::uint64_t audioMixerCreate(std::uint64_t parentId)
+AudioResult audioMixerCreate(std::uint64_t parentId, std::uint64_t* outMixerId)
 {
-    std::lock_guard<std::mutex> lock(g_mutex);
-    ma_sound_group* pParent = parentId != 0 ? getGroupForId(parentId) : nullptr;
-    if (parentId != 0 && !pParent) return 0;
-    const std::uint64_t id = g_nextId++;
-    g_mixers[id] = AudioMixer{};
-    auto& mixer = g_mixers[id];
-
-    const ma_uint32 ch = ma_engine_get_channels(&g_engine);
-    ma_uint32 chArr[1] = {ch};
-    ma_node_config nodeCfg = ma_node_config_init();
-    nodeCfg.vtable = &g_effectNodeVtable;
-    nodeCfg.pInputChannels = chArr;
-    nodeCfg.pOutputChannels = chArr;
-    if (ma_node_init(ma_engine_get_node_graph(&g_engine), &nodeCfg, nullptr, &mixer.effectNode.base) != MA_SUCCESS)
+    return guarded([&]
     {
-        g_mixers.erase(id);
-        return 0;
-    }
-    mixer.effectNode.effectManager = std::make_shared<EffectManager>();
-    mixer.effectNode.scratch.resize(
-        ma_engine_get_device(&g_engine)->playback.internalPeriodSizeInFrames * ch * 2);
+        require(outMixerId != nullptr, AudioResult::InvalidArgument);
+        std::lock_guard<std::mutex> lock(g_mutex);
+        ma_sound_group* pParent = parentId != 0 ? getGroupForId(parentId) : nullptr;
+        require(parentId == 0 || pParent != nullptr, AudioResult::InvalidHandle);
+        const std::uint64_t id = g_nextId++;
+        g_mixers[id] = AudioMixer{};
+        auto& mixer = g_mixers[id];
 
-    ma_node* parentNode = pParent
-                              ? reinterpret_cast<ma_node*>(pParent)
-                              : ma_node_graph_get_endpoint(ma_engine_get_node_graph(&g_engine));
-    ma_node_attach_output_bus(&mixer.effectNode.base, 0, parentNode, 0);
+        const ma_uint32 ch = ma_engine_get_channels(&g_engine);
+        ma_uint32 chArr[1] = {ch};
+        ma_node_config nodeCfg = ma_node_config_init();
+        nodeCfg.vtable = &g_effectNodeVtable;
+        nodeCfg.pInputChannels = chArr;
+        nodeCfg.pOutputChannels = chArr;
+        if (ma_node_init(ma_engine_get_node_graph(&g_engine), &nodeCfg, nullptr, &mixer.effectNode.base) != MA_SUCCESS)
+        {
+            g_mixers.erase(id);
+            throw ResultError(AudioResult::MiniaudioError);
+        }
+        mixer.effectNode.effectManager = std::make_shared<EffectManager>();
+        mixer.effectNode.scratch.resize(
+            ma_engine_get_device(&g_engine)->playback.internalPeriodSizeInFrames * ch * 2);
 
-    if (ma_sound_group_init(&g_engine, 0, nullptr, &mixer.group) != MA_SUCCESS)
-    {
-        ma_node_uninit(&mixer.effectNode.base, nullptr);
-        g_mixers.erase(id);
-        return 0;
-    }
-    ma_node_attach_output_bus(&mixer.group, 0, &mixer.effectNode.base, 0);
+        ma_node* parentNode = pParent
+                                  ? reinterpret_cast<ma_node*>(pParent)
+                                  : ma_node_graph_get_endpoint(ma_engine_get_node_graph(&g_engine));
+        ma_node_attach_output_bus(&mixer.effectNode.base, 0, parentNode, 0);
 
-    return id;
+        if (ma_sound_group_init(&g_engine, 0, nullptr, &mixer.group) != MA_SUCCESS)
+        {
+            ma_node_uninit(&mixer.effectNode.base, nullptr);
+            g_mixers.erase(id);
+            throw ResultError(AudioResult::MiniaudioError);
+        }
+        ma_node_attach_output_bus(&mixer.group, 0, &mixer.effectNode.base, 0);
+
+        *outMixerId = id;
+    });
 }
 
 void audioMixerDispose(std::uint64_t mixerId)
@@ -378,35 +382,39 @@ void audioMixerSetVolume(const std::uint64_t mixerId, const float volume)
     ma_sound_group_set_volume(&it->second.group, volume);
 }
 
-std::uint64_t audioMixerPlay(const std::uint64_t mixerId, const std::uint64_t sampleId)
+AudioResult audioMixerPlay(const std::uint64_t mixerId, const std::uint64_t sampleId, std::uint64_t* outActiveId)
 {
-    AudioSample sample;
-    ma_sound_group* pGroup = nullptr;
+    return guarded([&]
     {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        const auto busIt = g_mixers.find(mixerId);
-        if (busIt == g_mixers.end()) return 0;
-        const auto sampleIt = g_samples.find(sampleId);
-        if (sampleIt == g_samples.end()) return 0;
-        sample = sampleIt->second;
-        pGroup = &busIt->second.group;
-    }
+        require(outActiveId != nullptr, AudioResult::InvalidArgument);
+        AudioSample sample;
+        ma_sound_group* pGroup = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(g_mutex);
+            const auto busIt = g_mixers.find(mixerId);
+            require(busIt != g_mixers.end(), AudioResult::InvalidHandle);
+            const auto sampleIt = g_samples.find(sampleId);
+            require(sampleIt != g_samples.end(), AudioResult::InvalidHandle);
+            sample = sampleIt->second;
+            pGroup = &busIt->second.group;
+        }
 
-    auto active = std::make_unique<ActiveAudio>();
-    if (initSoundFromSample(sample, *active, 0, pGroup) != MA_SUCCESS) return 0;
-    active->ownerBusId = mixerId;
-    active->ownerIsScene = false;
-    ma_sound_start(&active->sound);
+        auto active = std::make_unique<ActiveAudio>();
+        require(initSoundFromSample(sample, *active, 0, pGroup) == MA_SUCCESS, AudioResult::MiniaudioError);
+        active->ownerBusId = mixerId;
+        active->ownerIsScene = false;
+        ma_sound_start(&active->sound);
 
-    const std::uint64_t id = g_nextId++;
-    {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        const auto busIt = g_mixers.find(mixerId);
-        if (busIt != g_mixers.end())
-            busIt->second.activeSounds.push_back(id);
-        g_activeAudio[id] = std::move(active);
-    }
-    return id;
+        const std::uint64_t id = g_nextId++;
+        {
+            std::lock_guard<std::mutex> lock(g_mutex);
+            const auto busIt = g_mixers.find(mixerId);
+            if (busIt != g_mixers.end())
+                busIt->second.activeSounds.push_back(id);
+            g_activeAudio[id] = std::move(active);
+        }
+        *outActiveId = id;
+    });
 }
 
 std::uint64_t audioGetMasterMixerId()
@@ -414,21 +422,23 @@ std::uint64_t audioGetMasterMixerId()
     return g_masterBusId;
 }
 
-int audioInit()
+AudioResult audioInit()
 {
-    ma_engine_config config = ma_engine_config_init();
-    config.listenerCount = MA_ENGINE_MAX_LISTENERS;
-    if (ma_engine_init(&config, &g_engine) != MA_SUCCESS) return 0;
-    const ma_device* dev = ma_engine_get_device(&g_engine);
-    g_deviceLatencyFrames = static_cast<ma_uint64>(dev->playback.internalPeriodSizeInFrames)
-        * dev->playback.internalPeriods;
-    g_masterBusId = audioMixerCreate(0);
-    if (g_masterBusId == 0)
+    return guarded([&]
     {
-        ma_engine_uninit(&g_engine);
-        return 0;
-    }
-    return 1;
+        ma_engine_config config = ma_engine_config_init();
+        config.listenerCount = MA_ENGINE_MAX_LISTENERS;
+        require(ma_engine_init(&config, &g_engine) == MA_SUCCESS, AudioResult::EngineInitFailed);
+        const ma_device* dev = ma_engine_get_device(&g_engine);
+        g_deviceLatencyFrames = static_cast<ma_uint64>(dev->playback.internalPeriodSizeInFrames)
+            * dev->playback.internalPeriods;
+        const auto masterResult = audioMixerCreate(0, &g_masterBusId);
+        if (masterResult != AudioResult::Ok)
+        {
+            ma_engine_uninit(&g_engine);
+            throw ResultError(masterResult);
+        }
+    });
 }
 
 void audioShutdown()
@@ -467,40 +477,48 @@ void audioSetVolume(float volume)
     ma_engine_set_volume(&g_engine, volume);
 }
 
-std::uint64_t audioMakeSampleFromFile(const char* filePath)
+AudioResult audioMakeSampleFromFile(const char* filePath, std::uint64_t* outSampleId)
 {
-    if (!filePath) return 0;
-    std::lock_guard<std::mutex> lock(g_mutex);
-    const std::uint64_t id = g_nextId++;
-    g_samples[id] = AudioSample{false, filePath, {}};
-    return id;
+    return guarded([&]
+    {
+        require(filePath != nullptr && outSampleId != nullptr, AudioResult::InvalidArgument);
+        std::lock_guard<std::mutex> lock(g_mutex);
+        const std::uint64_t id = g_nextId++;
+        g_samples[id] = AudioSample{false, filePath, {}};
+        *outSampleId = id;
+    });
 }
 
-std::uint64_t audioMakeSampleFromMemory(const std::uint8_t* data, const std::size_t size)
+AudioResult audioMakeSampleFromMemory(const std::uint8_t* data, const std::size_t size, std::uint64_t* outSampleId)
 {
-    if (!data || size == 0) return 0;
-    std::lock_guard<std::mutex> lock(g_mutex);
-    const std::uint64_t id = g_nextId++;
-    AudioSample s;
-    s.fileData.assign(data, data + size);
-    g_samples[id] = std::move(s);
-    return id;
+    return guarded([&]
+    {
+        require(data != nullptr && size != 0 && outSampleId != nullptr, AudioResult::InvalidArgument);
+        std::lock_guard<std::mutex> lock(g_mutex);
+        const std::uint64_t id = g_nextId++;
+        AudioSample s;
+        s.fileData.assign(data, data + size);
+        g_samples[id] = std::move(s);
+        *outSampleId = id;
+    });
 }
 
-std::uint64_t audioMakeStreamFromFile(const char* filePath)
+AudioResult audioMakeStreamFromFile(const char* filePath, std::uint64_t* outSampleId)
 {
-    if (!filePath) return 0;
-    std::lock_guard<std::mutex> lock(g_mutex);
-    const std::uint64_t id = g_nextId++;
-    g_samples[id] = AudioSample{true, filePath, {}};
-    return id;
+    return guarded([&]
+    {
+        require(filePath != nullptr && outSampleId != nullptr, AudioResult::InvalidArgument);
+        std::lock_guard<std::mutex> lock(g_mutex);
+        const std::uint64_t id = g_nextId++;
+        g_samples[id] = AudioSample{true, filePath, {}};
+        *outSampleId = id;
+    });
 }
 
-std::uint64_t audioMakeStreamFromMemory(const std::uint8_t* data, const std::size_t size)
+AudioResult audioMakeStreamFromMemory(const std::uint8_t* data, const std::size_t size, std::uint64_t* outSampleId)
 {
-    if (!data || size == 0) return 0;
-    // Streaming from memory is not meaningful — treated as a decoded sample
-    return audioMakeSampleFromMemory(data, size);
+    // Streaming from memory is not meaningful, so it is a decoded sample.
+    return audioMakeSampleFromMemory(data, size, outSampleId);
 }
 
 void audioSampleDispose(std::uint64_t sampleId)
@@ -509,34 +527,38 @@ void audioSampleDispose(std::uint64_t sampleId)
     g_samples.erase(sampleId);
 }
 
-std::uint64_t audioSampleMakeActive(const std::uint64_t sampleId)
+AudioResult audioSampleMakeActive(const std::uint64_t sampleId, std::uint64_t* outActiveId)
 {
-    AudioSample sample;
-    ma_sound_group* masterGroup = nullptr;
+    return guarded([&]
     {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        const auto it = g_samples.find(sampleId);
-        if (it == g_samples.end()) return 0;
-        sample = it->second;
-        const auto busIt = g_mixers.find(g_masterBusId);
-        if (busIt != g_mixers.end())
-            masterGroup = &busIt->second.group;
-    }
+        require(outActiveId != nullptr, AudioResult::InvalidArgument);
+        AudioSample sample;
+        ma_sound_group* masterGroup = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(g_mutex);
+            const auto it = g_samples.find(sampleId);
+            require(it != g_samples.end(), AudioResult::InvalidHandle);
+            sample = it->second;
+            const auto busIt = g_mixers.find(g_masterBusId);
+            if (busIt != g_mixers.end())
+                masterGroup = &busIt->second.group;
+        }
 
-    auto active = std::make_unique<ActiveAudio>();
-    if (initSoundFromSample(sample, *active, 0, masterGroup) != MA_SUCCESS) return 0;
-    active->ownerBusId = g_masterBusId;
-    active->ownerIsScene = false;
+        auto active = std::make_unique<ActiveAudio>();
+        require(initSoundFromSample(sample, *active, 0, masterGroup) == MA_SUCCESS, AudioResult::MiniaudioError);
+        active->ownerBusId = g_masterBusId;
+        active->ownerIsScene = false;
 
-    const std::uint64_t id = g_nextId++;
-    {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        const auto busIt = g_mixers.find(g_masterBusId);
-        if (busIt != g_mixers.end())
-            busIt->second.activeSounds.push_back(id);
-        g_activeAudio[id] = std::move(active);
-    }
-    return id;
+        const std::uint64_t id = g_nextId++;
+        {
+            std::lock_guard<std::mutex> lock(g_mutex);
+            const auto busIt = g_mixers.find(g_masterBusId);
+            if (busIt != g_mixers.end())
+                busIt->second.activeSounds.push_back(id);
+            g_activeAudio[id] = std::move(active);
+        }
+        *outActiveId = id;
+    });
 }
 
 int audioActiveIsPlaying(const std::uint64_t id)
@@ -683,60 +705,62 @@ void audioActiveDispose(const std::uint64_t id)
     destroyActive(*active); // ma_sound_uninit outside the lock; audio thread doesn't use g_mutex
 }
 
-std::uint64_t audioMixerCreatePushStream(std::uint64_t mixerId, int sampleRate, int channels)
+AudioResult audioMixerCreatePushStream(std::uint64_t mixerId, int sampleRate, int channels, std::uint64_t* outActiveId)
 {
-    if (sampleRate <= 0 || channels <= 0) return 0;
-
-    auto active = std::make_unique<ActiveAudio>();
-    auto pushSrc = std::make_unique<PushStreamSource>();
-
-    pushSrc->format = ma_format_f32;
-    pushSrc->channels = static_cast<ma_uint32>(channels);
-    pushSrc->sampleRate = static_cast<ma_uint32>(sampleRate);
-
-    ma_data_source_config dsConfig = ma_data_source_config_init();
-    dsConfig.vtable = &g_pushSourceVtable;
-    if (ma_data_source_init(&dsConfig, &pushSrc->base) != MA_SUCCESS)
-        return 0;
-
-    ma_sound_group* pGroup = nullptr;
-    bool ownerIsScene = false;
+    return guarded([&]
     {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        pGroup = getGroupForId(mixerId, &ownerIsScene);
-    }
-    if (!pGroup)
-    {
-        ma_data_source_uninit(&pushSrc->base);
-        return 0;
-    }
+        require(sampleRate > 0 && channels > 0 && outActiveId != nullptr, AudioResult::InvalidArgument);
 
-    if (ma_sound_init_from_data_source(&g_engine, pushSrc.get(), 0, pGroup, &active->sound) != MA_SUCCESS)
-    {
-        ma_data_source_uninit(&pushSrc->base);
-        return 0;
-    }
+        auto active = std::make_unique<ActiveAudio>();
+        auto pushSrc = std::make_unique<PushStreamSource>();
 
-    active->pushSource = std::move(pushSrc);
-    active->ownerBusId = mixerId;
-    active->ownerIsScene = ownerIsScene;
+        pushSrc->format = ma_format_f32;
+        pushSrc->channels = static_cast<ma_uint32>(channels);
+        pushSrc->sampleRate = static_cast<ma_uint32>(sampleRate);
 
-    const std::uint64_t id = g_nextId++;
-    {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        if (ownerIsScene)
+        ma_data_source_config dsConfig = ma_data_source_config_init();
+        dsConfig.vtable = &g_pushSourceVtable;
+        require(ma_data_source_init(&dsConfig, &pushSrc->base) == MA_SUCCESS, AudioResult::MiniaudioError);
+
+        ma_sound_group* pGroup = nullptr;
+        bool ownerIsScene = false;
         {
-            const auto it = g_scenes.find(mixerId);
-            if (it != g_scenes.end()) it->second.activeSounds.push_back(id);
+            std::lock_guard<std::mutex> lock(g_mutex);
+            pGroup = getGroupForId(mixerId, &ownerIsScene);
         }
-        else
+        if (!pGroup)
         {
-            const auto it = g_mixers.find(mixerId);
-            if (it != g_mixers.end()) it->second.activeSounds.push_back(id);
+            ma_data_source_uninit(&pushSrc->base);
+            throw ResultError(AudioResult::InvalidHandle);
         }
-        g_activeAudio[id] = std::move(active);
-    }
-    return id;
+
+        if (ma_sound_init_from_data_source(&g_engine, pushSrc.get(), 0, pGroup, &active->sound) != MA_SUCCESS)
+        {
+            ma_data_source_uninit(&pushSrc->base);
+            throw ResultError(AudioResult::MiniaudioError);
+        }
+
+        active->pushSource = std::move(pushSrc);
+        active->ownerBusId = mixerId;
+        active->ownerIsScene = ownerIsScene;
+
+        const std::uint64_t id = g_nextId++;
+        {
+            std::lock_guard<std::mutex> lock(g_mutex);
+            if (ownerIsScene)
+            {
+                const auto it = g_scenes.find(mixerId);
+                if (it != g_scenes.end()) it->second.activeSounds.push_back(id);
+            }
+            else
+            {
+                const auto it = g_mixers.find(mixerId);
+                if (it != g_mixers.end()) it->second.activeSounds.push_back(id);
+            }
+            g_activeAudio[id] = std::move(active);
+        }
+        *outActiveId = id;
+    });
 }
 
 std::size_t audioPushStreamPush(std::uint64_t id, const std::uint8_t* data, std::size_t size)
@@ -763,19 +787,17 @@ std::size_t audioPushStreamPush(std::uint64_t id, const std::uint8_t* data, std:
     return size;
 }
 
-int audioMixerAddEffect(std::uint64_t mixerId, const AudioEffect& effect)
+AudioResult audioMixerAddEffect(std::uint64_t mixerId, const AudioEffect& effect)
 {
-    const auto effectInstance = std::make_shared<AudioEffectInstance>();
-    effectInstance->effect = effect;
+    return guarded([&]
     {
         std::lock_guard lock(g_mutex);
-        if (const auto it = g_mixers.find(mixerId); it != g_mixers.end())
-        {
-            it->second.effectNode.effectManager->AddEffect(effectInstance);
-            return 1;
-        }
-    }
-    return 0;
+        const auto it = g_mixers.find(mixerId);
+        require(it != g_mixers.end(), AudioResult::InvalidHandle);
+        const auto effectInstance = std::make_shared<AudioEffectInstance>();
+        effectInstance->effect = effect;
+        it->second.effectNode.effectManager->AddEffect(effectInstance);
+    });
 }
 
 void audioMixerRemoveEffect(std::uint64_t mixerId, std::uint64_t effectId)
@@ -789,31 +811,35 @@ void audioMixerRemoveEffect(std::uint64_t mixerId, std::uint64_t effectId)
     }
 }
 
-std::uint64_t audioCreateScene(std::uint64_t parentId)
+AudioResult audioCreateScene(std::uint64_t parentId, std::uint64_t* outSceneId)
 {
-    std::lock_guard<std::mutex> lock(g_mutex);
-    ma_sound_group* pParent = parentId != 0 ? getGroupForId(parentId) : nullptr;
-    if (parentId != 0 && !pParent) return 0;
-    ma_uint32 listenerIndex;
-    if (!g_freeListenerIndices.empty())
+    return guarded([&]
     {
-        listenerIndex = *g_freeListenerIndices.begin();
-        g_freeListenerIndices.erase(g_freeListenerIndices.begin());
-    }
-    else
-    {
-        if (g_nextListenerIndex >= MA_ENGINE_MAX_LISTENERS) return 0;
-        listenerIndex = g_nextListenerIndex++;
-    }
-    const std::uint64_t id = g_nextId++;
-    g_scenes[id] = AudioScene{listenerIndex};
-    if (ma_sound_group_init(&g_engine, 0, pParent, &g_scenes[id].group) != MA_SUCCESS)
-    {
-        g_freeListenerIndices.insert(listenerIndex);
-        g_scenes.erase(id);
-        return 0;
-    }
-    return id;
+        require(outSceneId != nullptr, AudioResult::InvalidArgument);
+        std::lock_guard<std::mutex> lock(g_mutex);
+        ma_sound_group* pParent = parentId != 0 ? getGroupForId(parentId) : nullptr;
+        require(parentId == 0 || pParent != nullptr, AudioResult::InvalidHandle);
+        ma_uint32 listenerIndex;
+        if (!g_freeListenerIndices.empty())
+        {
+            listenerIndex = *g_freeListenerIndices.begin();
+            g_freeListenerIndices.erase(g_freeListenerIndices.begin());
+        }
+        else
+        {
+            require(g_nextListenerIndex < MA_ENGINE_MAX_LISTENERS, AudioResult::ListenerLimitReached);
+            listenerIndex = g_nextListenerIndex++;
+        }
+        const std::uint64_t id = g_nextId++;
+        g_scenes[id] = AudioScene{listenerIndex};
+        if (ma_sound_group_init(&g_engine, 0, pParent, &g_scenes[id].group) != MA_SUCCESS)
+        {
+            g_freeListenerIndices.insert(listenerIndex);
+            g_scenes.erase(id);
+            throw ResultError(AudioResult::MiniaudioError);
+        }
+        *outSceneId = id;
+    });
 }
 
 void audioSceneSetListenerPose(std::uint64_t sceneId, Vec3 position, Vec3 forward, Vec3 right)
@@ -830,24 +856,25 @@ void audioSceneSetListenerPose(std::uint64_t sceneId, Vec3 position, Vec3 forwar
     ma_engine_listener_set_world_up(&g_engine, li, ux, uy, uz);
 }
 
-static std::uint64_t scenePlay(std::uint64_t sceneId, std::uint64_t sampleId, bool spatial, Vec3 location)
+static void scenePlay(std::uint64_t sceneId, std::uint64_t sampleId, bool spatial, Vec3 location, std::uint64_t* outActiveId)
 {
+    require(outActiveId != nullptr, AudioResult::InvalidArgument);
     AudioSample sample;
     ma_sound_group* pGroup = nullptr;
     ma_uint32 listenerIndex = 0;
     {
         std::lock_guard<std::mutex> lock(g_mutex);
         const auto sceneIt = g_scenes.find(sceneId);
-        if (sceneIt == g_scenes.end()) return 0;
+        require(sceneIt != g_scenes.end(), AudioResult::InvalidHandle);
         const auto sampleIt = g_samples.find(sampleId);
-        if (sampleIt == g_samples.end()) return 0;
+        require(sampleIt != g_samples.end(), AudioResult::InvalidHandle);
         sample = sampleIt->second;
         pGroup = &sceneIt->second.group;
         listenerIndex = sceneIt->second.listenerIndex;
     }
 
     auto active = std::make_unique<ActiveAudio>();
-    if (initSoundFromSample(sample, *active, 0, pGroup) != MA_SUCCESS) return 0;
+    require(initSoundFromSample(sample, *active, 0, pGroup) == MA_SUCCESS, AudioResult::MiniaudioError);
     active->ownerBusId = sceneId;
     active->ownerIsScene = true;
 
@@ -867,17 +894,17 @@ static std::uint64_t scenePlay(std::uint64_t sceneId, std::uint64_t sampleId, bo
             sceneIt->second.activeSounds.push_back(id);
         g_activeAudio[id] = std::move(active);
     }
-    return id;
+    *outActiveId = id;
 }
 
-std::uint64_t audioScenePlayAtLocation(std::uint64_t sceneId, std::uint64_t sampleId, Vec3 location)
+AudioResult audioScenePlayAtLocation(std::uint64_t sceneId, std::uint64_t sampleId, Vec3 location, std::uint64_t* outActiveId)
 {
-    return scenePlay(sceneId, sampleId, true, location);
+    return guarded([&] { scenePlay(sceneId, sampleId, true, location, outActiveId); });
 }
 
-std::uint64_t audioScenePlay2d(std::uint64_t sceneId, std::uint64_t sampleId)
+AudioResult audioScenePlay2d(std::uint64_t sceneId, std::uint64_t sampleId, std::uint64_t* outActiveId)
 {
-    return scenePlay(sceneId, sampleId, false, {});
+    return guarded([&] { scenePlay(sceneId, sampleId, false, {}, outActiveId); });
 }
 
 float audioSceneGetVolume(std::uint64_t sceneId)

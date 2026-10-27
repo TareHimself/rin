@@ -5,4 +5,5 @@ namespace Rin.Graphics.Vulkan;
 public sealed class VulkanDevice : IDevice
 {
     public required bool SupportsIndirectRendering { get; init; }
+    public required bool SupportsDedicatedCompute { get; init; }
 }

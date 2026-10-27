@@ -1,4 +1,5 @@
 ﻿#include "slang.hpp"
+#include <memory>
 #include <array>
 #include <fstream>
 #include <iostream>
@@ -103,26 +104,31 @@ Session::Session(const SessionBuilder* builder)
     sessionDesc.searchPaths = searchPaths.data();
     sessionDesc.searchPathCount = static_cast<SlangInt>(searchPaths.size());
     globalSession = builder->globalSession;
-    globalSession->createSession(sessionDesc,session.writeRef());
+    require(SLANG_SUCCEEDED(globalSession->createSession(sessionDesc,session.writeRef())), SlangNativeResult::SlangError);
 }
 Session::~Session()
 = default;
 
-SessionBuilder* slangSessionBuilderNew()
+SlangNativeResult slangSessionBuilderNew(SessionBuilder** outBuilder)
 {
-    auto* builder = new SessionBuilder();
-    slang::createGlobalSession(builder->globalSession.writeRef());
-    return builder;
+    return guarded([&]
+    {
+        require(outBuilder != nullptr, SlangNativeResult::InvalidArgument);
+        auto builder = std::make_unique<SessionBuilder>();
+        require(SLANG_SUCCEEDED(slang::createGlobalSession(builder->globalSession.writeRef())), SlangNativeResult::SlangError);
+        *outBuilder = builder.release();
+    });
 }
 
 void slangSessionBuilderFree(const SessionBuilder* builder)
 {
     delete builder;
 }
-Module* slangSessionLoadModuleFromSourceString(const Session* session, char* moduleName, char* path, char* string, Blob* outDiagnostics)
+SlangNativeResult slangSessionLoadModuleFromSourceString(const Session* session, char* moduleName, char* path, char* string, Blob* outDiagnostics, Module** outModule)
 {
-    try
+    return guarded([&]
     {
+        require(session != nullptr && moduleName != nullptr && string != nullptr && outModule != nullptr, SlangNativeResult::InvalidArgument);
         Slang::ComPtr<slang::IBlob> diagnostics;
         Slang::ComPtr<slang::IModule> module;
         module = session->session->loadModuleFromSourceString(moduleName,path,string,diagnostics.writeRef());
@@ -130,48 +136,40 @@ Module* slangSessionLoadModuleFromSourceString(const Session* session, char* mod
         {
             outDiagnostics->blob = diagnostics;
         }
-        if(module)
-        {
-            return new Module{module};
-        }
-        return nullptr;
-    }
-    catch(std::exception& e)
-    {
-        std::cout << "EXCEPTION: " << e.what() << std::endl;
-    }
-    return nullptr;
+        require(module.get() != nullptr, SlangNativeResult::CompileFailed);
+        *outModule = new Module{module};
+    });
 }
 
-Component* slangSessionCreateComposedProgram(const Session* session, Module* module, EntryPoint** entryPoints, int entryPointsCount, Blob* outDiagnostics)
+SlangNativeResult slangSessionCreateComposedProgram(const Session* session, Module* module, EntryPoint** entryPoints, int entryPointsCount, Blob* outDiagnostics, Component** outComponent)
 {
-    std::vector<slang::IComponentType*> componentTypes{};
-    componentTypes.reserve(entryPointsCount + 1);
-    componentTypes.push_back(module->module);
-    for(auto i = 0; i < entryPointsCount; ++i)
+    return guarded([&]
     {
-        componentTypes.push_back(entryPoints[i]->entryPoint);
-    }
-    Slang::ComPtr<slang::IComponentType> composedProgram;
+        require(session != nullptr && module != nullptr && outComponent != nullptr && (entryPoints != nullptr || entryPointsCount == 0), SlangNativeResult::InvalidArgument);
+        std::vector<slang::IComponentType*> componentTypes{};
+        componentTypes.reserve(entryPointsCount + 1);
+        componentTypes.push_back(module->module);
+        for(auto i = 0; i < entryPointsCount; ++i)
+        {
+            componentTypes.push_back(entryPoints[i]->entryPoint);
+        }
+        Slang::ComPtr<slang::IComponentType> composedProgram;
 
-    Slang::ComPtr<slang::IBlob> diagnostics;
-    auto operationResult = session->session->createCompositeComponentType(
-        componentTypes.data(),
-        static_cast<SlangInt>(componentTypes.size()),
-        composedProgram.writeRef(),
-        diagnostics.writeRef());
+        Slang::ComPtr<slang::IBlob> diagnostics;
+        auto operationResult = session->session->createCompositeComponentType(
+            componentTypes.data(),
+            static_cast<SlangInt>(componentTypes.size()),
+            composedProgram.writeRef(),
+            diagnostics.writeRef());
 
-    if(outDiagnostics)
-    {
-        outDiagnostics->blob = diagnostics;
-    }
+        if(outDiagnostics)
+        {
+            outDiagnostics->blob = diagnostics;
+        }
 
-    if(SLANG_FAILED(operationResult))
-    {
-        return nullptr;
-    }
-
-    return new Component{composedProgram};
+        require(SLANG_SUCCEEDED(operationResult) && composedProgram.get() != nullptr, SlangNativeResult::CompositionFailed);
+        *outComponent = new Component{composedProgram};
+    });
 }
 void slangSessionFree(const Session* session)
 {
@@ -224,21 +222,25 @@ void slangSessionBuilderAddSearchPath(SessionBuilder* builder, const char* path)
     builder->searchPaths.emplace_back(path);
 }
 
-Session* slangSessionBuilderBuild(const SessionBuilder* builder)
+SlangNativeResult slangSessionBuilderBuild(const SessionBuilder* builder, Session** outSession)
 {
-    return new Session(builder);
+    return guarded([&]
+    {
+        require(builder != nullptr && outSession != nullptr, SlangNativeResult::InvalidArgument);
+        *outSession = new Session(builder);
+    });
 }
 
-EntryPoint* slangModuleFindEntryPointByName(const Module* module, const char* entryPointName)
+SlangNativeResult slangModuleFindEntryPointByName(const Module* module, const char* entryPointName, EntryPoint** outEntryPoint)
 {
-    Slang::ComPtr<slang::IEntryPoint> entryPoint;
-    module->module->findEntryPointByName(entryPointName,entryPoint.writeRef());
-    if(entryPoint)
+    return guarded([&]
     {
-        return new EntryPoint{entryPoint};
-    }
-
-    return nullptr;
+        require(module != nullptr && entryPointName != nullptr && outEntryPoint != nullptr, SlangNativeResult::InvalidArgument);
+        Slang::ComPtr<slang::IEntryPoint> entryPoint;
+        module->module->findEntryPointByName(entryPointName,entryPoint.writeRef());
+        require(entryPoint.get() != nullptr, SlangNativeResult::EntryPointNotFound);
+        *outEntryPoint = new EntryPoint{entryPoint};
+    });
 }
 void slangEntryPointFree(const EntryPoint* entryPoint)
 {
@@ -249,33 +251,23 @@ void slangModuleFree(const Module* module)
     delete module;
 }
 
-Blob* slangComponentGetEntryPointCode(const Component* component, int entryPointIndex, int targetIndex, Blob* outDiagnostics)
+SlangNativeResult slangComponentGetEntryPointCode(const Component* component, int entryPointIndex, int targetIndex, Blob* outDiagnostics, Blob** outCode)
 {
-    Slang::ComPtr<slang::IBlob> code;
-
-    Slang::ComPtr<slang::IBlob> diagnostics;
-
-    try
+    return guarded([&]
     {
-        component->component->getEntryPointCode(entryPointIndex,targetIndex,code.writeRef(),diagnostics.writeRef());
-    }
-    catch(std::exception& e)
-    {
-        std::cout << "EXCEPTION: " << e.what() << std::endl;
-    }
+        require(component != nullptr && outCode != nullptr, SlangNativeResult::InvalidArgument);
+        Slang::ComPtr<slang::IBlob> code;
+        Slang::ComPtr<slang::IBlob> diagnostics;
+        const auto result = component->component->getEntryPointCode(entryPointIndex,targetIndex,code.writeRef(),diagnostics.writeRef());
 
-    if(outDiagnostics != nullptr)
-    {
-        outDiagnostics->blob = diagnostics;
-    }
+        if(outDiagnostics != nullptr)
+        {
+            outDiagnostics->blob = diagnostics;
+        }
 
-    if(!code)
-    {
-        std::cout << "FAILED TO GET ENTRY POINT: " << std::string{(char*)diagnostics->getBufferPointer(),(char*)diagnostics->getBufferPointer() + diagnostics->getBufferSize()} << std::endl;
-        return nullptr;
-    }
-
-    return new Blob{code};
+        require(SLANG_SUCCEEDED(result) && code.get() != nullptr, SlangNativeResult::CompileFailed);
+        *outCode = new Blob{code};
+    });
 }
 #ifdef _MSC_VER
 #include <windows.h>
@@ -322,44 +314,44 @@ static SlangResult CallGetEntryPointHostCallable(slang::IComponentType* componen
 }
 #endif
 
-SharedLibrary* slangComponentGetEntryPointHostCallable(const Component* component, int entryPointIndex, int targetIndex, Blob* outDiagnostics)
+SlangNativeResult slangComponentGetEntryPointHostCallable(const Component* component, int entryPointIndex, int targetIndex, Blob* outDiagnostics, SharedLibrary** outLibrary)
 {
-    Slang::ComPtr<ISlangSharedLibrary> library;
-    Slang::ComPtr<slang::IBlob> diagnostics;
-
-    unsigned long exceptionCode = 0;
-    char exceptionType[256] = {};
-    const SlangResult result = CallGetEntryPointHostCallable(component->component.get(), entryPointIndex, targetIndex, library.writeRef(), diagnostics.writeRef(), &exceptionCode, exceptionType, sizeof(exceptionType));
-
-    if(exceptionCode != 0)
+    return guarded([&]
     {
-        // A fatal compile error has already been reported into the diagnostics and aborted with an
-        // exception; hand those over, falling back to the exception's own type if there are none.
+        require(component != nullptr && outLibrary != nullptr, SlangNativeResult::InvalidArgument);
+        Slang::ComPtr<ISlangSharedLibrary> library;
+        Slang::ComPtr<slang::IBlob> diagnostics;
+
+        unsigned long exceptionCode = 0;
+        char exceptionType[256] = {};
+        const SlangResult result = CallGetEntryPointHostCallable(component->component.get(), entryPointIndex, targetIndex, library.writeRef(), diagnostics.writeRef(), &exceptionCode, exceptionType, sizeof(exceptionType));
+
+        if(exceptionCode != 0)
+        {
+            // A fatal compile error has already been reported into the diagnostics and aborted with an
+            // exception; hand those over, falling back to the exception's own type if there are none.
+            if(outDiagnostics != nullptr)
+            {
+                if(diagnostics && diagnostics->getBufferSize() > 0)
+                {
+                    outDiagnostics->blob = diagnostics;
+                }
+                else
+                {
+                    outDiagnostics->blob = new CustomStringBlob("native exception code " + std::to_string(exceptionCode) + " type " + std::string(exceptionType));
+                }
+            }
+            throw ResultError(SlangNativeResult::CompileFailed);
+        }
+
         if(outDiagnostics != nullptr)
         {
-            if(diagnostics && diagnostics->getBufferSize() > 0)
-            {
-                outDiagnostics->blob = diagnostics;
-            }
-            else
-            {
-                outDiagnostics->blob = new CustomStringBlob("native exception code " + std::to_string(exceptionCode) + " type " + std::string(exceptionType));
-            }
+            outDiagnostics->blob = diagnostics;
         }
-        return nullptr;
-    }
 
-    if(outDiagnostics != nullptr)
-    {
-        outDiagnostics->blob = diagnostics;
-    }
-
-    if(SLANG_FAILED(result) || !library)
-    {
-        return nullptr;
-    }
-
-    return new SharedLibrary{library};
+        require(SLANG_SUCCEEDED(result) && library.get() != nullptr, SlangNativeResult::CompileFailed);
+        *outLibrary = new SharedLibrary{library};
+    });
 }
 
 void* slangSharedLibraryFindFunc(const SharedLibrary* library, const char* name)
@@ -372,38 +364,50 @@ void slangSharedLibraryFree(const SharedLibrary* library)
     delete library;
 }
 
-Component* slangComponentLink(const Component* component, Blob* outDiagnostics)
+SlangNativeResult slangComponentLink(const Component* component, Blob* outDiagnostics, Component** outLinked)
 {
-    Slang::ComPtr<slang::IComponentType> outComponent;
-
-    Slang::ComPtr<slang::IBlob> diagnostics;
-
-    component->component->link(outComponent.writeRef(),diagnostics.writeRef());
-
-    if(outDiagnostics)
+    return guarded([&]
     {
-        outDiagnostics->blob = diagnostics;
-    }
+        require(component != nullptr && outLinked != nullptr, SlangNativeResult::InvalidArgument);
+        Slang::ComPtr<slang::IComponentType> linked;
+        Slang::ComPtr<slang::IBlob> diagnostics;
 
-    return new Component{outComponent};
+        const auto result = component->component->link(linked.writeRef(),diagnostics.writeRef());
+
+        if(outDiagnostics)
+        {
+            outDiagnostics->blob = diagnostics;
+        }
+
+        require(SLANG_SUCCEEDED(result) && linked.get() != nullptr, SlangNativeResult::LinkFailed);
+        *outLinked = new Component{linked};
+    });
 }
 
-Blob* slangComponentToLayoutJson(const Component* component)
+SlangNativeResult slangComponentToLayoutJson(const Component* component, Blob** outJson)
 {
-    Slang::ComPtr<slang::IBlob> code;
-
-    component->component->getLayout()->toJson(code.writeRef());
-    
-    return new Blob{code};
+    return guarded([&]
+    {
+        require(component != nullptr && outJson != nullptr, SlangNativeResult::InvalidArgument);
+        auto* layout = component->component->getLayout();
+        require(layout != nullptr, SlangNativeResult::SlangError);
+        Slang::ComPtr<slang::IBlob> json;
+        require(SLANG_SUCCEEDED(layout->toJson(json.writeRef())) && json.get() != nullptr, SlangNativeResult::SlangError);
+        *outJson = new Blob{json};
+    });
 }
 
 void slangComponentFree(const Component* component)
 {
     delete component;
 }
-Blob* slangBlobNew()
+SlangNativeResult slangBlobNew(Blob** outBlob)
 {
-    return new Blob{};
+    return guarded([&]
+    {
+        require(outBlob != nullptr, SlangNativeResult::InvalidArgument);
+        *outBlob = new Blob{};
+    });
 }
 
 int slangBlobGetSize(const Blob* blob)

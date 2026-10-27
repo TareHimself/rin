@@ -24,8 +24,7 @@ public class SlangSession : IDisposable
     {
         unsafe
         {
-            using var diag = new SlangBlob();
-            var module = Native.slangSessionLoadModuleFromSourceString(_ptr, moduleName, path, content, null);
+            var module = Native.LoadModuleFromSourceString(_ptr, moduleName, path, content, null);
             if (module == null) return null;
             return new SlangModule(module);
         }
@@ -36,9 +35,7 @@ public class SlangSession : IDisposable
     {
         unsafe
         {
-            var module =
-                Native.slangSessionLoadModuleFromSourceString(_ptr, moduleName, path, content,
-                    outDiagnostics.ToPointer());
+            var module = Native.LoadModuleFromSourceString(_ptr, moduleName, path, content, outDiagnostics.ToPointer());
             if (module == null) return null;
             return new SlangModule(module);
         }
@@ -51,8 +48,7 @@ public class SlangSession : IDisposable
             var asArray = entryPoints.ToArray();
             var pEntryPoints = stackalloc nuint[asArray.Length];
             for (var i = 0; i < asArray.Length; i++) pEntryPoints[i] = (nuint)asArray[i].ToPointer();
-            var ptr = Native.slangSessionCreateComposedProgram(_ptr, module.ToPointer(), pEntryPoints,
-                asArray.Length, null);
+            var ptr = Native.CreateComposedProgram(_ptr, module.ToPointer(), pEntryPoints, asArray.Length, null);
             return ptr != null ? new SlangComponent(ptr) : null;
         }
     }
@@ -65,8 +61,8 @@ public class SlangSession : IDisposable
             var asArray = entryPoints.ToArray();
             var pEntryPoints = stackalloc nuint[asArray.Length];
             for (var i = 0; i < asArray.Length; i++) pEntryPoints[i] = (nuint)asArray[i].ToPointer();
-            var ptr = Native.slangSessionCreateComposedProgram(_ptr, module.ToPointer(), pEntryPoints,
-                asArray.Length, outDiagnostics.ToPointer());
+            var ptr = Native.CreateComposedProgram(_ptr, module.ToPointer(), pEntryPoints, asArray.Length,
+                outDiagnostics.ToPointer());
             return ptr != null ? new SlangComponent(ptr) : null;
         }
     }

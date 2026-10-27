@@ -61,7 +61,7 @@ public class VulkanDeviceBuffer : IVulkanDeviceBuffer
 
     public void WriteRaw(in IntPtr src, ulong size, ulong offset = 0)
     {
-        Native.allocatorCopyToBuffer(_allocator, Allocation, src, size, offset);
+        Native.CopyToBuffer(_allocator, Allocation, src, size, offset);
     }
 
     public static implicit operator VkBuffer(VulkanDeviceBuffer from)

@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using JetBrains.Annotations;
+using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Windows;
 using TerraFX.Interop.Vulkan;
@@ -31,38 +32,111 @@ internal static partial class Native
         public VkDevice device;
         public VkQueue graphicsQueue;
         public VkQueue transferQueue;
+        public VkQueue computeQueue;
         public uint graphicsQueueFamily;
         public uint transferQueueFamily;
+        public uint computeQueueFamily;
         public VkSurfaceKHR surface;
         public VkDebugUtilsMessengerEXT messenger;
         public bool supportsIndirectRendering;
+        public bool supportsDedicatedCompute;
+    }
+
+    // Mirrors GraphicsResult in native/Rin.Graphics.Vulkan.Native/src/result.hpp. Keep the two in sync.
+    public enum GraphicsResult
+    {
+        Ok = 0,
+        InvalidArgument,
+        InstanceCreationFailed,
+        NoSuitableDevice,
+        DeviceCreationFailed,
+        FunctionLoadingFailed,
+        WindowCreationFailed,
+        SurfaceCreationFailed,
+        OutOfHostMemory,
+        OutOfDeviceMemory,
+        DeviceLost,
+        VulkanError,
+        PlatformError
+    }
+
+    private static void Check(GraphicsResult result, string function)
+    {
+        if (result != GraphicsResult.Ok) throw new NativeException(DllName, function, result);
+    }
+
+    public static unsafe VulkanInitResult CreateVulkanInstance(ulong windowHandle)
+    {
+        var result = new VulkanInitResult();
+        Check(createVulkanInstance(windowHandle, &result), nameof(createVulkanInstance));
+        return result;
+    }
+
+    public static unsafe IntPtr CreateAllocator(VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice)
+    {
+        var allocator = IntPtr.Zero;
+        Check(allocatorCreate(instance, device, physicalDevice, &allocator), nameof(allocatorCreate));
+        return allocator;
+    }
+
+    public static unsafe void NewBuffer(VkBuffer* buffer, ref IntPtr allocation, ulong size, IntPtr allocator,
+        bool sequentialWrite, bool preferHost, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags propertyFlags,
+        bool mapped, string debugName)
+    {
+        Check(allocatorNewBuffer(buffer, ref allocation, size, allocator, sequentialWrite ? 1 : 0, preferHost ? 1 : 0,
+            (int)usageFlags, (int)propertyFlags, mapped ? 1 : 0, debugName), nameof(allocatorNewBuffer));
+    }
+
+    public static unsafe void NewImage(ref VkImage image, ref IntPtr allocation, VkImageCreateInfo* createInfo,
+        IntPtr allocator, string debugName)
+    {
+        Check(allocatorNewImage(ref image, ref allocation, createInfo, allocator, debugName), nameof(allocatorNewImage));
+    }
+
+    public static void CopyToBuffer(IntPtr allocator, IntPtr allocation, IntPtr data, ulong size, ulong offset)
+    {
+        Check(allocatorCopyToBuffer(allocator, allocation, data, size, offset), nameof(allocatorCopyToBuffer));
+    }
+
+    public static unsafe ulong CreateWindow(string title, Extent2D extent, WindowFlags flags)
+    {
+        ulong handle = 0;
+        Check(platformWindowCreate(title, extent, flags, &handle), nameof(platformWindowCreate));
+        return handle;
+    }
+
+    public static unsafe VkSurfaceKHR CreateSurface(VkInstance instance, ulong windowHandle)
+    {
+        VkSurfaceKHR surface = default;
+        Check(platformWindowCreateSurface(instance, windowHandle, &surface), nameof(platformWindowCreateSurface));
+        return surface;
     }
 
     [LibraryImport(DllName)]
-    public static unsafe partial void createVulkanInstance(ulong windowHandle, VulkanInitResult* outResult);
+    private static unsafe partial GraphicsResult createVulkanInstance(ulong windowHandle, VulkanInitResult* outResult);
 
     [LibraryImport(DllName)]
     public static unsafe partial void destroyVulkanMessenger(VkInstance instance,
         VkDebugUtilsMessengerEXT debugMessenger);
 
     [LibraryImport(DllName)]
-    public static unsafe partial void allocatorCopyToBuffer(IntPtr allocator, IntPtr allocation, IntPtr data,
+    private static partial GraphicsResult allocatorCopyToBuffer(IntPtr allocator, IntPtr allocation, IntPtr data,
         ulong size, ulong offset);
 
     [LibraryImport(DllName)]
-    public static unsafe partial IntPtr allocatorCreate(VkInstance instance, VkDevice device,
-        VkPhysicalDevice physicalDevice);
+    private static unsafe partial GraphicsResult allocatorCreate(VkInstance instance, VkDevice device,
+        VkPhysicalDevice physicalDevice, IntPtr* outAllocator);
 
     [LibraryImport(DllName)]
     public static partial void allocatorDestroy(IntPtr allocator);
 
     [LibraryImport(DllName)]
-    public static unsafe partial void allocatorNewBuffer(VkBuffer* buffer, ref IntPtr allocation, ulong size,
+    private static unsafe partial GraphicsResult allocatorNewBuffer(VkBuffer* buffer, ref IntPtr allocation, ulong size,
         IntPtr allocator, int sequentialWrite, int preferHost, int usageFlags, int memoryPropertyFlags,
         int mapped, [MarshalUsing(typeof(Utf8StringMarshaller))] string debugName);
 
     [LibraryImport(DllName)]
-    public static unsafe partial void allocatorNewImage(ref VkImage image, ref IntPtr allocation,
+    private static unsafe partial GraphicsResult allocatorNewImage(ref VkImage image, ref IntPtr allocation,
         VkImageCreateInfo* createInfo, IntPtr allocator,
         [MarshalUsing(typeof(Utf8StringMarshaller))]
         string debugName);
@@ -85,8 +159,9 @@ internal static partial class Native
     public static partial void platformWindowPump();
 
     [LibraryImport(DllName)]
-    public static partial ulong platformWindowCreate([MarshalUsing(typeof(Utf8StringMarshaller))] string title,
-        Extent2D extent, WindowFlags flags = WindowFlags.None);
+    private static unsafe partial GraphicsResult platformWindowCreate(
+        [MarshalUsing(typeof(Utf8StringMarshaller))] string title, Extent2D extent, WindowFlags flags,
+        ulong* outHandle);
 
     [LibraryImport(DllName)]
     public static partial void platformWindowDestroy(ulong handle);
@@ -104,7 +179,8 @@ internal static partial class Native
     public static unsafe partial int platformWindowGetEvents(Window.WindowEvent* events, int size);
 
     [LibraryImport(DllName)]
-    public static partial VkSurfaceKHR platformWindowCreateSurface(VkInstance instance, ulong handle);
+    private static unsafe partial GraphicsResult platformWindowCreateSurface(VkInstance instance, ulong handle,
+        VkSurfaceKHR* outSurface);
 
     [LibraryImport(DllName)]
     public static partial void platformWindowSetCursorPosition(ulong handle, Vector2 position);

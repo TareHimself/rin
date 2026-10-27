@@ -25,6 +25,7 @@ enum VideoDemuxResult : int
 };
 
 #include "macro.hpp"
+#include "result.hpp"
 
 using AudioCallback = void(RIN_CALLBACK_CONVENTION *)(float* data,int count,double time,void*userData);
 using SourceReadCallback = void(RIN_CALLBACK_CONVENTION *)(std::int64_t pos,std::uint64_t size, unsigned char *data,void*userData);
@@ -46,7 +47,7 @@ struct VideoSourceCallbacks
     void* userData;
 };
 
-RIN_NATIVE_API void * videoContextCreate();
+RIN_NATIVE_API CoreResult videoContextCreate(void ** outContext);
 // Reads the headers if they are not read yet. Tracks, extent and duration are unknown until this returns success.
 RIN_NATIVE_API int videoContextEnsureHeader(void *context);
 RIN_NATIVE_API int videoContextIsReady(void *context);
@@ -78,5 +79,5 @@ RIN_NATIVE_API int videoContextCopyRecentFrame(void *context, double timestamp, 
 // Reads nothing, videoContextEnsureHeader and videoContextDecode do.
 RIN_NATIVE_API void videoContextSetSource(void *context,void * source);
 RIN_NATIVE_API void videoContextFree(void* context);
-RIN_NATIVE_API void * videoSourceCreate(const VideoSourceCallbacks* callbacks);
+RIN_NATIVE_API CoreResult videoSourceCreate(const VideoSourceCallbacks* callbacks, void ** outSource);
 RIN_NATIVE_API void videoSourceFree(void * source);

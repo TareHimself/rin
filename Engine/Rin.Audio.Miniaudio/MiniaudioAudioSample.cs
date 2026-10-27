@@ -14,26 +14,26 @@ public class MiniaudioAudioSample : IAudioSample
     internal ulong NativeId => _id;
 
     public IActiveAudio MakeActive() =>
-        new MiniaudioActiveAudio(Native.audioSampleMakeActive(_id));
+        new MiniaudioActiveAudio(Native.SampleMakeActive(_id));
 
     public void Dispose() =>
         Native.audioSampleDispose(_id);
 
     public static MiniaudioAudioSample FromFile(string filePath) =>
-        new(Native.audioMakeSampleFromFile(filePath));
+        new(Native.MakeSampleFromFile(filePath));
 
     public static unsafe MiniaudioAudioSample FromMemory(ReadOnlySpan<byte> data)
     {
         fixed (byte* ptr = data)
-            return new(Native.audioMakeSampleFromMemory(ptr, (nuint)data.Length));
+            return new(Native.MakeSampleFromMemory(ptr, (nuint)data.Length));
     }
 
     public static MiniaudioAudioSample StreamFromFile(string filePath) =>
-        new(Native.audioMakeStreamFromFile(filePath));
+        new(Native.MakeStreamFromFile(filePath));
 
     public static unsafe MiniaudioAudioSample StreamFromMemory(ReadOnlySpan<byte> data)
     {
         fixed (byte* ptr = data)
-            return new(Native.audioMakeStreamFromMemory(ptr, (nuint)data.Length));
+            return new(Native.MakeStreamFromMemory(ptr, (nuint)data.Length));
     }
 }

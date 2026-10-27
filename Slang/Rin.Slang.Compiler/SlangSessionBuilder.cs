@@ -8,7 +8,7 @@ public class SlangSessionBuilder : IDisposable
     {
         unsafe
         {
-            _ptr = Native.slangSessionBuilderNew();
+            _ptr = Native.SessionBuilderNew();
         }
     }
 
@@ -72,7 +72,7 @@ public class SlangSessionBuilder : IDisposable
     {
         unsafe
         {
-            return new SlangSession(Native.slangSessionBuilderBuild(_ptr));
+            return new SlangSession(Native.SessionBuilderBuild(_ptr));
         }
     }
 

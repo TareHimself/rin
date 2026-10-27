@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "macro.hpp"
+#include "result.hpp"
 #include <msdfgen.h>
 #include <cstdint>
 #include <cstddef>
@@ -21,7 +22,7 @@ struct Vec2
     operator msdfgen::Vector2();
 };
 
-RIN_NATIVE_API GlyphContext * sdfContextNew();
+RIN_NATIVE_API CoreResult sdfContextNew(GlyphContext ** outContext);
 
 RIN_NATIVE_API void sdfContextFree(GlyphContext * context);
 
@@ -41,7 +42,7 @@ RIN_NATIVE_API void sdfContextFinish(GlyphContext * context);
 
 using GenerateCallback = void(RIN_CALLBACK_CONVENTION *)(void * data,uint32_t pixelWidth,uint32_t pixelHeight,uint32_t count,double width,double height,void*userData);
 
-RIN_NATIVE_API void sdfContextGenerateMTSDF(GlyphContext * context,float angleThreshold,float pixelRange,GenerateCallback callback,void*userData);
+RIN_NATIVE_API CoreResult sdfContextGenerateMTSDF(GlyphContext * context,float angleThreshold,float pixelRange,GenerateCallback callback,void*userData);
 
 msdfgen::SDFTransformation computeTransformation(msdfgen::Shape& shape,float pixelRange);
 

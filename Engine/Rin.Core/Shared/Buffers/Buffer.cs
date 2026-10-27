@@ -14,7 +14,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         if (elements <= 0) return;
 
         ElementCount = elements;
-        _ptr = Native.memoryAllocate(Utils.ByteSizeOf<T>(elements));
+        _ptr = Native.Allocate(Utils.ByteSizeOf<T>(elements));
     }
 
     public Buffer(IntPtr data, ulong byteSize, bool copy = false)
@@ -24,7 +24,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         ElementCount = (int)(byteSize / Utils.ByteSizeOf<T>());
         if (copy)
         {
-            _ptr = Native.memoryAllocate(byteSize);
+            _ptr = Native.Allocate(byteSize);
             Write(data, byteSize);
         }
         else
@@ -38,7 +38,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         if (elements <= 0) return;
 
         ElementCount = elements;
-        _ptr = Native.memoryAllocate(Utils.ByteSizeOf<T>(elements));
+        _ptr = Native.Allocate(Utils.ByteSizeOf<T>(elements));
         Write(data, elements);
     }
 
@@ -51,7 +51,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         ElementCount = elementCount;
         unsafe
         {
-            _ptr = new IntPtr(Native.memoryAllocate(Utils.ByteSizeOf<T>(elementCount)));
+            _ptr = new IntPtr(Native.Allocate(Utils.ByteSizeOf<T>(elementCount)));
             elements.CopyTo(new Span<T>(_ptr.ToPointer(), elementCount));
         }
     }
@@ -82,7 +82,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
             }
 
             var byteSize = (nuint)input.ReadUInt64();
-            _ptr = new IntPtr(Native.memoryAllocate(byteSize));
+            _ptr = new IntPtr(Native.Allocate(byteSize));
             ElementCount = (int)(byteSize / GetElementByteSize());
             var _ = input.Read(new Span<byte>(_ptr.ToPointer(), (int)byteSize));
         }

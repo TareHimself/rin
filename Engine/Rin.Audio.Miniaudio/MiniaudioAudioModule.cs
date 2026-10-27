@@ -9,8 +9,7 @@ public class MiniaudioAudioModule : IAudioModule
 
     public void Start(IApplication app)
     {
-        if (Native.audioInit() == 0)
-            throw new InvalidOperationException("Failed to initialize miniaudio engine");
+        Native.Init();
         MasterAudioGroup = new MiniaudioAudioGroup(Native.audioGetMasterMixerId(), isMaster: true);
     }
 

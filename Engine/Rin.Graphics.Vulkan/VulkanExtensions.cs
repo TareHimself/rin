@@ -1,7 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Numerics;
-using JetBrains.Annotations;
 using Rin.Core;
 using Rin.Core.Graphics;
 using Rin.Core.Graphics.Shaders;
@@ -14,9 +13,8 @@ namespace Rin.Graphics.Vulkan;
 
 using static TerraFX.Interop.Vulkan.Vulkan;
 
-public static class VulkanExtensions
+internal static class VulkanExtensions
 {
-    [PublicAPI]
     public static VkImageAspectFlags ToAspectFlags(this ImageFormat format)
     {
         return format switch
@@ -28,7 +26,6 @@ public static class VulkanExtensions
         };
     }
 
-    [PublicAPI]
     public static VkImageLayout ToVk(this ImageLayout layout)
     {
         return layout switch
@@ -46,7 +43,6 @@ public static class VulkanExtensions
         };
     }
 
-    [PublicAPI]
     public static VkShaderStageFlags ToVk(this ShaderStage stages)
     {
         VkShaderStageFlags flags = 0;
@@ -64,7 +60,6 @@ public static class VulkanExtensions
         return flags;
     }
 
-    [PublicAPI]
     public static VkDescriptorBindingFlags ToVk(this DescriptorBindingFlags bindingFlags)
     {
         VkDescriptorBindingFlags flags = 0;
@@ -81,7 +76,6 @@ public static class VulkanExtensions
         return flags;
     }
 
-    [PublicAPI]
     public static VkDescriptorType ToVk(this DescriptorType descriptorType)
     {
         return descriptorType switch
@@ -96,7 +90,6 @@ public static class VulkanExtensions
         };
     }
 
-    [PublicAPI]
     public static VkBlendFactor ToVk(this BlendFactor factor)
     {
         return factor switch
@@ -115,7 +108,6 @@ public static class VulkanExtensions
         };
     }
 
-    [PublicAPI]
     public static VkBlendOp ToVk(this BlendOp op)
     {
         return op switch
@@ -129,7 +121,6 @@ public static class VulkanExtensions
         };
     }
 
-    [PublicAPI]
     public static VkImageUsageFlags ToVk(this ImageCreateFlags flags)
     {
         VkImageUsageFlags result = 0;
@@ -146,7 +137,6 @@ public static class VulkanExtensions
         return result;
     }
 
-    [PublicAPI]
     public static VkBufferUsageFlags ToVkUsage(this BufferCreateFlags flags)
     {
         VkBufferUsageFlags result = 0;
@@ -163,7 +153,6 @@ public static class VulkanExtensions
         return result;
     }
 
-    [PublicAPI]
     public static VkMemoryPropertyFlags ToVkMemoryProperty(this BufferCreateFlags flags)
     {
         return flags.HasFlag(BufferCreateFlags.HostSrc) || flags.HasFlag(BufferCreateFlags.HostDst)
@@ -172,13 +161,11 @@ public static class VulkanExtensions
             : VkMemoryPropertyFlags.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     }
 
-    [PublicAPI]
     public static bool IsHostVisible(this BufferCreateFlags flags)
     {
         return flags.HasFlag(BufferCreateFlags.HostSrc) || flags.HasFlag(BufferCreateFlags.HostDst);
     }
 
-    [PublicAPI]
     public static VkFormat ToVk(this ImageFormat format)
     {
         return format switch
@@ -199,7 +186,6 @@ public static class VulkanExtensions
         };
     }
 
-    [PublicAPI]
     public static VkExtent3D ToVk(this Extent3D extent)
     {
         return new VkExtent3D
@@ -210,7 +196,6 @@ public static class VulkanExtensions
         };
     }
 
-    [PublicAPI]
     public static VkExtent2D ToVk(this Extent2D extent)
     {
         return new VkExtent2D
@@ -220,7 +205,6 @@ public static class VulkanExtensions
         };
     }
 
-    [PublicAPI]
     public static VkFilter ToVk(this ImageFilter filter)
     {
         return filter switch
@@ -231,7 +215,6 @@ public static class VulkanExtensions
         };
     }
 
-    [PublicAPI]
     public static VkSamplerAddressMode ToVk(this ImageTiling tiling)
     {
         return tiling switch
@@ -240,22 +223,6 @@ public static class VulkanExtensions
             ImageTiling.ClampEdge => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             ImageTiling.ClampBorder => VkSamplerAddressMode.VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
             _ => throw new ArgumentOutOfRangeException()
-        };
-    }
-
-    [PublicAPI]
-    public static ImageFormat FromVk(this VkFormat format)
-    {
-        return format switch
-        {
-            VkFormat.VK_FORMAT_R8G8B8A8_UNORM => ImageFormat.RGBA8,
-            VkFormat.VK_FORMAT_R16G16B16A16_UNORM => ImageFormat.RGBA16,
-            VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT => ImageFormat.RGBA32,
-            VkFormat.VK_FORMAT_D32_SFLOAT => ImageFormat.Depth,
-            VkFormat.VK_FORMAT_D32_SFLOAT_S8_UINT => ImageFormat.Stencil,
-            _ => format == ImageFormat.Swapchain.ToVk()
-                ? ImageFormat.Swapchain
-                : throw new ArgumentOutOfRangeException()
         };
     }
 
@@ -285,17 +252,6 @@ public static class VulkanExtensions
         return cmd;
     }
 
-    public static VkCommandBuffer SetRasterizerDiscard(in this VkCommandBuffer cmd, bool isEnabled)
-    {
-        vkCmdSetRasterizerDiscardEnable(cmd, (uint)(isEnabled ? 1 : 0));
-        return cmd;
-    }
-
-    public static VkCommandBuffer EnableRasterizerDiscard(in this VkCommandBuffer cmd)
-    {
-        return cmd.SetRasterizerDiscard(true);
-    }
-
     public static VkCommandBuffer SetCullMode(in this VkCommandBuffer cmd, VkCullModeFlags cullMode,
         VkFrontFace frontFace)
     {
@@ -308,11 +264,8 @@ public static class VulkanExtensions
     {
         vkCmdSetDepthTestEnable(cmd, 0);
         vkCmdSetDepthWriteEnable(cmd, (uint)(depthWriteEnable ? 1 : 0));
-        // vkCmdSetDepthBiasEnable(cmd, 0);
-        // vkCmdSetDepthBoundsTestEnable(cmd, 0);
         return cmd;
     }
-
 
     public static VkCommandBuffer DisableStencilTest(in this VkCommandBuffer cmd)
     {
@@ -334,8 +287,8 @@ public static class VulkanExtensions
                 sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                 flags = VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
             };
-            vkResetCommandBuffer(cmd, 0);
-            vkBeginCommandBuffer(cmd, &commandBeginInfo);
+            vkResetCommandBuffer(cmd, 0).ThrowIfFailed(nameof(vkResetCommandBuffer));
+            vkBeginCommandBuffer(cmd, &commandBeginInfo).ThrowIfFailed(nameof(vkBeginCommandBuffer));
             cmd
                 .DisableDepthTest()
                 .DisableCulling()
@@ -345,8 +298,7 @@ public static class VulkanExtensions
         return cmd;
     }
 
-
-    public static VkCommandBuffer BeginRendering(this in VkCommandBuffer cmd, VkRect2D rect,
+    private static VkCommandBuffer BeginRendering(this in VkCommandBuffer cmd, VkRect2D rect,
         Span<VkRenderingAttachmentInfo> attachments, VkRenderingAttachmentInfo? depthAttachment = null,
         VkRenderingAttachmentInfo? stencilAttachment = null)
     {
@@ -392,7 +344,6 @@ public static class VulkanExtensions
         }, attachments, depthAttachment, stencilAttachment);
     }
 
-
     public static VkCommandBuffer EndRendering(in this VkCommandBuffer cmd)
     {
         vkCmdEndRendering(cmd);
@@ -419,33 +370,20 @@ public static class VulkanExtensions
     public static VkCommandBuffer BindDescriptorSets(this in VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
         VkPipelineLayout pipelineLayout, ReadOnlySpan<DescriptorSet> sets, uint firstSet = 0)
     {
-        unsafe
+        var rented = sets.Length > MaxStackSets ? ArrayPool<VkDescriptorSet>.Shared.Rent(sets.Length) : null;
+        try
         {
-            var rented = sets.Length <= MaxStackSets ? ArrayPool<VkDescriptorSet>.Shared.Rent(sets.Length) : null;
-            try
-            {
-                var vkSets = rented is not null
-                    ? new Span<VkDescriptorSet>(rented, 0, sets.Length)
-                    : new VkDescriptorSet[sets.Length];
-                for (var i = 0; i < sets.Length; i++)
-                {
-                    vkSets[i] = (VkDescriptorSet)sets[i];
-                }
+            var vkSets = rented is null
+                ? stackalloc VkDescriptorSet[sets.Length]
+                : rented.AsSpan(0, sets.Length);
+            for (var i = 0; i < sets.Length; i++) vkSets[i] = (VkDescriptorSet)sets[i];
 
-                fixed (VkDescriptorSet* pSets = vkSets)
-                {
-                    var numSets = (uint)sets.Length;
-                    vkCmdBindDescriptorSets(cmd, bindPoint,
-                        pipelineLayout, firstSet, numSets, pSets, 0, null);
-                }
-            }
-            finally
-            {
-                if (rented is not null) ArrayPool<VkDescriptorSet>.Shared.Return(rented);
-            }
+            return cmd.BindDescriptorSets(bindPoint, pipelineLayout, vkSets, firstSet);
         }
-
-        return cmd;
+        finally
+        {
+            if (rented is not null) ArrayPool<VkDescriptorSet>.Shared.Return(rented);
+        }
     }
 
     public static VkPipeline CreateComputePipeline(in this VkDevice device, in VkPipelineLayout layout,
@@ -468,7 +406,8 @@ public static class VulkanExtensions
                     }
                 };
                 var pipeline = new VkPipeline();
-                vkCreateComputePipelines(device, new VkPipelineCache(), 1, &createInfo, null, &pipeline);
+                vkCreateComputePipelines(device, new VkPipelineCache(), 1, &createInfo, null, &pipeline)
+                    .ThrowIfFailed(nameof(vkCreateComputePipelines));
                 return pipeline;
             }
         }
@@ -487,24 +426,25 @@ public static class VulkanExtensions
             var isNoOpEquation = blendState.SrcColor == BlendFactor.One && blendState.DstColor == BlendFactor.Zero &&
                                   blendState.ColorOp == BlendOp.Add && blendState.SrcAlpha == BlendFactor.One &&
                                   blendState.DstAlpha == BlendFactor.Zero && blendState.AlphaOp == BlendOp.Add;
-            var attachments = Enumerable.Range(0, attachmentFormats.Length).Select(_ =>
-                new VkPipelineColorBlendAttachmentState
-                {
-                    blendEnable = (uint)(isNoOpEquation ? 0 : 1),
-                    srcColorBlendFactor = blendState.SrcColor.ToVk(),
-                    dstColorBlendFactor = blendState.DstColor.ToVk(),
-                    colorBlendOp = blendState.ColorOp.ToVk(),
-                    srcAlphaBlendFactor = blendState.SrcAlpha.ToVk(),
-                    dstAlphaBlendFactor = blendState.DstAlpha.ToVk(),
-                    alphaBlendOp = blendState.AlphaOp.ToVk(),
-                    colorWriteMask = blendState.WritesColor
-                        ? VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
-                          VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
-                          VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
-                          VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT
-                        : 0
-                }).ToArray();
-            fixed (VkPipelineColorBlendAttachmentState* pAttachments = attachments)
+            var blendAttachment = new VkPipelineColorBlendAttachmentState
+            {
+                blendEnable = (uint)(isNoOpEquation ? 0 : 1),
+                srcColorBlendFactor = blendState.SrcColor.ToVk(),
+                dstColorBlendFactor = blendState.DstColor.ToVk(),
+                colorBlendOp = blendState.ColorOp.ToVk(),
+                srcAlphaBlendFactor = blendState.SrcAlpha.ToVk(),
+                dstAlphaBlendFactor = blendState.DstAlpha.ToVk(),
+                alphaBlendOp = blendState.AlphaOp.ToVk(),
+                colorWriteMask = blendState.WritesColor
+                    ? VkColorComponentFlags.VK_COLOR_COMPONENT_R_BIT |
+                      VkColorComponentFlags.VK_COLOR_COMPONENT_G_BIT |
+                      VkColorComponentFlags.VK_COLOR_COMPONENT_B_BIT |
+                      VkColorComponentFlags.VK_COLOR_COMPONENT_A_BIT
+                    : 0
+            };
+            var pAttachments = stackalloc VkPipelineColorBlendAttachmentState[attachmentFormats.Length];
+            for (var i = 0; i < attachmentFormats.Length; i++) pAttachments[i] = blendAttachment;
+
             fixed (byte* pName = "main"u8)
             {
                 var shaderStages = stackalloc VkPipelineShaderStageCreateInfo[stages.Length];
@@ -534,7 +474,7 @@ public static class VulkanExtensions
                 {
                     sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
                     polygonMode = VkPolygonMode.VK_POLYGON_MODE_FILL,
-                    rasterizerDiscardEnable = 0, //(uint)(attachmentFormatsArray.Empty() ? 1 : 0),
+                    rasterizerDiscardEnable = 0,
                     cullMode = VkCullModeFlags.VK_CULL_MODE_BACK_BIT,
                     lineWidth = 1,
                     frontFace = VkFrontFace.VK_FRONT_FACE_CLOCKWISE
@@ -609,7 +549,8 @@ public static class VulkanExtensions
                     pNext = &renderingCreateInfo
                 };
                 var pipeline = new VkPipeline();
-                vkCreateGraphicsPipelines(device, new VkPipelineCache(), 1, &createInfo, null, &pipeline);
+                vkCreateGraphicsPipelines(device, new VkPipelineCache(), 1, &createInfo, null, &pipeline)
+                    .ThrowIfFailed(nameof(vkCreateGraphicsPipelines));
                 return pipeline;
             }
         }
@@ -629,7 +570,8 @@ public static class VulkanExtensions
                 };
 
                 var shaderModule = new VkShaderModule();
-                vkCreateShaderModule(device, &createInfo, null, &shaderModule);
+                vkCreateShaderModule(device, &createInfo, null, &shaderModule)
+                    .ThrowIfFailed(nameof(vkCreateShaderModule));
                 return shaderModule;
             }
         }
@@ -660,7 +602,8 @@ public static class VulkanExtensions
                 };
 
                 var result = new VkPipelineLayout();
-                vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, null, &result);
+                vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, null, &result)
+                    .ThrowIfFailed(nameof(vkCreatePipelineLayout));
                 return result;
             }
         }
@@ -685,7 +628,7 @@ public static class VulkanExtensions
         unsafe
         {
             var result = new VkFence();
-            vkCreateFence(device, &fenceCreateInfo, null, &result);
+            vkCreateFence(device, &fenceCreateInfo, null, &result).ThrowIfFailed(nameof(vkCreateFence));
             return result;
         }
     }
@@ -698,13 +641,13 @@ public static class VulkanExtensions
         }
     }
 
-    public static VkResult ResetFences(this in VkDevice self, params ReadOnlySpan<VkFence> fences)
+    public static void ResetFences(this in VkDevice self, params ReadOnlySpan<VkFence> fences)
     {
         unsafe
         {
             fixed (VkFence* pFences = fences)
             {
-                return vkResetFences(self, (uint)fences.Length, pFences);
+                vkResetFences(self, (uint)fences.Length, pFences).ThrowIfFailed(nameof(vkResetFences));
             }
         }
     }
@@ -716,7 +659,9 @@ public static class VulkanExtensions
         {
             fixed (VkFence* pFences = fences)
             {
-                return vkWaitForFences(self, (uint)fences.Length, pFences, 1, timeout);
+                var result = vkWaitForFences(self, (uint)fences.Length, pFences, (uint)(waitAll ? 1 : 0), timeout);
+                result.ThrowIfFailed(nameof(vkWaitForFences));
+                return result;
             }
         }
     }
@@ -731,7 +676,7 @@ public static class VulkanExtensions
         unsafe
         {
             VkSemaphore rSemaphore;
-            vkCreateSemaphore(device, &semaphoreCreateInfo, null, &rSemaphore);
+            vkCreateSemaphore(device, &semaphoreCreateInfo, null, &rSemaphore).ThrowIfFailed(nameof(vkCreateSemaphore));
             return rSemaphore;
         }
     }
@@ -760,14 +705,6 @@ public static class VulkanExtensions
         }
     }
 
-    /// <summary>
-    ///     The KING of synchronization
-    /// </summary>
-    /// <param name="cmd"></param>
-    /// <param name="image"></param>
-    /// <param name="from"></param>
-    /// <param name="to"></param>
-    /// <param name="options"></param>
     public static VkCommandBuffer ImageBarrier(in this VkCommandBuffer cmd, IVulkanImage image, ImageLayout from,
         ImageLayout to, ImageBarrierOptions? options = null)
     {
@@ -777,14 +714,6 @@ public static class VulkanExtensions
         return cmd2;
     }
 
-    /// <summary>
-    ///     Image syncronization
-    /// </summary>
-    /// <param name="cmd"></param>
-    /// <param name="image"></param>
-    /// <param name="from"></param>
-    /// <param name="to"></param>
-    /// <param name="options"></param>
     public static VkCommandBuffer ImageBarrier(in this VkCommandBuffer cmd, VkImage image, ImageLayout from,
         ImageLayout to, ImageBarrierOptions? options = null)
     {
@@ -844,8 +773,7 @@ public static class VulkanExtensions
         return cmd;
     }
 
-
-    public static void CopyImageToImage(in this VkCommandBuffer cmd, VkImage src, VkImage dst, Extent3D srcExtent,
+    private static void CopyImageToImage(in this VkCommandBuffer cmd, VkImage src, VkImage dst, Extent3D srcExtent,
         Extent3D dstExtent, ImageFilter filter = ImageFilter.Linear)
     {
         var blitRegion = new VkImageBlit2
@@ -897,7 +825,7 @@ public static class VulkanExtensions
         }
     }
 
-    public static VkRenderingAttachmentInfo MakeAttachmentInfo(this IVulkanTexture image, ImageLayout newLayout,
+    private static VkRenderingAttachmentInfo MakeAttachmentInfo(this IVulkanTexture image, ImageLayout newLayout,
         VkClearValue? clearValue = null)
     {
         var attachment = new VkRenderingAttachmentInfo
@@ -954,11 +882,13 @@ public static class VulkanExtensions
         unsafe
         {
             uint numFormats = 0;
-            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &numFormats, null);
-            var result = Enumerable.Range(0, (int)numFormats).Select(c => new VkSurfaceFormatKHR()).ToArray();
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &numFormats, null)
+                .ThrowIfFailed(nameof(vkGetPhysicalDeviceSurfaceFormatsKHR));
+            var result = new VkSurfaceFormatKHR[numFormats];
             fixed (VkSurfaceFormatKHR* pResults = result)
             {
-                vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &numFormats, pResults);
+                vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &numFormats, pResults)
+                    .ThrowIfFailed(nameof(vkGetPhysicalDeviceSurfaceFormatsKHR));
             }
 
             return result;
@@ -971,12 +901,13 @@ public static class VulkanExtensions
         unsafe
         {
             uint numModes = 0;
-            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &numModes, null);
-            var result = Enumerable.Range(0, (int)numModes).Select(c => VkPresentModeKHR.VK_PRESENT_MODE_MAX_ENUM_KHR)
-                .ToArray();
+            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &numModes, null)
+                .ThrowIfFailed(nameof(vkGetPhysicalDeviceSurfacePresentModesKHR));
+            var result = new VkPresentModeKHR[numModes];
             fixed (VkPresentModeKHR* pResults = result)
             {
-                vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &numModes, pResults);
+                vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &numModes, pResults)
+                    .ThrowIfFailed(nameof(vkGetPhysicalDeviceSurfacePresentModesKHR));
             }
 
             return result;
@@ -997,14 +928,14 @@ public static class VulkanExtensions
         var commandPoolCreateInfo = new VkCommandPoolCreateInfo
         {
             sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            flags = VkCommandPoolCreateFlags.VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            flags = flags,
             queueFamilyIndex = queueFamilyIndex
         };
 
         VkCommandPool pool = new();
         unsafe
         {
-            vkCreateCommandPool(self, &commandPoolCreateInfo, null, &pool);
+            vkCreateCommandPool(self, &commandPoolCreateInfo, null, &pool).ThrowIfFailed(nameof(vkCreateCommandPool));
         }
 
         return pool;
@@ -1035,7 +966,8 @@ public static class VulkanExtensions
         {
             fixed (VkCommandBuffer* pResult = result)
             {
-                vkAllocateCommandBuffers(self, &commandBufferCreateInfo, pResult);
+                vkAllocateCommandBuffers(self, &commandBufferCreateInfo, pResult)
+                    .ThrowIfFailed(nameof(vkAllocateCommandBuffers));
             }
         }
 

@@ -14,3 +14,5 @@ See [../ReadMe.md](../ReadMe.md) for the packing flow and the `silo sync` and `s
 | msdfgen | 1.12 | Static, core library only (no PNG, SVG or command line parts). |
 
 Both dependencies are static, so the package holds `Rin.Native.dll` alone. `Engine/Rin.GLTF.Tests` uses the NativeAOT fake instead, see [../Fakes/ReadMe.md](../Fakes/ReadMe.md).
+
+- `platformInit`, the file and path dialogs, `sdfContextNew`, `sdfContextGenerateMTSDF`, `videoContextCreate` and `videoSourceCreate` return a `CoreResult` from `src/result.hpp`, mirrored by `Native.CoreResult` in `Engine/Rin.Core/Native.cs`. The video decode and seek exports keep their own `VideoDemuxResult`, which describes the stream rather than the call.

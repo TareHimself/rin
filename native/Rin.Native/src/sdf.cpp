@@ -15,9 +15,13 @@ Vec2::operator msdfgen::Vector2()
     return msdfgen::Vector2(x,y);
 }
 
-GlyphContext * sdfContextNew()
+CoreResult sdfContextNew(GlyphContext** outContext)
 {
-    return new GlyphContext();
+    return guarded([&]
+    {
+        require(outContext != nullptr, CoreResult::InvalidArgument);
+        *outContext = new GlyphContext();
+    });
 }
 
 void sdfContextFree(GlyphContext * context)
@@ -95,7 +99,7 @@ void sdfContextFinish(GlyphContext * context)
     context->shape.normalize();
 }
 
-void sdfContextGenerateMTSDF(GlyphContext* context,float angleThreshold,float pixelRange, GenerateCallback callback,void*userData)
+static void generateMTSDF(GlyphContext* context, float angleThreshold, float pixelRange, GenerateCallback callback, void* userData)
 {
     if(!context->hasContent) {    
         return;
@@ -185,4 +189,13 @@ msdfgen::SDFTransformation computeTransformation(msdfgen::Shape& shape, float pi
     // Compute output
     const msdfgen::SDFTransformation transformation(msdfgen::Projection(scale, translate), range);
     return transformation;
+}
+
+CoreResult sdfContextGenerateMTSDF(GlyphContext* context, float angleThreshold, float pixelRange, GenerateCallback callback, void* userData)
+{
+    return guarded([&]
+    {
+        require(context != nullptr && callback != nullptr, CoreResult::InvalidArgument);
+        generateMTSDF(context, angleThreshold, pixelRange, callback, userData);
+    });
 }

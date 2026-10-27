@@ -3,7 +3,7 @@
 
 Each fake is plain C# compiled to a real native library via NativeAOT, standing in
 for a real native/*.Native library so tests that call into it (Rin.GLTF.Tests,
-Rin.Slang.Compiler.Tests) can run without the real C++ build (silo and a C++ toolchain).
+Rin.Slang.Compiler.Tests, Rin.Graphics.Vulkan.Tests) can run without the real C++ build (silo and a C++ toolchain).
 See scripts/pack_native_stubs.py for the separate restore-only stub packages.
 """
 

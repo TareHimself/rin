@@ -8,7 +8,7 @@ public class Pointer<T> : IDisposable where T : unmanaged
     {
         unsafe
         {
-            _pointer = Native.memoryAllocate((ulong)sizeof(T));
+            _pointer = Native.Allocate((ulong)sizeof(T));
         }
     }
 
