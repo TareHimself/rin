@@ -30,7 +30,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     private readonly DescriptorLayoutFactory _descriptorLayoutFactory = new();
     private readonly int _maxEventsPerPeep = 64;
     private readonly List<Pair<TaskCompletionSource, Action<IExecutionContext>>> _pendingGraphicsSubmits = [];
-    private readonly List<IRenderer> _renderers = [];
+    private readonly FrameCollector _frames = new();
     private readonly Dictionary<ulong, RinWindow> _rinWindows = [];
 
     private readonly Dictionary<IWindow, IWindowRenderer> _windows = [];
@@ -38,7 +38,6 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     private IntPtr _allocator;
 
     private int _bufferCount;
-    private readonly TripleBuffer<IRenderData[]> _collected = new();
     private VkDebugUtilsMessengerEXT _debugUtilsMessenger;
     private DescriptorAllocator? _descriptorAllocator;
     private VkDevice _device;
@@ -78,11 +77,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         app.OnCollect -= Collect;
         app.OnUpdate -= Update;
 
-
-        lock (_renderers)
-        {
-            _renderers.Clear();
-        }
+        _frames.Clear();
 
         foreach (var (window, renderer) in _windows)
         {
@@ -92,12 +87,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         }
 
         _windows.Clear();
-        // Dispose is idempotent by .NET convention, so this may double-dispose whatever Execute already
-        // consumed and disposed on its last call -- harmless, and the only way to also catch a value that
-        // was written but never read before shutdown.
-        foreach (var pending in _collected.RemainingValues)
-            if (pending != null)
-                DisposeCollected(pending);
+        _frames.DisposeRemaining();
         _backgroundTaskQueue.Dispose();
         _descriptorAllocator?.Dispose();
         _shaderManager?.Dispose();
@@ -162,13 +152,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         return windowRenderer;
     }
 
-    public IRenderer[] GetRenderers()
-    {
-        lock (_renderers)
-        {
-            return _renderers.ToArray();
-        }
-    }
+    public IRenderer[] GetRenderers() => _frames.GetRenderers();
 
     public IWindowRenderer[] GetWindowRenderers()
     {
@@ -206,33 +190,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         Sync(() => { vkDeviceWaitIdle(_device); }).Wait();
     }
 
-    public void Collect()
-    {
-        IRenderer[] renderers;
-
-        lock (_renderers)
-        {
-            renderers = _renderers.ToArray();
-        }
-
-        List<IRenderData> collected = [];
-        foreach (var renderer in renderers)
-            if (renderer.Collect() is { } context)
-                collected.Add(context);
-
-        // If render hasn't caught up to the last collection, it was skipped entirely -- dispose it.
-        var discarded = _collected.Write(collected.ToArray());
-        if (discarded != null) DisposeCollected(discarded);
-    }
-
-    // IRenderData isn't IDisposable today, but a renderer may return a disposable implementation later
-    // (e.g. one holding a staging allocation) -- dispose it if we're about to drop it on the floor.
-    private static void DisposeCollected(IRenderData[] batch)
-    {
-        foreach (var context in batch)
-            if (context is IDisposable disposable)
-                disposable.Dispose();
-    }
+    public void Collect() => _frames.Collect();
 
     public int MaxFramerate => _frameLimiter.MaxFramerate;
 
@@ -248,12 +206,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
             HandlePendingGraphicsSubmits();
         }
 
-        if (_collected.TryRead(out var batch) && batch != null)
-        {
-            foreach (var context in batch) context.Renderer.Execute(context);
-            DisposeCollected(batch);
-        }
-
+        _frames.Execute();
         FlushPendingWrites();
     }
 
@@ -317,10 +270,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
         var r = new WindowRenderer(this, window);
         r.Init();
         _windows.Add(window, r);
-        lock (_renderers)
-        {
-            _renderers.Add(r);
-        }
+        _frames.Add(r);
 
         OnWindowCreated?.Invoke(window);
         OnWindowRendererCreated?.Invoke(r);
@@ -330,10 +280,7 @@ public partial class VulkanGraphicsModule : IGraphicsModule
     {
         if (!_windows.TryGetValue(window, out var windowRenderer)) return;
 
-        lock (_renderers)
-        {
-            _renderers.Remove(windowRenderer);
-        }
+        _frames.Remove(windowRenderer);
 
         OnWindowClosed?.Invoke(window);
         OnWindowRendererDestroyed?.Invoke(_windows[window]);
