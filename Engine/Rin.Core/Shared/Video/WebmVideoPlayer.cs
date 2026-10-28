@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Rin.Core.Audio;
 using Rin.Core.Graphics;
 using Rin.Core.Shared.Buffers;
@@ -10,7 +9,8 @@ namespace Rin.Core.Shared.Video;
 /// <summary>
 ///     Decodes webm video on another thread. The source may still be arriving: header reads, seeks and decodes that
 ///     run out of data are retried on every <see cref="TryDecode" />, so a view that calls it each frame keeps the
-///     player going as bytes come in.
+///     player going as bytes come in. All native work goes through <see cref="IWebmDemuxer" />; this type owns the
+///     playback clock, the buffering decisions, seeks and the audio stream.
 /// </summary>
 public class WebmVideoPlayer : IVideoPlayer
 {
@@ -20,16 +20,15 @@ public class WebmVideoPlayer : IVideoPlayer
     private const double DecodeAheadSeconds = 1.0;
     private const double DecodeStepSeconds = 0.1;
 
-    private readonly IAudioModule _audioModule;
+    private readonly IWebmDemuxer _demuxer;
     private readonly Func<int, int, IPushStream>? _createStream;
     private readonly AutoResetEvent _decodeEvent = new(false);
     // The audio stream is made on the decode thread and read on the main thread, and a seek replaces it.
     private readonly Lock _audioLock = new();
-    private readonly Task _decodeTask;
+    private readonly Task? _decodeTask;
 
     private readonly IChronometer _videoPlaybackTime = new Chronometer();
-    private IntPtr _context;
-    private GCHandle _audioCallbackHandlerGcHandle;
+    private IAudioModule? _audioModule;
     private double _audioPacketsStartAt;
     private IPushStream? _audioStream;
 
@@ -41,36 +40,40 @@ public class WebmVideoPlayer : IVideoPlayer
 
     // A seek the decode thread still has to make, kept until the decoder has the data to land it.
     private SeekRequest? _pendingSeek;
+    private volatile bool _hasSource;
     private volatile bool _ready;
     private volatile Exception? _error;
-
-    private InternalSource? _source;
     private volatile bool _stopDecode;
+    private bool _disposed;
 
     public WebmVideoPlayer(IAudioModule? audioModule = null)
+        : this(onAudioPacket => new WebmDemuxer(onAudioPacket), null, audioModule, startDecodeThread: true)
     {
-        _audioModule = audioModule ?? IAudioModule.Get();
-        _context = Native.CreateVideoContext();
-        unsafe
-        {
-            var handler = new AudioCallbackHandler(AudioCallback);
-            _audioCallbackHandlerGcHandle = GCHandle.Alloc(handler, GCHandleType.Normal);
-            Native.videoContextSetAudioCallback(_context, &OnAudioCallback, GCHandle.ToIntPtr(_audioCallbackHandlerGcHandle));
-        }
-
-        _decodeTask = Task.Factory.StartNew(DecodeLoop, TaskCreationOptions.LongRunning);
     }
 
-    public WebmVideoPlayer(Func<int, int, IPushStream> createAudioStream, IAudioModule? audioModule = null) : this(audioModule)
+    public WebmVideoPlayer(Func<int, int, IPushStream> createAudioStream, IAudioModule? audioModule = null)
+        : this(onAudioPacket => new WebmDemuxer(onAudioPacket), createAudioStream, audioModule, startDecodeThread: true)
     {
+    }
+
+    /// <summary>
+    ///     Tests hand in a scripted demuxer and drive <see cref="Step" /> themselves instead of starting the decode
+    ///     thread.
+    /// </summary>
+    internal WebmVideoPlayer(Func<AudioPacketHandler, IWebmDemuxer> createDemuxer,
+        Func<int, int, IPushStream>? createAudioStream, IAudioModule? audioModule, bool startDecodeThread)
+    {
+        _demuxer = createDemuxer(AudioCallback);
         _createStream = createAudioStream;
+        _audioModule = audioModule;
+        if (startDecodeThread) _decodeTask = Task.Factory.StartNew(DecodeLoop, TaskCreationOptions.LongRunning);
     }
 
     public bool IsReady => _ready;
     public bool HasFailed => _error is not null;
     public Exception? Error => _error;
 
-    public double DecodedPosition => Native.videoContextGetPosition(_context);
+    public double DecodedPosition => _demuxer.Position;
 
     public double Position
     {
@@ -86,37 +89,30 @@ public class WebmVideoPlayer : IVideoPlayer
 
     public double Duration { get; private set; }
 
-    public ByteRange NeededRange
-    {
-        get
-        {
-            var range = Native.videoContextGetNeededRange(_context);
-            return new ByteRange(range.Start, range.End);
-        }
-    }
+    public ByteRange NeededRange => _demuxer.NeededRange;
 
     public bool IsPlaying { get; private set; }
     // Gated on _ready so a caller never sees a track before the frame buffer size that goes with it.
-    public bool HasVideo => _ready && Native.videoContextHasVideo(_context) == 1;
+    public bool HasVideo => _ready && _demuxer.HasVideo;
     public int VideoTracksCount => HasVideo ? 1 : 0;
     public int SelectedVideoTrackIndex => 0;
-    public Extent2D VideoExtent => Native.videoContextGetVideoExtent(_context);
-    public bool HasAudio => _ready && Native.videoContextHasAudio(_context) == 1;
+    public Extent2D VideoExtent => _demuxer.VideoExtent;
+    public bool HasAudio => _ready && _demuxer.HasAudio;
 
-    public int AudioTracksCount => Native.videoContextGetAudioTrackCount(_context);
+    public int AudioTracksCount => _demuxer.AudioTrackCount;
     public int SelectedAudioTrackIndex => 0;
     public int AudioSampleRate { get; private set; }
     public int AudioChannels { get; private set; }
 
     public void TryDecode()
     {
-        if (_source == null) return;
+        if (!_hasSource) return;
         _decodeEvent.Set();
     }
 
     public void Play()
     {
-        if (_source == null) return;
+        if (!_hasSource) return;
         IsPlaying = true;
         lock (_audioLock)
         {
@@ -127,7 +123,7 @@ public class WebmVideoPlayer : IVideoPlayer
 
     public void Pause()
     {
-        if (_source == null) return;
+        if (!_hasSource) return;
         IsPlaying = false;
         lock (_audioLock)
         {
@@ -138,7 +134,7 @@ public class WebmVideoPlayer : IVideoPlayer
 
     public void Seek(double position)
     {
-        if (_source == null) return;
+        if (!_hasSource) return;
         _lastFrame?.Dispose();
         _lastFrame = null;
         lock (_audioLock)
@@ -161,21 +157,17 @@ public class WebmVideoPlayer : IVideoPlayer
             _lastFrame.Zero();
         }
 
-        Native.videoContextCopyRecentFrame(_context, Position, _lastFrame.GetPtr(), _bufferSize);
+        _demuxer.CopyRecentFrame(Position, _lastFrame.GetPtr(), _bufferSize);
         return _lastFrame.Copy();
     }
 
     public void SetSource(IVideoSource source)
     {
-        // The decode thread may be reading the old source until native has switched to the new one.
-        var previous = _source;
-        var next = new InternalSource(source);
         _ready = false;
         _error = null;
         Volatile.Write(ref _pendingSeek, null);
-        Native.videoContextSetSource(_context, next.NativeSource);
-        _source = next;
-        previous?.Dispose();
+        _demuxer.SetSource(source);
+        _hasSource = true;
 
         lock (_audioLock)
         {
@@ -206,11 +198,13 @@ public class WebmVideoPlayer : IVideoPlayer
         }
     }
 
-    // One unit of work for the decode thread. True when there may be more to do right now.
-    private bool Step()
+    /// <summary>
+    ///     One unit of work for the decode thread. True when there may be more to do right now.
+    /// </summary>
+    internal bool Step()
     {
-        if (_source is not { } source || _error is not null) return false;
-        if (source.Error is { } sourceError)
+        if (!_hasSource || _error is not null) return false;
+        if (_demuxer.SourceError is { } sourceError)
         {
             _error = sourceError;
             return false;
@@ -219,26 +213,27 @@ public class WebmVideoPlayer : IVideoPlayer
         if (!_ready) return TryBecomeReady();
         if (Volatile.Read(ref _pendingSeek) is { } seek) return PerformSeek(seek);
         if (!ShouldDecode()) return false;
-        return Continue(Native.videoContextDecode(_context, DecodeStepSeconds));
+        return Continue(_demuxer.Decode(DecodeStepSeconds));
     }
 
     private bool TryBecomeReady()
     {
-        var result = Native.videoContextEnsureHeader(_context);
-        if (result != NativeResult.Success) return Continue(result);
+        var result = _demuxer.EnsureHeader();
+        if (result != VideoDemuxResult.Success) return Continue(result);
         if (_ready) return true;
 
-        Duration = Native.videoContextGetDuration(_context);
-        if (Native.videoContextHasVideo(_context) == 1)
+        Duration = _demuxer.Duration;
+        if (_demuxer.HasVideo)
         {
-            _bufferSize = Native.videoContextGetFrameByteSize(_context);
-            _maxBufferedFrames = System.Math.Max(MinBufferedFrames, (int)(DecodeBufferBudgetBytes / System.Math.Max(1.0, _bufferSize)));
+            _bufferSize = _demuxer.FrameByteSize;
+            _maxBufferedFrames = System.Math.Max(MinBufferedFrames,
+                (int)(DecodeBufferBudgetBytes / System.Math.Max(1.0, _bufferSize)));
         }
 
-        if (Native.videoContextHasAudio(_context) == 1)
+        if (_demuxer.HasAudio)
         {
-            AudioSampleRate = Native.videoContextGetAudioSampleRate(_context);
-            AudioChannels = Native.videoContextGetAudioChannels(_context);
+            AudioSampleRate = _demuxer.AudioSampleRate;
+            AudioChannels = _demuxer.AudioChannels;
         }
 
         _ready = true;
@@ -247,8 +242,8 @@ public class WebmVideoPlayer : IVideoPlayer
 
     private bool PerformSeek(SeekRequest seek)
     {
-        var result = Native.videoContextSeek(_context, seek.Position);
-        if (result == NativeResult.Success)
+        var result = _demuxer.Seek(seek.Position);
+        if (result == VideoDemuxResult.Success)
         {
             lock (_audioLock)
             {
@@ -268,30 +263,19 @@ public class WebmVideoPlayer : IVideoPlayer
         _audioStream = null;
     }
 
-    // Whether the decode thread should go straight on after a native step, and records a rejected source.
-    private bool Continue(int result)
+    // Whether the decode thread should go straight on after a demux step, and records a rejected source.
+    private bool Continue(VideoDemuxResult result)
     {
-        if (result == NativeResult.Error) _error = new VideoDecodeException("The decoder rejected the source");
-        return result == NativeResult.Success;
+        if (result == VideoDemuxResult.Error) _error = new VideoDecodeException("The decoder rejected the source");
+        return result == VideoDemuxResult.Success;
     }
 
     private bool ShouldDecode()
     {
         var position = Position;
         // Frames pile up when nothing is drawing them, so drop the ones playback has passed.
-        Native.videoContextDropFramesBefore(_context, position);
-        return DecodedPosition - position <= DecodeAheadSeconds &&
-               Native.videoContextGetBufferedFrameCount(_context) < _maxBufferedFrames;
-    }
-
-    [UnmanagedCallersOnly]
-    private static unsafe void OnAudioCallback(float* data, int count, double time, IntPtr context)
-    {
-        var handle = GCHandle.FromIntPtr(context);
-        if (handle.Target is AudioCallbackHandler audioCallbackHandler)
-        {
-            audioCallbackHandler.Callback(new ReadOnlySpan<byte>(data, count * sizeof(float)), time);
-        }
+        _demuxer.DropFramesBefore(position);
+        return DecodedPosition - position <= DecodeAheadSeconds && _demuxer.BufferedFrameCount < _maxBufferedFrames;
     }
 
     private void AudioCallback(ReadOnlySpan<byte> data, double time)
@@ -303,8 +287,7 @@ public class WebmVideoPlayer : IVideoPlayer
             if (_audioStream == null)
             {
                 _audioPacketsStartAt = time;
-                _audioStream = _createStream?.Invoke(AudioSampleRate, AudioChannels) ??
-                               _audioModule.MasterAudioGroup.CreatePushStream(AudioSampleRate, AudioChannels);
+                _audioStream = CreateAudioStream();
                 if (IsPlaying) _audioStream.Play();
             }
 
@@ -312,12 +295,20 @@ public class WebmVideoPlayer : IVideoPlayer
         }
     }
 
+    private IPushStream CreateAudioStream()
+    {
+        if (_createStream is { } create) return create(AudioSampleRate, AudioChannels);
+        _audioModule ??= IAudioModule.Get();
+        return _audioModule.MasterAudioGroup.CreatePushStream(AudioSampleRate, AudioChannels);
+    }
+
     private void ReleaseResources()
     {
-        if (_context == IntPtr.Zero) return;
+        if (_disposed) return;
+        _disposed = true;
         _stopDecode = true;
         _decodeEvent.Set();
-        _decodeTask.Wait();
+        _decodeTask?.Wait();
         lock (_audioLock)
         {
             DropAudioStream();
@@ -325,11 +316,7 @@ public class WebmVideoPlayer : IVideoPlayer
 
         _lastFrame?.Dispose();
         _lastFrame = null;
-        _audioCallbackHandlerGcHandle.Free();
-        Native.videoContextFree(_context);
-        _context = IntPtr.Zero;
-        _source?.Dispose();
-        _source = null;
+        _demuxer.Dispose();
     }
 
     ~WebmVideoPlayer()
@@ -337,155 +324,5 @@ public class WebmVideoPlayer : IVideoPlayer
         ReleaseResources();
     }
 
-    private static class NativeResult
-    {
-        public const int Error = -1;
-        public const int IncompleteHeader = 0;
-        public const int IncompleteCluster = 1;
-        public const int Success = 2;
-        public const int Finished = 3;
-    }
-
     private sealed record SeekRequest(double Position);
-
-    private sealed class AudioCallbackHandler(Action<ReadOnlySpan<byte>, double> callback)
-    {
-        public readonly Action<ReadOnlySpan<byte>, double> Callback = callback;
-    }
-
-    /// <summary>
-    ///     Pins a managed source and hands native its callbacks. A callback must not throw into native, so an
-    ///     exception is kept in <see cref="Error" /> for the decode thread to report instead.
-    /// </summary>
-    private sealed class InternalSource : IDisposable
-    {
-        public readonly IntPtr NativeSource;
-        public readonly IVideoSource VideoSource;
-        private GCHandle _handle;
-        private bool _disposed;
-
-        public InternalSource(IVideoSource source)
-        {
-            VideoSource = source;
-            _handle = GCHandle.Alloc(this, GCHandleType.Normal);
-            unsafe
-            {
-                var callbacks = new Native.VideoSourceCallbacks
-                {
-                    Read = &Read,
-                    Available = &Available,
-                    Length = &Length,
-                    AvailableFrom = &AvailableFrom,
-                    MakeRangeAvailable = &MakeRangeAvailable,
-                    ReleaseBefore = &ReleaseBefore,
-                    UserData = GCHandle.ToIntPtr(_handle)
-                };
-                NativeSource = Native.CreateVideoSource(&callbacks);
-            }
-        }
-
-        public volatile Exception? Error;
-
-        public void Dispose()
-        {
-            if (_disposed) return;
-            _disposed = true;
-            Native.videoSourceFree(NativeSource);
-            _handle.Free();
-            VideoSource.Dispose();
-        }
-
-        private static InternalSource? From(IntPtr context)
-        {
-            return GCHandle.FromIntPtr(context).Target as InternalSource;
-        }
-
-        private static void Fail(IntPtr context, Exception exception)
-        {
-            if (From(context) is { } source) source.Error ??= exception;
-        }
-
-        [UnmanagedCallersOnly]
-        private static unsafe void Read(long offset, ulong size, IntPtr destination, IntPtr context)
-        {
-            var span = new Span<byte>(destination.ToPointer(), (int)size);
-            try
-            {
-                From(context)?.VideoSource.Read(offset, span);
-            }
-            catch (Exception e)
-            {
-                span.Clear();
-                Fail(context, e);
-            }
-        }
-
-        [UnmanagedCallersOnly]
-        private static long Available(IntPtr context)
-        {
-            try
-            {
-                return From(context)?.VideoSource.Available ?? 0;
-            }
-            catch (Exception e)
-            {
-                Fail(context, e);
-                return 0;
-            }
-        }
-
-        [UnmanagedCallersOnly]
-        private static long Length(IntPtr context)
-        {
-            try
-            {
-                return From(context)?.VideoSource.Length ?? 0;
-            }
-            catch (Exception e)
-            {
-                Fail(context, e);
-                return 0;
-            }
-        }
-
-        [UnmanagedCallersOnly]
-        private static long AvailableFrom(long offset, IntPtr context)
-        {
-            try
-            {
-                return From(context)?.VideoSource.AvailableFrom(offset) ?? offset;
-            }
-            catch (Exception e)
-            {
-                Fail(context, e);
-                return offset;
-            }
-        }
-
-        [UnmanagedCallersOnly]
-        private static void MakeRangeAvailable(long offset, ulong size, IntPtr context)
-        {
-            try
-            {
-                From(context)?.VideoSource.MakeRangeAvailable(offset, (long)size);
-            }
-            catch (Exception e)
-            {
-                Fail(context, e);
-            }
-        }
-
-        [UnmanagedCallersOnly]
-        private static void ReleaseBefore(long offset, IntPtr context)
-        {
-            try
-            {
-                From(context)?.VideoSource.ReleaseBefore(offset);
-            }
-            catch (Exception e)
-            {
-                Fail(context, e);
-            }
-        }
-    }
 }

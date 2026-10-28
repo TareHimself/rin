@@ -16,7 +16,7 @@ dotnet test Engine/Rin.Core.Tests/Rin.Core.Tests.csproj -p:RinShadeSkipCompile=t
 | `Views/` | The UI system: the view tree, layouts, surface events, fonts and MTSDF text, the command list that becomes render graph passes, and the Rin.Shade shaders that draw it. |
 | `Audio/` | What an audio backend implements: the module, samples, groups, channels, push streams and the `[AudioEffect]` effect model. |
 | `Animation/` | Transition, delay and sequence animations and the runner views tick them with. |
-| `Shared/` | Math, curves, buffers, logging, pooling, providers, threading, time, profiling and webm video playback through the native library from a file, a URL or a pushed stream. |
+| `Shared/` | Math, curves, buffers, logging, pooling, providers, threading, time, profiling and webm video playback from a file, a URL or a pushed stream. `WebmVideoPlayer` owns the clock, buffering and seeks and talks to the native decoder only through `IWebmDemuxer`, which `WebmDemuxer` implements. |
 | `Sources/` | File system and embedded resource sources. `Global.Sources` combines the file system with the embedded `Core` content. |
 | `Content/` | Embedded resources: the default font (Noto Sans) and the default texture. |
 | `Extensions/`, `Json/` | Extension methods and JSON converters for the `System.Numerics` vectors. |

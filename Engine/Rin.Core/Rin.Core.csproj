@@ -42,4 +42,7 @@
         <DefaultItemExcludes>$(DefaultItemExcludes);native\**\*.*;assets\**\*.*</DefaultItemExcludes>
     </PropertyGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="Rin.Core.Tests" />
+    </ItemGroup>
 </Project>
