@@ -41,6 +41,7 @@ public partial class VulkanGraphicsModule
 
     private readonly TextureWriteLanes _textureWrites = new();
     private readonly BufferWriteLanes _bufferWrites = new();
+    private readonly UploadBatch _uploads = new();
 
     private DescriptorAllocator? _resourceDescriptorAllocator;
     private DescriptorSet _resourceDescriptorSet;
@@ -412,90 +413,45 @@ public partial class VulkanGraphicsModule
 
     private void FlushPendingWrites()
     {
-        List<(ResourceHandle Handle, PendingTextureWrite Write)> pendingTextures = [];
-        List<(ResourceHandle Handle, PendingBufferWrite Write)> pendingBuffers = [];
-        _textureWrites.TakeUpTo(MaxFlushedWritesPerKind, pendingTextures);
-        _bufferWrites.TakeUpTo(MaxFlushedWritesPerKind, pendingBuffers);
-        if (pendingTextures.Count == 0 && pendingBuffers.Count == 0) return;
+        _uploads.Fill(_textureWrites, _bufferWrites, MaxFlushedWritesPerKind, this);
+        if (_uploads.IsEmpty) return;
 
-        HashSet<ResourceHandle> acquired = [];
-        HashSet<ResourceHandle> refused = [];
-
-        bool Acquire(ResourceHandle handle, PendingWrite write)
+        if (_uploads.StagingSize > 0)
         {
-            if (acquired.Contains(handle)) return true;
-            if (!refused.Contains(handle) && TryAcquireResource(handle))
-            {
-                acquired.Add(handle);
-                return true;
-            }
-
-            refused.Add(handle);
-            write.Dispose();
-            return false;
+            var staging = WriteRecorder.CreateStaging(this, _uploads.StagingSize);
+            SubmitGraphicsAndWait(cmd => RecordUploads(cmd, staging));
+            FreeResourceHandles(staging);
         }
 
-        List<(ResourceHandle Handle, PendingTextureWrite Write)> textureWrites = [];
-        Dictionary<ResourceHandle, List<PendingBufferWrite>> bufferWrites = [];
-        ulong stagingSize = 0;
-        foreach (var (handle, write) in pendingTextures)
+        _uploads.CompleteWrites();
+        foreach (var handle in _uploads.Acquired) ReleaseResource(handle);
+        _uploads.Clear();
+    }
+
+    private void RecordUploads(in VkCommandBuffer cmd, in ResourceHandle staging)
+    {
+        ulong offset = 0;
+        foreach (var (handle, write) in _uploads.Textures)
         {
-            if (!Acquire(handle, write)) continue;
-            textureWrites.Add((handle, write));
-            stagingSize += write.StagingSize;
+            var image = GetTexture(handle)!;
+            cmd.ImageBarrier(image, write.CoversWholeImage ? ImageLayout.Undefined : image.Layout,
+                ImageLayout.TransferDst);
+            WriteRecorder.RecordTextureCopy(cmd, image, new DeviceBufferView(staging, offset, write.StagingSize),
+                write);
+            offset += write.StagingSize;
+            BindPendingTexture(handle);
         }
 
-        foreach (var (handle, write) in pendingBuffers)
+        foreach (var (handle, _) in _uploads.Textures)
+            if (GetTexture(handle) is { Layout: ImageLayout.TransferDst } image)
+                cmd.ImageBarrier(image, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
+
+        foreach (var (handle, writes) in _uploads.Buffers)
         {
-            if (!Acquire(handle, write)) continue;
-            if (!bufferWrites.TryGetValue(handle, out var writes)) bufferWrites[handle] = writes = [];
-            writes.Add(write);
-            stagingSize += write.StagingSize;
+            var size = WriteRecorder.StagingSize(writes);
+            WriteRecorder.RecordBufferWrites(cmd, handle, new DeviceBufferView(staging, offset, size), writes);
+            offset += size;
         }
-
-        if (stagingSize == 0) return;
-
-        var staging = WriteRecorder.CreateStaging(this, stagingSize);
-        SubmitGraphicsAndWait(cmd =>
-        {
-            ulong offset = 0;
-            foreach (var (handle, write) in textureWrites)
-            {
-                var image = GetTexture(handle)!;
-                cmd.ImageBarrier(image, write.CoversWholeImage ? ImageLayout.Undefined : image.Layout,
-                    ImageLayout.TransferDst);
-                WriteRecorder.RecordTextureCopy(cmd, image, new DeviceBufferView(staging, offset, write.StagingSize),
-                    write);
-                offset += write.StagingSize;
-                BindPendingTexture(handle);
-            }
-
-            foreach (var (handle, _) in textureWrites)
-                if (GetTexture(handle) is { Layout: ImageLayout.TransferDst } image)
-                    cmd.ImageBarrier(image, ImageLayout.TransferDst, ImageLayout.ShaderReadOnly);
-
-            foreach (var (handle, writes) in bufferWrites)
-            {
-                var size = WriteRecorder.StagingSize(writes);
-                WriteRecorder.RecordBufferWrites(cmd, handle, new DeviceBufferView(staging, offset, size), writes);
-                offset += size;
-            }
-        });
-
-        foreach (var (_, write) in textureWrites)
-        {
-            write.Complete();
-            write.Dispose();
-        }
-
-        foreach (var write in bufferWrites.Values.SelectMany(w => w))
-        {
-            write.Complete();
-            write.Dispose();
-        }
-
-        FreeResourceHandles(staging);
-        foreach (var handle in acquired) ReleaseResource(handle);
     }
 
     /// <summary>
