@@ -38,7 +38,7 @@ public static class StreamExtensions
         public void Write(in ulong data)
         {
             Span<byte> buffer = stackalloc byte[sizeof(ulong)];
-            BinaryPrimitives.WriteSingleLittleEndian(buffer, data);
+            BinaryPrimitives.WriteUInt64LittleEndian(buffer, data);
             stream.Write(buffer);
         }
 

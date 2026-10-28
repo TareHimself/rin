@@ -1,4 +1,6 @@
-﻿namespace Rin.Core.Shared;
+﻿using System.Runtime.InteropServices;
+
+namespace Rin.Core.Shared;
 
 public sealed class TypeBlackboard : IDisposable
 {
@@ -15,15 +17,15 @@ public sealed class TypeBlackboard : IDisposable
         unsafe
         {
             var type = typeof(T);
-            if (!_data.ContainsKey(type)) _data.Add(type, Native.Allocate((ulong)sizeof(T)));
+            if (!_data.ContainsKey(type)) _data.Add(type, (IntPtr)NativeMemory.Alloc((nuint)sizeof(T)));
             var ptr = _data[type].ToPointer();
             return ref *(T*)ptr;
         }
     }
 
-    private void ReleaseUnmanagedResources()
+    private unsafe void ReleaseUnmanagedResources()
     {
-        foreach (var ptr in _data.Values) Native.memoryFree(ptr);
+        foreach (var ptr in _data.Values) NativeMemory.Free(ptr.ToPointer());
     }
 
     ~TypeBlackboard()

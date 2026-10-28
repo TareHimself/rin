@@ -10,7 +10,6 @@ The RID defaults to `win-x64`. The script runs `dotnet publish -c Release -r <ri
 
 | Project | Replaces | Used by |
 | --- | --- | --- |
-| `Rin.Native.Fake` | `Rin.Native` | `Engine/Rin.GLTF.Tests` |
 | `Rin.Slang.Native.Fake` | `Rin.Slang.Native` | `Slang/Rin.Slang.Compiler.Tests` |
 | `Rin.Graphics.Vulkan.Native.Fake` | `Rin.Graphics.Vulkan.Native` | `Engine/Rin.Graphics.Vulkan.Tests` |
 

@@ -15,10 +15,6 @@ internal static partial class Native
 {
     private const string DllName = "Rin.Native";
 
-    
-
-    
-
     // Mirrors CoreResult in native/Rin.Native/src/result.hpp. Keep the two in sync.
     public enum CoreResult
     {
@@ -31,14 +27,6 @@ internal static partial class Native
     private static void Check(CoreResult result, string function)
     {
         if (result != CoreResult.Ok) throw new NativeException(DllName, function, result);
-    }
-
-    public static IntPtr Allocate(ulong size)
-    {
-        var pointer = memoryAllocate(size);
-        if (pointer == IntPtr.Zero && size != 0)
-            throw new OutOfMemoryException($"{nameof(memoryAllocate)} of {size} bytes failed");
-        return pointer;
     }
 
     public static IntPtr NewSdfContext()
@@ -85,15 +73,6 @@ internal static partial class Native
     {
         Check(platformSelectPath(title, multiple, pathCallback, userData), nameof(platformSelectPath));
     }
-
-    [LibraryImport(DllName)]
-    private static partial IntPtr memoryAllocate(ulong size);
-
-    [LibraryImport(DllName)]
-    public static partial void memorySet(IntPtr ptr, int value, ulong size);
-
-    [LibraryImport(DllName)]
-    public static partial void memoryFree(IntPtr ptr);
 
     [LibraryImport(DllName)]
     private static partial CoreResult sdfContextNew(ref IntPtr outContext);

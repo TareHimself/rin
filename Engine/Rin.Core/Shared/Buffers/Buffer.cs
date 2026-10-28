@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Rin.Core.Extensions;
 
 namespace Rin.Core.Shared.Buffers;
@@ -14,7 +15,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         if (elements <= 0) return;
 
         ElementCount = elements;
-        _ptr = Native.Allocate(Utils.ByteSizeOf<T>(elements));
+        _ptr = Allocate(Utils.ByteSizeOf<T>(elements));
     }
 
     public Buffer(IntPtr data, ulong byteSize, bool copy = false)
@@ -24,7 +25,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         ElementCount = (int)(byteSize / Utils.ByteSizeOf<T>());
         if (copy)
         {
-            _ptr = Native.Allocate(byteSize);
+            _ptr = Allocate(byteSize);
             Write(data, byteSize);
         }
         else
@@ -38,7 +39,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         if (elements <= 0) return;
 
         ElementCount = elements;
-        _ptr = Native.Allocate(Utils.ByteSizeOf<T>(elements));
+        _ptr = Allocate(Utils.ByteSizeOf<T>(elements));
         Write(data, elements);
     }
 
@@ -51,7 +52,7 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         ElementCount = elementCount;
         unsafe
         {
-            _ptr = new IntPtr(Native.Allocate(Utils.ByteSizeOf<T>(elementCount)));
+            _ptr = Allocate(Utils.ByteSizeOf<T>(elementCount));
             elements.CopyTo(new Span<T>(_ptr.ToPointer(), elementCount));
         }
     }
@@ -76,13 +77,13 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         {
             if (_ptr != IntPtr.Zero)
             {
-                Native.memoryFree(_ptr);
+                Free(_ptr);
                 _ptr = IntPtr.Zero;
                 ElementCount = 0;
             }
 
             var byteSize = (nuint)input.ReadUInt64();
-            _ptr = new IntPtr(Native.Allocate(byteSize));
+            _ptr = Allocate(byteSize);
             ElementCount = (int)(byteSize / GetElementByteSize());
             var _ = input.Read(new Span<byte>(_ptr.ToPointer(), (int)byteSize));
         }
@@ -104,9 +105,9 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
         GC.SuppressFinalize(this);
     }
 
-    public void Zero()
+    public unsafe void Zero()
     {
-        Native.memorySet(_ptr, 0, GetByteSize());
+        NativeMemory.Clear(_ptr.ToPointer(), (nuint)GetByteSize());
     }
 
 
@@ -203,8 +204,18 @@ public class Buffer<T> : IBuffer<T>, IBinarySerializable //, IEnumerable<T>
 
     private void ReleaseUnmanagedResources()
     {
-        if (_ptr != IntPtr.Zero) Native.memoryFree(_ptr);
+        Free(_ptr);
         _ptr = IntPtr.Zero;
+    }
+
+    private static unsafe IntPtr Allocate(ulong byteSize)
+    {
+        return (IntPtr)NativeMemory.Alloc((nuint)byteSize);
+    }
+
+    private static unsafe void Free(IntPtr ptr)
+    {
+        NativeMemory.Free(ptr.ToPointer());
     }
 
     ~Buffer()
