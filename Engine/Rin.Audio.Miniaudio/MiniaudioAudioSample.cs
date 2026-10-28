@@ -4,36 +4,28 @@ namespace Rin.Audio.Miniaudio;
 
 public class MiniaudioAudioSample : IAudioSample
 {
-    private readonly ulong _id;
+    private readonly IMiniaudioEngine _engine;
+    private bool _disposed;
 
-    internal MiniaudioAudioSample(ulong id)
+    internal MiniaudioAudioSample(IMiniaudioEngine engine, ulong id)
     {
-        _id = id;
+        _engine = engine;
+        NativeId = id;
     }
 
-    internal ulong NativeId => _id;
+    internal ulong NativeId { get; }
 
-    public IActiveAudio MakeActive() =>
-        new MiniaudioActiveAudio(Native.SampleMakeActive(_id));
-
-    public void Dispose() =>
-        Native.audioSampleDispose(_id);
-
-    public static MiniaudioAudioSample FromFile(string filePath) =>
-        new(Native.MakeSampleFromFile(filePath));
-
-    public static unsafe MiniaudioAudioSample FromMemory(ReadOnlySpan<byte> data)
+    public IActiveAudio MakeActive()
     {
-        fixed (byte* ptr = data)
-            return new(Native.MakeSampleFromMemory(ptr, (nuint)data.Length));
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return new MiniaudioActiveAudio(_engine, _engine.SampleMakeActive(NativeId));
     }
 
-    public static MiniaudioAudioSample StreamFromFile(string filePath) =>
-        new(Native.MakeStreamFromFile(filePath));
-
-    public static unsafe MiniaudioAudioSample StreamFromMemory(ReadOnlySpan<byte> data)
+    public void Dispose()
     {
-        fixed (byte* ptr = data)
-            return new(Native.MakeStreamFromMemory(ptr, (nuint)data.Length));
+        if (_disposed) return;
+        _disposed = true;
+        GC.SuppressFinalize(this);
+        _engine.SampleDispose(NativeId);
     }
 }

@@ -62,6 +62,7 @@ How the pieces fit together is in [`ARCHITECTURE.md`](ARCHITECTURE.md). Conventi
 
 **Engine**
 
+- [Rin.Audio.Miniaudio.Tests](Engine/Rin.Audio.Miniaudio.Tests/ReadMe.md): NUnit tests for the miniaudio backend against a recording engine, no native library needed.
 - [Rin.Audio.Miniaudio](Engine/Rin.Audio.Miniaudio/ReadMe.md): Audio backend built on miniaudio, implementing `IAudioModule` from Rin.Core.
 - [Rin.Audio.Null](Engine/Rin.Audio.Null/ReadMe.md): An audio backend that does nothing, for headless runs and tests.
 - [Rin.Core.Tests](Engine/Rin.Core.Tests/ReadMe.md): NUnit tests for Rin.Core.
